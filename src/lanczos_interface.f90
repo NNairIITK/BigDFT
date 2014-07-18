@@ -12,6 +12,7 @@
 module lanczos_interface
    use module_base
    use module_types
+   use module_xc, only : xc_info
    use module_abscalc
    use communications_base, only: comms_cubic
    implicit none
@@ -60,7 +61,7 @@ module lanczos_interface
 
 
    character(len=*), parameter :: subname='lanczos_interface'
-   integer :: i_all,i_stat,ierr
+   integer :: ierr
    type(lanczos_args), pointer :: ha
 
    real(kind=8), pointer :: matrix(:,:)
@@ -1347,7 +1348,7 @@ nullify(Qvect,dumQvect)
      character(len=*), parameter :: subname='gaussians_to_wavelets'
      integer, parameter :: nterm_max=3
      logical :: maycalc
-     integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,nterm,ierr,ispinor
+     integer :: ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,nterm,ierr,ispinor
      real(dp) :: normdev,tt,scpr,totnorm
      real(gp) :: rx,ry,rz
      integer, dimension(nterm_max) :: lx,ly,lz
@@ -1615,6 +1616,7 @@ nullify(Qvect,dumQvect)
     use lanczos_base
     use module_interfaces
     use communications_init, only: orbitals_communicators
+    use communications_base, only: deallocate_comms
     implicit none
     integer, intent(in) :: iproc,nproc,nspin
     real(gp), intent(in) :: hx,hy,hz
@@ -1636,7 +1638,6 @@ nullify(Qvect,dumQvect)
 
     !local variables
     character(len=*), parameter :: subname='lanczos'
-    integer :: i_stat,i_all
     type(lanczos_args) :: ha
     integer :: i
 
@@ -1741,7 +1742,7 @@ nullify(Qvect,dumQvect)
 
     endif
 
-    call deallocate_comms(ha%comms,subname)
+    call deallocate_comms(ha%comms)
 
     call EP_free(ha%iproc)
 
@@ -1772,6 +1773,7 @@ nullify(Qvect,dumQvect)
     ! per togliere il bug 
     use module_interfaces
     use communications_init, only: orbitals_communicators
+    use communications_base, only: deallocate_comms
 
     implicit none
     integer  :: iproc,nproc,nspin
@@ -1794,7 +1796,6 @@ nullify(Qvect,dumQvect)
 
     !Local variables
     character(len=*), parameter :: subname='chebychev'
-!!$    integer :: i_stat,i_all
     type(lanczos_args) :: ha
     integer :: i
 
@@ -1959,7 +1960,7 @@ nullify(Qvect,dumQvect)
 
 
     !deallocate communication and orbitals descriptors
-    call deallocate_comms(ha%comms,subname)
+    call deallocate_comms(ha%comms)
 
     call EP_free(ha%iproc)
     call  LB_de_allocate_for_cheb( )
@@ -2013,6 +2014,7 @@ nullify(Qvect,dumQvect)
     use module_types
     use lanczos_base
     use module_xc
+    use communications_base, only: deallocate_comms
     ! per togliere il bug 
     use module_interfaces
     use communications_init, only: orbitals_communicators
@@ -2040,7 +2042,6 @@ nullify(Qvect,dumQvect)
 
     !local variables
     character(len=*), parameter :: subname='xabs_cg'
-    integer :: i_stat,i_all
     type(lanczos_args) :: ha
     integer :: i,j
     real(gp) Ene,gamma,  res 
@@ -2123,16 +2124,13 @@ nullify(Qvect,dumQvect)
     ha%xc=>xc
     ha%orbs=>orbs
 
-
     call EP_inizializza(ha) 
-
 
     if(.true.) then
        LB_nsteps =in%nsteps
        call LB_allocate_for_lanczos( )
        call EP_allocate_for_eigenprob(10)
        call EP_make_dummy_vectors(10)
-
 
        do i=0,0
 
@@ -2172,7 +2170,7 @@ nullify(Qvect,dumQvect)
 
     endif
 
-    call deallocate_comms(ha%comms,subname)
+    call deallocate_comms(ha%comms)
 
     call EP_free(ha%iproc)
 

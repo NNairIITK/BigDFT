@@ -8,8 +8,8 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>  A periodic synthesis (backward) wavelet transformation
-!!  the input array x is not overwritten
+!> A periodic synthesis (backward) wavelet transformation
+!! the input array x is not overwritten
 subroutine synthese_per_old(nd1,nd2,nd3,x,y,ww)
   use module_base
   implicit none
@@ -117,7 +117,7 @@ subroutine syn_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
   real(wp), dimension(0:nd1,0:nd2,0:nd3), intent(inout) :: x
   !local variables
   character(len=*), parameter :: subname='syn_repeated_per'
-  integer :: nn1,nn2,nn3,i_trans,i_all,i_stat,i1,i2,i3,i
+  integer :: nn1,nn2,nn3,i_trans,i1,i2,i3,i
   real(wp), dimension(:), allocatable :: xx,yy,ww
 
   if (num_trans >= 1)  then
@@ -199,7 +199,7 @@ subroutine ana_repeated_per(nd1,nd2,nd3,x,num_trans,n1,n2,n3)
   real(wp), dimension(0:nd1,0:nd2,0:nd3), intent(inout) :: x
   !local variables
   character(len=*), parameter :: subname='ana_repeated_per'
-  integer :: i_trans,i_all,i_stat,i1,i2,i3,i
+  integer :: i_trans,i1,i2,i3,i
   real(wp), dimension(:), allocatable :: xx,yy,ww
 
   n1=nd1

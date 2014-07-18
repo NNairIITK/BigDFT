@@ -41,7 +41,7 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
   character(len=*), parameter :: subname='precondition_residue'
   real(gp), dimension(0:7) :: scal
   real(wp) :: rmr_old,rmr_new,alpha,beta
-  integer :: i_stat,i_all,icong
+  integer :: icong
   real(wp), dimension(:), allocatable :: b,r,d
   logical:: with_confpot
   !!type(workarrays_quartic_convolutions):: work_conv

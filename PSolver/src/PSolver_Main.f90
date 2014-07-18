@@ -74,7 +74,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    character(len=*), parameter :: subname='H_potential'
    logical :: wrtmsg,cudasolver
    integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
-   integer :: i_all,i_stat,ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
+   integer :: i_stat,ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
    integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
    integer :: nxc,istden,istglo
    real(dp) :: scal,ehartreeLOC,pot
@@ -103,7 +103,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    end if
    wrtmsg=wrtmsg .and. kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0
    ! rewrite
-   if (wrtmsg) call yaml_open_map('Poisson Solver')
+   if (wrtmsg) call yaml_mapping_open('Poisson Solver')
    
    !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
    call f_timing(TCAT_PSOLV_COMPUT,'ON')
@@ -140,7 +140,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       call yaml_map('Box',kernel%ndims,fmt='(i5)')
       call yaml_map('MPI tasks',kernel%mpi_env%nproc,fmt='(i5)')
       if (cudasolver) call yaml_map('GPU acceleration',.true.)
-      call yaml_close_map()
+      call yaml_mapping_close()
 !      call yaml_newline()
    end if
    

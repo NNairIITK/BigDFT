@@ -31,7 +31,7 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   !Local variables 
   character(len=*), parameter :: subname='Periodic_Kernel'
   real(dp), parameter :: pi=3.14159265358979323846_dp
-  integer :: i1,i2,i3,j3,i_all,i_stat,iproc1
+  integer :: i1,i2,i3,j3,iproc1
   real(dp) :: p1,p2,mu3,ker
   real(dp), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
   !metric for triclinic lattices
@@ -380,7 +380,7 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
   real(dp) :: a,b,c,d,feR,foR,foI,fR,cp,sp,pion,x,value !n(c) ,diff, feI
   integer :: n_scf,ncache,imu,ierr,ntrig
   integer :: n_range,n_cell,num_of_mus,shift,istart,iend,ireim,jreim,j2st,j2nd,nact2
-  integer :: i,i1,i2,i3,i_stat,i_all
+  integer :: i,i1,i2,i3
   integer :: j2,ind1,ind2,jnd1,ic,inzee,nfft,ipolyord,jp2
 
   !metric for monoclinic lattices
@@ -817,7 +817,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   real(dp), dimension(n), intent(out) :: g_mu
   !local variables
   character(len=*), parameter :: subname='calculates_green_opt'
-  integer :: izero,ivalue,i,iend,ikern,n_iter,nrec,i_all,i_stat
+  integer :: izero,ivalue,i,iend,ikern,n_iter,nrec
   real(dp) :: f,x,filter,gleft,gright,gltmp,grtmp,fl,fr,ratio,mu0 !n(c) x0, x1
   real(dp), dimension(:), allocatable :: green,green1
 
@@ -858,7 +858,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
      if(ivalue >= n_scf-intorder-1) exit loop_right
      do i=1,intorder+1
         x=xval(ivalue)-real(ikern,dp)
-        f=yval(ivalue)*dexp(-mu0*x)
+        f=yval(ivalue)*exp(-mu0*x)
         filter=real(intorder,dp)*c(i)
         gright=gright+filter*f
         ivalue=ivalue+1
@@ -868,7 +868,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   iend=n_scf-ivalue
   do i=1,iend
      x=xval(ivalue)-real(ikern,dp)
-     f=yval(ivalue)*dexp(-mu0*x)
+     f=yval(ivalue)*exp(-mu0*x)
      filter=real(intorder,dp)*c(i)
      gright=gright+filter*f
      ivalue=ivalue+1
@@ -890,8 +890,8 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
         if (izero==n_scf)  exit loop_integration
         do i=1,intorder+1
            x=xval(ivalue)
-           fl=yval(ivalue)*dexp(mu0*x)
-           fr=yval(ivalue)*dexp(-mu0*x)
+           fl=yval(ivalue)*exp(mu0*x)
+           fr=yval(ivalue)*exp(-mu0*x)
            filter=real(intorder,dp)*c(i)
            gltmp=gltmp+filter*fl
            grtmp=grtmp+filter*fr
@@ -905,11 +905,11 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
         ivalue=ivalue-1
         izero=izero-1
      end do loop_integration
-     gleft=dexp(-mu0)*(gleft+hres*dexp(-mu0*real(ikern-1,dp))*gltmp)
+     gleft=exp(-mu0)*(gleft+hres*exp(-mu0*real(ikern-1,dp))*gltmp)
      if (izero == n_scf) then
         gright=0._dp
      else
-        gright=dexp(mu0)*(gright-hres*dexp(mu0*real(ikern-1,dp))*grtmp)
+        gright=exp(mu0)*(gright-hres*exp(mu0*real(ikern-1,dp))*grtmp)
      end if
      green(ikern)=gleft+gright
      green(-ikern)=gleft+gright
@@ -1092,7 +1092,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  real(dp) :: a1,a2,a3,wg,k2,k3
  integer :: n_scf, nker2, nker3 !n(c) nker1
  integer :: i_gauss, n_range, n_cell
- integer :: i1, i2, i3, i_stat, i_all,iproc1
+ integer :: i1, i2, i3, iproc1
  integer :: i03, iMin, iMax
 
  !!! PSolver n1-n2 plane mpi partitioning !!!
@@ -1339,7 +1339,7 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
   !!acerioni
   real(dp), dimension(:), allocatable :: x_scf, y_scf
   real(dp), dimension(-n_range:n_range) :: fwork_tmp
-  integer :: n_points, i_stat, n_scf, nrange
+  integer :: n_points, n_scf, nrange
   real(dp) :: dx
   real(dp), dimension(-n_range:n_range) :: work
   !real(dp), dimension(-n_range:n_range) :: kernel_scf
@@ -1692,9 +1692,9 @@ subroutine gauss_conv_scf(itype_scf,pgauss,hgrid,dx,n_range,n_scf,x_scf,y_scf,ke
   real(dp), dimension(-n_range:n_range), intent(inout) :: work
   real(dp), dimension(-n_range:n_range), intent(inout) :: kernel_scf
   !local variables
-  real(dp), parameter :: p0_ref = 1.0_dp
+  real(dp), parameter :: p0_ref = 1.0_dp,mx_expo=-log(tiny(1.0_dp)*1.d32)
   integer :: n_iter,i_kern,i
-  real(dp) :: p0_cell,p0gauss,absci,kern
+  real(dp) :: p0_cell,p0gauss,absci,kern,x_limit
 
   !Step grid for the integration
   !dx = real(n_range,dp)/real(n_scf,dp)
@@ -1710,7 +1710,7 @@ subroutine gauss_conv_scf(itype_scf,pgauss,hgrid,dx,n_range,n_scf,x_scf,y_scf,ke
   else
      p0gauss = pgauss/4._dp**n_iter
   end if
-
+  x_limit= sqrt(mx_expo/p0gauss)/hgrid !to avoid illegal operations
   !Stupid integration
   !Do the integration with the exponential centered in i_kern
   kernel_scf(:) = 0.0_dp
@@ -1718,8 +1718,11 @@ subroutine gauss_conv_scf(itype_scf,pgauss,hgrid,dx,n_range,n_scf,x_scf,y_scf,ke
      kern = 0.0_dp
      do i=0,n_scf
         absci = x_scf(i) - real(i_kern,dp)
-        absci = absci*absci*hgrid**2
-        kern = kern + y_scf(i)*dexp(-p0gauss*absci)
+        if (abs(absci) < x_limit) then
+           absci = absci*absci*hgrid**2
+           !print *,'done',x_limit,abs(absci),exp(-p0gauss*absci),y_scf(i)
+           kern = kern + y_scf(i)*exp(-p0gauss*absci)
+        end if
      end do
      kernel_scf(i_kern) = kern*dx
      kernel_scf(-i_kern) = kern*dx
@@ -1978,7 +1981,7 @@ subroutine Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2
   character(len=*), parameter :: subname='Wires_Kernel'
   real(dp), parameter :: pi=3.14159265358979323846_dp
   integer, parameter :: n_gauss = 144
-  integer :: i1, i2, i3, i_all, i_stat, n_range, n_cell, k
+  integer :: i1, i2, i3, n_range, n_cell, k
   real(dp) :: mu, t0, t1
   !real(dp), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
   real(dp), dimension(:), allocatable :: fwork

@@ -27,8 +27,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.1.20
- Timestamp of this run                 : 2014-06-25 15:55:55.136
+ Version Number                        : 1.7.4.90
+ Timestamp of this run                 : 2014-07-17 15:30:14.549
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -58,8 +58,8 @@
    debug                               : No #     Debug option
    fftcache                            : 8192 #   Cache size for the FFT
    accel                               : NO #     Acceleration (hardware)
-   ocl_platform                        : ~ #      Chosen OCL platform
-   ocl_devices                         : ~ #      Chosen OCL devices
+   ocl_platform                        : null #   Chosen OCL platform
+   ocl_devices                         : null #   Chosen OCL devices
    blas                                : No #     CUBLAS acceleration
    projrad                             : 15.000 # Radius of the projector as a function of the maxrad
    exctxpar                            : OP2P #   Exact exchange parallelisation scheme
@@ -76,7 +76,7 @@
    tolsym                              : 0.1E-07 # Tolerance for symmetry detection
    signaling                           : No #     Expose calculation results on Network
    signaltimeout                       : 0 #      Time out on startup for signal connection (in seconds)
-   domain                              : ~ #      Domain to add to the hostname to find the IP
+   domain                              : null #   Domain to add to the hostname to find the IP
    inguess_geopt                       : 0 #      Input guess to be used during the optimization
    store_index                         : Yes #    Store indices or recalculate them for linear scaling
    verbosity                           : 2 #      Verbosity of the output
@@ -110,6 +110,7 @@
    correction_co_contra                : No #     linear scaling correction covariant / contravariant gradient
    fscale_lowerbound                   : 5.0000000000000001E-003 # linear scaling lower bound for the error function decay length
    fscale_upperbound                   : 5.0000000000000003E-002 # linear scaling upper bound for the error function decay length
+   FOE_restart                         : 0 #      Restart method to be used for the FOE method
  dft:
    hgrids: [0.3, 0.3, 0.3] #                      Grid spacing in the three directions (bohr)
    rmult: [5.0, 7.0] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
@@ -151,7 +152,7 @@
    itrpmax                             : 1 #      Maximum number of diagonalisation iterations
    rpnrm_cv                            : 1e-4 #   Stop criterion on the residue of potential or density
    norbsempty                          : 0 #      No. of additional bands
-   Tel                                 : 0. #     Electronic temperature
+   tel                                 : 0. #     Electronic temperature
    occopt                              : 1 #      Smearing method
    alphamix                            : 0. #     Multiplying factors for the mixing
    alphadiis                           : 2. #     Multiplying factors for the electronic DIIS
@@ -391,18 +392,18 @@
  Atomic structure:
    Units                               : angstroem
    Positions:
-   - O: [ 3.610163506,  5.814828949,  5.000015765] # [  12.03,  19.38,  16.67 ] 0001
-   - H: [ 4.015677699,  6.218818590,  5.784468664] # [  13.39,  20.73,  19.28 ] 0002
-   - H: [ 4.353463581,  5.445118308,  4.495836057] # [  14.51,  18.15,  14.99 ] 0003
-   - O: [ 5.610163506,  3.889452713,  5.311204358] # [  18.70,  12.96,  17.70 ] 0004
-   - H: [ 6.015677699,  3.831716312,  6.191681779] # [  20.05,  12.77,  20.64 ] 0005
-   - H: [ 6.353463581,  3.832220586,  4.688622942] # [  21.18,  12.77,  15.63 ] 0006
-   - O: [ 4.153059120,  8.518522150,  3.613539756] # [  13.84,  28.40,  12.05 ] 0007
-   - H: [ 4.842375865,  8.709783584,  4.270256765] # [  16.14,  29.03,  14.23 ] 0008
-   - H: [ 3.798603851,  7.650667540,  3.867642049] # [  12.66,  25.50,  12.89 ] 0009
-   - O: [ 6.959869051,  6.983880654,  6.330964060] # [  23.20,  23.28,  21.10 ] 0010
-   - H: [ 7.155364413,  7.893220529,  6.610066725] # [  23.85,  26.31,  22.03 ] 0011
-   - H: [ 6.738715899,  7.053209738,  5.387744627] # [  22.46,  23.51,  17.96 ] 0012
+   - O: [ 3.610163506,  5.814828949,  5.000015765] # [  22.74,  36.63,  31.50 ] 0001
+   - H: [ 4.015677699,  6.218818590,  5.784468664] # [  25.30,  39.17,  36.44 ] 0002
+   - H: [ 4.353463581,  5.445118308,  4.495836057] # [  27.42,  34.30,  28.32 ] 0003
+   - O: [ 5.610163506,  3.889452713,  5.311204358] # [  35.34,  24.50,  33.46 ] 0004
+   - H: [ 6.015677699,  3.831716312,  6.191681779] # [  37.89,  24.14,  39.00 ] 0005
+   - H: [ 6.353463581,  3.832220586,  4.688622942] # [  40.02,  24.14,  29.53 ] 0006
+   - O: [ 4.153059120,  8.518522150,  3.613539756] # [  26.16,  53.66,  22.76 ] 0007
+   - H: [ 4.842375865,  8.709783584,  4.270256765] # [  30.50,  54.86,  26.90 ] 0008
+   - H: [ 3.798603851,  7.650667540,  3.867642049] # [  23.93,  48.19,  24.36 ] 0009
+   - O: [ 6.959869051,  6.983880654,  6.330964060] # [  43.84,  43.99,  39.88 ] 0010
+   - H: [ 7.155364413,  7.893220529,  6.610066725] # [  45.07,  49.72,  41.64 ] 0011
+   - H: [ 6.738715899,  7.053209738,  5.387744627] # [  42.45,  44.43,  33.94 ] 0012
    Rigid Shift Applied (AU)            :  [  7.5245,  11.021,  9.7135 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.3000,  0.3000,  0.3000 ]
@@ -537,15 +538,15 @@
      Molecule was shifted              :  24
      Molecule was rotated              :  18
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  2.598E+01,  1.630E+01 ]}
-   Max deviation from unity in reorthonormalize_coeff:  2.0781220944066092E-007
-   Mean deviation from unity in reorthonormalize_coeff:  7.6859107786506174E-008
-   Max deviation from unity in reorthonormalize_coeff:  1.0030306949460055E-006
-   Mean deviation from unity in reorthonormalize_coeff:  3.1847790349617056E-007
-   Max deviation from unity in reorthonormalize_coeff:  5.5650642130451646E-006
-   Mean deviation from unity in reorthonormalize_coeff:  2.4041444738195936E-006
-   Max deviation from unity in reorthonormalize_coeff:  9.6907785624988918E-006
-   Mean deviation from unity in reorthonormalize_coeff:  3.3745044842040174E-006
+   -  {Process:  0, Timing:  [  2.551E+01,  1.576E+01 ]}
+   Max deviation from unity in reorthonormalize_coeff:  2.08E-07
+   Mean deviation from unity in reorthonormalize_coeff:  7.69E-08
+   Max deviation from unity in reorthonormalize_coeff:  1.00E-06
+   Mean deviation from unity in reorthonormalize_coeff:  3.18E-07
+   Max deviation from unity in reorthonormalize_coeff:  5.57E-06
+   Mean deviation from unity in reorthonormalize_coeff:  2.40E-06
+   Max deviation from unity in reorthonormalize_coeff:  9.69E-06
+   Mean deviation from unity in reorthonormalize_coeff:  3.37E-06
    nstates_max                         :  16
    ksorbs%norb                         :  16
    tmb%orbs%norb                       :  24
@@ -593,11 +594,11 @@
  {e: -2.698798569525E-01, f:  2.0000},  # 00014
  {e: -2.698798569525E-01, f:  2.0000},  # 00015
  {e: -2.698798569525E-01, f:  2.0000}] # 00016
-   Max deviation from unity in reorthonormalize_coeff:  5.969023121023935E-002
-   Mean deviation from unity in reorthonormalize_coeff:  1.4692540044638568E-002
-   overlap manipulation routine:
+   Max deviation from unity in reorthonormalize_coeff:  5.97E-02
+   Mean deviation from unity in reorthonormalize_coeff:  1.47E-02
+   calculate S^x:
      mode                              : dense
-     power                             : -2
+     x                                 : -1/2
      order                             :  8
    communication strategy kernel       : ALLREDUCE
    Total charge                        :  3.199999979179E+01
@@ -629,11 +630,12 @@
      expansion coefficients optimization: &it_coeff001_000_000
      -  { #-------------------------------------------------------------------- it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
- overlap manipulation routine: [mode: dense, power:  1, order:  8], 
- Max deviation from unity in reorthonormalize_coeff:  3.3503952030722317E-005, 
-          Mean deviation from unity in reorthonormalize_coeff:  2.7718494570415902E-006, 
- overlap manipulation routine: [mode: dense, power: -2, order:  8], 
-       communication strategy kernel: ALLREDUCE, method: DminSD, 
+ calculate S^x: {mode: dense, x: -1, order:  8, 
+ max / mean error:  [  7.86E-04,  1.22E-04 ]}, 
+ Max deviation from unity in reorthonormalize_coeff:  3.35E-05, 
+ Mean deviation from unity in reorthonormalize_coeff:  2.77E-06, 
+ calculate S^x: {mode: dense, x: -1/2, order:  8}, 
+ communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  2.65E-02, eBS:  0.00000000000000000E+00, D: -1.627E+01, 
           alpha:  1.000E-01}
      Kohn-Sham residue                 :  1.409E-01
@@ -644,13 +646,15 @@
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.75195883994E+01, Epot: -4.81117042667E+01, Enl:  2.75316633855E+00}, 
  Orthoconstraint:  Yes, 
- overlap manipulation routine: [mode: sparse, power:  1, order:  8], Preconditioning:  Yes, 
- iter:  1, fnrm:  2.47E-01, Omega: -6.873747100426172E+01, D: -6.87E+01, D best: -6.87E+01, 
+ calculate S^x: {mode: sparse, x: -1, order:  8, 
+ max / mean error:  [  1.48E-01,  1.15E-02 ]}, 
+ Preconditioning:  Yes, 
+ iter:  1, fnrm:  2.47E-01, Omega: -6.873747100426164E+01, D: -6.87E+01, D best: -6.87E+01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 1
  target function: ENERGY, 
  Energies: {Ekin:  3.75195883994E+01, Epot: -4.81117042667E+01, Enl:  2.75316633855E+00}, 
- iter:  1, fnrm:  2.47E-01, Omega: -6.873747100426172E+01, D: -6.87E+01, D best: -6.87E+01}
+ iter:  1, fnrm:  2.47E-01, Omega: -6.873747100426164E+01, D: -6.87E+01, D best: -6.87E+01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -663,12 +667,13 @@
        expansion coefficients optimization: &it_coeff001_001_001
        -  { #------------------------------------------------------------------ it coeff: 1
  calculate density kernel, communication strategy: ALLREDUCE, 
- overlap manipulation routine: [mode: dense, power:  1, order:  8], 
- Max deviation from unity in reorthonormalize_coeff:  1.0726156950080501E-004, 
-          Mean deviation from unity in reorthonormalize_coeff:  8.5635112931818356E-006, 
- overlap manipulation routine: [mode: dense, power: -2, order:  8], 
-       communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.44E-02, eBS: -1.62667830631123849E+01, D: -1.744E-03, 
+ calculate S^x: {mode: dense, x: -1, order:  8, 
+ max / mean error:  [  7.86E-04,  1.22E-04 ]}, 
+ Max deviation from unity in reorthonormalize_coeff:  1.07E-04, 
+ Mean deviation from unity in reorthonormalize_coeff:  8.56E-06, 
+ calculate S^x: {mode: dense, x: -1/2, order:  8}, 
+ communication strategy kernel: ALLREDUCE, method: DminSD, 
+ iter:  1, fnrm:  2.44E-02, eBS: -1.62667830631149819E+01, D: -1.744E-03, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -695,15 +700,15 @@
  {e: -2.698798569525E-01, f:  2.0000},  # 00015
  {e: -2.698798569525E-01, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  2.54E-08, energy: -6.87392152766127822E+01, D: -6.874E+01}]
+ iter:  1, delta:  2.54E-08, energy: -6.87392152766126969E+01, D: -6.874E+01}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  2.54E-08, energy: -6.87392152766127822E+01, D: -6.874E+01}]}
+ iter:  2, delta:  2.54E-08, energy: -6.87392152766126969E+01, D: -6.874E+01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  1, delta out:  2.541E-08, energy: -6.87392152766127822E+01, D: -6.874E+01}
+ iter high:  1, delta out:  2.541E-08, energy: -6.87392152766126969E+01, D: -6.874E+01}
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
  {e: -9.212807585703E-01, f:  1.0000},  # 00001
@@ -730,26 +735,31 @@
  {e:  1.018056388215E-01, f:  1.0000},  # 00022
  {e:  1.018056388215E-01, f:  1.0000},  # 00023
  {e:  1.018056388215E-01, f:  1.0000}] # 00024
-   overlap manipulation routine:
+   calculate S^x:
      mode                              : dense
-     power                             :  2
+     x                                 : 1/2
      order                             :  8
-   overlap manipulation routine:
+     max / mean error                  :  [  7.99E-06,  1.16E-06 ]
+   calculate S^x:
      mode                              : dense
-     power                             :  2
+     x                                 : 1/2
      order                             :  8
-   overlap manipulation routine:
+     max / mean error                  :  [  7.99E-06,  1.16E-06 ]
+   calculate S^x:
      mode                              : dense
-     power                             :  2
+     x                                 : 1/2
      order                             :  8
-   overlap manipulation routine:
+     max / mean error                  :  [  7.99E-06,  1.16E-06 ]
+   calculate S^x:
      mode                              : dense
-     power                             :  2
+     x                                 : 1/2
      order                             :  8
-   overlap manipulation routine:
+     max / mean error                  :  [  7.99E-06,  1.16E-06 ]
+   calculate S^x:
      mode                              : dense
-     power                             :  2
+     x                                 : 1/2
      order                             :  8
+     max / mean error                  :  [  7.99E-06,  1.16E-06 ]
    Weight analysis: [
   #coeff, occ, eval, frac for each frag
   {iorb:  1, occ:  2.0000, eval: -0.921281, frac:  0.9891, frac:  0.0003, frac:  0.0105, 
@@ -791,7 +801,7 @@
  Energies: {Ekin:  3.75195883994E+01, Epot: -4.81117042667E+01, Enl:  2.75316633855E+00, 
               EH:  1.42319260307E+02,  EXC: -1.64945292235E+01, EvXC: -2.16222990085E+01}, 
        iter high:  1,            delta out:  2.541E-08, 
-          energy: -6.87392152766127822E+01,                       D:  0.000E+00,  #FINAL
+          energy: -6.87392152766126969E+01,                       D:  0.000E+00,  #FINAL
  }
  Total charge                          :  3.199999979249E+01
   #---------------------------------------------------------------------- Forces Calculation
@@ -803,22 +813,22 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  9.34203661E-03, y: -5.92656020E-02, z:  3.80984040E-02, 
                     total:  7.10716091E-02}
- Clean forces norm (Ha/Bohr): {maxval:  7.938547784432E-02, fnrm2:  1.198645499456E-02}
- Raw forces norm (Ha/Bohr): {maxval:  1.138974588208E-01, fnrm2:  2.107191114208E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  7.938547784422E-02, fnrm2:  1.198645499457E-02}
+ Raw forces norm (Ha/Bohr): {maxval:  1.138974588207E-01, fnrm2:  2.107191114203E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 2.230252566065E-02, -7.076985012987E-02,  2.821842933832E-02]} # 0001
- -  {H: [-3.792242176475E-03,  1.098840873332E-02, -1.301956476747E-02]} # 0002
- -  {H: [-2.538491632270E-03,  8.323379775718E-03, -6.715418981735E-03]} # 0003
- -  {O: [ 2.378443191160E-03, -3.840775470241E-02,  2.600699154299E-02]} # 0004
- -  {H: [-2.204639539061E-02,  7.813580500076E-03, -1.324769093488E-02]} # 0005
- -  {H: [-9.976073760821E-03,  5.618488991094E-03, -9.541335738896E-03]} # 0006
- -  {O: [-1.543426402051E-02,  7.810567012044E-03, -2.455064967651E-03]} # 0007
- -  {H: [ 8.836067701567E-03,  2.359646414482E-02, -6.596407017392E-03]} # 0008
- -  {H: [ 4.519473097548E-03,  2.574643606614E-02, -1.146755627977E-02]} # 0009
- -  {O: [ 1.147733814682E-02,  9.782649472649E-03,  2.893375117724E-03]} # 0010
- -  {H: [ 4.319305397998E-04,  2.063529262032E-03,  6.885628277622E-03]} # 0011
- -  {H: [ 3.841688643128E-03,  7.434100874383E-03, -9.613855888737E-04]} # 0012
+ -  {O: [ 2.230252565995E-02, -7.076985012982E-02,  2.821842933875E-02]} # 0001
+ -  {H: [-3.792242176399E-03,  1.098840873313E-02, -1.301956476760E-02]} # 0002
+ -  {H: [-2.538491631977E-03,  8.323379775554E-03, -6.715418981946E-03]} # 0003
+ -  {O: [ 2.378443190572E-03, -3.840775470257E-02,  2.600699154345E-02]} # 0004
+ -  {H: [-2.204639539036E-02,  7.813580500030E-03, -1.324769093507E-02]} # 0005
+ -  {H: [-9.976073760408E-03,  5.618488991113E-03, -9.541335739162E-03]} # 0006
+ -  {O: [-1.543426402037E-02,  7.810567012916E-03, -2.455064967926E-03]} # 0007
+ -  {H: [ 8.836067701418E-03,  2.359646414472E-02, -6.596407017503E-03]} # 0008
+ -  {H: [ 4.519473097469E-03,  2.574643606578E-02, -1.146755627981E-02]} # 0009
+ -  {O: [ 1.147733814726E-02,  9.782649472587E-03,  2.893375118630E-03]} # 0010
+ -  {H: [ 4.319305397815E-04,  2.063529262076E-03,  6.885628277421E-03]} # 0011
+ -  {H: [ 3.841688643068E-03,  7.434100874484E-03, -9.613855892280E-04]} # 0012
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -826,15 +836,15 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  54.01
-   Elapsed time (s)                    :  32.00
+   CPU time (s)                        :  54.06
+   Elapsed time (s)                    :  31.35
  Memory Consumption Report:
-   Tot. No. of Allocations             :  3265
-   Tot. No. of Deallocations           :  3265
+   Tot. No. of Allocations             :  3113
+   Tot. No. of Deallocations           :  3113
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  1135
+     Peak Value (MB)                   :  1137
      for the array                     : psir
      in the routine                    : LocalHamiltonianApplication
- Max No. of dictionaries used          :  3163 #( 793 still in use)
+ Max No. of dictionaries used          :  3156 #( 798 still in use)
  Number of dictionary folders allocated:  1

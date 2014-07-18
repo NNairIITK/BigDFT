@@ -28,7 +28,7 @@ program driver
   real(kind=8),dimension(:,:),allocatable :: ovrlp, ovrlp2
   integer :: norb, nseg, nvctr, iorb, jorb, iorder, power, blocksize, icheck, imode
 
-  logical :: file_exists, symmetric, check_symmetry, perform_check
+  logical :: file_exists, symmetric, check_symmetry, perform_check, optional_parameters
   type(orbitals_data) :: orbs
   type(sparse_matrix) :: smat_A, smat_B
   type(matrices) :: mat_A, inv_mat_B
@@ -37,14 +37,16 @@ program driver
 !!  integer :: lwork
   integer, dimension(4) :: mpi_info
   character(len=60) :: run_id
-  integer,parameter :: ncheck=30
+  integer,parameter :: ncheck=33
   integer,dimension(:,:),allocatable :: keyg_tmp
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
 
-  integer :: ncount1, ncount_rate, ncount_max, ncount2, i, j, start
+  integer :: ncount1, ncount_rate, ncount_max, ncount2, nn, ios
+!! integer :: i, j, start
   real(kind=4) :: tr0, tr1
-  real(kind=8) :: time, time2, tmp, tt
+  real(kind=8) :: time, time2, tt
+!! real(kind=8) :: tmp
   real :: rn
   real(kind=8), external :: ddot, dnrm2
   logical, parameter :: timer_on=.false.        !time the different methods
@@ -68,20 +70,31 @@ program driver
   inquire(file=filename, exist=file_exists)
   if_file_exists: if (file_exists) then
       ! Read the basis quantities
+      optional_parameters=.true.
       open(unit=1, file=filename)
       read(1,*) norb
       read(1,*) nseg
       read(1,*) nvctr
+      ! the following lines are optional
+      read(1,*,iostat=ios) imode
+      if (ios/=0) optional_parameters=.false.
+      read(1,*,iostat=ios) iorder
+      if (ios/=0) optional_parameters=.false.
+      read(1,*,iostat=ios) power
+      if (ios/=0) optional_parameters=.false.
+      read(1,*,iostat=ios) blocksize
+      if (ios/=0) optional_parameters=.false.
+      close(unit=1)
   else
       stop 'file does not exist!'
   end if if_file_exists
 
   if (iproc==0) then
-      call yaml_open_sequence('parameters for this test')
+      call yaml_sequence_open('parameters for this test')
       call yaml_map('number of rows and columns',norb)
       call yaml_map('number of segments',nseg)
       call yaml_map('number of non-zero elements',nvctr)
-      call yaml_close_sequence
+      call yaml_sequence_close
   end if
 
 
@@ -167,9 +180,9 @@ program driver
   mat_A = matrices_null()
   inv_mat_B = matrices_null()
 
-  call vcopy(orbs%norb**2, ovrlp(1,1), 1, smat_A%matrix(1,1), 1)
   call allocate_matrices(smat_A, allocate_full=.true., matname='mat_A', mat=mat_A)
-  call compress_matrix(iproc, smat_A, inmat=smat_A%matrix, outmat=mat_A%matrix_compr)
+  call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1), 1)
+  call compress_matrix(iproc, smat_A, inmat=mat_A%matrix, outmat=mat_A%matrix_compr)
   call allocate_matrices(smat_B, allocate_full=.true., matname='inv_mat_B', mat=inv_mat_B)
   ! uncomment for sparse and dense modes to be testing the same matrix
   !call uncompress_matrix(iproc, smat_A)
@@ -199,9 +212,19 @@ program driver
   if (ortho_check.and.iproc==0) call yaml_map('mean deviation from unity',mean_error)
   if (iproc==0) call yaml_comment('starting the checks',hfill='=')
 
-  do icheck=1,ncheck
-      !if (icheck==1 .or. icheck==4 .or. icheck==10 .or. icheck==11 .or.  icheck==13 .or. icheck==14 .or. icheck==16 .or. icheck==17) cycle
-      call get_parameters()
+  if (.not.optional_parameters) then
+      ! do all checks
+      nn=ncheck
+  else
+      ! do only the check which was specified
+      nn=1
+  end if
+
+  do icheck=1,nn
+      if (.not.optional_parameters) then
+          ! get the default parameters
+          call get_parameters()
+      end if
       if (iproc==0) then
           call yaml_comment('check:'//yaml_toa(icheck,fmt='(i5)'),hfill='-')
           call yaml_map('check number',icheck)
@@ -230,8 +253,8 @@ program driver
           if (timer_on) time2=dble(ncount2-ncount1)/dble(ncount_rate)
           call compress_matrix(iproc, smat_B, inmat=inv_mat_B%matrix, outmat=inv_mat_B%matrix_compr)
       else if (imode==SPARSE) then
-          call vcopy(orbs%norb**2, ovrlp(1,1), 1, smat_A%matrix(1,1), 1)
-          call compress_matrix(iproc, smat_A)
+          call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1), 1)
+          call compress_matrix(iproc, smat_A, inmat=mat_A%matrix, outmat=mat_A%matrix_compr)
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
           call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, &
@@ -256,9 +279,9 @@ program driver
 
   call f_free(keyg_tmp)
 
-  call deallocate_orbitals_data(orbs, 'driver')
-  call deallocate_sparse_matrix(smat_A, 'driver')
-  call deallocate_sparse_matrix(smat_B, 'driver')
+  call deallocate_orbitals_data(orbs)
+  call deallocate_sparse_matrix(smat_A)
+  call deallocate_sparse_matrix(smat_B)
   call deallocate_matrices(mat_A)
   call deallocate_matrices(inv_mat_B)
 
@@ -336,6 +359,12 @@ program driver
           imode = 1 ; iorder=-1 ; power= 2 ; blocksize=-1
       case (30)
           imode = 1 ; iorder=-6 ; power= 2 ; blocksize=-1
+      case (31)
+          imode = 1 ; iorder=1025 ; power= -2 ; blocksize=-1
+      case (32)
+          imode = 1 ; iorder=1025 ; power= 2 ; blocksize=-1
+      case (33)
+          imode = 1 ; iorder=1025 ; power= 2 ; blocksize=-1
       case default
           stop 'wrong icheck'
       end select
@@ -459,7 +488,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
 
   call init_nonzero_arrays(norbp, isorb, smat, nnonzero, nonzero)
 
-  call deallocate_sparse_matrix(smat, 'sparse_matrix_init_fake')
+  call deallocate_sparse_matrix(smat)
   call init_sparse_matrix(iproc, nproc, norb, norbp, isorb, .false., &
              nnonzero, nonzero, nnonzero, nonzero, smat, allocate_full_=.true.)
   call f_free_ptr(nonzero)
@@ -489,8 +518,8 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
       nvctr_per_segment=f_malloc(nseg,id='nvctr_per_segment')
       smat%keyv=f_malloc_ptr(nseg,id='smat%keyv')
       smat%keyg=f_malloc_ptr((/2,nseg/),id='smat%keyg')
-      smat%matrix_compr=f_malloc_ptr(smat%nvctr,id='smat%matrix_compr')
-      smat%matrix=f_malloc_ptr((/norb,norb/),id='smat%matrix')
+      !!smat%matrix_compr=f_malloc_ptr(smat%nvctr,id='smat%matrix_compr')
+      !!smat%matrix=f_malloc_ptr((/norb,norb/),id='smat%matrix')
     end subroutine allocate_arrays
 
     function nsegline_init() result(nsegline)
@@ -728,8 +757,6 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
 
     end subroutine init_nonzero_arrays
 
-
-
 end subroutine sparse_matrix_init_fake
 
 
@@ -746,45 +773,45 @@ subroutine write_matrix_compressed(message, smat, mat)
   ! Local variables
   integer :: iseg, ilen, istart, iend, i, iorb, jorb
 
-  !!call yaml_open_sequence(trim(message))
+  !!call yaml_sequence_open(trim(message))
   !!do iseg=1,smat%nseg
   !!    call yaml_sequence(advance='no')
   !!    ilen=smat%keyg(2,iseg)-smat%keyg(1,iseg)+1
-  !!    call yaml_open_map(flow=.true.)
+  !!    call yaml_mapping_open(flow=.true.)
   !!    call yaml_map('segment',iseg)
   !!    istart=smat%keyv(iseg)
   !!    iend=smat%keyv(iseg)+ilen
   !!    call yaml_map('values',smat%matrix_compr(istart:iend))
-  !!    call yaml_close_map()
+  !!    call yaml_mapping_close()
   !!    call yaml_newline()
   !!end do
-  !!call yaml_close_sequence()
+  !!call yaml_sequence_close()
 
-  call yaml_open_sequence(trim(message))
+  call yaml_sequence_open(trim(message))
   do iseg=1,smat%nseg
       call yaml_sequence(advance='no')
       ilen=smat%keyg(2,iseg)-smat%keyg(1,iseg)+1
-      call yaml_open_map(flow=.true.)
+      call yaml_mapping_open(flow=.true.)
       call yaml_map('segment',iseg)
-      call yaml_open_sequence('elements')
+      call yaml_sequence_open('elements')
       istart=smat%keyv(iseg)
       iend=smat%keyv(iseg)+ilen-1
       do i=istart,iend
           call yaml_newline()
           call yaml_sequence(advance='no')
-          call yaml_open_map(flow=.true.)
+          call yaml_mapping_open(flow=.true.)
           iorb=smat%orb_from_index(1,i)
           jorb=smat%orb_from_index(2,i)
           call yaml_map('coordinates',(/jorb,iorb/))
           call yaml_map('value',mat%matrix_compr(i))
-          call yaml_close_map()
+          call yaml_mapping_close()
       end do
-      call yaml_close_sequence()
+      call yaml_sequence_close()
       !call yaml_map('values',smat%matrix_compr(istart:iend))
-      call yaml_close_map()
+      call yaml_mapping_close()
       call yaml_newline()
   end do
-  call yaml_close_sequence()
+  call yaml_sequence_close()
 
 end subroutine write_matrix_compressed
 

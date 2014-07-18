@@ -571,7 +571,7 @@
      COMMENT: No. of additional bands
      RANGE: [0, 10000]
      default: 0
-   Tel:
+   tel:
      COMMENT: Electronic temperature
      RANGE: [0., 1e6]
      default: 0.
@@ -764,7 +764,7 @@
    ef_interpol_det:
      COMMENT: FOE max determinant of cubic interpolation matrix
      RANGE: [0., 1.]
-     default: 1e-20
+     default: 1.e-12
    ef_interpol_chargediff:
      COMMENT: FOE max charge difference for interpolation
      RANGE: [0., 1000.]
@@ -839,6 +839,12 @@
      COMMENT: linear scaling upper bound for the error function decay length
      default: 5.e-2
      RANGE: [1.e-2,1.0]
+   FOE_restart:
+     COMMENT: Restart method to be used for the FOE method
+     EXCLUSVE:
+       0: REFORMAT
+       1: AO
+     default: 0 
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
@@ -881,7 +887,7 @@
                      * n<0 => Laura's method of order n
                      * n=0 => exact calculation
                      * n>0 => Taylor series of order n
-       RANGE: [-100,100]
+       RANGE: [-100,10000]
        default: 0
      max_inversion_error:
        COMMENT: linear scaling maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
@@ -1204,25 +1210,29 @@ linear_accurate:
     method_updatekernel: 2
     purification_quickreturn: Yes
     correction_co_contra: Yes
+    #check_sumrho: 1
+    #calculate_KS_residue: No
+    #check_matrix_compression: No
   lin_general:
     hybrid: Yes
-    taylor_order: 10
-    max_inversion_error: 1.0e-8
+    taylor_order: 1015
+    max_inversion_error: 5.0e-8
   lin_basis:
-    nit: [10,10]
-    gnrm_cv: [1.e-3,1.e-3]
+    nit: 8
+    idsx: 8
+    gnrm_cv: 1.e-3
     gnrm_dyn: 1.e-4
     deltae_cv: 5.e-5
     min_gnrm_for_dynamic: 2.e-3
     alpha_diis: 0.5
     alpha_sd: 0.5
     nstep_prec: 6
-    fix_basis: 1.e-12
+    fix_basis: 1.0e-12
     correction_orthoconstraint: 0
   lin_kernel:
-    nit: [3,3]
-    idsx: [6,6]
-    alphamix: [0.2,0.2]
+    nit: 4
+    idsx: 6
+    alphamix: 0.1
     rpnrm_cv: [1.e-12,1.e-12]
     linear_method: FOE
 linear_moderate:

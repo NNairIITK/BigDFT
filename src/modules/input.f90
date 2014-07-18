@@ -51,7 +51,9 @@ module module_input
    public :: input_var
    public :: input_free
 
-   contains
+
+contains
+
 
    subroutine input_set_stdout(unit)
      implicit none
@@ -59,6 +61,7 @@ module module_input
      
      stdout=unit
    end subroutine input_set_stdout
+
 
    subroutine input_set_file(iproc, dump, filename, exists,comment_file_usage)
       integer, intent(in) :: iproc
@@ -402,6 +405,7 @@ module module_input
 
    END SUBROUTINE find
 
+
    !> Compare two strings (case-insensitive). Blanks are relevant!
    function case_insensitive_equiv(stra,strb)
       implicit none
@@ -642,6 +646,7 @@ module module_input
 
    END SUBROUTINE var_real_compulsory
 
+
    subroutine var_int_compulsory(var,default,dict,ranges,exclusive,comment,input_iostat)
       implicit none
       character(len=*), intent(in) :: default
@@ -837,6 +842,7 @@ module module_input
       end if
 
    END SUBROUTINE var_char_compulsory
+
 
    subroutine var_logical_compulsory(var,default,dict,comment,input_iostat)
       implicit none
@@ -1126,6 +1132,7 @@ module module_input
          iline_written=iline_written+1
       end if
    END SUBROUTINE var_keyword
+
 
    subroutine var_ids(name, default, list, description, var)
       character(len = *), intent(in) :: name
@@ -1801,6 +1808,7 @@ contains
 
   END SUBROUTINE read_perf_from_text_format
 
+
   !> Read the linear input variables
   subroutine read_lin_and_frag_from_text_format(iproc,dict,run_name)
     use module_base
@@ -1937,7 +1945,7 @@ contains
 
     comments = '0-> exact Loewdin, 1-> taylor expansion; &
                &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
-    call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-100,100/))
+    call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-100,10000/))
     call input_var(dummy_int,'1',dict//LIN_BASIS//CORRECTION_ORTHOCONSTRAINT,comment=comments)
     !call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
 
@@ -2012,6 +2020,7 @@ contains
 
   END SUBROUTINE read_lin_and_frag_from_text_format
 
+
   subroutine read_neb_from_text_format(iproc,dict,filename)
     use module_base
     use module_input
@@ -2057,10 +2066,10 @@ contains
     call set(dict // NEB_CLIMBING, climbing)
     call set(dict // EXTREMA_OPT, optimization)
     call set(dict // NEB_METHOD, minimization_scheme)
-    call set(dict // NEB_DAMP, damp)
+    if (trim(minimization_scheme) == 'damped-verlet') call set(dict // NEB_DAMP, damp)
     call set(dict // SPRINGS_K // 0, k_min)
     call set(dict // SPRINGS_K // 1, k_max)
-    call set(dict // TEMP, temp_req)
+    if (trim(minimization_scheme) == 'sim-annealing') call set(dict // TEMP, temp_req)
     call set(dict // BETAX, ds)
     call set(dict // NCOUNT_CLUSTER_X, max_iterations)
     call set(dict // FIX_TOL, tolerance)
@@ -2068,6 +2077,7 @@ contains
     call set(dict // NIMG, num_of_images)
 
   end subroutine read_neb_from_text_format
+
 
   !> Read fragment input parameters
   subroutine fragment_input_variables_from_text_format(iproc,dump,filename,shouldexist,dict)

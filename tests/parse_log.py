@@ -45,11 +45,23 @@ def clean_logfile(logfile_lines,to_remove):
     #check if the line contains interesting information
     for remove_it in to_remove :
       stream_list=[]
-      if remove_it+':' in line.split('#')[0]:
+      #line without comments
+      valid_line=line.split('#')[0]
+      spaces='nospace'
+      #control that the string between the key and the semicolon is only spaces
+      #print "here",remove_it,remove_it in valid_line and ":" in valid_line
+      if remove_it in valid_line and ":" in valid_line:
+        valid_line= valid_line[valid_line.find(remove_it)+len(remove_it):]
+        spaces= valid_line[1:valid_line.find(':')]
+        #if remove_it+':' in line.split('#')[0]:
+      if len(spaces.strip(' ')) == 0: #this means that the key has been found
          #creates a new Yaml document starting from the line
          #treat the rest of the line following the key to be removed
          header=''.join(line.split(':')[1:])
          header=header.rstrip()+'\n'
+         #eliminate the anchor
+         header=header.lstrip(' ')
+         header=header.lstrip('*') 
          if len(header) > 0 :
             stream_list.append(header)
          #part to be printed, updated
@@ -66,7 +78,8 @@ def clean_logfile(logfile_lines,to_remove):
             try:
               for i in yaml.parse(stream,Loader=yaml.CLoader):
                 endpos=i.end_mark.index
-            except:
+            except Exception, e:
+              #  print 'error',str(e),stream
               #convert back the valid stream into a list
               #if needed the stream can be loaded into a document
               item_list=stream[:endpos].split('\n')
@@ -81,6 +94,8 @@ def clean_logfile(logfile_lines,to_remove):
                 strip_size=len(last_line.rstrip())
                 if strip_size > 0:
                   first_line=stream_list.pop(0)[strip_size:]
+                  if '*' in first_line or '&' in first_line:
+                    first_line='' #eliminate anchors
                 else:
                   first_line=''
                 #then put the rest in the line to be treated

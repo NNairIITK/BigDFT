@@ -171,7 +171,7 @@ BigDFT_LocalFields* bigdft_localfields_new(const BigDFT_Lzd *lzd,
                                                      lzd->parent.parent.rxyz.data,
                                                      (double*)lzd->parent.radii->data,
                                                      localfields->rhod, 3);
-  FC_FUNC(allocaterhopot, ALLOCATERHOPOT)((int*)&iproc, lzd->parent.data,
+  FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(lzd->parent.data,
                                           &in->nspin, lzd->parent.parent.data,
 					  lzd->parent.parent.rxyz.data,
                                           localfields->data);

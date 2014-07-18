@@ -410,8 +410,8 @@ contains
 
 
   subroutine io_gcoordToLocreg(n1, n2, n3, nvctr_c, nvctr_f, gcoord_c, gcoord_f, lr)
-    use module_defs
-    use module_types
+    use module_base
+    use locregs
 
     implicit none
     !Arguments
@@ -888,7 +888,6 @@ contains
 
   subroutine deallocate_local()
     implicit none
-    character(len = *), parameter :: subname = "readwavetoisf"
 
     ! We close the file.
     close(unit=unitwf)
@@ -903,13 +902,15 @@ contains
        call deallocate_work_arrays_sumrho(w)
     end if
     if (associated(lr%bounds%kb%ibyz_f)) then
-       call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds, subname)
+       call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds)
     end if
     call deallocate_wfd(lr%wfd)
     
     call f_release_routine()
   END SUBROUTINE deallocate_local
+
 END SUBROUTINE readwavetoisf
+
 
 subroutine readwavedescr(lstat, filename, iorb, ispin, ikpt, ispinor, nspinor, fileRI)
   use module_base
@@ -1085,9 +1086,10 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
   !local variables
   character(len=*), parameter :: subname='reformatonesupportfunction'
   logical, dimension(3) :: per
-  integer, dimension(3) :: nb, ndims_tmp
+  integer, dimension(3) :: nb
+!!$  integer, dimension(3) :: ndims_tmp
   real(gp), dimension(3) :: hgridsh,hgridsh_old
-  real(wp) :: dnrm2
+!!$  real(wp) :: dnrm2
   real(wp), dimension(:), allocatable :: ww,wwold
   real(wp), dimension(:), allocatable :: x_phi
   real(wp), dimension(:,:), allocatable :: y_phi
@@ -1163,14 +1165,14 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
   uy=frag_trans%rot_axis(2)
   uz=frag_trans%rot_axis(3)
 
-!!$  call yaml_open_sequence('Rotation matrix elements')
+!!$  call yaml_sequence_open('Rotation matrix elements')
 !!$  call yaml_sequence(trim(yaml_toa((/&
 !!$       cost + onemc*ux**2   , ux*uy*onemc - uz*sint, ux*uz*onemc + uy*sint /),fmt='(1pg20.12)')))
 !!$  call yaml_sequence(trim(yaml_toa((/&
 !!$       ux*uy*onemc +uz*sint , cost + onemc*uy**2   , uy*uz*onemc - ux*sint /),fmt='(1pg20.12)')))
 !!$  call yaml_sequence(trim(yaml_toa((/&
 !!$       ux*uz*onemc -uy*sint , uy*uz*onemc + ux*sint, cost + onemc*uz**2    /),fmt='(1pg20.12)')))
-!!$  call yaml_close_sequence()
+!!$  call yaml_sequence_close()
 
 
   !identify the rotation matrix elements

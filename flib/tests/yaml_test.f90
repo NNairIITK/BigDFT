@@ -13,13 +13,34 @@ program yaml_test
    use yaml_output
    use dictionaries, dict_char_len=> max_field_length
    use dynamic_memory
+   use yaml_parse
    implicit none
    type(dictionary), pointer :: dict_tmp
+   type(yaml_cl_parse) :: parser
    !logical :: fl
 
    call f_lib_initialize()
+!!$   call yaml_comment('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+!!$   call yaml_comment('BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB')
+!!$   call yaml_comment('CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC')
+!!$   call yaml_comment('DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD')
 
-!!$   call profile_dictionary_usage()
+!!$   parser=yaml_cl_parse_null()
+!!$   !set valid options
+!!$   call yaml_cl_parse_option(parser,'test','1',&
+!!$        'this is a valid test option','t',&
+!!$        dict_new('Test' .is. 'long help'))
+!!$
+!!$   !verify the parsing
+!!$   call yaml_cl_parse_cmd_line(parser)
+!!$
+!!$   call yaml_map('Parsed options',parser%options)
+!!$   call yaml_map('Parsed info',parser%args)
+!!$
+!!$   call yaml_cl_parse_free(parser)
+
+
+   !call profile_dictionary_usage()
 !!$   call f_lib_finalize()
 !!$   stop
 
@@ -96,6 +117,7 @@ program yaml_test
 
    !prepare the finalization of the library
    call f_lib_finalize()
+
 end program yaml_test
 
 subroutine yaml_parse_file_and_string()
@@ -146,3 +168,12 @@ subroutine yaml_parse_file_and_string()
 
   
 end subroutine yaml_parse_file_and_string
+
+  subroutine help_screen()
+    write(*,*)' Usage of the command line instruction'
+    write(*,*)' --taskgroup-size=<mpi_groupsize>'
+    write(*,*)' --runs-file=<list_posinp filename>'
+    write(*,*)' --run-id=<name of the run>: it can be also specified as unique argument'
+    write(*,*)' --help : prints this help screen'
+  end subroutine help_screen
+

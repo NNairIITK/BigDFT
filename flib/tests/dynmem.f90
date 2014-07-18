@@ -22,7 +22,7 @@ subroutine test_dynamic_memory()
    end type dummy_type
 
    !logical :: fl
-   integer :: i,id
+   integer :: i
    real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
    real(kind=8), dimension(:), pointer :: extra_ref
    real(kind=8), dimension(:,:), save, allocatable :: ab
@@ -34,13 +34,12 @@ subroutine test_dynamic_memory()
    integer,dimension(:,:,:),allocatable :: weight
    integer,dimension(:,:,:,:),allocatable :: orbital_id
    type(dummy_type) :: dummy_test
-   logical :: within_openmp
-   character(len=250) :: message
    external :: abort2
    real(kind=8) :: total
-   integer :: ithread,ierror,n_err
+   integer :: ithread
    integer(kind=8) :: iadd
-   integer(kind=8) :: lock
+   !$ integer :: ierror
+   !$ integer(kind=8) :: lock
    !$ integer, external :: omp_get_thread_num
    
    !$omp threadprivate(ab)
@@ -104,9 +103,9 @@ weight(1,1,2)=5
 call f_free(weight)
    call f_release_routine()
 
-!!$   call yaml_open_map('TemporaryA')
+!!$   call yaml_mapping_open('TemporaryA')
 !!$    call f_malloc_dump_status()
-!!$    call yaml_close_map()
+!!$    call yaml_mapping_close()
 !!$
 !!$
 !!$   call f_routine(id='Routine A')
@@ -115,16 +114,16 @@ call f_free(weight)
 !!$call f_free(weight)
 !!$   call f_release_routine()
 !!$
-!!$   call yaml_open_map('TemporaryB')
+!!$   call yaml_mapping_open('TemporaryB')
 !!$    call f_malloc_dump_status()
-!!$    call yaml_close_map()
+!!$    call yaml_mapping_close()
 
 
 !!$   call f_release_routine()
 !!$
-!!$   call yaml_open_map('Temporary')
+!!$   call yaml_mapping_open('Temporary')
 !!$    call f_malloc_dump_status()
-!!$    call yaml_close_map()
+!!$    call yaml_mapping_close()
 !!$stop
 !!$
 !!$!   call f_malloc_dump_status()
@@ -229,7 +228,7 @@ call f_free(weight)
 !!$   !   call f_free(density,potential,pot_ion,xc_pot,extra_ref)
 
    !use yaml_syntax to retrieve list element
-   call retrieve_list_element('[ elem1, 1.d0, elem2, 3.d0]',0)
+   call retrieve_list_element('[ elem1, 1.d0, elem2, 3.d0]')
 
    call f_malloc_dump_status()
 !   call f_malloc_finalize()
@@ -239,9 +238,9 @@ call f_free(weight)
    call f_free(xc_pot)
    !   call f_malloc_dump_status()
    call f_free_ptr(extra_ref)
-!!$   !   call yaml_open_map('Last')
+!!$   !   call yaml_mapping_open('Last')
 !!$   !   call f_malloc_dump_status()
-!!$   !   call yaml_close_map()
+!!$   !   call yaml_mapping_close()
 
    call yaml_comment('Entering in OpenMP section if available',hfill='-')
 
@@ -346,11 +345,11 @@ call f_free(weight)
 
      !>routine to retrieve the list element from a string which is 
      !! compliant with yaml standard
-     subroutine retrieve_list_element(string,item)
+     subroutine retrieve_list_element(string)
        use yaml_parse, only: yaml_parse_from_string
        implicit none
+       !Arguments
        character(len=*), intent(in) :: string
-       integer, intent(in) :: item
        !local variables
        type(dictionary), pointer :: dict_string,loaded_string
 
@@ -467,9 +466,9 @@ subroutine dynmem_sandbox()
    call add_routine(dict2,'Routine F')
 !   call yaml_comment('Look Below',hfill='v')
 
-   call yaml_open_map('Test Case before implementation')
+   call yaml_mapping_open('Test Case before implementation')
    call yaml_dict_dump(dictA)
-   call yaml_close_map()
+   call yaml_mapping_close()
 !   call yaml_comment('Look above',hfill='^')
 
    call dict_free(dictA)

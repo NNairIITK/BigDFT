@@ -1,6 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
-EXTRA_DIST = test-overlapgeneral.ref.yaml
+EXTRA_DIST = test-overlapgeneral.ref.yaml \
+	inputdata1.fake inputdata2.fake inputdata3.fake
 
 check_PROGRAMS = driver
 
@@ -21,7 +22,7 @@ driver_SOURCES = driver.f90
 driver_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 
-CLEANFILES = test-overlapgeneral.out.yaml test-overlapgeneral.report.yaml
+CLEANFILES = test-overlapgeneral.out.yaml test-overlapgeneral.report.yaml test-overlapgeneral.report
 
 check: test-overlapgeneral.report.yaml
 

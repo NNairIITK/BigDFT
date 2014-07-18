@@ -11,7 +11,7 @@
 !> Calculate the array of the core density for the atom iat
 subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
      n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore) 
-  !n(c) use module_base
+  use module_defs, only: gp,dp,wp
   use module_types
   use yaml_output
   implicit none
@@ -29,17 +29,6 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   real(gp) :: x,y,z,r2,rhov,rhoc,chv,chc
   real(gp) :: charge_from_gaussians,spherical_gaussian_value
   real(gp) :: drhoc,drhov,drhodr2
-  !real(gp), dimension(:), allocatable :: rhovxp,rhocxp
-  !real(gp), dimension(:,:), allocatable :: rhovc,rhocc
-
-  !read the values of the gaussian for valence and core densities
-!!$  open(unit=79,file=filename,status='unknown')
-!!$  read(79,*)ngv
-!!$
-!!$  allocate(rhovxp((ngv*(ngv+1)/2)+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,rhovxp,'rhovxp',subname)
-!!$  allocate(rhovc((ngv*(ngv+1)/2),4+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,rhovc,'rhovc',subname)
 
   !find the correct position of the nlcc parameters
   call nlcc_start_position(ityp,atoms,ngv,ngc,islcc)
@@ -53,12 +42,6 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   end do
   chv=sqrt(2.0_gp*atan(1.0_gp))*chv
 
-  !read(79,*)ngc
-
-!!$  allocate(rhocxp((ngc*(ngc+1)/2)+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,rhocxp,'rhocxp',subname)
-!!$  allocate(rhocc((ngc*(ngc+1)/2),4+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,rhocc,'rhocc',subname)
   chc=0.0_gp
   do ig=1,(ngc*(ngc+1))/2
      ilcc=ilcc+1
@@ -175,19 +158,6 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
         end if
      enddo
   end if
-
-!!$  i_all=-product(shape(rhovxp))*kind(rhovxp)
-!!$  deallocate(rhovxp,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'rhovxp',subname)
-!!$  i_all=-product(shape(rhovc))*kind(rhovc)
-!!$  deallocate(rhovc,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'rhovc',subname)
-!!$  i_all=-product(shape(rhocxp))*kind(rhocxp)
-!!$  deallocate(rhocxp,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'rhocxp',subname)
-!!$  i_all=-product(shape(rhocc))*kind(rhocc)
-!!$  deallocate(rhocc,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'rhocc',subname)
   
 END SUBROUTINE calc_rhocore_iat
 
@@ -212,7 +182,7 @@ end function charge_from_gaussians
 !! principal quantum number increased with a given exponent.
 !! the principal quantum numbers admitted are from 1 to 4
 function spherical_gaussian_value(r2,expo,rhoc,ider)
-  use module_base, only: gp
+  use module_base, only: gp,safe_exp
   implicit none
   integer, intent(in) :: ider
   real(gp), intent(in) :: expo,r2
@@ -222,11 +192,12 @@ function spherical_gaussian_value(r2,expo,rhoc,ider)
   real(gp) :: arg
   
   arg=r2/(expo**2)
+!added underflow to evaluation of the density to avoid fpe in ABINIT xc routines
   spherical_gaussian_value=&
-       (rhoc(1)+r2*rhoc(2)+r2**2*rhoc(3)+r2**3*rhoc(4))*exp(-0.5_gp*arg)
+       (rhoc(1)+r2*rhoc(2)+r2**2*rhoc(3)+r2**3*rhoc(4))*safe_exp(-0.5_gp*arg,underflow=1.d-50)
   if (ider ==1) then !first derivative with respect to r2
      spherical_gaussian_value=-0.5_gp*spherical_gaussian_value/(expo**2)+&
-         (rhoc(2)+2.0_gp*r2*rhoc(3)+3.0_gp*r2**2*rhoc(4))*exp(-0.5_gp*arg)           
+         (rhoc(2)+2.0_gp*r2*rhoc(3)+3.0_gp*r2**2*rhoc(4))*safe_exp(-0.5_gp*arg,underflow=1.d-50)           
      !other derivatives to be implemented
   end if
 
@@ -283,7 +254,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   logical :: wrtmsg
   !n(c) integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
-  integer :: i_all,i_stat,ierr,i,j
+  integer :: ierr,i,j
   integer :: i1,i2,i3,istart,iend,iwarn,i3start,jend,jproc
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,ispin,istden,istglo
   integer :: ndvxc,order
@@ -571,34 +542,34 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   !gathering the data to obtain the distribution array
   !evaluating the total ehartree,eexcu,vexcu
   if (nproc > 1) then
-     allocate(energies_mpi(2+ndebug),stat=i_stat)
-     call memocc(i_stat,energies_mpi,'energies_mpi',subname)
-     !energies_mpi = f_malloc(2,id='energies_mpi')
+     !allocate(energies_mpi(2+ndebug),stat=i_stat)
+     !call memocc(i_stat,energies_mpi,'energies_mpi',subname)
+     energies_mpi = f_malloc(4,id='energies_mpi')
 
      energies_mpi(1)=eexcuLOC
      energies_mpi(2)=vexcuLOC
-     call mpiallred(energies_mpi(1),2,MPI_SUM,mpi_comm)
-     exc=energies_mpi(1)
-     vxc=energies_mpi(2)
+     call mpiallred(energies_mpi(1), 2,MPI_SUM,mpi_comm,recvbuf=energies_mpi(3))
+     exc=energies_mpi(3)
+     vxc=energies_mpi(4)
 
 !XC-stress term
   if (geocode == 'P') then
 
         if (associated(rhocore)) then
         call calc_rhocstr(rhocstr,nxc,nxt,m1,m3,i3xcsh_fake,nspin,potxc,rhocore)
-        call mpiallred(rhocstr(1),6,MPI_SUM,mpi_comm)
+        call mpiallred(rhocstr,MPI_SUM,mpi_comm)
         rhocstr=rhocstr/real(n01*n02*n03,dp)
         end if
 
      xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
-     call mpiallred(wbstr(1),6,MPI_SUM,mpi_comm)
+     call mpiallred(wbstr,MPI_SUM,mpi_comm)
      wbstr=wbstr/real(n01*n02*n03,dp)
      xcstr(:)=xcstr(:)+wbstr(:)+rhocstr(:)
   end if
-     i_all=-product(shape(energies_mpi))*kind(energies_mpi)
-     deallocate(energies_mpi,stat=i_stat)
-     call memocc(i_stat,i_all,'energies_mpi',subname)
-     !call f_free(energies_mpi)  
+     !i_all=-product(shape(energies_mpi))*kind(energies_mpi)
+     !deallocate(energies_mpi,stat=i_stat)
+     !call memocc(i_stat,i_all,'energies_mpi',subname)
+     call f_free(energies_mpi)  
 
      if (datacode == 'G') then
         !building the array of the data to be sent from each process
@@ -795,7 +766,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   real(dp), dimension(:,:,:,:), allocatable :: dvxcdgr
   !real(dp), dimension(:,:,:,:,:), allocatable :: gradient
   real(dp) :: elocal,vlocal,rhov,sfactor
-  integer :: npts,i_all,offset,i_stat,ispden
+  integer :: npts,offset,ispden
   integer :: i1,i2,i3,j1,j2,j3,jp2,jppp2
   logical :: use_gradient
 
@@ -1037,7 +1008,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   real(dp), dimension(:,:,:,:), allocatable :: vxci,dvxci,dvxcdgr
   real(dp), dimension(:,:,:,:,:), allocatable :: gradient
   real(dp) :: elocal,vlocal,rho,potion,sfactor
-  integer :: npts,i_all,order,offset,i_stat,ispden
+  integer :: npts,order,offset,ispden
   integer :: i1,i2,i3,j1,j2,j3,jp2,jpp2,jppp2
   integer :: ndvxc,nvxcdgr,ngr2,nd2vxc
   logical :: use_gradient
@@ -1437,7 +1408,7 @@ gradient,hx,hy,hz,dvxcdgr,wb_vxc,wbstr)
   real(dp), dimension(6),intent(inout) :: wbstr
   !Local variables
   character(len=*), parameter :: subname='vxcpostprocessing'
-  integer :: i1,i2,i3,dir_i,i_all,i_stat
+  integer :: i1,i2,i3,dir_i
   real(dp) :: dnexcdgog,grad_i,rho_up,rho_down,rho_tot
   real(dp), dimension(:,:,:,:,:), allocatable :: f_i
 

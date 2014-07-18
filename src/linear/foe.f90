@@ -200,12 +200,12 @@ subroutine foe(iproc, nproc, tmprtr, &
           if (iproc==0) then
               !call yaml_sequence(advance='no')
               if (foe_verbosity>=1) then
-                  call yaml_open_sequence('FOE to determine density kernel',label=&
+                  call yaml_sequence_open('FOE to determine density kernel',label=&
                        'it_foe'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//&
                        trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)')))//'-'//&
                        trim(adjustl(yaml_toa(itemp,fmt='(i2.2)'))))
               else
-                  call yaml_open_sequence('FOE to determine density kernel')
+                  call yaml_sequence_open('FOE to determine density kernel')
                   if (iproc==0) call yaml_comment('FOE calculation of kernel',hfill='-')
               end if
           end if
@@ -222,7 +222,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               if (iproc==0) then
                   call yaml_newline()
                   call yaml_sequence(advance='no')
-                  call yaml_open_map(flow=.true.)
+                  call yaml_mapping_open(flow=.true.)
                   if (foe_verbosity>=1) call yaml_comment('it FOE:'//yaml_toa(it,fmt='(i6)'),hfill='-')
               end if
               
@@ -354,10 +354,12 @@ subroutine foe(iproc, nproc, tmprtr, &
             
               call timing(iproc, 'FOE_auxiliary ', 'OF')
     
+              emergency_stop=.false.
               if (calculate_SHS) then
                   ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
                   if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
-                  call chebyshev_clean(iproc, nproc, npl, cc, tmb%orbs, foe_obj, &
+                  call chebyshev_clean(iproc, nproc, npl, cc, &
+                       tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%isorb_par, foe_obj, &
                        tmb%linmat%l, hamscal_compr, &
                        inv_ovrlp%matrix_compr, calculate_SHS, &
                        nsize_polynomial, SHS, tmb%linmat%kernel_%matrixp, penalty_ev, chebyshev_polynomials, &
@@ -365,7 +367,8 @@ subroutine foe(iproc, nproc, tmprtr, &
               else
                   ! The Chebyshev polynomials are already available
                   if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
-                  call chebyshev_fast(iproc, nsize_polynomial, npl, tmb%orbs, &
+                  call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
+                       tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%isorb_par, &
                       tmb%linmat%l, chebyshev_polynomials, cc, tmb%linmat%kernel_%matrixp)
               end if 
 
@@ -397,7 +400,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   if (iproc==0) then
                       if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
                            (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
-                      call yaml_close_map()
+                      call yaml_mapping_close()
                       !call bigdft_utils_flush(unit=6)
                   end if
                   call f_free(cc)
@@ -428,7 +431,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   if (iproc==0) then
                       if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
                            (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
-                      call yaml_close_map()
+                      call yaml_mapping_close()
                       !call bigdft_utils_flush(unit=6)
                   end if
                   call f_free(cc_check)
@@ -458,7 +461,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   if (iproc==0) then
                       if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
                            (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
-                      call yaml_close_map()
+                      call yaml_mapping_close()
                   end if
                   call f_free(cc_check)
                   ! Save the new fermi energy in the foe_obj structure
@@ -486,16 +489,17 @@ subroutine foe(iproc, nproc, tmprtr, &
               end if
     
               if (iproc==0) then
-                  call yaml_close_map()
+                  call yaml_mapping_close()
                   !call bigdft_utils_flush(unit=6)
               end if
     
               if (abs(charge_diff)<charge_tolerance) then
-                  if (iproc==0) call yaml_close_sequence()
+                  if (iproc==0) call yaml_sequence_close()
                   ! experimental: calculate a second kernel with a lower
                   ! polynomial degree  and calculate the difference
-                  call chebyshev_fast(iproc, nsize_polynomial, npl_check, tmb%orbs, &
-                      tmb%linmat%l, chebyshev_polynomials, cc_check, fermip_check)
+                  call chebyshev_fast(iproc, nproc, nsize_polynomial, npl_check, &
+                       tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%isorb_par, &
+                       tmb%linmat%l, chebyshev_polynomials, cc_check, fermip_check)
                   call f_free(cc_check)
                   diff=0.d0
                   do iorb=1,tmb%orbs%norbp
@@ -591,7 +595,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
       if (.not.purification_quickreturn) then
           if (iproc==0) then
-              call yaml_open_sequence('Final kernel purification')
+              call yaml_sequence_open('Final kernel purification')
               call yaml_newline()
           end if
           overlap_calculated=.true.
@@ -603,7 +607,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           call purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, 50, &
                order_taylor, max_inversion_error, purification_quickreturn)
           if (iproc==0) then
-              call yaml_close_sequence()
+              call yaml_sequence_close()
           end if
       end if
     
@@ -692,10 +696,10 @@ subroutine foe(iproc, nproc, tmprtr, &
                    check_accur=.true., max_error=max_error, mean_error=mean_error)
           end if
           call check_taylor_order(mean_error, max_inversion_error, order_taylor)
-          if (foe_verbosity>=1 .and. iproc==0) then
-              call yaml_map('max error of S^-1/2',max_error,fmt='(es9.2)')
-              call yaml_map('mean error of S^-1/2',mean_error,fmt='(es9.2)')
-          end if
+          !if (foe_verbosity>=1 .and. iproc==0) then
+          !    call yaml_map('max error of S^-1/2',max_error,fmt='(es9.2)')
+          !    call yaml_map('mean error of S^-1/2',mean_error,fmt='(es9.2)')
+          !end if
 
 
           if (imode==DENSE) then
@@ -845,7 +849,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 !!        ! Calculate the new Fermi energy.
 !!        if (foe_verbosity>=1 .and. iproc==0) then
 !!            call yaml_newline()
-!!            call yaml_open_map('Search new eF',flow=.true.)
+!!            call yaml_mapping_open('Search new eF',flow=.true.)
 !!        end if
 !!        if (it_solver>=4 .and.  &
 !!            abs(sumn-foe_data_get_real(foe_obj,"charge"))<foe_data_get_real(foe_obj,"ef_interpol_chargediff")) then
@@ -876,7 +880,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 !!            if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','bisection / secant method')
 !!        end if
 !!        if (foe_verbosity>=1 .and. iproc==0) then
-!!            call yaml_close_map()
+!!            call yaml_mapping_close()
 !!            !!call bigdft_utils_flush(unit=6)
 !!            !call yaml_newline()
 !!        end if
@@ -1362,6 +1366,7 @@ subroutine get_roots_of_cubic_polynomial(a, b, c, d, target_solution, solution)
   ! Local variables
   complex(kind=8) :: a_c, b_c, c_c, d_c, Q_c, S_c, ttp_c, ttm_c
   complex(kind=8),dimension(3) :: sol_c
+  double complex :: test
   real(kind=8) :: ttmin, tt
   integer :: i
 
@@ -1374,7 +1379,10 @@ subroutine get_roots_of_cubic_polynomial(a, b, c, d, target_solution, solution)
   S_c = ( .5d0*(Q_c+2*b_c**3-9*a_c*b_c*c_c+27*a_c**2*d_c) )**(1.d0/3.d0)
   ttp_c = cmplx(1.d0,sqrt(3.d0),kind=8)
   ttm_c = cmplx(1.d0,-sqrt(3.d0),kind=8)
-  sol_c(1) = -b_c/(3*a_c) - S_c/(3*a_c) - (b_c**2-3*a_c*c_c)/(3*a_c*S_c)
+
+  sol_c(1) = -b_c/(3*a_c) &
+       - S_c/(3*a_c) &
+       - (b_c**2-3*a_c*c_c)/(3*a_c*S_c)
   sol_c(2) = -b_c/(3*a_c) + (S_c*ttp_c)/(6*a_c) + ttm_c*(b_c**2-3*a_c*c_c)/(6*a_c*S_c)
   sol_c(3) = -b_c/(3*a_c) + (S_c*ttm_c)/(6*a_c) + ttp_c*(b_c**2-3*a_c*c_c)/(6*a_c*S_c)
   !!if (iproc==0) then
@@ -1387,10 +1395,10 @@ subroutine get_roots_of_cubic_polynomial(a, b, c, d, target_solution, solution)
   ttmin=1.d100
   do i=1,3
       if (abs(aimag(sol_c(i)))>1.d-14) cycle !complex solution
-      tt=abs(real(sol_c(i))-target_solution)
+      tt=abs(real(sol_c(i),kind=8)-target_solution)
       if (tt<ttmin) then
           ttmin=tt
-          solution=real(sol_c(i))
+          solution=real(sol_c(i),kind=8)
       end if
   end do
 
@@ -1438,27 +1446,28 @@ real(kind=8) function determinant(iproc, n, mat)
 end function determinant
 
 
-subroutine compress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, vector, vector_compressed)
+subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norbp, isorb, isorb_par, &
+           fermi, vector, vector_compressed)
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nsize_polynomial
-  type(orbitals_data),intent(in) :: orbs
+  integer,intent(in) :: iproc, nproc, nsize_polynomial, norb, norbp, isorb
+  integer,dimension(0:nproc-1),intent(in) :: isorb_par
   type(sparse_matrix),intent(in) :: fermi
-  real(kind=8),dimension(orbs%norb,orbs%norbp),intent(in) :: vector
+  real(kind=8),dimension(norb,norbp),intent(in) :: vector
   real(kind=8),dimension(nsize_polynomial),intent(out) :: vector_compressed
 
   ! Local variables
   integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
 
 
-  if (orbs%norbp>0) then
-      isegstart=fermi%istsegline(orbs%isorb_par(iproc)+1)
-      if (orbs%isorb+orbs%norbp<orbs%norb) then
-          isegend=fermi%istsegline(orbs%isorb_par(iproc+1)+1)-1
+  if (norbp>0) then
+      isegstart=fermi%istsegline(isorb_par(iproc)+1)
+      if (isorb+norbp<norb) then
+          isegend=fermi%istsegline(isorb_par(iproc+1)+1)-1
       else
           isegend=fermi%nseg
       end if
@@ -1469,10 +1478,10 @@ subroutine compress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, vect
           !ii=fermi%keyv(iseg)-1
           do jorb=fermi%keyg(1,iseg),fermi%keyg(2,iseg)
               ii=ii+1
-              iiorb = (jorb-1)/orbs%norb + 1
-              jjorb = jorb - (iiorb-1)*orbs%norb
-              vector_compressed(ii)=vector(jjorb,iiorb-orbs%isorb)
-              !write(300,*) 'ii, jjorb, iiorb-orbs%isorb', ii, jjorb, iiorb-orbs%isorb
+              iiorb = (jorb-1)/norb + 1
+              jjorb = jorb - (iiorb-1)*norb
+              vector_compressed(ii)=vector(jjorb,iiorb-isorb)
+              !write(300,*) 'ii, jjorb, iiorb-isorb', ii, jjorb, iiorb-isorb
           end do
       end do
       !!$omp end do
@@ -1482,41 +1491,42 @@ end subroutine compress_polynomial_vector
 
 
 
-subroutine uncompress_polynomial_vector(iproc, nsize_polynomial, orbs, fermi, vector_compressed, vector)
+subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
+           norb, norbp, isorb, isorb_par, fermi, vector_compressed, vector)
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nsize_polynomial
-  type(orbitals_data),intent(in) :: orbs
+  integer,intent(in) :: iproc, nproc, nsize_polynomial, norb, norbp, isorb
+  integer,dimension(0:nproc-1) :: isorb_par
   type(sparse_matrix),intent(in) :: fermi
   real(kind=8),dimension(nsize_polynomial),intent(in) :: vector_compressed
-  real(kind=8),dimension(orbs%norb,orbs%norbp),intent(out) :: vector
+  real(kind=8),dimension(norb,norbp),intent(out) :: vector
 
   ! Local variables
   integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
 
 
-  if (orbs%norbp>0) then
-      call to_zero(orbs%norb*orbs%norbp, vector(1,1))
-      isegstart=fermi%istsegline(orbs%isorb_par(iproc)+1)
-      if (orbs%isorb+orbs%norbp<orbs%norb) then
-          isegend=fermi%istsegline(orbs%isorb_par(iproc+1)+1)-1
+  if (norbp>0) then
+      call to_zero(norb*norbp, vector(1,1))
+      isegstart=fermi%istsegline(isorb_par(iproc)+1)
+      if (isorb+norbp<norb) then
+          isegend=fermi%istsegline(isorb_par(iproc+1)+1)-1
       else
           isegend=fermi%nseg
       end if
       !$omp parallel do default(private) &
-      !$omp shared(isegstart, isegend, fermi, orbs, vector, vector_compressed)
+      !$omp shared(isegstart, isegend, fermi, norb, isorb,  vector, vector_compressed)
       do iseg=isegstart,isegend
           ii=fermi%keyv(iseg)-fermi%keyv(isegstart)
           do jorb=fermi%keyg(1,iseg),fermi%keyg(2,iseg)
               ii=ii+1
-              iiorb = (jorb-1)/orbs%norb + 1
-              jjorb = jorb - (iiorb-1)*orbs%norb
-              vector(jjorb,iiorb-orbs%isorb)=vector_compressed(ii)
-              !write(*,*) 'ii, iiorb-orbs%isorb, jjorb', ii, iiorb-orbs%isorb, jjorb
+              iiorb = (jorb-1)/norb + 1
+              jjorb = jorb - (iiorb-1)*norb
+              vector(jjorb,iiorb-isorb)=vector_compressed(ii)
+              !write(*,*) 'ii, iiorb-isorb, jjorb', ii, iiorb-isorb, jjorb
           end do
       end do
       !$omp end parallel do
@@ -1553,7 +1563,7 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat)
       else
               isegend=asmat%nseg
       end if
-          !$omp parallel default(private) shared(isegstart, isegend, orbs, bsmat, asmat, amat, bmat, sumn)
+      !$omp parallel default(private) shared(isegstart, isegend, orbs, bsmat, asmat, amat, bmat, sumn)
       !$omp do reduction(+:sumn)
       do iseg=isegstart,isegend
               ii=asmat%keyv(iseg)-1
@@ -1576,3 +1586,499 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat)
   trace_sparse = sumn
 
 end function trace_sparse
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+! New: chebyshev expansion of the inverse overlap (Inverse Chebyshev Expansion)
+subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, ovrlp_mat, inv_ovrlp)
+  use module_base
+  use module_types
+  use module_interfaces, except_this_one => ice
+  use yaml_output
+  use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, &
+                               sparsematrix_malloc0_ptr, assignment(=), &
+                               SPARSE_FULL, DENSE_FULL, DENSE_PARALLEL, SPARSEMM_SEQ, &
+                               matrices
+  use sparsematrix_init, only: matrixindex_in_compressed
+  use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
+                          uncompress_matrix_distributed
+  use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
+                      foe_data_set_logical, foe_data_get_logical
+  use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
+                         fermilevel_get_real, fermilevel_get_logical
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, norder_polynomial
+  type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
+  !type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat !for debug inout
+  integer :: ex
+  type(matrices),intent(in) :: ovrlp_mat
+  type(matrices),intent(out) :: inv_ovrlp
+
+  ! Local variables
+  integer :: npl, jorb, it, ii, iseg
+  integer :: isegstart, isegend, iismall, nsize_polynomial
+  integer :: iismall_ovrlp, iismall_ham, npl_boundaries
+  integer,parameter :: nplx=50000
+  real(kind=8),dimension(:,:),allocatable :: cc, chebyshev_polynomials
+  real(kind=8),dimension(:,:),pointer :: inv_ovrlp_matrixp
+  real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
+  real(kind=8) :: anoise, scale_factor, shift_value
+  real(kind=8) :: evlow_old, evhigh_old, tt
+  real(kind=8) :: tt_ovrlp, tt_ham
+  logical :: restart, calculate_SHS, emergency_stop
+  real(kind=8),dimension(2) :: allredarr
+  real(kind=8),dimension(:),allocatable :: hamscal_compr, SHS
+  logical,dimension(2) :: eval_bounds_ok
+  integer :: irow, icol, iflag
+  logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
+  integer,parameter :: NPL_MIN=5
+  real(kind=8),parameter :: DEGREE_MULTIPLICATOR_MAX=10.d0
+  real(kind=8) :: degree_multiplicator
+  integer,parameter :: SPARSE=1
+  integer,parameter :: DENSE=2
+  integer,parameter :: imode=SPARSE
+  type(foe_data) :: foe_obj
+
+  !!real(kind=8),dimension(ovrlp_smat%nfvctr,ovrlp_smat%nfvctr) :: overlap
+  !!real(kind=8),dimension(ovrlp_smat%nfvctr) :: eval
+  !!integer,parameter :: lwork=100000
+  !!real(kind=8),dimension(lwork) :: work
+  !!integer :: info
+
+  call f_routine(id='ice')
+
+
+
+!@ JUST FOR THE MOMENT.... ########################
+     call foe_data_set_real(foe_obj,"ef",0.d0)
+     call foe_data_set_real(foe_obj,"evlow",0.5d0)
+     call foe_data_set_real(foe_obj,"evhigh",2.5d0)
+     call foe_data_set_real(foe_obj,"bisection_shift",1.d-1)
+     call foe_data_set_real(foe_obj,"fscale",1.d-1)
+     call foe_data_set_real(foe_obj,"ef_interpol_det",0.d0)
+     call foe_data_set_real(foe_obj,"ef_interpol_chargediff",0.d0)
+     call foe_data_set_real(foe_obj,"charge",0.d0)
+     call foe_data_set_int(foe_obj,"evbounds_isatur",0)
+     call foe_data_set_int(foe_obj,"evboundsshrink_isatur",0)
+     call foe_data_set_int(foe_obj,"evbounds_nsatur",10)
+     call foe_data_set_int(foe_obj,"evboundsshrink_nsatur",10)
+     call foe_data_set_real(foe_obj,"fscale_lowerbound",1.d-2)
+     call foe_data_set_real(foe_obj,"fscale_upperbound",0.d0)
+     call foe_data_set_logical(foe_obj,"adjust_FOE_temperature",.false.)
+!@ ################################################
+
+
+  inv_ovrlp_matrixp = sparsematrix_malloc0_ptr(inv_ovrlp_smat, &
+                           iaction=DENSE_PARALLEL, id='inv_ovrlp_matrixp')
+
+
+  call timing(iproc, 'FOE_auxiliary ', 'ON')
+
+
+
+  penalty_ev = f_malloc((/inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%nfvctrp,2/),id='penalty_ev')
+  SHS = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='SHS')
+
+
+  hamscal_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='hamscal_compr')
+
+    
+  ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
+  nsize_polynomial=0
+  if (inv_ovrlp_smat%nfvctrp>0) then
+      isegstart=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc)+1)
+      if (inv_ovrlp_smat%isfvctr+inv_ovrlp_smat%nfvctrp<inv_ovrlp_smat%nfvctr) then
+          isegend=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc+1)+1)-1
+      else
+          isegend=inv_ovrlp_smat%nseg
+      end if
+      !$omp parallel default(private) shared(isegstart, isegend, inv_ovrlp_smat, nsize_polynomial)
+      !$omp do reduction(+:nsize_polynomial)
+      do iseg=isegstart,isegend
+          do jorb=inv_ovrlp_smat%keyg(1,iseg),inv_ovrlp_smat%keyg(2,iseg)
+              nsize_polynomial=nsize_polynomial+1
+          end do
+      end do
+      !$omp end do
+      !$omp end parallel
+  end if
+  
+  
+  ! Fake allocation, will be modified later
+  chebyshev_polynomials = f_malloc((/nsize_polynomial,1/),id='chebyshev_polynomials')
+
+
+      degree_multiplicator = real(norder_polynomial,kind=8)/(foe_data_get_real(foe_obj,"evhigh")-foe_data_get_real(foe_obj,"evlow"))
+      degree_multiplicator = min(degree_multiplicator,DEGREE_MULTIPLICATOR_MAX)
+
+      evlow_old=1.d100
+      evhigh_old=-1.d100
+      
+
+    
+          !!calculate_SHS=.true.
+    
+          if (inv_ovrlp_smat%nfvctrp>0) then
+              call to_zero(inv_ovrlp_smat%nfvctr*inv_ovrlp_smat%nfvctrp, inv_ovrlp_matrixp(1,1))
+          end if
+    
+    
+          it=0
+          eval_bounds_ok=.false.
+          !!bisection_bounds_ok=.false.
+          main_loop: do 
+              
+              it=it+1
+    
+              ! Scale the Hamiltonian such that all eigenvalues are in the intervall [0:1]
+              if (foe_data_get_real(foe_obj,"evlow")/=evlow_old .or. foe_data_get_real(foe_obj,"evhigh")/=evhigh_old) then
+                  shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh")+foe_data_get_real(foe_obj,"evlow"))
+                  scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh")-foe_data_get_real(foe_obj,"evlow"))
+                  !$omp parallel default(none) private(ii,irow,icol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
+                  !$omp shared(inv_ovrlp_smat,ovrlp_smat,hamscal_compr,ovrlp_mat,scale_factor,shift_value)
+                  !$omp do
+                  do ii=1,inv_ovrlp_smat%nvctr
+                      irow = inv_ovrlp_smat%orb_from_index(1,ii)
+                      icol = inv_ovrlp_smat%orb_from_index(2,ii)
+                      iismall_ovrlp = matrixindex_in_compressed(ovrlp_smat, irow, icol)
+                      if (iismall_ovrlp>0) then
+                          if (irow==icol) then
+                              tt_ovrlp=1.d0
+                          else
+                              tt_ovrlp=0.d0
+                          end if
+                          tt_ham=ovrlp_mat%matrix_compr(iismall_ovrlp)
+                      else
+                          tt_ovrlp=0.d0
+                          tt_ham=0.d0
+                      end if
+                      hamscal_compr(ii)=scale_factor*(tt_ham-shift_value*tt_ovrlp)
+                  end do
+                  !$omp end do
+                  !$omp end parallel
+                  calculate_SHS=.true.
+              else
+                  calculate_SHS=.false.
+              end if
+              evlow_old=foe_data_get_real(foe_obj,"evlow")
+              evhigh_old=foe_data_get_real(foe_obj,"evhigh")
+
+
+              !call uncompress_matrix(iproc,ovrlp_smat,ovrlp_mat%matrix_compr,overlap)
+              !call dsyev('v', 'l', ovrlp_smat%nfvctr, overlap, ovrlp_smat%nfvctr, eval, work, lwork, info)
+              !if (iproc==0) write(*,*) 'ovrlp_mat%matrix_compr: eval low / high',eval(1), eval(ovrlp_smat%nfvctr)
+              !call uncompress_matrix(iproc,inv_ovrlp_smat,hamscal_compr,overlap)
+              !call dsyev('v', 'l', ovrlp_smat%nfvctr, overlap, ovrlp_smat%nfvctr, eval, work, lwork, info)
+              !if (iproc==0) write(*,*) 'hamscal_compr: eval low / high',eval(1), eval(ovrlp_smat%nfvctr)
+    
+    
+              ! Determine the degree of the polynomial
+              npl=nint(degree_multiplicator*(foe_data_get_real(foe_obj,"evhigh")-foe_data_get_real(foe_obj,"evlow")))
+              npl=max(npl,NPL_MIN)
+              npl_boundaries = nint(degree_multiplicator* &
+                  (foe_data_get_real(foe_obj,"evhigh")-foe_data_get_real(foe_obj,"evlow")) &
+                      /foe_data_get_real(foe_obj,"fscale_lowerbound")) ! max polynomial degree for given eigenvalue boundaries
+              if (npl>npl_boundaries) then
+                  npl=npl_boundaries
+                  if (iproc==0) call yaml_warning('very sharp decay of error function, polynomial degree reached limit')
+                  if (iproc==0) write(*,*) 'STOP SINCE THIS WILL CREATE PROBLEMS WITH NPL_CHECK'
+                  stop
+              end if
+              if (npl>nplx) stop 'npl>nplx'
+    
+              ! Array the holds the Chebyshev polynomials. Needs to be recalculated
+              ! every time the Hamiltonian has been modified.
+              if (calculate_SHS) then
+                  call f_free(chebyshev_polynomials)
+                  chebyshev_polynomials = f_malloc((/nsize_polynomial,npl/),id='chebyshev_polynomials')
+              end if
+              if (iproc==0) then
+                  call yaml_newline()
+                  call yaml_mapping_open('ICE')
+                  call yaml_map('eval bounds',&
+                       (/foe_data_get_real(foe_obj,"evlow"),foe_data_get_real(foe_obj,"evhigh")/),fmt='(f5.2)')
+                  call yaml_map('mult.',degree_multiplicator,fmt='(f5.2)')
+                  call yaml_map('pol. deg.',npl)
+                  call yaml_mapping_close()
+              end if
+
+    
+              cc = f_malloc((/npl,3/),id='cc')
+    
+              !!if (foe_data_get_real(foe_obj,"evlow")>=0.d0) then
+              !!    stop 'ERROR: lowest eigenvalue must be negative'
+              !!end if
+              if (foe_data_get_real(foe_obj,"evhigh")<=0.d0) then
+                  stop 'ERROR: highest eigenvalue must be positive'
+              end if
+    
+              call timing(iproc, 'FOE_auxiliary ', 'OF')
+              call timing(iproc, 'chebyshev_coef', 'ON')
+    
+              call cheb_exp(foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), npl, cc(1,1), ex)
+              call chder(foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), cc(1,1), cc(1,2), npl)
+              call chebft2(foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), npl, cc(1,3))
+              call evnoise(npl, cc(1,3), foe_data_get_real(foe_obj,"evlow"), foe_data_get_real(foe_obj,"evhigh"), anoise)
+
+              call timing(iproc, 'chebyshev_coef', 'OF')
+              call timing(iproc, 'FOE_auxiliary ', 'ON')
+            
+            
+            
+              call timing(iproc, 'FOE_auxiliary ', 'OF')
+    
+              emergency_stop=.false.
+              if (calculate_SHS) then
+                  ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
+                  !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
+                  call chebyshev_clean(iproc, nproc, npl, cc, &
+                       inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%nfvctrp, &
+                       inv_ovrlp_smat%isfvctr, inv_ovrlp_smat%isfvctr_par, foe_obj, &
+                       inv_ovrlp_smat, hamscal_compr, &
+                       inv_ovrlp%matrix_compr, .false., &
+                       nsize_polynomial, SHS, inv_ovrlp_matrixp, penalty_ev, chebyshev_polynomials, &
+                       emergency_stop)
+              else
+                  ! The Chebyshev polynomials are already available
+                  !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
+                  call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
+                       inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%nfvctrp, inv_ovrlp_smat%isfvctr, inv_ovrlp_smat%isfvctr_par, &
+                       inv_ovrlp_smat, chebyshev_polynomials, cc, inv_ovrlp_matrixp)
+              end if 
+
+
+
+             ! Check for an emergency stop, which happens if the kernel explodes, presumably due
+             ! to the eigenvalue bounds being too small.
+             ! mpi_lor seems not to work on certain systems...
+             if (emergency_stop) then
+                 iflag=1
+             else
+                 iflag=0
+             end if
+
+             if (nproc > 1) then
+                 call mpiallred(iflag, 1, mpi_sum, bigdft_mpi%mpi_comm)
+             end if
+
+             if (iflag>0) then
+                 emergency_stop=.true.
+             else
+                 emergency_stop=.false.
+             end if
+             if (emergency_stop) then
+                  eval_bounds_ok(1)=.false.
+                  call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow")/1.2d0)
+                  eval_bounds_ok(2)=.false.
+                  call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh")*1.2d0)
+                  call f_free(cc)
+                  cycle main_loop
+             end if
+    
+    
+              call timing(iproc, 'FOE_auxiliary ', 'ON')
+    
+    
+              restart=.false.
+    
+              ! Check the eigenvalue bounds. Only necessary if calculate_SHS is true
+              ! (otherwise this has already been checked in the previous iteration).
+              if (calculate_SHS) then
+                  call check_eigenvalue_spectrum()
+              end if
+    
+              call f_free(cc)
+    
+              if (restart) then
+                  if(evbounds_shrinked) then
+                      ! this shrink was not good, increase the saturation counter
+                      call foe_data_set_int(foe_obj,"evboundsshrink_isatur",foe_data_get_int(foe_obj,"evboundsshrink_isatur")+1)
+                  end if
+                  call foe_data_set_int(foe_obj,"evbounds_isatur",0)
+                  cycle
+              end if
+                  
+              ! eigenvalue bounds ok
+              if (calculate_SHS) then
+                  call foe_data_set_int(foe_obj,"evbounds_isatur",foe_data_get_int(foe_obj,"evbounds_isatur")+1)
+              end if
+            
+
+              exit
+    
+    
+          end do main_loop
+    
+    
+
+     call compress_matrix_distributed(iproc, inv_ovrlp_smat, inv_ovrlp_matrixp, &
+          inv_ovrlp%matrix_compr)
+
+     call f_free_ptr(inv_ovrlp_matrixp)
+
+  call f_free(chebyshev_polynomials)
+  call f_free(penalty_ev)
+  call f_free(hamscal_compr)
+  call f_free(SHS)
+
+  call timing(iproc, 'FOE_auxiliary ', 'OF')
+
+  call f_release_routine()
+
+
+      contains
+
+
+      subroutine check_eigenvalue_spectrum()
+        implicit none
+        real(kind=8) :: bound_low, bound_up
+
+        ! The penalty function must be smaller than the noise.
+        bound_low=0.d0
+        bound_up=0.d0
+        if (inv_ovrlp_smat%nfvctrp>0) then
+            isegstart=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc)+1)
+            if (inv_ovrlp_smat%isfvctr+inv_ovrlp_smat%nfvctrp<inv_ovrlp_smat%nfvctr) then
+                isegend=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc+1)+1)-1
+            else
+                isegend=inv_ovrlp_smat%nseg
+            end if
+            !$omp parallel default(none) &
+            !$omp private(iseg, ii, jorb, irow, icol, iismall, tt) &
+            !$omp shared(isegstart, isegend, inv_ovrlp_smat, penalty_ev, bound_low, bound_up)
+            !$omp do reduction(+:bound_low,bound_up)
+            do iseg=isegstart,isegend
+                ii=inv_ovrlp_smat%keyv(iseg)-1
+                do jorb=inv_ovrlp_smat%keyg(1,iseg),inv_ovrlp_smat%keyg(2,iseg)
+                    ii=ii+1
+                    irow = (jorb-1)/inv_ovrlp_smat%nfvctr + 1
+                    icol = jorb - (irow-1)*inv_ovrlp_smat%nfvctr
+                    iismall = matrixindex_in_compressed(inv_ovrlp_smat, irow, icol)
+                    if (iismall>0) then
+                        if (irow==jorb) then
+                            tt=1.d0
+                        else
+                            tt=0.d0
+                        end if
+                    else
+                        tt=0.d0
+                    end if
+                    bound_low = bound_low + penalty_ev(icol,irow-inv_ovrlp_smat%isfvctr,2)*tt
+                    bound_up = bound_up +penalty_ev(icol,irow-inv_ovrlp_smat%isfvctr,1)*tt
+                end do  
+            end do
+            !$omp end do
+            !$omp end parallel
+        end if
+    
+        allredarr(1)=bound_low
+        allredarr(2)=bound_up
+
+        if (nproc > 1) then
+            call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+        end if
+
+        allredarr=abs(allredarr) !for some crazy situations this may be negative
+        anoise=100.d0*anoise
+        !write(*,*) 'allredarr, anoise', allredarr, anoise
+        if (allredarr(1)>anoise) then
+            eval_bounds_ok(1)=.false.
+            call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow")/1.2d0)
+            restart=.true.
+        else
+            eval_bounds_ok(1)=.true.
+        end if
+        if (allredarr(2)>anoise) then
+            eval_bounds_ok(2)=.false.
+            call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh")*1.2d0)
+            restart=.true.
+        else
+            eval_bounds_ok(2)=.true.
+        end if
+
+      end subroutine check_eigenvalue_spectrum
+
+end subroutine ice
+
+
+
+! Calculates chebychev expansion of x**ex, where ex is any value (typically -1, -1/2, 1/2)
+! Taken from numerical receipes: press et al
+subroutine cheb_exp(A,B,N,cc,ex)
+  use module_base, pi => pi_param
+  implicit none
+  
+  ! Calling arguments
+  real(kind=8),intent(in) :: A, B
+  integer,intent(in) :: n, ex
+  real(8),dimension(n),intent(out) :: cc
+
+  ! Local variables
+  integer :: k, j
+  real(kind=8) :: bma, bpa, y, arg, fac, tt, erfcc
+  real(kind=8),dimension(50000) :: cf
+  !real(kind=8),parameter :: pi=4.d0*atan(1.d0)
+
+  call f_routine(id='chebft')
+
+  if (n>50000) stop 'chebft'
+  bma=0.5d0*(b-a)
+  bpa=0.5d0*(b+a)
+  fac=2.d0/n
+  !$omp parallel default(none) shared(bma,bpa,fac,n,cf,cc,ex) &
+  !$omp private(k,y,arg,j,tt)
+  !$omp do
+  do k=1,n
+      y=cos(pi*(k-0.5d0)*(1.d0/n))
+      arg=y*bma+bpa
+      !cf(k)=arg**ex
+      select case(ex)
+      case (-2)
+          !ex=-0.5d0
+          cf(k)=1.d0/sqrt(arg)
+      case (2)
+          !ex=0.5d0
+          cf(k)=sqrt(arg)
+      case (1)
+          !ex=-1.d0
+          cf(k)=1.d0/arg
+      case default
+          stop 'wrong power'
+      end select
+  end do
+  !$omp end do
+  !$omp do
+  do j=1,n
+      tt=0.d0
+      do  k=1,n
+          tt=tt+cf(k)*cos((pi*(j-1))*((k-0.5d0)*(1.d0/n)))
+      end do
+      cc(j)=fac*tt
+  end do
+  !$omp end do
+  !$omp end parallel
+
+  call f_release_routine()
+
+end subroutine cheb_exp

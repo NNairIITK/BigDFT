@@ -133,15 +133,15 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
 
   if(iproc==0) then
        call yaml_comment('new Pulay correction',hfill='-')
-       call yaml_open_sequence('Pulay forces (Ha/Bohr)')
+       call yaml_sequence_open('Pulay forces (Ha/Bohr)')
           do iat=1,at%astruct%nat
              call yaml_sequence(advance='no')
-             call yaml_open_map(flow=.true.)
+             call yaml_mapping_open(flow=.true.)
              call yaml_map(trim(at%astruct%atomnames(at%astruct%iatype(iat))),fpulay(1:3,iat),fmt='(1es20.12)')
-             call yaml_close_map(advance='no')
+             call yaml_mapping_close(advance='no')
              call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
           end do
-          call yaml_close_sequence()
+          call yaml_sequence_close()
   end if
 
 
@@ -438,14 +438,9 @@ subroutine extract_boundary(tmb, phi_delta, numpoints, numpoints_tot)
       call f_free(boundaryarray)
   end do
 
-
-
 call f_release_routine()
 
 end subroutine extract_boundary
-
-
-
 
 
 subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, GPU, tmb, fpulay)
@@ -478,6 +473,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   real(kind=8) :: kernel, ekernel
   real(kind=8),dimension(:),allocatable :: lhphilarge, psit_c, psit_f, hpsit_c, hpsit_f, lpsit_c, lpsit_f
   type(sparse_matrix) :: dovrlp(3), dham(3)
+  type(matrices) :: dovrlp_(3), dham_(3)
   type(energy_terms) :: energs
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   character(len=*),parameter :: subname='pulay_correction'
@@ -550,15 +546,17 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
     !call nullify_sparse_matrix(dovrlp(jdir))
     !call nullify_sparse_matrix(dham(jdir))
     dovrlp(jdir)=sparse_matrix_null()
+    dovrlp_(jdir)=matrices_null()
     dham(jdir)=sparse_matrix_null()
+    dham_(jdir)=matrices_null()
     call sparse_copy_pattern(tmb%linmat%m,dovrlp(jdir),iproc,subname) 
     call sparse_copy_pattern(tmb%linmat%m,dham(jdir),iproc,subname)
     !!allocate(dham(jdir)%matrix_compr(dham(jdir)%nvctr), stat=istat)
     !!call memocc(istat, dham(jdir)%matrix_compr, 'dham%matrix_compr', subname)
     !!allocate(dovrlp(jdir)%matrix_compr(dovrlp(jdir)%nvctr), stat=istat)
     !!call memocc(istat, dovrlp(jdir)%matrix_compr, 'dovrlp%matrix_compr', subname)
-    dham(jdir)%matrix_compr=f_malloc_ptr(dham(jdir)%nvctr,id='dham(jdir)%matrix_compr')
-    dovrlp(jdir)%matrix_compr=f_malloc_ptr(dovrlp(jdir)%nvctr,id='dovrlp(jdir)%matrix_compr')
+    dham_(jdir)%matrix_compr=f_malloc_ptr(dham(jdir)%nvctr,id='dham(jdir)%matrix_compr')
+    dovrlp_(jdir)%matrix_compr=f_malloc_ptr(dovrlp(jdir)%nvctr,id='dovrlp(jdir)%matrix_compr')
 
     call get_derivative(jdir, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%lzd%hgrids(1), tmb%orbs, &
          tmb%ham_descr%lzd, tmb%ham_descr%psi, lhphilarge)
@@ -569,12 +567,12 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
     call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom,&
          psit_c, lpsit_c, psit_f, lpsit_f, tmb%linmat%m, ham_)
     ! This can then be deleted if the transition to the new type has been completed.
-    dovrlp(jdir)%matrix_compr=ham_%matrix_compr
+    dovrlp_(jdir)%matrix_compr=ham_%matrix_compr
 
     call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom,&
          psit_c, hpsit_c, psit_f, hpsit_f, tmb%linmat%m, ham_)
     ! This can then be deleted if the transition to the new type has been completed.
-    dham(jdir)%matrix_compr=ham_%matrix_compr
+    dham_(jdir)%matrix_compr=ham_%matrix_compr
   end do
   call deallocate_matrices(ham_)
 
@@ -626,7 +624,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
                            *tmb%coeff(iialpha,iorb)*tmb%coeff(ibeta,iorb) 
                   end do
                   fpulay(jdir,jat)=fpulay(jdir,jat)+&
-                         2.0_gp*(kernel*dham(jdir)%matrix_compr(ii)-ekernel*dovrlp(jdir)%matrix_compr(ii))
+                         2.0_gp*(kernel*dham_(jdir)%matrix_compr(ii)-ekernel*dovrlp_(jdir)%matrix_compr(ii))
               end do
          end do
      end if
@@ -641,15 +639,15 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
        !!    write(*,'(a,i5,3es16.6)') 'iat, fpulay', jat, fpulay(1:3,jat)
        !!end do
        call yaml_comment('Pulay Correction',hfill='-')
-       call yaml_open_sequence('Pulay Forces (Ha/Bohr)')
+       call yaml_sequence_open('Pulay Forces (Ha/Bohr)')
           do jat=1,at%astruct%nat
              call yaml_sequence(advance='no')
-             call yaml_open_map(flow=.true.)
+             call yaml_mapping_open(flow=.true.)
              call yaml_map(trim(at%astruct%atomnames(at%astruct%iatype(jat))),fpulay(1:3,jat),fmt='(1es20.12)')
-             call yaml_close_map(advance='no')
+             call yaml_mapping_close(advance='no')
              call yaml_comment(trim(yaml_toa(jat,fmt='(i4.4)')))
           end do
-          call yaml_close_sequence()
+          call yaml_sequence_close()
   end if
 
 
@@ -665,8 +663,10 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
 
 
   do jdir=1,3
-     call deallocate_sparse_matrix(dovrlp(jdir),subname)
-     call deallocate_sparse_matrix(dham(jdir),subname)
+     call deallocate_sparse_matrix(dovrlp(jdir))
+     call deallocate_sparse_matrix(dham(jdir))
+     call deallocate_matrices(dovrlp_(jdir))
+     call deallocate_matrices(dham_(jdir))
   end do
 
   !!if(iproc==0) write(*,'(1x,a)') 'done.'
@@ -674,4 +674,3 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   call f_release_routine()
 
 end subroutine pulay_correction
-

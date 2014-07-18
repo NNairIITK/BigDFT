@@ -49,7 +49,7 @@ subroutine xx_all(array,m)
      !profile the array allocation
      if (m%profile) then
         sizeof=kind(array)
-        ilsize=int(sizeof,kind=8)*int(product(m%shape(1:m%rank)),kind=8)
+        ilsize=max(int(sizeof,kind=8)*int(product(m%shape(1:m%rank)),kind=8),int(0,kind=8))
         if (track_origins) then
            !write the address of the first element in the address string
            call getlongaddress(array,iadd)

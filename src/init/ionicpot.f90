@@ -34,8 +34,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   logical :: slowion=.false.
   logical :: perx,pery,perz,gox,goy,goz
   integer :: n1i,n2i,n3i,i3s,n3pi
-  integer :: i,iat,ii,i_all,i_stat,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
-  integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind,ierr
+  integer :: i,iat,ii,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
+  integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind
   real(gp) :: ucvol,rloc,twopitothreehalf,atint,shortlength,charge,eself,rx,ry,rz
   real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff
   real(gp) :: hxh,hyh,hzh
@@ -487,7 +487,6 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
 
   character(len = *), parameter :: subname = "createEffectiveIonicPotential"
   logical :: counterions
-  integer :: i_stat, i_all
   real(dp), dimension(:), allocatable :: counter_ions
 
   ! Compute the main ionic potential.
@@ -525,6 +524,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
 !  use module_interfaces, except_this_one => createIonicPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use psp_projectors, only: PSPCODE_PAW
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
@@ -543,7 +543,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   character(len = 3) :: quiet
   logical :: perx,pery,perz,gox,goy,goz,htoobig=.false.,efwrite,check_potion=.false.
   integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp !n(c) nspin
-  integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
+  integer :: ind,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
   real(kind=8) :: rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz
   real(kind=8) :: raux,raux2,rr,r2paw
@@ -1009,7 +1009,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      end if
   end if
 
-  if (at%multipole_preserving) call finalize_real_space_conversion(subname)
+  if (at%multipole_preserving) call finalize_real_space_conversion()
 
   call timing(iproc,'CrtLocPot     ','OF')
 
@@ -1176,6 +1176,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   use module_interfaces, except_this_one => CounterIonPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_input_dicts
+  use module_input_keys, only: IG_OCCUPATION
   use dictionaries
   use yaml_output
   use module_atoms, only: deallocate_atoms_data,nullify_atoms_data
@@ -1194,8 +1195,8 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   real(kind=8), parameter :: pi=4.d0*atan(1.d0)
   logical :: htoobig=.false.,check_potion=.false.
   logical :: perx,pery,perz,gox,goy,goz
-  integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp,nspin
-  integer :: ind,i_all,i_stat,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
+  integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ityp,nspin
+  integer :: ind,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
   real(kind=8) :: rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz
   real(wp) :: maxdiff
@@ -1228,8 +1229,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   end do
   call psp_dict_analyse(dict, at)
   ! Read associated pseudo files.
-  !call atomic_data_file_merge_to_dict(dict, "Atomic occupation", 'input.occup')
-  call atomic_data_set_from_dict(dict, "Atomic occupation", at, in%nspin)
+  call atomic_data_set_from_dict(dict,IG_OCCUPATION, at, in%nspin)
   call dict_free(dict)
 
   radii_cf = f_malloc((/ at%astruct%ntypes, 3 /),id='radii_cf')
@@ -1436,7 +1436,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   call f_free_ptr(at%astruct%rxyz)
 
 
-  if (at%multipole_preserving) call finalize_real_space_conversion(subname)
+  if (at%multipole_preserving) call finalize_real_space_conversion()
 
   call timing(iproc,'CrtLocPot     ','OF')
 

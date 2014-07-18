@@ -14,24 +14,26 @@ subroutine precong_per_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nseg_c,nvctr_c
      ncong,cprecr,hx,hy,hz,x,ibyz,ibxz,ibxy)
   use module_base
   implicit none
-integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ncong
-  integer,intent(in)::ibyz(2,0:n2,0:n3+ndebug),ibxz(2,0:n1,0:n3+ndebug),ibxy(2,0:n1,0:n2+ndebug)
-  integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
+integer , intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ncong
+  integer ,intent(in), dimension(2,0:n2,0:n3+ndebug) :: ibyz
+  integer ,intent(in), dimension(2,0:n1,0:n3+ndebug) :: ibxz
+  integer ,intent(in), dimension(2,0:n1,0:n2+ndebug) :: ibxy
+  integer , intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
   real(gp), intent(in) :: hx,hy,hz,cprecr
-  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
-  real(wp), intent(inout) ::  x(nvctr_c+7*nvctr_f)
+  integer , dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  integer , dimension(nseg_c+nseg_f), intent(in) :: keyv
+  real(wp), dimension(nvctr_c+7*nvctr_f), intent(inout) :: x
   ! local variables
-  real(gp)::scal(0:8)
-  real(wp)::rmr,rmr_new,alpha,beta
-  integer i,i_stat,i_all
-  real(wp),allocatable::b(:),r(:),d(:)
+  real(gp), dimension(0:8) :: scal
+  real(wp) :: rmr,rmr_new,alpha,beta
+  integer :: i
+  real(wp), dimension(:), allocatable :: b,r,d
 
   ! work arrays for adaptive wavelet data structure
   ! x_c and y_c are taken from the FFT arrays
-  real(wp),allocatable::x_f(:,:,:,:)
-  real(wp),allocatable,dimension(:)::x_f1,x_f2,x_f3
-  real(wp),allocatable,dimension(:,:,:,:)::y_f
+  real(wp), allocatable, dimension(:,:,:,:) :: x_f
+  real(wp), allocatable, dimension(:) :: x_f1,x_f2,x_f3
+  real(wp), allocatable, dimension(:,:,:,:) :: y_f
 
   ! work arrays for FFT
   real(wp), dimension(:), allocatable :: kern_k1,kern_k2,kern_k3
@@ -137,20 +139,20 @@ contains
 END SUBROUTINE precong_per_hyb
 
 
-!>   Applies the operator (KE+cprecr*I)*x=y
-!!   array x is input, array y is output
+!> Applies the operator (KE+cprecr*I)*x=y
+!! array x is input, array y is output
 subroutine apply_hp_hyb(n1,n2,n3, &
      nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,x_f,x_c,x_f1,x_f2,x_f3,y_f,y_c,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,nf,ibyz,ibxz,ibxy)
   use module_base
   implicit none
-  integer, intent(in) :: n1,n2,n3
-  integer,intent(in) :: ibyz(2,0:n2,0:n3+ndebug),ibxz(2,0:n1,0:n3+ndebug),ibxy(2,0:n1,0:n2+ndebug)
-  integer,intent(in) :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,nf
-  integer, intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
+  integer , intent(in) :: n1,n2,n3
+  integer ,intent(in) :: ibyz(2,0:n2,0:n3+ndebug),ibxz(2,0:n1,0:n3+ndebug),ibxy(2,0:n1,0:n2+ndebug)
+  integer ,intent(in) :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,nf
+  integer , intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
   real(gp), intent(in) :: hx,hy,hz,cprecr
-  integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
-  integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
+  integer , dimension(2,nseg_c+nseg_f), intent(in) :: keyg
+  integer , dimension(nseg_c+nseg_f), intent(in) :: keyv
   real(wp), intent(in) :: x(nvctr_c+7*nvctr_f)  
   real(wp), intent(out) :: y(nvctr_c+7*nvctr_f)
   !work arrays 

@@ -135,7 +135,7 @@ contains
       write_atomtype=.true.
     
       if (iproc==0) then
-          call yaml_open_sequence('check of kernel cutoff radius')
+          call yaml_sequence_open('check of kernel cutoff radius')
       end if
     
       do iorb=1,orbs%norb
@@ -164,7 +164,7 @@ contains
           ! Adjust if necessary
           if (write_data) then
               call yaml_sequence(advance='no')
-              call yaml_open_map(flow=.true.)
+              call yaml_mapping_open(flow=.true.)
               atomname=trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))
               call yaml_map('atom type',atomname)
           end if
@@ -180,12 +180,12 @@ contains
               end if
           end if
           if (write_data) then
-              call yaml_close_map()
+              call yaml_mapping_close()
           end if
       end do
     
       if (iproc==0) then
-          call yaml_close_sequence
+          call yaml_sequence_close
       end if
     
     
@@ -231,7 +231,8 @@ contains
       ! Calling arguments
       integer,intent(in) :: norb
       logical,dimension(norb),intent(in) :: lut
-      integer,intent(out) :: nseg, nvctr, nsegline
+      integer,intent(inout) :: nseg, nvctr
+      integer,intent(out) :: nsegline
 
       ! Local variables
       integer :: jorb
@@ -533,7 +534,7 @@ contains
 
 
       ! Allocate the matrices
-      call allocate_sparse_matrix_matrices(sparsemat, allocate_full)
+      !call allocate_sparse_matrix_matrices(sparsemat, allocate_full)
 
 
       ! Initialize the parameters for the spare matrix matrix multiplication

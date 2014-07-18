@@ -17,7 +17,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   use communications_base, only: comms_cubic
   implicit none
   integer, intent(in) :: iproc,nproc
-  type(orbitals_data), intent(inout) :: orbs
+  type(orbitals_data), intent(in) :: orbs
   type(comms_cubic), intent(in) :: comms
   !>Choose which orthogonalization method shall be used:
   !!    orthpar%methOrtho==0: Cholesky orthonormalization (i.e. a pseudo Gram-Schmidt)
@@ -28,7 +28,6 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   type(paw_objects),optional,intent(inout) :: paw
   !local variables
   character(len=*), parameter :: subname='orthogonalize'
-  integer :: i_stat,i_all
   !integer :: i,idx
   integer :: ispin,nspin,nspinor,usepaw=0
   integer, dimension(:,:), allocatable :: ndim_ovrlp
@@ -49,7 +48,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
 
   ! ndim_ovrlp describes the shape of the overlap matrix.
   ndim_ovrlp = f_malloc((/ 1.to.nspin, 0.to.orbs%nkpts /),id='ndim_ovrlp')
-  
+
   ! Allocate norbArr which contains the number of up and down orbitals.
   norbArr = f_malloc(nspin,id='norbArr')
   do ispin=1,nspin
@@ -87,107 +86,107 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
         end if
         !write(*,*)'orthogonality l80 erase me:'
         !write(*,*)'ovrlp',ovrlp
-      end do
+     end do
 
-!             test = 0.d0 ; test_max = 0.d0 ; idx = 0.d0
-!
-!             do i = 1,orbs%norb**2
-!
-!                idx = i/orbs%norb
-!
-!
-!                if((idx+1)-(i-idx*orbs%norb).eq.0) then
-!                test = abs(ovrlp(i) - 1.d0)
-!                else
-!                test = abs(ovrlp(i) - 0.d0)
-!                end if
-!
-!                !if(i.eq.1) test = abs(ovrlp(i)-1.d0)
-!                if(i.eq.orbs%norb**2) test = abs(ovrlp(i)-1.d0)
-!            
-!
-!                if(test.gt.test_max) test_max = test
-!
-!            end do
-!
- !           write(*,*) 'Ovrlp-Difference', test_max
-
-
-             ! Deallocate the arrays.
-             call f_free(ovrlp)
+     !             test = 0.d0 ; test_max = 0.d0 ; idx = 0.d0
+     !
+     !             do i = 1,orbs%norb**2
+     !
+     !                idx = i/orbs%norb
+     !
+     !
+     !                if((idx+1)-(i-idx*orbs%norb).eq.0) then
+     !                test = abs(ovrlp(i) - 1.d0)
+     !                else
+     !                test = abs(ovrlp(i) - 0.d0)
+     !                end if
+     !
+     !                !if(i.eq.1) test = abs(ovrlp(i)-1.d0)
+     !                if(i.eq.orbs%norb**2) test = abs(ovrlp(i)-1.d0)
+     !            
+     !
+     !                if(test.gt.test_max) test_max = test
+     !
+     !            end do
+     !
+     !           write(*,*) 'Ovrlp-Difference', test_max
 
 
-          else if(orthpar%methOrtho==1) then
-               category='GS/Chol'
-               call timing(iproc, trim(category)//'_comput', 'ON')
-               
-               ! Make a hybrid Gram-Schmidt/Cholesky orthonormalization.
-       if(usepaw==1) then
-         call gsChol(iproc,nproc,psi(1),orthpar,nspinor,orbs,nspin,ndim_ovrlp,norbArr,comms,paw)
-       else
-         call gsChol(iproc,nproc,psi(1),orthpar,nspinor,orbs,nspin,ndim_ovrlp,norbArr,comms)
-       end if
+     ! Deallocate the arrays.
+     call f_free(ovrlp)
 
-          else if(orthpar%methOrtho==2) then
-             category='Loewdin'
-             call timing(iproc,trim(category)//'_comput','ON')
 
-             call dimension_ovrlp(nspin,orbs,ndim_ovrlp)
-             
-             ! Allocate the overlap matrix
-             ovrlp = f_malloc(ndim_ovrlp(nspin, orbs%nkpts),id='ovrlp')
-                  
-             ! Make a loop over npsin; calculate the overlap matrix (for up/down,resp.) and orthogonalize (again for up/down,resp.).
-             do ispin=1,nspin
+  else if(orthpar%methOrtho==1) then
+     category='GS/Chol'
+     call timing(iproc, trim(category)//'_comput', 'ON')
+
+     ! Make a hybrid Gram-Schmidt/Cholesky orthonormalization.
+     if(usepaw==1) then
+        call gsChol(iproc,nproc,psi(1),orthpar,nspinor,orbs,nspin,ndim_ovrlp,norbArr,comms,paw)
+     else
+        call gsChol(iproc,nproc,psi(1),orthpar,nspinor,orbs,nspin,ndim_ovrlp,norbArr,comms)
+     end if
+
+  else if(orthpar%methOrtho==2) then
+     category='Loewdin'
+     call timing(iproc,trim(category)//'_comput','ON')
+
+     call dimension_ovrlp(nspin,orbs,ndim_ovrlp)
+
+     ! Allocate the overlap matrix
+     ovrlp = f_malloc(ndim_ovrlp(nspin, orbs%nkpts),id='ovrlp')
+
+     ! Make a loop over npsin; calculate the overlap matrix (for up/down,resp.) and orthogonalize (again for up/down,resp.).
+     do ispin=1,nspin
         if(usepaw==1) then
            call getOverlap_paw(iproc,nproc,nspin,norbArr(ispin),orbs,comms,&
                 psi(1),paw%spsi(1),ndim_ovrlp,ovrlp,norbArr,1,ispin,category)
-           call loewdin(iproc,norbArr(ispin),orbs%nspinor,1,ispin,orbs,comms,&
+           call loewdin(iproc,norbArr(ispin),1,ispin,orbs,comms,&
                 nspin,psi,ovrlp,ndim_ovrlp,norbArr,paw)
         else
            call getOverlap(iproc,nproc,nspin,norbArr(ispin),orbs,comms,psi(1),ndim_ovrlp,ovrlp,norbArr,1,ispin,category)
-           call loewdin(iproc,norbArr(ispin),orbs%nspinor,1,ispin,orbs,comms,&
+           call loewdin(iproc,norbArr(ispin),1,ispin,orbs,comms,&
                 nspin,psi,ovrlp,ndim_ovrlp,norbArr)
         end if
         !write(*,*)'orthogonality l117 erase me:'
         !write(*,*)'ovrlp',ovrlp
-             end do
-             
-             ! Deallocate the arrays.
-             call f_free(ovrlp)
-                  
-          else
-             if(iproc==0) write(*,'(a,i0)') 'ERROR: invalid choice for methOrtho:',orthpar%methOrtho
-             if(iproc==0) write(*,'(a)') "Change it in 'input.perf' to 0, 1 or 2!"
-             stop
-          end if
+     end do
 
-          ! Deallocate the remaining arrays.
-          call f_free(norbArr)
-          call f_free(ndim_ovrlp)
+     ! Deallocate the arrays.
+     call f_free(ovrlp)
 
+  else
+     if(iproc==0) write(*,'(a,i0)') 'ERROR: invalid choice for methOrtho:',orthpar%methOrtho
+     if(iproc==0) write(*,'(a)') "Change it in 'input.perf' to 0, 1 or 2!"
+     stop
+  end if
 
-          call timing(iproc,trim(category)//'_comput','OF')
-          
-        END SUBROUTINE orthogonalize
+  ! Deallocate the remaining arrays.
+  call f_free(norbArr)
+  call f_free(ndim_ovrlp)
 
 
-        subroutine check_closed_shell(orbs,lcs)
-          use module_base
-          use module_types
-          implicit none
-          type(orbitals_data), intent(in) :: orbs
-          logical, intent(out) :: lcs
-          !local variables
-          integer :: iorb
-          lcs=.true.
-          do iorb=orbs%norb*orbs%nkpts,1,-1
-             if ( orbs%occup(iorb) /= real(3-orbs%nspin,gp)) then
-                lcs=.false.
-                exit
-             end if
-          end do
-        END SUBROUTINE check_closed_shell
+  call timing(iproc,trim(category)//'_comput','OF')
+
+END SUBROUTINE orthogonalize
+
+
+subroutine check_closed_shell(orbs,lcs)
+  use module_base
+  use module_types
+  implicit none
+  type(orbitals_data), intent(in) :: orbs
+  logical, intent(out) :: lcs
+  !local variables
+  integer :: iorb
+  lcs=.true.
+  do iorb=orbs%norb*orbs%nkpts,1,-1
+     if ( orbs%occup(iorb) /= real(3-orbs%nspin,gp)) then
+        lcs=.false.
+        exit
+     end if
+  end do
+END SUBROUTINE check_closed_shell
 
 
 !> Orthogonality constraint routine, for all the orbitals
@@ -210,7 +209,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
   real(dp), intent(out) :: scprsum
   !local variables
   character(len=*), parameter :: subname='orthoconstraint'
-  integer :: i_stat,i_all,ierr,iorb,ialag,jorb !n(c) ise
+  integer :: iorb,ialag,jorb !ierr, n(c) ise
   integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   real(dp) :: occ !n(c) tt
   real(gp), dimension(2) :: aij,aji
@@ -451,7 +450,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   real(wp), intent(out) :: evsum
   !local variables
   character(len=*), parameter :: subname='subspace_diagonalisation'
-  integer :: i_stat,i_all,ierr,info,iorb,n_lp,n_rp,npsiw,isorb,ise,jorb,ncplx
+  integer :: info,iorb,n_lp,n_rp,npsiw,isorb,ise,jorb,ncplx
   integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   !integer :: istart
   real(wp) :: occ,asymm
@@ -579,7 +578,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
         call yaml_warning('KS Hamiltonian is not Hermitian in the subspace, diff:'//&
              trim(yaml_toa(asymm,fmt='(1pe9.2)')))
         if (verbose >= 3) then
-           call yaml_open_sequence('KS Hamiltonian Matrix(ces)',advance='no')
+           call yaml_sequence_open('KS Hamiltonian Matrix(ces)',advance='no')
            call yaml_comment('Rank of the matrix: '//adjustl(trim(yaml_toa(norb,fmt='(i6)'))))
            do ikpt=1,orbs%nkpts
               do ispin=1,nspin
@@ -593,10 +592,10 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
                  call orbitals_and_components(iproc,ikpt,ispin,orbs,comms,&
                       nvctrp,norb,norbs,ncomp,nspinor)
                  !call yaml_stream_attributes(indent=indentlevel)
-                 call yaml_open_sequence(flow=.true.)
+                 call yaml_sequence_open(flow=.true.)
                  do iorb=1,norb
                     call yaml_sequence()
-                    call yaml_open_sequence()
+                    call yaml_sequence_open()
                     do jorb=1,norb
                        if (norbs == 2*norb) then
                           ncplx=2
@@ -610,13 +609,13 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
                                fmt='(1pe9.2)')))
                        end if
                     end do
-                    call yaml_close_sequence()
+                    call yaml_sequence_close()
                     if (iorb < norb) call yaml_newline()
                  end do
-                 call yaml_close_sequence()
+                 call yaml_sequence_close()
               end do
            end do
-           call yaml_close_sequence()
+           call yaml_sequence_close()
         end if
      end if
   end if
@@ -760,7 +759,7 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
   real(wp), dimension(commsv%nvctr_par(iproc,0)*orbsv%nspinor*orbsv%norb), intent(inout) :: psi_virt
   !local variables
   character(len=*), parameter :: subname='orthon_virt_occup'
-  integer :: i_stat,i_all,ierr,ispsiv,iorb,jorb,isorb
+  integer :: ispsiv,iorb,jorb,isorb
   integer :: ispin,nspin,ikpt,norb,norbs,ncomp,nvctrp,ispsi,ikptp,nspinor
   integer :: norbv,norbsv,ncompv,nvctrpv,nspinorv
   real(wp) :: scprsum,tt
@@ -1058,7 +1057,7 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
   real(wp), dimension(nspinor*nvctrp,norb), intent(out) :: hpsit
   !local variables
   character(len=*), parameter :: subname='orthoconstraint_p'
-  integer :: i_stat,i_all,istart,iorb,ierr,norbs,ncomp
+  integer :: istart,iorb,ierr,norbs,ncomp
   real(dp) :: occ
   real(wp), dimension(:,:,:), allocatable :: alag
 
@@ -1157,7 +1156,7 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,psit,nspinor)
   real(wp), dimension(nspinor*nvctrp,norb), intent(inout) :: psit
   !local variables
   character(len=*), parameter :: subname='orthon_p'
-  integer :: info,i_all,i_stat,nvctr_eff,ierr,istart,norbs,ncomp
+  integer :: info,nvctr_eff,ierr,istart,norbs,ncomp
   real(wp) :: tt,ttLOC
   real(wp), dimension(:,:,:), allocatable :: ovrlp
   integer :: volta
@@ -1338,7 +1337,7 @@ subroutine loewe_p(iproc,norb,ndim,nvctrp,nvctr_tot,psit)
   real(kind=8), allocatable :: ovrlp(:,:,:),evall(:),psitt(:,:)
   real(kind=8) :: dnrm2
   real(kind=8) :: tt,ttLOC
-  integer :: nvctr_eff,i_all,i_stat,ierr,info,jorb,lorb
+  integer :: nvctr_eff,ierr,info,jorb,lorb
 
   if (norb == 1) then
 
@@ -1532,9 +1531,9 @@ subroutine checkortho_paw(iproc,norb,nvctrp,psit,spsi)
            dev=dev+scpr**2
         endif
         if (iproc == 0) then
-           if (iorb.eq.jorb .and. abs(scpr-1.d0).gt.toler) write(*,'(1x,a,2(1x,i0),1x,1pe12.6)')&
+           if (iorb.eq.jorb .and. abs(scpr-1.d0).gt.toler) write(*,'(1x,a,2(1x,i0),1x,1pe13.6)')&
                 'ERROR ORTHO',iorb,jorb,scpr
-           if (iorb.ne.jorb .and. abs(scpr).gt.toler)      write(*,'(1x,a,2(1x,i0),1x,1pe12.6)')&
+           if (iorb.ne.jorb .and. abs(scpr).gt.toler)      write(*,'(1x,a,2(1x,i0),1x,1pe13.6)')&
                 'ERROR ORTHO',iorb,jorb,scpr
         end if
      end do
@@ -1575,9 +1574,9 @@ subroutine checkortho_p(iproc,norb,nvctrp,psit)
            dev=dev+scpr**2
         endif
         if (iproc == 0) then
-           if (iorb.eq.jorb .and. abs(scpr-1.d0).gt.toler) write(*,'(1x,a,2(1x,i0),1x,1pe12.6)')&
+           if (iorb.eq.jorb .and. abs(scpr-1.d0).gt.toler) write(*,'(1x,a,2(1x,i0),1x,1pe13.6)')&
                 'ERROR ORTHO',iorb,jorb,scpr
-           if (iorb.ne.jorb .and. abs(scpr).gt.toler)      write(*,'(1x,a,2(1x,i0),1x,1pe12.6)')&
+           if (iorb.ne.jorb .and. abs(scpr).gt.toler)      write(*,'(1x,a,2(1x,i0),1x,1pe13.6)')&
                 'ERROR ORTHO',iorb,jorb,scpr
         end if
      end do
@@ -1615,9 +1614,9 @@ subroutine checkortho(norb,nvctrp,psi)
         else
            dev=dev+scpr**2
         endif
-        if (iorb.eq.jorb .and. abs(scpr-1.d0).gt.toler) write(*,'(1x,a,2(1x,i0),1x,1pe12.6)')&
+        if (iorb.eq.jorb .and. abs(scpr-1.d0).gt.toler) write(*,'(1x,a,2(1x,i0),1x,1pe13.6)')&
              'ERROR ORTHO',iorb,jorb,scpr
-        if (iorb.ne.jorb .and. abs(scpr).gt.toler)      write(*,'(1x,a,2(1x,i0),1x,1pe12.6)')&
+        if (iorb.ne.jorb .and. abs(scpr).gt.toler)      write(*,'(1x,a,2(1x,i0),1x,1pe13.6)')&
              'ERROR ORTHO',iorb,jorb,scpr
      enddo
   enddo
@@ -1645,7 +1644,7 @@ subroutine KStrans_p(nproc,norb,nvctrp,occup,  &
   real(wp), dimension(nvctrp*nspinor,norb), intent(out) :: psit
   !local variables
   character(len=*), parameter :: subname='KStrans_p'
-  integer :: i_all,i_stat,ierr,iorb,jorb,n_lp,istart,info,norbs,ncomp
+  integer :: ierr,iorb,jorb,n_lp,istart,info,norbs,ncomp
   real(wp) :: alpha
   ! arrays for KS orbitals
   real(wp), dimension(:), allocatable :: work_lp,work_rp
@@ -1786,12 +1785,13 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
   type(paw_objects),optional,intent(inout)::paw
   
   ! Local variables
-  integer:: iblock, jblock, ist, jst, iter, iter2, gcd, blocksize, blocksizeSmall, i_stat, i_all,usepaw=0
-  integer:: getBlocksize, ispin
-  real(wp),dimension(:), allocatable :: ovrlp
   character(len=*), parameter:: subname='gsChol',category='GS/Chol'
+  real(wp),dimension(:), allocatable :: ovrlp
+  integer :: iblock, jblock, ist, jst, iter, iter2, gcd, blocksize, blocksizeSmall
+  integer :: getBlocksize, ispin
+  integer :: usepaw=0
   
-  if(present(paw))usepaw=paw%usepaw  
+  if(present(paw)) usepaw=paw%usepaw  
 
   ! Make a loop over spin up/down.
   do ispin=1,nspin
@@ -1943,7 +1943,7 @@ real(wp),dimension(ndim_ovrlp(nspin,orbs%nkpts)):: ovrlp
 integer,dimension(nspin):: norbTot
 
 ! Local arguments
-integer:: nvctrp, i_stat, i_all, ncomp, ikptp, ikpt, ispin, norb, norbs, istThis, istOther,usepaw=0
+integer:: nvctrp, ncomp, ikptp, ikpt, ispin, norb, norbs, istThis, istOther,usepaw=0
 !real(kind=8),allocatable::raux(:)
 real(kind=8),dimension(:),allocatable:: A1D
 character(len=*),parameter:: subname='gramschmidt'
@@ -2079,7 +2079,7 @@ implicit none
 ! Calling arguments
 !integer:: iproc,nvctrp,norbIn, nspinor, nspin, norbTot, block1, ispinIn
 integer:: iproc,nvctrp,norbIn, block1, ispinIn,nspin
-type(orbitals_data):: orbs
+type(orbitals_data), intent(in) :: orbs
 type(comms_cubic):: comms
 real(kind=8),dimension(orbs%npsidim_comp),intent(inout):: psi
 integer,dimension(nspin,0:orbs%nkpts):: ndim_ovrlp
@@ -2088,11 +2088,11 @@ integer,dimension(orbs%nspin):: norbTot
 type(paw_objects),optional,intent(inout)::paw
 
 ! Local variables
-integer:: ist, info, ispin, ikptp, ikpt, ncomp, norbs, norb,nspinor
-integer:: i_all,i_stat,iat
-integer:: usepaw=0
-real(kind=8),dimension(:,:),allocatable::raux
-character(len=*),parameter:: subname='cholesky'
+character(len=*), parameter :: subname='cholesky'
+real(kind=8), dimension(:,:), allocatable :: raux
+integer :: ist, info, ispin, ikptp, ikpt, ncomp, norbs, norb,nspinor
+integer :: iat
+integer :: usepaw=0
 
 if(present(paw))usepaw=paw%usepaw
  
@@ -2205,7 +2205,7 @@ END SUBROUTINE cholesky
 !!  Input/output Arguments
 !!   @param  psit       the orbitals to be orthonormalized
 !!   @param  ovrlp      the overlap matrix which will be destroyed during this subroutine
-subroutine loewdin(iproc, norbIn, nspinor, block1, ispinIn, orbs, comms, nspin, psit, ovrlp, ndim_ovrlp, norbTot,paw)
+subroutine loewdin(iproc, norbIn, block1, ispinIn, orbs, comms, nspin, psit, ovrlp, ndim_ovrlp, norbTot,paw)
 
 use module_base
 use module_types
@@ -2215,16 +2215,14 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc,norbIn, nspin, block1, ispinIn
 type(paw_objects),optional,intent(inout)::paw
-integer, intent(inout) :: nspinor
 type(orbitals_data),intent(in):: orbs
 type(comms_cubic),intent(in):: comms
 real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in out):: psit
 integer,dimension(nspin,0:orbs%nkpts):: ndim_ovrlp
 real(kind=8),dimension(ndim_ovrlp(nspin,orbs%nkpts)):: ovrlp
 integer,dimension(nspin):: norbTot
-
 ! Local variables
-integer:: jorb, lorb, i_stat, i_all, info, nvctrp, ispin, ist, ikptp, ikpt, ncomp, norbs, norb, lwork,usepaw=0
+integer:: jorb, lorb, info, nvctrp, nspinor,ispin, ist, ikptp, ikpt, ncomp, norbs, norb, lwork,usepaw=0
 integer:: ii,iat,jj,shift,ispinor,iorb,ilmn
 real(kind=8),allocatable::raux(:,:,:,:)
 real(kind=8),dimension(:),allocatable:: evall, psitt
@@ -2232,10 +2230,10 @@ real(kind=8),dimension(:,:),allocatable:: tempArr
 character(len=*), parameter :: subname='loewdin'
 
 if(present(paw))usepaw=paw%usepaw
-
+nspinor=orbs%nspinor
 ! Allocate the work arrays.
-lwork=nspinor*norbIn**2+10
-tempArr = f_malloc((/ norbIn**2*nspinor , 2 /),id='tempArr')
+lwork=orbs%nspinor*norbIn**2+10
+tempArr = f_malloc((/ norbIn**2*orbs%nspinor , 2 /),id='tempArr')
 evall = f_malloc(norbIn,id='evall')
 
 ist=1
@@ -2418,7 +2416,7 @@ subroutine getOverlap(iproc,nproc,nspin,norbIn,orbs,comms,&
   integer,dimension(nspin),intent(in):: norbTot
 
   ! Local variables
-  integer:: ispsi,ikptp,ikpt,ispin,nspinor,ncomp,norbs,ierr,nvctrp,norb
+  integer:: ispsi,ikptp,ikpt,ispin,nspinor,ncomp,norbs,nvctrp,norb
 
 
 
@@ -2521,7 +2519,7 @@ subroutine getOverlap_paw(iproc,nproc,nspin,norbIn,orbs,comms,&
   integer,dimension(nspin),intent(in):: norbTot
 
   ! Local variables
-  integer:: ispsi,ikptp,ikpt,ispin,nspinor,ncomp,norbs,ierr,nvctrp,norb
+  integer:: ispsi,ikptp,ikpt,ispin,nspinor,ncomp,norbs,nvctrp,norb
   real(wp),dimension(ndim_ovrlp(nspin,orbs%nkpts)):: ovrlp_pw
 
 
@@ -2601,28 +2599,8 @@ subroutine getOverlap_paw(iproc,nproc,nspin,norbIn,orbs,comms,&
 
 END SUBROUTINE getOverlap_paw
 
-!>  This subroutine calculates the overlap matrix for a given bunch of orbitals. It also takes into 
-!!  account k-points and spin.
-!!
-!!  Input arguments:
-!!   @param  iproc      process ID
-!!   @param  nproc      total number of processes
-!!   @param  nspin      closed shell -> nspin=1 ; spin polarised -> nspin=2
-!!   @param  norbIn     number of orbitals to be orthonormalized
-!!   @param  istart     second dimension of the overlpa matrix
-!!   @param  orbs       type that contains many parameters concerning the orbitals
-!!   @param  comms      type containing parameters for communicating the wavefunstion between processors
-!!   @param  psit    the orbitals 
-!!   @param  ndim_ovrlp  describes the shape of the overlap matrix
-!!   @param  norbTot    total number of orbitals (if nspin=2:
-!!               - norbTot(1)=total number of up orbitals
-!!               - norbTot(2)=total number of down orbitals)
-!!   @param  block1     gives the starting orbital of the orbitals to be orthogonalized
-!!   @param  block2     gives the starting orbital of the orbitals to which the orbitals shall orthogonalized
-!!   @param  ispinIn    indicates whether the up or down orbitals shall be handled
-!!   @param  category   gives the category for the timing
-!!  Output arguments:
-!!   @param  ovrlp      the overlap matrix of the orbitals given in psi
+!> This subroutine calculates the overlap matrix for a given bunch of orbitals. It also takes into 
+!! account k-points and spin.
 subroutine getOverlapDifferentPsi(iproc, nproc, nspin, norbIn, orbs, comms,&
      psit, ndim_ovrlp, ovrlp, norbTot, block1, block2, ispinIn, category)
 
@@ -2632,17 +2610,22 @@ subroutine getOverlapDifferentPsi(iproc, nproc, nspin, norbIn, orbs, comms,&
   implicit none
 
   ! Calling arguments
-  !integer,intent(in):: iproc, nproc, nspin, norbIn,  istart, norbTot, block1, block2
-  character(len=*), intent(in) :: category
-  integer,intent(in):: iproc, nproc, nspin, norbIn, block1, block2, ispinIn
-  type(orbitals_data),intent(in):: orbs
-  type(comms_cubic),intent(in) :: comms
-  real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in) :: psit
-  integer,dimension(nspin,0:orbs%nkpts),intent(in):: ndim_ovrlp
-  real(kind=8),dimension(ndim_ovrlp(nspin,orbs%nkpts)):: ovrlp
-  integer,dimension(nspin):: norbTot
+  character(len=*), intent(in) :: category !< Gives the category for the timing
+  integer, intent(in) :: iproc             !< Process ID
+  integer, intent(in) :: nproc             !< total number of processes
+  integer, intent(in) :: nspin             !< closed shell -> nspin=1 ; spin polarised -> nspin=2
+  integer, intent(in) :: norbIn            !< number of orbitals to be orthonormalized
+  integer,intent(in) :: block1             !< Gives the starting orbital of the orbitals to be orthogonalized
+  integer,intent(in) :: block2             !< Gives the starting orbital of the orbitals to which the orbitals shall orthogonalized
+  integer, intent(in) :: ispinIn           !< Indicates whether the up or down orbitals shall be handled
+  type(orbitals_data), intent(in) :: orbs  !< Type that contains many parameters concerning the orbitals
+  type(comms_cubic), intent(in) :: comms   !< Type containing parameters for communicating the wavefunstion between processors
+  real(kind=8),dimension(comms%nvctr_par(iproc,0)*orbs%nspinor*orbs%norb),intent(in) :: psit !< The orbitals
+  integer,dimension(nspin,0:orbs%nkpts),intent(in) :: ndim_ovrlp              !< describes the shape of the overlap matrix
+  real(kind=8), dimension(ndim_ovrlp(nspin,orbs%nkpts)), intent(out) :: ovrlp !< the overlap matrix of the orbitals given in psi
+  integer, dimension(nspin) :: norbTot !< Total number of orbitals (if nspin=2: total number of up(1) and down(2) orbitals
   ! Local variables
-  integer:: ikptp, ikpt, ispin, nspinor, ncomp, norbs, ierr, nvctrp, norb, ispsi1, ispsi2
+  integer :: ikptp, ikpt, ispin, nspinor, ncomp, norbs, nvctrp, norb, ispsi1, ispsi2
   
   ! Set the whole overlap matrix to zero. This is necessary since each process treats only a part
   ! of the matrix.
@@ -2751,7 +2734,7 @@ subroutine getOverlapDifferentPsi_paw(iproc, nproc, nspin, norbIn, orbs, comms,&
   real(kind=8),dimension(ndim_ovrlp(nspin,orbs%nkpts)):: ovrlp
   integer,dimension(nspin):: norbTot
   ! Local variables
-  integer:: ikptp, ikpt, ispin, nspinor, ncomp, norbs, ierr, nvctrp, norb, ispsi1, ispsi2
+  integer:: ikptp, ikpt, ispin, nspinor, ncomp, norbs, nvctrp, norb, ispsi1, ispsi2
   real(kind=8),dimension(ndim_ovrlp(nspin,orbs%nkpts)):: ovrlp_pw
   
   ! Set the whole overlap matrix to zero. This is necessary since each process treats only a part

@@ -63,7 +63,7 @@ static const gchar* _input_keys[] = {
   "itrpmax",
   "rpnrm_cv",
   "norbsempty",
-  "Tel",
+  "tel",
   "occopt",
   "alphamix",
   "alphadiis",

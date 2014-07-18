@@ -10,7 +10,7 @@
  
 !> Module which defines some important structures and methods to manipulate embedding systems
 module module_fragments
-  use module_base, only: gp,wp
+  use module_base, only: gp,wp,bigdft_mpi,dp
   use module_types
   use dynamic_memory
   use module_atoms
@@ -557,10 +557,8 @@ contains
   subroutine fragment_basis_free(basis)
     implicit none
     type(fragment_basis), intent(inout) :: basis
-    character(len=200) :: subname
-
-    subname='fragment_basis_free'
-    call deallocate_local_zone_descriptors(basis%lzd,subname)
+    character(len=*), parameter :: subname='fragment_basis_free'
+    call deallocate_local_zone_descriptors(basis%lzd)
     call minimal_orbitals_data_free(basis%forbs)
     if (associated(basis%psi_full)) call f_free_ptr(basis%psi_full)
     if (associated(basis%density)) call f_free_ptr(basis%density)
