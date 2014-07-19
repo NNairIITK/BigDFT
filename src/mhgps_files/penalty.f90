@@ -123,7 +123,7 @@ subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
         wazi = oml*rxyzR(3,a) + lambda*rxyzP(3,a)
         ttx = waxi-rxyz(1,a)
         tty = wayi-rxyz(2,a)
-        ttz = wazi-rxyz(2,a)
+        ttz = wazi-rxyz(3,a)
 write(*,*)'mine   ',ttx**2
 write(*,*)'mine   ',tty**2
 write(*,*)'mine   ',ttz**2
@@ -442,7 +442,7 @@ end program
          wc = xx(i)
          wi = tq*xmin1(i) + t*xmin2(i)
          wd = wc - wi
-write(*,*)'tinker',wc,wi
+write(*,*)'tinker',wd
          value = value + 0.000001d0*wd**2
          g(i) = g(i) + 0.000002d0*wd
       end do
