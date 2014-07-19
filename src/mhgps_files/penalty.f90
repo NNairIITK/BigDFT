@@ -1,12 +1,3 @@
-program penalty
-use module_lst
-implicit none
-
-
-
-end program
-
-
 !! @file
 !! @author Bastian Schaefer
 !! @section LICENCE
@@ -20,7 +11,7 @@ implicit none
 integer, parameter :: gp=kind(1.0d0)
 
 contains
-subroutine lst_penalty(nat,rxyz1,rxyz2,rxyz,lambda,val,grad)
+subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
 !computes the linear synchronous penalty function
 !and gradient
 !
@@ -52,24 +43,29 @@ subroutine lst_penalty(nat,rxyz1,rxyz2,rxyz,lambda,val,grad)
                                          !be evaluated
     real(gp), intent(in)  :: lambda !interpolation parameter
     real(gp), intent(out) :: val  !the value of the penalty function
-    real(gp), intent(out) :: grad(3,nat) !the gradient of
-                                        !the penal. fct. at
-                                        !rxyz
+    real(gp), intent(out) :: force(3,nat) !the negative gradient of
+                                          !the penal. fct. at
+                                          !rxyz
     !internal
     integer :: b !outer loop
     integer :: a !inner loop
     real(gp) :: rabi !interpolated interatomic distances
-    real(gp) :: rabi4 !ri4=ri**4
+    real(gp) :: rabim4 !rim4=ri**(-4)
     real(gp) :: rabC !computed interatomic distances
     real(gp) :: rabR !interatomic dist. of reactant
     real(gp) :: rabP !interatomic dist. of product
-    real(gp),parameter :: oml=1.0_gp-lambda
-    real(gp) :: rxRb, ryRb, rxRb
-    real(gp) :: rxPb, ryPb, rxPb
-    real(gp) :: rxb, ryb, rxb
-    real(gp) :: rabiMrabC,
+    real(gp) :: oml
+    real(gp) :: rxRb, ryRb, rzRb
+    real(gp) :: rxPb, ryPb, rzPb
+    real(gp) :: rxb, ryb, rzb
+    real(gp) :: rxd, ryd, rzd
+    real(gp) :: rabiMrabC
+    real(gp) :: tt, ttx, tty, ttz
+    real(gp) :: waxi, wayi, wazi 
 
+    oml=1.0_gp-lambda
     val=0.0_gp
+    !first sum
     do b = 1, nat-1
         rxRb = rxyzR(1,b)
         ryRb = rxyzR(2,b)
@@ -80,22 +76,55 @@ subroutine lst_penalty(nat,rxyz1,rxyz2,rxyz,lambda,val,grad)
         rxb = rxyz(1,b)
         ryb = rxyz(2,b)
         rzb = rxyz(3,b)
-        do a = l+1, nat
+        do a = b+1, nat
             !compute interatomic distances of reactant
             rabR = (rxyzR(1,a)-rxRb)**2+&
                    (rxyzR(2,a)-ryRb)**2+&
                    (rxyzR(3,a)-rzRb)**2
+            rabR = sqrt(rabR)
             !compute interatomic distances of product
             rabP = (rxyzP(1,a)-rxPb)**2+&
                    (rxyzP(2,a)-ryPb)**2+&
                    (rxyzP(3,a)-rzPb)**2
+            rabP = sqrt(rabP)
             !compute interpolated interatomic distances
-            rabi = oml*rabR-lambda*rabP
+            rabi = oml*rabR+lambda*rabP
+            rabim4 = 1.0_gp / (rabi**4)
             !compute interatomic distances at rxyz
-            rabC = (rxyz(1,a)-rxb)**2+&
-                   (rxyz(2,a)-ryb)**2+&
-                   (rxyz(3,a)-rzb)**2
+            rxd = rxyz(1,a)-rxb
+            ryd = rxyz(2,a)-ryb
+            rzd = rxyz(3,a)-rzb
+            rabC = rxd**2+ryd**2+rzd**2
+            !compute function value
+            rabiMrabC = rabi - rabC
+            val = val + rabiMrabC**2 * rabim4 
+            !compute negative gradient
+            rabiMrabC = -2.0_gp*rabiMrabC * rabim4 / rabC
+            ttx = rabiMrabC * rxd
+            tty = rabiMrabC * ryd
+            ttz = rabiMrabC * rzd
+            force(1,b) = force(1,b) + ttx
+            force(2,b) = force(2,b) + tty
+            force(3,b) = force(3,b) + ttz
+            force(1,a) = force(1,a) - ttx
+            force(2,a) = force(2,a) - tty
+            force(3,a) = force(3,a) - ttz
         enddo
+    enddo
+
+    !second sum
+    do a = 1, nat
+        waxi = oml*rxyzR(1,a) + lambda*rxyzP(1,a)
+        wayi = oml*rxyzR(2,a) + lambda*rxyzP(2,a)
+        wazi = oml*rxyzR(3,a) + lambda*rxyzP(3,a)
+        ttx = waxi-rxyz(1,a)
+        tty = wayi-rxyz(2,a)
+        ttz = wazi-rxyz(2,a)
+        tt   =  ttx**2 + tty**2 + ttz**2
+        val = val + 1.e-6_gp * tt
+        force(1,a) = force(1,a) + 2.e-6_gp * ttx
+        force(2,a) = force(2,a) + 2.e-6_gp * tty
+        force(3,a) = force(3,a) + 2.e-6_gp * ttz
     enddo
 end subroutine
 
@@ -206,3 +235,142 @@ end subroutine
 
 
 end module
+program penalty
+use module_lst
+implicit none
+real(gp) :: rxyz
+
+
+
+end program
+
+      function transit (xx,g)
+      implicit none
+      include 'sizes.i'
+      include 'atoms.i'
+      include 'syntrn.i'
+      integer i,j,nvar
+      integer ix,iy,iz
+      integer jx,jy,jz
+      real*8 transit,value
+      real*8 xci,yci,zci
+      real*8 xcd,ycd,zcd
+      real*8 x1i,y1i,z1i
+      real*8 x1d,y1d,z1d
+      real*8 x2i,y2i,z2i
+      real*8 x2d,y2d,z2d
+      real*8 xmi,ymi,zmi
+      real*8 xmd,ymd,zmd
+      real*8 gamma,term
+      real*8 termx,termy,termz
+      real*8 cutoff,cutoff2
+      real*8 r1,r2,rc,rm
+      real*8 ri,ri4,rd
+      real*8 wi,wc,wd
+      real*8 tq,pq
+      real*8 xx(*)
+      real*8 g(*)
+      character*9 mode
+!
+!
+!     zero out the synchronous transit function and gradient
+!
+      value = 0.0d0
+      nvar = 3 * n
+      do i = 1, nvar
+         g(i) = 0.0d0
+      end do
+      tq = 1.0d0 - t
+!
+!     set the cutoff distance for interatomic distances
+!
+      cutoff = 1000.0d0
+      cutoff2 = cutoff**2
+!
+!     set the type of synchronous transit path to be used
+!
+      if (pm .eq. 0.0d0) then
+         mode = 'LINEAR'
+      else
+         mode = 'QUADRATIC'
+         pq = 1.0d0 - pm
+      end if
+!
+!     portion based on interpolated interatomic distances
+!
+      do i = 1, n-1
+         iz = 3 * i
+         iy = iz - 1
+         ix = iz - 2
+         xci = xx(ix)
+         yci = xx(iy)
+         zci = xx(iz)
+         x1i = xmin1(ix)
+         y1i = xmin1(iy)
+         z1i = xmin1(iz)
+         x2i = xmin2(ix)
+         y2i = xmin2(iy)
+         z2i = xmin2(iz)
+         if (mode .eq. 'QUADRATIC') then
+            xmi = xm(ix)
+            ymi = xm(iy)
+            zmi = xm(iz)
+         end if
+         do j = i+1, n
+            jz = 3 * j
+            jy = jz - 1
+            jx = jz - 2
+            xcd = xci - xx(jx)
+            ycd = yci - xx(jy)
+            zcd = zci - xx(jz)
+            x1d = x1i - xmin1(jx)
+            y1d = y1i - xmin1(jy)
+            z1d = z1i - xmin1(jz)
+            x2d = x2i - xmin2(jx)
+            y2d = y2i - xmin2(jy)
+            z2d = z2i - xmin2(jz)
+            rc = xcd**2 + ycd**2 + zcd**2
+            r1 = x1d**2 + y1d**2 + z1d**2
+            r2 = x2d**2 + y2d**2 + z2d**2
+            if (min(rc,r1,r2) .lt. cutoff2) then
+               rc = sqrt(rc)
+               r1 = sqrt(r1)
+               r2 = sqrt(r2)
+               ri = tq*r1 + t*r2
+               if (mode .eq. 'QUADRATIC') then
+                  xmd = xmi - xm(jx)
+                  ymd = ymi - xm(jy)
+                  zmd = zmi - xm(jz)
+                  rm = sqrt(xmd**2+ymd**2+zmd**2)
+                  gamma = (rm-pq*r1-pm*r2) / (pm*pq)
+                  ri = ri + gamma*t*tq
+               end if
+               ri4 = ri**4
+               rd = rc - ri
+               value = value + rd**2/ri4
+               term = 2.0d0 * rd/(ri4*rc)
+               termx = term * xcd
+               termy = term * ycd
+               termz = term * zcd
+               g(ix) = g(ix) + termx
+               g(iy) = g(iy) + termy
+               g(iz) = g(iz) + termz
+               g(jx) = g(jx) - termx
+               g(jy) = g(jy) - termy
+               g(jz) = g(jz) - termz
+            end if
+         end do
+      end do
+!
+!     portion used to supress rigid rotations and translations
+!
+      do i = 1, nvar
+         wc = xx(i)
+         wi = tq*xmin1(i) + t*xmin2(i)
+         wd = wc - wi
+         value = value + 0.000001d0*wd**2
+         g(i) = g(i) + 0.000002d0*wd
+      end do
+      transit = value
+      return
+      end
