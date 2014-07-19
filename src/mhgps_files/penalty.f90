@@ -30,6 +30,8 @@ subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
 !Journal of Chemical Theory and Computation, 7(12), 4019–4025.
 !doi:10.1021/ct200654u
 !
+!and
+!
 !BS: For computation of gradient see also personal notes in intel
 !notebook (paper version) from June 18th, 2014
 !
@@ -42,6 +44,7 @@ subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
                                          !the penalty fct. is to
                                          !be evaluated
     real(gp), intent(in)  :: lambda !interpolation parameter
+                                    !(0<=lambda<=1)
     real(gp), intent(out) :: val  !the value of the penalty function
     real(gp), intent(out) :: force(3,nat) !the negative gradient of
                                           !the penal. fct. at
@@ -95,6 +98,7 @@ subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
             ryd = rxyz(2,a)-ryb
             rzd = rxyz(3,a)-rzb
             rabC = rxd**2+ryd**2+rzd**2
+            rabC = sqrt(rabC)
             !compute function value
             rabiMrabC = rabi - rabC
             val = val + rabiMrabC**2 * rabim4 
@@ -120,6 +124,9 @@ subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
         ttx = waxi-rxyz(1,a)
         tty = wayi-rxyz(2,a)
         ttz = wazi-rxyz(2,a)
+write(*,*)'mine   ',ttx**2
+write(*,*)'mine   ',tty**2
+write(*,*)'mine   ',ttz**2
         tt   =  ttx**2 + tty**2 + ttz**2
         val = val + 1.e-6_gp * tt
         force(1,a) = force(1,a) + 2.e-6_gp * ttx
@@ -235,12 +242,79 @@ end subroutine
 
 
 end module
-program penalty
+program penalty_unittest
 use module_lst
 implicit none
-real(gp) :: rxyz
+      include 'sizes.i'
+      include 'atoms.i'
+      include 'syntrn.i'
+integer :: istat,nat,iat
+real(gp), allocatable :: rxyz1(:,:),rxyz2(:,:),g(:,:),rxyz(:,:)
+character(len=100) :: filename,line, filename2
+real(gp) :: lambda,val
+real(gp) :: transit
 
 
+call get_command_argument(1,filename)
+call get_command_argument(2,filename2)
+call get_command_argument(3,line)
+read(line,*)lambda
+
+nat=0
+open(unit=33,file=trim(adjustl(filename)))
+read(33,*)
+read(33,*)
+read(33,*)
+read(33,*)
+do
+    read(33,'(a)',iostat=istat)line
+    if(istat/=0)exit
+    nat=nat+1
+enddo
+write(*,*)'Found nat: ',nat
+rewind(33)
+read(33,*)
+read(33,*)
+read(33,*)
+read(33,*)
+allocate(rxyz1(3,nat),rxyz2(3,nat),g(3,nat),rxyz(3,nat))
+do iat=1,nat
+    read(33,'(a)',iostat=istat)line
+    if(istat/=0)exit
+    read(line,*)rxyz1(1,iat),rxyz1(2,iat),rxyz1(3,iat)
+enddo
+close(33)
+open(unit=33,file=trim(adjustl(filename2)))
+read(33,*)
+read(33,*)
+read(33,*)
+read(33,*)
+do iat=1,nat
+    read(33,'(a)',iostat=istat)line
+    if(istat/=0)exit
+    read(line,*)rxyz2(1,iat),rxyz2(2,iat),rxyz2(3,iat)
+enddo
+close(33)
+
+
+n=nat
+t=lambda
+pm=0.0_gp
+
+do iat=1,nat
+xmin1(3*iat-2) = rxyz1(1,iat)
+xmin1(3*iat-1) = rxyz1(2,iat)
+xmin1(3*iat) = rxyz1(3,iat)
+xmin2(3*iat-2) = rxyz2(1,iat)
+xmin2(3*iat-1) = rxyz2(2,iat)
+xmin2(3*iat) = rxyz2(3,iat)
+enddo
+
+rxyz=(1._gp-lambda)*rxyz1+lambda*rxyz2
+call lst_penalty(nat,rxyz1,rxyz2,rxyz,lambda,val,g)
+write(*,*)'mine:   ',val
+val=transit(rxyz,g)
+write(*,*)'tinker: ',val
 
 end program
 
@@ -289,12 +363,12 @@ end program
 !
 !     set the type of synchronous transit path to be used
 !
-      if (pm .eq. 0.0d0) then
+!      if (pm .eq. 0.0d0) then
          mode = 'LINEAR'
-      else
-         mode = 'QUADRATIC'
-         pq = 1.0d0 - pm
-      end if
+!      else
+!         mode = 'QUADRATIC'
+!         pq = 1.0d0 - pm
+!      end if
 !
 !     portion based on interpolated interatomic distances
 !
@@ -311,11 +385,11 @@ end program
          x2i = xmin2(ix)
          y2i = xmin2(iy)
          z2i = xmin2(iz)
-         if (mode .eq. 'QUADRATIC') then
-            xmi = xm(ix)
-            ymi = xm(iy)
-            zmi = xm(iz)
-         end if
+!         if (mode .eq. 'QUADRATIC') then
+!            xmi = xm(ix)
+!            ymi = xm(iy)
+!            zmi = xm(iz)
+!         end if
          do j = i+1, n
             jz = 3 * j
             jy = jz - 1
@@ -332,19 +406,19 @@ end program
             rc = xcd**2 + ycd**2 + zcd**2
             r1 = x1d**2 + y1d**2 + z1d**2
             r2 = x2d**2 + y2d**2 + z2d**2
-            if (min(rc,r1,r2) .lt. cutoff2) then
+!            if (min(rc,r1,r2) .lt. cutoff2) then
                rc = sqrt(rc)
                r1 = sqrt(r1)
                r2 = sqrt(r2)
                ri = tq*r1 + t*r2
-               if (mode .eq. 'QUADRATIC') then
-                  xmd = xmi - xm(jx)
-                  ymd = ymi - xm(jy)
-                  zmd = zmi - xm(jz)
-                  rm = sqrt(xmd**2+ymd**2+zmd**2)
-                  gamma = (rm-pq*r1-pm*r2) / (pm*pq)
-                  ri = ri + gamma*t*tq
-               end if
+!               if (mode .eq. 'QUADRATIC') then
+!                  xmd = xmi - xm(jx)
+!                  ymd = ymi - xm(jy)
+!                  zmd = zmi - xm(jz)
+!                  rm = sqrt(xmd**2+ymd**2+zmd**2)
+!                  gamma = (rm-pq*r1-pm*r2) / (pm*pq)
+!                  ri = ri + gamma*t*tq
+!               end if
                ri4 = ri**4
                rd = rc - ri
                value = value + rd**2/ri4
@@ -358,7 +432,7 @@ end program
                g(jx) = g(jx) - termx
                g(jy) = g(jy) - termy
                g(jz) = g(jz) - termz
-            end if
+!            end if
          end do
       end do
 !
@@ -368,6 +442,7 @@ end program
          wc = xx(i)
          wi = tq*xmin1(i) + t*xmin2(i)
          wd = wc - wi
+write(*,*)'tinker',wc,wi
          value = value + 0.000001d0*wd**2
          g(i) = g(i) + 0.000002d0*wd
       end do
