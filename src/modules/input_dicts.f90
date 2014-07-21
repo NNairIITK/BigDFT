@@ -693,7 +693,11 @@ contains
 
        exists = has_key(dict, key)
        if (exists) then
-          str = dict_value(dict // key)
+          if (has_key(dict // key, "Source")) then
+             str = dict_value(dict // key // "Source")
+          else
+             str = dict_value(dict // key)
+          end if
           if (trim(str) /= "" .and. trim(str) /= TYPE_LIST .and. trim(str) /= TYPE_DICT) then
              !Read the PSP file and merge to dict
              call psp_file_merge_to_dict(dict, key, trim(str))
