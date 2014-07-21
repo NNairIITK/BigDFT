@@ -264,6 +264,9 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   if (all(at%npspcode == PSPCODE_PAW)) then
      call gaussian_basis_from_paw(at%astruct%nat, at%astruct%iatype, rxyz, &
           & at%pawtab, at%astruct%ntypes, nl%proj_G)
+     do iat=1,at%astruct%nat
+        nl%pspd(iat)%gau_cut = at%pawtab(at%astruct%iatype(iat))%rpaw
+     end do
   else
      call gaussian_basis_from_psp(at%astruct%nat, at%astruct%iatype, rxyz, &
           & at%psppar, at%astruct%ntypes, nl%proj_G)
@@ -981,7 +984,7 @@ END SUBROUTINE input_wf_disk
 subroutine input_wf_diag(iproc,nproc,at,denspot,&
      orbs,nvirt,comms,Lzd,energs,rxyz,&
      nlpsp,ixc,psi,hpsi,psit,G,&
-     nspin,GPU,input,onlywf,proj_G,paw)
+     nspin,GPU,input,onlywf,paw)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -1013,7 +1016,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   type(gaussian_basis), intent(out) :: G !basis for davidson IG
   real(wp), dimension(:), pointer :: psi,hpsi,psit
-  type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G
   type(paw_objects),optional,intent(inout)::paw
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
@@ -1602,13 +1604,14 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(gaussian_basis) :: Gvirt
   real(wp), allocatable, dimension(:) :: norm
   !wvl+PAW objects
-  integer :: iatyp
+  type(DFT_PSP_projectors) :: nl
   type(paw_objects)::paw
   logical :: overlap_calculated, perx,pery,perz, rho_negative
   real(gp) :: tx,ty,tz,displ,mindist
   real(gp), dimension(:), pointer :: in_frag_charge
   integer :: infoCoeff, iorb, nstates_max, order_taylor
   real(kind=8) :: pnrm
+  real(gp), dimension(:,:), allocatable :: radii_cf
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
 
@@ -1710,18 +1713,39 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           KSwfn%psi,KSwfn%orbs)
 
   case(INPUT_PSI_LCAO)
+     ! PAW case, generate nlpsp on the fly with psppar data instead of paw data.
+     if (any(atoms%npspcode == PSPCODE_PAW)) then
+        ! Cheating line here.
+        atoms%npspcode(1) = PSPCODE_HGH
+        radii_cf = f_malloc((/ atoms%astruct%ntypes, 3 /), id="radii_cf")
+        call read_radii_variables(atoms, radii_cf, in%crmult, in%frmult, in%projrad)
+        call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,KSwfn%orbs,&
+             radii_cf,in%frmult,in%frmult,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
+             KSwfn%Lzd%hgrids(3),.false.,nl)
+        if (iproc == 0) call print_nlpsp(nl)
+        call f_free(radii_cf)
+     else
+        nl = nlpsp
+     end if
+
      if (iproc == 0) then
         !write(*,'(1x,a)')&
         !     &   '------------------------------------------------------- Input Wavefunctions Creation'
         call yaml_comment('Wavefunctions from PSP Atomic Orbitals Initialization',hfill='-')
         call yaml_mapping_open('Input Hamiltonian')
      end if
+     
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc, atoms,denspot,&
           KSwfn%orbs,norbv,KSwfn%comms,KSwfn%Lzd,energs,rxyz,&
-          nlpsp,in%ixc,KSwfn%psi,KSwfn%hpsi,KSwfn%psit,&
+          nl,in%ixc,KSwfn%psi,KSwfn%hpsi,KSwfn%psit,&
           Gvirt,nspin,GPU,in,.false.)
+
+     if (any(atoms%npspcode == PSPCODE_PAW)) then
+        call free_DFT_PSP_projectors(nl)
+        atoms%npspcode(1) = PSPCODE_PAW
+     end if
 
   case(INPUT_PSI_MEMORY_WVL)
      !restart from previously calculated wavefunctions, in memory

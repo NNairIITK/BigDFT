@@ -50,6 +50,7 @@ module psp_projectors
   !> Non local pseudopotential descriptors
   type, public :: nonlocal_psp_descriptors
      integer :: mproj !< number of projectors for this descriptor
+     real(gp) :: gau_cut !< cutting radius for the gaussian description of projectors.
      integer :: nlr !< total no. localization regions potentially interacting with the psp
      type(locreg_descriptors) :: plr !< localization region descriptor of a given projector (null if nlp=0)
      type(nlpsp_to_wfd), dimension(:), pointer :: tolr !<maskings for the locregs, dimension nlr
@@ -105,9 +106,11 @@ contains
   end function nonlocal_psp_descriptors_null
 
   pure subroutine nullify_nonlocal_psp_descriptors(pspd)
+    use module_defs, only: UNINITIALIZED
     implicit none
     type(nonlocal_psp_descriptors), intent(out) :: pspd
     pspd%mproj=0
+    pspd%gau_cut = UNINITIALIZED(pspd%gau_cut)
     pspd%nlr=0
     call nullify_locreg_descriptors(pspd%plr)
     nullify(pspd%tolr)
