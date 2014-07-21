@@ -35,7 +35,7 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
                                           !to lambda
     !internal
     real(gp) :: oml
-    real(gp), parameter :: fmax_tol=5.e-2_gp
+    real(gp), parameter :: fmax_tol=1.e-2_gp
     real(gp) :: fxyz(3,nat), epot
 
 !character(len=5) :: fc5
@@ -237,7 +237,7 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
 !character(len=50) :: filename
 
     count_fr=0._gp
-    dt_max = 0.5d0
+    dt_max = 1.8d0
     maxit=15000
 
     success=.false.
