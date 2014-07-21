@@ -1,4 +1,4 @@
-module string
+module module_freezingstring
     implicit none
     
     contains

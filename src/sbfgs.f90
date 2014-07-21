@@ -1,6 +1,7 @@
 !> @file
 !!  Routines for Stefan's new minimization method
-!! @author
+!! @author Bastian Schaefer
+!! @section LICENCE
 !!    Copyright (C) 2014 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
