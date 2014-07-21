@@ -91,7 +91,7 @@ module module_defs
 
   contains
 
-    function uninitialized_int(one) 
+    pure function uninitialized_int(one) 
       implicit none
       integer(kind = 4), intent(in) :: one
       integer(kind = 4) :: uninitialized_int
@@ -100,7 +100,7 @@ module module_defs
       uninitialized_int=-123456789
     end function uninitialized_int
 
-    function uninitialized_long(one) 
+    pure function uninitialized_long(one) 
       implicit none
       integer(kind = 8), intent(in) :: one
       integer(kind = 8) :: uninitialized_long
@@ -109,7 +109,7 @@ module module_defs
       uninitialized_long=-123456789
     end function uninitialized_long
 
-    function uninitialized_real(one) 
+    pure function uninitialized_real(one) 
       implicit none
       real(kind=4), intent(in) :: one
       real(kind=4) :: uninitialized_real
@@ -118,7 +118,7 @@ module module_defs
       uninitialized_real=-123456789.e0
     end function uninitialized_real
 
-    function uninitialized_dbl(one) 
+    pure function uninitialized_dbl(one) 
       implicit none
       real(kind=8), intent(in) :: one
       real(kind=8) :: uninitialized_dbl
@@ -127,7 +127,7 @@ module module_defs
       uninitialized_dbl=-123456789.d0
     end function uninitialized_dbl
 
-    function uninitialized_logical(one) 
+    pure function uninitialized_logical(one) 
       implicit none
       logical, intent(in) :: one
       logical :: uninitialized_logical
