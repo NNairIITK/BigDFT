@@ -45,7 +45,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   logical, intent(in), optional :: output_grid
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
-  integer :: nB,nKB,nMB,ii,iat,iorb,iatyp,nspin_ig,norbe,norbsc,ifrag,nspinor
+  integer :: nB,nKB,nMB,ii,iat,iorb,nspin_ig,norbe,norbsc,ifrag,nspinor
   real(gp), dimension(3) :: h_input
   logical:: present_inwhichlocreg_old, present_onwhichatom_old, output_grid_
   integer, dimension(:,:), allocatable :: norbsc_arr
@@ -759,11 +759,12 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
 
   do ityp=1,atoms%astruct%ntypes
 
-     call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),ehomo=ehomo)
-          
      if (any(atoms%radii_cf(ityp, :) == UNINITIALIZED(1.0_gp))) then
         !assigning the radii by calculating physical parameters
-        if (radii_cf(ityp,1) == UNINITIALIZED(1.0_gp)) radii_cf(ityp,1)=1._gp/sqrt(abs(2._gp*ehomo))
+        if (radii_cf(ityp,1) == UNINITIALIZED(1.0_gp)) then
+           call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),ehomo=ehomo)
+           radii_cf(ityp,1)=1._gp/sqrt(abs(2._gp*ehomo))
+        end if
         radfine=100._gp
         do i=0,4
            if (atoms%psppar(i,0,ityp)/=0._gp) then
@@ -771,7 +772,7 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
            end if
         end do
         if (radii_cf(ityp,2) == UNINITIALIZED(1.0_gp)) radii_cf(ityp,2)=radfine
-        if (radii_cf(ityp,3) == UNINITIALIZED(1.0_gp)) radii_cf(ityp,3)=radfine
+        if (radii_cf(ityp,3) == UNINITIALIZED(1.0_gp)) radii_cf(ityp,3)=crmult*radii_cf(ityp,1)/frmult
      else
         !Everything is already provided
         radii_cf(ityp, :) = atoms%radii_cf(ityp, :)
@@ -788,7 +789,7 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
      if (maxrad == 0.0_gp) then
         radii_cf(ityp,3)=0.0_gp
      else
-        radii_cf(ityp,3)=max(min(crmult*radii_cf(ityp,1),projrad*maxrad)/frmult,radii_cf(ityp,2))
+        radii_cf(ityp,3)=max(min(radii_cf(ityp,3),projrad*maxrad/frmult),radii_cf(ityp,2))
      end if
   enddo
 END SUBROUTINE read_radii_variables
