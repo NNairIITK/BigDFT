@@ -788,22 +788,11 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
 
               ! Now create the projector
               istart_c=1
-!!$              if(any(at%npspcode == PSPCODE_PAW)) then
-!!$                 call atom_projector_paw(ikpt,iat,0,istart_c,iproj,&
-!!$                      nl%nprojel,&
-!!$                      Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),paw%rpaw(iatype),&
-!!$                      rxyz(1,iat),at,orbs,&
-!!$                      nl%pspd(iat)%plr,nl%proj,nwarnings,proj_G(iatype))
-!!$              else
-!!$                 call atom_projector(nl%proj_G,ikpt,iat,0,istart_c,iproj,&
-!!$                      nl%nprojel,&
-!!$                      Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),rxyz(1,iat),at,orbs,&
-!!$                      1._gp,nl%pspd(iat)%plr,nl%proj,nwarnings)
-!!$              end if
               call plr_segs_and_vctrs(nl%pspd(iat)%plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
               call gaussian_projectors(nl%proj_G, iatype, iat, at%astruct%atomnames(iatype), &
                    & at%astruct%geocode, 0, Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3), &
-                   & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), 1._gp, &
+                   & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), &
+                   & nl%pspd(iat)%gau_cut, &
                    & Lzd%Glr%ns1,Lzd%Glr%ns2,Lzd%Glr%ns3,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
                    & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, &
                    & nl%pspd(iat)%plr%wfd%keyglob, nl%pspd(iat)%plr%wfd%keyvglob, &

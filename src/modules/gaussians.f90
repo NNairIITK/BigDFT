@@ -314,7 +314,8 @@ contains
     real(wp), dimension(nprojel), intent(inout) :: proj
     integer, intent(inout) :: istart_c, iproj, nwarnings
 
-    integer :: ishell, ishell_s, iexpo, nc, l, i, j, ncplx_k, lmax
+    integer :: ishell, ishell_s, iexpo, nc, l, i, j, ncplx_k, lmax, np
+    real(gp) :: scpr
     real(wp),allocatable::proj_tmp(:)
 
     if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
@@ -348,16 +349,42 @@ contains
        call to_zero(nc, proj(istart_c))
        do j = 1, proj_G%shid(DOC_, ishell)
           iexpo = iexpo + 1
-          call projector(geocode, atomname, iat, idir, l, i, &
+          call projector(geocode, iat, idir, l, i, &
                & proj_G%sd(proj_G%ncplx * (COEFF_ - 1) + 1, iexpo), &
                & proj_G%sd(proj_G%ncplx * (EXPO_ - 1) + 1, iexpo), &
                & rpaw, proj_G%rxyz(1, iat), ns1, ns2, ns3, n1, n2, n3, &
                & hx, hy, hz, kx, ky, kz, ncplx_k, proj_G%ncplx, &
                & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, keyv, keyg, &
-               & proj_tmp, nwarnings)
+               & proj_tmp)
           proj(istart_c:istart_c + nc - 1) = proj(istart_c:istart_c + nc - 1) + &
                & proj_tmp(1:nc)
        end do
+       ! Check norm for each proj.
+       if (idir == 0) then
+          do np = 1, 2 * l - 1
+             !here the norm should be done with the complex components
+             call wnrm_wrap(ncplx_k,mbvctr_c,mbvctr_f, &
+                  & proj(istart_c + (np - 1) * (mbvctr_c+7*mbvctr_f) * ncplx_k),scpr)
+             !print '(a,3(i6),1pe14.7,2(i6))','iat,l,m,scpr',iat,l,m,scpr,idir,istart_c
+             if (abs(1.d0-scpr) > 1.d-2) then
+                if (abs(1.d0-scpr) > 1.d-1) then
+                   !if (iproc == 0) then
+                   write(*,'(1x,a)')'error found!'
+                   write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f6.3)')&
+                        'The norm of the nonlocal PSP for atom n=',iat,&
+                        ' (',trim(atomname),') labeled by l=',l,' m=',i,' is ',scpr
+                   write(*,'(1x,a)')&
+                        'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.'
+                   !end if
+                   !stop commented for the moment
+                   !restore the norm of the projector
+                   !call wscal_wrap(mbvctr_c,mbvctr_f,1.0_gp/sqrt(scpr),proj(istart_c))
+                else
+                   nwarnings=nwarnings+1
+                end if
+             end if
+          end do
+       end if
        iproj    = iproj + 2*l-1
        istart_c = istart_c + nc
     end do

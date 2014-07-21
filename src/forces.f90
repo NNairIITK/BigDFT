@@ -920,7 +920,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
 !!$                   nlpsp%proj,nwarnings)!,proj_G)
               call gaussian_projectors(nlpsp%proj_G, ityp, iat, at%astruct%atomnames(ityp), &
                    & at%astruct%geocode, idir, hx, hy, hz, &
-                   & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), 1._gp, &
+                   & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), nlpsp%pspd(iat)%gau_cut, &
                    & lr%ns1,lr%ns2,lr%ns3,lr%d%n1,lr%d%n2,lr%d%n3, &
                    & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, &
                    & nlpsp%pspd(iat)%plr%wfd%keyglob, nlpsp%pspd(iat)%plr%wfd%keyvglob, &
@@ -4364,7 +4364,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 !!$                       nlpsp%proj,nwarnings)
                   call gaussian_projectors(nlpsp%proj_G, ityp, iat, at%astruct%atomnames(ityp), &
                        & at%astruct%geocode, idir, hx, hy, hz, &
-                       & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), 1._gp, &
+                       & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), nlpsp%pspd(iat)%gau_cut, &
                        & lr%ns1,lr%ns2,lr%ns3,lr%d%n1,lr%d%n2,lr%d%n3, &
                        & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, &
                        & nlpsp%pspd(iat)%plr%wfd%keyglob, nlpsp%pspd(iat)%plr%wfd%keyvglob, &

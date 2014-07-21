@@ -400,7 +400,7 @@ module module_interfaces
        subroutine input_wf_diag(iproc,nproc,at,denspot,&
             orbs,nvirt,comms,Lzd,energs,rxyz,&
             nlpsp,ixc,psi,hpsi,psit,G,&
-            nspin,GPU,input,onlywf,proj_G,paw)
+            nspin,GPU,input,onlywf,paw)
          ! Input wavefunctions are found by a diagonalization in a minimal basis set
          ! Each processors write its initial wavefunctions into the wavefunction file
          ! The files are then read by readwave
@@ -427,7 +427,6 @@ module module_interfaces
          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          type(gaussian_basis), intent(out) :: G !basis for davidson IG
          real(wp), dimension(:), pointer :: psi,hpsi,psit
-         type(gaussian_basis),optional,dimension(at%astruct%ntypes),intent(in) :: proj_G
          type(paw_objects),optional,intent(inout)::paw
        end subroutine input_wf_diag
 
