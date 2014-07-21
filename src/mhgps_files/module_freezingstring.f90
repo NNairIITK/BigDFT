@@ -254,5 +254,8 @@ subroutine lin_interpol(nat,left, right, step,interleft,interright,tangent)
     interleft = left+step*tangent
     interright = right - step*tangent
 end subroutine
+subroutine lst_interpol()
+!HIER WEITER
+HIER WEITER
 end module
 
