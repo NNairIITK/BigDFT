@@ -1079,7 +1079,7 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
   type(gaussian_basis_new),intent(in)::proj_G
   type(paw_ij_type),intent(in)::paw_ij
   !type(cprj_objects),dimension(1,nspinor),intent(out)::cprj_out
-  type(pawcprj_type),intent(out)::cprj_out
+  type(pawcprj_type),intent(inout)::cprj_out
   real(gp), intent(out) :: eproj
   real(wp), dimension(nvctr_c+7*nvctr_f,ncplx), intent(inout) :: hpsi
   real(wp), dimension(nvctr_c+7*nvctr_f,ncplx), intent(inout) :: spsi
@@ -1156,6 +1156,8 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
         jlmn=jlmn+1
         !loop over all the components of the wavefunction
         do ispinor=1,nspinor,ncplx
+           write(*,*) ncplx, nvctr_c,nvctr_f,nseg_c,nseg_f, sum(psi(:,ispinor))
+           write(*,*) mbvctr_c,mbvctr_f,mbseg_c,mbseg_f, sum(proj(istart_j:istart_j+(mbvctr_c+7*mbvctr_f)*ncplx-1)),jlmn
            call wpdot_wrap(ncplx,  &
                 nvctr_c,nvctr_f,nseg_c,nseg_f,&
                 keyv,keyg,&
@@ -1188,6 +1190,7 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
      dprj=0.0_wp
      iaux=paw_ij%cplex_dij*paw_ij%lmn2_size
      !call calculate_dprj(paw_ij%dij,iaux,paw_ij%ndij)
+     write(*,*) shape(paw_ij%dij), sum(paw_ij%dij), iaux
      call calculate_dprj(paw_ij%dij(:,1),iaux)
      !
      !apply non-local operator
@@ -1602,7 +1605,6 @@ subroutine apply_atproj_iorb_paw(iat,iorb,istart_c,at,orbs,wfd,&
   
   sij_opt=3 !get hpsi and spsi
 
-  write(*,*) "##################### let's go"
    call applyprojector_paw(ncplx,istart_c,iat,&
         wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyvglob,wfd%keyglob,&
         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
