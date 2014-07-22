@@ -13,7 +13,7 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
      radii_cf,logrid,at,orbs,nl)
   use module_base
   use module_types
-  use gaussians, only: gaussian_ncoeff
+  use gaussians, only: gaussian_basis_iter, gaussian_iter_start, gaussian_iter_next_shell
   use yaml_output
   implicit none
   integer, intent(in) :: n1,n2,n3
@@ -26,6 +26,7 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   logical, dimension(0:n1,0:n2,0:n3), intent(inout) :: logrid
   !Local variables
   !n(c) logical :: cmplxprojs
+  type(gaussian_basis_iter) :: iter
   integer :: istart,ityp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat,i,l
   integer :: ikpt,nkptsproj,ikptp,izero
   real(gp) :: maxfullvol,totfullvol,totzerovol,fullvol,maxrad,maxzerovol,rad
@@ -39,7 +40,12 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
 
   do iat=1,at%astruct%nat
 
-     call gaussian_ncoeff(nl%proj_G, iat, mproj)
+     mproj = 0
+     call gaussian_iter_start(nl%proj_G, iat, iter)
+     do
+        if (.not. gaussian_iter_next_shell(nl%proj_G, iter)) exit
+        mproj = mproj + 2 * iter%l - 1
+     end do
      
      !assign the number of projector to the localization region
      nl%pspd(iat)%mproj=mproj
@@ -224,7 +230,6 @@ subroutine fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
   use module_base
   use module_types
   use yaml_output
-  use gaussians, only: gaussian_projectors
   implicit none
   integer, intent(in) :: idir
   real(gp), intent(in) :: hx,hy,hz
@@ -260,14 +265,11 @@ subroutine fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
      do iat=1,at%astruct%nat
         !this routine is defined to uniformise the call for on-the-fly application
         call plr_segs_and_vctrs(nlpsp%pspd(iat)%plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
-        call gaussian_projectors(nlpsp%proj_G, at%astruct%iatype(iat), iat, &
+        call atom_projector(nlpsp, at%astruct%iatype(iat), iat, &
              & at%astruct%atomnames(at%astruct%iatype(iat)), &
-             & at%astruct%geocode, idir, hx, hy, hz, &
-             & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), nlpsp%pspd(iat)%gau_cut, &
-             & lr%ns1,lr%ns2,lr%ns3,lr%d%n1,lr%d%n2,lr%d%n3, &
-             & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, &
-             & nlpsp%pspd(iat)%plr%wfd%keyglob, nlpsp%pspd(iat)%plr%wfd%keyvglob, &
-             & istart_c, iproj, nlpsp%proj, nlpsp%nprojel, nwarnings)
+             & at%astruct%geocode, idir, lr, hx, hy, hz, &
+             & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), &
+             & istart_c, iproj, nwarnings)
      enddo
      if (iproj /= nlpsp%nproj) then
         call yaml_warning('Incorrect number of projectors created')
@@ -292,6 +294,111 @@ subroutine fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
   end if
 
 END SUBROUTINE fill_projectors
+
+!> Create projectors from gaussian decomposition.
+subroutine atom_projector(nl, ityp, iat, atomname, &
+     & geocode, idir, lr, hx, hy, hz, kx, ky, kz, &
+     & istart_c, iproj, nwarnings)
+  use module_base
+  use psp_projectors
+  use locregs
+  use gaussians, only: gaussian_basis_new, gaussian_basis_iter, &
+       & gaussian_iter_start, gaussian_iter_next_shell, gaussian_iter_next_gaussian
+  implicit none
+  type(DFT_PSP_projectors), intent(inout) :: nl
+  integer, intent(in) :: ityp, iat
+  character(len = 1), intent(in) :: geocode
+  type(locreg_descriptors), intent(in) :: lr
+  integer, intent(in) :: idir
+  character(len = *), intent(in) :: atomname
+  real(gp), intent(in) :: hx, hy, hz, kx, ky, kz
+  integer, intent(inout) :: istart_c, iproj, nwarnings
+
+  type(gaussian_basis_iter) :: iter, iterM
+  integer :: nc, ncplx_k, lmax, np, mbvctr_c, mbvctr_f, mbseg_c, mbseg_f
+  real(gp) :: scpr
+  real(gp), dimension(nl%proj_G%ncplx) :: coeff, expo
+  logical :: use_tmp
+  real(wp),allocatable::proj_tmp(:)
+
+  call plr_segs_and_vctrs(nl%pspd(iat)%plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+
+  if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
+     ncplx_k=1
+  else
+     ncplx_k=2
+  end if
+
+  ! Start a gaussian iterator.
+  call gaussian_iter_start(nl%proj_G, iat, iter)
+
+  ! Maximum number of terms for every projector.
+  lmax = 0
+  use_tmp = .false.
+  iterM = iter
+  do
+     if (.not. gaussian_iter_next_shell(nl%proj_G, iterM)) exit
+     lmax = max(lmax, iterM%l)
+     if (iterM%ndoc > 1) use_tmp = .true.
+  end do
+  if (use_tmp) then
+     nc = (mbvctr_c+7*mbvctr_f)*(2*lmax-1)*ncplx_k
+     proj_tmp = f_malloc(nc, id = 'proj_tmp')
+  end if
+
+  ! Loop on shell.
+  do
+     if (.not. gaussian_iter_next_shell(nl%proj_G, iter)) exit
+     nc = (mbvctr_c+7*mbvctr_f) * (2*iter%l-1) * ncplx_k
+     if (istart_c + nc > nl%nprojel+1) stop 'istart_c > nprojel+1'
+     ! Loop on contraction, treat the first gaussian separatly for performence reasons.
+     if (gaussian_iter_next_gaussian(nl%proj_G, iter, coeff, expo)) &
+          & call projector(geocode, iat, idir, iter%l, iter%n, coeff, expo, &
+          & nl%pspd(iat)%gau_cut, nl%proj_G%rxyz(1, iat), lr%ns1, lr%ns2, lr%ns3, lr%d%n1, lr%d%n2, lr%d%n3, &
+          & hx, hy, hz, kx, ky, kz, ncplx_k, nl%proj_G%ncplx, &
+          & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, nl%pspd(iat)%plr%wfd%keyvglob, nl%pspd(iat)%plr%wfd%keyglob, &
+          & nl%proj(istart_c))
+     do
+        if (.not. gaussian_iter_next_gaussian(nl%proj_G, iter, coeff, expo)) exit
+        call projector(geocode, iat, idir, iter%l, iter%n, coeff, expo, &
+             & nl%pspd(iat)%gau_cut, nl%proj_G%rxyz(1, iat), lr%ns1, lr%ns2, lr%ns3, lr%d%n1, lr%d%n2, lr%d%n3, &
+             & hx, hy, hz, kx, ky, kz, ncplx_k, nl%proj_G%ncplx, &
+             & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, nl%pspd(iat)%plr%wfd%keyvglob, nl%pspd(iat)%plr%wfd%keyglob, &
+             & proj_tmp)
+        call axpy(nc, 1._wp, proj_tmp(1), 1, nl%proj(istart_c), 1)
+     end do
+     ! Check norm for each proj.
+     if (idir == 0) then
+        do np = 1, 2 * iter%l - 1
+           !here the norm should be done with the complex components
+           call wnrm_wrap(ncplx_k,mbvctr_c,mbvctr_f, &
+                & nl%proj(istart_c + (np - 1) * (mbvctr_c+7*mbvctr_f) * ncplx_k),scpr)
+           !print '(a,3(i6),1pe14.7,2(i6))','iat,l,m,scpr',iat,l,m,scpr,idir,istart_c
+           if (abs(1.d0-scpr) > 1.d-2) then
+              if (abs(1.d0-scpr) > 1.d-1) then
+                 !if (iproc == 0) then
+                 write(*,'(1x,a)')'error found!'
+                 write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f6.3)')&
+                      'The norm of the nonlocal PSP for atom n=',iat,&
+                      ' (',trim(atomname),') labeled by l=',iter%l,' m=',iter%n,' is ',scpr
+                 write(*,'(1x,a)')&
+                      'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.'
+                 !end if
+                 !stop commented for the moment
+                 !restore the norm of the projector
+                 !call wscal_wrap(mbvctr_c,mbvctr_f,1.0_gp/sqrt(scpr),proj(istart_c))
+              else
+                 nwarnings=nwarnings+1
+              end if
+           end if
+        end do
+     end if
+     iproj    = iproj + 2*iter%l-1
+     istart_c = istart_c + nc
+  end do
+
+  if (use_tmp) call f_free(proj_tmp)
+end subroutine atom_projector
 
 subroutine projector(geocode,iat,idir,l,i,factor,gau_a,rpaw,rxyz,&
      ns1,ns2,ns3,n1,n2,n3,hx,hy,hz,kx,ky,kz,ncplx_k,ncplx_g,&

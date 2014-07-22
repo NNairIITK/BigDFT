@@ -60,7 +60,18 @@ module gaussians
   public :: nullify_gaussian_basis, deallocate_gwf, gaussian_basis_null, gaussian_basis_free
 
   public :: gaussian_basis_from_psp, gaussian_basis_from_paw
-  public :: gaussian_projectors, gaussian_ncoeff
+
+  type, public :: gaussian_basis_iter
+     integer :: nshell = 0 !< Number of shells to iter on, read only.
+     integer :: ishell = 0 !< Current shell id, read only.
+     integer :: ndoc       !< Number of gaussians for current shell, read only.
+     integer :: idoc       !< Current gaussian id, read only.
+     integer :: l, n       !< Quantum number of current shell, read only.
+
+     integer :: ishell_s   !< Internal, may change.
+     integer :: iexpo      !< Internal, may change.
+  end type gaussian_basis_iter
+  public :: gaussian_iter_start, gaussian_iter_next_shell, gaussian_iter_next_gaussian
 
 contains
 
@@ -275,122 +286,69 @@ contains
     end do
   end subroutine gaussian_basis_from_paw
 
-  !> Compute the number of coefficients for atom iat.
-  subroutine gaussian_ncoeff(G, iat, ncoeff)
+  !> Start a new iterator on gaussian basis for the shells of a given atom.
+  subroutine gaussian_iter_start(G, iat, iter)
     implicit none
     type(gaussian_basis_new), intent(in) :: G
     integer, intent(in) :: iat
-    integer, intent(out) :: ncoeff
+    type(gaussian_basis_iter), intent(out) :: iter
 
-    integer :: i, ishell
-
-    ishell = 0
-    do i = 1, iat - 1
-       ishell = ishell + G%nshell(i)
-    end do
-
-    ncoeff = 0
-    do i = ishell + 1, ishell + G%nshell(iat)
-       ncoeff = ncoeff + 2 * G%shid(L_, i) - 1
-    end do
-  end subroutine gaussian_ncoeff
-
-  !> Create projectors from gaussian decomposition.
-  subroutine gaussian_projectors(proj_G, ityp, iat, atomname, &
-       & geocode, idir, hx, hy, hz, kx, ky, kz, rpaw, &
-       & ns1, ns2, ns3, n1, n2, n3, &
-       & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, keyg, keyv, &
-       & istart_c, iproj, proj, nprojel, nwarnings)
-    implicit none
-    type(gaussian_basis_new), intent(in) :: proj_G
-    integer, intent(in) :: ityp, iat
-    character(len = 1), intent(in) :: geocode
-    integer, intent(in) :: idir, ns1, ns2, ns3, n1, n2, n3
-    character(len = *), intent(in) :: atomname
-    real(gp), intent(in) :: hx, hy, hz, kx, ky, kz, rpaw
-    integer, intent(in) :: nprojel, mbvctr_c, mbvctr_f, mbseg_c, mbseg_f
-    integer, dimension(mbseg_c+mbseg_f), intent(in) :: keyv
-    integer, dimension(2,mbseg_c+mbseg_f), intent(in) :: keyg
-    real(wp), dimension(nprojel), intent(inout) :: proj
-    integer, intent(inout) :: istart_c, iproj, nwarnings
-
-    integer :: ishell, ishell_s, iexpo, nc, l, i, j, ncplx_k, lmax, np
-    real(gp) :: scpr
-    real(wp),allocatable::proj_tmp(:)
-
-    if (kx**2 + ky**2 + kz**2 == 0.0_gp) then
-       ncplx_k=1
-    else
-       ncplx_k=2
-    end if
+    integer :: i, j
 
     ! Compute offset in shell array and exposant array.
-    ishell_s = 0
-    iexpo    = 0
+    iter%ishell_s = 0
+    iter%iexpo    = 0
     do i = 1, iat - 1
-       do j = ishell_s + 1, ishell_s + proj_G%nshell(i)
-          iexpo = iexpo + proj_G%shid(DOC_, j)
+       do j = iter%ishell_s + 1, iter%ishell_s + G%nshell(i)
+          iter%iexpo = iter%iexpo + G%shid(DOC_, j)
        end do
-       ishell_s = ishell_s + proj_G%nshell(i)
+       iter%ishell_s = iter%ishell_s + G%nshell(i)
     end do
 
-    ! Maximum number of terms for every projector.
-    lmax = maxval(proj_G%shid(L_, ishell_s + 1:ishell_s + proj_G%nshell(iat)))
-    nc = (mbvctr_c+7*mbvctr_f)*(2*lmax-1)*ncplx_k
-    proj_tmp = f_malloc(nc, id = 'proj_tmp')
+    iter%ishell = 0
+    iter%nshell = G%nshell(iat)
+  end subroutine gaussian_iter_start
 
-    ! Loop on shell.
-    do ishell = ishell_s + 1, ishell_s + proj_G%nshell(iat)
-       l = proj_G%shid(L_, ishell)
-       i = proj_G%shid(N_, ishell)
-       nc = (mbvctr_c+7*mbvctr_f) * (2*l-1) * ncplx_k
-       if (istart_c + nc > nprojel+1) stop 'istart_c > nprojel+1'
-       ! Loop on contraction.
-       call to_zero(nc, proj(istart_c))
-       do j = 1, proj_G%shid(DOC_, ishell)
-          iexpo = iexpo + 1
-          call projector(geocode, iat, idir, l, i, &
-               & proj_G%sd(proj_G%ncplx * (COEFF_ - 1) + 1, iexpo), &
-               & proj_G%sd(proj_G%ncplx * (EXPO_ - 1) + 1, iexpo), &
-               & rpaw, proj_G%rxyz(1, iat), ns1, ns2, ns3, n1, n2, n3, &
-               & hx, hy, hz, kx, ky, kz, ncplx_k, proj_G%ncplx, &
-               & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, keyv, keyg, &
-               & proj_tmp)
-          proj(istart_c:istart_c + nc - 1) = proj(istart_c:istart_c + nc - 1) + &
-               & proj_tmp(1:nc)
-       end do
-       ! Check norm for each proj.
-       if (idir == 0) then
-          do np = 1, 2 * l - 1
-             !here the norm should be done with the complex components
-             call wnrm_wrap(ncplx_k,mbvctr_c,mbvctr_f, &
-                  & proj(istart_c + (np - 1) * (mbvctr_c+7*mbvctr_f) * ncplx_k),scpr)
-             !print '(a,3(i6),1pe14.7,2(i6))','iat,l,m,scpr',iat,l,m,scpr,idir,istart_c
-             if (abs(1.d0-scpr) > 1.d-2) then
-                if (abs(1.d0-scpr) > 1.d-1) then
-                   !if (iproc == 0) then
-                   write(*,'(1x,a)')'error found!'
-                   write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f6.3)')&
-                        'The norm of the nonlocal PSP for atom n=',iat,&
-                        ' (',trim(atomname),') labeled by l=',l,' m=',i,' is ',scpr
-                   write(*,'(1x,a)')&
-                        'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.'
-                   !end if
-                   !stop commented for the moment
-                   !restore the norm of the projector
-                   !call wscal_wrap(mbvctr_c,mbvctr_f,1.0_gp/sqrt(scpr),proj(istart_c))
-                else
-                   nwarnings=nwarnings+1
-                end if
-             end if
-          end do
-       end if
-       iproj    = iproj + 2*l-1
-       istart_c = istart_c + nc
-    end do
+  !> Go to the next shell of the current iterator.
+  function gaussian_iter_next_shell(G, iter)
+    implicit none
+    type(gaussian_basis_new), intent(in) :: G
+    type(gaussian_basis_iter), intent(inout) :: iter
+    logical :: gaussian_iter_next_shell
 
-    call f_free(proj_tmp)
-  end subroutine gaussian_projectors
+    gaussian_iter_next_shell = .false.
+    ! End of loop case
+    if (iter%ishell >= iter%nshell) return
+
+    iter%ishell = iter%ishell + 1
+    iter%l      = G%shid(L_, iter%ishell_s + iter%ishell)
+    iter%n      = G%shid(N_, iter%ishell_s + iter%ishell)
+    iter%ndoc   = G%shid(DOC_, iter%ishell_s + iter%ishell)
+    iter%idoc   = 0
+    if (iter%ishell > 1) iter%iexpo = iter%iexpo + G%shid(DOC_, iter%ishell_s + iter%ishell - 1)
+    gaussian_iter_next_shell = .true.
+  end function gaussian_iter_next_shell
+
+  !> Go to the next gaussian of the current shell.
+  function gaussian_iter_next_gaussian(G, iter, coeff, expo)
+    implicit none
+    type(gaussian_basis_new), intent(in) :: G
+    type(gaussian_basis_iter), intent(inout) :: iter
+    real(gp), dimension(G%ncplx), intent(out), optional :: coeff, expo
+    logical :: gaussian_iter_next_gaussian
+
+    gaussian_iter_next_gaussian = .false.
+    ! End of loop case
+    if (iter%idoc >= iter%ndoc) return
+
+    iter%idoc  = iter%idoc + 1
+    coeff(1) = G%sd(G%ncplx * (COEFF_ - 1) + 1, iter%iexpo + iter%idoc)
+    expo(1)  = G%sd(G%ncplx * (EXPO_ - 1) + 1, iter%iexpo + iter%idoc)
+    coeff(G%ncplx) = G%sd(G%ncplx * (COEFF_ - 1) + G%ncplx, iter%iexpo + iter%idoc)
+    expo(G%ncplx)  = G%sd(G%ncplx * (EXPO_ - 1) + G%ncplx, iter%iexpo + iter%idoc)
+    gaussian_iter_next_gaussian = .true.
+  end function gaussian_iter_next_gaussian
+
 
   subroutine gaussian_basis_convert(G,Gold)
     implicit none
