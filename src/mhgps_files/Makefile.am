@@ -7,7 +7,9 @@ mhgps_objects = \
                module_io.f90 \
                module_energyandforces.f90 \
 			   module_minimizers.f90 \
-               module_saddle.f90
+               module_saddle.f90 \
+               module_interpol.f90 \
+               module_freezingstring.f90
 
 mhgps_SOURCES = $(mhgps_objects)
 
@@ -34,3 +36,5 @@ module_init.o : module_global_variables.o ../modules/BigDFT_API.o
 module_saddle.o : module_global_variables.o module_io.o module_energyandforces.o ../modules/module_sbfgs.o ../modules/BigDFT_API.o
 module_minimizers.o : module_global_variables.o module_energyandforces.o ../modules/module_sbfgs.o ../modules/BigDFT_API.o
 module_io.o : module_global_variables.o ../modules/BigDFT_API.o
+module_freezingstring.o : module_interpol.o module_global_variables.o ../modules/BigDFT_API.o
+module_interpol.o : module_global_variables.o ../modules/BigDFT_API.o

@@ -1,16 +1,17 @@
+!> @file
+!!  Routines for Stefan's new minimization method
+!!     
+!! @author Bastian Schaefer
+!! @section LICENCE
+!!    Copyright (C) 2014 UNIBAS
+!!    This file is not freely distributed.
+!!    A licence is necessary from UNIBAS
+
 module module_minimizers
 implicit none
 
 contains
 
-!> @file
-!!  Routines for Stefan's new minimization method
-!! @author
-!!    Copyright (C) 2014 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS
 !subroutine geopt(nat,wpos,etot,fout,fnrmtol,count,count_sd,displr)
 subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,energyio,energycounter,converged)
 !call_bigdft has to be run once on runObj and outs !before calling this routine

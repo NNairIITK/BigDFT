@@ -12,9 +12,7 @@
 module module_interpol
 implicit none
 
-!to be removed when moved to bigdft:
-integer, parameter :: gp=kind(1.0d0), iproc=0
-character(len=5), allocatable :: xat(:)
+!character(len=5), allocatable :: xat(:)
 
 contains
 !=====================================================================
@@ -23,6 +21,7 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
 !linear synchronous transit path
 !corresponding to the interpolation parameter
 !lambda
+    use module_base
     implicit none
     !parameters
     integer, intent(in) :: nat
@@ -77,15 +76,15 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
 
 contains
     subroutine valforce(nat,rat,fat,epot)
-    implicit none
     !wrapper function for lst_penalty
-    !parameter
+    use module_base
+    implicit none
+    !parameters
     integer, intent(in) :: nat
     real(gp), intent(in) :: rat(3,nat)
     real(gp), intent(out) :: fat(3,nat)
     real(gp), intent(out) :: epot
-
-        call lst_penalty(nat,rxyzR,rxyzP,rat,lambda,epot,fat)
+    call lst_penalty(nat,rxyzR,rxyzP,rat,lambda,epot,fat)
     end subroutine
 end subroutine
 !=====================================================================
@@ -113,6 +112,7 @@ subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
 !BS: For computation of gradient see also personal notes in intel
 !notebook (paper version) from June 18th, 2014
 !
+    use module_base
     implicit none
     !parameters
     integer, intent(in)  :: nat
@@ -212,6 +212,9 @@ subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
 end subroutine
 !=====================================================================
 subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
+    use module_base
+    use module_globalvariables, only: iproc
+    use yaml_output
     implicit none
     !parameters
     integer, intent(in) :: nat
@@ -273,11 +276,11 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
            at1=fxyz(1,iat)
            at2=fxyz(2,iat)
            at3=fxyz(3,iat)
-           !C Evolution of the velocities of the system
+           !Evolution of the velocities of the system
            vxyz(1,iat)=vxyz(1,iat) + (.5_gp*dt) * (at1 + ff(1,iat))
            vxyz(2,iat)=vxyz(2,iat) + (.5_gp*dt) * (at2 + ff(2,iat))
            vxyz(3,iat)=vxyz(3,iat) + (.5_gp*dt) * (at3 + ff(3,iat))
-           !C Memorization of old forces
+           !Memorization of old forces
            ff(1,iat) = at1
            ff(2,iat) = at2
            ff(3,iat) = at3
@@ -313,15 +316,15 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
         endif
     enddo
     if(fmax > fmax_tol .and. iproc==0)then
-            write(*,'(a,x,i0,5(1x,es14.7))')&
-            'FIRE ERROR not converged iter, epot,&
-             fmax, fnrm, dt, alpha: ',&
-            iter,epot,fmax,fnrm,dt,alpha
+        call yaml_warning('(MHGPS) Minimization of Linear&
+             Synchronous Transit Path not converged: epot,&
+             fmax, fnrm, dt, alpha: '&
+             trim(yaml_toa((/epot,fmax,fnrm,dt,alpha/))))
     endif
 end subroutine
 !=====================================================================
 subroutine convcheck(fmax,forcemax,check)
-!  use module_base
+  use module_base
   implicit none
   real(gp), intent(in):: fmax, forcemax
   integer, intent(inout)::check
@@ -335,7 +338,7 @@ subroutine convcheck(fmax,forcemax,check)
 end subroutine convcheck
 !=====================================================================
 subroutine fnrmandforcemax(ff,fnrm,fmax,nat)
-!  use module_base
+  use module_base
   implicit none
   integer, intent(in) :: nat
   real(gp), intent(in):: ff(3,nat)
