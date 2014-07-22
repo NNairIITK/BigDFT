@@ -12,7 +12,7 @@
 !! Conceived only for isolated Boundary Conditions, no SIC correction
 subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
      Glr,nlpsp,ncongt,pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,&
-     psi,output_denspot,ekin_sum,epot_sum,eproj_sum,proj_G,paw)
+     psi,output_denspot,ekin_sum,epot_sum,eproj_sum,paw)
   use module_base
   use module_types
   use yaml_output
@@ -31,7 +31,6 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   real(kind=8), dimension(Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nspin), intent(in) :: pot
   real(kind=8), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%norbp), intent(in) :: psi
   real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
-  type(gaussian_basis),optional,intent(in),dimension(at%astruct%ntypes)::proj_G
   type(paw_objects),optional,intent(inout)::paw
   !local variables
   type(locreg_descriptors) :: lr
@@ -385,7 +384,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
         if (DistProjApply) then
            if(any(at%npspcode == 7)) then
              call applyprojectorsonthefly(0,orbsb,at,lr,&
-                  txyz,hgrid,hgrid,hgrid,wfdb,nlpsp,psib,hpsib,eproj,proj_G,paw)
+                  txyz,hgrid,hgrid,hgrid,wfdb,nlpsp,psib,hpsib,eproj,paw)
            else
              call applyprojectorsonthefly(0,orbsb,at,lr,&
                   txyz,hgrid,hgrid,hgrid,wfdb,nlpsp,psib,hpsib,eproj)
