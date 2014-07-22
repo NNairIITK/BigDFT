@@ -1824,7 +1824,31 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
      close(11)
   endif
 end subroutine pawpatch_from_file
- 
+
+subroutine paw_init(paw, at, nspinor, nspin)
+  use module_types
+  use m_pawtab, only: pawtab_type
+  use m_paw_ij, only: paw_ij_init
+  implicit none
+  type(paw_objects), intent(out) :: paw
+  type(atoms_data), intent(in) :: at
+  integer, intent(in) :: nspinor, nspin
+
+  call nullify_paw_objects(paw)
+  if (.not. associated(at%pawtab)) return
+
+  paw%usepaw = .true.
+  paw%ntypes = at%astruct%ntypes
+  paw%natom  = at%astruct%nat
+  paw%lmnmax=maxval(at%pawtab(:)%lmn_size)
+
+  allocate(paw%paw_ij(at%astruct%nat))
+  call paw_ij_init(paw%paw_ij,1,nspinor,nspin,nspin,&
+       &   0,at%astruct%nat,at%astruct%ntypes,at%astruct%iatype,at%pawtab,&
+       &   has_dij=1,has_dijhartree=1,has_dijso=0,has_dijhat=0,&
+       &   has_pawu_occ=1,has_exexch_pot=1) !,&
+  !&   mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab)
+end subroutine paw_init
 
 subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, energs, denspot, optloop, &
        & ntypes, radii_cf, crmult, frmult)

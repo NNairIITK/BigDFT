@@ -862,7 +862,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !infocode = 0
   end if skip_if_linear
 
-
   ! allocate KSwfn%psi here instead for case of linear?!
   !if(inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR .or. &
   !                   inputpsi == INPUT_PSI_LINEAR_LCAO) then
@@ -1025,6 +1024,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
   call f_free_ptr(fion)
   call f_free_ptr(fdisp)
+
+  call deallocate_paw_objects(KSwfn%paw)
 
   !if (nvirt > 0 .and. in%inputPsiId == 0) then
   if (DoDavidson) then

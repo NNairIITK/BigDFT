@@ -767,7 +767,6 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
   integer :: iat,nwarnings,iproj,iorb
   integer :: iatype
   integer :: istart_c,idir,isorb,ieorb,ikpt,nspinor,ispsi_k,ispsi
-  integer :: mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
   
   !put idir=0, no derivative
   idir=0
@@ -805,9 +804,9 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
            istart_c=1
            if(at%npspcode(iatype) == PSPCODE_PAW) then
            !    PAW case:
-              call apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,&
+              call apply_atproj_iorb_paw(iat,iorb,istart_c,&
                    at,orbs,wfd,nlpsp,&
-                   psi(ispsi),hpsi(ispsi),spsi(ispsi),eproj_sum,paw)
+                   psi(ispsi),hpsi(ispsi),paw%spsi(ispsi),eproj_sum,paw)
            else
            !    HGH or GTH case:
               call apply_atproj_iorb_new(iat,iorb,istart_c,nlpsp%nprojel,&
@@ -1062,14 +1061,14 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj,&
      psi,hpsi,spsi,eproj,proj_G,paw_ij,&
-     lmnmax,cprj_out,sij_opt,sij)
+     lmn2_size,cprj_out,sij_opt,sij)
   use module_base
   use module_types
   use gaussians, only:gaussian_basis_new, gaussian_basis_iter, gaussian_iter_start, gaussian_iter_next_shell
   implicit none
   integer,parameter::nspinor=1  !not yet implemented
   integer, intent(inout)::istart_c
-  integer, intent(in) :: ncplx,lmnmax,sij_opt,iat
+  integer, intent(in) :: ncplx,lmn2_size,sij_opt,iat
   integer, intent(in) :: nvctr_c,nvctr_f,nseg_c,nseg_f,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
@@ -1078,13 +1077,13 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
   real(wp), dimension(*), intent(in) :: proj
   real(wp), dimension(nvctr_c+7*nvctr_f,ncplx), intent(in) :: psi
   type(gaussian_basis_new),intent(in)::proj_G
-  type(paw_ij_objects),intent(in)::paw_ij
+  type(paw_ij_type),intent(in)::paw_ij
   !type(cprj_objects),dimension(1,nspinor),intent(out)::cprj_out
   type(pawcprj_type),intent(out)::cprj_out
   real(gp), intent(out) :: eproj
   real(wp), dimension(nvctr_c+7*nvctr_f,ncplx), intent(inout) :: hpsi
   real(wp), dimension(nvctr_c+7*nvctr_f,ncplx), intent(inout) :: spsi
-  real(wp), dimension(lmnmax*(lmnmax+1)/2),intent(in)::sij
+  real(wp), dimension(lmn2_size),intent(in)::sij
   !local variables
   character(len=*),parameter::subname='applyprojector_paw'
   integer :: ilmn,jlmn,klmn,j0lmn,ispinor
@@ -1563,13 +1562,13 @@ END SUBROUTINE apply_atproj_iorb_new
 
 !> Applies the projector associated on a given atom on a corresponding orbital
 !! uses a generic representation of the projector to generalize the form of the projector  
-subroutine apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,at,orbs,wfd,&
+subroutine apply_atproj_iorb_paw(iat,iorb,istart_c,at,orbs,wfd,&
      nlpsp,psi,hpsi,spsi,eproj,paw)
   use module_base
   use module_types
   use gaussians, only: gaussian_basis
   implicit none
-  integer, intent(in) :: iat,iorb,ispsi
+  integer, intent(in) :: iat,iorb
   integer, intent(inout)::istart_c
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
@@ -1587,11 +1586,6 @@ subroutine apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,at,orbs,wfd,&
   integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
   real(gp) :: eproj_i
 
-  !Note:
-  !spsi should be in a wvl structure. 
-  !in that case spsi(ispsi) will be passed here, and 
-  !ispsi will no longer be an argument
-
   !parameter for the descriptors of the projectors
   ityp=at%astruct%iatype(iat)
 
@@ -1608,6 +1602,7 @@ subroutine apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,at,orbs,wfd,&
   
   sij_opt=3 !get hpsi and spsi
 
+  write(*,*) "##################### let's go"
    call applyprojector_paw(ncplx,istart_c,iat,&
         wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyvglob,wfd%keyglob,&
         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
@@ -1615,8 +1610,8 @@ subroutine apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,at,orbs,wfd,&
         nlpsp%pspd(iat)%plr%wfd%keyglob,& !nlpspd%keyg_p(1,jseg_c),&
         nlpsp%proj,&
         psi,hpsi,spsi,eproj_i,nlpsp%proj_G,paw%paw_ij(iat),&
-        paw%lmnmax,paw%cprj(iat,iorb),&
-        sij_opt,paw%sij(:,ityp))  
+        at%pawtab(ityp)%lmn2_size,paw%cprj(iat,iorb),&
+        sij_opt,at%pawtab(ityp)%sij)  
 
   !DEBUG
   !do ii=1,wfd%nvctr_c+7*wfd%nvctr_f

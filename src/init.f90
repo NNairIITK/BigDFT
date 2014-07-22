@@ -1573,6 +1573,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use gaussians, only: gaussian_basis, nullify_gaussian_basis
   use sparsematrix_base, only: sparse_matrix
   use communications, only: transpose_localized, untranspose_localized
+  use m_paw_ij, only: paw_ij_init
   implicit none
 
   integer, intent(in) :: iproc, nproc, inputpsi, input_wf_format
@@ -2203,6 +2204,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         inputpsi == INPUT_PSI_MEMORY_LINEAR ).and. tmb%c_obj /= 0) then
       call kswfn_emit_psi(tmb, 0, 0, iproc, nproc)
    end if
+
+   ! Init PAW from input wavefunctions.
+   call paw_init(KSwfn%paw, atoms, KSwfn%orbs%nspinor, in%nspin)
 
    call f_release_routine()
 

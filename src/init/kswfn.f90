@@ -130,8 +130,9 @@ subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc)
   nullify(wfn%psit)
   nullify(wfn%psit_c)
   nullify(wfn%psit_f)
-  nullify(wfn%spsi)
   nullify(wfn%gaucoeffs)
+
+  call nullify_paw_objects(wfn%paw)
 
   call initialize_communication_potential(iproc, nproc, dpbox%nscatterarr, &
        & wfn%orbs, wfn%lzd, wfn%comgp)

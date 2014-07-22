@@ -1148,7 +1148,6 @@ subroutine wf_init(wf)
   nullify(wf%psi)
   nullify(wf%hpsi)
   nullify(wf%psit)
-  nullify(wf%spsi)
   nullify(wf%comms%nvctr_par)
 end subroutine wf_init
 

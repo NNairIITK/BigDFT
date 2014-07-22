@@ -789,12 +789,23 @@ module module_types
      logical :: can_use_transposed
   end type hamiltonian_descriptors
 
+  !> Contains the arguments needed for the PAW implementation:
+  !> to be better integrated into the other structures.
+  type, public :: paw_objects
+     logical :: usepaw
+     integer :: lmnmax
+     integer :: ntypes
+     integer :: natom
+     type(paw_ij_type), dimension(:), pointer :: paw_ij
+     type(pawcprj_type), dimension(:,:), pointer :: cprj
+
+     real(wp), dimension(:), pointer :: spsi !< Metric operator applied to psi (To be used for PAW)
+  end type paw_objects
 
   !> The wavefunction which have to be considered at the DFT level
   type, public :: DFT_wavefunction
      !coefficients
      real(wp), dimension(:), pointer :: psi,hpsi,psit,psit_c,psit_f !< orbitals, or support functions, in wavelet basis
-     real(wp), dimension(:), pointer :: spsi !< Metric operator applied to psi (To be used for PAW)
      real(wp), dimension(:,:), pointer :: gaucoeffs !orbitals in gbd basis
      !basis sets
      type(gaussian_basis) :: gbd !<gaussian basis description, if associated
@@ -809,6 +820,7 @@ module module_types
      type(diis_objects) :: diis
      type(confpot_data), dimension(:), pointer :: confdatarr !<data for the confinement potential
      type(SIC_data) :: SIC !<control the activation of SIC scheme in the wavefunction
+     type(paw_objects) :: paw !< PAW objects
      type(orthon_data) :: orthpar !< control the application of the orthogonality scheme for cubic DFT wavefunction
      character(len=4) :: exctxpar !< Method for exact exchange parallelisation for the wavefunctions, in case
      type(p2pComms) :: comgp !<describing p2p communications for distributing the potential
@@ -889,19 +901,6 @@ module module_types
      real(gp), dimension(6) :: strten          !< Stress Tensor
   end type DFT_global_output
 
-
- !> Contains the arguments needed for the PAW implementation:
- type, public :: paw_objects
-   integer :: lmnmax
-   integer :: ntypes
-   integer :: natom
-   integer :: usepaw
-   integer, dimension(:,:,:), pointer :: indlmn
-   type(paw_ij_type), dimension(:), allocatable :: paw_ij
-   type(pawcprj_type), dimension(:,:), allocatable :: cprj
-   real(wp), dimension(:,:), pointer :: sij
-   real(gp),dimension(:),pointer :: rpaw
- end type paw_objects
 
  interface input_set
     module procedure input_set_char, input_set_int, input_set_dbl, input_set_bool, &
@@ -1279,6 +1278,8 @@ contains
     rst%KSwfn%c_obj = 0
     nullify(rst%KSwfn%psi)
     nullify(rst%KSwfn%orbs%eval)
+    call nullify_paw_objects(rst%KSwfn%paw)
+    call nullify_paw_objects(rst%tmb%paw)
 
     nullify(rst%KSwfn%gaucoeffs)
     nullify(rst%KSwfn%oldpsis)
@@ -1759,12 +1760,30 @@ contains
     implicit none
     type(paw_objects),intent(inout) :: paw
     
-    nullify(paw%indlmn) 
-    nullify(paw%sij) 
-    nullify(paw%rpaw)
+    paw%usepaw = .false.
+    nullify(paw%spsi)
 
+    nullify(paw%paw_ij)
+    nullify(paw%cprj)
   end subroutine nullify_paw_objects
 
+  subroutine deallocate_paw_objects(paw)
+    use m_paw_ij, only: paw_ij_destroy
+    use m_pawcprj, only: pawcprj_destroy
+    implicit none
+    type(paw_objects),intent(inout) :: paw
+    
+    call f_free_ptr(paw%spsi)
+
+    if (associated(paw%paw_ij)) then
+       call paw_ij_destroy(paw%paw_ij)
+       deallocate(paw%paw_ij)
+    end if
+    if (associated(paw%cprj)) then
+       call pawcprj_destroy(paw%cprj)
+       deallocate(paw%cprj)
+    end if
+  end subroutine deallocate_paw_objects
 
   !> Initialize the structure DFT_global_output
   subroutine nullify_global_output(outs)

@@ -13,14 +13,13 @@
 !! Otherwise, rhov array is filled by the self-consistent density
 subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
      nlpsp,rxyz,linflag,unblock_comms,GPU,wfn,&
-     energs,rpnrm,xcstr,proj_G,paw)
+     energs,rpnrm,xcstr,paw)
   use module_base
   use module_types
   use module_interfaces, fake_name => psitohpsi
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use m_ab7_mixing
   use yaml_output
-  use gaussians, only: gaussian_basis
   implicit none
   !Arguments
   logical, intent(in) :: scf  !< If .false. do not calculate the self-consistent potential
@@ -38,7 +37,6 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   real(gp), intent(inout) :: rpnrm
   real(gp), dimension(6), intent(out) :: xcstr
   !real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
-  type(gaussian_basis),dimension(atoms%astruct%nat),optional,intent(in)::proj_G
   type(paw_objects),optional,intent(inout)::paw
   !local variables
   character(len=*), parameter :: subname='psitohpsi'
@@ -371,7 +369,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
       if(any(atoms%npspcode == PSPCODE_PAW)) then
          call to_zero(wfn%orbs%npsidim_orbs,paw%spsi(1))
          call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,rxyz,&
-              wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,energs%eproj,proj_G,paw)
+              wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,energs%eproj,paw)
       else
          call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,rxyz,&
               wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,energs%eproj)
@@ -384,12 +382,11 @@ end subroutine psitohpsi
 !> Application of the Full Hamiltonian
 subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
      Lzd,nlpsp,confdatarr,ngatherarr,pot,psi,hpsi,&
-     energs,SIC,GPU,xc,pkernel,orbsocc,psirocc,proj_G,paw)
+     energs,SIC,GPU,xc,pkernel,orbsocc,psirocc,paw)
   use module_base
   use module_types
   use module_interfaces, fake_name => FullHamiltonianApplication
   use module_xc
-  use gaussians, only: gaussian_basis
   implicit none
   integer, intent(in) :: iproc,nproc
   type(atoms_data), intent(in) :: at
@@ -412,7 +409,6 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
   !PAW variables:
-  type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G
   type(paw_objects),optional,intent(inout)::paw
 
   !put to zero hpsi array (now important since any of the pieces of the hamiltonian is accumulating)
@@ -443,7 +439,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
  !these two sections have to be inverted to profit of overlapping in GPU accelerated case
  if(any(at%npspcode == PSPCODE_PAW)) then
   call NonLocalHamiltonianApplication(iproc,at,orbs%npsidim_orbs,orbs,rxyz,&
-       Lzd,nlpsp,psi,hpsi,energs%eproj,proj_G,paw)
+       Lzd,nlpsp,psi,hpsi,energs%eproj,paw)
  else
   call NonLocalHamiltonianApplication(iproc,at,orbs%npsidim_orbs,orbs,rxyz,&
        Lzd,nlpsp,psi,hpsi,energs%eproj)
@@ -687,12 +683,11 @@ END SUBROUTINE LocalHamiltonianApplication
 !> Routine which calculates the application of nonlocal projectors on the wavefunctions
 !! Reduce the wavefunction in case it is needed
 subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
-     Lzd,nl,psi,hpsi,eproj_sum,proj_G,paw)
+     Lzd,nl,psi,hpsi,eproj_sum,paw)
   use module_base
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => NonLocalHamiltonianApplication
-  use gaussians, only: gaussian_basis, gaussian_projectors
   implicit none
   integer, intent(in) :: iproc, npsidim_orbs
   type(atoms_data), intent(in) :: at
@@ -704,7 +699,6 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   real(wp), dimension(npsidim_orbs), intent(inout) :: hpsi
   real(gp), intent(out) :: eproj_sum
   !PAW variables:
-  type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G !projectors in gaussian basis (for PAW)
   type(paw_objects),optional,intent(inout)::paw
   !local variables
   logical :: newmethod
@@ -740,10 +734,11 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   if(any(at%npspcode == PSPCODE_PAW)) then  
      newmethod=.false.
      !initialize to zero in PAW case
-     if(.not. present(paw) .or. .not. present(proj_G)) then
-        stop 'NonLocalHamiltonianApplication: proj_G or paw are not present'
+     if(.not. present(paw)) then
+        stop 'NonLocalHamiltonianApplication: paw is not present'
      end if
-     if (nl%nprojel >0) call to_zero(nl%nprojel,nl%proj(1))
+     ! Not neede anymore.
+     !if (nl%nprojel >0) call to_zero(nl%nprojel,nl%proj(1))
   end if
   !here the localisation region should be changed, temporary only for cubic approach
 
@@ -788,15 +783,10 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
 
               ! Now create the projector
               istart_c=1
-              call plr_segs_and_vctrs(nl%pspd(iat)%plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
-              call gaussian_projectors(nl%proj_G, iatype, iat, at%astruct%atomnames(iatype), &
-                   & at%astruct%geocode, 0, Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3), &
+              call atom_projector(nl, iatype, iat, at%astruct%atomnames(iatype), &
+                   & at%astruct%geocode, 0, Lzd%Glr, Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3), &
                    & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), &
-                   & nl%pspd(iat)%gau_cut, &
-                   & Lzd%Glr%ns1,Lzd%Glr%ns2,Lzd%Glr%ns3,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
-                   & mbvctr_c, mbvctr_f, mbseg_c, mbseg_f, &
-                   & nl%pspd(iat)%plr%wfd%keyglob, nl%pspd(iat)%plr%wfd%keyvglob, &
-                   & istart_c, iproj, nl%proj, nl%nprojel, nwarnings)
+                   & istart_c, iproj, nwarnings)
 
               !apply the projector to all the orbitals belonging to the processor
               !this part can be factorized somewhere else
@@ -1000,11 +990,10 @@ contains
             orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj
     else
        if(any(at%npspcode == PSPCODE_PAW)) then
-          call apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,&
-               nl%nprojel,&
-               at,orbs,Lzd%Llr(ilr)%wfd,nl%pspd(iat)%plr,&
-               nl%proj,psi(ispsi),hpsi(ispsi),eproj_sum,&
-               proj_G(iatype),paw)
+          call apply_atproj_iorb_paw(iat,iorb,istart_c,&
+               at,orbs,Lzd%Llr(ilr)%wfd,nl,&
+               psi(ispsi),hpsi(ispsi),paw%spsi(ispsi),eproj_sum,&
+               paw)
        else
           call apply_atproj_iorb_new(iat,iorb,istart_c,&
                nl%nprojel,&
@@ -1635,12 +1624,11 @@ END SUBROUTINE calculate_energy_and_gradient
 !> Operations after h|psi> 
 !! (transposition, orthonormalisation, inverse transposition)
 subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
-   at,nlpsp,paw,rxyz,eproj_sum,proj_G)
+   at,nlpsp,paw,rxyz,eproj_sum)
    use module_base
    use module_types
    use module_interfaces, except_this_one_A => hpsitopsi
    use yaml_output
-   use gaussians, only: gaussian_basis
    use communications, only: transpose_v, untranspose_v
    implicit none
    !Arguments
@@ -1649,7 +1637,6 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    type(atoms_data), intent(in) :: at
    type(DFT_PSP_projectors), intent(inout) :: nlpsp 
    type(paw_objects),optional,intent(inout)::paw
-   type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G !projectors in gaussian basis (for PAW)
    real(gp),optional, intent(out) :: eproj_sum
    real(gp),optional, dimension(3,at%astruct%nat), intent(in) :: rxyz
    !local variables
@@ -1661,11 +1648,10 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
 
    if(any(at%npspcode == PSPCODE_PAW)) then
      if( (.not. present(paw)) .or. &
-&        (.not. present(proj_G)) .or. &
 &        (.not. present(eproj_sum)) .or. &
 &        (.not. present(rxyz))) then
          write(*,*)'ERROR: hpsitopsi for PAW needs the following optional variables::'
-         write(*,*)'       paw, proj_G, eproj, rxyz'
+         write(*,*)'       paw, eproj, rxyz'
          stop
      end if
    end if
@@ -1708,7 +1694,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
        call to_zero(wfn%orbs%npsidim_orbs,paw%spsi(1))
      end if
      call NonLocalHamiltonianApplication(iproc,at,wfn%orbs%npsidim_orbs,wfn%orbs,rxyz,&
-          wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,eproj_sum,proj_G,paw)
+          wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,eproj_sum,paw)
 
 !    Transpose spsi:     
      call transpose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,paw%spsi(1),wfn%hpsi(1))
