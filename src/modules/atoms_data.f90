@@ -15,6 +15,7 @@ module module_atoms
   use ao_inguess, only: aoig_data
   use m_pawrad, only: pawrad_type
   use m_pawtab, only: pawtab_type
+  use m_pawang, only: pawang_type
   implicit none
   private
 
@@ -79,6 +80,7 @@ module module_atoms
 !     real(gp), dimension(:,:), pointer :: ig_nlccpar    !< Parameters for the input NLCC
      type(pawrad_type), dimension(:), pointer :: pawrad  !< PAW radial objects.
      type(pawtab_type), dimension(:), pointer :: pawtab  !< PAW objects for something.
+     type(pawang_type) :: pawang                         !< PAW angular mesh definition.
 
      !! for abscalc with pawpatch
      integer, dimension(:), pointer ::  paw_NofL, paw_l, paw_nofchannels
@@ -149,6 +151,7 @@ module module_atoms
 
 
     pure subroutine nullify_atoms_data(at)
+      use m_pawang, only: pawang_nullify
       implicit none
       type(atoms_data), intent(out) :: at
       call nullify_atomic_structure(at%astruct)
@@ -183,6 +186,7 @@ module module_atoms
       nullify(at%paw_Sm1_matrices)
       nullify(at%pawrad)
       nullify(at%pawtab)
+      !call pawang_nullify(at%pawang) !not needed in fact
     end subroutine nullify_atoms_data
 
 
@@ -243,6 +247,7 @@ module module_atoms
       use dynamic_memory
       use m_pawrad, only: pawrad_destroy
       use m_pawtab, only: pawtab_destroy
+      use m_pawang, only: pawang_destroy
       implicit none
       type(atoms_data), intent(inout) :: atoms
       !local variables
@@ -317,6 +322,7 @@ module module_atoms
          end do
          deallocate(atoms%pawtab)
       end if
+      call pawang_destroy(atoms%pawang)
     END SUBROUTINE deallocate_atoms_data
 
 
