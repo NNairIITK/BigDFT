@@ -393,13 +393,13 @@ subroutine interpol(method,nat,left,right,step,interleft,interright,&
     endif
 end module
 !=====================================================================
-subroutine spline_drv(xvec,yvec,ndim,yp1,ypn,y2)
+subroutine spline_wrapper(xvec,yvec,ndim,yp1,ypn,y2vec)
     !routine for initializing the spline vectors
     !xvec[1..ndim] and yvec[1..ndim] contain the tabulated function.
     !yi= f(xi), x1 < x2 < ... < xN .
     !yp1, ypn: values of first derivative of the interpolating
     !function at points 1 and ndim
-    !y2: second derivatives of the interpolating function at the
+    !y2vec: second derivatives of the interpolating function at the
     !tabulated points
     use module_base
     implicit none
@@ -407,27 +407,27 @@ subroutine spline_drv(xvec,yvec,ndim,yp1,ypn,y2)
     integer, intent(in)  :: ndim
     real(gp), intent(in) :: xvec(ndim), yvec(ndim)
     real(gp), intent(in) :: yp1, yp2
-    real(gp), intent(out) :: y2
+    real(gp), intent(out) :: y2vec
     !internal
     real(gp) :: xt(ndim), yt(ndim)
     real(gp) :: ytp1, ytpn
     if(xvec(1).eq.xvec(n)) then
-        y2=0.d0
+        y2vec=0.0_gp
     elseif(xvec(1).gt.xvec(2)) then
         xt=-xvec
         yt=yvec
         ytp1=-yp1
         ytpn=-ypn
-        call spline(xt,yt,ndim,ytp1,ytpn,y2)
+        call spline(xt,yt,ndim,ytp1,ytpn,y2vec)
     else
-        call spline(xvec,yvec,ndim,yp1,ypn,y2)
+        call spline(xvec,yvec,ndim,yp1,ypn,y2vec)
     endif
 end subroutine
 !=====================================================================
-subroutine splint_drv(xvec,yvec,y2,ndim,tau,yval,dy)
+subroutine splint_wrapper(xvec,yvec,y2vec,ndim,tau,yval,dy)
     !xvec[1..ndim] and yvec[1..ndim] contain the tabulated function.
     !yi= f(xi), x1 < x2 < ... < xN .
-    !y2: second derivatives of the interpolating function at the
+    !y2vec: second derivatives of the interpolating function at the
     !tabulated points
     !tau: spline's parameter
     !yval: cubic spline interpolation value at tay
@@ -439,19 +439,99 @@ subroutine splint_drv(xvec,yvec,y2,ndim,tau,yval,dy)
     real(gp), intent(in) :: xvec(ndim), yvec(ndim)
     real(gp), intent(in) :: tau
     real(gp), intent(out) :: yval, dy
+    real(gp), intent(in) :: y2vec(ndim)
     !internal
     real(gp) :: xt(ndim), yt(ndim), taut
     if(xvec(1).eq.xvec(n)) then
         yval=yvec(1)
-        dy=0.d0
+        dy=0.0_gp
     elseif(xvec(1).gt.xvec(2)) then
         xt=-xvec
         yt=yvec
         taut=-tau
-        call splint(xt,yt,y2,ndim,taut,yval,dy)
+        call splint(xt,yt,y2vec,ndim,taut,yval,dy)
         dy=-dy
     else
-        call splint(xvec,yvec,y2,ndim,tau,yval,dy)
+        call splint(xvec,yvec,y2vec,ndim,tau,yval,dy)
     endif
 end subroutine
-
+!=====================================================================
+subroutine spline(xvec,yvec,ndim,yp1,ypn,y2vec)
+    use module_base
+    implicit none
+    !parameter
+    integer, intent(in) :: ndim
+    real(gp), intent(in) :: xvec(ndim), yvec(ndim)
+    real(gp), intent(in) :: yp1, ypn
+    real(gp), intent(out) :: y2vec(ndim)
+    !internal
+    integer  :: i,k
+    real(gp) :: p,qn,sig,un,work(ndim)
+    if (yp1 > .99e30_gp) then
+        y2vec(1)=0.0_gp
+        work(1)=0.0_gp
+    else
+        y2vec(1)=-0.5_gp
+        work(1)=(3./(xvec(2)-xvec(1)))*((yvec(2)-yvec(1))/&
+                (xvec(2)-xvec(1))-yp1)
+    endif
+    do i=2,n-1
+        sig=(xvec(i)-xvec(i-1))/(xvec(i+1)-xvec(i-1))
+        p=sig*y2vec(i-1)+2.0_gp
+        y2vec(i)=(sig-1.0_gp)/p
+        work(i)=(6.0_gp*((yvec(i+1)-yvec(i))/(xvec(i+1)-xvec(i))-&
+                (yvec(i)-yvec(i-1))/(xvec(i)-xvec(i-1)))/&
+                (xvec(i+1)-xvec(i-1))-sig*work(i-1))/p  
+    enddo
+    if(ypn>.99e30_gp) then
+        qn=0.0_gp
+        un=0.0_gp
+    else
+        qn=0.5_gp
+        un=(3.0_gp/(xvec(n)-xvec(n-1)))*(ypn-(yvec(n)-yvec(n-1))/&
+           (xvec(n)-xvec(n-1)))
+    endif
+    y2vec(n)=(un-qn*work(n-1))/(qn*y2vec(n-1)+1.)
+    do k=n-1,1,-1
+        y2vec(k)=y2vec(k)*y2vec(k+1)+work(k)
+    enddo
+end subroutine
+!=====================================================================
+subroutine splint(xvec,yvec,y2vec,ndim,tau,yval,dy)
+    use module_base
+    implicit none
+    !parameters
+    integer, intent(in) :: ndim
+    real(gp), intent(in) :: xvec(ndim), yvec(ndim)
+    real(gp), intent(in) :: y2vec(ndim)
+    real(gp), intent(in)  :: tau
+    real(gp), intent(out) :: yval, dy
+    !internal
+    integer :: k,khi,klo
+    real(gp):: a,b,h,hy
+    klo=1
+    khi=ndim
+    do while(khi-klo>1)
+!    1     if (khi-klo.gt.1) then
+        k=(khi+klo)/2
+        if(xvec(k)>x)then
+            khi=k
+        else
+            klo=k
+        endif
+    enddo
+!        goto 1
+!    endif
+    h=xvec(khi)-xvec(klo)
+    if (abs(h) <= epsilon(xvec(khi))) stop 'bad xvec input in splint'
+    a=(xvec(khi)-x)/h
+    b=(x-xvec(klo))/h
+    yval=a*yvec(klo)+b*yvec(khi)+((a**3-a)*y2vec(klo)+&
+         (b**3-b)*y2vec(khi))*(h**2)/6.0_gp  
+    
+    !compute the derivative at point x with respect to x
+    hy=yvec(khi)-yvec(klo)
+    dy=hy/h+(-(3.0_gp*a**2-1.0_gp)*y2vec(klo)+&
+       (3.0_gp*b**2-1.0_gp)*y2vec(khi))/6.0_gp*h
+    return
+end subroutine
