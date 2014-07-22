@@ -358,60 +358,11 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
             endif
             deltaold=delta
         enddo outer1
+
+        !determine tangent at interleft
+    else! standard case
     endif
 
-    !find lst nodes interleft and interright that are
-    ! roughly 'step' away from left and right
-    !first left side
-    arc=0._gp
-    deltaold=huge(1._gp)
-    outer1: do i=2,nimages
-        diff = lstpath(:,:,i) - lstpath(:,:,i-1)
-        arc  = arc + dnrm2(tnat,diff,1)
-        delta = step-arc
-        if(delta <= 0._gp)then
-            if(abs(delta) < abs(deltaold))then
-                iinterleft=i
-                exit outer1
-            else
-                iinterleft=i-1
-                exit outer1
-            endif
-        endif
-        deltaold=delta
-    enddo outer1
-    !then right side
-    arc=0._gp
-    deltaold=huge(1._gp)
-    outer2: do i=nimages-1,1
-        diff = lstpath(:,:,i) - lstpath(:,:,i+1)
-        arc  = arc + dnrm2(tnat,diff,1)
-        delta = step-arc
-        if(delta <= 0._gp)then
-            if(abs(delta) < abs(deltaold))then
-                iinterright=i
-                exit outer2
-            else
-                iinterright=i+1
-                exit outer2
-            endif
-        endif
-        deltaold=delta
-    enddo outer2
-
-    if(iinterleft > iinterright)then
-       !two cases might have happened:
-       !1) left and right are closer than 2*step
-       !   but further away from each other than 1*step.
-       !2) left and right are coser than 1*step   
-
-       !check distance between interleft and interright
-       finished=.true.
-       return
-    endif
-
-     
-    
 
     !cubic spline thorugh nodes
 
@@ -441,4 +392,66 @@ subroutine interpol(method,nat,left,right,step,interleft,interright,&
                        tangent,finished)
     endif
 end module
+!=====================================================================
+subroutine spline_drv(xvec,yvec,ndim,yp1,ypn,y2)
+    !routine for initializing the spline vectors
+    !xvec[1..ndim] and yvec[1..ndim] contain the tabulated function.
+    !yi= f(xi), x1 < x2 < ... < xN .
+    !yp1, ypn: values of first derivative of the interpolating
+    !function at points 1 and ndim
+    !y2: second derivatives of the interpolating function at the
+    !tabulated points
+    use module_base
+    implicit none
+    !parameters
+    integer, intent(in)  :: ndim
+    real(gp), intent(in) :: xvec(ndim), yvec(ndim)
+    real(gp), intent(in) :: yp1, yp2
+    real(gp), intent(out) :: y2
+    !internal
+    real(gp) :: xt(ndim), yt(ndim)
+    real(gp) :: ytp1, ytpn
+    if(xvec(1).eq.xvec(n)) then
+        y2=0.d0
+    elseif(xvec(1).gt.xvec(2)) then
+        xt=-xvec
+        yt=yvec
+        ytp1=-yp1
+        ytpn=-ypn
+        call spline(xt,yt,ndim,ytp1,ytpn,y2)
+    else
+        call spline(xvec,yvec,ndim,yp1,ypn,y2)
+    endif
+end subroutine
+!=====================================================================
+subroutine splint_drv(xvec,yvec,y2,ndim,tau,yval,dy)
+    !xvec[1..ndim] and yvec[1..ndim] contain the tabulated function.
+    !yi= f(xi), x1 < x2 < ... < xN .
+    !y2: second derivatives of the interpolating function at the
+    !tabulated points
+    !tau: spline's parameter
+    !yval: cubic spline interpolation value at tay
+    !dy: derivative of spline at tau (with respect to 
+    !    the parametrization
+    implicit none
+    !parameters
+    integer, intent(in)  :: ndim
+    real(gp), intent(in) :: xvec(ndim), yvec(ndim)
+    real(gp), intent(in) :: tau
+    real(gp), intent(out) :: yval, dy
+    !internal
+    real(gp) :: xt(ndim), yt(ndim), taut
+    if(xvec(1).eq.xvec(n)) then
+        yval=yvec(1)
+        dy=0.d0
+    elseif(xvec(1).gt.xvec(2)) then
+        xt=-xvec
+        yt=yvec
+        taut=-tau
+        call splint(xt,yt,y2,ndim,taut,yval,dy)
+        dy=-dy
+    else
+        call splint(xvec,yvec,y2,ndim,tau,yval,dy)
+    endif
+end subroutine
 
