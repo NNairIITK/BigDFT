@@ -984,7 +984,7 @@ END SUBROUTINE input_wf_disk
 subroutine input_wf_diag(iproc,nproc,at,denspot,&
      orbs,nvirt,comms,Lzd,energs,rxyz,&
      nlpsp,ixc,psi,hpsi,psit,G,&
-     nspin,GPU,input,onlywf,paw)
+     nspin,GPU,input,onlywf)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -1016,7 +1016,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   type(gaussian_basis), intent(out) :: G !basis for davidson IG
   real(wp), dimension(:), pointer :: psi,hpsi,psit
-  type(paw_objects),optional,intent(inout)::paw
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   logical :: switchGPUconv,switchOCLconv
@@ -1163,10 +1162,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
      !allocate the wavefunction in the transposed way to avoid allocations/deallocations
      hpsi = f_malloc_ptr(max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp))+ndebug,id='hpsi')
-
-     if(present(paw)) then
-        paw%spsi = f_malloc_ptr(max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp)),id='paw%spsi')
-     end if
 
      !The following lines are copied from LDiagHam:
      nullify(psit)
@@ -1606,21 +1601,16 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   real(wp), allocatable, dimension(:) :: norm
   !wvl+PAW objects
   type(DFT_PSP_projectors) :: nl
-  type(paw_objects)::paw
   logical :: overlap_calculated, perx,pery,perz, rho_negative
   real(gp) :: tx,ty,tz,displ,mindist
   real(gp), dimension(:), pointer :: in_frag_charge
-  integer :: infoCoeff, iorb, nstates_max, order_taylor
+  integer :: infoCoeff, iorb, nstates_max, order_taylor, npspcode
   real(kind=8) :: pnrm
   real(gp), dimension(:,:), allocatable :: radii_cf
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
 
   call f_routine(id='input_wf')
-
-  !nullify paw objects:
-  paw%usepaw=0 !Not using PAW
-  call nullify_paw_objects(paw)
 
  !determine the orthogonality parameters
   KSwfn%orthpar = in%orthpar
@@ -1715,6 +1705,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
   case(INPUT_PSI_LCAO)
      ! PAW case, generate nlpsp on the fly with psppar data instead of paw data.
+     npspcode = atoms%npspcode(1)
      if (any(atoms%npspcode == PSPCODE_PAW)) then
         ! Cheating line here.
         atoms%npspcode(1) = PSPCODE_HGH
@@ -1743,9 +1734,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           nl,in%ixc,KSwfn%psi,KSwfn%hpsi,KSwfn%psit,&
           Gvirt,nspin,GPU,in,.false.)
 
-     if (any(atoms%npspcode == PSPCODE_PAW)) then
+     if (npspcode == PSPCODE_PAW) then
         call free_DFT_PSP_projectors(nl)
-        atoms%npspcode(1) = PSPCODE_PAW
+        atoms%npspcode(1) = npspcode
      end if
 
   case(INPUT_PSI_MEMORY_WVL)
@@ -2206,7 +2197,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
    end if
 
    ! Init PAW from input wavefunctions.
-   call paw_init(KSwfn%paw, atoms, KSwfn%orbs%nspinor, in%nspin)
+   call paw_init(KSwfn%paw, atoms, KSwfn%orbs%nspinor, in%nspin, &
+        & max(1,max(KSwfn%orbs%npsidim_orbs, KSwfn%orbs%npsidim_comp)), KSwfn%orbs%norb)
 
    call f_release_routine()
 

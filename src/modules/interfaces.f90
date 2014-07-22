@@ -2348,10 +2348,9 @@ module module_interfaces
 
        subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
             nlpsp,rxyz,linflag,unblock_comms,GPU,wfn,&
-            energs,rpnrm,xcstr,paw)
+            energs,rpnrm,xcstr)
          use module_base
          use module_types
-         use gaussians, only: gaussian_basis
          implicit none
          logical, intent(in) :: scf
          integer, intent(in) :: iproc,nproc,itrp,iscf,linflag,itwfn
@@ -2366,7 +2365,6 @@ module module_interfaces
          type(GPU_pointers), intent(inout) :: GPU
          real(gp), intent(inout) :: rpnrm
          real(gp), dimension(6), intent(out) :: xcstr
-         type(paw_objects),optional,intent(inout)::paw
        end subroutine psitohpsi
 
        subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Localnorb, rxyz, inwhichlocreg)

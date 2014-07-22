@@ -13,7 +13,7 @@
 !! Otherwise, rhov array is filled by the self-consistent density
 subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
      nlpsp,rxyz,linflag,unblock_comms,GPU,wfn,&
-     energs,rpnrm,xcstr,paw)
+     energs,rpnrm,xcstr)
   use module_base
   use module_types
   use module_interfaces, fake_name => psitohpsi
@@ -37,7 +37,6 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   real(gp), intent(inout) :: rpnrm
   real(gp), dimension(6), intent(out) :: xcstr
   !real(wp), dimension(orbs%npsidim_orbs), intent(out) :: hpsi
-  type(paw_objects),optional,intent(inout)::paw
   !local variables
   character(len=*), parameter :: subname='psitohpsi'
   logical :: unblock_comms_den,unblock_comms_pot,whilepot,savefields
@@ -367,9 +366,9 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
     !> code factorization for the application of the nonlocal hamiltonian
     subroutine NL_ham()
       if(any(atoms%npspcode == PSPCODE_PAW)) then
-         call to_zero(wfn%orbs%npsidim_orbs,paw%spsi(1))
+         call to_zero(wfn%orbs%npsidim_orbs,wfn%paw%spsi(1))
          call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,rxyz,&
-              wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,energs%eproj,paw)
+              wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,energs%eproj,wfn%paw)
       else
          call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,rxyz,&
               wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,energs%eproj)

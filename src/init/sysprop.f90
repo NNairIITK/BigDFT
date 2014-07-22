@@ -1825,14 +1825,17 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
   endif
 end subroutine pawpatch_from_file
 
-subroutine paw_init(paw, at, nspinor, nspin)
+subroutine paw_init(paw, at, nspinor, nspin, npsidim, norb)
   use module_types
-  use m_pawtab, only: pawtab_type
   use m_paw_ij, only: paw_ij_init
+  use m_pawcprj, only: pawcprj_alloc, pawcprj_getdim
   implicit none
   type(paw_objects), intent(out) :: paw
   type(atoms_data), intent(in) :: at
-  integer, intent(in) :: nspinor, nspin
+  integer, intent(in) :: nspinor, nspin, npsidim, norb
+
+  integer :: i
+  integer, dimension(:), allocatable :: nlmn, nattyp
 
   call nullify_paw_objects(paw)
   if (.not. associated(at%pawtab)) return
@@ -1848,6 +1851,21 @@ subroutine paw_init(paw, at, nspinor, nspin)
        &   has_dij=1,has_dijhartree=1,has_dijso=0,has_dijhat=0,&
        &   has_pawu_occ=1,has_exexch_pot=1) !,&
   !&   mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab)
+
+  allocate(paw%cprj(at%astruct%nat, nspinor * nspin * norb))
+  nlmn = f_malloc(at%astruct%nat, id = "nlmn")
+  nattyp = f_malloc(at%astruct%ntypes, id = "nattyp")
+  call to_zero(at%astruct%ntypes, nattyp(1))
+  do i = 1, at%astruct%nat
+     nattyp(at%astruct%iatype(i)) = nattyp(at%astruct%iatype(i)) + 1
+  end do
+  call pawcprj_getdim(nlmn, at%astruct%nat, nattyp, at%astruct%ntypes, &
+       & at%astruct%iatype, at%pawtab, 'O')
+  call f_free(nattyp)
+  call pawcprj_alloc(paw%cprj, 0, nlmn)
+  call f_free(nlmn)
+
+  paw%spsi = f_malloc_ptr(npsidim,id='paw%spsi')
 end subroutine paw_init
 
 subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, energs, denspot, optloop, &
