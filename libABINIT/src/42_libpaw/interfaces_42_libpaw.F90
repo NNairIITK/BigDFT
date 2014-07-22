@@ -27,5 +27,28 @@ module interfaces_42_libpaw
 
  implicit none
 
+ interface
+    subroutine pawinit(gnt_option,gsqcut_eff,lcutdens,lmix,mpsang,nphi,nsym,ntheta,&
+         &                  pawang,pawrad,pawspnorb,pawtab,pawxcdev,xclevel,usepotzero)
+
+      use defs_basis
+      use m_pawang, only : pawang_type
+      use m_pawrad, only : pawrad_type
+      use m_pawtab, only : pawtab_type
+
+      implicit none
+
+      !Arguments ---------------------------------------------
+      !scalars
+      integer,intent(in) :: gnt_option,lcutdens,lmix,mpsang,nphi,nsym,ntheta
+      integer,intent(in) :: pawspnorb,pawxcdev,xclevel,usepotzero
+      real(dp),intent(in) :: gsqcut_eff
+      type(pawang_type),intent(inout) :: pawang
+      !arrays
+      type(pawrad_type),intent(in) :: pawrad(:)
+      type(pawtab_type),target,intent(inout) :: pawtab(:)
+    end subroutine pawinit
+ end interface
+
 end module interfaces_42_libpaw
 !!***

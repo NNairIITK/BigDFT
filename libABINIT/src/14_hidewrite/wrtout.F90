@@ -168,7 +168,7 @@ subroutine wrtout(unit,msg,mode_paral,do_flush)
  me    = xcomm_rank(comm)
 
 ! BigDFT patch.
- if (unit /= ab_out .and. index(msg, "ERROR") == 0) return
+ !if (unit /= ab_out .and. index(msg, "ERROR") == 0) return
 ! BigDFT patch.
 
  if( (my_mode_paral=='COLL') .or. (nproc==1) ) then

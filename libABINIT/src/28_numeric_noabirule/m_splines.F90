@@ -1,8 +1,52 @@
+!{\src2tex{textfont=tt}}
+!!****m* ABINIT/m_splines
+!! NAME
+!!  m_splines
+!!
+!! FUNCTION
+!!  This module contains routines for spline interpolation.
+!!
+!! COPYRIGHT
+!!  Copyright (C) 2010-2014 ABINIT group (YP, BAmadon)
+!!  This file is distributed under the terms of the
+!!  GNU General Public License, see ~abinit/COPYING
+!!  or http://www.gnu.org/copyleft/gpl.txt .
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!
+!! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
+#include "abi_common.h"
+
+module m_splines
+
+ use defs_basis
+ use m_profiling
+ use m_errors
+    
+ implicit none
+
+ public :: splfit 
+ public :: spline 
+ public :: spline_bicubic 
+ public :: spline_c 
+ public :: spline_complex
+ public :: spline_integrate
+ public :: splint
+ public :: splint_complex
+
+! *************************************************************************
+
+contains 
+!!***
+
+!----------------------------------------------------------------------
 
 !!****f* m_splines/splfit
 !! NAME
@@ -35,26 +79,41 @@
 !!        if ider=0, compute only the function (contained in fun)
 !!        if ider=1, compute the function (contained in fun) and its first derivative (in derfun)
 !!        if ider=2, compute only the second derivative of the function (in derfun)
+!! PARENTS
+!!      gaus_dos,getnel,m_paw_pwij,mkffnl,pawgylmg,psp8lo
+!!
+!! CHILDREN
 !!
 !! SOURCE
 
 subroutine splfit(arg,derfun,fun,ider,newarg,newfun,numarg,numnew)
 
- use defs_basis
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'splfit'
+!End of the abilint section
+
  implicit none
 
  integer, intent(in) :: ider,numarg,numnew
- double precision, intent(in) :: arg(numarg),fun(numarg,2),newarg(numnew)
- double precision, intent(out) :: derfun(numnew),newfun(numnew)
-
+ real(dp), intent(in) :: arg(numarg),fun(numarg,2),newarg(numnew)
+ real(dp), intent(out) :: derfun(numnew)
+ real(dp), intent(inout) :: newfun(numnew) !vz_i
 
  integer :: i,jspl
- double precision :: argmin,delarg,d,aa,bb,cc,dd
+ real(dp) :: argmin,delarg,d,aa,bb,cc,dd
  character(len=500) :: msg
 
 !argmin is smallest x value in spline fit; delarg is uniform spacing of spline argument
  argmin=arg(1)
  delarg=(arg(numarg)-argmin)/dble(numarg-1)
+
+ if(delarg<tol12)then
+   write(msg,'(a,es16.8)') ' delarg should be strictly positive, while delarg= ',delarg
+   MSG_ERROR(msg)
+ endif
 
  jspl=-1
 
@@ -105,7 +164,7 @@ subroutine splfit(arg,derfun,fun,ider,newarg,newfun,numarg,numnew)
    else
 
 !   cubic spline interpolation:
-    jspl=1+int((newarg(i)-argmin)/delarg)
+    jspl=1+int((newarg(i)-arg(1))/delarg)
     d=newarg(i)-arg(jspl)
     bb = d/delarg
     aa = 1.0d0-bb
@@ -179,15 +238,14 @@ end subroutine splfit
 !!    Work space, double precision DIAG(N) - should be removed ...
 !!
 !! PARENTS
-!!      atomden,calc_sigc_cd,cc_derivatives,denfgr,hirsh,init_bess_spl
-!!      init_occ_ent,integrho,m_atom,m_paw_pwij,m_paw_slater,m_paw_toolbox
-!!      m_splines,optics_paw_core,pawdij0,pawinit,pawkij,predict_string,psp10in
-!!      psp10nl,psp11nl,psp1cc,psp1in,psp1nl,psp2in,psp2nl,psp3in,psp3nl,psp4cc
-!!      psp5in,psp5nl,psp6cc,psp6in,psp7cc,psp7in,psp7nl,psp8in,psp8lo,psp8nl
-!!      psp9in,spline_paw_fncs,upf2abinit,vso_realspace_local
+!!      atomden,calc_sigc_cd,calc_sigc_pole_cd,cc_derivatives,denfgr,get_tau_k
+!!      hirsh,init_bess_spl,init_occ_ent,integrho,m_atom,m_eet,m_paw_slater
+!!      m_splines,pawinit,predict_string,psp10in,psp10nl,psp11nl,psp1cc,psp1in
+!!      psp1nl,psp2in,psp2nl,psp3in,psp3nl,psp4cc,psp5in,psp5nl,psp6cc,psp6in
+!!      psp8in,psp8lo,psp8nl,psp9in,pspatm_pspio,random_stopping_power
+!!      spline_paw_fncs,upf2abinit,vso_realspace_local
 !!
 !! CHILDREN
-!!      splint
 !!
 !! SOURCE
 
@@ -308,22 +366,27 @@ subroutine spline( t, y, n, ybcbeg, ybcend, ypp )
 !      1: the first derivative at the right endpoint should be YBCEND;
 !      2: the second derivative at the right endpoint should be YBCEND.
 
-  use defs_basis
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'spline'
+!End of the abilint section
+
   implicit none
 
   integer, intent(in) :: n
-  double precision, intent(in) :: t(n)
-  double precision, intent(in) :: y(n)
-  double precision, intent(in) :: ybcbeg
-  double precision, intent(in) :: ybcend
+  real(dp), intent(in) :: t(n)
+  real(dp), intent(in) :: y(n)
+  real(dp), intent(in) :: ybcbeg
+  real(dp), intent(in) :: ybcend
 
-  double precision, intent(out) :: ypp(n)
+  real(dp), intent(out) :: ypp(n)
 
   integer :: ibcbeg
   integer :: ibcend
   integer :: i,k
-  double precision :: ratio,pinv
-  double precision, allocatable :: tmp(:)
+  real(dp) :: ratio,pinv
+  real(dp), allocatable :: tmp(:)
 !
 !  Check.
 !
@@ -332,11 +395,10 @@ subroutine spline( t, y, n, ybcbeg, ybcend, ypp )
     write(std_out,* ) 'SPLINE_CUBIC_SET - Fatal error!'
     write(std_out,* ) '  The number of knots must be at least 2.'
     write(std_out,* ) '  The input value of N = ', n
-    call wrtout(std_out,"Fatal error",'COLL')
-    call leave_new('COLL')
+    MSG_ERROR("Fatal error")
   end if
 
-  allocate(tmp(n))
+  ABI_ALLOCATE(tmp,(n))
 
   do i = 1, n-1
     if ( t(i) >= t(i+1) ) then
@@ -345,8 +407,7 @@ subroutine spline( t, y, n, ybcbeg, ybcend, ypp )
       write(std_out,* ) '  The knots must be strictly increasing, but'
       write(std_out,* ) '  T(',  i,') = ', t(i)
       write(std_out,* ) '  T(',i+1,') = ', t(i+1)
-      call wrtout(std_out,"Fatal error",'COLL')
-      call leave_new('COLL')
+      MSG_ERROR("Fatal error")
     end if
   end do
 !
@@ -390,7 +451,7 @@ subroutine spline( t, y, n, ybcbeg, ybcend, ypp )
    ypp(k)=ypp(k)*ypp(k+1)+tmp(k)
   enddo
 
-  deallocate(tmp)
+  ABI_DEALLOCATE(tmp)
 
   return
 end subroutine spline
@@ -422,15 +483,20 @@ end subroutine spline
 !!  Adapted from Numerical Recipes and libbci.
 !!
 !! PARENTS
+!!      m_xc_vdw
 !!
 !! CHILDREN
-!!      splint
 !!
 !! SOURCE
 
 subroutine spline_bicubic(n1,n2,x1,x2,y,der1_x1,der1_x2,der2_x1x2,spl_c)
 
-  use defs_basis
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'spline_bicubic'
+!End of the abilint section
 
   implicit none
 
@@ -508,13 +574,18 @@ end subroutine spline_bicubic
 !!      m_green
 !!
 !! CHILDREN
-!!      splint
 !!
 !! SOURCE
 
 subroutine spline_c( nomega_lo, nomega_li, omega_lo, omega_li, splined_li, tospline_lo)
 
- use defs_basis
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'spline_c'
+!End of the abilint section
+
  implicit none
 
 !Arguments --------------------------------------------
@@ -533,10 +604,10 @@ subroutine spline_c( nomega_lo, nomega_li, omega_lo, omega_li, splined_li, tospl
  ybcbeg=czero
  ybcend=czero
 
- allocate(ysplin2_lo(nomega_lo))
+ ABI_ALLOCATE(ysplin2_lo,(nomega_lo))
  call spline_complex(omega_lo, tospline_lo, nomega_lo, ybcbeg, ybcend, ysplin2_lo)
  call splint_complex( nomega_lo, omega_lo, tospline_lo,ysplin2_lo, nomega_li, omega_li, splined_li)
- deallocate(ysplin2_lo)
+ ABI_DEALLOCATE(ysplin2_lo)
 
 end subroutine spline_c
 !!***
@@ -571,13 +642,18 @@ end subroutine spline_c
 !!      m_paw_dmft,m_splines
 !!
 !! CHILDREN
-!!      splint
 !!
 !! SOURCE
 
 subroutine spline_complex( t, y, n, ybcbeg, ybcend, ypp )
 
- use defs_basis
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'spline_complex'
+!End of the abilint section
+
  implicit none
 
  integer, intent(in) :: n
@@ -596,17 +672,23 @@ subroutine spline_complex( t, y, n, ybcbeg, ybcend, ypp )
  real(dp) :: ybcend_i
  real(dp), allocatable :: ypp_i(:)
 
- allocate(y_r(n),ypp_r(n),y_i(n),ypp_i(n))
+ ABI_ALLOCATE(y_r,(n))
+ ABI_ALLOCATE(ypp_r,(n))
+ ABI_ALLOCATE(y_i,(n))
+ ABI_ALLOCATE(ypp_i,(n))
  y_r=real(y)
- y_i=imag(y)
+ y_i=aimag(y)    !vz_d
  ybcbeg_r=real(ybcbeg)
- ybcbeg_i=imag(ybcbeg)
+ ybcbeg_i=aimag(ybcbeg)    !vz_d
  ybcend_r=real(ybcend)
- ybcend_i=imag(ybcend)
+ ybcend_i=aimag(ybcend)    !vz_d
  call spline( t, y_r, n, ybcbeg_r, ybcend_r, ypp_r )
  call spline( t, y_i, n, ybcbeg_i, ybcend_i, ypp_i )
  ypp=cmplx(ypp_r,ypp_i)
- deallocate(y_r,ypp_r,y_i,ypp_i)
+ ABI_DEALLOCATE(y_r)
+ ABI_DEALLOCATE(ypp_r)
+ ABI_DEALLOCATE(y_i)
+ ABI_DEALLOCATE(ypp_i)
 
  return
 
@@ -637,35 +719,40 @@ end subroutine spline_complex
 !!    The input value is incremented by the number of such points.
 !!
 !! PARENTS
-!!      atomden,calc_sigc_cd,cc_derivatives,denfgr,m_atom,m_paw_slater
-!!      m_paw_toolbox,m_splines,optics_paw_core,partial_dos_fractions,pawdij0
-!!      pawgylm,pawkij,predict_string,psp6cc,psp7cc,psp7in,psp9in
-!!      spline_paw_fncs,vso_realspace_local,wffile
+!!      atomden,calc_sigc_cd,calc_sigc_pole_cd,cc_derivatives,denfgr,get_tau_k
+!!      m_atom,m_eet,m_paw_slater,m_splines,mkcore_inner,mklocl_realspace
+!!      partial_dos_fractions,predict_string,psp6cc,psp9in
+!!      random_stopping_power,spline_paw_fncs,vso_realspace_local,wffile
+!!      wvl_initro
 !!
 !! CHILDREN
-!!      splint
 !!
 !! SOURCE
 
 subroutine splint(nspline,xspline,yspline,ysplin2,nfit,xfit,yfit,ierr)
 
 
- use defs_basis
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'splint'
+!End of the abilint section
+
  implicit none
 
  integer, intent(in) :: nfit, nspline
- integer, intent(out) :: ierr
- double precision, intent(in) :: xspline(nspline)
- double precision, intent(in) :: yspline(nspline)
- double precision, intent(in) :: ysplin2(nspline)
- double precision, intent(in) :: xfit(nfit)
+ integer,optional,intent(out) :: ierr
+ real(dp), intent(in) :: xspline(nspline)
+ real(dp), intent(in) :: yspline(nspline)
+ real(dp), intent(in) :: ysplin2(nspline)
+ real(dp), intent(in) :: xfit(nfit)
 
- double precision, intent(out) :: yfit(nfit)
+ real(dp), intent(out) :: yfit(nfit)
 
 
 !local
  integer :: left,i,k,right,my_err
- double precision :: delarg,invdelarg,aa,bb
+ real(dp) :: delarg,invdelarg,aa,bb
 
 !source
 
@@ -682,13 +769,11 @@ subroutine splint(nspline,xspline,yspline,ysplin2,nfit,xfit,yfit,ierr)
          left = k-1
        else
          if (k-1.eq.1 .and. i.eq.1) then
-           call wrtout(std_out,'xfit(1) < xspline(1)','COLL')
-           call leave_new('COLL')
+           MSG_ERROR('xfit(1) < xspline(1)')
            !my_err=my_err+1
            !exit
          else
-           call wrtout(std_out,'xfit not properly ordered','COLL')
-           call leave_new('COLL')
+           MSG_ERROR('xfit not properly ordered')
          end if
        end if
        delarg= xspline(right) - xspline(left)
@@ -706,7 +791,7 @@ subroutine splint(nspline,xspline,yspline,ysplin2,nfit,xfit,yfit,ierr)
    if (k==nspline+1) my_err=my_err+1 ! xfit not found 
  end do ! i
 
- ierr=my_err
+ if (PRESENT(ierr)) ierr=my_err
 
 end subroutine splint
 !!***
@@ -732,20 +817,22 @@ end subroutine splint
 !! OUTPUT
 !!  yfit(nfit): complex function on output mesh
 !!
-!! TODO
-!! change double precision by real(dp) ( the same in splint.F90)
-!!
 !! PARENTS
 !!      m_paw_dmft,m_splines
 !!
 !! CHILDREN
-!!      splint
 !!
 !! SOURCE
 
 subroutine splint_complex (nspline,xspline,yspline,ysplin2,nfit,xfit,yfit)
 
- use defs_basis
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'splint_complex'
+!End of the abilint section
+
  implicit none
 
  integer, intent(in) :: nfit, nspline
@@ -755,7 +842,6 @@ subroutine splint_complex (nspline,xspline,yspline,ysplin2,nfit,xfit,yfit)
  real(dp), intent(in) :: xfit(nfit)
  complex(dpc), intent(out) :: yfit(nfit)
 
- integer :: ierr
  real(dp), allocatable :: ysplin2_r(:)
  real(dp), allocatable :: ysplin2_i(:)
  real(dp), allocatable :: yspline_r(:)
@@ -763,26 +849,108 @@ subroutine splint_complex (nspline,xspline,yspline,ysplin2,nfit,xfit,yfit)
  real(dp), allocatable :: yfit_r(:)
  real(dp), allocatable :: yfit_i(:)
 
- allocate(yspline_r(nspline))
- allocate(yspline_i(nspline))
- allocate(ysplin2_r(nspline))
- allocate(ysplin2_i(nspline))
- allocate(yfit_r(nfit))
- allocate(yfit_i(nfit))
+ ABI_ALLOCATE(yspline_r,(nspline))
+ ABI_ALLOCATE(yspline_i,(nspline))
+ ABI_ALLOCATE(ysplin2_r,(nspline))
+ ABI_ALLOCATE(ysplin2_i,(nspline))
+ ABI_ALLOCATE(yfit_r,(nfit))
+ ABI_ALLOCATE(yfit_i,(nfit))
 
 !local
 
 !source
  yspline_r=real(yspline)
- yspline_i=imag(yspline)
+ yspline_i=aimag(yspline)    !vz_d
  ysplin2_r=real(ysplin2)
- ysplin2_i=imag(ysplin2)
- call splint (nspline,xspline,yspline_r,ysplin2_r,nfit,xfit,yfit_r,ierr)
- call splint (nspline,xspline,yspline_i,ysplin2_i,nfit,xfit,yfit_i,ierr)
+ ysplin2_i=aimag(ysplin2)    !vz_d
+ call splint (nspline,xspline,yspline_r,ysplin2_r,nfit,xfit,yfit_r)
+ call splint (nspline,xspline,yspline_i,ysplin2_i,nfit,xfit,yfit_i)
  yfit=cmplx(yfit_r,yfit_i)
- deallocate(yspline_r,yspline_i,ysplin2_r,ysplin2_i,yfit_r,yfit_i)
+ ABI_DEALLOCATE(yspline_r)
+ ABI_DEALLOCATE(yspline_i)
+ ABI_DEALLOCATE(ysplin2_r)
+ ABI_DEALLOCATE(ysplin2_i)
+ ABI_DEALLOCATE(yfit_r)
+ ABI_DEALLOCATE(yfit_i)
  return
 
 end subroutine splint_complex
 !!***
 
+!!****f* ABINIT/m_splines/spline_integrate
+!! NAME
+!!  spline_integrate
+!!
+!! FUNCTION
+!!  Calculates an integral using cubic spline interpolation.
+!!
+!! COPYRIGHT
+!!  Copyright (C) 2010 ABINIT Group (Yann Pouillon)
+!!  This file is distributed under the terms of the
+!!  GNU General Public License, see ~abinit/COPYING
+!!  or http://www.gnu.org/copyleft/gpl.txt .
+!!  For the initials of contributors, see
+!!  ~abinit/doc/developers/contributors.txt .
+!!
+!! INPUTS
+!!  npts= number of grid points of input mesh
+!!  dx= step of input mesh
+!!  integrand= function on input mesh
+!!
+!! OUTPUT
+!!  integral= integral of the input function
+!!
+!! PARENTS
+!!      m_xc_vdw,test_spline_integrate
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+subroutine spline_integrate(integral,npts,dx,integrand)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'spline_integrate'
+!End of the abilint section
+
+ implicit none
+
+ integer,intent(in) :: npts
+ real(dp),intent(out) :: integral
+ real(dp),intent(in) :: dx,integrand(npts)
+
+ integer :: ix
+ real(dp) :: ptmp,sf(npts),sf_der2(npts),sf_mesh(npts),utmp(npts)
+
+ ! Prepare mesh
+ forall (ix=1:npts) sf_mesh(ix) = (ix - 1) * dx
+
+ ! Calculate second derivative of integrand (adapted from Numercial Recipes)
+ sf_der2(1) = zero
+ sf_der2(npts) = zero
+ utmp(1) = zero
+
+ do ix=2,npts-1
+  ptmp = half * sf_der2(ix-1) + two
+  sf_der2(ix) = (half - one) / ptmp
+  utmp(ix) = (three * (integrand(ix+1) + integrand(ix-1) - &
+&  two*integrand(ix)) / (dx**2) - half * utmp(ix-1)) / ptmp
+ end do
+ do ix=npts-1,1,-1
+  sf_der2(ix) = sf_der2(ix) * sf_der2(ix+1) + utmp(ix)
+ end do
+
+ ! Actually calculate integral
+ sf(:) = integrand(:) * dx
+ integral = (sf(1) + sf(npts)) / 2.0_dp - &
+&           (sf_der2(1) + sf_der2(npts)) / 24.0_dp + &
+&           sum(sf(2:npts-1)) - sum(sf_der2(2:npts-1)) / 12.0_dp
+
+end subroutine spline_integrate
+!!***
+
+end module m_splines
+!!***

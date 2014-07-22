@@ -914,3 +914,15 @@ xfpack.o: 72_geomoptim/xfpack.F90 \
 	interfaces_42_geometry.o
 	$(PPFCCOMPILE) -c -o xfpack.o `test -f '72_geomoptim/xfpack.F90' || echo '$(srcdir)/'`72_geomoptim/xfpack.F90
 
+pawinit.o: 42_libpaw/pawinit.F90 \
+	defs_basis.o \
+	m_errors.o \
+	m_profiling.o \
+	m_splines.o \
+	m_pawpsp.o \
+	m_atompaw.o \
+	m_pawang.o \
+	m_pawrad.o \
+	m_pawtab.o \
+	interfaces_18_timing.o
+	$(PPFCCOMPILE) -c -o pawinit.o `test -f '42_libpaw/pawinit.F90' || echo '$(srcdir)/'`42_libpaw/pawinit.F90
