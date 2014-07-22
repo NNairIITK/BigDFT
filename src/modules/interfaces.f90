@@ -591,7 +591,7 @@ module module_interfaces
        end subroutine LocalHamiltonianApplication
 
        subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
-           Lzd,nlpsp,psi,hpsi,eproj_sum,proj_G,paw)
+           Lzd,nlpsp,psi,hpsi,eproj_sum,paw)
         use module_base
         use module_types
         use gaussians, only: gaussian_basis
@@ -605,7 +605,6 @@ module module_interfaces
         real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
         real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
         real(gp), intent(out) :: eproj_sum
-        type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G !projectors in gaussian basis (for PAW)
         type(paw_objects),optional,intent(inout)::paw
       END SUBROUTINE NonLocalHamiltonianApplication
 
@@ -625,17 +624,15 @@ module module_interfaces
       END SUBROUTINE SynchronizeHamiltonianApplication
 
       subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
-           at,nlpsp,paw,rxyz,eproj_sum,proj_G)
+           at,nlpsp,paw,rxyz,eproj_sum)
          !n(c) use module_base
          use module_types
-         use gaussians, only: gaussian_basis
          implicit none
          integer, intent(in) :: iproc,nproc,idsx,iter
          type(DFT_wavefunction), intent(inout) :: wfn
          type(atoms_data), intent(in) :: at
          type(DFT_PSP_projectors), intent(inout) :: nlpsp
          type(paw_objects),optional,intent(inout) :: paw
-         type(gaussian_basis),optional,dimension(at%astruct%ntypes),intent(in)::proj_G !projectors in gaussian basis (for PAW)
          real(gp),optional, intent(out) :: eproj_sum
          real(gp),optional, dimension(3,at%astruct%nat), intent(in) :: rxyz
       END SUBROUTINE hpsitopsi
@@ -704,7 +701,7 @@ module module_interfaces
 
       subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
            Glr,nlpsp,ncongt,pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,&
-           psi,output_denspot,ekin_sum,epot_sum,eproj_sum,proj_G,paw)
+           psi,output_denspot,ekin_sum,epot_sum,eproj_sum,paw)
          !n(c) use module_base
          use module_types
          use gaussians, only: gaussian_basis
@@ -721,7 +718,6 @@ module module_interfaces
          real(kind=8), dimension(Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nspin), intent(in) :: pot
          real(kind=8), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%norbp), intent(in) :: psi
          real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
-         type(gaussian_basis),optional,intent(in),dimension(at%astruct%ntypes)::proj_G
          type(paw_objects),optional,intent(inout)::paw
       END SUBROUTINE CalculateTailCorrection
 
@@ -2058,7 +2054,7 @@ module module_interfaces
 
      subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
           Lzd,nlpsp,confdatarr,ngatherarr,Lpot,psi,hpsi,&
-          energs,SIC,GPU,xc,pkernel,orbsocc,psirocc,proj_G,paw)
+          energs,SIC,GPU,xc,pkernel,orbsocc,psirocc,paw)
        use module_base
        use module_types
        use module_xc
@@ -2084,7 +2080,6 @@ module module_interfaces
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
        !PAW variables:
-       type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G
        type(paw_objects),optional,intent(inout)::paw
      end subroutine FullHamiltonianApplication
 
@@ -2353,7 +2348,7 @@ module module_interfaces
 
        subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
             nlpsp,rxyz,linflag,unblock_comms,GPU,wfn,&
-            energs,rpnrm,xcstr,proj_G,paw)
+            energs,rpnrm,xcstr,paw)
          use module_base
          use module_types
          use gaussians, only: gaussian_basis
@@ -2371,7 +2366,6 @@ module module_interfaces
          type(GPU_pointers), intent(inout) :: GPU
          real(gp), intent(inout) :: rpnrm
          real(gp), dimension(6), intent(out) :: xcstr
-         type(gaussian_basis),dimension(atoms%astruct%nat),optional,intent(in)::proj_G
          type(paw_objects),optional,intent(inout)::paw
        end subroutine psitohpsi
 
@@ -3787,7 +3781,7 @@ module module_interfaces
 
         subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
              rxyz,hx,hy,hz,wfd,nlpsp,psi,hpsi,eproj_sum,&
-             proj_G,paw)
+             paw)
           use module_base
           use module_types
           use gaussians, only:gaussian_basis
@@ -3803,7 +3797,6 @@ module module_interfaces
           real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
           real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
           real(gp), intent(out) :: eproj_sum
-          type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G
           type(paw_objects),optional,intent(inout)::paw
         end subroutine applyprojectorsonthefly
 
