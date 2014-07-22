@@ -516,6 +516,7 @@ END SUBROUTINE createEffectiveIonicPotential
 !> Create the ionic potential
 subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
+  use m_splines, only: splint
   use module_base
   use module_types
   use yaml_output
@@ -542,7 +543,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   integer :: ind,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
   real(kind=8) :: rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz
-  real(kind=8) :: raux,raux2,rr,r2paw
+  real(kind=8) :: raux2,r2paw
+  real(kind=8) :: raux(1),rr(1)
   real(wp) :: maxdiff
   real(gp) :: ehart
   real(dp), dimension(2) :: charges_mpi
@@ -666,9 +668,9 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 
                     if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
                        ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                       pot_ion(ind)=pot_ion(ind)+raux
+                       pot_ion(ind)=pot_ion(ind)+raux(1)
                     else if (.not. goz ) then
-                       rholeaked=rholeaked-raux
+                       rholeaked=rholeaked-raux(1)
                     endif
                  enddo
               enddo
@@ -884,16 +886,16 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                           call ind_positions(perx,i1,n1,j1,gox)
                           if (gox) then
                              r2=x**2+y**2+z**2
-                             rr=sqrt(r2)
+                             rr(1)=sqrt(r2)
                              !1) V_L^HGH
-                             if(rr>0.01d0) then
-                               arg=rr/(sqrt(2.0)*rloc)
+                             if(rr(1)>0.01d0) then
+                               arg=rr(1)/(sqrt(2.0)*rloc)
                                call derf_ab(tt,arg)
-                               raux2=-charge/rr*tt  
+                               raux2=-charge/rr(1)*tt  
                              else
                                !In this case we deduce the values
                                !from a quadratic interpolation (due to 1/rr factor)
-                               call interpol_vloc(rr,rloc,charge,raux2)
+                               call interpol_vloc(rr(1),rloc,charge,raux2)
                              end if
                              !2) V^PAW from splines
                              call splint(at%pawtab(ityp)%wvl%rholoc%msz, &
@@ -903,7 +905,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                                   & 1,rr,raux,ierr)
                              
                              ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                             pot_ion(ind)=pot_ion(ind)+raux-raux2
+                             pot_ion(ind)=pot_ion(ind)+raux(1)-raux2
                           end if
                        enddo
                     end if
