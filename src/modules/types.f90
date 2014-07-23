@@ -26,7 +26,10 @@ module module_types
   use sparsematrix_base, only: matrices, sparse_matrix
   use foe_base, only: foe_data
   use m_pawcprj, only: pawcprj_type
+  use m_paw_an, only: paw_an_type
   use m_paw_ij, only: paw_ij_type
+  use m_pawfgrtab, only: pawfgrtab_type
+  use m_pawrhoij, only: pawrhoij_type
 
   implicit none
 
@@ -796,8 +799,11 @@ module module_types
      integer :: lmnmax
      integer :: ntypes
      integer :: natom
+     type(paw_an_type), dimension(:), pointer :: paw_an
      type(paw_ij_type), dimension(:), pointer :: paw_ij
      type(pawcprj_type), dimension(:,:), pointer :: cprj
+     type(pawfgrtab_type), dimension(:), pointer :: pawfgrtab
+     type(pawrhoij_type), dimension(:), pointer :: pawrhoij
 
      real(wp), dimension(:), pointer :: spsi !< Metric operator applied to psi (To be used for PAW)
   end type paw_objects
@@ -1763,18 +1769,28 @@ contains
     paw%usepaw = .false.
     nullify(paw%spsi)
 
+    nullify(paw%paw_an)
     nullify(paw%paw_ij)
     nullify(paw%cprj)
+    nullify(paw%pawfgrtab)
+    nullify(paw%pawrhoij)
   end subroutine nullify_paw_objects
 
   subroutine deallocate_paw_objects(paw)
+    use m_paw_an, only: paw_an_destroy
     use m_paw_ij, only: paw_ij_destroy
     use m_pawcprj, only: pawcprj_destroy
+    use m_pawfgrtab, only: pawfgrtab_destroy
+    use m_pawrhoij, only: pawrhoij_destroy
     implicit none
     type(paw_objects),intent(inout) :: paw
     
     call f_free_ptr(paw%spsi)
 
+    if (associated(paw%paw_an)) then
+       call paw_an_destroy(paw%paw_an)
+       deallocate(paw%paw_an)
+    end if
     if (associated(paw%paw_ij)) then
        call paw_ij_destroy(paw%paw_ij)
        deallocate(paw%paw_ij)
@@ -1782,6 +1798,14 @@ contains
     if (associated(paw%cprj)) then
        call pawcprj_destroy(paw%cprj)
        deallocate(paw%cprj)
+    end if
+    if (associated(paw%pawfgrtab)) then
+       call pawfgrtab_destroy(paw%pawfgrtab)
+       deallocate(paw%pawfgrtab)
+    end if
+    if (associated(paw%pawrhoij)) then
+       call pawrhoij_destroy(paw%pawrhoij)
+       deallocate(paw%pawrhoij)
     end if
   end subroutine deallocate_paw_objects
 
