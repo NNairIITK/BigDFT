@@ -22,6 +22,7 @@ program mhgps
     use module_minimizers
     use module_io
     implicit none
+    integer :: nstart
     integer :: bigdft_get_number_of_atoms,bigdft_get_number_of_orbitals
     character(len=8) :: folder
     character(len=6) :: filename
@@ -41,9 +42,15 @@ logical :: fail
 
 real(gp) :: curv
 
+real(gp) :: step
+real(gp),allocatable :: interleft(:,:),interright(:,:)
+real(gp),allocatable :: tangentleft(:,:),tangentright(:,:)
+logical :: finished
+
 !simple atomic datastructre
 integer :: nat
 real(gp),allocatable :: rxyz(:,:),fxyz(:,:),rotforce(:,:),hess(:,:)
+real(gp),allocatable :: rxyz2(:,:),fxyz2(:,:)
 real(gp) :: energy
 real(gp) :: fnoise
 integer :: i,j,info
@@ -146,6 +153,10 @@ real(gp),allocatable :: eval(:)
                 id='rxyz')
     fxyz     = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
                 id='fxyz')
+    rxyz2     = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+                id='rxyz2')
+    fxyz2     = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+                id='fxyz2')
     rcov     = f_malloc((/ 1.to.atoms%astruct%nat/),id='rcov')
     iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
     ixyz_int = f_malloc((/ 1.to.3,1.to.atoms%astruct%nat/),&
@@ -216,6 +227,8 @@ real(gp),allocatable :: eval(:)
     wold_trans = f_malloc((/ 1.to.nbond/),id='wold_trans')
     wold_rot = f_malloc((/ 1.to.nbond/),id='wold_rot')
 
+allocate(interleft(3,nat),interright(3,nat))
+allocate(tangentleft(3,nat),tangentright(3,nat))
 
 
 
@@ -235,8 +248,10 @@ real(gp),allocatable :: eval(:)
     do ifolder = 1,999
         write(folder,'(a,i3.3)')'input',ifolder
         currDir=folder
-        do ifile = 1,999
-            write(filename,'(a,i3.3)')'pos',ifile
+!        nstart=1
+        nstart=2
+        do ifile = nstart,999
+            write(filename,'(a,i3.3)')'pos',ifile-1
             inquire(file=folder//'/'//filename//'.xyz',exist=xyzexists)
             inquire(file=folder//'/'//filename//'.ascii',exist=asciiexists)
             currFile=filename
@@ -244,6 +259,15 @@ real(gp),allocatable :: eval(:)
             call deallocate_atomic_structure(atoms%astruct)
             call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
             call vcopy(3 * atoms%astruct%nat,atoms%astruct%rxyz(1,1),1,rxyz(1,1), 1)
+
+            write(filename,'(a,i3.3)')'pos',ifile
+            inquire(file=folder//'/'//filename//'.xyz',exist=xyzexists)
+            inquire(file=folder//'/'//filename//'.ascii',exist=asciiexists)
+            currFile=filename
+            if(.not.(xyzexists.or.asciiexists))exit
+            call deallocate_atomic_structure(atoms%astruct)
+            call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
+            call vcopy(3 * atoms%astruct%nat,atoms%astruct%rxyz(1,1),1,rxyz2(1,1), 1)
 !!            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
 !!allocate(eval(3*atoms%astruct%nat))
 !!call cal_hessian_fd(iproc,atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,hess)
@@ -287,6 +311,11 @@ real(gp),allocatable :: eval(:)
 !!if(.not.converged)stop'minimizer_sbfgs not converged'
 !!call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
 !!write(*,'(a,1x,i0,1x,es9.2,1x,i0)')'count,fnrm',int(ec),sqrt(sum(fxyz**2))
+
+step=-1._gp
+call lst_interpol(atoms%astruct%nat,rxyz,rxyz2,step,interleft,interright,&
+                        tangentleft,tangentright,finished)
+
 
 
         enddo
@@ -343,6 +372,8 @@ real(gp),allocatable :: eval(:)
     call f_free(minmode)
     call f_free(rxyz)
     call f_free(fxyz) 
+    call f_free(rxyz2)
+    call f_free(fxyz2) 
     call f_free(rcov)
     call f_free(iconnect)
     call f_free(ixyz_int)

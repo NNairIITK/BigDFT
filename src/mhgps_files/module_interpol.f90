@@ -213,7 +213,7 @@ end subroutine
 !=====================================================================
 subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
     use module_base
-    use module_globalvariables, only: iproc
+    use module_global_variables, only: iproc
     use yaml_output
     implicit none
     !parameters
@@ -317,9 +317,9 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
     enddo
     if(fmax > fmax_tol .and. iproc==0)then
         call yaml_warning('(MHGPS) Minimization of Linear&
-             Synchronous Transit Path not converged: epot,&
-             fmax, fnrm, dt, alpha: '&
-             trim(yaml_toa((/epot,fmax,fnrm,dt,alpha/))))
+             Synchronous Transit Path not converged:')
+        call yaml_map('(MHGPS) epot, fmax, fnrm, dt, alpha',&
+             (/epot,fmax,fnrm,dt,alpha/))
     endif
 end subroutine
 !=====================================================================
