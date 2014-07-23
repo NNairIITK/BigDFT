@@ -11,7 +11,7 @@
 !! In the latter case, the potential should be given in the rhov array of denspot structure. 
 !! Otherwise, rhov array is filled by the self-consistent density
 subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
-     nlpsp,rxyz,linflag,unblock_comms,GPU,wfn,&
+     nlpsp,linflag,unblock_comms,GPU,wfn,&
      energs,rpnrm,xcstr)
   use module_base
   use module_types
@@ -30,7 +30,6 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   type(DFT_local_fields), intent(inout) :: denspot
   type(energy_terms), intent(inout) :: energs
   type(DFT_wavefunction), intent(inout) :: wfn
-  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   type(GPU_pointers), intent(inout) :: GPU  
   !real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
   real(gp), intent(inout) :: rpnrm
@@ -124,7 +123,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
         !nonlocal hamiltonian
         !$ if (verbose > 2 .and. iproc==0 .and. unblock_comms_den)&
         !$ & print *,'NonLocalHamiltonian with nthread:, out to:' ,omp_get_max_threads(),nthread_max
-        call NL_ham()
+        call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,&
+             wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,energs%eproj,wfn%paw)
      end if
      !$OMP END PARALLEL !if unblock_comms_den
      !$ if (unblock_comms_den) then
@@ -322,7 +322,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
      !nonlocal hamiltonian
      !$ if (verbose > 2 .and. iproc==0 .and. unblock_comms_pot)&
      !$ & print *,'NonLocalHamiltonian with nthread:, out to:' ,omp_get_max_threads(),nthread_max
-     call NL_ham()
+     call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,&
+          wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,energs%eproj,wfn%paw)
   end if
   !$OMP END PARALLEL !if unblock_comms_pot
   !$ if (unblock_comms_pot) then
@@ -340,7 +341,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
        energs,wfn%SIC,GPU,correcth,denspot%xc,pkernel=denspot%pkernelseq)
 
   !in the case of OCL GPU the nonlocal hamiltonian can run after the local hamiltonian to overlap GPU-CPU computation
-  if (GPU%OCLconv) call NL_ham()
+  if (GPU%OCLconv) then
+     call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,&
+          wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,energs%eproj,wfn%paw)
+  end if
 
   call SynchronizeHamiltonianApplication(nproc,wfn%orbs%npsidim_orbs,wfn%orbs,wfn%Lzd,&
        & GPU,denspot%xc,wfn%hpsi,&
@@ -361,28 +365,13 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
         call yaml_map('Hamiltonian Applied',.true.)
      end if
   end if
-
-  contains 
-
-    !> code factorization for the application of the nonlocal hamiltonian
-    subroutine NL_ham()
-      if(any(atoms%npspcode == PSPCODE_PAW)) then
-         call to_zero(wfn%orbs%npsidim_orbs,wfn%paw%spsi(1))
-         call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,rxyz,&
-              wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,energs%eproj,wfn%paw)
-      else
-         call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,rxyz,&
-              wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,energs%eproj)
-      end if
-    end subroutine NL_ham
-
 end subroutine psitohpsi
 
 
 !> Application of the Full Hamiltonian
-subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
-     Lzd,nlpsp,confdatarr,ngatherarr,pot,psi,hpsi,&
-     energs,SIC,GPU,xc,pkernel,orbsocc,psirocc,paw)
+subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,&
+     Lzd,nlpsp,confdatarr,ngatherarr,pot,psi,hpsi,paw,&
+     energs,SIC,GPU,xc,pkernel,orbsocc,psirocc)
   use module_base
   use module_types
   use module_interfaces, fake_name => FullHamiltonianApplication
@@ -396,7 +385,6 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
   type(SIC_data), intent(in) :: SIC
   type(xc_info), intent(in) :: xc
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
-  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
   !real(wp), dimension(lzd%ndimpotisf) :: pot
@@ -409,7 +397,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
   type(orbitals_data), intent(in), optional :: orbsocc
   real(wp), dimension(:), pointer, optional :: psirocc
   !PAW variables:
-  type(paw_objects),optional,intent(inout)::paw
+  type(paw_objects),intent(inout)::paw
 
   !put to zero hpsi array (now important since any of the pieces of the hamiltonian is accumulating)
   if (orbs%npsidim_orbs > 0) call to_zero(orbs%npsidim_orbs,hpsi(1))
@@ -437,13 +425,8 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
  end if
 
  !these two sections have to be inverted to profit of overlapping in GPU accelerated case
- if(any(at%npspcode == PSPCODE_PAW)) then
-  call NonLocalHamiltonianApplication(iproc,at,orbs%npsidim_orbs,orbs,rxyz,&
-       Lzd,nlpsp,psi,hpsi,energs%eproj,paw)
- else
-  call NonLocalHamiltonianApplication(iproc,at,orbs%npsidim_orbs,orbs,rxyz,&
-       Lzd,nlpsp,psi,hpsi,energs%eproj)
- end if
+ call NonLocalHamiltonianApplication(iproc,at,orbs%npsidim_orbs,orbs,&
+      Lzd,nlpsp,psi,hpsi,energs%eproj,paw)
 
   call SynchronizeHamiltonianApplication(nproc,orbs%npsidim_orbs,orbs,Lzd,GPU,xc,hpsi,&
        energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
@@ -682,7 +665,7 @@ END SUBROUTINE LocalHamiltonianApplication
 
 !> Routine which calculates the application of nonlocal projectors on the wavefunctions
 !! Reduce the wavefunction in case it is needed
-subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
+subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
      Lzd,nl,psi,hpsi,eproj_sum,paw)
   use module_base
   use module_types
@@ -694,12 +677,10 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   type(orbitals_data),  intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
   type(DFT_PSP_projectors), intent(inout) :: nl
-  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(npsidim_orbs), intent(in) :: psi
   real(wp), dimension(npsidim_orbs), intent(inout) :: hpsi
+  type(paw_objects),intent(inout)::paw
   real(gp), intent(out) :: eproj_sum
-  !PAW variables:
-  type(paw_objects),optional,intent(inout)::paw
   !local variables
   logical :: newmethod
   character(len=*), parameter :: subname='NonLocalHamiltonianApplication' 
@@ -730,14 +711,9 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
 
   nwarnings=0
 
-  if(any(at%npspcode == PSPCODE_PAW)) then  
+  if(paw%usepaw) then  
+     call to_zero(orbs%npsidim_orbs, paw%spsi(1))
      newmethod=.false.
-     !initialize to zero in PAW case
-     if(.not. present(paw)) then
-        stop 'NonLocalHamiltonianApplication: paw is not present'
-     end if
-     ! Not neede anymore.
-     !if (nl%nprojel >0) call to_zero(nl%nprojel,nl%proj(1))
   end if
   !here the localisation region should be changed, temporary only for cubic approach
 
@@ -988,7 +964,7 @@ contains
        eproj_sum=eproj_sum+&
             orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*eproj
     else
-       if(any(at%npspcode == PSPCODE_PAW)) then
+       if(paw%usepaw) then
           call apply_atproj_iorb_paw(iat,iorb,istart_c,&
                at,orbs,Lzd%Llr(ilr)%wfd,nl,&
                psi(ispsi),hpsi(ispsi),paw%spsi(ispsi),eproj_sum,&
@@ -1387,7 +1363,7 @@ end subroutine total_energies
 !! depending of the functional we want to calculate. The gradient wrt the wavefunction
 !! is put in hpsi accordingly to the functional
 subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
-     energs,wfn,gnrm,gnrm_zero,paw)
+     energs,wfn,gnrm,gnrm_zero)
   use module_base
   use module_types
   use module_interfaces, except_this_one => calculate_energy_and_gradient
@@ -1399,7 +1375,6 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   type(GPU_pointers), intent(in) :: GPU
   type(DFT_wavefunction), intent(inout) :: wfn
   real(gp), intent(out) :: gnrm,gnrm_zero
-  type(paw_objects),optional,intent(inout)::paw
   !local variables
   character(len=*), parameter :: subname='calculate_energy_and_gradient' 
   logical :: lcs
@@ -1439,11 +1414,9 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
 
   !transpose the hpsi wavefunction
    call toglobal_and_transpose(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,wfn%hpsi,wfn%psi)
-  
-  !PAW:
   !transpose the spsi wavefunction
-  if(present(paw)) then
-     call toglobal_and_transpose(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,paw%spsi,wfn%psi)
+  if(wfn%paw%usepaw) then
+     call toglobal_and_transpose(iproc,nproc,wfn%orbs,wfn%Lzd,wfn%comms,wfn%paw%spsi,wfn%psi)
   end if
 
   if (nproc == 1) then
@@ -1462,9 +1435,9 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   !here the orthogonality with respect to other occupied functions should be 
   !passed as an optional argument
   energs%trH_prev=energs%trH
-  if(present(paw)) then
+  if(wfn%paw%usepaw) then
     !PAW: spsi is used.
-    call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%SIC%alpha/=0.0_gp,wfn%psit,wfn%hpsi,energs%trH,paw%spsi) !n(m)
+    call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%SIC%alpha/=0.0_gp,wfn%psit,wfn%hpsi,energs%trH,wfn%paw%spsi) !n(m)
   else
     !NC:
     call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%SIC%alpha/=0.0_gp,wfn%psit,wfn%hpsi,energs%trH) !n(m)
@@ -1472,10 +1445,9 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
 
   !retranspose the hpsi wavefunction
   call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,wfn%hpsi(1),wfn%psi(1))
-
-  if(present(paw)) then
+  if(wfn%paw%usepaw) then
    !retranspose the spsi wavefunction
-   call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,paw%spsi(1),wfn%psi(1))
+   call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,wfn%paw%spsi(1),wfn%psi(1))
   end if
 
   !deallocate temporary array
@@ -1622,7 +1594,7 @@ END SUBROUTINE calculate_energy_and_gradient
 !> Operations after h|psi> 
 !! (transposition, orthonormalisation, inverse transposition)
 subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
-   at,nlpsp,paw,rxyz,eproj_sum)
+   at,nlpsp,eproj_sum)
    use module_base
    use module_types
    use module_interfaces, except_this_one_A => hpsitopsi
@@ -1634,21 +1606,17 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    type(DFT_wavefunction), intent(inout) :: wfn
    type(atoms_data), intent(in) :: at
    type(DFT_PSP_projectors), intent(inout) :: nlpsp 
-   type(paw_objects),optional,intent(inout)::paw
    real(gp),optional, intent(out) :: eproj_sum
-   real(gp),optional, dimension(3,at%astruct%nat), intent(in) :: rxyz
    !local variables
    !character(len=*), parameter :: subname='hpsitopsi'
    !debug
    integer :: jorb,iat
    !end debug
 
-   if(any(at%npspcode == PSPCODE_PAW)) then
-     if( (.not. present(paw)) .or. &
-&        (.not. present(eproj_sum)) .or. &
-&        (.not. present(rxyz))) then
+   if(wfn%paw%usepaw) then
+     if( (.not. present(eproj_sum))) then
          write(*,*)'ERROR: hpsitopsi for PAW needs the following optional variables::'
-         write(*,*)'       paw, eproj, rxyz'
+         write(*,*)'       eproj'
          stop
      end if
    end if
@@ -1680,7 +1648,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
   
    !Update spsi, since psi has changed
    !Pending: make this with the transposed wavefunctions:
-   if(any(at%npspcode == PSPCODE_PAW)) then
+   if(wfn%paw%usepaw) then
      !retranspose psit
      call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
         &   wfn%psit(1),wfn%hpsi(1),out_add=wfn%psi(1))
@@ -1688,13 +1656,13 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
      !Calculate  hpsi,spsi and cprj with new psi
      if (wfn%orbs%npsidim_orbs >0) then 
        call to_zero(wfn%orbs%npsidim_orbs,wfn%hpsi(1))
-       call to_zero(wfn%orbs%npsidim_orbs,paw%spsi(1))
+       call to_zero(wfn%orbs%npsidim_orbs,wfn%paw%spsi(1))
      end if
-     call NonLocalHamiltonianApplication(iproc,at,wfn%orbs%npsidim_orbs,wfn%orbs,rxyz,&
-          wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,eproj_sum,paw)
+     call NonLocalHamiltonianApplication(iproc,at,wfn%orbs%npsidim_orbs,wfn%orbs,&
+          wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,eproj_sum,wfn%paw)
 
 !    Transpose spsi:     
-     call transpose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,paw%spsi(1),wfn%hpsi(1))
+     call transpose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,wfn%paw%spsi(1),wfn%hpsi(1))
 !    Gather cprj:
      call gather_cprj()
    end if
@@ -1707,23 +1675,31 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
       call yaml_map('Orthogonalization Method',wfn%orthpar%methortho,fmt='(i3)')
    end if
 
-   if(any(at%npspcode == PSPCODE_PAW)) then
-     call orthogonalize(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%orthpar,paw)
+   if(wfn%paw%usepaw) then
+     call orthogonalize(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%orthpar,wfn%paw)
    else
      call orthogonalize(iproc,nproc,wfn%orbs,wfn%comms,wfn%psit,wfn%orthpar)
    end if
 
    !call checkortho_p(iproc,nproc,norb,nvctrp,psit)
-   if(any(at%npspcode == PSPCODE_PAW)) call checkortho_paw(iproc,wfn%orbs%norb*wfn%orbs%nspinor,&
-     wfn%comms%nvctr_par(iproc,0),wfn%psit,paw%spsi)
-   !debug: 
-   if(any(at%npspcode == PSPCODE_PAW)) then
-     write(*,*)'hpsiortho, l1478 erase me:'
-     do iat=1,paw%natom 
-       do jorb=1,wfn%orbs%norbu
-       write(*,'(a,2(i4,1x),1000f20.12)')' cprj(iat,jorb)%cp(:,:)=',iat,jorb,paw%cprj(iat,jorb)%cp(:,:)
-       end do
-     end do
+   if(wfn%paw%usepaw) then
+      !debug: 
+      call checkortho_paw(iproc,wfn%orbs%norb*wfn%orbs%nspinor,&
+           wfn%comms%nvctr_par(iproc,0),wfn%psit,wfn%paw%spsi)
+      if (iproc == 0 .and. verbose > 1) then
+!!$      write(*,*)'hpsiortho, l1478 erase me:'
+         call yaml_sequence_open('cprj(:,1) (5 first orbitals)')
+         do iat=1,wfn%paw%natom
+            call yaml_mapping_open("atom" // trim(yaml_toa(iat, fmt = "(I0)")))
+            do jorb=1,min(5, wfn%orbs%norbu)
+               call yaml_map("iorb" // trim(yaml_toa(jorb, fmt = "(I0)")), yaml_toa(wfn%paw%cprj(iat,jorb)%cp(:,1)))
+               !write(*,'(a,2(i4,1x),1000f20.12)')' cprj(iat,jorb)%cp(:,:)=',iat,jorb,wfn%paw%cprj(iat,jorb)%cp(:,:)
+               !call yaml_comment("iorb #" // yaml_toa(jorb, fmt = "(I0)"))
+            end do
+            call yaml_mapping_close()
+         end do
+         call yaml_sequence_close()
+      end if
    end if
 
    call untranspose_v(iproc,nproc,wfn%orbs,wfn%Lzd%Glr%wfd,wfn%comms,&
@@ -1789,8 +1765,8 @@ contains
        ndsplt = f_malloc(0.to.nproc-1,id='ndsplt')
        ncntd = f_malloc(0.to.nproc-1,id='ncntd')
        ncntt = f_malloc(0.to.nproc-1,id='ncntt')
-       raux = f_malloc((/ 2, paw%lmnmax, paw%natom, wfn%orbs%norbp /),id='raux')
-       raux2 = f_malloc((/ 2, paw%lmnmax, paw%natom, wfn%orbs%norb /),id='raux2')
+       raux = f_malloc((/ 2, wfn%paw%lmnmax, wfn%paw%natom, wfn%orbs%norbp /),id='raux')
+       raux2 = f_malloc((/ 2, wfn%paw%lmnmax, wfn%paw%natom, wfn%orbs%norb /),id='raux2')
 
    !   Set tables for mpi operations:
    !   Send buffer:
@@ -1798,7 +1774,7 @@ contains
          ncntd(jproc)=0
          do ikpts=1,wfn%orbs%nkpts
            ncntd(jproc)=ncntd(jproc)+&
-                2*paw%lmnmax*paw%natom*wfn%orbs%norb_par(iproc,ikpts)*wfn%orbs%nspinor
+                2*wfn%paw%lmnmax*wfn%paw%natom*wfn%orbs%norb_par(iproc,ikpts)*wfn%orbs%nspinor
          end do
        end do
    !   receive buffer:
@@ -1806,7 +1782,7 @@ contains
           ncntt(jproc)=0
           do ikpts=1,wfn%orbs%nkpts
              ncntt(jproc)=ncntt(jproc)+&
-                  2*paw%lmnmax*paw%natom*wfn%orbs%norb_par(jproc,ikpts)*wfn%orbs%nspinor
+                  2*wfn%paw%lmnmax*wfn%paw%natom*wfn%orbs%norb_par(jproc,ikpts)*wfn%orbs%nspinor
           end do
        end do
    !   Displacements table:
@@ -1823,9 +1799,9 @@ contains
        raux=0.0_dp
    !Missing nspinor
        do iorb=1,wfn%orbs%norbp
-         do iatom=1,paw%natom
-           do ilmn=1,paw%cprj(iatom,iorb)%nlmn
-             raux(:,ilmn,iatom,iorb)=paw%cprj(iatom,iorb)%cp(:,ilmn)
+         do iatom=1,wfn%paw%natom
+           do ilmn=1,wfn%paw%cprj(iatom,iorb)%nlmn
+             raux(:,ilmn,iatom,iorb)=wfn%paw%cprj(iatom,iorb)%cp(:,ilmn)
            end do
          end do
        end do
@@ -1841,15 +1817,15 @@ contains
    !   Transfer back, raux2 to cprj:
    !   First set cprj to zero
        do iorb=1,wfn%orbs%norbp
-         do iatom=1,paw%natom
-           paw%cprj(iatom,iorb)%cp(:,:)=0.0_dp
+         do iatom=1,wfn%paw%natom
+           wfn%paw%cprj(iatom,iorb)%cp(:,:)=0.0_dp
          end do
        end do
    !
        do iorb=1,wfn%orbs%norb
-         do iatom=1,paw%natom
-           do ilmn=1,paw%cprj(iatom,iorb)%nlmn
-             paw%cprj(iatom,iorb)%cp(:,ilmn)=raux2(:,ilmn,iatom,iorb)
+         do iatom=1,wfn%paw%natom
+           do ilmn=1,wfn%paw%cprj(iatom,iorb)%nlmn
+             wfn%paw%cprj(iatom,iorb)%cp(:,ilmn)=raux2(:,ilmn,iatom,iorb)
            end do
          end do
        end do
@@ -3128,7 +3104,7 @@ END SUBROUTINE broadcast_kpt_objects
 !!end subroutine minimize_by_orthogonal_transformation
 
 
-subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GPU,xc,nlpsp,rxyz)
+subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GPU,xc,nlpsp,rxyz,paw)
   use module_base
   use module_types
   use module_xc
@@ -3145,6 +3121,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
   integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   real(dp), dimension(:), pointer :: local_potential
+  type(paw_objects), intent(inout) :: paw
   !local variables
   integer :: iorb,nbox,ilr,ist
   real(gp) :: eh_fake,eks
@@ -3162,8 +3139,8 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
        wfn%Lzd,wfn%confdatarr,ngatherarr,local_potential,wfn%psi,vpsi,&
        energs_tmp,wfn%SIC,GPU,2,xc) !potential only
 
-  call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,rxyz,&
-       wfn%Lzd,nlpsp,wfn%psi,vpsi,energs_tmp%eproj)
+  call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,&
+       wfn%Lzd,nlpsp,wfn%psi,vpsi,energs_tmp%eproj,paw)
 
   !now vpsi is a wavefunction array in orbitals parallelization scheme which is associated to Vpsi
   !rescale it to match with the Green's function treatment

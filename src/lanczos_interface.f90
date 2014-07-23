@@ -987,6 +987,7 @@ nullify(Qvect,dumQvect)
      !Local variables
      integer :: k
      type(confpot_data), dimension(ha%orbs%norbp) :: confdatarr
+     type(paw_objects) :: paw
 
      if( ha%nproc > 1) then
         if(i>=0) then
@@ -1011,16 +1012,17 @@ nullify(Qvect,dumQvect)
 
      call default_confinement_data(confdatarr,ha%orbs%norbp)
 
-     call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
-          ha%Lzd,ha%nlpsp,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
+     paw%usepaw = .false.
+     call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,&
+          ha%Lzd,ha%nlpsp,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,paw,&
           ha%energs,ha%SIC,ha%GPU,ha%xc)
 
      call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
      call vcopy(EP_dim_tot,wrk(1),1,Qvect_tmp(1),1)
      !Qvect_tmp   =  wrk
 
-     call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
-          ha%Lzd,ha%nlpsp,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
+     call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,&
+          ha%Lzd,ha%nlpsp,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,paw,&
           ha%energs,ha%SIC,ha%GPU,ha%xc)
 
      call axpy(EP_dim_tot, -ene  ,  Qvect_tmp(1)   , 1,  wrk(1) , 1)
@@ -1082,6 +1084,7 @@ nullify(Qvect,dumQvect)
      !Local variables
      integer :: k
      type(confpot_data), dimension(ha%orbs%norbp) :: confdatarr
+     type(paw_objects) :: paw
 
      if( ha%nproc > 1) then
         if(i>=0) then
@@ -1110,8 +1113,9 @@ nullify(Qvect,dumQvect)
 
      call default_confinement_data(confdatarr,ha%orbs%norbp)
 
-     call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,ha%rxyz,&
-          ha%Lzd,ha%nlpsp,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,&
+     paw%usepaw = .false.
+     call FullHamiltonianApplication(ha%iproc,ha%nproc,ha%at,ha%orbs,&
+          ha%Lzd,ha%nlpsp,confdatarr,ha%ngatherarr,ha%potential,Qvect_tmp,wrk,paw,&
           ha%energs,ha%SIC,ha%GPU,ha%xc)
 
      if(  ha%iproc ==0 ) write(*,*)" done "

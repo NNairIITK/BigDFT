@@ -494,8 +494,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
 
 
-  call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,rxyz,&
-       tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,lhphilarge,energs%eproj)
+  call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+       tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,lhphilarge,energs%eproj,tmb%paw)
 
   ! only kinetic because waiting for communications
   call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&

@@ -368,7 +368,7 @@ subroutine atom_projector(nl, ityp, iat, atomname, &
         call axpy(nc, 1._wp, proj_tmp(1), 1, nl%proj(istart_c), 1)
      end do
      ! Check norm for each proj.
-     if (idir == 0) then
+     if (idir == 0 .and. nl%normalized) then
         do np = 1, 2 * iter%l - 1
            !here the norm should be done with the complex components
            call wnrm_wrap(ncplx_k,mbvctr_c,mbvctr_f, &

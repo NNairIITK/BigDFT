@@ -267,9 +267,11 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
      do iat=1,at%astruct%nat
         nl%pspd(iat)%gau_cut = at%pawtab(at%astruct%iatype(iat))%rpaw
      end do
+     nl%normalized = .false.
   else
      call gaussian_basis_from_psp(at%astruct%nat, at%astruct%iatype, rxyz, &
           & at%psppar, at%astruct%ntypes, nl%proj_G)
+     nl%normalized = .true.
   end if
 
   ! define the region dimensions
@@ -1034,6 +1036,10 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   type(confpot_data), dimension(:), allocatable :: confdatarr
   type(local_zone_descriptors) :: Lzde
   type(GPU_pointers) :: GPUe
+
+  type(paw_objects) :: paw
+
+  paw%usepaw = .false. ! PAW is not used in input guess.
 !!$   integer :: idum=0
 !!$   real(kind=4) :: tt,builtin_rand
 !!$   real(wp), dimension(:), allocatable :: ovrlp
@@ -1353,8 +1359,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   !update the locregs in the case of locreg for input guess
 
   !write(*,*) 'size(denspot%pot_work)', size(denspot%pot_work)
-  call FullHamiltonianApplication(iproc,nproc,at,orbse,rxyz,&
-       Lzde,nlpsp,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,psi,hpsi,&
+  call FullHamiltonianApplication(iproc,nproc,at,orbse,&
+       Lzde,nlpsp,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,psi,hpsi,paw,&
        energs,input%SIC,GPUe,denspot%xc,&
        pkernel=denspot%pkernelseq)
 !!$   if (orbse%npsidim_orbs > 0) call to_zero(orbse%npsidim_orbs,hpsi(1))

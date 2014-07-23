@@ -590,22 +590,20 @@ module module_interfaces
          real(gp),intent(out),optional :: econf
        end subroutine LocalHamiltonianApplication
 
-       subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
+       subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
            Lzd,nlpsp,psi,hpsi,eproj_sum,paw)
         use module_base
         use module_types
-        use gaussians, only: gaussian_basis
         implicit none
         integer, intent(in) :: iproc, npsidim_orbs
         type(atoms_data), intent(in) :: at
         type(orbitals_data),  intent(in) :: orbs
         type(local_zone_descriptors), intent(in) :: Lzd
         type(DFT_PSP_projectors), intent(inout) :: nlpsp
-        real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
         real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
         real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
         real(gp), intent(out) :: eproj_sum
-        type(paw_objects),optional,intent(inout)::paw
+        type(paw_objects),intent(inout)::paw
       END SUBROUTINE NonLocalHamiltonianApplication
 
       subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,hpsi,&
@@ -624,7 +622,7 @@ module module_interfaces
       END SUBROUTINE SynchronizeHamiltonianApplication
 
       subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
-           at,nlpsp,paw,rxyz,eproj_sum)
+           at,nlpsp,eproj_sum)
          !n(c) use module_base
          use module_types
          implicit none
@@ -632,9 +630,7 @@ module module_interfaces
          type(DFT_wavefunction), intent(inout) :: wfn
          type(atoms_data), intent(in) :: at
          type(DFT_PSP_projectors), intent(inout) :: nlpsp
-         type(paw_objects),optional,intent(inout) :: paw
          real(gp),optional, intent(out) :: eproj_sum
-         real(gp),optional, dimension(3,at%astruct%nat), intent(in) :: rxyz
       END SUBROUTINE hpsitopsi
 
       subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
@@ -1239,7 +1235,7 @@ module module_interfaces
       END SUBROUTINE free_full_potential
 
       subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
-           energs,wfn,gnrm,gnrm_zero,paw)
+           energs,wfn,gnrm,gnrm_zero)
         use module_base
         use module_types
         implicit none
@@ -1248,7 +1244,6 @@ module module_interfaces
         type(GPU_pointers), intent(in) :: GPU
         type(DFT_wavefunction), intent(inout) :: wfn
         real(gp), intent(out) :: gnrm,gnrm_zero
-        type(paw_objects),optional,intent(inout)::paw
       END SUBROUTINE calculate_energy_and_gradient
 
       subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,&
@@ -2052,9 +2047,9 @@ module module_interfaces
      end subroutine choosePreconditioner2
 
 
-     subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,rxyz,&
-          Lzd,nlpsp,confdatarr,ngatherarr,Lpot,psi,hpsi,&
-          energs,SIC,GPU,xc,pkernel,orbsocc,psirocc,paw)
+     subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,&
+          Lzd,nlpsp,confdatarr,ngatherarr,Lpot,psi,hpsi,paw,&
+          energs,SIC,GPU,xc,pkernel,orbsocc,psirocc)
        use module_base
        use module_types
        use module_xc
@@ -2068,7 +2063,6 @@ module module_interfaces
        type(SIC_data), intent(in) :: SIC
        type(xc_info), intent(in) :: xc
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
-       real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
        real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
        type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
        !real(wp), dimension(lzd%ndimpotisf) :: Lpot
@@ -2080,7 +2074,7 @@ module module_interfaces
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
        !PAW variables:
-       type(paw_objects),optional,intent(inout)::paw
+       type(paw_objects),intent(inout)::paw
      end subroutine FullHamiltonianApplication
 
        subroutine init_foe(iproc, nproc, nlr, locregcenter, astruct, input, orbs_KS, orbs, foe_obj, reset, &
@@ -2347,7 +2341,7 @@ module module_interfaces
        end subroutine extract_potential_for_spectra
 
        subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
-            nlpsp,rxyz,linflag,unblock_comms,GPU,wfn,&
+            nlpsp,linflag,unblock_comms,GPU,wfn,&
             energs,rpnrm,xcstr)
          use module_base
          use module_types
@@ -2361,7 +2355,6 @@ module module_interfaces
          type(DFT_local_fields), intent(inout) :: denspot
          type(energy_terms), intent(inout) :: energs
          type(DFT_wavefunction), intent(inout) :: wfn
-         real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
          type(GPU_pointers), intent(inout) :: GPU
          real(gp), intent(inout) :: rpnrm
          real(gp), dimension(6), intent(out) :: xcstr
@@ -3593,7 +3586,7 @@ module module_interfaces
           real(wp), dimension(:), pointer :: psi, psi_old
         end subroutine input_wf_memory_new
 
-        subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GPU,xc,nlpsp,rxyz)
+        subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GPU,xc,nlpsp,rxyz,paw)
           use module_base
           use module_types
           use module_xc
@@ -3604,6 +3597,7 @@ module module_interfaces
           type(GPU_pointers), intent(inout) :: GPU
           type(DFT_PSP_projectors), intent(inout) :: nlpsp
           type(xc_info), intent(in) :: xc
+          type(paw_objects), intent(inout) :: paw
           integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
           real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
           real(dp), dimension(:), pointer :: local_potential

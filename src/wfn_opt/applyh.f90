@@ -1156,8 +1156,6 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
         jlmn=jlmn+1
         !loop over all the components of the wavefunction
         do ispinor=1,nspinor,ncplx
-           write(*,*) ncplx, nvctr_c,nvctr_f,nseg_c,nseg_f, sum(psi(:,ispinor))
-           write(*,*) mbvctr_c,mbvctr_f,mbseg_c,mbseg_f, sum(proj(istart_j:istart_j+(mbvctr_c+7*mbvctr_f)*ncplx-1)),jlmn
            call wpdot_wrap(ncplx,  &
                 nvctr_c,nvctr_f,nseg_c,nseg_f,&
                 keyv,keyg,&
@@ -1181,7 +1179,7 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
 !  end do
   do ispinor=1,nspinor
      cprj_out%cp(ispinor,:)=cprj(ispinor,:)
-     write(*,*)'applyprojector_paw: erase me: l1212 cprj=',cprj_out%cp(ispinor,:)
+     !write(*,*)'applyprojector_paw: erase me: l1212 cprj=',cprj_out%cp(ispinor,:)
   end do
 !
 
@@ -1190,7 +1188,6 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
      dprj=0.0_wp
      iaux=paw_ij%cplex_dij*paw_ij%lmn2_size
      !call calculate_dprj(paw_ij%dij,iaux,paw_ij%ndij)
-     write(*,*) shape(paw_ij%dij), sum(paw_ij%dij), iaux
      call calculate_dprj(paw_ij%dij(:,1),iaux)
      !
      !apply non-local operator
@@ -1201,8 +1198,8 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
      !DEBUG: calculate <PSI|H|PSI>, only for 1 orbital and ncplx=1
      do ispinor=1,nspinor,ncplx
         scpr(1)=ddot(nvctr_c+7*nvctr_f,psi(istart_c,ispinor),1,hpsi(istart_c,ispinor),1)
-        write(*,*)'erase me: applyprojector_paw l1231'
-        write(*,*)'<psi|H|psi>= ',scpr(1:ncplx)
+        !write(*,*)'erase me: applyprojector_paw l1231'
+        !write(*,*)'<psi|H|psi>= ',scpr(1:ncplx)
      end do !ispinor
   end if
   if(sij_opt==2 .or. sij_opt==3) then

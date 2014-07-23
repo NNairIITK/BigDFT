@@ -60,6 +60,7 @@ module psp_projectors
   !> describe the information associated to the non-local part of Pseudopotentials
   type, public :: DFT_PSP_projectors 
      logical :: on_the_fly             !< strategy for projector creation
+     logical :: normalized             !< .true. if projectors are normalized to one.
      integer :: nproj,nprojel,natoms   !< Number of projectors and number of elements
      real(gp) :: zerovol               !< Proportion of zero components.
      type(gaussian_basis_new) :: proj_G !< Store the projector representations is gaussians.
