@@ -113,8 +113,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
 
   !write reference in the array
   call vcopy(3*atoms%astruct%nat,rst%rxyz_new(1,1),1,rxyz_ref(1,1),1)
-  call read_radii_variables(atoms, radii_cf, &
-       & inputs%crmult, inputs%frmult, inputs%projrad)
+  radii_cf = atoms%radii_cf
 
   do iat=1,atoms%astruct%nat
 

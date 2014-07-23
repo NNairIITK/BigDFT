@@ -383,7 +383,8 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf)
   !n(c) character(len=*), parameter :: subname='system_properties'
   integer :: nspinor
 
-  call read_radii_variables(atoms, radii_cf, in%crmult, in%frmult, in%projrad)
+  radii_cf = atoms%radii_cf
+!!$  call read_radii_variables(atoms, radii_cf, in%crmult, in%frmult, in%projrad)
 !!$  call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
   if (iproc == 0) call print_atomic_variables(atoms, radii_cf, max(in%hx,in%hy,in%hz), in%ixc, in%dispersion)
   if(in%nspin==4) then
@@ -739,58 +740,6 @@ subroutine nlcc_dim_from_file(filename, ngv, ngc, dim, read_nlcc)
      ngc=UNINITIALIZED(1)
   end if
 END SUBROUTINE nlcc_dim_from_file
-
-
-!> Update radii_cf and occupation for each type of atoms (related to pseudopotential)
-subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
-  use module_base
-  use ao_inguess, only: atomic_info
-  use module_types
-  implicit none
-  !Arguments
-  type(atoms_data), intent(in) :: atoms
-  real(gp), intent(in) :: crmult, frmult, projrad
-  real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
-  !Local Variables
-  !integer, parameter :: nelecmax=32
-  !character(len=2) :: symbol
-  integer :: i,ityp!,mxpl,mxchg,nsccode
-  real(gp) :: ehomo,maxrad,radfine!,rcov,rprb,amu
-
-  do ityp=1,atoms%astruct%ntypes
-
-     radii_cf(ityp, :) = atoms%radii_cf(ityp, :)
-     !assigning missing radii by calculating physical parameters
-     if (radii_cf(ityp,1) == UNINITIALIZED(1.0_gp)) then
-        call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),ehomo=ehomo)
-        radii_cf(ityp,1)=1._gp/sqrt(abs(2._gp*ehomo))
-     end if
-     if (radii_cf(ityp,2) == UNINITIALIZED(1.0_gp)) then
-        radfine=100._gp
-        do i=0,4
-           if (atoms%psppar(i,0,ityp)/=0._gp) then
-              radfine=min(radfine,atoms%psppar(i,0,ityp))
-           end if
-        end do
-        radii_cf(ityp,2)=radfine
-     end if
-     if (radii_cf(ityp,3) == UNINITIALIZED(1.0_gp)) radii_cf(ityp,3)=crmult*radii_cf(ityp,1)/frmult
-
-     ! Correct radii_cf(:,3) for the projectors.
-     maxrad=0.e0_gp ! This line added by Alexey, 03.10.08, to be able to compile with -g -C
-     do i=1,4
-        !the maximum radii is useful only for projectors
-        if (atoms%psppar(i,0,ityp)/=0._gp) then
-           maxrad=max(maxrad,atoms%psppar(i,0,ityp))
-        end if
-     end do
-     if (maxrad == 0.0_gp) then
-        radii_cf(ityp,3)=0.0_gp
-     else
-        radii_cf(ityp,3)=max(min(radii_cf(ityp,3),projrad*maxrad/frmult),radii_cf(ityp,2))
-     end if
-  enddo
-END SUBROUTINE read_radii_variables
 
 
 !> Calculate the number of electrons and check the polarisation (mpol)

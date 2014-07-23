@@ -183,8 +183,7 @@ module bigdft_forces
       call init_restart_objects(me, runObj%inputs, runObj%atoms, runObj%rst)
 
       runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /),id='runObj%radii_cf')
-      call read_radii_variables(runObj%atoms, runObj%radii_cf, &
-           & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
+      runObj%radii_cf = runObj%atoms%radii_cf
 
    END SUBROUTINE bigdft_init_art
 

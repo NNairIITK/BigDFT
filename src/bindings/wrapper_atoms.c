@@ -381,8 +381,8 @@ GArray* bigdft_atoms_get_radii(const BigDFT_Atoms *atoms, double crmult,
   crmult_  = (crmult <= 0.)?5.:crmult;
   frmult_  = (frmult <= 0.)?8.:frmult;
   projrad_ = (projrad <= 0.)?15.:projrad;
-  FC_FUNC_(read_radii_variables, READ_RADII_VARIABLES)(F_TYPE(atoms->data), (double*)arr->data,
-                                                       &crmult_, &frmult_, &projrad_);
+  /* FC_FUNC_(read_radii_variables, READ_RADII_VARIABLES)(F_TYPE(atoms->data), (double*)arr->data, */
+  /*                                                      &crmult_, &frmult_, &projrad_); */
   return arr;
 }
 

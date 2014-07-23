@@ -1229,17 +1229,16 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
 
   call atoms_file_merge_to_dict(dict)
   do ityp = 1, at%astruct%ntypes, 1
-     call psp_dict_fill_all(dict, at%astruct%atomnames(ityp), in%ixc)
+     call psp_dict_fill_all(dict, at%astruct%atomnames(ityp), in%ixc, in%projrad, in%crmult, in%frmult)
   end do
   call psp_dict_analyse(dict, at)
   ! Read associated pseudo files.
   call atomic_data_set_from_dict(dict,IG_OCCUPATION, at, in%nspin)
   call dict_free(dict)
 
-  radii_cf = f_malloc((/ at%astruct%ntypes, 3 /),id='radii_cf')
-
   !read the specifications of the counter ions from pseudopotentials
-  call read_radii_variables(at, radii_cf, in%crmult, in%frmult, in%projrad)
+  radii_cf = f_malloc((/ at%astruct%ntypes, 3 /),id='radii_cf')
+  radii_cf = at%radii_cf
   if (iproc == 0) call print_atomic_variables(at, radii_cf, max(in%hx,in%hy,in%hz), in%ixc, in%dispersion)
 
   ! Ionic charge (must be calculated for the PS active processes)

@@ -212,7 +212,7 @@ contains
 
 
   !> Fill up the dict with all pseudopotential information
-  subroutine psp_dict_fill_all(dict, atomname, run_ixc)
+  subroutine psp_dict_fill_all(dict, atomname, run_ixc, projrad, crmult, frmult)
     use module_defs, only: gp, UNINITIALIZED, bigdft_mpi
     use ao_inguess, only: atomic_info
     use module_atoms, only : RADII_SOURCE, RADII_SOURCE_HARD_CODED, RADII_SOURCE_FILE
@@ -221,8 +221,10 @@ contains
     implicit none
     !Arguments
     type(dictionary), pointer :: dict          !< Input dictionary (inout)
-    character(len = *), intent(in) :: atomname !< Atome name
+    character(len = *), intent(in) :: atomname !< Atom name
     integer, intent(in) :: run_ixc             !< XC functional
+    real(gp), intent(in) :: projrad            !< projector radius
+    real(gp), intent(in) :: crmult, frmult     !< radius multipliers
     !Local variables
     integer :: ixc, ierr
     character(len=27) :: filename
@@ -233,21 +235,13 @@ contains
     !integer, parameter :: nelecmax=32
 !    character(len=2) :: symbol
     integer :: i!,mxpl,mxchg,nsccode
-    real(gp) :: ehomo,radfine,rad!,amu,rcov,rprb
+    real(gp) :: ehomo,radfine,rad,maxrad!,amu,rcov,rprb
 !    real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
     type(dictionary), pointer :: radii
     real(gp), dimension(3) :: radii_cf
     character(len = max_field_length) :: source
 
     filename = 'psppar.' // atomname
-
-    radii_cf = UNINITIALIZED(1._gp)
-    if (has_key(dict // filename, "Radii of active regions (AU)")) then
-       radii => dict // filename // "Radii of active regions (AU)"
-       if (has_key(radii, "Coarse")) radii_cf(1) =  radii // "Coarse"
-       if (has_key(radii, "Fine")) radii_cf(2) =  radii // "Fine"
-       if (has_key(radii, "Coarse PSP")) radii_cf(3) =  radii // "Coarse PSP"
-    end if
 
     exists = has_key(dict // filename, "Local Pseudo Potential (HGH convention)")
     if (.not. exists) then
@@ -271,6 +265,14 @@ contains
             '" is lacking, and no registered pseudo found for "', &
             & trim(atomname), '", exiting...'
        stop
+    end if
+
+    radii_cf = UNINITIALIZED(1._gp)
+    if (has_key(dict // filename, "Radii of active regions (AU)")) then
+       radii => dict // filename // "Radii of active regions (AU)"
+       if (has_key(radii, "Coarse")) radii_cf(1) =  radii // "Coarse"
+       if (has_key(radii, "Fine")) radii_cf(2) =  radii // "Fine"
+       if (has_key(radii, "Coarse PSP")) radii_cf(3) =  radii // "Coarse PSP"
     end if
 
     write(source, "(A)") RADII_SOURCE(RADII_SOURCE_FILE)
@@ -298,16 +300,27 @@ contains
        radii_cf(2)=radfine
        write(source, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
     end if
-    ! radii_cf(3) is treated differently since it is adjusted later,
-    ! for projectors.
-!!$    if (radii_cf(3) == UNINITIALIZED(1.0_gp)) then
-!!$       radii_cf(3)=radii_cf(2)
-!!$       write(source, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
-!!$    end if
+    if (radii_cf(3) == UNINITIALIZED(1.0_gp)) radii_cf(3)=crmult*radii_cf(1)/frmult
+    ! Correct radii_cf(3) for the projectors.
+    maxrad=0.e0_gp ! This line added by Alexey, 03.10.08, to be able to compile with -g -C
+    if (has_key(dict // filename, "NonLocal PSP Parameters")) then
+       do i=1, dict_len(dict // filename // "NonLocal PSP Parameters")
+          rad = dict // filename // "NonLocal PSP Parameters" // (i - 1) // "Rloc"
+          if (rad /= 0._gp) then
+             maxrad=max(maxrad, rad)
+          end if
+       end do
+    end if
+    if (maxrad == 0.0_gp) then
+       radii_cf(3)=0.0_gp
+    else
+       radii_cf(3)=max(min(radii_cf(3),projrad*maxrad/frmult),radii_cf(2))
+    end if
+    
     radii => dict // filename // "Radii of active regions (AU)"
     call set(radii // "Coarse", radii_cf(1))
     call set(radii // "Fine", radii_cf(2))
-    if (radii_cf(3) /= UNINITIALIZED(1.0_gp)) call set(radii // "Coarse PSP", radii_cf(3))
+    call set(radii // "Coarse PSP", radii_cf(3))
     call set(radii // "Source", source)
   end subroutine psp_dict_fill_all
 

@@ -258,7 +258,8 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   ! Add missing pseudo information.
   do ityp = 1, atoms%astruct%ntypes, 1
-     call psp_dict_fill_all(dict, atoms%astruct%atomnames(ityp), in%ixc)
+     call psp_dict_fill_all(dict, atoms%astruct%atomnames(ityp), in%ixc, &
+          & in%projrad, in%crmult, in%frmult)
   end do
 
   ! Update atoms with pseudo information.

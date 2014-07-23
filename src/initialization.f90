@@ -167,8 +167,7 @@ subroutine run_objects_parse(runObj)
   call f_free_ptr(runObj%radii_cf)
 
   runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), id="runObj%radii_cf")
-  call read_radii_variables(runObj%atoms, runObj%radii_cf, &
-       & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
+  runObj%radii_cf = runObj%atoms%radii_cf
 
 END SUBROUTINE run_objects_parse
 
@@ -193,8 +192,7 @@ subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
   end if
 
   runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), id="runObj%radii_cf")
-  call read_radii_variables(runObj%atoms, runObj%radii_cf, &
-       & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
+  runObj%radii_cf = runObj%atoms%radii_cf
 END SUBROUTINE run_objects_associate
 
 

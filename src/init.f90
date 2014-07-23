@@ -1607,7 +1607,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   real(gp), dimension(:), pointer :: in_frag_charge
   integer :: infoCoeff, iorb, nstates_max, order_taylor, npspcode
   real(kind=8) :: pnrm
-  real(gp), dimension(:,:), allocatable :: radii_cf
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
 
@@ -1710,13 +1709,10 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      if (any(atoms%npspcode == PSPCODE_PAW)) then
         ! Cheating line here.
         atoms%npspcode(1) = PSPCODE_HGH
-        radii_cf = f_malloc((/ atoms%astruct%ntypes, 3 /), id="radii_cf")
-        call read_radii_variables(atoms, radii_cf, in%crmult, in%frmult, in%projrad)
         call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,KSwfn%orbs,&
-             radii_cf,in%frmult,in%frmult,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
+             atoms%radii_cf,in%frmult,in%frmult,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
              KSwfn%Lzd%hgrids(3),.false.,nl)
         if (iproc == 0) call print_nlpsp(nl)
-        call f_free(radii_cf)
      else
         nl = nlpsp
      end if
