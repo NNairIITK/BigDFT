@@ -50,5 +50,32 @@ module interfaces_42_libpaw
     end subroutine pawinit
  end interface
 
+ interface
+    subroutine initrhoij(cplex,lexexch,lpawu,my_natom,natom,&
+         &                    nspden,nspinor,nsppol,ntypat,pawrhoij,pawspnorb,pawtab,spinat,typat,&
+         &                    ngrhoij,nlmnmix,use_rhoij_,use_rhoijres,& ! optional arguments
+         &                    mpi_atmtab,mpi_comm_atom) ! optional arguments (parallelism)
+
+      use defs_basis
+      use m_pawtab,      only : pawtab_type
+      use m_pawrhoij,    only : pawrhoij_type
+
+      implicit none
+
+      !Arguments ---------------------------------------------
+      !scalars
+      integer,intent(in) :: cplex,my_natom,natom,nspden,nspinor,nsppol,ntypat,pawspnorb
+      integer,intent(in),optional :: mpi_comm_atom,ngrhoij,nlmnmix,use_rhoij_,use_rhoijres
+      character(len=500) :: message
+      !arrays
+      integer,intent(in) :: lexexch(ntypat),lpawu(ntypat)
+      integer,intent(in) :: typat(natom)
+      integer,optional,target,intent(in) :: mpi_atmtab(:)
+      real(dp),intent(in) :: spinat(3,natom)
+      type(pawrhoij_type),intent(inout) :: pawrhoij(my_natom)
+      type(pawtab_type),intent(in) :: pawtab(ntypat)
+    end subroutine initrhoij
+ end interface
+
 end module interfaces_42_libpaw
 !!***

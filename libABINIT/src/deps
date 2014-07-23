@@ -926,3 +926,12 @@ pawinit.o: 42_libpaw/pawinit.F90 \
 	m_pawtab.o \
 	interfaces_18_timing.o
 	$(PPFCCOMPILE) -c -o pawinit.o `test -f '42_libpaw/pawinit.F90' || echo '$(srcdir)/'`42_libpaw/pawinit.F90
+
+initrhoij.o: 42_libpaw/initrhoij.F90 \
+	defs_basis.o \
+	m_errors.o \
+	m_profiling.o \
+	m_pawtab.o \
+	m_pawrhoij.o \
+	m_paral_atom.o
+	$(PPFCCOMPILE) -c -o initrhoij.o `test -f '42_libpaw/initrhoij.F90' || echo '$(srcdir)/'`42_libpaw/initrhoij.F90
