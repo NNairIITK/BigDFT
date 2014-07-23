@@ -365,13 +365,6 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
         if (iproc == 0) then
            if (tda) call yaml_comment('TAMM-DANCOFF APPROXIMATION',hfill='-')
            call yaml_sequence_open('Excitation Energy and Oscillator Strength')
-           !write(6,'(/)')
-           !if (tda) print *, 'TAMM-DANCOFF APPROXIMATION'
-           !write(6,10)
-!10         format ('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-           !write(6,20)
-!20         format(t2,4x,'Excitation Energy',3x,'Oscillator Strength')
-!           write(6,10)
 
            do imulti = 1, 2*nmulti
               call yaml_sequence(trim(yaml_toa((/ Ha_eV*omega(imulti),&

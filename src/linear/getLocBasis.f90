@@ -2619,9 +2619,9 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
           call uncompress_matrix_distributed(iproc, tmb%linmat%l, &
                inv_ovrlp%matrix_compr, inv_ovrlpp)
 
-          call to_zero(tmb%linmat%l%nvctr, tempp(1,1))
+          call to_zero(tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctrp, tempp(1,1))
           call sparsemm(tmb%linmat%l, kernel_compr_seq, inv_ovrlpp, tempp)
-          call to_zero(tmb%linmat%l%nvctr, inv_ovrlpp(1,1))
+          call to_zero(tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctrp, inv_ovrlpp(1,1))
           call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
           call to_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
