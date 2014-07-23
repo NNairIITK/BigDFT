@@ -1066,6 +1066,8 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
   use module_base
   use module_types
   use gaussians, only:gaussian_basis_new, gaussian_basis_iter, gaussian_iter_start, gaussian_iter_next_shell
+  use m_paw_ij, only: paw_ij_type
+  use m_pawcprj, only: pawcprj_type
   implicit none
   integer,parameter::nspinor=1  !not yet implemented
   integer, intent(inout)::istart_c

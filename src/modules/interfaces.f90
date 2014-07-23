@@ -36,7 +36,7 @@ module module_interfaces
       END SUBROUTINE geopt
 
       subroutine kswfn_optimization_loop(iproc, nproc, o, &
-           & alphamix, idsx, inputpsi, KSwfn, denspot, nlpsp, energs, atoms, rxyz, GPU, xcstr, &
+           & alphamix, idsx, inputpsi, KSwfn, denspot, nlpsp, energs, atoms, GPU, xcstr, &
            & in)
         use module_base
         use module_types
@@ -51,7 +51,6 @@ module module_interfaces
         type(atoms_data), intent(in) :: atoms
         type(GPU_pointers), intent(inout) :: GPU
         type(DFT_PSP_projectors), intent(inout) :: nlpsp
-        real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
         type(input_variables), intent(in) :: in !<todo: Remove me
       END SUBROUTINE kswfn_optimization_loop
 

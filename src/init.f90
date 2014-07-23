@@ -1569,6 +1569,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use sparsematrix_base, only: sparse_matrix
   use communications, only: transpose_localized, untranspose_localized
   use m_paw_ij, only: paw_ij_init
+  use psp_projectors, only: PSPCODE_PAW, PSPCODE_HGH, free_DFT_PSP_projectors
   implicit none
 
   integer, intent(in) :: iproc, nproc, inputpsi, input_wf_format

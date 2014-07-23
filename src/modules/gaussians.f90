@@ -278,9 +278,9 @@ contains
           G%sd((EXPO_ - 1) * 2 + 2,iexpo + i)  = pawtab(iatyp(iat))%wvl%parg(2,i)
           G%sd((COEFF_ - 1) * 2 + 1,iexpo + i) = pawtab(iatyp(iat))%wvl%pfac(1,i)
           G%sd((COEFF_ - 1) * 2 + 2,iexpo + i) = pawtab(iatyp(iat))%wvl%pfac(2,i)
-          write(*,*) iat, iexpo, i, G%sd((EXPO_ - 1) * 2 + 1,iexpo + i), &
-               & G%sd((EXPO_ - 1) * 2 + 2,iexpo + i), G%sd((COEFF_ - 1) * 2 + 1,iexpo + i), &
-               & G%sd((COEFF_ - 1) * 2 + 2,iexpo + i)
+!!$          write(*,*) iat, iexpo, i, G%sd((EXPO_ - 1) * 2 + 1,iexpo + i), &
+!!$               & G%sd((EXPO_ - 1) * 2 + 2,iexpo + i), G%sd((COEFF_ - 1) * 2 + 1,iexpo + i), &
+!!$               & G%sd((COEFF_ - 1) * 2 + 2,iexpo + i)
        end do
        iexpo = iexpo + pawtab(iatyp(iat))%wvl%ptotgau
     end do

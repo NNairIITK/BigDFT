@@ -242,7 +242,6 @@ subroutine fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
   !Local variables
   !n(c) integer, parameter :: nterm_max=20 !if GTH nterm_max=4
   integer :: istart_c,iat,iproj,nwarnings,ikpt,iskpt,iekpt
-  integer :: mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
 
   !if (iproc.eq.0 .and. nlpspd%nproj /=0 .and. idir==0) &
        !write(*,'(1x,a)',advance='no') 'Calculating wavelets expansion of projectors...'
@@ -265,7 +264,6 @@ subroutine fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
      iproj=0
      do iat=1,at%astruct%nat
         !this routine is defined to uniformise the call for on-the-fly application
-        call plr_segs_and_vctrs(nlpsp%pspd(iat)%plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
         call atom_projector(nlpsp, at%astruct%iatype(iat), iat, &
              & at%astruct%atomnames(at%astruct%iatype(iat)), &
              & at%astruct%geocode, idir, lr, hx, hy, hz, &

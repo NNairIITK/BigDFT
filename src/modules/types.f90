@@ -1091,11 +1091,11 @@ module module_types
  public :: restart_objects_set_mode,restart_objects_set_mat_acc
  public :: restart_objects_set_nat,free_restart_objects,restart_objects_new
  public :: deallocate_orbs,deallocate_locreg_descriptors,nullify_wfd
- public :: deallocate_wfd,deallocate_bounds,update_nlpsp
+ public :: deallocate_wfd,deallocate_bounds,update_nlpsp,deallocate_paw_objects
  public :: old_wavefunction_set,allocate_wfd,basis_params_set_dict
  public :: input_set,copy_locreg_descriptors,nullify_locreg_descriptors
  public :: copy_global_output,output_wf_format_help
- public :: input_psi_help,deallocate_rho_descriptors,nullify_rholoc_objects
+ public :: input_psi_help,deallocate_rho_descriptors
  public :: nullify_paw_objects,frag_from_dict,copy_grid_dimensions
  public :: cprj_to_array,init_restart_objects,deallocate_gwf_c
  public :: SIC_data_null

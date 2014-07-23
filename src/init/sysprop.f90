@@ -1826,6 +1826,7 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
 end subroutine pawpatch_from_file
 
 subroutine paw_init(paw, at, nspinor, nspin, npsidim, norb)
+  use module_base
   use module_types
   use m_paw_an, only: paw_an_init
   use m_paw_ij, only: paw_ij_init

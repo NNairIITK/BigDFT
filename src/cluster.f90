@@ -716,7 +716,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   skip_if_linear: if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
                      .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      call kswfn_optimization_loop(iproc, nproc, optLoop, &
-     & in%alphamix, in%idsx, inputpsi, KSwfn, denspot, nlpsp, energs, atoms, rxyz, GPU, xcstr, &
+     & in%alphamix, in%idsx, inputpsi, KSwfn, denspot, nlpsp, energs, atoms, GPU, xcstr, &
      & in)
      infocode = optLoop%infocode
 
@@ -1526,7 +1526,7 @@ END SUBROUTINE cluster
 
 !> Kohn-Sham wavefunction optimization loop
 subroutine kswfn_optimization_loop(iproc, nproc, opt, &
-     & alphamix, idsx, inputpsi, KSwfn, denspot, nlpsp, energs, atoms, rxyz, GPU, xcstr, &
+     & alphamix, idsx, inputpsi, KSwfn, denspot, nlpsp, energs, atoms, GPU, xcstr, &
      & in)
   use module_base
   use module_types
@@ -1544,7 +1544,6 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   type(atoms_data), intent(in) :: atoms
   type(GPU_pointers), intent(inout) :: GPU
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
-  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   type(input_variables), intent(in) :: in !<todo: Remove me
 
   character(len = *), parameter :: subname = "kswfn_optimization_loop"
