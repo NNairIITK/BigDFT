@@ -626,7 +626,7 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      read(line,*,iostat=ierror1) radii_cf(1),radii_cf(2),radii_cf(3)
      if (ierror1 /= 0 ) then
         read(line,*,iostat=ierror) radii_cf(1),radii_cf(2)
-        radii_cf(3)=radii_cf(2)
+        radii_cf(3)=UNINITIALIZED(1._gp)
         ! Open64 behaviour, if line is PAWPATCH, then radii_cf(1) = 0.
         if (ierror /= 0) radii_cf = UNINITIALIZED(1._gp)
      end if
@@ -759,24 +759,22 @@ subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
 
   do ityp=1,atoms%astruct%ntypes
 
-     if (any(atoms%radii_cf(ityp, :) == UNINITIALIZED(1.0_gp))) then
-        !assigning the radii by calculating physical parameters
-        if (radii_cf(ityp,1) == UNINITIALIZED(1.0_gp)) then
-           call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),ehomo=ehomo)
-           radii_cf(ityp,1)=1._gp/sqrt(abs(2._gp*ehomo))
-        end if
+     radii_cf(ityp, :) = atoms%radii_cf(ityp, :)
+     !assigning missing radii by calculating physical parameters
+     if (radii_cf(ityp,1) == UNINITIALIZED(1.0_gp)) then
+        call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),ehomo=ehomo)
+        radii_cf(ityp,1)=1._gp/sqrt(abs(2._gp*ehomo))
+     end if
+     if (radii_cf(ityp,2) == UNINITIALIZED(1.0_gp)) then
         radfine=100._gp
         do i=0,4
            if (atoms%psppar(i,0,ityp)/=0._gp) then
               radfine=min(radfine,atoms%psppar(i,0,ityp))
            end if
         end do
-        if (radii_cf(ityp,2) == UNINITIALIZED(1.0_gp)) radii_cf(ityp,2)=radfine
-        if (radii_cf(ityp,3) == UNINITIALIZED(1.0_gp)) radii_cf(ityp,3)=crmult*radii_cf(ityp,1)/frmult
-     else
-        !Everything is already provided
-        radii_cf(ityp, :) = atoms%radii_cf(ityp, :)
+        radii_cf(ityp,2)=radfine
      end if
+     if (radii_cf(ityp,3) == UNINITIALIZED(1.0_gp)) radii_cf(ityp,3)=crmult*radii_cf(ityp,1)/frmult
 
      ! Correct radii_cf(:,3) for the projectors.
      maxrad=0.e0_gp ! This line added by Alexey, 03.10.08, to be able to compile with -g -C

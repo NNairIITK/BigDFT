@@ -298,14 +298,16 @@ contains
        radii_cf(2)=radfine
        write(source, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
     end if
-    if (radii_cf(3) == UNINITIALIZED(1.0_gp)) then
-       radii_cf(3)=radii_cf(2)
-       write(source, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
-    end if
+    ! radii_cf(3) is treated differently since it is adjusted later,
+    ! for projectors.
+!!$    if (radii_cf(3) == UNINITIALIZED(1.0_gp)) then
+!!$       radii_cf(3)=radii_cf(2)
+!!$       write(source, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
+!!$    end if
     radii => dict // filename // "Radii of active regions (AU)"
     call set(radii // "Coarse", radii_cf(1))
     call set(radii // "Fine", radii_cf(2))
-    call set(radii // "Coarse PSP", radii_cf(3))
+    if (radii_cf(3) /= UNINITIALIZED(1.0_gp)) call set(radii // "Coarse PSP", radii_cf(3))
     call set(radii // "Source", source)
   end subroutine psp_dict_fill_all
 
