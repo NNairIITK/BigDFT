@@ -10,6 +10,10 @@ module module_freezingstring
     implicit none
     
     contains
+!TODO: create function "get_input_guess" which returns
+!an inpute guess for a ts (consisting of corrds. and minmode dir.)
+!this method simpliy call grow_string
+!and then uses cubic splines to find the tangent at the highest energy node
 !=====================================================================
 subroutine grow_string(nat,alat,step,gammainv,perpnrmtol,trust,nstepsmax,nstringmax,nstring,string)
     implicit none
@@ -284,7 +288,7 @@ subroutine lin_interpol(nat,left, right, step,interleft,interright,&
 end subroutine
 !=====================================================================
 subroutine lst_interpol(nat,left,right,step,interleft,interright,&
-                        tangent,finished)
+                        tangentleft,tangentright,finished)
     !on return:
     !if finished > 0: interleft and intergiht contain the new nodes
     !if finished < 0: left and right are two close, only one new node
@@ -304,7 +308,8 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     real(gp), intent(in)  :: step
     real(gp), intent(out) :: interleft(3,nat)
     real(gp), intent(out) :: interright(3,nat)
-    real(gp), intent(out) :: tangent(3,nat)
+    real(gp), intent(out) :: tangentleft(3,nat)
+    real(gp), intent(out) :: tangentright(3,nat)
     integer, intent(out) :: finished
     !parameters
     integer, parameter :: nimages=200
@@ -316,16 +321,23 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     real(gp) :: arc(nimages), arcl,arclh, pthl
     real(gp) :: arc,delta,deltaold
     real(gp) :: diff(3,nat)
+    real(gp) :: nimo
+    real(gp) :: yp1=huge(1._gp), ypn=huge(1._gp)!natural splines
+    real(gp) :: y2vec(3,nat,nimages)
+    real(gp) :: tau, ydmy
     tnat=3*nat
 
     if(step<=0._gp)stop 'step <= 0'
 
     !create high density lst path
+    nimo=1._gp/real(nimages-1,gp)
     do i=1,nimages
-        lambda=real(i,gp)/real(nimages,gp)
+        lambda  = real(i-1,gp)*nimo
+        xvec(i) = lambda
         call lstpthpnt(nat,left,right,lambda,lstpath(:,:,i))
     enddo
     
+    !measure arc length 
     arc(1)=0._gp
     do i=2,nimages
         diff = lstpath(:,:,i) - lstpath(:,:,i-1)
@@ -336,42 +348,77 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     if(arcl < step)then
         finished=0
         return
-    else if(arcl < 2*step)then
-        !we have to search for the point in the 'middle'    
-
-        !could be optimized by binary search or so...
-        !not important for dft application
-        pthl=0._gp
-        arclh=0.5_gp*arcl
-        deltaold=huge(1._gp)
-        outer1: do i=2,nimages
-            pthl  = pthl + arc(i)
-            delta = arclh-pthl
-            if(delta <= 0._gp)then
-                if(abs(delta) < abs(deltaold))then
-                    iinterleft=i
-                    exit outer1
-                else
-                    iinterleft=i-1
-                    exit outer1
-                endif
-            endif
-            deltaold=delta
-        enddo outer1
-
-        !determine tangent at interleft
-    else! standard case
     endif
 
+    !compute the spline parameters (y2vec)
+    !parametrize curve as a function of the
+    !integrated arc length
+    do i=1,nimages
+        do j=1,nat
+            !potentially performance issues since lstpath
+            !is not transversed in column-major order in
+            !spline_wrapper:
+            call spline_wrapper(arc,lstpath(1,j,1),&
+                               yp1,ypn,y2vec(1,j,1))
+            call spline_wrapper(arc,lstpath(2,j,1),&
+                               yp1,ypn,y2vec(2,j,1))
+            call spline_wrapper(arc,lstpath(3,j,1),&
+                               yp1,ypn,y2vec(3,j,1))
+        enddo
+    enddo
 
-    !cubic spline thorugh nodes
+    if(arcl < 2._gp*step)then
+        !we have to return the point in the 'middle'    
+        tau = 0.5_gp*arcl
+        do j=1,nat
+            !potentially performance issues since lstpath
+            !is not transversed in column-major order in
+            !splint_wrapper
+            call splint_wrapper(arc,lstpath(1,j,1),&
+                y2vec(1,j,1),nimages,tau,left(1,j),tangentleft(1,j,1))
+            call splint_wrapper(arc,lstpath(2,j,1),&
+                y2vec(2,j,1),nimages,tau,left(2,j),tangentleft(2,j,1))
+            call splint_wrapper(arc,lstpath(3,j,1),&
+                y2vec(3,j,1),nimages,tau,left(3,j),tangentleft(3,j,1))
+        enddo
+    else! standard case
+        !we have to return the two points interleft
+        !and interright whose distances to left and right
+        !are roughly 'step'
 
-    !using the cubic spline, determine tangent at interleft and
-    !interreight
+        !first left...
+        tau = step
+        do j=1,nat
+            !potentially performance issues since lstpath
+            !is not transversed in column-major order in
+            !splint_wrapper
+            call splint_wrapper(arc,lstpath(1,j,1),&
+                y2vec(1,j,1),nimages,tau,left(1,j),tangentleft(1,j,1))
+            call splint_wrapper(arc,lstpath(2,j,1),&
+                y2vec(2,j,1),nimages,tau,left(2,j),tangentleft(2,j,1))
+            call splint_wrapper(arc,lstpath(3,j,1),&
+                y2vec(3,j,1),nimages,tau,left(3,j),tangentleft(3,j,1))
+        enddo
+
+
+        !...then right
+        tau = arcl-step
+        do j=1,nat
+            !potentially performance issues since lstpath
+            !is not transversed in column-major order in
+            !splint_wrapper
+            call splint_wrapper(arc,lstpath(1,j,1),&
+                y2vec(1,j,1),nimages,tau,right(1,j),tangentright(1,j,1))
+            call splint_wrapper(arc,lstpath(2,j,1),&
+                y2vec(2,j,1),nimages,tau,right(2,j),tangentright(2,j,1))
+            call splint_wrapper(arc,lstpath(3,j,1),&
+                y2vec(3,j,1),nimages,tau,right(3,j),tangentright(3,j,1))
+        enddo
+    endif
 end module
 !=====================================================================
 subroutine interpol(method,nat,left,right,step,interleft,interright,&
-                    tangent,finished)
+                    tangentleft,tangentright,finished)
     implicit none
     !parameters
     character(len=*), intent(in) :: method
@@ -381,15 +428,17 @@ subroutine interpol(method,nat,left,right,step,interleft,interright,&
     real(gp), intent(in)  :: step
     real(gp), intent(out) :: interleft(3*nat)
     real(gp), intent(out) :: interright(3*nat)
-    real(gp), intent(out) :: tangent(3*nat)
+    real(gp), intent(out) :: tangentleft(3*nat)
+    real(gp), intent(out) :: tangentright(3*nat)
     logical, intent(out) :: finished
 
     if(trim(adjustl(method))=='lincat')then
         call lin_interpol(nat,left, right, step,interleft,interright,&
-                       tangent,finished)
+                       tangentleft,finished)
+        tangentright=tangentleft
     else if(trim(adjustl(method))=='linlst')then
         call lst_interpol(nat,left, right, step,interleft,interright,&
-                       tangent,finished)
+                       tangentleft,tangentright,finished)
     endif
 end module
 !=====================================================================
@@ -509,10 +558,11 @@ subroutine splint(xvec,yvec,y2vec,ndim,tau,yval,dy)
     !internal
     integer :: k,khi,klo
     real(gp):: a,b,h,hy
+    !functions
+    logical :: almostequal
     klo=1
     khi=ndim
     do while(khi-klo>1)
-!    1     if (khi-klo.gt.1) then
         k=(khi+klo)/2
         if(xvec(k)>x)then
             khi=k
@@ -520,10 +570,9 @@ subroutine splint(xvec,yvec,y2vec,ndim,tau,yval,dy)
             klo=k
         endif
     enddo
-!        goto 1
-!    endif
     h=xvec(khi)-xvec(klo)
-    if (abs(h) <= epsilon(xvec(khi))) stop 'bad xvec input in splint'
+    if(almostequal(xvec(khi),xvec(klo)),4)&
+            stop 'bad xvec input in splint'
     a=(xvec(khi)-x)/h
     b=(x-xvec(klo))/h
     yval=a*yvec(klo)+b*yvec(khi)+((a**3-a)*y2vec(klo)+&
@@ -535,3 +584,13 @@ subroutine splint(xvec,yvec,y2vec,ndim,tau,yval,dy)
        (3.0_gp*b**2-1.0_gp)*y2vec(khi))/6.0_gp*h
     return
 end subroutine
+!=====================================================================
+logical function almostequal( x, y, ulp )
+    use module_base
+    real(gp), intent(in) :: x
+    real(gp), intent(in) :: y
+    integer, intent(in) :: ulp
+    almostequal = abs(x-y)<( real(ulp,gp)*&
+                  spacing(max(abs(x),abs(y)))) 
+end function 
+!=====================================================================

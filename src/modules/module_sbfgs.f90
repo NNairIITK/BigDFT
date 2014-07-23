@@ -7,6 +7,12 @@
 
 module module_sbfgs
     implicit none
+    private
+
+    public :: modify_gradient
+    public :: getSubSpaceEvecEval
+    public :: findbonds
+    public :: projectbond
 
 contains
 
