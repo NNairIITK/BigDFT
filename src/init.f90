@@ -100,9 +100,9 @@ END SUBROUTINE createWavefunctionsDescriptors
 
 
 subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
-   use module_base
-   use module_types
-   use yaml_output
+  use module_base
+   use locregs
+   !use yaml_output
    implicit none
    !Arguments
    type(locreg_descriptors), intent(inout) :: Glr
@@ -124,12 +124,12 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
 
    !allocate kinetic bounds, only for free BC
    if (Glr%geocode == 'F' ) then
-      Glr%bounds%kb%ibyz_c = f_malloc_ptr((/ 1.to.2,0.to.n2,0.to.n3+ndebug /),id='Glr%bounds%kb%ibyz_c')
-      Glr%bounds%kb%ibxz_c = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n3+ndebug /),id='Glr%bounds%kb%ibxz_c')
-      Glr%bounds%kb%ibxy_c = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n2+ndebug /),id='Glr%bounds%kb%ibxy_c')
-      Glr%bounds%kb%ibyz_f = f_malloc_ptr((/ 1.to.2,0.to.n2,0.to.n3+ndebug /),id='Glr%bounds%kb%ibyz_f')
-      Glr%bounds%kb%ibxz_f = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n3+ndebug /),id='Glr%bounds%kb%ibxz_f')
-      Glr%bounds%kb%ibxy_f = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n2+ndebug /),id='Glr%bounds%kb%ibxy_f')
+      Glr%bounds%kb%ibyz_c = f_malloc_ptr((/ 1.to.2,0.to.n2,0.to.n3 /),id='Glr%bounds%kb%ibyz_c')
+      Glr%bounds%kb%ibxz_c = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n3 /),id='Glr%bounds%kb%ibxz_c')
+      Glr%bounds%kb%ibxy_c = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n2 /),id='Glr%bounds%kb%ibxy_c')
+      Glr%bounds%kb%ibyz_f = f_malloc_ptr((/ 1.to.2,0.to.n2,0.to.n3 /),id='Glr%bounds%kb%ibyz_f')
+      Glr%bounds%kb%ibxz_f = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n3 /),id='Glr%bounds%kb%ibxz_f')
+      Glr%bounds%kb%ibxy_f = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n2 /),id='Glr%bounds%kb%ibxy_f')
    end if
 
    ! Do the coarse region.
@@ -168,15 +168,9 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
    !that is the point where the association is given
    !one should consider the possiblity of associating the 
    !arrays with f_associate
-!!$   i_all = -product(shape(Glr%wfd%keygloc))*kind(Glr%wfd%keygloc)
-!!$   deallocate(Glr%wfd%keygloc,stat=i_stat)
-!!$   call memocc(i_stat,i_all,'Glr%wfd%keygloc',subname)
    call f_free_ptr(Glr%wfd%keygloc)
    Glr%wfd%keygloc => Glr%wfd%keyglob
 
-!!$   i_all = -product(shape(Glr%wfd%keyvloc))*kind(Glr%wfd%keyvloc)
-!!$   deallocate(Glr%wfd%keyvloc,stat=i_stat)
-!!$   call memocc(i_stat,i_all,'Glr%wfd%keyvloc',subname)
    call f_free_ptr(Glr%wfd%keyvloc)
    Glr%wfd%keyvloc => Glr%wfd%keyvglob
  
@@ -396,7 +390,7 @@ END SUBROUTINE createProjectorsArrays
 
 subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
       & band_structure_filename, input_spin, atoms, d, denspot)
-  use module_defs
+  use module_base
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => input_wf_empty
@@ -416,7 +410,7 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
   real(gp) :: hxh, hyh, hzh
 
   !allocate fake psit and hpsi
-  hpsi = f_malloc_ptr(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug,id='hpsi')
+  hpsi = f_malloc_ptr(max(orbs%npsidim_comp,orbs%npsidim_orbs),id='hpsi')
   if (nproc > 1) then
      psit = f_malloc_ptr(max(orbs%npsidim_comp,orbs%npsidim_orbs),id='psit')
   else
@@ -435,7 +429,7 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
              'The value nspin reading from the file is not the same',&
              err_name='BIGDFT_RUNTIME_ERROR')) return
      else
-        denspot%Vloc_KS = f_malloc_ptr((/ 1 , 1 , 1 , input_spin+ndebug /),id='denspot%Vloc_KS')
+        denspot%Vloc_KS = f_malloc_ptr((/ 1 , 1 , 1 , input_spin /),id='denspot%Vloc_KS')
      end if
 
      if (nproc > 1) then
@@ -469,7 +463,7 @@ END SUBROUTINE input_wf_empty
 !> Random initialisation of the wavefunctions
 !! The initialization of only the scaling function coefficients should be considered
 subroutine input_wf_random(psi, orbs)
-  use module_defs
+  use module_base, only: wp,to_zero
   use module_types
   implicit none
 
@@ -511,7 +505,7 @@ END SUBROUTINE input_wf_random
 !> Initialisation of the wavefunctions via import gaussians from CP2K
 subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
            & psi, orbs)
-  use module_defs
+  use module_base
   use module_types
   use yaml_output
   use gaussians, only: deallocate_gwf
@@ -677,7 +671,7 @@ end subroutine input_wf_memory_history
 subroutine input_wf_memory(iproc, atoms, &
      & rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old, &
      & rxyz, hx, hy, hz, d, wfd, psi, orbs)
-  use module_defs
+  use module_base, only: gp,wp,f_free_ptr
   use module_types
   use module_interfaces, except_this_one => input_wf_memory
   implicit none
@@ -942,7 +936,7 @@ END SUBROUTINE input_memory_linear
 
 subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
      & in, atoms, rxyz, rxyz_old, wfd, orbs, psi)
-  use module_defs
+  use module_base
   use module_types
   use module_interfaces, except_this_one => input_wf_disk
   implicit none
@@ -1083,7 +1077,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   !of nonblocking send-receive operations to calculate overlap matrices
 
 !!!  !create mpirequests array for controlling the success of the send-receive operation
-!!!  allocate(mpirequests(nproc-1+ndebug),stat=i_stat)
+!!!  allocate(mpirequests(nproc-1),stat=i_stat)
 !!!  call memocc(i_stat,mpirequests,'mpirequests',subname)
 !!!
 !!!  call nonblocking_transposition(iproc,nproc,G%ncoeff,orbse%isorb+orbse%norbp,&
@@ -1150,8 +1144,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      !        denspot%rhov(1+denspot%dpcom%nscatterarr(iproc,4)*Lzd%Glr%d%n1i*Lzd%Glr%d%n2i))
      !---
      !reallocate psi, with good dimensions:
-     ii=max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug
-     jj=max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp))+ndebug
+     ii=max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))
+     jj=max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp))
      if(ii .ne. jj) then
         psi_ = f_malloc(jj,id='psi_')
         if(jj<=ii) psi_=psi(1:jj)
@@ -1167,7 +1161,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
 
      !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-     hpsi = f_malloc_ptr(max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp))+ndebug,id='hpsi')
+     hpsi = f_malloc_ptr(max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp)),id='hpsi')
 
      !The following lines are copied from LDiagHam:
      nullify(psit)
@@ -1336,7 +1330,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-  hpsi = f_malloc_ptr(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp))+ndebug,id='hpsi')
+  hpsi = f_malloc_ptr(max(1,max(orbse%npsidim_orbs,orbse%npsidim_comp)),id='hpsi')
 
   !call vcopy(orbse%npsidim,psi,1,hpsi,1)
   if (input%exctxpar == 'OP2P') then
@@ -1381,12 +1375,12 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   deallocate(confdatarr)
 
 !!!  !calculate the overlap matrix knowing that the original functions are gaussian-based
-!!!  allocate(thetaphi(2,G%nat+ndebug),stat=i_stat)
+!!!  allocate(thetaphi(2,G%nat),stat=i_stat)
 !!!  call memocc(i_stat,thetaphi,'thetaphi',subname)
 !!!  thetaphi=0.0_gp
 !!!
 !!!  !calculate the scalar product between the hamiltonian and the gaussian basis
-!!!  allocate(hpsigau(G%ncoeff,orbse%norbp+ndebug),stat=i_stat)
+!!!  allocate(hpsigau(G%ncoeff,orbse%norbp),stat=i_stat)
 !!!  call memocc(i_stat,hpsigau,'hpsigau',subname)
 !!!
 !!!
@@ -1482,7 +1476,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 !!$   !yaml output
 !!$   if (iproc ==0) then
 !!$      if(orbse%nspinor==4) then
-!!$         allocate(mom_vec(4,orbse%norb,min(nproc,2)+ndebug),stat=i_stat)
+!!$         allocate(mom_vec(4,orbse%norb,min(nproc,2)),stat=i_stat)
 !!$         call memocc(i_stat,mom_vec,'mom_vec',subname)
 !!$         call to_zero(4*orbse%norb*min(nproc,2),mom_vec(1,1,1))
 !!$      end if
@@ -1564,7 +1558,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      denspot,denspot0,nlpsp,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
      lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft,&
      locregcenters)
-  use module_defs
+  use module_base
   use module_types
   use module_interfaces, except_this_one => input_wf
   use module_fragments
@@ -2150,7 +2144,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      end if
      call yaml_newline()
      call yaml_comment('Saving the KS potential obtained from IG')
-     denspot%rho_work = f_malloc_ptr(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim+ndebug,id='denspot%rho_work')
+     denspot%rho_work = f_malloc_ptr(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,id='denspot%rho_work')
      call vcopy(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,&
           denspot%rhov(1),1,denspot%rho_work(1),1)
   end if
@@ -2288,7 +2282,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
            rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old,lzd_old, &
            rxyz,hx,hy,hz,d,wfd,psi,orbs,lzd,displ)
 
-  use module_defs
+  use module_base
   use ao_inguess, only: atomic_info
   use module_types
   use module_interfaces, except_this_one => input_wf_memory_new

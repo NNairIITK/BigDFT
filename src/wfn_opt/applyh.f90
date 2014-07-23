@@ -750,6 +750,7 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
   use module_base
   use module_types
   use yaml_output
+  use psp_projectors, only: PSPCODE_PAW
   implicit none
   integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz

@@ -798,8 +798,8 @@ END SUBROUTINE read_radii_variables
 !> Calculate the number of electrons and check the polarisation (mpol)
 subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
      & atoms, ncharge, nspin, mpol, norbsempty)
-  use module_types, only: atoms_data, f_err_throw
-  use module_defs, only: gp
+  use module_types, only: atoms_data
+  use module_base, only: gp, f_err_throw
   use yaml_output, only: yaml_toa , yaml_warning, yaml_comment
   !use ao_inguess, only : count_atomic_shells
   implicit none
@@ -1293,8 +1293,8 @@ END SUBROUTINE kpts_to_procs_via_obj
 
 
 subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par)
-  use module_base, only: gp, f_err_throw, to_zero
-  use module_types, only: BIGDFT_RUNTIME_ERROR, UNINITIALIZED
+  use module_base, only: gp, f_err_throw, to_zero,BIGDFT_RUNTIME_ERROR,&
+       UNINITIALIZED
   implicit none
   !Arguments
   integer, intent(in) :: nproc,nkpts,nvctr,norb
@@ -1905,6 +1905,7 @@ end subroutine paw_init
 
 subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, energs, denspot, optloop, &
        & ntypes, radii_cf, crmult, frmult)
+  use module_defs, only: gp, UNINITIALIZED
   use module_types
   implicit none
   integer, intent(in) :: iproc, ntypes

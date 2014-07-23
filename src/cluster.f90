@@ -843,7 +843,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      ! keep only the essential part of the density, without the GGA bufffers
      denspot%rho_work = f_malloc_ptr(denspot%dpbox%ndimpot,id='denspot%rho_work')
      ioffset=kswfn%lzd%glr%d%n1i*kswfn%lzd%glr%d%n2i*denspot%dpbox%i3xcsh
-     call vcopy(denspot%dpbox%ndimpot,denspot%rhov(ioffset+1),1,denspot%rho_work(1),1)
+     if (denspot%dpbox%ndimpot>0) then
+         call vcopy(denspot%dpbox%ndimpot,denspot%rhov(ioffset+1),1,denspot%rho_work(1),1)
+     end if
 
      if (infocode==2) then
         !!! Allocate this array since it will be deallcoated in deallocate_before_exiting
@@ -1093,6 +1095,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         !define Local zone descriptors
         VTwfn%Lzd = KSwfn%Lzd
         VTwfn%orthpar=KSwfn%orthpar
+        VTwfn%SIC=SIC_data_null() !then fill it if needed
         allocate(VTwfn%confdatarr(VTwfn%orbs%norbp))
         call default_confinement_data(VTwfn%confdatarr,VTwfn%orbs%norbp)
 
@@ -1987,7 +1990,9 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
         denspot%pot_work = f_malloc_ptr(1,id='denspot%pot_work')
      end if
      ! Density already present in denspot%rho_work
-     call vcopy(denspot%dpbox%ndimpot,denspot%rho_work(1),1,denspot%pot_work(1),1)
+     if (denspot%dpbox%ndimpot>0) then
+         call vcopy(denspot%dpbox%ndimpot,denspot%rho_work(1),1,denspot%pot_work(1),1)
+     end if
      call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
           0.0_dp,.false.,stress_tensor=hstrten)
   else

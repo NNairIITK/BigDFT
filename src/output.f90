@@ -1268,6 +1268,8 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
   use module_xc
   use vdwcorrection
   use yaml_output
+  use psp_projectors, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
+       PSPCODE_PAW,PSPCODE_GTH
   implicit none
   type(atoms_data), intent(inout) :: atoms
   real(gp), intent(in) :: hmax

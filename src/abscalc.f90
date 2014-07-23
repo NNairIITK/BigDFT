@@ -97,19 +97,15 @@ program abscalc_main
       ! if (iproc == 0) call write_forces(atoms,fxyz)
 
       !De-allocations
-      call deallocate_abscalc_input(runObj%inputs)
+      !call deallocate_abscalc_input(runObj%inputs)
+      call f_free_ptr(runObj%inputs%Gabs_coeffs)
 !      call deallocate_local_zone_descriptors(rst%Lzd, subname)
 
 
       call f_free(fxyz)
 
       call run_objects_free(runObj, subname)
-!!$      call free_input_variables(inputs)
-!!$
-!!$      !finalize memory counting
-!!$      call memocc(0,0,'count','stop')
 
-      !     call sg_end()
    end if
    enddo !loop over iconfig
 
@@ -117,11 +113,6 @@ program abscalc_main
 
    call bigdft_finalize(ierr)
    call f_lib_finalize()
-!!$
-!!$   !No referenced by memocc!
-!!$   deallocate(arr_posinp)
-!!$
-!!$   call MPI_FINALIZE(ierr)
 
 END PROGRAM abscalc_main
 
@@ -271,6 +262,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use ao_inguess, only: set_aocc_from_string
    use gaussians, only: gaussian_basis, nullify_gaussian_basis
    use yaml_output, only: yaml_warning,yaml_toa
+   use psp_projectors, only: free_DFT_PSP_projectors
    implicit none
    integer, intent(in) :: nproc,iproc
    real(gp), intent(inout) :: hx_old,hy_old,hz_old

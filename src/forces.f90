@@ -806,6 +806,8 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
      orbs,nlpsp,wfd,psi,fsep,refill,strten)
   use module_base
   use module_types
+  use psp_projectors, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
+       PSPCODE_PAW
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at
@@ -3909,7 +3911,8 @@ end subroutine symm_stress
 subroutine symmetrise_forces(fxyz, at)
   use defs_basis
   use m_ab6_symmetry
-  use module_types
+  use module_defs, only: gp
+  use module_types, only: atoms_data
   use yaml_output
 
   implicit none
@@ -4199,6 +4202,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix, matrices
+  use psp_projectors, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
+       PSPCODE_PAW
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at

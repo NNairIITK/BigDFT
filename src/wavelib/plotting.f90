@@ -266,7 +266,7 @@ END SUBROUTINE read_density_cube_old
 !> Write a (sum of two) field in the ISF basis in the cube format
 subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s,n3s,hxh,hyh,hzh,&
      a,x,nexpo,b,y)
-  !n(c) use module_base
+  use module_defs, only: gp,wp,dp
   use module_types
   implicit none
   character(len=*), intent(in) :: filename,message
@@ -726,7 +726,7 @@ end subroutine read_potential_from_disk
 !> Read density or potential in cube format
 subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz, iatypes, znucl)
-  !n(c) use module_base
+  use module_defs, only: gp,dp
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
@@ -790,7 +790,6 @@ contains
   subroutine read_cube_header(filename,geocode,nspin,n1i,n2i,n3i,hxh,hyh,hzh,rho,&
        nat,rxyz, iatypes, znucl)
     use module_base
-    use module_types
     implicit none
     character(len=*), intent(in) :: filename
     character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -888,7 +887,7 @@ END SUBROUTINE read_cube
 
 !>   Read a cube field which have been plotted previously by write_cube_fields
 subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
-  !n(c) use module_base
+  use module_base, only: dp,gp,to_zero
   use module_types
   implicit none
   character(len=*), intent(in) :: filename

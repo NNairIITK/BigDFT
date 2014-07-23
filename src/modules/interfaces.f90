@@ -64,8 +64,8 @@ module module_interfaces
 
       subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
             &   n1_old,n2_old,n3_old,wfd_old,psi_old)
-         !n(c) use module_base
-         use module_types
+        use module_defs, only: wp
+        use module_types
          implicit none
          integer, intent(in) :: nproc,n1,n2,n3
          type(orbitals_data), intent(in) :: orbs
@@ -75,7 +75,7 @@ module module_interfaces
       END SUBROUTINE copy_old_wavefunctions
 
       subroutine system_properties(iproc,nproc,in,at,orbs,radii_cf)
-         !n(c) use module_base
+        use module_defs, only: gp
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc
@@ -86,7 +86,7 @@ module module_interfaces
       END SUBROUTINE system_properties
 
       subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,shift)
-         !n(c) use module_base
+        use module_defs, only: gp
          use module_types
          implicit none
          type(atoms_data), intent(inout) :: atoms
@@ -107,6 +107,7 @@ module module_interfaces
       END SUBROUTINE standard_inputfile_names
 
       subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
+        use module_defs, only: gp
         use module_types
         implicit none
         type(run_objects), intent(out) :: runObj
@@ -129,7 +130,7 @@ module module_interfaces
       END SUBROUTINE initialize_atomic_file
 
       subroutine write_atomic_file(filename,energy,rxyz,ixyz,atoms,comment,forces)
-         !n(c) use module_base
+        use module_defs, only: gp
          use module_types
          implicit none
          character(len=*), intent(in) :: filename,comment
@@ -200,7 +201,7 @@ module module_interfaces
       END SUBROUTINE check_closed_shell
 
       subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs,simple,basedist)
-         !n(c) use module_base
+        use module_defs, only: gp
          use module_types
          implicit none
          logical, intent(in) :: simple !< simple calculation of the repartition
@@ -213,7 +214,7 @@ module module_interfaces
       END SUBROUTINE orbitals_descriptors
 
      subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)
-       use module_base
+       use module_defs, only: gp
        use module_types
        implicit none
        integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
@@ -225,8 +226,8 @@ module module_interfaces
 
       subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
             &   crmult,frmult,Glr,output_denspot)
-         !n(c) use module_base
-         use module_types
+        use module_defs, only: gp
+        use module_types
          implicit none
          !Arguments
          type(atoms_data), intent(in) :: atoms
@@ -268,7 +269,7 @@ module module_interfaces
 
       subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
            rho_commun,rxyz,radii_cf,rhodsc)
-        use module_base
+        use module_defs, only: gp
         use module_types
         use module_xc
         implicit none
@@ -294,7 +295,7 @@ module module_interfaces
        subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
             & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,n1,n2,n3,&
             & pot_ion,pkernel,psoffset)
-         use module_base
+         use module_defs, only: gp,dp
          use module_types
          implicit none
          type(denspot_distribution), intent(in) :: dpbox
@@ -312,7 +313,7 @@ module module_interfaces
        subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
             hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,&
             pot_ion,psoffset)
-         use module_base
+         use module_defs, only: gp,wp
          use module_types
          implicit none
          character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -328,7 +329,7 @@ module module_interfaces
 
        subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
             & band_structure_filename, input_spin, atoms, d, denspot)
-         use module_defs
+         use module_defs, only: wp
          use module_types
          implicit none
          integer, intent(in) :: iproc, nproc
@@ -464,7 +465,7 @@ module module_interfaces
        subroutine reformatmywaves(iproc,orbs,at,&
             &   hx_old,hy_old,hz_old,n1_old,n2_old,n3_old,rxyz_old,wfd_old,psi_old,&
          hx,hy,hz,n1,n2,n3,rxyz,wfd,psi)
-         !n(c) use module_base
+         use module_defs, only: gp,wp
          use module_types
          implicit none
          integer, intent(in) :: iproc,n1_old,n2_old,n3_old,n1,n2,n3
@@ -479,7 +480,7 @@ module module_interfaces
 
 
       subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
-         !n(c) use module_base
+        use module_defs, only: wp
          use module_types
          use communications_base, only: comms_cubic
          implicit none
@@ -493,7 +494,7 @@ module module_interfaces
       END SUBROUTINE first_orthon
 
       subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,vh,hstrten)
-        use module_base
+        use module_defs, only: gp,wp,dp
         use module_types
         use module_atoms, only: symmetry_data
         use module_xc
@@ -512,7 +513,7 @@ module module_interfaces
       end subroutine density_and_hpot
 
       subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
-        use module_base, only: wp,gp
+        use module_defs, only: wp,gp,dp
         use module_atoms, only: symmetry_data
         use module_types
         use module_xc
@@ -545,8 +546,8 @@ module module_interfaces
 
       subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
             &   n1i,n2i,n3i,hxh,hyh,hzh,nspin,rho_d,iprint)
-         !n(c) use module_base
-         use module_types
+        use module_defs, only: gp
+        use module_types
          implicit none
          integer,intent(in) :: n1i,n2i,n3i,iproc,nspin
          type(atoms_data), intent(in) :: at
@@ -623,7 +624,7 @@ module module_interfaces
 
       subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
            at,nlpsp,eproj_sum)
-         !n(c) use module_base
+        use module_defs, only: gp
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc,idsx,iter
@@ -698,7 +699,7 @@ module module_interfaces
       subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
            Glr,nlpsp,ncongt,pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,&
            psi,output_denspot,ekin_sum,epot_sum,eproj_sum,paw)
-         !n(c) use module_base
+        use module_defs, only: gp,wp,dp
          use module_types
          use gaussians, only: gaussian_basis
          implicit none
@@ -720,7 +721,7 @@ module module_interfaces
       !added for abinit compatilbility
       subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,&
            n1_old,n2_old,n3_old,rxyz_old,psigold,hx,hy,hz,n1,n2,n3,rxyz,psifscf,psi)
-         !n(c) use module_base
+        use module_defs, only: gp,wp
          use module_types
          implicit none
          integer, intent(in) :: n1_old,n2_old,n3_old,n1,n2,n3
@@ -734,7 +735,7 @@ module module_interfaces
       END SUBROUTINE reformatonewave
       subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
             &   hx,hy,hz,at,wfd,rxyz_old,rxyz,psi,eval,psifscf)
-         !n(c) use module_base
+        use module_defs, only: gp,wp
          use module_types
          implicit none
          logical, intent(in) :: useFormattedInput
@@ -794,7 +795,7 @@ module module_interfaces
       end subroutine davidson
 
       subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
-         !n(c) use module_base
+        use module_defs, only: gp,wp,dp
          use module_types
          implicit none
          integer, intent(in) :: ncong
@@ -836,7 +837,7 @@ module module_interfaces
 
       subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,rxyz,&
             &   CP2K,wfn_cp2k)
-         !n(c) use module_base
+        use module_defs, only: gp,wp
          use module_types
          implicit none
          character(len=*), intent(in) :: basisfile,orbitalfile
@@ -849,7 +850,7 @@ module module_interfaces
       END SUBROUTINE parse_cp2k_files
 
       subroutine read_gaussian_information(orbs,G,coeffs,filename, opt_fillrxyz)
-         !n(c) use module_base
+          use module_defs, only: wp
          use module_types
          implicit none
          character(len=*), intent(in) :: filename
@@ -860,7 +861,7 @@ module module_interfaces
       END SUBROUTINE read_gaussian_information
 
       subroutine restart_from_gaussians(iproc,nproc,orbs,Lzd,hx,hy,hz,psi,G,coeffs)
-         !n(c) use module_base
+        use module_defs, only: gp,wp
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc
@@ -874,7 +875,7 @@ module module_interfaces
 
       subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
             orbs,orbse,norbsc_arr,locrad,G,psigau,eks,iversion,mapping,quartic_prefactor)
-         !n(c) use module_base
+        use module_defs, only: gp,wp
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc,nspin
@@ -960,7 +961,7 @@ module module_interfaces
 
       subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
             &   nat,rxyz,iatypes, znucl)
-         !n(c) use module_base
+        use module_defs, only: gp,dp
          use module_types
          implicit none
          character(len=*), intent(in) :: filename
@@ -976,7 +977,7 @@ module module_interfaces
 
       subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
             &   nat,rxyz, iatypes, znucl)
-         !n(c) use module_base
+         use module_defs, only: gp,dp
          use module_types
          implicit none
          character(len=*), intent(in) :: filename
@@ -992,7 +993,7 @@ module module_interfaces
 
       subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
             &   nat,rxyz, iatypes, znucl)
-         !n(c) use module_base
+        use module_defs, only: gp,dp
          use module_types
          implicit none
          character(len=*), intent(in) :: filename
@@ -1018,6 +1019,7 @@ module module_interfaces
 
       subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes, &
             &   iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg )
+        use module_defs, only: gp,wp
          use module_types
          implicit none
          logical, intent(in) :: enlargerprb
@@ -1057,7 +1059,7 @@ module module_interfaces
 
 
       subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
-         !n(c) use module_base
+        use module_defs, only: gp,wp
          use module_types
          implicit none
          integer, intent(in) :: iproc,nproc
@@ -1070,7 +1072,7 @@ module module_interfaces
       END SUBROUTINE local_analysis
 
       subroutine plot_gatom_basis(filename,iat,ngx,G,Gocc,rhocoeff,rhoexpo)
-         !n(c) use module_base
+        use module_defs, only: wp
          use module_types
          implicit none
          character(len=*), intent(in) :: filename
@@ -1152,7 +1154,7 @@ module module_interfaces
 
       subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
             &   hxh,hyh,hzh,grid,n3pi,i3s,pkernel,pot_ion)
-         !n(c) use module_base
+        use module_defs, only: gp,wp
          use module_types
          implicit none
          character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -1166,7 +1168,7 @@ module module_interfaces
       END SUBROUTINE CounterIonPotential
 
       subroutine gaussian_rism_basis(nat,radii,rxyz,G)
-         !n(c) use module_base
+        use module_defs, only: gp
          use module_types
          implicit none
          integer, intent(in) :: nat
@@ -1176,7 +1178,7 @@ module module_interfaces
       END SUBROUTINE gaussian_rism_basis
 
       subroutine gaussian_hermite_basis(nhermitemax,nat,radii,rxyz,G)
-         !n(c) use module_base
+        use module_defs, only: gp
          use module_types
          implicit none
          integer, intent(in) :: nat,nhermitemax
@@ -1195,7 +1197,7 @@ module module_interfaces
       end subroutine write_eigenvalues_data
 
       subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt,output_wf_format)
-         !n(c) use module_base
+        use module_defs, only: gp,wp
          use module_types
          implicit none
          logical, intent(in) :: occorbs
@@ -1316,8 +1318,8 @@ module module_interfaces
       END SUBROUTINE local_hamiltonian
 
       subroutine NK_SIC_potential(lr,orbs,xc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC,potandrho,wxdsave)
-         !n(c) use module_base
-         use module_types
+        use module_defs, only: gp,wp,dp
+        use module_types
          use module_xc
          implicit none
          real(gp), intent(in) :: hxh,hyh,hzh,fref
@@ -1334,7 +1336,7 @@ module module_interfaces
       END SUBROUTINE NK_SIC_potential
 
       subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_strten)
-        !use module_base
+        use module_defs, only: gp,wp
         use module_types
         implicit none
         integer, intent(in) :: nspinor
@@ -2245,6 +2247,7 @@ module module_interfaces
        end subroutine create_LzdLIG
 
        subroutine export_grids(fname, atoms, rxyz, hx, hy, hz, n1, n2, n3, logrid_c, logrid_f)
+         use module_defs, only: gp
          use module_types
          implicit none
          character(len = *), intent(in) :: fname
@@ -4029,9 +4032,8 @@ module module_interfaces
 
         subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovrlp_mat,&
                    homo_coeffs1,homo_coeffs2,homo_ham,homo_ovrlp)
-          use module_base
+          use module_defs, only:gp
           use module_types
-          use yaml_output
           use module_fragments
           use sparsematrix_base, only: sparse_matrix
           implicit none
@@ -4059,6 +4061,7 @@ module module_interfaces
 
         subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_charged,tmb,input,ref_frags,&
              calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap,ovrlp_half)
+          use module_defs, only: gp
           use module_types
           use module_fragments
           implicit none

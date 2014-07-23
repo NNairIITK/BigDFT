@@ -510,7 +510,7 @@ contains
           absci = x*hgrid - x0
           !here evaluate the function
           absci = -pgauss*absci*absci
-          fabsci = dexp(absci)
+          fabsci = safe_exp(absci)
           !calculate the integral
           gint = gint + scf_data(i)*fabsci
    !       print *,'test',i,scf_data(i),fabsci,pgauss,pow,absci

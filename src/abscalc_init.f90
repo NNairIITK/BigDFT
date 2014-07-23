@@ -199,7 +199,7 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   use module_abscalc
   use module_interfaces
   use gaussians, only: deallocate_gwf
-  use psp_projectors, only: deallocate_nonlocal_psp_descriptors
+  use psp_projectors
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
@@ -474,6 +474,7 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   use module_interfaces
   use module_base
   use module_types
+  use psp_projectors
   use module_abscalc
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3
@@ -701,7 +702,7 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
   use module_base
   use module_types
   use module_abscalc
-  use psp_projectors, only: deallocate_nonlocal_psp_descriptors
+  use psp_projectors
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
