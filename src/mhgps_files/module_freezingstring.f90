@@ -367,7 +367,7 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
         enddo
     enddo
 
-    if(arcl < 2._gp*step)then
+    if(arcl < 2._gp*step)then!only one more point
         !we have to return the point in the 'middle'    
         tau = 0.5_gp*arcl
         do j=1,nat
@@ -375,11 +375,11 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
             !is not transversed in column-major order in
             !splint_wrapper
             call splint_wrapper(arc,lstpath(1,j,1),&
-                y2vec(1,j,1),nimages,tau,left(1,j),tangentleft(1,j,1))
+             y2vec(1,j,1),nimages,tau,left(1,j),tangentleft(1,j,1))
             call splint_wrapper(arc,lstpath(2,j,1),&
-                y2vec(2,j,1),nimages,tau,left(2,j),tangentleft(2,j,1))
+             y2vec(2,j,1),nimages,tau,left(2,j),tangentleft(2,j,1))
             call splint_wrapper(arc,lstpath(3,j,1),&
-                y2vec(3,j,1),nimages,tau,left(3,j),tangentleft(3,j,1))
+             y2vec(3,j,1),nimages,tau,left(3,j),tangentleft(3,j,1))
         enddo
     else! standard case
         !we have to return the two points interleft
@@ -393,13 +393,12 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
             !is not transversed in column-major order in
             !splint_wrapper
             call splint_wrapper(arc,lstpath(1,j,1),&
-                y2vec(1,j,1),nimages,tau,left(1,j),tangentleft(1,j,1))
+             y2vec(1,j,1),nimages,tau,left(1,j),tangentleft(1,j,1))
             call splint_wrapper(arc,lstpath(2,j,1),&
-                y2vec(2,j,1),nimages,tau,left(2,j),tangentleft(2,j,1))
+             y2vec(2,j,1),nimages,tau,left(2,j),tangentleft(2,j,1))
             call splint_wrapper(arc,lstpath(3,j,1),&
-                y2vec(3,j,1),nimages,tau,left(3,j),tangentleft(3,j,1))
+             y2vec(3,j,1),nimages,tau,left(3,j),tangentleft(3,j,1))
         enddo
-
 
         !...then right
         tau = arcl-step
@@ -408,11 +407,11 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
             !is not transversed in column-major order in
             !splint_wrapper
             call splint_wrapper(arc,lstpath(1,j,1),&
-                y2vec(1,j,1),nimages,tau,right(1,j),tangentright(1,j,1))
+             y2vec(1,j,1),nimages,tau,right(1,j),tangentright(1,j,1))
             call splint_wrapper(arc,lstpath(2,j,1),&
-                y2vec(2,j,1),nimages,tau,right(2,j),tangentright(2,j,1))
+             y2vec(2,j,1),nimages,tau,right(2,j),tangentright(2,j,1))
             call splint_wrapper(arc,lstpath(3,j,1),&
-                y2vec(3,j,1),nimages,tau,right(3,j),tangentright(3,j,1))
+             y2vec(3,j,1),nimages,tau,right(3,j),tangentright(3,j,1))
         enddo
     endif
 end module
