@@ -5,8 +5,7 @@
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
-
+!!    For the list of contributors, see ~/AUTHORS
 
 !> Calculates the application of the Hamiltonian on the wavefunction. The hamiltonian can be self-consistent or not.
 !! In the latter case, the potential should be given in the rhov array of denspot structure. 
@@ -40,7 +39,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   !local variables
   character(len=*), parameter :: subname='psitohpsi'
   logical :: unblock_comms_den,unblock_comms_pot,whilepot,savefields
-  integer :: nthread_max,ithread,nthread,irhotot_add,irho_add,ispin,i_all,i_stat,correcth
+  integer :: nthread_max,ithread,nthread,irhotot_add,irho_add,ispin,correcth
   !integer :: ii,jj
   !$ integer :: omp_get_max_threads,omp_get_thread_num,omp_get_num_threads
 
@@ -284,7 +283,9 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   !call MPI_BARRIER(MPI_COMM_WORLD,i_stat)
   !end debug
 
-
+  if (wfn%paw%usepaw) then
+     call paw_compute_dij(wfn%paw, atoms, denspot, denspot%V_XC(1, 1, 1, 1))
+  end if
 
   !non self-consistent case: rhov should be the total potential
   if (denspot%rhov_is /= KS_POTENTIAL) then
@@ -491,7 +492,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    !local variables
    character(len=*), parameter :: subname='HamiltonianApplication'
    logical :: exctX,op2p
-   integer :: i_stat,n3p,ispot,ipotmethod
+   integer :: n3p,ispot,ipotmethod
    real(gp) :: evsic_tmp
    type(coulomb_operator) :: pkernelSIC
 
@@ -705,7 +706,6 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   logical :: dosome, overlap
   integer :: ikpt,istart_ck,ispsi_k,isorb,ieorb,nspinor,iorb,iat,nwarnings
   integer :: iproj,ispsi,istart_c,ilr,ilr_skip,mproj,iatype,ispinor
-  integer :: mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
   real(wp) :: hp,eproj
   real(wp), dimension(:), allocatable :: scpr
 
@@ -1022,7 +1022,7 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
    !local variables
    character(len=*), parameter :: subname='SynchronizeHamiltonianApplication'
    logical :: exctX
-   integer :: i_all,i_stat,iorb,ispsi,ilr
+   integer :: iorb,ispsi,ilr
    real(gp), dimension(4) :: wrkallred
 
    call f_routine(id='SynchronizeHamiltonianApplication')
@@ -1096,7 +1096,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
    !local variables
    character(len=*), parameter :: subname='full_local_potential'
    logical :: odp,newvalue !orbital dependent potential
-   integer :: npot,ispot,ispotential,ispin,ierr,i_stat,i_all,ii,ilr,iorb,iorb2,nilr,ni1,ni2
+   integer :: npot,ispot,ispotential,ispin,ierr,ii,ilr,iorb,iorb2,nilr,ni1,ni2
    integer:: istl, ist, size_Lpot, i3s, i3e, i2s, i2e, i1s, i1e
    integer,dimension(:),allocatable:: ilrtable
    real(wp), dimension(:), pointer :: pot1
@@ -1343,7 +1343,6 @@ subroutine free_full_potential(nproc,flag,xc,pot,subname)
    real(wp), dimension(:), pointer :: pot
    !local variables
    logical :: odp
-   integer :: i_all,i_stat
 
    odp = xc_exctXfac(xc) /= 0.0_gp
    if (nproc > 1 .or. odp .or. flag > 0 ) then
@@ -1404,7 +1403,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   !local variables
   character(len=*), parameter :: subname='calculate_energy_and_gradient' 
   logical :: lcs
-  integer :: ikpt,iorb,i_all,i_stat,k
+  integer :: ikpt,iorb,k
   real(gp) :: rzeroorbs,tt,garray(2)
   real(wp), dimension(:,:,:), pointer :: mom_vec
 
@@ -1640,7 +1639,6 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    real(gp),optional, dimension(3,at%astruct%nat), intent(in) :: rxyz
    !local variables
    !character(len=*), parameter :: subname='hpsitopsi'
-   integer :: i_all,i_stat
    !debug
    integer :: jorb,iat
    !end debug
@@ -1887,7 +1885,7 @@ subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
    type(paw_objects),optional,intent(inout)::paw
    !local variables
    character(len=*), parameter :: subname='first_orthon'
-   integer :: i_stat,usepaw=0
+   logical :: usepaw=.false.
 
    if(present(paw))usepaw=paw%usepaw
    !!!  if(nspin==4) then
@@ -1917,7 +1915,7 @@ subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
           &   psi(1),out_add=psit(1))
    end if
 
-   if(usepaw==1) then
+   if(usepaw) then
      call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar,paw)
    else
      call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar)
@@ -1957,7 +1955,6 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
    !local variables
    logical :: keeppsit
    character(len=*), parameter :: subname='last_orthon'
-   integer :: i_all,i_stat
 
    if (present(opt_keeppsit)) then
       keeppsit=opt_keeppsit
@@ -2010,7 +2007,6 @@ subroutine eigensystem_info(iproc,nproc,tolerance,nvctr,orbs,psi)
   real(wp), dimension(nvctr,orbs%nspinor,orbs%norbp), intent(in) :: psi
   !local variables
   character(len=*), parameter :: subname='eigensystem_info'
-  integer :: i_all,i_stat
   real(wp), dimension(:,:,:), pointer :: mom_vec
 
 
@@ -2063,7 +2059,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
    real(gp), parameter :: pi=3.1415926535897932d0
    real(gp), parameter :: sqrtpi=sqrt(pi)
    real(gp), dimension(1,1,1) :: fakepsi
-   integer :: ikpt,iorb,melec,ii,info_fermi
+   integer :: ikpt,iorb,melec,ii !,info_fermi
    real(gp) :: charge, chargef,wf
    real(gp) :: ef,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
    real(gp) :: a, x, xu, xd, f, df, tt
@@ -2393,7 +2389,7 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
    real(wp), dimension(4,norb,min(nproc,2)), intent(out) :: mom_vec
    !local variables
    character(len=*), parameter :: subname='calc_moments'
-   integer :: i_all,i_stat,ierr,iorb,jproc
+   integer :: ierr,iorb,jproc
    integer :: ndim,oidx
    integer, dimension(:), allocatable :: norb_displ
    real(wp) :: m00,m11,m13,m24,m14,m23
@@ -2459,7 +2455,7 @@ subroutine check_communications(iproc,nproc,orbs,lzd,comms)
    type(comms_cubic), intent(in) :: comms
    !local variables
    character(len=*), parameter :: subname='check_communications'
-   integer :: i,ispinor,iorb,indspin,indorb,jproc,i_stat,i_all,iscomp,idsx,index,ikptsp
+   integer :: i,ispinor,iorb,indspin,indorb,jproc,iscomp,idsx,index,ikptsp
    integer :: ikpt,ispsi,nspinor,nvctrp,ierr
    real(wp) :: psival,maxdiff
    real(wp), dimension(:), allocatable :: psi
@@ -3234,3 +3230,41 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
   call f_release_routine()
 
 end subroutine integral_equation
+
+!> Compute the Dij coefficients from the current KS potential.
+subroutine paw_compute_dij(paw, at, denspot, vxc)
+  use module_base
+  use module_types
+  use m_pawdij, only: pawdij
+  implicit none
+  type(paw_objects), intent(inout) :: paw
+  type(atoms_data), intent(in) :: at
+  type(DFT_local_fields), intent(in) :: denspot
+  real(gp), dimension(denspot%dpbox%ndims(1) * denspot%dpbox%ndims(2) * denspot%dpbox%n3p, &
+       & denspot%dpbox%nrhodim), intent(in) :: vxc
+
+  integer, parameter :: cplex = 1, pawprtvol = 0, pawspnorb = 0, pawxcdev = 1, enunit = 0, ipert = 0
+  integer :: nfft, nfftot
+  real(gp), parameter :: spnorbscl = 1._gp, charge = 0._gp
+  real(gp) :: ucvol
+  real(gp), dimension(3), parameter :: qphon = (/ 0._gp, 0._gp, 0._gp /)
+  real(gp), dimension(3,3) :: gprimd ! Used only for phonons.
+  real(gp), dimension(:,:), allocatable :: xred ! Used only for phonons.
+
+  call to_zero(9, gprimd(1,1))
+  xred = f_malloc((/ 3, at%astruct%nat /), id = "xred")
+
+  nfft = denspot%dpbox%ndims(1) * denspot%dpbox%ndims(2) * denspot%dpbox%n3p
+  nfftot = product(denspot%dpbox%ndims)
+  ucvol = product(denspot%dpbox%ndims) * product(denspot%dpbox%hgrids)
+
+  call pawdij(cplex, enunit, gprimd, ipert, at%astruct%nat, at%astruct%nat, nfft, nfftot, &
+       & denspot%dpbox%nrhodim, at%astruct%ntypes, paw%paw_an, paw%paw_ij, at%pawang, &
+       & paw%pawfgrtab, pawprtvol, at%pawrad, paw%pawrhoij, pawspnorb, at%pawtab, pawxcdev, &
+       & qphon, spnorbscl, ucvol, charge, denspot%rhov, vxc, xred) !, &
+  !&     natvshift=dtset%natvshift,atvshift=dtset%atvshift,fatvshift=fatvshift) !,&
+  !&     mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab,&
+  !&     mpi_comm_grid=spaceComm_grid)
+
+  call f_free(xred)
+end subroutine paw_compute_dij
