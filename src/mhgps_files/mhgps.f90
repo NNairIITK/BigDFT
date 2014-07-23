@@ -228,8 +228,8 @@ real(gp),allocatable :: eval(:)
     wold_trans = f_malloc((/ 1.to.nbond/),id='wold_trans')
     wold_rot = f_malloc((/ 1.to.nbond/),id='wold_rot')
 
-allocate(interleft(3,nat),interright(3,nat))
-allocate(tangentleft(3,nat),tangentright(3,nat))
+allocate(interleft(3,atoms%astruct%nat),interright(3,atoms%astruct%nat))
+allocate(tangentleft(3,atoms%astruct%nat),tangentright(3,atoms%astruct%nat))
 
 
 
@@ -317,7 +317,12 @@ step=-1._gp
 call lst_interpol(atoms%astruct%nat,rxyz,rxyz2,step,interleft,interright,&
                         tangentleft,tangentright,finished)
 
-
+           call write_atomic_file('a',&
+                1.d0,interleft(1,1),ixyz_int,&
+                atoms,'')
+           call write_atomic_file('b',&
+                1.d0,interright(1,1),ixyz_int,&
+                atoms,'')
 
         enddo
     enddo

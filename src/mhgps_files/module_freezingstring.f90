@@ -321,7 +321,7 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     integer, intent(out) :: finished
     !constants
     integer, parameter :: nimages=200
-    real(gp), parameter :: stepfrct=0.2_gp
+    real(gp), parameter :: stepfrct=0.002_gp
     !internal
     integer :: i,j,tnat
     integer :: iinterleft
@@ -345,6 +345,7 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
         lambda  = real(i-1,gp)*nimo
         call lstpthpnt(nat,left,right,lambda,lstpath(:,:,i))
     enddo
+stop
     
     !measure arc length 
     arc(1)=0._gp
