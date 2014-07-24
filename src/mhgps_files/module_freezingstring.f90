@@ -323,16 +323,17 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     integer, parameter :: nimages=200
     real(gp), parameter :: stepfrct=0.002_gp
     !internal
-    integer :: i,j,tnat
+    integer :: i,j,tnat,iat
     integer :: iinterleft
     integer :: iinterright
     real(gp) :: lstpath(3,nat,nimages)
+    real(gp) :: lstpathRM(nimages,3,nat)
     real(gp) :: arc(nimages), arcl,arclh, pthl
     real(gp) :: delta,deltaold
     real(gp) :: diff(3,nat)
     real(gp) :: nimo
     real(gp) :: yp1=huge(1._gp), ypn=huge(1._gp)!natural splines
-    real(gp) :: y2vec(3,nat,nimages)
+    real(gp) :: xvec(nimages),y2vec(nimages,3,nat)
     real(gp) :: tau, ydmy
     real(gp) :: lambda
     !functions
@@ -343,9 +344,16 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     nimo=1._gp/real(nimages-1,gp)
     do i=1,nimages
         lambda  = real(i-1,gp)*nimo
-        call lstpthpnt(nat,left,right,lambda,lstpath(:,:,i))
+        call lstpthpnt(nat,left,right,lambda,lstpath(1,1,i))
     enddo
-stop
+
+    do iat=1,nat
+        do i=1,nimages
+            lstpathRM(i,1,iat)=lstpath(1,iat,i)
+            lstpathRM(i,2,iat)=lstpath(2,iat,i)
+            lstpathRM(i,3,iat)=lstpath(3,iat,i)
+        enddo
+    enddo
     
     !measure arc length 
     arc(1)=0._gp
@@ -354,6 +362,7 @@ stop
         arc(i)  = arc(i-1) + dnrm2(tnat,diff,1)
     enddo
     arcl=arc(nimages)
+
     if(step<0._gp)step=stepfrct*arcl
 
     if(arcl < step)then
@@ -364,33 +373,36 @@ stop
     !compute the spline parameters (y2vec)
     !parametrize curve as a function of the
     !integrated arc length
-    do i=1,nimages
-        do j=1,nat
-            !potentially performance issues since lstpath
-            !is not transversed in column-major order in
-            !spline_wrapper:
-            call spline_wrapper(arc,lstpath(1,j,1),nimages,&
-                               yp1,ypn,y2vec(1,j,1))
-            call spline_wrapper(arc,lstpath(2,j,1),nimages,&
-                               yp1,ypn,y2vec(2,j,1))
-            call spline_wrapper(arc,lstpath(3,j,1),nimages,&
-                               yp1,ypn,y2vec(3,j,1))
-        enddo
+    do j=1,nimages
+    do i=1,nat
+        !potentially performance issues since lstpath
+        !is not transversed in column-major order in
+        !spline_wrapper:
+        call spline_wrapper(arc,lstpathRM(j,1,i),nimages,&
+                           yp1,ypn,y2vec(j,1,i))
+        call spline_wrapper(arc,lstpathRM(2,2,i),nimages,&
+                           yp1,ypn,y2vec(j,2,i))
+        call spline_wrapper(arc,lstpathRM(j,3,i),nimages,&
+                           yp1,ypn,y2vec(j,3,i))
     enddo
+    enddo
+TODO hier weiter HIER WEITER
+write(*,*)y2vec
+stop
 
     if(arcl < 2._gp*step)then!only one more point
         !we have to return the point in the 'middle'    
         tau = 0.5_gp*arcl
-        do j=1,nat
+        do i=1,nat
             !potentially performance issues since lstpath
             !is not transversed in column-major order in
             !splint_wrapper
-            call splint_wrapper(arc,lstpath(1,j,1),y2vec(1,j,1),&
-                 nimages,tau,interleft(1,j),tangentleft(1,j))
-            call splint_wrapper(arc,lstpath(2,j,1),y2vec(2,j,1),&
-                 nimages,tau,interleft(2,j),tangentleft(2,j))
+            call splint_wrapper(arc,lstpath(1,i,1),y2vec(1,i,1),&
+                 nimages,tau,interleft(1,i),tangentleft(1,i))
+            call splint_wrapper(arc,lstpath(2,i,1),y2vec(2,i,1),&
+                 nimages,tau,interleft(2,i),tangentleft(2,i))
             call splint_wrapper(arc,lstpath(3,j,1),y2vec(3,j,1),&
-                 nimages,tau,interleft(3,j),tangentleft(3,j))
+                 nimages,tau,interleft(3,i),tangentleft(3,i))
         enddo
         finished=-1
     else! standard case
@@ -400,30 +412,30 @@ stop
 
         !first left...
         tau = step
-        do j=1,nat
+        do i=1,nat
             !potentially performance issues since lstpath
             !is not transversed in column-major order in
             !splint_wrapper
-            call splint_wrapper(arc,lstpath(1,j,1),y2vec(1,j,1),&
-                 nimages,tau,interleft(1,j),tangentleft(1,j))
-            call splint_wrapper(arc,lstpath(2,j,1),y2vec(2,j,1),&
-                 nimages,tau,interleft(2,j),tangentleft(2,j))
-            call splint_wrapper(arc,lstpath(3,j,1),y2vec(3,j,1),&
-                 nimages,tau,interleft(3,j),tangentleft(3,j))
+            call splint_wrapper(arc,lstpath(1,i,1),y2vec(1,i,1),&
+                 nimages,tau,interleft(1,i),tangentleft(1,i))
+            call splint_wrapper(arc,lstpath(2,i,1),y2vec(2,i,1),&
+                 nimages,tau,interleft(2,i),tangentleft(2,i))
+            call splint_wrapper(arc,lstpath(3,i,1),y2vec(3,i,1),&
+                 nimages,tau,interleft(3,i),tangentleft(3,i))
         enddo
 
         !...then right
         tau = arcl-step
-        do j=1,nat
+        do i=1,nat
             !potentially performance issues since lstpath
             !is not transversed in column-major order in
             !splint_wrapper
-            call splint_wrapper(arc,lstpath(1,j,1),y2vec(1,j,1),&
-                 nimages,tau,interright(1,j),tangentright(1,j))
-            call splint_wrapper(arc,lstpath(2,j,1),y2vec(2,j,1),&
-                 nimages,tau,interright(2,j),tangentright(2,j))
-            call splint_wrapper(arc,lstpath(3,j,1),y2vec(3,j,1),&
-                 nimages,tau,interright(3,j),tangentright(3,j))
+            call splint_wrapper(arc,lstpath(1,i,1),y2vec(1,i,1),&
+                 nimages,tau,interright(1,i),tangentright(1,i))
+            call splint_wrapper(arc,lstpath(2,i,1),y2vec(2,i,1),&
+                 nimages,tau,interright(2,i),tangentright(2,i))
+            call splint_wrapper(arc,lstpath(3,i,1),y2vec(3,i,1),&
+                 nimages,tau,interright(3,i),tangentright(3,i))
         enddo
         finished=2
     endif
