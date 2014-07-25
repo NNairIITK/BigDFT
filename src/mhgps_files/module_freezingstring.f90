@@ -326,9 +326,11 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     real(gp), intent(out) :: tangentright(3,nat)
     integer, intent(out) :: finished
     !constants
-    integer, parameter :: nimages=200 !must be multiple of nth
-    integer, parameter :: nth=50 !must be a divisor of nimages
-    real(gp), parameter :: stepfrct=0.002_gp
+    integer, parameter :: nimages=50 !must be multiple of nth
+!    integer, parameter :: nimages=10 !must be multiple of nth
+    integer, parameter :: nth=10 !must be a divisor of nimages
+!    integer, parameter :: nth=1 !must be a divisor of nimages
+    real(gp), parameter :: stepfrct=0.2_gp
     !internal
     integer :: i,j,tnat,iat
     integer :: iinterleft
