@@ -34,6 +34,7 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
     !internal
     real(gp) :: oml
     real(gp), parameter :: fmax_tol=1.e-2_gp
+!    real(gp), parameter :: fmax_tol=1.e-4_gp
     real(gp) :: fxyz(3,nat), epot
 
 character(len=5) :: fc5
@@ -83,7 +84,7 @@ write(99,*)
 write(99,*)10.0 ,0, 10.0 
 write(99,*)0, 0, 10.0 
 do iat=1,nat
-write(99,'(3(1xes24.17),a)')rxyz(1,iat)*0.529d0,rxyz(2,iat)*0.529d0,rxyz(3,iat)*0.529d0,xat(iat)
+write(99,'(3(1xes24.17),1x,a)')rxyz(1,iat)*0.529d0,rxyz(2,iat)*0.529d0,rxyz(3,iat)*0.529d0,xat(iat)
 enddo
 close(99)
 endif
