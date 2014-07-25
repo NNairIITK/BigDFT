@@ -314,8 +314,10 @@ allocate(tangentleft(3,atoms%astruct%nat),tangentright(3,atoms%astruct%nat))
 !!write(*,'(a,1x,i0,1x,es9.2,1x,i0)')'count,fnrm',int(ec),sqrt(sum(fxyz**2))
 
 step=-1._gp
-call lst_interpol(atoms%astruct%nat,rxyz,rxyz2,step,interleft,interright,&
-                        tangentleft,tangentright,finished)
+!call lst_interpol(atoms%astruct%nat,rxyz,rxyz2,step,interleft,interright,&
+!                        tangentleft,tangentright,finished)
+call lin_interpol(atoms%astruct%nat,rxyz,rxyz2,step,interleft,interright,&
+                        tangentleft,finished)
 
            call write_atomic_file('pospa',&
                 1.d0,interleft(1,1),ixyz_int,&

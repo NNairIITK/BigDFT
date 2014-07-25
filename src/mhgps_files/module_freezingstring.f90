@@ -36,9 +36,9 @@ module module_freezingstring
 !    real(gp) :: dist1,dist2
 !    integer :: finished=1
 !    integer :: nresizes
-!         !if finished >0: not finished
-!         !if finished =0: finished
-!         !if finished <0: one more node in the middle
+!         !if finished ==2: not finished
+!         !if finished ==0: finished
+!         !if finished ==1: one more node in the middle
 !
 !    if(.not. allocated(string))then
 !        write(*,*)'STOP, string not allocated'
@@ -278,21 +278,38 @@ subroutine lin_interpol(nat,left, right, step,interleft,interright,&
     use module_base
     implicit none
     !parameters
-    integer, intent(in)  :: nat
-    real(gp), intent(in)  :: left(3*nat)
-    real(gp), intent(in)  :: right(3*nat)
-    real(gp), intent(in)  :: step
-    real(gp), intent(out) :: interleft(3*nat)
-    real(gp), intent(out) :: interright(3*nat)
-    real(gp), intent(out) :: tangent(3*nat)
-    integer, intent(out) :: finished
+    integer, intent(in)    :: nat
+    real(gp), intent(in)   :: left(3*nat)
+    real(gp), intent(in)   :: right(3*nat)
+    real(gp), intent(inout):: step
+    real(gp), intent(out)  :: interleft(3*nat)
+    real(gp), intent(out)  :: interright(3*nat)
+    real(gp), intent(out)  :: tangent(3*nat)
+    integer, intent(out)   :: finished
+    !constants
+    real(gp), parameter :: stepfrct=0.1_gp! freezing string step size
     !internal
+    real(gp) :: arcl
+    !functions
+    real(gp) :: dnrm2
 
     !tangent points from left to right:    
     tangent = right-left
-    tangent = tangent / sqrt(dot_product(tangent,tangent))
-    interleft = left+step*tangent
-    interright = right - step*tangent
+    arcl = dnrm2(3*nat,tangent,1)
+    tangent = tangent / arcl
+    
+    if(step<0._gp)step=stepfrct * arcl
+
+    if(arcl < step)then
+        finished=0
+    else if(arcl < 2._gp*step)then!only one more point
+        interleft  = left + 0.5_gp * arcl * tangent
+        finished = 1
+    else
+        interleft  = left + step * tangent
+        interright = right - step * tangent
+        finished = 2
+    endif
 end subroutine
 !=====================================================================
 subroutine lst_interpol(nat,left,right,step,interleft,interright,&
@@ -310,40 +327,46 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     use module_interpol
     implicit none
     !parameters
-    integer, intent(in)  :: nat
-    real(gp), intent(in)  :: left(3,nat)
-    real(gp), intent(in)  :: right(3,nat)
+    integer, intent(in)      :: nat
+    real(gp), intent(in)     :: left(3,nat)
+    real(gp), intent(in)     :: right(3,nat)
     real(gp), intent(inout)  :: step
-    real(gp), intent(out) :: interleft(3,nat)
-    real(gp), intent(out) :: interright(3,nat)
-    real(gp), intent(out) :: tangentleft(3,nat)
-    real(gp), intent(out) :: tangentright(3,nat)
-    integer, intent(out) :: finished
+    real(gp), intent(out)    :: interleft(3,nat)
+    real(gp), intent(out)    :: interright(3,nat)
+    real(gp), intent(out)    :: tangentleft(3,nat)
+    real(gp), intent(out)    :: tangentright(3,nat)
+    integer, intent(out)     :: finished
     !constants
-    integer, parameter :: nimages=200 
-    integer, parameter :: nimagesC=5 !setting nimagesC=nimages
-                                       !should give similar implementation
-                                       !to the freezing string publication
+    integer, parameter  :: nimages=200 
+    integer, parameter  :: nimagesC=5 !setting nimagesC=nimages
+                                      !should give similar implementation
+                                      !to the freezing string publication
     real(gp), parameter :: stepfrct=0.1_gp! freezing string step size
     !internal
-    integer  :: i,j,tnat,iat
+    integer  :: i
+    integer  :: j
+    integer  :: tnat
+    integer  :: iat
     integer  :: nimagestang
     real(gp) :: lstpath(3,nat,nimages)
     real(gp) :: lstpathRM(nimages,3,nat)
     real(gp) :: lstpathCRM(nimagesC,3,nat)
-    real(gp) :: arc(nimages), arcl
-    real(gp) :: arcC(nimagesC), arclC
+    real(gp) :: arc(nimages)
+    real(gp) :: arcl
+    real(gp) :: arcC(nimagesC)
+    real(gp) :: arclC
     real(gp) :: diff(3,nat)
     real(gp) :: nimo
     real(gp) :: yp1=huge(1._gp), ypn=huge(1._gp)!natural splines
     real(gp) :: y2vec(nimages,3,nat)
     real(gp) :: y2vecC(nimagesC,3,nat)
-    real(gp) :: tau, rdmy
+    real(gp) :: tau
+    real(gp) :: rdmy
     real(gp) :: lambda
     !functions
     real(gp) :: dnrm2
 
-!!debug
+!<-DEBUG START------------------------------------------------------>
 !character(len=5) :: fc5
 !character(len=200) :: filename,line
 !integer :: istat
@@ -361,8 +384,7 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
 !    read(line,*)dmy,dmy,dmy,xat(iat)
 !enddo
 !close(33)
-
-
+!<-DEBUG END-------------------------------------------------------->
 
     tnat=3*nat
 
@@ -415,7 +437,6 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     nimo=1._gp/real(nimagestang-1,gp)
     do j=1,nimagestang
         tau  = arcl*real(j-1,gp)*nimo
-!         tau  = arc(j) !for equivalence with original implementation
         arcC(j)=tau
         do i=1,nat
             call splint_wrapper(arc,lstpathRM(1,1,i),y2vec(1,1,i),&
@@ -517,7 +538,7 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
                  nimagestang,tau,rdmy,tangentleft(3,i))
         enddo
         !return code: only one more node inserted
-        finished=-1
+        finished=1
     else! standard case
         !we have to return the two points interleft
         !and interright whose distances to left and right
