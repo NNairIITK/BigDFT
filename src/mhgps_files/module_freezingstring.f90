@@ -326,7 +326,8 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     real(gp), intent(out) :: tangentright(3,nat)
     integer, intent(out) :: finished
     !constants
-    integer, parameter :: nimages=50 !must be multiple of nth
+    integer, parameter :: nimages=100 !must be multiple of nth
+    integer, parameter :: nimagesC=5
 !    integer, parameter :: nimages=10 !must be multiple of nth
     integer, parameter :: nth=10 !must be a divisor of nimages
 !    integer, parameter :: nth=1 !must be a divisor of nimages
@@ -335,20 +336,22 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     integer :: i,j,tnat,iat
     integer :: iinterleft
     integer :: iinterright
+    integer :: nimagestang
     real(gp) :: lstpath(3,nat,nimages)
     real(gp) :: lstpathRM(nimages,3,nat)
-    real(gp) :: lstpathC(3,nat,nimages/nth)
-    real(gp) :: lstpathCRM(nimages/nth,3,nat)
+    real(gp) :: lstpathC(3,nat,nimages)
+    real(gp) :: lstpathCRM(nimages,3,nat)
     real(gp) :: arc(nimages), arcl,arclh, pthl
-    real(gp) :: arcC(nimages/nth), arclC,arclhC, pthlC
+    real(gp) :: arcC(nimages), arclC,arclhC, pthlC
     real(gp) :: delta,deltaold
     real(gp) :: diff(3,nat)
     real(gp) :: nimo
     real(gp) :: yp1=huge(1._gp), ypn=huge(1._gp)!natural splines
     real(gp) :: y2vec(nimages,3,nat)
-    real(gp) :: y2vecC(nimages/nth,3,nat)
+    real(gp) :: y2vecC(nimages,3,nat)
     real(gp) :: tau, ydmy,rdmy
     real(gp) :: lambda
+integer :: nc
     !functions
     real(gp) :: dnrm2
 
@@ -377,15 +380,30 @@ close(33)
 
     !create high density lst path
     nimo=1._gp/real(nimages-1,gp)
-    j=0
+!    j=0
     do i=1,nimages
         lambda  = real(i-1,gp)*nimo
         call lstpthpnt(nat,left,right,lambda,lstpath(1,1,i))
-        if(mod(i-1,nth)==0)then
-            j=j+1
-            lstpathC(:,:,j)=lstpath(:,:,i)
-        endif
+!        if(mod(i-1,nth)==0)then
+!            j=j+1
+!            lstpathC(:,:,j)=lstpath(:,:,i)
+!        endif
     enddo
+
+    !measure arc length 
+    arc(1)=0._gp
+    do i=2,nimages
+        diff = lstpath(:,:,i) - lstpath(:,:,i-1)
+        arc(i)  = arc(i-1) + dnrm2(tnat,diff,1)
+    enddo
+    arcl=arc(nimages)
+
+    if(step<0._gp)step=stepfrct*arcl
+
+    if(arcl < step)then
+        finished=0
+        return
+    endif
 
     !rewrite lstpath to row major ordering
     do iat=1,nat
@@ -394,35 +412,14 @@ close(33)
             lstpathRM(i,2,iat)=lstpath(2,iat,i)
             lstpathRM(i,3,iat)=lstpath(3,iat,i)
         enddo
-        do i=1,nimages/nth
-            lstpathCRM(i,1,iat)=lstpathC(1,iat,i)
-            lstpathCRM(i,2,iat)=lstpathC(2,iat,i)
-            lstpathCRM(i,3,iat)=lstpathC(3,iat,i)
-        enddo
+!        do i=1,nimages/nth
+!            lstpathCRM(i,1,iat)=lstpathC(1,iat,i)
+!            lstpathCRM(i,2,iat)=lstpathC(2,iat,i)
+!            lstpathCRM(i,3,iat)=lstpathC(3,iat,i)
+!        enddo
     enddo
     
-    !measure arc length 
-    arc(1)=0._gp
-    arcC(1)=0._gp
-    j=1
-    do i=2,nimages
-        diff = lstpath(:,:,i) - lstpath(:,:,i-1)
-        arc(i)  = arc(i-1) + dnrm2(tnat,diff,1)
-        if(mod(i-1,nth)==0)then
-            j=j+1
-            arcC(j) = arc(i)
-write(*,*)'jjjj',j
-        endif
-    enddo
-    arcl=arc(nimages)
-    arclC=arcC(nimages/nth)
 
-    if(step<0._gp)step=stepfrct*arcl
-
-    if(arcl < step)then
-        finished=0
-        return
-    endif
 
     !compute the spline parameters (y2vec)
     !parametrize curve as a function of the
@@ -435,18 +432,35 @@ write(*,*)'jjjj',j
         call spline_wrapper(arc,lstpathRM(1,3,i),nimages,&
                            yp1,ypn,y2vec(1,3,i))
     enddo
+
+    !generate nodes at which tangents are computed
+    nimagestang=min(nimagesC,nimages)
+    do j=1,nimagestang
+        tau  = arcl*real(j-1,gp)/real(nimagestang-1,gp)
+        arcC(j)=tau
+        do i=1,nat
+            call splint_wrapper(arc,lstpathRM(1,1,i),y2vec(1,1,i),&
+                 nimages,tau,lstpathCRM(j,1,i),rdmy)
+            call splint_wrapper(arc,lstpathRM(1,2,i),y2vec(1,2,i),&
+                 nimages,tau,lstpathCRM(j,2,i),rdmy)
+            call splint_wrapper(arc,lstpathRM(1,3,i),y2vec(1,3,i),&
+                 nimages,tau,lstpathCRM(j,3,i),rdmy)
+        enddo
+    enddo
+   
+    !generate spline parameters for splines used for tangents
     do i=1,nat
-        call spline_wrapper(arcC,lstpathCRM(1,1,i),nimages/nth,&
+        call spline_wrapper(arcC,lstpathCRM(1,1,i),nimagestang,&
                            yp1,ypn,y2vecC(1,1,i))
-        call spline_wrapper(arcC,lstpathCRM(1,2,i),nimages/nth,&
+        call spline_wrapper(arcC,lstpathCRM(1,2,i),nimagestang,&
                            yp1,ypn,y2vecC(1,2,i))
-        call spline_wrapper(arcC,lstpathCRM(1,3,i),nimages/nth,&
+        call spline_wrapper(arcC,lstpathCRM(1,3,i),nimagestang,&
                            yp1,ypn,y2vecC(1,3,i))
     enddo
-!check interpolated path
 
-do j=1,2000
-tau  = arcl*real(j-1,gp)/real(2000-1,gp)
+!check interpolated path
+do j=1,200
+tau  = arcl*real(j-1,gp)/real(200-1,gp)
 !tau  = arc(j)
         do i=1,nat
             call splint_wrapper(arc,lstpathRM(1,1,i),y2vec(1,1,i),&
@@ -458,11 +472,11 @@ tau  = arcl*real(j-1,gp)/real(2000-1,gp)
         enddo
         do i=1,nat
             call splint_wrapper(arcC,lstpathCRM(1,1,i),y2vecC(1,1,i),&
-                 nimages/nth,tau,rdmy,tangentleft(1,i))
+                 nimagestang,tau,rdmy,tangentleft(1,i))
             call splint_wrapper(arcC,lstpathCRM(1,2,i),y2vecC(1,2,i),&
-                 nimages/nth,tau,rdmy,tangentleft(2,i))
+                 nimagestang,tau,rdmy,tangentleft(2,i))
             call splint_wrapper(arcC,lstpathCRM(1,3,i),y2vecC(1,3,i),&
-                 nimages/nth,tau,rdmy,tangentleft(3,i))
+                 nimagestang,tau,rdmy,tangentleft(3,i))
         enddo
 !if(mod(j,100)==0)then
 write(fc5,'(i5.5)')j
