@@ -317,10 +317,10 @@ step=-1._gp
 call lst_interpol(atoms%astruct%nat,rxyz,rxyz2,step,interleft,interright,&
                         tangentleft,tangentright,finished)
 
-           call write_atomic_file('a',&
+           call write_atomic_file('pospa',&
                 1.d0,interleft(1,1),ixyz_int,&
                 atoms,'')
-           call write_atomic_file('b',&
+           call write_atomic_file('pospb',&
                 1.d0,interright(1,1),ixyz_int,&
                 atoms,'')
 

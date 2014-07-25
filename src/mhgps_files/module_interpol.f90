@@ -33,32 +33,32 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
                                           !to lambda
     !internal
     real(gp) :: oml
-    real(gp), parameter :: fmax_tol=1.e-2_gp
-!    real(gp), parameter :: fmax_tol=1.e-4_gp
+!    real(gp), parameter :: fmax_tol=1.e-2_gp
+    real(gp), parameter :: fmax_tol=5.e-3_gp
     real(gp) :: fxyz(3,nat), epot
 
-character(len=5) :: fc5
-character(len=200) :: filename,line
-integer :: iat,istat
-integer, save :: ic
-real(gp) :: dmy
-character(len=5):: xat(22)
+!character(len=5) :: fc5
+!character(len=200) :: filename,line
+!integer :: iat,istat
+!integer, save :: ic
+!real(gp) :: dmy
+!character(len=5):: xat(22)
 
     oml = 1._gp-lambda
 
-ic=ic+1
-close(33)
-open(unit=33,file='input001/pos001.ascii')
-read(33,*)
-read(33,*)
-read(33,*)
-read(33,*)
-do iat=1,22
-    read(33,'(a)',iostat=istat)line
-    if(istat/=0)exit
-    read(line,*)dmy,dmy,dmy,xat(iat)
-enddo
-close(33)
+!ic=ic+1
+!close(33)
+!open(unit=33,file='input001/pos001.ascii')
+!read(33,*)
+!read(33,*)
+!read(33,*)
+!read(33,*)
+!do iat=1,22
+!    read(33,'(a)',iostat=istat)line
+!    if(istat/=0)exit
+!    read(line,*)dmy,dmy,dmy,xat(iat)
+!enddo
+!close(33)
 
 
     !input guess
@@ -76,18 +76,18 @@ close(33)
 !close(99)
 !endif
     call fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
-if(mod(ic,10)==0)then
-write(fc5,'(i5.5)')ic
-write(filename,*)'posl_'//fc5//'.ascii'
-open(99,file=trim(adjustl((filename))))
-write(99,*)
-write(99,*)10.0 ,0, 10.0 
-write(99,*)0, 0, 10.0 
-do iat=1,nat
-write(99,'(3(1xes24.17),1x,a)')rxyz(1,iat)*0.529d0,rxyz(2,iat)*0.529d0,rxyz(3,iat)*0.529d0,xat(iat)
-enddo
-close(99)
-endif
+!if(mod(ic,10)==0)then
+!write(fc5,'(i5.5)')ic
+!write(filename,*)'posl_'//fc5//'.ascii'
+!open(99,file=trim(adjustl((filename))))
+!write(99,*)
+!write(99,*)10.0 ,0, 10.0 
+!write(99,*)0, 0, 10.0 
+!do iat=1,nat
+!write(99,'(3(1xes24.17),1x,a)')rxyz(1,iat)*0.529d0,rxyz(2,iat)*0.529d0,rxyz(3,iat)*0.529d0,xat(iat)
+!enddo
+!close(99)
+!endif
 
 contains
     subroutine valforce(nat,rat,fat,epot)
