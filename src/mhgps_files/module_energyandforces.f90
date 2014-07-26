@@ -8,7 +8,7 @@
 module module_energyandforces
 
 contains
-
+!=====================================================================
 subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     !returns energies in hartree and
     !forces in hartree/bohr
@@ -27,8 +27,7 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     real(gp), intent(out) :: fnoise
     real(gp), intent(out) :: epot
     !internal
-    !uncomment for amber:
-        integer :: icc
+    integer :: icc !for amber
     real(gp) :: rxyzint(3,nat)
     if(nat/=fdim)stop'nat /= fdim'
     ef_counter=ef_counter+1.d0    
@@ -40,43 +39,47 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
         icc=1
         !convert from bohr to ansgtroem
         rxyzint=0.52917721092_gp*rxyz
-!        rxyzint=rxyz
         call call_nab_gradient(rxyzint(1,1),fxyz(1,1),epot,icc)
         epot=epot*0.001593601437458137_dp !from kcal_th/mol to hartree
-                                          !(thermochemical calorie used:
-                                          !1cal_th=4.184J)
+                                          !(thermochemical calorie
+                                          !used: 1cal_th=4.184J)
                                           !also see:
-                                          !http://archive.ambermd.org/201009/0039.html
-        !convert from gradient in kcal_th/mol/angstrom to force in hartree/bohr
+                          !http://archive.ambermd.org/201009/0039.html
+        !convert from gradient in kcal_th/mol/angstrom to
+        !force in hartree/bohr
         fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)*0.0008432975639921999_gp
-!        fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)
         fnoise=0.d0
         return
     else if(trim(adjustl(efmethod))=='BIGDFT')then
         if(nat/=runObj%atoms%astruct%nat)then
-            call yaml_warning('nat /= runObj%atoms%astruct%nat in energyandforces')
+            call yaml_warning('nat /= runObj%atoms%astruct%nat in &
+                              energyandforces')
             stop
         endif
-        call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1),1,runObj%atoms%astruct%rxyz(1,1), 1)
+        call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1),1,&
+             runObj%atoms%astruct%rxyz(1,1), 1)
         runObj%inputs%inputPsiId=inputPsiId
         runObj%inputs%itermin=itermin
-        call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+        call call_bigdft(runObj,outs,bigdft_mpi%nproc,&
+             bigdft_mpi%iproc,infocode)
         call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1), 1)
-        call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%ixyz_int(1,1), 1, ixyz_int(1,1), 1)
+        call vcopy(3 * runObj%atoms%astruct%nat,&
+             runObj%atoms%astruct%ixyz_int(1,1),1,&
+             ixyz_int(1,1), 1)
         epot=outs%energy
         fnoise=outs%fnoise
         return
     endif
 end subroutine
-
+!=====================================================================
 subroutine lenjon(nat,rxyz,fxyz,etot)
     use module_base
     !energy and forces for Lennard Jones potential
     !input: nat: number of atoms
     !       rxyz: positions of atoms
     !output: etot: energy
-    !        fxyz: forces (negative derivative of energy with respect to
-    !        positions
+    !        fxyz: forces (negative derivative of energy with
+    !              respect to positions
     implicit none
     !parameters
     integer, intent(in)   :: nat
@@ -109,6 +112,5 @@ subroutine lenjon(nat,rxyz,fxyz,etot)
         enddo
     enddo
 end subroutine
-
-
+!=====================================================================
 end module

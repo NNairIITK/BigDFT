@@ -12,249 +12,228 @@ module module_freezingstring
     contains
 !TODO: create function "get_input_guess" which returns
 !an inpute guess for a ts (consisting of corrds. and minmode dir.)
-!this method simpliy call grow_string
+!this method simply calls grow_string
 !and then uses cubic splines to find the tangent at the highest energy node
-!!=====================================================================
-!subroutine grow_string(nat,alat,step,gammainv,perpnrmtol,trust,nstepsmax,nstringmax,nstring,string)
-!    use module_base
-!    implicit none
-!    !parameters
-!    integer, intent(in) :: nat,nstepsmax
-!    integer, intent(inout) :: nstringmax,nstring
-!    real(gp) , intent(in) :: step,gammainv,perpnrmtol,trust,alat(3)
-!    real(gp), allocatable, intent(inout) :: string(:,:,:)
-!    !constants
-!    character(len=10), parameter :: method = 'linlst'
-!    !internal
-!    integer :: i,j,k,istart
-!    integer, parameter :: resize=10
-!    real(gp), allocatable :: stringTMP(:,:,:)
-!    real(gp) :: tangent(3*nat)
-!    real(gp) :: tangentright(3*nat)
-!    real(gp) :: dist,dir(3*nat),stepint,perpnrmtol_squared,trust_squared
-!    
-!    real(gp) :: dist1,dist2
-!    integer :: finished=1
-!    integer :: nresizes
-!         !if finished ==2: not finished
-!         !if finished ==0: finished
-!         !if finished ==1: one more node in the middle
-!
-!    if(.not. allocated(string))then
-!        write(*,*)'STOP, string not allocated'
-!        stop
-!    endif
-!    perpnrmtol_squared=perpnrmtol**2
-!    trust_squared=trust**2
-!
-!!write(200,*)'#######################'
-!
-!    nstring=1
-!    dir = string(:,2,1)-string(:,1,1)
-!    dist = sqrt(dot_product(dir,dir))
-!  stepint=0.1_gp*dist
-!!  stepint=step
-!!write(333,*)dist
-!    if(dist<=2._gp*stepint)then!interpolation done
-!        return
-!    endif
-!    nresizes=0
-!    do while (.not. finished .or. nresizes>=100)!maximum 100 resizes of string array
-!        istart=nstring
-!        do i=istart,nstringmax-1
-!!            dir = string(:,2,i)-string(:,1,i)
-!!            dist = sqrt(dot_product(dir,dir))
-!!            stepint=0.05_gp*dist
-!            call interpol(method,nat,string(1,1,nstring),&
-!                 string(1,2,nstring),stepint,string(1,1,nstring+1),&
-!                 string(1,2,nstring+1),tangent,tangentright,finished)
-!            dir = string(:,1,nstring+1)-string(:,2,nstring)
-!            dist1 = sqrt(dot_product(dir,dir))
-!            dir = string(:,1,nstring+1)-string(:,1,nstring)
-!            dist2 = sqrt(dot_product(dir,dir))
-!            if(dist1<dist2)then
-!            dir = string(:,2,nstring)-string(:,1,nstring)
-!            dist = sqrt(dot_product(dir,dir))
-!            write(*,*)dist,dist1,dist2,j,i,stepint,nstring
-!                stop'dist1<dist2'
-!            endif
-!            call optim_cg(nat,alat,stepint,gammainv,perpnrmtol_squared,trust_squared,nstepsmax,tangent,string(1,1,i+1),string(1,2,i+1))
-!            dir = string(:,2,i+1)-string(:,1,i+1)
-!            dist = sqrt(dot_product(dir,dir))
-!            nstring=nstring+1
-!!write(*,*)'nstring',nstring,nstringmax-1
-!!write(*,*)'dist',dist
-!            if(dist<=2._gp*stepint)then!interpolation done
-!                return
-!            endif
-!        enddo
-!        nresizes=nresizes+1
-!        if(allocated(stringTmp))then
-!            deallocate(stringTmp)
-!        endif
-!        allocate(stringTmp(3*nat,2,nstringmax))
-!        stringTmp=string
-!        deallocate(string)
-!        nstringmax=nstringmax+resize
-!        allocate(string(3*nat,2,nstringmax))
-!!write(*,*)'resize',j
-!        do k=1,(nstringmax-resize)
-!            string(:,:,k)=stringTmp(:,:,k)
-!        enddo
-!        deallocate(stringTmp)
-!    enddo
-!
-!end subroutine
-!!=====================================================================
-!subroutine optim_cg(nat,alat,step,gammainv,perpnrmtol_squared,trust_squared,nstepsmax,tangent,rxyz1,rxyz2)
-!    use module_base
-!    implicit none
-!    !parameters
-!    integer, intent(in) :: nat,nstepsmax
-!    real(gp), intent(in) :: tangent(3*nat),step,gammainv,perpnrmtol_squared,trust_squared,alat(3)
-!    real(gp), intent(inout) :: rxyz1(3*nat),rxyz2(3*nat)
-!    !internal
-!    real(gp) :: fxyz1(3*nat),fxyz2(3*nat)
-!    real(gp) :: perp1(3*nat),perp2(3*nat)
-!    real(gp) :: epot1, epot2
-!    real(gp) :: d0,dmax,dist,dir(3*nat)
-!    real(gp) :: dispPrev1(3*nat),disp1(3*nat)
-!    real(gp) :: dispPrev2(3*nat),disp2(3*nat)
-!    real(gp) :: alpha1,alpha2
-!    real(gp) :: fnrmPrev1, fnrm1
-!    real(gp) :: fnrmPrev2, fnrm2
-!    real(gp) :: perpnrmPrev1_squared, perpnrm1_squared
-!    real(gp) :: perpnrmPrev2_squared, perpnrm2_squared
-!    real(gp) :: dispnrm_squared
-!    integer :: istep
-!
-!    real(gp) :: tangentint(3*nat),tmp
-!
-!    tangentint=tangent
-!
-!
-!    dir=rxyz2-rxyz1
-!    d0=sqrt(dot_product(dir,dir))
-!    dmax=d0+0.5_gp*step
-!    call energyandforces(nat, alat, rxyz1,fxyz1,epot1,'cnt_enf_freezing_string')
-!    call energyandforces(nat, alat, rxyz2,fxyz2,epot2,'cnt_enf_freezing_string')
-!
-!    fnrmPrev1=sqrt(dot_product(fxyz1,fxyz1))
-!    fnrmPrev2=sqrt(dot_product(fxyz2,fxyz2))
-!
-!    call perpend(nat,tangentint,fxyz1,perp1)
-!    call perpend(nat,tangentint,fxyz2,perp2)
-!
-!    perpnrmPrev1_squared = dot_product(perp1,perp1)
-!    perpnrmPrev2_squared = dot_product(perp2,perp2)
-!    perpnrm1_squared=perpnrmPrev1_squared
-!    perpnrm2_squared=perpnrmPrev2_squared
-!
-!    !first steps: steepest descent
-!    dispPrev1=gammainv*perp1
-!    dispnrm_squared=maxval(dispPrev1**2)
-!    if(dispnrm_squared > trust_squared)then
-!        dispPrev1=dispPrev1*sqrt(trust_squared/dispnrm_squared)
-!    endif
-!    rxyz1=rxyz1+dispPrev1
-!    dispPrev2=gammainv*perp2
-!    dispnrm_squared=maxval(dispPrev2**2)
-!    if(dispnrm_squared > trust_squared)then
-!        dispPrev2=dispPrev2*sqrt(trust_squared/dispnrm_squared)
-!    endif
-!    rxyz2=rxyz2+dispPrev2
-!
-!    call energyandforces(nat, alat, rxyz1,fxyz1,epot1,'cnt_enf_freezing_string')
-!    call energyandforces(nat, alat, rxyz2,fxyz2,epot2,'cnt_enf_freezing_string')
-!    fnrm1=sqrt(dot_product(fxyz1,fxyz1))
-!    fnrm2=sqrt(dot_product(fxyz2,fxyz2))
-!    
-!    dir=rxyz2-rxyz1
-!    dist=sqrt(dot_product(dir,dir))
-!    if(dist>dmax)then
-!        return
-!    endif
-!
-!!write(200,*)'-------------------'
-!    !other steps: cg
-!    do istep=2,nstepsmax
-!
-!    dir=rxyz2-rxyz1
-!    dist=sqrt(dot_product(dir,dir))
-!    tangentint=dir/dist
-!        !move left node
-!        call perpend(nat,tangentint,fxyz1,perp1)
-!        perpnrm1_squared = dot_product(perp1,perp1)
-!!        if(perpnrm1_squared>=perpnrmtol_squared)then
-!!!            if(fnrm1>fnrmPrev1)then
-!            if(perpnrm1_squared>perpnrmPrev1_squared)then
-!                alpha1=1._gp
-!            else
-!                alpha1 = perpnrm1_squared / perpnrmPrev1_squared
-!            endif
-!            disp1=gammainv*perp1+ alpha1 * dispPrev1
-!            dispnrm_squared=maxval(disp1**2)
-!!write(*,*)'trust1',sqrt(dispnrm_squared),sqrt(trust_squared)
-!            if(dispnrm_squared > trust_squared)then
-!!write(200,*)'Limiting step length!'
-!!                disp1 = sqrt(trust_squared) * disp1/sqrt(dot_product(disp1,disp1))
-!                 disp1=disp1*sqrt(trust_squared/dispnrm_squared)
-!            endif
-!            rxyz1=rxyz1+disp1
-!            dispPrev1=disp1
-!            perpnrmPrev1_squared=perpnrm1_squared
-!            fnrmPrev1=fnrm1
-!            call energyandforces(nat, alat, rxyz1,fxyz1,epot1,'cnt_enf_freezing_string')
-!            fnrm1=sqrt(dot_product(fxyz1,fxyz1))
-!!        endif
-!
-!        !move right node
-!            call energyandforces(nat, alat, rxyz2,fxyz2,epot2,'cnt_enf_freezing_string')
-!            fnrm2=sqrt(dot_product(fxyz2,fxyz2))
-!            call perpend(nat,tangentint,fxyz2,perp2)
-!            perpnrm2_squared = dot_product(perp2,perp2)
-!!        if(perpnrm2_squared>=perpnrmtol_squared)then
-!!            if(fnrm2>fnrmPrev2)then
-!            if(perpnrm2_squared>perpnrmPrev2_squared)then
-!                alpha2=1._gp
-!            else
-!                alpha2 = perpnrm2_squared / perpnrmPrev2_squared
-!            endif
-!            disp2=gammainv*perp2+ alpha2 * dispPrev2
-!            dispnrm_squared=maxval(disp2**2)
-!!write(*,*)'trust2',sqrt(dispnrm_squared),sqrt(trust_squared)
-!            if(dispnrm_squared > trust_squared)then
-!!write(200,*)'Limiting step length!'
-!!                disp2 = sqrt(trust_squared) * disp2/sqrt(dot_product(disp2,disp2))
-!                 disp2=disp2*sqrt(trust_squared/dispnrm_squared)
-!            endif
-!!write(*,*)'trust2',sqrt(dispnrm_squared),sqrt(trust_squared)
-!!write(*,*)'disp2',sqrt(dot_product(disp2,disp2))
-!            rxyz2=rxyz2+disp2
-!            dispPrev2=disp2
-!            perpnrmPrev2_squared=perpnrm2_squared
-!            fnrmPrev2=fnrm2
-!!        endif
-!    
-!!write(*,*)alpha1,alpha2
-!!write(200,*)'perp',sqrt(perpnrm1_squared), sqrt(perpnrm2_squared)
-!!write(*,*)tangent
-!!write(*,*)rxyz2
-!!write(*,*)perpnrm2_squared
-!        dir=rxyz2-rxyz1
-!        dist=sqrt(dot_product(dir,dir))
-!        if(dist>dmax.or. (perpnrm1_squared<perpnrmtol_squared &
-!        !if((perpnrm1_squared<perpnrmtol_squared &
-!                    &.and. perpnrm2_squared<perpnrmtol_squared))then
-!            if(dist>dmax)then
-!                 write(200,*)'exit due to dmax'   
-!            endif
-!            return
-!        endif
-!
-!
-!    enddo
-!end subroutine
+!=====================================================================
+subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
+                       nstepsmax,nstringmax,nstring,string,energies)
+    use module_base
+    use yaml_output
+    use module_global_variables, only: iproc
+    implicit none
+    !parameters
+    integer, intent(in) :: nat
+    integer, intent(in) :: nstepsmax
+    integer, intent(inout) :: nstringmax
+    integer, intent(inout) :: nstring
+    real(gp) , intent(in) :: step
+    real(gp) , intent(in) :: gammainv
+    real(gp) , intent(in) :: perpnrmtol
+    real(gp) , intent(in) :: trust
+    real(gp) , intent(in) :: alat(3)
+    real(gp), allocatable, intent(inout) :: string(:,:,:)
+    real(gp), allocatable, intent(inout) :: energies(:,:)
+                         !energies(1,1) and energies(2,1)
+                         !are not computed inside this routine.
+                         !if needed, they mus be computed outside
+    !constants
+    character(len=10), parameter :: method = 'linlst'
+    !internal
+    integer :: i,j,k,istart
+    integer, parameter :: resize=10
+    real(gp), allocatable :: stringTMP(:,:,:)
+    real(gp) :: tangentleft(3*nat)
+    real(gp) :: tangentright(3*nat)
+    real(gp) :: step
+    real(gp) :: perpnrmtol_squared
+    real(gp) :: trust_squared
+    integer :: finished=2 !if finished ==2: not finished
+                          !if finished ==0: finished
+                          !if finished ==1: one more node
+                          !                 in the middle
+    integer :: nresizes
+
+    if((.not. allocated(string)) .or. .not. allocated(energies))then
+        if(iproc==0)call yaml_warning('(MHGPS) STOP, string or&
+                    energies in grow_string not allocated')
+        stop
+    endif
+    perpnrmtol_squared=perpnrmtol**2
+    trust_squared=trust**2
+
+    nstring=1
+    step=-1._gp
+    nresizes=0
+    do!maximum 100 resizes of string array
+        istart=nstring
+        do i=istart,nstringmax-1
+            call interpol(method,nat,string(1,1,nstring),&
+                 string(1,2,nstring),step,string(1,1,nstring+1),&
+                 string(1,2,nstring+1),tangentleft,tangentright,&
+                 finished)
+
+            if(finished==0)then!interpolation done
+                return
+            endif
+
+            call optim_cg(nat,alat,step,gammainv,&
+                 perpnrmtol_squared,trust_squared,nstepsmax,&
+                 tangentleft,tangentright,string(1,1,i+1),&
+                 string(1,2,i+1),epotleft,epotright)
+            nstring=nstring+1
+        enddo
+        nresizes=nresizes+1
+        if(nresizes>100)then
+            if(iproc==0)call yaml_warning('(MHGPS) STOP, too&
+                        many resizes in grow_string')
+            stop
+        endif
+        if(allocated(stringTmp))then
+            deallocate(stringTmp)
+        endif
+        allocate(stringTmp(3*nat,2,nstringmax))
+        stringTmp=string
+        deallocate(string)
+        nstringmax=nstringmax+resize
+        allocate(string(3*nat,2,nstringmax))
+        do k=1,(nstringmax-resize)
+            string(:,:,k)=stringTmp(:,:,k)
+        enddo
+        deallocate(stringTmp)
+    enddo
+
+end subroutine
+!=====================================================================
+subroutine optim_cg(nat,alat,step,gammainv,perpnrmtol_squared,&
+           trust_squared,nstepsmax,tangent1,tangent2,&
+           rxyz1,rxyz2,epot1,epot2)
+    use module_base
+    use module_energyandofrces
+    implicit none
+    !parameters
+    integer, intent(in)  :: nat
+    integer, intent(in)  :: nstepsmax
+    real(gp), intent(in) :: tangent1(3*nat)
+    real(gp), intent(in) :: tangent2(3*nat)
+    real(gp), intent(in) :: step
+    real(gp), intent(in) :: gammainv
+    real(gp), intent(in) :: perpnrmtol_squared
+    real(gp), intent(in) :: trust_squared
+    real(gp), intent(in) :: trust_squared
+    real(gp), intent(in) :: alat(3)
+    real(gp), intent(inout) :: rxyz2(3*nat)
+    real(gp), intent(inout) :: rxyz1(3*nat)
+    real(gp), intent(out) :: epot1
+    real(gp), intent(out) :: epot2
+    !internal
+    real(gp) :: d0 !inital distance between the new nodes
+    real(gp) :: fxyz1(3*nat),fxyz2(3*nat)
+    real(gp) :: perp1(3*nat),perp2(3*nat)
+    real(gp) :: dmax,dist,dir(3*nat)
+    real(gp) :: dispPrev1(3*nat),disp1(3*nat)
+    real(gp) :: dispPrev2(3*nat),disp2(3*nat)
+    real(gp) :: alpha1,alpha2
+    real(gp) :: perpnrmPrev1_squared, perpnrm1_squared
+    real(gp) :: perpnrmPrev2_squared, perpnrm2_squared
+    real(gp) :: dispnrm_squared
+    integer :: istep
+    real(gp) :: fnoise
+    !functionals
+    real(gp) :: dnrm2
+
+    d0=dnrm2(3*nat,dir(1),1)
+    dmax=d0+0.5_gp*step
+
+    call energyandforces(nat,alat,rxyz1,fxyz1,fnoise,epot1)
+    call energyandforces(nat,alat,rxyz2,fxyz2,fnoise,epot2)
+
+    !first steps: steepest descent
+    !left
+    call perpend(nat,tangent1,fxyz1,perp1)
+    perpnrmPrev1_squared = ddot(3*nat,perp1(1),1,perp1(1),1)
+    perpnrm1_squared=perpnrmPrev1_squared
+    dispPrev1=gammainv*perp1
+    dispnrm_squared=maxval(dispPrev1**2)
+    if(dispnrm_squared > trust_squared)then
+        dispPrev1=dispPrev1*sqrt(trust_squared/dispnrm_squared)
+    endif
+    rxyz1=rxyz1+dispPrev1
+    !right
+    call perpend(nat,tangent2,fxyz2,perp2)
+    perpnrmPrev2_squared = ddot(3*nat,perp2(1),1,perp2(1),1)
+    perpnrm2_squared=perpnrmPrev2_squared
+    dispPrev2=gammainv*perp2
+    dispnrm_squared=maxval(dispPrev2**2)
+    if(dispnrm_squared > trust_squared)then
+        dispPrev2=dispPrev2*sqrt(trust_squared/dispnrm_squared)
+    endif
+    rxyz2=rxyz2+dispPrev2
+
+    dir=rxyz2-rxyz1
+    dist=dnrm2(3*nat,dir(1),1)
+    if(dist>dmax)then
+        return
+    endif
+
+!    call energyandforces(nat,alat,rxyz1,fxyz1,fnoise,epot1)
+!    call energyandforces(nat,alat,rxyz2,fxyz2,fnoise,epot2)
+
+    !other steps: cg
+    do istep=2,nstepsmax
+
+        call energyandforces(nat,alat,rxyz1,fxyz1,fnoise,epot1)
+        call energyandforces(nat,alat,rxyz2,fxyz2,fnoise,epot2)
+
+        !move left node
+        call perpend(nat,tangent1,fxyz1,perp1)
+        perpnrm1_squared = ddot(3*nat,perp1(1),1,perp1(1),1)
+        if(perpnrm1_squared>perpnrmPrev1_squared)then
+            alpha1=1._gp
+        else
+            alpha1 = perpnrm1_squared / perpnrmPrev1_squared
+        endif
+        disp1=gammainv*perp1+ alpha1 * dispPrev1
+        dispnrm_squared=maxval(disp1**2)
+        if(dispnrm_squared > trust_squared)then
+             disp1=disp1*sqrt(trust_squared/dispnrm_squared)
+        endif
+        rxyz1=rxyz1+disp1
+        dispPrev1=disp1
+        perpnrmPrev1_squared=perpnrm1_squared
+    
+        !move right node
+        call perpend(nat,tangent2,fxyz2,perp2)
+        perpnrm2_squared = ddot(3*nat,perp2(1),1,perp2(1),1)
+        if(perpnrm2_squared>perpnrmPrev2_squared)then
+            alpha2=1._gp
+        else
+            alpha2 = perpnrm2_squared / perpnrmPrev2_squared
+        endif
+        disp2=gammainv*perp2+ alpha2 * dispPrev2
+        dispnrm_squared=maxval(disp2**2)
+        if(dispnrm_squared > trust_squared)then
+             disp2=disp2*sqrt(trust_squared/dispnrm_squared)
+        endif
+        rxyz2=rxyz2+disp2
+        dispPrev2=disp2
+        perpnrmPrev2_squared=perpnrm2_squared
+    
+        dir=rxyz2-rxyz1
+        dist=dnrm2(3*nat,dir(1),1)
+        if(dist>dmax.or. (perpnrm1_squared<perpnrmtol_squared&
+        !if((perpnrm1_squared<perpnrmtol_squared &
+           &.and. perpnrm2_squared<perpnrmtol_squared))then
+            if(dist>dmax)then
+                 write(200,*)'exit due to dmax'   
+            endif
+            !we do not compute and do not return energies and
+            !forces of the latest rxyz2 and rxyz2. If needed,
+            !the must be computed outside.
+            return
+        endif
+
+    enddo
+end subroutine
 !=====================================================================
 subroutine perpend(nat,tangent,fxyz,perp)
     use module_base
@@ -295,7 +274,7 @@ subroutine lin_interpol(nat,left, right, step,interleft,interright,&
 
     !tangent points from left to right:    
     tangent = right-left
-    arcl = dnrm2(3*nat,tangent,1)
+    arcl = dnrm2(3*nat,tangent(1),1)
     tangent = tangent / arcl
     
     if(step<0._gp)step=stepfrct * arcl
@@ -314,9 +293,21 @@ end subroutine
 !=====================================================================
 subroutine lst_interpol(nat,left,right,step,interleft,interright,&
                         tangentleft,tangentright,finished)
+    !Given two distinct structures, lst_interpol interpolates
+    !inwards (that is in a direction connecting both strucutres)
+    !using the linear synchronous transit (LST) technique.
+    !A high density path made from 'nimages' nodes using LST
+    !is generated. Then this path is parametrized as a function
+    !of its integrated path length using natural cubic splines.
+    !In order to avoid uncontinous changes of the tangent direction,
+    !a second spline parametrization is done by using
+    !nimagesC<<nimages equally spaced nodes from the first spline
+    !parameterization. Tangent directions are taken from this 
+    !second spline.
+    !
     !on return:
-    !if finished > 0: interleft and intergiht contain the new nodes
-    !if finished < 0: left and right are two close, only one new node
+    !if finished =2: interleft and intergiht contain the new nodes
+    !if finished =1 0: left and right are too close, only one new node
     !                 is returned in interleft.
     !                 interright is meaningless in this case.
     !if finished = 0: left and right are closer than 'step'
@@ -399,7 +390,7 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     arc(1)=0._gp
     do i=2,nimages
         diff = lstpath(:,:,i) - lstpath(:,:,i-1)
-        arc(i)  = arc(i-1) + dnrm2(tnat,diff,1)
+        arc(i)  = arc(i-1) + dnrm2(tnat,diff(1,1),1)
     enddo
     arcl=arc(nimages)
 
@@ -537,6 +528,8 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
             call splint_wrapper(arcC,lstpathCRM(1,3,i),y2vecC(1,3,i),&
                  nimagestang,tau,rdmy,tangentleft(3,i))
         enddo
+        rdmy = dnrm2(tnat,tangentleft(1,1),1)
+        tangentleft = tangentleft / rmdy
         !return code: only one more node inserted
         finished=1
     else! standard case
@@ -575,6 +568,8 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
             call splint_wrapper(arcC,lstpathCRM(1,3,i),y2vecC(1,3,i),&
                  nimagestang,tau,rdmy,tangentleft(3,i))
         enddo
+        rdmy = dnrm2(tnat,tangentleft(1,1),1)
+        tangentleft = tangentleft / rmdy
 
         !...then right
         tau = arcl-step
@@ -596,6 +591,8 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
             call splint_wrapper(arcC,lstpathCRM(1,3,i),y2vecC(1,3,i),&
                  nimagestang,tau,rdmy,tangentright(3,i))
         enddo
+        rdmy = dnrm2(tnat,tangentright(1,1),1)
+        tangentright = tangentright / rmdy
 
         !return code: two more nodes inserted
         finished=2

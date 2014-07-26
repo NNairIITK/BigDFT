@@ -33,19 +33,21 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
                                           !to lambda
     !internal
     real(gp) :: oml
-!    real(gp), parameter :: fmax_tol=1.e-2_gp
     real(gp), parameter :: fmax_tol=5.e-3_gp
     real(gp) :: fxyz(3,nat), epot
 
+!<-DEBUG START------------------------------------------------------>
 !character(len=5) :: fc5
 !character(len=200) :: filename,line
 !integer :: iat,istat
 !integer, save :: ic
 !real(gp) :: dmy
 !character(len=5):: xat(22)
+!<-DEBUG END-------------------------------------------------------->
 
     oml = 1._gp-lambda
 
+!<-DEBUG START------------------------------------------------------>
 !ic=ic+1
 !close(33)
 !open(unit=33,file='input001/pos001.ascii')
@@ -59,10 +61,12 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
 !    read(line,*)dmy,dmy,dmy,xat(iat)
 !enddo
 !close(33)
+!<-DEBUG END-------------------------------------------------------->
 
 
     !input guess
     rxyz = oml*rxyzR+lambda*rxyzP
+!<-DEBUG START------------------------------------------------------>
 !if(mod(ic,10)==0)then
 !write(fc5,'(i5.5)')ic
 !write(filename,*)'posn_'//fc5//'.ascii'
@@ -71,11 +75,14 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
 !write(99,*)10.0 ,0, 10.0 
 !write(99,*)0, 0, 10.0 
 !do iat=1,nat
-!write(99,'(3(1xes24.17),a)')rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),xat(iat)
+!write(99,'(3(1xes24.17),a)')rxyz(1,iat),rxyz(2,iat),&
+!          rxyz(3,iat),xat(iat)
 !enddo
 !close(99)
 !endif
+!<-DEBUG END-------------------------------------------------------->
     call fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
+!<-DEBUG START------------------------------------------------------>
 !if(mod(ic,10)==0)then
 !write(fc5,'(i5.5)')ic
 !write(filename,*)'posl_'//fc5//'.ascii'
@@ -84,10 +91,12 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
 !write(99,*)10.0 ,0, 10.0 
 !write(99,*)0, 0, 10.0 
 !do iat=1,nat
-!write(99,'(3(1xes24.17),1x,a)')rxyz(1,iat)*0.529d0,rxyz(2,iat)*0.529d0,rxyz(3,iat)*0.529d0,xat(iat)
+!write(99,'(3(1xes24.17),1x,a)')rxyz(1,iat)*0.529d0,rxyz(2,iat)&
+!          *0.529d0,rxyz(3,iat)*0.529d0,xat(iat)
 !enddo
 !close(99)
 !endif
+!<-DEBUG END-------------------------------------------------------->
 
 contains
     subroutine valforce(nat,rat,fat,epot)
@@ -249,10 +258,11 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
     real(gp), parameter :: alpha_start=0.1_gp,f_alpha=0.99_gp
     real(gp) :: dt
     real(gp) :: ddot,dnrm2
-!    character(len=5), allocatable :: xat(:)
-
+!<-DEBUG START------------------------------------------------------>
+!character(len=5), allocatable :: xat(:)
 !character(len=5) :: fc5
 !character(len=50) :: filename
+!<-DEBUG END-------------------------------------------------------->
 
     count_fr=0._gp
     dt_max = 1.8d0
@@ -271,8 +281,7 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
         1000 continue
         call daxpy(3*nat,dt,vxyz(1,1),1,rxyz(1,1),1)
         call daxpy(3*nat,0.5_gp*dt*dt,ff(1,1),1,rxyz(1,1),1)
-!        ekin=ddot(3*nat,vxyz(1,1),1,vxyz(1,1),1)
-!        ekin=0.5_gp*ekin
+!<-DEBUG START------------------------------------------------------>
 !write(fc5,'(i5.5)')iter
 !write(filename,*)'pos_'//fc5//'.ascii'
 !open(99,file=trim(adjustl((filename))))
@@ -283,6 +292,7 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
 !write(99,'(3(1xes24.17),a)')rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),xat(iat)
 !enddo
 !close(99)
+!<-DEBUG END-------------------------------------------------------->
 
 
         call valforce(nat,rxyz,fxyz,epot)
@@ -303,17 +313,21 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
         call fnrmandforcemax(fxyz,fnrm,fmax,nat) 
         call convcheck(fmax,fmax_tol,check)
         if(check > 5)then
+!<-DEBUG START------------------------------------------------------>
 !            write(*,'(a,x,i0,5(1x,es14.7))')&
 !            'FIRE converged # e evals, epot, &
 !            fmax, fnrm, dt, alpha: ',&
 !            int(count_fr),epot,fmax,fnrm,dt,alpha
+!<-DEBUG END-------------------------------------------------------->
             success=.true.
             return
+!<-DEBUG START------------------------------------------------------>
 !        else
 !            write(*,'(a,x,i0,5(1x,es14.7))')&
 !            'FIRE # e evals, epot, &
 !            fmax, fnrm, dt, alpha: ',&
 !            int(count_fr),epot,fmax,fnrm,dt,alpha
+!<-DEBUG END-------------------------------------------------------->
         endif
         power = ddot(3*nat,fxyz,1,vxyz,1)
         vxyz_norm = dnrm2(3*nat,vxyz,1)
@@ -377,54 +391,3 @@ subroutine fnrmandforcemax(ff,fnrm,fmax,nat)
 end subroutine fnrmandforcemax
 !=====================================================================
 end module
-!program test_lstpathpnt
-!use module_lst
-!implicit none
-!integer :: nat, istat,iat
-!character(len=100) :: filename,line, filename2
-!real(gp), allocatable :: rxyz1(:,:),rxyz2(:,:),g1(:,:),g2(:,:),rxyz(:,:),rand(:,:)
-!real(gp) :: lam
-!
-!call get_command_argument(1,filename)
-!call get_command_argument(2,filename2)
-!
-!nat=0
-!open(unit=33,file=trim(adjustl(filename)))
-!read(33,*)
-!read(33,*)
-!read(33,*)
-!do
-!    read(33,'(a)',iostat=istat)line
-!    if(istat/=0)exit
-!    nat=nat+1
-!enddo
-!write(*,*)'Found nat: ',nat
-!rewind(33)
-!read(33,*)
-!read(33,*)
-!read(33,*)
-!allocate(rxyz1(3,nat),rxyz2(3,nat),g1(3,nat),g2(3,nat),rxyz(3,nat),rand(3,nat),xat(nat))
-!do iat=1,nat
-!    read(33,'(a)',iostat=istat)line
-!    if(istat/=0)exit
-!    read(line,*)rxyz1(1,iat),rxyz1(2,iat),rxyz1(3,iat)
-!enddo
-!close(33)
-!open(unit=33,file=trim(adjustl(filename2)))
-!read(33,*)
-!read(33,*)
-!read(33,*)
-!do iat=1,nat
-!    read(33,'(a)',iostat=istat)line
-!    if(istat/=0)exit
-!    read(line,*)rxyz2(1,iat),rxyz2(2,iat),rxyz2(3,iat),xat(iat)
-!enddo
-!close(33)
-!
-!
-!do iat=1,2000
-!lam = real(iat)/2000._gp
-!call lstpthpnt(nat,rxyz1,rxyz2,lam,rxyz)
-!enddo
-!
-!end program
