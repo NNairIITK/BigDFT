@@ -269,7 +269,6 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
     maxit=15000
 
     success=.false.
-
     dt=dt_max
     alpha=alpha_start
     vxyz=0.0_gp

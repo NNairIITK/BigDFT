@@ -48,6 +48,12 @@ real(gp),allocatable :: interleft(:,:),interright(:,:)
 real(gp),allocatable :: tangentleft(:,:),tangentright(:,:)
 integer :: finished
 
+
+integer :: nstringmax=20,nstring
+real(gp), allocatable :: string(:,:,:)
+integer :: counter
+character(len=10) :: fnc
+
 !simple atomic datastructre
 integer :: nat
 real(gp),allocatable :: rxyz(:,:),fxyz(:,:),rotforce(:,:),hess(:,:)
@@ -313,18 +319,49 @@ allocate(tangentleft(3,atoms%astruct%nat),tangentright(3,atoms%astruct%nat))
 !!call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
 !!write(*,'(a,1x,i0,1x,es9.2,1x,i0)')'count,fnrm',int(ec),sqrt(sum(fxyz**2))
 
-step=-1._gp
-!call lst_interpol(atoms%astruct%nat,rxyz,rxyz2,step,interleft,interright,&
-!                        tangentleft,tangentright,finished)
-call lin_interpol(atoms%astruct%nat,rxyz,rxyz2,step,interleft,interright,&
-                        tangentleft,finished)
+!step=-1._gp
+!!call lst_interpol(atoms%astruct%nat,rxyz,rxyz2,step,interleft,interright,&
+!!                        tangentleft,tangentright,finished)
+!call lin_interpol(atoms%astruct%nat,rxyz,rxyz2,step,interleft,interright,&
+!                        tangentleft,finished)
+!
+!           call write_atomic_file('pospa',&
+!                1.d0,interleft(1,1),ixyz_int,&
+!                atoms,'')
+!!           call write_atomic_file('pospb',&
+!                1.d0,interright(1,1),ixyz_int,&
+!                atoms,'')
+allocate(string(3*atoms%astruct%nat,2,nstringmax))
+do i=1,atoms%astruct%nat
+string(3*i-2,1,1)=rxyz(1,i)
+string(3*i-1,1,1)=rxyz(2,i)
+string(3*i,1,1)=rxyz(3,i)
+string(3*i-2,2,1)=rxyz2(1,i)
+string(3*i-1,2,1)=rxyz2(2,i)
+string(3*i,2,1)=rxyz2(3,i)
+enddo
+call grow_string(atoms%astruct%nat,atoms%astruct%cell_dim,0.5_gp,1.e-4_gp,0.1_gp,&
+                       25,nstringmax,nstring,string)
 
-           call write_atomic_file('pospa',&
-                1.d0,interleft(1,1),ixyz_int,&
+counter=0
+do i=1,nstring
+counter=counter+1
+write(fnc,'(i3.3)')counter
+           call write_atomic_file('pospb'//trim(adjustl(fnc)),&
+                1.d0,string(1,1,i),ixyz_int,&
                 atoms,'')
-           call write_atomic_file('pospb',&
-                1.d0,interright(1,1),ixyz_int,&
+
+enddo
+do i=nstring,1,-1
+counter=counter+1
+write(fnc,'(i3.3)')counter
+           call write_atomic_file('pospb'//trim(adjustl(fnc)),&
+                1.d0,string(1,2,i),ixyz_int,&
                 atoms,'')
+
+enddo
+write(*,*)'ef_counter',ef_counter
+stop
 
         enddo
     enddo

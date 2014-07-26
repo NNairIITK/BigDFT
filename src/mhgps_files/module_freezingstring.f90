@@ -16,7 +16,7 @@ module module_freezingstring
 !and then uses cubic splines to find the tangent at the highest energy node
 !=====================================================================
 subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
-                       nstepsmax,nstringmax,nstring,string,energies)
+                       nstepsmax,nstringmax,nstring,string)
     use module_base
     use yaml_output
     use module_global_variables, only: iproc
@@ -26,16 +26,11 @@ subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
     integer, intent(in) :: nstepsmax
     integer, intent(inout) :: nstringmax
     integer, intent(inout) :: nstring
-    real(gp) , intent(in) :: step
     real(gp) , intent(in) :: gammainv
     real(gp) , intent(in) :: perpnrmtol
     real(gp) , intent(in) :: trust
     real(gp) , intent(in) :: alat(3)
     real(gp), allocatable, intent(inout) :: string(:,:,:)
-    real(gp), allocatable, intent(inout) :: energies(:,:)
-                         !energies(1,1) and energies(2,1)
-                         !are not computed inside this routine.
-                         !if needed, they mus be computed outside
     !constants
     character(len=10), parameter :: method = 'linlst'
     !internal
@@ -53,7 +48,7 @@ subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
                           !                 in the middle
     integer :: nresizes
 
-    if((.not. allocated(string)) .or. .not. allocated(energies))then
+    if((.not. allocated(string)))then
         if(iproc==0)call yaml_warning('(MHGPS) STOP, string or&
                     energies in grow_string not allocated')
         stop
@@ -66,7 +61,10 @@ subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
     nresizes=0
     do!maximum 100 resizes of string array
         istart=nstring
+        !actual string growing is done 
+        !in the following loop
         do i=istart,nstringmax-1
+write(*,*)'interpol',nstring
             call interpol(method,nat,string(1,1,nstring),&
                  string(1,2,nstring),step,string(1,1,nstring+1),&
                  string(1,2,nstring+1),tangentleft,tangentright,&
@@ -75,13 +73,24 @@ subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
             if(finished==0)then!interpolation done
                 return
             endif
-
+if(finished==1)then!interpolation done
+    return
+endif
+!!TODO TODO
+!HIER WEITER
+!finished=1 richtig behandeln
+!!TODO TODO
+!!TODO TODO
+!!TODO TODO
+write(*,*)'optim',nstring
             call optim_cg(nat,alat,step,gammainv,&
                  perpnrmtol_squared,trust_squared,nstepsmax,&
                  tangentleft,tangentright,string(1,1,i+1),&
-                 string(1,2,i+1),epotleft,epotright)
+                 string(1,2,i+1))
             nstring=nstring+1
         enddo
+        !What follows is just resizing of string array, 
+        !if needed.
         nresizes=nresizes+1
         if(nresizes>100)then
             if(iproc==0)call yaml_warning('(MHGPS) STOP, too&
@@ -106,9 +115,10 @@ end subroutine
 !=====================================================================
 subroutine optim_cg(nat,alat,step,gammainv,perpnrmtol_squared,&
            trust_squared,nstepsmax,tangent1,tangent2,&
-           rxyz1,rxyz2,epot1,epot2)
+           rxyz1,rxyz2)
     use module_base
-    use module_energyandofrces
+    use module_energyandforces
+    use module_global_variables, only: iproc
     implicit none
     !parameters
     integer, intent(in)  :: nat
@@ -119,13 +129,12 @@ subroutine optim_cg(nat,alat,step,gammainv,perpnrmtol_squared,&
     real(gp), intent(in) :: gammainv
     real(gp), intent(in) :: perpnrmtol_squared
     real(gp), intent(in) :: trust_squared
-    real(gp), intent(in) :: trust_squared
     real(gp), intent(in) :: alat(3)
     real(gp), intent(inout) :: rxyz2(3*nat)
     real(gp), intent(inout) :: rxyz1(3*nat)
-    real(gp), intent(out) :: epot1
-    real(gp), intent(out) :: epot2
     !internal
+    real(gp) :: epot1
+    real(gp) :: epot2
     real(gp) :: d0 !inital distance between the new nodes
     real(gp) :: fxyz1(3*nat),fxyz2(3*nat)
     real(gp) :: perp1(3*nat),perp2(3*nat)
@@ -139,13 +148,16 @@ subroutine optim_cg(nat,alat,step,gammainv,perpnrmtol_squared,&
     integer :: istep
     real(gp) :: fnoise
     !functionals
-    real(gp) :: dnrm2
+    real(gp) :: dnrm2, ddot
 
+    dir=rxyz2-rxyz1
     d0=dnrm2(3*nat,dir(1),1)
     dmax=d0+0.5_gp*step
+write(*,*)'dmax,d0,step',dmax,d0,step
 
     call energyandforces(nat,alat,rxyz1,fxyz1,fnoise,epot1)
     call energyandforces(nat,alat,rxyz2,fxyz2,fnoise,epot2)
+write(*,*)'optim1'
 
     !first steps: steepest descent
     !left
@@ -172,6 +184,7 @@ subroutine optim_cg(nat,alat,step,gammainv,perpnrmtol_squared,&
     dir=rxyz2-rxyz1
     dist=dnrm2(3*nat,dir(1),1)
     if(dist>dmax)then
+write(*,*)'dmax',dist,dmax
         return
     endif
 
@@ -180,6 +193,7 @@ subroutine optim_cg(nat,alat,step,gammainv,perpnrmtol_squared,&
 
     !other steps: cg
     do istep=2,nstepsmax
+write(*,*)'optim2'
 
         call energyandforces(nat,alat,rxyz1,fxyz1,fnoise,epot1)
         call energyandforces(nat,alat,rxyz2,fxyz2,fnoise,epot2)
@@ -217,14 +231,21 @@ subroutine optim_cg(nat,alat,step,gammainv,perpnrmtol_squared,&
         rxyz2=rxyz2+disp2
         dispPrev2=disp2
         perpnrmPrev2_squared=perpnrm2_squared
+write(*,*)perpnrm1_squared,perpnrm2_squared
     
         dir=rxyz2-rxyz1
         dist=dnrm2(3*nat,dir(1),1)
-        if(dist>dmax.or. (perpnrm1_squared<perpnrmtol_squared&
+        !perpnrm1_squared is from last iteration
+        !but we accept this, since reevaluation
+        !of energies and forces is too expensive
+        !just for the purpose of the following
+        !comparison of perpnrm1_squared and perpnrmtol_squared
+!        if(dist>dmax.or. (perpnrm1_squared<perpnrmtol_squared&
         !if((perpnrm1_squared<perpnrmtol_squared &
-           &.and. perpnrm2_squared<perpnrmtol_squared))then
-            if(dist>dmax)then
-                 write(200,*)'exit due to dmax'   
+!           &.and. perpnrm2_squared<perpnrmtol_squared))then
+if(dist>dmax)then
+            if(dist>dmax.and.iproc==0)then
+                write(200,*)'exit due to dmax'   
             endif
             !we do not compute and do not return energies and
             !forces of the latest rxyz2 and rxyz2. If needed,
@@ -332,7 +353,8 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     integer, parameter  :: nimagesC=5 !setting nimagesC=nimages
                                       !should give similar implementation
                                       !to the freezing string publication
-    real(gp), parameter :: stepfrct=0.1_gp! freezing string step size
+    !real(gp), parameter :: stepfrct=0.1_gp! freezing string step size
+    real(gp), parameter :: stepfrct=0.01_gp! freezing string step size
     !internal
     integer  :: i
     integer  :: j
@@ -395,6 +417,7 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     arcl=arc(nimages)
 
     if(step<0._gp)step=stepfrct*arcl
+write(*,*)'arclength,step',arcl,step
 
     if(arcl < step)then
         finished=0
@@ -529,7 +552,7 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
                  nimagestang,tau,rdmy,tangentleft(3,i))
         enddo
         rdmy = dnrm2(tnat,tangentleft(1,1),1)
-        tangentleft = tangentleft / rmdy
+        tangentleft = tangentleft / rdmy
         !return code: only one more node inserted
         finished=1
     else! standard case
@@ -569,7 +592,7 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
                  nimagestang,tau,rdmy,tangentleft(3,i))
         enddo
         rdmy = dnrm2(tnat,tangentleft(1,1),1)
-        tangentleft = tangentleft / rmdy
+        tangentleft = tangentleft / rdmy
 
         !...then right
         tau = arcl-step
@@ -592,7 +615,7 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
                  nimagestang,tau,rdmy,tangentright(3,i))
         enddo
         rdmy = dnrm2(tnat,tangentright(1,1),1)
-        tangentright = tangentright / rmdy
+        tangentright = tangentright / rdmy
 
         !return code: two more nodes inserted
         finished=2
