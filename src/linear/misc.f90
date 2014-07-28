@@ -24,7 +24,7 @@ subroutine plotOrbitals(iproc, tmb, phi, nat, rxyz, hxh, hyh, hzh, it, basename)
    integer :: it
    character(len=4),intent(in) :: basename
 
-   integer :: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, istat, iat
+   integer :: ix, iy, iz, ix0, iy0, iz0, iiAt, jj, iorb, i1, i2, i3, istart, ii, iat
    integer :: unit1, unit2, unit3, unit4, unit5, unit6, unit7, unit8, unit9, unit10, unit11, unit12
    integer :: ixx, iyy, izz, maxid, i, ixmin, ixmax, iymin, iymax, izmin, izmax
    integer :: ilr
@@ -572,7 +572,7 @@ subroutine plotGrid(iproc, norb, nspinor, nspin, orbitalNumber, llr, glr, atoms,
   real(kind=8), intent(in) :: hx, hy, hz
   
   ! Local variables
-  integer :: iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ishift, iat, ldim, gdim, jjj, istat
+  integer :: iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ishift, iat, ldim, gdim, jjj
   character(len=10) :: num
   character(len=20) :: filename
   real(kind=8), dimension(:), allocatable :: lphi, phi
@@ -654,7 +654,6 @@ subroutine plotGrid(iproc, norb, nspinor, nspin, orbitalNumber, llr, glr, atoms,
 end subroutine plotGrid
 
 
-
 subroutine local_potential_dimensions(iproc,Lzd,orbs,xc,ndimfirstproc)
   use module_base
   use module_types
@@ -667,7 +666,7 @@ subroutine local_potential_dimensions(iproc,Lzd,orbs,xc,ndimfirstproc)
   !local variables
   character(len=*), parameter :: subname='local_potential_dimensions'
   logical :: newvalue
-  integer :: i_all,i_stat,ii,iilr,ilr,iorb,iorb2,nilr,ispin
+  integer :: ii,iilr,ilr,iorb,iorb2,nilr,ispin
   integer, dimension(:,:), allocatable :: ilrtable
 
   call timing(iproc, 'calc_bounds   ', 'ON')
@@ -775,13 +774,14 @@ integer, intent(in) :: iproc, nproc
 type(orbitals_data), intent(in) :: orbs
 
 ! Local variables
-integer :: jproc, len1, len2, space1, space2, jpst, norb0,  norb1
-logical :: written
+integer :: jproc, jpst, norb0,  norb1
+!integer :: space1, space2, len1, len2, 
+!logical :: written
 
 !!write(*,'(1x,a)') '------------------------------------------------------------------------------------'
 !!written=.false.
 !!write(*,'(1x,a)') '>>>> Partition of the basis functions among the processes.'
-call yaml_open_map('Support function repartition')
+call yaml_mapping_open('Support function repartition')
 jpst=0
 do jproc=0,nproc-1
     norb0=orbs%norb_par(jproc,0)
@@ -810,7 +810,7 @@ do jproc=0,nproc-1
     !!    exit
     !!end if
 end do
-call yaml_close_map()
+call yaml_mapping_close()
 !!if(.not.written) then
 !!    write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
 !!        ' treat ',orbs%norbp,' orbitals. |'!, &
@@ -887,8 +887,8 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   character(len=*),parameter :: subname='build_ks_orbitals'
 
   !debug
-  integer :: iorb, jorb, ist, jst, ierr, i, istat, iall
-  real(kind=8) :: ddot, tt
+  !integer :: iorb, jorb, ist, jst, ierr, i
+  !real(kind=8) :: ddot, tt
 
 
   ! Get the expansion coefficients
@@ -992,8 +992,8 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
        at, rxyz, KSwfn%Lzd%Glr%wfd, phiwork_global)
 
    call f_free_ptr(phiwork_global)
-   call deallocate_orbitals_data(orbs, subname)
-   call deallocate_comms_cubic(comms, subname)
+   call deallocate_orbitals_data(orbs)
+   call deallocate_comms_cubic(comms)
 
   ! To get consistent values of the energy and the Kohn-Sham residue with those
   ! which will be calculated by the cubic restart.
@@ -1144,19 +1144,20 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   integer,intent(in) :: meth_overlap
 
   !local variables
-  integer :: ifrag,iorb,ifrag_ref,isforb,istat,ierr,jorb
+  !integer :: ifrag,ifrag_ref,isforb,jorb
+  integer :: iorb,ierr
   real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
   character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
   real(kind=gp) :: max_error, mean_error
   type(matrices) :: inv_ovrlp
 
   ! new variables
-  integer :: iat, iall
+  integer :: iat
   real(kind=8),dimension(:,:),allocatable :: weight_matrix
-  real(kind=gp),dimension(:,:),pointer :: ovrlp
+  !real(kind=gp),dimension(:,:),pointer :: ovrlp
   real(kind=8) :: total_charge, total_net_charge
   real(kind=8),dimension(:),allocatable :: charge_per_atom
-  logical :: psit_c_associated, psit_f_associated
+  !logical :: psit_c_associated, psit_f_associated
 
 
   ! needs parallelizing/converting to sparse
@@ -1295,10 +1296,10 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   end do
   if (iproc==0) then
       call write_partial_charges()
-      call yaml_open_sequence('Multipole analysis (based on the Loewdin charges)')
+      call yaml_sequence_open('Multipole analysis (based on the Loewdin charges)')
       call calculate_dipole()
       call calculate_quadropole()
-      call yaml_close_sequence()
+      call yaml_sequence_close()
   end if
   !!call support_function_multipoles()
 
@@ -1316,26 +1317,26 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
       use yaml_output
       character(len=20) :: atomname
       real(kind=8),dimension(2) :: charges
-      call yaml_open_sequence('Loewdin charge analysis (charge / net charge)')
+      call yaml_sequence_open('Loewdin charge analysis (charge / net charge)')
       total_charge=0.d0
       total_net_charge=0.d0
       do iat=1,atoms%astruct%nat
           call yaml_sequence(advance='no')
-          call yaml_open_map(flow=.true.)
+          call yaml_mapping_open(flow=.true.)
           atomname=atoms%astruct%atomnames(atoms%astruct%iatype(iat))
           charges(1)=-charge_per_atom(iat)
           charges(2)=-(charge_per_atom(iat)-real(atoms%nelpsp(atoms%astruct%iatype(iat)),kind=8))
           total_charge = total_charge + charges(1)
           total_net_charge = total_net_charge + charges(2)
           call yaml_map(trim(atomname),charges,fmt='(1es20.12)')
-          call yaml_close_map(advance='no')
+          call yaml_mapping_close(advance='no')
           call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
       end do
       call yaml_sequence(advance='no')
       call yaml_map('total charge',total_charge,fmt='(es16.8)')
       call yaml_sequence(advance='no')
       call yaml_map('total net charge',total_net_charge,fmt='(es16.8)')
-      call yaml_close_sequence()
+      call yaml_sequence_close()
     end subroutine write_partial_charges
 
 
@@ -1440,26 +1441,26 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
       quadropole_net=quadropole_cores+quadropole_elec
 
       if (iproc==0) then
-          !!call yaml_open_sequence('core quadropole')
+          !!call yaml_sequence_open('core quadropole')
           !!do i=1,3
           !!   call yaml_sequence(trim(yaml_toa(quadropole_cores(i,1:3),fmt='(es12.5)')))
           !!end do
-          !!call yaml_close_sequence()
+          !!call yaml_sequence_close()
 
-          !!call yaml_open_sequence('electronic quadropole')
+          !!call yaml_sequence_open('electronic quadropole')
           !!do i=1,3
           !!   call yaml_sequence(trim(yaml_toa(quadropole_elec(i,1:3),fmt='(es12.5)')))
           !!end do
-          !!call yaml_close_sequence()
+          !!call yaml_sequence_close()
 
-          call yaml_open_sequence('net quadropole')
+          call yaml_sequence_open('net quadropole')
           do i=1,3
              call yaml_sequence(trim(yaml_toa(quadropole_net(i,1:3),fmt='(es12.5)')))
           end do
           call yaml_sequence(advance='no')
           call yaml_map('trace of quadropole matrix',&
                quadropole_net(1,1)+quadropole_net(2,2)+quadropole_net(3,3),fmt='(es12.2)')
-          call yaml_close_sequence()
+          call yaml_sequence_close()
       end if
 
     end subroutine calculate_quadropole
@@ -1482,7 +1483,7 @@ subroutine charge_center(n1i, n2i, n3i, hgrids, phir, charge_center_elec)
 
 
   qtot=0.d0
-  jj=0.d0
+  jj=0
   do i3=1,n3i
       do i2=1,n2i
           do i1=1,n1i
@@ -1620,29 +1621,29 @@ subroutine calculate_multipoles(n1i, n2i, n3i, hgrids, phir, charge_center_elec,
   quadropole_net = quadropole_el + quadropole_center
 
 
-!  call yaml_open_sequence(trim(yaml_toa(it))//'('//trim(atomname)//')')
+!  call yaml_sequence_open(trim(yaml_toa(it))//'('//trim(atomname)//')')
 !  !call yaml_map('qtot',qtot)
 !  call yaml_sequence(advance='no')
 !  !call yaml_map('center dipole',dipole_center,fmt='(es16.6)')
 !  !call yaml_map('electronic dipole',dipole_el,fmt='(es18.10)')
 !  call yaml_map('net dipole',dipole_net,fmt='(es18.10)')
 !  call yaml_sequence(advance='no')
-!  !call yaml_open_sequence('center quadropole')
+!  !call yaml_sequence_open('center quadropole')
 !  !do i=1,3
 !  !   call yaml_sequence(trim(yaml_toa(quadropole_center(i,1:3),fmt='(es15.8)')))
 !  !end do
-!  !call yaml_close_sequence()
-!  !call yaml_open_sequence('electronic quadropole')
+!  !call yaml_sequence_close()
+!  !call yaml_sequence_open('electronic quadropole')
 !  !do i=1,3
 !  !   call yaml_sequence(trim(yaml_toa(quadropole_el(i,1:3),fmt='(es15.8)')))
 !  !end do
-!  !call yaml_close_sequence()
-!  call yaml_open_sequence('net quadropole')
+!  !call yaml_sequence_close()
+!  call yaml_sequence_open('net quadropole')
 !  do i=1,3
 !     call yaml_sequence(trim(yaml_toa(quadropole_net(i,1:3),fmt='(es15.8)')))
 !  end do
-!  call yaml_close_sequence()
-!  call yaml_close_sequence()
+!  call yaml_sequence_close()
+!  call yaml_sequence_close()
 
   contains
 
@@ -1729,23 +1730,23 @@ subroutine support_function_multipoles(iproc, tmb, atoms, denspot)
   end if
 
   if (iproc==0) then
-      call yaml_open_sequence('Support functions moments')
+      call yaml_sequence_open('Support functions moments')
       do iorb=1,tmb%orbs%norb
           iat=tmb%orbs%onwhichatom(iorb)
           atomname=trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))
-          call yaml_open_sequence('number'//trim(yaml_toa(iorb))// &
+          call yaml_sequence_open('number'//trim(yaml_toa(iorb))// &
                ' (atom number ='//trim(yaml_toa(iat))//', type = '//trim(atomname)//')')
           call yaml_sequence(advance='no')
           call yaml_map('net dipole',dipole_net(:,iorb),fmt='(es18.10)')
           call yaml_sequence(advance='no')
-          call yaml_open_sequence('net quadropole')
+          call yaml_sequence_open('net quadropole')
           do i=1,3
              call yaml_sequence(trim(yaml_toa(quadropole_net(i,1:3,iorb),fmt='(es15.8)')))
           end do
-          call yaml_close_sequence()
-          call yaml_close_sequence()
+          call yaml_sequence_close()
+          call yaml_sequence_close()
       end do
-      call yaml_close_sequence()
+      call yaml_sequence_close()
   end if
 
   call f_free(phir)

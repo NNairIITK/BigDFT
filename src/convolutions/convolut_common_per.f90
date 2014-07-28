@@ -8,8 +8,8 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>   Analysis wavelet transformation in periodic BC
-!!   The input array y is NOT overwritten
+!> Analysis wavelet transformation in periodic BC
+!! The input array y is NOT overwritten
 subroutine analyse_per(n1,n2,n3,ww,y,x)
   use module_base
   implicit none
@@ -199,7 +199,7 @@ subroutine convolut_magic_t_per(n1,n2,n3,x,y)
   !local variables
   character(len=*), parameter :: subname='convolut_magic_t_per'
   !n(c) integer, parameter :: lowfil=-7,lupfil=8
-  integer :: ndat,i_stat,i_all
+  integer :: ndat
   real(wp), dimension(:,:,:), allocatable :: ww
 
   ww = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='ww')
@@ -218,6 +218,7 @@ subroutine convolut_magic_t_per(n1,n2,n3,x,y)
 
 END SUBROUTINE convolut_magic_t_per
 
+
 !> Applies the magic filter matrix transposed  in periodic BC
 !! The input array x is not overwritten
 !! this routine is modified to accept the GPU convolution if it is the case
@@ -230,7 +231,7 @@ subroutine convolut_magic_t_per_test(n1,n2,n3,x,y)
   !local variables
   character(len=*), parameter :: subname='convolut_magic_t_per'
   !n(c) integer, parameter :: lowfil=-7,lupfil=8
-  integer :: ndat,i_stat,i_all
+  integer :: ndat
   real(wp), dimension(:,:,:), allocatable :: ww
 
   ww = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='ww')

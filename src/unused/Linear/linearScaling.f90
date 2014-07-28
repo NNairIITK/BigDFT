@@ -444,15 +444,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
             *input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
   end if
 
-  if (iproc==0) call yaml_open_map('Checking Communications of Minimal Basis')
+  if (iproc==0) call yaml_mapping_open('Checking Communications of Minimal Basis')
   call check_communications_locreg(iproc,nproc,tmb%orbs,tmb%Lzd,tmb%collcom, &
        tmb%npsidim_orbs,tmb%npsidim_comp)
-  if (iproc==0) call yaml_close_map()
+  if (iproc==0) call yaml_mapping_close()
 
-  if (iproc==0) call yaml_open_map('Checking Communications of Enlarged Minimal Basis')
+  if (iproc==0) call yaml_mapping_open('Checking Communications of Enlarged Minimal Basis')
   call check_communications_locreg(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,tmb%ham_descr%collcom, &
        tmb%ham_descr%npsidim_orbs,tmb%ham_descr%npsidim_comp)
-  if (iproc ==0) call yaml_close_map()
+  if (iproc ==0) call yaml_mapping_close()
 
 
   ! CDFT: calculate w_ab here given w(r)
@@ -477,12 +477,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      !!if (iproc==0) write(*,'(a,4(ES16.6e3,2x))') 'N, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N)',&
      !!     cdft%charge,ebs,vgrad_old,cdft%lag_mult*vgrad_old
      if (iproc==0) then
-         call yaml_open_map('CDFT infos')
+         call yaml_mapping_open('CDFT infos')
          call yaml_map('N',cdft%charge,fmt='(es16.6e3)')
          call yaml_map('Tr(KW)',ebs,fmt='(es16.6e3)')
          call yaml_map('Tr(KW)-N',vgrad_old,fmt='(es16.6e3)')
          call yaml_map('V*(Tr(KW)-N)',cdft%lag_mult*vgrad_old,fmt='(es16.6e3)')
-         call yaml_close_map()
+         call yaml_mapping_close()
      end if
      vgrad_old=abs(vgrad_old)
      valpha=0.5_gp
@@ -527,7 +527,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      ! Calculate the new potential.
      !if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
      !if (iproc==0) call yaml_map('update potential',.true.)
-     if (iproc==0) call yaml_open_map('update pot',flow=.true.)
+     if (iproc==0) call yaml_mapping_open('update pot',flow=.true.)
      call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
   end if
 
@@ -584,7 +584,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! are optimized and a consecutive loop in which the density is mixed.
   if (iproc==0) then
       call yaml_comment('Self-Consistent Cycle',hfill='-')
-      call yaml_open_sequence('Ground State Optimization')
+      call yaml_sequence_open('Ground State Optimization')
   end if
   outerLoop: do itout=istart,nit_lowaccuracy+nit_highaccuracy
 
@@ -711,13 +711,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           tmb%can_use_transposed=.false.
           if (iproc==0) then
               call yaml_sequence(advance='no')
-              call yaml_open_sequence('fake iteration',label=&
+              call yaml_sequence_open('fake iteration',label=&
                                  'it_fake'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
               call yaml_sequence(label='final_fake'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))),advance='no')
-              call yaml_open_map(flow=.true.)
+              call yaml_mapping_open(flow=.true.)
               call yaml_map('fake iteration','bridge low accuracy')
-              call yaml_close_map
-              call yaml_close_sequence()
+              call yaml_mapping_close
+              call yaml_sequence_close()
           end if
           cycle outerLoop
       end if
@@ -788,7 +788,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            end if
            if (iproc==0) then
                call yaml_sequence(advance='no')
-               call yaml_open_sequence('support function optimization',label=&
+               call yaml_sequence_open('support function optimization',label=&
                               'it_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
            end if
            !!if (itout<=2) then
@@ -820,7 +820,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            !!    end do
            !!end if
            if (iproc==0) then
-               call yaml_close_sequence()
+               call yaml_sequence_close()
            end if
 
            !!! WRITE SUPPORT FUNCTIONS TO DISK ############################################
@@ -945,20 +945,20 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              call yaml_comment('kernel optimization',hfill='=')
              !call yaml_sequence(advance='no')
              !if (input%lin%constrained_dft) then
-             !    call yaml_open_map('kernel optimization',label=&
+             !    call yaml_mapping_open('kernel optimization',label=&
              !         'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//&
              !         '_'//trim(adjustl(yaml_toa(cdft_it,fmt='(i3.3)'))))
              !else
-             !    call yaml_open_map('kernel optimization',label=&
+             !    call yaml_mapping_open('kernel optimization',label=&
              !         'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
              !end if
              call yaml_sequence(advance='no')
              if (input%lin%constrained_dft) then
-                 call yaml_open_sequence('kernel optimization',label=&
+                 call yaml_sequence_open('kernel optimization',label=&
                       'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//&
                       '_'//trim(adjustl(yaml_toa(cdft_it,fmt='(i3.3)'))))
              else
-                 call yaml_open_sequence('kernel optimization',label=&
+                 call yaml_sequence_open('kernel optimization',label=&
                       'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
              end if
          end if
@@ -973,7 +973,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 !else
                    call yaml_sequence(advance='no')
                 !end if
-                !call yaml_open_map(flow=.false.)
+                !call yaml_mapping_open(flow=.false.)
                 call yaml_comment('kernel iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
              end if
              if(update_phi .and. can_use_ham) then! .and. info_basis_functions>=0) then
@@ -1084,7 +1084,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              ! Calculate the charge density.
              if (iproc==0) then
-                 call yaml_open_map('Hamiltonian update',flow=.true.)
+                 call yaml_mapping_open('Hamiltonian update',flow=.true.)
                  ! Use this subroutine to write the energies, with some
                  ! fake number
                  ! to prevent it from writing too much
@@ -1154,14 +1154,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              ! Calculate the new potential.
              !!if(iproc==0) write(*,'(1x,a)') '---------------------------------------------------------------- Updating potential.'
              if (iproc==0) then
-!                 if (iproc==0) call yaml_open_map('pot',flow=.true.)
+!                 if (iproc==0) call yaml_mapping_open('pot',flow=.true.)
                  !call yaml_map('update potential',.true.)
              end if
              if (iproc==0) call yaml_newline()
              
 
              call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-             if (iproc==0) call yaml_close_map()
+             if (iproc==0) call yaml_mapping_close()
 
 
              ! update occupations wrt eigenvalues (NB for directmin these aren't guaranteed to be true eigenvalues)
@@ -1233,14 +1233,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  info_scf=it_scc
                  if (iproc==0) then
                      !yaml output
-                     !call yaml_close_map() !iteration
+                     !call yaml_mapping_close() !iteration
                      call bigdft_utils_flush(unit=6)
                  end if
                  exit
              else if (pnrm<convCritMix.and.input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
                  if (iproc==0) then
                      !yaml output
-                     !call yaml_close_map() !iteration
+                     !call yaml_mapping_close() !iteration
                      call bigdft_utils_flush(unit=6)
                  end if
                 exit
@@ -1255,7 +1255,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              if (iproc==0) then
                  !yaml output
-                 !call yaml_close_map() !iteration
+                 !call yaml_mapping_close() !iteration
                  call bigdft_utils_flush(unit=6)
              end if
 
@@ -1269,16 +1269,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              else
                  call yaml_sequence(label='final_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))),advance='no')
              end if
-             call yaml_open_map(flow=.true.)
+             call yaml_mapping_open(flow=.true.)
              call yaml_comment('iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
              call printSummary()
-             call yaml_close_map() !iteration
+             call yaml_mapping_close() !iteration
              call bigdft_utils_flush(unit=6)
          end if
 
           ! Close sequence for the optimization steps
           if (iproc==0) then
-              call yaml_close_sequence()
+              call yaml_sequence_close()
           end if
 
          if (input%lin%constrained_dft) then
@@ -1466,7 +1466,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
 
-  if (iproc==0) call yaml_close_sequence()
+  if (iproc==0) call yaml_sequence_close()
 
   if (input%loewdin_charge_analysis) then
       call loewdin_charge_analysis(iproc, tmb, at, denspot, calculate_overlap_matrix=.true., &
@@ -1791,8 +1791,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       implicit none
 
       if(iproc==0) then
-          call yaml_open_sequence('summary',flow=.true.)
-          call yaml_open_map()
+          call yaml_sequence_open('summary',flow=.true.)
+          call yaml_mapping_open()
           if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
               call yaml_map('kernel optimization','DMIN')
           else if (input%lin%scf_mode==LINEAR_FOE) then
@@ -1818,7 +1818,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  call yaml_map('energy',energy,fmt='(es24.17)')
                  call yaml_map('D',energyDiff,fmt='(es10.3)')
                  call yaml_map('Tr(KW)',ebs,fmt='(es14.4)')
-                 call yaml_close_map()
+                 call yaml_mapping_close()
              end if
           else
              if (iproc==0) then
@@ -1827,10 +1827,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  call yaml_map('delta',pnrm,fmt='(es9.2)')
                  call yaml_map('energy',energy,fmt='(es24.17)')
                  call yaml_map('D',energyDiff,fmt='(es10.3)')
-                 call yaml_close_map()
+                 call yaml_mapping_close()
              end if
           end if     
-          call yaml_close_sequence()
+          call yaml_sequence_close()
       end if
 
     end subroutine printSummary
@@ -1859,10 +1859,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       if(iproc==0.and.(.not.final)) then
 
           call yaml_comment('Summary of both steps',hfill='=')
-          call yaml_open_sequence('self consistency summary',label=&
+          call yaml_sequence_open('self consistency summary',label=&
               'it_sc'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
           call yaml_sequence(advance='no')
-          call yaml_open_map(flow=.true.)
+          call yaml_mapping_open(flow=.true.)
           call yaml_map('iter',itout)
           if(target_function==TARGET_FUNCTION_IS_TRACE) then
               call yaml_map('target function','TRACE')
@@ -1913,14 +1913,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              call yaml_map('energy',energy,fmt='(es27.17)')
              call yaml_map('D',energyDiff,fmt='(es10.3)')
           end if
-          call yaml_close_map()
+          call yaml_mapping_close()
 
           !when convergence is reached, use this block
       else if (iproc==0.and.final) then
           call yaml_comment('final results',hfill='=')
-          call yaml_open_sequence('self consistency summary')
+          call yaml_sequence_open('self consistency summary')
           call yaml_sequence(advance='no')
-          call yaml_open_map(flow=.true.)
+          call yaml_mapping_open(flow=.true.)
           call yaml_map('iter',itout)
           call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
           if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
@@ -1930,14 +1930,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  call yaml_map('energy',energy,fmt='(es27.17)')
                  call yaml_map('D',energyDiff,fmt='(es10.3)')
                  call yaml_comment('FINAL')
-                 call yaml_close_map()
+                 call yaml_mapping_close()
              else
                  call yaml_map('iter high',itout)
                  call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
                  call yaml_map('energy',energy,fmt='(es27.17)')
                  call yaml_map('D',energyDiff,fmt='(es10.3)')
                  call yaml_comment('FINAL')
-                 call yaml_close_map()
+                 call yaml_mapping_close()
              end if
           else if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
              if (.not. lowaccur_converged) then
@@ -1946,20 +1946,20 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  call yaml_map('energy',energy,fmt='(es27.17)')
                  call yaml_map('D',energyDiff,fmt='(es10.3)')
                  call yaml_comment('FINAL')
-                 call yaml_close_map()
+                 call yaml_mapping_close()
              else
                  call yaml_map('iter high',itout)
                  call yaml_map('delta out',pnrm_out,fmt='(es10.3)')
                  call yaml_map('energy',energy,fmt='(es27.17)')
                  call yaml_map('D',energyDiff,fmt='(es10.3)')
                  call yaml_comment('FINAL')
-                 call yaml_close_map()
+                 call yaml_mapping_close()
              end if
           end if
        end if
 
     call bigdft_utils_flush(unit=6)
-    call yaml_close_sequence()
+    call yaml_sequence_close()
 
 
     end subroutine print_info

@@ -158,7 +158,7 @@ program sandbox
 !!  !the allocation with npsidim is not necessary here since DIIS arrays
 !!  !are always calculated in the transposed form
 !!  if (in%idsx > 0) then
-!!     call allocate_diis_objects(in%idsx,sum(comms%ncntt(0:nproc-1)),orbs%nkptsp,diis,subname)  
+!!     call allocate_diis_objects(in%idsx,sum(comms%ncntt(0:nproc-1)),orbs%nkptsp,diis)  
 !!  endif
 !!
 !!  sum_pot = 0.0d0
@@ -577,7 +577,7 @@ program sandbox
 !!       comms,psi,hpsi,psit,evsum)
 !!  
 !!  if (in%idsx > 0) then
-!!     call deallocate_diis_objects(diis,subname)
+!!     call deallocate_diis_objects(diis)
 !!  end if
 !!
 !!  if (nproc > 1) then
@@ -611,9 +611,9 @@ program sandbox
 !!  call memocc(i_stat,i_all,'radii_cf',subname)
 !!
 !!
-!!  call deallocate_lr(Glr,subname)
-!!  call deallocate_comms(comms,subname)
-!!  call deallocate_orbs(orbs,subname)
+!!  call deallocate_lr(Glr)
+!!  call deallocate_comms(comms)
+!!  call deallocate_orbs(orbs)
 !!  call deallocate_atoms_scf(atoms,subname) 
 !!  call deallocate_proj_descr(nlpspd,subname)
 !!
@@ -781,7 +781,7 @@ subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   call gaussians_to_wavelets_new(iproc,nproc,lr,orbs,G,&
        gaucoeffs,psi)
   !deallocate the gaussian basis descriptors
-  call deallocate_gwf(G,subname)
+  call deallocate_gwf(G)
 
   !deallocate gaussian array
   call f_free(gaucoeffs)

@@ -89,7 +89,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
    steepthresh=runObj%inputs%steepthresh
    trustr=runObj%inputs%trustr
    if (iproc==0.and.parmin%verbosity > 0) then
-      call yaml_open_map('Geometry parameters')
+      call yaml_mapping_open('Geometry parameters')
          call yaml_map('Geometry Method','GEOPT_SBFGS')
          call yaml_map('nhistx',nhistx)
          call yaml_map('betax', betax,fmt='(1pe21.14)')
@@ -97,7 +97,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
          call yaml_map('cutoffRatio', cutoffRatio,fmt='(1pe21.14)')
          call yaml_map('steepthresh', steepthresh,fmt='(1pe21.14)')
          call yaml_map('trustr', trustr,fmt='(1pe21.14)')
-      call yaml_close_map()
+      call yaml_mapping_close()
    end if
 
    !init varaibles
@@ -246,8 +246,8 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
       !trust radius approach: avoids too large steps due to large forces
       !only used when in steepest decent mode
       if(maxd>trustr .and. steep)then
-         if(debug.and.iproc==0)write(100,'(a,xes24.17,xi0)')'step too large',maxd,it
-         if(iproc==0)write(16,'(a,2(xes9.2))')'WARNING GEOPT_SBFGS: step too large: maxd, trustradius ',maxd,trustr
+         if(debug.and.iproc==0)write(100,'(a,1x,es24.17,xi0)')'step too large',maxd,it
+         if(iproc==0)write(16,'(a,2(1x,es9.2))')'WARNING GEOPT_SBFGS: step too large: maxd, trustradius ',maxd,trustr
          scl=0.50_gp*trustr/maxd
          dd=dd*scl
          tt=tt*scl
@@ -296,7 +296,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
          write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,es9.2,xa5,i4.4,xa5,es9.2,xa6,es9.2)') &
           ncount_bigdft,it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
           'beta=',beta,'ndim=',ndim,'maxd=',maxd,'displ=',displ
-         call yaml_open_map('Geometry')
+         call yaml_mapping_open('Geometry')
             call yaml_map('Ncount_BigDFT',ncount_bigdft)
             call yaml_map('Geometry step',it)
             call yaml_map('Geometry Method','GEOPT_SBFGS')
@@ -307,13 +307,13 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
             call yaml_map('fnrm',fnrm,fmt='(1pe21.14)')
             call yaml_map('beta',beta,fmt='(1pe21.14)')
             call geometry_output(fmax,fnrm,fluct)
-         call yaml_close_map()
+         call yaml_mapping_close()
       end if
 
    
       if (detot.gt.maxrise .and. beta > 1.d-1*betax) then !
          if (debug.and.iproc==0) write(100,'(a,i0,1x,e9.2)') "WARN: it,detot", it,detot
-         if (debug.and.iproc==0) write(16,'(a,i0,4(xe9.2))') &
+         if (debug.and.iproc==0) write(16,'(a,i0,4(1x,e9.2))') &
              "WARNING GEOPT_SBFGS: Prevent energy to rise by more than maxrise: it,maxrise,detot,beta,1.d-1*betax ",&
              it,maxrise,detot,beta,1.d-1*betax
 
@@ -351,7 +351,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
       call copy_global_output(outs,outsIO)
 
       if(detot .gt. maxrise)then
-         if (iproc==0) write(16,'(a,i0,4(xe9.2))') &
+         if (iproc==0) write(16,'(a,i0,4(1x,e9.2))') &
              "WARNING GEOPT_SBFGS: Allowed energy to rise by more than maxrise: it,maxrise,detot,beta,1.d-1*betax ",&
              it,maxrise,detot,beta,1.d-1*betax
       endif

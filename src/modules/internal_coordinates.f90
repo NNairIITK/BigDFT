@@ -1,4 +1,17 @@
+!> @file
+!! Handle Internal coordinates
+!! @author
+!!    Copyright (C) 2007-2013 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module to manipulate the internal coordinates (atomic positions)
 module vector_operations
+  implicit none
+
   contains
     function cross_product(a, b)
       implicit none
@@ -380,8 +393,8 @@ module internal_coordinates
       real(kind=8),dimension(3,numat),intent(out) :: geo
     
       ! Local variables
-      integer :: nai1, nai2, i, j, im1, k
-      real(kind=8) :: sum, r
+      !! integer :: nai1, nai2, i, j, im1, k
+      !! real(kind=8) :: sum, r
     
       !!nai1=0
       !!nai2=0

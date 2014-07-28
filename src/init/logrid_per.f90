@@ -19,7 +19,7 @@ subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
 
   logical,allocatable,dimension(:,:,:) :: logrid
   character(len=*), parameter :: subname='make_bounds_per'
-  integer :: i_stat,i_all,nseg_c
+  integer :: nseg_c
 
   bounds%kb%ibyz_f = f_malloc_ptr((/ 1.to.2, 0.to.n2, 0.to.n3 /),id='bounds%kb%ibyz_f')
   bounds%kb%ibxz_f = f_malloc_ptr((/ 1.to.2, 0.to.n1, 0.to.n3 /),id='bounds%kb%ibxz_f')
@@ -54,7 +54,7 @@ subroutine make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
   use module_base
   implicit none
   integer,intent(in)::n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  integer :: i1,i2,i3,i_stat,i_all !n(c) m1,m2,m3
+  integer :: i1,i2,i3 !n(c) m1,m2,m3
 
   integer,intent(in):: ibyz_f(2,0:n2,0:n3+ndebug),ibxy_f(2,0:n1,0:n2+ndebug)
 

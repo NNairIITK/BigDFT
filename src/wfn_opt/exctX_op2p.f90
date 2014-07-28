@@ -51,7 +51,7 @@ contains
     !local variables
     character(len=*), parameter :: subname='OP2P_exctx_clear'
     !print *,'iproc,icount2',iproc,icount
-    call free_OP2P_descriptors(OP2P,subname)
+    call free_OP2P_descriptors(OP2P)
     
     nullify(pkernel,orbs)
 
@@ -80,7 +80,7 @@ contains
     real(wp), dimension(nvctrj_results), intent(inout) :: dpsir_j
     !local variables
     character(len=*), parameter :: subname='internal_exctx_operation'
-    integer :: iorb,jorb,i_all,i_stat,iorb_glob,jorb_glob,ierr,ndim,i
+    integer :: iorb,jorb,iorb_glob,jorb_glob,ierr,ndim,i
     real(gp) :: hfaci,hfacj,hfac2,ehart
     real(wp), dimension(:), allocatable :: rp_ij
 
@@ -204,7 +204,7 @@ contains
     type(OP2P_descriptors), intent(out) :: OP2P
     !local variables
     character(len=*), parameter :: subname='orbs_to_attributes'
-    integer :: i_stat,i_all,igroup,iorb
+    integer :: igroup,iorb
     integer, dimension(:,:), allocatable :: orbs_attributes
     
 
@@ -275,7 +275,7 @@ subroutine exact_exchange_potential_op2p(iproc,nproc,xc,lr,orbs,pkernel,psi,dpsi
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp), intent(out) :: dpsir !>Fock operator applied on the real-space wavefunctions
   !local variables
   character(len=*), parameter :: subname='exact_exchange_potential_op2p'
-  integer :: i_stat,i_all,iorb,ierr
+  integer :: iorb
   real(gp) :: exctXfac
   type(workarr_sumrho) :: w
   type(OP2P_descriptors) :: OP2P

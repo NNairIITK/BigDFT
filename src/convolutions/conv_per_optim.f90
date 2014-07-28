@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>  Forward wavelet transform, analysis, periodic
+!> Forward wavelet transform, analysis, periodic
 subroutine ana_rot_per_old(right,nt,c,cd_1)
   
   use module_base
@@ -17,9 +17,8 @@ subroutine ana_rot_per_old(right,nt,c,cd_1)
   real(wp), dimension(0:right,nt), intent(in) :: c
   real(wp), dimension(nt,0:right), intent(out) :: cd_1
   !local variables
-  character(len=*), parameter :: subname='ana_rot_per_old'
   integer, parameter :: m=8
-  integer :: i_all,i_stat,lenc,len_2,mod_left,mod_right,i,it,i2,it0,j,ji2,il2
+  integer :: lenc,len_2,mod_left,mod_right,i,it,i2,it0,j,ji2,il2
 !$  integer :: ithread,omp_get_thread_num
   real(wp) :: ci_0,ci_1,ci_2, ci_3,ci_4,ci_5,ci_6,ci_7,ci_8,ci_9,ci_10,ci_11,ci,cgj,chj
   real(wp) :: di_0,di_1,di_2, di_3,di_4,di_5,di_6,di_7,di_8,di_9,di_10,di_11,di
@@ -201,10 +200,9 @@ subroutine syn_rot_per_old(right1,nt,cd,c1)
   real(wp), dimension(0:right1,nt), intent(in) :: cd
   real(wp), dimension(nt,0:right1), intent(out) :: c1
   !local variables
-  character(len=*), parameter :: subname='syn_rot_per_old'
   !n(c) integer, parameter :: m=8
   integer, parameter :: m_2=4
-  integer :: i_all,i_stat,len_2,mod_left,mod_right,i,it,it0,i2,i_j,j,i21,i_j2,j2,j21
+  integer :: len_2,mod_left,mod_right,i,it,it0,i2,i_j,j,i21,i_j2,j2,j21
 !$  integer :: ithread,omp_get_thread_num
   real(wp) :: ci2_0,ci2_1,ci2_2, ci2_3,ci2_4,ci2_5,ci2_6,ci2_7,ci2_8,ci2_9,ci2_10,ci2_11,ci2
   real(wp) :: ci21_0,ci21_1,ci21_2, ci21_3,ci21_4,ci21_5,ci21_6,ci21_7,ci21_8,ci21_9,ci21_10

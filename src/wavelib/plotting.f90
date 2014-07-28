@@ -25,7 +25,7 @@ subroutine plot_density_cube_old(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,n
   character(len=3) :: advancestring
   character(len=5) :: suffix
   character(len=15) :: message
-  integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr,icount,j,iat,ia,ib,nbxz,nby
+  integer :: nl1,nl2,nl3,i1,i2,i3,ind,ierr,icount,j,iat,ia,ib,nbxz,nby
   real(dp) :: a,b
   real(dp), dimension(:,:), pointer :: pot_ion
 
@@ -183,7 +183,7 @@ subroutine read_density_cube_old(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat,
   character(len=5) :: suffix
   character(len=15) :: message
   character(len=3) :: advancestring
-  integer :: i_all,i_stat,i1,i2,i3,ind,icount,j,iat,ia
+  integer :: i1,i2,i3,ind,icount,j,iat,ia
 
   if (nspin /=2) then
      suffix=''
@@ -266,7 +266,7 @@ END SUBROUTINE read_density_cube_old
 !> Write a (sum of two) field in the ISF basis in the cube format
 subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s,n3s,hxh,hyh,hzh,&
      a,x,nexpo,b,y)
-  !n(c) use module_base
+  use module_defs, only: gp,wp,dp
   use module_types
   implicit none
   character(len=*), intent(in) :: filename,message
@@ -424,7 +424,7 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
   character(len=*), parameter :: subname='plot_density'
   character(len=5) :: suffix
   character(len=65) :: message
-  integer :: i_all,i_stat,ierr,ia,ib,isuffix,fformat,n1i,n2i,n3i
+  integer :: ierr,ia,ib,isuffix,fformat,n1i,n2i,n3i
   real(dp) :: a,b
   real(gp) :: hxh,hyh,hzh
   real(dp), dimension(:,:), pointer :: pot_ion
@@ -570,7 +570,7 @@ subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   integer, dimension(:), pointer, optional :: iatypes, znucl
 
   character(len = *), parameter :: subname = "read_density"
-  integer :: isuffix,fformat,nat_read, i_stat, i_all
+  integer :: isuffix,fformat,nat_read
   real(gp), dimension(:,:), pointer :: rxyz_read
   integer, dimension(:), pointer :: iatypes_read, znucl_read
 
@@ -636,7 +636,6 @@ subroutine plot_wf(orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi)
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
   !Local variables
   character(len=*), parameter :: subname='plot_wf'
-  integer :: i_stat,i_all
   integer :: n1i,n2i,n3i,n1,n2,n3,n1s,n2s,n3s
   type(workarr_sumrho) :: w
   real(wp), dimension(:), allocatable :: psir
@@ -687,7 +686,7 @@ subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,
   real(dp), dimension(n1i,n2i,max(n3p,1),nspin), intent(out) :: pot
   !local variables
   character(len=*), parameter :: subname='read_potential_from_disk'
-  integer :: n1t,n2t,n3t,nspint,ierror,ierr,i_all,i_stat,ispin
+  integer :: n1t,n2t,n3t,nspint,ierror,ierr,ispin
   real(gp) :: hxt,hyt,hzt
   real(dp), dimension(:,:,:,:), pointer :: pot_from_disk
 
@@ -727,7 +726,7 @@ end subroutine read_potential_from_disk
 !> Read density or potential in cube format
 subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz, iatypes, znucl)
-  !n(c) use module_base
+  use module_defs, only: gp,dp
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
@@ -791,7 +790,6 @@ contains
   subroutine read_cube_header(filename,geocode,nspin,n1i,n2i,n3i,hxh,hyh,hzh,rho,&
        nat,rxyz, iatypes, znucl)
     use module_base
-    use module_types
     implicit none
     character(len=*), intent(in) :: filename
     character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -804,7 +802,7 @@ contains
     integer, dimension(:), pointer :: iatypes, znucl
     !local variables
     character(len=*), parameter :: subname='read_cube_header'
-    integer :: n1t,n2t,n3t,n1,n2,n3,idum,iat,i_stat,i_all,j
+    integer :: n1t,n2t,n3t,n1,n2,n3,idum,iat,j
     integer :: nl1,nl2,nl3,nbx,nby,nbz
     real(gp) :: dum1,dum2,dum3
     integer, dimension(:), allocatable :: znucl_
@@ -889,7 +887,7 @@ END SUBROUTINE read_cube
 
 !>   Read a cube field which have been plotted previously by write_cube_fields
 subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
-  !n(c) use module_base
+  use module_base, only: dp,gp,to_zero
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
@@ -991,7 +989,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
   logical,intent(in) :: calculate_quadropole
 
   character(len=*), parameter :: subname='calc_dipole'
-  integer :: i_all,i_stat,ierr,n3p,nc1,nc2,nc3
+  integer :: ierr,n3p,nc1,nc2,nc3
   real(gp) :: q,qtot, delta_term,x,y,z,ri,rj
   integer  :: iat,i1,i2,i3, nl1,nl2,nl3, ispin,n1i,n2i,n3i, i, j
   real(gp), dimension(3) :: dipole_el,dipole_cores,tmpdip,charge_center_cores
@@ -1230,15 +1228,15 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
      !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      tmpdip=dipole_cores+dipole_el
-     call yaml_open_map('Electric Dipole Moment (AU)')
+     call yaml_mapping_open('Electric Dipole Moment (AU)')
        call yaml_map('P vector',tmpdip(1:3),fmt='(1pe13.4)')
        call yaml_map('norm(P)',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')
-     call yaml_close_map()
+     call yaml_mapping_close()
      tmpdip=tmpdip/0.393430307_gp  ! au2debye              
-     call yaml_open_map('Electric Dipole Moment (Debye)')
+     call yaml_mapping_open('Electric Dipole Moment (Debye)')
        call yaml_map('P vector',tmpdip(1:3),fmt='(1pe13.4)')
        call yaml_map('norm(P)',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')
-     call yaml_close_map()
+     call yaml_mapping_close()
 
 !!$     write(*,'(1x,a)')repeat('-',61)//' Electric Dipole Moment'
 
@@ -1256,24 +1254,24 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
 
 
       if (calculate_quadropole) then
-          !call yaml_open_sequence('core quadropole')
+          !call yaml_sequence_open('core quadropole')
           !do i=1,3
           !   call yaml_sequence(trim(yaml_toa(quadropole_cores(i,1:3),fmt='(es15.8)')))
           !end do
-          !call yaml_close_sequence()
+          !call yaml_sequence_close()
 
-          !call yaml_open_sequence('electronic quadropole')
+          !call yaml_sequence_open('electronic quadropole')
           !do i=1,3
           !   call yaml_sequence(trim(yaml_toa(quadropole_el(i,1:3),fmt='(es15.8)')))
           !end do
-          !call yaml_close_sequence()
+          !call yaml_sequence_close()
 
-          call yaml_open_sequence('Quadropole Moment (AU)')
+          call yaml_sequence_open('Quadropole Moment (AU)')
           do i=1,3
              call yaml_sequence(trim(yaml_toa(tmpquadrop(i,1:3),fmt='(es15.8)')))
           end do
           call yaml_map('trace',tmpquadrop(1,1)+tmpquadrop(2,2)+tmpquadrop(3,3),fmt='(es12.2)')
-          call yaml_close_sequence()
+          call yaml_sequence_close()
       end if
 
 

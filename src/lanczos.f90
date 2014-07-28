@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+
 subroutine dirac_hara (rho, E , V)
    use module_base
 
@@ -47,7 +48,6 @@ subroutine dirac_hara (rho, E , V)
 
       x = xk *rs/ f
 
-
       if ((x-1)  < 1.0D-6) return
       Vcorr =V - (f/pi/rs) * ( log(abs((1+x) / (1-x))) * (1-x**2) / (2*x))
 
@@ -75,11 +75,10 @@ function GetBottom(atoms,nspin)
    integer, parameter :: ng=21
    !integer, parameter :: nmax=6
 
-   integer :: ity,  i_all
+   integer :: ity
    real(gp) , pointer :: expo(:)
-   real(gp) :: psi(ng,10)
+   real(gp), dimension(ng,10) :: psi
 
-   integer :: i_stat
    real(gp), dimension(nmax_occ_ao) :: gaenes_aux
    integer :: nspinor, iat, nspin_ig
 

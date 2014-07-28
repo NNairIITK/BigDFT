@@ -246,12 +246,12 @@ program frequencies
             !We copy atomic positions
             call vcopy(3*runObj%atoms%astruct%nat, rxyz0(1,1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
             if (bigdft_mpi%iproc == 0) then
-               call yaml_open_map('(F) Move',flow=.true.)
+               call yaml_mapping_open('(F) Move',flow=.true.)
                   call yaml_map('atom',      iat)
                   call yaml_map('direction', k)
                   call yaml_map('axis',      cc(i))
                   call yaml_map('displacement (Bohr)', dd,fmt='(1pe20.10)')
-               call yaml_close_map()
+               call yaml_mapping_close()
             end if
             if (runObj%atoms%astruct%geocode == 'P') then
                runObj%atoms%astruct%rxyz(i,iat)=modulo(rxyz0(i,iat)+dd,alat)

@@ -268,12 +268,12 @@ integer :: i_stat
 void FC_FUNC_(allocate_atoms_ntypes, ALLOCATE_ATOMS_NTYPES)(f90_atoms_data *atoms);
 /* allocaterhopot src/init/denspotd.f90:448 */
 /* Fortran header:
-subroutine allocateRhoPot(iproc,Glr,nspin,atoms,rxyz,denspot)
+subroutine allocateRhoPot(Glr,nspin,atoms,rxyz,denspot)
 use module_base
 use module_types
 use module_interfaces, fake_name => allocateRhoPot
 implicit none
-integer, intent(in) :: iproc,nspin
+integer, intent(in) :: nspin
 type(locreg_descriptors), intent(in) :: Glr
 type(atoms_data), intent(in) :: atoms
 real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
@@ -282,8 +282,7 @@ type(DFT_local_fields), intent(inout) :: denspot
 character(len = *), parameter :: subname = "allocateRhoPot"
 integer :: i_stat
 */
-void FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(const int *iproc, 
-                                             const f90_locreg_descriptors *Glr, 
+void FC_FUNC(allocaterhopot, ALLOCATERHOPOT)(const f90_locreg_descriptors *Glr, 
                                              const int *nspin, 
                                              const f90_atoms_data *atoms, 
                                              const double *rxyz, 
@@ -1867,7 +1866,7 @@ void FC_FUNC_(kernel_get_comm, KERNEL_GET_COMM)(const f90_coulomb_operator *pker
                                                 int *mpi_comm);
 /* kswfn_init_comm src/init/kswfn.f90:120 */
 /* Fortran header:
-subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
+subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc)
 use module_types
 use module_interfaces, except_this_one => kswfn_init_comm
 use communications_base, only: comms_linear_null
@@ -1875,13 +1874,9 @@ use communications_init, only: init_comms_linear, init_comms_linear_sumrho, init
 implicit none
 integer, intent(in) :: iproc, nproc
 type(DFT_wavefunction), intent(inout) :: wfn
-type(input_variables), intent(in) :: in
-type(atoms_data),intent(in) :: atoms
 type(denspot_distribution), intent(in) :: dpbox
 */
 void FC_FUNC_(kswfn_init_comm, KSWFN_INIT_COMM)(f90_DFT_wavefunction *wfn, 
-                                                const f90_input_variables *in, 
-                                                const f90_atoms_data *atoms, 
                                                 const f90_denspot_distribution *dpbox, 
                                                 const int *iproc, 
                                                 const int *nproc);

@@ -191,7 +191,7 @@ static void bigdft_dict_finalize(GObject *obj)
 
   /* g_message("Killing %p (%p).", (gpointer)obj, dict->root); */
   if (F_TYPE(dict->root))
-    FC_FUNC_(dict_free, DICT_FREE)(&dict->root);
+    FC_FUNC_(dict_free_binding, DICT_FREE_BINDING)(&dict->root);
 
 #ifdef HAVE_GLIB
   G_OBJECT_CLASS(bigdft_dict_parent_class)->finalize(obj);
@@ -228,7 +228,7 @@ BigDFT_Dict *bigdft_dict_new(BigDFT_DictIter *root)
   dict = g_malloc(sizeof(BigDFT_Dict));
   bigdft_dict_init(dict);
 #endif
-  FC_FUNC_(dict_init, DICT_INIT)(&dict->root);
+  FC_FUNC_(dict_init_binding, DICT_INIT_BINDING)(&dict->root);
   dict->current = dict->root;
 
   if (root)
@@ -490,7 +490,7 @@ void  bigdft_dict_set_dict(BigDFT_Dict *dict, const gchar *id, const BigDFT_Dict
   root = dict->current;
   if (id)
     FC_FUNC_(dict_insert, DICT_INSERT)(&dict->current, id, strlen(id));
-  FC_FUNC_(dict_update, DICT_UPDATE)(&dict->current, &value->current);
+  FC_FUNC_(dict_update_binding, DICT_UPDATE_BINDING)(&dict->current, &value->current);
   dict->current = root;
 }
 gboolean bigdft_dict_pop(BigDFT_Dict *dict, const gchar *key)
@@ -516,7 +516,7 @@ gchar* bigdft_dict_value(BigDFT_Dict *dict)
   gchar *out;
   
   buf[max_field_length] = ' ';
-  FC_FUNC_(dict_value, DICT_VALUE)(&dict->current, buf, max_field_length);
+  FC_FUNC_(dict_value_binding, DICT_VALUE_BINDING)(&dict->current, buf, max_field_length);
   for (i = max_field_length; i > 0 && buf[i] == ' '; i--)
     buf[i] = '\0';
   ln = max_field_length - i;

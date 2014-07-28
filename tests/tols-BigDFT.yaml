@@ -59,13 +59,16 @@ yaml_test:
    - Errors found while (de)allocating ab and b
    - Calling sequence of Main program (routines with * are not closed yet)
    - Additional Info
+   - Something to use b
    - Something to use ab
    - Entering Thread No.
+   - Elapsed time (ns)
+   - Elapsed time (mus)
  Patterns to ignore:
    - errcode
-   - time
    - Time
    - Global dictionary
+   - time
 
 #Runs which update and override the default
 AgBulk:
@@ -85,17 +88,22 @@ AgBulk:
 
 
 SiBulk:
- Wavefunctions Iterations: 1.1e-10
+ Wavefunctions Iterations: 4.4e-8 # 1.1e-10
  Residues per orbital: 8.0e-10
- maxval: 1.3e-10
+ maxval: 3.18e-10
  # Ekin: 2.1e-11
- # Enl: 5.1e-11
+ # Enl: 2.1e-11
  # Epot: 1.0e-10
  # EvXC: 1.1e-10
- Atomic Forces (Ha/Bohr): 1.3e-10
- Clean forces norm (Ha/Bohr): 8.3e-11
- Average noise forces: 2.4e-11
- Optimization of virtual orbitals: 2.97e-8
+ Last Iteration: 7.01e-10
+ Atomic Forces (Ha/Bohr): 7.01e-10
+ Clean forces norm (Ha/Bohr): 3.3e-10
+ Average noise forces: 9.3e-10
+ HOMO LUMO gap (AU, eV): 1.8e-10
+ PV (Ha): 1.89e-10
+ Optimization of virtual orbitals: 6.28e-8
+ e_occupied: 1.42e-11
+ Orbitals: 1.42e-11	
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -329,12 +337,12 @@ Davidson-SiH4:
 
 TDDFT:
   Epsilon: 1.1e-10
-  e_virtual: 1.2e-7
-  Eigenvalues and eigenstate residue: 1.2e-5
+  e_virtual: 6.0e-7
+  Eigenvalues and eigenstate residue: 1.2e-4
   Epot: 1.1e-10
-  Gradient Norm: 4.0e-8
+  Gradient Norm: 1.01e-4 #too big?
   L2 Norm - 1 and Rayleigh quotient (Davidson): 1.1e-6
-  Excitation Energy and Oscillator Strength: 1.3e-5
+  Excitation Energy and Oscillator Strength: 1.3e-4
   Transition energies (eV): 3.01e-4
 
 BigDFT2Wannier.b2w.ref.yaml:
@@ -345,15 +353,15 @@ cleanup:
  Enl: 8.7e-10
  Atomic Forces (Ha/Bohr): 3.2e-10
  Average noise forces: 3.1e-10
- Clean forces norm (Ha/Bohr): 1.9e-10
- Raw forces norm (Ha/Bohr): 2.6e-10
+ Clean forces norm (Ha/Bohr): 2.28e-10
+ Raw forces norm (Ha/Bohr): 3.04e-10
  Epot: 3.3e-9
- Orbitals: 4.55e-10
+ Orbitals: 4.71e-10
  EH: 2.9e-9
  EXC: 1.9e-9
  EvXC: 8.7e-10
  Enl: 9.1e-10
- Omega: 1.6e-9
+ Omega: 2.12e-9
  Pulay Forces (Ha/Bohr): 1.9e-9
  energy: 2.3e-9
 
@@ -685,6 +693,7 @@ foe:
  EH: 1.0e-9
  Omega: 1.64e-10
  EXC: 7.1e-10
+ Ekin: 1.1e-10
  Total charge: 2.1e-11
  EvXC: 1.1e-10
  eF: 4.2e-8
@@ -805,7 +814,7 @@ experimentalfoe_medium:
  Epot: 1.1e-9
  EH: 1.1e-9
  Total charge: 3.1e-11
- energy: 8.3e-11
+ energy: 1.4e-10
  Omega: 8.1e-10
  decay length of error function: 1.1e-5
 

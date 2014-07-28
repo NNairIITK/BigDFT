@@ -362,7 +362,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
      end if
      call yaml_newline()
   end if
-!call yaml_close_map()
+!call yaml_mapping_close()
 
   call f_free(tmred)
 

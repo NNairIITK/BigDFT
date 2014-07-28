@@ -382,16 +382,15 @@
 
 
 !> Allocate diis objects
-subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis,subname) !n(m)
+subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis)
   use module_base
   use module_types
   implicit none
-  character(len=*), intent(in) :: subname
   integer, intent(in) :: idsx,npsidim,nkptsp,nspinor !n(m)
   real(gp), intent(in) :: alphadiis
   type(diis_objects), intent(inout) :: diis
   !local variables
-  integer :: i_stat,ncplx,ngroup
+  integer :: ncplx,ngroup
 
   !calculate the number of complex components
   if (nspinor > 1) then
@@ -430,14 +429,12 @@ END SUBROUTINE allocate_diis_objects
 
 
 !> De-Allocate diis objects
-subroutine deallocate_diis_objects(diis,subname)
+subroutine deallocate_diis_objects(diis)
   use module_base
   use module_types
   implicit none
-  character(len=*), intent(in) :: subname
   type(diis_objects), intent(inout) :: diis
   !local variables
-  integer :: i_all,i_stat
 
   call f_free_ptr(diis%psidst)
   call f_free_ptr(diis%hpsidst)
@@ -461,7 +458,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   real(dp), dimension(npoints), intent(inout) :: rhopot
   real(gp), intent(out) :: rpnrm
   !local variables
-  integer :: ierr,ie,ii,i_stat,i_all
+  integer :: ierr,ie,ii
   character(len = *), parameter :: subname = "mix_rhopot"
   character(len = 500) :: errmess
   integer, allocatable :: user_data(:)
@@ -662,14 +659,6 @@ subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
      diis%ids=0
      diis%idiistol=0
 
-     !no need to reallocate
-     !allocate(psidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
-     !call memocc(i_stat,psidst,'psidst',subname)
-     !allocate(hpsidst_sp(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
-     !call memocc(i_stat,hpsidst_sp,'hpsidst_sp',subname)
-     !allocate(ads(idsx+1,idsx+1,orbs%nkptsp*3+ndebug),stat=i_stat)
-     !call memocc(i_stat,ads,'ads',subname)
-
      !ncplx and ngroup have to be added
      call to_zero(nkptsp*(idsx+1)**2,diis%ads(1,1,1,1,1,1))
   end if
@@ -692,7 +681,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
   type(diis_objects), intent(inout) :: diis
 ! Local variables
   character(len=*), parameter :: subname='diisstp'
-  integer :: i,j,ist,jst,mi,info,jj,mj,i_all,i_stat,ierr,ipsi_spin_sh,iorb_group_sh
+  integer :: i,j,ist,jst,mi,info,jj,mj,ipsi_spin_sh,iorb_group_sh
   integer :: ikptp,ikpt,ispsi,ispsidst,nvctrp,icplx,ncplx,norbi,ngroup,igroup,iacc_add
   complex(tp) :: zdres,zdotc
   real(tp), dimension(2) :: psicoeff

@@ -85,17 +85,17 @@ CONV_CHECK = conv_check_fftw
 endif
 EXTRA_PROGRAMS = $(CONV_CHECK)
 conv_check_fft_SOURCES = conv_check_fft.f90
-conv_check_fft_LDADD = libPSolver.a $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib.a @LIBS_SHORT_DEPS@
+conv_check_fft_LDADD = libPSolver.a $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib-1.a @LIBS_EXT_DEPS@
 conv_check_fftw_SOURCES = conv_check_fftw.f90 fftw.cpp
-conv_check_fftw_LDADD = @LIBS_SHORT_DEPS@ -lfftw3 -lfftw3_threads
+conv_check_fftw_LDADD = @LIBS_EXT_DEPS@ -lfftw3 -lfftw3_threads
 
-AM_FCFLAGS = -I$(top_builddir)/includes -I. -I$(srcdir) @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ @MPI_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/includes -I. -I$(srcdir) @MPI_INCLUDE@
 AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_PATH@/include/ 
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
 else
-LIBS += @LIBS_SHORT_DEPS@
+LIBS += @LIBS_EXT_DEPS@
 endif
 
 SUFFIXES = .cu
@@ -105,7 +105,7 @@ NVCC_FLAGS = -arch sm_13 @NVCC_FLAGS@
 
 # Dynamic library building
 $(psolver_dynamic_library): $(libPSolver_1_a_OBJECTS)
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(psolver_library_soname) -o $@ $^ $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib.a @LIBS_SHORT_DEPS@
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(psolver_library_soname) -o $@ $^ $(top_builddir)/wrappers/libwrappers.a $(top_builddir)/flib/src/libflib-1.a @LIBS_EXT_DEPS@
 	@chmod a+x $@
 
 $(psolver_library_soname): $(psolver_dynamic_library)

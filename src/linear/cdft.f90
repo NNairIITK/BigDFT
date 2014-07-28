@@ -1,3 +1,13 @@
+!> @file
+!>  Contains files for constrained DFT
+!! @author
+!!    Copyright (C) 2013-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
 !> CDFT: calculates the weight matrix w_ab via the expression S^1/2PS^1/2, where S is the overlap of the whole system
 !! CDFT: and P is a projector matrix onto the tmbs of the desired fragment
 !! CDFT: for standalone CDFT calculations, assuming one charged fragment, for transfer integrals assuming two fragments
@@ -64,7 +74,7 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,nfrag_charged,ifrag_char
   integer, dimension(2), intent(in) :: ifrag_charged
   real(kind=gp), dimension(:,:), pointer :: ovrlp_half
   !local variables
-  integer :: ifrag,iorb,ifrag_ref,isforb,istat,ierr
+  integer :: ifrag,iorb,ifrag_ref,isforb,ierr
   real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
   character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
   real(kind=gp) :: max_error, mean_error
@@ -183,7 +193,6 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
   type(DFT_local_fields), intent(inout) :: denspot
   type(GPU_pointers),intent(inout) :: GPU
 
-  integer :: iall, istat
   !integer :: iorb, jorb
   real(kind=gp),dimension(:),allocatable :: hpsit_c, hpsit_f
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp

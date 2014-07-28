@@ -55,7 +55,7 @@ contains
     character(len=200), parameter :: subname='cdft_data_free'
 
     !if (associated(cdft%weight_function)) call f_free_ptr(cdft%weight_function)
-    call deallocate_sparse_matrix(cdft%weight_matrix, subname)
+    call deallocate_sparse_matrix(cdft%weight_matrix)
     call nullify_cdft_data(cdft)
   end subroutine cdft_data_free
 

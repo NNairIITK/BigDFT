@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
+
 subroutine center_of_charge(at,rxyz,cc)
   use module_base
   use module_types
@@ -63,7 +64,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
   !local variables
   character(len=*), parameter :: subname='coupling_matrix_prelim'
   logical :: tda=.true.,onlyfxc=.false.,dofxc=.true.,perx,pery,perz
-  integer :: i_all,i_stat,ierr,imulti,jmulti,jorba,jorbi,index
+  integer :: imulti,jmulti,jorba,jorbi,index
   integer :: i1,i2,i3p,iorbi,iorba,indi,inda,ind2,ind3,ntda,ispin,jspin
   integer :: ik,jk,nmulti,lwork,info,nbl1,nbl2,nbl3,nbr3,nbr2,nbr1,ndipoles
   real(gp) :: ehart,hfac,x,y,z
@@ -363,14 +364,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
         ! summary of the results and pretty printing
         if (iproc == 0) then
            if (tda) call yaml_comment('TAMM-DANCOFF APPROXIMATION',hfill='-')
-           call yaml_open_sequence('Excitation Energy and Oscillator Strength')
-           !write(6,'(/)')
-           !if (tda) print *, 'TAMM-DANCOFF APPROXIMATION'
-           !write(6,10)
-!10         format ('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-           !write(6,20)
-!20         format(t2,4x,'Excitation Energy',3x,'Oscillator Strength')
-!           write(6,10)
+           call yaml_sequence_open('Excitation Energy and Oscillator Strength')
 
            do imulti = 1, 2*nmulti
               call yaml_sequence(trim(yaml_toa((/ Ha_eV*omega(imulti),&
@@ -380,7 +374,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
               !write(6,30) imulti, Ha_eV*omega(imulti),omega(imulti)*(2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
 !30            format(t2,i3,2x,f9.4,12x,1pe10.3) 
            end do
-           call yaml_close_sequence()
+           call yaml_sequence_close()
 
 !          Extracting the excitation energies and Oscillator strength to plot absorption spectra
            open(unit=9, file='td_spectra.txt')
@@ -393,10 +387,10 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
 
            !write(6,10)
 
-           call yaml_open_sequence('Transition energies (eV)')
+           call yaml_sequence_open('Transition energies (eV)')
            do imulti = 1,2*nmulti
               call yaml_sequence(advance='no')
-              call yaml_open_sequence(advance='no',flow=.true.)
+              call yaml_sequence_open(advance='no',flow=.true.)
               call yaml_map('Energy',trim(yaml_toa(Ha_eV*omega(imulti),fmt='(f10.5)')))
               !write(6,40)
 !40            format('================================================')
@@ -411,10 +405,10 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
                     if (abs(Kbig(jmulti,imulti)) > 5.d-02) then
                        if (ik /= 0) call yaml_newline()
                        ik = ik + 1
-                       call yaml_open_map(flow=.true.)
+                       call yaml_mapping_open(flow=.true.)
                           call yaml_map('Transition',trim(yaml_toa((/ iorbi, iorba /))))
                           call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti,imulti)),fmt='(1pe10.3)')))
-                       call yaml_close_map()   
+                       call yaml_mapping_close()   
                        !write(6,60) iorbi, iorba,  abs(Kbig(jmulti,imulti))
 !60                     format (i4,'----->',i3,2x,' Coeff =',1pe10.3) 
                     end if
@@ -430,19 +424,19 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
                     if (abs(Kbig(jmulti+nmulti,imulti)) > 5.d-02) then
                        if (ik /= 0) call yaml_newline()
                        ik = ik + 1
-                       call yaml_open_map(flow=.true.)
+                       call yaml_mapping_open(flow=.true.)
                           call yaml_map('Transition',trim(yaml_toa((/ iorbi, iorba /))))
                           call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti+nmulti,imulti)),fmt='(1pe10.3)')))
-                       call yaml_close_map()
+                       call yaml_mapping_close()
                        !write(6,60) iorbi, iorba,  abs(Kbig(jmulti+nmulti,imulti))
                     end if
                  end do
              end do
-             call yaml_close_sequence(advance='no')
+             call yaml_sequence_close(advance='no')
              call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
 
            end do
-           call yaml_close_sequence()
+           call yaml_sequence_close()
            !write(6,40)
 
         end if
@@ -470,7 +464,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
 !!$
 !!$        !print eigenvalues
 !!$        if (iproc == 0) then
-!!$           call yaml_open_sequence('Excitation energies (Ha, eV, dipoles)')
+!!$           call yaml_sequence_open('Excitation energies (Ha, eV, dipoles)')
 !!$           do imulti=1,nmulti
 !!$              call yaml_sequence( trim(yaml_toa( &
 !!$                 & (/ omega(imulti),omega(imulti)*Ha_eV,fi(1,imulti),fi(2,imulti),fi(3,imulti) /),fmt='(f10.5)')),&
@@ -479,7 +473,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
 !!$              !print '(a,i6,2(f10.5),3(f10.5))','excitation energies: Ha, eV, dipoles:' , &
 !!$              !imulti,omega(imulti),omega(imulti)*Ha_eV,fi(1,imulti),fi(2,imulti),fi(3,imulti)
 !!$           end do
-!!$           call yaml_close_sequence()
+!!$           call yaml_sequence_close()
 !!$        end if
          
      end if

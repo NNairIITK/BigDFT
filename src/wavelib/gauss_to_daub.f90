@@ -150,7 +150,7 @@ contains
           r2=r/a
           r2=r2*r2
           r2=0.5_gp*r2
-          func=real(dexp(-real(r2,kind=8)),wp)
+          func=safe_exp(-r2)
           ww(i-leftx,1)=func
        enddo
     else
@@ -161,7 +161,7 @@ contains
           r2=r/a
           r2=r2*r2
           r2=0.5_gp*r2
-          func=real(dexp(-real(r2,kind=8)),wp)
+          func=safe_exp(-r2)
           func=real(coeff,wp)*func
           ww(i-leftx,1)=func
        enddo
@@ -467,7 +467,6 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
   real(gp), intent(in) :: gau_cut
   !local variables
   character(len=*), parameter :: subname='gauss_to_daub_k'
-  integer :: i_all,i_stat
   integer :: rightx,leftx,right_t,i0,i,k,length,j,icplx
   real(gp) :: a1,a2,z0,h,x,r,coeff,r2,rk,gcut
   real(gp) :: fac(ncplx_g)
@@ -635,7 +634,7 @@ contains
              r2=r/a1
              r2=r2*r2
              r2=0.5_gp*r2
-             func=dexp(-r2)
+             func=safe_exp(-r2)
              !func=mp_exp(h,i0*16*h+z0,0.5_gp/(a1**2),i,0,.true.)
              ww(i-leftx,1,icplx)=func
           enddo
@@ -647,7 +646,7 @@ contains
              r2=r/a1
              r2=r2*r2
              r2=0.5_gp*r2
-             func=dexp(-r2)
+             func=safe_exp(-r2)
              !func=mp_exp(h,i0*16*h+z0,0.5_gp/(a1**2),i,0,.true.)
              func=coeff*func
              ww(i-leftx,1,icplx)=func
@@ -671,7 +670,7 @@ contains
           r2=r2*r2
           r2=0.5_gp*r2
           cval=cos(kval*rk)
-          func=dexp(-r2)
+          func=safe_exp(-r2)
           !func=mp_exp(h,i0*16*h+z0,0.5_gp/(a1**2),i,0,.true.)
           ww(i-leftx,1,1)=func*cval
           sval=sin(kval*rk)
@@ -687,7 +686,7 @@ contains
           r2=r2*r2
           r2=0.5_gp*r2
           cval=cos(kval*rk)
-          func=dexp(-r2)
+          func=safe_exp(-r2)
           !func=mp_exp(h,i0*16*h+z0,0.5_gp/(a1**2),i,0,.true.)
           func=coeff*func
           ww(i-leftx,1,1)=func*cval
@@ -711,7 +710,7 @@ contains
             cval=cos(a2*r2)
             sval=sin(a2*r2)
             r2=0.5_gp*r2/(a1**2)
-            func=dexp(-r2)
+            func=safe_exp(-r2)
             ww(i-leftx,1,1)=func*cval
             ww(i-leftx,1,2)=func*sval
           else
@@ -728,7 +727,7 @@ contains
             sval=sin(a2*r2)
             coeff=r**n_gau
             r2=0.5_gp*r2/(a1**2)
-            func=dexp(-r2)
+            func=safe_exp(-r2)
             func=coeff*func
             ww(i-leftx,1,1)=func*cval
             ww(i-leftx,1,2)=func*sval
@@ -754,7 +753,7 @@ contains
             cval2=cos(kval*rk)
             sval2=sin(kval*rk)
             r2=0.5_gp*r2/(a1**2)
-            func=dexp(-r2)
+            func=safe_exp(-r2)
             ww(i-leftx,1,1)=func*(cval*cval2-sval*sval2)
             ww(i-leftx,1,2)=func*(cval*sval2+sval*cval2)
           else
@@ -773,7 +772,7 @@ contains
           sval2=sin(kval*rk)
           coeff=r**n_gau
           r2=0.5_gp*r2/(a1**2)
-          func=dexp(-r2)
+          func=safe_exp(-r2)
           func=coeff*func
           ww(i-leftx,1,1)=func*(cval*cval2-sval*sval2)
           ww(i-leftx,1,2)=func*(cval*sval2+sval*cval2)
@@ -1076,7 +1075,7 @@ contains
                    r2=r2*r2
                    cval=real(cos(gau_kval*r2),wp)
                    r2=0.5_gp*r2/a/a
-                   func=real(dexp(-real(r2,kind=8)),wp)
+                   func=safe_exp(-r2)
                    if(abs(r)>cutoff) func=0
                    ww(i-leftx,ifwdtarget ,ics, icplx)=func*cval*sval
                 enddo
@@ -1090,7 +1089,7 @@ contains
                    r2=r2*r2
                    cval=real(cos(gau_kval*r2),wp)
                    r2=0.5_gp*r2/a/a
-                   func=real(dexp(-real(r2,kind=8)),wp)
+                   func=safe_exp(-r2)
                    func=real(coeff,wp)*func
                    if(abs(r)>cutoff) func=0
                    ww(i-leftx,ifwdtarget,ics, icplx)=func*cval*sval
@@ -1106,7 +1105,7 @@ contains
                    r2=r2*r2
                    cval=real(sin(gau_kval*r2),wp)
                    r2=0.5_gp*r2/a/a
-                   func=real(dexp(-real(r2,kind=8)),wp)
+                   func=safe_exp(-r2)
                    if(abs(r)>cutoff) func=0
                    ww(i-leftx,ifwdtarget,ics, icplx)=func*cval*sval
                 enddo
@@ -1120,7 +1119,7 @@ contains
                    r2=r2*r2
                    cval=real(sin(gau_kval*r2),wp)
                    r2=0.5_gp*r2/a/a
-                   func=real(dexp(-real(r2,kind=8)),wp)
+                   func=safe_exp(-r2)
                    func=real(coeff,wp)*func
                    if(abs(r)>cutoff) func=0
                    ww(i-leftx,ifwdtarget,ics, icplx)=func*cval*sval

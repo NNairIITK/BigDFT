@@ -389,14 +389,14 @@ contains
     !if (trim(mems(ictrl)%present_routine) /= trim(id) .or. &
     !         (trim(mems(ictrl)%present_routine) == trim(id) .and. .not. mems(ictrl)%routine_opened) ) then
     !debug
-!!$    call yaml_open_map('Status before the opening of the routine')
+!!$    call yaml_mapping_open('Status before the opening of the routine')
 !!$      call yaml_map('Level',ictrl)
 !!$      call yaml_map('Routine opened',mems(ictrl)%routine_opened)
 !!$      call yaml_map('Codepoint',trim(dict_key(mems(ictrl)%dict_codepoint)))
-!!$      call yaml_open_map('Codepoint dictionary')
+!!$      call yaml_mapping_open('Codepoint dictionary')
 !!$      call yaml_dict_dump(mems(ictrl)%dict_codepoint)
-!!$      call yaml_close_map()
-!!$    call yaml_close_map()
+!!$      call yaml_mapping_close()
+!!$    call yaml_mapping_close()
     !end debug  
 
     if (.true.) then
@@ -505,10 +505,10 @@ contains
 
     call set_routine_info(mems(ictrl)%present_routine,mems(ictrl)%profile_routine)
     !debug
-!!$    call yaml_open_map('Codepoint after closing')
+!!$    call yaml_mapping_open('Codepoint after closing')
 !!$    call yaml_map('Potential Reference Routine',trim(dict_key(mems(ictrl)%dict_codepoint)))
 !!$    call yaml_dict_dump(mems(ictrl)%dict_codepoint)
-!!$    call yaml_close_map()
+!!$    call yaml_mapping_close()
 !!$    call yaml_comment('End of release routine',hfill='=')
     !end debug
     call f_timer_resume()
@@ -554,9 +554,9 @@ contains
 
     itime=f_time()
     !debug
-!!$    call yaml_open_map('codepoint'//trim(dict_key(dict)))
+!!$    call yaml_mapping_open('codepoint'//trim(dict_key(dict)))
 !!$    call yaml_dict_dump(dict)
-!!$    call yaml_close_map()
+!!$    call yaml_mapping_close()
 !!$    call yaml_comment('We should jump up '//trim(yaml_toa(jump_up)),hfill='}')
     !end debug
 
@@ -705,7 +705,7 @@ contains
 
   !> Finalize f_malloc (Display status)
   subroutine f_malloc_finalize(dump,process_id)
-    use yaml_output, only: yaml_warning,yaml_open_map,yaml_close_map,yaml_dict_dump,yaml_get_default_stream,yaml_map
+    use yaml_output, only: yaml_warning,yaml_mapping_open,yaml_mapping_close,yaml_dict_dump,yaml_get_default_stream,yaml_map
     implicit none
     !Arguments
     logical, intent(in), optional :: dump !< Dump always information, 
@@ -746,17 +746,17 @@ contains
        end if
        if (dump_status) then
           call yaml_map('Size of the global database',dict_size(mems(ictrl)%dict_global))
-          call yaml_map('Raw version',mems(ictrl)%dict_global)
-          call yaml_open_map('Status of the memory at finalization')
+          !call yaml_map('Raw version',mems(ictrl)%dict_global)
+          call yaml_mapping_open('Status of the memory at finalization')
           !call yaml_dict_dump(dict_global)
           call dump_leaked_memory(mems(ictrl)%dict_global)
-          call yaml_close_map()
+          call yaml_mapping_close()
        end if
        call dict_free(mems(ictrl)%dict_global)
        call f_release_routine() !release main
-       !    call yaml_open_map('Calling sequence')
+       !    call yaml_mapping_open('Calling sequence')
        !    call yaml_dict_dump(dict_calling_sequence)
-       !    call yaml_close_map()
+       !    call yaml_mapping_close()
        call dict_free(mems(ictrl)%dict_calling_sequence)
     end if
 
@@ -776,9 +776,10 @@ contains
      type(dictionary), pointer, intent(in) :: dict
      integer, intent(in), optional :: unit
      !Local variables
-     type(dictionary), pointer :: dict_ptr, dict_list
-     character(len=namelen) :: array_id
-     character(len=info_length) :: array_info
+     type(dictionary), pointer :: dict_ptr
+!!$     type(dictionary), pointer :: dict_list
+!!$     character(len=namelen) :: array_id
+!!$     character(len=info_length) :: array_info
      integer :: iunt
 
      if (present(unit)) then
@@ -797,10 +798,10 @@ contains
 !!$        jlsize=dict_list//2
 !!$        if (has_key(dict_ptr,trim(arrayid))) then
 !!$           array_id = dict_ptr//arrayid
-!!$           call yaml_open_map(trim(array_id),unit=iunt)
+!!$           call yaml_mapping_open(trim(array_id),unit=iunt)
 !!$           call yaml_dict_dump(dict_ptr,unit=iunt)
 !!$           call yaml_map(metadatadd,trim(dict_key(dict_ptr)),unit=iunt)
-!!$           call yaml_close_map(unit=iunt)
+!!$           call yaml_mapping_close(unit=iunt)
 !!$        else
         call yaml_map(trim(dict_key(dict_ptr)),dict_ptr,unit=iunt)
 !!$        end if
@@ -848,9 +849,9 @@ contains
     end if
 
     call yaml_newline(unit=iunt)
-!    call yaml_open_map('Calling sequence of Main program',unit=iunt)
+!    call yaml_mapping_open('Calling sequence of Main program',unit=iunt)
 !      call yaml_dict_dump(mems(ictrl)%dict_calling_sequence,unit=iunt)
-!    call yaml_close_map(unit=iunt)
+!    call yaml_mapping_close(unit=iunt)
     !use the new compact version for the calling sequence
     call dict_init(dict_compact)
     call postreatment_of_calling_sequence(-1.d0,&
@@ -859,14 +860,14 @@ contains
          dict_compact,unit=iunt)
     call dict_free(dict_compact)
     if (associated(mems(ictrl)%dict_routine)) then
-       call yaml_open_map('Routine dictionary',unit=iunt)
+       call yaml_mapping_open('Routine dictionary',unit=iunt)
        call dump_leaked_memory(mems(ictrl)%dict_routine,unit=iunt)
-       call yaml_close_map(unit=iunt)
+       call yaml_mapping_close(unit=iunt)
     end if
-    call yaml_open_map('Global dictionary (size'//&
+    call yaml_mapping_open('Global dictionary (size'//&
          trim(yaml_toa(dict_size(mems(ictrl)%dict_global)))//')',unit=iunt)
     call dump_leaked_memory(mems(ictrl)%dict_global,unit=iunt)
-    call yaml_close_map(unit=iunt)
+    call yaml_mapping_close(unit=iunt)
 
     !then close the file
     if (iunt /= iunit_def) then

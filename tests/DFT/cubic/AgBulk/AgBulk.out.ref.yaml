@@ -128,10 +128,10 @@
    itrpmax                             : 10 #     maximum number of diagonalisation iterations
    rpnrm_cv                            : 0.1E-06 # stop criterion on the residue of potential or density
    norbsempty                          : 2 #      No. of additional bands
-   Tel                                 : 0.10E-03 # electronic temperature
-   occopt                              : 1 #      smearing method
-   alphamix                            : 0.950 #  Multiplying factors for the mixing
-   alphadiis                           : 0.800 #  Multiplying factors for the electronic DIIS
+   tel                                 : 1.0E-004 # Electronic temperature
+   occopt                              : 1 #      Smearing method
+   alphamix                            : 0.95 #   Multiplying factors for the mixing
+   alphadiis                           : 0.8 #    Multiplying factors for the electronic DIIS
  sic:
    sic_approach                        : none #   SIC method
    sic_alpha                           : 0. #     SIC downscaling parameter
