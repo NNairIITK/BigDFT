@@ -275,13 +275,13 @@ allocate(tangentleft(3,atoms%astruct%nat),tangentright(3,atoms%astruct%nat))
             call deallocate_atomic_structure(atoms%astruct)
             call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
             call vcopy(3 * atoms%astruct%nat,atoms%astruct%rxyz(1,1),1,rxyz2(1,1), 1)
-!!            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
+            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
 !!allocate(eval(3*atoms%astruct%nat))
 !!call cal_hessian_fd(iproc,atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,hess)
 !!        call DSYEV('V','L',3*atoms%astruct%nat,hess,3*atoms%astruct%nat,eval,WORK,LWORK,INFO)
 !!        if (info.ne.0) stop 'DSYEV'
 !!        if(iproc==0)then
-!!        write(*,*) '(hess) ---   App. eigenvalues in exact ------------- fnrm:',sqrt(sum(fxyz**2))
+!!        write(*,'(a,1x,es9.2,1x,es24.17)') '(hess) ---   App. eigenvalues in exact ------------- fnrm:',sqrt(sum(fxyz**2)),energy
 !!        do j=1,3*atoms%astruct%nat
 !!            write(*,*) '(hess) eval ',j,eval(j)
 !!        enddo
@@ -318,6 +318,11 @@ allocate(tangentleft(3,atoms%astruct%nat),tangentright(3,atoms%astruct%nat))
 !!if(.not.converged)stop'minimizer_sbfgs not converged'
 !!call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
 !!write(*,'(a,1x,i0,1x,es9.2,1x,i0)')'count,fnrm',int(ec),sqrt(sum(fxyz**2))
+!!           if (iproc == 0) then
+!!               call write_atomic_file(currDir//'/'//currFile//'_final',&
+!!               energy,rxyz(1,1),ixyz_int,&
+!!               atoms,comment,forces=fxyz(1,1))
+!!           endif
 
 !step=-1._gp
 !!call lst_interpol(atoms%astruct%nat,rxyz,rxyz2,step,interleft,interright,&
@@ -341,22 +346,24 @@ string(3*i-1,2,1)=rxyz2(2,i)
 string(3*i,2,1)=rxyz2(3,i)
 enddo
 call grow_string(atoms%astruct%nat,atoms%astruct%cell_dim,0.5_gp,1.e-4_gp,0.1_gp,&
-                       25,nstringmax,nstring,string)
+                       5,nstringmax,nstring,string)
 
 counter=0
 do i=1,nstring
 counter=counter+1
-write(fnc,'(i3.3)')counter
+write(fnc,'(i4.4)')counter
+call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,string(1,1,i),fxyz,fnoise,energy)
            call write_atomic_file('pospb'//trim(adjustl(fnc)),&
-                1.d0,string(1,1,i),ixyz_int,&
+                energy,string(1,1,i),ixyz_int,&
                 atoms,'')
 
 enddo
 do i=nstring,1,-1
 counter=counter+1
-write(fnc,'(i3.3)')counter
+write(fnc,'(i4.4)')counter
+call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,string(1,2,i),fxyz,fnoise,energy)
            call write_atomic_file('pospb'//trim(adjustl(fnc)),&
-                1.d0,string(1,2,i),ixyz_int,&
+                energy,string(1,2,i),ixyz_int,&
                 atoms,'')
 
 enddo

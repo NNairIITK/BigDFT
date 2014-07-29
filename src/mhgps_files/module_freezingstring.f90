@@ -15,6 +15,133 @@ module module_freezingstring
 !this method simply calls grow_string
 !and then uses cubic splines to find the tangent at the highest energy node
 !=====================================================================
+subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess&
+    gammainv,perpnrmtol,trust,nstepsmax)!parameetrs in this line to be removed to global_variables
+    use module_base
+    use yaml_output
+    use module_global_variables, only: iproc
+    use module_energyandforces
+    implicit none
+    !parameters
+    integer, intent(in) :: nat
+    real(gp), intent(in) :: alat(3)
+    real(gp), intent(in) :: rxyz1(3,nat),rxyz2(3,nat)
+    real(gp), intent(out) :: tsguess(3,nat),minmodeguess(3,nat)
+real(gp), intent(in) :: gammainv
+real(gp), intent(in) :: perpnrmtol
+real(gp), intent(in) :: trust
+integer, intent(in) :: nstepsmax
+    !internal
+    integer :: i,iat
+    integer :: ipath,istring,istringmax,isidemax,ipathmax
+    integer :: nnodes,nstring,nstringmax=20
+    integer :: ihigh,icorr
+    real(gp), allocatable :: string(:,:,:)
+    real(gp), allocatable :: path(:,:,:)
+    real(gp), allocatable :: forces(:,:,:)
+    real(gp), allocatable :: energies(:)
+    real(gp), allocatable :: arc(:)
+    real(gp) :: fnoise
+    real(gp) :: emax
+
+    string = f_malloc((/ 1.to.3*nat, 2, nstringmax/),id='string')
+    call vcopy(3*nat, rxyz1(1,1), 1, string(1,1,1), 1)
+    call vcopy(3*nat, rxyz2(1,1), 1, string(1,2,1), 1)
+    
+    call grow_string(nat,alat,gammainv,perpnrmtol,trust,nstepsmax,&
+                    nstringmax,nstring,string)
+
+    nnodes=2*nstring
+    icorr =0
+    if(string(1,2,nstring)>=1.e30_gp)then
+        nnodes=nnodes-1
+        icorr = 1
+    endif
+    path = f_malloc((/nnodes,3,nat/),id='path')
+    forces = f_malloc((/3,nat,nnodes/),id='forces')
+    energies = f_malloc((/nnodes/),id='energies')
+    arc = f_malloc((/nnodes/),id='arc')
+
+    !copy path in correct order for 
+    !spline interpolation late on
+    ipath=0
+    do i=1,nstring
+        ipath=ipath+1
+        do iat=1,nat
+            path(ipath,1,iat)=string(3*iat-2,1,i)
+            path(ipath,2,iat)=string(3*iat-1,1,i)
+            path(ipath,3,iat)=string(3*iat  ,1,i)
+        enddo
+    enddo
+    do i=1,nstring
+        ipath=ipath+1
+        do iat=1,nat
+            path(ipath,1,iat)=string(3*iat-2,1,i)
+            path(ipath,2,iat)=string(3*iat-1,1,i)
+            path(ipath,3,iat)=string(3*iat  ,1,i)
+        enddo
+    enddo
+
+    !compute energies at the nodes
+    !That's ok, because their energies
+    !have NOT yet been computed in grow_string
+    !(which is calling optim_cg)
+    ipath=0
+    emax=-huge(1._gp)
+    do istring=2,nstring !start at 2 because we don't
+                                !want to recompute the minima's
+                                !energies
+        ipath=ipath+1
+        call energyandforces(nat,alat,string(1,i,istring),&
+             forces(1,1,ipath),fnoise,energies(ipath))
+        if(energies(ipaths)>emax)then
+            emax       = energies(ipath)
+            istringmax = istring
+            isidemax   = i
+            ipathmax   = ipath
+        endif
+        !parametrize spline such that the i-th node
+        !is at parameter value i:
+        arc(ipath)=real(ipath,gp)
+        if(ipath>=nnodes)exit 
+    enddo
+    !we don't need string anymore
+    call f_free(string) 
+
+    !tsguess is highest energy node:
+    ihigh = maxloc(energies)
+    do iat=1,nat
+        tsguess(1,iat) = path(ihigh,1,iat)
+        tsguess(2,iat) = path(ihigh,2,iat)
+        tsguess(3,iat) = path(ihigh,3,iat)
+    enddo
+   
+    !now we have to generate a guess for the minmode: 
+
+    !generate spline parameters for splines used for tangents
+    do i=1,nat
+        call spline_wrapper(arc,path(1,1,i),nimagestang,&
+                           yp1,ypn,y2vecC(1,1,i))
+        call spline_wrapper(arc,lstpathCRM(1,2,i),nimagestang,&
+                           yp1,ypn,y2vecC(1,2,i))
+        call spline_wrapper(arc,lstpathCRM(1,3,i),nimagestang,&
+                           yp1,ypn,y2vecC(1,3,i))
+    enddo
+    !generate tangent
+    do i=1,nat
+        call splint_wrapper(arc,lstpathCRM(1,1,i),y2vecC(1,1,i),&
+             nimagestang,tau,rdmy,tangentleft(1,i))
+        call splint_wrapper(arc,lstpathCRM(1,2,i),y2vecC(1,2,i),&
+             nimagestang,tau,rdmy,tangentleft(2,i))
+        call splint_wrapper(arc,lstpathCRM(1,3,i),y2vecC(1,3,i),&
+             nimagestang,tau,rdmy,tangentleft(3,i))
+    enddo
+    call f_free(path) 
+    call f_free(forces) 
+    call f_free(energies) 
+    call f_free(arc) 
+end subroutine
+!=====================================================================
 subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
                        nstepsmax,nstringmax,nstring,string)
     use module_base
@@ -34,6 +161,11 @@ subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
     !constants
     character(len=10), parameter :: method = 'linlst'
     !internal
+    integer :: finished=2
+                          !if finished ==2: not finished
+                          !if finished ==0: finished
+                          !if finished ==1: one more node
+                          !                 in the middle
     integer :: i,j,k,istart
     integer, parameter :: resize=10
     real(gp), allocatable :: stringTMP(:,:,:)
@@ -42,19 +174,22 @@ subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
     real(gp) :: step
     real(gp) :: perpnrmtol_squared
     real(gp) :: trust_squared
-    integer :: finished=2 !if finished ==2: not finished
-                          !if finished ==0: finished
-                          !if finished ==1: one more node
-                          !                 in the middle
     integer :: nresizes
 
+
+    if(iproc==0)call yaml_comment('(MHGPS) entering&
+                grow_string')
+
     if((.not. allocated(string)))then
-        if(iproc==0)call yaml_warning('(MHGPS) STOP, string or&
-                    energies in grow_string not allocated')
+        if(iproc==0)call yaml_warning('(MHGPS) STOP, string&
+                    in grow_string not allocated')
         stop
     endif
     perpnrmtol_squared=perpnrmtol**2
     trust_squared=trust**2
+
+!for DEBUGGING:
+string = 12345678910._gp
 
     nstring=1
     step=-1._gp
@@ -64,31 +199,22 @@ subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
         !actual string growing is done 
         !in the following loop
         do i=istart,nstringmax-1
-write(*,*)'interpol',nstring
+            if(finished==0)return!interpolation done
             call interpol(method,nat,string(1,1,nstring),&
                  string(1,2,nstring),step,string(1,1,nstring+1),&
                  string(1,2,nstring+1),tangentleft,tangentright,&
                  finished)
-
-            if(finished==0)then!interpolation done
-                return
+            if(finished==1)string(1,2,nstring+1)=huge(1.0_gp)
+            if(finished/=0)then
+if(i/=nstring)stop'DEBUGGING i/=nstring'
+                call optim_cg(nat,alat,finished,step,gammainv,&
+                    perpnrmtol_squared,trust_squared,nstepsmax,&
+                    tangentleft,tangentright,string(1,1,i+1),&
+                    string(1,2,i+1))
+                nstring=nstring+1
             endif
-if(finished==1)then!interpolation done
-    return
-endif
-!!TODO TODO
-!HIER WEITER
-!finished=1 richtig behandeln
-!!TODO TODO
-!!TODO TODO
-!!TODO TODO
-write(*,*)'optim',nstring
-            call optim_cg(nat,alat,step,gammainv,&
-                 perpnrmtol_squared,trust_squared,nstepsmax,&
-                 tangentleft,tangentright,string(1,1,i+1),&
-                 string(1,2,i+1))
-            nstring=nstring+1
         enddo
+        if(finished==0)return
         !What follows is just resizing of string array, 
         !if needed.
         nresizes=nresizes+1
@@ -113,15 +239,16 @@ write(*,*)'optim',nstring
 
 end subroutine
 !=====================================================================
-subroutine optim_cg(nat,alat,step,gammainv,perpnrmtol_squared,&
-           trust_squared,nstepsmax,tangent1,tangent2,&
-           rxyz1,rxyz2)
+subroutine optim_cg(nat,alat,finished,step,gammainv,&
+           perpnrmtol_squared,trust_squared,nstepsmax,tangent1,&
+           tangent2,rxyz1,rxyz2)
     use module_base
     use module_energyandforces
     use module_global_variables, only: iproc
     implicit none
     !parameters
     integer, intent(in)  :: nat
+    integer, intent(in)  :: finished
     integer, intent(in)  :: nstepsmax
     real(gp), intent(in) :: tangent1(3*nat)
     real(gp), intent(in) :: tangent2(3*nat)
@@ -153,14 +280,10 @@ subroutine optim_cg(nat,alat,step,gammainv,perpnrmtol_squared,&
     dir=rxyz2-rxyz1
     d0=dnrm2(3*nat,dir(1),1)
     dmax=d0+0.5_gp*step
-write(*,*)'dmax,d0,step',dmax,d0,step
-
-    call energyandforces(nat,alat,rxyz1,fxyz1,fnoise,epot1)
-    call energyandforces(nat,alat,rxyz2,fxyz2,fnoise,epot2)
-write(*,*)'optim1'
 
     !first steps: steepest descent
     !left
+    call energyandforces(nat,alat,rxyz1,fxyz1,fnoise,epot1)
     call perpend(nat,tangent1,fxyz1,perp1)
     perpnrmPrev1_squared = ddot(3*nat,perp1(1),1,perp1(1),1)
     perpnrm1_squared=perpnrmPrev1_squared
@@ -171,34 +294,33 @@ write(*,*)'optim1'
     endif
     rxyz1=rxyz1+dispPrev1
     !right
-    call perpend(nat,tangent2,fxyz2,perp2)
-    perpnrmPrev2_squared = ddot(3*nat,perp2(1),1,perp2(1),1)
-    perpnrm2_squared=perpnrmPrev2_squared
-    dispPrev2=gammainv*perp2
-    dispnrm_squared=maxval(dispPrev2**2)
-    if(dispnrm_squared > trust_squared)then
-        dispPrev2=dispPrev2*sqrt(trust_squared/dispnrm_squared)
+    if(finished==2)then
+        call energyandforces(nat,alat,rxyz2,fxyz2,fnoise,epot2)
+        call perpend(nat,tangent2,fxyz2,perp2)
+        perpnrmPrev2_squared = ddot(3*nat,perp2(1),1,perp2(1),1)
+        perpnrm2_squared=perpnrmPrev2_squared
+        write(*,'(a,i3.3,4(1x,es10.3))')&
+        '(MHGPS) ',istep,perpnrm1_squared,epot1,&
+        perpnrm2_squared,epot2
+        dispPrev2=gammainv*perp2
+        dispnrm_squared=maxval(dispPrev2**2)
+        if(dispnrm_squared > trust_squared)then
+            dispPrev2=dispPrev2*sqrt(trust_squared/dispnrm_squared)
+        endif
+        rxyz2=rxyz2+dispPrev2
+    
+        dir=rxyz2-rxyz1
+        dist=dnrm2(3*nat,dir(1),1)
+        if(dist>dmax)then
+            return
+        endif
     endif
-    rxyz2=rxyz2+dispPrev2
-
-    dir=rxyz2-rxyz1
-    dist=dnrm2(3*nat,dir(1),1)
-    if(dist>dmax)then
-write(*,*)'dmax',dist,dmax
-        return
-    endif
-
-!    call energyandforces(nat,alat,rxyz1,fxyz1,fnoise,epot1)
-!    call energyandforces(nat,alat,rxyz2,fxyz2,fnoise,epot2)
 
     !other steps: cg
     do istep=2,nstepsmax
-write(*,*)'optim2'
-
-        call energyandforces(nat,alat,rxyz1,fxyz1,fnoise,epot1)
-        call energyandforces(nat,alat,rxyz2,fxyz2,fnoise,epot2)
 
         !move left node
+        call energyandforces(nat,alat,rxyz1,fxyz1,fnoise,epot1)
         call perpend(nat,tangent1,fxyz1,perp1)
         perpnrm1_squared = ddot(3*nat,perp1(1),1,perp1(1),1)
         if(perpnrm1_squared>perpnrmPrev1_squared)then
@@ -214,45 +336,51 @@ write(*,*)'optim2'
         rxyz1=rxyz1+disp1
         dispPrev1=disp1
         perpnrmPrev1_squared=perpnrm1_squared
-    
-        !move right node
-        call perpend(nat,tangent2,fxyz2,perp2)
-        perpnrm2_squared = ddot(3*nat,perp2(1),1,perp2(1),1)
-        if(perpnrm2_squared>perpnrmPrev2_squared)then
-            alpha2=1._gp
-        else
-            alpha2 = perpnrm2_squared / perpnrmPrev2_squared
-        endif
-        disp2=gammainv*perp2+ alpha2 * dispPrev2
-        dispnrm_squared=maxval(disp2**2)
-        if(dispnrm_squared > trust_squared)then
-             disp2=disp2*sqrt(trust_squared/dispnrm_squared)
-        endif
-        rxyz2=rxyz2+disp2
-        dispPrev2=disp2
-        perpnrmPrev2_squared=perpnrm2_squared
-write(*,*)perpnrm1_squared,perpnrm2_squared
-    
-        dir=rxyz2-rxyz1
-        dist=dnrm2(3*nat,dir(1),1)
-        !perpnrm1_squared is from last iteration
-        !but we accept this, since reevaluation
-        !of energies and forces is too expensive
-        !just for the purpose of the following
-        !comparison of perpnrm1_squared and perpnrmtol_squared
-!        if(dist>dmax.or. (perpnrm1_squared<perpnrmtol_squared&
-        !if((perpnrm1_squared<perpnrmtol_squared &
-!           &.and. perpnrm2_squared<perpnrmtol_squared))then
-if(dist>dmax)then
-            if(dist>dmax.and.iproc==0)then
-                write(200,*)'exit due to dmax'   
+        
+        if(finished==2)then 
+            !move right node
+            call energyandforces(nat,alat,rxyz2,fxyz2,fnoise,epot2)
+            call perpend(nat,tangent2,fxyz2,perp2)
+            perpnrm2_squared = ddot(3*nat,perp2(1),1,perp2(1),1)
+            write(*,'(a,i3.3,4(1x,es10.3))')&
+            '(MHGPS) ',istep,perpnrm1_squared,epot1,&
+            perpnrm2_squared,epot2
+            if(perpnrm2_squared>perpnrmPrev2_squared)then
+                alpha2=1._gp
+            else
+                alpha2 = perpnrm2_squared / perpnrmPrev2_squared
             endif
-            !we do not compute and do not return energies and
-            !forces of the latest rxyz2 and rxyz2. If needed,
-            !the must be computed outside.
+            disp2=gammainv*perp2+ alpha2 * dispPrev2
+            dispnrm_squared=maxval(disp2**2)
+            if(dispnrm_squared > trust_squared)then
+                 disp2=disp2*sqrt(trust_squared/dispnrm_squared)
+            endif
+            rxyz2=rxyz2+disp2
+            dispPrev2=disp2
+            perpnrmPrev2_squared=perpnrm2_squared
+        
+            dir=rxyz2-rxyz1
+            dist=dnrm2(3*nat,dir(1),1)
+            !perpnrm1_squared is from last iteration
+            !but we accept this, since reevaluation
+            !of energies and forces is too expensive
+            !just for the purpose of the following
+            !comparison of perpnrm1_squared and perpnrmtol_squared
+            if(dist>dmax.or. (perpnrm1_squared<perpnrmtol_squared&
+            !if((perpnrm1_squared<perpnrmtol_squared &
+               &.and. perpnrm2_squared<perpnrmtol_squared))then
+            !!!if(dist>dmax)then
+            !!!!            if(dist>dmax.and.iproc==0)then
+            !!!                write(200,*)'exit due to dmax'   
+            !!!            endif
+                !we do not compute and do not return energies and
+                !forces of the latest rxyz2 and rxyz2. If needed,
+                !the must be computed outside.
+            !!!            return
+            endif
+        else if (perpnrm1_squared<perpnrmtol_squared) then
             return
         endif
-
     enddo
 end subroutine
 !=====================================================================
@@ -292,7 +420,7 @@ subroutine lin_interpol(nat,left, right, step,interleft,interright,&
     real(gp) :: arcl
     !functions
     real(gp) :: dnrm2
-
+stop 'lin_interpol not yet debugged'
     !tangent points from left to right:    
     tangent = right-left
     arcl = dnrm2(3*nat,tangent(1),1)
@@ -353,8 +481,8 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     integer, parameter  :: nimagesC=5 !setting nimagesC=nimages
                                       !should give similar implementation
                                       !to the freezing string publication
-    !real(gp), parameter :: stepfrct=0.1_gp! freezing string step size
-    real(gp), parameter :: stepfrct=0.01_gp! freezing string step size
+    real(gp), parameter :: stepfrct=0.1_gp! freezing string step size
+    !real(gp), parameter :: stepfrct=0.05555555556_gp! freezing string step size
     !internal
     integer  :: i
     integer  :: j
@@ -417,7 +545,6 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     arcl=arc(nimages)
 
     if(step<0._gp)step=stepfrct*arcl
-write(*,*)'arclength,step',arcl,step
 
     if(arcl < step)then
         finished=0
