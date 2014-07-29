@@ -33,9 +33,9 @@ real(gp), intent(in) :: trust
 integer, intent(in) :: nstepsmax
     !internal
     integer :: i,iat
-    integer :: ipath,istring,istringmax,isidemax,ipathmax
+    integer :: npath,istring,istringmax,isidemax,npathmax
     integer :: nnodes,nstring,nstringmax=20
-    integer :: ihigh,icorr
+    integer :: ihigh,ncorr
     real(gp), allocatable :: string(:,:,:)
     real(gp), allocatable :: path(:,:,:)
     real(gp), allocatable :: forces(:,:,:)
@@ -52,57 +52,75 @@ integer, intent(in) :: nstepsmax
                     nstringmax,nstring,string)
 
     nnodes=2*nstring
-    icorr =0
+    ncorr =0
     if(string(1,2,nstring)>=1.e30_gp)then
         nnodes=nnodes-1
-        icorr = 1
+        ncorr = 1
     endif
     path = f_malloc((/nnodes,3,nat/),id='path')
     forces = f_malloc((/3,nat,nnodes/),id='forces')
     energies = f_malloc((/nnodes/),id='energies')
     arc = f_malloc((/nnodes/),id='arc')
 
-    !copy path in correct order for 
-    !spline interpolation late on
-    ipath=0
-    do i=1,nstring
-        ipath=ipath+1
-        do iat=1,nat
-            path(ipath,1,iat)=string(3*iat-2,1,i)
-            path(ipath,2,iat)=string(3*iat-1,1,i)
-            path(ipath,3,iat)=string(3*iat  ,1,i)
-        enddo
-    enddo
-    do i=1,nstring
-        ipath=ipath+1
-        do iat=1,nat
-            path(ipath,1,iat)=string(3*iat-2,1,i)
-            path(ipath,2,iat)=string(3*iat-1,1,i)
-            path(ipath,3,iat)=string(3*iat  ,1,i)
-        enddo
-    enddo
-
-    !compute energies at the nodes
+    !Copy path in correct order for 
+    !spline interpolation later on.
+    !Also compute energies at the nodes
     !That's ok, because their energies
-    !have NOT yet been computed in grow_string
-    !(which is calling optim_cg)
-    ipath=0
+    !have NOT yet been computed in optim_cg
+    !(which is called by grow_string)
     emax=-huge(1._gp)
+    npath=0
+    do istring=1,nstring
+        npath=npath+1
+        do iat=1,nat
+            path(npath,1,iat)=string(3*iat-2,1,istring)
+            path(npath,2,iat)=string(3*iat-1,1,istring)
+            path(npath,3,iat)=string(3*iat  ,1,istring)
+        enddo
+        !parametrize spline such that the i-th node
+        !is at parameter value i:
+        arc(npath)=real(npath,gp)
+        !due to column major order,
+        !pass string() to energy and forces, not path():
+        call energyandforces(nat,alat,string(1,1,istring),&
+             forces(1,1,npath),fnoise,energies(npath))
+        if(energies(npaths)>emax)then
+            emax       = energies(npath)
+            istringmax = istring
+            isidemax   = 1
+            npathmax   = npath
+        endif
+    enddo
+    do istring=nstring-ncorr,1,-1
+        npath=npath+1
+        do iat=1,nat
+            path(npath,1,iat)=string(3*iat-2,2,istring)
+            path(npath,2,iat)=string(3*iat-1,2,istring)
+            path(npath,3,iat)=string(3*iat  ,2,istring)
+        enddo
+        !parametrize spline such that the i-th node
+        !is at parameter value i:
+        arc(npath)=real(npath,gp)
+        !due to column major order,
+        !pass string() to energy and forces, not path():
+        call energyandforces(nat,alat,string(1,2,istring),&
+             forces(1,1,npath),fnoise,energies(npath))
+        if(energies(npaths)>emax)then
+            emax       = energies(npath)
+            istringmax = istring
+            isidemax   = 2
+            npathmax   = npath
+        endif
+    enddo
+!DEBUGGING:
+if(npath/=nnodes)stop'npat/=nnodes'
+
+HIER WEITER
+
     do istring=2,nstring !start at 2 because we don't
                                 !want to recompute the minima's
                                 !energies
         ipath=ipath+1
-        call energyandforces(nat,alat,string(1,i,istring),&
-             forces(1,1,ipath),fnoise,energies(ipath))
-        if(energies(ipaths)>emax)then
-            emax       = energies(ipath)
-            istringmax = istring
-            isidemax   = i
-            ipathmax   = ipath
-        endif
-        !parametrize spline such that the i-th node
-        !is at parameter value i:
-        arc(ipath)=real(ipath,gp)
         if(ipath>=nnodes)exit 
     enddo
     !we don't need string anymore
