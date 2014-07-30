@@ -15,11 +15,11 @@ module module_freezingstring
 !this method simply calls grow_string
 !and then uses cubic splines to find the tangent at the highest energy node
 !=====================================================================
-subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess&
+subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
     gammainv,perpnrmtol,trust,nstepsmax)!parameetrs in this line to be removed to global_variables
     use module_base
     use yaml_output
-    use module_global_variables, only: iproc
+    use module_global_variables, only: iproc, mhgps_verbosity
     use module_energyandforces
     implicit none
     !parameters
@@ -32,8 +32,9 @@ real(gp), intent(in) :: perpnrmtol
 real(gp), intent(in) :: trust
 integer, intent(in) :: nstepsmax
     !internal
-    integer :: i,iat
-    integer :: npath,istring,istringmax,isidemax,npathmax
+    integer :: finished
+    integer :: i,j,iat
+    integer :: npath,istring,istringmax,isidemax,ipathmax
     integer :: nnodes,nstring,nstringmax=20
     integer :: ihigh,ncorr
     real(gp), allocatable :: string(:,:,:)
@@ -41,26 +42,35 @@ integer, intent(in) :: nstepsmax
     real(gp), allocatable :: forces(:,:,:)
     real(gp), allocatable :: energies(:)
     real(gp), allocatable :: arc(:)
+    real(gp), allocatable :: y2vec(:,:,:)
+    real(gp), allocatable :: tangent(:,:,:)
     real(gp) :: fnoise
     real(gp) :: emax
+    real(gp) :: tau,rdmy
+    real(gp) :: yp1=huge(1._gp), ypn=huge(1._gp)!natural splines
+    !functions
+    real(gp) :: dnrm2
 
-    string = f_malloc((/ 1.to.3*nat, 2, nstringmax/),id='string')
+    string = f_malloc((/ 1.to.3*nat, 1.to.2, 1.to.nstringmax/),id='string')
     call vcopy(3*nat, rxyz1(1,1), 1, string(1,1,1), 1)
     call vcopy(3*nat, rxyz2(1,1), 1, string(1,2,1), 1)
     
     call grow_string(nat,alat,gammainv,perpnrmtol,trust,nstepsmax,&
-                    nstringmax,nstring,string)
+                    nstringmax,nstring,string,finished)
 
     nnodes=2*nstring
     ncorr =0
-    if(string(1,2,nstring)>=1.e30_gp)then
+    if(finished==1)then
+    !if(string(1,2,nstring)>=1.e30_gp)then
         nnodes=nnodes-1
         ncorr = 1
     endif
-    path = f_malloc((/nnodes,3,nat/),id='path')
-    forces = f_malloc((/3,nat,nnodes/),id='forces')
-    energies = f_malloc((/nnodes/),id='energies')
-    arc = f_malloc((/nnodes/),id='arc')
+    path = f_malloc((/1.to.nnodes,1.to.3,1.to.nat/),id='path')
+    y2vec = f_malloc((/1.to.nnodes,1.to.3,1.to.nat/),id='y2vec')
+    forces = f_malloc((/1.to.3,1.to.nat,1.to.nnodes/),id='forces')
+    tangent = f_malloc((/1.to.3,1.to.nat,1.to.nnodes/),id='tangent')
+    energies = f_malloc((/1.to.nnodes/),id='energies')
+    arc = f_malloc((/1.to.nnodes/),id='arc')
 
     !Copy path in correct order for 
     !spline interpolation later on.
@@ -84,11 +94,11 @@ integer, intent(in) :: nstepsmax
         !pass string() to energy and forces, not path():
         call energyandforces(nat,alat,string(1,1,istring),&
              forces(1,1,npath),fnoise,energies(npath))
-        if(energies(npaths)>emax)then
+        if(energies(npath)>emax)then
             emax       = energies(npath)
             istringmax = istring
             isidemax   = 1
-            npathmax   = npath
+            ipathmax   = npath
         endif
     enddo
     do istring=nstring-ncorr,1,-1
@@ -105,63 +115,102 @@ integer, intent(in) :: nstepsmax
         !pass string() to energy and forces, not path():
         call energyandforces(nat,alat,string(1,2,istring),&
              forces(1,1,npath),fnoise,energies(npath))
-        if(energies(npaths)>emax)then
+        if(energies(npath)>emax)then
             emax       = energies(npath)
             istringmax = istring
             isidemax   = 2
-            npathmax   = npath
+            ipathmax   = npath
         endif
     enddo
 !DEBUGGING:
 if(npath/=nnodes)stop'npat/=nnodes'
-
-HIER WEITER
-
-    do istring=2,nstring !start at 2 because we don't
-                                !want to recompute the minima's
-                                !energies
-        ipath=ipath+1
-        if(ipath>=nnodes)exit 
-    enddo
-    !we don't need string anymore
-    call f_free(string) 
-
+write(*,*)'ipathmax',ipathmax
     !tsguess is highest energy node:
-    ihigh = maxloc(energies)
     do iat=1,nat
-        tsguess(1,iat) = path(ihigh,1,iat)
-        tsguess(2,iat) = path(ihigh,2,iat)
-        tsguess(3,iat) = path(ihigh,3,iat)
+        tsguess(1,iat) = path(ipathmax,1,iat)
+        tsguess(2,iat) = path(ipathmax,2,iat)
+        tsguess(3,iat) = path(ipathmax,3,iat)
     enddo
    
     !now we have to generate a guess for the minmode: 
 
     !generate spline parameters for splines used for tangents
     do i=1,nat
-        call spline_wrapper(arc,path(1,1,i),nimagestang,&
-                           yp1,ypn,y2vecC(1,1,i))
-        call spline_wrapper(arc,lstpathCRM(1,2,i),nimagestang,&
-                           yp1,ypn,y2vecC(1,2,i))
-        call spline_wrapper(arc,lstpathCRM(1,3,i),nimagestang,&
-                           yp1,ypn,y2vecC(1,3,i))
+        call spline_wrapper(arc,path(1,1,i),npath,&
+                           yp1,ypn,y2vec(1,1,i))
+        call spline_wrapper(arc,path(1,2,i),npath,&
+                           yp1,ypn,y2vec(1,2,i))
+        call spline_wrapper(arc,path(1,3,i),npath,&
+                           yp1,ypn,y2vec(1,3,i))
     enddo
     !generate tangent
-    do i=1,nat
-        call splint_wrapper(arc,lstpathCRM(1,1,i),y2vecC(1,1,i),&
-             nimagestang,tau,rdmy,tangentleft(1,i))
-        call splint_wrapper(arc,lstpathCRM(1,2,i),y2vecC(1,2,i),&
-             nimagestang,tau,rdmy,tangentleft(2,i))
-        call splint_wrapper(arc,lstpathCRM(1,3,i),y2vecC(1,3,i),&
-             nimagestang,tau,rdmy,tangentleft(3,i))
+    do j=1,npath
+        tau=real(j,gp)
+        do i=1,nat
+            call splint_wrapper(arc,path(1,1,i),y2vec(1,1,i),&
+                 npath,tau,rdmy,tangent(1,i,j))
+            call splint_wrapper(arc,path(1,2,i),y2vec(1,2,i),&
+                 npath,tau,rdmy,tangent(2,i,j))
+            call splint_wrapper(arc,path(1,3,i),y2vec(1,3,i),&
+                 npath,tau,rdmy,tangent(3,i,j))
+        enddo
+        rdmy = dnrm2(3*nat,tangent(1,1,j),1)
+        tangent(:,:,j) = tangent(:,:,j) / rdmy
     enddo
+    minmodeguess=tangent(:,:,ipathmax)
+
+    if(iproc==0 .and. mhgps_verbosity>=5)then
+        call write_path(nat,npath,path,energies,tangent)
+    endif     
+
+    call f_free(string) 
     call f_free(path) 
+    call f_free(y2vec) 
     call f_free(forces) 
+    call f_free(tangent) 
     call f_free(energies) 
     call f_free(arc) 
 end subroutine
 !=====================================================================
+subroutine write_path(nat,npath,path,energies,tangent)
+    use module_base
+    use yaml_output
+    use module_interfaces
+    use module_global_variables, only: isadc, atoms,ixyz_int,&
+                                       currDir
+    implicit none
+    !parameters
+    integer, intent(in) :: nat, npath
+    real(gp), intent(in) :: path(npath,3,nat)
+    real(gp), intent(in) :: energies(npath)
+    real(gp), intent(in) :: tangent(3,nat,npath)
+    !internal
+    integer :: ipath,iat
+    character(len=4) :: fn4
+    character(len=150) :: comment
+    real(gp) :: pathint(3,nat,npath)
+
+    do ipath=1,npath
+        do iat=1,nat
+            pathint(1,iat,ipath)=path(ipath,1,iat)
+            pathint(2,iat,ipath)=path(ipath,2,iat)
+            pathint(3,iat,ipath)=path(ipath,3,iat)
+        enddo
+    enddo
+
+    do ipath=1,npath
+        write(fn4,'(i4.4)') ipath
+        write(comment,'(a)')&
+           'ATTENTION! Forces below are no forces&
+           but tangents to the guessed reaction path'
+        call write_atomic_file(currDir//'/sad'//isadc//'_igpath_'//&
+           fn4,energies(ipath),pathint(1,1,ipath),ixyz_int,&
+           atoms,trim(comment),forces=tangent(1,1,ipath))
+    enddo
+end subroutine
+!=====================================================================
 subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
-                       nstepsmax,nstringmax,nstring,string)
+                       nstepsmax,nstringmax,nstring,string,finished)
     use module_base
     use yaml_output
     use module_global_variables, only: iproc
@@ -171,6 +220,11 @@ subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
     integer, intent(in) :: nstepsmax
     integer, intent(inout) :: nstringmax
     integer, intent(inout) :: nstring
+    integer, intent(out) :: finished
+                          !if finished ==2: not finished
+                          !if finished ==0: finished
+                          !if finished ==1: one more node
+                          !                 in the middle
     real(gp) , intent(in) :: gammainv
     real(gp) , intent(in) :: perpnrmtol
     real(gp) , intent(in) :: trust
@@ -179,11 +233,6 @@ subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
     !constants
     character(len=10), parameter :: method = 'linlst'
     !internal
-    integer :: finished=2
-                          !if finished ==2: not finished
-                          !if finished ==0: finished
-                          !if finished ==1: one more node
-                          !                 in the middle
     integer :: i,j,k,istart
     integer, parameter :: resize=10
     real(gp), allocatable :: stringTMP(:,:,:)
@@ -193,7 +242,8 @@ subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
     real(gp) :: perpnrmtol_squared
     real(gp) :: trust_squared
     integer :: nresizes
-
+    
+    finished=2
 
     if(iproc==0)call yaml_comment('(MHGPS) entering&
                 grow_string')
@@ -206,9 +256,6 @@ subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
     perpnrmtol_squared=perpnrmtol**2
     trust_squared=trust**2
 
-!for DEBUGGING:
-string = 12345678910._gp
-
     nstring=1
     step=-1._gp
     nresizes=0
@@ -217,22 +264,23 @@ string = 12345678910._gp
         !actual string growing is done 
         !in the following loop
         do i=istart,nstringmax-1
-            if(finished==0)return!interpolation done
+            if(finished==0 .or. finished==1)return!interpolation done
             call interpol(method,nat,string(1,1,nstring),&
                  string(1,2,nstring),step,string(1,1,nstring+1),&
                  string(1,2,nstring+1),tangentleft,tangentright,&
                  finished)
-            if(finished==1)string(1,2,nstring+1)=huge(1.0_gp)
+write(*,*)'basian'
+!            if(finished==1)string(1,2,nstring+1)=huge(1.0_gp)
             if(finished/=0)then
 if(i/=nstring)stop'DEBUGGING i/=nstring'
-                call optim_cg(nat,alat,finished,step,gammainv,&
-                    perpnrmtol_squared,trust_squared,nstepsmax,&
-                    tangentleft,tangentright,string(1,1,i+1),&
-                    string(1,2,i+1))
+!                call optim_cg(nat,alat,finished,step,gammainv,&
+!                    perpnrmtol_squared,trust_squared,nstepsmax,&
+!                    tangentleft,tangentright,string(1,1,i+1),&
+!                    string(1,2,i+1))
                 nstring=nstring+1
             endif
         enddo
-        if(finished==0)return
+        if(finished==0.or.finished==1)return
         !What follows is just resizing of string array, 
         !if needed.
         nresizes=nresizes+1
@@ -318,7 +366,7 @@ subroutine optim_cg(nat,alat,finished,step,gammainv,&
         perpnrmPrev2_squared = ddot(3*nat,perp2(1),1,perp2(1),1)
         perpnrm2_squared=perpnrmPrev2_squared
         write(*,'(a,i3.3,4(1x,es10.3))')&
-        '(MHGPS) ',istep,perpnrm1_squared,epot1,&
+        '(MHGPS) ',1,perpnrm1_squared,epot1,&
         perpnrm2_squared,epot2
         dispPrev2=gammainv*perp2
         dispnrm_squared=maxval(dispPrev2**2)
@@ -563,11 +611,13 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     arcl=arc(nimages)
 
     if(step<0._gp)step=stepfrct*arcl
-
+write(*,*)'arcl ',arcl,step
     if(arcl < step)then
+write(*,*)'lstinterpol finished 0'
         finished=0
         return
     endif
+write(*,*)'lstinterpol 1'
 
     !rewrite lstpath to row major ordering
     !(for faster access in spline routines)
@@ -616,6 +666,7 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
         call spline_wrapper(arcC,lstpathCRM(1,3,i),nimagestang,&
                            yp1,ypn,y2vecC(1,3,i))
     enddo
+write(*,*)'lstinterpol 2'
 
 !<-DEBUG START------------------------------------------------------>
 !!check interpolated path
@@ -676,6 +727,7 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
 
 
     if(arcl < 2._gp*step)then!only one more point
+write(*,*)'lstinterpol 3'
         !we have to return the point in the 'middle'    
         tau = 0.5_gp*arcl
         !generate coordinates
@@ -701,6 +753,7 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
         !return code: only one more node inserted
         finished=1
     else! standard case
+write(*,*)'lstinterpol 4'
         !we have to return the two points interleft
         !and interright whose distances to left and right
         !are roughly 'step'
@@ -788,6 +841,7 @@ subroutine interpol(method,nat,left,right,step,interleft,interright,&
                        tangentleft,finished)
         tangentright=tangentleft
     else if(trim(adjustl(method))=='linlst')then
+write(*,*)'interpol'
         call lst_interpol(nat,left, right, step,interleft,interright,&
                        tangentleft,tangentright,finished)
     endif

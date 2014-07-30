@@ -10,7 +10,8 @@ module module_global_variables
     use module_types
     implicit none
     character(len = *), public, parameter :: mhgps_version   = '0.01'
-    character(len=6), public, parameter   :: efmethod_known(2)   = (/"LJ","BIGDFT"/)
+    character(len = *), public, parameter :: inputdir   = 'input'
+    character(len = *), public, parameter :: outputdir   = 'input'
 
     !input parameters for mhgps
     integer          :: mhgps_verbosity     = 3
@@ -76,7 +77,9 @@ module module_global_variables
     logical               :: isForceField=.false.
     real(gp)              :: ef_counter=0.d0
     character(len=8)      :: currDir
-    character(len=6)      :: currFile
+    character(len=3),parameter      :: prefix='pos'
+    character(len=5)      :: isadc
+    integer               :: isad
 
 
     !bigdft data types and variables

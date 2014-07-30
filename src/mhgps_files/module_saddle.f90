@@ -20,7 +20,7 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
     use module_interfaces
     use module_sbfgs
     use module_global_variables, only: inputPsiId, iproc, ixyz_int, atoms, mhgps_verbosity,&
-                                       currDir, currFile, ndim_rot, nhist_rot, alpha_rot,&
+                                       currDir, isadc, ndim_rot, nhist_rot, alpha_rot,&
                                        alpha_stretch_rot,saddle_alpha_stretch0,work,lwork,&
                                        saddle_steepthresh_trans ,&
                                        rxyz          => rxyz_trans,&
@@ -338,7 +338,7 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
            fc=fc+1
            write(fn9,'(i9.9)') fc
            write(comment,'(a,1pe10.3,5x1pe10.3)')'MHGPS:fnrm, fmax = ',fnrm,fmax
-           call write_atomic_file(currDir//'/'//currFile//'_posmhgps_'//fn9,&
+           call write_atomic_file(currDir//'/sad'//isadc//'_posout_'//fn9,&
                 etotp,rxyz(1,1,nhist),ixyz_int,&
                 atoms,trim(comment),forces=fxyzraw(1,1,nhist))
         endif
