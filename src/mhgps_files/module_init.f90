@@ -38,6 +38,7 @@ contains
             read(u,*)saddle_curvgraddiff
             read(u,*)saddle_rmsdispl0,saddle_trustr
             read(u,*)saddle_tolc,saddle_tolf
+            read(u,*)saddle_minoverlap0
             read(u,*)saddle_tightenfac
             read(u,*)saddle_maxcurvrise
             read(u,*)saddle_cutoffratio
@@ -78,6 +79,7 @@ contains
             write(u,'(es10.3,1x,a)')saddle_curvgraddiff,' #curvgraddif'
             write(u,'(es10.3,1x,es10.3,1x,a)')saddle_rmsdispl0,saddle_trustr,' #rmsdispl0, trustr'
             write(u,'(es10.3,1x,es10.3,1x,a)')saddle_tolc,saddle_tolf,' #tolc, tolf'
+            write(u,'(es10.3,1x,a)')saddle_minoverlap0,' #minoverlap0'
             write(u,'(es10.3,1x,a)')saddle_tightenfac,' #tightenfac'
             write(u,'(es10.3,1x,a)')saddle_maxcurvrise,' #maxcurvrise'
             write(u,'(es10.3,1x,a)')saddle_cutoffratio,' #cutoffratio'

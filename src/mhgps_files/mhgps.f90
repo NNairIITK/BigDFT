@@ -54,6 +54,7 @@ integer :: nstringmax=20,nstring
 real(gp), allocatable :: string(:,:,:)
 integer :: counter
 character(len=10) :: fnc
+real(gp) :: dnrm2
 
 !simple atomic datastructre
 integer :: nat
@@ -302,18 +303,21 @@ allocate(tsguess(3,atoms%astruct%nat),minmodeguess(3,atoms%astruct%nat),saddle(3
 !!!!                call read_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode',minmode)
 !!!!            endif
 call get_ts_guess(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,rxyz2,saddle,minmode,&
-    0.5_gp,1.e-4_gp,0.1_gp,5)
+    0.5_gp,1.e-4_gp,1.1_gp,5)
+!minmode = minmode/dnrm2(3*atoms%astruct%nat,minmode(1,1),1)
+!saddle=rxyz
             ec=0.0_gp
         
            call findsad(imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
            saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
            saddle_trustr,saddle,energy,fxyz,minmode,saddle_fnrmtol,displ,ec,&
            converged,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,&
-           saddle_cutoffratio,saddle_alpha_rot_stretch0,rotforce)
+           saddle_cutoffratio,saddle_alpha_rot_stretch0,rotforce,saddle_minoverlap0)
            if (iproc == 0) then
                call write_atomic_file(currDir//'/sad'//isadc//'_final',&
-               energy,rxyz(1,1),ixyz_int,&
-               atoms,comment,forces=fxyz(1,1))
+               energy,saddle(1,1),ixyz_int,&
+               atoms,comment,forces=minmode)
+!               atoms,comment,forces=fxyz(1,1))
                call write_mode(atoms%astruct%nat,currDir//'/sad'//isadc//'_mode_final',minmode,rotforce)
            endif
 !!ec=1.0_gp

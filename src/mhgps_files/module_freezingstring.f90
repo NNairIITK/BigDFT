@@ -366,8 +366,8 @@ subroutine optim_cg(nat,alat,finished,step,gammainv,&
         perpnrmPrev2_squared = ddot(3*nat,perp2(1),1,perp2(1),1)
         perpnrm2_squared=perpnrmPrev2_squared
         write(*,'(a,i3.3,4(1x,es10.3))')&
-        '(MHGPS) ',1,perpnrm1_squared,epot1,&
-        perpnrm2_squared,epot2
+        '(MHGPS) ',1,sqrt(perpnrm1_squared),epot1,&
+        sqrt(perpnrm2_squared),epot2
         dispPrev2=gammainv*perp2
         dispnrm_squared=maxval(dispPrev2**2)
         if(dispnrm_squared > trust_squared)then
@@ -409,8 +409,8 @@ subroutine optim_cg(nat,alat,finished,step,gammainv,&
             call perpend(nat,tangent2,fxyz2,perp2)
             perpnrm2_squared = ddot(3*nat,perp2(1),1,perp2(1),1)
             write(*,'(a,i3.3,4(1x,es10.3))')&
-            '(MHGPS) ',istep,perpnrm1_squared,epot1,&
-            perpnrm2_squared,epot2
+            '(MHGPS) ',istep,sqrt(perpnrm1_squared),epot1,&
+            sqrt(perpnrm2_squared),epot2
             if(perpnrm2_squared>perpnrmPrev2_squared)then
                 alpha2=1._gp
             else
@@ -486,7 +486,7 @@ subroutine lin_interpol(nat,left, right, step,interleft,interright,&
     real(gp) :: arcl
     !functions
     real(gp) :: dnrm2
-stop 'lin_interpol not yet debugged'
+stop 'lin_interpol not debugged yet'
     !tangent points from left to right:    
     tangent = right-left
     arcl = dnrm2(3*nat,tangent(1),1)

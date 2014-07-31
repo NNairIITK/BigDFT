@@ -40,6 +40,7 @@ module module_global_variables
     real(gp)         :: saddle_tightenfac          = -1.0_gp
     real(gp)         :: saddle_maxcurvrise         = 1.e-6_gp
     real(gp)         :: saddle_cutoffratio         = 1.e-4_gp
+    real(gp)         :: saddle_minoverlap0         = 0.95_gp
     real(gp)         :: saddle_steepthresh_trans   = 1._gp
     real(gp)         :: saddle_steepthresh_rot     = 1._gp
     integer          :: saddle_recompIfCurvPos     = 5
