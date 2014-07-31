@@ -120,8 +120,8 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
     character(len=9)   :: fn9
     character(len=60)  :: comment
     character(len=100) :: filename
-real(gp) :: pos(3,nat),hess(3*nat,3*nat),evalh(3*nat)
-integer :: info
+!!real(gp) :: pos(3,nat),hess(3*nat,3*nat),evalh(3*nat)
+!!integer :: info
     !functions
     real(gp) :: ddot,dnrm2
 
@@ -264,12 +264,12 @@ integer :: info
                           minmode(1,1),curv,rotforce(1,1),tol,displ2,ener_count,&
                           optCurvConv,iconnect,nbond,alpha_rot_stretch0,&
                           maxcurvrise,cutoffratio,minoverlap)
-pos=rxyzraw(:,:,nhist-1)
-call cal_hessian_fd_m(iproc,nat,alat,pos,hess)
-call tbhess(nat,pos,hess,evalh)
-call DSYEV('V','L',3*nat,hess,3*nat,evalh,WORK,LWORK,INFO)
-write(*,*) '(MHGPS) overlap with exact:',abs(ddot(3*nat,hess(:,1),1,minmode(1,1),1))
-write(*,'(a,2(1x,es24.17))') '(MHGPS) rel err eval approx, eval finit:',curv,evalh(1)!,abs((curv-evalh(1))/evalh(1))
+!pos=rxyzraw(:,:,nhist-1)
+!call cal_hessian_fd_m(iproc,nat,alat,pos,hess)
+!call tbhess(nat,pos,hess,evalh)
+!call DSYEV('V','L',3*nat,hess,3*nat,evalh,WORK,LWORK,INFO)
+!write(*,*) '(MHGPS) overlap with exact:',abs(ddot(3*nat,hess(:,1),1,minmode(1,1),1))
+!write(*,'(a,2(1x,es24.17))') '(MHGPS) rel err eval approx, eval finit:',curv,evalh(1)!,abs((curv-evalh(1))/evalh(1))
 
             inputPsiId=1
             minmode = minmode / dnrm2(3*nat,minmode(1,1),1)
@@ -1781,308 +1781,308 @@ use module_base
   if (vnrm /= 0.0_gp) v(1:n)=v(1:n)/vnrm
 
 END SUBROUTINE normalizevector
-subroutine cal_hessian_fd_m(iproc,nat,alat,pos,hess)
-use module_base
-use module_energyandforces
-    implicit none
-    integer, intent(in):: iproc, nat
-    real(8), intent(in) :: pos(3*nat),alat(3)
-    real(8), intent(inout) :: hess(3*nat,3*nat)
-    !local variables
-    integer :: iat
-    real(8) :: t1,t2,t3
-    !real(8), allocatable, dimension(:,:) :: hess
-    real(8), allocatable, dimension(:) :: tpos,grad,eval,work
-    real(8) :: h,rlarge,twelfth,twothird,etot,cmx,cmy,cmz,shift,dm,tt,s,fnoise
-    integer :: i,j,k,lwork,info
-
-    !allocate(hess(3*nat,3*nat))
-    tpos = f_malloc((/1.to.3*nat/),id='tpos')
-    grad = f_malloc((/1.to.3*nat/),id='grad')
-    eval = f_malloc((/1.to.3*nat/),id='eval')
-
-    lwork=1000*nat
-    work = f_malloc((/1.to.lwork/),id='work')
-
-    !h=1.d-1
-    !h=7.5d-2
-    !h=5.d-2
-!    h=1.d-3
-!    h=1.d-2
-    h=5.d-3
-    !h=2.d-2
-    rlarge=1.d0*1.d4
-    twelfth=-1.d0/(12.d0*h)
-    twothird=-2.d0/(3.d0*h)
-    if(iproc==0) write(*,*) '(hess) HESSIAN: h',h
-    !-------------------------------------------------------
-    do i=1,3*nat
-        iat=(i-1)/3+1
-        do k=1,3*nat
-            tpos(k)=pos(k)
-            grad(k)=0.d0
-        enddo
-        !-----------------------------------------
-        tpos(i)=tpos(i)-2*h
-        call energyandforces(nat,alat,tpos,grad,fnoise,etot)
-        do j=1,3*nat
-            hess(j,i)=twelfth*grad(j)
-        enddo
-        !if(iproc==0) write(*,*) 'ALIREZA-6',i,iat
-        !-----------------------------------------
-        tpos(i)=tpos(i)+h
-        call energyandforces(nat,alat,tpos,grad,fnoise,etot)
-        do j=1,3*nat
-        hess(j,i)=hess(j,i)-twothird*grad(j)
-        enddo
-        !-----------------------------------------
-        tpos(i)=tpos(i)+2*h
-        call energyandforces(nat,alat,tpos,grad,fnoise,etot)
-        do j=1,3*nat
-        hess(j,i)=hess(j,i)+twothird*grad(j)
-        enddo
-        !-----------------------------------------
-        tpos(i)=tpos(i)+h
-        call energyandforces(nat,alat,tpos,grad,fnoise,etot)
-        do j=1,3*nat
-        hess(j,i)=hess(j,i)-twelfth*grad(j)
-        !write(*,*) 'HESS ',j,i,hess(j,i)
-        enddo
-        !-----------------------------------------
-    enddo
-    !-------------------------------------------------------
-
-    !check symmetry
-    dm=0.d0
-    do i=1,3*nat
-    do j=1,i-1
-    s=.5d0*(hess(i,j)+hess(j,i))
-    tt=abs(hess(i,j)-hess(j,i))/(1.d0+abs(s))
-    dm=max(dm,tt)
-    hess(i,j)=s
-    hess(j,i)=s
-    enddo
-    enddo
-    if (dm.gt.1.d-1) write(*,*) '(hess) max dev from sym',dm
-
-!    do j=1,3*nat
-!    do i=1,3*nat
-!    write(*,*) '(hess) hier',nat,hess(i,j)
-!    write(499,*) hess(i,j)
-!    enddo
-!    enddo
-
-    !-------------------------------------------------------
-    !project out rotations
-    cmx=0.d0 ; cmy=0.d0 ; cmz=0.d0
-    do i=1,3*nat-2,3
-    cmx=cmx+pos(i+0)
-    cmy=cmy+pos(i+1)
-    cmz=cmz+pos(i+2)
-    enddo
-    cmx=cmx/nat ; cmy=cmy/nat ; cmz=cmz/nat
-  
-    !x-y plane
-    do i=1,3*nat-2,3
-    work(i+1)= (pos(i+0)-cmx)
-    work(i+0)=-(pos(i+1)-cmy)
-    enddo
-    call f_free(tpos)
-    call f_free(grad)
-    call f_free(eval)
-    call f_free(work)
-end subroutine cal_hessian_fd_m
-
-!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        subroutine tbhess(nat,rxyz,hess,eval)
-        implicit real*8 (a-h,o-z)
-        dimension rxyz(3*nat),hess(3*nat,3*nat),eval(3*nat),alat(3)
-        real*8, allocatable, dimension(:) :: grad,pos,tpos,work
-
-
-        allocate(pos(3*nat),tpos(3*nat),grad(3*nat))
-        lwork=100*nat
-        allocate(work(lwork))
-!        h=1.d-2
-        rlarge=1.d0*1.d3
-!        twelfth=-1.d0/(12.d0*h)
-!        twothird=-2.d0/(3.d0*h)
-!        count=0.d0
-!        alat(1)=20.d0 ; alat(2)=20.d0 ; alat(3)=20.d0
-!
-!!  convert from atomic units to angstroem
-!           write(16,*) alat(1),0.,alat(2)
-!           write(16,*)      0.,0.,alat(3)
-!        do i=1,nat 
-!           pos(3*i-2)=rxyz(3*i-2)*.529177d0  
-!           pos(3*i-1)=rxyz(3*i-1)*.529177d0  
-!           pos(3*i-0)=rxyz(3*i-0)*.529177d0  
-!           write(16,'(3(1x,e14.7),a)') pos(3*i-2),pos(3*i-1),pos(3*i-0),'
-!           Si_lda'
-!         enddo
-!
-!
-!        do i=1,3*nat
-!
-!        do k=1,3*nat
-!        tpos(k)=pos(k)
-!        grad(k)=0.d0
-!        enddo
-!
-!        tpos(i)=tpos(i)-2*h
-!        call energyandforces(nat,alat,tpos,grad,etot,count)
-!        do j=1,3*nat
-!        hess(j,i)=twelfth*grad(j)
-!        enddo
-!
-!        tpos(i)=tpos(i)+h
-!        call energyandforces(nat,alat,tpos,grad,etot,count)
-!        do j=1,3*nat
-!        hess(j,i)=hess(j,i)-twothird*grad(j)
-!        enddo
-!
-!        tpos(i)=tpos(i)+2*h
-!        call energyandforces(nat,alat,tpos,grad,etot,count)
-!        do j=1,3*nat
-!        hess(j,i)=hess(j,i)+twothird*grad(j)
-!        enddo
-!
-!        tpos(i)=tpos(i)+h
-!        call energyandforces(nat,alat,tpos,grad,etot,count)
-!        do j=1,3*nat
-!        hess(j,i)=hess(j,i)-twelfth*grad(j)
-!        enddo
-!
-!        enddo
-!
-!!check symmetry
-!        dm=0.d0
-!        do i=1,3*nat
-!        do j=1,i-1
-!        s=.5d0*(hess(i,j)+hess(j,i))
-!        tt=abs(hess(i,j)-hess(j,i))/(1.d0+abs(s))
-!        dm=max(dm,tt)
-!        hess(i,j)=s
-!        hess(j,i)=s
-!        enddo
-!        enddo
-!        if (dm.gt.1.d-1) write(16,*) 'max dev from sym',dm
-
-    pos=rxyz
-
-
-! project out rotations 
-        cmx=0.d0 ; cmy=0.d0 ; cmz=0.d0
-        do i=1,3*nat-2,3
-        cmx=cmx+pos(i+0)
-        cmy=cmy+pos(i+1)
-        cmz=cmz+pos(i+2)
-        enddo
-        cmx=cmx/nat ; cmy=cmy/nat ; cmz=cmz/nat
-
-! x-y plane
-        do i=1,3*nat-2,3
-        work(i+1)= (pos(i+0)-cmx)
-        work(i+0)=-(pos(i+1)-cmy)
-        enddo
-
-        t1=0.d0  ; t2=0.d0
-        do i=1,3*nat-2,3
-        t1=t1+work(i+0)**2
-        t2=t2+work(i+1)**2
-        enddo
-        t1=sqrt(.5d0*rlarge/t1) ; t2=sqrt(.5d0*rlarge/t2)
-        do i=1,3*nat-2,3
-        work(i+0)=work(i+0)*t1
-        work(i+1)=work(i+1)*t2
-        enddo
-
-        do j=1,3*nat-2,3
-        do i=1,3*nat-2,3
-        hess(i+0,j+0)=hess(i+0,j+0)+work(i+0)*work(j+0)
-        hess(i+1,j+0)=hess(i+1,j+0)+work(i+1)*work(j+0)
-        hess(i+0,j+1)=hess(i+0,j+1)+work(i+0)*work(j+1)
-        hess(i+1,j+1)=hess(i+1,j+1)+work(i+1)*work(j+1)
-        enddo
-        enddo
-
-! x-z plane
-        do i=1,3*nat-2,3
-        work(i+2)= (pos(i+0)-cmx)
-        work(i+0)=-(pos(i+2)-cmz)
-        enddo
-
-        t1=0.d0  ; t3=0.d0
-        do i=1,3*nat-2,3
-        t1=t1+work(i+0)**2
-        t3=t3+work(i+2)**2
-        enddo
-        t1=sqrt(.5d0*rlarge/t1) ;  t3=sqrt(.5d0*rlarge/t3)
-        do i=1,3*nat-2,3
-        work(i+0)=work(i+0)*t1
-        work(i+2)=work(i+2)*t3
-        enddo
-
-        do j=1,3*nat-2,3
-        do i=1,3*nat-2,3
-        hess(i+0,j+0)=hess(i+0,j+0)+work(i+0)*work(j+0)
-        hess(i+2,j+0)=hess(i+2,j+0)+work(i+2)*work(j+0)
-        hess(i+0,j+2)=hess(i+0,j+2)+work(i+0)*work(j+2)
-        hess(i+2,j+2)=hess(i+2,j+2)+work(i+2)*work(j+2)
-        enddo
-        enddo
-
-! y-z plane
-        do i=1,3*nat-2,3
-        work(i+2)= (pos(i+1)-cmy)
-        work(i+1)=-(pos(i+2)-cmz)
-        enddo
-
-        t2=0.d0 ; t3=0.d0
-        do i=1,3*nat-2,3
-        t2=t2+work(i+1)**2
-        t3=t3+work(i+2)**2
-        enddo
-        t2=sqrt(.5d0*rlarge/t2) ; t3=sqrt(.5d0*rlarge/t3)
-        do i=1,3*nat-2,3
-        work(i+1)=work(i+1)*t2
-        work(i+2)=work(i+2)*t3
-        enddo
-
-        do j=1,3*nat-2,3
-        do i=1,3*nat-2,3
-        hess(i+1,j+1)=hess(i+1,j+1)+work(i+1)*work(j+1)
-        hess(i+2,j+1)=hess(i+2,j+1)+work(i+2)*work(j+1)
-        hess(i+1,j+2)=hess(i+1,j+2)+work(i+1)*work(j+2)
-        hess(i+2,j+2)=hess(i+2,j+2)+work(i+2)*work(j+2)
-        enddo
-        enddo
-
-! Project out translations
-        shift=rlarge/nat
-        do j=1,3*nat-2,3
-        do i=1,3*nat-2,3
-        hess(i+0,j+0)=hess(i+0,j+0)+shift
-        hess(i+1,j+1)=hess(i+1,j+1)+shift
-        hess(i+2,j+2)=hess(i+2,j+2)+shift
-        enddo
-        enddo
-
-!check
-        !call DSYEV('V','L',3*nat,hess,3*nat,eval,WORK,LWORK,INFO)
-        !if (info.ne.0) stop 'DSYEV'
-        !write(16,*) '---  TB eigenvalues in a.u. -------------'
-        !do i=1,3*nat
-        !  tt=eval(i)*(.529d0**2/27.2d0)
-        !write(16,*) 'eval (eV/A), a.u.',i,eval(i),tt
-        !  eval(i)=tt
-        !enddo
-
-
-        deallocate(grad,pos,tpos)
-        deallocate(work)
-        return
-        end subroutine tbhess
-
+!!!!subroutine cal_hessian_fd_m(iproc,nat,alat,pos,hess)
+!!!!use module_base
+!!!!use module_energyandforces
+!!!!    implicit none
+!!!!    integer, intent(in):: iproc, nat
+!!!!    real(8), intent(in) :: pos(3*nat),alat(3)
+!!!!    real(8), intent(inout) :: hess(3*nat,3*nat)
+!!!!    !local variables
+!!!!    integer :: iat
+!!!!    real(8) :: t1,t2,t3
+!!!!    !real(8), allocatable, dimension(:,:) :: hess
+!!!!    real(8), allocatable, dimension(:) :: tpos,grad,eval,work
+!!!!    real(8) :: h,rlarge,twelfth,twothird,etot,cmx,cmy,cmz,shift,dm,tt,s,fnoise
+!!!!    integer :: i,j,k,lwork,info
+!!!!
+!!!!    !allocate(hess(3*nat,3*nat))
+!!!!    tpos = f_malloc((/1.to.3*nat/),id='tpos')
+!!!!    grad = f_malloc((/1.to.3*nat/),id='grad')
+!!!!    eval = f_malloc((/1.to.3*nat/),id='eval')
+!!!!
+!!!!    lwork=1000*nat
+!!!!    work = f_malloc((/1.to.lwork/),id='work')
+!!!!
+!!!!    !h=1.d-1
+!!!!    !h=7.5d-2
+!!!!    !h=5.d-2
+!!!!!    h=1.d-3
+!!!!!    h=1.d-2
+!!!!    h=5.d-3
+!!!!    !h=2.d-2
+!!!!    rlarge=1.d0*1.d4
+!!!!    twelfth=-1.d0/(12.d0*h)
+!!!!    twothird=-2.d0/(3.d0*h)
+!!!!    if(iproc==0) write(*,*) '(hess) HESSIAN: h',h
+!!!!    !-------------------------------------------------------
+!!!!    do i=1,3*nat
+!!!!        iat=(i-1)/3+1
+!!!!        do k=1,3*nat
+!!!!            tpos(k)=pos(k)
+!!!!            grad(k)=0.d0
+!!!!        enddo
+!!!!        !-----------------------------------------
+!!!!        tpos(i)=tpos(i)-2*h
+!!!!        call energyandforces(nat,alat,tpos,grad,fnoise,etot)
+!!!!        do j=1,3*nat
+!!!!            hess(j,i)=twelfth*grad(j)
+!!!!        enddo
+!!!!        !if(iproc==0) write(*,*) 'ALIREZA-6',i,iat
+!!!!        !-----------------------------------------
+!!!!        tpos(i)=tpos(i)+h
+!!!!        call energyandforces(nat,alat,tpos,grad,fnoise,etot)
+!!!!        do j=1,3*nat
+!!!!        hess(j,i)=hess(j,i)-twothird*grad(j)
+!!!!        enddo
+!!!!        !-----------------------------------------
+!!!!        tpos(i)=tpos(i)+2*h
+!!!!        call energyandforces(nat,alat,tpos,grad,fnoise,etot)
+!!!!        do j=1,3*nat
+!!!!        hess(j,i)=hess(j,i)+twothird*grad(j)
+!!!!        enddo
+!!!!        !-----------------------------------------
+!!!!        tpos(i)=tpos(i)+h
+!!!!        call energyandforces(nat,alat,tpos,grad,fnoise,etot)
+!!!!        do j=1,3*nat
+!!!!        hess(j,i)=hess(j,i)-twelfth*grad(j)
+!!!!        !write(*,*) 'HESS ',j,i,hess(j,i)
+!!!!        enddo
+!!!!        !-----------------------------------------
+!!!!    enddo
+!!!!    !-------------------------------------------------------
+!!!!
+!!!!    !check symmetry
+!!!!    dm=0.d0
+!!!!    do i=1,3*nat
+!!!!    do j=1,i-1
+!!!!    s=.5d0*(hess(i,j)+hess(j,i))
+!!!!    tt=abs(hess(i,j)-hess(j,i))/(1.d0+abs(s))
+!!!!    dm=max(dm,tt)
+!!!!    hess(i,j)=s
+!!!!    hess(j,i)=s
+!!!!    enddo
+!!!!    enddo
+!!!!    if (dm.gt.1.d-1) write(*,*) '(hess) max dev from sym',dm
+!!!!
+!!!!!    do j=1,3*nat
+!!!!!    do i=1,3*nat
+!!!!!    write(*,*) '(hess) hier',nat,hess(i,j)
+!!!!!    write(499,*) hess(i,j)
+!!!!!    enddo
+!!!!!    enddo
+!!!!
+!!!!    !-------------------------------------------------------
+!!!!    !project out rotations
+!!!!    cmx=0.d0 ; cmy=0.d0 ; cmz=0.d0
+!!!!    do i=1,3*nat-2,3
+!!!!    cmx=cmx+pos(i+0)
+!!!!    cmy=cmy+pos(i+1)
+!!!!    cmz=cmz+pos(i+2)
+!!!!    enddo
+!!!!    cmx=cmx/nat ; cmy=cmy/nat ; cmz=cmz/nat
+!!!!  
+!!!!    !x-y plane
+!!!!    do i=1,3*nat-2,3
+!!!!    work(i+1)= (pos(i+0)-cmx)
+!!!!    work(i+0)=-(pos(i+1)-cmy)
+!!!!    enddo
+!!!!    call f_free(tpos)
+!!!!    call f_free(grad)
+!!!!    call f_free(eval)
+!!!!    call f_free(work)
+!!!!end subroutine cal_hessian_fd_m
+!!!!
+!!!!!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!!!!        subroutine tbhess(nat,rxyz,hess,eval)
+!!!!        implicit real*8 (a-h,o-z)
+!!!!        dimension rxyz(3*nat),hess(3*nat,3*nat),eval(3*nat),alat(3)
+!!!!        real*8, allocatable, dimension(:) :: grad,pos,tpos,work
+!!!!
+!!!!
+!!!!        allocate(pos(3*nat),tpos(3*nat),grad(3*nat))
+!!!!        lwork=100*nat
+!!!!        allocate(work(lwork))
+!!!!!        h=1.d-2
+!!!!        rlarge=1.d0*1.d3
+!!!!!        twelfth=-1.d0/(12.d0*h)
+!!!!!        twothird=-2.d0/(3.d0*h)
+!!!!!        count=0.d0
+!!!!!        alat(1)=20.d0 ; alat(2)=20.d0 ; alat(3)=20.d0
+!!!!!
+!!!!!!  convert from atomic units to angstroem
+!!!!!           write(16,*) alat(1),0.,alat(2)
+!!!!!           write(16,*)      0.,0.,alat(3)
+!!!!!        do i=1,nat 
+!!!!!           pos(3*i-2)=rxyz(3*i-2)*.529177d0  
+!!!!!           pos(3*i-1)=rxyz(3*i-1)*.529177d0  
+!!!!!           pos(3*i-0)=rxyz(3*i-0)*.529177d0  
+!!!!!           write(16,'(3(1x,e14.7),a)') pos(3*i-2),pos(3*i-1),pos(3*i-0),'
+!!!!!           Si_lda'
+!!!!!         enddo
+!!!!!
+!!!!!
+!!!!!        do i=1,3*nat
+!!!!!
+!!!!!        do k=1,3*nat
+!!!!!        tpos(k)=pos(k)
+!!!!!        grad(k)=0.d0
+!!!!!        enddo
+!!!!!
+!!!!!        tpos(i)=tpos(i)-2*h
+!!!!!        call energyandforces(nat,alat,tpos,grad,etot,count)
+!!!!!        do j=1,3*nat
+!!!!!        hess(j,i)=twelfth*grad(j)
+!!!!!        enddo
+!!!!!
+!!!!!        tpos(i)=tpos(i)+h
+!!!!!        call energyandforces(nat,alat,tpos,grad,etot,count)
+!!!!!        do j=1,3*nat
+!!!!!        hess(j,i)=hess(j,i)-twothird*grad(j)
+!!!!!        enddo
+!!!!!
+!!!!!        tpos(i)=tpos(i)+2*h
+!!!!!        call energyandforces(nat,alat,tpos,grad,etot,count)
+!!!!!        do j=1,3*nat
+!!!!!        hess(j,i)=hess(j,i)+twothird*grad(j)
+!!!!!        enddo
+!!!!!
+!!!!!        tpos(i)=tpos(i)+h
+!!!!!        call energyandforces(nat,alat,tpos,grad,etot,count)
+!!!!!        do j=1,3*nat
+!!!!!        hess(j,i)=hess(j,i)-twelfth*grad(j)
+!!!!!        enddo
+!!!!!
+!!!!!        enddo
+!!!!!
+!!!!!!check symmetry
+!!!!!        dm=0.d0
+!!!!!        do i=1,3*nat
+!!!!!        do j=1,i-1
+!!!!!        s=.5d0*(hess(i,j)+hess(j,i))
+!!!!!        tt=abs(hess(i,j)-hess(j,i))/(1.d0+abs(s))
+!!!!!        dm=max(dm,tt)
+!!!!!        hess(i,j)=s
+!!!!!        hess(j,i)=s
+!!!!!        enddo
+!!!!!        enddo
+!!!!!        if (dm.gt.1.d-1) write(16,*) 'max dev from sym',dm
+!!!!
+!!!!    pos=rxyz
+!!!!
+!!!!
+!!!!! project out rotations 
+!!!!        cmx=0.d0 ; cmy=0.d0 ; cmz=0.d0
+!!!!        do i=1,3*nat-2,3
+!!!!        cmx=cmx+pos(i+0)
+!!!!        cmy=cmy+pos(i+1)
+!!!!        cmz=cmz+pos(i+2)
+!!!!        enddo
+!!!!        cmx=cmx/nat ; cmy=cmy/nat ; cmz=cmz/nat
+!!!!
+!!!!! x-y plane
+!!!!        do i=1,3*nat-2,3
+!!!!        work(i+1)= (pos(i+0)-cmx)
+!!!!        work(i+0)=-(pos(i+1)-cmy)
+!!!!        enddo
+!!!!
+!!!!        t1=0.d0  ; t2=0.d0
+!!!!        do i=1,3*nat-2,3
+!!!!        t1=t1+work(i+0)**2
+!!!!        t2=t2+work(i+1)**2
+!!!!        enddo
+!!!!        t1=sqrt(.5d0*rlarge/t1) ; t2=sqrt(.5d0*rlarge/t2)
+!!!!        do i=1,3*nat-2,3
+!!!!        work(i+0)=work(i+0)*t1
+!!!!        work(i+1)=work(i+1)*t2
+!!!!        enddo
+!!!!
+!!!!        do j=1,3*nat-2,3
+!!!!        do i=1,3*nat-2,3
+!!!!        hess(i+0,j+0)=hess(i+0,j+0)+work(i+0)*work(j+0)
+!!!!        hess(i+1,j+0)=hess(i+1,j+0)+work(i+1)*work(j+0)
+!!!!        hess(i+0,j+1)=hess(i+0,j+1)+work(i+0)*work(j+1)
+!!!!        hess(i+1,j+1)=hess(i+1,j+1)+work(i+1)*work(j+1)
+!!!!        enddo
+!!!!        enddo
+!!!!
+!!!!! x-z plane
+!!!!        do i=1,3*nat-2,3
+!!!!        work(i+2)= (pos(i+0)-cmx)
+!!!!        work(i+0)=-(pos(i+2)-cmz)
+!!!!        enddo
+!!!!
+!!!!        t1=0.d0  ; t3=0.d0
+!!!!        do i=1,3*nat-2,3
+!!!!        t1=t1+work(i+0)**2
+!!!!        t3=t3+work(i+2)**2
+!!!!        enddo
+!!!!        t1=sqrt(.5d0*rlarge/t1) ;  t3=sqrt(.5d0*rlarge/t3)
+!!!!        do i=1,3*nat-2,3
+!!!!        work(i+0)=work(i+0)*t1
+!!!!        work(i+2)=work(i+2)*t3
+!!!!        enddo
+!!!!
+!!!!        do j=1,3*nat-2,3
+!!!!        do i=1,3*nat-2,3
+!!!!        hess(i+0,j+0)=hess(i+0,j+0)+work(i+0)*work(j+0)
+!!!!        hess(i+2,j+0)=hess(i+2,j+0)+work(i+2)*work(j+0)
+!!!!        hess(i+0,j+2)=hess(i+0,j+2)+work(i+0)*work(j+2)
+!!!!        hess(i+2,j+2)=hess(i+2,j+2)+work(i+2)*work(j+2)
+!!!!        enddo
+!!!!        enddo
+!!!!
+!!!!! y-z plane
+!!!!        do i=1,3*nat-2,3
+!!!!        work(i+2)= (pos(i+1)-cmy)
+!!!!        work(i+1)=-(pos(i+2)-cmz)
+!!!!        enddo
+!!!!
+!!!!        t2=0.d0 ; t3=0.d0
+!!!!        do i=1,3*nat-2,3
+!!!!        t2=t2+work(i+1)**2
+!!!!        t3=t3+work(i+2)**2
+!!!!        enddo
+!!!!        t2=sqrt(.5d0*rlarge/t2) ; t3=sqrt(.5d0*rlarge/t3)
+!!!!        do i=1,3*nat-2,3
+!!!!        work(i+1)=work(i+1)*t2
+!!!!        work(i+2)=work(i+2)*t3
+!!!!        enddo
+!!!!
+!!!!        do j=1,3*nat-2,3
+!!!!        do i=1,3*nat-2,3
+!!!!        hess(i+1,j+1)=hess(i+1,j+1)+work(i+1)*work(j+1)
+!!!!        hess(i+2,j+1)=hess(i+2,j+1)+work(i+2)*work(j+1)
+!!!!        hess(i+1,j+2)=hess(i+1,j+2)+work(i+1)*work(j+2)
+!!!!        hess(i+2,j+2)=hess(i+2,j+2)+work(i+2)*work(j+2)
+!!!!        enddo
+!!!!        enddo
+!!!!
+!!!!! Project out translations
+!!!!        shift=rlarge/nat
+!!!!        do j=1,3*nat-2,3
+!!!!        do i=1,3*nat-2,3
+!!!!        hess(i+0,j+0)=hess(i+0,j+0)+shift
+!!!!        hess(i+1,j+1)=hess(i+1,j+1)+shift
+!!!!        hess(i+2,j+2)=hess(i+2,j+2)+shift
+!!!!        enddo
+!!!!        enddo
+!!!!
+!!!!!check
+!!!!        !call DSYEV('V','L',3*nat,hess,3*nat,eval,WORK,LWORK,INFO)
+!!!!        !if (info.ne.0) stop 'DSYEV'
+!!!!        !write(16,*) '---  TB eigenvalues in a.u. -------------'
+!!!!        !do i=1,3*nat
+!!!!        !  tt=eval(i)*(.529d0**2/27.2d0)
+!!!!        !write(16,*) 'eval (eV/A), a.u.',i,eval(i),tt
+!!!!        !  eval(i)=tt
+!!!!        !enddo
+!!!!
+!!!!
+!!!!        deallocate(grad,pos,tpos)
+!!!!        deallocate(work)
+!!!!        return
+!!!!        end subroutine tbhess
+!!!!
 
 end module
