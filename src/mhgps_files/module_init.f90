@@ -25,6 +25,7 @@ contains
             read(u,*)mhgps_verbosity
             read(u,*)saddle_connect, random_minmode_guess
             read(u,*)efmethod,external_mini
+            read(u,*)en_delta,fp_delta
             read(u,*)saddle_biomode
             if(saddle_biomode)imode=2
             read(u,*) lst_interpol_stepfrct
@@ -72,7 +73,8 @@ contains
         open(u,file=filename)
             write(u,'(1x,i0.0,1x,a)')mhgps_verbosity,' #mhgps_verbosity'
             write(u,'(1x,L,1x,L,1x,a)')saddle_connect,random_minmode_guess, ' #connect, random_minmode_guess'
-            write(u,'(1x,a,1x,a)')trim(adjustl(efmethod)),' #efmethod'
+            write(u,'(1x,a,1x,L,1x,a)')trim(adjustl(efmethod)),external_mini,' #efmethod, external minimizer'
+            write(u,'(es10.3,1x,es10.3,1x,a)')en_delta,fp_delta,' #en_delta, fp_delta'
             write(u,'(1x,L,1x,a)')saddle_biomode,' #biomode'
             write(u,'(1x,es10.3,1x,a)') lst_interpol_stepfrct,' #inward interpolation distance as fraction of initial distance'
             write(u,'(1x,es10.3,1x,a)') ts_guess_gammainv,' #step size for perpedicular optimization in freezing string method'

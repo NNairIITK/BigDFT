@@ -122,8 +122,12 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     !functions
     real(gp) :: ddot,dnrm2
 
+    if(atoms%astruct%geocode/='F')&
+    stop'STOP: saddle search only implemented for free BC'
+
     if(iproc==0)then
-        call yaml_comment('(MHGPS) Start Saddle Search ....',hfill='-')
+        call yaml_comment('(MHGPS) Start Saddle Search ....',&
+                          hfill='-')
     endif
 
     ndim_rot=0
