@@ -10,19 +10,16 @@ module module_freezingstring
     implicit none
     
     contains
-!TODO: create function "get_input_guess" which returns
-!an inpute guess for a ts (consisting of corrds. and minmode dir.)
-!this method simply calls grow_string
-!and then uses cubic splines to find the tangent at the highest energy node
 !=====================================================================
 subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess)
     use module_base
     use yaml_output
-    use module_global_variables, only: iproc, mhgps_verbosity,&
-                                       gammainv => ts_guess_gammainv,&
-                                       perpnrmtol => ts_guess_perpnrmtol,&
-                                       trust => ts_guess_trust,&
-                                       nstepsmax => ts_guess_nstepsmax
+    use module_global_variables,&
+            only: iproc, mhgps_verbosity,&
+                  gammainv => ts_guess_gammainv,&
+                  perpnrmtol => ts_guess_perpnrmtol,&
+                  trust => ts_guess_trust,&
+                  nstepsmax => ts_guess_nstepsmax
     use module_energyandforces
     implicit none
     !parameters
@@ -50,7 +47,8 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess)
     !functions
     real(gp) :: dnrm2
 
-    string = f_malloc((/ 1.to.3*nat, 1.to.2, 1.to.nstringmax/),id='string')
+    string = f_malloc((/ 1.to.3*nat, 1.to.2, 1.to.nstringmax/),&
+                     id='string')
     call vcopy(3*nat, rxyz1(1,1), 1, string(1,1,1), 1)
     call vcopy(3*nat, rxyz2(1,1), 1, string(1,2,1), 1)
     
@@ -531,7 +529,7 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     !                 are meaningless
     use module_base
     use module_interpol
-    use module_global_variables, only: stepfrct => lst_interpol_stepfrct
+    use module_global_variables, only:stepfrct=>lst_interpol_stepfrct
     implicit none
     !parameters
     integer, intent(in)      :: nat
@@ -546,10 +544,12 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     !constants
     integer, parameter  :: nimages=200 
     integer, parameter  :: nimagesC=5 !setting nimagesC=nimages
-                                      !should give similar implementation
-                                      !to the freezing string publication
+                                      !should give similar
+                                      !implementation to the freezing
+                                      !string publication
 !    real(gp), parameter :: stepfrct=0.1_gp! freezing string step size
-    !real(gp), parameter :: stepfrct=0.05555555556_gp! freezing string step size
+    !real(gp), parameter :: stepfrct=0.05555555556_gp! freezing string
+                                                     ! step size
     !internal
     integer  :: i
     integer  :: j
@@ -683,18 +683,18 @@ write(*,*)'lstinterpol 2'
 !                 nimages,tau,interleft(3,i),rdmy)
 !        enddo
 !        do i=1,nat
-!            call splint_wrapper(arcC,lstpathCRM(1,1,i),y2vecC(1,1,i),&
-!                 nimagestang,tau,rdmy,tangentleft(1,i))
+!            call splint_wrapper(arcC,lstpathCRM(1,1,i),&
+!                 y2vecC(1,1,i),nimagestang,tau,rdmy,tangentleft(1,i))
 !write(*,*)rdmy-interleft(1,i)
 !!write(*,*)y2vecC(:,1,i)-y2vec(:,1,i)
 !!write(*,*)lstpathCRM(:,1,i)-lstpathRM(:,1,i)
-!            call splint_wrapper(arcC,lstpathCRM(1,2,i),y2vecC(1,2,i),&
-!                 nimagestang,tau,rdmy,tangentleft(2,i))
+!            call splint_wrapper(arcC,lstpathCRM(1,2,i),&
+!                 y2vecC(1,2,i),nimagestang,tau,rdmy,tangentleft(2,i))
 !write(*,*)rdmy-interleft(2,i)
 !!write(*,*)y2vecC(:,2,i)-y2vec(:,2,i)
 !!write(*,*)lstpathCRM(:,2,i)-lstpathRM(:,2,i)
-!            call splint_wrapper(arcC,lstpathCRM(1,3,i),y2vecC(1,3,i),&
-!                 nimagestang,tau,rdmy,tangentleft(3,i))
+!            call splint_wrapper(arcC,lstpathCRM(1,3,i),&
+!                 y2vecC(1,3,i),nimagestang,tau,rdmy,tangentleft(3,i))
 !write(*,*)rdmy-interleft(3,i)
 !!write(*,*)y2vecC(:,3,i)-y2vec(:,3,i)
 !!write(*,*)lstpathCRM(:,3,i)-lstpathRM(:,3,i)
@@ -957,6 +957,7 @@ end subroutine
 subroutine splint(xvec,yvec,y2vec,ndim,tau,yval,dy)
     !translated to f90 from numerical recipes
     use module_base
+    use module_misc
     implicit none
     !parameters
     integer, intent(in) :: ndim
@@ -991,13 +992,3 @@ subroutine splint(xvec,yvec,y2vec,ndim,tau,yval,dy)
        (3.0_gp*b**2-1.0_gp)*y2vec(khi))/6.0_gp*h
 end subroutine
 !=====================================================================
-logical function almostequal( x, y, ulp )
-    use module_base
-    real(gp), intent(in) :: x
-    real(gp), intent(in) :: y
-    integer, intent(in) :: ulp
-    almostequal = abs(x-y)<( real(ulp,gp)*&
-                  spacing(max(abs(x),abs(y)))) 
-end function 
-!=====================================================================
-end module

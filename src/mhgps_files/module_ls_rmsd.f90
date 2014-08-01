@@ -12,20 +12,19 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-                                                                                
-!-----------------------------------------------------------------------
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
+!---------------------------------------------------------------------
 MODULE module_ls_rmsd
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
 
   implicit none
   private
 
   public :: superimpose
 
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
 CONTAINS
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
 subroutine superimpose(nat,rxyz1,rxyz2)
     use module_base
     implicit none
@@ -44,18 +43,19 @@ subroutine superimpose(nat,rxyz1,rxyz2)
     enddo
 !write(*,*)rmsdval,sqrt(sum((rxyz2-rxyz1)**2)/nat)
 end subroutine
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
 subroutine rmsd(n, coord1, coord2, option, U, x_center, y_center, & 
      error)!, calc_g, g)
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
 !  This subroutine calculates the least square rmsd of two coordinate
-!  sets coord1(3,n) and coord2(3,n) using a method based on quaternion.
-!  If option=1, then the rotation matrix U and the centers of coord are 
-!  returned.
-!-----------------------------------------------------------------------
+!  sets coord1(3,n) and coord2(3,n) using a method based on
+!   quaternion.
+!  If option=1, then the rotation matrix U and the centers of coord
+! are returned.
+!---------------------------------------------------------------------
 ! if calc_g == .true., derivative of RMSD with respect to coord1
 ! is returned
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
   use module_base
   integer, intent(in) :: n, option
   real(gp), dimension(:,:), intent(in) :: coord1, coord2
@@ -122,7 +122,8 @@ subroutine rmsd(n, coord1, coord2, option, U, x_center, y_center, &
   S(4, 4) =-Rmatrix(1, 1) - Rmatrix(2, 2) + Rmatrix(3, 3) 
 
   ! Calculate eigenvalues and eigenvectors, and 
-  ! take the maximum eigenvalue lambda and the corresponding eigenvector q.
+  ! take the maximum eigenvalue lambda and the corresponding
+  ! eigenvector q.
   call dstmev(S, lambda, q)
 
   if (option == 1) then
@@ -143,16 +144,17 @@ subroutine rmsd(n, coord1, coord2, option, U, x_center, y_center, &
 !  end if
 
 end subroutine rmsd
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
 subroutine rotation_matrix(q, U)
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
 ! This subroutine constructs rotation matrix U from quaternion q.
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
 
   use module_base
   real(gp), dimension(:), intent(in) :: q
   real(gp), dimension(:,:), intent(out) :: U
-  real(gp)::q0,q1,q2,q3,b0,b1,b2,b3,q00,q01,q02,q03,q11,q12,q13,q22,q23,q33
+  real(gp)::q0,q1,q2,q3,b0,b1,b2,b3,q00,q01,q02
+  real(gp)::q03,q11,q12,q13,q22,q23,q33
 
   q0 = q(1)
   q1 = q(2)
@@ -191,11 +193,12 @@ subroutine rotation_matrix(q, U)
   U(3,3) = q00+q33
 
 end subroutine rotation_matrix
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
 subroutine DSTMEV(A,lambda,evec)
-!-----------------------------------------------------------------------
-! a simple subroutine to compute the leading eigenvalue and eigenvector
-! of a symmetric, traceless 4x4 matrix A by an inverse power iteration:
+!---------------------------------------------------------------------
+! a simple subroutine to compute the leading eigenvalue and
+! eigenvector  of a symmetric, traceless 4x4 matrix A by an inverse
+! power iteration:
 ! (1) the matrix is converted to tridiagonal form by 3 Givens
 ! rotations;  V*A*V' = T
 ! (2) Gershgorin's theorem is used to estimate a lower
@@ -211,7 +214,7 @@ subroutine DSTMEV(A,lambda,evec)
 !     and largest eigenvalue.
 ! (6) Convert eigenvector to original matrix A, through 
 !     multiplication by V'.  
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
   use module_base
   real(gp), dimension(4,4) :: A, T, V, SV
   integer :: i
@@ -220,51 +223,54 @@ subroutine DSTMEV(A,lambda,evec)
   real(gp), dimension(8) :: rv1
   real(gp) :: lambda
 
-  !-----------------------------------------------------------------------
+  !-------------------------------------------------------------------
   !(I).   Convert to tridiagonal form, keeping similarity transform
   ! (a product of 3 Givens rotations)
   call givens4(A,T,V)
 
-  !-----------------------------------------------------------------------
-  !(II)Estimate lower bound of smallest eigenvalue by Gershgorin's theorem
+  !-------------------------------------------------------------------
+  !(II)Estimate lower bound of smallest eigenvalue by Gershgorin's
+  !    theorem
   lambda=min(T(1,1)-abs(T(1,2)),-abs(T(2,1))+T(2,2)-abs(T(2,3)),&
        -abs(T(3,2))+T(3,3)-abs(T(3,4)),-abs(T(4,3))+T(4,4))
-  !-----------------------------------------------------------------------
+  !-------------------------------------------------------------------
   !(III). Form positive definite matrix     T <== lambda*I - T
   do i = 1,4
      T(i,i) = T(i,i)-lambda
   enddo
-  !-----------------------------------------------------------------------
+  !-------------------------------------------------------------------
   !(IV). Compute singular values/vectors of SPD matrix B
   call svdcmp(4,T,4,4,SW,SV,rv1)
-  !-----------------------------------------------------------------------
+  !-------------------------------------------------------------------
   !(V). Shift spectrum back
   max_loc = maxloc(SW) 
   lambda = SW(max_loc(1)) + lambda
   !lambda = SW(1) + lambda
-  !-----------------------------------------------------------------------
-  !(VI). Convert eigenvector to original coordinates: (V is transposed!)
+  !-------------------------------------------------------------------
+  !(VI). Convert eigenvector to original coordinates:
+  !     (V is transposed!)
   evec = matmul(V,SV(:,max_loc(1)))
-  !write(*,*)'-----------------------------------------------------------'
+  !write(*,*)'-------------------------------------------------------'
   !write(*,*) 'lambda = ', lambda,'  eigenvector:  '
   !write(*,99) evec
-  !write(*,*)'-----------------------------------------------------------'
-  !-----------------------------------------------------------------------
+  !write(*,*)'-------------------------------------------------------'
+  !-------------------------------------------------------------------
   !99 format(1x,4(d19.13,1x))
 
 end subroutine dstmev
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
 subroutine givens4(S,T,V)
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
   use module_base
   real(gp), dimension(4,4), intent(in)  :: S
   real(gp), dimension(4,4), intent(out) :: T,V
   real(gp)  :: c1,c2,c3, s1,s2,s3, r1,r2,r3, c1c2, s1c2
   !double precision :: pythag
   ! external        pythag
-  !performs givens rotations to reduce symmetric 4x4 matrix to tridiagonal
+  !performs givens rotations to reduce symmetric 4x4 matrix to
+  !tridiagonal
   T=S; V = 0._gp
-  !-----------------------------------------------------------------------
+  !-------------------------------------------------------------------
   !Zero out entries T(4,1) and T(1,4)
   ! compute cos and sin of rotation angle in the 3-4 plane
   r1 = pythag(T(3,1),T(4,1))
@@ -279,7 +285,7 @@ subroutine givens4(S,T,V)
   else
      c1 = 1._gp; s1 = 0._gp
   endif
-  !-----------------------------------------------------------------------
+  !-------------------------------------------------------------------
   !Zero out entries T(3,1) and T(1,3)
   ! compute cos and sin of rotation angle in the 2-3 plane
   r2 = pythag(T(3,1), T(2,1))
@@ -294,7 +300,7 @@ subroutine givens4(S,T,V)
   else
      c2 = 1._gp; s2 = 0._gp
   endif
-  !-----------------------------------------------------------------------
+  !-------------------------------------------------------------------
   !Zero out entries T(4,2) and T(2,4)
   ! compute cos and sin of rotation angle in the 3-4 plane
   r3 = pythag(T(4,2), T(3,2))
@@ -309,19 +315,20 @@ subroutine givens4(S,T,V)
   else
      c3 = 1._gp; s3 = 0._gp
   endif
-  !-----------------------------------------------------------------------
-  !Compute net rotation matrix (accumulate similarity for evec. computation)
+  !-------------------------------------------------------------------
+  !Compute net rotation matrix (accumulate similarity for evec.
+  !computation)
   ! To save transposing later, This is the transpose!
   V(1,1)=1._gp; V(1,2:4) = 0._gp; V(2:4,1) = 0._gp
-  V(2,2) = c2;  V(3,2) = c1*s2 ; V(4,2) = s1*s2; c1c2 = c1*c2; s1c2=s1*c2
+  V(2,2) = c2;V(3,2)= c1*s2 ; V(4,2) = s1*s2; c1c2 = c1*c2; s1c2=s1*c2
   V(2,3) = -s2*c3 ; V(3,3) = c1c2*c3-s1*s3 ; V(4,3) =  s1c2*c3+c1*s3
   V(2,4) =  s2*s3 ; V(3,4) =-c1c2*s3-s1*c3 ; V(4,4) = -s1c2*s3+c1*c3
-  !-----------------------------------------------------------------------
+  !-------------------------------------------------------------------
   !write(*,*) (V(1:4,i) - W(1:4,i),i=1,4)
 end subroutine givens4
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
 SUBROUTINE svdcmp(mmax,a,m,n,w,v,rv1)
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
   use module_base
   integer :: mmax
   INTEGER :: m,n
@@ -428,7 +435,7 @@ SUBROUTINE svdcmp(mmax,a,m,n,w,v,rv1)
      g=rv1(i)
      l=i
   end do
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
   do i = min(m,n), 1, -1
      l=i+1
      g=w(i)
@@ -457,7 +464,7 @@ SUBROUTINE svdcmp(mmax,a,m,n,w,v,rv1)
      endif
      a(i,i)=a(i,i)+1.0_gp
   end do
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
   do k=n,1,-1
      do its=1,30
         do l=k,1,-1
@@ -550,12 +557,12 @@ SUBROUTINE svdcmp(mmax,a,m,n,w,v,rv1)
      end do
 3    continue
   end do
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
 
 END subroutine svdcmp
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
 FUNCTION pythag(a,b)
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
   use module_base
 
   real(gp) :: pythag, a, b
@@ -574,6 +581,6 @@ FUNCTION pythag(a,b)
   endif
 
 END function pythag
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------
 END MODULE module_ls_rmsd
-!-----------------------------------------------------------------------
+!---------------------------------------------------------------------

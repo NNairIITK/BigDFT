@@ -15,7 +15,10 @@ module module_global_variables
 
     !input parameters for mhgps
     integer          :: mhgps_verbosity     = 3
-    character(len=6) :: efmethod            = "LJ" !method/force-field for energies, stresses and forces
+    character(len=6) :: efmethod            = "LJ" !method/force-field
+                                                   !for energies,
+                                                   !stresses and
+                                                   !forces
     logical          :: external_mini       = .false.
     character(len=5) :: input_dir           = "input"
 
@@ -45,14 +48,15 @@ module module_global_variables
     real(gp)         :: saddle_steepthresh_rot     = 1._gp
     integer          :: saddle_recompIfCurvPos     = 5
     real(gp)         :: saddle_fnrmtol             = 1.e-3_gp
-    logical          :: share_rot_history          = .false. !not available via
-                                                            !input file since
-                                                            !sharing tends to
-                                                            !introduce a slight
-                                                            !inefficiency when
-                                                            !compared to no
-                                                            !sharing (roughly
-                                                            !10% for LJ75)
+    real(gp)         :: saddle_stepoff             = 2.e-2_gp
+    logical          :: share_rot_history = .false.!not available via
+                                                   !input file since
+                                                   !sharing tends to
+                                                   !introduce a slight
+                                                   !inefficiency when
+                                                   !compared to no
+                                                   !sharing (roughly
+                                                   !10% for LJ75)
     !ts guess parameters
     real(gp) :: ts_guess_gammainv=1._gp
     real(gp) :: ts_guess_perpnrmtol=1.e-3_gp

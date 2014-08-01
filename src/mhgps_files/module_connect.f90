@@ -1,3 +1,12 @@
+!> @file
+!! module implementing the connection algorithm(s)
+!!     
+!! @author Bastian Schaefer
+!! @section LICENCE
+!!    Copyright (C) 2014 UNIBAS
+!!    This file is not freely distributed.
+!!    A licence is necessary from UNIBAS
+
 module module_connect
 
 contains
@@ -15,6 +24,8 @@ subroutine connect_recurs(nat,alat,rcov,,nbond,iconnect,rxyz1,rxyz2)
     real(gp), intent(inout) :: rxyz1(3,nat), rxyz2(3,nat)
     !internal
     real(gp) :: saddle(3,nat)
+    real(gp) :: rxyzleft(3,nat)
+    real(gp) :: rxyzright(3,nat)
     real(gp) :: fxyz(3,nat)
     real(gp) :: rotforce(3,nat)
     real(gp) :: minmode(3,nat)
@@ -33,6 +44,7 @@ subroutine connect_recurs(nat,alat,rcov,,nbond,iconnect,rxyz1,rxyz2)
                   rotforce,converged)
 
     !pushoff and minimize left and right
+    call pushoff(nat,saddle,minmode,leftmin,rightmin)
 
     !check if relaxed structures are identical with saddle itself
 
@@ -108,5 +120,34 @@ subroutine connect_recurs(nat,alat,rcov,,nbond,iconnect,rxyz1,rxyz2)
 
 
 end subroutine
+!=====================================================================
+subroutine pushoff(nat,saddle,minmode,left,right)
+    use module_base
+    use module_misc
+    use module_global_variables, only: saddle_stepoff
+    implicit none
+    !parameters 
+    integer, intent(in) :: nat
+    real(gp), intent(in) :: sad
+    real(gp), intent(in) :: saddle(3,nat)
+    real(gp), intent(in) :: minmode(3,nat)
+    real(gp), intent(out) :: left(3,nat)
+    real(gp), intent(out) :: right(3,nat)
+    !internal
+    real(gp), intent(out) :: step(3,nat)
+
+    !functions
+    real(gp) :: dnrm2
+!debug check
+if(.not. almostequal(1._gp,dnrm2(3*nat,minmode(1,1),1),4))&
+stop'minmode not normalized'
+
+    step = saddle_stepoff*minmode
+    left = saddle - step
+    right = saddle + step
+
+end subroutine
+!=====================================================================
+
 
 end module
