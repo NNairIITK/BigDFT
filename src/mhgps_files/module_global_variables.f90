@@ -57,6 +57,8 @@ module module_global_variables
                                                    !compared to no
                                                    !sharing (roughly
                                                    !10% for LJ75)
+    !variables for connect routine
+    integer :: nsadmax=30
     !ts guess parameters
     real(gp) :: ts_guess_gammainv=1._gp
     real(gp) :: ts_guess_perpnrmtol=1.e-3_gp

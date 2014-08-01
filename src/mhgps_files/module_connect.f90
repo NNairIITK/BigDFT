@@ -8,15 +8,112 @@
 !!    A licence is necessary from UNIBAS
 
 module module_connect
+    use module_base
+    implicit none
+
+    type connect_object
+!        real(gp) :: saddle(3,nat,nsadmax)
+!        real(gp) :: leftmin(3,nat,nsadmax)
+!        real(gp) :: rightmin(3,nat,nsadmax)
+!        real(gp) :: fsad(3,nat,nsadmax)
+!        real(gp) :: fleft(3,nat,nsadmax)
+!        real(gp) :: fright(3,nat,nsadmax)
+!        real(gp) :: rotforce(3,nat,nsadmax)
+!        real(gp) :: minmode(3,nat,nsadmax)
+!        real(gp) :: enersad(nsadmax)
+!        real(gp) :: enerleft(nsadmax)
+!        real(gp) :: enerright(nsadmax)
+        
+        real(gp), allocatable :: saddle(:,:,:)
+        real(gp), allocatable :: enersad(:)
+        real(gp), allocatable :: fsad(:,:,:)
+        real(gp), allocatable :: fpsad(:,:)
+        real(gp), allocatable :: rotforce(:,:,:)
+        real(gp), allocatable :: minmode(:,:,:)
+
+        real(gp), allocatable :: leftmin(:,:,:)
+        real(gp), allocatable :: enerleft(:)
+        real(gp), allocatable :: fleft(:,:,:)
+        real(gp), allocatable :: fpleft(:,:)
+
+        real(gp), allocatable :: rightmin(:,:,:)
+        real(gp), allocatable :: enerright(:)
+        real(gp), allocatable :: fright(:,:,:)
+        real(gp), allocatable :: fpright(:,:)
+
+        real(gp), allocatable :: rxyz1(:,:)
+        real(gp), allocatable :: rxyz2(:,:)
+    end type
 
 contains
 !=====================================================================
-subroutine connect_recursively(nat,alat,rcov,nbond,iconnect,rxyz1,&
-           rxyz2)
+subroutine allocate_connect_object(nat,nid,nsadmax,cobj)
+    use dynamic_memory
+    implicit none
+    !parameters
+    integer, intent(in) :: nat, nid, nsadmax
+    type(connect_object), intent(inout) :: cobj
+
+    cobj%saddle    = f_malloc((/1.to.3,1.to.nat,1.to.nsadmax/),&
+                             id='saddle')
+    cobj%enersad   = f_malloc((/1.to.nsadmax/),id='enersad')
+    cobj%fsad      = f_malloc((/1.to.3,1.to.nat,1.to.nsadmax/),&
+                             id='fsad')
+    cobj%fpsad     = f_malloc((/1.to.nid,1.to.nsadmax/),id='fpsad')
+    cobj%rotforce  = f_malloc((/1.to.3,1.to.nat,1.to.nsadmax/),&
+                             id='rotorce')
+    cobj%minmode   = f_malloc((/1.to.3,1.to.nat,1.to.nsadmax/),&
+                             id='minmode')
+    cobj%leftmin   = f_malloc((/1.to.3,1.to.nat,1.to.nsadmax/),&
+                             id='leftmin')
+    cobj%enerleft  = f_malloc((/1.to.nsadmax/),id='enerleft')
+    cobj%fleft     = f_malloc((/1.to.3,1.to.nat,1.to.nsadmax/),&
+                             id='fleft')
+    cobj%fpleft    = f_malloc((/1.to.nid,1.to.nsadmax/),id='fpleft')
+    cobj%rightmin  = f_malloc((/1.to.3,1.to.nat,1.to.nsadmax/),&
+                             id='rightmin')
+    cobj%enerright = f_malloc((/1.to.nsadmax/),id='enerright')
+    cobj%fright    = f_malloc((/1.to.3,1.to.nat,1.to.nsadmax/),&
+                             id='fright')
+    cobj%fpright   = f_malloc((/1.to.nid,1.to.nsadmax/),id='fpright')
+    cobj%rxyz1 = f_malloc((/1.to.3,1.to.nat/),id='rxyz1')
+    cobj%rxyz2 = f_malloc((/1.to.3,1.to.nat/),id='rxyz2')
+end subroutine
+!=====================================================================
+subroutine deallocate_connect_object(cobj)
+    use dynamic_memory
+    implicit none
+    !parameters
+    type(connect_object), intent(inout) :: cobj
+
+    call f_free(cobj%saddle)
+    call f_free(cobj%enersad)
+    call f_free(cobj%fsad)
+    call f_free(cobj%fpsad)
+    call f_free(cobj%rotforce)
+    call f_free(cobj%minmode)
+    call f_free(cobj%leftmin)
+    call f_free(cobj%enerleft)
+    call f_free(cobj%fleft)
+    call f_free(cobj%fpleft)
+    call f_free(cobj%rightmin)
+    call f_free(cobj%enerright)
+    call f_free(cobj%fright)
+    call f_free(cobj%fpright)
+    call f_free(cobj%rxyz1)
+    call f_free(cobj%rxyz2)
+end subroutine
+!=====================================================================
+recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,&
+                     iconnect,rxyz1,rxyz2,ener1,ener2,fp1,fp2,&
+                     nsad,cobj,connected)
+    !if called from outside recursion, connected has to be set 
+    !to .true. and nsad=0
     use module_base
     use module_global_variables,&
        only: atoms,&
-             imode
+             imode,&
+             nsadmax
     use module_ls_rmsd
     use module_fingerprints
     use module_minimizers
@@ -25,114 +122,141 @@ use module_energyandforces
     implicit none
     !parameters
     integer, intent(in)     :: nat
+    integer, intent(in)     :: nid
     integer, intent(in)     :: nbond
     real(gp), intent(in)    :: rcov(nat)
-    real(gp), intent(in)    :: alat(3)
+    real(gp), intent(inout) :: alat(3)
     integer, intent(in)     :: iconnect(2,nbond)
-    real(gp), intent(inout) :: rxyz1(3,nat), rxyz2(3,nat)
+    real(gp), intent(in)    :: rxyz1(3,nat), rxyz2(3,nat)
+    real(gp), intent(in)    :: fp1(nid), fp2(nid)
+    real(gp), intent(in)    :: ener1,ener2
+    integer, intent(inout)  :: nsad
+    type(connect_object), intent(inout) :: cobj
+    logical, intent(inout)    :: connected
     !internal
-    integer  :: nid
-    real(gp) :: saddle(3,nat)
-    real(gp) :: leftmin(3,nat)
-    real(gp) :: rightmin(3,nat)
-    real(gp) :: fsad(3,nat)
-    real(gp) :: fleft(3,nat)
-    real(gp) :: fright(3,nat)
-    real(gp) :: rotforce(3,nat)
-    real(gp) :: minmode(3,nat)
-    real(gp) :: enersad
-    real(gp) :: enerleft
-    real(gp) :: enerright
+    integer  :: nsad_local
     real(gp) :: displ=0._gp,ener_count=0._gp
     real(gp) :: fnoise
-    real(gp), allocatable :: fpsad(:), fpleft(:), fpright(:)
     logical  :: converged =.false.
+    logical  :: lnl, rnr, lnr, rnl 
 !debugging
 real(gp) :: fat(3,nat),etest
 
-    !s-overlap fingerprints:
-    nid     = nat
+    if(.not.connected)return
+    if(nsad>=nsadmax)then
+        call yaml_warning('(MHGPS) connection could not be &
+             established within <=nsadmax intermediate TS. &
+             nsadmax='//yaml_toa(nsadmax))
+        connected=.false.
+        return
+    endif
+    call yaml_comment('(MHGPS) Will try to connect TODO PUT &
+                        FILENAMES HERE')
 
-    fpsad   = f_malloc((/1.to.nid/),id='fpsad')
-    fpleft  = f_malloc((/1.to.nid/),id='fpleft')
-    fpright = f_malloc((/1.to.nid/),id='fpright')
 
+    !check if input structures are distinct 
+    if(equal(nid,ener1,ener2,fp1,fp2))then
+        call yaml_warning('(MHGPS)  connect: input minima are&
+                           identical. Will NOT attempt to find&
+                           an intermediate TS. recursion depth: '&
+                           //yaml_toa(nsad))
+        return
+    endif
+
+    call vcopy(3*nat,rxyz1(1,1),1,cobj%rxyz1(1,1), 1)
+    call vcopy(3*nat,rxyz2(1,1),1,cobj%rxyz2(1,1), 1)
     !rmsd alignment (optional in mhgps approach)
-    call superimpose(nat,rxyz1,rxyz2)
+    call superimpose(nat,cobj%rxyz1,cobj%rxyz2)
 
     !get input guess for transition state
-    call get_ts_guess(nat,alat,rxyz1,rxyz2,saddle,minmode)
+    nsad=nsad+1
+    nsad_local=nsad
+    call get_ts_guess(nat,alat,cobj%rxyz1,cobj%rxyz2,&
+          cobj%saddle(1,1,nsad),cobj%minmode(1,1,nsad))
 
     !compute saddle
-    call findsad(nat,alat,rcov,nbond,iconnect,&
-                 saddle,enersad,fsad,minmode,displ,ener_count,&
-                 rotforce,converged)
+    call findsad(nat,alat,rcov,nbond,iconnect,cobj%saddle(1,1,nsad),&
+                cobj%enersad(nsad),cobj%fsad(1,1,nsad),&
+                cobj%minmode(1,1,nsad),displ,ener_count,&
+                cobj%rotforce(1,1,nsad),converged)
 !for debugging:
-call energyandforces(nat,alat,saddle,fat,fnoise,etest)
-write(*,*)'energy check saddle: ',enersad-etest
-    if(.not.converged)stop 'STOP saddle not converged'
-    call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,saddle,&
-                     fpsad)
+call energyandforces(nat,alat,cobj%saddle(1,1,nsad),fat,fnoise,etest)
+write(*,*)'energy check saddle: ',cobj%enersad(nsad)-etest
+    if(.not.converged)then
+        nsad=nsad-1!in case we do'nt want to STOP
+        stop 'STOP saddle not converged'
+    endif
+
+    call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
+                    cobj%saddle(1,1,nsad),cobj%fpsad(1,nsad))
 
     !pushoff and minimize left and right
-    call pushoff(nat,saddle,minmode,leftmin,rightmin)
+    call pushoff(nat,cobj%saddle(1,1,nsad),cobj%minmode(1,1,nsad),&
+                 cobj%leftmin(1,1,nsad),cobj%rightmin(1,1,nsad))
 
-    call minimizer_sbfgs(imode,nat,alat,nbond,iconnect,leftmin,&
-                         fleft,fnoiseio,enerleft,ener_count,&
-                         converged)
+    call minimizer_sbfgs(imode,nat,alat,nbond,iconnect,&
+                        cobj%leftmin(1,1,nsad),cobj%fleft(1,1,nsad),&
+                        fnoise,cobj%enerleft(nsad),&
+                        ener_count,converged)
 !for debugging:
-call energyandforces(nat,alat,leftmin,fat,fnoise,etest)
-write(*,*)'energy check minimizer: ',enerleft-etest
+call energyandforces(nat,alat,cobj%leftmin(1,1,nsad),fat,fnoise,etest)
+write(*,*)'energy check minimizer: ',cobj%enerleft(nsad)-etest
 
-    call minimizer_sbfgs(imode,nat,alat,nbond,iconnect,righttmin,&
-                         fright,fnoiseio,enerright,ener_count,&
-                         converged)
+    call minimizer_sbfgs(imode,nat,alat,nbond,iconnect,&
+                        cobj%rightmin(1,1,nsad),cobj%fright(1,1,nsad)&
+                       ,fnoise,cobj%enerright(nsad),&
+                        ener_count,converged)
 !for debugging:
-call energyandforces(nat,alat,righttmin,fat,fnoise,etest)
-write(*,*)'energy check minimizer: ',enerright-etest
+call energyandforces(nat,alat,cobj%rightmin(1,1,nsad),fat,fnoise,&
+                    etest)
+write(*,*)'energy check minimizer: ',cobj%enerright(nsad)-etest
 
-    call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,leftmin&
-                     ,fpleft)
-    call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,rightmin&
-                     ,fpright)
+    call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
+                    cobj%leftmin(1,1,nsad),cobj%fpleft(1,nsad))
+    call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
+                    cobj%rightmin(1,1,nsad),cobj%fpright(1,nsad))
     !check if relaxed structures are identical with saddle itself
-    if(equal(nid,enersad,enerright,fpsad,fpright).or.&
-       equal(nid,enersad,enerleft,fpsad,fpleft)then
+    if(equal(nid,cobj%enersad(nsad),cobj%enerright(nsad),&
+       cobj%fpsad(1,nsad),cobj%fpright(1,nsad)).or.&
+       equal(nid,cobj%enersad(nsad),cobj%enerleft(nsad),&
+       cobj%fpsad(1,nsad),cobj%fpleft(1,nsad)))then
+        connected=.false.
+        nsad=nsad-1
         call yaml_warning('(MHGPS)  after relaxation from saddle &
                            point the left and/or right minimum are &
                            identical to the saddle point. Stopped &
                            connection attempt. Will proceed with &
                            next connection attempt.')
-        goto 9999
+        return
     endif
 
+    !is minimum, obtained by relaxation from left bar end identical to
+    !left input minimum?
+    lnl=equal(nid,ener1,cobj%enerleft(nsad),fp1,cobj%fpleft(1,nsad))
 
-    !is minimum, obtained by relaxation from left bar end identical to left
-    !input minimum?
-!    lnl=equal(nid,en_delta,fp_delta,epot1,leftminener(nsad_local),fp1,leftminfp(1,nsad_local),'min')
+    !is minimum obtained by relaxation from right bar end identical to
+    !right input minimum?
+    rnr=equal(nid,ener2,cobj%enerright(nsad),fp2,cobj%fpright(1,nsad))
 
-    !is minimum obtained by relaxation from right bar end identical to right
-    !input minimum?
-!    rnr=equal(nid,en_delta,fp_delta,epot2,rightminener(nsad_local),fp2,rightminfp(1,nsad_local),'min')
+    !is minimum obtained by relaxation from left bar end identical to 
+    !right input minimum?
+    lnr=equal(nid,ener2,cobj%enerleft(nsad),fp2,cobj%fpleft(1,nsad))
 
-    !is minimum obtained by relaxation from left bar end identical to right
-    !input minimum?
-!    lnr=equal(nid,en_delta,fp_delta,epot2,leftminener(nsad_local),fp2,leftminfp(1,nsad_local),'min')
+    !is minimum obtained by relaxation from right bar end identical to
+    !left input minimum?
+    rnl=equal(nid,ener1,cobj%enerright(nsad),fp1,cobj%fpright(1,nsad))
 
-    !is minimum obtained by relaxation from right bar end identical to left
-    !input minimum?
-!    rnl=equal(nid,en_delta,fp_delta,epot1,rightminener(nsad_local),fp1,rightminfp(1,nsad_local),'min')
-
-!    if((lnl .and. rnr) .or. (lnr .and. rnl))then!connection done
-!        goto 9999
-!    endif
+    if((lnl .and. rnr) .or. (lnr .and. rnl))then!connection done
+        connected=.true.
+        return
+    endif
 
 !    if(lnl .and. (.not. rnr))then!connect right input min with right relaxed barend
 !        call
 !connect(nat,alat,nid,bpPreset,rcov,xat,en_delta,fp_delta,en_delta_sp,fp_delta_sp,st,fmaxtol,fnrmtol,alphax,fire_dt_max,nsadmax&
 !            &,saddle,leftmin,rightmin,saddleener,leftminener,rightminener,saddlefp,leftminfp,rightminfp&
 !            &,nsad,rightmin(1,nsad_local),rxyz2,rightminener(nsad_local),epot2,rightminfp(1,nsad_local),fp2,connected)
-!        goto 9999
+!        return
 !    endif
 !
 !    if(rnr .and. (.not. lnl))then!connect left relaxed bar end with left input min
@@ -140,7 +264,7 @@ write(*,*)'energy check minimizer: ',enerright-etest
 !connect(nat,alat,nid,bpPreset,rcov,xat,en_delta,fp_delta,en_delta_sp,fp_delta_sp,st,fmaxtol,fnrmtol,alphax,fire_dt_max,nsadmax&
 !            &,saddle,leftmin,rightmin,saddleener,leftminener,rightminener,saddlefp,leftminfp,rightminfp&
 !            &,nsad,rxyz1,leftmin(1,nsad_local),epot1,leftminener(nsad_local),fp1,leftminfp(1,nsad_local),connected)
-!        goto 9999
+!        return
 !    endif
 !
 !    if(lnr .and. .not. rnl)then!connect right relaxed bar end with left input min
@@ -148,7 +272,7 @@ write(*,*)'energy check minimizer: ',enerright-etest
 !connect(nat,alat,nid,bpPreset,rcov,xat,en_delta,fp_delta,en_delta_sp,fp_delta_sp,st,fmaxtol,fnrmtol,alphax,fire_dt_max,nsadmax&
 !            &,saddle,leftmin,rightmin,saddleener,leftminener,rightminener,saddlefp,leftminfp,rightminfp&
 !            &,nsad,rxyz1,rightmin(1,nsad_local),epot1,rightminener(nsad_local),fp1,rightminfp(1,nsad_local),connected)
-!        goto 9999
+!        return
 !    endif
 !
 !    if(.not. lnr .and. rnl)then!connect left relaxed bar end with right input min
@@ -156,7 +280,7 @@ write(*,*)'energy check minimizer: ',enerright-etest
 !connect(nat,alat,nid,bpPreset,rcov,xat,en_delta,fp_delta,en_delta_sp,fp_delta_sp,st,fmaxtol,fnrmtol,alphax,fire_dt_max,nsadmax&
 !            &,saddle,leftmin,rightmin,saddleener,leftminener,rightminener,saddlefp,leftminfp,rightminfp&
 !            &,nsad,rxyz2,leftmin(1,nsad_local),epot2,leftminener(nsad_local),fp2,leftminfp(1,nsad_local),connected)
-!        goto 9999
+!        return
 !    endif
 !
 !
@@ -168,19 +292,14 @@ write(*,*)'energy check minimizer: ',enerright-etest
 !        call connect(nat,alat,nid,bpPreset,rcov,xat,en_delta,fp_delta,en_delta_sp,fp_delta_sp,st,fmaxtol,fnrmtol,alphax,fire_dt_max,nsadmax&
 !            &,saddle,leftmin,rightmin,saddleener,leftminener,rightminener,saddlefp,leftminfp,rightminfp&
 !            &,nsad,rightmin(1,nsad_local),rxyz2,rightminener(nsad_local),epot2,rightminfp(1,nsad_local),fp2,connected)
-!        goto 9999
+!        return
 !    endif
 
-    !should not happen:
-!    write(100,*)'ERROR: none of the checks in connect subroutine matched! STOP'
-!    write(100,*)'lnl, lnr, rnr, rnl:'
-!    write(100,*)lnl,lnr,rnr,rnl
-!    stop
+    !should and must not happen:
+    call yaml_warning('(MHGPS) Severe error in connect: none of &
+                  the checks inconnect subroutine matched! STOP') 
+    stop
 
-9999 continue
-    call f_free(fpsad)
-    call f_free(fpleft)
-    call f_free(fpright)
 end subroutine
 !=====================================================================
 subroutine pushoff(nat,saddle,minmode,left,right)

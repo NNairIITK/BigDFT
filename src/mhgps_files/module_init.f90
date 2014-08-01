@@ -24,6 +24,7 @@ contains
         open(u,file=filename)
             read(u,*)mhgps_verbosity
             read(u,*)saddle_connect, random_minmode_guess
+            read(u,*)nsadmax
             read(u,*)efmethod,external_mini
             read(u,*)en_delta,fp_delta
             read(u,*)saddle_biomode
@@ -73,6 +74,7 @@ contains
         open(u,file=filename)
             write(u,'(1x,i0.0,1x,a)')mhgps_verbosity,' #mhgps_verbosity'
             write(u,'(1x,L,1x,L,1x,a)')saddle_connect,random_minmode_guess, ' #connect, random_minmode_guess'
+            write(u,'(1x,i0.0,1x,a)')nsadmax,' #nsadmax'
             write(u,'(1x,a,1x,L,1x,a)')trim(adjustl(efmethod)),external_mini,' #efmethod, external minimizer'
             write(u,'(es10.3,1x,es10.3,1x,a)')en_delta,fp_delta,' #en_delta, fp_delta'
             write(u,'(1x,L,1x,a)')saddle_biomode,' #biomode'
