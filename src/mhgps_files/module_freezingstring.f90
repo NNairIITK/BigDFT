@@ -15,11 +15,14 @@ module module_freezingstring
 !this method simply calls grow_string
 !and then uses cubic splines to find the tangent at the highest energy node
 !=====================================================================
-subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
-    gammainv,perpnrmtol,trust,nstepsmax)!parameetrs in this line to be removed to global_variables
+subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess)
     use module_base
     use yaml_output
-    use module_global_variables, only: iproc, mhgps_verbosity
+    use module_global_variables, only: iproc, mhgps_verbosity,&
+                                       gammainv => ts_guess_gammainv,&
+                                       perpnrmtol => ts_guess_perpnrmtol,&
+                                       trust => ts_guess_trust,&
+                                       nstepsmax => ts_guess_nstepsmax
     use module_energyandforces
     implicit none
     !parameters
@@ -27,10 +30,6 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
     real(gp), intent(in) :: alat(3)
     real(gp), intent(in) :: rxyz1(3,nat),rxyz2(3,nat)
     real(gp), intent(out) :: tsguess(3,nat),minmodeguess(3,nat)
-real(gp), intent(in) :: gammainv
-real(gp), intent(in) :: perpnrmtol
-real(gp), intent(in) :: trust
-integer, intent(in) :: nstepsmax
     !internal
     integer :: finished
     integer :: i,j,iat
@@ -273,10 +272,11 @@ write(*,*)'basian'
 !            if(finished==1)string(1,2,nstring+1)=huge(1.0_gp)
             if(finished/=0)then
 if(i/=nstring)stop'DEBUGGING i/=nstring'
-!                call optim_cg(nat,alat,finished,step,gammainv,&
-!                    perpnrmtol_squared,trust_squared,nstepsmax,&
-!                    tangentleft,tangentright,string(1,1,i+1),&
-!                    string(1,2,i+1))
+               if(perpnrmtol>0)& 
+                call optim_cg(nat,alat,finished,step,gammainv,&
+                    perpnrmtol_squared,trust_squared,nstepsmax,&
+                    tangentleft,tangentright,string(1,1,i+1),&
+                    string(1,2,i+1))
                 nstring=nstring+1
             endif
         enddo
@@ -531,6 +531,7 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     !                 are meaningless
     use module_base
     use module_interpol
+    use module_global_variables, only: stepfrct => lst_interpol_stepfrct
     implicit none
     !parameters
     integer, intent(in)      :: nat
@@ -547,7 +548,7 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     integer, parameter  :: nimagesC=5 !setting nimagesC=nimages
                                       !should give similar implementation
                                       !to the freezing string publication
-    real(gp), parameter :: stepfrct=0.1_gp! freezing string step size
+!    real(gp), parameter :: stepfrct=0.1_gp! freezing string step size
     !real(gp), parameter :: stepfrct=0.05555555556_gp! freezing string step size
     !internal
     integer  :: i

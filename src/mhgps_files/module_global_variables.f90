@@ -53,6 +53,12 @@ module module_global_variables
                                                             !compared to no
                                                             !sharing (roughly
                                                             !10% for LJ75)
+    !ts guess parameters
+    real(gp) :: ts_guess_gammainv=1._gp
+    real(gp) :: ts_guess_perpnrmtol=1.e-3_gp
+    real(gp) :: ts_guess_trust=0.05_gp
+    integer  :: ts_guess_nstepsmax=5
+    real(gp) :: lst_interpol_stepfrct=0.1_gp
 
     !parameters for minimizers implemented in mhgps
     logical :: internal=.true. !unse internal or external optimizers?

@@ -38,3 +38,5 @@ module_minimizers.o : module_global_variables.o module_energyandforces.o ../modu
 module_io.o : module_global_variables.o ../modules/BigDFT_API.o
 module_freezingstring.o : module_energyandforces.o module_interpol.o module_global_variables.o ../modules/BigDFT_API.o
 module_interpol.o : module_global_variables.o ../modules/BigDFT_API.o
+module_connect.o: module_ls_rmsd.o module_saddle.o module_freezingstring.o module_minimizers.o ../modules/BigDFT_API.o
+module_ls_rmsd.o: ../modules/BigDFT_API.o

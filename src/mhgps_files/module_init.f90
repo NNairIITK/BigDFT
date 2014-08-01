@@ -27,6 +27,11 @@ contains
             read(u,*)efmethod,external_mini
             read(u,*)saddle_biomode
             if(saddle_biomode)imode=2
+            read(u,*) lst_interpol_stepfrct
+            read(u,*) ts_guess_gammainv
+            read(u,*) ts_guess_perpnrmtol
+            read(u,*) ts_guess_trust
+            read(u,*) ts_guess_nstepsmax
             read(u,*)saddle_nit_trans, saddle_nit_rot
             read(u,*)saddle_nhistx_trans, saddle_nhistx_rot
             read(u,*)saddle_fnrmtol
@@ -68,6 +73,11 @@ contains
             write(u,'(1x,L,1x,L,1x,a)')saddle_connect,random_minmode_guess, ' #connect, random_minmode_guess'
             write(u,'(1x,a,1x,a)')trim(adjustl(efmethod)),' #efmethod'
             write(u,'(1x,L,1x,a)')saddle_biomode,' #biomode'
+            write(u,'(1x,es10.3,1x,a)') lst_interpol_stepfrct,' #inward interpolation distance as fraction of initial distance'
+            write(u,'(1x,es10.3,1x,a)') ts_guess_gammainv,' #step size for perpedicular optimization in freezing string method'
+            write(u,'(1x,es10.3,1x,a)') ts_guess_perpnrmtol,' #convergence criterion perpedicular force in freezing string method (disable perpend. optim. by setting this value to a negative number)'
+            write(u,'(1x,es10.3,1x,a)') ts_guess_trust,' #trust radius freezing string method (maximum change of any coordinate'
+            write(u,'(1x,i0,1x,a)') ts_guess_nstepsmax,' #maximum number of steps in perpendicular optimization in freezing stringmethod'
             write(u,'(1x,i0,1x,i0,1x,a)')saddle_nit_trans, saddle_nit_rot,'  #nit_trans, not_rot'
             write(u,'(1x,i0,1x,i0,1x,a)')saddle_nhistx_trans, saddle_nhistx_rot,' #nhistx_trans, nhistx_rot'
             write(u,'(es10.3,1x,a)')saddle_fnrmtol,' #fnrm tolerence convergence criterion for saddle point'

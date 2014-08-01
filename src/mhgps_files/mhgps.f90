@@ -278,112 +278,112 @@ allocate(tsguess(3,atoms%astruct%nat),minmodeguess(3,atoms%astruct%nat),saddle(3
             call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
             call vcopy(3 * atoms%astruct%nat,atoms%astruct%rxyz(1,1),1,rxyz2(1,1), 1)
             call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
-!!allocate(eval(3*atoms%astruct%nat))
-!!call cal_hessian_fd(iproc,atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,hess)
-!!        call DSYEV('V','L',3*atoms%astruct%nat,hess,3*atoms%astruct%nat,eval,WORK,LWORK,INFO)
-!!        if (info.ne.0) stop 'DSYEV'
-!!        if(iproc==0)then
-!!        write(*,'(a,1x,es9.2,1x,es24.17)') '(hess) ---   App. eigenvalues in exact ------------- fnrm:',sqrt(sum(fxyz**2)),energy
-!!        do j=1,3*atoms%astruct%nat
-!!            write(*,*) '(hess) eval ',j,eval(j)
-!!        enddo
-!!        endif
-!!deallocate(eval)
-            isad=isad+1
-            write(isadc,'(i5.5)')isad
-            rotforce=0.0_gp
-!!!!            if(random_minmode_guess)then
-!!!!                do i=1,atoms%astruct%nat
-!!!!                    minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-!!!!                    minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-!!!!                    minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-!!!!                enddo
-!!!!                call write_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode',minmode)
-!!!!            else
-!!!!                call read_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode',minmode)
-!!!!            endif
-call get_ts_guess(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,rxyz2,saddle,minmode,&
-    0.5_gp,1.e-4_gp,1.1_gp,5)
-!minmode = minmode/dnrm2(3*atoms%astruct%nat,minmode(1,1),1)
-!saddle=rxyz
-            ec=0.0_gp
-        
-           call findsad(imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
-           saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
-           saddle_trustr,saddle,energy,fxyz,minmode,saddle_fnrmtol,displ,ec,&
-           converged,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,&
-           saddle_cutoffratio,saddle_alpha_rot_stretch0,rotforce,saddle_minoverlap0)
-           if (iproc == 0) then
-               call write_atomic_file(currDir//'/sad'//isadc//'_final',&
-               energy,saddle(1,1),ixyz_int,&
-               atoms,comment,forces=minmode)
-!               atoms,comment,forces=fxyz(1,1))
-               call write_mode(atoms%astruct%nat,currDir//'/sad'//isadc//'_mode_final',minmode,rotforce)
-           endif
-!!ec=1.0_gp
-!!call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
-!!!call minimizer_sbfgs(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy,ec,converged)
-!!call minimizer_sbfgs(imode,atoms%astruct%nat,atoms%astruct%cell_dim,nbond,iconnect,rxyz,fxyz,fnoise,energy,ec,converged)
-!!if(.not.converged)stop'minimizer_sbfgs not converged'
-!!call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
-!!write(*,'(a,1x,i0,1x,es9.2,1x,i0)')'count,fnrm',int(ec),sqrt(sum(fxyz**2))
-!!           if (iproc == 0) then
-!!               call write_atomic_file(currDir//'/'//currFile//'_final',&
-!!               energy,rxyz(1,1),ixyz_int,&
-!!               atoms,comment,forces=fxyz(1,1))
-!!           endif
-
-!step=-1._gp
-!!call lst_interpol(atoms%astruct%nat,rxyz,rxyz2,step,interleft,interright,&
-!!                        tangentleft,tangentright,finished)
-!call lin_interpol(atoms%astruct%nat,rxyz,rxyz2,step,interleft,interright,&
-!                        tangentleft,finished)
-!
-!           call write_atomic_file('pospa',&
-!                1.d0,interleft(1,1),ixyz_int,&
-!                atoms,'')
-!!           call write_atomic_file('pospb',&
-!                1.d0,interright(1,1),ixyz_int,&
-!                atoms,'')
-!!!!allocate(string(3*atoms%astruct%nat,2,nstringmax))
-!!!!do i=1,atoms%astruct%nat
-!!!!string(3*i-2,1,1)=rxyz(1,i)
-!!!!string(3*i-1,1,1)=rxyz(2,i)
-!!!!string(3*i,1,1)=rxyz(3,i)
-!!!!string(3*i-2,2,1)=rxyz2(1,i)
-!!!!string(3*i-1,2,1)=rxyz2(2,i)
-!!!!string(3*i,2,1)=rxyz2(3,i)
-!!!!enddo
-!!!!call grow_string(atoms%astruct%nat,atoms%astruct%cell_dim,0.5_gp,1.e-4_gp,0.1_gp,&
-!!!!                       5,nstringmax,nstring,string,finished)
-!!!!idmy=0
-!!!!if(finished==1)idmy=1
-!!!!if(finished>1.or.finished<0)stop'finished flag wrong'
-!!!!counter=0
-!!!!do i=1,nstring
-!!!!counter=counter+1
-!!!!write(fnc,'(i4.4)')counter
-!!!!call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,string(1,1,i),fxyz,fnoise,energy)
-!!!!           call write_atomic_file('pospb'//trim(adjustl(fnc)),&
-!!!!                energy,string(1,1,i),ixyz_int,&
-!!!!                atoms,'')
-!!!!
-!!!!enddo
-!!!!do i=nstring-idmy,1,-1
-!!!!counter=counter+1
-!!!!write(fnc,'(i4.4)')counter
-!!!!call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,string(1,2,i),fxyz,fnoise,energy)
-!!!!           call write_atomic_file('pospb'//trim(adjustl(fnc)),&
-!!!!                energy,string(1,2,i),ixyz_int,&
-!!!!                atoms,'')
-!!!!
-!!!!enddo
-!!!!write(*,*)'ef_counter',ef_counter
-!!!!stop
-!!!!!!!!!!!!!!!write(*,*),'HIER'
-!!!!!!!!!!!!!!!call get_ts_guess(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,rxyz2,tsguess,minmodeguess,&
-!!!!!!!!!!!!!!!    0.5_gp,1.e-4_gp,0.1_gp,5)
-
+!!!!!!!!!!allocate(eval(3*atoms%astruct%nat))
+!!!!!!!!!!call cal_hessian_fd(iproc,atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,hess)
+!!!!!!!!!!        call DSYEV('V','L',3*atoms%astruct%nat,hess,3*atoms%astruct%nat,eval,WORK,LWORK,INFO)
+!!!!!!!!!!        if (info.ne.0) stop 'DSYEV'
+!!!!!!!!!!        if(iproc==0)then
+!!!!!!!!!!        write(*,'(a,1x,es9.2,1x,es24.17)') '(hess) ---   App. eigenvalues in exact ------------- fnrm:',sqrt(sum(fxyz**2)),energy
+!!!!!!!!!!        do j=1,3*atoms%astruct%nat
+!!!!!!!!!!            write(*,*) '(hess) eval ',j,eval(j)
+!!!!!!!!!!        enddo
+!!!!!!!!!!        endif
+!!!!!!!!!!deallocate(eval)
+!!!!!!!!            isad=isad+1
+!!!!!!!!            write(isadc,'(i5.5)')isad
+!!!!!!!!            rotforce=0.0_gp
+!!!!!!!!!!!!            if(random_minmode_guess)then
+!!!!!!!!!!!!                do i=1,atoms%astruct%nat
+!!!!!!!!!!!!                    minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+!!!!!!!!!!!!                    minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+!!!!!!!!!!!!                    minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
+!!!!!!!!!!!!                enddo
+!!!!!!!!!!!!                call write_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode',minmode)
+!!!!!!!!!!!!            else
+!!!!!!!!!!!!                call read_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode',minmode)
+!!!!!!!!!!!!            endif
+!!!!!!!!call get_ts_guess(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,rxyz2,saddle,minmode,&
+!!!!!!!!    0.5_gp,1.e-4_gp,1.1_gp,5)
+!!!!!!!!!minmode = minmode/dnrm2(3*atoms%astruct%nat,minmode(1,1),1)
+!!!!!!!!!saddle=rxyz
+!!!!!!!!            ec=0.0_gp
+!!!!!!!!        
+!!!!!!!!           call findsad(imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
+!!!!!!!!           saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
+!!!!!!!!           saddle_trustr,saddle,energy,fxyz,minmode,saddle_fnrmtol,displ,ec,&
+!!!!!!!!           converged,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,&
+!!!!!!!!           saddle_cutoffratio,saddle_alpha_rot_stretch0,rotforce,saddle_minoverlap0)
+!!!!!!!!           if (iproc == 0) then
+!!!!!!!!               call write_atomic_file(currDir//'/sad'//isadc//'_final',&
+!!!!!!!!               energy,saddle(1,1),ixyz_int,&
+!!!!!!!!               atoms,comment,forces=minmode)
+!!!!!!!!!               atoms,comment,forces=fxyz(1,1))
+!!!!!!!!               call write_mode(atoms%astruct%nat,currDir//'/sad'//isadc//'_mode_final',minmode,rotforce)
+!!!!!!!!           endif
+!!!!!!!!!!ec=1.0_gp
+!!!!!!!!!!call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
+!!!!!!!!!!!call minimizer_sbfgs(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy,ec,converged)
+!!!!!!!!!!call minimizer_sbfgs(imode,atoms%astruct%nat,atoms%astruct%cell_dim,nbond,iconnect,rxyz,fxyz,fnoise,energy,ec,converged)
+!!!!!!!!!!if(.not.converged)stop'minimizer_sbfgs not converged'
+!!!!!!!!!!call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
+!!!!!!!!!!write(*,'(a,1x,i0,1x,es9.2,1x,i0)')'count,fnrm',int(ec),sqrt(sum(fxyz**2))
+!!!!!!!!!!           if (iproc == 0) then
+!!!!!!!!!!               call write_atomic_file(currDir//'/'//currFile//'_final',&
+!!!!!!!!!!               energy,rxyz(1,1),ixyz_int,&
+!!!!!!!!!!               atoms,comment,forces=fxyz(1,1))
+!!!!!!!!!!           endif
+!!!!!!!!
+!!!!!!!!!step=-1._gp
+!!!!!!!!!!call lst_interpol(atoms%astruct%nat,rxyz,rxyz2,step,interleft,interright,&
+!!!!!!!!!!                        tangentleft,tangentright,finished)
+!!!!!!!!!call lin_interpol(atoms%astruct%nat,rxyz,rxyz2,step,interleft,interright,&
+!!!!!!!!!                        tangentleft,finished)
+!!!!!!!!!
+!!!!!!!!!           call write_atomic_file('pospa',&
+!!!!!!!!!                1.d0,interleft(1,1),ixyz_int,&
+!!!!!!!!!                atoms,'')
+!!!!!!!!!!           call write_atomic_file('pospb',&
+!!!!!!!!!                1.d0,interright(1,1),ixyz_int,&
+!!!!!!!!!                atoms,'')
+!!!!!!!!!!!!allocate(string(3*atoms%astruct%nat,2,nstringmax))
+!!!!!!!!!!!!do i=1,atoms%astruct%nat
+!!!!!!!!!!!!string(3*i-2,1,1)=rxyz(1,i)
+!!!!!!!!!!!!string(3*i-1,1,1)=rxyz(2,i)
+!!!!!!!!!!!!string(3*i,1,1)=rxyz(3,i)
+!!!!!!!!!!!!string(3*i-2,2,1)=rxyz2(1,i)
+!!!!!!!!!!!!string(3*i-1,2,1)=rxyz2(2,i)
+!!!!!!!!!!!!string(3*i,2,1)=rxyz2(3,i)
+!!!!!!!!!!!!enddo
+!!!!!!!!!!!!call grow_string(atoms%astruct%nat,atoms%astruct%cell_dim,0.5_gp,1.e-4_gp,0.1_gp,&
+!!!!!!!!!!!!                       5,nstringmax,nstring,string,finished)
+!!!!!!!!!!!!idmy=0
+!!!!!!!!!!!!if(finished==1)idmy=1
+!!!!!!!!!!!!if(finished>1.or.finished<0)stop'finished flag wrong'
+!!!!!!!!!!!!counter=0
+!!!!!!!!!!!!do i=1,nstring
+!!!!!!!!!!!!counter=counter+1
+!!!!!!!!!!!!write(fnc,'(i4.4)')counter
+!!!!!!!!!!!!call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,string(1,1,i),fxyz,fnoise,energy)
+!!!!!!!!!!!!           call write_atomic_file('pospb'//trim(adjustl(fnc)),&
+!!!!!!!!!!!!                energy,string(1,1,i),ixyz_int,&
+!!!!!!!!!!!!                atoms,'')
+!!!!!!!!!!!!
+!!!!!!!!!!!!enddo
+!!!!!!!!!!!!do i=nstring-idmy,1,-1
+!!!!!!!!!!!!counter=counter+1
+!!!!!!!!!!!!write(fnc,'(i4.4)')counter
+!!!!!!!!!!!!call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,string(1,2,i),fxyz,fnoise,energy)
+!!!!!!!!!!!!           call write_atomic_file('pospb'//trim(adjustl(fnc)),&
+!!!!!!!!!!!!                energy,string(1,2,i),ixyz_int,&
+!!!!!!!!!!!!                atoms,'')
+!!!!!!!!!!!!
+!!!!!!!!!!!!enddo
+!!!!!!!!!!!!write(*,*)'ef_counter',ef_counter
+!!!!!!!!!!!!stop
+!!!!!!!!!!!!!!!!!!!!!!!write(*,*),'HIER'
+!!!!!!!!!!!!!!!!!!!!!!!call get_ts_guess(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,rxyz2,tsguess,minmodeguess,&
+!!!!!!!!!!!!!!!!!!!!!!!    0.5_gp,1.e-4_gp,0.1_gp,5)
+!!!!!!!!
         enddo
     enddo
 

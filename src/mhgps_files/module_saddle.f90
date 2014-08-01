@@ -8,11 +8,9 @@ module module_saddle
 
 contains
 
-subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit_trans,&
-    nit_rot,nhistx_trans,nhistx_rot,tolc,tolf,tightenfac,rmsdispl0,&
-    trustr,wpos,etot,fout,minmode,fnrmtol,displ,ener_count,&
-    converged,nbond,iconnect,alpha_stretch0,recompIfCurvPos,&
-    maxcurvrise,cutoffratio,alpha_rot_stretch0,rotforce,minoverlap0)
+subroutine findsad(nat,alat,rcov,nbond,iconnect,&
+                  wpos,etot,fout,minmode,displ,ener_count,&
+                  rotforce,converged)
     !imode=1 for clusters
     !imode=2 for biomolecules
     use module_base
@@ -22,7 +20,26 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
     use module_global_variables, only: inputPsiId, iproc, ixyz_int, atoms, mhgps_verbosity,&
                                        currDir, isadc, ndim_rot, nhist_rot, alpha_rot,&
                                        alpha_stretch_rot,saddle_alpha_stretch0,work,lwork,&
-                                       saddle_steepthresh_trans ,&
+                                       saddle_steepthresh_trans ,imode,&
+                                       recompIfCurvPos => saddle_recompIfCurvPos,&
+                                       minoverlap0   => saddle_minoverlap0,&
+                                       tightenfac    => saddle_tightenfac,&
+                                       maxcurvrise   => saddle_maxcurvrise,&
+                                       cutoffratio   => saddle_cutoffratio,&
+                                       fnrmtol       => saddle_fnrmtol,&
+                                       rmsdispl0     => saddle_rmsdispl0,&
+                                       trustr        => saddle_trustr,&
+                                       tolc          => saddle_tolc,&
+                                       tolf          => saddle_tolf,&
+                                       nit_trans     => saddle_nit_trans,&
+                                       nit_rot       => saddle_nit_rot,&
+                                       nhistx_trans  => saddle_nhistx_trans,&
+                                       nhistx_rot    => saddle_nhistx_rot,&
+                                       alpha0_trans  => saddle_alpha0_trans,&
+                                       alpha0_rot    => saddle_alpha0_rot,&
+                                       alpha_rot_stretch0    => saddle_alpha_rot_stretch0,&
+                                       alpha_stretch0    => saddle_alpha_stretch0,&
+                                       curvforcediff => saddle_curvgraddiff,&
                                        rxyz          => rxyz_trans,&
                                        rxyzraw       => rxyzraw_trans,&
                                        fxyz          => fxyz_trans,&
@@ -41,39 +58,19 @@ subroutine findsad(imode,nat,alat,rcov,alpha0_trans,alpha0_rot,curvforcediff,nit
  
     implicit none
     !parameters    
-    integer, intent(in)       :: imode
     integer, intent(in)       :: nat
     real(gp), intent(in)      :: alat(3)
     real(gp), intent(in)      :: rcov(nat)
-    real(gp), intent(in)      :: alpha0_trans
-    real(gp), intent(in)      :: alpha0_rot
-    real(gp), intent(in)      :: curvforcediff
-    integer, intent(in)       :: nit_trans
-    integer, intent(in)       :: nit_rot
-    integer, intent(in)       :: nhistx_trans
-    integer, intent(in)       :: nhistx_rot
-    real(gp), intent(in)      :: tolc
-    real(gp), intent(in)      :: tolf
-    real(gp), intent(in)      :: tightenfac
-    real(gp), intent(in)      :: rmsdispl0
-    real(gp), intent(in)      :: trustr
     real(gp), intent(inout)   :: wpos(3,nat)
     real(gp), intent(out)     :: etot
     real(gp), intent(out)     :: fout(3,nat)
     real(gp), intent(inout)   :: minmode(3,nat)
-    real(gp), intent(in)      :: fnrmtol
     real(gp), intent(inout)   :: displ
     real(gp), intent(inout)   :: ener_count
     logical, intent(out)      :: converged
     integer, intent(in)       :: nbond
     integer, intent(in)       :: iconnect(2,nbond)
-    real(gp), intent(in)      :: alpha_stretch0
-    real(gp), intent(in)      :: alpha_rot_stretch0
-    integer, intent(in)       :: recompIfCurvPos
-    real(gp), intent(in)      :: maxcurvrise
-    real(gp), intent(in)      :: cutoffratio
     real(gp), intent(in)      :: rotforce(3,nat)
-    real(gp), intent(in)      :: minoverlap0
     !internal
     real(gp), allocatable, dimension(:,:)   :: dds
     real(gp), allocatable, dimension(:,:)   :: dd0
