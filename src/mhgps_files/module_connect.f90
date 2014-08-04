@@ -251,54 +251,61 @@ write(*,*)'energy check minimizer: ',cobj%enerright(nsad)-etest
         return
     endif
 
-!    if(lnl .and. (.not. rnr))then!connect right input min with right relaxed barend
-!        call
-!connect(nat,alat,nid,bpPreset,rcov,xat,en_delta,fp_delta,en_delta_sp,fp_delta_sp,st,fmaxtol,fnrmtol,alphax,fire_dt_max,nsadmax&
-!            &,saddle,leftmin,rightmin,saddleener,leftminener,rightminener,saddlefp,leftminfp,rightminfp&
-!            &,nsad,rightmin(1,nsad_local),rxyz2,rightminener(nsad_local),epot2,rightminfp(1,nsad_local),fp2,connected)
-!        return
-!    endif
-!
-!    if(rnr .and. (.not. lnl))then!connect left relaxed bar end with left input min
-!        call
-!connect(nat,alat,nid,bpPreset,rcov,xat,en_delta,fp_delta,en_delta_sp,fp_delta_sp,st,fmaxtol,fnrmtol,alphax,fire_dt_max,nsadmax&
-!            &,saddle,leftmin,rightmin,saddleener,leftminener,rightminener,saddlefp,leftminfp,rightminfp&
-!            &,nsad,rxyz1,leftmin(1,nsad_local),epot1,leftminener(nsad_local),fp1,leftminfp(1,nsad_local),connected)
-!        return
-!    endif
-!
-!    if(lnr .and. .not. rnl)then!connect right relaxed bar end with left input min
-!        call
-!connect(nat,alat,nid,bpPreset,rcov,xat,en_delta,fp_delta,en_delta_sp,fp_delta_sp,st,fmaxtol,fnrmtol,alphax,fire_dt_max,nsadmax&
-!            &,saddle,leftmin,rightmin,saddleener,leftminener,rightminener,saddlefp,leftminfp,rightminfp&
-!            &,nsad,rxyz1,rightmin(1,nsad_local),epot1,rightminener(nsad_local),fp1,rightminfp(1,nsad_local),connected)
-!        return
-!    endif
-!
-!    if(.not. lnr .and. rnl)then!connect left relaxed bar end with right input min
-!        call
-!connect(nat,alat,nid,bpPreset,rcov,xat,en_delta,fp_delta,en_delta_sp,fp_delta_sp,st,fmaxtol,fnrmtol,alphax,fire_dt_max,nsadmax&
-!            &,saddle,leftmin,rightmin,saddleener,leftminener,rightminener,saddlefp,leftminfp,rightminfp&
-!            &,nsad,rxyz2,leftmin(1,nsad_local),epot2,leftminener(nsad_local),fp2,leftminfp(1,nsad_local),connected)
-!        return
-!    endif
-!
-!
-!    if((.not. lnl) .and. (.not. rnr))then!connect left input min with left relaxed bar end  and right input min with right relaxed bar end
-!        call
-!connect(nat,alat,nid,bpPreset,rcov,xat,en_delta,fp_delta,en_delta_sp,fp_delta_sp,st,fmaxtol,fnrmtol,alphax,fire_dt_max,nsadmax&
-!            &,saddle,leftmin,rightmin,saddleener,leftminener,rightminener,saddlefp,leftminfp,rightminfp&
-!            &,nsad,rxyz1,leftmin(1,nsad_local),epot1,leftminener(nsad_local),fp1,leftminfp(1,nsad_local),connected)
-!        call connect(nat,alat,nid,bpPreset,rcov,xat,en_delta,fp_delta,en_delta_sp,fp_delta_sp,st,fmaxtol,fnrmtol,alphax,fire_dt_max,nsadmax&
-!            &,saddle,leftmin,rightmin,saddleener,leftminener,rightminener,saddlefp,leftminfp,rightminfp&
-!            &,nsad,rightmin(1,nsad_local),rxyz2,rightminener(nsad_local),epot2,rightminfp(1,nsad_local),fp2,connected)
-!        return
-!    endif
+    if(lnl .and. (.not. rnr))then
+        !connect right input min with right relaxed bar-end
+        call connect_recursively(nat,nid,alat,rcov,nbond,&
+                     iconnect,cobj%rightmin(1,1,nsad_loc),rxyz2,&
+                     cobj%enerright(nsad_loc),ener2,&
+                     cobj%fpright(1,nsad),fp2,nsad,cobj,connected)
+        return
+    endif
+
+    if(rnr .and. (.not. lnl))then
+        !connect left relaxed bar end with left input min
+        call connect_recursively(nat,nid,alat,rcov,nbond,&
+                     iconnect,rxyz1,cobj%leftmin(1,1,nsad_loc),&
+                     ener1,cobj%enerleft(nsad_loc),&
+                     fp1,cobj%fpleft(1,nsad),nsad,cobj,connected)
+        return
+    endif
+
+    if(lnr .and. (.not. rnl))then
+        !connect right relaxed bar end with left input min
+        call connect_recursively(nat,nid,alat,rcov,nbond,&
+                     iconnect,rxyz1,cobj%rightmin(1,1,nsad_loc),&
+                     ener1,cobj%enerright(nsad_loc),&
+                     fp1,cobj%fpright(1,nsad),nsad,cobj,connected)
+        return
+    endif
+
+    if(.not. lnr .and. rnl)then
+        !connect left relaxed bar end with right input min
+        call connect_recursively(nat,nid,alat,rcov,nbond,&
+                     iconnect,rxyz2,cobj%leftmin(1,1,nsad_loc),&
+                     ener2,cobj%enerleft(nsad_loc),&
+                     fp2,cobj%fpleft(1,nsad),nsad,cobj,connected)
+        return
+    endif
+
+    if((.not. lnl) .and. (.not. rnr))then
+        !connect left input min with left relaxed bar end  and right
+        !input min with right relaxed bar end
+        call connect_recursively(nat,nid,alat,rcov,nbond,&
+                     iconnect,rxyz1,cobj%leftmin(1,1,nsad_loc),&
+                     ener1,cobj%enerleft(nsad_loc),&
+                     fp1,cobj%fpleft(1,nsad),nsad,cobj,connected)
+        call connect_recursively(nat,nid,alat,rcov,nbond,&
+                     iconnect,cobj%rightmin(1,1,nsad_loc),rxyz2,&
+                     cobj%enerright(nsad_loc),ener2,&
+                     cobj%fpright(1,nsad),fp2,nsad,cobj,connected)
+        return
+    endif
 
     !should and must not happen:
     call yaml_warning('(MHGPS) Severe error in connect: none of &
                   the checks inconnect subroutine matched! STOP') 
-    stop
+    stop '(MHGPS) Severe error in connect: none of &
+                  the checks inconnect subroutine matched! STOP'
 
 end subroutine
 !=====================================================================

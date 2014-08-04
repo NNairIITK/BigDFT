@@ -22,6 +22,7 @@ program mhgps
     use module_minimizers
     use module_io
     use module_freezingstring
+    use module_connect
     implicit none
     integer :: nstart
     integer :: bigdft_get_number_of_atoms,bigdft_get_number_of_orbitals

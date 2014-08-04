@@ -162,8 +162,8 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    scpr = f_malloc(nhistx,id='scpr')
    rcov     = f_malloc((/ 1.to.runObj%atoms%astruct%nat/),id='rcov')
    iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
-   call give_rcov_sbfgs(iproc,runObj%atoms,runObj%atoms%astruct%nat,rcov)
    if(runObj%inputs%biomode)then
+        call give_rcov_sbfgs(iproc,runObj%atoms,runObj%atoms%astruct%nat,rcov)
         call findbonds('(SBFGS)',iproc,10,runObj%atoms%astruct%nat,&
              rcov,runObj%atoms%astruct%rxyz,nbond,iconnect)
    endif 
