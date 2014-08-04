@@ -593,23 +593,24 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
  
   ! Count the number of basis functions.
   norbsPerAtom = f_malloc(astruct%nat,id='norbsPerAtom')
-  norb=0
+  norbu=0
   nlr=0
   do iat=1,astruct%nat
       ityp=astruct%iatype(iat)
       norbsPerAtom(iat)=input%lin%norbsPerType(ityp)
-      norb=norb+input%lin%norbsPerType(ityp)
+      norbu=norbu+input%lin%norbsPerType(ityp)
       nlr=nlr+input%lin%norbsPerType(ityp)
   end do
 
-  ! Distribute the basis functions among the processors.
-  norbu=norb
-  norbd=0
-!!$  call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
-!!$       input%nkpt, input%kpt, input%wkpt, lorbs)
-!!$  call repartitionOrbitals(iproc, nproc, lorbs%norb, lorbs%norb_par,&
-!!$       lorbs%norbp, lorbs%isorb_par, lorbs%isorb, lorbs%onWhichMPI)
+  ! For spin polarized systems, use twice the number of basis functions (i.e. norbd=norbu)
+  if (input%nspin==1) then
+      norbd=0
+  else
+      norbd=norbu
+  end if
+  norb=norbu+norbd
  
+  ! Distribute the basis functions among the processors.
   call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
        input%gen_nkpt, input%gen_kpt, input%gen_wkpt, lorbs,.true.) !simple repartition
 
