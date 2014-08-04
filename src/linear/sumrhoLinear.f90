@@ -173,7 +173,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
   use module_base
   use module_types
   use yaml_output
-  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
   use sparsematrix, only: compress_matrix
   implicit none
 
@@ -229,7 +229,8 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
       call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
       call timing(iproc,'waitAllgatKern','OF')
 
-      denskern_%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern_%matrix')
+      !denskern_%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern_%matrix')
+      denskern_%matrix=sparsematrix_malloc_ptr(denskern,iaction=DENSE_FULL,id='denskern_%matrix')
 
       if (nproc > 1) then
          call timing(iproc,'commun_kernel','ON') !lr408t
@@ -258,7 +259,8 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
       if (iproc==0) call yaml_map('communication strategy kernel','ALLREDUCE')
       call timing(iproc,'calc_kernel','ON') !lr408t
       !!if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
-      denskern_%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern_%matrix_compr')
+      !denskern_%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern_%matrix_compr')
+      denskern_%matrix=sparsematrix_malloc_ptr(denskern,iaction=DENSE_FULL,id='denskern_%matrix_compr')
       if(orbs%norbp>0) then
           fcoeff=f_malloc((/orbs_tmb%norb,orbs%norbp/), id='fcoeff')
           !decide wether we calculate the density kernel or just transformation matrix

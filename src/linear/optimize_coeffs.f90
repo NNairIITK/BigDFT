@@ -342,7 +342,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   use constrained_dft
   use yaml_output
   use sparsematrix_base, only: sparse_matrix, matrices, sparse_matrix_null, deallocate_sparse_matrix, &
-                               sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
+                               sparsematrix_malloc_ptr, DENSE_FULL, SPARSE_FULL, assignment(=), &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: uncompress_matrix
   implicit none
@@ -373,7 +373,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   weight_matrix=sparse_matrix_null()
   weight_matrix_=matrices_null()
   call sparse_copy_pattern(tmb%linmat%m, weight_matrix, iproc, subname)
-  weight_matrix_%matrix_compr=f_malloc_ptr(weight_matrix%nvctr,id='weight_matrix%matrix_compr')
+  !weight_matrix_%matrix_compr=f_malloc_ptr(weight_matrix%nvctr,id='weight_matrix%matrix_compr')
+  weight_matrix_%matrix_compr=sparsematrix_malloc_ptr(weight_matrix,iaction=SPARSE_FULL,id='weight_matrix%matrix_compr')
 
  inv_ovrlp = matrices_null()
  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp)

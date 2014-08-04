@@ -200,7 +200,7 @@ module module_interfaces
          logical, intent(out) :: lcs
       END SUBROUTINE check_closed_shell
 
-      subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs,simple,basedist)
+      subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs,simple,basedist,basedistu,basedistd)
         use module_defs, only: gp
          use module_types
          implicit none
@@ -211,6 +211,8 @@ module module_interfaces
          real(gp), dimension(nkpt), intent(in) :: wkpt
          real(gp), dimension(3,nkpt), intent(in) :: kpt
          integer, dimension(0:nproc-1), intent(in), optional :: basedist
+         integer, dimension(0:nproc-1), intent(in), optional :: basedistu
+         integer, dimension(0:nproc-1), intent(in), optional :: basedistd
       END SUBROUTINE orbitals_descriptors
 
      subroutine orbitals_descriptors_forLinear(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs)
