@@ -115,7 +115,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     logical  :: fixfragmented
     logical  :: subspaceSucc
     character(len=9)   :: fn9
-    character(len=60)  :: comment
+    character(len=300)  :: comment
     character(len=100) :: filename
 !!real(gp) :: pos(3,nat),hess(3*nat,3*nat),evalh(3*nat)
 !!integer :: info
@@ -351,7 +351,9 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
         if (iproc == 0 .and. mhgps_verbosity >=4) then
            fc=fc+1
            write(fn9,'(i9.9)') fc
-           write(comment,'(a,1pe10.3,5x1pe10.3)')'MHGPS:fnrm, fmax = ',fnrm,fmax
+           write(comment,'(a,1pe10.3,5x1pe10.3)')&
+           'ATTENTION! Forces below are no forces&
+           but tangents to the guessed reaction path| fnrm, fmax = ',fnrm,fmax
            call write_atomic_file(currDir//'/sad'//isadc//'_posout_'//fn9,&
                 etotp,rxyz(1,1,nhist),ixyz_int,&
                 atoms,trim(comment),forces=minmode)

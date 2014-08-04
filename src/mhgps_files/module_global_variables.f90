@@ -23,8 +23,8 @@ module module_global_variables
     character(len=5) :: input_dir           = "input"
 
     !input parameters for sbfgs saddle_search
+    character(len=20):: operation_mode             = 'connect'
     logical          :: saddle_biomode             = .false.
-    logical          :: saddle_connect             = .false.
     logical          :: random_minmode_guess       = .true.
     integer          :: imode                      = 1
     integer          :: saddle_nit_trans           = 5000

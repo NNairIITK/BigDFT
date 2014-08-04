@@ -134,7 +134,7 @@ use module_energyandforces
     type(connect_object), intent(inout) :: cobj
     logical, intent(inout)    :: connected
     !internal
-    integer  :: nsad_local
+    integer  :: nsad_loc
     real(gp) :: displ=0._gp,ener_count=0._gp
     real(gp) :: fnoise
     logical  :: converged =.false.
@@ -170,7 +170,7 @@ real(gp) :: fat(3,nat),etest
 
     !get input guess for transition state
     nsad=nsad+1
-    nsad_local=nsad
+    nsad_loc=nsad
     call get_ts_guess(nat,alat,cobj%rxyz1,cobj%rxyz2,&
           cobj%saddle(1,1,nsad),cobj%minmode(1,1,nsad))
 

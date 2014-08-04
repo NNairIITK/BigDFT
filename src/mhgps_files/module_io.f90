@@ -6,7 +6,8 @@ contains
 subroutine read_mode(nat,filename,minmode)
     use module_base
     use module_types
-    use module_atoms, only: atomic_structure,deallocate_atomic_structure,&
+    use module_atoms, only: atomic_structure,&
+                            deallocate_atomic_structure,&
                             read_atomic_file=>set_astruct_from_file
     use module_global_variables, only: iproc
     implicit none
@@ -26,7 +27,7 @@ subroutine read_mode(nat,filename,minmode)
        .and. trim(astruct%units) /= 'bohr'&
        .and. trim(astruct%units) /= 'bohrd0') then
         stop'(MHGPS) severe error &
-               units of modefile must be atomic'
+               units of mode-file must be atomic'
     endif
 
     call vcopy(3 * astruct%nat,astruct%rxyz(1,1),1,minmode(1,1), 1)

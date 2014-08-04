@@ -23,7 +23,7 @@ contains
         endif
         open(u,file=filename)
             read(u,*)mhgps_verbosity
-            read(u,*)saddle_connect, random_minmode_guess
+            read(u,*)operation_mode, random_minmode_guess
             read(u,*)nsadmax
             read(u,*)efmethod,external_mini
             read(u,*)en_delta,fp_delta
@@ -73,7 +73,7 @@ contains
         character(17), parameter :: filename='mhgps.inp_default'
         open(u,file=filename)
             write(u,'(1x,i0.0,1x,a)')mhgps_verbosity,' #mhgps_verbosity'
-            write(u,'(1x,L,1x,L,1x,a)')saddle_connect,random_minmode_guess, ' #connect, random_minmode_guess'
+            write(u,'(1x,L,1x,L,1x,a)')operation_mode,random_minmode_guess, ' #mode, random_minmode_guess'
             write(u,'(1x,i0.0,1x,a)')nsadmax,' #nsadmax'
             write(u,'(1x,a,1x,L,1x,a)')trim(adjustl(efmethod)),external_mini,' #efmethod, external minimizer'
             write(u,'(es10.3,1x,es10.3,1x,a)')en_delta,fp_delta,' #en_delta, fp_delta'
@@ -107,7 +107,7 @@ contains
         use yaml_output
         call yaml_comment('(MHGPS) Input Parameters',hfill='-')
         call yaml_map('(MHGPS) mhgps_verbosity',mhgps_verbosity)
-        call yaml_map('(MHGPS) saddle_connect',saddle_connect)
+        call yaml_map('(MHGPS) operation_mode',operation_mode)
         call yaml_map('(MHGPS) random_minmode_guess',random_minmode_guess)
         call yaml_map('(MHGPS) Energy and forces method',trim(adjustl(efmethod)))
         call yaml_map('(MHGPS) Biomolecule mode',saddle_biomode)

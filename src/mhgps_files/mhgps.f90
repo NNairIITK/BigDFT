@@ -10,6 +10,7 @@ program mhgps
     use module_interfaces
     use module_input_dicts
     use yaml_output
+    use module_io
     use module_atoms, only: deallocate_atoms_data,&
                             deallocate_atomic_structure,&
                             atomic_structure,&
@@ -17,73 +18,60 @@ program mhgps
     use module_global_variables
     use module_init
     use module_energyandforces
-    use module_sbfgs
+    use module_sbfgs !for finding binds
     use module_saddle
-    use module_minimizers
-    use module_io
-    use module_freezingstring
     use module_connect
     implicit none
     integer :: nstart
-    integer :: bigdft_get_number_of_atoms,bigdft_get_number_of_orbitals
     character(len=8) :: folder
     character(len=6) :: filename
-    character(len=6) :: comment='saddle'
     integer :: ifolder, ifile
     logical :: xyzexists,asciiexists
-
     character(len=60) :: run_id
     integer :: ierr, nconfig
-
-    real(gp) :: displ,ec
-    logical :: converged
     real(gp), allocatable :: rcov(:)
+    character(len=60)  :: comment
+    logical :: converged=.false.
 
-integer :: ncount_bigdft
-logical :: fail
+    !simple atomic datastructre
+    integer :: nat
+    real(gp) :: alat(3)
+    real(gp), allocatable :: rxyz(:,:),fxyz(:,:)
+    real(gp), allocatable :: rxyz2(:,:),fxyz2(:,:)
+    real(gp), allocatable :: rotforce(:,:),hess(:,:)
+    real(gp) :: energy, ec, displ
+    real(gp) :: fnoise, fnrm, fmax
+    integer :: i,j,info
+    integer :: idum=0
+    real(kind=4) :: builtin_rand
 
-real(gp) :: curv
+    !functions
+    real(gp) :: dnrm2
 
-real(gp) :: step
-real(gp),allocatable :: interleft(:,:),interright(:,:)
-real(gp),allocatable :: tangentleft(:,:),tangentright(:,:)
-real(gp),allocatable :: tsguess(:,:),minmodeguess(:,:),saddle(:,:)
-integer :: finished,idmy
+    !alanine stuff ......................START!>
+    real(gp), allocatable :: rxyzdmy(:,:), fxyzdmy(:,:)
+    character(len=5), allocatable :: atomnamesdmy(:)
+    integer :: l_sat, nfnpdb
+    character(len=11) :: fnpdb
+    !alanine stuff ......................END!>
 
-
-integer :: nstringmax=20,nstring
-real(gp), allocatable :: string(:,:,:)
-integer :: counter
-character(len=10) :: fnc
-real(gp) :: dnrm2
-
-!simple atomic datastructre
-integer :: nat
-real(gp),allocatable :: rxyz(:,:),fxyz(:,:),rotforce(:,:),hess(:,:)
-real(gp),allocatable :: rxyz2(:,:),fxyz2(:,:)
-real(gp) :: energy
-real(gp) :: fnoise
-integer :: i,j,info
-integer :: idum=0
-real(kind=4) :: tt,builtin_rand
-real(gp),allocatable :: eval(:)
-        !alanine stuff ......................START!>
-        real(gp), allocatable :: rxyzdmy(:,:), fxyzdmy(:,:)
-        character(len=5), allocatable :: atomnamesdmy(:)
-        integer :: l_sat, nfnpdb
-        character(len=11) :: fnpdb
-        !alanine stuff ......................END!>
+!for debugging
+real(gp) :: etest
+real(gp), allocatable :: fat(:,:)
+!debugging end
 
     ifolder=1
     ifile=1
-    ef_counter=0.d0
-    isad=0
-
+    ef_counter=0.d0 !from module_global_variables
+    isad=0  !from module_global_variables
 
 
     call f_lib_initialize()
 
+    !read mhgps.inp
     call read_input()
+
+    !initialize the energy and forces method
     isForceField=.false.
     if(efmethod=='BIGDFT')then
         isForceField=.false.
@@ -96,22 +84,26 @@ real(gp),allocatable :: eval(:)
         !actual value of iproc
         iproc=iproc+igroup*ngroups
         if (nconfig < 0) then
-            call yaml_warning('runs-file not supported for MHGPS executable')
+            call yaml_warning('runs-file not supported for MHGPS&
+                               executable')
             stop
         endif
         if(iproc==0) call print_logo_mhgps()
         call dict_init(user_inputs)
         write(folder,'(a,i3.3)')'input',ifolder
         write(filename,'(a,i3.3)')'pos',ifile
-        call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
-           & folder//'/'//filename//trim(bigdft_run_id_toa()), bigdft_mpi)
+        call user_dict_from_files(user_inputs, trim(run_id)//&
+             trim(bigdft_run_id_toa()),folder//'/'//filename//&
+             trim(bigdft_run_id_toa()), bigdft_mpi)
         call inputs_from_dict(inputs_opt, atoms, user_inputs)
         call dict_free(user_inputs)
         call init_global_output(outs, atoms%astruct%nat)
         fdim=outs%fdim
-        call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,rst)
+        call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,&
+                                 rst)
         call run_objects_nullify(runObj)
         call run_objects_associate(runObj, inputs_opt, atoms, rst)
+        !set minimum number of wave function optimizations
 !        if(runObj%inputs%itermin<5)then
 !            itermin=5
 !        else
@@ -124,7 +116,8 @@ real(gp),allocatable :: eval(:)
         write(folder,'(a,i3.3)')'input',ifolder
         write(filename,'(a,i3.3)')'pos',ifile
         call deallocate_atomic_structure(atoms%astruct)
-        call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
+        call read_atomic_file(folder//'/'//filename,iproc,&
+                              atoms%astruct)
         fdim=atoms%astruct%nat
         call print_logo_mhgps()
     elseif(efmethod=='AMBER')then
@@ -133,16 +126,20 @@ real(gp),allocatable :: eval(:)
         write(folder,'(a,i3.3)')'input',ifolder
         write(filename,'(a,i3.3)')'pos',ifile
         call deallocate_atomic_structure(atoms%astruct)
-        call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
+        call read_atomic_file(folder//'/'//filename,iproc,&
+                              atoms%astruct)
         fdim=atoms%astruct%nat
         !alanine stuff ......................START!>
           l_sat=5
           allocate(atomnamesdmy(1000))
-          rxyzdmy = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='rxyzdmy')
-          fxyzdmy = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='fxyzdmy')
+          rxyzdmy = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+                            id='rxyzdmy')
+          fxyzdmy = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+                            id='fxyzdmy')
           fnpdb='ald_new.pdb'
           nfnpdb=len(trim(fnpdb));
-          call nab_init(atoms%astruct%nat,rxyzdmy,fxyzdmy,trim(fnpdb),nfnpdb,l_sat,atomnamesdmy)
+          call nab_init(atoms%astruct%nat,rxyzdmy,fxyzdmy,&
+                        trim(fnpdb),nfnpdb,l_sat,atomnamesdmy)
           call f_free(rxyzdmy)
           call f_free(fxyzdmy)
           deallocate(atomnamesdmy)
@@ -150,142 +147,220 @@ real(gp),allocatable :: eval(:)
 
         call print_logo_mhgps()
     else
-        call yaml_warning('Following method for evaluation of energies and forces is unknown: '//trim(adjustl(efmethod)))
+        call yaml_warning('Following method for evaluation of &
+        energies and forces is unknown: '//trim(adjustl(efmethod)))
         stop
     endif
     if(iproc==0) call print_input()
 
+    nat = atoms%astruct%nat
+    alat = atoms%astruct%cell_dim
+    
     !allocate more arrays
-    lwork=1000+10*atoms%astruct%nat**2
+    lwork=1000+10*nat**2
     work = f_malloc((/1.to.lwork/),id='work')
-    minmode  = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+    minmode  = f_malloc((/ 1.to.3, 1.to.nat/),&
                 id='minmode')
-    rxyz     = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+    rxyz     = f_malloc((/ 1.to.3, 1.to.nat/),&
                 id='rxyz')
-    fxyz     = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+    fxyz     = f_malloc((/ 1.to.3, 1.to.nat/),&
                 id='fxyz')
-    rxyz2     = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+    rxyz2     = f_malloc((/ 1.to.3, 1.to.nat/),&
                 id='rxyz2')
-    fxyz2     = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+    fxyz2     = f_malloc((/ 1.to.3, 1.to.nat/),&
                 id='fxyz2')
-    rcov     = f_malloc((/ 1.to.atoms%astruct%nat/),id='rcov')
+    rcov     = f_malloc((/ 1.to.nat/),id='rcov')
     iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
-    ixyz_int = f_malloc((/ 1.to.3,1.to.atoms%astruct%nat/),&
-                id='atoms%astruct%nat')
-    rotforce = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+    ixyz_int = f_malloc((/ 1.to.3,1.to.nat/),&
+                id='nat')
+    rotforce = f_malloc((/ 1.to.3, 1.to.nat/),&
                 id='rotforce')
-    hess     = f_malloc((/ 1.to.3*atoms%astruct%nat,&
-                1.to.3*atoms%astruct%nat/),id='hess')
-    rxyz_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+    hess     = f_malloc((/ 1.to.3*nat,&
+                1.to.3*nat/),id='hess')
+    rxyz_rot = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.saddle_nhistx_rot/),id='rxyz_rot')
-    fxyz_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+    fxyz_rot = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.saddle_nhistx_rot/),id='fxyz_rot') 
-    fxyzraw_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+    fxyzraw_rot = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.saddle_nhistx_rot/),id='fxyzraw_rot')
-    rxyzraw_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+    rxyzraw_rot = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.saddle_nhistx_rot/),id='rxyzraw_rot')
-    fstretch_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+    fstretch_rot = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.saddle_nhistx_rot/),id='fstretch_rot')
     eval_rot = f_malloc((/1.to.saddle_nhistx_rot/),id='eval_rot')
     res_rot = f_malloc((/1.to.saddle_nhistx_rot/),id='res_rot')
-    rrr_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+    rrr_rot = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.saddle_nhistx_rot/),id='rrr_rot')
-    aa_rot = f_malloc((/1.to.saddle_nhistx_rot,1.to.saddle_nhistx_rot/),&
-                id='aa_rot')
-    ff_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+    aa_rot = f_malloc((/1.to.saddle_nhistx_rot,&
+             1.to.saddle_nhistx_rot/),id='aa_rot')
+    ff_rot = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.saddle_nhistx_rot/),id='ff_rot')
-    rr_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+    rr_rot = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.saddle_nhistx_rot/),id='rr_rot')
-    dd_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+    dd_rot = f_malloc((/ 1.to.3, 1.to.nat/),&
                 id='dd_rot')
-    fff_rot = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+    fff_rot = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.saddle_nhistx_rot/),id='fff_rot')
     scpr_rot = f_malloc((/ 1.to.saddle_nhistx_rot/),id='scpr_rot')
-    rxyz_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+    rxyz_trans = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.saddle_nhistx_trans/),id='rxyz_trans')
-    fxyz_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+    fxyz_trans = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.saddle_nhistx_trans/),id='fxyz_trans') 
-    fxyzraw_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+    fxyzraw_trans = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.saddle_nhistx_trans/),id='fxyzraw_trans')
-    rxyzraw_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+    rxyzraw_trans = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.saddle_nhistx_trans/),id='rxyzraw_trans')
-    fstretch_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+    fstretch_trans = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.saddle_nhistx_trans/),id='fstretch_trans')
-    eval_trans = f_malloc((/1.to.saddle_nhistx_trans/),id='eval_trans')
+    eval_trans = f_malloc((/1.to.saddle_nhistx_trans/),&
+                 id='eval_trans')
     res_trans = f_malloc((/1.to.saddle_nhistx_trans/),id='res_trans')
-    rrr_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+    rrr_trans = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.saddle_nhistx_trans/),id='rrr_trans')
     aa_trans = f_malloc((/1.to.saddle_nhistx_trans,&
                 1.to.saddle_nhistx_trans/),id='aa_trans')
-    ff_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+    ff_trans = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.saddle_nhistx_trans/),id='ff_trans')
-    rr_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+    rr_trans = f_malloc((/ 1.to.3, 1.to.nat,&
                 0.to.saddle_nhistx_trans/),id='rr_trans')
-    dd_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),id='dd_trans')
-    fff_trans = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat,&
+    dd_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='dd_trans')
+    fff_trans = f_malloc((/ 1.to.3, 1.to.nat,&
                 -1.to.saddle_nhistx_trans/),id='fff_trans')
-    scpr_trans = f_malloc((/ 1.to.saddle_nhistx_trans/),id='scpr_trans')
+    scpr_trans = f_malloc((/ 1.to.saddle_nhistx_trans/),&
+                 id='scpr_trans')
+
+!for debugging:
+allocate(fat(3,nat))
     
     iconnect = 0
     ixyz_int = 0
-    call give_rcov(atoms,atoms%astruct%nat,rcov)
-    !if in biomode, determine bonds betweens atoms once and for all (it is
-    !assuemed that all conifugrations over which will be iterated have the same
-    !bonds)
+    call give_rcov(atoms,nat,rcov)
+    !if in biomode, determine bonds betweens atoms once and for all
+    !(it isassuemed that all conifugrations over which will be
+    !iterated have the same bonds)
     if(saddle_biomode)then
-        call findbonds('(MHGPS)',iproc,mhgps_verbosity,atoms%astruct%nat,rcov,atoms%astruct%rxyz,nbond,iconnect)
+        call findbonds('(MHGPS)',iproc,mhgps_verbosity,nat,rcov,&
+        atoms%astruct%rxyz,nbond,iconnect)
     endif
     wold_trans = f_malloc((/ 1.to.nbond/),id='wold_trans')
     wold_rot = f_malloc((/ 1.to.nbond/),id='wold_rot')
 
-allocate(interleft(3,atoms%astruct%nat),interright(3,atoms%astruct%nat))
-allocate(tangentleft(3,atoms%astruct%nat),tangentright(3,atoms%astruct%nat))
-allocate(tsguess(3,atoms%astruct%nat),minmodeguess(3,atoms%astruct%nat),saddle(3,atoms%astruct%nat))
-
-
-
-
-!    if (iproc == 0) &
-!        call yaml_set_stream(unit=usaddle,filename=trim(saddle_filename),tabbing=0,record_length=100,setdefault=.false.,istat=ierr)
-!    if(ierr==0)then
-!        call yaml_warning('Error while opening saddle.mon file. STOP.')
-!        stop
-!    endif
-!    if (iproc ==0 ) call yaml_comment('Saddle monitoring file opened, name:'//trim(filename)//', timestamp: '//trim(yaml_date_and_time_toa()),&
-!       hfill='-',unit=usaddle)
-
-
-!   LWORK=3*3*atoms%astruct%nat-1
-
     do ifolder = 1,999
         write(folder,'(a,i3.3)')'input',ifolder
         currDir=folder
-!        nstart=1
-        nstart=2
-        do ifile = nstart,999
-            write(filename,'(a,i3.3)')'pos',ifile-1
-            inquire(file=folder//'/'//filename//'.xyz',exist=xyzexists)
-            inquire(file=folder//'/'//filename//'.ascii',exist=asciiexists)
-            if(.not.(xyzexists.or.asciiexists))exit
-            call deallocate_atomic_structure(atoms%astruct)
-            call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
-            call vcopy(3 * atoms%astruct%nat,atoms%astruct%rxyz(1,1),1,rxyz(1,1), 1)
 
+        if(trim(adjustl(operation_mode))=='simple'.or.&
+                       trim(adjustl(operation_mode))=='hessian')then
+            nstart=1
+        elseif(trim(adjustl(operation_mode))=='connect'.or.&
+                       trim(adjustl(operation_mode))=='guessonly')then
+            nstart=2
+        else
+            call yaml_warning('(MHGPS) operation mode unknown STOP')
+            stop '(MHGPS) operation mode unknown STOP'
+        endif
+
+        do ifile = nstart,999
+
+            !read (first) file
             write(filename,'(a,i3.3)')'pos',ifile
-            inquire(file=folder//'/'//filename//'.xyz',exist=xyzexists)
-            inquire(file=folder//'/'//filename//'.ascii',exist=asciiexists)
+            inquire(file=folder//'/'//filename//'.xyz',&
+                    exist=xyzexists)
+            inquire(file=folder//'/'//filename//'.ascii',&
+                    exist=asciiexists)
             if(.not.(xyzexists.or.asciiexists))exit
             call deallocate_atomic_structure(atoms%astruct)
-            call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
-            call vcopy(3 * atoms%astruct%nat,atoms%astruct%rxyz(1,1),1,rxyz2(1,1), 1)
-            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
-!!!!!!!!!!allocate(eval(3*atoms%astruct%nat))
-!!!!!!!!!!call cal_hessian_fd(iproc,atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,hess)
-!!!!!!!!!!        call DSYEV('V','L',3*atoms%astruct%nat,hess,3*atoms%astruct%nat,eval,WORK,LWORK,INFO)
+            call read_atomic_file(folder//'/'//filename,iproc,&
+                    atoms%astruct)
+            call vcopy(3 * nat,atoms%astruct%rxyz(1,1),1,rxyz(1,1), 1)
+
+            if(trim(adjustl(operation_mode))=='guessonly')then
+stop 'not implemented yet'
+            else if(trim(adjustl(operation_mode))=='connect')&
+                                                                 then
+                !read second file
+                write(filename,'(a,i3.3)')'pos',ifile+1
+                inquire(file=folder//'/'//filename//'.xyz',&
+                            exist=xyzexists)
+                inquire(file=folder//'/'//filename//'.ascii',&
+                            exist=asciiexists)
+                if(.not.(xyzexists.or.asciiexists))exit
+                call deallocate_atomic_structure(atoms%astruct)
+                call read_atomic_file(folder//'/'//filename,iproc,&
+                            atoms%astruct)
+                call vcopy(3*nat,atoms%astruct%rxyz(1,1),1,&
+                           rxyz2(1,1),1)
+stop 'not implemented yet'
+            else if(trim(adjustl(operation_mode))=='simple')then
+                isad=isad+1
+                write(isadc,'(i3.3)')isad
+                if(random_minmode_guess)then
+                    do i=1,nat
+                        minmode(1,i)=2.0_gp*&
+                                (real(builtin_rand(idum),gp)-0.5_gp)
+                        minmode(2,i)=2.0_gp*&
+                                (real(builtin_rand(idum),gp)-0.5_gp)
+                        minmode(3,i)=2.0_gp*&
+                                (real(builtin_rand(idum),gp)-0.5_gp)
+                    enddo
+                    call write_mode(nat,currDir//'/pos'//isadc//&
+                                    '_mode',minmode)
+                else
+                    call read_mode(nat,currDir//'/pos'//isadc//&
+                                    '_mode',minmode)
+                endif
+                !normalize
+                minmode = minmode/dnrm2(3*nat,minmode(1,1),1)
+                ec=0.0_gp
+                displ=0.0_gp
+                call findsad(nat,alat,rcov,nbond,iconnect,&
+                rxyz(1,1),energy,fxyz(1,1),minmode(1,1),displ,ec,&
+                rotforce(1,1),converged)
+!for debugging:
+call energyandforces(nat,alat,rxyz,fat,fnoise,etest)
+write(*,*)'energy MAINcheck saddle: ',energy-etest
+                    if(.not.converged)then
+                        call yaml_warning('Saddle '//yaml_toa(isad)//&
+                            ' not converged')
+                    endif
+                    call fnrmandforcemax(fxyz(1,1),fnrm,&
+                                        fmax,nat)
+                    if (iproc == 0) then
+                        write(comment,'(a,1pe10.3,5x1pe10.3)')&
+                       'ATTENTION! Forces below give no forces, &
+                        but the final minmode| &
+                        fnrm, fmax = ',fnrm,fmax
+
+                        call write_atomic_file(currDir//'/sad'//&
+                        isadc//'_finalM',energy,rxyz(1,1),ixyz_int,&
+                        atoms,comment,forces=minmode(1,1))
+                        !atoms,comment,forces=fxyz(1,1))
+
+                        write(comment,'(a,1pe10.3,5x1pe10.3)')&
+                       'fnrm, fmax = ',fnrm,fmax
+                        call write_atomic_file(currDir//'/sad'//&
+                        isadc//'_finalF',energy,rxyz(1,1),ixyz_int,&
+                        atoms,comment,forces=fxyz(1,1))
+                        
+                        call write_mode(nat,currDir//'/sad'//isadc//&
+                        '_mode_final',minmode(1,1),rotforce(1,1))
+                    endif
+            else if(trim(adjustl(operation_mode))=='hessian')then
+stop 'not implemented yet'
+            else
+                call yaml_warning('(MHGPS) operation mode unknown &
+                                  STOP')
+                stop '(MHGPS) operation mode unknown STOP'
+            endif
+            
+!!!!            call energyandforces(nat,alat,rxyz,fxyz,fnoise,energy)
+!!!!!!!!!!allocate(eval(3*nat))
+!!!!!!!!!!call cal_hessian_fd(iproc,nat,alat,rxyz,hess)
+!!!!!!!!!!        call DSYEV('V','L',3*nat,hess,3*nat,eval,WORK,LWORK,INFO)
 !!!!!!!!!!        if (info.ne.0) stop 'DSYEV'
 !!!!!!!!!!        if(iproc==0)then
 !!!!!!!!!!        write(*,'(a,1x,es9.2,1x,es24.17)') '(hess) ---   App. eigenvalues in exact ------------- fnrm:',sqrt(sum(fxyz**2)),energy
-!!!!!!!!!!        do j=1,3*atoms%astruct%nat
+!!!!!!!!!!        do j=1,3*nat
 !!!!!!!!!!            write(*,*) '(hess) eval ',j,eval(j)
 !!!!!!!!!!        enddo
 !!!!!!!!!!        endif
@@ -294,22 +369,22 @@ allocate(tsguess(3,atoms%astruct%nat),minmodeguess(3,atoms%astruct%nat),saddle(3
 !!!!!!!!            write(isadc,'(i5.5)')isad
 !!!!!!!!            rotforce=0.0_gp
 !!!!!!!!!!!!            if(random_minmode_guess)then
-!!!!!!!!!!!!                do i=1,atoms%astruct%nat
+!!!!!!!!!!!!                do i=1,nat
 !!!!!!!!!!!!                    minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
 !!!!!!!!!!!!                    minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
 !!!!!!!!!!!!                    minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
 !!!!!!!!!!!!                enddo
-!!!!!!!!!!!!                call write_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode',minmode)
+!!!!!!!!!!!!                call write_mode(nat,currDir//'/'//currFile//'_mode',minmode)
 !!!!!!!!!!!!            else
-!!!!!!!!!!!!                call read_mode(atoms%astruct%nat,currDir//'/'//currFile//'_mode',minmode)
+!!!!!!!!!!!!                call read_mode(nat,currDir//'/'//currFile//'_mode',minmode)
 !!!!!!!!!!!!            endif
-!!!!!!!!call get_ts_guess(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,rxyz2,saddle,minmode,&
+!!!!!!!!call get_ts_guess(nat,alat,rxyz,rxyz2,saddle,minmode,&
 !!!!!!!!    0.5_gp,1.e-4_gp,1.1_gp,5)
-!!!!!!!!!minmode = minmode/dnrm2(3*atoms%astruct%nat,minmode(1,1),1)
+!!!!!!!!!minmode = minmode/dnrm2(3*nat,minmode(1,1),1)
 !!!!!!!!!saddle=rxyz
 !!!!!!!!            ec=0.0_gp
 !!!!!!!!        
-!!!!!!!!           call findsad(imode,atoms%astruct%nat,atoms%astruct%cell_dim,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
+!!!!!!!!           call findsad(imode,nat,alat,rcov,saddle_alpha0_trans,saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_trans,&
 !!!!!!!!           saddle_nit_rot,saddle_nhistx_trans,saddle_nhistx_rot,saddle_tolc,saddle_tolf,saddle_tightenfac,saddle_rmsdispl0,&
 !!!!!!!!           saddle_trustr,saddle,energy,fxyz,minmode,saddle_fnrmtol,displ,ec,&
 !!!!!!!!           converged,nbond,iconnect,saddle_alpha_stretch0,saddle_recompIfCurvPos,saddle_maxcurvrise,&
@@ -319,14 +394,14 @@ allocate(tsguess(3,atoms%astruct%nat),minmodeguess(3,atoms%astruct%nat),saddle(3
 !!!!!!!!               energy,saddle(1,1),ixyz_int,&
 !!!!!!!!               atoms,comment,forces=minmode)
 !!!!!!!!!               atoms,comment,forces=fxyz(1,1))
-!!!!!!!!               call write_mode(atoms%astruct%nat,currDir//'/sad'//isadc//'_mode_final',minmode,rotforce)
+!!!!!!!!               call write_mode(nat,currDir//'/sad'//isadc//'_mode_final',minmode,rotforce)
 !!!!!!!!           endif
 !!!!!!!!!!ec=1.0_gp
-!!!!!!!!!!call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
-!!!!!!!!!!!call minimizer_sbfgs(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy,ec,converged)
-!!!!!!!!!!call minimizer_sbfgs(imode,atoms%astruct%nat,atoms%astruct%cell_dim,nbond,iconnect,rxyz,fxyz,fnoise,energy,ec,converged)
+!!!!!!!!!!call energyandforces(nat,alat,rxyz,fxyz,fnoise,energy)
+!!!!!!!!!!!call minimizer_sbfgs(nat,alat,rxyz,fxyz,fnoise,energy,ec,converged)
+!!!!!!!!!!call minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyz,fxyz,fnoise,energy,ec,converged)
 !!!!!!!!!!if(.not.converged)stop'minimizer_sbfgs not converged'
-!!!!!!!!!!call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
+!!!!!!!!!!call energyandforces(nat,alat,rxyz,fxyz,fnoise,energy)
 !!!!!!!!!!write(*,'(a,1x,i0,1x,es9.2,1x,i0)')'count,fnrm',int(ec),sqrt(sum(fxyz**2))
 !!!!!!!!!!           if (iproc == 0) then
 !!!!!!!!!!               call write_atomic_file(currDir//'/'//currFile//'_final',&
@@ -335,9 +410,9 @@ allocate(tsguess(3,atoms%astruct%nat),minmodeguess(3,atoms%astruct%nat),saddle(3
 !!!!!!!!!!           endif
 !!!!!!!!
 !!!!!!!!!step=-1._gp
-!!!!!!!!!!call lst_interpol(atoms%astruct%nat,rxyz,rxyz2,step,interleft,interright,&
+!!!!!!!!!!call lst_interpol(nat,rxyz,rxyz2,step,interleft,interright,&
 !!!!!!!!!!                        tangentleft,tangentright,finished)
-!!!!!!!!!call lin_interpol(atoms%astruct%nat,rxyz,rxyz2,step,interleft,interright,&
+!!!!!!!!!call lin_interpol(nat,rxyz,rxyz2,step,interleft,interright,&
 !!!!!!!!!                        tangentleft,finished)
 !!!!!!!!!
 !!!!!!!!!           call write_atomic_file('pospa',&
@@ -346,8 +421,8 @@ allocate(tsguess(3,atoms%astruct%nat),minmodeguess(3,atoms%astruct%nat),saddle(3
 !!!!!!!!!!           call write_atomic_file('pospb',&
 !!!!!!!!!                1.d0,interright(1,1),ixyz_int,&
 !!!!!!!!!                atoms,'')
-!!!!!!!!!!!!allocate(string(3*atoms%astruct%nat,2,nstringmax))
-!!!!!!!!!!!!do i=1,atoms%astruct%nat
+!!!!!!!!!!!!allocate(string(3*nat,2,nstringmax))
+!!!!!!!!!!!!do i=1,nat
 !!!!!!!!!!!!string(3*i-2,1,1)=rxyz(1,i)
 !!!!!!!!!!!!string(3*i-1,1,1)=rxyz(2,i)
 !!!!!!!!!!!!string(3*i,1,1)=rxyz(3,i)
@@ -355,7 +430,7 @@ allocate(tsguess(3,atoms%astruct%nat),minmodeguess(3,atoms%astruct%nat),saddle(3
 !!!!!!!!!!!!string(3*i-1,2,1)=rxyz2(2,i)
 !!!!!!!!!!!!string(3*i,2,1)=rxyz2(3,i)
 !!!!!!!!!!!!enddo
-!!!!!!!!!!!!call grow_string(atoms%astruct%nat,atoms%astruct%cell_dim,0.5_gp,1.e-4_gp,0.1_gp,&
+!!!!!!!!!!!!call grow_string(nat,alat,0.5_gp,1.e-4_gp,0.1_gp,&
 !!!!!!!!!!!!                       5,nstringmax,nstring,string,finished)
 !!!!!!!!!!!!idmy=0
 !!!!!!!!!!!!if(finished==1)idmy=1
@@ -364,7 +439,7 @@ allocate(tsguess(3,atoms%astruct%nat),minmodeguess(3,atoms%astruct%nat),saddle(3
 !!!!!!!!!!!!do i=1,nstring
 !!!!!!!!!!!!counter=counter+1
 !!!!!!!!!!!!write(fnc,'(i4.4)')counter
-!!!!!!!!!!!!call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,string(1,1,i),fxyz,fnoise,energy)
+!!!!!!!!!!!!call energyandforces(nat,alat,string(1,1,i),fxyz,fnoise,energy)
 !!!!!!!!!!!!           call write_atomic_file('pospb'//trim(adjustl(fnc)),&
 !!!!!!!!!!!!                energy,string(1,1,i),ixyz_int,&
 !!!!!!!!!!!!                atoms,'')
@@ -373,7 +448,7 @@ allocate(tsguess(3,atoms%astruct%nat),minmodeguess(3,atoms%astruct%nat),saddle(3
 !!!!!!!!!!!!do i=nstring-idmy,1,-1
 !!!!!!!!!!!!counter=counter+1
 !!!!!!!!!!!!write(fnc,'(i4.4)')counter
-!!!!!!!!!!!!call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,string(1,2,i),fxyz,fnoise,energy)
+!!!!!!!!!!!!call energyandforces(nat,alat,string(1,2,i),fxyz,fnoise,energy)
 !!!!!!!!!!!!           call write_atomic_file('pospb'//trim(adjustl(fnc)),&
 !!!!!!!!!!!!                energy,string(1,2,i),ixyz_int,&
 !!!!!!!!!!!!                atoms,'')
@@ -382,46 +457,11 @@ allocate(tsguess(3,atoms%astruct%nat),minmodeguess(3,atoms%astruct%nat),saddle(3
 !!!!!!!!!!!!write(*,*)'ef_counter',ef_counter
 !!!!!!!!!!!!stop
 !!!!!!!!!!!!!!!!!!!!!!!write(*,*),'HIER'
-!!!!!!!!!!!!!!!!!!!!!!!call get_ts_guess(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,rxyz2,tsguess,minmodeguess,&
+!!!!!!!!!!!!!!!!!!!!!!!call get_ts_guess(nat,alat,rxyz,rxyz2,tsguess,minmodeguess,&
 !!!!!!!!!!!!!!!!!!!!!!!    0.5_gp,1.e-4_gp,0.1_gp,5)
 !!!!!!!!
         enddo
     enddo
-
-!    !compute minmode only:
-!    do ifolder = 1,999
-!        do ifile = 1,999
-!            write(folder,'(a,i3.3)')'input',ifolder
-!            write(filename,'(a,i3.3)')'min',ifile
-!            inquire(file=folder//'/'//filename//'.xyz',exist=xyzexists)
-!            inquire(file=folder//'/'//filename//'.ascii',exist=asciiexists)
-!            if(.not.(xyzexists.or.asciiexists))exit
-!            call deallocate_atomic_structure(atoms%astruct)
-!            call read_atomic_file(folder//'/'//filename,iproc,atoms%astruct)
-!            call vcopy(3 * atoms%astruct%nat,atoms%astruct%rxyz(1,1),1,rxyz(1,1), 1)
-!            call vcopy(3 * atoms%astruct%nat,outs%fxyz(1,1),1,fxyz(1,1), 1)
-!            call energyandforces(atoms%astruct%nat,atoms%astruct%cell_dim,rxyz,fxyz,fnoise,energy)
-! 
-!            do i=1,atoms%astruct%nat
-!                minmode(1,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-!                minmode(2,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-!                minmode(3,i)=2.0_gp*(real(builtin_rand(idum),gp)-0.5_gp)
-!            enddo
-!
-!            call opt_curv(saddle_imode,atoms%astruct%nat,atoms%astruct%cell_dim,&
-!                 saddle_alpha0_rot,saddle_curvgraddiff,saddle_nit_rot,saddle_nhistx_rot,&
-!                 rxyz,fxyz,minmode,curv,gradrot,saddle_tolf,displ,ec,&
-!                 .false.,converged,iconnect,nbond,atoms%astruct%atomnames,&
-!                 saddle_alpha_stretch0,saddle_maxcurvrise,saddle_cutoffratio)
-!       enddo
-!    enddo
-
-
-
-
-!    if (iproc==0) call yaml_close_stream(unit=usaddle)
-
-
 
     !finalize (dealloctaion etc...)
     if(efmethod=='BIGDFT')then
