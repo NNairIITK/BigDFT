@@ -1878,7 +1878,8 @@ subroutine init_sparse_matrix_wrapper(iproc, nproc, orbs, lzd, astruct, store_in
       stop 'wrong imode'
   end if
   call determine_sparsity_pattern_distance(orbs, lzd, astruct, lzd%llr(:)%locrad_mult, nnonzero_mult, nonzero_mult)
-  call init_sparse_matrix(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, store_index, &
+  call init_sparse_matrix(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, &
+       orbs%norbu, orbs%norbup, orbs%isorbu, store_index, &
        nnonzero, nonzero, nnonzero_mult, nonzero_mult, smat)
   call f_free_ptr(nonzero)
   call f_free_ptr(nonzero_mult)
@@ -1921,7 +1922,8 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
           nonzero(i)=ind
       end do
   end do
-  call init_sparse_matrix(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, input%store_index, &
+  call init_sparse_matrix(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, &
+       orbs%norbu, orbs%norbup, orbs%isorbu, input%store_index, &
        orbs%norb*orbs%norbp, nonzero, orbs%norb, nonzero, smat, print_info_=.false.)
   call f_free(nonzero)
 
@@ -1941,7 +1943,8 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
           nonzero(i)=ind
       end do
   end do
-  call init_sparse_matrix(iproc, nproc, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, input%store_index, &
+  call init_sparse_matrix(iproc, nproc, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
+       orbs%norbu, orbs%norbup, orbs%isorbu, input%store_index, &
        orbs_aux%norb*orbs_aux%norbp, nonzero, orbs_aux%norb, nonzero, smat_extra, print_info_=.false.)
   call f_free(nonzero)
   call deallocate_orbitals_data(orbs_aux)
