@@ -744,6 +744,7 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
   sparsemat_out%nfvctr = sparsemat_in%nfvctr
   sparsemat_out%nfvctrp = sparsemat_in%nfvctrp
   sparsemat_out%isfvctr = sparsemat_in%isfvctr
+  sparsemat_out%nspin = sparsemat_in%nspin
   sparsemat_out%parallel_compression = sparsemat_in%parallel_compression
 
   if(associated(sparsemat_out%nvctr_par)) then

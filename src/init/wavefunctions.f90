@@ -146,7 +146,11 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   else
      call kpts_to_procs_via_obj(nproc,orbs%nkpts,norb,norb_par)
      call kpts_to_procs_via_obj(nproc,orbs%nkpts,norbu,norbu_par)
-     call kpts_to_procs_via_obj(nproc,orbs%nkpts,norbd,norbd_par)
+     if (norbd>0) then
+         call kpts_to_procs_via_obj(nproc,orbs%nkpts,norbd,norbd_par)
+     else
+         norbd_par(:,:)=0
+     end if
   end if
   !assign the values for norb_par and check the distribution
   norb_tot=0

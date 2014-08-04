@@ -3989,11 +3989,11 @@ module module_interfaces
           integer,dimension(:),pointer,intent(out) :: nonzero
         end subroutine determine_sparsity_pattern_distance
 
-        subroutine init_sparse_matrix_wrapper(iproc, nproc, orbs, lzd, astruct, store_index, imode, smat)
+        subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, store_index, imode, smat)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: iproc, nproc, imode
+          integer,intent(in) :: iproc, nproc, nspin, imode
           type(orbitals_data),intent(in) :: orbs
           type(local_zone_descriptors),intent(in) :: lzd
           type(atomic_structure),intent(in) :: astruct
@@ -4206,6 +4206,17 @@ module module_interfaces
           real(kind=8),dimension(npl),intent(in) :: cc
           real(kind=8),dimension(norb,norbp),intent(out) :: kernelp
         end subroutine chebyshev_fast
+
+        subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat, smat_extra)
+          use module_base
+          use module_types
+          use sparsematrix_base, only: sparse_matrix
+          implicit none
+          integer, intent(in) :: iproc, nproc, nextra
+          type(orbitals_data), intent(in) :: orbs
+          type(input_variables), intent(in) :: input
+          type(sparse_matrix), intent(out) :: smat, smat_extra
+        end subroutine init_sparse_matrix_for_KSorbs
 
 subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, ovrlp_mat, inv_ovrlp)
   use module_base

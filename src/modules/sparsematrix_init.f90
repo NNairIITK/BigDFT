@@ -313,14 +313,14 @@ contains
 
 
     !> Currently assuming square matrices
-    subroutine init_sparse_matrix(iproc, nproc, norb, norbp, isorb, norbu, norbup, isorbu, store_index, &
+    subroutine init_sparse_matrix(iproc, nproc, nspin, norb, norbp, isorb, norbu, norbup, isorbu, store_index, &
                nnonzero, nonzero, nnonzero_mult, nonzero_mult, sparsemat, &
                allocate_full_, print_info_)
       use yaml_output
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, norb, norbp, isorb, norbu, norbup, isorbu, nnonzero, nnonzero_mult
+      integer,intent(in) :: iproc, nproc, nspin, norb, norbp, isorb, norbu, norbup, isorbu, nnonzero, nnonzero_mult
       logical,intent(in) :: store_index
       integer,dimension(nnonzero),intent(in) :: nonzero
       integer,dimension(nnonzero_mult),intent(in) :: nonzero_mult
@@ -345,6 +345,7 @@ contains
     
       sparsemat=sparse_matrix_null()
     
+      sparsemat%nspin=nspin
       sparsemat%nfvctr=norb
       sparsemat%nfvctrp=norbp
       sparsemat%isfvctr=isorb
@@ -500,7 +501,7 @@ contains
       if (nproc>1) then
           call mpiallred(nvctr_mult, 1, mpi_sum, bigdft_mpi%mpi_comm)
           call mpiallred(nseg_mult, 1, mpi_sum, bigdft_mpi%mpi_comm)
-          call mpiallred(nsegline_mult(1), norb, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(nsegline_mult(1), norbu, mpi_sum, bigdft_mpi%mpi_comm)
       end if
 
 

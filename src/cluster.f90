@@ -489,9 +489,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,in, atoms, rxyz, .false.)
 
-     !!call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
-     !!     in%store_index, imode=1, smat=tmb%linmat%ham)
-     call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
+     call init_sparse_matrix_wrapper(iproc, nproc, in%nspin, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
           in%store_index, imode=1, smat=tmb%linmat%m)
      tmb%linmat%ham_ = matrices_null()
      call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
@@ -502,9 +500,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
 
-     !!call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, &
-     !!     in%store_index, imode=1, smat=tmb%linmat%ovrlp)
-     call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, &
+     call init_sparse_matrix_wrapper(iproc, nproc, in%nspin, tmb%orbs, tmb%lzd, atoms%astruct, &
           in%store_index, imode=1, smat=tmb%linmat%s)
      tmb%linmat%ovrlp_ = matrices_null()
      call allocate_matrices(tmb%linmat%s, allocate_full=.false., &
@@ -529,9 +525,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      ! check the extent of the kernel cutoff (must be at least shamop radius)
      call check_kernel_cutoff(iproc, tmb%orbs, atoms, tmb%lzd)
 
-     !!call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, &
-     !!     in%store_index, imode=2, smat=tmb%linmat%denskern_large)
-     call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, &
+     call init_sparse_matrix_wrapper(iproc, nproc, in%nspin, tmb%orbs, tmb%lzd, atoms%astruct, &
           in%store_index, imode=2, smat=tmb%linmat%l)
      tmb%linmat%kernel_ = matrices_null()
      call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
