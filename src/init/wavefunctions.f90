@@ -31,6 +31,11 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   integer, dimension(:,:), allocatable :: norb_par, norbu_par, norbd_par !(with k-pts)
 
   ! basedist and basedistu must both be present at the same time
+  !write(*,*) 'present(basedist)',present(basedist)
+  !write(*,*) 'present(basedistu)',present(basedistu)
+  !write(*,*) 'present(basedistd)',present(basedistd)
+  !write(*,*) 'any((/present(basedist),present(basedistu),present(basedistd)/))',any((/present(basedist),present(basedistu),present(basedistd)/))
+  !write(*,*) 'all((/present(basedist),present(basedistu),present(basedistd)/))',all((/present(basedist),present(basedistu),present(basedistd)/))
   if (any((/present(basedist),present(basedistu),present(basedistd)/))) then
       if (.not. all((/present(basedist),present(basedistu),present(basedistd)/))) then
           stop 'basedist, basedistu and basedistd must all be present at the same time'
@@ -128,11 +133,12 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
         norb_base=norb_base+basedistu(jproc,1)
      end do
      call components_kpt_distribution(nproc,orbs%nkpts,norb_base,norbu,basedistu,norbu_par)
-     if (norbd>0) then
-         norb_base=0
-         do jproc=0,nproc-1
-            norb_base=norb_base+basedistd(jproc,1)
-         end do
+     norb_base=0
+     do jproc=0,nproc-1
+        norb_base=norb_base+basedistd(jproc,1)
+     end do
+     !write(*,*) 'norbd, basedistd', norbd, basedistd
+     if (norb_base>0) then
          call components_kpt_distribution(nproc,orbs%nkpts,norb_base,norbd,basedistd,norbd_par)
      else
          norbd_par(:,:)=0

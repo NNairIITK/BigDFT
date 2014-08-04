@@ -115,12 +115,12 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   end if
   call orbitals_descriptors(iproc, nproc,in%gen_norb,in%gen_norbu,in%gen_norbd,in%nspin,nspinor,&
        in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
-   !!write(*,*) 'orbs%norbu', orbs%norbu
-   !!write(*,*) 'orbs%norbd', orbs%norbd
-   !!write(*,*) 'orbs%norb', orbs%norb
-   !!write(*,*) 'orbs%norbup', orbs%norbup
-   !!write(*,*) 'orbs%norbdp', orbs%norbdp
-   !!write(*,*) 'orbs%norbp', orbs%norbp
+  !!write(*,*) 'orbs%norbu', orbs%norbu
+  !!write(*,*) 'orbs%norbd', orbs%norbd
+  !!write(*,*) 'orbs%norb', orbs%norb
+  !!write(*,*) 'orbs%norbup', orbs%norbup
+  !!write(*,*) 'orbs%norbdp', orbs%norbdp
+  !!write(*,*) 'orbs%norbp', orbs%norbp
   orbs%occup(1:orbs%norb*orbs%nkpts) = in%gen_occup
   if (dump .and. iproc==0) call print_orbitals(orbs, atoms%astruct%geocode)
   ! Create linear orbs data structure.
@@ -1373,6 +1373,7 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
 
   !for any of the k-points find the processors which have such k-point associated
   call to_zero(nproc*nkpts,nvctr_par(0,1))
+
 
   !Loop over each k point
   do ikpt=1,nkpts
