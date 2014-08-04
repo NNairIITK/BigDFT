@@ -30,7 +30,7 @@ program mhgps
     character(len=60) :: run_id
     integer :: ierr, nconfig
     real(gp), allocatable :: rcov(:)
-    character(len=60)  :: comment
+    character(len=300)  :: comment
     logical :: converged=.false.
 
     !simple atomic datastructre
@@ -303,11 +303,11 @@ stop 'not implemented yet'
                         minmode(3,i)=2.0_gp*&
                                 (real(builtin_rand(idum),gp)-0.5_gp)
                     enddo
-                    call write_mode(nat,currDir//'/pos'//isadc//&
-                                    '_mode',minmode)
+                    call write_mode(nat,currDir//'/pos'//&
+                    trim(adjustl(isadc))//'_mode',minmode)
                 else
-                    call read_mode(nat,currDir//'/pos'//isadc//&
-                                    '_mode',minmode)
+                    call read_mode(nat,currDir//'/pos'//&
+                    trim(adjustl(isadc))//'_mode',minmode)
                 endif
                 !normalize
                 minmode = minmode/dnrm2(3*nat,minmode(1,1),1)
@@ -332,18 +332,21 @@ write(*,*)'energy MAINcheck saddle: ',energy-etest
                         fnrm, fmax = ',fnrm,fmax
 
                         call write_atomic_file(currDir//'/sad'//&
-                        isadc//'_finalM',energy,rxyz(1,1),ixyz_int,&
-                        atoms,comment,forces=minmode(1,1))
+                        trim(adjustl(isadc))//'_finalM',energy,&
+                        rxyz(1,1),ixyz_int,atoms,comment,&
+                        forces=minmode(1,1))
                         !atoms,comment,forces=fxyz(1,1))
 
                         write(comment,'(a,1pe10.3,5x1pe10.3)')&
                        'fnrm, fmax = ',fnrm,fmax
                         call write_atomic_file(currDir//'/sad'//&
-                        isadc//'_finalF',energy,rxyz(1,1),ixyz_int,&
-                        atoms,comment,forces=fxyz(1,1))
+                        trim(adjustl(isadc))//'_finalF',energy,&
+                        rxyz(1,1),ixyz_int,atoms,comment,&
+                        forces=fxyz(1,1))
                         
-                        call write_mode(nat,currDir//'/sad'//isadc//&
-                        '_mode_final',minmode(1,1),rotforce(1,1))
+                        call write_mode(nat,currDir//'/sad'//&
+                        trim(adjustl(isadc))//'_mode_final',&
+                        minmode(1,1),rotforce(1,1))
                     endif
             else if(trim(adjustl(operation_mode))=='hessian')then
 stop 'not implemented yet'

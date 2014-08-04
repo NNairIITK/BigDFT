@@ -352,9 +352,9 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
            fc=fc+1
            write(fn9,'(i9.9)') fc
            write(comment,'(a,1pe10.3,5x1pe10.3)')&
-           'ATTENTION! Forces below are no forces&
+           'ATTENTION! Forces below are no forces &
            but tangents to the guessed reaction path| fnrm, fmax = ',fnrm,fmax
-           call write_atomic_file(currDir//'/sad'//isadc//'_posout_'//fn9,&
+           call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))//'_posout_'//fn9,&
                 etotp,rxyz(1,1,nhist),ixyz_int,&
                 atoms,trim(comment),forces=minmode)
                 !atoms,trim(comment),forces=fxyzraw(1,1,nhist))
