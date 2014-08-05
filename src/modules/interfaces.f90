@@ -200,8 +200,9 @@ module module_interfaces
          logical, intent(out) :: lcs
       END SUBROUTINE check_closed_shell
 
-      subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,orbs,simple,basedist,basedistu,basedistd)
-        use module_defs, only: gp
+      subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor, &
+                 nkpt,kpt,wkpt,orbs,simple,basedist,basedistu,basedistd)
+         use module_defs, only: gp
          use module_types
          implicit none
          logical, intent(in) :: simple !< simple calculation of the repartition

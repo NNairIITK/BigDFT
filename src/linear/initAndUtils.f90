@@ -184,6 +184,7 @@ subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locreg
   do jorb=1,orbs%norbp
      jjorb=orbs%isorb+jorb
      jlr=orbs%inWhichLocreg(jjorb)
+     write(*,*) 'iproc, jorb, jjorb, jlr', iproc, jorb, jjorb, jlr
      calculateBounds(jlr)=.true.
   end do
 
@@ -599,7 +600,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
       ityp=astruct%iatype(iat)
       norbsPerAtom(iat)=input%lin%norbsPerType(ityp)
       norbu=norbu+input%lin%norbsPerType(ityp)
-      nlr=nlr+input%lin%norbsPerType(ityp)
+      !nlr=nlr+input%lin%norbsPerType(ityp)
   end do
 
   ! For spin polarized systems, use twice the number of basis functions (i.e. norbd=norbu)
@@ -609,6 +610,8 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
       norbd=norbu
   end if
   norb=norbu+norbd
+
+  nlr=norb
  
   ! Distribute the basis functions among the processors.
   call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
@@ -617,6 +620,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   locregCenter = f_malloc((/ 3, nlr /),id='locregCenter')
 
   
+  ! this loop does not take into account the additional TMBs required for spin polarized systems
   ilr=0
   do iat=1,astruct%nat
       ityp=astruct%iatype(iat)
@@ -626,6 +630,17 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
           ! DEBUGLR write(10,*) iorb,locregCenter(:,ilr)
       end do
   end do
+
+  ! Correction for spin polarized systems. For non polarized systems, norbu=norb and the loop does nothing.
+  do iorb=lorbs%norbu+1,lorbs%norb
+      locregCenter(:,iorb)=locregCenter(:,iorb-lorbs%norbu)
+  end do
+
+  if (iproc==0) then
+      do ilr=1,lorbs%norb
+          write(*,*) 'ilr, locregCenter', ilr, locregCenter(:,ilr)
+      end do
+  end if
  
   norbsPerLocreg = f_malloc(nlr,id='norbsPerLocreg')
   norbsPerLocreg=1 !should be norbsPerLocreg
@@ -669,7 +684,7 @@ subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
   type(local_zone_descriptors), intent(inout) :: lzd
   
   ! Local variables
-  integer :: iat, ityp, ilr, istat, iorb
+  integer :: iat, ityp, ilr, istat, iorb, iilr
   real(kind=8),dimension(:,:), allocatable :: locregCenter
   character(len=*), parameter :: subname='lzd_init_llr'
   real(8):: t1, t2
@@ -684,7 +699,7 @@ subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
 
   lzd%nlr=orbs%norb
 
-  locregCenter = f_malloc((/ 3, lzd%nlr /),id='locregCenter')
+  locregCenter = f_malloc((/ 3, orbs%norbu /),id='locregCenter')
   
   ilr=0
   do iat=1,astruct%nat
@@ -698,13 +713,21 @@ subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
   ! Allocate the array of localisation regions
   allocate(lzd%Llr(lzd%nlr),stat=istat)
   do ilr=1,lzd%nlr
-     lzd%Llr(ilr)=locreg_null()
+     lzd%llr(ilr)=locreg_null()
   end do
+  write(*,*) 'lzd%nlr',lzd%nlr
   do ilr=1,lzd%nlr
-      lzd%llr(ilr)%locrad=input%lin%locrad(ilr)
-      lzd%llr(ilr)%locrad_kernel=input%lin%locrad_kernel(ilr)
-      lzd%llr(ilr)%locrad_mult=input%lin%locrad_mult(ilr)
-      lzd%llr(ilr)%locregCenter=locregCenter(:,ilr)
+      iilr=mod(ilr-1,orbs%norbu)+1 !correct value for a spin polarized system
+      !!write(*,*) 'ilr, iilr', ilr, iilr
+      lzd%llr(ilr)%locrad=input%lin%locrad(iilr)
+      lzd%llr(ilr)%locrad_kernel=input%lin%locrad_kernel(iilr)
+      lzd%llr(ilr)%locrad_mult=input%lin%locrad_mult(iilr)
+      lzd%llr(ilr)%locregCenter=locregCenter(:,iilr)
+      !!if (iproc==0) then
+      !!    write(*,'(a,i3,3x,es10.3,3x,es10.3,3x,es10.3,3x,3es10.3)') 'ilr, locrad, locrad_kernel, locrad_mult, locregCenter', &
+      !!    ilr, lzd%llr(ilr)%locrad, lzd%llr(ilr)%locrad_kernel, &
+      !!    lzd%llr(ilr)%locrad_mult, lzd%llr(ilr)%locregCenter
+      !!end if
   end do
 
   call f_free(locregCenter)

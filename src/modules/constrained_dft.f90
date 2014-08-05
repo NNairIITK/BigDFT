@@ -74,7 +74,8 @@ contains
     call f_routine(id='cdft_data_allocate')
     call sparse_copy_pattern(ham, cdft%weight_matrix, bigdft_mpi%iproc, subname)
     !cdft%weight_matrix_%matrix_compr=f_malloc_ptr(cdft%weight_matrix%nvctr,id='cdft%weight_matrix%matrix_compr')
-    cdft%weight_matrix_%matrix_compr=sparsematrix_malloc_ptr(cdft%weight_matrix,iaction=SPARSE_FULL,id='cdft%weight_matrix%matrix_compr')
+    cdft%weight_matrix_%matrix_compr=sparsematrix_malloc_ptr(cdft%weight_matrix,iaction=SPARSE_FULL, &
+                                                             id='cdft%weight_matrix%matrix_compr')
     call f_release_routine()
 
   end subroutine cdft_data_allocate

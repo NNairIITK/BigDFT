@@ -301,6 +301,7 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
       inWhichLocreg(iorb)=iiat
   end do
 
+
   call f_free(covered)
 
 end subroutine assignToLocreg2
