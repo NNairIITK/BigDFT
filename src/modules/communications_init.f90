@@ -158,7 +158,8 @@ module communications_init
       if (extra_timing) call cpu_time(trt1)   
       if (extra_timing) ttime=real(trt1-trt0,kind=8)
 
-      if (extra_timing.and.iproc==0) print*,'time0,time1',time0,time1,time2,time3,time4,time5,time0+time1+time2+time3+time4+time5,ttime
+      if (extra_timing.and.iproc==0) print*,'time0,time1',time0,time1,time2,time3,time4,time5,&
+           time0+time1+time2+time3+time4+time5,ttime
   
     end subroutine init_comms_linear
 
