@@ -1017,6 +1017,7 @@ contains
       logical :: set_
 
       integer :: j
+      type(dictionary), pointer :: tmp
       character(max_field_length) :: mkey, val_master, val_when
 
       set_ = .true.
@@ -1028,8 +1029,9 @@ contains
          end if
          val_master = dict // mkey
          set_ = .false.
-         do j = 0, dict_len(ref // COND // WHEN) - 1, 1
-            val_when = ref // COND // WHEN // j
+         tmp => ref // COND // WHEN
+         do j = 0, dict_len(tmp) - 1, 1
+            val_when = tmp // j
             set_ = set_ .or. &
                  & (input_keys_equal(trim(val_master), trim(val_when)))
          end do
