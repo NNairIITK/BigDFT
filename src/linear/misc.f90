@@ -674,7 +674,6 @@ subroutine local_potential_dimensions(iproc,Lzd,orbs,xc,ndimfirstproc)
   
   if(Lzd%nlr > 1) then
      ilrtable = f_malloc((/ orbs%norbp, 2 /),id='ilrtable')
-     !call to_zero(orbs%norbp*2,ilrtable(1,1))
      ilrtable=0
      ii=0
      do iorb=1,orbs%norbp
@@ -703,10 +702,16 @@ subroutine local_potential_dimensions(iproc,Lzd,orbs,xc,ndimfirstproc)
      !number of inequivalent potential regions
      nilr = ii
 
+     write(*,*) 'nilr', nilr
+     write(*,*) 'ilrtable',ilrtable
+
      !calculate the dimension of the potential in the gathered form
      lzd%ndimpotisf=0
      do iilr=1,nilr
+        !SM: WARNING: CHECK THIS MODIFCATION @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
         ilr=ilrtable(iilr,1)
+        !ilr=iilr
+        ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
         do iorb=1,orbs%norbp
            !put the starting point
            if (orbs%inWhichLocreg(iorb+orbs%isorb) == ilr) then

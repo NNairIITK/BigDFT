@@ -2216,8 +2216,7 @@ module communications_init
 
 
     !> Potential communication
-
-    subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, comgp)
+    subroutine initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, nspin, comgp)
       use module_base
       use module_types
       use communications_base, only: p2pComms_null
@@ -2228,6 +2227,7 @@ module communications_init
       integer,dimension(0:nproc-1,4),intent(in):: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
       type(orbitals_data),intent(in):: orbs
       type(local_zone_descriptors),intent(in):: lzd
+      integer,intent(in) :: nspin
       type(p2pComms),intent(out):: comgp
       
       ! Local variables
@@ -2236,7 +2236,8 @@ module communications_init
       integer :: is3min, ie3max, tag, ncount, ierr, nmaxoverlap
       logical :: datatype_defined
       character(len=*),parameter:: subname='initialize_communication_potential'
-    
+
+
       call timing(iproc,'init_commPot  ','ON')
       
       !call nullify_p2pComms(comgp)
@@ -2256,7 +2257,7 @@ module communications_init
           ie2=-1000000000
           is3=1000000000
           ie3=-1000000000
-          do iorb=1,orbs%norb_par(jproc,0)
+          do iorb=1,orbs%norbu_par(jproc,0)
               
               iiorb=iiorb+1 
               ilr=orbs%inwhichlocreg(iiorb)
@@ -2466,7 +2467,11 @@ module communications_init
       
       end if nproc_if
     
+      ! This is the size of the communication buffer with out spin
       comgp%nrecvbuf=max(comgp%nrecvbuf,1)
+
+      ! Copy the spin value
+      comgp%nspin=nspin
       
       ! To indicate that no communication is going on.
       comgp%communication_complete=.true.

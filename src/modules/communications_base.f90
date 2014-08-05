@@ -53,6 +53,7 @@ module communications_base
     integer, dimension(:,:), pointer :: ise !< Starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
     integer, dimension(:,:), pointer :: mpi_datatypes
     logical :: communication_complete
+    integer :: nspin !< spin polarization (this information is redundant, just for handyness
   end type p2pComms
 
   !substituted by function mpimaxdiff in wrappers/mpi.f90
@@ -310,7 +311,7 @@ contains
     implicit none
     ! Calling arguments
     type(p2pComms),intent(inout):: comgp
-    comgp%recvBuf = f_malloc_ptr(comgp%nrecvBuf,id='comgp%recvBuf')
+    comgp%recvBuf = f_malloc_ptr(comgp%nrecvBuf*comgp%nspin,id='comgp%recvBuf')
   end subroutine allocate_p2pComms_buffer
   
   

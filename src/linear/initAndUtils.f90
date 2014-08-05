@@ -845,7 +845,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
       call init_comms_linear_sumrho(iproc, nproc, lzd, orbs, nscatterarr, lbcollcom_sr)
   end if
 
-  call initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, lbcomgp)
+  call initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, input%nspin, lbcomgp)
   call allocate_p2pComms_buffer(lbcomgp)
 
   call f_release_routine()
@@ -1709,19 +1709,15 @@ subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero
 
       call f_routine('determine_sparsity_pattern')
     
-      overlapMatrix = f_malloc((/orbs%norb,maxval(orbs%norb_par(:,0))/),id='overlapMatrix')
-      noverlapsarr = f_malloc(orbs%norbp,id='noverlapsarr')
-      !!allocate(overlapMatrix(orbs%norb,maxval(orbs%norb_par(:,0))), stat=istat)
-      !!call memocc(istat, overlapMatrix, 'overlapMatrix', subname)
-      !!allocate(noverlapsarr(orbs%norbp), stat=istat)
-      !!call memocc(istat, noverlapsarr, 'noverlapsarr', subname)
+      overlapMatrix = f_malloc((/orbs%norbu,maxval(orbs%norbu_par(:,0))/),id='overlapMatrix')
+      noverlapsarr = f_malloc(orbs%norbup,id='noverlapsarr')
     
       overlapMatrix=.false.
-      do iorb=1,orbs%norbp
+      do iorb=1,orbs%norbup
          ioverlaporb=0 ! counts the overlaps for the given orbital.
-         iiorb=orbs%isorb+iorb
+         iiorb=orbs%isorbu+iorb
          ilr=orbs%inWhichLocreg(iiorb)
-         do jorb=1,orbs%norb
+         do jorb=1,orbs%norbu
             jlr=orbs%inWhichLocreg(jorb)
             call check_overlap_cubic_periodic(lzd%Glr,lzd%llr(ilr),lzd%llr(jlr),isoverlap)
             if(isoverlap) then
@@ -1745,19 +1741,17 @@ subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero
       end do
 
 
-      overlaps_op = f_malloc((/maxval(noverlapsarr),orbs%norbp/),id='overlaps_op')
-      !allocate(overlaps_op(maxval(noverlapsarr),orbs%norbp), stat=istat)
-      !call memocc(istat, overlaps_op, 'overlaps_op', subname)
+      overlaps_op = f_malloc((/maxval(noverlapsarr),orbs%norbup/),id='overlaps_op')
     
       ! Now we know how many overlaps have to be calculated, so determine which orbital overlaps
       ! with which one. This is essentially the same loop as above, but we use the array 'overlapMatrix'
       ! which indicates the overlaps.
       iiorb=0
       ilrold=-1
-      do iorb=1,orbs%norbp
+      do iorb=1,orbs%norbup
          ioverlaporb=0 ! counts the overlaps for the given orbital.
-         iiorb=orbs%isorb+iorb
-         do jorb=1,orbs%norb
+         iiorb=orbs%isorbu+iorb
+         do jorb=1,orbs%norbu
             if(overlapMatrix(jorb,iorb)) then
                ioverlaporb=ioverlaporb+1
                overlaps_op(ioverlaporb,iorb)=jorb
@@ -1767,16 +1761,16 @@ subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero
 
 
       nnonzero=0
-      do iorb=1,orbs%norbp
+      do iorb=1,orbs%norbup
           nnonzero=nnonzero+noverlapsarr(iorb)
       end do
       nonzero = f_malloc_ptr(nnonzero,id='nonzero')
       ii=0
-      do iorb=1,orbs%norbp
-          iiorb=orbs%isorb+iorb
+      do iorb=1,orbs%norbup
+          iiorb=orbs%isorbu+iorb
           do jorb=1,noverlapsarr(iorb)
               ii=ii+1
-              nonzero(ii)=(iiorb-1)*orbs%norb+overlaps_op(jorb,iorb)
+              nonzero(ii)=(iiorb-1)*orbs%norbu+overlaps_op(jorb,iorb)
           end do
       end do
 
@@ -1810,12 +1804,12 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
   call f_routine('determine_sparsity_pattern_distance')
 
       nnonzero=0
-      do iorb=1,orbs%norbp
-         iiorb=orbs%isorb+iorb
+      do iorb=1,orbs%norbup
+         iiorb=orbs%isorbu+iorb
          ilr=orbs%inwhichlocreg(iiorb)
          iwa=orbs%onwhichatom(iiorb)
          itype=astruct%iatype(iwa)
-         do jjorb=1,orbs%norb
+         do jjorb=1,orbs%norbu
             jlr=orbs%inwhichlocreg(jjorb)
             jwa=orbs%onwhichatom(jjorb)
             jtype=astruct%iatype(jwa)
@@ -1833,12 +1827,12 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
       nonzero = f_malloc_ptr(nnonzero,id='nonzero')
 
       ii=0
-      do iorb=1,orbs%norbp
-         iiorb=orbs%isorb+iorb
+      do iorb=1,orbs%norbup
+         iiorb=orbs%isorbu+iorb
          ilr=orbs%inwhichlocreg(iiorb)
          iwa=orbs%onwhichatom(iiorb)
          itype=astruct%iatype(iwa)
-         do jjorb=1,orbs%norb
+         do jjorb=1,orbs%norbu
             jlr=orbs%inwhichlocreg(jjorb)
             jwa=orbs%onwhichatom(jjorb)
             jtype=astruct%iatype(jwa)
@@ -1849,7 +1843,7 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
             tt=sqrt(tt)
             if (tt<=cut) then
                ii=ii+1
-               nonzero(ii)=(iiorb-1)*orbs%norb+jjorb
+               nonzero(ii)=(iiorb-1)*orbs%norbu+jjorb
             end if
          end do
       end do
@@ -1888,12 +1882,15 @@ subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, s
   end do
 
   if (imode==KEYS) then
+      write(*,*) 'calling pattern'
       call determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
   else if (imode==DISTANCE) then
+      write(*,*) 'calling distance'
       call determine_sparsity_pattern_distance(orbs, lzd, astruct, lzd%llr(:)%locrad_kernel, nnonzero, nonzero)
   else
       stop 'wrong imode'
   end if
+  write(*,*) 'in init_sparse_matrix_wrapper: nnonzero', nnonzero
   call determine_sparsity_pattern_distance(orbs, lzd, astruct, lzd%llr(:)%locrad_mult, nnonzero_mult, nonzero_mult)
   call init_sparse_matrix(iproc, nproc, nspin, orbs%norb, orbs%norbp, orbs%isorb, &
        orbs%norbu, orbs%norbup, orbs%isorbu, store_index, &
@@ -1928,41 +1925,45 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
 
   call f_routine('init_sparse_matrix_for_KSorbs')
 
+  !SM: THIS MUST BE FIXED FOR THE PROPER SPIN TREATMENT !!!!!!!!!!!!!!!!!!!!!!!!
+
   ! First the type for the normal KS orbitals distribution
-  nonzero = f_malloc(orbs%norb*orbs%norbp, id='nonzero')
+  nonzero = f_malloc(orbs%norbu*orbs%norbup, id='nonzero')
   i=0
-  do iorb=1,orbs%norbp
-      iiorb=orbs%isorb+iorb
-      do jorb=1,orbs%norb
+  do iorb=1,orbs%norbup
+      iiorb=orbs%isorbu+iorb
+      do jorb=1,orbs%norbu
           i=i+1
-          ind=(iiorb-1)*orbs%norb+jorb
+          ind=(iiorb-1)*orbs%norbu+jorb
           nonzero(i)=ind
       end do
   end do
+  write(*,*) 'calling from init_sparse_matrix_for_KSorbs'
   call init_sparse_matrix(iproc, nproc, input%nspin, orbs%norb, orbs%norbp, orbs%isorb, &
        orbs%norbu, orbs%norbup, orbs%isorbu, input%store_index, &
-       orbs%norb*orbs%norbp, nonzero, orbs%norb, nonzero, smat, print_info_=.false.)
+       orbs%norbu*orbs%norbup, nonzero, orbs%norbu, nonzero, smat, print_info_=.false.)
   call f_free(nonzero)
 
 
   ! Now the distribution for the KS orbitals including the extr states. Requires
   ! first to calculate a corresponding orbs type.
   call nullify_orbitals_data(orbs_aux)
-  call orbitals_descriptors(iproc, nproc, orbs%norb+nextra, orbs%norb+nextra, 0, input%nspin, orbs%nspinor,&
+  call orbitals_descriptors(iproc, nproc, orbs%norb+nextra, orbs%norbu+nextra, 0, input%nspin, orbs%nspinor,&
        input%gen_nkpt, input%gen_kpt, input%gen_wkpt, orbs_aux, .false.)
-  nonzero = f_malloc(orbs_aux%norb*orbs_aux%norbp, id='nonzero')
+  nonzero = f_malloc(orbs_aux%norbu*orbs_aux%norbup, id='nonzero')
   i=0
-  do iorb=1,orbs_aux%norbp
-      iiorb=orbs_aux%isorb+iorb
-      do jorb=1,orbs_aux%norb
+  do iorb=1,orbs_aux%norbup
+      iiorb=orbs_aux%isorbu+iorb
+      do jorb=1,orbs_aux%norbu
           i=i+1
-          ind=(iiorb-1)*orbs_aux%norb+jorb
+          ind=(iiorb-1)*orbs_aux%norbu+jorb
           nonzero(i)=ind
       end do
   end do
+  write(*,*) 'calling from init_sparse_matrix_for_KSorbs, 2'
   call init_sparse_matrix(iproc, nproc, input%nspin, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
        orbs%norbu, orbs%norbup, orbs%isorbu, input%store_index, &
-       orbs_aux%norb*orbs_aux%norbp, nonzero, orbs_aux%norb, nonzero, smat_extra, print_info_=.false.)
+       orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu, nonzero, smat_extra, print_info_=.false.)
   call f_free(nonzero)
   call deallocate_orbitals_data(orbs_aux)
 

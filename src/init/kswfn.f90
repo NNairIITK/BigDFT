@@ -134,7 +134,7 @@ subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc)
   nullify(wfn%gaucoeffs)
 
   call initialize_communication_potential(iproc, nproc, dpbox%nscatterarr, &
-       & wfn%orbs, wfn%lzd, wfn%comgp)
+       & wfn%orbs, wfn%lzd, dpbox%nrhodim, wfn%comgp)
 
   !call nullify_comms_linear(wfn%collcom)
   !call nullify_comms_linear(wfn%collcom_sr)

@@ -734,7 +734,7 @@ subroutine check_communication_potential(iproc,denspot,tmb)
   type(DFT_local_fields), intent(inout) :: denspot
   !local variables
   logical :: dosome
-  integer :: i1,i2,i3,ind,i3s,n3p,ilr,iorb,ilr_orb,n2i,n1i,ierr,numtot,i_stat,i_all
+  integer :: i1,i2,i3,ind,i3s,n3p,ilr,iorb,ilr_orb,n2i,n1i,ierr,numtot,i_stat,i_all,ishift,ispin
   real(dp) :: maxdiff,sumdiff,testval
   real(dp),parameter :: tol_calculation_mean=1.d-12
   real(dp),parameter :: tol_calculation_max=1.d-10
@@ -750,23 +750,36 @@ subroutine check_communication_potential(iproc,denspot,tmb)
 
   !fill the values of the rhov array
   ind=0
-  do i3=i3s,i3s+n3p-1
-     do i2=1,n2i
-        do i1=1,n1i
-           ind=ind+1
-           denspot%rhov(ind)=real(i1+(i2-1)*n1i+(i3-1)*n1i*n2i,dp)
-        end do
-     end do
+  do ispin=1,denspot%dpbox%nrhodim
+      ishift=(ispin-1)*n1i*n2i*n3p
+      do i3=i3s,i3s+n3p-1
+         do i2=1,n2i
+            do i1=1,n1i
+               ind=ind+1
+               denspot%rhov(ind)=real(ishift+i1+(i2-1)*n1i+(i3-1)*n1i*n2i,dp)
+            end do
+         end do
+      end do
   end do
 
   !calculate the dimensions and communication of the potential element with mpi_get
+  write(*,*) 'denspot%rhov(1:20)',denspot%rhov(1:20)
   call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
-  call start_onesided_communication(bigdft_mpi%iproc, bigdft_mpi%nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
-       tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
+  call start_onesided_communication(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+       max(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,1), denspot%rhov, &
+       tmb%ham_descr%comgp%nspin*tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, &
+       tmb%ham_descr%comgp, tmb%ham_descr%lzd)
 
   !check the fetching of the potential element, destroy the MPI window, results in pot_work
   call full_local_potential(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%orbs,tmb%ham_descr%lzd,&
        2,denspot%dpbox,denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
+  write(1000+iproc,*) 'tmb%ham_descr%comgp%recvbuf',tmb%ham_descr%comgp%recvbuf
+  !write(1100+iproc,*) 'denspot%pot_work',denspot%pot_work
+  write(*,*) 'tmb%ham_descr%comgp%recvbuf(1:20)',tmb%ham_descr%comgp%recvbuf(1:20)
+  write(*,*) 'denspot%pot_work(1:20)',denspot%pot_work(1:20)
+  write(*,*) 'maxval(tmb%ham_descr%comgp%recvbuf)', maxval(tmb%ham_descr%comgp%recvbuf)
+  write(*,*) 'denspot%pot_work(2122617)',denspot%pot_work(2122617)
+
 
   maxdiff=0.0_dp
   sumdiff=0.0_dp
@@ -785,6 +798,7 @@ subroutine check_communication_potential(iproc,denspot,tmb)
         if (ilr_orb /= ilr) cycle loop_orbs
 
         ind=tmb%orbs%ispot(iorb)-1
+        write(*,*) 'iorb, ind', iorb, ind
         do i3=1,tmb%ham_descr%Lzd%Llr(ilr)%d%n3i
            do i2=1,tmb%ham_descr%Lzd%Llr(ilr)%d%n2i
               do i1=1,tmb%ham_descr%Lzd%Llr(ilr)%d%n1i
@@ -792,6 +806,7 @@ subroutine check_communication_potential(iproc,denspot,tmb)
                  testval=real(i1+tmb%ham_descr%Lzd%Llr(ilr)%nsi1+&
                       (i2+tmb%ham_descr%Lzd%Llr(ilr)%nsi2-1)*n1i+&
                       (i3+tmb%ham_descr%Lzd%Llr(ilr)%nsi3-1)*n1i*n2i,dp)
+                 if (iproc==0) write(*,'(a,4i8,2es14.3)') 'i1, i2, i3, ind, val, ref', i1, i2, i3, ind, denspot%pot_work(ind), testval
                  testval=abs(denspot%pot_work(ind)-testval)
                  maxdiff=max(maxdiff,testval)
                  sumdiff=sumdiff+testval
@@ -800,7 +815,7 @@ subroutine check_communication_potential(iproc,denspot,tmb)
            end do
         end do
 
-     enddo loop_orbs
+     end do loop_orbs
 
   end do loop_lr
 
