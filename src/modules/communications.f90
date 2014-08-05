@@ -938,6 +938,7 @@ module communications
       workrecv_int = f_malloc((/ 11, orbs%norb /),id='workrecv_int')
       workrecv_dbl = f_malloc((/ 6, orbs%norb /),id='workrecv_dbl')
     
+      if (iproc==0) write(*,*) 'rootarr',rootarr
     
       iilr=0
       do ilr=1,nlr

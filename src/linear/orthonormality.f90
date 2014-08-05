@@ -513,7 +513,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                   ovrlpminonep => ovrlpminone
               end if
 
-              if (norbp>0) call matrix_minus_identity_dense(ovrlp_smat%nfvctr,isorb,norbp,ovrlp_mat%matrix(1,isorb+1,1),ovrlpminonep)
+              if (norbp>0) call matrix_minus_identity_dense(ovrlp_smat%nfvctr,isorb,norbp, &
+                                ovrlp_mat%matrix(1,isorb+1,1),ovrlpminonep)
 
               !if (nproc>1) then
                   !ovrlppoweroldp = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlppoweroldp')

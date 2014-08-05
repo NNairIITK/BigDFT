@@ -346,9 +346,9 @@ contains
       sparsemat=sparse_matrix_null()
     
       sparsemat%nspin=nspin
-      sparsemat%nfvctr=norb
-      sparsemat%nfvctrp=norbp
-      sparsemat%isfvctr=isorb
+      sparsemat%nfvctr=norbu
+      sparsemat%nfvctrp=norbup
+      sparsemat%isfvctr=isorbu
       sparsemat%nfvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%nfvctr_par')
       sparsemat%isfvctr_par=f_malloc_ptr((/0.to.nproc-1/),id='sparsemat%isfvctr_par')
 
@@ -357,8 +357,8 @@ contains
       call to_zero(nproc, sparsemat%isfvctr_par(0))
       do jproc=0,nproc-1
           if (iproc==jproc) then
-              sparsemat%isfvctr_par(jproc)=isorb
-              sparsemat%nfvctr_par(jproc)=norbp
+              sparsemat%isfvctr_par(jproc)=isorbu
+              sparsemat%nfvctr_par(jproc)=norbup
           end if
       end do
       if (nproc>1) then
@@ -434,6 +434,8 @@ contains
       if (store_index) then
           ! store the indices of the matrices in the sparse format
           sparsemat%store_index=.true.
+
+          write(*,*) 'norbu, size(sparsemat%istsegline)', norbu, size(sparsemat%istsegline)
     
           ! initialize sparsemat%matrixindex_in_compressed
           !$omp parallel do default(private) shared(sparsemat,norbu) 
@@ -550,6 +552,7 @@ contains
       call timing(iproc,'init_matrCompr','OF')
 
 
+      write(*,*) 'at end of init_sparse_matrix'
 
       contains
 

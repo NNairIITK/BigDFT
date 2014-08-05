@@ -382,7 +382,8 @@ subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1
  ! store it in a local region (Lrho).
  indSmall=0
  indSpin=0
- do ispin=1,nspin
+ ! Deactivate the spin for the moment
+ do ispin=1,1!nspin
      !$omp parallel do default(private) shared(Glr,Llr,Lrho,rho,indSpin,i1s,i1e,i2s,i2e,i3s,i3e,ni1,ni2)
      do ii3=i3s,i3e
          i3 = mod(ii3-1,Glr%d%n3i)+1

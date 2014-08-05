@@ -69,11 +69,12 @@ module sparsematrix
       if (sparsemat%parallel_compression==0.or.bigdft_mpi%nproc==1) then
          !$omp parallel default(private) shared(sparsemat,inm,outm)
          do ispin=1,sparsemat%nspin
-             ishift=(ispin-1)*sparsemat%nfvctr
+             ishift=(ispin-1)*sparsemat%nfvctr**2
              !$omp do
              do jj=1,sparsemat%nvctr
                 irow = sparsemat%orb_from_index(1,jj)
                 jcol = sparsemat%orb_from_index(2,jj)
+                write(*,*) 'jj, ishift, jrow, jcol', jj, ishift, irow, jcol
                 outm(jj+ishift)=inm(irow,jcol,ispin)
              end do
              !$omp end do
@@ -226,19 +227,22 @@ module sparsematrix
       do iseg = 1, sparsemat%nseg
          do jorb = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
             call get_indices(jorb,irow,icol)
-            !print *,'irow,icol',irow, icol,test_value_matrix(sparsemat%nfvctr, irow, icol)
+            !print *,'jorb, irow,icol',jorb, irow, icol,test_value_matrix(sparsemat%nfvctr, irow, icol)
             !SM: need to fix spin 
             mat%matrix(irow,icol,1) = test_value_matrix(sparsemat%nfvctr, irow, icol)
          end do
       end do
       
       call compress_matrix(iproc, sparsemat, inmat=mat%matrix, outmat=mat%matrix_compr)
+      !write(*,*) 'mat%matrix',mat%matrix
+      !write(*,*) 'mat%matrix_compr',mat%matrix_compr
     
       maxdiff = 0.d0
       do iseg = 1, sparsemat%nseg
          ii=0
          do jorb = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
             call get_indices(jorb,irow,icol)
+            !write(*,'(a,4i8,2es13.3)') 'jorb, irow, icol, sparsemat%keyv(iseg)+ii, val, ref', jorb, irow, icol, sparsemat%keyv(iseg)+ii, mat%matrix_compr(sparsemat%keyv(iseg)+ii), test_value_matrix(sparsemat%nfvctr, irow, icol)
             maxdiff = max(abs(mat%matrix_compr(sparsemat%keyv(iseg)+ii)&
                  -test_value_matrix(sparsemat%nfvctr, irow, icol)),maxdiff)
             ii=ii+1
