@@ -38,12 +38,12 @@ module sparsematrix
       ! Calling arguments
       integer, intent(in) :: iproc
       type(sparse_matrix),intent(inout) :: sparsemat
-      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr),target,intent(in) :: inmat
-      real(kind=8),dimension(sparsemat%nvctr),target,intent(out) :: outmat
+      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),target,intent(in) :: inmat
+      real(kind=8),dimension(sparsemat%nvctr*sparsemat%nspin),target,intent(out) :: outmat
     
       ! Local variables
-      integer :: jj, irow, jcol, jjj, ierr
-      real(kind=8),dimension(:,:),pointer :: inm
+      integer :: jj, irow, jcol, jjj, ierr, ishift, ispin
+      real(kind=8),dimension(:,:,:),pointer :: inm
       real(kind=8),dimension(:),pointer :: outm
 
       !if (present(outmat)) then
@@ -67,13 +67,18 @@ module sparsematrix
       call timing(iproc,'compress_uncom','ON')
     
       if (sparsemat%parallel_compression==0.or.bigdft_mpi%nproc==1) then
-         !$omp parallel do default(private) shared(sparsemat,inm,outm)
-         do jj=1,sparsemat%nvctr
-            irow = sparsemat%orb_from_index(1,jj)
-            jcol = sparsemat%orb_from_index(2,jj)
-            outm(jj)=inm(irow,jcol)
+         !$omp parallel default(private) shared(sparsemat,inm,outm)
+         do ispin=1,sparsemat%nspin
+             ishift=(ispin-1)*sparsemat%nfvctr
+             !$omp do
+             do jj=1,sparsemat%nvctr
+                irow = sparsemat%orb_from_index(1,jj)
+                jcol = sparsemat%orb_from_index(2,jj)
+                outm(jj+ishift)=inm(irow,jcol,ispin)
+             end do
+             !$omp end do
          end do
-         !$omp end parallel do
+         !$omp end parallel
       else if (sparsemat%parallel_compression==1) then
          stop 'this needs to be fixed'
          !!#call to_zero(sparsemat%nvctr, sparsemat%matrix_compr(1))
@@ -119,13 +124,13 @@ module sparsematrix
       ! Calling arguments
       integer, intent(in) :: iproc
       type(sparse_matrix), intent(inout) :: sparsemat
-      real(kind=8),dimension(sparsemat%nvctr),target,intent(out) :: inmat
-      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr),target,intent(out) :: outmat
+      real(kind=8),dimension(sparsemat%nvctr*sparsemat%nspin),target,intent(out) :: inmat
+      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),target,intent(out) :: outmat
       
       ! Local variables
-      integer :: ii, irow, jcol, iii, ierr
+      integer :: ii, irow, jcol, iii, ierr, ishift, ispin
       real(kind=8),dimension(:),pointer :: inm
-      real(kind=8),dimension(:,:),pointer :: outm
+      real(kind=8),dimension(:,:,:),pointer :: outm
 
       !!if (present(outmat)) then
       !!    if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
@@ -148,14 +153,19 @@ module sparsematrix
       call timing(iproc,'compress_uncom','ON')
     
       if (sparsemat%parallel_compression==0.or.bigdft_mpi%nproc==1) then
-         call to_zero(sparsemat%nfvctr**2, outm(1,1))
-         !$omp parallel do default(private) shared(sparsemat,inm,outm)
-         do ii=1,sparsemat%nvctr
-            irow = sparsemat%orb_from_index(1,ii)
-            jcol = sparsemat%orb_from_index(2,ii)
-            outm(irow,jcol)=inm(ii)
+         call to_zero(sparsemat%nfvctr**2*sparsemat%nspin, outm(1,1,1))
+         !$omp parallel default(private) shared(sparsemat,inm,outm)
+         do ispin=1,sparsemat%nspin
+             ishift=(ispin-1)*sparsemat%nvctr
+             !$omp do
+             do ii=1,sparsemat%nvctr
+                irow = sparsemat%orb_from_index(1,ii)
+                jcol = sparsemat%orb_from_index(2,ii)
+                outm(irow,jcol,ispin)=inm(ii+ishift)
+             end do
+             !$omp end do
          end do
-         !$omp end parallel do
+         !$omp end parallel
       else if (sparsemat%parallel_compression==1) then
          stop 'needs to be fixed'
          !!call to_zero(sparsemat%nfvctr**2, sparsemat%matrix(1,1))
@@ -212,12 +222,13 @@ module sparsematrix
     
       mat%matrix = sparsematrix_malloc_ptr(sparsemat, iaction=DENSE_FULL, id='mat%matrix')
     
-      call to_zero(sparsemat%nfvctr**2,mat%matrix(1,1))
+      call to_zero(sparsemat%nfvctr**2*sparsemat%nspin,mat%matrix(1,1,1))
       do iseg = 1, sparsemat%nseg
          do jorb = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
             call get_indices(jorb,irow,icol)
             !print *,'irow,icol',irow, icol,test_value_matrix(sparsemat%nfvctr, irow, icol)
-            mat%matrix(irow,icol) = test_value_matrix(sparsemat%nfvctr, irow, icol)
+            !SM: need to fix spin 
+            mat%matrix(irow,icol,1) = test_value_matrix(sparsemat%nfvctr, irow, icol)
          end do
       end do
       
@@ -250,7 +261,7 @@ module sparsematrix
       do iseg = 1, sparsemat%nseg
          do jorb = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
             call get_indices(jorb,irow,icol)
-            maxdiff = max(abs(mat%matrix(irow,icol)-test_value_matrix(sparsemat%nfvctr, irow, icol)),maxdiff) 
+            maxdiff = max(abs(mat%matrix(irow,icol,1)-test_value_matrix(sparsemat%nfvctr, irow, icol)),maxdiff) 
          end do
       end do
     

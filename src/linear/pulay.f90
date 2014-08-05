@@ -117,7 +117,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
           iat=tmb%orbs%onwhichatom(iiorb)
           tt=0.d0
           do jorb=1,tmb%orbs%norb
-              tt = tt -2.d0*tmb%linmat%kernel_%matrix(jorb,iiorb)*tmb%linmat%ham_%matrix(jorb,iiorb)
+              tt = tt -2.d0*tmb%linmat%kernel_%matrix(jorb,iiorb,1)*tmb%linmat%ham_%matrix(jorb,iiorb,1)
               !if (iproc==0) write(*,*) 'kern, ovrlp', tmb%linmat%denskern%matrix(jorb,iiorb), tmb%linmat%ham%matrix(iiorb,jorb)
           end do  
           fpulay(idir,iat)=fpulay(idir,iat)+tt
@@ -177,7 +177,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       denskern_tmp=f_malloc(tmb%linmat%l%nvctr,id='denskern_tmp')
       denskern_tmp=tmb%linmat%kernel_%matrix_compr
       tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
-      tmb%linmat%kernel_%matrix=tempmat
+      tmb%linmat%kernel_%matrix(:,:,1)=tempmat
       call compress_matrix(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
       call f_free_ptr(tmb%linmat%kernel_%matrix)
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &

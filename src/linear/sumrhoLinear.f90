@@ -242,13 +242,13 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
          end do
          sendcount=orbs_tmb%norb*orbs_tmb%norbp
          call mpi_allgatherv(density_kernel_partial(1,1), sendcount, mpi_double_precision, &
-              denskern_%matrix(1,1), recvcounts, dspls, mpi_double_precision, &
+              denskern_%matrix(1,1,1), recvcounts, dspls, mpi_double_precision, &
               bigdft_mpi%mpi_comm, ierr)
          call f_free(recvcounts)
          call f_free(dspls)
          call timing(iproc,'commun_kernel','OF') !lr408t
       else
-         call vcopy(orbs_tmb%norb*orbs_tmb%norbp,density_kernel_partial(1,1),1,denskern_%matrix(1,1),1)
+         call vcopy(orbs_tmb%norb*orbs_tmb%norbp,density_kernel_partial(1,1),1,denskern_%matrix(1,1,1),1)
       end if
 
       call f_free(density_kernel_partial)
@@ -278,10 +278,10 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
              end do
           end if
           call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), orbs_tmb%norb, &
-               fcoeff(1,1), orbs_tmb%norb, 0.d0, denskern_%matrix(1,1), orbs_tmb%norb)
+               fcoeff(1,1), orbs_tmb%norb, 0.d0, denskern_%matrix(1,1,1), orbs_tmb%norb)
           call f_free(fcoeff)
       else
-          call to_zero(orbs_tmb%norb**2, denskern_%matrix(1,1))
+          call to_zero(orbs_tmb%norb**2, denskern_%matrix(1,1,1))
       end if
       call timing(iproc,'calc_kernel','OF') !lr408t
 

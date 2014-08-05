@@ -18,7 +18,7 @@ module sparsematrix_base
   !> Contains the matrices
   type,public :: matrices
       real(kind=8),dimension(:),pointer :: matrix_compr,matrix_comprp
-      real(kind=8),dimension(:,:),pointer :: matrix,matrixp
+      real(kind=8),dimension(:,:,:),pointer :: matrix,matrixp
   end type matrices
 
   !> Contains the parameters needed for the sparse matrix matrix multiplication
@@ -65,10 +65,10 @@ module sparsematrix_base
 
 
   interface assignment(=)
-     module procedure allocate_smat_d1_ptr,allocate_smat_d2_ptr, &
-                      allocate_smat_d1,allocate_smat_d2, &
-                      allocate0_smat_d1_ptr,allocate0_smat_d2_ptr, &
-                      allocate0_smat_d1,allocate0_smat_d2
+     module procedure allocate_smat_d1_ptr,allocate_smat_d2_ptr,allocate_smat_d3_ptr, &
+                      allocate_smat_d1,allocate_smat_d2,allocate_smat_d3, &
+                      allocate0_smat_d1_ptr,allocate0_smat_d2_ptr,allocate0_smat_d3_ptr,&
+                      allocate0_smat_d1,allocate0_smat_d2,allocate0_smat_d3
   end interface
 
 
@@ -287,6 +287,23 @@ module sparsematrix_base
               err_name='BIGDFT_RUNTIME_ERROR')
       end select
     end subroutine allocate_smat_d2_ptr
+    
+
+    subroutine allocate_smat_d3_ptr(smat_ptr,smat_info_ptr)
+      implicit none
+      double precision,dimension(:,:,:),pointer,intent(inout) :: smat_ptr
+      type(sparse_matrix_info_ptr), intent(in) :: smat_info_ptr
+
+      select case (smat_info_ptr%iaction)
+      case (DENSE_FULL)
+          smat_ptr = f_malloc_ptr((/smat_info_ptr%smat%nfvctr,smat_info_ptr%smat%nfvctr,smat_info_ptr%smat%nspin/),id=smat_info_ptr%id)
+      case (DENSE_PARALLEL)
+          smat_ptr = f_malloc_ptr((/smat_info_ptr%smat%nfvctr,smat_info_ptr%smat%nfvctrp,smat_info_ptr%smat%nspin/),id=smat_info_ptr%id)
+      case default
+         call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
+              err_name='BIGDFT_RUNTIME_ERROR')
+      end select
+    end subroutine allocate_smat_d3_ptr
 
 
     subroutine allocate_smat_d1(smat,smat_info)
@@ -325,6 +342,23 @@ module sparsematrix_base
     end subroutine allocate_smat_d2
 
 
+    subroutine allocate_smat_d3(smat,smat_info)
+      implicit none
+      double precision,dimension(:,:,:),allocatable,intent(inout) :: smat
+      type(sparse_matrix_info), intent(in) :: smat_info
+
+      select case (smat_info%iaction)
+      case (DENSE_FULL)
+          smat = f_malloc((/smat_info%smat%nfvctr,smat_info%smat%nfvctr,smat_info%smat%nspin/),id=smat_info%id)
+      case (DENSE_PARALLEL)
+          smat = f_malloc((/smat_info%smat%nfvctr,smat_info%smat%nfvctrp,smat_info%smat%nspin/),id=smat_info%id)
+      case default
+         call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
+              err_name='BIGDFT_RUNTIME_ERROR')
+      end select
+    end subroutine allocate_smat_d3
+
+
     subroutine allocate0_smat_d1_ptr(smat_ptr,smat_info0_ptr)
       implicit none
       double precision,dimension(:),pointer,intent(inout) :: smat_ptr
@@ -359,6 +393,23 @@ module sparsematrix_base
               err_name='BIGDFT_RUNTIME_ERROR')
       end select
     end subroutine allocate0_smat_d2_ptr
+    
+
+    subroutine allocate0_smat_d3_ptr(smat_ptr,smat_info0_ptr)
+      implicit none
+      double precision,dimension(:,:,:),pointer,intent(inout) :: smat_ptr
+      type(sparse_matrix_info0_ptr), intent(in) :: smat_info0_ptr
+
+      select case (smat_info0_ptr%iaction)
+      case (DENSE_FULL)
+          smat_ptr = f_malloc0_ptr((/smat_info0_ptr%smat%nfvctr,smat_info0_ptr%smat%nfvctr,smat_info0_ptr%smat%nspin/),id=smat_info0_ptr%id)
+      case (DENSE_PARALLEL)
+          smat_ptr = f_malloc0_ptr((/smat_info0_ptr%smat%nfvctr,smat_info0_ptr%smat%nfvctrp,smat_info0_ptr%smat%nspin/),id=smat_info0_ptr%id)
+      case default
+         call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
+              err_name='BIGDFT_RUNTIME_ERROR')
+      end select
+    end subroutine allocate0_smat_d3_ptr
 
 
     subroutine allocate0_smat_d1(smat,smat_info0)
@@ -396,6 +447,22 @@ module sparsematrix_base
       end select
     end subroutine allocate0_smat_d2
 
+
+    subroutine allocate0_smat_d3(smat,smat_info0)
+      implicit none
+      double precision,dimension(:,:,:),allocatable,intent(inout) :: smat
+      type(sparse_matrix_info0), intent(in) :: smat_info0
+
+      select case (smat_info0%iaction)
+      case (DENSE_FULL)
+          smat = f_malloc0((/smat_info0%smat%nfvctr,smat_info0%smat%nfvctr,smat_info0%smat%nspin/),id=smat_info0%id)
+      case (DENSE_PARALLEL)
+          smat = f_malloc0((/smat_info0%smat%nfvctr,smat_info0%smat%nfvctrp,smat_info0%smat%nspin/),id=smat_info0%id)
+      case default
+          call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
+               err_name='BIGDFT_RUNTIME_ERROR')
+      end select
+    end subroutine allocate0_smat_d3
 
 
     function sparsematrix_malloc_ptr(smat, iaction, id) result(smat_info_ptr)

@@ -1131,7 +1131,8 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   use module_types
   use module_interfaces, except_this_one => loewdin_charge_analysis
   use communications, only: transpose_localized
-  use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
+  use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, sparsematrix_malloc0, sparsematrix_malloc_ptr, &
+                               DENSE_FULL, assignment(=), &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: compress_matrix, uncompress_matrix
   use yaml_output
@@ -1146,7 +1147,8 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   !local variables
   !integer :: ifrag,ifrag_ref,isforb,jorb
   integer :: iorb,ierr
-  real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
+  real(kind=gp), allocatable, dimension(:,:,:) :: proj_mat
+  real(kind=gp), allocatable, dimension(:,:) :: proj_ovrlp_half, weight_matrixp
   character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
   real(kind=gp) :: max_error, mean_error
   type(matrices) :: inv_ovrlp
@@ -1219,9 +1221,8 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   end if
 
   ! optimize this to just change the matrix multiplication?
-  proj_mat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_mat')
+  proj_mat = sparsematrix_malloc0(tmb%linmat%l,iaction=DENSE_FULL,id='proj_mat')
 
-  call to_zero(tmb%orbs%norb**2,proj_mat(1,1))
   call uncompress_matrix(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix_compr, outmat=proj_mat)
   !!isforb=0
   !!do ifrag=1,input%frag%nfrag
@@ -1245,8 +1246,8 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   if (tmb%orbs%norbp>0) then
      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
             tmb%orbs%norb, 1.d0, &
-            proj_mat(1,1), tmb%orbs%norb, &
-            inv_ovrlp%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, 0.d0, &
+            proj_mat(1,1,1), tmb%orbs%norb, &
+            inv_ovrlp%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, 0.d0, &
             proj_ovrlp_half(1,1), tmb%orbs%norb)
   end if
   call f_free(proj_mat)
@@ -1254,7 +1255,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   if (tmb%orbs%norbp>0) then
      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
           tmb%orbs%norb, 1.d0, &
-          inv_ovrlp%matrix(1,1), tmb%orbs%norb, &
+          inv_ovrlp%matrix(1,1,1), tmb%orbs%norb, &
           proj_ovrlp_half(1,1), tmb%orbs%norb, 0.d0, &
           weight_matrixp(1,1), tmb%orbs%norb)
   end if

@@ -3579,15 +3579,15 @@ module module_interfaces
         end subroutine overlapPowerGeneral
 
 
-        subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_ovrlp_half,smat)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: nproc,norb,blocksize
-          real(kind=8),dimension(:,:),pointer :: inv_ovrlp_half
-          logical, intent(in) :: plusminus
-          type(sparse_matrix),intent(in) :: smat
-        end subroutine overlap_plus_minus_one_half_exact
+        !!subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_ovrlp_half,smat)
+        !!  use module_base
+        !!  use module_types
+        !!  implicit none
+        !!  integer,intent(in) :: nproc,norb,blocksize
+        !!  real(kind=8),dimension(:,:),pointer :: inv_ovrlp_half
+        !!  logical, intent(in) :: plusminus
+        !!  type(sparse_matrix),intent(in) :: smat
+        !!end subroutine overlap_plus_minus_one_half_exact
 
         subroutine input_wf_memory_new(nproc,iproc, atoms, &
                  rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old,lzd_old, &
@@ -4081,7 +4081,7 @@ module module_interfaces
         end subroutine overlap_minus_one_half_serial
 
         subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_charged,ifrag_charged,tmb,input,ref_frags,&
-             calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap,ovrlp_half)
+             calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
           use module_defs, only: gp
           use module_types
           use module_fragments
@@ -4094,13 +4094,9 @@ module module_interfaces
           type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
           integer, intent(in) :: nfrag_charged, meth_overlap
           integer, dimension(2), intent(in) :: ifrag_charged
-          real(kind=gp), dimension(:,:), pointer :: ovrlp_half
           !local variables
           integer :: ifrag,iorb,ifrag_ref,isforb,istat,ierr
           real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
-          character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
-          real(kind=gp) :: error
-          type(matrices) :: inv_ovrlp
         end subroutine calculate_weight_matrix_lowdin
 
         subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,denspot)

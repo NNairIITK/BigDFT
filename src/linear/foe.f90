@@ -194,7 +194,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           calculate_SHS=.true.
     
           if (tmb%orbs%norbp>0) then
-              call to_zero(tmb%orbs%norb*tmb%orbs%norbp, tmb%linmat%kernel_%matrixp(1,1))
+              call to_zero(tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctrp*tmb%linmat%l%nspin,tmb%linmat%kernel_%matrixp(1,1,1))
           end if
     
           if (iproc==0) then
@@ -504,7 +504,8 @@ subroutine foe(iproc, nproc, tmprtr, &
                   diff=0.d0
                   do iorb=1,tmb%orbs%norbp
                       do jorb=1,tmb%orbs%norb
-                          diff = diff + (tmb%linmat%kernel_%matrixp(jorb,iorb)-fermip_check(jorb,iorb))**2
+                          !SM: need to fix the spin here
+                          diff = diff + (tmb%linmat%kernel_%matrixp(jorb,iorb,1)-fermip_check(jorb,iorb))**2
                       end do
                   end do
 

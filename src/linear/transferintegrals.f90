@@ -297,7 +297,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovr
   if (orbs%norbp>0) then
      do istate=1,nstates
         call dgemm('n', 'n', orbs%norbp, 1, orbs%norb, 1.d0, &
-             ham_mat%matrix(orbs%isorb+1,1),orbs%norb, &
+             ham_mat%matrix(orbs%isorb+1,1,1),orbs%norb, &
              homo_coeffs1(1,istate), orbs%norb, 0.d0, &
              coeff_tmp(1,istate), orbs%norbp)
         call dgemm('t', 'n', 1, 1, orbs%norbp, 1.d0, homo_coeffs2(orbs%isorb+1,istate), &
@@ -318,7 +318,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovr
 
   if (orbs%norbp>0) then
      do istate=1,nstates
-        call dgemm('n', 'n', orbs%norbp, 1, orbs%norb, 1.d0, ovrlp_mat%matrix(orbs%isorb+1,1), &
+        call dgemm('n', 'n', orbs%norbp, 1, orbs%norb, 1.d0, ovrlp_mat%matrix(orbs%isorb+1,1,1), &
              orbs%norb, homo_coeffs1(1,istate), orbs%norb, 0.d0, coeff_tmp(1,istate), orbs%norbp)
         call dgemm('t', 'n', 1, 1, orbs%norbp, 1.d0, homo_coeffs2(orbs%isorb+1,istate), &
              orbs%norb, coeff_tmp(1,istate), orbs%norbp, 0.d0, homo_ovrlp(istate), 1)

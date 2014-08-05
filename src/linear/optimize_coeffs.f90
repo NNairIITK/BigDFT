@@ -395,7 +395,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   do ifrag=1,input%frag%nfrag
      ifrag_charged(1)=ifrag
      call calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,1,ifrag_charged,tmb,input,ref_frags,&
-          .false.,.true.,input%lin%order_taylor,inv_ovrlp%matrix)
+          .false.,.true.,input%lin%order_taylor)
      weight_matrix_%matrix=f_malloc_ptr((/weight_matrix%nfvctr,weight_matrix%nfvctr/), id='weight_matrix%matrix')
      call uncompress_matrix(iproc,weight_matrix,weight_matrix_%matrix_compr,weight_matrix_%matrix)
      !call calculate_coeffMatcoeff(nproc,weight_matrix%matrix,tmb%orbs,ksorbs,tmb%coeff,weight_coeff(1,1,ifrag))
@@ -1037,8 +1037,8 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
 
   if (tmb%orbs%norbp>0) then
      call dgemm('t', 'n', tmb%orbs%norbp, tmb%orbs%norb, tmb%orbs%norb, -1.d0, &
-          tmb%linmat%ovrlp_%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
-          tmb%linmat%kernel_%matrix(1,1), tmb%orbs%norb, 1.d0, sk, tmb%orbs%norbp)
+          tmb%linmat%ovrlp_%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, &
+          tmb%linmat%kernel_%matrix(1,1,1), tmb%orbs%norb, 1.d0, sk, tmb%orbs%norbp)
   end if
 
   ! coeffs and therefore kernel will change, so no need to keep it
@@ -1048,7 +1048,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
 
   ! multiply by H to get (I_ab - S_ag K^gb) H_bd, or in this case the transpose of the above
   if (tmb%orbs%norbp>0) then
-     call dgemm('t', 't', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, tmb%linmat%ham_%matrix(1,1), &
+     call dgemm('t', 't', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, tmb%linmat%ham_%matrix(1,1,1), &
           tmb%orbs%norb, sk(1,1), tmb%orbs%norbp, 0.d0, skhp(1,1), tmb%orbs%norb)
   end if
 
@@ -1250,7 +1250,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
 
      call timing(iproc,'dirmin_dgesv','ON')
      if (KSorbs%norbp>0) then
-        call dgemm('n', 'n', tmb%orbs%norb, KSorbs%norbp, tmb%orbs%norb, 1.d0, inv_ovrlp_%matrix(1,1), &
+        call dgemm('n', 'n', tmb%orbs%norb, KSorbs%norbp, tmb%orbs%norb, 1.d0, inv_ovrlp_%matrix(1,1,1), &
              tmb%orbs%norb, grad_cov(1,1), tmb%orbs%norb, 0.d0, grad(1,1), tmb%orbs%norb)
      end if
      call f_free_ptr(inv_ovrlp)
@@ -1343,8 +1343,8 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
 
   if (tmb%orbs%norbp>0) then
      call dgemm('t', 'n', tmb%orbs%norbp, tmb%orbs%norb, tmb%orbs%norb, -1.d0, &
-          tmb%linmat%ovrlp_%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
-          tmb%linmat%kernel_%matrix(1,1), tmb%orbs%norb, 1.d0, sk, tmb%orbs%norbp)
+          tmb%linmat%ovrlp_%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, &
+          tmb%linmat%kernel_%matrix(1,1,1), tmb%orbs%norb, 1.d0, sk, tmb%orbs%norbp)
   end if
 
   ! coeffs and therefore kernel will change, so no need to keep it
@@ -1354,7 +1354,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
 
   ! multiply by H to get (I_ab - S_ag K^gb) H_bd, or in this case the transpose of the above
   if (tmb%orbs%norbp>0) then
-     call dgemm('t', 't', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, tmb%linmat%ham_%matrix(1,1), &
+     call dgemm('t', 't', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, tmb%linmat%ham_%matrix(1,1,1), &
           tmb%orbs%norb, sk(1,1), tmb%orbs%norbp, 0.d0, skhp(1,1), tmb%orbs%norb)
   end if
 
@@ -1415,7 +1415,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
      call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
      if (tmb%orbs%norbp>0) then
-        call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, inv_ovrlp_%matrix(1,1), &
+        call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, inv_ovrlp_%matrix(1,1,1), &
              tmb%orbs%norb, grad_cov(1,1), tmb%orbs%norb, 0.d0, grad(1,1), tmb%orbs%norb)
      end if
      !!call f_free_ptr(inv_ovrlp)
