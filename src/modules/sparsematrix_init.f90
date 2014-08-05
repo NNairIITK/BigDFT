@@ -313,14 +313,14 @@ contains
 
 
     !> Currently assuming square matrices
-    subroutine init_sparse_matrix(iproc, nproc, norb, norbp, isorb, store_index, &
+    subroutine init_sparse_matrix(iproc, nproc, nspin, norb, norbp, isorb, norbu, norbup, isorbu, store_index, &
                nnonzero, nonzero, nnonzero_mult, nonzero_mult, sparsemat, &
                allocate_full_, print_info_)
       use yaml_output
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nnonzero, nnonzero_mult
+      integer,intent(in) :: iproc, nproc, nspin, norb, norbp, isorb, norbu, norbup, isorbu, nnonzero, nnonzero_mult
       logical,intent(in) :: store_index
       integer,dimension(nnonzero),intent(in) :: nonzero
       integer,dimension(nnonzero_mult),intent(in) :: nonzero_mult
@@ -345,6 +345,7 @@ contains
     
       sparsemat=sparse_matrix_null()
     
+      sparsemat%nspin=nspin
       sparsemat%nfvctr=norb
       sparsemat%nfvctrp=norbp
       sparsemat%isfvctr=isorb
@@ -365,16 +366,16 @@ contains
           call mpiallred(sparsemat%nfvctr_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
       end if
 
-      call allocate_sparse_matrix_basic(store_index, norb, nproc, sparsemat)
+      call allocate_sparse_matrix_basic(store_index, norbu, nproc, sparsemat)
     
 
       sparsemat%nseg=0
       sparsemat%nvctr=0
       sparsemat%nsegline=0
-      do iorb=1,norbp
-          iiorb=isorb+iorb
+      do iorb=1,norbup
+          iiorb=isorbu+iorb
           call create_lookup_table(nnonzero, nonzero, iiorb)
-          call nseg_perline(norb, lut, sparsemat%nseg, sparsemat%nvctr, sparsemat%nsegline(iiorb))
+          call nseg_perline(norbu, lut, sparsemat%nseg, sparsemat%nvctr, sparsemat%nsegline(iiorb))
       end do
 
       if (nproc>1) then
@@ -391,9 +392,9 @@ contains
 
     
       if (iproc==0 .and. print_info) then
-          call yaml_map('total elements',norb**2)
+          call yaml_map('total elements',norbu**2)
           call yaml_map('non-zero elements',sparsemat%nvctr)
-          call yaml_map('sparsity in %',1.d2*dble(norb**2-sparsemat%nvctr)/dble(norb**2),fmt='(f5.2)')
+          call yaml_map('sparsity in %',1.d2*dble(norbu**2-sparsemat%nvctr)/dble(norbu**2),fmt='(f5.2)')
       end if
     
       call allocate_sparse_matrix_keys(sparsemat)
@@ -402,10 +403,10 @@ contains
 
       ivctr=0
       sparsemat%keyg=0
-      do iorb=1,norbp
-          iiorb=isorb+iorb
+      do iorb=1,norbup
+          iiorb=isorbu+iorb
           call create_lookup_table(nnonzero, nonzero, iiorb)
-          call keyg_per_line(norb, sparsemat%nseg, iiorb, sparsemat%istsegline(iiorb), &
+          call keyg_per_line(norbu, sparsemat%nseg, iiorb, sparsemat%istsegline(iiorb), &
                lut, ivctr, sparsemat%keyg)
       end do
     
@@ -435,10 +436,10 @@ contains
           sparsemat%store_index=.true.
     
           ! initialize sparsemat%matrixindex_in_compressed
-          !$omp parallel do default(private) shared(sparsemat,norb) 
-          do iorb=1,norb
-             do jorb=1,norb
-                sparsemat%matrixindex_in_compressed_arr(iorb,jorb)=compressed_index(iorb,jorb,norb,sparsemat)
+          !$omp parallel do default(private) shared(sparsemat,norbu) 
+          do iorb=1,norbu
+             do jorb=1,norbu
+                sparsemat%matrixindex_in_compressed_arr(iorb,jorb)=compressed_index(iorb,jorb,norbu,sparsemat)
              end do
           end do
           !$omp end parallel do
@@ -488,36 +489,36 @@ contains
       sparsemat%can_use_dense=.false.
 
 
-      nsegline_mult = f_malloc0(norb,id='nsegline_mult')
-      istsegline_mult = f_malloc(norb,id='istsegline_mult')
+      nsegline_mult = f_malloc0(norbu,id='nsegline_mult')
+      istsegline_mult = f_malloc(norbu,id='istsegline_mult')
       nseg_mult=0
       nvctr_mult=0
-      do iorb=1,norbp
-          iiorb=isorb+iorb
+      do iorb=1,norbup
+          iiorb=isorbu+iorb
           call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb)
-          call nseg_perline(norb, lut, nseg_mult, nvctr_mult, nsegline_mult(iiorb))
+          call nseg_perline(norbu, lut, nseg_mult, nvctr_mult, nsegline_mult(iiorb))
       end do
       if (nproc>1) then
           call mpiallred(nvctr_mult, 1, mpi_sum, bigdft_mpi%mpi_comm)
           call mpiallred(nseg_mult, 1, mpi_sum, bigdft_mpi%mpi_comm)
-          call mpiallred(nsegline_mult(1), norb, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(nsegline_mult(1), norbu, mpi_sum, bigdft_mpi%mpi_comm)
       end if
 
 
 
       ! Initialize istsegline, which gives the first segment of each line
       istsegline_mult(1)=1
-      do iorb=2,norb
+      do iorb=2,norbu
           istsegline_mult(iorb) = istsegline_mult(iorb-1) + nsegline_mult(iorb-1)
       end do
 
       keyg_mult = f_malloc0((/2,nseg_mult/),id='keyg_mult')
 
       ivctr_mult=0
-      do iorb=1,norbp
-         iiorb=isorb+iorb
+      do iorb=1,norbup
+         iiorb=isorbu+iorb
          call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb)
-         call keyg_per_line(norb, nseg_mult, iiorb, istsegline_mult(iiorb), &
+         call keyg_per_line(norbu, nseg_mult, iiorb, istsegline_mult(iiorb), &
               lut, ivctr_mult, keyg_mult)
       end do
       ! check whether the number of elements agrees
@@ -538,7 +539,7 @@ contains
 
 
       ! Initialize the parameters for the spare matrix matrix multiplication
-      call init_sparse_matrix_matrix_multiplication(norb, norbp, isorb, nseg_mult, &
+      call init_sparse_matrix_matrix_multiplication(norbu, norbup, isorbu, nseg_mult, &
                nsegline_mult, istsegline_mult, keyg_mult, sparsemat)
 
       call f_free(nsegline_mult)
@@ -563,12 +564,12 @@ contains
           integer :: ist, iend, i, jjorb
 
           lut = .false.
-          ist=(iiorb-1)*norb+1
-          iend=iiorb*norb
+          ist=(iiorb-1)*norbu+1
+          iend=iiorb*norbu
           do i=1,nnonzero
               if (nonzero(i)<ist) cycle
               if (nonzero(i)>iend) exit
-              jjorb=mod(nonzero(i)-1,norb)+1
+              jjorb=mod(nonzero(i)-1,norbu)+1
               lut(jjorb)=.true.
           end do
         end subroutine create_lookup_table

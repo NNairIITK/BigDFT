@@ -45,7 +45,7 @@ subroutine calculate_weight_matrix_lowdin_wrapper(cdft,tmb,input,ref_frags,calcu
 
   ovrlp_half=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp_half')
   call calculate_weight_matrix_lowdin(cdft%weight_matrix,cdft%weight_matrix_,nfrag_charged,cdft%ifrag_charged,tmb,input,&
-       ref_frags,calculate_overlap_matrix,.true.,meth_overlap,ovrlp_half)
+       ref_frags,calculate_overlap_matrix,.true.,meth_overlap)
   call f_free_ptr(ovrlp_half)
 
   call f_release_routine()
@@ -54,7 +54,7 @@ end subroutine calculate_weight_matrix_lowdin_wrapper
 
 
 subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_charged,ifrag_charged,tmb,input,ref_frags,&
-     calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap,ovrlp_half)
+     calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
   use module_base
   use module_types
   use module_fragments
@@ -73,7 +73,6 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
   type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
   integer, intent(in) :: nfrag_charged, meth_overlap
   integer, dimension(2), intent(in) :: ifrag_charged
-  real(kind=gp), dimension(:,:), pointer :: ovrlp_half
   !local variables
   integer :: ifrag,iorb,ifrag_ref,isforb,ierr
   real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
@@ -100,9 +99,6 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
 
      call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
-     ! This can then be deleted if the transition to the new type has been completed.
-     !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
-
   end if   
 
   if (calculate_ovrlp_half) then
@@ -145,7 +141,7 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
             tmb%orbs%norb, 1.d0, &
             proj_mat(1,1), tmb%orbs%norb, &
-            inv_ovrlp%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, 0.d0, &
+            inv_ovrlp%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, 0.d0, &
             proj_ovrlp_half(1,1), tmb%orbs%norb)
   end if
   call f_free(proj_mat)
@@ -153,18 +149,21 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
   if (tmb%orbs%norbp>0) then
      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, & 
           tmb%orbs%norb, 1.d0, &
-          inv_ovrlp%matrix(1,1), tmb%orbs%norb, &
+          inv_ovrlp%matrix(1,1,1), tmb%orbs%norb, &
           proj_ovrlp_half(1,1), tmb%orbs%norb, 0.d0, &
           weight_matrixp(1,1), tmb%orbs%norb)
   end if
   call f_free(proj_ovrlp_half)
-  weight_matrix_%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='weight_matrix_%matrix')
+  weight_matrix_%matrix = sparsematrix_malloc_ptr(weight_matrix,iaction=DENSE_FULL,id='weight_matrix_%matrix')
   if (bigdft_mpi%nproc>1) then
      call mpi_allgatherv(weight_matrixp, tmb%orbs%norb*tmb%orbs%norbp, mpi_double_precision, weight_matrix_%matrix, &
           tmb%orbs%norb*tmb%orbs%norb_par(:,0), tmb%orbs%norb*tmb%orbs%isorb_par, &
           mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   else
-     call vcopy(tmb%orbs%norb*tmb%orbs%norb,weight_matrixp(1,1),1,weight_matrix_%matrix(1,1),1)
+      if (weight_matrix%nspin/=1) then
+          stop 'NEED TO FIX THE SPIN HERE: calculate_weight_matrix_lowdin'
+      end if
+     call vcopy(tmb%orbs%norb*tmb%orbs%norb*weight_matrix%nspin,weight_matrixp(1,1),1,weight_matrix_%matrix(1,1,1),1)
   end if
   call f_free(weight_matrixp)
   call compress_matrix(bigdft_mpi%iproc,weight_matrix,weight_matrix_%matrix,weight_matrix_%matrix_compr)

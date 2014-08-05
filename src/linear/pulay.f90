@@ -117,7 +117,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
           iat=tmb%orbs%onwhichatom(iiorb)
           tt=0.d0
           do jorb=1,tmb%orbs%norb
-              tt = tt -2.d0*tmb%linmat%kernel_%matrix(jorb,iiorb)*tmb%linmat%ham_%matrix(jorb,iiorb)
+              tt = tt -2.d0*tmb%linmat%kernel_%matrix(jorb,iiorb,1)*tmb%linmat%ham_%matrix(jorb,iiorb,1)
               !if (iproc==0) write(*,*) 'kern, ovrlp', tmb%linmat%denskern%matrix(jorb,iiorb), tmb%linmat%ham%matrix(iiorb,jorb)
           end do  
           fpulay(idir,iat)=fpulay(idir,iat)+tt
@@ -177,7 +177,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       denskern_tmp=f_malloc(tmb%linmat%l%nvctr,id='denskern_tmp')
       denskern_tmp=tmb%linmat%kernel_%matrix_compr
       tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
-      tmb%linmat%kernel_%matrix=tempmat
+      tmb%linmat%kernel_%matrix(:,:,1)=tempmat
       call compress_matrix(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
       call f_free_ptr(tmb%linmat%kernel_%matrix)
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
@@ -450,7 +450,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   use yaml_output
   use communications, only: transpose_localized, start_onesided_communication
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
-                               matrices_null, allocate_matrices, deallocate_matrices
+                               matrices_null, allocate_matrices, deallocate_matrices, &
+                               sparsematrix_malloc_ptr, SPARSE_FULL, assignment(=)
   implicit none
 
   ! Calling arguments
@@ -551,12 +552,10 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
     dham_(jdir)=matrices_null()
     call sparse_copy_pattern(tmb%linmat%m,dovrlp(jdir),iproc,subname) 
     call sparse_copy_pattern(tmb%linmat%m,dham(jdir),iproc,subname)
-    !!allocate(dham(jdir)%matrix_compr(dham(jdir)%nvctr), stat=istat)
-    !!call memocc(istat, dham(jdir)%matrix_compr, 'dham%matrix_compr', subname)
-    !!allocate(dovrlp(jdir)%matrix_compr(dovrlp(jdir)%nvctr), stat=istat)
-    !!call memocc(istat, dovrlp(jdir)%matrix_compr, 'dovrlp%matrix_compr', subname)
-    dham_(jdir)%matrix_compr=f_malloc_ptr(dham(jdir)%nvctr,id='dham(jdir)%matrix_compr')
-    dovrlp_(jdir)%matrix_compr=f_malloc_ptr(dovrlp(jdir)%nvctr,id='dovrlp(jdir)%matrix_compr')
+    !dham_(jdir)%matrix_compr=f_malloc_ptr(dham(jdir)%nvctr,id='dham(jdir)%matrix_compr')
+    !dovrlp_(jdir)%matrix_compr=f_malloc_ptr(dovrlp(jdir)%nvctr,id='dovrlp(jdir)%matrix_compr')
+    dham_(jdir)%matrix_compr=sparsematrix_malloc_ptr(dham(jdir),iaction=SPARSE_FULL,id='dham(jdir)%matrix_compr')
+    dovrlp_(jdir)%matrix_compr=sparsematrix_malloc_ptr(dovrlp(jdir),iaction=SPARSE_FULL,id='dovrlp(jdir)%matrix_compr')
 
     call get_derivative(jdir, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%lzd%hgrids(1), tmb%orbs, &
          tmb%ham_descr%lzd, tmb%ham_descr%psi, lhphilarge)

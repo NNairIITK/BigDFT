@@ -452,7 +452,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   type(sparse_matrix) :: smat
 
   ! Local variables
-  integer :: nnonzero
+  integer :: nnonzero, nspin, norbu, norbup, isorbu
   integer,dimension(:),allocatable :: nvctr_per_segment
   integer ,dimension(:),pointer :: nonzero
 
@@ -489,10 +489,15 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   call init_nonzero_arrays(norbp, isorb, smat, nnonzero, nonzero)
 
   call deallocate_sparse_matrix(smat)
-  call init_sparse_matrix(iproc, nproc, norb, norbp, isorb, .false., &
+
+  ! for the moment no spin polarization
+  nspin=1
+  norbu=norb
+  norbup=norbp
+  isorbu=isorb
+  call init_sparse_matrix(iproc, nproc, nspin, norb, norbp, isorb, norbu, norbup, isorbu, .false., &
              nnonzero, nonzero, nnonzero, nonzero, smat, allocate_full_=.true.)
   call f_free_ptr(nonzero)
-
 
   call f_free(nvctr_per_segment)
 

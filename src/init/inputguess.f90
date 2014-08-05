@@ -86,9 +86,10 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    !nspin*noncoll is always <= 2
    select case(iversion)
    case(1)
+       ! SM: use for basedistd the same basedist as for the up orbitals. CHECK THIS!!!
        call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
             nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.false.,&
-            basedist=orbs%norb_par(0:,1:))
+            basedist=orbs%norb_par(0:,1:),basedistu=orbs%norbu_par(0:,1:),basedistd=orbs%norbu_par(0:,1:))
    case(2)
        call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
             nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.true.)

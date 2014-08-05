@@ -593,23 +593,24 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
  
   ! Count the number of basis functions.
   norbsPerAtom = f_malloc(astruct%nat,id='norbsPerAtom')
-  norb=0
+  norbu=0
   nlr=0
   do iat=1,astruct%nat
       ityp=astruct%iatype(iat)
       norbsPerAtom(iat)=input%lin%norbsPerType(ityp)
-      norb=norb+input%lin%norbsPerType(ityp)
+      norbu=norbu+input%lin%norbsPerType(ityp)
       nlr=nlr+input%lin%norbsPerType(ityp)
   end do
 
-  ! Distribute the basis functions among the processors.
-  norbu=norb
-  norbd=0
-!!$  call orbitals_descriptors_forLinear(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
-!!$       input%nkpt, input%kpt, input%wkpt, lorbs)
-!!$  call repartitionOrbitals(iproc, nproc, lorbs%norb, lorbs%norb_par,&
-!!$       lorbs%norbp, lorbs%isorb_par, lorbs%isorb, lorbs%onWhichMPI)
+  ! For spin polarized systems, use twice the number of basis functions (i.e. norbd=norbu)
+  if (input%nspin==1) then
+      norbd=0
+  else
+      norbd=norbu
+  end if
+  norb=norbu+norbd
  
+  ! Distribute the basis functions among the processors.
   call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
        input%gen_nkpt, input%gen_kpt, input%gen_wkpt, lorbs,.true.) !simple repartition
 
@@ -1362,9 +1363,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call check_kernel_cutoff(iproc, tmb%orbs, at, tmb%lzd)
 
      ! Update sparse matrices
-     !!call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, at%astruct, &
-     !!     input%store_index, imode=1, smat=tmb%linmat%ham)
-     call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, at%astruct, &
+     call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%ham_descr%lzd, at%astruct, &
           input%store_index, imode=1, smat=tmb%linmat%m)
      call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
           matname='tmb%linmat%ham_', mat=tmb%linmat%ham_)
@@ -1373,9 +1372,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
 
-     !call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, at%astruct, &
-     !     input%store_index, imode=1, smat=tmb%linmat%ovrlp)
-     call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, at%astruct, &
+     call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%lzd, at%astruct, &
           input%store_index, imode=1, smat=tmb%linmat%s)
      call allocate_matrices(tmb%linmat%s, allocate_full=.false., &
           matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
@@ -1385,9 +1382,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%s)
 
      call check_kernel_cutoff(iproc, tmb%orbs, at, tmb%lzd)
-     !!call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, at%astruct, &
-     !!     input%store_index, imode=2, smat=tmb%linmat%denskern_large)
-     call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, at%astruct, &
+     call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%lzd, at%astruct, &
           input%store_index, imode=2, smat=tmb%linmat%l)
      call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
           matname='tmb%linmat%kernel_', mat=tmb%linmat%kernel_)
@@ -1841,7 +1836,7 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
 end subroutine determine_sparsity_pattern_distance
 
 
-subroutine init_sparse_matrix_wrapper(iproc, nproc, orbs, lzd, astruct, store_index, imode, smat)
+subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, store_index, imode, smat)
   use module_base
   use module_types
   use sparsematrix_init, only: init_sparse_matrix
@@ -1849,7 +1844,7 @@ subroutine init_sparse_matrix_wrapper(iproc, nproc, orbs, lzd, astruct, store_in
   implicit none
 
   ! Calling arguments
-  integer, intent(in) :: iproc, nproc, imode
+  integer, intent(in) :: iproc, nproc, nspin, imode
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: lzd
   type(atomic_structure), intent(in) :: astruct
@@ -1877,7 +1872,8 @@ subroutine init_sparse_matrix_wrapper(iproc, nproc, orbs, lzd, astruct, store_in
       stop 'wrong imode'
   end if
   call determine_sparsity_pattern_distance(orbs, lzd, astruct, lzd%llr(:)%locrad_mult, nnonzero_mult, nonzero_mult)
-  call init_sparse_matrix(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, store_index, &
+  call init_sparse_matrix(iproc, nproc, nspin, orbs%norb, orbs%norbp, orbs%isorb, &
+       orbs%norbu, orbs%norbup, orbs%isorbu, store_index, &
        nnonzero, nonzero, nnonzero_mult, nonzero_mult, smat)
   call f_free_ptr(nonzero)
   call f_free_ptr(nonzero_mult)
@@ -1920,7 +1916,8 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
           nonzero(i)=ind
       end do
   end do
-  call init_sparse_matrix(iproc, nproc, orbs%norb, orbs%norbp, orbs%isorb, input%store_index, &
+  call init_sparse_matrix(iproc, nproc, input%nspin, orbs%norb, orbs%norbp, orbs%isorb, &
+       orbs%norbu, orbs%norbup, orbs%isorbu, input%store_index, &
        orbs%norb*orbs%norbp, nonzero, orbs%norb, nonzero, smat, print_info_=.false.)
   call f_free(nonzero)
 
@@ -1940,7 +1937,8 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
           nonzero(i)=ind
       end do
   end do
-  call init_sparse_matrix(iproc, nproc, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, input%store_index, &
+  call init_sparse_matrix(iproc, nproc, input%nspin, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
+       orbs%norbu, orbs%norbup, orbs%isorbu, input%store_index, &
        orbs_aux%norb*orbs_aux%norbp, nonzero, orbs_aux%norb, nonzero, smat_extra, print_info_=.false.)
   call f_free(nonzero)
   call deallocate_orbitals_data(orbs_aux)

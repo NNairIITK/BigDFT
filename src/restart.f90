@@ -941,7 +941,7 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
   type(atoms_data), intent(inout) :: at
   real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz
 
-  integer :: iorb, jorb, iat, jat
+  integer :: ispin, iorb, jorb, iat, jat
   !!integer :: i_stat, i_all
   character(len=*),parameter :: subname='write_linear_matrices'
 
@@ -958,15 +958,17 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
      call uncompress_matrix(iproc, tmb%linmat%m, &
           inmat=tmb%linmat%ham_%matrix_compr, outmat=tmb%linmat%ham_%matrix)
 
-     do iorb=1,tmb%linmat%m%nfvctr
-        iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%m%nfvctr
-           jat=tmb%orbs%onwhichatom(jorb)
-           if (iformat == WF_FORMAT_PLAIN) then
-              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb),iat,jat
-           else
-              write(99) iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb),iat,jat
-           end if
+     do ispin=1,tmb%linmat%m%nspin
+        do iorb=1,tmb%linmat%m%nfvctr
+           iat=tmb%orbs%onwhichatom(iorb)
+           do jorb=1,tmb%linmat%m%nfvctr
+              jat=tmb%orbs%onwhichatom(jorb)
+              if (iformat == WF_FORMAT_PLAIN) then
+                 write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb,ispin),iat,jat
+              else
+                 write(99) iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb,ispin),iat,jat
+              end if
+           end do
         end do
      end do
 
@@ -988,15 +990,17 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
      call uncompress_matrix(iproc, tmb%linmat%s, &
           inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
 
-     do iorb=1,tmb%linmat%s%nfvctr
-        iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%s%nfvctr
-           jat=tmb%orbs%onwhichatom(jorb)
-           if (iformat == WF_FORMAT_PLAIN) then
-              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb),iat,jat
-           else
-              write(99) iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb),iat,jat
-           end if
+     do ispin=1,tmb%linmat%s%nspin
+        do iorb=1,tmb%linmat%s%nfvctr
+           iat=tmb%orbs%onwhichatom(iorb)
+           do jorb=1,tmb%linmat%s%nfvctr
+              jat=tmb%orbs%onwhichatom(jorb)
+              if (iformat == WF_FORMAT_PLAIN) then
+                 write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
+              else
+                 write(99) iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
+              end if
+           end do
         end do
      end do
 
@@ -1014,22 +1018,23 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'density_kernel.bin', status='unknown',form='unformatted')
      end if
 
-     tmb%linmat%kernel_%matrix=f_malloc_ptr((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr/),&
-         id='tmb%linmat%kernel_%matrix')
+     tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=DENSE_FULL,id='tmb%linmat%kernel_%matrix')
 
 
      call uncompress_matrix(iproc,tmb%linmat%l, &
           inmat=tmb%linmat%kernel_%matrix_compr, outmat=tmb%linmat%kernel_%matrix)
 
-     do iorb=1,tmb%linmat%l%nfvctr
-        iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%l%nfvctr
-           jat=tmb%orbs%onwhichatom(jorb)
-           if (iformat == WF_FORMAT_PLAIN) then
-              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%kernel_%matrix(iorb,jorb),iat,jat
-           else
-              write(99) iorb,jorb,tmb%linmat%kernel_%matrix(iorb,jorb),iat,jat
-           end if
+     do ispin=1,tmb%linmat%l%nspin
+        do iorb=1,tmb%linmat%l%nfvctr
+           iat=tmb%orbs%onwhichatom(iorb)
+           do jorb=1,tmb%linmat%l%nfvctr
+              jat=tmb%orbs%onwhichatom(jorb)
+              if (iformat == WF_FORMAT_PLAIN) then
+                 write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%kernel_%matrix(iorb,jorb,ispin),iat,jat
+              else
+                 write(99) iorb,jorb,tmb%linmat%kernel_%matrix(iorb,jorb,ispin),iat,jat
+              end if
+           end do
         end do
      end do
 
@@ -1056,15 +1061,17 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'overlap_onsite.bin', status='unknown',form='unformatted')
      end if
 
-     do iorb=1,tmb%linmat%l%nfvctr
-        iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%l%nfvctr
-           jat=tmb%orbs%onwhichatom(jorb)
-           if (iformat == WF_FORMAT_PLAIN) then
-              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb),iat,jat
-           else
-              write(99) iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb),iat,jat
-           end if
+     do ispin=1,tmb%linmat%l%nspin
+        do iorb=1,tmb%linmat%l%nfvctr
+           iat=tmb%orbs%onwhichatom(iorb)
+           do jorb=1,tmb%linmat%l%nfvctr
+              jat=tmb%orbs%onwhichatom(jorb)
+              if (iformat == WF_FORMAT_PLAIN) then
+                 write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
+              else
+                 write(99) iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
+              end if
+           end do
         end do
      end do
 

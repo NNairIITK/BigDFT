@@ -551,12 +551,14 @@ module module_types
   type, public :: orbitals_data 
      integer :: norb          !< Total number of orbitals per k point
      integer :: norbp         !< Total number of orbitals for the given processors
-     integer :: norbu,norbd,nspin,nspinor,isorb
+     integer :: norbup        !< Total number of up orbitals for the given processors
+     integer :: norbdp        !< Total number of down orbitals for the given processors
+     integer :: norbu,norbd,nspin,nspinor,isorb,isorbu,isorbd
      integer :: nkpts,nkptsp,iskpts
      real(gp) :: efermi,HLgap,eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
      integer, dimension(:), pointer :: inwhichlocreg,onwhichatom
-     integer, dimension(:,:), pointer :: norb_par
+     integer, dimension(:,:), pointer :: norb_par, norbu_par, norbd_par
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
@@ -1424,6 +1426,8 @@ contains
     type(orbitals_data), intent(inout) :: orbs !< Orbital to de-allocate
 
     call f_free_ptr(orbs%norb_par)
+    call f_free_ptr(orbs%norbu_par)
+    call f_free_ptr(orbs%norbd_par)
 
     call f_free_ptr(orbs%occup)
     call f_free_ptr(orbs%spinsgn)

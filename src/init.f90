@@ -695,8 +695,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use yaml_output
   use communications_base, only: deallocate_comms_linear
   use communications, only: transpose_localized, untranspose_localized
-  use sparsematrix_base, only: sparsematrix_malloc, DENSE_PARALLEL, assignment(=), &
-                               deallocate_sparse_matrix, deallocate_matrices
+  use sparsematrix_base, only: sparsematrix_malloc, sparsematrix_malloc_ptr, DENSE_PARALLEL, SPARSE_FULL, &
+                               assignment(=), deallocate_sparse_matrix, deallocate_matrices
   use sparsematrix, only: compress_matrix_distributed, uncompress_matrix_distributed
   implicit none
 
@@ -971,7 +971,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
        ! Allocate the matrix with the new sparsity pattern
        call f_free_ptr(tmb_old%linmat%ovrlp_%matrix_compr)
-       tmb_old%linmat%ovrlp_%matrix_compr = f_malloc_ptr(tmb%linmat%s%nvctr,id='tmb_old%linmat%ovrlp_%matrix_compr')
+       !tmb_old%linmat%ovrlp_%matrix_compr = f_malloc_ptr(tmb%linmat%s%nvctr,id='tmb_old%linmat%ovrlp_%matrix_compr')
+       tmb_old%linmat%ovrlp_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s,iaction=SPARSE_FULL,id='tmb_old%linmat%ovrlp_%matrix_compr')
 
        call compress_matrix_distributed(iproc, tmb%linmat%s, ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr)
        call f_free(ovrlpp)
