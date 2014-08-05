@@ -220,6 +220,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
         if(fnrm > 2.0_gp*tightenfac*fnrmtol)then
              flag=.true.
         endif
+write(*,'(a,3(1x,es10.3),2(1x,L))')'bastdebug',fnrm,tightenfac*fnrmtol,curv,flag,tooFar
         !determine if final tightening should be done:
         if(fnrm<=tightenfac*fnrmtol .and. curv<0.d0 .and. (flag .or. tooFar))then
  !       if(fnrm<=tightenfac*fnrmtol .and. flag)then
@@ -244,7 +245,8 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
         endif
         if(tooFar& !recompute lowest mode if walked too far
           .or. it==1& !compute lowest mode at first step
-          .or. (curv>=0.0_gp .and. mod(it,recompIfCurvPos)==0)& !For LJ
+         ! .or. (curv>=0.0_gp .and. (mod(it,recompIfCurvPos)==0))& !For LJ
+          .or. (curv>=0.0_gp .and. ((mod(it,recompIfCurvPos)==0).or. fnrm<fnrmtol))& !For LJ
                                                                 !systems
                                                                 !recomputation
                                                                 !every

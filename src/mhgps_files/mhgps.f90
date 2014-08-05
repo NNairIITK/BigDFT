@@ -21,6 +21,7 @@ program mhgps
     use module_sbfgs !for finding binds
     use module_saddle
     use module_connect
+    use module_fingerprints
     implicit none
     integer :: nstart
     character(len=8) :: folder
@@ -32,14 +33,19 @@ program mhgps
     real(gp), allocatable :: rcov(:)
     character(len=300)  :: comment
     logical :: converged=.false.
+    type(connect_object) :: cobj
+    integer :: nsad
+    logical :: connected
 
     !simple atomic datastructre
     integer :: nat
+    integer :: nid
     real(gp) :: alat(3)
     real(gp), allocatable :: rxyz(:,:),fxyz(:,:)
     real(gp), allocatable :: rxyz2(:,:),fxyz2(:,:)
+    real(gp), allocatable :: fp(:),fp2(:)
     real(gp), allocatable :: rotforce(:,:),hess(:,:)
-    real(gp) :: energy, ec, displ
+    real(gp) :: energy, energy2, ec, displ
     real(gp) :: fnoise, fnrm, fmax
     integer :: i,j,info
     integer :: idum=0
@@ -154,6 +160,7 @@ real(gp), allocatable :: fat(:,:)
     if(iproc==0) call print_input()
 
     nat = atoms%astruct%nat
+    nid = nat !s-overlap fingerprints
     alat = atoms%astruct%cell_dim
     
     !allocate more arrays
@@ -163,6 +170,10 @@ real(gp), allocatable :: fat(:,:)
                 id='minmode')
     rxyz     = f_malloc((/ 1.to.3, 1.to.nat/),&
                 id='rxyz')
+    fp       = f_malloc((/ 1.to.nid/),&
+                id='fp')
+    fp2      = f_malloc((/ 1.to.nid/),&
+                id='fp2')
     fxyz     = f_malloc((/ 1.to.3, 1.to.nat/),&
                 id='fxyz')
     rxyz2     = f_malloc((/ 1.to.3, 1.to.nat/),&
@@ -229,6 +240,8 @@ real(gp), allocatable :: fat(:,:)
     scpr_trans = f_malloc((/ 1.to.saddle_nhistx_trans/),&
                  id='scpr_trans')
 
+    call allocate_connect_object(nat,nid,nsadmax,cobj)
+
 !for debugging:
 allocate(fat(3,nat))
     
@@ -291,6 +304,15 @@ stop 'not implemented yet'
                 call vcopy(3*nat,atoms%astruct%rxyz(1,1),1,&
                            rxyz2(1,1),1)
 stop 'not implemented yet'
+                nsad=0
+                connected=.true.
+                call fingerprint(nat,nid,alat,atoms%astruct%geocode,&
+                                rcov,rxyz(1,1),fp(1))
+                call fingerprint(nat,nid,alat,atoms%astruct%geocode,&
+                                rcov,rxyz2(1,1),fp2(1))
+                call connect_recursively(nat,nid,alat,rcov,nbond,&
+                     iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
+                     nsad,cobj,connected)
             else if(trim(adjustl(operation_mode))=='simple')then
                 isad=isad+1
                 write(isadc,'(i3.3)')isad
@@ -480,6 +502,8 @@ stop 'not implemented yet'
 
     call f_free(work)
     call f_free(minmode)
+    call f_free(fp)
+    call f_free(fp2)
     call f_free(rxyz)
     call f_free(fxyz) 
     call f_free(rxyz2)
@@ -519,6 +543,7 @@ stop 'not implemented yet'
     call f_free(scpr_trans)
     call f_free(wold_trans)
     call f_free(wold_rot)
+    call deallocate_connect_object(cobj)
 
     
 

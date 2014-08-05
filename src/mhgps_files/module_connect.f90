@@ -118,6 +118,8 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,&
     use module_fingerprints
     use module_minimizers
     use yaml_output
+    use module_saddle
+    use module_freezingstring
 use module_energyandforces
     implicit none
     !parameters
