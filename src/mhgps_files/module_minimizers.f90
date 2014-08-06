@@ -117,6 +117,11 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    character(len=8)                        :: cdmy8
 
 
+     if (iproc == 0 .and. mhgps_verbosity > 0) write(*,'(a)')  &
+      '#(MHGPS) COUNT  IT  GEOPT_METHOD  ENERGY                 &
+       DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO'
+
+
    !set parameters
 !   nit=runObj%inputs%ncount_cluster_x
 !   nat=runObj%atoms%astruct%nat
@@ -135,19 +140,19 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    steepthresh   =mini_steepthresh
    trustr        =mini_trustr
 
-   if (iproc==0.and.mhgps_verbosity > 0) then
-      call yaml_mapping_open('Geometry parameters')
-         call yaml_map('Geometry Method','GEOPT_SBFGS')
-         call yaml_map('nhistx',nhistx)
-         call yaml_map('biomode',imode==2)
-         call yaml_map('betax', betax,fmt='(1pe21.14)')
-         call yaml_map('beta_stretchx', beta_stretchx,fmt='(1pe21.14)')
-         call yaml_map('maxrise', maxrise,fmt='(1pe21.14)')
-         call yaml_map('cutoffRatio', cutoffRatio,fmt='(1pe21.14)')
-         call yaml_map('steepthresh', steepthresh,fmt='(1pe21.14)')
-         call yaml_map('trustr', trustr,fmt='(1pe21.14)')
-      call yaml_mapping_close()
-   end if
+!   if (iproc==0.and.mhgps_verbosity > 0) then
+!      call yaml_mapping_open('Geometry parameters')
+!         call yaml_map('Geometry Method','GEOPT_SBFGS')
+!         call yaml_map('nhistx',nhistx)
+!         call yaml_map('biomode',imode==2)
+!         call yaml_map('betax', betax,fmt='(1pe21.14)')
+!         call yaml_map('beta_stretchx', beta_stretchx,fmt='(1pe21.14)')
+!         call yaml_map('maxrise', maxrise,fmt='(1pe21.14)')
+!         call yaml_map('cutoffRatio', cutoffRatio,fmt='(1pe21.14)')
+!         call yaml_map('steepthresh', steepthresh,fmt='(1pe21.14)')
+!         call yaml_map('trustr', trustr,fmt='(1pe21.14)')
+!      call yaml_mapping_close()
+!   end if
 
    !init varaibles
    debug=.false.
@@ -209,15 +214,15 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    etotold=etot
    etotp=etot
 
-   if (iproc==0.and.mhgps_verbosity > 0) then
+   if (iproc==0 .and. mhgps_verbosity > 0) then
        !avoid space for leading sign (numbers are positive, anyway)
        write(cdmy8,'(es8.1)')abs(maxd)
        write(cdmy9_1,'(es9.2)')abs(displr)
        write(cdmy9_2,'(es9.2)')abs(displp)
        write(cdmy9_3,'(es9.2)')abs(beta)
 
-       write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))') &
-       int(energycounter),0,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
+       write(*,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))') &
+       int(energycounter),0,'(MHGPS) GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
        'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
    endif
 
@@ -270,7 +275,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
       !only used when in steepest decent mode
       if(maxd>trustr .and. steep)then
          if(debug.and.iproc==0)write(100,'(a,1x,es24.17,1x,i0)')'step too large',maxd,it
-         if(iproc==0)write(16,'(a,2(1x,es9.2))')'WARNING GEOPT_SBFGS: step too large: maxd, trustradius ',maxd,trustr
+         if(iproc==0)write(*,'(a,2(1x,es9.2))')'(MHGPS) WARNING GEOPT_SBFGS: step too large: maxd, trustradius ',maxd,trustr
          scl=0.50_gp*trustr/maxd
          dd=dd*scl
          tt=tt*scl
@@ -324,8 +329,8 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
 
       if (detot.gt.maxrise .and. beta > 1.e-1_gp*betax) then !
          if (debug.and.iproc==0) write(100,'(a,i0,1x,e9.2)') "WARN: it,detot", it,detot
-         if (debug.and.iproc==0) write(16,'(a,i0,4(1x,e9.2))') &
-             "WARNING GEOPT_SBFGS: Prevent energy to rise by more than maxrise: it,maxrise,detot,beta,1.e-1*betax ",&
+         if (debug.and.iproc==0) write(*,'(a,i0,4(1x,e9.2))') &
+             "(MHGPS) WARNING GEOPT_SBFGS: Prevent energy to rise by more than maxrise: it,maxrise,detot,beta,1.e-1*betax ",&
              it,maxrise,detot,beta,1.e-1_gp*betax
          if (iproc==0.and.mhgps_verbosity > 0) then
             !avoid space for leading sign (numbers are positive, anyway)
@@ -334,21 +339,21 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
             write(cdmy9_2,'(es9.2)')abs(displp)
             write(cdmy9_3,'(es9.2)')abs(beta)
    
-            write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))') &
-             int(energycounter),it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
+            write(*,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))') &
+             int(energycounter),it,'(MHGPS) GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
              'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
-            call yaml_mapping_open('Geometry')
-               call yaml_map('Ncount_BigDFT',int(energycounter))
-               call yaml_map('Geometry step',it)
-               call yaml_map('Geometry Method','GEOPT_SBFGS')
-               call yaml_map('ndim',ndim)
-               call yaml_map('etot', etotp,fmt='(1pe21.14)')
-               call yaml_map('detot',detot,fmt='(1pe21.14)')
-               call yaml_map('fmax',fmax,fmt='(1pe21.14)')
-               call yaml_map('fnrm',fnrm,fmt='(1pe21.14)')
-               call yaml_map('beta',beta,fmt='(1pe21.14)')
-               call geometry_output(fmax,fnrm,fluct)
-            call yaml_mapping_close()
+!            call yaml_mapping_open('Geometry')
+!               call yaml_map('Ncount_BigDFT',int(energycounter))
+!               call yaml_map('Geometry step',it)
+!               call yaml_map('Geometry Method','GEOPT_SBFGS')
+!               call yaml_map('ndim',ndim)
+!               call yaml_map('etot', etotp,fmt='(1pe21.14)')
+!               call yaml_map('detot',detot,fmt='(1pe21.14)')
+!               call yaml_map('fmax',fmax,fmt='(1pe21.14)')
+!               call yaml_map('fnrm',fnrm,fmt='(1pe21.14)')
+!               call yaml_map('beta',beta,fmt='(1pe21.14)')
+!               call geometry_output(fmax,fnrm,fluct)
+!            call yaml_mapping_close()
          end if
     
          if(int(energycounter) >= nit)then!no convergence within ncount_cluster_x energy evaluations
@@ -399,29 +404,29 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
          write(cdmy9_2,'(es9.2)')abs(displp)
          write(cdmy9_3,'(es9.2)')abs(beta)
 
-         write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))') &
-          int(energycounter),it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
+         write(*,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))') &
+          int(energycounter),it,'(MHGPS) GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
           'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
-         call yaml_mapping_open('Geometry')
-            call yaml_map('Ncount_BigDFT',int(energycounter))
-            call yaml_map('Geometry step',it)
-            call yaml_map('Geometry Method','GEOPT_SBFGS')
-            call yaml_map('ndim',ndim)
-            call yaml_map('etot', etotp,fmt='(1pe21.14)')
-            call yaml_map('detot',detot,fmt='(1pe21.14)')
-            call yaml_map('fmax',fmax,fmt='(1pe21.14)')
-            call yaml_map('fnrm',fnrm,fmt='(1pe21.14)')
-            call yaml_map('beta',beta,fmt='(1pe21.14)')
-            call geometry_output(fmax,fnrm,fluct)
-         call yaml_mapping_close()
+!         call yaml_mapping_open('Geometry')
+!            call yaml_map('Ncount_BigDFT',int(energycounter))
+!            call yaml_map('Geometry step',it)
+!            call yaml_map('Geometry Method','GEOPT_SBFGS')
+!            call yaml_map('ndim',ndim)
+!            call yaml_map('etot', etotp,fmt='(1pe21.14)')
+!            call yaml_map('detot',detot,fmt='(1pe21.14)')
+!            call yaml_map('fmax',fmax,fmt='(1pe21.14)')
+!            call yaml_map('fnrm',fnrm,fmt='(1pe21.14)')
+!            call yaml_map('beta',beta,fmt='(1pe21.14)')
+!            call geometry_output(fmax,fnrm,fluct)
+!         call yaml_mapping_close()
       end if
 
       etot    = etotp
       etotold = etot
 
       if(detot .gt. maxrise)then
-         if (iproc==0) write(16,'(a,i0,4(1x,e9.2))') &
-             "WARNING GEOPT_SBFGS: Allowed energy to rise by more than maxrise: it,maxrise,detot,beta,1.e-1*betax ",&
+         if (iproc==0) write(*,'(a,i0,4(1x,e9.2))') &
+             "(MHGPS) WARNING GEOPT_SBFGS: Allowed energy to rise by more than maxrise: it,maxrise,detot,beta,1.e-1*betax ",&
              it,maxrise,detot,beta,1.e-1_gp*betax
       endif
 
@@ -464,8 +469,8 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
 
    !if code gets here, it failed
    if(debug.and.iproc==0) write(100,*) it,etot,fnrm
-   if(iproc==0) write(16,'(a,3(1x,i0))') &
-       "WARNING GEOPT_SBFGS: SBFGS not converged: it,energycounter,ncount_cluster_x: ", &
+   if(iproc==0) write(*,'(a,3(1x,i0))') &
+       "(MHGPS) WARNING GEOPT_SBFGS: SBFGS not converged: it,energycounter,ncount_cluster_x: ", &
        it,int(energycounter),mini_ncluster_x
 !   stop "No convergence "
    converged=.false.
@@ -473,7 +478,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
 
 1000 continue!converged successfully
    
-   if(iproc==0) write(16,'(2(a,1x,i0))') "SBFGS converged at iteration ",it,". Needed energy calls: ",int(energycounter)
+   if(iproc==0) write(*,'(2(a,1x,i0))') "(MHGPS) SBFGS converged at iteration ",it,". Needed energy calls: ",int(energycounter)
    if(iproc==0)  call yaml_map('Iterations when SBFGS converged',it)
    converged=.true.
    

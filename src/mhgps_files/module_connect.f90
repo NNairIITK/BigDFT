@@ -9,6 +9,8 @@
 
 module module_connect
     use module_base
+    use module_interfaces
+    use module_io
     implicit none
 
     type connect_object
@@ -113,7 +115,12 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,&
     use module_global_variables,&
        only: atoms,&
              imode,&
-             nsadmax
+             nsadmax,&
+             iproc,&
+             isad,&
+             isadc,&
+             currDir,&
+             ixyz_int
     use module_ls_rmsd
     use module_fingerprints
     use module_minimizers
@@ -138,26 +145,27 @@ use module_energyandforces
     !internal
     integer  :: nsad_loc
     real(gp) :: displ=0._gp,ener_count=0._gp
-    real(gp) :: fnoise
+    real(gp) :: fnoise,fnrm,fmax
     logical  :: converged =.false.
     logical  :: lnl, rnr, lnr, rnl 
+    character(len=200) :: comment
 !debugging
 real(gp) :: fat(3,nat),etest
 
     if(.not.connected)return
-    if(nsad>=nsadmax)then
+    if(nsad>=nsadmax.and.iproc==0)then
         call yaml_warning('(MHGPS) connection could not be &
              established within <=nsadmax intermediate TS. &
              nsadmax='//yaml_toa(nsadmax))
         connected=.false.
         return
     endif
-    call yaml_comment('(MHGPS) Will try to connect TODO PUT &
-                        FILENAMES HERE')
+    if(iproc==0)call yaml_comment('(MHGPS) Will try to connect TODO &
+                PUT FILENAMES HERE')
 
 
     !check if input structures are distinct 
-    if(equal(nid,ener1,ener2,fp1,fp2))then
+    if(equal(nid,ener1,ener2,fp1,fp2).and.iproc==0)then
         call yaml_warning('(MHGPS)  connect: input minima are&
                            identical. Will NOT attempt to find&
                            an intermediate TS. recursion depth: '&
@@ -173,10 +181,17 @@ real(gp) :: fat(3,nat),etest
     !get input guess for transition state
     nsad=nsad+1
     nsad_loc=nsad
+    isad=isad+1
+    write(isadc,'(i5.5)')isad
+    if(iproc==0)then
+        call yaml_comment('(MHGPS) Generating TS input guess ....',&
+                          hfill='-')
+    endif
     call get_ts_guess(nat,alat,cobj%rxyz1,cobj%rxyz2,&
           cobj%saddle(1,1,nsad),cobj%minmode(1,1,nsad))
 
     !compute saddle
+    ener_count=0.0_gp
     call findsad(nat,alat,rcov,nbond,iconnect,cobj%saddle(1,1,nsad),&
                 cobj%enersad(nsad),cobj%fsad(1,1,nsad),&
                 cobj%minmode(1,1,nsad),displ,ener_count,&
@@ -184,10 +199,34 @@ real(gp) :: fat(3,nat),etest
 !for debugging:
 call energyandforces(nat,alat,cobj%saddle(1,1,nsad),fat,fnoise,etest)
 write(*,*)'energy check saddle: ',cobj%enersad(nsad)-etest
+
     if(.not.converged)then
         nsad=nsad-1!in case we do'nt want to STOP
+        isad=isad-1
+        write(isadc,'(i5.5)')isad
         stop 'STOP saddle not converged'
     endif
+
+    call fnrmandforcemax(cobj%fsad(1,1,nsad),fnrm,fmax,nat)
+    if (iproc == 0) then
+        write(comment,'(a,1pe10.3,5x1pe10.3)')'ATTENTION! Forces &
+        below give no forces, but the final minmode| fnrm, fmax = ',&
+        fnrm,fmax
+
+        call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
+        //'_finalM',cobj%enersad(nsad),cobj%saddle(1,1,nsad),&
+        ixyz_int,atoms,comment,forces=cobj%minmode(1,1,nsad))
+
+        write(comment,'(a,1pe10.3,5x1pe10.3)')&
+                                            'fnrm, fmax = ',fnrm,fmax
+        call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
+        //'_finalF',cobj%enersad(nsad),cobj%saddle(1,1,nsad),&
+        ixyz_int,atoms,comment,forces=cobj%fsad(1,1,nsad))
+
+        call write_mode(nat,currDir//'/sad'//trim(adjustl(isadc))//&
+        '_mode_final',cobj%minmode(1,1,nsad),cobj%rotforce(1,1,nsad))
+    endif
+
 
     call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
                     cobj%saddle(1,1,nsad),cobj%fpsad(1,nsad))
@@ -196,6 +235,11 @@ write(*,*)'energy check saddle: ',cobj%enersad(nsad)-etest
     call pushoff(nat,cobj%saddle(1,1,nsad),cobj%minmode(1,1,nsad),&
                  cobj%leftmin(1,1,nsad),cobj%rightmin(1,1,nsad))
 
+    ener_count=0.0_gp
+    call energyandforces(nat,alat,cobj%leftmin(1,1,nsad),&
+    cobj%fleft(1,1,nsad),fnoise,cobj%enerleft(nsad))
+write(*,*)'cobj fleft, nsad',nsad
+write(*,*)cobj%fleft(:,:,nsad)
     call minimizer_sbfgs(imode,nat,alat,nbond,iconnect,&
                         cobj%leftmin(1,1,nsad),cobj%fleft(1,1,nsad),&
                         fnoise,cobj%enerleft(nsad),&
@@ -204,6 +248,9 @@ write(*,*)'energy check saddle: ',cobj%enersad(nsad)-etest
 call energyandforces(nat,alat,cobj%leftmin(1,1,nsad),fat,fnoise,etest)
 write(*,*)'energy check minimizer: ',cobj%enerleft(nsad)-etest
 
+    ener_count=0.0_gp
+    call energyandforces(nat,alat,cobj%rightmin(1,1,nsad),&
+    cobj%fright(1,1,nsad),fnoise,cobj%enerright(nsad))
     call minimizer_sbfgs(imode,nat,alat,nbond,iconnect,&
                         cobj%rightmin(1,1,nsad),cobj%fright(1,1,nsad)&
                        ,fnoise,cobj%enerright(nsad),&
@@ -222,8 +269,13 @@ write(*,*)'energy check minimizer: ',cobj%enerright(nsad)-etest
        cobj%fpsad(1,nsad),cobj%fpright(1,nsad)).or.&
        equal(nid,cobj%enersad(nsad),cobj%enerleft(nsad),&
        cobj%fpsad(1,nsad),cobj%fpleft(1,nsad)))then
+
         connected=.false.
         nsad=nsad-1
+        isad=isad-1
+        write(isadc,'(i5.5)')isad
+
+        if(iproc==0)&
         call yaml_warning('(MHGPS)  after relaxation from saddle &
                            point the left and/or right minimum are &
                            identical to the saddle point. Stopped &
@@ -304,6 +356,7 @@ write(*,*)'energy check minimizer: ',cobj%enerright(nsad)-etest
     endif
 
     !should and must not happen:
+    if(iproc==0)&
     call yaml_warning('(MHGPS) Severe error in connect: none of &
                   the checks inconnect subroutine matched! STOP') 
     stop '(MHGPS) Severe error in connect: none of &

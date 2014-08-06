@@ -24,7 +24,6 @@ program mhgps
     use module_fingerprints
     implicit none
     integer :: nstart
-    character(len=8) :: folder
     character(len=6) :: filename
     integer :: ifolder, ifile
     logical :: xyzexists,asciiexists
@@ -96,10 +95,10 @@ real(gp), allocatable :: fat(:,:)
         endif
         if(iproc==0) call print_logo_mhgps()
         call dict_init(user_inputs)
-        write(folder,'(a,i3.3)')'input',ifolder
+        write(currDir,'(a,i3.3)')'input',ifolder
         write(filename,'(a,i3.3)')'pos',ifile
         call user_dict_from_files(user_inputs, trim(run_id)//&
-             trim(bigdft_run_id_toa()),folder//'/'//filename//&
+             trim(bigdft_run_id_toa()),currDir//'/'//filename//&
              trim(bigdft_run_id_toa()), bigdft_mpi)
         call inputs_from_dict(inputs_opt, atoms, user_inputs)
         call dict_free(user_inputs)
@@ -119,20 +118,20 @@ real(gp), allocatable :: fat(:,:)
     elseif(efmethod=='LJ')then
         iproc=0
         isForceField=.true.
-        write(folder,'(a,i3.3)')'input',ifolder
+        write(currDir,'(a,i3.3)')'input',ifolder
         write(filename,'(a,i3.3)')'pos',ifile
         call deallocate_atomic_structure(atoms%astruct)
-        call read_atomic_file(folder//'/'//filename,iproc,&
+        call read_atomic_file(currDir//'/'//filename,iproc,&
                               atoms%astruct)
         fdim=atoms%astruct%nat
         call print_logo_mhgps()
     elseif(efmethod=='AMBER')then
         iproc=0
         isForceField=.true.
-        write(folder,'(a,i3.3)')'input',ifolder
+        write(currDir,'(a,i3.3)')'input',ifolder
         write(filename,'(a,i3.3)')'pos',ifile
         call deallocate_atomic_structure(atoms%astruct)
-        call read_atomic_file(folder//'/'//filename,iproc,&
+        call read_atomic_file(currDir//'/'//filename,iproc,&
                               atoms%astruct)
         fdim=atoms%astruct%nat
         !alanine stuff ......................START!>
@@ -259,8 +258,7 @@ allocate(fat(3,nat))
     wold_rot = f_malloc((/ 1.to.nbond/),id='wold_rot')
 
     do ifolder = 1,999
-        write(folder,'(a,i3.3)')'input',ifolder
-        currDir=folder
+        write(currDir,'(a,i3.3)')'input',ifolder
 
         if(trim(adjustl(operation_mode))=='simple'.or.&
                        trim(adjustl(operation_mode))=='hessian')then
@@ -277,13 +275,13 @@ allocate(fat(3,nat))
 
             !read (first) file
             write(filename,'(a,i3.3)')'pos',ifile
-            inquire(file=folder//'/'//filename//'.xyz',&
+            inquire(file=currDir//'/'//filename//'.xyz',&
                     exist=xyzexists)
-            inquire(file=folder//'/'//filename//'.ascii',&
+            inquire(file=currDir//'/'//filename//'.ascii',&
                     exist=asciiexists)
             if(.not.(xyzexists.or.asciiexists))exit
             call deallocate_atomic_structure(atoms%astruct)
-            call read_atomic_file(folder//'/'//filename,iproc,&
+            call read_atomic_file(currDir//'/'//filename,iproc,&
                     atoms%astruct)
             call vcopy(3 * nat,atoms%astruct%rxyz(1,1),1,rxyz(1,1), 1)
 
@@ -293,26 +291,37 @@ stop 'not implemented yet'
                                                                  then
                 !read second file
                 write(filename,'(a,i3.3)')'pos',ifile+1
-                inquire(file=folder//'/'//filename//'.xyz',&
+                inquire(file=currDir//'/'//filename//'.xyz',&
                             exist=xyzexists)
-                inquire(file=folder//'/'//filename//'.ascii',&
+                inquire(file=currDir//'/'//filename//'.ascii',&
                             exist=asciiexists)
                 if(.not.(xyzexists.or.asciiexists))exit
                 call deallocate_atomic_structure(atoms%astruct)
-                call read_atomic_file(folder//'/'//filename,iproc,&
+                call read_atomic_file(currDir//'/'//filename,iproc,&
                             atoms%astruct)
                 call vcopy(3*nat,atoms%astruct%rxyz(1,1),1,&
                            rxyz2(1,1),1)
-stop 'not implemented yet'
+                call energyandforces(nat,alat,rxyz,fat,fnoise,energy)
+                call energyandforces(nat,alat,rxyz2,fat,fnoise,&
+                         energy2)
+                call fingerprint(nat,nid,alat,atoms%astruct%geocode,&
+                         rcov,rxyz(1,1),fp(1))
+                call fingerprint(nat,nid,alat,atoms%astruct%geocode,&
+                         rcov,rxyz2(1,1),fp2(1))
                 nsad=0
                 connected=.true.
-                call fingerprint(nat,nid,alat,atoms%astruct%geocode,&
-                                rcov,rxyz(1,1),fp(1))
-                call fingerprint(nat,nid,alat,atoms%astruct%geocode,&
-                                rcov,rxyz2(1,1),fp2(1))
                 call connect_recursively(nat,nid,alat,rcov,nbond,&
                      iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
                      nsad,cobj,connected)
+write(*,*)'connected',connected
+stop
+                if(connected)then
+                    if(iproc==0)call yaml_comment('(MHGPS) &
+                                succesfully connected')
+                else
+                    if(iproc==0)call yaml_comment('(MHGPS) &
+                                Connection not established')
+                endif
             else if(trim(adjustl(operation_mode))=='simple')then
                 isad=isad+1
                 write(isadc,'(i3.3)')isad

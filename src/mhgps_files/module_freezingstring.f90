@@ -242,11 +242,11 @@ subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
     
     finished=2
 
-    if(iproc==0)call yaml_comment('(MHGPS) entering&
+    if(iproc==0)call yaml_comment('(MHGPS) entering &
                 grow_string')
 
     if((.not. allocated(string)))then
-        if(iproc==0)call yaml_warning('(MHGPS) STOP, string&
+        if(iproc==0)call yaml_warning('(MHGPS) STOP, string &
                     in grow_string not allocated')
         stop
     endif
@@ -364,7 +364,7 @@ subroutine optim_cg(nat,alat,finished,step,gammainv,&
         perpnrmPrev2_squared = ddot(3*nat,perp2(1),1,perp2(1),1)
         perpnrm2_squared=perpnrmPrev2_squared
         write(*,'(a,i3.3,4(1x,es10.3))')&
-        '(MHGPS) ',1,sqrt(perpnrm1_squared),epot1,&
+        '   (MHGPS) ',1,sqrt(perpnrm1_squared),epot1,&
         sqrt(perpnrm2_squared),epot2
         dispPrev2=gammainv*perp2
         dispnrm_squared=maxval(dispPrev2**2)
@@ -407,7 +407,7 @@ subroutine optim_cg(nat,alat,finished,step,gammainv,&
             call perpend(nat,tangent2,fxyz2,perp2)
             perpnrm2_squared = ddot(3*nat,perp2(1),1,perp2(1),1)
             write(*,'(a,i3.3,4(1x,es10.3))')&
-            '(MHGPS) ',istep,sqrt(perpnrm1_squared),epot1,&
+            '   (MHGPS) ',istep,sqrt(perpnrm1_squared),epot1,&
             sqrt(perpnrm2_squared),epot2
             if(perpnrm2_squared>perpnrmPrev2_squared)then
                 alpha2=1._gp

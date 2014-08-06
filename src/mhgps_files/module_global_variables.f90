@@ -67,18 +67,18 @@ module module_global_variables
     real(gp) :: lst_interpol_stepfrct=0.1_gp
 
     !parameters for minimizers implemented in mhgps
-    logical :: internal=.true. !unse internal or external optimizers?
+    logical :: internal=.true. !use internal or external optimizers?
         !SBFGS
-        integer  :: mini_nhistx
-        integer  :: mini_ncluster_x
-        real(gp) :: mini_frac_fluct
-        real(gp) :: mini_forcemax
-        real(gp) :: mini_maxrise
-        real(gp) :: mini_betax
-        real(gp) :: mini_beta_stretchx
-        real(gp) :: mini_cutoffRatio
-        real(gp) :: mini_steepthresh
-        real(gp) :: mini_trustr
+        integer  :: mini_nhistx = 15
+        integer  :: mini_ncluster_x = 5000
+        real(gp) :: mini_frac_fluct = 0.0_gp
+        real(gp) :: mini_forcemax = 1.e-4_gp
+        real(gp) :: mini_maxrise = 1.e-6_gp
+        real(gp) :: mini_betax = 1.0_gp
+        real(gp) :: mini_beta_stretchx = 4.e-1_gp
+        real(gp) :: mini_cutoffRatio = 1.e-4_gp
+        real(gp) :: mini_steepthresh = 1.0_gp
+        real(gp) :: mini_trustr = 0.5_gp
 
     !other
     integer               :: nbond = 1
