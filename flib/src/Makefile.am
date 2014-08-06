@@ -111,7 +111,7 @@ endif
 CLEANFILES = $(modules) *.@MODULE_EXT@ $(mpi_include)
 
 #AM_FCFLAGS = -I$(srcdir) $(mpi_inc) @LIBABINIT_INCLUDE@ @MPI_INCLUDE@
-AM_FCFLAGS = -I$(srcdir) $(mpi_inc) @MPI_INCLUDE@
+AM_FCFLAGS = -I. -I$(srcdir) $(mpi_inc) @MPI_INCLUDE@
 AM_CFLAGS = @LIB_YAML_CFLAGS@
 
 # Dynamic library building

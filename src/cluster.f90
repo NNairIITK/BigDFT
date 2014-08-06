@@ -1702,11 +1702,12 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
                  opt%infocode=2
               end if
            end if
-           !flush all writings on standart output
+           !flush all writings on standard output
            if (iproc==0) then
               !yaml output
               call yaml_mapping_close() !iteration
-              call bigdft_utils_flush(unit=6)
+              call yaml_flush_document()
+              !call bigdft_utils_flush(unit=6)
            end if
            ! Emergency exit case
            if (opt%infocode == 2 .or. opt%infocode == 3) then

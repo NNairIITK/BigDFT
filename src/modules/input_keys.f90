@@ -193,7 +193,6 @@ module module_input_keys
   character(len=*), parameter, public :: NSTEP_PREC      ='nstep_prec'
   character(len=*), parameter, public :: EVAL_RANGE_FOE  ='eval_range_foe'
   character(len=*), parameter, public :: FSCALE_FOE      ='fscale_foe'
-!  character(len=*), parameter, public :: BASIS_PARAMS    ='basis_params'
   character(len=*), parameter, public :: AO_CONFINEMENT  ='ao_confinement'
   character(len=*), parameter, public :: CONFINEMENT     ='confinement'
   character(len=*), parameter, public :: RLOC            ='rloc'
