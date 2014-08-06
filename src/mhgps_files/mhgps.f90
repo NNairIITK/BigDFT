@@ -313,14 +313,12 @@ stop 'not implemented yet'
                 call connect_recursively(nat,nid,alat,rcov,nbond,&
                      iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
                      nsad,cobj,connected)
-write(*,*)'connected',connected
-stop
                 if(connected)then
-                    if(iproc==0)call yaml_comment('(MHGPS) &
-                                succesfully connected')
+                    if(iproc==0)call yaml_map('(MHGPS) &
+                                succesfully connected',nsad)
                 else
-                    if(iproc==0)call yaml_comment('(MHGPS) &
-                                Connection not established')
+                    if(iproc==0)call yaml_map('(MHGPS) &
+                                Connection not established',nsad)
                 endif
             else if(trim(adjustl(operation_mode))=='simple')then
                 isad=isad+1

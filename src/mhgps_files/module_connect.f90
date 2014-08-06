@@ -120,7 +120,9 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,&
              isad,&
              isadc,&
              currDir,&
-             ixyz_int
+             ixyz_int,&
+             en_delta_min, fp_delta_min,&
+             en_delta_sad, fp_delta_sad
     use module_ls_rmsd
     use module_fingerprints
     use module_minimizers
@@ -165,7 +167,8 @@ real(gp) :: fat(3,nat),etest
 
 
     !check if input structures are distinct 
-    if(equal(nid,ener1,ener2,fp1,fp2).and.iproc==0)then
+    if(equal(nid,en_delta_min,fp_delta_min,ener1,ener2,fp1,fp2)&
+                                                    .and.iproc==0)then
         call yaml_warning('(MHGPS)  connect: input minima are&
                            identical. Will NOT attempt to find&
                            an intermediate TS. recursion depth: '&
@@ -234,7 +237,7 @@ write(*,*)'energy check saddle: ',cobj%enersad(nsad)-etest
     !pushoff and minimize left and right
     call pushoff(nat,cobj%saddle(1,1,nsad),cobj%minmode(1,1,nsad),&
                  cobj%leftmin(1,1,nsad),cobj%rightmin(1,1,nsad))
-
+call system("rm -f posmini_*")
     ener_count=0.0_gp
     call energyandforces(nat,alat,cobj%leftmin(1,1,nsad),&
     cobj%fleft(1,1,nsad),fnoise,cobj%enerleft(nsad))
@@ -248,7 +251,7 @@ write(*,*)cobj%fleft(:,:,nsad)
 call energyandforces(nat,alat,cobj%leftmin(1,1,nsad),fat,fnoise,etest)
 write(*,*)'energy check minimizer: ',cobj%enerleft(nsad)-etest
 
-    ener_count=0.0_gp
+!!    ener_count=0.0_gp
     call energyandforces(nat,alat,cobj%rightmin(1,1,nsad),&
     cobj%fright(1,1,nsad),fnoise,cobj%enerright(nsad))
     call minimizer_sbfgs(imode,nat,alat,nbond,iconnect,&
@@ -265,10 +268,10 @@ write(*,*)'energy check minimizer: ',cobj%enerright(nsad)-etest
     call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
                     cobj%rightmin(1,1,nsad),cobj%fpright(1,nsad))
     !check if relaxed structures are identical with saddle itself
-    if(equal(nid,cobj%enersad(nsad),cobj%enerright(nsad),&
-       cobj%fpsad(1,nsad),cobj%fpright(1,nsad)).or.&
-       equal(nid,cobj%enersad(nsad),cobj%enerleft(nsad),&
-       cobj%fpsad(1,nsad),cobj%fpleft(1,nsad)))then
+    if(equal(nid,en_delta_sad,fp_delta_sad,cobj%enersad(nsad),&
+    cobj%enerright(nsad),cobj%fpsad(1,nsad),cobj%fpright(1,nsad)).or.&
+    equal(nid,en_delta_sad,fp_delta_sad,cobj%enersad(nsad),&
+    cobj%enerleft(nsad),cobj%fpsad(1,nsad),cobj%fpleft(1,nsad)))then
 
         connected=.false.
         nsad=nsad-1
@@ -286,19 +289,23 @@ write(*,*)'energy check minimizer: ',cobj%enerright(nsad)-etest
 
     !is minimum, obtained by relaxation from left bar end identical to
     !left input minimum?
-    lnl=equal(nid,ener1,cobj%enerleft(nsad),fp1,cobj%fpleft(1,nsad))
+    lnl=equal(nid,en_delta_min,fp_delta_min,ener1,&
+        cobj%enerleft(nsad),fp1,cobj%fpleft(1,nsad))
 
     !is minimum obtained by relaxation from right bar end identical to
     !right input minimum?
-    rnr=equal(nid,ener2,cobj%enerright(nsad),fp2,cobj%fpright(1,nsad))
+    rnr=equal(nid,en_delta_min,fp_delta_min,ener2,&
+        cobj%enerright(nsad),fp2,cobj%fpright(1,nsad))
 
     !is minimum obtained by relaxation from left bar end identical to 
     !right input minimum?
-    lnr=equal(nid,ener2,cobj%enerleft(nsad),fp2,cobj%fpleft(1,nsad))
+    lnr=equal(nid,en_delta_min,fp_delta_min,ener2,&
+        cobj%enerleft(nsad),fp2,cobj%fpleft(1,nsad))
 
     !is minimum obtained by relaxation from right bar end identical to
     !left input minimum?
-    rnl=equal(nid,ener1,cobj%enerright(nsad),fp1,cobj%fpright(1,nsad))
+    rnl=equal(nid,en_delta_min,fp_delta_min,ener1,&
+        cobj%enerright(nsad),fp1,cobj%fpright(1,nsad))
 
     if((lnl .and. rnr) .or. (lnr .and. rnl))then!connection done
         connected=.true.

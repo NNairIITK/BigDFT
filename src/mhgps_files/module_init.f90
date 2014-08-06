@@ -26,7 +26,8 @@ contains
             read(u,*)operation_mode, random_minmode_guess
             read(u,*)nsadmax
             read(u,*)efmethod,external_mini
-            read(u,*)en_delta,fp_delta
+            read(u,*)en_delta_min,fp_delta_min
+            read(u,*)en_delta_sad,fp_delta_sad
             read(u,*)saddle_biomode
             if(saddle_biomode)imode=2
             read(u,*) lst_interpol_stepfrct
@@ -76,7 +77,8 @@ contains
             write(u,'(1x,L,1x,L,1x,a)')operation_mode,random_minmode_guess, ' #mode, random_minmode_guess'
             write(u,'(1x,i0.0,1x,a)')nsadmax,' #nsadmax'
             write(u,'(1x,a,1x,L,1x,a)')trim(adjustl(efmethod)),external_mini,' #efmethod, external minimizer'
-            write(u,'(es10.3,1x,es10.3,1x,a)')en_delta,fp_delta,' #en_delta, fp_delta'
+            write(u,'(es10.3,1x,es10.3,1x,a)')en_delta_min,fp_delta_min,' #en_delta_min, fp_delta_min'
+            write(u,'(es10.3,1x,es10.3,1x,a)')en_delta_sad,fp_delta_sad,' #en_delta_sad, fp_delta_sad'
             write(u,'(1x,L,1x,a)')saddle_biomode,' #biomode'
             write(u,'(1x,es10.3,1x,a)') lst_interpol_stepfrct,' #inward interpolation distance as fraction of initial distance'
             write(u,'(1x,es10.3,1x,a)') ts_guess_gammainv,' #step size for perpedicular optimization in freezing string method'
