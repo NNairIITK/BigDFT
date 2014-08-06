@@ -19,6 +19,7 @@ program mhgps
     use module_init
     use module_energyandforces
     use module_sbfgs !for finding binds
+    use module_freezingstring
     use module_saddle
     use module_connect
     use module_fingerprints
@@ -42,6 +43,9 @@ program mhgps
     real(gp) :: alat(3)
     real(gp), allocatable :: rxyz(:,:),fxyz(:,:)
     real(gp), allocatable :: rxyz2(:,:),fxyz2(:,:)
+    real(gp), allocatable :: tsguess(:,:),minmodeguess(:,:)
+    real(gp), allocatable :: tsgforces(:,:)
+    real(gp)              :: tsgenergy
     real(gp), allocatable :: fp(:),fp2(:)
     real(gp), allocatable :: rotforce(:,:),hess(:,:)
     real(gp) :: energy, energy2, ec, displ
@@ -165,6 +169,12 @@ real(gp), allocatable :: fat(:,:)
     !allocate more arrays
     lwork=1000+10*nat**2
     work = f_malloc((/1.to.lwork/),id='work')
+    tsgforces     = f_malloc((/ 1.to.3, 1.to.nat/),&
+                id='tsgforces')
+    tsguess     = f_malloc((/ 1.to.3, 1.to.nat/),&
+                id='tsguess')
+    minmodeguess  = f_malloc((/ 1.to.3, 1.to.nat/),&
+                id='minmodeguess')
     minmode  = f_malloc((/ 1.to.3, 1.to.nat/),&
                 id='minmode')
     rxyz     = f_malloc((/ 1.to.3, 1.to.nat/),&
@@ -286,7 +296,35 @@ allocate(fat(3,nat))
             call vcopy(3 * nat,atoms%astruct%rxyz(1,1),1,rxyz(1,1), 1)
 
             if(trim(adjustl(operation_mode))=='guessonly')then
-stop 'not implemented yet'
+                !read second file
+                write(filename,'(a,i3.3)')'pos',ifile+1
+                inquire(file=currDir//'/'//filename//'.xyz',&
+                            exist=xyzexists)
+                inquire(file=currDir//'/'//filename//'.ascii',&
+                            exist=asciiexists)
+                if(.not.(xyzexists.or.asciiexists))exit
+                call deallocate_atomic_structure(atoms%astruct)
+                call read_atomic_file(currDir//'/'//filename,iproc,&
+                            atoms%astruct)
+                call vcopy(3*nat,atoms%astruct%rxyz(1,1),1,&
+                           rxyz2(1,1),1)
+
+                isad=isad+1
+                write(isadc,'(i5.5)')isad
+                call get_ts_guess(nat,alat,rxyz(1,1),rxyz2(1,1),&
+                     tsguess(1,1),minmodeguess(1,1),tsgenergy,&
+                     tsgforces(1,1))
+                write(comment,'(a)')&
+                     'TS guess; forces below give guessed &
+                      minimummode.'
+                call write_atomic_file(currDir//'/sad'//&
+                     trim(adjustl(isadc))//'_ig_finalM',&
+                     tsgenergy,tsguess(1,1),ixyz_int,atoms,&
+                     comment,forces=minmodeguess(1,1))
+                call write_atomic_file(currDir//'/sad'//&
+                     trim(adjustl(isadc))//'_ig_finalF',&
+                     tsgenergy,tsguess(1,1),ixyz_int,atoms,&
+                     comment,forces=tsgforces(1,1))
             else if(trim(adjustl(operation_mode))=='connect')&
                                                                  then
                 !read second file
@@ -301,6 +339,9 @@ stop 'not implemented yet'
                             atoms%astruct)
                 call vcopy(3*nat,atoms%astruct%rxyz(1,1),1,&
                            rxyz2(1,1),1)
+
+                !Evalute energyies. They are needed in connect
+                !for identification
                 call energyandforces(nat,alat,rxyz,fat,fnoise,energy)
                 call energyandforces(nat,alat,rxyz2,fat,fnoise,&
                          energy2)
@@ -508,6 +549,9 @@ stop 'not implemented yet'
     endif
 
     call f_free(work)
+    call f_free(tsguess)
+    call f_free(tsgforces)
+    call f_free(minmodeguess)
     call f_free(minmode)
     call f_free(fp)
     call f_free(fp2)

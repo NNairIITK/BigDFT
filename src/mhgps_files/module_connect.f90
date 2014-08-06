@@ -151,6 +151,7 @@ use module_energyandforces
     logical  :: converged =.false.
     logical  :: lnl, rnr, lnr, rnl 
     character(len=200) :: comment
+    real(gp) :: tsgforces(3,nat), tsgenergy
 !debugging
 real(gp) :: fat(3,nat),etest
 
@@ -186,12 +187,10 @@ real(gp) :: fat(3,nat),etest
     nsad_loc=nsad
     isad=isad+1
     write(isadc,'(i5.5)')isad
-    if(iproc==0)then
-        call yaml_comment('(MHGPS) Generating TS input guess ....',&
-                          hfill='-')
-    endif
+
     call get_ts_guess(nat,alat,cobj%rxyz1,cobj%rxyz2,&
-          cobj%saddle(1,1,nsad),cobj%minmode(1,1,nsad))
+          cobj%saddle(1,1,nsad),cobj%minmode(1,1,nsad),tsgenergy,&
+          tsgforces(1,1))
 
     !compute saddle
     ener_count=0.0_gp

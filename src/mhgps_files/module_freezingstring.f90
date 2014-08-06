@@ -11,7 +11,8 @@ module module_freezingstring
     
     contains
 !=====================================================================
-subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess)
+subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
+                        tsgenergy,tsgforces)
     use module_base
     use yaml_output
     use module_global_variables,&
@@ -27,6 +28,7 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess)
     real(gp), intent(in) :: alat(3)
     real(gp), intent(in) :: rxyz1(3,nat),rxyz2(3,nat)
     real(gp), intent(out) :: tsguess(3,nat),minmodeguess(3,nat)
+    real(gp), intent(out) :: tsgenergy, tsgforces(3,nat)
     !internal
     integer :: finished
     integer :: i,j,iat
@@ -46,6 +48,11 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess)
     real(gp) :: yp1=huge(1._gp), ypn=huge(1._gp)!natural splines
     !functions
     real(gp) :: dnrm2
+
+    if(iproc==0)then
+        call yaml_comment('(MHGPS) Generating TS input guess ....',&
+                          hfill='-')
+    endif
 
     string = f_malloc((/ 1.to.3*nat, 1.to.2, 1.to.nstringmax/),&
                      id='string')
@@ -127,7 +134,11 @@ write(*,*)'ipathmax',ipathmax
         tsguess(1,iat) = path(ipathmax,1,iat)
         tsguess(2,iat) = path(ipathmax,2,iat)
         tsguess(3,iat) = path(ipathmax,3,iat)
+        tsgforces(1,iat) = forces(1,iat,ipathmax)
+        tsgforces(2,iat) = forces(2,iat,ipathmax)
+        tsgforces(3,iat) = forces(3,iat,ipathmax)
     enddo
+    tsgenergy = energies(ipathmax)
    
     !now we have to generate a guess for the minmode: 
 
