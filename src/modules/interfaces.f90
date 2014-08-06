@@ -2381,12 +2381,13 @@ module module_interfaces
          type(paw_objects),optional,intent(inout)::paw
        end subroutine psitohpsi
 
-       subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Localnorb, rxyz, inwhichlocreg)
+       subroutine assignToLocreg2(iproc, nproc, norb, norbu, norb_par, natom, nlr, nspin, Localnorb, spinsgn, rxyz, inwhichlocreg)
          use module_base
          use module_types
          implicit none
-         integer,intent(in):: nlr,iproc,nproc,nspin,natom,norb
+         integer,intent(in):: nlr,iproc,nproc,nspin,natom,norb,norbu
          integer,dimension(nlr),intent(in):: Localnorb
+         real(kind=8),dimension(norb),intent(in):: spinsgn
          integer,dimension(0:nproc-1),intent(in):: norb_par
          real(8),dimension(3,nlr),intent(in):: rxyz
          integer,dimension(:),pointer,intent(out):: inwhichlocreg
@@ -3263,10 +3264,10 @@ module module_interfaces
           type(foe_data),intent(inout) :: foe_obj
         end subroutine foe
 
-        subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc)
+        subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc, nspin)
           use module_types
           implicit none
-          integer, intent(in) :: iproc, nproc
+          integer, intent(in) :: iproc, nproc, nspin
           type(DFT_wavefunction), intent(inout) :: wfn
           type(denspot_distribution), intent(in) :: dpbox
         end subroutine kswfn_init_comm

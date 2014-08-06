@@ -551,8 +551,8 @@ module module_types
   type, public :: orbitals_data 
      integer :: norb          !< Total number of orbitals per k point
      integer :: norbp         !< Total number of orbitals for the given processors
-     integer :: norbup        !< Total number of up orbitals for the given processors
-     integer :: norbdp        !< Total number of down orbitals for the given processors
+     integer :: norbup        !< Total number of orbitals if there were only up orbitals
+     integer :: norbdp        !< probably to be deleted...
      integer :: norbu,norbd,nspin,nspinor,isorb,isorbu,isorbd
      integer :: nkpts,nkptsp,iskpts
      real(gp) :: efermi,HLgap,eTS

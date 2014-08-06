@@ -478,7 +478,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !!call init_p2p_tags(nproc)
      !!tag=0
 
-     call kswfn_init_comm(tmb, denspot%dpbox, iproc, nproc)
+     call kswfn_init_comm(tmb, denspot%dpbox, iproc, nproc, in%nspin)
      locreg_centers = f_malloc((/3,tmb%lzd%nlr/),id='locreg_centers')
      do ilr=1,tmb%lzd%nlr
          locreg_centers(1:3,ilr)=tmb%lzd%llr(ilr)%locregcenter(1:3)
@@ -630,6 +630,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   if (denspot%c_obj /= 0) then
      call denspot_emit_v_ext(denspot, iproc, nproc)
   end if
+
+
+  do norbv=1,kswfn%orbs%norb
+      write(*,*) 'iorb, kswfn%orbs%spinsgn(iorb)', norbv, kswfn%orbs%spinsgn(norbv)
+  end do
+  write(*,*) 'kswfn%orbs%nspinor',kswfn%orbs%nspinor
 
   norbv=abs(in%norbv)
   if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &

@@ -581,7 +581,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   type(orbitals_data), intent(out) :: lorbs
   
   ! Local variables
-  integer :: norb, norbu, norbd, ityp, iat, ilr, iorb, nlr
+  integer :: norb, norbu, norbd, ityp, iat, ilr, iorb, nlr, iiat, ispin
   integer, dimension(:), allocatable :: norbsPerLocreg, norbsPerAtom
   real(kind=8),dimension(:,:), allocatable :: locregCenter
   character(len=*), parameter :: subname='init_orbitals_data_for_linear'
@@ -593,14 +593,20 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   call nullify_orbitals_data(lorbs)
  
   ! Count the number of basis functions.
-  norbsPerAtom = f_malloc(astruct%nat,id='norbsPerAtom')
+  norbsPerAtom = f_malloc(astruct%nat*input%nspin,id='norbsPerAtom')
   norbu=0
   nlr=0
-  do iat=1,astruct%nat
-      ityp=astruct%iatype(iat)
-      norbsPerAtom(iat)=input%lin%norbsPerType(ityp)
-      norbu=norbu+input%lin%norbsPerType(ityp)
-      !nlr=nlr+input%lin%norbsPerType(ityp)
+  iiat=0
+  do ispin=1,input%nspin
+      do iat=1,astruct%nat
+          iiat=iiat+1
+          ityp=astruct%iatype(iat)
+          norbsPerAtom(iiat)=input%lin%norbsPerType(ityp)
+          if (ispin==1) then
+              norbu=norbu+input%lin%norbsPerType(ityp)
+          end if
+          !nlr=nlr+input%lin%norbsPerType(ityp)
+      end do
   end do
 
   ! For spin polarized systems, use twice the number of basis functions (i.e. norbd=norbu)
@@ -612,6 +618,8 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   norb=norbu+norbd
 
   nlr=norb
+
+  write(*,*) 'norb, norbu, norbd',norb, norbu, norbd
  
   ! Distribute the basis functions among the processors.
   call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
@@ -646,12 +654,17 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   norbsPerLocreg=1 !should be norbsPerLocreg
     
   call f_free_ptr(lorbs%inWhichLocreg)
-  call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, astruct%nat, nlr, &
-       input%nspin, norbsPerLocreg, locregCenter, lorbs%inwhichlocreg)
+  call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norbu, lorbs%norb_par, astruct%nat, nlr, &
+       input%nspin, norbsPerLocreg, lorbs%spinsgn, locregCenter, lorbs%inwhichlocreg)
 
   call f_free_ptr(lorbs%onwhichatom)
-  call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norb_par, astruct%nat, astruct%nat, &
-       input%nspin, norbsPerAtom, rxyz, lorbs%onwhichatom)
+  call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norbu, lorbs%norb_par, astruct%nat, astruct%nat, &
+       input%nspin, norbsPerAtom, lorbs%spinsgn, rxyz, lorbs%onwhichatom)
+
+  do iorb=1,lorbs%norb
+      write(*,'(a,4i7)') 'iproc, iorb, inwhichlocreg(iorb), onwhichatom(iorb)', &
+                          iproc, iorb, lorbs%inwhichlocreg(iorb), lorbs%onwhichatom(iorb)
+  end do
   
   lorbs%eval = f_malloc_ptr(lorbs%norb,id='lorbs%eval')
   lorbs%eval=-.5d0
@@ -842,7 +855,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
 
   call init_comms_linear(iproc, nproc, npsidim_orbs, orbs, lzd, lbcollcom)
   if (present(lbcollcom_sr)) then
-      call init_comms_linear_sumrho(iproc, nproc, lzd, orbs, nscatterarr, lbcollcom_sr)
+      call init_comms_linear_sumrho(iproc, nproc, lzd, orbs, input%nspin, nscatterarr, lbcollcom_sr)
   end if
 
   call initialize_communication_potential(iproc, nproc, nscatterarr, orbs, lzd, input%nspin, lbcomgp)

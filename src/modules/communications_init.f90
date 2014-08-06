@@ -1325,13 +1325,13 @@ module communications_init
 
 
     !> The sumrho routines
-    subroutine init_comms_linear_sumrho(iproc, nproc, lzd, orbs, nscatterarr, collcom_sr)
+    subroutine init_comms_linear_sumrho(iproc, nproc, lzd, orbs, nspin, nscatterarr, collcom_sr)
       use module_base
       use module_types
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, nspin
       type(local_zone_descriptors),intent(in) :: lzd
       type(orbitals_data),intent(in) :: orbs
       integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr !n3d,n3p,i3s+i3xcsh-1,i3xcsh
@@ -1352,9 +1352,13 @@ module communications_init
       weights_per_zpoint = f_malloc(lzd%glr%d%n3i,id='weights_per_zpoint')
       call get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, weight_tot, weight_ideal, &
            weights_per_slice, weights_per_zpoint)
+
+      write(*,*) 'weight_tot, weight_ideal', weight_tot, weight_ideal
     
       call assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, weights_per_slice, &
            lzd, orbs, nscatterarr, istartend, collcom_sr%nptsp_c)
+
+       write(*,*) 'iproc, istartend', iproc, istartend
     
       call f_free(weights_per_slice)
     
@@ -1375,13 +1379,16 @@ module communications_init
     
       ! Some check
       ii=sum(collcom_sr%norb_per_gridpoint_c)
-      if (ii/=collcom_sr%ndimind_c) stop 'ii/=collcom_sr%ndimind_c'
+      if (nspin*ii/=collcom_sr%ndimind_c) then
+          write(*,*) 'nspin*ii/=collcom_sr%ndimind_c', ii, collcom_sr%ndimind_c
+          stop 'nspin*ii/=collcom_sr%ndimind_c'
+      end if
     
     
       collcom_sr%psit_c=f_malloc_ptr(collcom_sr%ndimind_c,id='collcom_sr%psit_c')
     
       call get_switch_indices_sumrho(iproc, nproc, collcom_sr%nptsp_c, collcom_sr%ndimpsi_c, collcom_sr%ndimind_c, lzd, &
-           orbs, istartend, collcom_sr%norb_per_gridpoint_c, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, &
+           orbs, nspin, istartend, collcom_sr%norb_per_gridpoint_c, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, &
            collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, collcom_sr%isendbuf_c, collcom_sr%irecvbuf_c, &
            collcom_sr%iextract_c, collcom_sr%iexpand_c, collcom_sr%indexrecvorbital_c)
     
@@ -1442,6 +1449,7 @@ module communications_init
       do i3=nscatterarr(iproc,3)+1,nscatterarr(iproc,3)+nscatterarr(iproc,2)
           call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i, weight_xy(1,1))
           do iorb=1,orbs%norb
+              if (orbs%spinsgn(iorb)<0.d0) cycle !consider only up orbitals
               ilr=orbs%inwhichlocreg(iorb)
               is3=1+lzd%Llr(ilr)%nsi3
               ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
@@ -1450,6 +1458,7 @@ module communications_init
               ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
               is2=1+lzd%Llr(ilr)%nsi2
               ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
+              write(*,'(a,8i9)') 'consider: iorb, ilr, is1, ie1, is2, ie2, is3, ie3',iorb, ilr, is1, ie1, is2, ie2, is3, ie3
               !$omp parallel default(none) shared(is2, ie2, is1, ie1, weight_xy) private(i2, i1)
               !$omp do
               do i2=is2,ie2
@@ -1549,6 +1558,7 @@ module communications_init
               i3_loop: do i3=nscatterarr(jproc_out,3)+1,nscatterarr(jproc_out,3)+nscatterarr(jproc_out,2)
                   call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i, slicearr(1,1))
                   do iorb=1,orbs%norb
+                      if (orbs%spinsgn(iorb)<0.d0) cycle !consider only up orbitals
                       ilr=orbs%inwhichlocreg(iorb)
                       is1=1+lzd%Llr(ilr)%nsi1
                       ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
@@ -1648,7 +1658,7 @@ module communications_init
           if (weights_per_zpoint(i3)==0.d0) then
               cycle
           end if
-          do iorb=1,orbs%norb
+          do iorb=1,orbs%norbu
               ilr=orbs%inwhichlocreg(iorb)
               is3=1+lzd%Llr(ilr)%nsi3
               ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
@@ -1690,6 +1700,7 @@ module communications_init
         call mpiallred(weight_check, 1, mpi_sum, bigdft_mpi%mpi_comm)
       end if
       if (abs(weight_check-weight_tot) > 1.d-3) then
+          write(*,*) 'ERROR: weight_check/=weight_tot', weight_check, weight_tot
           stop '2: weight_check/=weight_tot'
       else if (abs(weight_check-weight_tot) > 0.d0) then
          call yaml_warning('The total weight for density seems inconsistent! Ref:'//&
@@ -1815,7 +1826,7 @@ module communications_init
 
 
 
-    subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd, orbs, istartend, &
+    subroutine get_switch_indices_sumrho(iproc, nproc, nptsp, ndimpsi, ndimind, lzd, orbs, nspin, istartend, &
                norb_per_gridpoint, nsendcounts, nsenddspls, nrecvcounts, nrecvdspls, &
                isendbuf, irecvbuf, iextract, iexpand, indexrecvorbital)
       use module_base
@@ -1823,7 +1834,7 @@ module communications_init
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, nptsp, ndimpsi, ndimind
+      integer,intent(in) :: iproc, nproc, nptsp, ndimpsi, ndimind, nspin
       type(local_zone_descriptors),intent(in) :: lzd
       type(orbitals_data),intent(in) :: orbs
       integer,dimension(2,0:nproc-1),intent(in) :: istartend
@@ -1962,7 +1973,11 @@ module communications_init
            ii=ii+norb_per_gridpoint(ipt)
        end do
     
-       if (ii/=ndimind+1) stop '(ii/=ndimind+1)'
+       write(*,*) 'ii, ndimind', ii, ndimind
+       if (nspin*ii/=ndimind+nspin) then
+           write(*,*) 'nspin*ii/=ndimind+nspin', nspin*ii, ndimind+nspin
+           stop '(nspin*ii/=ndimind+nspin)'
+       end if
        if(maxval(gridpoint_start)>ndimind) stop '1: maxval(gridpoint_start)>sum(nrecvcountc)'
     
        !!allocate(iextract(ndimind), stat=istat)
