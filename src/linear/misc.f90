@@ -717,14 +717,18 @@ subroutine local_potential_dimensions(iproc,Lzd,orbs,xc,ndimfirstproc)
            if (orbs%inWhichLocreg(iorb+orbs%isorb) == ilr) then
               !assignment of ispot array to the value of the starting address of inequivalent
               orbs%ispot(iorb)=lzd%ndimpotisf + 1
-              if(orbs%spinsgn(orbs%isorb+iorb) <= 0.0_gp) then
-                 orbs%ispot(iorb)=lzd%ndimpotisf + &
-                      1 + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
-              end if
+              write(*,*) 'iorb, orbs%ispot(iorb)', iorb, orbs%ispot(iorb)
+
+              !SM: WARNING: CHECK THIS MODIFCATION @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+              !if(orbs%spinsgn(orbs%isorb+iorb) <= 0.0_gp) then
+              !   orbs%ispot(iorb)=lzd%ndimpotisf + &
+              !        1 + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
+              !end if
+              ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
            end if
         end do
         lzd%ndimpotisf = lzd%ndimpotisf + &
-             lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i*orbs%nspin
+             lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i!*orbs%nspin
      end do
      !part which refers to exact exchange (only meaningful for one region)
      if (xc_exctXfac(xc) /= 0.0_gp) then

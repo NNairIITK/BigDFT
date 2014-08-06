@@ -817,15 +817,17 @@ module communications
     
           nproc_if: if (nproc>1) then
     
-              ! Allocate MPI memory window
-              call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-              call mpi_info_create(info, ierr)
-              call mpi_info_set(info, "no_locks", "true", ierr)
-              call mpi_win_create(sendbuf(1), int(nsendbuf*size_of_double,kind=mpi_address_kind), size_of_double, &
-                   info, bigdft_mpi%mpi_comm, comm%window, ierr)
-              call mpi_info_free(info, ierr)
+              ! Allocate MPI memory window. Only necessary in the first iteration.
+              if (ispin==1) then
+                  call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+                  call mpi_info_create(info, ierr)
+                  call mpi_info_set(info, "no_locks", "true", ierr)
+                  call mpi_win_create(sendbuf(1), int(nsendbuf*size_of_double,kind=mpi_address_kind), size_of_double, &
+                       info, bigdft_mpi%mpi_comm, comm%window, ierr)
+                  call mpi_info_free(info, ierr)
     
-              call mpi_win_fence(mpi_mode_noprecede, comm%window, ierr)
+                  call mpi_win_fence(mpi_mode_noprecede, comm%window, ierr)
+              end if
               
               do jproc=0,nproc-1
                   do joverlap=1,comm%noverlaps(jproc)
@@ -845,6 +847,9 @@ module communications
                           call mpi_type_size(comm%mpi_datatypes(joverlap,jproc), nsize, ierr)
                           nsize=nsize/size_of_double
                           if(nsize>0) then
+                              write(*,'(5(a,i0))') 'proc ',iproc,' gets ',nsize,' elements at ',ispin_shift+istdest, &
+                                                   ' from proc ',mpisource,' at ',isend_shift+istsource
+                              
                               call mpi_get(recvbuf(ispin_shift+istdest), nsize, &
                                    mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
                                    1, comm%mpi_datatypes(joverlap,jproc), comm%window, ierr)
@@ -861,6 +866,9 @@ module communications
                   do i2=comm%ise(3,iproc),comm%ise(4,iproc)
                       ist2=(i2-1)*lzd%glr%d%n1i
                       !call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+1), 1, recvbuf(ist), 1)
+                      write(*,'(5(a,i0))') 'proc ',iproc,' gets ',comm%ise(2,iproc)-comm%ise(1,iproc)+1, &
+                                           ' elements at ',ispin_shift+ist,' from proc ',iproc,' at ', &
+                                           isend_shift+ist3+ist2+comm%ise(1,iproc)
                       call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, &
                                  sendbuf(isend_shift+ist3+ist2+comm%ise(1,iproc)), 1, recvbuf(ispin_shift+ist), 1)
                       ist=ist+comm%ise(2,iproc)-comm%ise(1,iproc)+1

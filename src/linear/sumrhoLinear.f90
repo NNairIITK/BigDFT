@@ -773,8 +773,9 @@ subroutine check_communication_potential(iproc,denspot,tmb)
   !check the fetching of the potential element, destroy the MPI window, results in pot_work
   call full_local_potential(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%orbs,tmb%ham_descr%lzd,&
        2,denspot%dpbox,denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
+  write(*,*) 'tmb%ham_descr%lzd%ndimpotisf',tmb%ham_descr%lzd%ndimpotisf
   write(1000+iproc,*) 'tmb%ham_descr%comgp%recvbuf',tmb%ham_descr%comgp%recvbuf
-  !write(1100+iproc,*) 'denspot%pot_work',denspot%pot_work
+  !write(1100+iproc,*) 'denspot%pot_work',denspot%pot_work(1:tmb%ham_descr%lzd%ndimpotisf)
   write(*,*) 'tmb%ham_descr%comgp%recvbuf(1:20)',tmb%ham_descr%comgp%recvbuf(1:20)
   write(*,*) 'denspot%pot_work(1:20)',denspot%pot_work(1:20)
   write(*,*) 'maxval(tmb%ham_descr%comgp%recvbuf)', maxval(tmb%ham_descr%comgp%recvbuf)
@@ -806,7 +807,7 @@ subroutine check_communication_potential(iproc,denspot,tmb)
                  testval=real(i1+tmb%ham_descr%Lzd%Llr(ilr)%nsi1+&
                       (i2+tmb%ham_descr%Lzd%Llr(ilr)%nsi2-1)*n1i+&
                       (i3+tmb%ham_descr%Lzd%Llr(ilr)%nsi3-1)*n1i*n2i,dp)
-                 if (iproc==0) write(*,'(a,4i8,2es14.3)') 'i1, i2, i3, ind, val, ref', i1, i2, i3, ind, denspot%pot_work(ind), testval
+                 !if (iproc==0) write(*,'(a,4i8,2es14.3)') 'i1, i2, i3, ind, val, ref', i1, i2, i3, ind, denspot%pot_work(ind), testval
                  testval=abs(denspot%pot_work(ind)-testval)
                  maxdiff=max(maxdiff,testval)
                  sumdiff=sumdiff+testval

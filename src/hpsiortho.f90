@@ -1111,7 +1111,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
    character(len=*), parameter :: subname='full_local_potential'
    logical :: odp,newvalue !orbital dependent potential
    integer :: npot,ispot,ispotential,ispin,ierr,i_stat,i_all,ii,ilr,iorb,iorb2,nilr,ni1,ni2
-   integer:: istl, ist, size_Lpot, i3s, i3e, i2s, i2e, i1s, i1e
+   integer:: istl, ist, size_Lpot, i3s, i3e, i2s, i2e, i1s, i1e, iispin
    integer,dimension(:),allocatable:: ilrtable
    real(wp), dimension(:), pointer :: pot1
    
@@ -1210,27 +1210,34 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       !call to_zero(orbs%norbp*2,ilrtable(1,1))
       ilrtable=0
       ii=0
-      do iorb=1,orbs%norbp
-         newvalue=.true.
-         !localization region to which the orbital belongs
-         ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-         !spin state of the orbital
-         if (orbs%spinsgn(orbs%isorb+iorb) > 0.0_gp) then
-            ispin = 1       
-         else
-            ispin=2
-         end if
-         !check if the orbitals already visited have the same conditions
-         loop_iorb2: do iorb2=1,orbs%norbp
-            if(ilrtable(iorb2) == ilr) then
-               newvalue=.false.
-               exit loop_iorb2
-            end if
-         end do loop_iorb2
-         if (newvalue) then
-            ii = ii + 1
-            ilrtable(ii)=ilr
-         end if
+      do ispin=1,comgp%nspin
+          do iorb=1,orbs%norbp
+             newvalue=.true.
+             !localization region to which the orbital belongs
+             ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+             !spin state of the orbital
+             if (orbs%spinsgn(orbs%isorb+iorb) > 0.0_gp) then
+                iispin = 1       
+             else
+                iispin=2
+             end if
+             ! First the up TMBs, then the down TMBs
+             if (iispin==ispin) then
+                 !check if the orbitals already visited have the same conditions
+                 !SM: if each TMB has its own locreg, this loop is probably not needed.
+                 loop_iorb2: do iorb2=1,orbs%norbp
+                    if(ilrtable(iorb2) == ilr) then
+                       newvalue=.false.
+                       exit loop_iorb2
+                    end if
+                 end do loop_iorb2
+                 if (newvalue) then
+                    ii = ii + 1
+                    ilrtable(ii)=ilr
+                 end if
+             end if
+             write(*,'(a,5i9)') 'ispin, iorb, iispin, ii, ilr', ispin, iorb, iispin, ii, ilr
+          end do
       end do
       !number of inequivalent potential regions
       nilr = ii
@@ -1239,6 +1246,10 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       nilr = 1
       ilrtable=1
    end if
+
+   write(*,*) 'full_local_potential: nilr',nilr
+   write(*,*) 'full_local_potential: ilrtable', ilrtable
+   write(*,*) 'full_local_potential: orbs%inwhichlocreg', orbs%inwhichlocreg
 
 !!$   !calculate the dimension of the potential in the gathered form 
 !!$   !this part has been deplaced in check_linear_and_create_Lzd routine 
