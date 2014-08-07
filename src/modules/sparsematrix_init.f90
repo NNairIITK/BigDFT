@@ -68,13 +68,24 @@ contains
       integer,intent(in) :: iorb, jorb
     
       ! Local variables
+      integer :: ii, ispin, iiorb, jjorb
+
+      ii=(jorb-1)*sparsemat%nfvctr+iorb
+      ispin=(ii-1)/sparsemat%nfvctr+1 !integer division to get the spin (1 for spin up (or non polarized), 2 for spin down)
+      iiorb=mod(iorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
+      jjorb=mod(jorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
     
       if (sparsemat%store_index) then
           ! Take the value from the array
-          matrixindex_in_compressed = sparsemat%matrixindex_in_compressed_arr(iorb,jorb)
+          matrixindex_in_compressed = sparsemat%matrixindex_in_compressed_arr(iiorb,jjorb)
       else
           ! Recalculate the value
-          matrixindex_in_compressed = compressed_index_fn(iorb, jorb, sparsemat%nfvctr, sparsemat)
+          matrixindex_in_compressed = compressed_index_fn(iiorb, jjorb, sparsemat%nfvctr, sparsemat)
+      end if
+
+      ! Add the spin shift (i.e. the index is in the spin polarized matrix which is at the end)
+      if (ispin==2) then
+          matrixindex_in_compressed = matrixindex_in_compressed + sparsemat%nvctr
       end if
     
     contains

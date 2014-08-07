@@ -1069,7 +1069,7 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   use module_types
   !use module_interfaces, except_this_one => init_matrixindex_in_compressed_fortransposed
   use sparsematrix_base, only: sparse_matrix
-  use sparsematrix_init, only: compressed_index
+  use sparsematrix_init, only: matrixindex_in_compressed!compressed_index
   implicit none
   
   ! Calling arguments
@@ -1098,8 +1098,10 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   imax=max(imax,maxval(collcom_shamop%indexrecvorbital_f))
   imax=max(imax,maxval(collcom_sr%indexrecvorbital_c))
 
-  ! This is a temporary solution for spin polarized systems
-  imax=min(imax,orbs%norbu)
+  !!! This is a temporary solution for spin polarized systems
+  !!imax=min(imax,orbs%norbu)
+
+
 
   !!allocate(sparsemat%matrixindex_in_compressed_fortransposed(imin:imax,imin:imax), stat=istat)
   !!call memocc(istat, sparsemat%matrixindex_in_compressed_fortransposed, &
@@ -1109,11 +1111,22 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   !$omp parallel do default(private) shared(sparsemat,orbs,imin,imax)  
   do iorb=imin,imax
       do jorb=imin,imax
-          sparsemat%matrixindex_in_compressed_fortransposed(iorb,jorb)=compressed_index(iorb,jorb,orbs%norb,sparsemat)
+          !@ii=(jorb-1)*sparsemat%nfvctr+iorb
+          !@ispin=(ii-1)/sparsemat%nfvctr+1 !integer division to get the spin (1 for spin up (or non polarized), 2 for spin down)
+          !@iiorb=mod(iorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
+          !@jjorb=mod(jorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
+          !sparsemat%matrixindex_in_compressed_fortransposed(iorb,jorb)=compressed_index(iiorb,jjorb,orbs%norbu,sparsemat)
+          sparsemat%matrixindex_in_compressed_fortransposed(iorb,jorb)=matrixindex_in_compressed(sparsemat, iorb, jorb)
           !sendbuf(jorb,iorb)=compressed_index(jorb,iiorb,orbs%norb,sparsemat)
           !sendbuf(iorb,jorb)=compressed_index(iiorb,jorb,orbs%norb,sparsemat)
       end do
   end do
   !$omp end parallel do
+
+  !@! Add the spin shift (i.e. the index is in the spin polarized matrix which is at the end)
+  !@if (ispin==2) then
+  !@    matrixindex_in_compressed = matrixindex_in_compressed + sparsemat%nvctr
+  !@end if
+
 
 end subroutine init_matrixindex_in_compressed_fortransposed

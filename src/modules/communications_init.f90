@@ -1999,7 +1999,8 @@ module communications_init
               ind = ind + (ndimind/2-norb_per_gridpoint(ii-istartend(1,iproc)+1))
           end if
           if (iproc==0 .and. ind<=15) then
-              write(*,'(a,6i9)') 'iextract init: i, ii, ind, ind orig, ndimind/2, npg', i, ii, ind, gridpoint_start(ii), ndimind/2, norb_per_gridpoint(ii-istartend(1,iproc)+1)
+              write(*,'(a,6i9)') 'iextract init: i, ii, ind, ind orig, ndimind/2, npg', &
+                                  i, ii, ind, gridpoint_start(ii), ndimind/2, norb_per_gridpoint(ii-istartend(1,iproc)+1)
           end if
           iextract(i)=ind
           gridpoint_start(ii)=gridpoint_start(ii)+1

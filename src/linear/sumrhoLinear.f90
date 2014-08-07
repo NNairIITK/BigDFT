@@ -522,7 +522,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   logical,intent(in),optional :: print_results
 
   ! Local variables
-  integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr, ind
+  integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr, ind, ispin, ishift
   real(8) :: tt, total_charge, hxh, hyh, hzh, factor, tt1
   real(kind=8),dimension(:),allocatable :: rho_local
   character(len=*),parameter :: subname='sumrho_for_TMBs'
@@ -545,7 +545,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   end if
 
 
-  rho_local = f_malloc(collcom_sr%nptsp_c,id='rho_local')
+  rho_local = f_malloc(collcom_sr%nptsp_c*denskern%nspin,id='rho_local')
 
   ! Define some constant factors.
   hxh=.5d0*hx
@@ -571,36 +571,43 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   irho=0
 
 !ispin=1
-  !$omp parallel default(private) &
-  !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local, irho)
-  !$omp do schedule(static,50) reduction(+:total_charge, irho)
-  do ipt=1,collcom_sr%nptsp_c
-      ii=collcom_sr%norb_per_gridpoint_c(ipt)
-
-      i0=collcom_sr%isptsp_c(ipt)
-      tt=1.e-20_dp
-      do i=1,ii
-          iiorb=collcom_sr%indexrecvorbital_c(i0+i)
-!ispin=spinsgn(iiorb) 
-          tt1=collcom_sr%psit_c(i0+i)
-          ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
-          tt=tt+denskern_%matrix_compr(ind)*tt1*tt1
-!tt(ispin)=tt(ispin)+denskern_%matrix_compr(ind)*tt1*tt1
-          do j=i+1,ii
-              jjorb=collcom_sr%indexrecvorbital_c(i0+j)
-              ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-              if (ind==0) cycle
-              tt=tt+2.0_dp*denskern_%matrix_compr(ind)*tt1*collcom_sr%psit_c(i0+j)
+  do ispin=1,denskern%nspin
+      if (ispin==1) then
+          ishift=0
+      else
+          ishift=collcom_sr%ndimind_c/2
+      end if
+      !$omp parallel default(private) &
+      !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local, irho, ispin, ishift)
+      !$omp do schedule(static,50) reduction(+:total_charge, irho)
+      do ipt=1,collcom_sr%nptsp_c
+          ii=collcom_sr%norb_per_gridpoint_c(ipt)
+    
+          i0=collcom_sr%isptsp_c(ipt)+ishift
+          tt=1.e-20_dp
+          do i=1,ii
+              iiorb=collcom_sr%indexrecvorbital_c(i0+i)
+    !ispin=spinsgn(iiorb) 
+              tt1=collcom_sr%psit_c(i0+i)
+              ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
+              tt=tt+denskern_%matrix_compr(ind)*tt1*tt1
+    !tt(ispin)=tt(ispin)+denskern_%matrix_compr(ind)*tt1*tt1
+              do j=i+1,ii
+                  jjorb=collcom_sr%indexrecvorbital_c(i0+j)
+                  ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                  if (ind==0) cycle
+                  tt=tt+2.0_dp*denskern_%matrix_compr(ind)*tt1*collcom_sr%psit_c(i0+j)
+              end do
           end do
+          tt=factor*tt
+          total_charge=total_charge+tt
+          rho_local(ipt+(ispin-1)*collcom_sr%nptsp_c)=tt
+    !rho_local(ipt,ispin)=tt(ispin)
+          if (tt<0.d0) irho=irho+1
       end do
-      tt=factor*tt
-      total_charge=total_charge+tt
-      rho_local(ipt)=tt
-!rho_local(ipt,ispin)=tt(ispin)
-      if (tt<0.d0) irho=irho+1
+      !$omp end do
+      !$omp end parallel
   end do
-  !$omp end do
-  !$omp end parallel
 
   if (nproc > 1) then
      call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm)
@@ -882,8 +889,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
 
   ! Local variables
   integer :: ist, iorb, iiorb, ilr, i, iz, ii, iy, ix, iix, iiy, iiz, iixyz, nxyz, ipt, i0, ierr, jproc
-  integer :: i1, i2, i3, is1, is2, is3, ie1, ie2, ie3, ii3s, ii3e, nmax, jj, j, ind, ikernel
-  integer :: iorbmin, iorbmax, jorb, iall, istat
+  integer :: i1, i2, i3, is1, is2, is3, ie1, ie2, ie3, ii3s, ii3e, nmax, jj, j, ind, ikernel, iim
+  integer :: iorbmin, iorbmax, jorb, iall, istat, ispin,ishift
   real(kind=8) :: maxdiff, sumdiff, tt, tti, ttj, hxh, hyh, hzh, factor, ref_value
   real(kind=8) :: diff
   real(kind=8),dimension(:),allocatable :: psir, psirwork, psirtwork, rho, rho_check
@@ -987,15 +994,18 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   !end do
   !! END TEST #############################
 
-  !!! TEST #################################
-  !!do ipt=1,collcom_sr%nptsp_c
-  !!    ii=collcom_sr%norb_per_gridpoint_c(ipt)
-  !!    i0=collcom_sr%isptsp_c(ipt)
-  !!    do i=1,ii
-  !!        if (iproc==0) write(*,'(a,4i9,f11.2)') 'ipt, i0, i, npg, val', ipt, i0, i, ii, collcom_sr%psit_c(i0+i)
-  !!    end do
-  !!end do
-  !!! END TEST #############################
+
+  ! TEST #################################
+  do ispin=1,denskern%nspin
+      do ipt=1,collcom_sr%nptsp_c
+          ii=collcom_sr%norb_per_gridpoint_c(ipt)
+          i0=collcom_sr%isptsp_c(ipt)+(ispin-1)*collcom_sr%ndimind_c/2
+          do i=1,ii
+              if (iproc==0) write(3000+iproc,'(a,4i9,f11.2)') 'ipt, i0, i, npg, val', ipt, i0, i, ii, collcom_sr%psit_c(i0+i)
+          end do
+      end do
+  end do
+  ! END TEST #############################
 
   ! Transposed workarray not needed anymore
   call f_free(psirtwork)
@@ -1023,26 +1033,29 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   call f_free(istarr)
   
   ! Iterate through all the transposed values and check whether they are correct
-  !$omp parallel default(none) &
-  !$omp shared(collcom_sr, ist, nxyz, maxdiff, sumdiff) &
-  !$omp private(ipt, ii, i0, iixyz, i, iiorb, tt, ref_value, diff)
-  !$omp do reduction(+:sumdiff) reduction(max:maxdiff)
-  do ipt=1,collcom_sr%nptsp_c
-      ii=collcom_sr%norb_per_gridpoint_c(ipt)
-      i0=collcom_sr%isptsp_c(ipt)
-      iixyz=ist+ipt
-      do i=1,ii
-          iiorb=collcom_sr%indexrecvorbital_c(i0+i)
-          tt=collcom_sr%psit_c(i0+i)
-          ref_value=test_value_sumrho(iiorb,iixyz,nxyz)
-          !write(*,'(a,4i9,2f11.2)') 'ipt, i0, i, npg, val, ref', ipt, i0, i, ii, tt, ref_value
-          diff=abs(tt-ref_value)
-          if (diff>maxdiff) maxdiff=diff
-          sumdiff=sumdiff+diff**2
+  do ispin=1,denskern%nspin
+      !$omp parallel default(none) &
+      !$omp shared(collcom_sr, ist, nxyz, maxdiff, sumdiff, ispin) &
+      !$omp private(ipt, ii, i0, iixyz, i, iiorb, tt, ref_value, diff)
+      !$omp do reduction(+:sumdiff) reduction(max:maxdiff)
+      do ipt=1,collcom_sr%nptsp_c
+          ii=collcom_sr%norb_per_gridpoint_c(ipt)
+          !i0=collcom_sr%isptsp_c(ipt)
+          i0=collcom_sr%isptsp_c(ipt)+(ispin-1)*collcom_sr%ndimind_c/2
+          iixyz=ist+ipt
+          do i=1,ii
+              iiorb=collcom_sr%indexrecvorbital_c(i0+i)
+              tt=collcom_sr%psit_c(i0+i)
+              ref_value=test_value_sumrho(iiorb,iixyz,nxyz)
+              !write(*,'(a,4i9,2f11.2)') 'ipt, i0, i, npg, val, ref', ipt, i0, i, ii, tt, ref_value
+              diff=abs(tt-ref_value)
+              if (diff>maxdiff) maxdiff=diff
+              sumdiff=sumdiff+diff**2
+          end do
       end do
+      !$omp end do
+      !$omp end parallel
   end do
-  !$omp end do
-  !$omp end parallel
 
 
   ! Reduce the results
@@ -1090,7 +1103,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       end if
 
       do i3=ii3s,ii3e
-          do iorb=1,orbs%norb
+          do iorb=1,orbs%norbu
               ilr=orbs%inwhichlocreg(iorb)
               is3=1+lzd%Llr(ilr)%nsi3
               ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
@@ -1124,7 +1137,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       iorbmin=1000000000
       iorbmax=-1000000000
       do i3=ii3s,ii3e
-          do iorb=1,orbs%norb
+          do iorb=1,orbs%norbu
               ilr=orbs%inwhichlocreg(iorb)
               is3=1+lzd%Llr(ilr)%nsi3
               ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
@@ -1164,8 +1177,9 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ! value of each gridpoint is given by the special pattern and therefore always known.
     
       ! First fill the kernel with some numbers.
-      do i=1,denskern%nvctr
-          denskern_%matrix_compr(i)=sine_taylor(real(denskern%nvctr-i+1,kind=8))
+      do i=1,denskern%nvctr*denskern%nspin
+          !denskern_%matrix_compr(i)=sine_taylor(real(denskern%nvctr-i+1,kind=8))
+          denskern_%matrix_compr(i)=sine_taylor(real(mod(denskern%nvctr-i+1-1,denskern%nvctr)+1,kind=8))
       end do
     
       hxh=.5d0*lzd%hgrids(1)
@@ -1192,59 +1206,73 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       !$omp end parallel
     
       ! Now calculate the charge density and store the result in rho_check
-      rho_check=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1),id='rho_check')
-      !$omp parallel default (none) &
-      !$omp private (i3, i2, i1, iixyz, ind, tt, i,j, ii, tti, ikernel, jj, ttj) &
-      !$omp shared (ii3s, ii3e, lzd, weight, orbital_id, denskern, denskern_, rho_check) &
-      !$omp shared (nxyz, factor, matrixindex_in_compressed_auxilliary)
-      do i3=ii3s,ii3e
-          !$omp do
-          do i2=1,lzd%glr%d%n2i
-              do i1=1,lzd%glr%d%n1i
-                  iixyz=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
-                  ind=(i3-ii3s)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
-                  tt=1.d-20
-                  do i=1,weight(i1,i2,i3) !the number of orbitals touching this grid point
-                      ii=orbital_id(i,i1,i2,i3)
-                      tti=test_value_sumrho(ii,iixyz,nxyz)
-                      ikernel=matrixindex_in_compressed_auxilliary(ii,ii)
-                      tt=tt+denskern_%matrix_compr(ikernel)*tti*tti
-                      do j=i+1,weight(i1,i2,i3)
-                          jj=orbital_id(j,i1,i2,i3)
-                          ikernel=matrixindex_in_compressed_auxilliary(jj,ii)
-                          if (ikernel==0) cycle
-                          ttj=test_value_sumrho(jj,iixyz,nxyz)
-                          tt=tt+2.d0*denskern_%matrix_compr(ikernel)*tti*ttj
+      rho_check=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)*denskern%nspin,1),id='rho_check')
+      do ispin=1,denskern%nspin
+          ishift=(ispin-1)*lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
+          !$omp parallel default (none) &
+          !$omp private (i3, i2, i1, iixyz, ind, tt, i,j, ii, tti, ikernel, jj, ttj) &
+          !$omp shared (ii3s, ii3e, lzd, weight, orbital_id, denskern, denskern_, rho_check) &
+          !$omp shared (nxyz, factor, matrixindex_in_compressed_auxilliary, ispin, orbs, ishift)
+          do i3=ii3s,ii3e
+              !$omp do
+              do i2=1,lzd%glr%d%n2i
+                  do i1=1,lzd%glr%d%n1i
+                      iixyz=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+                      ind=(i3-ii3s)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1+ishift
+                      tt=1.d-20
+                      do i=1,weight(i1,i2,i3) !the number of orbitals touching this grid point
+                          ii=orbital_id(i,i1,i2,i3)+(ispin-1)*orbs%norbu
+                          !!iim=mod(ii-1,orbs%norbu)+1 !orbital number regardless of the spin
+                          !!ispin=(ii-1)/orbs%norbu+1 !integer division to get the spin (1 for spin up (or non polarized), 2 for spin down)
+                          tti=test_value_sumrho(ii,iixyz,nxyz)
+                          !ikernel=matrixindex_in_compressed_auxilliary(ii,ii)
+                          ikernel=matrixindex_in_compressed(denskern,ii,ii)
+                          if (ikernel==0) write(*,*) 'ii, ii, ikernel', ii, ii, ikernel
+                          tt=tt+denskern_%matrix_compr(ikernel)*tti*tti
+                          do j=i+1,weight(i1,i2,i3)
+                              jj=orbital_id(j,i1,i2,i3)+(ispin-1)*orbs%norbu
+                              !ikernel=matrixindex_in_compressed_auxilliary(jj,ii)
+                              ikernel=matrixindex_in_compressed(denskern,jj,ii)
+                              if (ikernel==0) write(*,*) 'jj, ii, ikernel', jj, ii, ikernel
+                              if (ikernel==0) cycle
+                              ttj=test_value_sumrho(jj,iixyz,nxyz)
+                              tt=tt+2.d0*denskern_%matrix_compr(ikernel)*tti*ttj
+                          end do
                       end do
+                      tt=tt*factor
+                      rho_check(ind)=tt
                   end do
-                  tt=tt*factor
-                  rho_check(ind)=tt
               end do
+              !$omp end do
           end do
-          !$omp end do
+          !$omp end parallel
       end do
-      !$omp end parallel
     
       call f_free(matrixindex_in_compressed_auxilliary)
     
       ! Now calculate the charge density in the transposed way using the standard routine
-      rho=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1),id='rho')
+      rho=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)*denskern%nspin,1),id='rho')
       !denskern_%matrix_compr = denskern%matrix_compr
       call sumrho_for_TMBs(iproc, nproc, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), collcom_sr, denskern, denskern_, &
-           lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3d, rho, rho_negative, .false.)
+           lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3d*denskern%nspin, rho, rho_negative, .false.)
     
       ! Determine the difference between the two versions
       sumdiff=0.d0
       maxdiff=0.d0
-      !$omp parallel default(none) shared(lzd,ii3e,ii3s,rho,rho_check,sumdiff,maxdiff) private(i,tt)
-      !$omp do reduction(+:sumdiff) reduction(max:maxdiff) 
-      do i=1,lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
-          tt=abs(rho(i)-rho_check(i))
-          sumdiff = sumdiff + tt**2
-          if (tt>maxdiff) maxdiff=tt
+      ii=0
+      do ispin=1,denskern%nspin
+          !!$omp parallel default(none) shared(lzd,ii3e,ii3s,rho,rho_check,sumdiff,maxdiff) private(i,tt)
+          !!$omp do reduction(+:sumdiff) reduction(max:maxdiff) 
+          do i=1,lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
+              ii=ii+1
+              write(2000+iproc,'(a,2i9,2es18.8)') 'i,ii,rho(ii),rho_check(ii)',i,ii,rho(ii),rho_check(ii)
+              tt=abs(rho(ii)-rho_check(ii))
+              sumdiff = sumdiff + tt**2
+              if (tt>maxdiff) maxdiff=tt
+          end do
+          !!$omp end do
+          !!$omp end parallel
       end do
-      !$omp end do
-      !$omp end parallel
     
       ! Reduce the results
       if (nproc>1) then
