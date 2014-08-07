@@ -524,10 +524,11 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   ! Local variables
   integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr, ind, ispin, ishift
   real(8) :: tt, total_charge, hxh, hyh, hzh, factor, tt1
+  integer,dimension(:),allocatable :: isend_total
   real(kind=8),dimension(:),allocatable :: rho_local
   character(len=*),parameter :: subname='sumrho_for_TMBs'
   logical :: print_local
-  integer :: size_of_double, info, mpisource, istsource, istdest, nsize, jproc, irho
+  integer :: size_of_double, info, mpisource, istsource, istdest, nsize, jproc, irho, ishift_dest, ishift_source
 
   call f_routine('sumrho_for_TMBs')
 
@@ -642,30 +643,44 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
       call mpi_type_size(mpi_double_precision, size_of_double, ierr)
       call mpi_info_create(info, ierr)
       call mpi_info_set(info, "no_locks", "true", ierr)
-      call mpi_win_create(rho_local(1), int(collcom_sr%nptsp_c*size_of_double,kind=mpi_address_kind), size_of_double, &
-           info, bigdft_mpi%mpi_comm, collcom_sr%window, ierr)
+      call mpi_win_create(rho_local(1), int(collcom_sr%nptsp_c*denskern%nspin*size_of_double,kind=mpi_address_kind), &
+           size_of_double, info, bigdft_mpi%mpi_comm, collcom_sr%window, ierr)
       call mpi_info_free(info, ierr)
 
       call mpi_win_fence(mpi_mode_noprecede, collcom_sr%window, ierr)
 
-      do jproc=1,collcom_sr%ncomms_repartitionrho
-          mpisource=collcom_sr%commarr_repartitionrho(1,jproc)
-          istsource=collcom_sr%commarr_repartitionrho(2,jproc)
-          istdest=collcom_sr%commarr_repartitionrho(3,jproc)
-          nsize=collcom_sr%commarr_repartitionrho(4,jproc)
-          if (nsize>0) then
-              call mpi_get(rho(istdest), nsize, mpi_double_precision, mpisource, &
-                   int((istsource-1),kind=mpi_address_kind), &
-                   nsize, mpi_double_precision, collcom_sr%window, ierr)
-              !!write(*,'(6(a,i0))') 'process ',iproc, ' gets ',nsize,' elements at position ',istdest, &
-              !!                     ' from position ',istsource,' on process ',mpisource, &
-              !!                     '; error code=',ierr
-          end if
+      ! This is a bit quick and dirty. Could be done in a better way, but
+      ! would probably required to pass additional arguments to the subroutine
+      isend_total = f_malloc0(0.to.nproc-1,id='isend_total')
+      isend_total(iproc)=collcom_sr%nptsp_c
+      call mpiallred(isend_total(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+
+
+      do ispin=1,denskern%nspin
+          !ishift_dest=(ispin-1)*sum(collcom_sr%commarr_repartitionrho(4,:)) !spin shift for the receive buffer
+          ishift_dest=(ispin-1)*ndimrho/denskern%nspin
+          do jproc=1,collcom_sr%ncomms_repartitionrho
+              mpisource=collcom_sr%commarr_repartitionrho(1,jproc)
+              istsource=collcom_sr%commarr_repartitionrho(2,jproc)
+              istdest=collcom_sr%commarr_repartitionrho(3,jproc)
+              nsize=collcom_sr%commarr_repartitionrho(4,jproc)
+              ishift_source=(ispin-1)*isend_total(mpisource) !spin shift for the send buffer
+              if (nsize>0) then
+                  call mpi_get(rho(istdest+ishift_dest), nsize, mpi_double_precision, mpisource, &
+                       int((istsource-1+ishift_source),kind=mpi_address_kind), &
+                       nsize, mpi_double_precision, collcom_sr%window, ierr)
+                  !write(*,'(6(a,i0))') 'process ',iproc, ' gets ',nsize,' elements at position ',istdest+ishift_dest, &
+                  !                     ' from position ',istsource+ishift_source,' on process ',mpisource, &
+                  !                     '; error code=',ierr
+              end if
+          end do
       end do
       call mpi_win_fence(0, collcom_sr%window, ierr)
       !!write(*,'(a,i0)') 'mpi_win_fence error code: ',ierr
       call mpi_win_free(collcom_sr%window, ierr)
       !!write(*,'(a,i0)') 'mpi_win_free error code: ',ierr
+
+      call f_free(isend_total)
   else
       call vcopy(ndimrho, rho_local(1), 1, rho(1), 1)
   end if
