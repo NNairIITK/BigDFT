@@ -1847,7 +1847,7 @@ module communications_init
       integer :: jproc, iitot, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, i3, i2, i1, ind, indglob, ierr, ii
       integer :: iorb, i, ipt, indglob2, indglob3, indglob3a, itotadd
       integer,dimension(:),allocatable :: nsend, indexsendbuf, indexsendorbital, indexsendorbital2, indexrecvorbital2
-      integer,dimension(:),allocatable :: gridpoint_start, indexrecvbuf
+      integer,dimension(:),allocatable :: gridpoint_start, indexrecvbuf, gridpoint_start_tmp
       character(len=*),parameter :: subname='get_switch_indices_sumrho'
     
     
@@ -1961,6 +1961,7 @@ module communications_init
     
     
        gridpoint_start = f_malloc(istartend(1, iproc).to.istartend(2, iproc),id='gridpoint_start')
+       gridpoint_start_tmp = f_malloc(istartend(1, iproc).to.istartend(2, iproc),id='gridpoint_start_tmp')
     
        ii=1
        do ipt=1,nptsp
@@ -1979,19 +1980,49 @@ module communications_init
            stop '(nspin*ii/=ndimind+nspin)'
        end if
        if(maxval(gridpoint_start)>ndimind) stop '1: maxval(gridpoint_start)>sum(nrecvcountc)'
+       if(minval(indexrecvbuf)<istartend(1,iproc)) stop '1: minval(indexrecvbuf)<istartend(1,iproc)'
+       if(maxval(indexrecvbuf)>istartend(2,iproc)) stop '1: maxval(indexrecvbuf)>istartend(2,iproc)'
     
        !!allocate(iextract(ndimind), stat=istat)
        !!call memocc(istat, iextract, 'iextract', subname)
+
+       gridpoint_start_tmp = gridpoint_start
     
       ! Rearrange the communicated data
       do i=1,ndimind
           ii=indexrecvbuf(i)
           ind=gridpoint_start(ii)
+          !if (gridpoint_start(ii)-gridpoint_start_tmp(ii)>norb_per_gridpoint(ii-istartend(1,iproc)+1)) then
+          if (gridpoint_start(ii)-gridpoint_start_tmp(ii)+1>norb_per_gridpoint(ii-istartend(1,iproc)+1)) then
+              ! orbitals which fulfill this condition are down orbitals which
+              ! should be put at the end
+              ind = ind + (ndimind/2-norb_per_gridpoint(ii-istartend(1,iproc)+1))
+          end if
+          if (iproc==0 .and. ind<=15) then
+              write(*,'(a,6i9)') 'iextract init: i, ii, ind, ind orig, ndimind/2, npg', i, ii, ind, gridpoint_start(ii), ndimind/2, norb_per_gridpoint(ii-istartend(1,iproc)+1)
+          end if
           iextract(i)=ind
           gridpoint_start(ii)=gridpoint_start(ii)+1
+          !!write(*,'(a,5i9)') 'ii, gridpoint_start(ii), gridpoint_start_tmp(ii), rep per gridpoint, norb_per_gridpoint(ii-istartend(1,iproc)+1)', &
+          !!                    ii, gridpoint_start(ii), gridpoint_start_tmp(ii), gridpoint_start(ii)-gridpoint_start_tmp(ii), norb_per_gridpoint(ii-istartend(1,iproc)+1)
+      end do
+
+      do i=1,min(100,ndimind)
+          if (iproc==0) write(*,*) 'i, iextract(i)', i, iextract(i)
+      end do
+      do i=1,ndimind
+          if (iproc==0) then
+              if (iextract(i)<=15) then
+                  write(*,*) 'i, iextract(i)', i, iextract(i)
+              end if
+          end if
       end do
     
-      if(maxval(iextract)>ndimind) stop 'maxval(iextract)>ndimind'
+      write(*,*) 'maxval(iextract),ndimind',maxval(iextract),ndimind
+      if(maxval(iextract)>ndimind) then
+          write(*,*) 'maxval(iextract)>ndimind',maxval(iextract),ndimind
+          stop 'maxval(iextract)>ndimind'
+      end if
       if(minval(iextract)<1) stop 'minval(iextract)<1'
     
       call f_free(indexrecvbuf)

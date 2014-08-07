@@ -675,10 +675,6 @@ module communications
     end subroutine untranspose_localized
 
 
-
-
-
-
     subroutine transpose_switch_psir(collcom_sr, psir, psirwork)
       implicit none
     
@@ -715,6 +711,7 @@ module communications
     
     
     end subroutine transpose_switch_psir
+
     
     subroutine transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
       use module_base, only: bigdft_mpi, mpi_double_precision

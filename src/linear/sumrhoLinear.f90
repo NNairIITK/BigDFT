@@ -938,6 +938,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
           iiz=iz+lzd%llr(ilr)%nsi3
           iixyz=(iiz-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(iiy-1)*lzd%glr%d%n1i+iix
           ! assign unique value
+          !psir(ist+i)=dble(iiorb)*orbs%spinsgn(iiorb)!test_value_sumrho(iiorb,iixyz,nxyz)
           psir(ist+i)=test_value_sumrho(iiorb,iixyz,nxyz)
       end do
       !$omp end do
@@ -955,11 +956,22 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   ! Rearrange data
   call transpose_switch_psir(collcom_sr, psir, psirwork)
 
+  !!! TEST #################################
+  !!do ipt=1,collcom_sr%ndimpsi_c
+  !!if (iproc==0) write(*,'(a,i9,2f13.2)') 'psir, psirwork: ipt, vals', ipt, psir(ipt), psirwork(ipt)
+  !!end do
+  !!! END TEST #############################
+
   ! direct array not needed anymore
   call f_free(psir)
 
   ! Communicate the data
   call transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
+  !! TEST #################################
+  !do ipt=1,collcom_sr%ndimind_c
+  !    if (iproc==0) write(*,'(a,i9,2f13.2)') 'psirtwork, ipt, val', ipt, psirtwork(ipt)
+  !end do
+  !! END TEST #############################
 
   ! Direct workarray not needed anymore
   call f_free(psirwork)
@@ -968,6 +980,22 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   !LG: WARNING: it is bad practice to consider collcom_sr as intent(in)
   !and collcom_sr%psit_c and intent(out) or intent(inout)!!!
   call transpose_unswitch_psirt(collcom_sr, psirtwork, collcom_sr%psit_c)
+
+  !! TEST #################################
+  !do ipt=1,collcom_sr%ndimind_c
+  !    if (iproc==0) write(*,'(a,i9,2f13.2)') 'psirtwork, collcom_sr%psit_c, ipt, vals', ipt, psirtwork(ipt), collcom_sr%psit_c(ipt)
+  !end do
+  !! END TEST #############################
+
+  !!! TEST #################################
+  !!do ipt=1,collcom_sr%nptsp_c
+  !!    ii=collcom_sr%norb_per_gridpoint_c(ipt)
+  !!    i0=collcom_sr%isptsp_c(ipt)
+  !!    do i=1,ii
+  !!        if (iproc==0) write(*,'(a,4i9,f11.2)') 'ipt, i0, i, npg, val', ipt, i0, i, ii, collcom_sr%psit_c(i0+i)
+  !!    end do
+  !!end do
+  !!! END TEST #############################
 
   ! Transposed workarray not needed anymore
   call f_free(psirtwork)
@@ -1007,6 +1035,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
           iiorb=collcom_sr%indexrecvorbital_c(i0+i)
           tt=collcom_sr%psit_c(i0+i)
           ref_value=test_value_sumrho(iiorb,iixyz,nxyz)
+          !write(*,'(a,4i9,2f11.2)') 'ipt, i0, i, npg, val, ref', ipt, i0, i, ii, tt, ref_value
           diff=abs(tt-ref_value)
           if (diff>maxdiff) maxdiff=diff
           sumdiff=sumdiff+diff**2
