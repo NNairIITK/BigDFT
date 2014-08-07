@@ -318,7 +318,7 @@ write(*,*)'hier2 ',filename
                 isad=isad+1
                 write(isadc,'(i5.5)')isad
                 !rmsd alignment (optional in mhgps approach)
-                call superimpose(nat,rxyz(1,1),rxyz2(1,1))
+!                call superimpose(nat,rxyz(1,1),rxyz2(1,1))
                 call get_ts_guess(nat,alat,rxyz(1,1),rxyz2(1,1),&
                      tsguess(1,1),minmodeguess(1,1),tsgenergy,&
                      tsgforces(1,1))
