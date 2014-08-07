@@ -554,7 +554,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
      if (in%check_matrix_compression) then
          if (iproc==0) call yaml_mapping_open('Checking Compression/Uncompression of large sparse matrices')
-         !call check_matrix_compression(iproc,tmb%linmat%denskern_large)
          call check_matrix_compression(iproc, tmb%linmat%l, tmb%linmat%kernel_)
          if (iproc ==0) call yaml_mapping_close()
      end if
@@ -566,6 +565,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
          call check_communication_sumrho(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom_sr, &
               denspot, tmb%linmat%l, tmb%linmat%kernel_, in%check_sumrho)
      end if
+
+     if (iproc==0) call yaml_mapping_open('Checking Communications of Minimal Basis')
+     call check_communications_locreg(iproc,nproc,tmb%orbs,in%nspin,tmb%Lzd,tmb%collcom, &
+          tmb%npsidim_orbs,tmb%npsidim_comp)
+     if (iproc==0) call yaml_mapping_close()
+
+     if (iproc==0) call yaml_mapping_open('Checking Communications of Enlarged Minimal Basis')
+     call check_communications_locreg(iproc,nproc,tmb%orbs,in%nspin,tmb%ham_descr%lzd,tmb%ham_descr%collcom, &
+          tmb%ham_descr%npsidim_orbs,tmb%ham_descr%npsidim_comp)
+     if (iproc ==0) call yaml_mapping_close()
+
 
      if (in%lin%scf_mode/=LINEAR_FOE .or. in%lin%pulay_correction .or.  in%lin%new_pulay_correction .or. &
          (in%lin%plotBasisFunctions /= WF_FORMAT_NONE) .or. in%lin%diag_end) then

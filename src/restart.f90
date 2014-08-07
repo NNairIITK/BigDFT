@@ -1245,7 +1245,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
 
   !call nullify_comms_linear(collcom_tmp)
   collcom_tmp=comms_linear_null()
-  call init_comms_linear(iproc, nproc, ndim_tmp, tmb%orbs, lzd_tmp, collcom_tmp)
+  call init_comms_linear(iproc, nproc, ndim_tmp, tmb%orbs, lzd_tmp, tmb%linmat%m%nspin, collcom_tmp)
 
   psit_c_tmp = f_malloc_ptr(sum(collcom_tmp%nrecvcounts_c),id='psit_c_tmp')
   psit_f_tmp = f_malloc_ptr(7*sum(collcom_tmp%nrecvcounts_f),id='psit_f_tmp')

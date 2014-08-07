@@ -853,7 +853,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
       call f_free(locreg_centers)
   end if
 
-  call init_comms_linear(iproc, nproc, npsidim_orbs, orbs, lzd, lbcollcom)
+  call init_comms_linear(iproc, nproc, npsidim_orbs, orbs, lzd, input%nspin, lbcollcom)
   if (present(lbcollcom_sr)) then
       call init_comms_linear_sumrho(iproc, nproc, lzd, orbs, input%nspin, nscatterarr, lbcollcom_sr)
   end if

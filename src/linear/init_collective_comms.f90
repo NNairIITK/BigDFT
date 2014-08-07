@@ -9,7 +9,7 @@
 
 
 
-subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs,npsidim_comp)
+subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,npsidim_orbs,npsidim_comp)
    use module_base!, only: wp, bigdft_mpi, mpi_sum, mpi_max, mpiallred
    use module_types, only: orbitals_data, local_zone_descriptors
    use yaml_output
@@ -17,7 +17,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
    use communications, only: transpose_localized, untranspose_localized
    !use dynamic_memory
    implicit none
-   integer, intent(in) :: iproc,nproc
+   integer, intent(in) :: iproc,nproc,nspin
    type(orbitals_data), intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: lzd
    type(comms_linear), intent(in) :: collcom
@@ -27,7 +27,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
    integer, parameter :: ilog=6
    integer :: i,ispinor,iorb,indspin,i_stat,i_all,ikptsp
    integer :: ikpt,ierr,i0,ifine,ii,iiorb,ipt,jorb,indorb_tmp
-   integer :: icomp
+   integer :: icomp,ispin
    !!$integer :: ipsi,ipsic,ipsif,ipsiworkc,ipsiworkf,jcomp,jkpt
    real(wp) :: psival,maxdiff,tt
    real(wp), dimension(:), allocatable :: psi,psit_c,psit_f
@@ -57,6 +57,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
             !vali=real(i,wp)/512.0_wp  ! *1.d-5
             call test_value_locreg(ikpt,orbs%isorb+iorb-(ikpt-1)*orbs%norb,ispinor,i,psival)
             !psi(i+indspin+ind_orb(iorb))=psival!(valorb+vali)*(-1)**(ispinor-1)
+            !psi(i+indspin)=dble(iorb+orbs%isorb)*orbs%spinsgn(iorb+orbs%isorb)!psival!(valorb+vali)*(-1)**(ispinor-1)
             psi(i+indspin)=psival!(valorb+vali)*(-1)**(ispinor-1)
             tt=tt+psival
             !checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)=&
@@ -77,60 +78,63 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
       ikpt=orbs%iskpts+ikptsp!orbs%ikptsp(ikptsp)
       ispinor=1 !for the (long?) moment
       !icomp=1
-      if (collcom%nptsp_c>0) then
-         do ipt=1,collcom%nptsp_c 
-            ii=collcom%norb_per_gridpoint_c(ipt)
-            i0 = collcom%isptsp_c(ipt) 
-            do i=1,ii
-               iiorb=collcom%indexrecvorbital_c(i0+i)
-!!$               !here a function which determin the address after mpi_alltoall
-!!$               !procedure should be called
-!!$               ipsitworkc=collcom%iexpand_c(icomp)
-!!$               !ipsiglob=collcom%nrecvdspls_c(iproc)+1+(ipsitworkc-1)*sum(
-!!$               ipsic=collcom%isendbuf_c(ipsiworkc)
-!!$               ipsi=ipsic
-!!$               do jorb=1,iiorb-1
-!!$                  ipsi=ipsi-nvctr_c_orb(jorb)
-!!$               end do
-!!$               call test_value_locreg(ikpt,iiorb-(ikpt-1)*orbs%norb,ispinor,&
-!!$                    ipsi,psival)
-!!$               indspin=(ispinor-1)*nvctr_orb(iiorb)
-!!$               maxdiff=max(abs(psit_c(i0+i)-psival),maxdiff)
-               checksum(iiorb,2)=checksum(iiorb,2)+psit_c(i0+i)
-               !icomp=icomp+1
-            end do
-         end do
-      end if
-      !icomp=1
-      if (collcom%nptsp_f>0) then
-         do ipt=1,collcom%nptsp_f 
-            ii=collcom%norb_per_gridpoint_f(ipt) 
-            i0 = collcom%isptsp_f(ipt) 
-            do i=1,ii
-               iiorb=collcom%indexrecvorbital_f(i0+i)
-!!$               ipsitworkf=collcom%iexpand_f(icomp)
-!!$               ipsif=collcom%isendbuf_f(ipsiworkf)
-!!$               ipsi=ipsif
-!!$               do jorb=1,iiorb-1
-!!$                  ipsi=ipsi-nvctr_f_orb(jorb)
-!!$               end do
-               tt=0.d0
-               do ifine=1,7
-!!$                  call test_value_locreg(ikpt,iiorb-(ikpt-1)*orbs%norb,ispinor,&
-!!$                       nvctr_c_orb(iiorb)+7*(ipsi-1)+ifine,psival) 
-!!$                  tt=abs(psit_f(7*(i0+i-1)+ifine)-psival)
-!!$                  if (tt > maxdiff) then
-!!$                     maxdiff=tt
-!!$                     !call wrong_components(psival,jkpt,jorb,jcomp)
-!!$                  end if
-                  !checksum(iiorb,2)=checksum(iiorb,2)+psit_f(7*(i0+i-1)+ifine)
-                  tt=tt+psit_f(7*(i0+i-1)+ifine)
+      do ispin=1,nspin
+         if (collcom%nptsp_c>0) then
+            do ipt=1,collcom%nptsp_c 
+               ii=collcom%norb_per_gridpoint_c(ipt)
+               i0 = collcom%isptsp_c(ipt) + (ispin-1)*collcom%ndimind_c/2
+               do i=1,ii
+                  iiorb=collcom%indexrecvorbital_c(i0+i)
+                  !write(5000+iproc,'(a,4i8,es16.6)') 'ispin, ipt, ii, i0+i, psit_c(i0+i)', ispin, ipt, ii, i0+i, psit_c(i0+i)
+   !!$               !here a function which determin the address after mpi_alltoall
+   !!$               !procedure should be called
+   !!$               ipsitworkc=collcom%iexpand_c(icomp)
+   !!$               !ipsiglob=collcom%nrecvdspls_c(iproc)+1+(ipsitworkc-1)*sum(
+   !!$               ipsic=collcom%isendbuf_c(ipsiworkc)
+   !!$               ipsi=ipsic
+   !!$               do jorb=1,iiorb-1
+   !!$                  ipsi=ipsi-nvctr_c_orb(jorb)
+   !!$               end do
+   !!$               call test_value_locreg(ikpt,iiorb-(ikpt-1)*orbs%norb,ispinor,&
+   !!$                    ipsi,psival)
+   !!$               indspin=(ispinor-1)*nvctr_orb(iiorb)
+   !!$               maxdiff=max(abs(psit_c(i0+i)-psival),maxdiff)
+                  checksum(iiorb,2)=checksum(iiorb,2)+psit_c(i0+i)
+                  !icomp=icomp+1
                end do
-               checksum(iiorb,2)=checksum(iiorb,2)+tt
-               !icomp=icomp+1
             end do
-         end do
-      end if
+         end if
+         !icomp=1
+         if (collcom%nptsp_f>0) then
+            do ipt=1,collcom%nptsp_f 
+               ii=collcom%norb_per_gridpoint_f(ipt) 
+               i0 = collcom%isptsp_f(ipt) + (ispin-1)*collcom%ndimind_f/2
+               do i=1,ii
+                  iiorb=collcom%indexrecvorbital_f(i0+i)
+   !!$               ipsitworkf=collcom%iexpand_f(icomp)
+   !!$               ipsif=collcom%isendbuf_f(ipsiworkf)
+   !!$               ipsi=ipsif
+   !!$               do jorb=1,iiorb-1
+   !!$                  ipsi=ipsi-nvctr_f_orb(jorb)
+   !!$               end do
+                  tt=0.d0
+                  do ifine=1,7
+   !!$                  call test_value_locreg(ikpt,iiorb-(ikpt-1)*orbs%norb,ispinor,&
+   !!$                       nvctr_c_orb(iiorb)+7*(ipsi-1)+ifine,psival) 
+   !!$                  tt=abs(psit_f(7*(i0+i-1)+ifine)-psival)
+   !!$                  if (tt > maxdiff) then
+   !!$                     maxdiff=tt
+   !!$                     !call wrong_components(psival,jkpt,jorb,jcomp)
+   !!$                  end if
+                     !checksum(iiorb,2)=checksum(iiorb,2)+psit_f(7*(i0+i-1)+ifine)
+                     tt=tt+psit_f(7*(i0+i-1)+ifine)
+                  end do
+                  checksum(iiorb,2)=checksum(iiorb,2)+tt
+                  !icomp=icomp+1
+               end do
+            end do
+         end if
+      end do
    end do
 !!$
    if (iproc==0) then
