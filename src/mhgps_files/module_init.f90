@@ -37,6 +37,7 @@ contains
             read(u,*) ts_guess_nstepsmax
             read(u,*)saddle_nit_trans, saddle_nit_rot
             read(u,*)saddle_nhistx_trans, saddle_nhistx_rot
+            read(u,*)saddle_steepthresh_trans,saddle_steepthresh_rot
             read(u,*)saddle_fnrmtol
             if(saddle_biomode)then
                 read(u,*)saddle_alpha0_trans, saddle_alpha0_rot, saddle_alpha_stretch0, saddle_alpha_rot_stretch0
@@ -87,6 +88,7 @@ contains
             write(u,'(1x,i0,1x,a)') ts_guess_nstepsmax,' #maximum number of steps in perpendicular optimization in freezing stringmethod'
             write(u,'(1x,i0,1x,i0,1x,a)')saddle_nit_trans, saddle_nit_rot,'  #nit_trans, not_rot'
             write(u,'(1x,i0,1x,i0,1x,a)')saddle_nhistx_trans, saddle_nhistx_rot,' #nhistx_trans, nhistx_rot'
+            write(u,'(es10.3,1x,es10.3,a)')saddle_steepthresh_trans,saddle_steepthresh_rot,' #saddle_steepthresh_trans,saddle_steepthresh_rot'
             write(u,'(es10.3,1x,a)')saddle_fnrmtol,' #fnrm tolerence convergence criterion for saddle point'
             if(saddle_biomode)then
                 write(u,'(es10.3,3(1x,es10.3),a)')saddle_alpha0_trans, saddle_alpha0_rot, saddle_alpha_stretch0, saddle_alpha_rot_stretch0,' #alpha0_trans, alpha0_rot, alpha_stretch0, alpha_rot_stretch0'
