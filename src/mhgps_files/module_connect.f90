@@ -12,20 +12,15 @@ module module_connect
     use module_interfaces
     use module_io
     implicit none
+    
+    private
+
+    public :: connect_object
+    public :: allocate_connect_object
+    public :: deallocate_connect_object
+    public :: connect_recursively
 
     type connect_object
-!        real(gp) :: saddle(3,nat,nsadmax)
-!        real(gp) :: leftmin(3,nat,nsadmax)
-!        real(gp) :: rightmin(3,nat,nsadmax)
-!        real(gp) :: fsad(3,nat,nsadmax)
-!        real(gp) :: fleft(3,nat,nsadmax)
-!        real(gp) :: fright(3,nat,nsadmax)
-!        real(gp) :: rotforce(3,nat,nsadmax)
-!        real(gp) :: minmode(3,nat,nsadmax)
-!        real(gp) :: enersad(nsadmax)
-!        real(gp) :: enerleft(nsadmax)
-!        real(gp) :: enerright(nsadmax)
-        
         real(gp), allocatable :: saddle(:,:,:)
         real(gp), allocatable :: enersad(:)
         real(gp), allocatable :: fsad(:,:,:)

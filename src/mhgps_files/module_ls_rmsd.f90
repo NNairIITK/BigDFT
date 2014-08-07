@@ -14,7 +14,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 !---------------------------------------------------------------------
 !---------------------------------------------------------------------
-MODULE module_ls_rmsd
+module module_ls_rmsd
 !---------------------------------------------------------------------
 
   implicit none
@@ -23,7 +23,7 @@ MODULE module_ls_rmsd
   public :: superimpose
 
 !---------------------------------------------------------------------
-CONTAINS
+contains
 !---------------------------------------------------------------------
 subroutine superimpose(nat,rxyz1,rxyz2)
     use module_base

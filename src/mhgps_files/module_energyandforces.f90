@@ -6,6 +6,11 @@
 !!    A licence is necessary from UNIBAS
 
 module module_energyandforces
+    implicit none
+
+    private
+
+    public :: energyandforces
 
 contains
 !=====================================================================

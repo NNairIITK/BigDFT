@@ -10,7 +10,11 @@
 !!    This file is not freely distributed.
 !!    A licence is necessary from UNIBAS
 module module_interpol
-implicit none
+    implicit none
+
+    private
+
+    public :: lstpthpnt
 
 
 contains
@@ -91,8 +95,8 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
 !write(99,*)10.0 ,0, 10.0 
 !write(99,*)0, 0, 10.0 
 !do iat=1,nat
-!write(99,'(3(1xes24.17),1x,a)')rxyz(1,iat)*0.529d0,rxyz(2,iat)&
-!          *0.529d0,rxyz(3,iat)*0.529d0,xat(iat)
+!write(99,'(3(1xes24.17),1x,a)')rxyz(1,iat)*0.529_gp,rxyz(2,iat)&
+!          *0.529_gp,rxyz(3,iat)*0.529_gp,xat(iat)
 !enddo
 !close(99)
 !endif
@@ -168,9 +172,9 @@ subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
     real(gp) :: tt, ttx, tty, ttz
     real(gp) :: waxi, wayi, wazi 
 
-    oml=1.0_gp-lambda
-    val=0.0_gp
-    force=0.0_gp
+    oml=1.0_gp-lambda!one minus lambda
+    val=0.0_gp!function value
+    force=0.0_gp!negative gradient
     !first sum
     do b = 1, nat-1
         rxRb = rxyzR(1,b)
@@ -258,14 +262,15 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
     real(gp), parameter :: alpha_start=0.1_gp,f_alpha=0.99_gp
     real(gp) :: dt
     real(gp) :: ddot,dnrm2
-!<-DEBUG START------------------------------------------------------>
+!!<-DEBUG START------------------------------------------------------>
 !character(len=5), allocatable :: xat(:)
 !character(len=5) :: fc5
 !character(len=50) :: filename
-!<-DEBUG END-------------------------------------------------------->
+!!<-DEBUG END-------------------------------------------------------->
 
     count_fr=0._gp
-    dt_max = 1.8d0
+    dt_max = 0.5_gp
+    !dt_max = 1.8_gp
     maxit=15000
 
     success=.false.
@@ -280,7 +285,7 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
         1000 continue
         call daxpy(3*nat,dt,vxyz(1,1),1,rxyz(1,1),1)
         call daxpy(3*nat,0.5_gp*dt*dt,ff(1,1),1,rxyz(1,1),1)
-!<-DEBUG START------------------------------------------------------>
+!!<-DEBUG START------------------------------------------------------>
 !write(fc5,'(i5.5)')iter
 !write(filename,*)'pos_'//fc5//'.ascii'
 !open(99,file=trim(adjustl((filename))))
@@ -288,10 +293,11 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
 !write(99,*)10.0 ,0, 10.0 
 !write(99,*)0, 0, 10.0 
 !do iat=1,nat
-!write(99,'(3(1xes24.17),a)')rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),xat(iat)
+!write(99,'(3(1xes24.17),a)')rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),&
+!xat(iat)
 !enddo
 !close(99)
-!<-DEBUG END-------------------------------------------------------->
+!!<-DEBUG END-------------------------------------------------------->
 
 
         call valforce(nat,rxyz,fxyz,epot)
@@ -312,21 +318,21 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
         call fnrmandforcemax(fxyz,fnrm,fmax,nat) 
         call convcheck(fmax,fmax_tol,check)
         if(check > 5)then
-!<-DEBUG START------------------------------------------------------>
+!!<-DEBUG START------------------------------------------------------>
 !            write(*,'(a,x,i0,5(1x,es14.7))')&
 !            'FIRE converged # e evals, epot, &
 !            fmax, fnrm, dt, alpha: ',&
 !            int(count_fr),epot,fmax,fnrm,dt,alpha
-!<-DEBUG END-------------------------------------------------------->
+!!<-DEBUG END-------------------------------------------------------->
             success=.true.
             return
-!<-DEBUG START------------------------------------------------------>
+!!<-DEBUG START------------------------------------------------------>
 !        else
 !            write(*,'(a,x,i0,5(1x,es14.7))')&
 !            'FIRE # e evals, epot, &
 !            fmax, fnrm, dt, alpha: ',&
 !            int(count_fr),epot,fmax,fnrm,dt,alpha
-!<-DEBUG END-------------------------------------------------------->
+!!<-DEBUG END-------------------------------------------------------->
         endif
         power = ddot(3*nat,fxyz,1,vxyz,1)
         vxyz_norm = dnrm2(3*nat,vxyz,1)

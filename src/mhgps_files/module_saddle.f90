@@ -5,6 +5,11 @@
 !!    This file is not freely distributed.
 !!    A licence is necessary from UNIBAS
 module module_saddle
+implicit none
+
+private
+
+public :: findsad
 
 contains
 
@@ -452,8 +457,12 @@ stop 'no convergence in findsad'
 
 subroutine elim_moment_fs(nat,vxyz)
     use module_base
-    implicit real(gp) (a-h,o-z)
-    dimension vxyz(3,nat)
+    implicit none
+    !parameters
+    integer :: nat
+    !internal
+    integer :: iat
+    real(gp) :: vxyz(3,nat),sx,sy,sz
     sx=0.0_gp ; sy=0.0_gp ; sz=0.0_gp
     do iat=1,nat
         sx=sx+vxyz(1,iat)
@@ -470,8 +479,16 @@ end subroutine
 
 subroutine elim_torque_fs(nat,rxyz,vxyz)
     use module_base
-    implicit real(gp) (a-h,o-z)
-    dimension rxyz(3,nat),vxyz(3,nat),t(3)
+    !paramters
+    integer, intent(in) :: nat
+    real(gp), intent(inout) :: rxyz(3,nat), vxyz(3,nat)
+    !internal
+    integer :: iat,it,ii,i
+    real(gp) :: t(3)
+    real(gp) :: cmx,cmy,cmz
+    real(gp) :: sx,sy,sz
+    real(gp) :: tmax
+    real(gp) :: cx,cy,cz
 
     ! center of mass
     cmx=0.0_gp ; cmy=0.0_gp ; cmz=0.0_gp
@@ -866,8 +883,13 @@ end subroutine
 
 subroutine moment(nat,vxyz)
 use module_base
-  implicit real*8 (a-h,o-z)
-  dimension vxyz(3,nat)
+    implicit none
+    !parameters
+    integer, intent(in) :: nat
+    real(gp), intent(in) :: vxyz(3,nat)
+    !internal
+    integer :: iat
+    real(gp) :: sx,sy,sz
 
   sx=0.0_gp ; sy=0.0_gp ; sz=0.0_gp
   do iat=1,nat
@@ -880,8 +902,13 @@ END SUBROUTINE moment
 
 subroutine torque(nat,rxyz,vxyz)
 use module_base
-  implicit real*8 (a-h,o-z)
-  dimension rxyz(3,nat),vxyz(3,nat)
+  implicit none
+  !parameters
+    integer, intent(in) :: nat
+    real(gp), intent(in) :: rxyz(3,nat), vxyz(3,nat)
+    !internal
+    integer :: iat
+    real(gp) :: cmx,cmy,cmz,tx,ty,tz
 
   ! center of mass
   cmx=0.0_gp ; cmy=0.0_gp ; cmz=0.0_gp
@@ -906,86 +933,86 @@ END SUBROUTINE torque
 
 
 
-subroutine precondition(nat,pos,force)
-use module_base
-    implicit real(gp) (a-h,o-z)
-    dimension pos(3,nat),force(3,nat),dis(3,nat),d(3,nat),spring(nat,nat)
-
-    fnrmout=0.0_gp
-    do iat=1,nat
-        fnrmout=fnrmout+force(1,iat)**2+force(2,iat)**2+force(3,iat)**2
-    enddo
-    fnrmout=sqrt(fnrmout)
-
-    nprec=1000
-    !beta=.5e-4_gp
-    beta=.3e-4_gp
-    do iat=1,nat
-        dis(1,iat)=0.0_gp
-        dis(2,iat)=0.0_gp
-        dis(3,iat)=0.0_gp
-    enddo
-
-    ! calculate spring constants
-    bondlength=1.0_gp
-    cspring0=1000.0_gp
-    do iat=1,nat
-        do jat=1,iat-1
-            dd2=((pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2&
-               &+(pos(3,iat)-pos(3,jat))**2)/bondlength**2
-            spring(iat,jat)=cspring0*exp(.5_gp-.5_gp*dd2)
-        enddo
-    enddo
-
-    do iprec=1,nprec
-        do iat=1,nat
-            d(1,iat)=beta*force(1,iat)
-            d(2,iat)=beta*force(2,iat)
-            d(3,iat)=beta*force(3,iat)
-            dis(1,iat)=dis(1,iat)+d(1,iat)
-            dis(2,iat)=dis(2,iat)+d(2,iat)
-            dis(3,iat)=dis(3,iat)+d(3,iat)
-        enddo
-
-        do iat=1,nat
-            do jat=1,iat-1
-                stretchx=d(1,iat)-d(1,jat)
-                stretchy=d(2,iat)-d(2,jat)
-                stretchz=d(3,iat)-d(3,jat)
-                cspring=spring(iat,jat)
-                force(1,iat)=force(1,iat)-cspring*stretchx
-                force(2,iat)=force(2,iat)-cspring*stretchy
-                force(3,iat)=force(3,iat)-cspring*stretchz
-                force(1,jat)=force(1,jat)+cspring*stretchx
-                force(2,jat)=force(2,jat)+cspring*stretchy
-                force(3,jat)=force(3,jat)+cspring*stretchz
-            enddo
-        enddo
-        ! write(24,'(i6,100(1x,e9.2))') iprec,force
-        fnrm=0.0_gp
-        do iat=1,nat
-            fnrm=fnrm+force(1,iat)**2+force(2,iat)**2+force(3,iat)**2
-        enddo
-        fnrm=sqrt(fnrm)
-        !write(*,*) 'iprec ',iprec,fnrm
-
-        if (fnrm.lt.1.e-2_gp*fnrmout) then
-!            if(check) write(100,*) 'iprec=',iprec,fnrm,fnrmout
-            goto 100
-        endif
-
-    enddo
-!    if(check) write(100,*) 'FAIL iprec=',iprec,fnrm,fnrmout
-
-    100 continue
-    do iat=1,nat
-        force(1,iat)=dis(1,iat)
-        force(2,iat)=dis(2,iat)
-        force(3,iat)=dis(3,iat)
-    enddo
-
-    return
-end subroutine
+!!subroutine precondition(nat,pos,force)
+!!use module_base
+!!    implicit real(gp) (a-h,o-z)
+!!    dimension pos(3,nat),force(3,nat),dis(3,nat),d(3,nat),spring(nat,nat)
+!!
+!!    fnrmout=0.0_gp
+!!    do iat=1,nat
+!!        fnrmout=fnrmout+force(1,iat)**2+force(2,iat)**2+force(3,iat)**2
+!!    enddo
+!!    fnrmout=sqrt(fnrmout)
+!!
+!!    nprec=1000
+!!    !beta=.5e-4_gp
+!!    beta=.3e-4_gp
+!!    do iat=1,nat
+!!        dis(1,iat)=0.0_gp
+!!        dis(2,iat)=0.0_gp
+!!        dis(3,iat)=0.0_gp
+!!    enddo
+!!
+!!    ! calculate spring constants
+!!    bondlength=1.0_gp
+!!    cspring0=1000.0_gp
+!!    do iat=1,nat
+!!        do jat=1,iat-1
+!!            dd2=((pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2&
+!!               &+(pos(3,iat)-pos(3,jat))**2)/bondlength**2
+!!            spring(iat,jat)=cspring0*exp(.5_gp-.5_gp*dd2)
+!!        enddo
+!!    enddo
+!!
+!!    do iprec=1,nprec
+!!        do iat=1,nat
+!!            d(1,iat)=beta*force(1,iat)
+!!            d(2,iat)=beta*force(2,iat)
+!!            d(3,iat)=beta*force(3,iat)
+!!            dis(1,iat)=dis(1,iat)+d(1,iat)
+!!            dis(2,iat)=dis(2,iat)+d(2,iat)
+!!            dis(3,iat)=dis(3,iat)+d(3,iat)
+!!        enddo
+!!
+!!        do iat=1,nat
+!!            do jat=1,iat-1
+!!                stretchx=d(1,iat)-d(1,jat)
+!!                stretchy=d(2,iat)-d(2,jat)
+!!                stretchz=d(3,iat)-d(3,jat)
+!!                cspring=spring(iat,jat)
+!!                force(1,iat)=force(1,iat)-cspring*stretchx
+!!                force(2,iat)=force(2,iat)-cspring*stretchy
+!!                force(3,iat)=force(3,iat)-cspring*stretchz
+!!                force(1,jat)=force(1,jat)+cspring*stretchx
+!!                force(2,jat)=force(2,jat)+cspring*stretchy
+!!                force(3,jat)=force(3,jat)+cspring*stretchz
+!!            enddo
+!!        enddo
+!!        ! write(24,'(i6,100(1x,e9.2))') iprec,force
+!!        fnrm=0.0_gp
+!!        do iat=1,nat
+!!            fnrm=fnrm+force(1,iat)**2+force(2,iat)**2+force(3,iat)**2
+!!        enddo
+!!        fnrm=sqrt(fnrm)
+!!        !write(*,*) 'iprec ',iprec,fnrm
+!!
+!!        if (fnrm.lt.1.e-2_gp*fnrmout) then
+!!!            if(check) write(100,*) 'iprec=',iprec,fnrm,fnrmout
+!!            goto 100
+!!        endif
+!!
+!!    enddo
+!!!    if(check) write(100,*) 'FAIL iprec=',iprec,fnrm,fnrmout
+!!
+!!    100 continue
+!!    do iat=1,nat
+!!        force(1,iat)=dis(1,iat)
+!!        force(2,iat)=dis(2,iat)
+!!        force(3,iat)=dis(3,iat)
+!!    enddo
+!!
+!!    return
+!!end subroutine
 
 subroutine fixfrag_posvel(nat,rcov,pos,vel,option,occured)
 !UNTERSCHIED ZUR MH ROUTINE:

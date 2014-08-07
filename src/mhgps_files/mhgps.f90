@@ -17,14 +17,17 @@ program mhgps
                             read_atomic_file=>set_astruct_from_file
     use module_global_variables
     use module_init
-    use module_energyandforces
-    use module_sbfgs !for finding binds
-    use module_freezingstring
-    use module_saddle
-    use module_connect
-    use module_fingerprints
+    use module_energyandforces, only: energyandforces
+    use module_ls_rmsd, only: superimpose
+    use module_sbfgs, only: findbonds !for finding binds
+    use module_freezingstring, only: get_ts_guess 
+    use module_saddle, only: findsad
+    use module_connect, only: connect_recursively, connect_object,&
+                              deallocate_connect_object,&
+                              allocate_connect_object
+    use module_fingerprints, only: fingerprint 
     implicit none
-    integer :: nstart
+    integer :: nend
     character(len=6) :: filename
     integer :: ifolder, ifile
     logical :: xyzexists,asciiexists
@@ -170,8 +173,7 @@ real(gp), allocatable :: fat(:,:)
     !allocate more arrays
     lwork=1000+10*nat**2
     work = f_malloc((/1.to.lwork/),id='work')
-    eval  = f_malloc((/ 1.to.3*nat/),&
-                id='eval')
+    eval  = f_malloc((/ 1.to.3*nat/),id='eval')
     tsgforces     = f_malloc((/ 1.to.3, 1.to.nat/),&
                 id='tsgforces')
     tsguess     = f_malloc((/ 1.to.3, 1.to.nat/),&
@@ -272,22 +274,22 @@ allocate(fat(3,nat))
 
     do ifolder = 1,999
         write(currDir,'(a,i3.3)')'input',ifolder
-
         if(trim(adjustl(operation_mode))=='simple'.or.&
                        trim(adjustl(operation_mode))=='hessian')then
-            nstart=1
+            nend=999
         elseif(trim(adjustl(operation_mode))=='connect'.or.&
                        trim(adjustl(operation_mode))=='guessonly')then
-            nstart=2
+            nend=999-1
         else
             call yaml_warning('(MHGPS) operation mode unknown STOP')
             stop '(MHGPS) operation mode unknown STOP'
         endif
 
-        do ifile = nstart,999
+        do ifile = 1,nend
 
             !read (first) file
             write(filename,'(a,i3.3)')'pos',ifile
+write(*,*)'hier1 ',filename
             inquire(file=currDir//'/'//filename//'.xyz',&
                     exist=xyzexists)
             inquire(file=currDir//'/'//filename//'.ascii',&
@@ -301,6 +303,7 @@ allocate(fat(3,nat))
             if(trim(adjustl(operation_mode))=='guessonly')then
                 !read second file
                 write(filename,'(a,i3.3)')'pos',ifile+1
+write(*,*)'hier2 ',filename
                 inquire(file=currDir//'/'//filename//'.xyz',&
                             exist=xyzexists)
                 inquire(file=currDir//'/'//filename//'.ascii',&
@@ -314,6 +317,8 @@ allocate(fat(3,nat))
 
                 isad=isad+1
                 write(isadc,'(i5.5)')isad
+                !rmsd alignment (optional in mhgps approach)
+                call superimpose(nat,rxyz(1,1),rxyz2(1,1))
                 call get_ts_guess(nat,alat,rxyz(1,1),rxyz2(1,1),&
                      tsguess(1,1),minmodeguess(1,1),tsgenergy,&
                      tsgforces(1,1))

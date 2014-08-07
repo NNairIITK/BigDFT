@@ -3,6 +3,14 @@ module module_init
     use module_global_variables
     implicit none
 
+    private
+
+    public :: read_input
+    public :: write_input
+    public :: print_input
+    public :: print_logo_mhgps
+    public :: give_rcov
+    
 contains
 
     subroutine read_input()

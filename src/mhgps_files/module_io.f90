@@ -1,5 +1,10 @@
 module module_io
-implicit none
+    implicit none
+
+    private
+
+    public :: read_mode
+    public :: write_mode
 
 contains
 

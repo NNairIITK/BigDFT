@@ -8,7 +8,11 @@
 !!    A licence is necessary from UNIBAS
 
 module module_minimizers
-implicit none
+    implicit none
+
+    private
+
+    public :: minimizer_sbfgs
 
 contains
 

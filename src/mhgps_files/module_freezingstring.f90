@@ -8,6 +8,10 @@
 !!    A licence is necessary from UNIBAS
 module module_freezingstring
     implicit none
+
+    private
+
+    public :: get_ts_guess
     
     contains
 !=====================================================================
