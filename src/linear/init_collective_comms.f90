@@ -9,9 +9,9 @@
 
 
 
-subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,npsidim_orbs,npsidim_comp)
+subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,linmat,npsidim_orbs,npsidim_comp)
    use module_base!, only: wp, bigdft_mpi, mpi_sum, mpi_max, mpiallred
-   use module_types, only: orbitals_data, local_zone_descriptors
+   use module_types, only: orbitals_data, local_zone_descriptors, linear_matrices
    use yaml_output
    use communications_base, only: comms_linear
    use communications, only: transpose_localized, untranspose_localized
@@ -21,6 +21,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,npsidi
    type(orbitals_data), intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: lzd
    type(comms_linear), intent(in) :: collcom
+   type(linear_matrices),intent(inout) :: linmat
    integer, intent(in) :: npsidim_orbs, npsidim_comp
    !local variables
    character(len=*), parameter :: subname='check_communications'
@@ -56,6 +57,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,npsidi
          do i=1,nvctr_orb(iorb)
             !vali=real(i,wp)/512.0_wp  ! *1.d-5
             call test_value_locreg(ikpt,orbs%isorb+iorb-(ikpt-1)*orbs%norb,ispinor,i,psival)
+          psival=dble(mod(iorb+orbs%isorb-1,orbs%norbu)+1)*orbs%spinsgn(iorb+orbs%isorb)  
             !psi(i+indspin+ind_orb(iorb))=psival!(valorb+vali)*(-1)**(ispinor-1)
             !psi(i+indspin)=dble(iorb+orbs%isorb)*orbs%spinsgn(iorb+orbs%isorb)!psival!(valorb+vali)*(-1)**(ispinor-1)
             psi(i+indspin)=psival!(valorb+vali)*(-1)**(ispinor-1)
@@ -64,6 +66,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,npsidi
             !     checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)+psival
          end do
          checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)=tt
+         write(*,*) 'iiorb, checksum', orbs%isorb+iorb, tt
       end do
    end do
 
@@ -82,7 +85,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,npsidi
          if (collcom%nptsp_c>0) then
             do ipt=1,collcom%nptsp_c 
                ii=collcom%norb_per_gridpoint_c(ipt)
-               i0 = collcom%isptsp_c(ipt) + (ispin-1)*collcom%ndimind_c/2
+               i0 = collcom%isptsp_c(ipt) + (ispin-1)*collcom%ndimind_c/nspin
                do i=1,ii
                   iiorb=collcom%indexrecvorbital_c(i0+i)
                   !write(5000+iproc,'(a,4i8,es16.6)') 'ispin, ipt, ii, i0+i, psit_c(i0+i)', ispin, ipt, ii, i0+i, psit_c(i0+i)
@@ -108,7 +111,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,npsidi
          if (collcom%nptsp_f>0) then
             do ipt=1,collcom%nptsp_f 
                ii=collcom%norb_per_gridpoint_f(ipt) 
-               i0 = collcom%isptsp_f(ipt) + (ispin-1)*collcom%ndimind_f/2
+               i0 = collcom%isptsp_f(ipt) + (ispin-1)*collcom%ndimind_f/nspin
                do i=1,ii
                   iiorb=collcom%indexrecvorbital_f(i0+i)
    !!$               ipsitworkf=collcom%iexpand_f(icomp)
@@ -173,6 +176,15 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,npsidi
    end if
 
    if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,10,ierr)
+
+
+   !@NEW: check the calculation of the overlap matrices #############
+   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, &
+        psit_c, psit_f, psit_f, linmat%s, linmat%ovrlp_)
+   do i=1,linmat%s%nvctr*nspin
+       write(6000+iproc,'(a,2i8,es16.7)') 'i, mod(i-1,nvctr)+1, val', i, mod(i-1,linmat%s%nvctr)+1, linmat%ovrlp_%matrix_compr(i)
+   end do
+   !@END NEW ########################################################
 
 
    call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, psi, lzd)
@@ -415,7 +427,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
 
           do ipt=1,collcom%nptsp_c 
               ii=collcom%norb_per_gridpoint_c(ipt) 
-              i0 = collcom%isptsp_c(ipt)
+              i0 = collcom%isptsp_c(ipt) + (ispin-1)*collcom%ndimind_c/smat%nspin
               do i=1,ii
                   i0i=i0+i
                   iiorb=collcom%indexrecvorbital_c(i0i)
@@ -467,7 +479,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
       if (collcom%nptsp_f>0) then
           do ipt=1,collcom%nptsp_f 
               ii=collcom%norb_per_gridpoint_f(ipt) 
-              i0 = collcom%isptsp_f(ipt)
+              i0 = collcom%isptsp_f(ipt) + (ispin-1)*collcom%ndimind_f/smat%nspin
               do i=1,ii
                   i0i=i0+i
                   iiorb=collcom%indexrecvorbital_f(i0i)
