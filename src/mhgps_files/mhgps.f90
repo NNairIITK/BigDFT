@@ -405,9 +405,6 @@ write(*,*)'hier2 ',filename2
                 call findsad(nat,alat,rcov,nbond,iconnect,&
                 rxyz(1,1),energy,fxyz(1,1),minmode(1,1),displ,ec,&
                 rotforce(1,1),converged)
-!for debugging:
-call energyandforces(nat,alat,rxyz,fat,fnoise,etest)
-write(*,*)'energy MAINcheck saddle: ',energy-etest
                     if(.not.converged)then
                         call yaml_warning('Saddle '//yaml_toa(isad)//&
                             ' not converged')

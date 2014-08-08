@@ -147,8 +147,6 @@ use module_energyandforces
     logical  :: lnl, rnr, lnr, rnl 
     character(len=200) :: comment
     real(gp) :: tsgforces(3,nat), tsgenergy
-!debugging
-real(gp) :: fat(3,nat),etest
 
     if(.not.connected)return
     if(nsad>=nsadmax.and.iproc==0)then
@@ -194,9 +192,6 @@ real(gp) :: fat(3,nat),etest
                 cobj%enersad(nsad),cobj%fsad(1,1,nsad),&
                 cobj%minmode(1,1,nsad),displ,ener_count,&
                 cobj%rotforce(1,1,nsad),converged)
-!for debugging:
-call energyandforces(nat,alat,cobj%saddle(1,1,nsad),fat,fnoise,etest)
-write(*,*)'energy check saddle: ',cobj%enersad(nsad)-etest
 
     if(.not.converged)then
         nsad=nsad-1!in case we don't want to STOP
@@ -242,9 +237,12 @@ write(*,*)'energy check saddle: ',cobj%enersad(nsad)-etest
                         cobj%leftmin(1,1,nsad),cobj%fleft(1,1,nsad),&
                         fnoise,cobj%enerleft(nsad),&
                         ener_count,converged,'L')
-!for debugging:
-call energyandforces(nat,alat,cobj%leftmin(1,1,nsad),fat,fnoise,etest)
-write(*,*)'energy check minimizer: ',cobj%enerleft(nsad)-etest
+    call fnrmandforcemax(cobj%fleft(1,1,nsad),fnrm,fmax,nat)
+    write(comment,'(a,1pe10.3,5x1pe10.3)')'fnrm, fmax = ',fnrm,fmax
+    if(iproc==0)&
+    call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
+    //'_minFinalL',cobj%enerleft(nsad),cobj%leftmin(1,1,nsad),&
+    ixyz_int,atoms,comment,cobj%fleft(1,1,nsad))
 
     if(iproc==0)&
     call yaml_comment('(MHGPS) Relax from right side ',hfill='.')
@@ -255,10 +253,12 @@ write(*,*)'energy check minimizer: ',cobj%enerleft(nsad)-etest
                         cobj%rightmin(1,1,nsad),cobj%fright(1,1,nsad)&
                        ,fnoise,cobj%enerright(nsad),&
                         ener_count,converged,'R')
-!for debugging:
-call energyandforces(nat,alat,cobj%rightmin(1,1,nsad),fat,fnoise,&
-                    etest)
-write(*,*)'energy check minimizer: ',cobj%enerright(nsad)-etest
+    call fnrmandforcemax(cobj%fright(1,1,nsad),fnrm,fmax,nat)
+    write(comment,'(a,1pe10.3,5x1pe10.3)')'fnrm, fmax = ',fnrm,fmax
+    if(iproc==0)&
+    call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
+    //'_minFinalR',cobj%enerright(nsad),cobj%rightmin(1,1,nsad),&
+    ixyz_int,atoms,comment,cobj%fright(1,1,nsad))
 
     call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
                     cobj%leftmin(1,1,nsad),cobj%fpleft(1,nsad))
@@ -410,9 +410,6 @@ subroutine pushoff(nat,saddle,minmode,left,right)
 
     !functions
     real(gp) :: dnrm2
-!debug check
-if(.not. almostequal(1._gp,dnrm2(3*nat,minmode(1,1),1),4))&
-stop'minmode not normalized'
 
     step = saddle_stepoff*minmode
     left = saddle - step
