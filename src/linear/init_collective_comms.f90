@@ -421,7 +421,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
 
   call f_routine(id='calculate_overlap_transposed')
 
-  call to_zero(smat%nvctr, ovrlp%matrix_compr(1))
+  call to_zero(smat%nvctr*smat%nspin, ovrlp%matrix_compr(1))
 
   nthreads=1
   !$  nthreads = OMP_GET_max_threads()
@@ -491,6 +491,9 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
      istart=n(tid)+1
   end if
 
+
+  close(880)
+
   !SM: check if the modulo operations take a lot of time. If so, try to use an
   !auxiliary array with shifted bounds in order to access smat%matrixindex_in_compressed_fortransposed
   spin_loop: do ispin=1,smat%nspin
@@ -519,6 +522,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                           !if (ind0>=smat%nvctr-smat%nfvctr .and.  ind0<=smat%nvctr) then
                           !    write(*,'(a,3i9)') 'iiorb, jjorb, ind0', iiorb, jjorb, ind0
                           !end if
+                          write(880,'(a,5i8,es14.6)') 'ispin, ipt, i, ind0, i0j, val', ispin, ipt, i, ind0, i0j, psit_c1(i0i)
                           ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_c1(i0i)*psit_c2(i0j)
                       end do
                   end if

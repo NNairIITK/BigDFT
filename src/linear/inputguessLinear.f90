@@ -63,7 +63,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   type(mixrhopotDIISParameters) :: mixdiis
   logical :: finished, can_use_ham
   !type(confpot_data), dimension(:), allocatable :: confdatarrtmp
-  integer :: info_basis_functions, order_taylor
+  integer :: info_basis_functions, order_taylor, i, ilr
   real(kind=8) :: ratio_deltas, trace, trace_old, fnrm_tmb
   logical :: ortho_on, reduce_conf, rho_negative
   type(localizedDIISParameters) :: ldiis
@@ -433,6 +433,23 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call gaussians_to_wavelets_new(iproc,nproc,tmb%lzd,orbs_gauss,G,&
        psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),tmb%psi)
   tmb%can_use_transposed=.false.
+
+  ii=0
+  do iorb=1,tmb%orbs%norbp
+      iiorb=tmb%orbs%isorb+iorb
+      ilr=tmb%orbs%inwhichlocreg(iiorb)
+      if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+          do i=1,tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+              ii=ii+1
+              write(600,'(a,4i9,es16.7)') 'iorb, iiorb, ilr, i, val', iorb, iiorb, ilr, i, tmb%psi(ii)
+          end do
+      else
+          do i=1,tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+              ii=ii+1
+              write(610,'(a,4i9,es16.7)') 'iorb, iiorb, ilr, i, val', iorb, iiorb, ilr, i, tmb%psi(ii)
+          end do
+      end if
+  end do
 
   call f_free_ptr(psigau)
 

@@ -44,6 +44,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   real(kind=8) :: mean_error, max_error
   logical :: ovrlp_associated, inv_ovrlp_associated
   type(matrices) :: ovrlp_, inv_ovrlp_half_
+  integer :: ii, i, ispin
 
 
   call f_routine(id='orthonormalizeLocalized')
@@ -56,12 +57,21 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   if(.not.can_use_transposed) then
       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
+      do i=1,collcom%ndimind_c
+          write(750+iproc,'(a,2i8,es14.5)') 'i, mod(i-1,ndimind_c/2)+1, val', i, mod(i-1,collcom%ndimind_c/2)+1, psit_c(i)
+      end do
   end if
 
   ovrlp_ = matrices_null()
   call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
-  ! This can then be deleted if the transition to the new type has been completed.
+  ii=0
+  do ispin=1,ovrlp%nspin
+      do i=1,ovrlp%nvctr
+          ii=ii+1
+          write(930+iproc,*) 'ii, i, val', ii, i, ovrlp_%matrix_compr(ii)
+      end do
+  end do
 
 
   if (methTransformOverlap==-1) then
@@ -1197,6 +1207,7 @@ subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_
   real(dp), allocatable, dimension(:) :: temp_vec
   logical, parameter :: symmetric=.true.
   logical, parameter :: check_lapack=.true.
+  integer :: korb
 
 
   call f_routine(id='overlap_plus_minus_one_half_exact')
@@ -1232,7 +1243,17 @@ subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_
            !!      write(2000+bigdft_mpi%iproc,'(a,3i8,es16.7)') 'iproc, iorb, jorb, val', bigdft_mpi%iproc, iorb, jorb, inv_ovrlp_half(jorb,iorb)
            !!   end do
            !!end do
+        do jorb=1,norb
+            do korb=1,norb
+                write(910,'(a,2i8,es14.5)') 'jorb, korb, inv_ovrlp_half(korb,jorb)', jorb, korb, inv_ovrlp_half(korb,jorb)
+            end do
+        end do
         call dsyev('v', 'l', norb, inv_ovrlp_half(1,1), norb, eval, work, lwork, info)
+        do jorb=1,norb
+            do korb=1,norb
+                write(920,'(a,2i8,es14.5)') 'jorb, korb, inv_ovrlp_half(korb,jorb)', jorb, korb, inv_ovrlp_half(korb,jorb)
+            end do
+        end do
         if (check_lapack) then
            tempArr=f_malloc((/norb,norb/), id='tempArr')
            do iorb=1,norb
@@ -1760,7 +1781,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
 
   ! Local variables
   integer :: iend, i, iorb, n, istat, iall, jorb, korb, jjorb, kkorb!, ilr
-  integer :: iiorb, ierr, ii, iseg, ind
+  integer :: iiorb, ierr, ii, iseg, ind, ishift, ispin
   real(kind=8) :: error
   real(kind=8),dimension(:,:),pointer :: ovrlp_tmp, ovrlp_tmp_inv_half
   logical,dimension(:),allocatable :: in_neighborhood
@@ -1770,11 +1791,11 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
   call timing(iproc,'lovrlp^-1/2par','ON')
   call f_routine('overlap_power_minus_one_half_parallel')
 
-  in_neighborhood = f_malloc(orbs%norb,id='in_neighborhood')
+  in_neighborhood = f_malloc(ovrlp%nfvctr,id='in_neighborhood')
 
   !inv_ovrlp_half_ = matrices_null()
   !call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_)
-  call to_zero(inv_ovrlp_half%nvctr, inv_ovrlp_half_%matrix_compr(1))
+  call to_zero(inv_ovrlp_half%nvctr*inv_ovrlp_half%nspin, inv_ovrlp_half_%matrix_compr(1))
 
   !DEBUG
   !if (iproc==0) then
@@ -1793,106 +1814,128 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
   !end if
   !call mpi_barrier(bigdft_mpi%mpi_comm,istat)
 
-  do iorb=1,orbs%norbp
-     iiorb=orbs%isorb+iorb
-     !ilr=orbs%inwhichlocreg(iiorb)
-     ! We are at the start of a new atom
-     ! Count all orbitals that are in the neighborhood
-
-     iseg=inv_ovrlp_half%istsegline(iiorb)
-     iend=iiorb*orbs%norb
-     n=0
-     in_neighborhood(:)=.false.
-     do 
-        do i=inv_ovrlp_half%keyg(1,iseg),inv_ovrlp_half%keyg(2,iseg)
-           ii=i-(iiorb-1)*orbs%norb
-           in_neighborhood(ii)=.true.
-           n=n+1
-        end do
-        iseg=iseg+1
-        if (iseg>inv_ovrlp_half%nseg) exit
-        if (inv_ovrlp_half%keyg(1,iseg)>iend) exit
-     end do
-
-     ovrlp_tmp = f_malloc0_ptr((/n,n/),id='ovrlp_tmp')
-
-     jjorb=0
-     do jorb=1,orbs%norb
-        if (.not.in_neighborhood(jorb)) cycle
-        jjorb=jjorb+1
-        kkorb=0
-        do korb=1,orbs%norb
-           if (.not.in_neighborhood(korb)) cycle
-           kkorb=kkorb+1
-           ind = matrixindex_in_compressed(ovrlp,korb, jorb)
-           if (ind>0) then
-              ovrlp_tmp(kkorb,jjorb)=ovrlp_mat%matrix_compr(ind)
-           else
-              ovrlp_tmp(kkorb,jjorb)=0.d0
-           end if
-           !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
-        end do
-     end do
-          
-     ovrlp_tmp_inv_half = f_malloc_ptr((/n,n/),id='ovrlp_tmp_inv_half')
-     call vcopy(n*n, ovrlp_tmp(1,1), 1, ovrlp_tmp_inv_half(1,1), 1)
-
-     !if (iiorb==orbs%norb) then
-     !print*,''
-     !print*,'ovrlp_tmp',n,iiorb
-     !do jorb=1,n
-     !print*,jorb,ovrlp_tmp(:,jorb)
-     !end do
-     !end if
-
-
-     ! Calculate S^-1/2 for the small overlap matrix
-     !!call overlapPowerGeneral(iproc, nproc, meth_overlap, -2, -8, n, orbs, imode=2, check_accur=.true.,&
-     !!     ovrlp=ovrlp_tmp, inv_ovrlp=ovrlp_tmp_inv_half, error=error)
-     !!call overlapPowerGeneral(iproc, 1, meth_overlap, -2, -8, n, orbs, imode=2, &
-     !!     ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
-     !!     ovrlp_mat=ovrlp_mat, inv_ovrlp_mat=inv_ovrlp_half_, check_accur=.true., &
-     !!     ovrlp=ovrlp_tmp, inv_ovrlp=ovrlp_tmp_inv_half, error=error)
-     call overlap_plus_minus_one_half_exact(1, n, -8, .false., ovrlp_tmp_inv_half,inv_ovrlp_half)
-
-
-     !if (iiorb==orbs%norb) then
-     !print*,''
-     !print*,'inv_ovrlp_tmp',n,iiorb,error
-     !do jorb=1,n
-     !print*,jorb,ovrlp_tmp_inv_half(:,jorb)
-     !end do
-     !end if
-
-     jjorb=0
-     do jorb=1,orbs%norb
-        if (.not.in_neighborhood(jorb)) cycle
-        jjorb=jjorb+1
-        kkorb=0
-        if (jorb==iiorb) then
-           do korb=1,orbs%norb
-              if (.not.in_neighborhood(korb)) cycle
-              kkorb=kkorb+1
-              ind = matrixindex_in_compressed(inv_ovrlp_half,korb,jorb)
-              if (ind>0) then
-                 inv_ovrlp_half_%matrix_compr(ind)=ovrlp_tmp_inv_half(kkorb,jjorb)
-                 !if (iiorb==orbs%norb) print*,'problem here?!',iiorb,kkorb,jjorb,korb,jorb,ind,ovrlp_tmp_inv_half(kkorb,jjorb)
-              end if
-              !write(1300+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
-           end do
-           exit !no need to keep looping
-        end if
-     end do
-
-
-     call f_free_ptr(ovrlp_tmp_inv_half)
-     call f_free_ptr(ovrlp_tmp)
-
+  ii=0
+  do ispin=1,ovrlp%nspin
+      do i=1,ovrlp%nvctr
+          ii=ii+1
+          write(950+iproc,*) 'ii, i, val', ii, i, ovrlp_mat%matrix_compr(ii)
+      end do
   end do
 
-  if (nproc>1)then
-      call mpiallred(inv_ovrlp_half_%matrix_compr(1), inv_ovrlp_half%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
-  end if
+
+  spin_loop: do ispin=1,ovrlp%nspin
+
+      ishift=(ispin-1)*ovrlp%nvctr
+
+      do iorb=1,ovrlp%nfvctrp
+         iiorb=ovrlp%isfvctr+iorb
+         !ilr=orbs%inwhichlocreg(iiorb)
+         ! We are at the start of a new atom
+         ! Count all orbitals that are in the neighborhood
+
+         iseg=inv_ovrlp_half%istsegline(iiorb)
+         iend=iiorb*ovrlp%nfvctr
+         n=0
+         in_neighborhood(:)=.false.
+         do 
+            do i=inv_ovrlp_half%keyg(1,iseg),inv_ovrlp_half%keyg(2,iseg)
+               ii=i-(iiorb-1)*ovrlp%nfvctr
+               in_neighborhood(ii)=.true.
+               n=n+1
+            end do
+            iseg=iseg+1
+            if (iseg>inv_ovrlp_half%nseg) exit
+            if (inv_ovrlp_half%keyg(1,iseg)>iend) exit
+         end do
+
+         ovrlp_tmp = f_malloc0_ptr((/n,n/),id='ovrlp_tmp')
+
+         jjorb=0
+         do jorb=1,ovrlp%nfvctr
+            if (.not.in_neighborhood(jorb)) cycle
+            jjorb=jjorb+1
+            kkorb=0
+            do korb=1,ovrlp%nfvctr
+               if (.not.in_neighborhood(korb)) cycle
+               kkorb=kkorb+1
+               ind = matrixindex_in_compressed(ovrlp,korb, jorb)
+               if (ind>0) then
+                  ind=ind+ishift
+                  ovrlp_tmp(kkorb,jjorb)=ovrlp_mat%matrix_compr(ind)
+               else
+                  ovrlp_tmp(kkorb,jjorb)=0.d0
+               end if
+               !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+            end do
+         end do
+              
+         ovrlp_tmp_inv_half = f_malloc_ptr((/n,n/),id='ovrlp_tmp_inv_half')
+         call vcopy(n*n, ovrlp_tmp(1,1), 1, ovrlp_tmp_inv_half(1,1), 1)
+         do jorb=1,n
+             do korb=1,n
+                 write(900,'(a,2i8,es14.5)') 'jorb, korb, ovrlp_tmp(korb,jorb)', jorb, korb, ovrlp_tmp(korb,jorb)
+             end do
+         end do
+
+         !if (iiorb==orbs%norb) then
+         !print*,''
+         !print*,'ovrlp_tmp',n,iiorb
+         !do jorb=1,n
+         !print*,jorb,ovrlp_tmp(:,jorb)
+         !end do
+         !end if
+
+
+         ! Calculate S^-1/2 for the small overlap matrix
+         !!call overlapPowerGeneral(iproc, nproc, meth_overlap, -2, -8, n, orbs, imode=2, check_accur=.true.,&
+         !!     ovrlp=ovrlp_tmp, inv_ovrlp=ovrlp_tmp_inv_half, error=error)
+         !!call overlapPowerGeneral(iproc, 1, meth_overlap, -2, -8, n, orbs, imode=2, &
+         !!     ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
+         !!     ovrlp_mat=ovrlp_mat, inv_ovrlp_mat=inv_ovrlp_half_, check_accur=.true., &
+         !!     ovrlp=ovrlp_tmp, inv_ovrlp=ovrlp_tmp_inv_half, error=error)
+         call overlap_plus_minus_one_half_exact(1, n, -8, .false., ovrlp_tmp_inv_half,inv_ovrlp_half)
+
+
+         !if (iiorb==orbs%norb) then
+         !print*,''
+         !print*,'inv_ovrlp_tmp',n,iiorb,error
+         !do jorb=1,n
+         !print*,jorb,ovrlp_tmp_inv_half(:,jorb)
+         !end do
+         !end if
+
+         jjorb=0
+         do jorb=1,ovrlp%nfvctr
+            if (.not.in_neighborhood(jorb)) cycle
+            jjorb=jjorb+1
+            kkorb=0
+            if (jorb==iiorb) then
+               do korb=1,ovrlp%nfvctr
+                  if (.not.in_neighborhood(korb)) cycle
+                  kkorb=kkorb+1
+                  ind = matrixindex_in_compressed(inv_ovrlp_half,korb,jorb)
+                  if (ind>0) then
+                     ind=ind+ishift
+                     inv_ovrlp_half_%matrix_compr(ind)=ovrlp_tmp_inv_half(kkorb,jjorb)
+                     !if (iiorb==orbs%norb) print*,'problem here?!',iiorb,kkorb,jjorb,korb,jorb,ind,ovrlp_tmp_inv_half(kkorb,jjorb)
+                  end if
+                  !write(1300+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+               end do
+               exit !no need to keep looping
+            end if
+         end do
+
+
+         call f_free_ptr(ovrlp_tmp_inv_half)
+         call f_free_ptr(ovrlp_tmp)
+
+      end do
+
+      if (nproc>1)then
+          call mpiallred(inv_ovrlp_half_%matrix_compr(1), inv_ovrlp_half%nvctr*inv_ovrlp_half%nspin, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
+
+  end do spin_loop
 
   call f_free(in_neighborhood)
 
@@ -1914,6 +1957,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
   !stop
 
   !call deallocate_matrices(inv_ovrlp_half_)
+
 
   call f_release_routine
   call timing(iproc,'lovrlp^-1/2par','OF')
