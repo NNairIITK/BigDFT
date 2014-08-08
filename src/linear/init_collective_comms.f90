@@ -15,6 +15,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,linmat
    use yaml_output
    use communications_base, only: comms_linear
    use communications, only: transpose_localized, untranspose_localized
+   use sparsematrix, only : compress_matrix_distributed
    !use dynamic_memory
    implicit none
    integer, intent(in) :: iproc,nproc,nspin
@@ -35,6 +36,10 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,linmat
    real(wp), dimension(:,:), allocatable :: checksum
    real(wp) :: epsilon,tol
    logical :: abort
+   integer :: jjorb, ilr, jlr, ldim, gdim, iispin, jjspin, ist, niorb, njorb, jjjorb, is, ie
+   real(kind=8),dimension(:),allocatable :: psii, psij, psiig, psijg, mat_compr
+   real(kind=8),dimension(:,:),allocatable :: matp
+   real(kind=8) :: ddot
 
    !allocate the "wavefunction" and fill it, and also the workspace
    psi = f_malloc(max(npsidim_orbs, npsidim_comp),id='psi')
@@ -190,14 +195,70 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,linmat
    do i=1,linmat%s%nvctr*nspin
        write(6000+iproc,'(a,2i8,es16.7)') 'i, mod(i-1,nvctr)+1, val', i, mod(i-1,linmat%s%nvctr)+1, linmat%ovrlp_%matrix_compr(i)
    end do
-   !! Alternative calculation of the overlap matrix
-   !do iorb=1,orbs%norbp
-   !    iiorb=orbs%isorb+iorb
-   !    ilr=orbs%inwhichlocreg(iiorb)
-   !    do jorb=1,orbs%norb
-   !        
-   !    end do
-   !end do
+   ! Alternative calculation of the overlap matrix
+   gdim=lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
+   psiig = f_malloc(gdim,id='psiig')
+   psijg = f_malloc(gdim,id='psijg')
+   matp = f_malloc((/linmat%s%nfvctr,linmat%s%nfvctrp/),id='matp')
+   mat_compr = f_malloc(linmat%s%nvctr*linmat%s%nspin,id='mat_compr')
+   do ispin=1,linmat%s%nspin
+       niorb=0
+       njorb=0
+       !not possible to iterate over norbp since the distributions over the MPI tasks might be incompatible with linmat%s%nfvctrp
+       is=(ispin-1)*orbs%norbu+orbs%isorbu+1
+       ie=(ispin-1)*orbs%norbu+orbs%isorbu+orbs%norbup
+       do iiorb=is,ie
+           !iiorb=orbs%isorb+iorb
+           !if (orbs%spinsgn(iiorb)>0) then
+           !    iispin=1
+           !else
+           !    iispin=2
+           !end if
+           !if (iispin/=ispin) cycle
+           niorb=niorb+1
+           ilr=orbs%inwhichlocreg(iiorb)
+           ldim=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+           psii = f_malloc(ldim,id='psii')
+           do i=1,ldim
+              call test_value_locreg(1,iiorb,1,i,psival)
+              psii(i)=psival
+           end do
+           call to_zero(gdim, psiig(1))
+           call Lpsi_to_global2(iproc, ldim, gdim, orbs%norb, orbs%nspinor, 1, lzd%glr, &
+                                lzd%llr(ilr), psii, psiig)
+           do jjorb=1,orbs%norb
+               if (orbs%spinsgn(jjorb)>0) then
+                   jjspin=1
+               else
+                   jjspin=2
+               end if
+               if (jjspin/=ispin) cycle
+               njorb=njorb+1
+               jjjorb=mod(jjorb-1,linmat%s%nfvctr)+1 !index regardless of the spin
+               jlr=orbs%inwhichlocreg(jjorb)
+               ldim=lzd%llr(jlr)%wfd%nvctr_c+7*lzd%llr(jlr)%wfd%nvctr_f
+               psij = f_malloc(ldim,id='psij')
+               do i=1,ldim
+                  call test_value_locreg(1,jjorb,1,i,psival)
+                  psij(i)=psival
+               end do
+               call to_zero(gdim, psijg(1))
+               call Lpsi_to_global2(iproc, ldim, gdim, orbs%norb, orbs%nspinor, 1, lzd%glr, &
+                                    lzd%llr(jlr), psij, psijg)
+               matp(jjjorb,niorb)=ddot(gdim, psiig, 1, psijg, 1)
+               call f_free(psij)
+           end do
+           call f_free(psii)
+       end do
+       ist=(ispin-1)*linmat%s%nvctr+1
+       call compress_matrix_distributed(iproc, linmat%s, matp, mat_compr(ist))
+   end do
+   maxdiff=0.d0
+   do i=1,linmat%s%nvctr
+       maxdiff=max(abs(mat_compr(i)-linmat%ovrlp_%matrix_compr(i)),maxdiff)
+       write(8000+iproc,'(a,i7,2es15.5)') 'i, mat_compr(i), linmat%ovrlp_%matrix_compr(i)', i, mat_compr(i), linmat%ovrlp_%matrix_compr(i)
+   end do
+   if (iproc==0) call yaml_map('Maxdiff for overlap calculation',maxdiff,fmt='(1es25.17)')
    !@END NEW ########################################################
 
 
