@@ -199,7 +199,7 @@ call energyandforces(nat,alat,cobj%saddle(1,1,nsad),fat,fnoise,etest)
 write(*,*)'energy check saddle: ',cobj%enersad(nsad)-etest
 
     if(.not.converged)then
-        nsad=nsad-1!in case we do'nt want to STOP
+        nsad=nsad-1!in case we don't want to STOP
         isad=isad-1
         write(isadc,'(i5.5)')isad
         stop 'STOP saddle not converged'
@@ -264,7 +264,7 @@ write(*,*)'energy check minimizer: ',cobj%enerright(nsad)-etest
                     cobj%leftmin(1,1,nsad),cobj%fpleft(1,nsad))
     call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
                     cobj%rightmin(1,1,nsad),cobj%fpright(1,nsad))
-    !check if relaxed structures are identical with saddle itself
+    !check if relaxed structures are identical to saddle itself
     if(equal(nid,en_delta_sad,fp_delta_sad,cobj%enersad(nsad),&
     cobj%enerright(nsad),cobj%fpsad(1,nsad),cobj%fpright(1,nsad)).or.&
     equal(nid,en_delta_sad,fp_delta_sad,cobj%enersad(nsad),&
@@ -311,60 +311,86 @@ write(*,*)'energy check minimizer: ',cobj%enerright(nsad)-etest
 
     if(lnl .and. (.not. rnr))then
         !connect right input min with right relaxed bar-end
+!write(*,*)'connection check lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
         call connect_recursively(nat,nid,alat,rcov,nbond,&
                      iconnect,cobj%rightmin(1,1,nsad_loc),rxyz2,&
                      cobj%enerright(nsad_loc),ener2,&
-                     cobj%fpright(1,nsad),fp2,nsad,cobj,connected)
+                     cobj%fpright(1,nsad_loc),fp2,nsad,cobj,connected)
         return
     endif
 
     if(rnr .and. (.not. lnl))then
+!write(*,*)'connection check rnr and not lnl',rnr,lnl
+!write(*,*)'connection check rnr and not lnl',sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))
+!write(*,*)rxyz1
+!write(*,*)
+!write(*,*)cobj%leftmin(:,:,nsad_loc)
+!if(sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))<1.d-2)then
+!    lnl=equal(nid,en_delta_min,fp_delta_min,ener1,&
+!        cobj%enerleft(nsad),fp1,cobj%fpleft(1,nsad))
+!!call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
+!!                cobj%leftmin(1,1,nsad_loc),cobj%fpleft(1,nsad_loc))
+!!call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
+!!                rxyz1(1,1),cobj%fpright(1,nsad_loc))
+!write(*,*)'fprints:'
+!write(*,*)cobj%fpleft(:,nsad_loc)
+!write(*,*)
+!write(*,*)fp1
+!
+!    stop
+!endif
         !connect left relaxed bar end with left input min
         call connect_recursively(nat,nid,alat,rcov,nbond,&
                      iconnect,rxyz1,cobj%leftmin(1,1,nsad_loc),&
                      ener1,cobj%enerleft(nsad_loc),&
-                     fp1,cobj%fpleft(1,nsad),nsad,cobj,connected)
+                     fp1,cobj%fpleft(1,nsad_loc),nsad,cobj,connected)
         return
     endif
 
     if(lnr .and. (.not. rnl))then
+!write(*,*)'connection check lnr and not rnl',sqrt(sum((rxyz1-cobj%rightmin(:,:,nsad_loc))**2))
         !connect right relaxed bar end with left input min
         call connect_recursively(nat,nid,alat,rcov,nbond,&
                      iconnect,rxyz1,cobj%rightmin(1,1,nsad_loc),&
                      ener1,cobj%enerright(nsad_loc),&
-                     fp1,cobj%fpright(1,nsad),nsad,cobj,connected)
+                     fp1,cobj%fpright(1,nsad_loc),nsad,cobj,connected)
         return
     endif
 
     if(.not. lnr .and. rnl)then
+!write(*,*)'connection check not lnr and rnl',sqrt(sum((rxyz2-cobj%leftmin(:,:,nsad_loc))**2))
         !connect left relaxed bar end with right input min
         call connect_recursively(nat,nid,alat,rcov,nbond,&
                      iconnect,rxyz2,cobj%leftmin(1,1,nsad_loc),&
                      ener2,cobj%enerleft(nsad_loc),&
-                     fp2,cobj%fpleft(1,nsad),nsad,cobj,connected)
+                     fp2,cobj%fpleft(1,nsad_loc),nsad,cobj,connected)
         return
     endif
 
     if((.not. lnl) .and. (.not. rnr))then
+!write(*,*)'connection check not lnl and not rnr',sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))
+!write(*,*)'connection check not lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
         !connect left input min with left relaxed bar end  and right
         !input min with right relaxed bar end
         call connect_recursively(nat,nid,alat,rcov,nbond,&
                      iconnect,rxyz1,cobj%leftmin(1,1,nsad_loc),&
                      ener1,cobj%enerleft(nsad_loc),&
-                     fp1,cobj%fpleft(1,nsad),nsad,cobj,connected)
+                     fp1,cobj%fpleft(1,nsad_loc),nsad,cobj,connected)
         call connect_recursively(nat,nid,alat,rcov,nbond,&
                      iconnect,cobj%rightmin(1,1,nsad_loc),rxyz2,&
                      cobj%enerright(nsad_loc),ener2,&
-                     cobj%fpright(1,nsad),fp2,nsad,cobj,connected)
+                     cobj%fpright(1,nsad_loc),fp2,nsad,cobj,connected)
         return
     endif
 
     !should and must not happen:
     if(iproc==0)&
     call yaml_warning('(MHGPS) Severe error in connect: none of &
-                  the checks inconnect subroutine matched! STOP') 
+                  the checks in connect subroutine were successful! &
+                  STOP') 
     stop '(MHGPS) Severe error in connect: none of &
-                  the checks inconnect subroutine matched! STOP'
+                  the checks in connect subroutine were successful! &
+                  STOP'
 
 end subroutine
 !=====================================================================
