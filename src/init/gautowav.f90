@@ -589,6 +589,7 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
      do ispinor=1,orbs%nspinor,ncplx
         !if (iproc == 0)print *,'start',ispinor,ncplx,iorb+orbs%isorb,orbs%nspinor
         !the Block wavefunctions are exp(-Ikr) psi(r) (with MINUS k)
+        write(*,'(a,3i6,3f9.2,100es9.1)') 'iproc, iorb, ilr, locregcenter, wfn_gau', iproc, iorb, orbs%inwhichlocreg(iorb), lzd%llr(orbs%inwhichlocreg(iorb))%locregcenter, wfn_gau(:,ispinor,iorb)
         call gaussians_to_wavelets_orb(ncplx,Lzd%Llr(ilr),&
              Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),kx,ky,kz,G,&
              wfn_gau(1,ispinor,iorb),psi(ind))

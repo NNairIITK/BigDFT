@@ -52,7 +52,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !real(kind=8), dimension(:,:), allocatable :: aocc
   integer, dimension(:,:), allocatable :: nl_copy 
   integer :: ist,jorb,iadd,ii,jj,ityp,itype,iortho
-  integer :: jlr,iiorb
+  integer :: jlr,iiorb,ispin
   integer :: infoCoeff, jproc
   type(orbitals_data) :: orbs_gauss
   type(GPU_pointers) :: GPUe
@@ -160,43 +160,50 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! our optimized orbital distribution (determined by in orbs%inwhichlocreg).
   iiorb=0
   covered=.false.
+  write(*,*) 'norbsPerAt',norbsPerAt
   if (present(locregcenters)) then
-      do iat=1,at%astruct%nat
-          do iorb=1,norbsPerAt(iat)
-              iiorb=iiorb+1
-              ! Search the corresponding entry in inwhichlocreg
-              do jorb=1,tmb%orbs%norb
-                  if(covered(jorb)) cycle
-                  jlr=tmb%orbs%inwhichlocreg(jorb)
-                  if( tmb%lzd%llr(jlr)%locregCenter(1)==locregcenters(1,iat) .and. &
-                      tmb%lzd%llr(jlr)%locregCenter(2)==locregcenters(2,iat) .and. &
-                      tmb%lzd%llr(jlr)%locregCenter(3)==locregcenters(3,iat) ) then
-                      covered(jorb)=.true.
-                      mapping(iiorb)=jorb
-                      exit
-                  end if
+      do ispin=1,input%nspin
+          do iat=1,at%astruct%nat
+              do iorb=1,norbsPerAt(iat)
+                  iiorb=iiorb+1
+                  ! Search the corresponding entry in inwhichlocreg
+                  do jorb=1,tmb%orbs%norb
+                      if(covered(jorb)) cycle
+                      jlr=tmb%orbs%inwhichlocreg(jorb)
+                      if( tmb%lzd%llr(jlr)%locregCenter(1)==locregcenters(1,iat) .and. &
+                          tmb%lzd%llr(jlr)%locregCenter(2)==locregcenters(2,iat) .and. &
+                          tmb%lzd%llr(jlr)%locregCenter(3)==locregcenters(3,iat) ) then
+                          covered(jorb)=.true.
+                          mapping(iiorb)=jorb
+                          exit
+                      end if
+                  end do
               end do
           end do
       end do
   else
-      do iat=1,at%astruct%nat
-          do iorb=1,norbsPerAt(iat)
-              iiorb=iiorb+1
-              ! Search the corresponding entry in inwhichlocreg
-              do jorb=1,tmb%orbs%norb
-                  if(covered(jorb)) cycle
-                  jlr=tmb%orbs%inwhichlocreg(jorb)
-                  if( tmb%lzd%llr(jlr)%locregCenter(1)==rxyz(1,iat) .and. &
-                      tmb%lzd%llr(jlr)%locregCenter(2)==rxyz(2,iat) .and. &
-                      tmb%lzd%llr(jlr)%locregCenter(3)==rxyz(3,iat) ) then
-                      covered(jorb)=.true.
-                      mapping(iiorb)=jorb
-                      exit
-                  end if
+      do ispin=1,input%nspin
+          do iat=1,at%astruct%nat
+              do iorb=1,norbsPerAt(iat)
+                  iiorb=iiorb+1
+                  ! Search the corresponding entry in inwhichlocreg
+                  do jorb=1,tmb%orbs%norb
+                      if(covered(jorb)) cycle
+                      jlr=tmb%orbs%inwhichlocreg(jorb)
+                      if( tmb%lzd%llr(jlr)%locregCenter(1)==rxyz(1,iat) .and. &
+                          tmb%lzd%llr(jlr)%locregCenter(2)==rxyz(2,iat) .and. &
+                          tmb%lzd%llr(jlr)%locregCenter(3)==rxyz(3,iat) ) then
+                          covered(jorb)=.true.
+                          mapping(iiorb)=jorb
+                          exit
+                      end if
+                  end do
               end do
           end do
       end do
   end if
+
+  write(*,'(a,100i6)') 'MAPPING',mapping
 
   ! Inverse mapping
   do iorb=1,tmb%orbs%norb
