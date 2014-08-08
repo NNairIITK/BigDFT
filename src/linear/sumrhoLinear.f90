@@ -522,7 +522,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   logical,intent(in),optional :: print_results
 
   ! Local variables
-  integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr, ind, ispin, ishift
+  integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr, ind, ispin, ishift, ishift_mat
   real(8) :: tt, total_charge, hxh, hyh, hzh, factor, tt1
   integer,dimension(:),allocatable :: isend_total
   real(kind=8),dimension(:),allocatable :: rho_local
@@ -572,14 +572,17 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   irho=0
 
 !ispin=1
+  !SM: check if the modulo operations take a lot of time. If so, try to use an
+  !auxiliary array with shifted bounds in order to access smat%matrixindex_in_compressed_fortransposed
   do ispin=1,denskern%nspin
       if (ispin==1) then
           ishift=0
       else
           ishift=collcom_sr%ndimind_c/2
       end if
+      ishift_mat=(ispin-1)*denskern%nfvctr
       !$omp parallel default(private) &
-      !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local, irho, ispin, ishift)
+      !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local, irho, ispin, ishift, ishift_mat)
       !$omp do schedule(static,50) reduction(+:total_charge, irho)
       do ipt=1,collcom_sr%nptsp_c
           ii=collcom_sr%norb_per_gridpoint_c(ipt)
@@ -588,14 +591,18 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
           tt=1.e-20_dp
           do i=1,ii
               iiorb=collcom_sr%indexrecvorbital_c(i0+i)
+              iiorb=mod(iiorb-1,denskern%nfvctr)+1
     !ispin=spinsgn(iiorb) 
               tt1=collcom_sr%psit_c(i0+i)
               ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
+              ind=ind+ishift_mat
               tt=tt+denskern_%matrix_compr(ind)*tt1*tt1
     !tt(ispin)=tt(ispin)+denskern_%matrix_compr(ind)*tt1*tt1
               do j=i+1,ii
                   jjorb=collcom_sr%indexrecvorbital_c(i0+j)
+                  jjorb=mod(jjorb-1,denskern%nfvctr)+1
                   ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                  ind=ind+ishift_mat
                   if (ind==0) cycle
                   tt=tt+2.0_dp*denskern_%matrix_compr(ind)*tt1*collcom_sr%psit_c(i0+j)
               end do
@@ -1242,7 +1249,6 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
                           tti=test_value_sumrho(ii,iixyz,nxyz)
                           !ikernel=matrixindex_in_compressed_auxilliary(ii,ii)
                           ikernel=matrixindex_in_compressed(denskern,ii,ii)
-                          if (ikernel==0) write(*,*) 'ii, ii, ikernel', ii, ii, ikernel
                           tt=tt+denskern_%matrix_compr(ikernel)*tti*tti
                           do j=i+1,weight(i1,i2,i3)
                               jj=orbital_id(j,i1,i2,i3)+(ispin-1)*orbs%norbu

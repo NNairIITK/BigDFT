@@ -69,9 +69,28 @@ contains
     
       ! Local variables
       integer :: ii, ispin, iiorb, jjorb
+      logical :: lispin, ljspin
 
-      ii=(jorb-1)*sparsemat%nfvctr+iorb
-      ispin=(ii-1)/sparsemat%nfvctr+1 !integer division to get the spin (1 for spin up (or non polarized), 2 for spin down)
+      !ii=(jorb-1)*sparsemat%nfvctr+iorb
+      !ispin=(ii-1)/sparsemat%nfvctr**2+1 !integer division to get the spin (1 for spin up (or non polarized), 2 for spin down)
+
+      ! Determine in which "spin matrix" this entry is located
+      lispin = (iorb>sparsemat%nfvctr)
+      ljspin = (jorb>sparsemat%nfvctr)
+      if (any((/lispin,ljspin/))) then
+          if (all((/lispin,ljspin/))) then
+              ! both indices belong to the second spin matrix
+              ispin=2
+          else
+              ! there seems to be a mix up the spin matrices
+              write(*,*) 'iorb, jorb', iorb, jorb
+              write(*,*) sqrt(-1.d0)
+              stop 'matrixindex_in_compressed: problem in determining spin'
+          end if
+      else
+          ! both indices belong to the first spin matrix
+          ispin=1
+      end if
       iiorb=mod(iorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
       jjorb=mod(jorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
     

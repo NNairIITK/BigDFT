@@ -57,7 +57,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,linmat
          do i=1,nvctr_orb(iorb)
             !vali=real(i,wp)/512.0_wp  ! *1.d-5
             call test_value_locreg(ikpt,orbs%isorb+iorb-(ikpt-1)*orbs%norb,ispinor,i,psival)
-          psival=dble(mod(iorb+orbs%isorb-1,orbs%norbu)+1)*orbs%spinsgn(iorb+orbs%isorb)  
+          !psival=dble(mod(iorb+orbs%isorb-1,orbs%norbu)+1)*orbs%spinsgn(iorb+orbs%isorb)  
             !psi(i+indspin+ind_orb(iorb))=psival!(valorb+vali)*(-1)**(ispinor-1)
             !psi(i+indspin)=dble(iorb+orbs%isorb)*orbs%spinsgn(iorb+orbs%isorb)!psival!(valorb+vali)*(-1)**(ispinor-1)
             psi(i+indspin)=psival!(valorb+vali)*(-1)**(ispinor-1)
@@ -71,6 +71,12 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,linmat
    end do
 
    call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psi, psit_c, psit_f, lzd)
+   do i=1,size(psit_c)
+       write(7000+iproc,*) i, psit_c(i)
+   end do
+   do i=1,size(psit_f)
+       write(7100+iproc,*) i, psit_f(i)
+   end do
    
    !check the results of the transposed wavefunction
    maxdiff=0.0_wp
@@ -184,6 +190,14 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,linmat
    do i=1,linmat%s%nvctr*nspin
        write(6000+iproc,'(a,2i8,es16.7)') 'i, mod(i-1,nvctr)+1, val', i, mod(i-1,linmat%s%nvctr)+1, linmat%ovrlp_%matrix_compr(i)
    end do
+   !! Alternative calculation of the overlap matrix
+   !do iorb=1,orbs%norbp
+   !    iiorb=orbs%isorb+iorb
+   !    ilr=orbs%inwhichlocreg(iiorb)
+   !    do jorb=1,orbs%norb
+   !        
+   !    end do
+   !end do
    !@END NEW ########################################################
 
 
@@ -416,12 +430,11 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
      istart=n(tid)+1
   end if
 
+  !SM: check if the modulo operations take a lot of time. If so, try to use an
+  !auxiliary array with shifted bounds in order to access smat%matrixindex_in_compressed_fortransposed
   spin_loop: do ispin=1,smat%nspin
 
-      ! spin shift for the matrix
       ishift_mat=(ispin-1)*smat%nvctr
-
-      ! spin shift for psit... still to be defined
 
       if (collcom%nptsp_c>0) then
 
@@ -431,13 +444,20 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
               do i=1,ii
                   i0i=i0+i
                   iiorb=collcom%indexrecvorbital_c(i0i)
+                  iiorb=mod(iiorb-1,smat%nfvctr)+1
                   if(iiorb < istart .or. iiorb > iend) cycle
                   m=mod(ii,7)
                   if(m/=0) then
                       do j=1,m
                           i0j=i0+j
                           jjorb=collcom%indexrecvorbital_c(i0j)
-                          ind0 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                          jjorb=mod(jjorb-1,smat%nfvctr)+1
+                          !ind0 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                          ind0 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                          ind0=ind0+ishift_mat
+                          !if (ind0>=smat%nvctr-smat%nfvctr .and.  ind0<=smat%nvctr) then
+                          !    write(*,'(a,3i9)') 'iiorb, jjorb, ind0', iiorb, jjorb, ind0
+                          !end if
                           ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_c1(i0i)*psit_c2(i0j)
                       end do
                   end if
@@ -445,31 +465,52 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                       i0j=i0+j
 
                       jjorb0=collcom%indexrecvorbital_c(i0j+0)
-                      ind0 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
+                      jjorb0=mod(jjorb0-1,smat%nfvctr)+1
+                      !ind0 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
+                      ind0 = smat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
+                      ind0=ind0+ishift_mat
                       ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_c1(i0i)*psit_c2(i0j+0)
 
                       jjorb1=collcom%indexrecvorbital_c(i0j+1)
-                      ind1 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
+                      jjorb1=mod(jjorb1-1,smat%nfvctr)+1
+                      !ind1 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
+                      ind1 = smat%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
+                      ind1=ind1+ishift_mat
                       ovrlp%matrix_compr(ind1) = ovrlp%matrix_compr(ind1) + psit_c1(i0i)*psit_c2(i0j+1)
 
                       jjorb2=collcom%indexrecvorbital_c(i0j+2)
-                      ind2 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
+                      jjorb2=mod(jjorb2-1,smat%nfvctr)+1
+                      !ind2 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
+                      ind2 = smat%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
+                      ind2=ind2+ishift_mat
                       ovrlp%matrix_compr(ind2) = ovrlp%matrix_compr(ind2) + psit_c1(i0i)*psit_c2(i0j+2)
 
                       jjorb3=collcom%indexrecvorbital_c(i0j+3)
-                      ind3 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
+                      jjorb3=mod(jjorb3-1,smat%nfvctr)+1
+                      !ind3 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
+                      ind3 = smat%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
+                      ind3=ind3+ishift_mat
                       ovrlp%matrix_compr(ind3) = ovrlp%matrix_compr(ind3) + psit_c1(i0i)*psit_c2(i0j+3)
 
                       jjorb4=collcom%indexrecvorbital_c(i0j+4)
-                      ind4 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
+                      jjorb4=mod(jjorb4-1,smat%nfvctr)+1
+                      !ind4 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
+                      ind4 = smat%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
+                      ind4=ind4+ishift_mat
                       ovrlp%matrix_compr(ind4) = ovrlp%matrix_compr(ind4) + psit_c1(i0i)*psit_c2(i0j+4)
 
                       jjorb5=collcom%indexrecvorbital_c(i0j+5)
-                      ind5 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
+                      jjorb5=mod(jjorb5-1,smat%nfvctr)+1
+                      !ind5 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
+                      ind5 = smat%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
+                      ind5=ind5+ishift_mat
                       ovrlp%matrix_compr(ind5) = ovrlp%matrix_compr(ind5) + psit_c1(i0i)*psit_c2(i0j+5)
 
                       jjorb6=collcom%indexrecvorbital_c(i0j+6)
-                      ind6 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
+                      jjorb6=mod(jjorb6-1,smat%nfvctr)+1
+                      !ind6 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
+                      ind6 = smat%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
+                      ind6=ind6+ishift_mat
                       ovrlp%matrix_compr(ind6) = ovrlp%matrix_compr(ind6) + psit_c1(i0i)*psit_c2(i0j+6)
 
                   end do
@@ -483,6 +524,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
               do i=1,ii
                   i0i=i0+i
                   iiorb=collcom%indexrecvorbital_f(i0i)
+                  iiorb=mod(iiorb-1,smat%nfvctr)+1
                   if(iiorb < istart .or. iiorb > iend) cycle
                   i07i=7*i0i
                   m=mod(ii,7)
@@ -491,7 +533,10 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                           i0j=i0+j
                           i07j=7*i0j
                           jjorb0=collcom%indexrecvorbital_f(i0j)
-                          ind0 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
+                          jjorb0=mod(jjorb0-1,smat%nfvctr)+1
+                          !ind0 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
+                          ind0 = smat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
+                          ind0=ind0+ishift_mat
                           tt06 = psit_f1(i07i-6)*psit_f2(i07j-6)
                           tt05 = psit_f1(i07i-5)*psit_f2(i07j-5)
                           tt04 = psit_f1(i07i-4)*psit_f2(i07j-4)
@@ -507,7 +552,10 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                       i0j=i0+j
                       i07j=7*i0j
                       jjorb0=collcom%indexrecvorbital_f(i0j+0)
-                      ind0 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
+                      jjorb0=mod(jjorb0-1,smat%nfvctr)+1
+                      !ind0 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
+                      ind0 = smat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
+                      ind0=ind0+ishift_mat
                       tt06 = psit_f1(i07i-6)*psit_f2(i07j-6)
                       tt05 = psit_f1(i07i-5)*psit_f2(i07j-5)
                       tt04 = psit_f1(i07i-4)*psit_f2(i07j-4)
@@ -518,7 +566,10 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                       ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + tt06 + tt05 + tt04 + tt03 + tt02 + tt01 + tt00
 
                       jjorb1=collcom%indexrecvorbital_f(i0j+1)
-                      ind1 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
+                      jjorb1=mod(jjorb1-1,smat%nfvctr)+1
+                      !ind1 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
+                      ind1 = smat%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
+                      ind1=ind1+ishift_mat
                       tt16 = psit_f1(i07i-6)*psit_f2(i07j+1) !+1*7-6
                       tt15 = psit_f1(i07i-5)*psit_f2(i07j+2) !+1*7-5
                       tt14 = psit_f1(i07i-4)*psit_f2(i07j+3) !+1*7-4
@@ -529,7 +580,10 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                       ovrlp%matrix_compr(ind1) = ovrlp%matrix_compr(ind1) + tt16 + tt15 + tt14 + tt13 + tt12 + tt11 + tt10
 
                       jjorb2=collcom%indexrecvorbital_f(i0j+2)
-                      ind2 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
+                      jjorb2=mod(jjorb2-1,smat%nfvctr)+1
+                      !ind2 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
+                      ind2 = smat%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
+                      ind2=ind2+ishift_mat
                       tt26 = psit_f1(i07i-6)*psit_f2(i07j+8) !+2*7-6
                       tt25 = psit_f1(i07i-5)*psit_f2(i07j+9) !+2*7-5
                       tt24 = psit_f1(i07i-4)*psit_f2(i07j+10) !+2*7-4
@@ -540,7 +594,10 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                       ovrlp%matrix_compr(ind2) = ovrlp%matrix_compr(ind2) + tt26 + tt25 + tt24 + tt23 + tt22 + tt21 + tt20
 
                       jjorb3=collcom%indexrecvorbital_f(i0j+3)
-                      ind3 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
+                      jjorb3=mod(jjorb3-1,smat%nfvctr)+1
+                      !ind3 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
+                      ind3 = smat%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
+                      ind3=ind3+ishift_mat
                       tt36 = psit_f1(i07i-6)*psit_f2(i07j+15) !+3*7-6
                       tt35 = psit_f1(i07i-5)*psit_f2(i07j+16) !+3*7-5
                       tt34 = psit_f1(i07i-4)*psit_f2(i07j+17) !+3*7-4
@@ -551,7 +608,10 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                       ovrlp%matrix_compr(ind3) = ovrlp%matrix_compr(ind3) + tt36 + tt35 + tt34 + tt33 + tt32 + tt31 + tt30
 
                       jjorb4=collcom%indexrecvorbital_f(i0j+4)
-                      ind4 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
+                      jjorb4=mod(jjorb4-1,smat%nfvctr)+1
+                      !ind4 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
+                      ind4 = smat%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
+                      ind4=ind4+ishift_mat
                       tt46 = psit_f1(i07i-6)*psit_f2(i07j+22) !+4*7-6
                       tt45 = psit_f1(i07i-5)*psit_f2(i07j+23) !+4*7-5
                       tt44 = psit_f1(i07i-4)*psit_f2(i07j+24) !+4*7-4
@@ -562,7 +622,10 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                       ovrlp%matrix_compr(ind4) = ovrlp%matrix_compr(ind4) + tt46 + tt45 + tt44 + tt43 + tt42 + tt41 + tt40
 
                       jjorb5=collcom%indexrecvorbital_f(i0j+5)
-                      ind5 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
+                      jjorb5=mod(jjorb5-1,smat%nfvctr)+1
+                      !ind5 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
+                      ind5 = smat%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
+                      ind5=ind5+ishift_mat
                       tt56 = psit_f1(i07i-6)*psit_f2(i07j+29) !+5*7-6
                       tt55 = psit_f1(i07i-5)*psit_f2(i07j+30) !+5*7-5
                       tt54 = psit_f1(i07i-4)*psit_f2(i07j+31) !+5*7-4
@@ -573,7 +636,10 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                       ovrlp%matrix_compr(ind5) = ovrlp%matrix_compr(ind5) + tt56 + tt55 + tt54 + tt53 + tt52 + tt51 + tt50
 
                       jjorb6=collcom%indexrecvorbital_f(i0j+6)
-                      ind6 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
+                      jjorb6=mod(jjorb6-1,smat%nfvctr)+1
+                      !ind6 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
+                      ind6 = smat%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
+                      ind6=ind6+ishift_mat
                       tt66 = psit_f1(i07i-6)*psit_f2(i07j+36) !+6*7-6
                       tt65 = psit_f1(i07i-5)*psit_f2(i07j+37) !+6*7-5
                       tt64 = psit_f1(i07i-4)*psit_f2(i07j+38) !+6*7-4
@@ -596,7 +662,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   call timing(iproc,'ovrlptransComm','ON') !lr408t
 
   if(nproc > 1) then
-      call mpiallred(ovrlp%matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(ovrlp%matrix_compr(1), smat%nvctr*smat%nspin, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   call f_free(n)
@@ -706,7 +772,7 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
   integer, intent(in) :: iproc
   ! Local variables
   integer :: i0, ipt, ii, j, iiorb, jjorb, i, m, ind0, ind1, ind2, ind3, i0i, i0j, i07i, i07j
-  integer :: ind4, ind5, ind6, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6
+  integer :: ind4, ind5, ind6, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, ispin, ishift_mat
   real(kind=8) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6
   real(kind=8) :: tt00, tt01, tt02, tt03, tt04, tt05, tt06
   real(kind=8) :: tt10, tt11, tt12, tt13, tt14, tt15, tt16
@@ -723,85 +789,128 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
       if(collcom%ndimind_f>0) call to_zero(7*collcom%ndimind_f, psit_f(1))
   end if
 
+
+  !SM: check if the modulo operations take a lot of time. If so, try to use an
+  !auxiliary array with shifted bounds in order to access smat%matrixindex_in_compressed_fortransposed
+
+  spin_loop: do ispin=1,sparsemat%nspin
+
+      ishift_mat=(ispin-1)*sparsemat%nvctr
  
-  !$omp parallel default(private) &
-  !$omp shared(collcom, psit_c, psitwork_c, psit_f, psitwork_f, sparsemat, mat)
+      !$omp parallel default(private) &
+      !$omp shared(collcom, psit_c, psitwork_c, psit_f, psitwork_f, sparsemat, mat, ishift_mat)
 
-  !$omp do schedule(static,1)
-   do ipt=1,collcom%nptsp_c 
-      ii=collcom%norb_per_gridpoint_c(ipt) 
-      i0 = collcom%isptsp_c(ipt)
-      do i=1,ii
-          i0i=i0+i
-          iiorb=collcom%indexrecvorbital_c(i0i)
-          m=mod(ii,7)
-          tt0=0.d0 ; tt1=0.d0 ; tt2=0.d0 ; tt3=0.d0 ; tt4=0.d0 ; tt5=0.d0 ; tt6=0.d0
-          if(m/=0) then
-              do j=1,m
+      !$omp do schedule(static,1)
+       do ipt=1,collcom%nptsp_c 
+          ii=collcom%norb_per_gridpoint_c(ipt) 
+          i0 = collcom%isptsp_c(ipt)
+          do i=1,ii
+              i0i=i0+i
+              iiorb=collcom%indexrecvorbital_c(i0i)
+              iiorb=mod(iiorb-1,sparsemat%nfvctr)+1
+              m=mod(ii,7)
+              tt0=0.d0 ; tt1=0.d0 ; tt2=0.d0 ; tt3=0.d0 ; tt4=0.d0 ; tt5=0.d0 ; tt6=0.d0
+              if(m/=0) then
+                  do j=1,m
+                      i0j=i0+j
+                      jjorb=collcom%indexrecvorbital_c(i0j)
+                      jjorb=mod(jjorb-1,sparsemat%nfvctr)+1
+                      ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                      ind0=ind0+ishift_mat
+                      tt0=tt0+mat%matrix_compr(ind0)*psitwork_c(i0j)
+                  end do
+              end if
+              do j=m+1,ii,7
                   i0j=i0+j
-                  jjorb=collcom%indexrecvorbital_c(i0j)
-                  ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  tt0=tt0+mat%matrix_compr(ind0)*psitwork_c(i0j)
+
+                  jjorb0=collcom%indexrecvorbital_c(i0j+0)
+                  jjorb0=mod(jjorb0-1,sparsemat%nfvctr)+1
+                  ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
+                  ind0=ind0+ishift_mat
+                  tt0=tt0+mat%matrix_compr(ind0)*psitwork_c(i0j+0)
+
+                  jjorb1=collcom%indexrecvorbital_c(i0j+1)
+                  jjorb1=mod(jjorb1-1,sparsemat%nfvctr)+1
+                  ind1 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
+                  ind1=ind1+ishift_mat
+                  tt1=tt1+mat%matrix_compr(ind1)*psitwork_c(i0j+1)
+
+                  jjorb2=collcom%indexrecvorbital_c(i0j+2)
+                  jjorb2=mod(jjorb2-1,sparsemat%nfvctr)+1
+                  ind2 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
+                  ind2=ind2+ishift_mat
+                  tt2=tt2+mat%matrix_compr(ind2)*psitwork_c(i0j+2)
+
+                  jjorb3=collcom%indexrecvorbital_c(i0j+3)
+                  jjorb3=mod(jjorb3-1,sparsemat%nfvctr)+1
+                  ind3 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
+                  ind3=ind3+ishift_mat
+                  tt3=tt3+mat%matrix_compr(ind3)*psitwork_c(i0j+3)
+
+                  jjorb4=collcom%indexrecvorbital_c(i0j+4)
+                  jjorb4=mod(jjorb4-1,sparsemat%nfvctr)+1
+                  ind4 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
+                  ind4=ind4+ishift_mat
+                  tt4=tt4+mat%matrix_compr(ind4)*psitwork_c(i0j+4)
+
+                  jjorb5=collcom%indexrecvorbital_c(i0j+5)
+                  jjorb5=mod(jjorb5-1,sparsemat%nfvctr)+1
+                  ind5 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
+                  ind5=ind5+ishift_mat
+                  tt5=tt5+mat%matrix_compr(ind5)*psitwork_c(i0j+5)
+
+                  jjorb6=collcom%indexrecvorbital_c(i0j+6)
+                  jjorb6=mod(jjorb6-1,sparsemat%nfvctr)+1
+                  ind6 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
+                  ind6=ind6+ishift_mat
+                  tt6=tt6+mat%matrix_compr(ind6)*psitwork_c(i0j+6)
               end do
-          end if
-          do j=m+1,ii,7
-              i0j=i0+j
-
-              jjorb0=collcom%indexrecvorbital_c(i0j+0)
-              ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
-              tt0=tt0+mat%matrix_compr(ind0)*psitwork_c(i0j+0)
-
-              jjorb1=collcom%indexrecvorbital_c(i0j+1)
-              ind1 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
-              tt1=tt1+mat%matrix_compr(ind1)*psitwork_c(i0j+1)
-
-              jjorb2=collcom%indexrecvorbital_c(i0j+2)
-              ind2 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
-              tt2=tt2+mat%matrix_compr(ind2)*psitwork_c(i0j+2)
-
-              jjorb3=collcom%indexrecvorbital_c(i0j+3)
-              ind3 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
-              tt3=tt3+mat%matrix_compr(ind3)*psitwork_c(i0j+3)
-
-              jjorb4=collcom%indexrecvorbital_c(i0j+4)
-              ind4 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
-              tt4=tt4+mat%matrix_compr(ind4)*psitwork_c(i0j+4)
-
-              jjorb5=collcom%indexrecvorbital_c(i0j+5)
-              ind5 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
-              tt5=tt5+mat%matrix_compr(ind5)*psitwork_c(i0j+5)
-
-              jjorb6=collcom%indexrecvorbital_c(i0j+6)
-              ind6 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
-              tt6=tt6+mat%matrix_compr(ind6)*psitwork_c(i0j+6)
+              psit_c(i0i)=psit_c(i0i)+tt0+tt1+tt2+tt3+tt4+tt5+tt6
           end do
-          psit_c(i0i)=psit_c(i0i)+tt0+tt1+tt2+tt3+tt4+tt5+tt6
       end do
-  end do
-  !$omp end do
+      !$omp end do
 
-  !$omp do schedule(static,1)
-  do ipt=1,collcom%nptsp_f 
-      ii=collcom%norb_per_gridpoint_f(ipt) 
-      i0 = collcom%isptsp_f(ipt)
-      do i=1,ii
-          i0i=i0+i
-          i07i=7*i0i
-          iiorb=collcom%indexrecvorbital_f(i0i)
-          m=mod(ii,7)
-          tt00=0.d0 ; tt01=0.d0 ; tt02=0.d0 ; tt03=0.d0 ; tt04=0.d0 ; tt05=0.d0 ; tt06=0.d0
-          tt10=0.d0 ; tt11=0.d0 ; tt12=0.d0 ; tt13=0.d0 ; tt14=0.d0 ; tt15=0.d0 ; tt16=0.d0
-          tt20=0.d0 ; tt21=0.d0 ; tt22=0.d0 ; tt23=0.d0 ; tt24=0.d0 ; tt25=0.d0 ; tt26=0.d0
-          tt30=0.d0 ; tt31=0.d0 ; tt32=0.d0 ; tt33=0.d0 ; tt34=0.d0 ; tt35=0.d0 ; tt36=0.d0
-          tt40=0.d0 ; tt41=0.d0 ; tt42=0.d0 ; tt43=0.d0 ; tt44=0.d0 ; tt45=0.d0 ; tt46=0.d0
-          tt50=0.d0 ; tt51=0.d0 ; tt52=0.d0 ; tt53=0.d0 ; tt54=0.d0 ; tt55=0.d0 ; tt56=0.d0
-          tt60=0.d0 ; tt61=0.d0 ; tt62=0.d0 ; tt63=0.d0 ; tt64=0.d0 ; tt65=0.d0 ; tt66=0.d0
-          if(m/=0) then
-              do j=1,m
+      !$omp do schedule(static,1)
+      do ipt=1,collcom%nptsp_f 
+          ii=collcom%norb_per_gridpoint_f(ipt) 
+          i0 = collcom%isptsp_f(ipt)
+          do i=1,ii
+              i0i=i0+i
+              i07i=7*i0i
+              iiorb=collcom%indexrecvorbital_f(i0i)
+              iiorb=mod(iiorb-1,sparsemat%nfvctr)+1
+              m=mod(ii,7)
+              tt00=0.d0 ; tt01=0.d0 ; tt02=0.d0 ; tt03=0.d0 ; tt04=0.d0 ; tt05=0.d0 ; tt06=0.d0
+              tt10=0.d0 ; tt11=0.d0 ; tt12=0.d0 ; tt13=0.d0 ; tt14=0.d0 ; tt15=0.d0 ; tt16=0.d0
+              tt20=0.d0 ; tt21=0.d0 ; tt22=0.d0 ; tt23=0.d0 ; tt24=0.d0 ; tt25=0.d0 ; tt26=0.d0
+              tt30=0.d0 ; tt31=0.d0 ; tt32=0.d0 ; tt33=0.d0 ; tt34=0.d0 ; tt35=0.d0 ; tt36=0.d0
+              tt40=0.d0 ; tt41=0.d0 ; tt42=0.d0 ; tt43=0.d0 ; tt44=0.d0 ; tt45=0.d0 ; tt46=0.d0
+              tt50=0.d0 ; tt51=0.d0 ; tt52=0.d0 ; tt53=0.d0 ; tt54=0.d0 ; tt55=0.d0 ; tt56=0.d0
+              tt60=0.d0 ; tt61=0.d0 ; tt62=0.d0 ; tt63=0.d0 ; tt64=0.d0 ; tt65=0.d0 ; tt66=0.d0
+              if(m/=0) then
+                  do j=1,m
+                      i0j=i0+j
+                      i07j=7*i0j
+                      jjorb=collcom%indexrecvorbital_f(i0j)
+                      jjorb=mod(jjorb-1,sparsemat%nfvctr)+1
+                      ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                      ind0=ind0+ishift_mat
+                      tt06 = tt06 + mat%matrix_compr(ind0)*psitwork_f(i07j-6)
+                      tt05 = tt05 + mat%matrix_compr(ind0)*psitwork_f(i07j-5)
+                      tt04 = tt04 + mat%matrix_compr(ind0)*psitwork_f(i07j-4)
+                      tt03 = tt03 + mat%matrix_compr(ind0)*psitwork_f(i07j-3)
+                      tt02 = tt02 + mat%matrix_compr(ind0)*psitwork_f(i07j-2)
+                      tt01 = tt01 + mat%matrix_compr(ind0)*psitwork_f(i07j-1)
+                      tt00 = tt00 + mat%matrix_compr(ind0)*psitwork_f(i07j-0)
+                  end do
+              end if
+              do j=m+1,ii,7
                   i0j=i0+j
                   i07j=7*i0j
-                  jjorb=collcom%indexrecvorbital_f(i0j)
-                  ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                  jjorb0=collcom%indexrecvorbital_f(i0j+0)
+                  jjorb0=mod(jjorb0-1,sparsemat%nfvctr)+1
+                  ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
+                  ind0=ind0+ishift_mat
                   tt06 = tt06 + mat%matrix_compr(ind0)*psitwork_f(i07j-6)
                   tt05 = tt05 + mat%matrix_compr(ind0)*psitwork_f(i07j-5)
                   tt04 = tt04 + mat%matrix_compr(ind0)*psitwork_f(i07j-4)
@@ -809,92 +918,92 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
                   tt02 = tt02 + mat%matrix_compr(ind0)*psitwork_f(i07j-2)
                   tt01 = tt01 + mat%matrix_compr(ind0)*psitwork_f(i07j-1)
                   tt00 = tt00 + mat%matrix_compr(ind0)*psitwork_f(i07j-0)
+
+                  jjorb1=collcom%indexrecvorbital_f(i0j+1)
+                  jjorb1=mod(jjorb1-1,sparsemat%nfvctr)+1
+                  ind1 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
+                  ind1=ind1+ishift_mat
+                  tt16 = tt16 + mat%matrix_compr(ind1)*psitwork_f(i07j+1) !+1*7-6
+                  tt15 = tt15 + mat%matrix_compr(ind1)*psitwork_f(i07j+2) !+1*7-5
+                  tt14 = tt14 + mat%matrix_compr(ind1)*psitwork_f(i07j+3) !+1*7-4
+                  tt13 = tt13 + mat%matrix_compr(ind1)*psitwork_f(i07j+4) !+1*7-3
+                  tt12 = tt12 + mat%matrix_compr(ind1)*psitwork_f(i07j+5) !+1*7-2
+                  tt11 = tt11 + mat%matrix_compr(ind1)*psitwork_f(i07j+6) !+1*7-1
+                  tt10 = tt10 + mat%matrix_compr(ind1)*psitwork_f(i07j+7) !+1*7-0
+
+                  jjorb2=collcom%indexrecvorbital_f(i0j+2)
+                  jjorb2=mod(jjorb2-1,sparsemat%nfvctr)+1
+                  ind2 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
+                  ind2=ind2+ishift_mat
+                  tt26 = tt26 + mat%matrix_compr(ind2)*psitwork_f(i07j+8) !+2*7-6
+                  tt25 = tt25 + mat%matrix_compr(ind2)*psitwork_f(i07j+9) !+2*7-5
+                  tt24 = tt24 + mat%matrix_compr(ind2)*psitwork_f(i07j+10) !+2*7-4
+                  tt23 = tt23 + mat%matrix_compr(ind2)*psitwork_f(i07j+11) !+2*7-3
+                  tt22 = tt22 + mat%matrix_compr(ind2)*psitwork_f(i07j+12) !+2*7-2
+                  tt21 = tt21 + mat%matrix_compr(ind2)*psitwork_f(i07j+13) !+2*7-1
+                  tt20 = tt20 + mat%matrix_compr(ind2)*psitwork_f(i07j+14) !+2*7-0
+
+                  jjorb3=collcom%indexrecvorbital_f(i0j+3)
+                  jjorb3=mod(jjorb3-1,sparsemat%nfvctr)+1
+                  ind3 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
+                  ind3=ind3+ishift_mat
+                  tt36 = tt36 + mat%matrix_compr(ind3)*psitwork_f(i07j+15) !+3*7-6
+                  tt35 = tt35 + mat%matrix_compr(ind3)*psitwork_f(i07j+16) !+3*7-5
+                  tt34 = tt34 + mat%matrix_compr(ind3)*psitwork_f(i07j+17) !+3*7-4
+                  tt33 = tt33 + mat%matrix_compr(ind3)*psitwork_f(i07j+18) !+3*7-3
+                  tt32 = tt32 + mat%matrix_compr(ind3)*psitwork_f(i07j+19) !+3*7-2
+                  tt31 = tt31 + mat%matrix_compr(ind3)*psitwork_f(i07j+20) !+3*7-1
+                  tt30 = tt30 + mat%matrix_compr(ind3)*psitwork_f(i07j+21) !+3*7-0
+
+                  jjorb4=collcom%indexrecvorbital_f(i0j+4)
+                  jjorb4=mod(jjorb4-1,sparsemat%nfvctr)+1
+                  ind4 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
+                  ind4=ind4+ishift_mat
+                  tt46 = tt46 + mat%matrix_compr(ind4)*psitwork_f(i07j+22) !+4*7-6
+                  tt45 = tt45 + mat%matrix_compr(ind4)*psitwork_f(i07j+23) !+4*7-5
+                  tt44 = tt44 + mat%matrix_compr(ind4)*psitwork_f(i07j+24) !+4*7-4
+                  tt43 = tt43 + mat%matrix_compr(ind4)*psitwork_f(i07j+25) !+4*7-3
+                  tt42 = tt42 + mat%matrix_compr(ind4)*psitwork_f(i07j+26) !+4*7-2
+                  tt41 = tt41 + mat%matrix_compr(ind4)*psitwork_f(i07j+27) !+4*7-1
+                  tt40 = tt40 + mat%matrix_compr(ind4)*psitwork_f(i07j+28) !+4*7-0
+
+                  jjorb5=collcom%indexrecvorbital_f(i0j+5)
+                  jjorb5=mod(jjorb5-1,sparsemat%nfvctr)+1
+                  ind5 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
+                  ind5=ind5+ishift_mat
+                  tt56 = tt56 + mat%matrix_compr(ind5)*psitwork_f(i07j+29) !+5*7-6
+                  tt55 = tt55 + mat%matrix_compr(ind5)*psitwork_f(i07j+30) !+5*7-5
+                  tt54 = tt54 + mat%matrix_compr(ind5)*psitwork_f(i07j+31) !+5*7-4
+                  tt53 = tt53 + mat%matrix_compr(ind5)*psitwork_f(i07j+32) !+5*7-3
+                  tt52 = tt52 + mat%matrix_compr(ind5)*psitwork_f(i07j+33) !+5*7-2
+                  tt51 = tt51 + mat%matrix_compr(ind5)*psitwork_f(i07j+34) !+5*7-1
+                  tt50 = tt50 + mat%matrix_compr(ind5)*psitwork_f(i07j+35) !+5*7-0
+
+                  jjorb6=collcom%indexrecvorbital_f(i0j+6)
+                  jjorb6=mod(jjorb6-1,sparsemat%nfvctr)+1
+                  ind6 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
+                  ind6=ind6+ishift_mat
+                  tt66 = tt66 + mat%matrix_compr(ind6)*psitwork_f(i07j+36) !+6*7-6
+                  tt65 = tt65 + mat%matrix_compr(ind6)*psitwork_f(i07j+37) !+6*7-5
+                  tt64 = tt64 + mat%matrix_compr(ind6)*psitwork_f(i07j+38) !+6*7-4
+                  tt63 = tt63 + mat%matrix_compr(ind6)*psitwork_f(i07j+39) !+6*7-3
+                  tt62 = tt62 + mat%matrix_compr(ind6)*psitwork_f(i07j+40) !+6*7-2
+                  tt61 = tt61 + mat%matrix_compr(ind6)*psitwork_f(i07j+41) !+6*7-1
+                  tt60 = tt60 + mat%matrix_compr(ind6)*psitwork_f(i07j+42) !+6*7-0
               end do
-          end if
-          do j=m+1,ii,7
-              i0j=i0+j
-              i07j=7*i0j
-              jjorb0=collcom%indexrecvorbital_f(i0j+0)
-              ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
-              tt06 = tt06 + mat%matrix_compr(ind0)*psitwork_f(i07j-6)
-              tt05 = tt05 + mat%matrix_compr(ind0)*psitwork_f(i07j-5)
-              tt04 = tt04 + mat%matrix_compr(ind0)*psitwork_f(i07j-4)
-              tt03 = tt03 + mat%matrix_compr(ind0)*psitwork_f(i07j-3)
-              tt02 = tt02 + mat%matrix_compr(ind0)*psitwork_f(i07j-2)
-              tt01 = tt01 + mat%matrix_compr(ind0)*psitwork_f(i07j-1)
-              tt00 = tt00 + mat%matrix_compr(ind0)*psitwork_f(i07j-0)
+              psit_f(i07i-6) = psit_f(i07i-6) + tt06 + tt16 + tt26 + tt36 + tt46 + tt56 + tt66
+              psit_f(i07i-5) = psit_f(i07i-5) + tt05 + tt15 + tt25 + tt35 + tt45 + tt55 + tt65
+              psit_f(i07i-4) = psit_f(i07i-4) + tt04 + tt14 + tt24 + tt34 + tt44 + tt54 + tt64
+              psit_f(i07i-3) = psit_f(i07i-3) + tt03 + tt13 + tt23 + tt33 + tt43 + tt53 + tt63
+              psit_f(i07i-2) = psit_f(i07i-2) + tt02 + tt12 + tt22 + tt32 + tt42 + tt52 + tt62
+              psit_f(i07i-1) = psit_f(i07i-1) + tt01 + tt11 + tt21 + tt31 + tt41 + tt51 + tt61
+              psit_f(i07i-0) = psit_f(i07i-0) + tt00 + tt10 + tt20 + tt30 + tt40 + tt50 + tt60
+          end do  
+      end do
+      !$omp end do
+      !$omp end parallel
 
-              jjorb1=collcom%indexrecvorbital_f(i0j+1)
-              ind1 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
-              tt16 = tt16 + mat%matrix_compr(ind1)*psitwork_f(i07j+1) !+1*7-6
-              tt15 = tt15 + mat%matrix_compr(ind1)*psitwork_f(i07j+2) !+1*7-5
-              tt14 = tt14 + mat%matrix_compr(ind1)*psitwork_f(i07j+3) !+1*7-4
-              tt13 = tt13 + mat%matrix_compr(ind1)*psitwork_f(i07j+4) !+1*7-3
-              tt12 = tt12 + mat%matrix_compr(ind1)*psitwork_f(i07j+5) !+1*7-2
-              tt11 = tt11 + mat%matrix_compr(ind1)*psitwork_f(i07j+6) !+1*7-1
-              tt10 = tt10 + mat%matrix_compr(ind1)*psitwork_f(i07j+7) !+1*7-0
-
-              jjorb2=collcom%indexrecvorbital_f(i0j+2)
-              ind2 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
-              tt26 = tt26 + mat%matrix_compr(ind2)*psitwork_f(i07j+8) !+2*7-6
-              tt25 = tt25 + mat%matrix_compr(ind2)*psitwork_f(i07j+9) !+2*7-5
-              tt24 = tt24 + mat%matrix_compr(ind2)*psitwork_f(i07j+10) !+2*7-4
-              tt23 = tt23 + mat%matrix_compr(ind2)*psitwork_f(i07j+11) !+2*7-3
-              tt22 = tt22 + mat%matrix_compr(ind2)*psitwork_f(i07j+12) !+2*7-2
-              tt21 = tt21 + mat%matrix_compr(ind2)*psitwork_f(i07j+13) !+2*7-1
-              tt20 = tt20 + mat%matrix_compr(ind2)*psitwork_f(i07j+14) !+2*7-0
-
-              jjorb3=collcom%indexrecvorbital_f(i0j+3)
-              ind3 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
-              tt36 = tt36 + mat%matrix_compr(ind3)*psitwork_f(i07j+15) !+3*7-6
-              tt35 = tt35 + mat%matrix_compr(ind3)*psitwork_f(i07j+16) !+3*7-5
-              tt34 = tt34 + mat%matrix_compr(ind3)*psitwork_f(i07j+17) !+3*7-4
-              tt33 = tt33 + mat%matrix_compr(ind3)*psitwork_f(i07j+18) !+3*7-3
-              tt32 = tt32 + mat%matrix_compr(ind3)*psitwork_f(i07j+19) !+3*7-2
-              tt31 = tt31 + mat%matrix_compr(ind3)*psitwork_f(i07j+20) !+3*7-1
-              tt30 = tt30 + mat%matrix_compr(ind3)*psitwork_f(i07j+21) !+3*7-0
-
-              jjorb4=collcom%indexrecvorbital_f(i0j+4)
-              ind4 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
-              tt46 = tt46 + mat%matrix_compr(ind4)*psitwork_f(i07j+22) !+4*7-6
-              tt45 = tt45 + mat%matrix_compr(ind4)*psitwork_f(i07j+23) !+4*7-5
-              tt44 = tt44 + mat%matrix_compr(ind4)*psitwork_f(i07j+24) !+4*7-4
-              tt43 = tt43 + mat%matrix_compr(ind4)*psitwork_f(i07j+25) !+4*7-3
-              tt42 = tt42 + mat%matrix_compr(ind4)*psitwork_f(i07j+26) !+4*7-2
-              tt41 = tt41 + mat%matrix_compr(ind4)*psitwork_f(i07j+27) !+4*7-1
-              tt40 = tt40 + mat%matrix_compr(ind4)*psitwork_f(i07j+28) !+4*7-0
-
-              jjorb5=collcom%indexrecvorbital_f(i0j+5)
-              ind5 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
-              tt56 = tt56 + mat%matrix_compr(ind5)*psitwork_f(i07j+29) !+5*7-6
-              tt55 = tt55 + mat%matrix_compr(ind5)*psitwork_f(i07j+30) !+5*7-5
-              tt54 = tt54 + mat%matrix_compr(ind5)*psitwork_f(i07j+31) !+5*7-4
-              tt53 = tt53 + mat%matrix_compr(ind5)*psitwork_f(i07j+32) !+5*7-3
-              tt52 = tt52 + mat%matrix_compr(ind5)*psitwork_f(i07j+33) !+5*7-2
-              tt51 = tt51 + mat%matrix_compr(ind5)*psitwork_f(i07j+34) !+5*7-1
-              tt50 = tt50 + mat%matrix_compr(ind5)*psitwork_f(i07j+35) !+5*7-0
-
-              jjorb6=collcom%indexrecvorbital_f(i0j+6)
-              ind6 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
-              tt66 = tt66 + mat%matrix_compr(ind6)*psitwork_f(i07j+36) !+6*7-6
-              tt65 = tt65 + mat%matrix_compr(ind6)*psitwork_f(i07j+37) !+6*7-5
-              tt64 = tt64 + mat%matrix_compr(ind6)*psitwork_f(i07j+38) !+6*7-4
-              tt63 = tt63 + mat%matrix_compr(ind6)*psitwork_f(i07j+39) !+6*7-3
-              tt62 = tt62 + mat%matrix_compr(ind6)*psitwork_f(i07j+40) !+6*7-2
-              tt61 = tt61 + mat%matrix_compr(ind6)*psitwork_f(i07j+41) !+6*7-1
-              tt60 = tt60 + mat%matrix_compr(ind6)*psitwork_f(i07j+42) !+6*7-0
-          end do
-          psit_f(i07i-6) = psit_f(i07i-6) + tt06 + tt16 + tt26 + tt36 + tt46 + tt56 + tt66
-          psit_f(i07i-5) = psit_f(i07i-5) + tt05 + tt15 + tt25 + tt35 + tt45 + tt55 + tt65
-          psit_f(i07i-4) = psit_f(i07i-4) + tt04 + tt14 + tt24 + tt34 + tt44 + tt54 + tt64
-          psit_f(i07i-3) = psit_f(i07i-3) + tt03 + tt13 + tt23 + tt33 + tt43 + tt53 + tt63
-          psit_f(i07i-2) = psit_f(i07i-2) + tt02 + tt12 + tt22 + tt32 + tt42 + tt52 + tt62
-          psit_f(i07i-1) = psit_f(i07i-1) + tt01 + tt11 + tt21 + tt31 + tt41 + tt51 + tt61
-          psit_f(i07i-0) = psit_f(i07i-0) + tt00 + tt10 + tt20 + tt30 + tt40 + tt50 + tt60
-      end do  
-  end do
-  !$omp end do
-  !$omp end parallel
+  end do spin_loop
 
   call f_release_routine()
   call timing(iproc,'lincombtrans  ','OF') !lr408t
@@ -1114,6 +1223,11 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   imax=max(imax,maxval(collcom_shamop%indexrecvorbital_f))
   imax=max(imax,maxval(collcom_sr%indexrecvorbital_c))
 
+  ! values regardless of the spin
+  imin=mod(imin-1,sparsemat%nfvctr)+1
+  imax=mod(imax-1,sparsemat%nfvctr)+1
+  
+
   !!! This is a temporary solution for spin polarized systems
   !!imax=min(imax,orbs%norbu)
 
@@ -1124,7 +1238,7 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   sparsemat%matrixindex_in_compressed_fortransposed=f_malloc_ptr((/imin.to.imax,imin.to.imax/),&
       id='sparsemat%matrixindex_in_compressed_fortransposed')
 
-  !$omp parallel do default(private) shared(sparsemat,orbs,imin,imax)  
+  !$omp parallel do default(private) shared(sparsemat,orbs,imin,imax)
   do iorb=imin,imax
       do jorb=imin,imax
           !@ii=(jorb-1)*sparsemat%nfvctr+iorb
