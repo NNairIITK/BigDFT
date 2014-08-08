@@ -130,9 +130,12 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
             ipathmax   = npath
         endif
     enddo
-!DEBUGGING:
-if(npath/=nnodes)stop'npat/=nnodes'
-write(*,*)'ipathmax',ipathmax
+
+!!DEBUGGING start:
+!if(npath/=nnodes)stop'npat/=nnodes'
+!write(*,*)'ipathmax',ipathmax
+!!DEBUGGING send
+
     !tsguess is highest energy node:
     do iat=1,nat
         tsguess(1,iat) = path(ipathmax,1,iat)
@@ -281,10 +284,8 @@ subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
                  string(1,2,nstring),step,string(1,1,nstring+1),&
                  string(1,2,nstring+1),tangentleft,tangentright,&
                  finished)
-write(*,*)'basian'
-!            if(finished==1)string(1,2,nstring+1)=huge(1.0_gp)
             if(finished/=0)then
-if(i/=nstring)stop'DEBUGGING i/=nstring'
+!if(i/=nstring)stop'DEBUGGING i/=nstring'
                if(perpnrmtol>0)& 
                 call optim_cg(nat,alat,finished,step,gammainv,&
                     perpnrmtol_squared,trust_squared,nstepsmax,&
@@ -589,25 +590,31 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     !functions
     real(gp) :: dnrm2
 
-!<-DEBUG START------------------------------------------------------>
+!!<-DEBUG START------------------------------------------------------>
 !character(len=5) :: fc5
 !character(len=200) :: filename,line
 !integer :: istat
 !integer, save :: ic
 !real(gp) :: dmy
-!character(len=5):: xat(22)
-!open(unit=33,file='input001/pos001.ascii')
+!character(len=5):: xat(nat)
+!!open(unit=33,file='input001/pos001.ascii')
+!!read(33,*)
+!!read(33,*)
+!!read(33,*)
+!!read(33,*)
+!!do iat=1,22
+!!    read(33,'(a)',iostat=istat)line
+!!    if(istat/=0)exit
+!!    read(line,*)dmy,dmy,dmy,xat(iat)
+!!enddo
+!open(unit=33,file='input001/pos001.xyz')
 !read(33,*)
 !read(33,*)
-!read(33,*)
-!read(33,*)
-!do iat=1,22
-!    read(33,'(a)',iostat=istat)line
-!    if(istat/=0)exit
-!    read(line,*)dmy,dmy,dmy,xat(iat)
+!do iat=1,nat
+!    read(33,*)xat(iat),dmy,dmy,dmy
 !enddo
 !close(33)
-!<-DEBUG END-------------------------------------------------------->
+!!<-DEBUG END-------------------------------------------------------->
 
     tnat=3*nat
 
@@ -627,13 +634,13 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     arcl=arc(nimages)
 
     if(step<0._gp)step=stepfrct*arcl
-write(*,*)'arcl ',arcl,step
+!write(*,*)'arcl ',arcl,step
     if(arcl < step)then
-write(*,*)'lstinterpol finished 0'
+!write(*,*)'lstinterpol finished 0'
         finished=0
         return
     endif
-write(*,*)'lstinterpol 1'
+!write(*,*)'lstinterpol 1'
 
     !rewrite lstpath to row major ordering
     !(for faster access in spline routines)
@@ -682,10 +689,10 @@ write(*,*)'lstinterpol 1'
         call spline_wrapper(arcC,lstpathCRM(1,3,i),nimagestang,&
                            yp1,ypn,y2vecC(1,3,i))
     enddo
-write(*,*)'lstinterpol 2'
+!write(*,*)'lstinterpol 2'
 
-!<-DEBUG START------------------------------------------------------>
-!!check interpolated path
+!!<-DEBUG START------------------------------------------------------>
+!!!check interpolated path
 !do j=1,200
 !tau  = arcl*real(j-1,gp)/real(200-1,gp)
 !!tau  = arc(j)
@@ -739,11 +746,11 @@ write(*,*)'lstinterpol 2'
 !
 !enddo
 !stop
-!<-DEBUG END-------------------------------------------------------->
+!!<-DEBUG END-------------------------------------------------------->
 
 
     if(arcl < 2._gp*step)then!only one more point
-write(*,*)'lstinterpol 3'
+!write(*,*)'lstinterpol 3'
         !we have to return the point in the 'middle'    
         tau = 0.5_gp*arcl
         !generate coordinates
@@ -769,7 +776,7 @@ write(*,*)'lstinterpol 3'
         !return code: only one more node inserted
         finished=1
     else! standard case
-write(*,*)'lstinterpol 4'
+!write(*,*)'lstinterpol 4'
         !we have to return the two points interleft
         !and interright whose distances to left and right
         !are roughly 'step'
@@ -857,7 +864,6 @@ subroutine interpol(method,nat,left,right,step,interleft,interright,&
                        tangentleft,finished)
         tangentright=tangentleft
     else if(trim(adjustl(method))=='linlst')then
-write(*,*)'interpol'
         call lst_interpol(nat,left, right, step,interleft,interright,&
                        tangentleft,tangentright,finished)
     endif

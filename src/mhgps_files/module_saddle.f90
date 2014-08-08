@@ -127,6 +127,8 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     !functions
     real(gp) :: ddot,dnrm2
 
+
+
     if(atoms%astruct%geocode/='F')&
     stop'STOP: saddle search only implemented for free BC'
 

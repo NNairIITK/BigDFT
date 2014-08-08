@@ -37,6 +37,7 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
                                           !to lambda
     !internal
     real(gp) :: oml
+    !real(gp), parameter :: fmax_tol=1.e-4_gp
     real(gp), parameter :: fmax_tol=5.e-3_gp
     real(gp) :: fxyz(3,nat), epot
 

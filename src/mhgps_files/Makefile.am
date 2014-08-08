@@ -4,6 +4,7 @@ vpath %.h ../modules
 mhgps_objects = \
                module_global_variables.f90 \
                module_init.f90 \
+               module_hessian.f90 \
                module_io.f90 \
                module_energyandforces.f90 \
 			   module_minimizers.f90 \
@@ -60,3 +61,4 @@ module_ls_rmsd.o: module_misc.o ../modules/BigDFT_API.o
 module_misc.o: ../modules/BigDFT_API.o
 module_fingerprints.o: module_global_variables.o\
                       ../modules/BigDFT_API.o
+module_hessian.o: ../modules/BigDFT_API.o module_energyandforces.o

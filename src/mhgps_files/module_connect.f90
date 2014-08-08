@@ -152,14 +152,15 @@ real(gp) :: fat(3,nat),etest
 
     if(.not.connected)return
     if(nsad>=nsadmax.and.iproc==0)then
-        call yaml_warning('(MHGPS) connection could not be &
-             established within <=nsadmax intermediate TS. &
-             nsadmax='//yaml_toa(nsadmax))
         connected=.false.
         return
     endif
-    if(iproc==0)call yaml_comment('(MHGPS) Will try to connect TODO &
-                PUT FILENAMES HERE')
+    if(iproc==0)then
+        call yaml_comment('(MHGPS) nsad:'//&
+             trim(adjustl(yaml_toa(nsad)))//', connect ')
+        call yaml_comment(trim(adjustl(yaml_toa(ener1)))//' and ')
+        call yaml_comment(trim(adjustl(yaml_toa(ener2))))
+    endif
 
 
     !check if input structures are distinct 
@@ -231,27 +232,29 @@ write(*,*)'energy check saddle: ',cobj%enersad(nsad)-etest
     !pushoff and minimize left and right
     call pushoff(nat,cobj%saddle(1,1,nsad),cobj%minmode(1,1,nsad),&
                  cobj%leftmin(1,1,nsad),cobj%rightmin(1,1,nsad))
-call system("rm -f posmini_*")
+
+    if(iproc==0)&
+    call yaml_comment('(MHGPS) Relax from left side ',hfill='.')
     ener_count=0.0_gp
     call energyandforces(nat,alat,cobj%leftmin(1,1,nsad),&
     cobj%fleft(1,1,nsad),fnoise,cobj%enerleft(nsad))
-write(*,*)'cobj fleft, nsad',nsad
-write(*,*)cobj%fleft(:,:,nsad)
     call minimizer_sbfgs(imode,nat,alat,nbond,iconnect,&
                         cobj%leftmin(1,1,nsad),cobj%fleft(1,1,nsad),&
                         fnoise,cobj%enerleft(nsad),&
-                        ener_count,converged)
+                        ener_count,converged,'L')
 !for debugging:
 call energyandforces(nat,alat,cobj%leftmin(1,1,nsad),fat,fnoise,etest)
 write(*,*)'energy check minimizer: ',cobj%enerleft(nsad)-etest
 
-!!    ener_count=0.0_gp
+    if(iproc==0)&
+    call yaml_comment('(MHGPS) Relax from right side ',hfill='.')
+    ener_count=0.0_gp
     call energyandforces(nat,alat,cobj%rightmin(1,1,nsad),&
     cobj%fright(1,1,nsad),fnoise,cobj%enerright(nsad))
     call minimizer_sbfgs(imode,nat,alat,nbond,iconnect,&
                         cobj%rightmin(1,1,nsad),cobj%fright(1,1,nsad)&
                        ,fnoise,cobj%enerright(nsad),&
-                        ener_count,converged)
+                        ener_count,converged,'R')
 !for debugging:
 call energyandforces(nat,alat,cobj%rightmin(1,1,nsad),fat,fnoise,&
                     etest)

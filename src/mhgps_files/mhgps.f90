@@ -25,10 +25,11 @@ program mhgps
     use module_connect, only: connect_recursively, connect_object,&
                               deallocate_connect_object,&
                               allocate_connect_object
-    use module_fingerprints, only: fingerprint 
+    use module_fingerprints, only: fingerprint
+    use module_hessian, only: cal_hessian_fd 
     implicit none
     integer :: nend
-    character(len=6) :: filename
+    character(len=6) :: filename,filename2
     integer :: ifolder, ifile
     logical :: xyzexists,asciiexists
     character(len=60) :: run_id
@@ -302,15 +303,15 @@ write(*,*)'hier1 ',filename
 
             if(trim(adjustl(operation_mode))=='guessonly')then
                 !read second file
-                write(filename,'(a,i3.3)')'pos',ifile+1
-write(*,*)'hier2 ',filename
-                inquire(file=currDir//'/'//filename//'.xyz',&
+                write(filename2,'(a,i3.3)')'pos',ifile+1
+write(*,*)'hier2 ',filename2
+                inquire(file=currDir//'/'//filename2//'.xyz',&
                             exist=xyzexists)
-                inquire(file=currDir//'/'//filename//'.ascii',&
+                inquire(file=currDir//'/'//filename2//'.ascii',&
                             exist=asciiexists)
                 if(.not.(xyzexists.or.asciiexists))exit
                 call deallocate_atomic_structure(atoms%astruct)
-                call read_atomic_file(currDir//'/'//filename,iproc,&
+                call read_atomic_file(currDir//'/'//filename2,iproc,&
                             atoms%astruct)
                 call vcopy(3*nat,atoms%astruct%rxyz(1,1),1,&
                            rxyz2(1,1),1)
@@ -318,7 +319,7 @@ write(*,*)'hier2 ',filename
                 isad=isad+1
                 write(isadc,'(i5.5)')isad
                 !rmsd alignment (optional in mhgps approach)
-!                call superimpose(nat,rxyz(1,1),rxyz2(1,1))
+                call superimpose(nat,rxyz(1,1),rxyz2(1,1))
                 call get_ts_guess(nat,alat,rxyz(1,1),rxyz2(1,1),&
                      tsguess(1,1),minmodeguess(1,1),tsgenergy,&
                      tsgforces(1,1))
@@ -336,14 +337,14 @@ write(*,*)'hier2 ',filename
             else if(trim(adjustl(operation_mode))=='connect')&
                                                                  then
                 !read second file
-                write(filename,'(a,i3.3)')'pos',ifile+1
-                inquire(file=currDir//'/'//filename//'.xyz',&
+                write(filename2,'(a,i3.3)')'pos',ifile+1
+                inquire(file=currDir//'/'//filename2//'.xyz',&
                             exist=xyzexists)
-                inquire(file=currDir//'/'//filename//'.ascii',&
+                inquire(file=currDir//'/'//filename2//'.ascii',&
                             exist=asciiexists)
                 if(.not.(xyzexists.or.asciiexists))exit
                 call deallocate_atomic_structure(atoms%astruct)
-                call read_atomic_file(currDir//'/'//filename,iproc,&
+                call read_atomic_file(currDir//'/'//filename2,iproc,&
                             atoms%astruct)
                 call vcopy(3*nat,atoms%astruct%rxyz(1,1),1,&
                            rxyz2(1,1),1)
@@ -357,6 +358,10 @@ write(*,*)'hier2 ',filename
                          rcov,rxyz(1,1),fp(1))
                 call fingerprint(nat,nid,alat,atoms%astruct%geocode,&
                          rcov,rxyz2(1,1),fp2(1))
+                if(iproc==0)then
+                    call yaml_comment('(MHGPS) Connect '//filename//&
+                               ' and '//filename2//' ....',hfill='-')
+                endif
                 nsad=0
                 connected=.true.
                 call connect_recursively(nat,nid,alat,rcov,nbond,&
@@ -364,10 +369,13 @@ write(*,*)'hier2 ',filename
                      nsad,cobj,connected)
                 if(connected)then
                     if(iproc==0)call yaml_map('(MHGPS) &
-                                succesfully connected',nsad)
+                                succesfully connected, intermediate &
+                                transition states:',nsad)
                 else
-                    if(iproc==0)call yaml_map('(MHGPS) &
-                                Connection not established',nsad)
+                    if(iproc==0)call yaml_comment('(MHGPS) &
+                                Connection not established within '&
+                                //trim(adjustl(yaml_toa(nsad)))//&
+                                ' transition state computations')
                 endif
             else if(trim(adjustl(operation_mode))=='simple')then
                 isad=isad+1
@@ -518,115 +526,3 @@ write(*,*)'energy MAINcheck saddle: ',energy-etest
     if(iproc==0)call yaml_map('(MHGPS) Run finished at',yaml_date_and_time_toa())
     call f_lib_finalize()
 end program
-
-subroutine cal_hessian_fd(iproc,nat,alat,pos,hess)
-use module_base
-use module_energyandforces
-    implicit none
-    integer, intent(in):: iproc, nat
-    real(8), intent(in) :: pos(3*nat),alat(3)
-    real(8), intent(inout) :: hess(3*nat,3*nat)
-    !local variables
-    integer :: iat
-    real(8) :: t1,t2,t3
-    !real(8), allocatable, dimension(:,:) :: hess
-    real(8), allocatable, dimension(:) :: tpos,grad,eval,work
-    real(8) :: h,rlarge,twelfth,twothird,etot,cmx,cmy,cmz,shift,dm,tt,s,fnoise
-    integer :: i,j,k,lwork,info
-
-    !allocate(hess(3*nat,3*nat))
-    tpos = f_malloc((/1.to.3*nat/),id='tpos')
-    grad = f_malloc((/1.to.3*nat/),id='grad')
-    eval = f_malloc((/1.to.3*nat/),id='eval')
-
-    lwork=1000*nat
-    work = f_malloc((/1.to.lwork/),id='work')
-
-    !h=1.d-1
-    !h=7.5d-2
-    !h=5.d-2
-!    h=1.d-3
-!    h=1.d-2
-    h=5.d-3
-    !h=2.d-2
-    rlarge=1.d0*1.d4
-    twelfth=-1.d0/(12.d0*h)
-    twothird=-2.d0/(3.d0*h)
-    if(iproc==0) write(*,*) '(hess) HESSIAN: h',h
-    !-------------------------------------------------------
-    do i=1,3*nat
-        iat=(i-1)/3+1
-        do k=1,3*nat
-            tpos(k)=pos(k)
-            grad(k)=0.d0
-        enddo
-        !-----------------------------------------
-        tpos(i)=tpos(i)-2*h
-        call energyandforces(nat,alat,tpos,grad,fnoise,etot)
-        do j=1,3*nat
-            hess(j,i)=twelfth*grad(j)
-        enddo
-        !if(iproc==0) write(*,*) 'ALIREZA-6',i,iat
-        !-----------------------------------------
-        tpos(i)=tpos(i)+h
-        call energyandforces(nat,alat,tpos,grad,fnoise,etot)
-        do j=1,3*nat
-        hess(j,i)=hess(j,i)-twothird*grad(j)
-        enddo
-        !-----------------------------------------
-        tpos(i)=tpos(i)+2*h
-        call energyandforces(nat,alat,tpos,grad,fnoise,etot)
-        do j=1,3*nat
-        hess(j,i)=hess(j,i)+twothird*grad(j)
-        enddo
-        !-----------------------------------------
-        tpos(i)=tpos(i)+h
-        call energyandforces(nat,alat,tpos,grad,fnoise,etot)
-        do j=1,3*nat
-        hess(j,i)=hess(j,i)-twelfth*grad(j)
-        !write(*,*) 'HESS ',j,i,hess(j,i)
-        enddo
-        !-----------------------------------------
-    enddo
-    !-------------------------------------------------------
-
-    !check symmetry
-    dm=0.d0
-    do i=1,3*nat
-    do j=1,i-1
-    s=.5d0*(hess(i,j)+hess(j,i))
-    tt=abs(hess(i,j)-hess(j,i))/(1.d0+abs(s))
-    dm=max(dm,tt)
-    hess(i,j)=s
-    hess(j,i)=s
-    enddo
-    enddo
-    if (dm.gt.1.d-1) write(*,*) '(hess) max dev from sym',dm
-
-!    do j=1,3*nat
-!    do i=1,3*nat
-!    write(*,*) '(hess) hier',nat,hess(i,j)
-!    write(499,*) hess(i,j)
-!    enddo
-!    enddo
-
-    !-------------------------------------------------------
-    !project out rotations
-    cmx=0.d0 ; cmy=0.d0 ; cmz=0.d0
-    do i=1,3*nat-2,3
-    cmx=cmx+pos(i+0)
-    cmy=cmy+pos(i+1)
-    cmz=cmz+pos(i+2)
-    enddo
-    cmx=cmx/nat ; cmy=cmy/nat ; cmz=cmz/nat
-  
-    !x-y plane
-    do i=1,3*nat-2,3
-    work(i+1)= (pos(i+0)-cmx)
-    work(i+0)=-(pos(i+1)-cmy)
-    enddo
-    call f_free(tpos)
-    call f_free(grad)
-    call f_free(eval)
-    call f_free(work)
-end subroutine cal_hessian_fd
