@@ -118,6 +118,7 @@ contains
     !else
        !call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
     end if
+
     if (mpi_env%nproc > 1) call mpibcast(cbuf_len,comm=mpi_env%mpi_comm)
     fbuf=f_malloc0_str(1,int(cbuf_len),id='fbuf')
 
@@ -129,6 +130,7 @@ contains
 !    else
 !       if (cbuf_len > 0) call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
     end if
+
     !this call can be replaced with the size of the character array
     if (mpi_env%nproc > 1) call mpibcast(fbuf,comm=mpi_env%mpi_comm)
 
@@ -139,12 +141,12 @@ contains
     if (dict_len(udict) > 0) then
        call dict_update(dict, udict // 0)
     end if
-
     call dict_free(udict)
     ierr = 0
     if (f_err_check()) ierr = f_get_last_error(val)
+         call f_dump_all_errors()
     call f_err_close_try()
-    !in the present implementation f_err_check is not cleaned after the close of the try
+
     if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = val)
     call f_release_routine()
 

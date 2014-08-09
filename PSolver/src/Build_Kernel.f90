@@ -1692,7 +1692,7 @@ subroutine gauss_conv_scf(itype_scf,pgauss,hgrid,dx,n_range,n_scf,x_scf,y_scf,ke
   real(dp), dimension(-n_range:n_range), intent(inout) :: work
   real(dp), dimension(-n_range:n_range), intent(inout) :: kernel_scf
   !local variables
-  real(dp), parameter :: p0_ref = 1.0_dp,mx_expo=-log(tiny(1.0_dp)*1.d32)
+  real(dp), parameter :: p0_ref = 1.0_dp,mx_expo=634.71369555645470d0! = -log(tiny(1.0_dp)*1.d32)
   integer :: n_iter,i_kern,i
   real(dp) :: p0_cell,p0gauss,absci,kern,x_limit
 
