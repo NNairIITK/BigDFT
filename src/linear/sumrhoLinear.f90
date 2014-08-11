@@ -673,6 +673,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
               nsize=collcom_sr%commarr_repartitionrho(4,jproc)
               ishift_source=(ispin-1)*isend_total(mpisource) !spin shift for the send buffer
               if (nsize>0) then
+                  write(*,'(a,5i8)') 'iproc, jproc, istdest, ishift_dest, ndimrho', iproc, jproc, istdest, ishift_dest, ndimrho
                   call mpi_get(rho(istdest+ishift_dest), nsize, mpi_double_precision, mpisource, &
                        int((istsource-1+ishift_source),kind=mpi_address_kind), &
                        nsize, mpi_double_precision, collcom_sr%window, ierr)
@@ -1280,24 +1281,27 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       rho=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)*denskern%nspin,1),id='rho')
       !denskern_%matrix_compr = denskern%matrix_compr
       call sumrho_for_TMBs(iproc, nproc, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), collcom_sr, denskern, denskern_, &
-           lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3d*denskern%nspin, rho, rho_negative, .false.)
+           denspot%dpbox%ndimrhopot, rho, rho_negative, .false.)
+       write(*,'(a,2i9)') 'lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3d*denskern%nspin, denspot%dpbox%ndimrhopot', &
+            lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3d*denskern%nspin, denspot%dpbox%ndimrhopot
     
       ! Determine the difference between the two versions
       sumdiff=0.d0
       maxdiff=0.d0
       ii=0
       do ispin=1,denskern%nspin
-          !!$omp parallel default(none) shared(lzd,ii3e,ii3s,rho,rho_check,sumdiff,maxdiff) private(i,tt)
-          !!$omp do reduction(+:sumdiff) reduction(max:maxdiff) 
+          ii=(ispin-1)*lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
+          !$omp parallel default(none) shared(ii,lzd,ii3e,ii3s,rho,rho_check,sumdiff,maxdiff) private(i,tt)
+          !$omp do reduction(+:sumdiff) reduction(max:maxdiff) 
           do i=1,lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
-              ii=ii+1
-              tt=abs(rho(ii)-rho_check(ii))
-              write(2000+iproc,'(a,2i9,4es18.8)') 'i,ii,rho(ii),rho_check(ii),diff,sumdiff',i,ii,rho(ii),rho_check(ii), tt, sumdiff
+              !ii=ii+1
+              tt=abs(rho(ii+i)-rho_check(ii+1))
+              !write(2000+iproc,'(a,2i9,4es18.8)') 'i,ii,rho(ii),rho_check(ii),diff,sumdiff',i,ii,rho(ii),rho_check(ii), tt, sumdiff
               sumdiff = sumdiff + tt**2
               if (tt>maxdiff) maxdiff=tt
           end do
-          !!$omp end do
-          !!$omp end parallel
+          !$omp end do
+          !$omp end parallel
       end do
     
       ! Reduce the results
@@ -1307,7 +1311,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       end if
     
       ! Get mean value for the sum
-      sumdiff = sumdiff/(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i)
+      sumdiff = sumdiff/(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*denskern%nspin)
       sumdiff=sqrt(sumdiff)
     
       ! Print the results

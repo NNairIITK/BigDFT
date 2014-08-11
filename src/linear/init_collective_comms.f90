@@ -863,12 +863,12 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
       ishift_mat=(ispin-1)*sparsemat%nvctr
  
       !$omp parallel default(private) &
-      !$omp shared(collcom, psit_c, psitwork_c, psit_f, psitwork_f, sparsemat, mat, ishift_mat)
+      !$omp shared(collcom, psit_c, psitwork_c, psit_f, psitwork_f, sparsemat, mat, ispin, ishift_mat)
 
       !$omp do schedule(static,1)
        do ipt=1,collcom%nptsp_c 
           ii=collcom%norb_per_gridpoint_c(ipt) 
-          i0 = collcom%isptsp_c(ipt)
+          i0 = collcom%isptsp_c(ipt) + (ispin-1)*collcom%ndimind_c/sparsemat%nspin
           do i=1,ii
               i0i=i0+i
               iiorb=collcom%indexrecvorbital_c(i0i)
@@ -938,7 +938,7 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
       !$omp do schedule(static,1)
       do ipt=1,collcom%nptsp_f 
           ii=collcom%norb_per_gridpoint_f(ipt) 
-          i0 = collcom%isptsp_f(ipt)
+          i0 = collcom%isptsp_f(ipt) + (ispin-1)*collcom%ndimind_f/sparsemat%nspin
           do i=1,ii
               i0i=i0+i
               i07i=7*i0i
@@ -1182,6 +1182,7 @@ subroutine normalize_transposed(iproc, nproc, orbs, nspin, collcom, psit_c, psit
               do i=1,ii
                   i0i=i0+i
                   iiorb=collcom%indexrecvorbital_c(i0i)
+                  write(720,'(a,6i8,es13.5)') 'ipt, ispin, i0, i, i0i, iiorb, psit_c(i0i)', ipt, ispin, i0, i, i0i, iiorb, psit_c(i0i)
                   norm(iiorb)=norm(iiorb)+psit_c(i0i)**2
               end do
           end do

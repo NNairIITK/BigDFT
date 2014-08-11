@@ -53,7 +53,7 @@ module communications_base
     integer, dimension(:,:), pointer :: ise !< Starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
     integer, dimension(:,:), pointer :: mpi_datatypes
     logical :: communication_complete
-    integer :: nspin !< spin polarization (this information is redundant, just for handyness
+    integer :: nspin !< spin polarization (this information is redundant, just for handyness)
   end type p2pComms
 
   !substituted by function mpimaxdiff in wrappers/mpi.f90
