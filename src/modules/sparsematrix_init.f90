@@ -399,14 +399,12 @@ contains
       call allocate_sparse_matrix_basic(store_index, norbu, nproc, sparsemat)
     
 
-      write(*,*) 'iproc, nonzero', iproc, nonzero
       sparsemat%nseg=0
       sparsemat%nvctr=0
       sparsemat%nsegline=0
       do iorb=1,norbup
           iiorb=isorbu+iorb
           call create_lookup_table(nnonzero, nonzero, iiorb)
-          write(*,*) 'iproc, iorb, iiorb, lut', iproc, iorb, iiorb, lut
           call nseg_perline(norbu, lut, sparsemat%nseg, sparsemat%nvctr, sparsemat%nsegline(iiorb))
       end do
 
@@ -416,7 +414,6 @@ contains
           call mpiallred(sparsemat%nseg, 1, mpi_sum, bigdft_mpi%mpi_comm)
           call mpiallred(sparsemat%nsegline(1), sparsemat%nfvctr, mpi_sum, bigdft_mpi%mpi_comm)
       end if
-      write(*,*) 'sparsemat%nseg',sparsemat%nseg
       ist=1
       do jorb=1,sparsemat%nfvctr
           ! Starting segment for this line
@@ -432,7 +429,6 @@ contains
       end if
     
       call allocate_sparse_matrix_keys(sparsemat)
-      write(*,*) 'size(sparsemat%keyg,2)',size(sparsemat%keyg,2)
     
 
 
@@ -470,7 +466,6 @@ contains
           ! store the indices of the matrices in the sparse format
           sparsemat%store_index=.true.
 
-          write(*,*) 'norbu, size(sparsemat%istsegline)', norbu, size(sparsemat%istsegline)
     
           ! initialize sparsemat%matrixindex_in_compressed
           !$omp parallel do default(private) shared(sparsemat,norbu) 
@@ -586,8 +581,6 @@ contains
     
       call timing(iproc,'init_matrCompr','OF')
 
-
-      write(*,*) 'at end of init_sparse_matrix'
 
       contains
 

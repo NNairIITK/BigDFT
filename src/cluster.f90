@@ -642,10 +642,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   end if
 
 
-  do norbv=1,kswfn%orbs%norb
-      write(*,*) 'iorb, kswfn%orbs%spinsgn(iorb)', norbv, kswfn%orbs%spinsgn(norbv)
-  end do
-  write(*,*) 'kswfn%orbs%nspinor',kswfn%orbs%nspinor
 
   norbv=abs(in%norbv)
   if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &

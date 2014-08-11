@@ -74,7 +74,6 @@ module sparsematrix
              do jj=1,sparsemat%nvctr
                 irow = sparsemat%orb_from_index(1,jj)
                 jcol = sparsemat%orb_from_index(2,jj)
-                write(*,*) 'jj, ishift, jrow, jcol', jj, ishift, irow, jcol
                 outm(jj+ishift)=inm(irow,jcol,ispin)
              end do
              !$omp end do

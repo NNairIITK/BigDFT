@@ -702,29 +702,17 @@ subroutine local_potential_dimensions(iproc,Lzd,orbs,xc,ndimfirstproc)
      !number of inequivalent potential regions
      nilr = ii
 
-     write(*,*) 'nilr', nilr
-     write(*,*) 'ilrtable',ilrtable
 
      !calculate the dimension of the potential in the gathered form
      lzd%ndimpotisf=0
      do iilr=1,nilr
-        !SM: WARNING: CHECK THIS MODIFCATION @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
         ilr=ilrtable(iilr,1)
-        !ilr=iilr
-        ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
         do iorb=1,orbs%norbp
            !put the starting point
            if (orbs%inWhichLocreg(iorb+orbs%isorb) == ilr) then
               !assignment of ispot array to the value of the starting address of inequivalent
               orbs%ispot(iorb)=lzd%ndimpotisf + 1
-              write(*,*) 'iorb, orbs%ispot(iorb)', iorb, orbs%ispot(iorb)
 
-              !SM: WARNING: CHECK THIS MODIFCATION @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-              !if(orbs%spinsgn(orbs%isorb+iorb) <= 0.0_gp) then
-              !   orbs%ispot(iorb)=lzd%ndimpotisf + &
-              !        1 + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
-              !end if
-              ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
            end if
         end do
         lzd%ndimpotisf = lzd%ndimpotisf + &

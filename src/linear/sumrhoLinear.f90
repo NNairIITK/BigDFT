@@ -673,7 +673,6 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
               nsize=collcom_sr%commarr_repartitionrho(4,jproc)
               ishift_source=(ispin-1)*isend_total(mpisource) !spin shift for the send buffer
               if (nsize>0) then
-                  write(*,'(a,5i8)') 'iproc, jproc, istdest, ishift_dest, ndimrho', iproc, jproc, istdest, ishift_dest, ndimrho
                   call mpi_get(rho(istdest+ishift_dest), nsize, mpi_double_precision, mpisource, &
                        int((istsource-1+ishift_source),kind=mpi_address_kind), &
                        nsize, mpi_double_precision, collcom_sr%window, ierr)
@@ -793,7 +792,6 @@ subroutine check_communication_potential(iproc,denspot,tmb)
   end do
 
   !calculate the dimensions and communication of the potential element with mpi_get
-  write(*,*) 'denspot%rhov(1:20)',denspot%rhov(1:20)
   call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
   call start_onesided_communication(bigdft_mpi%iproc, bigdft_mpi%nproc, &
        max(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,1), denspot%rhov, &
@@ -803,13 +801,6 @@ subroutine check_communication_potential(iproc,denspot,tmb)
   !check the fetching of the potential element, destroy the MPI window, results in pot_work
   call full_local_potential(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%orbs,tmb%ham_descr%lzd,&
        2,denspot%dpbox,denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
-  write(*,*) 'tmb%ham_descr%lzd%ndimpotisf',tmb%ham_descr%lzd%ndimpotisf
-  write(1000+iproc,*) 'tmb%ham_descr%comgp%recvbuf',tmb%ham_descr%comgp%recvbuf
-  !write(1100+iproc,*) 'denspot%pot_work',denspot%pot_work(1:tmb%ham_descr%lzd%ndimpotisf)
-  write(*,*) 'tmb%ham_descr%comgp%recvbuf(1:20)',tmb%ham_descr%comgp%recvbuf(1:20)
-  write(*,*) 'denspot%pot_work(1:20)',denspot%pot_work(1:20)
-  write(*,*) 'maxval(tmb%ham_descr%comgp%recvbuf)', maxval(tmb%ham_descr%comgp%recvbuf)
-  write(*,*) 'denspot%pot_work(2122617)',denspot%pot_work(2122617)
 
 
   maxdiff=0.0_dp
@@ -829,7 +820,6 @@ subroutine check_communication_potential(iproc,denspot,tmb)
         if (ilr_orb /= ilr) cycle loop_orbs
 
         ind=tmb%orbs%ispot(iorb)-1
-        write(*,*) 'iorb, ind', iorb, ind
         do i3=1,tmb%ham_descr%Lzd%Llr(ilr)%d%n3i
            do i2=1,tmb%ham_descr%Lzd%Llr(ilr)%d%n2i
               do i1=1,tmb%ham_descr%Lzd%Llr(ilr)%d%n1i
@@ -1282,8 +1272,6 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       !denskern_%matrix_compr = denskern%matrix_compr
       call sumrho_for_TMBs(iproc, nproc, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), collcom_sr, denskern, denskern_, &
            denspot%dpbox%ndimrhopot, rho, rho_negative, .false.)
-       write(*,'(a,2i9)') 'lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3d*denskern%nspin, denspot%dpbox%ndimrhopot', &
-            lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3d*denskern%nspin, denspot%dpbox%ndimrhopot
     
       ! Determine the difference between the two versions
       sumdiff=0.d0
@@ -1295,7 +1283,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
           !$omp do reduction(+:sumdiff) reduction(max:maxdiff) 
           do i=1,lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
               !ii=ii+1
-              tt=abs(rho(ii+i)-rho_check(ii+1))
+              tt=abs(rho(ii+i)-rho_check(ii+i))
               !write(2000+iproc,'(a,2i9,4es18.8)') 'i,ii,rho(ii),rho_check(ii),diff,sumdiff',i,ii,rho(ii),rho_check(ii), tt, sumdiff
               sumdiff = sumdiff + tt**2
               if (tt>maxdiff) maxdiff=tt

@@ -803,7 +803,6 @@ module communications
 
       ! the size of the potential without spin (maybe need to find a better way to determine this...)
       npot=nsendbuf/comm%nspin
-      write(*,*) 'nsendbuf, global', nsendbuf, lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
     
       if(.not.comm%communication_complete) stop 'ERROR: there is already a p2p communication going on...'
 
@@ -953,7 +952,6 @@ module communications
       workrecv_int = f_malloc((/ 11, orbs%norb /),id='workrecv_int')
       workrecv_dbl = f_malloc((/ 6, orbs%norb /),id='workrecv_dbl')
     
-      if (iproc==0) write(*,*) 'rootarr',rootarr
     
       iilr=0
       do ilr=1,nlr

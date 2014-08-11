@@ -1236,7 +1236,6 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
                     ilrtable(ii)=ilr
                  end if
              end if
-             write(*,'(a,5i9)') 'ispin, iorb, iispin, ii, ilr', ispin, iorb, iispin, ii, ilr
           end do
       end do
       !number of inequivalent potential regions
@@ -1247,9 +1246,6 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       ilrtable=1
    end if
 
-   write(*,*) 'full_local_potential: nilr',nilr
-   write(*,*) 'full_local_potential: ilrtable', ilrtable
-   write(*,*) 'full_local_potential: orbs%inwhichlocreg', orbs%inwhichlocreg
 
 !!$   !calculate the dimension of the potential in the gathered form 
 !!$   !this part has been deplaced in check_linear_and_create_Lzd routine 

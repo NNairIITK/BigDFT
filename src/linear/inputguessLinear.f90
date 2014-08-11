@@ -160,7 +160,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! our optimized orbital distribution (determined by in orbs%inwhichlocreg).
   iiorb=0
   covered=.false.
-  write(*,*) 'norbsPerAt',norbsPerAt
   if (present(locregcenters)) then
       do ispin=1,input%nspin
           do iat=1,at%astruct%nat
@@ -203,7 +202,6 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       end do
   end if
 
-  write(*,'(a,100i6)') 'MAPPING',mapping
 
   ! Inverse mapping
   do iorb=1,tmb%orbs%norb

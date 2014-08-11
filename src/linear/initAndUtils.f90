@@ -184,7 +184,6 @@ subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locreg
   do jorb=1,orbs%norbp
      jjorb=orbs%isorb+jorb
      jlr=orbs%inWhichLocreg(jjorb)
-     write(*,*) 'iproc, jorb, jjorb, jlr', iproc, jorb, jjorb, jlr
      calculateBounds(jlr)=.true.
   end do
 
@@ -619,7 +618,6 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
 
   nlr=norb
 
-  write(*,*) 'norb, norbu, norbd',norb, norbu, norbd
  
   ! Distribute the basis functions among the processors.
   call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
@@ -644,11 +642,6 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
       locregCenter(:,iorb)=locregCenter(:,iorb-lorbs%norbu)
   end do
 
-  if (iproc==0) then
-      do ilr=1,lorbs%norb
-          write(*,*) 'ilr, locregCenter', ilr, locregCenter(:,ilr)
-      end do
-  end if
  
   norbsPerLocreg = f_malloc(nlr,id='norbsPerLocreg')
   norbsPerLocreg=1 !should be norbsPerLocreg
@@ -661,10 +654,6 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norbu, lorbs%norb_par, astruct%nat, astruct%nat, &
        input%nspin, norbsPerAtom, lorbs%spinsgn, rxyz, lorbs%onwhichatom)
 
-  do iorb=1,lorbs%norb
-      write(*,'(a,4i7)') 'iproc, iorb, inwhichlocreg(iorb), onwhichatom(iorb)', &
-                          iproc, iorb, lorbs%inwhichlocreg(iorb), lorbs%onwhichatom(iorb)
-  end do
   
   lorbs%eval = f_malloc_ptr(lorbs%norb,id='lorbs%eval')
   lorbs%eval=-.5d0
@@ -728,7 +717,6 @@ subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
   do ilr=1,lzd%nlr
      lzd%llr(ilr)=locreg_null()
   end do
-  write(*,*) 'lzd%nlr',lzd%nlr
   do ilr=1,lzd%nlr
       iilr=mod(ilr-1,orbs%norbu)+1 !correct value for a spin polarized system
       !!write(*,*) 'ilr, iilr', ilr, iilr
@@ -1895,15 +1883,12 @@ subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, s
   end do
 
   if (imode==KEYS) then
-      write(*,*) 'calling pattern'
       call determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
   else if (imode==DISTANCE) then
-      write(*,*) 'calling distance'
       call determine_sparsity_pattern_distance(orbs, lzd, astruct, lzd%llr(:)%locrad_kernel, nnonzero, nonzero)
   else
       stop 'wrong imode'
   end if
-  write(*,*) 'in init_sparse_matrix_wrapper: nnonzero', nnonzero
   call determine_sparsity_pattern_distance(orbs, lzd, astruct, lzd%llr(:)%locrad_mult, nnonzero_mult, nonzero_mult)
   call init_sparse_matrix(iproc, nproc, nspin, orbs%norb, orbs%norbp, orbs%isorb, &
        orbs%norbu, orbs%norbup, orbs%isorbu, store_index, &
@@ -1951,7 +1936,6 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
           nonzero(i)=ind
       end do
   end do
-  write(*,*) 'calling from init_sparse_matrix_for_KSorbs'
   call init_sparse_matrix(iproc, nproc, input%nspin, orbs%norb, orbs%norbp, orbs%isorb, &
        orbs%norbu, orbs%norbup, orbs%isorbu, input%store_index, &
        orbs%norbu*orbs%norbup, nonzero, orbs%norbu, nonzero, smat, print_info_=.false.)
@@ -1973,7 +1957,6 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
           nonzero(i)=ind
       end do
   end do
-  write(*,*) 'calling from init_sparse_matrix_for_KSorbs, 2'
   call init_sparse_matrix(iproc, nproc, input%nspin, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
        orbs%norbu, orbs%norbup, orbs%isorbu, input%store_index, &
        orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu, nonzero, smat_extra, print_info_=.false.)

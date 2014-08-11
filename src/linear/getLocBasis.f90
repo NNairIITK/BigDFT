@@ -53,7 +53,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical, optional, intent(in) :: updatekernel
 
   ! Local variables 
-  integer :: iorb, info, ishift, ispin
+  integer :: iorb, info, ishift, ispin, ii
   real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f
   real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
@@ -240,36 +240,52 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 !  if (iproc==0) call yaml_sequence_open('kernel method')
   if(scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE) then
       ! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
-      matrixElements = f_malloc((/ tmb%orbs%norb, tmb%orbs%norb, 2 /),id='matrixElements')
-      !SM: need to fix the spin here
-      call vcopy(tmb%orbs%norb**2, tmb%linmat%ham_%matrix(1,1,1), 1, matrixElements(1,1,1), 1)
-      call vcopy(tmb%orbs%norb**2, tmb%linmat%ovrlp_%matrix(1,1,1), 1, matrixElements(1,1,2), 1)
-      if (iproc==0) call yaml_map('method','diagonalization')
-      if(tmb%orthpar%blocksize_pdsyev<0) then
-          if (iproc==0) call yaml_map('mode','sequential')
-          call diagonalizeHamiltonian2(iproc, tmb%orbs%norb, matrixElements(1,1,1), matrixElements(1,1,2), tmb%orbs%eval)
-      else
-          if (iproc==0) call yaml_map('mode','parallel')
-          call dsygv_parallel(iproc, nproc, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%nproc_pdsyev, &
-               bigdft_mpi%mpi_comm, 1, 'v', 'l',tmb%orbs%norb, &
-               matrixElements(1,1,1), tmb%orbs%norb, matrixElements(1,1,2), tmb%orbs%norb, tmb%orbs%eval, info)
-      end if
+      matrixElements = f_malloc((/ tmb%linmat%m%nfvctr,tmb%linmat%m%nfvctr,2 /),id='matrixElements')
 
-      ! Make sure that the eigenvectors have the same sign on all MPI tasks.
-      ! To do so, ensure that the first entry is always positive.
-      do iorb=1,tmb%orbs%norb
-          if (matrixElements(1,iorb,1)<0.d0) then
-              call dscal(tmb%orbs%norb, -1.d0, matrixElements(1,iorb,1), 1)
+      do ispin=1,tmb%linmat%s%nspin
+          if (ispin==1) then
+              ishift=0
+              ii=orbs%norbu
+          else
+              ishift=orbs%norbu
+              ii=orbs%norbd
           end if
+          ishift=(ispin-1)*tmb%linmat%s%nfvctr
+          call vcopy(tmb%linmat%m%nfvctr**2, tmb%linmat%ham_%matrix(1,1,ispin), 1, matrixElements(1,1,1), 1)
+          call vcopy(tmb%linmat%m%nfvctr**2, tmb%linmat%ovrlp_%matrix(1,1,ispin), 1, matrixElements(1,1,2), 1)
+          if (iproc==0) call yaml_map('method','diagonalization')
+          if(tmb%orthpar%blocksize_pdsyev<0) then
+              if (iproc==0) call yaml_map('mode','sequential')
+              call diagonalizeHamiltonian2(iproc, tmb%linmat%m%nfvctr, &
+                   matrixElements(1,1,1), matrixElements(1,1,2), tmb%orbs%eval(ishift+1:ishift+ii))
+          else
+              if (iproc==0) call yaml_map('mode','parallel')
+              call dsygv_parallel(iproc, nproc, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%nproc_pdsyev, &
+                   bigdft_mpi%mpi_comm, 1, 'v', 'l', tmb%linmat%m%nfvctr, &
+                   matrixElements(1,1,1), tmb%linmat%m%nfvctr, matrixElements(1,1,2), tmb%linmat%m%nfvctr, &
+                   tmb%orbs%eval(ishift+1:ishift+ii), info)
+          end if
+
+          ! Make sure that the eigenvectors have the same sign on all MPI tasks.
+          ! To do so, ensure that the first entry is always positive.
+          do iorb=1,tmb%linmat%m%nfvctr
+              if (matrixElements(1,iorb,1)<0.d0) then
+                  call dscal(tmb%orbs%norb, -1.d0, matrixElements(1,iorb,1), 1)
+              end if
+          end do
+
+          if (ispin==1) then
+              call vcopy(orbs%norbu*tmb%linmat%m%nfvctr, matrixElements(1,1,1), 1, tmb%coeff(1,1), 1)
+          else if (ispin==2) then
+              call vcopy(orbs%norbd*tmb%linmat%m%nfvctr, matrixElements(1,1,1), 1, tmb%coeff(1,orbs%norbu+1), 1)
+          end if
+          infoCoeff=0
+
+
+          ! keep the eigenvalues for the preconditioning - instead should take h_alpha,alpha for both cases
+          ! instead just use -0.5 everywhere
+          !tmb%orbs%eval(:) = -0.5_dp
       end do
-
-      call vcopy(tmb%orbs%norb*tmb%orbs%norb, matrixElements(1,1,1), 1, tmb%coeff(1,1), 1)
-      infoCoeff=0
-
-
-      ! keep the eigenvalues for the preconditioning - instead should take h_alpha,alpha for both cases
-      ! instead just use -0.5 everywhere
-      !tmb%orbs%eval(:) = -0.5_dp
 
       call f_free(matrixElements)
   else if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then

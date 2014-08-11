@@ -765,11 +765,9 @@ module communications_init
       end do
     
       if(sum(nrecvcounts_c)/=nspin*nvalp_c) then
-          write(*,*) 'sum(nrecvcounts_c)/=nspin*nvalp_c',sum(nrecvcounts_c),nspin*nvalp_c
           stop 'sum(nrecvcounts_c)/=nspin*nvalp_c'
       end if
       if(sum(nrecvcounts_f)/=nspin*nvalp_f) then
-          write(*,*) 'sum(nrecvcounts_f)/=nspin*nvalp_f',sum(nrecvcounts_f),nspin*nvalp_f
           stop 'sum(nrecvcounts_f)/=nspin*nvalp_f'
       end if
     
@@ -1160,9 +1158,6 @@ module communications_init
               ! orbitals which fulfill this condition are down orbitals which should be put at the end
               !ind = ind + ((ndimind_c+ndimind_f)/2-norb_per_gridpoint_c(ii-istartend_c(1,iproc)+1))
               ind = ind + (ndimind_c/2-norb_per_gridpoint_c(ii-istartend_c(1,iproc)+1))
-              if (ind>sum(nrecvcounts_c)) then
-                  write(*,'(a,5i9)') 'i, ind, ind orig, ist, npg', i, ind, gridpoint_start_c(ii),  gridpoint_start_tmp_c(ii), norb_per_gridpoint_c(ii-istartend_c(1,iproc)+1)
-              end if
           end if
           !if(ind==0) stop 'ind is zero!'
           iextract_c(i)=ind
@@ -1170,9 +1165,7 @@ module communications_init
       end do
       !write(*,'(a,2i12)') 'sum(iextract_c), nint(weightp_c*(weightp_c+1.d0)*.5d0)', sum(iextract_c), nint(weightp_c*(weightp_c+1.d0)*.5d0)
       !if(sum(iextract_c)/=nint(weightp_c*(weightp_c+1.d0)*.5d0)) stop 'sum(iextract_c)/=nint(weightp_c*(weightp_c+1.d0)*.5d0)'
-      write(*,'(a,3i9)') 'maxval(iextract_c),sum(nrecvcounts_c),sum(nrecvcounts_f)',maxval(iextract_c),sum(nrecvcounts_c),sum(nrecvcounts_f)
       if(maxval(iextract_c)>sum(nrecvcounts_c)) then
-          write(*,'(a,3i9)') 'maxval(iextract_c),sum(nrecvcounts_c),sum(nrecvcounts_f)',maxval(iextract_c),sum(nrecvcounts_c),sum(nrecvcounts_f)
           stop 'maxval(iextract_c)>sum(nrecvcounts_c)'
       end if
       if(minval(iextract_c)<1) stop 'minval(iextract_c)<1'
@@ -1414,12 +1407,10 @@ module communications_init
       call get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, weight_tot, weight_ideal, &
            weights_per_slice, weights_per_zpoint)
 
-      write(*,*) 'weight_tot, weight_ideal', weight_tot, weight_ideal
     
       call assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, weights_per_slice, &
            lzd, orbs, nscatterarr, istartend, collcom_sr%nptsp_c)
 
-       write(*,*) 'iproc, istartend', iproc, istartend
     
       call f_free(weights_per_slice)
     
@@ -1519,7 +1510,6 @@ module communications_init
               ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
               is2=1+lzd%Llr(ilr)%nsi2
               ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
-              write(*,'(a,8i9)') 'consider: iorb, ilr, is1, ie1, is2, ie2, is3, ie3',iorb, ilr, is1, ie1, is2, ie2, is3, ie3
               !$omp parallel default(none) shared(is2, ie2, is1, ie1, weight_xy) private(i2, i1)
               !$omp do
               do i2=is2,ie2
@@ -2035,9 +2025,7 @@ module communications_init
            ii=ii+norb_per_gridpoint(ipt)
        end do
     
-       write(*,*) 'ii, ndimind', ii, ndimind
        if (nspin*ii/=ndimind+nspin) then
-           write(*,*) 'nspin*ii/=ndimind+nspin', nspin*ii, ndimind+nspin
            stop '(nspin*ii/=ndimind+nspin)'
        end if
        if(maxval(gridpoint_start)>ndimind) stop '1: maxval(gridpoint_start)>sum(nrecvcountc)'
@@ -2059,30 +2047,14 @@ module communications_init
               ! should be put at the end
               ind = ind + (ndimind/2-norb_per_gridpoint(ii-istartend(1,iproc)+1))
           end if
-          if (iproc==0 .and. ind<=15) then
-              write(*,'(a,6i9)') 'iextract init: i, ii, ind, ind orig, ndimind/2, npg', &
-                                  i, ii, ind, gridpoint_start(ii), ndimind/2, norb_per_gridpoint(ii-istartend(1,iproc)+1)
-          end if
           iextract(i)=ind
           gridpoint_start(ii)=gridpoint_start(ii)+1
           !!write(*,'(a,5i9)') 'ii, gridpoint_start(ii), gridpoint_start_tmp(ii), rep per gridpoint, norb_per_gridpoint(ii-istartend(1,iproc)+1)', &
           !!                    ii, gridpoint_start(ii), gridpoint_start_tmp(ii), gridpoint_start(ii)-gridpoint_start_tmp(ii), norb_per_gridpoint(ii-istartend(1,iproc)+1)
       end do
 
-      do i=1,min(100,ndimind)
-          if (iproc==0) write(*,*) 'i, iextract(i)', i, iextract(i)
-      end do
-      do i=1,ndimind
-          if (iproc==0) then
-              if (iextract(i)<=15) then
-                  write(*,*) 'i, iextract(i)', i, iextract(i)
-              end if
-          end if
-      end do
     
-      write(*,*) 'maxval(iextract),ndimind',maxval(iextract),ndimind
       if(maxval(iextract)>ndimind) then
-          write(*,*) 'maxval(iextract)>ndimind',maxval(iextract),ndimind
           stop 'maxval(iextract)>ndimind'
       end if
       if(minval(iextract)<1) stop 'minval(iextract)<1'

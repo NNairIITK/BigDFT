@@ -71,7 +71,6 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,linmat
             !     checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)+psival
          end do
          checksum(orbs%isorb+iorb+(ispinor-1)*orbs%nspinor,1)=tt
-         write(*,*) 'iiorb, checksum', orbs%isorb+iorb, tt
       end do
    end do
 
@@ -1218,7 +1217,6 @@ subroutine normalize_transposed(iproc, nproc, orbs, nspin, collcom, psit_c, psit
   end if
 
   do iorb=1,orbs%norb
-     if (iproc==0) write(*,*) 'iorb, norb', iorb, norm(iorb)
      norm(iorb)=1.d0/sqrt(norm(iorb))
   end do
 
