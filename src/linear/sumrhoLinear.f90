@@ -1252,7 +1252,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
                               ttj=test_value_sumrho(jj,iixyz,nxyz)
                               tt=tt+2.d0*denskern_%matrix_compr(ikernel)*tti*ttj
                               if (mod(ind-1,lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1))+1==865737) then
-                                  write(6500,'(a,6i8,3es13.5)') 'ind, i, j, ii, jj, ikernel, tti, ttj, valk', ind, i, j, ii, jj, ikernel, tti, ttj, denskern_%matrix_compr(ikernel)
+                                  write(6500,'(a,6i8,3es13.5)') 'ind, i, j, ii, jj, ikernel, tti, ttj, valk', &
+                                      ind, i, j, ii, jj, ikernel, tti, ttj, denskern_%matrix_compr(ikernel)
                               end if
                           end do
                       end do

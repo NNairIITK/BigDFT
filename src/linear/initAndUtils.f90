@@ -1675,7 +1675,8 @@ subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, 
   !!end if
   !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
   if (iproc==0) call yaml_warning('No increase of FOE cutoff')
-  call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  !call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+  call clean_rho(iproc, nproc, denspot%dpbox%ndimrhopot, denspot%rhov)
   if (iproc==0) then
       !call yaml_mapping_close()
       !call yaml_sequence_close()

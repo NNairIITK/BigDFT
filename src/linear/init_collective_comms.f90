@@ -255,7 +255,8 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,linmat
    maxdiff=0.d0
    do i=1,linmat%s%nvctr
        maxdiff=max(abs(mat_compr(i)-linmat%ovrlp_%matrix_compr(i)),maxdiff)
-       write(8000+iproc,'(a,i7,2es15.5)') 'i, mat_compr(i), linmat%ovrlp_%matrix_compr(i)', i, mat_compr(i), linmat%ovrlp_%matrix_compr(i)
+       write(8000+iproc,'(a,i7,2es15.5)') 'i, mat_compr(i), linmat%ovrlp_%matrix_compr(i)', &
+           i, mat_compr(i), linmat%ovrlp_%matrix_compr(i)
    end do
    if (iproc==0) call yaml_map('Maxdiff for overlap calculation',maxdiff,fmt='(1es25.17)')
    !@END NEW ########################################################
@@ -1181,7 +1182,8 @@ subroutine normalize_transposed(iproc, nproc, orbs, nspin, collcom, psit_c, psit
               do i=1,ii
                   i0i=i0+i
                   iiorb=collcom%indexrecvorbital_c(i0i)
-                  write(720,'(a,6i8,es13.5)') 'ipt, ispin, i0, i, i0i, iiorb, psit_c(i0i)', ipt, ispin, i0, i, i0i, iiorb, psit_c(i0i)
+                  write(720,'(a,6i8,es13.5)') 'ipt, ispin, i0, i, i0i, iiorb, psit_c(i0i)', &
+                      ipt, ispin, i0, i, i0i, iiorb, psit_c(i0i)
                   norm(iiorb)=norm(iiorb)+psit_c(i0i)**2
               end do
           end do

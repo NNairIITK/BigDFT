@@ -469,7 +469,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   !Put the Density kernel to identity for now
   !call to_zero(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1))
-  call to_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
+  call to_zero(tmb%linmat%l%nvctr*input%nspin, tmb%linmat%kernel_%matrix_compr(1))
   do iorb=1,tmb%orbs%norb
      !ii=matrixindex_in_compressed(tmb%linmat%denskern,iorb,iorb)
      ii=matrixindex_in_compressed(tmb%linmat%l,iorb,iorb)
@@ -499,6 +499,14 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!stop
 
 
+  jj=0
+  do ispin=1,input%nspin
+      do ii=1,size(denspot%rhov)/input%nspin
+          jj=jj+1
+          write(9600+10*iproc+ispin,'(a,i9,es16.5)') 'ii, val', ii, denspot%rhov(jj)
+      end do
+  end do
+
   if (input%lin%mixing_after_inputguess) then
       if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
            .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
@@ -510,7 +518,23 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
                pnrm,denspot%dpbox%nscatterarr)
       end if
   end if
+  !do ii=1,size(denspot%rhov)
+  !    write(9600+iproc,'(a,2i9,es16.5)') 'ii, mod(ii-1,size(denspot%rhov)/2)+1, val', &
+  !        ii, mod(ii-1,size(denspot%rhov)/2)+1, denspot%rhov(ii)
+  !end do
+  jj=0
+  do ispin=1,input%nspin
+      do ii=1,size(denspot%rhov)/input%nspin
+          jj=jj+1
+          write(9700+10*iproc+ispin,'(a,i9,es16.5)') 'ii, val', ii, denspot%rhov(jj)
+          !if (ispin==2) then
+          !    denspot%rhov(jj)=denspot%rhov(jj-size(denspot%rhov)/input%nspin)
+          !    write(9800+10*iproc+ispin,'(a,i9,es16.5)') 'ii, val', ii, denspot%rhov(jj)
+          !end if
+      end do
+  end do
   call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+  write(*,*) 'after first updatePotential'
 
   !!write(*,'(a,4i8)') 'iproc, denspot%dpbox%n3d, denspot%dpbox%n3p, denspot%dpbox%nscatterarr(iproc,2)', &
   !!                    iproc, denspot%dpbox%n3d, denspot%dpbox%n3p, denspot%dpbox%nscatterarr(iproc,2)
