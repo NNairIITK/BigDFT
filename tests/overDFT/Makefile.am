@@ -144,7 +144,7 @@ IO-wf_ETSF.cube:
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
 %.report.yaml: %.ref.yaml
-	export PYTHONPATH=${PYTHONPATH} ; \
+	@export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	name2=`basename $< .xabs.ref.yaml` ; \
 	if test "$$name2" = "$<" ; then \
