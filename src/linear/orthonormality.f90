@@ -319,13 +319,14 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
   ! Local variables
   integer :: iorb, jorb, info, iiorb, isorb, norbp, ii, ii_inv, iii, ierr, i, its, maxits
   integer :: matrixindex_in_compressed, nmaxvalk
-  real(kind=8), dimension(:,:), pointer :: ovrlpminonep, ovrlpminone, inv_ovrlpp, ovrlppowerp, ovrlppoweroldp
-  real(kind=8), dimension(:,:), pointer :: inv_ovrlp_half_tmp, ovrlp_local, inv_ovrlp_local
+  real(kind=8), dimension(:,:), pointer :: inv_ovrlpp, ovrlppowerp
+  real(kind=8), dimension(:,:), pointer :: inv_ovrlp_half_tmp
+  real(kind=8), dimension(:,:,:), pointer :: ovrlpminone, ovrlp_local, inv_ovrlp_local, ovrlppoweroldp, ovrlpminonep
   real(kind=8) :: factor, newfactor
   logical :: ovrlp_allocated, inv_ovrlp_allocated
 
   ! new for sparse taylor
-  integer :: nout, nseq, nmaxsegk, nmaxval
+  integer :: nout, nseq, nmaxsegk, nmaxval, ispin, ishift, isshift, ilshift
   integer,dimension(:),allocatable :: ivectorindex
   integer,dimension(:,:),pointer :: onedimindices
   integer,dimension(:,:,:),allocatable :: istindexarr
@@ -339,7 +340,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
   real(kind=8),dimension(:),allocatable :: Amat21_compr, Amat12_seq, Amat21_seq
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
-  real(kind=8) :: ex
+  real(kind=8) :: ex, max_error_p, mean_error_p
 
 
   !!write(*,*) 'iorder',iorder
@@ -401,7 +402,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
 
   sparse_dense: if (imode==DENSE) then
       if (iorder==0) then
-          call vcopy(ovrlp_smat%nfvctr*ovrlp_smat%nfvctr,ovrlp_mat%matrix(1,1,1),1,inv_ovrlp_mat%matrix(1,1,1),1)
+          call vcopy(ovrlp_smat%nfvctr*ovrlp_smat%nfvctr*ovrlp_smat%nspin,ovrlp_mat%matrix(1,1,1),1,inv_ovrlp_mat%matrix(1,1,1),1)
           if (power==1) then
              if (blocksize<0) then
                 call overlap_minus_one_exact_serial(ovrlp_smat%nfvctr,inv_ovrlp_mat%matrix)
@@ -413,19 +414,15 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                      ovrlp_smat%nfvctr, inv_ovrlp_mat%matrix(1,1,1), ovrlp_smat%nfvctr)
              end if
           else if (power==2) then
-             !if (nproc>1) then
-                 call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc,ovrlp_smat%nfvctr, &
-                      blocksize,.true.,inv_ovrlp_mat%matrix(1,1,1),inv_ovrlp_smat)
-             !else
-             !    call overlap_plus_minus_one_half_exact(ovrlp_smat%nfvctr,blocksize,.true.,inv_ovrlp_mat%matrix)
-             !end if
-          else if (power==-2) then
-              !if (nproc>1) then
+              do ispin=1,ovrlp_smat%nspin
                   call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc,ovrlp_smat%nfvctr, &
-                       blocksize,.false.,inv_ovrlp_mat%matrix(1,1,1),inv_ovrlp_smat)
-              !else
-              !    call overlap_plus_minus_one_half_exact(ovrlp_smat%nfvctr,blocksize,.false.,inv_ovrlp_mat%matrix)
-              !end if
+                       blocksize,.true.,inv_ovrlp_mat%matrix(1,1,ispin),inv_ovrlp_smat)
+              end do
+          else if (power==-2) then
+              do ispin=1,ovrlp_smat%nspin 
+                  call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc,ovrlp_smat%nfvctr, &
+                       blocksize,.false.,inv_ovrlp_mat%matrix(1,1,ispin),inv_ovrlp_smat)
+              end do
           end if
       else if (iorder<0) then
           ! sign approach as used in CP2K
@@ -435,77 +432,82 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               !Amat21p = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='Amat21p')
               !Amat11p = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='Amat11p')
           !else
-              Amat12p = f_malloc((/ovrlp_smat%nfvctr,norbp/), id='Amat12p')
-              Amat21p = f_malloc((/ovrlp_smat%nfvctr,norbp/), id='Amat21p')
-              Amat11p = f_malloc_ptr((/ovrlp_smat%nfvctr,norbp/), id='Amat11p')
+              Amat12p = sparsematrix_malloc(ovrlp_smat,iaction=DENSE_PARALLEL,id='Amat12p')
+              Amat21p = sparsematrix_malloc(ovrlp_smat,iaction=DENSE_PARALLEL,id='Amat21p')
+              Amat11p = sparsematrix_malloc_ptr(ovrlp_smat,iaction=DENSE_PARALLEL,id='Amat11p')
           !end if
           ! save some memory but keep code clear - Amat22 and Amat11 should be identical as only combining S and I
           Amat22p=>Amat11p
-          Amat12=>inv_ovrlp_mat%matrix(:,:,1)
           !if (nproc>1) then
           !    Amat21=sparsematrix_malloc0(inv_ovrlp_smat, iaction=DENSE_FULL, id='Amat21')
           !else
-              Amat21=f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/), id='Amat21')
+              Amat21=sparsematrix_malloc0(ovrlp_smat,iaction=DENSE_FULL,id='Amat21')
           !end if
 
-          call vcopy(ovrlp_smat%nfvctr*ovrlp_smat%nfvctr,ovrlp_mat%matrix(1,1,1),1,Amat12(1,1),1)
-          do iorb=1,ovrlp_smat%nfvctr
-              Amat21(iorb,iorb)=1.0d0
-          end do
+          do ispin=1,ovrlp_smat%nspin
 
-          ! calculate Xn+1=0.5*Xn*(3I-Xn**2)
-          do its=1,abs(iorder)
-              if (norbp>0) call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, -0.5d0, Amat12(1,1), &
-                   ovrlp_smat%nfvctr, Amat21(1,isorb+1), ovrlp_smat%nfvctr, 0.0d0, Amat11p(1,1), ovrlp_smat%nfvctr)
-              !call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, -0.5d0, Amat21(1,1), &
-              !     ovrlp_smat%nfvctr, Amat12(1,isorb+1), ovrlp_smat%nfvctr, 0.0d0, Amat22p(1,1), ovrlp_smat%nfvctr)
-              do iorb=1,norbp
-                  Amat11p(iorb+isorb,iorb)=Amat11p(iorb+isorb,iorb)+1.5d0
-              !    Amat22p(iorb+isorb,iorb)=Amat22p(iorb+isorb,iorb)+1.5d0
+              Amat12=>inv_ovrlp_mat%matrix(:,:,ispin)
+
+              call vcopy(ovrlp_smat%nfvctr*ovrlp_smat%nfvctr,ovrlp_mat%matrix(1,1,ispin),1,Amat12(1,1),1)
+              do iorb=1,ovrlp_smat%nfvctr
+                  Amat21(iorb,iorb)=1.0d0
               end do
-              if (norbp>0) call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, 1.0d0, Amat12(1,1), &
-                   ovrlp_smat%nfvctr, Amat22p(1,1), ovrlp_smat%nfvctr, 0.0d0, Amat12p(1,1), ovrlp_smat%nfvctr)
-              if (norbp>0) call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, 1.0d0, Amat21(1,1), &
-                   ovrlp_smat%nfvctr, Amat11p(1,1), ovrlp_smat%nfvctr, 0.0d0, Amat21p(1,1), ovrlp_smat%nfvctr)
-              if(nproc > 1) then
-                  call timing(iproc,'lovrlp^-1     ','OF')
-                  call timing(iproc,'lovrlp_comm   ','ON')
-                  call mpi_allgatherv(Amat12p, ovrlp_smat%nfvctr*norbp, mpi_double_precision, Amat12, &
-                       ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, &
-                       mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-                  call mpi_allgatherv(Amat21p, ovrlp_smat%nfvctr*norbp, mpi_double_precision, Amat21, &
-                       ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, &
-                       mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-                  call timing(iproc,'lovrlp_comm   ','OF')
-                  call timing(iproc,'lovrlp^-1     ','ON')
-              else
-                  call vcopy(ovrlp_smat%nfvctr**2,Amat12p(1,1),1,Amat12(1,1),1)
-                  call vcopy(ovrlp_smat%nfvctr**2,Amat21p(1,1),1,Amat21(1,1),1)
+
+              ! calculate Xn+1=0.5*Xn*(3I-Xn**2)
+              do its=1,abs(iorder)
+                  if (norbp>0) call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, -0.5d0, Amat12(1,1), &
+                       ovrlp_smat%nfvctr, Amat21(1,isorb+1), ovrlp_smat%nfvctr, 0.0d0, Amat11p(1,1), ovrlp_smat%nfvctr)
+                  !call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, -0.5d0, Amat21(1,1), &
+                  !     ovrlp_smat%nfvctr, Amat12(1,isorb+1), ovrlp_smat%nfvctr, 0.0d0, Amat22p(1,1), ovrlp_smat%nfvctr)
+                  do iorb=1,norbp
+                      Amat11p(iorb+isorb,iorb)=Amat11p(iorb+isorb,iorb)+1.5d0
+                  !    Amat22p(iorb+isorb,iorb)=Amat22p(iorb+isorb,iorb)+1.5d0
+                  end do
+                  if (norbp>0) call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, 1.0d0, Amat12(1,1), &
+                       ovrlp_smat%nfvctr, Amat22p(1,1), ovrlp_smat%nfvctr, 0.0d0, Amat12p(1,1), ovrlp_smat%nfvctr)
+                  if (norbp>0) call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, 1.0d0, Amat21(1,1), &
+                       ovrlp_smat%nfvctr, Amat11p(1,1), ovrlp_smat%nfvctr, 0.0d0, Amat21p(1,1), ovrlp_smat%nfvctr)
+                  if(nproc > 1) then
+                      call timing(iproc,'lovrlp^-1     ','OF')
+                      call timing(iproc,'lovrlp_comm   ','ON')
+                      call mpi_allgatherv(Amat12p, ovrlp_smat%nfvctr*norbp, mpi_double_precision, Amat12, &
+                           ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, &
+                           mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+                      call mpi_allgatherv(Amat21p, ovrlp_smat%nfvctr*norbp, mpi_double_precision, Amat21, &
+                           ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, &
+                           mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+                      call timing(iproc,'lovrlp_comm   ','OF')
+                      call timing(iproc,'lovrlp^-1     ','ON')
+                  else
+                      call vcopy(ovrlp_smat%nfvctr**2,Amat12p(1,1),1,Amat12(1,1),1)
+                      call vcopy(ovrlp_smat%nfvctr**2,Amat21p(1,1),1,Amat21(1,1),1)
+                  end if
+              end do
+
+              nullify(Amat22p)
+              call f_free_ptr(Amat11p)
+
+              if (power==1) then
+                  if (norbp>0) call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, 1.0d0, Amat21(1,1), &
+                       ovrlp_smat%nfvctr, Amat21p(1,1), ovrlp_smat%nfvctr, 0.0d0, Amat12p(1,1), ovrlp_smat%nfvctr)
+                  if (nproc>1) then
+                      call timing(iproc,'lovrlp^-1     ','OF')
+                      call timing(iproc,'lovrlp_comm   ','ON')
+                      call mpi_allgatherv(Amat12p, ovrlp_smat%nfvctr*norbp, mpi_double_precision, inv_ovrlp_mat%matrix(1,1,ispin), &
+                           ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, &
+                           mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+                      call timing(iproc,'lovrlp_comm   ','OF')
+                      call timing(iproc,'lovrlp^-1     ','ON')
+                  else
+                      call vcopy(ovrlp_smat%nfvctr**2, Amat12p(1,1), 1, inv_ovrlp_mat%matrix(1,1,ispin), 1)
+                  end if
+              !else if (power==2) then
+              !   call vcopy(ovrlp_smat%nfvctr**2,Amat12(1,1),1,inv_ovrlp_mat%matrix(1,1),1)
+              else if (power==-2) then
+                  call vcopy(ovrlp_smat%nfvctr**2,Amat21(1,1),1,inv_ovrlp_mat%matrix(1,1,ispin),1)
               end if
+
           end do
-
-          nullify(Amat22p)
-          call f_free_ptr(Amat11p)
-
-          if (power==1) then
-              if (norbp>0) call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, 1.0d0, Amat21(1,1), &
-                   ovrlp_smat%nfvctr, Amat21p(1,1), ovrlp_smat%nfvctr, 0.0d0, Amat12p(1,1), ovrlp_smat%nfvctr)
-              if (nproc>1) then
-                  call timing(iproc,'lovrlp^-1     ','OF')
-                  call timing(iproc,'lovrlp_comm   ','ON')
-                  call mpi_allgatherv(Amat12p, ovrlp_smat%nfvctr*norbp, mpi_double_precision, inv_ovrlp_mat%matrix, &
-                       ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, &
-                       mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-                  call timing(iproc,'lovrlp_comm   ','OF')
-                  call timing(iproc,'lovrlp^-1     ','ON')
-              else
-                  call vcopy(ovrlp_smat%nfvctr**2, Amat12p(1,1), 1, inv_ovrlp_mat%matrix(1,1,1), 1)
-              end if
-          !else if (power==2) then
-          !   call vcopy(ovrlp_smat%nfvctr**2,Amat12(1,1),1,inv_ovrlp_mat%matrix(1,1),1)
-          else if (power==-2) then
-              call vcopy(ovrlp_smat%nfvctr**2,Amat21(1,1),1,inv_ovrlp_mat%matrix(1,1,1),1)
-          end if
 
           call f_free(Amat12p)
           call f_free(Amat21p)
@@ -515,43 +517,38 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
       else
           if (iorder>1) then
               if (nproc>1) then
-                  ovrlpminone => inv_ovrlp_mat%matrix(:,:,1)
-                  !ovrlpminonep = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminonep')
-                  ovrlpminonep = f_malloc_ptr((/ovrlp_smat%nfvctr,norbp/), id='ovrlpminonep')
+                  ovrlpminone => inv_ovrlp_mat%matrix(:,:,:)
+                  ovrlpminonep = sparsematrix_malloc_ptr(ovrlp_smat,iaction=DENSE_PARALLEL,id='ovrlpminonep')
               else
-                  ovrlpminone = f_malloc_ptr((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/), id='ovrlpminone')
+                  ovrlpminone = sparsematrix_malloc_ptr(ovrlp_smat,iaction=DENSE_FULL,id='ovrlpminone')
                   ovrlpminonep => ovrlpminone
               end if
 
-              if (norbp>0) call matrix_minus_identity_dense(ovrlp_smat%nfvctr,isorb,norbp, &
-                                ovrlp_mat%matrix(1,isorb+1,1),ovrlpminonep)
+              do ispin=1,ovrlp_smat%nspin
+                  if (norbp>0) call matrix_minus_identity_dense(ovrlp_smat%nfvctr,ovrlp_smat%isfvctr,ovrlp_smat%nfvctrp, &
+                                    ovrlp_mat%matrix(1,isorb+1,ispin),ovrlpminonep(1,1,ispin))
 
-              !if (nproc>1) then
-                  !ovrlppoweroldp = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlppoweroldp')
-              !else
-                  ovrlppoweroldp = f_malloc_ptr((/ovrlp_smat%nfvctr,norbp/), id='ovrlppoweroldp')
-              !end if
 
-              if (norbp>0) call vcopy(ovrlp_smat%nfvctr*norbp,ovrlpminonep(1,1),1,ovrlppoweroldp(1,1),1)
+                  if(nproc > 1) then
+                      call timing(iproc,'lovrlp^-1     ','OF')
+                      call timing(iproc,'lovrlp_comm   ','ON')
+                      call mpi_allgatherv(ovrlpminonep(1,1,ispin), ovrlp_smat%nfvctr*norbp, mpi_double_precision, ovrlpminone(1,1,ispin), &
+                           ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, &
+                           mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+                      call timing(iproc,'lovrlp_comm   ','OF')
+                      call timing(iproc,'lovrlp^-1     ','ON')
+                  end if
 
-              if(nproc > 1) then
-                  call timing(iproc,'lovrlp^-1     ','OF')
-                  call timing(iproc,'lovrlp_comm   ','ON')
-                  call mpi_allgatherv(ovrlpminonep, ovrlp_smat%nfvctr*norbp, mpi_double_precision, ovrlpminone, &
-                       ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, &
-                       mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-                  call timing(iproc,'lovrlp_comm   ','OF')
-                  call timing(iproc,'lovrlp^-1     ','ON')
+              end do
+
+              if (nproc>1) then
                   call f_free_ptr(ovrlpminonep)
               else
                   nullify(ovrlpminonep)
               end if
 
-              !if (nproc>1) then
-              !    ovrlppowerp = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlppowerp')
-              !else
-                  ovrlppowerp = f_malloc_ptr((/ovrlp_smat%nfvctr,norbp/), id='ovrlppowerp')
-              !end if
+
+              ovrlppowerp = sparsematrix_malloc_ptr(ovrlp_smat,iaction=DENSE_PARALLEL,id='ovrlppowerp')
 
               if (power==1) then
                   factor=-1.0d0
@@ -560,23 +557,41 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               else if (power==-2) then
                   factor=-0.5d0
               end if
+
+              ovrlppoweroldp = sparsematrix_malloc_ptr(ovrlp_smat,iaction=DENSE_PARALLEL,id='ovrlppoweroldp')
+              if (norbp>0) call vcopy(ovrlp_smat%nfvctr*norbp*ovrlp_smat%nspin,ovrlpminonep(1,1,1),1,ovrlppoweroldp(1,1,1),1)
+
           end if
 
-          if (nproc>1) then
-              !inv_ovrlpp = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
-              inv_ovrlpp = f_malloc_ptr((/ovrlp_smat%nfvctr,norbp/), id='inv_ovrlpp')
-          else
-              inv_ovrlpp => inv_ovrlp_mat%matrix(:,:,1)
-          end if
 
-          if (norbp>0) call first_order_taylor_dense(ovrlp_smat%nfvctr,isorb,norbp,power,ovrlp_mat%matrix(1,isorb+1,1),inv_ovrlpp)
+          do ispin=1,ovrlp_smat%nspin
+              if (nproc>1) then
+                  inv_ovrlpp = sparsematrix_malloc_ptr(ovrlp_smat,iaction=DENSE_PARALLEL,id='inv_ovrlpp')
+              else
+                  inv_ovrlpp => inv_ovrlp_mat%matrix(:,:,ispin)
+              end if
 
-          do i=2,iorder
-              if (norbp>0) call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, 1.d0, ovrlpminone(1,1), &
-                   ovrlp_smat%nfvctr, ovrlppoweroldp(1,1), ovrlp_smat%nfvctr, 0.d0, ovrlppowerp(1,1), ovrlp_smat%nfvctr)
-              factor=newfactor(power,i,factor)
-              call daxpy(ovrlp_smat%nfvctr*norbp,factor,ovrlppowerp,1,inv_ovrlpp,1)
-              if (i/=iorder.and.norbp>0) call vcopy(ovrlp_smat%nfvctr*norbp,ovrlppowerp(1,1),1,ovrlppoweroldp(1,1),1)
+              if (norbp>0) call first_order_taylor_dense(ovrlp_smat%nfvctr,isorb,norbp,power,ovrlp_mat%matrix(1,isorb+1,1),inv_ovrlpp)
+
+              do i=2,iorder
+                  if (norbp>0) call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, 1.d0, ovrlpminone(1,1,ispin), &
+                       ovrlp_smat%nfvctr, ovrlppoweroldp(1,1,ispin), ovrlp_smat%nfvctr, 0.d0, ovrlppowerp(1,1), ovrlp_smat%nfvctr)
+                  factor=newfactor(power,i,factor)
+                  call daxpy(ovrlp_smat%nfvctr*norbp,factor,ovrlppowerp,1,inv_ovrlpp,1)
+                  if (i/=iorder.and.norbp>0) call vcopy(ovrlp_smat%nfvctr*norbp,ovrlppowerp(1,1),1,ovrlppoweroldp(1,1,ispin),1)
+              end do
+
+
+              if(nproc > 1) then
+                  call timing(iproc,'lovrlp^-1     ','OF')
+                  call timing(iproc,'lovrlp_comm   ','ON')
+                  call mpi_allgatherv(inv_ovrlpp, ovrlp_smat%nfvctr*norbp, mpi_double_precision, inv_ovrlp_mat%matrix, &
+                       ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, &
+                       mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+                  call timing(iproc,'lovrlp_comm   ','OF')
+                  call timing(iproc,'lovrlp^-1     ','ON')
+                  call f_free_ptr(inv_ovrlpp)
+              end if
           end do
 
           if (iorder>1) then
@@ -587,27 +602,25 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               end if
 
               call f_free_ptr(ovrlppowerp)
-              call f_free_ptr(ovrlppoweroldp)
 
           end if
 
-          if(nproc > 1) then
-              call timing(iproc,'lovrlp^-1     ','OF')
-              call timing(iproc,'lovrlp_comm   ','ON')
-              call mpi_allgatherv(inv_ovrlpp, ovrlp_smat%nfvctr*norbp, mpi_double_precision, inv_ovrlp_mat%matrix, &
-                   ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, &
-                   mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-              call timing(iproc,'lovrlp_comm   ','OF')
-              call timing(iproc,'lovrlp^-1     ','ON')
-              call f_free_ptr(inv_ovrlpp)
+          if (nproc>0) then
+              call f_free_ptr(ovrlppoweroldp)
           else
               nullify(inv_ovrlpp)
           end if
       end if
 
       if (check_accur) then
-          call check_accur_overlap_minus_one(iproc,nproc,ovrlp_smat%nfvctr,norbp,isorb,power,&
-               ovrlp_mat%matrix,inv_ovrlp_mat%matrix,ovrlp_smat,max_error,mean_error)
+          max_error=0.d0
+          mean_error=0.d0
+          do ispin=1,ovrlp_smat%nspin
+              call check_accur_overlap_minus_one(iproc,nproc,ovrlp_smat%nfvctr,ovrlp_smat%nfvctrp,ovrlp_smat%isfvctr,power,&
+                   ovrlp_mat%matrix(:,:,ispin),inv_ovrlp_mat%matrix(:,:,ispin),ovrlp_smat,max_error_p,mean_error_p)
+              max_error=max_error+max_error_p
+              mean_error=mean_error+mean_error_p
+          end do
           if (iproc==0) then
               call yaml_newline()
               call yaml_map('max / mean error',(/max_error,mean_error/),fmt='(es8.2)')
@@ -615,51 +628,34 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
       end if
   else if (imode==SPARSE) then
       if (iorder==0) then
-          !!if (iproc==0) call yaml_warning('The compressed matrix will not be filled! You should know what you do.')
           ovrlp_local = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_FULL, id='ovrlp_local')
           inv_ovrlp_local = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_FULL, id='inv_ovrlp_local')
           call timing(iproc,'lovrlp^-1     ','OF')
           call uncompress_matrix(iproc, ovrlp_smat, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_local)
           call timing(iproc,'lovrlp^-1     ','ON')
-          !!write(*,*) ovrlp_smat%matrix_compr
-          !!write(*,*) '==============='
-          !!write(*,*) ovrlp_local
-          call vcopy(ovrlp_smat%nfvctr*ovrlp_smat%nfvctr,ovrlp_local(1,1),1,inv_ovrlp_local(1,1),1)
-          !!do iorb=1,orbs%ovrlp_smat%nfvctr
-          !!    do jorb=1,orbs%ovrlp_smat%nfvctr
-          !!        inv_ovrlp_local(jorb,iorb)=0.5d0*(ovrlp_local(jorb,iorb)+ovrlp_local(iorb,jorb))
-          !!    end do
-          !!end do
-          if (power==1) then
-             if (blocksize<0) then
-                call overlap_minus_one_exact_serial(ovrlp_smat%nfvctr,inv_ovrlp_local)
-             else
-                stop 'check if working - upper half may not be filled'
-                call dpotrf_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', &
-                     ovrlp_smat%nfvctr, inv_ovrlp_local(1,1), ovrlp_smat%nfvctr)
-                call dpotri_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', &
-                     ovrlp_smat%nfvctr, inv_ovrlp_local(1,1), ovrlp_smat%nfvctr)
-             end if
-          else if (power==2) then
-              !if (nproc>1) then
+          do ispin=1,ovrlp_smat%nspin
+              call vcopy(ovrlp_smat%nfvctr*ovrlp_smat%nfvctr,ovrlp_local(1,1,ispin),1,inv_ovrlp_local(1,1,ispin),1)
+              if (power==1) then
+                 if (blocksize<0) then
+                    call overlap_minus_one_exact_serial(ovrlp_smat%nfvctr,inv_ovrlp_local(1,1,ispin))
+                 else
+                    stop 'check if working - upper half may not be filled'
+                    call dpotrf_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', &
+                         ovrlp_smat%nfvctr, inv_ovrlp_local(1,1,ispin), ovrlp_smat%nfvctr)
+                    call dpotri_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', &
+                         ovrlp_smat%nfvctr, inv_ovrlp_local(1,1,ispin), ovrlp_smat%nfvctr)
+                 end if
+              else if (power==2) then
                   call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc,ovrlp_smat%nfvctr, &
-                       blocksize,.true.,inv_ovrlp_local,inv_ovrlp_smat)
-              !else
-              !    call overlap_plus_minus_one_half_exact(ovrlp_smat%nfvctr,blocksize,.true.,inv_ovrlp_local)
-              !end if
-          else if (power==-2) then
-              !if (nproc>1) then
+                       blocksize,.true.,inv_ovrlp_local(1,1,ispin),inv_ovrlp_smat)
+              else if (power==-2) then
                   call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc,ovrlp_smat%nfvctr, &
-                       blocksize,.false.,inv_ovrlp_local,inv_ovrlp_smat)
-              !else
-              !    call overlap_plus_minus_one_half_exact(ovrlp_smat%nfvctr,blocksize,.false.,inv_ovrlp_local)
-              !end if
-          end if
-          !!! These two lines can be deleted as soon as the tests are stabilized ##########
-          !!inv_ovrlp_smat%matrix=inv_ovrlp_mat%matrix
-          call timing(iproc,'lovrlp^-1     ','OF')
-          call compress_matrix(iproc, inv_ovrlp_smat, inmat=inv_ovrlp_local, outmat=inv_ovrlp_mat%matrix_compr)
-          call timing(iproc,'lovrlp^-1     ','ON')
+                       blocksize,.false.,inv_ovrlp_local(1,1,ispin),inv_ovrlp_smat)
+              end if
+              call timing(iproc,'lovrlp^-1     ','OF')
+              call compress_matrix(iproc, inv_ovrlp_smat, inmat=inv_ovrlp_local, outmat=inv_ovrlp_mat%matrix_compr)
+              call timing(iproc,'lovrlp^-1     ','ON')
+          end do
           call f_free_ptr(ovrlp_local)
           call f_free_ptr(inv_ovrlp_local)
           ! #############################################################################
@@ -681,71 +677,78 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
           call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
                ovrlp_mat%matrix_compr, Amat12_compr, 'small_to_large')
           Amat12_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='Amat12_seq')
-          call sequential_acces_matrix_fast(inv_ovrlp_smat, Amat12_compr, Amat12_seq)
-          call timing(iproc,'lovrlp^-1     ','OF')
-          call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, Amat12_compr, Amat12p)
-          call timing(iproc,'lovrlp^-1     ','ON')
 
-          do iorb=1,norbp
-              Amat21p(iorb+isorb,iorb)=1.0d0
-          end do
-          Amat21_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='Amat21_compr')
-          call timing(iproc,'lovrlp^-1     ','OF')
-          call compress_matrix_distributed(iproc, inv_ovrlp_smat, Amat21p, Amat21_compr)
-          call timing(iproc,'lovrlp^-1     ','ON')
-          Amat21_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='Amat21_seq')
-          call sequential_acces_matrix_fast(inv_ovrlp_smat, Amat21_compr, Amat21_seq)
+          do ispin=1,ovrlp_smat%nspin
 
-          ! calculate Xn+1=0.5*Xn*(3I-Xn**2)
-          do its=1,abs(iorder)
+              ishift=(ispin-1)*inv_ovrlp_smat%nvctr
+
+              call sequential_acces_matrix_fast(inv_ovrlp_smat, Amat12_compr(ishift+1:ishift+inv_ovrlp_smat%nvctr), Amat12_seq)
               call timing(iproc,'lovrlp^-1     ','OF')
-              call sparsemm(inv_ovrlp_smat, Amat12_seq, Amat21p, Amat11p)
+              call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, Amat12_compr(ishift+1:ishift+inv_ovrlp_smat%nvctr), Amat12p)
               call timing(iproc,'lovrlp^-1     ','ON')
 
-              if (norbp>0) call vscal(ovrlp_smat%nfvctr*norbp,-0.5d0,Amat11p(1,1),1)
-              !call vscal(ovrlp_smat%nfvctr*norbp,-0.5d0,Amat22p(1,1),1)
-              do iorb=1,norbp
-                  Amat11p(iorb+isorb,iorb)=Amat11p(iorb+isorb,iorb)+1.5d0
-              !    Amat22p(iorb+isorb,iorb)=Amat22p(iorb+isorb,iorb)+1.5d0
+              do iorb=1,inv_ovrlp_smat%nfvctrp
+                  Amat21p(iorb+inv_ovrlp_smat%isfvctr,iorb)=1.0d0
+              end do
+              Amat21_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='Amat21_compr')
+              call timing(iproc,'lovrlp^-1     ','OF')
+              call compress_matrix_distributed(iproc, inv_ovrlp_smat, Amat21p, Amat21_compr)
+              call timing(iproc,'lovrlp^-1     ','ON')
+              Amat21_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='Amat21_seq')
+              call sequential_acces_matrix_fast(inv_ovrlp_smat, Amat21_compr, Amat21_seq)
+
+              ! calculate Xn+1=0.5*Xn*(3I-Xn**2)
+              do its=1,abs(iorder)
+                  call timing(iproc,'lovrlp^-1     ','OF')
+                  call sparsemm(inv_ovrlp_smat, Amat12_seq, Amat21p, Amat11p)
+                  call timing(iproc,'lovrlp^-1     ','ON')
+
+                  if (norbp>0) call vscal(ovrlp_smat%nfvctr*norbp,-0.5d0,Amat11p(1,1),1)
+                  !call vscal(ovrlp_smat%nfvctr*norbp,-0.5d0,Amat22p(1,1),1)
+                  do iorb=1,norbp
+                      Amat11p(iorb+isorb,iorb)=Amat11p(iorb+isorb,iorb)+1.5d0
+                  !    Amat22p(iorb+isorb,iorb)=Amat22p(iorb+isorb,iorb)+1.5d0
+                  end do
+
+                  call timing(iproc,'lovrlp^-1     ','OF')
+                  call sparsemm(inv_ovrlp_smat, Amat12_seq, Amat22p, Amat12p)
+                  call sparsemm(inv_ovrlp_smat, Amat21_seq, Amat11p, Amat21p)
+                  call timing(iproc,'lovrlp^-1     ','ON')
+
+                  if (its/=abs(iorder).or.power/=2) then
+                      call timing(iproc,'lovrlp^-1     ','OF')
+                      call compress_matrix_distributed(iproc, inv_ovrlp_smat, Amat21p, Amat21_compr)
+                      call timing(iproc,'lovrlp^-1     ','ON')
+                  end if
+                  if (its/=abs(iorder).or.power==1) then
+                      call sequential_acces_matrix_fast(inv_ovrlp_smat, Amat21_compr, Amat21_seq)
+                  end if
+                  if (its/=abs(iorder).or.power==2) then
+                      call timing(iproc,'lovrlp^-1     ','OF')
+                      call compress_matrix_distributed(iproc, inv_ovrlp_smat, Amat12p, Amat12_compr)
+                      call timing(iproc,'lovrlp^-1     ','ON')
+                  end if
+                  if (its/=abs(iorder)) then
+                      call sequential_acces_matrix_fast(inv_ovrlp_smat, Amat12_compr, Amat12_seq)
+                  end if
               end do
 
-              call timing(iproc,'lovrlp^-1     ','OF')
-              call sparsemm(inv_ovrlp_smat, Amat12_seq, Amat22p, Amat12p)
-              call sparsemm(inv_ovrlp_smat, Amat21_seq, Amat11p, Amat21p)
-              call timing(iproc,'lovrlp^-1     ','ON')
+              call f_free(Amat12_seq)
+              nullify(Amat22p)
+              call f_free_ptr(Amat11p)
 
-              if (its/=abs(iorder).or.power/=2) then
+              if (power==1) then
                   call timing(iproc,'lovrlp^-1     ','OF')
-                  call compress_matrix_distributed(iproc, inv_ovrlp_smat, Amat21p, Amat21_compr)
+                  call sparsemm(inv_ovrlp_smat, Amat21_seq, Amat21p, Amat12p)
+                  call compress_matrix_distributed(iproc, inv_ovrlp_smat, Amat12p, inv_ovrlp_mat%matrix_compr(ishift+1:ishift+inv_ovrlp_smat%nvctr))
                   call timing(iproc,'lovrlp^-1     ','ON')
+              !else if (power==2) then
+              !    call vcopy(inv_ovrlp_smat%nvctr,Amat12_compr(1),1,inv_ovrlp_smat%matrix_compr(1),1)
+              else if (power==-2) then
+                  call vcopy(inv_ovrlp_smat%nvctr,Amat21_compr(1),1,inv_ovrlp_mat%matrix_compr(ishift+1),1)
               end if
-              if (its/=abs(iorder).or.power==1) then
-                  call sequential_acces_matrix_fast(inv_ovrlp_smat, Amat21_compr, Amat21_seq)
-              end if
-              if (its/=abs(iorder).or.power==2) then
-                  call timing(iproc,'lovrlp^-1     ','OF')
-                  call compress_matrix_distributed(iproc, inv_ovrlp_smat, Amat12p, Amat12_compr)
-                  call timing(iproc,'lovrlp^-1     ','ON')
-              end if
-              if (its/=abs(iorder)) then
-                  call sequential_acces_matrix_fast(inv_ovrlp_smat, Amat12_compr, Amat12_seq)
-              end if
+
           end do
-
-          call f_free(Amat12_seq)
-          nullify(Amat22p)
-          call f_free_ptr(Amat11p)
-
-          if (power==1) then
-              call timing(iproc,'lovrlp^-1     ','OF')
-              call sparsemm(inv_ovrlp_smat, Amat21_seq, Amat21p, Amat12p)
-              call compress_matrix_distributed(iproc, inv_ovrlp_smat, Amat12p, inv_ovrlp_mat%matrix_compr)
-              call timing(iproc,'lovrlp^-1     ','ON')
-          !else if (power==2) then
-          !    call vcopy(inv_ovrlp_smat%nvctr,Amat12_compr(1),1,inv_ovrlp_smat%matrix_compr(1),1)
-          else if (power==-2) then
-              call vcopy(inv_ovrlp_smat%nvctr,Amat21_compr(1),1,inv_ovrlp_mat%matrix_compr(1),1)
-          end if
 
           nullify(Amat12_compr)
           call f_free(Amat21_compr)
@@ -759,58 +762,63 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
                    ovrlp_mat%matrix_compr, ovrlp_large_compr, 'small_to_large')
 
-              if (iorder>1) then
-                  ovrlpminone_sparse_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlpminone_sparse_seq')
-                  ovrlpminone_sparse = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlpminone_sparse')
-                  ovrlpminoneoldp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminoneoldp')
-
-                  call matrix_minus_identity_sparse(ovrlp_smat%nfvctr, inv_ovrlp_smat, ovrlp_large_compr, ovrlpminone_sparse)
-                  call sequential_acces_matrix_fast(inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminone_sparse_seq)
-                  call timing(iproc,'lovrlp^-1     ','OF')
-                  call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminoneoldp)
-                  call timing(iproc,'lovrlp^-1     ','ON')
-
-                  call f_free_ptr(ovrlpminone_sparse)
-
-                  if (power==1) then
-                      factor=-1.0d0
-                  else if (power==2) then
-                      factor=0.5d0
-                  else if (power==-2) then
-                      factor=-0.5d0
-                  end if
-              end if
-
               ovrlpminonep = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminonep')
               invovrlpp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='invovrlpp')
 
-              if (norbp>0) then
-                  call timing(iproc,'lovrlp^-1     ','OF')
-                  call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, ovrlp_large_compr, ovrlpminonep)
-                  call timing(iproc,'lovrlp^-1     ','ON')
-                  if (.not.check_accur) call f_free(ovrlp_large_compr)
-                  call first_order_taylor_dense(ovrlp_smat%nfvctr,isorb,norbp,power,ovrlpminonep,invovrlpp)
-              end if
+              do ispin=1,ovrlp_smat%nspin
 
-              do i=2,iorder
+                  isshift=(ispin-1)*ovrlp_smat%nvctr
+                  ilshift=(ispin-1)*inv_ovrlp_smat%nvctr
+
+                  if (iorder>1) then
+                      ovrlpminone_sparse_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlpminone_sparse_seq')
+                      ovrlpminone_sparse = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlpminone_sparse')
+                      ovrlpminoneoldp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminoneoldp')
+
+                      call matrix_minus_identity_sparse(ovrlp_smat%nfvctr, inv_ovrlp_smat, ovrlp_large_compr(isshift+1), ovrlpminone_sparse)
+                      call sequential_acces_matrix_fast(inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminone_sparse_seq)
+                      call timing(iproc,'lovrlp^-1     ','OF')
+                      call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminoneoldp)
+                      call timing(iproc,'lovrlp^-1     ','ON')
+
+                      call f_free_ptr(ovrlpminone_sparse)
+
+                      if (power==1) then
+                          factor=-1.0d0
+                      else if (power==2) then
+                          factor=0.5d0
+                      else if (power==-2) then
+                          factor=-0.5d0
+                      end if
+                  end if
+
+
+                  if (norbp>0) then
+                      call timing(iproc,'lovrlp^-1     ','OF')
+                      call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, ovrlp_large_compr, ovrlpminonep)
+                      call timing(iproc,'lovrlp^-1     ','ON')
+                      if (.not.check_accur) call f_free(ovrlp_large_compr)
+                      call first_order_taylor_dense(ovrlp_smat%nfvctr,isorb,norbp,power,ovrlpminonep,invovrlpp)
+                  end if
+
+                  do i=2,iorder
+                      call timing(iproc,'lovrlp^-1     ','OF')
+                      call sparsemm(inv_ovrlp_smat, ovrlpminone_sparse_seq, ovrlpminoneoldp, ovrlpminonep)
+                      call timing(iproc,'lovrlp^-1     ','ON')
+                      factor=newfactor(power,i,factor)
+                      call daxpy(ovrlp_smat%nfvctr*norbp,factor,ovrlpminonep,1,invovrlpp,1)
+                      if (i/=iorder.and.norbp>0) call vcopy(ovrlp_smat%nfvctr*norbp,ovrlpminonep(1,1,1),1,ovrlpminoneoldp(1,1),1)
+                  end do
+                  !!call to_zero(inv_ovrlp_smat%nvctr, inv_ovrlp_smat%matrix_compr(1))
                   call timing(iproc,'lovrlp^-1     ','OF')
-                  call sparsemm(inv_ovrlp_smat, ovrlpminone_sparse_seq, ovrlpminoneoldp, ovrlpminonep)
+                  call compress_matrix_distributed(iproc, inv_ovrlp_smat, invovrlpp, inv_ovrlp_mat%matrix_compr(ilshift+1:ilshift+inv_ovrlp_smat%nvctr))
                   call timing(iproc,'lovrlp^-1     ','ON')
-                  factor=newfactor(power,i,factor)
-                  call daxpy(ovrlp_smat%nfvctr*norbp,factor,ovrlpminonep,1,invovrlpp,1)
-                  if (i/=iorder.and.norbp>0) call vcopy(ovrlp_smat%nfvctr*norbp,ovrlpminonep(1,1),1,ovrlpminoneoldp(1,1),1)
+
               end do
-              !!call to_zero(inv_ovrlp_smat%nvctr, inv_ovrlp_smat%matrix_compr(1))
-              call timing(iproc,'lovrlp^-1     ','OF')
-              call compress_matrix_distributed(iproc, inv_ovrlp_smat, invovrlpp, inv_ovrlp_mat%matrix_compr)
-              call timing(iproc,'lovrlp^-1     ','ON')
 
               if (iorder>1) then
                   call f_free(ovrlpminone_sparse_seq)
                   call f_free(ovrlpminoneoldp)
-                  !!if (.not.check_accur) call f_free(istindexarr)
-                  !!if (.not.check_accur) call f_free(ivectorindex)
-                  !!if (.not.check_accur) call f_free_ptr(onedimindices)
               end if
 
               if (.not.check_accur) call f_free(invovrlpp)
@@ -844,42 +852,47 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
           end if
           invovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlp_large_compr_seq')
           ovrlp_largep = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlp_largep')
-          call timing(iproc,'lovrlp^-1     ','OF')
-          call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, ovrlp_large_compr, ovrlp_largep)
-          call timing(iproc,'lovrlp^-1     ','ON')
-          call sequential_acces_matrix_fast(inv_ovrlp_smat, inv_ovrlp_mat%matrix_compr, invovrlp_compr_seq)
 
-          if (power==1) then
-              call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, norbp, isorb, &
-                   inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
-                   inv_ovrlp_smat%smmm%ivectorindex, inv_ovrlp_smat%smmm%onedimindices, &
-                   invovrlp_compr_seq, ovrlp_largep, power, &
-                   max_error, mean_error)
-          else if (power==2) then
+          do ispin=1,ovrlp_smat%nspin
+              isshift=(ispin-1)*ovrlp_smat%nvctr
+              ilshift=(ispin-1)*inv_ovrlp_smat%nvctr
               call timing(iproc,'lovrlp^-1     ','OF')
-              call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, inv_ovrlp_mat%matrix_compr, invovrlpp)
+              call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, ovrlp_large_compr(isshift+1), ovrlp_largep)
               call timing(iproc,'lovrlp^-1     ','ON')
-              call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, norbp, isorb, &
-                   inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
-                   inv_ovrlp_smat%smmm%ivectorindex, inv_ovrlp_smat%smmm%onedimindices, &
-                   invovrlp_compr_seq, invovrlpp, power, &
-                   max_error, mean_error, cmatp=ovrlp_largep)
-          else if (power==-2) then
-              ovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlp_compr_seq') 
-              call sequential_acces_matrix_fast(inv_ovrlp_smat, ovrlp_large_compr, ovrlp_compr_seq)
-              call timing(iproc,'lovrlp^-1     ','OF')
-              call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, inv_ovrlp_mat%matrix_compr, invovrlpp)
-              call timing(iproc,'lovrlp^-1     ','ON')
-              call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, norbp, isorb, &
-                    inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
-                    inv_ovrlp_smat%smmm%ivectorindex, inv_ovrlp_smat%smmm%onedimindices, &
-                    invovrlp_compr_seq, invovrlpp, power, &
-                    max_error, mean_error, &
-                    ovrlp_compr_seq)
-              call f_free(ovrlp_compr_seq)
-          else
-              stop 'wrong power'
-          end if
+              call sequential_acces_matrix_fast(inv_ovrlp_smat, inv_ovrlp_mat%matrix_compr(ilshift+1:ilshift+inv_ovrlp_smat%nvctr), invovrlp_compr_seq)
+
+              if (power==1) then
+                  call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, inv_ovrlp_smat%nfvctrp, inv_ovrlp_smat%isfvctr, &
+                       inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
+                       inv_ovrlp_smat%smmm%ivectorindex, inv_ovrlp_smat%smmm%onedimindices, &
+                       invovrlp_compr_seq, ovrlp_largep, power, &
+                       max_error, mean_error)
+              else if (power==2) then
+                  call timing(iproc,'lovrlp^-1     ','OF')
+                  call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, inv_ovrlp_mat%matrix_compr, invovrlpp)
+                  call timing(iproc,'lovrlp^-1     ','ON')
+                  call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, inv_ovrlp_smat%nfvctrp, inv_ovrlp_smat%isfvctr, &
+                       inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
+                       inv_ovrlp_smat%smmm%ivectorindex, inv_ovrlp_smat%smmm%onedimindices, &
+                       invovrlp_compr_seq, invovrlpp, power, &
+                       max_error, mean_error, cmatp=ovrlp_largep)
+              else if (power==-2) then
+                  ovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlp_compr_seq') 
+                  call sequential_acces_matrix_fast(inv_ovrlp_smat, ovrlp_large_compr, ovrlp_compr_seq)
+                  call timing(iproc,'lovrlp^-1     ','OF')
+                  call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, inv_ovrlp_mat%matrix_compr, invovrlpp)
+                  call timing(iproc,'lovrlp^-1     ','ON')
+                  call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, inv_ovrlp_smat%nfvctrp, inv_ovrlp_smat%isfvctr, &
+                        inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
+                        inv_ovrlp_smat%smmm%ivectorindex, inv_ovrlp_smat%smmm%onedimindices, &
+                        invovrlp_compr_seq, invovrlpp, power, &
+                        max_error, mean_error, &
+                        ovrlp_compr_seq)
+                  call f_free(ovrlp_compr_seq)
+              else
+                  stop 'wrong power'
+              end if
+          end do
           if (iproc==0) then
               call yaml_newline()
               call yaml_map('max / mean error',(/max_error,mean_error/),fmt='(es8.2)')
@@ -2785,7 +2798,7 @@ subroutine overlap_minus_one_half_serial(iproc, nproc, iorder, power, blocksize,
 
               call matrix_minus_identity_dense(norb,0,norb,ovrlp_matrix(1,1),ovrlpminonep)
 
-                  ovrlppoweroldp = f_malloc_ptr((/norb,norb/), id='ovrlppoweroldp')
+              ovrlppoweroldp = f_malloc_ptr((/norb,norb/), id='ovrlppoweroldp')
 
               call vcopy(norb*norb,ovrlpminonep(1,1),1,ovrlppoweroldp(1,1),1)
 

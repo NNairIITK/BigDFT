@@ -21,8 +21,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use diis_sd_optimization
   use yaml_output
   use communications, only: transpose_localized, start_onesided_communication
-  use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, &
-                               DENSE_FULL, assignment(=)
+  use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, sparsematrix_malloc, &
+                               DENSE_FULL, DENSE_PARALLEL, assignment(=)
   use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed
   implicit none
 
@@ -53,7 +53,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical, optional, intent(in) :: updatekernel
 
   ! Local variables 
-  integer :: iorb, info
+  integer :: iorb, info, ishift, ispin
   real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f
   real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
@@ -61,14 +61,14 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical :: update_kernel
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr, factor
-  real(kind=8) :: max_deviation, mean_deviation, KSres
+  real(kind=8) :: max_deviation, mean_deviation, KSres, max_deviation_p,  mean_deviation_p
 
   call f_routine(id='get_coeff')
 
   if(calculate_ham) then
       call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
-      call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
-           tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
+      call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimrhopot,1), denspot%rhov, &
+           tmb%ham_descr%comgp%nrecvbuf*tmb%ham_descr%comgp%nspin, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
   end if
 
   ! Option to only calculate the energy without updating the kernel
@@ -107,10 +107,17 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
            tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
   end if
 
-  ovrlp_fullp=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='ovrlp_fullp')
-  call uncompress_matrix_distributed(iproc, tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr, ovrlp_fullp)
-  call deviation_from_unity_parallel(iproc, nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, ovrlp_fullp, &
-       tmb%linmat%s,max_deviation, mean_deviation)
+  ovrlp_fullp = sparsematrix_malloc(tmb%linmat%l,iaction=DENSE_PARALLEL,id='ovrlp_fullp')
+  max_deviation=0.d0
+  mean_deviation=0.d0
+  do ispin=1,tmb%linmat%s%nspin
+      ishift=(ispin-1)*tmb%linmat%s%nvctr
+      call uncompress_matrix_distributed(iproc, tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr(ishift+1:ishift+tmb%linmat%s%nvctr), ovrlp_fullp)
+      call deviation_from_unity_parallel(iproc, nproc, tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, tmb%linmat%s%isfvctr, ovrlp_fullp, &
+           tmb%linmat%s, max_deviation_p, mean_deviation_p)
+      max_deviation = max_deviation + max_deviation_p
+      mean_deviation = mean_deviation + mean_deviation_p
+  end do
   call f_free(ovrlp_fullp)
   if (iproc==0) then
       call yaml_map('max dev from unity',max_deviation,fmt='(es9.2)')

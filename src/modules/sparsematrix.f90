@@ -319,7 +319,7 @@ module sparsematrix
       ! Local variables
       integer :: imode, icheck, isseg, isstart, isend, ilseg, ilstart, ilend
       integer :: iostart, ioend, ilength, isoffset, iloffset, iscostart, ilcostart, i
-      integer :: ilsegstart
+      integer :: ilsegstart, ispin, isshift, ilshift
       integer,parameter :: SMALL_TO_LARGE=1
       integer,parameter :: LARGE_TO_SMALL=2
     
@@ -337,73 +337,81 @@ module sparsematrix
     
       select case (imode)
       case (SMALL_TO_LARGE)
-          call to_zero(lmat%nvctr,lmatrix_compr(1))
+          call to_zero(lmat%nvctr*lmat%nspin,lmatrix_compr(1))
       case (LARGE_TO_SMALL)
-          call to_zero(smat%nvctr,smatrix_compr(1))
+          call to_zero(smat%nvctr*lmat%nspin,smatrix_compr(1))
       case default
           stop 'wrong imode'
       end select
     
       call timing(bigdft_mpi%iproc,'transform_matr','IR')
+
+
+      do ispin=1,smat%nspin
+
+          isshift=(ispin-1)*smat%nvctr
+          ilshift=(ispin-1)*lmat%nvctr
     
-      icheck=0
-      ilsegstart=1
-      !$omp parallel default(private) &
-      !$omp shared(smat, lmat, imode, lmatrix_compr, smatrix_compr, icheck) &
-      !$omp firstprivate(ilsegstart)
-      !$omp do reduction(+:icheck)
-      sloop: do isseg=1,smat%nseg
-          isstart=smat%keyg(1,isseg)
-          isend=smat%keyg(2,isseg)
-          lloop: do ilseg=ilsegstart,lmat%nseg
-              ilstart=lmat%keyg(1,ilseg)
-              ilend=lmat%keyg(2,ilseg)
+          icheck=0
+          ilsegstart=1
+          !$omp parallel default(private) &
+          !$omp shared(smat, lmat, imode, lmatrix_compr, smatrix_compr, icheck, isshift, ilshift) &
+          !$omp firstprivate(ilsegstart)
+          !$omp do reduction(+:icheck)
+          sloop: do isseg=1,smat%nseg
+              isstart=smat%keyg(1,isseg)
+              isend=smat%keyg(2,isseg)
+              lloop: do ilseg=ilsegstart,lmat%nseg
+                  ilstart=lmat%keyg(1,ilseg)
+                  ilend=lmat%keyg(2,ilseg)
     
-              ! check whether there is an overlap:
-              ! if not, increase loop counters
-              if (ilstart>isend) then
-                  !ilsegstart=ilseg
-                  exit lloop
-              end if
-              if (isstart>ilend) then
-                  ilsegstart=ilseg
-                  cycle lloop
-              end if
-              ! if yes, determine start end end of overlapping segment (in uncompressed form)
-              iostart=max(isstart,ilstart)
-              ioend=min(isend,ilend)
-              ilength=ioend-iostart+1
+                  ! check whether there is an overlap:
+                  ! if not, increase loop counters
+                  if (ilstart>isend) then
+                      !ilsegstart=ilseg
+                      exit lloop
+                  end if
+                  if (isstart>ilend) then
+                      ilsegstart=ilseg
+                      cycle lloop
+                  end if
+                  ! if yes, determine start end end of overlapping segment (in uncompressed form)
+                  iostart=max(isstart,ilstart)
+                  ioend=min(isend,ilend)
+                  ilength=ioend-iostart+1
     
-              ! offset with respect to the starting point of the segment
-              isoffset=iostart-smat%keyg(1,isseg)
-              iloffset=iostart-lmat%keyg(1,ilseg)
+                  ! offset with respect to the starting point of the segment
+                  isoffset=iostart-smat%keyg(1,isseg)
+                  iloffset=iostart-lmat%keyg(1,ilseg)
     
-              ! determine start end and of the overlapping segment in compressed form
-              iscostart=smat%keyv(isseg)+isoffset
-              ilcostart=lmat%keyv(ilseg)+iloffset
+                  ! determine start end and of the overlapping segment in compressed form
+                  iscostart=smat%keyv(isseg)+isoffset
+                  ilcostart=lmat%keyv(ilseg)+iloffset
     
-              ! copy the elements
-              select case (imode)
-              case (SMALL_TO_LARGE) 
-                  do i=0,ilength-1
-                      lmatrix_compr(ilcostart+i)=smatrix_compr(iscostart+i)
-                  end do
-              case (LARGE_TO_SMALL) 
-                  do i=0,ilength-1
-                      smatrix_compr(iscostart+i)=lmatrix_compr(ilcostart+i)
-                  end do
-              case default
-                  stop 'wrong imode'
-              end select
-              icheck=icheck+ilength
-          end do lloop
-      end do sloop
-      !$omp end do 
-      !$omp end parallel
+                  ! copy the elements
+                  select case (imode)
+                  case (SMALL_TO_LARGE) 
+                      do i=0,ilength-1
+                          lmatrix_compr(ilcostart+i+ilshift)=smatrix_compr(iscostart+i+isshift)
+                      end do
+                  case (LARGE_TO_SMALL) 
+                      do i=0,ilength-1
+                          smatrix_compr(iscostart+i+isshift)=lmatrix_compr(ilcostart+i+ilshift)
+                      end do
+                  case default
+                      stop 'wrong imode'
+                  end select
+                  icheck=icheck+ilength
+              end do lloop
+          end do sloop
+          !$omp end do 
+          !$omp end parallel
+
+      end do
     
       ! all elements of the small matrix must have been processed, no matter in
       ! which direction the transformation has been executed
-      if (icheck/=smat%nvctr) then
+      if (icheck/=smat%nvctr*smat%nspin) then
           write(*,'(a,2i8)') 'ERROR: icheck/=smat%nvctr', icheck, smat%nvctr
           stop
       end if
