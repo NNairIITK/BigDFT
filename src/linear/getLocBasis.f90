@@ -759,7 +759,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           ! print info here anyway for debugging
           if (it_tot<2*nit_basis) then ! just in case the step size is the problem
               call yaml_mapping_close()
-              call bigdft_utils_flush(unit=6)
+              call yaml_flush_document()
+              !call bigdft_utils_flush(unit=6)
              cycle
           else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
              if (iproc==0) call yaml_newline()
@@ -840,7 +841,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (iproc==0) then
               !yaml output
               call yaml_mapping_close() !iteration
-              call bigdft_utils_flush(unit=6)
+              call yaml_flush_document()
+              !call bigdft_utils_flush(unit=6)
           end if
 
           exit iterLoop
@@ -901,7 +903,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       if (iproc==0) then
           call yaml_mapping_close() !iteration
-          call bigdft_utils_flush(unit=6)
+          call yaml_flush_document()
+          !call bigdft_utils_flush(unit=6)
       end if
 
 
@@ -927,7 +930,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call yaml_map('D',ediff,fmt='(es9.2)')
       call yaml_map('D best',ediff_best,fmt='(es9.2)')
       call yaml_mapping_close() !iteration
-      call bigdft_utils_flush(unit=6)
+      call yaml_flush_document()
+      !call bigdft_utils_flush(unit=6)
   end if
 
 
@@ -2619,9 +2623,9 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
           call uncompress_matrix_distributed(iproc, tmb%linmat%l, &
                inv_ovrlp%matrix_compr, inv_ovrlpp)
 
-          call to_zero(tmb%linmat%l%nvctr, tempp(1,1))
+          call to_zero(tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctrp, tempp(1,1))
           call sparsemm(tmb%linmat%l, kernel_compr_seq, inv_ovrlpp, tempp)
-          call to_zero(tmb%linmat%l%nvctr, inv_ovrlpp(1,1))
+          call to_zero(tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctrp, inv_ovrlpp(1,1))
           call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
           call to_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))

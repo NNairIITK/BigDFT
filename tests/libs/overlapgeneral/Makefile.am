@@ -1,6 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
-EXTRA_DIST = test-overlapgeneral.ref.yaml
+EXTRA_DIST = test-overlapgeneral.ref.yaml \
+	inputdata1.fake inputdata2.fake inputdata3.fake
 
 check_PROGRAMS = driver
 
@@ -33,9 +34,9 @@ test-overlapgeneral.report.yaml: $(srcdir)/test-overlapgeneral.ref.yaml test-ove
 ##	python $(top_srcdir)/tests/fldiff_yaml.py $^ | tee $@
 
 test-overlapgeneral.out.yaml: driver
-	cp $(srcdir)/inputdata1.fake $(PWD)/inputdata.fake
+	cp -f $(srcdir)/inputdata1.fake $(PWD)/inputdata.fake
 	$(run_parallel) ./driver > test-overlapgeneral.out.yaml
-	cp $(srcdir)/inputdata2.fake $(PWD)/inputdata.fake
+	cp -f $(srcdir)/inputdata2.fake $(PWD)/inputdata.fake
 	$(run_parallel) ./driver >> test-overlapgeneral.out.yaml
-	cp $(srcdir)/inputdata3.fake $(PWD)/inputdata.fake
+	cp -f $(srcdir)/inputdata3.fake $(PWD)/inputdata.fake
 	$(run_parallel) ./driver >> test-overlapgeneral.out.yaml

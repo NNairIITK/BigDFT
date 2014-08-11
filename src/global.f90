@@ -390,7 +390,8 @@ program MINHOP
   if (bigdft_mpi%iproc == 0) then
           write(2,'((1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),a,i5)')  &
           escape,e_wpos,ediff,ekinetic,'  P ',nvisit 
-          call bigdft_utils_flush(unit=2)
+          call f_utils_flush(2)
+          !call bigdft_utils_flush(unit=2)
           !flush(2)
   end if
 
@@ -529,7 +530,8 @@ program MINHOP
              write(2,'((1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),a)')  &
              escape,outs%energy,ediff,ekinetic, &
              escape_sam/escape,escape_old/escape,escape_new/escape,'  S '
-             call bigdft_utils_flush(unit=2)
+             call f_utils_flush(2)
+             !call bigdft_utils_flush(unit=2)
              !flush(2)
              call yaml_map('(MH) no escape from current minimum.',(/outs%energy-e_pos,d/),fmt='(e11.4)')
         endif
@@ -585,7 +587,8 @@ program MINHOP
           write(2,'((1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),a,i5)')  &
           escape,outs%energy,ediff,ekinetic, &
           escape_sam/escape,escape_old/escape,escape_new/escape,'  I ',nvisit
-          call bigdft_utils_flush(unit=2)
+          call f_utils_flush(2)
+          !call bigdft_utils_flush(unit=2)
           !flush(2)
      endif
 
@@ -624,7 +627,7 @@ program MINHOP
        write(2,'(1x,f10.0,1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),a)')  &
               escape,e_hop,ediff,ekinetic, &
               escape_sam/escape,escape_old/escape,escape_new/escape,'  A '
-       call bigdft_utils_flush(unit=2)
+       call f_utils_flush(2)
        !flush(2)
       endif
 
@@ -637,7 +640,7 @@ program MINHOP
           write(2,'((1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),a,i5)')  &
           escape,outs%energy,ediff,ekinetic, &
           escape_sam/escape,escape_old/escape,escape_new/escape,'  R '
-          call bigdft_utils_flush(unit=2)
+          call f_utils_flush(2)
           !flush(2)
           call yaml_map('(MH) rejected: ew-e>ediff',outs%energy-e_pos)
      endif
@@ -2169,7 +2172,6 @@ end subroutine fixfrag_posvel
 subroutine fixfrag_posvel_slab(iproc,nat,rcov,pos,vel,option)
 !This subroutine points the velocities towards the surface if an atom is too far away from the surface with surface boundary conditions
 !
-use BigDFT_API, only: bigdft_utils_flush
 implicit none
 integer, intent(in) :: iproc,nat,option
 !type(atoms_data), intent(in) :: at
@@ -2248,7 +2250,8 @@ if (option.eq.2) then
              write(1000+iproc,*) "#MH velocity made negative for atom",iat,pos(:,iat)
          endif
     enddo
-    call bigdft_utils_flush(unit=1000+iproc)
+    call f_utils_flush(1000+iproc)
+    !call bigdft_utils_flush(unit=1000+iproc)
     !flush(1000+iproc) 
 
 else if (option.eq.1) then

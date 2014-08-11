@@ -354,6 +354,7 @@ subroutine foe(iproc, nproc, tmprtr, &
             
               call timing(iproc, 'FOE_auxiliary ', 'OF')
     
+              emergency_stop=.false.
               if (calculate_SHS) then
                   ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
                   if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
@@ -976,7 +977,7 @@ subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
   bpa=0.5d0*(b+a)
   fac=2.d0/n
   !$omp parallel default(none) shared(bma,bpa,fac,n,tmprtr,cf,fscale,ef,cc) &
-  !$omp private(k,y,arg,tt)
+  !$omp private(k,y,arg,tt,j)
   !$omp do
   do k=1,n
       y=cos(pi*(k-0.5d0)*(1.d0/n))
@@ -1032,7 +1033,7 @@ subroutine chebft2(a,b,n,cc)
   ttt=4.d0*n/(b-a)
   fac=2.d0/n
   !$omp parallel default(none) shared(bma,bpa,ttt,fac,n,cf,b,cc) &
-  !$omp private(k,y,arg,tt)
+  !$omp private(k,y,arg,tt,j)
   !$omp do
   do k=1,n
       y=cos(pi*(k-0.5d0)*(1.d0/n))

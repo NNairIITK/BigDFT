@@ -153,8 +153,6 @@ contains
 !!$    val=link_elem%elem
 !!$  end function get_value_le
 
-          
-
   !> Test if keys are present
   pure function no_key(dict)
     implicit none
