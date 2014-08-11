@@ -580,7 +580,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
       else
           ishift=collcom_sr%ndimind_c/2
       end if
-      ishift_mat=(ispin-1)*denskern%nfvctr
+      ishift_mat=(ispin-1)*denskern%nvctr
       !$omp parallel default(private) &
       !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local, irho, ispin, ishift, ishift_mat)
       !$omp do schedule(static,50) reduction(+:total_charge, irho)
@@ -1200,8 +1200,10 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
     
       ! First fill the kernel with some numbers.
       do i=1,denskern%nvctr*denskern%nspin
-          !denskern_%matrix_compr(i)=sine_taylor(real(denskern%nvctr-i+1,kind=8))
-          denskern_%matrix_compr(i)=sine_taylor(real(mod(denskern%nvctr-i+1-1,denskern%nvctr)+1,kind=8))
+          denskern_%matrix_compr(i)=sine_taylor(real(denskern%nvctr*denskern%nspin-i+1,kind=8))
+          !denskern_%matrix_compr(i)=sine_taylor(real(mod(denskern%nspin*denskern%nvctr-i+1-1,denskern%nvctr)+1,kind=8))
+          !write(660+iproc,'(a,2i8,2es13.5)') 'i, mod(denskern%nspin*denskern%nvctr-i+1-1,denskern%nvctr)+1, arg, val', &
+          !     i, mod(denskern%nspin*denskern%nvctr-i+1-1,denskern%nvctr)+1, real(mod(denskern%nspin*denskern%nvctr-i+1-1,denskern%nvctr)+1,kind=8), denskern_%matrix_compr(i)
       end do
     
       hxh=.5d0*lzd%hgrids(1)
@@ -1258,6 +1260,9 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
                               if (ikernel==0) cycle
                               ttj=test_value_sumrho(jj,iixyz,nxyz)
                               tt=tt+2.d0*denskern_%matrix_compr(ikernel)*tti*ttj
+                              if (mod(ind-1,lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1))+1==865737) then
+                                  write(6500,'(a,6i8,3es13.5)') 'ind, i, j, ii, jj, ikernel, tti, ttj, valk', ind, i, j, ii, jj, ikernel, tti, ttj, denskern_%matrix_compr(ikernel)
+                              end if
                           end do
                       end do
                       tt=tt*factor
@@ -1286,8 +1291,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
           !!$omp do reduction(+:sumdiff) reduction(max:maxdiff) 
           do i=1,lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
               ii=ii+1
-              write(2000+iproc,'(a,2i9,2es18.8)') 'i,ii,rho(ii),rho_check(ii)',i,ii,rho(ii),rho_check(ii)
               tt=abs(rho(ii)-rho_check(ii))
+              write(2000+iproc,'(a,2i9,4es18.8)') 'i,ii,rho(ii),rho_check(ii),diff,sumdiff',i,ii,rho(ii),rho_check(ii), tt, sumdiff
               sumdiff = sumdiff + tt**2
               if (tt>maxdiff) maxdiff=tt
           end do
@@ -1355,6 +1360,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       !test_value_sumrho=fac*(ri-1.d0)*rn+rj
       test_value_sumrho=sine_taylor((ri-1.d0)*rn)*cosine_taylor(rj)
       !test_value_sumrho=0.d0
+
 
     end function test_value_sumrho
 

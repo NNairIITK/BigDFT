@@ -1149,13 +1149,13 @@ end subroutine check_grid_point_from_boxes
 !!end subroutine get_reverse_indices
 
 
-subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
+subroutine normalize_transposed(iproc, nproc, orbs, nspin, collcom, psit_c, psit_f, norm)
   use module_base
   use module_types
   implicit none
   
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
+  integer,intent(in):: iproc, nproc, nspin
   type(orbitals_data),intent(in):: orbs
   type(comms_linear),intent(in):: collcom
   real(8),dimension(collcom%ndimind_c),intent(inout):: psit_c
@@ -1163,55 +1163,61 @@ subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, nor
   real(8),dimension(orbs%norb),intent(out):: norm
   
   ! Local variables
-  integer:: i0, ipt, ii, iiorb, i, ierr, iorb, i07i, i0i
+  integer:: i0, ipt, ii, iiorb, i, ierr, iorb, i07i, i0i, ispin
 
   call timing(iproc,'norm_trans','ON')
 
   call to_zero(orbs%norb, norm(1))
 
-  !$omp parallel default(private) &
-  !$omp shared(collcom, norm, psit_c,psit_f,orbs)
-  if (collcom%nptsp_c>0) then
-      !$omp do reduction(+:norm)
-      do ipt=1,collcom%nptsp_c 
-          ii=collcom%norb_per_gridpoint_c(ipt)
-          i0 = collcom%isptsp_c(ipt) 
-          do i=1,ii
-              i0i=i0+i
-              iiorb=collcom%indexrecvorbital_c(i0i)
-              norm(iiorb)=norm(iiorb)+psit_c(i0i)**2
-          end do
-      end do
-      !$omp end do
-  end if
 
-  if (collcom%nptsp_f>0) then
-      !$omp do reduction(+:norm)
-      do ipt=1,collcom%nptsp_f 
-          ii=collcom%norb_per_gridpoint_f(ipt) 
-          i0 = collcom%isptsp_f(ipt) 
-          do i=1,ii
-              i0i=i0+i
-              i07i=7*i0i
-              iiorb=collcom%indexrecvorbital_f(i0i)
-              norm(iiorb)=norm(iiorb)+psit_f(i07i-6)**2
-              norm(iiorb)=norm(iiorb)+psit_f(i07i-5)**2
-              norm(iiorb)=norm(iiorb)+psit_f(i07i-4)**2
-              norm(iiorb)=norm(iiorb)+psit_f(i07i-3)**2
-              norm(iiorb)=norm(iiorb)+psit_f(i07i-2)**2
-              norm(iiorb)=norm(iiorb)+psit_f(i07i-1)**2
-              norm(iiorb)=norm(iiorb)+psit_f(i07i-0)**2
+  spin_loop: do ispin=1,nspin
+
+      !$omp parallel default(private) &
+      !$omp shared(collcom, norm, psit_c,psit_f,orbs,ispin,nspin)
+      if (collcom%nptsp_c>0) then
+          !$omp do reduction(+:norm)
+          do ipt=1,collcom%nptsp_c 
+              ii=collcom%norb_per_gridpoint_c(ipt)
+              i0 = collcom%isptsp_c(ipt) + (ispin-1)*collcom%ndimind_c/nspin
+              do i=1,ii
+                  i0i=i0+i
+                  iiorb=collcom%indexrecvorbital_c(i0i)
+                  norm(iiorb)=norm(iiorb)+psit_c(i0i)**2
+              end do
           end do
-      end do
-      !$omp end do
-  end if
-  !$omp end parallel
+          !$omp end do
+      end if
+
+      if (collcom%nptsp_f>0) then
+          !$omp do reduction(+:norm)
+          do ipt=1,collcom%nptsp_f 
+              ii=collcom%norb_per_gridpoint_f(ipt) 
+              i0 = collcom%isptsp_f(ipt) + (ispin-1)*collcom%ndimind_f/nspin
+              do i=1,ii
+                  i0i=i0+i
+                  i07i=7*i0i
+                  iiorb=collcom%indexrecvorbital_f(i0i)
+                  norm(iiorb)=norm(iiorb)+psit_f(i07i-6)**2
+                  norm(iiorb)=norm(iiorb)+psit_f(i07i-5)**2
+                  norm(iiorb)=norm(iiorb)+psit_f(i07i-4)**2
+                  norm(iiorb)=norm(iiorb)+psit_f(i07i-3)**2
+                  norm(iiorb)=norm(iiorb)+psit_f(i07i-2)**2
+                  norm(iiorb)=norm(iiorb)+psit_f(i07i-1)**2
+                  norm(iiorb)=norm(iiorb)+psit_f(i07i-0)**2
+              end do
+          end do
+          !$omp end do
+      end if
+      !$omp end parallel
+
+  end do spin_loop
   
   if(nproc>1) then
       call mpiallred(norm(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   do iorb=1,orbs%norb
+     if (iproc==0) write(*,*) 'iorb, norb', iorb, norm(iorb)
      norm(iorb)=1.d0/sqrt(norm(iorb))
   end do
 

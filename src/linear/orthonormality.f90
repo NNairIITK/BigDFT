@@ -99,7 +99,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
        psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
 
   norm = f_malloc(orbs%norb,id='norm')
-  call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
+  call normalize_transposed(iproc, nproc, orbs, ovrlp%nspin, collcom, psit_c, psit_f, norm)
 
   call f_free(norm)
   call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, lphi, lzd)
@@ -2147,7 +2147,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
 
 
   norm = f_malloc(orbs%norb,id='norm')
-  call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
+  call normalize_transposed(iproc, nproc, orbs, ovrlp%nspin, collcom, psit_c, psit_f, norm)
   call f_free(norm)
   call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, lphi, lzd)
 

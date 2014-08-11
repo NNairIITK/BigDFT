@@ -839,7 +839,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        ! normalize psi
        norm = f_malloc(tmb%orbs%norb,id='norm')
 
-       call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
+       call normalize_transposed(iproc, nproc, tmb%orbs, input%nspin, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
 
        call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
             tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
@@ -2116,7 +2116,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! normalize psi
      norm = f_malloc(tmb%orbs%norb,id='norm')
 
-     call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
+     call normalize_transposed(iproc, nproc, tmb%orbs, in%nspin, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
 
      call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
           tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)

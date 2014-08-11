@@ -3191,11 +3191,11 @@ module module_interfaces
           real(kind=8),dimension(3*lorbs%npsidim_orbs),intent(inout) :: phid  !< Derivative basis functions
         end subroutine get_derivative_supportfunctions
 
-        subroutine normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
+        subroutine normalize_transposed(iproc, nproc, orbs, nspin, collcom, psit_c, psit_f, norm)
           use module_base
           use module_types
           implicit none
-          integer,intent(in):: iproc, nproc
+          integer,intent(in):: iproc, nproc, nspin
           type(orbitals_data),intent(in):: orbs
           type(comms_linear),intent(in):: collcom
           real(8),dimension(collcom%ndimind_c),intent(inout):: psit_c
