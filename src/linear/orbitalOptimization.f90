@@ -39,6 +39,22 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, nspin, lzd, hphi, phi, ldii
   call timing(iproc,'optimize_DIIS ','ON')
 
 
+  ist=0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+      do i=1,ncount
+          ist=ist+1
+          if (orbs%spinsgn(iiorb)>0.d0) then
+              write(3101,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, val', iiorb, ist, orbs%spinsgn(iiorb), phi(ist)
+          else
+              write(3102,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, val', iiorb, ist, orbs%spinsgn(iiorb), phi(ist)
+          end if
+      end do
+  end do
+
+
   ! Allocate the local arrays.
   mat = f_malloc((/ ldiis%isx+1, ldiis%isx+1 /),id='mat')
   rhs = f_malloc(ldiis%isx+1,id='rhs')
@@ -238,6 +254,8 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, nspin, lzd, hphi, phi, ldii
             if (iispin==ispin) then
                 do k=1,ncount
                     phi(ist+k-1) = phi(ist+k-1) + rhs(jj)*(ldiis%phiHist(jjst+k)-ldiis%hphiHist(jjst+k))
+                    write(3300+iproc,'(a,3i8,4es14.7)') 'iorb, iiorb, k, phi(ist+k-1), rhs(jj), ldiis%phiHist(jjst+k), ldiis%hphiHist(jjst+k)', &
+                        iorb, iiorb, k, phi(ist+k-1), rhs(jj), ldiis%phiHist(jjst+k), ldiis%hphiHist(jjst+k)
                 end do
             end if
         end do
@@ -257,6 +275,21 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, nspin, lzd, hphi, phi, ldii
   call f_free(ipiv)
 
   call timing(iproc,'optimize_DIIS ','OF')
+
+  ist=0
+  do iorb=1,orbs%norbp
+      iiorb=orbs%isorb+iorb
+      ilr=orbs%inwhichlocreg(iiorb)
+      ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+      do i=1,ncount
+          ist=ist+1
+          if (orbs%spinsgn(iiorb)>0.d0) then
+              write(3201,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, val', iiorb, ist, orbs%spinsgn(iiorb), phi(ist)
+          else
+              write(3202,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, val', iiorb, ist, orbs%spinsgn(iiorb), phi(ist)
+          end if
+      end do
+  end do
 
 end subroutine optimizeDIIS
 
