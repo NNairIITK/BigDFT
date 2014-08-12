@@ -63,7 +63,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   type(mixrhopotDIISParameters) :: mixdiis
   logical :: finished, can_use_ham
   !type(confpot_data), dimension(:), allocatable :: confdatarrtmp
-  integer :: info_basis_functions, order_taylor, i, ilr
+  integer :: info_basis_functions, order_taylor, i, ilr, iii
   real(kind=8) :: ratio_deltas, trace, trace_old, fnrm_tmb
   logical :: ortho_on, reduce_conf, rho_negative
   type(localizedDIISParameters) :: ldiis
@@ -598,6 +598,23 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       !minval(tmb%collcom%indexrecvorbital_c),maxval(tmb%collcom%indexrecvorbital_c)
       !!if (iproc==0) write(*,*) 'WARNING: no ortho in inguess'
       methTransformOverlap=-1
+
+      !iii=0
+      !do iorb=1,tmb%orbs%norb
+      !    ilr=tmb%orbs%inwhichlocreg(iorb)
+      !    ii=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      !    if (tmb%orbs%spinsgn(iorb)>0.d0) then
+      !        do i=1,ii
+      !            iii=iii+1
+      !            write(550,*) 'i, iorb, val', i, iorb, tmb%psi(iii)
+      !        end do
+      !    else
+      !        do i=1,ii
+      !            iii=iii+1
+      !            write(551,*) 'i, iorb, val', i, iorb, tmb%psi(iii)
+      !        end do
+      !    end if
+      !end do
       call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, 1.d0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
            tmb%linmat%s, tmb%linmat%l, &
            tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
@@ -736,6 +753,23 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       !call yaml_comment('kernel iter:'//yaml_toa(0,fmt='(i6)'),hfill='-')
   end if
 
+  ii=0
+  do iorb=1,tmb%orbs%norbp
+      iiorb=tmb%orbs%isorb+iorb
+      ilr=tmb%orbs%inwhichlocreg(iiorb)
+      if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+          do i=1,tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+              ii=ii+1
+              write(1600,'(a,4i9,es16.7)') 'iorb, iiorb, ilr, i, val', iorb, iiorb, ilr, i, tmb%psi(ii)
+          end do
+      else
+          do i=1,tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+              ii=ii+1
+              write(1610,'(a,4i9,es16.7)') 'iorb, iiorb, ilr, i, val', iorb, iiorb, ilr, i, tmb%psi(ii)
+          end do
+      end if
+  end do
+
   order_taylor=input%lin%order_taylor ! since this is intent(inout)
   if (input%lin%scf_mode==LINEAR_FOE) then
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
@@ -743,12 +777,14 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
   else
+
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
 
       call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
+      if (iproc==0) write(*,'(a,100f10.3)') 'in IG: orbs%eval',orbs%eval
       call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
       if (bigdft_mpi%iproc ==0) then
          call write_eigenvalues_data(0.1d0,kswfn%orbs,mom_vec_fake)

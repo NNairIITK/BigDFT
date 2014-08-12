@@ -36,11 +36,12 @@ subroutine allocateBasicArraysInputLin(lin, ntypes)
 end subroutine allocateBasicArraysInputLin
 
 
-subroutine allocate_extra_lin_arrays(lin,astruct)
+subroutine allocate_extra_lin_arrays(lin,nspin,astruct)
   use module_atoms, only: atomic_structure
   use module_types, only: linearInputParameters
   use dynamic_memory
   implicit none
+  integer,intent(in) :: nspin
   type(atomic_structure), intent(in) :: astruct
   type(linearInputParameters), intent(inout) :: lin
   !local variables
@@ -50,7 +51,7 @@ subroutine allocate_extra_lin_arrays(lin,astruct)
   nlr=0
   do iat=1,astruct%nat
      itype=astruct%iatype(iat)
-     nlr=nlr+lin%norbsPerType(itype)
+     nlr=nlr+nspin*lin%norbsPerType(itype)
   end do
 
   lin%locrad = f_malloc_ptr(nlr,id='lin%locrad')

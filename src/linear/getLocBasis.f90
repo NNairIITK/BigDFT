@@ -53,8 +53,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical, optional, intent(in) :: updatekernel
 
   ! Local variables 
-  integer :: iorb, info, ishift, ispin, ii
-  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f
+  integer :: iorb, info, ishift, ispin, ii, jorb
+  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, eval
   real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -244,6 +244,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   if(scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE) then
       ! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
       matrixElements = f_malloc((/ tmb%linmat%m%nfvctr,tmb%linmat%m%nfvctr,2 /),id='matrixElements')
+      eval = f_malloc(tmb%linmat%l%nfvctr,id='eval')
 
       do ispin=1,tmb%linmat%s%nspin
           if (ispin==1) then
@@ -253,21 +254,32 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
               ishift=orbs%norbu
               ii=orbs%norbd
           end if
-          ishift=(ispin-1)*tmb%linmat%s%nfvctr
+          !ishift=(ispin-1)*tmb%linmat%s%nfvctr
           call vcopy(tmb%linmat%m%nfvctr**2, tmb%linmat%ham_%matrix(1,1,ispin), 1, matrixElements(1,1,1), 1)
           call vcopy(tmb%linmat%m%nfvctr**2, tmb%linmat%ovrlp_%matrix(1,1,ispin), 1, matrixElements(1,1,2), 1)
           if (iproc==0) call yaml_map('method','diagonalization')
           if(tmb%orthpar%blocksize_pdsyev<0) then
               if (iproc==0) call yaml_map('mode','sequential')
+              if (iproc==0) then
+                  do iorb=1,tmb%linmat%m%nfvctr
+                      do jorb=1,tmb%linmat%m%nfvctr
+                          write(690+ispin,'(a,2i8,2f15.8)') 'iorb, jorb, vals', iorb, jorb, matrixElements(jorb,iorb,:)
+                      end do
+                  end do
+              end if
               call diagonalizeHamiltonian2(iproc, tmb%linmat%m%nfvctr, &
-                   matrixElements(1,1,1), matrixElements(1,1,2), tmb%orbs%eval(ishift+1:ishift+ii))
+                   matrixElements(1,1,1), matrixElements(1,1,2), eval)
           else
               if (iproc==0) call yaml_map('mode','parallel')
               call dsygv_parallel(iproc, nproc, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%nproc_pdsyev, &
                    bigdft_mpi%mpi_comm, 1, 'v', 'l', tmb%linmat%m%nfvctr, &
                    matrixElements(1,1,1), tmb%linmat%m%nfvctr, matrixElements(1,1,2), tmb%linmat%m%nfvctr, &
-                   tmb%orbs%eval(ishift+1:ishift+ii), info)
+                   eval, info)
           end if
+          if (iproc==0) write(*,'(a,3i6,100f9.2)') 'ispin, ishift+1, ishift+ii, evals', ispin, ishift+1, ishift+ii, tmb%orbs%eval(ishift+1:ishift+ii)
+
+          ! copy the eigenvalues of the occupied states
+          tmb%orbs%eval(ishift+1:ishift+ii) = eval(1:ii-ishift)
 
           ! Make sure that the eigenvectors have the same sign on all MPI tasks.
           ! To do so, ensure that the first entry is always positive.
@@ -289,6 +301,20 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           ! instead just use -0.5 everywhere
           !tmb%orbs%eval(:) = -0.5_dp
       end do
+
+      call f_free(eval)
+
+      if (iproc==0) then
+          do iorb=1,orbs%norb
+              do jorb=1,tmb%linmat%m%nfvctr
+                  if (orbs%spinsgn(iorb)>0.d0) then
+                      write(620,*) 'iorb, jorb, val', iorb, jorb, tmb%coeff(jorb,iorb)
+                  else
+                      write(621,*) 'iorb, jorb, val', iorb, jorb, tmb%coeff(jorb,iorb)
+                  end if
+              end do
+          end do
+      end if
 
       call f_free(matrixElements)
   else if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
@@ -325,6 +351,20 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       end if
       call f_free_ptr(tmb%linmat%ham_%matrix)
       call f_free_ptr(tmb%linmat%ovrlp_%matrix)
+
+      if (iproc==0) then
+          ii=0
+          do ispin=1,tmb%linmat%l%nspin
+              do iorb=1,tmb%linmat%l%nvctr
+                  ii=ii+1
+                  if (ispin==1) then
+                      write(630,'(a,2i8,f14.7)') 'ispin, iorb, val', ispin, iorb, tmb%linmat%kernel_%matrix_compr(ii)
+                  else
+                      write(631,'(a,2i8,f14.7)') 'ispin, iorb, val', ispin, iorb, tmb%linmat%kernel_%matrix_compr(ii)
+                  end if
+              end do
+          end do
+      end if
 
   else ! foe
 
@@ -487,8 +527,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   it_tot=0
   !ortho=.true.
   call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
-  call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
-       tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
+  call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimrhopot,1), denspot%rhov, &
+       tmb%ham_descr%comgp%nrecvbuf*tmb%ham_descr%comgp%nspin, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, &
+       tmb%ham_descr%lzd)
 
   delta_energy_prev=1.d100
 

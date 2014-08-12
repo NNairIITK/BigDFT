@@ -951,7 +951,7 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham
   logical, intent(in) :: calculate_kernel
   real(kind=gp), intent(out) :: energy
   type(orbitals_data), intent(in) :: orbs, tmb_orbs
-  real(kind=gp), dimension(tmb_orbs%norb,tmb_orbs%norb), intent(in) :: coeff
+  real(kind=gp), dimension(denskern%nfvctr,tmb_orbs%norb), intent(in) :: coeff
 
   integer :: iorb, jorb, ind_ham, ind_denskern, ierr, iorbp, is, ie
 

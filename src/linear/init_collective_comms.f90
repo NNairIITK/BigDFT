@@ -1222,37 +1222,45 @@ subroutine normalize_transposed(iproc, nproc, orbs, nspin, collcom, psit_c, psit
      norm(iorb)=1.d0/sqrt(norm(iorb))
   end do
 
-  !$omp parallel default(private) shared(norm,orbs,collcom,psit_c,psit_f)  
-  !$omp do
-  do ipt=1,collcom%nptsp_c 
-      ii=collcom%norb_per_gridpoint_c(ipt)
-      i0=collcom%isptsp_c(ipt)
-      do i=1,ii
-          i0i=i0+i
-          iiorb=collcom%indexrecvorbital_c(i0i)
-          psit_c(i0i)=psit_c(i0i)*norm(iiorb)
-      end do 
-  end do
-  !$omp end do
-  !$omp do
-  do ipt=1,collcom%nptsp_f 
-      ii=collcom%norb_per_gridpoint_f(ipt)
-      i0 = collcom%isptsp_f(ipt) 
-      do i=1,ii
-          i0i=i0+i
-          i07i=7*i0i
-          iiorb=collcom%indexrecvorbital_f(i0i)
-          psit_f(i07i-6)=psit_f(i07i-6)*norm(iiorb)
-          psit_f(i07i-5)=psit_f(i07i-5)*norm(iiorb)
-          psit_f(i07i-4)=psit_f(i07i-4)*norm(iiorb)
-          psit_f(i07i-3)=psit_f(i07i-3)*norm(iiorb)
-          psit_f(i07i-2)=psit_f(i07i-2)*norm(iiorb)
-          psit_f(i07i-1)=psit_f(i07i-1)*norm(iiorb)
-          psit_f(i07i-0)=psit_f(i07i-0)*norm(iiorb)
-      end do
-  end do
-  !$omp end do
-  !$omp end parallel
+  spin_loop2: do ispin=1,nspin
+
+      !$omp parallel default(private) shared(norm,orbs,collcom,psit_c,psit_f,ispin,nspin)  
+      if (collcom%nptsp_c>0) then
+          !$omp do
+          do ipt=1,collcom%nptsp_c 
+              ii=collcom%norb_per_gridpoint_c(ipt)
+              i0=collcom%isptsp_c(ipt) + (ispin-1)*collcom%ndimind_c/nspin
+              do i=1,ii
+                  i0i=i0+i
+                  iiorb=collcom%indexrecvorbital_c(i0i)
+                  psit_c(i0i)=psit_c(i0i)*norm(iiorb)
+              end do 
+          end do
+          !$omp end do
+      end if
+      if (collcom%nptsp_f>0) then
+          !$omp do
+          do ipt=1,collcom%nptsp_f 
+              ii=collcom%norb_per_gridpoint_f(ipt)
+              i0 = collcom%isptsp_f(ipt) + (ispin-1)*collcom%ndimind_f/nspin
+              do i=1,ii
+                  i0i=i0+i
+                  i07i=7*i0i
+                  iiorb=collcom%indexrecvorbital_f(i0i)
+                  psit_f(i07i-6)=psit_f(i07i-6)*norm(iiorb)
+                  psit_f(i07i-5)=psit_f(i07i-5)*norm(iiorb)
+                  psit_f(i07i-4)=psit_f(i07i-4)*norm(iiorb)
+                  psit_f(i07i-3)=psit_f(i07i-3)*norm(iiorb)
+                  psit_f(i07i-2)=psit_f(i07i-2)*norm(iiorb)
+                  psit_f(i07i-1)=psit_f(i07i-1)*norm(iiorb)
+                  psit_f(i07i-0)=psit_f(i07i-0)*norm(iiorb)
+              end do
+          end do
+          !$omp end do
+      end if
+      !$omp end parallel
+
+  end do spin_loop2
 
   call timing(iproc,'norm_trans','OF')
 

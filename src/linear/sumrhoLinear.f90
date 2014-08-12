@@ -181,12 +181,12 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
   integer,intent(in):: iproc, nproc
   type(orbitals_data),intent(in) :: orbs, orbs_tmb
   logical, intent(in) :: isKernel
-  real(kind=8),dimension(orbs_tmb%norb,orbs%norb),intent(in):: coeff   !only use the first (occupied) orbitals
   type(sparse_matrix), intent(inout) :: denskern
+  real(kind=8),dimension(denskern%nfvctr,orbs%norb),intent(in):: coeff   !only use the first (occupied) orbitals
   type(matrices), intent(out) :: denskern_
 
   ! Local variables
-  integer :: ierr, sendcount, jproc, iorb, itmb, iiorb, ispin
+  integer :: ierr, sendcount, jproc, iorb, itmb, iiorb, ispin, jorb
   real(kind=8),dimension(:,:),allocatable :: density_kernel_partial, fcoeff
 ! real(kind=8), dimension(:,:,), allocatable :: ks,ksk,ksksk
   character(len=*),parameter :: subname='calculate_density_kernel'
@@ -198,6 +198,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
 
   if (communication_strategy==ALLGATHERV) then
       if (iproc==0) call yaml_map('communication strategy kernel','ALLGATHERV')
+      stop 'calculate_density_kernel: ALLGATHERV option needs reworking due to the spin'
       call timing(iproc,'calc_kernel','ON') !lr408t
       !if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       density_kernel_partial=f_malloc((/orbs_tmb%norb,max(orbs_tmb%norbp,1)/), id='density_kernel_partial')
@@ -268,17 +269,26 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
              do iorb=1,orbs%norbp
                 !call to_zero(orbs_tmb%norb,f_coeff(1,iorb))
                 !call daxpy(orbs_tmb%norb,orbs%occup(orbs%isorb+iorb),coeff(1,orbs%isorb+iorb),1,fcoeff(1,iorb),1)
-                do itmb=1,orbs_tmb%norb
+                write(*,*) 'iproc, iorb, orbs%occup(orbs%isorb+iorb)', iproc, iorb, orbs%occup(orbs%isorb+iorb)
+                do itmb=1,denskern%nfvctr
                     fcoeff(itmb,iorb) = orbs%occup(orbs%isorb+iorb)*coeff(itmb,orbs%isorb+iorb)
                 end do
              end do
           else
              do iorb=1,orbs%norbp
-                call vcopy(orbs_tmb%norb,coeff(1,orbs%isorb+iorb),1,fcoeff(1,iorb),1)
+                call vcopy(denskern%nfvctr,coeff(1,orbs%isorb+iorb),1,fcoeff(1,iorb),1)
              end do
           end if
+      if (iproc==0) then
+          do iorb=1,orbs%norbp
+              do jorb=1,denskern%nfvctr
+                  write(970,'(a,2i9,f14.7)') 'iorb, jorb, fcoeff(jorb,iorb)', iorb, jorb, fcoeff(jorb,iorb)
+              end do
+          end do
+      end if
           !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), orbs_tmb%norb, &
           !     fcoeff(1,1), orbs_tmb%norb, 0.d0, denskern_%matrix(1,1,1), orbs_tmb%norb)
+          call to_zero(denskern%nspin*denskern%nfvctr**2, denskern_%matrix(1,1,1))
           do iorb=1,orbs%norbp
               iiorb=orbs%isorb+iorb
               if (orbs%spinsgn(iiorb)>0.d0) then
@@ -286,14 +296,25 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
               else
                   ispin=2
               end if
-              call dgemm('n', 't', orbs_tmb%norbu, orbs_tmb%norbu, 1, 1.d0, coeff(1,orbs%isorb+iorb), orbs_tmb%norbu, &
-                   fcoeff(1,iorb), orbs_tmb%norbu, 0.d0, denskern_%matrix(1,1,ispin), orbs_tmb%norbu)
+              write(*,*) 'iproc, iorb, iiorb, ispin', iproc, iorb, iiorb, ispin
+              call dgemm('n', 't', denskern%nfvctr, denskern%nfvctr, 1, 1.d0, coeff(1,orbs%isorb+iorb), denskern%nfvctr, &
+                   fcoeff(1,iorb), denskern%nfvctr, 1.d0, denskern_%matrix(1,1,ispin), denskern%nfvctr)
           end do
           call f_free(fcoeff)
       else
-          call to_zero(denskern%nspin*orbs_tmb%norbu**2, denskern_%matrix(1,1,1))
+          call to_zero(denskern%nspin*denskern%nfvctr**2, denskern_%matrix(1,1,1))
       end if
       call timing(iproc,'calc_kernel','OF') !lr408t
+
+      if (iproc==0) then
+          do ispin=1,denskern%nspin
+              do iorb=1,denskern%nfvctr
+                  do jorb=1,denskern%nfvctr
+                      write(940+ispin,'(a,3i9,f14.7)') 'ispin, iorb, jorb, denskern_%matrix(jorb,iorb,ispin)', ispin, iorb, jorb, denskern_%matrix(jorb,iorb,ispin)
+                  end do
+              end do
+          end do
+      end if
 
       call timing(iproc,'waitAllgatKern','ON')
       call mpi_barrier(bigdft_mpi%mpi_comm,ierr)

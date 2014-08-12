@@ -2995,8 +2995,8 @@ module module_interfaces
           integer,intent(in):: iproc, nproc
           logical, intent(in) :: isKernel
           type(orbitals_data),intent(in):: orbs, orbs_tmb
-          real(8),dimension(orbs_tmb%norb,orbs%norb),intent(in):: coeff
-          type(sparse_matrix),intent(inout):: denskern
+          type(sparse_matrix), intent(inout) :: denskern
+          real(kind=8),dimension(denskern%nfvctr,orbs%norb),intent(in):: coeff   !only use the first (occupied) orbitals
           type(matrices), intent(out) :: denskern_
         end subroutine calculate_density_kernel
 
@@ -4034,7 +4034,7 @@ module module_interfaces
           logical, intent(in) :: calculate_kernel
           real(kind=gp), intent(out) :: energy
           type(orbitals_data), intent(in) :: orbs, tmb_orbs
-          real(kind=gp), dimension(tmb_orbs%norb,tmb_orbs%norb), intent(in) :: coeff
+          real(kind=gp), dimension(denskern%nfvctr,tmb_orbs%norb), intent(in) :: coeff
         end subroutine calculate_kernel_and_energy
 
         subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_frag,&
