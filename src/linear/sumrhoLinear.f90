@@ -186,7 +186,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
   type(matrices), intent(out) :: denskern_
 
   ! Local variables
-  integer :: ierr, sendcount, jproc, iorb, itmb
+  integer :: ierr, sendcount, jproc, iorb, itmb, iiorb, ispin
   real(kind=8),dimension(:,:),allocatable :: density_kernel_partial, fcoeff
 ! real(kind=8), dimension(:,:,), allocatable :: ks,ksk,ksksk
   character(len=*),parameter :: subname='calculate_density_kernel'
@@ -277,11 +277,21 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
                 call vcopy(orbs_tmb%norb,coeff(1,orbs%isorb+iorb),1,fcoeff(1,iorb),1)
              end do
           end if
-          call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), orbs_tmb%norb, &
-               fcoeff(1,1), orbs_tmb%norb, 0.d0, denskern_%matrix(1,1,1), orbs_tmb%norb)
+          !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), orbs_tmb%norb, &
+          !     fcoeff(1,1), orbs_tmb%norb, 0.d0, denskern_%matrix(1,1,1), orbs_tmb%norb)
+          do iorb=1,orbs%norbp
+              iiorb=orbs%isorb+iorb
+              if (orbs%spinsgn(iiorb)>0.d0) then
+                  ispin=1
+              else
+                  ispin=2
+              end if
+              call dgemm('n', 't', orbs_tmb%norbu, orbs_tmb%norbu, 1, 1.d0, coeff(1,orbs%isorb+iorb), orbs_tmb%norbu, &
+                   fcoeff(1,iorb), orbs_tmb%norbu, 0.d0, denskern_%matrix(1,1,ispin), orbs_tmb%norbu)
+          end do
           call f_free(fcoeff)
       else
-          call to_zero(orbs_tmb%norb**2, denskern_%matrix(1,1,1))
+          call to_zero(denskern%nspin*orbs_tmb%norbu**2, denskern_%matrix(1,1,1))
       end if
       call timing(iproc,'calc_kernel','OF') !lr408t
 
@@ -293,7 +303,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
       call f_free_ptr(denskern_%matrix)
       if (nproc > 1) then
           call timing(iproc,'commun_kernel','ON') !lr408t
-          call mpiallred(denskern_%matrix_compr(1), denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(denskern_%matrix_compr(1), denskern%nspin*denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
           call timing(iproc,'commun_kernel','OF') !lr408t
       end if
 

@@ -953,7 +953,7 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham
   type(orbitals_data), intent(in) :: orbs, tmb_orbs
   real(kind=gp), dimension(tmb_orbs%norb,tmb_orbs%norb), intent(in) :: coeff
 
-  integer :: iorb, jorb, ind_ham, ind_denskern, ierr, iorbp
+  integer :: iorb, jorb, ind_ham, ind_denskern, ierr, iorbp, is, ie
 
   if (calculate_kernel) then 
      call calculate_density_kernel(iproc, nproc, .true., orbs, tmb_orbs, coeff, denskern, denskern_mat)
@@ -964,9 +964,19 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham
   energy=0.0_gp
   do iorbp=1,tmb_orbs%norbp
      iorb=iorbp+tmb_orbs%isorb
-     !$omp parallel default(private) shared(iorb,denskern,ham,denskern_mat,ham_mat,tmb_orbs,energy)
+     if (tmb_orbs%spinsgn(iorb)>0.d0) then
+         ! spin up support function or non-polarized case
+         is=1
+         ie=tmb_orbs%norbu
+     else
+         ! spin down support function
+         is=tmb_orbs%norbu+1
+         ie=tmb_orbs%norb
+     end if
+     !$omp parallel default(private) shared(is,ie,iorb,denskern,ham,denskern_mat,ham_mat,tmb_orbs,energy)
      !$omp do reduction(+:energy)
-     do jorb=1,tmb_orbs%norb
+     !do jorb=1,tmb_orbs%norb
+     do jorb=is,ie
         ind_ham = matrixindex_in_compressed(ham,iorb,jorb)
         ind_denskern = matrixindex_in_compressed(denskern,jorb,iorb)
         if (ind_ham==0.or.ind_denskern==0) cycle

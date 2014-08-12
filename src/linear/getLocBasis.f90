@@ -2459,10 +2459,10 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   real(kind=8),intent(out) :: KSres
 
   ! Local variables
-  integer :: iorb!, ierr,  jorb
+  integer :: iorb, iiorb, ii, ispin!, ierr,  jorb
   real(kind=8) :: norbtot, scale_factor
   type(matrices) :: gradmat 
-  real(kind=8),dimension(:,:),allocatable ::KH, KHKH, Kgrad
+  real(kind=8),dimension(:,:,:),allocatable ::KH, KHKH, Kgrad
   character(len=*),parameter :: subname='get_KS_residue'
 
   call f_routine(id='get_KS_residue')
@@ -2483,8 +2483,8 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   call uncompress_matrix(iproc, tmb%linmat%m, &
        inmat=tmb%linmat%ham_%matrix_compr, outmat=tmb%linmat%ham_%matrix)
   call uncompress_matrix(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix_compr, outmat=tmb%linmat%kernel_%matrix)
-  KH=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='KH')
-  KHKH=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='KHKH')
+  KH=f_malloc0((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr,tmb%linmat%l%nspin/),id='KH')
+  KHKH=f_malloc0((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr,tmb%linmat%l%nspin/),id='KHKH')
 
   ! scale_factor takes into account the occupancies which are present in the kernel
   if (KSorbs%nspin==1) then
@@ -2506,34 +2506,70 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   call timing(iproc,'ks_residue','ON')
   ! Parallelized version
   if (tmb%orbs%norbp>0) then
-      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%kernel_%matrix, &
-           tmb%orbs%norb, tmb%linmat%ham_%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, &
-           0.d0, KH(1,tmb%orbs%isorb+1), tmb%orbs%norb)
+      !call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%kernel_%matrix, &
+      !     tmb%orbs%norb, tmb%linmat%ham_%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, &
+      !     0.d0, KH(1,tmb%orbs%isorb+1), tmb%orbs%norb)
+      do iorb=1,tmb%orbs%norbp
+          iiorb=tmb%orbs%isorb+iorb
+          if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+              ispin=1
+          else
+              ispin=2
+          end if
+          ii=mod(iiorb-1,tmb%linmat%l%nfvctr)+1
+          call dgemm('n', 'n', tmb%linmat%l%nfvctr, 1, tmb%linmat%l%nfvctr, 1.0d0, tmb%linmat%kernel_%matrix(1,ii,ispin), &
+               tmb%linmat%l%nfvctr, tmb%linmat%ham_%matrix(1,ii,ispin), tmb%linmat%l%nfvctr, &
+               0.d0, KH(1,ii,ispin), tmb%linmat%l%nfvctr)
+      end do
   end if
 
   if (nproc > 1) then
-      call mpiallred(KH(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(KH(1,1,1), tmb%linmat%l%nspin*tmb%linmat%l%nfvctr**2, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   if (tmb%orbs%norbp>0) then
-      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, scale_factor, KH, &
-           tmb%orbs%norb, KH(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
-           0.d0, KHKH(1,tmb%orbs%isorb+1), tmb%orbs%norb)
+      !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, scale_factor, KH, &
+      !!     tmb%orbs%norb, KH(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
+      !!     0.d0, KHKH(1,tmb%orbs%isorb+1), tmb%orbs%norb)
+      do iorb=1,tmb%orbs%norbp
+          iiorb=tmb%orbs%isorb+iorb
+          if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+              ispin=1
+          else
+              ispin=2
+          end if
+          ii=mod(iiorb-1,tmb%linmat%l%nfvctr)+1
+          call dgemm('n', 'n', tmb%linmat%l%nfvctr, 1, tmb%linmat%l%nfvctr, scale_factor, KH(1,1,ispin), &
+               tmb%linmat%l%nfvctr, KH(1,ii,ispin), tmb%linmat%l%nfvctr, &
+               0.d0, KHKH(1,ii,ispin), tmb%linmat%l%nfvctr)
+      end do
   end if
 
   if (nproc > 1) then
-      call mpiallred(KHKH(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(KHKH(1,1,1), tmb%linmat%l%nspin*tmb%linmat%l%nfvctr**2, mpi_sum, bigdft_mpi%mpi_comm)
   end if
   call f_free(KH)
-  Kgrad=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='Kgrad')
+  Kgrad=f_malloc0((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr,tmb%linmat%l%nspin/),id='Kgrad')
   if (tmb%orbs%norbp>0) then
-      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%kernel_%matrix, &
-           tmb%orbs%norb, gradmat%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, &
-           0.d0, Kgrad(1,tmb%orbs%isorb+1), tmb%orbs%norb)
+      !!call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.0d0, tmb%linmat%kernel_%matrix, &
+      !!     tmb%orbs%norb, gradmat%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, &
+      !!     0.d0, Kgrad(1,tmb%orbs%isorb+1), tmb%orbs%norb)
+      do iorb=1,tmb%orbs%norbp
+          iiorb=tmb%orbs%isorb+iorb
+          if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+              ispin=1
+          else
+              ispin=2
+          end if
+          ii=mod(iiorb-1,tmb%linmat%l%nfvctr)+1
+          call dgemm('n', 'n', tmb%linmat%l%nfvctr, 1, tmb%linmat%l%nfvctr, 1.0d0, tmb%linmat%kernel_%matrix, &
+               tmb%linmat%l%nfvctr, gradmat%matrix(1,ii,ispin), tmb%linmat%l%nfvctr, &
+               0.d0, Kgrad(1,ii,ispin), tmb%linmat%l%nfvctr)
+      end do
   end if
 
   if (nproc > 1) then
-      call mpiallred(Kgrad(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(Kgrad(1,1,1), tmb%linmat%l%nspin*tmb%linmat%l%nfvctr**2, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   !!if (iproc==0) then
@@ -2566,8 +2602,10 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   end do
 
   KSres=0.d0
-  do iorb=1,tmb%orbs%norb
-      KSres=KSres+Kgrad(iorb,iorb)-KHKH(iorb,iorb)
+  do ispin=1,tmb%linmat%l%nspin
+      do iorb=1,tmb%linmat%l%nfvctr
+          KSres=KSres+Kgrad(iorb,iorb,ispin)-KHKH(iorb,iorb,ispin)
+      end do
   end do
   KSres=sqrt(KSres/norbtot)
   !!if (iproc==0) write(*,*) 'KSgrad',sqrt(KSgrad/norbtot)
