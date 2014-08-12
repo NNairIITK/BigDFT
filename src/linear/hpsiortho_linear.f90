@@ -555,7 +555,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   ! Improve the orbitals, depending on the choice made above.
   if (present(psidiff)) call vcopy(tmb%npsidim_orbs, tmb%psi(1), 1, psidiff(1), 1)
   if(.not.ldiis%switchSD) then
-      call improveOrbitals(iproc, nproc, tmb, ldiis, alpha, hpsi_small, experimental_mode)
+      call improveOrbitals(iproc, nproc, tmb, tmb%linmat%s%nspin, ldiis, alpha, hpsi_small, experimental_mode)
   else
       if (iproc==0) then
           call yaml_warning('no improvement of the orbitals, recalculate gradient')
