@@ -311,8 +311,8 @@ module sparsematrix
     
       ! Calling arguments
       type(sparse_matrix),intent(inout) :: smat, lmat
-      real(kind=8),dimension(smat%nvctr),intent(inout) :: smatrix_compr
-      real(kind=8),dimension(lmat%nvctr),intent(inout) :: lmatrix_compr
+      real(kind=8),dimension(smat%nspin*smat%nvctr),intent(inout) :: smatrix_compr
+      real(kind=8),dimension(lmat%nspin*lmat%nvctr),intent(inout) :: lmatrix_compr
       character(len=14),intent(in) :: cmode
     
       ! Local variables
@@ -346,12 +346,12 @@ module sparsematrix
       call timing(bigdft_mpi%iproc,'transform_matr','IR')
 
 
+      icheck=0
       do ispin=1,smat%nspin
 
           isshift=(ispin-1)*smat%nvctr
           ilshift=(ispin-1)*lmat%nvctr
     
-          icheck=0
           ilsegstart=1
           !$omp parallel default(private) &
           !$omp shared(smat, lmat, imode, lmatrix_compr, smatrix_compr, icheck, isshift, ilshift) &
@@ -411,7 +411,7 @@ module sparsematrix
       ! all elements of the small matrix must have been processed, no matter in
       ! which direction the transformation has been executed
       if (icheck/=smat%nvctr*smat%nspin) then
-          write(*,'(a,2i8)') 'ERROR: icheck/=smat%nvctr', icheck, smat%nvctr
+          write(*,'(a,2i8)') 'ERROR: icheck/=smat%nvctr*smat%nspin', icheck, smat%nvctr*smat%nspin
           stop
       end if
 

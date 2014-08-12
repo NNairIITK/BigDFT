@@ -98,6 +98,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   call build_linear_combination_transposed(collcom, inv_ovrlp_half, inv_ovrlp_half_, &
        psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
 
+
   norm = f_malloc(orbs%norb,id='norm')
   call normalize_transposed(iproc, nproc, orbs, ovrlp%nspin, collcom, psit_c, psit_f, norm)
 
