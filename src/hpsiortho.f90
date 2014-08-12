@@ -2094,6 +2094,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
    !integer :: ierr
    type(fermi_aux) :: ft
 
+
    exitfermi=.false.
    !if (iproc.lt.1)  write(1000+iproc,*)  'ENTER Fermilevel',orbs%norbu,orbs%norbd,occopt
 

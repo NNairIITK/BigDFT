@@ -784,8 +784,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
            input%calculate_KS_residue,input%calculate_gap)
 
       call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
-      if (iproc==0) write(*,'(a,100f10.3)') 'in IG: orbs%eval',orbs%eval
-      call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
+      ! Keep the ocupations for the moment.. maybe to be activated later (with a better if statement)
+      if (input%Tel > 0.0_gp) then
+          call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
+      end if
       if (bigdft_mpi%iproc ==0) then
          call write_eigenvalues_data(0.1d0,kswfn%orbs,mom_vec_fake)
       end if
