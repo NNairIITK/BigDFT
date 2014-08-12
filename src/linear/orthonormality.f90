@@ -160,7 +160,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   real(kind=8),dimension(npsidim_orbs_small),intent(out) :: hpsi_noprecond
 
   ! Local variables
-  integer :: iorb, jorb, ii, ii_trans, irow, jcol, info, lwork, jj
+  integer :: iorb, jorb, ii, ii_trans, irow, jcol, info, lwork, jj, ispin, ishift
   real(kind=8) :: max_error, mean_error
   real(kind=8),dimension(:),allocatable :: tmp_mat_compr, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra
   integer,dimension(:),allocatable :: ipiv
@@ -195,15 +195,18 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   ! Calculate <phi_alpha|g_beta>
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
   tmp_mat_compr = sparsematrix_malloc(lagmat,iaction=SPARSE_FULL,id='tmp_mat_compr')
-  call vcopy(lagmat%nvctr, lagmat_%matrix_compr(1), 1, tmp_mat_compr(1), 1)
-  do ii=1,lagmat%nvctr
-     iorb = lagmat%orb_from_index(1,ii)
-     jorb = lagmat%orb_from_index(2,ii)
-     ii_trans=matrixindex_in_compressed(lagmat,jorb,iorb)
-     lagmat_%matrix_compr(ii) = -0.5d0*tmp_mat_compr(ii)-0.5d0*tmp_mat_compr(ii_trans)
-     !if (iorb==jorb) then
-     !    orbs%eval(iorb)=lagmat_%matrix_compr(ii)
-     !end if
+  call vcopy(lagmat%nvctr*lagmat%nspin, lagmat_%matrix_compr(1), 1, tmp_mat_compr(1), 1)
+  do ispin=1,lagmat%nspin
+      ishift=(ispin-1)*lagmat%nvctr
+      do ii=1,lagmat%nvctr
+         iorb = lagmat%orb_from_index(1,ii)
+         jorb = lagmat%orb_from_index(2,ii)
+         ii_trans=matrixindex_in_compressed(lagmat,jorb,iorb)
+         lagmat_%matrix_compr(ii+ishift) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
+         !if (iorb==jorb) then
+         !    orbs%eval(iorb)=lagmat_%matrix_compr(ii)
+         !end if
+      end do
   end do
   call f_free(tmp_mat_compr)
 
@@ -224,7 +227,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
 
   ! The symmetrized Lagrange multiplier matrix has now the wrong sign
-  call dscal(lagmat%nvctr, -1.d0, lagmat_%matrix_compr(1), 1)
+  call dscal(lagmat%nvctr*lagmat%nspin, -1.d0, lagmat_%matrix_compr(1), 1)
 
 
   call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)

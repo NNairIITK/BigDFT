@@ -51,7 +51,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i
-  integer :: lwork, info
+  integer :: lwork, info, ishift,ispin
   real(kind=8) :: ddot, tt, fnrmOvrlp_tot, fnrm_tot, fnrmold_tot, tt2
   character(len=*), parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8), dimension(:), pointer :: hpsittmp_c, hpsittmp_f
@@ -99,28 +99,36 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call timing(iproc,'eglincomms','ON')
-          kernel_compr_tmp = f_malloc_ptr(tmb%linmat%l%nvctr,id='kernel_compr_tmp')
-          call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
+          kernel_compr_tmp = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=SPARSE_FULL,id='kernel_compr_tmp')
+          call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
+          do ispin=1,tmb%linmat%l%nspin
+              ishift=(ispin-1)*tmb%linmat%l%nvctr
               do ii=1,tmb%linmat%l%nvctr
                       iiorb = tmb%linmat%l%orb_from_index(1,ii)
                       jjorb = tmb%linmat%l%orb_from_index(2,ii)
                   if(iiorb==jjorb) then
-                      tmb%linmat%kernel_%matrix_compr(ii)=0.d0
+                      tmb%linmat%kernel_%matrix_compr(ii+ishift)=0.d0
                   else
-                      tmb%linmat%kernel_%matrix_compr(ii)=kernel_compr_tmp(ii)
+                      tmb%linmat%kernel_%matrix_compr(ii+ishift)=kernel_compr_tmp(ii+ishift)
                   end if
               end do
-          !end do
+          end do
 
           ist=1
           do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
               ilr=tmb%orbs%inwhichlocreg(iorb)
+              if (tmb%orbs%spinsgn(iorb)>0.d0) then
+                  ispin=1
+              else
+                  ispin=2
+              end if
               do ii=1,tmb%linmat%l%nvctr
                       iiorb = tmb%linmat%l%orb_from_index(1,ii)
                       jjorb = tmb%linmat%l%orb_from_index(2,ii)
+                      ishift=(ispin-1)*tmb%linmat%l%nvctr
                       if(iiorb==jjorb .and. iiorb==iorb) then
                           ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
-                          call dscal(ncount, kernel_compr_tmp(ii), tmb%hpsi(ist), 1)
+                          call dscal(ncount, kernel_compr_tmp(ii+ishift), tmb%hpsi(ist), 1)
                           ist=ist+ncount
                       end if
               end do
@@ -131,7 +139,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
                tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           ! copy correct kernel back
-          call vcopy(tmb%linmat%l%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+          call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
           call f_free_ptr(kernel_compr_tmp)
       else
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
