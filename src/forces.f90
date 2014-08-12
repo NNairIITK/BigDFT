@@ -589,7 +589,7 @@ end subroutine rhocore_forces
 !> Calculates the local forces acting on the atoms belonging to iproc
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc,locstrten,charge)
-  use module_base
+  use module_base, pi => pi_param
   use module_types
   use yaml_output
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
@@ -604,7 +604,6 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   real(gp), dimension(3,at%astruct%nat), intent(out) :: floc
   real(gp), dimension(6), intent(out) :: locstrten
   !Local variables---------
-  real(kind=8), parameter :: pi=4.d0*atan(1.d0)
   logical :: perx,pery,perz,gox,goy,goz
   real(kind=8) :: prefactor,cutoff,rloc,Vel,rhoel
   real(kind=8) :: fxerf,fyerf,fzerf,fxion,fyion,fzion,fxgau,fygau,fzgau,forceleaked,forceloc

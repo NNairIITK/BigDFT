@@ -273,7 +273,6 @@ subroutine command_line_information(mpi_groupsize,posinp_file,run_id,ierr)
      command=repeat(' ',len(command))
      call get_command_argument(icommands,value=command,status=ierr)
      if (ierr /= 0) return
-     !print *,'test',ncommands,icommands,command
      call find_command()
      if (ierr /= 0) return
   end do
@@ -292,13 +291,13 @@ contains
        ipos=index(command,'=')
        read(command(ipos+1:len(command)),*)mpi_groupsize
     else if (index(command,'--run-id=') > 0) then
-       if (len_trim(run_id) > 0) then
+       if (trim(run_id) /= 'input') then
           ierr=bigdft_error_ret(BIGDFT_INVALID,'run_id specified twice')
        end if
        ipos=index(command,'=')
        read(command(ipos+1:len(command)),*)run_id
     else if (index(command,'--runs-file=') > 0) then
-       if (len_trim(posinp_file) > 0 .or. len_trim(run_id) >0) then
+       if (len_trim(posinp_file) > 0 .or. trim(run_id) /= 'input') then
           ierr=bigdft_error_ret(BIGDFT_INVALID,'posinp_file specified twice or run_id already known')
        end if
        ipos=index(command,'=')

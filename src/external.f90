@@ -32,7 +32,6 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
   if (ierr /= MPI_SUCCESS) return
 
   call command_line_information(mpi_groupsize,posinp_file,radical,ierr)
-
   call bigdft_init_mpi_env(mpi_info, mpi_groupsize, ierr)
 
   !minimum number of different configurations dictated by ngroups

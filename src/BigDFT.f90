@@ -148,7 +148,7 @@ subroutine test_dictionaries0()
 
   call yaml_dict_dump(d1)                                             !output the content of ''d1'' in the yaml format
 
-  d3 => d1//'New key'                                                 !point to ''d1''?
+  d3 => d1//'New key'                                                 !points to ''d1["New key"]'' (and creates it at the same time)
   call set(d3//'Example',4)                                           !add the key ''Example'' to ''d3'' and assign it the value 4
   call yaml_dict_dump(d3)                                             !output the content of ''d2'' in the yaml format
 

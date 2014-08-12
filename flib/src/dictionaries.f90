@@ -59,15 +59,15 @@ module dictionaries
 
    interface operator(.in.)
       module procedure key_in_dictionary
-   end interface operator(.in.)
+   end interface 
 
    interface operator(.notin.)
       module procedure key_notin_dictionary
-   end interface operator(.notin.)
+   end interface 
 
    interface operator(.pop.)
       module procedure pop_key,pop_item
-   end interface operator(.pop.)
+   end interface 
 
 !   interface operator(.poplast.)
 !      module procedure pop_last_item
@@ -85,6 +85,8 @@ module dictionaries
    interface assignment(=)
       module procedure get_value,get_integer,get_real,get_double,get_long,get_lg
       module procedure get_rvec,get_dvec,get_ilvec,get_ivec,get_lvec
+      !safe getter from list_container
+      module procedure safe_get_dict,safe_get_integer,safe_get_double,safe_get_real,safe_get_char
    end interface
 
    interface dict_remove
@@ -97,6 +99,13 @@ module dictionaries
 
    interface add
       module procedure add_char,add_dict,add_integer,add_real,add_double,add_long, add_log
+   end interface
+
+   !> used to retrieve the pointer to the dictionary which has the key,
+   !! if the keys exists. In the case it does not, it returns a nullified dictionary
+   !! should be used in assignments, like for example val= dict .get. "key"
+   interface operator(.get.)
+      module procedure list_container_if_key_exists
    end interface
 
    interface list_new
@@ -119,7 +128,7 @@ module dictionaries
    !> Public elements of dictionary_base
    public :: operator(.is.),operator(.item.)
    public :: operator(.pop.),operator(.notin.)
-   public :: operator(==),operator(/=),operator(.in.)
+   public :: operator(==),operator(/=),operator(.in.),operator(.get.)
    public :: dictionary,max_field_length,dict_get_num
 
 
@@ -460,8 +469,6 @@ contains
      logical, intent(in) :: val
      include 'dict_add-inc.f90'
    end subroutine add_log
-
-
 
    !> Defines a dictionary from a array of storage data
    function dict_new(dicts)
@@ -1089,7 +1096,19 @@ contains
 
      elem%dict=>val
    end function item_dict
+   
+   !> internal procedure for .get. operator interface
+   function list_container_if_key_exists(dict,key) result(list)
+     implicit none
+     type(dictionary), pointer, intent(in) :: dict
+     character(len=*), intent(in) :: key
+     type(list_container) :: list
+     
+     !if the dictionary is not associated, the list container is empty
+     if (trim(key) .in. dict) list%dict=>dict//trim(key)
+     !one might add a functionalty which implements the scalar value in list%val
 
+   end function list_container_if_key_exists
 
    !> Creates a list from a table of dictionaries
    function list_new(dicts)
@@ -1203,7 +1222,6 @@ contains
      end if
      if (f_err_raise(ierror/=0 .or. .not. is_atoi(val),'Value '//val,err_id=DICT_CONVERSION_ERROR)) return    
    end subroutine get_integer
-
 
    !> Set and get routines for different types
    subroutine get_long(ival,dict)
@@ -1336,6 +1354,42 @@ contains
      if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return
 
    end subroutine get_double
+
+   !safe getter, uses list_container as generated from the .get. operator
+   subroutine safe_get_dict(dict,el)
+     implicit none
+     type(dictionary), pointer, intent(inout) :: dict
+     type(list_container), intent(in) :: el
+     if (associated(el%dict)) dict=>el%dict
+   end subroutine safe_get_dict
+
+   subroutine safe_get_integer(val,el)
+     implicit none
+     integer, intent(inout) :: val
+     type(list_container), intent(in) :: el
+     if (associated(el%dict)) val=el%dict
+   end subroutine safe_get_integer
+
+   subroutine safe_get_double(val,el)
+     implicit none
+     double precision, intent(inout) :: val
+     type(list_container), intent(in) :: el
+     if (associated(el%dict)) val=el%dict
+   end subroutine safe_get_double
+
+   subroutine safe_get_real(val,el)
+     implicit none
+     real, intent(inout) :: val
+     type(list_container), intent(in) :: el
+     if (associated(el%dict)) val=el%dict
+   end subroutine safe_get_real
+
+   subroutine safe_get_char(val,el)
+     implicit none
+     character(len=*), intent(inout) :: val
+     type(list_container), intent(in) :: el
+     if (associated(el%dict)) val=el%dict
+   end subroutine safe_get_char
 
 
    !> Assign the value to the dictionary
