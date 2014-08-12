@@ -12,9 +12,36 @@ module module_minimizers
 
     private
 
-    public :: minimizer_sbfgs
+    public :: minimize
 
 contains
+
+subroutine minimize(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,&
+           fnoiseio,energyio,energycounter,converged,writePostfix)
+    use module_base
+    use module_global_variables, only: external_mini
+    implicit none
+    !parameter
+    integer, intent(in)                    :: nat, nbond,imode
+    real(gp), intent(inout)                :: energycounter
+    logical, intent(out)                   :: converged
+    real(gp), intent(inout)                :: rxyzio(3,nat)
+    real(gp), intent(inout)                :: fxyzio(3,nat)
+    real(gp), intent(inout)                :: alat(3,nat)
+    real(gp), intent(inout)                :: energyio,fnoiseio
+    integer, intent(in)                    :: iconnect(2,nbond)
+    character(len=*), intent(in)           :: writePostfix
+    !internal
+
+    if(.not.  external_mini)then
+        call minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,&
+             fxyzio,fnoiseio,energyio,energycounter,converged,&
+             writePostfix)
+    else
+        stop 'interface to external minimizers not implemented yet'
+    endif
+    
+end subroutine
 
 !subroutine geopt(nat,wpos,etot,fout,fnrmtol,count,count_sd,displr)
 subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,energyio,energycounter,converged,writePostfix)

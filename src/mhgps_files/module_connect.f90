@@ -186,6 +186,7 @@ use module_energyandforces
           cobj%saddle(1,1,nsad),cobj%minmode(1,1,nsad),tsgenergy,&
           tsgforces(1,1))
 
+
     !compute saddle
     ener_count=0.0_gp
     call findsad(nat,alat,rcov,nbond,iconnect,cobj%saddle(1,1,nsad),&
@@ -233,7 +234,7 @@ use module_energyandforces
     ener_count=0.0_gp
     call energyandforces(nat,alat,cobj%leftmin(1,1,nsad),&
     cobj%fleft(1,1,nsad),fnoise,cobj%enerleft(nsad))
-    call minimizer_sbfgs(imode,nat,alat,nbond,iconnect,&
+    call minimize(imode,nat,alat,nbond,iconnect,&
                         cobj%leftmin(1,1,nsad),cobj%fleft(1,1,nsad),&
                         fnoise,cobj%enerleft(nsad),&
                         ener_count,converged,'L')
@@ -249,7 +250,7 @@ use module_energyandforces
     ener_count=0.0_gp
     call energyandforces(nat,alat,cobj%rightmin(1,1,nsad),&
     cobj%fright(1,1,nsad),fnoise,cobj%enerright(nsad))
-    call minimizer_sbfgs(imode,nat,alat,nbond,iconnect,&
+    call minimize(imode,nat,alat,nbond,iconnect,&
                         cobj%rightmin(1,1,nsad),cobj%fright(1,1,nsad)&
                        ,fnoise,cobj%enerright(nsad),&
                         ener_count,converged,'R')

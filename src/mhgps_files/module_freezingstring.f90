@@ -24,7 +24,8 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
                   gammainv => ts_guess_gammainv,&
                   perpnrmtol => ts_guess_perpnrmtol,&
                   trust => ts_guess_trust,&
-                  nstepsmax => ts_guess_nstepsmax
+                  nstepsmax => ts_guess_nstepsmax,&
+                  ef_counter
     use module_energyandforces
     implicit none
     !parameters
@@ -50,9 +51,11 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
     real(gp) :: emax
     real(gp) :: tau,rdmy
     real(gp) :: yp1=huge(1._gp), ypn=huge(1._gp)!natural splines
+    real(gp) :: efcounter_start
     !functions
     real(gp) :: dnrm2
 
+    efcounter_start=ef_counter
     if(iproc==0)then
         call yaml_comment('(MHGPS) Generating TS input guess ....',&
                           hfill='-')
@@ -177,6 +180,8 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
     if(iproc==0 .and. mhgps_verbosity>=5)then
         call write_path(nat,npath,path,energies,tangent)
     endif     
+    if(iproc==0)call yaml_map('(MHGPS) # Energy evaluations for TS guess:',&
+                              ef_counter-efcounter_start)
 
     call f_free(string) 
     call f_free(path) 
@@ -189,7 +194,6 @@ end subroutine
 !=====================================================================
 subroutine write_path(nat,npath,path,energies,tangent)
     use module_base
-    use yaml_output
     use module_interfaces
     use module_global_variables, only: isadc, atoms,ixyz_int,&
                                        currDir
@@ -286,7 +290,7 @@ subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
                  finished)
             if(finished/=0)then
 !if(i/=nstring)stop'DEBUGGING i/=nstring'
-               if(perpnrmtol>0)& 
+               if(perpnrmtol>0 .and. nstepsmax > 0)& 
                 call optim_cg(nat,alat,finished,step,gammainv,&
                     perpnrmtol_squared,trust_squared,nstepsmax,&
                     tangentleft,tangentright,string(1,1,i+1),&
