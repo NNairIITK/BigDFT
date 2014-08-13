@@ -247,13 +247,14 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       eval = f_malloc(tmb%linmat%l%nfvctr,id='eval')
 
       do ispin=1,tmb%linmat%s%nspin
-          if (ispin==1) then
-              ishift=0
-              ii=orbs%norbu
-          else
-              ishift=orbs%norbu
-              ii=orbs%norbd
-          end if
+          !if (ispin==1) then
+          !    ishift=0
+          !    !ii=orbs%norbu
+          !    tmb%linmat%
+          !else
+          !    ishift=orbs%norbu
+          !    ii=orbs%norbd
+          !end if
           !ishift=(ispin-1)*tmb%linmat%s%nfvctr
           call vcopy(tmb%linmat%m%nfvctr**2, tmb%linmat%ham_%matrix(1,1,ispin), 1, matrixElements(1,1,1), 1)
           call vcopy(tmb%linmat%m%nfvctr**2, tmb%linmat%ovrlp_%matrix(1,1,ispin), 1, matrixElements(1,1,2), 1)
@@ -276,10 +277,17 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
                    matrixElements(1,1,1), tmb%linmat%m%nfvctr, matrixElements(1,1,2), tmb%linmat%m%nfvctr, &
                    eval, info)
           end if
-          if (iproc==0) write(*,'(a,3i6,100f9.2)') 'ispin, ishift+1, ishift+ii, evals', ispin, ishift+1, ishift+ii, tmb%orbs%eval(ishift+1:ishift+ii)
+          !if (iproc==0) write(*,'(a,3i6,100f9.2)') 'ispin, ishift+1, ishift+ii, evals', ispin, ishift+1, ishift+ii, tmb%orbs%eval(ishift+1:ishift+ii)
 
+          ! copy all the eigenvalues
+          !tmb%orbs%eval(ishift+1:ishift+ii) = eval(1:ii-ishift)
+          call vcopy(tmb%linmat%m%nfvctr, eval(1), 1, tmb%orbs%eval((ispin-1)*tmb%linmat%m%nfvctr+1), 1)
           ! copy the eigenvalues of the occupied states
-          tmb%orbs%eval(ishift+1:ishift+ii) = eval(1:ii-ishift)
+          if (ispin==1) then
+              call vcopy(orbs%norbu, eval(1), 1, orbs%eval(1), 1)
+          else
+              call vcopy(orbs%norbd, eval(1), 1, orbs%eval(orbs%norbu+1), 1)
+          end if
 
           ! Make sure that the eigenvectors have the same sign on all MPI tasks.
           ! To do so, ensure that the first entry is always positive.
@@ -498,6 +506,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(matrices) :: ovrlp_old
   type(workarrays_quartic_convolutions),dimension(:),allocatable :: precond_convol_workarrays
   type(workarr_precond),dimension(:),allocatable :: precond_workarrays
+  integer :: iiorb, ilr, i, ist
 
   call f_routine(id='getLocalizedBasis')
 
@@ -689,6 +698,20 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               if (iproc==0) call yaml_sequence_close()
           end if
       else
+          !!ist=0
+          !!do iorb=1,tmb%orbs%norbp
+          !!    iiorb=tmb%orbs%isorb+iorb
+          !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
+          !!    ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
+          !!    do i=1,ncount
+          !!        ist=ist+1
+          !!        if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+          !!            write(4101,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, vals', iiorb, ist, tmb%orbs%spinsgn(iiorb), tmb%hpsi(ist)
+          !!        else
+          !!            write(4102,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, val', iiorb, ist, tmb%orbs%spinsgn(iiorb), tmb%hpsi(ist)
+          !!        end if
+          !!    end do
+          !!end do
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
       end if

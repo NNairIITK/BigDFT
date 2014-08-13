@@ -198,10 +198,39 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        overlap_calculated, experimental_mode, norder_taylor, max_inversion_error, &
        tmb%npsidim_orbs, tmb%lzd, hpsi_noprecond)
 
+       !!ist=0
+       !!do iorb=1,tmb%orbs%norbp
+       !!    iiorb=tmb%orbs%isorb+iorb
+       !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
+       !!    ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
+       !!    do i=1,ncount
+       !!        ist=ist+1
+       !!        if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+       !!            write(4201,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, vals', iiorb, ist, tmb%orbs%spinsgn(iiorb), tmb%hpsi(ist)
+       !!        else
+       !!            write(4202,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, val', iiorb, ist, tmb%orbs%spinsgn(iiorb), tmb%hpsi(ist)
+       !!        end if
+       !!    end do
+       !!end do
 
 
   call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
        tmb%orbs, tmb%hpsi, hpsi_small)
+
+  !!ist=0
+  !!do iorb=1,tmb%orbs%norbp
+  !!    iiorb=tmb%orbs%isorb+iorb
+  !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
+  !!    ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!    do i=1,ncount
+  !!        ist=ist+1
+  !!        if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+  !!            write(4301,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, vals', iiorb, ist, tmb%orbs%spinsgn(iiorb), hpsi_small(ist)
+  !!        else
+  !!            write(4302,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, val', iiorb, ist, tmb%orbs%spinsgn(iiorb), hpsi_small(ist)
+  !!        end if
+  !!    end do
+  !!end do
 
 
   ! Calculate trace (or band structure energy, resp.)
@@ -366,6 +395,21 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero,&
           precond_convol_workarrays, precond_workarrays)
   end if
+
+  !!ist=0
+  !!do iorb=1,tmb%orbs%norbp
+  !!    iiorb=tmb%orbs%isorb+iorb
+  !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
+  !!    ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!    do i=1,ncount
+  !!        ist=ist+1
+  !!        if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+  !!            write(4401,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, vals', iiorb, ist, tmb%orbs%spinsgn(iiorb), hpsi_small(ist)
+  !!        else
+  !!            write(4402,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, val', iiorb, ist, tmb%orbs%spinsgn(iiorb), hpsi_small(ist)
+  !!        end if
+  !!    end do
+  !!end do
 
   if (iproc==0) then
       call yaml_map('Preconditioning',.true.)

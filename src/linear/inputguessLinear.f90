@@ -783,7 +783,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
 
-      call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
+      !call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
       ! Keep the ocupations for the moment.. maybe to be activated later (with a better if statement)
       if (input%Tel > 0.0_gp) then
           call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
