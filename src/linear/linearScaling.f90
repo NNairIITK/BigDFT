@@ -655,8 +655,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                      denspot%rhov,it_scc+1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                      at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                      pnrm,denspot%dpbox%nscatterarr)
-                     write(*,*) 'denspot%mix%nspden',denspot%mix%nspden
-                     pnrm=pnrm/real(denspot%mix%nspden,kind=8)
+                     !!write(*,*) 'after mix_rhopot 1.1: pnrm', pnrm
+                !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+                pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
+                     !!write(*,*) 'after mix_rhopot 1.2: pnrm', pnrm
                 call check_negative_rho(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
                      denspot%rhov, rho_negative)
                 if (rho_negative) then
@@ -721,7 +723,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                      denspot%rhov,it_scc+1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                      at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                      pnrm,denspot%dpbox%nscatterarr)
-                pnrm=pnrm/real(denspot%mix%nspden,kind=8)
+                    write(*,*) 'after mix_rhopot 1.1: pnrm', pnrm
+                !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+                pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
+                    write(*,*) 'after mix_rhopot 1.2: pnrm', pnrm
                 if (pnrm<convCritMix .or. it_scc==nit_scc .and. (.not. input%lin%constrained_dft)) then
                    ! calculate difference in density for convergence criterion of outer loop
                    pnrm_out=0.d0

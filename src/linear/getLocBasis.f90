@@ -261,13 +261,13 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           if (iproc==0) call yaml_map('method','diagonalization')
           if(tmb%orthpar%blocksize_pdsyev<0) then
               if (iproc==0) call yaml_map('mode','sequential')
-              if (iproc==0) then
-                  do iorb=1,tmb%linmat%m%nfvctr
-                      do jorb=1,tmb%linmat%m%nfvctr
-                          write(690+ispin,'(a,2i8,2f15.8)') 'iorb, jorb, vals', iorb, jorb, matrixElements(jorb,iorb,:)
-                      end do
-                  end do
-              end if
+              !!if (iproc==0) then
+              !!    do iorb=1,tmb%linmat%m%nfvctr
+              !!        do jorb=1,tmb%linmat%m%nfvctr
+              !!            write(690+ispin,'(a,2i8,2f15.8)') 'iorb, jorb, vals', iorb, jorb, matrixElements(jorb,iorb,:)
+              !!        end do
+              !!    end do
+              !!end if
               call diagonalizeHamiltonian2(iproc, tmb%linmat%m%nfvctr, &
                    matrixElements(1,1,1), matrixElements(1,1,2), eval)
           else
@@ -312,17 +312,17 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       call f_free(eval)
 
-      if (iproc==0) then
-          do iorb=1,orbs%norb
-              do jorb=1,tmb%linmat%m%nfvctr
-                  if (orbs%spinsgn(iorb)>0.d0) then
-                      write(620,*) 'iorb, jorb, val', iorb, jorb, tmb%coeff(jorb,iorb)
-                  else
-                      write(621,*) 'iorb, jorb, val', iorb, jorb, tmb%coeff(jorb,iorb)
-                  end if
-              end do
-          end do
-      end if
+      !!if (iproc==0) then
+      !!    do iorb=1,orbs%norb
+      !!        do jorb=1,tmb%linmat%m%nfvctr
+      !!            if (orbs%spinsgn(iorb)>0.d0) then
+      !!                write(620,*) 'iorb, jorb, val', iorb, jorb, tmb%coeff(jorb,iorb)
+      !!            else
+      !!                write(621,*) 'iorb, jorb, val', iorb, jorb, tmb%coeff(jorb,iorb)
+      !!            end if
+      !!        end do
+      !!    end do
+      !!end if
 
       call f_free(matrixElements)
   else if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
@@ -360,19 +360,19 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call f_free_ptr(tmb%linmat%ham_%matrix)
       call f_free_ptr(tmb%linmat%ovrlp_%matrix)
 
-      if (iproc==0) then
-          ii=0
-          do ispin=1,tmb%linmat%l%nspin
-              do iorb=1,tmb%linmat%l%nvctr
-                  ii=ii+1
-                  if (ispin==1) then
-                      write(630,'(a,2i8,f14.7)') 'ispin, iorb, val', ispin, iorb, tmb%linmat%kernel_%matrix_compr(ii)
-                  else
-                      write(631,'(a,2i8,f14.7)') 'ispin, iorb, val', ispin, iorb, tmb%linmat%kernel_%matrix_compr(ii)
-                  end if
-              end do
-          end do
-      end if
+      !!if (iproc==0) then
+      !!    ii=0
+      !!    do ispin=1,tmb%linmat%l%nspin
+      !!        do iorb=1,tmb%linmat%l%nvctr
+      !!            ii=ii+1
+      !!            if (ispin==1) then
+      !!                write(630,'(a,2i8,f14.7)') 'ispin, iorb, val', ispin, iorb, tmb%linmat%kernel_%matrix_compr(ii)
+      !!            else
+      !!                write(631,'(a,2i8,f14.7)') 'ispin, iorb, val', ispin, iorb, tmb%linmat%kernel_%matrix_compr(ii)
+      !!            end if
+      !!        end do
+      !!    end do
+      !!end if
 
   else ! foe
 

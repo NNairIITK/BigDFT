@@ -492,9 +492,10 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
      if (iproc == 0) write(0,*) errmess
      call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
   end if
-  write(*,*) 'in mix_rhopot: iproc, rpnrm', iproc, rpnrm
+  !!write(*,*) 'in mix_rhopot: iproc, rpnrm', iproc, rpnrm
   rpnrm = sqrt(rpnrm) / real(n1 * n2 * n3, gp)
   rpnrm = rpnrm / (1.d0 - alphamix)
+  !!write(*,*) 'in mix_rhopot 2: iproc, rpnrm', iproc, rpnrm
 
   call f_free(user_data)
   ! Copy new in vrespc

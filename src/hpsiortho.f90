@@ -1120,7 +1120,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
 
    odp = (xc_exctXfac(xc) /= 0.0_gp .or. (dpbox%i3rho_add /= 0 .and. orbs%norbp > 0))
 
-   write(*,'(a,100i4)') 'in full_local_potential: orbs%inwhichlocreg',orbs%inwhichlocreg
+   !!write(*,'(a,100i4)') 'in full_local_potential: orbs%inwhichlocreg',orbs%inwhichlocreg
 
    !############################################################################
    ! Build the potential on the whole simulation box
@@ -1248,7 +1248,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       ilrtable=1
    end if
 
-   write(*,'(a,100i4)') 'in full_local_potential: ilrtable', ilrtable
+   !!write(*,'(a,100i4)') 'in full_local_potential: ilrtable', ilrtable
 
 
 !!$   !calculate the dimension of the potential in the gathered form 

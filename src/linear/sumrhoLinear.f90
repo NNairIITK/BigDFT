@@ -278,13 +278,13 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
                 call vcopy(denskern%nfvctr,coeff(1,orbs%isorb+iorb),1,fcoeff(1,iorb),1)
              end do
           end if
-      if (iproc==0) then
-          do iorb=1,orbs%norbp
-              do jorb=1,denskern%nfvctr
-                  write(970,'(a,2i9,f14.7)') 'iorb, jorb, fcoeff(jorb,iorb)', iorb, jorb, fcoeff(jorb,iorb)
-              end do
-          end do
-      end if
+      !!if (iproc==0) then
+      !!    do iorb=1,orbs%norbp
+      !!        do jorb=1,denskern%nfvctr
+      !!            write(970,'(a,2i9,f14.7)') 'iorb, jorb, fcoeff(jorb,iorb)', iorb, jorb, fcoeff(jorb,iorb)
+      !!        end do
+      !!    end do
+      !!end if
           !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), orbs_tmb%norb, &
           !     fcoeff(1,1), orbs_tmb%norb, 0.d0, denskern_%matrix(1,1,1), orbs_tmb%norb)
           call to_zero(denskern%nspin*denskern%nfvctr**2, denskern_%matrix(1,1,1))
@@ -304,15 +304,15 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
       end if
       call timing(iproc,'calc_kernel','OF') !lr408t
 
-      if (iproc==0) then
-          do ispin=1,denskern%nspin
-              do iorb=1,denskern%nfvctr
-                  do jorb=1,denskern%nfvctr
-                      write(940+ispin,'(a,3i9,f14.7)') 'ispin, iorb, jorb, denskern_%matrix(jorb,iorb,ispin)', ispin, iorb, jorb, denskern_%matrix(jorb,iorb,ispin)
-                  end do
-              end do
-          end do
-      end if
+      !!if (iproc==0) then
+      !!    do ispin=1,denskern%nspin
+      !!        do iorb=1,denskern%nfvctr
+      !!            do jorb=1,denskern%nfvctr
+      !!                write(940+ispin,'(a,3i9,f14.7)') 'ispin, iorb, jorb, denskern_%matrix(jorb,iorb,ispin)', ispin, iorb, jorb, denskern_%matrix(jorb,iorb,ispin)
+      !!            end do
+      !!        end do
+      !!    end do
+      !!end if
 
       call timing(iproc,'waitAllgatKern','ON')
       call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
@@ -834,9 +834,9 @@ subroutine check_communication_potential(iproc,denspot,tmb)
   call full_local_potential(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%orbs,tmb%ham_descr%lzd,&
        2,denspot%dpbox,denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
 
-  do ind=1,tmb%ham_descr%comgp%nspin*tmb%ham_descr%comgp%nrecvbuf
-      write(5200+iproc,'(a,i10,es16.7)') 'ind, val', ind, tmb%ham_descr%comgp%recvbuf(ind)
-  end do
+  !!do ind=1,tmb%ham_descr%comgp%nspin*tmb%ham_descr%comgp%nrecvbuf
+  !!    write(5200+iproc,'(a,i10,es16.7)') 'ind, val', ind, tmb%ham_descr%comgp%recvbuf(ind)
+  !!end do
 
 
   maxdiff=0.0_dp
@@ -1052,17 +1052,17 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   !! END TEST #############################
 
 
-  ! TEST #################################
-  do ispin=1,denskern%nspin
-      do ipt=1,collcom_sr%nptsp_c
-          ii=collcom_sr%norb_per_gridpoint_c(ipt)
-          i0=collcom_sr%isptsp_c(ipt)+(ispin-1)*collcom_sr%ndimind_c/2
-          do i=1,ii
-              if (iproc==0) write(3000+iproc,'(a,4i9,f11.2)') 'ipt, i0, i, npg, val', ipt, i0, i, ii, collcom_sr%psit_c(i0+i)
-          end do
-      end do
-  end do
-  ! END TEST #############################
+  !!! TEST #################################
+  !!do ispin=1,denskern%nspin
+  !!    do ipt=1,collcom_sr%nptsp_c
+  !!        ii=collcom_sr%norb_per_gridpoint_c(ipt)
+  !!        i0=collcom_sr%isptsp_c(ipt)+(ispin-1)*collcom_sr%ndimind_c/2
+  !!        do i=1,ii
+  !!            if (iproc==0) write(3000+iproc,'(a,4i9,f11.2)') 'ipt, i0, i, npg, val', ipt, i0, i, ii, collcom_sr%psit_c(i0+i)
+  !!        end do
+  !!    end do
+  !!end do
+  !!! END TEST #############################
 
   ! Transposed workarray not needed anymore
   call f_free(psirtwork)

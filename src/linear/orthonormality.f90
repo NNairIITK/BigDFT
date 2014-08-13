@@ -57,21 +57,21 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   if(.not.can_use_transposed) then
       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
-      do i=1,collcom%ndimind_c
-          write(750+iproc,'(a,2i8,es14.5)') 'i, mod(i-1,ndimind_c/2)+1, val', i, mod(i-1,collcom%ndimind_c/2)+1, psit_c(i)
-      end do
+      !!do i=1,collcom%ndimind_c
+      !!    write(750+iproc,'(a,2i8,es14.5)') 'i, mod(i-1,ndimind_c/2)+1, val', i, mod(i-1,collcom%ndimind_c/2)+1, psit_c(i)
+      !!end do
   end if
 
   ovrlp_ = matrices_null()
   call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
-  ii=0
-  do ispin=1,ovrlp%nspin
-      do i=1,ovrlp%nvctr
-          ii=ii+1
-          write(930+iproc,*) 'ii, i, val', ii, i, ovrlp_%matrix_compr(ii)
-      end do
-  end do
+  !!ii=0
+  !!do ispin=1,ovrlp%nspin
+  !!    do i=1,ovrlp%nvctr
+  !!        ii=ii+1
+  !!        write(930+iproc,*) 'ii, i, val', ii, i, ovrlp_%matrix_compr(ii)
+  !!    end do
+  !!end do
 
 
   if (methTransformOverlap==-1) then
@@ -85,13 +85,13 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
       !if (iproc==0) call yaml_map('max error',max_error)
       !if (iproc==0) call yaml_map('mean error',mean_error)
       call check_taylor_order(mean_error, max_inversion_error, methTransformOverlap)
-      ii=0
-      do ispin=1,inv_ovrlp_half%nspin
-          do i=1,inv_ovrlp_half%nvctr
-              ii=ii+1
-              write(1930+iproc,*) 'ii, i, val', ii, i, inv_ovrlp_half_%matrix_compr(ii)
-          end do
-      end do
+      !!ii=0
+      !!do ispin=1,inv_ovrlp_half%nspin
+      !!    do i=1,inv_ovrlp_half%nvctr
+      !!        ii=ii+1
+      !!        write(1930+iproc,*) 'ii, i, val', ii, i, inv_ovrlp_half_%matrix_compr(ii)
+      !!    end do
+      !!end do
   end if
 
   call deallocate_matrices(ovrlp_)
@@ -1281,17 +1281,17 @@ subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_
            !!      write(2000+bigdft_mpi%iproc,'(a,3i8,es16.7)') 'iproc, iorb, jorb, val', bigdft_mpi%iproc, iorb, jorb, inv_ovrlp_half(jorb,iorb)
            !!   end do
            !!end do
-        do jorb=1,norb
-            do korb=1,norb
-                write(910,'(a,2i8,es14.5)') 'jorb, korb, inv_ovrlp_half(korb,jorb)', jorb, korb, inv_ovrlp_half(korb,jorb)
-            end do
-        end do
+        !!do jorb=1,norb
+        !!    do korb=1,norb
+        !!        write(910,'(a,2i8,es14.5)') 'jorb, korb, inv_ovrlp_half(korb,jorb)', jorb, korb, inv_ovrlp_half(korb,jorb)
+        !!    end do
+        !!end do
         call dsyev('v', 'l', norb, inv_ovrlp_half(1,1), norb, eval, work, lwork, info)
-        do jorb=1,norb
-            do korb=1,norb
-                write(920,'(a,2i8,es14.5)') 'jorb, korb, inv_ovrlp_half(korb,jorb)', jorb, korb, inv_ovrlp_half(korb,jorb)
-            end do
-        end do
+        !!do jorb=1,norb
+        !!    do korb=1,norb
+        !!        write(920,'(a,2i8,es14.5)') 'jorb, korb, inv_ovrlp_half(korb,jorb)', jorb, korb, inv_ovrlp_half(korb,jorb)
+        !!    end do
+        !!end do
         if (check_lapack) then
            tempArr=f_malloc((/norb,norb/), id='tempArr')
            do iorb=1,norb
@@ -1852,13 +1852,13 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
   !end if
   !call mpi_barrier(bigdft_mpi%mpi_comm,istat)
 
-  ii=0
-  do ispin=1,ovrlp%nspin
-      do i=1,ovrlp%nvctr
-          ii=ii+1
-          write(950+iproc,*) 'ii, i, val', ii, i, ovrlp_mat%matrix_compr(ii)
-      end do
-  end do
+  !!ii=0
+  !!do ispin=1,ovrlp%nspin
+  !!    do i=1,ovrlp%nvctr
+  !!        ii=ii+1
+  !!        write(950+iproc,*) 'ii, i, val', ii, i, ovrlp_mat%matrix_compr(ii)
+  !!    end do
+  !!end do
 
 
   spin_loop: do ispin=1,ovrlp%nspin
@@ -1909,11 +1909,11 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
               
          ovrlp_tmp_inv_half = f_malloc_ptr((/n,n/),id='ovrlp_tmp_inv_half')
          call vcopy(n*n, ovrlp_tmp(1,1), 1, ovrlp_tmp_inv_half(1,1), 1)
-         do jorb=1,n
-             do korb=1,n
-                 write(900,'(a,2i8,es14.5)') 'jorb, korb, ovrlp_tmp(korb,jorb)', jorb, korb, ovrlp_tmp(korb,jorb)
-             end do
-         end do
+         !!do jorb=1,n
+         !!    do korb=1,n
+         !!        write(900,'(a,2i8,es14.5)') 'jorb, korb, ovrlp_tmp(korb,jorb)', jorb, korb, ovrlp_tmp(korb,jorb)
+         !!    end do
+         !!end do
 
          !if (iiorb==orbs%norb) then
          !print*,''

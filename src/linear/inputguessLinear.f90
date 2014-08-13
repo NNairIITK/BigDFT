@@ -432,22 +432,22 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
        psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),tmb%psi)
   tmb%can_use_transposed=.false.
 
-  ii=0
-  do iorb=1,tmb%orbs%norbp
-      iiorb=tmb%orbs%isorb+iorb
-      ilr=tmb%orbs%inwhichlocreg(iiorb)
-      if (tmb%orbs%spinsgn(iiorb)>0.d0) then
-          do i=1,tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-              ii=ii+1
-              write(600,'(a,4i9,es16.7)') 'iorb, iiorb, ilr, i, val', iorb, iiorb, ilr, i, tmb%psi(ii)
-          end do
-      else
-          do i=1,tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-              ii=ii+1
-              write(610,'(a,4i9,es16.7)') 'iorb, iiorb, ilr, i, val', iorb, iiorb, ilr, i, tmb%psi(ii)
-          end do
-      end if
-  end do
+  !!ii=0
+  !!do iorb=1,tmb%orbs%norbp
+  !!    iiorb=tmb%orbs%isorb+iorb
+  !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
+  !!    if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+  !!        do i=1,tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!            ii=ii+1
+  !!            write(600,'(a,4i9,es16.7)') 'iorb, iiorb, ilr, i, val', iorb, iiorb, ilr, i, tmb%psi(ii)
+  !!        end do
+  !!    else
+  !!        do i=1,tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!            ii=ii+1
+  !!            write(610,'(a,4i9,es16.7)') 'iorb, iiorb, ilr, i, val', iorb, iiorb, ilr, i, tmb%psi(ii)
+  !!        end do
+  !!    end if
+  !!end do
 
   call f_free_ptr(psigau)
 
@@ -499,13 +499,13 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!stop
 
 
-  jj=0
-  do ispin=1,input%nspin
-      do ii=1,size(denspot%rhov)/input%nspin
-          jj=jj+1
-          write(9600+10*iproc+ispin,'(a,i9,es16.5)') 'ii, val', ii, denspot%rhov(jj)
-      end do
-  end do
+  !!jj=0
+  !!do ispin=1,input%nspin
+  !!    do ii=1,size(denspot%rhov)/input%nspin
+  !!        jj=jj+1
+  !!        write(9600+10*iproc+ispin,'(a,i9,es16.5)') 'ii, val', ii, denspot%rhov(jj)
+  !!    end do
+  !!end do
 
   if (input%lin%mixing_after_inputguess) then
       if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
@@ -516,26 +516,27 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
                denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                pnrm,denspot%dpbox%nscatterarr)
-          pnrm=pnrm/real(denspot%mix%nspden,kind=8)
+          !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+          pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
       end if
   end if
   !do ii=1,size(denspot%rhov)
   !    write(9600+iproc,'(a,2i9,es16.5)') 'ii, mod(ii-1,size(denspot%rhov)/2)+1, val', &
   !        ii, mod(ii-1,size(denspot%rhov)/2)+1, denspot%rhov(ii)
   !end do
-  jj=0
-  do ispin=1,input%nspin
-      do ii=1,size(denspot%rhov)/input%nspin
-          jj=jj+1
-          write(9700+10*iproc+ispin,'(a,i9,es16.5)') 'ii, val', ii, denspot%rhov(jj)
-          !if (ispin==2) then
-          !    denspot%rhov(jj)=denspot%rhov(jj-size(denspot%rhov)/input%nspin)
-          !    write(9800+10*iproc+ispin,'(a,i9,es16.5)') 'ii, val', ii, denspot%rhov(jj)
-          !end if
-      end do
-  end do
+  !!jj=0
+  !!do ispin=1,input%nspin
+  !!    do ii=1,size(denspot%rhov)/input%nspin
+  !!        jj=jj+1
+  !!        write(9700+10*iproc+ispin,'(a,i9,es16.5)') 'ii, val', ii, denspot%rhov(jj)
+  !!        !if (ispin==2) then
+  !!        !    denspot%rhov(jj)=denspot%rhov(jj-size(denspot%rhov)/input%nspin)
+  !!        !    write(9800+10*iproc+ispin,'(a,i9,es16.5)') 'ii, val', ii, denspot%rhov(jj)
+  !!        !end if
+  !!    end do
+  !!end do
   call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-  write(*,*) 'after first updatePotential'
+  !!write(*,*) 'after first updatePotential'
 
   !!write(*,'(a,4i8)') 'iproc, denspot%dpbox%n3d, denspot%dpbox%n3p, denspot%dpbox%nscatterarr(iproc,2)', &
   !!                    iproc, denspot%dpbox%n3d, denspot%dpbox%n3p, denspot%dpbox%nscatterarr(iproc,2)
@@ -557,7 +558,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
                denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                pnrm,denspot%dpbox%nscatterarr)
-          pnrm=pnrm/real(denspot%mix%nspden,kind=8)
+          !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+          pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
       end if
   end if
   if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
@@ -755,22 +757,22 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       !call yaml_comment('kernel iter:'//yaml_toa(0,fmt='(i6)'),hfill='-')
   end if
 
-  ii=0
-  do iorb=1,tmb%orbs%norbp
-      iiorb=tmb%orbs%isorb+iorb
-      ilr=tmb%orbs%inwhichlocreg(iiorb)
-      if (tmb%orbs%spinsgn(iiorb)>0.d0) then
-          do i=1,tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-              ii=ii+1
-              write(1600,'(a,4i9,es16.7)') 'iorb, iiorb, ilr, i, val', iorb, iiorb, ilr, i, tmb%psi(ii)
-          end do
-      else
-          do i=1,tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-              ii=ii+1
-              write(1610,'(a,4i9,es16.7)') 'iorb, iiorb, ilr, i, val', iorb, iiorb, ilr, i, tmb%psi(ii)
-          end do
-      end if
-  end do
+  !!ii=0
+  !!do iorb=1,tmb%orbs%norbp
+  !!    iiorb=tmb%orbs%isorb+iorb
+  !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
+  !!    if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+  !!        do i=1,tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!            ii=ii+1
+  !!            write(1600,'(a,4i9,es16.7)') 'iorb, iiorb, ilr, i, val', iorb, iiorb, ilr, i, tmb%psi(ii)
+  !!        end do
+  !!    else
+  !!        do i=1,tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!            ii=ii+1
+  !!            write(1610,'(a,4i9,es16.7)') 'iorb, iiorb, ilr, i, val', iorb, iiorb, ilr, i, tmb%psi(ii)
+  !!        end do
+  !!    end if
+  !!end do
 
   order_taylor=input%lin%order_taylor ! since this is intent(inout)
   if (input%lin%scf_mode==LINEAR_FOE) then
@@ -832,7 +834,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
               denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
               at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
               pnrm,denspot%dpbox%nscatterarr)
-         pnrm=pnrm/real(denspot%mix%nspden,kind=8)
+         !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+         pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
      else
          !!call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
          !!     denspot, mixdiis, rhopotold, pnrm)
@@ -840,7 +843,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
               denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
               at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
               pnrm,denspot%dpbox%nscatterarr)
-         pnrm=pnrm/real(denspot%mix%nspden,kind=8)
+         !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+         pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
      end if
   end if
 
@@ -851,7 +855,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
            denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
            at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
            pnrm,denspot%dpbox%nscatterarr)
-      pnrm=pnrm/real(denspot%mix%nspden,kind=8)
+      !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+      pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
   end if
   if (iproc==0) call yaml_newline()
   call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
@@ -864,7 +869,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
           denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
           at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
           pnrm,denspot%dpbox%nscatterarr)
-     pnrm=pnrm/real(denspot%mix%nspden,kind=8)
+     !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+     pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
   end if
 
 
@@ -875,7 +881,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
            denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
            at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
            pnrm,denspot%dpbox%nscatterarr)
-      pnrm=pnrm/real(denspot%mix%nspden,kind=8)
+      !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+      pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
   end if
 
 

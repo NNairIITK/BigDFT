@@ -75,12 +75,12 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,linmat
    end do
 
    call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psi, psit_c, psit_f, lzd)
-   do i=1,size(psit_c)
-       write(7000+iproc,*) i, psit_c(i)
-   end do
-   do i=1,size(psit_f)
-       write(7100+iproc,*) i, psit_f(i)
-   end do
+   !!do i=1,size(psit_c)
+   !!    write(7000+iproc,*) i, psit_c(i)
+   !!end do
+   !!do i=1,size(psit_f)
+   !!    write(7100+iproc,*) i, psit_f(i)
+   !!end do
    
    !check the results of the transposed wavefunction
    maxdiff=0.0_wp
@@ -191,9 +191,9 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,linmat
    !@NEW: check the calculation of the overlap matrices #############
    call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, &
         psit_c, psit_f, psit_f, linmat%s, linmat%ovrlp_)
-   do i=1,linmat%s%nvctr*nspin
-       write(6000+iproc,'(a,2i8,es16.7)') 'i, mod(i-1,nvctr)+1, val', i, mod(i-1,linmat%s%nvctr)+1, linmat%ovrlp_%matrix_compr(i)
-   end do
+   !!do i=1,linmat%s%nvctr*nspin
+   !!    write(6000+iproc,'(a,2i8,es16.7)') 'i, mod(i-1,nvctr)+1, val', i, mod(i-1,linmat%s%nvctr)+1, linmat%ovrlp_%matrix_compr(i)
+   !!end do
    ! Alternative calculation of the overlap matrix
    gdim=lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
    psiig = f_malloc(gdim,id='psiig')
@@ -253,11 +253,11 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,linmat
        call compress_matrix_distributed(iproc, linmat%s, matp, mat_compr(ist))
    end do
    maxdiff=0.d0
-   do i=1,linmat%s%nvctr
-       maxdiff=max(abs(mat_compr(i)-linmat%ovrlp_%matrix_compr(i)),maxdiff)
-       write(8000+iproc,'(a,i7,2es15.5)') 'i, mat_compr(i), linmat%ovrlp_%matrix_compr(i)', &
-           i, mat_compr(i), linmat%ovrlp_%matrix_compr(i)
-   end do
+   !!do i=1,linmat%s%nvctr
+   !!    maxdiff=max(abs(mat_compr(i)-linmat%ovrlp_%matrix_compr(i)),maxdiff)
+   !!    write(8000+iproc,'(a,i7,2es15.5)') 'i, mat_compr(i), linmat%ovrlp_%matrix_compr(i)', &
+   !!        i, mat_compr(i), linmat%ovrlp_%matrix_compr(i)
+   !!end do
    if (iproc==0) call yaml_map('Maxdiff for overlap calculation',maxdiff,fmt='(1es25.17)')
    !@END NEW ########################################################
 
@@ -522,7 +522,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                           !if (ind0>=smat%nvctr-smat%nfvctr .and.  ind0<=smat%nvctr) then
                           !    write(*,'(a,3i9)') 'iiorb, jjorb, ind0', iiorb, jjorb, ind0
                           !end if
-                          write(880,'(a,5i8,es14.6)') 'ispin, ipt, i, ind0, i0j, val', ispin, ipt, i, ind0, i0j, psit_c1(i0i)
+                          !!write(880,'(a,5i8,es14.6)') 'ispin, ipt, i, ind0, i0j, val', ispin, ipt, i, ind0, i0j, psit_c1(i0i)
                           ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_c1(i0i)*psit_c2(i0j)
                       end do
                   end if
@@ -1182,8 +1182,8 @@ subroutine normalize_transposed(iproc, nproc, orbs, nspin, collcom, psit_c, psit
               do i=1,ii
                   i0i=i0+i
                   iiorb=collcom%indexrecvorbital_c(i0i)
-                  write(720,'(a,6i8,es13.5)') 'ipt, ispin, i0, i, i0i, iiorb, psit_c(i0i)', &
-                      ipt, ispin, i0, i, i0i, iiorb, psit_c(i0i)
+                  !!write(720,'(a,6i8,es13.5)') 'ipt, ispin, i0, i, i0i, iiorb, psit_c(i0i)', &
+                  !!    ipt, ispin, i0, i, i0i, iiorb, psit_c(i0i)
                   norm(iiorb)=norm(iiorb)+psit_c(i0i)**2
               end do
           end do
