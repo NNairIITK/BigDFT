@@ -12,10 +12,12 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 !call_bigdft has to be run once on runObj and outs !before calling this routine
 !sbfgs will return to caller the energies and coordinates used/obtained from the last accepted iteration step
    use module_base
-   use module_types
-   use module_interfaces
+   use module_types, only: run_objects, DFT_global_output,&
+                           init_global_output, copy_global_output,&
+                           deallocate_global_output
+   use module_interfaces, only: write_atomic_file, call_bigdft
    use yaml_output
-   use module_sbfgs
+   use module_sbfgs, only: modify_gradient, getSubSpaceEvecEval, findbonds
    implicit none
    !parameter
    integer, intent(in)                    :: nproc
@@ -38,7 +40,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    integer :: it,i,iat,l,j,idim,jdim,ihist,icheck !<counter variables
    integer :: itswitch
    integer :: imode=1
-   integer :: nbond
+   integer :: nbond=1
    type(DFT_global_output) :: outs
    logical :: success=.false.
    logical :: debug !< set .true. for debug output to fort.100
@@ -160,7 +162,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    fff = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fff')
    rrr = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rrr')
    scpr = f_malloc(nhistx,id='scpr')
-   rcov     = f_malloc((/ 1.to.runObj%atoms%astruct%nat/),id='rcov')
+   rcov     = f_malloc((/ 1.to.nat/),id='rcov')
    iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
    if(runObj%inputs%biomode)then
         call give_rcov_sbfgs(iproc,runObj%atoms,runObj%atoms%astruct%nat,rcov)
