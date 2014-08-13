@@ -2338,7 +2338,8 @@ module communications_init
           ie2=-1000000000
           is3=1000000000
           ie3=-1000000000
-          do iorb=1,orbs%norbu_par(jproc,0)
+          !do iorb=1,orbs%norbu_par(jproc,0)
+          do iorb=1,orbs%norb_par(jproc,0)
               
               iiorb=iiorb+1 
               ilr=orbs%inwhichlocreg(iiorb)

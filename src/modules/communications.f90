@@ -797,19 +797,27 @@ module communications
       !character(len=*), parameter :: subname='start_onesided_communication'
       integer :: jproc, joverlap, mpisource, istsource, mpidest, istdest, ierr, nit, ispin, ispin_shift
       integer :: ioffset_send, ist, i2, i3, ist2, ist3, info, nsize, size_of_double, npot, isend_shift
+      integer,dimension(:),allocatable :: npotarr
+
+      !!do ist=1,nsendbuf
+      !!    write(5400,'(a,2i12,es18.7)') 'iproc, ist, sendbuf(ist)', iproc, ist, sendbuf(ist)
+      !!end do
+      !!recvbuf=123456789.d0
     
     
       call timing(iproc, 'Pot_comm start', 'ON')
 
       ! the size of the potential without spin (maybe need to find a better way to determine this...)
-      npot=nsendbuf/comm%nspin
+      npotarr = f_malloc0(0.to.nproc-1,id='npotarr')
+      npotarr(iproc)=nsendbuf/comm%nspin
+      call mpiallred(npotarr(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      !npot=nsendbuf/comm%nspin
     
       if(.not.comm%communication_complete) stop 'ERROR: there is already a p2p communication going on...'
 
       spin_loop: do ispin=1,comm%nspin
 
           ispin_shift = (ispin-1)*comm%nrecvbuf
-          isend_shift = (ispin-1)*npot
     
           nproc_if: if (nproc>1) then
     
@@ -833,6 +841,7 @@ module communications
                       istdest=comm%comarr(4,joverlap,jproc)
                       nit=comm%comarr(5,joverlap,jproc)
                       ioffset_send=comm%comarr(6,joverlap,jproc)
+                      isend_shift = (ispin-1)*npotarr(mpisource)
                       ! only create the derived data types in the first iteration, otherwise simply reuse them
                       if (ispin==1) then
                           call mpi_type_create_hvector(nit, 1, int(size_of_double*ioffset_send,kind=mpi_address_kind), &
@@ -843,9 +852,9 @@ module communications
                           call mpi_type_size(comm%mpi_datatypes(joverlap,jproc), nsize, ierr)
                           nsize=nsize/size_of_double
                           if(nsize>0) then
-                              !write(*,'(5(a,i0))') 'proc ',iproc,' gets ',nsize,' elements at ',ispin_shift+istdest, &
-                              !                     ' from proc ',mpisource,' at ',isend_shift+istsource
-                              !
+                              !!write(*,'(7(a,i0))') 'proc ',iproc,' gets ',nsize,' elements at ',ispin_shift+istdest, &
+                              !!                     ' from proc ',mpisource,' at ',isend_shift+istsource,&
+                              !!                     '; size(send)=',size(sendbuf),', size(recv)=',size(recvbuf)
                               call mpi_get(recvbuf(ispin_shift+istdest), nsize, &
                                    mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
                                    1, comm%mpi_datatypes(joverlap,jproc), comm%window, ierr)
@@ -881,6 +890,8 @@ module communications
       else
           comm%communication_complete=.true.
       end if
+
+      call f_free(npotarr)
     
       call timing(iproc, 'Pot_comm start', 'OF')
     

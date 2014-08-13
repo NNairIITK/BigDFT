@@ -516,6 +516,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
                denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                pnrm,denspot%dpbox%nscatterarr)
+          pnrm=pnrm/real(denspot%mix%nspden,kind=8)
       end if
   end if
   !do ii=1,size(denspot%rhov)
@@ -556,6 +557,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
                denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                pnrm,denspot%dpbox%nscatterarr)
+          pnrm=pnrm/real(denspot%mix%nspden,kind=8)
       end if
   end if
   if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
@@ -830,6 +832,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
               denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
               at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
               pnrm,denspot%dpbox%nscatterarr)
+         pnrm=pnrm/real(denspot%mix%nspden,kind=8)
      else
          !!call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
          !!     denspot, mixdiis, rhopotold, pnrm)
@@ -837,6 +840,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
               denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
               at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
               pnrm,denspot%dpbox%nscatterarr)
+         pnrm=pnrm/real(denspot%mix%nspden,kind=8)
      end if
   end if
 
@@ -847,6 +851,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
            denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
            at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
            pnrm,denspot%dpbox%nscatterarr)
+      pnrm=pnrm/real(denspot%mix%nspden,kind=8)
   end if
   if (iproc==0) call yaml_newline()
   call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
@@ -859,6 +864,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
           denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
           at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
           pnrm,denspot%dpbox%nscatterarr)
+     pnrm=pnrm/real(denspot%mix%nspden,kind=8)
   end if
 
 
@@ -869,6 +875,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
            denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
            at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
            pnrm,denspot%dpbox%nscatterarr)
+      pnrm=pnrm/real(denspot%mix%nspden,kind=8)
   end if
 
 

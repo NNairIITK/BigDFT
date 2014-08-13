@@ -1110,8 +1110,8 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
    !local variables
    character(len=*), parameter :: subname='full_local_potential'
    logical :: odp,newvalue !orbital dependent potential
-   integer :: npot,ispot,ispotential,ispin,ierr,i_stat,i_all,ii,ilr,iorb,iorb2,nilr,ni1,ni2
-   integer:: istl, ist, size_Lpot, i3s, i3e, i2s, i2e, i1s, i1e, iispin
+   integer :: npot,ispot,ispotential,ispin,ierr,i_stat,i_all,ii,ilr,iorb,iorb2,nilr,ni1,ni2, iiorb, i
+   integer:: istl, ist, size_Lpot, i3s, i3e, i2s, i2e, i1s, i1e, iispin, ishift
    integer,dimension(:),allocatable:: ilrtable
    real(wp), dimension(:), pointer :: pot1
    
@@ -1119,6 +1119,8 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
    call f_routine(id='full_local_potential')
 
    odp = (xc_exctXfac(xc) /= 0.0_gp .or. (dpbox%i3rho_add /= 0 .and. orbs%norbp > 0))
+
+   write(*,'(a,100i4)') 'in full_local_potential: orbs%inwhichlocreg',orbs%inwhichlocreg
 
    !############################################################################
    ! Build the potential on the whole simulation box
@@ -1246,6 +1248,8 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       ilrtable=1
    end if
 
+   write(*,'(a,100i4)') 'in full_local_potential: ilrtable', ilrtable
+
 
 !!$   !calculate the dimension of the potential in the gathered form 
 !!$   !this part has been deplaced in check_linear_and_create_Lzd routine 
@@ -1297,9 +1301,25 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       if(.not.associated(pot)) then !otherwise this has been done already... Should be improved.
          pot = f_malloc_ptr(lzd%ndimpotisf+ndebug,id='pot')
 
+         !!do i=1,comgp%nspin*comgp%nrecvBuf
+         !!    write(5300+iproc,'(a,i12,es15.7)') 'i, comgp%recvbuf(i)', i, comgp%recvbuf(i)
+         !!end do
+
          ist=1
          do iorb=1,nilr
             ilr = ilrtable(iorb)
+            iiorb=orbs%isorb+iorb
+            if (orbs%inwhichlocreg(iiorb)/=ilr) stop 'full_local_potential: orbs%inwhichlocreg(iiorb)/=ilr'
+            
+            if (orbs%spinsgn(iiorb)>0.d0) then
+                ispin=1
+            else
+                ispin=2
+            end if
+
+            ! spin shift of the potential in the receive buffer
+            ishift=(ispin-1)*comgp%nrecvBuf
+
             !determine the dimension of the potential array (copied from full_local_potential)
             if (xc_exctXfac(xc) /= 0.0_gp) then
                stop 'exctX not yet implemented!'
@@ -1321,8 +1341,15 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
                write(*,'(a,i0,3x,i0)') 'ERROR: i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i',i3e-i3s+1, Lzd%Llr(ilr)%d%n3i
                stop
             end if
-            call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), orbs%nspin, comgp%nrecvBuf, size_Lpot,&
-                 comgp%recvBuf, pot(ist), i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2)
+            !!write(*,*) 'size(comgp%recvBuf), comgp%nrecvBuf, nspin', size(comgp%recvBuf), comgp%nrecvBuf, comgp%nspin
+            !!write(*,'(a,i7,2x,8i6)') 'iproc, i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2', iproc, i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2
+            !!write(*,'(a,i7,2x,i5,2x,6i6)') 'iproc, ilr, ns1i, ise1, ns2i, ise2, ns3i, ise3', &
+            !!          iproc, ilr, lzd%Llr(ilr)%nsi1, comgp%ise(1,iproc), lzd%Llr(ilr)%nsi2, comgp%ise(3,iproc), lzd%Llr(ilr)%nsi3, comgp%ise(3,iproc)
+            call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), 0, comgp%nspin*comgp%nrecvBuf, size_Lpot,&
+                 comgp%recvBuf(ishift+1), pot(ist), i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2)
+            !!do i=1,size_lpot
+            !!    write(5500+iproc,'(a,5i12,es15.7)') 'ilr, ispin, ishift, i, ist, pot(ist+i-1)', ilr, ispin, ishift, i, ist, pot(ist+i-1)
+            !!end do
 
             ist = ist + size_lpot
          end do

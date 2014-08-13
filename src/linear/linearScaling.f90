@@ -655,6 +655,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                      denspot%rhov,it_scc+1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                      at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                      pnrm,denspot%dpbox%nscatterarr)
+                     write(*,*) 'denspot%mix%nspden',denspot%mix%nspden
+                     pnrm=pnrm/real(denspot%mix%nspden,kind=8)
                 call check_negative_rho(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
                      denspot%rhov, rho_negative)
                 if (rho_negative) then
@@ -697,8 +699,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              ! update occupations wrt eigenvalues (NB for directmin these aren't guaranteed to be true eigenvalues)
              ! switch off for FOE at the moment
              if (input%lin%scf_mode/=LINEAR_FOE) then
-                call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
-                call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
+                 !call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
+                 ! Copy the spin up eigenvalues (or all in the case of a non-polarized calculation)
+                 call vcopy(kswfn%orbs%norbu,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
+                 if (input%nspin==2) then
+                     ! Copy the spin down eigenvalues
+                     call vcopy(kswfn%orbs%norbd,tmb%orbs%eval(tmb%linmat%l%nfvctr+1),1,kswfn%orbs%eval(kswfn%orbs%norbu+1),1)
+                 end if
+                 ! Keep the ocupations for the moment.. maybe to be activated later (with a better if statement)
+                 if (input%Tel > 0.0_gp) then
+                     call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
+                 end if
                 if (bigdft_mpi%iproc ==0) then 
                    call write_eigenvalues_data(0.1d0,kswfn%orbs,mom_vec_fake)
                 end if
@@ -710,6 +721,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                      denspot%rhov,it_scc+1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                      at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                      pnrm,denspot%dpbox%nscatterarr)
+                pnrm=pnrm/real(denspot%mix%nspden,kind=8)
                 if (pnrm<convCritMix .or. it_scc==nit_scc .and. (.not. input%lin%constrained_dft)) then
                    ! calculate difference in density for convergence criterion of outer loop
                    pnrm_out=0.d0

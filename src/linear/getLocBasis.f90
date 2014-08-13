@@ -118,8 +118,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call deviation_from_unity_parallel(iproc, nproc, tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
            tmb%linmat%s%isfvctr, ovrlp_fullp, &
            tmb%linmat%s, max_deviation_p, mean_deviation_p)
-      max_deviation = max_deviation + max_deviation_p
-      mean_deviation = mean_deviation + mean_deviation_p
+      max_deviation = max_deviation + max_deviation_p/real(tmb%linmat%s%nspin,kind=8)
+      mean_deviation = mean_deviation + mean_deviation_p/real(tmb%linmat%s%nspin,kind=8)
   end do
   call f_free(ovrlp_fullp)
   if (iproc==0) then
@@ -2581,7 +2581,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
               ispin=2
           end if
           ii=mod(iiorb-1,tmb%linmat%l%nfvctr)+1
-          call dgemm('n', 'n', tmb%linmat%l%nfvctr, 1, tmb%linmat%l%nfvctr, 1.0d0, tmb%linmat%kernel_%matrix(1,ii,ispin), &
+          call dgemm('n', 'n', tmb%linmat%l%nfvctr, 1, tmb%linmat%l%nfvctr, 1.0d0, tmb%linmat%kernel_%matrix(1,1,ispin), &
                tmb%linmat%l%nfvctr, tmb%linmat%ham_%matrix(1,ii,ispin), tmb%linmat%l%nfvctr, &
                0.d0, KH(1,ii,ispin), tmb%linmat%l%nfvctr)
       end do
