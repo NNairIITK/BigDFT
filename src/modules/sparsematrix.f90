@@ -154,8 +154,8 @@ module sparsematrix
     
       if (sparsemat%parallel_compression==0.or.bigdft_mpi%nproc==1) then
          call to_zero(sparsemat%nfvctr**2*sparsemat%nspin, outm(1,1,1))
-         !$omp parallel default(private) shared(sparsemat,inm,outm)
          do ispin=1,sparsemat%nspin
+             !$omp parallel default(private) shared(sparsemat,inm,outm,ispin)
              ishift=(ispin-1)*sparsemat%nvctr
              !$omp do
              do ii=1,sparsemat%nvctr
@@ -164,8 +164,8 @@ module sparsematrix
                 outm(irow,jcol,ispin)=inm(ii+ishift)
              end do
              !$omp end do
+             !$omp end parallel
          end do
-         !$omp end parallel
       else if (sparsemat%parallel_compression==1) then
          stop 'needs to be fixed'
          !!call to_zero(sparsemat%nfvctr**2, sparsemat%matrix(1,1))

@@ -808,7 +808,6 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
       lzd%llr(ilr)%locrad_kernel=locrad_kernel(ilr)
       lzd%llr(ilr)%locrad_mult=locrad_mult(ilr)
       lzd%llr(ilr)%locregCenter=locregCenter(:,ilr)
-      write(*,'(a,i8,4f10.2)') 'update_locreg: ilr, locrad, center', ilr, lzd%llr(ilr)%locrad, lzd%llr(ilr)%locregCenter
   end do
   call timing(iproc,'updatelocreg1','OF') 
   call initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, glr_tmp, 's')!, llborbs)
@@ -1175,9 +1174,6 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   ! Local variables
   integer :: iorb, ilr, iiat, iilr
 
-  write(*,'(a,i9)') 'in set_optimization_variables: nlr', nlr
-  write(*,'(a,i9)') 'in set_optimization_variables: size(input%lin%locrad_highaccuracy)', size(input%lin%locrad_highaccuracy)
-  write(*,'(a,i9)') 'in set_optimization_variables: size(input%lin%locrad_highaccuracy)', size(input%lin%locrad_highaccuracy)
 
   if(lowaccur_converged) then
       do iorb=1,lorbs%norbp
@@ -1191,7 +1187,6 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
       do ilr=1,nlr
           iilr=mod(ilr-1,lorbs%norbu)+1 !correct value for a spin polarized system
           locrad(ilr)=input%lin%locrad_highaccuracy(iilr)
-          write(*,'(a,i8,f10.2)') 'in set_optimization_variables: ilr, locrad(ilr)', ilr, locrad(ilr)
       end do
       alpha_mix=input%lin%alpha_mix_highaccuracy
       convCritMix=input%lin%convCritMix_highaccuracy
@@ -1331,10 +1326,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
         locregCenter(:,ilr)=lzd_tmp%llr(ilr)%locregCenter
         locrad_kernel(ilr)=lzd_tmp%llr(ilr)%locrad_kernel
         locrad_mult(ilr)=lzd_tmp%llr(ilr)%locrad_mult
-        write(*,'(a,i8,4f10.2)') 'ilr, locrad, center', ilr, lzd_tmp%llr(ilr)%locrad_kernel, lzd_tmp%llr(ilr)%locregCenter
      end do
 
-     write(*,*) 'adjust_locregs_and_confinement: lzd_tmp%nlr',lzd_tmp%nlr
 
      !temporary,  moved from update_locreg
      tmb%orbs%eval=-0.5_gp

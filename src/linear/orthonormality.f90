@@ -304,7 +304,7 @@ end subroutine setCommsParameters
 !! power: -2 -> S^-1/2, 2 -> S^1/2, 1 -> S^-1
 subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
            ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, inv_ovrlp_mat, check_accur, &
-           max_error, mean_error)
+           max_error, mean_error, nspinx)
      !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
   use module_base
   use module_types
@@ -326,6 +326,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
   type(matrices),intent(inout) :: ovrlp_mat, inv_ovrlp_mat
   logical,intent(in) :: check_accur
   real(kind=8),intent(out),optional :: max_error, mean_error
+  integer,intent(in),optional :: nspinx !< overwrite the default spin value
   
   ! Local variables
   integer :: iorb, jorb, info, iiorb, isorb, norbp, ii, ii_inv, iii, ierr, i, its, maxits
@@ -337,7 +338,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
   logical :: ovrlp_allocated, inv_ovrlp_allocated
 
   ! new for sparse taylor
-  integer :: nout, nseq, nmaxsegk, nmaxval, ispin, ishift, isshift, ilshift
+  integer :: nout, nseq, nmaxsegk, nmaxval, ispin, ishift, isshift, ilshift, nspin
   integer,dimension(:),allocatable :: ivectorindex
   integer,dimension(:,:),pointer :: onedimindices
   integer,dimension(:,:,:),allocatable :: istindexarr
@@ -359,6 +360,15 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
 
   call f_routine(id='overlapPowerGeneral')
   call timing(iproc,'lovrlp^-1     ','ON')
+
+  ! Overwrite the default spin value is present. Usefull to manipulate spinless
+  ! matrices even in a polarized calculation
+  if (present(nspinx)) then
+      nspin=nspinx
+  else
+      nspin=ovrlp_smat%nspin
+  end if
+
 
   if (iproc==0) then
       call yaml_newline()
@@ -413,7 +423,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
 
   sparse_dense: if (imode==DENSE) then
       if (iorder==0) then
-          call vcopy(ovrlp_smat%nfvctr*ovrlp_smat%nfvctr*ovrlp_smat%nspin,ovrlp_mat%matrix(1,1,1),1,inv_ovrlp_mat%matrix(1,1,1),1)
+          call vcopy(ovrlp_smat%nfvctr*ovrlp_smat%nfvctr*nspin,ovrlp_mat%matrix(1,1,1),1,inv_ovrlp_mat%matrix(1,1,1),1)
           if (power==1) then
              if (blocksize<0) then
                 call overlap_minus_one_exact_serial(ovrlp_smat%nfvctr,inv_ovrlp_mat%matrix)
@@ -425,12 +435,12 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                      ovrlp_smat%nfvctr, inv_ovrlp_mat%matrix(1,1,1), ovrlp_smat%nfvctr)
              end if
           else if (power==2) then
-              do ispin=1,ovrlp_smat%nspin
+              do ispin=1,nspin
                   call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc,ovrlp_smat%nfvctr, &
                        blocksize,.true.,inv_ovrlp_mat%matrix(1,1,ispin),inv_ovrlp_smat)
               end do
           else if (power==-2) then
-              do ispin=1,ovrlp_smat%nspin 
+              do ispin=1,nspin 
                   call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc,ovrlp_smat%nfvctr, &
                        blocksize,.false.,inv_ovrlp_mat%matrix(1,1,ispin),inv_ovrlp_smat)
               end do
@@ -455,7 +465,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               Amat21=sparsematrix_malloc0(ovrlp_smat,iaction=DENSE_FULL,id='Amat21')
           !end if
 
-          do ispin=1,ovrlp_smat%nspin
+          do ispin=1,nspin
 
               Amat12=>inv_ovrlp_mat%matrix(:,:,ispin)
 
@@ -535,7 +545,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                   ovrlpminonep => ovrlpminone
               end if
 
-              do ispin=1,ovrlp_smat%nspin
+              do ispin=1,nspin
                   if (norbp>0) call matrix_minus_identity_dense(ovrlp_smat%nfvctr,ovrlp_smat%isfvctr,ovrlp_smat%nfvctrp, &
                                     ovrlp_mat%matrix(1,isorb+1,ispin),ovrlpminonep(1,1,ispin))
 
@@ -571,12 +581,12 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               end if
 
               ovrlppoweroldp = sparsematrix_malloc_ptr(ovrlp_smat,iaction=DENSE_PARALLEL,id='ovrlppoweroldp')
-              if (norbp>0) call vcopy(ovrlp_smat%nfvctr*norbp*ovrlp_smat%nspin,ovrlpminonep(1,1,1),1,ovrlppoweroldp(1,1,1),1)
+              if (norbp>0) call vcopy(ovrlp_smat%nfvctr*norbp*nspin,ovrlpminonep(1,1,1),1,ovrlppoweroldp(1,1,1),1)
 
           end if
 
 
-          do ispin=1,ovrlp_smat%nspin
+          do ispin=1,nspin
               if (nproc>1) then
                   inv_ovrlpp = sparsematrix_malloc_ptr(ovrlp_smat,iaction=DENSE_PARALLEL,id='inv_ovrlpp')
               else
@@ -628,7 +638,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
       if (check_accur) then
           max_error=0.d0
           mean_error=0.d0
-          do ispin=1,ovrlp_smat%nspin
+          do ispin=1,nspin
               call check_accur_overlap_minus_one(iproc,nproc,ovrlp_smat%nfvctr,ovrlp_smat%nfvctrp,ovrlp_smat%isfvctr,power,&
                    ovrlp_mat%matrix(:,:,ispin),inv_ovrlp_mat%matrix(:,:,ispin),ovrlp_smat,max_error_p,mean_error_p)
               max_error=max_error+max_error_p
@@ -646,7 +656,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
           call timing(iproc,'lovrlp^-1     ','OF')
           call uncompress_matrix(iproc, ovrlp_smat, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_local)
           call timing(iproc,'lovrlp^-1     ','ON')
-          do ispin=1,ovrlp_smat%nspin
+          do ispin=1,nspin
               call vcopy(ovrlp_smat%nfvctr*ovrlp_smat%nfvctr,ovrlp_local(1,1,ispin),1,inv_ovrlp_local(1,1,ispin),1)
               if (power==1) then
                  if (blocksize<0) then
@@ -691,7 +701,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                ovrlp_mat%matrix_compr, Amat12_compr, 'small_to_large')
           Amat12_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='Amat12_seq')
 
-          do ispin=1,ovrlp_smat%nspin
+          do ispin=1,nspin
 
               ishift=(ispin-1)*inv_ovrlp_smat%nvctr
 
@@ -779,7 +789,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               ovrlpminonep = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminonep')
               invovrlpp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='invovrlpp')
 
-              do ispin=1,ovrlp_smat%nspin
+              do ispin=1,nspin
 
                   isshift=(ispin-1)*ovrlp_smat%nvctr
                   ilshift=(ispin-1)*inv_ovrlp_smat%nvctr
@@ -872,7 +882,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
           invovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlp_large_compr_seq')
           ovrlp_largep = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlp_largep')
 
-          do ispin=1,ovrlp_smat%nspin
+          do ispin=1,nspin
               isshift=(ispin-1)*ovrlp_smat%nvctr
               ilshift=(ispin-1)*inv_ovrlp_smat%nvctr
               call timing(iproc,'lovrlp^-1     ','OF')

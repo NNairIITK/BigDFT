@@ -866,6 +866,7 @@ module communications
           else nproc_if
     
               ist=1
+              isend_shift = (ispin-1)*npotarr(iproc)
               do i3=comm%ise(5,iproc),comm%ise(6,iproc)
                   ist3=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
                   do i2=comm%ise(3,iproc),comm%ise(4,iproc)

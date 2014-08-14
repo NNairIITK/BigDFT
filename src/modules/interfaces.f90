@@ -3566,7 +3566,7 @@ module module_interfaces
 
         subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                    ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, inv_ovrlp_mat, check_accur, &
-                   max_error, mean_error)
+                   max_error, mean_error, nspinx)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix, SPARSE_FULL, DENSE_PARALLEL, DENSE_FULL, SPARSEMM_SEQ
@@ -3578,6 +3578,7 @@ module module_interfaces
           type(matrices),intent(inout) :: ovrlp_mat, inv_ovrlp_mat
           logical,intent(in) :: check_accur
           real(kind=8),intent(out),optional :: max_error, mean_error
+          integer,intent(in),optional :: nspinx !< overwrite the default spin value
         end subroutine overlapPowerGeneral
 
 
