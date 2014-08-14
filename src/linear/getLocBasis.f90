@@ -583,7 +583,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
   iterLoop: do
 
-      if (iproc==0) write(*,*) 'tmb%linmat%kernel_%matrix_compr(1)', tmb%linmat%kernel_%matrix_compr(1)
 
       it=it+1
       it=max(it,1) !since it could become negative (2 is subtracted if the loop cycles)

@@ -253,6 +253,10 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,linmat
        call compress_matrix_distributed(iproc, linmat%s, matp, mat_compr(ist))
    end do
    maxdiff=0.d0
+   call f_free(psiig)
+   call f_free(psijg)
+   call f_free(matp)
+   call f_free(mat_compr)
    !!do i=1,linmat%s%nvctr
    !!    maxdiff=max(abs(mat_compr(i)-linmat%ovrlp_%matrix_compr(i)),maxdiff)
    !!    write(8000+iproc,'(a,i7,2es15.5)') 'i, mat_compr(i), linmat%ovrlp_%matrix_compr(i)', &
