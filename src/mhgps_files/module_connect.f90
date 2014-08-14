@@ -155,7 +155,8 @@ use module_energyandforces
     endif
     if(iproc==0)then
         call yaml_comment('(MHGPS) nsad:'//&
-             trim(adjustl(yaml_toa(nsad)))//', connect ')
+             trim(adjustl(yaml_toa(nsad)))//'; connect minima with &
+             following energies')
         call yaml_comment('(MHGPS) '//trim(adjustl(yaml_toa(ener1)))//' and ')
         call yaml_comment('(MHGPS) '//trim(adjustl(yaml_toa(ener2))))
     endif
