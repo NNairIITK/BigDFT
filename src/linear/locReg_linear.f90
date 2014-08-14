@@ -196,6 +196,8 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
      yperiodic = .false.
      zperiodic = .false. 
 
+     write(*,'(a,i8,4f10.2)') 'ilr, locrad, center', ilr, llr(ilr)%locrad, llr(ilr)%locregCenter
+
      if(calculateBounds(ilr)) then 
          ! This makes sure that each locreg is only handled once by one specific processor.
     
@@ -591,6 +593,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         llr(ilr)%wfd%keyvloc(1), llr(ilr)%wfd%keyvglob(1))
 
    !fine part
+   write(*,'(a,3i12)') 'ilr, llr(ilr)%wfd%nseg_c, llr(ilr)%wfd%nseg_f', ilr, llr(ilr)%wfd%nseg_c, llr(ilr)%wfd%nseg_f
    call segkeys_Sphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
         glr%ns1, glr%ns2, glr%ns3, &
         llr(ilr)%ns1, llr(ilr)%ns1+llr(ilr)%d%n1, &
