@@ -156,8 +156,8 @@ use module_energyandforces
     if(iproc==0)then
         call yaml_comment('(MHGPS) nsad:'//&
              trim(adjustl(yaml_toa(nsad)))//', connect ')
-        call yaml_comment(trim(adjustl(yaml_toa(ener1)))//' and ')
-        call yaml_comment(trim(adjustl(yaml_toa(ener2))))
+        call yaml_comment('(MHGPS) '//trim(adjustl(yaml_toa(ener1)))//' and ')
+        call yaml_comment('(MHGPS) '//trim(adjustl(yaml_toa(ener2))))
     endif
 
 
@@ -312,7 +312,7 @@ use module_energyandforces
 
     if(lnl .and. (.not. rnr))then
         !connect right input min with right relaxed bar-end
-!write(*,*)'connection check lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
+if(iproc==0)write(*,*)'(MHGS) connection check lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
         call connect_recursively(nat,nid,alat,rcov,nbond,&
                      iconnect,cobj%rightmin(1,1,nsad_loc),rxyz2,&
                      cobj%enerright(nsad_loc),ener2,&
@@ -321,8 +321,8 @@ use module_energyandforces
     endif
 
     if(rnr .and. (.not. lnl))then
-!write(*,*)'connection check rnr and not lnl',rnr,lnl
-!write(*,*)'connection check rnr and not lnl',sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))
+if(iproc==0)write(*,*)'(MHGPS)connection check rnr and not lnl',rnr,lnl
+if(iproc==0)write(*,*)'(MHGPS)connection check rnr and not lnl',sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))
 !write(*,*)rxyz1
 !write(*,*)
 !write(*,*)cobj%leftmin(:,:,nsad_loc)
@@ -349,7 +349,7 @@ use module_energyandforces
     endif
 
     if(lnr .and. (.not. rnl))then
-!write(*,*)'connection check lnr and not rnl',sqrt(sum((rxyz1-cobj%rightmin(:,:,nsad_loc))**2))
+if(iproc==0)write(*,*)'(MHGPS)connection check lnr and not rnl',sqrt(sum((rxyz1-cobj%rightmin(:,:,nsad_loc))**2))
         !connect right relaxed bar end with left input min
         call connect_recursively(nat,nid,alat,rcov,nbond,&
                      iconnect,rxyz1,cobj%rightmin(1,1,nsad_loc),&
@@ -359,7 +359,7 @@ use module_energyandforces
     endif
 
     if(.not. lnr .and. rnl)then
-!write(*,*)'connection check not lnr and rnl',sqrt(sum((rxyz2-cobj%leftmin(:,:,nsad_loc))**2))
+if(iproc==0)write(*,*)'(MHGPS)connection check not lnr and rnl',sqrt(sum((rxyz2-cobj%leftmin(:,:,nsad_loc))**2))
         !connect left relaxed bar end with right input min
         call connect_recursively(nat,nid,alat,rcov,nbond,&
                      iconnect,rxyz2,cobj%leftmin(1,1,nsad_loc),&
@@ -369,8 +369,8 @@ use module_energyandforces
     endif
 
     if((.not. lnl) .and. (.not. rnr))then
-!write(*,*)'connection check not lnl and not rnr',sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))
-!write(*,*)'connection check not lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
+if(iproc==0)write(*,*)'(MHGPS)connection check not lnl and not rnr',sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))
+if(iproc==0)write(*,*)'(MHGPS)connection check not lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
         !connect left input min with left relaxed bar end  and right
         !input min with right relaxed bar end
         call connect_recursively(nat,nid,alat,rcov,nbond,&
