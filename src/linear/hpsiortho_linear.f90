@@ -310,7 +310,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   if(tmb%orbs%nspin==1 .and. target_function==TARGET_FUNCTION_IS_TRACE) trH=2.d0*trH
   trH=trH-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
 
-  if (iproc==0) write(*,*) 'trH 1',trH
 
   ! Determine whether the target function is increasing
   !if(.not. ldiis%switchSD .and. ldiis%isx==0) then
