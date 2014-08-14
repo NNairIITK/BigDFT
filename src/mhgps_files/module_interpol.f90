@@ -37,7 +37,7 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
                                           !to lambda
     !internal
     real(gp) :: oml
-    !real(gp), parameter :: fmax_tol=1.e-4_gp
+!    real(gp), parameter :: fmax_tol=1.e-4_gp
     real(gp), parameter :: fmax_tol=5.e-3_gp
     real(gp) :: fxyz(3,nat), epot
 
@@ -270,8 +270,9 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
 !!<-DEBUG END-------------------------------------------------------->
 
     count_fr=0._gp
-    dt_max = 0.5_gp
-    !dt_max = 1.8_gp
+!    dt_max = 0.5_gp !for lj
+   ! dt_max = 1.8_gp
+    dt_max = 5.0_gp
     maxit=15000
 
     success=.false.
@@ -323,7 +324,7 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
 !            write(*,'(a,x,i0,5(1x,es14.7))')&
 !            'FIRE converged # e evals, epot, &
 !            fmax, fnrm, dt, alpha: ',&
-!            int(count_fr),epot,fmax,fnrm,dt,alpha
+!            int(count_fr),epot,fmax,sqrt(fnrm),dt,alpha
 !!<-DEBUG END-------------------------------------------------------->
             success=.true.
             return
@@ -332,7 +333,7 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
 !            write(*,'(a,x,i0,5(1x,es14.7))')&
 !            'FIRE # e evals, epot, &
 !            fmax, fnrm, dt, alpha: ',&
-!            int(count_fr),epot,fmax,fnrm,dt,alpha
+!            int(count_fr),epot,fmax,sqrt(fnrm),dt,alpha
 !!<-DEBUG END-------------------------------------------------------->
         endif
         power = ddot(3*nat,fxyz,1,vxyz,1)

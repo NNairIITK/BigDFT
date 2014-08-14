@@ -66,8 +66,8 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
     call vcopy(3*nat, rxyz1(1,1), 1, string(1,1,1), 1)
     call vcopy(3*nat, rxyz2(1,1), 1, string(1,2,1), 1)
     
-    call grow_string(nat,alat,gammainv,perpnrmtol,trust,nstepsmax,&
-                    nstringmax,nstring,string,finished)
+    call grow_freezstring(nat,alat,gammainv,perpnrmtol,trust,&
+        nstepsmax,nstringmax,nstring,string,finished)
 
     nnodes=2*nstring
     ncorr =0
@@ -228,7 +228,56 @@ subroutine write_path(nat,npath,path,energies,tangent)
     enddo
 end subroutine
 !=====================================================================
-subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
+!subroutine grow_linsyn(nat,alat,nstring,string,finished)
+!    use module_base
+!    use yaml_output
+!    use module_global_variables, only: iproc
+!    !parameters
+!    integer, intent(inout) :: nstring
+!    real(gp), allocatable, intent(inout) :: string(:,:,:)
+!    integer, intent(out) :: finished
+!                          !if finished ==2: not finished
+!                          !if finished ==0: finished
+!                          !if finished ==1: one more node
+!                          !                 in the middle
+!    !constants
+!    integer, parameter  :: nimages=200 
+!    !internal
+!    integer :: nimo
+!
+!    !create high density lst path
+!    nimo=1._gp/real(nimages-1,gp)
+!    do i=1,nimages
+!        lambda  = real(i-1,gp)*nimo
+!        call lstpthpnt(nat,left,right,lambda,lstpath(1,1,i))
+!    enddo
+!
+!    !rewrite lstpath to row major ordering
+!    !(for faster access in spline routines)
+!    do iat=1,nat
+!        do i=1,nimages
+!            lstpathRM(i,1,iat)=lstpath(1,iat,i)
+!            lstpathRM(i,2,iat)=lstpath(2,iat,i)
+!            lstpathRM(i,3,iat)=lstpath(3,iat,i)
+!        enddo
+!    enddo
+!
+!    !compute the spline parameters (y2vec)
+!    !parametrize curve as a function of the
+!    !integrated arc length
+!    do i=1,nat
+!        call spline_wrapper(arc,lstpathRM(1,1,i),nimages,&
+!                           yp1,ypn,y2vec(1,1,i))
+!        call spline_wrapper(arc,lstpathRM(1,2,i),nimages,&
+!                           yp1,ypn,y2vec(1,2,i))
+!        call spline_wrapper(arc,lstpathRM(1,3,i),nimages,&
+!                           yp1,ypn,y2vec(1,3,i))
+!    enddo
+!
+!
+!end subroutine
+!=====================================================================
+subroutine grow_freezstring(nat,alat,gammainv,perpnrmtol,trust,&
                        nstepsmax,nstringmax,nstring,string,finished)
     use module_base
     use yaml_output
@@ -265,11 +314,11 @@ subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
     finished=2
 
     if(iproc==0)call yaml_comment('(MHGPS) entering &
-                grow_string')
+                grow_freezstring')
 
     if((.not. allocated(string)))then
         if(iproc==0)call yaml_warning('(MHGPS) STOP, string &
-                    in grow_string not allocated')
+                    in grow_freezstring not allocated')
         stop
     endif
     perpnrmtol_squared=perpnrmtol**2
@@ -290,11 +339,11 @@ subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
                  finished)
             if(finished/=0)then
 !if(i/=nstring)stop'DEBUGGING i/=nstring'
-               if(perpnrmtol>0 .and. nstepsmax > 0)& 
-                call optim_cg(nat,alat,finished,step,gammainv,&
-                    perpnrmtol_squared,trust_squared,nstepsmax,&
-                    tangentleft,tangentright,string(1,1,i+1),&
-                    string(1,2,i+1))
+!               if(perpnrmtol>0 .and. nstepsmax > 0)& 
+!                call optim_cg(nat,alat,finished,step,gammainv,&
+!                    perpnrmtol_squared,trust_squared,nstepsmax,&
+!                    tangentleft,tangentright,string(1,1,i+1),&
+!                    string(1,2,i+1))
                 nstring=nstring+1
             endif
         enddo
@@ -304,21 +353,26 @@ subroutine grow_string(nat,alat,gammainv,perpnrmtol,trust,&
         nresizes=nresizes+1
         if(nresizes>100)then
             if(iproc==0)call yaml_warning('(MHGPS) STOP, too&
-                        many resizes in grow_string')
+                        many resizes in grow_freezstring')
             stop
         endif
         if(allocated(stringTmp))then
-            deallocate(stringTmp)
+!            deallocate(stringTmp)
+            call f_free(stringTmp)
         endif
-        allocate(stringTmp(3*nat,2,nstringmax))
+        stringTmp = f_malloc((/ 1.to.3*nat, 1.to.2, 1.to.nstringmax/),'stringTmp')
+!        allocate(stringTmp(3*nat,2,nstringmax))
         stringTmp=string
-        deallocate(string)
+        call f_free(string)
+!        deallocate(string)
         nstringmax=nstringmax+resize
-        allocate(string(3*nat,2,nstringmax))
+!        allocate(string(3*nat,2,nstringmax))
+        string = f_malloc((/ 1.to.3*nat, 1.to.2, 1.to.nstringmax/),'string')
         do k=1,(nstringmax-resize)
             string(:,:,k)=stringTmp(:,:,k)
         enddo
-        deallocate(stringTmp)
+        call f_free(stringTmp)
+!        deallocate(stringTmp)
     enddo
 
 end subroutine
@@ -383,7 +437,7 @@ subroutine optim_cg(nat,alat,finished,step,gammainv,&
         call perpend(nat,tangent2,fxyz2,perp2)
         perpnrmPrev2_squared = ddot(3*nat,perp2(1),1,perp2(1),1)
         perpnrm2_squared=perpnrmPrev2_squared
-        write(*,'(a,i3.3,4(1x,es10.3))')&
+        if(iproc==0)write(*,'(a,i3.3,4(1x,es10.3))')&
         '   (MHGPS) ',1,sqrt(perpnrm1_squared),epot1,&
         sqrt(perpnrm2_squared),epot2
         dispPrev2=gammainv*perp2
@@ -426,7 +480,7 @@ subroutine optim_cg(nat,alat,finished,step,gammainv,&
             call energyandforces(nat,alat,rxyz2,fxyz2,fnoise,epot2)
             call perpend(nat,tangent2,fxyz2,perp2)
             perpnrm2_squared = ddot(3*nat,perp2(1),1,perp2(1),1)
-            write(*,'(a,i3.3,4(1x,es10.3))')&
+            if(iproc==0)write(*,'(a,i3.3,4(1x,es10.3))')&
             '   (MHGPS) ',istep,sqrt(perpnrm1_squared),epot1,&
             sqrt(perpnrm2_squared),epot2
             if(perpnrm2_squared>perpnrmPrev2_squared)then
@@ -532,7 +586,7 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     !A high density path made from 'nimages' nodes using LST
     !is generated. Then this path is parametrized as a function
     !of its integrated path length using natural cubic splines.
-    !In order to avoid uncontinous changes of the tangent direction,
+    !In order to avoid discontinous changes in the tangent direction,
     !a second spline parametrization is done by using
     !nimagesC<<nimages equally spaced nodes from the first spline
     !parameterization. Tangent directions are taken from this 
