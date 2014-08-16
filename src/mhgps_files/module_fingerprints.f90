@@ -226,6 +226,7 @@ end subroutine fpdistance
 !=====================================================================
 logical function equal(nid,en_delta,fp_delta,epot1,epot2,fp1,fp2)
     use module_base
+    use module_global_variables, only: iproc
     implicit none
     !parameter
     integer, intent(in) :: nid
@@ -236,8 +237,8 @@ logical function equal(nid,en_delta,fp_delta,epot1,epot2,fp1,fp2)
     real(gp) :: d=1.d100
 
     equal=.false.
-
-        call fpdistance(nid,fp1,fp2,d)
+    call fpdistance(nid,fp1,fp2,d)
+    if(iproc==0)write(*,*)'(MHGPS) ediff, fpdist',abs(epot1-epot2),d
     if (abs(epot1-epot2).lt.en_delta) then
         call fpdistance(nid,fp1,fp2,d)
         if (d.lt.fp_delta) then ! identical

@@ -22,7 +22,7 @@ program mhgps
     use module_sbfgs, only: findbonds !for finding binds
     use module_freezingstring, only: get_ts_guess 
     use module_saddle, only: findsad
-    use module_connect, only: connect_recursively, connect_object,&
+    use module_connect, only: connect_recursively, connect, connect_object,&
                               deallocate_connect_object,&
                               allocate_connect_object
     use module_fingerprints, only: fingerprint
@@ -78,6 +78,7 @@ real(gp), allocatable :: fat(:,:)
     ifile=1
     ef_counter=0.d0 !from module_global_variables
     isad=0  !from module_global_variables
+    isadprob=0
 
 
     call f_lib_initialize()
@@ -319,7 +320,7 @@ write(*,*)'hier2 ',filename2
                 isad=isad+1
                 write(isadc,'(i5.5)')isad
                 !rmsd alignment (optional in mhgps approach)
-!                call superimpose(nat,rxyz(1,1),rxyz2(1,1))
+                call superimpose(nat,rxyz(1,1),rxyz2(1,1))
                 call get_ts_guess(nat,alat,rxyz(1,1),rxyz2(1,1),&
                      tsguess(1,1),minmodeguess(1,1),tsgenergy,&
                      tsgforces(1,1))
@@ -364,6 +365,9 @@ write(*,*)'hier2 ',filename2
                 endif
                 nsad=0
                 connected=.true.
+!                call connect(nat,nid,alat,rcov,nbond,&
+!                     iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
+!                     nsad,cobj,connected)
                 call connect_recursively(nat,nid,alat,rcov,nbond,&
                      iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
                      nsad,cobj,connected)

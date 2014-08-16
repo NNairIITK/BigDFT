@@ -34,7 +34,6 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     !internal
     integer :: icc !for amber
     real(gp) :: rxyzint(3,nat)
-write(*,*)'bastian1234'
     if(nat/=fdim)stop'nat /= fdim'
     ef_counter=ef_counter+1.d0    
     if(trim(adjustl(efmethod))=='LJ')then

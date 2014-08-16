@@ -527,7 +527,10 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
 2000 continue
 !deallocations
    call f_free(rxyz)
+   call f_free(rxyzraw)
    call f_free(fxyz)
+   call f_free(fxyzraw)
+   call f_free(fstretch)
    call f_free(aa)
    call f_free(eval)
    call f_free(res)
@@ -539,6 +542,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    call f_free(fff)
    call f_free(rrr)
    call f_free(scpr)
+   call f_free(wold)
 end subroutine
 subroutine minenergyandforces(eeval,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
            fxyzraw,fnoise,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
