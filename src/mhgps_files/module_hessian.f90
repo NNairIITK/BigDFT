@@ -26,18 +26,18 @@ subroutine cal_hessian_fd(iproc,nat,alat,pos,hess)
     integer :: iat
     real(gp) :: t1,t2,t3
     !real(gp), allocatable, dimension(:,:) :: hess
-    real(gp), allocatable, dimension(:) :: tpos,grad,eval,work
+    real(gp), allocatable, dimension(:) :: tpos,grad,eval,workf
     real(gp) :: h,rlarge,twelfth,twothird,etot,cmx,cmy,cmz,shift,dm,tt
     real(gp) :: s,fnoise
-    integer :: i,j,k,lwork,info
+    integer :: i,j,k,lworkf,info
 
     !allocate(hess(3*nat,3*nat))
     tpos = f_malloc((/1.to.3*nat/),id='tpos')
     grad = f_malloc((/1.to.3*nat/),id='grad')
     eval = f_malloc((/1.to.3*nat/),id='eval')
 
-    lwork=1000*nat
-    work = f_malloc((/1.to.lwork/),id='work')
+    lworkf=1000*nat
+    workf = f_malloc((/1.to.lworkf/),id='workf')
 
     !h=1.e-1_gp
     !h=7.5e-2_gp
@@ -119,13 +119,13 @@ subroutine cal_hessian_fd(iproc,nat,alat,pos,hess)
   
     !x-y plane
     do i=1,3*nat-2,3
-    work(i+1)= (pos(i+0)-cmx)
-    work(i+0)=-(pos(i+1)-cmy)
+    workf(i+1)= (pos(i+0)-cmx)
+    workf(i+0)=-(pos(i+1)-cmy)
     enddo
     call f_free(tpos)
     call f_free(grad)
     call f_free(eval)
-    call f_free(work)
+    call f_free(workf)
 end subroutine cal_hessian_fd
 end module module_hessian
 

@@ -42,7 +42,7 @@ subroutine fingerprint(nat,nid,alat,geocode,rcov,rxyz,fp)
     real(gp) :: cutoff, d2, r
     real(gp) :: sji, xi,yi,zi, xji, yji, zji, tt 
     real(gp), parameter :: sqrt8=sqrt(8.0_gp)
-    real(gp), allocatable, dimension(:,:) :: om,work
+    real(gp), allocatable, dimension(:,:) :: om,workf
 
     ! WARNING! check convergence to ensure that the folloing
     !cutoff is large enough
@@ -73,7 +73,7 @@ subroutine fingerprint(nat,nid,alat,geocode,rcov,rxyz,fp)
     stop ' nid should be either nat or  4*nat '
 
     om = f_malloc((/nid,nid/),id='om')
-    work =  f_malloc((/nid,nid/),id='work')
+    workf =  f_malloc((/nid,nid/),id='workf')
     om(:,:)=0.0_gp
 
     do i1=-n1,n1
@@ -200,11 +200,11 @@ subroutine fingerprint(nat,nid,alat,geocode,rcov,rxyz,fp)
     enddo  ! i1
     endif  ! both s and p 
 
-    call DSYEV('N','L',nid,om,nid,fp,work,nid**2,info)
+    call DSYEV('N','L',nid,om,nid,fp,workf,nid**2,info)
     if (info.ne.0) stop 'info'
 
     call f_free(om)
-    call f_free(work)
+    call f_free(workf)
 end subroutine fingerprint
 !=====================================================================
 subroutine fpdistance(nid,fp1,fp2,d)

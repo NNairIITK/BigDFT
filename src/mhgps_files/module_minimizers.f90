@@ -88,7 +88,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    integer :: ndim   !< dimension of significant subspace
    integer :: nit    !< maximum number of iterations
    integer :: istat,iall
-   integer :: lwork
+   integer :: lworkf
    integer :: it,i,iat,l,j,idim,jdim,ihist,icheck !<counter variables
    integer :: itswitch
    logical :: debug !< set .true. for debug output to fort.100
@@ -138,7 +138,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    real(gp), allocatable, dimension(:,:)   :: aa
    real(gp), allocatable, dimension(:,:)   :: dd
    real(gp), allocatable, dimension(:)     :: eval
-   real(gp), allocatable, dimension(:)     :: work
+   real(gp), allocatable, dimension(:)     :: workf
    real(gp), allocatable, dimension(:)     :: res
    real(gp), allocatable, dimension(:)     :: scpr
    real(gp), allocatable, dimension(:)     :: rnorm
@@ -204,7 +204,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    maxd=0.0_gp
 
    ! allocate arrays
-   lwork=1000+10*nat**2
+   lworkf=1000+10*nat**2
    rxyz = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rxyz')
    rxyzraw = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rxyzraw')
    fxyz = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='fxyz')
@@ -214,7 +214,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    eval = f_malloc(nhistx,id='eval')
    res = f_malloc(nhistx,id='res')
    rnorm = f_malloc(nhistx,id='rnorm')
-   work = f_malloc(lwork,id='work')
+   workf = f_malloc(lworkf,id='workf')
    ff = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='ff')
    rr = f_malloc((/ 1.to.3, 1.to.nat, 0.to.nhistx /),id='rr')
    dd = f_malloc((/ 3, nat /),id='dd')
@@ -494,7 +494,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    
       if (debug.and.iproc==0) write(100,*) 'cosangle ',cosangle,beta
 
-      call getSubSpaceEvecEval('(MHGPS)',iproc,mhgps_verbosity,nat,nhist,nhistx,ndim,cutoffratio,lwork,work,rxyz,&
+      call getSubSpaceEvecEval('(MHGPS)',iproc,mhgps_verbosity,nat,nhist,nhistx,ndim,cutoffratio,lworkf,workf,rxyz,&
                    &fxyz,aa,rr,ff,rrr,fff,eval,res,success)
       if(.not.success)stop 'subroutine minimizer_sbfgs: no success in getSubSpaceEvecEval.'
 
@@ -535,7 +535,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    call f_free(eval)
    call f_free(res)
    call f_free(rnorm)
-   call f_free(work)
+   call f_free(workf)
    call f_free(ff)
    call f_free(rr)
    call f_free(dd)

@@ -31,6 +31,13 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   logical :: output_denspot_
   logical, dimension(:,:,:), pointer :: logrid_c,logrid_f
+!!bastian: for debug
+!real(8) :: dmy(3)
+!integer :: inte
+!
+!inte=int(sqrt(16.d0))
+!dmy(inte)=1.d0
+!!bastian: for debug ... END
 
   call f_routine(id=subname)
   call timing(iproc,'CrtDescriptors','ON')
