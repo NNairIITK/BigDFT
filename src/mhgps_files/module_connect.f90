@@ -319,6 +319,7 @@ use module_energyandforces
         cobj%enerright(nsad),fp1,cobj%fpright(1,nsad))
 
     if((lnl .and. rnr) .or. (lnr .and. rnl))then!connection done
+if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         connected=.true.
         return
     endif
@@ -326,6 +327,7 @@ use module_energyandforces
     if(lnl .and. (.not. rnr))then
         !connect right input min with right relaxed bar-end
 if(iproc==0)write(*,*)'(MHGS) connection check lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
+if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         call connect_recursively(nat,nid,alat,rcov,nbond,&
                      iconnect,cobj%rightmin(1,1,nsad_loc),rxyz2,&
                      cobj%enerright(nsad_loc),ener2,&
@@ -336,6 +338,7 @@ if(iproc==0)write(*,*)'(MHGS) connection check lnl and not rnr',sqrt(sum((rxyz2-
     if(rnr .and. (.not. lnl))then
 if(iproc==0)write(*,*)'(MHGPS)connection check rnr and not lnl',rnr,lnl
 if(iproc==0)write(*,*)'(MHGPS)connection check rnr and not lnl',sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))
+if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
 !write(*,*)rxyz1
 !write(*,*)
 !write(*,*)cobj%leftmin(:,:,nsad_loc)
@@ -363,6 +366,7 @@ if(iproc==0)write(*,*)'(MHGPS)connection check rnr and not lnl',sqrt(sum((rxyz1-
 
     if(lnr .and. (.not. rnl))then
 if(iproc==0)write(*,*)'(MHGPS)connection check lnr and not rnl',sqrt(sum((rxyz1-cobj%rightmin(:,:,nsad_loc))**2))
+if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         !connect right relaxed bar end with left input min
         call connect_recursively(nat,nid,alat,rcov,nbond,&
                      iconnect,rxyz1,cobj%rightmin(1,1,nsad_loc),&
@@ -373,6 +377,7 @@ if(iproc==0)write(*,*)'(MHGPS)connection check lnr and not rnl',sqrt(sum((rxyz1-
 
     if(.not. lnr .and. rnl)then
 if(iproc==0)write(*,*)'(MHGPS)connection check not lnr and rnl',sqrt(sum((rxyz2-cobj%leftmin(:,:,nsad_loc))**2))
+if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         !connect left relaxed bar end with right input min
         call connect_recursively(nat,nid,alat,rcov,nbond,&
                      iconnect,rxyz2,cobj%leftmin(1,1,nsad_loc),&
@@ -384,6 +389,7 @@ if(iproc==0)write(*,*)'(MHGPS)connection check not lnr and rnl',sqrt(sum((rxyz2-
     if((.not. lnl) .and. (.not. rnr))then
 if(iproc==0)write(*,*)'(MHGPS)connection check not lnl and not rnr',sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))
 if(iproc==0)write(*,*)'(MHGPS)connection check not lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
+if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         !connect left input min with left relaxed bar end  and right
         !input min with right relaxed bar end
         call connect_recursively(nat,nid,alat,rcov,nbond,&
@@ -460,6 +466,7 @@ use module_energyandforces
     real(gp) :: rxyz1cur(3,nat), rxyz2cur(3,nat)
     real(gp) :: fp1cur(nid), fp2cur(nid)
     real(gp) :: ener1cur, ener2cur
+integer :: i
 
     ntodo=1
     todorxyz(:,:,1,ntodo)=rxyz1
@@ -474,12 +481,19 @@ connectloop: do while(ntodo>=1)
         connected=.false.
         exit connectloop
     endif
+
+    call vcopy(3*nat,todorxyz(1,1,1,ntodo),1,rxyz1cur(1,1), 1)
+    call vcopy(nid,todofp(1,1,ntodo),1,fp1cur(1), 1)
+    ener1cur=todoenergy(1,ntodo)
+    call vcopy(3*nat,todorxyz(1,1,2,ntodo),1,rxyz2cur(1,1), 1)
+    call vcopy(nid,todofp(1,2,ntodo),1,fp2cur(1), 1)
+    ener2cur=todoenergy(2,ntodo)
     if(iproc==0)then
         call yaml_comment('(MHGPS) nsad:'//&
              trim(adjustl(yaml_toa(nsad)))//'; connect minima with &
              following energies')
-        call yaml_comment('(MHGPS) '//trim(adjustl(yaml_toa(ener1)))//' and ')
-        call yaml_comment('(MHGPS) '//trim(adjustl(yaml_toa(ener2))))
+        call yaml_comment('(MHGPS) '//trim(adjustl(yaml_toa(todoenergy(1,ntodo))))//' and ')
+        call yaml_comment('(MHGPS) '//trim(adjustl(yaml_toa(todoenergy(2,ntodo)))))
     endif
 
 
@@ -489,15 +503,8 @@ connectloop: do while(ntodo>=1)
                     'minima are identical. Will NOT attempt to find '//&
                     'an intermediate TS. recursion depth: '//&
                     yaml_toa(nsad))
-        return
+        exit connectloop
     endif
-
-    call vcopy(3*nat,todorxyz(1,1,1,ntodo),1,rxyz1cur(1,1), 1)
-    call vcopy(nid,todofp(1,1,ntodo),1,fp1cur(1), 1)
-    ener1cur=todoenergy(1,ntodo)
-    call vcopy(3*nat,todorxyz(1,1,2,ntodo),1,rxyz2cur(1,1), 1)
-    call vcopy(nid,todofp(1,2,ntodo),1,fp2cur(1), 1)
-    ener2cur=todoenergy(2,ntodo)
     !rmsd alignment (optional in mhgps approach)
     call superimpose(nat,rxyz1cur,rxyz2cur)
 
@@ -645,11 +652,13 @@ connectloop: do while(ntodo>=1)
         cobj%enerright(nsad),fp1cur,cobj%fpright(1,nsad))
 
     if((lnl .and. rnr) .or. (lnr .and. rnl))then!connection done
+if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         connected=.true.
 !        return
     elseif(lnl .and. (.not. rnr))then
         !connect right input min with right relaxed bar-end
 if(iproc==0)write(*,*)'(MHGS) connection check lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
+if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         ntodo=ntodo+1
 if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
         todorxyz(:,:,1,ntodo)=cobj%rightmin(:,:,nsad_loc)
@@ -667,6 +676,7 @@ if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
     elseif(rnr .and. (.not. lnl))then
 if(iproc==0)write(*,*)'(MHGPS)connection check rnr and not lnl',rnr,lnl
 if(iproc==0)write(*,*)'(MHGPS)connection check rnr and not lnl',sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))
+if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
 !write(*,*)rxyz1
 !write(*,*)
 !write(*,*)cobj%leftmin(:,:,nsad_loc)
@@ -690,7 +700,7 @@ if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
         todorxyz(:,:,1,ntodo)=rxyz1cur
         todorxyz(:,:,2,ntodo)=cobj%leftmin(:,:,nsad_loc)
         todofp(:,1,ntodo)=fp1cur
-        todofp(:,2,ntodo)=cobj%fpleft(1,nsad_loc)
+        todofp(:,2,ntodo)=cobj%fpleft(:,nsad_loc)
         todoenergy(1,ntodo)=ener1cur
         todoenergy(2,ntodo)=cobj%enerleft(nsad_loc)
 !        call connect_recursively(nat,nid,alat,rcov,nbond,&
@@ -700,6 +710,7 @@ if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
 !        return
     elseif(lnr .and. (.not. rnl))then
 if(iproc==0)write(*,*)'(MHGPS)connection check lnr and not rnl',sqrt(sum((rxyz1-cobj%rightmin(:,:,nsad_loc))**2))
+if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         !connect right relaxed bar end with left input min
         ntodo=ntodo+1
 if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
@@ -716,6 +727,7 @@ if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
 !        return
     elseif(.not. lnr .and. rnl)then
 if(iproc==0)write(*,*)'(MHGPS)connection check not lnr and rnl',sqrt(sum((rxyz2-cobj%leftmin(:,:,nsad_loc))**2))
+if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         !connect left relaxed bar end with right input min
         ntodo=ntodo+1
 if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
@@ -733,6 +745,7 @@ if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
     elseif((.not. lnl) .and. (.not. rnr))then
 if(iproc==0)write(*,*)'(MHGPS)connection check not lnl and not rnr',sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))
 if(iproc==0)write(*,*)'(MHGPS)connection check not lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
+if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         !connect left input min with left relaxed bar end  and right
         !input min with right relaxed bar end
         ntodo=ntodo+1
@@ -745,12 +758,12 @@ if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
         todoenergy(2,ntodo)=cobj%enerleft(nsad_loc)
         ntodo=ntodo+1
 if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
-        todorxyz(:,:,1,ntodo)=rxyz2cur
-        todorxyz(:,:,2,ntodo)=cobj%rightmin(:,:,nsad_loc)
-        todofp(:,1,ntodo)=fp2cur
-        todofp(:,2,ntodo)=cobj%fpright(:,nsad_loc)
-        todoenergy(1,ntodo)=ener2cur
-        todoenergy(2,ntodo)=cobj%enerright(nsad_loc)
+        todorxyz(:,:,1,ntodo)=cobj%rightmin(:,:,nsad_loc)
+        todorxyz(:,:,2,ntodo)=rxyz2cur
+        todofp(:,1,ntodo)=cobj%fpright(:,nsad_loc)
+        todofp(:,2,ntodo)=fp2cur
+        todoenergy(1,ntodo)=cobj%enerright(nsad_loc)
+        todoenergy(2,ntodo)=ener2cur
 !        call connect_recursively(nat,nid,alat,rcov,nbond,&
 !                     iconnect,rxyz1,cobj%leftmin(1,1,nsad_loc),&
 !                     ener1,cobj%enerleft(nsad_loc),&
@@ -770,6 +783,9 @@ if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
                       the checks in connect subroutine were successful! &
                       STOP'
     endif
+do i=1,2*nsadmax
+write(*,*)'ener',todoenergy(1,i),todoenergy(2,i)
+enddo
 enddo connectloop
 
 end subroutine

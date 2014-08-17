@@ -368,7 +368,7 @@ write(*,*)'hier2 ',filename2
 !                call connect(nat,nid,alat,rcov,nbond,&
 !                     iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
 !                     nsad,cobj,connected)
-                call connect_recursively(nat,nid,alat,rcov,nbond,&
+               call connect_recursively(nat,nid,alat,rcov,nbond,&
                      iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
                      nsad,cobj,connected)
                 if(connected)then
