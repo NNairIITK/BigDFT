@@ -789,17 +789,25 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               ovrlpminonep = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminonep')
               invovrlpp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='invovrlpp')
 
+              if (iorder>1) then
+                  ovrlpminone_sparse_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, &
+                       id='ovrlpminone_sparse_seq')
+                  ovrlpminone_sparse = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=SPARSE_FULL, &
+                       id='ovrlpminone_sparse')
+                  ovrlpminoneoldp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminoneoldp')
+              end if
+
               do ispin=1,nspin
 
                   isshift=(ispin-1)*ovrlp_smat%nvctr
                   ilshift=(ispin-1)*inv_ovrlp_smat%nvctr
 
                   if (iorder>1) then
-                      ovrlpminone_sparse_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, &
-                           id='ovrlpminone_sparse_seq')
-                      ovrlpminone_sparse = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=SPARSE_FULL, &
-                           id='ovrlpminone_sparse')
-                      ovrlpminoneoldp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminoneoldp')
+                      !!ovrlpminone_sparse_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, &
+                      !!     id='ovrlpminone_sparse_seq')
+                      !!ovrlpminone_sparse = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=SPARSE_FULL, &
+                      !!     id='ovrlpminone_sparse')
+                      !!ovrlpminoneoldp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_PARALLEL, id='ovrlpminoneoldp')
 
                       call matrix_minus_identity_sparse(ovrlp_smat%nfvctr, inv_ovrlp_smat, &
                            ovrlp_large_compr(isshift+1), ovrlpminone_sparse)
@@ -808,7 +816,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                       call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, ovrlpminone_sparse, ovrlpminoneoldp)
                       call timing(iproc,'lovrlp^-1     ','ON')
 
-                      call f_free_ptr(ovrlpminone_sparse)
+                      !!call f_free_ptr(ovrlpminone_sparse)
 
                       if (power==1) then
                           factor=-1.0d0
@@ -848,6 +856,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               if (iorder>1) then
                   call f_free(ovrlpminone_sparse_seq)
                   call f_free(ovrlpminoneoldp)
+                  call f_free_ptr(ovrlpminone_sparse)
               end if
 
               if (.not.check_accur) call f_free(invovrlpp)

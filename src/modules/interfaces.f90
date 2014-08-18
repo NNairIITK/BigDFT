@@ -3694,7 +3694,7 @@ module module_interfaces
         end subroutine check_communication_sumrho
 
         subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt, order_taylor, &
-                   max_inversion_error, purification_quickreturn)
+                   max_inversion_error, purification_quickreturn, ispin)
           use module_base
           use module_types
           implicit none
@@ -3705,6 +3705,7 @@ module module_interfaces
           logical,intent(inout):: overlap_calculated
           integer,intent(in) :: it_shift, it_opt
           logical,intent(in) :: purification_quickreturn
+          integer,intent(in) :: ispin
         end subroutine purify_kernel
 
         subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, &

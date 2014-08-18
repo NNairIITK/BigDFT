@@ -487,7 +487,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical,intent(in) :: correction_co_contra
  
   ! Local variables
-  integer :: iorb, it, it_tot, ncount, ncharge, ii, kappa_satur, nit_exit
+  integer :: iorb, it, it_tot, ncount, ncharge, ii, kappa_satur, nit_exit, ispin
   !integer :: jorb, nspin
   !real(kind=8),dimension(:),allocatable :: occup_tmp
   real(kind=8) :: fnrmMax, meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
@@ -570,8 +570,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call yaml_map('Initial kernel purification',.true.)
       end if
       overlap_calculated=.true.
-      call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor, &
-           max_inversion_error, purification_quickreturn)
+      do ispin=1,tmb%linmat%l%nspin
+          call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor, &
+               max_inversion_error, purification_quickreturn, ispin)
+      end do
       if (iproc==0) call yaml_mapping_close()
   end if
 
@@ -992,8 +994,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                       call yaml_map('purify kernel',.true.)
                       call yaml_newline()
                   end if
-                  call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, &
-                       order_taylor, max_inversion_error, purification_quickreturn)
+                  do ispin=1,tmb%linmat%l%nspin
+                      call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, &
+                           order_taylor, max_inversion_error, purification_quickreturn, ispin)
+                  end do
               else if (method_updatekernel==UPDATE_BY_FOE) then
                   if (iproc==0) then
                       call yaml_map('purify kernel',.false.)
@@ -2224,7 +2228,7 @@ end subroutine estimate_energy_change
 
 
 subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt, order_taylor, &
-           max_inversion_error, purification_quickreturn)
+           max_inversion_error, purification_quickreturn, ispin)
   use module_base
   use module_types
   use yaml_output
@@ -2244,6 +2248,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   logical,intent(inout):: overlap_calculated
   integer,intent(in) :: it_shift, it_opt
   logical,intent(in) :: purification_quickreturn
+  integer,intent(in) :: ispin
 
   ! Local variables
   integer :: it, iorb, jorb, jsegstart, jsegend, jseg, jjorb, iiorb !info, lwork, 
@@ -2258,10 +2263,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   logical,dimension(2) :: bisec_bounds_ok
   !real(kind=8),dimension(:,:),pointer :: ovrlp_onehalf, ovrlp_minusonehalf
   type(matrices) :: ovrlp_onehalf_, ovrlp_minusonehalf_
-  integer :: ispin
 
 
-  ispin=1 !for the moment
 
   if (purification_quickreturn) then
       if (iproc==0) call yaml_warning('quick return in purification')
@@ -2465,9 +2468,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
           tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
                 tmb%linmat%ovrlp_, tmb%linmat%kernel_)
-          chargediff=tr_KS-foe_data_get_real(tmb%foe_obj,"charge",ispin)
-          if (tmb%linmat%l%nspin==1) then
-              chargediff=2.d0*chargediff
+          if (tmb%linmat%l%nspin==2) then
+              chargediff=tr_KS-foe_data_get_real(tmb%foe_obj,"charge",ispin)
+          else if (tmb%linmat%l%nspin==1) then
+              chargediff=2.d0*tr_KS-foe_data_get_real(tmb%foe_obj,"charge",ispin)
           end if
 
           if (nproc > 1) then
@@ -2507,9 +2511,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
       !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
       tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
             tmb%linmat%ovrlp_, tmb%linmat%kernel_)
-      chargediff=tr_KS-foe_data_get_real(tmb%foe_obj,"charge",ispin)
-      if (tmb%linmat%l%nspin==1) then
-          chargediff=2.d0*chargediff
+      if (tmb%linmat%l%nspin==2) then
+          chargediff=tr_KS-foe_data_get_real(tmb%foe_obj,"charge",ispin)
+      else if (tmb%linmat%l%nspin==1) then
+          chargediff=2.d0*tr_KS-foe_data_get_real(tmb%foe_obj,"charge",ispin)
       end if
 
       if (iproc==0) call yaml_sequence_close
