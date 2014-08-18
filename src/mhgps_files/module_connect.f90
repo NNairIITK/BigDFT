@@ -118,7 +118,8 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,&
              currDir,&
              ixyz_int,&
              en_delta_min, fp_delta_min,&
-             en_delta_sad, fp_delta_sad
+             en_delta_sad, fp_delta_sad,&
+             saddle_scale_stepoff
     use module_ls_rmsd
     use module_fingerprints
     use module_minimizers
@@ -141,13 +142,13 @@ use module_energyandforces
     type(connect_object), intent(inout) :: cobj
     logical, intent(inout)    :: connected
     !internal
-    integer  :: nsad_loc
+    integer  :: nsad_loc,ipush
     real(gp) :: displ=0._gp,ener_count=0._gp
     real(gp) :: fnoise,fnrm,fmax
     logical  :: converged =.false.
     logical  :: lnl, rnr, lnr, rnl 
     character(len=200) :: comment
-    real(gp) :: tsgforces(3,nat), tsgenergy
+    real(gp) :: tsgforces(3,nat), tsgenergy,scl
 
     if(.not.connected)return
     if(nsad>=nsadmax)then
@@ -227,76 +228,123 @@ use module_energyandforces
     call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
                     cobj%saddle(1,1,nsad),cobj%fpsad(1,nsad))
 
-    !pushoff and minimize left and right
-    call pushoff(nat,cobj%saddle(1,1,nsad),cobj%minmode(1,1,nsad),&
-                 cobj%leftmin(1,1,nsad),cobj%rightmin(1,1,nsad))
-
-    if(iproc==0)&
-    call yaml_comment('(MHGPS) Relax from left side ',hfill='.')
-    ener_count=0.0_gp
-    call energyandforces(nat,alat,cobj%leftmin(1,1,nsad),&
-    cobj%fleft(1,1,nsad),fnoise,cobj%enerleft(nsad))
-    call minimize(imode,nat,alat,nbond,iconnect,&
-                        cobj%leftmin(1,1,nsad),cobj%fleft(1,1,nsad),&
-                        fnoise,cobj%enerleft(nsad),&
-                        ener_count,converged,'L')
-    call fnrmandforcemax(cobj%fleft(1,1,nsad),fnrm,fmax,nat)
-    write(comment,'(a,1pe10.3,5x1pe10.3)')'fnrm, fmax = ',fnrm,fmax
-    if(iproc==0)&
-    call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
-    //'_minFinalL',cobj%enerleft(nsad),cobj%leftmin(1,1,nsad),&
-    ixyz_int,atoms,comment,cobj%fleft(1,1,nsad))
-
-    if(iproc==0)&
-    call yaml_comment('(MHGPS) Relax from right side ',hfill='.')
-    ener_count=0.0_gp
-    call energyandforces(nat,alat,cobj%rightmin(1,1,nsad),&
-    cobj%fright(1,1,nsad),fnoise,cobj%enerright(nsad))
-    call minimize(imode,nat,alat,nbond,iconnect,&
-                        cobj%rightmin(1,1,nsad),cobj%fright(1,1,nsad)&
-                       ,fnoise,cobj%enerright(nsad),&
-                        ener_count,converged,'R')
-    call fnrmandforcemax(cobj%fright(1,1,nsad),fnrm,fmax,nat)
-    write(comment,'(a,1pe10.3,5x1pe10.3)')'fnrm, fmax = ',fnrm,fmax
-    if(iproc==0)&
-    call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
-    //'_minFinalR',cobj%enerright(nsad),cobj%rightmin(1,1,nsad),&
-    ixyz_int,atoms,comment,cobj%fright(1,1,nsad))
-
-    call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
-                    cobj%leftmin(1,1,nsad),cobj%fpleft(1,nsad))
-    call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
-                    cobj%rightmin(1,1,nsad),cobj%fpright(1,nsad))
-    !check if relaxed structures are identical to saddle itself
-    if(equal(nid,en_delta_sad,fp_delta_sad,cobj%enersad(nsad),&
-    cobj%enerright(nsad),cobj%fpsad(1,nsad),cobj%fpright(1,nsad)).or.&
-    equal(nid,en_delta_sad,fp_delta_sad,cobj%enersad(nsad),&
-    cobj%enerleft(nsad),cobj%fpsad(1,nsad),cobj%fpleft(1,nsad)))then
-
-        isadprob=isadprob+1
-        write(isadprobc,'(i5.5)')isadprob
-        if(iproc==0)then
-            write(comment,'(a)')'Prob: Neighbors '//&
-            'unknown (stepoff converged back to saddle)'
-            call write_atomic_file(currDir//'/sadProb'//&
-            trim(adjustl(isadprobc))//'_finalM',cobj%enersad(nsad),&
-            cobj%saddle(1,1,nsad),ixyz_int,atoms,comment,&
-            forces=cobj%minmode(1,1,nsad))
-        endif
-
-        connected=.false.
-        nsad=nsad-1
-        isad=isad-1
-        write(isadc,'(i5.5)')isad
-
+    scl=-1.0_gp
+    ipush=1
+    loopL: do
         if(iproc==0)&
-        call yaml_warning('(MHGPS)  after relaxation from saddle &
-                           point the left and/or right minimum are &
-                           identical to the saddle point. Stopped &
-                           connection attempt. Will proceed with &
-                           next connection attempt.')
-        return
-    endif
+        call yaml_comment('(MHGPS) Relax from left side ',hfill='.')
+    
+        call pushoffsingle(nat,cobj%saddle(1,1,nsad),&
+        cobj%minmode(1,1,nsad),scl,cobj%leftmin(1,1,nsad))
+
+        ener_count=0.0_gp
+        call energyandforces(nat,alat,cobj%leftmin(1,1,nsad),&
+        cobj%fleft(1,1,nsad),fnoise,cobj%enerleft(nsad))
+        call minimize(imode,nat,alat,nbond,iconnect,&
+                            cobj%leftmin(1,1,nsad),&
+                            cobj%fleft(1,1,nsad),fnoise,&
+                            cobj%enerleft(nsad),ener_count,converged,&
+                            'L')
+        call fnrmandforcemax(cobj%fleft(1,1,nsad),fnrm,fmax,nat)
+        write(comment,'(a,1pe10.3,5x1pe10.3)')'fnrm, fmax = ',fnrm,&
+                                              fmax
+        if(iproc==0)&
+        call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
+        //'_minFinalL',cobj%enerleft(nsad),cobj%leftmin(1,1,nsad),&
+        ixyz_int,atoms,comment,cobj%fleft(1,1,nsad))
+        call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
+                        cobj%leftmin(1,1,nsad),cobj%fpleft(1,nsad))
+        if(.not.equal(nid,en_delta_sad,fp_delta_sad,&
+           cobj%enersad(nsad),cobj%enerleft(nsad),cobj%fpsad(1,nsad),&
+           cobj%fpleft(1,nsad)))then
+           exit loopL 
+        elseif(ipush>=2)then
+            isadprob=isadprob+1
+            write(isadprobc,'(i5.5)')isadprob
+            if(iproc==0)then
+                write(comment,'(a)')'Prob: Neighbors '//&
+                'unknown (stepoff converged back to saddle)'
+                call write_atomic_file(currDir//'/sadProb'//&
+                trim(adjustl(isadprobc))//'_finalM',cobj%enersad(nsad),&
+                cobj%saddle(1,1,nsad),ixyz_int,atoms,comment,&
+                forces=cobj%minmode(1,1,nsad))
+            endif
+    
+            connected=.false.
+            nsad=nsad-1
+            isad=isad-1
+            write(isadc,'(i5.5)')isad
+    
+            if(iproc==0)&
+            call yaml_warning('(MHGPS)  after relaxation from saddle &
+                               point the left minimum is identical &
+                               to the saddle point. Stopped &
+                               connection attempt. Will proceed with &
+                               next connection attempt.')
+            return
+        endif
+        scl=saddle_scale_stepoff*scl
+        ipush=ipush+1
+    enddo loopL
+
+    scl=1.0_gp
+    ipush=1
+    loopR: do
+        if(iproc==0)&
+        call yaml_comment('(MHGPS) Relax from right side ',hfill='.')
+    
+        call pushoffsingle(nat,cobj%saddle(1,1,nsad),&
+        cobj%minmode(1,1,nsad),scl,cobj%rightmin(1,1,nsad))
+
+        ener_count=0.0_gp
+        call energyandforces(nat,alat,cobj%rightmin(1,1,nsad),&
+        cobj%fright(1,1,nsad),fnoise,cobj%enerright(nsad))
+        call minimize(imode,nat,alat,nbond,iconnect,&
+                            cobj%rightmin(1,1,nsad),&
+                            cobj%fright(1,1,nsad),fnoise,&
+                            cobj%enerright(nsad),ener_count,&
+                            converged,'L')
+        call fnrmandforcemax(cobj%fright(1,1,nsad),fnrm,fmax,nat)
+        write(comment,'(a,1pe10.3,5x1pe10.3)')'fnrm, fmax = ',fnrm,&
+                                              fmax
+        if(iproc==0)&
+        call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
+        //'_minFinalR',cobj%enerright(nsad),cobj%rightmin(1,1,nsad),&
+        ixyz_int,atoms,comment,cobj%fright(1,1,nsad))
+        call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
+                        cobj%rightmin(1,1,nsad),cobj%fpright(1,nsad))
+        if(.not.equal(nid,en_delta_sad,fp_delta_sad,&
+           cobj%enersad(nsad),cobj%enerright(nsad),&
+           cobj%fpsad(1,nsad),cobj%fpright(1,nsad)))then
+           exit loopR 
+        elseif(ipush>=2)then
+            isadprob=isadprob+1
+            write(isadprobc,'(i5.5)')isadprob
+            if(iproc==0)then
+                write(comment,'(a)')'Prob: Neighbors '//&
+                'unknown (stepoff converged back to saddle)'
+                call write_atomic_file(currDir//'/sadProb'//&
+                trim(adjustl(isadprobc))//'_finalM',cobj%enersad(nsad),&
+                cobj%saddle(1,1,nsad),ixyz_int,atoms,comment,&
+                forces=cobj%minmode(1,1,nsad))
+            endif
+    
+            connected=.false.
+            nsad=nsad-1
+            isad=isad-1
+            write(isadc,'(i5.5)')isad
+    
+            if(iproc==0)&
+            call yaml_warning('(MHGPS)  after relaxation from saddle &
+                               point the right minimum is identical &
+                               to the saddle point. Stopped &
+                               connection attempt. Will proceed with &
+                               next connection attempt.')
+            return
+        endif
+        scl=saddle_scale_stepoff*scl
+        ipush=ipush+1
+    enddo loopR
 
     !is minimum, obtained by relaxation from left bar end identical to
     !left input minimum?
@@ -811,6 +859,51 @@ subroutine pushoff(nat,saddle,minmode,left,right)
     left = saddle - step
     right = saddle + step
 
+end subroutine
+!=====================================================================
+subroutine pushoffsingle(nat,saddle,minmode,scl,pushed)
+    use module_base
+    use module_misc
+    use module_global_variables, only: saddle_stepoff
+    implicit none
+    !parameters 
+    integer, intent(in) :: nat
+    real(gp), intent(in) :: saddle(3,nat)
+    real(gp), intent(in) :: minmode(3,nat)
+    real(gp), intent(in) :: scl
+    real(gp), intent(out) :: pushed(3,nat)
+    !internal
+    real(gp)  :: step(3,nat)
+
+    !functions
+    real(gp) :: dnrm2
+
+    step = saddle_stepoff*minmode
+    pushed = saddle + scl*step
+
+end subroutine
+!=====================================================================
+subroutine pushoff_assym(nat,saddle,minmode,scll,sclr,left,right)
+    use module_base
+    use module_misc
+    use module_global_variables, only: saddle_stepoff
+    implicit none
+    !parameters 
+    integer, intent(in) :: nat
+    real(gp), intent(in) :: saddle(3,nat)
+    real(gp), intent(in) :: minmode(3,nat)
+    real(gp), intent(in) :: scll,sclr
+    real(gp), intent(out) :: left(3,nat)
+    real(gp), intent(out) :: right(3,nat)
+    !internal
+    real(gp)  :: step(3,nat)
+
+    !functions
+    real(gp) :: dnrm2
+
+    step = saddle_stepoff*minmode
+    left = saddle - scll*step
+    right = saddle + sclr*step
 end subroutine
 !=====================================================================
 

@@ -49,6 +49,7 @@ module module_global_variables
     integer          :: saddle_recompIfCurvPos     = 5
     real(gp)         :: saddle_fnrmtol             = 1.e-3_gp
     real(gp)         :: saddle_stepoff             = 2.e-2_gp
+    real(gp)         :: saddle_scale_stepoff       = 2.e+0_gp
     logical          :: share_rot_history = .false.!not available via
                                                    !input file since
                                                    !sharing tends to
@@ -57,14 +58,6 @@ module module_global_variables
                                                    !compared to no
                                                    !sharing (roughly
                                                    !10% for LJ75)
-    !variables for connect routine
-    integer :: nsadmax=30
-    !ts guess parameters
-    real(gp) :: ts_guess_gammainv=1._gp
-    real(gp) :: ts_guess_perpnrmtol=1.e-3_gp
-    real(gp) :: ts_guess_trust=0.05_gp
-    integer  :: ts_guess_nstepsmax=5
-    real(gp) :: lst_interpol_stepfrct=0.1_gp
 
     !parameters for minimizers implemented in mhgps
     logical :: internal=.true. !use internal or external optimizers?
@@ -80,7 +73,20 @@ module module_global_variables
         real(gp) :: mini_steepthresh = 1.0_gp
         real(gp) :: mini_trustr = 0.5_gp
 
-    !other
+    !parameters for inputguess
+    !ts guess parameters
+    real(gp) :: ts_guess_gammainv=1._gp
+    real(gp) :: ts_guess_perpnrmtol=1.e-3_gp
+    real(gp) :: ts_guess_trust=0.05_gp
+    integer  :: ts_guess_nstepsmax=5
+    real(gp) :: lst_interpol_stepfrct=0.1_gp
+    real(gp) :: lst_dt_max=5.0_gp
+    real(gp) :: lst_fmax_tol=5.e-3_gp
+
+    !variables for connect routine
+    integer :: nsadmax=30
+
+    !others
     integer               :: nbond = 1
     integer, allocatable  :: iconnect(:,:) 
     integer, allocatable  :: ixyz_int(:,:)

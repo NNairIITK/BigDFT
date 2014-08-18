@@ -17,7 +17,7 @@ program MINHOP
   use yaml_output
   use module_atoms, only: deallocate_atoms_data
   implicit real(kind=8) (a-h,o-z)
-  logical :: newmin,CPUcheck,occured,exist_poslocm
+  logical :: newmin,CPUcheck,occured,exist_poslocm,exist_posacc
   character(len=20) :: unitsp,atmn
   character(len=60) :: run_id
   type(atoms_data) :: atoms,md_atoms
@@ -49,7 +49,7 @@ program MINHOP
   type(run_objects) :: runObj
   type(DFT_global_output) :: outs
   type(dictionary), pointer :: user_inputs
-integer:: fcount=0
+integer:: nposacc=0
 logical:: disable_hatrans
 
   call f_lib_initialize()
@@ -214,6 +214,20 @@ logical:: disable_hatrans
   enddo 
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) number of poslocm files that exist already ',ngeopt)
 
+  nposacc=0
+  do 
+     write(fn4,'(i4.4)') nposacc+1
+     filename='posacc_'//fn4//'_'//trim(bigdft_run_id_toa())//'.xyz'
+!     write(*,*) 'filename: ',filename
+     inquire(file=trim(filename),exist=exist_posacc)
+     if (exist_posacc) then
+        nposacc=nposacc+1
+     else
+        exit 
+     endif
+  enddo 
+  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) number of posacc files that exist already ',nposacc)
+
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for approximate geo. rel of initial conf., e_pos',ncount_bigdft)
   count_sdcg=count_sdcg+ncount_bigdft
@@ -252,10 +266,10 @@ logical:: disable_hatrans
      stop
   end if
 
-  if (bigdft_mpi%iproc == 0) then
+  if (bigdft_mpi%iproc == 0 .and. nposacc==0) then
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
-     fcount=fcount+1
-     write(fn4,'(i4.4)')fcount
+     nposacc=nposacc+1
+     write(fn4,'(i4.4)')nposacc
      if(disable_hatrans)then
          write(comment,'(a,1pe10.3)')'ha_trans disabled, fnrm= ',tt
      else
@@ -645,8 +659,8 @@ logical:: disable_hatrans
         fp(i)=fphop(i)
      enddo
   if (bigdft_mpi%iproc == 0) then
-     fcount=fcount+1
-     write(fn4,'(i4.4)')fcount
+     nposacc=nposacc+1
+     write(fn4,'(i4.4)')nposacc
      if(disable_hatrans)then
          write(comment,'(a)')'ha_trans disabled'
      else

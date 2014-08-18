@@ -461,7 +461,7 @@ subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
   end if
 
   if (energy /= 0. .and. energy /= UNINITIALIZED(energy)) then
-     write(iunit,'(i6,2x,a,2x,1pe24.17,a,2x,a)') atoms%astruct%nat,trim(units),energy,'(Ha)',trim(comment)
+     write(iunit,'(i6,2x,a,2x,1pe24.17,1x,a,2x,a)') atoms%astruct%nat,trim(units),energy,'(Ha)',trim(comment)
   else
      write(iunit,'(i6,2x,a,2x,a)') atoms%astruct%nat,trim(units),trim(comment)
   end if

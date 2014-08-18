@@ -43,6 +43,7 @@ contains
             read(u,*) ts_guess_perpnrmtol
             read(u,*) ts_guess_trust
             read(u,*) ts_guess_nstepsmax
+            read(u,*) lst_dt_max, lst_fmax_tol
             read(u,*)saddle_nit_trans, saddle_nit_rot
             read(u,*)saddle_nhistx_trans, saddle_nhistx_rot
             read(u,*)saddle_steepthresh_trans,saddle_steepthresh_rot
@@ -94,6 +95,7 @@ contains
             write(u,'(1x,es10.3,1x,a)') ts_guess_perpnrmtol,' #convergence criterion perpedicular force in freezing string method (disable perpend. optim. by setting this value to a negative number)'
             write(u,'(1x,es10.3,1x,a)') ts_guess_trust,' #trust radius freezing string method (maximum change of any coordinate'
             write(u,'(1x,i0,1x,a)') ts_guess_nstepsmax,' #maximum number of steps in perpendicular optimization in freezing stringmethod'
+            write(u,'(1x,es10.3,1x,es10.3,1x,a)')lst_dt_max, lst_fmax_tol, 'max. time step in fire optimizer of lst function, convergence criterion'
             write(u,'(1x,i0,1x,i0,1x,a)')saddle_nit_trans, saddle_nit_rot,'  #nit_trans, not_rot'
             write(u,'(1x,i0,1x,i0,1x,a)')saddle_nhistx_trans, saddle_nhistx_rot,' #nhistx_trans, nhistx_rot'
             write(u,'(es10.3,1x,es10.3,a)')saddle_steepthresh_trans,saddle_steepthresh_rot,' #saddle_steepthresh_trans,saddle_steepthresh_rot'
