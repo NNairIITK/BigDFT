@@ -2258,6 +2258,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   logical,dimension(2) :: bisec_bounds_ok
   !real(kind=8),dimension(:,:),pointer :: ovrlp_onehalf, ovrlp_minusonehalf
   type(matrices) :: ovrlp_onehalf_, ovrlp_minusonehalf_
+  integer :: ispin
+
+
+  ispin=1 !for the moment
 
   if (purification_quickreturn) then
       if (iproc==0) call yaml_warning('quick return in purification')
@@ -2307,20 +2311,22 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   call uncompress_matrix(iproc, tmb%linmat%l, &
        inmat=tmb%linmat%kernel_%matrix_compr, outmat=tmb%linmat%kernel_%matrix)
 
-  ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ks')
-  ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='ksk')
-  ksksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='ksksk')
-  kernel_prime=f_malloc([tmb%orbs%norb,tmb%orbs%norb],id='kernel_prime')
+  ks=f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr/),id='ks')
+  ksk=f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctrp/),id='ksk')
+  ksksk=f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr/),id='ksksk')
+  kernel_prime=f_malloc([tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr],id='kernel_prime')
 
-  !ovrlp_onehalf=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='ovrlp_onehalf')
-  !ovrlp_minusonehalf=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='ovrlp_minusonehalf')
+  !ovrlp_onehalf=f_malloc_ptr((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr/),id='ovrlp_onehalf')
+  !ovrlp_minusonehalf=f_malloc_ptr((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr/),id='ovrlp_minusonehalf')
 
 
 
 
   call timing(iproc,'purify_kernel ','ON') 
 
-  call dscal(tmb%orbs%norb**2, 0.5d0, tmb%linmat%kernel_%matrix, 1)
+  if (tmb%linmat%l%nspin==1) then
+      call dscal(tmb%linmat%l%nfvctr**2, 0.5d0, tmb%linmat%kernel_%matrix, 1)
+  end if
 
 
 
@@ -2348,21 +2354,21 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
   if (it_shift>1) then
       call calculate_overlap_onehalf()
-      call to_zero(tmb%orbs%norb**2, kernel_prime(1,1))
-      if (tmb%orbs%norbp>0) then
+      call to_zero(tmb%linmat%l%nfvctr**2, kernel_prime(1,1))
+      if (tmb%linmat%l%nfvctrp>0) then
           !SM: need to fix the spin here
-          call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
-                     1.d0, tmb%linmat%kernel_%matrix, tmb%orbs%norb, &
-                     ovrlp_onehalf_%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, &
-                     0.d0, ksksk, tmb%orbs%norb) 
-          call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
-                     1.d0, ovrlp_onehalf_%matrix, tmb%orbs%norb, &
-                     ksksk, tmb%orbs%norb, &
-                     0.d0, kernel_prime(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
+          call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
+                     1.d0, tmb%linmat%kernel_%matrix, tmb%linmat%l%nfvctr, &
+                     ovrlp_onehalf_%matrix(1,tmb%linmat%l%isfvctr+1,1), tmb%linmat%l%nfvctr, &
+                     0.d0, ksksk, tmb%linmat%l%nfvctr) 
+          call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
+                     1.d0, ovrlp_onehalf_%matrix, tmb%linmat%l%nfvctr, &
+                     ksksk, tmb%linmat%l%nfvctr, &
+                     0.d0, kernel_prime(1,tmb%linmat%l%isfvctr+1), tmb%linmat%l%nfvctr) 
       end if
 
       if (nproc > 1) then
-          call mpiallred(kernel_prime(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(kernel_prime(1,1), tmb%linmat%l%nfvctr**2, mpi_sum, bigdft_mpi%mpi_comm)
       end if
   end if
 
@@ -2381,8 +2387,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
       ! shift the eigenvalues of the density kernel, using ks as temporary variable
       if (shift/=0.d0) then
           if (ishift==1) stop 'eigenvalue shift not allowed for first iteration'
-          do iorb=1,tmb%orbs%norb
-              do jorb=1,tmb%orbs%norb
+          do iorb=1,tmb%linmat%l%nfvctr
+              do jorb=1,tmb%linmat%l%nfvctr
                   if (jorb==iorb) then
                       ks(jorb,iorb)=kernel_prime(jorb,iorb)+shift
                   else
@@ -2391,64 +2397,64 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
               end do
           end do
           !SM: need to fix the spin here
-          call to_zero(tmb%orbs%norb**2, tmb%linmat%kernel_%matrix(1,1,1))
-          if (tmb%orbs%norbp>0) then
-              call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
-                         1.d0, ks, tmb%orbs%norb, &
-                         ovrlp_minusonehalf_%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, &
-                         0.d0, ksksk, tmb%orbs%norb) 
-              call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
-                         1.d0, ovrlp_minusonehalf_%matrix, tmb%orbs%norb, &
-                         ksksk, tmb%orbs%norb, &
-                         0.d0, tmb%linmat%kernel_%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb) 
+          call to_zero(tmb%linmat%l%nfvctr**2, tmb%linmat%kernel_%matrix(1,1,1))
+          if (tmb%linmat%l%nfvctrp>0) then
+              call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
+                         1.d0, ks, tmb%linmat%l%nfvctr, &
+                         ovrlp_minusonehalf_%matrix(1,tmb%linmat%l%isfvctr+1,1), tmb%linmat%l%nfvctr, &
+                         0.d0, ksksk, tmb%linmat%l%nfvctr) 
+              call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
+                         1.d0, ovrlp_minusonehalf_%matrix, tmb%linmat%l%nfvctr, &
+                         ksksk, tmb%linmat%l%nfvctr, &
+                         0.d0, tmb%linmat%kernel_%matrix(1,tmb%linmat%l%isfvctr+1,1), tmb%linmat%l%nfvctr) 
           end if
     
 
           if (nproc > 1) then
              !SM: need to fix the spin here
-             call mpiallred(tmb%linmat%kernel_%matrix(1,1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
+             call mpiallred(tmb%linmat%kernel_%matrix(1,1,1), tmb%linmat%l%nfvctr**2, mpi_sum, bigdft_mpi%mpi_comm)
           end if
       end if
 
 
       do it=1,it_opt
 
-          call to_zero(tmb%orbs%norb**2, ks(1,1))
-          if (tmb%orbs%norbp>0) then
-              call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
-                         1.d0, tmb%linmat%kernel_%matrix(1,1,1), tmb%orbs%norb, &
-                         tmb%linmat%ovrlp_%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, &
-                         0.d0, ks(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
+          call to_zero(tmb%linmat%l%nfvctr**2, ks(1,1))
+          if (tmb%linmat%l%nfvctrp>0) then
+              call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
+                         1.d0, tmb%linmat%kernel_%matrix(1,1,1), tmb%linmat%l%nfvctr, &
+                         tmb%linmat%ovrlp_%matrix(1,tmb%linmat%l%isfvctr+1,1), tmb%linmat%l%nfvctr, &
+                         0.d0, ks(1,tmb%linmat%l%isfvctr+1), tmb%linmat%l%nfvctr) 
           end if
 
           if (nproc > 1) then
-              call mpiallred(ks(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
+              call mpiallred(ks(1,1), tmb%linmat%l%nfvctr**2, mpi_sum, bigdft_mpi%mpi_comm)
           end if
 
-          if (tmb%orbs%norbp>0) then
-              call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
-                         1.d0, ks(1,1), tmb%orbs%norb, &
-                         tmb%linmat%kernel_%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, &
-                         0.d0, ksk(1,1), tmb%orbs%norb)
+          if (tmb%linmat%l%nfvctrp>0) then
+              call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
+                         1.d0, ks(1,1), tmb%linmat%l%nfvctr, &
+                         tmb%linmat%kernel_%matrix(1,tmb%linmat%l%isfvctr+1,1), tmb%linmat%l%nfvctr, &
+                         0.d0, ksk(1,1), tmb%linmat%l%nfvctr)
           end if
-          if (tmb%orbs%norbp>0) then
-              call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
-                         ksk(1,1), tmb%orbs%norb, 0.d0, ksksk(1,1), tmb%orbs%norb)
+          if (tmb%linmat%l%nfvctrp>0) then
+              call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, 1.d0, ks(1,1), tmb%linmat%l%nfvctr, &
+                         ksk(1,1), tmb%linmat%l%nfvctr, 0.d0, ksksk(1,1), tmb%linmat%l%nfvctr)
           end if
 
 
           diff=0.d0
-          do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
-              iiorb=iorb-tmb%orbs%isorb
+          do iorb=tmb%linmat%l%isfvctr+1,tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp
+              iiorb=iorb-tmb%linmat%l%isfvctr
               jsegstart=tmb%linmat%l%istsegline(iorb)
-              if (iorb<tmb%orbs%norb) then
+              if (iorb<tmb%linmat%l%nfvctr) then
                   jsegend=tmb%linmat%l%istsegline(iorb+1)-1
               else
                   jsegend=tmb%linmat%l%nseg
               end if
               do jseg=jsegstart,jsegend
                   do jorb=tmb%linmat%l%keyg(1,jseg),tmb%linmat%l%keyg(2,jseg)
-                      jjorb=jorb-(iorb-1)*tmb%orbs%norb
+                      jjorb=jorb-(iorb-1)*tmb%linmat%l%nfvctr
                       diff = diff + (ksk(jjorb,iiorb)-tmb%linmat%kernel_%matrix(jjorb,iorb,1))**2
                   end do
               end do
@@ -2459,7 +2465,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
           tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
                 tmb%linmat%ovrlp_, tmb%linmat%kernel_)
-          chargediff=2.d0*tr_KS-foe_data_get_real(tmb%foe_obj,"charge")
+          chargediff=tr_KS-foe_data_get_real(tmb%foe_obj,"charge",ispin)
+          if (tmb%linmat%l%nspin==1) then
+              chargediff=2.d0*chargediff
+          end if
 
           if (nproc > 1) then
               call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm)
@@ -2477,16 +2486,16 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
               call yaml_mapping_close()
           end if
 
-          call to_zero(tmb%orbs%norb**2, tmb%linmat%kernel_%matrix(1,1,1))
-          do iorb=1,tmb%orbs%norbp
-              iiorb=iorb+tmb%orbs%isorb
-              do jorb=1,tmb%orbs%norb
+          call to_zero(tmb%linmat%l%nfvctr**2, tmb%linmat%kernel_%matrix(1,1,1))
+          do iorb=1,tmb%linmat%l%nfvctrp
+              iiorb=iorb+tmb%linmat%l%isfvctr
+              do jorb=1,tmb%linmat%l%nfvctr
                   tmb%linmat%kernel_%matrix(jorb,iiorb,1) = 3.d0*ksk(jorb,iorb) - 2.d0*ksksk(jorb,iorb)
               end do
           end do
 
           if (nproc > 1) then
-              call mpiallred(tmb%linmat%kernel_%matrix(1,1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
+              call mpiallred(tmb%linmat%kernel_%matrix(1,1,1), tmb%linmat%l%nfvctr**2, mpi_sum, bigdft_mpi%mpi_comm)
           end if
 
           if (diff<1.d-10) exit
@@ -2498,7 +2507,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
       !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
       tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
             tmb%linmat%ovrlp_, tmb%linmat%kernel_)
-      chargediff=2.d0*tr_KS-foe_data_get_real(tmb%foe_obj,"charge")
+      chargediff=tr_KS-foe_data_get_real(tmb%foe_obj,"charge",ispin)
+      if (tmb%linmat%l%nspin==1) then
+          chargediff=2.d0*chargediff
+      end if
 
       if (iproc==0) call yaml_sequence_close
 
@@ -2533,7 +2545,9 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
   !if (iproc==0) call yaml_sequence_close
 
-  call dscal(tmb%orbs%norb**2, 2.0d0, tmb%linmat%kernel_%matrix, 1)
+  if (tmb%linmat%l%nspin==1) then
+      call dscal(tmb%linmat%l%nfvctr**2, 2.0d0, tmb%linmat%kernel_%matrix, 1)
+  end if
 
   call timing(iproc,'purify_kernel ','OF') 
 

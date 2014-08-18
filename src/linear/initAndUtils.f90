@@ -254,10 +254,17 @@ subroutine init_foe(iproc, nproc, input, orbs_KS, foe_obj, reset)
      call foe_data_set_real(foe_obj,"fscale",input%lin%fscale)
      call foe_data_set_real(foe_obj,"ef_interpol_det",input%lin%ef_interpol_det)
      call foe_data_set_real(foe_obj,"ef_interpol_chargediff",input%lin%ef_interpol_chargediff)
-     call foe_data_set_real(foe_obj,"charge",0.d0)
-     do iorb=1,orbs_KS%norb
-          call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge")+orbs_KS%occup(iorb))
+     foe_obj%charge = f_malloc0_ptr(input%nspin,id='foe_obj%charge')
+     call foe_data_set_real(foe_obj,"charge",0.d0,1)
+     do iorb=1,orbs_KS%norbu
+          call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",1)+orbs_KS%occup(iorb),1)
      end do
+     if (input%nspin==2) then
+         call foe_data_set_real(foe_obj,"charge",0.d0,2)
+         do iorb=orbs_KS%norbu+1,orbs_KS%norbd
+              call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",2)+orbs_KS%occup(iorb),2)
+         end do
+     end if
      call foe_data_set_int(foe_obj,"evbounds_isatur",0)
      call foe_data_set_int(foe_obj,"evboundsshrink_isatur",0)
      call foe_data_set_int(foe_obj,"evbounds_nsatur",input%evbounds_nsatur)
