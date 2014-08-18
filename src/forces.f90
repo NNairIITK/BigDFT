@@ -650,8 +650,6 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   enddo
   charge=charge*hxh*hyh*hzh
 
-  write(*,*) 'iproc, charge', iproc, charge
-
  !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Calculate local forces...'
   if (iproc == 0 .and. verbose > 1) call yaml_mapping_open('Calculate local forces',flow=.true.)
   forceleaked=0.d0
@@ -717,8 +715,6 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      iex=ceiling((rx+cutoff)/hxh)
      iey=ceiling((ry+cutoff)/hyh)
      iez=ceiling((rz+cutoff)/hzh)
-
-     write(*,'(a,2i7,3x,2(3i8))') 'iproc, iat, isx, isy, isz, iex, iey, iez', iproc, iat, isx, isy, isz, iex, iey, iez
 
      !calculate the forces near the atom due to the error function part of the potential
      !calculate forces for all atoms only in the distributed part of the simulation box
@@ -792,8 +788,6 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      floc(1,iat)=fxion+(hxh*hyh*hzh*prefactor)*fxerf+(hxh*hyh*hzh/rloc**2)*fxgau
      floc(2,iat)=fyion+(hxh*hyh*hzh*prefactor)*fyerf+(hxh*hyh*hzh/rloc**2)*fygau
      floc(3,iat)=fzion+(hxh*hyh*hzh*prefactor)*fzerf+(hxh*hyh*hzh/rloc**2)*fzgau
-
-     write(*,'(a,2i9,3es12.4)') 'iproc, iat, floc(:,iat)', iproc, iat, floc(:,iat)
 
      locstrten(1)=locstrten(1)+Txx/rloc/rloc
      locstrten(2)=locstrten(2)+Tyy/rloc/rloc
@@ -4823,7 +4817,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
             fsep(1,iiat)=fsep(1,iiat)+2.d0*fxyz_orb(1,iiat)
             fsep(2,iiat)=fsep(2,iiat)+2.d0*fxyz_orb(2,iiat)
             fsep(3,iiat)=fsep(3,iiat)+2.d0*fxyz_orb(3,iiat)
-            write(*,'(a,3i8,3es14.6)') 'iproc, ispin, iat, fxyz_orb(:,iiat)', iproc, ispin, iat, fxyz_orb(:,iiat)
          end do
          if (ieorb == orbs%norbp) exit loop_kptF
          ikpt=ikpt+1

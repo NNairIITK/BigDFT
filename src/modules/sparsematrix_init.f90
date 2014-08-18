@@ -84,6 +84,7 @@ contains
           else
               ! there seems to be a mix up the spin matrices
               write(*,*) 'iorb, jorb', iorb, jorb
+              write(*,*) sqrt(-1.d0)
               stop 'matrixindex_in_compressed: problem in determining spin'
           end if
       else

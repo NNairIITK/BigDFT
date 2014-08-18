@@ -95,8 +95,8 @@ subroutine foe(iproc, nproc, tmprtr, &
 
 
 
-  penalty_ev = f_malloc((/tmb%orbs%norb,tmb%orbs%norbp,2/),id='penalty_ev')
-  fermip_check = f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='fermip_check')
+  penalty_ev = f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctrp,2/),id='penalty_ev')
+  fermip_check = f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctrp/),id='fermip_check')
   SHS = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='SHS')
   fermi_check_compr = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='fermi_check_compr')
 
@@ -111,10 +111,10 @@ subroutine foe(iproc, nproc, tmprtr, &
     
   ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
   nsize_polynomial=0
-  if (tmb%orbs%norbp>0) then
-      isegstart=tmb%linmat%l%istsegline(tmb%orbs%isorb_par(iproc)+1)
-      if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
-          isegend=tmb%linmat%l%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
+  if (tmb%linmat%l%nfvctrp>0) then
+      isegstart=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+1)
+      if (tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp<tmb%linmat%l%nfvctr) then
+          isegend=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr_par(iproc+1)+1)-1
       else
           isegend=tmb%linmat%l%nseg
       end if
@@ -193,7 +193,7 @@ subroutine foe(iproc, nproc, tmprtr, &
     
           calculate_SHS=.true.
     
-          if (tmb%orbs%norbp>0) then
+          if (tmb%linmat%l%nfvctrp>0) then
               call to_zero(tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctrp*tmb%linmat%l%nspin,tmb%linmat%kernel_%matrixp(1,1,1))
           end if
     
@@ -340,7 +340,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               !!end if
             
             
-              if (tmb%orbs%nspin==1) then
+              if (tmb%linmat%l%nspin==1) then
                   do ipl=1,npl
                       cc(ipl,1)=2.d0*cc(ipl,1)
                       cc(ipl,2)=2.d0*cc(ipl,2)
@@ -444,6 +444,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               end if
             
               call calculate_trace_distributed(tmb%linmat%kernel_%matrixp, sumn)
+              if (iproc==0) write(*,*) 'sumn',sumn
     
 
               if (all(eval_bounds_ok) .and. all(bisection_bounds_ok)) then
@@ -502,8 +503,8 @@ subroutine foe(iproc, nproc, tmprtr, &
                        tmb%linmat%l, chebyshev_polynomials, cc_check, fermip_check)
                   call f_free(cc_check)
                   diff=0.d0
-                  do iorb=1,tmb%orbs%norbp
-                      do jorb=1,tmb%orbs%norb
+                  do iorb=1,tmb%linmat%l%nfvctrp
+                      do jorb=1,tmb%linmat%l%nfvctr
                           !SM: need to fix the spin here
                           diff = diff + (tmb%linmat%kernel_%matrixp(jorb,iorb,1)-fermip_check(jorb,iorb))**2
                       end do
@@ -691,6 +692,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               call compress_matrix(iproc, tmb%linmat%l, inmat=inv_ovrlp%matrix, outmat=inv_ovrlp%matrix_compr)
           end if
           if (imode==SPARSE) then
+              write(*,*) 'tmb%linmat%s%nspin',tmb%linmat%s%nspin
               call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
                    imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                    ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
@@ -760,16 +762,16 @@ subroutine foe(iproc, nproc, tmprtr, &
 
 
       subroutine calculate_trace_distributed(matrixp, trace)
-          real(kind=8),dimension(tmb%orbs%norb,tmb%orbs%norbp),intent(in) :: matrixp
+          real(kind=8),dimension(tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctrp),intent(in) :: matrixp
           real(kind=8),intent(out) :: trace
 
           call f_routine(id='calculate_trace_distributed')
 
           trace=0.d0
-          if (tmb%orbs%norbp>0) then
-              isegstart=tmb%linmat%l%istsegline(tmb%orbs%isorb_par(iproc)+1)
-              if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
-                  isegend=tmb%linmat%l%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
+          if (tmb%linmat%l%nfvctrp>0) then
+              isegstart=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+1)
+              if (tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp<tmb%linmat%l%nfvctr) then
+                  isegend=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr_par(iproc+1)+1)-1
               else
                   isegend=tmb%linmat%l%nseg
               end if
@@ -779,9 +781,9 @@ subroutine foe(iproc, nproc, tmprtr, &
                   ii=tmb%linmat%l%keyv(iseg)-1
                   do jorb=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
                       ii=ii+1
-                      iiorb = (jorb-1)/tmb%orbs%norb + 1
-                      jjorb = jorb - (iiorb-1)*tmb%orbs%norb
-                      if (jjorb==iiorb) trace = trace + matrixp(jjorb,iiorb-tmb%orbs%isorb)
+                      iiorb = (jorb-1)/tmb%linmat%l%nfvctr + 1
+                      jjorb = jorb - (iiorb-1)*tmb%linmat%l%nfvctr
+                      if (jjorb==iiorb) trace = trace + matrixp(jjorb,iiorb-tmb%linmat%l%isfvctr)
                   end do  
               end do
               !$omp end do
@@ -896,10 +898,10 @@ subroutine foe(iproc, nproc, tmprtr, &
         ! The penalty function must be smaller than the noise.
         bound_low=0.d0
         bound_up=0.d0
-        if (tmb%orbs%norbp>0) then
-            isegstart=tmb%linmat%l%istsegline(tmb%orbs%isorb_par(iproc)+1)
-            if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
-                isegend=tmb%linmat%l%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
+        if (tmb%linmat%l%nfvctrp>0) then
+            isegstart=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+1)
+            if (tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp<tmb%linmat%l%nfvctr) then
+                isegend=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr_par(iproc+1)+1)-1
             else
                 isegend=tmb%linmat%l%nseg
             end if
@@ -910,16 +912,16 @@ subroutine foe(iproc, nproc, tmprtr, &
                 ii=tmb%linmat%l%keyv(iseg)-1
                 do jorb=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
                     ii=ii+1
-                    iiorb = (jorb-1)/tmb%orbs%norb + 1
-                    jjorb = jorb - (iiorb-1)*tmb%orbs%norb
+                    iiorb = (jorb-1)/tmb%linmat%l%nfvctr + 1
+                    jjorb = jorb - (iiorb-1)*tmb%linmat%l%nfvctr
                     iismall = matrixindex_in_compressed(tmb%linmat%s, iiorb, jjorb)
                     if (iismall>0) then
                         tt=tmb%linmat%ovrlp_%matrix_compr(iismall)
                     else
                         tt=0.d0
                     end if
-                    bound_low = bound_low + penalty_ev(jjorb,iiorb-tmb%orbs%isorb,2)*tt
-                    bound_up = bound_up +penalty_ev(jjorb,iiorb-tmb%orbs%isorb,1)*tt
+                    bound_low = bound_low + penalty_ev(jjorb,iiorb-tmb%linmat%l%isfvctr,2)*tt
+                    bound_up = bound_up +penalty_ev(jjorb,iiorb-tmb%linmat%l%isfvctr,1)*tt
                 end do  
             end do
             !$omp end do
@@ -1466,9 +1468,9 @@ subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norb
 
 
   if (norbp>0) then
-      isegstart=fermi%istsegline(isorb_par(iproc)+1)
+      isegstart=fermi%istsegline(fermi%isfvctr+1)
       if (isorb+norbp<norb) then
-          isegend=fermi%istsegline(isorb_par(iproc+1)+1)-1
+          isegend=fermi%istsegline(fermi%isfvctr_par(iproc+1)+1)-1
       else
           isegend=fermi%nseg
       end if
@@ -1504,30 +1506,30 @@ subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
   integer,dimension(0:nproc-1) :: isorb_par
   type(sparse_matrix),intent(in) :: fermi
   real(kind=8),dimension(nsize_polynomial),intent(in) :: vector_compressed
-  real(kind=8),dimension(norb,norbp),intent(out) :: vector
+  real(kind=8),dimension(fermi%nfvctr,fermi%nfvctrp),intent(out) :: vector
 
   ! Local variables
   integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
 
 
-  if (norbp>0) then
-      call to_zero(norb*norbp, vector(1,1))
-      isegstart=fermi%istsegline(isorb_par(iproc)+1)
-      if (isorb+norbp<norb) then
-          isegend=fermi%istsegline(isorb_par(iproc+1)+1)-1
+  if (fermi%nfvctrp>0) then
+      call to_zero(fermi%nfvctr*fermi%nfvctrp, vector(1,1))
+      isegstart=fermi%istsegline(fermi%isfvctr+1)
+      if (fermi%isfvctr+fermi%nfvctrp<fermi%nfvctr) then
+          isegend=fermi%istsegline(fermi%isfvctr_par(iproc+1)+1)-1
       else
           isegend=fermi%nseg
       end if
       !$omp parallel do default(private) &
-      !$omp shared(isegstart, isegend, fermi, norb, isorb,  vector, vector_compressed)
+      !$omp shared(isegstart, isegend, fermi, vector, vector_compressed)
       do iseg=isegstart,isegend
           ii=fermi%keyv(iseg)-fermi%keyv(isegstart)
           do jorb=fermi%keyg(1,iseg),fermi%keyg(2,iseg)
               ii=ii+1
-              iiorb = (jorb-1)/norb + 1
-              jjorb = jorb - (iiorb-1)*norb
-              vector(jjorb,iiorb-isorb)=vector_compressed(ii)
-              !write(*,*) 'ii, iiorb-isorb, jjorb', ii, iiorb-isorb, jjorb
+              iiorb = (jorb-1)/fermi%nfvctr + 1
+              jjorb = jorb - (iiorb-1)*fermi%nfvctr
+              vector(jjorb,iiorb-fermi%isfvctr)=vector_compressed(ii)
+              !write(*,*) 'ii, iiorb-fermi%isfvctr, jjorb', ii, iiorb-fermi%isfvctr, jjorb
           end do
       end do
       !$omp end parallel do
@@ -1557,21 +1559,21 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat)
   real(kind=8) :: sumn, trace_sparse
 
   sumn=0.d0
-  if (orbs%norbp>0) then
-          isegstart=asmat%istsegline(orbs%isorb_par(iproc)+1)
-      if (orbs%isorb+orbs%norbp<orbs%norb) then
-              isegend=asmat%istsegline(orbs%isorb_par(iproc+1)+1)-1
+  if (asmat%nfvctrp>0) then
+          isegstart=asmat%istsegline(asmat%isfvctr+1)
+      if (asmat%isfvctr+asmat%nfvctrp<asmat%nfvctr) then
+              isegend=asmat%istsegline(asmat%isfvctr_par(iproc+1)+1)-1
       else
               isegend=asmat%nseg
       end if
-      !$omp parallel default(private) shared(isegstart, isegend, orbs, bsmat, asmat, amat, bmat, sumn)
+      !$omp parallel default(private) shared(isegstart, isegend, bsmat, asmat, amat, bmat, sumn)
       !$omp do reduction(+:sumn)
       do iseg=isegstart,isegend
               ii=asmat%keyv(iseg)-1
               do jorb=asmat%keyg(1,iseg),asmat%keyg(2,iseg)
               ii=ii+1
-              iiorb = (jorb-1)/orbs%norb + 1
-              jjorb = jorb - (iiorb-1)*orbs%norb
+              iiorb = (jorb-1)/asmat%nfvctr + 1
+              jjorb = jorb - (iiorb-1)*asmat%nfvctr
                   iilarge = matrixindex_in_compressed(bsmat, iiorb, jjorb)
               sumn = sumn + amat%matrix_compr(ii)*bmat%matrix_compr(iilarge)
           end do  
