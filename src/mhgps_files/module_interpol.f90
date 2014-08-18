@@ -25,6 +25,7 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
 !corresponding to the interpolation parameter
 !lambda
     use module_base
+    use module_global_variables, only: fmax_tol => lst_fmax_tol
     implicit none
     !parameters
     integer, intent(in) :: nat
@@ -38,7 +39,7 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
     !internal
     real(gp) :: oml
 !    real(gp), parameter :: fmax_tol=1.e-4_gp
-    real(gp), parameter :: fmax_tol=5.e-3_gp
+!    real(gp), parameter :: fmax_tol=5.e-3_gp
     real(gp) :: fxyz(3,nat), epot
 
 !<-DEBUG START------------------------------------------------------>
@@ -242,7 +243,7 @@ end subroutine
 !=====================================================================
 subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
     use module_base
-    use module_global_variables, only: iproc
+    use module_global_variables, only: iproc,lst_dt_max
     use yaml_output
     implicit none
     !parameters
@@ -272,7 +273,8 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
     count_fr=0._gp
    ! dt_max = 0.5_gp !for lj
    ! dt_max = 1.8_gp
-    dt_max = 5.0_gp !for bigdft
+   ! dt_max = 5.0_gp !for bigdft
+    dt_max=lst_dt_max
     maxit=15000
 
     success=.false.

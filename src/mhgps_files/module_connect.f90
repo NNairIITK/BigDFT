@@ -283,6 +283,10 @@ use module_energyandforces
                                next connection attempt.')
             return
         endif
+        call yaml_comment('INFO: (MHGPS) After pushoff, left side '//&
+                       'converged back to saddle. Will retry with '//&
+                       'increased pushoff: '//&
+                        yaml_toa(saddle_scale_stepoff))
         scl=saddle_scale_stepoff*scl
         ipush=ipush+1
     enddo loopL
@@ -342,6 +346,10 @@ use module_energyandforces
                                next connection attempt.')
             return
         endif
+        call yaml_comment('INFO: (MHGPS) After pushoff, right side '//&
+                       'converged back to saddle. Will retry with '//&
+                       'increased pushoff: '//&
+                        yaml_toa(saddle_scale_stepoff))
         scl=saddle_scale_stepoff*scl
         ipush=ipush+1
     enddo loopR
