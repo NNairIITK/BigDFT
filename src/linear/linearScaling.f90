@@ -670,15 +670,20 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    ! ioffset is the buffer which is present for GGA calculations
                    ioffset=KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%i3xcsh
                    pnrm_out=0.d0
-                   do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+                   do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p*input%nspin
                       pnrm_out=pnrm_out+(denspot%rhov(ioffset+i)-rhopotOld_out(ioffset+i))**2
                    end do
+                   ! To make the residue for the polarized and non-polarized case analogous
+                   if (input%nspin==2) then
+                       pnrm_out = pnrm_out*2.d0
+                   end if
 
                    if (nproc > 1) then
                       call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm)
                    end if
+                   !pnrm_out = pnrm_out/dble(input%nspin)
 
-                   pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
+                   pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i)
                    call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
                      denspot%rhov(1), 1, rhopotOld_out(1), 1)
                 end if
@@ -733,15 +738,19 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    ! for the potential no buffers are present
                    !ioffset=KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%i3xcsh
                    ioffset=0
-                   do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+                   do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p*input%nspin
                       pnrm_out=pnrm_out+(denspot%rhov(i+ioffset)-rhopotOld_out(i+ioffset))**2
                    end do
+                   ! To make the residue for the polarized and non-polarized case analogous
+                   if (input%nspin==2) then
+                       pnrm_out = pnrm_out*2.d0
+                   end if
 
                    if (nproc > 1) then
                       call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm)
                    end if
 
-                   pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
+                   pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i)!)*input%nspin)
                    call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
                         denspot%rhov(1), 1, rhopotOld_out(1), 1) 
                 end if

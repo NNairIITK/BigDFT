@@ -376,9 +376,9 @@ subroutine foe(iproc, nproc, tmprtr, &
                   if (calculate_SHS) then
                       ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
                       if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
-          do i=1,tmb%linmat%l%nvctr
-              write(1000+iproc,'(a,2i8,es16.6)') 'ispin, i, val', ispin, i, hamscal_compr(i)
-          end do
+          !!do i=1,tmb%linmat%l%nvctr
+          !!    write(1000+iproc,'(a,2i8,es16.6)') 'ispin, i, val', ispin, i, hamscal_compr(i)
+          !!end do
                       call chebyshev_clean(iproc, nproc, npl, cc, &
                            tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%isorb_par, foe_obj, &
                            tmb%linmat%l, hamscal_compr, &
@@ -394,11 +394,11 @@ subroutine foe(iproc, nproc, tmprtr, &
                   end if 
     
     
-          do i=1,tmb%linmat%l%nfvctrp
-              do j=1,tmb%linmat%l%nfvctr
-                  write(1100+iproc,'(a,3i8,es16.6)') 'ispin, i, j, val', ispin, i, j, tmb%linmat%kernel_%matrixp(j,i,1)
-              end do
-          end do
+          !!do i=1,tmb%linmat%l%nfvctrp
+          !!    do j=1,tmb%linmat%l%nfvctr
+          !!        write(1100+iproc,'(a,3i8,es16.6)') 'ispin, i, j, val', ispin, i, j, tmb%linmat%kernel_%matrixp(j,i,1)
+          !!    end do
+          !!end do
     
                  ! Check for an emergency stop, which happens if the kernel explodes, presumably due
                  ! to the eigenvalue bounds being too small.
@@ -470,12 +470,11 @@ subroutine foe(iproc, nproc, tmprtr, &
                   end if
                 
                   call calculate_trace_distributed(tmb%linmat%kernel_%matrixp, sumn)
-                  do i=1,tmb%linmat%l%nfvctrp
-                      do j=1,tmb%linmat%l%nfvctr
-                          write(1200+iproc,'(a,3i8,es16.6)') 'ispin, i, j, val', ispin, i, j, tmb%linmat%kernel_%matrixp(j,i,1)
-                      end do
-                  end do
-                  if (iproc==0) write(*,'(a,2es14.5)') 'sumn, tmb%linmat%kernel_%matrixp(1,1,1)', sumn, tmb%linmat%kernel_%matrixp(1,1,1)
+                  !!do i=1,tmb%linmat%l%nfvctrp
+                  !!    do j=1,tmb%linmat%l%nfvctr
+                  !!        write(1200+iproc,'(a,3i8,es16.6)') 'ispin, i, j, val', ispin, i, j, tmb%linmat%kernel_%matrixp(j,i,1)
+                  !!    end do
+                  !!end do
         
     
                   if (all(eval_bounds_ok) .and. all(bisection_bounds_ok)) then
@@ -570,9 +569,9 @@ subroutine foe(iproc, nproc, tmprtr, &
           ! Since S^-1/2 is symmetric, don't use the transpose
           call retransform(tmb%linmat%kernel_%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr))
 
-          do i=ilshift+1,ilshift+tmb%linmat%l%nvctr
-              write(3000+iproc,'(a,2i8,es16.6)') 'ispin, i, val', ispin, i, tmb%linmat%kernel_%matrix_compr(i)
-          end do
+          !!do i=ilshift+1,ilshift+tmb%linmat%l%nvctr
+          !!    write(3000+iproc,'(a,2i8,es16.6)') 'ispin, i, val', ispin, i, tmb%linmat%kernel_%matrix_compr(i)
+          !!end do
     
           call retransform(fermi_check_compr)
     
@@ -769,7 +768,6 @@ subroutine foe(iproc, nproc, tmprtr, &
               call compress_matrix(iproc, tmb%linmat%l, inmat=inv_ovrlp%matrix, outmat=inv_ovrlp%matrix_compr)
           end if
           if (imode==SPARSE) then
-              write(*,*) 'tmb%linmat%s%nspin',tmb%linmat%s%nspin
               call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
                    imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                    ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
