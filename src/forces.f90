@@ -316,6 +316,10 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
       write(4000+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
   end do
 
+  do iat=1,atoms%astruct%nat
+      write(4100+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+  end do
+
   !calculate forces originated by rhocore
   call rhocore_forces(iproc,atoms,nspin,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,n3p,i3s,&
        0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,rxyz,potxc,fxyz)
@@ -336,7 +340,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
            tmb%orbs,nlpsp,tmb%lzd,tmb%collcom,tmb%psi,tmb%linmat%l,tmb%linmat%kernel_,fxyz,refill_proj,&
            strtens(1,2))
       do iat=1,atoms%astruct%nat
-          write(4100+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+          write(4200+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
       end do
   else
       stop 'wrong imode'
@@ -364,7 +368,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
         enddo
      end if
      do iat=1,atoms%astruct%nat
-         write(4200+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+         write(4300+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
      end do
   else
      if (iproc==0) then
@@ -385,10 +389,14 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      call mpiallred(charge,1,MPI_SUM,bigdft_mpi%mpi_comm)
   end if
 
+  do iat=1,atoms%astruct%nat
+      write(4400+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+  end do
+
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
   do iat=1,atoms%astruct%nat
-      write(4300+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+      write(4500+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
   end do
 
   ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
@@ -642,6 +650,8 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   enddo
   charge=charge*hxh*hyh*hzh
 
+  write(*,*) 'iproc, charge', iproc, charge
+
  !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Calculate local forces...'
   if (iproc == 0 .and. verbose > 1) call yaml_mapping_open('Calculate local forces',flow=.true.)
   forceleaked=0.d0
@@ -707,6 +717,8 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      iex=ceiling((rx+cutoff)/hxh)
      iey=ceiling((ry+cutoff)/hyh)
      iez=ceiling((rz+cutoff)/hzh)
+
+     write(*,'(a,2i7,3x,2(3i8))') 'iproc, iat, isx, isy, isz, iex, iey, iez', iproc, iat, isx, isy, isz, iex, iey, iez
 
      !calculate the forces near the atom due to the error function part of the potential
      !calculate forces for all atoms only in the distributed part of the simulation box
@@ -780,6 +792,8 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      floc(1,iat)=fxion+(hxh*hyh*hzh*prefactor)*fxerf+(hxh*hyh*hzh/rloc**2)*fxgau
      floc(2,iat)=fyion+(hxh*hyh*hzh*prefactor)*fyerf+(hxh*hyh*hzh/rloc**2)*fygau
      floc(3,iat)=fzion+(hxh*hyh*hzh*prefactor)*fzerf+(hxh*hyh*hzh/rloc**2)*fzgau
+
+     write(*,'(a,2i9,3es12.4)') 'iproc, iat, floc(:,iat)', iproc, iat, floc(:,iat)
 
      locstrten(1)=locstrten(1)+Txx/rloc/rloc
      locstrten(2)=locstrten(2)+Tyy/rloc/rloc
@@ -4797,20 +4811,20 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                   strten(6)=strten(6)+sab(4)/vol
                end do
             end do
-            !do iat=1,at%astruct%nat
-            do iat=1,nat_par(iproc)
-               iiat=isat_par(iproc)+iat
-               !write(120+iproc,'(a,2i7,2es18.8)') 'iorbout, iat, fsep(1,iiat), fxyz_orb(1,iiat)', &
-               !                                    iorbout, iat, fsep(1,iiat), fxyz_orb(1,iiat)
-               !!fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
-               !!fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)
-               !!fsep(3,iat)=fsep(3,iat)+orbfac*fxyz_orb(3,iat)
-               fsep(1,iiat)=fsep(1,iiat)+2.d0*fxyz_orb(1,iiat)
-               fsep(2,iiat)=fsep(2,iiat)+2.d0*fxyz_orb(2,iiat)
-               fsep(3,iiat)=fsep(3,iiat)+2.d0*fxyz_orb(3,iiat)
-               if (iproc==0) write(*,'(a,2i8,3es14.6)') 'ispin, iat, fxyz_orb(:,iiat)', ispin, iat, fxyz_orb(:,iiat)
-            end do
          end do spin_loop
+         !do iat=1,at%astruct%nat
+         do iat=1,nat_par(iproc)
+            iiat=isat_par(iproc)+iat
+            !write(120+iproc,'(a,2i7,2es18.8)') 'iorbout, iat, fsep(1,iiat), fxyz_orb(1,iiat)', &
+            !                                    iorbout, iat, fsep(1,iiat), fxyz_orb(1,iiat)
+            !!fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
+            !!fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)
+            !!fsep(3,iat)=fsep(3,iat)+orbfac*fxyz_orb(3,iat)
+            fsep(1,iiat)=fsep(1,iiat)+2.d0*fxyz_orb(1,iiat)
+            fsep(2,iiat)=fsep(2,iiat)+2.d0*fxyz_orb(2,iiat)
+            fsep(3,iiat)=fsep(3,iiat)+2.d0*fxyz_orb(3,iiat)
+            write(*,'(a,3i8,3es14.6)') 'iproc, ispin, iat, fxyz_orb(:,iiat)', iproc, ispin, iat, fxyz_orb(:,iiat)
+         end do
          if (ieorb == orbs%norbp) exit loop_kptF
          ikpt=ikpt+1
          ispsi_k=ispsi
