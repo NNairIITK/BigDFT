@@ -247,31 +247,47 @@ subroutine init_foe(iproc, nproc, input, orbs_KS, foe_obj, reset)
   foe_obj = foe_data_null()
 
   if (reset) then
-     call foe_data_set_real(foe_obj,"ef",0.d0)
-     call foe_data_set_real(foe_obj,"evlow",input%lin%evlow)
-     call foe_data_set_real(foe_obj,"evhigh",input%lin%evhigh)
-     call foe_data_set_real(foe_obj,"bisection_shift",1.d-1)
-     call foe_data_set_real(foe_obj,"fscale",input%lin%fscale)
-     call foe_data_set_real(foe_obj,"ef_interpol_det",input%lin%ef_interpol_det)
-     call foe_data_set_real(foe_obj,"ef_interpol_chargediff",input%lin%ef_interpol_chargediff)
-     foe_obj%charge = f_malloc0_ptr(input%nspin,id='foe_obj%charge')
-     call foe_data_set_real(foe_obj,"charge",0.d0,1)
-     do iorb=1,orbs_KS%norbu
+      foe_obj%ef = f_malloc0_ptr(input%nspin,id='(foe_obj%ef)')
+      call foe_data_set_real(foe_obj,"ef",0.d0,1)
+      if (input%nspin==2) then
+          call foe_data_set_real(foe_obj,"ef",0.d0,2)
+      end if
+      foe_obj%evlow = f_malloc0_ptr(input%nspin,id='foe_obj%evlow')
+      call foe_data_set_real(foe_obj,"evlow",input%lin%evlow,1)
+      if (input%nspin==2) then
+          call foe_data_set_real(foe_obj,"evlow",input%lin%evlow,2)
+      end if
+      foe_obj%evhigh = f_malloc0_ptr(input%nspin,id='foe_obj%evhigh')
+      call foe_data_set_real(foe_obj,"evhigh",input%lin%evhigh,1)
+      if (input%nspin==2) then
+          call foe_data_set_real(foe_obj,"evhigh",input%lin%evhigh,2)
+      end if
+      foe_obj%bisection_shift = f_malloc0_ptr(input%nspin,id='foe_obj%bisection_shift')
+      call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,1)
+      if (input%nspin==2) then
+          call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,2)
+      end if
+      call foe_data_set_real(foe_obj,"fscale",input%lin%fscale)
+      call foe_data_set_real(foe_obj,"ef_interpol_det",input%lin%ef_interpol_det)
+      call foe_data_set_real(foe_obj,"ef_interpol_chargediff",input%lin%ef_interpol_chargediff)
+      foe_obj%charge = f_malloc0_ptr(input%nspin,id='foe_obj%charge')
+      call foe_data_set_real(foe_obj,"charge",0.d0,1)
+      do iorb=1,orbs_KS%norbu
           call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",1)+orbs_KS%occup(iorb),1)
-     end do
-     if (input%nspin==2) then
-         call foe_data_set_real(foe_obj,"charge",0.d0,2)
-         do iorb=orbs_KS%norbu+1,orbs_KS%norbd
-              call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",2)+orbs_KS%occup(iorb),2)
-         end do
-     end if
-     call foe_data_set_int(foe_obj,"evbounds_isatur",0)
-     call foe_data_set_int(foe_obj,"evboundsshrink_isatur",0)
-     call foe_data_set_int(foe_obj,"evbounds_nsatur",input%evbounds_nsatur)
-     call foe_data_set_int(foe_obj,"evboundsshrink_nsatur",input%evboundsshrink_nsatur)
-     call foe_data_set_real(foe_obj,"fscale_lowerbound",input%fscale_lowerbound)
-     call foe_data_set_real(foe_obj,"fscale_upperbound",input%fscale_upperbound)
-     call foe_data_set_logical(foe_obj,"adjust_FOE_temperature",input%adjust_FOE_temperature)
+      end do
+      if (input%nspin==2) then
+          call foe_data_set_real(foe_obj,"charge",0.d0,2)
+          do iorb=orbs_KS%norbu+1,orbs_KS%norb
+               call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",2)+orbs_KS%occup(iorb),2)
+          end do
+      end if
+      call foe_data_set_int(foe_obj,"evbounds_isatur",0)
+      call foe_data_set_int(foe_obj,"evboundsshrink_isatur",0)
+      call foe_data_set_int(foe_obj,"evbounds_nsatur",input%evbounds_nsatur)
+      call foe_data_set_int(foe_obj,"evboundsshrink_nsatur",input%evboundsshrink_nsatur)
+      call foe_data_set_real(foe_obj,"fscale_lowerbound",input%fscale_lowerbound)
+      call foe_data_set_real(foe_obj,"fscale_upperbound",input%fscale_upperbound)
+      call foe_data_set_logical(foe_obj,"adjust_FOE_temperature",input%adjust_FOE_temperature)
   end if
 
   call timing(iproc,'init_matrCompr','OF')
@@ -956,6 +972,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   use module_interfaces, except_this_one => destroy_DFT_wavefunction
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use sparsematrix_base, only: deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
+  use foe_base, only: foe_data_deallocate
   implicit none
   
   ! Calling arguments
@@ -982,6 +999,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_comms_linear(wfn%collcom)
   call deallocate_comms_linear(wfn%collcom_sr)
   call deallocate_local_zone_descriptors(wfn%lzd)
+  call foe_data_deallocate(wfn%foe_obj)
 
   if (associated(wfn%coeff)) then
       call f_free_ptr(wfn%coeff)
@@ -1251,6 +1269,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use communications, only: synchronize_onesided_communication
   use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
   use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff!, init_sparsity_from_distance
+  use foe_base, only: foe_data_deallocate
   implicit none
   
   ! Calling argument
@@ -1307,6 +1326,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call nullify_local_zone_descriptors(lzd_tmp)
      call copy_local_zone_descriptors(tmb%lzd, lzd_tmp, subname)
      call deallocate_local_zone_descriptors(tmb%lzd)
+     
+     call foe_data_deallocate(tmb%foe_obj)
 
      npsidim_orbs_tmp = tmb%npsidim_orbs
      npsidim_comp_tmp = tmb%npsidim_comp

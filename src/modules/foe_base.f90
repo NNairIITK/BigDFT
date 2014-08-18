@@ -6,13 +6,13 @@ module foe_base
   private
 
   type,public :: foe_data
-    real(kind=8) :: ef                          !< Fermi energy for FOE
-    real(kind=8) :: evlow, evhigh               !< Eigenvalue bounds for FOE 
-    real(kind=8) :: bisection_shift             !< Bisection shift to find Fermi energy (FOE)
+    real(kind=8),dimension(:),pointer :: ef     !< Fermi energy for FOE (up/down spin)
+    real(kind=8),dimension(:),pointer :: evlow, evhigh !< Eigenvalue bounds for FOE (up/down spin)
+    real(kind=8),dimension(:),pointer :: bisection_shift !< Bisection shift to find Fermi energy (FOE) (up/down spin)
     real(kind=8) :: fscale                      !< Length scale for complementary error function (FOE)
     real(kind=8) :: ef_interpol_det             !< FOE: max determinant of cubic interpolation matrix
     real(kind=8) :: ef_interpol_chargediff      !< FOE: max charge difference for interpolation
-    real(kind=8),dimension(:),pointer :: charge !< Total charge of the system (up/down)
+    real(kind=8),dimension(:),pointer :: charge !< Total charge of the system (up/down spin)
     real(kind=8) :: fscale_lowerbound           !< lower bound for the error function decay length
     real(kind=8) :: fscale_upperbound           !< upper bound for the error function decay length
     integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
@@ -21,6 +21,7 @@ module foe_base
 
 
   public :: foe_data_null
+  public :: foe_data_deallocate
   public :: foe_data_set_int
   public :: foe_data_get_int
   public :: foe_data_set_logical
@@ -35,9 +36,13 @@ module foe_base
     function foe_data_null() result(foe_obj)
       implicit none
       type(foe_data) :: foe_obj
-      foe_obj%ef                     = uninitialized(foe_obj%ef)
-      foe_obj%evlow                  = uninitialized(foe_obj%evlow)
-      foe_obj%bisection_shift        = uninitialized(foe_obj%bisection_shift)
+      nullify(foe_obj%ef)
+      !foe_obj%ef                     = uninitialized(foe_obj%ef)
+      !foe_obj%evlow                  = uninitialized(foe_obj%evlow)
+      nullify(foe_obj%evlow)
+      nullify(foe_obj%evhigh)
+      nullify(foe_obj%bisection_shift)
+      !foe_obj%bisection_shift        = uninitialized(foe_obj%bisection_shift)
       foe_obj%fscale                 = uninitialized(foe_obj%fscale)
       foe_obj%ef_interpol_det        = uninitialized(foe_obj%ef_interpol_det)
       foe_obj%ef_interpol_chargediff = uninitialized(foe_obj%ef_interpol_chargediff)
@@ -51,6 +56,18 @@ module foe_base
       foe_obj%evboundsshrink_nsatur  = uninitialized(foe_obj%evboundsshrink_nsatur)
       foe_obj%adjust_FOE_temperature = uninitialized(foe_obj%adjust_FOE_temperature)
     end function foe_data_null
+
+
+    subroutine foe_data_deallocate(foe_obj)
+      use dynamic_memory
+      implicit none
+      type(foe_data) :: foe_obj
+      call f_free_ptr(foe_obj%ef)
+      call f_free_ptr(foe_obj%evlow)
+      call f_free_ptr(foe_obj%evhigh)
+      call f_free_ptr(foe_obj%bisection_shift)
+      call f_free_ptr(foe_obj%charge)
+    end subroutine foe_data_deallocate
 
 
     subroutine foe_data_set_int(foe_obj, fieldname, val)
@@ -107,13 +124,29 @@ module foe_base
 
       select case (fieldname)
       case ("ef")
-          foe_obj%ef = val
+          if (.not.present(ind)) then
+              write(*,*) sqrt(-1.d0)
+              stop 'foe_data_set_real: ind not present'
+          end if
+          foe_obj%ef(ind) = val
       case ("evlow")
-          foe_obj%evlow = val
+          if (.not.present(ind)) then
+              write(*,*) sqrt(-1.d0)
+              stop 'foe_data_set_real: ind not present'
+          end if
+          foe_obj%evlow(ind) = val
       case ("evhigh")
-          foe_obj%evhigh = val
+          if (.not.present(ind)) then
+              write(*,*) sqrt(-1.d0)
+              stop 'foe_data_set_real: ind not present'
+          end if
+          foe_obj%evhigh(ind) = val
       case ("bisection_shift")
-          foe_obj%bisection_shift = val
+          if (.not.present(ind)) then
+              write(*,*) sqrt(-1.d0)
+              stop 'foe_data_set_real: ind not present'
+          end if
+          foe_obj%bisection_shift(ind) = val
       case ("fscale")
           foe_obj%fscale = val
       case ("ef_interpol_det")
@@ -121,7 +154,10 @@ module foe_base
       case ("ef_interpol_chargediff")
           foe_obj%ef_interpol_chargediff = val
       case ("charge")
-          if (.not.present(ind)) stop 'foe_data_set_real: ind not present'
+          if (.not.present(ind)) then
+              write(*,*) sqrt(-1.d0)
+              stop 'foe_data_set_real: ind not present'
+          end if
           foe_obj%charge(ind) = val
       case ("fscale_lowerbound")
           foe_obj%fscale_lowerbound = val
@@ -141,13 +177,29 @@ module foe_base
 
       select case (fieldname)
       case ("ef")
-          val = foe_obj%ef
+          if (.not.present(ind)) then
+              write(*,*) sqrt(-1.d0)
+              stop 'foe_data_get_real: ind not present'
+          end if
+          val = foe_obj%ef(ind)
       case ("evlow")
-          val = foe_obj%evlow
+          if (.not.present(ind)) then
+              write(*,*) sqrt(-1.d0)
+              stop 'foe_data_get_real: ind not present'
+          end if
+          val = foe_obj%evlow(ind)
       case ("evhigh")
-          val = foe_obj%evhigh
+          if (.not.present(ind)) then
+              write(*,*) sqrt(-1.d0)
+              stop 'foe_data_get_real: ind not present'
+          end if
+          val = foe_obj%evhigh(ind)
       case ("bisection_shift")
-          val = foe_obj%bisection_shift
+          if (.not.present(ind)) then
+              write(*,*) sqrt(-1.d0)
+              stop 'foe_data_get_real: ind not present'
+          end if
+          val = foe_obj%bisection_shift(ind)
       case ("fscale")
           val = foe_obj%fscale
       case ("ef_interpol_det")
