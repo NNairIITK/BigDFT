@@ -803,6 +803,8 @@ module communications
       !!    write(5400,'(a,2i12,es18.7)') 'iproc, ist, sendbuf(ist)', iproc, ist, sendbuf(ist)
       !!end do
       !!recvbuf=123456789.d0
+
+      !write(*,'(a,i12,es16.8)') 'in start_onesided_communication: nsendbuf, sum(sendbuf)', nsendbuf, sum(sendbuf)
     
     
       call timing(iproc, 'Pot_comm start', 'ON')

@@ -63,7 +63,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   type(mixrhopotDIISParameters) :: mixdiis
   logical :: finished, can_use_ham
   !type(confpot_data), dimension(:), allocatable :: confdatarrtmp
-  integer :: info_basis_functions, order_taylor, i, ilr, iii
+  integer :: info_basis_functions, order_taylor, i, ilr, iii, jjj
   real(kind=8) :: ratio_deltas, trace, trace_old, fnrm_tmb
   logical :: ortho_on, reduce_conf, rho_negative
   type(localizedDIISParameters) :: ldiis
@@ -484,6 +484,18 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
        denspot%rhov, rho_negative)
+  !!jj=0
+  !!do ispin=1,input%nspin
+  !!    do ii=1,size(denspot%rhov)/input%nspin
+  !!        jj=jj+1
+  !!        jjj=ii+(denspot%dpbox%nscatterarr(iproc,3)-denspot%dpbox%nscatterarr(iproc,4))*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n1i
+  !!        write(9600+10*iproc+ispin,'(a,2i9,es16.5)') 'ii, jjj, val', ii, jjj, denspot%rhov(jj)
+  !!        !if (ispin==2) then
+  !!        !    denspot%rhov(jj)=denspot%rhov(jj-size(denspot%rhov)/input%nspin)
+  !!        !    write(9800+10*iproc+ispin,'(a,i9,es16.5)') 'ii, val', ii, denspot%rhov(jj)
+  !!        !end if
+  !!    end do
+  !!end do
   if (rho_negative) then
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
       !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
@@ -528,7 +540,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!do ispin=1,input%nspin
   !!    do ii=1,size(denspot%rhov)/input%nspin
   !!        jj=jj+1
-  !!        write(9700+10*iproc+ispin,'(a,i9,es16.5)') 'ii, val', ii, denspot%rhov(jj)
+  !!        jjj=ii+(denspot%dpbox%nscatterarr(iproc,3)-denspot%dpbox%nscatterarr(iproc,4))*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n1i
+  !!        write(9700+10*iproc+ispin,'(a,2i9,es16.5)') 'ii, jjj, val', ii, jjj, denspot%rhov(jj)
   !!        !if (ispin==2) then
   !!        !    denspot%rhov(jj)=denspot%rhov(jj-size(denspot%rhov)/input%nspin)
   !!        !    write(9800+10*iproc+ispin,'(a,i9,es16.5)') 'ii, val', ii, denspot%rhov(jj)
@@ -536,6 +549,23 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!    end do
   !!end do
   call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+
+  !write(9000+iproc,*) denspot%rhov
+  !read(9000+iproc,*) denspot%rhov(1:denspot%dpbox%ndimpot*input%nspin)
+
+  !!write(*,'(a,i7,2i9)') 'iproc, nscatterarr(iproc,3), nscatterarr(iproc,2)', iproc, denspot%dpbox%nscatterarr(iproc,3), denspot%dpbox%nscatterarr(iproc,2)
+  !!jj=0
+  !!do ispin=1,input%nspin
+  !!    do ii=1,denspot%dpbox%ndimpot
+  !!        jj=jj+1
+  !!        jjj=ii+(denspot%dpbox%nscatterarr(iproc,3))*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n1i
+  !!        write(9800+10*iproc+ispin,'(a,2i9,es16.5)') 'ii, jjj, val', ii, jjj, denspot%rhov(jj)
+  !!        !if (ispin==2) then
+  !!        !    denspot%rhov(jj)=denspot%rhov(jj-size(denspot%rhov)/input%nspin)
+  !!        !    write(9800+10*iproc+ispin,'(a,i9,es16.5)') 'ii, val', ii, denspot%rhov(jj)
+  !!        !end if
+  !!    end do
+  !!end do
   !!write(*,*) 'after first updatePotential'
 
   !!write(*,'(a,4i8)') 'iproc, denspot%dpbox%n3d, denspot%dpbox%n3p, denspot%dpbox%nscatterarr(iproc,2)', &

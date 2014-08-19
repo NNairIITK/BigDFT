@@ -489,7 +489,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
 
   !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
   !!     tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
-  call start_onesided_communication(iproc, nproc, denspot%dpbox%ndimrhopot, denspot%rhov, &
+  call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,1), denspot%rhov, &
        tmb%ham_descr%comgp%nspin*tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
 
   allocate(confdatarrtmp(tmb%orbs%norbp))

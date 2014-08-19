@@ -312,13 +312,13 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   call local_forces(iproc,atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
        Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s,Glr%d%n1i,Glr%d%n2i,rho,pot,fxyz,strtens(1,1),charge)
 
-  do iat=1,atoms%astruct%nat
-      write(4000+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
-  end do
+  !!do iat=1,atoms%astruct%nat
+  !!    write(4000+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+  !!end do
 
-  do iat=1,atoms%astruct%nat
-      write(4100+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
-  end do
+  !!do iat=1,atoms%astruct%nat
+  !!    write(4100+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+  !!end do
 
   !calculate forces originated by rhocore
   call rhocore_forces(iproc,atoms,nspin,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,n3p,i3s,&
@@ -339,9 +339,9 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
       call nonlocal_forces_linear(iproc,nproc,tmb%npsidim_orbs,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
            tmb%orbs,nlpsp,tmb%lzd,tmb%collcom,tmb%psi,tmb%linmat%l,tmb%linmat%kernel_,fxyz,refill_proj,&
            strtens(1,2))
-      do iat=1,atoms%astruct%nat
-          write(4200+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
-      end do
+      !!do iat=1,atoms%astruct%nat
+      !!    write(4200+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+      !!end do
   else
       stop 'wrong imode'
   end if
@@ -367,9 +367,9 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
            fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)+fpulay(3,iat)
         enddo
      end if
-     do iat=1,atoms%astruct%nat
-         write(4300+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
-     end do
+     !!do iat=1,atoms%astruct%nat
+     !!    write(4300+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+     !!end do
   else
      if (iproc==0) then
         call vcopy(3*atoms%astruct%nat,fion(1,1),1,fxyz(1,1),1)
@@ -389,15 +389,15 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      call mpiallred(charge,1,MPI_SUM,bigdft_mpi%mpi_comm)
   end if
 
-  do iat=1,atoms%astruct%nat
-      write(4400+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
-  end do
+  !!do iat=1,atoms%astruct%nat
+  !!    write(4400+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+  !!end do
 
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
-  do iat=1,atoms%astruct%nat
-      write(4500+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
-  end do
+  !!do iat=1,atoms%astruct%nat
+  !!    write(4500+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+  !!end do
 
   ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
   if (atoms%astruct%inputfile_format=='int') then

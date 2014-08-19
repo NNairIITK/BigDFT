@@ -2549,7 +2549,7 @@ module communications_init
       
       end if nproc_if
     
-      ! This is the size of the communication buffer with out spin
+      ! This is the size of the communication buffer without spin
       comgp%nrecvbuf=max(comgp%nrecvbuf,1)
 
       ! Copy the spin value

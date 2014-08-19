@@ -1294,8 +1294,8 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       do iorb=1,nilr
          ilr = ilrtable(iorb)
          ! Cut the potential into locreg pieces
-         call global_to_local(Lzd%Glr,Lzd%Llr(ilr),orbs%nspin,npot,lzd%ndimpotisf,pot1,pot(istl))
-         istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*orbs%nspin
+         call global_to_local(Lzd%Glr,Lzd%Llr(ilr),comgp%nspin,npot,lzd%ndimpotisf,pot1,pot(istl))
+         istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*comgp%nspin
       end do
    else
       if(.not.associated(pot)) then !otherwise this has been done already... Should be improved.
@@ -1304,6 +1304,8 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
          !!do i=1,comgp%nspin*comgp%nrecvBuf
          !!    write(5300+iproc,'(a,i12,es15.7)') 'i, comgp%recvbuf(i)', i, comgp%recvbuf(i)
          !!end do
+
+         !write(*,*) 'ne full_local_potential: comgp%nrecvbuf',comgp%nrecvbuf
 
          ist=1
          do iorb=1,nilr
@@ -1345,8 +1347,13 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
             !!write(*,'(a,i7,2x,8i6)') 'iproc, i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2', iproc, i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2
             !!write(*,'(a,i7,2x,i5,2x,6i6)') 'iproc, ilr, ns1i, ise1, ns2i, ise2, ns3i, ise3', &
             !!          iproc, ilr, lzd%Llr(ilr)%nsi1, comgp%ise(1,iproc), lzd%Llr(ilr)%nsi2, comgp%ise(3,iproc), lzd%Llr(ilr)%nsi3, comgp%ise(3,iproc)
-            call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), 0, comgp%nspin*comgp%nrecvBuf, size_Lpot,&
+            !!call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), 0, comgp%nspin*comgp%nrecvBuf, size_Lpot,&
+            !!     comgp%recvBuf(ishift+1), pot(ist), i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2)
+            call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), 0, comgp%nrecvBuf, size_Lpot,&
                  comgp%recvBuf(ishift+1), pot(ist), i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2)
+            !write(*,'(3(a,i0))') 'process ',iproc,' copies data from position ',ishift+1,' to position ',ist
+            !write(*,'(a,2i6,i10,2es17.6,6i6)') 'iproc, iorb, ishift, sum(pot[iorb]), sum(recvbuf[ishift+1]), i1s, i1e, i2s, i2e, i3s, i3e', &
+            !    iproc, iorb, ishift, sum(pot(ist:ist+size_lpot-1)), sum(comgp%recvBuf(ishift+1:ishift+comgp%nrecvBuf-1)), i1s, i1e, i2s, i2e, i3s, i3e
             !!do i=1,size_lpot
             !!    write(5500+iproc,'(a,5i12,es15.7)') 'ilr, ispin, ishift, i, ist, pot(ist+i-1)', ilr, ispin, ishift, i, ist, pot(ist+i-1)
             !!end do

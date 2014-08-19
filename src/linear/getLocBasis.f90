@@ -53,7 +53,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical, optional, intent(in) :: updatekernel
 
   ! Local variables 
-  integer :: iorb, info, ishift, ispin, ii, jorb
+  integer :: iorb, info, ishift, ispin, ii, jorb, i
   real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, eval
   real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
@@ -67,7 +67,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   if(calculate_ham) then
       call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
-      call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimrhopot,1), denspot%rhov, &
+      call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,1), denspot%rhov, &
            tmb%ham_descr%comgp%nrecvbuf*tmb%ham_descr%comgp%nspin, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, &
            tmb%ham_descr%lzd)
   end if
@@ -158,6 +158,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
            & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
       call full_local_potential(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,2,denspot%dpbox,&
            & denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
+      !!do i=1,tmb%ham_descr%comgp%nrecvbuf
+      !!    write(8000+iproc,'(a,i8,es16.6)') 'i, recvbuf(i)', i, tmb%ham_descr%comgp%recvbuf(i)
+      !!end do
       !call wait_p2p_communication(iproc, nproc, tmb%ham_descr%comgp)
       ! only potential
       call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
@@ -174,8 +177,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
 
 
-      !!if (iproc==0) write(*,'(a,5es20.12)') 'ekin, eh, epot, eproj, eex', &
-      !!              energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
+      if (iproc==0) write(*,'(a,5es20.12)') 'ekin, eh, epot, eproj, eex', &
+                    energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
 
       !DEBUG
       !if(iproc==0) then
@@ -536,7 +539,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   it_tot=0
   !ortho=.true.
   call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
-  call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimrhopot,1), denspot%rhov, &
+  call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,1), denspot%rhov, &
        tmb%ham_descr%comgp%nrecvbuf*tmb%ham_descr%comgp%nspin, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, &
        tmb%ham_descr%lzd)
 
@@ -1773,18 +1776,18 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
   end if
 
   tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-  do i=1,tmb%linmat%s%nspin*tmb%linmat%s%nvctr
-      write(2500,'(a,i8,es16.5)') 'i, tmb%linmat%ovrlp_%matrix_compr(i)', i, tmb%linmat%ovrlp_%matrix_compr(i)
-  end do
+  !!do i=1,tmb%linmat%s%nspin*tmb%linmat%s%nvctr
+  !!    write(2500,'(a,i8,es16.5)') 'i, tmb%linmat%ovrlp_%matrix_compr(i)', i, tmb%linmat%ovrlp_%matrix_compr(i)
+  !!end do
   call uncompress_matrix(iproc, tmb%linmat%s, &
        inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
-  do ispin=1,tmb%linmat%s%nspin
-      do i=1,tmb%linmat%s%nfvctr
-          do j=1,tmb%linmat%s%nfvctr
-              write(2600,'(a,3i8,es16.5)') 'ispin, i, j, tmb%linmat%ovrlp_%matrix(j,i,ispin)', ispin, i, j, tmb%linmat%ovrlp_%matrix(j,i,ispin)
-          end do
-      end do
-  end do
+  !!do ispin=1,tmb%linmat%s%nspin
+  !!    do i=1,tmb%linmat%s%nfvctr
+  !!        do j=1,tmb%linmat%s%nfvctr
+  !!            write(2600,'(a,3i8,es16.5)') 'ispin, i, j, tmb%linmat%ovrlp_%matrix(j,i,ispin)', ispin, i, j, tmb%linmat%ovrlp_%matrix(j,i,ispin)
+  !!        end do
+  !!    end do
+  !!end do
   call reorthonormalize_coeff(iproc, nproc, orbs%norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, &
        tmb%orbs, tmb%linmat%s, tmb%linmat%ks, tmb%linmat%ovrlp_, tmb%coeff, orbs)
 
@@ -1884,34 +1887,34 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
          ! Calculate the overlap matrix among the coefficients with respect to basis_overlap.
          if (basis_overlap%nfvctrp>0) then
              !coeff_tmp=0.d0
-             do iorb=1,basis_overlap%nfvctr
-                 do jorb=1,basis_overlap%nfvctr
-                     write(2300+iproc,'(a,2i9,es13.5)') 'iorb, jorb, basis_overlap_mat%matrix(jorb,iorb,ispin)', iorb, jorb, basis_overlap_mat%matrix(jorb,iorb,ispin)
-                 end do
-             end do
-             do iorb=1,norb
-                 do jorb=1,basis_overlap%nfvctr
-                     write(2400+iproc,'(a,2i9,es13.5)') 'iorb, jorb, coeff(jorb,iorb)', iorb, jorb, coeff(jorb,iorb)
-                 end do
-             end do
+             !!do iorb=1,basis_overlap%nfvctr
+             !!    do jorb=1,basis_overlap%nfvctr
+             !!        write(2300+iproc,'(a,2i9,es13.5)') 'iorb, jorb, basis_overlap_mat%matrix(jorb,iorb,ispin)', iorb, jorb, basis_overlap_mat%matrix(jorb,iorb,ispin)
+             !!    end do
+             !!end do
+             !!do iorb=1,norb
+             !!    do jorb=1,basis_overlap%nfvctr
+             !!        write(2400+iproc,'(a,2i9,es13.5)') 'iorb, jorb, coeff(jorb,iorb)', iorb, jorb, coeff(jorb,iorb)
+             !!    end do
+             !!end do
              !!call dgemm('n', 'n', basis_orbs%norbp, norb, basis_orbs%norb, 1.d0, basis_overlap_mat%matrix(basis_orbs%isorb+1,1,1), &
              !!     basis_orbs%norb, coeff(1,1), basis_orbs%norb, 0.d0, coeff_tmp, basis_orbs%norbp)
              call dgemm('n', 'n', basis_overlap%nfvctrp, norbx, basis_overlap%nfvctr, 1.d0, basis_overlap_mat%matrix(basis_overlap%isfvctr+1,1,ispin), &
                   basis_overlap%nfvctr, coeff(1,ist), basis_overlap%nfvctr, 0.d0, coeff_tmp, basis_overlap%nfvctrp)
-             do iorb=1,norbx
-                 do jorb=1,basis_overlap%nfvctrp
-                     write(2100+iproc,'(a,2i9,es13.5)') 'iorb, jorb, coeff_tmp(jorb,iorb)', iorb, jorb, coeff_tmp(jorb,iorb)
-                 end do
-             end do
+             !!do iorb=1,norbx
+             !!    do jorb=1,basis_overlap%nfvctrp
+             !!        write(2100+iproc,'(a,2i9,es13.5)') 'iorb, jorb, coeff_tmp(jorb,iorb)', iorb, jorb, coeff_tmp(jorb,iorb)
+             !!    end do
+             !!end do
              !!call dgemm('t', 'n', norb, norb, basis_orbs%norbp, 1.d0, coeff(basis_orbs%isorb+1,1), &
              !!     basis_orbs%norb, coeff_tmp, basis_orbs%norbp, 0.d0, ovrlp_coeff, norb)
              call dgemm('t', 'n', norbx, norbx, basis_overlap%nfvctrp, 1.d0, coeff(basis_overlap%isfvctr+1,ist), &
                   basis_overlap%nfvctr, coeff_tmp, basis_overlap%nfvctrp, 0.d0, ovrlp_coeff, norbx)
-             do iorb=1,norbx
-                 do jorb=1,norbx
-                     write(2200+iproc,'(a,2i9,es13.5)') 'iorb, jorb, ovrlp_coeff(jorb,iorb)', iorb, jorb, ovrlp_coeff(jorb,iorb)
-                 end do
-             end do
+             !!do iorb=1,norbx
+             !!    do jorb=1,norbx
+             !!        write(2200+iproc,'(a,2i9,es13.5)') 'iorb, jorb, ovrlp_coeff(jorb,iorb)', iorb, jorb, ovrlp_coeff(jorb,iorb)
+             !!    end do
+             !!end do
           else
              call to_zero(norbx**2,ovrlp_coeff(1,1))
           end if
@@ -2021,11 +2024,11 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
          if (norb==orbs%norb) then
              !SM: need to fix the spin here
              if (dense) call vcopy(norbx**2, ovrlp_coeff(1,1), 1, KS_ovrlp_%matrix(1,1,1), 1)
-             do iorb=1,norbx
-                 do jorb=1,norbx
-                     write(2000+iproc,'(a,2i9,es13.5)') 'iorb, jorb, KS_ovrlp_%matrix(jorb,iorb,1)', iorb, jorb, KS_ovrlp_%matrix(jorb,iorb,1)
-                 end do
-             end do
+             !!do iorb=1,norbx
+             !!    do jorb=1,norbx
+             !!        write(2000+iproc,'(a,2i9,es13.5)') 'iorb, jorb, KS_ovrlp_%matrix(jorb,iorb,1)', iorb, jorb, KS_ovrlp_%matrix(jorb,iorb,1)
+             !!    end do
+             !!end do
              call overlapPowerGeneral(iproc, nproc, inversion_method, -2, &
                   blocksize_dsyev, imode=2, ovrlp_smat=KS_overlap, inv_ovrlp_smat=KS_overlap, &
                   ovrlp_mat=KS_ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
