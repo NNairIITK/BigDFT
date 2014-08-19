@@ -1832,8 +1832,6 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   logical,parameter :: dense=.true.
   logical,parameter :: check_accuracy=.false.
 
-  write(*,*) 'KS_overlap%nfvctr', KS_overlap%nfvctr
-
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr) ! to check timings
   call timing(iproc,'renormCoefCom1','ON')
 
