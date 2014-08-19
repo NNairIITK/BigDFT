@@ -59,7 +59,8 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
                                        dd            => dd_trans,&
                                        fff           => fff_trans,&
                                        scpr          => scpr_trans,&
-                                       wold          => wold_trans
+                                       wold          => wold_trans,&
+                                       efmethod
  
     implicit none
     !parameters    
@@ -129,7 +130,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
 
 
 
-    if(atoms%astruct%geocode/='F')&
+    if(atoms%astruct%geocode/='F'.and. .not. (trim(adjustl(efmethod))=='LENSIc'))&
     stop'STOP: saddle search only implemented for free BC'
 
     if(iproc==0)then
