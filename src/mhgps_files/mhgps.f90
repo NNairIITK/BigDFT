@@ -291,7 +291,6 @@ allocate(fat(3,nat))
 
             !read (first) file
             write(filename,'(a,i3.3)')'pos',ifile
-write(*,*)'hier1 ',filename
             inquire(file=currDir//'/'//filename//'.xyz',&
                     exist=xyzexists)
             inquire(file=currDir//'/'//filename//'.ascii',&
@@ -305,7 +304,6 @@ write(*,*)'hier1 ',filename
             if(trim(adjustl(operation_mode))=='guessonly')then
                 !read second file
                 write(filename2,'(a,i3.3)')'pos',ifile+1
-write(*,*)'hier2 ',filename2
                 inquire(file=currDir//'/'//filename2//'.xyz',&
                             exist=xyzexists)
                 inquire(file=currDir//'/'//filename2//'.ascii',&

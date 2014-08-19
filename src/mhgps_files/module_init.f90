@@ -61,7 +61,7 @@ contains
             read(u,*)saddle_maxcurvrise
             read(u,*)saddle_cutoffratio
             read(u,*)saddle_recompIfCurvPos
-            read(u,*)saddle_stepoff
+            read(u,*)saddle_stepoff, saddle_scale_stepoff
             if(.not.external_mini)then
                 read(u,*)mini_nhistx
                 read(u,*)mini_ncluster_x 
@@ -113,7 +113,7 @@ contains
             write(u,'(es10.3,1x,a)')saddle_maxcurvrise,' #maxcurvrise'
             write(u,'(es10.3,1x,a)')saddle_cutoffratio,' #cutoffratio'
             write(u,'(1x,i0,1x,a)')saddle_recompIfCurvPos,' #recompIfCurvPos'
-            write(u,'(es10.3,1x,a)')saddle_stepoff, ' #stepoff'
+            write(u,'(es10.3,1x,es10.3,1x,a)')saddle_stepoff,saddle_scale_stepoff, ' #stepoff, stepoff_scale'
         close(u)
     end subroutine
     subroutine print_input()

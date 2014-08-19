@@ -159,7 +159,8 @@ use module_energyandforces
         call yaml_comment('(MHGPS) nsad:'//&
              trim(adjustl(yaml_toa(nsad)))//'; connect minima with &
              following energies')
-        call yaml_comment('(MHGPS) '//trim(adjustl(yaml_toa(ener1)))//' and ')
+        call yaml_comment('(MHGPS) '//trim(adjustl(yaml_toa(ener1)))&
+                           //' and ')
         call yaml_comment('(MHGPS) '//trim(adjustl(yaml_toa(ener2))))
     endif
 
@@ -167,8 +168,8 @@ use module_energyandforces
     !check if input structures are distinct 
     if(equal(nid,en_delta_min,fp_delta_min,ener1,ener2,fp1,fp2))then
         if(iproc==0)call yaml_warning('(MHGPS) connect: input '//&
-                    'minima are identical. Will NOT attempt to find '//&
-                    'an intermediate TS. recursion depth: '//&
+                    'minima are identical. Will NOT attempt to '//&
+                    'find an intermediate TS. recursion depth: '//&
                     yaml_toa(nsad))
         return
     endif
@@ -265,9 +266,9 @@ use module_energyandforces
                 write(comment,'(a)')'Prob: Neighbors '//&
                 'unknown (stepoff converged back to saddle)'
                 call write_atomic_file(currDir//'/sadProb'//&
-                trim(adjustl(isadprobc))//'_finalM',cobj%enersad(nsad),&
-                cobj%saddle(1,1,nsad),ixyz_int,atoms,comment,&
-                forces=cobj%minmode(1,1,nsad))
+                trim(adjustl(isadprobc))//'_finalM',&
+                cobj%enersad(nsad),cobj%saddle(1,1,nsad),ixyz_int,&
+                atoms,comment,forces=cobj%minmode(1,1,nsad))
             endif
     
             connected=.false.
@@ -283,6 +284,7 @@ use module_energyandforces
                                next connection attempt.')
             return
         endif
+        if(iproc==0)&
         call yaml_comment('INFO: (MHGPS) After pushoff, left side '//&
                        'converged back to saddle. Will retry with '//&
                        'increased pushoff: '//&
@@ -307,7 +309,7 @@ use module_energyandforces
                             cobj%rightmin(1,1,nsad),&
                             cobj%fright(1,1,nsad),fnoise,&
                             cobj%enerright(nsad),ener_count,&
-                            converged,'L')
+                            converged,'R')
         call fnrmandforcemax(cobj%fright(1,1,nsad),fnrm,fmax,nat)
         write(comment,'(a,1pe10.3,5x1pe10.3)')'fnrm, fmax = ',fnrm,&
                                               fmax
@@ -328,9 +330,9 @@ use module_energyandforces
                 write(comment,'(a)')'Prob: Neighbors '//&
                 'unknown (stepoff converged back to saddle)'
                 call write_atomic_file(currDir//'/sadProb'//&
-                trim(adjustl(isadprobc))//'_finalM',cobj%enersad(nsad),&
-                cobj%saddle(1,1,nsad),ixyz_int,atoms,comment,&
-                forces=cobj%minmode(1,1,nsad))
+                trim(adjustl(isadprobc))//'_finalM',&
+                cobj%enersad(nsad),cobj%saddle(1,1,nsad),ixyz_int,&
+                atoms,comment,forces=cobj%minmode(1,1,nsad))
             endif
     
             connected=.false.
@@ -346,9 +348,10 @@ use module_energyandforces
                                next connection attempt.')
             return
         endif
-        call yaml_comment('INFO: (MHGPS) After pushoff, right side '//&
-                       'converged back to saddle. Will retry with '//&
-                       'increased pushoff: '//&
+        if(iproc==0)&
+        call yaml_comment('INFO: (MHGPS) After pushoff, right side'//&
+                       ' converged back to saddle. Will retry with'//&
+                       ' increased pushoff: '//&
                         yaml_toa(saddle_scale_stepoff))
         scl=saddle_scale_stepoff*scl
         ipush=ipush+1
@@ -517,7 +520,8 @@ use module_energyandforces
     logical  :: lnl, rnr, lnr, rnl 
     character(len=200) :: comment
     real(gp) :: tsgforces(3,nat), tsgenergy
-    real(gp) :: todorxyz(3,nat,2,2*nsadmax),todofp(nid,2,2*nsadmax),todoenergy(2,2*nsadmax)
+    real(gp) :: todorxyz(3,nat,2,2*nsadmax),todofp(nid,2,2*nsadmax)
+    real(gp) :: todoenergy(2,2*nsadmax)
     integer :: ntodo
     real(gp) :: rxyz1cur(3,nat), rxyz2cur(3,nat)
     real(gp) :: fp1cur(nid), fp2cur(nid)

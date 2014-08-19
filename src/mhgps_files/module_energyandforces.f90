@@ -19,6 +19,8 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     !forces in hartree/bohr
     !(except for LJ)
     use module_base
+    use module_lj
+    use module_lenosky_si
     use module_types
     use module_interfaces
     use yaml_output
@@ -35,17 +37,27 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     integer :: icc !for amber
     real(gp) :: rxyzint(3,nat)
     if(nat/=fdim)stop'nat /= fdim'
-    ef_counter=ef_counter+1.d0    
+    ef_counter=ef_counter+1.0_gp 
     if(trim(adjustl(efmethod))=='LJ')then
         call lenjon(nat,rxyz(1,1),fxyz(1,1),epot)
-        fnoise=0.d0
+        fnoise=0.0_gp
+        return
+    else if(trim(adjustl(efmethod))=='LENSIc')then
+        !for clusters
+        call lenosky_si_shift(nat,alat,rxyz,fxyz,epot)
+        fnoise=0.0_gp
+        return
+    else if(trim(adjustl(efmethod))=='LENSIb')then
+        !for bulk
+        call lenosky_si(nat,alat,rxyz,fxyz,epot)
+        fnoise=0.0_gp
         return
     else if(trim(adjustl(efmethod))=='AMBER')then
         icc=1
         !convert from bohr to ansgtroem
         rxyzint=0.52917721092_gp*rxyz
         call call_nab_gradient(rxyzint(1,1),fxyz(1,1),epot,icc)
-        epot=epot*0.001593601437458137_dp !from kcal_th/mol to hartree
+        epot=epot*0.001593601437458137_gp !from kcal_th/mol to hartree
                                           !(thermochemical calorie
                                           !used: 1cal_th=4.184J)
                                           !also see:
@@ -53,7 +65,7 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
         !convert from gradient in kcal_th/mol/angstrom to
         !force in hartree/bohr
         fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)*0.0008432975639921999_gp
-        fnoise=0.d0
+        fnoise=0.0_gp
         return
     else if(trim(adjustl(efmethod))=='BIGDFT')then
         if(nat/=runObj%atoms%astruct%nat)then
@@ -76,46 +88,4 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
         return
     endif
 end subroutine
-!=====================================================================
-subroutine lenjon(nat,rxyz,fxyz,etot)
-    use module_base
-    !energy and forces for Lennard Jones potential
-    !input: nat: number of atoms
-    !       rxyz: positions of atoms
-    !output: etot: energy
-    !        fxyz: forces (negative derivative of energy with
-    !              respect to positions
-    implicit none
-    !parameters
-    integer, intent(in)   :: nat
-    real(gp), intent(in)  :: rxyz(3,nat)
-    real(gp), intent(out) :: fxyz(3,nat)
-    real(gp), intent(out) :: etot
-    !internal
-    integer :: iat, jat
-    real(gp) :: dx,dy,dz,dd,dd2,dd6,dd12,tt,t1,t2,t3
-
-    etot=0.d0
-    do iat=1,nat
-        fxyz(1,iat)=0.d0 ; fxyz(2,iat)=0.d0 ; fxyz(3,iat)=0.d0
-    enddo
-    do iat=1,nat
-        do jat=1,iat-1
-            dx=rxyz(1,iat)-rxyz(1,jat)
-            dy=rxyz(2,iat)-rxyz(2,jat)
-            dz=rxyz(3,iat)-rxyz(3,jat)
-            dd=dx**2+dy**2+dz**2
-            dd2=1.d0/dd
-            dd6=dd2*dd2*dd2
-            dd12=dd6*dd6
-            etot=etot+4.d0*(dd12-dd6)
-            tt=24.d0*dd2*(2.d0*dd12-dd6)
-            t1=dx*tt ; t2=dy*tt ; t3=dz*tt
-            fxyz(1,iat)=fxyz(1,iat)+t1 ; fxyz(1,jat)=fxyz(1,jat)-t1
-            fxyz(2,iat)=fxyz(2,iat)+t2 ; fxyz(2,jat)=fxyz(2,jat)-t2
-            fxyz(3,iat)=fxyz(3,iat)+t3 ; fxyz(3,jat)=fxyz(3,jat)-t3
-        enddo
-    enddo
-end subroutine
-!=====================================================================
 end module

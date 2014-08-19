@@ -2,12 +2,14 @@ vpath %.h ../modules
 ###bin_PROGRAMS = mhgps
 
 mhgps_objects = \
+	       module_lj.f90 \
+	       module_lenosky_si.f90 \
                module_global_variables.f90 \
                module_init.f90 \
                module_hessian.f90 \
                module_io.f90 \
                module_energyandforces.f90 \
-			   module_minimizers.f90 \
+	       module_minimizers.f90 \
                module_saddle.f90 \
                module_interpol.f90 \
                module_ls_rmsd.f90 \
@@ -38,7 +40,10 @@ libmhgps_a_SOURCES = $(mhgps_SOURCES)
 #dependencies
 mhgps.o : $(mhgps_objects:.f90=.o) ../modules/BigDFT_API.o wrap.o
 
-module_energyandforces.o : module_global_variables.o module_init.o \
+module_energyandforces.o : module_lenosky_si.o \
+                           module_lj.o \
+                           module_global_variables.o \
+                           module_init.o \
                            ../modules/BigDFT_API.o wrap.o
 module_init.o : module_global_variables.o ../modules/BigDFT_API.o 
 module_saddle.o : module_global_variables.o module_io.o\
