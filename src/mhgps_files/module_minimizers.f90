@@ -152,8 +152,8 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
 
 
      if (iproc == 0 .and. mhgps_verbosity > 0) write(*,'(a)')  &
-      '#(MHGPS) COUNT  IT  GEOPT_METHOD  ENERGY                 &
-       DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO'
+      '#(MHGPS) COUNT  IT  GEOPT_METHOD  ENERGY                 '//&
+      'DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO'
 
 
    !set parameters

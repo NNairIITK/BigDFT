@@ -180,8 +180,8 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
     if(iproc==0 .and. mhgps_verbosity>=5)then
         call write_path(nat,npath,path,energies,tangent)
     endif     
-    if(iproc==0)call yaml_map('(MHGPS) # Energy evaluations for TS guess:',&
-                              ef_counter-efcounter_start)
+    if(iproc==0)call yaml_map('(MHGPS) # Energy evaluations for '//&
+                              'TS guess:',ef_counter-efcounter_start)
 
     call f_free(string) 
     call f_free(path) 
@@ -220,8 +220,8 @@ subroutine write_path(nat,npath,path,energies,tangent)
     do ipath=1,npath
         write(fn4,'(i4.4)') ipath
         write(comment,'(a)')&
-           'ATTENTION! Forces below are no forces&
-           but tangents to the guessed reaction path'
+           'ATTENTION! Forces below are no forces but tangents to '//&
+           'the guessed reaction path'
         call write_atomic_file(currDir//'/sad'//isadc//'_igpath_'//&
            fn4,energies(ipath),pathint(1,1,ipath),ixyz_int,&
            atoms,trim(comment),forces=tangent(1,1,ipath))
@@ -313,12 +313,11 @@ subroutine grow_freezstring(nat,alat,gammainv,perpnrmtol,trust,&
     
     finished=2
 
-    if(iproc==0)call yaml_comment('(MHGPS) entering &
-                grow_freezstring')
+    if(iproc==0)call yaml_comment('(MHGPS) entering grow_freezstring')
 
     if((.not. allocated(string)))then
-        if(iproc==0)call yaml_warning('(MHGPS) STOP, string &
-                    in grow_freezstring not allocated')
+        if(iproc==0)call yaml_warning('(MHGPS) STOP, string in '//&
+                    'grow_freezstring not allocated')
         stop
     endif
     perpnrmtol_squared=perpnrmtol**2
@@ -352,22 +351,24 @@ subroutine grow_freezstring(nat,alat,gammainv,perpnrmtol,trust,&
         !if needed.
         nresizes=nresizes+1
         if(nresizes>100)then
-            if(iproc==0)call yaml_warning('(MHGPS) STOP, too&
-                        many resizes in grow_freezstring')
+            if(iproc==0)call yaml_warning('(MHGPS) STOP, too many '//&
+                        'resizes in grow_freezstring')
             stop
         endif
         if(allocated(stringTmp))then
 !            deallocate(stringTmp)
             call f_free(stringTmp)
         endif
-        stringTmp = f_malloc((/ 1.to.3*nat, 1.to.2, 1.to.nstringmax/),'stringTmp')
+        stringTmp = f_malloc((/ 1.to.3*nat, 1.to.2, &
+                    1.to.nstringmax/),'stringTmp')
 !        allocate(stringTmp(3*nat,2,nstringmax))
         stringTmp=string
         call f_free(string)
 !        deallocate(string)
         nstringmax=nstringmax+resize
 !        allocate(string(3*nat,2,nstringmax))
-        string = f_malloc((/ 1.to.3*nat, 1.to.2, 1.to.nstringmax/),'string')
+        string = f_malloc((/ 1.to.3*nat, 1.to.2, &
+                 1.to.nstringmax/),'string')
         do k=1,(nstringmax-resize)
             string(:,:,k)=stringTmp(:,:,k)
         enddo

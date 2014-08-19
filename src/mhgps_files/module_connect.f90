@@ -157,8 +157,8 @@ use module_energyandforces
     endif
     if(iproc==0)then
         call yaml_comment('(MHGPS) nsad:'//&
-             trim(adjustl(yaml_toa(nsad)))//'; connect minima with &
-             following energies')
+             trim(adjustl(yaml_toa(nsad)))//'; connect minima with'//&
+             ' following energies')
         call yaml_comment('(MHGPS) '//trim(adjustl(yaml_toa(ener1)))&
                            //' and ')
         call yaml_comment('(MHGPS) '//trim(adjustl(yaml_toa(ener2))))
@@ -207,8 +207,8 @@ use module_energyandforces
 
     call fnrmandforcemax(cobj%fsad(1,1,nsad),fnrm,fmax,nat)
     if (iproc == 0) then
-        write(comment,'(a,1pe10.3,5x1pe10.3)')'ATTENTION! Forces &
-        below give no forces, but the final minmode| fnrm, fmax = ',&
+        write(comment,'(a,1pe10.3,5x1pe10.3)')'ATTENTION! Forces '//&
+        'below give no forces, but the final minmode| fnrm, fmax = ',&
         fnrm,fmax
 
         call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
@@ -277,11 +277,11 @@ use module_energyandforces
             write(isadc,'(i5.5)')isad
     
             if(iproc==0)&
-            call yaml_warning('(MHGPS)  after relaxation from saddle &
-                               point the left minimum is identical &
-                               to the saddle point. Stopped &
-                               connection attempt. Will proceed with &
-                               next connection attempt.')
+            call yaml_warning('(MHGPS)  after relaxation from '//&
+                              'saddle point the left minimum is '//&
+                              'identical to the saddle point. '//&
+                              'Stopped connection attempt. Will '//&
+                              'proceed with next connection attempt.')
             return
         endif
         if(iproc==0)&
@@ -341,11 +341,11 @@ use module_energyandforces
             write(isadc,'(i5.5)')isad
     
             if(iproc==0)&
-            call yaml_warning('(MHGPS)  after relaxation from saddle &
-                               point the right minimum is identical &
-                               to the saddle point. Stopped &
-                               connection attempt. Will proceed with &
-                               next connection attempt.')
+            call yaml_warning('(MHGPS)  after relaxation from '//&
+                              'saddle point the right minimum is '//&
+                              'identical to the saddle point. '//&
+                              'Stopped connection attempt. Will '//&
+                              'proceed with next connection attempt.')
             return
         endif
         if(iproc==0)&
@@ -464,12 +464,12 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected'
 
     !should and must not happen:
     if(iproc==0)&
-    call yaml_warning('(MHGPS) Severe error in connect: none of &
-                  the checks in connect subroutine were successful! &
-                  STOP') 
-    stop '(MHGPS) Severe error in connect: none of &
-                  the checks in connect subroutine were successful! &
-                  STOP'
+    call yaml_warning('(MHGPS) Severe error in connect: none of '//&
+                      'the checks in connect subroutine were '//&
+                       'successful! STOP') 
+    stop '(MHGPS) Severe error in connect: none of '//&
+                      'the checks in connect subroutine were '//&
+                       'successful! STOP' 
 
 end subroutine
 !=====================================================================
@@ -550,8 +550,8 @@ connectloop: do while(ntodo>=1)
     ener2cur=todoenergy(2,ntodo)
     if(iproc==0)then
         call yaml_comment('(MHGPS) nsad:'//&
-             trim(adjustl(yaml_toa(nsad)))//'; connect minima with &
-             following energies')
+             trim(adjustl(yaml_toa(nsad)))//'; connect minima '//&
+             'with following energies')
         call yaml_comment('(MHGPS) '//trim(adjustl(yaml_toa(todoenergy(1,ntodo))))//' and ')
         call yaml_comment('(MHGPS) '//trim(adjustl(yaml_toa(todoenergy(2,ntodo)))))
     endif
@@ -598,8 +598,8 @@ connectloop: do while(ntodo>=1)
 
     call fnrmandforcemax(cobj%fsad(1,1,nsad),fnrm,fmax,nat)
     if (iproc == 0) then
-        write(comment,'(a,1pe10.3,5x1pe10.3)')'ATTENTION! Forces &
-        below give no forces, but the final minmode| fnrm, fmax = ',&
+        write(comment,'(a,1pe10.3,5x1pe10.3)')'ATTENTION! Forces '//&
+        'below give no forces, but the final minmode| fnrm, fmax = ',&
         fnrm,fmax
 
         call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
@@ -683,11 +683,11 @@ connectloop: do while(ntodo>=1)
         write(isadc,'(i5.5)')isad
 
         if(iproc==0)&
-        call yaml_warning('(MHGPS)  after relaxation from saddle &
-                           point the left and/or right minimum are &
-                           identical to the saddle point. Stopped &
-                           connection attempt. Will proceed with &
-                           next connection attempt.')
+        call yaml_warning('(MHGPS)  after relaxation from saddle '//&
+                         'point the left and/or right minimum are '//&
+                         'identical to the saddle point. Stopped '//&
+                         'connection attempt. Will proceed with '//&
+                         'next connection attempt.')
         exit connectloop !stop connection
     endif
 
@@ -836,12 +836,12 @@ if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
     else
         !should and must not happen:
         if(iproc==0)&
-        call yaml_warning('(MHGPS) Severe error in connect: none of &
-                      the checks in connect subroutine were successful! &
-                      STOP') 
-        stop '(MHGPS) Severe error in connect: none of &
-                      the checks in connect subroutine were successful! &
-                      STOP'
+        call yaml_warning('(MHGPS) Severe error in connect: none '//&
+                          'of the checks in connect subroutine '//&
+                          'were successful! STOP') 
+        stop '(MHGPS) Severe error in connect: none '//&
+                          'of the checks in connect subroutine '//&
+                          'were successful! STOP'
     endif
 do i=1,2*nsadmax
 write(*,*)'ener',todoenergy(1,i),todoenergy(2,i)

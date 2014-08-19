@@ -234,9 +234,9 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
                 if(flag)then
                     call yaml_comment('(MHGPS) tightening')
                 else
-                    call yaml_warning('(MHGPS) redo tightening&
-                         since walked too far at small forces.&
-                         Is tightenfac chosen too large?')
+                    call yaml_warning('(MHGPS) redo tightening '//&
+                         'since walked too far at small forces. '//&
+                         'Is tightenfac chosen too large?')
                 endif
             endif
             tol=tolf
@@ -264,8 +264,8 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
             !'(MHGPS) METHOD COUNT  IT  CURVATURE             &
             !DIFF      FMAX      FNRM      alpha    ndim')
             if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a)')&
-            '  #(MHGPS) METHOD COUNT  IT  CURVATURE             &
-            DIFF      FMAX      FNRM      alpha    ndim'
+            '  #(MHGPS) METHOD COUNT  IT  CURVATURE             '//&
+            'DIFF      FMAX      FNRM      alpha    ndim'
             inputPsiId=1
              !inputPsiId=0
             call opt_curv(it,imode,nat,alat,alpha0_rot,curvforcediff,nit_rot,&
@@ -298,8 +298,8 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
             !'(MHGPS) METHOD COUNT  IT  Energy                &
             !DIFF      FMAX      FNRM      alpha    ndim')
             if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a)')&
-            '  #(MHGPS) METHOD COUNT  IT  Energy                &
-            DIFF      FMAX      FNRM      alpha    ndim'
+            '  #(MHGPS) METHOD COUNT  IT  Energy                '//&
+            'DIFF      FMAX      FNRM      alpha    ndim'
         endif
         !END FINDING LOWEST MODE
         
@@ -360,8 +360,8 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
            fc=fc+1
            write(fn9,'(i9.9)') fc
            write(comment,'(a,1pe10.3,5x1pe10.3)')&
-           'ATTENTION! Forces below are no forces &
-           but tangents to the guessed reaction path| fnrm, fmax = ',fnrm,fmax
+           'ATTENTION! Forces below are no forces but tangents to '//&
+           'the guessed reaction path| fnrm, fmax = ',fnrm,fmax
            call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))//'_posout_'//fn9,&
                 etotp,rxyz(1,1,nhist),ixyz_int,&
                 atoms,trim(comment),forces=minmode)
@@ -744,8 +744,7 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,1x,es21.14,4(1x,es9.2
             ndim=0
         if(.not. isForceField)then
             if(iproc==0 .and. mhgps_verbosity>=3)&
-                call yaml_comment('INFO: (MHGPS) Will use LCAO input guess&
-                 from now on (until end of current minmode optimization).')
+                call yaml_comment('INFO: (MHGPS) Will use LCAO input guess from now on (until end of current minmode optimization).')
             inputPsiId=0
             call mincurvforce(imode,nat,alat,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist-1),&
                 rxyzraw(1,1,nhist-1),fxyz(1,1,nhist-1),fstretch(1,1,nhist-1),fxyzraw(1,1,nhist-1),&

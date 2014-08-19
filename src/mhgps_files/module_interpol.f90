@@ -354,8 +354,8 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
         endif
     enddo
     if(fmax > fmax_tol .and. iproc==0)then
-        call yaml_warning('(MHGPS) Minimization of Linear&
-             Synchronous Transit Path not converged:')
+        call yaml_warning('(MHGPS) Minimization of Linear '//&
+                          'Synchronous Transit Path not converged:')
         call yaml_map('(MHGPS) epot, fmax, fnrm, dt, alpha',&
              (/epot,fmax,fnrm,dt,alpha/))
     endif

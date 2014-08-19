@@ -69,8 +69,8 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
 !        return
     else if(trim(adjustl(efmethod))=='BIGDFT')then
         if(nat/=runObj%atoms%astruct%nat)then
-            call yaml_warning('nat /= runObj%atoms%astruct%nat in &
-                              energyandforces')
+            call yaml_warning('nat /= runObj%atoms%astruct%nat in '//&
+                              'energyandforces')
             stop
         endif
         call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1),1,&

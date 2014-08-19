@@ -252,9 +252,10 @@ subroutine findbonds(label,iproc,verbosity,nat,rcov,pos,nbond,iconnect)
                   (pos(3,iat)-pos(3,jat))**2
             if (dist2.le.(1.2_gp*(rcov(iat)+rcov(jat)))**2) then
                 nbond=nbond+1
-                if (nbond.gt.1000) stop 'nbond>1000, increase size of&
-                                         iconnect in routine which calls&
-                                         subroutine findbonds'
+                if (nbond.gt.1000) stop 'nbond>1000, increase '//&
+                                         'size of iconnect in '//&
+                                         'routine which calls '//&
+                                         'subroutine findbonds'
                 iconnect(1,nbond)=iat
                 iconnect(2,nbond)=jat
             endif

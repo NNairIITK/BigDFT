@@ -99,8 +99,8 @@ real(gp), allocatable :: fat(:,:)
         !actual value of iproc
         iproc=iproc+igroup*ngroups
         if (nconfig < 0) then
-            call yaml_warning('runs-file not supported for MHGPS&
-                               executable')
+            call yaml_warning('runs-file not supported for MHGPS '//&
+                              'executable')
             stop
         endif
         if(iproc==0) call print_logo_mhgps()
@@ -163,8 +163,8 @@ real(gp), allocatable :: fat(:,:)
 !
 !        call print_logo_mhgps()
     else
-        call yaml_warning('Following method for evaluation of &
-        energies and forces is unknown: '//trim(adjustl(efmethod)))
+        call yaml_warning('Following method for evaluation of '//&
+        'energies and forces is unknown: '//trim(adjustl(efmethod)))
         stop
     endif
     if(iproc==0) call print_input()
@@ -324,8 +324,8 @@ allocate(fat(3,nat))
                      tsguess(1,1),minmodeguess(1,1),tsgenergy,&
                      tsgforces(1,1))
                 write(comment,'(a)')&
-                     'TS guess; forces below give guessed &
-                      minimummode.'
+                     'TS guess; forces below give guessed '//&
+                     'minimummode.'
                 call write_atomic_file(currDir//'/sad'//&
                      trim(adjustl(isadc))//'_ig_finalM',&
                      tsgenergy,tsguess(1,1),ixyz_int,atoms,&
@@ -371,13 +371,13 @@ allocate(fat(3,nat))
                      iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
                      nsad,cobj,connected)
                 if(connected)then
-                    if(iproc==0)call yaml_map('(MHGPS) &
-                                succesfully connected, intermediate &
-                                transition states:',nsad)
+                    if(iproc==0)call yaml_map('(MHGPS) '//&
+                              'succesfully connected, intermediate'//&
+                              ' transition states:',nsad)
                 else
-                    if(iproc==0)call yaml_comment('(MHGPS) &
-                                Connection not established within '&
-                                //trim(adjustl(yaml_toa(nsad)))//&
+                    if(iproc==0)call yaml_comment('(MHGPS) '//&
+                               'Connection not established within '//&
+                                trim(adjustl(yaml_toa(nsad)))//&
                                 ' transition state computations')
                 endif
             else if(trim(adjustl(operation_mode))=='simple')then
@@ -416,9 +416,9 @@ allocate(fat(3,nat))
                                         fmax,nat)
                     if (iproc == 0) then
                         write(comment,'(a,1pe10.3,5x1pe10.3)')&
-                       'ATTENTION! Forces below give no forces, &
-                        but the final minmode| &
-                        fnrm, fmax = ',fnrm,fmax
+                       'ATTENTION! Forces below give no forces, '//&
+                       'but the final minmode| '//&
+                       'fnrm, fmax = ',fnrm,fmax
 
                         call write_atomic_file(currDir//'/sad'//&
                         trim(adjustl(isadc))//'_finalM',energy,&
@@ -443,16 +443,16 @@ allocate(fat(3,nat))
                      INFO)
                 if (info.ne.0) stop 'DSYEV'
                     if(iproc==0)then
-                        write(*,'(a,1x,es9.2,1x,es24.17)') '(hess) &
-                        ---   App. eigenvalues in exact ------------&
-                        - fnrm:',sqrt(sum(fxyz**2)),energy
+                        write(*,'(a,1x,es9.2,1x,es24.17)') '(hess)'//&
+                        ' ---   App. eigenvalues in exact --------'//&
+                        '--- fnrm:',sqrt(sum(fxyz**2)),energy
                         do j=1,3*nat
                             write(*,*) '(hess) eval ',j,eval(j)
                         enddo
                     endif
             else
-                call yaml_warning('(MHGPS) operation mode unknown &
-                                  STOP')
+                call yaml_warning('(MHGPS) operation mode unknown '//&
+                                 'STOP')
                 stop '(MHGPS) operation mode unknown STOP'
             endif
         enddo
@@ -522,7 +522,9 @@ allocate(fat(3,nat))
     
 
 
-    if(iproc==0)call yaml_map('(MHGPS) Total calls to energy and forces',nint(ef_counter))
-    if(iproc==0)call yaml_map('(MHGPS) Run finished at',yaml_date_and_time_toa())
+    if(iproc==0)call yaml_map('(MHGPS) Total calls to energy and '//&
+                               'forces',nint(ef_counter))
+    if(iproc==0)call yaml_map('(MHGPS) Run finished at',&
+                               yaml_date_and_time_toa())
     call f_lib_finalize()
 end program

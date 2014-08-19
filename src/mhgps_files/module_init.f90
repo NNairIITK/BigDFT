@@ -25,8 +25,9 @@ contains
         inquire(file=filename,exist=exists)
         if(.not. exists)then
             call write_input()
-            call yaml_warning('mhgps.inp does not exist. &
-                Wrote default input parameters to mhgps.inp_default.')
+            call yaml_warning('mhgps.inp does not exist.  Wrote '//&
+                              'default input parameters to '//&
+                              'mhgps.inp_default.')
             stop
         endif
         open(u,file=filename)
