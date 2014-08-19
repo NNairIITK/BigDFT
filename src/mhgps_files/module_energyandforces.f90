@@ -36,20 +36,33 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     !internal
     integer :: icc !for amber
     real(gp) :: rxyzint(3,nat)
+    real(gp) :: alatint(3)
     if(nat/=fdim)stop'nat /= fdim'
     ef_counter=ef_counter+1.0_gp 
     if(trim(adjustl(efmethod))=='LJ')then
         call lenjon(nat,rxyz(1,1),fxyz(1,1),epot)
         fnoise=0.0_gp
         return
-    else if(trim(adjustl(efmethod))=='LENSIc')then
-        !for clusters
-        call lenosky_si_shift(nat,alat,rxyz,fxyz,epot)
+    else if(trim(adjustl(efmethod))=='LENSIc')then!for clusters
+        !convert from bohr to ansgtroem
+        rxyzint=0.52917721092_gp*rxyz
+        alatint=0.52917721092_gp*alat
+        call lenosky_si_shift(nat,alatint,rxyzint(1,1),fxyz(1,1),epot)
+        !convert energy from eV to Hartree
+        epot=0.03674932379085202_gp * epot
+        !convert forces from eV/Angstroem to hartree/bohr
+        fxyz(1:3,1:nat)=fxyz(1:3,1:nat)*0.01944690466683907_gp
         fnoise=0.0_gp
         return
-    else if(trim(adjustl(efmethod))=='LENSIb')then
-        !for bulk
-        call lenosky_si(nat,alat,rxyz,fxyz,epot)
+    else if(trim(adjustl(efmethod))=='LENSIb')then!for bulk
+        !convert from bohr to ansgtroem
+        rxyzint=0.52917721092_gp*rxyz
+        alatint=0.52917721092_gp*alat
+        call lenosky_si(nat,alatint,rxyzint,fxyz,epot)
+        !convert energy from eV to Hartree
+        epot=0.03674932379085202_gp * epot
+        !convert forces from eV/Angstroem to hartree/bohr
+        fxyz(1:3,1:nat)=fxyz(1:3,1:nat)*0.01944690466683907_gp
         fnoise=0.0_gp
         return
 !    else if(trim(adjustl(efmethod))=='AMBER')then
