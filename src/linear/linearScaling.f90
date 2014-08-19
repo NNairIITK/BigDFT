@@ -62,7 +62,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer :: ldiis_coeff_hist, nitdmin
   logical :: ldiis_coeff_changed
   integer :: mix_hist, info_basis_functions, nit_scc, cur_it_highaccuracy
-  real(kind=8) :: pnrm_out, alpha_mix, ratio_deltas, convcrit_dmin
+  real(kind=8) :: pnrm_out, alpha_mix, ratio_deltas, convcrit_dmin, tt1, tt2
   logical :: lowaccur_converged, exit_outer_loop
   real(kind=8),dimension(:),allocatable :: locrad
   integer:: target_function, nit_basis
@@ -606,7 +606,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              ! CDFT: this is the real energy here as we subtracted the constraint term from the Hamiltonian before calculating ebs
              ! Calculate the total energy.
-             if(iproc==0) write(*,'(a,7es14.6)') 'energs',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
+             !if(iproc==0) write(*,'(a,7es14.6)') 'energs',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
              energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
              energyDiff=energy-energyold
              energyold=energy
@@ -657,8 +657,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                      pnrm,denspot%dpbox%nscatterarr)
                      !!write(*,*) 'after mix_rhopot 1.1: pnrm', pnrm
                 !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+                write(*,*) 'old pnrm',pnrm
+                !!tt1=sum(denspot%dpbox%nscatterarr(:,1))
+                !!tt2=sum(denspot%dpbox%nscatterarr(:,2))
+                !!pnrm = pnrm*sqrt(tt2/tt1)
                 pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
                      !!write(*,*) 'after mix_rhopot 1.2: pnrm', pnrm
+                write(*,*) 'new pnrm',pnrm
                 call check_negative_rho(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
                      denspot%rhov, rho_negative)
                 if (rho_negative) then

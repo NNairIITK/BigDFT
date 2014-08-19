@@ -463,6 +463,8 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   character(len = 500) :: errmess
   integer, allocatable :: user_data(:)
 
+  write(*,*) 'mix%nfft, npoints', mix%nfft, npoints
+
   ! Calculate the residue and put it in rhopot
   if (istep > 1) then
      ! rhopot = vin - v(out-1)
@@ -492,7 +494,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
      if (iproc == 0) write(0,*) errmess
      call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
   end if
-  !!write(*,*) 'in mix_rhopot: iproc, rpnrm', iproc, rpnrm
+  !write(*,'(a,i7,2es16.7)') 'in mix_rhopot: iproc, rpnrm, rpnrm/npoints', iproc, rpnrm, rpnrm/dble(npoints)
   rpnrm = sqrt(rpnrm) / real(n1 * n2 * n3, gp)
   rpnrm = rpnrm / (1.d0 - alphamix)
   !!write(*,*) 'in mix_rhopot 2: iproc, rpnrm', iproc, rpnrm

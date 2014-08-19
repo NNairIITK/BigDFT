@@ -177,8 +177,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
 
 
-      if (iproc==0) write(*,'(a,5es20.12)') 'ekin, eh, epot, eproj, eex', &
-                    energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
+      !!if (iproc==0) write(*,'(a,5es20.12)') 'ekin, eh, epot, eproj, eex', &
+      !!              energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
 
       !DEBUG
       !if(iproc==0) then
@@ -705,22 +705,22 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               if (iproc==0) call yaml_sequence_close()
           end if
       else
-          if (target_function==TARGET_FUNCTION_IS_ENERGY .and. iproc==0) then
-              ist=0
-              do iorb=1,tmb%orbs%norbp
-                  iiorb=tmb%orbs%isorb+iorb
-                  ilr=tmb%orbs%inwhichlocreg(iiorb)
-                  ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
-                  do i=1,ncount
-                      ist=ist+1
-                      if (tmb%orbs%spinsgn(iiorb)>0.d0) then
-                          write(4101,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, vals', iiorb, ist, tmb%orbs%spinsgn(iiorb), tmb%hpsi(ist)
-                      else
-                          write(4102,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, val', iiorb, ist, tmb%orbs%spinsgn(iiorb), tmb%hpsi(ist)
-                      end if
-                  end do
-              end do
-          end if
+          !!if (target_function==TARGET_FUNCTION_IS_ENERGY .and. iproc==0) then
+          !!    ist=0
+          !!    do iorb=1,tmb%orbs%norbp
+          !!        iiorb=tmb%orbs%isorb+iorb
+          !!        ilr=tmb%orbs%inwhichlocreg(iiorb)
+          !!        ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
+          !!        do i=1,ncount
+          !!            ist=ist+1
+          !!            if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+          !!                write(4101,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, vals', iiorb, ist, tmb%orbs%spinsgn(iiorb), tmb%hpsi(ist)
+          !!            else
+          !!                write(4102,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, val', iiorb, ist, tmb%orbs%spinsgn(iiorb), tmb%hpsi(ist)
+          !!            end if
+          !!        end do
+          !!    end do
+          !!end if
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
       end if

@@ -86,12 +86,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   energy_increased=.false.
 
   if (target_function==TARGET_FUNCTION_IS_ENERGY .and. iproc==0) then
-      do i=1,size(hpsit_c)
-          write(4231,'(a,i8,2es14.6)') 'i, tmb%ham_descr%psit_c(i), hpsit_c(i)', i, tmb%ham_descr%psit_c(i), hpsit_c(i)
-      end do
-      do i=1,size(hpsit_f)
-          write(4232,'(a,i8,2es14.6)') 'i, tmb%ham_descr%psit_f(i), hpsit_f(i)', i, tmb%ham_descr%psit_f(i), hpsit_f(i)
-      end do
+      !!do i=1,size(hpsit_c)
+      !!    write(4231,'(a,i8,2es14.6)') 'i, tmb%ham_descr%psit_c(i), hpsit_c(i)', i, tmb%ham_descr%psit_c(i), hpsit_c(i)
+      !!end do
+      !!do i=1,size(hpsit_f)
+      !!    write(4232,'(a,i8,2es14.6)') 'i, tmb%ham_descr%psit_f(i), hpsit_f(i)', i, tmb%ham_descr%psit_f(i), hpsit_f(i)
+      !!end do
   end if
 
   hpsittmp_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='hpsittmp_c')
@@ -165,15 +165,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       hpsit_f=2.d0*hpsit_f
   end if
 
-  if (target_function==TARGET_FUNCTION_IS_ENERGY .and. iproc==0) then
-      ist=0
-      do ispin=1,tmb%linmat%l%nspin
-          do i=1,tmb%linmat%l%nvctr
-              ist=ist+1
-              write(4241,'(a,3i8,es14.6)') 'ispin, i, ist, tmb%linmat%kernel_%matrix_compr(ist)', ispin, i, ist, tmb%linmat%kernel_%matrix_compr(ist)
-          end do
-      end do
-  end if
+  !!if (target_function==TARGET_FUNCTION_IS_ENERGY .and. iproc==0) then
+  !!    ist=0
+  !!    do ispin=1,tmb%linmat%l%nspin
+  !!        do i=1,tmb%linmat%l%nvctr
+  !!            ist=ist+1
+  !!            write(4241,'(a,3i8,es14.6)') 'ispin, i, ist, tmb%linmat%kernel_%matrix_compr(ist)', ispin, i, ist, tmb%linmat%kernel_%matrix_compr(ist)
+  !!        end do
+  !!    end do
+  !!end if
 
 
   if (correction_co_contra) then
@@ -216,28 +216,28 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   end if
 
 
-  if (target_function==TARGET_FUNCTION_IS_ENERGY .and. iproc==0) then
-      ist=0
-      do iorb=1,tmb%orbs%norbp
-          iiorb=tmb%orbs%isorb+iorb
-          ilr=tmb%orbs%inwhichlocreg(iiorb)
-          ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
-          do i=1,ncount
-              ist=ist+1
-              if (tmb%orbs%spinsgn(iiorb)>0.d0) then
-                  write(4211,'(a,2i10,f8.1,2es16.7)') 'iiorb, ist, spin, vals', iiorb, ist, tmb%orbs%spinsgn(iiorb), tmb%ham_descr%psi(ist), tmb%hpsi(ist)
-              else
-                  write(4212,'(a,2i10,f8.1,2es16.7)') 'iiorb, ist, spin, val', iiorb, ist, tmb%orbs%spinsgn(iiorb), tmb%ham_descr%psi(ist), tmb%hpsi(ist)
-              end if
-          end do
-      end do
-      do i=1,size(hpsit_c)
-          write(4221,'(a,i8,2es14.6)') 'i, tmb%ham_descr%psit_c(i), hpsit_c(i)', i, tmb%ham_descr%psit_c(i), hpsit_c(i)
-      end do
-      do i=1,size(hpsit_f)
-          write(4222,'(a,i8,2es14.6)') 'i, tmb%ham_descr%psit_f(i), hpsit_f(i)', i, tmb%ham_descr%psit_f(i), hpsit_f(i)
-      end do
-  end if
+  !!if (target_function==TARGET_FUNCTION_IS_ENERGY .and. iproc==0) then
+  !!    ist=0
+  !!    do iorb=1,tmb%orbs%norbp
+  !!        iiorb=tmb%orbs%isorb+iorb
+  !!        ilr=tmb%orbs%inwhichlocreg(iiorb)
+  !!        ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
+  !!        do i=1,ncount
+  !!            ist=ist+1
+  !!            if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+  !!                write(4211,'(a,2i10,f8.1,2es16.7)') 'iiorb, ist, spin, vals', iiorb, ist, tmb%orbs%spinsgn(iiorb), tmb%ham_descr%psi(ist), tmb%hpsi(ist)
+  !!            else
+  !!                write(4212,'(a,2i10,f8.1,2es16.7)') 'iiorb, ist, spin, val', iiorb, ist, tmb%orbs%spinsgn(iiorb), tmb%ham_descr%psi(ist), tmb%hpsi(ist)
+  !!            end if
+  !!        end do
+  !!    end do
+  !!    do i=1,size(hpsit_c)
+  !!        write(4221,'(a,i8,2es14.6)') 'i, tmb%ham_descr%psit_c(i), hpsit_c(i)', i, tmb%ham_descr%psit_c(i), hpsit_c(i)
+  !!    end do
+  !!    do i=1,size(hpsit_f)
+  !!        write(4222,'(a,i8,2es14.6)') 'i, tmb%ham_descr%psit_f(i), hpsit_f(i)', i, tmb%ham_descr%psit_f(i), hpsit_f(i)
+  !!    end do
+  !!end if
 
   call orthoconstraintNonorthogonal(iproc, nproc, tmb%ham_descr%lzd, &
        tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
