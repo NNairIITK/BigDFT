@@ -636,18 +636,22 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
       end if
 
       if (check_accur) then
-          max_error=0.d0
-          mean_error=0.d0
           do ispin=1,nspin
               call check_accur_overlap_minus_one(iproc,nproc,ovrlp_smat%nfvctr,ovrlp_smat%nfvctrp,ovrlp_smat%isfvctr,power,&
-                   ovrlp_mat%matrix(:,:,ispin),inv_ovrlp_mat%matrix(:,:,ispin),ovrlp_smat,max_error_p,mean_error_p)
-              max_error=max_error+max_error_p
-              mean_error=mean_error+mean_error_p
+                   ovrlp_mat%matrix(:,:,ispin),inv_ovrlp_mat%matrix(:,:,ispin),ovrlp_smat,max_error,mean_error)
+              if (iproc==0) then
+                  call yaml_newline()
+                  if (nspin==1) then
+                      call yaml_map('max / mean error',(/max_error,mean_error/),fmt='(es8.2)')
+                  else
+                      if (ispin==1) then
+                          call yaml_map('spin up, max / mean error',(/max_error,mean_error/),fmt='(es8.2)')
+                      else if (ispin==2) then
+                          call yaml_map('spin down, max / mean error',(/max_error,mean_error/),fmt='(es8.2)')
+                      end if
+                  end if
+              end if
           end do
-          if (iproc==0) then
-              call yaml_newline()
-              call yaml_map('max / mean error',(/max_error,mean_error/),fmt='(es8.2)')
-          end if
       end if
   else if (imode==SPARSE) then
       if (iorder==0) then
@@ -936,11 +940,19 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               else
                   stop 'wrong power'
               end if
+              if (iproc==0) then
+                  call yaml_newline()
+                  if (nspin==1) then
+                      call yaml_map('max / mean error',(/max_error,mean_error/),fmt='(es8.2)')
+                  else
+                      if (ispin==1) then
+                          call yaml_map('spin up, max / mean error',(/max_error,mean_error/),fmt='(es8.2)')
+                      else if (ispin==2) then
+                          call yaml_map('spin down, max / mean error',(/max_error,mean_error/),fmt='(es8.2)')
+                      end if
+                  end if
+              end if
           end do
-          if (iproc==0) then
-              call yaml_newline()
-              call yaml_map('max / mean error',(/max_error,mean_error/),fmt='(es8.2)')
-          end if
           call f_free(invovrlp_compr_seq)
           call f_free(ovrlp_largep)
           call f_free(invovrlpp)
