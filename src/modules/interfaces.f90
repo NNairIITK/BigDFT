@@ -1504,9 +1504,10 @@ module module_interfaces
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
           gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
-          purification_quickreturn, correction_co_contra)
+          purification_quickreturn, correction_co_contra, cdft)
         use module_base
         use module_types
+          use constrained_dft, only: cdft_data
         implicit none
 
         ! Calling arguments
@@ -1537,6 +1538,7 @@ module module_interfaces
         logical,intent(out) :: can_use_ham
         integer,intent(in) :: method_updatekernel
         logical,intent(in) :: correction_co_contra
+        type(cdft_data),intent(in),optional :: cdft
       end subroutine getLocalizedBasis
 
     subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
@@ -2491,9 +2493,10 @@ module module_interfaces
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
                   hpsi_small, experimental_mode, correction_co_contra, hpsi_noprecond, &
-                  norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays)
+                  norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays, cdft)
          use module_base
          use module_types
+         use constrained_dft, only: cdft_data
          implicit none
          integer, intent(in) :: iproc, nproc, it, method_updatekernel
          integer,intent(inout) :: norder_taylor
@@ -2517,6 +2520,7 @@ module module_interfaces
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_noprecond
          type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
          type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
+         type(cdft_data),intent(in),optional :: cdft
        end subroutine calculate_energy_and_gradient_linear
 
        subroutine improveOrbitals(iproc, nproc, tmb, ldiis, alpha, gradient, experimental_mode)

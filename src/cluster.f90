@@ -102,6 +102,9 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   if(runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL) then
       if (runObj%rst%version == LINEAR_VERSION) then
           runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_LINEAR
+          !switch off fragment calculation after this point
+          runObj%inputs%lin%fragment_calculation=.false.
+          runObj%inputs%frag%nfrag=1
           do iorb=1,runObj%rst%tmb%orbs%norb
               if (runObj%inputs%lin%locrad_lowaccuracy(iorb) /=  runObj%inputs%lin%locrad_highaccuracy(iorb))then
                   stop 'ERROR: at the moment the radii for low and high accuracy must be the same &

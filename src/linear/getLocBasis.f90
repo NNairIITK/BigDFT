@@ -367,7 +367,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
     gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
-    purification_quickreturn, correction_co_contra)
+    purification_quickreturn, correction_co_contra, cdft)
   !
   ! Purpose:
   ! ========
@@ -380,6 +380,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use module_interfaces, except_this_one => getLocalizedBasis, except_this_one_A => writeonewave
   use communications, only: transpose_localized, start_onesided_communication
   use sparsematrix_base, only: assignment(=), sparsematrix_malloc, sparsematrix_malloc_ptr, SPARSE_FULL
+  use constrained_dft, only: cdft_data
   !  use Poisson_Solver
   !use allocModule
   implicit none
@@ -412,6 +413,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical,intent(out) :: can_use_ham
   integer,intent(in) :: method_updatekernel
   logical,intent(in) :: correction_co_contra
+  type(cdft_data),intent(in),optional :: cdft
  
   ! Local variables
   integer :: iorb, it, it_tot, ncount, ncharge, ii, kappa_satur, nit_exit
@@ -666,7 +668,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, hpsi_small, &
            experimental_mode, correction_co_contra, hpsi_noprecond=hpsi_tmp, norder_taylor=order_taylor, &
            max_inversion_error=max_inversion_error, method_updatekernel=method_updatekernel, &
-           precond_convol_workarrays=precond_convol_workarrays, precond_workarrays=precond_workarrays)
+           precond_convol_workarrays=precond_convol_workarrays, precond_workarrays=precond_workarrays, cdft=cdft)
       !fnrm_old=fnrm
 
 

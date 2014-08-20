@@ -13,7 +13,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            energy_increased, tmb, lhphiold, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
            hpsi_small, experimental_mode, correction_co_contra, hpsi_noprecond, &
-           norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays)
+           norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays, cdft)
   use module_base
   use module_types
   use yaml_output
@@ -23,6 +23,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                                sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: transform_sparse_matrix
+  use constrained_dft, only: cdft_data
   implicit none
 
   ! Calling arguments
@@ -35,7 +36,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8),intent(inout) :: fnrm_old
   real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: alpha
   real(kind=8), intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
-  real(kind=8), intent(inout):: trHold
+  real(kind=8), intent(in):: trHold
   logical,intent(out) :: energy_increased
   real(kind=8), dimension(tmb%npsidim_orbs), intent(inout):: lhphiold
   logical, intent(inout):: overlap_calculated
@@ -48,11 +49,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(tmb%npsidim_orbs),intent(out) :: hpsi_noprecond
   type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
   type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
+  type(cdft_data),intent(in),optional :: cdft
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i
   integer :: lwork, info
-  real(kind=8) :: ddot, tt, fnrmOvrlp_tot, fnrm_tot, fnrmold_tot, tt2
+  real(kind=8) :: ddot, tt, fnrmOvrlp_tot, fnrm_tot, fnrmold_tot, tt2, trkw
   character(len=*), parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8), dimension(:), pointer :: hpsittmp_c, hpsittmp_f
   real(kind=8), dimension(:), allocatable :: hpsi_conf
@@ -204,6 +206,16 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      trH = trH + tmb%linmat%ham_%matrix_compr(ii)
   end do
   call timing(iproc,'eglincomms','OF')
+
+  if (present(cdft).and..false.) then
+    !only correct energy not gradient for now
+    !can give tmb%orbs twice as ksorbs is only used for recalculating the kernel
+    call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,cdft%weight_matrix, &
+           tmb%linmat%kernel_,cdft%weight_matrix_,trkw,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
+    !cdft%charge is always constant so could in theory be ignored as in optimize_coeffs
+    trH = trH + cdft%lag_mult*(trkw - cdft%charge)
+  end if
+
 
   ! trH is now the total energy (name is misleading, correct this)
   ! Multiply by 2 because when minimizing trace we don't have kernel

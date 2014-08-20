@@ -1978,8 +1978,9 @@ module communications_init
                       !$omp parallel default(none) shared(lzd, slicearr, is1, ie1, is2, ie2) private(i1, i2)
                       !$omp do
                       do i2=1,lzd%glr%d%n2i
+                          if (is2>i2 .or. i2>ie2) cycle
                           do i1=1,lzd%glr%d%n1i
-                              if (is1<=i1 .and. i1<=ie1 .and. is2<=i2 .and. i2<=ie2) then
+                              if (is1<=i1 .and. i1<=ie1) then
                                   slicearr(i1,i2)=slicearr(i1,i2)+1.d0
                               end if
                           end do
@@ -2051,7 +2052,7 @@ module communications_init
       integer,dimension(nptsp),intent(out) :: norb_per_gridpoint
     
       ! Local variables
-      integer :: i3, ii, i2, i1, ipt, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, i
+      integer :: i3, ii, i2, i1, ipt, ilr, is1, ie1, is2, ie2, is3, ie3, iorb, i, ii3, ii2
       real(kind=8) :: tt, weight_check
     
     
@@ -2063,6 +2064,7 @@ module communications_init
               (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,iproc)) then
               cycle
           end if
+          ii3=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
           if (weights_per_zpoint(i3)==0.d0) then
               cycle
           end if
@@ -2076,11 +2078,12 @@ module communications_init
               is1=1+lzd%Llr(ilr)%nsi1
               ie1=lzd%Llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i
               !$omp parallel default(none) &
-              !$omp shared(i3, is2, ie2, is1, ie1, lzd, istartend, iproc, norb_per_gridpoint) private(i2, i1, ii, ipt)
+              !$omp shared(i3, ii3, is2, ie2, is1, ie1, lzd, istartend, iproc, norb_per_gridpoint) private(i2, i1, ii, ii2, ipt)
               !$omp do
               do i2=is2,ie2
+                  ii2=ii3+(i2-1)*lzd%glr%d%n1i
                   do i1=is1,ie1
-                      ii=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+                      ii=ii2+i1
                       if (ii>=istartend(1,iproc) .and. ii<=istartend(2,iproc)) then
                           ipt=ii-istartend(1,iproc)+1
                           norb_per_gridpoint(ipt)=norb_per_gridpoint(ipt)+1
@@ -2134,7 +2137,7 @@ module communications_init
       integer,intent(out) :: ndimpsi
     
       ! Local variables
-      integer :: iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, jproc, i3, i2, i1, ind, ii, ierr, ii0
+      integer :: iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, jproc, i3, i2, i1, ind, ii, ierr, ii0, ii3, ii2
       integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
       character(len=*),parameter :: subname='determine_communication_arrays_sumrho'
     
@@ -2158,12 +2161,14 @@ module communications_init
                       cycle
                   end if
                   ii0=0
+                  ii3=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
                   !$omp parallel default(none) &
-                  !$omp shared(i3, is2, ie2, is1, ie1, lzd, istartend, jproc, ii0) private(i2, i1, ind)
+                  !$omp shared(i3, is2, ie2, is1, ie1, lzd, istartend, jproc, ii0, ii3) private(i2, i1, ind, ii2)
                   !$omp do reduction(+:ii0)
                   do i2=is2,ie2
+                      ii2=ii3+(i2-1)*lzd%glr%d%n1i
                       do i1=is1,ie1
-                        ind = (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+                        ind = ii2+i1
                         if (ind>=istartend(1,jproc) .and. ind<=istartend(2,jproc)) then
                             !nsendcounts(jproc)=nsendcounts(jproc)+1
                             ii0=ii0+1
