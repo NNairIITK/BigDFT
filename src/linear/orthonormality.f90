@@ -563,13 +563,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
 
               end do
 
-              if (nproc>1) then
-                  call f_free_ptr(ovrlpminonep)
-              else
-                  nullify(ovrlpminonep)
-              end if
-
-
               ovrlppowerp = sparsematrix_malloc_ptr(ovrlp_smat,iaction=DENSE_PARALLEL,id='ovrlppowerp')
 
               if (power==1) then
@@ -583,6 +576,12 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               ovrlppoweroldp = sparsematrix_malloc_ptr(ovrlp_smat,iaction=DENSE_PARALLEL,id='ovrlppoweroldp')
               if (norbp>0) call vcopy(ovrlp_smat%nfvctr*norbp*nspin,ovrlpminonep(1,1,1),1,ovrlppoweroldp(1,1,1),1)
 
+          end if
+
+          if (nproc>1) then
+              call f_free_ptr(ovrlpminonep)
+          else
+              nullify(ovrlpminonep)
           end if
 
 
