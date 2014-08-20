@@ -539,7 +539,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
           if (iorder>1) then
               if (nproc>1) then
                   ovrlpminone => inv_ovrlp_mat%matrix(:,:,:)
-                  ovrlpminonep = sparsematrix_malloc_ptr(ovrlp_smat,iaction=DENSE_PARALLEL,id='ovrlpminonep')
+                  !ovrlpminonep = sparsematrix_malloc_ptr(ovrlp_smat,iaction=DENSE_PARALLEL,id='ovrlpminonep')
+                  ovrlpminonep = f_malloc_ptr((/ovrlp_smat%nfvctr,max(ovrlp_smat%nfvctrp,1),nspin/),id='ovrlpminonep')
               else
                   ovrlpminone = sparsematrix_malloc_ptr(ovrlp_smat,iaction=DENSE_FULL,id='ovrlpminone')
                   ovrlpminonep => ovrlpminone
@@ -593,7 +594,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               end if
 
               if (norbp>0) call first_order_taylor_dense(ovrlp_smat%nfvctr,isorb,norbp,power,&
-                  ovrlp_mat%matrix(1,isorb+1,1),inv_ovrlpp)
+                  ovrlp_mat%matrix(1,isorb+1,ispin),inv_ovrlpp)
 
               do i=2,iorder
                   if (norbp>0) call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, 1.d0, ovrlpminone(1,1,ispin), &
@@ -607,7 +608,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               if(nproc > 1) then
                   call timing(iproc,'lovrlp^-1     ','OF')
                   call timing(iproc,'lovrlp_comm   ','ON')
-                  call mpi_allgatherv(inv_ovrlpp, ovrlp_smat%nfvctr*norbp, mpi_double_precision, inv_ovrlp_mat%matrix, &
+                  call mpi_allgatherv(inv_ovrlpp, ovrlp_smat%nfvctr*norbp, mpi_double_precision, inv_ovrlp_mat%matrix(1,1,ispin), &
                        ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, &
                        mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
                   call timing(iproc,'lovrlp_comm   ','OF')

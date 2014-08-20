@@ -2987,7 +2987,8 @@ module module_interfaces
           type(paw_objects),optional,intent(inout) :: paw
         end subroutine orthogonalize
 
-        subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, denskern, denskern_)
+        subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
+                   coeff, denskern, denskern_, keep_uncompressed_)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
@@ -2998,6 +2999,7 @@ module module_interfaces
           type(sparse_matrix), intent(inout) :: denskern
           real(kind=8),dimension(denskern%nfvctr,orbs%norb),intent(in):: coeff   !only use the first (occupied) orbitals
           type(matrices), intent(out) :: denskern_
+          logical,intent(in),optional :: keep_uncompressed_ !< keep the uncompressed kernel in denskern_%matrix (requires that this array is already allocated outside of the routine)
         end subroutine calculate_density_kernel
 
         subroutine reconstruct_kernel(iproc, nproc, inversion_method, &

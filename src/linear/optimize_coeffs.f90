@@ -41,6 +41,10 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
   real(kind=gp),dimension(:),allocatable:: mat_coeff_diag
   real(kind=gp) :: tt, ddot, energy0, pred_e
 
+  if (present(num_extra) .and. tmb%linmat%m%nspin==2) then
+      stop 'ERROR: optimize_coeffs not yet implemented for nspin=2 and num_extra present!'
+  end if
+
   call f_routine(id='optimize_coeffs')
 
   if (ldiis_coeff%idsx == 0 .and. sd_fit_curve) then
@@ -54,11 +58,11 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
   end if
 
   if (present(num_extra)) then
-     grad=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/), id='grad')
-     grad_cov_or_coeffp=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/), id='grad_cov_or_coeffp')
+     grad=f_malloc((/tmb%linmat%m%nfvctr,tmb%orbs%norbp/), id='grad')
+     grad_cov_or_coeffp=f_malloc((/tmb%linmat%m%nfvctr,tmb%orbs%norbp/), id='grad_cov_or_coeffp')
   else
-     grad=f_malloc((/tmb%orbs%norb,orbs%norbp/), id='grad')
-     grad_cov_or_coeffp=f_malloc((/tmb%orbs%norb,orbs%norbp/), id='grad_cov_or_coeffp')
+     grad=f_malloc((/tmb%linmat%m%nfvctr,orbs%norbp/), id='grad')
+     grad_cov_or_coeffp=f_malloc((/tmb%linmat%m%nfvctr,orbs%norbp/), id='grad_cov_or_coeffp')
   end if
 
   if (iproc==0) then
@@ -94,11 +98,11 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      tt=0.d0
      if (present(num_extra)) then
         do iorb=1,tmb%orbs%norbp
-            tt=tt+ddot(tmb%orbs%norb, grad_cov_or_coeffp(1,iorb), 1, grad(1,iorb), 1)
+            tt=tt+ddot(tmb%linmat%m%nfvctr, grad_cov_or_coeffp(1,iorb), 1, grad(1,iorb), 1)
         end do
      else
         do iorb=1,orbs%norbp
-            tt=tt+ddot(tmb%orbs%norb, grad_cov_or_coeffp(1,iorb), 1, grad(1,iorb), 1)
+            tt=tt+ddot(tmb%linmat%m%nfvctr, grad_cov_or_coeffp(1,iorb), 1, grad(1,iorb), 1)
         end do
      end if
 
@@ -109,9 +113,9 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
 
      !scale the gradient (not sure if we always want this or just fragments/constrained!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)
      if (present(num_extra)) then
-        call dscal(tmb%orbs%norb*tmb%orbs%norbp,factor,grad,1)
+        call dscal(tmb%linmat%m%nfvctr*tmb%orbs%norbp,factor,grad,1)
      else
-        call dscal(tmb%orbs%norb*orbs%norbp,factor,grad,1)
+        call dscal(tmb%linmat%m%nfvctr*orbs%norbp,factor,grad,1)
      end if
 
      if (ldiis_coeff%idsx > 0) then !do DIIS
@@ -120,14 +124,14 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
         ldiis_coeff%ids=ldiis_coeff%ids+1
 
         if (present(num_extra)) then
-           if (tmb%orbs%norbp>0) call vcopy(tmb%orbs%norb*tmb%orbs%norbp,tmb%coeff(1,tmb%orbs%isorb+1),1,grad_cov_or_coeffp(1,1),1)
+           if (tmb%orbs%norbp>0) call vcopy(tmb%linmat%m%nfvctr*tmb%orbs%norbp,tmb%coeff(1,tmb%orbs%isorb+1),1,grad_cov_or_coeffp(1,1),1)
 
-           call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/tmb%orbs%norb*tmb%orbs%norbp/),tmb%orbs%norb*tmb%orbs%norbp,&
+           call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/tmb%linmat%m%nfvctr*tmb%orbs%norbp/),tmb%linmat%m%nfvctr*tmb%orbs%norbp,&
                 grad_cov_or_coeffp,grad,ldiis_coeff) 
         else
-           if (orbs%norbp>0) call vcopy(tmb%orbs%norb*orbs%norbp,tmb%coeff(1,orbs%isorb+1),1,grad_cov_or_coeffp(1,1),1)
+           if (orbs%norbp>0) call vcopy(tmb%linmat%m%nfvctr*orbs%norbp,tmb%coeff(1,orbs%isorb+1),1,grad_cov_or_coeffp(1,1),1)
 
-           call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/tmb%orbs%norb*orbs%norbp/),tmb%orbs%norb*orbs%norbp,&
+           call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/tmb%linmat%m%nfvctr*orbs%norbp/),tmb%linmat%m%nfvctr*orbs%norbp,&
                 grad_cov_or_coeffp,grad,ldiis_coeff) 
         end if
      else  !steepest descent with curve fitting for line minimization
@@ -138,7 +142,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
            call timing(iproc,'dirmin_sddiis','ON')
            do iorb=1,tmb%orbs%norbp
               iiorb = tmb%orbs%isorb + iorb
-              do jorb=1,tmb%orbs%norb
+              do jorb=1,tmb%linmat%m%nfvctr
                  grad_cov_or_coeffp(jorb,iorb)=tmb%coeff(jorb,iiorb)-ldiis_coeff%alpha_coeff*grad(jorb,iorb)
               end do
            end do
@@ -148,7 +152,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
            call timing(iproc,'dirmin_sddiis','ON')
            do iorb=1,orbs%norbp
               iiorb = orbs%isorb + iorb
-              do jorb=1,tmb%orbs%norb
+              do jorb=1,tmb%linmat%m%nfvctr
                  grad_cov_or_coeffp(jorb,iorb)=tmb%coeff(jorb,iiorb)-ldiis_coeff%alpha_coeff*grad(jorb,iorb)
               end do
            end do
@@ -160,11 +164,11 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      call timing(iproc,'dirmin_allgat','ON')
      if (present(num_extra)) then  
         if(nproc > 1) then 
-           call mpi_allgatherv(grad_cov_or_coeffp, tmb%orbs%norb*tmb%orbs%norbp, mpi_double_precision, tmb%coeff, &
-              tmb%orbs%norb*tmb%orbs%norb_par(:,0), tmb%orbs%norb*tmb%orbs%isorb_par, mpi_double_precision, &
+           call mpi_allgatherv(grad_cov_or_coeffp, tmb%linmat%m%nfvctr*tmb%orbs%norbp, mpi_double_precision, tmb%coeff, &
+              tmb%linmat%m%nfvctr*tmb%orbs%norb_par(:,0), tmb%linmat%m%nfvctr*tmb%orbs%isorb_par, mpi_double_precision, &
               bigdft_mpi%mpi_comm, ierr)
         else
-           call vcopy(tmb%orbs%norb*tmb%orbs%norb,grad_cov_or_coeffp(1,1),1,tmb%coeff(1,1),1)
+           call vcopy(tmb%linmat%m%nfvctr*tmb%orbs%norb,grad_cov_or_coeffp(1,1),1,tmb%coeff(1,1),1)
         end if
 
         call timing(iproc,'dirmin_allgat','OF')
@@ -172,11 +176,11 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
         fnrm=sqrt(fnrm/dble(orbs%norb+num_extra))
      else 
         if(nproc > 1) then 
-           call mpi_allgatherv(grad_cov_or_coeffp, tmb%orbs%norb*orbs%norbp, mpi_double_precision, tmb%coeff, &
-              tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, &
+           call mpi_allgatherv(grad_cov_or_coeffp, tmb%linmat%m%nfvctr*orbs%norbp, mpi_double_precision, tmb%coeff, &
+              tmb%linmat%m%nfvctr*orbs%norb_par(:,0), tmb%linmat%m%nfvctr*orbs%isorb_par, mpi_double_precision, &
               bigdft_mpi%mpi_comm, ierr)
         else
-           call vcopy(tmb%orbs%norb*orbs%norb,grad_cov_or_coeffp(1,1),1,tmb%coeff(1,1),1)
+           call vcopy(tmb%linmat%m%nfvctr*orbs%norb,grad_cov_or_coeffp(1,1),1,tmb%coeff(1,1),1)
         end if
 
         call timing(iproc,'dirmin_allgat','OF')
@@ -890,16 +894,16 @@ subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pre
   coeff_tmp=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='coeff_tmp')
   do iorb=1,orbs%norbp
      iiorb = orbs%isorb + iorb
-     do jorb=1,tmb%orbs%norb
+     do jorb=1,tmb%linmat%m%nfvctr
         coeffp(jorb,iorb)=tmb%coeff(jorb,iiorb)-alpha*grad(jorb,iorb)
      end do
   end do
 
   if(nproc > 1) then 
-     call mpi_allgatherv(coeffp, tmb%orbs%norb*orbs%norbp, mpi_double_precision, coeff_tmp, &
-        tmb%orbs%norb*orbs%norb_par(:,0), tmb%orbs%norb*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+     call mpi_allgatherv(coeffp, tmb%linmat%m%nfvctr*orbs%norbp, mpi_double_precision, coeff_tmp, &
+          tmb%linmat%m%nfvctr*orbs%norb_par(:,0), tmb%linmat%m%nfvctr*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   else
-     call vcopy(tmb%orbs%norb*orbs%norb,coeffp(1,1),1,coeff_tmp(1,1),1)
+     call vcopy(tmb%linmat%m%nfvctr*orbs%norb,coeffp(1,1),1,coeff_tmp(1,1),1)
   end if
 
   ! do twice with approx S^_1/2, as not quite good enough at preserving charge if only once, but exact too expensive
@@ -1008,10 +1012,10 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
   real(kind=8),intent(in) :: max_inversion_error
   type(DFT_wavefunction), intent(inout) :: tmb
   type(orbitals_data), intent(in) :: KSorbs
-  real(gp), dimension(tmb%orbs%norb,KSorbs%norbp), intent(out) :: grad_cov, grad  ! could make grad_cov KSorbs%norbp
+  real(gp), dimension(tmb%linmat%m%nfvctr,KSorbs%norbp), intent(out) :: grad_cov, grad  ! could make grad_cov KSorbs%norbp
 
-  integer :: iorb, iiorb, info, ierr
-  real(gp),dimension(:,:),allocatable :: sk, skh, skhp
+  integer :: iorb, iiorb, info, ierr, ispin
+  real(gp),dimension(:,:,:),allocatable :: sk, skh, skhp
   real(gp),dimension(:,:),pointer :: inv_ovrlp
   real(kind=gp), dimension(:,:), allocatable:: grad_full
   character(len=*),parameter:: subname='calculate_coeff_gradient'
@@ -1035,47 +1039,57 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
   !call calculate_density_kernel(iproc, nproc, .false., KSorbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern)
   tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
   !call uncompress_matrix(iproc,tmb%linmat%denskern)
-  call calculate_density_kernel_uncompressed(iproc, nproc, .false., KSorbs, tmb%orbs, tmb%coeff, tmb%linmat%kernel_%matrix)
+  call calculate_density_kernel(iproc, nproc, .false., KSorbs, tmb%orbs, &
+       tmb%coeff, tmb%linmat%l, tmb%linmat%kernel_, .true.)
 
-  sk=f_malloc0((/tmb%orbs%norbp,tmb%orbs%norb/), id='sk')
+  sk=f_malloc0((/tmb%linmat%m%nfvctrp,tmb%linmat%m%nfvctr,tmb%linmat%m%nspin/), id='sk')
 
   ! calculate I-S*K - first set sk to identity
-  do iorb=1,tmb%orbs%norbp
-     iiorb=tmb%orbs%isorb+iorb
-     sk(iorb,iiorb) = 1.d0
-  end do 
+  do ispin=1,tmb%linmat%m%nspin
+      do iorb=1,tmb%linmat%m%nfvctrp
+          iiorb=mod(tmb%linmat%m%isfvctr+iorb-1,tmb%linmat%m%nfvctr)+1
+          sk(iorb,iiorb,ispin) = 1.d0
+      end do 
+  end do
 
-  if (tmb%orbs%norbp>0) then
-     call dgemm('t', 'n', tmb%orbs%norbp, tmb%orbs%norb, tmb%orbs%norb, -1.d0, &
-          tmb%linmat%ovrlp_%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, &
-          tmb%linmat%kernel_%matrix(1,1,1), tmb%orbs%norb, 1.d0, sk, tmb%orbs%norbp)
+  if (tmb%linmat%m%nfvctrp>0) then
+      do ispin=1,tmb%linmat%m%nspin
+          call dgemm('t', 'n', tmb%linmat%m%nfvctrp, tmb%linmat%m%nfvctr, tmb%linmat%m%nfvctr, -1.d0, &
+               tmb%linmat%ovrlp_%matrix(1,tmb%linmat%m%isfvctr+1,ispin), tmb%linmat%m%nfvctr, &
+               tmb%linmat%kernel_%matrix(1,1,ispin), tmb%linmat%m%nfvctr, 1.d0, sk(1,1,ispin), tmb%linmat%m%nfvctrp)
+      end do
   end if
 
   ! coeffs and therefore kernel will change, so no need to keep it
   call f_free_ptr(tmb%linmat%kernel_%matrix)
 
-  skhp=f_malloc((/tmb%orbs%norb,max(tmb%orbs%norbp,1)/), id='skhp')
+  skhp=f_malloc((/tmb%linmat%m%nfvctr,max(tmb%linmat%m%nfvctrp,1),tmb%linmat%m%nspin/), id='skhp')
 
   ! multiply by H to get (I_ab - S_ag K^gb) H_bd, or in this case the transpose of the above
-  if (tmb%orbs%norbp>0) then
-     call dgemm('t', 't', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, tmb%linmat%ham_%matrix(1,1,1), &
-          tmb%orbs%norb, sk(1,1), tmb%orbs%norbp, 0.d0, skhp(1,1), tmb%orbs%norb)
+  if (tmb%linmat%m%nfvctrp>0) then
+      do ispin=1,tmb%linmat%m%nspin
+          call dgemm('t', 't', tmb%linmat%m%nfvctr, tmb%linmat%m%nfvctrp, tmb%linmat%m%nfvctr, &
+               1.d0, tmb%linmat%ham_%matrix(1,1,ispin), tmb%linmat%m%nfvctr, &
+               sk(1,1,ispin), tmb%linmat%m%nfvctrp, 0.d0, skhp(1,1,ispin), tmb%linmat%m%nfvctr)
+      end do
   end if
 
   call f_free(sk)
 
-  skh=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/), id='skh')
+  skh=f_malloc((/tmb%linmat%m%nfvctr,tmb%linmat%m%nfvctr,ispin/), id='skh')
 
   call timing(iproc,'dirmin_lagmat1','OF')
   call timing(iproc,'dirmin_lagmat2','ON')
 
   ! gather together
   if(nproc > 1) then
-     call mpi_allgatherv(skhp(1,1), tmb%orbs%norb*tmb%orbs%norbp, mpi_double_precision, skh(1,1), &
-        tmb%orbs%norb*tmb%orbs%norb_par(:,0), tmb%orbs%norb*tmb%orbs%isorb_par, &
-        mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+      do ispin=1,tmb%linmat%m%nspin
+         call mpi_allgatherv(skhp(1,1,ispin), tmb%linmat%m%nfvctr*tmb%linmat%m%nfvctrp, &
+            mpi_double_precision, skh(1,1,ispin), tmb%linmat%m%nfvctr*tmb%linmat%m%nfvctr_par, &
+            tmb%linmat%m%nfvctr*tmb%linmat%m%isfvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+      end do
   else
-     call vcopy(tmb%orbs%norbp*tmb%orbs%norb,skhp(1,1),1,skh(1,1),1)
+     call vcopy(tmb%linmat%m%nfvctr*tmb%linmat%m%nfvctrp*tmb%linmat%m%nspin,skhp(1,1,1),1,skh(1,1,1),1)
   end if
 
   call timing(iproc,'dirmin_lagmat2','OF')
@@ -1085,8 +1099,18 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
 
   ! calc for i on this proc: (I_ab - S_ag K^gb) H_bg c_i^d
   if (KSorbs%norbp>0) then
-     call dgemm('t', 'n', tmb%orbs%norb, KSorbs%norbp, tmb%orbs%norb, 1.d0, skh(1,1), &
-          tmb%orbs%norb, tmb%coeff(1,KSorbs%isorb+1), tmb%orbs%norb, 0.d0, grad_cov(1,1), tmb%orbs%norb)
+     !call dgemm('t', 'n', tmb%orbs%norb, KSorbs%norbp, tmb%orbs%norb, 1.d0, skh(1,1), &
+     !     tmb%orbs%norb, tmb%coeff(1,KSorbs%isorb+1), tmb%orbs%norb, 0.d0, grad_cov(1,1), tmb%orbs%norb)
+     do iorb=1,KSorbs%norbp
+         iiorb=KSorbs%isorb+iorb
+         if (KSorbs%spinsgn(iiorb)>0.d0) then
+             ispin=1
+         else
+             ispin=2
+         end if
+         call dgemm('t', 'n', tmb%linmat%m%nfvctr, 1, tmb%linmat%m%nfvctr, 1.d0, skh(1,1,ispin), &
+              tmb%linmat%m%nfvctr, tmb%coeff(1,KSorbs%isorb+iorb), tmb%linmat%m%nfvctr, 0.d0, grad_cov(1,iorb), tmb%linmat%m%nfvctr)
+     end do
   end if
 
   call f_free(skh)
@@ -1260,24 +1284,35 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
 
      call timing(iproc,'dirmin_dgesv','ON')
      if (KSorbs%norbp>0) then
-        call dgemm('n', 'n', tmb%orbs%norb, KSorbs%norbp, tmb%orbs%norb, 1.d0, inv_ovrlp_%matrix(1,1,1), &
-             tmb%orbs%norb, grad_cov(1,1), tmb%orbs%norb, 0.d0, grad(1,1), tmb%orbs%norb)
+         !call dgemm('n', 'n', tmb%orbs%norb, KSorbs%norbp, tmb%orbs%norb, 1.d0, inv_ovrlp_%matrix(1,1,1), &
+         !     tmb%orbs%norb, grad_cov(1,1), tmb%orbs%norb, 0.d0, grad(1,1), tmb%orbs%norb)
+         do iorb=1,KSorbs%norbp
+             iiorb=KSorbs%isorb+iorb
+             if (KSorbs%spinsgn(iiorb)>0.d0) then
+                 ispin=1
+             else
+                 ispin=2
+             end if
+             call dgemm('n', 'n', tmb%linmat%m%nfvctr, 1, tmb%linmat%m%nfvctr, 1.d0, inv_ovrlp_%matrix(1,1,ispin), &
+                  tmb%linmat%m%nfvctr, grad_cov(1,iorb), tmb%linmat%m%nfvctr, 0.d0, grad(1,iorb), tmb%linmat%m%nfvctr)
+         end do
      end if
      call f_free_ptr(inv_ovrlp)
   else
      info = 0 ! needed for when some processors have orbs%norbp=0
-     grad_full=f_malloc((/tmb%orbs%norb,KSorbs%norb/),id='grad_full')
+     grad_full=f_malloc((/tmb%linmat%m%nfvctr,KSorbs%norb/),id='grad_full')
      ! do allgather instead of allred so we can keep grad as per proc
      if(nproc > 1) then 
-        call mpi_allgatherv(grad_cov, tmb%orbs%norb*KSorbs%norbp, mpi_double_precision, grad_full, &
-           tmb%orbs%norb*KSorbs%norb_par(:,0), tmb%orbs%norb*KSorbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+        call mpi_allgatherv(grad_cov, tmb%linmat%m%nfvctr*KSorbs%norbp, mpi_double_precision, grad_full, &
+             tmb%linmat%m%nfvctr*KSorbs%norb_par(:,0), tmb%linmat%m%nfvctr*KSorbs%isorb_par, &
+             mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
      else
-        call vcopy(tmb%orbs%norb*KSorbs%norb,grad_cov(1,1),1,grad_full(1,1),1)
+        call vcopy(tmb%linmat%m%nfvctr*KSorbs%norb,grad_cov(1,1),1,grad_full(1,1),1)
      end if
 
      call dgesv_parallel(iproc, tmb%orthpar%nproc_pdsyev, tmb%orthpar%blocksize_pdsyev, bigdft_mpi%mpi_comm, &
-          tmb%orbs%norb, KSorbs%norb, tmb%linmat%ovrlp_%matrix, tmb%orbs%norb, grad_full, tmb%orbs%norb, info)
-     call vcopy(tmb%orbs%norb*KSorbs%norbp,grad_full(1,KSorbs%isorb+1),1,grad(1,1),1)
+          tmb%linmat%m%nfvctr, KSorbs%norb, tmb%linmat%ovrlp_%matrix, tmb%linmat%m%nfvctr, grad_full, tmb%linmat%m%nfvctr, info)
+     call vcopy(tmb%linmat%m%nfvctr*KSorbs%norbp,grad_full(1,KSorbs%isorb+1),1,grad(1,1),1)
 
      call f_free(grad_full)
      if(info/=0) then
@@ -1309,7 +1344,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   real(kind=8),intent(in) :: max_inversion_error
   type(DFT_wavefunction), intent(inout) :: tmb
   type(orbitals_data), intent(in) :: KSorbs
-  real(gp), dimension(tmb%orbs%norb,tmb%orbs%norbp), intent(out) :: grad_cov, grad  ! could make grad_cov KSorbs%norbp
+  real(gp), dimension(tmb%linmat%m%nfvctr,tmb%orbs%norbp), intent(out) :: grad_cov, grad  ! could make grad_cov KSorbs%norbp
 
   integer :: iorb, iiorb, info, ierr
   real(gp),dimension(:,:),allocatable :: sk, skh, skhp
@@ -1318,6 +1353,8 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   real(kind=gp), dimension(:,:), allocatable:: grad_full
   real(kind=gp) :: max_error, mean_error
   type(matrices) :: inv_ovrlp_
+
+  if (tmb%linmat%m%nspin==2) stop 'ERROR: calculate_coeff_gradient_extra not yet implemented for npsin==2'
 
   call f_routine(id='calculate_coeff_gradient_extra')
   call timing(iproc,'dirmin_lagmat1','ON')
@@ -1338,7 +1375,9 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   !call calculate_density_kernel(iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, tmb%linmat%denskern)
   tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
   !call uncompress_matrix(iproc,tmb%linmat%denskern)
-  call calculate_density_kernel_uncompressed (iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, tmb%linmat%kernel_%matrix)
+  !!call calculate_density_kernel_uncompressed (iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, tmb%linmat%kernel_%matrix)
+  call calculate_density_kernel(iproc, nproc, .true., KSorbs, tmb%orbs, &
+       tmb%coeff, tmb%linmat%l, tmb%linmat%kernel_, .true.)
 
   call vcopy(tmb%orbs%norb,occup_tmp(1),1,tmb%orbs%occup(1),1)
   call f_free(occup_tmp)
