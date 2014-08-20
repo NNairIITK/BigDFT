@@ -308,6 +308,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   type(dictionary), pointer :: dict_timing_info
   
   real(kind=8),dimension(:,:),allocatable :: locreg_centers
+  integer :: ishift
 
   !Variables for WVL+PAW
   integer:: iatyp
@@ -865,7 +866,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
          call vcopy(denspot%dpbox%ndimpot,denspot%rhov(ioffset+1),1,denspot%rho_work(1),1)
          ! add the spin down part if present
          if (denspot%dpbox%nrhodim==2) then
-             call axpy(denspot%dpbox%ndimpot,1.d0,denspot%rhov(ioffset+denspot%dpbox%ndimpot+1),1,denspot%rho_work(1),1)
+             ishift=denspot%dpbox%ndimrhopot/denspot%dpbox%nrhodim !start of the spin down part
+             call axpy(denspot%dpbox%ndimpot, 1.d0, &
+                       denspot%rhov(ioffset+ishift+1), &
+                       1, denspot%rho_work(1),1)
          end if
      end if
 
