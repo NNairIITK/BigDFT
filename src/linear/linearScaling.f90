@@ -69,7 +69,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   
   real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB
   real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
-  integer :: jorb, cdft_it, nelec, iat, ityp, norder_taylor
+  integer :: jorb, cdft_it, nelec, iat, ityp, norder_taylor, ispin, ishift
   integer :: dmin_diag_it, dmin_diag_freq, ioffset
   logical :: reorder, rho_negative
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
@@ -657,13 +657,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                      pnrm,denspot%dpbox%nscatterarr)
                      !!write(*,*) 'after mix_rhopot 1.1: pnrm', pnrm
                 !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
-                write(*,*) 'old pnrm',pnrm
+                !write(*,*) 'old pnrm',pnrm
                 !!tt1=sum(denspot%dpbox%nscatterarr(:,1))
                 !!tt2=sum(denspot%dpbox%nscatterarr(:,2))
                 !!pnrm = pnrm*sqrt(tt2/tt1)
                 pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
                      !!write(*,*) 'after mix_rhopot 1.2: pnrm', pnrm
-                write(*,*) 'new pnrm',pnrm
+                !write(*,*) 'new pnrm',pnrm
                 call check_negative_rho(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
                      denspot%rhov, rho_negative)
                 if (rho_negative) then
@@ -675,8 +675,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    ! ioffset is the buffer which is present for GGA calculations
                    ioffset=KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%i3xcsh
                    pnrm_out=0.d0
-                   do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p*input%nspin
-                      pnrm_out=pnrm_out+(denspot%rhov(ioffset+i)-rhopotOld_out(ioffset+i))**2
+                   do ispin=1,input%nspin
+                       ! ishift gives the start of the spin down component
+                       ishift=(ispin-1)*KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d 
+                       do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+                          pnrm_out=pnrm_out+(denspot%rhov(ishift+ioffset+i)-rhopotOld_out(ishift+ioffset+i))**2
+                       end do
                    end do
                    ! To make the residue for the polarized and non-polarized case analogous
                    if (input%nspin==2) then
@@ -739,12 +743,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                     write(*,*) 'after mix_rhopot 1.2: pnrm', pnrm
                 if (pnrm<convCritMix .or. it_scc==nit_scc .and. (.not. input%lin%constrained_dft)) then
                    ! calculate difference in density for convergence criterion of outer loop
+                   ! There is no ioffset (unlike to the case of density mixing)
+                   ! since also for GGA calculations there is no offset for the potential
                    pnrm_out=0.d0
-                   ! for the potential no buffers are present
-                   !ioffset=KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%i3xcsh
-                   ioffset=0
-                   do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p*input%nspin
-                      pnrm_out=pnrm_out+(denspot%rhov(i+ioffset)-rhopotOld_out(i+ioffset))**2
+                   do ispin=1,input%nspin
+                       ! ishift gives the start of the spin down component
+                       ishift=(ispin-1)*KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p 
+                       do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+                          pnrm_out=pnrm_out+(denspot%rhov(ishift+i)-rhopotOld_out(ishift+i))**2
+                       end do
                    end do
                    ! To make the residue for the polarized and non-polarized case analogous
                    if (input%nspin==2) then

@@ -148,8 +148,8 @@ module module_defs
       double precision, dimension(*), intent(in) :: x
       integer, dimension(:), intent(in) :: user_data
       !Local variables
-      integer :: ierr, ie, iproc, npoints, ishift
-      double precision :: fnrm_denpot, ar, nrm_local, dnrm2
+      integer :: ierr, ie, iproc, npoints, ishift, ioffset, ispin
+      double precision :: fnrm_denpot, ar, nrm_local, dnrm2, tt
 
       ! In case of density, we use nscatterarr.
       if (opt_denpot == AB7_MIXING_DENSITY) then
@@ -157,18 +157,27 @@ module module_defs
          if (ierr /= 0) then
             call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
          end if
-         npoints = cplex * user_data(2 * iproc + 1)
-         ishift  =         user_data(2 * iproc + 2)
+         npoints = cplex * user_data(3 * iproc + 1)
+         ishift  =         user_data(3 * iproc + 2) ! GGA shift
+         ioffset = cplex * user_data(3 * iproc + 3) ! gives the start of the spin down component
       else
          npoints = cplex * nfft
          ishift  = 0
+         ioffset = 0
       end if
 
+
       ! Norm on spin up and spin down
-      nrm_local = dnrm2(npoints * min(nspden,2), x(1 + ishift), 1)
-      nrm_local = nrm_local ** 2
+      !nrm_local = dnrm2(npoints * min(nspden,2), x(1 + ishift), 1)
+      !nrm_local = nrm_local ** 2
+      nrm_local=0.d0
+      do ispin=1,nspden
+          tt = dnrm2(npoints, x(1 + ishift + (ispin-1)*ioffset), 1)
+          nrm_local = nrm_local + tt ** 2
+      end do
 
       if (nspden==4) then
+         stop 'SM: I think that one needs to include ioffset as well here...'
          ! Add the magnetisation
          ar = dnrm2(npoints * 2, x(1 + cplex * nfft * 2 + ishift), 1)
          ar = ar ** 2
@@ -204,7 +213,7 @@ module module_defs
       double precision, intent(in) :: x(*), y(*)
       integer, intent(in) :: user_data(:)
 
-      integer :: ierr, ie, iproc, npoints, ishift
+      integer :: ierr, ie, iproc, npoints, ishift, ioffset, ispin
       double precision :: fdot_denpot, ar, dot_local, ddot
 
       ! In case of density, we use nscatterarr.
@@ -213,8 +222,9 @@ module module_defs
          if (ierr /= 0) then
             call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
          end if
-         npoints = cplex * user_data(2 * iproc + 1)
-         ishift  =         user_data(2 * iproc + 2)
+         npoints = cplex * user_data(3 * iproc + 1)
+         ishift  =         user_data(3 * iproc + 2) ! GGA shift
+         ioffset = cplex * user_data(3 * iproc + 3) ! gives the start of the spin down component
       else
          npoints = cplex * nfft
          ishift  = 0
@@ -222,9 +232,15 @@ module module_defs
 
       if (opt_denpot == 0 .or. opt_denpot == 1) then
          ! Norm on spin up and spin down
-         dot_local = ddot(npoints * min(nspden,2), x(1 + ishift), 1, y(1 + ishift), 1)
+         !dot_local = ddot(npoints * min(nspden,2), x(1 + ishift), 1, y(1 + ishift), 1)
+         dot_local=0.d0
+         do ispin=1,nspden
+             dot_local = dot_local + &
+                         ddot(npoints, x(1 + ishift + (ispin-1)*ioffset), 1, y(1 + ishift + (ispin-1)*ioffset), 1)
+         end do
 
          if (nspden==4) then
+            stop 'SM: I think that one needs to include ioffset as well here...'
             ! Add the magnetisation
             ar = ddot(npoints * 2, x(1 + cplex * nfft * 2 + ishift), 1, &
                  & y(1 + cplex * nfft * 2 + ishift), 1)
