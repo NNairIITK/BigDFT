@@ -1128,6 +1128,9 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
   if(tmb%orthpar%blocksize_pdsyev<0) then
      call timing(iproc,'dirmin_dgesv','OF')
      inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
+     do ispin=1,tmb%linmat%s%nspin
+         if (iproc==0) write(*,'(a,i8,es16.7)') 'ispin, tmb%linmat%ovrlp_%matrix(1,1,ispin)', ispin, tmb%linmat%ovrlp_%matrix(1,1,ispin)
+     end do
      call overlapPowerGeneral(iproc, nproc, order_taylor, 1, -8, &
           imode=2, &
           ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &

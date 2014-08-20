@@ -551,6 +551,15 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                                     ovrlp_mat%matrix(1,isorb+1,ispin),ovrlpminonep(1,1,ispin))
 
 
+                  if (iproc==0) write(*,*) 'isorb, ovrlp_mat%matrix(1,isorb+1,ispin)',isorb, ovrlp_mat%matrix(1,isorb+1,ispin)
+                  do iorb=1,norbp
+                      do jorb=1,ovrlp_smat%nfvctr
+                          write(2800+10*iproc+ispin,'(a,3i8,3es14.6)') 'ispin, iorb, jorb, vals', &
+                               ispin, iorb, jorb, ovrlpminonep(jorb,iorb,ispin), ovrlp_mat%matrix(jorb,isorb+iorb,ispin)
+                      end do
+                  end do
+
+
                   if(nproc > 1) then
                       call timing(iproc,'lovrlp^-1     ','OF')
                       call timing(iproc,'lovrlp_comm   ','ON')
@@ -595,16 +604,40 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
 
               if (norbp>0) call first_order_taylor_dense(ovrlp_smat%nfvctr,isorb,norbp,power,&
                   ovrlp_mat%matrix(1,isorb+1,ispin),inv_ovrlpp)
+              do iorb=1,norbp
+                  do jorb=1,ovrlp_smat%nfvctr
+                      write(2900+10*iproc+ispin,'(a,3i8,3es14.6)') 'ispin, iorb, jorb, vals', &
+                           ispin, iorb, jorb, inv_ovrlpp(jorb,iorb), ovrlp_mat%matrix(jorb,isorb+iorb,ispin)
+                  end do
+              end do
 
+              if (iproc==0) write(*,'(a,2i8,es16.9)') 'ispin, 1, sum(inv_ovrlpp)', ispin, 1, sum(inv_ovrlpp)
+              if (iproc==0) write(*,'(a,2i8,es16.9)') 'ispin, 1, sum(ovrlpminone(:,:,ispin))', ispin, 1, sum(ovrlpminone(:,:,ispin))
+              if (iproc==0) write(*,'(a,2i8,es16.9)') 'ispin, 1, sum(ovrlppoweroldp(:,:,ispin))', ispin, 1, sum(ovrlppoweroldp(:,:,ispin))
               do i=2,iorder
                   if (norbp>0) call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, 1.d0, ovrlpminone(1,1,ispin), &
                        ovrlp_smat%nfvctr, ovrlppoweroldp(1,1,ispin), ovrlp_smat%nfvctr, 0.d0, ovrlppowerp(1,1), ovrlp_smat%nfvctr)
                   factor=newfactor(power,i,factor)
+                  if (iproc==0) write(*,'(a,2i8,3es16.9)') 'ispin, i, sum(ovrlppowerp), sum(inv_ovrlpp), factor', ispin, i, sum(ovrlppowerp), sum(inv_ovrlpp), factor
+                  do iorb=1,norbp
+                      do jorb=1,ovrlp_smat%nfvctr
+                          write(3000+10*iproc+ispin,'(a,3i8,3es14.6)') 'ispin, iorb, jorb, vals', &
+                               ispin, iorb, jorb, ovrlppowerp(jorb,iorb), inv_ovrlpp(jorb,iorb), ovrlp_mat%matrix(jorb,isorb+iorb,ispin)
+                      end do
+                  end do
                   call daxpy(ovrlp_smat%nfvctr*norbp,factor,ovrlppowerp,1,inv_ovrlpp,1)
+                  do iorb=1,norbp
+                      do jorb=1,ovrlp_smat%nfvctr
+                          write(3100+10*iproc+ispin,'(a,4i8,2es14.6)') 'ispin, i, iorb, jorb, vals', &
+                               ispin, i, iorb, jorb, ovrlppowerp(jorb,iorb), inv_ovrlpp(jorb,iorb)
+                      end do
+                  end do
+                  if (iproc==0) write(*,'(a,2i8,es16.9)') 'ispin, i, sum(inv_ovrlpp)', ispin, i, sum(inv_ovrlpp)
                   if (i/=iorder.and.norbp>0) call vcopy(ovrlp_smat%nfvctr*norbp,ovrlppowerp(1,1),1,ovrlppoweroldp(1,1,ispin),1)
               end do
 
 
+              write(*,'(a,2i8,es15.6)') 'iproc, ispin, sum(inv_ovrlpp)', iproc, ispin, sum(inv_ovrlpp)
               if(nproc > 1) then
                   call timing(iproc,'lovrlp^-1     ','OF')
                   call timing(iproc,'lovrlp_comm   ','ON')
@@ -615,6 +648,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                   call timing(iproc,'lovrlp^-1     ','ON')
                   call f_free_ptr(inv_ovrlpp)
               end if
+              if (iproc==0) write(*,'(a,2i8,es15.6)') 'iproc, ispin, sum(inv_ovrlp_mat%matrix(:,:,ispin))', iproc, ispin, sum(inv_ovrlp_mat%matrix(:,:,ispin))
           end do
 
           if (iorder>1) then
