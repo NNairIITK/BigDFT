@@ -547,8 +547,9 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               end if
 
               do ispin=1,nspin
-                  if (norbp>0) call matrix_minus_identity_dense(ovrlp_smat%nfvctr,ovrlp_smat%isfvctr,ovrlp_smat%nfvctrp, &
-                                    ovrlp_mat%matrix(1,isorb+1,ispin),ovrlpminonep(1,1,ispin))
+                  write(*,'(a,3i8)') 'iproc, ovrlp_smat%isfvctr, ovrlp_smat%nfvctr', iproc, ovrlp_smat%isfvctr, ovrlp_smat%nfvctr
+                  if (ovrlp_smat%nfvctrp>0) call matrix_minus_identity_dense(ovrlp_smat%nfvctr,ovrlp_smat%isfvctr,ovrlp_smat%nfvctrp, &
+                                    ovrlp_mat%matrix(1,ovrlp_smat%isfvctr+1,ispin),ovrlpminonep(1,1,ispin))
 
 
                   !!if (iproc==0) write(*,*) 'isorb, ovrlp_mat%matrix(1,isorb+1,ispin)',isorb, ovrlp_mat%matrix(1,isorb+1,ispin)
