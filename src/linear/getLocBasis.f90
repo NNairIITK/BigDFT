@@ -1977,6 +1977,13 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
           call timing(iproc,'renormCoefCom1','ON')
       end if
 
+      !if (iproc==0) call yaml_map('ovrlp_coeff',ovrlp_coeff)
+      !!do iorb=1,norbx
+      !!    do jorb=1,norbx
+      !!        write(8000+10*iproc+ispin,'(a,2i8,es16.6)') 'iorb, jorb, ovrlp_coeff(jorb,iorb)',iorb, jorb, ovrlp_coeff(jorb,iorb)
+      !!    end do
+      !!end do
+
       ! Recalculate the coefficients
       call timing(iproc,'renormCoefCom1','OF')
 
@@ -2033,6 +2040,11 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
                   blocksize_dsyev, imode=2, ovrlp_smat=KS_overlap, inv_ovrlp_smat=KS_overlap, &
                   ovrlp_mat=KS_ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
                   check_accur=.false., nspinx=1)
+             !!do iorb=1,norbx
+             !!    do jorb=1,norbx
+             !!        write(8100+10*iproc+ispin,'(a,2i8,es16.6)') 'iorb, jorb, inv_ovrlp_%matrix(jorb,iorb,1)',iorb, jorb, inv_ovrlp_%matrix(jorb,iorb,1)
+             !!    end do
+             !!end do
          else
              ! It is not possible to use the standard parallelization scheme, so do serial
              ovrlp_matrix = f_malloc_ptr((/norbx,norbx/), id='ovrlp_matrix')
@@ -2079,7 +2091,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
             end if
             call vcopy(basis_overlap%nfvctr*norbx,coeff_tmp(1,1),1,coeff(1,1),1)
          else
-            coeff_tmp=f_malloc((/norb,max(1,basis_orbs%norbp)/), id='coeff_tmp')
+            coeff_tmp=f_malloc((/norbx,max(1,basis_overlap%nfvctrp)/), id='coeff_tmp')
             ! need to transpose so we can allgather - NOT VERY ELEGANT
             if (basis_orbs%norbp>0) then
                 if (norb==orbs%norb) then
@@ -2087,12 +2099,17 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
                     !!call dgemm('n', 't', norb, basis_orbs%norbp, norb, 1.d0, inv_ovrlp_%matrix(1,1,1), norb, &
                     !!    coeff(1+basis_orbs%isorb,1), basis_orbs%norb, 0.d0, coeff_tmp(1,1), norb)
                     call dgemm('n', 't', norbx, basis_overlap%nfvctrp, norbx, 1.d0, inv_ovrlp_%matrix(1,1,1), norbx, &
-                        coeff(1+basis_overlap%isfvctr,1), basis_overlap%nfvctr, 0.d0, coeff_tmp(1,1), norbx)
+                        coeff(1+basis_overlap%isfvctr,ist), basis_overlap%nfvctr, 0.d0, coeff_tmp(1,1), norbx)
                 else
                     call dgemm('n', 't', norb, basis_orbs%norbp, norb, 1.d0, inv_ovrlp_matrix(1,1), norb, &
                         coeff(1+basis_orbs%isorb,1), basis_orbs%norb, 0.d0, coeff_tmp(1,1), norb)
                 end if
             end if
+             !!do iorb=1,basis_overlap%nfvctrp
+             !!    do jorb=1,norbx
+             !!        write(8200+10*iproc+ispin,'(a,2i8,es16.6)') 'iorb, jorb, coeff_tmp(jorb,iorb)',iorb, jorb, coeff_tmp(jorb,iorb)
+             !!    end do
+             !!end do
 
             coefftrans=f_malloc((/norbx,basis_overlap%nfvctr/), id='coefftrans')
 
@@ -2103,15 +2120,26 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
             else
                call vcopy(basis_overlap%nfvctrp*norbx,coeff_tmp(1,1),1,coefftrans(1,1),1)
             end if
+             !!do iorb=1,basis_overlap%nfvctr
+             !!    do jorb=1,norbx
+             !!        write(8300+10*iproc+ispin,'(a,2i8,es16.6)') 'iorb, jorb, coefftrans(jorb,iorb)',iorb, jorb, coefftrans(jorb,iorb)
+             !!    end do
+             !!end do
 
             ! untranspose coeff
-            !$omp parallel do default(private) shared(coeff,coefftrans,norbx,basis_overlap)
+            !$omp parallel do default(private) shared(coeff,coefftrans,norbx,basis_overlap,ist)
             do iorb=1,norbx
                do jorb=1,basis_overlap%nfvctr
-                  coeff(jorb,iorb) = coefftrans(iorb,jorb)
+                  coeff(jorb,ist+iorb-1) = coefftrans(iorb,jorb)
                end do
             end do
             !$omp end parallel do
+
+             !!do iorb=1,norbx
+             !!    do jorb=1,basis_overlap%nfvctr
+             !!        write(8400+10*iproc+ispin,'(a,3i8,es16.6)') 'iorb, jorb, ist, coeff(jorb,ist+iorb-1)',iorb, jorb, ist, coeff(jorb,ist+iorb-1)
+             !!    end do
+             !!end do
 
             call f_free(coefftrans)
          end if
@@ -2183,6 +2211,12 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
       call deallocate_matrices(KS_ovrlp_)
 
   end do spin_loop
+
+  !!do iorb=1,norb
+  !!    do jorb=1,basis_overlap%nfvctr
+  !!        write(8500+10*iproc,'(a,2i8,es16.6)') 'iorb, jorb, coeff(jorb,iorb)',iorb, jorb, coeff(jorb,iorb)
+  !!    end do
+  !!end do
 
 
 end subroutine reorthonormalize_coeff

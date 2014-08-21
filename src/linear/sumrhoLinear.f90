@@ -339,6 +339,13 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       call timing(iproc,'waitAllgatKern','OF')
 
       call compress_matrix(iproc,denskern,inmat=denskern_%matrix,outmat=denskern_%matrix_compr)
+      if (keep_uncompressed) then
+          if (nproc > 1) then
+              call timing(iproc,'commun_kernel','ON') !lr408t
+              call mpiallred(denskern_%matrix(1,1,1), denskern%nspin*denskern%nfvctr**2, mpi_sum, bigdft_mpi%mpi_comm)
+              call timing(iproc,'commun_kernel','OF') !lr408t
+          end if
+      end if
       if (.not.keep_uncompressed) then
           call f_free_ptr(denskern_%matrix)
       end if
