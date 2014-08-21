@@ -83,17 +83,17 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
           call yaml_comment('it coeff:'//yaml_toa(it,fmt='(i6)'),hfill='-')
       end if
 
-     do iorb=1,orbs%norbp
-         iiorb=orbs%isorb+iorb
-         if (orbs%spinsgn(iiorb)>0.d0) then
-             ispin=1
-         else
-             ispin=2
-         end if
-         do jorb=1,tmb%linmat%m%nfvctr
-             write(5300+10*iproc+ispin,'(a,2i8,es18.7)') 'iiorb, jorb, coeff(jorb,iiorb)', iiorb, jorb, tmb%coeff(jorb,iiorb)
-         end do
-     end do
+     !!do iorb=1,orbs%norbp
+     !!    iiorb=orbs%isorb+iorb
+     !!    if (orbs%spinsgn(iiorb)>0.d0) then
+     !!        ispin=1
+     !!    else
+     !!        ispin=2
+     !!    end if
+     !!    do jorb=1,tmb%linmat%m%nfvctr
+     !!        write(5300+10*iproc+ispin,'(a,2i8,es18.7)') 'iiorb, jorb, coeff(jorb,iiorb)', iiorb, jorb, tmb%coeff(jorb,iiorb)
+     !!    end do
+     !!end do
 
      if (present(num_extra)) then
         call calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor,max_inversion_error,orbs,grad_cov_or_coeffp,grad)
@@ -108,17 +108,17 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
          call dscal(orbs%norbp*tmb%linmat%m%nfvctr, 2.d0, grad, 1)
      end if
 
-     do iorb=1,orbs%norbp
-         iiorb=orbs%isorb+iorb
-         if (orbs%spinsgn(iiorb)>0.d0) then
-             ispin=1
-         else
-             ispin=2
-         end if
-         do jorb=1,tmb%linmat%m%nfvctr
-             write(5400+10*iproc+ispin,'(a,2i8,2es18.7)') 'iiorb, jorb, coeff(jorb,iiorb),grad(jorb,iorb)', iiorb, jorb, tmb%coeff(jorb,iiorb), grad(jorb,iorb)
-         end do
-     end do
+     !!do iorb=1,orbs%norbp
+     !!    iiorb=orbs%isorb+iorb
+     !!    if (orbs%spinsgn(iiorb)>0.d0) then
+     !!        ispin=1
+     !!    else
+     !!        ispin=2
+     !!    end if
+     !!    do jorb=1,tmb%linmat%m%nfvctr
+     !!        write(5400+10*iproc+ispin,'(a,2i8,2es18.7)') 'iiorb, jorb, coeff(jorb,iiorb),grad(jorb,iorb)', iiorb, jorb, tmb%coeff(jorb,iiorb), grad(jorb,iorb)
+     !!    end do
+     !!end do
 
      ! Precondition the gradient (only making things worse...)
      !call precondition_gradient_coeff(tmb%orbs%norb, orbs%norbp, tmb%linmat%ham%matrix, tmb%linmat%ovrlp%matrix, grad)
@@ -229,6 +229,11 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
         call timing(iproc,'dirmin_allgat','OF')
 
         fnrm=sqrt(fnrm/dble(orbs%norb))
+        ! Multiply the gradient by sqrt(2) to make it analogous to  the case of
+        ! no spin polarization (since with polarization norb is doubled).
+        if (tmb%linmat%l%nspin==2) then
+            fnrm=fnrm*sqrt(2.d0)
+        end if
      end if
 
      !!do iorb=1,orbs%norbp
@@ -259,17 +264,17 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      !   call reordering_coeffs(iproc, nproc, 0, orbs, tmb%orbs, tmb%linmat%ham, tmb%linmat%ovrlp, tmb%coeff, .false.)
      !end if
 
-     do iorb=1,orbs%norbp
-         iiorb=orbs%isorb+iorb
-         if (orbs%spinsgn(iiorb)>0.d0) then
-             ispin=1
-         else
-             ispin=2
-         end if
-         do jorb=1,tmb%linmat%m%nfvctr
-             write(5200+10*iproc+ispin,'(a,2i8,es18.7)') 'iiorb, jorb, coeff(jorb,iiorb)', iiorb, jorb, tmb%coeff(jorb,iiorb)
-         end do
-     end do
+     !!do iorb=1,orbs%norbp
+     !!    iiorb=orbs%isorb+iorb
+     !!    if (orbs%spinsgn(iiorb)>0.d0) then
+     !!        ispin=1
+     !!    else
+     !!        ispin=2
+     !!    end if
+     !!    do jorb=1,tmb%linmat%m%nfvctr
+     !!        write(5200+10*iproc+ispin,'(a,2i8,es18.7)') 'iiorb, jorb, coeff(jorb,iiorb)', iiorb, jorb, tmb%coeff(jorb,iiorb)
+     !!    end do
+     !!end do
 
 
      ! do twice with approx S^_1/2, as not quite good enough at preserving charge if only once, but exact too expensive
@@ -302,17 +307,17 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      !call f_free(ipiv)
      !!!!!!!!!!!!!!!!!!!!!!!!
 
-     do iorb=1,orbs%norbp
-         iiorb=orbs%isorb+iorb
-         if (orbs%spinsgn(iiorb)>0.d0) then
-             ispin=1
-         else
-             ispin=2
-         end if
-         do jorb=1,tmb%linmat%m%nfvctr
-             write(5100+10*iproc+ispin,'(a,2i8,es18.7)') 'iiorb, jorb, coeff(jorb,iiorb)', iiorb, jorb, tmb%coeff(jorb,iiorb)
-         end do
-     end do
+     !!do iorb=1,orbs%norbp
+     !!    iiorb=orbs%isorb+iorb
+     !!    if (orbs%spinsgn(iiorb)>0.d0) then
+     !!        ispin=1
+     !!    else
+     !!        ispin=2
+     !!    end if
+     !!    do jorb=1,tmb%linmat%m%nfvctr
+     !!        write(5100+10*iproc+ispin,'(a,2i8,es18.7)') 'iiorb, jorb, coeff(jorb,iiorb)', iiorb, jorb, tmb%coeff(jorb,iiorb)
+     !!    end do
+     !!end do
 
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m,&
           tmb%linmat%kernel_, tmb%linmat%ham_, energy,&
