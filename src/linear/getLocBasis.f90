@@ -1815,7 +1815,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   integer, intent(in) :: iproc, nproc, norb
   integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
   type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
-  type(sparse_matrix),intent(inout) :: basis_overlap, KS_overlap
+  type(sparse_matrix),intent(inout) :: basis_overlap
+  type(sparse_matrix),dimension(basis_overlap%nspin),intent(inout) :: KS_overlap
   type(matrices),intent(inout) :: basis_overlap_mat
   real(kind=8),dimension(basis_overlap%nfvctr,norb),intent(inout) :: coeff
   type(orbitals_data), intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
@@ -2050,7 +2051,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
              !!    end do
              !!end do
              call overlapPowerGeneral(iproc, nproc, inversion_method, -2, &
-                  blocksize_dsyev, imode=2, ovrlp_smat=KS_overlap, inv_ovrlp_smat=KS_overlap, &
+                  blocksize_dsyev, imode=2, ovrlp_smat=KS_overlap(ispin), inv_ovrlp_smat=KS_overlap(ispin), &
                   ovrlp_mat=KS_ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
                   check_accur=.false., nspinx=1)
              !!do iorb=1,norbx

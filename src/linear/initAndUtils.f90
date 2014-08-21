@@ -978,7 +978,9 @@ subroutine destroy_DFT_wavefunction(wfn)
   ! Calling arguments
   type(DFT_wavefunction), intent(inout) :: wfn
 
+  ! Local variables
   character(len=*), parameter :: subname='destroy_DFT_wavefunction'
+  integer :: ispin
 
   call f_routine(id=subname)
 
@@ -987,11 +989,15 @@ subroutine destroy_DFT_wavefunction(wfn)
   call f_free_ptr(wfn%psit_f)
 
   call deallocate_p2pComms(wfn%comgp)
+  do ispin=1,wfn%linmat%l%nspin
+      call deallocate_sparse_matrix(wfn%linmat%ks(ispin))
+      call deallocate_sparse_matrix(wfn%linmat%ks_e(ispin))
+  end do
+  deallocate(wfn%linmat%ks)
+  deallocate(wfn%linmat%ks_e)
   call deallocate_sparse_matrix(wfn%linmat%s)
   call deallocate_sparse_matrix(wfn%linmat%m)
   call deallocate_sparse_matrix(wfn%linmat%l)
-  call deallocate_sparse_matrix(wfn%linmat%ks)
-  call deallocate_sparse_matrix(wfn%linmat%ks_e)
   call deallocate_matrices(wfn%linmat%ovrlp_)
   call deallocate_matrices(wfn%linmat%ham_)
   call deallocate_matrices(wfn%linmat%kernel_)
@@ -1287,7 +1293,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   real(8), dimension(tmb%lzd%nlr), intent(inout) :: locrad
 
   ! Local variables
-  integer :: ilr, npsidim_orbs_tmp, npsidim_comp_tmp
+  integer :: ilr, npsidim_orbs_tmp, npsidim_comp_tmp, ispin
   real(kind=8),dimension(:,:), allocatable :: locregCenter
   real(kind=8),dimension(:), allocatable :: lphilarge, locrad_kernel, locrad_mult
   type(local_zone_descriptors) :: lzd_tmp
@@ -1338,11 +1344,15 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      !call deallocate_sparse_matrix(tmb%linmat%ovrlp)
      !!call deallocate_sparse_matrix(tmb%linmat%ham)
 
+     do ispin=1,tmb%linmat%l%nspin
+         call deallocate_sparse_matrix(tmb%linmat%ks(ispin))
+         call deallocate_sparse_matrix(tmb%linmat%ks_e(ispin))
+     end do
+     deallocate(tmb%linmat%ks)
+     deallocate(tmb%linmat%ks_e)
      call deallocate_sparse_matrix(tmb%linmat%s)
      call deallocate_sparse_matrix(tmb%linmat%m)
      call deallocate_sparse_matrix(tmb%linmat%l)
-     call deallocate_sparse_matrix(tmb%linmat%ks)
-     call deallocate_sparse_matrix(tmb%linmat%ks_e)
      call deallocate_matrices(tmb%linmat%ovrlp_)
      call deallocate_matrices(tmb%linmat%ham_)
      call deallocate_matrices(tmb%linmat%kernel_)
@@ -1451,8 +1461,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      !call sparse_copy_pattern(tmb%linmat%l, tmb%linmat%inv_ovrlp_large, iproc, subname)
 
 
-     tmb%linmat%ks = sparse_matrix_null()
-     tmb%linmat%ks_e = sparse_matrix_null()
+     !tmb%linmat%ks = sparse_matrix_null()
+     !tmb%linmat%ks_e = sparse_matrix_null()
      if (input%lin%scf_mode/=LINEAR_FOE .or. input%lin%pulay_correction .or.  input%lin%new_pulay_correction .or. &
          (input%lin%plotBasisFunctions /= WF_FORMAT_NONE) .or. input%lin%diag_end) then
          call init_sparse_matrix_for_KSorbs(iproc, nproc, KSwfn%orbs, input, input%lin%extra_states, &
@@ -1940,61 +1950,87 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
   use module_interfaces
   use sparsematrix_base, only: sparse_matrix
   use sparsematrix_init, only: init_sparse_matrix
+  use sparsematrix_base, only: sparse_matrix_null
   implicit none
 
   ! Calling arguments
   integer, intent(in) :: iproc, nproc, nextra
   type(orbitals_data), intent(in) :: orbs
   type(input_variables), intent(in) :: input
-  type(sparse_matrix), intent(out) :: smat, smat_extra
+  type(sparse_matrix),dimension(:),pointer,intent(out) :: smat, smat_extra
 
   ! Local variables
-  integer :: i, iorb, iiorb, jorb, ind
+  integer :: i, iorb, iiorb, jorb, ind, norb, norbp, isorb, ispin
   integer, dimension(:), allocatable :: nonzero
   type(orbitals_data) :: orbs_aux
   character(len=*), parameter :: subname='init_sparse_matrix_for_KSorbs'
 
   call f_routine('init_sparse_matrix_for_KSorbs')
 
-  !SM: THIS MUST BE FIXED FOR THE PROPER SPIN TREATMENT !!!!!!!!!!!!!!!!!!!!!!!!
+
+  allocate(smat(input%nspin))
+  allocate(smat_extra(input%nspin))
+
 
   ! First the type for the normal KS orbitals distribution
-  nonzero = f_malloc(orbs%norbu*orbs%norbup, id='nonzero')
-  i=0
-  do iorb=1,orbs%norbup
-      iiorb=orbs%isorbu+iorb
-      do jorb=1,orbs%norbu
-          i=i+1
-          ind=(iiorb-1)*orbs%norbu+jorb
-          nonzero(i)=ind
+  do ispin=1,input%nspin
+
+      smat(ispin) = sparse_matrix_null()
+      smat_extra(ispin) = sparse_matrix_null()
+
+      if (ispin==1) then
+          norb=orbs%norbu
+          norbp=orbs%norbup
+          isorb=orbs%isorbu
+      else
+          norb=orbs%norbd
+          norbp=orbs%norbdp
+          isorb=orbs%isorbd
+      end if
+
+      nonzero = f_malloc(norb*norbp, id='nonzero')
+      i=0
+      do iorb=1,norbp
+          iiorb=isorb+iorb
+          do jorb=1,norb
+              i=i+1
+              ind=(iiorb-1)*norb+jorb
+              nonzero(i)=ind
+          end do
       end do
-  end do
-  call init_sparse_matrix(iproc, nproc, input%nspin, orbs%norb, orbs%norbp, orbs%isorb, &
-       orbs%norbu, orbs%norbup, orbs%isorbu, input%store_index, &
-       orbs%norbu*orbs%norbup, nonzero, orbs%norbu, nonzero, smat, print_info_=.false.)
-  call f_free(nonzero)
+      call init_sparse_matrix(iproc, nproc, input%nspin, orbs%norb, orbs%norbp, orbs%isorb, &
+           norb, norbp, isorb, input%store_index, &
+           norb*norbp, nonzero, norb, nonzero, smat(ispin), print_info_=.false.)
+      call f_free(nonzero)
 
 
-  ! Now the distribution for the KS orbitals including the extr states. Requires
-  ! first to calculate a corresponding orbs type.
-  call nullify_orbitals_data(orbs_aux)
-  call orbitals_descriptors(iproc, nproc, orbs%norb+nextra, orbs%norbu+nextra, 0, input%nspin, orbs%nspinor,&
-       input%gen_nkpt, input%gen_kpt, input%gen_wkpt, orbs_aux, .false.)
-  nonzero = f_malloc(orbs_aux%norbu*orbs_aux%norbup, id='nonzero')
-  i=0
-  do iorb=1,orbs_aux%norbup
-      iiorb=orbs_aux%isorbu+iorb
-      do jorb=1,orbs_aux%norbu
-          i=i+1
-          ind=(iiorb-1)*orbs_aux%norbu+jorb
-          nonzero(i)=ind
+      !SM: WARNING: not tested whether the spin works here! Mainly just to create a
+      !spin down part and make the compiler happy at another location.
+      ! Now the distribution for the KS orbitals including the extr states. Requires
+      ! first to calculate a corresponding orbs type.
+      call nullify_orbitals_data(orbs_aux)
+      call orbitals_descriptors(iproc, nproc, norb+nextra, norb+nextra, 0, input%nspin, orbs%nspinor,&
+           input%gen_nkpt, input%gen_kpt, input%gen_wkpt, orbs_aux, .false.)
+      nonzero = f_malloc(orbs_aux%norbu*orbs_aux%norbup, id='nonzero')
+      i=0
+      do iorb=1,orbs_aux%norbup
+          iiorb=orbs_aux%isorbu+iorb
+          do jorb=1,orbs_aux%norbu
+              i=i+1
+              ind=(iiorb-1)*orbs_aux%norbu+jorb
+              nonzero(i)=ind
+          end do
       end do
+      !!call init_sparse_matrix(iproc, nproc, input%nspin, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
+      !!     orbs%norbu, orbs%norbup, orbs%isorbu, input%store_index, &
+      !!     orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu, nonzero, smat_extra, print_info_=.false.)
+      call init_sparse_matrix(iproc, nproc, input%nspin, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
+           norb, norbp, isorb, input%store_index, &
+           orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu, nonzero, smat_extra(ispin), print_info_=.false.)
+      call f_free(nonzero)
+      call deallocate_orbitals_data(orbs_aux)
+
   end do
-  call init_sparse_matrix(iproc, nproc, input%nspin, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
-       orbs%norbu, orbs%norbup, orbs%isorbu, input%store_index, &
-       orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu, nonzero, smat_extra, print_info_=.false.)
-  call f_free(nonzero)
-  call deallocate_orbitals_data(orbs_aux)
 
   call f_release_routine()
 

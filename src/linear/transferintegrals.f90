@@ -358,7 +358,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   type(fragmentInputParameters), intent(in) :: input_frag
   type(orbitals_data), intent(in) :: orbs
   type(sparse_matrix), intent(inout) :: ham, ovrlp
-  type(sparse_matrix),intent(inout) :: KS_overlap
+  type(sparse_matrix),dimension(ham%nspin),intent(inout) :: KS_overlap
   type(matrices), intent(inout) :: ovrlp_mat, ham_mat
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
   !Local variables

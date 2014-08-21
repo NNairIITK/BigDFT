@@ -715,7 +715,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(system_fragment), dimension(:), intent(in) :: ref_frags
 
   ! Local variables
-  integer :: ndim_old, ndim, iorb, iiorb, ilr, ilr_old, iiat, methTransformOverlap, infoCoeff
+  integer :: ndim_old, ndim, iorb, iiorb, ilr, ilr_old, iiat, methTransformOverlap, infoCoeff, ispin
   logical:: overlap_calculated
   real(wp), allocatable, dimension(:) :: norm
   type(fragment_transformation), dimension(:), pointer :: frag_trans
@@ -1004,11 +1004,13 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   call f_free_ptr(tmb_old%psi)
   call f_free_ptr(tmb_old%linmat%kernel_%matrix_compr)
 
+  do ispin=1,tmb_old%linmat%l%nspin
+      call deallocate_sparse_matrix(tmb_old%linmat%ks(ispin))
+      call deallocate_sparse_matrix(tmb_old%linmat%ks_e(ispin))
+  end do
   call deallocate_sparse_matrix(tmb_old%linmat%s)
   call deallocate_sparse_matrix(tmb_old%linmat%m)
   call deallocate_sparse_matrix(tmb_old%linmat%l)
-  call deallocate_sparse_matrix(tmb_old%linmat%ks)
-  call deallocate_sparse_matrix(tmb_old%linmat%ks_e)
   call deallocate_matrices(tmb_old%linmat%ham_)
   call deallocate_matrices(tmb_old%linmat%ovrlp_)
   call deallocate_matrices(tmb_old%linmat%kernel_)

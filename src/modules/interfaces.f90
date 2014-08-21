@@ -3017,15 +3017,16 @@ module module_interfaces
                    basis_overlap, KS_overlap, basis_overlap_mat, coeff, orbs)
           use module_base
           use module_types
-          use sparsematrix_base, only: sparse_matrix
+          use sparsematrix_base, only: sparse_matrix, matrices
           implicit none
           integer, intent(in) :: iproc, nproc, norb
           integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
           type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
-          type(orbitals_data), intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
-          type(sparse_matrix),intent(inout) :: basis_overlap, KS_overlap
+          type(sparse_matrix),intent(inout) :: basis_overlap
+          type(sparse_matrix),dimension(basis_overlap%nspin),intent(inout) :: KS_overlap
           type(matrices),intent(inout) :: basis_overlap_mat
-          real(kind=8),dimension(basis_orbs%norb,basis_orbs%norb),intent(inout) :: coeff
+          real(kind=8),dimension(basis_overlap%nfvctr,norb),intent(inout) :: coeff
+          type(orbitals_data), intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
         end subroutine reorthonormalize_coeff
 
         subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, GPU, tmb, fpulay)
@@ -4052,7 +4053,7 @@ module module_interfaces
           type(fragmentInputParameters), intent(in) :: input_frag
           type(orbitals_data), intent(in) :: orbs
           type(sparse_matrix), intent(inout) :: ham, ovrlp
-          type(sparse_matrix),intent(inout) :: KS_overlap
+          type(sparse_matrix),dimension(ham%nspin),intent(inout) :: KS_overlap
           type(matrices), intent(inout) :: ovrlp_mat, ham_mat
           type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
         end subroutine calc_site_energies_transfer_integrals
@@ -4217,7 +4218,7 @@ module module_interfaces
           integer, intent(in) :: iproc, nproc, nextra
           type(orbitals_data), intent(in) :: orbs
           type(input_variables), intent(in) :: input
-          type(sparse_matrix), intent(out) :: smat, smat_extra
+          type(sparse_matrix),dimension(:),pointer,intent(out) :: smat, smat_extra
         end subroutine init_sparse_matrix_for_KSorbs
 
 subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, ovrlp_mat, inv_ovrlp)

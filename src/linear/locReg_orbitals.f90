@@ -291,8 +291,6 @@ subroutine assignToLocreg2(iproc, nproc, norb, norbu, norb_par, natom, nlr, nspi
 
           if (iorb==1 .or. iorb==norbu+1) cycle !this values have already been assigned
 
-          if (iorb==14) write(*,*) 'assigning 14, iproc', iproc
-
           !SM: mixing nlr with orbs.. not ideal
           if (spinsgn(iorb)>0.d0) then
               iispin=1
