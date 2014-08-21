@@ -83,23 +83,42 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
           call yaml_comment('it coeff:'//yaml_toa(it,fmt='(i6)'),hfill='-')
       end if
 
+     do iorb=1,orbs%norbp
+         iiorb=orbs%isorb+iorb
+         if (orbs%spinsgn(iiorb)>0.d0) then
+             ispin=1
+         else
+             ispin=2
+         end if
+         do jorb=1,tmb%linmat%m%nfvctr
+             write(5300+10*iproc+ispin,'(a,2i8,es18.7)') 'iiorb, jorb, coeff(jorb,iiorb)', iiorb, jorb, tmb%coeff(jorb,iiorb)
+         end do
+     end do
+
      if (present(num_extra)) then
         call calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor,max_inversion_error,orbs,grad_cov_or_coeffp,grad)
      else
         call calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_error,orbs,grad_cov_or_coeffp,grad)
      end if
 
-     !!do iorb=1,orbs%norbp
-     !!    iiorb=orbs%isorb+iorb
-     !!    if (orbs%spinsgn(iiorb)>0.d0) then
-     !!        ispin=1
-     !!    else
-     !!        ispin=2
-     !!    end if
-     !!    do jorb=1,tmb%linmat%m%nfvctr
-     !!        write(5000+10*iproc+ispin,'(a,2i8,2es18.7)') 'iiorb, jorb, coeff(jorb,iiorb),grad(jorb,iorb)', iiorb, jorb, tmb%coeff(jorb,iiorb), grad(jorb,iorb)
-     !!    end do
-     !!end do
+     ! scale the gradient by a factor of 2 in case of spin polarized calculation
+     ! in order to make the gradient analogous to the case of no polarization
+     ! (in that case the gradient is included in the kernel).
+     if (tmb%linmat%l%nspin==2) then
+         call dscal(orbs%norbp*tmb%linmat%m%nfvctr, 2.d0, grad, 1)
+     end if
+
+     do iorb=1,orbs%norbp
+         iiorb=orbs%isorb+iorb
+         if (orbs%spinsgn(iiorb)>0.d0) then
+             ispin=1
+         else
+             ispin=2
+         end if
+         do jorb=1,tmb%linmat%m%nfvctr
+             write(5400+10*iproc+ispin,'(a,2i8,2es18.7)') 'iiorb, jorb, coeff(jorb,iiorb),grad(jorb,iorb)', iiorb, jorb, tmb%coeff(jorb,iiorb), grad(jorb,iorb)
+         end do
+     end do
 
      ! Precondition the gradient (only making things worse...)
      !call precondition_gradient_coeff(tmb%orbs%norb, orbs%norbp, tmb%linmat%ham%matrix, tmb%linmat%ovrlp%matrix, grad)
@@ -240,6 +259,18 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      !   call reordering_coeffs(iproc, nproc, 0, orbs, tmb%orbs, tmb%linmat%ham, tmb%linmat%ovrlp, tmb%coeff, .false.)
      !end if
 
+     do iorb=1,orbs%norbp
+         iiorb=orbs%isorb+iorb
+         if (orbs%spinsgn(iiorb)>0.d0) then
+             ispin=1
+         else
+             ispin=2
+         end if
+         do jorb=1,tmb%linmat%m%nfvctr
+             write(5200+10*iproc+ispin,'(a,2i8,es18.7)') 'iiorb, jorb, coeff(jorb,iiorb)', iiorb, jorb, tmb%coeff(jorb,iiorb)
+         end do
+     end do
+
 
      ! do twice with approx S^_1/2, as not quite good enough at preserving charge if only once, but exact too expensive
      ! instead of twice could add some criterion to check accuracy?
@@ -271,17 +302,17 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      !call f_free(ipiv)
      !!!!!!!!!!!!!!!!!!!!!!!!
 
-     !!do iorb=1,orbs%norbp
-     !!    iiorb=orbs%isorb+iorb
-     !!    if (orbs%spinsgn(iiorb)>0.d0) then
-     !!        ispin=1
-     !!    else
-     !!        ispin=2
-     !!    end if
-     !!    do jorb=1,tmb%linmat%m%nfvctr
-     !!        write(5100+10*iproc+ispin,'(a,2i8,es18.7)') 'iiorb, jorb, coeff(jorb,iiorb)', iiorb, jorb, tmb%coeff(jorb,iiorb)
-     !!    end do
-     !!end do
+     do iorb=1,orbs%norbp
+         iiorb=orbs%isorb+iorb
+         if (orbs%spinsgn(iiorb)>0.d0) then
+             ispin=1
+         else
+             ispin=2
+         end if
+         do jorb=1,tmb%linmat%m%nfvctr
+             write(5100+10*iproc+ispin,'(a,2i8,es18.7)') 'iiorb, jorb, coeff(jorb,iiorb)', iiorb, jorb, tmb%coeff(jorb,iiorb)
+         end do
+     end do
 
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m,&
           tmb%linmat%kernel_, tmb%linmat%ham_, energy,&
@@ -311,7 +342,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
             call yaml_newline()
             call yaml_map('iter',it)
             call yaml_map('fnrm',fnrm,fmt='(es9.2)')
-            call yaml_map('eBS',energy0,fmt='(es24.17)')
+            call yaml_map('eBS',energy,fmt='(es24.17)')
             call yaml_map('D',energy-energy0,fmt='(es10.3)')
             call yaml_map('alpha',ldiis_coeff%alpha_coeff,fmt='(es10.3)')
             call yaml_map('predicted energy',pred_e,fmt='(es24.17)')
@@ -325,7 +356,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
             call yaml_newline()
             call yaml_map('iter',it)
             call yaml_map('fnrm',fnrm,fmt='(es9.2)')
-            call yaml_map('eBS',energy0,fmt='(es24.17)')
+            call yaml_map('eBS',energy,fmt='(es24.17)')
             call yaml_map('D',energy-energy0,fmt='(es10.3)')
             call yaml_map('alpha',ldiis_coeff%alpha_coeff,fmt='(es10.3)')
         end if
@@ -337,7 +368,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
             call yaml_newline()
             call yaml_map('iter',it)
             call yaml_map('fnrm',fnrm,fmt='(es9.2)')
-            call yaml_map('eBS',energy0,fmt='(es24.17)')
+            call yaml_map('eBS',energy,fmt='(es24.17)')
             call yaml_map('D',energy-energy0,fmt='(es10.3)')
         end if
      end if
@@ -1006,7 +1037,7 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham
   type(orbitals_data), intent(in) :: orbs, tmb_orbs
   real(kind=gp), dimension(denskern%nfvctr,tmb_orbs%norb), intent(in) :: coeff
 
-  integer :: iorb, jorb, ind_ham, ind_denskern, ierr, iorbp, is, ie
+  integer :: iorb, jorb, ind_ham, ind_denskern, ierr, iorbp, is, ie, ispin
 
   if (calculate_kernel) then 
      call calculate_density_kernel(iproc, nproc, .true., orbs, tmb_orbs, coeff, denskern, denskern_mat)
@@ -1021,12 +1052,14 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham
          ! spin up support function or non-polarized case
          is=1
          ie=tmb_orbs%norbu
+         ispin=1
      else
          ! spin down support function
          is=tmb_orbs%norbu+1
          ie=tmb_orbs%norb
+         ispin=2
      end if
-     !$omp parallel default(private) shared(is,ie,iorb,denskern,ham,denskern_mat,ham_mat,tmb_orbs,energy)
+     !$omp parallel default(private) shared(is,ie,iorb,denskern,ham,denskern_mat,ham_mat,tmb_orbs,energy,ispin)
      !$omp do reduction(+:energy)
      !do jorb=1,tmb_orbs%norb
      do jorb=is,ie

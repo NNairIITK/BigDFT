@@ -1990,8 +1990,11 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
       ! check whether this routine will be stable. Parallelization for nspin/=1 not done
       if (norb==orbs%norb .and. basis_overlap%nspin==1) then
           if (orbs%norbp>0) then
+             !!call deviation_from_unity_parallel(iproc, nproc, norbx, orbs%norbp, orbs%isorb, &
+             !!     ovrlp_coeff(1:orbs%norb,orbs%isorb+1:orbs%isorb+orbs%norbp), &
+             !!     basis_overlap, max_error, mean_error)
              call deviation_from_unity_parallel(iproc, nproc, norbx, orbs%norbp, orbs%isorb, &
-                  ovrlp_coeff(1:orbs%norb,orbs%isorb+1:orbs%isorb+orbs%norbp), &
+                  ovrlp_coeff, &
                   basis_overlap, max_error, mean_error)
           else
              ! It is necessary to call the routine since it has a built-in mpiallred.
@@ -2007,8 +2010,18 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
       ! should convert this to yaml (LG: easily done)
       if (iproc==0) call yaml_newline()
-      if (iproc==0) call yaml_map('Max deviation from unity in reorthonormalize_coeff',max_error,fmt='(es8.2)')
-      if (iproc==0) call yaml_map('Mean deviation from unity in reorthonormalize_coeff',mean_error,fmt='(es8.2)')
+      if (basis_overlap%nspin==1) then
+          if (iproc==0) call yaml_map('Max deviation from unity in reorthonormalize_coeff',max_error,fmt='(es8.2)')
+          if (iproc==0) call yaml_map('Mean deviation from unity in reorthonormalize_coeff',mean_error,fmt='(es8.2)')
+      else
+          if (ispin==1) then
+              if (iproc==0) call yaml_map('spin up, Max deviation from unity in reorthonormalize_coeff',max_error,fmt='(es8.2)')
+              if (iproc==0) call yaml_map('spin up, Mean deviation from unity in reorthonormalize_coeff',mean_error,fmt='(es8.2)')
+          else if (ispin==2) then
+              if (iproc==0) call yaml_map('spin down, Max deviation from unity in reorthonormalize_coeff',max_error,fmt='(es8.2)')
+              if (iproc==0) call yaml_map('spin down, Mean deviation from unity in reorthonormalize_coeff',mean_error,fmt='(es8.2)')
+          end if
+      end if
 
       if (max_error>5.0d0.and.orbs%norb==norb) then
          if (iproc==0) print*,'Error in reorthonormalize_coeff too large, reverting to gram-schmidt orthonormalization'
