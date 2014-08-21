@@ -436,7 +436,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                input%lin%early_stop, input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
                can_use_ham, norder_taylor, input%lin%max_inversion_error, input%kappa_conv,&
                input%method_updatekernel,input%purification_quickreturn, &
-               input%correction_co_contra)
+               input%correction_co_contra, cdft)
            reduce_conf=.true.
            if (iproc==0) then
                call yaml_sequence_close()
@@ -671,7 +671,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                     call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
                 end if
 
-                if ((pnrm<convCritMix .or. it_scc==nit_scc)) then ! .and. (.not. input%lin%constrained_dft)) then
+                if ((pnrm<convCritMix .or. it_scc==nit_scc)) then
                    ! calculate difference in density for convergence criterion of outer loop
                    ! ioffset is the buffer which is present for GGA calculations
                    ioffset=KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%i3xcsh
@@ -685,8 +685,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    end if
 
                    pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
-                   call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
-                     denspot%rhov(1), 1, rhopotOld_out(1), 1)
+                   !only want to copy across when CDFT loop has also converged, but still do above as won't know if CDFT converged until later
+                   if (.not. input%lin%constrained_dft) then
+                      call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
+                        denspot%rhov(1), 1, rhopotOld_out(1), 1)
+                   end if
                 end if
 
              end if
@@ -830,10 +833,20 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
             ! CDFT: 2nd deriv more problematic?
             ! CDFT: use simplest possible scheme for now
 
-            if (iproc==0) write(*,*) ''
-            if (iproc==0) write(*,'(a,I4,2x,6(ES12.4e2,2x),2(ES16.6e2,2x))') &
-                 'itc, N, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N), V, Vold, EBS, energy',&
-                 cdft_it,cdft%charge,ebs,vgrad,cdft%lag_mult*vgrad,cdft%lag_mult,vold,energs%ebs,energy
+            !if (iproc==0) write(*,*) ''
+            !if (iproc==0) write(*,'(a,I4,2x,6(ES12.4e2,2x),2(ES16.6e2,2x))') &
+            !     'itc, N, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N), V, Vold, EBS, energy',&
+            !     cdft_it,cdft%charge,ebs,vgrad,cdft%lag_mult*vgrad,cdft%lag_mult,vold,energs%ebs,energy
+            if (iproc==0) then
+               call yaml_sequence_open('CDFT',flow=.true.)
+               call yaml_map('itc',cdft_it)
+               call yaml_map('N',cdft%charge,fmt='(es14.4)')
+               call yaml_map('Tr(KW)',ebs,fmt='(es14.4)')
+               !call yaml_map('Tr(KW)-N',vgrad)
+               call yaml_map('Vc',cdft%lag_mult,fmt='(es14.4)')
+               call yaml_map('energy',energy,fmt='(es14.4)')
+               call yaml_sequence_close()
+            end if
 
             ! CDFT: exit when W is converged wrt both V and rho
             if (abs(vgrad) < 1.0e-2) exit
@@ -876,13 +889,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                cdft%lag_mult=cdft%lag_mult+valpha*vgrad
             else if (cdft_it==1) then !first step newton
                vold=cdft%lag_mult
-               if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))') 'itn, V, Vg',&
-                    cdft_it,cdft%lag_mult,vgrad
+               !debug:
+               !if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))') 'itn, V, Vg',&
+               !     cdft_it,cdft%lag_mult,vgrad
                cdft%lag_mult=cdft%lag_mult*2.0_gp
             else ! newton
                vgrad2=(vgrad-vgrad_old)/(cdft%lag_mult-vold)
-               if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))') 'itn, V, Vold, Vg, Vgold, Vg2, Vg/Vg2',&
-                    cdft_it,cdft%lag_mult,vold,vgrad,vgrad_old,vgrad2,vgrad/vgrad2
+               !debug:
+               !if (iproc==0) write(*,'(a,I4,2x,6(ES16.6e3,2x))') 'itn, V, Vold, Vg, Vgold, Vg2, Vg/Vg2',&
+               !     cdft_it,cdft%lag_mult,vold,vgrad,vgrad_old,vgrad2,vgrad/vgrad2
                vold_tmp=cdft%lag_mult
                cdft%lag_mult=vold-vgrad_old/vgrad2
                vold=vold_tmp

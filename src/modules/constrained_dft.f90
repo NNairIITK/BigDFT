@@ -136,7 +136,7 @@ contains
     cdft%ndim_dens=ndimrho ! either size of fragment psi (add to fragment structure?), or size of entire simulation cell
 
     if (cdft%charge<0) then
-       cdft%lag_mult=0.05_gp ! pick some sensible initial value here
+       cdft%lag_mult=-0.05_gp ! pick some sensible initial value here
     else
        cdft%lag_mult=0.05_gp ! pick some sensible initial value here
     end if

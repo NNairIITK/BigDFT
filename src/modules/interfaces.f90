@@ -1507,7 +1507,7 @@ module module_interfaces
           purification_quickreturn, correction_co_contra, cdft)
         use module_base
         use module_types
-          use constrained_dft, only: cdft_data
+        use constrained_dft, only: cdft_data
         implicit none
 
         ! Calling arguments

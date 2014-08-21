@@ -214,6 +214,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmb%linmat%kernel_,cdft%weight_matrix_,trkw,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
     !cdft%charge is always constant so could in theory be ignored as in optimize_coeffs
     trH = trH + cdft%lag_mult*(trkw - cdft%charge)
+    !if (iproc==0) print*,'trH,trH+V(trkw-N)',trH-cdft%lag_mult*(trkw - cdft%charge),trH
   end if
 
 
