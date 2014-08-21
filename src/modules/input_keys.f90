@@ -388,7 +388,7 @@ contains
     type(dictionary), pointer :: input_keys_get_profiles
 
     type(dictionary), pointer :: p
-    integer :: i
+    integer :: i, skeys
     character(max_field_length), dimension(:), allocatable :: keys
 
     call input_keys_init()
@@ -400,7 +400,8 @@ contains
     else
        allocate(keys(dict_size(parameters)))
        keys = dict_keys(parameters)
-       do i = 1, size(keys), 1
+       skeys = size(keys)
+       do i = 1, skeys, 1
           call vars(p // keys(i), parameters // keys(i))
        end do
        deallocate(keys)
@@ -931,7 +932,7 @@ contains
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: file, key
 
-    integer :: i
+    integer :: i, skeys
     type(dictionary), pointer :: ref
     character(len = max_field_length) :: val, profile_
     character(len = max_field_length), dimension(:), allocatable :: keys
@@ -975,7 +976,8 @@ contains
              allocate(keys(dict_size(failed_exclusive)))
              keys = dict_keys(failed_exclusive)
              found = .false.
-             do i = 1, size(keys), 1
+             skeys = size(keys)
+             do i = 1, skeys, 1
                 found = input_keys_equal(trim(val), trim(keys(i)))
                 if (found) exit
              end do
@@ -1021,7 +1023,7 @@ contains
       type(dictionary), pointer :: dict, ref
       logical :: set_
 
-      integer :: j
+      integer :: j, dlen
       character(max_field_length) :: mkey, val_master, val_when
 
       set_ = .true.
@@ -1033,7 +1035,8 @@ contains
          end if
          val_master = dict // mkey
          set_ = .false.
-         do j = 0, dict_len(ref // COND // WHEN) - 1, 1
+         dlen = dict_len(ref // COND // WHEN)
+         do j = 0, dlen - 1, 1
             val_when = ref // COND // WHEN // j
             set_ = set_ .or. &
                  & (input_keys_equal(trim(val_master), trim(val_when)))
