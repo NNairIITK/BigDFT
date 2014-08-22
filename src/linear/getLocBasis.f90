@@ -1992,12 +1992,12 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
       ! check whether this routine will be stable. Parallelization for nspin/=1 not done
       if (norb==orbs%norb .and. basis_overlap%nspin==1) then
           if (orbs%norbp>0) then
-             !!call deviation_from_unity_parallel(iproc, nproc, norbx, orbs%norbp, orbs%isorb, &
-             !!     ovrlp_coeff(1:orbs%norb,orbs%isorb+1:orbs%isorb+orbs%norbp), &
-             !!     basis_overlap, max_error, mean_error)
              call deviation_from_unity_parallel(iproc, nproc, norbx, orbs%norbp, orbs%isorb, &
-                  ovrlp_coeff, &
+                  ovrlp_coeff(1:orbs%norb,orbs%isorb+1:orbs%isorb+orbs%norbp), &
                   basis_overlap, max_error, mean_error)
+             !!call deviation_from_unity_parallel(iproc, nproc, norbx, orbs%norbp, orbs%isorb, &
+             !!     ovrlp_coeff, &
+             !!     basis_overlap, max_error, mean_error)
           else
              ! It is necessary to call the routine since it has a built-in mpiallred.
              ! Use the first element of ovrlp_coeff; thanks to orbs%norbp==0 this should be safe
