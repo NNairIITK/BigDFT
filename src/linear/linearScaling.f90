@@ -75,6 +75,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
   type(matrices) :: weight_matrix_
 
+
   call timing(iproc,'linscalinit','ON') !lr408t
 
   call f_routine(id='linear_scaling')
@@ -147,16 +148,21 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
             *input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
   end if
 
-  ! These tests are already done in cluster, keep them for consitency with the test references
-  if (iproc==0) call yaml_mapping_open('Checking Communications of Minimal Basis')
-  call check_communications_locreg(iproc,nproc,tmb%orbs,input%nspin,tmb%Lzd,tmb%collcom,tmb%linmat, &
-       tmb%npsidim_orbs,tmb%npsidim_comp)
-  if (iproc==0) call yaml_mapping_close()
 
-  if (iproc==0) call yaml_mapping_open('Checking Communications of Enlarged Minimal Basis')
-  call check_communications_locreg(iproc,nproc,tmb%orbs,input%nspin,tmb%ham_descr%lzd,tmb%ham_descr%collcom,tmb%linmat, &
-       tmb%ham_descr%npsidim_orbs,tmb%ham_descr%npsidim_comp)
-  if (iproc ==0) call yaml_mapping_close()
+  !!!! These tests are already done in cluster, keep them for consitency with the test references
+  !!!if (iproc==0) call yaml_mapping_open('Checking Communications of Minimal Basis')
+  !!!call check_communications_locreg(iproc,nproc,tmb%orbs,input%nspin,tmb%lzd, &
+  !!!     tmb%collcom,tmb%linmat%s,tmb%linmat%ovrlp_, &
+  !!!     tmb%npsidim_orbs,tmb%npsidim_comp)
+  !!!if (iproc==0) call yaml_mapping_close()
+  !!!write(*,*) 'after 1st check, sums', sum(tmb%linmat%ovrlp_%matrix_compr), sum(tmb%linmat%kernel_%matrix_compr)
+
+  !!!if (iproc==0) call yaml_mapping_open('Checking Communications of Enlarged Minimal Basis')
+  !!!call check_communications_locreg(iproc,nproc,tmb%orbs,input%nspin,tmb%ham_descr%lzd, &
+  !!!     tmb%ham_descr%collcom,tmb%linmat%m,tmb%linmat%ham_, &
+  !!!     tmb%ham_descr%npsidim_orbs,tmb%ham_descr%npsidim_comp)
+  !!!if (iproc ==0) call yaml_mapping_close()
+  !!!write(*,*) 'after 2nd check, sums', sum(tmb%linmat%ovrlp_%matrix_compr), sum(tmb%linmat%kernel_%matrix_compr)
 
 
   ! CDFT: calculate w_ab here given w(r)
@@ -429,6 +435,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                call yaml_sequence_open('support function optimization',label=&
                               'it_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
            end if
+           write(*,*) 'call getLocalizedBasis, sums', sum(tmb%linmat%ovrlp_%matrix_compr), sum(tmb%linmat%kernel_%matrix_compr)
            call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
                input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&

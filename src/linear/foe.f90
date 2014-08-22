@@ -618,13 +618,17 @@ subroutine foe(iproc, nproc, tmprtr, &
                   if (iproc==0) call yaml_map('modify fscale','decrease')
                   fscale_new=min(fscale_new,0.5d0*foe_data_get_real(foe_obj,"fscale"))
               end if
-              if (foe_data_get_real(foe_obj,"fscale")<foe_data_get_real(foe_obj,"fscale_lowerbound")) then
-                  call foe_data_set_real(foe_obj,"fscale",foe_data_get_real(foe_obj,"fscale_lowerbound"))
+              !if (foe_data_get_real(foe_obj,"fscale")<foe_data_get_real(foe_obj,"fscale_lowerbound")) then
+              if (fscale_new<foe_data_get_real(foe_obj,"fscale_lowerbound")) then
+                  !call foe_data_set_real(foe_obj,"fscale",foe_data_get_real(foe_obj,"fscale_lowerbound"))
+                  fscale_new=foe_data_get_real(foe_obj,"fscale_lowerbound")
                   if (iproc==0) call yaml_map('fscale reached lower limit; reset to', &
                       foe_data_get_real(foe_obj,"fscale_lowerbound"))
                   reached_limit=.true.
-              else if (foe_data_get_real(foe_obj,"fscale")>foe_data_get_real(foe_obj,"fscale_upperbound")) then
-                  call foe_data_set_real(foe_obj,"fscale",foe_data_get_real(foe_obj,"fscale_upperbound"))
+              !else if (foe_data_get_real(foe_obj,"fscale")>foe_data_get_real(foe_obj,"fscale_upperbound")) then
+              else if (fscale_new>foe_data_get_real(foe_obj,"fscale_upperbound")) then
+                  !call foe_data_set_real(foe_obj,"fscale",foe_data_get_real(foe_obj,"fscale_upperbound"))
+                  fscale_new=foe_data_get_real(foe_obj,"fscale_upperbound")
                   if (iproc==0) call yaml_map('fscale reached upper limit; reset to', &
                       foe_data_get_real(foe_obj,"fscale_upperbound"))
                   reached_limit=.true.
@@ -1031,7 +1035,7 @@ subroutine foe(iproc, nproc, tmprtr, &
         anoise=100.d0*anoise
         if (allredarr(1)>anoise) then
             eval_bounds_ok(1)=.false.
-            call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow")*1.2d0,ispin)
+            call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*1.2d0,ispin)
             restart=.true.
         else
             eval_bounds_ok(1)=.true.
@@ -1653,7 +1657,6 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
   iashift = (ispin-1)*asmat%nvctr
   ibshift = (ispin-1)*bsmat%nvctr
 
-
   sumn=0.d0
   if (asmat%nfvctrp>0) then
           isegstart=asmat%istsegline(asmat%isfvctr+1)
@@ -1681,7 +1684,7 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
   end if
 
   if (nproc > 1) then
-          call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(sumn, 1, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
   trace_sparse = sumn
