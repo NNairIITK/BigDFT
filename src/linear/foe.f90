@@ -578,7 +578,6 @@ subroutine foe(iproc, nproc, tmprtr, &
           ! symmetric, this is a simple ddot.
           ebsp=ddot(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ilshift+1),1 , hamscal_compr, 1)
           ebsp=ebsp/scale_factor+shift_value*sumn
-          ebs=ebs+ebsp
     
           ebs_check=ddot(tmb%linmat%l%nvctr, fermi_check_compr,1 , hamscal_compr, 1)
           ebs_check=ebs_check/scale_factor+shift_value*sumn_check
@@ -650,7 +649,7 @@ subroutine foe(iproc, nproc, tmprtr, &
         
           ! Calculate trace(KS).
           sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-                 tmb%linmat%ovrlp_, tmb%linmat%kernel_)
+                 tmb%linmat%ovrlp_, tmb%linmat%kernel_, ispin)
     
     
           if (iproc==0) call yaml_map('trace(KS)',sumn)
@@ -669,6 +668,9 @@ subroutine foe(iproc, nproc, tmprtr, &
         
     
       end do temp_loop
+
+      ! Sum up the band structure energy
+      ebs = ebs + ebsp
 
   end do spin_loop
 
@@ -1619,7 +1621,7 @@ end subroutine uncompress_polynomial_vector
 !< Calculates the trace of the matrix product amat*bmat.
 !< WARNING: It is mandatory that the sparsity pattern of amat is contained
 !< within the sparsity pattern of bmat!
-function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat)
+function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix, matrices
@@ -1627,15 +1629,19 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat)
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc,  nproc
+  integer,intent(in) :: iproc,  nproc, ispin
   type(orbitals_data),intent(in) :: orbs
   type(sparse_matrix),intent(in) :: asmat, bsmat
   type(matrices),intent(in) :: amat, bmat
 
   ! Local variables
   integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iilarge
-  integer :: ierr
+  integer :: ierr, iashift, ibshift
   real(kind=8) :: sumn, trace_sparse
+
+  iashift = (ispin-1)*asmat%nvctr
+  ibshift = (ispin-1)*bsmat%nvctr
+
 
   sumn=0.d0
   if (asmat%nfvctrp>0) then
@@ -1645,15 +1651,17 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat)
       else
               isegend=asmat%nseg
       end if
-      !$omp parallel default(private) shared(isegstart, isegend, bsmat, asmat, amat, bmat, sumn)
+      !$omp parallel default(none) &
+      !$omp private(iseg, ii, jorb, iiorb, jjorb, iilarge) &
+      !$omp shared(isegstart, isegend, bsmat, asmat, amat, bmat, iashift, ibshift, sumn)
       !$omp do reduction(+:sumn)
       do iseg=isegstart,isegend
-              ii=asmat%keyv(iseg)-1
+              ii=iashift+asmat%keyv(iseg)-1
               do jorb=asmat%keyg(1,iseg),asmat%keyg(2,iseg)
               ii=ii+1
               iiorb = (jorb-1)/asmat%nfvctr + 1
               jjorb = jorb - (iiorb-1)*asmat%nfvctr
-                  iilarge = matrixindex_in_compressed(bsmat, iiorb, jjorb)
+              iilarge = ibshift + matrixindex_in_compressed(bsmat, iiorb, jjorb)
               sumn = sumn + amat%matrix_compr(ii)*bmat%matrix_compr(iilarge)
           end do  
       end do

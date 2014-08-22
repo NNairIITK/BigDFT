@@ -606,7 +606,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              ! CDFT: this is the real energy here as we subtracted the constraint term from the Hamiltonian before calculating ebs
              ! Calculate the total energy.
-             !if(iproc==0) write(*,'(a,7es14.6)') 'energs',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
+             if(iproc==0) write(*,'(a,7es14.6)') 'energs',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
              energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
              energyDiff=energy-energyold
              energyold=energy
