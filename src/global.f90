@@ -259,6 +259,7 @@ logical:: disable_hatrans
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of initial conf.',ncount_bigdft)
   count_bfgs=count_bfgs+ncount_bigdft
+  e_pos = outs%energy
 
   call bigdft_get_eigenvalues(rst,ksevals,i_stat)
   if (i_stat /= BIGDFT_SUCCESS) then
@@ -473,7 +474,7 @@ logical:: disable_hatrans
 !!$  enddo
   call run_objects_associate(runObj, inputs_md, atoms, rst, pos(1,1))
   escape=escape+1.d0
-!  e_pos = outs%energy !DO NOT UNCOMMENT, IT IS A BUG!!
+!  e_pos = outs%energy !MUST NOT UPDATE e_pos HERE!!
   call mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, runObj, outs, &
                 ngeopt,bigdft_mpi%nproc,bigdft_mpi%iproc)
   if (bigdft_mpi%iproc == 0) then 
