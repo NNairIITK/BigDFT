@@ -783,13 +783,13 @@ subroutine foe(iproc, nproc, tmprtr, &
                    ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
                    check_accur=.true., max_error=max_error, mean_error=mean_error)
           end if
-          ii=0
-          do i=1,tmb%linmat%l%nspin
-              do j=1,tmb%linmat%l%nvctr
-                  ii=ii+1
-                  write(2000+iproc*10+i,'(a,3i8,es16.6)') 'i, j, ii, val', i, j, ii, inv_ovrlp%matrix_compr(ii)
-              end do
-          end do
+          !!ii=0
+          !!do i=1,tmb%linmat%l%nspin
+          !!    do j=1,tmb%linmat%l%nvctr
+          !!        ii=ii+1
+          !!        write(2000+iproc*10+i,'(a,3i8,es16.6)') 'i, j, ii, val', i, j, ii, inv_ovrlp%matrix_compr(ii)
+          !!    end do
+          !!end do
           call check_taylor_order(mean_error, max_inversion_error, order_taylor)
           !if (foe_verbosity>=1 .and. iproc==0) then
           !    call yaml_map('max error of S^-1/2',max_error,fmt='(es9.2)')
