@@ -1008,6 +1008,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       call deallocate_sparse_matrix(tmb_old%linmat%ks(ispin))
       call deallocate_sparse_matrix(tmb_old%linmat%ks_e(ispin))
   end do
+  deallocate(tmb_old%linmat%ks)
+  deallocate(tmb_old%linmat%ks_e)
   call deallocate_sparse_matrix(tmb_old%linmat%s)
   call deallocate_sparse_matrix(tmb_old%linmat%m)
   call deallocate_sparse_matrix(tmb_old%linmat%l)
