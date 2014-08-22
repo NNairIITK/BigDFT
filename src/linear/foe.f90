@@ -248,7 +248,8 @@ subroutine foe(iproc, nproc, tmprtr, &
               
         
                   ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
-                  if (foe_data_get_real(foe_obj,"evlow",ispin)/=evlow_old .or. foe_data_get_real(foe_obj,"evhigh",ispin)/=evhigh_old) then
+                  if (foe_data_get_real(foe_obj,"evlow",ispin)/=evlow_old .or. &
+                      foe_data_get_real(foe_obj,"evhigh",ispin)/=evhigh_old) then
                       scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
                       shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh",ispin)+foe_data_get_real(foe_obj,"evlow",ispin))
                       !$omp parallel default(none) private(ii,irow,icol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
@@ -282,7 +283,8 @@ subroutine foe(iproc, nproc, tmprtr, &
         
         
                   ! Determine the degree of the polynomial
-                  npl=nint(degree_multiplicator*(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))/fscale)
+                  npl=nint(degree_multiplicator* &
+                      (foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))/fscale)
                   npl=max(npl,NPL_MIN)
                   !npl_check = nint(degree_multiplicator*(foe_data_get_real(foe_obj,"evhigh")-foe_data_get_real(foe_obj,"evlow"))/fscale_check)
                   !npl_check = max(npl_check,nint(real(npl,kind=8)/CHECK_RATIO)) ! this is necessary if npl was set to the minimal value
@@ -333,17 +335,24 @@ subroutine foe(iproc, nproc, tmprtr, &
                   call timing(iproc, 'FOE_auxiliary ', 'OF')
                   call timing(iproc, 'chebyshev_coef', 'ON')
         
-                  call chebft(foe_data_get_real(foe_obj,"evlow",ispin), foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,1), &
+                  call chebft(foe_data_get_real(foe_obj,"evlow",ispin), &
+                       foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,1), &
                        foe_data_get_real(foe_obj,"ef",ispin), fscale, tmprtr)
-                  call chder(foe_data_get_real(foe_obj,"evlow",ispin), foe_data_get_real(foe_obj,"evhigh",ispin), cc(1,1), cc(1,2), npl)
-                  call chebft2(foe_data_get_real(foe_obj,"evlow",ispin), foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,3))
-                  call evnoise(npl, cc(1,3), foe_data_get_real(foe_obj,"evlow",ispin), foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
+                  call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
+                       foe_data_get_real(foe_obj,"evhigh",ispin), cc(1,1), cc(1,2), npl)
+                  call chebft2(foe_data_get_real(foe_obj,"evlow",ispin), &
+                       foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,3))
+                  call evnoise(npl, cc(1,3), foe_data_get_real(foe_obj,"evlow",ispin), &
+                       foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
     
-                  call chebft(foe_data_get_real(foe_obj,"evlow",ispin), foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,1), &
+                  call chebft(foe_data_get_real(foe_obj,"evlow",ispin), &
+                       foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,1), &
                        foe_data_get_real(foe_obj,"ef",ispin), fscale_check, tmprtr)
-                  call chder(foe_data_get_real(foe_obj,"evlow",ispin), foe_data_get_real(foe_obj,"evhigh",ispin), &
+                  call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
+                       foe_data_get_real(foe_obj,"evhigh",ispin), &
                        cc_check(1,1), cc_check(1,2), npl_check)
-                  call chebft2(foe_data_get_real(foe_obj,"evlow",ispin), foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,3))
+                  call chebft2(foe_data_get_real(foe_obj,"evlow",ispin), &
+                       foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,3))
         
                   call timing(iproc, 'chebyshev_coef', 'OF')
                   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -611,11 +620,13 @@ subroutine foe(iproc, nproc, tmprtr, &
               end if
               if (foe_data_get_real(foe_obj,"fscale")<foe_data_get_real(foe_obj,"fscale_lowerbound")) then
                   call foe_data_set_real(foe_obj,"fscale",foe_data_get_real(foe_obj,"fscale_lowerbound"))
-                  if (iproc==0) call yaml_map('fscale reached lower limit; reset to',foe_data_get_real(foe_obj,"fscale_lowerbound"))
+                  if (iproc==0) call yaml_map('fscale reached lower limit; reset to', &
+                      foe_data_get_real(foe_obj,"fscale_lowerbound"))
                   reached_limit=.true.
               else if (foe_data_get_real(foe_obj,"fscale")>foe_data_get_real(foe_obj,"fscale_upperbound")) then
                   call foe_data_set_real(foe_obj,"fscale",foe_data_get_real(foe_obj,"fscale_upperbound"))
-                  if (iproc==0) call yaml_map('fscale reached upper limit; reset to',foe_data_get_real(foe_obj,"fscale_upperbound"))
+                  if (iproc==0) call yaml_map('fscale reached upper limit; reset to', &
+                      foe_data_get_real(foe_obj,"fscale_upperbound"))
                   reached_limit=.true.
               else
                   reached_limit=.false.
@@ -1831,7 +1842,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 
       spin_loop: do ispin=1,ovrlp_smat%nspin
 
-          degree_multiplicator = real(norder_polynomial,kind=8)/(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
+          degree_multiplicator = real(norder_polynomial,kind=8)/ &
+                                 (foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
           degree_multiplicator = min(degree_multiplicator,DEGREE_MULTIPLICATOR_MAX)
 
           isshift=(ispin-1)*ovrlp_smat%nvctr
@@ -1857,7 +1869,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                   it=it+1
         
                   ! Scale the Hamiltonian such that all eigenvalues are in the intervall [0:1]
-                  if (foe_data_get_real(foe_obj,"evlow",ispin)/=evlow_old .or. foe_data_get_real(foe_obj,"evhigh",ispin)/=evhigh_old) then
+                  if (foe_data_get_real(foe_obj,"evlow",ispin)/=evlow_old .or. &
+                      foe_data_get_real(foe_obj,"evhigh",ispin)/=evhigh_old) then
                       shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh",ispin)+foe_data_get_real(foe_obj,"evlow",ispin))
                       scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
                       !$omp parallel default(none) private(ii,irow,icol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
@@ -1942,10 +1955,14 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                   call timing(iproc, 'FOE_auxiliary ', 'OF')
                   call timing(iproc, 'chebyshev_coef', 'ON')
         
-                  call cheb_exp(foe_data_get_real(foe_obj,"evlow",ispin), foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,1), ex)
-                  call chder(foe_data_get_real(foe_obj,"evlow",ispin), foe_data_get_real(foe_obj,"evhigh",ispin), cc(1,1), cc(1,2), npl)
-                  call chebft2(foe_data_get_real(foe_obj,"evlow",ispin), foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,3))
-                  call evnoise(npl, cc(1,3), foe_data_get_real(foe_obj,"evlow",ispin), foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
+                  call cheb_exp(foe_data_get_real(foe_obj,"evlow",ispin), &
+                       foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,1), ex)
+                  call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
+                       foe_data_get_real(foe_obj,"evhigh",ispin), cc(1,1), cc(1,2), npl)
+                  call chebft2(foe_data_get_real(foe_obj,"evlow",ispin), &
+                       foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,3))
+                  call evnoise(npl, cc(1,3), foe_data_get_real(foe_obj,"evlow",ispin), &
+                       foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
     
                   call timing(iproc, 'chebyshev_coef', 'OF')
                   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -1969,7 +1986,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                       ! The Chebyshev polynomials are already available
                       !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
                       call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
-                           inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%nfvctrp, inv_ovrlp_smat%isfvctr, inv_ovrlp_smat%isfvctr_par, &
+                           inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%nfvctrp, &
+                           inv_ovrlp_smat%isfvctr, inv_ovrlp_smat%isfvctr_par, &
                            inv_ovrlp_smat, chebyshev_polynomials, cc, inv_ovrlp_matrixp)
                   end if 
     

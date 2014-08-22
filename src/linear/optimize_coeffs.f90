@@ -155,14 +155,17 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
         ldiis_coeff%ids=ldiis_coeff%ids+1
 
         if (present(num_extra)) then
-           if (tmb%orbs%norbp>0) call vcopy(tmb%linmat%m%nfvctr*tmb%orbs%norbp,tmb%coeff(1,tmb%orbs%isorb+1),1,grad_cov_or_coeffp(1,1),1)
+           if (tmb%orbs%norbp>0) call vcopy(tmb%linmat%m%nfvctr*tmb%orbs%norbp, &
+               tmb%coeff(1,tmb%orbs%isorb+1),1,grad_cov_or_coeffp(1,1),1)
 
-           call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/tmb%linmat%m%nfvctr*tmb%orbs%norbp/),tmb%linmat%m%nfvctr*tmb%orbs%norbp,&
+           call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/tmb%linmat%m%nfvctr*tmb%orbs%norbp/), &
+                tmb%linmat%m%nfvctr*tmb%orbs%norbp,&
                 grad_cov_or_coeffp,grad,ldiis_coeff) 
         else
-           if (orbs%norbp>0) call vcopy(tmb%linmat%m%nfvctr*orbs%norbp,tmb%coeff(1,orbs%isorb+1),1,grad_cov_or_coeffp(1,1),1)
+           if (orbs%norbp>0) call vcopy(tmb%linmat%m%nfvctr*orbs%norbp,tmb%coeff(1,orbs%isorb+1), &
+               1,grad_cov_or_coeffp(1,1),1)
 
-           call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/tmb%linmat%m%nfvctr*orbs%norbp/),tmb%linmat%m%nfvctr*orbs%norbp,&
+           call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/tmb%linmat%m%nfvctr*orbs%norbp/),tmb%linmat%m%nfvctr*orbs%norbp, &
                 grad_cov_or_coeffp,grad,ldiis_coeff) 
         end if
      else  !steepest descent with curve fitting for line minimization
@@ -986,7 +989,8 @@ subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pre
 
   if(nproc > 1) then 
      call mpi_allgatherv(coeffp, tmb%linmat%m%nfvctr*orbs%norbp, mpi_double_precision, coeff_tmp, &
-          tmb%linmat%m%nfvctr*orbs%norb_par(:,0), tmb%linmat%m%nfvctr*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+          tmb%linmat%m%nfvctr*orbs%norb_par(:,0), tmb%linmat%m%nfvctr*orbs%isorb_par, &
+          mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
   else
      call vcopy(tmb%linmat%m%nfvctr*orbs%norb,coeffp(1,1),1,coeff_tmp(1,1),1)
   end if
@@ -1250,7 +1254,8 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
              ispin=2
          end if
          call dgemm('t', 'n', tmb%linmat%m%nfvctr, 1, tmb%linmat%m%nfvctr, 1.d0, skh(1,1,ispin), &
-              tmb%linmat%m%nfvctr, tmb%coeff(1,KSorbs%isorb+iorb), tmb%linmat%m%nfvctr, 0.d0, grad_cov(1,iorb), tmb%linmat%m%nfvctr)
+              tmb%linmat%m%nfvctr, tmb%coeff(1,KSorbs%isorb+iorb), tmb%linmat%m%nfvctr, &
+              0.d0, grad_cov(1,iorb), tmb%linmat%m%nfvctr)
      end do
   end if
 
@@ -1452,7 +1457,8 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
      end if
 
      call dgesv_parallel(iproc, tmb%orthpar%nproc_pdsyev, tmb%orthpar%blocksize_pdsyev, bigdft_mpi%mpi_comm, &
-          tmb%linmat%m%nfvctr, KSorbs%norb, tmb%linmat%ovrlp_%matrix, tmb%linmat%m%nfvctr, grad_full, tmb%linmat%m%nfvctr, info)
+          tmb%linmat%m%nfvctr, KSorbs%norb, tmb%linmat%ovrlp_%matrix, tmb%linmat%m%nfvctr, &
+          grad_full, tmb%linmat%m%nfvctr, info)
      call vcopy(tmb%linmat%m%nfvctr*KSorbs%norbp,grad_full(1,KSorbs%isorb+1),1,grad(1,1),1)
 
      call f_free(grad_full)

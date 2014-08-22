@@ -125,25 +125,21 @@ module foe_base
       select case (fieldname)
       case ("ef")
           if (.not.present(ind)) then
-              write(*,*) sqrt(-1.d0)
               stop 'foe_data_set_real: ind not present'
           end if
           foe_obj%ef(ind) = val
       case ("evlow")
           if (.not.present(ind)) then
-              write(*,*) sqrt(-1.d0)
               stop 'foe_data_set_real: ind not present'
           end if
           foe_obj%evlow(ind) = val
       case ("evhigh")
           if (.not.present(ind)) then
-              write(*,*) sqrt(-1.d0)
               stop 'foe_data_set_real: ind not present'
           end if
           foe_obj%evhigh(ind) = val
       case ("bisection_shift")
           if (.not.present(ind)) then
-              write(*,*) sqrt(-1.d0)
               stop 'foe_data_set_real: ind not present'
           end if
           foe_obj%bisection_shift(ind) = val
@@ -155,7 +151,6 @@ module foe_base
           foe_obj%ef_interpol_chargediff = val
       case ("charge")
           if (.not.present(ind)) then
-              write(*,*) sqrt(-1.d0)
               stop 'foe_data_set_real: ind not present'
           end if
           foe_obj%charge(ind) = val
@@ -178,25 +173,21 @@ module foe_base
       select case (fieldname)
       case ("ef")
           if (.not.present(ind)) then
-              write(*,*) sqrt(-1.d0)
               stop 'foe_data_get_real: ind not present'
           end if
           val = foe_obj%ef(ind)
       case ("evlow")
           if (.not.present(ind)) then
-              write(*,*) sqrt(-1.d0)
               stop 'foe_data_get_real: ind not present'
           end if
           val = foe_obj%evlow(ind)
       case ("evhigh")
           if (.not.present(ind)) then
-              write(*,*) sqrt(-1.d0)
               stop 'foe_data_get_real: ind not present'
           end if
           val = foe_obj%evhigh(ind)
       case ("bisection_shift")
           if (.not.present(ind)) then
-              write(*,*) sqrt(-1.d0)
               stop 'foe_data_get_real: ind not present'
           end if
           val = foe_obj%bisection_shift(ind)
@@ -208,7 +199,6 @@ module foe_base
           val = foe_obj%ef_interpol_chargediff
       case ("charge")
           if (.not.present(ind)) then
-              write(*,*) sqrt(-1.d0)
               stop 'foe_data_get_real: ind not present'
           end if
           val = foe_obj%charge(ind)

@@ -1900,7 +1900,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
              !!end do
              !!call dgemm('n', 'n', basis_orbs%norbp, norb, basis_orbs%norb, 1.d0, basis_overlap_mat%matrix(basis_orbs%isorb+1,1,1), &
              !!     basis_orbs%norb, coeff(1,1), basis_orbs%norb, 0.d0, coeff_tmp, basis_orbs%norbp)
-             call dgemm('n', 'n', basis_overlap%nfvctrp, norbx, basis_overlap%nfvctr, 1.d0, basis_overlap_mat%matrix(basis_overlap%isfvctr+1,1,ispin), &
+             call dgemm('n', 'n', basis_overlap%nfvctrp, norbx, basis_overlap%nfvctr, &
+                  1.d0, basis_overlap_mat%matrix(basis_overlap%isfvctr+1,1,ispin), &
                   basis_overlap%nfvctr, coeff(1,ist), basis_overlap%nfvctr, 0.d0, coeff_tmp, basis_overlap%nfvctrp)
              !!do iorb=1,norbx
              !!    do jorb=1,basis_overlap%nfvctrp
@@ -2129,8 +2130,10 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
             ! gather together
             if(nproc > 1) then
-               call mpi_allgatherv(coeff_tmp(1,1), basis_overlap%nfvctrp*norbx, mpi_double_precision, coefftrans(1,1), &
-                  norbx*basis_overlap%nfvctr_par(:), norbx*basis_overlap%isfvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+               call mpi_allgatherv(coeff_tmp(1,1), basis_overlap%nfvctrp*norbx, &
+                    mpi_double_precision, coefftrans(1,1), &
+                    norbx*basis_overlap%nfvctr_par(:), norbx*basis_overlap%isfvctr_par, &
+                    mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
             else
                call vcopy(basis_overlap%nfvctrp*norbx,coeff_tmp(1,1),1,coefftrans(1,1),1)
             end if
@@ -2176,7 +2179,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
             coeff_tmp=0.d0
             !!call dgemm('n', 'n', basis_orbs%norbp, norb, basis_orbs%norb, 1.d0, basis_overlap_mat%matrix(basis_orbs%isorb+1,1,1), &
             !!     basis_orbs%norb, coeff(1,1), basis_orbs%norb, 0.d0, coeff_tmp, basis_orbs%norbp)
-            call dgemm('n', 'n', basis_overlap%nfvctrp, norbx, basis_overlap%nfvctr, 1.d0, basis_overlap_mat%matrix(basis_overlap%isfvctr+1,1,1), &
+            call dgemm('n', 'n', basis_overlap%nfvctrp, norbx, basis_overlap%nfvctr, &
+                 1.d0, basis_overlap_mat%matrix(basis_overlap%isfvctr+1,1,1), &
                  basis_overlap%nfvctr, coeff(1,1), basis_overlap%nfvctr, 0.d0, coeff_tmp, basis_overlap%nfvctrp)
             !!call dgemm('t', 'n', norb, norb, basis_orbs%norbp, 1.d0, coeff(basis_orbs%isorb+1,1), &
             !!     basis_orbs%norb, coeff_tmp, basis_orbs%norbp, 0.d0, ovrlp_coeff, norb)
@@ -2490,7 +2494,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                          0.d0, ksk(1,1), tmb%linmat%l%nfvctr)
           end if
           if (tmb%linmat%l%nfvctrp>0) then
-              call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, 1.d0, ks(1,1), tmb%linmat%l%nfvctr, &
+              call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
+                         1.d0, ks(1,1), tmb%linmat%l%nfvctr, &
                          ksk(1,1), tmb%linmat%l%nfvctr, 0.d0, ksksk(1,1), tmb%linmat%l%nfvctr)
           end if
 
