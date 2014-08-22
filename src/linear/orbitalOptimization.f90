@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, lzd, hphi, phi, ldiis, experimental_mode)
+subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, nspin, lzd, hphi, phi, ldiis, experimental_mode)
 
   use module_base
   use module_types
@@ -16,7 +16,7 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, lzd, hphi, phi, ldiis, expe
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
+  integer,intent(in):: iproc, nproc, nspin
   integer,intent(in):: npsidim
   type(orbitals_data),intent(in):: orbs
   type(local_zone_descriptors),intent(in):: lzd
@@ -28,14 +28,31 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, lzd, hphi, phi, ldiis, expe
 
   ! Local variables
   integer:: iorb, jorb, ist, ilr, ncount, jst, i, j, mi, ist1, ist2, jlr, istat, info
-  integer:: mj, jj, k, jjst, isthist, iall, ierr
+  integer:: mj, jj, k, jjst, isthist, iall, ierr, iiorb, ispin, iispin
   real(8):: ddot
-  real(8),dimension(:,:),allocatable:: mat, totmat
+  real(8),dimension(:,:,:),allocatable:: totmat
+  real(8),dimension(:,:),allocatable:: mat
   real(8),dimension(:),allocatable:: rhs
   integer,dimension(:),allocatable:: ipiv
   character(len=*),parameter:: subname='optimizeDIIS'
 
   call timing(iproc,'optimize_DIIS ','ON')
+
+
+  !!ist=0
+  !!do iorb=1,orbs%norbp
+  !!    iiorb=orbs%isorb+iorb
+  !!    ilr=orbs%inwhichlocreg(iiorb)
+  !!    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+  !!    do i=1,ncount
+  !!        ist=ist+1
+  !!        if (orbs%spinsgn(iiorb)>0.d0) then
+  !!            write(3101,'(a,2i10,f8.1,2es16.7)') 'iiorb, ist, spin, vals', iiorb, ist, orbs%spinsgn(iiorb), phi(ist), hphi(ist)
+  !!        else
+  !!            write(3102,'(a,2i10,f8.1,2es16.7)') 'iiorb, ist, spin, val', iiorb, ist, orbs%spinsgn(iiorb), phi(ist), hphi(ist)
+  !!        end if
+  !!    end do
+  !!end do
 
 
   ! Allocate the local arrays.
@@ -119,117 +136,140 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, lzd, hphi, phi, ldiis, expe
   end do
 
   ! Sum up all partial matrices
-  totmat = f_malloc((/ ldiis%isx, ldiis%isx /),id='totmat')
-  totmat=0.d0
-  do iorb=1,orbs%norbp
-      totmat(:,:)=totmat(:,:)+ldiis%mat(:,:,iorb)
+  totmat = f_malloc0((/ldiis%isx,ldiis%isx,nspin/),id='totmat')
+
+  do ispin=1,nspin
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          iispin=orbs%spinsgn(iiorb)
+          if (iispin==ispin) then
+              totmat(:,:,ispin)=totmat(:,:,ispin)+ldiis%mat(:,:,iorb)
+          end if
+      end do
   end do
 
   if (nproc > 1) then
-    call mpiallred(totmat(1,1), ldiis%isx**2, mpi_sum, bigdft_mpi%mpi_comm)
+    call mpiallred(totmat(1,1,1), nspin*ldiis%isx**2, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
-  ist=1
-  do iorb=1,orbs%norbp
-    
-    ! Copy the matrix to an auxiliary array and fill with the zeros and ones.
-    do i=1,min(ldiis%isx,ldiis%is)
-        mat(i,min(ldiis%isx,ldiis%is)+1)=1.d0
-        rhs(i)=0.d0
-        do j=i,min(ldiis%isx,ldiis%is)
-            if (experimental_mode) then
-                !if (iproc==0) write(*,*) 'WARNING: TAKING ONE SINGLE MATRIX!!'
-                mat(i,j)=totmat(i,j)
-            else
-                mat(i,j)=ldiis%mat(i,j,iorb)
-            end if
-            !if(iproc==0) write(*,'(a,2i8,es14.3)') 'i, j, mat(i,j)', i, j, mat(i,j)
-            !!write(*,'(a,3i8,es14.3)') 'proc, i, j, mat(i,j)', iproc, i, j, mat(i,j)
+
+  do ispin=1,nspin
+      ist=1
+      do iorb=1,orbs%norbp
+
+        iiorb=orbs%isorb+iorb
+        if (orbs%spinsgn(iiorb)>0.d0) then
+            iispin=1
+        else
+            iispin=2
+        end if
+        
+        ! Copy the matrix to an auxiliary array and fill with the zeros and ones.
+        do i=1,min(ldiis%isx,ldiis%is)
+            mat(i,min(ldiis%isx,ldiis%is)+1)=1.d0
+            rhs(i)=0.d0
+            do j=i,min(ldiis%isx,ldiis%is)
+                if (experimental_mode) then
+                    !if (iproc==0) write(*,*) 'WARNING: TAKING ONE SINGLE MATRIX!!'
+                    mat(i,j)=totmat(i,j,ispin)
+                else
+                    mat(i,j)=ldiis%mat(i,j,iorb)
+                end if
+                !if(iproc==0) write(*,'(a,2i8,es14.3)') 'i, j, mat(i,j)', i, j, mat(i,j)
+                !!write(*,'(a,3i8,es14.3)') 'proc, i, j, mat(i,j)', iproc, i, j, mat(i,j)
+            end do
         end do
-    end do
-    mat(min(ldiis%isx,ldiis%is)+1,min(ldiis%isx,ldiis%is)+1)=0.d0
-    rhs(min(ldiis%isx,ldiis%is)+1)=1.d0
+        mat(min(ldiis%isx,ldiis%is)+1,min(ldiis%isx,ldiis%is)+1)=0.d0
+        rhs(min(ldiis%isx,ldiis%is)+1)=1.d0
 
-    !!if (iorb==1) then
-    !!  do i=1,min(ldiis%isx,ldiis%is)
-    !!    do j=1,min(ldiis%isx,ldiis%is)
-    !!      if (iproc==0) write(*,'(a,2i6,es14.5)') 'i,j,mat(i,j)',i,j,mat(i,j)
-    !!    end do
-    !!  end do
-    !!  write(*,*) '----------------------'
-    !!end if
+        !!if (iorb==1) then
+        !!  do i=1,min(ldiis%isx,ldiis%is)
+        !!    do j=1,min(ldiis%isx,ldiis%is)
+        !!      if (iproc==0) write(*,'(a,2i6,es14.5)') 'i,j,mat(i,j)',i,j,mat(i,j)
+        !!    end do
+        !!  end do
+        !!  write(*,*) '----------------------'
+        !!end if
 
-    !make the matrix symmetric (hermitian) to use DGESV (ZGESV) (no work array, more stable)
-    do i=1,min(ldiis%isx,ldiis%is)+1
-       do j=1,min(ldiis%isx,ldiis%is)+1
-          mat(j,i) = mat(i,j)
-       end do
-    end do
-    !!if (iorb==1) then
-    !!  do i=1,min(ldiis%isx,ldiis%is)
-    !!    do j=1,min(ldiis%isx,ldiis%is)
-    !!      if (iproc==0) write(*,'(a,2i6,es14.5)') 'i,j,mat(i,j)',i,j,mat(i,j)
-    !!    end do
-    !!  end do
-    !!end if
-    ! solve linear system, supposing it is general. More stable, no need of work array
-    if(ldiis%is>1) then
-     call dgesv(min(ldiis%isx,ldiis%is)+1,1,mat(1,1),ldiis%isx+1,  & 
-                   ipiv(1),rhs(1),ldiis%isx+1,info)
-     if (info /= 0) then
-        write(*,'(a,i0)') 'ERROR in dgesv (subroutine optimizeDIIS), info=', info
-        stop
-     end if
-    else
-       rhs(1)=1.d0
-    endif
+        !make the matrix symmetric (hermitian) to use DGESV (ZGESV) (no work array, more stable)
+        do i=1,min(ldiis%isx,ldiis%is)+1
+           do j=1,min(ldiis%isx,ldiis%is)+1
+              mat(j,i) = mat(i,j)
+           end do
+        end do
+        !!if (iorb==1) then
+        !!  do i=1,min(ldiis%isx,ldiis%is)
+        !!    do j=1,min(ldiis%isx,ldiis%is)
+        !!      if (iproc==0) write(*,'(a,2i6,es14.5)') 'i,j,mat(i,j)',i,j,mat(i,j)
+        !!    end do
+        !!  end do
+        !!end if
+        ! solve linear system, supposing it is general. More stable, no need of work array
+        if(ldiis%is>1) then
+         call dgesv(min(ldiis%isx,ldiis%is)+1,1,mat(1,1),ldiis%isx+1,  & 
+                       ipiv(1),rhs(1),ldiis%isx+1,info)
+         if (info /= 0) then
+            write(*,'(a,i0)') 'ERROR in dgesv (subroutine optimizeDIIS), info=', info
+            stop
+         end if
+        else
+           rhs(1)=1.d0
+        endif
 
 
-    ! Solve the linear system
-    !!if(ldiis%is>1) then
-    !!   call dsysv('u', min(ldiis%isx,ldiis%is)+1, 1, mat, ldiis%isx+1,  & 
-    !!        ipiv, rhs(1), ldiis%isx+1, work, lwork, info)
-    !!   
-    !!   if (info /= 0) then
-    !!      write(*,'(a,i0)') 'ERROR in dsysv (subroutine optimizeDIIS), info=', info
-    !!      stop
-    !!   end if
-    !!else
-    !!   rhs(1)=1.d0
-    !!endif
+        ! Solve the linear system
+        !!if(ldiis%is>1) then
+        !!   call dsysv('u', min(ldiis%isx,ldiis%is)+1, 1, mat, ldiis%isx+1,  & 
+        !!        ipiv, rhs(1), ldiis%isx+1, work, lwork, info)
+        !!   
+        !!   if (info /= 0) then
+        !!      write(*,'(a,i0)') 'ERROR in dsysv (subroutine optimizeDIIS), info=', info
+        !!      stop
+        !!   end if
+        !!else
+        !!   rhs(1)=1.d0
+        !!endif
 
-    ! Make a new guess for the orbital.
-    !ilr=onWhichAtom(iorb)
-    ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
-    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-    call to_zero(ncount, phi(ist))
-    isthist=max(1,ldiis%is-ldiis%isx+1)
-    jj=0
-    jst=0
-    do jorb=1,iorb-1
-        !jlr=onWhichAtom(jorb)
-        jlr=orbs%inwhichlocreg(orbs%isorb+jorb)
-        ncount=lzd%llr(jlr)%wfd%nvctr_c+7*lzd%llr(jlr)%wfd%nvctr_f
-        jst=jst+ncount*ldiis%isx
-    end do
-    !!write(2000+iproc,'(a,i8,100es9.2)') 'iproc, rhs',iproc, rhs(1:(ldiis%is-isthist+1))
-    do j=isthist,ldiis%is
-        jj=jj+1
-        mj=mod(j-1,ldiis%isx)+1
+        ! Make a new guess for the orbital.
         !ilr=onWhichAtom(iorb)
         ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
         ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-        jjst=jst+(mj-1)*ncount
-        !!if (iproc==0) write(*,*) 'jj, rhs(jj)', jj, rhs(jj)
-        do k=1,ncount
-            phi(ist+k-1) = phi(ist+k-1) + rhs(jj)*(ldiis%phiHist(jjst+k)-ldiis%hphiHist(jjst+k))
+        if (iispin==ispin) then
+            call to_zero(ncount, phi(ist))
+        end if
+        isthist=max(1,ldiis%is-ldiis%isx+1)
+        jj=0
+        jst=0
+        do jorb=1,iorb-1
+            !jlr=onWhichAtom(jorb)
+            jlr=orbs%inwhichlocreg(orbs%isorb+jorb)
+            ncount=lzd%llr(jlr)%wfd%nvctr_c+7*lzd%llr(jlr)%wfd%nvctr_f
+            jst=jst+ncount*ldiis%isx
         end do
-    end do
+        !!write(2000+iproc,'(a,i8,100es9.2)') 'iproc, rhs',iproc, rhs(1:(ldiis%is-isthist+1))
+        do j=isthist,ldiis%is
+            jj=jj+1
+            mj=mod(j-1,ldiis%isx)+1
+            !ilr=onWhichAtom(iorb)
+            ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
+            ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+            jjst=jst+(mj-1)*ncount
+            !!if (iproc==0) write(*,*) 'jj, rhs(jj)', jj, rhs(jj)
+            if (iispin==ispin) then
+                do k=1,ncount
+                    phi(ist+k-1) = phi(ist+k-1) + rhs(jj)*(ldiis%phiHist(jjst+k)-ldiis%hphiHist(jjst+k))
+                    !!write(3300+ispin,'(a,3i8,4es14.7)') 'iorb, iiorb, k, phi(ist+k-1), rhs(jj), ldiis%phiHist(jjst+k), ldiis%hphiHist(jjst+k)', &
+                    !!    iorb, iiorb, k, phi(ist+k-1), rhs(jj), ldiis%phiHist(jjst+k), ldiis%hphiHist(jjst+k)
+                end do
+            end if
+        end do
 
-    !ilr=onWhichAtom(iorb)
-    ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
-    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
-    ist=ist+ncount
+        !ilr=onWhichAtom(iorb)
+        ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
+        ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+        ist=ist+ncount
+      end do
+
   end do
 
   call f_free(totmat)
@@ -239,6 +279,21 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, lzd, hphi, phi, ldiis, expe
   call f_free(ipiv)
 
   call timing(iproc,'optimize_DIIS ','OF')
+
+  !!ist=0
+  !!do iorb=1,orbs%norbp
+  !!    iiorb=orbs%isorb+iorb
+  !!    ilr=orbs%inwhichlocreg(iiorb)
+  !!    ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+  !!    do i=1,ncount
+  !!        ist=ist+1
+  !!        if (orbs%spinsgn(iiorb)>0.d0) then
+  !!            write(3201,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, val', iiorb, ist, orbs%spinsgn(iiorb), phi(ist)
+  !!        else
+  !!            write(3202,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, val', iiorb, ist, orbs%spinsgn(iiorb), phi(ist)
+  !!        end if
+  !!    end do
+  !!end do
 
 end subroutine optimizeDIIS
 

@@ -468,7 +468,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
 
   ! Local variables
   integer:: istat, iall, ierr, iialpha, jorb
-  integer:: iorb, ii, iseg, isegstart, isegend
+  integer:: iorb, ii, iseg, isegstart, isegend, is, ie, ishift, ispin
   integer:: jat, jdir, ibeta
   !!integer :: ialpha, iat, iiorb
   real(kind=8) :: kernel, ekernel
@@ -489,8 +489,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
 
   !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
   !!     tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
-  call start_onesided_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-       tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
+  call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,1), denspot%rhov, &
+       tmb%ham_descr%comgp%nspin*tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
 
   allocate(confdatarrtmp(tmb%orbs%norbp))
   call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
@@ -601,32 +601,44 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
    call to_zero(3*at%astruct%nat, fpulay(1,1))
    do jdir=1,3
      !do ialpha=1,tmb%orbs%norb
-     if (tmb%orbs%norbp>0) then
-         isegstart=dham(jdir)%istsegline(tmb%orbs%isorb_par(iproc)+1)
-         if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
-             isegend=dham(jdir)%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
-         else
-             isegend=dham(jdir)%nseg
-         end if
-         do iseg=isegstart,isegend
-              ii=dham(jdir)%keyv(iseg)-1
-              do jorb=dham(jdir)%keyg(1,iseg),dham(jdir)%keyg(2,iseg)
-                  ii=ii+1
-                  iialpha = (jorb-1)/tmb%orbs%norb + 1
-                  ibeta = jorb - (iialpha-1)*tmb%orbs%norb
-                  jat=tmb%orbs%onwhichatom(iialpha)
-                  kernel = 0.d0
-                  ekernel= 0.d0
-                  do iorb=1,orbs%norb
-                      kernel  = kernel+orbs%occup(iorb)*tmb%coeff(iialpha,iorb)*tmb%coeff(ibeta,iorb)
-                      ekernel = ekernel+tmb%orbs%eval(iorb)*orbs%occup(iorb) &
-                           *tmb%coeff(iialpha,iorb)*tmb%coeff(ibeta,iorb) 
+     do ispin=1,tmb%linmat%m%nspin
+         ishift=(ispin-1)*tmb%linmat%m%nvctr
+         if (tmb%linmat%m%nfvctrp>0) then
+             isegstart=dham(jdir)%istsegline(tmb%linmat%m%isfvctr_par(iproc)+1)
+             if (tmb%linmat%m%isfvctr+tmb%linmat%m%nfvctrp<tmb%linmat%m%nfvctr) then
+                 isegend=dham(jdir)%istsegline(tmb%linmat%m%isfvctr_par(iproc+1)+1)-1
+             else
+                 isegend=dham(jdir)%nseg
+             end if
+             do iseg=isegstart,isegend
+                  ii=dham(jdir)%keyv(iseg)-1
+                  do jorb=dham(jdir)%keyg(1,iseg),dham(jdir)%keyg(2,iseg)
+                      ii=ii+1
+                      iialpha = (jorb-1)/tmb%linmat%m%nfvctr + 1
+                      ibeta = jorb - (iialpha-1)*tmb%linmat%m%nfvctr
+                      jat=tmb%orbs%onwhichatom(iialpha)
+                      kernel = 0.d0
+                      ekernel= 0.d0
+                      if (ispin==1) then
+                          is=1
+                          ie=orbs%norbu
+                      else
+                          is=orbs%norbu+1
+                          ie=orbs%norb
+                      end if
+                      do iorb=is,ie
+                          kernel  = kernel+orbs%occup(iorb)*tmb%coeff(iialpha,iorb)*tmb%coeff(ibeta,iorb)
+                          !!ekernel = ekernel+tmb%orbs%eval(iorb)*orbs%occup(iorb) &
+                          !!     *tmb%coeff(iialpha,iorb)*tmb%coeff(ibeta,iorb) 
+                          ekernel = ekernel+orbs%eval(iorb)*orbs%occup(iorb) &
+                               *tmb%coeff(iialpha,iorb)*tmb%coeff(ibeta,iorb) 
+                      end do
+                      fpulay(jdir,jat)=fpulay(jdir,jat)+&
+                             2.0_gp*(kernel*dham_(jdir)%matrix_compr(ishift+ii)-ekernel*dovrlp_(jdir)%matrix_compr(ishift+ii))
                   end do
-                  fpulay(jdir,jat)=fpulay(jdir,jat)+&
-                         2.0_gp*(kernel*dham_(jdir)%matrix_compr(ii)-ekernel*dovrlp_(jdir)%matrix_compr(ii))
-              end do
-         end do
-     end if
+             end do
+         end if
+      end do
    end do 
 
    if (nproc > 1) then

@@ -551,8 +551,8 @@ module module_types
   type, public :: orbitals_data 
      integer :: norb          !< Total number of orbitals per k point
      integer :: norbp         !< Total number of orbitals for the given processors
-     integer :: norbup        !< Total number of up orbitals for the given processors
-     integer :: norbdp        !< Total number of down orbitals for the given processors
+     integer :: norbup        !< Total number of orbitals if there were only up orbitals
+     integer :: norbdp        !< probably to be deleted...
      integer :: norbu,norbd,nspin,nspinor,isorb,isorbu,isorbd
      integer :: nkpts,nkptsp,iskpts
      real(gp) :: efermi,HLgap,eTS
@@ -664,8 +664,8 @@ module module_types
       type(sparse_matrix) :: s !< small: sparsity pattern given by support function cutoff
       type(sparse_matrix) :: m !< medium: sparsity pattern given by SHAMOP cutoff
       type(sparse_matrix) :: l !< medium: sparsity pattern given by kernel cutoff
-      type(sparse_matrix) :: ks !< sparsity pattern for the KS orbitals (i.e. dense)
-      type(sparse_matrix) :: ks_e !< sparsity pattern for the KS orbitals including extra stated (i.e. dense)
+      type(sparse_matrix),dimension(:),pointer :: ks !< sparsity pattern for the KS orbitals (i.e. dense); spin up and down
+      type(sparse_matrix),dimension(:),pointer :: ks_e !< sparsity pattern for the KS orbitals including extra stated (i.e. dense); spin up and down
       type(matrices) :: ham_, ovrlp_, kernel_
   end type linear_matrices
 

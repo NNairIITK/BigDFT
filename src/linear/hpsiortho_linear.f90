@@ -51,7 +51,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i
-  integer :: lwork, info
+  integer :: lwork, info, ishift,ispin
   real(kind=8) :: ddot, tt, fnrmOvrlp_tot, fnrm_tot, fnrmold_tot, tt2
   character(len=*), parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8), dimension(:), pointer :: hpsittmp_c, hpsittmp_f
@@ -85,6 +85,14 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! by default no quick exit
   energy_increased=.false.
 
+  if (target_function==TARGET_FUNCTION_IS_ENERGY .and. iproc==0) then
+      !!do i=1,size(hpsit_c)
+      !!    write(4231,'(a,i8,2es14.6)') 'i, tmb%ham_descr%psit_c(i), hpsit_c(i)', i, tmb%ham_descr%psit_c(i), hpsit_c(i)
+      !!end do
+      !!do i=1,size(hpsit_f)
+      !!    write(4232,'(a,i8,2es14.6)') 'i, tmb%ham_descr%psit_f(i), hpsit_f(i)', i, tmb%ham_descr%psit_f(i), hpsit_f(i)
+      !!end do
+  end if
 
   hpsittmp_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='hpsittmp_c')
   hpsittmp_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='hpsittmp_f')
@@ -99,28 +107,36 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call timing(iproc,'eglincomms','ON')
-          kernel_compr_tmp = f_malloc_ptr(tmb%linmat%l%nvctr,id='kernel_compr_tmp')
-          call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
+          kernel_compr_tmp = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=SPARSE_FULL,id='kernel_compr_tmp')
+          call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
+          do ispin=1,tmb%linmat%l%nspin
+              ishift=(ispin-1)*tmb%linmat%l%nvctr
               do ii=1,tmb%linmat%l%nvctr
                       iiorb = tmb%linmat%l%orb_from_index(1,ii)
                       jjorb = tmb%linmat%l%orb_from_index(2,ii)
                   if(iiorb==jjorb) then
-                      tmb%linmat%kernel_%matrix_compr(ii)=0.d0
+                      tmb%linmat%kernel_%matrix_compr(ii+ishift)=0.d0
                   else
-                      tmb%linmat%kernel_%matrix_compr(ii)=kernel_compr_tmp(ii)
+                      tmb%linmat%kernel_%matrix_compr(ii+ishift)=kernel_compr_tmp(ii+ishift)
                   end if
               end do
-          !end do
+          end do
 
           ist=1
           do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
               ilr=tmb%orbs%inwhichlocreg(iorb)
+              if (tmb%orbs%spinsgn(iorb)>0.d0) then
+                  ispin=1
+              else
+                  ispin=2
+              end if
               do ii=1,tmb%linmat%l%nvctr
                       iiorb = tmb%linmat%l%orb_from_index(1,ii)
                       jjorb = tmb%linmat%l%orb_from_index(2,ii)
+                      ishift=(ispin-1)*tmb%linmat%l%nvctr
                       if(iiorb==jjorb .and. iiorb==iorb) then
                           ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
-                          call dscal(ncount, kernel_compr_tmp(ii), tmb%hpsi(ist), 1)
+                          call dscal(ncount, kernel_compr_tmp(ii+ishift), tmb%hpsi(ist), 1)
                           ist=ist+ncount
                       end if
               end do
@@ -131,13 +147,33 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
                tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           ! copy correct kernel back
-          call vcopy(tmb%linmat%l%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+          call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
           call f_free_ptr(kernel_compr_tmp)
       else
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
                tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
       end if
   end if
+
+  ! WARNING: TO BE CHECKED!!!!
+  ! For the non polarized case, a factor of two is already included in the
+  ! kernel. Therefore explicitely add this factor for the polarized case 
+  ! in order to make the two cases analogous.
+  if (tmb%linmat%l%nspin==2 .and. target_function==TARGET_FUNCTION_IS_ENERGY) then
+      if (iproc==0) call yaml_warning('multiply the gradient by 2.0, check this!')
+      hpsit_c=2.d0*hpsit_c
+      hpsit_f=2.d0*hpsit_f
+  end if
+
+  !!if (target_function==TARGET_FUNCTION_IS_ENERGY .and. iproc==0) then
+  !!    ist=0
+  !!    do ispin=1,tmb%linmat%l%nspin
+  !!        do i=1,tmb%linmat%l%nvctr
+  !!            ist=ist+1
+  !!            write(4241,'(a,3i8,es14.6)') 'ispin, i, ist, tmb%linmat%kernel_%matrix_compr(ist)', ispin, i, ist, tmb%linmat%kernel_%matrix_compr(ist)
+  !!        end do
+  !!    end do
+  !!end if
 
 
   if (correction_co_contra) then
@@ -180,6 +216,28 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   end if
 
 
+  !!if (target_function==TARGET_FUNCTION_IS_ENERGY .and. iproc==0) then
+  !!    ist=0
+  !!    do iorb=1,tmb%orbs%norbp
+  !!        iiorb=tmb%orbs%isorb+iorb
+  !!        ilr=tmb%orbs%inwhichlocreg(iiorb)
+  !!        ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
+  !!        do i=1,ncount
+  !!            ist=ist+1
+  !!            if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+  !!                write(4211,'(a,2i10,f8.1,2es16.7)') 'iiorb, ist, spin, vals', iiorb, ist, tmb%orbs%spinsgn(iiorb), tmb%ham_descr%psi(ist), tmb%hpsi(ist)
+  !!            else
+  !!                write(4212,'(a,2i10,f8.1,2es16.7)') 'iiorb, ist, spin, val', iiorb, ist, tmb%orbs%spinsgn(iiorb), tmb%ham_descr%psi(ist), tmb%hpsi(ist)
+  !!            end if
+  !!        end do
+  !!    end do
+  !!    do i=1,size(hpsit_c)
+  !!        write(4221,'(a,i8,2es14.6)') 'i, tmb%ham_descr%psit_c(i), hpsit_c(i)', i, tmb%ham_descr%psit_c(i), hpsit_c(i)
+  !!    end do
+  !!    do i=1,size(hpsit_f)
+  !!        write(4222,'(a,i8,2es14.6)') 'i, tmb%ham_descr%psit_f(i), hpsit_f(i)', i, tmb%ham_descr%psit_f(i), hpsit_f(i)
+  !!    end do
+  !!end if
 
   call orthoconstraintNonorthogonal(iproc, nproc, tmb%ham_descr%lzd, &
        tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
@@ -190,10 +248,43 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        overlap_calculated, experimental_mode, norder_taylor, max_inversion_error, &
        tmb%npsidim_orbs, tmb%lzd, hpsi_noprecond)
 
+  !!if (target_function==TARGET_FUNCTION_IS_ENERGY .and. iproc==0) then
+  !!    ist=0
+  !!    do iorb=1,tmb%orbs%norbp
+  !!        iiorb=tmb%orbs%isorb+iorb
+  !!        ilr=tmb%orbs%inwhichlocreg(iiorb)
+  !!        ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
+  !!        do i=1,ncount
+  !!            ist=ist+1
+  !!            if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+  !!                write(4201,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, vals', iiorb, ist, tmb%orbs%spinsgn(iiorb), tmb%hpsi(ist)
+  !!            else
+  !!                write(4202,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, val', iiorb, ist, tmb%orbs%spinsgn(iiorb), tmb%hpsi(ist)
+  !!            end if
+  !!        end do
+  !!    end do
+  !!end if
 
 
   call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
        tmb%orbs, tmb%hpsi, hpsi_small)
+
+  !!if (target_function==TARGET_FUNCTION_IS_ENERGY .and. iproc==0) then
+  !!    ist=0
+  !!    do iorb=1,tmb%orbs%norbp
+  !!        iiorb=tmb%orbs%isorb+iorb
+  !!        ilr=tmb%orbs%inwhichlocreg(iiorb)
+  !!        ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!        do i=1,ncount
+  !!            ist=ist+1
+  !!            if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+  !!                write(4301,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, vals', iiorb, ist, tmb%orbs%spinsgn(iiorb), hpsi_small(ist)
+  !!            else
+  !!                write(4302,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, val', iiorb, ist, tmb%orbs%spinsgn(iiorb), hpsi_small(ist)
+  !!            end if
+  !!        end do
+  !!    end do
+  !!end if
 
 
   ! Calculate trace (or band structure energy, resp.)
@@ -204,6 +295,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      trH = trH + tmb%linmat%ham_%matrix_compr(ii)
   end do
   call timing(iproc,'eglincomms','OF')
+
+  ! WARNING: TO BE CHECKED!!!!
+  ! For the polarized case, a factor of two was already multiplied to the
+  ! gradient (see above). Therefore now undo this again for the band structure
+  ! energy in order to get the analogous result to the non-polarized case.
+  if (tmb%linmat%l%nspin==2 .and. target_function==TARGET_FUNCTION_IS_ENERGY) then
+      if (iproc==0) call yaml_warning('divide the band stucture energy by 2.0, check this!')
+      trH=0.5d0*trH
+  end if
 
   ! trH is now the total energy (name is misleading, correct this)
   ! Multiply by 2 because when minimizing trace we don't have kernel
@@ -358,6 +458,23 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero,&
           precond_convol_workarrays, precond_workarrays)
   end if
+
+  !!if (target_function==TARGET_FUNCTION_IS_ENERGY .and. iproc==0) then
+  !!    ist=0
+  !!    do iorb=1,tmb%orbs%norbp
+  !!        iiorb=tmb%orbs%isorb+iorb
+  !!        ilr=tmb%orbs%inwhichlocreg(iiorb)
+  !!        ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!        do i=1,ncount
+  !!            ist=ist+1
+  !!            if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+  !!                write(4401,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, vals', iiorb, ist, tmb%orbs%spinsgn(iiorb), hpsi_small(ist)
+  !!            else
+  !!                write(4402,'(a,2i10,f8.1,es16.7)') 'iiorb, ist, spin, val', iiorb, ist, tmb%orbs%spinsgn(iiorb), hpsi_small(ist)
+  !!            end if
+  !!        end do
+  !!    end do
+  !!end if
 
   if (iproc==0) then
       call yaml_map('Preconditioning',.true.)
@@ -547,7 +664,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   ! Improve the orbitals, depending on the choice made above.
   if (present(psidiff)) call vcopy(tmb%npsidim_orbs, tmb%psi(1), 1, psidiff(1), 1)
   if(.not.ldiis%switchSD) then
-      call improveOrbitals(iproc, nproc, tmb, ldiis, alpha, hpsi_small, experimental_mode)
+      call improveOrbitals(iproc, nproc, tmb, tmb%linmat%s%nspin, ldiis, alpha, hpsi_small, experimental_mode)
   else
       if (iproc==0) then
           call yaml_warning('no improvement of the orbitals, recalculate gradient')

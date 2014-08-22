@@ -1006,11 +1006,18 @@ subroutine copy_linear_matrices(linmat_in, linmat_out)
   type(linear_matrices),intent(in) :: linmat_in
   type(linear_matrices),intent(out) :: linmat_out
 
+  ! Local variables
+  integer :: ispin
+
   call copy_sparse_matrix(linmat_in%s, linmat_out%s)
   call copy_sparse_matrix(linmat_in%m, linmat_out%m)
   call copy_sparse_matrix(linmat_in%l, linmat_out%l)
-  call copy_sparse_matrix(linmat_in%ks, linmat_out%ks)
-  call copy_sparse_matrix(linmat_in%ks_e, linmat_out%ks_e)
+  allocate(linmat_in%ks(linmat_in%l%nspin))
+  allocate(linmat_in%ks_e(linmat_in%l%nspin))
+  do ispin=1,linmat_in%l%nspin
+      call copy_sparse_matrix(linmat_in%ks(ispin), linmat_out%ks(ispin))
+      call copy_sparse_matrix(linmat_in%ks_e(ispin), linmat_out%ks_e(ispin))
+  end do
   call copy_matrices(linmat_in%ham_, linmat_out%ham_)
   call copy_matrices(linmat_in%ovrlp_, linmat_out%ovrlp_)
   call copy_matrices(linmat_in%kernel_, linmat_out%kernel_)

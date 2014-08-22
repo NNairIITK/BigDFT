@@ -68,13 +68,43 @@ contains
       integer,intent(in) :: iorb, jorb
     
       ! Local variables
+      integer :: ii, ispin, iiorb, jjorb
+      logical :: lispin, ljspin
+
+      !ii=(jorb-1)*sparsemat%nfvctr+iorb
+      !ispin=(ii-1)/sparsemat%nfvctr**2+1 !integer division to get the spin (1 for spin up (or non polarized), 2 for spin down)
+
+      ! Determine in which "spin matrix" this entry is located
+      lispin = (iorb>sparsemat%nfvctr)
+      ljspin = (jorb>sparsemat%nfvctr)
+      if (any((/lispin,ljspin/))) then
+          if (all((/lispin,ljspin/))) then
+              ! both indices belong to the second spin matrix
+              ispin=2
+          else
+              ! there seems to be a mix up the spin matrices
+              write(*,*) 'iorb, jorb', iorb, jorb
+              write(*,*) sqrt(-1.d0)
+              stop 'matrixindex_in_compressed: problem in determining spin'
+          end if
+      else
+          ! both indices belong to the first spin matrix
+          ispin=1
+      end if
+      iiorb=mod(iorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
+      jjorb=mod(jorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
     
       if (sparsemat%store_index) then
           ! Take the value from the array
-          matrixindex_in_compressed = sparsemat%matrixindex_in_compressed_arr(iorb,jorb)
+          matrixindex_in_compressed = sparsemat%matrixindex_in_compressed_arr(iiorb,jjorb)
       else
           ! Recalculate the value
-          matrixindex_in_compressed = compressed_index_fn(iorb, jorb, sparsemat%nfvctr, sparsemat)
+          matrixindex_in_compressed = compressed_index_fn(iiorb, jjorb, sparsemat%nfvctr, sparsemat)
+      end if
+
+      ! Add the spin shift (i.e. the index is in the spin polarized matrix which is at the end)
+      if (ispin==2) then
+          matrixindex_in_compressed = matrixindex_in_compressed + sparsemat%nvctr
       end if
     
     contains
@@ -378,6 +408,7 @@ contains
           call nseg_perline(norbu, lut, sparsemat%nseg, sparsemat%nvctr, sparsemat%nsegline(iiorb))
       end do
 
+
       if (nproc>1) then
           call mpiallred(sparsemat%nvctr, 1, mpi_sum, bigdft_mpi%mpi_comm)
           call mpiallred(sparsemat%nseg, 1, mpi_sum, bigdft_mpi%mpi_comm)
@@ -435,7 +466,6 @@ contains
           ! store the indices of the matrices in the sparse format
           sparsemat%store_index=.true.
 
-          write(*,*) 'norbu, size(sparsemat%istsegline)', norbu, size(sparsemat%istsegline)
     
           ! initialize sparsemat%matrixindex_in_compressed
           !$omp parallel do default(private) shared(sparsemat,norbu) 
@@ -551,8 +581,6 @@ contains
     
       call timing(iproc,'init_matrCompr','OF')
 
-
-      write(*,*) 'at end of init_sparse_matrix'
 
       contains
 

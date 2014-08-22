@@ -107,8 +107,11 @@ module fermi_level
       integer :: internal_info
 
 
+      integer :: iproc, ierr
+
       ! Make sure that the bounds for the bisection are negative and positive
       charge_diff = sumn-f%target_charge
+      call mpi_comm_rank(mpi_comm_world, iproc, ierr)
       if (f%adjust_lower_bound) then
           if (charge_diff <= 0.d0) then
               ! Lower bound okay
