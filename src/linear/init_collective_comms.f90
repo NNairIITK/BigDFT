@@ -496,7 +496,6 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   end if
 
 
-  close(880)
 
   !SM: check if the modulo operations take a lot of time. If so, try to use an
   !auxiliary array with shifted bounds in order to access smat%matrixindex_in_compressed_fortransposed
