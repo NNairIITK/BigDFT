@@ -989,12 +989,18 @@ subroutine destroy_DFT_wavefunction(wfn)
   call f_free_ptr(wfn%psit_f)
 
   call deallocate_p2pComms(wfn%comgp)
-  do ispin=1,wfn%linmat%l%nspin
-      call deallocate_sparse_matrix(wfn%linmat%ks(ispin))
-      call deallocate_sparse_matrix(wfn%linmat%ks_e(ispin))
-  end do
-  deallocate(wfn%linmat%ks)
-  deallocate(wfn%linmat%ks_e)
+  if (associated(wfn%linmat%ks)) then
+      do ispin=1,wfn%linmat%l%nspin
+          call deallocate_sparse_matrix(wfn%linmat%ks(ispin))
+      end do
+      deallocate(wfn%linmat%ks)
+  end if
+  if (associated(wfn%linmat%ks_e)) then
+      do ispin=1,wfn%linmat%l%nspin
+          call deallocate_sparse_matrix(wfn%linmat%ks_e(ispin))
+      end do
+      deallocate(wfn%linmat%ks_e)
+  end if
   call deallocate_sparse_matrix(wfn%linmat%s)
   call deallocate_sparse_matrix(wfn%linmat%m)
   call deallocate_sparse_matrix(wfn%linmat%l)

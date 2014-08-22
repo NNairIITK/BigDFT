@@ -9,12 +9,13 @@
 
 
 
-subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,linmat,npsidim_orbs,npsidim_comp)
+subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,mat,npsidim_orbs,npsidim_comp)
    use module_base!, only: wp, bigdft_mpi, mpi_sum, mpi_max, mpiallred
    use module_types, only: orbitals_data, local_zone_descriptors, linear_matrices
    use yaml_output
    use communications_base, only: comms_linear
    use communications, only: transpose_localized, untranspose_localized
+   use sparsematrix_base, only : sparse_matrix, matrices
    use sparsematrix, only : compress_matrix_distributed
    !use dynamic_memory
    implicit none
@@ -22,7 +23,8 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,linmat
    type(orbitals_data), intent(in) :: orbs
    type(local_zone_descriptors), intent(in) :: lzd
    type(comms_linear), intent(in) :: collcom
-   type(linear_matrices),intent(inout) :: linmat
+   type(sparse_matrix),intent(inout) :: smat
+   type(matrices),intent(inout) :: mat
    integer, intent(in) :: npsidim_orbs, npsidim_comp
    !local variables
    character(len=*), parameter :: subname='check_communications'
@@ -190,20 +192,20 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,linmat
 
    !@NEW: check the calculation of the overlap matrices #############
    call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, &
-        psit_c, psit_f, psit_f, linmat%s, linmat%ovrlp_)
-   !!do i=1,linmat%s%nvctr*nspin
-   !!    write(6000+iproc,'(a,2i8,es16.7)') 'i, mod(i-1,nvctr)+1, val', i, mod(i-1,linmat%s%nvctr)+1, linmat%ovrlp_%matrix_compr(i)
+        psit_c, psit_f, psit_f, smat, mat)
+   !!do i=1,smat%nvctr*nspin
+   !!    write(6000+iproc,'(a,2i8,es16.7)') 'i, mod(i-1,nvctr)+1, val', i, mod(i-1,smat%nvctr)+1, mat%matrix_compr(i)
    !!end do
    ! Alternative calculation of the overlap matrix
    gdim=lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
    psiig = f_malloc(gdim,id='psiig')
    psijg = f_malloc(gdim,id='psijg')
-   matp = f_malloc((/linmat%s%nfvctr,linmat%s%nfvctrp/),id='matp')
-   mat_compr = f_malloc(linmat%s%nvctr*linmat%s%nspin,id='mat_compr')
-   do ispin=1,linmat%s%nspin
+   matp = f_malloc((/smat%nfvctr,smat%nfvctrp/),id='matp')
+   mat_compr = f_malloc(smat%nvctr*smat%nspin,id='mat_compr')
+   do ispin=1,smat%nspin
        niorb=0
        njorb=0
-       !not possible to iterate over norbp since the distributions over the MPI tasks might be incompatible with linmat%s%nfvctrp
+       !not possible to iterate over norbp since the distributions over the MPI tasks might be incompatible with smat%nfvctrp
        is=(ispin-1)*orbs%norbu+orbs%isorbu+1
        ie=(ispin-1)*orbs%norbu+orbs%isorbu+orbs%norbup
        do iiorb=is,ie
@@ -233,7 +235,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,linmat
                end if
                if (jjspin/=ispin) cycle
                njorb=njorb+1
-               jjjorb=mod(jjorb-1,linmat%s%nfvctr)+1 !index regardless of the spin
+               jjjorb=mod(jjorb-1,smat%nfvctr)+1 !index regardless of the spin
                jlr=orbs%inwhichlocreg(jjorb)
                ldim=lzd%llr(jlr)%wfd%nvctr_c+7*lzd%llr(jlr)%wfd%nvctr_f
                psij = f_malloc(ldim,id='psij')
@@ -249,18 +251,18 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,linmat
            end do
            call f_free(psii)
        end do
-       ist=(ispin-1)*linmat%s%nvctr+1
-       call compress_matrix_distributed(iproc, linmat%s, matp, mat_compr(ist))
+       ist=(ispin-1)*smat%nvctr+1
+       call compress_matrix_distributed(iproc, smat, matp, mat_compr(ist))
    end do
    maxdiff=0.d0
    call f_free(psiig)
    call f_free(psijg)
    call f_free(matp)
    call f_free(mat_compr)
-   !!do i=1,linmat%s%nvctr
-   !!    maxdiff=max(abs(mat_compr(i)-linmat%ovrlp_%matrix_compr(i)),maxdiff)
-   !!    write(8000+iproc,'(a,i7,2es15.5)') 'i, mat_compr(i), linmat%ovrlp_%matrix_compr(i)', &
-   !!        i, mat_compr(i), linmat%ovrlp_%matrix_compr(i)
+   !!do i=1,smat%nvctr
+   !!    maxdiff=max(abs(mat_compr(i)-mat%matrix_compr(i)),maxdiff)
+   !!    write(8000+iproc,'(a,i7,2es15.5)') 'i, mat_compr(i), mat%matrix_compr(i)', &
+   !!        i, mat_compr(i), mat%matrix_compr(i)
    !!end do
    if (iproc==0) call yaml_map('Maxdiff for overlap calculation',maxdiff,fmt='(1es25.17)')
    !@END NEW ########################################################
