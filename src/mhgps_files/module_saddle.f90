@@ -169,7 +169,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     rxyz(:,:,0)=wpos
 
     call fixfrag_posvel(nat,rcov,rxyz(1,1,0),tnatdmy,1,fixfragmented)
-    if(fixfragmented .and. mhgps_verbosity >=2.and. iproc==0)&
+    if(fixfragmented .and. mhgps_verbosity >=0.and. iproc==0)&
        call yaml_comment('fragmentation fixed')
 
     inputPsiId=0

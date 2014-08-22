@@ -439,10 +439,16 @@ allocate(fat(3,nat))
                     endif
             else if(trim(adjustl(operation_mode))=='hessian')then
                 call cal_hessian_fd(iproc,nat,alat,rxyz,hess)
+                if(iproc==0)then
+                    write(*,*)'(hess) HESSIAN:'
+                    write(*,*)hess
+                endif
                 call DSYEV('V','L',3*nat,hess,3*nat,eval,WORK,LWORK,&
                      INFO)
                 if (info.ne.0) stop 'DSYEV'
                     if(iproc==0)then
+                        write(*,*)'(hess) EIGENVECTORS:'
+                        write(*,*) hess
                         write(*,'(a,1x,es9.2,1x,es24.17)') '(hess)'//&
                         ' ---   App. eigenvalues in exact --------'//&
                         '--- fnrm:',sqrt(sum(fxyz**2)),energy
