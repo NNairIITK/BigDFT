@@ -473,7 +473,7 @@ logical:: disable_hatrans
 !!$  enddo
   call run_objects_associate(runObj, inputs_md, atoms, rst, pos(1,1))
   escape=escape+1.d0
-  e_pos = outs%energy
+!  e_pos = outs%energy !DO NOT UNCOMMENT, IT IS A BUG!!
   call mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, runObj, outs, &
                 ngeopt,bigdft_mpi%nproc,bigdft_mpi%iproc)
   if (bigdft_mpi%iproc == 0) then 
@@ -502,7 +502,7 @@ logical:: disable_hatrans
      write(fn4,'(i4.4)') ngeopt
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call write_atomic_file('posimed_'//fn4//'_'//trim(bigdft_run_id_toa()),&
-          e_pos,pos,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
+          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
       open(unit=864,file='ksemed_'//fn4//'_'//trim(bigdft_run_id_toa()))
       do i=1,nksevals
       write(864,*) ksevals(i)
@@ -559,7 +559,7 @@ logical:: disable_hatrans
 
      if (abs(outs%energy-e_pos).lt.en_delta) then
      call fpdistance(nid,wfp,fp,d)
-  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) checking fpdistance',(/outs%energy-e_pos,d/),fmt='(e11.4)')
+       if (bigdft_mpi%iproc == 0) call yaml_map('(MH) checking fpdistance',(/outs%energy-e_pos,d/),fmt='(e11.4)')
      if (d.lt.fp_delta) then ! not escaped
        escape_sam=escape_sam+1.d0
         fp_sep=max(fp_sep,d)
