@@ -590,7 +590,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
 
 
           do ispin=1,nspin
-          write(*,*) 'begin loop: ispin', ispin
 
               if (power==1) then
                   factor=-1.0d0
