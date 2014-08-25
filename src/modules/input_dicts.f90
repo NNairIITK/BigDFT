@@ -240,7 +240,8 @@ contains
     character(len = *), intent(in) :: atomname !< Atome name
     integer, intent(in) :: run_ixc             !< XC functional
     !Local variables
-    integer :: ixc, ierr
+    integer :: ixc
+    !integer :: ierr
     character(len=27) :: filename
     logical :: exists
     integer :: nzatom, nelpsp, npspcode

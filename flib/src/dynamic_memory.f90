@@ -809,6 +809,8 @@ contains
      end do
   end subroutine dump_leaked_memory
 
+
+  !> Dump the status of the allocated memory (and all allocations)
   subroutine f_malloc_dump_status(filename,dict_summary)
     use yaml_output
     implicit none

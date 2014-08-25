@@ -16,7 +16,7 @@ program yaml_test
    use yaml_parse
    implicit none
    type(dictionary), pointer :: dict_tmp
-   type(yaml_cl_parse) :: parser
+   !type(yaml_cl_parse) :: parser
    !logical :: fl
 
    call f_lib_initialize()
