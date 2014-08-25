@@ -172,9 +172,11 @@ subroutine foe(iproc, nproc, tmprtr, &
 
       degree_sufficient=.true.
 
+      fscale_new = temp_multiplicator*foe_data_get_real(foe_obj,"fscale")
+
       temp_loop: do itemp=1,ntemp
 
-          fscale = temp_multiplicator*foe_data_get_real(foe_obj,"fscale")
+          fscale = fscale_new
           fscale = max(fscale,FSCALE_LOWER_LIMIT)
           fscale = min(fscale,FSCALE_UPPER_LIMIT)
           fscale_check = CHECK_RATIO*fscale
@@ -603,20 +605,23 @@ subroutine foe(iproc, nproc, tmprtr, &
                   ! can decrease polynomial degree
                   !!call foe_data_set_real(foe_obj,"fscale", 1.25d0*foe_data_get_real(foe_obj,"fscale"))
                   if (iproc==0) call yaml_map('modify fscale','increase')
-                  fscale_new=min(fscale_new,1.25d0*foe_data_get_real(foe_obj,"fscale"))
+                  !fscale_new=min(fscale_new,1.25d0*foe_data_get_real(foe_obj,"fscale"))
+                  fscale_new=1.25d0*fscale_new
                   degree_sufficient=.true.
               else if (diff>=5.d-3 .and. diff < 1.d-2) then
                   ! polynomial degree seems to be appropriate
                   degree_sufficient=.true.
                   if (iproc==0) call yaml_map('modify fscale','No')
-                  fscale_new=min(fscale_new,foe_data_get_real(foe_obj,"fscale"))
+                  !fscale_new=min(fscale_new,foe_data_get_real(foe_obj,"fscale"))
+                  fscale_new=fscale_new
               else
                   ! polynomial degree too small, increase and recalculate
                   ! the kernel
                   degree_sufficient=.false.
                   !!call foe_data_set_real(foe_obj,"fscale", 0.5*foe_data_get_real(foe_obj,"fscale"))
                   if (iproc==0) call yaml_map('modify fscale','decrease')
-                  fscale_new=min(fscale_new,0.5d0*foe_data_get_real(foe_obj,"fscale"))
+                  !fscale_new=min(fscale_new,0.5d0*foe_data_get_real(foe_obj,"fscale"))
+                  fscale_new=0.5d0*fscale_new
               end if
               !if (foe_data_get_real(foe_obj,"fscale")<foe_data_get_real(foe_obj,"fscale_lowerbound")) then
               if (fscale_new<foe_data_get_real(foe_obj,"fscale_lowerbound")) then
@@ -762,6 +767,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   call timing(iproc, 'FOE_auxiliary ', 'OF')
 
   call f_release_routine()
+
 
 
       contains
