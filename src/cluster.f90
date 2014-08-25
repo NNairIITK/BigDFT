@@ -979,6 +979,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         nullify(KSwfn%gbd%rxyz)
 
      else
+         write(*,*) 'evals',KSwfn%orbs%eval
         call writemywaves(iproc,trim(in%dir_output) // "wavefunction", in%output_wf_format, &
              KSwfn%orbs,n1,n2,n3,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
              atoms,rxyz,KSwfn%Lzd%Glr%wfd,KSwfn%psi)

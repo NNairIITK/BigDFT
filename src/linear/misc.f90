@@ -882,6 +882,10 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   integer :: infoCoeff, nvctrp, npsidim_global
   real(kind=8),dimension(:),pointer :: phi_global, phiwork_global
   character(len=*),parameter :: subname='build_ks_orbitals'
+  real(wp), dimension(:,:,:), pointer :: mom_vec_fake
+
+
+  nullify(mom_vec_fake)
 
   !debug
   !integer :: iorb, jorb, ist, jst, ierr, i
@@ -909,6 +913,10 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
        energs, nlpsp, input%SIC, tmb, fnrm, .true., .false., .true., 0, 0, 0, 0, &
        order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
        input%calculate_KS_residue,input%calculate_gap)
+
+  if (bigdft_mpi%iproc ==0) then
+     call write_eigenvalues_data(0.1d0,KSwfn%orbs,mom_vec_fake)
+  end if
 
 
   !call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
