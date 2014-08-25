@@ -971,7 +971,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
            lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on, psidiff, &
            experimental_mode, order_taylor, max_inversion_error, trH_ref, kernel_best, complete_reset)
-           write(*,*) 'after hpsitopsi_linear'
 
 
       overlap_calculated=.false.
@@ -994,7 +993,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           delta_energy_prev=delta_energy
           delta_energy_arr(max(it,1))=delta_energy !max since the counter was decreased if there are problems, might lead to wrong results otherwise
       end if
-      write(*,*) 'after estimate_energy_change'
 
 
       ! Only need to reconstruct the kernel if it is actually used.
@@ -1021,7 +1019,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               end if
           end if
       end if
-      write(*,*) 'after renormalize kernel etc...'
 
       if (iproc==0) then
           call yaml_mapping_close() !iteration
@@ -1802,10 +1799,8 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
   !!        end do
   !!    end do
   !!end do
-  write(*,*) 'before reorthonormalize_coeff'
   call reorthonormalize_coeff(iproc, nproc, orbs%norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, &
        tmb%orbs, tmb%linmat%s, tmb%linmat%ks, tmb%linmat%ovrlp_, tmb%coeff, orbs)
-  write(*,*) 'after reorthonormalize_coeff'
 
   call f_free_ptr(tmb%linmat%ovrlp_%matrix)
 
@@ -1919,7 +1914,6 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
              call dgemm('n', 'n', basis_overlap%nfvctrp, norbx, basis_overlap%nfvctr, &
                   1.d0, basis_overlap_mat%matrix(basis_overlap%isfvctr+1,1,ispin), &
                   basis_overlap%nfvctr, coeff(1,ist), basis_overlap%nfvctr, 0.d0, coeff_tmp, basis_overlap%nfvctrp)
-                  write(*,*) 'after dgemm 1'
              !!do iorb=1,norbx
              !!    do jorb=1,basis_overlap%nfvctrp
              !!        write(2100+iproc,'(a,2i9,es13.5)') 'iorb, jorb, coeff_tmp(jorb,iorb)', iorb, jorb, coeff_tmp(jorb,iorb)
@@ -1929,7 +1923,6 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
              !!     basis_orbs%norb, coeff_tmp, basis_orbs%norbp, 0.d0, ovrlp_coeff, norb)
              call dgemm('t', 'n', norbx, norbx, basis_overlap%nfvctrp, 1.d0, coeff(basis_overlap%isfvctr+1,ist), &
                   basis_overlap%nfvctr, coeff_tmp, basis_overlap%nfvctrp, 0.d0, ovrlp_coeff, norbx)
-                  write(*,*) 'after dgemm 2'
              !!do iorb=1,norbx
              !!    do jorb=1,norbx
              !!        write(2200+iproc,'(a,2i9,es13.5)') 'iorb, jorb, ovrlp_coeff(jorb,iorb)', iorb, jorb, ovrlp_coeff(jorb,iorb)
@@ -2013,7 +2006,6 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
              call deviation_from_unity_parallel(iproc, nproc, norbx, orbs%norbp, orbs%isorb, &
                   ovrlp_coeff(1:orbs%norb,orbs%isorb+1:orbs%isorb+orbs%norbp), &
                   basis_overlap, max_error, mean_error)
-                  write(*,*) 'after deviation_from_unity_parallel'
              !!call deviation_from_unity_parallel(iproc, nproc, norbx, orbs%norbp, orbs%isorb, &
              !!     ovrlp_coeff, &
              !!     basis_overlap, max_error, mean_error)
@@ -2070,12 +2062,10 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
              !!        write(2000+iproc,'(a,2i9,es13.5)') 'iorb, jorb, KS_ovrlp_%matrix(jorb,iorb,1)', iorb, jorb, KS_ovrlp_%matrix(jorb,iorb,1)
              !!    end do
              !!end do
-                  write(*,*) 'before overlapPowerGeneral'
              call overlapPowerGeneral(iproc, nproc, inversion_method, -2, &
                   blocksize_dsyev, imode=2, ovrlp_smat=KS_overlap(ispin), inv_ovrlp_smat=KS_overlap(ispin), &
                   ovrlp_mat=KS_ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
                   check_accur=.false., nspinx=1)
-                  write(*,*) 'after overlapPowerGeneral'
              !!do iorb=1,norbx
              !!    do jorb=1,norbx
              !!        write(8100+10*iproc+ispin,'(a,2i8,es16.6)') 'iorb, jorb, inv_ovrlp_%matrix(jorb,iorb,1)',iorb, jorb, inv_ovrlp_%matrix(jorb,iorb,1)
@@ -2111,7 +2101,6 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
                     !SM: need to fix the spin here
                     call dgemm('n', 't', basis_orbs%norb, orbs%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), basis_orbs%norb, &
                          inv_ovrlp_%matrix(1,orbs%isorb+1,1), orbs%norb, 0.d0, coeff_tmp(1,1), basis_orbs%norb)
-                         write(*,*) 'after dgemm 3'
                     !@WARNING: THE FOLLOWING CALL IS NOT TESTED AND MIGHT BE WRONG!!
                     !!call dgemm('n', 't', basis_overlap%nfvctrp, norbx, norbx, 1.d0, coeff(basis_overlap%isfvctr,1), basis_overlap%nfvctr, &
                     !!     inv_ovrlp_%matrix(1,1,1), norbx, 0.d0, coeff_tmp(basis_overlap%isfvctr,1), basis_overlap%nfvctr)
@@ -2137,7 +2126,6 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
                     !!    coeff(1+basis_orbs%isorb,1), basis_orbs%norb, 0.d0, coeff_tmp(1,1), norb)
                     call dgemm('n', 't', norbx, basis_overlap%nfvctrp, norbx, 1.d0, inv_ovrlp_%matrix(1,1,1), norbx, &
                         coeff(1+basis_overlap%isfvctr,ist), basis_overlap%nfvctr, 0.d0, coeff_tmp(1,1), norbx)
-                         write(*,*) 'after dgemm 4'
                 else
                     call dgemm('n', 't', norb, basis_orbs%norbp, norb, 1.d0, inv_ovrlp_matrix(1,1), norb, &
                         coeff(1+basis_orbs%isorb,1), basis_orbs%norb, 0.d0, coeff_tmp(1,1), norb)
@@ -2205,12 +2193,10 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
             call dgemm('n', 'n', basis_overlap%nfvctrp, norbx, basis_overlap%nfvctr, &
                  1.d0, basis_overlap_mat%matrix(basis_overlap%isfvctr+1,1,1), &
                  basis_overlap%nfvctr, coeff(1,1), basis_overlap%nfvctr, 0.d0, coeff_tmp, basis_overlap%nfvctrp)
-                         write(*,*) 'after dgemm 5'
             !!call dgemm('t', 'n', norb, norb, basis_orbs%norbp, 1.d0, coeff(basis_orbs%isorb+1,1), &
             !!     basis_orbs%norb, coeff_tmp, basis_orbs%norbp, 0.d0, ovrlp_coeff, norb)
             call dgemm('t', 'n', norbx, norbx, basis_overlap%nfvctrp, 1.d0, coeff(basis_overlap%isfvctr+1,1), &
                  basis_overlap%nfvctr, coeff_tmp, basis_overlap%nfvctrp, 0.d0, ovrlp_coeff, norbx)
-                         write(*,*) 'after dgemm 6'
          else
             call to_zero(norbx**2,ovrlp_coeff(1,1))
          end if

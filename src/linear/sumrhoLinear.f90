@@ -1320,7 +1320,6 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
                               jj=orbital_id(j,i1,i2,i3)+(ispin-1)*orbs%norbu
                               !ikernel=matrixindex_in_compressed_auxilliary(jj,ii)
                               ikernel=matrixindex_in_compressed(denskern,jj,ii)
-                              if (ikernel==0) write(*,*) 'jj, ii, ikernel', jj, ii, ikernel
                               if (ikernel==0) cycle
                               ttj=test_value_sumrho(jj,iixyz,nxyz)
                               tt=tt+2.d0*denskern_%matrix_compr(ikernel)*tti*ttj

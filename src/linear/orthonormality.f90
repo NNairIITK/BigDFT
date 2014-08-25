@@ -590,6 +590,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
 
 
           do ispin=1,nspin
+          write(*,*) 'begin loop: ispin', ispin
 
               if (power==1) then
                   factor=-1.0d0
@@ -605,7 +606,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                   inv_ovrlpp => inv_ovrlp_mat%matrix(:,:,ispin)
               end if
 
-              write(*,*) 'call first_order_taylor_dense'
               if (norbp>0) call first_order_taylor_dense(ovrlp_smat%nfvctr,isorb,norbp,power,&
                   ovrlp_mat%matrix(1,isorb+1,ispin),inv_ovrlpp)
               !!do iorb=1,norbp
@@ -654,7 +654,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               !!if (iproc==0) write(*,'(a,2i8,es15.6)') 'iproc, ispin, sum(inv_ovrlp_mat%matrix(:,:,ispin))', iproc, ispin, sum(inv_ovrlp_mat%matrix(:,:,ispin))
           end do
 
-          write(*,*) 'call f_free_ptr(ovrlppowerp), assoc, iproc', associated(ovrlppowerp), iproc
 
           call f_free_ptr(ovrlppowerp)
 
@@ -666,7 +665,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               end if
           end if
 
-          if (nproc>0) then
+          if (iorder>1) then
               call f_free_ptr(ovrlppoweroldp)
           else
               nullify(inv_ovrlpp)
@@ -675,7 +674,6 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
 
       if (check_accur) then
           do ispin=1,nspin
-          write(*,*) 'call check'
               call check_accur_overlap_minus_one(iproc,nproc,ovrlp_smat%nfvctr,ovrlp_smat%nfvctrp,ovrlp_smat%isfvctr,power,&
                    ovrlp_mat%matrix(:,:,ispin),inv_ovrlp_mat%matrix(:,:,ispin),ovrlp_smat,max_error,mean_error)
               if (iproc==0) then
