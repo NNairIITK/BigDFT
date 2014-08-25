@@ -665,6 +665,14 @@ subroutine foe(iproc, nproc, tmprtr, &
           ! Calculate trace(KS).
           sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
                  tmb%linmat%ovrlp_, tmb%linmat%kernel_, ispin)
+
+
+          ! Recalculate trace(KH) (needed since the kernel was modified in the above purification). 
+          ! If no purification is done, this should not be necessary.
+          ! Since K and H have the same sparsity pattern and K is
+          ! symmetric, the trace is a simple ddot.
+          ebsp=ddot(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ilshift+1),1 , hamscal_compr, 1)
+          ebsp=ebsp/scale_factor+shift_value*sumn
     
     
           if (iproc==0) call yaml_map('trace(KS)',sumn)

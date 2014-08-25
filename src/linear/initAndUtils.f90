@@ -1973,6 +1973,7 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
 
   call f_routine('init_sparse_matrix_for_KSorbs')
 
+  write(*,*) 'orbs%norbu, nextra', orbs%norbu, nextra
 
   allocate(smat(input%nspin))
   allocate(smat_extra(input%nspin))
