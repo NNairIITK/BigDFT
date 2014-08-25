@@ -744,10 +744,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                      denspot%rhov,it_scc+1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                      at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                      pnrm,denspot%dpbox%nscatterarr)
-                    write(*,*) 'after mix_rhopot 1.1: pnrm', pnrm
+                    !write(*,*) 'after mix_rhopot 1.1: pnrm', pnrm
                 !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
                 pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
-                    write(*,*) 'after mix_rhopot 1.2: pnrm', pnrm
+                    !write(*,*) 'after mix_rhopot 1.2: pnrm', pnrm
                 if (pnrm<convCritMix .or. it_scc==nit_scc .and. (.not. input%lin%constrained_dft)) then
                    ! calculate difference in density for convergence criterion of outer loop
                    ! There is no ioffset (unlike to the case of density mixing)

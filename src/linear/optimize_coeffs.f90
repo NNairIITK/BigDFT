@@ -41,6 +41,11 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
   real(kind=gp),dimension(:),allocatable:: mat_coeff_diag
   real(kind=gp) :: tt, ddot, energy0, pred_e
 
+  if (present(num_extra)) then
+      if (iproc==0) write(*,'(a,es16.6)') 'start optimize_coeffs: sum(tmb%coeff(1:tmb%linmat%l%nfvctr,1:orbs%norb+num_extra))',& 
+       sum(tmb%coeff(1:tmb%linmat%l%nfvctr,1:orbs%norb+num_extra))
+  end if
+
   if (present(num_extra) .and. tmb%linmat%m%nspin==2) then
       stop 'ERROR: optimize_coeffs not yet implemented for nspin=2 and num_extra present!'
   end if
@@ -149,6 +154,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
         call dscal(tmb%linmat%m%nfvctr*orbs%norbp,factor,grad,1)
      end if
 
+        !write(*,*) 'present(num_extra), ldiis_coeff%idsx', present(num_extra), ldiis_coeff%idsx
      if (ldiis_coeff%idsx > 0) then !do DIIS
         !TO DO: make sure DIIS works
         ldiis_coeff%mids=mod(ldiis_coeff%ids,ldiis_coeff%idsx)+1
@@ -158,9 +164,11 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
            if (tmb%orbs%norbp>0) call vcopy(tmb%linmat%m%nfvctr*tmb%orbs%norbp, &
                tmb%coeff(1,tmb%orbs%isorb+1),1,grad_cov_or_coeffp(1,1),1)
 
+               !write(*,*) 'before diis_opt: sum(tmb%coeff)', sum(tmb%coeff)
            call diis_opt(iproc,nproc,1,0,1,(/iproc/),(/tmb%linmat%m%nfvctr*tmb%orbs%norbp/), &
                 tmb%linmat%m%nfvctr*tmb%orbs%norbp,&
                 grad_cov_or_coeffp,grad,ldiis_coeff) 
+               !write(*,*) 'after diis_opt: sum(tmb%coeff)', sum(tmb%coeff)
         else
            if (orbs%norbp>0) call vcopy(tmb%linmat%m%nfvctr*orbs%norbp,tmb%coeff(1,orbs%isorb+1), &
                1,grad_cov_or_coeffp(1,1),1)
@@ -232,7 +240,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
         call timing(iproc,'dirmin_allgat','OF')
 
         fnrm=sqrt(fnrm/dble(orbs%norb))
-        ! Multiply the gradient by sqrt(2) to make it analogous to  the case of
+        ! Multiply the gradient by sqrt(2) to make it homologous to  the case of
         ! no spin polarization (since with polarization norb is doubled).
         if (tmb%linmat%l%nspin==2) then
             fnrm=fnrm*sqrt(2.d0)
@@ -421,6 +429,10 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
 
   call f_release_routine()
 
+  if (present(num_extra)) then
+      if (iproc==0) write(*,'(a,es16.6)') 'end optimize_coeffs: sum(tmb%coeff(1:tmb%linmat%l%nfvctr,1:orbs%norb+num_extra))', & 
+       sum(tmb%coeff(1:tmb%linmat%l%nfvctr,1:orbs%norb+num_extra))
+  end if
 end subroutine optimize_coeffs
 
 

@@ -1004,12 +1004,18 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   call f_free_ptr(tmb_old%psi)
   call f_free_ptr(tmb_old%linmat%kernel_%matrix_compr)
 
-  do ispin=1,tmb_old%linmat%l%nspin
-      call deallocate_sparse_matrix(tmb_old%linmat%ks(ispin))
-      call deallocate_sparse_matrix(tmb_old%linmat%ks_e(ispin))
-  end do
-  deallocate(tmb_old%linmat%ks)
-  deallocate(tmb_old%linmat%ks_e)
+  if (associated(tmb_old%linmat%ks)) then
+      do ispin=1,tmb_old%linmat%l%nspin
+          call deallocate_sparse_matrix(tmb_old%linmat%ks(ispin))
+      end do
+      deallocate(tmb_old%linmat%ks)
+  end if
+  if (associated(tmb_old%linmat%ks_e)) then
+      do ispin=1,tmb_old%linmat%l%nspin
+          call deallocate_sparse_matrix(tmb_old%linmat%ks_e(ispin))
+      end do
+      deallocate(tmb_old%linmat%ks_e)
+  end if
   call deallocate_sparse_matrix(tmb_old%linmat%s)
   call deallocate_sparse_matrix(tmb_old%linmat%m)
   call deallocate_sparse_matrix(tmb_old%linmat%l)
