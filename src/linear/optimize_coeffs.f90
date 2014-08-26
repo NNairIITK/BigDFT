@@ -1633,8 +1633,10 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
       grad_full=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='grad_full')
       ! do allgather instead of allred so we can keep grad as per proc
       if(nproc > 1) then 
-         call mpi_allgatherv(grad_cov, tmb%linmat%l%nfvctr*tmb%orbs%norbp, mpi_double_precision, grad_full, &
-            tmb%linmat%l%nfvctr*tmb%orbs%norb_par(:,0), tmb%linmat%l%nfvctr*tmb%orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+         call mpi_allgatherv(grad_cov, tmb%linmat%l%nfvctr*tmb%orbs%norbp, &
+              mpi_double_precision, grad_full, &
+              tmb%linmat%l%nfvctr*tmb%orbs%norb_par(:,0), &
+              tmb%linmat%l%nfvctr*tmb%orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
       else
          call vcopy(tmb%linmat%l%nfvctr*tmb%orbs%norb,grad_cov(1,1),1,grad_full(1,1),1)
       end if
