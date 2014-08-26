@@ -1953,7 +1953,7 @@ end subroutine init_sparse_matrix_wrapper
 subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat, smat_extra)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, except_this_one => init_sparse_matrix_for_KSorbs
   use sparsematrix_base, only: sparse_matrix
   use sparsematrix_init, only: init_sparse_matrix
   use sparsematrix_base, only: sparse_matrix_null

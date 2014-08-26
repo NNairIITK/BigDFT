@@ -936,7 +936,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               isshift=(ispin-1)*ovrlp_smat%nvctr
               ilshift=(ispin-1)*inv_ovrlp_smat%nvctr
               call timing(iproc,'lovrlp^-1     ','OF')
-              call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, ovrlp_large_compr(isshift+1), ovrlp_largep)
+              call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, ovrlp_large_compr(ilshift+1), ovrlp_largep)
               call timing(iproc,'lovrlp^-1     ','ON')
               call sequential_acces_matrix_fast(inv_ovrlp_smat, &
                    inv_ovrlp_mat%matrix_compr(ilshift+1:ilshift+inv_ovrlp_smat%nvctr), invovrlp_compr_seq)
@@ -961,7 +961,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                        max_error, mean_error, cmatp=ovrlp_largep)
               else if (power==-2) then
                   ovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlp_compr_seq') 
-                  call sequential_acces_matrix_fast(inv_ovrlp_smat, ovrlp_large_compr(isshift+1), ovrlp_compr_seq)
+                  call sequential_acces_matrix_fast(inv_ovrlp_smat, ovrlp_large_compr(ilshift+1), ovrlp_compr_seq)
                   call timing(iproc,'lovrlp^-1     ','OF')
                   call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, &
                        inv_ovrlp_mat%matrix_compr(ilshift+1:ilshift+inv_ovrlp_smat%nvctr), invovrlpp)
