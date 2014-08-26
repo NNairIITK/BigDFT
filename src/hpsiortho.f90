@@ -1212,7 +1212,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       !call to_zero(orbs%norbp*2,ilrtable(1,1))
       ilrtable=0
       ii=0
-      do ispin=1,comgp%nspin
+      do ispin=1,dpbox%nrhodim
           do iorb=1,orbs%norbp
              newvalue=.true.
              !localization region to which the orbital belongs
@@ -1294,8 +1294,8 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       do iorb=1,nilr
          ilr = ilrtable(iorb)
          ! Cut the potential into locreg pieces
-         call global_to_local(Lzd%Glr,Lzd%Llr(ilr),comgp%nspin,npot,lzd%ndimpotisf,pot1,pot(istl))
-         istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*comgp%nspin
+         call global_to_local(Lzd%Glr,Lzd%Llr(ilr),dpbox%nrhodim,npot,lzd%ndimpotisf,pot1,pot(istl))
+         istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*dpbox%nrhodim
       end do
    else
       if(.not.associated(pot)) then !otherwise this has been done already... Should be improved.
