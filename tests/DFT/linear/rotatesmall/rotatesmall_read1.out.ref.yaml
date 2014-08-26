@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.5
- Timestamp of this run                 : 2014-08-25 16:48:21.213
+ Timestamp of this run                 : 2014-08-26 07:44:14.307
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -531,7 +531,7 @@
      Molecule was shifted              :  7
      Molecule was rotated              :  7
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  3.01E+00,  2.525E+00 ]}
+   -  {Process:  0, Timing:  [  3.27E+00,  1.748E+00 ]}
    Max deviation from unity in reorthonormalize_coeff:  2.40E-05
    Mean deviation from unity in reorthonormalize_coeff:  9.45E-06
    calculate S^x:
@@ -556,8 +556,8 @@
  {e: -2.696744289594E-01, f:  2.0000},  # 00002
  {e: -2.687965044051E-01, f:  2.0000},  # 00003
  {e: -9.570892836175E-02, f:  1.0000}] # 00004
-   Max deviation from unity in reorthonormalize_coeff:  1.78E-15
-   Mean deviation from unity in reorthonormalize_coeff:  4.86E-16
+   Max deviation from unity in reorthonormalize_coeff:  1.55E-15
+   Mean deviation from unity in reorthonormalize_coeff:  5.45E-16
    calculate S^x:
      mode                              : dense
      x                                 : -1/2
@@ -588,7 +588,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  1.56E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.24E-02, eBS: -2.01524540741355107E+00, D: -2.015E+00, 
+ iter:  1, fnrm:  2.24E-02, eBS:  0.00000000000000000E+00, D: -2.015E+00, 
           alpha:  1.000E-01}
      Kohn-Sham residue                 :  1.316E-01
      Coefficients available            :  Yes
@@ -601,12 +601,12 @@
  calculate S^x: {mode: sparse, x: -1, order:  0, 
  max / mean error:  [  4.44E-16,  1.06E-16 ]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  1.71E-01, Omega: -5.494625826573110E+00, D: -5.49E+00, D best: -5.49E+00, 
+ iter:  1, fnrm:  1.71E-01, Omega: -5.494625826573111E+00, D: -5.49E+00, D best: -5.49E+00, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 1
  target function: ENERGY, 
  Energies: {Ekin:  5.01463058435E+00, Epot: -6.66645789452E+00, Enl:  1.18855204039E+00}, 
- iter:  1, fnrm:  1.71E-01, Omega: -5.494625826573110E+00, D: -5.49E+00, D best: -5.49E+00}
+ iter:  1, fnrm:  1.71E-01, Omega: -5.494625826573111E+00, D: -5.49E+00, D best: -5.49E+00}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -625,7 +625,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  5.11E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.03E-02, eBS: -2.01554162201505394E+00, D: -2.962E-04, 
+ iter:  1, fnrm:  2.03E-02, eBS: -2.01524540741354707E+00, D: -2.962E-04, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -640,15 +640,15 @@
  {e: -2.687965044051E-01, f:  2.0000},  # 00003
  {e: -9.570892836175E-02, f:  1.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  3.30E-08, energy: -5.49492204117461469E+00, D: -5.495E+00}]
+ iter:  1, delta:  3.30E-08, energy: -5.49492204117461647E+00, D: -5.495E+00}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  3.30E-08, energy: -5.49492204117461469E+00, D: -5.495E+00}]}
+ iter:  2, delta:  3.30E-08, energy: -5.49492204117461647E+00, D: -5.495E+00}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  1, delta out:  3.302E-08, energy: -5.49492204117461469E+00, D: -5.495E+00}
+ iter high:  1, delta out:  3.302E-08, energy: -5.49492204117461647E+00, D: -5.495E+00}
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
  {e: -4.394246225825E-01, f:  1.0000},  # 00001
@@ -664,7 +664,7 @@
  Energies: {Ekin:  5.01463058435E+00, Epot: -6.66645789452E+00, Enl:  1.18855204039E+00, 
               EH:  9.06718252159E+00,  EXC: -2.18717529496E+00, EvXC: -2.85449746753E+00}, 
        iter high:  1,            delta out:  3.302E-08, 
-          energy: -5.49492204117461469E+00,                       D:  0.000E+00,  #FINAL
+          energy: -5.49492204117461647E+00,                       D:  0.000E+00,  #FINAL
  }
  Total charge                          :  6.999999949470E+00
  Max deviation from unity in reorthonormalize_coeff:  2.40E-05
@@ -679,12 +679,12 @@
              frag eval: -2.68796504E-01, overlap:  1.000019E+00, occ:  2.00, 
  state: HOMO, energy: -7.70937380E-02, orthog energy: -7.70938506E-02, 
            frag eval: -9.57089284E-02, overlap:  9.999991E-01, occ:  1.00, 
- 2*frag sum: -2.015067879854555, 2*frag sum orthog: -2.015053866231596, 
- 2*eval sum: -2.051500040255768}, 
+ 2*frag sum: -2.01506787985456, 2*frag sum orthog: -2.015053866231596, 
+ 2*eval sum: -2.051500040255775}, 
  ]
- 2.0_gp*frag_sum_tot                   : -2.015067879854555
+ 2.0_gp*frag_sum_tot                   : -2.01506787985456
  2.0_gp*frag_sum_tot_orthog            : -2.015053866231596
- 2.0_gp*eval_sum_tot                   : -2.051500040255768
+ 2.0_gp*eval_sum_tot                   : -2.051500040255775
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
@@ -694,14 +694,14 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -2.08983856E-03, y:  1.81473486E-03, z: -5.57606615E-03, 
                     total:  6.22520694E-03}
- Clean forces norm (Ha/Bohr): {maxval:  3.968024207680E-02, fnrm2:  4.853268992179E-03}
- Raw forces norm (Ha/Bohr): {maxval:  3.996422199584E-02, fnrm2:  4.892186749288E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  3.968024207680E-02, fnrm2:  4.853268992178E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  3.996422199583E-02, fnrm2:  4.892186749288E-03}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {Si: [ 3.452395132012E-03, -3.496580418550E-03,  1.454721538138E-02]} # 0001
- -  {H: [ 3.598760818332E-02,  1.209191810231E-02, -1.154119513414E-02]} # 0002
- -  {H: [-1.224138745175E-02, -3.527801299324E-02, -1.130971920100E-02]} # 0003
- -  {H: [-2.719861586359E-02,  2.668267530949E-02,  8.303698953758E-03]} # 0004
+ -  {Si: [ 3.452395132005E-03, -3.496580418550E-03,  1.454721538138E-02]} # 0001
+ -  {H: [ 3.598760818332E-02,  1.209191810230E-02, -1.154119513414E-02]} # 0002
+ -  {H: [-1.224138745174E-02, -3.527801299324E-02, -1.130971920100E-02]} # 0003
+ -  {H: [-2.719861586358E-02,  2.668267530949E-02,  8.303698953761E-03]} # 0004
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Odd number of electrons, no closed shell system
@@ -710,8 +710,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  9.07
-   Elapsed time (s)                    :  7.57
+   CPU time (s)                        :  6.76
+   Elapsed time (s)                    :  3.54
  Memory Consumption Report:
    Tot. No. of Allocations             :  2115
    Tot. No. of Deallocations           :  2115

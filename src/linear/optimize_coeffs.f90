@@ -358,7 +358,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
             call yaml_newline()
             call yaml_map('iter',it)
             call yaml_map('fnrm',fnrm,fmt='(es9.2)')
-            call yaml_map('eBS',energy,fmt='(es24.17)')
+            call yaml_map('eBS',energy0,fmt='(es24.17)')
             call yaml_map('D',energy-energy0,fmt='(es10.3)')
             call yaml_map('alpha',ldiis_coeff%alpha_coeff,fmt='(es10.3)')
             call yaml_map('predicted energy',pred_e,fmt='(es24.17)')
@@ -372,7 +372,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
             call yaml_newline()
             call yaml_map('iter',it)
             call yaml_map('fnrm',fnrm,fmt='(es9.2)')
-            call yaml_map('eBS',energy,fmt='(es24.17)')
+            call yaml_map('eBS',energy0,fmt='(es24.17)')
             call yaml_map('D',energy-energy0,fmt='(es10.3)')
             call yaml_map('alpha',ldiis_coeff%alpha_coeff,fmt='(es10.3)')
         end if
@@ -384,7 +384,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
             call yaml_newline()
             call yaml_map('iter',it)
             call yaml_map('fnrm',fnrm,fmt='(es9.2)')
-            call yaml_map('eBS',energy,fmt='(es24.17)')
+            call yaml_map('eBS',energy0,fmt='(es24.17)')
             call yaml_map('D',energy-energy0,fmt='(es10.3)')
         end if
      end if
