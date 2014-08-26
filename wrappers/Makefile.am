@@ -2,7 +2,9 @@
 noinst_LIBRARIES = libwrappers.a
 module_DATA = $(modules)
 
-MPI_INCLUDES = allreduce-inc.f90 allreduce-arr-inc.f90 gather-inc.f90
+MPI_INCLUDES = allreduce-inc.f90 allreduce-arr-inc.f90 gather-inc.f90 \
+	gather-inner-inc.f90 maxdiff-arr-inc.f90 maxdiff-inc.f90 \
+	bcast-inc.f90 bcast-decl-inc.f90 bcast-decl-arr-inc.f90
 
 if USE_MPI
 #mpi_source =

@@ -35,6 +35,7 @@ Keys to ignore:
  - Cumulative size of masking arrays
  - Dictionary for lin
  - Raw version
+ - Size of the global database
 Patterns to ignore:
  - Timestamp
  - memory
@@ -53,11 +54,21 @@ yaml_test:
    - date
    - Id
    - Summary
+   - ERR_ALLOCATE
+   - Routine dictionary
+   - Errors found while (de)allocating ab and b
+   - Calling sequence of Main program (routines with * are not closed yet)
+   - Additional Info
+   - Something to use b
+   - Something to use ab
+   - Entering Thread No.
+   - Elapsed time (ns)
+   - Elapsed time (mus)
  Patterns to ignore:
    - errcode
-   - time
    - Time
-
+   - Global dictionary
+   - time
 
 #Runs which update and override the default
 AgBulk:
@@ -81,13 +92,14 @@ SiBulk:
  Residues per orbital: 8.0e-10
  maxval: 1.3e-10
  # Ekin: 2.1e-11
- # Enl: 5.1e-11
+ # Enl: 2.1e-11
  # Epot: 1.0e-10
  # EvXC: 1.1e-10
+ Last Iteration: 2.01e-11
  Atomic Forces (Ha/Bohr): 1.3e-10
  Clean forces norm (Ha/Bohr): 8.3e-11
- Average noise forces: 2.4e-11
- Optimization of virtual orbitals: 7.71e-9
+ Average noise forces: 4.51e-11
+ Optimization of virtual orbitals: 5.56e-8
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -204,8 +216,8 @@ H2-spin:
 
 
 H-Rydberg_H:
- Gradient Norm: 5.e-10
- Eigenvalues and eigenstate residue: 2.5e-10
+ Gradient Norm: 5.8e-9
+ Eigenvalues and eigenstate residue: 5.1e-9
  norm(P): 1.1e-10
 
 TiSmear:
@@ -321,13 +333,13 @@ Davidson-SiH4:
 
 TDDFT:
   Epsilon: 1.1e-10
-  e_virtual: 1.2e-7
-  Eigenvalues and eigenstate residue: 1.2e-5
+  e_virtual: 3.2e-7
+  Eigenvalues and eigenstate residue: 1.2e-4
   Epot: 1.1e-10
-  Gradient Norm: 4.0e-8
+  Gradient Norm: 1.01e-4 #too big?
   L2 Norm - 1 and Rayleigh quotient (Davidson): 1.1e-6
-  Excitation Energy and Oscillator Strength: 1.9e-6
-  Transition energies (eV): 1.1e-4
+  Excitation Energy and Oscillator Strength: 1.3e-4
+  Transition energies (eV): 3.01e-4
 
 BigDFT2Wannier.b2w.ref.yaml:
   amnk_guess(nb): 1.31e-10
@@ -355,7 +367,7 @@ directmin:
  Epsilon: 3.5e-10
  mean alpha: 1.1e-04
  max alpha: 1.1e-04
- Ekin: 4.1e-10
+ Ekin: 5.1e-10
  norm(P): 1.1e-7
 
 experimentalmode:
@@ -434,6 +446,7 @@ rotatesmall_write:
 
 wrappers.out:
  EH: 1.1e-10
+ fnrm2: 1.1e-10
 
 rotatesmall_read:
  Epsilon: 2.4e-11
@@ -565,6 +578,7 @@ geopt_foe:
  eF: 2.2e-7
  Epot: 1.1e-10
  EH: 1.1e-10
+ Ekin: 1.1e-10
  charge diff: 7.1e-6
  diff from idempotency: 2.1e-09
  tr(KS) before purification: 2.6e-07
@@ -684,12 +698,13 @@ foe:
  max alpha: 1.1e-4
  D eF: 7.1e-8
  Tr(K): 1.1e-08
- charge diff: 4.2e-11
+ charge diff: 2.1e-8
  D Tr: 7.0e-8
  tr(KS) before purification: 7.0e-8
  decay length of error function: 1.1e-5
  ebs: 7.1e-8
  diff: 7.1e-8
+ ebs_check: 1.1e-10
 
 onlyhigh:
  Energies: 2.1e-9
@@ -720,6 +735,7 @@ linearcubic_linear:
  Epsilon: 1.1e-10
  EH: 1.1e-9
  Epot: 1.01e-9
+ Ekin: 1.1e-9
  energy: 1.841e-10
  Omega: 9.2e-10
  EvXC: 1.1e-9
@@ -782,7 +798,20 @@ experimentalfoe_short:
  D: 1.1e-4
  decay length of error function: 1.1e-5
 
-
+experimentalfoe_medium:
+ charge diff: 2.5e-7
+ eF: 8.3e-8
+ D Tr: 1.1e-6
+ D eF: 3.4e-8 
+ Tr(K): 2.5e-7
+ ebs: 2.5e-7
+ ebs_check: 4.4e-8
+ Epot: 1.1e-9
+ EH: 1.1e-9
+ Total charge: 3.1e-11
+ energy: 1.4e-10
+ Omega: 8.1e-10
+ decay length of error function: 1.1e-5
 
 newpulay:
  EXC: 1.1e-10
@@ -907,12 +936,13 @@ DIIShistory:
  Locreg:
  EH: 2.0e-8
  Pulay forces (Ha/Bohr): 7.8e-09
+ Max deviation from unity in reorthonormalize_coeff: 1.1e-9
 
 sparsity:
  Total charge: 1.1e-10
  Omega: 1.03e-9
  Clean forces norm (Ha/Bohr): 7.7e-11
- Raw forces norm (Ha/Bohr): 1.4e-11
+ Raw forces norm (Ha/Bohr): 1.1e-9
  Total ionic charge: 2.41e-11
  charge diff: 1.1e-9
  energy: 1.1e-9
@@ -971,8 +1001,20 @@ PBE_potmixdiis:
 PBE_densmixdiis:
  Epot: 1.1e-10
  EvXC: 1.1e-10
+ EXC: 1.1e-10
  Enl: 1.1e-10
  energy: 1.1e-10
  Omega: 1.1e-10
+ Ekin: 1.1e-9
  Total charge: 2.01e-11
  EH: 1.0e-9
+
+test-bigdft-tool:
+ positions: 5.1e-8
+
+geoptconstrained:
+ eF: 1.1e-8
+ D eF: 1.1e-8
+ EH: 1.1e-10
+ charge diff: 4.2e-11
+ D Tr: 1.1e-9

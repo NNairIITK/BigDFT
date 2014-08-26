@@ -13,13 +13,33 @@ program yaml_test
    use yaml_output
    use dictionaries, dict_char_len=> max_field_length
    use dynamic_memory
+   use yaml_parse
    implicit none
    type(dictionary), pointer :: dict_tmp
+   type(yaml_cl_parse) :: parser
    !logical :: fl
 
    call f_lib_initialize()
 
-!!$   call profile_dictionary_usage()
+!!$   parser=yaml_cl_parse_null()
+!!$   !set valid options
+!!$   call yaml_cl_parse_option(parser,'test','1',&
+!!$        'this is a valid test option','t',&
+!!$        dict_new('Test' .is. 'long help'))
+!!$
+!!$   !verify the parsing
+!!$   call yaml_cl_parse_cmd_line(parser)
+!!$
+!!$   call yaml_map('Parsed options',parser%options)
+!!$   call yaml_map('Parsed info',parser%parse)
+!!$
+!!$   call yaml_dict_dump(parser%parse,verbatim=.true.,flow=.true.)
+!!$   call yaml_dict_dump(parser%parse,flow=.true.)
+!!$
+!!$   call yaml_cl_parse_free(parser)
+!!$
+!!$
+!!$   !call profile_dictionary_usage()
 !!$   call f_lib_finalize()
 !!$   stop
 
@@ -57,7 +77,7 @@ program yaml_test
 
    !Fourth-B document, to be moved
    call yaml_new_document()
-    call test_error_handling()
+   call test_error_handling()
    call yaml_release_document()
 
    !Fifth document
@@ -65,20 +85,24 @@ program yaml_test
     call test_dictionaries0()
    call yaml_release_document()
 
+   !Sixth document: test dictionaries
    call yaml_new_document()
    call test_dictionaries1()
    call yaml_release_document()
 
+   !Seventh document: Test dynamic memory allocation
    call yaml_new_document()
-    call test_dynamic_memory()
-    call yaml_release_document()
-    call f_malloc_dump_status(dict_summary=dict_tmp)
-    call yaml_map('Summary',dict_tmp)
-    call dict_free(dict_tmp)
+   call test_dynamic_memory()
+   call yaml_release_document()
+
+   call f_malloc_dump_status(dict_summary=dict_tmp)
+   call yaml_map('Summary',dict_tmp)
+   call dict_free(dict_tmp)
 !   call f_lib_finalize()
 !stop
+
    call yaml_new_document()
-    call test_copy_merge()
+   call test_copy_merge()
    call yaml_release_document()
 
    !test the yaml parsing
@@ -92,6 +116,7 @@ program yaml_test
 
    !prepare the finalization of the library
    call f_lib_finalize()
+
 end program yaml_test
 
 subroutine yaml_parse_file_and_string()
@@ -142,3 +167,12 @@ subroutine yaml_parse_file_and_string()
 
   
 end subroutine yaml_parse_file_and_string
+
+  subroutine help_screen()
+    write(*,*)' Usage of the command line instruction'
+    write(*,*)' --taskgroup-size=<mpi_groupsize>'
+    write(*,*)' --runs-file=<list_posinp filename>'
+    write(*,*)' --run-id=<name of the run>: it can be also specified as unique argument'
+    write(*,*)' --help : prints this help screen'
+  end subroutine help_screen
+

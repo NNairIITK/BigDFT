@@ -60,7 +60,7 @@ module lanczos_interface
 
 
    character(len=*), parameter :: subname='lanczos_interface'
-   integer :: i_all,i_stat,ierr
+   integer :: ierr
    type(lanczos_args), pointer :: ha
 
    real(kind=8), pointer :: matrix(:,:)
@@ -150,23 +150,17 @@ endif
 !! arrays which are used in the direct rep after retrieval
 !! from transposed memory
 
-allocate(Qvect_tmp( EP_dim_tot_touse  +ndebug) , stat=i_stat) 
-call memocc(i_stat,Qvect_tmp,'Qvect_tmp',subname)
-
-allocate(wrk  ( EP_dim_tot_touse   +ndebug) , stat=i_stat )
-call memocc(i_stat,wrk,'wrk',subname)
-allocate(wrk1 (  EP_dim_tot_touse    +ndebug) , stat=i_stat )
-call memocc(i_stat,wrk1,'wrk1',subname)
-allocate(wrk2 (  EP_dim_tot_touse    +ndebug) , stat=i_stat )
-call memocc(i_stat,wrk2,'wrk2',subname)
+Qvect_tmp = f_malloc_ptr(EP_dim_tot_touse+ndebug , id='Qvect_tmp')
+wrk = f_malloc_ptr(EP_dim_tot_touse+ndebug,id='wrk')
+wrk1 = f_malloc_ptr(EP_dim_tot_touse+ndebug,id='wrk1')
+wrk2 = f_malloc_ptr(EP_dim_tot_touse+ndebug,id='wrk2')
 
 EP_shift=0.0
 
 EP_norb=0
 EP_doorthoocc=.false.
 
-allocate( EP_norma2_initialized_state( ha%orbs%norbp+ndebug ) )
-call memocc(i_stat,EP_norma2_initialized_state,'EP_norma2_initialized_state' , subname)
+EP_norma2_initialized_state = f_malloc_ptr(ha%orbs%norbp+ndebug,id='EP_norma2_initialized_state')
 
 !added for nullification of the pointers in the lanczos_base module
 nullify(Qvect,dumQvect)
@@ -206,39 +200,17 @@ nullify(Qvect,dumQvect)
 
      if (iproc == 0)  call yaml_comment("DEALLOCATING")
 
-     i_all=-product(shape(Qvect))*kind(Qvect)
-     deallocate(Qvect,stat=i_stat)
-     call memocc(i_stat,i_all,'Qvect',subname)
-
-     i_all=-product(shape(dumQvect))*kind(dumQvect)
-     deallocate(dumQvect,stat=i_stat)
-     call memocc(i_stat,i_all,'dumQvect',subname)
-
-     i_all=-product(shape(Qvect_tmp))*kind(Qvect_tmp)
-     deallocate(Qvect_tmp,stat=i_stat)
-     call memocc(i_stat,i_all,'Qvect_tmp',subname)
-
-     i_all=-product(shape(wrk))*kind(wrk)
-     deallocate(wrk,stat=i_stat)
-     call memocc(i_stat,i_all,'wrk',subname)
-
-     i_all=-product(shape(wrk1))*kind(wrk1)
-     deallocate(wrk1,stat=i_stat)
-     call memocc(i_stat,i_all,'wrk1',subname)
-
-     i_all=-product(shape(wrk2))*kind(wrk2)
-     deallocate(wrk2,stat=i_stat)
-     call memocc(i_stat,i_all,'wrk2',subname)
-
+     call f_free_ptr(Qvect)
+     call f_free_ptr(dumQvect)
+     call f_free_ptr(Qvect_tmp)
+     call f_free_ptr(wrk)
+     call f_free_ptr(wrk1)
+     call f_free_ptr(wrk2)
      if(EP_doorthoocc) then
-        i_all=-product(shape(EP_occprojections))*kind(EP_occprojections)
-        deallocate(EP_occprojections,stat=i_stat)
-        call memocc(i_stat,i_all,'EP_occprojections',subname)
+        call f_free_ptr(EP_occprojections)
      endif
 
-     i_all=-product(shape(EP_norma2_initialized_state))*kind(EP_norma2_initialized_state)
-     deallocate(EP_norma2_initialized_state,stat=i_stat)
-     call memocc(i_stat,i_all,'EP_norma2_initialized_state',subname)
+     call f_free_ptr(EP_norma2_initialized_state)
 
   END SUBROUTINE EP_free
 
@@ -252,15 +224,10 @@ nullify(Qvect,dumQvect)
      integer i, j
 
      if(associated(Qvect) ) then
-        i_all=-product(shape(Qvect))*kind(Qvect)
-
-        deallocate(Qvect,stat=i_stat)
-        call memocc(i_stat,i_all,'Qvect',subname)
+        call f_free_ptr(Qvect)
      endif
 
-     allocate(Qvect(EP_dim,0:nsteps+ndebug),&
-        &   stat=i_stat)
-     call memocc(i_stat,Qvect,'Qvect',subname)
+     Qvect = f_malloc_ptr( (/1.to.EP_dim , 0.to.nsteps+ndebug /),id='Qvect')
      do i=0,nsteps
         do j=1,EP_dim
            Qvect(j,i)=0.0_wp
@@ -273,14 +240,10 @@ nullify(Qvect,dumQvect)
      integer, intent(in):: nd
 
      if(associated(dumQvect) ) then
-        i_all=-product(shape(dumQvect))*kind(dumQvect)
-        deallocate(dumQvect,stat=i_stat)
-        call memocc(i_stat,i_all,'dumQvect',subname)
+        call f_free_ptr(dumQvect)
      endif
 
-     allocate(dumQvect(EP_dim,0:nd+1+ndebug),&
-        &   stat=i_stat)
-     call memocc(i_stat,dumQvect,'dumQvect',subname)
+     dumQvect = f_malloc_ptr( (/1.to.EP_dim , 0.to.nd+1+ndebug/),id='dumQvect')
   END SUBROUTINE EP_make_dummy_vectors
 
   subroutine EP_store_occupied_orbitals( norb, Occ_psit )
@@ -291,8 +254,7 @@ nullify(Qvect,dumQvect)
      EP_doorthoocc=.true.
      EP_norb=norb
      occQvect=>Occ_psit
-     allocate(EP_occprojections(EP_norb+ndebug) , stat=i_stat )
-     call memocc(i_stat,EP_occprojections,'EP_occprojections',subname)
+     EP_occprojections = f_malloc_ptr(EP_norb+ndebug,id='EP_occprojections')
 
   END SUBROUTINE EP_store_occupied_orbitals
 
@@ -703,8 +665,9 @@ nullify(Qvect,dumQvect)
      ! The latter thing could be done separately by the subroutine z3_to_z1 that is contained
      ! in FFT_back, but then the code would be slower.
 
-     !$omp parallel default (private) shared(z1,z3,kern_k1,kern_k2,kern_k3)&
-     !$omp & shared(n1b,n3f,inzee,n1,n2,n3,ene,gamma)
+     !$omp parallel default (none) &
+     !$omp private(i1,i2,i3,tt) &
+     !$omp shared(z1,z3,kern_k1,kern_k2,kern_k3,n1b,n3f,inzee,n1,n2,n3,ene,gamma)
 
      ! i3=1: then z1 is contained in z3 
      !$omp do 
@@ -1384,7 +1347,7 @@ nullify(Qvect,dumQvect)
      character(len=*), parameter :: subname='gaussians_to_wavelets'
      integer, parameter :: nterm_max=3
      logical :: maycalc
-     integer :: i_stat,i_all,ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,nterm,ierr,ispinor
+     integer :: ishell,iexpo,icoeff,iat,isat,ng,l,m,iorb,jorb,nterm,ierr,ispinor
      real(dp) :: normdev,tt,scpr,totnorm
      real(gp) :: rx,ry,rz
      integer, dimension(nterm_max) :: lx,ly,lz
@@ -1393,8 +1356,7 @@ nullify(Qvect,dumQvect)
 
      if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
 
-     allocate(tpsi(wfd%nvctr_c+7*wfd%nvctr_f+ndebug),stat=i_stat)
-     call memocc(i_stat,tpsi,'tpsi',subname)
+     tpsi = f_malloc(wfd%nvctr_c+7*wfd%nvctr_f,id='tpsi')
 
      !initialize the wavefunction
      call to_zero((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor,psi)
@@ -1506,9 +1468,7 @@ nullify(Qvect,dumQvect)
      if (iproc ==0) write(*,'(1x,a,1pe12.2)')&
         &   'Deviation from normalization of the imported orbitals',normdev
 
-     i_all=-product(shape(tpsi))*kind(tpsi)
-     deallocate(tpsi,stat=i_stat)
-     call memocc(i_stat,i_all,'tpsi',subname)
+     call f_free(tpsi)
 
   END SUBROUTINE gaussians_to_wavelets_nonorm
 
@@ -1546,10 +1506,8 @@ nullify(Qvect,dumQvect)
 
 
      if(.not. allocated(psi_gross)) then 
-        allocate(psi_gross(0:n1/2,2,0:n2/2,2,0:n3/2,2+ndebug),stat=i_stat)
-        call memocc(i_stat,psi_gross,'psi_gross',subname)
-        allocate(logrid(0:n1/2,0:n2/2,0:n3/2+ndebug),stat=i_stat)
-        call memocc(i_stat,logrid,'logrid',subname)
+        psi_gross = f_malloc((/ 0.to.n1/2, 1.to.2, 0.to.n2/2, 1.to.2, 0.to.n3/2, 1.to.2 /),id='psi_gross')
+        logrid = f_malloc((/ 0.to.n1/2, 0.to.n2/2, 0.to.n3/2 /),id='logrid')
      endif
 
      call analyse_per_self(n1/2,n2/2,n3/2,psi,psi_gross)
@@ -1657,6 +1615,7 @@ nullify(Qvect,dumQvect)
     use lanczos_base
     use module_interfaces
     use communications_init, only: orbitals_communicators
+    use communications_base, only: deallocate_comms
     implicit none
     integer, intent(in) :: iproc,nproc,nspin
     real(gp), intent(in) :: hx,hy,hz
@@ -1678,7 +1637,6 @@ nullify(Qvect,dumQvect)
 
     !local variables
     character(len=*), parameter :: subname='lanczos'
-    integer :: i_stat,i_all
     type(lanczos_args) :: ha
     integer :: i
 
@@ -1700,7 +1658,6 @@ nullify(Qvect,dumQvect)
 
 
     orbs%eval = f_malloc_ptr(orbs%norb,id='orbs%eval')
-    call memocc(i_stat,orbs%eval,'orbs%eval',subname)
     orbs%occup(1:orbs%norb)=1.0_gp
     orbs%spinsgn(1:orbs%norb)=1.0_gp
     orbs%eval(1:orbs%norb)=1.0_gp
@@ -1709,8 +1666,7 @@ nullify(Qvect,dumQvect)
 
     call local_potential_dimensions(iproc,Lzd,orbs,xc,dpcom%ngatherarr(0,1))
 
-    allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
-    call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
+    Gabs_coeffs = f_malloc_ptr(2*in%L_absorber+1,id='Gabs_coeffs')
 
 
     if(   at%paw_NofL( at%astruct%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
@@ -1785,7 +1741,7 @@ nullify(Qvect,dumQvect)
 
     endif
 
-    call deallocate_comms(ha%comms,subname)
+    call deallocate_comms(ha%comms)
 
     call EP_free(ha%iproc)
 
@@ -1797,9 +1753,7 @@ nullify(Qvect,dumQvect)
 
     call f_free_ptr(orbs%eval)
 
-    i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
-    deallocate(Gabs_coeffs,stat=i_stat)
-    call memocc(i_stat,i_all,'Gabs_coeffs',subname)
+    call f_free_ptr(Gabs_coeffs)
 
     call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
 
@@ -1818,6 +1772,7 @@ nullify(Qvect,dumQvect)
     ! per togliere il bug 
     use module_interfaces
     use communications_init, only: orbitals_communicators
+    use communications_base, only: deallocate_comms
 
     implicit none
     integer  :: iproc,nproc,nspin
@@ -1840,7 +1795,6 @@ nullify(Qvect,dumQvect)
 
     !Local variables
     character(len=*), parameter :: subname='chebychev'
-!!$    integer :: i_stat,i_all
     type(lanczos_args) :: ha
     integer :: i
 
@@ -2005,7 +1959,7 @@ nullify(Qvect,dumQvect)
 
 
     !deallocate communication and orbitals descriptors
-    call deallocate_comms(ha%comms,subname)
+    call deallocate_comms(ha%comms)
 
     call EP_free(ha%iproc)
     call  LB_de_allocate_for_cheb( )
@@ -2059,6 +2013,7 @@ nullify(Qvect,dumQvect)
     use module_types
     use lanczos_base
     use module_xc
+    use communications_base, only: deallocate_comms
     ! per togliere il bug 
     use module_interfaces
     use communications_init, only: orbitals_communicators
@@ -2086,7 +2041,6 @@ nullify(Qvect,dumQvect)
 
     !local variables
     character(len=*), parameter :: subname='xabs_cg'
-    integer :: i_stat,i_all
     type(lanczos_args) :: ha
     integer :: i,j
     real(gp) Ene,gamma,  res 
@@ -2098,8 +2052,7 @@ nullify(Qvect,dumQvect)
     real(gp) , pointer ::potentialclone(:,:)
 
     if( iand( in%potshortcut,16)>0) then
-       allocate(potentialclone(max(dpcom%ndimpot,1),nspin+ndebug),stat=i_stat)
-       call memocc(i_stat,potentialclone,'potentialclone',subname)
+       potentialclone = f_malloc_ptr((/ max(dpcom%ndimpot, 1), nspin /),id='potentialclone')
        potentialclone=potential
     endif
 
@@ -2127,8 +2080,7 @@ nullify(Qvect,dumQvect)
 
     call local_potential_dimensions(iproc,Lzd,orbs,xc,dpcom%ngatherarr(0,1))
 
-    allocate(Gabs_coeffs(2*in%L_absorber+1+ndebug),stat=i_stat)
-    call memocc(i_stat,Gabs_coeffs,'Gabs_coeffs',subname)
+    Gabs_coeffs = f_malloc_ptr(2*in%L_absorber+1,id='Gabs_coeffs')
 
     if(   at%paw_NofL( at%astruct%iatype(   in_iat_absorber ) ) .gt. 0   ) then     
        Gabs_coeffs(:)=in%Gabs_coeffs(:)
@@ -2171,16 +2123,13 @@ nullify(Qvect,dumQvect)
     ha%xc=>xc
     ha%orbs=>orbs
 
-
     call EP_inizializza(ha) 
-
 
     if(.true.) then
        LB_nsteps =in%nsteps
        call LB_allocate_for_lanczos( )
        call EP_allocate_for_eigenprob(10)
        call EP_make_dummy_vectors(10)
-
 
        do i=0,0
 
@@ -2220,7 +2169,7 @@ nullify(Qvect,dumQvect)
 
     endif
 
-    call deallocate_comms(ha%comms,subname)
+    call deallocate_comms(ha%comms)
 
     call EP_free(ha%iproc)
 
@@ -2232,14 +2181,10 @@ nullify(Qvect,dumQvect)
 
     call f_free_ptr(orbs%eval)
 
-    i_all=-product(shape(Gabs_coeffs))*kind(Gabs_coeffs)
-    deallocate(Gabs_coeffs,stat=i_stat)
-    call memocc(i_stat,i_all,'Gabs_coeffs',subname)
+    call f_free_ptr(Gabs_coeffs)
 
     if( iand( in%potshortcut,16)>0) then
-       i_all=-product(shape(potentialclone))*kind(potentialclone)
-       deallocate(potentialclone,stat=i_stat)
-       call memocc(i_stat,i_all,'potentialclone',subname)
+       call f_free_ptr(potentialclone)
     endif
 
     call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)

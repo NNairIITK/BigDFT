@@ -4,7 +4,7 @@
 
 @details
 
-@section Intro About Nonlinear Core Corrections
+@section NLCC_INTRO About Nonlinear Core Corrections
 
 This version of pseudo can fit pseudopotentials for DFT calculations with a nonlinear core correction.
 For this purpose, a simple analytic approximation of the core charge density will be described by

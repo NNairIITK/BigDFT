@@ -85,9 +85,9 @@ module bigdft_forces
       nat = atoms_all%astruct%nat
       boxtype = atoms_all%astruct%geocode
 
-      allocate(posa(3 * nat))
-      allocate(typa(nat))
-      allocate(const_(nat))
+      posa = f_malloc_ptr(3 * nat,id='posa')
+      typa = f_malloc_ptr(nat,id='typa')
+      const_ = f_malloc_ptr(nat,id='const_')
 
       do i = 1, nat, 1
          posa(i)           = atoms_all%astruct%rxyz(1, i) * Bohr_Ang
@@ -138,7 +138,7 @@ module bigdft_forces
       !Local variables
       character(len=*), parameter :: subname='bigdft_init_art'
       real(gp),dimension(3*total_nb_atoms) :: posquant
-      integer :: natoms_calcul, i_stat
+      integer :: natoms_calcul
       type(dictionary), pointer :: dict
       !_______________________
 
@@ -180,10 +180,9 @@ module bigdft_forces
       end if
       ! The BigDFT restart structure.
       allocate(runObj%rst)
-      call init_restart_objects(me, runObj%inputs, runObj%atoms, runObj%rst, subname)
+      call init_restart_objects(me, runObj%inputs, runObj%atoms, runObj%rst)
 
-      allocate(runObj%radii_cf(runObj%atoms%astruct%ntypes,3+ndebug),stat=i_stat)
-      call memocc(i_stat,runObj%radii_cf,'radii_cf',"run_objects_init_from_files")
+      runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /),id='runObj%radii_cf')
       call read_radii_variables(runObj%atoms, runObj%radii_cf, &
            & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
 
@@ -443,8 +442,7 @@ module bigdft_forces
       atoms2%astruct%geocode = atoms1%astruct%geocode
 
 
-      allocate(atoms2%astruct%input_polarization(atoms2%astruct%nat+ndebug),stat=i_stat)
-      call memocc(i_stat,atoms2%astruct%input_polarization,'atoms%astruct%input_polarization',subname)
+      atoms2%astruct%input_polarization = f_malloc_ptr(atoms2%astruct%nat,id='atoms2%astruct%input_polarization')
 
       !also the spin polarisation and the charge are is fixed to zero by default
       !this corresponds to the value of 100
@@ -453,8 +451,7 @@ module bigdft_forces
       atoms2%astruct%input_polarization(:)=100
       atoms2%astruct%input_polarization(:) = atoms1%astruct%input_polarization(1:nat)
 
-      allocate(atoms2%astruct%ifrztyp(atoms2%astruct%nat+ndebug),stat=i_stat)
-      call memocc(i_stat,atoms2%astruct%ifrztyp,'atoms2%astruct%ifrztyp',subname)
+      atoms2%astruct%ifrztyp = f_malloc_ptr(atoms2%astruct%nat,id='atoms2%astruct%ifrztyp')
 
 
       !this array is useful for frozen atoms
@@ -462,8 +459,7 @@ module bigdft_forces
       atoms2%astruct%ifrztyp(:)=0
       atoms2%astruct%ifrztyp(:)= atoms1%astruct%ifrztyp(1:nat)
 
-      allocate(rxyz(3,atoms2%astruct%nat+ndebug),stat=i_stat)
-      call memocc(i_stat,rxyz,'rxyz',subname)
+      rxyz = f_malloc_ptr((/ 3, atoms2%astruct%nat /),id='rxyz')
 
 
       rxyz(1,:) = posquant(1:nat)
@@ -475,8 +471,7 @@ module bigdft_forces
 
 
 
-      allocate(atoms2%astruct%iatype(atoms2%astruct%nat+ndebug),stat=i_stat)
-      call memocc(i_stat,atoms2%astruct%iatype,'atoms%astruct%iatype',subname)
+      atoms2%astruct%iatype = f_malloc_ptr(atoms2%astruct%nat,id='atoms2%astruct%iatype')
       atoms2%astruct%iatype(:) = atoms1%astruct%iatype(1:nat)
 
       allocate(atoms2%astruct%atomnames(atoms2%astruct%ntypes+ndebug),stat=i_stat)
@@ -508,7 +503,7 @@ module bigdft_forces
       real(8) :: xij,yij,zij,rij2
       logical :: have_hydro
       character(len=20), dimension(100) :: atomnames
-      integer :: i_stat
+      integer :: i_stat, i_all
       integer :: hydro_atom_type
 
       integer, dimension(natoms) :: numnei
@@ -543,9 +538,9 @@ module bigdft_forces
          if (.not. have_hydro) then
             atomnames(1:atoms%astruct%ntypes) = atoms%astruct%atomnames(1:atoms%astruct%ntypes)
             atoms%astruct%ntypes = atoms%astruct%ntypes +1
-            deallocate(atoms%astruct%atomnames,stat = i_stat)
-            allocate(atoms%astruct%atomnames(atoms%astruct%ntypes),stat = i_stat)
-            call memocc(i_stat,atoms%astruct%atomnames,'atoms%astruct%atomnames',subname)
+            i_all=-product(shape(atoms%astruct%atomnames))*kind(atoms%astruct%atomnames)
+            deallocate(atoms%astruct%atomnames, stat=i_stat)
+            call memocc(i_stat, i_all, 'atoms%astruct%atomnames', subname)
             atomnames(atoms%astruct%ntypes) = "H"
             atoms%astruct%atomnames(1:atoms%astruct%ntypes) = atomnames(1:atoms%astruct%ntypes)
             hydro_atom_type = atoms%astruct%ntypes

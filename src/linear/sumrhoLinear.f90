@@ -527,6 +527,8 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   logical :: print_local
   integer :: size_of_double, info, mpisource, istsource, istdest, nsize, jproc, irho
 
+  call f_routine('sumrho_for_TMBs')
+
   ! check whether all entries of the charge density are positive
   rho_negative=.false.
 
@@ -565,18 +567,23 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
 
   total_charge=0.d0
   irho=0
+
+!ispin=1
   !$omp parallel default(private) &
   !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local, irho)
   !$omp do schedule(static,50) reduction(+:total_charge, irho)
   do ipt=1,collcom_sr%nptsp_c
       ii=collcom_sr%norb_per_gridpoint_c(ipt)
+
       i0=collcom_sr%isptsp_c(ipt)
       tt=1.e-20_dp
       do i=1,ii
           iiorb=collcom_sr%indexrecvorbital_c(i0+i)
+!ispin=spinsgn(iiorb) 
           tt1=collcom_sr%psit_c(i0+i)
           ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
           tt=tt+denskern_%matrix_compr(ind)*tt1*tt1
+!tt(ispin)=tt(ispin)+denskern_%matrix_compr(ind)*tt1*tt1
           do j=i+1,ii
               jjorb=collcom_sr%indexrecvorbital_c(i0+j)
               ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
@@ -587,6 +594,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
       tt=factor*tt
       total_charge=total_charge+tt
       rho_local(ipt)=tt
+!rho_local(ipt,ispin)=tt(ispin)
       if (tt<0.d0) irho=irho+1
   end do
   !$omp end do
@@ -675,6 +683,8 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   !!write(*,*) 'after deallocate'
   !!call mpi_finalize(ierr)
   !!stop
+
+  call f_release_routine()
 
 end subroutine sumrho_for_TMBs
 
@@ -803,7 +813,7 @@ subroutine check_communication_potential(iproc,denspot,tmb)
   ! Get mean value for the sum
   sumdiff=sqrt(sumdiff)
 
-  if (bigdft_mpi%iproc==0) call yaml_open_map('Checking operations for potential communication')    
+  if (bigdft_mpi%iproc==0) call yaml_mapping_open('Checking operations for potential communication')    
   ! Print the results
   if (bigdft_mpi%iproc==0) then
       call yaml_map('Tolerance for the following test',tol_calculation_mean,fmt='(1es25.18)')
@@ -821,11 +831,10 @@ subroutine check_communication_potential(iproc,denspot,tmb)
          call yaml_map('calculation check, error max', maxdiff,fmt='(1es25.18)')
       end if
   end if
-  if (bigdft_mpi%iproc==0) call yaml_close_map()
+  if (bigdft_mpi%iproc==0) call yaml_mapping_close()
 
-  i_all=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-  deallocate(denspot%pot_work,stat=i_stat)
-  call memocc(i_stat,i_all,'denspot%pot_work',subname)
+  call f_free_ptr(denspot%pot_work)
+
   nullify(denspot%pot_work)
 
   call timing(bigdft_mpi%iproc,'check_pot','OF')
@@ -872,7 +881,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
 
   call timing(iproc,'check_sumrho','ON')
 
-  if (iproc==0) call yaml_open_map('Checking operations for sumrho')
+  if (iproc==0) call yaml_mapping_open('Checking operations for sumrho')
 
   call f_routine(id='check_communication_sumrho')
 
@@ -938,6 +947,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   call f_free(psirwork)
 
   ! Rearrange array
+  !LG: WARNING: it is bad practice to consider collcom_sr as intent(in)
+  !and collcom_sr%psit_c and intent(out) or intent(inout)!!!
   call transpose_unswitch_psirt(collcom_sr, psirtwork, collcom_sr%psit_c)
 
   ! Transposed workarray not needed anymore
@@ -1222,7 +1233,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
 
   end if
 
-  if (iproc==0) call yaml_close_map()
+  if (iproc==0) call yaml_mapping_close()
 
   call timing(iproc,'check_sumrho','OF')
 

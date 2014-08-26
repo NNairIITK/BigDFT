@@ -307,7 +307,7 @@ subroutine atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nprojel,&
   real(wp), dimension(nprojel), intent(inout) :: proj
   !Local variables
   character(len=*), parameter :: subname='atom_projector_paw'
-  integer :: i_all,i_stat,ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,l,m,i,i_g,i_shell,j
+  integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,l,m,i,i_g,i_shell,j
   integer :: ncplx_k,nc,jstart_c,jj
   integer :: lmax=5
   real(gp) :: kx,ky,kz
@@ -336,8 +336,7 @@ subroutine atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nprojel,&
 
   !number of terms for every projector:
   nc=(mbvctr_c+7*mbvctr_f)*(2*lmax-1)*ncplx_k
-  allocate(proj_tmp(nc),stat=i_stat)
-  call memocc(i_stat,proj_tmp,'proj_tmp',subname)
+  proj_tmp = f_malloc(nc,id='proj_tmp')
 
 
   !decide the loop bounds
@@ -394,9 +393,7 @@ subroutine atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nprojel,&
      if (istart_c > nprojel+1) stop 'istart_c > nprojel+1'
   enddo
  
-  i_all=-product(shape(proj_tmp))*kind(proj_tmp)
-  deallocate(proj_tmp,stat=i_stat)
-  call memocc(i_stat,i_all,'proj_tmp',subname)
+  call f_free(proj_tmp)
 
 END SUBROUTINE atom_projector_paw
 
@@ -814,15 +811,16 @@ subroutine crtproj(geocode,nterm,lr, &
   integer, parameter :: nw=65536
   logical :: perx,pery,perz !variables controlling the periodicity in x,y,z
   integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3
-  integer :: ncplx_w,ns1,ns2,ns3,n1,n2,n3
-  integer :: i_all,i_stat,j1,i0,j0,jj,ii,i,iseg,ind_f,ind_c
-  integer :: mvctr1, mvctr2
+  integer :: ncplx_w,ns1,ns2,ns3,n1,n2,n3,n1p1,np,i0jj
+  integer :: j1,i0,j0,jj,ii,i,iseg,ind_f,ind_c
+  integer :: mvctr1, mvctr2, mvctr_cf, mvctr_cf2
   !integer :: counter !test
   !real(wp) :: re_cmplx_prod,im_cmplx_prod
   real(gp), dimension(ncplx_g) :: factor
   !real(gp) :: err_norm
   real(wp), allocatable, dimension(:,:,:) :: work
   real(wp), allocatable, dimension(:,:,:,:) :: wprojx,wprojy,wprojz
+  real(wp) :: wprojyz, wprojyz11, wprojyz12, wprojyz21, wprojyz22
   !Variables for OpenMP
   !$ integer :: ithread,nthread,ichunk
   !$ integer :: omp_get_thread_num,omp_get_num_threads
@@ -838,6 +836,11 @@ subroutine crtproj(geocode,nterm,lr, &
   n1  = lr%d%n1
   n2  = lr%d%n2
   n3  = lr%d%n3
+  n1p1=n1+1
+  np=n1p1*(n2+1)
+  mvctr_cf=mvctr_c+7*mvctr_f
+  mvctr_cf2=2*mvctr_c+7*mvctr_f
+
   !wproj is complex for PAW and kpoints.
   ncplx_w=max(ncplx_g,ncplx_k,1)
 
@@ -866,12 +869,9 @@ subroutine crtproj(geocode,nterm,lr, &
      stop
   end if
 
-  allocate(wprojx(ncplx_w,0:n1,2,nterm+ndebug),stat=i_stat)
-  call memocc(i_stat,wprojx,'wprojx',subname)
-  allocate(wprojy(ncplx_w,0:n2,2,nterm+ndebug),stat=i_stat)
-  call memocc(i_stat,wprojy,'wprojy',subname)
-  allocate(wprojz(ncplx_w,0:n3,2,nterm+ndebug),stat=i_stat)
-  call memocc(i_stat,wprojz,'wprojz',subname)
+  wprojx = f_malloc((/ 1.to.ncplx_w, 0.to.n1, 1.to.2, 1.to.nterm /),id='wprojx')
+  wprojy = f_malloc((/ 1.to.ncplx_w, 0.to.n2, 1.to.2, 1.to.nterm /),id='wprojy')
+  wprojz = f_malloc((/ 1.to.ncplx_w, 0.to.n3, 1.to.2, 1.to.nterm /),id='wprojz')
 
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')
@@ -888,8 +888,7 @@ subroutine crtproj(geocode,nterm,lr, &
   !!$omp private(ithread,ichunk,factor,n_gau)
 
   !!$omp critical
-    allocate(work(0:nw,2,2+ndebug),stat=i_stat)  !always use complex value
-    call memocc(i_stat,work,'work',subname)
+    work = f_malloc((/ 0.to.nw, 1.to.2, 1.to.2 /),id='work')
   !!$omp end critical
 
   !!$ ithread=omp_get_thread_num()
@@ -919,9 +918,7 @@ subroutine crtproj(geocode,nterm,lr, &
      !!$ endif
   end do
   !!$omp critical
-    i_all=-product(shape(work))*kind(work)
-    deallocate(work,stat=i_stat)
-    call memocc(i_stat,i_all,'work',subname)
+    call f_free(work)
   !!$omp end critical
   !!$omp end parallel
 
@@ -933,23 +930,25 @@ subroutine crtproj(geocode,nterm,lr, &
   if (ncplx_w==1) then
      !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2) &
      !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
-     !$omp shared(mvctr_f,mseg_f,nterm)
+     !$omp shared(mvctr_f,mseg_f,nterm,n1p1,np)
      ! coarse part
-     !$omp do
+     !$omp do 
      do iseg=1,mseg_c
         jj=keyv_p(iseg)
         j0=keyg_p(1,iseg)
         j1=keyg_p(2,iseg)
         ii=j0-1
-        i3=ii/((n1+1)*(n2+1))
-        ii=ii-i3*(n1+1)*(n2+1)
-        i2=ii/(n1+1)
-        i0=ii-i2*(n1+1)
+        i3=ii/np
+        ii=ii-i3*np
+        i2=ii/n1p1
+        i0=ii-i2*n1p1
         i1=i0+j1-j0
+        i0jj=jj-i0
+        wprojyz=wprojy(1,i2,1,1)*wprojz(1,i3,1,1)
         do i=i0,i1
-           ind_c=i-i0+jj
+           ind_c=i+i0jj
            proj(ind_c)=&
-                wprojx(1,i,1,1)*wprojy(1,i2,1,1)*wprojz(1,i3,1,1)
+                wprojx(1,i,1,1)*wprojyz
         enddo
      enddo
      !$omp enddo
@@ -962,20 +961,25 @@ subroutine crtproj(geocode,nterm,lr, &
         j0=keyg_p(1,iseg)
         j1=keyg_p(2,iseg)
         ii=j0-1
-        i3=ii/((n1+1)*(n2+1))
-        ii=ii-i3*(n1+1)*(n2+1)
-        i2=ii/(n1+1)
-        i0=ii-i2*(n1+1)
+        i3=ii/(np)
+        ii=ii-i3*np
+        i2=ii/n1p1
+        i0=ii-i2*n1p1
         i1=i0+j1-j0
+        i0jj=7*(jj-i0-1)+mvctr_c
+        wprojyz11=wprojy(1,i2,1,1)*wprojz(1,i3,1,1)
+        wprojyz21=wprojy(1,i2,2,1)*wprojz(1,i3,1,1)
+        wprojyz12=wprojy(1,i2,1,1)*wprojz(1,i3,2,1)
+        wprojyz22=wprojy(1,i2,2,1)*wprojz(1,i3,2,1)
         do i=i0,i1
-           ind_f=mvctr_c+7*(i-i0+jj-1)
-           proj(ind_f+1)=wprojx(1,i,2,1)*wprojy(1,i2,1,1)*wprojz(1,i3,1,1)
-           proj(ind_f+2)=wprojx(1,i,1,1)*wprojy(1,i2,2,1)*wprojz(1,i3,1,1)
-           proj(ind_f+3)=wprojx(1,i,2,1)*wprojy(1,i2,2,1)*wprojz(1,i3,1,1)
-           proj(ind_f+4)=wprojx(1,i,1,1)*wprojy(1,i2,1,1)*wprojz(1,i3,2,1)
-           proj(ind_f+5)=wprojx(1,i,2,1)*wprojy(1,i2,1,1)*wprojz(1,i3,2,1)
-           proj(ind_f+6)=wprojx(1,i,1,1)*wprojy(1,i2,2,1)*wprojz(1,i3,2,1)
-           proj(ind_f+7)=wprojx(1,i,2,1)*wprojy(1,i2,2,1)*wprojz(1,i3,2,1)
+           ind_f=7*i+i0jj
+           proj(ind_f+1)=wprojx(1,i,2,1)*wprojyz11
+           proj(ind_f+2)=wprojx(1,i,1,1)*wprojyz21
+           proj(ind_f+3)=wprojx(1,i,2,1)*wprojyz21
+           proj(ind_f+4)=wprojx(1,i,1,1)*wprojyz12
+           proj(ind_f+5)=wprojx(1,i,2,1)*wprojyz12
+           proj(ind_f+6)=wprojx(1,i,1,1)*wprojyz22
+           proj(ind_f+7)=wprojx(1,i,2,1)*wprojyz22
         enddo
      enddo
      !$omp enddo
@@ -989,13 +993,14 @@ subroutine crtproj(geocode,nterm,lr, &
            j0=keyg_p(1,iseg)
            j1=keyg_p(2,iseg)
            ii=j0-1
-           i3=ii/((n1+1)*(n2+1))
-           ii=ii-i3*(n1+1)*(n2+1)
-           i2=ii/(n1+1)
-           i0=ii-i2*(n1+1)
+           i3=ii/(np)
+           ii=ii-i3*np
+           i2=ii/n1p1
+           i0=ii-i2*n1p1
            i1=i0+j1-j0
+           i0jj=jj-i0
            do i=i0,i1
-              ind_c=i-i0+jj
+              ind_c=i+i0jj
               do iterm=2,nterm
                  proj(ind_c)=proj(ind_c)+&
                       wprojx(1,i,1,iterm)*wprojy(1,i2,1,iterm)*wprojz(1,i3,1,iterm)
@@ -1011,13 +1016,14 @@ subroutine crtproj(geocode,nterm,lr, &
            j0=keyg_p(1,iseg)
            j1=keyg_p(2,iseg)
            ii=j0-1
-           i3=ii/((n1+1)*(n2+1))
-           ii=ii-i3*(n1+1)*(n2+1)
-           i2=ii/(n1+1)
-           i0=ii-i2*(n1+1)
+           i3=ii/(np)
+           ii=ii-i3*np
+           i2=ii/n1p1
+           i0=ii-i2*n1p1
            i1=i0+j1-j0
+           i0jj=7*(jj-i0-1)+mvctr_c
            do i=i0,i1
-              ind_f=mvctr_c+7*(i-i0+jj-1)
+              ind_f=7*i+i0jj
               do iterm=2,nterm
                  proj(ind_f+1)=proj(ind_f+1)+&
                       wprojx(1,i,2,iterm)*wprojy(1,i2,1,iterm)*wprojz(1,i3,1,iterm)
@@ -1057,7 +1063,7 @@ subroutine crtproj(geocode,nterm,lr, &
   else if (ncplx_w==2) then
      !$omp parallel default(private) shared(mseg_c,keyv_p,keyg_p,n3,n2,ncplx_k) &
      !$omp shared(n1,proj,wprojx,wprojy,wprojz,mvctr_c) &
-     !$omp shared(nterm,mvctr_f,mseg_f)
+     !$omp shared(nterm,mvctr_f,mseg_f,n1p1,np,mvctr_cf,mvctr_cf2)
      !part with real and imaginary part
      !modify the openMP statements such as to benefit from parallelisation
      !Here accumulate only the REAL part,
@@ -1070,13 +1076,14 @@ subroutine crtproj(geocode,nterm,lr, &
         j0=keyg_p(1,iseg)
         j1=keyg_p(2,iseg)
         ii=j0-1
-        i3=ii/((n1+1)*(n2+1))
-        ii=ii-i3*(n1+1)*(n2+1)
-        i2=ii/(n1+1)
-        i0=ii-i2*(n1+1)
+        i3=ii/(np)
+        ii=ii-i3*np
+        i2=ii/n1p1
+        i0=ii-i2*n1p1
         i1=i0+j1-j0
+        i0jj=jj-i0
         do i=i0,i1
-           ind_c=i-i0+jj
+           ind_c=i+i0jj
            proj(ind_c)=&
                 re_cmplx_prod(wprojx(1,i,1,1),wprojy(1,i2,1,1),wprojz(1,i3,1,1))
         enddo
@@ -1091,13 +1098,14 @@ subroutine crtproj(geocode,nterm,lr, &
         j0=keyg_p(1,iseg)
         j1=keyg_p(2,iseg)
         ii=j0-1
-        i3=ii/((n1+1)*(n2+1))
-        ii=ii-i3*(n1+1)*(n2+1)
-        i2=ii/(n1+1)
-        i0=ii-i2*(n1+1)
+        i3=ii/(np)
+        ii=ii-i3*np
+        i2=ii/n1p1
+        i0=ii-i2*n1p1
         i1=i0+j1-j0
+        i0jj=7*(jj-i0-1)+mvctr_c
         do i=i0,i1
-           ind_f=mvctr_c+7*(i-i0+jj-1)
+           ind_f=7*i+i0jj
            proj(ind_f+1)=re_cmplx_prod(wprojx(1,i,2,1),wprojy(1,i2,1,1),wprojz(1,i3,1,1))
            proj(ind_f+2)=re_cmplx_prod(wprojx(1,i,1,1),wprojy(1,i2,2,1),wprojz(1,i3,1,1))
            proj(ind_f+3)=re_cmplx_prod(wprojx(1,i,2,1),wprojy(1,i2,2,1),wprojz(1,i3,1,1))
@@ -1118,13 +1126,14 @@ subroutine crtproj(geocode,nterm,lr, &
            j0=keyg_p(1,iseg)
            j1=keyg_p(2,iseg)
            ii=j0-1
-           i3=ii/((n1+1)*(n2+1))
-           ii=ii-i3*(n1+1)*(n2+1)
-           i2=ii/(n1+1)
-           i0=ii-i2*(n1+1)
+           i3=ii/(np)
+           ii=ii-i3*np
+           i2=ii/n1p1
+           i0=ii-i2*n1p1
            i1=i0+j1-j0
+           i0jj=jj-i0
            do i=i0,i1
-              ind_c=i-i0+jj
+              ind_c=i+i0jj
               do iterm=2,nterm
                  proj(ind_c)=proj(ind_c)+re_cmplx_prod(&
                       wprojx(1,i,1,iterm),wprojy(1,i2,1,iterm),wprojz(1,i3,1,iterm))
@@ -1140,13 +1149,14 @@ subroutine crtproj(geocode,nterm,lr, &
            j0=keyg_p(1,iseg)
            j1=keyg_p(2,iseg)
            ii=j0-1
-           i3=ii/((n1+1)*(n2+1))
-           ii=ii-i3*(n1+1)*(n2+1)
-           i2=ii/(n1+1)
-           i0=ii-i2*(n1+1)
+           i3=ii/(np)
+           ii=ii-i3*np
+           i2=ii/n1p1
+           i0=ii-i2*n1p1
            i1=i0+j1-j0
+           i0jj=7*(jj-i0-1)+mvctr_c
            do i=i0,i1
-              ind_f=mvctr_c+7*(i-i0+jj-1)
+              ind_f=7*i+i0jj
               do iterm=2,nterm
                  proj(ind_f+1)=proj(ind_f+1)+re_cmplx_prod(&
                       wprojx(1,i,2,iterm),wprojy(1,i2,1,iterm),wprojz(1,i3,1,iterm))
@@ -1180,13 +1190,14 @@ subroutine crtproj(geocode,nterm,lr, &
         j0=keyg_p(1,iseg)
         j1=keyg_p(2,iseg)
         ii=j0-1
-        i3=ii/((n1+1)*(n2+1))
-        ii=ii-i3*(n1+1)*(n2+1)
-        i2=ii/(n1+1)
-        i0=ii-i2*(n1+1)
+        i3=ii/(np)
+        ii=ii-i3*np
+        i2=ii/n1p1
+        i0=ii-i2*n1p1
         i1=i0+j1-j0
+        i0jj=jj-i0+mvctr_cf
         do i=i0,i1
-           ind_c=mvctr_c+7*mvctr_f+i-i0+jj
+           ind_c=i+i0jj
            proj(ind_c)=&
                 im_cmplx_prod(wprojx(1,i,1,1),wprojy(1,i2,1,1),wprojz(1,i3,1,1))
         enddo
@@ -1201,13 +1212,13 @@ subroutine crtproj(geocode,nterm,lr, &
         j0=keyg_p(1,iseg)
         j1=keyg_p(2,iseg)
         ii=j0-1
-        i3=ii/((n1+1)*(n2+1))
-        ii=ii-i3*(n1+1)*(n2+1)
-        i2=ii/(n1+1)
-        i0=ii-i2*(n1+1)
+        i3=ii/(np)
+        ii=ii-i3*np
+        i2=ii/n1p1
+        i0=ii-i2*n1p1
         i1=i0+j1-j0
         !correction for xlf compiler bug
-        ind_f=2*mvctr_c+7*mvctr_f+7*(jj-2)
+        ind_f=mvctr_cf2+7*(jj-2)
         do i=i0,i1
            ind_f=ind_f+7
            !ind_f=mvctr_c+7*mvctr_f+mvctr_c+7*(i-i0+jj-1)
@@ -1231,13 +1242,14 @@ subroutine crtproj(geocode,nterm,lr, &
            j0=keyg_p(1,iseg)
            j1=keyg_p(2,iseg)
            ii=j0-1
-           i3=ii/((n1+1)*(n2+1))
-           ii=ii-i3*(n1+1)*(n2+1)
-           i2=ii/(n1+1)
-           i0=ii-i2*(n1+1)
+           i3=ii/(np)
+           ii=ii-i3*np
+           i2=ii/n1p1
+           i0=ii-i2*n1p1
            i1=i0+j1-j0
+           i0jj=jj-i0+mvctr_cf
            do i=i0,i1
-              ind_c=mvctr_c+7*mvctr_f+i-i0+jj
+              ind_c=i+i0jj
               do iterm=2,nterm
                  proj(ind_c)=proj(ind_c)+im_cmplx_prod(&
                       wprojx(1,i,1,iterm),wprojy(1,i2,1,iterm),wprojz(1,i3,1,iterm))
@@ -1253,13 +1265,14 @@ subroutine crtproj(geocode,nterm,lr, &
            j0=keyg_p(1,iseg)
            j1=keyg_p(2,iseg)
            ii=j0-1
-           i3=ii/((n1+1)*(n2+1))
-           ii=ii-i3*(n1+1)*(n2+1)
-           i2=ii/(n1+1)
-           i0=ii-i2*(n1+1)
+           i3=ii/(np)
+           ii=ii-i3*np
+           i2=ii/n1p1
+           i0=ii-i2*n1p1
            i1=i0+j1-j0
+           i0jj=7*(jj-i0-1)+mvctr_cf2
            do i=i0,i1
-              ind_f=mvctr_c+7*mvctr_f+mvctr_c+7*(i-i0+jj-1)
+              ind_f=7*i+i0jj
               do iterm=2,nterm
                  proj(ind_f+1)=proj(ind_f+1)+im_cmplx_prod(&
                       wprojx(1,i,2,iterm),wprojy(1,i2,1,iterm),wprojz(1,i3,1,iterm))
@@ -1287,21 +1300,17 @@ subroutine crtproj(geocode,nterm,lr, &
 !!  call system_clock(ncount2,ncount_rate,ncount_max)
 !!  write(20,*) 'TIMING2:', dble(ncount2-ncount1)/dble(ncount_rate)
 
-  i_all=-product(shape(wprojx))*kind(wprojx)
-  deallocate(wprojx,stat=i_stat)
-  call memocc(i_stat,i_all,'wprojx',subname)
-  i_all=-product(shape(wprojy))*kind(wprojy)
-  deallocate(wprojy,stat=i_stat)
-  call memocc(i_stat,i_all,'wprojy',subname)
-  i_all=-product(shape(wprojz))*kind(wprojz)
-  deallocate(wprojz,stat=i_stat)
-  call memocc(i_stat,i_all,'wprojz',subname)
+  call f_free(wprojx)
+  call f_free(wprojy)
+  call f_free(wprojz)
 
 !  i_all=-product(shape(work))*kind(work)
 !  deallocate(work,stat=i_stat)
 !  call memocc(i_stat,i_all,'work',subname)
-  !call finalize_real_space_conversion(subname)
+  !call finalize_real_space_conversion()
+
 contains
+
   !> Real part of the complex product
   pure function re_cmplx_prod(a,b,c)
     use module_base, only: wp

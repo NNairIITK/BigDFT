@@ -283,7 +283,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   logical :: wrtmsg
   !n(c) integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
   integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,i3s_fake,i3xcsh_fake
-  integer :: i_all,i_stat,ierr,i,j
+  integer :: ierr,i,j
   integer :: i1,i2,i3,istart,iend,iwarn,i3start,jend,jproc
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,ispin,istden,istglo
   integer :: ndvxc,order
@@ -394,8 +394,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
      i3start=istart+2-nxcl-nwbl
      if((nspin==2 .and. nproc>1) .or. i3start <=0 .or. i3start+nxt-1 > n03 ) then
         !allocation of an auxiliary array for avoiding the shift of the density
-        allocate(rho_G(m1*m3*nxt*2+ndebug),stat=i_stat)
-        call memocc(i_stat,rho_G,'rho_G',subname)
+        rho_G = f_malloc(m1*m3*nxt*2,id='rho_G')
         !here we put the modulo of the results for the non-isolated GGA
         do ispin=1,nspin
            do i3=1,nxt
@@ -430,8 +429,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
      end if
   end if
   !allocate array for XC potential enlarged for the WB procedure
-  allocate(vxci(m1,m3,max(1,nwb),nspin+ndebug),stat=i_stat)
-  call memocc(i_stat,vxci,'vxci',subname)
+  vxci = f_malloc((/ m1, m3, max(1, nwb), nspin /),id='vxci')
 
   !allocate the array of the second derivative of the XC energy if it is needed
   !Allocations of the exchange-correlation terms, depending on the ixc value
@@ -447,15 +445,13 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
      order=1
      ndvxc=0
      !here ndebug is not put since it is taken form dvxcdrho (not very good)
-     allocate(dvxci(m1,m3,max(1,nwb),ndvxc),stat=i_stat)
-     call memocc(i_stat,dvxci,'dvxci',subname)
+     dvxci = f_malloc_ptr((/ m1, m3, max(1, nwb), ndvxc /),id='dvxci')
   end if
 
   !calculate gradient
   if (xc_isgga(xcObj) .and. nxc > 0) then
      !computation of the gradient
-     allocate(gradient(m1,m3,nwb,2*nspin-1,0:3+ndebug),stat=i_stat)
-     call memocc(i_stat,gradient,'gradient',subname)
+     gradient = f_malloc((/ 1.to.m1, 1.to.m3, 1.to.nwb, 1.to.2*nspin-1, 0.to.3 /),id='gradient')
 
      !!the calculation of the gradient will depend on the geometry code
      !this operation will also modify the density arrangment for a GGA calculation
@@ -470,8 +466,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
              hx,hy,hz,gradient,rhocore)
      end if
   else
-     allocate(gradient(1,1,1,1,1+ndebug),stat=i_stat)
-     call memocc(i_stat,gradient,'gradient',subname)
+     gradient = f_malloc((/ 1, 1, 1, 1, 1 /),id='gradient')
      !add rhocore to the density
      if (associated(rhocore) .and. m1*m3*nxt > 0) then
         if (datacode=='G' .and. (i3start <=0 .or. i3start+nxt-1 > n03 )) then
@@ -510,9 +505,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
               end do
            end do
         end do
-        i_all=-product(shape(rho_G))*kind(rho_G)
-        deallocate(rho_G,stat=i_stat)
-        call memocc(i_stat,i_all,'rho_G',subname)
+        call f_free(rho_G)
      else
         call xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
              xcObj,hx,hy,hz,rho(1+n01*n02*(i3start-1)),gradient,vxci,&
@@ -526,9 +519,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   end if
 
   !deallocate gradient here
-  i_all=-product(shape(gradient))*kind(gradient)
-  deallocate(gradient,stat=i_stat)
-  call memocc(i_stat,i_all,'gradient',subname)
+  call f_free(gradient)
 
 
   !the value of the shift depends of the distributed i/o or not
@@ -580,32 +571,34 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   !gathering the data to obtain the distribution array
   !evaluating the total ehartree,eexcu,vexcu
   if (nproc > 1) then
-     allocate(energies_mpi(2+ndebug),stat=i_stat)
-     call memocc(i_stat,energies_mpi,'energies_mpi',subname)
+     !allocate(energies_mpi(2+ndebug),stat=i_stat)
+     !call memocc(i_stat,energies_mpi,'energies_mpi',subname)
+     energies_mpi = f_malloc(4,id='energies_mpi')
 
      energies_mpi(1)=eexcuLOC
      energies_mpi(2)=vexcuLOC
-     call mpiallred(energies_mpi(1),2,MPI_SUM,mpi_comm)
-     exc=energies_mpi(1)
-     vxc=energies_mpi(2)
+     call mpiallred(energies_mpi(1), 2,MPI_SUM,mpi_comm,recvbuf=energies_mpi(3))
+     exc=energies_mpi(3)
+     vxc=energies_mpi(4)
 
 !XC-stress term
   if (geocode == 'P') then
 
         if (associated(rhocore)) then
         call calc_rhocstr(rhocstr,nxc,nxt,m1,m3,i3xcsh_fake,nspin,potxc,rhocore)
-        call mpiallred(rhocstr(1),6,MPI_SUM,mpi_comm)
+        call mpiallred(rhocstr,MPI_SUM,mpi_comm)
         rhocstr=rhocstr/real(n01*n02*n03,dp)
         end if
 
      xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
-     call mpiallred(wbstr(1),6,MPI_SUM,mpi_comm)
+     call mpiallred(wbstr,MPI_SUM,mpi_comm)
      wbstr=wbstr/real(n01*n02*n03,dp)
      xcstr(:)=xcstr(:)+wbstr(:)+rhocstr(:)
   end if
-     i_all=-product(shape(energies_mpi))*kind(energies_mpi)
-     deallocate(energies_mpi,stat=i_stat)
-     call memocc(i_stat,i_all,'energies_mpi',subname)
+     !i_all=-product(shape(energies_mpi))*kind(energies_mpi)
+     !deallocate(energies_mpi,stat=i_stat)
+     !call memocc(i_stat,i_all,'energies_mpi',subname)
+     call f_free(energies_mpi)  
 
      if (datacode == 'G') then
         !building the array of the data to be sent from each process
@@ -615,8 +608,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
            stop
         end if
 
-        allocate(gather_arr(0:nproc-1,2+ndebug),stat=i_stat)
-        call memocc(i_stat,gather_arr,'gather_arr',subname)
+        gather_arr = f_malloc((/ 0.to.nproc-1, 1.to.2 /),id='gather_arr')
         do jproc=0,nproc-1
            istart=min(jproc*(md2/nproc),m2-1)
            jend=max(min(md2/nproc,m2-md2/nproc*jproc),0)
@@ -640,9 +632,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
                 mpi_comm,ierr)
         end do
 
-        i_all=-product(shape(gather_arr))*kind(gather_arr)
-        deallocate(gather_arr,stat=i_stat)
-        call memocc(i_stat,i_all,'gather_arr',subname)
+        call f_free(gather_arr)
 
      end if
 
@@ -663,14 +653,10 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
 
   end if
 
-  i_all=-product(shape(vxci))*kind(vxci)
-  deallocate(vxci,stat=i_stat)
-  call memocc(i_stat,i_all,'vxci',subname)
+  call f_free(vxci)
 
   if (.not.present(dvxcdrho)) then
-     i_all=-product(shape(dvxci))*kind(dvxci)
-     deallocate(dvxci,stat=i_stat)
-     call memocc(i_stat,i_all,'dvxci',subname)
+     call f_free_ptr(dvxci)
   end if
 
   call f_timing(TCAT_EXCHANGECORR,'OF')
@@ -809,7 +795,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   real(dp), dimension(:,:,:,:), allocatable :: dvxcdgr
   !real(dp), dimension(:,:,:,:,:), allocatable :: gradient
   real(dp) :: elocal,vlocal,rhov,sfactor
-  integer :: npts,i_all,offset,i_stat,ispden
+  integer :: npts,offset,ispden
   integer :: i1,i2,i3,j1,j2,j3,jp2,jppp2
   logical :: use_gradient
 
@@ -838,18 +824,15 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
 !!$     call calc_gradient(geocode,m1,m3,nxt,nwb,nwbl,nwbr,rho,nspden,&
 !!$          real(hx,dp),real(hy,dp),real(hz,dp),gradient)
 
-     allocate(dvxcdgr(m1,m3,nwb,3+ndebug),stat=i_stat)
-     call memocc(i_stat,dvxcdgr,'dvxcdgr',subname)
+     dvxcdgr = f_malloc((/ m1, m3, nwb, 3 /),id='dvxcdgr')
   else
 !!$     allocate(gradient(1,1,1,1,1+ndebug),stat=i_stat)
 !!$     call memocc(i_stat,gradient,'gradient',subname)
-     allocate(dvxcdgr(1,1,1,1+ndebug),stat=i_stat)
-     call memocc(i_stat,dvxcdgr,'dvxcdgr',subname)
+     dvxcdgr = f_malloc((/ 1, 1, 1, 1 /),id='dvxcdgr')
   end if
   
   !Allocations
-  allocate(exci(m1,m3,nwb+ndebug),stat=i_stat)
-  call memocc(i_stat,exci,'exci',subname)
+  exci = f_malloc((/ m1, m3, nwb /),id='exci')
 
   !this part can be commented out if you don't want to use ABINIT modules
   !of course it must be substituted with an alternative XC calculation
@@ -897,9 +880,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   !end of the part that can be commented out
 
   if (allocated(dvxcdgr)) then
-     i_all=-product(shape(dvxcdgr))*kind(dvxcdgr)
-     deallocate(dvxcdgr,stat=i_stat)
-     call memocc(i_stat,i_all,'dvxcdgr',subname)
+     call f_free(dvxcdgr)
   end if
 !!$  if (allocated(gradient)) then
 !!$     i_all=-product(shape(gradient))*kind(gradient)
@@ -969,9 +950,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   vxc=sfactor*real(hx*hy*hz,dp)*vxc
 
   !De-allocations
-  i_all=-product(shape(exci))*kind(exci)
-  deallocate(exci,stat=i_stat)
-  call memocc(i_stat,i_all,'exci',subname)
+  call f_free(exci)
 !  call MPI_BARRIER(bigdft_mpi%mpi_comm,i_stat)
 !stop
 END SUBROUTINE xc_energy_new
@@ -1058,7 +1037,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
   real(dp), dimension(:,:,:,:), allocatable :: vxci,dvxci,dvxcdgr
   real(dp), dimension(:,:,:,:,:), allocatable :: gradient
   real(dp) :: elocal,vlocal,rho,potion,sfactor
-  integer :: npts,i_all,order,offset,i_stat,ispden
+  integer :: npts,order,offset,ispden
   integer :: i1,i2,i3,j1,j2,j3,jp2,jpp2,jppp2
   integer :: ndvxc,nvxcdgr,ngr2,nd2vxc
   logical :: use_gradient
@@ -1107,8 +1086,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
      if (use_gradient) then
         !computation of the gradient
-        allocate(gradient(m1,m3,nwb,2*nspden-1,0:3+ndebug),stat=i_stat)
-        call memocc(i_stat,gradient,'gradient',subname)
+        gradient = f_malloc((/ 1.to.m1, 1.to.m3, 1.to.nwb, 1.to.2*nspden-1, 0.to.3 /),id='gradient')
 
         !!the calculation of the gradient will depend on the geometry code
         !if (geocode=='F') then
@@ -1126,22 +1104,17 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      end if
 
      !Allocations
-     allocate(exci(m1,m3,nwb+ndebug),stat=i_stat)
-     call memocc(i_stat,exci,'exci',subname)
-     allocate(vxci(m1,m3,nwb,nspden+ndebug),stat=i_stat)
-     call memocc(i_stat,vxci,'vxci',subname)
+     exci = f_malloc((/ m1, m3, nwb /),id='exci')
+     vxci = f_malloc((/ m1, m3, nwb, nspden /),id='vxci')
 
      if (ndvxc/=0) then
-        allocate(dvxci(m1,m3,nwb,ndvxc+ndebug),stat=i_stat)
-        call memocc(i_stat,dvxci,'dvxci',subname)
+        dvxci = f_malloc((/ m1, m3, nwb, ndvxc /),id='dvxci')
      end if
      if (nvxcdgr/=0) then
-        allocate(dvxcdgr(m1,m3,nwb,nvxcdgr+ndebug),stat=i_stat)
-        call memocc(i_stat,dvxcdgr,'dvxcdgr',subname)
+        dvxcdgr = f_malloc((/ m1, m3, nwb, nvxcdgr /),id='dvxcdgr')
      end if
      if ((xc%ixc==3 .or. (xc%ixc>=7 .and. xc%ixc<=15)) .and. order==3) then
-        allocate(d2vxci(m1,m3,nwb+ndebug),stat=i_stat)
-        call memocc(i_stat,d2vxci,'d2vxci',subname)
+        d2vxci = f_malloc((/ m1, m3, nwb /),id='d2vxci')
      end if
 
      if (.not.allocated(gradient) .and. nxc/=nxt ) then
@@ -1230,24 +1203,16 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      !end of the part that can be commented out
 
      if (allocated(dvxci)) then
-        i_all=-product(shape(dvxci))*kind(dvxci)
-        deallocate(dvxci,stat=i_stat)
-        call memocc(i_stat,i_all,'dvxci',subname)
+        call f_free(dvxci)
      end if
      if (allocated(dvxcdgr)) then
-        i_all=-product(shape(dvxcdgr))*kind(dvxcdgr)
-        deallocate(dvxcdgr,stat=i_stat)
-        call memocc(i_stat,i_all,'dvxcdgr',subname)
+        call f_free(dvxcdgr)
      end if
      if (allocated(d2vxci)) then
-        i_all=-product(shape(d2vxci))*kind(d2vxci)
-        deallocate(d2vxci,stat=i_stat)
-        call memocc(i_stat,i_all,'d2vxci',subname)
+        call f_free(d2vxci)
      end if
      if (allocated(gradient)) then
-        i_all=-product(shape(gradient))*kind(gradient)
-        deallocate(gradient,stat=i_stat)
-        call memocc(i_stat,i_all,'gradient',subname)
+        call f_free(gradient)
      end if
 
 !     rewind(300)
@@ -1417,12 +1382,8 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      vxc=sfactor*real(hx*hy*hz,dp)*vxc
 
      !De-allocations
-     i_all=-product(shape(exci))*kind(exci)
-     deallocate(exci,stat=i_stat)
-     call memocc(i_stat,i_all,'exci',subname)
-     i_all=-product(shape(vxci))*kind(vxci)
-     deallocate(vxci,stat=i_stat)
-     call memocc(i_stat,i_all,'vxci',subname)
+     call f_free(exci)
+     call f_free(vxci)
 
 
   else
@@ -1476,14 +1437,13 @@ gradient,hx,hy,hz,dvxcdgr,wb_vxc,wbstr)
   real(dp), dimension(6),intent(inout) :: wbstr
   !Local variables
   character(len=*), parameter :: subname='vxcpostprocessing'
-  integer :: i1,i2,i3,dir_i,i_all,i_stat
+  integer :: i1,i2,i3,dir_i
   real(dp) :: dnexcdgog,grad_i,rho_up,rho_down,rho_tot
   real(dp), dimension(:,:,:,:,:), allocatable :: f_i
 
   !Body
 
-  allocate(f_i(n01,n02,n03,3,nspden+ndebug),stat=i_stat)
-  call memocc(i_stat,f_i,'f_i',subname)
+  f_i = f_malloc((/ n01, n02, n03, 3, nspden /),id='f_i')
   
   !let us first treat the case nspden=1
   if (nspden == 1) then
@@ -1560,9 +1520,7 @@ gradient,hx,hy,hz,dvxcdgr,wb_vxc,wbstr)
   call wb_correction(geocode,n01,n02,n03,n3eff,wbl,wbr,f_i,hx,hy,hz,nspden,wb_vxc)
 
 
-  i_all=-product(shape(f_i))*kind(f_i)
-  deallocate(f_i,stat=i_stat)
-  call memocc(i_stat,i_all,'f_i',subname)
+  call f_free(f_i)
 
 END SUBROUTINE vxcpostprocessing
 

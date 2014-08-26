@@ -13,6 +13,7 @@ subroutine scaling_function(itype,nd,nrange,a,x)
 
   use Poisson_Solver, only: dp
   use memory_profiling
+  use dynamic_memory
   implicit none
   !Arguments
   !Type of interpolating functions
@@ -24,7 +25,7 @@ subroutine scaling_function(itype,nd,nrange,a,x)
   !Local variables
   character(len=*), parameter :: subname='scaling_function'
   real(kind=8), dimension(:), allocatable :: y
-  integer :: i,nt,ni,i_all,i_stat
+  integer :: i,nt,ni
   
   !Only itype=8,14,16,20,24,30,40,50,60,100
   select case(itype)
@@ -42,8 +43,7 @@ subroutine scaling_function(itype,nd,nrange,a,x)
   ni=2*itype
   nrange = ni
   
-  allocate(y(0:nd+ndebug),stat=i_stat)
-  call memocc(i_stat,y,'y',subname)
+  y = f_malloc(0.to.nd,id='y')
   
   ! plot scaling function
   call zero(nd+1,x)
@@ -91,9 +91,7 @@ subroutine scaling_function(itype,nd,nrange,a,x)
   end do
 !  close(1)
 
-  i_all=-product(shape(y))*kind(y)
-  deallocate(y,stat=i_stat)
-  call memocc(i_stat,i_all,'y',subname)
+  call f_free(y)
 END SUBROUTINE scaling_function
 
 
@@ -102,6 +100,7 @@ subroutine wavelet_function(itype,nd,a,x)
 
   use Poisson_Solver, only: dp
   use memory_profiling
+  use dynamic_memory
   implicit none
   !Arguments
   !Type of the interpolating scaling function
@@ -112,7 +111,7 @@ subroutine wavelet_function(itype,nd,a,x)
   !Local variables
   character(len=*), parameter :: subname='wavelet_function'
   real(kind=8), dimension(:), allocatable :: y
-  integer :: i,nt,ni,i_all,i_stat
+  integer :: i,nt,ni
 
   !Only itype=8,14,16,20,24,30,40,50,60,100
   Select case(itype)
@@ -127,8 +126,7 @@ subroutine wavelet_function(itype,nd,a,x)
   !from -itype to itype
   ni=2*itype
 
-  allocate(y(0:nd+ndebug),stat=i_stat)
-  call memocc(i_stat,y,'y',subname)
+  y = f_malloc(0.to.nd,id='y')
   
   ! plot wavelet 
   call zero(nd+1,x)
@@ -176,9 +174,7 @@ subroutine wavelet_function(itype,nd,a,x)
   end do
   !close(1)
 
-  i_all=-product(shape(y))*kind(y)
-  deallocate(y,stat=i_stat)
-  call memocc(i_stat,i_all,'y',subname)
+  call f_free(y)
  
 END SUBROUTINE wavelet_function
 

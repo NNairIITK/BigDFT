@@ -9,7 +9,7 @@
 
 
 !> Applies one real projector operator in the form |p> hp <p| onto a set of wavefunctions described by the same descriptors
-!! accumulate the result on the array hpsi and calculate the energy in the form \sum_w <psi_w|p> hp <p|psi_w>
+!! accumulate the result on the array hpsi and calculate the energy in the form @f$\sum_w <psi_w|p> hp <p|psi_w>@f$
 subroutine apply_oneproj_operator(wfd_p,proj,hp,n_w,wfd_w,psi,hpsi,scpr)
   use module_base
   use module_types, only: wavefunctions_descriptors
@@ -27,7 +27,6 @@ subroutine apply_oneproj_operator(wfd_p,proj,hp,n_w,wfd_w,psi,hpsi,scpr)
   character(len=*), parameter :: subname='apply_oneproj'
   integer :: is_w,is_sw,is_p,is_sp,iw
   integer, dimension(:,:), allocatable :: psi_mask
-  integer :: proj_count, i_proj
   !routines which are optimized in separate files
   external :: wpdot_keys,wpdot_mask,waxpy_mask
 

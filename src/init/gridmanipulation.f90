@@ -376,16 +376,18 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
    integer, dimension(2,mseg), intent(out) :: keyg
    !local variables
    logical :: plogrid
-   integer :: mvctr,nsrt,nend,i1,i2,i3,ngridp
+   integer :: mvctr,nsrt,nend,i1,i2,i3,ngridp,np,n1p1
 
    mvctr=0
    nsrt=0
    nend=0
+   n1p1=n1+1
+   np=n1p1*(n2+1)
    do i3=nl3,nu3 
       do i2=nl2,nu2
          plogrid=.false.
          do i1=nl1,nu1
-            ngridp=i3*((n1+1)*(n2+1)) + i2*(n1+1) + i1+1
+            ngridp=i3*np + i2*n1p1 + i1+1
             if (logrid(i1,i2,i3)) then
                mvctr=mvctr+1
                if (.not. plogrid) then

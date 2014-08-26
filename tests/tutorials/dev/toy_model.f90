@@ -18,6 +18,7 @@ program wvl
   use module_input_dicts
   use module_interfaces, only: inputs_from_dict
   use module_atoms, only: deallocate_atoms_data
+  use communications_base, only: deallocate_comms
   use communications_init, only: orbitals_communicators
   use communications, only: transpose_v, untranspose_v
   implicit none
@@ -117,7 +118,9 @@ program wvl
   allocate(rxyz_old(3, atoms%astruct%nat))
   call readmywaves(iproc,"data/wavefunction",WF_FORMAT_PLAIN,orbs,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
        & inputs%hx,inputs%hy,inputs%hz,atoms,rxyz_old,atoms%astruct%rxyz,Lzd%Glr%wfd,psi)
-  if (nproc > 1) call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM)
+  if (nproc>1) then
+      call mpiallred(orbs%eval(1),orbs%norb*orbs%nkpts,MPI_SUM)
+  end if
 
 
   ! Some analysis.
@@ -174,14 +177,16 @@ program wvl
   ! This double loop can be expressed with BLAS DSYRK function.
   !  call syrk('L','T',orbs%norb,comms%nvctr_par(iproc, 0),1.0_wp,psi(1), &
   !       & max(1,comms%nvctr_par(iproc, 0)),0.0_wp,ovrlp(1,1),orbs%norb)
-  if (nproc > 1) call mpiallred(ovrlp(1,1),orbs%norb * orbs%norb,MPI_SUM)
+  if (nproc>1) then
+      call mpiallred(ovrlp(1,1),orbs%norb * orbs%norb,MPI_SUM)
+  end if
   if (iproc == 0) then
      !uses yaml_output routine to provide example
-     call yaml_open_sequence('The overlap matrix is')
+     call yaml_sequence_open('The overlap matrix is')
           do j = 1, orbs%norb, 1
              call yaml_sequence(trim(yaml_toa(ovrlp(:, j),fmt='(g18.8)')))
           end do
-     call yaml_close_sequence()
+     call yaml_sequence_close()
      !write(*,*) "The overlap matrix is:"
      !do j = 1, orbs%norb, 1
      !   write(*, "(A)", advance = "NO") "("
@@ -220,7 +225,9 @@ program wvl
         rhor(j) = rhor(j) + orbs%occup(orbs%isorb + i) * psir(j) * psir(j)
      end do
   end do
-  if (nproc > 1) call mpiallred(rhor(1),Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * Lzd%Glr%d%n3i,MPI_SUM)
+  if (nproc>1) then
+      call mpiallred(rhor(1),Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * Lzd%Glr%d%n3i,MPI_SUM)
+  end if
   !if (iproc == 0) write(*,*) "System has", sum(rhor), "electrons."
   if (iproc == 0) call yaml_map("Number of electrons", sum(rhor))
   deallocate(rhor)
@@ -247,7 +254,7 @@ program wvl
   call sumrho(dpcom,orbs,Lzd,GPU,atoms%astruct%sym,rhodsc,xc,psi,rho_p)
   call communicate_density(dpcom,orbs%nspin,rhodsc,rho_p,rhor,.false.)
 
-  call deallocate_rho_descriptors(rhodsc,"main")
+  call deallocate_rho_descriptors(rhodsc)
 
   ! Example of calculation of the energy of the local potential of the pseudos.
   pkernel=pkernel_init(.true.,iproc,nproc,0,&
@@ -280,7 +287,9 @@ program wvl
   end do
   epot_sum = epot_sum * inputs%hx / 2._gp * inputs%hy / 2._gp * inputs%hz / 2._gp
   call free_full_potential(dpcom%mpi_env%nproc,0,xc,potential,"main")
-  if (nproc > 1) call mpiallred(epot_sum,1,MPI_SUM)
+  if (nproc>1) then
+      call mpiallred(epot_sum,1,MPI_SUM)
+  end if
   
   !if (iproc == 0) write(*,*) "System pseudo energy is", epot_sum, "Ht."
   if (iproc == 0) call yaml_map("System pseudo energy (Ha)", epot_sum)
@@ -293,15 +302,15 @@ program wvl
   deallocate(rxyz_old)
   deallocate(psi)
 
-  call deallocate_comms(comms,"main")
+  call deallocate_comms(comms)
   call deallocate_wfd(Lzd%Glr%wfd)
 
-  call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,Lzd%Glr%bounds,"main")
+  call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,Lzd%Glr%bounds)
 
-  call deallocate_Lzd_except_Glr(Lzd,"main")
+  call deallocate_Lzd_except_Glr(Lzd)
   !deallocate(Lzd%Glr%projflg)
 
-  call deallocate_orbs(orbs,"main")
+  call deallocate_orbs(orbs)
 
   call deallocate_atoms_data(atoms) 
   call xc_end(xc)

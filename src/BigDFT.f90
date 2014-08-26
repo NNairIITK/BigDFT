@@ -15,6 +15,7 @@ program BigDFT
    use module_types
    use module_interfaces
    use yaml_output
+   use internal_coordinates, only : get_neighbors
 
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
 
@@ -30,9 +31,16 @@ program BigDFT
    !information for mpi_initalization
    integer, dimension(4) :: mpi_info
    integer :: iconfig,nconfig,ngroups,igroup
+   real(kind=8),dimension(:,:),allocatable :: fxyz
+   integer :: iat
+   logical :: file_exists
+   integer,dimension(:),allocatable :: atoms_ref
 
    call f_lib_initialize()
 
+!call test_dictionaries0()
+!call test_error_handling()
+!call test_timing()
    !-finds the number of taskgroup size
    !-initializes the mpi_environment for each group
    !-decides the radical name for each run
@@ -60,6 +68,27 @@ program BigDFT
          call run_objects_init_from_files(runObj, arr_radical(iconfig), arr_posinp(iconfig))
          call init_global_output(outs, runObj%atoms%astruct%nat)
 
+
+         !!! THIS IS TEMPORARY, SHOULD BE DONE IN A BETTER WAY ####################
+         !!inquire(file='posinp.fix',exist=file_exists)
+         !!if (file_exists) then
+         !!    atoms_ref = f_malloc(runObj%atoms%astruct%nat,id='atoms_ref')
+         !!    open(unit=123,file='posinp.fix')
+         !!    do iat=1,runObj%atoms%astruct%nat
+         !!        read(123,*) atoms_ref(iat), runObj%atoms%astruct%fix_int(1:3,iat)
+         !!    end do
+         !!    close(unit=123)
+         !!    if (iproc==0) call yaml_map('before: runObj%atoms%astruct%ixyz_int',runObj%atoms%astruct%ixyz_int)
+         !!    !!call get_neighbors(runObj%atoms%astruct%rxyz, runObj%atoms%astruct%nat, runObj%atoms%astruct%ixyz_int(1,:), &
+         !!    !!     runObj%atoms%astruct%ixyz_int(2,:), runObj%atoms%astruct%ixyz_int(3,:),atoms_ref)
+         !!    call f_free(atoms_ref)
+         !!    if (iproc==0) call yaml_map('after: runObj%atoms%astruct%ixyz_int',runObj%atoms%astruct%ixyz_int)
+         !!else
+         !!    call get_neighbors(runObj%atoms%astruct%rxyz, runObj%atoms%astruct%nat, runObj%atoms%astruct%ixyz_int(1,:), &
+         !!         runObj%atoms%astruct%ixyz_int(2,:), runObj%atoms%astruct%ixyz_int(3,:))
+         !!end if
+         !!! ######################################################################
+
          call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 
          if (runObj%inputs%ncount_cluster_x > 1) then
@@ -77,11 +106,11 @@ program BigDFT
          if (runObj%inputs%ncount_cluster_x > 1) then
             filename=trim('final_'//trim(arr_posinp(iconfig)))
             if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,runObj%atoms%astruct%rxyz, &
-                 & runObj%atoms,'FINAL CONFIGURATION',forces=outs%fxyz)
+                 & runObj%atoms%astruct%ixyz_int, runObj%atoms,'FINAL CONFIGURATION',forces=outs%fxyz)
          else
             filename=trim('forces_'//trim(arr_posinp(iconfig)))
             if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,runObj%atoms%astruct%rxyz, &
-                 & runObj%atoms,'Geometry + metaData forces',forces=outs%fxyz)
+                 & runObj%atoms%astruct%ixyz_int, runObj%atoms,'Geometry + metaData forces',forces=outs%fxyz)
          end if
 
          ! Deallocations.
@@ -99,4 +128,110 @@ program BigDFT
    call f_lib_finalize()
 
 END PROGRAM BigDFT
+
+
+
+subroutine test_dictionaries0()
+  use yaml_output                                                     !contains the routines for the yaml output
+  use dictionaries                                                    !contains the dictionary routines
+  implicit none
+  type(dictionary),pointer :: d1, d2, d3
+ 
+  call dict_init(d1)                                                  !initialize the dictionary ''d1''
+  call set(d1//'toto',1)                                              !add the key ''toto'' to it and assign it the value 1
+  call set(d1//'titi',1.d0)                                           !add the key ''titi'' to it and assign it the value 1.d0
+  call set(d1//'tutu',(/ '1', '2' /))                                 !add the key ''tutu'' to it and assign it the array [1,2]
+
+  call dict_init(d2)                                                  !initialize the array dictionary ''d2''
+  call set(d2//'a',0)                                                 !add the key ''a'' and assign it the value 0
+  call set(d1//'List',list_new((/.item.d2, .item.'4', .item.'1.0'/))) !create a list from ''d2'' and the values 4 and 1.0
+
+  call yaml_dict_dump(d1)                                             !output the content of ''d1'' in the yaml format
+
+  d3 => d1//'New key'                                                 !point to ''d1''?
+  call set(d3//'Example',4)                                           !add the key ''Example'' to ''d3'' and assign it the value 4
+  call yaml_dict_dump(d3)                                             !output the content of ''d2'' in the yaml format
+
+  call yaml_map('List length',dict_len(d1//'List'))                   !print the length of the key ''List'' in dictionary ''d1''
+  call yaml_map('Dictionary size',dict_size(d1))                      !print the size of the dictionary ''d1''
+  call dict_free(d1)                                                  !destroy the dictionary ''d1''
+  
+end subroutine test_dictionaries0
+
+
+subroutine test_error_handling()
+  use yaml_output
+  use dictionaries
+  implicit none
+  integer :: ERR_TEST
+  external :: abort_test
+
+  call yaml_comment('Error Handling Module Test',hfill='~')                !just a comment
+
+  call f_err_define(err_name='ERR_TEST',&                                  !define the error
+       err_msg='This is the error message for the error "ERR_TEST" and'//&
+       ' it is written extensively on purpose to see whether the yaml'//&
+       ' module can still handle it',&
+       err_action='For this error, contact the routine developer',&
+       err_id=ERR_TEST,callback=abort_test)
+
+  call yaml_map("Raising the TEST error, errcode",ERR_TEST)                !print that the error will now be triggered
+  if (f_err_raise(.true.,'Extra message added',err_id=ERR_TEST)) return    !rasie the error and return
+
+end subroutine test_error_handling
+
+subroutine abort_test()
+  use yaml_output
+  implicit none
+  call yaml_comment('printing error informations',hfill='_')               !just a comment indicating that the error informations will now be written
+  call f_dump_last_error()                                                 !print the error information
+end subroutine abort_test
+
+
+
+subroutine test_timing()
+  use dynamic_memory
+  use time_profiling
+  use dictionaries
+  use yaml_output
+  type(dictionary), pointer :: dict_tmp
+
+  call sub1()
+  call f_malloc_dump_status(dict_summary=dict_tmp)
+  call yaml_dict_dump(dict_tmp)
+
+end subroutine test_timing
+
+subroutine sub1()
+  use dynamic_memory
+  call f_routine('sub1')
+  call sub2()
+  call sub2()
+  call sub3()
+  call f_release_routine()
+end subroutine sub1
+
+subroutine sub2()
+  use dynamic_memory
+  call f_routine('sub2')
+  call waste_time()
+  call f_release_routine()
+end subroutine sub2
+
+subroutine sub3()
+  use dynamic_memory
+  call f_routine('sub3')
+  call waste_time()
+  call f_release_routine()
+end subroutine sub3
+
+subroutine waste_time()
+  implicit none
+  integer :: i
+  real(kind=8) :: tt
+  tt=0.d0
+  do i=1,1000000
+      tt = tt + sin(real(i,kind=8))
+  end do
+end subroutine waste_time
 

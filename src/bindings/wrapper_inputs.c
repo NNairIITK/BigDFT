@@ -144,6 +144,7 @@ void bigdft_inputs_set(BigDFT_Inputs *in, const gchar *level,
   dict = bigdft_dict_new(NULL);
   bigdft_dict_set(dict, id, value);  
   FC_FUNC_(inputs_set_dict, INPUTS_SET_DICT)(F_TYPE(in->data), level, &dict->root, strlen(level));
+  bigdft_dict_unref(dict); //added to free the dictionary created by fortran
   g_object_unref(G_OBJECT(dict));
 
   _inputs_sync(in);

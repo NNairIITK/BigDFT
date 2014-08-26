@@ -4,7 +4,7 @@
 
 @details
 
-@section Intro    Separable part with additional parameters
+@section SEPARABLE_INTRO    Separable part with additional parameters
 
 If a pseudopotential should capture the coupling of states with different spatial extensions,
 for instance when semicore states are included, it can be favorable to add a slight modification

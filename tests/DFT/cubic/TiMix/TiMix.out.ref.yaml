@@ -51,18 +51,18 @@
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  perf:
-   debug                               : No #     debug option
-   fftcache                            : 8192 #   cache size for the FFT
-   accel                               : NO #     acceleration
+   debug                               : No #     Debug option
+   fftcache                            : 8192 #   Cache size for the FFT
+   accel                               : NO #     Acceleration (hardware)
    ocl_platform                        : ~ #      Chosen OCL platform
    ocl_devices                         : ~ #      Chosen OCL devices
    blas                                : No #     CUBLAS acceleration
    projrad                             : 15.000 # Radius of the projector as a function of the maxrad
    exctxpar                            : OP2P #   Exact exchange parallelisation scheme
-   ig_diag                             : Yes #    Input guess: (T:Direct, F:Iterative) diag. of Ham.
-   ig_norbp                            : 5 #      Input guess: Orbitals per process for iterative diag.
-   ig_blocks: [300, 800] #                        Input guess: Block sizes for orthonormalisation
-   ig_tol                              : 0.1E-03 # Input guess: Tolerance criterion
+   ig_diag                             : Yes #    Input guess (T=Direct, F=Iterative) diag. of Ham.
+   ig_norbp                            : 5 #      Input guess Orbitals per process for iterative diag.
+   ig_blocks: [300, 800] #                        Input guess Block sizes for orthonormalisation
+   ig_tol                              : 0.1E-03 # Input guess Tolerance criterion
    methortho                           : 0 #      Orthogonalisation
    rho_commun                          : DEF #    Density communication scheme (DBL, RSC, MIX)
    psolver_groupsize                   : 0 #      Size of Poisson Solver taskgroups (0=nproc)
@@ -129,7 +129,7 @@
    itrpmax                             : 2 #      maximum number of diagonalisation iterations
    rpnrm_cv                            : 0.1E-06 # stop criterion on the residue of potential or density
    norbsempty                          : 4 #      No. of additional bands
-   Tel                                 : 0.10E-02 # electronic temperature
+   tel                                 : 0.10E-02 # electronic temperature
    occopt                              : 1 #      smearing method
    alphamix                            : 0.950 #  Multiplying factors for the mixing
    alphadiis                           : 2.000 #  Multiplying factors for the electronic DIIS
@@ -267,6 +267,11 @@
  - Ti: {AU:  [  8.6240,  10.800,  10.800 ], GU:  [  19.164,  24.000,  24.000 ]} # 0001
  - Na: {AU:  [  13.331,  10.800,  10.800 ], GU:  [  29.624,  24.000,  24.000 ]} # 0002
  Rigid Shift Applied (AU)              :  [  8.9773,  10.800,  10.800 ]
+ Atomic structure:
+   Positions:
+   - Ti: [ 8.623978943,  10.80000000,  10.80000000] # [  19.16,  24.00,  24.00 ] 0001
+   - Na: [ 13.33068340,  10.80000000,  10.80000000] # [  29.62,  24.00,  24.00 ] 0002
+   Rigid Shift Applied (AU)            :  [  8.9773,  10.800,  10.800 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]
  Sizes of the simulation domain:
@@ -503,6 +508,8 @@
  WARNINGS:
  - PSP generated with a different XC. Input XC is "XC: Perdew, Burke & Ernzerhof"
  - Odd number of electrons, no closed shell system
+ - No convergence within the allowed number of minimization steps
+ - No convergence within the allowed number of minimization steps
  - Wavefunctions not converged after cycle  1
  - Wavefunction residue is not consistent with density convergence (T_el too small?)
  - Self-consistent cycle did not meet convergence criteria

@@ -47,9 +47,16 @@ module wrapper_MPI
 
   !> Interface for MPITYPE routine
   interface mpitype
-     module procedure mpitype_i,mpitype_d,mpitype_r,mpitype_l
+     module procedure mpitype_i,mpitype_d,mpitype_r,mpitype_l,mpitype_c,mpitype_li
+     module procedure mpitype_i1,mpitype_i2
      module procedure mpitype_d1,mpitype_d2
+     module procedure mpitype_c1
   end interface mpitype
+
+  interface mpimaxdiff
+     module procedure mpimaxdiff_i0,mpimaxdiff_d0
+     module procedure mpimaxdiff_d1,mpimaxdiff_d2
+  end interface mpimaxdiff
 
   !> Interface for MPI_ALLREDUCE routine, to be updated little by little
   interface mpiallred
@@ -61,8 +68,13 @@ module wrapper_MPI
 
   interface mpigather
      module procedure mpigather_d1d1,mpigather_d2d1,mpigather_d1d2,mpigather_d2
+     module procedure mpigather_i0i2,mpigather_d0d2
   end interface mpigather
 
+  interface mpibcast
+     module procedure mpibcast_i0,mpibcast_li0
+     module procedure mpibcast_c1
+  end interface mpibcast
 
   !> Interface for MPI_ALLGATHERV routine
   interface mpiallgatherv
@@ -85,7 +97,16 @@ module wrapper_MPI
   public :: mpi_environment_set
   public :: mpi_environment_set1 !to be removed
 
-  
+  !>fake type to enhance documentation
+  type, private :: doc
+     !>number of entries in buffer (integer). Useful for buffer passed by reference 
+     integer :: count
+     !> rank of mpitask executing the operation (default value is root=0)
+     integer :: root
+     !> communicator of the communication
+     integer :: comm
+  end type doc
+
 contains
 
   pure function mpi_environment_null() result(mpi)
@@ -352,9 +373,9 @@ end subroutine create_group_comm1
     integer :: ierr, i, j
     integer, dimension(:), allocatable :: lrank, ids
 
-    call mpi_comm_rank(group_comm, iproc_group, ierr)
-    call mpi_comm_size(MPI_COMM_WORLD, nproc, ierr)
-    call mpi_comm_size(group_comm, nproc_group, ierr)
+    call MPI_COMM_RANK(group_comm, iproc_group, ierr)
+    call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierr)
+    call MPI_COMM_SIZE(group_comm, nproc_group, ierr)
     ngroups = nproc / nproc_group
 
     ! Put in lrank the group rank of each process, indexed by global iproc.
@@ -439,42 +460,116 @@ end subroutine create_group_comm1
 
   end subroutine mpi_initialize_timing_categories
 
-  function mpitype_i(data) result(mt)
+  pure function mpitype_i(data) result(mt)
     implicit none
     integer, intent(in) :: data
     integer :: mt
     mt=MPI_INTEGER
   end function mpitype_i
-  function mpitype_r(data) result(mt)
+  pure function mpitype_i1(data) result(mt)
+    implicit none
+    integer, dimension(:), intent(in) :: data
+    integer :: mt
+    mt=MPI_INTEGER
+  end function mpitype_i1
+  pure function mpitype_i2(data) result(mt)
+    implicit none
+    integer, dimension(:,:), intent(in) :: data
+    integer :: mt
+    mt=MPI_INTEGER
+  end function mpitype_i2
+
+  pure function mpitype_li(data) result(mt)
+    implicit none
+    integer(kind=8), intent(in) :: data
+    integer :: mt
+    mt=MPI_INTEGER8
+  end function mpitype_li
+
+
+  pure function mpitype_r(data) result(mt)
     implicit none
     real, intent(in) :: data
     integer :: mt
     mt=MPI_REAL
   end function mpitype_r
-  function mpitype_d(data) result(mt)
+  pure function mpitype_d(data) result(mt)
     implicit none
     double precision, intent(in) :: data
     integer :: mt
     mt=MPI_DOUBLE_PRECISION
   end function mpitype_d
-  function mpitype_d1(data) result(mt)
+  pure function mpitype_d1(data) result(mt)
     implicit none
     double precision, dimension(:), intent(in) :: data
     integer :: mt
     mt=MPI_DOUBLE_PRECISION
   end function mpitype_d1
-  function mpitype_d2(data) result(mt)
+  pure function mpitype_d2(data) result(mt)
     implicit none
     double precision, dimension(:,:), intent(in) :: data
     integer :: mt
     mt=MPI_DOUBLE_PRECISION
   end function mpitype_d2
-  function mpitype_l(data) result(mt)
+  pure function mpitype_l(data) result(mt)
     implicit none
     logical, intent(in) :: data
     integer :: mt
     mt=MPI_LOGICAL
   end function mpitype_l
+  pure function mpitype_c(data) result(mt)
+    implicit none
+    character, intent(in) :: data
+    integer :: mt
+    mt=MPI_CHARACTER
+  end function mpitype_c
+  pure function mpitype_c1(data) result(mt)
+    implicit none
+    character, dimension(:), intent(in) :: data
+    integer :: mt
+    mt=MPI_CHARACTER
+  end function mpitype_c1
+
+  !>function giving the mpi rank id for a given communicator
+  function mpirank(comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    integer, intent(in) :: comm
+    integer :: mpirank
+    !local variables
+    integer :: iproc,ierr
+
+    call MPI_COMM_RANK(comm, iproc, ierr)
+    if (ierr /=0) then
+       iproc=-1
+       mpirank=iproc
+       call f_err_throw('An error in calling to MPI_COMM_RANK occurred',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+    mpirank=iproc
+
+  end function mpirank
+
+  !> returns the number of mpi_tasks associated to a given communicator
+  function mpisize(comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    integer, intent(in) :: comm
+    integer :: mpisize
+    !local variables
+    integer :: nproc,ierr
+
+    !verify the size of the receive buffer
+    call MPI_COMM_SIZE(comm,nproc,ierr)
+    if (ierr /=0) then
+       nproc=0
+       mpisize=nproc
+       call f_err_throw('An error in calling to MPI_COMM_SIZE occured',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+    mpisize=nproc
+
+  end function mpisize
 
   !gather the results of a given array into the root proc
   subroutine mpigather_d1d1(sendbuf,recvbuf,root,comm)
@@ -512,6 +607,49 @@ end subroutine create_group_comm1
     double precision, dimension(:,:), intent(inout) :: recvbuf
     include 'gather-inc.f90'   
   end subroutine mpigather_d2
+
+  !gather the results of a given array into the root proc, version 
+  !working with adresses
+  subroutine mpigather_i0i2(sendbuf,sendcount,recvbuf,root,comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    integer, intent(inout) :: sendbuf
+    integer, intent(in) :: sendcount
+    integer, dimension(:,:), intent(inout) :: recvbuf
+    !---like gather-inc
+    integer, intent(in), optional :: root !< 0 if absent
+    integer, intent(in), optional :: comm !< MPI_COMM_WORLD if absent
+    !local variables
+    integer :: iroot,mpi_comm,ntot,ntotrecv,ntasks,ierr
+
+    ntot=sendcount
+    ntotrecv=size(recvbuf)
+
+    include 'gather-inner-inc.f90'
+    !-end gather-inc
+  end subroutine mpigather_i0i2
+
+  subroutine mpigather_d0d2(sendbuf,sendcount,recvbuf,root,comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    double precision, intent(inout) :: sendbuf
+    integer, intent(in) :: sendcount
+    double precision, dimension(:,:), intent(inout) :: recvbuf
+    !---like gather-inc
+    integer, intent(in), optional :: root !< 0 if absent
+    integer, intent(in), optional :: comm !< MPI_COMM_WORLD if absent
+    !local variables
+    integer :: iroot,mpi_comm,ntot,ntotrecv,ntasks,ierr
+
+    ntot=sendcount
+    ntotrecv=size(recvbuf)
+
+    include 'gather-inner-inc.f90'
+    !-end gather-inc
+  end subroutine mpigather_d0d2
+  
 
 
   !interface for MPI_ALLGATHERV operations
@@ -593,7 +731,7 @@ end subroutine create_group_comm1
 
   subroutine mpiallred_d1(sendbuf,op,comm,recvbuf)
     use dynamic_memory
-    use dictionaries, only: f_err_throw,f_err_define
+    use dictionaries, only: f_err_throw!,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
     double precision, dimension(:), intent(inout) :: sendbuf
@@ -604,7 +742,7 @@ end subroutine create_group_comm1
 
   subroutine mpiallred_d2(sendbuf,op,comm,recvbuf)
     use dynamic_memory
-    use dictionaries, only: f_err_throw,f_err_define
+    use dictionaries, only: f_err_throw!,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
     double precision, dimension(:,:), intent(inout) :: sendbuf
@@ -612,6 +750,115 @@ end subroutine create_group_comm1
     double precision, dimension(:,:), allocatable :: copybuf  
     include 'allreduce-arr-inc.f90'
   end subroutine mpiallred_d2
+
+  subroutine mpibcast_i0(buffer,count,root,comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    integer, intent(inout) ::  buffer 
+    include 'bcast-decl-inc.f90'
+    include 'bcast-inc.f90'
+  end subroutine mpibcast_i0
+
+  subroutine mpibcast_li0(buffer,count,root,comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    integer(kind=8), intent(inout) ::  buffer      
+    include 'bcast-decl-inc.f90'
+    include 'bcast-inc.f90'
+  end subroutine mpibcast_li0
+
+  subroutine mpibcast_c1(buffer,root,comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    character, dimension(:), intent(inout) ::  buffer      
+    include 'bcast-decl-arr-inc.f90'
+    include 'bcast-inc.f90'
+  end subroutine mpibcast_c1
+  
+
+  !> detect the maximum difference between arrays all over a given communicator
+  function mpimaxdiff_i0(n,array,root,comm) result(maxdiff)
+    use dynamic_memory
+    implicit none
+    integer, intent(in) :: n !<number of elements to be controlled
+    integer, intent(inout) :: array !< starting point of the array
+    integer, dimension(:,:), allocatable :: array_glob
+    integer, intent(in), optional :: root !<rank of the process retrieving the diff
+    integer, intent(in), optional :: comm
+    integer :: maxdiff 
+    !local variables
+    integer :: ndims,nproc,mpi_comm,iroot,i,jproc
+
+    ndims = n
+
+    maxdiff=0
+
+    include 'maxdiff-inc.f90'
+  end function mpimaxdiff_i0
+
+  function mpimaxdiff_d0(n,array,root,comm) result(maxdiff)
+    use dynamic_memory
+    implicit none
+    integer, intent(in) :: n !<number of elements to be controlled
+    double precision, intent(inout) :: array !< starting point of the array
+    double precision, dimension(:,:), allocatable :: array_glob
+    double precision :: maxdiff
+    
+    integer, intent(in), optional :: root !<rank of the process retrieving the diff
+    integer, intent(in), optional :: comm
+
+    !local variables
+    integer :: ndims,nproc,mpi_comm,iroot,i,jproc
+
+    ndims = n
+    maxdiff=0.d0
+
+    include 'maxdiff-inc.f90'
+  end function mpimaxdiff_d0
+
+  function mpimaxdiff_d1(array,root,comm) result(maxdiff)
+    use dynamic_memory
+    implicit none
+    !> array to be checked
+    double precision, dimension(:), intent(in) :: array 
+    double precision, dimension(:,:), allocatable :: array_glob
+    double precision :: maxdiff
+
+    integer, intent(in), optional :: root !<rank of the process retrieving the diff
+    integer, intent(in), optional :: comm
+
+    !local variables
+    integer :: ndims,nproc,mpi_comm,iroot,i,jproc
+
+    ndims = size(array)
+
+    maxdiff=0.d0
+    
+    include 'maxdiff-arr-inc.f90'
+  end function mpimaxdiff_d1
+
+  function mpimaxdiff_d2(array,root,comm) result(maxdiff)
+    use dynamic_memory
+    implicit none
+    !> array to be checked
+    double precision, dimension(:,:), intent(in) :: array 
+    double precision, dimension(:,:), allocatable :: array_glob
+    double precision :: maxdiff
+
+    integer, intent(in), optional :: root !<rank of the process retrieving the diff
+    integer, intent(in), optional :: comm
+
+    !local variables
+    integer :: ndims,nproc,mpi_comm,iroot,i,jproc
+
+    ndims = size(array)
+
+    maxdiff=0.d0
+    
+    include 'maxdiff-arr-inc.f90'
+  end function mpimaxdiff_d2
+
+  
 
 end module wrapper_MPI
 

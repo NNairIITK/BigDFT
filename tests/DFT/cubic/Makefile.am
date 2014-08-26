@@ -2,7 +2,7 @@
 TESTDIRS = C \
 	  Li+ \
 	  H2-spin \
-	  H-Rydberg
+	  H-Rydberg \
 	  SiH4 \
 	  NaCl \
 	  Ca2 \

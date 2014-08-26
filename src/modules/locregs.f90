@@ -74,8 +74,9 @@ module locregs
      type(convolutions_bounds) :: bounds
   end type locreg_descriptors
 
-  public :: nullify_locreg_descriptors,locreg_null,deallocate_locreg_descriptors,deallocate_bounds
-  public :: deallocate_wfd,allocate_wfd,copy_locreg_descriptors,copy_grid_dimensions,nullify_wfd
+  public :: nullify_locreg_descriptors,locreg_null
+  public :: deallocate_locreg_descriptors,deallocate_bounds,deallocate_wfd
+  public :: allocate_wfd,copy_locreg_descriptors,copy_grid_dimensions,nullify_wfd
 
 contains
   
@@ -221,79 +222,59 @@ contains
     type(wavefunctions_descriptors) :: wfd
 
     !in case the two objects points to the same target
-    !pay attention that in this case odd behaviour of f_mallo may occur as the
-    !pointers have not been associated by the f_associate routine (to be implemented to date)
     if (associated(wfd%keyglob, target = wfd%keygloc)) then
        !assuming that globals has been created afterwards
-       call f_free_ptr(wfd%keyglob)
        nullify(wfd%keygloc)
+       call f_free_ptr(wfd%keyglob)
     else
        call f_free_ptr(wfd%keygloc)
        call f_free_ptr(wfd%keyglob)
     end if
     if (associated(wfd%keyvloc, target= wfd%keyvglob)) then
-       call f_free_ptr(wfd%keyvglob)
        nullify(wfd%keyvloc)
+       call f_free_ptr(wfd%keyvglob)
     else
        call f_free_ptr(wfd%keyvloc)
        call f_free_ptr(wfd%keyvglob)
     end if
   END SUBROUTINE deallocate_wfd
 
-  !>desctructors
+
+  !> Destructors
   subroutine deallocate_locreg_descriptors(lr)
     implicit none
     ! Calling arguments
     type(locreg_descriptors),intent(inout):: lr
 
     call deallocate_wfd(lr%wfd)
-    call deallocate_convolutions_bounds(lr%bounds,'deallocate_locreg_descriptors')
+    call deallocate_convolutions_bounds(lr%bounds)
 
   end subroutine deallocate_locreg_descriptors
 
+
   !> De-Allocate convolutions_bounds type, depending of the geocode and the hybrid_on
-  subroutine deallocate_bounds(geocode,hybrid_on,bounds,subname)
+  subroutine deallocate_bounds(geocode,hybrid_on,bounds)
     use module_base
     implicit none
     character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
     logical, intent(in) :: hybrid_on 
     type(convolutions_bounds) :: bounds
-    character(len=*), intent(in) :: subname
-    !local variables
-    integer :: i_all,i_stat
 
     if ((geocode == 'P' .and. hybrid_on) .or. geocode == 'F') then
        ! Just test the first one...
        if (associated(bounds%kb%ibyz_f)) then
-          i_all=-product(shape(bounds%kb%ibyz_f))*kind(bounds%kb%ibyz_f)
-          deallocate(bounds%kb%ibyz_f,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%kb%ibyz_f',subname)
-          i_all=-product(shape(bounds%kb%ibxz_f))*kind(bounds%kb%ibxz_f)
-          deallocate(bounds%kb%ibxz_f,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%kb%ibxz_f',subname)
-          i_all=-product(shape(bounds%kb%ibxy_f))*kind(bounds%kb%ibxy_f)
-          deallocate(bounds%kb%ibxy_f,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%kb%ibxy_f',subname)
+          call f_free_ptr(bounds%kb%ibyz_f)
+          call f_free_ptr(bounds%kb%ibxz_f)
+          call f_free_ptr(bounds%kb%ibxy_f)
 
-          i_all=-product(shape(bounds%sb%ibxy_ff))*kind(bounds%sb%ibxy_ff)
-          deallocate(bounds%sb%ibxy_ff,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%sb%ibxy_ff',subname)
-          i_all=-product(shape(bounds%sb%ibzzx_f))*kind(bounds%sb%ibzzx_f)
-          deallocate(bounds%sb%ibzzx_f,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%sb%ibzzx_f',subname)
-          i_all=-product(shape(bounds%sb%ibyyzz_f))*kind(bounds%sb%ibyyzz_f)
-          deallocate(bounds%sb%ibyyzz_f,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%sb%ibyyzz_f',subname)
-          i_all=-product(shape(bounds%gb%ibyz_ff))*kind(bounds%gb%ibyz_ff)
-          deallocate(bounds%gb%ibyz_ff,stat=i_stat)
+          call f_free_ptr(bounds%sb%ibxy_ff)
+          call f_free_ptr(bounds%sb%ibzzx_f)
+          call f_free_ptr(bounds%sb%ibyyzz_f)
 
-          call memocc(i_stat,i_all,'bounds%gb%ibyz_ff',subname)
-          i_all=-product(shape(bounds%gb%ibzxx_f))*kind(bounds%gb%ibzxx_f)
-          deallocate(bounds%gb%ibzxx_f,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%gb%ibzxx_f',subname)
-          i_all=-product(shape(bounds%gb%ibxxyy_f))*kind(bounds%gb%ibxxyy_f)
-          deallocate(bounds%gb%ibxxyy_f,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%gb%ibxxyy_f',subname)
+          call f_free_ptr(bounds%gb%ibyz_ff)
+
+          call f_free_ptr(bounds%gb%ibzxx_f)
+          call f_free_ptr(bounds%gb%ibxxyy_f)
 
           nullify(bounds%kb%ibyz_f)
           nullify(bounds%kb%ibxz_f)
@@ -311,32 +292,18 @@ contains
     if (geocode == 'F') then
        ! Just test the first one...
        if (associated(bounds%kb%ibyz_c)) then
-          i_all=-product(shape(bounds%kb%ibyz_c))*kind(bounds%kb%ibyz_c)
-          deallocate(bounds%kb%ibyz_c,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%kb%ibyz_c',subname)
-          i_all=-product(shape(bounds%kb%ibxz_c))*kind(bounds%kb%ibxz_c)
-          deallocate(bounds%kb%ibxz_c,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%kb%ibxz_c',subname)
-          i_all=-product(shape(bounds%kb%ibxy_c))*kind(bounds%kb%ibxy_c)
-          deallocate(bounds%kb%ibxy_c,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%kb%ibxy_c',subname)
-          i_all=-product(shape(bounds%sb%ibzzx_c))*kind(bounds%sb%ibzzx_c)
-          deallocate(bounds%sb%ibzzx_c,stat=i_stat)
+          call f_free_ptr(bounds%kb%ibyz_c)
+          call f_free_ptr(bounds%kb%ibxz_c)
+          call f_free_ptr(bounds%kb%ibxy_c)
 
-          call memocc(i_stat,i_all,'bounds%sb%ibzzx_c',subname)
-          i_all=-product(shape(bounds%sb%ibyyzz_c))*kind(bounds%sb%ibyyzz_c)
-          deallocate(bounds%sb%ibyyzz_c,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%sb%ibyyzz_c',subname)
-          i_all=-product(shape(bounds%gb%ibzxx_c))*kind(bounds%gb%ibzxx_c)
-          deallocate(bounds%gb%ibzxx_c,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%gb%ibzxx_c',subname)
-          i_all=-product(shape(bounds%gb%ibxxyy_c))*kind(bounds%gb%ibxxyy_c)
-          deallocate(bounds%gb%ibxxyy_c,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%gb%ibxxyy_c',subname)
 
-          i_all=-product(shape(bounds%ibyyzz_r))*kind(bounds%ibyyzz_r)
-          deallocate(bounds%ibyyzz_r,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%ibyyzz_r',subname)
+          call f_free_ptr(bounds%sb%ibzzx_c)
+          call f_free_ptr(bounds%sb%ibyyzz_c)
+
+          call f_free_ptr(bounds%gb%ibzxx_c)
+          call f_free_ptr(bounds%gb%ibxxyy_c)
+
+          call f_free_ptr(bounds%ibyyzz_r)
 
           nullify(bounds%kb%ibyz_c)
           nullify(bounds%kb%ibxz_c)
@@ -351,9 +318,10 @@ contains
 
   END SUBROUTINE deallocate_bounds
 
-  !methods for copying the structures, can be needed to avoid recalculating them
-  !should be better by defining a f_malloc inheriting the shapes and the structure from other array
-  !of the type dest=f_malloc(src=source,id='dest')
+
+  !> Methods for copying the structures, can be needed to avoid recalculating them
+  !! should be better by defining a f_malloc inheriting the shapes and the structure from other array
+  !! of the type dest=f_malloc(src=source,id='dest')
   subroutine copy_locreg_descriptors(glrin, glrout)
     implicit none
     ! Calling arguments

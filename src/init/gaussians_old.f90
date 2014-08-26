@@ -313,7 +313,7 @@ subroutine overlap_and_gather(iproc,nproc,mpirequests,ncmpts,natsc,nspin,ndimovr
   real(wp), dimension(nspin*ndimovrlp,2), intent(out) :: ovrlp
   !local variables
   character(len=*), parameter :: subname='overlap_and_gather'
-  integer :: ierr,iorb,jorb,imatrst,isorb,i_all,i_stat,jproc,norblt,i,ipos,nwrkdim
+  integer :: ierr,iorb,jorb,imatrst,isorb,jproc,norblt,i,ipos,nwrkdim
   integer :: iind,jind,iarr,iarrsum,ispin,norbi
   !integer, dimension(MPI_STATUS_SIZE) :: mpistatuses
   integer, dimension(:,:), allocatable :: mpicd
@@ -323,8 +323,7 @@ subroutine overlap_and_gather(iproc,nproc,mpirequests,ncmpts,natsc,nspin,ndimovr
   !control that, calculate the overlap matrices and gather the results
   !dimension of the overlap work array
   nwrkdim=max(orbs%norb*(orbs%norb+1),2*(orbs%isorb+orbs%norbp)*orbs%norbp)
-  allocate(overlaps(nwrkdim+ndebug),stat=i_stat)
-  call memocc(i_stat,overlaps,'overlaps',subname)
+  overlaps = f_malloc(nwrkdim,id='overlaps')
 
 
   !control that all the non-blocking communications are finished
@@ -367,8 +366,7 @@ subroutine overlap_and_gather(iproc,nproc,mpirequests,ncmpts,natsc,nspin,ndimovr
   !at the end each processor have all the Lower Triangular part of the overlap matrix
   if (nproc > 1 ) then
      !build the counts and displacement arrays
-     allocate(mpicd(0:nproc-1,2+ndebug),stat=i_stat)
-     call memocc(i_stat,mpicd,'mpicd',subname)
+     mpicd = f_malloc((/ 0.to.nproc-1, 1.to.2 /),id='mpicd')
 
      !count
      mpicd(0,1)=orbs%norb_par(0,0)*(orbs%norb_par(0,0)+1)
@@ -387,9 +385,7 @@ subroutine overlap_and_gather(iproc,nproc,mpirequests,ncmpts,natsc,nspin,ndimovr
      call MPI_ALLGATHERV(MPI_IN_PLACE,0,mpidtypw,overlaps,mpicd(0,1),mpicd(0,2),&
           mpidtypw,bigdft_mpi%mpi_comm,ierr)
 
-     i_all=-product(shape(mpicd))*kind(mpicd)
-     deallocate(mpicd,stat=i_stat)
-     call memocc(i_stat,i_all,'mpicd',subname)
+     call f_free(mpicd)
   end if
 
   !fill the final array with the values of the overlap matrix
@@ -447,9 +443,7 @@ subroutine overlap_and_gather(iproc,nproc,mpirequests,ncmpts,natsc,nspin,ndimovr
      end do
   end do
 
-  i_all=-product(shape(overlaps))*kind(overlaps)
-  deallocate(overlaps,stat=i_stat)
-  call memocc(i_stat,i_all,'overlaps',subname)
+  call f_free(overlaps)
 
 END SUBROUTINE overlap_and_gather
 

@@ -5,7 +5,7 @@
 4        4                       Density iterations (low, high)
 3        3                       DIIS history for basis (low, high)
 0        0                       DIIS history for kernel (low, high) - directmin only
-2        2                       DIIS history for density mixing (low, high)
+7        7                       DIIS history for density mixing (low, high)
 .1d0     .1d0                    density mixing parameter (low, high)
 1.d-10   1.d-10                  outer loop convergence (low, high)
 4.0d-2   1.0d-3    1.d-3  1.d-4  1.d-3  basis convergence (low, high) ; early stop TMB optimization, dynamic gnrm, activate dyn (exp. mode only)

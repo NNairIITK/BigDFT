@@ -154,7 +154,7 @@ module communications_init
       real(kind=8),intent(out) :: weight_c_tot, weight_f_tot
       
       ! Local variables
-      integer :: iorb, iiorb, i0, i1, i2, i3, ii, jj, iseg, ilr, istart, iend, i, j0, j1, ii1, ii2, ii3
+      integer :: iorb, iiorb, i0, i1, i2, i3, ii, iseg, ilr, istart, iend, i, j0, j1, ii1, ii2, ii3, n1p1, np
     
     
       ii=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)
@@ -164,7 +164,7 @@ module communications_init
       weight_f_tot=0.d0
     
       !$omp parallel default(private) &
-      !$omp shared(orbs,lzd,weight_c,weight_c_tot,weight_f,weight_f_tot,ilr,iiorb)
+      !$omp shared(orbs,lzd,weight_c,weight_c_tot,weight_f,weight_f_tot,ilr,iiorb,np,n1p1)
    
 !      orbs_it=>orbital_iterator(orbs)
 !      do while(associated(orbs_it))
@@ -181,23 +181,26 @@ module communications_init
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
+
+          n1p1=lzd%llr(ilr)%d%n1+1
+          np=n1p1*(lzd%llr(ilr)%d%n2+1)
+
           if (lzd%llr(ilr)%wfd%nseg_c>0) then
               !$omp do reduction(+:weight_c_tot) 
               do iseg=1,lzd%llr(ilr)%wfd%nseg_c
-                  jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
                   j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
                   j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
                   ii=j0-1
-                  i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
-                  ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
-                  i2=ii/(lzd%llr(ilr)%d%n1+1)
-                  i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
+                  i3=ii/np
+                  ii=ii-i3*np
+                  i2=ii/n1p1
+                  i0=ii-i2*n1p1
                   i1=i0+j1-j0
                   !write(*,'(a,8i8)') 'jj, ii, j0, j1, i0, i1, i2, i3',jj,ii,j0,j1,i0,i1,i2,i3
+                  ii2=i2+lzd%llr(ilr)%ns2
+                  ii3=i3+lzd%llr(ilr)%ns3
                   do i=i0,i1
                       ii1=i+lzd%llr(ilr)%ns1
-                      ii2=i2+lzd%llr(ilr)%ns2
-                      ii3=i3+lzd%llr(ilr)%ns3
                       weight_c(ii1,ii2,ii3)=weight_c(ii1,ii2,ii3)+1.d0
                       weight_c_tot=weight_c_tot+1.d0
                   end do
@@ -211,19 +214,18 @@ module communications_init
           if (istart<=iend) then
               !$omp do reduction(+:weight_f_tot)
               do iseg=istart,iend
-                  jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
                   j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
                   j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
                   ii=j0-1
-                  i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
-                  ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
-                  i2=ii/(lzd%llr(ilr)%d%n1+1)
-                  i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
+                  i3=ii/np
+                  ii=ii-i3*np
+                  i2=ii/n1p1
+                  i0=ii-i2*n1p1
                   i1=i0+j1-j0
+                  ii2=i2+lzd%llr(ilr)%ns2
+                  ii3=i3+lzd%llr(ilr)%ns3
                   do i=i0,i1
                       ii1=i+lzd%llr(ilr)%ns1
-                      ii2=i2+lzd%llr(ilr)%ns2
-                      ii3=i3+lzd%llr(ilr)%ns3
                       weight_f(ii1,ii2,ii3)=weight_f(ii1,ii2,ii3)+1.d0
                       weight_f_tot=weight_f_tot+1.d0
                   end do
@@ -260,9 +262,7 @@ module communications_init
       !$omp end do
       !$omp end parallel
     
-    
     end subroutine get_weights
-
 
 
     subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_tot_c, weight_tot_f, &
@@ -284,10 +284,10 @@ module communications_init
       integer,intent(out) :: nvalp_c, nvalp_f
       
       ! Local variables
-      integer :: jproc, i1, i2, i3, ii, istart, iend, jj, j0, j1, ii_c, ii_f
+      integer :: jproc, i1, i2, i3, ii, istart, iend, j0, j1, ii_c, ii_f, n1p1, np
       !!$$integer :: ii2, iiseg, jprocdone
-      integer :: i, iseg, i0, iitot, istat, iall
-      real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal, ttt, tmp, tmp2
+      integer :: i, iseg, i0, iitot
+      real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal, ttt
       real(kind=8),dimension(:,:),allocatable :: weights_c_startend, weights_f_startend
       character(len=*),parameter :: subname='assign_weight_to_process'
     
@@ -295,10 +295,8 @@ module communications_init
       weight_c_ideal=weight_tot_c/dble(nproc)
       weight_f_ideal=weight_tot_f/dble(nproc)
     
-      allocate(weights_c_startend(2,0:nproc-1), stat=istat)
-      call memocc(istat, weights_c_startend, 'weights_c_startend', subname)
-      allocate(weights_f_startend(2,0:nproc-1), stat=istat)
-      call memocc(istat, weights_f_startend, 'weights_f_startend', subname)
+      weights_c_startend = f_malloc((/ 1.to.2, 0.to.nproc-1 /),id='weights_c_startend')
+      weights_f_startend = f_malloc((/ 1.to.2, 0.to.nproc-1 /),id='weights_f_startend')
     
       tt=0.d0
       weights_c_startend(1,0)=0.d0
@@ -335,32 +333,28 @@ module communications_init
           if (iproc==0) then
               istartp_seg_c=1
           end if
+          n1p1=lzd%glr%d%n1+1
+          np=n1p1*(lzd%glr%d%n2+1)
           loop_nseg_c: do iseg=1,lzd%glr%wfd%nseg_c
-              jj=lzd%glr%wfd%keyvloc(iseg)
               j0=lzd%glr%wfd%keygloc(1,iseg)
               j1=lzd%glr%wfd%keygloc(2,iseg)
               ii=j0-1
-              i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-              ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-              i2=ii/(lzd%glr%d%n1+1)
-              i0=ii-i2*(lzd%glr%d%n1+1)
+              i3=ii/np
+              ii=ii-i3*np
+              i2=ii/n1p1
+              i0=ii-i2*n1p1
               i1=i0+j1-j0
-              tmp=0.d0
-              tmp2=0.d0
               do i=i0,i1
                   tt=tt+weight_c(i,i2,i3)
                   tt2=tt2+weight_c(i,i2,i3)
                   ttt=ttt+sqrt(weight_c(i,i2,i3))
-                  tmp=tmp+weight_c(i,i2,i3)
-                  tmp2=tmp2+sqrt(weight_c(i,i2,i3))
                   iitot=iitot+1
                   if (jproc<nproc) then
                       if (tt>weights_c_startend(1,jproc)) then
                           if (jproc>0) then
                               if (iproc==jproc) then
                                   istartp_seg_c=iseg
-                              end if
-                              if (iproc==jproc-1) then
+                              else if (iproc==jproc-1) then
                                   iendp_seg_c=iseg
                                   weightp_c=tt2
                                   nvalp_c=nint(ttt)
@@ -428,32 +422,28 @@ module communications_init
           if (iproc==0) then
               istartp_seg_f=istart
           end if
+          n1p1=lzd%glr%d%n1+1
+          np=n1p1*(lzd%glr%d%n2+1)
           loop_nseg_f: do iseg=istart,iend
-              jj=lzd%glr%wfd%keyvloc(iseg)
               j0=lzd%glr%wfd%keygloc(1,iseg)
               j1=lzd%glr%wfd%keygloc(2,iseg)
               ii=j0-1
-              i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-              ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-              i2=ii/(lzd%glr%d%n1+1)
-              i0=ii-i2*(lzd%glr%d%n1+1)
+              i3=ii/np
+              ii=ii-i3*np
+              i2=ii/n1p1
+              i0=ii-i2*n1p1
               i1=i0+j1-j0
-              tmp=0.d0
-              tmp2=0.d0
               do i=i0,i1
                   tt=tt+weight_f(i,i2,i3)
                   tt2=tt2+weight_f(i,i2,i3)
                   ttt=ttt+sqrt(weight_f(i,i2,i3))
-                  tmp=tmp+weight_f(i,i2,i3)
-                  tmp2=tmp2+sqrt(weight_c(i,i2,i3))
                   iitot=iitot+1
                   if (jproc<nproc) then
                       if (tt>weights_f_startend(1,jproc)) then
                           if (jproc>0) then
                               if (iproc==jproc) then
                                   istartp_seg_f=iseg
-                              end if
-                              if (iproc==jproc-1) then
+                              else if (iproc==jproc-1) then
                                   iendp_seg_f=iseg
                                   weightp_f=tt2
                                   nvalp_f=nint(ttt)
@@ -485,12 +475,8 @@ module communications_init
     
     
     
-      iall = -product(shape(weights_c_startend))*kind(weights_c_startend)
-      deallocate(weights_c_startend,stat=istat)
-      call memocc(istat, iall, 'weights_c_startend', subname)
-      iall = -product(shape(weights_f_startend))*kind(weights_f_startend)
-      deallocate(weights_f_startend,stat=istat)
-      call memocc(istat, iall, 'weights_f_startend', subname)
+      call f_free(weights_c_startend)
+      call f_free(weights_f_startend)
     
       nptsp_c=istartend_c(2,iproc)-istartend_c(1,iproc)+1
       nptsp_f=istartend_f(2,iproc)-istartend_f(1,iproc)+1
@@ -565,18 +551,20 @@ module communications_init
     integer,dimension(0:lr%d%n1,0:lr%d%n2,0:lr%d%n3),intent(out) :: index_in_global_c, index_in_global_f
     
     ! Local variables
-    integer :: iitot, iseg, j0, j1, ii, i1, i2, i3, i0, i, istart, iend
+    integer :: iitot, iseg, j0, j1, ii, i1, i2, i3, i0, i, istart, iend, np, n1p1
     
     
         iitot=0
+        n1p1=lr%d%n1+1
+        np=n1p1*(lr%d%n2+1)
         do iseg=1,lr%wfd%nseg_c
            j0=lr%wfd%keygloc(1,iseg)
            j1=lr%wfd%keygloc(2,iseg)
            ii=j0-1
-           i3=ii/((lr%d%n1+1)*(lr%d%n2+1))
-           ii=ii-i3*(lr%d%n1+1)*(lr%d%n2+1)
-           i2=ii/(lr%d%n1+1)
-           i0=ii-i2*(lr%d%n1+1)
+           i3=ii/np
+           ii=ii-i3*np
+           i2=ii/n1p1
+           i0=ii-i2*n1p1
            i1=i0+j1-j0
            do i=i0,i1
               iitot=iitot+1
@@ -592,10 +580,10 @@ module communications_init
            j0=lr%wfd%keygloc(1,iseg)
            j1=lr%wfd%keygloc(2,iseg)
            ii=j0-1
-           i3=ii/((lr%d%n1+1)*(lr%d%n2+1))
-           ii=ii-i3*(lr%d%n1+1)*(lr%d%n2+1)
-           i2=ii/(lr%d%n1+1)
-           i0=ii-i2*(lr%d%n1+1)
+           i3=ii/np
+           ii=ii-i3*np
+           i2=ii/n1p1
+           i0=ii-i2*n1p1
            i1=i0+j1-j0
            do i=i0,i1
               iitot=iitot+1
@@ -603,11 +591,7 @@ module communications_init
            end do
         end do
     
-    
-    
     end subroutine get_index_in_global2
-
-
 
 
     subroutine determine_communication_arrays(iproc, nproc, npsidim_orbs, orbs, lzd, &
@@ -629,10 +613,10 @@ module communications_init
       integer,dimension(0:nproc-1),intent(out) :: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
       
       ! Local variables
-      integer :: iorb, iiorb, i1, i2, i3, ii, jproc, jproctarget, ierr, jj, ilr, j0, j1, i0, i, ind
-      integer :: istat, ii1, ii2, ii3, iseg, istart, iend, iall
+      integer :: iorb, iiorb, i1, i2, i3, ii, jproc, jproctarget, ierr, ilr, j0, j1, i0, i, ind, n1p1, np
+      integer :: ii1, ii2, ii3, iseg, istart, iend
       integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
-      character(len=*),parameter :: subname='determine_communication_arrays'
+      character(len=*),     parameter :: subname='determine_communication_arrays'
     
       ! Determine values for mpi_alltoallv
       ! first nsendcounts
@@ -640,22 +624,23 @@ module communications_init
       nsendcounts_f=0
     
       !$omp parallel default(private) shared(ilr,nproc,orbs,lzd,index_in_global_c,istartend_c,nsendcounts_c,nsendcounts_f) &
-      !$omp shared(istartend_f,index_in_global_f)
+      !$omp shared(istartend_f,index_in_global_f,n1p1,np)
     
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
           if (lzd%llr(ilr)%wfd%nseg_c>0) then
+              n1p1=lzd%llr(ilr)%d%n1+1
+              np=n1p1*(lzd%llr(ilr)%d%n2+1)
               !$omp do firstprivate(ilr) reduction(+:nsendcounts_c)
               do iseg=1,lzd%llr(ilr)%wfd%nseg_c
-                  jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
                   j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
                   j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
                   ii=j0-1
-                  i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
-                  ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
-                  i2=ii/(lzd%llr(ilr)%d%n1+1)
-                  i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
+                  i3=ii/np
+                  ii=ii-i3*np
+                  i2=ii/n1p1
+                  i0=ii-i2*n1p1
                   i1=i0+j1-j0
                   ii2=i2+lzd%llr(ilr)%ns2
                   ii3=i3+lzd%llr(ilr)%ns3
@@ -683,16 +668,17 @@ module communications_init
           istart=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
           iend=istart+lzd%llr(ilr)%wfd%nseg_f-1
           if (istart<iend) then
+              n1p1=lzd%llr(ilr)%d%n1+1
+              np=n1p1*(lzd%llr(ilr)%d%n2+1)
               !$omp do firstprivate(ilr) reduction(+:nsendcounts_f)
               do iseg=istart,iend
-                  jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
                   j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
                   j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
                   ii=j0-1
-                  i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
-                  ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
-                  i2=ii/(lzd%llr(ilr)%d%n1+1)
-                  i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
+                  i3=ii/np
+                  ii=ii-i3*np
+                  i2=ii/n1p1
+                  i0=ii-i2*n1p1
                   i1=i0+j1-j0
                   ii2=i2+lzd%llr(ilr)%ns2
                   ii3=i3+lzd%llr(ilr)%ns3
@@ -741,14 +727,10 @@ module communications_init
     
       ! now nrecvcounts
       ! use an mpi_alltoallv to gather the data
-      allocate(nsendcounts_tmp(0:nproc-1), stat=istat)
-      call memocc(istat, nsendcounts_tmp, 'nsendcounts_tmp', subname)
-      allocate(nsenddspls_tmp(0:nproc-1), stat=istat)
-      call memocc(istat, nsenddspls_tmp, 'nsenddspls_tmp', subname)
-      allocate(nrecvcounts_tmp(0:nproc-1), stat=istat)
-      call memocc(istat, nrecvcounts_tmp, 'nrecvcounts_tmp', subname)
-      allocate(nrecvdspls_tmp(0:nproc-1), stat=istat)
-      call memocc(istat, nrecvdspls_tmp, 'nrecvdspls_tmp', subname)
+      nsendcounts_tmp = f_malloc(0.to.nproc-1,id='nsendcounts_tmp')
+      nsenddspls_tmp = f_malloc(0.to.nproc-1,id='nsenddspls_tmp')
+      nrecvcounts_tmp = f_malloc(0.to.nproc-1,id='nrecvcounts_tmp')
+      nrecvdspls_tmp = f_malloc(0.to.nproc-1,id='nrecvdspls_tmp')
       nsendcounts_tmp=1
       nrecvcounts_tmp=1
       do jproc=0,nproc-1
@@ -764,18 +746,10 @@ module communications_init
           nrecvcounts_c=nsendcounts_c
           nrecvcounts_f=nsendcounts_f
       end if
-      iall=-product(shape(nsendcounts_tmp))*kind(nsendcounts_tmp)
-      deallocate(nsendcounts_tmp, stat=istat)
-      call memocc(istat, iall, 'nsendcounts_tmp', subname)
-      iall=-product(shape(nsenddspls_tmp))*kind(nsenddspls_tmp)
-      deallocate(nsenddspls_tmp, stat=istat)
-      call memocc(istat, iall, 'nsenddspls_tmp', subname)
-      iall=-product(shape(nrecvcounts_tmp))*kind(nrecvcounts_tmp)
-      deallocate(nrecvcounts_tmp, stat=istat)
-      call memocc(istat, iall, 'nrecvcounts_tmp', subname)
-      iall=-product(shape(nrecvdspls_tmp))*kind(nrecvdspls_tmp)
-      deallocate(nrecvdspls_tmp, stat=istat)
-      call memocc(istat, iall, 'nrecvdspls_tmp', subname)
+      call f_free(nsendcounts_tmp)
+      call f_free(nsenddspls_tmp)
+      call f_free(nrecvcounts_tmp)
+      call f_free(nrecvdspls_tmp)
     
       ! now recvdspls
       nrecvdspls_c(0)=0
@@ -812,7 +786,7 @@ module communications_init
       
       ! Local variables
       integer :: ii, i1, i2, i3, iipt, iseg, jj, j0, j1, iitot, i, istart, iend, i0
-      integer :: icheck_c,icheck_f,iiorb_c,iiorb_f, npgp_c,npgp_f
+      integer :: icheck_c,icheck_f,iiorb_c,iiorb_f, npgp_c,npgp_f,np,n1p1
       !!integer,dimension(:),allocatable:: iseg_start_c, iseg_start_f
     
     
@@ -822,10 +796,13 @@ module communications_init
       iiorb_c=0
       iipt=0
     
+      n1p1=lzd%glr%d%n1+1
+      np=n1p1*(lzd%glr%d%n2+1)
+
       !$omp parallel default(private) &
       !$omp shared(lzd,iproc,istartend_c,istartend_f,istartp_seg_c,iendp_seg_c,istartp_seg_f,iendp_seg_f) &
       !$omp shared(nptsp_c, weight_c,norb_per_gridpoint_c,weightp_c,nptsp_f, weight_f,norb_per_gridpoint_f,weightp_f) &
-      !$omp shared(icheck_f,iiorb_f,icheck_c,iiorb_c)
+      !$omp shared(icheck_f,iiorb_f,icheck_c,iiorb_c,np,n1p1)
     
     
       if(istartp_seg_c<=iendp_seg_c) then
@@ -835,10 +812,10 @@ module communications_init
               j0=lzd%glr%wfd%keygloc(1,iseg)
               j1=lzd%glr%wfd%keygloc(2,iseg)
               ii=j0-1
-              i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-              ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-              i2=ii/(lzd%glr%d%n1+1)
-              i0=ii-i2*(lzd%glr%d%n1+1)
+              i3=ii/np
+              ii=ii-i3*np
+              i2=ii/n1p1
+              i0=ii-i2*n1p1
               i1=i0+j1-j0
               do i=i0,i1
                   iitot=jj+i-i0
@@ -870,17 +847,16 @@ module communications_init
               j0=lzd%glr%wfd%keygloc(1,iseg)
               j1=lzd%glr%wfd%keygloc(2,iseg)
               ii=j0-1
-              i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-              ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-              i2=ii/(lzd%glr%d%n1+1)
-              i0=ii-i2*(lzd%glr%d%n1+1)
+              i3=ii/np
+              ii=ii-i3*np
+              i2=ii/n1p1
+              i0=ii-i2*n1p1
               i1=i0+j1-j0
               do i=i0,i1
                   iitot=jj+i-i0
                   if(iitot>=istartend_f(1,iproc) .and. iitot<=istartend_f(2,iproc)) then
                       icheck_f = icheck_f +1
                       iipt=jj-istartend_f(1,iproc)+i-i0+1
-                      npgp_f=0
                       npgp_f = nint(sqrt(weight_f(i,i2,i3)))
                       iiorb_f=iiorb_f+nint(weight_f(i,i2,i3))
                       norb_per_gridpoint_f(iipt)=npgp_f
@@ -925,8 +901,9 @@ module communications_init
       integer,dimension(ndimind_f),intent(out) :: indexrecvorbital_f, iextract_f, iexpand_f
       
       ! Local variables
-      integer :: i, iorb, iiorb, i1, i2, i3, ind, jproc, jproctarget, ii, ierr, jj, iseg, iitot, ilr
-      integer :: istart, iend, indglob, ii1, ii2, ii3, j1, i0, j0, istat, iall
+      integer :: i, iorb, iiorb, i1, i2, i3, ind, jproc, jproctarget, ii, ierr, iseg, iitot, ilr, n1p1, np
+      !integer :: jj
+      integer :: istart, iend, indglob, ii1, ii2, ii3, j1, i0, j0
       integer,dimension(:),allocatable :: nsend_c,nsend_f, indexsendorbital2, indexrecvorbital2
       integer,dimension(:),allocatable :: gridpoint_start_c, gridpoint_start_f
       real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
@@ -936,37 +913,23 @@ module communications_init
     
     
       
-      allocate(indexsendorbital_c(ndimpsi_c), stat=istat)
-      call memocc(istat, indexsendorbital_c, 'indexsendorbital_c', subname)
-      allocate(indexsendbuf_c(ndimpsi_c), stat=istat)
-      call memocc(istat, indexsendbuf_c, 'indexsendbuf_c', subname)
-      allocate(indexrecvbuf_c(sum(nrecvcounts_c)), stat=istat)
-      call memocc(istat, indexrecvbuf_c, 'indexrecvbuf_c', subname)
-      
-      allocate(indexsendorbital_f(ndimpsi_f), stat=istat)
-      call memocc(istat, indexsendorbital_f, 'indexsendorbital_f', subname)
-      allocate(indexsendbuf_f(ndimpsi_f), stat=istat)
-      call memocc(istat, indexsendbuf_f, 'indexsendbuf_f', subname)
-      allocate(indexrecvbuf_f(sum(nrecvcounts_f)), stat=istat)
-      call memocc(istat, indexrecvbuf_f, 'indexrecvbuf_f', subname)
-      
-      allocate(weight_c(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
-      call memocc(istat, weight_c, 'weight_c', subname)
-      allocate(weight_f(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3), stat=istat)
-      call memocc(istat, weight_f, 'weight_f', subname)
-      allocate(gridpoint_start_c((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)), stat=istat)
-      call memocc(istat, gridpoint_start_c, 'gridpoint_start_c', subname)
-      allocate(gridpoint_start_f((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)), stat=istat)
-      call memocc(istat, gridpoint_start_f, 'gridpoint_start_f', subname)
+      indexsendorbital_c = f_malloc(ndimpsi_c,id='indexsendorbital_c')
+      indexsendbuf_c = f_malloc(ndimpsi_c,id='indexsendbuf_c')
+      indexrecvbuf_c = f_malloc(sum(nrecvcounts_c),id='indexrecvbuf_c')
+      indexsendorbital_f = f_malloc(ndimpsi_f,id='indexsendorbital_f')
+      indexsendbuf_f = f_malloc(ndimpsi_f,id='indexsendbuf_f')
+      indexrecvbuf_f = f_malloc(sum(nrecvcounts_f),id='indexrecvbuf_f')
+      weight_c = f_malloc((/ 0.to.lzd%glr%d%n1, 0.to.lzd%glr%d%n2, 0.to.lzd%glr%d%n3 /),id='weight_c')
+      weight_f = f_malloc((/ 0.to.lzd%glr%d%n1, 0.to.lzd%glr%d%n2, 0.to.lzd%glr%d%n3 /),id='weight_f')
+      gridpoint_start_c = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_c')
+      gridpoint_start_f = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_f')
       gridpoint_start_c=-1
       gridpoint_start_f=-1
     
     !write(*,*) 'ndimpsi_f, sum(nrecvcounts_f)', ndimpsi_f, sum(nrecvcounts_f)
     
-      allocate(nsend_c(0:nproc-1), stat=istat)
-      call memocc(istat, nsend_c, 'nsend_c', subname)
-      allocate(nsend_f(0:nproc-1), stat=istat)
-      call memocc(istat, nsend_f, 'nsend_f', subname)
+      nsend_c = f_malloc(0.to.nproc-1,id='nsend_c')
+      nsend_f = f_malloc(0.to.nproc-1,id='nsend_f')
     
       nsend_c=0
       nsend_f=0
@@ -982,21 +945,23 @@ module communications_init
       do iorb=1,orbs%norbp
         iiorb=orbs%isorb+iorb
         ilr=orbs%inwhichlocreg(iiorb)
+        n1p1=lzd%llr(ilr)%d%n1+1
+        np=n1p1*(lzd%llr(ilr)%d%n2+1)
         do iseg=1,lzd%llr(ilr)%wfd%nseg_c
-           jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
+           !jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
            j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
            j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
            ii=j0-1
-           i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
-           ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
-           i2=ii/(lzd%llr(ilr)%d%n1+1)
-           i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
+           i3=ii/np
+           ii=ii-i3*np
+           i2=ii/n1p1
+           i0=ii-i2*n1p1
            i1=i0+j1-j0
            !write(*,'(a,8i8)') 'jj, ii, j0, j1, i0, i1, i2, i3',jj,ii,j0,j1,i0,i1,i2,i3
+           ii2=i2+lzd%llr(ilr)%ns2
+           ii3=i3+lzd%llr(ilr)%ns3
            do i=i0,i1
               ii1=i+lzd%llr(ilr)%ns1
-              ii2=i2+lzd%llr(ilr)%ns2
-              ii3=i3+lzd%llr(ilr)%ns3
               !call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'c', indglob)
               indglob=index_in_global_c(ii1,ii2,ii3)
               iitot=iitot+1
@@ -1035,45 +1000,47 @@ module communications_init
       iitot=0
      
       do iorb=1,orbs%norbp
-        iiorb=orbs%isorb+iorb
-        ilr=orbs%inwhichlocreg(iiorb)
-        istart=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
-        iend=istart+lzd%llr(ilr)%wfd%nseg_f-1
-        do iseg=istart,iend
-           jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
-           j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
-           j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
-           ii=j0-1
-           i3=ii/((lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1))
-           ii=ii-i3*(lzd%llr(ilr)%d%n1+1)*(lzd%llr(ilr)%d%n2+1)
-           i2=ii/(lzd%llr(ilr)%d%n1+1)
-           i0=ii-i2*(lzd%llr(ilr)%d%n1+1)
-           i1=i0+j1-j0
-           !write(*,'(a,8i8)') 'jj, ii, j0, j1, i0, i1, i2, i3',jj,ii,j0,j1,i0,i1,i2,i3
-           do i=i0,i1
-              ii1=i+lzd%llr(ilr)%ns1
-              ii2=i2+lzd%llr(ilr)%ns2
-              ii3=i3+lzd%llr(ilr)%ns3
-              !call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'f', indglob)
-              indglob=index_in_global_f(ii1,ii2,ii3)
-                      iitot=iitot+1
-                      jproctarget=-1
-                      do jproc=0,nproc-1
-                          if(indglob>=istartend_f(1,jproc) .and. indglob<=istartend_f(2,jproc)) then
-                              jproctarget=jproc
-                              exit
-                          end if
-                      end do
-                      if (jproctarget/=-1) then
-                         nsend_f(jproctarget)=nsend_f(jproctarget)+1
-                         ind=nsenddspls_f(jproctarget)+nsend_f(jproctarget)
-                         isendbuf_f(iitot)=ind
-                         indexsendbuf_f(ind)=indglob
-                         indexsendorbital_f(iitot)=iiorb
-                      end if
-                      !indexsendorbital(ind)=iiorb
-              end do
-          end do
+         iiorb=orbs%isorb+iorb
+         ilr=orbs%inwhichlocreg(iiorb)
+         istart=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
+         iend=istart+lzd%llr(ilr)%wfd%nseg_f-1
+         n1p1=lzd%llr(ilr)%d%n1+1
+         np=n1p1*(lzd%llr(ilr)%d%n2+1)
+         do iseg=istart,iend
+            !jj=lzd%llr(ilr)%wfd%keyvloc(iseg)
+            j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
+            j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
+            ii=j0-1
+            i3=ii/np
+            ii=ii-i3*np
+            i2=ii/n1p1
+            i0=ii-i2*n1p1
+            i1=i0+j1-j0
+            !write(*,'(a,8i8)') 'jj, ii, j0, j1, i0, i1, i2, i3',jj,ii,j0,j1,i0,i1,i2,i3
+            ii2=i2+lzd%llr(ilr)%ns2
+            ii3=i3+lzd%llr(ilr)%ns3
+            do i=i0,i1
+               ii1=i+lzd%llr(ilr)%ns1
+               !call get_index_in_global(lzd%glr, ii1, ii2, ii3, 'f', indglob)
+               indglob=index_in_global_f(ii1,ii2,ii3)
+               iitot=iitot+1
+               jproctarget=-1
+               do jproc=0,nproc-1
+                  if(indglob>=istartend_f(1,jproc) .and. indglob<=istartend_f(2,jproc)) then
+                     jproctarget=jproc
+                     exit
+                  end if
+               end do
+               if (jproctarget/=-1) then
+                  nsend_f(jproctarget)=nsend_f(jproctarget)+1
+                  ind=nsenddspls_f(jproctarget)+nsend_f(jproctarget)
+                  isendbuf_f(iitot)=ind
+                  indexsendbuf_f(ind)=indglob
+                  indexsendorbital_f(iitot)=iiorb
+               end if
+               !indexsendorbital(ind)=iiorb
+            end do
+         end do
      
       end do
       
@@ -1088,8 +1055,7 @@ module communications_init
           if(nsend_f(jproc)/=nsendcounts_f(jproc)) stop 'nsend_f(jproc)/=nsendcounts_f(jproc)'
       end do
     
-      allocate(indexsendorbital2(ndimpsi_c), stat=istat)
-      call memocc(istat, indexsendorbital2, 'indexsendorbital2', subname)
+      indexsendorbital2 = f_malloc(ndimpsi_c,id='indexsendorbital2')
       indexsendorbital2=indexsendorbital_c
       do i=1,ndimpsi_c
           ind=isendbuf_c(i)
@@ -1099,13 +1065,8 @@ module communications_init
       ! Inverse of isendbuf
       call get_reverse_indices(ndimpsi_c, isendbuf_c, irecvbuf_c)
     
-      iall=-product(shape(indexsendorbital2))*kind(indexsendorbital2)
-      deallocate(indexsendorbital2, stat=istat)
-      call memocc(istat, iall, 'indexsendorbital2', subname)
-    
-    
-      allocate(indexsendorbital2(ndimpsi_f), stat=istat)
-      call memocc(istat, indexsendorbital2, 'indexsendorbital2', subname)
+      call f_free(indexsendorbital2)
+      indexsendorbital2 = f_malloc(ndimpsi_f,id='indexsendorbital2')
       indexsendorbital2=indexsendorbital_f
       do i=1,ndimpsi_f
           ind=isendbuf_f(i)
@@ -1115,11 +1076,8 @@ module communications_init
       ! Inverse of isendbuf
     
       call get_reverse_indices(ndimpsi_f, isendbuf_f, irecvbuf_f)
-      iall=-product(shape(indexsendorbital2))*kind(indexsendorbital2)
-      deallocate(indexsendorbital2, stat=istat)
-      call memocc(istat, iall, 'indexsendorbital2', subname)
-    
-    
+      call f_free(indexsendorbital2)
+        
     
     
       if(nproc>1) then
@@ -1143,13 +1101,11 @@ module communications_init
            indexrecvorbital_f=indexsendorbital_f
        end if
     
-    
-    
+        
       !call get_gridpoint_start(iproc, nproc, norb, glr, llr, nrecvcounts, indexrecvbuf, weight, gridpoint_start)
       call get_gridpoint_start(iproc, nproc, lzd, sum(nrecvcounts_c), nrecvcounts_c, sum(nrecvcounts_f), &
                 nrecvcounts_f, indexrecvbuf_c, indexrecvbuf_f, weight_c, weight_f, gridpoint_start_c, gridpoint_start_f)
-    
-    
+        
     
       if(maxval(gridpoint_start_c)>sum(nrecvcounts_c)) stop '1: maxval(gridpoint_start_c)>sum(nrecvcounts_c)'
       if(maxval(gridpoint_start_f)>sum(nrecvcounts_f)) stop '1: maxval(gridpoint_start_f)>sum(nrecvcounts_f)'
@@ -1178,37 +1134,27 @@ module communications_init
       if(maxval(iextract_f)>sum(nrecvcounts_f)) stop 'maxval(iextract_f)>sum(nrecvcounts_f)'
       if(minval(iextract_f)<1) stop 'minval(iextract_f)<1'
     
-    
-    
+        
     
       ! Get the array to transfrom back the data
       call get_reverse_indices(sum(nrecvcounts_c), iextract_c, iexpand_c)
       call get_reverse_indices(sum(nrecvcounts_f), iextract_f, iexpand_f)
-      
+          
     
-    
-    
-      allocate(indexrecvorbital2(sum(nrecvcounts_c)), stat=istat)
-      call memocc(istat, indexrecvorbital2, 'indexrecvorbital2', subname)
+      indexrecvorbital2 = f_malloc(sum(nrecvcounts_c),id='indexrecvorbital2')
       indexrecvorbital2=indexrecvorbital_c
       do i=1,sum(nrecvcounts_c)
           ind=iextract_c(i)
           indexrecvorbital_c(ind)=indexrecvorbital2(i)
       end do
-      iall=-product(shape(indexrecvorbital2))*kind(indexrecvorbital2)
-      deallocate(indexrecvorbital2, stat=istat)
-      call memocc(istat, iall, 'indexrecvorbital2', subname)
-    
-      allocate(indexrecvorbital2(sum(nrecvcounts_f)), stat=istat)
-      call memocc(istat, indexrecvorbital2, 'indexrecvorbital2', subname)
+      call f_free(indexrecvorbital2)
+      indexrecvorbital2 = f_malloc(sum(nrecvcounts_f),id='indexrecvorbital2')
       indexrecvorbital2=indexrecvorbital_f
       do i=1,sum(nrecvcounts_f)
           ind=iextract_f(i)
           indexrecvorbital_f(ind)=indexrecvorbital2(i)
       end do
-      iall=-product(shape(indexrecvorbital2))*kind(indexrecvorbital2)
-      deallocate(indexrecvorbital2, stat=istat)
-      call memocc(istat, iall, 'indexrecvorbital2', subname)
+      call f_free(indexrecvorbital2)
     
     
       if(minval(indexrecvorbital_c)<1) stop 'minval(indexrecvorbital_c)<1'
@@ -1216,49 +1162,19 @@ module communications_init
       if(minval(indexrecvorbital_f)<1) stop 'minval(indexrecvorbital_f)<1'
       if(maxval(indexrecvorbital_f)>orbs%norb) stop 'maxval(indexrecvorbital_f)>orbs%norb'
     
-    
-    
-      iall=-product(shape(indexsendorbital_c))*kind(indexsendorbital_c)
-      deallocate(indexsendorbital_c, stat=istat)
-      call memocc(istat, iall, 'indexsendorbital_c', subname)
-      iall=-product(shape(indexsendbuf_c))*kind(indexsendbuf_c)
-      deallocate(indexsendbuf_c, stat=istat)
-      call memocc(istat, iall, 'indexsendbuf_c', subname)
-      iall=-product(shape(indexrecvbuf_c))*kind(indexrecvbuf_c)
-      deallocate(indexrecvbuf_c, stat=istat)
-      call memocc(istat, iall, 'indexrecvbuf_c', subname)
-    
-      iall=-product(shape(indexsendorbital_f))*kind(indexsendorbital_f)
-      deallocate(indexsendorbital_f, stat=istat)
-      call memocc(istat, iall, 'indexsendorbital_f', subname)
-      iall=-product(shape(indexsendbuf_f))*kind(indexsendbuf_f)
-      deallocate(indexsendbuf_f, stat=istat)
-      call memocc(istat, iall, 'indexsendbuf_f', subname)
-      iall=-product(shape(indexrecvbuf_f))*kind(indexrecvbuf_f)
-      deallocate(indexrecvbuf_f, stat=istat)
-      call memocc(istat, iall, 'indexrecvbuf_f', subname)
-    
-      iall=-product(shape(weight_c))*kind(weight_c)
-      deallocate(weight_c, stat=istat)
-      call memocc(istat, iall, 'weight_c', subname)
-      iall=-product(shape(weight_f))*kind(weight_f)
-      deallocate(weight_f, stat=istat)
-      call memocc(istat, iall, 'weight_f', subname)
-    
-      iall=-product(shape(gridpoint_start_c))*kind(gridpoint_start_c)
-      deallocate(gridpoint_start_c, stat=istat)
-      call memocc(istat, iall, 'gridpoint_start_c', subname)
-      iall=-product(shape(gridpoint_start_f))*kind(gridpoint_start_f)
-      deallocate(gridpoint_start_f, stat=istat)
-      call memocc(istat, iall, 'gridpoint_start_f', subname)
-    
-      iall=-product(shape(nsend_c))*kind(nsend_c)
-      deallocate(nsend_c, stat=istat)
-      call memocc(istat, iall, 'nsend_c', subname)
-    
-       iall=-product(shape(nsend_f))*kind(nsend_f)
-      deallocate(nsend_f, stat=istat)
-      call memocc(istat, iall, 'nsend_f', subname)
+
+      call f_free(indexsendorbital_c)
+      call f_free(indexsendbuf_c)
+      call f_free(indexrecvbuf_c)
+      call f_free(indexsendorbital_f)
+      call f_free(indexsendbuf_f)
+      call f_free(indexrecvbuf_f)
+      call f_free(weight_c)
+      call f_free(weight_f)
+      call f_free(gridpoint_start_c)
+      call f_free(gridpoint_start_f)
+      call f_free(nsend_c)
+      call f_free(nsend_f)
     
     end subroutine get_switch_indices
 
@@ -1327,15 +1243,18 @@ module communications_init
       integer,dimension((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)),intent(out) :: gridpoint_start_c, gridpoint_start_f
       
       ! Local variables
-      integer :: i, ii, jj, i1, i2, i3
+      integer :: i, ii, jj, i1, i2, i3, n1p1, np
     
     
       !weight_c=0.d0
       call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1), weight_c(0,0,0))
       call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1), weight_f(0,0,0))
     
+      n1p1=lzd%glr%d%n1+1
+      np=n1p1*(lzd%glr%d%n2+1)
+
       !$omp parallel default(private) shared(lzd,nrecvcounts_c,indexrecvbuf_c,weight_c,gridpoint_start_c) &
-      !$omp shared(nrecvcounts_f,indexrecvbuf_f,weight_f,gridpoint_start_f)
+      !$omp shared(nrecvcounts_f,indexrecvbuf_f,weight_f,gridpoint_start_f,np,n1p1)
     
       !$omp sections
       !$omp section
@@ -1343,10 +1262,10 @@ module communications_init
           ii=indexrecvbuf_c(i)
           !write(650+iproc,*) i, ii
           jj=ii-1
-          i3=jj/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-          jj=jj-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-          i2=jj/(lzd%glr%d%n1+1)
-          i1=jj-i2*(lzd%glr%d%n1+1)
+          i3=jj/np
+          jj=jj-i3*np
+          i2=jj/n1p1
+          i1=jj-i2*n1p1
           weight_c(i1,i2,i3)=weight_c(i1,i2,i3)+1.d0
       end do
     
@@ -1374,10 +1293,10 @@ module communications_init
       do i=1,sum(nrecvcounts_f)
           ii=indexrecvbuf_f(i)
           jj=ii-1
-          i3=jj/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-          jj=jj-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-          i2=jj/(lzd%glr%d%n1+1)
-          i1=jj-i2*(lzd%glr%d%n1+1)
+          i3=jj/np
+          jj=jj-i3*np
+          i2=jj/n1p1
+          i1=jj-i2*n1p1
           weight_f(i1,i2,i3)=weight_f(i1,i2,i3)+1.d0
       end do
     
@@ -1402,14 +1321,10 @@ module communications_init
       !$omp end sections
       !$omp end parallel
     
-    
     end subroutine get_gridpoint_start
 
 
-
-
-    ! The sumrho routines
-
+    !> The sumrho routines
     subroutine init_comms_linear_sumrho(iproc, nproc, lzd, orbs, nscatterarr, collcom_sr)
       use module_base
       use module_types
@@ -1423,7 +1338,7 @@ module communications_init
       type(comms_linear),intent(inout) :: collcom_sr
     
       ! Local variables
-      integer :: istat, iall, ipt, ii
+      integer :: ipt, ii
       real(kind=8) :: weight_tot, weight_ideal
       integer,dimension(:,:),allocatable :: istartend
       character(len=*),parameter :: subname='init_comms_linear_sumrho'
@@ -1432,24 +1347,16 @@ module communications_init
       ! Note: all weights are double precision to avoid integer overflow
       call timing(iproc,'init_collco_sr','ON')
     
-      allocate(istartend(2,0:nproc-1), stat=istat)
-      call memocc(istat, istartend, 'istartend', subname)
-    
-      allocate(weights_per_slice(0:nproc-1), stat=istat)
-      call memocc(istat, weights_per_slice, 'weights_per_slice', subname)
-    
-      allocate(weights_per_zpoint(lzd%glr%d%n3i), stat=istat)
-      call memocc(istat, weights_per_zpoint, 'weights_per_zpoint', subname)
-    
+      istartend = f_malloc((/ 1.to.2, 0.to.nproc-1 /),id='istartend')
+      weights_per_slice = f_malloc(0.to.nproc-1,id='weights_per_slice')
+      weights_per_zpoint = f_malloc(lzd%glr%d%n3i,id='weights_per_zpoint')
       call get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, weight_tot, weight_ideal, &
            weights_per_slice, weights_per_zpoint)
     
       call assign_weight_to_process_sumrho(iproc, nproc, weight_tot, weight_ideal, weights_per_slice, &
            lzd, orbs, nscatterarr, istartend, collcom_sr%nptsp_c)
     
-      iall = -product(shape(weights_per_slice))*kind(weights_per_slice)
-      deallocate(weights_per_slice,stat=istat)
-      call memocc(istat, iall, 'weights_per_slice', subname)
+      call f_free(weights_per_slice)
     
 
       call allocate_MPI_communication_arrays(nproc, collcom_sr, only_coarse=.true.)
@@ -1493,13 +1400,8 @@ module communications_init
       call communication_arrays_repartitionrho_general(iproc, nproc, lzd, nscatterarr, istartend, & 
            collcom_sr%ncomms_repartitionrho, collcom_sr%commarr_repartitionrho)
     
-      iall = -product(shape(weights_per_zpoint))*kind(weights_per_zpoint)
-      deallocate(weights_per_zpoint,stat=istat)
-      call memocc(istat, iall, 'weights_per_zpoint', subname)
-    
-      iall = -product(shape(istartend))*kind(istartend)
-      deallocate(istartend,stat=istat)
-      call memocc(istat, iall, 'istartend', subname)
+      call f_free(weights_per_zpoint)
+      call f_free(istartend)
     
       call timing(iproc,'init_collco_sr','OF')
     
@@ -1814,7 +1716,7 @@ module communications_init
       integer,intent(out) :: ndimpsi
     
       ! Local variables
-      integer :: iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, jproc, i3, i2, i1, ind, ii, istat, iall, ierr, ii0
+      integer :: iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, jproc, i3, i2, i1, ind, ii, ierr, ii0
       integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
       character(len=*),parameter :: subname='determine_communication_arrays_sumrho'
     
@@ -1877,14 +1779,10 @@ module communications_init
           nsenddspls(jproc)=nsenddspls(jproc-1)+nsendcounts(jproc-1)
       end do
     
-      allocate(nsendcounts_tmp(0:nproc-1), stat=istat)
-      call memocc(istat, nsendcounts_tmp, 'nsendcounts_tmp', subname)
-      allocate(nsenddspls_tmp(0:nproc-1), stat=istat)
-      call memocc(istat, nsenddspls_tmp, 'nsenddspls_tmp', subname)
-      allocate(nrecvcounts_tmp(0:nproc-1), stat=istat)
-      call memocc(istat, nrecvcounts_tmp, 'nrecvcounts_tmp', subname)
-      allocate(nrecvdspls_tmp(0:nproc-1), stat=istat)
-      call memocc(istat, nrecvdspls_tmp, 'nrecvdspls_tmp', subname)
+      nsendcounts_tmp = f_malloc(0.to.nproc-1,id='nsendcounts_tmp')
+      nsenddspls_tmp = f_malloc(0.to.nproc-1,id='nsenddspls_tmp')
+      nrecvcounts_tmp = f_malloc(0.to.nproc-1,id='nrecvcounts_tmp')
+      nrecvdspls_tmp = f_malloc(0.to.nproc-1,id='nrecvdspls_tmp')
       nsendcounts_tmp=1
       nrecvcounts_tmp=1
       do jproc=0,nproc-1
@@ -1897,18 +1795,10 @@ module communications_init
       else
           nrecvcounts=nsendcounts
       end if
-      iall=-product(shape(nsendcounts_tmp))*kind(nsendcounts_tmp)
-      deallocate(nsendcounts_tmp, stat=istat)
-      call memocc(istat, iall, 'nsendcounts_tmp', subname)
-      iall=-product(shape(nsenddspls_tmp))*kind(nsenddspls_tmp)
-      deallocate(nsenddspls_tmp, stat=istat)
-      call memocc(istat, iall, 'nsenddspls_tmp', subname)
-      iall=-product(shape(nrecvcounts_tmp))*kind(nrecvcounts_tmp)
-      deallocate(nrecvcounts_tmp, stat=istat)
-      call memocc(istat, iall, 'nrecvcounts_tmp', subname)
-      iall=-product(shape(nrecvdspls_tmp))*kind(nrecvdspls_tmp)
-      deallocate(nrecvdspls_tmp, stat=istat)
-      call memocc(istat, iall, 'nrecvdspls_tmp', subname)
+      call f_free(nsendcounts_tmp)
+      call f_free(nsenddspls_tmp)
+      call f_free(nrecvcounts_tmp)
+      call f_free(nrecvdspls_tmp)
     
       !!ndimind = sum(nrecvcounts)
     
@@ -1943,20 +1833,17 @@ module communications_init
       integer,dimension(ndimind),intent(out) :: iextract, iexpand, indexrecvorbital
     
       ! Local variables
-      integer :: jproc, iitot, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, i3, i2, i1, ind, indglob, istat, iall, ierr, ii
-      integer :: iorb, i, ipt
+      integer :: jproc, iitot, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, i3, i2, i1, ind, indglob, ierr, ii
+      integer :: iorb, i, ipt, indglob2, indglob3, indglob3a, itotadd
       integer,dimension(:),allocatable :: nsend, indexsendbuf, indexsendorbital, indexsendorbital2, indexrecvorbital2
       integer,dimension(:),allocatable :: gridpoint_start, indexrecvbuf
       character(len=*),parameter :: subname='get_switch_indices_sumrho'
     
     
-      allocate(nsend(0:nproc-1), stat=istat)
-      call memocc(istat, nsend, 'nsend', subname)
+      nsend = f_malloc(0.to.nproc-1,id='nsend')
       nsend=0
-      allocate(indexsendbuf(ndimpsi), stat=istat)
-      call memocc(istat, indexsendbuf, 'indexsendbuf', subname)
-      allocate(indexsendorbital(ndimpsi), stat=istat)
-      call memocc(istat, indexsendorbital, 'indexsendorbital', subname)
+      indexsendbuf = f_malloc(ndimpsi,id='indexsendbuf')
+      indexsendorbital = f_malloc(ndimpsi,id='indexsendorbital')
       !!allocate(isendbuf(ndimpsi), stat=istat)
       !!call memocc(istat, isendbuf, 'isendbuf', subname)
     
@@ -1975,15 +1862,19 @@ module communications_init
               ie2=lzd%Llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i
               is3=1+lzd%Llr(ilr)%nsi3
               ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
+              itotadd=(ie2-is2+1)*(ie1-is1+1)
               do i3=is3,ie3
-                  if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,jproc) .or. &
-                      (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+1>istartend(2,jproc)) then
-                      iitot=iitot+(ie2-is2+1)*(ie1-is1+1)
+                  indglob3a=i3*lzd%glr%d%n1i*lzd%glr%d%n2i
+                  indglob3=indglob3a-lzd%glr%d%n1i*lzd%glr%d%n2i
+                  if (indglob3a<istartend(1,jproc) .or. &
+                      indglob3+1>istartend(2,jproc)) then
+                      iitot=iitot+itotadd
                       cycle
                   end if
                   do i2=is2,ie2
+                      indglob2=indglob3+(i2-1)*lzd%glr%d%n1i
                       do i1=is1,ie1
-                          indglob = (i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+                          indglob = indglob2+i1
                           iitot=iitot+1
                           if (indglob>=istartend(1,jproc) .and. indglob<=istartend(2,jproc)) then
                               nsend(jproc)=nsend(jproc)+1
@@ -2019,8 +1910,7 @@ module communications_init
       !!allocate(irecvbuf(ndimpsi), stat=istat)
       !!call memocc(istat, irecvbuf, 'irecvbuf', subname)
     
-      allocate(indexsendorbital2(ndimpsi), stat=istat)
-      call memocc(istat, indexsendorbital2, 'indexsendorbital2', subname)
+      indexsendorbital2 = f_malloc(ndimpsi,id='indexsendorbital2')
       indexsendorbital2=indexsendorbital
       do i=1,ndimpsi
           ind=isendbuf(i)
@@ -2030,13 +1920,10 @@ module communications_init
       ! Inverse of isendbuf
       call get_reverse_indices(ndimpsi, isendbuf, irecvbuf)
     
-      iall=-product(shape(indexsendorbital2))*kind(indexsendorbital2)
-      deallocate(indexsendorbital2, stat=istat)
-      call memocc(istat, iall, 'indexsendorbital2', subname)
+      call f_free(indexsendorbital2)
     
     
-      allocate(indexrecvbuf(ndimind), stat=istat)
-      call memocc(istat, indexrecvbuf, 'indexrecvbuf', subname)
+      indexrecvbuf = f_malloc(ndimind,id='indexrecvbuf')
       !!allocate(indexrecvorbital(ndimind), stat=istat)
       !!call memocc(istat, indexrecvorbital, 'indexrecvorbital', subname)
     
@@ -2053,21 +1940,16 @@ module communications_init
            indexrecvorbital=indexsendorbital
        end if
     
-      iall=-product(shape(indexsendbuf))*kind(indexsendbuf)
-      deallocate(indexsendbuf, stat=istat)
-      call memocc(istat, iall, 'indexsendbuf', subname)
+      call f_free(indexsendbuf)
     
-      iall=-product(shape(indexsendorbital))*kind(indexsendorbital)
-      deallocate(indexsendorbital, stat=istat)
-      call memocc(istat, iall, 'indexsendorbital', subname)
+      call f_free(indexsendorbital)
     !!call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
     !!t2=mpi_wtime()
     !!tt=t2-t1
     !!if(iproc==0) write(*,*) 'time 5.2: iproc', iproc, tt
     
     
-       allocate(gridpoint_start(istartend(1,iproc):istartend(2,iproc)), stat=istat)
-       call memocc(istat, gridpoint_start, 'gridpoint_start', subname)
+       gridpoint_start = f_malloc(istartend(1, iproc).to.istartend(2, iproc),id='gridpoint_start')
     
        ii=1
        do ipt=1,nptsp
@@ -2097,9 +1979,7 @@ module communications_init
       if(maxval(iextract)>ndimind) stop 'maxval(iextract)>ndimind'
       if(minval(iextract)<1) stop 'minval(iextract)<1'
     
-      iall=-product(shape(indexrecvbuf))*kind(indexrecvbuf)
-      deallocate(indexrecvbuf, stat=istat)
-      call memocc(istat, iall, 'indexrecvbuf', subname)
+      call f_free(indexrecvbuf)
     
     
       !! allocate(iexpand(ndimind), stat=istat)
@@ -2112,8 +1992,7 @@ module communications_init
     !!tt=t2-t1
     !!if(iproc==0) write(*,*) 'time 5.3: iproc', iproc, tt
     
-      allocate(indexrecvorbital2(ndimind), stat=istat)
-      call memocc(istat, indexrecvorbital2, 'indexrecvorbital2', subname)
+      indexrecvorbital2 = f_malloc(ndimind,id='indexrecvorbital2')
     
       if (ndimind>0) then
           call vcopy(ndimind, indexrecvorbital(1), 1, indexrecvorbital2(1), 1)
@@ -2129,21 +2008,14 @@ module communications_init
       !$omp end do
       !$omp end parallel
     
-      iall=-product(shape(indexrecvorbital2))*kind(indexrecvorbital2)
-      deallocate(indexrecvorbital2, stat=istat)
-      call memocc(istat, iall, 'indexrecvorbital2', subname)
+      call f_free(indexrecvorbital2)
     
       if(minval(indexrecvorbital)<1) stop 'minval(indexrecvorbital)<1'
       if(maxval(indexrecvorbital)>orbs%norb) stop 'maxval(indexrecvorbital)>orbs%norb'
     
     
-      iall=-product(shape(gridpoint_start))*kind(gridpoint_start)
-      deallocate(gridpoint_start, stat=istat)
-      call memocc(istat, iall, 'gridpoint_start', subname)
-    
-      iall=-product(shape(nsend))*kind(nsend)
-      deallocate(nsend, stat=istat)
-      call memocc(istat, iall, 'nsend', subname)
+      call f_free(gridpoint_start)
+      call f_free(nsend)
     
     
     end subroutine get_switch_indices_sumrho
@@ -2359,7 +2231,7 @@ module communications_init
       type(p2pComms),intent(out):: comgp
       
       ! Local variables
-      integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istat, istsource
+      integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istsource
       integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz
       integer :: is3min, ie3max, tag, ncount, ierr, nmaxoverlap
       logical :: datatype_defined
@@ -2467,7 +2339,7 @@ module communications_init
       !allocate(comgp%mpi_datatypes(0:nmaxoverlap,0:nproc-1), stat=istat)
       !call memocc(istat, comgp%mpi_datatypes, 'comgp%mpi_datatypes', subname)
       !call to_zero((nmaxoverlap+1)*nproc, comgp%mpi_datatypes(0,0))
-      comgp%mpi_datatypes = f_malloc0_ptr((/0.to.nmaxoverlap,0.to.nproc-1/))
+      comgp%mpi_datatypes = f_malloc0_ptr((/0.to.nmaxoverlap,0.to.nproc-1/),id='comgp%mpi_datatypes')
       comgp%nrecvBuf = 0
       is3min=0
       ie3max=0
@@ -2632,7 +2504,7 @@ module communications_init
       !local variables
       character(len=*), parameter :: subname='orbitals_communicators'
       logical :: yesorb,yescomp
-      integer :: jproc,nvctr_tot,ikpts,iorbp,jorb,norb_tot,ikpt,i_stat,i_all
+      integer :: jproc,nvctr_tot,ikpts,iorbp,jorb,norb_tot,ikpt
       integer :: nkptsp,ierr,kproc,jkpts,jkpte,jsorb,lubo,lubc,info,jkpt
       integer, dimension(:), allocatable :: mykpts
       logical, dimension(:), allocatable :: GPU_for_comp
@@ -2645,12 +2517,9 @@ module communications_init
       end if
    
       !Allocations of nvctr_par and norb_par
-      allocate(nvctr_par(0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
-      call memocc(i_stat,nvctr_par,'nvctr_par',subname)
-      allocate(norb_par(0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
-      call memocc(i_stat,norb_par,'norb_par',subname)
-      allocate(mykpts(orbs%nkpts+ndebug),stat=i_stat)
-      call memocc(i_stat,mykpts,'mykpts',subname)
+      nvctr_par = f_malloc((/ 0.to.nproc-1, 0.to.orbs%nkpts /),id='nvctr_par')
+      norb_par = f_malloc((/ 0.to.nproc-1, 0.to.orbs%nkpts /),id='norb_par')
+      mykpts = f_malloc(orbs%nkpts,id='mykpts')
     
       !initialise the arrays
       do ikpts=0,orbs%nkpts
@@ -2699,8 +2568,7 @@ module communications_init
     
       !create an array which indicate which processor has a GPU associated 
       !from the viewpoint of the BLAS routines (deprecated, not used anymore)
-      allocate(GPU_for_comp(0:nproc-1+ndebug),stat=i_stat)
-      call memocc(i_stat,GPU_for_comp,'GPU_for_comp',subname)
+      GPU_for_comp = f_malloc(0.to.nproc-1,id='GPU_for_comp')
     
       if (nproc > 1 .and. .not. GPUshare) then
          call MPI_ALLGATHER(GPUblas,1,MPI_LOGICAL,GPU_for_comp(0),1,MPI_LOGICAL,&
@@ -2709,9 +2577,7 @@ module communications_init
          GPU_for_comp(0)=GPUblas
       end if
     
-      i_all=-product(shape(GPU_for_comp))*kind(GPU_for_comp)
-      deallocate(GPU_for_comp,stat=i_stat)
-      call memocc(i_stat,i_all,'GPU_for_comp',subname)
+      call f_free(GPU_for_comp)
     
       !old k-point repartition
     !!$  !decide the repartition for the components in the same way as the orbitals
@@ -2762,12 +2628,16 @@ module communications_init
               norb_par(0,1),nvctr_par(0,1),info,lubo,lubc)
       end if
       if (info /=0) then
-         if (iproc==0) then
-            write(*,*)'ERROR for nproc,nkpts,norb,nvctr',nproc,orbs%nkpts,orbs%norb,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
-            call print_distribution_schemes(6,nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
-         end if
-         call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-         stop
+         !if (iproc==0) then
+         !   write(*,*)'ERROR for nproc,nkpts,norb,nvctr',nproc,orbs%nkpts,orbs%norb,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)
+         !   call print_distribution_schemes(nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
+         !end if
+         !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+         !stop
+         if (iproc==0) call print_distribution_schemes(nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
+         call f_err_throw('ERROR for nproc,nkpts,norb,nvctr' // &
+              & trim(yaml_toa( (/ nproc,orbs%nkpts,orbs%norb,(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f) /) )), &
+              & err_id=BIGDFT_RUNTIME_ERROR)
       end if
     
     !write(*,'(a,i2,3x,8i7,i10)') 'iproc, nvctr_par(jproc), sum', iproc, (nvctr_par(jproc,1), jproc=0,nproc-1), sum(nvctr_par(:,1))
@@ -2824,7 +2694,7 @@ module communications_init
       !print the distribution scheme used for this set of orbital
       !in the case of multiple k-points
       if (iproc == 0 .and. verbose > 1 .and. orbs%nkpts > 1) then
-         call print_distribution_schemes(6,nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
+         call print_distribution_schemes(nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
       end if
     
       !print *,iproc,orbs%nkptsp,orbs%norbp,orbs%norb,orbs%nkpts
@@ -2885,18 +2755,11 @@ module communications_init
       !print *,'AAAAiproc',iproc,orbs%iskpts,orbs%iskpts+orbs%nkptsp
     
       !allocate communication arrays
-      allocate(comms%nvctr_par(0:nproc-1,0:orbs%nkpts+ndebug),stat=i_stat)
-      call memocc(i_stat,comms%nvctr_par,'nvctr_par',subname)
-    
-      allocate(comms%ncntd(0:nproc-1+ndebug),stat=i_stat)
-      call memocc(i_stat,comms%ncntd,'ncntd',subname)
-    
-      allocate(comms%ncntt(0:nproc-1+ndebug),stat=i_stat)
-      call memocc(i_stat,comms%ncntt,'ncntt',subname)
-      allocate(comms%ndspld(0:nproc-1+ndebug),stat=i_stat)
-      call memocc(i_stat,comms%ndspld,'ndspld',subname)
-      allocate(comms%ndsplt(0:nproc-1+ndebug),stat=i_stat)
-      call memocc(i_stat,comms%ndsplt,'ndsplt',subname)
+      comms%nvctr_par = f_malloc_ptr((/ 0.to.nproc-1, 0.to.orbs%nkpts /),id='comms%nvctr_par')
+      comms%ncntd = f_malloc_ptr(0.to.nproc-1,id='comms%ncntd')
+      comms%ncntt = f_malloc_ptr(0.to.nproc-1,id='comms%ncntt')
+      comms%ndspld = f_malloc_ptr(0.to.nproc-1,id='comms%ndspld')
+      comms%ndsplt = f_malloc_ptr(0.to.nproc-1,id='comms%ndsplt')
     
       !assign the partition of the k-points to the communication array
       !calculate the number of componenets associated to the k-point
@@ -2945,15 +2808,9 @@ module communications_init
     
       !print *,'iproc,comms',iproc,comms%ncntd,comms%ndspld,comms%ncntt,comms%ndsplt
     
-      i_all=-product(shape(nvctr_par))*kind(nvctr_par)
-      deallocate(nvctr_par,stat=i_stat)
-      call memocc(i_stat,i_all,'nvctr_par',subname)
-      i_all=-product(shape(norb_par))*kind(norb_par)
-      deallocate(norb_par,stat=i_stat)
-      call memocc(i_stat,i_all,'norb_par',subname)
-      i_all=-product(shape(mykpts))*kind(mykpts)
-      deallocate(mykpts,stat=i_stat)
-      call memocc(i_stat,i_all,'mykpts',subname)
+      call f_free(nvctr_par)
+      call f_free(norb_par)
+      call f_free(mykpts)
     
       !calculate the dimension of the wavefunction
       !for the given processor (this is only the cubic strategy)

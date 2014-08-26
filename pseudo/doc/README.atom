@@ -4,7 +4,7 @@
 
 @details
 
-@section Intro     atom.f90: introduction and version changes
+@section ATOM_INTRO     atom.f90: introduction and version changes
 
 The program atom.f carries out all electron DFT calculations of an atom using interpolating cubic
 splines. For this, either the LDA, LSD or RLDA approximations may be used, or their gradient

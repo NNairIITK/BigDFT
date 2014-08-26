@@ -57,14 +57,14 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   end if
 
   ! calculate the overlap matrix
-  if(.not.associated(tmb%psit_c)) then
-      isize=sum(tmb%collcom%nrecvcounts_c)
-      tmb%psit_c=f_malloc_ptr(isize,id='tmb%psit_c')
-  end if
-  if(.not.associated(tmb%psit_f)) then
-      isize=7*sum(tmb%collcom%nrecvcounts_f)
-      tmb%psit_f=f_malloc_ptr(isize,id=' tmb%psit_f')
-  end if
+  !!if(.not.associated(tmb%psit_c)) then
+  !!    isize=sum(tmb%collcom%nrecvcounts_c)
+  !!    tmb%psit_c=f_malloc_ptr(isize,id='tmb%psit_c')
+  !!end if
+  !!if(.not.associated(tmb%psit_f)) then
+  !!    isize=7*sum(tmb%collcom%nrecvcounts_f)
+  !!    tmb%psit_f=f_malloc_ptr(isize,id=' tmb%psit_f')
+  !!end if
   call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
        tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
@@ -73,8 +73,8 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
 
 
-  call f_free_ptr(tmb%psit_c)
-  call f_free_ptr(tmb%psit_f)
+  !!call f_free_ptr(tmb%psit_c)
+  !!call f_free_ptr(tmb%psit_f)
 
 
   ! Construct the array chi
@@ -133,15 +133,15 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
 
   if(iproc==0) then
        call yaml_comment('new Pulay correction',hfill='-')
-       call yaml_open_sequence('Pulay forces (Ha/Bohr)')
+       call yaml_sequence_open('Pulay forces (Ha/Bohr)')
           do iat=1,at%astruct%nat
              call yaml_sequence(advance='no')
-             call yaml_open_map(flow=.true.)
+             call yaml_mapping_open(flow=.true.)
              call yaml_map(trim(at%astruct%atomnames(at%astruct%iatype(iat))),fpulay(1:3,iat),fmt='(1es20.12)')
-             call yaml_close_map(advance='no')
+             call yaml_mapping_close(advance='no')
              call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
           end do
-          call yaml_close_sequence()
+          call yaml_sequence_close()
   end if
 
 
@@ -438,14 +438,9 @@ subroutine extract_boundary(tmb, phi_delta, numpoints, numpoints_tot)
       call f_free(boundaryarray)
   end do
 
-
-
 call f_release_routine()
 
 end subroutine extract_boundary
-
-
-
 
 
 subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, GPU, tmb, fpulay)
@@ -482,6 +477,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   character(len=*),parameter :: subname='pulay_correction'
   type(matrices) :: ham_
+
+  call f_routine(id='pulay_correction')
 
   ! Begin by updating the Hpsi
   call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
@@ -639,15 +636,15 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
        !!    write(*,'(a,i5,3es16.6)') 'iat, fpulay', jat, fpulay(1:3,jat)
        !!end do
        call yaml_comment('Pulay Correction',hfill='-')
-       call yaml_open_sequence('Pulay Forces (Ha/Bohr)')
+       call yaml_sequence_open('Pulay Forces (Ha/Bohr)')
           do jat=1,at%astruct%nat
              call yaml_sequence(advance='no')
-             call yaml_open_map(flow=.true.)
+             call yaml_mapping_open(flow=.true.)
              call yaml_map(trim(at%astruct%atomnames(at%astruct%iatype(jat))),fpulay(1:3,jat),fmt='(1es20.12)')
-             call yaml_close_map(advance='no')
+             call yaml_mapping_close(advance='no')
              call yaml_comment(trim(yaml_toa(jat,fmt='(i4.4)')))
           end do
-          call yaml_close_sequence()
+          call yaml_sequence_close()
   end if
 
 
@@ -659,16 +656,16 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   call f_free(lpsit_f)
   call f_free(lhphilarge)
 
-  iall=-product(shape(denspot%pot_work))*kind(denspot%pot_work)
-  deallocate(denspot%pot_work, stat=istat)
-  call memocc(istat, iall, 'denspot%pot_work', subname)
+  call f_free_ptr(denspot%pot_work)
+
 
   do jdir=1,3
-     call deallocate_sparse_matrix(dovrlp(jdir),subname)
-     call deallocate_sparse_matrix(dham(jdir),subname)
+     call deallocate_sparse_matrix(dovrlp(jdir))
+     call deallocate_sparse_matrix(dham(jdir))
   end do
 
   !!if(iproc==0) write(*,'(1x,a)') 'done.'
 
-end subroutine pulay_correction
+  call f_release_routine()
 
+end subroutine pulay_correction
