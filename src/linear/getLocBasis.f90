@@ -2001,6 +2001,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
       call timing(iproc,'renormCoefCom1','OF')
 
       ! check whether this routine will be stable. Parallelization for nspin/=1 not done
+      ! SM: I think one should rather pass KS_overlap instead of basis_overlap...
       if (norb==orbs%norb .and. basis_overlap%nspin==1) then
           if (orbs%norbp>0) then
              call deviation_from_unity_parallel(iproc, nproc, norbx, orbs%norbp, orbs%isorb, &
