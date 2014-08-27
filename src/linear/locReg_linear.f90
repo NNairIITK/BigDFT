@@ -33,6 +33,8 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
   integer :: nseg_c,nseg_f,nvctr_c,nvctr_f      ! total number of sgements and elements
   character(len=*), parameter :: subname='determine_wfd_periodicity'
 
+  call f_routine(id='determine_wfd_periodicity')
+
    !starting point of locreg (always inside locreg)
    isdir(1) = Llr(ilr)%ns1
    isdir(2) = Llr(ilr)%ns2
@@ -132,6 +134,8 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
         Llr(ilr)%wfd%keyvloc(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
         Llr(ilr)%wfd%keyvglob(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
         Llr(ilr)%outofzone(:))
+
+   call f_release_routine()
 
 END SUBROUTINE determine_wfd_periodicity
 
@@ -785,6 +789,9 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
   real(kind=8) :: cut, dx,dy, dz
   !debug
   integer :: iiimin, isegmin
+
+  call f_routine(id='determine_boxbounds_sphere')
+
   iiimin=0
   isegmin=0
 
@@ -827,6 +834,8 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
           end if
       end do
   end do
+
+  call f_release_routine()
 
 END SUBROUTINE determine_boxbounds_sphere
 
