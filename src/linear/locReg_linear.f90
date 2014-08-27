@@ -777,6 +777,7 @@ END SUBROUTINE num_segkeys_sphere
 
 subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, nl3glob, hx, hy, hz, locrad, locregCenter, &
            nsegglob, keygglob, keyvglob, ixmin, iymin, izmin, ixmax, iymax, izmax)
+  use dynamic_memory
   implicit none
   integer, intent(in) :: n1glob, n2glob, n3glob, nl1glob, nl2glob, nl3glob, nsegglob
   real(kind=8),intent(in) :: hx, hy, hz, locrad
