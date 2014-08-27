@@ -328,6 +328,10 @@ contains
     !local variables
     integer :: nbseg_dim,nkeyg_dim,iat,ilr
     integer, dimension(:), allocatable :: nbsegs_cf,keyg_lin
+
+
+    call f_routine(id='update_nlpsp')
+
     !find allocating dimensions for work arrays
     nbseg_dim=0
     do iat=1,nl%natoms
@@ -364,6 +368,8 @@ contains
     call f_free(keyg_lin)
     call f_free(nbsegs_cf)
 
+    call f_release_routine()
+
   end subroutine update_nlpsp
 
   !> initialize the information for matching the localisation region
@@ -387,6 +393,8 @@ contains
     !local variables
     logical :: overlap
     integer :: ilr,nlr
+
+    call f_routine(id='set_nlpsp_to_wfd')
 
     nlr=1
     overlap=.true.
@@ -452,6 +460,8 @@ contains
        !most likely this scheme is useful for debugging purposes
        !tolr(ilr)%strategy=PSP_APPLY_KEYS
     end do
+
+    call f_release_routine()
 
   end subroutine set_nlpsp_to_wfd
 

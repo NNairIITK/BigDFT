@@ -31,6 +31,8 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   integer :: istart,ityp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat,i,l
   integer :: ikpt,nkptsproj,ikptp,izero
   real(gp) :: maxfullvol,totfullvol,totzerovol,fullvol,maxrad,maxzerovol,rad
+
+  call f_routine(id='localize_projectors')
   
   istart=1
   nl%nproj=0
@@ -222,6 +224,10 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   nl%nprojel=nkptsproj*nl%nprojel
 
   !print *,'iproc,nkptsproj',iproc,nkptsproj,nlpspd%nprojel,orbs%iskpts,orbs%iskpts+orbs%nkptsp
+
+
+  call f_release_routine()
+
 END SUBROUTINE localize_projectors
 
 
@@ -241,6 +247,8 @@ subroutine fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
   !Local variables
   !n(c) integer, parameter :: nterm_max=20 !if GTH nterm_max=4
   integer :: istart_c,iat,iproj,nwarnings,ikpt,iskpt,iekpt
+
+  call f_routine(id='fill_projectors')
 
   !if (iproc.eq.0 .and. nlpspd%nproj /=0 .and. idir==0) &
        !write(*,'(1x,a)',advance='no') 'Calculating wavelets expansion of projectors...'
@@ -287,6 +295,8 @@ subroutine fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
         !write(*,'(1x,a,f6.3)') 'Consider the possibility of modifying hgrid and/or the localisation radii.'
      end if
   end if
+
+  call f_release_routine()
 
 END SUBROUTINE fill_projectors
 

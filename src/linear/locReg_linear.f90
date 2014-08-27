@@ -1635,6 +1635,8 @@ subroutine transform_keyglob_to_keygloc(Glr,Llr,nseg,keyglob,keygloc)
   !local variables
   integer :: i, j, j0, ii, iz, iy, ix, n1p1, np
 
+  call f_routine(id='transform_keyglob_to_keygloc')
+
   n1p1=Glr%d%n1+1
   np=n1p1*(Glr%d%n2+1)
   do i = 1 , 2
@@ -1656,6 +1658,8 @@ subroutine transform_keyglob_to_keygloc(Glr,Llr,nseg,keyglob,keygloc)
         keygloc(i,j) = (iz-Llr%ns3)*(Llr%d%n1+1)*(Llr%d%n2+1) + (iy-Llr%ns2)*(Llr%d%n1+1) + (ix-Llr%ns1) + 1
      end do
   end do
+
+  call f_release_routine()
 
 end subroutine transform_keyglob_to_keygloc
 
