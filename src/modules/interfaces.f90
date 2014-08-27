@@ -4185,11 +4185,11 @@ module module_interfaces
           real(8),intent(out):: max_deviation, mean_deviation
         end subroutine deviation_from_unity_parallel
 
-        subroutine estimate_energy_change(npsidim_orbs, orbs, lzd, psidiff, hpsi_noprecond, delta_energy)
+        subroutine estimate_energy_change(npsidim_orbs, orbs, lzd, nspin, psidiff, hpsi_noprecond, delta_energy)
           use module_base
           use module_types
           implicit none
-          integer, intent(in) :: npsidim_orbs
+          integer, intent(in) :: npsidim_orbs, nspin
           type(orbitals_data),intent(in) :: orbs
           type(local_zone_descriptors),intent(in) :: lzd
           real(kind=8),dimension(npsidim_orbs),intent(in) :: psidiff, hpsi_noprecond

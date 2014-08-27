@@ -141,7 +141,11 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, nspin, lzd, hphi, phi, ldii
   do ispin=1,nspin
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
-          iispin=orbs%spinsgn(iiorb)
+          if (orbs%spinsgn(iiorb)>0.d0) then
+              iispin=1
+          else
+              iispin=2
+          end if
           if (iispin==ispin) then
               totmat(:,:,ispin)=totmat(:,:,ispin)+ldiis%mat(:,:,iorb)
           end if
@@ -206,12 +210,12 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, nspin, lzd, hphi, phi, ldii
         !!end if
         ! solve linear system, supposing it is general. More stable, no need of work array
         if(ldiis%is>1) then
-         call dgesv(min(ldiis%isx,ldiis%is)+1,1,mat(1,1),ldiis%isx+1,  & 
-                       ipiv(1),rhs(1),ldiis%isx+1,info)
-         if (info /= 0) then
-            write(*,'(a,i0)') 'ERROR in dgesv (subroutine optimizeDIIS), info=', info
-            stop
-         end if
+           call dgesv(min(ldiis%isx,ldiis%is)+1,1,mat(1,1),ldiis%isx+1,  & 
+                         ipiv(1),rhs(1),ldiis%isx+1,info)
+           if (info /= 0) then
+              write(*,'(a,i0)') 'ERROR in dgesv (subroutine optimizeDIIS), info=', info
+              stop
+           end if
         else
            rhs(1)=1.d0
         endif

@@ -982,7 +982,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! Estimate the energy change, that is to be expected in the next optimization
       ! step, given by the product of the force and the "displacement" .
       if (target_function==TARGET_FUNCTION_IS_HYBRID .or. experimental_mode) then
-          call estimate_energy_change(tmb%npsidim_orbs, tmb%orbs, tmb%lzd, psidiff, &
+          call estimate_energy_change(tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%l%nspin, psidiff, &
                hpsi_noprecond=hpsi_tmp, delta_energy=delta_energy)
           ! This is a hack...
           if (energy_increased) then
@@ -2253,13 +2253,13 @@ end subroutine reorthonormalize_coeff
 
 
 !> Estimate the energy change, given by the product of the force and the "displacement" .
-subroutine estimate_energy_change(npsidim_orbs, orbs, lzd, psidiff, hpsi_noprecond, delta_energy)
+subroutine estimate_energy_change(npsidim_orbs, orbs, lzd, nspin, psidiff, hpsi_noprecond, delta_energy)
   use module_base
   use module_types
   implicit none
 
   ! Calling arguments
-  integer, intent(in) :: npsidim_orbs
+  integer, intent(in) :: npsidim_orbs, nspin
   type(orbitals_data),intent(in) :: orbs
   type(local_zone_descriptors),intent(in) :: lzd
   real(kind=8),dimension(npsidim_orbs),intent(in) :: psidiff, hpsi_noprecond
@@ -2278,9 +2278,13 @@ subroutine estimate_energy_change(npsidim_orbs, orbs, lzd, psidiff, hpsi_nopreco
       ilr=orbs%inwhichlocreg(iiorb)
       ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
       tt=ddot(ncount, psidiff(ist), 1, hpsi_noprecond(ist), 1)
-      delta_energy=delta_energy+4.0d0*tt
+      delta_energy=delta_energy+2.0d0*tt
       ist=ist+ncount
   end do
+
+  if (nspin==1) then
+      delta_energy = 2.d0*delta_energy
+  end if
 
   if (bigdft_mpi%nproc > 1) then
       call mpiallred(delta_energy, 1, mpi_sum, bigdft_mpi%mpi_comm)
