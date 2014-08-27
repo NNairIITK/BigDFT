@@ -701,9 +701,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               end if
               call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                    tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
-              call vcopy(tmb%linmat%s%nvctr, tmb%linmat%ovrlp_%matrix_compr(1), 1, ovrlp_old%matrix_compr(1), 1)
+              call vcopy(tmb%linmat%s%nspin*tmb%linmat%s%nvctr, tmb%linmat%ovrlp_%matrix_compr(1), 1, ovrlp_old%matrix_compr(1), 1)
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
                    tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+              !!write(*,*) 'calling FOE: sums(ovrlp)', &
+              !!    sum(tmb%linmat%ovrlp_%matrix_compr(1:tmb%linmat%s%nvctr)), sum(tmb%linmat%ovrlp_%matrix_compr(tmb%linmat%s%nvctr+1:2*tmb%linmat%s%nvctr))
               if (iproc==0) call yaml_newline()
               if (iproc==0) call yaml_sequence_open('kernel update by FOE')
               if (method_updatekernel==UPDATE_BY_RENORMALIZATION) then
@@ -769,6 +771,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
 
       ! use hpsi_tmp as temporary array for hpsi_noprecond, even if it is allocated with a larger size
+      !write(*,*) 'calling calc_energy_and.., correction_co_contra',correction_co_contra
       call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, fnrm_old, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, hpsi_small, &

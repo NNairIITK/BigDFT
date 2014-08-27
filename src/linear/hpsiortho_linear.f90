@@ -187,6 +187,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
           call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
                tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+           !write(*,*) 'corr cocontra: sums(ovrlp)', &
+           !    sum(tmb%linmat%ovrlp_%matrix_compr(1:tmb%linmat%s%nvctr)), sum(tmb%linmat%ovrlp_%matrix_compr(tmb%linmat%s%nvctr+1:2*tmb%linmat%s%nvctr))
       end if
       call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsittmp_c(1), 1)
       call vcopy(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsittmp_f(1), 1)
