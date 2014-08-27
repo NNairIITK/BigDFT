@@ -955,7 +955,7 @@ module communications
       allocate(worksend_char(orbs%norbp), stat=istat)
       call memocc(istat, worksend_char, 'worksend_char', subname)
       worksend_log = f_malloc(orbs%norbp,id='worksend_log')
-      worksend_int = f_malloc((/ 11, orbs%norbp /),id='worksend_int')
+      worksend_int = f_malloc((/ 27, orbs%norbp /),id='worksend_int')
       worksend_dbl = f_malloc((/ 6, orbs%norbp /),id='worksend_dbl')
     
       allocate(workrecv_char(orbs%norb), stat=istat)
@@ -963,7 +963,7 @@ module communications
       !workrecv_char = f_malloc_str(1,orbs%norb,id='workrecv_char')
       !call f_free_str(1,workrecv_str)
       workrecv_log = f_malloc(orbs%norb,id='workrecv_log')
-      workrecv_int = f_malloc((/ 11, orbs%norb /),id='workrecv_int')
+      workrecv_int = f_malloc((/ 27, orbs%norb /),id='workrecv_int')
       workrecv_dbl = f_malloc((/ 6, orbs%norb /),id='workrecv_dbl')
     
     
@@ -973,15 +973,31 @@ module communications
               iilr=iilr+1
               worksend_char(iilr)=llr(ilr)%geocode
               worksend_log(iilr)=llr(ilr)%hybrid_on
-              worksend_int(1,iilr)=llr(ilr)%ns1
-              worksend_int(2,iilr)=llr(ilr)%ns2
-              worksend_int(3,iilr)=llr(ilr)%ns3
-              worksend_int(4,iilr)=llr(ilr)%nsi1
-              worksend_int(5,iilr)=llr(ilr)%nsi2
-              worksend_int(6,iilr)=llr(ilr)%nsi3
-              worksend_int(7,iilr)=llr(ilr)%localnorb
-              worksend_int(8:10,iilr)=llr(ilr)%outofzone(1:3)
-              worksend_int(11,iilr)=ilr
+              worksend_int(1,iilr)=ilr
+              worksend_int(2,iilr)=llr(ilr)%ns1
+              worksend_int(3,iilr)=llr(ilr)%ns2
+              worksend_int(4,iilr)=llr(ilr)%ns3
+              worksend_int(5,iilr)=llr(ilr)%nsi1
+              worksend_int(6,iilr)=llr(ilr)%nsi2
+              worksend_int(7,iilr)=llr(ilr)%nsi3
+              worksend_int(8,iilr)=llr(ilr)%localnorb
+              worksend_int(9:11,iilr)=llr(ilr)%outofzone(1:3)
+              worksend_int(12,iilr)=llr(ilr)%wfd%nvctr_c
+              worksend_int(13,iilr)=llr(ilr)%wfd%nvctr_f
+              worksend_int(14,iilr)=llr(ilr)%wfd%nseg_c
+              worksend_int(15,iilr)=llr(ilr)%wfd%nseg_f
+              worksend_int(16,iilr)=llr(ilr)%d%n1
+              worksend_int(17,iilr)=llr(ilr)%d%n2
+              worksend_int(18,iilr)=llr(ilr)%d%n3
+              worksend_int(19,iilr)=llr(ilr)%d%nfl1
+              worksend_int(20,iilr)=llr(ilr)%d%nfu1
+              worksend_int(21,iilr)=llr(ilr)%d%nfl2
+              worksend_int(22,iilr)=llr(ilr)%d%nfu2
+              worksend_int(23,iilr)=llr(ilr)%d%nfl3
+              worksend_int(24,iilr)=llr(ilr)%d%nfu3
+              worksend_int(25,iilr)=llr(ilr)%d%n1i
+              worksend_int(26,iilr)=llr(ilr)%d%n2i
+              worksend_int(27,iilr)=llr(ilr)%d%n3i
               worksend_dbl(1:3,iilr)=llr(ilr)%locregCenter(1:3)
               worksend_dbl(4,iilr)=llr(ilr)%locrad
               worksend_dbl(5,iilr)=llr(ilr)%locrad_kernel
@@ -993,23 +1009,39 @@ module communications
            orbs%isorb_par, mpi_character, bigdft_mpi%mpi_comm, ierr)
       call mpi_allgatherv(worksend_log, orbs%norbp, mpi_logical, workrecv_log, orbs%norb_par(:,0), &
            orbs%isorb_par, mpi_logical, bigdft_mpi%mpi_comm, ierr)
-      call mpi_allgatherv(worksend_int, 11*orbs%norbp, mpi_integer, workrecv_int, 11*orbs%norb_par(:,0), &
-           11*orbs%isorb_par, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+      call mpi_allgatherv(worksend_int, 27*orbs%norbp, mpi_integer, workrecv_int, 27*orbs%norb_par(:,0), &
+           27*orbs%isorb_par, mpi_integer, bigdft_mpi%mpi_comm, ierr)
       call mpi_allgatherv(worksend_dbl, 6*orbs%norbp, mpi_double_precision, workrecv_dbl, 6*orbs%norb_par(:,0), &
            6*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
     
       do ilr=1,nlr
-          iilr=workrecv_int(11,ilr)
+          iilr=workrecv_int(1,ilr)
           llr(iilr)%geocode=workrecv_char(ilr)
           llr(iilr)%hybrid_on= workrecv_log(ilr)
-          llr(iilr)%ns1=workrecv_int(1,ilr)
-          llr(iilr)%ns2=workrecv_int(2,ilr)
-          llr(iilr)%ns3=workrecv_int(3,ilr)
-          llr(iilr)%nsi1=workrecv_int(4,ilr)
-          llr(iilr)%nsi2=workrecv_int(5,ilr)
-          llr(iilr)%nsi3=workrecv_int(6,ilr)
-          llr(iilr)%localnorb=workrecv_int(7,ilr)
-          llr(iilr)%outofzone(1:3)=workrecv_int(8:10,ilr)
+          llr(iilr)%ns1=workrecv_int(2,ilr)
+          llr(iilr)%ns2=workrecv_int(3,ilr)
+          llr(iilr)%ns3=workrecv_int(4,ilr)
+          llr(iilr)%nsi1=workrecv_int(5,ilr)
+          llr(iilr)%nsi2=workrecv_int(6,ilr)
+          llr(iilr)%nsi3=workrecv_int(7,ilr)
+          llr(iilr)%localnorb=workrecv_int(8,ilr)
+          llr(iilr)%outofzone(1:3)=workrecv_int(9:11,ilr)
+          llr(iilr)%wfd%nvctr_c=workrecv_int(12,ilr)
+          llr(iilr)%wfd%nvctr_f=workrecv_int(13,ilr)
+          llr(iilr)%wfd%nseg_c=workrecv_int(14,ilr)
+          llr(iilr)%wfd%nseg_f=workrecv_int(15,ilr)
+          llr(iilr)%d%n1=workrecv_int(16,ilr)
+          llr(iilr)%d%n2=workrecv_int(17,ilr)
+          llr(iilr)%d%n3=workrecv_int(18,ilr)
+          llr(iilr)%d%nfl1=workrecv_int(19,ilr)
+          llr(iilr)%d%nfu1=workrecv_int(20,ilr)
+          llr(iilr)%d%nfl2=workrecv_int(21,ilr)
+          llr(iilr)%d%nfu2=workrecv_int(22,ilr)
+          llr(iilr)%d%nfl3=workrecv_int(23,ilr)
+          llr(iilr)%d%nfu3=workrecv_int(24,ilr)
+          llr(iilr)%d%n1i=workrecv_int(25,ilr)
+          llr(iilr)%d%n2i=workrecv_int(26,ilr)
+          llr(iilr)%d%n3i=workrecv_int(27,ilr)
           llr(iilr)%locregCenter(1:3)=workrecv_dbl(1:3,ilr)
           llr(iilr)%locrad=workrecv_dbl(4,ilr)
           llr(iilr)%locrad_kernel=workrecv_dbl(5,ilr)
@@ -1019,62 +1051,62 @@ module communications
     
       call f_free(worksend_int)
       call f_free(workrecv_int)
-      worksend_int = f_malloc((/ 13, orbs%norbp /),id='worksend_int')
-      workrecv_int = f_malloc((/ 13, orbs%norb /),id='workrecv_int')
+      !!worksend_int = f_malloc((/ 13, orbs%norbp /),id='worksend_int')
+      !!workrecv_int = f_malloc((/ 13, orbs%norb /),id='workrecv_int')
     
     
-      iilr=0
-      do ilr=1,nlr
-          if (iproc==rootarr(ilr)) then
-              iilr=iilr+1
-              worksend_int(1,iilr)=llr(ilr)%d%n1
-              worksend_int(2,iilr)=llr(ilr)%d%n2
-              worksend_int(3,iilr)=llr(ilr)%d%n3
-              worksend_int(4,iilr)=llr(ilr)%d%nfl1
-              worksend_int(5,iilr)=llr(ilr)%d%nfu1
-              worksend_int(6,iilr)=llr(ilr)%d%nfl2
-              worksend_int(7,iilr)=llr(ilr)%d%nfu2
-              worksend_int(8,iilr)=llr(ilr)%d%nfl3
-              worksend_int(9,iilr)=llr(ilr)%d%nfu3
-              worksend_int(10,iilr)=llr(ilr)%d%n1i
-              worksend_int(11,iilr)=llr(ilr)%d%n2i
-              worksend_int(12,iilr)=llr(ilr)%d%n3i
-              worksend_int(13,iilr)=ilr
-          end if
-      end do
+      !!iilr=0
+      !!do ilr=1,nlr
+      !!    if (iproc==rootarr(ilr)) then
+      !!        iilr=iilr+1
+      !!        worksend_int(1,iilr)=llr(ilr)%d%n1
+      !!        worksend_int(2,iilr)=llr(ilr)%d%n2
+      !!        worksend_int(3,iilr)=llr(ilr)%d%n3
+      !!        worksend_int(4,iilr)=llr(ilr)%d%nfl1
+      !!        worksend_int(5,iilr)=llr(ilr)%d%nfu1
+      !!        worksend_int(6,iilr)=llr(ilr)%d%nfl2
+      !!        worksend_int(7,iilr)=llr(ilr)%d%nfu2
+      !!        worksend_int(8,iilr)=llr(ilr)%d%nfl3
+      !!        worksend_int(9,iilr)=llr(ilr)%d%nfu3
+      !!        worksend_int(10,iilr)=llr(ilr)%d%n1i
+      !!        worksend_int(11,iilr)=llr(ilr)%d%n2i
+      !!        worksend_int(12,iilr)=llr(ilr)%d%n3i
+      !!        worksend_int(13,iilr)=ilr
+      !!    end if
+      !!end do
     
-      call mpi_allgatherv(worksend_int, 13*orbs%norbp, mpi_integer, workrecv_int, 13*orbs%norb_par(:,0), &
-           13*orbs%isorb_par, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+      !!call mpi_allgatherv(worksend_int, 13*orbs%norbp, mpi_integer, workrecv_int, 13*orbs%norb_par(:,0), &
+      !!     13*orbs%isorb_par, mpi_integer, bigdft_mpi%mpi_comm, ierr)
     
-      do ilr=1,nlr
-          iilr=workrecv_int(13,ilr)
-          llr(iilr)%d%n1=workrecv_int(1,ilr)
-          llr(iilr)%d%n2=workrecv_int(2,ilr)
-          llr(iilr)%d%n3=workrecv_int(3,ilr)
-          llr(iilr)%d%nfl1=workrecv_int(4,ilr)
-          llr(iilr)%d%nfu1=workrecv_int(5,ilr)
-          llr(iilr)%d%nfl2=workrecv_int(6,ilr)
-          llr(iilr)%d%nfu2=workrecv_int(7,ilr)
-          llr(iilr)%d%nfl3=workrecv_int(8,ilr)
-          llr(iilr)%d%nfu3=workrecv_int(9,ilr)
-          llr(iilr)%d%n1i=workrecv_int(10,ilr)
-          llr(iilr)%d%n2i=workrecv_int(11,ilr)
-          llr(iilr)%d%n3i=workrecv_int(12,ilr)
-      end do
+      !!do ilr=1,nlr
+      !!    iilr=workrecv_int(13,ilr)
+      !!    llr(iilr)%d%n1=workrecv_int(1,ilr)
+      !!    llr(iilr)%d%n2=workrecv_int(2,ilr)
+      !!    llr(iilr)%d%n3=workrecv_int(3,ilr)
+      !!    llr(iilr)%d%nfl1=workrecv_int(4,ilr)
+      !!    llr(iilr)%d%nfu1=workrecv_int(5,ilr)
+      !!    llr(iilr)%d%nfl2=workrecv_int(6,ilr)
+      !!    llr(iilr)%d%nfu2=workrecv_int(7,ilr)
+      !!    llr(iilr)%d%nfl3=workrecv_int(8,ilr)
+      !!    llr(iilr)%d%nfu3=workrecv_int(9,ilr)
+      !!    llr(iilr)%d%n1i=workrecv_int(10,ilr)
+      !!    llr(iilr)%d%n2i=workrecv_int(11,ilr)
+      !!    llr(iilr)%d%n3i=workrecv_int(12,ilr)
+      !!end do
     
     
       iall=-product(shape(worksend_char))*kind(worksend_char)
       deallocate(worksend_char,stat=istat)
       call memocc(istat, iall, 'worksend_char', subname)
       call f_free(worksend_log)
-      call f_free(worksend_int)
+      !!call f_free(worksend_int)
       call f_free(worksend_dbl)
 
       iall=-product(shape(workrecv_char))*kind(workrecv_char)
       deallocate(workrecv_char,stat=istat)
       call memocc(istat, iall, 'workrecv_char', subname)
       call f_free(workrecv_log)
-      call f_free(workrecv_int)
+      !!call f_free(workrecv_int)
       call f_free(workrecv_dbl)
 
       call f_release_routine()
@@ -1108,6 +1140,28 @@ module communications
        !integer :: total_sent, total_recv
 
        call f_routine(id=subname)
+
+
+       !!!@ NEW VESRION #############################################
+       !!! should be 1D later...
+       !!covered = f_malloc((/ 1.to.nlr, iproc.to.iproc /),id='covered')
+       !!do ilr=1,nlr
+       !!    root=rootarr(ilr)
+       !!    covered(ilr,iproc)=.false.
+       !!    do jorb=1,orbs%norbp
+       !!        jjorb=orbs%isorb+jorb
+       !!        jlr=orbs%inwhichlocreg(jjorb)
+       !!        ! don't communicate to ourselves, or if we've already sent this locreg
+       !!        if (iproc == root .or. covered(ilr,iproc)) cycle
+       !!        call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
+       !!        if (isoverlap) then         
+       !!            covered(ilr,iproc)=.true.
+       !!        end if
+       !!    end do
+       !!end do
+       !!!@ END NEW VESRION ##########################################
+
+
     
        ! This maxval is put out of the allocate to avoid compiler crash with PathScale.
        jorb = maxval(orbs%norb_par(:,0))
@@ -1117,8 +1171,9 @@ module communications
        workrecv_int = f_malloc((/ 4, nlr /),id='workrecv_int')
     
        ! divide communications into chunks to avoid problems with memory (too many communications)
-       ! set maximum number of simultaneous communications
-       max_sim_comms=min(nlr,1000)
+       ! set maximum number of simultaneous communications.
+       ! SM: set this value such tag the MPI tag is never greater than 4000000 (otherwise crash on Cray... is the limit maybe 2^22?)
+       max_sim_comms=min(nlr,int(4000000.d0/real(nproc,kind=8)))
        !max_sim_comms=min(nlr,2)
 
 
@@ -1140,35 +1195,35 @@ module communications
                if (isoverlap) then         
                    covered(ilr,jtask)=.true.
                    if (iproc == root) then
-                      !write(*,'(5(a,i0))') 'process ',iproc,' sends locreg ',ilr,' to process ',&
-                      !    jtask,' with tags ',4*ilr+0,'-',4*ilr+3
-                      worksend_int(1,ilr)=llr(ilr)%wfd%nvctr_c
-                      worksend_int(2,ilr)=llr(ilr)%wfd%nvctr_f
-                      worksend_int(3,ilr)=llr(ilr)%wfd%nseg_c
-                      worksend_int(4,ilr)=llr(ilr)%wfd%nseg_f
-                      icomm=icomm+1
-                      call mpi_isend(worksend_int(1,ilr), 4, mpi_integer, jtask,&
-                           itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                   !!   !write(*,'(5(a,i0))') 'process ',iproc,' sends locreg ',ilr,' to process ',&
+                   !!   !    jtask,' with tags ',4*ilr+0,'-',4*ilr+3
+                   !!   worksend_int(1,ilr)=llr(ilr)%wfd%nvctr_c
+                   !!   worksend_int(2,ilr)=llr(ilr)%wfd%nvctr_f
+                   !!   worksend_int(3,ilr)=llr(ilr)%wfd%nseg_c
+                   !!   worksend_int(4,ilr)=llr(ilr)%wfd%nseg_f
+                   !!   icomm=icomm+1
+                   !!   call mpi_isend(worksend_int(1,ilr), 4, mpi_integer, jtask,&
+                   !!        itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
                       maxsenddim=max(maxsenddim,llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
-                      !nsend=nsend+1
+                   !!   !nsend=nsend+1
                    else if (iproc == jtask) then
-                      !write(*,'(5(a,i0))') 'process ',iproc,' receives locreg ',ilr,' from process ',&
-                      !    root,' with tags ',4*ilr+0,'-',4*ilr+3
-                      icomm=icomm+1
-                      call mpi_irecv(workrecv_int(1,ilr), 4, mpi_integer, root,&
-                           itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
+                   !!   !write(*,'(5(a,i0))') 'process ',iproc,' receives locreg ',ilr,' from process ',&
+                   !!   !    root,' with tags ',4*ilr+0,'-',4*ilr+3
+                   !!   icomm=icomm+1
+                   !!   call mpi_irecv(workrecv_int(1,ilr), 4, mpi_integer, root,&
+                   !!        itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
                       nrecv=nrecv+1
                    end if
                end if
            end do
-           if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
-              call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
-              if (f_err_raise(ierr /= 0,'problem in communicate locregs: error in mpi_waitall '//&
-                   trim(yaml_toa(ierr))//' for process '//trim(yaml_toa(iproc)),&
-                   err_name='BIGDFT_RUNTIME_ERROR')) return
-              call mpi_barrier(mpi_comm_world,ierr)
-              icomm=0
-           end if
+           !!if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
+           !!   call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
+           !!   if (f_err_raise(ierr /= 0,'problem in communicate locregs: error in mpi_waitall '//&
+           !!        trim(yaml_toa(ierr))//' for process '//trim(yaml_toa(iproc)),&
+           !!        err_name='BIGDFT_RUNTIME_ERROR')) return
+           !!   call mpi_barrier(mpi_comm_world,ierr)
+           !!   icomm=0
+           !!end if
        end do
       
        !!call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
@@ -1179,11 +1234,12 @@ module communications
        nalloc=0
        maxrecvdim=0
        do jlr=1,nlr 
+          !write(*,*) 'iproc, jlr, covered, nseg_c', iproc, jlr, covered(jlr,iproc), llr(jlr)%wfd%nseg_c
           if (covered(jlr,iproc)) then
-             llr(jlr)%wfd%nvctr_c=workrecv_int(1,jlr)
-             llr(jlr)%wfd%nvctr_f=workrecv_int(2,jlr)
-             llr(jlr)%wfd%nseg_c=workrecv_int(3,jlr)
-             llr(jlr)%wfd%nseg_f=workrecv_int(4,jlr)
+             !!llr(jlr)%wfd%nvctr_c=workrecv_int(1,jlr)
+             !!llr(jlr)%wfd%nvctr_f=workrecv_int(2,jlr)
+             !!llr(jlr)%wfd%nseg_c=workrecv_int(3,jlr)
+             !!llr(jlr)%wfd%nseg_f=workrecv_int(4,jlr)
     !         call allocate_wfd(llr(jlr)%wfd,subname)
              nalloc=nalloc+1
              maxrecvdim=max(maxrecvdim,llr(jlr)%wfd%nseg_c+llr(jlr)%wfd%nseg_f)
@@ -1277,7 +1333,8 @@ module communications
      integer :: itag
     
      !itag=ilr+recv*nlr
-     itag=ilr+recv*max_sim_comms
+     !itag=ilr+recv*max_sim_comms
+     itag = mod(ilr-1,max_sim_comms)*nproc + recv + 1
     
      end function itag
     
