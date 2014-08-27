@@ -283,17 +283,9 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   end if
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
-  if (present(locregcenters)) then
-      ! signature of alinear scaling run, to be modified
-      if (iproc==0) call yaml_map('calling projector creation with dry-run option',.true.)
-      call createProjectorsArrays(Lzd%Glr,rxyz,atoms,orbs,&
-           radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
-           Lzd%hgrids(3),.false.,nlpsp,proj_G)
-  else
-      call createProjectorsArrays(Lzd%Glr,rxyz,atoms,orbs,&
-           radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
-           Lzd%hgrids(3),dry_run,nlpsp,proj_G)
-  end if
+  call createProjectorsArrays(Lzd%Glr,rxyz,atoms,orbs,&
+       radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
+       Lzd%hgrids(3),dry_run,nlpsp,proj_G)
   if (iproc == 0 .and. dump) call print_nlpsp(nlpsp)
   !the complicated part of the descriptors has not been filled
   if (dry_run) then

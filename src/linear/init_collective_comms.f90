@@ -37,7 +37,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
    real(wp), dimension(:), allocatable :: psi,psit_c,psit_f
    real(wp), dimension(:,:), allocatable :: checksum
    real(wp) :: epsilon,tol
-   logical :: abort
+   logical :: abort, isoverlap
    integer :: jjorb, ilr, jlr, ldim, gdim, iispin, jjspin, ist, niorb, njorb, jjjorb, is, ie
    real(kind=8),dimension(:),allocatable :: psii, psij, psiig, psijg, mat_compr
    real(kind=8),dimension(:,:),allocatable :: matp
@@ -237,6 +237,12 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
                njorb=njorb+1
                jjjorb=mod(jjorb-1,smat%nfvctr)+1 !index regardless of the spin
                jlr=orbs%inwhichlocreg(jjorb)
+               ! check if there is an overlap, else cycle
+               call check_overlap_cubic_periodic(lzd%glr, lzd%llr(ilr), lzd%llr(jlr), isoverlap)
+               if (.not.isoverlap) then
+                   matp(jjjorb,niorb)=0.d0
+                   cycle
+               end if
                ldim=lzd%llr(jlr)%wfd%nvctr_c+7*lzd%llr(jlr)%wfd%nvctr_f
                psij = f_malloc(ldim,id='psij')
                do i=1,ldim
@@ -244,6 +250,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
                   psij(i)=psival
                end do
                call to_zero(gdim, psijg(1))
+               !!write(4200+iproc,'(a,2i8,l4)') 'iproc, jlr, associated(lzd%llr(jlr)%wfd%keygloc)', iproc, jlr, associated(lzd%llr(jlr)%wfd%keygloc)
                call Lpsi_to_global2(iproc, ldim, gdim, orbs%norb, orbs%nspinor, 1, lzd%glr, &
                                     lzd%llr(jlr), psij, psijg)
                matp(jjjorb,niorb)=ddot(gdim, psiig, 1, psijg, 1)
