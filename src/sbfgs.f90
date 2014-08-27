@@ -11,7 +11,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
 !call_bigdft has to be run once on runObj and outs !before calling this routine
 !sbfgs will return to caller the energies and coordinates used/obtained from the last accepted iteration step
    use module_base
-   use module_types
+   use bigdft_run!module_types
    use module_interfaces
    use yaml_output
    use minpar
@@ -153,7 +153,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
    etotp=etot
 
    if (iproc==0.and.parmin%verbosity > 0) then
-       write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,es9.2,xa5,i4.4,xa5,es9.2,xa6,es9.2)') &
+       write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,es9.2,1x,a5,i4.4,1x,a5,es9.2,1x,a6,es9.2)') &
        ncount_bigdft,0,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
        'beta=',beta,'ndim=',ndim,'maxd=',maxd,'displ=',displ
    endif
@@ -246,7 +246,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
       !trust radius approach: avoids too large steps due to large forces
       !only used when in steepest decent mode
       if(maxd>trustr .and. steep)then
-         if(debug.and.iproc==0)write(100,'(a,1x,es24.17,xi0)')'step too large',maxd,it
+         if(debug.and.iproc==0)write(100,'(a,1x,es24.17,1x,i0)')'step too large',maxd,it
          if(iproc==0)write(16,'(a,2(1x,es9.2))')'WARNING GEOPT_SBFGS: step too large: maxd, trustradius ',maxd,trustr
          scl=0.50_gp*trustr/maxd
          dd=dd*scl
@@ -271,7 +271,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
       etotp=outs%energy
       detot=etotp-etotold
 
-      if(debug.and.iproc==0)write(100,'(a,i6,2(1x,e21.14),1x,5(1x,e10.3),xi0)')&
+      if(debug.and.iproc==0)write(100,'(a,i6,2(1x,e21.14),1x,5(1x,e10.3),1x,i0)')&
             'SBFGS it,etot,etotold,Detot,fnrm,fnrmp/fnrm,dnrm/fnrm,beta,ndim',&
              it-1,etotp,etotold,detot,fnrm,sqrt(ts)/fnrm,sqrt(tt)/fnrm,beta,ndim
 
@@ -293,7 +293,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
               dot_double(3*nat,dd(1,1),1,dd(1,1),1))
 
       if (iproc==0.and.parmin%verbosity > 0) then
-         write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,es9.2,xa5,i4.4,xa5,es9.2,xa6,es9.2)') &
+         write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,es9.2,1x,a5,i4.4,1x,a5,es9.2,1x,a6,es9.2)') &
           ncount_bigdft,it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
           'beta=',beta,'ndim=',ndim,'maxd=',maxd,'displ=',displ
          call yaml_mapping_open('Geometry')
@@ -512,7 +512,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
 
    !if code gets here, it failed
    if(debug.and.iproc==0) write(100,*) it,etot,fnrm
-   if(iproc==0) write(16,'(a,3(xi0))') &
+   if(iproc==0) write(16,'(a,3(1x,i0))') &
        "WARNING GEOPT_SBFGS: SBFGS not converged: it,ncount_bigdft,ncount_cluster_x: ", &
        it,ncount_bigdft,runObj%inputs%ncount_cluster_x
 !   stop "No convergence "
@@ -521,7 +521,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,ncount_bigdft,fail)
 
 1000 continue!converged successfully
    
-   if(iproc==0) write(16,'(2(a,xi0))') "SBFGS converged at iteration ",it,". Needed bigdft calls: ",ncount_bigdft
+   if(iproc==0) write(16,'(2(a,1x,i0))') "SBFGS converged at iteration ",it,". Needed bigdft calls: ",ncount_bigdft
    if(iproc==0)  call yaml_map('Iterations when SBFGS converged',it)
    fail=.false.
    

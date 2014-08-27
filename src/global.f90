@@ -10,12 +10,13 @@
 !!  Main program for the minima hopping
 program MINHOP
   use module_base
-  use module_types
+  use bigdft_run
+  use module_types, only: input_variables,bigdft_run_id_toa
   use module_interfaces
   use module_input_dicts
   use m_ab6_symmetry
   use yaml_output
-  use module_atoms, only: deallocate_atoms_data
+  use module_atoms, only: deallocate_atoms_data,atoms_data
   implicit real(kind=8) (a-h,o-z)
   logical :: newmin,CPUcheck,occured,exist_poslocm
   character(len=20) :: unitsp,atmn
@@ -106,14 +107,12 @@ program MINHOP
      inputs_md%dir_output=inputs_opt%dir_output
   end if
 
-
   !use only the atoms structure for the run
 !!$  call init_atomic_values((bigdft_mpi%iproc == 0),md_atoms,inputs_md%ixc)
   call deallocate_atoms_data(md_atoms) 
 
   !get number of atoms of the system, to allocate local arrays
   natoms=bigdft_get_number_of_atoms(atoms)
-
 
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) beta_S, beta_O, beta_N',(/beta_S,beta_O,beta_N/),fmt='(1pe11.4)')
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) alpha_A, alpha_R',(/alpha_A,alpha_R/),fmt='(1pe11.4)')
@@ -152,8 +151,6 @@ program MINHOP
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Input ediff, ekinetic, dt',(/ediff,ekinetic,dt/),fmt='(1pe10.3)')
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Input nsoften',nsoften,fmt='(i4)')
 
-
-
   n_unique=0
   n_nonuni=0
   av_ekinetic=0.d0
@@ -189,12 +186,10 @@ program MINHOP
   end if
   ksevals = f_malloc(nksevals,id='ksevals')
 
-
   energyold=1.d100
   ncount_bigdft=0
 
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) calling conjgrad for the first time here. energy ',outs%energy)
-
 
   ngeopt=0
   do 

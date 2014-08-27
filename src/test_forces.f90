@@ -20,9 +20,10 @@
 program test_forces
 
    use module_base
-   use module_types
-   use module_interfaces
-   use m_ab6_symmetry
+   use bigdft_run
+   use module_types, only: LINEAR_VERSION
+   !use module_interfaces
+   !use m_ab6_symmetry
    use yaml_output
 
    implicit none
@@ -95,19 +96,6 @@ program test_forces
       call yaml_comment(' 1) avoiding cancellation error in finite difference derivative,')
       call yaml_comment(' 2) considering the forces over all atoms.')
       call yaml_comment('',hfill='-')
-      !print*
-      !print*
-      !print*,'*******************************************************************************************************'
-      !print*,"This is a test program to verify  whether the force are the derivative of the energy: F=-dE/dR"
-      !print '(a,i3,a,f7.4,a,f6.4,a)', "It performs the integration of the calculated forces over " , npath,  &
-      !   &   " random displacement (in the range [", -dx, ",",dx,"] a.u.)"
-      !print*, "and compares the result with the difference of the energy  between the final and the initial position:"// &
-      !   &   " E2-E1 = -Integral F.dR" 
-      !print*," The advantage is two fold: 1) avoiding cancellation error in finite difference derivative," // & 
-      !" 2) considernig the forces over all atoms "
-      !print*,'*********************************************************************************************************'
-      !print*
-      !print*
    endif
 
    do iconfig=1,abs(nconfig)
@@ -196,22 +184,8 @@ program test_forces
       endif
 
       call deallocate_global_output(outs)
-      call run_objects_free(runObj, subname)
+      call run_objects_free(runObj)
 
-!!$      if (inputs%inputPsiId==INPUT_PSI_LINEAR_AO .or. inputs%inputPsiId==INPUT_PSI_MEMORY_LINEAR &
-!!$          .or. inputs%inputPsiId==INPUT_PSI_DISK_LINEAR) then
-!!$          call destroy_DFT_wavefunction(rst%tmb)
-!!$          call deallocate_local_zone_descriptors(rst%tmb%lzd)
-!!$      end if
-!!$
-!!$      if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) &
-!!$           & call deallocateBasicArraysInput(inputs%lin)
-
-
-!!$      call free_input_variables(inputs)
-
-!!$      !finalize memory counting
-!!$      call memocc(0,0,'count','stop')
    end if
 enddo !loop over iconfig
 

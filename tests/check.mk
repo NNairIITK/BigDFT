@@ -112,7 +112,7 @@ $(abs_top_builddir)/src/BigDFT2Wannier:
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	echo "Running $(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@" ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@ ; \
-	if test -f list_posinp; then cat `tail -n $$(($$(wc -l < list_posinp) - 1)) list_posinp | sed "s/^\(.*\)$$/log-\1.yaml/g"` > log.yaml ; fi ; \
+	if test -f list_posinp; then cat `awk '{print $$2}' list_posinp | sed "s/^\(.*\)$$/log-\1.yaml/g"` > log.yaml ; fi ; \
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.geopt.mon.out: $(abs_top_builddir)/src/bigdft

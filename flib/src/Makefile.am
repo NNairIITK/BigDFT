@@ -74,7 +74,8 @@ YAML_INCLUDES = yaml_map-inc.f90 yaml_map-arr-inc.f90 \
 	yaml_map-mat-inc.f90 yaml_open-inc.f90
 STRINGS_INCLUDES = yaml_toa-inc.f90 yaml_toa-arr-inc.f90
 ERR_INCLUDES = get_err-inc.f90
-DICT_INCLUDES = error_handling.f90 $(ERR_INCLUDES) dict_add-inc.f90 dict_getvec-inc.f90
+DICT_INCLUDES = error_handling.f90 $(ERR_INCLUDES) dict_add-inc.f90 dict_getvec-inc.f90 \
+	set_arr-inc.f90 dict_cont-inc.f90 dict_cont_arr-inc.f90
 GETADD_INCLUDES = getadd-c-inc.f90
 
 EXTRA_DIST = $(DYN_INCLUDES) $(YAML_INCLUDES) $(STRINGS_INCLUDES) $(ERR_INCLUDES) $(DICT_INCLUDES) $(GETADD_INCLUDES) $(F_MALLOC_INCLUDES)
@@ -137,7 +138,7 @@ yaml_strings.o: $(STRINGS_INCLUDES)
 dictionaries.o: yaml_strings.o dictionaries_base.o $(DICT_INCLUDES) callbacks.o
 #mem_profiling.o : error_handling.o
 yaml_output.o : dictionaries.o $(YAML_INCLUDES)
-yaml_parse.o : dictionaries.o
+yaml_parse.o : dictionaries.o yaml_output.o
 #error_handling.o: dictionaries.o callbacks.o yaml_output.o $(ERR_INCLUDES)
 f_malloc.o: dictionaries.o $(F_MALLOC_INCLUDES)
 dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o yaml_parse.o mem_profiling.o f_malloc.o $(DYN_INCLUDES)

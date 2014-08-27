@@ -40,6 +40,7 @@
 MODULE NEB_variables
   use module_defs
   use module_types
+  use bigdft_run
 
   IMPLICIT NONE
 

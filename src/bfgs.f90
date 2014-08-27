@@ -11,7 +11,7 @@
 !> BFGS driver routine
 subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
   use module_base
-    use module_types
+    use bigdft_run!module_types
     use module_interfaces
     use yaml_output
     use minpar
@@ -568,7 +568,7 @@ END SUBROUTINE bfgs_reza
 !! This is helpfull when we are looking for the source of problems during BFGS runs
 subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail) 
   use module_base
-  use module_types
+  use bigdft_run!module_types
   use module_interfaces
 !  use par_driver
   use minpar
