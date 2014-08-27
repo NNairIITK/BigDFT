@@ -1140,6 +1140,28 @@ module communications
        !integer :: total_sent, total_recv
 
        call f_routine(id=subname)
+
+
+       !!!@ NEW VESRION #############################################
+       !!! should be 1D later...
+       !!covered = f_malloc((/ 1.to.nlr, iproc.to.iproc /),id='covered')
+       !!do ilr=1,nlr
+       !!    root=rootarr(ilr)
+       !!    covered(ilr,iproc)=.false.
+       !!    do jorb=1,orbs%norbp
+       !!        jjorb=orbs%isorb+jorb
+       !!        jlr=orbs%inwhichlocreg(jjorb)
+       !!        ! don't communicate to ourselves, or if we've already sent this locreg
+       !!        if (iproc == root .or. covered(ilr,iproc)) cycle
+       !!        call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
+       !!        if (isoverlap) then         
+       !!            covered(ilr,iproc)=.true.
+       !!        end if
+       !!    end do
+       !!end do
+       !!!@ END NEW VESRION ##########################################
+
+
     
        ! This maxval is put out of the allocate to avoid compiler crash with PathScale.
        jorb = maxval(orbs%norb_par(:,0))
