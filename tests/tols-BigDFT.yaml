@@ -36,6 +36,7 @@ Keys to ignore:
  - Dictionary for lin
  - Raw version
  - Size of the global database
+ - Total No. of Taskgroups created
 Patterns to ignore:
  - Timestamp
  - memory

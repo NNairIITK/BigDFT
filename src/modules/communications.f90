@@ -1234,6 +1234,7 @@ module communications
           if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
              !do jlr=max(ilr-max_sim_comms+1,1),ilr
              do jlr=ilr_old+1,ilr
+                write(*,'(2(a,i0))') 'process ',iproc,' allocates locreg ',jlr
                 if (covered(jlr,iproc))  call allocate_wfd(llr(jlr)%wfd)
              end do
              call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)

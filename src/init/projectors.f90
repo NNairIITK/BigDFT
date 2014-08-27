@@ -31,6 +31,8 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   integer :: istart,ityp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat,i,l
   integer :: ikpt,nkptsproj,ikptp,izero
   real(gp) :: maxfullvol,totfullvol,totzerovol,fullvol,maxrad,maxzerovol,rad
+
+  call f_routine(id='localize_projectors')
   
   istart=1
   nl%nproj=0

@@ -67,9 +67,10 @@ module sparsematrix
       call timing(iproc,'compress_uncom','ON')
     
       if (sparsemat%parallel_compression==0.or.bigdft_mpi%nproc==1) then
-         !$omp parallel default(private) shared(sparsemat,inm,outm)
          do ispin=1,sparsemat%nspin
              ishift=(ispin-1)*sparsemat%nfvctr**2
+             !$omp parallel default(none) private(jj,irow,jcol) &
+             !$omp shared(sparsemat,inm,outm,ishift,ispin)
              !$omp do
              do jj=1,sparsemat%nvctr
                 irow = sparsemat%orb_from_index(1,jj)
@@ -77,8 +78,8 @@ module sparsematrix
                 outm(jj+ishift)=inm(irow,jcol,ispin)
              end do
              !$omp end do
+             !$omp end parallel
          end do
-         !$omp end parallel
       else if (sparsemat%parallel_compression==1) then
          stop 'this needs to be fixed'
          !!#call to_zero(sparsemat%nvctr, sparsemat%matrix_compr(1))
