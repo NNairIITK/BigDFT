@@ -412,6 +412,8 @@ contains
           call mpiallred(sparsemat%nseg, 1, mpi_sum, bigdft_mpi%mpi_comm)
           call mpiallred(sparsemat%nsegline(1), sparsemat%nfvctr, mpi_sum, bigdft_mpi%mpi_comm)
       end if
+
+
       ist=1
       do jorb=1,sparsemat%nfvctr
           ! Starting segment for this line
