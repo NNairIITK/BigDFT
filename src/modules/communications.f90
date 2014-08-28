@@ -1131,197 +1131,278 @@ module communications
     
        ! Local variables
        integer:: ierr, jorb, ilr, jlr, jtask, root, icomm, nrecv, nalloc, max_sim_comms
-       integer :: maxrecvdim, maxsenddim, ilr_old
+       integer :: maxrecvdim, maxsenddim, ilr_old, ioffset, window, ist_dest, ist_source
+       integer :: iorb, jjorb, ncount, iiorb, size_of_int, info
        logical :: isoverlap
        character(len=*),parameter:: subname='communicate_locreg_descriptors_keys'
        integer,dimension(:),allocatable :: requests
        integer,dimension(:,:),allocatable :: worksend_int, workrecv_int
+       integer,dimension(:),allocatable :: worksend, workrecv
        logical,dimension(:,:),allocatable :: covered
        !integer :: total_sent, total_recv
 
        call f_routine(id=subname)
 
 
-       !!!@ NEW VESRION #############################################
-       !!! should be 1D later...
-       !!covered = f_malloc((/ 1.to.nlr, iproc.to.iproc /),id='covered')
-       !!do ilr=1,nlr
-       !!    root=rootarr(ilr)
-       !!    covered(ilr,iproc)=.false.
-       !!    do jorb=1,orbs%norbp
-       !!        jjorb=orbs%isorb+jorb
-       !!        jlr=orbs%inwhichlocreg(jjorb)
-       !!        ! don't communicate to ourselves, or if we've already sent this locreg
-       !!        if (iproc == root .or. covered(ilr,iproc)) cycle
-       !!        call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
-       !!        if (isoverlap) then         
-       !!            covered(ilr,iproc)=.true.
-       !!        end if
-       !!    end do
-       !!end do
-       !!!@ END NEW VESRION ##########################################
+       !@ NEW VESRION #############################################
+       ! should be 1D later...
+       covered = f_malloc((/ 1.to.nlr, iproc.to.iproc /),id='covered')
 
-
-    
-       ! This maxval is put out of the allocate to avoid compiler crash with PathScale.
-       jorb = maxval(orbs%norb_par(:,0))
-       requests = f_malloc(8*nproc*jorb,id='requests')
-       covered = f_malloc((/ 1.to.nlr, 0.to.nproc-1 /),id='covered')
-       worksend_int = f_malloc((/ 4, nlr /),id='worksend_int')
-       workrecv_int = f_malloc((/ 4, nlr /),id='workrecv_int')
-    
-       ! divide communications into chunks to avoid problems with memory (too many communications)
-       ! set maximum number of simultaneous communications.
-       ! SM: set this value such tag the MPI tag is never greater than 4000000 (otherwise crash on Cray... is the limit maybe 2^22?)
-       max_sim_comms=min(nlr,int(4000000.d0/real(nproc,kind=8)))
-       !max_sim_comms=min(nlr,2)
-
-
-       nrecv=0
-       !nsend=0
-       icomm=0
-       maxsenddim=0
+       ! Determine which locregs process iproc should get.
        do ilr=1,nlr
            root=rootarr(ilr)
-           covered(ilr,:)=.false.
-           do jorb=1,orbs%norb
-               jlr=orbs%inwhichlocreg(jorb)
-               jtask=onwhichmpi(jorb)
-               ! check we're on a sending or receiving proc
-               if (iproc /= root .and. iproc /= jtask) cycle
+           covered(ilr,iproc)=.false.
+           do jorb=1,orbs%norbp
+               jjorb=orbs%isorb+jorb
+               jlr=orbs%inwhichlocreg(jjorb)
                ! don't communicate to ourselves, or if we've already sent this locreg
-               if (jtask == root .or. covered(ilr,jtask)) cycle
+               if (iproc == root .or. covered(ilr,iproc)) cycle
                call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
                if (isoverlap) then         
-                   covered(ilr,jtask)=.true.
-                   if (iproc == root) then
-                   !!   !write(*,'(5(a,i0))') 'process ',iproc,' sends locreg ',ilr,' to process ',&
-                   !!   !    jtask,' with tags ',4*ilr+0,'-',4*ilr+3
-                   !!   worksend_int(1,ilr)=llr(ilr)%wfd%nvctr_c
-                   !!   worksend_int(2,ilr)=llr(ilr)%wfd%nvctr_f
-                   !!   worksend_int(3,ilr)=llr(ilr)%wfd%nseg_c
-                   !!   worksend_int(4,ilr)=llr(ilr)%wfd%nseg_f
-                   !!   icomm=icomm+1
-                   !!   call mpi_isend(worksend_int(1,ilr), 4, mpi_integer, jtask,&
-                   !!        itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
-                      maxsenddim=max(maxsenddim,llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
-                   !!   !nsend=nsend+1
-                   else if (iproc == jtask) then
-                   !!   !write(*,'(5(a,i0))') 'process ',iproc,' receives locreg ',ilr,' from process ',&
-                   !!   !    root,' with tags ',4*ilr+0,'-',4*ilr+3
-                   !!   icomm=icomm+1
-                   !!   call mpi_irecv(workrecv_int(1,ilr), 4, mpi_integer, root,&
-                   !!        itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
-                      nrecv=nrecv+1
-                   end if
+                   covered(ilr,iproc)=.true.
                end if
            end do
-           !!if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
-           !!   call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
-           !!   if (f_err_raise(ierr /= 0,'problem in communicate locregs: error in mpi_waitall '//&
-           !!        trim(yaml_toa(ierr))//' for process '//trim(yaml_toa(iproc)),&
-           !!        err_name='BIGDFT_RUNTIME_ERROR')) return
-           !!   call mpi_barrier(mpi_comm_world,ierr)
-           !!   icomm=0
-           !!end if
        end do
-      
-       !!call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
-       !!call mpi_barrier(mpi_comm_world,ierr)
-    
-       call f_free(worksend_int)
-    
-       nalloc=0
+
+       ! Each process makes its data available in a contiguous workarray.
+       maxsenddim=0.d0
+       do iorb=1,orbs%norbp
+           iiorb=orbs%isorb+iorb
+           ilr=orbs%inwhichlocreg(iiorb)
+           maxsenddim = maxsenddim + 6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
+       end do
+       worksend = f_malloc(maxsenddim,id='worksend_int')
+
+       ioffset=0
+       do iorb=1,orbs%norbp
+           iiorb=orbs%isorb+iorb
+           ilr=orbs%inwhichlocreg(iiorb)
+           ncount=llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
+           call vcopy(2*ncount, llr(ilr)%wfd%keygloc(1,1), 1, worksend(ioffset+1), 1)
+           call vcopy(2*ncount, llr(ilr)%wfd%keyglob(1,1), 1, worksend(ioffset+2*ncount+1), 1)
+           call vcopy(ncount, llr(ilr)%wfd%keyvloc(1), 1, worksend(ioffset+4*ncount+1), 1)
+           call vcopy(ncount, llr(ilr)%wfd%keyvglob(1), 1, worksend(ioffset+5*ncount+1), 1)
+           ioffset=ioffset+6*ncount
+       end do
+
+       ! Initialize the MPI window
+       call mpi_type_size(mpi_integer, size_of_int, ierr)
+       call mpi_info_create(info, ierr)
+       call mpi_info_set(info, "no_locks", "true", ierr)
+       call mpi_win_create(worksend(1), int(maxsenddim*size_of_int,kind=mpi_address_kind), size_of_int, &
+            info, bigdft_mpi%mpi_comm, window, ierr)
+       call mpi_info_free(info, ierr)
+       call mpi_win_fence(mpi_mode_noprecede, window, ierr)
+
+       ! Allocate the receive buffer
        maxrecvdim=0
-       do jlr=1,nlr 
-          !write(*,*) 'iproc, jlr, covered, nseg_c', iproc, jlr, covered(jlr,iproc), llr(jlr)%wfd%nseg_c
-          if (covered(jlr,iproc)) then
-             !!llr(jlr)%wfd%nvctr_c=workrecv_int(1,jlr)
-             !!llr(jlr)%wfd%nvctr_f=workrecv_int(2,jlr)
-             !!llr(jlr)%wfd%nseg_c=workrecv_int(3,jlr)
-             !!llr(jlr)%wfd%nseg_f=workrecv_int(4,jlr)
-    !         call allocate_wfd(llr(jlr)%wfd,subname)
-             nalloc=nalloc+1
-             maxrecvdim=max(maxrecvdim,llr(jlr)%wfd%nseg_c+llr(jlr)%wfd%nseg_f)
-          end if
-       end do
-       if (f_err_raise(nalloc /= nrecv,'problem in communicate locregs: mismatch in receives '//&
-            trim(yaml_toa(nrecv))//' and allocates '//trim(yaml_toa(nalloc))//' for process '//trim(yaml_toa(iproc)),&
-            err_name='BIGDFT_RUNTIME_ERROR')) return
-    
-       call f_free(workrecv_int)
-    
-       !should reduce memory by not allocating for all llr
-       workrecv_int = f_malloc((/ 6*maxrecvdim, nlr /),id='workrecv_int')
-       worksend_int = f_malloc((/ 6*maxsenddim, nlr /),id='worksend_int')
-    
-       !!! divide communications into chunks to avoid problems with memory (too many communications)
-       !!! set maximum number of simultaneous communications
-       !!!total_sent=0
-       !!!total_recv=0
-       !!max_sim_comms=1000
-       icomm=0
-       ilr_old=0
        do ilr=1,nlr
-          root=rootarr(ilr)
-          do jtask=0,nproc-1
-             if (.not. covered(ilr,jtask)) cycle
-             if (iproc == root) then
-               !write(*,'(5(a,i0))') 'process ',iproc,' sends locreg ',ilr,' to process ',&
-               !     jtask,' with tags ',4*ilr+0,'-',4*ilr+3
-               call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keyglob(1,1),1,worksend_int(1,ilr),1)
-               call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keygloc(1,1),1,&
-                    worksend_int(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1)
-               call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keyvloc(1),1,&
-                    worksend_int(4*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1)
-               call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keyvglob(1),1,&
-                    worksend_int(5*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1)
-               icomm=icomm+1
-               call mpi_isend(worksend_int(1,ilr),6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                    jtask, itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
-             else if (iproc == jtask) then
-                !write(*,'(5(a,i0))') 'process ',iproc,' receives locreg ',ilr,' from process ',&
-                !    root,' with tags ',4*ilr+0,'-',4*ilr+3
-                icomm=icomm+1
-                call mpi_irecv(workrecv_int(1,ilr),6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                     root, itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
-             end if
-          end do
-          if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
-             !do jlr=max(ilr-max_sim_comms+1,1),ilr
-             do jlr=ilr_old+1,ilr
-                write(*,'(2(a,i0))') 'process ',iproc,' allocates locreg ',jlr
-                if (covered(jlr,iproc))  call allocate_wfd(llr(jlr)%wfd)
-             end do
-             call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
-             if (f_err_raise(ierr /= 0,'problem in communicate locregs: error in mpi_waitall '//&
-                  trim(yaml_toa(ierr))//' for process '//trim(yaml_toa(iproc)),&
-                  err_name='BIGDFT_RUNTIME_ERROR')) return
-             call mpi_barrier(mpi_comm_world,ierr)
-             icomm=0
-             ilr_old=ilr
-          end if
+           root=rootarr(ilr)
+           if (covered(ilr,iproc)) then
+               ncount=6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
+               maxrecvdim=maxrecvdim+ncount
+           end if
        end do
-    
-       call f_free(worksend_int)
-    
-       do ilr=1,nlr 
-          if (covered(ilr,iproc)) then
-             call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),workrecv_int(1,ilr),1,llr(ilr)%wfd%keyglob(1,1),1)
-             call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),&
-                  workrecv_int(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1,llr(ilr)%wfd%keygloc(1,1),1)
-             call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),&
-                  workrecv_int(4*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1,llr(ilr)%wfd%keyvloc(1),1)
-             call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),&
-                  workrecv_int(5*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1,llr(ilr)%wfd%keyvglob(1),1)
-          end if
+       workrecv = f_malloc(maxrecvdim,id='workrecv')
+
+       ! Do the communication
+       ist_dest=1
+       do ilr=1,nlr
+           root=rootarr(ilr)
+           if (covered(ilr,iproc)) then
+               ncount=6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
+               ist_source=get_offset(root,ilr)
+               call mpi_get(workrecv(ist_dest), ncount, mpi_int, root, &
+                    int(ist_source,kind=mpi_address_kind), ncount, mpi_integer, window, ierr)
+               ist_dest=ist_dest+ncount
+           end if
        end do
-    
-       call f_free(workrecv_int)
-    
-       !print*,'iproc,sent,received,num sent,num received',iproc,total_sent,total_recv,nsend,nrecv
-       call f_free(requests)
+
+       ! Synchronize the communication
+       call mpi_win_fence(0, window, ierr)
+       call mpi_win_free(window, ierr)
+
+
+       ! Copy the date from the workarrays to the correct locations
+       call f_free(worksend)
+       ist_dest=0
+       do ilr=1,nlr
+           if (covered(ilr,iproc)) then
+               call allocate_wfd(llr(ilr)%wfd)
+               ncount=llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
+               call vcopy(2*ncount, workrecv(ist_dest+1), 1, llr(ilr)%wfd%keygloc(1,1), 1)
+               call vcopy(2*ncount, workrecv(ist_dest+2*ncount+1), 1, llr(ilr)%wfd%keyglob(1,1), 1)
+               call vcopy(ncount, workrecv(ist_dest+4*ncount+1), 1, llr(ilr)%wfd%keyvloc(1), 1)
+               call vcopy(ncount, workrecv(ist_dest+5*ncount+1), 1, llr(ilr)%wfd%keyvglob(1), 1)
+               ist_dest=ist_dest+6*ncount
+           end if
+       end do
+       call f_free(workrecv)
        call f_free(covered)
+
+       !@ END NEW VESRION ##########################################
+
+
+    
+!!!       ! This maxval is put out of the allocate to avoid compiler crash with PathScale.
+!!!       jorb = maxval(orbs%norb_par(:,0))
+!!!       requests = f_malloc(8*nproc*jorb,id='requests')
+!!!       covered = f_malloc((/ 1.to.nlr, 0.to.nproc-1 /),id='covered')
+!!!       worksend_int = f_malloc((/ 4, nlr /),id='worksend_int')
+!!!       workrecv_int = f_malloc((/ 4, nlr /),id='workrecv_int')
+!!!    
+!!!       ! divide communications into chunks to avoid problems with memory (too many communications)
+!!!       ! set maximum number of simultaneous communications.
+!!!       ! SM: set this value such tag the MPI tag is never greater than 4000000 (otherwise crash on Cray... is the limit maybe 2^22?)
+!!!       max_sim_comms=min(nlr,int(4000000.d0/real(nproc,kind=8)))
+!!!       !max_sim_comms=min(nlr,2)
+!!!
+!!!
+!!!       nrecv=0
+!!!       !nsend=0
+!!!       icomm=0
+!!!       maxsenddim=0
+!!!       do ilr=1,nlr
+!!!           root=rootarr(ilr)
+!!!           covered(ilr,:)=.false.
+!!!           do jorb=1,orbs%norb
+!!!               jlr=orbs%inwhichlocreg(jorb)
+!!!               jtask=onwhichmpi(jorb)
+!!!               ! check we're on a sending or receiving proc
+!!!               if (iproc /= root .and. iproc /= jtask) cycle
+!!!               ! don't communicate to ourselves, or if we've already sent this locreg
+!!!               if (jtask == root .or. covered(ilr,jtask)) cycle
+!!!               call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
+!!!               if (isoverlap) then         
+!!!                   covered(ilr,jtask)=.true.
+!!!                   if (iproc == root) then
+!!!                   !!   !write(*,'(5(a,i0))') 'process ',iproc,' sends locreg ',ilr,' to process ',&
+!!!                   !!   !    jtask,' with tags ',4*ilr+0,'-',4*ilr+3
+!!!                   !!   worksend_int(1,ilr)=llr(ilr)%wfd%nvctr_c
+!!!                   !!   worksend_int(2,ilr)=llr(ilr)%wfd%nvctr_f
+!!!                   !!   worksend_int(3,ilr)=llr(ilr)%wfd%nseg_c
+!!!                   !!   worksend_int(4,ilr)=llr(ilr)%wfd%nseg_f
+!!!                   !!   icomm=icomm+1
+!!!                   !!   call mpi_isend(worksend_int(1,ilr), 4, mpi_integer, jtask,&
+!!!                   !!        itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
+!!!                      maxsenddim=max(maxsenddim,llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
+!!!                   !!   !nsend=nsend+1
+!!!                   else if (iproc == jtask) then
+!!!                   !!   !write(*,'(5(a,i0))') 'process ',iproc,' receives locreg ',ilr,' from process ',&
+!!!                   !!   !    root,' with tags ',4*ilr+0,'-',4*ilr+3
+!!!                   !!   icomm=icomm+1
+!!!                   !!   call mpi_irecv(workrecv_int(1,ilr), 4, mpi_integer, root,&
+!!!                   !!        itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
+!!!                      nrecv=nrecv+1
+!!!                   end if
+!!!               end if
+!!!           end do
+!!!           !!if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
+!!!           !!   call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
+!!!           !!   if (f_err_raise(ierr /= 0,'problem in communicate locregs: error in mpi_waitall '//&
+!!!           !!        trim(yaml_toa(ierr))//' for process '//trim(yaml_toa(iproc)),&
+!!!           !!        err_name='BIGDFT_RUNTIME_ERROR')) return
+!!!           !!   call mpi_barrier(mpi_comm_world,ierr)
+!!!           !!   icomm=0
+!!!           !!end if
+!!!       end do
+!!!      
+!!!       !!call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
+!!!       !!call mpi_barrier(mpi_comm_world,ierr)
+!!!    
+!!!       call f_free(worksend_int)
+!!!    
+!!!       nalloc=0
+!!!       maxrecvdim=0
+!!!       do jlr=1,nlr 
+!!!          !write(*,*) 'iproc, jlr, covered, nseg_c', iproc, jlr, covered(jlr,iproc), llr(jlr)%wfd%nseg_c
+!!!          if (covered(jlr,iproc)) then
+!!!             !!llr(jlr)%wfd%nvctr_c=workrecv_int(1,jlr)
+!!!             !!llr(jlr)%wfd%nvctr_f=workrecv_int(2,jlr)
+!!!             !!llr(jlr)%wfd%nseg_c=workrecv_int(3,jlr)
+!!!             !!llr(jlr)%wfd%nseg_f=workrecv_int(4,jlr)
+!!!    !         call allocate_wfd(llr(jlr)%wfd,subname)
+!!!             nalloc=nalloc+1
+!!!             maxrecvdim=max(maxrecvdim,llr(jlr)%wfd%nseg_c+llr(jlr)%wfd%nseg_f)
+!!!          end if
+!!!       end do
+!!!       if (f_err_raise(nalloc /= nrecv,'problem in communicate locregs: mismatch in receives '//&
+!!!            trim(yaml_toa(nrecv))//' and allocates '//trim(yaml_toa(nalloc))//' for process '//trim(yaml_toa(iproc)),&
+!!!            err_name='BIGDFT_RUNTIME_ERROR')) return
+!!!    
+!!!       call f_free(workrecv_int)
+!!!    
+!!!       !should reduce memory by not allocating for all llr
+!!!       workrecv_int = f_malloc((/ 6*maxrecvdim, nlr /),id='workrecv_int')
+!!!       worksend_int = f_malloc((/ 6*maxsenddim, nlr /),id='worksend_int')
+!!!    
+!!!       !!! divide communications into chunks to avoid problems with memory (too many communications)
+!!!       !!! set maximum number of simultaneous communications
+!!!       !!!total_sent=0
+!!!       !!!total_recv=0
+!!!       !!max_sim_comms=1000
+!!!       icomm=0
+!!!       ilr_old=0
+!!!       do ilr=1,nlr
+!!!          root=rootarr(ilr)
+!!!          do jtask=0,nproc-1
+!!!             if (.not. covered(ilr,jtask)) cycle
+!!!             if (iproc == root) then
+!!!               !write(*,'(5(a,i0))') 'process ',iproc,' sends locreg ',ilr,' to process ',&
+!!!               !     jtask,' with tags ',4*ilr+0,'-',4*ilr+3
+!!!               call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keyglob(1,1),1,worksend_int(1,ilr),1)
+!!!               call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keygloc(1,1),1,&
+!!!                    worksend_int(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1)
+!!!               call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keyvloc(1),1,&
+!!!                    worksend_int(4*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1)
+!!!               call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keyvglob(1),1,&
+!!!                    worksend_int(5*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1)
+!!!               icomm=icomm+1
+!!!               call mpi_isend(worksend_int(1,ilr),6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+!!!                    jtask, itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
+!!!             else if (iproc == jtask) then
+!!!                !write(*,'(5(a,i0))') 'process ',iproc,' receives locreg ',ilr,' from process ',&
+!!!                !    root,' with tags ',4*ilr+0,'-',4*ilr+3
+!!!                icomm=icomm+1
+!!!                call mpi_irecv(workrecv_int(1,ilr),6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+!!!                     root, itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
+!!!             end if
+!!!          end do
+!!!          if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
+!!!             !do jlr=max(ilr-max_sim_comms+1,1),ilr
+!!!             do jlr=ilr_old+1,ilr
+!!!                !write(*,'(2(a,i0))') 'process ',iproc,' allocates locreg ',jlr
+!!!                if (covered(jlr,iproc))  call allocate_wfd(llr(jlr)%wfd)
+!!!             end do
+!!!             call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
+!!!             if (f_err_raise(ierr /= 0,'problem in communicate locregs: error in mpi_waitall '//&
+!!!                  trim(yaml_toa(ierr))//' for process '//trim(yaml_toa(iproc)),&
+!!!                  err_name='BIGDFT_RUNTIME_ERROR')) return
+!!!             call mpi_barrier(mpi_comm_world,ierr)
+!!!             icomm=0
+!!!             ilr_old=ilr
+!!!          end if
+!!!       end do
+!!!    
+!!!       call f_free(worksend_int)
+!!!    
+!!!       do ilr=1,nlr 
+!!!          if (covered(ilr,iproc)) then
+!!!             call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),workrecv_int(1,ilr),1,llr(ilr)%wfd%keyglob(1,1),1)
+!!!             call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),&
+!!!                  workrecv_int(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1,llr(ilr)%wfd%keygloc(1,1),1)
+!!!             call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),&
+!!!                  workrecv_int(4*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1,llr(ilr)%wfd%keyvloc(1),1)
+!!!             call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),&
+!!!                  workrecv_int(5*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1,llr(ilr)%wfd%keyvglob(1),1)
+!!!          end if
+!!!       end do
+!!!    
+!!!       call f_free(workrecv_int)
+!!!    
+!!!       !print*,'iproc,sent,received,num sent,num received',iproc,total_sent,total_recv,nsend,nrecv
+!!!       call f_free(requests)
+!!!       call f_free(covered)
 
        call f_release_routine()
     
@@ -1337,6 +1418,24 @@ module communications
      itag = mod(ilr-1,max_sim_comms)*nproc + recv + 1
     
      end function itag
+
+     !> Get the offset of the data of locreg iilr
+     function get_offset(iiproc, iilr)
+       implicit none
+       integer,intent(in) :: iiproc, iilr
+       integer :: get_offset
+       ! Local variables
+       integer :: jorb, jjorb, jlr, ncount
+
+       get_offset=0
+       do jorb=1,orbs%norb_par(iiproc,0)
+           jjorb=orbs%isorb_par(iiproc)+jorb
+           jlr=orbs%inwhichlocreg(jjorb)
+           if (jlr==iilr) exit ! locreg found
+           ncount=6*(llr(jlr)%wfd%nseg_c+llr(jlr)%wfd%nseg_f)
+           get_offset=get_offset+ncount
+       end do
+     end function get_offset
     
     END SUBROUTINE communicate_locreg_descriptors_keys
     
