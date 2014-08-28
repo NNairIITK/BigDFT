@@ -1309,7 +1309,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
   locreg_increased=.false.
   if(lowaccur_converged ) then
-      do ilr = 1, tmb%lzd%nlr
+      do ilr = 1, tmb%lzd%nlr/input%nspin !for a spin polarized calculation, the remaining elements of input%lin%locrad_high/lowaccuracy are not meaningful
          if(input%lin%locrad_highaccuracy(ilr) /= input%lin%locrad_lowaccuracy(ilr)) then
              !!if(iproc==0) write(*,'(1x,a)') 'Increasing the localization radius for the high accuracy part.'
              if (iproc==0) call yaml_map('Increasing the localization radius for the high accuracy part',.true.)

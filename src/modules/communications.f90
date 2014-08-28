@@ -812,7 +812,9 @@ module communications
       ! the size of the potential without spin (maybe need to find a better way to determine this...)
       npotarr = f_malloc0(0.to.nproc-1,id='npotarr')
       npotarr(iproc)=nsendbuf/comm%nspin
-      call mpiallred(npotarr(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc>1) then
+          call mpiallred(npotarr(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
       !npot=nsendbuf/comm%nspin
     
       if(.not.comm%communication_complete) stop 'ERROR: there is already a p2p communication going on...'
