@@ -1033,3 +1033,19 @@ geoptconstrained:
  EH: 1.1e-10
  charge diff: 4.2e-11
  D Tr: 1.1e-9
+
+O2spin_diag:
+ Atomic Forces (Ha/Bohr): 2.1e-9
+ Average noise forces: 1.8e-9
+ Clean forces norm (Ha/Bohr): 7.1e-9
+ Raw forces norm (Ha/Bohr): 7.2e-9
+ Orbitals: 3.6e-9
+ EH: 1.5e-8
+ EXC: 4.1e-9
+ Ekin: 1.2e-8
+ Enl: 5.7e-10
+ Epot: 3.1e-8
+ EvXC: 5.5e-9
+ Omega: 4.1e-09
+ energy: 3.1e-8
+ multiplicator for the confinement: 7.2e-9
