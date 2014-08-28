@@ -75,6 +75,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
   type(matrices) :: weight_matrix_
 
+  real(8),dimension(:),allocatable :: rho_tmp
+  real(8) :: tt, ddot
+
+  !!rho_tmp = f_malloc(size(denspot%rhov),id='rho_tmp')
 
   call timing(iproc,'linscalinit','ON') !lr408t
 
@@ -658,10 +662,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              ! Mix the density.
              if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
                 ! use it_scc+1 since we already have the density from the input guess as iteration 1
+                !!rho_tmp=denspot%rhov
                 call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0-alpha_mix,denspot%mix,&
                      denspot%rhov,it_scc+1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                      at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                      pnrm,denspot%dpbox%nscatterarr)
+                 !!rho_tmp=rho_tmp-denspot%rhov
+                 !!tt=ddot(size(rho_tmp),rho_tmp,1,rho_tmp,1)
+                 !!call mpiallred(tt,1,mpi_sum,bigdft_mpi%mpi_comm)
+                 !!tt=tt/dble(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%ndims(3))
+                 !!if (iproc==0) write(*,*) 'delta rho',tt
                      !!write(*,*) 'after mix_rhopot 1.1: pnrm', pnrm
                 !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
                 !write(*,*) 'old pnrm',pnrm

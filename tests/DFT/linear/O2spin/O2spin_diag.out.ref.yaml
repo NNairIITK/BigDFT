@@ -1,0 +1,2759 @@
+---
+ Code logo:
+   "__________________________________ A fast and precise DFT wavelet code
+   |     |     |     |     |     |
+   |     |     |     |     |     |      BBBB         i       gggggg
+   |_____|_____|_____|_____|_____|     B    B               g
+   |     |  :  |  :  |     |     |    B     B        i     g
+   |     |-0+--|-0+--|     |     |    B    B         i     g        g
+   |_____|__:__|__:__|_____|_____|___ BBBBB          i     g         g
+   |  :  |     |     |  :  |     |    B    B         i     g         g
+   |--+0-|     |     |-0+--|     |    B     B     iiii     g         g
+   |__:__|_____|_____|__:__|_____|    B     B        i      g        g
+   |     |  :  |  :  |     |     |    B BBBB        i        g      g
+   |     |-0+--|-0+--|     |     |    B        iiiii          gggggg
+   |_____|__:__|__:__|_____|_____|__BBBBB
+   |     |     |     |  :  |     |                           TTTTTTTTT
+   |     |     |     |--+0-|     |  DDDDDD          FFFFF        T
+   |_____|_____|_____|__:__|_____| D      D        F        TTTT T
+   |     |     |     |  :  |     |D        D      F        T     T
+   |     |     |     |--+0-|     |D         D     FFFF     T     T
+   |_____|_____|_____|__:__|_____|D___      D     F         T    T
+   |     |     |  :  |     |     |D         D     F          TTTTT
+   |     |     |--+0-|     |     | D        D     F         T    T
+   |_____|_____|__:__|_____|_____|          D     F        T     T
+   |     |     |     |     |     |         D               T    T
+   |     |     |     |     |     |   DDDDDD       F         TTTT
+   |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
+ 
+ Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
+ Version Number                        : 1.7.5
+ Timestamp of this run                 : 2014-08-28 16:40:49.636
+ Root process Hostname                 : girofle
+ Number of MPI tasks                   :  3
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  2
+ MPI tasks of root process node        :  3
+  #------------------------------------------------------------------ Code compiling options
+ Compilation options:
+   Configure arguments:
+     " 'FC=/local/stephanm/openmpi-1.6.5_intel/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -xSSE4.2 
+     -openmp' 
+     '--with-ext-linalg=/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_blas95_l
+     p64 /opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64/libmkl_lapack95_lp64 
+     -L/opt/intel/composer_xe_2013_sp1.0.080/mkl/lib/intel64 -lmkl_scalapack_lp64 
+     -lmkl_cdft_core -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread 
+     -lmkl_blacs_intelmpi_lp64 -lpthread -lm' '' '--enable-minima-hopping' 'build_alias=' 
+     'host_alias=' 'target_alias='"
+   Compilers (CC, FC, CXX): [icc, /local/stephanm/openmpi-1.6.5_intel/bin/mpif90, g++]
+   Compiler flags:
+     CFLAGS                            : -g -O2
+     FCFLAGS                           : -O2 -xSSE4.2 -openmp
+     CXXFLAGS                          : -g -O2
+  #------------------------------------------------------------------------ Input parameters
+ dft:
+   hgrids                              : 0.36 #   Grid spacing in the three directions (bohr)
+   rmult: [5.0, 7.0] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
+   ixc                                 : 11 #     Exchange-correlation parameter (LDA=1,PBE=11)
+   nspin                               : 2 #      Spin polarization treatment
+   mpol                                : 4 #      Total magnetic moment
+   itermax                             : 30 #     Max. iterations of wfn. opt. steps
+   nrepmax                             : 5 #      Max. number of re-diag. runs
+   ncong                               : 5 #      No. of CG it. for preconditioning eq.
+   idsx                                : 4 #      Wfn. diis history
+   inputpsiid                          : 100 #    Input guess wavefunctions
+   disablesym                          : Yes #    Disable the symmetry detection
+   ncharge                             : 0 #      Charge of the system
+   elecfield: [0., 0., 0.] #                      Electric field (Ex,Ey,Ez)
+   gnrm_cv                             : 1.e-4 #  convergence criterion gradient
+   dispersion                          : 0 #      Dispersion correction potential (values 1,2,3,4,5), 0=none
+   output_wf                           : 0 #      Output of the wavefunctions
+   output_denspot                      : 0 #      Output of the density or the potential
+   rbuf                                : 0. #     Length of the tail (AU)
+   ncongt                              : 30 #     No. of tail CG iterations
+   norbv                               : 0 #      Davidson subspace dimension (No. virtual orbitals)
+   nvirt                               : 0 #      No. of virtual orbs
+   nplot                               : 0 #      No. of plotted orbs
+ perf:
+   ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
+   check_sumrho                        : 1 #      Enables linear sumrho check
+   calculate_KS_residue                : No #     Linear scaling calculate Kohn-Sham residue
+   method_updatekernel                 : 2 #      linear scaling update density kernel during the sup. func. optimization (0 
+    #                                              purification, 1 FOE, 2 renormalization)
+   purification_quickreturn            : Yes #    linear scaling quick return in purification
+   check_matrix_compression            : No #     linear scaling perform a check of the matrix compression routines
+   correction_co_contra                : Yes #    linear scaling correction covariant / contravariant gradient
+   debug                               : No #     Debug option
+   fftcache                            : 8192 #   Cache size for the FFT
+   accel                               : NO #     Acceleration (hardware)
+   ocl_platform                        : ~ #      Chosen OCL platform
+   ocl_devices                         : ~ #      Chosen OCL devices
+   blas                                : No #     CUBLAS acceleration
+   projrad                             : 15. #    Radius of the projector as a function of the maxrad
+   exctxpar                            : OP2P #   Exact exchange parallelisation scheme
+   ig_diag                             : Yes #    Input guess (T=Direct, F=Iterative) diag. of Ham.
+   ig_norbp                            : 5 #      Input guess Orbitals per process for iterative diag.
+   ig_blocks: [300, 800] #                        Input guess Block sizes for orthonormalisation
+   ig_tol                              : 1e-4 #   Input guess Tolerance criterion
+   methortho                           : 0 #      Orthogonalisation
+   rho_commun                          : DEF #    Density communication scheme (DBL, RSC, MIX)
+   psolver_groupsize                   : 0 #      Size of Poisson Solver taskgroups (0=nproc)
+   psolver_accel                       : 0 #      Acceleration of the Poisson Solver (0=none, 1=CUDA)
+   unblock_comms                       : OFF #    Overlap Communications of fields (OFF,DEN,POT)
+   linear                              : OFF #    Linear Input Guess approach
+   tolsym                              : 1e-8 #   Tolerance for symmetry detection
+   signaling                           : No #     Expose calculation results on Network
+   signaltimeout                       : 0 #      Time out on startup for signal connection (in seconds)
+   domain                              : ~ #      Domain to add to the hostname to find the IP
+   inguess_geopt                       : 0 #      Input guess to be used during the optimization
+   store_index                         : Yes #    Store indices or recalculate them for linear scaling
+   verbosity                           : 2 #      Verbosity of the output
+   outdir                              : . #      Writing directory
+   psp_onfly                           : Yes #    Calculate pseudopotential projectors on the fly
+   multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
+   pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
+   pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
+   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
+   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
+   ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
+   mixing_after_inputguess             : Yes #    Mixing step after linear input guess (T/F)
+   iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
+   experimental_mode                   : No #     Activate the experimental mode in linear scaling
+   write_orbitals                      : No #     Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
+   explicit_locregcenters              : No #     Linear scaling explicitely specify localization centers
+   intermediate_forces                 : No #     Linear scaling calculate intermediate forces
+   kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
+   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
+   evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
+   adjust_FOE_temperature              : Yes #    linear scaling dynamic adjustment of the decay length of the FOE error function
+   calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
+   loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
+   fscale_lowerbound                   : 5.e-3 #  linear scaling lower bound for the error function decay length
+   fscale_upperbound                   : 5.e-2 #  linear scaling upper bound for the error function decay length
+   FOE_restart                         : 0 #      Restart method to be used for the FOE method
+ lin_general:
+   hybrid                              : Yes #    activate the hybrid mode; if activated, only the low accuracy values will be relevant
+   nit                                 : 100 #    number of iteration with low/high accuracy
+   rpnrm_cv                            : 5.e-7 #  convergence criterion for low/high accuracy
+   max_inversion_error                 : 5.0e-8 # linear scaling maximal error of the Taylor approximations to calculate the inverse of 
+    #                                              the overlap matrix
+   conf_damping                        : -0.5 #   how the confinement should be decreased, only relevant for hybrid mode; negative -> 
+    #                                              automatic
+   taylor_order                        : 0 #      order of the Taylor approximation; 0 -> exact
+   output_wf                           : 0 #      output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
+   calc_dipole                         : No #     calculate dipole
+   calc_pulay: [No, No] #                         calculate Pulay forces (old/new version)
+   subspace_diag                       : No #     diagonalization at the end
+   extra_states                        : 0 #      extra states to optimize (dmin only)
+ lin_basis:
+   nit                                 : 8 #      maximal number of iterations in the optimization of the support functions
+   idsx                                : 8 #      DIIS history for optimization of the support functions (low/high accuracy); 0 -> SD
+   gnrm_cv                             : 1.0e-3 # convergence criterion for the optimization of the support functions (low/high accuracy)
+   deltae_cv                           : 5.0e-5 # total relative energy difference to stop the optimization ('experimental_mode' only)
+   min_gnrm_for_dynamic                : 2.0e-3 # minimal gnrm to active the dynamic gnrm criterion
+   alpha_diis                          : 0.5 #    multiplicator for DIIS
+   alpha_sd                            : 0.5 #    initial step size for SD
+   nstep_prec                          : 6 #      number of iterations in the preconditioner
+   fix_basis                           : 1.0e-12 # fix the support functions if the density change is below this threshold
+   correction_orthoconstraint          : 0 #      correction for the slight non-orthonormality in the orthoconstraint
+   gnrm_dyn                            : 1.e-4 #  dynamic convergence criterion ('experimental_mode' only)
+ lin_kernel:
+   nstep                               : 10 #     number of steps taken when updating the coefficients via direct minimization for 
+    #                                              each iteration of the density kernel loop
+   nit                                 : 6 #      number of iterations in the (self-consistent) optimization of the density kernel
+   idsx_coeff: [6, 0] #                           DIIS history for direct mininimization
+   idsx                                : 6 #      mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
+   alphamix                            : 0.05 #   mixing parameter (low/high accuracy)
+   eval_range_foe: [-1.0, 1.0] #                  lower and upper bound of the eigenvalue spectrum, will be adjusted 
+    #                                              automatically if chosen unproperly
+   fscale_foe                          : 5.0E-002 # decay length of the error function
+   gnrm_cv_coeff: [1.e-5, 1.e-5] #                convergence criterion on the gradient for direct minimization
+   rpnrm_cv: [1.e-10, 1.e-10] #                   convergence criterion (change in density/potential) for the kernel 
+    #                                              optimization
+   linear_method                       : DIAG #   method to optimize the density kernel
+   mixing_method                       : DEN #    quantity to be mixed
+   alpha_sd_coeff                      : 0.2 #    initial step size for SD for direct minimization
+   alpha_fit_coeff                     : No #     update the SD step size by fitting a quadratic polynomial to the energy along the 
+    #                                              direction of the gradient during direct 
+    #                                              mininimization.
+ lin_basis_params:
+   O:
+     ao_confinement                    : 2.2e-2
+     confinement                       : 2.2e-2
+     rloc                              : 5.5
+     rloc_kernel                       : 8.0
+     rloc_kernel_foe                   : 15.0
+   nbasis                              : 4 #      number of support functions per atom
+   ao_confinement                      : 8.3e-3 # prefactor for the input guess confining potential
+   confinement: [8.3e-3, 0.0] #                   prefactor for the confining potential (low/high accuracy)
+   rloc: [7.0, 7.0] #                             localization radius for the support functions
+   rloc_kernel                         : 9.0 #    localization radius for the density kernel
+   rloc_kernel_foe                     : 14.0 #   cutoff radius for the FOE matrix vector multiplications
+ posinp:
+   units                               : angstroem
+   properties:
+     format                            : xyz
+     source                            : posinp
+   positions:
+   - O: [0.0, 0.0, 0.0]
+     IGSpin                            : 2
+   - O: [0.0, 0.0, 1.208]
+     IGSpin                            : 2
+ kpt:
+   method                              : manual # K-point sampling method
+   kpt: #                                         Kpt coordinates
+   -  [0., 0., 0.]
+   wkpt: [1.] #                                   Kpt weights
+   bands                               : No #     For doing band structure calculation
+ geopt:
+   method                              : none #   Geometry optimisation method
+   ncount_cluster_x                    : 1 #      Maximum number of force evaluations
+   frac_fluct                          : 1. #     Fraction of force fluctuations. Stop if fmax < forces_fluct*frac_fluct
+   forcemax                            : 0. #     Max forces criterion when stop
+   randdis                             : 0. #     Random displacement amplitude
+   betax                               : 4. #     Stepsize for the geometry optimization
+ mix:
+   iscf                                : 0 #      Mixing parameters
+   itrpmax                             : 1 #      Maximum number of diagonalisation iterations
+   rpnrm_cv                            : 1e-4 #   Stop criterion on the residue of potential or density
+   norbsempty                          : 0 #      No. of additional bands
+   tel                                 : 0. #     Electronic temperature
+   occopt                              : 1 #      Smearing method
+   alphamix                            : 0. #     Multiplying factors for the mixing
+   alphadiis                           : 2. #     Multiplying factors for the electronic DIIS
+ sic:
+   sic_approach                        : none #   SIC (self-interaction correction) method
+   sic_alpha                           : 0. #     SIC downscaling parameter
+ tddft:
+   tddft_approach                      : none #   Time-Dependent DFT method
+ psppar.O:
+   Pseudopotential type                : HGH-K
+   Atomic number                       : 8
+   No. of Electrons                    : 6
+   Pseudopotential XC                  : 11
+   Local Pseudo Potential (HGH convention):
+     Rloc                              : 0.2445543
+     Coefficients (c1 .. c4): [-16.6672148, 2.48731132, 0.0, 0.0]
+   NonLocal PSP Parameters:
+   - Channel (l)                       : 0
+     Rloc                              : 0.22095592
+     h_ij terms: [18.33745811, 0.0, 0.0, 0.0, 0.0, 0.0]
+   - Channel (l)                       : 1
+     Rloc                              : 0.21133247
+     h_ij terms: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+   Source                              : Hard-Coded
+   Radii of active regions (AU):
+     Coarse                            : 1.215575721499752
+     Fine                              : 0.21133247
+     Coarse PSP                        : 0.21133247
+     Source                            : Hard-Coded
+  #--------------------------------------------------------------------------------------- |
+ Data Writing directory                : ./
+  #-------------------------------------------------- Input Atomic System (file: posinp.xyz)
+ Atomic System Properties:
+   Number of atomic types              :  1
+   Number of atoms                     :  2
+   Types of atoms                      :  [ O ]
+   Boundary Conditions                 : Free #Code: F
+   Number of Symmetries                :  0
+   Space group                         : disabled
+  #------------------------------ Geometry optimization Input Parameters (file: input.geopt)
+ Geometry Optimization Parameters:
+   Maximum steps                       :  1
+   Algorithm                           : none
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  1.0E+00
+   Maximum in forces                   :  0.0E+00
+   Steepest descent step               :  4.0E+00
+ Material acceleration                 :  No #iproc=0
+  #------------------------------------------------------------------------ Input parameters
+ DFT parameters:
+   eXchange Correlation:
+     XC ID                             :  &ixc  11
+     Exchange-Correlation reference    : "XC: Perdew, Burke & Ernzerhof"
+     XC functional implementation      : ABINIT
+     Polarisation                      :  4
+     Spin polarization                 : collinear
+ Basis set definition:
+   Suggested Grid Spacings (a0)        :  [  0.36,  0.36,  0.36 ]
+   Coarse and Fine Radii Multipliers   :  [  5.0,  7.0 ]
+ Self-Consistent Cycle Parameters:
+   Wavefunction:
+     Gradient Norm Threshold           :  &gnrm_cv  1.0E-04
+     CG Steps for Preconditioner       :  5
+     DIIS History length               :  4
+     Max. Wfn Iterations               :  &itermax  30
+     Max. Subspace Diagonalizations    :  5
+     Input wavefunction policy         : Linear AO # 100
+     Output wavefunction policy        : none # 0
+     Output grid policy                : none # 0
+     Output grid format                : text # 0
+     Virtual orbitals                  :  0
+     Number of plotted density orbitals:  0
+   Density/Potential:
+     Max. Iterations                   :  1
+ Post Optimization Parameters:
+   Finite-Size Effect estimation:
+     Scheduled                         :  No
+  #----------------------------------------------------------------------- System Properties
+ Properties of atoms in the system:
+ - Symbol                              : O #Type No.  01
+   No. of Electrons                    :  6
+   No. of Atoms                        :  2
+   Radii of active regions (AU):
+     Coarse                            :  1.21558
+     Fine                              :  0.21133
+     Coarse PSP                        :  0.47348
+     Source                            : Hard-Coded
+   Grid Spacing threshold (AU)         :  0.53
+   Pseudopotential type                : HGH-K
+   Local Pseudo Potential (HGH convention):
+     Rloc                              :  0.24455
+     Coefficients (c1 .. c4)           :  [ -16.66721,  2.48731,  0.00000,  0.00000 ]
+   NonLocal PSP Parameters:
+   - Channel (l)                       :  0
+     Rloc                              :  0.22096
+     h_ij matrix:
+     -  [  18.33746,  0.00000,  0.00000 ]
+     -  [  0.00000,  0.00000,  0.00000 ]
+     -  [  0.00000,  0.00000,  0.00000 ]
+   No. of projectors                   :  1
+   PSP XC                              : "XC: Perdew, Burke & Ernzerhof"
+  #-------------------------------------------------------------------------- Atom Positions
+ Atomic positions within the cell (Atomic and Grid Units):
+ - O: {AU:  [  5.9400,  5.9400,  6.0586 ], GU:  [  16.500,  16.500,  16.829 ]} # 0001
+ - O: {AU:  [  5.9400,  5.9400,  8.3414 ], GU:  [  16.500,  16.500,  23.171 ]} # 0002
+ Rigid Shift Applied (AU)              :  [  5.9400,  5.9400,  6.0586 ]
+ Atomic structure:
+   Units                               : angstroem
+   Positions:
+   -  {O: [ 3.143312632,  3.143312632,  3.206075918],  # [  16.50,  16.50,  16.83 ] 0001
+ IGSpin:  2}
+   -  {O: [ 3.143312632,  3.143312632,  4.414075918],  # [  16.50,  16.50,  23.17 ] 0002
+ IGSpin:  2}
+   Rigid Shift Applied (AU)            :  [  5.9400,  5.9400,  6.0586 ]
+  #------------------------------------------------------------------------- Grid properties
+ Box Grid spacings                     :  [  0.3600,  0.3600,  0.3600 ]
+ Sizes of the simulation domain:
+   AU                                  :  [  11.880,  11.880,  14.400 ]
+   Angstroem                           :  [  6.2866,  6.2866,  7.6202 ]
+   Grid Spacing Units                  :  [  33,  33,  40 ]
+   High resolution region boundaries (GU):
+     From                              :  [  13,  13,  13 ]
+     To                                :  [  20,  20,  27 ]
+ High Res. box is treated separately   :  Yes
+  #------------------------------------------------------------------- Kernel Initialization
+ Poisson Kernel Initialization:
+   MPI tasks                           :  3
+   OpenMP threads per MPI task         :  2
+ Poisson Kernel Creation:
+   Boundary Conditions                 : Free
+   Memory Requirements per MPI task:
+     Density (MB)                      :  2.90
+     Kernel (MB)                       :  2.91
+     Full Grid Arrays (MB)             :  7.97
+     Load Balancing of calculations:
+       Density:
+         MPI tasks 0- 1                : 100%
+         MPI task 2                    :  95%
+       Kernel:
+         MPI tasks 0- 1                : 100%
+         MPI task 2                    :  97%
+       Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
+ Wavefunctions Descriptors, full simulation domain:
+   Coarse resolution grid:
+     No. of segments                   :  1110
+     No. of points                     :  25768
+   Fine resolution grid:
+     No. of segments                   :  98
+     No. of points                     :  560
+  #---------------------------------------------------------------------- Occupation Numbers
+ Total Number of Electrons             :  12
+ Spin treatment                        : Collinear
+ Orbitals Repartition:
+   MPI tasks  0- 2                     :  4
+ Total Number of Orbitals              :  12
+ Input Occupation Numbers:
+ - Occupation Numbers: {Orbitals No. 1-12:  1.0000}
+ Support function repartition:
+   MPI tasks  0- 0                     :  6
+   MPI tasks  1- 2                     :  5
+ Wavefunctions memory occupation for root MPI process:  0 MB 927 KB 768 B
+ NonLocal PSP Projectors Descriptors:
+   Creation strategy                   : On-the-fly
+   Total number of projectors          :  2
+   Total number of components          :  5320
+   Percent of zero components          :  0
+   Size of workspaces                  :  21296
+   Maximum size of masking arrays for a projector:  960
+   Cumulative size of masking arrays   :  1920
+  #WARNING: Do not call check_communications in the linear scaling version!
+  #-------------------------------------------------------- Estimation of Memory Consumption
+ Memory requirements for principal quantities (MiB.KiB):
+   Subspace Matrix                     : 0.1 #    (Number of Orbitals: 12)
+   Single orbital                      : 0.232 #  (Number of Components: 29688)
+   All (distributed) orbitals          : 2.736 #  (Number of Orbitals per MPI task: 4)
+   Wavefunction storage size           : 9.990 #  (DIIS/SD workspaces included)
+   Nonlocal Pseudopotential Arrays     : 0.42
+   Full Uncompressed (ISF) grid        : 15.959
+   Workspaces storage size             : 0.618
+ Accumulated memory requirements during principal run stages (MiB.KiB):
+   Kernel calculation                  : 56.256
+   Density Construction                : 66.638
+   Poisson Solver                      : 82.561
+   Hamiltonian application             : 67.59
+   Orbitals Orthonormalization         : 67.59
+ Estimated Memory Peak (MB)            :  82
+ NonLocal PSP Projectors Descriptors:
+   Creation strategy                   : On-the-fly
+   Total number of projectors          :  2
+   Total number of components          :  5320
+   Percent of zero components          :  0
+   Size of workspaces                  :  21296
+   Maximum size of masking arrays for a projector:  5760
+   Cumulative size of masking arrays   :  11520
+ total elements                        :  64
+ non-zero elements                     :  64
+ sparsity in %                         :  0.00
+ total elements                        :  64
+ non-zero elements                     :  64
+ sparsity in %                         :  0.00
+ check of kernel cutoff radius:
+ -  {atom type: O, adjustment required:  Yes, new value:  8.38}
+ total elements                        :  64
+ non-zero elements                     :  64
+ sparsity in %                         :  0.00
+ Checking operations for potential communication:
+   Tolerance for the following test    :  9.999999999999999799E-13
+   calculation check, error sum        :  0.000000000000000000E+00
+   Tolerance for the following test    :  1.000000000000000036E-10
+   calculation check, error max        :  0.000000000000000000E+00
+ Checking operations for sumrho:
+   Tolerance for the following test    :  9.999999999999999988E-15
+   transposition check, mean error     :  0.000000000000000000E+00
+   transposition check, max error      :  0.000000000000000000E+00
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  10136,  187 ]
+   Tolerances for this check: [ 1.88640002518614125E-06,  3.55271367880050093E-15]
+   Maxdiff for transpose (checksum)    :  7.27595761418342590E-11
+   Maxdiff for overlap calculation     :  0.00000000000000000E+00
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  8590,  187 ]
+   Tolerances for this check: [ 2.96880003963773120E-06,  3.55271367880050093E-15]
+   Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
+   Maxdiff for overlap calculation     :  0.00000000000000000E+00
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Ion-Ion interaction energy            :  1.57701817788080E+01
+  #---------------------------------------------------------------- Ionic Potential Creation
+ Total ionic charge                    : -12.000000000000
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  97,  97,  111 ]
+   MPI tasks                           :  3
+  #------------------------------------------------------------ Input Wavefunctions Creation
+ Input Hamiltonian:
+   Total No. of Atomic Input Orbitals  :  16
+   Inputguess Orbitals Repartition:
+     MPI tasks  0- 0                   :  6
+     MPI tasks  1- 2                   :  5
+   Atomic Input Orbital Generation:
+   -  {Atom Type: O, Electronic configuration: {s: [ 1.00,  1.00], p: [ 1.00,  1.00,  1.00, 
+                                                                           1/3,   1/3, 
+                                                                           1/3]}}
+   Wavelet conversion succeeded        :  Yes
+   Deviation from normalization        :  2.37E-06
+   Total charge                        :  1.199999915044E+01
+   Poisson Solver:
+     BC                                : Free
+     Box                               :  [  97,  97,  111 ]
+     MPI tasks                         :  3
+   orthonormalization of input guess   : standard
+   Kernel update:
+     max dev from unity                :  2.38E-05
+     mean dev from unity               :  5.28E-06
+     Hamiltonian application required  :  Yes
+     method                            : diagonalization
+     mode                              : sequential
+     method                            : diagonalization
+     mode                              : sequential
+     communication strategy kernel     : ALLREDUCE
+     Kohn-Sham residue                 : not calculated
+     Coefficients available            :  Yes
+   Total magnetization                 :  4.000000
+    #Eigenvalues and New Occupation Numbers
+   Orbitals: [
+ {e: -9.922747075951E-01, f:  1.0000, s:  1},  {e: -8.610396973432E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.054407130994E-01, f:  1.0000, s:  1},  {e: -4.782900345691E-01, f:  1.0000, s: -1},  # 00002
+ {e: -3.359379142368E-01, f:  1.0000, s:  1},  {e: -2.027972567666E-01, f:  1.0000, s: -1},  # 00003
+ {e: -3.059595308810E-01, f:  1.0000, s:  1},  {e: -1.764101616469E-01, f:  1.0000, s: -1},  # 00004
+ {e: -3.059575216445E-01, f:  1.0000, s:  1},  # 00005
+ {e: -5.832843889005E-02, f:  1.0000, s:  1},  # 00006
+ {e: -5.832564122723E-02, f:  1.0000, s:  1},  # 00007
+ {e:  4.200204560742E-01, f:  1.0000, s:  1}] # 00008
+   Hamiltonian update: {
+ Energies: {Ekin:  2.93649710642E+01, Epot: -3.54606325158E+01, Enl:  2.76730166904E+00, 
+              EH:  4.51136925080E+01,  EXC: -7.34099056622E+00, EvXC: -9.54286031443E+00}, 
+    Total charge:  1.199999908619E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+    #================================================================= Input guess generated
+  #------------------------------------------------------------------- Self-Consistent Cycle
+ Ground State Optimization:
+    #========================================================= support function optimization
+ - support function optimization: &it_supfun001
+   -  { #-------------------------------------------------------------------------- iter: 1
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  4.15022963916E+01, Epot: -4.63219441847E+01, Enl:  2.77041851095E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  9.01E-16,  3.49E-16 ], 
+ spin down, max / mean error:  [  2.55E-15,  5.36E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.33E-15,  2.80E-16 ], 
+ spin down, max / mean error:  [  1.78E-15,  4.24E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  2.22E-16,  6.04E-17 ], 
+ spin down, max / mean error:  [  2.22E-16,  4.59E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, 
+ iter:  1, fnrm:  2.52E-01, Omega: -2.995224186417440E+01, D: -3.00E+01, D best: -3.00E+01, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.78E-15,  5.96E-16 ], 
+ spin down, max / mean error:  [  2.55E-15,  6.25E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  2.68E-05, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  5.50E-06, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  1.75E-05, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  7.88E-06, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 2
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  4.20402653706E+01, Epot: -4.69926587865E+01, Enl:  2.84475992250E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.11E-15,  6.64E-16 ], 
+ spin down, max / mean error:  [  4.22E-15,  1.03E-15 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.22E-15,  6.66E-16 ], 
+ spin down, max / mean error:  [  2.44E-15,  7.39E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  1.05E-15,  1.44E-16 ], 
+ spin down, max / mean error:  [  1.11E-15,  1.55E-16 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  3.370E-01, 
+           kappa to history:  Yes, 
+ iter:  2, fnrm:  2.08E-01, Omega: -3.003039788620030E+01, D: -7.82E-02, D best: -7.82E-02, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.22E-15,  6.26E-16 ], 
+ spin down, max / mean error:  [  2.22E-15,  5.98E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  1.71E-06, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  3.07E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  2.47E-06, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  7.05E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 3
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  4.20991946464E+01, Epot: -4.71272796658E+01, Enl:  2.86940618817E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.78E-15,  7.13E-16 ], 
+ spin down, max / mean error:  [  3.11E-15,  5.88E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.44E-15,  6.57E-16 ], 
+ spin down, max / mean error:  [  2.0E-15,  3.76E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  8.89E-16,  1.31E-16 ], 
+ spin down, max / mean error:  [  1.11E-15,  1.58E-16 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  3.532E-01, 
+           kappa to history:  Yes, 
+ iter:  3, fnrm:  1.31E-01, Omega: -3.007283533609235E+01, D: -4.24E-02, D best: -4.24E-02, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.55E-15,  5.05E-16 ], 
+ spin down, max / mean error:  [  1.83E-15,  6.49E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  1.04E-06, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  2.54E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  3.18E-07, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  1.57E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 4
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  4.23061462917E+01, Epot: -4.73978361264E+01, Enl:  2.91482085055E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.11E-15,  6.34E-16 ], 
+ spin down, max / mean error:  [  2.44E-15,  7.00E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.89E-15,  7.22E-16 ], 
+ spin down, max / mean error:  [  2.44E-15,  6.38E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  4.44E-16,  8.16E-17 ], 
+ spin down, max / mean error:  [  8.83E-16,  1.24E-16 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  4.743E-01, 
+           kappa to history:  Yes,      mean kappa:  3.881E-01, 
+          dynamic conv crit:  2.58E-04, 
+ iter:  4, fnrm:  8.36E-02, Omega: -3.009444776361352E+01, D: -2.16E-02, D best: -2.16E-02, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.33E-15,  4.71E-16 ], 
+ spin down, max / mean error:  [  1.92E-15,  6.54E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  4.88E-07, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  9.69E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  3.03E-07, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  1.43E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 5
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  4.24238670512E+01, Epot: -4.75447986836E+01, Enl:  2.93769823998E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.37E-15,  6.74E-16 ], 
+ spin down, max / mean error:  [  4.0E-15,  8.56E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.89E-15,  5.01E-16 ], 
+ spin down, max / mean error:  [  2.89E-15,  6.79E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  6.64E-16,  1.10E-16 ], 
+ spin down, max / mean error:  [  7.82E-16,  1.14E-16 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  5.735E-01, 
+           kappa to history:  Yes,      mean kappa:  4.670E-01, 
+          dynamic conv crit:  2.14E-04, 
+ iter:  5, fnrm:  5.91E-02, Omega: -3.010257051469603E+01, D: -8.12E-03, D best: -8.12E-03, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.82E-15,  3.74E-16 ], 
+ spin down, max / mean error:  [  2.11E-15,  6.08E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  8.95E-08, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  3.17E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  1.46E-07, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  4.41E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 6
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  4.25124606072E+01, Epot: -4.76523917698E+01, Enl:  2.95360616443E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.0E-15,  5.89E-16 ], 
+ spin down, max / mean error:  [  4.33E-15,  1.05E-15 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.22E-15,  6.87E-16 ], 
+ spin down, max / mean error:  [  3.33E-15,  8.64E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  1.22E-15,  1.71E-16 ], 
+ spin down, max / mean error:  [  1.23E-15,  1.62E-16 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  6.627E-01, 
+           kappa to history:  Yes,      mean kappa:  5.702E-01, 
+          dynamic conv crit:  1.75E-04, 
+ iter:  6, fnrm:  4.56E-02, Omega: -3.010685623864513E+01, D: -4.29E-03, D best: -4.29E-03, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.55E-15,  4.66E-16 ], 
+ spin down, max / mean error:  [  1.78E-15,  5.28E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  1.98E-08, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  7.69E-09, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  6.35E-08, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  2.62E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 7
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  4.25675696423E+01, Epot: -4.77214951434E+01, Enl:  2.96639762995E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.11E-15,  6.21E-16 ], 
+ spin down, max / mean error:  [  2.55E-15,  8.00E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.44E-15,  5.64E-16 ], 
+ spin down, max / mean error:  [  2.11E-15,  6.32E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  2.22E-16,  4.51E-17 ], 
+ spin down, max / mean error:  [  2.24E-16,  5.57E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  7.391E-01, 
+           kappa to history:  Yes,      mean kappa:  6.585E-01, 
+          dynamic conv crit:  1.52E-04, 
+ iter:  7, fnrm:  3.86E-02, Omega: -3.010917585982733E+01, D: -2.32E-03, D best: -2.32E-03, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  3.11E-15,  7.39E-16 ], 
+ spin down, max / mean error:  [  1.55E-15,  5.20E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  6.56E-08, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  1.41E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  5.21E-08, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  1.49E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 8
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  4.26083511183E+01, Epot: -4.77714700572E+01, Enl:  2.97522286447E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  3.33E-15,  7.69E-16 ], 
+ spin down, max / mean error:  [  3.11E-15,  7.04E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.89E-15,  6.48E-16 ], 
+ spin down, max / mean error:  [  2.44E-15,  5.73E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  6.66E-16,  1.05E-16 ], 
+ spin down, max / mean error:  [  2.22E-16,  6.77E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  7.818E-01, 
+           kappa to history:  Yes,      mean kappa:  7.279E-01, 
+          dynamic conv crit:  1.37E-04, 
+ iter:  8, fnrm:  3.34E-02, Omega: -3.011098844704505E+01, D: -1.81E-03, D best: -1.81E-03, 
+ exit criterion: net number of iterations}
+   -  &final_supfun001  { #-------------------------------------------------------- iter: 8
+ target function: HYBRID, 
+ Energies: {Ekin:  4.26083511183E+01, Epot: -4.77714700572E+01, Enl:  2.97522286447E+00}, 
+ iter:  8, fnrm:  3.34E-02, Omega: -3.011098844704505E+01, D: -1.81E-03, D best: -1.81E-03}
+      #Support functions created
+    #=================================================================== kernel optimization
+ - kernel optimization: &it_kernel001
+   -  #--------------------------------------------------------------------- kernel iter: 1
+     Kernel update:
+       max dev from unity              :  1.17E-07
+       mean dev from unity             :  2.43E-08
+       Hamiltonian application required:  No
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  2.93649710642E+01, Epot: -3.54606325158E+01, Enl:  2.76730166904E+00, 
+              EH:  4.51036579977E+01,  EXC: -7.34350504356E+00, EvXC: -9.54605589006E+00}, 
+    Total charge:  1.199999919023E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -9.940377031917E-01, f:  1.0000, s:  1},  {e: -8.638473712085E-01, f:  1.0000, s: -1},  # 00001
+ {e: -5.986417066692E-01, f:  1.0000, s:  1},  {e: -4.782821752086E-01, f:  1.0000, s: -1},  # 00002
+ {e: -3.349168690672E-01, f:  1.0000, s:  1},  {e: -2.091285449835E-01, f:  1.0000, s: -1},  # 00003
+ {e: -2.985135093023E-01, f:  1.0000, s:  1},  {e: -1.874764549370E-01, f:  1.0000, s: -1},  # 00004
+ {e: -2.961098359002E-01, f:  1.0000, s:  1},  # 00005
+ {e: -5.129149382099E-02, f:  1.0000, s:  1},  # 00006
+ {e: -4.882700915781E-02, f:  1.0000, s:  1},  # 00007
+ {e:  3.950936946847E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  1, delta:  4.95E-06, energy: -3.10969043511783099E+01, D: -3.110E+01}]
+   -  #--------------------------------------------------------------------- kernel iter: 2
+     Kernel update:
+       max dev from unity              :  1.17E-07
+       mean dev from unity             :  2.43E-08
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  4.26083511183E+01, Epot: -4.89037131363E+01, Enl:  2.97522286447E+00, 
+              EH:  4.51318247771E+01,  EXC: -7.35353161208E+00, EvXC: -9.55894440822E+00}, 
+    Total charge:  1.199999919023E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -9.936177702121E-01, f:  1.0000, s:  1},  {e: -8.631915070358E-01, f:  1.0000, s: -1},  # 00001
+ {e: -5.948678562544E-01, f:  1.0000, s:  1},  {e: -4.747186883489E-01, f:  1.0000, s: -1},  # 00002
+ {e: -3.300700591333E-01, f:  1.0000, s:  1},  {e: -2.064067941378E-01, f:  1.0000, s: -1},  # 00003
+ {e: -2.984677100303E-01, f:  1.0000, s:  1},  {e: -1.858498530248E-01, f:  1.0000, s: -1},  # 00004
+ {e: -2.937015575998E-01, f:  1.0000, s:  1},  # 00005
+ {e: -5.070434427298E-02, f:  1.0000, s:  1},  # 00006
+ {e: -4.582266673908E-02, f:  1.0000, s:  1},  # 00007
+ {e:  3.969470998469E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  2, delta:  4.70E-06, energy: -3.10967019090869599E+01, D:  2.024E-04}]
+   -  #--------------------------------------------------------------------- kernel iter: 3
+     Kernel update:
+       max dev from unity              :  1.17E-07
+       mean dev from unity             :  2.43E-08
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  4.26083511183E+01, Epot: -4.80932106683E+01, Enl:  2.97522286447E+00, 
+              EH:  4.57139395282E+01,  EXC: -7.59524133818E+00, EvXC: -9.86545142256E+00}, 
+    Total charge:  1.199999919020E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -9.837732366584E-01, f:  1.0000, s:  1},  {e: -8.447625219156E-01, f:  1.0000, s: -1},  # 00001
+ {e: -5.265402547706E-01, f:  1.0000, s:  1},  {e: -3.999298968881E-01, f:  1.0000, s: -1},  # 00002
+ {e: -2.955508776260E-01, f:  1.0000, s:  1},  {e: -1.522572783371E-01, f:  1.0000, s: -1},  # 00003
+ {e: -2.471277413743E-01, f:  1.0000, s:  1},  {e: -1.462543189337E-01, f:  1.0000, s: -1},  # 00004
+ {e: -2.367157674066E-01, f:  1.0000, s:  1},  # 00005
+ {e: -3.851839951817E-02, f:  1.0000, s:  1},  # 00006
+ {e:  1.116197823452E-02, f:  1.0000, s:  1},  # 00007
+ {e:  4.361715914931E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  3, delta:  6.49E-08, energy: -3.10976443886929914E+01, D: -9.425E-04}]
+   -  #--------------------------------------------------------------------- kernel iter: 4
+     Kernel update:
+       max dev from unity              :  1.17E-07
+       mean dev from unity             :  2.43E-08
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  4.26083511183E+01, Epot: -4.80809942322E+01, Enl:  2.97522286447E+00, 
+              EH:  4.57230611613E+01,  EXC: -7.59770891368E+00, EvXC: -9.86858451713E+00}, 
+    Total charge:  1.199999919020E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -9.828020445996E-01, f:  1.0000, s:  1},  {e: -8.439468429493E-01, f:  1.0000, s: -1},  # 00001
+ {e: -5.260275185537E-01, f:  1.0000, s:  1},  {e: -3.992345660172E-01, f:  1.0000, s: -1},  # 00002
+ {e: -2.950560271880E-01, f:  1.0000, s:  1},  {e: -1.516292583894E-01, f:  1.0000, s: -1},  # 00003
+ {e: -2.462665592574E-01, f:  1.0000, s:  1},  {e: -1.455610282617E-01, f:  1.0000, s: -1},  # 00004
+ {e: -2.361195014882E-01, f:  1.0000, s:  1},  # 00005
+ {e: -3.805915840547E-02, f:  1.0000, s:  1},  # 00006
+ {e:  1.199808952906E-02, f:  1.0000, s:  1},  # 00007
+ {e:  4.370656693666E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  4, delta:  3.95E-08, energy: -3.10976425252232858E+01, D:  1.863E-06}]
+   -  #--------------------------------------------------------------------- kernel iter: 5
+     Kernel update:
+       max dev from unity              :  1.17E-07
+       mean dev from unity             :  2.43E-08
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  4.26083511183E+01, Epot: -4.80777142260E+01, Enl:  2.97522286447E+00, 
+              EH:  4.57256724361E+01,  EXC: -7.59767211764E+00, EvXC: -9.86855313532E+00}, 
+    Total charge:  1.199999919020E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -9.821948825466E-01, f:  1.0000, s:  1},  {e: -8.435305223012E-01, f:  1.0000, s: -1},  # 00001
+ {e: -5.260637092787E-01, f:  1.0000, s:  1},  {e: -3.992413621133E-01, f:  1.0000, s: -1},  # 00002
+ {e: -2.947404214007E-01, f:  1.0000, s:  1},  {e: -1.514111576465E-01, f:  1.0000, s: -1},  # 00003
+ {e: -2.459495131111E-01, f:  1.0000, s:  1},  {e: -1.454833211686E-01, f:  1.0000, s: -1},  # 00004
+ {e: -2.362725090651E-01, f:  1.0000, s:  1},  # 00005
+ {e: -3.781804668806E-02, f:  1.0000, s:  1},  # 00006
+ {e:  1.224039137286E-02, f:  1.0000, s:  1},  # 00007
+ {e:  4.374333494504E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  5, delta:  1.93E-08, energy: -3.10976413440862345E+01, D:  1.181E-06}]
+   -  #--------------------------------------------------------------------- kernel iter: 6
+     Kernel update:
+       max dev from unity              :  1.17E-07
+       mean dev from unity             :  2.43E-08
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  4.26083511183E+01, Epot: -4.80748285407E+01, Enl:  2.97522286447E+00, 
+              EH:  4.57279203698E+01,  EXC: -7.59785177667E+00, EvXC: -9.86879008026E+00}, 
+    Total charge:  1.199999919020E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -9.817658562915E-01, f:  1.0000, s:  1},  {e: -8.432241230165E-01, f:  1.0000, s: -1},  # 00001
+ {e: -5.260435078976E-01, f:  1.0000, s:  1},  {e: -3.991887089640E-01, f:  1.0000, s: -1},  # 00002
+ {e: -2.945182994354E-01, f:  1.0000, s:  1},  {e: -1.512343093277E-01, f:  1.0000, s: -1},  # 00003
+ {e: -2.456968085987E-01, f:  1.0000, s:  1},  {e: -1.453823476017E-01, f:  1.0000, s: -1},  # 00004
+ {e: -2.363122590170E-01, f:  1.0000, s:  1},  # 00005
+ {e: -3.764127800036E-02, f:  1.0000, s:  1},  # 00006
+ {e:  1.244829069160E-02, f:  1.0000, s:  1},  # 00007
+ {e:  4.377185545774E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  6, delta:  4.21E-09, energy: -3.10976409402541805E+01, D:  4.038E-07}]
+   -  &final_kernel001  { #-------------------------------------------------------- iter: 7
+ summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  7, delta:  4.21E-09, energy: -3.10976409402541805E+01, D:  4.038E-07}]}
+    #================================================================= Summary of both steps
+   self consistency summary: &it_sc001
+   -  {iter:  1, target function: HYBRID, mean conf prefac:  2.20E-02,  #WARNING: support function optimization not converged
+ kernel optimization: DIAG,  #WARNING: density optimization not converged
+ iter low:  1, delta out:  4.918E-06, energy: -3.10976409402541805E+01, D: -3.110E+01}
+   multiplicator for the confinement   :  0.611185327357066
+    #========================================================= support function optimization
+ - support function optimization: &it_supfun002
+   -  { #-------------------------------------------------------------------------- iter: 1
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  4.26083511183E+01, Epot: -4.73599018536E+01, Enl:  2.97522286447E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  3.33E-15,  7.69E-16 ], 
+ spin down, max / mean error:  [  3.11E-15,  7.04E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.89E-15,  6.48E-16 ], 
+ spin down, max / mean error:  [  2.44E-15,  5.73E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  6.66E-16,  1.05E-16 ], 
+ spin down, max / mean error:  [  2.22E-16,  6.77E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, mean kappa:  7.279E-01, 
+          dynamic conv crit:  1.37E-04, 
+ iter:  1, fnrm:  1.18E-01, Omega: -3.029340826515477E+01, D: -1.84E-01, D best: -1.84E-01, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.12E-15,  6.81E-16 ], 
+ spin down, max / mean error:  [  2.44E-15,  6.05E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  1.59E-06, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  3.13E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  1.38E-06, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  4.51E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 2
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  4.14338675350E+01, Epot: -4.61248286352E+01, Enl:  2.86138228191E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.89E-15,  7.66E-16 ], 
+ spin down, max / mean error:  [  3.44E-15,  8.72E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.55E-15,  4.16E-16 ], 
+ spin down, max / mean error:  [  1.76E-15,  5.91E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  7.2E-16,  1.03E-16 ], 
+ spin down, max / mean error:  [  1.83E-15,  2.37E-16 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  6.345E-01, 
+           kappa to history:  Yes,      mean kappa:  7.185E-01, 
+          dynamic conv crit:  1.39E-04, 
+ iter:  2, fnrm:  8.53E-02, Omega: -3.035596815678736E+01, D: -6.26E-02, D best: -6.26E-02, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  3.55E-15,  9.49E-16 ], 
+ spin down, max / mean error:  [  1.76E-15,  6.65E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  1.74E-06, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  3.33E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  1.00E-06, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  2.80E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 3
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  4.09097477460E+01, Epot: -4.55805461238E+01, Enl:  2.81843383423E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.55E-15,  5.59E-16 ], 
+ spin down, max / mean error:  [  2.78E-15,  7.98E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.78E-15,  5.57E-16 ], 
+ spin down, max / mean error:  [  1.31E-15,  4.97E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  8.89E-16,  1.26E-16 ], 
+ spin down, max / mean error:  [  3.33E-16,  7.02E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  5.184E-01, 
+           kappa to history:  Yes,      mean kappa:  6.449E-01, 
+          dynamic conv crit:  1.55E-04, 
+ iter:  3, fnrm:  6.86E-02, Omega: -3.037309261686061E+01, D: -1.71E-02, D best: -1.71E-02, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.0E-15,  5.21E-16 ], 
+ spin down, max / mean error:  [  1.93E-15,  6.63E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  3.44E-07, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  6.66E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  6.26E-07, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  1.75E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 4
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  4.03720710211E+01, Epot: -4.50353551113E+01, Enl:  2.79931121126E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.22E-15,  5.35E-16 ], 
+ spin down, max / mean error:  [  2.0E-15,  6.08E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.55E-15,  3.95E-16 ], 
+ spin down, max / mean error:  [  1.44E-15,  5.83E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  6.11E-16,  1.18E-16 ], 
+ spin down, max / mean error:  [  8.84E-16,  1.23E-16 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  5.808E-01, 
+           kappa to history:  Yes,      mean kappa:  5.779E-01, 
+          dynamic conv crit:  1.73E-04, 
+ iter:  4, fnrm:  4.46E-02, Omega: -3.038468987021252E+01, D: -1.16E-02, D best: -1.16E-02, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.84E-15,  6.66E-16 ], 
+ spin down, max / mean error:  [  1.55E-15,  4.14E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  5.67E-07, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  1.01E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  1.50E-07, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  6.05E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 5
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  4.00329652287E+01, Epot: -4.46937190393E+01, Enl:  2.79034529006E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.0E-15,  7.13E-16 ], 
+ spin down, max / mean error:  [  1.67E-15,  6.59E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.55E-15,  5.37E-16 ], 
+ spin down, max / mean error:  [  1.67E-15,  5.29E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  7.23E-16,  1.10E-16 ], 
+ spin down, max / mean error:  [  4.44E-16,  9.72E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  6.669E-01, 
+           kappa to history:  Yes,      mean kappa:  5.887E-01, 
+          dynamic conv crit:  1.70E-04, 
+ iter:  5, fnrm:  3.21E-02, Omega: -3.038878018945841E+01, D: -4.09E-03, D best: -4.09E-03, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.89E-15,  6.07E-16 ], 
+ spin down, max / mean error:  [  1.55E-15,  5.43E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  8.11E-08, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  1.65E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  1.82E-07, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  5.75E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 6
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.98126790467E+01, Epot: -4.44761005726E+01, Enl:  2.78948777337E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  1.44E-15,  5.48E-16 ], 
+ spin down, max / mean error:  [  2.44E-15,  6.79E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.44E-15,  5.49E-16 ], 
+ spin down, max / mean error:  [  2.44E-15,  5.27E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  2.22E-16,  5.55E-17 ], 
+ spin down, max / mean error:  [  4.44E-16,  9.02E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  7.107E-01, 
+           kappa to history:  Yes,      mean kappa:  6.528E-01, 
+          dynamic conv crit:  1.53E-04, 
+ iter:  6, fnrm:  2.43E-02, Omega: -3.039060821966877E+01, D: -1.83E-03, D best: -1.83E-03, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.22E-15,  5.29E-16 ], 
+ spin down, max / mean error:  [  1.31E-15,  4.38E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  1.70E-07, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  5.47E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  5.94E-08, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  3.53E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 7
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.96562563567E+01, Epot: -4.43231476133E+01, Enl:  2.79084092519E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  3.66E-15,  7.21E-16 ], 
+ spin down, max / mean error:  [  1.89E-15,  6.56E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.56E-15,  6.19E-16 ], 
+ spin down, max / mean error:  [  1.78E-15,  5.65E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  1.39E-15,  1.85E-16 ], 
+ spin down, max / mean error:  [  1.23E-15,  1.69E-16 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  7.585E-01, 
+           kappa to history:  Yes,      mean kappa:  7.120E-01, 
+          dynamic conv crit:  1.40E-04, 
+ iter:  7, fnrm:  1.85E-02, Omega: -3.039166650925861E+01, D: -1.06E-03, D best: -1.06E-03, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.55E-15,  4.96E-16 ], 
+ spin down, max / mean error:  [  1.78E-15,  4.63E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  1.31E-07, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  4.78E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  1.28E-07, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  3.71E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 8
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.95667192986E+01, Epot: -4.42367777327E+01, Enl:  2.79282402137E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.22E-15,  5.20E-16 ], 
+ spin down, max / mean error:  [  3.77E-15,  7.05E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.78E-15,  4.39E-16 ], 
+ spin down, max / mean error:  [  2.44E-15,  5.80E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  1.33E-15,  1.85E-16 ], 
+ spin down, max / mean error:  [  3.91E-16,  8.86E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  8.035E-01, 
+           kappa to history:  Yes,      mean kappa:  7.576E-01, 
+          dynamic conv crit:  1.32E-04, 
+ iter:  8, fnrm:  1.51E-02, Omega: -3.039220669565021E+01, D: -5.40E-04, D best: -5.40E-04, 
+ exit criterion: net number of iterations}
+   -  &final_supfun002  { #-------------------------------------------------------- iter: 8
+ target function: HYBRID, 
+ Energies: {Ekin:  3.95667192986E+01, Epot: -4.42367777327E+01, Enl:  2.79282402137E+00}, 
+ iter:  8, fnrm:  1.51E-02, Omega: -3.039220669565021E+01, D: -5.40E-04, D best: -5.40E-04}
+      #Support functions created
+    #=================================================================== kernel optimization
+ - kernel optimization: &it_kernel002
+   -  #--------------------------------------------------------------------- kernel iter: 1
+     Kernel update:
+       max dev from unity              :  3.53E-07
+       mean dev from unity             :  6.73E-08
+       Hamiltonian application required:  No
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  4.26083511183E+01, Epot: -4.80748285407E+01, Enl:  2.97522286447E+00, 
+              EH:  4.57272562089E+01,  EXC: -7.59786164158E+00, EvXC: -9.86879870385E+00}, 
+    Total charge:  1.199999925214E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -9.878875668577E-01, f:  1.0000, s:  1},  {e: -8.539998349837E-01, f:  1.0000, s: -1},  # 00001
+ {e: -5.387325322583E-01, f:  1.0000, s:  1},  {e: -4.132492592528E-01, f:  1.0000, s: -1},  # 00002
+ {e: -3.146373725208E-01, f:  1.0000, s:  1},  {e: -1.746208670332E-01, f:  1.0000, s: -1},  # 00003
+ {e: -2.681817972505E-01, f:  1.0000, s:  1},  {e: -1.630344555550E-01, f:  1.0000, s: -1},  # 00004
+ {e: -2.557879033674E-01, f:  1.0000, s:  1},  # 00005
+ {e: -4.964985096752E-02, f:  1.0000, s:  1},  # 00006
+ {e: -2.595680324332E-03, f:  1.0000, s:  1},  # 00007
+ {e:  4.173784593092E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  1, delta:  2.21E-06, energy: -3.12911360289097331E+01, D: -1.935E-01}]
+   -  #--------------------------------------------------------------------- kernel iter: 2
+     Kernel update:
+       max dev from unity              :  3.53E-07
+       mean dev from unity             :  6.73E-08
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.95667192986E+01, Epot: -4.52435002795E+01, Enl:  2.79282402137E+00, 
+              EH:  4.56563252725E+01,  EXC: -7.58330501874E+00, EvXC: -9.84987825433E+00}, 
+    Total charge:  1.199999925214E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -9.928580786663E-01, f:  1.0000, s:  1},  {e: -8.588909501422E-01, f:  1.0000, s: -1},  # 00001
+ {e: -5.442019391680E-01, f:  1.0000, s:  1},  {e: -4.185933591448E-01, f:  1.0000, s: -1},  # 00002
+ {e: -3.195892325338E-01, f:  1.0000, s:  1},  {e: -1.792552803687E-01, f:  1.0000, s: -1},  # 00003
+ {e: -2.731506048336E-01, f:  1.0000, s:  1},  {e: -1.688400707211E-01, f:  1.0000, s: -1},  # 00004
+ {e: -2.615534707609E-01, f:  1.0000, s:  1},  # 00005
+ {e: -5.515594235104E-02, f:  1.0000, s:  1},  # 00006
+ {e: -8.165750188966E-03, f:  1.0000, s:  1},  # 00007
+ {e:  4.112595842417E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  2, delta:  2.10E-06, energy: -3.12885653527033867E+01, D:  2.571E-03}]
+   -  #--------------------------------------------------------------------- kernel iter: 3
+     Kernel update:
+       max dev from unity              :  3.53E-07
+       mean dev from unity             :  6.73E-08
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.95667192986E+01, Epot: -4.68501741904E+01, Enl:  2.79282402137E+00, 
+              EH:  4.43457675026E+01,  EXC: -7.31619319514E+00, EvXC: -9.50317695991E+00}, 
+    Total charge:  1.199999925212E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.086825978655E+00, f:  1.0000, s:  1},  {e: -9.511855252306E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.472839803258E-01, f:  1.0000, s:  1},  {e: -5.193988288661E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.130467701841E-01, f:  1.0000, s:  1},  {e: -2.783707216999E-01, f:  1.0000, s: -1},  # 00003
+ {e: -3.701434169945E-01, f:  1.0000, s:  1},  {e: -2.664393409897E-01, f:  1.0000, s: -1},  # 00004
+ {e: -3.669037929322E-01, f:  1.0000, s:  1},  # 00005
+ {e: -1.590743249089E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.132510052732E-01, f:  1.0000, s:  1},  # 00007
+ {e:  2.957289454080E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  3, delta:  4.90E-08, energy: -3.12647966997261335E+01, D:  2.377E-02}]
+   -  #--------------------------------------------------------------------- kernel iter: 4
+     Kernel update:
+       max dev from unity              :  3.53E-07
+       mean dev from unity             :  6.73E-08
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.95667192986E+01, Epot: -4.68530494747E+01, Enl:  2.79282402137E+00, 
+              EH:  4.43434568992E+01,  EXC: -7.31601610099E+00, EvXC: -9.50293803324E+00}, 
+    Total charge:  1.199999925212E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.087193516296E+00, f:  1.0000, s:  1},  {e: -9.514609538643E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.473446619243E-01, f:  1.0000, s:  1},  {e: -5.194715258417E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.132796605036E-01, f:  1.0000, s:  1},  {e: -2.785008241052E-01, f:  1.0000, s: -1},  # 00003
+ {e: -3.701663391587E-01, f:  1.0000, s:  1},  {e: -2.666152965893E-01, f:  1.0000, s: -1},  # 00004
+ {e: -3.671367301555E-01, f:  1.0000, s:  1},  # 00005
+ {e: -1.592760022385E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.134525182895E-01, f:  1.0000, s:  1},  # 00007
+ {e:  2.954561121708E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  4, delta:  3.47E-08, energy: -3.12647951049674049E+01, D:  1.595E-06}]
+   -  #--------------------------------------------------------------------- kernel iter: 5
+     Kernel update:
+       max dev from unity              :  3.53E-07
+       mean dev from unity             :  6.73E-08
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.95667192986E+01, Epot: -4.68587440282E+01, Enl:  2.79282402137E+00, 
+              EH:  4.43388822770E+01,  EXC: -7.31564239428E+00, EvXC: -9.50243576883E+00}, 
+    Total charge:  1.199999925212E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.087905788240E+00, f:  1.0000, s:  1},  {e: -9.519975564141E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.474759929934E-01, f:  1.0000, s:  1},  {e: -5.196249721638E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.137370343886E-01, f:  1.0000, s:  1},  {e: -2.787630713015E-01, f:  1.0000, s: -1},  # 00003
+ {e: -3.702254076609E-01, f:  1.0000, s:  1},  {e: -2.669627673369E-01, f:  1.0000, s: -1},  # 00004
+ {e: -3.675945431507E-01, f:  1.0000, s:  1},  # 00005
+ {e: -1.596729234370E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.138489032359E-01, f:  1.0000, s:  1},  # 00007
+ {e:  2.949218018054E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  5, delta:  1.75E-08, energy: -3.12647942821801195E+01, D:  8.228E-07}]
+   -  #--------------------------------------------------------------------- kernel iter: 6
+     Kernel update:
+       max dev from unity              :  3.53E-07
+       mean dev from unity             :  6.73E-08
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.95667192986E+01, Epot: -4.68621625208E+01, Enl:  2.79282402137E+00, 
+              EH:  4.43361345618E+01,  EXC: -7.31544211292E+00, EvXC: -9.50216462230E+00}, 
+    Total charge:  1.199999925212E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.088350284331E+00, f:  1.0000, s:  1},  {e: -9.523289023100E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.475452900874E-01, f:  1.0000, s:  1},  {e: -5.197089978312E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.140174787375E-01, f:  1.0000, s:  1},  {e: -2.789138390204E-01, f:  1.0000, s: -1},  # 00003
+ {e: -3.702461853425E-01, f:  1.0000, s:  1},  {e: -2.671737654222E-01, f:  1.0000, s: -1},  # 00004
+ {e: -3.678746761776E-01, f:  1.0000, s:  1},  # 00005
+ {e: -1.599121686539E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.140879900093E-01, f:  1.0000, s:  1},  # 00007
+ {e:  2.945959401482E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  6, delta:  2.43E-09, energy: -3.12647939114178612E+01, D:  3.708E-07}]
+   -  &final_kernel002  { #-------------------------------------------------------- iter: 7
+ summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  7, delta:  2.43E-09, energy: -3.12647939114178612E+01, D:  3.708E-07}]}
+    #================================================================= Summary of both steps
+   self consistency summary: &it_sc002
+   -  {iter:  2, target function: HYBRID, mean conf prefac:  1.34E-02,  #WARNING: support function optimization not converged
+ kernel optimization: DIAG,  #WARNING: density optimization not converged
+ iter low:  2, delta out:  2.205E-06, energy: -3.12647939114178612E+01, D: -1.672E-01}
+   multiplicator for the confinement   :  0.6456111283579886
+    #========================================================= support function optimization
+ - support function optimization: &it_supfun003
+   -  { #-------------------------------------------------------------------------- iter: 1
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.95667192986E+01, Epot: -4.62672638384E+01, Enl:  2.79282402137E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.22E-15,  5.20E-16 ], 
+ spin down, max / mean error:  [  3.77E-15,  7.05E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.78E-15,  4.39E-16 ], 
+ spin down, max / mean error:  [  2.44E-15,  5.80E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  1.33E-15,  1.85E-16 ], 
+ spin down, max / mean error:  [  3.91E-16,  8.86E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, mean kappa:  7.576E-01, 
+          dynamic conv crit:  1.32E-04, 
+ iter:  1, fnrm:  5.51E-02, Omega: -3.112172320000622E+01, D: -7.30E-01, D best: -7.30E-01, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.37E-15,  5.42E-16 ], 
+ spin down, max / mean error:  [  1.33E-15,  4.66E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  1.48E-06, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  2.93E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  4.80E-06, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  1.35E-06, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 2
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.95693963654E+01, Epot: -4.63228384910E+01, Enl:  2.83672023512E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  4.33E-15,  8.52E-16 ], 
+ spin down, max / mean error:  [  5.44E-15,  1.10E-15 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  3.11E-15,  5.70E-16 ], 
+ spin down, max / mean error:  [  1.78E-15,  5.71E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  6.15E-16,  9.09E-17 ], 
+ spin down, max / mean error:  [  3.33E-16,  6.38E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  5.973E-01, 
+           kappa to history:  Yes,      mean kappa:  7.198E-01, 
+          dynamic conv crit:  1.39E-04, 
+ iter:  2, fnrm:  3.63E-02, Omega: -3.113176801970852E+01, D: -1.00E-02, D best: -1.00E-02, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.67E-15,  5.80E-16 ], 
+ spin down, max / mean error:  [  2.33E-15,  5.73E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  1.43E-06, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  2.74E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  2.93E-06, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  8.34E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 3
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.96526856700E+01, Epot: -4.64291777444E+01, Enl:  2.85641690868E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  1.53E-15,  5.01E-16 ], 
+ spin down, max / mean error:  [  2.66E-15,  6.62E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.56E-15,  5.07E-16 ], 
+ spin down, max / mean error:  [  2.0E-15,  5.81E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  1.06E-15,  1.46E-16 ], 
+ spin down, max / mean error:  [  1.16E-15,  1.56E-16 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  6.239E-01, 
+           kappa to history:  Yes,      mean kappa:  6.749E-01, 
+          dynamic conv crit:  1.48E-04, 
+ iter:  3, fnrm:  2.64E-02, Omega: -3.113435875811361E+01, D: -2.59E-03, D best: -2.59E-03, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.44E-15,  5.09E-16 ], 
+ spin down, max / mean error:  [  1.55E-15,  4.41E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  2.82E-07, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  5.29E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  1.18E-06, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  3.39E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 4
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.97211507301E+01, Epot: -4.65126866831E+01, Enl:  2.87002240628E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  1.67E-15,  4.75E-16 ], 
+ spin down, max / mean error:  [  1.78E-15,  4.22E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.0E-15,  5.32E-16 ], 
+ spin down, max / mean error:  [  1.33E-15,  4.25E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  8.35E-16,  1.29E-16 ], 
+ spin down, max / mean error:  [  5.45E-16,  1.11E-16 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  7.250E-01, 
+           kappa to history:  Yes,      mean kappa:  6.487E-01, 
+          dynamic conv crit:  1.54E-04, 
+ iter:  4, fnrm:  1.93E-02, Omega: -3.113590626144229E+01, D: -1.55E-03, D best: -1.55E-03, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.89E-15,  4.51E-16 ], 
+ spin down, max / mean error:  [  1.33E-15,  3.99E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  4.04E-07, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  7.24E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  1.99E-07, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  1.01E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 5
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.97930440437E+01, Epot: -4.65916941621E+01, Enl:  2.87590189864E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.66E-15,  7.02E-16 ], 
+ spin down, max / mean error:  [  2.0E-15,  5.80E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.66E-15,  6.19E-16 ], 
+ spin down, max / mean error:  [  1.55E-15,  4.15E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  1.89E-15,  2.44E-16 ], 
+ spin down, max / mean error:  [  4.44E-16,  8.35E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  7.893E-01, 
+           kappa to history:  Yes,      mean kappa:  7.127E-01, 
+          dynamic conv crit:  1.40E-04, 
+ iter:  5, fnrm:  1.46E-02, Omega: -3.113685890392149E+01, D: -9.53E-04, D best: -9.53E-04, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.78E-15,  5.51E-16 ], 
+ spin down, max / mean error:  [  1.01E-15,  3.08E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  2.97E-07, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  6.68E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  2.30E-07, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  1.18E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 6
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.98661085750E+01, Epot: -4.66648832104E+01, Enl:  2.87538121658E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  3.34E-15,  9.92E-16 ], 
+ spin down, max / mean error:  [  2.22E-15,  6.55E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.74E-15,  7.38E-16 ], 
+ spin down, max / mean error:  [  1.49E-15,  5.29E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  2.22E-16,  6.72E-17 ], 
+ spin down, max / mean error:  [  2.22E-16,  6.16E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  8.183E-01, 
+           kappa to history:  Yes,      mean kappa:  7.775E-01, 
+          dynamic conv crit:  1.29E-04, 
+ iter:  6, fnrm:  1.16E-02, Omega: -3.113744924521585E+01, D: -5.90E-04, D best: -5.90E-04, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.89E-15,  5.28E-16 ], 
+ spin down, max / mean error:  [  1.55E-15,  4.54E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  2.43E-07, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  6.65E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  2.28E-07, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  7.15E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 7
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.99034122699E+01, Epot: -4.67006656566E+01, Enl:  2.87348533297E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.89E-15,  7.09E-16 ], 
+ spin down, max / mean error:  [  3.33E-15,  7.08E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.89E-15,  7.16E-16 ], 
+ spin down, max / mean error:  [  1.11E-15,  4.39E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  2.17E-15,  2.79E-16 ], 
+ spin down, max / mean error:  [  5.06E-16,  1.03E-16 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  8.863E-01, 
+           kappa to history:  Yes,      mean kappa:  8.313E-01, 
+          dynamic conv crit:  1.20E-04, 
+ iter:  7, fnrm:  1.01E-02, Omega: -3.113778252297381E+01, D: -3.33E-04, D best: -3.33E-04, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.22E-15,  5.64E-16 ], 
+ spin down, max / mean error:  [  1.89E-15,  5.77E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  5.84E-08, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  2.19E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  2.81E-07, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  1.08E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 8
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.99220670042E+01, Epot: -4.67178676206E+01, Enl:  2.87158522934E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.11E-15,  6.48E-16 ], 
+ spin down, max / mean error:  [  1.78E-15,  6.76E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.22E-15,  5.20E-16 ], 
+ spin down, max / mean error:  [  2.66E-15,  5.85E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  1.05E-15,  1.38E-16 ], 
+ spin down, max / mean error:  [  3.33E-16,  9.25E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  8.599E-01, 
+           kappa to history:  Yes,      mean kappa:  8.548E-01, 
+          dynamic conv crit:  1.17E-04, 
+ iter:  8, fnrm:  9.12E-03, Omega: -3.113816218038664E+01, D: -3.80E-04, D best: -3.80E-04, 
+ exit criterion: net number of iterations}
+   -  &final_supfun003  { #-------------------------------------------------------- iter: 8
+ target function: HYBRID, 
+ Energies: {Ekin:  3.99220670042E+01, Epot: -4.67178676206E+01, Enl:  2.87158522934E+00}, 
+ iter:  8, fnrm:  9.12E-03, Omega: -3.113816218038664E+01, D: -3.80E-04, D best: -3.80E-04}
+      #Support functions created
+    #=================================================================== kernel optimization
+ - kernel optimization: &it_kernel003
+   -  #--------------------------------------------------------------------- kernel iter: 1
+     Kernel update:
+       max dev from unity              :  2.88E-07
+       mean dev from unity             :  5.79E-08
+       Hamiltonian application required:  No
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.95667192986E+01, Epot: -4.68621625208E+01, Enl:  2.79282402137E+00, 
+              EH:  4.43360932530E+01,  EXC: -7.31543536679E+00, EvXC: -9.50215582529E+00}, 
+    Total charge:  1.199999922738E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.089421556922E+00, f:  1.0000, s:  1},  {e: -9.532011617010E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.484515694742E-01, f:  1.0000, s:  1},  {e: -5.208133774949E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.168266770270E-01, f:  1.0000, s:  1},  {e: -2.805016511060E-01, f:  1.0000, s: -1},  # 00003
+ {e: -3.726232787708E-01, f:  1.0000, s:  1},  {e: -2.695843751990E-01, f:  1.0000, s: -1},  # 00004
+ {e: -3.708066828217E-01, f:  1.0000, s:  1},  # 00005
+ {e: -1.622497857670E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.166417624215E-01, f:  1.0000, s:  1},  # 00007
+ {e:  2.899879082015E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  1, delta:  6.31E-07, energy: -3.12903249861527968E+01, D: -2.553E-02}]
+   -  #--------------------------------------------------------------------- kernel iter: 2
+     Kernel update:
+       max dev from unity              :  2.88E-07
+       mean dev from unity             :  5.79E-08
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.99220670042E+01, Epot: -4.73367128458E+01, Enl:  2.87158522934E+00, 
+              EH:  4.43441893745E+01,  EXC: -7.31721235759E+00, EvXC: -9.50438407207E+00}, 
+    Total charge:  1.199999922738E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.088801378724E+00, f:  1.0000, s:  1},  {e: -9.526243863329E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.478084789106E-01, f:  1.0000, s:  1},  {e: -5.202067846689E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.162582075182E-01, f:  1.0000, s:  1},  {e: -2.798142180790E-01, f:  1.0000, s: -1},  # 00003
+ {e: -3.718860470504E-01, f:  1.0000, s:  1},  {e: -2.690932487679E-01, f:  1.0000, s: -1},  # 00004
+ {e: -3.702221985654E-01, f:  1.0000, s:  1},  # 00005
+ {e: -1.615800325809E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.159513375227E-01, f:  1.0000, s:  1},  # 00007
+ {e:  2.908465103745E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  2, delta:  6.00E-07, energy: -3.12902356895165781E+01, D:  8.930E-05}]
+   -  #--------------------------------------------------------------------- kernel iter: 3
+     Kernel update:
+       max dev from unity              :  2.88E-07
+       mean dev from unity             :  5.79E-08
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.99220670042E+01, Epot: -4.71392773951E+01, Enl:  2.87158522934E+00, 
+              EH:  4.44993411861E+01,  EXC: -7.35162113812E+00, EvXC: -9.54752947983E+00}, 
+    Total charge:  1.199999922738E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.077011575049E+00, f:  1.0000, s:  1},  {e: -9.416569948084E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.355686862262E-01, f:  1.0000, s:  1},  {e: -5.086461613442E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.054309640270E-01, f:  1.0000, s:  1},  {e: -2.667004017734E-01, f:  1.0000, s: -1},  # 00003
+ {e: -3.590904166207E-01, f:  1.0000, s:  1},  {e: -2.597246212656E-01, f:  1.0000, s: -1},  # 00004
+ {e: -3.578575292639E-01, f:  1.0000, s:  1},  # 00005
+ {e: -1.488260776326E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.028060603233E-01, f:  1.0000, s:  1},  # 00007
+ {e:  3.071692044971E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  3, delta:  1.77E-08, energy: -3.12894013494097010E+01, D:  8.343E-04}]
+   -  #--------------------------------------------------------------------- kernel iter: 4
+     Kernel update:
+       max dev from unity              :  2.88E-07
+       mean dev from unity             :  5.79E-08
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.99220670042E+01, Epot: -4.71388811396E+01, Enl:  2.87158522934E+00, 
+              EH:  4.44996581001E+01,  EXC: -7.35165557774E+00, EvXC: -9.54757372371E+00}, 
+    Total charge:  1.199999922738E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.076965093339E+00, f:  1.0000, s:  1},  {e: -9.416215303221E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.355572618502E-01, f:  1.0000, s:  1},  {e: -5.086337770751E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.054001772605E-01, f:  1.0000, s:  1},  {e: -2.666817215229E-01, f:  1.0000, s: -1},  # 00003
+ {e: -3.590590798219E-01, f:  1.0000, s:  1},  {e: -2.597018152749E-01, f:  1.0000, s: -1},  # 00004
+ {e: -3.578499790277E-01, f:  1.0000, s:  1},  # 00005
+ {e: -1.487995090968E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.027792936340E-01, f:  1.0000, s:  1},  # 00007
+ {e:  3.072067124568E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  4, delta:  2.15E-09, energy: -3.12894007010435189E+01, D:  6.484E-07}]
+   -  #--------------------------------------------------------------------- kernel iter: 5
+     Kernel update:
+       max dev from unity              :  2.88E-07
+       mean dev from unity             :  5.79E-08
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.99220670042E+01, Epot: -4.71386700068E+01, Enl:  2.87158522934E+00, 
+              EH:  4.44998261065E+01,  EXC: -7.35168232671E+00, EvXC: -9.54760758089E+00}, 
+    Total charge:  1.199999922738E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.076945781217E+00, f:  1.0000, s:  1},  {e: -9.416058868820E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.355481660969E-01, f:  1.0000, s:  1},  {e: -5.086247272200E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.053860804521E-01, f:  1.0000, s:  1},  {e: -2.666698493159E-01, f:  1.0000, s: -1},  # 00003
+ {e: -3.590447357401E-01, f:  1.0000, s:  1},  {e: -2.596906831759E-01, f:  1.0000, s: -1},  # 00004
+ {e: -3.578410234280E-01, f:  1.0000, s:  1},  # 00005
+ {e: -1.487854149473E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.027648981972E-01, f:  1.0000, s:  1},  # 00007
+ {e:  3.072256201567E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  5, delta:  2.04E-09, energy: -3.12894007000089260E+01, D:  1.035E-09}]
+   -  #--------------------------------------------------------------------- kernel iter: 6
+     Kernel update:
+       max dev from unity              :  2.88E-07
+       mean dev from unity             :  5.79E-08
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.99220670042E+01, Epot: -4.71384512101E+01, Enl:  2.87158522934E+00, 
+              EH:  4.45000026666E+01,  EXC: -7.35168226548E+00, EvXC: -9.54760864829E+00}, 
+    Total charge:  1.199999922738E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.076908276723E+00, f:  1.0000, s:  1},  {e: -9.415795923173E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.355492856921E-01, f:  1.0000, s:  1},  {e: -5.086241570370E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.053649985988E-01, f:  1.0000, s:  1},  {e: -2.666630716026E-01, f:  1.0000, s: -1},  # 00003
+ {e: -3.590236195015E-01, f:  1.0000, s:  1},  {e: -2.596763323825E-01, f:  1.0000, s: -1},  # 00004
+ {e: -3.578473395904E-01, f:  1.0000, s:  1},  # 00005
+ {e: -1.487695711748E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.027490243736E-01, f:  1.0000, s:  1},  # 00007
+ {e:  3.072490773126E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  6, delta:  4.38E-10, energy: -3.12894006966370029E+01, D:  3.372E-09}]
+   -  &final_kernel003  { #-------------------------------------------------------- iter: 7
+ summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  7, delta:  4.38E-10, energy: -3.12894006966370029E+01, D:  3.372E-09}]}
+    #================================================================= Summary of both steps
+   self consistency summary: &it_sc003
+   -  {iter:  3, target function: HYBRID, mean conf prefac:  8.68E-03,  #WARNING: support function optimization not converged
+ kernel optimization: DIAG,  #WARNING: density optimization not converged
+ iter low:  3, delta out:  6.309E-07, energy: -3.12894006966370029E+01, D: -2.461E-02}
+   multiplicator for the confinement   :  0.7393925065129739
+    #========================================================= support function optimization
+ - support function optimization: &it_supfun004
+   -  { #-------------------------------------------------------------------------- iter: 1
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.99220670042E+01, Epot: -4.66732229609E+01, Enl:  2.87158522934E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.11E-15,  6.48E-16 ], 
+ spin down, max / mean error:  [  1.78E-15,  6.76E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.22E-15,  5.20E-16 ], 
+ spin down, max / mean error:  [  2.66E-15,  5.85E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  1.05E-15,  1.38E-16 ], 
+ spin down, max / mean error:  [  3.33E-16,  9.25E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, mean kappa:  8.548E-01, 
+          dynamic conv crit:  1.17E-04, 
+ iter:  1, fnrm:  3.54E-02, Omega: -3.127014406959633E+01, D: -1.32E-01, D best: -1.32E-01, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.11E-15,  3.36E-16 ], 
+ spin down, max / mean error:  [  1.78E-15,  4.78E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  2.15E-06, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  4.00E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  4.22E-06, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  1.20E-06, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 2
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.94904418239E+01, Epot: -4.62171166436E+01, Enl:  2.83893084546E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.78E-15,  6.22E-16 ], 
+ spin down, max / mean error:  [  2.55E-15,  6.18E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.89E-15,  5.86E-16 ], 
+ spin down, max / mean error:  [  2.44E-15,  5.67E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  8.32E-16,  1.27E-16 ], 
+ spin down, max / mean error:  [  4.44E-16,  7.86E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  6.468E-01, 
+           kappa to history:  Yes,      mean kappa:  7.977E-01, 
+          dynamic conv crit:  1.25E-04, 
+ iter:  2, fnrm:  2.65E-02, Omega: -3.127937644115050E+01, D: -9.23E-03, D best: -9.23E-03, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.33E-15,  4.25E-16 ], 
+ spin down, max / mean error:  [  1.82E-15,  4.22E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  2.13E-06, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  3.82E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  2.04E-06, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  6.37E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 3
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.92434890810E+01, Epot: -4.59579223094E+01, Enl:  2.82243082766E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.22E-15,  5.46E-16 ], 
+ spin down, max / mean error:  [  2.89E-15,  8.61E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.78E-15,  5.05E-16 ], 
+ spin down, max / mean error:  [  2.0E-15,  6.73E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  1.28E-15,  1.80E-16 ], 
+ spin down, max / mean error:  [  3.33E-16,  8.53E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  6.734E-01, 
+           kappa to history:  Yes,      mean kappa:  7.267E-01, 
+          dynamic conv crit:  1.38E-04, 
+ iter:  3, fnrm:  1.94E-02, Omega: -3.128243904666599E+01, D: -3.06E-03, D best: -3.06E-03, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.55E-15,  4.99E-16 ], 
+ spin down, max / mean error:  [  1.67E-15,  4.83E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  8.49E-07, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  1.53E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  1.17E-06, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  3.24E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 4
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.90116862310E+01, Epot: -4.57210881833E+01, Enl:  2.81534575832E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  3.11E-15,  7.60E-16 ], 
+ spin down, max / mean error:  [  3.77E-15,  8.01E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.22E-15,  5.36E-16 ], 
+ spin down, max / mean error:  [  2.55E-15,  7.28E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  2.22E-16,  4.83E-17 ], 
+ spin down, max / mean error:  [  2.22E-16,  5.87E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  7.171E-01, 
+           kappa to history:  Yes,      mean kappa:  6.791E-01, 
+          dynamic conv crit:  1.47E-04, 
+ iter:  4, fnrm:  1.45E-02, Omega: -3.128401087405972E+01, D: -1.57E-03, D best: -1.57E-03, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.24E-15,  4.37E-16 ], 
+ spin down, max / mean error:  [  3.55E-15,  8.10E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  8.50E-07, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  1.53E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  4.99E-07, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  1.90E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 5
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.88566446113E+01, Epot: -4.55633454083E+01, Enl:  2.81110800316E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.89E-15,  6.32E-16 ], 
+ spin down, max / mean error:  [  5.33E-15,  7.62E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  3.33E-15,  7.63E-16 ], 
+ spin down, max / mean error:  [  3.22E-15,  5.25E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  9.98E-16,  1.42E-16 ], 
+ spin down, max / mean error:  [  7.84E-16,  1.16E-16 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  7.712E-01, 
+           kappa to history:  Yes,      mean kappa:  7.206E-01, 
+          dynamic conv crit:  1.39E-04, 
+ iter:  5, fnrm:  1.15E-02, Omega: -3.128482928591999E+01, D: -8.18E-04, D best: -8.18E-04, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.44E-15,  6.05E-16 ], 
+ spin down, max / mean error:  [  2.89E-15,  6.43E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  1.63E-07, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  4.12E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  1.64E-07, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  6.27E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 6
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.87753587873E+01, Epot: -4.54820871233E+01, Enl:  2.81020840789E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  1.82E-15,  5.53E-16 ], 
+ spin down, max / mean error:  [  9.87E-16,  3.47E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.0E-15,  6.00E-16 ], 
+ spin down, max / mean error:  [  1.19E-15,  3.79E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  1.38E-15,  1.78E-16 ], 
+ spin down, max / mean error:  [  1.1E-15,  1.51E-16 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  8.426E-01, 
+           kappa to history:  Yes,      mean kappa:  7.770E-01, 
+          dynamic conv crit:  1.29E-04, 
+ iter:  6, fnrm:  9.78E-03, Omega: -3.128527976039028E+01, D: -4.50E-04, D best: -4.50E-04, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.33E-15,  5.27E-16 ], 
+ spin down, max / mean error:  [  1.22E-15,  3.83E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  1.83E-07, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  5.02E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  9.22E-07, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  2.60E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 7
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.87383363484E+01, Epot: -4.54458021218E+01, Enl:  2.81005330841E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.0E-15,  5.79E-16 ], 
+ spin down, max / mean error:  [  4.0E-15,  1.01E-15 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.33E-15,  4.10E-16 ], 
+ spin down, max / mean error:  [  2.55E-15,  7.60E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  8.21E-16,  1.16E-16 ], 
+ spin down, max / mean error:  [  1.78E-15,  2.30E-16 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  8.679E-01, 
+           kappa to history:  Yes,      mean kappa:  8.272E-01, 
+          dynamic conv crit:  1.21E-04, 
+ iter:  7, fnrm:  8.60E-03, Omega: -3.128569901686800E+01, D: -4.19E-04, D best: -4.19E-04, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.78E-15,  4.28E-16 ], 
+ spin down, max / mean error:  [  3.11E-15,  6.44E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  3.20E-07, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  1.05E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  1.39E-07, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  7.18E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 8
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.87158504486E+01, Epot: -4.54238062696E+01, Enl:  2.81004280558E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.55E-15,  5.77E-16 ], 
+ spin down, max / mean error:  [  2.44E-15,  5.73E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  3.0E-15,  6.35E-16 ], 
+ spin down, max / mean error:  [  1.67E-15,  4.84E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  4.44E-16,  9.94E-17 ], 
+ spin down, max / mean error:  [  3.33E-16,  8.94E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  9.043E-01, 
+           kappa to history:  Yes,      mean kappa:  8.716E-01, 
+          dynamic conv crit:  1.15E-04, 
+ iter:  8, fnrm:  8.04E-03, Omega: -3.128591685888162E+01, D: -2.18E-04, D best: -2.18E-04, 
+ exit criterion: net number of iterations}
+   -  &final_supfun004  { #-------------------------------------------------------- iter: 8
+ target function: HYBRID, 
+ Energies: {Ekin:  3.87158504486E+01, Epot: -4.54238062696E+01, Enl:  2.81004280558E+00}, 
+ iter:  8, fnrm:  8.04E-03, Omega: -3.128591685888162E+01, D: -2.18E-04, D best: -2.18E-04}
+      #Support functions created
+    #=================================================================== kernel optimization
+ - kernel optimization: &it_kernel004
+   -  #--------------------------------------------------------------------- kernel iter: 1
+     Kernel update:
+       max dev from unity              :  4.91E-07
+       mean dev from unity             :  1.06E-07
+       Hamiltonian application required:  No
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.99220670042E+01, Epot: -4.71384512101E+01, Enl:  2.87158522934E+00, 
+              EH:  4.44999961238E+01,  EXC: -7.35168025352E+00, EvXC: -9.54760614247E+00}, 
+    Total charge:  1.199999925725E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.077948818262E+00, f:  1.0000, s:  1},  {e: -9.428004033569E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.377987709281E-01, f:  1.0000, s:  1},  {e: -5.112565778294E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.099252975895E-01, f:  1.0000, s:  1},  {e: -2.705992370538E-01, f:  1.0000, s: -1},  # 00003
+ {e: -3.639470941914E-01, f:  1.0000, s:  1},  {e: -2.642062440451E-01, f:  1.0000, s: -1},  # 00004
+ {e: -3.615907929629E-01, f:  1.0000, s:  1},  # 00005
+ {e: -1.531239832149E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.075511744776E-01, f:  1.0000, s:  1},  # 00007
+ {e:  2.980775219540E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  1, delta:  8.63E-07, energy: -3.13365593280030126E+01, D: -4.716E-02}]
+   -  #--------------------------------------------------------------------- kernel iter: 2
+     Kernel update:
+       max dev from unity              :  4.91E-07
+       mean dev from unity             :  1.06E-07
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.87158504486E+01, Epot: -4.59934429773E+01, Enl:  2.81004280558E+00, 
+              EH:  4.44674013073E+01,  EXC: -7.34544205918E+00, EvXC: -9.53949153421E+00}, 
+    Total charge:  1.199999925725E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.080671914105E+00, f:  1.0000, s:  1},  {e: -9.455299267003E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.401893387464E-01, f:  1.0000, s:  1},  {e: -5.135658107211E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.123276459653E-01, f:  1.0000, s:  1},  {e: -2.730979442447E-01, f:  1.0000, s: -1},  # 00003
+ {e: -3.663512549770E-01, f:  1.0000, s:  1},  {e: -2.664686198024E-01, f:  1.0000, s: -1},  # 00004
+ {e: -3.640988688338E-01, f:  1.0000, s:  1},  # 00005
+ {e: -1.556739970781E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.101109231876E-01, f:  1.0000, s:  1},  # 00007
+ {e:  2.951577260195E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  2, delta:  8.20E-07, energy: -3.13360985717821805E+01, D:  4.608E-04}]
+   -  #--------------------------------------------------------------------- kernel iter: 3
+     Kernel update:
+       max dev from unity              :  4.91E-07
+       mean dev from unity             :  1.06E-07
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.87158504486E+01, Epot: -4.67663131424E+01, Enl:  2.81004280558E+00, 
+              EH:  4.38529965781E+01,  EXC: -7.22801158124E+00, EvXC: -9.38683591020E+00}, 
+    Total charge:  1.199999925728E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.132470133731E+00, f:  1.0000, s:  1},  {e: -9.974945611039E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.856274327543E-01, f:  1.0000, s:  1},  {e: -5.574733017838E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.579718900071E-01, f:  1.0000, s:  1},  {e: -3.205171494196E-01, f:  1.0000, s: -1},  # 00003
+ {e: -4.120239290188E-01, f:  1.0000, s:  1},  {e: -3.094514333661E-01, f:  1.0000, s: -1},  # 00004
+ {e: -4.116841704509E-01, f:  1.0000, s:  1},  # 00005
+ {e: -2.041201051454E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.587373149028E-01, f:  1.0000, s:  1},  # 00007
+ {e:  2.397190725435E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  3, delta:  2.85E-08, energy: -3.13318428195265426E+01, D:  4.256E-03}]
+   -  #--------------------------------------------------------------------- kernel iter: 4
+     Kernel update:
+       max dev from unity              :  4.91E-07
+       mean dev from unity             :  1.06E-07
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.87158504486E+01, Epot: -4.67634039008E+01, Enl:  2.81004280558E+00, 
+              EH:  4.38553483437E+01,  EXC: -7.22805106587E+00, EvXC: -9.38690187852E+00}, 
+    Total charge:  1.199999925728E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.131994473125E+00, f:  1.0000, s:  1},  {e: -9.971538332022E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.856185944731E-01, f:  1.0000, s:  1},  {e: -5.574474347216E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.576987654078E-01, f:  1.0000, s:  1},  {e: -3.204216812482E-01, f:  1.0000, s: -1},  # 00003
+ {e: -4.117505005074E-01, f:  1.0000, s:  1},  {e: -3.092615110149E-01, f:  1.0000, s: -1},  # 00004
+ {e: -4.117452318399E-01, f:  1.0000, s:  1},  # 00005
+ {e: -2.039141969789E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.585313143121E-01, f:  1.0000, s:  1},  # 00007
+ {e:  2.400114601524E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  4, delta:  1.12E-08, energy: -3.13318418289284537E+01, D:  9.906E-07}]
+   -  #--------------------------------------------------------------------- kernel iter: 5
+     Kernel update:
+       max dev from unity              :  4.91E-07
+       mean dev from unity             :  1.06E-07
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.87158504486E+01, Epot: -4.67634373633E+01, Enl:  2.81004280558E+00, 
+              EH:  4.38553053780E+01,  EXC: -7.22816107787E+00, EvXC: -9.38704057049E+00}, 
+    Total charge:  1.199999925728E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.132077709071E+00, f:  1.0000, s:  1},  {e: -9.971979221114E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.855736927248E-01, f:  1.0000, s:  1},  {e: -5.574090607933E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.577298976876E-01, f:  1.0000, s:  1},  {e: -3.203997058957E-01, f:  1.0000, s: -1},  # 00003
+ {e: -4.117815825865E-01, f:  1.0000, s:  1},  {e: -3.092715159143E-01, f:  1.0000, s: -1},  # 00004
+ {e: -4.116779203590E-01, f:  1.0000, s:  1},  # 00005
+ {e: -2.039232135689E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.585402651065E-01, f:  1.0000, s:  1},  # 00007
+ {e:  2.399847840100E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  5, delta:  1.29E-08, energy: -3.13318418083879848E+01, D:  2.054E-08}]
+   -  #--------------------------------------------------------------------- kernel iter: 6
+     Kernel update:
+       max dev from unity              :  4.91E-07
+       mean dev from unity             :  1.06E-07
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.87158504486E+01, Epot: -4.67606343402E+01, Enl:  2.81004280558E+00, 
+              EH:  4.38575687434E+01,  EXC: -7.22821829466E+00, EvXC: -9.38712832925E+00}, 
+    Total charge:  1.199999925728E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.131633171118E+00, f:  1.0000, s:  1},  {e: -9.968767562636E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.855583556872E-01, f:  1.0000, s:  1},  {e: -5.573781739786E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.574722576994E-01, f:  1.0000, s:  1},  {e: -3.203024194263E-01, f:  1.0000, s: -1},  # 00003
+ {e: -4.117246533489E-01, f:  1.0000, s:  1},  {e: -3.090905076053E-01, f:  1.0000, s: -1},  # 00004
+ {e: -4.115235415682E-01, f:  1.0000, s:  1},  # 00005
+ {e: -2.037253559670E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.583423530860E-01, f:  1.0000, s:  1},  # 00007
+ {e:  2.402628457958E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  6, delta:  1.98E-09, energy: -3.13318416299730913E+01, D:  1.784E-07}]
+   -  &final_kernel004  { #-------------------------------------------------------- iter: 7
+ summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  7, delta:  1.98E-09, energy: -3.13318416299730913E+01, D:  1.784E-07}]}
+    #================================================================= Summary of both steps
+   self consistency summary: &it_sc004
+   -  {iter:  4, target function: HYBRID, mean conf prefac:  6.42E-03,  #WARNING: support function optimization not converged
+ kernel optimization: DIAG,  #WARNING: density optimization not converged
+ iter low:  4, delta out:  8.657E-07, energy: -3.13318416299730913E+01, D: -4.244E-02}
+   multiplicator for the confinement   :  0.8177308165714587
+    #========================================================= support function optimization
+ - support function optimization: &it_supfun005
+   -  { #-------------------------------------------------------------------------- iter: 1
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.87158504486E+01, Epot: -4.63283080876E+01, Enl:  2.81004280558E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.55E-15,  5.77E-16 ], 
+ spin down, max / mean error:  [  2.44E-15,  5.73E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  3.0E-15,  6.35E-16 ], 
+ spin down, max / mean error:  [  1.67E-15,  4.84E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  4.44E-16,  9.94E-17 ], 
+ spin down, max / mean error:  [  3.33E-16,  8.94E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, mean kappa:  8.716E-01, 
+          dynamic conv crit:  1.15E-04, 
+ iter:  1, fnrm:  2.51E-02, Omega: -3.159112552946156E+01, D: -3.05E-01, D best: -3.05E-01, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.22E-15,  5.45E-16 ], 
+ spin down, max / mean error:  [  1.78E-15,  6.03E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  1.51E-06, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  2.78E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  4.86E-06, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  1.40E-06, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 2
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.88052682536E+01, Epot: -4.64430666667E+01, Enl:  2.83372067171E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  5.77E-15,  9.90E-16 ], 
+ spin down, max / mean error:  [  2.29E-15,  6.56E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.44E-15,  5.41E-16 ], 
+ spin down, max / mean error:  [  1.89E-15,  4.60E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  7.81E-16,  1.19E-16 ], 
+ spin down, max / mean error:  [  1.71E-15,  2.32E-16 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  7.068E-01, 
+           kappa to history:  Yes,      mean kappa:  8.263E-01, 
+          dynamic conv crit:  1.21E-04, 
+ iter:  2, fnrm:  1.77E-02, Omega: -3.159334766685152E+01, D: -2.22E-03, D best: -2.22E-03, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.0E-15,  4.21E-16 ], 
+ spin down, max / mean error:  [  2.55E-15,  6.52E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  1.39E-06, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  2.66E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  2.69E-06, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  8.19E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 3
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.88955930152E+01, Epot: -4.65477302234E+01, Enl:  2.84759048221E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.11E-15,  5.63E-16 ], 
+ spin down, max / mean error:  [  2.44E-15,  6.17E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.0E-15,  4.74E-16 ], 
+ spin down, max / mean error:  [  2.22E-15,  3.96E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  1.33E-15,  1.75E-16 ], 
+ spin down, max / mean error:  [  3.05E-16,  6.80E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  7.965E-01, 
+           kappa to history:  Yes,      mean kappa:  8.025E-01, 
+          dynamic conv crit:  1.25E-04, 
+ iter:  3, fnrm:  1.37E-02, Omega: -3.159427380229818E+01, D: -9.26E-04, D best: -9.26E-04, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.78E-15,  5.46E-16 ], 
+ spin down, max / mean error:  [  2.0E-15,  5.60E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  2.88E-07, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  5.44E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  1.10E-06, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  3.16E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 4
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.90010190309E+01, Epot: -4.66613388295E+01, Enl:  2.85579304590E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  3.33E-15,  7.33E-16 ], 
+ spin down, max / mean error:  [  2.89E-15,  9.79E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.66E-15,  5.53E-16 ], 
+ spin down, max / mean error:  [  2.0E-15,  6.66E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  7.27E-16,  1.13E-16 ], 
+ spin down, max / mean error:  [  2.5E-16,  6.77E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  7.897E-01, 
+           kappa to history:  Yes,      mean kappa:  7.643E-01, 
+          dynamic conv crit:  1.31E-04, 
+ iter:  4, fnrm:  1.07E-02, Omega: -3.159498438901144E+01, D: -7.11E-04, D best: -7.11E-04, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.43E-15,  4.03E-16 ], 
+ spin down, max / mean error:  [  1.46E-15,  4.06E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  2.90E-07, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  5.35E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  3.74E-07, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  1.45E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 5
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.90872415150E+01, Epot: -4.67467169638E+01, Enl:  2.85517004282E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.89E-15,  8.21E-16 ], 
+ spin down, max / mean error:  [  2.0E-15,  6.08E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.0E-15,  6.62E-16 ], 
+ spin down, max / mean error:  [  1.67E-15,  4.84E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  1.17E-15,  1.70E-16 ], 
+ spin down, max / mean error:  [  4.44E-16,  8.68E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  8.366E-01, 
+           kappa to history:  Yes,      mean kappa:  8.076E-01, 
+          dynamic conv crit:  1.24E-04, 
+ iter:  5, fnrm:  8.95E-03, Omega: -3.159554106324035E+01, D: -5.57E-04, D best: -5.57E-04, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.89E-15,  4.94E-16 ], 
+ spin down, max / mean error:  [  2.44E-15,  4.47E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  2.03E-07, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  5.38E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  5.74E-07, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  1.83E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 6
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.91253345233E+01, Epot: -4.67827709415E+01, Enl:  2.85321853518E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.0E-15,  6.88E-16 ], 
+ spin down, max / mean error:  [  1.55E-15,  4.74E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.66E-15,  6.65E-16 ], 
+ spin down, max / mean error:  [  1.67E-15,  4.69E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  6.01E-16,  1.05E-16 ], 
+ spin down, max / mean error:  [  2.86E-16,  6.29E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  9.131E-01, 
+           kappa to history:  Yes,      mean kappa:  8.465E-01, 
+          dynamic conv crit:  1.18E-04, 
+ iter:  6, fnrm:  8.10E-03, Omega: -3.159584255148584E+01, D: -3.01E-04, D best: -3.01E-04, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  3.55E-15,  6.79E-16 ], 
+ spin down, max / mean error:  [  2.22E-15,  5.69E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  1.68E-07, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  3.27E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  8.71E-07, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  3.44E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 7
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.91457801969E+01, Epot: -4.68022764348E+01, Enl:  2.85227491570E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  3.33E-15,  8.82E-16 ], 
+ spin down, max / mean error:  [  2.44E-15,  6.27E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  2.44E-15,  6.08E-16 ], 
+ spin down, max / mean error:  [  1.55E-15,  4.50E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  6.03E-16,  9.76E-17 ], 
+ spin down, max / mean error:  [  4.44E-16,  9.49E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  8.843E-01, 
+           kappa to history:  Yes,      mean kappa:  8.780E-01, 
+          dynamic conv crit:  1.14E-04, 
+ iter:  7, fnrm:  7.29E-03, Omega: -3.159627685309145E+01, D: -4.34E-04, D best: -4.34E-04, 
+ Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
+           total failures:  0}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.22E-15,  3.59E-16 ], 
+ spin down, max / mean error:  [  1.55E-15,  4.21E-16 ]}, 
+ Orthogonalization:  Yes, 
+ spin up, Max deviation from unity in reorthonormalize_coeff:  1.37E-07, 
+ spin up, Mean deviation from unity in reorthonormalize_coeff:  3.46E-08, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ spin down, Max deviation from unity in reorthonormalize_coeff:  6.33E-07, 
+ spin down, Mean deviation from unity in reorthonormalize_coeff:  2.59E-07, 
+ calculate S^x: {mode: dense, x: -1/2, order:  0}, 
+ communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
+   -  { #-------------------------------------------------------------------------- iter: 8
+ target function: HYBRID, Hamiltonian Applied:  Yes, 
+ Energies: {Ekin:  3.91587393666E+01, Epot: -4.68153892316E+01, Enl:  2.85238892340E+00}, 
+ Orthoconstraint:  Yes, 
+ kernel update by FOE: [
+ calculate S^x: {mode: sparse, x: 1/2, order:  0, 
+ spin up, max / mean error:  [  2.04E-15,  7.02E-16 ], 
+ spin down, max / mean error:  [  2.22E-15,  5.51E-16 ]}, 
+ calculate S^x: {mode: sparse, x: -1/2, order:  0, 
+ spin up, max / mean error:  [  1.11E-15,  4.53E-16 ], 
+ spin down, max / mean error:  [  2.22E-15,  5.13E-16 ]}, 
+ ], 
+ calculate S^x: {mode: sparse, x: -1, order:  0, 
+ spin up, max / mean error:  [  2.22E-16,  5.66E-17 ], 
+ spin down, max / mean error:  [  3.33E-16,  7.50E-17 ]}, 
+ correction orthoconstraint:  Yes, Preconditioning:  Yes, kappa:  7.843E-01, 
+           kappa to history:  Yes,      mean kappa:  8.606E-01, 
+          dynamic conv crit:  1.16E-04, 
+ iter:  8, fnrm:  7.49E-03, Omega: -3.159646267622875E+01, D: -1.86E-04, D best: -1.86E-04, 
+ exit criterion: net number of iterations}
+   -  &final_supfun005  { #-------------------------------------------------------- iter: 8
+ target function: HYBRID, 
+ Energies: {Ekin:  3.91587393666E+01, Epot: -4.68153892316E+01, Enl:  2.85238892340E+00}, 
+ iter:  8, fnrm:  7.49E-03, Omega: -3.159646267622875E+01, D: -1.86E-04, D best: -1.86E-04}
+      #Support functions created
+    #=================================================================== kernel optimization
+ - kernel optimization: &it_kernel005
+   -  #--------------------------------------------------------------------- kernel iter: 1
+     Kernel update:
+       max dev from unity              :  7.51E-07
+       mean dev from unity             :  1.58E-07
+       Hamiltonian application required:  No
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.87158504486E+01, Epot: -4.67606343402E+01, Enl:  2.81004280558E+00, 
+              EH:  4.38573863512E+01,  EXC: -7.22821885413E+00, EvXC: -9.38712779100E+00}, 
+    Total charge:  1.199999923895E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.131954458754E+00, f:  1.0000, s:  1},  {e: -9.971091968959E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.855475204003E-01, f:  1.0000, s:  1},  {e: -5.574832951552E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.578838742255E-01, f:  1.0000, s:  1},  {e: -3.203391627083E-01, f:  1.0000, s: -1},  # 00003
+ {e: -4.123605950814E-01, f:  1.0000, s:  1},  {e: -3.092993362675E-01, f:  1.0000, s: -1},  # 00004
+ {e: -4.119638358390E-01, f:  1.0000, s:  1},  # 00005
+ {e: -2.038102621435E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.584490894987E-01, f:  1.0000, s:  1},  # 00007
+ {e:  2.396810708301E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  1, delta:  4.17E-07, energy: -3.13348151916753537E+01, D: -2.974E-03}]
+   -  #--------------------------------------------------------------------- kernel iter: 2
+     Kernel update:
+       max dev from unity              :  7.51E-07
+       mean dev from unity             :  1.58E-07
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.91587393666E+01, Epot: -4.72374452555E+01, Enl:  2.85238892340E+00, 
+              EH:  4.38682564901E+01,  EXC: -7.23023523999E+00, EvXC: -9.38971465889E+00}, 
+    Total charge:  1.199999923895E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.130923782183E+00, f:  1.0000, s:  1},  {e: -9.960911227326E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.847892952815E-01, f:  1.0000, s:  1},  {e: -5.567851557919E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.570513305625E-01, f:  1.0000, s:  1},  {e: -3.195480237869E-01, f:  1.0000, s: -1},  # 00003
+ {e: -4.115427014868E-01, f:  1.0000, s:  1},  {e: -3.085352142697E-01, f:  1.0000, s: -1},  # 00004
+ {e: -4.111312151075E-01, f:  1.0000, s:  1},  # 00005
+ {e: -2.029370630763E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.575736779316E-01, f:  1.0000, s:  1},  # 00007
+ {e:  2.407652939357E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  2, delta:  3.96E-07, energy: -3.13347385807114165E+01, D:  7.661E-05}]
+   -  #--------------------------------------------------------------------- kernel iter: 3
+     Kernel update:
+       max dev from unity              :  7.51E-07
+       mean dev from unity             :  1.58E-07
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.91587393666E+01, Epot: -4.69727208240E+01, Enl:  2.85238892340E+00, 
+              EH:  4.40756294802E+01,  EXC: -7.26882437727E+00, EvXC: -9.43922092788E+00}, 
+    Total charge:  1.199999923893E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.111388293479E+00, f:  1.0000, s:  1},  {e: -9.767924266475E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.703827253159E-01, f:  1.0000, s:  1},  {e: -5.435122352949E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.412395217680E-01, f:  1.0000, s:  1},  {e: -3.044677066227E-01, f:  1.0000, s: -1},  # 00003
+ {e: -3.959594056649E-01, f:  1.0000, s:  1},  {e: -2.940141830590E-01, f:  1.0000, s: -1},  # 00004
+ {e: -3.953175939965E-01, f:  1.0000, s:  1},  # 00005
+ {e: -1.863448325770E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.409391840686E-01, f:  1.0000, s:  1},  # 00007
+ {e:  2.613712738994E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  3, delta:  2.26E-08, energy: -3.13340379853572770E+01, D:  7.006E-04}]
+   -  #--------------------------------------------------------------------- kernel iter: 4
+     Kernel update:
+       max dev from unity              :  7.51E-07
+       mean dev from unity             :  1.58E-07
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.91587393666E+01, Epot: -4.69738670876E+01, Enl:  2.85238892340E+00, 
+              EH:  4.40746898546E+01,  EXC: -7.26889222426E+00, EvXC: -9.43929900059E+00}, 
+    Total charge:  1.199999923893E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.111630534202E+00, f:  1.0000, s:  1},  {e: -9.769538770962E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.703497615127E-01, f:  1.0000, s:  1},  {e: -5.434940290423E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.413678813039E-01, f:  1.0000, s:  1},  {e: -3.044927800142E-01, f:  1.0000, s: -1},  # 00003
+ {e: -3.958878443051E-01, f:  1.0000, s:  1},  {e: -2.940947706750E-01, f:  1.0000, s: -1},  # 00004
+ {e: -3.954462695523E-01, f:  1.0000, s:  1},  # 00005
+ {e: -1.864314180737E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.410258783013E-01, f:  1.0000, s:  1},  # 00007
+ {e:  2.612390045926E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  4, delta:  8.61E-09, energy: -3.13340373389565556E+01, D:  6.464E-07}]
+   -  #--------------------------------------------------------------------- kernel iter: 5
+     Kernel update:
+       max dev from unity              :  7.51E-07
+       mean dev from unity             :  1.58E-07
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.91587393666E+01, Epot: -4.69728472868E+01, Enl:  2.85238892340E+00, 
+              EH:  4.40755141298E+01,  EXC: -7.26890419606E+00, EvXC: -9.43931959133E+00}, 
+    Total charge:  1.199999923893E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.111463276558E+00, f:  1.0000, s:  1},  {e: -9.768340118253E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.703497605743E-01, f:  1.0000, s:  1},  {e: -5.434868916434E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.412718215634E-01, f:  1.0000, s:  1},  {e: -3.044582662154E-01, f:  1.0000, s: -1},  # 00003
+ {e: -3.959089499040E-01, f:  1.0000, s:  1},  {e: -2.940283829204E-01, f:  1.0000, s: -1},  # 00004
+ {e: -3.953499473330E-01, f:  1.0000, s:  1},  # 00005
+ {e: -1.863591079934E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.409535192185E-01, f:  1.0000, s:  1},  # 00007
+ {e:  2.613434298332E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  5, delta:  1.37E-08, energy: -3.13340374616542192E+01, D: -1.227E-07}]
+   -  #--------------------------------------------------------------------- kernel iter: 6
+     Kernel update:
+       max dev from unity              :  7.51E-07
+       mean dev from unity             :  1.58E-07
+       Hamiltonian application required:  Yes
+       method                          : diagonalization
+       mode                            : sequential
+       method                          : diagonalization
+       mode                            : sequential
+       communication strategy kernel   : ALLREDUCE
+       Kohn-Sham residue               : not calculated
+       Coefficients available          :  Yes
+     Hamiltonian update: {
+ Energies: {Ekin:  3.91587393666E+01, Epot: -4.69755539154E+01, Enl:  2.85238892340E+00, 
+              EH:  4.40733295740E+01,  EXC: -7.26885143566E+00, EvXC: -9.43923880872E+00}, 
+    Total charge:  1.199999923893E+01, 
+ Poisson Solver: {BC: Free, Box:  [  97,  97,  111 ], MPI tasks:  3}}
+     Total magnetization               :  4.000000
+      #Eigenvalues and New Occupation Numbers
+     Orbitals: [
+ {e: -1.111893181869E+00, f:  1.0000, s:  1},  {e: -9.771453489710E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.703583945457E-01, f:  1.0000, s:  1},  {e: -5.435126394676E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.415214202947E-01, f:  1.0000, s:  1},  {e: -3.045533213742E-01, f:  1.0000, s: -1},  # 00003
+ {e: -3.958653001851E-01, f:  1.0000, s:  1},  {e: -2.942030121976E-01, f:  1.0000, s: -1},  # 00004
+ {e: -3.956001936352E-01, f:  1.0000, s:  1},  # 00005
+ {e: -1.865497743696E-01, f:  1.0000, s:  1},  # 00006
+ {e: -1.411443502099E-01, f:  1.0000, s:  1},  # 00007
+ {e:  2.610701144356E-01, f:  1.0000, s:  1}] # 00008
+     summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  6, delta:  3.92E-10, energy: -3.13340372448097071E+01, D:  2.168E-07}]
+   -  &final_kernel005  { #-------------------------------------------------------- iter: 7
+ summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  6, 
+ iter:  7, delta:  3.92E-10, energy: -3.13340372448097071E+01, D:  2.168E-07}]}
+    #================================================================= Summary of both steps
+   self consistency summary: &it_sc005
+   -  {iter:  5, target function: HYBRID, mean conf prefac:  5.25E-03,  #WARNING: support function optimization not converged
+ kernel optimization: DIAG,  #WARNING: density optimization not converged
+ iter low:  5, delta out:  4.184E-07, energy: -3.13340372448097071E+01, D: -2.196E-03}
+   Total magnetization                 :  0.000000
+    #Eigenvalues and New Occupation Numbers
+   Orbitals: [
+ {e: -1.111893181869E+00, f:  1.0000, s:  1},  {e: -9.771453489710E-01, f:  1.0000, s: -1},  # 00001
+ {e: -6.703583945457E-01, f:  1.0000, s:  1},  {e: -5.435126394676E-01, f:  1.0000, s: -1},  # 00002
+ {e: -4.415214202947E-01, f:  1.0000, s:  1},  {e: -3.045533213742E-01, f:  1.0000, s: -1},  # 00003
+ {e: -3.958653001851E-01, f:  1.0000, s:  1},  {e: -2.942030121976E-01, f:  1.0000, s: -1},  # 00004
+ {e: -3.956001936352E-01, f:  1.0000, s:  1},  {e: -2.464761557937E-01, f:  1.0000, s: -1},  # 00005
+ {e: -1.865497743696E-01, f:  1.0000, s:  1},  {e: -1.371708539562E-02, f:  1.0000, s: -1},  # 00006
+ {e: -1.411443502099E-01, f:  1.0000, s:  1},  {e:  3.110048584388E-02, f:  1.0000, s: -1},  # 00007
+ {e:  2.610701144356E-01, f:  1.0000, s:  1},  {e:  4.659435325872E-01, f:  1.0000, s: -1}] # 00008
+    #========================================================================= final results
+   self consistency summary:
+   -  {iter:  5, 
+ Energies: {Ekin:  3.91587393666E+01, Epot: -4.69755539154E+01, Enl:  2.85238892340E+00, 
+              EH:  4.40733745504E+01,  EXC: -7.26885145832E+00, EvXC: -9.43923914764E+00}, 
+        iter low:  5,            delta out:  4.184E-07, 
+          energy: -3.13340372448097071E+01,                       D:  0.000E+00,  #FINAL
+ }
+ Total charge                          :  1.199999923893E+01
+  #---------------------------------------------------------------------- Forces Calculation
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  97,  97,  111 ]
+   MPI tasks                           :  3
+ Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate Non Local forces            :  Yes
+ Average noise forces: {x:  1.83406255E-04, y:  6.77376196E-05, z: -9.19117693E-03, 
+                    total:  9.19325621E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  8.974284518824E-01, fnrm2:  1.610755652496E+00}
+ Raw forces norm (Ha/Bohr): {maxval:  9.039276158416E-01, fnrm2:  1.610840175106E+00}
+  #--------------------------------------------------------------------------- Atomic Forces
+ Atomic Forces (Ha/Bohr):
+ -  {O: [-1.355252715607E-20, -1.355252715607E-20, -8.974284518824E-01]} # 0001
+ -  {O: [-1.355252715607E-20, -2.032879073410E-20,  8.974284518824E-01]} # 0002
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - Do not call check_communications in the linear scaling version!
+ - support function optimization not converged
+ - density optimization not converged
+ - support function optimization not converged
+ - density optimization not converged
+ - support function optimization not converged
+ - density optimization not converged
+ - support function optimization not converged
+ - density optimization not converged
+ - support function optimization not converged
+ - density optimization not converged
+  #-------------------------------------------------------------------- Timing for root process
+ Timings for root process:
+   CPU time (s)                        :  127.66
+   Elapsed time (s)                    :  65.58
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  34327
+   Tot. No. of Deallocations           :  34327
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  299
+     for the array                     : psir_noconf
+     in the routine                    : LocalHamiltonianApplication
+ Max No. of dictionaries used          :  3174 #( 797 still in use)
+ Number of dictionary folders allocated:  1
