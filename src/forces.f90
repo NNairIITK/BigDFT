@@ -12,6 +12,7 @@
 subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fnoise,rst,infocode)
   use module_base
   use module_types
+  use bigdft_run
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(inout) :: infocode
@@ -84,20 +85,16 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
 
   if (order == -1) then
      n_order = 1
-     kmoves = f_malloc(n_order,id='kmoves')
-     kmoves = (/ -1 /)
+     kmoves = f_malloc(src=(/ -1 /),id='kmoves')
   else if (order == 1) then
      n_order = 1
-     kmoves = f_malloc(n_order,id='kmoves')
-     kmoves = (/ 1 /)
+     kmoves = f_malloc(src=(/ 1 /),id='kmoves')
   else if (order == 2) then
      n_order = 2
-     kmoves = f_malloc(n_order,id='kmoves')
-     kmoves = (/ -1, 1 /)
+     kmoves = f_malloc(src=(/ -1, 1 /),id='kmoves')
   else if (order == 3) then
      n_order = 4
-     kmoves = f_malloc(n_order,id='kmoves')
-     kmoves = (/ -2, -1, 1, 2 /)
+     kmoves = f_malloc(src=(/ -2, -1, 1, 2 /),id='kmoves')
   else
      print *, "Finite Differences: This order",order," is not implemented!"
      stop

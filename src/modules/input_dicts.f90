@@ -20,8 +20,8 @@ module module_input_dicts
   character(len=*), parameter :: ASTRUCT_CELL = 'cell' 
   character(len=*), parameter :: ASTRUCT_POSITIONS = 'positions' 
   character(len=*), parameter :: ASTRUCT_PROPERTIES = 'properties' 
-  character(len=*), parameter :: GOUT_ENERGY = 'energy (Ha)' 
-  character(len=*), parameter :: GOUT_FORCES = 'forces (Ha/Bohr)' 
+  character(len=*), parameter, public :: GOUT_ENERGY = 'energy (Ha)' 
+  character(len=*), parameter, public :: GOUT_FORCES = 'forces (Ha/Bohr)' 
   character(len=*), parameter :: FORMAT_KEY = 'format' 
   character(len=*), parameter :: OCCUPATION = 'occupation' 
   character(len=*), parameter :: FORMAT_YAML = 'yaml' 
@@ -54,12 +54,10 @@ module module_input_dicts
   public :: atomic_data_set_from_dict
   public :: occupation_set_from_dict
   public :: neb_set_from_dict
-  public :: global_output_set_from_dict
 
   ! Types to dictionaries
   public :: psp_data_merge_to_dict
   public :: astruct_merge_to_dict
-  public :: global_output_merge_to_dict
 
   ! Dictionaries from files (old formats).
   public :: psp_file_merge_to_dict, nlcc_file_merge_to_dict
@@ -144,7 +142,7 @@ contains
     call dict_free(udict)
     ierr = 0
     if (f_err_check()) ierr = f_get_last_error(val)
-         call f_dump_all_errors()
+    !call f_dump_all_errors()
     call f_err_close_try()
 
     if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = val)
@@ -946,7 +944,6 @@ contains
         & BIGDFT_INPUT_FILE_ERROR, BIGDFT_INPUT_VARIABLES_ERROR
     use module_atoms, only: set_astruct_from_file,atomic_structure,&
          nullify_atomic_structure,deallocate_atomic_structure
-    use module_types, only: DFT_global_output, nullify_global_output, deallocate_global_output
     use module_input_keys, only: POSINP,RADICAL_NAME
     use dictionaries
     use yaml_strings
@@ -957,41 +954,60 @@ contains
     character(len = *), intent(in) :: filename !< Name of the filename where the astruct should be read
     !Local variables
     type(atomic_structure) :: astruct
-    type(DFT_global_output) :: outs
+    !type(DFT_global_output) :: outs
     character(len=max_field_length) :: msg,radical
-    integer :: ierr
+    integer :: ierr,iat
+    real(gp) :: energy
+    real(gp), dimension(:,:), pointer :: fxyz
+    type(dictionary), pointer :: dict_tmp,pos
+
 
     call f_routine(id='astruct_file_merge_to_dict')
     ! Read atomic file, old way
     call nullify_atomic_structure(astruct)
-    call nullify_global_output(outs)
+    !call nullify_global_output(outs)
 
     !Try to read the atomic coordinates from files
     call f_err_open_try()
+!!$    call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
+!!$         & energy = outs%energy, fxyz = outs%fxyz)
+
     call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
-         & energy = outs%energy, fxyz = outs%fxyz)
+         & energy = energy, fxyz = fxyz)
 
     !Check if BIGDFT_INPUT_FILE_ERROR
     ierr = f_get_last_error(msg) 
     call f_err_close_try()
 
     if (ierr == 0) then
+       dict_tmp => dict // key
        !No errors: we have all information in astruct and put into dict
-       call astruct_merge_to_dict(dict // key, astruct, astruct%rxyz)
-       call set(dict // key // ASTRUCT_PROPERTIES // "source", filename)
-       call global_output_merge_to_dict(dict // key, outs, astruct)
+       call astruct_merge_to_dict(dict_tmp, astruct, astruct%rxyz)
+       call set(dict_tmp // ASTRUCT_PROPERTIES // "source", filename)
+
+       if (GOUT_FORCES .in. dict_tmp) call dict_remove(dict_tmp, GOUT_FORCES)
+       if (associated(fxyz)) then
+          pos => dict_tmp // GOUT_FORCES
+          do iat=1,astruct%nat
+             call add(pos, dict_new(astruct%atomnames(astruct%iatype(iat)) .is. fxyz(:,iat)))
+          end do
+       end if
+       if (GOUT_ENERGY .in. dict_tmp) call dict_remove(dict_tmp, GOUT_ENERGY)
+       if (energy /= UNINITIALIZED(energy)) call set(dict_tmp // GOUT_ENERGY, energy)
+
+       !call global_output_merge_to_dict(dict // key, outs, astruct)
        call deallocate_atomic_structure(astruct)
 
     else if (ierr == BIGDFT_INPUT_FILE_ERROR) then
        !Found no file: maybe already inside the yaml file ?
        !Check if posinp is in dict
-       if (.not.has_key(dict,POSINP)) then
+       if ( POSINP .notin.  dict) then
           ! Raise an error
-          if (has_key(dict,RADICAL_NAME)) then 
-             radical = dict//RADICAL_NAME
-             msg = "No section 'posinp' for the atomic positions in the file '" &
-                 & // trim(radical) // ".yaml'. " // trim(msg)
-          end if
+          call f_strcpy(src='input',dest=radical)
+          !modify the radical name if it exists
+          radical = dict .get. RADICAL_NAME
+          msg = "No section 'posinp' for the atomic positions in the file '"//&
+               trim(radical) // ".yaml'. " // trim(msg)
           call f_err_throw(err_msg=msg,err_id=ierr)
        end if
     else 
@@ -999,7 +1015,7 @@ contains
        call f_err_throw(err_msg=msg,err_id=ierr)
     end if
 
-    call deallocate_global_output(outs)
+    !call deallocate_global_output(outs)
     call f_release_routine()
 
   end subroutine astruct_file_merge_to_dict
@@ -1530,66 +1546,6 @@ contains
     call set(dict // key // SOURCE_KEY, filename)
 
   end subroutine occupation_data_file_merge_to_dict
-
-  subroutine global_output_merge_to_dict(dict, outs, astruct)
-    use module_defs, only: gp, UNINITIALIZED
-    use module_types, only: atomic_structure, DFT_global_output
-    use dictionaries
-    implicit none
-    type(dictionary), pointer :: dict
-    type(DFT_global_output), intent(in) :: outs
-    type(atomic_structure), intent(in) :: astruct
-
-    integer :: iat
-    type(dictionary), pointer :: pos, fxyz
-
-    if (has_key(dict, GOUT_FORCES)) call dict_remove(dict, GOUT_FORCES)
-    if (associated(outs%fxyz)) then
-       pos => dict // GOUT_FORCES
-       do iat=1,astruct%nat
-          call dict_init(fxyz)
-          call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 0, outs%fxyz(1, iat))
-          call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 1, outs%fxyz(2, iat))
-          call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 2, outs%fxyz(3, iat))
-          call add(pos, fxyz)
-       end do
-    end if
-
-    if (has_key(dict, GOUT_ENERGY)) call dict_remove(dict, GOUT_ENERGY)
-    if (outs%energy /= UNINITIALIZED(outs%energy)) &
-         & call set(dict // GOUT_ENERGY, outs%energy)
-
-  end subroutine global_output_merge_to_dict
-
-  subroutine global_output_set_from_dict(outs, dict)
-    use module_types, only: DFT_global_output, init_global_output
-    use dictionaries
-    implicit none
-    type(dictionary), pointer :: dict
-    type(DFT_global_output), intent(inout) :: outs
-    
-    integer :: i
-    type(dictionary), pointer :: it
-
-    if (has_key(dict, GOUT_FORCES)) then
-       if (.not. associated(outs%fxyz)) &
-            & call init_global_output(outs, dict_len(dict // GOUT_FORCES))
-       do i = 1, outs%fdim, 1
-          it => dict_iter(dict // GOUT_FORCES // (i - 1))
-          do while (associated(it))
-             if (dict_len(it) == 3) then
-                outs%fxyz(1:3, i) = it !// 0
-                !outs%fxyz(2, i) = it // 1
-                !outs%fxyz(3, i) = it // 2
-                exit
-             end if
-             it => dict_next(it)
-          end do
-       end do
-    end if
-
-    if (has_key(dict, GOUT_ENERGY)) outs%energy = dict // GOUT_ENERGY
-  end subroutine global_output_set_from_dict
 
   subroutine neb_set_from_dict(dict, opt, climbing_, imax, nimg_, &
        & cv, tol, ds_, kmin, kmax, temp_, damp_, meth)

@@ -15,106 +15,160 @@ program yaml_test
    use dynamic_memory
    use yaml_parse
    implicit none
-   type(dictionary), pointer :: dict_tmp
-   !type(yaml_cl_parse) :: parser
+   integer, parameter :: isize=16 !< size of functionality
+   character(len=isize), parameter :: YAML               ='yaml'
+   character(len=isize), parameter :: YAML_EXTRAS        ='yaml_extras'
+   character(len=isize), parameter :: YAML_PARSER        ='yaml_parse'
+   character(len=isize), parameter :: EXCEPTIONS         ='exceptions'
+   character(len=isize), parameter :: TREES              ='trees'
+   character(len=isize), parameter :: TREES_EXTRAS       ='trees_extras'
+   character(len=isize), parameter :: ALLOCATIONS        ='allocations'
+   character(len=isize), dimension(7), parameter :: FUNCTIONALITIES=&
+        [ YAML               ,&
+          YAML_EXTRAS        ,&
+          YAML_PARSER        ,&
+          EXCEPTIONS         ,&
+          TREES       ,&
+          TREES_EXTRAS,&
+          ALLOCATIONS        ]
+   
+   type(dictionary), pointer :: dict_tmp,run
    !logical :: fl
 
    call f_lib_initialize()
-!!$   call yaml_comment('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-!!$   call yaml_comment('BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB')
-!!$   call yaml_comment('CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC')
-!!$   call yaml_comment('DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD')
 
-!!$   parser=yaml_cl_parse_null()
-!!$   !set valid options
-!!$   call yaml_cl_parse_option(parser,'test','1',&
-!!$        'this is a valid test option','t',&
-!!$        dict_new('Test' .is. 'long help'))
+   parser=yaml_cl_parse_null()
+   !set valid options
+   call yaml_cl_parse_option(parser,'test','All',&
+        'Decide what to test (--help for more info)','t',&
+        dict_new('Usage' .is. &
+        'Specify, as a yaml list, the functionalities which have to be tested',&
+        'Allowed values' .is. &
+        list_new(.item. FUNCTIONALITIES)))
+   !other options to test the parser
+   call yaml_cl_parse_option(parser,'test2','1',&
+        'this is another test option','s',first_option=.true.)
+   call yaml_cl_parse_option(parser,'test3','None',&
+        'this is a test option','T',&
+        dict_new('Usage' .is. &
+        'Unused option3, just for testing the command line parser'),&
+        conflicts='[test2,test]')
+
+
+   !verify the parsing
+   call yaml_cl_parse_cmd_line(parser)
+
+   call yaml_map('Parsed options',parser%options)
+   call yaml_map('Parsed info',parser%args)
+
+   !construct the runs
+   nullify(run)
+   dict_tmp = parser%args .get. 'test'
+   if (trim(dict_value(dict_tmp)) == 'All') then
+      run => list_new(.item. FUNCTIONALITIES)
+   else if (dict_len(dict_tmp) > 0) then
+      call dict_copy(run,dict_tmp)
+   end if
+   nullify(dict_tmp)
+
+   call yaml_cl_parse_free(parser)
 !!$
-!!$   !verify the parsing
-!!$   call yaml_cl_parse_cmd_line(parser)
 !!$
-!!$   call yaml_map('Parsed options',parser%options)
-!!$   call yaml_map('Parsed info',parser%args)
-!!$
-!!$   call yaml_cl_parse_free(parser)
+!!$   !call profile_dictionary_usage()
 
+   if (YAML .in. run) then
+      !test to solve the bug of yaml_comment
+      call yaml_comment('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+      call yaml_comment('BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB')
+      call yaml_comment('CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC')
+      call yaml_comment('DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD')
 
-   !call profile_dictionary_usage()
-!!$   call f_lib_finalize()
-!!$   stop
+      !First document  
+      call yaml_new_document()
+      call yaml_comment('Yaml Output Module Test',hfill='~')
+      call test_yaml_output1()
+      call yaml_release_document()
+      
+      !Second document
+      call yaml_new_document()
+      call test_yaml_output2()
+      call yaml_release_document()
+   end if
 
-   !First document  
-   call yaml_new_document()
-   call yaml_comment('Yaml Output Module Test',hfill='~')
-   call test_yaml_output1()
-   call yaml_release_document()
-
-   !Second document
-   call yaml_new_document()
-    call test_yaml_output2()
-   call yaml_release_document()
-   !Third document
-   call yaml_new_document()
-   !Check calling twice yaml_new_document
-   call yaml_new_document()
-    call test_yaml_output_sequences1()
-   call yaml_release_document()
+   if (YAML_EXTRAS .in. run) then
+      !Third document
+      call yaml_new_document()
+      !Check calling twice yaml_new_document
+      call yaml_new_document()
+      call test_yaml_output_sequences1()
+      call yaml_release_document()
 
    !Fourth document
-   call yaml_new_document()
-    call test_yaml_output_sequences2()
-   call yaml_release_document()
+      call yaml_new_document()
+      call test_yaml_output_sequences2()
+      call yaml_release_document()
 
    !Fourth-A document
-   call yaml_new_document()
-   call yaml_invoice_example()
-   call yaml_release_document()
+      call yaml_new_document()
+      call yaml_invoice_example()
+      call yaml_release_document()
 
    !Fourth-A2 document
-   call yaml_new_document()
-   call yaml_invoice_example_with_dictionaries()
-   call yaml_release_document()
+      call yaml_new_document()
+      call yaml_invoice_example_with_dictionaries()
+      call yaml_release_document()
+   end if
 
-   !Fourth-B document, to be moved
-   call yaml_new_document()
-   call test_error_handling()
-   call yaml_release_document()
+   if (EXCEPTIONS .in. run) then
+      !Fourth-B document, to be moved
+      call yaml_new_document()
+      call test_error_handling()
+      call yaml_release_document()
+   end if
 
-   !Fifth document
-   call yaml_new_document()
-    call test_dictionaries0()
-   call yaml_release_document()
+   if (TREES .in. run) then
+      !Fifth document
+      call yaml_new_document()
+      call test_dictionaries0()
+      call yaml_release_document()
+      
+      !Sixth document: test dictionaries
+      call yaml_new_document()
+      call test_dictionaries1()
+      call yaml_release_document()
+   end if
 
-   !Sixth document: test dictionaries
-   call yaml_new_document()
-   call test_dictionaries1()
-   call yaml_release_document()
+   if (ALLOCATIONS .in. run) then
+      !Seventh document: Test dynamic memory allocation
+      call yaml_new_document()
+      call test_dynamic_memory()
+      call yaml_release_document()
+      
+      call f_malloc_dump_status(dict_summary=dict_tmp)
+      call yaml_map('Summary',dict_tmp)
+      call dict_free(dict_tmp)
+   end if
 
-   !Seventh document: Test dynamic memory allocation
-   call yaml_new_document()
-   call test_dynamic_memory()
-   call yaml_release_document()
+   if (TREES .in. run) then
+      call yaml_new_document()
+      call test_copy_merge()
+      call yaml_release_document()
+   end if
 
-   call f_malloc_dump_status(dict_summary=dict_tmp)
-   call yaml_map('Summary',dict_tmp)
-   call dict_free(dict_tmp)
-!   call f_lib_finalize()
-!stop
+   if (YAML_PARSER .in. run) then
+      !test the yaml parsing
+      call yaml_parse_file_and_string()
+   end if
+   
+   if (TREES_EXTRAS .in. run) then
+      call yaml_new_document()
+      call test_dictionary_for_atoms()
+      call yaml_release_document()
 
-   call yaml_new_document()
-   call test_copy_merge()
-   call yaml_release_document()
+      call profile_dictionary_usage()
+   end if
 
-   !test the yaml parsing
-   call yaml_parse_file_and_string()
-
-   call yaml_new_document()
-   call test_dictionary_for_atoms()
-   call yaml_release_document()
-
-   call profile_dictionary_usage()
-
+   call dict_free(run)
    !prepare the finalization of the library
    call f_lib_finalize()
 

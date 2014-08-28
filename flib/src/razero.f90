@@ -257,8 +257,7 @@ END FUNCTION builtin_rand
 !> gives the maximum record length allowed for a given unit
 subroutine f_utils_recl(unt,recl_max,recl)
   implicit none
-  include 'f_utils.inc'
-  !integer, parameter :: recl_kind=8 !this has to be included
+  include 'f_utils.inc' !defines recl_kind
   integer, intent(in) :: unt !< unit to be checked for record length
   integer, intent(in) :: recl_max !< maximum value for record length
   !> Value for the record length. This corresponds to the minimum between recl_max and the processor-dependent value
@@ -284,3 +283,17 @@ subroutine f_utils_recl(unt,recl_max,recl)
   end if
   if (recl <=0) recl=recl_max
 end subroutine f_utils_recl
+
+!> inquire for the existence of a file
+subroutine f_file_exists(file,exists)
+  implicit none
+  character(len=*), intent(in) :: file
+  logical, intent(out) :: exists
+  !local variables
+  integer :: ierr 
+
+  exists=.false.
+  inquire(file=trim(file),exist=exists,iostat=ierr)
+  exists = exists .and. ierr==0
+
+end subroutine f_file_exists

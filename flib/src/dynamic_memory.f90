@@ -733,7 +733,7 @@ contains
        if (present(process_id)) process_id = mems(ictrl)%dict_global//processid
 
        if (present(dump)) then
-          dump_status=.true.
+          dump_status=dump
        else 
           pid = mems(ictrl)%dict_global//processid
           if (pid == 0) then
@@ -742,9 +742,10 @@ contains
              dump_status=.false.
           end if
           !Print if error
-          if (dict_size(mems(ictrl)%dict_global) == 2) dump_status=.false.
+          !if (dict_size(mems(ictrl)%dict_global) == 2) dump_status=.false.
        end if
-       if (dump_status) then
+
+       if (dump_status .and. dict_size(mems(ictrl)%dict_global) /= 2) then
           call yaml_map('Size of the global database',dict_size(mems(ictrl)%dict_global))
           !call yaml_map('Raw version',mems(ictrl)%dict_global)
           call yaml_mapping_open('Status of the memory at finalization')
@@ -760,7 +761,7 @@ contains
        call dict_free(mems(ictrl)%dict_calling_sequence)
     end if
 
-    if (mems(ictrl)%profile_initialized) call memocc_report()
+    if (mems(ictrl)%profile_initialized) call memocc_report(dump=dump_status)
 
     !nullify control structure
     mems(ictrl)=mem_ctrl_null()

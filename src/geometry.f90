@@ -44,10 +44,9 @@ END SUBROUTINE geopt_set_verbosity
 !> Geometry optimization
 subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   use module_base
-  use module_interfaces, except_this_one => geopt
-  use module_types
+  use bigdft_run
   use yaml_output
-  use dictionaries
+  use module_interfaces, only: write_atomic_file
   use minpar
   implicit none
   !Arguments
@@ -173,7 +172,7 @@ END SUBROUTINE geopt
 !> Molecular Dynamics
 subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   use module_base
-  use module_types
+  use bigdft_run
   use scfloop_API
   use ab6_moldyn
 !  use module_interfaces, only: memocc
@@ -434,7 +433,7 @@ END SUBROUTINE transforce_forfluct
 !! WARNING: strten not minimized here
 subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   use module_base
-  use module_types
+  use bigdft_run
   use module_interfaces
   implicit none
   !Arguments
@@ -614,7 +613,7 @@ END SUBROUTINE rundiis
 !! Choose the initial timestep as tinit=tmax*0.5d0
 subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail) 
   use module_base
-  use module_types
+  use bigdft_run
   use module_interfaces
   use minpar
   use yaml_output
