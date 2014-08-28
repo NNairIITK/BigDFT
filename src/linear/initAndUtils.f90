@@ -2018,6 +2018,7 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
       call orbitals_descriptors(iproc, nproc, norb+nextra, norb+nextra, 0, input%nspin, orbs%nspinor,&
            input%gen_nkpt, input%gen_kpt, input%gen_wkpt, orbs_aux, .false.)
       nonzero = f_malloc(orbs_aux%norbu*orbs_aux%norbup, id='nonzero')
+      !write(*,*) 'iproc, norb, norbp, norbu, norbup', iproc, orbs_aux%norb, orbs_aux%norbp, orbs_aux%norbu, orbs_aux%norbup
       i=0
       do iorb=1,orbs_aux%norbup
           iiorb=orbs_aux%isorbu+iorb
@@ -2030,8 +2031,11 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
       !!call init_sparse_matrix(iproc, nproc, input%nspin, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
       !!     orbs%norbu, orbs%norbup, orbs%isorbu, input%store_index, &
       !!     orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu, nonzero, smat_extra, print_info_=.false.)
+      !!call init_sparse_matrix(iproc, nproc, input%nspin, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
+      !!     norb, norbp, isorb, input%store_index, &
+      !!     orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu, nonzero, smat_extra(ispin), print_info_=.false.)
       call init_sparse_matrix(iproc, nproc, input%nspin, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
-           norb, norbp, isorb, input%store_index, &
+           orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, input%store_index, &
            orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu, nonzero, smat_extra(ispin), print_info_=.false.)
       call f_free(nonzero)
       call deallocate_orbitals_data(orbs_aux)
