@@ -1238,6 +1238,7 @@ module communications
            end if
        end do
        call f_free(workrecv)
+       call f_free(covered)
 
        !@ END NEW VESRION ##########################################
 
