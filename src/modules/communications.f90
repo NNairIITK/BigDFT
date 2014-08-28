@@ -1212,7 +1212,7 @@ module communications
            if (covered(ilr,iproc)) then
                ncount=6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
                ist_source=get_offset(root,ilr)
-               call mpi_get(workrecv(ist_dest), ncount, mpi_int, root, &
+               call mpi_get(workrecv(ist_dest), ncount, mpi_integer, root, &
                     int(ist_source,kind=mpi_address_kind), ncount, mpi_integer, window, ierr)
                ist_dest=ist_dest+ncount
            end if
