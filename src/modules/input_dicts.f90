@@ -940,7 +940,7 @@ contains
   !> Read Atomic positions and merge into dict
   subroutine astruct_file_merge_to_dict(dict, key, filename)
     use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine, &
-        & BIGDFT_INPUT_FILE_ERROR, BIGDFT_INPUT_VARIABLES_ERROR
+        & BIGDFT_INPUT_FILE_ERROR, BIGDFT_INPUT_VARIABLES_ERROR,f_free_ptr
     use module_atoms, only: set_astruct_from_file,atomic_structure,&
          nullify_atomic_structure,deallocate_atomic_structure
     use module_input_keys, only: POSINP,RADICAL_NAME
@@ -1013,7 +1013,7 @@ contains
        ! Raise an error
        call f_err_throw(err_msg=msg,err_id=ierr)
     end if
-
+    call f_free_ptr(fxyz)
     !call deallocate_global_output(outs)
     call f_release_routine()
 

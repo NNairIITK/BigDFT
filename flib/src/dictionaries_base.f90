@@ -114,7 +114,7 @@ module dictionaries_base
 !!$  end interface
 
   private :: allocate_library, allocate_file, deallocate_file, destroy_library
-
+  public :: dict_free
 
 contains
   

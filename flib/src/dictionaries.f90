@@ -130,8 +130,8 @@ module dictionaries
    public :: set,dict_init,dict_free,append,prepend,add
    public :: dict_copy, dict_update,dict_remove,dict_remove_last
    !> Handle exceptions
-   public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next,dict_iter,has_key,dict_keys
-   public :: dict_new,list_new
+   public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next
+   public :: dict_new,list_new,dict_iter,has_key,dict_keys
    !> Public elements of dictionary_base
    public :: operator(.is.),operator(.item.)
    public :: operator(.pop.),operator(.notin.)

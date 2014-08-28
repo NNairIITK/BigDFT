@@ -78,7 +78,7 @@ contains
   end subroutine nullify_yaml_cl_parse
 
   subroutine yaml_cl_parse_free(parser)
-    use dictionaries, only: dict_free
+    use dictionaries_base, only: dict_free
     implicit none
     type(yaml_cl_parse), intent(inout) :: parser
     call dict_free(parser%options)
@@ -544,7 +544,6 @@ contains
     dict => yaml_parse_(parser)
   end subroutine yaml_parse_from_string
 
-
   function yaml_parse_(parser) result(output)
     use dictionaries
     implicit none
@@ -838,7 +837,7 @@ contains
 
   !> Nullify the dictionary dict_yaml_errs
   subroutine yaml_parse_errors_finalize()
-     use dictionaries, only: dict_free
+     use dictionaries_base, only: dict_free
      implicit none
      call dict_free(dict_yaml_errs)
 
