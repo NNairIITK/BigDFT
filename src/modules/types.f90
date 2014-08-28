@@ -281,6 +281,7 @@ module module_types
      integer :: ixc         !< XC functional Id
      integer :: ncharge     !< Total charge of the system
      integer :: itermax     !< Maximal number of SCF iterations
+     integer :: itermin     !< Minimum number of SCF iterations !Bastian
      integer :: nrepmax
      integer :: ncong       !< Number of conjugate gradient iterations for the preconditioner
      integer :: idsx        !< DIIS history
@@ -362,6 +363,8 @@ module module_types
      type(SIC_data) :: SIC               !< Parameters for the SIC methods
      !variables for SBFGS
      integer  :: nhistx
+     logical  :: biomode
+     real(gp) :: beta_stretchx
      real(gp) :: maxrise
      real(gp) :: cutoffratio
      real(gp) :: steepthresh
@@ -846,6 +849,7 @@ module module_types
      integer :: itrpmax !< specify the maximum number of mixing cycle on potential or density
      integer :: nrepmax !< specify the maximum number of restart after re-diagonalization
      integer :: itermax !< specify the maximum number of minimization iterations, self-consistent or not
+     integer :: itermin !< specify the minimum number of minimization iterations, self-consistent or not !Bastian
 
      integer :: itrp    !< actual number of mixing cycle.
      integer :: itrep   !< actual number of re-diagonalisation runs.
@@ -2267,6 +2271,8 @@ contains
           in%gnrm_cv = val !convergence parameters
        case (ITERMAX)
           in%itermax = val
+       case (ITERMIN)
+          in%itermin = val
        case (NREPMAX)
           in%nrepmax = val
        case (NCONG)
@@ -2527,6 +2533,10 @@ contains
           in%cutoffratio = val
        case (STEEPTHRESH)
           in%steepthresh = val
+       case (BIOMODE)
+          in%biomode = val
+       case (BETA_STRETCHX)
+          in%beta_stretchx = val
        case (TRUSTR)
           in%trustr = val
        case DEFAULT

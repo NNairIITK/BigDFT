@@ -18,7 +18,7 @@ program MINHOP
   use yaml_output
   use module_atoms, only: deallocate_atoms_data,atoms_data
   implicit real(kind=8) (a-h,o-z)
-  logical :: newmin,CPUcheck,occured,exist_poslocm
+  logical :: newmin,CPUcheck,occured,exist_poslocm,exist_posacc
   character(len=20) :: unitsp,atmn
   character(len=60) :: run_id
   type(atoms_data) :: atoms,md_atoms
@@ -50,6 +50,8 @@ program MINHOP
   type(run_objects) :: runObj
   type(DFT_global_output) :: outs
   type(dictionary), pointer :: user_inputs
+integer:: nposacc=0
+logical:: disable_hatrans
 
   call f_lib_initialize()
   call bigdft_init(mpi_info,nconfig,run_id,ierr)
@@ -134,6 +136,8 @@ program MINHOP
   do i=1,nrandoff
      call random_number(ts)
   enddo
+
+  inquire(file='disable_hatrans',exist=disable_hatrans)
   
   ! open output files
   if (bigdft_mpi%iproc==0) then 
@@ -205,6 +209,20 @@ program MINHOP
   enddo 
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) number of poslocm files that exist already ',ngeopt)
 
+  nposacc=0
+  do 
+     write(fn4,'(i4.4)') nposacc+1
+     filename='posacc_'//fn4//'_'//trim(bigdft_run_id_toa())//'.xyz'
+!     write(*,*) 'filename: ',filename
+     inquire(file=trim(filename),exist=exist_posacc)
+     if (exist_posacc) then
+        nposacc=nposacc+1
+     else
+        exit 
+     endif
+  enddo 
+  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) number of posacc files that exist already ',nposacc)
+
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for approximate geo. rel of initial conf., e_pos',ncount_bigdft)
   count_sdcg=count_sdcg+ncount_bigdft
@@ -223,7 +241,7 @@ program MINHOP
       close(864)
   endif
 
-  if (atoms%astruct%geocode=='F') call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
+  if (atoms%astruct%geocode=='F' .and. (.not. disable_hatrans)) call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
 
 !  if ( .not. atoms%astruct%geocode=='F') then 
 !         write(*,*) 'Generating new input guess'
@@ -236,12 +254,27 @@ program MINHOP
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of initial conf.',ncount_bigdft)
   count_bfgs=count_bfgs+ncount_bigdft
+  e_pos = outs%energy
 
   call bigdft_get_eigenvalues(rst,ksevals,i_stat)
   if (i_stat /= BIGDFT_SUCCESS) then
      write(*,*)'error(ksevals), i_stat',i_stat
      stop
   end if
+
+  if (bigdft_mpi%iproc == 0 .and. nposacc==0) then
+     tt=dnrm2(3*outs%fdim,outs%fxyz,1)
+     nposacc=nposacc+1
+     write(fn4,'(i4.4)')nposacc
+     if(disable_hatrans)then
+         write(comment,'(a,1pe10.3)')'ha_trans disabled, fnrm= ',tt
+     else
+         write(comment,'(a,1pe10.3)')'ha_trans enabled, fnrm= ',tt
+     endif
+     call write_atomic_file('posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
+  endif
+
 
   if (bigdft_mpi%iproc == 0) then 
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
@@ -436,9 +469,16 @@ program MINHOP
 !!$  enddo
   call run_objects_associate(runObj, inputs_md, atoms, rst, pos(1,1))
   escape=escape+1.d0
-  e_pos = outs%energy
+!  e_pos = outs%energy !MUST NOT UPDATE e_pos HERE!!
   call mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, runObj, outs, &
                 ngeopt,bigdft_mpi%nproc,bigdft_mpi%iproc)
+  if (bigdft_mpi%iproc == 0) then 
+     tt=dnrm2(3*outs%fdim,outs%fxyz,1)
+     write(fn4,'(i4.4)') nint(escape)
+     write(comment,'(a,1pe10.3)')'fnrm= ',tt
+     call write_atomic_file('posaftermd_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
+  endif
 
      if (atoms%astruct%geocode == 'F') &
           & call fixfrag_posvel(bigdft_mpi%iproc,atoms%astruct%nat,rcov,atoms%astruct%rxyz,vxyz,1,occured)
@@ -458,7 +498,7 @@ program MINHOP
      write(fn4,'(i4.4)') ngeopt
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call write_atomic_file('posimed_'//fn4//'_'//trim(bigdft_run_id_toa()),&
-          e_pos,pos,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
+          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
       open(unit=864,file='ksemed_'//fn4//'_'//trim(bigdft_run_id_toa()))
       do i=1,nksevals
       write(864,*) ksevals(i)
@@ -466,7 +506,7 @@ program MINHOP
       close(864)
   endif
 
-  if (atoms%astruct%geocode=='F') call  ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
+  if (atoms%astruct%geocode=='F' .and. (.not. disable_hatrans)) call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
 
 !  if ( .not. atoms%astruct%geocode=='F') then 
 !         write(*,*) 'Generating new input guess'
@@ -515,7 +555,7 @@ program MINHOP
 
      if (abs(outs%energy-e_pos).lt.en_delta) then
      call fpdistance(nid,wfp,fp,d)
-  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) checking fpdistance',(/outs%energy-e_pos,d/),fmt='(e11.4)')
+       if (bigdft_mpi%iproc == 0) call yaml_map('(MH) checking fpdistance',(/outs%energy-e_pos,d/),fmt='(e11.4)')
      if (d.lt.fp_delta) then ! not escaped
        escape_sam=escape_sam+1.d0
         fp_sep=max(fp_sep,d)
@@ -614,6 +654,18 @@ program MINHOP
      do i=1,nid
         fp(i)=fphop(i)
      enddo
+  if (bigdft_mpi%iproc == 0) then
+     nposacc=nposacc+1
+     write(fn4,'(i4.4)')nposacc
+     if(disable_hatrans)then
+         write(comment,'(a)')'ha_trans disabled'
+     else
+         write(comment,'(a)')'ha_trans enabled'
+     endif
+     call write_atomic_file('posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+          e_pos,pos,atoms%astruct%ixyz_int,atoms,trim(comment))
+  endif
+
      if (bigdft_mpi%iproc == 0) then
         !call yaml_mapping_open('(MH) Write poscur file')
        call write_atomic_file('poscur'//trim(bigdft_run_id_toa()),e_pos,pos,atoms%astruct%ixyz_int,atoms,'')

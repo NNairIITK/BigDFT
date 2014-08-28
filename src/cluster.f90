@@ -379,6 +379,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   optLoop%itrpmax = in%itrpmax
   optLoop%nrepmax = in%nrepmax
   optLoop%itermax = in%itermax
+  optLoop%itermin = in%itermin!Bastian
   optLoop%gnrm_cv = in%gnrm_cv
   optLoop%rpnrm_cv = in%rpnrm_cv
   optLoop%gnrm_startmix = in%gnrm_startmix
@@ -1424,7 +1425,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if (opt%iter > opt%itermax) exit wfn_loop
 
            !control whether the minimisation iterations should end after the hamiltionian application
-           endloop= opt%gnrm <= opt%gnrm_cv .or. opt%iter == opt%itermax
+           endloop= (opt%gnrm <= opt%gnrm_cv .or. opt%iter == opt%itermax) .and. opt%iter >= opt%itermin !Bastian
 
            if (iproc == 0) then 
               !yaml output

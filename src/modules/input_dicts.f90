@@ -970,10 +970,10 @@ contains
     call f_err_open_try()
 !!$    call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
 !!$         & energy = outs%energy, fxyz = outs%fxyz)
-
+    nullify(fxyz)
     call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
-         & energy = energy, fxyz = fxyz)
-
+         energy = energy, fxyz = fxyz)
+    !print *,'test2',associated(fxyz)
     !Check if BIGDFT_INPUT_FILE_ERROR
     ierr = f_get_last_error(msg) 
     call f_err_close_try()

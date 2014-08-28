@@ -518,8 +518,8 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   !Check the consistency between MPI processes of the atomic coordinates
   maxdiff=mpimaxdiff(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm)
 
-  if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) then
-     call yaml_warning('Input positions not identical! '//&
+  if (maxdiff > epsilon(1.0_gp)) then
+     if (iproc==0) call yaml_warning('Input positions not identical! '//&
           '(difference:'//trim(yaml_toa(maxdiff))//' ), broadcasting from master node')
      call mpibcast(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm)
   end if

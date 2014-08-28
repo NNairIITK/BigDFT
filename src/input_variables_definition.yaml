@@ -87,6 +87,10 @@
      COMMENT: Max. iterations of wfn. opt. steps
      RANGE: [0, 10000]
      default: 50
+   itermin:
+     COMMENT: Min. iterations of wfn. opt. steps
+     RANGE: [0, 10000]
+     default: 0
    nrepmax:
      COMMENT: Max. number of re-diag. runs
      RANGE: [0, 1000]
@@ -351,6 +355,21 @@
        - SBFGS
      RANGE: [0, 1000]
      default: 10
+   biomode:
+     COMMENT: Enable mode for biomolecules.
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SBFGS
+     default: No
+   beta_stretchx:
+     COMMENT: Stepsize for steepest descent in stretching mode direction (only if in biomode)
+     CONDITION:
+       MASTER_KEY: biomode
+       WHEN:
+       - Yes
+     RANGE: [0., 100.]
+     default: 5e-1
    maxrise:
      COMMENT: maximum allowed rise in energy in one geopt step
      CONDITION:

@@ -29,7 +29,7 @@ module module_input_keys
   character(len = *), parameter, public :: ELECFIELD = "elecfield"
   character(len = *), parameter, public :: NSPIN = "nspin", MPOL = "mpol"
   character(len = *), parameter, public :: GNRM_CV = "gnrm_cv"
-  character(len = *), parameter, public :: ITERMAX = "itermax", NREPMAX = "nrepmax"
+  character(len = *), parameter, public :: ITERMAX = "itermax",ITERMIN = "itermin", NREPMAX = "nrepmax"
   character(len = *), parameter, public :: NCONG = "ncong", IDSX = "idsx"
   character(len = *), parameter, public :: DISPERSION = "dispersion"
   character(len = *), parameter, public :: INPUTPSIID = "inputpsiid"
@@ -86,6 +86,8 @@ module module_input_keys
   character(len = *), parameter, public :: NIMG = "nimg"
   !SBFGS parameters:
   character(len = *), parameter, public :: NHISTX = "nhistx"
+  character(len = *), parameter, public :: BIOMODE = "biomode"
+  character(len = *), parameter, public :: BETA_STRETCHX = "beta_stretchx"
   character(len = *), parameter, public :: MAXRISE = "maxrise"
   character(len = *), parameter, public :: CUTOFFRATIO = "cutoffratio"
   character(len = *), parameter, public :: STEEPTHRESH = "steepthresh"
