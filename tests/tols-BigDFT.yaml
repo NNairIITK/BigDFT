@@ -358,10 +358,10 @@ cleanup:
  Clean forces norm (Ha/Bohr): 3.7e-9
  Raw forces norm (Ha/Bohr): 3.5e-9
  Epot: 3.9e-9
- Orbitals: 5.7e-10
- EH: 3.7e-9
+ Orbitals: 6.1e-10
+ EH: 3.8e-9
  EXC: 1.9e-9
- EvXC: 8.7e-10
+ EvXC: 2.3e-9
  Enl: 9.1e-10
  Omega: 2.12e-9
  Pulay Forces (Ha/Bohr): 1.9e-9
@@ -1035,17 +1035,17 @@ geoptconstrained:
  D Tr: 1.1e-9
 
 O2spin_diag:
- Atomic Forces (Ha/Bohr): 5.1e-9
- Average noise forces: 1.9e-8
- Clean forces norm (Ha/Bohr): 1.9e-8
- Raw forces norm (Ha/Bohr): 1.9e-8
- Orbitals: 3.6e-9
- EH: 4.7e-8
- EXC: 4.8e-9
- Ekin: 3.5e-8
- Enl: 2.9e-9
- Epot: 5.8e-8
- EvXC: 6.5e-9
- Omega: 1.1e-8
+ Atomic Forces (Ha/Bohr): 7.4e-8
+ Average noise forces: 6.1e-8
+ Clean forces norm (Ha/Bohr): 2.7e-7
+ Raw forces norm (Ha/Bohr): 2.7e-7
+ Orbitals: 2.7e-7
+ EH: 4.0e-7
+ EXC: 5.9e-8
+ Ekin: 5.9e-7
+ Enl: 2.4e-8
+ Epot: 8.8e-7
+ EvXC: 7.7e-8
+ Omega: 1.7e-7
  energy: 3.1e-8
- multiplicator for the confinement: 7.2e-9
+ multiplicator for the confinement: 1.2e-7
