@@ -1051,17 +1051,22 @@ O2spin_diag:
  multiplicator for the confinement: 1.2e-7
 
 O2spin_foe:
- Atomic Forces (Ha/Bohr): 1.6e-11
- EH: 3.1e-10
- EXC: 2.1e-11
+ Atomic Forces (Ha/Bohr): 6.4e-10
+ EH: 1.9e-8
+ EXC: 2.6e-9
  Ekin: 2.1e-10
- Epot: 7.0e-10
- EvXC: 4.1e-11
- Tr(K): 1.1e-9
- charge diff: 5.1e-10
+ Epot: 2.6e-9
+ EvXC: 3.4e-9
+ Enl: 2.6e-9
+ Tr(K): 4.1e-9
+ charge diff: 3.3e-9
  eF: 1.1-10
- ebs: 8.0e-11
- ebs_check: 8.1e-11
- Omega: 2.4e-10
- Raw forces norm (Ha/Bohr): 6.1e-11
- Clean forces norm (Ha/Bohr): 6.1e-11
+ guess for new ef: 2.6e-9
+ ebs: 3.5e-10
+ ebs_check: 2.6e-9
+ Omega: 4.2e-10
+ energy: 2.6e-9
+ Raw forces norm (Ha/Bohr): 2.6e-9
+ Clean forces norm (Ha/Bohr): 2.6e-9
+ Average noise forces: 2.6e-9
+ Total charge: 2.4e-9
