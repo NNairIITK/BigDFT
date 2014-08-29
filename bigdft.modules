@@ -1,0 +1,57 @@
+<?xml version="1.0"?><!--*- mode: nxml; indent-tabs-mode: nil -*-->
+<!DOCTYPE moduleset SYSTEM "moduleset.dtd">
+<?xml-stylesheet type="text/xsl" href="moduleset.xsl"?>
+<!-- vim:set ts=2 expandtab: -->
+<moduleset>
+
+  <!-- Official repositories, not used by default, using provided tars instead. -->
+  <repository type="tarball" name="libyaml" href="http://pyyaml.org/download/libyaml/"/>
+  <repository type="svn" name="libxc" href="http://www.tddft.org/svn/"/>
+  <repository type="bzr" name="bigdft" href="lp:/"/>
+
+  <repository type="tarball" name="local" href="./"/>
+
+  <autotools id="libxc" autogen-sh="autoreconf" check-target="false">
+    <!--<branch repo="libxc" checkoutdir="libxc-2.0.x"/>-->
+    <branch repo="local" module="libxc-2.0.x.tar.gz" version="2.0.x" checkoutdir="libxc-2.0.x"/>
+  </autotools>
+
+  <autotools id="libyaml" autogen-sh="autoreconf" check-target="false">
+    <!--<branch repo="libyaml" module="yaml-0.1.4.tar.gz" version="0.1.4" checkoutdir="yaml-0.1.4"/>-->
+    <branch repo="local" module="yaml-0.1.4.tar.gz" version="0.1.4" checkoutdir="yaml-0.1.4"/>
+  </autotools>
+
+  <distutils id="PyYAML">
+    <!--<branch repo="libyaml" module="PyYAML-3.10.tar.gz" version="3.10" checkoutdir="PyYAML-3.10"/>-->
+    <branch repo="local" module="PyYAML-3.10.tar.gz" version="3.10" checkoutdir="PyYAML-3.10"/>
+    <dependencies>
+      <dep package="libyaml"/>
+    </dependencies>
+  </distutils>
+
+  <autotools id="flib">
+    <branch repo="bigdft" module="flib"/>
+  </autotools>
+
+  <autotools id="psolver">
+    <branch repo="bigdft" module="psolver"/>
+    <dependencies>
+      <dep package="flib"/>
+    </dependencies>
+  </autotools>
+
+  <autotools id="bigdft">
+    <!--<branch repo="bigdft" module="bigdft" version="1.7.5" checkoutdir="bigdft-1.7.5"/>-->
+    <branch repo="local" module="bigdft-1.7.5.tar.gz" version="1.7.5" checkoutdir="bigdft-1.7.5"/>
+    <dependencies>
+      <!--<dep package="flib"/>
+      <dep package="psolver"/>-->
+      <dep package="libyaml"/>
+      <if condition-set="testing">
+        <dep package="PyYAML"/>
+      </if>
+      <dep package="libxc"/>
+    </dependencies>
+  </autotools>
+
+</moduleset>
