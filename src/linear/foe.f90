@@ -94,6 +94,8 @@ subroutine foe(iproc, nproc, tmprtr, &
   call timing(iproc, 'FOE_auxiliary ', 'ON')
 
 
+  evbounds_shrinked=.false.
+
 
   penalty_ev = f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctrp,2/),id='penalty_ev')
   fermip_check = f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctrp/),id='fermip_check')
@@ -219,7 +221,8 @@ subroutine foe(iproc, nproc, tmprtr, &
                       call yaml_sequence_open('FOE to determine density kernel',label=&
                            'it_foe'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//&
                            trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)')))//'-'//&
-                           trim(adjustl(yaml_toa(itemp,fmt='(i2.2)'))))
+                           trim(adjustl(yaml_toa(itemp,fmt='(i2.2)')))//'-'//&
+                           trim(adjustl(yaml_toa(ispin,fmt='(i2.2)'))))
                   else
                       call yaml_sequence_open('FOE to determine density kernel')
                       if (iproc==0) call yaml_comment('FOE calculation of kernel',hfill='-')

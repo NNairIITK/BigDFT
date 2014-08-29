@@ -43,6 +43,8 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
    real(kind=8),dimension(:,:),allocatable :: matp
    real(kind=8) :: ddot
 
+   call f_routine(id='check_communications_locreg')
+
    !allocate the "wavefunction" and fill it, and also the workspace
    psi = f_malloc(max(npsidim_orbs, npsidim_comp),id='psi')
    psit_c = f_malloc(sum(collcom%nrecvcounts_c),id='psit_c')
@@ -311,6 +313,9 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
    call f_free(psit_f)
    call f_free(checksum)
 
+
+   call f_release_routine()
+
  contains
    
 
@@ -393,6 +398,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
      iorb=floor(psival)-(ikpt-1)*(10**ilog)
 
    end subroutine wrong_components_locreg
+
 
 
  END SUBROUTINE check_communications_locreg
