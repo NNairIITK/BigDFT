@@ -158,6 +158,7 @@ module communications_init
       ! Local variables
       integer :: iorb, iiorb, i0, i1, i2, i3, ii, iseg, ilr, istart, iend, i, j0, j1, ii1, ii2, ii3, n1p1, np
     
+      call f_routine(id='get_weights')
     
       ii=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)
       call to_zero(ii, weight_c(0,0,0))
@@ -264,6 +265,8 @@ module communications_init
       end do
       !$omp end do
       !$omp end parallel
+
+      call f_release_routine()
     
     end subroutine get_weights
 
@@ -293,6 +296,8 @@ module communications_init
       real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal, ttt
       real(kind=8),dimension(:,:),allocatable :: weights_c_startend, weights_f_startend
       character(len=*),parameter :: subname='assign_weight_to_process'
+
+      call f_routine(id='assign_weight_to_process')
     
       ! Ideal weight per process.
       weight_c_ideal=weight_tot_c/dble(nproc)
@@ -540,6 +545,8 @@ module communications_init
           ii=nptsp_f
       end if
       if(ii/=lzd%glr%wfd%nvctr_f) stop 'init_comms_linear: wrong partition of fine grid points'
+
+      call f_release_routine()
       
     end subroutine assign_weight_to_process
 
@@ -556,43 +563,46 @@ module communications_init
     ! Local variables
     integer :: iitot, iseg, j0, j1, ii, i1, i2, i3, i0, i, istart, iend, np, n1p1
     
+    call f_routine(id='get_index_in_global2')
     
-        iitot=0
-        n1p1=lr%d%n1+1
-        np=n1p1*(lr%d%n2+1)
-        do iseg=1,lr%wfd%nseg_c
-           j0=lr%wfd%keygloc(1,iseg)
-           j1=lr%wfd%keygloc(2,iseg)
-           ii=j0-1
-           i3=ii/np
-           ii=ii-i3*np
-           i2=ii/n1p1
-           i0=ii-i2*n1p1
-           i1=i0+j1-j0
-           do i=i0,i1
-              iitot=iitot+1
-              index_in_global_c(i,i2,i3)=iitot
-           end do
-        end do 
+    iitot=0
+    n1p1=lr%d%n1+1
+    np=n1p1*(lr%d%n2+1)
+    do iseg=1,lr%wfd%nseg_c
+       j0=lr%wfd%keygloc(1,iseg)
+       j1=lr%wfd%keygloc(2,iseg)
+       ii=j0-1
+       i3=ii/np
+       ii=ii-i3*np
+       i2=ii/n1p1
+       i0=ii-i2*n1p1
+       i1=i0+j1-j0
+       do i=i0,i1
+          iitot=iitot+1
+          index_in_global_c(i,i2,i3)=iitot
+       end do
+    end do 
     
     
-        iitot=0
-        istart=lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)
-        iend=istart+lr%wfd%nseg_f-1
-        do iseg=istart,iend
-           j0=lr%wfd%keygloc(1,iseg)
-           j1=lr%wfd%keygloc(2,iseg)
-           ii=j0-1
-           i3=ii/np
-           ii=ii-i3*np
-           i2=ii/n1p1
-           i0=ii-i2*n1p1
-           i1=i0+j1-j0
-           do i=i0,i1
-              iitot=iitot+1
-              index_in_global_f(i,i2,i3)=iitot
-           end do
-        end do
+    iitot=0
+    istart=lr%wfd%nseg_c+min(1,lr%wfd%nseg_f)
+    iend=istart+lr%wfd%nseg_f-1
+    do iseg=istart,iend
+       j0=lr%wfd%keygloc(1,iseg)
+       j1=lr%wfd%keygloc(2,iseg)
+       ii=j0-1
+       i3=ii/np
+       ii=ii-i3*np
+       i2=ii/n1p1
+       i0=ii-i2*n1p1
+       i1=i0+j1-j0
+       do i=i0,i1
+          iitot=iitot+1
+          index_in_global_f(i,i2,i3)=iitot
+       end do
+    end do
+
+    call f_release_routine()
     
     end subroutine get_index_in_global2
 
@@ -620,6 +630,8 @@ module communications_init
       integer :: ii1, ii2, ii3, iseg, istart, iend
       integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
       character(len=*),     parameter :: subname='determine_communication_arrays'
+
+      call f_routine(id='determine_communication_arrays')
     
       ! Determine values for mpi_alltoallv
       ! first nsendcounts
@@ -770,6 +782,8 @@ module communications_init
       if(sum(nrecvcounts_f)/=nspin*nvalp_f) then
           stop 'sum(nrecvcounts_f)/=nspin*nvalp_f'
       end if
+
+      call f_release_routine()
     
     end subroutine determine_communication_arrays
 
@@ -796,6 +810,7 @@ module communications_init
       integer :: icheck_c,icheck_f,iiorb_c,iiorb_f, npgp_c,npgp_f,np,n1p1
       !!integer,dimension(:),allocatable:: iseg_start_c, iseg_start_f
     
+      call f_routine(id='determine_num_orbs_per_gridpoint_new')
     
       icheck_c = 0
       icheck_f = 0
@@ -877,6 +892,8 @@ module communications_init
     
       if(icheck_f/=nptsp_f) stop 'icheck_f/=nptsp_f'
       if(iiorb_f/=nint(weightp_f)) stop 'iiorb_f/=weightp_f'
+
+      call f_release_routine()
     
     end subroutine determine_num_orbs_per_gridpoint_new
 
@@ -922,6 +939,7 @@ module communications_init
       character(len=*),parameter :: subname='get_switch_indices'
     
     
+      call f_routine(id='get_switch_indices')
       
       indexsendorbital_c = f_malloc(ndimpsi_c,id='indexsendorbital_c')
       indexsendbuf_c = f_malloc(ndimpsi_c,id='indexsendbuf_c')
@@ -1229,6 +1247,9 @@ module communications_init
       call f_free(gridpoint_start_tmp_f)
       call f_free(nsend_c)
       call f_free(nsend_f)
+
+
+      call f_release_routine()
     
     end subroutine get_switch_indices
 
