@@ -1173,7 +1173,7 @@ module communications
            ilr=orbs%inwhichlocreg(iiorb)
            maxsenddim = maxsenddim + 6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
        end do
-       worksend = f_malloc(maxsenddim,id='worksend_int')
+       worksend = f_malloc(max(maxsenddim,1),id='worksend_int')
 
        ioffset=0
        do iorb=1,orbs%norbp
