@@ -845,6 +845,12 @@
        0: REFORMAT
        1: AO
      default: 0 
+   imethod_overlap:
+     COMMENT: method to calculate the overlap matrices (1=old, 2=new)
+     EXCLUSIVE: 
+       1: old
+       2: new
+     default: 1
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant

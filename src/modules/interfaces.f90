@@ -3267,10 +3267,10 @@ module module_interfaces
           type(foe_data),intent(inout) :: foe_obj
         end subroutine foe
 
-        subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc, nspin)
+        subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc, nspin, imethod_overlap)
           use module_types
           implicit none
-          integer, intent(in) :: iproc, nproc, nspin
+          integer, intent(in) :: iproc, nproc, nspin, imethod_overlap
           type(DFT_wavefunction), intent(inout) :: wfn
           type(denspot_distribution), intent(in) :: dpbox
         end subroutine kswfn_init_comm

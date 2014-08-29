@@ -453,6 +453,9 @@ module module_types
      !> linear scaling: Restart method to be used for the FOE method
      integer :: FOE_restart
 
+     !> linear scaling: method to calculate the overlap matrices (1=old, 2=new)
+     integer :: imethod_overlap
+
   end type input_variables
 
 
@@ -2755,6 +2758,9 @@ contains
        case (FOE_RESTART)
            ! linear scaling: Restart method to be used for the FOE method
            in%FOE_restart = val
+       case (IMETHOD_OVERLAP)
+           ! linear scaling: method to calculate the overlap matrices (1=old, 2=new)
+           in%imethod_overlap = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

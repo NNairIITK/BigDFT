@@ -40,6 +40,7 @@ module communications_base
     integer,dimension(:),pointer :: nsenddspls_repartitionrho, nrecvdspls_repartitionrho
     integer :: ncomms_repartitionrho, window
     integer,dimension(:,:),pointer :: commarr_repartitionrho
+    integer :: imethod_overlap !< method to calculate the overlap
   end type comms_linear
 
 

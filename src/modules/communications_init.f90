@@ -22,13 +22,13 @@ module communications_init
 
   contains
 
-    subroutine init_comms_linear(iproc, nproc, npsidim_orbs, orbs, lzd, nspin, collcom)
+    subroutine init_comms_linear(iproc, nproc, imethod_overlap, npsidim_orbs, orbs, lzd, nspin, collcom)
       use module_base
       use module_types
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, npsidim_orbs, nspin
+      integer,intent(in) :: iproc, nproc, imethod_overlap, npsidim_orbs, nspin
       type(orbitals_data),intent(in) :: orbs
       type(local_zone_descriptors),intent(in) :: lzd
       type(comms_linear),intent(inout) :: collcom
@@ -44,6 +44,9 @@ module communications_init
       call timing(iproc,'init_collcomm ','ON')
     
       call f_routine('init_comms_linear')
+
+      ! method to calculate the overlap
+      collcom%imethod_overlap = imethod_overlap
     
       weight_c=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/),id='weight_c')
       weight_f=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/),id='weight_f')

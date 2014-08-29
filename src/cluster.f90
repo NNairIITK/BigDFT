@@ -481,7 +481,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !!call init_p2p_tags(nproc)
      !!tag=0
 
-     call kswfn_init_comm(tmb, denspot%dpbox, iproc, nproc, in%nspin)
+     call kswfn_init_comm(tmb, denspot%dpbox, iproc, nproc, in%nspin, in%imethod_overlap)
      locreg_centers = f_malloc((/3,tmb%lzd%nlr/),id='locreg_centers')
      do ilr=1,tmb%lzd%nlr
          locreg_centers(1:3,ilr)=tmb%lzd%llr(ilr)%locregcenter(1:3)
