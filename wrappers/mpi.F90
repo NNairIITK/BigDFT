@@ -408,6 +408,7 @@ end subroutine create_group_comm1
   END SUBROUTINE create_rank_comm
 
   subroutine wmpi_init_thread(ierr)
+    use dictionaries, only: f_err_throw
     implicit none
     integer, intent(out) :: ierr
 #ifdef HAVE_MPI_INIT_THREAD
