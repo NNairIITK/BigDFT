@@ -94,7 +94,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	FOE_BASE.@MODULE_EXT@ \
 	INTERNAL_COORDINATES.@MODULE_EXT@ \
 	FERMI_LEVEL.@MODULE_EXT@ \
-	COPY_UTILS.@MODULE_EXT@
+	COPY_UTILS.@MODULE_EXT \
 	MODULE_SBFGS.@MODULE_EXT@ \
 	BIGDFT_RUN.@MODULE_EXT@
 else
@@ -128,7 +128,7 @@ modules = module_base.@MODULE_EXT@ \
 	foe_base.@MODULE_EXT@ \
 	internal_coordinates.@MODULE_EXT@ \
 	fermi_level.@MODULE_EXT@ \
-	copy_utils.@MODULE_EXT@
+	copy_utils.@MODULE_EXT@ \
 	module_sbfgs.@MODULE_EXT@ \
 	bigdft_run.@MODULE_EXT@
 else
