@@ -408,6 +408,7 @@ module module_types
      type(fragmentInputParameters) :: frag !< Fragment data
      logical :: store_index                !< (LS) Store indices of the sparse matrices or recalculate them 
      integer :: check_sumrho               !< (LS) Perform a check of sumrho (no check, light check or full check)
+     integer :: check_overlap              !< (LS) Perform a check of the overlap calculation
      logical :: experimental_mode          !< (LS) Activate the experimental mode
      logical :: write_orbitals             !< (LS) Write KS orbitals for cubic restart
      logical :: explicit_locregcenters     !< (LS) Explicitely specify localization centers
@@ -2705,6 +2706,9 @@ contains
        case (CHECK_SUMRHO)
           in%check_sumrho = val
           !  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
+       case (CHECK_OVERLAP)
+          ! perform a check of the overlap calculation
+          in%check_overlap = val
        case (EXPERIMENTAL_MODE)
           in%experimental_mode = val
        case (WRITE_ORBITALS)

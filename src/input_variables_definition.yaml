@@ -782,6 +782,13 @@
        0: No check
        1: Light check
        2: Full check
+   check_overlap:
+     COMMENT: Enables linear overlap check
+     default: 2
+     EXCLUSIVE:
+       0: No check
+       1: Light check
+       2: Full check
    experimental_mode:
      COMMENT: Activate the experimental mode in linear scaling
      default: No

@@ -255,30 +255,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
                   if (foe_data_get_real(foe_obj,"evlow",ispin)/=evlow_old .or. &
                       foe_data_get_real(foe_obj,"evhigh",ispin)/=evhigh_old) then
-                      scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
-                      shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh",ispin)+foe_data_get_real(foe_obj,"evlow",ispin))
-                      !$omp parallel default(none) private(ii,irow,icol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
-                      !$omp shared(tmb,hamscal_compr,scale_factor,shift_value,isshift,imshift)
-                      !$omp do
-                      do ii=1,tmb%linmat%l%nvctr
-                          irow = tmb%linmat%l%orb_from_index(1,ii)
-                          icol = tmb%linmat%l%orb_from_index(2,ii)
-                          iismall_ovrlp = matrixindex_in_compressed(tmb%linmat%s, irow, icol)
-                          iismall_ham = matrixindex_in_compressed(tmb%linmat%m, irow, icol)
-                          if (iismall_ovrlp>0) then
-                              tt_ovrlp=tmb%linmat%ovrlp_%matrix_compr(isshift+iismall_ovrlp)
-                          else
-                              tt_ovrlp=0.d0
-                          end if
-                          if (iismall_ham>0) then
-                              tt_ham=tmb%linmat%ham_%matrix_compr(imshift+iismall_ham)
-                          else
-                              tt_ham=0.d0
-                          end if
-                          hamscal_compr(ii)=scale_factor*(tt_ham-shift_value*tt_ovrlp)
-                      end do
-                      !$omp end do
-                      !$omp end parallel
+                      call scale_and_shift_hamiltonian()
                       calculate_SHS=.true.
                   else
                       calculate_SHS=.false.
@@ -1066,6 +1043,35 @@ subroutine foe(iproc, nproc, tmprtr, &
         end if
 
       end subroutine check_eigenvalue_spectrum
+
+
+      subroutine scale_and_shift_hamiltonian()
+        implicit none
+        scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
+        shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh",ispin)+foe_data_get_real(foe_obj,"evlow",ispin))
+        !$omp parallel default(none) private(ii,irow,icol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
+        !$omp shared(tmb,hamscal_compr,scale_factor,shift_value,isshift,imshift)
+        !$omp do
+        do ii=1,tmb%linmat%l%nvctr
+            irow = tmb%linmat%l%orb_from_index(1,ii)
+            icol = tmb%linmat%l%orb_from_index(2,ii)
+            iismall_ovrlp = matrixindex_in_compressed(tmb%linmat%s, irow, icol)
+            iismall_ham = matrixindex_in_compressed(tmb%linmat%m, irow, icol)
+            if (iismall_ovrlp>0) then
+                tt_ovrlp=tmb%linmat%ovrlp_%matrix_compr(isshift+iismall_ovrlp)
+            else
+                tt_ovrlp=0.d0
+            end if
+            if (iismall_ham>0) then
+                tt_ham=tmb%linmat%ham_%matrix_compr(imshift+iismall_ham)
+            else
+                tt_ham=0.d0
+            end if
+            hamscal_compr(ii)=scale_factor*(tt_ham-shift_value*tt_ovrlp)
+        end do
+        !$omp end do
+        !$omp end parallel
+      end subroutine scale_and_shift_hamiltonian
 
 end subroutine foe
 
