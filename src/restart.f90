@@ -927,7 +927,7 @@ END SUBROUTINE writeLinearCoefficients
 
 
 !> Write Hamiltonian, overlap and kernel matrices in tmb basis
-subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
+subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tmb,at,rxyz)
   use module_types
   use module_base
   use yaml_output
@@ -935,7 +935,7 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
   use sparsematrix, only: uncompress_matrix
   implicit none
-  integer, intent(in) :: iproc,nproc,iformat
+  integer, intent(in) :: iproc,nproc,imethod_overlap,iformat
   character(len=*), intent(in) :: filename 
   type(DFT_wavefunction), intent(inout) :: tmb
   type(atoms_data), intent(inout) :: at
@@ -1051,7 +1051,7 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
   tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, &
                              id='tmb%linmat%ovrlp_%matrix')
 
-  call tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
+  call tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   !call tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
 
   if (iproc==0) then
@@ -1087,7 +1087,7 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
 end subroutine write_linear_matrices
 
 
-subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
+subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
 
   use module_base
   use module_types
@@ -1099,7 +1099,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
+  integer,intent(in) :: iproc, nproc, imethod_overlap
   type(atoms_data), intent(inout) :: at
   type(DFT_wavefunction),intent(in):: tmb
   real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz
@@ -1245,7 +1245,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
 
   !call nullify_comms_linear(collcom_tmp)
   collcom_tmp=comms_linear_null()
-  call init_comms_linear(iproc, nproc, ndim_tmp, tmb%orbs, lzd_tmp, tmb%linmat%m%nspin, collcom_tmp)
+  call init_comms_linear(iproc, nproc, imethod_overlap, ndim_tmp, tmb%orbs, lzd_tmp, tmb%linmat%m%nspin, collcom_tmp)
 
   psit_c_tmp = f_malloc_ptr(sum(collcom_tmp%nrecvcounts_c),id='psit_c_tmp')
   psit_f_tmp = f_malloc_ptr(7*sum(collcom_tmp%nrecvcounts_f),id='psit_f_tmp')

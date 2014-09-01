@@ -408,6 +408,7 @@ module module_types
      type(fragmentInputParameters) :: frag !< Fragment data
      logical :: store_index                !< (LS) Store indices of the sparse matrices or recalculate them 
      integer :: check_sumrho               !< (LS) Perform a check of sumrho (no check, light check or full check)
+     integer :: check_overlap              !< (LS) Perform a check of the overlap calculation
      logical :: experimental_mode          !< (LS) Activate the experimental mode
      logical :: write_orbitals             !< (LS) Write KS orbitals for cubic restart
      logical :: explicit_locregcenters     !< (LS) Explicitely specify localization centers
@@ -452,6 +453,9 @@ module module_types
 
      !> linear scaling: Restart method to be used for the FOE method
      integer :: FOE_restart
+
+     !> linear scaling: method to calculate the overlap matrices (1=old, 2=new)
+     integer :: imethod_overlap
 
   end type input_variables
 
@@ -2702,6 +2706,9 @@ contains
        case (CHECK_SUMRHO)
           in%check_sumrho = val
           !  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
+       case (CHECK_OVERLAP)
+          ! perform a check of the overlap calculation
+          in%check_overlap = val
        case (EXPERIMENTAL_MODE)
           in%experimental_mode = val
        case (WRITE_ORBITALS)
@@ -2755,6 +2762,9 @@ contains
        case (FOE_RESTART)
            ! linear scaling: Restart method to be used for the FOE method
            in%FOE_restart = val
+       case (IMETHOD_OVERLAP)
+           ! linear scaling: method to calculate the overlap matrices (1=old, 2=new)
+           in%imethod_overlap = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

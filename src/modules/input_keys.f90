@@ -148,6 +148,7 @@ module module_input_keys
   character(len = *), parameter, public :: ITERATIVE_ORTHOGONALIZATION = "iterative_orthogonalization"
   character(len = *), parameter, public :: MULTIPOLE_PRESERVING = "multipole_preserving"
   character(len = *), parameter, public :: CHECK_SUMRHO = "check_sumrho"
+  character(len = *), parameter, public :: CHECK_OVERLAP = "check_overlap"
   character(len = *), parameter, public :: EXPERIMENTAL_MODE = "experimental_mode"
   character(len = *), parameter, public :: WRITE_ORBITALS = "write_orbitals"
   character(len = *), parameter, public :: EXPLICIT_LOCREGCENTERS = "explicit_locregcenters"
@@ -163,6 +164,7 @@ module module_input_keys
   character(len = *), parameter, public :: LOEWDIN_CHARGE_ANALYSIS = "loewdin_charge_analysis"
   character(len = *), parameter, public :: CHECK_MATRIX_COMPRESSION = "check_matrix_compression"
   character(len = *), parameter, public :: CORRECTION_CO_CONTRA = "correction_co_contra"
+  character(len = *), parameter, public :: IMETHOD_OVERLAP = "imethod_overlap"
 
   !keys for linear input variables
   !level keys

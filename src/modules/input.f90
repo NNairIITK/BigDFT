@@ -1752,6 +1752,9 @@ contains
     call input_var("check_sumrho", 2, (/0,1,2/), "linear sumrho: 0=no check, 1=light check, 2=full check", dummy_int)
     call set(dict // CHECK_SUMRHO, dummy_int)
 
+    call input_var("check_overlap", 2, (/0,1,2/), "linear overlap: 0=no check, 1=light check, 2=full check", dummy_int)
+    call set(dict // CHECK_OVERLAP, dummy_int)
+
     call input_var("experimental_mode", .false., "linear scaling: activate the experimental mode", dummy_bool)
     call set(dict // EXPERIMENTAL_MODE, dummy_bool)
 
@@ -1803,6 +1806,8 @@ contains
     call input_var("fscale_upperbound", 5.d-2, "upper bound for the error function decay length", dummy_real)
     call set(dict // FSCALE_UPPERBOUND, dummy_real)
 
+    call input_var("imethod_overlap", 1, (/1,2/), "lin scaling method to calculate overlap matrix (1:old, 2:new)", dummy_int)
+    call set(dict // IMETHOD_OVERLAP, dummy_int)
 
     call input_free(.false.)
 

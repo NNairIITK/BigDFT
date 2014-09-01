@@ -22,13 +22,13 @@ module communications_init
 
   contains
 
-    subroutine init_comms_linear(iproc, nproc, npsidim_orbs, orbs, lzd, nspin, collcom)
+    subroutine init_comms_linear(iproc, nproc, imethod_overlap, npsidim_orbs, orbs, lzd, nspin, collcom)
       use module_base
       use module_types
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, npsidim_orbs, nspin
+      integer,intent(in) :: iproc, nproc, imethod_overlap, npsidim_orbs, nspin
       type(orbitals_data),intent(in) :: orbs
       type(local_zone_descriptors),intent(in) :: lzd
       type(comms_linear),intent(inout) :: collcom
@@ -44,6 +44,9 @@ module communications_init
       call timing(iproc,'init_collcomm ','ON')
     
       call f_routine('init_comms_linear')
+
+      ! method to calculate the overlap
+      collcom%imethod_overlap = imethod_overlap
     
       weight_c=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/),id='weight_c')
       weight_f=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/),id='weight_f')
@@ -103,7 +106,7 @@ module communications_init
       call f_free(weight_f)
     
     
-      call get_switch_indices(iproc, nproc, orbs, lzd, &
+      call get_switch_indices(iproc, nproc, orbs, lzd, nspin, &
            collcom%nptsp_c, collcom%nptsp_f, collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f, &
            collcom%ndimpsi_c, collcom%ndimpsi_f, istartend_c, istartend_f, &
            collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%ndimind_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
@@ -900,7 +903,8 @@ module communications_init
 
 
 
-    subroutine get_switch_indices(iproc, nproc, orbs, lzd, nptsp_c, nptsp_f, norb_per_gridpoint_c, norb_per_gridpoint_f, &
+    subroutine get_switch_indices(iproc, nproc, orbs, lzd, nspin, &
+               nptsp_c, nptsp_f, norb_per_gridpoint_c, norb_per_gridpoint_f, &
                ndimpsi_c, ndimpsi_f, istartend_c, istartend_f, &
                nsendcounts_c, nsenddspls_c, ndimind_c, nrecvcounts_c, nrecvdspls_c, &
                nsendcounts_f, nsenddspls_f, ndimind_f, nrecvcounts_f, nrecvdspls_f, &
@@ -912,7 +916,7 @@ module communications_init
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, nptsp_c, nptsp_f, ndimpsi_c, ndimpsi_f, ndimind_c,ndimind_f
+      integer,intent(in) :: iproc, nproc, nspin, nptsp_c, nptsp_f, ndimpsi_c, ndimpsi_f, ndimind_c,ndimind_f
       type(orbitals_data),intent(in) :: orbs
       type(local_zone_descriptors),intent(in) :: lzd
       integer,dimension(nptsp_c),intent(in):: norb_per_gridpoint_c
@@ -951,8 +955,10 @@ module communications_init
       weight_f = f_malloc((/ 0.to.lzd%glr%d%n1, 0.to.lzd%glr%d%n2, 0.to.lzd%glr%d%n3 /),id='weight_f')
       gridpoint_start_c = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_c')
       gridpoint_start_f = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_f')
-      gridpoint_start_tmp_c = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_tmp_c')
-      gridpoint_start_tmp_f = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_tmp_f')
+      if (nspin==2) then
+          gridpoint_start_tmp_c = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_tmp_c')
+          gridpoint_start_tmp_f = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_tmp_f')
+      end if
       gridpoint_start_c=-1
       gridpoint_start_f=-1
     
@@ -1162,25 +1168,36 @@ module communications_init
 
 
 
-      gridpoint_start_tmp_c=gridpoint_start_c
-      gridpoint_start_tmp_f=gridpoint_start_f
+      if (nspin==2) then
+          gridpoint_start_tmp_c=gridpoint_start_c
+          gridpoint_start_tmp_f=gridpoint_start_f
+      end if
         
     
       if(maxval(gridpoint_start_c)>sum(nrecvcounts_c)) stop '1: maxval(gridpoint_start_c)>sum(nrecvcounts_c)'
       if(maxval(gridpoint_start_f)>sum(nrecvcounts_f)) stop '1: maxval(gridpoint_start_f)>sum(nrecvcounts_f)'
+
       ! Rearrange the communicated data
-      do i=1,sum(nrecvcounts_c)
-          ii=indexrecvbuf_c(i)
-          ind=gridpoint_start_c(ii)
-          if (gridpoint_start_c(ii)-gridpoint_start_tmp_c(ii)+1>norb_per_gridpoint_c(ii-istartend_c(1,iproc)+1)) then
-              ! orbitals which fulfill this condition are down orbitals which should be put at the end
-              !ind = ind + ((ndimind_c+ndimind_f)/2-norb_per_gridpoint_c(ii-istartend_c(1,iproc)+1))
-              ind = ind + (ndimind_c/2-norb_per_gridpoint_c(ii-istartend_c(1,iproc)+1))
-          end if
-          !if(ind==0) stop 'ind is zero!'
-          iextract_c(i)=ind
-          gridpoint_start_c(ii)=gridpoint_start_c(ii)+1  
-      end do
+      if (nspin==1) then
+          do i=1,sum(nrecvcounts_c)
+              ii=indexrecvbuf_c(i)
+              ind=gridpoint_start_c(ii)
+              iextract_c(i)=ind
+              gridpoint_start_c(ii)=gridpoint_start_c(ii)+1  
+          end do
+      else
+          do i=1,sum(nrecvcounts_c)
+              ii=indexrecvbuf_c(i)
+              ind=gridpoint_start_c(ii)
+              if (gridpoint_start_c(ii)-gridpoint_start_tmp_c(ii)+1>norb_per_gridpoint_c(ii-istartend_c(1,iproc)+1)) then
+                  ! orbitals which fulfill this condition are down orbitals which should be put at the end
+                  !ind = ind + ((ndimind_c+ndimind_f)/2-norb_per_gridpoint_c(ii-istartend_c(1,iproc)+1))
+                  ind = ind + (ndimind_c/2-norb_per_gridpoint_c(ii-istartend_c(1,iproc)+1))
+              end if
+              iextract_c(i)=ind
+              gridpoint_start_c(ii)=gridpoint_start_c(ii)+1  
+          end do
+      end if
       !write(*,'(a,2i12)') 'sum(iextract_c), nint(weightp_c*(weightp_c+1.d0)*.5d0)', sum(iextract_c), nint(weightp_c*(weightp_c+1.d0)*.5d0)
       !if(sum(iextract_c)/=nint(weightp_c*(weightp_c+1.d0)*.5d0)) stop 'sum(iextract_c)/=nint(weightp_c*(weightp_c+1.d0)*.5d0)'
       if(maxval(iextract_c)>sum(nrecvcounts_c)) then
@@ -1189,18 +1206,25 @@ module communications_init
       if(minval(iextract_c)<1) stop 'minval(iextract_c)<1'
     
       ! Rearrange the communicated data
-      iextract_f = 0
-      do i=1,sum(nrecvcounts_f)
-          ii=indexrecvbuf_f(i)
-          ind=gridpoint_start_f(ii)
-          if (gridpoint_start_f(ii)-gridpoint_start_tmp_f(ii)+1>norb_per_gridpoint_f(ii-istartend_f(1,iproc)+1)) then
-              ! orbitals which fulfill this condition are down orbitals which should be put at the end
-              ind = ind + (ndimind_f/2-norb_per_gridpoint_f(ii-istartend_f(1,iproc)+1))
-          end if
-          !if(ind==0) stop 'ind is zero!'
-          iextract_f(i)=ind
-          gridpoint_start_f(ii)=gridpoint_start_f(ii)+1  
-      end do
+      if (nspin==1) then
+          do i=1,sum(nrecvcounts_f)
+              ii=indexrecvbuf_f(i)
+              ind=gridpoint_start_f(ii)
+              iextract_f(i)=ind
+              gridpoint_start_f(ii)=gridpoint_start_f(ii)+1  
+          end do
+      else
+          do i=1,sum(nrecvcounts_f)
+              ii=indexrecvbuf_f(i)
+              ind=gridpoint_start_f(ii)
+              if (gridpoint_start_f(ii)-gridpoint_start_tmp_f(ii)+1>norb_per_gridpoint_f(ii-istartend_f(1,iproc)+1)) then
+                  ! orbitals which fulfill this condition are down orbitals which should be put at the end
+                  ind = ind + (ndimind_f/2-norb_per_gridpoint_f(ii-istartend_f(1,iproc)+1))
+              end if
+              iextract_f(i)=ind
+              gridpoint_start_f(ii)=gridpoint_start_f(ii)+1  
+          end do
+      end if
       if(maxval(iextract_f)>sum(nrecvcounts_f)) stop 'maxval(iextract_f)>sum(nrecvcounts_f)'
       if(minval(iextract_f)<1) stop 'minval(iextract_f)<1'
     
@@ -1243,8 +1267,10 @@ module communications_init
       call f_free(weight_f)
       call f_free(gridpoint_start_c)
       call f_free(gridpoint_start_f)
-      call f_free(gridpoint_start_tmp_c)
-      call f_free(gridpoint_start_tmp_f)
+      if (nspin==2) then
+          call f_free(gridpoint_start_tmp_c)
+          call f_free(gridpoint_start_tmp_f)
+      end if
       call f_free(nsend_c)
       call f_free(nsend_f)
 
