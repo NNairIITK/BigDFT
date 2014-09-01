@@ -91,18 +91,28 @@ contains
             write(u,'(es10.3,1x,es10.3,1x,a)')en_delta_min,fp_delta_min,' #en_delta_min, fp_delta_min'
             write(u,'(es10.3,1x,es10.3,1x,a)')en_delta_sad,fp_delta_sad,' #en_delta_sad, fp_delta_sad'
             write(u,'(1x,L,1x,a)')saddle_biomode,' #biomode'
-            write(u,'(1x,es10.3,1x,a)') lst_interpol_stepfrct,' #inward interpolation distance as fraction of initial distance'
-            write(u,'(1x,es10.3,1x,a)') ts_guess_gammainv,' #step size for perpedicular optimization in freezing string method'
-            write(u,'(1x,es10.3,1x,a)') ts_guess_perpnrmtol,' #convergence criterion perpedicular force in freezing string method (disable perpend. optim. by setting this value to a negative number)'
-            write(u,'(1x,es10.3,1x,a)') ts_guess_trust,' #trust radius freezing string method (maximum change of any coordinate'
-            write(u,'(1x,i0,1x,a)') ts_guess_nstepsmax,' #maximum number of steps in perpendicular optimization in freezing stringmethod'
-            write(u,'(1x,es10.3,1x,es10.3,1x,a)')lst_dt_max, lst_fmax_tol, '#max. time step in fire optimizer of lst function, convergence criterion'
+            write(u,'(1x,es10.3,1x,a)') lst_interpol_stepfrct, &
+                ' #inward interpolation distance as fraction of initial distance'
+            write(u,'(1x,es10.3,1x,a)') ts_guess_gammainv, &
+                ' #step size for perpedicular optimization in freezing string method'
+            write(u,'(1x,es10.3,1x,a)') ts_guess_perpnrmtol, &
+                ' #convergence criterion perpedicular force in freezing string method &
+                &(disable perpend. optim. by setting this value to a negative number)'
+            write(u,'(1x,es10.3,1x,a)') ts_guess_trust, &
+                ' #trust radius freezing string method (maximum change of any coordinate'
+            write(u,'(1x,i0,1x,a)') ts_guess_nstepsmax, &
+                ' #maximum number of steps in perpendicular optimization in freezing stringmethod'
+            write(u,'(1x,es10.3,1x,es10.3,1x,a)')lst_dt_max, lst_fmax_tol, &
+                '#max. time step in fire optimizer of lst function, convergence criterion'
             write(u,'(1x,i0,1x,i0,1x,a)')saddle_nit_trans, saddle_nit_rot,'  #nit_trans, not_rot'
             write(u,'(1x,i0,1x,i0,1x,a)')saddle_nhistx_trans, saddle_nhistx_rot,' #nhistx_trans, nhistx_rot'
-            write(u,'(es10.3,1x,es10.3,a)')saddle_steepthresh_trans,saddle_steepthresh_rot,' #saddle_steepthresh_trans,saddle_steepthresh_rot'
+            write(u,'(es10.3,1x,es10.3,a)')saddle_steepthresh_trans,saddle_steepthresh_rot, &
+                ' #saddle_steepthresh_trans,saddle_steepthresh_rot'
             write(u,'(es10.3,1x,a)')saddle_fnrmtol,' #fnrm tolerence convergence criterion for saddle point'
             if(saddle_biomode)then
-                write(u,'(es10.3,3(1x,es10.3),a)')saddle_alpha0_trans, saddle_alpha0_rot, saddle_alpha_stretch0, saddle_alpha_rot_stretch0,' #alpha0_trans, alpha0_rot, alpha_stretch0, alpha_rot_stretch0'
+                write(u,'(es10.3,3(1x,es10.3),a)')saddle_alpha0_trans, saddle_alpha0_rot, &
+                    saddle_alpha_stretch0, saddle_alpha_rot_stretch0, &
+                    ' #alpha0_trans, alpha0_rot, alpha_stretch0, alpha_rot_stretch0'
             else
                 write(u,'(es10.3,1x,es10.3,a)')saddle_alpha0_trans, saddle_alpha0_rot,' #alpha0_trans, alpha0_rot'
             endif
