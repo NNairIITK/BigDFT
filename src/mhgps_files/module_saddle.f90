@@ -730,7 +730,10 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT mino
 !        &it-1,curvp,curvold,dcurv,fnrm,alpha,alpha_stretch,ndim
 
 overlap=ddot(3*nat,dxyzin0(1,1),1,rxyz(1,1,nhist),1)
-if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,1x,es21.14,4(1x,es9.2),xi3.3,2(1x,es9.2))')'   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap
+if(iproc==0.and.mhgps_verbosity>=2) then
+    write(*,'(a,xi4.4,xi4.4,1x,es21.14,4(1x,es9.2),xi3.3,2(1x,es9.2))')'   (MHGPS) CUOPT ', &
+        nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap
+end if
 !HIER WEITER HIER WEITER: beautify output
 
         if (dcurv.gt.maxcurvrise .and. alpha>1.e-1_gp*alpha0) then 
@@ -745,12 +748,14 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,1x,es21.14,4(1x,es9.2
             ndim=0
         if(.not. isForceField)then
             if(iproc==0 .and. mhgps_verbosity>=3)&
-                call yaml_comment('INFO: (MHGPS) Will use LCAO input guess from now on (until end of current minmode optimization).')
+                call yaml_comment('INFO: (MHGPS) Will use LCAO input guess from now on &
+                &(until end of current minmode optimization).')
             inputPsiId=0
             call mincurvforce(imode,nat,alat,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist-1),&
                 rxyzraw(1,1,nhist-1),fxyz(1,1,nhist-1),fstretch(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
                 curvold,1,ener_count,iconnect,nbond,wold,alpha_stretch0,alpha_stretch)
-if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,1x,es21.14,4(1x,es9.2),xi3.3,1x,es9.2)')'   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch
+if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,1x,es21.14,4(1x,es9.2),xi3.3,1x,es9.2)')'   (MHGPS) CUOPT ', &
+    nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch
         endif
 
 !            if(.not.steep)then
