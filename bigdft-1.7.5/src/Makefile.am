@@ -291,7 +291,6 @@ MDanalysis_SOURCES = distances.f90
 MDanalysis_LDADD = $(bigdft_library)
 
 abscalc_SOURCES = abscalc.f90 
-abscalc_FCFLAGS = -I$(top_srcdir)/PSolver/src
 abscalc_LDADD = libabscalc.a $(bigdft_library) @LINALG_LIBS@
 
 test_forces_SOURCES = test_forces.f90
@@ -381,6 +380,7 @@ $(gir_DATA): $(G_IR_SCANNER) $(bigdft_library)
 		--no-libtool \
 		-DGLIB_MAJOR_VERSION=2 -L$(builddir) \
 		-I$(srcdir)/modules -I$(builddir)/modules \
+		@LIB_XC_LIBS@ \
 		$(srcdir)/modules/bigdft.h \
 		$(srcdir)/modules/bigdft_input_keys.h \
 		$(builddir)/modules/bigdft_cst.h \
