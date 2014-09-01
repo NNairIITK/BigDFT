@@ -338,7 +338,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
   logical :: ovrlp_allocated, inv_ovrlp_allocated
 
   ! new for sparse taylor
-  integer :: nout, nseq, nmaxsegk, nmaxval, ispin, ishift, isshift, ilshift, nspin
+  integer :: nout, nseq, ispin, ishift, isshift, ilshift, nspin
   integer,dimension(:),allocatable :: ivectorindex
   integer,dimension(:,:),pointer :: onedimindices
   integer,dimension(:,:,:),allocatable :: istindexarr
@@ -2799,7 +2799,7 @@ subroutine overlap_minus_one_half_serial(iproc, nproc, iorder, power, blocksize,
   logical :: ovrlp_allocated, inv_ovrlp_allocated
 
   ! new for sparse taylor
-  integer :: nout, nseq, nmaxsegk, nmaxval
+  integer :: nout, nseq
   integer,dimension(:),allocatable :: ivectorindex
   integer,dimension(:,:),pointer :: onedimindices
   integer,dimension(:,:,:),allocatable :: istindexarr

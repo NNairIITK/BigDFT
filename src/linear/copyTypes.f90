@@ -903,8 +903,6 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
 
   sparsemat_out%smmm%nout = sparsemat_in%smmm%nout
   sparsemat_out%smmm%nseq = sparsemat_in%smmm%nseq
-  sparsemat_out%smmm%nmaxsegk = sparsemat_in%smmm%nmaxsegk
-  sparsemat_out%smmm%nmaxvalk = sparsemat_in%smmm%nmaxvalk
   sparsemat_out%smmm%nseg = sparsemat_in%smmm%nseg
   
   if(associated(sparsemat_out%smmm%ivectorindex)) then
@@ -1096,8 +1094,6 @@ subroutine copy_sparse_matrix_matrix_multiplication(smmm_in, smmm_out)
   type(sparse_matrix_matrix_multiplication),intent(out) :: smmm_out
   smmm_out%nout = smmm_in%nout
   smmm_out%nseq = smmm_in%nseq
-  smmm_out%nmaxsegk = smmm_in%nmaxsegk
-  smmm_out%nmaxvalk = smmm_in%nmaxvalk
   smmm_out%nseg = smmm_in%nseg
 
   call allocate_and_copy(smmm_in%ivectorindex, smmm_out%ivectorindex, id='ivectorindex')

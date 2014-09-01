@@ -1066,7 +1066,7 @@ O2spin_foe:
  ebs_check: 2.6e-9
  Omega: 2.3e-9
  energy: 2.6e-9
- Raw forces norm (Ha/Bohr): 2.6e-9
+ Raw forces norm (Ha/Bohr): 2.7e-9
  Clean forces norm (Ha/Bohr): 2.7e-9
  Average noise forces: 2.6e-9
  Total charge: 2.4e-9
@@ -1080,7 +1080,7 @@ O2spin_dirmin:
  Electric Dipole Moment (AU): 2.4e-5
  Electric Dipole Moment (Debye): 2.4e-5
  eBS: 1.8e-6
- fnrm: 2.1e-7
+ fnrm: 2.1e-6
  EH: 3.1e-6
  EXC: 3.6e-7
  Ekin: 2.4e-6
@@ -1094,4 +1094,4 @@ O2spin_dirmin:
  D: 1.1e-6
  DIIS weights: 1.1
  Max deviation from unity in reorthonormalize_coeff: 1.1e-7
- Mean deviation from unity in reorthonormalize_coeff: 2.1e-8
+ Mean deviation from unity in reorthonormalize_coeff: 1.1e-7

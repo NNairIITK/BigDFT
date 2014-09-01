@@ -23,7 +23,7 @@ module sparsematrix_base
 
   !> Contains the parameters needed for the sparse matrix matrix multiplication
   type,public :: sparse_matrix_matrix_multiplication
-      integer :: nout, nseq, nmaxsegk, nmaxvalk, nseg
+      integer :: nout, nseq, nseg
       integer,dimension(:),pointer :: ivectorindex, nsegline, istsegline, indices_extract_sequential
       integer,dimension(:,:),pointer :: onedimindices, keyg
   end type sparse_matrix_matrix_multiplication

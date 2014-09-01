@@ -817,7 +817,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
           integer,dimension(:),allocatable :: ivectorindex
           integer,dimension(:,:,:),allocatable :: istindexarr
-          integer :: nout, nseq, nmaxsegk, nmaxvalk
+          integer :: nout, nseq
 
           call f_routine(id='retransform')
 
