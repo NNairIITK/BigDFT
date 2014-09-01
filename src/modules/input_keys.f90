@@ -29,7 +29,7 @@ module module_input_keys
   character(len = *), parameter, public :: ELECFIELD = "elecfield"
   character(len = *), parameter, public :: NSPIN = "nspin", MPOL = "mpol"
   character(len = *), parameter, public :: GNRM_CV = "gnrm_cv"
-  character(len = *), parameter, public :: ITERMAX = "itermax", NREPMAX = "nrepmax"
+  character(len = *), parameter, public :: ITERMAX = "itermax",ITERMIN = "itermin", NREPMAX = "nrepmax"
   character(len = *), parameter, public :: NCONG = "ncong", IDSX = "idsx"
   character(len = *), parameter, public :: DISPERSION = "dispersion"
   character(len = *), parameter, public :: INPUTPSIID = "inputpsiid"
@@ -86,6 +86,8 @@ module module_input_keys
   character(len = *), parameter, public :: NIMG = "nimg"
   !SBFGS parameters:
   character(len = *), parameter, public :: NHISTX = "nhistx"
+  character(len = *), parameter, public :: BIOMODE = "biomode"
+  character(len = *), parameter, public :: BETA_STRETCHX = "beta_stretchx"
   character(len = *), parameter, public :: MAXRISE = "maxrise"
   character(len = *), parameter, public :: CUTOFFRATIO = "cutoffratio"
   character(len = *), parameter, public :: STEEPTHRESH = "steepthresh"
@@ -193,7 +195,6 @@ module module_input_keys
   character(len=*), parameter, public :: NSTEP_PREC      ='nstep_prec'
   character(len=*), parameter, public :: EVAL_RANGE_FOE  ='eval_range_foe'
   character(len=*), parameter, public :: FSCALE_FOE      ='fscale_foe'
-!  character(len=*), parameter, public :: BASIS_PARAMS    ='basis_params'
   character(len=*), parameter, public :: AO_CONFINEMENT  ='ao_confinement'
   character(len=*), parameter, public :: CONFINEMENT     ='confinement'
   character(len=*), parameter, public :: RLOC            ='rloc'
@@ -1017,6 +1018,7 @@ contains
       logical :: set_
 
       integer :: j
+      type(dictionary), pointer :: tmp
       character(max_field_length) :: mkey, val_master, val_when
 
       set_ = .true.
@@ -1028,8 +1030,9 @@ contains
          end if
          val_master = dict // mkey
          set_ = .false.
-         do j = 0, dict_len(ref // COND // WHEN) - 1, 1
-            val_when = ref // COND // WHEN // j
+         tmp => ref // COND // WHEN
+         do j = 0, dict_len(tmp) - 1, 1
+            val_when = tmp // j
             set_ = set_ .or. &
                  & (input_keys_equal(trim(val_master), trim(val_when)))
          end do

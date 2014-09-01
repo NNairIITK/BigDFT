@@ -8,9 +8,9 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 !> Routine used to flush a unit file
-subroutine bigdft_utils_flush(unit)
+subroutine f_utils_flush(unit)
   implicit none
   integer, intent(in) :: unit !< Unit file
 
   ! Do nothing because the compiler does not support flush.
-end subroutine bigdft_utils_flush
+end subroutine f_utils_flush

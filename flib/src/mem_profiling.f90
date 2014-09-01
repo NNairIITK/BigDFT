@@ -78,14 +78,17 @@ contains
   !! The status can only be downgraded. A stop signal is produced if status is increased
   subroutine memocc_set_state(istatus)
     !> 0 no file malloc.prc is created, only memory allocation counters running
-    !! 1 file malloc.prc is created in a light version (only current information is written)
+    !! 1 file malloc.prc is created in a light version (only current information is written) (this version is now eliminated, equal to 0 functionality)
     !! 2 file malloc.prc is created with full information inside (default state if not specified)
+    use yaml_output, only: yaml_warning
     integer, intent(in) :: istatus
     !local variable
-    integer :: istat_del
+    logical :: linq
+    integer :: istat_del,ierr
     if (istatus > malloc_level) then
        !here we should replace by yaml_warning
        !write(7,*) 'WARNING: malloc_level can be only downgraded, ignoring'
+       call yaml_warning('malloc_level can be only downgraded, ignoring')
        return
     end if
 
@@ -93,23 +96,33 @@ contains
 
     if (istatus == 2) return !the default situation
 
-    if (istatus == 1 .and. memproc==0) then 
-       !clean the file situation (delete the previously existing file)
-       close(unit=mallocFile)                        
-       !call delete(trim(filename),len(trim(filename)),istat_del)
-       if (trim(filename) == "") then
-          open(unit=mallocFile,file="malloc.prc",status='unknown',action='write')
-       else
-          open(unit=mallocFile,file=trim(filename),status='unknown',action='write')
-       end if
-    end if
+    !inquire for unit opened
+    linq=.false.
+    inquire(unit=mallocFile,opened=linq,iostat=ierr)
+    linq= linq .and. ierr==0
 
-    if (istatus == 0 .and. memproc==0) then
+!!$    if (istatus == 1 .and. memproc==0) then 
+!!$       !clean the file situation (delete the previously existing file)
+!!$       if (linq) close(unit=mallocFile)                        
+!!$       !call delete(trim(filename),len(trim(filename)),istat_del)
+!!$       if (len_trim(filename) == 0) then
+!!$          open(unit=mallocFile,file="malloc.prc",status='unknown',action='write')
+!!$       else
+!!$          open(unit=mallocFile,file=trim(filename),status='unknown',action='write')
+!!$       end if
+!!$    end if
+
+    if (istatus <= 1 .and. memproc==0) then
        !the file should be deleted
-       close(unit=mallocFile)
+       if (linq) close(unit=mallocFile)
        !open(unit=mallocFile,file='malloc.prc',status='replace')
        !close(unit=mallocFile)
-       call delete(trim(filename),len(trim(filename)),istat_del)
+       linq=.false.
+       if (len_trim(filename) /= 0) then
+          inquire(file=trim(filename),exist=linq,iostat=ierr)
+          linq = linq .and. ierr ==0
+          if (linq) call delete(trim(filename),len(trim(filename)),istat_del)
+       end if
     end if
   end subroutine memocc_set_state
 
@@ -132,8 +145,18 @@ contains
 
   end subroutine memocc_set_filename
 
-  subroutine memocc_report()
-    call memocc(0,0,'count', 'stop')
+  subroutine memocc_report(dump)
+    implicit none
+    logical, intent(in), optional :: dump
+    !local variables
+    logical :: dmp
+    dmp=.true.
+    if (present(dump)) dmp=dump
+    if (dmp) then
+       call memocc(0, 0,'count','stop')
+    else
+       call memocc(0,-1,'count','stop')
+    end if
   end subroutine memocc_report
 
   !> Put to zero memocc counters
@@ -154,7 +177,7 @@ contains
   subroutine memocc_open_file()
     open(unit=mallocFile,file=trim(filename),status='unknown')
     !if (memdebug) then
-    write(mallocFile,'(a,t40,a,t70,4(1x,a12))')&
+    write(mallocFile ,'(a,t40,a,t70,4(1x,a12))')&
          '(Data in KB) Routine','Array name    ',&
          'Array size','Total Memory'
     !else
@@ -184,6 +207,7 @@ contains
 
     ! Local variables
     !logical :: lmpinit
+    logical :: linq
     integer :: ierr,istat_del,impinit
     character(len=256) :: message
 
@@ -194,7 +218,7 @@ contains
     if (.not.meminit) then
        !the mpi routines have to be eliminated
        call memocc_variables_init()
-       if (trim(routine) /= "stop") then
+       if (trim(routine) /= 'stop') then
           !Use MPI to have the mpi rank
           call MPI_INITIALIZED(impinit,ierr)
           if (impinit /= 0) then
@@ -205,7 +229,7 @@ contains
           end if
 
           !open the writing file for the root process
-          if (memproc == 0 .and. malloc_level > 0) then
+          if (memproc == 0 .and. malloc_level > 1) then
              if (len(trim(filename))==0) then
                 filename='malloc.prc'
              end if
@@ -218,7 +242,10 @@ contains
     select case(array)
     case('count')
        if (trim(routine)=='stop' .and. memproc==0) then
-          if (malloc_level > 0) then
+          linq=.false.
+          inquire(unit=mallocFile,opened=linq,iostat=ierr)
+          linq= linq .and. ierr==0
+          if (malloc_level > 1 .and. linq) then
              if (malloc_level == 1) rewind(mallocFile)
              write(mallocFile,'(a,t40,a,t70,4(1x,i12))')&
                   trim(memloc%routine),trim(memloc%array),&
@@ -227,20 +254,23 @@ contains
                   (memtot%peak+memloc%peak-memloc%memory)/int(1024,kind=8)
              close(unit=mallocFile)
           end if
-          call yaml_mapping_open('Memory Consumption Report')
-          call yaml_map('Tot. No. of Allocations',memalloc)
-          call yaml_map('Tot. No. of Deallocations',memdealloc)
-          call yaml_map('Remaining Memory (B)',memtot%memory)
-          call yaml_mapping_open('Memory occupation')
-          call yaml_map('Peak Value (MB)',memtot%peak/int(1048576,kind=8))
-          call yaml_map('for the array',trim(memtot%array))
-          call yaml_map('in the routine',trim(memtot%routine))
-          call yaml_mapping_close()
-          call yaml_mapping_close()
+          if (isize /= -1) then
+             call yaml_mapping_open('Memory Consumption Report')
+             call yaml_map('Tot. No. of Allocations',memalloc)
+             call yaml_map('Tot. No. of Deallocations',memdealloc)
+             call yaml_map('Remaining Memory (B)',memtot%memory)
+             call yaml_mapping_open('Memory occupation')
+             call yaml_map('Peak Value (MB)',memtot%peak/int(1048576,kind=8))
+             call yaml_map('for the array',trim(memtot%array))
+             call yaml_map('in the routine',trim(memtot%routine))
+             call yaml_mapping_close()
+             call yaml_mapping_close()
+          end if
 
           !here we can add a routine which open the malloc.prc file in case of some 
           !memory allocation problem, and which eliminates it for a successful run
-          if (malloc_level == 1 .and. memalloc == memdealloc .and. memtot%memory==int(0,kind=8)) then
+          if (malloc_level == 1 .and. memalloc == memdealloc .and.&
+               memtot%memory==int(0,kind=8)) then
              !remove file 
              call delete(trim(filename),len(trim(filename)),istat_del)
           else
@@ -256,7 +286,7 @@ contains
     case default
        !control of the allocation/deallocation status (to be removed once f_malloc has been inserted)
        if (istat/=0) then
-          if (memproc == 0 .and. malloc_level > 0) close(unit=mallocFile)
+          if (memproc == 0 .and. malloc_level > 1) close(unit=mallocFile)
           write(message,'(1x,a)') 'subroutine '//trim(routine)//', array '//trim(array)//&
                ', error code '//trim(yaml_toa(istat))
           if (f_err_raise(isize>=0,trim(message),err_name='ERR_ALLOCATE')) return
@@ -288,19 +318,19 @@ contains
        select case(memproc)
        case (0)
           if (malloc_level ==2) then
-             !to be used for inspecting an array which is not deallocated
+             !to be used for inspecting an array which is not deallocated (only case which is left now)
              write(mallocFile,'(a,t40,a,t70,4(1x,i12))')trim(routine),trim(array),isize,memtot%memory
           else if (malloc_level ==1) then
              !Compact format
              if (trim(memloc%routine) /= routine) then
-                if (memloc%memory /= int(0,kind=8)) then
-                   rewind(mallocFile)
-                   write(mallocFile,'(a,t40,a,t70,4(1x,i12))')&
-                        trim(memloc%routine),trim(memloc%array),&
-                        memloc%memory/int(1024,kind=8),memloc%peak/int(1024,kind=8),&
-                        memtot%memory/int(1024,kind=8),&
-                        (memtot%memory+memloc%peak-memloc%memory)/int(1024,kind=8)
-                end if
+!!$                if (memloc%memory /= int(0,kind=8)) then
+!!$                   rewind(mallocFile)
+!!$                   write(mallocFile,'(a,t40,a,t70,4(1x,i12))')&
+!!$                        trim(memloc%routine),trim(memloc%array),&
+!!$                        memloc%memory/int(1024,kind=8),memloc%peak/int(1024,kind=8),&
+!!$                        memtot%memory/int(1024,kind=8),&
+!!$                        (memtot%memory+memloc%peak-memloc%memory)/int(1024,kind=8)
+!!$                end if
                 memloc%routine=routine
                 memloc%array=array
                 memloc%memory=isize

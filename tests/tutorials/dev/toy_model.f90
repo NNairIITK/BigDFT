@@ -128,7 +128,7 @@ program wvl
                    & trim(yaml_toa(max(orbs%npsidim_orbs,orbs%npsidim_comp))))
   !write(*,*) "Proc", iproc, " allocates psi to",max(orbs%npsidim_orbs,orbs%npsidim_comp)
 
-  call bigdft_utils_flush(unit=6)
+  call yaml_flush_document()
   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
   !-------------------------!
@@ -150,7 +150,7 @@ program wvl
                       & trim(yaml_toa(orbs%isorb + i)) // " is of norm " // trim(yaml_toa(nrm)))
   end do
 
-  call bigdft_utils_flush(unit=6)
+  call yaml_flush_document()
   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
   !---------------------------!
@@ -202,7 +202,7 @@ program wvl
   call untranspose_v(iproc,nproc,orbs,Lzd%glr%wfd,comms,psi(1),work_add=w(1))
   deallocate(w)
 
-  call bigdft_utils_flush(unit=6)
+  call yaml_flush_document()
   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
   !-------------------------!

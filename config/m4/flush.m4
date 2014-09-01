@@ -1,4 +1,4 @@
-# Define a macro to test flush() as intrinsict.
+# Define a macro to test flush() as intrinsic statement.
 #
 # Copyright (c) 2011-2011 BigDFT Group (Damien Caliste)
 # All rights reserved.
@@ -65,4 +65,39 @@ EOF
   AC_LANG_POP(Fortran)
 
   AC_MSG_RESULT([$ax_fc_flush])
+])
+
+# Define a macro to test if the inquire intrinsic statement accepts long integers as recl parameters
+AC_DEFUN([AX_FC_RECL_KIND],
+[
+  AC_MSG_CHECKING([for selected_int_kind accepted for recl parameter in inquire Fortran statement])
+
+  AC_LANG_PUSH(Fortran)
+  AC_REQUIRE([AC_PROG_FC])
+
+  cat > recltest.f90 <<EOF
+program inq
+  implicit none
+  integer, parameter :: unt=16 !test a closed unit
+  integer, parameter :: k8=selected_int_kind(16)
+  integer :: ierr
+  integer(k8) :: recl_file
+
+  recl_file=int(-1234567891,k8)
+
+  inquire(unit=unt,recl=recl_file,iostat=ierr)
+
+end program inq
+EOF
+  dnl Assume that it should compile to have it, then the f_utils_recl function should take care of it
+  ax_fc_recl_kind="8"
+  ac_try='$FC $FCFLAGS $LDFLAGS -o recltest.x recltest.f90 1>&AC_FD_CC'
+  if AC_TRY_EVAL(ac_try); then
+    ax_fc_recl_kind="16"
+  fi
+  rm -f recltest*
+
+  AC_LANG_POP(Fortran)
+
+  AC_MSG_RESULT([$ax_fc_recl_kind])
 ])

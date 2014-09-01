@@ -8,213 +8,6 @@
 !!   For the list of contributors, see ~/AUTHORS 
  
 
-!> Routine to use BigDFT as a blackbox
-subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => call_bigdft
-  use yaml_output
-  use communications_base
-  implicit none
-  integer, intent(in) :: iproc,nproc
-  type(run_objects), intent(inout) :: runObj
-  type(DFT_global_output), intent(inout) :: outs
-  integer, intent(inout) :: infocode
-
-  !local variables
-  character(len=*), parameter :: subname='call_bigdft'
-  character(len=40) :: comment
-  logical :: exists
-  integer :: ierr,inputPsiId_orig,iat,iorb,istep
-  real(gp) :: maxdiff
-
-  !temporary interface, not needed anymore since all arguments are structures
-!!$  interface
-!!$     subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,pressure,&
-!!$          KSwfn,tmb,&!psi,Lzd,gaucoeffs,gbd,orbs,
-!!$          rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
-!!$       use module_base
-!!$       use module_types
-!!$       implicit none
-!!$       integer, intent(in) :: nproc,iproc
-!!$       integer, intent(out) :: infocode
-!!$       real(gp), intent(inout) :: hx_old,hy_old,hz_old
-!!$       type(input_variables), intent(in) :: in
-!!$       !type(local_zone_descriptors), intent(inout) :: Lzd
-!!$       type(atoms_data), intent(inout) :: atoms
-!!$       !type(gaussian_basis), intent(inout) :: gbd
-!!$       !type(orbitals_data), intent(inout) :: orbs
-!!$       type(GPU_pointers), intent(inout) :: GPU
-!!$       type(DFT_wavefunction), intent(inout) :: KSwfn,tmb
-!!$       type(energy_terms), intent(out), target :: energs
-!!$       real(gp), intent(out) :: energy,fnoise,pressure
-!!$       real(gp), dimension(3,atoms%astruct%nat), target, intent(inout) :: rxyz
-!!$       real(gp), dimension(6), intent(out) :: strten
-!!$       real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
-!!$     END SUBROUTINE cluster
-!!$  end interface
-
-  !put a barrier for all the processes
-  call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-  call f_routine(id=subname)
-
-  !Check the consistency between MPI processes of the atomic coordinates
-  maxdiff=mpimaxdiff(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm)
-  !call check_array_consistency(maxdiff, nproc, runObj%atoms%astruct%rxyz, bigdft_mpi%mpi_comm)
-  if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
-       call yaml_warning('Input positions not identical! '//&
-       '(difference:'//trim(yaml_toa(maxdiff))//' )')
-
-  !fill the rxyz array with the positions
-  !wrap the atoms in the periodic directions when needed
-  select case(runObj%atoms%astruct%geocode)
-  case('P')
-     do iat=1,runObj%atoms%astruct%nat
-        runObj%rst%rxyz_new(1,iat)=modulo(runObj%atoms%astruct%rxyz(1,iat),runObj%atoms%astruct%cell_dim(1))
-        runObj%rst%rxyz_new(2,iat)=modulo(runObj%atoms%astruct%rxyz(2,iat),runObj%atoms%astruct%cell_dim(2))
-        runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
-     end do
-  case('S')
-     do iat=1,runObj%atoms%astruct%nat
-        runObj%rst%rxyz_new(1,iat)=modulo(runObj%atoms%astruct%rxyz(1,iat),runObj%atoms%astruct%cell_dim(1))
-        runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
-        runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
-     end do
-  case('W')
-     do iat=1,runObj%atoms%astruct%nat
-        runObj%rst%rxyz_new(1,iat)=runObj%atoms%astruct%rxyz(1,iat)
-        runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
-        runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
-     end do
-  case('F')
-     do iat=1,runObj%atoms%astruct%nat
-        runObj%rst%rxyz_new(1,iat)=runObj%atoms%astruct%rxyz(1,iat)
-        runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
-        runObj%rst%rxyz_new(3,iat)=runObj%atoms%astruct%rxyz(3,iat)
-     end do
-  end select
-
-  !assign the verbosity of the output
-  !the verbose variables is defined in module_base
-  verbose=runObj%inputs%verbosity
-
-  ! Use the restart for the linear scaling version... probably to be modified.
-  if(runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL) then
-      if (runObj%rst%version == LINEAR_VERSION) then
-          runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_LINEAR
-          do iorb=1,runObj%rst%tmb%orbs%norb
-              if (runObj%inputs%lin%locrad_lowaccuracy(iorb) /=  runObj%inputs%lin%locrad_highaccuracy(iorb))then
-                  stop 'ERROR: at the moment the radii for low and high accuracy must be the same &
-                        &when using the linear restart!'
-              end if
-          end do
-      end if
-  end if
-  inputPsiId_orig=runObj%inputs%inputPsiId
-
-  loop_cluster: do
-     !allocate history container if it has not been done
-     if (runObj%inputs%wfn_history > 1  .and. .not. associated(runObj%rst%KSwfn%oldpsis)) then
-        allocate(runObj%rst%KSwfn%oldpsis(0:runObj%inputs%wfn_history+1))
-        runObj%rst%KSwfn%istep_history=0
-        do istep=0,runObj%inputs%wfn_history+1
-          runObj%rst%KSwfn%oldpsis(istep)=old_wavefunction_null() 
-        end do
-     end if
-
-     if (runObj%inputs%inputPsiId == INPUT_PSI_LCAO .and. associated(runObj%rst%KSwfn%psi)) then
-        !call f_free_ptr(runObj%rst%KSwfn%psi)
-        call f_free_ptr(runObj%rst%KSwfn%psi)
-
-        call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
-
-        call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
-     end if
-
-     !experimental, finite difference method for calculating forces on particular quantities
-     inquire(file='input.finite_difference_forces',exist=exists)
-     if (exists) then
-        runObj%inputs%last_run=1 !do the last_run things nonetheless
-        runObj%inputs%inputPsiId = INPUT_PSI_LCAO !the first run always restart from IG
-        !experimental_modulebase_var_onlyfion=.true. !put only ionic forces in the forces
-     end if
-
-     !Main routine calculating the KS orbitals
-     call cluster(nproc,iproc,runObj%atoms,runObj%rst%rxyz_new, runObj%radii_cf, &
-          & outs%energy, outs%energs, outs%fxyz, outs%strten, outs%fnoise, outs%pressure,&
-          runObj%rst%KSwfn,runObj%rst%tmb,&
-          runObj%rst%rxyz_old,runObj%rst%hx_old,runObj%rst%hy_old,runObj%rst%hz_old,runObj%inputs,runObj%rst%GPU,infocode)
-
-     !save the new atomic positions in the rxyz_old array
-     do iat=1,runObj%atoms%astruct%nat
-        runObj%rst%rxyz_old(1,iat)=runObj%rst%rxyz_new(1,iat)
-        runObj%rst%rxyz_old(2,iat)=runObj%rst%rxyz_new(2,iat)
-        runObj%rst%rxyz_old(3,iat)=runObj%rst%rxyz_new(3,iat)
-     enddo
-
-     if (exists) then
-        call forces_via_finite_differences(iproc,nproc,runObj%atoms,runObj%inputs, &
-             & outs%energy,outs%fxyz,outs%fnoise,runObj%rst,infocode)
-     end if
-
-     !Check infocode in function of the inputPsiId parameters
-     !and change the strategy of input guess psi
-     if (runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL .and. infocode==2) then
-        if (runObj%inputs%gaussian_help) then
-           runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_GAUSS
-        else
-           runObj%inputs%inputPsiId = INPUT_PSI_LCAO
-        end if
-     else if (runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_LINEAR .and. infocode==2) then
-         ! problems after restart for linear version
-         runObj%inputs%inputPsiId = INPUT_PSI_LINEAR_AO
-     else if ((runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL .or. &
-               runObj%inputs%inputPsiId == INPUT_PSI_LCAO) .and. infocode==1) then
-        !runObj%inputs%inputPsiId=INPUT_PSI_LCAO !better to diagonalise than to restart an input guess
-        runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_WVL
-        !if (iproc==0) then
-        !   call yaml_warning('Self-consistent cycle did not meet convergence criteria')
-        !   write(*,*)&
-        !        &   ' WARNING: Self-consistent cycle did not meet convergence criteria'
-        !end if
-        exit loop_cluster
-     else if (runObj%inputs%inputPsiId == INPUT_PSI_LCAO .and. infocode==3) then
-        if (iproc == 0) then
-           write( *,'(1x,a)')'Convergence error, cannot proceed.'
-           write( *,'(1x,a)')' writing positions in file posfail.xyz then exiting'
-           write(comment,'(a)')'UNCONVERGED WF '
-           !call wtxyz('posfail',energy,rxyz,atoms,trim(comment))
-           call write_atomic_file("posfail",outs%energy,runObj%rst%rxyz_new,&
-                runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment))
-        end if
-
-        call f_free_ptr(runObj%rst%KSwfn%psi)
-        call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
-
-        call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
-
-        !finalize memory counting (there are still at least positions and the forces allocated)
-        call memocc(0,0,'count','stop')
-
-        if (nproc > 1) call MPI_FINALIZE(ierr)
-
-        stop 'unnormal end'
-     else
-        exit loop_cluster
-     end if
-
-  end do loop_cluster
-
-  !preserve the previous value
-  runObj%inputs%inputPsiId=inputPsiId_orig
-
-  !put a barrier for all the processes
-  call f_release_routine()
-  call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-
-END SUBROUTINE call_bigdft
-
-
 !>  Main routine which does self-consistent loop.
 !!  Does not parse input file and no geometry optimization.
 !!  Does an electronic structure calculation. 
@@ -586,6 +379,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   optLoop%itrpmax = in%itrpmax
   optLoop%nrepmax = in%nrepmax
   optLoop%itermax = in%itermax
+  optLoop%itermin = in%itermin!Bastian
   optLoop%gnrm_cv = in%gnrm_cv
   optLoop%rpnrm_cv = in%rpnrm_cv
   optLoop%gnrm_startmix = in%gnrm_startmix
@@ -1631,7 +1425,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if (opt%iter > opt%itermax) exit wfn_loop
 
            !control whether the minimisation iterations should end after the hamiltionian application
-           endloop= opt%gnrm <= opt%gnrm_cv .or. opt%iter == opt%itermax
+           endloop= (opt%gnrm <= opt%gnrm_cv .or. opt%iter == opt%itermax) .and. opt%iter >= opt%itermin !Bastian
 
            if (iproc == 0) then 
               !yaml output
@@ -1702,11 +1496,12 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
                  opt%infocode=2
               end if
            end if
-           !flush all writings on standart output
+           !flush all writings on standard output
            if (iproc==0) then
               !yaml output
               call yaml_mapping_close() !iteration
-              call bigdft_utils_flush(unit=6)
+              call yaml_flush_document()
+              !call bigdft_utils_flush(unit=6)
            end if
            ! Emergency exit case
            if (opt%infocode == 2 .or. opt%infocode == 3) then

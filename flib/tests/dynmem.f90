@@ -261,9 +261,9 @@ call f_free(weight)
    call yaml_map('Entering Thread No.',ithread)
    call yaml_map('Address of metadata',iadd)
 
-!   call OMP_set_lock(lock)
+   !!$ call OMP_set_lock(lock)
    ab = f_malloc((/ 10, 10 /),id='ab')
-!   call OMP_unset_lock(lock)
+   !!$ call OMP_unset_lock(lock)
    !allocate(ab(10,10),stat=ierror)
    !call allocate_array(ab,ierror)
 
@@ -275,9 +275,9 @@ call f_free(weight)
    !$omp barrier
    if ( .not. f_err_check()) then
       !$omp critical (deallocate_critical1)
-      !      call OMP_set_lock(lock)
+      !!$ call OMP_set_lock(lock)
       call f_free(ab)
-      !      call OMP_unset_lock(lock)
+      !!$ call OMP_unset_lock(lock)
       !deallocate(ab)
       !$omp end critical (deallocate_critical1)
    end if
@@ -286,14 +286,13 @@ call f_free(weight)
    if (.not. f_err_check()) then
       if (ithread == 0) call yaml_map('Something to use ab',total)
    end if
-   !open try-catch section
-   call f_err_open_try()
+
    !$omp barrier
 
    !$omp critical (allocate_critical)
-!   call OMP_set_lock(lock)
+   !!$ call OMP_set_lock(lock)
    b = f_malloc((/ 10, 10 /),id='b')
-!   call OMP_unset_lock(lock)
+   !!$ call OMP_unset_lock(lock)
    !allocate(b(10,10),stat=ierror)
    !call allocate_array(b,ierror)
 
@@ -305,9 +304,9 @@ call f_free(weight)
    !$omp barrier
    if ( .not. f_err_check()) then
       !$omp critical (deallocate_critical)
-!      call OMP_set_lock(lock)
+      !!$ call OMP_set_lock(lock)
       call f_free(b)
-!      call OMP_unset_lock(lock)
+      !!$ call OMP_unset_lock(lock)
       !deallocate(b)
       !$omp end critical (deallocate_critical)
    end if
@@ -325,7 +324,7 @@ call f_free(weight)
    call f_err_close_try()
 !stop
    call f_release_routine()
-
+   !stop
 !call yaml_map('Total of the allocations',total)
    call f_routine(id='Routine A')
    call f_release_routine()

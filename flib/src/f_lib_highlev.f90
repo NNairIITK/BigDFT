@@ -140,7 +140,7 @@ subroutine f_lib_err_severe_external(message)
 end subroutine f_lib_err_severe_external
 
 
-!> Routine which finalize f_lib 
+!> Routine which finalize f_lib and dummp the finalization information
 subroutine f_lib_finalize()
   use dictionaries_base, only: dictionary_check_leak
   use dictionaries, only: f_err_finalize,dict_get_num
@@ -167,3 +167,18 @@ subroutine f_lib_finalize()
   !debug, once again
   call dictionary_check_leak()
 end subroutine f_lib_finalize
+
+!> finalize f_lib but do not print out report information
+subroutine f_lib_finalize_noreport()
+  use dynamic_memory, only: f_malloc_finalize
+  use dictionaries, only: f_err_finalize
+  use yaml_output, only: yaml_close_all_streams
+  use yaml_parse, only: yaml_parse_errors_finalize
+  use time_profiling, only: f_timing_finalize
+  implicit none
+  call f_malloc_finalize(dump=.false.)
+  call yaml_close_all_streams()
+  call yaml_parse_errors_finalize()
+  call f_err_finalize()
+  call f_timing_finalize()
+end subroutine f_lib_finalize_noreport
