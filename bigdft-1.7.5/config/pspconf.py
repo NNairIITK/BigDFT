@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os
+import os, sys
 import re
 
 codes = {1:"1", 11:"2"}
@@ -72,17 +72,23 @@ def natural_sortkey(string):
 ## Disabled since not working for Python 2.4 ...
 ##  return tuple(int(num) if num else alpha for num, alpha in tokenize(string))
 
+# Try to guess where sources are...
+if len(sys.argv) == 1:
+  path = os.path.join(os.path.dirname(sys.argv[0]), "..")
+else:
+  path = os.path.join(os.path.dirname(sys.argv[1]), "..")
+
 re_psp = re.compile("[A-Z][a-z]?-q[0-9]+")
 tokenize = re.compile(r'(\d+)|(\D+)').findall
 
 elements = set()
-pspdir = "utils/PSPfiles/Krach-LDA"
+pspdir = os.path.join(path, "utils/PSPfiles/Krach-LDA")
 for f in sorted(os.listdir(pspdir), key = natural_sortkey):
   if re_psp.match(f) is not None:
     export_psp(pspdir, f, elements)
 
 elements = set()
-pspdir = "utils/PSPfiles/Krach-PBE"
+pspdir = os.path.join(path, "utils/PSPfiles/Krach-PBE")
 for f in sorted(os.listdir(pspdir), key = natural_sortkey):
   if re_psp.match(f) is not None:
     export_psp(pspdir, f, elements)

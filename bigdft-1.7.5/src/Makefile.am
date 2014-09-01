@@ -136,7 +136,7 @@ low_level = \
 	init/logrid_per.f90 \
 	init/inputguess.f90 \
 	init/gautowav.f90 \
-	init/pspconf.f90 \
+	pspconf.f90 \
 	init/locreg_init.f90 \
 	init/sysprop.f90 \
 	init/wavefunctions.f90 \
