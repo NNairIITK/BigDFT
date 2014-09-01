@@ -220,32 +220,88 @@ contains
     end subroutine check_kernel_cutoff
 
 
-    subroutine init_sparse_matrix_matrix_multiplication(norb, norbp, isorb, nseg, &
+    subroutine init_sparse_matrix_matrix_multiplication(iproc, nproc, norb, norbp, isorb, nseg, &
                nsegline, istsegline, keyg, sparsemat)
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: norb, norbp, isorb, nseg
+      integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nseg
       integer,dimension(norb),intent(in) :: nsegline, istsegline
       integer,dimension(2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(inout) :: sparsemat
 
+      integer :: ierr, jproc, iorb, jjproc, iiorb
+      integer,dimension(:),allocatable :: nseq_per_line, norb_par_ideal, isorb_par_ideal
+      real(kind=8) :: rseq, rseq_ideal, tt
+
+      ! Calculate the values of sparsemat%smmm%nout and sparsemat%smmm%nseq with
+      ! the default partitioning of the matrix columns.
       call get_nout(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, sparsemat%smmm%nout)
+      nseq_per_line = f_malloc0(norb,id='nseq_per_line')
       call determine_sequential_length(norb, norbp, isorb, nseg, &
            nsegline, istsegline, keyg, sparsemat, &
-           sparsemat%smmm%nseq)
+           sparsemat%smmm%nseq, nseq_per_line)
+      call mpiallred(nseq_per_line(1), norb, mpi_sum, bigdft_mpi%mpi_comm)
+      rseq=real(sparsemat%smmm%nseq,kind=8) !real to prevent integer overflow
+      call mpiallred(rseq, 1, mpi_sum, bigdft_mpi%mpi_comm)
+
+
+      norb_par_ideal = f_malloc(0.to.nproc-1,id='norb_par_ideal')
+      isorb_par_ideal = f_malloc(0.to.nproc-1,id='norb_par_ideal')
+      ! Assign the columns of the matrix to the processes such that the load
+      ! balancing is optimal
+      ! First the default initializations
+      norb_par_ideal(:)=0
+      isorb_par_ideal(:)=norb
+      rseq_ideal = rseq/real(nproc,kind=8)
+      jjproc=0
+      tt=0.d0
+      iiorb=0
+      isorb_par_ideal(0)=0
+      do iorb=1,norb
+          iiorb=iiorb+1
+          tt=tt+real(nseq_per_line(iorb),kind=8)
+          if (tt>=rseq_ideal .and. jjproc/=nproc-1) then
+              norb_par_ideal(jjproc)=iiorb
+              isorb_par_ideal(jjproc+1)=iorb
+              jjproc=jjproc+1
+              tt=0.d0
+              iiorb=0
+          end if
+      end do
+      norb_par_ideal(jjproc)=iiorb
+      write(*,'(a,5i9)') 'iproc, norbp, isorb, before/after', iproc, norbp, norb_par_ideal(iproc), isorb, isorb_par_ideal(iproc)
+
+      ! some checks
+      if (sum(norb_par_ideal)/=norb) stop 'sum(norb_par_ideal)/=norb'
+      if (isorb_par_ideal(nproc-1)+norb_par_ideal(nproc-1)/=norb) stop 'isorb_par_ideal(nproc-1)+norb_par_ideal(nproc-1)/=norb'
+
+      ! Copy the values
+      sparsemat%smmm%nfvctrp=norb_par_ideal(iproc)
+      sparsemat%smmm%isfvctr=isorb_par_ideal(iproc)
+
+
+      ! Realculate the values of sparsemat%smmm%nout and sparsemat%smmm%nseq with
+      ! the optimized partitioning of the matrix columns.
+      ierr=sparsemat%smmm%nseq
+      call get_nout(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, nsegline, istsegline, keyg, sparsemat%smmm%nout)
+      call determine_sequential_length(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
+           nsegline, istsegline, keyg, sparsemat, &
+           sparsemat%smmm%nseq, nseq_per_line)
+      write(*,*) 'iproc, nseq before/after', iproc, ierr, sparsemat%smmm%nseq 
+
       call allocate_sparse_matrix_matrix_multiplication(norb, nseg, nsegline, istsegline, keyg, sparsemat%smmm)
       sparsemat%smmm%nseg=nseg
       call vcopy(norb, nsegline(1), 1, sparsemat%smmm%nsegline(1), 1)
       call vcopy(norb, istsegline(1), 1, sparsemat%smmm%istsegline(1), 1)
       call vcopy(2*nseg, keyg(1,1), 1, sparsemat%smmm%keyg(1,1), 1)
-      call init_onedimindices_new(norb, norbp, isorb, nseg, &
+      call init_onedimindices_new(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
            nsegline, istsegline, keyg, &
            sparsemat, sparsemat%smmm%nout, sparsemat%smmm%onedimindices)
-      call get_arrays_for_sequential_acces(norb, norbp, isorb, nseg, &
+      call get_arrays_for_sequential_acces(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
            nsegline, istsegline, keyg, sparsemat, &
            sparsemat%smmm%nseq, sparsemat%smmm%ivectorindex)
-      call init_sequential_acces_matrix(norb, norbp, isorb, nseg, &
+      call init_sequential_acces_matrix(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
            nsegline, istsegline, keyg, sparsemat, sparsemat%smmm%nseq, &
            sparsemat%smmm%indices_extract_sequential)
     end subroutine init_sparse_matrix_matrix_multiplication
@@ -569,7 +625,7 @@ contains
 
 
       ! Initialize the parameters for the spare matrix matrix multiplication
-      call init_sparse_matrix_matrix_multiplication(norbu, norbup, isorbu, nseg_mult, &
+      call init_sparse_matrix_matrix_multiplication(iproc, nproc, norbu, norbup, isorbu, nseg_mult, &
                nsegline_mult, istsegline_mult, keyg_mult, sparsemat)
 
       call f_free(nsegline_mult)
@@ -623,7 +679,7 @@ contains
 
 
     subroutine determine_sequential_length(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, &
-               sparsemat, nseq)
+               sparsemat, nseq, nseq_per_line)
       implicit none
     
       ! Calling arguments
@@ -632,15 +688,17 @@ contains
       integer,dimension(2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(in) :: sparsemat
       integer,intent(out) :: nseq
+      integer,dimension(norb),intent(out) :: nseq_per_line
     
       ! Local variables
-      integer :: i,iseg,jorb,iorb,jseg,ii
+      integer :: i,iseg,jorb,iorb,jseg,ii,nseqline
       integer :: isegoffset, istart, iend
     
       nseq=0
       do i = 1,norbp
          ii=isorb+i
          isegoffset=istsegline(ii)-1
+         nseqline=0
          do iseg=1,nsegline(ii)
               istart=keyg(1,isegoffset+iseg)
               iend=keyg(2,isegoffset+iseg)
@@ -652,10 +710,12 @@ contains
                   do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
                       do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
                           nseq=nseq+1
+                          nseqline=nseqline+1
                       end do
                   end do
               end do
          end do
+         nseq_per_line(ii)=nseqline
       end do 
     
     end subroutine determine_sequential_length

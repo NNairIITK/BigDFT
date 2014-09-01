@@ -24,6 +24,8 @@ module sparsematrix_base
   !> Contains the parameters needed for the sparse matrix matrix multiplication
   type,public :: sparse_matrix_matrix_multiplication
       integer :: nout, nseq, nseg
+      integer :: nfvctrp !< modified number of matrix columns per MPI task for an optimized load balancing
+      integer :: isfvctr !< modified starting column of the matrix for an optimized load balancing
       integer,dimension(:),pointer :: ivectorindex, nsegline, istsegline, indices_extract_sequential
       integer,dimension(:,:),pointer :: onedimindices, keyg
   end type sparse_matrix_matrix_multiplication
@@ -92,7 +94,8 @@ module sparsematrix_base
   integer,parameter,public :: SPARSE_PARALLEL = 52
   integer,parameter,public :: DENSE_FULL      = 53
   integer,parameter,public :: DENSE_PARALLEL  = 54
-  integer,parameter,public :: SPARSEMM_SEQ    = 55
+  integer,parameter,public :: DENSE_MATMUL    = 55
+  integer,parameter,public :: SPARSEMM_SEQ    = 56
 
 
 
@@ -282,6 +285,8 @@ module sparsematrix_base
           smat_ptr = f_malloc_ptr((/smat_info_ptr%smat%nfvctr,smat_info_ptr%smat%nfvctr/),id=smat_info_ptr%id)
       case (DENSE_PARALLEL)
           smat_ptr = f_malloc_ptr((/smat_info_ptr%smat%nfvctr,smat_info_ptr%smat%nfvctrp/),id=smat_info_ptr%id)
+      case (DENSE_MATMUL)
+          smat_ptr = f_malloc_ptr((/smat_info_ptr%smat%nfvctr,smat_info_ptr%smat%smmm%nfvctrp/),id=smat_info_ptr%id)
       case default
          call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
               err_name='BIGDFT_RUNTIME_ERROR')
@@ -300,6 +305,9 @@ module sparsematrix_base
                                   id=smat_info_ptr%id)
       case (DENSE_PARALLEL)
           smat_ptr = f_malloc_ptr((/smat_info_ptr%smat%nfvctr,smat_info_ptr%smat%nfvctrp,smat_info_ptr%smat%nspin/),&
+                                  id=smat_info_ptr%id)
+      case (DENSE_MATMUL)
+          smat_ptr = f_malloc_ptr((/smat_info_ptr%smat%nfvctr,smat_info_ptr%smat%smmm%nfvctrp,smat_info_ptr%smat%nspin/),&
                                   id=smat_info_ptr%id)
       case default
          call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
@@ -337,6 +345,8 @@ module sparsematrix_base
           smat = f_malloc((/smat_info%smat%nfvctr,smat_info%smat%nfvctr/),id=smat_info%id)
       case (DENSE_PARALLEL)
           smat = f_malloc((/smat_info%smat%nfvctr,smat_info%smat%nfvctrp/),id=smat_info%id)
+      case (DENSE_MATMUL)
+          smat = f_malloc((/smat_info%smat%nfvctr,smat_info%smat%smmm%nfvctrp/),id=smat_info%id)
       case default
          call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
               err_name='BIGDFT_RUNTIME_ERROR')
@@ -354,6 +364,8 @@ module sparsematrix_base
           smat = f_malloc((/smat_info%smat%nfvctr,smat_info%smat%nfvctr,smat_info%smat%nspin/),id=smat_info%id)
       case (DENSE_PARALLEL)
           smat = f_malloc((/smat_info%smat%nfvctr,smat_info%smat%nfvctrp,smat_info%smat%nspin/),id=smat_info%id)
+      case (DENSE_MATMUL)
+          smat = f_malloc((/smat_info%smat%nfvctr,smat_info%smat%smmm%nfvctrp,smat_info%smat%nspin/),id=smat_info%id)
       case default
          call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
               err_name='BIGDFT_RUNTIME_ERROR')
@@ -390,6 +402,8 @@ module sparsematrix_base
           smat_ptr = f_malloc0_ptr((/smat_info0_ptr%smat%nfvctr,smat_info0_ptr%smat%nfvctr/),id=smat_info0_ptr%id)
       case (DENSE_PARALLEL)
           smat_ptr = f_malloc0_ptr((/smat_info0_ptr%smat%nfvctr,smat_info0_ptr%smat%nfvctrp/),id=smat_info0_ptr%id)
+      case (DENSE_MATMUL)
+          smat_ptr = f_malloc0_ptr((/smat_info0_ptr%smat%nfvctr,smat_info0_ptr%smat%smmm%nfvctrp/),id=smat_info0_ptr%id)
       case default
          call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
               err_name='BIGDFT_RUNTIME_ERROR')
@@ -408,6 +422,9 @@ module sparsematrix_base
                                    id=smat_info0_ptr%id)
       case (DENSE_PARALLEL)
           smat_ptr = f_malloc0_ptr((/smat_info0_ptr%smat%nfvctr,smat_info0_ptr%smat%nfvctrp,smat_info0_ptr%smat%nspin/), &
+                                   id=smat_info0_ptr%id)
+      case (DENSE_MATMUL)
+          smat_ptr = f_malloc0_ptr((/smat_info0_ptr%smat%nfvctr,smat_info0_ptr%smat%smmm%nfvctrp,smat_info0_ptr%smat%nspin/), &
                                    id=smat_info0_ptr%id)
       case default
          call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
@@ -445,6 +462,8 @@ module sparsematrix_base
           smat = f_malloc0((/smat_info0%smat%nfvctr,smat_info0%smat%nfvctr/),id=smat_info0%id)
       case (DENSE_PARALLEL)
           smat = f_malloc0((/smat_info0%smat%nfvctr,smat_info0%smat%nfvctrp/),id=smat_info0%id)
+      case (DENSE_MATMUL)
+          smat = f_malloc0((/smat_info0%smat%nfvctr,smat_info0%smat%smmm%nfvctrp/),id=smat_info0%id)
       case default
           call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
                err_name='BIGDFT_RUNTIME_ERROR')
@@ -462,6 +481,8 @@ module sparsematrix_base
           smat = f_malloc0((/smat_info0%smat%nfvctr,smat_info0%smat%nfvctr,smat_info0%smat%nspin/),id=smat_info0%id)
       case (DENSE_PARALLEL)
           smat = f_malloc0((/smat_info0%smat%nfvctr,smat_info0%smat%nfvctrp,smat_info0%smat%nspin/),id=smat_info0%id)
+      case (DENSE_MATMUL)
+          smat = f_malloc0((/smat_info0%smat%nfvctr,smat_info0%smat%smmm%nfvctrp,smat_info0%smat%nspin/),id=smat_info0%id)
       case default
           call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
                err_name='BIGDFT_RUNTIME_ERROR')

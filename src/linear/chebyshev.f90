@@ -101,9 +101,9 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
 
 
     
-      vectors = f_malloc((/ kernel%nfvctr, kernel%nfvctrp, 4 /),id='vectors')
+      vectors = f_malloc((/ kernel%nfvctr, kernel%smmm%nfvctrp, 4 /),id='vectors')
       if (kernel%nfvctrp>0) then
-          call to_zero(kernel%nfvctr*kernel%nfvctrp, vectors(1,1,1))
+          call to_zero(kernel%nfvctr*kernel%smmm%nfvctrp, vectors(1,1,1))
       end if
     
   end if
@@ -114,26 +114,29 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
   
           if (kernel%nfvctrp>0) then
               call sparsemm(kernel, ham_compr_seq, matrix(1,1), vectors(1,1,1))
-              call to_zero(kernel%nfvctrp*kernel%nfvctr, matrix(1,1))
+              call to_zero(kernel%smmm%nfvctrp*kernel%nfvctr, matrix(1,1))
               call sparsemm(kernel, ovrlp_compr_seq, vectors(1,1,1), matrix(1,1))
               !call to_zero(kernel%nvctr, SHS(1))
           end if
           call to_zero(kernel%nvctr, SHS(1))
           
           if (kernel%nfvctrp>0) then
-              isegstart=kernel%istsegline(kernel%isfvctr+1)
-              if (kernel%isfvctr+kernel%nfvctrp<kernel%nfvctr) then
-                  isegend=kernel%istsegline(kernel%isfvctr_par(iproc+1)+1)-1
-              else
-                  isegend=kernel%nseg
-              end if
+              isegstart=kernel%istsegline(kernel%smmm%isfvctr+1)
+              isegend=kernel%istsegline(kernel%smmm%isfvctr+kernel%smmm%nfvctrp)+ &
+                      kernel%nsegline(kernel%smmm%isfvctr+kernel%smmm%nfvctrp)
+              !!isegstart=kernel%istsegline(kernel%smmm%isfvctr+1)
+              !!if (kernel%smmm%isfvctr+kernel%smmm%nfvctrp<kernel%nfvctr) then
+              !!    isegend=kernel%istsegline(kernel%smmm%isfvctr_par(iproc+1)+1)-1
+              !!else
+              !!    isegend=kernel%nseg
+              !!end if
               do iseg=isegstart,isegend
                   ii=kernel%keyv(iseg)-1
                   do jorb=kernel%keyg(1,iseg),kernel%keyg(2,iseg)
                       ii=ii+1
                       iiorb = (jorb-1)/kernel%nfvctr + 1
                       jjorb = jorb - (iiorb-1)*kernel%nfvctr
-                      SHS(ii)=matrix(jjorb,iiorb-kernel%isfvctr)
+                      SHS(ii)=matrix(jjorb,iiorb-kernel%smmm%isfvctr)
                   end do
               end do
           end if
@@ -165,17 +168,17 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
       ! No need to set to zero the 3rd and 4th entry since they will be overwritten
       ! by copies of the 1st entry.
       if (kernel%nfvctrp>0) then
-          call to_zero(2*kernel%nfvctr*kernel%nfvctrp, vectors(1,1,1))
+          call to_zero(2*kernel%nfvctr*kernel%smmm%nfvctrp, vectors(1,1,1))
       end if
-      do iorb=1,kernel%nfvctrp
-          iiorb=kernel%isfvctr+iorb
+      do iorb=1,kernel%smmm%nfvctrp
+          iiorb=kernel%smmm%isfvctr+iorb
           vectors(iiorb,iorb,1)=1.d0
       end do
     
       if (kernel%nfvctrp>0) then
     
-          call vcopy(kernel%nfvctr*kernel%nfvctrp, vectors(1,1,1), 1, vectors(1,1,3), 1)
-          call vcopy(kernel%nfvctr*kernel%nfvctrp, vectors(1,1,1), 1, vectors(1,1,4), 1)
+          call vcopy(kernel%nfvctr*kernel%smmm%nfvctrp, vectors(1,1,1), 1, vectors(1,1,3), 1)
+          call vcopy(kernel%nfvctr*kernel%smmm%nfvctrp, vectors(1,1,1), 1, vectors(1,1,4), 1)
         
           ! apply(3/2 - 1/2 S) H (3/2 - 1/2 S)
           if (number_of_matmuls==three) then
@@ -190,24 +193,24 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
           call vcopy(kernel%nfvctr*kernel%nfvctrp, vectors(1,1,1), 1, vectors(1,1,2), 1)
         
           !initialize fermi
-          call to_zero(kernel%nfvctrp*kernel%nfvctr, fermi(1,1))
-          call to_zero(2*kernel%nfvctr*kernel%nfvctrp, penalty_ev(1,1,1))
+          call to_zero(kernel%smmm%nfvctrp*kernel%nfvctr, fermi(1,1))
+          call to_zero(2*kernel%nfvctr*kernel%smmm%nfvctrp, penalty_ev(1,1,1))
           call compress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-               kernel%nfvctr, kernel%nfvctrp, kernel%isfvctr, isorb_par, kernel, &
+               kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, isorb_par, kernel, &
                vectors(1,1,4), chebyshev_polynomials(1,1))
-          call axpy_kernel_vectors(kernel%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
+          call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                0.5d0*cc(1,1), vectors(1,1,4), fermi(:,1))
-          call axpy_kernel_vectors(kernel%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
+          call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,1))
-          call axpy_kernel_vectors(kernel%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
+          call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,2))
           call compress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-               kernel%nfvctr, kernel%nfvctrp, kernel%isfvctr, isorb_par, kernel, vectors(1,1,2), chebyshev_polynomials(1,2))
-          call axpy_kernel_vectors(kernel%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
+               kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, isorb_par, kernel, vectors(1,1,2), chebyshev_polynomials(1,2))
+          call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                cc(2,1), vectors(1,1,2), fermi(:,1))
-          call axpy_kernel_vectors(kernel%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
+          call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                cc(2,3), vectors(1,1,2), penalty_ev(:,1,1))
-          call axpy_kernel_vectors(kernel%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
+          call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                -cc(2,3), vectors(1,1,2), penalty_ev(:,1,2))
         
         
@@ -221,14 +224,14 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
               else if (number_of_matmuls==one) then
                   call sparsemm(kernel, SHS_seq, vectors(1,1,1), vectors(1,1,2))
               end if
-              call axbyz_kernel_vectors(kernel%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
+              call axbyz_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                    2.d0, vectors(1,1,2), -1.d0, vectors(1,1,4), vectors(1,1,3))
               call compress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-                   kernel%nfvctr, kernel%nfvctrp, kernel%isfvctr, isorb_par, kernel, vectors(1,1,3), &
+                   kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, isorb_par, kernel, vectors(1,1,3), &
                    chebyshev_polynomials(1,ipl))
-              call axpy_kernel_vectors(kernel%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
+              call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                    cc(ipl,1), vectors(1,1,3), fermi(:,1))
-              call axpy_kernel_vectors(kernel%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
+              call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                    cc(ipl,3), vectors(1,1,3), penalty_ev(:,1,1))
          
               if (mod(ipl,2)==1) then
@@ -236,17 +239,17 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
               else
                   tt=-cc(ipl,3)
               end if
-              call axpy_kernel_vectors(kernel%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
+              call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                    tt, vectors(1,1,3), penalty_ev(:,1,2))
          
-              call copy_kernel_vectors(kernel%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
+              call copy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                    vectors(1,1,1), vectors(1,1,4))
-              call copy_kernel_vectors(kernel%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
+              call copy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                    vectors(1,1,3), vectors(1,1,1))
 
               ! Check the norm of the columns of the kernel and set a flag if it explodes, which might
               ! be a consequence of the eigenvalue bounds being to small.
-              do iorb=1,kernel%nfvctrp
+              do iorb=1,kernel%smmm%nfvctrp
                   tt=ddot(kernel%nfvctr, fermi(1,iorb), 1, fermi(1,iorb), 1)
                   if (abs(tt)>1.d3) then
                       emergency_stop=.true.

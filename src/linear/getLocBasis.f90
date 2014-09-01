@@ -113,7 +113,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   mean_deviation=0.d0
   do ispin=1,tmb%linmat%s%nspin
       ishift=(ispin-1)*tmb%linmat%s%nvctr
-      call uncompress_matrix_distributed(iproc, tmb%linmat%s, &
+      call uncompress_matrix_distributed(iproc, tmb%linmat%s, DENSE_PARALLEL, &
            tmb%linmat%ovrlp_%matrix_compr(ishift+1:ishift+tmb%linmat%s%nvctr), ovrlp_fullp)
       call deviation_from_unity_parallel(iproc, nproc, tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
            tmb%linmat%s%isfvctr, ovrlp_fullp, &
@@ -2884,7 +2884,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   use module_types
   use module_interfaces, only: overlapPowerGeneral
   use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=), &
-                               SPARSE_FULL, DENSE_FULL, DENSE_PARALLEL, SPARSEMM_SEQ, &
+                               SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
@@ -2911,8 +2911,8 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
   inv_ovrlp%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
                            iaction=SPARSE_FULL, id='inv_ovrlp%matrix_compr')
-  inv_ovrlpp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
-  tempp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
+  inv_ovrlpp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='inv_ovrlpp')
+  tempp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='inv_ovrlpp')
   inv_ovrlp_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
   kernel_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
 
@@ -2961,10 +2961,10 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
           call sequential_acces_matrix_fast(tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, kernel_compr_seq)
           call sequential_acces_matrix_fast(tmb%linmat%l, &
                inv_ovrlp%matrix_compr, inv_ovrlp_compr_seq)
-          call uncompress_matrix_distributed(iproc, tmb%linmat%l, &
+          call uncompress_matrix_distributed(iproc, tmb%linmat%l, DENSE_MATMUL, &
                inv_ovrlp%matrix_compr, inv_ovrlpp)
 
-          ncount=tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctrp
+          ncount=tmb%linmat%l%nfvctr*tmb%linmat%l%smmm%nfvctrp
           if (ncount>0) then
               call to_zero(ncount, tempp(1,1))
           end if
@@ -2975,7 +2975,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
           call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
           call to_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
-          call compress_matrix_distributed(iproc, tmb%linmat%l, inv_ovrlpp, tmb%linmat%kernel_%matrix_compr)
+          call compress_matrix_distributed(iproc, tmb%linmat%l, DENSE_MATMUL, inv_ovrlpp, tmb%linmat%kernel_%matrix_compr)
 
       end subroutine retransform
 

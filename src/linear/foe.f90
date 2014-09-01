@@ -17,7 +17,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   use module_interfaces, except_this_one => foe
   use yaml_output
   use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=), &
-                               SPARSE_FULL, DENSE_FULL, DENSE_PARALLEL, SPARSEMM_SEQ, &
+                               SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
@@ -527,10 +527,10 @@ subroutine foe(iproc, nproc, tmprtr, &
         
         
     
-         call compress_matrix_distributed(iproc, tmb%linmat%l, tmb%linmat%kernel_%matrixp, &
+         call compress_matrix_distributed(iproc, tmb%linmat%l, DENSE_MATMUL, tmb%linmat%kernel_%matrixp(:,:,1), &
               tmb%linmat%kernel_%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr))
     
-         call compress_matrix_distributed(iproc, tmb%linmat%l, fermip_check, fermi_check_compr(1))
+         call compress_matrix_distributed(iproc, tmb%linmat%l, DENSE_MATMUL, fermip_check, fermi_check_compr(1))
     
     
         
@@ -804,14 +804,14 @@ subroutine foe(iproc, nproc, tmprtr, &
 
           call f_routine(id='retransform')
 
-          inv_ovrlpp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
-          tempp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_PARALLEL, id='inv_ovrlpp')
+          inv_ovrlpp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='inv_ovrlpp')
+          tempp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='inv_ovrlpp')
           inv_ovrlp_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
           kernel_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
           call sequential_acces_matrix_fast(tmb%linmat%l, matrix_compr, kernel_compr_seq)
           call sequential_acces_matrix_fast(tmb%linmat%l, &
                inv_ovrlp%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), inv_ovrlp_compr_seq)
-          call uncompress_matrix_distributed(iproc, tmb%linmat%l, &
+          call uncompress_matrix_distributed(iproc, tmb%linmat%l, DENSE_MATMUL, &
                inv_ovrlp%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), inv_ovrlpp)
 
            tempp=0.d0
@@ -820,7 +820,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
           call to_zero(tmb%linmat%l%nvctr, matrix_compr(1))
-          call compress_matrix_distributed(iproc, tmb%linmat%l, inv_ovrlpp, matrix_compr)
+          call compress_matrix_distributed(iproc, tmb%linmat%l, DENSE_MATMUL, inv_ovrlpp, matrix_compr)
 
           call f_free_ptr(inv_ovrlpp)
           call f_free_ptr(tempp)
@@ -1770,11 +1770,10 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
   use yaml_output
   use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, &
                                sparsematrix_malloc0_ptr, assignment(=), &
-                               SPARSE_FULL, DENSE_FULL, DENSE_PARALLEL, SPARSEMM_SEQ, &
+                               SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
-                          uncompress_matrix_distributed
+  use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed
   use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                       foe_data_set_logical, foe_data_get_logical
   use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
@@ -1890,7 +1889,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 
 
   inv_ovrlp_matrixp = sparsematrix_malloc0_ptr(inv_ovrlp_smat, &
-                           iaction=DENSE_PARALLEL, id='inv_ovrlp_matrixp')
+                           iaction=DENSE_MATMUL, id='inv_ovrlp_matrixp')
 
 
       spin_loop: do ispin=1,ovrlp_smat%nspin
@@ -2109,7 +2108,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
         
         
     
-          call compress_matrix_distributed(iproc, inv_ovrlp_smat, inv_ovrlp_matrixp, &
+          call compress_matrix_distributed(iproc, inv_ovrlp_smat, DENSE_MATMUL, inv_ovrlp_matrixp, &
                inv_ovrlp%matrix_compr(ilshift+1:ilshift+inv_ovrlp_smat%nvctr))
     
 

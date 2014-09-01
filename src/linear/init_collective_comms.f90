@@ -15,7 +15,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
    use yaml_output
    use communications_base, only: comms_linear
    use communications, only: transpose_localized, untranspose_localized
-   use sparsematrix_base, only : sparse_matrix, matrices
+   use sparsematrix_base, only : sparse_matrix, matrices, DENSE_PARALLEL
    use sparsematrix, only : compress_matrix_distributed
    !use dynamic_memory
    implicit none
@@ -264,7 +264,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
                    call f_free(psii)
                end do
                ist=(ispin-1)*smat%nvctr+1
-               call compress_matrix_distributed(iproc, smat, matp, mat_compr(ist))
+               call compress_matrix_distributed(iproc, smat, DENSE_PARALLEL, matp, mat_compr(ist))
            end do
            maxdiff=0.d0
            call f_free(psiig)
