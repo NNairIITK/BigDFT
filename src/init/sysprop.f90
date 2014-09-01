@@ -48,7 +48,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   character(len = *), parameter :: subname = "system_initialization"
   integer :: nB,nKB,nMB,ii,iat,iorb,iatyp,nspin_ig,norbe,norbsc,ifrag,nspinor
   real(gp), dimension(3) :: h_input
-  logical:: present_inwhichlocreg_old, present_onwhichatom_old, output_grid_
+  logical:: present_inwhichlocreg_old, present_onwhichatom_old, output_grid_, calculate_bounds
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(kind=8), dimension(:), allocatable :: locrad
   !Note proj_G should be filled for PAW:
@@ -103,8 +103,11 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   end if
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
+  calculate_bounds = (inputpsi /= INPUT_PSI_LINEAR_AO .and. &
+                      inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
+                      inputpsi /= INPUT_PSI_MEMORY_LINEAR)
   call createWavefunctionsDescriptors(iproc,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),atoms,&
-       rxyz,radii_cf,in%crmult,in%frmult,Lzd%Glr, output_grid_)
+       rxyz,radii_cf,in%crmult,in%frmult,calculate_bounds,Lzd%Glr, output_grid_)
   if (iproc == 0 .and. dump) call print_wfd(Lzd%Glr%wfd)
 
   ! Create global orbs data structure.

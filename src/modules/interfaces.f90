@@ -228,7 +228,7 @@ module module_interfaces
      END SUBROUTINE orbitals_descriptors_forLinear
 
       subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-            &   crmult,frmult,Glr,output_denspot)
+            &   crmult,frmult,calculate_bounds,Glr,output_denspot)
         use module_defs, only: gp
         use module_types
          implicit none
@@ -238,6 +238,7 @@ module module_interfaces
          real(gp), intent(in) :: hx,hy,hz,crmult,frmult
          real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
          real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+         logical,intent(in) :: calculate_bounds
          type(locreg_descriptors), intent(inout) :: Glr
          logical, intent(in), optional :: output_denspot
       END SUBROUTINE createWavefunctionsDescriptors
