@@ -461,7 +461,7 @@ subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
   end if
 
   if (energy /= 0. .and. energy /= UNINITIALIZED(energy)) then
-     write(iunit,'(i6,2x,a,2x,1pe24.17,2x,a)') atoms%astruct%nat,trim(units),energy,trim(comment)
+     write(iunit,'(i6,2x,a,2x,1pe24.17,1x,a,2x,a)') atoms%astruct%nat,trim(units),energy,'(Ha)',trim(comment)
   else
      write(iunit,'(i6,2x,a,2x,a)') atoms%astruct%nat,trim(units),trim(comment)
   end if
@@ -511,7 +511,7 @@ subroutine wtxyz_forces(iunit,fxyz,at)
   character(len=20) :: symbol
   character(len=10) :: name
 
-  write(iunit,*)'forces'
+  write(iunit,*)'forces (Ha/Bohr)'
   
   do iat=1,at%astruct%nat
      name=trim(at%astruct%atomnames(at%astruct%iatype(iat)))
@@ -634,7 +634,7 @@ subroutine wtascii_forces(iunit,fxyz,at)
      endline=char(92)
   end if
 
-  write(iunit, "(A,3(1pe25.17,A),a)") "#metaData: forces=[",(fxyz(j,iat), ";",j=1,3),' '//endline
+  write(iunit, "(A,3(1pe25.17,A),a)") "#metaData: forces (Ha/Bohr) =[",(fxyz(j,iat), ";",j=1,3),' '//endline
   !then the rest until the second-last
   do iat=2,at%astruct%nat
      if (at%astruct%nat==iat) then

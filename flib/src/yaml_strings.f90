@@ -35,7 +35,7 @@ module yaml_strings
 
   !Public routines
   public ::  yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
-  public :: yaml_date_and_time_toa,yaml_time_toa,is_atoi,is_atof,is_atol
+  public :: yaml_date_and_time_toa,yaml_time_toa,is_atoi,is_atof,is_atol,is_atoli
   public :: read_fraction_string,f_strcpy
 
 contains
@@ -491,6 +491,28 @@ contains
     read(str,trim(form),iostat=ierr)ival
     yes=ierr==0
   end function is_atoi
+
+  !>find if a string is a long integer
+  !! use the portable mode described in 
+  !! http://flibs.sourceforge.net/fortran_aspects.html#check_integers
+  !! note that this function also gives positive answer if the character fits with ddefault integer type
+  !! therefore care should be taken in the usage (use only when long is needed)
+  pure function is_atoli(str) result(yes)
+    implicit none
+    character(len=*), intent(in) :: str
+    logical :: yes
+    !local variables
+    integer :: ierr
+    integer(kind=8) :: ival
+    character(len=20) :: form
+
+    !fill the string describing the format to be used for reading
+    !use the trimmed string and the yaml_toa function as i0 can add extra zeros in the specifications
+    write(form,'(a20)')'(i'//adjustl(trim(yaml_itoa(len_trim(str),fmt='(i17)')))//')' 
+    read(str,trim(form),iostat=ierr)ival
+    yes=ierr==0
+  end function is_atoli
+
 
   !>check if str contains a floating point number. 
   !!note that in principle this function gives positive answer also 

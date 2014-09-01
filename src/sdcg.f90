@@ -11,7 +11,7 @@
 !>  Conjugate gradient method
 subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
   use module_base
-  use module_types
+  use bigdft_run!module_types
   use module_interfaces
   use minpar
   use yaml_output
@@ -322,7 +322,7 @@ END SUBROUTINE conjgrad
 !> Steepest descent method
 subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd,fluct)
   use module_base
-  use module_types
+  use bigdft_run!module_types
   use module_interfaces
   use minpar
   use yaml_output
@@ -594,7 +594,7 @@ END SUBROUTINE steepdes
 !> Variable step steepest descent
 subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
   use module_base
-  use module_types
+  use bigdft_run!module_types
   use module_interfaces
   use minpar
   use yaml_output

@@ -15,26 +15,6 @@ module module_interfaces
    implicit none
 
    interface
-      subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
-         !n(c) use module_base
-         use module_types
-         implicit none
-         integer, intent(in) :: iproc,nproc
-         type(run_objects), intent(inout) :: runObj
-         type(DFT_global_output), intent(inout) :: outs
-         integer, intent(inout) :: infocode
-      END SUBROUTINE call_bigdft
-
-      subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
-        use module_base
-        use module_types
-        implicit none
-        type(run_objects), intent(inout) :: runObj
-        type(DFT_global_output), intent(inout) :: outs
-        integer, intent(in) :: nproc,iproc
-        integer, intent(inout) :: ncount_bigdft
-      END SUBROUTINE geopt
-
       subroutine kswfn_optimization_loop(iproc, nproc, o, &
            & alphamix, idsx, inputpsi, KSwfn, denspot, nlpsp, energs, atoms, rxyz, GPU, xcstr, &
            & in)
@@ -105,17 +85,6 @@ module module_interfaces
          type(input_variables), intent(out) :: inputs
          character(len = *), intent(in) :: radical
       END SUBROUTINE standard_inputfile_names
-
-      subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
-        use module_defs, only: gp
-        use module_types
-        implicit none
-        type(run_objects), intent(out) :: runObj
-        type(input_variables), intent(in), target :: inputs
-        type(atoms_data), intent(in), target :: atoms
-        type(restart_objects), intent(in), target :: rst
-        real(gp), intent(in), optional :: rxyz0
-      end subroutine run_objects_associate
 
       !> @author
       !! Written by Laurent K Beland 2011 UdeM
@@ -1752,7 +1721,6 @@ module module_interfaces
       real(dp),dimension(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,1),max(nspin,orbs%nspinor)),intent(out):: rho
     end subroutine local_partial_densityLinear
 
-
     subroutine global_to_local(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho)
       use module_base
       use module_types
@@ -1765,7 +1733,6 @@ module module_interfaces
       real(wp),dimension(size_rho),intent(in) :: rho
       real(wp),dimension(size_Lrho),intent(out) :: Lrho
      end subroutine global_to_local
-
 
      subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
           psi,hpsi,psit,orthpar,passmat,iscf,Tel,occopt,& !mandatory

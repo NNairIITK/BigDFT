@@ -19,10 +19,11 @@
 program frequencies
 
    use module_base
-   use module_types
-   use module_interfaces
-   use m_ab6_symmetry
+!!$   use module_types
+!!$   use module_interfaces
+!!$   use m_ab6_symmetry
    use yaml_output
+   use bigdft_run
    use dictionaries, only: f_err_throw
 
    implicit none
@@ -113,20 +114,16 @@ program frequencies
    order = runObj%inputs%freq_order
    if (order == -1) then
       n_order = 1
-      kmoves = f_malloc(n_order,id='kmoves')
-      kmoves = (/ -1 /)
+      kmoves = f_malloc(src=(/ -1 /),id='kmoves')
    else if (order == 1) then
       n_order = 1
-      kmoves = f_malloc(n_order,id='kmoves')
-      kmoves = (/ 1 /)
+      kmoves = f_malloc(src=(/ 1 /),id='kmoves')
    else if (order == 2) then
       n_order = 2
-      kmoves = f_malloc(n_order,id='kmoves')
-      kmoves = (/ -1, 1 /)
+      kmoves = f_malloc(src=(/ -1, 1 /),id='kmoves')
    else if (order == 3) then
       n_order = 4
-      kmoves = f_malloc(n_order,id='kmoves')
-      kmoves = (/ -2, -1, 1, 2 /)
+      kmoves = f_malloc(src=(/ -2, -1, 1, 2 /),id='kmoves')
    else
       call f_err_throw('(F) Frequencies: This order '//trim(yaml_toa(order))//' is not implemented!',&
            err_name='FREQUENCIES_ORDER_ERROR')
@@ -424,7 +421,7 @@ program frequencies
 
    call f_release_routine()
 
-   call run_objects_free(runObj, subname)
+   call run_objects_free(runObj)
 
    call bigdft_finalize(ierr)
 
@@ -682,10 +679,11 @@ contains
 
 
    subroutine restart_inputs(inputs)
-      implicit none
-      !Argument
-      type(input_variables), intent(inout) :: inputs
-      inputs%inputPsiId=1
+     use module_types, only: input_variables
+     implicit none
+     !Argument
+     type(input_variables), intent(inout) :: inputs
+     inputs%inputPsiId=1
    END SUBROUTINE restart_inputs
 
 

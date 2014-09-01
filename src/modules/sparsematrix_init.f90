@@ -233,7 +233,7 @@ contains
       call get_nout(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, sparsemat%smmm%nout)
       call determine_sequential_length(norb, norbp, isorb, nseg, &
            nsegline, istsegline, keyg, sparsemat, &
-           sparsemat%smmm%nseq, sparsemat%smmm%nmaxsegk, sparsemat%smmm%nmaxvalk)
+           sparsemat%smmm%nseq)
       call allocate_sparse_matrix_matrix_multiplication(norb, nseg, nsegline, istsegline, keyg, sparsemat%smmm)
       sparsemat%smmm%nseg=nseg
       call vcopy(norb, nsegline(1), 1, sparsemat%smmm%nsegline(1), 1)
@@ -244,11 +244,9 @@ contains
            sparsemat, sparsemat%smmm%nout, sparsemat%smmm%onedimindices)
       call get_arrays_for_sequential_acces(norb, norbp, isorb, nseg, &
            nsegline, istsegline, keyg, sparsemat, &
-           sparsemat%smmm%nseq, sparsemat%smmm%nmaxsegk, sparsemat%smmm%nmaxvalk, &
-           sparsemat%smmm%ivectorindex)
+           sparsemat%smmm%nseq, sparsemat%smmm%ivectorindex)
       call init_sequential_acces_matrix(norb, norbp, isorb, nseg, &
            nsegline, istsegline, keyg, sparsemat, sparsemat%smmm%nseq, &
-           sparsemat%smmm%nmaxsegk, sparsemat%smmm%nmaxvalk, &
            sparsemat%smmm%indices_extract_sequential)
     end subroutine init_sparse_matrix_matrix_multiplication
 
@@ -625,7 +623,7 @@ contains
 
 
     subroutine determine_sequential_length(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, &
-               sparsemat, nseq, nmaxsegk, nmaxvalk)
+               sparsemat, nseq)
       implicit none
     
       ! Calling arguments
@@ -633,18 +631,15 @@ contains
       integer,dimension(norb),intent(in) :: nsegline, istsegline
       integer,dimension(2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(in) :: sparsemat
-      integer,intent(out) :: nseq, nmaxsegk, nmaxvalk
+      integer,intent(out) :: nseq
     
       ! Local variables
       integer :: i,iseg,jorb,iorb,jseg,ii
       integer :: isegoffset, istart, iend
     
       nseq=0
-      nmaxsegk=0
-      nmaxvalk=0
       do i = 1,norbp
          ii=isorb+i
-         nmaxsegk=max(nmaxsegk,nsegline(ii))
          isegoffset=istsegline(ii)-1
          do iseg=1,nsegline(ii)
               istart=keyg(1,isegoffset+iseg)
@@ -653,7 +648,6 @@ contains
               ! coordinate on a given line by using the mod function
               istart=mod(istart-1,norb)+1
               iend=mod(iend-1,norb)+1
-              nmaxvalk=max(nmaxvalk,iend-istart+1)
               do iorb=istart,iend
                   do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
                       do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
@@ -743,12 +737,12 @@ contains
 
 
     subroutine get_arrays_for_sequential_acces(norb, norbp, isorb, nseg, &
-               nsegline, istsegline, keyg, sparsemat, nseq, nmaxsegk, nmaxvalk, &
+               nsegline, istsegline, keyg, sparsemat, nseq, &
                ivectorindex)
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: norb, norbp, isorb, nseg, nseq, nmaxsegk, nmaxvalk
+      integer,intent(in) :: norb, norbp, isorb, nseg, nseq
       integer,dimension(norb),intent(in) :: nsegline, istsegline
       integer,dimension(2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(in) :: sparsemat
@@ -787,12 +781,12 @@ contains
 
 
     subroutine init_sequential_acces_matrix(norb, norbp, isorb, nseg, &
-               nsegline, istsegline, keyg, sparsemat, nseq, nmaxsegk, nmaxvalk, &
+               nsegline, istsegline, keyg, sparsemat, nseq, &
                indices_extract_sequential)
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: norb, norbp, isorb, nseg, nseq, nmaxsegk, nmaxvalk
+      integer,intent(in) :: norb, norbp, isorb, nseg, nseq
       integer,dimension(norb),intent(in) :: nsegline, istsegline
       integer,dimension(2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(in) :: sparsemat

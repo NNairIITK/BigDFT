@@ -387,24 +387,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           !!    end do
           !!end do
     
-                 ! Check for an emergency stop, which happens if the kernel explodes, presumably due
-                 ! to the eigenvalue bounds being too small.
-                 ! mpi_lor seems not to work on certain systems...
-                 if (emergency_stop) then
-                     iflag=1
-                 else
-                     iflag=0
-                 end if
-    
-                 if (nproc > 1) then
-                     call mpiallred(iflag, 1, mpi_sum, bigdft_mpi%mpi_comm)
-                 end if
-    
-                 if (iflag>0) then
-                     emergency_stop=.true.
-                 else
-                     emergency_stop=.false.
-                 end if
+                 call check_emergency_stop()
                  if (emergency_stop) then
                       eval_bounds_ok(1)=.false.
                       call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*1.2d0,ispin)
@@ -817,7 +800,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
           integer,dimension(:),allocatable :: ivectorindex
           integer,dimension(:,:,:),allocatable :: istindexarr
-          integer :: nout, nseq, nmaxsegk, nmaxvalk
+          integer :: nout, nseq
 
           call f_routine(id='retransform')
 
@@ -985,6 +968,8 @@ subroutine foe(iproc, nproc, tmprtr, &
         implicit none
         real(kind=8) :: bound_low, bound_up
 
+        call f_routine(id='check_eigenvalue_spectrum')
+
         ! The penalty function must be smaller than the noise.
         bound_low=0.d0
         bound_up=0.d0
@@ -1042,11 +1027,16 @@ subroutine foe(iproc, nproc, tmprtr, &
             eval_bounds_ok(2)=.true.
         end if
 
+        call f_release_routine()
+
       end subroutine check_eigenvalue_spectrum
 
 
       subroutine scale_and_shift_hamiltonian()
         implicit none
+
+        call f_routine(id='scale_and_shift_hamiltonian')
+
         scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
         shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh",ispin)+foe_data_get_real(foe_obj,"evlow",ispin))
         !$omp parallel default(none) private(ii,irow,icol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
@@ -1071,7 +1061,39 @@ subroutine foe(iproc, nproc, tmprtr, &
         end do
         !$omp end do
         !$omp end parallel
+
+        call f_release_routine()
+
       end subroutine scale_and_shift_hamiltonian
+
+
+      subroutine check_emergency_stop()
+        implicit none
+
+        call f_routine(id='check_emergency_stop')
+
+        ! Check for an emergency stop, which happens if the kernel explodes, presumably due
+        ! to the eigenvalue bounds being too small.
+        ! mpi_lor seems not to work on certain systems...
+        if (emergency_stop) then
+            iflag=1
+        else
+            iflag=0
+        end if
+    
+        if (nproc > 1) then
+            call mpiallred(iflag, 1, mpi_sum, bigdft_mpi%mpi_comm)
+        end if
+    
+        if (iflag>0) then
+            emergency_stop=.true.
+        else
+            emergency_stop=.false.
+        end if
+
+        call f_release_routine()
+
+      end subroutine check_emergency_stop
 
 end subroutine foe
 
@@ -1102,7 +1124,7 @@ subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
   bpa=0.5d0*(b+a)
   fac=2.d0/n
   !$omp parallel default(none) shared(bma,bpa,fac,n,tmprtr,cf,fscale,ef,cc) &
-  !$omp private(k,y,arg,tt)
+  !$omp private(k,y,arg,tt,j)
   !$omp do
   do k=1,n
       y=cos(pi*(k-0.5d0)*(1.d0/n))
@@ -1158,7 +1180,7 @@ subroutine chebft2(a,b,n,cc)
   ttt=4.d0*n/(b-a)
   fac=2.d0/n
   !$omp parallel default(none) shared(bma,bpa,ttt,fac,n,cf,b,cc) &
-  !$omp private(k,y,arg,tt)
+  !$omp private(k,y,arg,tt,j)
   !$omp do
   do k=1,n
       y=cos(pi*(k-0.5d0)*(1.d0/n))
@@ -1677,6 +1699,9 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
   integer :: ierr, iashift, ibshift
   real(kind=8) :: sumn, trace_sparse
 
+
+  call f_routine(id='trace_sparse')
+
   iashift = (ispin-1)*asmat%nvctr
   ibshift = (ispin-1)*bsmat%nvctr
 
@@ -1711,6 +1736,8 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
   end if
 
   trace_sparse = sumn
+
+  call f_release_routine()
 
 end function trace_sparse
 

@@ -71,7 +71,7 @@ call f_err_open_try()
 call f_err_throw(error,'Something is wrong',err_id=ERROR)
 if (f_err_pop()) print *,'An error occured'
 call f_err_close_try()
-@code
+@endcode
 
 Nested trys are allowed. When the f_err_close_try is done, the error stack of the corresponding try is lost.
 

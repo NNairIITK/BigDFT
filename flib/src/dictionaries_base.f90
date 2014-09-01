@@ -105,12 +105,16 @@ module dictionaries_base
      module procedure get_child_ptr,get_list_ptr
   end interface
 
+  interface dict_free
+     module procedure dict_free, dict_free_multi
+  end interface 
+
 !!$  interface operator(.val.)
 !!$     module procedure list_iter_to_value,dict_iter_to_value
 !!$  end interface
 
   private :: allocate_library, allocate_file, deallocate_file, destroy_library
-
+  public :: dict_free
 
 contains
   
@@ -152,8 +156,6 @@ contains
 !!$
 !!$    val=link_elem%elem
 !!$  end function get_value_le
-
-          
 
   !> Test if keys are present
   pure function no_key(dict)
@@ -374,6 +376,23 @@ contains
     end if
   end subroutine dict_destroy
 
+  !> free different dictionaries at the same time
+  subroutine dict_free_multi(dict0,dict1,dict2,dict3,dict4,dict5,dict6,dict7,dict8,dict9)
+    type(dictionary), pointer :: dict0,dict1
+    type(dictionary), pointer, optional :: dict2,dict3,dict4,dict5,dict6,dict7,dict8,dict9
+    
+    call dict_free(dict0)
+    call dict_free(dict1)
+    if (present(dict2)) call dict_free(dict2)
+    if (present(dict3)) call dict_free(dict3)
+    if (present(dict4)) call dict_free(dict4)
+    if (present(dict5)) call dict_free(dict5)
+    if (present(dict6)) call dict_free(dict6)
+    if (present(dict7)) call dict_free(dict7)
+    if (present(dict8)) call dict_free(dict8)
+    if (present(dict9)) call dict_free(dict9)
+
+  end subroutine dict_free_multi
 
   subroutine dict_free(dict)
     type(dictionary), pointer :: dict

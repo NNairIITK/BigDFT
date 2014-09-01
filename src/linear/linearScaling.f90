@@ -814,14 +814,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  if (iproc==0) then
                      !yaml output
                      !call yaml_mapping_close() !iteration
-                     call bigdft_utils_flush(unit=6)
+                    call yaml_flush_document()
+                    !call bigdft_utils_flush(unit=6)
                  end if
                  exit
              else if (pnrm<convCritMix.and.input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
                  if (iproc==0) then
                      !yaml output
                      !call yaml_mapping_close() !iteration
-                     call bigdft_utils_flush(unit=6)
+                    call yaml_flush_document()
+                    !call bigdft_utils_flush(unit=6)
                  end if
                 exit
              !else if (pnrm<convCritMix.and.reorder) then
@@ -836,7 +838,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              if (iproc==0) then
                  !yaml output
                  !call yaml_mapping_close() !iteration
-                 call bigdft_utils_flush(unit=6)
+                call yaml_flush_document()
+                ! call bigdft_utils_flush(unit=6)
              end if
 
          end do kernel_loop
@@ -853,7 +856,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              call yaml_comment('iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
              call printSummary()
              call yaml_mapping_close() !iteration
-             call bigdft_utils_flush(unit=6)
+             call yaml_flush_document()
+             !call bigdft_utils_flush(unit=6)
          end if
 
           ! Close sequence for the optimization steps
@@ -1420,7 +1424,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           end if
        end if
 
-    call bigdft_utils_flush(unit=6)
+       call yaml_flush_document()
+       !call bigdft_utils_flush(unit=6)
     call yaml_sequence_close()
 
 

@@ -63,6 +63,8 @@ AC_FC_SRCEXT(f90)
 
 AC_FC_WRAPPERS()
 AX_FC_FLUSH()
+AX_FC_RECL_KIND()
+AC_SUBST(RECL_INT_KIND, $ax_fc_recl_kind)
 AX_FC_DEFS()
 AX_FC_F2003()
 AX_FC_OPENMP()
@@ -1079,6 +1081,7 @@ config/Doxyfile
 PyYAML-3.10/Makefile
 flib/Makefile
 flib/src/Makefile
+flib/src/f_utils.inc
 flib/tests/Makefile
 wrappers/Makefile
 PSolver/Makefile
@@ -1098,6 +1101,7 @@ src/OpenCL/Makefile
 src/convolutions-c/Makefile
 src/bindings/Makefile
 src/art/Makefile
+src/mhgps_files/Makefile
 src/tools/Makefile
 src/tools/bader/Makefile
 utils/Makefile

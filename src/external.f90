@@ -12,6 +12,128 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
+subroutine bigdft_init_new(parser,mpi_info)
+  use yaml_parse
+  use dictionaries
+  !use yaml_output, only: yaml_map
+  use yaml_strings, only: f_strcpy,yaml_toa
+  use module_defs, only: bigdft_mpi
+  use module_input_dicts, only: merge_input_file_to_dict
+  implicit none
+  !> first entry: id of MPI task in the groups,
+  !! 2nd: number of MPI tasks, third: id of group, fourth: total number of taskgroups
+  integer, dimension(4), intent(out) :: mpi_info 
+  type(yaml_cl_parse), intent(inout) :: parser
+  !local variables
+  logical :: exist_list,posinp_name
+  integer :: ierr,mpi_groupsize,iconfig
+  character(len=max_field_length) :: posinp_id,run_id,err_msg
+  type(dictionary), pointer :: dict_run
+
+  !coherence checks among the options (no disk access)
+   
+  !Initalize the global mpi environment
+  call bigdft_mpi_init(ierr)
+  !if (ierr /= MPI_SUCCESS) then
+     !this part have to be included in mpi_init wrappers
+  !   return
+  !end if
+
+  !taskgroup size
+  mpi_groupsize=0
+  mpi_groupsize=parser%args .get. 'taskgroup-size'
+
+  !initialize the bigdft_mpi environment
+  call bigdft_init_mpi_env(mpi_info, mpi_groupsize, ierr)
+  !the error check has to be ierr
+
+  !identify the list of the runs which are associated to the 
+  !present processor
+  nullify(dict_run)
+  
+  !logical flag telling that the input position name is still "posinp.*"
+  !regardless of the fact that the input file is "input.*"
+  posinp_name=.false.
+  if ('name' .in. parser%args) then
+     !check if the names are given as a list or as a scalar
+     if (dict_len(parser%args) > 0) then
+        call dict_copy(dict_run,parser%args//'name')
+     else
+        run_id = parser%args//'name'
+     end if
+  else
+     call f_strcpy(src='input',dest=run_id)
+     posinp_name=.true.
+  end if
+  !this is not possible if name option exists
+  if ('runs-file' .in. parser%args) then
+     posinp_name=.false.
+     posinp_id = parser%args//'runs-file'
+     !verify if file exists and if it is yaml compliant
+     call f_file_exists(posinp_id,exist_list)
+     if (exist_list) then
+        call dict_init(dict_run)
+        call f_err_open_try()
+        call merge_input_file_to_dict(dict_run,posinp_id,bigdft_mpi)
+        !verify if yaml_parsing found errors
+        if (f_err_check()) ierr = f_get_last_error(err_msg)
+        call f_err_close_try()
+        !sanity check of the parsed file
+        if (ierr /= 0) then
+           call f_err_throw('Parsing error for runs-file "'//&
+                trim(posinp_id)//&
+             '", with message '//trim(err_msg),&
+             err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+        end if
+        !check if the file is given by a list
+        if (dict_len(dict_run) <= 0) then
+           call f_err_throw('The runs-file "'//&
+                trim(posinp_id)//'" is not a list in yaml syntax',& 
+                err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+        end if
+     else
+        call f_err_throw('The runs-file specified ('//trim(posinp_id)//&
+             ') does not exists',err_name='BIGDFT_INPUT_FILE_ERROR')
+     end if
+     !here the run of the dicts has to be evaluated according to the taskgroups    
+  else if (.not. associated(dict_run)) then
+     call dict_init(dict_run)
+     if (bigdft_mpi%ngroup == 1) then
+        call add(dict_run,trim(run_id))
+     else
+        do iconfig=1,bigdft_mpi%ngroup
+           call add(dict_run,trim(run_id)//&
+                trim(adjustl(yaml_toa(iconfig,fmt='(i3)'))))
+        end do
+     end if
+  end if
+
+  !call yaml_map('Dict of runs',dict_run)
+
+  !here the dict_run is given, and in each of the taskgroups a list of 
+  !runs for BigDFT instances has to be given
+  do iconfig=0,dict_len(dict_run)-1
+     if (modulo(iconfig,bigdft_mpi%ngroup)==bigdft_mpi%igroup) then
+        run_id=dict_run//iconfig
+        if (posinp_name) then
+           if (dict_len(dict_run) == 1) then
+              call f_strcpy(src='posinp',dest=posinp_id)
+           else
+              call f_strcpy(src='posinp'//&
+                   trim(adjustl(yaml_toa(iconfig,fmt='(i3)'))),&
+                   dest=posinp_id)
+           end if
+        else
+           posinp_id=run_id
+        end if
+        call add(parser%args//'BigDFT',&
+             dict_new('name' .is. run_id,'posinp' .is. posinp_id))
+     end if
+  end do
+  call dict_free(dict_run)
+
+end subroutine bigdft_init_new
+
 
 !> Routine which initalizes the BigDFT environment
 subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
@@ -29,10 +151,10 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
 
   !Initalize the global mpi environment
   call bigdft_mpi_init(ierr)
-  if (ierr /= MPI_SUCCESS) return
-
+  if (ierr /= MPI_SUCCESS) then
+     return
+  end if
   call command_line_information(mpi_groupsize,posinp_file,radical,ierr)
-
   call bigdft_init_mpi_env(mpi_info, mpi_groupsize, ierr)
 
   !minimum number of different configurations dictated by ngroups
@@ -81,6 +203,7 @@ subroutine bigdft_init_mpi_env(mpi_info,mpi_groupsize, ierr)
   !local variables
   integer :: iproc,nproc,ngroup_size
 
+  !here wrappers for MPI should be used
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
   if (ierr /= MPI_SUCCESS) return
@@ -122,13 +245,19 @@ subroutine bigdft_finalize(ierr)
   use BigDFT_API
   implicit none
   integer, intent(out) :: ierr
-  
+
+  ierr=0
+
   !here a routine to free the environment should be called
-   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-   call mpi_environment_free(bigdft_mpi)
-   !wait all processes before finalisation
-   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-   call MPI_FINALIZE(ierr)
+  call mpibarrier() !over comm world
+  !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+  call mpi_environment_free(bigdft_mpi)
+  call mpibarrier() !over comm world
+  !wait all processes before finalisation
+  !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+  !call MPI_FINALIZE(ierr)
+  call mpifinalize()
+  
 end subroutine bigdft_finalize
 
 
@@ -226,8 +355,8 @@ end function bigdft_get_number_of_atoms
 
 !> Get the number of orbitals of the run in rst
 function bigdft_get_number_of_orbitals(rst,istat) result(norb)
-  use module_base
-  use module_types
+  use module_types, only: BIGDFT_SUCCESS,BIGDFT_UNINITIALIZED
+  use bigdft_run
   implicit none
   type(restart_objects), intent(in) :: rst !> BigDFT restart variables. call_bigdft already called
   integer :: norb !> Number of orbitals of run in rst
@@ -242,8 +371,9 @@ end function bigdft_get_number_of_orbitals
 
 !> Fill the array eval with the number of orbitals of the last run
 subroutine bigdft_get_eigenvalues(rst,eval,istat)
-  use module_base
+  use module_base, only: gp,f_memcpy,vcopy
   use module_types
+  use bigdft_run
   implicit none
   type(restart_objects), intent(in) :: rst !> BigDFT restart variables. call_bigdft already called
   real(gp), dimension(*), intent(out) :: eval !> Buffer for eigenvectors. Should have at least dimension equal to bigdft_get_number_of_orbitals(rst,istat)
@@ -264,8 +394,9 @@ subroutine bigdft_get_eigenvalues(rst,eval,istat)
      istat = BIGDFT_INCONSISTENCY
      return
   end if
-
-  call vcopy(norb,rst%KSwfn%orbs%eval(1),1,eval(1),1)
+  !probleb with inout
+  call f_memcpy(n=norb,src=rst%KSwfn%orbs%eval(1),dest=eval(1))
+  !call vcopy(norb,rst%KSwfn%orbs%eval(1),1,eval(1),1)
 
 end subroutine bigdft_get_eigenvalues
 

@@ -49,6 +49,8 @@ module fermi_level
       real(kind=8),intent(in),optional :: ef_interpol_det        !< determinant of the interpolation matrix above which the cubic interpolation is allowed
       integer,intent(in),optional :: verbosity                   !< verbosity of the output: 0 for no output, 1 for more detailed output
 
+      call f_routine(id='init_fermi_level')
+
       f%adjust_lower_bound = .true.
       f%adjust_upper_bound = .true.
       f%target_charge = target_charge
@@ -84,6 +86,9 @@ module fermi_level
       else
           f%verbosity = 0
       end if
+
+      call f_release_routine()
+
     end subroutine init_fermi_level
 
 
@@ -108,6 +113,8 @@ module fermi_level
 
 
       integer :: iproc, ierr
+
+      call f_routine(id='determine_fermi_level')
 
       ! Make sure that the bounds for the bisection are negative and positive
       charge_diff = sumn-f%target_charge
@@ -151,7 +158,10 @@ module fermi_level
           info = internal_info
       end if
 
-      if (internal_info < 0) return ! no need to proceed further
+      if (internal_info < 0) then
+          call f_release_routine()
+          return ! no need to proceed further
+      end if
 
       ! If we made it here, the bounds are ok (i.e. the lower bound gives a negative charge difference and the upper one a positive one).
 
@@ -197,8 +207,11 @@ module fermi_level
       f%ef_old = ef
       f%sumn_old = sumn
 
+
+
       call determine_new_fermi_level()
 
+      call f_release_routine()
 
       contains
 

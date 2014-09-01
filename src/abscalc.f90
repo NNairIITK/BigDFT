@@ -11,9 +11,9 @@
 program abscalc_main
 
    use module_base
-   use module_types
-   use module_interfaces
-   use m_ab6_symmetry
+   use bigdft_run!module_types
+!!$   use module_interfaces
+!!$   use m_ab6_symmetry
    !  use minimization, only: parameterminimization 
 
    implicit none
@@ -58,33 +58,24 @@ program abscalc_main
       if (modulo(iconfig-1,ngroups)==igroup) then
 
          !Welcome screen
-         !if (iproc==0) call print_logo()
          call run_objects_init_from_files(runObj, arr_radical(iconfig),arr_posinp(iconfig))
 
-!!$
-!!$      ! Read all input files.
-!!$      !standard names
-!!$      call standard_inputfile_names(inputs,radical,nproc)
-!!$      call read_input_variables(iproc,nproc,arr_posinp(iconfig),inputs, atoms, rxyz,nconfig,radical,istat)
-!!$
-!!$      !Initialize memory counting
-!!$      !call memocc(0,iproc,'count','start')
-!!$
-!!$      !Read absorption-calculation input variables
-!!$      !inquire for the needed file 
-!!$      !if not present, set default (no absorption calculation)
-
-      inquire(file=trim(run_id)//".abscalc",exist=exists)
-      if (.not. exists) then
-         if (iproc == 0) write(*,*) 'ERROR: need file input.abscalc for x-ray absorber treatment.'
-         if(nproc/=0)   call MPI_FINALIZE(ierr)
-         stop
-      end if
+         call f_file_exists(trim(run_id)//".abscalc",exists)
+         !inquire(file=trim(run_id)//".abscalc",exist=exists)
+         if (.not. exists) then
+!!$            if (iproc == 0) write(*,*) 'ERROR: need file input.abscalc for x-ray absorber treatment.'
+!!$            if(nproc/=0)   call MPI_FINALIZE(ierr)
+!!$            stop
+            call f_err_throw('Need file input.abscalc for x-ray absorber treatment',&
+                 err_name='BIGDFT_INPUT_FILE_ERROR')
+         end if
       call abscalc_input_variables(iproc,trim(run_id)//".abscalc",runObj%inputs)
       if( runObj%inputs%iat_absorber <1 .or. runObj%inputs%iat_absorber > runObj%atoms%astruct%nat) then
-         if (iproc == 0) write(*,*)'ERROR: inputs%iat_absorber  must .ge. 1 and .le. number_of_atoms '
-         if(nproc/=0)   call MPI_FINALIZE(ierr)
-         stop
+!!$         if (iproc == 0) write(*,*)'ERROR: inputs%iat_absorber  must .ge. 1 and .le. number_of_atoms '
+!!$         if(nproc/=0)   call MPI_FINALIZE(ierr)
+!!$         stop
+         call f_err_throw('inputs%iat_absorber  must .ge. 1 and .le. number_of_atoms',&
+              err_name='BIGDFT_INPUT_VARIABLES_ERROR')
       endif
 
 
@@ -92,19 +83,15 @@ program abscalc_main
       fxyz = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='fxyz')
 
       call call_abscalc(nproc,iproc,runObj%atoms,runObj%atoms%astruct%rxyz, &
-           & runObj%inputs,etot,fxyz,runObj%rst,infocode)
+           runObj%inputs,etot,fxyz,runObj%rst,infocode)
 
       ! if (iproc == 0) call write_forces(atoms,fxyz)
 
       !De-allocations
-      !call deallocate_abscalc_input(runObj%inputs)
       call f_free_ptr(runObj%inputs%Gabs_coeffs)
-!      call deallocate_local_zone_descriptors(rst%Lzd, subname)
-
-
       call f_free(fxyz)
 
-      call run_objects_free(runObj, subname)
+      call run_objects_free(runObj)
 
    end if
    enddo !loop over iconfig
@@ -120,8 +107,9 @@ END PROGRAM abscalc_main
 !> Routines to use abscalc as a blackbox
 subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
    use module_base
-   use module_types
+   use module_types, only: input_variables,deallocate_wfd,atoms_data
    use module_interfaces
+   use bigdft_run
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc
@@ -159,7 +147,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
 !!$   end interface
 
    !put a barrier for all the processes
-   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+   call mpibarrier()
 
    !assign the verbosity of the output
    !the verbose variables is defined in module_base
@@ -185,8 +173,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
          stop 'ERROR'
       else
          call abscalc(nproc,iproc,atoms,rxyz,&
-             rst%KSwfn,&!%psi,rst%KSwfn%Lzd,rst%KSwfn%orbs,&
-             rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
+             rst%KSwfn,rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
          fxyz(:,:) = 0.d0
       endif
 
@@ -226,7 +213,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
 
          if (nproc > 1) call MPI_FINALIZE(ierr)
 
-         stop 'normal end'
+         stop 'unnormal end'
       else
          exit loop_cluster
       end if

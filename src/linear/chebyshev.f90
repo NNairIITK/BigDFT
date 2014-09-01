@@ -35,7 +35,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
   real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
   logical,intent(out) :: emergency_stop
   ! Local variables
-  integer :: iorb,iiorb, jorb, ipl, ierr, nseq, nmaxsegk, nmaxvalk
+  integer :: iorb,iiorb, jorb, ipl, ierr, nseq, nmaxvalk
   integer :: isegstart, isegend, iseg, ii, jjorb, nout
   character(len=*),parameter :: subname='chebyshev_clean'
   real(8), dimension(:,:,:), allocatable :: vectors
@@ -94,17 +94,9 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
           end if
       end if
     
-      !!call sequential_acces_matrix(kernel%nfvctr, kernel%nfvctrp, kernel%isfvctr, kernel%smmm%nseg, &
-      !!     kernel%smmm%nsegline, kernel%smmm%istsegline, kernel%smmm%keyg, &
-      !!     kernel, ham_compr, kernel%smmm%nseq, kernel%smmm%nmaxsegk, kernel%smmm%nmaxvalk, &
-      !!     ham_compr_seq)
       call sequential_acces_matrix_fast(kernel, ham_compr, ham_compr_seq)
     
     
-      !!call sequential_acces_matrix(kernel%nfvctr, kernel%nfvctrp, kernel%isfvctr, kernel%smmm%nseg, &
-      !!     kernel%smmm%nsegline, kernel%smmm%istsegline, kernel%smmm%keyg, &
-      !!     kernel, ovrlp_compr, kernel%smmm%nseq, kernel%smmm%nmaxsegk, kernel%smmm%nmaxvalk, &
-      !!     ovrlp_compr_seq)
       call sequential_acces_matrix_fast(kernel, ovrlp_compr, ovrlp_compr_seq)
 
 
@@ -157,10 +149,6 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
       end if
   
       if (kernel%nfvctrp>0) then
-          !!call sequential_acces_matrix(kernel%nfvctr, kernel%nfvctrp, kernel%isfvctr, kernel%smmm%nseg, &
-          !!     kernel%smmm%nsegline, kernel%smmm%istsegline, kernel%smmm%keyg, &
-          !!     kernel, SHS, kernel%smmm%nseq, kernel%smmm%nmaxsegk, &
-          !!     kernel%smmm%nmaxvalk, SHS_seq)
           call sequential_acces_matrix_fast(kernel, SHS, SHS_seq)
       end if
   

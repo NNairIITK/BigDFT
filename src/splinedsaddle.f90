@@ -12,10 +12,7 @@
 program splined_saddle
 
   use module_base
-  use module_types
-  use module_interfaces
-  use m_ab6_symmetry
-  use yaml_output
+  use bigdft_run
   implicit none
   character(len=*), parameter :: subname='BigDFT'
   integer :: iproc,nproc,ierr,infocode
@@ -42,22 +39,21 @@ program splined_saddle
   !just for backward compatibility
   iproc=mpi_info(1)
   nproc=mpi_info(2)
-
-
-   !allocate arrays of run ids
+  
+  !allocate arrays of run ids
   allocate(arr_radical(abs(nconfig)))
   allocate(arr_posinp(abs(nconfig)))
-   
+
   !here we call  a routine which
   ! Read a possible radical format argument.
   call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierr)
-  
-  do iconfig=1,abs(nconfig)
-      if (modulo(iconfig-1,mpi_info(4))==mpi_info(3)) then
 
-         ! Read all input files. This should be the sole routine which is called to initialize the run.
-         call run_objects_init_from_files(runObj, arr_radical(iconfig),arr_posinp(iconfig))
-         call init_global_output(outs, runObj%atoms%astruct%nat)
+  do iconfig=1,abs(nconfig)
+     if (modulo(iconfig-1,mpi_info(4))==mpi_info(3)) then
+
+        ! Read all input files. This should be the sole routine which is called to initialize the run.
+        call run_objects_init_from_files(runObj, arr_radical(iconfig),arr_posinp(iconfig))
+        call init_global_output(outs, runObj%atoms%astruct%nat)
 
 !!$     !welcome screen
 !!$!     if (iproc==0) call print_logo()
@@ -72,69 +68,52 @@ program splined_saddle
 !!$        call print_general_parameters(inputs,atoms)
 !!$     end if
 
-     open(unit=16,file=trim(runObj%inputs%dir_output)//'geopt.mon',status='unknown',position='append')
-     if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
+        open(unit=16,file=trim(runObj%inputs%dir_output)//'geopt.mon',status='unknown',position='append')
+        if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
 
+        !if other steps are supposed to be done leave the last_run to minus one
+        !otherwise put it to one
+        !if (inputs%last_run == -1 .and. inputs%ncount_cluster_x <=1) then
+        if (runObj%inputs%last_run == -1 .and. runObj%inputs%ncount_cluster_x <=1 .or.  runObj%inputs%ncount_cluster_x <= 1) then
+           runObj%inputs%last_run = 1
+        end if
 
-     !initialize memory counting
-     !call memocc(0,iproc,'count','start')
-
-     !if other steps are supposed to be done leave the last_run to minus one
-     !otherwise put it to one
-     !if (inputs%last_run == -1 .and. inputs%ncount_cluster_x <=1) then
-     if (runObj%inputs%last_run == -1 .and. runObj%inputs%ncount_cluster_x <=1 .or.  runObj%inputs%ncount_cluster_x <= 1) then
-        runObj%inputs%last_run = 1
-     end if
- 
-     call call_bigdft(runObj, outs, nproc,iproc,infocode)
-
-     if (runObj%inputs%ncount_cluster_x > -1) then
-        if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
-        
-        ratsp = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='ratsp')
-        fatsp = f_malloc((/ 3, outs%fdim /),id='fatsp')
-        ratsp(1:3,1:runObj%atoms%astruct%nat)=runObj%atoms%astruct%rxyz(1:3,1:runObj%atoms%astruct%nat)
-        fatsp(1:3,1:outs%fdim)=outs%fxyz(1:3,1:outs%fdim)
-        outs%energy=outs%energy
-        call givemesaddle(outs%energy,ratsp,fatsp,16,nproc,iproc,runObj%atoms,runObj%rst,runObj%inputs,ncount_bigdft)
-        close(16)
-        call f_free(ratsp)
-        call f_free(fatsp)
-
-        ! geometry optimization
-        !call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
-        !filename=trim('final_'//trim(arr_posinp(iconfig)))
-        !if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,' ')
-     end if
-
-     !if there is a last run to be performed do it now before stopping
-     if (runObj%inputs%last_run == -1) then
-        runObj%inputs%last_run = 1
         call call_bigdft(runObj, outs, nproc,iproc,infocode)
+
+        if (runObj%inputs%ncount_cluster_x > -1) then
+           if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
+
+           ratsp = f_malloc(src=runObj%atoms%astruct%rxyz,id='ratsp')
+           fatsp = f_malloc(src=outs%fxyz,id='fatsp')
+!!$        ratsp = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='ratsp')
+!!$        fatsp = f_malloc((/ 3, outs%fdim /),id='fatsp')
+!!$        ratsp(1:3,1:runObj%atoms%astruct%nat)=runObj%atoms%astruct%rxyz(1:3,1:runObj%atoms%astruct%nat)
+!!$        fatsp(1:3,1:outs%fdim)=outs%fxyz(1:3,1:outs%fdim)
+
+           outs%energy=outs%energy
+           call givemesaddle(outs%energy,ratsp,fatsp,16,nproc,iproc,runObj%atoms,runObj%rst,runObj%inputs,ncount_bigdft)
+           close(16)
+           call f_free(ratsp)
+           call f_free(fatsp)
+
+           ! geometry optimization
+           !call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
+           !filename=trim('final_'//trim(arr_posinp(iconfig)))
+           !if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,' ')
+        end if
+
+        !if there is a last run to be performed do it now before stopping
+        if (runObj%inputs%last_run == -1) then
+           runObj%inputs%last_run = 1
+           call call_bigdft(runObj, outs, nproc,iproc,infocode)
+        end if
+
+        if (iproc == 0) call write_forces(runObj%atoms,outs%fxyz)
+
+        call deallocate_global_output(outs)
+        call run_objects_free(runObj)
      end if
-
-     if (iproc == 0) call write_forces(runObj%atoms,outs%fxyz)
-
-     call deallocate_global_output(outs)
-     call run_objects_free(runObj, subname)
-
-!!$
-!!$     call deallocate_atoms(atoms) 
-!!$
-!!$!     call deallocate_local_zone_descriptors(rst%Lzd) 
-!!$     if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) &
-!!$          & call deallocateBasicArraysInput(inputs%lin)
-!!$
-!!$     call free_restart_objects(rst)
-!!$
-!!$
-!!$     call free_input_variables(inputs)
-!!$     !-----------------------------------------------------------
-!!$
-!!$     !finalize memory counting
-!!$     call memocc(0,0,'count','stop')
-  end if
-enddo !loop over iconfig
+  enddo !loop over iconfig
 
   deallocate(arr_posinp,arr_radical)
 
@@ -277,6 +256,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     use modulesplinedsaddle, only:parametersplinedsaddle
     use module_input_dicts
     use module_atoms, only: deallocate_atoms_data
+    use bigdft_run
     implicit none
     integer, intent(in) :: nproc,iproc
     type(atoms_data), intent(inout) :: atoms
@@ -578,6 +558,7 @@ subroutine improvepeak(n,nr,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,nc
     use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
+    use bigdft_run
     !use energyandforces, only:calenergyforces
     implicit none
     integer :: n,nr,np,i,ip,npv,nproc,iproc,mp,lp,iat,ixyz,iter,ncount_bigdft,infocode
@@ -678,6 +659,7 @@ subroutine pickbestanchors2(n,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,
     use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
+    use bigdft_run
     !use energyandforces, only:calenergyforces
     implicit none
     integer :: n,np,i,ip,npv,nproc,iproc,mp,ncount_bigdft,ixyz,iat,icycle,ncycle
@@ -818,6 +800,7 @@ subroutine pickbestanchors(n,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,n
     use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
+    use bigdft_run
     !use energyandforces, only:calenergyforces
     implicit none
     integer :: n,np,i,ip,npv,nproc,iproc,mp,ncount_bigdft,ixyz,iat
@@ -1034,6 +1017,7 @@ subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigd
     use module_types
     use minimization_sp, only:parameterminimization_sp
     use modulesplinedsaddle, only:parametersplinedsaddle
+    use bigdft_run
     implicit none
     integer, intent(in) :: nproc,iproc
     type(atoms_data), intent(inout) :: atoms
@@ -1302,7 +1286,8 @@ end subroutine calmaxforcecomponentsub
 
 
 subroutine calmaxforcecomponentanchors(atoms,np,outs,fnrm,fspmax)
-    use module_types
+    use module_types, only: atoms_data
+    use bigdft_run, only: DFT_global_output
     implicit none
     type(atoms_data), intent(inout) :: atoms
     integer::np,i,ip,iat,ixyz
@@ -1345,6 +1330,7 @@ subroutine nebforce(n,np,x,outs,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,nco
     use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
+    use bigdft_run
     implicit none
     integer, intent(in) :: nproc,iproc
     type(atoms_data), intent(inout) :: atoms
@@ -1439,6 +1425,7 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,outends,pnow,nproc, &
     use module_types
     use minimization_sp, only:parameterminimization_sp
     use modulesplinedsaddle, only:parametersplinedsaddle
+    use bigdft_run
     implicit none
     integer, intent(in) :: nproc,iproc
     type(atoms_data), intent(inout) :: atoms
@@ -2059,6 +2046,7 @@ subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
     use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
+    use bigdft_run
     implicit none
     integer, intent(in) :: nproc,iproc
     type(atoms_data), intent(inout) :: atoms
@@ -2130,6 +2118,7 @@ subroutine calvmaxanchorforces(istep,n,np,x,xold,outends,etmax,f,xtmax,pnow,pold
     use module_types
     use minimization_sp, only:parameterminimization_sp
     use modulesplinedsaddle, only:parametersplinedsaddle
+    use bigdft_run
     implicit none
     integer, intent(in) :: nproc,iproc
     type(atoms_data), intent(inout) :: atoms
@@ -2315,6 +2304,7 @@ subroutine caltmax2(istep,n,np,x,xold,outends,epot,xt,ft,pnow,pold,nproc,iproc,a
     use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
+    use bigdft_run
     implicit none
     integer, intent(in) :: nproc,iproc
     type(atoms_data), intent(inout) :: atoms
@@ -2806,6 +2796,7 @@ subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,atom
     use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
+    use bigdft_run
     implicit none
     integer, intent(in) :: nproc,iproc
     type(atoms_data), intent(inout) :: atoms
@@ -3900,6 +3891,7 @@ subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,atoms,rst,ll_inputs
     use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
+    use bigdft_run
     implicit none
     integer, intent(in) :: nproc,iproc
     type(atoms_data), intent(inout) :: atoms
