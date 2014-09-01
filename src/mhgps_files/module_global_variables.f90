@@ -109,7 +109,7 @@ module module_global_variables
     !bigdft data types and variables
     type(run_objects) :: runObj
     type(dictionary), pointer :: user_inputs
-    type(DFT_global_output) :: outs
+    type(DFT_global_output),save :: outs
     integer :: fdim
     type(atoms_data) :: atoms
     integer, dimension(4) :: mpi_info
