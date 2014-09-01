@@ -866,7 +866,7 @@ dnl Python itself (set to ":" if not present).
 AM_PATH_PYTHON([2.3], , [:])
 ax_have_pyyaml="no"
 if test "$PYTHON" != ":" ; then
-  AC_MSG_CHECKING([for PyYAML and CLoader])
+  AC_MSG_CHECKING([for PyYAML and CLoader from])
   cat > pytest << EOF
 PyYAML_path = "$AX_PYYAML_PATH"
 if not PyYAML_path == "system":
@@ -886,20 +886,20 @@ except:
 EOF
   eval=$($PYTHON pytest)
   rm -f pytest
-  case "$test" in
+  case "$eval" in
     "0")
-      AC_MSG_RESULT([yes])
+      AC_MSG_RESULT([$AX_PYYAML_PATH])
       ax_have_pyyaml="yes"
-      ;;
-    "1")
-      AC_MSG_RESULT([no])
-      AC_MSG_ERROR([PyYAML not available, use --with-pyyaml-path to specify the module location.])
-      ax_have_pyyaml="no"
       ;;
     "2")
       AC_MSG_RESULT([no])
       AC_MSG_WARN([CLoader not available, check that the PyYAML python module was linked with the C-level YAML implementation.])
       ax_have_pyyaml="yes"
+      ;;
+    *)
+      AC_MSG_RESULT([no])
+      AC_MSG_ERROR([PyYAML not available, use --with-pyyaml-path to specify the module location.])
+      ax_have_pyyaml="no"
       ;;
   esac
 fi
