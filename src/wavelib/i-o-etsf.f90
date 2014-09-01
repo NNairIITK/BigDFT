@@ -244,7 +244,7 @@ module internal_etsf
          lr%d%nfu3 = n3 / 2
       end if
 
-      call wfd_from_grids(logrid_c, logrid_f, lr)
+      call wfd_from_grids(logrid_c, logrid_f, .true., lr)
 
       call f_free(logrid_c)
       call f_free(logrid_f)

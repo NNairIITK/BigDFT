@@ -361,7 +361,7 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    type(locreg_descriptors), intent(inout) :: Glr
 
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-      &   crmult,frmult,Glr)
+      &   crmult,frmult,.true.,Glr)
 end subroutine glr_set_wave_descriptors
 
 

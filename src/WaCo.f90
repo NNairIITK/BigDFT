@@ -168,7 +168,7 @@ program WaCo
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
-        atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,Glr)
+        atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,.true.,Glr)
    if (iproc == 0) call print_wfd(Glr%wfd)
 
    ! don't need radii_cf anymore

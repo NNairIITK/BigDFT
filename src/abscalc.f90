@@ -467,7 +467,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
-       atoms,rxyz,radii_cf,crmult,frmult,KSwfn%Lzd%Glr)
+       atoms,rxyz,radii_cf,crmult,frmult,.true.,KSwfn%Lzd%Glr)
    if (iproc == 0) call print_wfd(KSwfn%Lzd%Glr%wfd)
 
    KSwfn%Lzd%hgrids(1)=hx
