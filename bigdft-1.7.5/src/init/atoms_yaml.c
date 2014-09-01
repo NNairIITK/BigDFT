@@ -1,9 +1,7 @@
 #define _ISOC99_SOURCE
 #include "config.h"
 
-#ifdef HAVE_YAML
 #include <yaml.h>
-#endif
 
 #include <string.h>
 #include <strings.h>
@@ -17,7 +15,6 @@
 #define FC_FUNC_(A,B) A ## _
 #endif
 
-#ifdef HAVE_YAML
 static const char *UnitsPositions_keys[] = {"bohr", "angstroem", "reduced", "atomic", NULL};
 static const char *BC_keys[] = {"free", "wire", "surface", "periodic", NULL};
 static const char *Units_keys[] = {"bohr", "angstroem", "atomic", NULL};
@@ -59,7 +56,6 @@ static PosinpAtoms* posinp_atoms_new()
 
   return atoms;
 }
-#endif
 
 static void posinp_atoms_free(PosinpAtoms *atoms)
 {
@@ -129,8 +125,6 @@ static void posinp_atoms_trace(PosinpAtoms *atoms)
     }                                           \
   else                                          \
     fprintf(stderr, __VA_ARGS__)
-
-#ifdef HAVE_YAML
 
 static void _yaml_parser_error(const yaml_parser_t *parser, char **message)
 {
@@ -935,12 +929,10 @@ static int posinp_yaml_properties(yaml_parser_t *parser, PosinpAtoms *atoms, cha
 
   return done;
 }
-#endif
 
 PosinpList* posinp_yaml_parse(const char *filename, char **message)
 {
   PosinpList *list;
-#ifdef HAVE_YAML
   PosinpList *tmp, *tmp2;
   FILE *input;
   yaml_parser_t parser;
@@ -1008,12 +1000,6 @@ PosinpList* posinp_yaml_parse(const char *filename, char **message)
   /* Destroy the Parser object. */
   yaml_parser_delete(&parser);
   fclose(input);
-#else
-  size_t ln;
-
-  set_error("No YAML support, cannot read file '%s'.\n", filename);
-  list = (PosinpList*)0;
-#endif
 
   return list;
 }

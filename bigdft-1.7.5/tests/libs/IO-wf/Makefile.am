@@ -43,7 +43,7 @@ else
 LIBS += @LIBS_SHORT_DEPS@
 endif
 
-AM_FCFLAGS = -I$(top_builddir)/includes -I$(top_builddir)/src/PSolver -I$(top_srcdir)/src/PSolver -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@  @MPI_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/includes -I$(top_builddir)/src/PSolver -I$(top_srcdir)/src/PSolver -I. @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@  @MPI_INCLUDE@
 
 check_lib_SOURCES = check_lib.f90
 check_lib_FCFLAGS = -I$(top_builddir)/src/ -I$(top_builddir)/includes  -I$(top_builddir)/src/modules @LIBABINIT_INCLUDE@

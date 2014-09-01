@@ -35,14 +35,7 @@ posinp.yaml: wrappers.out.yaml
 wrappers.out.yaml: check_wrappers
 	-$(run_parallel) ./check_wrappers | grep -v "Unable to read mpd.hosts" > $@
 
-if BUILD_LIBYAML
-LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
-PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
-endif
-
 %.report.yaml: %.ref.yaml %.yaml
-	@export PYTHONPATH=${PYTHONPATH} ; \
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	name=`basename $< .ref.yaml | sed "s/[^_]*_\?\(.*\)[^.].*/\1/"` ;\
 	tols=`basename $< .ref.yaml` ;\
 	if test -n "$$name" ; then log=log-$$name.yaml ; else log=$$tols.yaml ; fi ;\

@@ -18,6 +18,11 @@ import os
 import copy
 import optparse
 
+#Hack for non-system installations.
+PyYAML_path = "@AX_PYYAML_PATH@"
+if not PyYAML_path == "system":
+  sys.path.insert(0, PyYAML_path)
+
 # path of the script
 path = os.path.dirname(sys.argv[0])
 #yaml_folder = '/local/gigi/binaries/ifort-OMP-OCL-CUDA-gC/PyYAML-3.10/lib'

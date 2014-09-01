@@ -6,11 +6,6 @@ EXTRA_DIST = yaml_test.ref.yaml $(OTHERS)
 
 check_PROGRAMS = yaml_test
 
-if BUILD_LIBYAML
-LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
-PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
-endif
-
 AM_FCFLAGS = -I../src
 AM_LDFLAGS = -L$(top_builddir)/flib/src
 #LIBS += -lflib -lrt @LIB_YAML_LIBS@
@@ -46,8 +41,6 @@ yaml_test.out.yaml: yaml_test
 	./yaml_test > yaml_test.out.yaml
 
 yaml_test.report.yaml: $(top_srcdir)/tests/fldiff_yaml.py $(top_srcdir)/tests/tols-BigDFT.yaml $(abs_srcdir)/yaml_test.ref.yaml yaml_test.out.yaml
-	export PYTHONPATH=${PYTHONPATH} ; \
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff_yaml.py --label yaml_test -t $(top_srcdir)/tests/tols-BigDFT.yaml 	\
 		-r $(abs_srcdir)/yaml_test.ref.yaml -d yaml_test.out.yaml --output $@
 

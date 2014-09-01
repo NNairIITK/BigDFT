@@ -4,12 +4,7 @@ EXTRA_DIST = PS_Check.ref.yaml tols.yaml
 
 check_PROGRAMS = PS_Check PS_Integral gaussian
 
-if BUILD_LIBYAML
-LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
-PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
-endif
-
-AM_FCFLAGS = -I$(top_builddir)/includes -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@  @MPI_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/includes -I. @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@  @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
@@ -48,14 +43,10 @@ PS_Check.out.yaml: PS_Check
 
 
 check: PS_Check.out.yaml
-	export PYTHONPATH=${PYTHONPATH} ; \
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff_yaml.py \
 		-r $(abs_srcdir)/PS_Check.ref.yaml -d PS_Check.out.yaml -t $(abs_srcdir)/tols.yaml \
 	        --output fldiff.report.yaml
 
 
 report: 
-	export PYTHONPATH=${PYTHONPATH} ; \
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/report.py

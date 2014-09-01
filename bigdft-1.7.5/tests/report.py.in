@@ -11,6 +11,11 @@ import re
 import sys
 import yaml
 
+#Hack for non-system installations.
+PyYAML_path = "@AX_PYYAML_PATH@"
+if not PyYAML_path == "system":
+  sys.path.insert(0, PyYAML_path)
+
 #Regular expressions
 re_discrepancy = re.compile("Max [dD]iscrepancy[^:]*:[ ]+([^ ]+)[ ]+\(([^ ]+)")
 re_time = re.compile("-- time[ ]+([0-9.]+)")

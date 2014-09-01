@@ -16,6 +16,11 @@ import os.path
 import os
 from optparse import OptionParser, OptionGroup
 
+#Hack for non-system installations.
+PyYAML_path = "@AX_PYYAML_PATH@"
+if not PyYAML_path == "system":
+  sys.path.insert(0, PyYAML_path)
+
 # This list can be converted in a dictionary with also the extra arguments
 actions = ["memory-estimation", "rotate", "convert-field",
            "export-wf", "export-grid", "atomic-wf", "GPU-test", 

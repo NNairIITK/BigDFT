@@ -3,8 +3,6 @@
 EXTRA_DIST = \
 	README \
 	fldiff.py \
-	fldiff_yaml.py \
-	report.py \
 	styles images \
 	yaml_hl.cfg \
 	yaml_hl.py \
@@ -27,11 +25,6 @@ if USE_MPI
 mpirun_message = mpirun
 else
 mpirun_message =
-endif
-
-if BUILD_LIBYAML
-LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
-PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
 endif
 
 head_message: all-recursive
@@ -63,6 +56,4 @@ check:
 	@if test $(MAKELEVEL) = 0 ; then $(MAKE) report ; fi
 
 report: 
-	export PYTHONPATH=${PYTHONPATH} ; \
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/report.py

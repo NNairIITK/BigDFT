@@ -829,114 +829,126 @@ AM_CONDITIONAL(HAVE_LIB_ARCHIVE, test x"$ac_use_archive" = x"yes")
 AC_SUBST(LIB_ARCHIVE_CFLAGS)
 AC_SUBST(LIB_ARCHIVE_LIBS)
 
-dnl Yaml input file support
+dnl C-level YAML support.
 AC_ARG_WITH([yaml-path],
             AS_HELP_STRING([--with-yaml-path], [give a path to find libyaml.]),
             [ac_path_yaml=$withval])
-AC_ARG_ENABLE(internal-libyaml, AS_HELP_STRING([--disable-internal-libyaml], [Do not build and link with internal libyaml library (default = auto).]), ac_build_libyaml=$enableval, ac_build_libyaml="auto")
 
-ac_use_libyaml="no"
 if test x"$ac_path_yaml" == x"" ; then
    ac_path_yaml="/usr"
 fi
-dnl auto-detect if build = no or build = auto
-if test x"$ac_build_libyaml" != x"yes" ; then
-   LDFLAGS_SVG="$LDFLAGS"
-   AC_LANG_PUSH(C)
-   LDFLAGS="-L$ac_path_yaml/lib"
-   AC_CHECK_LIB([yaml], [yaml_parser_parse],
-                [ac_use_libyaml=yes], [ac_use_libyaml=no])
-   if test x"$ac_use_libyaml" = x"yes"; then
-      if test x"$ac_path_yaml" != x"/usr" ; then
-         LIB_YAML_CFLAGS="-I$ac_path_yaml/include"
-         LIB_YAML_LIBS="-L$ac_path_yaml/lib "
-      fi
-      LIB_YAML_LIBS=$LIB_YAML_LIBS"-lyaml"
-   else
-      AC_MSG_WARN([libyaml is not available, building internal one.])
+
+LDFLAGS_SVG="$LDFLAGS"
+AC_LANG_PUSH(C)
+LDFLAGS="-L$ac_path_yaml/lib"
+AC_CHECK_LIB([yaml], [yaml_parser_parse],
+             [ac_use_libyaml=yes], [ac_use_libyaml=no])
+if test x"$ac_use_libyaml" = x"yes"; then
+   if test x"$ac_path_yaml" != x"/usr" ; then
+      LIB_YAML_CFLAGS="-I$ac_path_yaml/include"
+      LIB_YAML_LIBS="-L$ac_path_yaml/lib "
    fi
-   AC_LANG_POP(C)
-   LDFLAGS="$LDFLAGS_SVG"
+   LIB_YAML_LIBS=$LIB_YAML_LIBS"-lyaml"
+else
+   AC_MSG_ERROR([libyaml is not available, install YAML and provide path --with-yaml-path.])
 fi
-dnl internal if yes or auto and not detected.
-if test x"$ac_use_libyaml" != x"yes" ; then
-   ac_use_libyaml="yes"
-   ac_build_libyaml="yes"
-   LIB_YAML_CFLAGS="-I\$(top_srcdir)"/yaml-0.1.4/include
-   LIB_YAML_LIBS="\$(top_builddir)/yaml-0.1.4/src/.libs/libyaml.a"
-   tar -xzf ${srcdir}/PyYAML-3.10.tar.gz
-fi
-AC_DEFINE([HAVE_YAML], [], [If set, we can call yaml.h])
-AM_CONDITIONAL(BUILD_LIBYAML, test x"$ac_build_libyaml" = x"yes")
-AM_CONDITIONAL(HAVE_LIB_YAML, test x"$ac_use_libyaml" = x"yes")
+AC_LANG_POP(C)
+LDFLAGS="$LDFLAGS_SVG"
+
 AC_SUBST(LIB_YAML_CFLAGS)
 AC_SUBST(LIB_YAML_LIBS)
 
+dnl Python YAML support.
+AC_ARG_WITH([pyyaml-path],
+            AS_HELP_STRING([--with-pyyaml-path], [give a path to find YAML python module.]),
+            [AX_PYYAML_PATH=$withval], [AX_PYYAML_PATH="system"])
+dnl Python itself (set to ":" if not present).
+AM_PATH_PYTHON([2.3], , [:])
+ax_have_pyyaml="no"
+if test "$PYTHON" != ":" ; then
+  AC_MSG_CHECKING([for PyYAML and CLoader])
+  cat > pytest << EOF
+PyYAML_path = "$AX_PYYAML_PATH"
+if not PyYAML_path == "system":
+  import sys
+  sys.path.insert(0, PyYAML_path)
+
+try:
+  import yaml
+
+  try:
+    l = yaml.CLoader
+    print "0"
+  except:
+    print "2"
+except:
+  print "1"
+EOF
+  eval=$($PYTHON pytest)
+  rm -f pytest
+  case "$test" in
+    "0")
+      AC_MSG_RESULT([yes])
+      ax_have_pyyaml="yes"
+      ;;
+    "1")
+      AC_MSG_RESULT([no])
+      AC_MSG_ERROR([PyYAML not available, use --with-pyyaml-path to specify the module location.])
+      ax_have_pyyaml="no"
+      ;;
+    "2")
+      AC_MSG_RESULT([no])
+      AC_MSG_WARN([CLoader not available, check that the PyYAML python module was linked with the C-level YAML implementation.])
+      ax_have_pyyaml="yes"
+      ;;
+  esac
+fi
+AC_SUBST(AX_PYYAML_PATH)
+
 dnl Test the libXC library
-ac_use_libxc="yes"
-ac_build_libxc="auto"
-AC_ARG_WITH(libxc, AS_HELP_STRING([--without-libxc], [Do not link with libXC library (default = yes).]), ac_use_libxc=$withval, ac_use_libxc=$ac_build_lib_BigDFT)
-AC_ARG_ENABLE(internal-libxc, AS_HELP_STRING([--disable-internal-libxc], [Do not build and link with internal libXC library (default = yes).]), ac_build_libxc=$enableval, ac_build_libxc="auto")
 AC_ARG_WITH(libxc-libs, AS_HELP_STRING([--with-libxc-libs], [Give the compiler include flags for an external libXC library (default = None).]), ac_libxc_libdir=$withval, ac_libxc_libdir=)
 AC_ARG_WITH(libxc-incs, AS_HELP_STRING([--with-libxc-incs], [Give the linker flags for an external libXC modules (default = None).]), ac_libxc_incdir=$withval, ac_libxc_incdir=)
-if test x"$ac_use_libxc" != x"no" ; then
-  if test x"$ac_build_libxc" != x"yes" ; then
-    dnl Run the detection.
-    if test -n "$ac_libxc_libdir" -a -n "$ac_libxc_incdir" ; then
-      dnl Test the modules for compilation
-      AC_MSG_CHECKING([for libXC modules])
-      FCFLAGS_SVG=$FCFLAGS
-      FCFLAGS="$FCFLAGS $ac_libxc_incdir"
-      AC_COMPILE_IFELSE([[program main
+
+dnl Run the detection.
+if test -n "$ac_libxc_libdir" -a -n "$ac_libxc_incdir" ; then
+  dnl Test the modules for compilation
+  AC_MSG_CHECKING([for libXC modules])
+  FCFLAGS_SVG=$FCFLAGS
+  FCFLAGS="$FCFLAGS $ac_libxc_incdir"
+  AC_COMPILE_IFELSE([[program main
   use xc_f90_types_m
   use libxc_funcs_m
   use xc_f90_lib_m
 
   write(*,*) XC_FAMILY_GGA
 end program]], withlibxcmod=yes, withlibxcmod=no)
-      AC_MSG_RESULT($withlibxcmod)
-      FCFLAGS=$FCFLAGS_SVG
-        
-      dnl Test the library of libXC.
-      LIBS_SVG=$LIBS
-      LIBS="$LIBS $ac_libxc_libdir"
-      AC_CHECK_LIB(xc, xc_f90_lda_vxc, ac_use_libxc=yes, ac_use_libxc=no)
-      LIBS=$LIBS_SVG
+  AC_MSG_RESULT($withlibxcmod)
+  FCFLAGS=$FCFLAGS_SVG
+    
+  dnl Test the library of libXC.
+  LIBS_SVG=$LIBS
+  LIBS="$LIBS $ac_libxc_libdir"
+  AC_CHECK_LIB(xc, xc_f90_lda_vxc, ac_use_libxc=yes, ac_use_libxc=no)
+  LIBS=$LIBS_SVG
   
-      if test "$ac_use_libxc" = "yes" -a "$withlibxcmod" = "yes" ; then
-        AC_SUBST(LIBXC_INCLUDE, $ac_libxc_incdir)
-        LIBXC_LIBS=$ac_libxc_libdir
-        ac_build_libxc="no"
-      else
-        ac_use_libxc="no"
-      fi
-    else
-      LIBXC_CFLAGS="-I/usr/include"
-      PKG_CHECK_MODULES(LIBXC, libxc >= 1.0, ac_use_libxc="yes", ac_use_libxc="no")
-      AC_SUBST(LIBXC_INCLUDE, $LIBXC_CFLAGS)
-    fi
-
-    if test "$ac_use_libxc" = "no" ; then
-      AC_MSG_WARN([No working libXC build the internal one.])
-      ac_build_libxc="yes"
-    fi
-  fi
-
-  if test x"$ac_build_libxc" = x"yes" ; then
+  if test "$ac_use_libxc" = "yes" -a "$withlibxcmod" = "yes" ; then
+    LIB_XC_CFLAGS=$ac_libxc_incdir
+    LIB_XC_LIBS=$ac_libxc_libdir
     ac_use_libxc="yes"
-    AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libxc-2.0.x/src)
-    LDFLAGS="$LDFLAGS -L\$(top_builddir)/libxc-2.0.x/src/.libs"
-    LIBXC_LIBS="-lxcf90 -lxc"
+  else
+    ac_use_libxc="no"
   fi
 else
-  ac_use_libxc="no"
-  ac_build_libxc="no"
+  LIB_XC_CFLAGS="-I/usr/include"
+  PKG_CHECK_MODULES(LIB_XC, libxc >= 2.0, ac_use_libxc="yes", ac_use_libxc="no")
 fi
-AM_CONDITIONAL(BUILD_LIBXC, test x"$ac_build_libxc" = x"yes")
-AM_CONDITIONAL(USE_LIBXC, test x"$ac_use_libxc" = x"yes")
-if test x"$ac_use_libxc" = x"yes" ; then
-  AC_DEFINE([HAVE_LIBXC], [1], [use libXC in BigDFT.])
+
+if test "$ac_use_libxc" = "no" ; then
+  AC_MSG_ERROR([libXC is not available, install libXC and provide paths --with-libxc-libs --with-libxc-incs.])
 fi
+
+AC_SUBST(LIB_XC_CFLAGS)
+AC_SUBST(LIB_XC_LIBS)
 
 dnl Test the ABINIT library
 ac_internal_libabinit="yes"
@@ -1041,7 +1053,7 @@ LDFLAGS="$LDFLAGS $LDFLAGS_MIC"
 dnl Agregate all the optional libs.
 LIBS_EXT_DEPS="$LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
 AC_SUBST(LIBS_EXT_DEPS, [$LIBS_EXT_DEPS])
-LIBS_SHORT_DEPS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBS_EXT_DEPS"
+LIBS_SHORT_DEPS="$LIBABINIT_LIBS $LIB_XC_LIBS $LIBSGPU_LIBS $LIBS_EXT_DEPS"
 AC_SUBST(LIBS_SHORT_DEPS, [$LIBS_SHORT_DEPS])
 
 dnl Test for the documentation.
@@ -1070,13 +1082,21 @@ AC_SUBST(docdir)
 
 AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
 
+dnl pseudo/Makefile
+dnl pseudo/src/Makefile
+dnl pseudo/tests/Makefile
+dnl pseudo/tests/atoms/Makefile
+dnl pseudo/tests/H-pseudo/Makefile
+dnl pseudo/tests/C-pseudo/Makefile
+dnl pseudo/tests/pawpatchtest/Makefile
+dnl pseudo/tests/tutorials/Makefile
+dnl pseudo/tests/tutorials/oxygen.NLCC/Makefile
+
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 bigdft.pc
 libABINIT/src/Makefile
-config/Doxyfile
-PyYAML-3.10/Makefile
 flib/Makefile
 flib/src/Makefile
 flib/tests/Makefile
@@ -1085,6 +1105,10 @@ PSolver/Makefile
 PSolver/src/configure.inc
 PSolver/src/Makefile
 PSolver/tests/Makefile
+config/Doxyfile
+utils/Makefile
+utils/PSPfiles/Makefile
+doc/Makefile
 src/bigdft-tool
 src/Makefile
 src/modules/Makefile
@@ -1100,19 +1124,9 @@ src/bindings/Makefile
 src/art/Makefile
 src/tools/Makefile
 src/tools/bader/Makefile
-utils/Makefile
-utils/PSPfiles/Makefile
-pseudo/Makefile
-pseudo/src/Makefile
-pseudo/tests/Makefile
-pseudo/tests/atoms/Makefile
-pseudo/tests/H-pseudo/Makefile
-pseudo/tests/C-pseudo/Makefile
-pseudo/tests/pawpatchtest/Makefile
-pseudo/tests/tutorials/Makefile
-pseudo/tests/tutorials/oxygen.NLCC/Makefile
-doc/Makefile
 tests/Makefile
+tests/fldiff_yaml.py
+tests/report.py
 tests/libs/Makefile
 tests/libs/fft/Makefile
 tests/libs/OP2P/Makefile
@@ -1134,18 +1148,6 @@ tests/DFT/postSCF/Makefile
 tests/overDFT/Makefile
 tests/tutorials/Makefile
 ])
-
-# Call libXC ./configure script recursively.
-# Call S_GPU ./configure script recursively.
-if test x"$ac_build_libxc" != x"skip" ; then
-   AC_CONFIG_SUBDIRS([libxc-2.0.x])
-fi
-if test x"$ac_build_libsgpu" != x"skip" ; then
-   AC_CONFIG_SUBDIRS([S_GPU])
-fi
-if test x"$ac_build_libyaml" != x"skip" ; then
-   AC_CONFIG_SUBDIRS([yaml-0.1.4])
-fi
 
 AC_OUTPUT
 

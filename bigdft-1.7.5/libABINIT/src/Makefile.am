@@ -38,10 +38,8 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 
 lib_LIBRARIES = libabinit.a
 
-if USE_LIBXC
 if BUILD_LIB_BIGDFT
 LIBXC_DEFS = -DHAVE_LIBXC
-endif
 else
 LIBXC_DEFS =
 endif
@@ -59,7 +57,7 @@ DEFS = $(MPI_DEFS) $(LIBXC_DEFS) $(LIBPAW_DEFS)
 DEFS_1 = $(DEFS:-D%=@FCDEFS@-D%)
 DEFS_FORTRAN = $(DEFS_1:-U%=@FCDEFS@-U%)
 
-AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -I$(srcdir)/72_geomoptim -I$(srcdir)/incs
+AM_FCFLAGS = @MPI_INCLUDE@ @LIB_XC_CFLAGS@ -I$(srcdir)/72_geomoptim -I$(srcdir)/incs
 
 # Hack for XLF strange DEFS option.
 PPFCCOMPILE = $(FC) $(DEFS_FORTRAN) $(DEFAULT_INCLUDES) $(INCLUDES) \

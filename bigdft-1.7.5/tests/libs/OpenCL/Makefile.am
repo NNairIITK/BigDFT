@@ -6,12 +6,6 @@ check_PROGRAMS =
 my_tests =
 endif
 
-if BUILD_LIBYAML
-LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
-PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
-endif
-
-
 EXTRA_DIST = conv_check.awk tols.yaml OpenCL.ref.yaml
 
 CLEANFILES = fort.1 conv_check.out.yaml OpenCL.report.yaml report
@@ -34,8 +28,6 @@ conv_check.out.yaml: conv_check
 	-./conv_check > $@
 
 OpenCL.report.yaml: conv_check.out.yaml
-	export PYTHONPATH=${PYTHONPATH} ; \
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
 		-r $(srcdir)/OpenCL.ref.yaml -d conv_check.out.yaml -t $(srcdir)/tols.yaml -o $@ 
 #	awk -f $(srcdir)/conv_check.awk $< | tee $@

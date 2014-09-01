@@ -91,7 +91,7 @@ etsf_files = wavelib/etsf_fake.f90
 endif
 
 AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib \
-	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
+	@LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
 	@MPI_INCLUDE@
 AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @LIBSGPU_INCLUDE@ -I$(srcdir)/modules -Imodules
@@ -116,7 +116,7 @@ high_level = cluster.f90 \
 	pdos.f90 \
 	sdcg.f90 \
 	bfgs.f90 \
-   sbfgs.f90 \
+	sbfgs.f90 \
 	scfloop_API.f90 \
 	tddft.f90 \
 	output.f90 \
@@ -215,6 +215,11 @@ libabscalc_a_SOURCES = \
 	abscalc_init.f90 \
 	esatto.f90
 
+pspconf.f90: init/pspconf.in.f90
+	python $(top_srcdir)/config/pspconf.py > psp.inc
+	sed '/!!PSP_TABLE!!/r psp.inc' $(srcdir)/init/pspconf.in.f90 > pspconf.f90
+	rm -f psp.inc
+
 libbigdft_1_a_SOURCES =
 
 input_variables_description.o: input_variables_definition-inc.h
@@ -286,10 +291,7 @@ MDanalysis_SOURCES = distances.f90
 MDanalysis_LDADD = $(bigdft_library)
 
 abscalc_SOURCES = abscalc.f90 
-abscalc_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib -I$(top_srcdir)/PSolver/src \
-	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
-	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
-	@MPI_INCLUDE@
+abscalc_FCFLAGS = -I$(top_srcdir)/PSolver/src
 abscalc_LDADD = libabscalc.a $(bigdft_library) @LINALG_LIBS@
 
 test_forces_SOURCES = test_forces.f90
@@ -306,7 +308,7 @@ frequencies_SOURCES = frequencies.f90
 frequencies_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 bart_SOURCES = art.f90
-bart_FCFLAGS = -I. -Iart -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+bart_FCFLAGS = -Iart
 bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
 
 

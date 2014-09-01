@@ -17,14 +17,6 @@ endif
 #mpi_include = mpif.h
 #endif
 
-if USE_LIBXC
-LIBXC_MODULE =
-xc.o: base.o
-else
-LIBXC_MODULE = libxc_fake.f90
-xc.o: base.o libxc_fake.o
-endif
-
 libmodules_a_SOURCES = base.f90 \
 	defs.f90 \
 	gaussians.f90 \
@@ -55,7 +47,6 @@ libmodules_a_SOURCES = base.f90 \
 	internal_coordinates.f90 \
 	fermi_level.f90 \
 	$(bindings_headers) \
-	$(LIBXC_MODULE) \
 	$(BLACS) \
 	configure.c
 
@@ -135,7 +126,7 @@ EXTRA_DIST = configure.inc.in bigdft_cst.h.in BigDFT.py \
 	$(AO_INCLUDES) $(ATOMS_INCLUDES) $(COMMS_INCLUDES)
 CLEANFILES = $(modules)
 
-AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@
 
 # Hack for XLF strange DEFS option.
 PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
@@ -181,6 +172,7 @@ sparsematrix.o: base.o types.o sparsematrix_base.o
 foe_base.o: base.o defs.o
 internat_coodinates.o:
 fermi_level.o: base.o
+xc.o: base.o
 
 # Copy modules in a common include directory.
 all: all-am insmod
