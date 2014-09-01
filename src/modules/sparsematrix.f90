@@ -452,7 +452,7 @@ module sparsematrix
 
      if (nfvctrp>0) then
          isegstart=smat%istsegline(isfvctr+1)
-         isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)
+         isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
          !!if (isfvctr+nfvctrp<smat%nfvctr) then
          !!    isegend=smat%istsegline(smat%isfvctr_par(iproc+1)+1)-1
          !!else
@@ -516,7 +516,7 @@ module sparsematrix
            call to_zero(smat%nfvctr*nfvctrp,matrixp(1,1))
 
            isegstart=smat%istsegline(isfvctr+1)
-           isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)
+           isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
            !!isegstart=smat%istsegline(smat%isfvctr_par(iproc)+1)
            !!if (smat%isfvctr_par(iproc)+smat%nfvctrp<smat%nfvctr) then
            !!    isegend=smat%istsegline(smat%isfvctr_par(iproc+1)+1)-1
@@ -571,9 +571,9 @@ module sparsematrix
    
      !Calling Arguments
      type(sparse_matrix),intent(in) :: smat
-     real(kind=8), dimension(smat%nfvctr,smat%nfvctrp),intent(in) :: b
+     real(kind=8), dimension(smat%nfvctr,smat%smmm%nfvctrp),intent(in) :: b
      real(kind=8), dimension(smat%smmm%nseq),intent(in) :: a_seq
-     real(kind=8), dimension(smat%nfvctr,smat%nfvctrp), intent(out) :: c
+     real(kind=8), dimension(smat%nfvctr,smat%smmm%nfvctrp), intent(out) :: c
    
      !Local variables
      !character(len=*), parameter :: subname='sparsemm'

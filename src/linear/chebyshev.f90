@@ -123,7 +123,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
           if (kernel%nfvctrp>0) then
               isegstart=kernel%istsegline(kernel%smmm%isfvctr+1)
               isegend=kernel%istsegline(kernel%smmm%isfvctr+kernel%smmm%nfvctrp)+ &
-                      kernel%nsegline(kernel%smmm%isfvctr+kernel%smmm%nfvctrp)
+                      kernel%nsegline(kernel%smmm%isfvctr+kernel%smmm%nfvctrp)-1
               !!isegstart=kernel%istsegline(kernel%smmm%isfvctr+1)
               !!if (kernel%smmm%isfvctr+kernel%smmm%nfvctrp<kernel%nfvctr) then
               !!    isegend=kernel%istsegline(kernel%smmm%isfvctr_par(iproc+1)+1)-1
