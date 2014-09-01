@@ -34,13 +34,15 @@ class DistutilsModule(Package, DownloadableModule):
 
     PHASE_CHECKOUT = DownloadableModule.PHASE_CHECKOUT
     PHASE_FORCE_CHECKOUT = DownloadableModule.PHASE_FORCE_CHECKOUT
+    PHASE_CLEAN = 'clean'
     PHASE_BUILD = 'build'
     PHASE_INSTALL = 'install'
 
-    def __init__(self, name, branch=None, supports_non_srcdir_builds = True):
+    def __init__(self, name, branch=None, supports_non_srcdir_builds = True, buildargs=''):
         Package.__init__(self, name, branch=branch)
         self.supports_non_srcdir_builds = supports_non_srcdir_builds
         self.supports_install_destdir = True
+        self.buildargs = buildargs
 
     def get_srcdir(self, buildscript):
         return self.branch.srcdir
@@ -61,6 +63,10 @@ class DistutilsModule(Package, DownloadableModule):
         cmd = [python, 'setup.py', 'build']
         if srcdir != builddir:
             cmd.extend(['--build-base', builddir])
+        buildargs = (self.buildargs + ' ' + self.config.module_autogenargs.get(
+            self.name, self.config.autogenargs)).strip()
+        if len(buildargs) > 0:
+            cmd.extend(buildargs.split())
         buildscript.execute(cmd, cwd = srcdir, extra_env = self.extra_env)
     do_build.depends = [PHASE_CHECKOUT]
     do_build.error_phase = [PHASE_FORCE_CHECKOUT]
@@ -81,10 +87,22 @@ class DistutilsModule(Package, DownloadableModule):
         self.process_install(buildscript, self.get_revision())
     do_install.depends = [PHASE_BUILD]
 
+    def do_clean(self, buildscript):
+        buildscript.set_action(_('Cleaning'), self)
+        srcdir = self.get_srcdir(buildscript)
+        builddir = self.get_builddir(buildscript)
+        python = os.environ.get('PYTHON', 'python')
+        cmd = [python, 'setup.py', 'clean']
+        if srcdir != builddir:
+            cmd.extend(['--build-base', builddir])
+        buildscript.execute(cmd, cwd = srcdir, extra_env = self.extra_env)
+    do_clean.depends = [PHASE_CHECKOUT]
+
     def xml_tag_and_attrs(self):
         return 'distutils', [('id', 'name', None),
                              ('supports-non-srcdir-builds',
-                              'supports_non_srcdir_builds', True)]
+                              'supports_non_srcdir_builds', True),
+                             ('buildargs', 'buildargs', '')]
 
 
 def parse_distutils(node, config, uri, repositories, default_repo):
@@ -93,6 +111,8 @@ def parse_distutils(node, config, uri, repositories, default_repo):
     if node.hasAttribute('supports-non-srcdir-builds'):
         instance.supports_non_srcdir_builds = \
             (node.getAttribute('supports-non-srcdir-builds') != 'no')
+    if node.hasAttribute('buildargs'):
+        instance.buildargs = node.getAttribute('buildargs')
 
     return instance
 

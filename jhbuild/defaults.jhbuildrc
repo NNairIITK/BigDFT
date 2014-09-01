@@ -47,7 +47,11 @@ top_builddir = '_jhbuild'  # If a relative path, prefix will be prepended
 
 checkoutroot = SRCDIR
 tarballdir = SRCDIR
-buildroot = os.path.join(os.getcwd(), "build")     # if set, packages will be built with srcdir!=builddir
+if os.path.samefile(SRCDIR, os.getcwd()):
+    # if set, packages will be built with srcdir!=builddir
+    buildroot = os.path.join(os.getcwd(), "build")
+else:
+    buildroot = os.getcwd()
 
 # When using srcdir!=builddir builds, this key allows you to use a
 # different builddir name.  Some people like this because it reduces
