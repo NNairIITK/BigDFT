@@ -73,7 +73,7 @@ module wrapper_MPI
 
   interface mpibcast
      module procedure mpibcast_i0,mpibcast_li0
-     module procedure mpibcast_c1
+     module procedure mpibcast_c1,mpibcast_d1,mpibcast_d2
   end interface mpibcast
 
   !> Interface for MPI_ALLGATHERV routine
@@ -408,6 +408,7 @@ end subroutine create_group_comm1
   END SUBROUTINE create_rank_comm
 
   subroutine wmpi_init_thread(ierr)
+    use dictionaries, only: f_err_throw
     implicit none
     integer, intent(out) :: ierr
 #ifdef HAVE_MPI_INIT_THREAD
@@ -424,10 +425,25 @@ end subroutine create_group_comm1
 #else
     call MPI_INIT(ierr)      
     if (ierr /= MPI_SUCCESS) then
-       write(*,*)'BigDFT_mpi_INIT: Error in MPI_INIT_THREAD',ierr
+       call f_err_throw('An error in calling to MPI_INIT (THREAD) occured',&
+            err_id=ERR_MPI_WRAPPERS)
     end if
 #endif
   end subroutine wmpi_init_thread
+
+  !> finalization of the mpi
+  subroutine mpifinalize()
+    use dictionaries, only: f_err_throw
+    implicit none
+    !local variables
+    integer :: ierr
+
+    call MPI_FINALIZE(ierr)
+    if (ierr /= MPI_SUCCESS) then
+       call f_err_throw('An error in calling to MPI_INIT_THREAD occured',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+  end subroutine mpifinalize
 
   !> initialize timings and also mpi errors
   subroutine mpi_initialize_timing_categories()
@@ -570,6 +586,27 @@ end subroutine create_group_comm1
     mpisize=nproc
 
   end function mpisize
+
+  !> performs the barrier of a given communicator, if present
+  subroutine mpibarrier(comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    integer, intent(in), optional :: comm !< the communicator
+    !local variables
+    integer :: mpi_comm,ierr
+    
+    if (present(comm)) then
+       mpi_comm=comm
+    else
+       mpi_comm=MPI_COMM_WORLD
+    end if
+    !call the barrier
+    call MPI_BARRIER(mpi_comm,ierr)
+    if (ierr /=0) then
+       call f_err_throw('An error in calling to MPI_BARRIER occured',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+  end subroutine mpibarrier
 
   !gather the results of a given array into the root proc
   subroutine mpigather_d1d1(sendbuf,recvbuf,root,comm)
@@ -774,7 +811,23 @@ end subroutine create_group_comm1
     include 'bcast-decl-arr-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_c1
-  
+
+  subroutine mpibcast_d1(buffer,root,comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    double precision, dimension(:), intent(inout) ::  buffer      
+    include 'bcast-decl-arr-inc.f90'
+    include 'bcast-inc.f90'
+  end subroutine mpibcast_d1
+
+  subroutine mpibcast_d2(buffer,root,comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    double precision, dimension(:,:), intent(inout) ::  buffer      
+    include 'bcast-decl-arr-inc.f90'
+    include 'bcast-inc.f90'
+  end subroutine mpibcast_d2
+
 
   !> detect the maximum difference between arrays all over a given communicator
   function mpimaxdiff_i0(n,array,root,comm) result(maxdiff)

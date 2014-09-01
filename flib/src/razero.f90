@@ -253,3 +253,47 @@ function builtin_rand(idum)
   iv(j)=idum
   builtin_rand=min(am*iy,rnmx)
 END FUNCTION builtin_rand
+
+!> gives the maximum record length allowed for a given unit
+subroutine f_utils_recl(unt,recl_max,recl)
+  implicit none
+  include 'f_utils.inc' !defines recl_kind
+  integer, intent(in) :: unt !< unit to be checked for record length
+  integer, intent(in) :: recl_max !< maximum value for record length
+  !> Value for the record length. This corresponds to the minimum between recl_max and the processor-dependent value
+  !! provided by inquire statement
+  integer, intent(out) :: recl 
+  !local variables
+  logical :: unit_is_open
+  integer :: ierr,ierr_recl
+  integer(kind=recl_kind) :: recl_file
+
+  !in case of any error, the value is set to recl_max
+  recl=recl_max
+  ierr_recl=-1
+  !initialize the value of recl_file
+  recl_file=int(-1234567891,kind=recl_kind)
+  inquire(unit=unt,opened=unit_is_open,iostat=ierr)
+  if (ierr == 0 .and. .not. unit_is_open) then
+     !inquire the record length for the unit
+     inquire(unit=unt,recl=recl_file,iostat=ierr_recl)
+  end if
+  if (ierr_recl == 0) then
+     recl=int(min(int(recl_max,kind=recl_kind),recl_file))
+  end if
+  if (recl <=0) recl=recl_max
+end subroutine f_utils_recl
+
+!> inquire for the existence of a file
+subroutine f_file_exists(file,exists)
+  implicit none
+  character(len=*), intent(in) :: file
+  logical, intent(out) :: exists
+  !local variables
+  integer :: ierr 
+
+  exists=.false.
+  inquire(file=trim(file),exist=exists,iostat=ierr)
+  exists = exists .and. ierr==0
+
+end subroutine f_file_exists

@@ -12,6 +12,7 @@
 subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fnoise,rst,infocode)
   use module_base
   use module_types
+  use bigdft_run
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(inout) :: infocode
@@ -84,20 +85,16 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
 
   if (order == -1) then
      n_order = 1
-     kmoves = f_malloc(n_order,id='kmoves')
-     kmoves = (/ -1 /)
+     kmoves = f_malloc(src=(/ -1 /),id='kmoves')
   else if (order == 1) then
      n_order = 1
-     kmoves = f_malloc(n_order,id='kmoves')
-     kmoves = (/ 1 /)
+     kmoves = f_malloc(src=(/ 1 /),id='kmoves')
   else if (order == 2) then
      n_order = 2
-     kmoves = f_malloc(n_order,id='kmoves')
-     kmoves = (/ -1, 1 /)
+     kmoves = f_malloc(src=(/ -1, 1 /),id='kmoves')
   else if (order == 3) then
      n_order = 4
-     kmoves = f_malloc(n_order,id='kmoves')
-     kmoves = (/ -2, -1, 1, 2 /)
+     kmoves = f_malloc(src=(/ -2, -1, 1, 2 /),id='kmoves')
   else
      print *, "Finite Differences: This order",order," is not implemented!"
      stop
@@ -610,7 +607,7 @@ end subroutine rhocore_forces
 !> Calculates the local forces acting on the atoms belonging to iproc
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc,locstrten,charge)
-  use module_base
+  use module_base, pi => pi_param
   use module_types
   use yaml_output
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
@@ -625,7 +622,6 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   real(gp), dimension(3,at%astruct%nat), intent(out) :: floc
   real(gp), dimension(6), intent(out) :: locstrten
   !Local variables---------
-  real(kind=8), parameter :: pi=4.d0*atan(1.d0)
   logical :: perx,pery,perz,gox,goy,goz
   real(kind=8) :: prefactor,cutoff,rloc,Vel,rhoel
   real(kind=8) :: fxerf,fyerf,fzerf,fxion,fyion,fzion,fxgau,fygau,fzgau,forceleaked,forceloc

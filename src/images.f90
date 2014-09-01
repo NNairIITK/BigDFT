@@ -208,7 +208,7 @@ END MODULE Minimization_routines
 
 module module_images
   use module_defs
-  use module_types
+  use bigdft_run!module_types
 
   implicit none
 
@@ -303,7 +303,9 @@ contains
 
   !> Initialize the images (replica) of the atomic coordinates along the NEB
   subroutine image_init(img, inputs, atoms, rst, algorithm)
-    use module_interfaces, only: run_objects_associate
+    use bigdft_run
+    use module_types, only: input_variables
+    use module_atoms, only: atoms_data
     use dynamic_memory, only: to_zero
     implicit none
     type(run_image), intent(out) :: img
@@ -1102,7 +1104,9 @@ END SUBROUTINE images_distribute_tasks
 
 !> Routines for bindings.
 subroutine image_new(img, run, outs, atoms, inputs, rst, algorithm)
-  use module_types
+  use module_types, only: input_variables
+  use module_atoms, only: atoms_data
+  use bigdft_run
   use module_images
   implicit none
 
@@ -1122,7 +1126,7 @@ END SUBROUTINE image_new
 
 
 subroutine image_free(img, run, outs)
-  use module_types
+  use bigdft_run!module_types
   use module_images
   implicit none
 

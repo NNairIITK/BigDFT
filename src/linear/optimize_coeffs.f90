@@ -392,7 +392,8 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
 
      if (iproc==0) then
          call yaml_mapping_close()
-         call bigdft_utils_flush(unit=6)
+         call yaml_flush_document()
+         !call bigdft_utils_flush(unit=6)
      end if
 
 
