@@ -557,22 +557,24 @@ subroutine foe(iproc, nproc, tmprtr, &
           ebs_check=ddot(tmb%linmat%l%nvctr, fermi_check_compr,1 , hamscal_compr, 1)
           ebs_check=ebs_check/scale_factor+shift_value*sumn_check
           diff=abs(ebs_check-ebsp)
+          diff=diff/abs(ebsp)
     
           if (iproc==0) then
               call yaml_map('ebs',ebsp)
               call yaml_map('ebs_check',ebs_check)
               call yaml_map('diff',ebs_check-ebsp)
+              call yaml_map('relative diff',diff)
           end if
     
           if (foe_data_get_logical(foe_obj,"adjust_FOE_temperature") .and. foe_verbosity>=1) then
-              if (diff<5.d-3) then
+              if (diff<5.d-5) then
                   ! can decrease polynomial degree
                   !!call foe_data_set_real(foe_obj,"fscale", 1.25d0*foe_data_get_real(foe_obj,"fscale"))
                   if (iproc==0) call yaml_map('modify fscale','increase')
                   !fscale_new=min(fscale_new,1.25d0*foe_data_get_real(foe_obj,"fscale"))
                   fscale_new=1.25d0*fscale_new
                   degree_sufficient=.true.
-              else if (diff>=5.d-3 .and. diff < 1.d-2) then
+              else if (diff>=5.d-5 .and. diff < 1.d-4) then
                   ! polynomial degree seems to be appropriate
                   degree_sufficient=.true.
                   if (iproc==0) call yaml_map('modify fscale','No')
