@@ -51,6 +51,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   logical:: present_inwhichlocreg_old, present_onwhichatom_old, output_grid_, calculate_bounds
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(kind=8), dimension(:), allocatable :: locrad
+  integer :: ilr, iilr
   !Note proj_G should be filled for PAW:
   type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_G
   call f_routine(id=subname)
@@ -277,6 +278,12 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
         call initialize_linear_from_file(iproc,nproc,in%frag,atoms%astruct,rxyz,lorbs,lzd_lin,&
              input_wf_format,in%dir_output,'minBasis',ref_frags)
         !what to do with derivatives?
+        ! These values are not read from file, not very nice this way
+        do ilr=1,lzd_lin%nlr
+            iilr=mod(ilr-1,lorbs%norbu)+1 !correct value for a spin polarized system
+            lzd_lin%llr(ilr)%locrad_kernel=in%lin%locrad_kernel(iilr)
+            lzd_lin%llr(ilr)%locrad_mult=in%lin%locrad_mult(iilr)
+        end do
      end if
 
      call initLocregs(iproc, nproc, lzd_lin, Lzd_lin%hgrids(1), Lzd_lin%hgrids(2),Lzd_lin%hgrids(3), &
