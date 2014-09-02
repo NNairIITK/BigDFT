@@ -540,6 +540,13 @@ subroutine foe(iproc, nproc, tmprtr, &
           call retransform(fermi_check_compr)
     
           call calculate_trace_distributed(fermip_check, sumn_check)
+
+          !@NEW ##########################
+          sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
+                 tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%kernel_%matrix_compr, ispin)
+          sumn_check = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
+                       tmb%linmat%ovrlp_%matrix_compr, fermi_check_compr, ispin)
+          !@ENDNEW #######################
         
     
           ! Calculate trace(KH). Since they have the same sparsity pattern and K is
@@ -550,22 +557,24 @@ subroutine foe(iproc, nproc, tmprtr, &
           ebs_check=ddot(tmb%linmat%l%nvctr, fermi_check_compr,1 , hamscal_compr, 1)
           ebs_check=ebs_check/scale_factor+shift_value*sumn_check
           diff=abs(ebs_check-ebsp)
+          diff=diff/abs(ebsp)
     
           if (iproc==0) then
               call yaml_map('ebs',ebsp)
               call yaml_map('ebs_check',ebs_check)
               call yaml_map('diff',ebs_check-ebsp)
+              call yaml_map('relative diff',diff)
           end if
     
           if (foe_data_get_logical(foe_obj,"adjust_FOE_temperature") .and. foe_verbosity>=1) then
-              if (diff<5.d-3) then
+              if (diff<5.d-5) then
                   ! can decrease polynomial degree
                   !!call foe_data_set_real(foe_obj,"fscale", 1.25d0*foe_data_get_real(foe_obj,"fscale"))
                   if (iproc==0) call yaml_map('modify fscale','increase')
                   !fscale_new=min(fscale_new,1.25d0*foe_data_get_real(foe_obj,"fscale"))
                   fscale_new=1.25d0*fscale_new
                   degree_sufficient=.true.
-              else if (diff>=5.d-3 .and. diff < 1.d-2) then
+              else if (diff>=5.d-5 .and. diff < 1.d-4) then
                   ! polynomial degree seems to be appropriate
                   degree_sufficient=.true.
                   if (iproc==0) call yaml_map('modify fscale','No')
@@ -626,7 +635,7 @@ subroutine foe(iproc, nproc, tmprtr, &
         
           ! Calculate trace(KS).
           sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-                 tmb%linmat%ovrlp_, tmb%linmat%kernel_, ispin)
+                 tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%kernel_%matrix_compr, ispin)
 
 
           ! Recalculate trace(KH) (needed since the kernel was modified in the above purification). 
@@ -1698,7 +1707,8 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
   integer,intent(in) :: iproc,  nproc, ispin
   type(orbitals_data),intent(in) :: orbs
   type(sparse_matrix),intent(in) :: asmat, bsmat
-  type(matrices),intent(in) :: amat, bmat
+  real(kind=8),dimension(asmat%nvctr),intent(in) :: amat
+  real(kind=8),dimension(bsmat%nvctr),intent(in) :: bmat
 
   ! Local variables
   integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iilarge
@@ -1733,7 +1743,7 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
               iiorb = (jorb-1)/asmat%nfvctr + 1
               jjorb = jorb - (iiorb-1)*asmat%nfvctr
               iilarge = ibshift + matrixindex_in_compressed(bsmat, iiorb, jjorb)
-              sumn = sumn + amat%matrix_compr(ii)*bmat%matrix_compr(iilarge)
+              sumn = sumn + amat(ii)*bmat(iilarge)
           end do  
       end do
       !$omp end do
