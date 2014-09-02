@@ -307,8 +307,6 @@ contains
       
 
       call f_free(nseq_per_line)
-      call f_free(norb_par_ideal)
-      call f_free(isorb_par_ideal)
 
       call allocate_sparse_matrix_matrix_multiplication(norb, nseg, nsegline, istsegline, keyg, sparsemat%smmm)
       sparsemat%smmm%nseg=nseg
@@ -324,6 +322,9 @@ contains
       call init_sequential_acces_matrix(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
            nsegline, istsegline, keyg, sparsemat, sparsemat%smmm%nseq, &
            sparsemat%smmm%indices_extract_sequential)
+
+      call f_free(norb_par_ideal)
+      call f_free(isorb_par_ideal)
     end subroutine init_sparse_matrix_matrix_multiplication
 
 
