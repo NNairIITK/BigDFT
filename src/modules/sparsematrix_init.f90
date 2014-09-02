@@ -242,9 +242,9 @@ contains
       call determine_sequential_length(norb, norbp, isorb, nseg, &
            nsegline, istsegline, keyg, sparsemat, &
            sparsemat%smmm%nseq, nseq_per_line)
-      call mpiallred(nseq_per_line(1), norb, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc>1) call mpiallred(nseq_per_line(1), norb, mpi_sum, bigdft_mpi%mpi_comm)
       rseq=real(sparsemat%smmm%nseq,kind=8) !real to prevent integer overflow
-      call mpiallred(rseq, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc>1) call mpiallred(rseq, 1, mpi_sum, bigdft_mpi%mpi_comm)
 
 
       norb_par_ideal = f_malloc(0.to.nproc-1,id='norb_par_ideal')
@@ -282,9 +282,9 @@ contains
 
       ! Get the load balancing
       nseq_min = sparsemat%smmm%nseq
-      call mpiallred(nseq_min, 1, mpi_min, bigdft_mpi%mpi_comm)
+      if (nprox>1) call mpiallred(nseq_min, 1, mpi_min, bigdft_mpi%mpi_comm)
       nseq_max = sparsemat%smmm%nseq
-      call mpiallred(nseq_max, 1, mpi_max, bigdft_mpi%mpi_comm)
+      if (nproc>1) call mpiallred(nseq_max, 1, mpi_max, bigdft_mpi%mpi_comm)
       ratio_before = real(nseq_max,kind=8)/real(nseq_min,kind=8)
 
 
@@ -297,9 +297,9 @@ contains
 
       ! Get the load balancing
       nseq_min = sparsemat%smmm%nseq
-      call mpiallred(nseq_min, 1, mpi_min, bigdft_mpi%mpi_comm)
+      if (nproc>1) call mpiallred(nseq_min, 1, mpi_min, bigdft_mpi%mpi_comm)
       nseq_max = sparsemat%smmm%nseq
-      call mpiallred(nseq_max, 1, mpi_max, bigdft_mpi%mpi_comm)
+      if (nproc>1) call mpiallred(nseq_max, 1, mpi_max, bigdft_mpi%mpi_comm)
       ratio_after = real(nseq_max,kind=8)/real(nseq_min,kind=8)
       if (iproc==0) then
           call yaml_map('sparse matmul load balancing naive / optimized',(/ratio_before,ratio_after/),fmt='(f4.2)')

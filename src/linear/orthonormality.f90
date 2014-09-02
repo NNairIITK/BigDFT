@@ -172,7 +172,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   real(kind=8),dimension(:),allocatable :: tmp_mat_compr, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra
   integer,dimension(:),allocatable :: ipiv
   type(matrices) :: inv_ovrlp_
-  real(8),dimension(:),allocatable :: inv_ovrlp_seq
+  real(8),dimension(:),allocatable :: inv_ovrlp_seq, lagmat_large
   real(8),dimension(:,:),allocatable :: lagmatp, inv_lagmatp
 
   call f_routine(id='orthoconstraintNonorthogonal')
@@ -219,15 +219,20 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
   ! Apply S^-1
   inv_ovrlp_seq = sparsematrix_malloc(linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_seq')
-  lagmatp = sparsematrix_malloc(linmat%m, iaction=DENSE_MATMUL, id='lagmatp')
-  inv_lagmatp = sparsematrix_malloc(linmat%m, iaction=DENSE_MATMUL, id='inv_lagmatp')
+  lagmatp = sparsematrix_malloc(linmat%l, iaction=DENSE_MATMUL, id='lagmatp')
+  inv_lagmatp = sparsematrix_malloc(linmat%l, iaction=DENSE_MATMUL, id='inv_lagmatp')
   call sequential_acces_matrix_fast(linmat%l, inv_ovrlp_%matrix_compr, inv_ovrlp_seq)
-  call uncompress_matrix_distributed(iproc, linmat%m, DENSE_MATMUL, lagmat_%matrix_compr, lagmatp)
+  ! Transform the matrix to the large sparsity pattern (necessary for the following uncompress_matrix_distributed)
+  lagmat_large = sparsematrix_malloc(linmat%l, iaction=SPARSE_FULL, id='lagmat_large')
+  call transform_sparse_matrix(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'small_to_large')
+  call uncompress_matrix_distributed(iproc, linmat%l, DENSE_MATMUL, lagmat_large, lagmatp)
   call sparsemm(linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
   if (correction_orthoconstraint==0) then
       if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
-      call compress_matrix_distributed(iproc, linmat%m, DENSE_MATMUL, inv_lagmatp, lagmat_%matrix_compr)
+      call compress_matrix_distributed(iproc, linmat%l, DENSE_MATMUL, inv_lagmatp, lagmat_large)
+      call transform_sparse_matrix(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'large_to_small')
   end if
+  call f_free(lagmat_large)
   call f_free(inv_ovrlp_seq)
   call f_free(lagmatp)
   call f_free(inv_lagmatp)
