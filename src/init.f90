@@ -799,8 +799,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   else if (input%FOE_restart==RESTART_REFORMAT) then
       ! Extract to a dense format, since this is independent of the sparsity pattern
       kernelp = sparsematrix_malloc(tmb%linmat%l, iaction=DENSE_PARALLEL, id='kernelp')
-      call uncompress_matrix_distributed(iproc, tmb_old%linmat%l, tmb_old%linmat%kernel_%matrix_compr, kernelp)
-      call compress_matrix_distributed(iproc, tmb%linmat%l, kernelp, tmb%linmat%kernel_%matrix_compr)
+      call uncompress_matrix_distributed(iproc, tmb_old%linmat%l, DENSE_PARALLEL, tmb_old%linmat%kernel_%matrix_compr, kernelp)
+      call compress_matrix_distributed(iproc, tmb%linmat%l, DENSE_PARALLEL, kernelp, tmb%linmat%kernel_%matrix_compr)
       call f_free(kernelp)
   end if
           !!write(*,*) 'after vcopy, iproc',iproc
@@ -969,7 +969,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
        ! Transform the old overlap matrix to the new sparsity format, by going via the full format.
        ovrlpp = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_PARALLEL, id='ovrlpp')
-       call uncompress_matrix_distributed(iproc, tmb_old%linmat%s, tmb_old%linmat%ovrlp_%matrix_compr, ovrlpp)
+       call uncompress_matrix_distributed(iproc, tmb_old%linmat%s, DENSE_PARALLEL, tmb_old%linmat%ovrlp_%matrix_compr, ovrlpp)
 
        ! Allocate the matrix with the new sparsity pattern
        call f_free_ptr(tmb_old%linmat%ovrlp_%matrix_compr)
@@ -977,7 +977,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        tmb_old%linmat%ovrlp_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s,iaction=SPARSE_FULL, &
                                                                     id='tmb_old%linmat%ovrlp_%matrix_compr')
 
-       call compress_matrix_distributed(iproc, tmb%linmat%s, ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr)
+       call compress_matrix_distributed(iproc, tmb%linmat%s, DENSE_PARALLEL, ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr)
        call f_free(ovrlpp)
        call renormalize_kernel(iproc, nproc, input%lin%order_taylor, max_inversion_error, tmb, &
             tmb%linmat%ovrlp_, tmb_old%linmat%ovrlp_)
