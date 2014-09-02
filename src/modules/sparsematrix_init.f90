@@ -282,7 +282,7 @@ contains
 
       ! Get the load balancing
       nseq_min = sparsemat%smmm%nseq
-      if (nprox>1) call mpiallred(nseq_min, 1, mpi_min, bigdft_mpi%mpi_comm)
+      if (nproc>1) call mpiallred(nseq_min, 1, mpi_min, bigdft_mpi%mpi_comm)
       nseq_max = sparsemat%smmm%nseq
       if (nproc>1) call mpiallred(nseq_max, 1, mpi_max, bigdft_mpi%mpi_comm)
       ratio_before = real(nseq_max,kind=8)/real(nseq_min,kind=8)
