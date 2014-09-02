@@ -97,8 +97,8 @@ subroutine foe(iproc, nproc, tmprtr, &
   evbounds_shrinked=.false.
 
 
-  penalty_ev = f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctrp,2/),id='penalty_ev')
-  fermip_check = f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctrp/),id='fermip_check')
+  penalty_ev = f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%smmm%nfvctrp,2/),id='penalty_ev')
+  fermip_check = f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%smmm%nfvctrp/),id='fermip_check')
   SHS = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='SHS')
   fermi_check_compr = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='fermi_check_compr')
 
@@ -503,7 +503,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                            tmb%linmat%l, chebyshev_polynomials, cc_check, fermip_check)
                       call f_free(cc_check)
                       diff=0.d0
-                      do iorb=1,tmb%linmat%l%nfvctrp
+                      do iorb=1,tmb%linmat%l%smmm%nfvctrp
                           do jorb=1,tmb%linmat%l%nfvctr
                               !SM: need to fix the spin here
                               diff = diff + (tmb%linmat%kernel_%matrixp(jorb,iorb,1)-fermip_check(jorb,iorb))**2
@@ -841,13 +841,17 @@ subroutine foe(iproc, nproc, tmprtr, &
           call f_routine(id='calculate_trace_distributed')
 
           trace=0.d0
-          if (tmb%linmat%l%nfvctrp>0) then
-              isegstart=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+1)
-              if (tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp<tmb%linmat%l%nfvctr) then
-                  isegend=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr_par(iproc+1)+1)-1
-              else
-                  isegend=tmb%linmat%l%nseg
-              end if
+          if (tmb%linmat%l%smmm%nfvctrp>0) then
+              isegstart = tmb%linmat%l%istsegline(tmb%linmat%l%smmm%isfvctr+1)
+              isegend = tmb%linmat%l%istsegline(tmb%linmat%l%smmm%isfvctr+tmb%linmat%l%smmm%nfvctrp) + &
+                        tmb%linmat%l%nsegline(tmb%linmat%l%smmm%isfvctr+tmb%linmat%l%smmm%nfvctrp)-1
+              !isegstart=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+1)
+              !if (tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp<tmb%linmat%l%nfvctr) then
+              !    isegend=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr_par(iproc+1)+1)-1
+              !else
+              !    isegend=tmb%linmat%l%nseg
+              !end if
+
               !$omp parallel default(private) shared(isegstart, isegend, matrixp, tmb, trace) 
               !$omp do reduction(+:trace)
               do iseg=isegstart,isegend
@@ -856,7 +860,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                       ii=ii+1
                       iiorb = (jorb-1)/tmb%linmat%l%nfvctr + 1
                       jjorb = jorb - (iiorb-1)*tmb%linmat%l%nfvctr
-                      if (jjorb==iiorb) trace = trace + matrixp(jjorb,iiorb-tmb%linmat%l%isfvctr)
+                      if (jjorb==iiorb) trace = trace + matrixp(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr)
                   end do  
               end do
               !$omp end do
@@ -973,13 +977,17 @@ subroutine foe(iproc, nproc, tmprtr, &
         ! The penalty function must be smaller than the noise.
         bound_low=0.d0
         bound_up=0.d0
-        if (tmb%linmat%l%nfvctrp>0) then
-            isegstart=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+1)
-            if (tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp<tmb%linmat%l%nfvctr) then
-                isegend=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr_par(iproc+1)+1)-1
-            else
-                isegend=tmb%linmat%l%nseg
-            end if
+        if (tmb%linmat%l%smmm%nfvctrp>0) then
+            isegstart = tmb%linmat%l%istsegline(tmb%linmat%l%smmm%isfvctr+1)
+            isegend = tmb%linmat%l%istsegline(tmb%linmat%l%smmm%isfvctr+tmb%linmat%l%smmm%nfvctrp) + &
+                      tmb%linmat%l%nsegline(tmb%linmat%l%smmm%isfvctr+tmb%linmat%l%smmm%nfvctrp)-1
+            !!isegstart=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+1)
+            !!if (tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp<tmb%linmat%l%nfvctr) then
+            !!    isegend=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr_par(iproc+1)+1)-1
+            !!else
+            !!    isegend=tmb%linmat%l%nseg
+            !!end if
+
             !$omp parallel default(private) &
             !$omp shared(isegstart, isegend, penalty_ev, tmb, bound_low, bound_up, isshift)
             !$omp do reduction(+:bound_low,bound_up)
@@ -995,8 +1003,8 @@ subroutine foe(iproc, nproc, tmprtr, &
                     else
                         tt=0.d0
                     end if
-                    bound_low = bound_low + penalty_ev(jjorb,iiorb-tmb%linmat%l%isfvctr,2)*tt
-                    bound_up = bound_up +penalty_ev(jjorb,iiorb-tmb%linmat%l%isfvctr,1)*tt
+                    bound_low = bound_low + penalty_ev(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr,2)*tt
+                    bound_up = bound_up +penalty_ev(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr,1)*tt
                 end do  
             end do
             !$omp end do

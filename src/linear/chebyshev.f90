@@ -30,8 +30,8 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
   real(kind=8),dimension(kernel%nvctr),intent(in) :: ham_compr, ovrlp_compr
   logical,intent(in) :: calculate_SHS
   real(kind=8),dimension(kernel%nvctr),intent(inout) :: SHS
-  real(kind=8),dimension(kernel%nfvctr,kernel%nfvctrp),intent(out) :: fermi
-  real(kind=8),dimension(kernel%nfvctr,kernel%nfvctrp,2),intent(out) :: penalty_ev
+  real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp),intent(out) :: fermi
+  real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,2),intent(out) :: penalty_ev
   real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
   logical,intent(out) :: emergency_stop
   ! Local variables
@@ -205,7 +205,8 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
           call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,2))
           call compress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-               kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, isorb_par, kernel, vectors(1,1,2), chebyshev_polynomials(1,2))
+               kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, isorb_par, kernel, &
+               vectors(1,1,2), chebyshev_polynomials(1,2))
           call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                cc(2,1), vectors(1,1,2), fermi(:,1))
           call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &

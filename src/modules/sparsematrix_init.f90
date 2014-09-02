@@ -83,6 +83,7 @@ contains
               ispin=2
           else
               ! there seems to be a mix up the spin matrices
+              write(*,*) sqrt(-dble(iorb))
               stop 'matrixindex_in_compressed: problem in determining spin'
           end if
       else

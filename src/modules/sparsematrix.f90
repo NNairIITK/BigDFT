@@ -439,11 +439,11 @@ module sparsematrix
      ! Check the dimensions of the input array and assign some values
      if (size(matrixp,1)/=smat%nfvctr) stop 'size(matrixp,1)/=smat%nfvctr'
      if (layout==DENSE_PARALLEL) then
-         if (ubound(matrixp,2)/=smat%nfvctrp) stop '(ubound(matrixp,2)/=smat%nfvctrp'
+         if (size(matrixp,2)/=smat%nfvctrp) stop '(ubound(matrixp,2)/=smat%nfvctrp'
          nfvctrp=smat%nfvctrp
          isfvctr=smat%isfvctr
      else if (layout==DENSE_MATMUL) then
-         if (ubound(matrixp,2)/=smat%smmm%nfvctrp) stop '(ubound(matrixp,2)/=smat%smmm%nfvctrp'
+         if (size(matrixp,2)/=smat%smmm%nfvctrp) stop '(ubound(matrixp,2)/=smat%smmm%nfvctrp'
          nfvctrp=smat%smmm%nfvctrp
          isfvctr=smat%smmm%isfvctr
      end if

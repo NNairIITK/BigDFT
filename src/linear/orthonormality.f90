@@ -875,10 +875,12 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
 
                   if (inv_ovrlp_smat%smmm%nfvctrp>0) then
                       call timing(iproc,'lovrlp^-1     ','OF')
-                      call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, DENSE_MATMUL, ovrlp_large_compr, ovrlpminonep(:,:,1))
+                      call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, DENSE_MATMUL, &
+                           ovrlp_large_compr, ovrlpminonep(:,:,1))
                       call timing(iproc,'lovrlp^-1     ','ON')
                       if (.not.check_accur) call f_free(ovrlp_large_compr)
-                      call first_order_taylor_dense(inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%isfvctr,inv_ovrlp_smat%smmm%nfvctrp,power,ovrlpminonep,invovrlpp)
+                      call first_order_taylor_dense(inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%isfvctr, &
+                           inv_ovrlp_smat%smmm%nfvctrp,power,ovrlpminonep,invovrlpp)
                   end if
 
                   do i=2,iorder
