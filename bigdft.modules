@@ -11,19 +11,19 @@
 
   <repository type="tarball" name="local" href="./"/>
 
-  <autotools id="libxc" autogen-sh="autoreconf" check-target="false">
+  <autotools id="libxc" check-target="false"> <!-- autogen-sh="autoreconf" -->
     <!--<branch repo="libxc" checkoutdir="libxc-2.0.x"/>-->
-    <branch repo="local" module="libxc-2.0.x.tar.gz" version="2.0.x" checkoutdir="libxc-2.0.x"/>
+    <branch repo="local" module="libxc-2.0.x.tar.gz" version="2.0.x"/>
   </autotools>
 
-  <autotools id="libyaml" autogen-sh="autoreconf" check-target="false">
-    <!--<branch repo="libyaml" module="yaml-0.1.4.tar.gz" version="0.1.4" checkoutdir="yaml-0.1.4"/>-->
-    <branch repo="local" module="yaml-0.1.4.tar.gz" version="0.1.4" checkoutdir="yaml-0.1.4"/>
+  <autotools id="libyaml" check-target="false">
+    <!--<branch repo="libyaml" module="yaml-0.1.4.tar.gz" version="0.1.4"/>-->
+    <branch repo="local" module="yaml-0.1.4.tar.gz" version="0.1.4"/>
   </autotools>
 
   <distutils id="PyYAML">
-    <!--<branch repo="libyaml" module="PyYAML-3.10.tar.gz" version="3.10" checkoutdir="PyYAML-3.10"/>-->
-    <branch repo="local" module="PyYAML-3.10.tar.gz" version="3.10" checkoutdir="PyYAML-3.10"/>
+    <!--<branch repo="libyaml" module="PyYAML-3.10.tar.gz" version="3.10"/>-->
+    <branch repo="local" module="PyYAML-3.10.tar.gz" version="3.10"/>
     <dependencies>
       <dep package="libyaml"/>
     </dependencies>
@@ -41,8 +41,8 @@
   </autotools>
 
   <autotools id="bigdft">
-    <!--<branch repo="bigdft" module="bigdft" version="1.7.5" checkoutdir="bigdft-1.7.5"/>-->
-    <branch repo="local" module="bigdft-1.7.5.tar.gz" version="1.7.5" checkoutdir="bigdft-1.7.5"/>
+    <!--<branch repo="bigdft" module="bigdft" version="1.7.5"/>-->
+    <branch repo="local" module="bigdft-1.7.5.tar.gz" version="1.7.5"/>
     <dependencies>
       <!--<dep package="flib"/>
       <dep package="psolver"/>-->
