@@ -223,6 +223,7 @@ contains
 
     subroutine init_sparse_matrix_matrix_multiplication(iproc, nproc, norb, norbp, isorb, nseg, &
                nsegline, istsegline, keyg, sparsemat)
+      use yaml_output
       implicit none
 
       ! Calling arguments
@@ -231,9 +232,9 @@ contains
       integer,dimension(2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(inout) :: sparsemat
 
-      integer :: ierr, jproc, iorb, jjproc, iiorb
+      integer :: ierr, jproc, iorb, jjproc, iiorb, nseq_min, nseq_max
       integer,dimension(:),allocatable :: nseq_per_line, norb_par_ideal, isorb_par_ideal
-      real(kind=8) :: rseq, rseq_ideal, tt
+      real(kind=8) :: rseq, rseq_ideal, tt, ratio_before, ratio_after
 
       ! Calculate the values of sparsemat%smmm%nout and sparsemat%smmm%nseq with
       ! the default partitioning of the matrix columns.
@@ -271,7 +272,6 @@ contains
           end if
       end do
       norb_par_ideal(jjproc)=iiorb
-      write(*,'(a,5i9)') 'iproc, norbp, isorb, before/after', iproc, norbp, norb_par_ideal(iproc), isorb, isorb_par_ideal(iproc)
 
       ! some checks
       if (sum(norb_par_ideal)/=norb) stop 'sum(norb_par_ideal)/=norb'
@@ -281,15 +281,34 @@ contains
       sparsemat%smmm%nfvctrp=norb_par_ideal(iproc)
       sparsemat%smmm%isfvctr=isorb_par_ideal(iproc)
 
+      ! Get the load balancing
+      nseq_min = sparsemat%smmm%nseq
+      call mpiallred(nseq_min, 1, mpi_min, bigdft_mpi%mpi_comm)
+      nseq_max = sparsemat%smmm%nseq
+      call mpiallred(nseq_max, 1, mpi_max, bigdft_mpi%mpi_comm)
+      ratio_before = real(nseq_max,kind=8)/real(nseq_min,kind=8)
 
       ! Realculate the values of sparsemat%smmm%nout and sparsemat%smmm%nseq with
       ! the optimized partitioning of the matrix columns.
-      ierr=sparsemat%smmm%nseq
       call get_nout(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, nsegline, istsegline, keyg, sparsemat%smmm%nout)
       call determine_sequential_length(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
            nsegline, istsegline, keyg, sparsemat, &
            sparsemat%smmm%nseq, nseq_per_line)
-      write(*,*) 'iproc, nseq before/after', iproc, ierr, sparsemat%smmm%nseq 
+
+      ! Get the load balancing
+      nseq_min = sparsemat%smmm%nseq
+      call mpiallred(nseq_min, 1, mpi_min, bigdft_mpi%mpi_comm)
+      nseq_max = sparsemat%smmm%nseq
+      call mpiallred(nseq_max, 1, mpi_max, bigdft_mpi%mpi_comm)
+      ratio_after = real(nseq_max,kind=8)/real(nseq_min,kind=8)
+      if (iproc==0) then
+          call yaml_map('sparse matmul load balancing naive / optimized',(/ratio_before,ratio_after/),fmt='(f4.2)')
+      end if
+      
+
+      call f_free(nseq_per_line)
+      call f_free(norb_par_ideal)
+      call f_free(isorb_par_ideal)
 
       call allocate_sparse_matrix_matrix_multiplication(norb, nseg, nsegline, istsegline, keyg, sparsemat%smmm)
       sparsemat%smmm%nseg=nseg
