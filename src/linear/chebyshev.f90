@@ -9,21 +9,20 @@
 
  
 !> Again assuming all matrices have same sparsity, still some tidying to be done
-subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par, foe_obj, kernel, ham_compr, &
+subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, foe_obj, kernel, ham_compr, &
            ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, fermi, penalty_ev, chebyshev_polynomials, &
            emergency_stop)
   use module_base
   use module_types
   use module_interfaces, except_this_one => chebyshev_clean
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), &
-                               DENSE_PARALLEL, SPARSEMM_SEQ
+                               DENSE_MATMUL, SPARSEMM_SEQ
   use sparsematrix, only: sequential_acces_matrix_fast, sparsemm
   use foe_base, only: foe_data
   implicit none
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, norb, norbp, isorb
-  integer,dimension(0:nproc-1),intent(in) :: isorb_par
   real(8),dimension(npl,3),intent(in) :: cc
   type(foe_data),intent(in) :: foe_obj
   type(sparse_matrix), intent(in) :: kernel
@@ -63,7 +62,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
     
     
       if (number_of_matmuls==one) then
-          matrix = sparsematrix_malloc(kernel, iaction=DENSE_PARALLEL, id='matrix')
+          matrix = sparsematrix_malloc(kernel, iaction=DENSE_MATMUL, id='matrix')
           SHS_seq = sparsematrix_malloc(kernel, iaction=SPARSEMM_SEQ, id='SHS_seq')
     
           if (kernel%smmm%nfvctrp>0) then
@@ -88,7 +87,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
                       ii=ii+1
                       iiorb = (jorb-1)/kernel%nfvctr + 1
                       jjorb = jorb - (iiorb-1)*kernel%nfvctr
-                      matrix(jjorb,iiorb-kernel%isfvctr)=ovrlp_compr(ii)
+                      matrix(jjorb,iiorb-kernel%smmm%isfvctr)=ovrlp_compr(ii)
                       !if (jjorb==iiorb) then
                       !    matrix(jjorb,iiorb-kernel%isfvctr)=1.d0
                       !else
@@ -201,7 +200,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
           call to_zero(kernel%smmm%nfvctrp*kernel%nfvctr, fermi(1,1))
           call to_zero(2*kernel%nfvctr*kernel%smmm%nfvctrp, penalty_ev(1,1,1))
           call compress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-               kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, isorb_par, kernel, &
+               kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, kernel, &
                vectors(1,1,4), chebyshev_polynomials(1,1))
           call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                0.5d0*cc(1,1), vectors(1,1,4), fermi(:,1))
@@ -210,7 +209,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
           call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,2))
           call compress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-               kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, isorb_par, kernel, &
+               kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, kernel, &
                vectors(1,1,2), chebyshev_polynomials(1,2))
           call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                cc(2,1), vectors(1,1,2), fermi(:,1))
@@ -233,7 +232,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
               call axbyz_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                    2.d0, vectors(1,1,2), -1.d0, vectors(1,1,4), vectors(1,1,3))
               call compress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-                   kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, isorb_par, kernel, vectors(1,1,3), &
+                   kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, kernel, vectors(1,1,3), &
                    chebyshev_polynomials(1,ipl))
               call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                    cc(ipl,1), vectors(1,1,3), fermi(:,1))
@@ -379,7 +378,7 @@ end subroutine axpy_kernel_vectors
 
 
 subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
-           norb, norbp, isorb, isorb_par, fermi, chebyshev_polynomials, cc, kernelp)
+           norb, norbp, isorb, fermi, chebyshev_polynomials, cc, kernelp)
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), SPARSE_FULL
@@ -387,7 +386,6 @@ subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, nsize_polynomial, npl, norb, norbp, isorb
-  integer,dimension(0:nproc-1),intent(in) :: isorb_par
   type(sparse_matrix),intent(in) :: fermi
   real(kind=8),dimension(nsize_polynomial,npl),intent(in) :: chebyshev_polynomials
   real(kind=8),dimension(npl),intent(in) :: cc
@@ -411,7 +409,7 @@ subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
       end do
 
       call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-           norb, norbp, isorb, isorb_par, fermi, kernel_compressed, kernelp)
+           norb, norbp, isorb, fermi, kernel_compressed, kernelp)
 
       call f_free(kernel_compressed)
   end if

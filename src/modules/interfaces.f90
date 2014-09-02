@@ -3332,7 +3332,7 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(out) :: b
         end subroutine copy_kernel_vectors
 
-        subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par, foe_obj, kernel, ham_compr, &
+        subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, foe_obj, kernel, ham_compr, &
                    ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, fermi, penalty_ev, chebyshev_polynomials, &
                    emergency_stop)
           use module_base
@@ -3341,7 +3341,6 @@ module module_interfaces
           use foe_base, only: foe_data
           implicit none
           integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, norb, norbp, isorb
-          integer,dimension(0:nproc-1),intent(in) :: isorb_par
           real(8),dimension(npl,3),intent(in) :: cc
           type(foe_data),intent(in) :: foe_obj
           type(sparse_matrix), intent(in) :: kernel
@@ -3622,27 +3621,25 @@ module module_interfaces
           type(sparse_matrix), intent(inout) :: sparsemat
         end subroutine init_matrixindex_in_compressed_fortransposed
 
-        subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norbp, isorb, isorb_par, &
+        subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norbp, isorb, &
                    fermi, vector, vector_compressed)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
           implicit none
           integer,intent(in) :: iproc, nproc, nsize_polynomial, norb, norbp, isorb
-          integer,dimension(0:nproc-1),intent(in) :: isorb_par
           type(sparse_matrix),intent(in) :: fermi
           real(kind=8),dimension(norb,norbp),intent(in) :: vector
           real(kind=8),dimension(nsize_polynomial),intent(out) :: vector_compressed
         end subroutine compress_polynomial_vector
 
         subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-                   norb, norbp, isorb, isorb_par, fermi, vector_compressed, vector)
+                   norb, norbp, isorb, fermi, vector_compressed, vector)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
           implicit none
           integer,intent(in) :: iproc, nproc, nsize_polynomial, norb, norbp, isorb
-          integer,dimension(0:nproc-1) :: isorb_par
           type(sparse_matrix),intent(in) :: fermi
           real(kind=8),dimension(nsize_polynomial),intent(in) :: vector_compressed
           real(kind=8),dimension(norb,norbp),intent(out) :: vector
@@ -4164,14 +4161,13 @@ module module_interfaces
           real(kind=8),intent(out) :: delta_energy
         end subroutine estimate_energy_change
 
-        subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, norb, norbp, isorb, isorb_par, &
+        subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, norb, norbp, isorb, &
                    fermi, chebyshev_polynomials, cc, kernelp)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
           implicit none
           integer,intent(in) :: iproc, nproc, nsize_polynomial, npl, norb, norbp, isorb
-          integer,dimension(0:nproc-1),intent(in) :: isorb_par
           type(sparse_matrix),intent(in) :: fermi
           real(kind=8),dimension(nsize_polynomial,npl),intent(in) :: chebyshev_polynomials
           real(kind=8),dimension(npl),intent(in) :: cc
