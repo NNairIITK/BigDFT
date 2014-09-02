@@ -754,7 +754,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               call timing(iproc,'lovrlp^-1     ','ON')
 
               do iorb=1,inv_ovrlp_smat%smmm%nfvctrp
-                  Amat21p(iorb+inv_ovrlp_smat%isfvctr,iorb)=1.0d0
+                  Amat21p(iorb+inv_ovrlp_smat%smmm%isfvctr,iorb)=1.0d0
               end do
               Amat21_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='Amat21_compr')
               call timing(iproc,'lovrlp^-1     ','OF')
@@ -879,7 +879,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                            ovrlp_large_compr, ovrlpminonep(:,:,1))
                       call timing(iproc,'lovrlp^-1     ','ON')
                       if (.not.check_accur) call f_free(ovrlp_large_compr)
-                      call first_order_taylor_dense(inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%isfvctr, &
+                      call first_order_taylor_dense(inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%smmm%isfvctr, &
                            inv_ovrlp_smat%smmm%nfvctrp,power,ovrlpminonep,invovrlpp)
                   end if
 
@@ -952,7 +952,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
 
               if (power==1) then
                   call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, &
-                       inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_smat%isfvctr, &
+                       inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_smat%smmm%isfvctr, &
                        inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
                        inv_ovrlp_smat%smmm%ivectorindex, inv_ovrlp_smat%smmm%onedimindices, &
                        invovrlp_compr_seq, ovrlp_largep, power, &
@@ -963,7 +963,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                        inv_ovrlp_mat%matrix_compr(ilshift+1:ilshift+inv_ovrlp_smat%nvctr), invovrlpp)
                   call timing(iproc,'lovrlp^-1     ','ON')
                   call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, &
-                       inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_smat%isfvctr, &
+                       inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_smat%smmm%isfvctr, &
                        inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
                        inv_ovrlp_smat%smmm%ivectorindex, inv_ovrlp_smat%smmm%onedimindices, &
                        invovrlp_compr_seq, invovrlpp, power, &
@@ -976,7 +976,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                        inv_ovrlp_mat%matrix_compr(ilshift+1:ilshift+inv_ovrlp_smat%nvctr), invovrlpp)
                   call timing(iproc,'lovrlp^-1     ','ON')
                   call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, &
-                       inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_smat%isfvctr, &
+                       inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_smat%smmm%isfvctr, &
                        inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
                        inv_ovrlp_smat%smmm%ivectorindex, inv_ovrlp_smat%smmm%onedimindices, &
                        invovrlp_compr_seq, invovrlpp, power, &

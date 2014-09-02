@@ -113,13 +113,16 @@ subroutine foe(iproc, nproc, tmprtr, &
     
   ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
   nsize_polynomial=0
-  if (tmb%linmat%l%nfvctrp>0) then
-      isegstart=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+1)
-      if (tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp<tmb%linmat%l%nfvctr) then
-          isegend=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr_par(iproc+1)+1)-1
-      else
-          isegend=tmb%linmat%l%nseg
-      end if
+  if (tmb%linmat%l%smmm%nfvctrp>0) then
+      isegstart = tmb%linmat%l%istsegline(tmb%linmat%l%smmm%isfvctr+1)
+      isegend = tmb%linmat%l%istsegline(tmb%linmat%l%smmm%isfvctr+tmb%linmat%l%smmm%nfvctrp) + &
+                tmb%linmat%l%nsegline(tmb%linmat%l%smmm%isfvctr+tmb%linmat%l%smmm%nfvctrp)-1
+      !!isegstart=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+1)
+      !!if (tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp<tmb%linmat%l%nfvctr) then
+      !!    isegend=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr_par(iproc+1)+1)-1
+      !!else
+      !!    isegend=tmb%linmat%l%nseg
+      !!end if
       !$omp parallel default(private) shared(isegstart, isegend, tmb, nsize_polynomial)
       !$omp do reduction(+:nsize_polynomial)
       do iseg=isegstart,isegend
@@ -211,8 +214,8 @@ subroutine foe(iproc, nproc, tmprtr, &
         
               calculate_SHS=.true.
         
-              if (tmb%linmat%l%nfvctrp>0) then
-                  call to_zero(tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctrp*tmb%linmat%l%nspin,tmb%linmat%kernel_%matrixp(1,1,1))
+              if (tmb%linmat%l%smmm%nfvctrp>0) then
+                  call to_zero(tmb%linmat%l%nfvctr*tmb%linmat%l%smmm%nfvctrp*tmb%linmat%l%nspin,tmb%linmat%kernel_%matrixp(1,1,1))
               end if
         
               if (iproc==0) then
@@ -367,7 +370,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           !!    write(1000+iproc,'(a,2i8,es16.6)') 'ispin, i, val', ispin, i, hamscal_compr(i)
           !!end do
                       call chebyshev_clean(iproc, nproc, npl, cc, &
-                           tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%isorb_par, foe_obj, &
+                           tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nfvctrp, tmb%linmat%l%smmm%isfvctr, foe_obj, &
                            tmb%linmat%l, hamscal_compr, &
                            inv_ovrlp%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), calculate_SHS, &
                            nsize_polynomial, SHS, tmb%linmat%kernel_%matrixp, penalty_ev, chebyshev_polynomials, &
@@ -376,16 +379,11 @@ subroutine foe(iproc, nproc, tmprtr, &
                       ! The Chebyshev polynomials are already available
                       if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
                       call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
-                           tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%isorb_par, &
+                           tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nfvctrp, tmb%linmat%l%smmm%isfvctr, &
                           tmb%linmat%l, chebyshev_polynomials, cc, tmb%linmat%kernel_%matrixp)
                   end if 
     
     
-          !!do i=1,tmb%linmat%l%nfvctrp
-          !!    do j=1,tmb%linmat%l%nfvctr
-          !!        write(1100+iproc,'(a,3i8,es16.6)') 'ispin, i, j, val', ispin, i, j, tmb%linmat%kernel_%matrixp(j,i,1)
-          !!    end do
-          !!end do
     
                  call check_emergency_stop()
                  if (emergency_stop) then
@@ -440,11 +438,6 @@ subroutine foe(iproc, nproc, tmprtr, &
                   end if
                 
                   call calculate_trace_distributed(tmb%linmat%kernel_%matrixp, sumn)
-                  !!do i=1,tmb%linmat%l%nfvctrp
-                  !!    do j=1,tmb%linmat%l%nfvctr
-                  !!        write(1200+iproc,'(a,3i8,es16.6)') 'ispin, i, j, val', ispin, i, j, tmb%linmat%kernel_%matrixp(j,i,1)
-                  !!    end do
-                  !!end do
         
     
                   if (all(eval_bounds_ok) .and. all(bisection_bounds_ok)) then
@@ -499,7 +492,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                       ! experimental: calculate a second kernel with a lower
                       ! polynomial degree  and calculate the difference
                       call chebyshev_fast(iproc, nproc, nsize_polynomial, npl_check, &
-                           tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%isorb_par, &
+                           tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nfvctrp, tmb%linmat%l%smmm%isfvctr, &
                            tmb%linmat%l, chebyshev_polynomials, cc_check, fermip_check)
                       call f_free(cc_check)
                       diff=0.d0
@@ -527,7 +520,8 @@ subroutine foe(iproc, nproc, tmprtr, &
         
         
     
-         call compress_matrix_distributed(iproc, tmb%linmat%l, DENSE_MATMUL, tmb%linmat%kernel_%matrixp(:,:,1), &
+         call compress_matrix_distributed(iproc, tmb%linmat%l, DENSE_MATMUL, &
+              tmb%linmat%kernel_%matrixp(:,1:tmb%linmat%l%smmm%nfvctrp,1), &
               tmb%linmat%kernel_%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr))
     
          call compress_matrix_distributed(iproc, tmb%linmat%l, DENSE_MATMUL, fermip_check, fermi_check_compr(1))
@@ -835,7 +829,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
 
       subroutine calculate_trace_distributed(matrixp, trace)
-          real(kind=8),dimension(tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctrp),intent(in) :: matrixp
+          real(kind=8),dimension(tmb%linmat%l%nfvctr,tmb%linmat%l%smmm%nfvctrp),intent(in) :: matrixp
           real(kind=8),intent(out) :: trace
 
           call f_routine(id='calculate_trace_distributed')
@@ -1598,7 +1592,7 @@ real(kind=8) function determinant(iproc, n, mat)
 end function determinant
 
 
-subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norbp, isorb, isorb_par, &
+subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norbp, isorb, &
            fermi, vector, vector_compressed)
   use module_base
   use module_types
@@ -1607,7 +1601,6 @@ subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norb
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, nsize_polynomial, norb, norbp, isorb
-  integer,dimension(0:nproc-1),intent(in) :: isorb_par
   type(sparse_matrix),intent(in) :: fermi
   real(kind=8),dimension(norb,norbp),intent(in) :: vector
   real(kind=8),dimension(nsize_polynomial),intent(out) :: vector_compressed
@@ -1617,12 +1610,15 @@ subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norb
 
 
   if (norbp>0) then
-      isegstart=fermi%istsegline(fermi%isfvctr+1)
-      if (isorb+norbp<norb) then
-          isegend=fermi%istsegline(fermi%isfvctr_par(iproc+1)+1)-1
-      else
-          isegend=fermi%nseg
-      end if
+      isegstart = fermi%istsegline(fermi%smmm%isfvctr+1)
+      isegend = fermi%istsegline(fermi%smmm%isfvctr+fermi%smmm%nfvctrp) + &
+                fermi%nsegline(fermi%smmm%isfvctr+fermi%smmm%nfvctrp)-1
+      !!isegstart=fermi%istsegline(fermi%isfvctr+1)
+      !!if (isorb+norbp<norb) then
+      !!    isegend=fermi%istsegline(fermi%isfvctr_par(iproc+1)+1)-1
+      !!else
+      !!    isegend=fermi%nseg
+      !!end if
       ii=0
       !!$omp parallel default(private) shared(isegstart, isegend, orbs, fermi, vector, vector_compressed)
       !!$omp do
@@ -1644,7 +1640,7 @@ end subroutine compress_polynomial_vector
 
 
 subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-           norb, norbp, isorb, isorb_par, fermi, vector_compressed, vector)
+           norb, norbp, isorb, fermi, vector_compressed, vector)
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix
@@ -1652,23 +1648,25 @@ subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, nsize_polynomial, norb, norbp, isorb
-  integer,dimension(0:nproc-1) :: isorb_par
   type(sparse_matrix),intent(in) :: fermi
   real(kind=8),dimension(nsize_polynomial),intent(in) :: vector_compressed
-  real(kind=8),dimension(fermi%nfvctr,fermi%nfvctrp),intent(out) :: vector
+  real(kind=8),dimension(fermi%nfvctr,fermi%smmm%nfvctrp),intent(out) :: vector
 
   ! Local variables
   integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
 
 
-  if (fermi%nfvctrp>0) then
-      call to_zero(fermi%nfvctr*fermi%nfvctrp, vector(1,1))
-      isegstart=fermi%istsegline(fermi%isfvctr+1)
-      if (fermi%isfvctr+fermi%nfvctrp<fermi%nfvctr) then
-          isegend=fermi%istsegline(fermi%isfvctr_par(iproc+1)+1)-1
-      else
-          isegend=fermi%nseg
-      end if
+  if (fermi%smmm%nfvctrp>0) then
+      call to_zero(fermi%nfvctr*fermi%smmm%nfvctrp, vector(1,1))
+      isegstart = fermi%istsegline(fermi%smmm%isfvctr+1)
+      isegend = fermi%istsegline(fermi%smmm%isfvctr+fermi%smmm%nfvctrp) + &
+                fermi%nsegline(fermi%smmm%isfvctr+fermi%smmm%nfvctrp)-1
+      !!isegstart=fermi%istsegline(fermi%isfvctr+1)
+      !!if (fermi%isfvctr+fermi%smmm%nfvctrp<fermi%nfvctr) then
+      !!    isegend=fermi%istsegline(fermi%isfvctr_par(iproc+1)+1)-1
+      !!else
+      !!    isegend=fermi%nseg
+      !!end if
       !$omp parallel do default(private) &
       !$omp shared(isegstart, isegend, fermi, vector, vector_compressed)
       do iseg=isegstart,isegend
@@ -1677,7 +1675,7 @@ subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
               ii=ii+1
               iiorb = (jorb-1)/fermi%nfvctr + 1
               jjorb = jorb - (iiorb-1)*fermi%nfvctr
-              vector(jjorb,iiorb-fermi%isfvctr)=vector_compressed(ii)
+              vector(jjorb,iiorb-fermi%smmm%isfvctr)=vector_compressed(ii)
               !write(*,*) 'ii, iiorb-fermi%isfvctr, jjorb', ii, iiorb-fermi%isfvctr, jjorb
           end do
       end do
@@ -1714,13 +1712,16 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
   ibshift = (ispin-1)*bsmat%nvctr
 
   sumn=0.d0
-  if (asmat%nfvctrp>0) then
-          isegstart=asmat%istsegline(asmat%isfvctr+1)
-      if (asmat%isfvctr+asmat%nfvctrp<asmat%nfvctr) then
-              isegend=asmat%istsegline(asmat%isfvctr_par(iproc+1)+1)-1
-      else
-              isegend=asmat%nseg
-      end if
+  if (asmat%smmm%nfvctrp>0) then
+      isegstart = asmat%istsegline(asmat%smmm%isfvctr+1)
+      isegend = asmat%istsegline(asmat%smmm%isfvctr+asmat%smmm%nfvctrp) + &
+                asmat%nsegline(asmat%smmm%isfvctr+asmat%smmm%nfvctrp)-1
+      !!isegstart=asmat%istsegline(asmat%isfvctr+1)
+      !!if (asmat%isfvctr+asmat%nfvctrp<asmat%nfvctr) then
+      !!        isegend=asmat%istsegline(asmat%isfvctr_par(iproc+1)+1)-1
+      !!else
+      !!        isegend=asmat%nseg
+      !!end if
       !$omp parallel default(none) &
       !$omp private(iseg, ii, jorb, iiorb, jjorb, iilarge) &
       !$omp shared(isegstart, isegend, bsmat, asmat, amat, bmat, iashift, ibshift, sumn)
@@ -1864,7 +1865,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 
 
 
-  penalty_ev = f_malloc((/inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%nfvctrp,2/),id='penalty_ev')
+  penalty_ev = f_malloc((/inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%smmm%nfvctrp,2/),id='penalty_ev')
   SHS = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='SHS')
 
 
@@ -1873,13 +1874,16 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
     
   ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
   nsize_polynomial=0
-  if (inv_ovrlp_smat%nfvctrp>0) then
-      isegstart=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc)+1)
-      if (inv_ovrlp_smat%isfvctr+inv_ovrlp_smat%nfvctrp<inv_ovrlp_smat%nfvctr) then
-          isegend=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc+1)+1)-1
-      else
-          isegend=inv_ovrlp_smat%nseg
-      end if
+  if (inv_ovrlp_smat%smmm%nfvctrp>0) then
+      isegstart = inv_ovrlp_smat%istsegline(inv_ovrlp_smat%smmm%isfvctr+1)
+      isegend = inv_ovrlp_smat%istsegline(inv_ovrlp_smat%smmm%isfvctr+inv_ovrlp_smat%smmm%nfvctrp) + &
+                inv_ovrlp_smat%nsegline(inv_ovrlp_smat%smmm%isfvctr+inv_ovrlp_smat%smmm%nfvctrp)-1
+      !!isegstart=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc)+1)
+      !!if (inv_ovrlp_smat%isfvctr+inv_ovrlp_smat%nfvctrp<inv_ovrlp_smat%nfvctr) then
+      !!    isegend=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc+1)+1)-1
+      !!else
+      !!    isegend=inv_ovrlp_smat%nseg
+      !!end if
       !$omp parallel default(private) shared(isegstart, isegend, inv_ovrlp_smat, nsize_polynomial)
       !$omp do reduction(+:nsize_polynomial)
       do iseg=isegstart,isegend
@@ -1916,8 +1920,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
         
               !!calculate_SHS=.true.
         
-              if (inv_ovrlp_smat%nfvctrp>0) then
-                  call to_zero(inv_ovrlp_smat%nfvctr*inv_ovrlp_smat%nfvctrp, inv_ovrlp_matrixp(1,1))
+              if (inv_ovrlp_smat%smmm%nfvctrp>0) then
+                  call to_zero(inv_ovrlp_smat%nfvctr*inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_matrixp(1,1))
               end if
         
         
@@ -2036,8 +2040,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                       ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
                       !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
                       call chebyshev_clean(iproc, nproc, npl, cc, &
-                           inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%nfvctrp, &
-                           inv_ovrlp_smat%isfvctr, inv_ovrlp_smat%isfvctr_par, foe_obj, &
+                           inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
+                           inv_ovrlp_smat%smmm%isfvctr, foe_obj, &
                            inv_ovrlp_smat, hamscal_compr, &
                            inv_ovrlp%matrix_compr, .false., &
                            nsize_polynomial, SHS, inv_ovrlp_matrixp, penalty_ev, chebyshev_polynomials, &
@@ -2046,8 +2050,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                       ! The Chebyshev polynomials are already available
                       !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
                       call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
-                           inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%nfvctrp, &
-                           inv_ovrlp_smat%isfvctr, inv_ovrlp_smat%isfvctr_par, &
+                           inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
+                           inv_ovrlp_smat%smmm%isfvctr, &
                            inv_ovrlp_smat, chebyshev_polynomials, cc, inv_ovrlp_matrixp)
                   end if 
     
@@ -2149,13 +2153,16 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
         ! The penalty function must be smaller than the noise.
         bound_low=0.d0
         bound_up=0.d0
-        if (inv_ovrlp_smat%nfvctrp>0) then
-            isegstart=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc)+1)
-            if (inv_ovrlp_smat%isfvctr+inv_ovrlp_smat%nfvctrp<inv_ovrlp_smat%nfvctr) then
-                isegend=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc+1)+1)-1
-            else
-                isegend=inv_ovrlp_smat%nseg
-            end if
+        if (inv_ovrlp_smat%smmm%nfvctrp>0) then
+            isegstart = inv_ovrlp_smat%istsegline(inv_ovrlp_smat%smmm%isfvctr+1)
+            isegend = inv_ovrlp_smat%istsegline(inv_ovrlp_smat%smmm%isfvctr+inv_ovrlp_smat%smmm%nfvctrp) + &
+                      inv_ovrlp_smat%nsegline(inv_ovrlp_smat%smmm%isfvctr+inv_ovrlp_smat%smmm%nfvctrp)-1
+            !!isegstart=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc)+1)
+            !!if (inv_ovrlp_smat%isfvctr+inv_ovrlp_smat%nfvctrp<inv_ovrlp_smat%nfvctr) then
+            !!    isegend=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc+1)+1)-1
+            !!else
+            !!    isegend=inv_ovrlp_smat%nseg
+            !!end if
             !$omp parallel default(none) &
             !$omp private(iseg, ii, jorb, irow, icol, iismall, tt) &
             !$omp shared(isegstart, isegend, inv_ovrlp_smat, penalty_ev, bound_low, bound_up)
@@ -2176,8 +2183,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                     else
                         tt=0.d0
                     end if
-                    bound_low = bound_low + penalty_ev(icol,irow-inv_ovrlp_smat%isfvctr,2)*tt
-                    bound_up = bound_up +penalty_ev(icol,irow-inv_ovrlp_smat%isfvctr,1)*tt
+                    bound_low = bound_low + penalty_ev(icol,irow-inv_ovrlp_smat%smmm%isfvctr,2)*tt
+                    bound_up = bound_up +penalty_ev(icol,irow-inv_ovrlp_smat%smmm%isfvctr,1)*tt
                 end do  
             end do
             !$omp end do
