@@ -263,15 +263,15 @@ contains
       do iorb=1,norb
           iiorb=iiorb+1
           tt=tt+real(nseq_per_line(iorb),kind=8)
-          if (tt>=rseq_ideal .and. jjproc/=nproc-1) then
+          if (tt>=real(jjproc+1,kind=8)*rseq_ideal .and. jjproc/=nproc-1) then
               norb_par_ideal(jjproc)=iiorb
               isorb_par_ideal(jjproc+1)=iorb
               jjproc=jjproc+1
-              tt=0.d0
               iiorb=0
           end if
       end do
       norb_par_ideal(jjproc)=iiorb
+
 
       ! some checks
       if (sum(norb_par_ideal)/=norb) stop 'sum(norb_par_ideal)/=norb'
@@ -287,6 +287,7 @@ contains
       nseq_max = sparsemat%smmm%nseq
       call mpiallred(nseq_max, 1, mpi_max, bigdft_mpi%mpi_comm)
       ratio_before = real(nseq_max,kind=8)/real(nseq_min,kind=8)
+
 
       ! Realculate the values of sparsemat%smmm%nout and sparsemat%smmm%nseq with
       ! the optimized partitioning of the matrix columns.
