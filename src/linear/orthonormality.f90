@@ -779,7 +779,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                   end if
                   !call vscal(ovrlp_smat%nfvctr*norbp,-0.5d0,Amat22p(1,1),1)
                   do iorb=1,inv_ovrlp_smat%smmm%nfvctrp
-                      Amat11p(iorb+isorb,iorb)=Amat11p(iorb+isorb,iorb)+1.5d0
+                      Amat11p(iorb+inv_ovrlp_smat%smmm%isfvctr,iorb)=Amat11p(iorb+inv_ovrlp_smat%smmm%isfvctr,iorb)+1.5d0
                   !    Amat22p(iorb+isorb,iorb)=Amat22p(iorb+isorb,iorb)+1.5d0
                   end do
 
