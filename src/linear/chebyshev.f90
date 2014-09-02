@@ -66,17 +66,22 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
           matrix = sparsematrix_malloc(kernel, iaction=DENSE_PARALLEL, id='matrix')
           SHS_seq = sparsematrix_malloc(kernel, iaction=SPARSEMM_SEQ, id='SHS_seq')
     
-          if (kernel%nfvctrp>0) then
-              call to_zero(kernel%nfvctr*kernel%nfvctrp, matrix(1,1))
+          if (kernel%smmm%nfvctrp>0) then
+              call to_zero(kernel%nfvctr*kernel%smmm%nfvctrp, matrix(1,1))
           end if
           !write(*,*) 'WARNING CHEBYSHEV: MODIFYING MATRIX MULTIPLICATION'
-          if (kernel%nfvctrp>0) then
-              isegstart=kernel%istsegline(kernel%isfvctr+1)
-              if (kernel%isfvctr+kernel%nfvctrp<kernel%nfvctr) then
-                  isegend=kernel%istsegline(kernel%isfvctr_par(iproc+1)+1)-1
-              else
-                  isegend=kernel%nseg
-              end if
+          if (kernel%smmm%nfvctrp>0) then
+              isegstart = kernel%istsegline(kernel%smmm%isfvctr+1)
+              isegend = kernel%istsegline(kernel%smmm%isfvctr+kernel%smmm%nfvctrp) + &
+                        kernel%nsegline(kernel%smmm%isfvctr+kernel%smmm%nfvctrp)-1
+
+              !!isegstart=kernel%istsegline(kernel%isfvctr+1)
+              !!if (kernel%isfvctr+kernel%nfvctrp<kernel%nfvctr) then
+              !!    isegend=kernel%istsegline(kernel%isfvctr_par(iproc+1)+1)-1
+              !!else
+              !!    isegend=kernel%nseg
+              !!end if
+
               do iseg=isegstart,isegend
                   ii=kernel%keyv(iseg)-1
                   do jorb=kernel%keyg(1,iseg),kernel%keyg(2,iseg)
@@ -102,7 +107,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
 
     
       vectors = f_malloc((/ kernel%nfvctr, kernel%smmm%nfvctrp, 4 /),id='vectors')
-      if (kernel%nfvctrp>0) then
+      if (kernel%smmm%nfvctrp>0) then
           call to_zero(kernel%nfvctr*kernel%smmm%nfvctrp, vectors(1,1,1))
       end if
     
@@ -112,7 +117,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
   
       if (calculate_SHS) then
   
-          if (kernel%nfvctrp>0) then
+          if (kernel%smmm%nfvctrp>0) then
               call sparsemm(kernel, ham_compr_seq, matrix(1,1), vectors(1,1,1))
               call to_zero(kernel%smmm%nfvctrp*kernel%nfvctr, matrix(1,1))
               call sparsemm(kernel, ovrlp_compr_seq, vectors(1,1,1), matrix(1,1))
@@ -120,7 +125,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
           end if
           call to_zero(kernel%nvctr, SHS(1))
           
-          if (kernel%nfvctrp>0) then
+          if (kernel%smmm%nfvctrp>0) then
               isegstart=kernel%istsegline(kernel%smmm%isfvctr+1)
               isegend=kernel%istsegline(kernel%smmm%isfvctr+kernel%smmm%nfvctrp)+ &
                       kernel%nsegline(kernel%smmm%isfvctr+kernel%smmm%nfvctrp)-1
@@ -151,7 +156,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
   
       end if
   
-      if (kernel%nfvctrp>0) then
+      if (kernel%smmm%nfvctrp>0) then
           call sequential_acces_matrix_fast(kernel, SHS, SHS_seq)
       end if
   
@@ -163,11 +168,11 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
   !!    end do
   !!end if
     
-  if (kernel%nfvctrp>0) then
+  if (kernel%smmm%nfvctrp>0) then
     
       ! No need to set to zero the 3rd and 4th entry since they will be overwritten
       ! by copies of the 1st entry.
-      if (kernel%nfvctrp>0) then
+      if (kernel%smmm%nfvctrp>0) then
           call to_zero(2*kernel%nfvctr*kernel%smmm%nfvctrp, vectors(1,1,1))
       end if
       do iorb=1,kernel%smmm%nfvctrp
@@ -175,7 +180,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
           vectors(iiorb,iorb,1)=1.d0
       end do
     
-      if (kernel%nfvctrp>0) then
+      if (kernel%smmm%nfvctrp>0) then
     
           call vcopy(kernel%nfvctr*kernel%smmm%nfvctrp, vectors(1,1,1), 1, vectors(1,1,3), 1)
           call vcopy(kernel%nfvctr*kernel%smmm%nfvctrp, vectors(1,1,1), 1, vectors(1,1,4), 1)
@@ -190,7 +195,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, isorb_par,
           end if
         
         
-          call vcopy(kernel%nfvctr*kernel%nfvctrp, vectors(1,1,1), 1, vectors(1,1,2), 1)
+          call vcopy(kernel%nfvctr*kernel%smmm%nfvctrp, vectors(1,1,1), 1, vectors(1,1,2), 1)
         
           !initialize fermi
           call to_zero(kernel%smmm%nfvctrp*kernel%nfvctr, fermi(1,1))
