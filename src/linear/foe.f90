@@ -540,6 +540,13 @@ subroutine foe(iproc, nproc, tmprtr, &
           call retransform(fermi_check_compr)
     
           call calculate_trace_distributed(fermip_check, sumn_check)
+
+          !@NEW ##########################
+          sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
+                 tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%kernel_%matrix_compr, ispin)
+          sumn_check = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
+                       tmb%linmat%ovrlp_%matrix_compr, fermi_check_compr, ispin)
+          !@ENDNEW #######################
         
     
           ! Calculate trace(KH). Since they have the same sparsity pattern and K is
@@ -626,7 +633,7 @@ subroutine foe(iproc, nproc, tmprtr, &
         
           ! Calculate trace(KS).
           sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-                 tmb%linmat%ovrlp_, tmb%linmat%kernel_, ispin)
+                 tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%kernel_%matrix_compr, ispin)
 
 
           ! Recalculate trace(KH) (needed since the kernel was modified in the above purification). 
@@ -1698,7 +1705,8 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
   integer,intent(in) :: iproc,  nproc, ispin
   type(orbitals_data),intent(in) :: orbs
   type(sparse_matrix),intent(in) :: asmat, bsmat
-  type(matrices),intent(in) :: amat, bmat
+  real(kind=8),dimension(asmat%nvctr),intent(in) :: amat
+  real(kind=8),dimension(bsmat%nvctr),intent(in) :: bmat
 
   ! Local variables
   integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iilarge
@@ -1733,7 +1741,7 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
               iiorb = (jorb-1)/asmat%nfvctr + 1
               jjorb = jorb - (iiorb-1)*asmat%nfvctr
               iilarge = ibshift + matrixindex_in_compressed(bsmat, iiorb, jjorb)
-              sumn = sumn + amat%matrix_compr(ii)*bmat%matrix_compr(iilarge)
+              sumn = sumn + amat(ii)*bmat(iilarge)
           end do  
       end do
       !$omp end do
