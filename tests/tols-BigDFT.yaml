@@ -37,6 +37,7 @@ Keys to ignore:
  - Raw version
  - Size of the global database
  - Total No. of Taskgroups created
+ - sparse matmul load balancing naive / optimized
 Patterns to ignore:
  - Timestamp
  - memory

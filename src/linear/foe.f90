@@ -543,9 +543,11 @@ subroutine foe(iproc, nproc, tmprtr, &
 
           !@NEW ##########################
           sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-                 tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%kernel_%matrix_compr, ispin)
+                 tmb%linmat%ovrlp_%matrix_compr(isshift+1:isshift+tmb%linmat%s%nvctr), &
+                 tmb%linmat%kernel_%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), ispin)
           sumn_check = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-                       tmb%linmat%ovrlp_%matrix_compr, fermi_check_compr, ispin)
+                       tmb%linmat%ovrlp_%matrix_compr(isshift+1:isshift+tmb%linmat%s%nvctr), &
+                       fermi_check_compr, ispin)
           !@ENDNEW #######################
         
     
@@ -635,7 +637,8 @@ subroutine foe(iproc, nproc, tmprtr, &
         
           ! Calculate trace(KS).
           sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-                 tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%kernel_%matrix_compr, ispin)
+                 tmb%linmat%ovrlp_%matrix_compr(isshift+1:isshift+tmb%linmat%s%nvctr), &
+                 tmb%linmat%kernel_%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), ispin)
 
 
           ! Recalculate trace(KH) (needed since the kernel was modified in the above purification). 
@@ -1718,8 +1721,8 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
 
   call f_routine(id='trace_sparse')
 
-  iashift = (ispin-1)*asmat%nvctr
-  ibshift = (ispin-1)*bsmat%nvctr
+  iashift = 0!(ispin-1)*asmat%nvctr
+  ibshift = 0!(ispin-1)*bsmat%nvctr
 
   sumn=0.d0
   if (asmat%smmm%nfvctrp>0) then
