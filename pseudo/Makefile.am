@@ -1,15 +1,11 @@
-EXTRA_DIST = \
-	doc
+ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = \
-	src \
-	tests
+EXTRA_DIST = doc
+
+SUBDIRS = src tests
 
 check:
 	@if test $(MAKELEVEL) = 0 ; then $(MAKE) report ; fi
 
 report: 
-	export PYTHONPATH=${PYTHONPATH} ; \
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/report.py
-
