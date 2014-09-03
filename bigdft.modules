@@ -8,26 +8,31 @@
   <repository type="tarball" name="libyaml" href="http://pyyaml.org/download/libyaml/"/>
   <repository type="svn" name="libxc" href="http://www.tddft.org/svn/"/>
   <repository type="bzr" name="bigdft" href="lp:/"/>
+  <repository type="tarball" name="wannier" href="http://www.wannier.org/code/"/>
 
   <repository type="tarball" name="local" href="./"/>
 
   <autotools id="libxc" check-target="false"> <!-- autogen-sh="autoreconf" -->
     <!--<branch repo="libxc" checkoutdir="libxc-2.0.x"/>-->
-    <branch repo="local" module="libxc-2.0.x.tar.gz" version="2.0.x"/>
+    <branch repo="local" module="libxc-2.0.x.tar.gz" version="2.0.x" checkoutdir="libxc"/>
   </autotools>
 
   <autotools id="libyaml" check-target="false">
     <!--<branch repo="libyaml" module="yaml-0.1.4.tar.gz" version="0.1.4"/>-->
-    <branch repo="local" module="yaml-0.1.4.tar.gz" version="0.1.4"/>
+    <branch repo="local" module="yaml-0.1.4.tar.gz" version="0.1.4" checkoutdir="yaml"/>
   </autotools>
 
   <distutils id="PyYAML">
     <!--<branch repo="libyaml" module="PyYAML-3.10.tar.gz" version="3.10"/>-->
-    <branch repo="local" module="PyYAML-3.10.tar.gz" version="3.10"/>
+    <branch repo="local" module="PyYAML-3.10.tar.gz" version="3.10" checkoutdir="PyYAML"/>
     <dependencies>
       <dep package="libyaml"/>
     </dependencies>
   </distutils>
+
+  <autotools id="libABINIT">
+    <branch repo="local" module="libABINIT-6.8+12.tar.gz" version="6.8+12" checkoutdir="libABINIT"/>
+  </autotools>
 
   <autotools id="flib">
     <branch repo="bigdft" module="flib"/>
@@ -42,16 +47,40 @@
 
   <autotools id="bigdft">
     <!--<branch repo="bigdft" module="bigdft" version="1.7.5"/>-->
-    <branch repo="local" module="bigdft-1.7.5.tar.gz" version="1.7.5"/>
+    <branch repo="local" module="bigdft-1.7.5.tar.gz" version="1.7.5" checkoutdir="bigdft"/>
     <dependencies>
       <!--<dep package="flib"/>
       <dep package="psolver"/>-->
       <dep package="libyaml"/>
+      <dep package="libxc"/>
+      <dep package="libABINIT"/>
       <if condition-set="testing">
         <dep package="PyYAML"/>
       </if>
+    </dependencies>
+  </autotools>
+
+  <autotools id="pseudo">
+    <!--<branch repo="bigdft" module="pseudo" version="1.7.5"/>-->
+    <branch repo="local" module="pseudo-1.7.5.tar.gz" version="1.7.5" checkoutdir="pseudo"/>
+    <dependencies>
       <dep package="libxc"/>
     </dependencies>
   </autotools>
+
+  <makesys id="wannier90">
+    <branch repo="wannier" module="wannier90-2.0.0.tar.gz" version="2.0.0">
+      <patch file="wannier90-2.0.0.patch" />
+    </branch>
+  </makesys>
+
+  <metamodule id="bigdft-suite-1.7.5">
+    <dependencies>
+      <dep package="bigdft"/>
+      <dep package="pseudo"/>
+      <dep package="wannier90"/>
+      <dep package="PyYAML"/>
+    </dependencies>
+  </metamodule>
 
 </moduleset>

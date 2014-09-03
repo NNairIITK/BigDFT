@@ -564,6 +564,44 @@ class MetaModule(Package):
     def get_revision(self):
         return None
 
+    def do_dist(self, buildscript):
+        buildscript.set_action(_('Creating tarball for'), self)
+        # Prepare a directory for the meta tarball.
+        destdir = os.path.join(self.get_builddir(buildscript), self.name)
+        if os.path.exists(destdir):
+            shutil.rmtree(destdir)
+        os.mkdir(destdir)
+
+        # Scan all available tars to add to the tarball.
+        for mod in buildscript.modulelist:
+            if mod.branch is not None and mod.branch.repository.name == "local":
+                tar = os.path.join(mod.get_builddir(buildscript), mod.branch.module)
+                try:
+                    shutil.copy(tar, destdir)
+                except:
+                    tar = os.path.join(SRCDIR, mod.branch.module)
+                    shutil.copy(tar, destdir)
+            if mod.branch is not None and hasattr(mod.branch, "patches"):
+                for patch in mod.branch.patches:
+                    shutil.copy(os.path.join(SRCDIR, patch[0]), destdir)
+
+        # Add jhbuild and config files themselves.
+        shutil.copytree(os.path.join(SRCDIR, "jhbuild"), os.path.join(destdir, "jhbuild"))
+        shutil.copy(os.path.join(SRCDIR, "jhbuild.py"), destdir)
+        shutil.copy(os.path.join(SRCDIR, "bigdft.modules"), destdir)
+        shutil.copy(os.path.join(SRCDIR, "jhbuildrc"), destdir)
+
+        # Create the tar.
+        import tarfile
+        tar = tarfile.open(os.path.join(self.get_builddir(buildscript),
+                                        self.name + ".tar." + buildscript.config.compress),
+                           "w:" + buildscript.config.compress)
+        tar.add(destdir)
+        tar.close()
+
+        # Remove build dir.
+        shutil.rmtree(destdir)
+
     def to_sxml(self):
         return [sxml.metamodule(id=self.name),
                 [sxml.dependencies]
