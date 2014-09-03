@@ -17,7 +17,7 @@
     <branch repo="local" module="libxc-2.0.x.tar.gz" version="2.0.x" checkoutdir="libxc"/>
   </autotools>
 
-  <autotools id="libyaml" check-target="false">
+  <autotools id="libyaml">
     <!--<branch repo="libyaml" module="yaml-0.1.4.tar.gz" version="0.1.4"/>-->
     <branch repo="local" module="yaml-0.1.4.tar.gz" version="0.1.4" checkoutdir="yaml"/>
   </autotools>
@@ -30,7 +30,7 @@
     </dependencies>
   </distutils>
 
-  <autotools id="libABINIT">
+  <autotools id="libABINIT" check-target="false">
     <branch repo="local" module="libABINIT-6.8+12.tar.gz" version="6.8+12" checkoutdir="libABINIT"/>
   </autotools>
 

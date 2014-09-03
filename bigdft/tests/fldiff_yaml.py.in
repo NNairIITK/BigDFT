@@ -22,9 +22,10 @@ import optparse
 PyYAML_path = "@AX_PYYAML_PATH@"
 if not PyYAML_path == "system":
   sys.path.insert(0, PyYAML_path)
+sys.path.insert(0, "@abs_srcdir@")
 
 # path of the script
-path = os.path.dirname(sys.argv[0])
+path = "@abs_srcdir@"
 #yaml_folder = '/local/gigi/binaries/ifort-OMP-OCL-CUDA-gC/PyYAML-3.10/lib'
 # if yaml_folder not in sys.path:
 #  sys.path.insert(0,'/local/gigi/binaries/ifort-OMP-OCL-CUDA-gC/PyYAML-3.10/lib')

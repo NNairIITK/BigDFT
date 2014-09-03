@@ -22,7 +22,7 @@ CLEANFILES = test-overlapgeneral.out.yaml test-overlapgeneral.report.yaml test-o
 check: test-overlapgeneral.report.yaml
 
 test-overlapgeneral.report.yaml: $(srcdir)/test-overlapgeneral.ref.yaml test-overlapgeneral.out.yaml
-	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
+	python $(abs_top_builddir)/tests/fldiff_yaml.py \
 		-r $< -d test-overlapgeneral.out.yaml -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=test-overlapgeneral -o $@ 
 ##	python $(top_srcdir)/tests/fldiff_yaml.py $^ | tee $@
 

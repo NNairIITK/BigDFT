@@ -82,6 +82,7 @@ class MakesysModule(MakeModule, DownloadableModule):
         cmd = '%s %s' % (os.environ.get('MAKE', 'make'), makeargs)
         buildscript.execute(cmd, cwd = self.get_builddir(buildscript),
                 extra_env = self.extra_env)
+    do_build.depends = [PHASE_CHECKOUT]
     do_build.error_phases = [PHASE_FORCE_CHECKOUT,
             PHASE_CLEAN, PHASE_DISTCLEAN]
 

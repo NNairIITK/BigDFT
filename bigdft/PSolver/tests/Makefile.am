@@ -59,7 +59,7 @@ PS_Check.out.yaml: PS_Check PS_Program PS_Exercise
 	rm tmp
 
 check: PS_Check.out.yaml
-	python $(top_srcdir)/tests/fldiff_yaml.py \
+	python $(top_builddir)/tests/fldiff_yaml.py \
 		-r $(abs_srcdir)/PS_Check.ref.yaml -d PS_Check.out.yaml -t $(abs_srcdir)/tols.yaml \
 	        --output PSolver.report.yaml
 

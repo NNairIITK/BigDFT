@@ -596,7 +596,7 @@ class MetaModule(Package):
         tar = tarfile.open(os.path.join(self.get_builddir(buildscript),
                                         self.name + ".tar." + buildscript.config.compress),
                            "w:" + buildscript.config.compress)
-        tar.add(destdir)
+        tar.add(self.name)
         tar.close()
 
         # Remove build dir.

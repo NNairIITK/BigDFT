@@ -40,8 +40,8 @@ yaml_test.o: $(top_builddir)/flib/src/libflib-1.a
 yaml_test.out.yaml: yaml_test
 	./yaml_test > yaml_test.out.yaml
 
-yaml_test.report.yaml: $(top_srcdir)/tests/fldiff_yaml.py $(top_srcdir)/tests/tols-BigDFT.yaml $(abs_srcdir)/yaml_test.ref.yaml yaml_test.out.yaml
-	python $(top_srcdir)/tests/fldiff_yaml.py --label yaml_test -t $(top_srcdir)/tests/tols-BigDFT.yaml 	\
+yaml_test.report.yaml: $(top_builddir)/tests/fldiff_yaml.py $(top_srcdir)/tests/tols-BigDFT.yaml $(abs_srcdir)/yaml_test.ref.yaml yaml_test.out.yaml
+	python $(top_builddir)/tests/fldiff_yaml.py --label yaml_test -t $(top_srcdir)/tests/tols-BigDFT.yaml 	\
 		-r $(abs_srcdir)/yaml_test.ref.yaml -d yaml_test.out.yaml --output $@
 
 check: yaml_test.report.yaml

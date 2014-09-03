@@ -98,7 +98,7 @@ module_makecheck = {}
 module_nopoison = {}
 
 # control parts of the build process
-nonetwork     = True   # never touch the network
+nonetwork     = False  # never touch the network
 alwaysautogen = False  # always call autogen.sh
 nobuild       = False  # don't actually build the packages
 noinstall     = False  # don't install the packages
@@ -212,7 +212,7 @@ jhbuildbot_dir = None
 jhbuildbot_mastercfg = "master.cfg"
 
 # whether to use a local copy of modulesets (instead of fetching them from svn)
-use_local_modulesets = False
+use_local_modulesets = True
 
 # whether to ignore soft dependencies
 ignore_suggests = False

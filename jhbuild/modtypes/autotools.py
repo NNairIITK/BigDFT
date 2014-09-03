@@ -286,6 +286,7 @@ class AutogenModule(MakeModule, DownloadableModule):
             return True
         if self.name in buildscript.config.module_makecheck:
             return not buildscript.config.module_makecheck[self.name]
+        print self.name, self.check_target, buildscript.config.build_targets
         if 'check' not in buildscript.config.build_targets:
             return True
         return False
