@@ -1,9 +1,10 @@
 .svn
 install
 build
-bigdft-*.tar.gz
-yaml-*.tar.gz
-libxc-*.tar.gz
+bigdft-*.tar.*
+yaml-*.tar.*
+libxc-*.tar.*
+pseudo-*.tar.*
 tmp*
 Makefile.in
 Makefile
@@ -115,6 +116,13 @@ bigdft/overDFT/*/electronic_density.cube
 bigdft/overDFT/Xabsb2B/b2B_xanes.*
 bigdft/overDFT/Xabsb2B/local_potentialb2B_*
 bigdft/tutorials/dev/toy_model
+pseudo/INSTALL
+pseudo/install-sh
+pseudo/missing
+libABINIT/INSTALL
+libABINIT/install-sh
+libABINIT/missing
+libABINIT/depcomp
 *.aux
 *.log
 *.mod
@@ -154,3 +162,5 @@ PSolver/tests/PS_Integral.f90.moved
 bigdft/doc/Manual/test.txt
 bigdft/convolutions/.directory
 bigdft/wavelib/scalar_product.f90
+wannier90-*.tar.*
+wannier90-*/
