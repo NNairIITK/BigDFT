@@ -22,7 +22,7 @@ module communications_init
 
   contains
 
-    subroutine init_comms_linear(iproc, nproc, imethod_overlap, npsidim_orbs, orbs, lzd, nspin, collcom)
+    subroutine init_comms_linear(iproc, nproc, imethod_overlap, npsidim_orbs, orbs, lzd, nspin, nscatterarr, collcom)
       use module_base
       use module_types
       implicit none
@@ -31,13 +31,14 @@ module communications_init
       integer,intent(in) :: iproc, nproc, imethod_overlap, npsidim_orbs, nspin
       type(orbitals_data),intent(in) :: orbs
       type(local_zone_descriptors),intent(in) :: lzd
+      integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr
       type(comms_linear),intent(inout) :: collcom
       
       ! Local variables
       integer :: iorb, iiorb, ilr, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
-      integer :: ipt, nvalp_c, nvalp_f
-      real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
-      real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f
+      integer :: ipt, nvalp_c, nvalp_f, i3s, n3p, ii, i, jjproc, jproc
+      real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f, weightppp_c
+      real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt
       integer,dimension(:,:),allocatable :: istartend_c, istartend_f
       integer,dimension(:,:,:),allocatable :: index_in_global_c, index_in_global_f
       
@@ -47,19 +48,36 @@ module communications_init
 
       ! method to calculate the overlap
       collcom%imethod_overlap = imethod_overlap
+
+      ! Split up the z dimension in disjoint pieces.
+      tt = real(lzd%glr%d%n3+1,kind=8)/real(nproc,kind=8)
+      ii = floor(tt)
+      n3p = ii
+      jjproc = lzd%glr%d%n3+1 - nproc*ii
+      if (iproc<=jjproc-1) n3p = n3p + 1
+      i=1
+      do jproc=0,nproc-1
+          if (iproc==jproc) i3s = i
+          i = i + ii
+          if (jproc<=jjproc-1) i = i + 1
+      end do
+      
+      write(*,*) 'iproc, i3s, n3p, tot', iproc, i3s, n3p,  lzd%glr%d%n3+1
     
       weight_c=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/),id='weight_c')
       weight_f=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/),id='weight_f')
       index_in_global_c=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/),id='index_in_global_c')
       index_in_global_f=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/),id='index_in_global_f')
+
+      weightppp_c=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,1.to.n3p/),id='weight_c')
       
     
-      call get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
+      call get_weights(iproc, nproc, orbs, lzd, i3s, n3p, weightppp_c, weight_c, weight_f, weight_c_tot, weight_f_tot)
     
       ! Assign the grid points to the processes such that the work is equally distributed
       istartend_c=f_malloc((/1.to.2,0.to.nproc-1/),id='istartend_c')
       istartend_f=f_malloc((/1.to.2,0.to.nproc-1/),id='istartend_f')
-      call assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot, &
+      call assign_weight_to_process(iproc, nproc, lzd, i3s, n3p, weightppp_c, weight_c, weight_f, weight_c_tot, weight_f_tot, &
            istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
            weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, nvalp_c, nvalp_f)
     
@@ -146,20 +164,22 @@ module communications_init
     end subroutine init_comms_linear
 
 
-    subroutine get_weights(iproc, nproc, orbs, lzd, weight_c, weight_f, weight_c_tot, weight_f_tot)
+    subroutine get_weights(iproc, nproc, orbs, lzd, i3s, n3p, weightppp_c, weight_c, weight_f, weight_c_tot, weight_f_tot)
       use module_base
       use module_types
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, i3s, n3p
       type(orbitals_data),intent(in) :: orbs
       type(local_zone_descriptors),intent(in) :: lzd
       real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(out) :: weight_c, weight_f
+      real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,1:n3p),intent(out) :: weightppp_c
       real(kind=8),intent(out) :: weight_c_tot, weight_f_tot
       
       ! Local variables
       integer :: iorb, iiorb, i0, i1, i2, i3, ii, iseg, ilr, istart, iend, i, j0, j1, ii1, ii2, ii3, n1p1, np
+      integer :: i3e, ii3s, ii3e
     
       call f_routine(id='get_weights')
     
@@ -214,6 +234,8 @@ module communications_init
               end do
               !$omp end do
           end if
+
+
     
           ! Calculate the weights for the fine part.
           istart=lzd%llr(ilr)%wfd%nseg_c+min(1,lzd%llr(ilr)%wfd%nseg_f)
@@ -241,6 +263,56 @@ module communications_init
           end if
       end do
       !$omp end parallel
+
+
+      !@NEW ##################################
+      call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p,weightppp_c(0,0,1))
+      i3e=i3s+n3p-1
+      do iorb=1,orbs%norb
+          if (orbs%spinsgn(iorb)<0.d0) cycle !consider only up orbitals
+          ilr = orbs%inwhichlocreg(iorb)
+          ii3s = lzd%llr(ilr)%ns3
+          ii3e = ii3s + lzd%llr(ilr)%d%n3
+          !!write(*,'(a,6i8)') 'init: iproc, iorb, ii3s, ii3e, i3s, i3e', iproc, iorb, ii3s, ii3e, i3s, i3e
+          if (ii3s+1>i3e .or. ii3e+1<i3s) cycle !+1 since ns3 starts at 0, but is3 at 1
+
+          n1p1=lzd%llr(ilr)%d%n1+1
+          np=n1p1*(lzd%llr(ilr)%d%n2+1)
+
+          if (lzd%llr(ilr)%wfd%nseg_c>0) then
+              !!$omp do
+              do iseg=1,lzd%llr(ilr)%wfd%nseg_c
+                  j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
+                  j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
+                  ii=j0-1
+                  i3=ii/np
+                  ii3=i3+lzd%llr(ilr)%ns3
+                  if (ii3+1<i3s) cycle
+                  if (ii3+1>i3e) exit
+                  ii=ii-i3*np
+                  i2=ii/n1p1
+                  i0=ii-i2*n1p1
+                  i1=i0+j1-j0
+                  !write(*,'(a,8i8)') 'jj, ii, j0, j1, i0, i1, i2, i3',jj,ii,j0,j1,i0,i1,i2,i3
+                  ii2=i2+lzd%llr(ilr)%ns2
+                  do i=i0,i1
+                      ii1=i+lzd%llr(ilr)%ns1
+                      weightppp_c(ii1,ii2,ii3+1-i3s+1)=weightppp_c(ii1,ii2,ii3+1-i3s+1)+1.d0
+                      !weight_c_tot=weight_c_tot+1.d0
+                  end do
+              end do
+              !!$omp end do
+          end if
+      end do
+      do i3=1,n3p
+          do i2=0,lzd%glr%d%n2
+              do i1=0,lzd%glr%d%n1
+                  weightppp_c(i1,i2,i3)=weightppp_c(i1,i2,i3)**2
+              end do
+          end do
+      end do
+      !@ENDNEW ##################################
+
     
       ! Sum up among all processes.
       if(nproc>1) then
@@ -274,7 +346,7 @@ module communications_init
     end subroutine get_weights
 
 
-    subroutine assign_weight_to_process(iproc, nproc, lzd, weight_c, weight_f, weight_tot_c, weight_tot_f, &
+    subroutine assign_weight_to_process(iproc, nproc, lzd, i3s, n3p, weightppp_c, weight_c, weight_f, weight_tot_c, weight_tot_f, &
                istartend_c, istartend_f, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
                weightp_c, weightp_f, nptsp_c, nptsp_f, nvalp_c, nvalp_f)
       use module_base
@@ -282,9 +354,10 @@ module communications_init
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, i3s, n3p
       type(local_zone_descriptors),intent(in) :: lzd
       real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in) :: weight_c, weight_f
+      real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,1:n3p),intent(in) :: weightppp_c
       real(kind=8),intent(in) :: weight_tot_c, weight_tot_f
       integer,dimension(2,0:nproc-1),intent(out) :: istartend_c, istartend_f
       integer,intent(out) :: istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
@@ -293,12 +366,15 @@ module communications_init
       integer,intent(out) :: nvalp_c, nvalp_f
       
       ! Local variables
-      integer :: jproc, i1, i2, i3, ii, istart, iend, j0, j1, ii_c, ii_f, n1p1, np
+      integer :: jproc, i1, i2, i3, ii, istart, iend, j0, j1, ii_c, ii_f, n1p1, np, jjproc
       !!$$integer :: ii2, iiseg, jprocdone
-      integer :: i, iseg, i0, iitot
-      real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal, ttt
+      integer :: i, iseg, i0, iitot, ii3
+      real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal, ttt, weight_prev
       real(kind=8),dimension(:,:),allocatable :: weights_c_startend, weights_f_startend
       character(len=*),parameter :: subname='assign_weight_to_process'
+      integer,dimension(:),allocatable :: points_per_process, nval_c
+      integer,dimension(:,:),allocatable :: istartendseg_c
+      real(kind=8),dimension(:),allocatable :: weightpp_c, weight_per_process_c
 
       call f_routine(id='assign_weight_to_process')
     
@@ -335,64 +411,227 @@ module communications_init
              end do
           end do
       else
-          tt=0.d0
-          tt2=0.d0
-          ttt=0.d0
-          iitot=0
-          jproc=0
-          istartend_c(1,0)=1
-          if (iproc==0) then
-              istartp_seg_c=1
+      !!!!    tt=0.d0
+      !!!!    tt2=0.d0
+      !!!!    ttt=0.d0
+      !!!!    iitot=0
+      !!!!    jproc=0
+      !!!!    istartend_c(1,0)=1
+      !!!!    if (iproc==0) then
+      !!!!        istartp_seg_c=1
+      !!!!    end if
+      !!!!    n1p1=lzd%glr%d%n1+1
+      !!!!    np=n1p1*(lzd%glr%d%n2+1)
+      !!!!    loop_nseg_c: do iseg=1,lzd%glr%wfd%nseg_c
+      !!!!        j0=lzd%glr%wfd%keygloc(1,iseg)
+      !!!!        j1=lzd%glr%wfd%keygloc(2,iseg)
+      !!!!        ii=j0-1
+      !!!!        i3=ii/np
+      !!!!        ii=ii-i3*np
+      !!!!        i2=ii/n1p1
+      !!!!        i0=ii-i2*n1p1
+      !!!!        i1=i0+j1-j0
+      !!!!        do i=i0,i1
+      !!!!            tt=tt+weight_c(i,i2,i3)
+      !!!!            tt2=tt2+weight_c(i,i2,i3)
+      !!!!            ttt=ttt+sqrt(weight_c(i,i2,i3))
+      !!!!            iitot=iitot+1
+      !!!!            if (jproc<nproc) then
+      !!!!                if (tt>weights_c_startend(1,jproc)) then
+      !!!!                    if (jproc>0) then
+      !!!!                        if (iproc==jproc) then
+      !!!!                            istartp_seg_c=iseg
+      !!!!                        else if (iproc==jproc-1) then
+      !!!!                            iendp_seg_c=iseg
+      !!!!                            weightp_c=tt2
+      !!!!                            nvalp_c=nint(ttt)
+      !!!!                        end if
+      !!!!                        istartend_c(1,jproc)=iitot+1
+      !!!!                        tt2=0.d0
+      !!!!                        ttt=0.d0
+      !!!!                    end if
+      !!!!                    jproc=jproc+1
+      !!!!                end if
+      !!!!            end if
+      !!!!        end do
+      !!!!    end do loop_nseg_c
+    
+      !!!!    do jproc=0,nproc-2
+      !!!!        istartend_c(2,jproc)=istartend_c(1,jproc+1)-1
+      !!!!    end do
+      !!!!    istartend_c(2,nproc-1)=lzd%glr%wfd%nvctr_c
+
+      !!!!    !!write(*,'(a,i7,100i12)') 'old: iproc, istartend_c',iproc, istartend_c 
+      !!!!    !!write(*,'(a,i7,100i12)') 'old: iproc, istartp_seg_c', iproc, istartp_seg_c
+      !!!!    !!write(*,'(a,i7,100i12)') 'old: iproc, iendp_seg_c', iproc, iendp_seg_c
+      !!!!    !!write(*,'(a,i7,100i12)') 'old: iproc, nvalp_c', iproc, nvalp_c
+      !!!!    !!write(*,'(a,i7,100f12.1)') 'old: iproc, weightp_c', iproc, weightp_c
+      !!!!    !!write(*,'(a,i7,100i12)') 'old: iproc, nptsp_c', iproc, nptsp_c
+    
+      !!!!    if(iproc==nproc-1) then
+      !!!!        nvalp_c=nint(ttt)
+      !!!!        weightp_c=tt2
+      !!!!        iendp_seg_c=lzd%glr%wfd%nseg_c
+      !!!!    end if
+      !!!!    !ii=iendp_seg_c-istartp_seg_c+1
+      !!!!    !call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      !!!!    !if (ii/=lzd%glr%wfd%nseg_c) stop 'ii/=lzd%glr%wfd%nseg_c'
+
+
+          !@NEW #################################
+          call to_zero(2*nproc, istartend_c(1,0))
+          weight_per_process_c = f_malloc0(0.to.nproc,id='weight_per_process_c')
+          points_per_process = f_malloc0(0.to.nproc-1,id='points_per_process')
+          istartendseg_c = f_malloc0((/1.to.2,0.to.nproc-1/),id='istartendseg_c')
+          nval_c = f_malloc0(0.to.nproc,id='nval_c')
+          weightpp_c = f_malloc0(0.to.nproc,id='weightpp_c')
+
+          weight_per_process_c(iproc) = sum(weightppp_c)
+          call mpiallred(weight_per_process_c(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+          if (iproc==0) write(*,'(a,2f16.2)') 'sum(weight_per_process_c), weight_tot_c', sum(weight_per_process_c), weight_tot_c
+          if (sum(weight_per_process_c)/=weight_tot_c) then
+              write(*,'(a,2f16.2)') 'sum(weight_per_process_c), weight_tot_c', sum(weight_per_process_c), weight_tot_c
+              stop 'sum(weight_per_process_c)/=weight_tot_c'
           end if
-          n1p1=lzd%glr%d%n1+1
-          np=n1p1*(lzd%glr%d%n2+1)
-          loop_nseg_c: do iseg=1,lzd%glr%wfd%nseg_c
+          if (iproc==0) then
+              weight_prev = 0.d0
+              jjproc = 0
+          else
+              weight_prev = sum(weight_per_process_c(0:iproc-1)) !total weight of process up to iproc-1
+              jjproc = nproc-1
+              do jproc=0,nproc-1
+                  write(*,'(a,2f16.2)') 'weight_prev, weights_c_startend(1,jproc)', weight_prev, weights_c_startend(1,jproc)
+                  !if (weight_prev<weights_c_startend(1,jproc)) then
+                  if (weights_c_startend(1,jproc)<=weight_prev .and. weight_prev<weights_c_startend(2,jproc)) then
+                      ! This process starts the assignment with process jjproc
+                      jjproc = jproc
+                      exit
+                  end if
+              end do
+          end if
+
+          ! Determine the number of grid points handled bby process iproc
+          do iseg=1,lzd%glr%wfd%nseg_c
               j0=lzd%glr%wfd%keygloc(1,iseg)
               j1=lzd%glr%wfd%keygloc(2,iseg)
               ii=j0-1
               i3=ii/np
+              if (i3+1<i3s) cycle
+              if (i3+1>i3s+n3p-1) exit
+              ii3=i3-i3s+1
               ii=ii-i3*np
               i2=ii/n1p1
               i0=ii-i2*n1p1
               i1=i0+j1-j0
               do i=i0,i1
-                  tt=tt+weight_c(i,i2,i3)
-                  tt2=tt2+weight_c(i,i2,i3)
-                  ttt=ttt+sqrt(weight_c(i,i2,i3))
-                  iitot=iitot+1
-                  if (jproc<nproc) then
-                      if (tt>weights_c_startend(1,jproc)) then
-                          if (jproc>0) then
-                              if (iproc==jproc) then
-                                  istartp_seg_c=iseg
-                              else if (iproc==jproc-1) then
-                                  iendp_seg_c=iseg
-                                  weightp_c=tt2
-                                  nvalp_c=nint(ttt)
-                              end if
-                              istartend_c(1,jproc)=iitot+1
-                              tt2=0.d0
-                              ttt=0.d0
-                          end if
-                          jproc=jproc+1
+                  points_per_process(iproc) = points_per_process(iproc) + 1
+              end do
+          end do
+          call mpiallred(points_per_process(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+
+
+
+          tt = weight_prev
+          iitot = sum(points_per_process(0:iproc-1)) !total number of grid points up to iproc-1
+          !!write(*,'(a,i7,f14.1,2i9)') 'start: iproc, tt, iitot, jjproc', iproc, tt, iitot, jjproc
+          !!write(*,'(a,i5,100f12.1)') 'iproc, weights_c_startend', iproc, weights_c_startend
+          ! only do this on task 0 due to the allreduce later
+          if (iproc==0) then
+              istartend_c(1,0) = 1
+              istartendseg_c(1,0) = 1
+          end if
+          do iseg=1,lzd%glr%wfd%nseg_c
+              j0=lzd%glr%wfd%keygloc(1,iseg)
+              j1=lzd%glr%wfd%keygloc(2,iseg)
+              ii=j0-1
+              i3=ii/np
+              if (i3+1<i3s) cycle
+              if (i3+1>i3s+n3p-1) exit
+              ii3=i3+1-i3s+1
+              ii=ii-i3*np
+              i2=ii/n1p1
+              i0=ii-i2*n1p1
+              i1=i0+j1-j0
+              do i=i0,i1
+                  iitot = iitot + 1
+                  tt = tt + weightppp_c(i,i2,ii3)
+                  if (jjproc<nproc-1) then
+                      if (tt>weights_c_startend(1,jjproc+1)) then
+                          write(*,*) 'iproc, jjproc, iitot', iproc, jjproc, iitot
+                          jjproc = jjproc + 1
+                          istartend_c(1,jjproc) = iitot
+                          istartendseg_c(1,jjproc) = iseg
                       end if
                   end if
+                  if (weightppp_c(i,i2,ii3)>0.d0) then
+                      nval_c(jjproc) = nval_c(jjproc) + nint(sqrt(weightppp_c(i,i2,ii3))) !total number of grid points to be handled by process jjproc
+                      weightpp_c(jjproc) = weightpp_c(jjproc) + weightppp_c(i,i2,ii3) !total weight to be handled by process jjproc
+                  end if
               end do
-          end do loop_nseg_c
-    
-          do jproc=0,nproc-2
-              istartend_c(2,jproc)=istartend_c(1,jproc+1)-1
           end do
-          istartend_c(2,nproc-1)=lzd%glr%wfd%nvctr_c
-    
-          if(iproc==nproc-1) then
-              nvalp_c=nint(ttt)
-              weightp_c=tt2
-              iendp_seg_c=lzd%glr%wfd%nseg_c
+
+          ! Communicate the data and assign the processor specific values
+          call mpiallred(istartend_c(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm) !a bit wasteful to communicate the zeros of the second entry...
+          call mpiallred(istartendseg_c(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm) !a bit wasteful to communicate the zeros of the second entry...
+          call mpiallred(nval_c(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(weightpp_c(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+          do jproc=0,nproc-2
+              istartend_c(2,jproc) = istartend_c(1,jproc+1)-1
+              istartendseg_c(2,jproc) = istartendseg_c(1,jproc+1)
+          end do
+          istartend_c(2,nproc-1) = lzd%glr%wfd%nvctr_c
+          istartendseg_c(2,nproc-1) = lzd%glr%wfd%nseg_c
+          istartp_seg_c = istartendseg_c(1,iproc)
+          iendp_seg_c = istartendseg_c(2,iproc)
+          nvalp_c = nval_c(iproc)
+          weightp_c = weightpp_c(iproc)
+          nptsp_c=istartend_c(2,iproc)-istartend_c(1,iproc)+1
+
+          call f_free(weight_per_process_c)
+          call f_free(points_per_process)
+          call f_free(istartendseg_c)
+          call f_free(nval_c)
+          call f_free(weightpp_c)
+          !!write(*,'(a,i7,100i12)') 'new: iproc, istartend_c',iproc, istartend_c 
+          !!write(*,'(a,i7,100i12)') 'new: iproc, istartp_seg_c', iproc, istartp_seg_c
+          !!write(*,'(a,i7,100i12)') 'new: iproc, iendp_seg_c', iproc, iendp_seg_c
+          !!write(*,'(a,i7,100i12)') 'new: iproc, nvalp_c', iproc, nvalp_c
+          !!write(*,'(a,i7,100f12.1)') 'new: iproc, weightp_c', iproc, weightp_c
+          !!write(*,'(a,i7,100i12)') 'new: iproc, nptsp_c', iproc, nptsp_c
+
+          ! Some checks
+          ii_c=istartend_c(2,iproc)-istartend_c(1,iproc)+1
+          write(*,*) 'ii_c',ii_c
+          if (nproc > 1) then
+            call mpiallred(ii_c, 1, mpi_sum, bigdft_mpi%mpi_comm)
           end if
-          !ii=iendp_seg_c-istartp_seg_c+1
-          !call mpiallred(ii, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-          !if (ii/=lzd%glr%wfd%nseg_c) stop 'ii/=lzd%glr%wfd%nseg_c'
+          if(ii_c/=lzd%glr%wfd%nvctr_c) then
+             write(*,*) 'ii_c/=lzd%glr%wfd%nvctr_c',ii_c,lzd%glr%wfd%nvctr_c
+             stop
+          end if
+    
+          if (nproc > 1) then
+             call mpiallred(weightp_c,1,mpi_sum, bigdft_mpi%mpi_comm,recvbuf=tt)
+          else
+              tt=weightp_c
+          end if
+          if(tt/=weight_tot_c) then
+              write(*,*) 'tt, weight_tot_c', tt, weight_tot_c
+              stop 'wrong partition of coarse weights'
+          end if
+
+          if (nproc > 1) then
+             call mpiallred(nptsp_c, 1,mpi_sum, bigdft_mpi%mpi_comm,recvbuf=ii)
+          else
+              ii=nptsp_c
+          end if
+          if(ii/=lzd%glr%wfd%nvctr_c) then
+              write(*,*) 'ii, lzd%glr%wfd%nvctr_c', ii, lzd%glr%wfd%nvctr_c
+              stop 'wrong partition of coarse grid points'
+          end if
+          !@END NEW #############################
+
+
       end if
     
       ! Same for fine region
