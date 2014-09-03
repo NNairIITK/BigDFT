@@ -200,117 +200,7 @@ else
 fi
 
 dnl Enable or not MPI.
-ac_use_mpi="yes"
-AC_ARG_ENABLE(mpi, AS_HELP_STRING([--disable-mpi], [Don't use MPI (enabled by default).]),
-              ac_use_mpi=$enableval, ac_use_mpi="yes")
-if test "$ac_use_mpi" = "yes"; then
-  dnl We set all flags by hand
-  AC_ARG_WITH(mpi-include, AS_HELP_STRING([--with-mpi-include],
-              [specify INCLUDE for MPI in case of non-built-in library. Use the -I before the path(es).]),
-              ac_mpi_include=$withval, ac_mpi_include=$MPI_INCLUDE)
-  AC_ARG_WITH(mpi-ldflags, AS_HELP_STRING([--with-mpi-ldflags],
-              [specify LDFLAGS for MPI in case of non-built-in library. Use the -L before the path(es).]),
-              ac_mpi_ldflags=$withval, ac_mpi_ldflags=$MPI_LDFLAGS)
-  AC_ARG_WITH(mpi-libs, AS_HELP_STRING([--with-mpi-libs],
-              [specify the libraries for MPI in case of non-built-in library. Use the -l before the name(s).]),
-              ac_mpi_libs=$withval, ac_mpi_libs=$MPI_LIBS)
-
-  LIBS_OLD=$LIBS
-  LIBS="$LIBS $ac_mpi_libs"
-  LDFLAGS_OLD=$LDFLAGS
-  LDFLAGS="$LDFLAGS $ac_mpi_ldflags"
-  FCFLAGS_OLD=$FCFLAGS
-  FCFLAGS="$FCFLAGS $ac_mpi_include"
-
-  AC_MSG_CHECKING([for MPI capabilities])
-  AC_LINK_IFELSE([[program main
-  include "mpif.h"
-
-  call MPI_INIT
-end]], withmpi=yes, withmpi=no)
-  AC_MSG_RESULT([$withmpi])
-
-  if test x"$withmpi" = x"yes" ; then
-    dnl The compiler will pass everything needed
-    MPI_LIBS=$ac_mpi_libs
-    MPI_INCLUDE=$ac_mpi_include
-    MPI_LDFLAGS=$ac_mpi_ldflags
-
-    dnl Test for MPI_INIT_THREAD. Use link instead of run due to execution prob.
-    AC_MSG_CHECKING([for MPI_INIT_THREAD availability])
-    AC_LINK_IFELSE([[
-program main
-implicit none
-
-integer :: ierr,provided
-
-include "mpif.h"
-
-call MPI_INIT_THREAD(MPI_THREAD_FUNNELED,provided,ierr)
-write(*, "(I1)", advance = "NO") provided
-
-!test the availability of max active levels
-!$   call OMP_SET_NESTED(.false.) 
-!$   call OMP_SET_MAX_ACTIVE_LEVELS(1)
-
-end
-]], withmpinithread=yes, withmpinithread=no, withmpinithread=yes)
-    AC_MSG_RESULT([$withmpinithread])
-
-    if test x"$withmpinithread" = x"yes" ; then
-      ac_with_mpinithread="yes"
-      AC_DEFINE([HAVE_MPI_INIT_THREAD], [1], [use MPI_INIT_THREAD])
-    else
-      ac_with_mpinithread="no"
-    fi
-
-    dnl Test for MPI2.
-    AC_ARG_WITH(mpi2, AS_HELP_STRING([--with-mpi2],
-                [Use MPI2 capabilities like MPI_IN_PLACE.]),
-                ac_with_mpi2=$withval, ac_with_mpi2="auto")
-    if test x"$ac_with_mpi2" == x"yes" -o x"$ac_with_mpi2" == x"auto" ; then
-      AC_MSG_CHECKING([for MPI 2 capabilities])
-      AC_LINK_IFELSE([[
-program main
-implicit none
-
-integer :: ierr
-real :: rho(3)
-
-include "mpif.h"
-
-call MPI_ALLREDUCE(MPI_IN_PLACE,rho,3,&
-              MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
-end
-]], ac_with_mpi2="yes", ac_with_mpi2="no")
-      AC_MSG_RESULT([$ac_with_mpi2])
-    fi
-
-    if test x"$ac_with_mpi2" = x"yes" ; then
-      AC_DEFINE([HAVE_MPI2], [1], [use MPI2 capabilities.])
-    fi
-
-  else
-    AC_MSG_WARN([MPI is not working and has been disabled.])
-    AC_MSG_WARN([  If you don't want to see this warning,])
-    AC_MSG_WARN([  set --disable-mpi in the configure line.])
-    ac_use_mpi="warn"
-    MPI_LIBS=
-    MPI_INCLUDE='-I$(top_builddir)/src/modules'
-    MPI_LDFLAGS=
-  fi
-
-  LIBS="$LIBS_OLD"
-  LDFLAGS="$LDFLAGS_OLD"
-  FCFLAGS="$FCFLAGS_OLD"
-else
-  dnl We put an include in case of no MPI to have access to mpi fake.
-  MPI_INCLUDE='-I$(top_builddir)/src/modules'
-fi
-AM_CONDITIONAL(USE_MPI, test "$ac_use_mpi" = "yes")
-AC_SUBST(MPI_LIBS)
-AC_SUBST(MPI_INCLUDE)
-AC_SUBST(MPI_LDFLAGS)
+AX_MPI()
 
 dnl Enable ndebug variable (disabled by default)
 ac_use_debug="no"
@@ -369,15 +259,6 @@ if test x"$ac_use_dgemmsy" = "xyes" ; then
 fi
 AC_SUBST(DGEMMSY_CPPFLAGS)
 AM_CONDITIONAL(USE_DGEMMSY, test "$ac_use_dgemmsy" = "yes")
-
-
-dnl build the pseudo generation (build the executables atom and pseudo)
-AC_MSG_CHECKING([for pseudo generation])
-ac_build_bin_pseudo="no"
-AC_ARG_ENABLE(pseudo, AS_HELP_STRING([--enable-pseudo], [Compile the pseudo code (not compiled by default).]),
-                         ac_build_bin_pseudo=$enableval, ac_build_bin_pseudo="no")
-AM_CONDITIONAL(BUILD_BINARIES_PSEUDO, test "$ac_build_bin_pseudo" = "yes")
-AC_MSG_RESULT([$ac_build_bin_pseudo])
 
 
 dnl Use the GPU computing (only NVIDIA cards with CUDA libraries)
@@ -615,169 +496,7 @@ AC_MSG_CHECKING([for BigDFT binaries build])
 AC_MSG_RESULT([$ac_build_bin_cluster])
 
 dnl ---------------------------------------
-
-dnl Substitute Lapack and Blas by another specific library
-withlinalg=no
-AC_ARG_WITH(ext-linalg, AS_HELP_STRING([--with-ext-linalg],
-            [Give the name of the libraries replacing Blas and Lapack (default = none specified). Use the -l before the name(s).]),
-            ac_linalg=$withval, ac_linalg=)
-AC_ARG_WITH(ext-linalg-path, AS_HELP_STRING([--with-ext-linalg-path],
-            [Give the path of the other linear algebra libraries (default = -L/usr/lib). Use the -L before the path(es).]),
-            ac_linalg_dir=$withval, ac_linalg_dir=)
-if test -n "$ac_linalg_dir" ; then
-  LDFLAGS="$LDFLAGS $ac_linalg_dir"
-fi
-if test -n "$ac_linalg" ; then
-#  AC_LANG_CONFTEST([[program main
-#                     call dsysv
-#                     end program main]])
-  AC_MSG_CHECKING([for dsysv in $ac_linalg])
-  LIBS_OLD=$LIBS
-  LIBS="$ac_linalg $LIBS"
-  AC_LINK_IFELSE([[program main
-  call dsysv
-end]], withlinalg=yes, withlinalg=no)
-#  AC_CHECK_LIB($ac_linalg, dsysv, withlinalg=yes, withlinalg=no)
-  if test "$withlinalg" = "yes"; then
-    LINALG_LIBS=$ac_linalg
-  fi
-  AC_MSG_RESULT([$withlinalg])
-  dnl test for scalapack presence in the ext-linalg
-  withscalapack=no
-  if test "$withlinalg" = "yes"; then
-   if test x"$withmpi" = x"yes" ; then
-    AC_MSG_CHECKING([for pdsygvx and blacs_get in $ac_linalg])
-    AC_LINK_IFELSE([[program main
-    call pdsygvx
-    call blacs_get
-end]], withscalapack=yes, withscalapack=warn)
-    AC_MSG_RESULT([$withscalapack])
-   fi
-  fi
-  LIBS=$LIBS_OLD
-fi
-
-if test "$withlinalg" = "no" ; then
-dnl Get the Blas library
-blas=yes
-AC_ARG_WITH(blas, AS_HELP_STRING([--with-blas], [Link with Blas library (default = yes).]), blas=$withval, blas=yes)
-AC_ARG_WITH(blas-path, AS_HELP_STRING([--with-blas-path], [Give the path of the Blas library (default = /usr/lib).]),
-            ac_blas_dir=$withval, ac_blas_dir=)
-if test -n "$ac_blas_dir" ; then
-  LDFLAGS="$LDFLAGS -L$ac_blas_dir"
-fi
-withblas=no
-if test "$blas" = "yes" ; then
-  AC_CHECK_LIB(blas, dcopy, withblas=yes, withblas=no)
-  if test "$withblas" = "yes"; then
-    LINALG_LIBS="-lblas"
-  fi
-fi
-
-dnl Get the lapack library
-lapack=yes
-AC_ARG_WITH(lapack, AS_HELP_STRING([--with-lapack], [Link with Lapack library (default = yes).]), lapack=$withval, lapack=yes)
-AC_ARG_WITH(lapack-path, AS_HELP_STRING([--with-lapack-path], [Give the path of the Lapack library (default = /usr/lib).]),
-            ac_lapack_dir=$withval, ac_lapack_dir=)
-if test -n "$ac_lapack_dir" ; then
-  LDFLAGS="$LDFLAGS -L$ac_lapack_dir"
-fi
-withlapack=no
-if test "$lapack" = "yes" ; then
-  AC_CHECK_LIB(lapack, dsysv, withlapack=yes, withlapack=no,$LINALG_LIBS)
-  if test "$withlapack" = "yes"; then
-    LINALG_LIBS="-llapack $LINALG_LIBS"
-  fi
-fi
-
-dnl Test for Scalapack
-if test x"$withmpi" = x"yes" ; then
-dnl Test for blacs
-ac_blacs=-lblacs
-AC_ARG_WITH(blacs, AS_HELP_STRING([--with-blacs], [Link with blacs library (default = no).]), ac_blacs=$withval, ac_blacs=-lblacs)
-AC_ARG_WITH(blacs-path, AS_HELP_STRING([--with-blacs-path], [Give the path of the Blacs library (default = /usr/lib).]),
-            ac_blacs_dir=$withval, ac_blacs_dir=)
-if test -n "$ac_blacs_dir" ; then
-  LDFLAGS="$LDFLAGS -L$ac_blacs_dir"
-fi
-withblacs=no
-if test "$ac_blacs" != "no" ; then
-  case $ac_blacs in
-    -l*)
-    AC_MSG_CHECKING([for blacs libraries])
-    AC_LANG_CONFTEST([AC_LANG_CALL([], [blacs_get])])
-    LIBS_SVG=$LIBS
-    for ac_lib in $ac_blacs '-lblacs -lblacsF77init' '-lblacs-openmpi' '-lblacs-openmpi -lblacsF77init-openmpi'; do
-      LIBS="$ac_lib $LIBS_SVG"
-      AC_LINK_IFELSE([], [ac_blacs=$ac_lib], [ac_blacs="no"])
-      if test x"$ac_blacs" != x"no" ; then
-        break
-      fi
-    done
-    rm conftest*
-    LIBS=$LIBS_SVG
-    AC_MSG_RESULT([$ac_blacs])
-    if test x"$ac_blacs" != x"no" ; then
-      withblacs=yes
-    else
-      withblacs=warn
-    fi
-    ;;
-    *)
-    AC_CHECK_LIB($ac_blacs, blacs_get, withblacs=yes, withblacs=warn,$LINALG_LIBS)
-    ac_blacs=-l$ac_blacs
-    ;;
-  esac
-  if test "$withblacs" = "yes"; then
-    LINALG_LIBS="$ac_blacs $LINALG_LIBS"
-  fi
-fi
-dnl get the scalapack library
-ac_scalapack=-lscalapack
-AC_ARG_WITH(scalapack, AS_HELP_STRING([--with-scalapack], [Link with scalapack library (default = no).]), ac_scalapack=$withval, ac_scalapack=-lscalapack)
-AC_ARG_WITH(scalapack-path, AS_HELP_STRING([--with-scalapack-path], [Give the path of the Scalapack library (default = /usr/lib).]),
-            ac_scalapack_dir=$withval, ac_scalapack_dir=)
-if test -n "$ac_scalapack_dir" ; then
-  LDFLAGS="$LDFLAGS -L$ac_scalapack_dir"
-fi
-withscalapack=no
-if test "$ac_scalapack" != "no" ; then
-  case $ac_scalapack in
-    -l*)
-    AC_MSG_CHECKING([for scalapack libraries])
-    AC_LANG_CONFTEST([AC_LANG_CALL([], [pdsygvx])])
-    LIBS_SVG=$LIBS
-    for ac_lib in $ac_scalapack '-lscalapack-openmpi'; do
-      LIBS="$ac_lib $LIBS_SVG"
-      AC_LINK_IFELSE([], [ac_scalapack=$ac_lib], [ac_scalapack="no"])
-      if test x"$ac_scalapack" != x"no" ; then
-        break
-      fi
-    done
-    rm conftest*
-    LIBS=$LIBS_SVG
-    AC_MSG_RESULT([$ac_scalapack])
-    if test x"$ac_scalapack" != x"no" ; then
-      withscalapack=yes
-    else
-      withscalapack=warn
-    fi
-    ;;
-    *)
-    AC_CHECK_LIB($ac_scalapack, pdsygvx, withscalapack=yes, withscalapack=warn,$LINALG_LIBS)
-    ac_scalapack=-l$ac_scalapack
-    ;;
-  esac
-  if test "$withscalapack" = "yes"; then
-    LINALG_LIBS="$ac_scalapack $LINALG_LIBS"
-  fi
-fi
-   
-fi #end $withmpi = yes
-
-fi #end $withlinalg = no
-AC_SUBST(LINALG_LIBS, $LINALG_LIBS)
-AM_CONDITIONAL(USE_BLACS, test x"$withscalapack" = x"yes")
+AX_LINALG()
 
 dnl Error on the linking part only if required.
 if test "$ac_build_bin_cluster" = "yes" ; then
@@ -906,82 +625,30 @@ fi
 AC_SUBST(AX_PYYAML_PATH)
 
 dnl Test the libXC library
-AC_ARG_WITH(libxc-libs, AS_HELP_STRING([--with-libxc-libs], [Give the compiler include flags for an external libXC library (default = None).]), ac_libxc_libdir=$withval, ac_libxc_libdir=)
-AC_ARG_WITH(libxc-incs, AS_HELP_STRING([--with-libxc-incs], [Give the linker flags for an external libXC modules (default = None).]), ac_libxc_incdir=$withval, ac_libxc_incdir=)
-
-dnl Run the detection.
-if test -n "$ac_libxc_libdir" -a -n "$ac_libxc_incdir" ; then
-  dnl Test the modules for compilation
-  AC_MSG_CHECKING([for libXC modules])
-  FCFLAGS_SVG=$FCFLAGS
-  FCFLAGS="$FCFLAGS $ac_libxc_incdir"
-  AC_COMPILE_IFELSE([[program main
-  use xc_f90_types_m
-  use libxc_funcs_m
-  use xc_f90_lib_m
-
-  write(*,*) XC_FAMILY_GGA
-end program]], withlibxcmod=yes, withlibxcmod=no)
-  AC_MSG_RESULT($withlibxcmod)
-  FCFLAGS=$FCFLAGS_SVG
-    
-  dnl Test the library of libXC.
-  LIBS_SVG=$LIBS
-  LIBS="$LIBS $ac_libxc_libdir"
-  AC_CHECK_LIB(xc, xc_f90_lda_vxc, ac_use_libxc=yes, ac_use_libxc=no)
-  LIBS=$LIBS_SVG
-  
-  if test "$ac_use_libxc" = "yes" -a "$withlibxcmod" = "yes" ; then
-    LIB_XC_CFLAGS=$ac_libxc_incdir
-    LIB_XC_LIBS=$ac_libxc_libdir
-    ac_use_libxc="yes"
-  else
-    ac_use_libxc="no"
-  fi
-else
-  LIB_XC_CFLAGS="-I/usr/include"
-  PKG_CHECK_MODULES(LIB_XC, libxc >= 2.0, ac_use_libxc="yes", ac_use_libxc="no")
-fi
-
-if test "$ac_use_libxc" = "no" ; then
-  AC_MSG_ERROR([libXC is not available, install libXC and provide paths --with-libxc-libs --with-libxc-incs.])
-fi
-
-AC_SUBST(LIB_XC_CFLAGS)
-AC_SUBST(LIB_XC_LIBS)
+AX_LIBXC()
 
 dnl Test the ABINIT library
-ac_internal_libabinit="yes"
-AC_ARG_ENABLE(internal-libabinit, AS_HELP_STRING([--disable-internal-libabinit], [Do not build and link with internal libABINIT library (default = yes).]), ac_internal_libabinit=$enableval, ac_internal_libabinit=$ac_build_lib_BigDFT)
-AC_ARG_WITH(libabinit-path, AS_HELP_STRING([--with-libabinit-path], [Give the path for an external libABINIT library, lib and module files (default = None).]),
-            ac_libabinit_dir=$withval, ac_libabinit_dir=)
+AC_ARG_WITH(libabinit-path, AS_HELP_STRING([--with-libabinit-path],
+                                           [Give the path for an external libABINIT library, lib and module files (default = /etsf).]),
+            ac_libabinit_dir=$withval, ac_libabinit_dir="/etsf")
 ac_use_libabinit="no"
-ac_build_libabinit=$ac_internal_libabinit
-if test "$ac_internal_libabinit" = "yes" ; then
-  ac_build_libabinit="yes"
+dnl Test the given implementation of libabinit.
+LDFLAGS="$LDFLAGS -L$ac_libabinit_dir/lib"
+AC_CHECK_LIB(abinit, symbrav, withlibabinit=yes, withlibabinit=no)
+AC_CHECK_FILE($ac_libabinit_dir/include/ab6_moldyn.$ax_fc_mod_ext, moldyn="yes", moldyn="no")
+AC_CHECK_FILE($ac_libabinit_dir/include/m_ab6_symmetry.$ax_fc_mod_ext, sym="yes", sym="no")
+dnl AC_CHECK_FILE($ac_libabinit_dir/include/libxc_functionals.$ax_fc_mod_ext, libxc="yes", libxc="no")
+if test "$withlibabinit" = "yes" -a "$moldyn" = "yes" -a "$sym" = "yes"; then
   ac_use_libabinit="yes"
-  ac_libabinit_incs="-I\$(top_builddir)/libABINIT/src"
-  LDFLAGS="$LDFLAGS -L\$(top_builddir)/libABINIT/src"
+  ac_libabinit_incs="-I$ac_libabinit_dir/include"
 else
-  if test -n "$ac_libabinit_dir" ; then
-    LDFLAGS="$LDFLAGS -L$ac_libabinit_dir/lib"
-    
-    dnl Test the given implementation of libabinit.
-    AC_CHECK_LIB(abinit, symbrav, withlibabinit=yes, withlibabinit=no)
-    AC_CHECK_FILE($ac_libabinit_dir/include/ab6_moldyn.$ax_fc_mod_ext, moldyn="yes", moldyn="no")
-    AC_CHECK_FILE($ac_libabinit_dir/include/ab6_symmetry.$ax_fc_mod_ext, sym="yes", sym="no")
-    AC_CHECK_FILE($ac_libabinit_dir/include/libxc_functionals.$ax_fc_mod_ext, libxc="yes", libxc="no")
-    if test "$withlibabinit" = "yes" -a "$moldyn" = "yes" -a "$sym" = "yes" -a "$libxc" = "yes"; then
-      ac_use_libabinit="yes"
-      ac_libabinit_incs="-I$ac_libabinit_dir/include"
-    fi
-  fi
+  AC_MSG_ERROR([Missing libABINIT headers, consider using --with-liabinit-path.])
 fi
-AM_CONDITIONAL(BUILD_LIBABINIT, test x"$ac_build_libabinit" = x"yes")
+
 dnl Test the libPAW library.
 ac_internal_libpaw="yes"
-AC_ARG_WITH(libpaw, AS_HELP_STRING([--with-libpaw],
-                                   [Give the path for an external libPAW library, lib and module files (default = internal).]),
+AC_ARG_WITH(libpaw-path, AS_HELP_STRING([--with-libpaw-path],
+                                        [Give the path for an external libPAW library, lib and module files (default = inside libABINIT).]),
             ac_internal_libpaw=$withval, ac_internal_libpaw="yes")
 if test x"$ac_internal_libpaw" == x"yes" -o x"$ac_internal_libpaw" == x"internal" ; then
    ac_internal_libpaw="yes"
@@ -991,15 +658,13 @@ else
    LDFLAGS="$LDFLAGS -L$ac_internal_libpaw/lib"
    LIBABINIT_LIBS="-lpaw $LIBABINIT_LIBS"
 fi
-AM_CONDITIONAL(BUILD_LIBPAW, test x"$ac_internal_libpaw" = x"yes")
-if test x"$ac_use_libabinit" = x"yes" ; then
-  AC_DEFINE([HAVE_LIBABINIT], [1], [use libABINIT in BigDFT.])
-  AC_SUBST(LIBABINIT_INCLUDE, "$ac_libpaw_incs $ac_libabinit_incs")
-  if test x"$ac_internal_libpaw" == x"yes" ; then
-    LIBABINIT_LIBS="-labinit"
-  else
-    LIBABINIT_LIBS="-lpaw -labinit"
-  fi
+
+AC_DEFINE([HAVE_LIBABINIT], [1], [use libABINIT in BigDFT.])
+AC_SUBST(LIBABINIT_INCLUDE, "$ac_libpaw_incs $ac_libabinit_incs")
+if test x"$ac_internal_libpaw" == x"yes" ; then
+  LIBABINIT_LIBS="-labinit"
+else
+  LIBABINIT_LIBS="-lpaw -labinit"
 fi
 
 dnl Test S_GPU library.
@@ -1082,21 +747,10 @@ AC_SUBST(docdir)
 
 AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
 
-dnl pseudo/Makefile
-dnl pseudo/src/Makefile
-dnl pseudo/tests/Makefile
-dnl pseudo/tests/atoms/Makefile
-dnl pseudo/tests/H-pseudo/Makefile
-dnl pseudo/tests/C-pseudo/Makefile
-dnl pseudo/tests/pawpatchtest/Makefile
-dnl pseudo/tests/tutorials/Makefile
-dnl pseudo/tests/tutorials/oxygen.NLCC/Makefile
-
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 bigdft.pc
-libABINIT/src/Makefile
 flib/Makefile
 flib/src/Makefile
 flib/tests/Makefile
@@ -1170,7 +824,6 @@ Build:
   Library PSolver:           $ac_build_lib_PSolver
   Library BigDFT:            $ac_build_lib_BigDFT
   Main binaries (bigdft,...):$ac_build_bin_cluster
-  atom and pseudo binaries:  $ac_build_bin_pseudo
   Bindings:                  $ac_build_bindings
   User documentation:        $ac_have_pdflatex
   Devel. documentation:      $ac_devel_doc (Doxygen: $ac_have_doxygen)
@@ -1195,11 +848,6 @@ Options:
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc
    | include dir.:           $LIBXC_INCLUDE
-  With libPAW:               $ac_use_libabinit
-   | path (or internal):     $ac_internal_libpaw
-  With libABINIT:            $ac_use_libabinit
-   | internal built:         $ac_build_libabinit
-   | include dir.:           $LIBABINIT_INCLUDE
   With libS_GPU:             $ac_use_libsgpu
    | internal built:         $ac_build_libsgpu
    | include dir.:           $LIBSGPU_INCLUDE

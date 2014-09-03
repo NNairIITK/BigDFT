@@ -113,9 +113,6 @@ modules = module_base.@MODULE_EXT@ \
 	foe_base.@MODULE_EXT@ \
 	internal_coordinates.@MODULE_EXT@ \
 	fermi_level.@MODULE_EXT@
-else
-
-
 endif
 
 AO_INCLUDES = eleconf-inc.f90

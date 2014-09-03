@@ -17,11 +17,6 @@ SUBDIRS += wrappers PSolver
 endif
 
 if BUILD_LIB_BIGDFT
-# All BigDFT dependencies.
-if BUILD_LIBABINIT
-SUBDIRS += libABINIT/src
-endif
-
 # BigDFT itself.
 SUBDIRS += src
 endif
