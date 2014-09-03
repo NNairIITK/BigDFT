@@ -47,12 +47,12 @@ module bigdft_run
      real(gp), dimension(6) :: strten          !< Stress Tensor
   end type DFT_global_output
 
-
   public :: init_global_output,deallocate_global_output,restart_objects_set_mat_acc
   public :: run_objects_free,copy_global_output,restart_objects_set_mode
   public :: run_objects_nullify,restart_objects_set_nat,restart_objects_new
   public :: run_objects_associate,run_objects_free_container,init_restart_objects
   public :: global_output_set_from_dict,free_restart_objects
+  public :: run_objects_init,bigdft_init,bigdft_command_line_options,bigdft_nruns
 
 !!$  ! interfaces of external routines 
 !!$  interface
@@ -224,9 +224,11 @@ module bigdft_run
     !> Initialize the structure DFT_global_output
     subroutine nullify_global_output(outs)
       use module_defs, only: UNINITIALIZED
+      use module_types, only: energy_terms_null
       implicit none
       type(DFT_global_output), intent(out) :: outs
 
+      outs%energs=energy_terms_null()
       outs%fdim      = 0
       nullify(outs%fxyz)
       outs%energy    = UNINITIALIZED(1.0_gp)
@@ -251,15 +253,15 @@ module bigdft_run
 
     subroutine deallocate_global_output(outs, fxyz)
       use module_base
-      use dynamic_memory
       implicit none
       type(DFT_global_output), intent(inout) :: outs
       real(gp), intent(out), optional :: fxyz
 
       if (associated(outs%fxyz)) then
-         if (present(fxyz)) then
-            call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz, 1)
-         end if
+         if (present(fxyz)) &
+              call f_memcpy(src=outs%fxyz(1,1),dest=fxyz,n=3*outs%fdim)
+         !call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz, 1)
+         !end if
          call f_free_ptr(outs%fxyz)
       end if
     END SUBROUTINE deallocate_global_output
@@ -456,37 +458,280 @@ module bigdft_run
       ! Currently do nothing except nullifying everything.
       call run_objects_nullify(runObj)
     END SUBROUTINE run_objects_free_container
+
+    !> Read all input files and create the objects to run BigDFT
+    subroutine run_objects_init(runObj, run_dict)
+      use module_base, only: bigdft_mpi,dict_init
+      use module_types
+      use module_input_dicts, only: user_dict_from_files
+      implicit none
+      type(run_objects), intent(out) :: runObj
+      type(dictionary), pointer :: run_dict
+      !local variables
+      character(len=max_field_length) :: radical, posinp
+
+      radical = run_dict // 'name'
+      posinp = run_dict // 'posinp' 
+
+      call run_objects_nullify(runObj)
+
+      ! Allocate persistent structures.
+      allocate(runObj%rst)
+      call restart_objects_new(runObj%rst)
+
+      ! Generate input dictionary and parse it.
+      call dict_init(runObj%user_inputs)
+      call user_dict_from_files(runObj%user_inputs, radical, posinp, bigdft_mpi)
+      call run_objects_parse(runObj)
+
+      ! Start the signaling loop in a thread if necessary.
+      if (runObj%inputs%signaling .and. bigdft_mpi%iproc == 0) then
+         call bigdft_signals_init(runObj%inputs%gmainloop, 2, &
+              & runObj%inputs%domain, len_trim(runObj%inputs%domain))
+         call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
+      end if
+    END SUBROUTINE run_objects_init
+
+    subroutine bigdft_init(options)
+      use yaml_parse
+      use dictionaries
+      !use yaml_output, only: yaml_map
+      use yaml_strings, only: f_strcpy,yaml_toa
+      use module_defs, only: bigdft_mpi
+      use module_input_dicts, only: merge_input_file_to_dict
+      implicit none
+      !> dictionary of the options of the run
+      !! on entry, it contains the options for initializing
+      !! on exit, it contains in the key "BigDFT", a list of the 
+      !! dictionaries of each of the run that the local instance of BigDFT
+      !! code has to execute.
+      !! if this argument is not present, the code is only initialized
+      !! in its normal mode: no taskgroups and default values of radical and posinp
+      type(dictionary), pointer, optional :: options
+      !local variables
+      logical :: exist_list,posinp_name
+      integer :: ierr,mpi_groupsize,iconfig
+      character(len=max_field_length) :: posinp_id,run_id,err_msg
+      integer, dimension(4) :: mpi_info
+      type(dictionary), pointer :: dict_run,opts
+
+      !coherence checks among the options (no disk access)
+
+      !Initalize the global mpi environment
+      call bigdft_mpi_init(ierr)
+      !if (ierr /= MPI_SUCCESS) then
+      !this part have to be included in mpi_init wrappers
+      !   return
+      !end if
+      nullify(opts)
+      if (present(options)) opts => options
+
+      !taskgroup size
+      mpi_groupsize=0
+      mpi_groupsize=opts .get. 'taskgroup-size'
+
+      !initialize the bigdft_mpi environment
+      call bigdft_init_mpi_env(mpi_info, mpi_groupsize, ierr)
+      !the error check has to be ierr
+
+      !identify the list of the runs which are associated to the 
+      !present processor
+      nullify(dict_run)
+
+      !logical flag telling that the input position name is still "posinp.*"
+      !regardless of the fact that the input file is "input.*"
+      posinp_name=.false.
+      if ('name' .in. opts) then
+         !check if the names are given as a list or as a scalar
+         if (dict_len(opts) > 0) then
+            call dict_copy(dict_run,opts//'name')
+         else
+            run_id = opts//'name'
+         end if
+      else
+         call f_strcpy(src='input',dest=run_id)
+         posinp_name=.true.
+      end if
+      !this is not possible if name option exists
+      if ('runs-file' .in. opts) then
+         posinp_name=.false.
+         posinp_id = opts//'runs-file'
+         !verify if file exists and if it is yaml compliant
+         call f_file_exists(posinp_id,exist_list)
+         if (exist_list) then
+            call dict_init(dict_run)
+            call f_err_open_try()
+            call merge_input_file_to_dict(dict_run,posinp_id,bigdft_mpi)
+            !verify if yaml_parsing found errors
+            if (f_err_check()) ierr = f_get_last_error(err_msg)
+            call f_err_close_try()
+            !sanity check of the parsed file
+            if (ierr /= 0) then
+               call f_err_throw('Parsing error for runs-file "'//&
+                    trim(posinp_id)//&
+                    '", with message '//trim(err_msg),&
+                    err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+            end if
+            !check if the file is given by a list
+            if (dict_len(dict_run) <= 0) then
+               call f_err_throw('The runs-file "'//&
+                    trim(posinp_id)//'" is not a list in yaml syntax',& 
+                    err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+            end if
+         else
+            call f_err_throw('The runs-file specified ('//trim(posinp_id)//&
+                 ') does not exists',err_name='BIGDFT_INPUT_FILE_ERROR')
+         end if
+         !here the run of the dicts has to be evaluated according to the taskgroups    
+      else if (.not. associated(dict_run)) then
+         call dict_init(dict_run)
+         if (bigdft_mpi%ngroup == 1) then
+            call add(dict_run,trim(run_id))
+         else
+            do iconfig=1,bigdft_mpi%ngroup
+               call add(dict_run,trim(run_id)//&
+                    trim(adjustl(yaml_toa(iconfig,fmt='(i3)'))))
+            end do
+         end if
+      end if
+
+      !call yaml_map('Dict of runs',dict_run)
+
+      if (present(options)) then
+         if (.not. associated(options)) call dict_init(options)
+         !here the dict_run is given, and in each of the taskgroups a list of 
+         !runs for BigDFT instances has to be given
+         do iconfig=0,dict_len(dict_run)-1
+            if (modulo(iconfig,bigdft_mpi%ngroup)==bigdft_mpi%igroup) then
+               run_id=dict_run//iconfig
+               if (posinp_name) then
+                  if (dict_len(dict_run) == 1) then
+                     call f_strcpy(src='posinp',dest=posinp_id)
+                  else
+                     call f_strcpy(src='posinp'//&
+                          trim(adjustl(yaml_toa(iconfig,fmt='(i3)'))),&
+                          dest=posinp_id)
+                  end if
+               else
+                  posinp_id=run_id
+               end if
+               call add(options//'BigDFT',&
+                    dict_new('name' .is. run_id,'posinp' .is. posinp_id))
+            end if
+         end do
+      end if
+      call dict_free(dict_run)
+
+    end subroutine bigdft_init
+
+    !>identify the options from command line
+    !! and write the result in options dict
+    subroutine bigdft_command_line_options(options)
+      use yaml_parse
+      use dictionaries
+      implicit none
+      !> dictionary of the options of the run
+      !! on entry, it contains the options for initializing
+      !! on exit, it contains in the key "BigDFT", a list of the 
+      !! dictionaries of each of the run that the local instance of BigDFT
+      !! code has to execute
+      type(dictionary), pointer :: options
+      !local variables
+      type(yaml_cl_parse) :: parser !< command line parser
+
+      !define command-line options
+      parser=yaml_cl_parse_null()
+      !between these lines, for another executable using BigDFT as a blackbox,
+      !other command line options can be specified
+      !then the bigdft options can be specified
+      call bigdft_options(parser)
+      !parse command line, and retrieve arguments
+      call yaml_cl_parse_cmd_line(parser,args=options)
+      !free command line parser information
+      call yaml_cl_parse_free(parser)
+
+    end subroutine bigdft_command_line_options
+
+    subroutine bigdft_options(parser)
+      use yaml_parse
+      use dictionaries, only: dict_new,operator(.is.)
+      implicit none
+      type(yaml_cl_parse), intent(inout) :: parser
+
+      call yaml_cl_parse_option(parser,'name','None',&
+           'name of the run','n',&
+           dict_new('Usage' .is. &
+           'Name of the run. When <name> is given, input files like <name>.* are used. '//&
+           'The file "default.yaml" set the default values. If name is given as a list in yaml format, '//&
+           'this is interpreted as a list of runs as if a runs-file has been given.',&
+           'Allowed values' .is. &
+           'String value.'),first_option=.true.)
+
+      call yaml_cl_parse_option(parser,'outdir','.',&
+           'output directory','d',&
+           dict_new('Usage' .is. &
+           'Set the directory where all the output files have to be written.',&
+           'Allowed values' .is. &
+           'String value, indicating the path of the directory. If the last subdirectory is not existing, it will be created'))
+
+      call yaml_cl_parse_option(parser,'logfile','No',&
+           'create logfile','l',&
+           dict_new('Usage' .is. &
+           'When "Yes", write the result of the run in file "log.yaml" or "log-<name>.yaml" if the run has a specified name.',&
+           'Allowed values' .is. &
+           'Boolean (yaml syntax). Automatically set to true when using runs-file or output directory different from "."'))
+
+      call yaml_cl_parse_option(parser,'runs-file','None',&
+           'list_posinp filename','r',&
+           dict_new('Usage' .is. &
+           'File containing the list of the run ids which have to be launched independently (list in yaml format). '//&
+           'The option runs-file is not compatible with the --name option.',&
+           'Allowed values' .is. &
+           'String value. Should be associated to a existing filename'),&
+           conflicts='[name]')
+
+      call yaml_cl_parse_option(parser,'taskgroup-size','None',&
+           'mpi_groupsize (number of MPI runs for a single instance of BigDFT)','t',&
+           dict_new('Usage' .is. &
+           'Indicates the number of mpi tasks associated to a single instance of BigDFT run',&
+           'Allowed values' .is. &
+           'Integer value. Disabled if not a divisor of the total No. of MPI tasks.'))
+
+
+    end subroutine bigdft_options
+
+    !> retrieve the number of runs for a given set of options
+    !! gives 0 if the option dictionary is invalid 
+    function bigdft_nruns(options)
+      implicit none
+      type(dictionary), pointer :: options !< filled options dictionary. bigdft_init has to be called
+      integer :: bigdft_nruns
+      type(dictionary), pointer :: runs
+      runs = options .get. 'BigDFT'
+      bigdft_nruns=dict_len(runs)
+      if (bigdft_nruns < 0) bigdft_nruns=0
+    end function bigdft_nruns
+
   
 end module bigdft_run
 
-!> Read all input files and create the objects to run BigDFT
-subroutine run_objects_init_from_files(runObj, radical, posinp)
-  use module_base, only: bigdft_mpi,dict_init
-  use module_types
+!external wrapper temporary to make the code compiling with wrappers
+subroutine run_objects_init_from_run_name(runObj, radical, posinp)
+  use module_base
   use bigdft_run
-  use module_input_dicts, only: user_dict_from_files
   implicit none
   type(run_objects), intent(out) :: runObj
   character(len = *), intent(in) :: radical, posinp
+  !local variables
+  type(dictionary), pointer :: run_dict
 
-  call run_objects_nullify(runObj)
+  !create the ad-hoc dictionary run to wrap the module routine
+  run_dict => dict_new('name' .is. radical, 'posinp' .is. posinp)
+  
+  call run_objects_init(runObj,run_dict)
 
-  ! Allocate persistent structures.
-  allocate(runObj%rst)
-  call restart_objects_new(runObj%rst)
-
-  ! Generate input dictionary and parse it.
-  call dict_init(runObj%user_inputs)
-  call user_dict_from_files(runObj%user_inputs, radical, posinp, bigdft_mpi)
-  call run_objects_parse(runObj)
-
-  ! Start the signaling loop in a thread if necessary.
-  if (runObj%inputs%signaling .and. bigdft_mpi%iproc == 0) then
-     call bigdft_signals_init(runObj%inputs%gmainloop, 2, &
-          & runObj%inputs%domain, len_trim(runObj%inputs%domain))
-     call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
-  end if
-END SUBROUTINE run_objects_init_from_files
+  call dict_free(run_dict)
+END SUBROUTINE run_objects_init_from_run_name
 
 
 !> Routine to use BigDFT as a blackbox
@@ -516,12 +761,14 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   call f_routine(id=subname)
 
   !Check the consistency between MPI processes of the atomic coordinates
-  maxdiff=mpimaxdiff(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm)
+  maxdiff=mpimaxdiff(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,bcast=.true.)
 
   if (maxdiff > epsilon(1.0_gp)) then
      if (iproc==0) call yaml_warning('Input positions not identical! '//&
           '(difference:'//trim(yaml_toa(maxdiff))//' ), broadcasting from master node')
-     call mpibcast(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm)
+     !the check=.true. is important here: it controls that each process
+     !will participate in the broadcasting
+     call mpibcast(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,check=.true.)
   end if
 
   !fill the rxyz array with the positions

@@ -13,6 +13,7 @@ program wvl
 
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use BigDFT_API
+  use bigdft_run
   use dynamic_memory
   use yaml_output
   use module_input_dicts
@@ -50,20 +51,19 @@ program wvl
   integer, dimension(:,:,:), allocatable :: irrzon
   real(dp), dimension(:,:,:), allocatable :: phnons
   type(coulomb_operator) :: pkernel
-  type(dictionary), pointer :: user_inputs
+  type(dictionary), pointer :: user_inputs,options
   !temporary variables
-  integer, dimension(4) :: mpi_info
+  !integer, dimension(4) :: mpi_info
   character(len=60) :: run_id
 
   call f_lib_initialize()
-   !-finds the number of taskgroup size
-   !-initializes the mpi_environment for each group
-   !-decides the radical name for each run
-   call bigdft_init(mpi_info,nconfig,run_id,ierr)
-
-   !just for backward compatibility
-   iproc=mpi_info(1)
-   nproc=mpi_info(2)
+  nullify(options)
+  !-initializes the mpi_environment for each group
+  call bigdft_init(options)
+  call dict_free(options)
+!just for backward compatibility
+  iproc=bigdft_mpi%iproc
+  nproc=bigdft_mpi%nproc
    call dict_init(user_inputs)
    call user_dict_from_files(user_inputs, 'input', 'posinp', bigdft_mpi)
    call inputs_from_dict(inputs, atoms, user_inputs)

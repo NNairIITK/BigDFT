@@ -35,7 +35,8 @@ program MINHOP
   real(kind=8),allocatable, dimension(:,:) :: fp_arr
   real(kind=8),allocatable, dimension(:) :: fp,wfp,fphop
   real(kind=8),allocatable, dimension(:,:,:) :: pl_arr
-  integer :: iproc,nproc,iat,ierr,infocode,nksevals,i,igroup,ngroups,natoms
+  !integer :: iproc,nproc,
+  integer :: iat,ierr,infocode,nksevals,i,igroup,ngroups,natoms
   integer :: bigdft_get_number_of_atoms,bigdft_get_number_of_orbitals
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
@@ -46,30 +47,39 @@ program MINHOP
   character(len=50) :: comment
 !  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   integer :: nconfig
-  integer, dimension(4) :: mpi_info
+  !integer, dimension(4) :: mpi_info
   type(run_objects) :: runObj
   type(DFT_global_output) :: outs
-  type(dictionary), pointer :: user_inputs
+  type(dictionary), pointer :: user_inputs,options
 integer:: nposacc=0
 logical:: disable_hatrans
 
   call f_lib_initialize()
-  call bigdft_init(mpi_info,nconfig,run_id,ierr)
 
-  if (nconfig < 0) stop 'runs-file not supported for MH executable'
+  call bigdft_command_line_options(options)
+  call bigdft_init(options)
+
+  if (bigdft_nruns(options) > 1) call f_err_throw('runs-file not supported for frequencies executable')
   
-   iproc=mpi_info(1)
-   nproc=mpi_info(2)
-   igroup=mpi_info(3)
-   !number of groups
-   ngroups=mpi_info(4)
+  !temporary
+  run_id = options // 0 // 'name'
+  call dict_free(options)
+  !  call bigdft_init(mpi_info,nconfig,run_id,ierr)
+!!$
+!!$  if (nconfig < 0) stop 'runs-file not supported for MH executable'
+!!$  
+!!$   iproc=mpi_info(1)
+!!$   nproc=mpi_info(2)
+!!$   igroup=mpi_info(3)
+!!$   !number of groups
+!!$   ngroups=mpi_info(4)
    
    !actual value of iproc
-   iproc=iproc+igroup*ngroups
+   iproc=bigdft_mpi%iproc+bigdft_mpi%igroup*bigdft_mpi%ngroup
    
 
   !open(unit=67,file='global.out')
-   if (iproc+igroup==0) call print_logo_MH()
+   if (iproc==0) call print_logo_MH()
 
   !if (iproc == 0) write(*,'(a,2(1x,1pe10.3))') '(MH) predicted fraction accepted, rejected', & 
   !     ratio/(1.d0+ratio), 1.d0/(1.d0+ratio)

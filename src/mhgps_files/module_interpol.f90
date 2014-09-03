@@ -1,4 +1,167 @@
 !> @file
+!> minor module for wrapping the lst_penalty routine
+!! intended as a temporary patch to conceptual problem in using transforce
+!! routine
+module lst_penalty_wrapper
+  use module_defs, only: gp
+
+  !usage of pointers, just for fun
+  real(gp), pointer, private :: lambda_ptr=>null()
+  real(gp), dimension(:,:), pointer, private :: rxyzR_ptr=>null(),rxyzP_ptr=>null()
+ 
+contains
+
+  subroutine init_lst_wrapper(nat,rxyzR,rxyzP,lambda)
+    implicit none
+    integer, intent(in) :: nat
+    real(gp), intent(in), target :: rxyzR(3,nat) !reactant
+    real(gp), intent(in), target :: rxyzP(3,nat) !product
+    real(gp), intent(in), target :: lambda !interpolation parameter
+
+    rxyzR_ptr => rxyzR
+    rxyzP_ptr => rxyzP
+    lambda_ptr=> lambda
+
+  end subroutine init_lst_wrapper
+
+  subroutine valforce(nat,rat,fat,epot)
+     !wrapper function for lst_penalty
+    use module_base
+    implicit none
+    !parameters
+    integer, intent(in) :: nat
+    real(gp), intent(in) :: rat(3,nat)
+    real(gp), intent(out) :: fat(3,nat)
+    real(gp), intent(out) :: epot
+    !local variables
+    call lst_penalty(nat,rxyzR_ptr,rxyzP_ptr,rat,lambda_ptr,epot,fat)
+  end subroutine valforce
+
+  !=====================================================================
+  subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
+    !computes the linear synchronous penalty function
+    !and gradient
+    !
+    !see:
+    !
+    !Halgren, T. A., & Lipscomb, W. N. (1977). The synchronous-transit
+    !method for determining reaction pathways and locating molecular
+    !transition states. Chemical Physics Letters, 49(2), 225–232.
+    !doi:10.1016/0009-2614(77)80574-5
+    !
+    !and
+    !
+    !Behn, A., Zimmerman, P. M., Bell, A. T., & Head-Gordon, M. (2011).
+    !Incorporating Linear Synchronous Transit Interpolation into
+    !the Growing String Method: Algorithm and Applications.
+    !Journal of Chemical Theory and Computation, 7(12), 4019–4025.
+    !doi:10.1021/ct200654u
+    !
+    !and
+    !
+    !BS: For computation of gradient see also personal notes in intel
+    !notebook (paper version) from June 18th, 2014
+    !
+    use module_base
+    implicit none
+    !parameters
+    integer, intent(in)  :: nat
+    real(gp), intent(in) :: rxyzR(3,nat) !reactant
+    real(gp), intent(in) :: rxyzP(3,nat) !product
+    real(gp), intent(in) :: rxyz(3,nat)  !the positon at which
+    !the penalty fct. is to
+    !be evaluated
+    real(gp), intent(in)  :: lambda !interpolation parameter
+    !(0<=lambda<=1)
+    real(gp), intent(out) :: val  !the value of the penalty function
+    real(gp), intent(out) :: force(3,nat) !the negative gradient of
+    !the penal. fct. at
+    !rxyz
+    !internal
+    integer :: b !outer loop
+    integer :: a !inner loop
+    real(gp) :: rabi !interpolated interatomic distances
+    real(gp) :: rabim4 !rim4=ri**(-4)
+    real(gp) :: rabC !computed interatomic distances
+    real(gp) :: rabR !interatomic dist. of reactant
+    real(gp) :: rabP !interatomic dist. of product
+    real(gp) :: oml
+    real(gp) :: rxRb, ryRb, rzRb
+    real(gp) :: rxPb, ryPb, rzPb
+    real(gp) :: rxb, ryb, rzb
+    real(gp) :: rxd, ryd, rzd
+    real(gp) :: rabiMrabC
+    real(gp) :: tt, ttx, tty, ttz
+    real(gp) :: waxi, wayi, wazi 
+
+    oml=1.0_gp-lambda!one minus lambda
+    val=0.0_gp!function value
+    force=0.0_gp!negative gradient
+    !first sum
+    do b = 1, nat-1
+       rxRb = rxyzR(1,b)
+       ryRb = rxyzR(2,b)
+       rzRb = rxyzR(3,b)
+       rxPb = rxyzP(1,b)
+       ryPb = rxyzP(2,b)
+       rzPb = rxyzP(3,b)
+       rxb = rxyz(1,b)
+       ryb = rxyz(2,b)
+       rzb = rxyz(3,b)
+       do a = b+1, nat
+          !compute interatomic distances of reactant
+          rabR = (rxyzR(1,a)-rxRb)**2+&
+               (rxyzR(2,a)-ryRb)**2+&
+               (rxyzR(3,a)-rzRb)**2
+          rabR = sqrt(rabR)
+          !compute interatomic distances of product
+          rabP = (rxyzP(1,a)-rxPb)**2+&
+               (rxyzP(2,a)-ryPb)**2+&
+               (rxyzP(3,a)-rzPb)**2
+          rabP = sqrt(rabP)
+          !compute interpolated interatomic distances
+          rabi = oml*rabR+lambda*rabP
+          rabim4 = 1.0_gp / (rabi**4)
+          !compute interatomic distances at rxyz
+          rxd = rxyz(1,a)-rxb
+          ryd = rxyz(2,a)-ryb
+          rzd = rxyz(3,a)-rzb
+          rabC = rxd**2+ryd**2+rzd**2
+          rabC = sqrt(rabC)
+          !compute function value
+          rabiMrabC = rabi - rabC
+          val = val + rabiMrabC**2 * rabim4 
+          !compute negative gradient
+          rabiMrabC = -2.0_gp*rabiMrabC * rabim4 / rabC
+          ttx = rabiMrabC * rxd
+          tty = rabiMrabC * ryd
+          ttz = rabiMrabC * rzd
+          force(1,b) = force(1,b) + ttx
+          force(2,b) = force(2,b) + tty
+          force(3,b) = force(3,b) + ttz
+          force(1,a) = force(1,a) - ttx
+          force(2,a) = force(2,a) - tty
+          force(3,a) = force(3,a) - ttz
+       enddo
+    enddo
+
+    !second sum
+    do a = 1, nat
+       waxi = oml*rxyzR(1,a) + lambda*rxyzP(1,a)
+       wayi = oml*rxyzR(2,a) + lambda*rxyzP(2,a)
+       wazi = oml*rxyzR(3,a) + lambda*rxyzP(3,a)
+       ttx = waxi-rxyz(1,a)
+       tty = wayi-rxyz(2,a)
+       ttz = wazi-rxyz(3,a)
+       tt   =  ttx**2 + tty**2 + ttz**2
+       val = val + 1.e-6_gp * tt
+       force(1,a) = force(1,a) + 2.e-6_gp * ttx
+       force(2,a) = force(2,a) + 2.e-6_gp * tty
+       force(3,a) = force(3,a) + 2.e-6_gp * ttz
+    enddo
+  end subroutine lst_penalty
+
+end module lst_penalty_wrapper
 !! module forinterpolation between structures
 !! techniques implemented:
 !! linear synchronous transit:
@@ -26,6 +189,7 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
 !lambda
     use module_base
     use module_global_variables, only: fmax_tol => lst_fmax_tol
+    use lst_penalty_wrapper
     implicit none
     !parameters
     integer, intent(in) :: nat
@@ -34,7 +198,7 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
     real(gp), intent(in) :: lambda       !interpol. parameter
     real(gp), intent(out) :: rxyz(3,nat)  !the positon on the
                                           !linear synchr. transit
-                                          !path that cooresponds
+                                          !path that corresponds
                                           !to lambda
     !internal
     real(gp) :: oml
@@ -87,6 +251,7 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
 !close(99)
 !endif
 !<-DEBUG END-------------------------------------------------------->
+    call init_lst_wrapper(nat,rxyzR,rxyzP,lambda)
     call fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
 !<-DEBUG START------------------------------------------------------>
 !if(mod(ic,10)==0)then
@@ -104,142 +269,25 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
 !endif
 !<-DEBUG END-------------------------------------------------------->
 
-contains
-    subroutine valforce(nat,rat,fat,epot)
-    !wrapper function for lst_penalty
-    use module_base
-    implicit none
-    !parameters
-    integer, intent(in) :: nat
-    real(gp), intent(in) :: rat(3,nat)
-    real(gp), intent(out) :: fat(3,nat)
-    real(gp), intent(out) :: epot
-    call lst_penalty(nat,rxyzR,rxyzP,rat,lambda,epot,fat)
-    end subroutine
-end subroutine
-!=====================================================================
-subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
-!computes the linear synchronous penalty function
-!and gradient
-!
-!see:
-!
-!Halgren, T. A., & Lipscomb, W. N. (1977). The synchronous-transit
-!method for determining reaction pathways and locating molecular
-!transition states. Chemical Physics Letters, 49(2), 225–232.
-!doi:10.1016/0009-2614(77)80574-5
-!
-!and
-!
-!Behn, A., Zimmerman, P. M., Bell, A. T., & Head-Gordon, M. (2011).
-!Incorporating Linear Synchronous Transit Interpolation into
-!the Growing String Method: Algorithm and Applications.
-!Journal of Chemical Theory and Computation, 7(12), 4019–4025.
-!doi:10.1021/ct200654u
-!
-!and
-!
-!BS: For computation of gradient see also personal notes in intel
-!notebook (paper version) from June 18th, 2014
-!
-    use module_base
-    implicit none
-    !parameters
-    integer, intent(in)  :: nat
-    real(gp), intent(in) :: rxyzR(3,nat) !reactant
-    real(gp), intent(in) :: rxyzP(3,nat) !product
-    real(gp), intent(in) :: rxyz(3,nat)  !the positon at which
-                                         !the penalty fct. is to
-                                         !be evaluated
-    real(gp), intent(in)  :: lambda !interpolation parameter
-                                    !(0<=lambda<=1)
-    real(gp), intent(out) :: val  !the value of the penalty function
-    real(gp), intent(out) :: force(3,nat) !the negative gradient of
-                                          !the penal. fct. at
-                                          !rxyz
-    !internal
-    integer :: b !outer loop
-    integer :: a !inner loop
-    real(gp) :: rabi !interpolated interatomic distances
-    real(gp) :: rabim4 !rim4=ri**(-4)
-    real(gp) :: rabC !computed interatomic distances
-    real(gp) :: rabR !interatomic dist. of reactant
-    real(gp) :: rabP !interatomic dist. of product
-    real(gp) :: oml
-    real(gp) :: rxRb, ryRb, rzRb
-    real(gp) :: rxPb, ryPb, rzPb
-    real(gp) :: rxb, ryb, rzb
-    real(gp) :: rxd, ryd, rzd
-    real(gp) :: rabiMrabC
-    real(gp) :: tt, ttx, tty, ttz
-    real(gp) :: waxi, wayi, wazi 
+!!$contains
+!!$
+!!$  !Fortran specifications forbids to pass internal routines as arguments
+!!$  !otherwise, better to leave it included in module but require interface in fire
+!!$  subroutine valforce(nat,rat,fat,epot)
+!!$    !wrapper function for lst_penalty
+!!$    use module_base
+!!$    implicit none
+!!$    !parameters
+!!$    integer, intent(in) :: nat
+!!$    real(gp), intent(in) :: rat(3,nat)
+!!$    real(gp), intent(out) :: fat(3,nat)
+!!$    real(gp), intent(out) :: epot
+!!$    !local variables
+!!$    call lst_penalty(nat,rxyzR,rxyzP,rat,lambda,epot,fat)
+!!$  end subroutine valforce
+  end subroutine lstpthpnt
 
-    oml=1.0_gp-lambda!one minus lambda
-    val=0.0_gp!function value
-    force=0.0_gp!negative gradient
-    !first sum
-    do b = 1, nat-1
-        rxRb = rxyzR(1,b)
-        ryRb = rxyzR(2,b)
-        rzRb = rxyzR(3,b)
-        rxPb = rxyzP(1,b)
-        ryPb = rxyzP(2,b)
-        rzPb = rxyzP(3,b)
-        rxb = rxyz(1,b)
-        ryb = rxyz(2,b)
-        rzb = rxyz(3,b)
-        do a = b+1, nat
-            !compute interatomic distances of reactant
-            rabR = (rxyzR(1,a)-rxRb)**2+&
-                   (rxyzR(2,a)-ryRb)**2+&
-                   (rxyzR(3,a)-rzRb)**2
-            rabR = sqrt(rabR)
-            !compute interatomic distances of product
-            rabP = (rxyzP(1,a)-rxPb)**2+&
-                   (rxyzP(2,a)-ryPb)**2+&
-                   (rxyzP(3,a)-rzPb)**2
-            rabP = sqrt(rabP)
-            !compute interpolated interatomic distances
-            rabi = oml*rabR+lambda*rabP
-            rabim4 = 1.0_gp / (rabi**4)
-            !compute interatomic distances at rxyz
-            rxd = rxyz(1,a)-rxb
-            ryd = rxyz(2,a)-ryb
-            rzd = rxyz(3,a)-rzb
-            rabC = rxd**2+ryd**2+rzd**2
-            rabC = sqrt(rabC)
-            !compute function value
-            rabiMrabC = rabi - rabC
-            val = val + rabiMrabC**2 * rabim4 
-            !compute negative gradient
-            rabiMrabC = -2.0_gp*rabiMrabC * rabim4 / rabC
-            ttx = rabiMrabC * rxd
-            tty = rabiMrabC * ryd
-            ttz = rabiMrabC * rzd
-            force(1,b) = force(1,b) + ttx
-            force(2,b) = force(2,b) + tty
-            force(3,b) = force(3,b) + ttz
-            force(1,a) = force(1,a) - ttx
-            force(2,a) = force(2,a) - tty
-            force(3,a) = force(3,a) - ttz
-        enddo
-    enddo
 
-    !second sum
-    do a = 1, nat
-        waxi = oml*rxyzR(1,a) + lambda*rxyzP(1,a)
-        wayi = oml*rxyzR(2,a) + lambda*rxyzP(2,a)
-        wazi = oml*rxyzR(3,a) + lambda*rxyzP(3,a)
-        ttx = waxi-rxyz(1,a)
-        tty = wayi-rxyz(2,a)
-        ttz = wazi-rxyz(3,a)
-        tt   =  ttx**2 + tty**2 + ttz**2
-        val = val + 1.e-6_gp * tt
-        force(1,a) = force(1,a) + 2.e-6_gp * ttx
-        force(2,a) = force(2,a) + 2.e-6_gp * tty
-        force(3,a) = force(3,a) + 2.e-6_gp * ttz
-    enddo
-end subroutine
 !=====================================================================
 subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
     use module_base
@@ -252,7 +300,18 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
     real(gp), intent(inout) :: rxyz(3,nat),fxyz(3,nat)
     real(gp)  :: epot,fmax
     logical :: success
-    external :: valforce
+    !external :: valforce
+    interface
+       subroutine valforce(nat,rat,fat,epot)
+         use module_defs, only: gp
+         implicit none
+         !parameters
+         integer, intent(in) :: nat
+         real(gp), intent(in) :: rat(3,nat)
+         real(gp), intent(out) :: fat(3,nat)
+         real(gp), intent(out) :: epot
+       end subroutine valforce
+    end interface
     !internal
     integer :: maxit
     real(gp) :: count_fr,fnrm
@@ -286,7 +345,7 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
     call valforce(nat,rxyz,ff,epot)
     count_fr=count_fr+1.0_gp
     do iter=1,maxit
-        1000 continue
+!!!! 1000   continue !!!to be avoided 
         call daxpy(3*nat,dt,vxyz(1,1),1,rxyz(1,1),1)
         call daxpy(3*nat,0.5_gp*dt*dt,ff(1,1),1,rxyz(1,1),1)
 !!<-DEBUG START------------------------------------------------------>
@@ -399,4 +458,6 @@ subroutine fnrmandforcemax(ff,fnrm,fmax,nat)
   fnrm=ddot(3*nat,ff(1,1),1,ff(1,1),1)
 end subroutine fnrmandforcemax
 !=====================================================================
-end module
+
+end module module_interpol
+

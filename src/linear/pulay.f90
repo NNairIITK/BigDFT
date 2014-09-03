@@ -479,7 +479,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   type(matrices) :: ham_
 
   call f_routine(id='pulay_correction')
-
+  energs=energy_terms_null()
+  
   ! Begin by updating the Hpsi
   call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
 

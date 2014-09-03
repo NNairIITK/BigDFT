@@ -326,7 +326,7 @@ BigDFT_Run* bigdft_run_new_from_files(const gchar *radical, const gchar *posinp)
   run = bigdft_run_new();
 
   /* Call the creation routine of Fortran. */
-  FC_FUNC_(run_objects_init_from_files, RUN_OBJECTS_SET_FROM_FILES)
+  FC_FUNC_(run_objects_init_from_run_name, RUN_OBJECTS_INIT_FROM_RUN_NAME)
     (F_TYPE(run->data), radical, posinp, strlen(radical), strlen(posinp));
 
   _attributes_from_fortran(run);

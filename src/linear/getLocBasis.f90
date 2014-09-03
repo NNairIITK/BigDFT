@@ -430,6 +430,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
   call f_routine(id='getLocalizedBasis')
 
+  energs = energy_terms_null()
   delta_energy_arr=f_malloc(nit_basis+6,id='delta_energy_arr')
   kernel_best=f_malloc(tmb%linmat%l%nvctr,id='kernel_best')
   energy_diff=.false.

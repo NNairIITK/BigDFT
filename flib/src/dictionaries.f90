@@ -1600,12 +1600,12 @@ contains
    end subroutine dict_update
 
 
-   subroutine dict_copy(dict, ref)
+   subroutine dict_copy(dest, src)
      implicit none
-     type(dictionary), pointer :: dict, ref
+     type(dictionary), pointer :: src, dest
 
-     if (.not. associated(dict)) call dict_init(dict)
-     call copy(dict, ref)
+     if (.not. associated(dest)) call dict_init(dest)
+     call copy(dest, src)
 
      contains
        recursive subroutine copy(dict, ref)

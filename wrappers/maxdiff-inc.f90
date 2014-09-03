@@ -6,6 +6,8 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+  bcst=.false.
+  if (present(bcast)) bcst=bcast
   if (present(comm)) then
      mpi_comm=comm
   else
@@ -34,5 +36,10 @@
         end do
      end do
   end if
-
+  
   call f_free(array_glob)
+
+  !in case of broadcasting the difference should be known by everyone
+  if (bcst) then
+     call mpibcast(maxdiff,1,root=iroot,comm=mpi_comm)
+  end if
