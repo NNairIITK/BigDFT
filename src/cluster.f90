@@ -103,8 +103,8 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
       if (runObj%rst%version == LINEAR_VERSION) then
           runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_LINEAR
           !switch off fragment calculation after this point
-          runObj%inputs%lin%fragment_calculation=.false.
-          runObj%inputs%frag%nfrag=1
+          !runObj%inputs%lin%fragment_calculation=.false.
+          !runObj%inputs%frag%nfrag=1
           do iorb=1,runObj%rst%tmb%orbs%norb
               if (runObj%inputs%lin%locrad_lowaccuracy(iorb) /=  runObj%inputs%lin%locrad_highaccuracy(iorb))then
                   stop 'ERROR: at the moment the radii for low and high accuracy must be the same &
@@ -138,7 +138,9 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
      inquire(file='input.finite_difference_forces',exist=exists)
      if (exists) then
         runObj%inputs%last_run=1 !do the last_run things nonetheless
-        runObj%inputs%inputPsiId = INPUT_PSI_LCAO !the first run always restart from IG
+        if (runObj%inputs%inputPsiId/=INPUT_PSI_LINEAR_AO.and.runObj%inputs%inputPsiId/=INPUT_PSI_DISK_LINEAR) then
+           runObj%inputs%inputPsiId = INPUT_PSI_LCAO !the first run always restart from IG
+        end if
         !experimental_modulebase_var_onlyfion=.true. !put only ionic forces in the forces
      end if
 
@@ -831,19 +833,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      end if
 
      ! deallocate fragments
-     if (inputpsi == INPUT_PSI_DISK_LINEAR) then
-        if (in%lin%fragment_calculation) then ! we really need to deallocate
-           do ifrag=1,in%frag%nfrag_ref
-              call fragment_free(ref_frags(ifrag))
-           end do
-        else ! we haven't actually allocated anything, so can just nullify - should make this more robust/general
-           do ifrag=1,in%frag%nfrag_ref
-              ref_frags(ifrag)%astruct_frg%nat=-1
-              ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
-              call fragment_free(ref_frags(ifrag))
-              !ref_frags(ifrag)=fragment_null()
-           end do
-        end if
+      if (in%lin%fragment_calculation) then ! we really need to deallocate
+         do ifrag=1,in%frag%nfrag_ref
+            call fragment_free(ref_frags(ifrag))
+         end do
+        deallocate(ref_frags)
+      else if (inputpsi == INPUT_PSI_DISK_LINEAR) then! we haven't actually allocated anything, so can just nullify - should make this more robust/general
+         do ifrag=1,in%frag%nfrag_ref
+            ref_frags(ifrag)%astruct_frg%nat=-1
+            ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
+            call fragment_free(ref_frags(ifrag))
+            !ref_frags(ifrag)=fragment_null()
+         end do
         deallocate(ref_frags)
      end if
 

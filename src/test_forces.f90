@@ -157,8 +157,8 @@ program test_forces
             if(runObj%rst%version == LINEAR_VERSION) then
                runObj%inputs%inputPsiId=101
                !switch off fragment calculation after this point
-               runObj%inputs%lin%fragment_calculation=.false.
-               runObj%inputs%frag%nfrag=1
+               !runObj%inputs%lin%fragment_calculation=.false.
+               !runObj%inputs%frag%nfrag=1
             end if
          end if
 

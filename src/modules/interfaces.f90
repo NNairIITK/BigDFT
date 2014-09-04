@@ -3107,10 +3107,11 @@ module module_interfaces
         end subroutine copy_old_supportfunctions
 
         subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, input, &
-                   rxyz_old, rxyz, denspot0, energs, nlpsp, GPU, ref_frags)
+                   rxyz_old, rxyz, denspot0, energs, nlpsp, GPU, ref_frags, cdft)
           use module_base
           use module_types
           use module_fragments
+          use constrained_dft
           implicit none
           integer,intent(in) :: iproc, nproc
           type(atoms_data), intent(inout) :: at
@@ -3124,6 +3125,7 @@ module module_interfaces
           type(DFT_PSP_projectors), intent(inout) :: nlpsp
           type(GPU_pointers), intent(inout) :: GPU
           type(system_fragment), dimension(:), intent(in) :: ref_frags
+          type(cdft_data), intent(inout) :: cdft
         end subroutine input_memory_linear
 
         subroutine copy_old_coefficients(norb_tmb, coeff, coeff_old)

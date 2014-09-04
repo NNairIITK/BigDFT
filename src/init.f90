@@ -686,7 +686,7 @@ END SUBROUTINE input_wf_memory
 
 
 subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, input, &
-           rxyz_old, rxyz, denspot0, energs, nlpsp, GPU, ref_frags)
+           rxyz_old, rxyz, denspot0, energs, nlpsp, GPU, ref_frags, cdft)
 
   use module_base
   use module_types
@@ -695,6 +695,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use yaml_output
   use communications_base, only: deallocate_comms_linear
   use communications, only: transpose_localized, untranspose_localized
+  use constrained_dft
   use sparsematrix_base, only: sparsematrix_malloc, DENSE_PARALLEL, assignment(=), &
                                deallocate_sparse_matrix, deallocate_matrices
   use sparsematrix, only: compress_matrix_distributed, uncompress_matrix_distributed
@@ -713,6 +714,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   type(GPU_pointers), intent(inout) :: GPU
   type(system_fragment), dimension(:), intent(in) :: ref_frags
+  type(cdft_data), intent(inout) :: cdft
 
   ! Local variables
   integer :: ndim_old, ndim, iorb, iiorb, ilr, ilr_old, iiat, methTransformOverlap, infoCoeff
@@ -736,6 +738,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   logical :: finished
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
   reaL(gp) :: fnrm
+  real(gp), dimension(:), pointer :: in_frag_charge
 
 
   call f_routine(id='input_memory_linear')
@@ -937,6 +940,51 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
    end if
 
 
+     call nullify_cdft_data(cdft)
+     nullify(in_frag_charge)
+     if (input%lin%constrained_dft) then
+        call cdft_data_init(cdft,input%frag,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,&
+             input%lin%calc_transfer_integrals)
+        if (input%lin%calc_transfer_integrals) then
+           in_frag_charge=f_malloc_ptr(input%frag%nfrag,id='in_frag_charge')
+           call vcopy(input%frag%nfrag,input%frag%charge(1),1,in_frag_charge(1),1)
+           ! assume all other fragments neutral, use total system charge to get correct charge for the other fragment
+           in_frag_charge(cdft%ifrag_charged(2))=input%ncharge - in_frag_charge(cdft%ifrag_charged(1))
+           ! want the difference in number of electrons here, rather than explicitly the charge
+           ! actually need this to be more general - perhaps change constraint to be charge rather than number of electrons
+           cdft%charge=ref_frags(input%frag%frag_index(cdft%ifrag_charged(1)))%nelec-in_frag_charge(cdft%ifrag_charged(1))&
+                -(ref_frags(input%frag%frag_index(cdft%ifrag_charged(2)))%nelec-in_frag_charge(cdft%ifrag_charged(2)))
+           !DEBUG
+           if (iproc==0) then
+              print*,'???????????????????????????????????????????????????????'
+              print*,'ifrag_charged1&2,in_frag_charge1&2,ncharge,cdft%charge',cdft%ifrag_charged(1:2),&
+              in_frag_charge(cdft%ifrag_charged(1)),in_frag_charge(cdft%ifrag_charged(2)),input%ncharge,cdft%charge
+              print*,'??',ref_frags(input%frag%frag_index(cdft%ifrag_charged(1)))%nelec,in_frag_charge(cdft%ifrag_charged(1)),&
+                              ref_frags(input%frag%frag_index(cdft%ifrag_charged(2)))%nelec,in_frag_charge(cdft%ifrag_charged(2))
+              print*,'???????????????????????????????????????????????????????'
+           end if
+           !END DEBUG
+        else
+           in_frag_charge=>input%frag%charge
+        end if
+     else
+        in_frag_charge=>input%frag%charge
+     end if
+
+     ! we have to copy the coeffs from the fragment structure to the tmb structure and reconstruct each 'mini' kernel
+     ! this is overkill as we are recalculating the kernel anyway - fix at some point
+     ! or just put into fragment structure to save recalculating for CDFT
+     !PROB JUST KEEP PREVIOUS COEFFS?
+     if (input%lin%fragment_calculation) then
+     !   call fragment_coeffs_to_kernel(iproc,input,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated,&
+     !        nstates_max,input%lin%constrained_dft)
+        if (input%lin%calc_transfer_integrals.and.input%lin%constrained_dft) then
+           call f_free_ptr(in_frag_charge)
+        else
+           nullify(in_frag_charge)
+        end if
+     end if
+
           ! Update the kernel
   if (input%lin%scf_mode/=LINEAR_FOE) then
       !tmb%can_use_transposed=.false.
@@ -1022,6 +1070,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   !!end if
 
           ! Must initialize rhopotold (FOR NOW... use the trivial one)
+  !ALSO assuming we won't combine FOE and CDFT for now...
   if (input%lin%scf_mode/=LINEAR_FOE .or. input%FOE_restart==RESTART_REFORMAT) then
       call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
            tmb%orbs, tmb%psi, tmb%collcom_sr)
@@ -1035,6 +1084,31 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
          !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
          !!call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
      end if
+
+     ! CDFT: calculate w(r) and w_ab, define some initial guess for V and initialize other cdft_data stuff
+     call timing(iproc,'constraineddft','ON')
+     if (input%lin%constrained_dft) then
+        call cdft_data_allocate(cdft,tmb%linmat%m)
+        if (trim(cdft%method)=='fragment_density') then ! fragment density approach
+           if (input%lin%calc_transfer_integrals) stop 'Must use Lowdin for CDFT transfer integral calculations for now'
+           if (input%lin%diag_start) stop 'Diag at start probably not working for fragment_density'
+           cdft%weight_function=f_malloc_ptr(cdft%ndim_dens,id='cdft%weight_function')
+           call calculate_weight_function(input,ref_frags,cdft,&
+                KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,denspot%rhov,tmb,at,rxyz,denspot)
+           call calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,denspot)
+           call f_free_ptr(cdft%weight_function)
+        else if (trim(cdft%method)=='lowdin') then ! direct weight matrix approach
+           call calculate_weight_matrix_lowdin_wrapper(cdft,tmb,input,ref_frags,.false.,input%lin%order_taylor)
+           ! debug
+           !call plot_density(iproc,nproc,'initial_density.cube', &
+           !     at,rxyz,denspot%dpbox,1,denspot%rhov)
+           ! debug
+        else 
+           stop 'Error invalid method for calculating CDFT weight matrix'
+        end if
+     end if
+
+     call timing(iproc,'constraineddft','OF')
 
       call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
            denspot%rhov(1), 1, denspot0(1), 1)
@@ -2007,7 +2081,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call yaml_mapping_open("Input Hamiltonian")
      end if
       call input_memory_linear(iproc, nproc, atoms, KSwfn, tmb, tmb_old, denspot, in, &
-           rxyz_old, rxyz, denspot0, energs, nlpsp, GPU, ref_frags)
+           rxyz_old, rxyz, denspot0, energs, nlpsp, GPU, ref_frags, cdft)
 
   case(INPUT_PSI_DISK_WVL)
      if (iproc == 0) then

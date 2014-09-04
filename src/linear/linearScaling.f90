@@ -67,7 +67,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(kind=8),dimension(:),allocatable :: locrad
   integer:: target_function, nit_basis
   
-  real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB, best_charge_diff
+  real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB, best_charge_diff, cdft_charge_thresh
   real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
   integer :: jorb, cdft_it, nelec, iat, ityp, norder_taylor
   integer :: dmin_diag_it, dmin_diag_freq, ioffset
@@ -191,6 +191,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      valpha=0.5_gp
      !best_charge_diff=vgrad_old
      coeff_tmp=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='coeff_tmp')
+     cdft_charge_thresh=1.e-2
      call timing(iproc,'constraineddft','OF')
   end if
 
@@ -458,7 +459,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
            if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) ldiis_coeff%alpha_coeff=input%lin%alphaSD_coeff !reset to default value
 
-           if (input%inputPsiId==101 .and. info_basis_functions<=-2 .and. itout==1) then
+           ! I think this is causing a memory leak somehow in certain cases (possibly only with fragment calculations?)
+           if (input%inputPsiId==101 .and. info_basis_functions<=-2 .and. itout==1 .and. (.not.input%lin%fragment_calculation)) then
                ! There seem to be some convergence problems after a restart. Better to quit
                ! and start with a new AO input guess.
                if (iproc==0) write(*,'(1x,a)') 'There are convergence problems after the restart. &
@@ -657,6 +659,20 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  !!call clean_rho(iproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
              end if
 
+             if (input%lin%constrained_dft) then
+                !call timing(iproc,'constraineddft','ON')
+                ! CDFT: see how satisfaction of constraint varies as kernel is updated
+                ! CDFT: calculate Tr[Kw]-Nc
+                weight_matrix_ = matrices_null()
+                call allocate_matrices(tmb%linmat%m, allocate_full=.false., matname='weight_matrix_', mat=weight_matrix_)
+                weight_matrix_%matrix_compr=cdft%weight_matrix_%matrix_compr
+                call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
+                     tmb%linmat%kernel_,weight_matrix_,&
+                     ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+                !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+                call deallocate_matrices(weight_matrix_)
+                !call timing(iproc,'constraineddft','OF')
+             end if
 
              ! Mix the density.
              if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
@@ -685,8 +701,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    end if
 
                    pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
-                   !only want to copy across when CDFT loop has also converged, but still do above as won't know if CDFT converged until later
-                   if (.not. input%lin%constrained_dft) then
+                   !only want to copy across when CDFT loop has also converged
+                   if (.not. input%lin%constrained_dft .or. (ebs-cdft%charge < cdft_charge_thresh)) then
                       call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
                         denspot%rhov(1), 1, rhopotOld_out(1), 1)
                    end if
@@ -723,7 +739,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                      denspot%rhov,it_scc+1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                      at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                      pnrm,denspot%dpbox%nscatterarr)
-                if (pnrm<convCritMix .or. it_scc==nit_scc .and. (.not. input%lin%constrained_dft)) then
+                if (pnrm<convCritMix .or. it_scc==nit_scc) then
                    ! calculate difference in density for convergence criterion of outer loop
                    pnrm_out=0.d0
                    ! for the potential no buffers are present
@@ -738,8 +754,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    end if
 
                    pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
-                   call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
-                        denspot%rhov(1), 1, rhopotOld_out(1), 1) 
+                   !only want to copy across when CDFT loop has also converged
+                   if (.not. input%lin%constrained_dft .or. (ebs-cdft%charge < cdft_charge_thresh)) then
+                      call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
+                           denspot%rhov(1), 1, rhopotOld_out(1), 1) 
+                   end if
                 end if
              end if
 
@@ -747,21 +766,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              ! change is below the tolerance already in the very first iteration
              if(it_scc==1 .and. pnrm<convCritMix .and.  info_basis_functions>0) then
                 fix_support_functions=.true.
-             end if
-
-             if (input%lin%constrained_dft) then
-                !call timing(iproc,'constraineddft','ON')
-                ! CDFT: see how satisfaction of constraint varies as kernel is updated
-                ! CDFT: calculate Tr[Kw]-Nc
-                weight_matrix_ = matrices_null()
-                call allocate_matrices(tmb%linmat%m, allocate_full=.false., matname='weight_matrix_', mat=weight_matrix_)
-                weight_matrix_%matrix_compr=cdft%weight_matrix_%matrix_compr
-                call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
-                     tmb%linmat%kernel_,weight_matrix_,&
-                     ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
-                !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
-                call deallocate_matrices(weight_matrix_)
-                !call timing(iproc,'constraineddft','OF')
              end if
 
              ! Write some informations.
@@ -840,16 +844,20 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
             if (iproc==0) then
                call yaml_sequence_open('CDFT',flow=.true.)
                call yaml_map('itc',cdft_it)
-               call yaml_map('N',cdft%charge,fmt='(es14.4)')
+               call yaml_map('N',cdft%charge,fmt='(es12.2)')
                call yaml_map('Tr(KW)',ebs,fmt='(es14.4)')
                !call yaml_map('Tr(KW)-N',vgrad)
-               call yaml_map('Vc',cdft%lag_mult,fmt='(es14.4)')
+               call yaml_map('Vc',cdft%lag_mult,fmt='(es12.2)')
                call yaml_map('energy',energy,fmt='(es14.4)')
                call yaml_sequence_close()
             end if
 
             ! CDFT: exit when W is converged wrt both V and rho
-            if (abs(vgrad) < 1.0e-2) exit
+            if (abs(vgrad) < cdft_charge_thresh) then
+               !call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
+               !     denspot%rhov(1), 1, rhopotOld_out(1), 1) 
+               exit
+            end if
             !reset to best previous coeffs, not necessarily original coeffs
             !if (abs(vgrad) < best_charge_diff) call vcopy(tmb%orbs%norb**2,tmb%coeff(1,1),1,coeff_tmp(1,1),1)
             !best_charge_diff=min(best_charge_diff,abs(vgrad))
@@ -858,6 +866,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
             !! CHECK HERE WHETHER n3d is correct!!
             ! reset rhopotold (to zero) to ensure we don't exit immediately if V only changes a little
             !call to_zero(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p,1)*input%nspin, rhopotOld(1)) 
+
+            ! assuming density mixing/no mixing not potential mixing
             call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
                  rhopotOld_out(1), 1, rhopotOld(1), 1) 
 

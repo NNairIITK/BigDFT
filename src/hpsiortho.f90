@@ -714,6 +714,10 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   integer :: iproj,ispsi,istart_c,ilr,ilr_skip,mproj,iatype,ispinor
   real(wp) :: hp,eproj
   real(wp), dimension(:), allocatable :: scpr
+  !integer :: ierr
+  !real(kind=4) :: tr0, tr1, t0, t1
+  !real(kind=8) :: time0, time1, time2, time3, time4, time5, ttime
+  !real(kind=8), dimension(0:4) :: times
 
   newmethod=.true.
 
@@ -723,15 +727,23 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
      return
   end if
 
+  !FOR VESTA
+  !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
+
   ! apply all PSP projectors for all orbitals belonging to iproc
   call timing(iproc,'ApplyProj     ','ON')
 
+  !time1=0.0d0
+  !time2=0.0d0
+  !time3=0.0d0
+  !time4=0.0d0
+  !times=0.0d0
+  !call cpu_time(t0)
 
   call f_routine(id=subname)
 
   !array of the scalar products
   scpr=f_malloc(orbs%norbp*orbs%nspinor,id='scpr')
-
 
 
   nwarnings=0
@@ -782,9 +794,12 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
               if(nl%pspd(iat)%tolr(ilr)%strategy == PSP_APPLY_SKIP) cycle
               !check if the atom projector intersect with the given localisation region
               !this part can be moved at the place of the analysis between psp and lrs
+              !call cpu_time(tr0)
+
               call check_overlap(Lzd%Llr(ilr), nl%pspd(iat)%plr, Lzd%Glr, overlap)
               if(.not. overlap) cycle
-
+              !call cpu_time(tr1)
+              !time1=time1+real(tr1-tr0,kind=8)
               ! Now create the projector
               istart_c=1
               if(any(at%npspcode == PSPCODE_PAW)) then
@@ -799,7 +814,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
                       Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),rxyz(1,iat),at,orbs,&
                       nl%pspd(iat)%plr,nl%proj,nwarnings)
               end if
-
+              !call cpu_time(tr0)
+              !time2=time2+real(tr0-tr1,kind=8)
               !apply the projector to all the orbitals belonging to the processor
               !this part can be factorized somewhere else
               if (mproj ==1 .and. all(orbs%kpts(:,ikpt) == 0.0_gp) .and. &
@@ -810,6 +826,10 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
                  
                  call apply_oneproj_operator(nl%pspd(iat)%plr%wfd,nl%proj(istart_c),hp,&
                       (ieorb-isorb+1)*nspinor,Lzd%Llr(ilr)%wfd,psi(ispsi),hpsi(ispsi),scpr)
+
+              !call cpu_time(tr1)
+              !time3=time3+real(tr1-tr0,kind=8)
+
                  istart_c=istart_c+nl%pspd(iat)%plr%wfd%nvctr_c+7*nl%pspd(iat)%plr%wfd%nvctr_f
 !                 call f_malloc_dump_status()
                  ispsi=ispsi+&
@@ -840,7 +860,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
                  end do
               end if
            end do
-
+           !call cpu_time(tr0)
+           !time4=time4+real(tr0-tr1,kind=8)
            !for the moment, localization region method is not tested with
            !once-and-for-all calculation
         else if (Lzd%nlr == 1) then
@@ -915,6 +936,11 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
 
   call f_free(scpr)
   call f_release_routine()
+  !call cpu_time(t1)
+  !time0=real(t1-t0,kind=8)
+
+  !print*,'iproc,times,sum,ttime',iproc,time1,time2,time3,time4,time1+time2+time3+time4,time0
+  !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
 
   call timing(iproc,'ApplyProj     ','OF')
 contains

@@ -231,7 +231,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
 
   ! fragment initializations - if not a fragment calculation, set to appropriate dummy values
-  if (inputpsi == INPUT_PSI_DISK_LINEAR) then
+  if (inputpsi == INPUT_PSI_DISK_LINEAR .or. in%lin%fragment_calculation) then
      allocate(ref_frags(in%frag%nfrag_ref))
      do ifrag=1,in%frag%nfrag_ref
         ref_frags(ifrag)=fragment_null()
