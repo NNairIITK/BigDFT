@@ -1071,7 +1071,7 @@ module communications_init
            do i=i0,i1
                iitot=jj+i-i0
                if(iitot>=istartend_c(1,iproc) .and. iitot<=istartend_c(2,iproc)) then
-                   write(1100+iproc,'(a,4i8,f10.1)') 'iproc, i, i2, i3, workrecv_c_c(i,i2,i3+1)', iproc, i, i2, i3, workrecv_c(i,i2,i3+1)
+                   !write(1100+iproc,'(a,4i8,f10.1)') 'iproc, i, i2, i3, workrecv_c_c(i,i2,i3+1)', iproc, i, i2, i3, workrecv_c(i,i2,i3+1)
                    icheck_c = icheck_c + 1
                    iipt=jj-istartend_c(1,iproc)+i-i0+1
                    npgp_c = nint(sqrt(workrecv_c(i,i2,i3+1)))
@@ -1616,7 +1616,8 @@ module communications_init
 
 
     subroutine get_gridpoint_start(iproc, nproc, lzd, ndimind_c, nrecvcounts_c, ndimind_f, nrecvcounts_f, &
-               indexrecvbuf_c, indexrecvbuf_f, i3min_c, i3max_c, weight_c, i3min_f, i3max_f, weight_f, gridpoint_start_c, gridpoint_start_f)
+               indexrecvbuf_c, indexrecvbuf_f, &
+               i3min_c, i3max_c, weight_c, i3min_f, i3max_f, weight_f, gridpoint_start_c, gridpoint_start_f)
       use module_base
       use module_types
       implicit none
