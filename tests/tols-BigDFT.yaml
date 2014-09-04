@@ -1056,11 +1056,11 @@ O2spin_foe:
  EH: 1.9e-8
  EXC: 2.6e-9
  Ekin: 4.8e-9
- Epot: 4.8e-9
+ Epot: 5.9e-9
  EvXC: 3.4e-9
  Enl: 2.6e-9
- Tr(K): 4.1e-9
- charge diff: 4.8e-9
+ Tr(K): 1.4e-8
+ charge diff: 1.3e-8
  eF: 1.1-10
  guess for new ef: 2.6e-9
  ebs: 4.8e-9
