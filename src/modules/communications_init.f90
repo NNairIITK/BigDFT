@@ -124,6 +124,7 @@ module communications_init
       call get_switch_indices(iproc, nproc, orbs, lzd, nspin, &
            collcom%nptsp_c, collcom%nptsp_f, collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f, &
            collcom%ndimpsi_c, collcom%ndimpsi_f, istartend_c, istartend_f, &
+           istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
            collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%ndimind_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
            collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%ndimind_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f, &
            index_in_global_c, index_in_global_f, &
@@ -376,7 +377,6 @@ module communications_init
           if (nproc>1) then
               call mpiallred(weight_per_process_c(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
           end if
-          if (iproc==0) write(*,'(a,2f16.2)') 'sum(weight_per_process_c), weight_tot_c', sum(weight_per_process_c), weight_tot_c
           if (sum(weight_per_process_c)/=weight_tot_c) then
               write(*,'(a,2f16.2)') 'sum(weight_per_process_c), weight_tot_c', sum(weight_per_process_c), weight_tot_c
               stop 'sum(weight_per_process_c)/=weight_tot_c'
@@ -388,7 +388,6 @@ module communications_init
               weight_prev = sum(weight_per_process_c(0:iproc-1)) !total weight of process up to iproc-1
               jjproc = nproc-1
               do jproc=0,nproc-1
-                  write(*,'(a,2f16.2)') 'weight_prev, weights_c_startend(1,jproc)', weight_prev, weights_c_startend(1,jproc)
                   !if (weight_prev<weights_c_startend(1,jproc)) then
                   if (weights_c_startend(1,jproc)<=weight_prev .and. weight_prev<weights_c_startend(2,jproc)) then
                       ! This process starts the assignment with process jjproc
@@ -1200,6 +1199,7 @@ module communications_init
     subroutine get_switch_indices(iproc, nproc, orbs, lzd, nspin, &
                nptsp_c, nptsp_f, norb_per_gridpoint_c, norb_per_gridpoint_f, &
                ndimpsi_c, ndimpsi_f, istartend_c, istartend_f, &
+               istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
                nsendcounts_c, nsenddspls_c, ndimind_c, nrecvcounts_c, nrecvdspls_c, &
                nsendcounts_f, nsenddspls_f, ndimind_f, nrecvcounts_f, nrecvdspls_f, &
                index_in_global_c, index_in_global_f, &
@@ -1211,6 +1211,7 @@ module communications_init
       
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, nspin, nptsp_c, nptsp_f, ndimpsi_c, ndimpsi_f, ndimind_c,ndimind_f
+      integer,intent(in) :: istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
       type(orbitals_data),intent(in) :: orbs
       type(local_zone_descriptors),intent(in) :: lzd
       integer,dimension(nptsp_c),intent(in):: norb_per_gridpoint_c
@@ -1227,7 +1228,7 @@ module communications_init
       
       ! Local variables
       integer :: i, iorb, iiorb, i1, i2, i3, ind, jproc, jproctarget, ii, ierr, iseg, iitot, ilr, n1p1, np
-      !integer :: jj
+      integer :: i3min_c, i3max_c, i3min_f, i3max_f
       integer :: istart, iend, indglob, ii1, ii2, ii3, j1, i0, j0, ipt
       integer,dimension(:),allocatable :: nsend_c,nsend_f, indexsendorbital2, indexrecvorbital2
       integer,dimension(:),allocatable :: gridpoint_start_c, gridpoint_start_f, gridpoint_start_tmp_c, gridpoint_start_tmp_f
@@ -1245,16 +1246,29 @@ module communications_init
       indexsendorbital_f = f_malloc(ndimpsi_f,id='indexsendorbital_f')
       indexsendbuf_f = f_malloc(ndimpsi_f,id='indexsendbuf_f')
       indexrecvbuf_f = f_malloc(sum(nrecvcounts_f),id='indexrecvbuf_f')
-      weight_c = f_malloc((/ 0.to.lzd%glr%d%n1, 0.to.lzd%glr%d%n2, 0.to.lzd%glr%d%n3 /),id='weight_c')
-      weight_f = f_malloc((/ 0.to.lzd%glr%d%n1, 0.to.lzd%glr%d%n2, 0.to.lzd%glr%d%n3 /),id='weight_f')
-      gridpoint_start_c = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_c')
-      gridpoint_start_f = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_f')
+      !weight_c = f_malloc((/ 0.to.lzd%glr%d%n1, 0.to.lzd%glr%d%n2, 0.to.lzd%glr%d%n3 /),id='weight_c')
+      !weight_f = f_malloc((/ 0.to.lzd%glr%d%n1, 0.to.lzd%glr%d%n2, 0.to.lzd%glr%d%n3 /),id='weight_f')
+      !!gridpoint_start_c = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_c')
+      !!gridpoint_start_f = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_f')
+      gridpoint_start_c = f_malloc(istartend_c(1,iproc).to.istartend_c(2,iproc),id='gridpoint_start_c')
+      gridpoint_start_f = f_malloc(istartend_f(1,iproc).to.istartend_f(2,iproc),id='gridpoint_start_f')
       if (nspin==2) then
           gridpoint_start_tmp_c = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_tmp_c')
           gridpoint_start_tmp_f = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_tmp_f')
       end if
       gridpoint_start_c=-1
       gridpoint_start_f=-1
+
+      !!n1p1=lzd%glr%d%n1+1
+      !!np=n1p1*(lzd%glr%d%n2+1)
+      !!i3min_c = (lzd%glr%wfd%keygloc(1,istartp_seg_c)-1)/np 
+      !!i3max_c = (lzd%glr%wfd%keygloc(2,iendp_seg_c)-1)/np
+      !!weight_c = f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,i3min_c.to.i3max_c/),id='weight_c')
+      !!i3min_f = (lzd%glr%wfd%keygloc(1,istartp_seg_f)-1)/np
+      !!i3max_f = (lzd%glr%wfd%keygloc(2,iendp_seg_f)-1)/np
+      !!weight_f = f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,i3min_f.to.i3max_f/),id='weight_f')
+
+      !!write(*,'(a,i7,4i9)') 'iproc, i3min_c, i3max_c, i3min_f, i3max_f', iproc, i3min_c, i3max_c, i3min_f, i3max_f
     
     !write(*,*) 'ndimpsi_f, sum(nrecvcounts_f)', ndimpsi_f, sum(nrecvcounts_f)
     
@@ -1432,9 +1446,9 @@ module communications_init
        end if
     
         
-      !call get_gridpoint_start(iproc, nproc, norb, glr, llr, nrecvcounts, indexrecvbuf, weight, gridpoint_start)
-      call get_gridpoint_start(iproc, nproc, lzd, sum(nrecvcounts_c), nrecvcounts_c, sum(nrecvcounts_f), &
-                nrecvcounts_f, indexrecvbuf_c, indexrecvbuf_f, weight_c, weight_f, gridpoint_start_c, gridpoint_start_f)
+      !!!call get_gridpoint_start(iproc, nproc, norb, glr, llr, nrecvcounts, indexrecvbuf, weight, gridpoint_start)
+      !!call get_gridpoint_start(iproc, nproc, lzd, sum(nrecvcounts_c), nrecvcounts_c, sum(nrecvcounts_f), &
+      !!          nrecvcounts_f, indexrecvbuf_c, indexrecvbuf_f, i3min_c, i3max_c, weight_c, i3min_f, i3max_f, weight_f, gridpoint_start_c, gridpoint_start_f)
 
       !! NEW ############################
       ii=1
@@ -1557,8 +1571,8 @@ module communications_init
       call f_free(indexsendorbital_f)
       call f_free(indexsendbuf_f)
       call f_free(indexrecvbuf_f)
-      call f_free(weight_c)
-      call f_free(weight_f)
+      !!call f_free(weight_c)
+      !!call f_free(weight_f)
       call f_free(gridpoint_start_c)
       call f_free(gridpoint_start_f)
       if (nspin==2) then
@@ -1623,18 +1637,19 @@ module communications_init
 
 
     subroutine get_gridpoint_start(iproc, nproc, lzd, ndimind_c, nrecvcounts_c, ndimind_f, nrecvcounts_f, &
-               indexrecvbuf_c, indexrecvbuf_f, weight_c, weight_f, gridpoint_start_c, gridpoint_start_f)
+               indexrecvbuf_c, indexrecvbuf_f, i3min_c, i3max_c, weight_c, i3min_f, i3max_f, weight_f, gridpoint_start_c, gridpoint_start_f)
       use module_base
       use module_types
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc,ndimind_c,ndimind_f
+      integer,intent(in) :: iproc, nproc,ndimind_c,ndimind_f,i3min_c,i3max_c,i3min_f,i3max_f
       type(local_zone_descriptors),intent(in) :: lzd
       integer,dimension(0:nproc-1),intent(in) :: nrecvcounts_c, nrecvcounts_f
       integer,dimension(ndimind_c),intent(in) :: indexrecvbuf_c
       integer,dimension(ndimind_f),intent(in) :: indexrecvbuf_f
-      real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(out) :: weight_c, weight_f
+      real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,i3min_c:i3max_c),intent(out) :: weight_c
+      real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,i3min_f:i3max_f),intent(out) :: weight_f
       integer,dimension((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1)),intent(out) :: gridpoint_start_c, gridpoint_start_f
       
       ! Local variables
@@ -1642,17 +1657,17 @@ module communications_init
     
     
       !weight_c=0.d0
-      call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1), weight_c(0,0,0))
-      call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1), weight_f(0,0,0))
+      call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(i3max_c-i3min_c+1), weight_c(0,0,i3min_c))
+      call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(i3max_f-i3min_f+1), weight_f(0,0,i3min_f))
     
       n1p1=lzd%glr%d%n1+1
       np=n1p1*(lzd%glr%d%n2+1)
 
-      !$omp parallel default(private) shared(lzd,nrecvcounts_c,indexrecvbuf_c,weight_c,gridpoint_start_c) &
-      !$omp shared(nrecvcounts_f,indexrecvbuf_f,weight_f,gridpoint_start_f,np,n1p1)
+      !!$omp parallel default(private) shared(lzd,nrecvcounts_c,indexrecvbuf_c,weight_c,gridpoint_start_c) &
+      !!$omp shared(nrecvcounts_f,indexrecvbuf_f,weight_f,gridpoint_start_f,np,n1p1)
     
-      !$omp sections
-      !$omp section
+      !!$omp sections
+      !!$omp section
       do i=1,sum(nrecvcounts_c)
           ii=indexrecvbuf_c(i)
           !write(650+iproc,*) i, ii
@@ -1683,10 +1698,11 @@ module communications_init
           end do
       end do
     
-      !$omp section
+      !!$omp section
      
       do i=1,sum(nrecvcounts_f)
           ii=indexrecvbuf_f(i)
+          write(*,*) 'i, ii', i, ii
           jj=ii-1
           i3=jj/np
           jj=jj-i3*np
@@ -1713,8 +1729,8 @@ module communications_init
           end do
       end do
     
-      !$omp end sections
-      !$omp end parallel
+      !!$omp end sections
+      !!$omp end parallel
     
     end subroutine get_gridpoint_start
 
