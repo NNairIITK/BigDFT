@@ -211,6 +211,7 @@ module communications_init
       i3end=-1000000000
       do iorb=1,orbs%norbp
           iiorb = orbs%isorb+iorb
+          if (orbs%spinsgn(iiorb)<0.d0) cycle !consider only up orbitals
           ilr = orbs%inwhichlocreg(iiorb)
           i3start = min(i3start,lzd%llr(ilr)%ns3)
           i3end = max(i3end,lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3)
@@ -331,7 +332,9 @@ module communications_init
 
 
       ! fine part
-      call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(i3end-i3start+1), weightloc(0,0,1))
+      if (i3end-i3start>=0) then
+          call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(i3end-i3start+1), weightloc(0,0,1))
+      end if
       !call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p,weightppp_f(0,0,1))
       i3e=i3s+n3p-1
       do iorb=1,orbs%norbp
@@ -410,6 +413,7 @@ module communications_init
       if (nproc>1) then
           call mpiallred(weight_f_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
       end if
+      write(*,*) 'iproc, weight_f_tot', iproc, weight_f_tot
       !@ENDNEW ##################################
 
 
@@ -790,7 +794,7 @@ module communications_init
           !!write(*,'(a,i7,100i12)') 'new: iproc, istartend_f',iproc, istartend_f 
           !!write(*,'(a,i7,100i12)') 'new: iproc, istartp_seg_f', iproc, istartp_seg_f
           !!write(*,'(a,i7,100i12)') 'new: iproc, iendp_seg_f', iproc, iendp_seg_f
-          !!write(*,'(a,i7,100i12)') 'new: iproc, nvalp_f', iproc, nvalp_f
+          write(*,'(a,i7,100i12)') 'new: iproc, nvalp_f', iproc, nvalp_f
           !!write(*,'(a,i7,100f12.1)') 'new: iproc, weightp_f', iproc, weightp_f
           !!write(*,'(a,i7,100i12)') 'new: iproc, nptsp_f', iproc, nptsp_f
 
@@ -1070,6 +1074,7 @@ module communications_init
           stop 'sum(nrecvcounts_c)/=nspin*nvalp_c'
       end if
       if(sum(nrecvcounts_f)/=nspin*nvalp_f) then
+          write(*,*) 'sum(nrecvcounts_f), nspin*nvalp_f', sum(nrecvcounts_f), nspin*nvalp_f
           stop 'sum(nrecvcounts_f)/=nspin*nvalp_f'
       end if
 
