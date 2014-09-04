@@ -177,7 +177,11 @@ module communications_init
       
       ! Local variables
       integer :: iorb, iiorb, i0, i1, i2, i3, ii, iseg, ilr, istart, iend, i, j0, j1, ii1, ii2, ii3, n1p1, np
-      integer :: i3e, ii3s, ii3e
+      integer :: i3e, ii3s, ii3e, is, ie, i3start, i3end, size_of_double, ierr, info, window, jproc, ncount
+      real(kind=8),dimension(:),allocatable :: reducearr
+      real(kind=8),dimension(:,:,:),allocatable :: weightloc
+      integer,dimension(:,:),allocatable :: i3startend
+      real(kind=8) :: tt
     
       call f_routine(id='get_weights')
     
@@ -201,15 +205,31 @@ module communications_init
 
       !@NEW ##################################
       ! coarse part
-      call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p,weightppp_c(0,0,1))
+
+
+      i3start=1000000000
+      i3end=-1000000000
+      do iorb=1,orbs%norbp
+          iiorb = orbs%isorb+iorb
+          ilr = orbs%inwhichlocreg(iiorb)
+          i3start = min(i3start,lzd%llr(ilr)%ns3)
+          i3end = max(i3end,lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3)
+      end do
+      weightloc = f_malloc0((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,1.to.(i3end-i3start+1)/),id='weightloc')
+      ncount = (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
+      reducearr = f_malloc(ncount,id='reducearr')
+
+
+      !call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p,weightppp_c(0,0,1))
       i3e=i3s+n3p-1
-      do iorb=1,orbs%norb
-          if (orbs%spinsgn(iorb)<0.d0) cycle !consider only up orbitals
-          ilr = orbs%inwhichlocreg(iorb)
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          if (orbs%spinsgn(iiorb)<0.d0) cycle !consider only up orbitals
+          ilr = orbs%inwhichlocreg(iiorb)
           ii3s = lzd%llr(ilr)%ns3
           ii3e = ii3s + lzd%llr(ilr)%d%n3
           !!write(*,'(a,6i8)') 'init: iproc, iorb, ii3s, ii3e, i3s, i3e', iproc, iorb, ii3s, ii3e, i3s, i3e
-          if (ii3s+1>i3e .or. ii3e+1<i3s) cycle !+1 since ns3 starts at 0, but is3 at 1
+          !if (ii3s+1>i3e .or. ii3e+1<i3s) cycle !+1 since ns3 starts at 0, but is3 at 1
 
           n1p1=lzd%llr(ilr)%d%n1+1
           np=n1p1*(lzd%llr(ilr)%d%n2+1)
@@ -222,8 +242,10 @@ module communications_init
                   ii=j0-1
                   i3=ii/np
                   ii3=i3+lzd%llr(ilr)%ns3
-                  if (ii3+1<i3s) cycle
-                  if (ii3+1>i3e) exit
+                  if (ii3>i3end) stop 'strange 1'
+                  if (ii3<i3start) stop 'strange 2'
+                  !if (ii3+1<i3s) cycle
+                  !if (ii3+1>i3e) exit
                   ii=ii-i3*np
                   i2=ii/n1p1
                   i0=ii-i2*n1p1
@@ -232,17 +254,70 @@ module communications_init
                   ii2=i2+lzd%llr(ilr)%ns2
                   do i=i0,i1
                       ii1=i+lzd%llr(ilr)%ns1
-                      weightppp_c(ii1,ii2,ii3+1-i3s+1)=weightppp_c(ii1,ii2,ii3+1-i3s+1)+1.d0
+                      !weightppp_c(ii1,ii2,ii3+1-i3s+1)=weightppp_c(ii1,ii2,ii3+1-i3s+1)+1.d0
+                      weightloc(ii1,ii2,ii3-i3start+1)=weightloc(ii1,ii2,ii3-i3start+1)+1.d0
                       !weight_c_tot=weight_c_tot+1.d0
                   end do
               end do
               !!$omp end do
           end if
       end do
+
+      !!tt = sum(weightloc_c)
+      !!call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      !!write(*,*) 'tt1',tt
+      
+
+
+      
+      do i3=1,lzd%glr%d%n3+1
+          ! Check whether this slice has been (partially) calculated by iproc,
+          ! otherwise fill with zero
+          if (i3start+1<=i3 .and. i3<=i3end+1) then
+              call vcopy(ncount, weightloc(0,0,i3-i3start), 1, reducearr(1), 1)
+          else
+              call to_zero(ncount, reducearr(1))
+          end if
+
+          ! Communicate the slice and the zeros (a bit wasteful...)
+          call mpiallred(reducearr(1), ncount, mpi_sum, bigdft_mpi%mpi_comm)
+
+          ! Check whether iproc needs this slice
+          if (i3s<=i3 .and. i3<=i3s+n3p-1) then
+              call vcopy(ncount, reducearr(1), 1, weightppp_c(0,0,i3-i3s+1), 1)
+          end if
+      end do
+      !!call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+      !!call mpi_info_create(info, ierr)
+      !!call mpi_info_set(info, "no_locks", "true", ierr)
+      !!call mpi_win_create(weightppp_c(0,0,1), &
+      !!     int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p*size_of_double,kind=mpi_address_kind), size_of_double, &
+      !!     info, bigdft_mpi%mpi_comm, window, ierr)
+      !!call mpi_info_free(info, ierr)
+      !!call mpi_win_fence(mpi_mode_noprecede, window, ierr)
+      !!dummybuf = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p,id='dummybuf')
+      !!i3startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='i3startend')
+      !!call mpiallred(i3startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      !!do jproc=0,nproc-1
+      !!    !Check whether there is an overlap
+      !!    is = max(i3startend(1,iproc),i3startend(1,jproc))
+      !!    ie = min(i3startend(2,iproc),i3startend(2,jproc))
+      !!    if (ie-is>=0) then
+      !!        call mpi_fetch_and_op(weightloc_c(0,0,i2-i3startend(1,iproc)+1), dummybuf(1), &
+      !!             mpi_double_precision, jproc, &
+      !!             int(is-i3startend(1,jproc),kind=mpi_address_kind), mpi_sum, window, ierr)
+      !!    end if
+      !!end do
+      !!call mpi_win_fence(0, window, ierr)
+      !!call mpi_win_free(window, ierr)
+      !!call f_free(dummybuf)
+
       weight_c_tot = 0.d0
+      tt=0
       do i3=1,n3p
           do i2=0,lzd%glr%d%n2
               do i1=0,lzd%glr%d%n1
+                  tt=tt+weightppp_c(i1,i2,i3)
                   weightppp_c(i1,i2,i3)=weightppp_c(i1,i2,i3)**2
                   weight_c_tot = weight_c_tot + weightppp_c(i1,i2,i3)
               end do
@@ -250,18 +325,23 @@ module communications_init
       end do
       if (nproc>1) then
           call mpiallred(weight_c_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
       end if
 
+
+
       ! fine part
-      call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p,weightppp_f(0,0,1))
+      call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(i3end-i3start+1), weightloc(0,0,1))
+      !call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p,weightppp_f(0,0,1))
       i3e=i3s+n3p-1
-      do iorb=1,orbs%norb
-          if (orbs%spinsgn(iorb)<0.d0) cycle !consider only up orbitals
-          ilr = orbs%inwhichlocreg(iorb)
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          if (orbs%spinsgn(iiorb)<0.d0) cycle !consider only up orbitals
+          ilr = orbs%inwhichlocreg(iiorb)
           ii3s = lzd%llr(ilr)%ns3
           ii3e = ii3s + lzd%llr(ilr)%d%n3
           !!write(*,'(a,6i8)') 'init: iproc, iorb, ii3s, ii3e, i3s, i3e', iproc, iorb, ii3s, ii3e, i3s, i3e
-          if (ii3s+1>i3e .or. ii3e+1<i3s) cycle !+1 since ns3 starts at 0, but is3 at 1
+          !if (ii3s+1>i3e .or. ii3e+1<i3s) cycle !+1 since ns3 starts at 0, but is3 at 1
 
           n1p1=lzd%llr(ilr)%d%n1+1
           np=n1p1*(lzd%llr(ilr)%d%n2+1)
@@ -276,8 +356,10 @@ module communications_init
                   ii=j0-1
                   i3=ii/np
                   ii3=i3+lzd%llr(ilr)%ns3
-                  if (ii3+1<i3s) cycle
-                  if (ii3+1>i3e) exit
+                  if (ii3>i3end) stop 'strange 1'
+                  if (ii3<i3start) stop 'strange 2'
+                  !if (ii3+1<i3s) cycle
+                  !if (ii3+1>i3e) exit
                   ii=ii-i3*np
                   i2=ii/n1p1
                   i0=ii-i2*n1p1
@@ -286,12 +368,36 @@ module communications_init
                   ii2=i2+lzd%llr(ilr)%ns2
                   do i=i0,i1
                       ii1=i+lzd%llr(ilr)%ns1
-                      weightppp_f(ii1,ii2,ii3+1-i3s+1)=weightppp_f(ii1,ii2,ii3+1-i3s+1)+1.d0
+                      !weightppp_f(ii1,ii2,ii3+1-i3s+1)=weightppp_f(ii1,ii2,ii3+1-i3s+1)+1.d0
+                      weightloc(ii1,ii2,ii3-i3start+1)=weightloc(ii1,ii2,ii3-i3start+1)+1.d0
                   end do
               end do
               !!$omp end do
           end if
       end do
+
+      do i3=1,lzd%glr%d%n3+1
+          ! Check whether this slice has been (partially) calculated by iproc,
+          ! otherwise fill with zero
+          if (i3start+1<=i3 .and. i3<=i3end+1) then
+              call vcopy(ncount, weightloc(0,0,i3-i3start), 1, reducearr(1), 1)
+          else
+              call to_zero(ncount, reducearr(1))
+          end if
+
+          ! Communicate the slice and the zeros (a bit wasteful...)
+          call mpiallred(reducearr(1), ncount, mpi_sum, bigdft_mpi%mpi_comm)
+
+          ! Check whether iproc needs this slice
+          if (i3s<=i3 .and. i3<=i3s+n3p-1) then
+              call vcopy(ncount, reducearr(1), 1, weightppp_f(0,0,i3-i3s+1), 1)
+          end if
+      end do
+
+      call f_free(reducearr)
+      call f_free(weightloc)
+
+
       weight_f_tot = 0.d0
       do i3=1,n3p
           do i2=0,lzd%glr%d%n2
