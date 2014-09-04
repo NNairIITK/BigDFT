@@ -395,7 +395,8 @@ module communications_init
                   !    jjproc = jproc
                   !    exit
                   !end if
-                  if (weight_prev+1.d0<=weights_c_startend(1,jproc) .and.  weight_prev+weight_per_process_c(iproc)>=weights_c_startend(1,jproc)) then
+                  if (weight_prev+1.d0<=weights_c_startend(1,jproc) .and. &
+                       weight_prev+weight_per_process_c(iproc)>=weights_c_startend(1,jproc)) then
                       jjproc=max(jproc-1,0)
                       exit
                   end if
@@ -574,7 +575,8 @@ module communications_init
                   !    jjproc = jproc
                   !    exit
                   !end if
-                  if (weight_prev+1.d0<=weights_f_startend(1,jproc) .and.  weight_prev+weight_per_process_f(iproc)>=weights_f_startend(1,jproc)) then
+                  if (weight_prev+1.d0<=weights_f_startend(1,jproc) .and. &
+                      weight_prev+weight_per_process_f(iproc)>=weights_f_startend(1,jproc)) then
                       jjproc=max(jproc-1,0)
                       exit
                   end if
