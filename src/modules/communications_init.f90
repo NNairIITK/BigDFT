@@ -119,6 +119,8 @@ module communications_init
            weightp_c, weightp_f, collcom%nptsp_c, collcom%nptsp_f, &
            collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f)
     
+      call f_free(weightppp_c)
+      call f_free(weightppp_f)
     
       call get_switch_indices(iproc, nproc, orbs, lzd, nspin, &
            collcom%nptsp_c, collcom%nptsp_f, collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f, &
@@ -1030,7 +1032,7 @@ module communications_init
                ! Check whether ther is an overlap
                is = max(i3min_c,i3s_par(jproc))
                ie = min(i3max_c,i3s_par(jproc)+n3_par(jproc)-1)
-               if (ie-is>0) then
+               if (ie-is>=0) then
                    ncount = (ie-is+1)*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
                    !write(*,'(9(a,i0),a)') 'process ',iproc,'(i3min=',i3min_c,',i3max=',i3max_c,') gets ',(ie-is+1), &
                    !                    ' lines at ',is,' from ',is-i3s_par(jproc)+1,' on process ', &
@@ -1127,7 +1129,7 @@ module communications_init
                ! Check whether ther is an overlap
                is = max(i3min_f,i3s_par(jproc))
                ie = min(i3max_f,i3s_par(jproc)+n3_par(jproc)-1)
-               if (ie-is>0) then
+               if (ie-is>=0) then
                    ncount = (ie-is+1)*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
                    !!write(*,'(9(a,i0),a)') 'process ',iproc,'(i3min=',i3min_f,',i3max=',i3max_f,') gets ',(ie-is+1), &
                    !!                    ' lines at ',is,' from ',is-i3s_par(jproc)+1,' on process ', &
