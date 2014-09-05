@@ -105,7 +105,7 @@ program frequencies
 
    !print *,'iconfig,arr_radical(iconfig),arr_posinp(iconfig)',arr_radical(iconfig),arr_posinp(iconfig),iconfig,igroup
    ! Read all input files. This should be the sole routine which is called to initialize the run.
-   call run_objects_init(runObj,options//0)! trim(run_id), 'posinp')
+   call run_objects_init(runObj,options//'BigDFT'//0)! trim(run_id), 'posinp')
 
    ! Read all input files.
    prefix = runObj%inputs%run_name

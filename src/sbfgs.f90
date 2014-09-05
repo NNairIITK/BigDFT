@@ -127,7 +127,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       call yaml_mapping_close()
    end if
 
-   !init varaibles
+   !init variables
    debug=.false.
    fail=.true.
    displr=0.0_gp
@@ -525,7 +525,6 @@ subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzra
 !    if(eeval)call energyandforces(nat,alat,rat,fat,fnoise,epot)
 !    fxyzraw=fat
 !    fstretch=0.0_gp
-
 
     call vcopy(3 * runObj%atoms%astruct%nat, rat(1,1), 1,rxyzraw(1,1), 1)
     if(eeval)then

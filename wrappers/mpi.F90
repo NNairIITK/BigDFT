@@ -927,6 +927,7 @@ end subroutine create_group_comm1
   end function mpimaxdiff_i1
 
   function mpimaxdiff_i2(array,root,comm,bcast) result(maxdiff)
+
     use dynamic_memory
     implicit none
     !> array to be checked
@@ -956,7 +957,7 @@ end subroutine create_group_comm1
 
     maxdiff=0.d0
     
-    include 'maxdiff-arr-inc.f90'
+   include 'maxdiff-arr-inc.f90'
   end function mpimaxdiff_d2
 
   

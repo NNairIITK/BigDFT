@@ -759,16 +759,21 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
   !put a barrier for all the processes
   call mpibarrier(bigdft_mpi%mpi_comm)
   call f_routine(id=subname)
-
   !Check the consistency between MPI processes of the atomic coordinates
   maxdiff=mpimaxdiff(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,bcast=.true.)
-
+  !even when broadcasting results, there can be truncation errors
+  !therefore increase the threshold for checking
   if (maxdiff > epsilon(1.0_gp)) then
-     if (iproc==0) call yaml_warning('Input positions not identical! '//&
-          '(difference:'//trim(yaml_toa(maxdiff))//' ), broadcasting from master node')
-     !the check=.true. is important here: it controls that each process
+     if (iproc==0) then
+        call yaml_warning('Input positions not identical! '//&
+             '(difference:'//trim(yaml_toa(maxdiff))//' ), broadcasting from master node.')
+        call yaml_comment('If the code hangs here, this means that not all the tasks met the threshold')
+        call yaml_flush_document()
+     end if
+        !the check=.true. is important here: it controls that each process
      !will participate in the broadcasting
-     call mpibcast(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,check=.true.)
+     call mpibcast(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,&
+          check=.true.)
   end if
 
   !fill the rxyz array with the positions

@@ -11,4 +11,18 @@
   logical, intent(in), optional :: bcast !< if .true. all the proc will have the same maxdiff (default .false.)
   !local variables
   logical :: bcst
-  integer :: ndims,nproc,mpi_comm,iroot,i,jproc
+  integer :: ndims,nproc,mpi_comm,iroot,i,jproc,ierr
+
+  bcst=.false.
+  if (present(bcast)) bcst=bcast
+  if (present(comm)) then
+     mpi_comm=comm
+  else
+     mpi_comm=MPI_COMM_WORLD 
+  end if
+  if (present(root)) then
+     iroot=root
+  else
+     iroot=0
+  end if
+  nproc=mpisize(mpi_comm)
