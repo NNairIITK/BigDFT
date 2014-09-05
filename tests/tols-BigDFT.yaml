@@ -817,7 +817,7 @@ experimentalfoe_medium:
  eF: 8.3e-8
  guess for new ef: 8.3e-8
  D Tr: 1.1e-6
- D eF: 3.4e-8 
+ D eF: 4.2e-8 
  Tr(K): 2.5e-7
  ebs: 2.5e-7
  ebs_check: 4.4e-8
