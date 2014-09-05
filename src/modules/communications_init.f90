@@ -211,6 +211,7 @@ module communications_init
       i3end=-1000000000
       do iorb=1,orbs%norbp
           iiorb = orbs%isorb+iorb
+          if (orbs%spinsgn(iiorb)<0.d0) cycle !consider only up orbitals
           ilr = orbs%inwhichlocreg(iiorb)
           i3start = min(i3start,lzd%llr(ilr)%ns3)
           i3end = max(i3end,lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3)
@@ -331,7 +332,9 @@ module communications_init
 
 
       ! fine part
-      call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(i3end-i3start+1), weightloc(0,0,1))
+      if (i3end-i3start>=0) then
+          call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(i3end-i3start+1), weightloc(0,0,1))
+      end if
       !call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p,weightppp_f(0,0,1))
       i3e=i3s+n3p-1
       do iorb=1,orbs%norbp
@@ -410,6 +413,7 @@ module communications_init
       if (nproc>1) then
           call mpiallred(weight_f_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
       end if
+      !write(*,*) 'iproc, weight_f_tot', iproc, weight_f_tot
       !@ENDNEW ##################################
 
 
@@ -495,17 +499,18 @@ module communications_init
               weight_prev = sum(weight_per_process_c(0:iproc-1)) !total weight of process up to iproc-1
               jjproc = nproc-1
               do jproc=0,nproc-1
+                  !write(*,'(a,2i5,3f10.1)') 'iproc, jproc, weight_prev, (weights_c_startend(:,jproc))', iproc, jproc, weight_prev, (weights_c_startend(:,jproc))
                   !if (weight_prev<weights_c_startend(1,jproc)) then
-                  !if (weights_c_startend(1,jproc)<=weight_prev .and. weight_prev<=weights_c_startend(2,jproc)) then
-                  !    ! This process starts the assignment with process jjproc
-                  !    jjproc = jproc
-                  !    exit
-                  !end if
-                  if (weight_prev+1.d0<=weights_c_startend(1,jproc) .and. &
-                       weight_prev+weight_per_process_c(iproc)>=weights_c_startend(1,jproc)) then
-                      jjproc=max(jproc-1,0)
+                  if (weights_c_startend(1,jproc)<=weight_prev .and. weight_prev<=weights_c_startend(2,jproc)) then
+                      ! This process starts the assignment with process jjproc
+                      jjproc = jproc
                       exit
                   end if
+                  !if (weight_prev+1.d0<=weights_c_startend(1,jproc) .and. &
+                  !     weight_prev+weight_per_process_c(iproc)>=weights_c_startend(1,jproc)) then
+                  !    jjproc=max(jproc-1,0)
+                  !    exit
+                  !end if
               end do
           end if
 
@@ -563,6 +568,7 @@ module communications_init
                   tt = tt + weightppp_c(i,i2,ii3)
                   if (jjproc<nproc-1) then
                       if (tt>=weights_c_startend(1,jjproc+1)) then
+                          !write(*,'(a,2i6,2f10.1)') 'iproc, jjproc, tt, weights_c_startend(1,jjproc+1)', iproc, jjproc, tt, weights_c_startend(1,jjproc+1)
                           jjproc = jjproc + 1
                           istartend_c(1,jjproc) = iitot
                           istartendseg_c(1,jjproc) = iseg
@@ -599,7 +605,7 @@ module communications_init
           call f_free(istartendseg_c)
           call f_free(nval_c)
           call f_free(weightpp_c)
-          !!write(*,'(a,i7,100i12)') 'new: iproc, istartend_c',iproc, istartend_c 
+          !write(*,'(a,i7,100i12)') 'new: iproc, istartend_c',iproc, istartend_c 
           !!write(*,'(a,i7,100i12)') 'new: iproc, istartp_seg_c', iproc, istartp_seg_c
           !!write(*,'(a,i7,100i12)') 'new: iproc, iendp_seg_c', iproc, iendp_seg_c
           !!write(*,'(a,i7,100i12)') 'new: iproc, nvalp_c', iproc, nvalp_c
@@ -676,16 +682,17 @@ module communications_init
               weight_prev = sum(weight_per_process_f(0:iproc-1)) !total weight of process up to iproc-1
               jjproc = nproc-1
               do jproc=0,nproc-1
-                  !if (weights_f_startend(1,jproc)<=weight_prev .and. weight_prev<=weights_f_startend(2,jproc)) then
-                  !    ! This process starts the assignment with process jjproc
-                  !    jjproc = jproc
-                  !    exit
-                  !end if
-                  if (weight_prev+1.d0<=weights_f_startend(1,jproc) .and. &
-                      weight_prev+weight_per_process_f(iproc)>=weights_f_startend(1,jproc)) then
-                      jjproc=max(jproc-1,0)
+                  !write(*,'(a,2i5,3f10.1)') 'iproc, jproc, weight_prev, (weights_f_startend(:,jproc))', iproc, jproc, weight_prev, (weights_f_startend(:,jproc))
+                  if (weights_f_startend(1,jproc)<=weight_prev .and. weight_prev<=weights_f_startend(2,jproc)) then
+                      ! This process starts the assignment with process jjproc
+                      jjproc = jproc
                       exit
                   end if
+                  !if (weight_prev+1.d0<=weights_f_startend(1,jproc) .and. &
+                  !    weight_prev+weight_per_process_f(iproc)>=weights_f_startend(1,jproc)) then
+                  !    jjproc=max(jproc-1,0)
+                  !    exit
+                  !end if
               end do
           end if
 
@@ -750,6 +757,7 @@ module communications_init
                       tt = tt + weightppp_f(i,i2,ii3)
                       if (jjproc<nproc-1) then
                           if (tt>=weights_f_startend(1,jjproc+1)) then
+                              !write(*,'(a,2i6,2f10.1)') 'iproc, jjproc, tt, weights_f_startend(1,jjproc+1)', iproc, jjproc, tt, weights_f_startend(1,jjproc+1)
                               jjproc = jjproc + 1
                               istartend_f(1,jjproc) = iitot
                               istartendseg_f(1,jjproc) = iseg
@@ -787,10 +795,10 @@ module communications_init
           call f_free(istartendseg_f)
           call f_free(nval_f)
           call f_free(weightpp_f)
-          !!write(*,'(a,i7,100i12)') 'new: iproc, istartend_f',iproc, istartend_f 
+          !write(*,'(a,i7,100i12)') 'new: iproc, istartend_f',iproc, istartend_f 
           !!write(*,'(a,i7,100i12)') 'new: iproc, istartp_seg_f', iproc, istartp_seg_f
           !!write(*,'(a,i7,100i12)') 'new: iproc, iendp_seg_f', iproc, iendp_seg_f
-          !!write(*,'(a,i7,100i12)') 'new: iproc, nvalp_f', iproc, nvalp_f
+          !write(*,'(a,i7,100i12)') 'new: iproc, nvalp_f', iproc, nvalp_f
           !!write(*,'(a,i7,100f12.1)') 'new: iproc, weightp_f', iproc, weightp_f
           !!write(*,'(a,i7,100i12)') 'new: iproc, nptsp_f', iproc, nptsp_f
 
@@ -1070,6 +1078,7 @@ module communications_init
           stop 'sum(nrecvcounts_c)/=nspin*nvalp_c'
       end if
       if(sum(nrecvcounts_f)/=nspin*nvalp_f) then
+          write(*,*) 'sum(nrecvcounts_f), nspin*nvalp_f', sum(nrecvcounts_f), nspin*nvalp_f
           stop 'sum(nrecvcounts_f)/=nspin*nvalp_f'
       end if
 
@@ -1362,8 +1371,10 @@ module communications_init
       gridpoint_start_c = f_malloc(istartend_c(1,iproc).to.istartend_c(2,iproc),id='gridpoint_start_c')
       gridpoint_start_f = f_malloc(istartend_f(1,iproc).to.istartend_f(2,iproc),id='gridpoint_start_f')
       if (nspin==2) then
-          gridpoint_start_tmp_c = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_tmp_c')
-          gridpoint_start_tmp_f = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_tmp_f')
+          !!gridpoint_start_tmp_c = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_tmp_c')
+          !!gridpoint_start_tmp_f = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_tmp_f')
+          gridpoint_start_tmp_c = f_malloc(istartend_c(1,iproc).to.istartend_c(2,iproc),id='gridpoint_start_tmp_c')
+          gridpoint_start_tmp_f = f_malloc(istartend_f(1,iproc).to.istartend_f(2,iproc),id='gridpoint_start_tmp_f')
       end if
       gridpoint_start_c=-1
       gridpoint_start_f=-1
