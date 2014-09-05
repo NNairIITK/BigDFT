@@ -170,7 +170,6 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
           maxdiff=0.0_wp
           do jorb=1,orbs%norb*orbs%nspinor
              tt=abs(checksum(jorb,1)-checksum(jorb,2))
-             write(*,'(a,i7,2f12.1)') 'jorb, checksum(jorb,:)', jorb, checksum(jorb,:)
              if (tt > maxdiff) then
                 maxdiff=tt
                 if (maxdiff > tol) then 
