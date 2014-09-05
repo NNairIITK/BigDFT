@@ -421,7 +421,8 @@ program memguess
       posinp=trim(radical)
    end if
 
-   call run_objects_init_from_files(runObj, radical, posinp)
+   !this part has to be mergd with the one coming from bigdft_run module
+   call run_objects_init_from_run_name(runObj, radical, posinp)
 
    if (optimise) then
       if (runObj%atoms%astruct%geocode =='F') then

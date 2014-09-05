@@ -118,6 +118,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
   call f_routine(id=subname)
 
+  energs = energy_terms_null()
+
   !copying the input variables for readability
   !this section is of course not needed
   !note that this procedure is convenient ONLY in the case of scalar variables
@@ -1526,7 +1528,6 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
               !yaml output
               call yaml_mapping_close() !iteration
               call yaml_flush_document()
-              !call bigdft_utils_flush(unit=6)
            end if
            ! Emergency exit case
            if (opt%infocode == 2 .or. opt%infocode == 3) then
@@ -1569,7 +1570,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            end if
            call write_energies(opt%iter,0,energs,opt%gnrm,gnrm_zero,final_out)
            call yaml_mapping_close()
-
+           call yaml_flush_document()
            if (opt%itrpmax >1) then
               if ( KSwfn%diis%energy > KSwfn%diis%energy_min) &
                    call yaml_warning('Found an energy value lower than the ' // final_out // &
@@ -1588,8 +1589,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
         if (iproc==0) then
            call yaml_sequence_close() !wfn iterations
            if (opt%iter == opt%itermax .and. opt%infocode/=0) &
-             &  call yaml_warning('No convergence within the allowed number of minimization steps')
-             !&   write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
+                call yaml_warning('No convergence within the allowed number of minimization steps')
         end if
         call last_orthon(iproc,nproc,opt%iter,KSwfn,energs%evsum,.true.) !never deallocate psit and hpsi
 
@@ -1633,6 +1633,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
         if (iproc==0) then
            call yaml_mapping_close()
+           call yaml_flush_document()
         end if
 
         if (opt%infocode ==0) exit subd_loop

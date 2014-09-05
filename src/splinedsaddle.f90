@@ -15,108 +15,106 @@ program splined_saddle
   use bigdft_run
   implicit none
   character(len=*), parameter :: subname='BigDFT'
-  integer :: iproc,nproc,ierr,infocode
+!  integer :: iproc,nproc,
+  integer :: ierr,infocode
   integer :: ncount_bigdft
 !!$ logical :: exist_list
   !input/output variables
   type(run_objects) :: runObj
   type(DFT_global_output) :: outs
-  character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
-  character(len=60) :: run_id
+  !character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
+  !character(len=60) :: run_id
   !character(len=60) :: filename
   ! atomic coordinates, forces
   integer :: iconfig,nconfig
   real(gp), dimension(:,:), allocatable :: ratsp,fatsp 
-  integer, dimension(4) :: mpi_info
+  !integer, dimension(4) :: mpi_info
+  type(dictionary), pointer :: run,options
   !include 'mpif.h' !non-BigDFT
 
   call f_lib_initialize()
-  !-finds the number of taskgroup size
-  !-initializes the mpi_environment for each group
-  !-decides the radical name for each run
-  call bigdft_init(mpi_info,nconfig,run_id,ierr)
 
-  !just for backward compatibility
-  iproc=mpi_info(1)
-  nproc=mpi_info(2)
-  
-  !allocate arrays of run ids
-  allocate(arr_radical(abs(nconfig)))
-  allocate(arr_posinp(abs(nconfig)))
 
-  !here we call  a routine which
-  ! Read a possible radical format argument.
-  call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierr)
-
-  do iconfig=1,abs(nconfig)
-     if (modulo(iconfig-1,mpi_info(4))==mpi_info(3)) then
-
-        ! Read all input files. This should be the sole routine which is called to initialize the run.
-        call run_objects_init_from_files(runObj, arr_radical(iconfig),arr_posinp(iconfig))
-        call init_global_output(outs, runObj%atoms%astruct%nat)
-
-!!$     !welcome screen
-!!$!     if (iproc==0) call print_logo()
+!!$  !-finds the number of taskgroup size
+!!$  !-initializes the mpi_environment for each group
+!!$  !-decides the radical name for each run
+!!$  call bigdft_init(mpi_info,nconfig,run_id,ierr)
 !!$
-!!$     ! Read all input files.
-!!$     !standard names
-!!$     call standard_inputfile_names(inputs,radical,nproc)
-!!$     call read_input_variables(iproc,nproc,arr_posinp(iconfig),inputs, atoms, rxyz,nconfig,radical,istat)
-!!$     !-----------------------------------------------------------
-!!$     !-----------------------------------------------------------
-!!$     if (iproc == 0) then
-!!$        call print_general_parameters(inputs,atoms)
-!!$     end if
+!!$  !just for backward compatibility
+!!$  iproc=mpi_info(1)
+!!$  nproc=mpi_info(2)
+!!$  
+!!$  !allocate arrays of run ids
+!!$  allocate(arr_radical(abs(nconfig)))
+!!$  allocate(arr_posinp(abs(nconfig)))
+!!$
+!!$  !here we call  a routine which
+!!$  ! Read a possible radical format argument.
+!!$  call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierr)
+!!$  do iconfig=1,abs(nconfig)
+!!$     if (modulo(iconfig-1,mpi_info(4))==mpi_info(3)) then
+  
+  call bigdft_command_line_options(options)
+  call bigdft_init(options)
 
-        open(unit=16,file=trim(runObj%inputs%dir_output)//'geopt.mon',status='unknown',position='append')
-        if (iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
+  run => dict_iter(options .get. 'BigDFT')
+  do while(associated(run))
 
-        !if other steps are supposed to be done leave the last_run to minus one
-        !otherwise put it to one
-        !if (inputs%last_run == -1 .and. inputs%ncount_cluster_x <=1) then
-        if (runObj%inputs%last_run == -1 .and. runObj%inputs%ncount_cluster_x <=1 .or.  runObj%inputs%ncount_cluster_x <= 1) then
-           runObj%inputs%last_run = 1
-        end if
+     ! Read all input files. This should be the sole routine which is called to initialize the run.
+     call run_objects_init(runObj,run)
+     call init_global_output(outs, runObj%atoms%astruct%nat)
 
-        call call_bigdft(runObj, outs, nproc,iproc,infocode)
 
-        if (runObj%inputs%ncount_cluster_x > -1) then
-           if (iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
+     open(unit=16,file=trim(runObj%inputs%dir_output)//'geopt.mon',status='unknown',position='append')
+     if (bigdft_mpi%iproc ==0 ) write(16,*) '----------------------------------------------------------------------------'
 
-           ratsp = f_malloc(src=runObj%atoms%astruct%rxyz,id='ratsp')
-           fatsp = f_malloc(src=outs%fxyz,id='fatsp')
+     !if other steps are supposed to be done leave the last_run to minus one
+     !otherwise put it to one
+     !if (inputs%last_run == -1 .and. inputs%ncount_cluster_x <=1) then
+     if (runObj%inputs%last_run == -1 .and. runObj%inputs%ncount_cluster_x <=1 .or.  runObj%inputs%ncount_cluster_x <= 1) then
+        runObj%inputs%last_run = 1
+     end if
+
+     call call_bigdft(runObj, outs,&
+          bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+
+     if (runObj%inputs%ncount_cluster_x > -1) then
+        if (bigdft_mpi%iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
+
+        ratsp = f_malloc(src=runObj%atoms%astruct%rxyz,id='ratsp')
+        fatsp = f_malloc(src=outs%fxyz,id='fatsp')
 !!$        ratsp = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='ratsp')
 !!$        fatsp = f_malloc((/ 3, outs%fdim /),id='fatsp')
 !!$        ratsp(1:3,1:runObj%atoms%astruct%nat)=runObj%atoms%astruct%rxyz(1:3,1:runObj%atoms%astruct%nat)
 !!$        fatsp(1:3,1:outs%fdim)=outs%fxyz(1:3,1:outs%fdim)
 
-           outs%energy=outs%energy
-           call givemesaddle(outs%energy,ratsp,fatsp,16,nproc,iproc,runObj%atoms,runObj%rst,runObj%inputs,ncount_bigdft)
-           close(16)
-           call f_free(ratsp)
-           call f_free(fatsp)
+        outs%energy=outs%energy
+        call givemesaddle(outs%energy,ratsp,fatsp,16,&
+             bigdft_mpi%nproc,bigdft_mpi%iproc,runObj%atoms,runObj%rst,runObj%inputs,ncount_bigdft)
+        close(16)
+        call f_free(ratsp)
+        call f_free(fatsp)
 
-           ! geometry optimization
-           !call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
-           !filename=trim('final_'//trim(arr_posinp(iconfig)))
-           !if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,' ')
-        end if
-
-        !if there is a last run to be performed do it now before stopping
-        if (runObj%inputs%last_run == -1) then
-           runObj%inputs%last_run = 1
-           call call_bigdft(runObj, outs, nproc,iproc,infocode)
-        end if
-
-        if (iproc == 0) call write_forces(runObj%atoms,outs%fxyz)
-
-        call deallocate_global_output(outs)
-        call run_objects_free(runObj)
+        ! geometry optimization
+        !call geopt(nproc,iproc,rxyz,atoms,fxyz,etot,rst,inputs,ncount_bigdft)
+        !filename=trim('final_'//trim(arr_posinp(iconfig)))
+        !if (iproc == 0) call write_atomic_file(filename,etot,rxyz,atoms,' ')
      end if
-  enddo !loop over iconfig
 
-  deallocate(arr_posinp,arr_radical)
+     !if there is a last run to be performed do it now before stopping
+     if (runObj%inputs%last_run == -1) then
+        runObj%inputs%last_run = 1
+        call call_bigdft(runObj, outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+     end if
 
+     if (bigdft_mpi%iproc == 0) call write_forces(runObj%atoms,outs%fxyz)
+
+     call deallocate_global_output(outs)
+     call run_objects_free(runObj)
+     run => dict_next(run)
+  end do
+
+  call dict_free(options)
   call bigdft_finalize(ierr)
   call f_lib_finalize()
 
