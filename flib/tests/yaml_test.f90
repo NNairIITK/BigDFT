@@ -162,11 +162,12 @@ program yaml_test
       call yaml_parse_file_and_string()
    end if
    
-   if (TREES_EXTRAS .in. run) then
+   if (YAML_EXTRAS .in. run) then
       call yaml_new_document()
       call test_dictionary_for_atoms()
       call yaml_release_document()
-
+   end if
+   if (TREES_EXTRAS .in. run) then
       call profile_dictionary_usage()
    end if
 
