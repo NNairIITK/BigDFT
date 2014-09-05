@@ -2551,7 +2551,7 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
            !if (iproc==0) write(*,*)'*********************************************************************'
            !if (iproc==0) write(*,*)''
            inputpsi=INPUT_PSI_LINEAR_AO
-           ! if one directoy doesn't exist, exit
+           ! if one directory doesn't exist, exit
            exit
         end if
      end do

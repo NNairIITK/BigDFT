@@ -48,7 +48,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   character(len = *), parameter :: subname = "system_initialization"
   integer :: nB,nKB,nMB,ii,iat,iorb,iatyp,nspin_ig,norbe,norbsc,ifrag,nspinor
   real(gp), dimension(3) :: h_input
-  logical:: present_inwhichlocreg_old, present_onwhichatom_old, output_grid_
+  logical:: present_inwhichlocreg_old, present_onwhichatom_old, output_grid_, frag_allocated
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(kind=8), dimension(:), allocatable :: locrad
   !Note proj_G should be filled for PAW:
@@ -229,7 +229,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   end if
   ! Done orbs
 
-
   ! fragment initializations - if not a fragment calculation, set to appropriate dummy values
   if (inputpsi == INPUT_PSI_DISK_LINEAR .or. in%lin%fragment_calculation) then
      allocate(ref_frags(in%frag%nfrag_ref))
@@ -237,12 +236,24 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
         ref_frags(ifrag)=fragment_null()
      end do
      call init_fragments(in,lorbs,atoms%astruct,ref_frags)
+    frag_allocated=.true.
   else
      nullify(ref_frags)
   end if
 
   call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, &
        orbs, lorbs, iproc, nproc, in%frag%nfrag_ref, in%frag%dirname, ref_frags)
+
+  ! we need to deallocate the fragment arrays we just allocated as not a restart calculation so this is no longer needed
+  if (frag_allocated .and. (.not. in%lin%fragment_calculation) .and. inputpsi /= INPUT_PSI_DISK_LINEAR) then
+      do ifrag=1,in%frag%nfrag_ref
+         ref_frags(ifrag)%astruct_frg%nat=-1
+         ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
+         call fragment_free(ref_frags(ifrag))
+         !ref_frags(ifrag)=fragment_null()
+      end do
+     deallocate(ref_frags)
+  end if
 
   ! See if linear scaling should be activated and build the correct Lzd 
   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
