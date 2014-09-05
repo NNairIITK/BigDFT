@@ -158,7 +158,9 @@ contains
 
        call set(option//OPTSNAME,shortname)
     end if
-    if (present(help_dict)) call set(option//OPTHELP,help_dict)
+    if (present(help_dict)) then
+       call set(option//OPTHELP,help_dict)
+    end if
 
     if (present(conflicts)) then
        if (trim(default) /= "None") then

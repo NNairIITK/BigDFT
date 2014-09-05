@@ -120,7 +120,7 @@ MODULE NEB_routines
       call f_lib_initialize()
       nullify(dict,options)
       !no options fof BigDFT
-      call bigdft_init(options)!mpi_info, nconfig, run_id, ierr)
+      call bigdft_init()!options)!mpi_info, nconfig, run_id, ierr)
       neb_mpi = bigdft_mpi!mpi_environment_null()
 !!$      neb_mpi%igroup = mpi_info(1)
 !!$      neb_mpi%ngroup = mpi_info(2)
@@ -145,7 +145,7 @@ MODULE NEB_routines
            & minimization_scheme)
       ! NEB is using cv criterion in ev per ang.
       neb_%convergence = neb_%convergence * Ha_eV / Bohr_Ang
-      call dict_free(dict,dict_min,options)
+      call dict_free(dict,dict_min)!,options)
       !call dict_free(dict_min)
 
       select case(minimization_scheme)

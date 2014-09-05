@@ -214,15 +214,15 @@ contains
   pure function yaml_ctoa(d,fmt)
     implicit none
     character(len=*), intent(in) :: d
-    character(len=max_value_length) :: yaml_ctoa
+    character(len=len(d)) :: yaml_ctoa
     character(len=*), optional, intent(in) :: fmt
 
     if (present(fmt)) then
-       write(yaml_ctoa(1:max_value_length),fmt) trim(d)
+       write(yaml_ctoa,fmt) trim(d)
     else
-       yaml_ctoa(1:max_value_length)=trim(d)
+       call f_strcpy(src=d,dest=yaml_ctoa)
+       !yaml_ctoa(1:max_value_length)=trim(d)
     end if
-
   end function yaml_ctoa
 
 

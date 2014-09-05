@@ -52,7 +52,8 @@ program yaml_test
    call yaml_cl_parse_option(parser,'test3','None',&
         'this is a test option','T',&
         dict_new('Usage' .is. &
-        'Unused option3, just for testing the command line parser'),&
+        'Unused option3, just for testing the command line parser, '//&
+        'also the long help lines have to be tested in order to understand if it works'),&
         conflicts='[test2,test]')
 
 
