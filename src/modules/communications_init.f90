@@ -499,17 +499,18 @@ module communications_init
               weight_prev = sum(weight_per_process_c(0:iproc-1)) !total weight of process up to iproc-1
               jjproc = nproc-1
               do jproc=0,nproc-1
+                  write(*,'(a,2i5,3f10.1)') 'iproc, jproc, weight_prev, (weights_c_startend(:,jproc))', iproc, jproc, weight_prev, (weights_c_startend(:,jproc))
                   !if (weight_prev<weights_c_startend(1,jproc)) then
-                  !if (weights_c_startend(1,jproc)<=weight_prev .and. weight_prev<=weights_c_startend(2,jproc)) then
-                  !    ! This process starts the assignment with process jjproc
-                  !    jjproc = jproc
-                  !    exit
-                  !end if
-                  if (weight_prev+1.d0<=weights_c_startend(1,jproc) .and. &
-                       weight_prev+weight_per_process_c(iproc)>=weights_c_startend(1,jproc)) then
-                      jjproc=max(jproc-1,0)
+                  if (weights_c_startend(1,jproc)<=weight_prev .and. weight_prev<=weights_c_startend(2,jproc)) then
+                      ! This process starts the assignment with process jjproc
+                      jjproc = jproc
                       exit
                   end if
+                  !if (weight_prev+1.d0<=weights_c_startend(1,jproc) .and. &
+                  !     weight_prev+weight_per_process_c(iproc)>=weights_c_startend(1,jproc)) then
+                  !    jjproc=max(jproc-1,0)
+                  !    exit
+                  !end if
               end do
           end if
 
@@ -567,6 +568,7 @@ module communications_init
                   tt = tt + weightppp_c(i,i2,ii3)
                   if (jjproc<nproc-1) then
                       if (tt>=weights_c_startend(1,jjproc+1)) then
+                          write(*,'(a,2i6,2f10.1)') 'iproc, jjproc, tt, weights_c_startend(1,jjproc+1)', iproc, jjproc, tt, weights_c_startend(1,jjproc+1)
                           jjproc = jjproc + 1
                           istartend_c(1,jjproc) = iitot
                           istartendseg_c(1,jjproc) = iseg
@@ -680,16 +682,17 @@ module communications_init
               weight_prev = sum(weight_per_process_f(0:iproc-1)) !total weight of process up to iproc-1
               jjproc = nproc-1
               do jproc=0,nproc-1
-                  !if (weights_f_startend(1,jproc)<=weight_prev .and. weight_prev<=weights_f_startend(2,jproc)) then
-                  !    ! This process starts the assignment with process jjproc
-                  !    jjproc = jproc
-                  !    exit
-                  !end if
-                  if (weight_prev+1.d0<=weights_f_startend(1,jproc) .and. &
-                      weight_prev+weight_per_process_f(iproc)>=weights_f_startend(1,jproc)) then
-                      jjproc=max(jproc-1,0)
+                  write(*,'(a,2i5,3f10.1)') 'iproc, jproc, weight_prev, (weights_f_startend(:,jproc))', iproc, jproc, weight_prev, (weights_f_startend(:,jproc))
+                  if (weights_f_startend(1,jproc)<=weight_prev .and. weight_prev<=weights_f_startend(2,jproc)) then
+                      ! This process starts the assignment with process jjproc
+                      jjproc = jproc
                       exit
                   end if
+                  !if (weight_prev+1.d0<=weights_f_startend(1,jproc) .and. &
+                  !    weight_prev+weight_per_process_f(iproc)>=weights_f_startend(1,jproc)) then
+                  !    jjproc=max(jproc-1,0)
+                  !    exit
+                  !end if
               end do
           end if
 
@@ -754,6 +757,7 @@ module communications_init
                       tt = tt + weightppp_f(i,i2,ii3)
                       if (jjproc<nproc-1) then
                           if (tt>=weights_f_startend(1,jjproc+1)) then
+                              write(*,'(a,2i6,2f10.1)') 'iproc, jjproc, tt, weights_f_startend(1,jjproc+1)', iproc, jjproc, tt, weights_f_startend(1,jjproc+1)
                               jjproc = jjproc + 1
                               istartend_f(1,jjproc) = iitot
                               istartendseg_f(1,jjproc) = iseg
