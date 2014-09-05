@@ -437,7 +437,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
   call f_free(onwhichmpi)
   call f_release_routine()
 
-contains 
+!!contains 
 
   !!subroutine create_orbsder()
   !!  call nullify_orbitals_data(orbsder)
