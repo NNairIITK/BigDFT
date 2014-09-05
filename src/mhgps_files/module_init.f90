@@ -86,14 +86,14 @@ contains
         character(17), parameter :: filename='mhgps.inp_default'
         open(u,file=filename)
             write(u,'(1x,i0.0,1x,1a)')mhgps_verbosity,' #mhgps_verbosity'
-            write(u,'(1x,1L,1x,1L,1x,1a)')operation_mode,random_minmode_guess,&
+            write(u,'(1x,1L1,1x,1L1,1x,1a)')operation_mode,random_minmode_guess,&
                  ' #mode, random_minmode_guess'
             write(u,'(1x,i0.0,1x,1a)')nsadmax,' #nsadmax'
-            write(u,'(1x,1a,1x,1L,1x,1a)')trim(adjustl(efmethod)),external_mini,&
+            write(u,'(1x,1a,1x,1L1,1x,1a)')trim(adjustl(efmethod)),external_mini,&
                  ' #efmethod, external minimizer'
             write(u,'(es10.3,1x,es10.3,1x,1a)')en_delta_min,fp_delta_min,' #en_delta_min, fp_delta_min'
             write(u,'(es10.3,1x,es10.3,1x,1a)')en_delta_sad,fp_delta_sad,' #en_delta_sad, fp_delta_sad'
-            write(u,'(1x,1L,1x,1a)')saddle_biomode,' #biomode'
+            write(u,'(1x,1L1,1x,1a)')saddle_biomode,' #biomode'
             write(u,'(1x,es10.3,1x,1a)') lst_interpol_stepfrct,&
                  ' #inward interpolation distance as fraction of initial distance'
             write(u,'(1x,es10.3,1x,1a)') ts_guess_gammainv,' #step size for perpedicular optimization in freezing string method'
@@ -167,18 +167,18 @@ contains
         call yaml_comment('(MHGPS) Minima Hopping Guided Path Sampling',hfill='=')
         
         call yaml_mapping_open('(MHGPS) logo')
-        call yaml_scalar('(MHGPS)      ___           ___           ___           ___           ___     ') 
-        call yaml_scalar('(MHGPS)     /\__\         /\__\         /\  \         /\  \         /\  \    ')
-        call yaml_scalar('(MHGPS)    /::|  |       /:/  /        /::\  \       /::\  \       /::\  \   ')
-        call yaml_scalar('(MHGPS)   /:|:|  |      /:/__/        /:/\:\  \     /:/\:\  \     /:/\ \  \  ')
-        call yaml_scalar('(MHGPS)  /:/|:|__|__   /::\  \ ___   /:/  \:\  \   /::\~\:\  \   _\:\~\ \  \ ')
-        call yaml_scalar('(MHGPS) /:/ |::::\__\ /:/\:\  /\__\ /:/__/_\:\__\ /:/\:\ \:\__\ /\ \:\ \ \__\')
-        call yaml_scalar('(MHGPS) \/__/~~/:/  / \/__\:\/:/  / \:\  /\ \/__/ \/__\:\/:/  / \:\ \:\ \/__/')
-        call yaml_scalar('(MHGPS)       /:/  /       \::/  /   \:\ \:\__\        \::/  /   \:\ \:\__\  ')
-        call yaml_scalar('(MHGPS)      /:/  /        /:/  /     \:\/:/  /         \/__/     \:\/:/  /  ')
-        call yaml_scalar('(MHGPS)     /:/  /        /:/  /       \::/  /                     \::/  /   ')
-        call yaml_scalar('(MHGPS)     \/__/         \/__/         \/__/                       \/__/    ')
-        call yaml_scalar('(MHGPS)                                                   as post-processing ')
+        call yaml_scalar('(MHGPS)      ___           ___           ___           ___           ___      ') 
+        call yaml_scalar('(MHGPS)     /\__\         /\__\         /\  \         /\  \         /\  \     ')
+        call yaml_scalar('(MHGPS)    /::|  |       /:/  /        /::\  \       /::\  \       /::\  \    ')
+        call yaml_scalar('(MHGPS)   /:|:|  |      /:/__/        /:/\:\  \     /:/\:\  \     /:/\ \  \   ')
+        call yaml_scalar('(MHGPS)  /:/|:|__|__   /::\  \ ___   /:/  \:\  \   /::\~\:\  \   _\:\~\ \  \  ')
+        call yaml_scalar('(MHGPS) /:/ |::::\__\ /:/\:\  /\__\ /:/__/_\:\__\ /:/\:\ \:\__\ /\ \:\ \ \__\ ')
+        call yaml_scalar('(MHGPS) \/__/~~/:/  / \/__\:\/:/  / \:\  /\ \/__/ \/__\:\/:/  / \:\ \:\ \/__/ ')
+        call yaml_scalar('(MHGPS)       /:/  /       \::/  /   \:\ \:\__\        \::/  /   \:\ \:\__\   ')
+        call yaml_scalar('(MHGPS)      /:/  /        /:/  /     \:\/:/  /         \/__/     \:\/:/  /   ')
+        call yaml_scalar('(MHGPS)     /:/  /        /:/  /       \::/  /                     \::/  /    ')
+        call yaml_scalar('(MHGPS)     \/__/         \/__/         \/__/                       \/__/     ')
+        call yaml_scalar('(MHGPS)                                                   as post-processing  ')
         call yaml_scalar('(MHGPS)')
         call yaml_scalar('(MHGPS)')
         !call print_logo()

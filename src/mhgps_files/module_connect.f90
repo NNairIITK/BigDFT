@@ -207,7 +207,7 @@ use module_energyandforces
 
     call fnrmandforcemax(cobj%fsad(1,1,nsad),fnrm,fmax,nat)
     if (iproc == 0) then
-        write(comment,'(a,1pe10.3,5x1pe10.3)')'ATTENTION! Forces '//&
+        write(comment,'(a,1pe10.3,5x,1pe10.3)')'ATTENTION! Forces '//&
         'below give no forces, but the final minmode| fnrm, fmax = ',&
         fnrm,fmax
 
@@ -215,7 +215,7 @@ use module_energyandforces
         //'_finalM',cobj%enersad(nsad),cobj%saddle(1,1,nsad),&
         ixyz_int,atoms,comment,forces=cobj%minmode(1,1,nsad))
 
-        write(comment,'(a,1pe10.3,5x1pe10.3)')&
+        write(comment,'(a,1pe10.3,5x,1pe10.3)')&
                                             'fnrm, fmax = ',fnrm,fmax
         call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
         //'_finalF',cobj%enersad(nsad),cobj%saddle(1,1,nsad),&
@@ -247,7 +247,7 @@ use module_energyandforces
                             cobj%enerleft(nsad),ener_count,converged,&
                             'L')
         call fnrmandforcemax(cobj%fleft(1,1,nsad),fnrm,fmax,nat)
-        write(comment,'(a,1pe10.3,5x1pe10.3)')'fnrm, fmax = ',fnrm,&
+        write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,&
                                               fmax
         if(iproc==0)&
         call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
@@ -311,7 +311,7 @@ use module_energyandforces
                             cobj%enerright(nsad),ener_count,&
                             converged,'R')
         call fnrmandforcemax(cobj%fright(1,1,nsad),fnrm,fmax,nat)
-        write(comment,'(a,1pe10.3,5x1pe10.3)')'fnrm, fmax = ',fnrm,&
+        write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,&
                                               fmax
         if(iproc==0)&
         call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
@@ -598,7 +598,7 @@ connectloop: do while(ntodo>=1)
 
     call fnrmandforcemax(cobj%fsad(1,1,nsad),fnrm,fmax,nat)
     if (iproc == 0) then
-        write(comment,'(a,1pe10.3,5x1pe10.3)')'ATTENTION! Forces '//&
+        write(comment,'(a,1pe10.3,5x,1pe10.3)')'ATTENTION! Forces '//&
         'below give no forces, but the final minmode| fnrm, fmax = ',&
         fnrm,fmax
 
@@ -606,7 +606,7 @@ connectloop: do while(ntodo>=1)
         //'_finalM',cobj%enersad(nsad),cobj%saddle(1,1,nsad),&
         ixyz_int,atoms,comment,forces=cobj%minmode(1,1,nsad))
 
-        write(comment,'(a,1pe10.3,5x1pe10.3)')&
+        write(comment,'(a,1pe10.3,5x,1pe10.3)')&
                                             'fnrm, fmax = ',fnrm,fmax
         call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
         //'_finalF',cobj%enersad(nsad),cobj%saddle(1,1,nsad),&
@@ -634,7 +634,7 @@ connectloop: do while(ntodo>=1)
                         fnoise,cobj%enerleft(nsad),&
                         ener_count,converged,'L')
     call fnrmandforcemax(cobj%fleft(1,1,nsad),fnrm,fmax,nat)
-    write(comment,'(a,1pe10.3,5x1pe10.3)')'fnrm, fmax = ',fnrm,fmax
+    write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,fmax
     if(iproc==0)&
     call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
     //'_minFinalL',cobj%enerleft(nsad),cobj%leftmin(1,1,nsad),&
@@ -650,7 +650,7 @@ connectloop: do while(ntodo>=1)
                        ,fnoise,cobj%enerright(nsad),&
                         ener_count,converged,'R')
     call fnrmandforcemax(cobj%fright(1,1,nsad),fnrm,fmax,nat)
-    write(comment,'(a,1pe10.3,5x1pe10.3)')'fnrm, fmax = ',fnrm,fmax
+    write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,fmax
     if(iproc==0)&
     call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
     //'_minFinalR',cobj%enerright(nsad),cobj%rightmin(1,1,nsad),&
@@ -720,7 +720,7 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected'
 if(iproc==0)write(*,*)'(MHGS) connection check lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
 if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         ntodo=ntodo+1
-if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
+if(ntodo>nsadmax)stop 'error: ntodo>nsadmax'
         todorxyz(:,:,1,ntodo)=cobj%rightmin(:,:,nsad_loc)
         todorxyz(:,:,2,ntodo)=rxyz2cur
         todofp(:,1,ntodo)=cobj%fpright(:,nsad_loc)
@@ -756,7 +756,7 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected'
 !endif
         !connect left relaxed bar end with left input min
         ntodo=ntodo+1
-if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
+if(ntodo>nsadmax)stop 'error: ntodo>nsadmax'
         todorxyz(:,:,1,ntodo)=rxyz1cur
         todorxyz(:,:,2,ntodo)=cobj%leftmin(:,:,nsad_loc)
         todofp(:,1,ntodo)=fp1cur
@@ -773,7 +773,7 @@ if(iproc==0)write(*,*)'(MHGPS)connection check lnr and not rnl',sqrt(sum((rxyz1-
 if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         !connect right relaxed bar end with left input min
         ntodo=ntodo+1
-if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
+if(ntodo>nsadmax)stop 'error: ntodo>nsadmax'
         todorxyz(:,:,1,ntodo)=rxyz1cur
         todorxyz(:,:,2,ntodo)=cobj%rightmin(:,:,nsad_loc)
         todofp(:,1,ntodo)=fp1cur
@@ -790,7 +790,7 @@ if(iproc==0)write(*,*)'(MHGPS)connection check not lnr and rnl',sqrt(sum((rxyz2-
 if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         !connect left relaxed bar end with right input min
         ntodo=ntodo+1
-if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
+if(ntodo>nsadmax)stop 'error: ntodo>nsadmax'
         todorxyz(:,:,1,ntodo)=rxyz2cur
         todorxyz(:,:,2,ntodo)=cobj%leftmin(:,:,nsad_loc)
         todofp(:,1,ntodo)=fp2cur
@@ -809,7 +809,7 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected'
         !connect left input min with left relaxed bar end  and right
         !input min with right relaxed bar end
         ntodo=ntodo+1
-if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
+if(ntodo>nsadmax)stop 'error: ntodo>nsadmax'
         todorxyz(:,:,1,ntodo)=rxyz1cur
         todorxyz(:,:,2,ntodo)=cobj%leftmin(:,:,nsad_loc)
         todofp(:,1,ntodo)=fp1cur
@@ -817,7 +817,7 @@ if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
         todoenergy(1,ntodo)=ener1cur
         todoenergy(2,ntodo)=cobj%enerleft(nsad_loc)
         ntodo=ntodo+1
-if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
+if(ntodo>nsadmax)stop 'error: ntodo>nsadmax'
         todorxyz(:,:,1,ntodo)=cobj%rightmin(:,:,nsad_loc)
         todorxyz(:,:,2,ntodo)=rxyz2cur
         todofp(:,1,ntodo)=cobj%fpright(:,nsad_loc)
