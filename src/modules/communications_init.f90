@@ -35,8 +35,8 @@ module communications_init
       type(comms_linear),intent(inout) :: collcom
       
       ! Local variables
-      integer :: iorb, iiorb, ilr, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
-      integer :: ipt, nvalp_c, nvalp_f, i3s, n3p, ii, i, jjproc, jproc
+      integer :: iorb, iiorb, ilr, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, i3, ii3
+      integer :: ipt, nvalp_c, nvalp_f, i3s, n3p, ii, i, jjproc, jproc, ii3min, ii3max, np, n1p1, iseg, j0, j1
       real(kind=8),dimension(:,:,:),allocatable :: weightppp_c, weightppp_f
       real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt
       integer,dimension(:,:),allocatable :: istartend_c, istartend_f
@@ -61,10 +61,33 @@ module communications_init
           i = i + ii
           if (jproc<=jjproc-1) i = i + 1
       end do
+
+      ! Determine the maximal extent in teh z direction that iproc has to handle
+      ii3min = 1000000000
+      ii3max = -1000000000
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inwhichlocreg(iiorb)
+          if (lzd%llr(ilr)%wfd%nseg_c>0) then
+              n1p1=lzd%llr(ilr)%d%n1+1
+              np=n1p1*(lzd%llr(ilr)%d%n2+1)
+              do iseg=1,lzd%llr(ilr)%wfd%nseg_c
+                  j0=lzd%llr(ilr)%wfd%keygloc(1,iseg)
+                  j1=lzd%llr(ilr)%wfd%keygloc(2,iseg)
+                  ii=j0-1
+                  i3=ii/np
+                  ii3=i3+lzd%llr(ilr)%ns3
+                  ii3min = min(ii3min,ii3)
+                  ii3max = max(ii3max,ii3)
+              end do
+          end if
+      end do
       
     
-      index_in_global_c=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/),id='index_in_global_c')
-      index_in_global_f=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/),id='index_in_global_f')
+      !!index_in_global_c=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/),id='index_in_global_c')
+      !!index_in_global_f=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,0.to.lzd%glr%d%n3/),id='index_in_global_f')
+      index_in_global_c=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,ii3min.to.ii3max/),id='index_in_global_c')
+      index_in_global_f=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,ii3min.to.ii3max/),id='index_in_global_f')
 
       weightppp_c=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,1.to.n3p/),id='weightppp_c')
       weightppp_f=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,1.to.n3p/),id='weightppp_c')
@@ -81,13 +104,13 @@ module communications_init
     
     
       ! Determine the index of a grid point i1,i2,i3 in the compressed array
-      call get_index_in_global2(lzd%glr, index_in_global_c, index_in_global_f)
+      call get_index_in_global2(lzd%glr, ii3min, ii3max, index_in_global_c, index_in_global_f)
     
     
       ! Determine values for mpi_alltoallv
       call allocate_MPI_communication_arrays(nproc, collcom)
       call determine_communication_arrays(iproc, nproc, npsidim_orbs, orbs, nspin, lzd, istartend_c, istartend_f, &
-           index_in_global_c, index_in_global_f, nvalp_c, nvalp_f, &
+           ii3min, ii3max, index_in_global_c, index_in_global_f, nvalp_c, nvalp_f, &
            collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
            collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f)
     
@@ -128,7 +151,7 @@ module communications_init
            istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
            collcom%nsendcounts_c, collcom%nsenddspls_c, collcom%ndimind_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, &
            collcom%nsendcounts_f, collcom%nsenddspls_f, collcom%ndimind_f, collcom%nrecvcounts_f, collcom%nrecvdspls_f, &
-           index_in_global_c, index_in_global_f, &
+           ii3min, ii3max, index_in_global_c, index_in_global_f, &
            weightp_c, weightp_f, collcom%isendbuf_c, collcom%irecvbuf_c, collcom%isendbuf_f, collcom%irecvbuf_f, &
            collcom%indexrecvorbital_c, collcom%iextract_c, collcom%iexpand_c, &
            collcom%indexrecvorbital_f, collcom%iextract_f, collcom%iexpand_f)
@@ -853,19 +876,23 @@ module communications_init
     end subroutine assign_weight_to_process
 
 
-    subroutine get_index_in_global2(lr, index_in_global_c, index_in_global_f)
+    subroutine get_index_in_global2(lr, ii3min, ii3max, index_in_global_c, index_in_global_f)
     use module_base
     use module_types
     implicit none
     
     ! Calling arguments
     type(locreg_descriptors),intent(in) :: lr
-    integer,dimension(0:lr%d%n1,0:lr%d%n2,0:lr%d%n3),intent(out) :: index_in_global_c, index_in_global_f
+    integer,intent(in) :: ii3min, ii3max
+    integer,dimension(0:lr%d%n1,0:lr%d%n2,ii3min:ii3max),intent(out) :: index_in_global_c, index_in_global_f
     
     ! Local variables
     integer :: iitot, iseg, j0, j1, ii, i1, i2, i3, i0, i, istart, iend, np, n1p1
     
     call f_routine(id='get_index_in_global2')
+
+    ! Could optimize these loops by cycling and updating iitot as soon as
+    ! (i3<ii3min .or. i3>ii3max)
     
     iitot=0
     n1p1=lr%d%n1+1
@@ -881,7 +908,9 @@ module communications_init
        i1=i0+j1-j0
        do i=i0,i1
           iitot=iitot+1
-          index_in_global_c(i,i2,i3)=iitot
+          if (i3>=ii3min .and. i3<=ii3max) then
+              index_in_global_c(i,i2,i3)=iitot
+          end if
        end do
     end do 
     
@@ -900,7 +929,9 @@ module communications_init
        i1=i0+j1-j0
        do i=i0,i1
           iitot=iitot+1
-          index_in_global_f(i,i2,i3)=iitot
+          if (i3>=ii3min .and. i3<=ii3max) then
+              index_in_global_f(i,i2,i3)=iitot
+          end if
        end do
     end do
 
@@ -910,7 +941,7 @@ module communications_init
 
 
     subroutine determine_communication_arrays(iproc, nproc, npsidim_orbs, orbs, nspin, lzd, &
-               istartend_c, istartend_f, index_in_global_c, index_in_global_f, &
+               istartend_c, istartend_f, ii3min, ii3max, index_in_global_c, index_in_global_f, &
                nvalp_c, nvalp_f,  nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c, &
                nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f)
       use module_base
@@ -918,11 +949,11 @@ module communications_init
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, npsidim_orbs, nspin
+      integer,intent(in) :: iproc, nproc, npsidim_orbs, nspin, ii3min, ii3max
       type(orbitals_data),intent(in) :: orbs
       type(local_zone_descriptors),intent(in) :: lzd
       integer,dimension(2,0:nproc-1),intent(in) :: istartend_c, istartend_f
-      integer,dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in) :: index_in_global_c, index_in_global_f
+      integer,dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,ii3min:ii3max),intent(in) :: index_in_global_c, index_in_global_f
       integer,intent(in) :: nvalp_c, nvalp_f
       integer,dimension(0:nproc-1),intent(out) :: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
       integer,dimension(0:nproc-1),intent(out) :: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
@@ -1328,7 +1359,7 @@ module communications_init
                istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, &
                nsendcounts_c, nsenddspls_c, ndimind_c, nrecvcounts_c, nrecvdspls_c, &
                nsendcounts_f, nsenddspls_f, ndimind_f, nrecvcounts_f, nrecvdspls_f, &
-               index_in_global_c, index_in_global_f, &
+               ii3min, ii3max, index_in_global_c, index_in_global_f, &
                weightp_c, weightp_f,  isendbuf_c, irecvbuf_c, isendbuf_f, irecvbuf_f, &
                indexrecvorbital_c, iextract_c, iexpand_c, indexrecvorbital_f, iextract_f, iexpand_f)
       use module_base
@@ -1337,7 +1368,7 @@ module communications_init
       
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, nspin, nptsp_c, nptsp_f, ndimpsi_c, ndimpsi_f, ndimind_c,ndimind_f
-      integer,intent(in) :: istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
+      integer,intent(in) :: istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, ii3min, ii3max
       type(orbitals_data),intent(in) :: orbs
       type(local_zone_descriptors),intent(in) :: lzd
       integer,dimension(nptsp_c),intent(in):: norb_per_gridpoint_c
@@ -1345,7 +1376,7 @@ module communications_init
       integer,dimension(2,0:nproc-1),intent(in) :: istartend_c, istartend_f
       integer,dimension(0:nproc-1),intent(in) :: nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c
       integer,dimension(0:nproc-1),intent(in) :: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
-      integer,dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,0:lzd%glr%d%n3),intent(in) :: index_in_global_c, index_in_global_f
+      integer,dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,ii3min:ii3max),intent(in) :: index_in_global_c, index_in_global_f
       real(kind=8),intent(in) :: weightp_c, weightp_f
       integer,dimension(ndimpsi_c),intent(out) :: isendbuf_c, irecvbuf_c
       integer,dimension(ndimpsi_f),intent(out) :: isendbuf_f, irecvbuf_f
