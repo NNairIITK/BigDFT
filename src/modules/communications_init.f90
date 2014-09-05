@@ -281,7 +281,9 @@ module communications_init
           end if
 
           ! Communicate the slice and the zeros (a bit wasteful...)
-          call mpiallred(reducearr(1), ncount, mpi_sum, bigdft_mpi%mpi_comm)
+          if (nproc>1) then
+              call mpiallred(reducearr(1), ncount, mpi_sum, bigdft_mpi%mpi_comm)
+          end if
 
           ! Check whether iproc needs this slice
           if (i3s<=i3 .and. i3<=i3s+n3p-1) then
@@ -389,7 +391,9 @@ module communications_init
           end if
 
           ! Communicate the slice and the zeros (a bit wasteful...)
-          call mpiallred(reducearr(1), ncount, mpi_sum, bigdft_mpi%mpi_comm)
+          if (nproc>1) then
+              call mpiallred(reducearr(1), ncount, mpi_sum, bigdft_mpi%mpi_comm)
+          end if
 
           ! Check whether iproc needs this slice
           if (i3s<=i3 .and. i3<=i3s+n3p-1) then
