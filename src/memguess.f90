@@ -19,6 +19,7 @@ program memguess
    use m_ab6_symmetry
    use module_fragments
    use yaml_output
+   use bigdft_run
    use module_atoms, only: set_astruct_from_file
    use internal_coordinates
    use gaussians, only: gaussian_basis, deallocate_gwf
@@ -420,7 +421,8 @@ program memguess
       posinp=trim(radical)
    end if
 
-   call run_objects_init_from_files(runObj, radical, posinp)
+   !this part has to be mergd with the one coming from bigdft_run module
+   call run_objects_init_from_run_name(runObj, radical, posinp)
 
    if (optimise) then
       if (runObj%atoms%astruct%geocode =='F') then
@@ -604,7 +606,7 @@ program memguess
    !remove the directory which has been created if it is possible
    call deldir(runObj%inputs%dir_output,len(trim(runObj%inputs%dir_output)),ierror)
 
-   call run_objects_free(runObj, subname)
+   call run_objects_free(runObj)
 !   !finalize memory counting
 !   call memocc(0,0,'count','stop')
 

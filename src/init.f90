@@ -12,7 +12,7 @@
 !! Calculates also the bounds arrays needed for convolutions
 !! Refers this information to the global localisation region descriptor
 subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-     &   crmult,frmult,Glr,output_denspot)
+     &   crmult,frmult,calculate_bounds,Glr,output_denspot)
   use module_base
   use module_types
   use yaml_output
@@ -24,6 +24,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   real(gp), intent(in) :: hx,hy,hz,crmult,frmult
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+  logical,intent(in) :: calculate_bounds
   type(locreg_descriptors), intent(inout) :: Glr
   logical, intent(in), optional :: output_denspot
   !local variables
@@ -64,7 +65,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
      logrid_c=.true.
      logrid_f=.true.
   end if
-  call wfd_from_grids(logrid_c,logrid_f,Glr)
+  call wfd_from_grids(logrid_c,logrid_f,calculate_bounds,Glr)
 
   if (atoms%astruct%geocode == 'P' .and. .not. Glr%hybrid_on .and. Glr%wfd%nvctr_c /= (n1+1)*(n2+1)*(n3+1) ) then
      if (iproc ==0) then
@@ -99,13 +100,14 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
 END SUBROUTINE createWavefunctionsDescriptors
 
 
-subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
+subroutine wfd_from_grids(logrid_c, logrid_f, calculate_bounds, Glr)
   use module_base
    use locregs
    !use yaml_output
    implicit none
    !Arguments
    type(locreg_descriptors), intent(inout) :: Glr
+   logical,intent(in) :: calculate_bounds
    logical, dimension(0:Glr%d%n1,0:Glr%d%n2,0:Glr%d%n3), intent(in) :: logrid_c,logrid_f
    !local variables
    character(len=*), parameter :: subname='wfd_from_grids'
@@ -123,7 +125,7 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
    nfu3=Glr%d%nfu3
 
    !allocate kinetic bounds, only for free BC
-   if (Glr%geocode == 'F' ) then
+   if (calculate_bounds .and. Glr%geocode == 'F' ) then
       Glr%bounds%kb%ibyz_c = f_malloc_ptr((/ 1.to.2,0.to.n2,0.to.n3 /),id='Glr%bounds%kb%ibyz_c')
       Glr%bounds%kb%ibxz_c = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n3 /),id='Glr%bounds%kb%ibxz_c')
       Glr%bounds%kb%ibxy_c = f_malloc_ptr((/ 1.to.2,0.to.n1,0.to.n2 /),id='Glr%bounds%kb%ibxy_c')
@@ -143,13 +145,13 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
       !stop
    end if
 
-   if (Glr%geocode == 'F') then
+   if (calculate_bounds .and. Glr%geocode == 'F') then
       call make_bounds(n1,n2,n3,logrid_c,Glr%bounds%kb%ibyz_c,Glr%bounds%kb%ibxz_c,Glr%bounds%kb%ibxy_c)
    end if
 
    ! Do the fine region.
    call num_segkeys(n1,n2,n3,0,n1,0,n2,0,n3,logrid_f,Glr%wfd%nseg_f,Glr%wfd%nvctr_f)
-   if (Glr%geocode == 'F') then
+   if (calculate_bounds .and. Glr%geocode == 'F') then
       call make_bounds(n1,n2,n3,logrid_f,Glr%bounds%kb%ibyz_f,Glr%bounds%kb%ibxz_f,Glr%bounds%kb%ibxy_f)
    end if
 
@@ -182,7 +184,7 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
 !!$   end do
    
  !for free BC admits the bounds arrays
-   if (Glr%geocode == 'F' ) then
+   if (calculate_bounds .and. Glr%geocode == 'F' ) then
       !allocate grow, shrink and real bounds
       Glr%bounds%gb%ibzxx_c = f_malloc_ptr((/ 1.to.2, 0.to.n3, -14.to.2*n1+16 /),id='Glr%bounds%gb%ibzxx_c')
       Glr%bounds%gb%ibxxyy_c = f_malloc_ptr((/ 1.to.2, -14.to.2*n1+16, -14.to.2*n2+16 /),id='Glr%bounds%gb%ibxxyy_c')
@@ -209,7 +211,7 @@ subroutine wfd_from_grids(logrid_c, logrid_f, Glr)
 
    end if
 
-   if (Glr%geocode == 'P' .and. Glr%hybrid_on) then
+   if (calculate_bounds .and. Glr%geocode == 'P' .and. Glr%hybrid_on) then
       call make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,Glr%bounds,Glr%wfd)
       call make_all_ib_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
          &   Glr%bounds%kb%ibxy_f,Glr%bounds%sb%ibxy_ff,Glr%bounds%sb%ibzzx_f,Glr%bounds%sb%ibyyzz_f,&
@@ -696,8 +698,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use communications_base, only: deallocate_comms_linear
   use communications, only: transpose_localized, untranspose_localized
   use constrained_dft
-  use sparsematrix_base, only: sparsematrix_malloc, DENSE_PARALLEL, assignment(=), &
-                               deallocate_sparse_matrix, deallocate_matrices
+  use sparsematrix_base, only: sparsematrix_malloc, sparsematrix_malloc_ptr, DENSE_PARALLEL, SPARSE_FULL, &
+                               assignment(=), deallocate_sparse_matrix, deallocate_matrices
   use sparsematrix, only: compress_matrix_distributed, uncompress_matrix_distributed
   implicit none
 
@@ -717,7 +719,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(cdft_data), intent(inout) :: cdft
 
   ! Local variables
-  integer :: ndim_old, ndim, iorb, iiorb, ilr, ilr_old, iiat, methTransformOverlap, infoCoeff
+  integer :: ndim_old, ndim, iorb, iiorb, ilr, ilr_old, iiat, methTransformOverlap, infoCoeff, ispin
   logical:: overlap_calculated
   real(wp), allocatable, dimension(:) :: norm
   type(fragment_transformation), dimension(:), pointer :: frag_trans
@@ -800,8 +802,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   else if (input%FOE_restart==RESTART_REFORMAT) then
       ! Extract to a dense format, since this is independent of the sparsity pattern
       kernelp = sparsematrix_malloc(tmb%linmat%l, iaction=DENSE_PARALLEL, id='kernelp')
-      call uncompress_matrix_distributed(iproc, tmb_old%linmat%l, tmb_old%linmat%kernel_%matrix_compr, kernelp)
-      call compress_matrix_distributed(iproc, tmb%linmat%l, kernelp, tmb%linmat%kernel_%matrix_compr)
+      call uncompress_matrix_distributed(iproc, tmb_old%linmat%l, DENSE_PARALLEL, tmb_old%linmat%kernel_%matrix_compr, kernelp)
+      call compress_matrix_distributed(iproc, tmb%linmat%l, DENSE_PARALLEL, kernelp, tmb%linmat%kernel_%matrix_compr)
       call f_free(kernelp)
   end if
           !!write(*,*) 'after vcopy, iproc',iproc
@@ -842,7 +844,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        ! normalize psi
        norm = f_malloc(tmb%orbs%norb,id='norm')
 
-       call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
+       call normalize_transposed(iproc, nproc, tmb%orbs, input%nspin, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
 
        call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
             tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
@@ -1015,13 +1017,15 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
        ! Transform the old overlap matrix to the new sparsity format, by going via the full format.
        ovrlpp = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_PARALLEL, id='ovrlpp')
-       call uncompress_matrix_distributed(iproc, tmb_old%linmat%s, tmb_old%linmat%ovrlp_%matrix_compr, ovrlpp)
+       call uncompress_matrix_distributed(iproc, tmb_old%linmat%s, DENSE_PARALLEL, tmb_old%linmat%ovrlp_%matrix_compr, ovrlpp)
 
        ! Allocate the matrix with the new sparsity pattern
        call f_free_ptr(tmb_old%linmat%ovrlp_%matrix_compr)
-       tmb_old%linmat%ovrlp_%matrix_compr = f_malloc_ptr(tmb%linmat%s%nvctr,id='tmb_old%linmat%ovrlp_%matrix_compr')
+       !tmb_old%linmat%ovrlp_%matrix_compr = f_malloc_ptr(tmb%linmat%s%nvctr,id='tmb_old%linmat%ovrlp_%matrix_compr')
+       tmb_old%linmat%ovrlp_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s,iaction=SPARSE_FULL, &
+                                                                    id='tmb_old%linmat%ovrlp_%matrix_compr')
 
-       call compress_matrix_distributed(iproc, tmb%linmat%s, ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr)
+       call compress_matrix_distributed(iproc, tmb%linmat%s, DENSE_PARALLEL, ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr)
        call f_free(ovrlpp)
        call renormalize_kernel(iproc, nproc, input%lin%order_taylor, max_inversion_error, tmb, &
             tmb%linmat%ovrlp_, tmb_old%linmat%ovrlp_)
@@ -1050,11 +1054,21 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   call f_free_ptr(tmb_old%psi)
   call f_free_ptr(tmb_old%linmat%kernel_%matrix_compr)
 
+  if (associated(tmb_old%linmat%ks)) then
+      do ispin=1,tmb_old%linmat%l%nspin
+          call deallocate_sparse_matrix(tmb_old%linmat%ks(ispin))
+      end do
+      deallocate(tmb_old%linmat%ks)
+  end if
+  if (associated(tmb_old%linmat%ks_e)) then
+      do ispin=1,tmb_old%linmat%l%nspin
+          call deallocate_sparse_matrix(tmb_old%linmat%ks_e(ispin))
+      end do
+      deallocate(tmb_old%linmat%ks_e)
+  end if
   call deallocate_sparse_matrix(tmb_old%linmat%s)
   call deallocate_sparse_matrix(tmb_old%linmat%m)
   call deallocate_sparse_matrix(tmb_old%linmat%l)
-  call deallocate_sparse_matrix(tmb_old%linmat%ks)
-  call deallocate_sparse_matrix(tmb_old%linmat%ks_e)
   call deallocate_matrices(tmb_old%linmat%ham_)
   call deallocate_matrices(tmb_old%linmat%ovrlp_)
   call deallocate_matrices(tmb_old%linmat%kernel_)
@@ -1076,7 +1090,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
            tmb%orbs, tmb%psi, tmb%collcom_sr)
       !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
            denspot%rhov, rho_negative)
      if (rho_negative) then
          call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
@@ -1184,7 +1198,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
                  tmb%orbs, tmb%psi, tmb%collcom_sr)
             !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
             call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-                 tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+                 tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
                  denspot%rhov, rho_negative)
            if (rho_negative) then
                call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
@@ -2188,7 +2202,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! normalize psi
      norm = f_malloc(tmb%orbs%norb,id='norm')
 
-     call normalize_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
+     call normalize_transposed(iproc, nproc, tmb%orbs, in%nspin, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
 
      call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
           tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
@@ -2308,7 +2322,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-          tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+          tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
           denspot%rhov, rho_negative)
      if (rho_negative) then
          if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')

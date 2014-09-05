@@ -744,6 +744,7 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
   sparsemat_out%nfvctr = sparsemat_in%nfvctr
   sparsemat_out%nfvctrp = sparsemat_in%nfvctrp
   sparsemat_out%isfvctr = sparsemat_in%isfvctr
+  sparsemat_out%nspin = sparsemat_in%nspin
   sparsemat_out%parallel_compression = sparsemat_in%parallel_compression
 
   if(associated(sparsemat_out%nvctr_par)) then
@@ -902,8 +903,6 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
 
   sparsemat_out%smmm%nout = sparsemat_in%smmm%nout
   sparsemat_out%smmm%nseq = sparsemat_in%smmm%nseq
-  sparsemat_out%smmm%nmaxsegk = sparsemat_in%smmm%nmaxsegk
-  sparsemat_out%smmm%nmaxvalk = sparsemat_in%smmm%nmaxvalk
   sparsemat_out%smmm%nseg = sparsemat_in%smmm%nseg
   
   if(associated(sparsemat_out%smmm%ivectorindex)) then
@@ -999,17 +998,37 @@ end subroutine sparse_copy_pattern
 
 subroutine copy_linear_matrices(linmat_in, linmat_out)
   use module_types
+  use sparsematrix_base, only: sparse_matrix_null
   implicit none
 
   ! Calling arguments
   type(linear_matrices),intent(in) :: linmat_in
   type(linear_matrices),intent(out) :: linmat_out
 
+  ! Local variables
+  integer :: ispin
+
   call copy_sparse_matrix(linmat_in%s, linmat_out%s)
   call copy_sparse_matrix(linmat_in%m, linmat_out%m)
   call copy_sparse_matrix(linmat_in%l, linmat_out%l)
-  call copy_sparse_matrix(linmat_in%ks, linmat_out%ks)
-  call copy_sparse_matrix(linmat_in%ks_e, linmat_out%ks_e)
+  if (associated(linmat_in%ks)) then
+      allocate(linmat_out%ks(linmat_in%l%nspin))
+      do ispin=1,linmat_in%l%nspin
+          linmat_out%ks(ispin) = sparse_matrix_null()
+          call copy_sparse_matrix(linmat_in%ks(ispin), linmat_out%ks(ispin))
+      end do
+  else
+      nullify(linmat_out%ks)
+  end if
+  if (associated(linmat_in%ks_e)) then
+      allocate(linmat_out%ks_e(linmat_in%l%nspin))
+      do ispin=1,linmat_in%l%nspin
+          linmat_out%ks_e(ispin) = sparse_matrix_null()
+          call copy_sparse_matrix(linmat_in%ks_e(ispin), linmat_out%ks_e(ispin))
+      end do
+  else
+      nullify(linmat_out%ks_e)
+  end if
   call copy_matrices(linmat_in%ham_, linmat_out%ham_)
   call copy_matrices(linmat_in%ovrlp_, linmat_out%ovrlp_)
   call copy_matrices(linmat_in%kernel_, linmat_out%kernel_)
@@ -1036,6 +1055,7 @@ subroutine copy_sparse_matrix(smat_in, smat_out)
   smat_out%nfvctr = smat_in%nfvctr
   smat_out%nfvctrp = smat_in%nfvctrp
   smat_out%isfvctr = smat_in%isfvctr
+  smat_out%nspin = smat_in%nspin
   smat_out%store_index = smat_in%store_index
   smat_out%can_use_dense = smat_in%store_index
 
@@ -1074,8 +1094,6 @@ subroutine copy_sparse_matrix_matrix_multiplication(smmm_in, smmm_out)
   type(sparse_matrix_matrix_multiplication),intent(out) :: smmm_out
   smmm_out%nout = smmm_in%nout
   smmm_out%nseq = smmm_in%nseq
-  smmm_out%nmaxsegk = smmm_in%nmaxsegk
-  smmm_out%nmaxvalk = smmm_in%nmaxvalk
   smmm_out%nseg = smmm_in%nseg
 
   call allocate_and_copy(smmm_in%ivectorindex, smmm_out%ivectorindex, id='ivectorindex')

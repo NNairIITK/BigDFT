@@ -113,14 +113,14 @@ subroutine kswfn_mpi_copy(psic, jproc, psiStart, psiSize)
 END SUBROUTINE kswfn_mpi_copy
 
 
-subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc)
+subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc, nspin, imethod_overlap)
   use module_types
   use module_interfaces, except_this_one => kswfn_init_comm
   use communications_base, only: comms_linear_null
   use communications_init, only: init_comms_linear, init_comms_linear_sumrho, &
                                  initialize_communication_potential
   implicit none
-  integer, intent(in) :: iproc, nproc
+  integer, intent(in) :: iproc, nproc, nspin, imethod_overlap
   type(DFT_wavefunction), intent(inout) :: wfn
   type(denspot_distribution), intent(in) :: dpbox
 
@@ -134,15 +134,15 @@ subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc)
   nullify(wfn%gaucoeffs)
 
   call initialize_communication_potential(iproc, nproc, dpbox%nscatterarr, &
-       & wfn%orbs, wfn%lzd, wfn%comgp)
+       & wfn%orbs, wfn%lzd, dpbox%nrhodim, wfn%comgp)
 
   !call nullify_comms_linear(wfn%collcom)
   !call nullify_comms_linear(wfn%collcom_sr)
   wfn%collcom=comms_linear_null()
   wfn%collcom_sr=comms_linear_null()
 
-  call init_comms_linear(iproc, nproc, wfn%npsidim_orbs, wfn%orbs, wfn%lzd, wfn%collcom)
-  call init_comms_linear_sumrho(iproc, nproc, wfn%lzd, wfn%orbs, dpbox%nscatterarr, wfn%collcom_sr)
+  call init_comms_linear(iproc, nproc, imethod_overlap, wfn%npsidim_orbs, wfn%orbs, wfn%lzd, nspin, dpbox%nscatterarr, wfn%collcom)
+  call init_comms_linear_sumrho(iproc, nproc, wfn%lzd, wfn%orbs, nspin, dpbox%nscatterarr, wfn%collcom_sr)
 
 END SUBROUTINE kswfn_init_comm
 

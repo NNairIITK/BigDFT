@@ -9,8 +9,10 @@
 subroutine f_memcpy_i0(dest,src,n)
   implicit none
   integer, intent(in) :: n !<nelems
-  integer, intent(inout) :: dest !<destination buffer address
-  integer, intent(inout) :: src !<source buffer address
+  integer :: dest !<destination buffer address
+  integer :: src !<source buffer address
+!!$  integer, intent(inout) :: dest !<destination buffer address
+!!$  integer, intent(inout) :: src !<source buffer address
   !local variables
   integer :: ns,nd
   ns=n
@@ -32,8 +34,10 @@ end subroutine f_memcpy_i1
 subroutine f_memcpy_d0(dest,src,n)
   implicit none
   integer, intent(in) :: n !<nelems
-  double precision, intent(inout) :: dest !<destination buffer address
-  double precision, intent(inout) :: src !<source buffer address
+  double precision :: dest !<destination buffer address
+  double precision :: src !<source buffer address
+!!$  double precision, intent(inout) :: dest !<destination buffer address
+!!$  double precision, intent(inout) :: src !<source buffer address
   !local variables
   integer :: ns,nd
   ns=n
@@ -89,8 +93,10 @@ end subroutine f_memcpy_d2d1
 subroutine f_memcpy_r0(dest,src,n)
   implicit none
   integer, intent(in) :: n !<nelems
-  real, intent(inout) :: dest !<destination buffer address
-  real, intent(inout) :: src !<source buffer address
+  real :: dest !<destination buffer address
+  real :: src !<source buffer address
+!!$  real, intent(inout) :: dest !<destination buffer address
+!!$  real, intent(inout) :: src !<source buffer address
   !local variables
   integer :: ns,nd
   ns=n
@@ -101,8 +107,10 @@ end subroutine f_memcpy_r0
 subroutine f_memcpy_l0(dest,src,n)
   implicit none
   integer, intent(in) :: n !<nelems
-  logical, intent(inout) :: dest !<destination buffer address
-  logical, intent(inout) :: src !<source buffer address
+  logical :: dest !<destination buffer address
+  logical :: src !<source buffer address
+!!$  logical, intent(inout) :: dest !<destination buffer address
+!!$  logical, intent(inout) :: src !<source buffer address
   !local variables
   integer :: ns,nd
   ns=n

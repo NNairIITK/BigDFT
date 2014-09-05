@@ -10,6 +10,7 @@
 
 !> Test the overlapgeneral routine
 program driver
+  use bigdft_run
   use module_base
   use module_types
   use module_interfaces
@@ -55,10 +56,11 @@ program driver
 
   ! Initialize
   call f_lib_initialize()
-  call bigdft_init(mpi_info,nconfig,run_id,ierr)
+
+  call bigdft_init()!mpi_info,nconfig,run_id,ierr)
   !just for backward compatibility
-  iproc=mpi_info(1)
-  nproc=mpi_info(2)
+  iproc=bigdft_mpi%iproc!mpi_info(1)
+  nproc=bigdft_mpi%nproc!mpi_info(2)
 
 
   if (iproc==0) then
@@ -181,7 +183,7 @@ program driver
   inv_mat_B = matrices_null()
 
   call allocate_matrices(smat_A, allocate_full=.true., matname='mat_A', mat=mat_A)
-  call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1), 1)
+  call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1,1), 1)
   call compress_matrix(iproc, smat_A, inmat=mat_A%matrix, outmat=mat_A%matrix_compr)
   call allocate_matrices(smat_B, allocate_full=.true., matname='inv_mat_B', mat=inv_mat_B)
   ! uncomment for sparse and dense modes to be testing the same matrix
@@ -241,7 +243,7 @@ program driver
       if (iproc==0) call yaml_map('Can perform this test',perform_check)
       if (.not.perform_check) cycle
       if (imode==DENSE) then
-          call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1), 1)
+          call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1,1), 1)
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
           call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, &
@@ -253,7 +255,7 @@ program driver
           if (timer_on) time2=dble(ncount2-ncount1)/dble(ncount_rate)
           call compress_matrix(iproc, smat_B, inmat=inv_mat_B%matrix, outmat=inv_mat_B%matrix_compr)
       else if (imode==SPARSE) then
-          call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1), 1)
+          call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1,1), 1)
           call compress_matrix(iproc, smat_A, inmat=mat_A%matrix, outmat=mat_A%matrix_compr)
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
@@ -452,7 +454,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   type(sparse_matrix) :: smat
 
   ! Local variables
-  integer :: nnonzero
+  integer :: nnonzero, nspin, norbu, norbup, isorbu
   integer,dimension(:),allocatable :: nvctr_per_segment
   integer ,dimension(:),pointer :: nonzero
 
@@ -489,10 +491,15 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   call init_nonzero_arrays(norbp, isorb, smat, nnonzero, nonzero)
 
   call deallocate_sparse_matrix(smat)
-  call init_sparse_matrix(iproc, nproc, norb, norbp, isorb, .false., &
+
+  ! for the moment no spin polarization
+  nspin=1
+  norbu=norb
+  norbup=norbp
+  isorbu=isorb
+  call init_sparse_matrix(iproc, nproc, nspin, norb, norbp, isorb, norbu, norbup, isorbu, .false., &
              nnonzero, nonzero, nnonzero, nonzero, smat, allocate_full_=.true.)
   call f_free_ptr(nonzero)
-
 
   call f_free(nvctr_per_segment)
 

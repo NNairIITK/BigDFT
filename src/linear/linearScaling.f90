@@ -62,18 +62,23 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer :: ldiis_coeff_hist, nitdmin
   logical :: ldiis_coeff_changed
   integer :: mix_hist, info_basis_functions, nit_scc, cur_it_highaccuracy
-  real(kind=8) :: pnrm_out, alpha_mix, ratio_deltas, convcrit_dmin
+  real(kind=8) :: pnrm_out, alpha_mix, ratio_deltas, convcrit_dmin, tt1, tt2
   logical :: lowaccur_converged, exit_outer_loop
   real(kind=8),dimension(:),allocatable :: locrad
   integer:: target_function, nit_basis
   
   real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB, best_charge_diff, cdft_charge_thresh
   real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
-  integer :: jorb, cdft_it, nelec, iat, ityp, norder_taylor
+  integer :: jorb, cdft_it, nelec, iat, ityp, norder_taylor, ispin, ishift
   integer :: dmin_diag_it, dmin_diag_freq, ioffset
   logical :: reorder, rho_negative
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
   type(matrices) :: weight_matrix_
+
+  real(8),dimension(:),allocatable :: rho_tmp
+  real(8) :: tt, ddot
+
+  !!rho_tmp = f_malloc(size(denspot%rhov),id='rho_tmp')
 
   call timing(iproc,'linscalinit','ON') !lr408t
 
@@ -147,15 +152,21 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
             *input%nspin, denspot%rhov(1), 1, rhopotOld(1), 1)
   end if
 
-  if (iproc==0) call yaml_mapping_open('Checking Communications of Minimal Basis')
-  call check_communications_locreg(iproc,nproc,tmb%orbs,tmb%Lzd,tmb%collcom, &
-       tmb%npsidim_orbs,tmb%npsidim_comp)
-  if (iproc==0) call yaml_mapping_close()
 
-  if (iproc==0) call yaml_mapping_open('Checking Communications of Enlarged Minimal Basis')
-  call check_communications_locreg(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,tmb%ham_descr%collcom, &
-       tmb%ham_descr%npsidim_orbs,tmb%ham_descr%npsidim_comp)
-  if (iproc ==0) call yaml_mapping_close()
+  !!!! These tests are already done in cluster, keep them for consitency with the test references
+  !!!if (iproc==0) call yaml_mapping_open('Checking Communications of Minimal Basis')
+  !!!call check_communications_locreg(iproc,nproc,tmb%orbs,input%nspin,tmb%lzd, &
+  !!!     tmb%collcom,tmb%linmat%s,tmb%linmat%ovrlp_, &
+  !!!     tmb%npsidim_orbs,tmb%npsidim_comp)
+  !!!if (iproc==0) call yaml_mapping_close()
+  !!!write(*,*) 'after 1st check, sums', sum(tmb%linmat%ovrlp_%matrix_compr), sum(tmb%linmat%kernel_%matrix_compr)
+
+  !!!if (iproc==0) call yaml_mapping_open('Checking Communications of Enlarged Minimal Basis')
+  !!!call check_communications_locreg(iproc,nproc,tmb%orbs,input%nspin,tmb%ham_descr%lzd, &
+  !!!     tmb%ham_descr%collcom,tmb%linmat%m,tmb%linmat%ham_, &
+  !!!     tmb%ham_descr%npsidim_orbs,tmb%ham_descr%npsidim_comp)
+  !!!if (iproc ==0) call yaml_mapping_close()
+  !!!write(*,*) 'after 2nd check, sums', sum(tmb%linmat%ovrlp_%matrix_compr), sum(tmb%linmat%kernel_%matrix_compr)
 
 
   ! CDFT: calculate w_ab here given w(r)
@@ -220,7 +231,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   if (input%lin%diag_start .and. input%inputPsiId==INPUT_PSI_DISK_LINEAR) then
      ! Calculate the charge density.
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-          tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+          tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
           denspot%rhov, rho_negative)
      if (rho_negative) then
          call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
@@ -618,7 +629,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              ! CDFT: this is the real energy here as we subtracted the constraint term from the Hamiltonian before calculating ebs
              ! Calculate the total energy.
-             !if(iproc==0) print *,'energs',energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
+             !if(iproc==0) write(*,'(a,7es14.6)') 'energs', &
+             !    energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
              energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
              energyDiff=energy-energyold
              energyold=energy
@@ -650,7 +662,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              end if
              call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                   tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, &
-                  KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+                  denspot%dpbox%ndimrhopot, &
                   denspot%rhov, rho_negative)
              if (rho_negative) then
                  call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
@@ -677,10 +689,25 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              ! Mix the density.
              if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
                 ! use it_scc+1 since we already have the density from the input guess as iteration 1
+                !!rho_tmp=denspot%rhov
                 call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0-alpha_mix,denspot%mix,&
                      denspot%rhov,it_scc+1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                      at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                      pnrm,denspot%dpbox%nscatterarr)
+                 !!rho_tmp=rho_tmp-denspot%rhov
+                 !!tt=ddot(size(rho_tmp),rho_tmp,1,rho_tmp,1)
+                 !!call mpiallred(tt,1,mpi_sum,bigdft_mpi%mpi_comm)
+                 !!tt=tt/dble(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%ndims(3))
+                 !!if (iproc==0) write(*,*) 'delta rho',tt
+                     !!write(*,*) 'after mix_rhopot 1.1: pnrm', pnrm
+                !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+                !write(*,*) 'old pnrm',pnrm
+                !!tt1=sum(denspot%dpbox%nscatterarr(:,1))
+                !!tt2=sum(denspot%dpbox%nscatterarr(:,2))
+                !!pnrm = pnrm*sqrt(tt2/tt1)
+                pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
+                     !!write(*,*) 'after mix_rhopot 1.2: pnrm', pnrm
+                !write(*,*) 'new pnrm',pnrm
                 call check_negative_rho(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
                      denspot%rhov, rho_negative)
                 if (rho_negative) then
@@ -692,15 +719,24 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    ! ioffset is the buffer which is present for GGA calculations
                    ioffset=KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%i3xcsh
                    pnrm_out=0.d0
-                   do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
-                      pnrm_out=pnrm_out+(denspot%rhov(ioffset+i)-rhopotOld_out(ioffset+i))**2
+                   do ispin=1,input%nspin
+                       ! ishift gives the start of the spin down component
+                       ishift=(ispin-1)*KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d 
+                       do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+                          pnrm_out=pnrm_out+(denspot%rhov(ishift+ioffset+i)-rhopotOld_out(ishift+ioffset+i))**2
+                       end do
                    end do
+                   ! To make the residue for the polarized and non-polarized case analogous
+                   if (input%nspin==2) then
+                       pnrm_out = pnrm_out*2.d0
+                   end if
 
                    if (nproc > 1) then
                       call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm)
                    end if
+                   !pnrm_out = pnrm_out/dble(input%nspin)
 
-                   pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
+                   pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i)
                    !only want to copy across when CDFT loop has also converged
                    if (.not. input%lin%constrained_dft .or. (ebs-cdft%charge < cdft_charge_thresh)) then
                       call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
@@ -726,8 +762,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              ! update occupations wrt eigenvalues (NB for directmin these aren't guaranteed to be true eigenvalues)
              ! switch off for FOE at the moment
              if (input%lin%scf_mode/=LINEAR_FOE) then
-                call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
-                call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
+                 !call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
+                 ! Copy the spin up eigenvalues (or all in the case of a non-polarized calculation)
+                 call vcopy(kswfn%orbs%norbu,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
+                 if (input%nspin==2) then
+                     ! Copy the spin down eigenvalues
+                     call vcopy(kswfn%orbs%norbd,tmb%orbs%eval(tmb%linmat%l%nfvctr+1),1,kswfn%orbs%eval(kswfn%orbs%norbu+1),1)
+                 end if
+                 ! Keep the ocupations for the moment.. maybe to be activated later (with a better if statement)
+                 if (input%Tel > 0.0_gp) then
+                     call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
+                 end if
                 if (bigdft_mpi%iproc ==0) then 
                    call write_eigenvalues_data(0.1d0,kswfn%orbs,mom_vec_fake)
                 end if
@@ -739,21 +784,33 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                      denspot%rhov,it_scc+1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                      at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                      pnrm,denspot%dpbox%nscatterarr)
+                    !write(*,*) 'after mix_rhopot 1.1: pnrm', pnrm
+
+                !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+                pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
+                    !write(*,*) 'after mix_rhopot 1.2: pnrm', pnrm
                 if (pnrm<convCritMix .or. it_scc==nit_scc) then
                    ! calculate difference in density for convergence criterion of outer loop
+                   ! There is no ioffset (unlike to the case of density mixing)
+                   ! since also for GGA calculations there is no offset for the potential
                    pnrm_out=0.d0
-                   ! for the potential no buffers are present
-                   !ioffset=KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%i3xcsh
-                   ioffset=0
-                   do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
-                      pnrm_out=pnrm_out+(denspot%rhov(i+ioffset)-rhopotOld_out(i+ioffset))**2
+                   do ispin=1,input%nspin
+                       ! ishift gives the start of the spin down component
+                       ishift=(ispin-1)*KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p 
+                       do i=1,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3p
+                          pnrm_out=pnrm_out+(denspot%rhov(ishift+i)-rhopotOld_out(ishift+i))**2
+                       end do
                    end do
+                   ! To make the residue for the polarized and non-polarized case analogous
+                   if (input%nspin==2) then
+                       pnrm_out = pnrm_out*2.d0
+                   end if
 
                    if (nproc > 1) then
                       call mpiallred(pnrm_out, 1, mpi_sum, bigdft_mpi%mpi_comm)
                    end if
 
-                   pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*input%nspin)
+                   pnrm_out=sqrt(pnrm_out)/(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i)!)*input%nspin)
                    !only want to copy across when CDFT loop has also converged
                    if (.not. input%lin%constrained_dft .or. (ebs-cdft%charge < cdft_charge_thresh)) then
                       call vcopy(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, &
@@ -776,14 +833,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  if (iproc==0) then
                      !yaml output
                      !call yaml_mapping_close() !iteration
-                     call bigdft_utils_flush(unit=6)
+                    call yaml_flush_document()
+                    !call bigdft_utils_flush(unit=6)
                  end if
                  exit
              else if (pnrm<convCritMix.and.input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
                  if (iproc==0) then
                      !yaml output
                      !call yaml_mapping_close() !iteration
-                     call bigdft_utils_flush(unit=6)
+                    call yaml_flush_document()
+                    !call bigdft_utils_flush(unit=6)
                  end if
                 exit
              !else if (pnrm<convCritMix.and.reorder) then
@@ -798,7 +857,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              if (iproc==0) then
                  !yaml output
                  !call yaml_mapping_close() !iteration
-                 call bigdft_utils_flush(unit=6)
+                call yaml_flush_document()
+                ! call bigdft_utils_flush(unit=6)
              end if
 
          end do kernel_loop
@@ -815,7 +875,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              call yaml_comment('iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
              call printSummary()
              call yaml_mapping_close() !iteration
-             call bigdft_utils_flush(unit=6)
+             call yaml_flush_document()
+             !call bigdft_utils_flush(unit=6)
          end if
 
           ! Close sequence for the optimization steps
@@ -1078,13 +1139,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      enddo
      call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
           max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff)
-     call write_linear_matrices(iproc,nproc,trim(input%dir_output),input%lin%plotBasisFunctions,tmb,at,rxyz)
+     call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
+          input%lin%plotBasisFunctions,tmb,at,rxyz,denspot)
   end if
 
 
   ! check why this is here!
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
        denspot%rhov, rho_negative)
   if (rho_negative) then
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
@@ -1403,7 +1465,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           end if
        end if
 
-    call bigdft_utils_flush(unit=6)
+       call yaml_flush_document()
+       !call bigdft_utils_flush(unit=6)
     call yaml_sequence_close()
 
 
@@ -1446,7 +1509,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
            denspot%rhov, rho_negative)
       if (rho_negative) then
           call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
@@ -1459,6 +1522,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       !call vcopy(max(denspot%dpbox%ndimrhopot,denspot%dpbox%nrhodim),&
       !     denspot%rhov(1),1,denspot%rho_work(1),1)
       call vcopy(denspot%dpbox%ndimpot,denspot%rhov(ioffset+1),1,denspot%rho_work(1),1)
+      if (denspot%dpbox%nrhodim==2) then
+          call axpy(denspot%dpbox%ndimpot,1.d0,denspot%rhov(ioffset+denspot%dpbox%ndimpot+1),1,denspot%rho_work(1),1)
+      end if
+
       call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
 
       ! Density already present in denspot%rho_work

@@ -1020,6 +1020,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
 !!$       rho_buf = rho
 !!$     endif  
 
+
      do ispin=1,nspin
         call MPI_ALLGATHERV(rho(1,1,1,ispin),n1i*n2i*n3p,&
              mpidtypd,ele_rho(1,1,1,ispin),box%ngatherarr(0,1),&
@@ -1227,6 +1228,8 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
   if(box%mpi_env%iproc + box%mpi_env%igroup==0) then
      !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
+     !write(*,*) 'dipole_cores', dipole_cores
+     !write(*,*) 'dipole_el', dipole_el
      tmpdip=dipole_cores+dipole_el
      call yaml_mapping_open('Electric Dipole Moment (AU)')
        call yaml_map('P vector',tmpdip(1:3),fmt='(1pe13.4)')

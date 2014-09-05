@@ -927,7 +927,7 @@ END SUBROUTINE writeLinearCoefficients
 
 
 !> Write Hamiltonian, overlap and kernel matrices in tmb basis
-subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
+subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tmb,at,rxyz,denspot)
   use module_types
   use module_base
   use yaml_output
@@ -935,13 +935,14 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
   use sparsematrix, only: uncompress_matrix
   implicit none
-  integer, intent(in) :: iproc,nproc,iformat
+  integer, intent(in) :: iproc,nproc,imethod_overlap,iformat
   character(len=*), intent(in) :: filename 
   type(DFT_wavefunction), intent(inout) :: tmb
   type(atoms_data), intent(inout) :: at
   real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz
+  type(DFT_local_fields), intent(in) :: denspot
 
-  integer :: iorb, jorb, iat, jat
+  integer :: ispin, iorb, jorb, iat, jat
   !!integer :: i_stat, i_all
   character(len=*),parameter :: subname='write_linear_matrices'
 
@@ -958,15 +959,17 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
      call uncompress_matrix(iproc, tmb%linmat%m, &
           inmat=tmb%linmat%ham_%matrix_compr, outmat=tmb%linmat%ham_%matrix)
 
-     do iorb=1,tmb%linmat%m%nfvctr
-        iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%m%nfvctr
-           jat=tmb%orbs%onwhichatom(jorb)
-           if (iformat == WF_FORMAT_PLAIN) then
-              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb),iat,jat
-           else
-              write(99) iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb),iat,jat
-           end if
+     do ispin=1,tmb%linmat%m%nspin
+        do iorb=1,tmb%linmat%m%nfvctr
+           iat=tmb%orbs%onwhichatom(iorb)
+           do jorb=1,tmb%linmat%m%nfvctr
+              jat=tmb%orbs%onwhichatom(jorb)
+              if (iformat == WF_FORMAT_PLAIN) then
+                 write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb,ispin),iat,jat
+              else
+                 write(99) iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb,ispin),iat,jat
+              end if
+           end do
         end do
      end do
 
@@ -988,15 +991,17 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
      call uncompress_matrix(iproc, tmb%linmat%s, &
           inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
 
-     do iorb=1,tmb%linmat%s%nfvctr
-        iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%s%nfvctr
-           jat=tmb%orbs%onwhichatom(jorb)
-           if (iformat == WF_FORMAT_PLAIN) then
-              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb),iat,jat
-           else
-              write(99) iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb),iat,jat
-           end if
+     do ispin=1,tmb%linmat%s%nspin
+        do iorb=1,tmb%linmat%s%nfvctr
+           iat=tmb%orbs%onwhichatom(iorb)
+           do jorb=1,tmb%linmat%s%nfvctr
+              jat=tmb%orbs%onwhichatom(jorb)
+              if (iformat == WF_FORMAT_PLAIN) then
+                 write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
+              else
+                 write(99) iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
+              end if
+           end do
         end do
      end do
 
@@ -1014,22 +1019,23 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'density_kernel.bin', status='unknown',form='unformatted')
      end if
 
-     tmb%linmat%kernel_%matrix=f_malloc_ptr((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr/),&
-         id='tmb%linmat%kernel_%matrix')
+     tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=DENSE_FULL,id='tmb%linmat%kernel_%matrix')
 
 
      call uncompress_matrix(iproc,tmb%linmat%l, &
           inmat=tmb%linmat%kernel_%matrix_compr, outmat=tmb%linmat%kernel_%matrix)
 
-     do iorb=1,tmb%linmat%l%nfvctr
-        iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%l%nfvctr
-           jat=tmb%orbs%onwhichatom(jorb)
-           if (iformat == WF_FORMAT_PLAIN) then
-              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%kernel_%matrix(iorb,jorb),iat,jat
-           else
-              write(99) iorb,jorb,tmb%linmat%kernel_%matrix(iorb,jorb),iat,jat
-           end if
+     do ispin=1,tmb%linmat%l%nspin
+        do iorb=1,tmb%linmat%l%nfvctr
+           iat=tmb%orbs%onwhichatom(iorb)
+           do jorb=1,tmb%linmat%l%nfvctr
+              jat=tmb%orbs%onwhichatom(jorb)
+              if (iformat == WF_FORMAT_PLAIN) then
+                 write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%kernel_%matrix(iorb,jorb,ispin),iat,jat
+              else
+                 write(99) iorb,jorb,tmb%linmat%kernel_%matrix(iorb,jorb,ispin),iat,jat
+              end if
+           end do
         end do
      end do
 
@@ -1046,7 +1052,7 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
   tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, &
                              id='tmb%linmat%ovrlp_%matrix')
 
-  call tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
+  call tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz, denspot)
   !call tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
 
   if (iproc==0) then
@@ -1056,15 +1062,17 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
         open(99, file=filename//'overlap_onsite.bin', status='unknown',form='unformatted')
      end if
 
-     do iorb=1,tmb%linmat%l%nfvctr
-        iat=tmb%orbs%onwhichatom(iorb)
-        do jorb=1,tmb%linmat%l%nfvctr
-           jat=tmb%orbs%onwhichatom(jorb)
-           if (iformat == WF_FORMAT_PLAIN) then
-              write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb),iat,jat
-           else
-              write(99) iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb),iat,jat
-           end if
+     do ispin=1,tmb%linmat%l%nspin
+        do iorb=1,tmb%linmat%l%nfvctr
+           iat=tmb%orbs%onwhichatom(iorb)
+           do jorb=1,tmb%linmat%l%nfvctr
+              jat=tmb%orbs%onwhichatom(jorb)
+              if (iformat == WF_FORMAT_PLAIN) then
+                 write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
+              else
+                 write(99) iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
+              end if
+           end do
         end do
      end do
 
@@ -1080,7 +1088,7 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
 end subroutine write_linear_matrices
 
 
-subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
+subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz, denspot)
 
   use module_base
   use module_types
@@ -1092,10 +1100,11 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc
+  integer,intent(in) :: iproc, nproc, imethod_overlap
   type(atoms_data), intent(inout) :: at
   type(DFT_wavefunction),intent(in):: tmb
   real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz
+  type(DFT_local_fields), intent(in) :: denspot
 
   ! Local variables
   logical :: reformat
@@ -1238,7 +1247,8 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
 
   !call nullify_comms_linear(collcom_tmp)
   collcom_tmp=comms_linear_null()
-  call init_comms_linear(iproc, nproc, ndim_tmp, tmb%orbs, lzd_tmp, collcom_tmp)
+  call init_comms_linear(iproc, nproc, imethod_overlap, ndim_tmp, tmb%orbs, lzd_tmp, &
+       tmb%linmat%m%nspin, denspot%dpbox%nscatterarr, collcom_tmp)
 
   psit_c_tmp = f_malloc_ptr(sum(collcom_tmp%nrecvcounts_c),id='psit_c_tmp')
   psit_f_tmp = f_malloc_ptr(7*sum(collcom_tmp%nrecvcounts_f),id='psit_f_tmp')
@@ -1248,7 +1258,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
 
   ! normalize psi
   norm = f_malloc_ptr(tmb%orbs%norb,id='norm')
-  call normalize_transposed(iproc, nproc, tmb%orbs, collcom_tmp, psit_c_tmp, psit_f_tmp, norm)
+  call normalize_transposed(iproc, nproc, tmb%orbs, tmb%linmat%s%nspin, collcom_tmp, psit_c_tmp, psit_f_tmp, norm)
   call f_free_ptr(norm)
 
   call calculate_pulay_overlap(iproc, nproc, tmb%orbs, tmb%orbs, collcom_tmp, collcom_tmp, &

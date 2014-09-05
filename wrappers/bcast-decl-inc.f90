@@ -10,8 +10,12 @@
   integer, intent(in), optional :: count 
   integer, intent(in), optional :: root  
   integer, intent(in), optional :: comm  
+  logical, intent(in), optional :: check
   !local variables
+  logical chk
   integer :: n,iroot,mpi_comm,ierr
   external :: MPI_BCAST
+
+  chk=.false.
   n=1
   if (present(count)) n=count

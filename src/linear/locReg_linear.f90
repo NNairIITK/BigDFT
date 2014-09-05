@@ -33,6 +33,8 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
   integer :: nseg_c,nseg_f,nvctr_c,nvctr_f      ! total number of sgements and elements
   character(len=*), parameter :: subname='determine_wfd_periodicity'
 
+  call f_routine(id='determine_wfd_periodicity')
+
    !starting point of locreg (always inside locreg)
    isdir(1) = Llr(ilr)%ns1
    isdir(2) = Llr(ilr)%ns2
@@ -133,6 +135,8 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
         Llr(ilr)%wfd%keyvglob(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
         Llr(ilr)%outofzone(:))
 
+   call f_release_routine()
+
 END SUBROUTINE determine_wfd_periodicity
 
 
@@ -195,6 +199,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
      xperiodic = .false.
      yperiodic = .false.
      zperiodic = .false. 
+
 
      if(calculateBounds(ilr)) then 
          ! This makes sure that each locreg is only handled once by one specific processor.
@@ -390,6 +395,10 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
      ! Communicate those parts of the locregs that all processes need.
      call communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
 
+     !do ilr=1,nlr
+     !    write(*,*) 'iproc, nseg_c', iproc, llr(ilr)%wfd%nseg_c
+     !end do
+
      ! Now communicate those parts of the locreg that only some processes need (the keys).
      ! For this we first need to create orbsder that describes the derivatives.
      !call create_orbsder()
@@ -428,42 +437,44 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
   call f_free(onwhichmpi)
   call f_release_routine()
 
-contains 
+!!contains 
 
-  subroutine create_orbsder()
-    call nullify_orbitals_data(orbsder)
-    norbsperatom = f_malloc0(astruct%nat,id='norbsperatom')
-    locregCenter = f_malloc((/ 3, nlr /),id='locregCenter')
-    norbsPerLocreg = f_malloc(nlr,id='norbsPerLocreg')
-    do iorb=1,orbs%norb
-        iat=orbs%onwhichatom(iorb)
-        norbsperatom(iat)=norbsperatom(iat)+3
-    end do
-    norb=3*orbs%norb
-    norbu=norb
-    norbd=0
-    nspin=1
-    call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs%nspinor,&
-         orbs%nkpts, orbs%kpts, orbs%kwgts, orbsder,.true.) !simple repartition
-    call f_free_ptr(orbsder%onwhichatom)
+  !!subroutine create_orbsder()
+  !!  call nullify_orbitals_data(orbsder)
+  !!  norbsperatom = f_malloc0(astruct%nat,id='norbsperatom')
+  !!  locregCenter = f_malloc((/ 3, nlr /),id='locregCenter')
+  !!  norbsPerLocreg = f_malloc(nlr,id='norbsPerLocreg')
+  !!  do iorb=1,orbs%norb
+  !!      iat=orbs%onwhichatom(iorb)
+  !!      norbsperatom(iat)=norbsperatom(iat)+3
+  !!  end do
+  !!  norb=3*orbs%norb
+  !!  norbu=norb
+  !!  norbd=0
+  !!  nspin=1
+  !!  call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs%nspinor,&
+  !!       orbs%nkpts, orbs%kpts, orbs%kwgts, orbsder,.true.) !simple repartition
+  !!  call f_free_ptr(orbsder%onwhichatom)
 
-    do ilr=1,nlr
-        locregCenter(:,ilr)=llr(ilr)%locregCenter
-    end do
-                 
-    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, astruct%nat, astruct%nat, &
-         nspin, norbsPerAtom, locregCenter, orbsder%onwhichatom)
+  !!  do ilr=1,nlr
+  !!      locregCenter(:,ilr)=llr(ilr)%locregCenter
+  !!  end do
+  !!               
+  !!  !SM This call must be updated
+  !!  call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norbu, orbsder%norb_par, astruct%nat, astruct%nat, &
+  !!       nspin, norbsPerAtom, orbsder%spinsgn, locregCenter, orbsder%onwhichatom)
 
-    call f_free_ptr(orbsder%inWhichLocreg)
-    norbsPerLocreg=3
+  !!  call f_free_ptr(orbsder%inWhichLocreg)
+  !!  norbsPerLocreg=3
 
-    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, astruct%nat, nlr, &
-         nspin, norbsPerLocreg, locregCenter, orbsder%inwhichlocreg)
+  !!  !SM This call must be updated
+  !!  call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norbu, orbsder%norb_par, astruct%nat, nlr, &
+  !!       nspin, norbsPerLocreg, orbsder%spinsgn, locregCenter, orbsder%inwhichlocreg)
 
-    call f_free(locregCenter)
-    call f_free(norbsPerLocreg)
-    call f_free(norbsperatom)
-  end subroutine create_orbsder
+  !!  call f_free(locregCenter)
+  !!  call f_free(norbsPerLocreg)
+  !!  call f_free(norbsperatom)
+  !!end subroutine create_orbsder
 
 END SUBROUTINE determine_locregSphere_parallel
 
@@ -784,6 +795,7 @@ END SUBROUTINE num_segkeys_sphere
 
 subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, nl3glob, hx, hy, hz, locrad, locregCenter, &
            nsegglob, keygglob, keyvglob, ixmin, iymin, izmin, ixmax, iymax, izmax)
+  use dynamic_memory
   implicit none
   integer, intent(in) :: n1glob, n2glob, n3glob, nl1glob, nl2glob, nl3glob, nsegglob
   real(kind=8),intent(in) :: hx, hy, hz, locrad
@@ -796,6 +808,9 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
   real(kind=8) :: cut, dx,dy, dz
   !debug
   integer :: iiimin, isegmin
+
+  call f_routine(id='determine_boxbounds_sphere')
+
   iiimin=0
   isegmin=0
 
@@ -846,6 +861,8 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
   end do
   !$omp enddo
   !$omp end parallel
+
+  call f_release_routine()
 
 END SUBROUTINE determine_boxbounds_sphere
 
@@ -1662,6 +1679,8 @@ subroutine transform_keyglob_to_keygloc(Glr,Llr,nseg,keyglob,keygloc)
   !local variables
   integer :: i, j, j0, ii, iz, iy, ix, n1p1, np
 
+  call f_routine(id='transform_keyglob_to_keygloc')
+
   n1p1=Glr%d%n1+1
   np=n1p1*(Glr%d%n2+1)
   do i = 1 , 2
@@ -1683,6 +1702,8 @@ subroutine transform_keyglob_to_keygloc(Glr,Llr,nseg,keyglob,keygloc)
         keygloc(i,j) = (iz-Llr%ns3)*(Llr%d%n1+1)*(Llr%d%n2+1) + (iy-Llr%ns2)*(Llr%d%n1+1) + (ix-Llr%ns1) + 1
      end do
   end do
+
+  call f_release_routine()
 
 end subroutine transform_keyglob_to_keygloc
 

@@ -55,6 +55,7 @@ module wrapper_MPI
 
   interface mpimaxdiff
      module procedure mpimaxdiff_i0,mpimaxdiff_d0
+     module procedure mpimaxdiff_i1,mpimaxdiff_i2
      module procedure mpimaxdiff_d1,mpimaxdiff_d2
   end interface mpimaxdiff
 
@@ -68,12 +69,12 @@ module wrapper_MPI
 
   interface mpigather
      module procedure mpigather_d1d1,mpigather_d2d1,mpigather_d1d2,mpigather_d2
-     module procedure mpigather_i0i2,mpigather_d0d2
+     module procedure mpigather_i0i2,mpigather_d0d2,mpigather_i1i2,mpigather_i2
   end interface mpigather
 
   interface mpibcast
-     module procedure mpibcast_i0,mpibcast_li0
-     module procedure mpibcast_c1
+     module procedure mpibcast_i0,mpibcast_li0,mpibcast_d0
+     module procedure mpibcast_c1,mpibcast_d1,mpibcast_d2
   end interface mpibcast
 
   !> Interface for MPI_ALLGATHERV routine
@@ -408,6 +409,7 @@ end subroutine create_group_comm1
   END SUBROUTINE create_rank_comm
 
   subroutine wmpi_init_thread(ierr)
+    use dictionaries, only: f_err_throw
     implicit none
     integer, intent(out) :: ierr
 #ifdef HAVE_MPI_INIT_THREAD
@@ -424,10 +426,25 @@ end subroutine create_group_comm1
 #else
     call MPI_INIT(ierr)      
     if (ierr /= MPI_SUCCESS) then
-       write(*,*)'BigDFT_mpi_INIT: Error in MPI_INIT_THREAD',ierr
+       call f_err_throw('An error in calling to MPI_INIT (THREAD) occured',&
+            err_id=ERR_MPI_WRAPPERS)
     end if
 #endif
   end subroutine wmpi_init_thread
+
+  !> finalization of the mpi
+  subroutine mpifinalize()
+    use dictionaries, only: f_err_throw
+    implicit none
+    !local variables
+    integer :: ierr
+
+    call MPI_FINALIZE(ierr)
+    if (ierr /= MPI_SUCCESS) then
+       call f_err_throw('An error in calling to MPI_INIT_THREAD occured',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+  end subroutine mpifinalize
 
   !> initialize timings and also mpi errors
   subroutine mpi_initialize_timing_categories()
@@ -571,6 +588,27 @@ end subroutine create_group_comm1
 
   end function mpisize
 
+  !> performs the barrier of a given communicator, if present
+  subroutine mpibarrier(comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    integer, intent(in), optional :: comm !< the communicator
+    !local variables
+    integer :: mpi_comm,ierr
+    
+    if (present(comm)) then
+       mpi_comm=comm
+    else
+       mpi_comm=MPI_COMM_WORLD
+    end if
+    !call the barrier
+    call MPI_BARRIER(mpi_comm,ierr)
+    if (ierr /=0) then
+       call f_err_throw('An error in calling to MPI_BARRIER occured',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+  end subroutine mpibarrier
+
   !gather the results of a given array into the root proc
   subroutine mpigather_d1d1(sendbuf,recvbuf,root,comm)
     use dictionaries, only: f_err_throw,f_err_define
@@ -589,6 +627,25 @@ end subroutine create_group_comm1
     double precision, dimension(:,:), intent(inout) :: recvbuf
     include 'gather-inc.f90'   
   end subroutine mpigather_d1d2
+
+  subroutine mpigather_i1i2(sendbuf,recvbuf,root,comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    integer, dimension(:), intent(in) :: sendbuf
+    integer, dimension(:,:), intent(inout) :: recvbuf
+    include 'gather-inc.f90'   
+  end subroutine mpigather_i1i2
+
+  subroutine mpigather_i2(sendbuf,recvbuf,root,comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    integer, dimension(:,:), intent(in) :: sendbuf
+    integer, dimension(:,:), intent(inout) :: recvbuf
+    include 'gather-inc.f90'   
+  end subroutine mpigather_i2
+
 
   subroutine mpigather_d2d1(sendbuf,recvbuf,root,comm)
     use dictionaries, only: f_err_throw,f_err_define
@@ -751,64 +808,85 @@ end subroutine create_group_comm1
     include 'allreduce-arr-inc.f90'
   end subroutine mpiallred_d2
 
-  subroutine mpibcast_i0(buffer,count,root,comm)
+  recursive subroutine mpibcast_i0(buffer,count,root,comm,check)
     use dictionaries, only: f_err_throw
+    use yaml_output !for check=.true.
     implicit none
     integer, intent(inout) ::  buffer 
     include 'bcast-decl-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_i0
 
-  subroutine mpibcast_li0(buffer,count,root,comm)
+  subroutine mpibcast_li0(buffer,count,root,comm,check)
     use dictionaries, only: f_err_throw
+    use yaml_output !for check=.true.
     implicit none
     integer(kind=8), intent(inout) ::  buffer      
     include 'bcast-decl-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_li0
 
-  subroutine mpibcast_c1(buffer,root,comm)
+  recursive subroutine mpibcast_d0(buffer,count,root,comm,check)
     use dictionaries, only: f_err_throw
+    use yaml_output !for check=.true.
+    implicit none
+    double precision, intent(inout) ::  buffer 
+    include 'bcast-decl-inc.f90'
+    include 'bcast-inc.f90'
+  end subroutine mpibcast_d0
+
+  subroutine mpibcast_c1(buffer,root,comm,check)
+    use dictionaries, only: f_err_throw
+    use yaml_output !for check=.true.
     implicit none
     character, dimension(:), intent(inout) ::  buffer      
     include 'bcast-decl-arr-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_c1
-  
+
+  subroutine mpibcast_d1(buffer,root,comm,check)
+    use dictionaries, only: f_err_throw
+    use yaml_output !for check=.true.
+    implicit none
+    double precision, dimension(:), intent(inout) ::  buffer      
+    include 'bcast-decl-arr-inc.f90'
+    include 'bcast-inc.f90'
+  end subroutine mpibcast_d1
+
+  subroutine mpibcast_d2(buffer,root,comm,check)
+    use dictionaries, only: f_err_throw
+    use yaml_output !for check=.true.
+    implicit none
+    double precision, dimension(:,:), intent(inout) ::  buffer      
+    include 'bcast-decl-arr-inc.f90'
+    include 'bcast-inc.f90'
+  end subroutine mpibcast_d2
+
 
   !> detect the maximum difference between arrays all over a given communicator
-  function mpimaxdiff_i0(n,array,root,comm) result(maxdiff)
+  function mpimaxdiff_i0(n,array,root,comm,bcast) result(maxdiff)
     use dynamic_memory
     implicit none
     integer, intent(in) :: n !<number of elements to be controlled
     integer, intent(inout) :: array !< starting point of the array
     integer, dimension(:,:), allocatable :: array_glob
-    integer, intent(in), optional :: root !<rank of the process retrieving the diff
-    integer, intent(in), optional :: comm
     integer :: maxdiff 
-    !local variables
-    integer :: ndims,nproc,mpi_comm,iroot,i,jproc
+    include 'maxdiff-decl-inc.f90'
 
     ndims = n
-
     maxdiff=0
 
     include 'maxdiff-inc.f90'
   end function mpimaxdiff_i0
 
-  function mpimaxdiff_d0(n,array,root,comm) result(maxdiff)
+  function mpimaxdiff_d0(n,array,root,comm,bcast) result(maxdiff)
     use dynamic_memory
     implicit none
     integer, intent(in) :: n !<number of elements to be controlled
     double precision, intent(inout) :: array !< starting point of the array
     double precision, dimension(:,:), allocatable :: array_glob
     double precision :: maxdiff
-    
-    integer, intent(in), optional :: root !<rank of the process retrieving the diff
-    integer, intent(in), optional :: comm
-
-    !local variables
-    integer :: ndims,nproc,mpi_comm,iroot,i,jproc
+    include 'maxdiff-decl-inc.f90'
 
     ndims = n
     maxdiff=0.d0
@@ -816,19 +894,14 @@ end subroutine create_group_comm1
     include 'maxdiff-inc.f90'
   end function mpimaxdiff_d0
 
-  function mpimaxdiff_d1(array,root,comm) result(maxdiff)
+  function mpimaxdiff_d1(array,root,comm,bcast) result(maxdiff)
     use dynamic_memory
     implicit none
     !> array to be checked
     double precision, dimension(:), intent(in) :: array 
     double precision, dimension(:,:), allocatable :: array_glob
     double precision :: maxdiff
-
-    integer, intent(in), optional :: root !<rank of the process retrieving the diff
-    integer, intent(in), optional :: comm
-
-    !local variables
-    integer :: ndims,nproc,mpi_comm,iroot,i,jproc
+    include 'maxdiff-decl-inc.f90'
 
     ndims = size(array)
 
@@ -837,25 +910,54 @@ end subroutine create_group_comm1
     include 'maxdiff-arr-inc.f90'
   end function mpimaxdiff_d1
 
-  function mpimaxdiff_d2(array,root,comm) result(maxdiff)
+  function mpimaxdiff_i1(array,root,comm,bcast) result(maxdiff)
+    use dynamic_memory
+    implicit none
+    !> array to be checked
+    integer, dimension(:), intent(in) :: array 
+    integer, dimension(:,:), allocatable :: array_glob
+    integer :: maxdiff
+    include 'maxdiff-decl-inc.f90'
+
+    ndims = size(array)
+
+    maxdiff=0
+    
+    include 'maxdiff-arr-inc.f90'
+  end function mpimaxdiff_i1
+
+  function mpimaxdiff_i2(array,root,comm,bcast) result(maxdiff)
+
+    use dynamic_memory
+    implicit none
+    !> array to be checked
+    integer, dimension(:,:), intent(in) :: array 
+    integer, dimension(:,:), allocatable :: array_glob
+    integer :: maxdiff
+    include 'maxdiff-decl-inc.f90'
+
+    ndims = size(array)
+
+    maxdiff=0
+    
+    include 'maxdiff-arr-inc.f90'
+  end function mpimaxdiff_i2
+
+
+  function mpimaxdiff_d2(array,root,comm,bcast) result(maxdiff)
     use dynamic_memory
     implicit none
     !> array to be checked
     double precision, dimension(:,:), intent(in) :: array 
     double precision, dimension(:,:), allocatable :: array_glob
     double precision :: maxdiff
-
-    integer, intent(in), optional :: root !<rank of the process retrieving the diff
-    integer, intent(in), optional :: comm
-
-    !local variables
-    integer :: ndims,nproc,mpi_comm,iroot,i,jproc
+    include 'maxdiff-decl-inc.f90'
 
     ndims = size(array)
 
     maxdiff=0.d0
     
-    include 'maxdiff-arr-inc.f90'
+   include 'maxdiff-arr-inc.f90'
   end function mpimaxdiff_d2
 
   

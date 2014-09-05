@@ -246,7 +246,6 @@ subroutine read_xyz_positions(ifile,filename,astruct,comment,energy,fxyz,getLine
 
   astruct%atomnames(1:astruct%ntypes)=atomnames(1:astruct%ntypes)
 
-
 contains
 
   !> stop the code and warns if the status of the line is not good

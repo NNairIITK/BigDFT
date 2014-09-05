@@ -480,7 +480,7 @@ contains
        lr%d%nfu3 = n3 / 2
     end if
 
-    call wfd_from_grids(logrid_c, logrid_f, lr)
+    call wfd_from_grids(logrid_c, logrid_f, .true., lr)
 
     call f_free(logrid_c)
     call f_free(logrid_f)
@@ -2146,7 +2146,7 @@ subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,da,newz,centre_old,c
      !this shift brings the old point in the new reference frame
      dt=real(istart,gp)-(coord_old+centre_new(ntr)+hgrids_new(ntr))/hgrids_old(ntr)
 
-     !purify the shift to be a inferior than multiple of the grid spacing
+     !purify the shift to be lower than a multiple of the grid spacing
      istart_shift=nint(dt)
      dt=dt-real(istart_shift,gp)
      istart=istart-istart_shift

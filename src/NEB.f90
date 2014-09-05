@@ -40,6 +40,7 @@
 MODULE NEB_variables
   use module_defs
   use module_types
+  use bigdft_run
 
   IMPLICIT NONE
 
@@ -113,24 +114,26 @@ MODULE NEB_routines
       integer :: ierr, nconfig, algorithm, unit_log
       type(mpi_environment) :: bigdft_mpi_svg
       character(len=60) :: run_id
-      type(dictionary), pointer :: dict, dict_min
+      type(dictionary), pointer :: dict, dict_min,options
       REAL (gp) :: tolerance
 
       call f_lib_initialize()
-      nullify(dict)
-      call bigdft_init(mpi_info, nconfig, run_id, ierr)
-      neb_mpi = mpi_environment_null()
-      neb_mpi%igroup = mpi_info(1)
-      neb_mpi%ngroup = mpi_info(2)
-      neb_mpi%iproc  = mpi_info(3)
-      neb_mpi%nproc  = mpi_info(4)
-      neb_mpi%mpi_comm = MPI_COMM_NULL
+      nullify(dict,options)
+      !no options fof BigDFT
+      call bigdft_init(options)!mpi_info, nconfig, run_id, ierr)
+      neb_mpi = bigdft_mpi!mpi_environment_null()
+!!$      neb_mpi%igroup = mpi_info(1)
+!!$      neb_mpi%ngroup = mpi_info(2)
+!!$      neb_mpi%iproc  = mpi_info(3)
+!!$      neb_mpi%nproc  = mpi_info(4)
+!!$      neb_mpi%mpi_comm = MPI_COMM_NULL
+      !this is redundant
       if (neb_mpi%nproc > 1) then
          call create_rank_comm(bigdft_mpi%mpi_comm, neb_mpi%mpi_comm)
       end if
 
 !! default values are assigned
-      external_call     = (mpi_info(4) == 1) .and. (mpi_info(2) == 1)
+      external_call     = bigdft_mpi%nproc==1 .and. bigdft_mpi%ngroup==1!(mpi_info(4) == 1) .and. (mpi_info(2) == 1)
 
       call dict_init(dict)
       call read_input_dict_from_files(trim(run_id), bigdft_mpi, dict)
@@ -142,8 +145,8 @@ MODULE NEB_routines
            & minimization_scheme)
       ! NEB is using cv criterion in ev per ang.
       neb_%convergence = neb_%convergence * Ha_eV / Bohr_Ang
-      call dict_free(dict)
-      call dict_free(dict_min)
+      call dict_free(dict,dict_min,options)
+      !call dict_free(dict_min)
 
       select case(minimization_scheme)
       case("steepest_descent")

@@ -20,14 +20,16 @@
 program test_forces
 
    use module_base
-   use module_types
-   use module_interfaces
-   use m_ab6_symmetry
+   use bigdft_run
+   use module_types, only: LINEAR_VERSION
+   !use module_interfaces
+   !use m_ab6_symmetry
    use yaml_output
 
    implicit none
    character(len=*), parameter :: subname='test_forces'
-   integer :: iproc,nproc,iat,ierr,infocode!,istat
+   !integer :: iproc,nproc,
+   integer :: iat,ierr,infocode!,istat
    !logical :: exist_list
    !input variables
    type(run_objects) :: runObj
@@ -37,38 +39,43 @@ program test_forces
    character(len=60) :: run_id
    ! atomic coordinates, forces
    real(gp), dimension(:,:), pointer :: drxyz
-   integer :: iconfig,nconfig,igroup,ngroups
+   !integer :: iconfig,nconfig,igroup,ngroups
    integer :: ipath,npath
    real(gp):: dx,etot0,path,fdr
    !parameter (dx=1.d-2 , npath=2*16+1)  ! npath = 2*n+1 where n=2,4,6,8,...
    parameter (dx=1.d-2 , npath=5)
    real(gp) :: simpson(1:npath)
    !character(len=60) :: radical
-   integer, dimension(4) :: mpi_info
+   !integer, dimension(4) :: mpi_info
+   type(dictionary), pointer :: run,options
+      
 
    call f_lib_initialize()
 
-   !-finds the number of taskgroup size
-   !-initializes the mpi_environment for each group
-   !-decides the radical name for each run
-   call bigdft_init(mpi_info,nconfig,run_id,ierr)
+!!$   !-finds the number of taskgroup size
+!!$   !-initializes the mpi_environment for each group
+!!$   !-decides the radical name for each run
+!!$   call bigdft_init(mpi_info,nconfig,run_id,ierr)
+!!$
+!!$   !just for backward compatibility
+!!$   iproc=mpi_info(1)
+!!$   nproc=mpi_info(2)
+!!$
+!!$   igroup=mpi_info(3)
+!!$   !number of groups
+!!$   ngroups=mpi_info(4)
+!!$
+!!$  
+!!$   !allocate arrays of run ids
+!!$   allocate(arr_radical(abs(nconfig)))
+!!$   allocate(arr_posinp(abs(nconfig)))
+!!$
+!!$   !here we call  a routine which
+!!$   ! Read a possible radical format argument.
+!!$   call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierr)
 
-   !just for backward compatibility
-   iproc=mpi_info(1)
-   nproc=mpi_info(2)
-
-   igroup=mpi_info(3)
-   !number of groups
-   ngroups=mpi_info(4)
-
-  
-   !allocate arrays of run ids
-   allocate(arr_radical(abs(nconfig)))
-   allocate(arr_posinp(abs(nconfig)))
-
-   !here we call  a routine which
-   ! Read a possible radical format argument.
-   call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierr)
+   call bigdft_command_line_options(options)
+   call bigdft_init(options)
 
    !prepare the array of the correct Simpson's rule weigths for the integration
    if (mod(npath,2).ne.1) stop 'the number of iteration steps has to be odd'
@@ -80,7 +87,7 @@ program test_forces
    enddo
    simpson(npath)=1.d0/3.d0
 
-   if (iproc==0) then
+   if (bigdft_mpi%iproc==0) then
 !!$         !start a new document in the beginning of the output, if the document is closed before
       call yaml_set_stream(record_length=95,istat=ierr)
       call yaml_new_document()
@@ -95,26 +102,16 @@ program test_forces
       call yaml_comment(' 1) avoiding cancellation error in finite difference derivative,')
       call yaml_comment(' 2) considering the forces over all atoms.')
       call yaml_comment('',hfill='-')
-      !print*
-      !print*
-      !print*,'*******************************************************************************************************'
-      !print*,"This is a test program to verify  whether the force are the derivative of the energy: F=-dE/dR"
-      !print '(a,i3,a,f7.4,a,f6.4,a)', "It performs the integration of the calculated forces over " , npath,  &
-      !   &   " random displacement (in the range [", -dx, ",",dx,"] a.u.)"
-      !print*, "and compares the result with the difference of the energy  between the final and the initial position:"// &
-      !   &   " E2-E1 = -Integral F.dR" 
-      !print*," The advantage is two fold: 1) avoiding cancellation error in finite difference derivative," // & 
-      !" 2) considernig the forces over all atoms "
-      !print*,'*********************************************************************************************************'
-      !print*
-      !print*
    endif
 
-   do iconfig=1,abs(nconfig)
-      if (modulo(iconfig-1,ngroups)==igroup) then
+   run => dict_iter(options .get. 'BigDFT')
+   do while(associated(run))
+!!$
+!!$   do iconfig=1,abs(nconfig)
+!!$      if (modulo(iconfig-1,ngroups)==igroup) then
 
          ! Read all input files.
-         call run_objects_init_from_files(runObj, arr_radical(iconfig),arr_posinp(iconfig))
+         call run_objects_init(runObj,run)
 
 !!$      !standard names
 !!$      call standard_inputfile_names(inputs,radical,nproc)
@@ -122,7 +119,6 @@ program test_forces
 
 
       !initialize memory counting
-      !call memocc(0,iproc,'count','start')
          call init_global_output(outs, runObj%atoms%astruct%nat)
 
       !     if (iproc == 0) then
@@ -162,19 +158,19 @@ program test_forces
             end if
          end if
 
-         if (iproc == 0) then
+         if (bigdft_mpi%iproc == 0) then
             call print_general_parameters(runObj%inputs,runObj%atoms) ! to know the new positions
          end if
 
-         call call_bigdft(runObj, outs, nproc,iproc,infocode)
+         call call_bigdft(runObj, outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
          !        inputs%inputPsiId=0   ! change PsiId to 0 if you want to  generate a new Psi and not use the found one
 
-         if (iproc == 0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
+         if (bigdft_mpi%iproc == 0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
          !if (iproc == 0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
 
          if (ipath == 1 ) etot0=outs%energy
          !   do one step of the path integration
-         if (iproc == 0) then
+         if (bigdft_mpi%iproc == 0) then
             !integrate forces*displacement
             !fdr=sum(fxyz(1:3,1:runObj%atoms%nat)*drxyz(1:3,1:runObj%atoms%nat))
             fdr=sum(outs%fxyz(:,:)*drxyz(:,:))
@@ -191,7 +187,7 @@ program test_forces
 
       deallocate(drxyz)
 
-      if (iproc==0) then 
+      if (bigdft_mpi%iproc==0) then 
          write(*,*) 
          write(*,*) 'Check correctness of forces'
          write(*,*) 'Difference of total energies =',outs%energy-etot0
@@ -201,27 +197,14 @@ program test_forces
       endif
 
       call deallocate_global_output(outs)
-      call run_objects_free(runObj, subname)
+      call run_objects_free(runObj)
 
-!!$      if (inputs%inputPsiId==INPUT_PSI_LINEAR_AO .or. inputs%inputPsiId==INPUT_PSI_MEMORY_LINEAR &
-!!$          .or. inputs%inputPsiId==INPUT_PSI_DISK_LINEAR) then
-!!$          call destroy_DFT_wavefunction(rst%tmb)
-!!$          call deallocate_local_zone_descriptors(rst%tmb%lzd)
-!!$      end if
-!!$
-!!$      if(inputs%linear /= INPUT_IG_OFF .and. inputs%linear /= INPUT_IG_LIG) &
-!!$           & call deallocateBasicArraysInput(inputs%lin)
+!!$   end if
+      run => dict_next(run)
+   end do !loop over iconfig
 
-
-!!$      call free_input_variables(inputs)
-
-!!$      !finalize memory counting
-!!$      call memocc(0,0,'count','stop')
-   end if
-enddo !loop over iconfig
-
-   deallocate(arr_posinp,arr_radical)
-
+!!$   deallocate(arr_posinp,arr_radical)
+   call dict_free(options)
    call bigdft_finalize(ierr)
 
    call f_lib_finalize()

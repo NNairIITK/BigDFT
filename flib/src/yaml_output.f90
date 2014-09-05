@@ -167,7 +167,7 @@ module yaml_output
   public :: yaml_sequence,yaml_sequence_open,yaml_sequence_close
   public :: yaml_comment,yaml_warning,yaml_scalar,yaml_newline
   public :: yaml_toa,yaml_date_and_time_toa,yaml_date_toa,yaml_time_toa
-  public :: yaml_set_stream
+  public :: yaml_set_stream,yaml_flush_document
   public :: yaml_set_default_stream,yaml_close_stream,yaml_swap_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
   public :: yaml_dict_dump,yaml_dict_dump_all
@@ -311,7 +311,8 @@ contains
     integer, parameter :: NO_ERRORS           = 0
     logical :: unit_is_open,set_default
     integer :: istream,unt,ierr
-    integer(kind=8) :: recl_file
+    !integer(kind=8) :: recl_file
+    integer :: recl_file
     character(len=15) :: pos
         
     !check that the module has been initialized
@@ -376,7 +377,8 @@ contains
        end if
        if (ierr == 0 .and. .not. unit_is_open) then
           !inquire the record length for the unit
-          inquire(unit=unt,recl=recl_file)
+          !inquire(unit=unt,recl=recl_file)
+          if (present(record_length)) call f_utils_recl(unt,record_length,recl_file)
           call set(stream_files // trim(filename), trim(yaml_toa(unt)))
        end if
     end if
@@ -420,8 +422,8 @@ contains
     end if
     !protect the record length to be lower than the maximum allowed by the processor
     if (present(record_length)) then
-       if (recl_file<=0) recl_file=int(record_length,kind=8)
-       streams(active_streams)%max_record_length=int(min(int(record_length,kind=8),recl_file))
+       if (recl_file<=0) recl_file=record_length!int(record_length,kind=8)
+       streams(active_streams)%max_record_length=recl_file!int(min(int(record_length,kind=8),recl_file))
     end if
   end subroutine yaml_set_stream
 
@@ -556,8 +558,24 @@ contains
 
   end subroutine yaml_new_document
 
+  !> Flush the content of the document. 
+  !! @ingroup FLIB_YAML
+  subroutine yaml_flush_document(unit)
+    implicit none
+    integer, optional, intent(in) :: unit  !< @copydoc doc::unit
+    !local variables
+    integer :: unt,strm,unit_prev
 
-  !> Release the document. if a new_document is opened, the sympol of START_DOCUMENT "---"
+    unt=0
+    if (present(unit)) unt=unit
+    call get_stream(unt,strm)
+
+    !call the flush routine which
+    call f_utils_flush(streams(strm)%unit)
+  end subroutine yaml_flush_document
+
+
+  !> Release the document. if a new_document is opened, the symbol of START_DOCUMENT "---"
   !! will be displayed on the corresponding unit
   !! After this routine is called, the new_document will become effective again
   !! @ingroup FLIB_YAML
@@ -697,7 +715,8 @@ contains
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
-    call dump(streams(strm),' #WARNING: '//trim(message))
+!    call dump(streams(strm),' #WARNING: '//trim(message))
+    call yaml_comment('WARNING: '//trim(message),unit=unt)
     !here we should add a collection of all the warning which are printed out in the code.
     if (.not. streams(strm)%document_closed) then
 !!$       if (.not. associated(streams(strm)%dict_warning)) then

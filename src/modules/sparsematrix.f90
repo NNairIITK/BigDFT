@@ -38,12 +38,12 @@ module sparsematrix
       ! Calling arguments
       integer, intent(in) :: iproc
       type(sparse_matrix),intent(inout) :: sparsemat
-      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr),target,intent(in) :: inmat
-      real(kind=8),dimension(sparsemat%nvctr),target,intent(out) :: outmat
+      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),target,intent(in) :: inmat
+      real(kind=8),dimension(sparsemat%nvctr*sparsemat%nspin),target,intent(out) :: outmat
     
       ! Local variables
-      integer :: jj, irow, jcol, jjj, ierr
-      real(kind=8),dimension(:,:),pointer :: inm
+      integer :: jj, irow, jcol, jjj, ierr, ishift, ispin
+      real(kind=8),dimension(:,:,:),pointer :: inm
       real(kind=8),dimension(:),pointer :: outm
 
       !if (present(outmat)) then
@@ -67,13 +67,19 @@ module sparsematrix
       call timing(iproc,'compress_uncom','ON')
     
       if (sparsemat%parallel_compression==0.or.bigdft_mpi%nproc==1) then
-         !$omp parallel do default(private) shared(sparsemat,inm,outm)
-         do jj=1,sparsemat%nvctr
-            irow = sparsemat%orb_from_index(1,jj)
-            jcol = sparsemat%orb_from_index(2,jj)
-            outm(jj)=inm(irow,jcol)
+         do ispin=1,sparsemat%nspin
+             ishift=(ispin-1)*sparsemat%nfvctr**2
+             !$omp parallel default(none) private(jj,irow,jcol) &
+             !$omp shared(sparsemat,inm,outm,ishift,ispin)
+             !$omp do
+             do jj=1,sparsemat%nvctr
+                irow = sparsemat%orb_from_index(1,jj)
+                jcol = sparsemat%orb_from_index(2,jj)
+                outm(jj+ishift)=inm(irow,jcol,ispin)
+             end do
+             !$omp end do
+             !$omp end parallel
          end do
-         !$omp end parallel do
       else if (sparsemat%parallel_compression==1) then
          stop 'this needs to be fixed'
          !!#call to_zero(sparsemat%nvctr, sparsemat%matrix_compr(1))
@@ -119,13 +125,13 @@ module sparsematrix
       ! Calling arguments
       integer, intent(in) :: iproc
       type(sparse_matrix), intent(inout) :: sparsemat
-      real(kind=8),dimension(sparsemat%nvctr),target,intent(out) :: inmat
-      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr),target,intent(out) :: outmat
+      real(kind=8),dimension(sparsemat%nvctr*sparsemat%nspin),target,intent(out) :: inmat
+      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),target,intent(out) :: outmat
       
       ! Local variables
-      integer :: ii, irow, jcol, iii, ierr
+      integer :: ii, irow, jcol, iii, ierr, ishift, ispin
       real(kind=8),dimension(:),pointer :: inm
-      real(kind=8),dimension(:,:),pointer :: outm
+      real(kind=8),dimension(:,:,:),pointer :: outm
 
       !!if (present(outmat)) then
       !!    if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
@@ -148,14 +154,19 @@ module sparsematrix
       call timing(iproc,'compress_uncom','ON')
     
       if (sparsemat%parallel_compression==0.or.bigdft_mpi%nproc==1) then
-         call to_zero(sparsemat%nfvctr**2, outm(1,1))
-         !$omp parallel do default(private) shared(sparsemat,inm,outm)
-         do ii=1,sparsemat%nvctr
-            irow = sparsemat%orb_from_index(1,ii)
-            jcol = sparsemat%orb_from_index(2,ii)
-            outm(irow,jcol)=inm(ii)
+         call to_zero(sparsemat%nfvctr**2*sparsemat%nspin, outm(1,1,1))
+         do ispin=1,sparsemat%nspin
+             !$omp parallel default(private) shared(sparsemat,inm,outm,ispin)
+             ishift=(ispin-1)*sparsemat%nvctr
+             !$omp do
+             do ii=1,sparsemat%nvctr
+                irow = sparsemat%orb_from_index(1,ii)
+                jcol = sparsemat%orb_from_index(2,ii)
+                outm(irow,jcol,ispin)=inm(ii+ishift)
+             end do
+             !$omp end do
+             !$omp end parallel
          end do
-         !$omp end parallel do
       else if (sparsemat%parallel_compression==1) then
          stop 'needs to be fixed'
          !!call to_zero(sparsemat%nfvctr**2, sparsemat%matrix(1,1))
@@ -212,22 +223,26 @@ module sparsematrix
     
       mat%matrix = sparsematrix_malloc_ptr(sparsemat, iaction=DENSE_FULL, id='mat%matrix')
     
-      call to_zero(sparsemat%nfvctr**2,mat%matrix(1,1))
+      call to_zero(sparsemat%nfvctr**2*sparsemat%nspin,mat%matrix(1,1,1))
       do iseg = 1, sparsemat%nseg
          do jorb = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
             call get_indices(jorb,irow,icol)
-            !print *,'irow,icol',irow, icol,test_value_matrix(sparsemat%nfvctr, irow, icol)
-            mat%matrix(irow,icol) = test_value_matrix(sparsemat%nfvctr, irow, icol)
+            !print *,'jorb, irow,icol',jorb, irow, icol,test_value_matrix(sparsemat%nfvctr, irow, icol)
+            !SM: need to fix spin 
+            mat%matrix(irow,icol,1) = test_value_matrix(sparsemat%nfvctr, irow, icol)
          end do
       end do
       
       call compress_matrix(iproc, sparsemat, inmat=mat%matrix, outmat=mat%matrix_compr)
+      !write(*,*) 'mat%matrix',mat%matrix
+      !write(*,*) 'mat%matrix_compr',mat%matrix_compr
     
       maxdiff = 0.d0
       do iseg = 1, sparsemat%nseg
          ii=0
          do jorb = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
             call get_indices(jorb,irow,icol)
+            !write(*,'(a,4i8,2es13.3)') 'jorb, irow, icol, sparsemat%keyv(iseg)+ii, val, ref', jorb, irow, icol, sparsemat%keyv(iseg)+ii, mat%matrix_compr(sparsemat%keyv(iseg)+ii), test_value_matrix(sparsemat%nfvctr, irow, icol)
             maxdiff = max(abs(mat%matrix_compr(sparsemat%keyv(iseg)+ii)&
                  -test_value_matrix(sparsemat%nfvctr, irow, icol)),maxdiff)
             ii=ii+1
@@ -250,7 +265,7 @@ module sparsematrix
       do iseg = 1, sparsemat%nseg
          do jorb = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
             call get_indices(jorb,irow,icol)
-            maxdiff = max(abs(mat%matrix(irow,icol)-test_value_matrix(sparsemat%nfvctr, irow, icol)),maxdiff) 
+            maxdiff = max(abs(mat%matrix(irow,icol,1)-test_value_matrix(sparsemat%nfvctr, irow, icol)),maxdiff) 
          end do
       end do
     
@@ -297,14 +312,14 @@ module sparsematrix
     
       ! Calling arguments
       type(sparse_matrix),intent(inout) :: smat, lmat
-      real(kind=8),dimension(smat%nvctr),intent(inout) :: smatrix_compr
-      real(kind=8),dimension(lmat%nvctr),intent(inout) :: lmatrix_compr
+      real(kind=8),dimension(smat%nspin*smat%nvctr),intent(inout) :: smatrix_compr
+      real(kind=8),dimension(lmat%nspin*lmat%nvctr),intent(inout) :: lmatrix_compr
       character(len=14),intent(in) :: cmode
     
       ! Local variables
       integer :: imode, icheck, isseg, isstart, isend, ilseg, ilstart, ilend
       integer :: iostart, ioend, ilength, isoffset, iloffset, iscostart, ilcostart, i
-      integer :: ilsegstart
+      integer :: ilsegstart, ispin, isshift, ilshift
       integer,parameter :: SMALL_TO_LARGE=1
       integer,parameter :: LARGE_TO_SMALL=2
     
@@ -322,74 +337,82 @@ module sparsematrix
     
       select case (imode)
       case (SMALL_TO_LARGE)
-          call to_zero(lmat%nvctr,lmatrix_compr(1))
+          call to_zero(lmat%nvctr*lmat%nspin,lmatrix_compr(1))
       case (LARGE_TO_SMALL)
-          call to_zero(smat%nvctr,smatrix_compr(1))
+          call to_zero(smat%nvctr*lmat%nspin,smatrix_compr(1))
       case default
           stop 'wrong imode'
       end select
     
       call timing(bigdft_mpi%iproc,'transform_matr','IR')
-    
+
+
       icheck=0
-      ilsegstart=1
-      !$omp parallel default(private) &
-      !$omp shared(smat, lmat, imode, lmatrix_compr, smatrix_compr, icheck) &
-      !$omp firstprivate(ilsegstart)
-      !$omp do reduction(+:icheck)
-      sloop: do isseg=1,smat%nseg
-          isstart=smat%keyg(1,isseg)
-          isend=smat%keyg(2,isseg)
-          lloop: do ilseg=ilsegstart,lmat%nseg
-              ilstart=lmat%keyg(1,ilseg)
-              ilend=lmat%keyg(2,ilseg)
+      do ispin=1,smat%nspin
+
+          isshift=(ispin-1)*smat%nvctr
+          ilshift=(ispin-1)*lmat%nvctr
     
-              ! check whether there is an overlap:
-              ! if not, increase loop counters
-              if (ilstart>isend) then
-                  !ilsegstart=ilseg
-                  exit lloop
-              end if
-              if (isstart>ilend) then
-                  ilsegstart=ilseg
-                  cycle lloop
-              end if
-              ! if yes, determine start end end of overlapping segment (in uncompressed form)
-              iostart=max(isstart,ilstart)
-              ioend=min(isend,ilend)
-              ilength=ioend-iostart+1
+          ilsegstart=1
+          !$omp parallel default(private) &
+          !$omp shared(smat, lmat, imode, lmatrix_compr, smatrix_compr, icheck, isshift, ilshift) &
+          !$omp firstprivate(ilsegstart)
+          !$omp do reduction(+:icheck)
+          sloop: do isseg=1,smat%nseg
+              isstart=smat%keyg(1,isseg)
+              isend=smat%keyg(2,isseg)
+              lloop: do ilseg=ilsegstart,lmat%nseg
+                  ilstart=lmat%keyg(1,ilseg)
+                  ilend=lmat%keyg(2,ilseg)
     
-              ! offset with respect to the starting point of the segment
-              isoffset=iostart-smat%keyg(1,isseg)
-              iloffset=iostart-lmat%keyg(1,ilseg)
+                  ! check whether there is an overlap:
+                  ! if not, increase loop counters
+                  if (ilstart>isend) then
+                      !ilsegstart=ilseg
+                      exit lloop
+                  end if
+                  if (isstart>ilend) then
+                      ilsegstart=ilseg
+                      cycle lloop
+                  end if
+                  ! if yes, determine start end end of overlapping segment (in uncompressed form)
+                  iostart=max(isstart,ilstart)
+                  ioend=min(isend,ilend)
+                  ilength=ioend-iostart+1
     
-              ! determine start end and of the overlapping segment in compressed form
-              iscostart=smat%keyv(isseg)+isoffset
-              ilcostart=lmat%keyv(ilseg)+iloffset
+                  ! offset with respect to the starting point of the segment
+                  isoffset=iostart-smat%keyg(1,isseg)
+                  iloffset=iostart-lmat%keyg(1,ilseg)
     
-              ! copy the elements
-              select case (imode)
-              case (SMALL_TO_LARGE) 
-                  do i=0,ilength-1
-                      lmatrix_compr(ilcostart+i)=smatrix_compr(iscostart+i)
-                  end do
-              case (LARGE_TO_SMALL) 
-                  do i=0,ilength-1
-                      smatrix_compr(iscostart+i)=lmatrix_compr(ilcostart+i)
-                  end do
-              case default
-                  stop 'wrong imode'
-              end select
-              icheck=icheck+ilength
-          end do lloop
-      end do sloop
-      !$omp end do 
-      !$omp end parallel
+                  ! determine start end and of the overlapping segment in compressed form
+                  iscostart=smat%keyv(isseg)+isoffset
+                  ilcostart=lmat%keyv(ilseg)+iloffset
+    
+                  ! copy the elements
+                  select case (imode)
+                  case (SMALL_TO_LARGE) 
+                      do i=0,ilength-1
+                          lmatrix_compr(ilcostart+i+ilshift)=smatrix_compr(iscostart+i+isshift)
+                      end do
+                  case (LARGE_TO_SMALL) 
+                      do i=0,ilength-1
+                          smatrix_compr(iscostart+i+isshift)=lmatrix_compr(ilcostart+i+ilshift)
+                      end do
+                  case default
+                      stop 'wrong imode'
+                  end select
+                  icheck=icheck+ilength
+              end do lloop
+          end do sloop
+          !$omp end do 
+          !$omp end parallel
+
+      end do
     
       ! all elements of the small matrix must have been processed, no matter in
       ! which direction the transformation has been executed
-      if (icheck/=smat%nvctr) then
-          write(*,'(a,2i8)') 'ERROR: icheck/=smat%nvctr', icheck, smat%nvctr
+      if (icheck/=smat%nvctr*smat%nspin) then
+          write(*,'(a,2i8)') 'ERROR: icheck/=smat%nvctr*smat%nspin', icheck, smat%nvctr*smat%nspin
           stop
       end if
 
@@ -398,32 +421,45 @@ module sparsematrix
     end subroutine transform_sparse_matrix
 
 
-   subroutine compress_matrix_distributed(iproc, smat, matrixp, matrix_compr)
+   subroutine compress_matrix_distributed(iproc, smat, layout, matrixp, matrix_compr)
      use module_base
      implicit none
 
      ! Calling arguments
-     integer,intent(in) :: iproc
+     integer,intent(in) :: iproc, layout
      type(sparse_matrix),intent(in) :: smat
-     real(kind=8),dimension(smat%nfvctr,smat%nfvctrp),intent(in) :: matrixp
+     real(kind=8),dimension(:,:),intent(in) :: matrixp
      real(kind=8),dimension(smat%nvctr),intent(out) :: matrix_compr
 
      ! Local variables
-     integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
+     integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr
 
      call timing(iproc,'compress_uncom','ON')
 
+     ! Check the dimensions of the input array and assign some values
+     if (size(matrixp,1)/=smat%nfvctr) stop 'size(matrixp,1)/=smat%nfvctr'
+     if (layout==DENSE_PARALLEL) then
+         if (size(matrixp,2)/=smat%nfvctrp) stop '(ubound(matrixp,2)/=smat%nfvctrp'
+         nfvctrp=smat%nfvctrp
+         isfvctr=smat%isfvctr
+     else if (layout==DENSE_MATMUL) then
+         if (size(matrixp,2)/=smat%smmm%nfvctrp) stop '(ubound(matrixp,2)/=smat%smmm%nfvctrp'
+         nfvctrp=smat%smmm%nfvctrp
+         isfvctr=smat%smmm%isfvctr
+     end if
+
      call to_zero(smat%nvctr, matrix_compr(1))
 
-     if (smat%nfvctrp>0) then
-         isegstart=smat%istsegline(smat%isfvctr_par(iproc)+1)
-         if (smat%isfvctr_par(iproc)+smat%nfvctrp<smat%nfvctr) then
-             isegend=smat%istsegline(smat%isfvctr_par(iproc+1)+1)-1
-         else
-             isegend=smat%nseg
-         end if
+     if (nfvctrp>0) then
+         isegstart=smat%istsegline(isfvctr+1)
+         isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
+         !!if (isfvctr+nfvctrp<smat%nfvctr) then
+         !!    isegend=smat%istsegline(smat%isfvctr_par(iproc+1)+1)-1
+         !!else
+         !!    isegend=smat%nseg
+         !!end if
          !$omp parallel default(none) &
-         !$omp shared(isegstart, isegend, matrixp, smat, matrix_compr,iproc) &
+         !$omp shared(isegstart, isegend, matrixp, smat, matrix_compr, isfvctr) &
          !$omp private(iseg, ii, jorb, iiorb, jjorb)
          !$omp do
          do iseg=isegstart,isegend
@@ -432,7 +468,7 @@ module sparsematrix
                  ii=ii+1
                  iiorb = (jorb-1)/smat%nfvctr + 1
                  jjorb = jorb - (iiorb-1)*smat%nfvctr
-                 matrix_compr(ii)=matrixp(jjorb,iiorb-smat%isfvctr_par(iproc))
+                 matrix_compr(ii)=matrixp(jjorb,iiorb-isfvctr)
              end do
          end do
          !$omp end do
@@ -448,40 +484,54 @@ module sparsematrix
   end subroutine compress_matrix_distributed
 
 
-  subroutine uncompress_matrix_distributed(iproc, smat, matrix_compr, matrixp)
+  subroutine uncompress_matrix_distributed(iproc, smat, layout, matrix_compr, matrixp)
     use module_base
     implicit none
 
     ! Calling arguments
-    integer,intent(in) :: iproc
+    integer,intent(in) :: iproc, layout
     type(sparse_matrix),intent(in) :: smat
     real(kind=8),dimension(smat%nvctr),intent(in) :: matrix_compr
-    real(kind=8),dimension(smat%nfvctr,smat%nfvctrp),intent(out) :: matrixp
+    real(kind=8),dimension(:,:),intent(out) :: matrixp
 
     ! Local variables
-    integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb
+    integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr
 
       call timing(iproc,'compress_uncom','ON')
 
+     ! Check the dimensions of the output array and assign some values
+     if (size(matrixp,1)/=smat%nfvctr) stop 'size(matrixp,1)/=smat%nfvctr'
+     if (layout==DENSE_PARALLEL) then
+         if (size(matrixp,2)/=smat%nfvctrp) stop '(ubound(matrixp,2)/=smat%nfvctrp'
+         nfvctrp=smat%nfvctrp
+         isfvctr=smat%isfvctr
+     else if (layout==DENSE_MATMUL) then
+         if (size(matrixp,2)/=smat%smmm%nfvctrp) stop '(ubound(matrixp,2)/=smat%smmm%nfvctrp'
+         nfvctrp=smat%smmm%nfvctrp
+         isfvctr=smat%smmm%isfvctr
+     end if
+
        if (smat%nfvctrp>0) then
 
-           call to_zero(smat%nfvctr*smat%nfvctrp,matrixp(1,1))
+           call to_zero(smat%nfvctr*nfvctrp,matrixp(1,1))
 
-           isegstart=smat%istsegline(smat%isfvctr_par(iproc)+1)
-           if (smat%isfvctr_par(iproc)+smat%nfvctrp<smat%nfvctr) then
-               isegend=smat%istsegline(smat%isfvctr_par(iproc+1)+1)-1
-           else
-               isegend=smat%nseg
-           end if
+           isegstart=smat%istsegline(isfvctr+1)
+           isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
+           !!isegstart=smat%istsegline(smat%isfvctr_par(iproc)+1)
+           !!if (smat%isfvctr_par(iproc)+smat%nfvctrp<smat%nfvctr) then
+           !!    isegend=smat%istsegline(smat%isfvctr_par(iproc+1)+1)-1
+           !!else
+           !!    isegend=smat%nseg
+           !!end if
            !$omp parallel do default(private) &
-           !$omp shared(isegstart, isegend, smat, matrixp, matrix_compr, iproc)
+           !$omp shared(isegstart, isegend, smat, matrixp, matrix_compr, isfvctr)
            do iseg=isegstart,isegend
                ii=smat%keyv(iseg)-1
                do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
                    ii=ii+1
                    iiorb = (jorb-1)/smat%nfvctr + 1
                    jjorb = jorb - (iiorb-1)*smat%nfvctr
-                   matrixp(jjorb,iiorb-smat%isfvctr_par(iproc)) = matrix_compr(ii)
+                   matrixp(jjorb,iiorb-isfvctr) = matrix_compr(ii)
                end do
            end do
            !$omp end parallel do
@@ -521,9 +571,9 @@ module sparsematrix
    
      !Calling Arguments
      type(sparse_matrix),intent(in) :: smat
-     real(kind=8), dimension(smat%nfvctr,smat%nfvctrp),intent(in) :: b
+     real(kind=8), dimension(smat%nfvctr,smat%smmm%nfvctrp),intent(in) :: b
      real(kind=8), dimension(smat%smmm%nseq),intent(in) :: a_seq
-     real(kind=8), dimension(smat%nfvctr,smat%nfvctrp), intent(out) :: c
+     real(kind=8), dimension(smat%nfvctr,smat%smmm%nfvctrp), intent(out) :: c
    
      !Local variables
      !character(len=*), parameter :: subname='sparsemm'

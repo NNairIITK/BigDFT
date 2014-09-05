@@ -87,6 +87,10 @@
      COMMENT: Max. iterations of wfn. opt. steps
      RANGE: [0, 10000]
      default: 50
+   itermin:
+     COMMENT: Min. iterations of wfn. opt. steps
+     RANGE: [0, 10000]
+     default: 0
    nrepmax:
      COMMENT: Max. number of re-diag. runs
      RANGE: [0, 1000]
@@ -351,6 +355,21 @@
        - SBFGS
      RANGE: [0, 1000]
      default: 10
+   biomode:
+     COMMENT: Enable mode for biomolecules.
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SBFGS
+     default: No
+   beta_stretchx:
+     COMMENT: Stepsize for steepest descent in stretching mode direction (only if in biomode)
+     CONDITION:
+       MASTER_KEY: biomode
+       WHEN:
+       - Yes
+     RANGE: [0., 100.]
+     default: 5e-1
    maxrise:
      COMMENT: maximum allowed rise in energy in one geopt step
      CONDITION:
@@ -782,6 +801,13 @@
        0: No check
        1: Light check
        2: Full check
+   check_overlap:
+     COMMENT: Enables linear overlap check
+     default: 2
+     EXCLUSIVE:
+       0: No check
+       1: Light check
+       2: Full check
    experimental_mode:
      COMMENT: Activate the experimental mode in linear scaling
      default: No
@@ -845,6 +871,12 @@
        0: REFORMAT
        1: AO
      default: 0 
+   imethod_overlap:
+     COMMENT: method to calculate the overlap matrices (1=old, 2=new)
+     EXCLUSIVE: 
+       1: old
+       2: new
+     default: 1
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant

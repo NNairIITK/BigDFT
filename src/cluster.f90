@@ -8,216 +8,7 @@
 !!   For the list of contributors, see ~/AUTHORS 
  
 
-!> Routine to use BigDFT as a blackbox
-subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => call_bigdft
-  use yaml_output
-  use communications_base
-  implicit none
-  integer, intent(in) :: iproc,nproc
-  type(run_objects), intent(inout) :: runObj
-  type(DFT_global_output), intent(inout) :: outs
-  integer, intent(inout) :: infocode
 
-  !local variables
-  character(len=*), parameter :: subname='call_bigdft'
-  character(len=40) :: comment
-  logical :: exists
-  integer :: ierr,inputPsiId_orig,iat,iorb,istep
-  real(gp) :: maxdiff
-
-  !temporary interface, not needed anymore since all arguments are structures
-!!$  interface
-!!$     subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,pressure,&
-!!$          KSwfn,tmb,&!psi,Lzd,gaucoeffs,gbd,orbs,
-!!$          rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
-!!$       use module_base
-!!$       use module_types
-!!$       implicit none
-!!$       integer, intent(in) :: nproc,iproc
-!!$       integer, intent(out) :: infocode
-!!$       real(gp), intent(inout) :: hx_old,hy_old,hz_old
-!!$       type(input_variables), intent(in) :: in
-!!$       !type(local_zone_descriptors), intent(inout) :: Lzd
-!!$       type(atoms_data), intent(inout) :: atoms
-!!$       !type(gaussian_basis), intent(inout) :: gbd
-!!$       !type(orbitals_data), intent(inout) :: orbs
-!!$       type(GPU_pointers), intent(inout) :: GPU
-!!$       type(DFT_wavefunction), intent(inout) :: KSwfn,tmb
-!!$       type(energy_terms), intent(out), target :: energs
-!!$       real(gp), intent(out) :: energy,fnoise,pressure
-!!$       real(gp), dimension(3,atoms%astruct%nat), target, intent(inout) :: rxyz
-!!$       real(gp), dimension(6), intent(out) :: strten
-!!$       real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
-!!$     END SUBROUTINE cluster
-!!$  end interface
-
-  !put a barrier for all the processes
-  call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-  call f_routine(id=subname)
-
-  !Check the consistency between MPI processes of the atomic coordinates
-  maxdiff=mpimaxdiff(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm)
-  !call check_array_consistency(maxdiff, nproc, runObj%atoms%astruct%rxyz, bigdft_mpi%mpi_comm)
-  if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
-       call yaml_warning('Input positions not identical! '//&
-       '(difference:'//trim(yaml_toa(maxdiff))//' )')
-
-  !fill the rxyz array with the positions
-  !wrap the atoms in the periodic directions when needed
-  select case(runObj%atoms%astruct%geocode)
-  case('P')
-     do iat=1,runObj%atoms%astruct%nat
-        runObj%rst%rxyz_new(1,iat)=modulo(runObj%atoms%astruct%rxyz(1,iat),runObj%atoms%astruct%cell_dim(1))
-        runObj%rst%rxyz_new(2,iat)=modulo(runObj%atoms%astruct%rxyz(2,iat),runObj%atoms%astruct%cell_dim(2))
-        runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
-     end do
-  case('S')
-     do iat=1,runObj%atoms%astruct%nat
-        runObj%rst%rxyz_new(1,iat)=modulo(runObj%atoms%astruct%rxyz(1,iat),runObj%atoms%astruct%cell_dim(1))
-        runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
-        runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
-     end do
-  case('W')
-     do iat=1,runObj%atoms%astruct%nat
-        runObj%rst%rxyz_new(1,iat)=runObj%atoms%astruct%rxyz(1,iat)
-        runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
-        runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
-     end do
-  case('F')
-     do iat=1,runObj%atoms%astruct%nat
-        runObj%rst%rxyz_new(1,iat)=runObj%atoms%astruct%rxyz(1,iat)
-        runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
-        runObj%rst%rxyz_new(3,iat)=runObj%atoms%astruct%rxyz(3,iat)
-     end do
-  end select
-
-  !assign the verbosity of the output
-  !the verbose variables is defined in module_base
-  verbose=runObj%inputs%verbosity
-
-  ! Use the restart for the linear scaling version... probably to be modified.
-  if(runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL) then
-      if (runObj%rst%version == LINEAR_VERSION) then
-          runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_LINEAR
-          !switch off fragment calculation after this point
-          !runObj%inputs%lin%fragment_calculation=.false.
-          !runObj%inputs%frag%nfrag=1
-          do iorb=1,runObj%rst%tmb%orbs%norb
-              if (runObj%inputs%lin%locrad_lowaccuracy(iorb) /=  runObj%inputs%lin%locrad_highaccuracy(iorb))then
-                  stop 'ERROR: at the moment the radii for low and high accuracy must be the same &
-                        &when using the linear restart!'
-              end if
-          end do
-      end if
-  end if
-  inputPsiId_orig=runObj%inputs%inputPsiId
-
-  loop_cluster: do
-     !allocate history container if it has not been done
-     if (runObj%inputs%wfn_history > 1  .and. .not. associated(runObj%rst%KSwfn%oldpsis)) then
-        allocate(runObj%rst%KSwfn%oldpsis(0:runObj%inputs%wfn_history+1))
-        runObj%rst%KSwfn%istep_history=0
-        do istep=0,runObj%inputs%wfn_history+1
-          runObj%rst%KSwfn%oldpsis(istep)=old_wavefunction_null() 
-        end do
-     end if
-
-     if (runObj%inputs%inputPsiId == INPUT_PSI_LCAO .and. associated(runObj%rst%KSwfn%psi)) then
-        !call f_free_ptr(runObj%rst%KSwfn%psi)
-        call f_free_ptr(runObj%rst%KSwfn%psi)
-
-        call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
-
-        call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
-     end if
-
-     !experimental, finite difference method for calculating forces on particular quantities
-     inquire(file='input.finite_difference_forces',exist=exists)
-     if (exists) then
-        runObj%inputs%last_run=1 !do the last_run things nonetheless
-        if (runObj%inputs%inputPsiId/=INPUT_PSI_LINEAR_AO.and.runObj%inputs%inputPsiId/=INPUT_PSI_DISK_LINEAR) then
-           runObj%inputs%inputPsiId = INPUT_PSI_LCAO !the first run always restart from IG
-        end if
-        !experimental_modulebase_var_onlyfion=.true. !put only ionic forces in the forces
-     end if
-
-     !Main routine calculating the KS orbitals
-     call cluster(nproc,iproc,runObj%atoms,runObj%rst%rxyz_new, runObj%radii_cf, &
-          & outs%energy, outs%energs, outs%fxyz, outs%strten, outs%fnoise, outs%pressure,&
-          runObj%rst%KSwfn,runObj%rst%tmb,&
-          runObj%rst%rxyz_old,runObj%rst%hx_old,runObj%rst%hy_old,runObj%rst%hz_old,runObj%inputs,runObj%rst%GPU,infocode)
-
-     !save the new atomic positions in the rxyz_old array
-     do iat=1,runObj%atoms%astruct%nat
-        runObj%rst%rxyz_old(1,iat)=runObj%rst%rxyz_new(1,iat)
-        runObj%rst%rxyz_old(2,iat)=runObj%rst%rxyz_new(2,iat)
-        runObj%rst%rxyz_old(3,iat)=runObj%rst%rxyz_new(3,iat)
-     enddo
-
-     if (exists) then
-        call forces_via_finite_differences(iproc,nproc,runObj%atoms,runObj%inputs, &
-             & outs%energy,outs%fxyz,outs%fnoise,runObj%rst,infocode)
-     end if
-
-     !Check infocode in function of the inputPsiId parameters
-     !and change the strategy of input guess psi
-     if (runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL .and. infocode==2) then
-        if (runObj%inputs%gaussian_help) then
-           runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_GAUSS
-        else
-           runObj%inputs%inputPsiId = INPUT_PSI_LCAO
-        end if
-     else if (runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_LINEAR .and. infocode==2) then
-         ! problems after restart for linear version
-         runObj%inputs%inputPsiId = INPUT_PSI_LINEAR_AO
-     else if ((runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL .or. &
-               runObj%inputs%inputPsiId == INPUT_PSI_LCAO) .and. infocode==1) then
-        !runObj%inputs%inputPsiId=INPUT_PSI_LCAO !better to diagonalise than to restart an input guess
-        runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_WVL
-        !if (iproc==0) then
-        !   call yaml_warning('Self-consistent cycle did not meet convergence criteria')
-        !   write(*,*)&
-        !        &   ' WARNING: Self-consistent cycle did not meet convergence criteria'
-        !end if
-        exit loop_cluster
-     else if (runObj%inputs%inputPsiId == INPUT_PSI_LCAO .and. infocode==3) then
-        if (iproc == 0) then
-           write( *,'(1x,a)')'Convergence error, cannot proceed.'
-           write( *,'(1x,a)')' writing positions in file posfail.xyz then exiting'
-           write(comment,'(a)')'UNCONVERGED WF '
-           !call wtxyz('posfail',energy,rxyz,atoms,trim(comment))
-           call write_atomic_file("posfail",outs%energy,runObj%rst%rxyz_new,&
-                runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment))
-        end if
-
-        call f_free_ptr(runObj%rst%KSwfn%psi)
-        call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
-
-        call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
-
-        !finalize memory counting (there are still at least positions and the forces allocated)
-        call memocc(0,0,'count','stop')
-
-        if (nproc > 1) call MPI_FINALIZE(ierr)
-
-        stop 'unnormal end'
-     else
-        exit loop_cluster
-     end if
-
-  end do loop_cluster
-
-  !preserve the previous value
-  runObj%inputs%inputPsiId=inputPsiId_orig
-
-  !put a barrier for all the processes
-  call f_release_routine()
-  call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-
-END SUBROUTINE call_bigdft
 
 
 !>  Main routine which does self-consistent loop.
@@ -313,6 +104,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   type(dictionary), pointer :: dict_timing_info
   
   real(kind=8),dimension(:,:),allocatable :: locreg_centers
+  integer :: ishift
 
   !Variables for WVL+PAW
   integer:: iatyp
@@ -328,6 +120,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   !real(kind=8) :: ddot
 
   call f_routine(id=subname)
+
+  energs = energy_terms_null()
 
   !copying the input variables for readability
   !this section is of course not needed
@@ -411,8 +205,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
         tmb_old%linmat%s = sparse_matrix_null()
         tmb_old%linmat%m = sparse_matrix_null()
         tmb_old%linmat%l = sparse_matrix_null()
-        tmb_old%linmat%ks = sparse_matrix_null()
-        tmb_old%linmat%ks_e = sparse_matrix_null()
+        !!tmb_old%linmat%ks = sparse_matrix_null()
+        !!tmb_old%linmat%ks_e = sparse_matrix_null()
+        nullify(tmb_old%linmat%ks)
+        nullify(tmb_old%linmat%ks_e)
         tmb_old%linmat%ovrlp_ = matrices_null()
         tmb_old%linmat%ham_ = matrices_null()
         tmb_old%linmat%kernel_ = matrices_null()
@@ -483,7 +279,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !!call init_p2p_tags(nproc)
      !!tag=0
 
-     call kswfn_init_comm(tmb, denspot%dpbox, iproc, nproc)
+     call kswfn_init_comm(tmb, denspot%dpbox, iproc, nproc, in%nspin, in%imethod_overlap)
      locreg_centers = f_malloc((/3,tmb%lzd%nlr/),id='locreg_centers')
      do ilr=1,tmb%lzd%nlr
          locreg_centers(1:3,ilr)=tmb%lzd%llr(ilr)%locregcenter(1:3)
@@ -494,9 +290,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,in, atoms, rxyz, .false.)
 
-     !!call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
-     !!     in%store_index, imode=1, smat=tmb%linmat%ham)
-     call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
+     call init_sparse_matrix_wrapper(iproc, nproc, in%nspin, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
           in%store_index, imode=1, smat=tmb%linmat%m)
      tmb%linmat%ham_ = matrices_null()
      call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
@@ -507,9 +301,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
 
-     !!call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, &
-     !!     in%store_index, imode=1, smat=tmb%linmat%ovrlp)
-     call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, &
+     call init_sparse_matrix_wrapper(iproc, nproc, in%nspin, tmb%orbs, tmb%lzd, atoms%astruct, &
           in%store_index, imode=1, smat=tmb%linmat%s)
      tmb%linmat%ovrlp_ = matrices_null()
      call allocate_matrices(tmb%linmat%s, allocate_full=.false., &
@@ -534,9 +326,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      ! check the extent of the kernel cutoff (must be at least shamop radius)
      call check_kernel_cutoff(iproc, tmb%orbs, atoms, tmb%lzd)
 
-     !!call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, &
-     !!     in%store_index, imode=2, smat=tmb%linmat%denskern_large)
-     call init_sparse_matrix_wrapper(iproc, nproc, tmb%orbs, tmb%lzd, atoms%astruct, &
+     call init_sparse_matrix_wrapper(iproc, nproc, in%nspin, tmb%orbs, tmb%lzd, atoms%astruct, &
           in%store_index, imode=2, smat=tmb%linmat%l)
      tmb%linmat%kernel_ = matrices_null()
      call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
@@ -554,8 +344,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      ! Initializes a sparse matrix type compatible with the ditribution of the
      ! KS orbitals. This is required for the re-orthonromalization of the
      ! KS espansion coefficients, so it is not necessary for FOE.
-     tmb%linmat%ks = sparse_matrix_null()
-     tmb%linmat%ks_e = sparse_matrix_null()
+     !!tmb%linmat%ks = sparse_matrix_null()
+     !!tmb%linmat%ks_e = sparse_matrix_null()
      if (in%lin%scf_mode/=LINEAR_FOE .or. in%lin%pulay_correction .or.  in%lin%new_pulay_correction .or. &
          (in%lin%plotBasisFunctions /= WF_FORMAT_NONE) .or. in%lin%diag_end) then
          call init_sparse_matrix_for_KSorbs(iproc, nproc, KSwfn%orbs, in, in%lin%extra_states, &
@@ -565,7 +355,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
      if (in%check_matrix_compression) then
          if (iproc==0) call yaml_mapping_open('Checking Compression/Uncompression of large sparse matrices')
-         !call check_matrix_compression(iproc,tmb%linmat%denskern_large)
          call check_matrix_compression(iproc, tmb%linmat%l, tmb%linmat%kernel_)
          if (iproc ==0) call yaml_mapping_close()
      end if
@@ -578,9 +367,22 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
               denspot, tmb%linmat%l, tmb%linmat%kernel_, in%check_sumrho)
      end if
 
+     if (iproc==0) call yaml_mapping_open('Checking Communications of Minimal Basis')
+     call check_communications_locreg(iproc,nproc,tmb%orbs,in%nspin,tmb%lzd, &
+          tmb%collcom,tmb%linmat%s,tmb%linmat%ovrlp_, &
+          tmb%npsidim_orbs,tmb%npsidim_comp,in%check_overlap)
+     if (iproc==0) call yaml_mapping_close()
+
+     if (iproc==0) call yaml_mapping_open('Checking Communications of Enlarged Minimal Basis')
+     call check_communications_locreg(iproc,nproc,tmb%orbs,in%nspin,tmb%ham_descr%lzd, &
+          tmb%ham_descr%collcom,tmb%linmat%m,tmb%linmat%ham_, &
+          tmb%ham_descr%npsidim_orbs,tmb%ham_descr%npsidim_comp,in%check_overlap)
+     if (iproc ==0) call yaml_mapping_close()
+
+
      if (in%lin%scf_mode/=LINEAR_FOE .or. in%lin%pulay_correction .or.  in%lin%new_pulay_correction .or. &
-         (in%lin%plotBasisFunctions /= WF_FORMAT_NONE) .or. in%lin%diag_end) then
-        tmb%coeff = f_malloc_ptr((/ tmb%orbs%norb , tmb%orbs%norb /),id='tmb%coeff')
+         (in%lin%plotBasisFunctions /= WF_FORMAT_NONE) .or. in%lin%diag_end .or. in%write_orbitals) then
+        tmb%coeff = f_malloc_ptr((/ tmb%linmat%m%nfvctr , tmb%orbs%norb /),id='tmb%coeff')
      else
         nullify(tmb%coeff)
      end if
@@ -596,6 +398,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   optLoop%itrpmax = in%itrpmax
   optLoop%nrepmax = in%nrepmax
   optLoop%itermax = in%itermax
+  optLoop%itermin = in%itermin!Bastian
   optLoop%gnrm_cv = in%gnrm_cv
   optLoop%rpnrm_cv = in%rpnrm_cv
   optLoop%gnrm_startmix = in%gnrm_startmix
@@ -641,6 +444,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   if (denspot%c_obj /= 0) then
      call denspot_emit_v_ext(denspot, iproc, nproc)
   end if
+
+
 
   norbv=abs(in%norbv)
   if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
@@ -857,10 +662,17 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      !!     denspot%rhov(1),1,denspot%rho_work(1),1)
 
      ! keep only the essential part of the density, without the GGA bufffers
-     denspot%rho_work = f_malloc_ptr(denspot%dpbox%ndimpot,id='denspot%rho_work')
+     denspot%rho_work = f_malloc_ptr(denspot%dpbox%ndimrhopot,id='denspot%rho_work')
      ioffset=kswfn%lzd%glr%d%n1i*kswfn%lzd%glr%d%n2i*denspot%dpbox%i3xcsh
-     if (denspot%dpbox%ndimpot>0) then
+     if (denspot%dpbox%ndimrhopot>0) then
          call vcopy(denspot%dpbox%ndimpot,denspot%rhov(ioffset+1),1,denspot%rho_work(1),1)
+         ! add the spin down part if present
+         if (denspot%dpbox%nrhodim==2) then
+             ishift=denspot%dpbox%ndimrhopot/denspot%dpbox%nrhodim !start of the spin down part
+             call axpy(denspot%dpbox%ndimpot, 1.d0, &
+                       denspot%rhov(ioffset+ishift+1), &
+                       1, denspot%rho_work(1),1)
+         end if
      end if
 
      if (infocode==2) then
@@ -1100,7 +912,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            !the virtual orbitals should be in agreement with the traditional k-points
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
                 KSwfn%orbs%nspin,KSwfn%orbs%nspinor,KSwfn%orbs%nkpts,&
-                KSwfn%orbs%kpts,KSwfn%orbs%kwgts,VTwfn%orbs,.false.,basedist=KSwfn%orbs%norb_par(0:,1:))
+                KSwfn%orbs%kpts,KSwfn%orbs%kwgts,VTwfn%orbs,.false.,&
+                basedist=KSwfn%orbs%norb_par(0:,1:),basedistu=KSwfn%orbs%norbu_par(0:,1:),&
+                basedistd=KSwfn%orbs%norbd_par(0:,1:))
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,VTwfn%orbs,VTwfn%comms,&
                 basedist=KSwfn%comms%nvctr_par(0:,1:))  
@@ -1640,7 +1454,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if (opt%iter > opt%itermax) exit wfn_loop
 
            !control whether the minimisation iterations should end after the hamiltionian application
-           endloop= opt%gnrm <= opt%gnrm_cv .or. opt%iter == opt%itermax
+           endloop= (opt%gnrm <= opt%gnrm_cv .or. opt%iter == opt%itermax) .and. opt%iter >= opt%itermin !Bastian
 
            if (iproc == 0) then 
               !yaml output
@@ -1711,11 +1525,11 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
                  opt%infocode=2
               end if
            end if
-           !flush all writings on standart output
+           !flush all writings on standard output
            if (iproc==0) then
               !yaml output
               call yaml_mapping_close() !iteration
-              call bigdft_utils_flush(unit=6)
+              call yaml_flush_document()
            end if
            ! Emergency exit case
            if (opt%infocode == 2 .or. opt%infocode == 3) then
@@ -1758,7 +1572,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            end if
            call write_energies(opt%iter,0,energs,opt%gnrm,gnrm_zero,final_out)
            call yaml_mapping_close()
-
+           call yaml_flush_document()
            if (opt%itrpmax >1) then
               if ( KSwfn%diis%energy > KSwfn%diis%energy_min) &
                    call yaml_warning('Found an energy value lower than the ' // final_out // &
@@ -1777,8 +1591,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
         if (iproc==0) then
            call yaml_sequence_close() !wfn iterations
            if (opt%iter == opt%itermax .and. opt%infocode/=0) &
-             &  call yaml_warning('No convergence within the allowed number of minimization steps')
-             !&   write( *,'(1x,a)')'No convergence within the allowed number of minimization steps'
+                call yaml_warning('No convergence within the allowed number of minimization steps')
         end if
         call last_orthon(iproc,nproc,opt%iter,KSwfn,energs%evsum,.true.) !never deallocate psit and hpsi
 
@@ -1822,6 +1635,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
         if (iproc==0) then
            call yaml_mapping_close()
+           call yaml_flush_document()
         end if
 
         if (opt%infocode ==0) exit subd_loop
@@ -2004,7 +1818,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   if (linear) then
      if (denspot%dpbox%ndimpot>0) then
         !!denspot%pot_work = f_malloc_ptr(denspot%dpbox%ndimpot,id='denspot%pot_work')
-        denspot%pot_work = f_malloc_ptr(denspot%dpbox%ndimpot,id='denspot%pot_work')
+        denspot%pot_work = f_malloc_ptr(denspot%dpbox%ndimrhopot,id='denspot%pot_work')
      else
         !!denspot%pot_work = f_malloc_ptr(1,id='denspot%pot_work')
         denspot%pot_work = f_malloc_ptr(1,id='denspot%pot_work')
@@ -2026,9 +1840,13 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      if (atoms%astruct%sym%symObj >= 0) call symm_stress(xcstr,atoms%astruct%sym%symObj)
   end if
 
+  !SM: for a spin polarized calculation, rho_work already contains the full
+  !density in the first half of the array. Therefore I think that calc_dipole should be
+  !called with nspin=1 and not nspin=2 as it used to be.
   if (calculate_dipole) then
      ! calculate dipole moment associated to the charge density
-     call calc_dipole(denspot%dpbox,denspot%dpbox%nrhodim,atoms,rxyz,denspot%rho_work,.false.)
+     !call calc_dipole(denspot%dpbox,denspot%dpbox%nrhodim,atoms,rxyz,denspot%rho_work,.false.)
+     call calc_dipole(denspot%dpbox,1,atoms,rxyz,denspot%rho_work,.false.)
   end if
   !plot the density on the cube file
   !to be done either for post-processing or if a restart is to be done with mixing enabled

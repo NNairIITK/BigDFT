@@ -12,6 +12,7 @@
 subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fnoise,rst,infocode)
   use module_base
   use module_types
+  use bigdft_run
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(inout) :: infocode
@@ -85,20 +86,16 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
 
   if (order == -1) then
      n_order = 1
-     kmoves = f_malloc(n_order,id='kmoves')
-     kmoves = (/ -1 /)
+     kmoves = f_malloc(src=(/ -1 /),id='kmoves')
   else if (order == 1) then
      n_order = 1
-     kmoves = f_malloc(n_order,id='kmoves')
-     kmoves = (/ 1 /)
+     kmoves = f_malloc(src=(/ 1 /),id='kmoves')
   else if (order == 2) then
      n_order = 2
-     kmoves = f_malloc(n_order,id='kmoves')
-     kmoves = (/ -1, 1 /)
+     kmoves = f_malloc(src=(/ -1, 1 /),id='kmoves')
   else if (order == 3) then
      n_order = 4
-     kmoves = f_malloc(n_order,id='kmoves')
-     kmoves = (/ -2, -1, 1, 2 /)
+     kmoves = f_malloc(src=(/ -2, -1, 1, 2 /),id='kmoves')
   else
      print *, "Finite Differences: This order",order," is not implemented!"
      stop
@@ -313,6 +310,14 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   call local_forces(iproc,atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
        Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s,Glr%d%n1i,Glr%d%n2i,rho,pot,fxyz,strtens(1,1),charge)
 
+  !!do iat=1,atoms%astruct%nat
+  !!    write(4000+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+  !!end do
+
+  !!do iat=1,atoms%astruct%nat
+  !!    write(4100+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+  !!end do
+
   !calculate forces originated by rhocore
   call rhocore_forces(iproc,atoms,nspin,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,n3p,i3s,&
        0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,rxyz,potxc,fxyz)
@@ -332,6 +337,9 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
       call nonlocal_forces_linear(iproc,nproc,tmb%npsidim_orbs,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
            tmb%orbs,nlpsp,tmb%lzd,tmb%collcom,tmb%psi,tmb%linmat%l,tmb%linmat%kernel_,fxyz,refill_proj,&
            strtens(1,2))
+      !!do iat=1,atoms%astruct%nat
+      !!    write(4200+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+      !!end do
   else
       stop 'wrong imode'
   end if
@@ -357,6 +365,9 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
            fxyz(3,iat)=fxyz(3,iat)+fion(3,iat)+fdisp(3,iat)+fpulay(3,iat)
         enddo
      end if
+     !!do iat=1,atoms%astruct%nat
+     !!    write(4300+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+     !!end do
   else
      if (iproc==0) then
         call vcopy(3*atoms%astruct%nat,fion(1,1),1,fxyz(1,1),1)
@@ -376,8 +387,15 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      call mpiallred(charge,1,MPI_SUM,bigdft_mpi%mpi_comm)
   end if
 
+  !!do iat=1,atoms%astruct%nat
+  !!    write(4400+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+  !!end do
+
   !clean the center mass shift and the torque in isolated directions
   call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
+  !!do iat=1,atoms%astruct%nat
+  !!    write(4500+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
+  !!end do
 
   ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
   if (atoms%astruct%inputfile_format=='int') then
@@ -590,7 +608,7 @@ end subroutine rhocore_forces
 !> Calculates the local forces acting on the atoms belonging to iproc
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc,locstrten,charge)
-  use module_base
+  use module_base, pi => pi_param
   use module_types
   use yaml_output
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
@@ -605,7 +623,6 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   real(gp), dimension(3,at%astruct%nat), intent(out) :: floc
   real(gp), dimension(6), intent(out) :: locstrten
   !Local variables---------
-  real(kind=8), parameter :: pi=4.d0*atan(1.d0)
   logical :: perx,pery,perz,gox,goy,goz
   real(kind=8) :: prefactor,cutoff,rloc,Vel,rhoel
   real(kind=8) :: fxerf,fyerf,fzerf,fxion,fyion,fzion,fxgau,fygau,fzgau,forceleaked,forceloc
@@ -4230,7 +4247,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(6), intent(out) :: strten
   !local variables--------------
   integer :: istart_c,iproj,iat,ityp,i,j,l,m,iorbout,iiorb,ilr
-  integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,ind,iseg,jjorb
+  integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,ind,iseg,jjorb,ispin
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,Enl,vol
   !real(gp) :: orbfac,strc
@@ -4648,135 +4665,144 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
          !do iorbout=isorb,ieorb
          !do iorbout=1,orbs%norb
          ii=0
-         do iseg=1,denskern%nseg
-            do jjorb=denskern%keyg(1,iseg),denskern%keyg(2,iseg)
-               ii=ii+1
-               iorbout = (jjorb-1)/orbs%norb + 1
-               jorb = jjorb - (iorbout-1)*orbs%norb
-            !jorb=0 !THIS WILL CREATE PROBLEMS FOR K-POINTS!!
-            sab=0.0_gp
-            ! loop over all projectors
-            !do iorb=isorb,ieorb
-            !do iorb=1,orbs%norb
-               do ispinor=1,nspinor,ncplx
-                  !jorb=jorb+1
-                  !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
-                  !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
-                  ind=ii
-                  !write(100+iproc,'(a,3i8,es20.10)') 'iorbout, jorb, ind, denskern%matrix_compr(ind)', iorbout, jorb, ind, denskern%matrix_compr(ind)
-                  !if (kernel(jorb,iorbout)==0.d0) cycle
-                  if (denskern_mat%matrix_compr(ind)==0.d0) cycle
-                  !do iat=1,at%astruct%nat
-                  do iat=1,nat_par(iproc)
-                     iiat=isat_par(iproc)+iat
-                     ityp=at%astruct%iatype(iiat)
-                     do l=1,4
-                        do i=1,3
-                           if (at%psppar(l,i,ityp) /= 0.0_gp) then
-                              do m=1,2*l-1
-                                 do icplx=1,ncplx
-                                    ! scalar product with the derivatives in all the directions
-                                    sp0=real(scalprod(icplx,0,m,i,l,iat,iorbout),gp)
-                                    !if (kernel(jorb,iorbout)/=0.d0) then
-                                        !!write(100+iproc,'(a,9i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,sp0', &
-                                        !!                                   iorbout,jorb,icplx,0,m,i,l,iat,iiat,sp0
-                                    !end if
-                                    do idir=1,3
-                                       spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-                                       !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
-                                       !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
-                                       ind=ii
-                                       !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
-                                       !     kernel(jorb,iorbout)*at%psppar(l,i,ityp)*sp0*spi
-                                       fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
-                                            denskern_mat%matrix_compr(ind)*at%psppar(l,i,ityp)*sp0*spi
+         spin_loop: do ispin=1,denskern%nspin
+            do iseg=1,denskern%nseg
+               do jjorb=denskern%keyg(1,iseg),denskern%keyg(2,iseg)
+                  ii=ii+1
+                  !!iorbout = (jjorb-1)/orbs%norb + 1
+                  !!jorb = jjorb - (iorbout-1)*orbs%norb
+                  iorbout = (jjorb-1)/denskern%nfvctr + 1
+                  jorb = jjorb - (iorbout-1)*denskern%nfvctr
+                  !spin shift
+                  if (ispin==2) then
+                      iorbout = iorbout + denskern%nfvctr
+                      jorb = jorb + denskern%nfvctr
+                  end if
+               !jorb=0 !THIS WILL CREATE PROBLEMS FOR K-POINTS!!
+               sab=0.0_gp
+               ! loop over all projectors
+               !do iorb=isorb,ieorb
+               !do iorb=1,orbs%norb
+                  do ispinor=1,nspinor,ncplx
+                     !jorb=jorb+1
+                     !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
+                     !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
+                     ind=ii
+                     !write(100+iproc,'(a,3i8,es20.10)') 'iorbout, jorb, ind, denskern%matrix_compr(ind)', iorbout, jorb, ind, denskern%matrix_compr(ind)
+                     !if (kernel(jorb,iorbout)==0.d0) cycle
+                     if (denskern_mat%matrix_compr(ind)==0.d0) cycle
+                     !do iat=1,at%astruct%nat
+                     do iat=1,nat_par(iproc)
+                        iiat=isat_par(iproc)+iat
+                        ityp=at%astruct%iatype(iiat)
+                        do l=1,4
+                           do i=1,3
+                              if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                                 do m=1,2*l-1
+                                    do icplx=1,ncplx
+                                       ! scalar product with the derivatives in all the directions
+                                       sp0=real(scalprod(icplx,0,m,i,l,iat,iorbout),gp)
                                        !if (kernel(jorb,iorbout)/=0.d0) then
-                                           !!write(110+iproc,'(a,10i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
-                                           !!                                    &idir,fxyz_orb(idir,iat)', &
-                                           !!                                    iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
-                                           !!                                    idir,fxyz_orb(idir,iat)
+                                           !!write(100+iproc,'(a,9i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,sp0', &
+                                           !!                                   iorbout,jorb,icplx,0,m,i,l,iat,iiat,sp0
                                        !end if
-                                    end do
-                                    spi=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
-                                    !!Enl=Enl+sp0*spi*at%psppar(l,i,ityp)*&
-                                    !!orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                    !!do idir=4,9 !for stress
-                                    !!    strc=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-                                    !!    sab(idir-3)=&
-                                    !!    sab(idir-3)+&   
-                                    !!    at%psppar(l,i,ityp)*sp0*2.0_gp*strc*&
-                                    !!    orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                    !!end do
-                                 end do
-                              end do
-                           end if
-                        end do
-                     end do
-                     !HGH case, offdiagonal terms
-                     if (at%npspcode(ityp) == PSPCODE_HGH .or. &
-                         at%npspcode(ityp) == PSPCODE_HGH_K .or. &
-                         at%npspcode(ityp) == PSPCODE_HGH_K_NLCC) then
-                        do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
-                           do i=1,2
-                              if (at%psppar(l,i,ityp) /= 0.0_gp) then 
-                                 loop_j: do j=i+1,3
-                                    if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_j
-                                    !offdiagonal HGH term
-                                    if (at%npspcode(ityp) == PSPCODE_HGH) then !traditional HGH convention
-                                       hij=offdiagarr(i,j-i,l)*at%psppar(l,j,ityp)
-                                    else !HGH-K convention
-                                       hij=at%psppar(l,i+j+1,ityp)
-                                    end if
-                                    do m=1,2*l-1
-                                       !F_t= 2.0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
-                                       !(the two factor is below)
-                                       do icplx=1,ncplx
-                                          sp0i=real(scalprod(icplx,0,m,i,l,iat,iorbout),gp)
-                                          sp0j=real(scalprod(icplx,0,m,j,l,iat,iorbout),gp)
-                                          do idir=1,3
-                                             spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-                                             spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
-                                             !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
-                                             !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
-                                             ind=ii
-                                             !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
-                                             !     kernel(jorb,iorbout)*hij*(sp0j*spi+spj*sp0i)
-                                             fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
-                                                  denskern_mat%matrix_compr(ind)*hij*(sp0j*spi+spj*sp0i)
-                                          end do
-                                          sp0i=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
-                                          !!Enl=Enl+2.0_gp*sp0i*sp0j*hij&
-                                          !!*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                          !!do idir=4,9
-                                          !!    spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-                                          !!    spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
-                                          !!    sab(idir-3)=&
-                                          !!    sab(idir-3)+&   
-                                          !!    2.0_gp*hij*(sp0j*spi+sp0i*spj)&
-                                          !!    *orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                          !!end do
+                                       do idir=1,3
+                                          spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
+                                          !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
+                                          !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
+                                          ind=ii
+                                          !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
+                                          !     kernel(jorb,iorbout)*at%psppar(l,i,ityp)*sp0*spi
+                                          fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
+                                               denskern_mat%matrix_compr(ind)*at%psppar(l,i,ityp)*sp0*spi
+                                          !if (kernel(jorb,iorbout)/=0.d0) then
+                                              !!write(110+iproc,'(a,10i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
+                                              !!                                    &idir,fxyz_orb(idir,iat)', &
+                                              !!                                    iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
+                                              !!                                    idir,fxyz_orb(idir,iat)
+                                          !end if
                                        end do
+                                       spi=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
+                                       !!Enl=Enl+sp0*spi*at%psppar(l,i,ityp)*&
+                                       !!orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                       !!do idir=4,9 !for stress
+                                       !!    strc=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
+                                       !!    sab(idir-3)=&
+                                       !!    sab(idir-3)+&   
+                                       !!    at%psppar(l,i,ityp)*sp0*2.0_gp*strc*&
+                                       !!    orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                       !!end do
                                     end do
-                                 end do loop_j
+                                 end do
                               end if
                            end do
                         end do
-                     end if
+                        !HGH case, offdiagonal terms
+                        if (at%npspcode(ityp) == PSPCODE_HGH .or. &
+                            at%npspcode(ityp) == PSPCODE_HGH_K .or. &
+                            at%npspcode(ityp) == PSPCODE_HGH_K_NLCC) then
+                           do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
+                              do i=1,2
+                                 if (at%psppar(l,i,ityp) /= 0.0_gp) then 
+                                    loop_j: do j=i+1,3
+                                       if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_j
+                                       !offdiagonal HGH term
+                                       if (at%npspcode(ityp) == PSPCODE_HGH) then !traditional HGH convention
+                                          hij=offdiagarr(i,j-i,l)*at%psppar(l,j,ityp)
+                                       else !HGH-K convention
+                                          hij=at%psppar(l,i+j+1,ityp)
+                                       end if
+                                       do m=1,2*l-1
+                                          !F_t= 2.0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
+                                          !(the two factor is below)
+                                          do icplx=1,ncplx
+                                             sp0i=real(scalprod(icplx,0,m,i,l,iat,iorbout),gp)
+                                             sp0j=real(scalprod(icplx,0,m,j,l,iat,iorbout),gp)
+                                             do idir=1,3
+                                                spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
+                                                spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
+                                                !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
+                                                !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
+                                                ind=ii
+                                                !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
+                                                !     kernel(jorb,iorbout)*hij*(sp0j*spi+spj*sp0i)
+                                                fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
+                                                     denskern_mat%matrix_compr(ind)*hij*(sp0j*spi+spj*sp0i)
+                                             end do
+                                             sp0i=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
+                                             !!Enl=Enl+2.0_gp*sp0i*sp0j*hij&
+                                             !!*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                             !!do idir=4,9
+                                             !!    spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
+                                             !!    spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
+                                             !!    sab(idir-3)=&
+                                             !!    sab(idir-3)+&   
+                                             !!    2.0_gp*hij*(sp0j*spi+sp0i*spj)&
+                                             !!    *orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                             !!end do
+                                          end do
+                                       end do
+                                    end do loop_j
+                                 end if
+                              end do
+                           end do
+                        end if
+                     end do
                   end do
+       
+                  !!!orbital-dependent factor for the forces
+                  !!orbfac=orbs%kwgts(orbs%iokpt(iorbout))*orbs%occup(iorbout+orbs%isorb)*2.0_gp
+       
+                  !seq: strten(1:6) =  11 22 33 23 13 12 
+                  strten(1)=strten(1)+sab(1)/vol 
+                  strten(2)=strten(2)+sab(2)/vol 
+                  strten(3)=strten(3)+sab(3)/vol 
+                  strten(4)=strten(4)+sab(5)/vol
+                  strten(5)=strten(5)+sab(6)/vol
+                  strten(6)=strten(6)+sab(4)/vol
                end do
-       
-               !!!orbital-dependent factor for the forces
-               !!orbfac=orbs%kwgts(orbs%iokpt(iorbout))*orbs%occup(iorbout+orbs%isorb)*2.0_gp
-       
-               !seq: strten(1:6) =  11 22 33 23 13 12 
-               strten(1)=strten(1)+sab(1)/vol 
-               strten(2)=strten(2)+sab(2)/vol 
-               strten(3)=strten(3)+sab(3)/vol 
-               strten(4)=strten(4)+sab(5)/vol
-               strten(5)=strten(5)+sab(6)/vol
-               strten(6)=strten(6)+sab(4)/vol
             end do
-         end do
+         end do spin_loop
          !do iat=1,at%astruct%nat
          do iat=1,nat_par(iproc)
             iiat=isat_par(iproc)+iat

@@ -65,7 +65,7 @@ module module_defs
   real(gp), parameter :: AU_GPa=29421.010901602753_gp                   !< 1 Ha/Bohr^3 in GPa
   real(gp), parameter :: Radian_Degree = 57.29577951308232087679_gp     !< 1 radian in degrees
 
-  !> Evergreens
+  !> Evergreen
   real(dp), parameter :: pi_param=3.141592653589793238462643383279502884197_dp
 
   !> Error codes, to be documented little by little
@@ -87,15 +87,15 @@ module module_defs
      module procedure safe_dexp
   end interface safe_exp
 
-  interface
-     subroutine bigdft_utils_flush(unit)
-       integer, intent(in) :: unit
-     end subroutine bigdft_utils_flush
-  end interface
+!!$  interface
+!!$     subroutine bigdft_utils_flush(unit)
+!!$       integer, intent(in) :: unit
+!!$     end subroutine bigdft_utils_flush
+!!$  end interface
 
   contains
 
-    function uninitialized_int(one) 
+    pure function uninitialized_int(one) 
       implicit none
       integer(kind = 4), intent(in) :: one
       integer(kind = 4) :: uninitialized_int
@@ -104,7 +104,7 @@ module module_defs
       uninitialized_int=-123456789
     end function uninitialized_int
 
-    function uninitialized_long(one) 
+    pure function uninitialized_long(one) 
       implicit none
       integer(kind = 8), intent(in) :: one
       integer(kind = 8) :: uninitialized_long
@@ -113,7 +113,7 @@ module module_defs
       uninitialized_long=-123456789
     end function uninitialized_long
 
-    function uninitialized_real(one) 
+    pure function uninitialized_real(one) 
       implicit none
       real(kind=4), intent(in) :: one
       real(kind=4) :: uninitialized_real
@@ -122,7 +122,7 @@ module module_defs
       uninitialized_real=-123456789.e0
     end function uninitialized_real
 
-    function uninitialized_dbl(one) 
+    pure function uninitialized_dbl(one) 
       implicit none
       real(kind=8), intent(in) :: one
       real(kind=8) :: uninitialized_dbl
@@ -131,7 +131,7 @@ module module_defs
       uninitialized_dbl=-123456789.d0
     end function uninitialized_dbl
 
-    function uninitialized_logical(one) 
+    pure function uninitialized_logical(one) 
       implicit none
       logical, intent(in) :: one
       logical :: uninitialized_logical
@@ -148,8 +148,8 @@ module module_defs
       double precision, dimension(*), intent(in) :: x
       integer, dimension(:), intent(in) :: user_data
       !Local variables
-      integer :: ierr, ie, iproc, npoints, ishift
-      double precision :: fnrm_denpot, ar, nrm_local, dnrm2
+      integer :: ierr, ie, iproc, npoints, ishift, ioffset, ispin
+      double precision :: fnrm_denpot, ar, nrm_local, dnrm2, tt
 
       ! In case of density, we use nscatterarr.
       if (opt_denpot == AB7_MIXING_DENSITY) then
@@ -157,18 +157,27 @@ module module_defs
          if (ierr /= 0) then
             call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
          end if
-         npoints = cplex * user_data(2 * iproc + 1)
-         ishift  =         user_data(2 * iproc + 2)
+         npoints = cplex * user_data(3 * iproc + 1)
+         ishift  =         user_data(3 * iproc + 2) ! GGA shift
+         ioffset = cplex * user_data(3 * iproc + 3) ! gives the start of the spin down component
       else
          npoints = cplex * nfft
          ishift  = 0
+         ioffset = 0
       end if
 
+
       ! Norm on spin up and spin down
-      nrm_local = dnrm2(npoints * min(nspden,2), x(1 + ishift), 1)
-      nrm_local = nrm_local ** 2
+      !nrm_local = dnrm2(npoints * min(nspden,2), x(1 + ishift), 1)
+      !nrm_local = nrm_local ** 2
+      nrm_local=0.d0
+      do ispin=1,nspden
+          tt = dnrm2(npoints, x(1 + ishift + (ispin-1)*ioffset), 1)
+          nrm_local = nrm_local + tt ** 2
+      end do
 
       if (nspden==4) then
+         stop 'SM: I think that one needs to include ioffset as well here...'
          ! Add the magnetisation
          ar = dnrm2(npoints * 2, x(1 + cplex * nfft * 2 + ishift), 1)
          ar = ar ** 2
@@ -204,7 +213,7 @@ module module_defs
       double precision, intent(in) :: x(*), y(*)
       integer, intent(in) :: user_data(:)
 
-      integer :: ierr, ie, iproc, npoints, ishift
+      integer :: ierr, ie, iproc, npoints, ishift, ioffset, ispin
       double precision :: fdot_denpot, ar, dot_local, ddot
 
       ! In case of density, we use nscatterarr.
@@ -213,8 +222,9 @@ module module_defs
          if (ierr /= 0) then
             call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
          end if
-         npoints = cplex * user_data(2 * iproc + 1)
-         ishift  =         user_data(2 * iproc + 2)
+         npoints = cplex * user_data(3 * iproc + 1)
+         ishift  =         user_data(3 * iproc + 2) ! GGA shift
+         ioffset = cplex * user_data(3 * iproc + 3) ! gives the start of the spin down component
       else
          npoints = cplex * nfft
          ishift  = 0
@@ -222,9 +232,15 @@ module module_defs
 
       if (opt_denpot == 0 .or. opt_denpot == 1) then
          ! Norm on spin up and spin down
-         dot_local = ddot(npoints * min(nspden,2), x(1 + ishift), 1, y(1 + ishift), 1)
+         !dot_local = ddot(npoints * min(nspden,2), x(1 + ishift), 1, y(1 + ishift), 1)
+         dot_local=0.d0
+         do ispin=1,nspden
+             dot_local = dot_local + &
+                         ddot(npoints, x(1 + ishift + (ispin-1)*ioffset), 1, y(1 + ishift + (ispin-1)*ioffset), 1)
+         end do
 
          if (nspden==4) then
+            stop 'SM: I think that one needs to include ioffset as well here...'
             ! Add the magnetisation
             ar = ddot(npoints * 2, x(1 + cplex * nfft * 2 + ishift), 1, &
                  & y(1 + cplex * nfft * 2 + ishift), 1)
@@ -292,11 +308,11 @@ module module_defs
       double precision :: ex
       !local variables
       !> if the exponent is bigger than this value, the result is tiny(1.0)
-      double precision, parameter :: mn_expo=log(tiny(1.d0))
+      double precision, parameter :: mn_expo=-708.396418532264d0 ! = log(tiny(1.d0))
       !> if the exponent is lower than this value, the result is huge(1.0)
-      double precision, parameter :: mx_expo=log(huge(1.d0))
+      double precision, parameter :: mx_expo=709.78271289338397d0 ! = log(huge(1.d0))
       !> the value of the cropping
-      double precision, parameter :: crop_expo=-2*log(epsilon(1.d0))
+      double precision, parameter :: crop_expo=72.0873067782343d0 ! = -2*log(epsilon(1.d0))
       double precision :: crop,mn,mx
 
       crop=crop_expo

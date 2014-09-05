@@ -320,6 +320,7 @@ END SUBROUTINE correct_grid
 
 !> Calculates the length of the keys describing a wavefunction data structure
 subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
+   use dynamic_memory
    implicit none
    integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3
    logical, dimension(0:n1,0:n2,0:n3), intent(in) :: logrid 
@@ -327,6 +328,9 @@ subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
    !local variables
    logical :: plogrid
    integer :: i1,i2,i3,nsrt,nend,nsrti,nendi,mvctri
+
+   call f_routine(id='num_segkeys')
+
    mvctr=0
    nsrt=0
    nend=0
@@ -369,11 +373,14 @@ subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
    endif
    mseg=nend
 
+   call f_release_routine()
+
 END SUBROUTINE num_segkeys
 
 
 !> Calculates the keys describing a wavefunction data structure
 subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
+   use dynamic_memory
    implicit none
    integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,mseg
    logical, dimension(0:n1,0:n2,0:n3), intent(in) :: logrid  
@@ -382,6 +389,8 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
    !local variables
    logical :: plogrid
    integer :: mvctr,nsrt,nend,i1,i2,i3,ngridp,np,n1p1
+
+   call f_routine(id='segkeys')
 
    mvctr=0
    nsrt=0
@@ -419,6 +428,9 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
       stop 'nend <> nsrt'
    endif
    !mseg=nend
+
+   call f_release_routine()
+
 END SUBROUTINE segkeys
 
 
@@ -511,6 +523,8 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
    real(kind=8), parameter :: eps_mach=1.d-12
    integer :: i1,i2,i3,iat,ml1,ml2,ml3,mu1,mu2,mu3,j1,j2,j3,i1s,i1e,i2s,i2e,i3s,i3e
    real(gp) :: dx,dy2,dz2,rad,dy2pdz2,radsq
+
+   call f_routine(id='fill_logrid')
 
    !some checks
    if (geocode(1:1) /= 'F') then
@@ -625,6 +639,8 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
          !$omp end parallel
       end if
    enddo
+
+   call f_release_routine()
 
 END SUBROUTINE fill_logrid
 

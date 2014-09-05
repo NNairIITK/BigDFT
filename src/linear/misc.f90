@@ -674,7 +674,6 @@ subroutine local_potential_dimensions(iproc,Lzd,orbs,xc,ndimfirstproc)
   
   if(Lzd%nlr > 1) then
      ilrtable = f_malloc((/ orbs%norbp, 2 /),id='ilrtable')
-     !call to_zero(orbs%norbp*2,ilrtable(1,1))
      ilrtable=0
      ii=0
      do iorb=1,orbs%norbp
@@ -703,6 +702,7 @@ subroutine local_potential_dimensions(iproc,Lzd,orbs,xc,ndimfirstproc)
      !number of inequivalent potential regions
      nilr = ii
 
+
      !calculate the dimension of the potential in the gathered form
      lzd%ndimpotisf=0
      do iilr=1,nilr
@@ -712,14 +712,11 @@ subroutine local_potential_dimensions(iproc,Lzd,orbs,xc,ndimfirstproc)
            if (orbs%inWhichLocreg(iorb+orbs%isorb) == ilr) then
               !assignment of ispot array to the value of the starting address of inequivalent
               orbs%ispot(iorb)=lzd%ndimpotisf + 1
-              if(orbs%spinsgn(orbs%isorb+iorb) <= 0.0_gp) then
-                 orbs%ispot(iorb)=lzd%ndimpotisf + &
-                      1 + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
-              end if
+
            end if
         end do
         lzd%ndimpotisf = lzd%ndimpotisf + &
-             lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i*orbs%nspin
+             lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i!*orbs%nspin
      end do
      !part which refers to exact exchange (only meaningful for one region)
      if (xc_exctXfac(xc) /= 0.0_gp) then
@@ -885,6 +882,10 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   integer :: infoCoeff, nvctrp, npsidim_global
   real(kind=8),dimension(:),pointer :: phi_global, phiwork_global
   character(len=*),parameter :: subname='build_ks_orbitals'
+  real(wp), dimension(:,:,:), pointer :: mom_vec_fake
+
+
+  nullify(mom_vec_fake)
 
   !debug
   !integer :: iorb, jorb, ist, jst, ierr, i
@@ -896,7 +897,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
        max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
        denspot%rhov, rho_negative)
   if (rho_negative) then
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
@@ -912,6 +913,10 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
        energs, nlpsp, input%SIC, tmb, fnrm, .true., .false., .true., 0, 0, 0, 0, &
        order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
        input%calculate_KS_residue,input%calculate_gap)
+
+  if (bigdft_mpi%iproc ==0) then
+     call write_eigenvalues_data(0.1d0,KSwfn%orbs,mom_vec_fake)
+  end if
 
 
   !call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
@@ -1000,7 +1005,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, &
        max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
        denspot%rhov, rho_negative)
   if (rho_negative) then
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
@@ -1131,7 +1136,8 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   use module_types
   use module_interfaces, except_this_one => loewdin_charge_analysis
   use communications, only: transpose_localized
-  use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
+  use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, sparsematrix_malloc0, sparsematrix_malloc_ptr, &
+                               DENSE_FULL, assignment(=), &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: compress_matrix, uncompress_matrix
   use yaml_output
@@ -1146,7 +1152,8 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   !local variables
   !integer :: ifrag,ifrag_ref,isforb,jorb
   integer :: iorb,ierr
-  real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
+  real(kind=gp), allocatable, dimension(:,:,:) :: proj_mat
+  real(kind=gp), allocatable, dimension(:,:) :: proj_ovrlp_half, weight_matrixp
   character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
   real(kind=gp) :: max_error, mean_error
   type(matrices) :: inv_ovrlp
@@ -1219,9 +1226,8 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   end if
 
   ! optimize this to just change the matrix multiplication?
-  proj_mat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_mat')
+  proj_mat = sparsematrix_malloc0(tmb%linmat%l,iaction=DENSE_FULL,id='proj_mat')
 
-  call to_zero(tmb%orbs%norb**2,proj_mat(1,1))
   call uncompress_matrix(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix_compr, outmat=proj_mat)
   !!isforb=0
   !!do ifrag=1,input%frag%nfrag
@@ -1245,8 +1251,8 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   if (tmb%orbs%norbp>0) then
      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
             tmb%orbs%norb, 1.d0, &
-            proj_mat(1,1), tmb%orbs%norb, &
-            inv_ovrlp%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, 0.d0, &
+            proj_mat(1,1,1), tmb%orbs%norb, &
+            inv_ovrlp%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, 0.d0, &
             proj_ovrlp_half(1,1), tmb%orbs%norb)
   end if
   call f_free(proj_mat)
@@ -1254,7 +1260,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   if (tmb%orbs%norbp>0) then
      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
           tmb%orbs%norb, 1.d0, &
-          inv_ovrlp%matrix(1,1), tmb%orbs%norb, &
+          inv_ovrlp%matrix(1,1,1), tmb%orbs%norb, &
           proj_ovrlp_half(1,1), tmb%orbs%norb, 0.d0, &
           weight_matrixp(1,1), tmb%orbs%norb)
   end if

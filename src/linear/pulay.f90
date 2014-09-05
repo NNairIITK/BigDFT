@@ -117,7 +117,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
           iat=tmb%orbs%onwhichatom(iiorb)
           tt=0.d0
           do jorb=1,tmb%orbs%norb
-              tt = tt -2.d0*tmb%linmat%kernel_%matrix(jorb,iiorb)*tmb%linmat%ham_%matrix(jorb,iiorb)
+              tt = tt -2.d0*tmb%linmat%kernel_%matrix(jorb,iiorb,1)*tmb%linmat%ham_%matrix(jorb,iiorb,1)
               !if (iproc==0) write(*,*) 'kern, ovrlp', tmb%linmat%denskern%matrix(jorb,iiorb), tmb%linmat%ham%matrix(iiorb,jorb)
           end do  
           fpulay(idir,iat)=fpulay(idir,iat)+tt
@@ -177,7 +177,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       denskern_tmp=f_malloc(tmb%linmat%l%nvctr,id='denskern_tmp')
       denskern_tmp=tmb%linmat%kernel_%matrix_compr
       tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
-      tmb%linmat%kernel_%matrix=tempmat
+      tmb%linmat%kernel_%matrix(:,:,1)=tempmat
       call compress_matrix(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
       call f_free_ptr(tmb%linmat%kernel_%matrix)
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
@@ -450,7 +450,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   use yaml_output
   use communications, only: transpose_localized, start_onesided_communication
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
-                               matrices_null, allocate_matrices, deallocate_matrices
+                               matrices_null, allocate_matrices, deallocate_matrices, &
+                               sparsematrix_malloc_ptr, SPARSE_FULL, assignment(=)
   implicit none
 
   ! Calling arguments
@@ -467,7 +468,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
 
   ! Local variables
   integer:: istat, iall, ierr, iialpha, jorb
-  integer:: iorb, ii, iseg, isegstart, isegend
+  integer:: iorb, ii, iseg, isegstart, isegend, is, ie, ishift, ispin
   integer:: jat, jdir, ibeta
   !!integer :: ialpha, iat, iiorb
   real(kind=8) :: kernel, ekernel
@@ -480,7 +481,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   type(matrices) :: ham_
 
   call f_routine(id='pulay_correction')
-
+  energs=energy_terms_null()
+  
   ! Begin by updating the Hpsi
   call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
 
@@ -488,8 +490,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
 
   !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
   !!     tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
-  call start_onesided_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
-       tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
+  call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,1), denspot%rhov, &
+       tmb%ham_descr%comgp%nspin*tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
 
   allocate(confdatarrtmp(tmb%orbs%norbp))
   call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
@@ -551,12 +553,10 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
     dham_(jdir)=matrices_null()
     call sparse_copy_pattern(tmb%linmat%m,dovrlp(jdir),iproc,subname) 
     call sparse_copy_pattern(tmb%linmat%m,dham(jdir),iproc,subname)
-    !!allocate(dham(jdir)%matrix_compr(dham(jdir)%nvctr), stat=istat)
-    !!call memocc(istat, dham(jdir)%matrix_compr, 'dham%matrix_compr', subname)
-    !!allocate(dovrlp(jdir)%matrix_compr(dovrlp(jdir)%nvctr), stat=istat)
-    !!call memocc(istat, dovrlp(jdir)%matrix_compr, 'dovrlp%matrix_compr', subname)
-    dham_(jdir)%matrix_compr=f_malloc_ptr(dham(jdir)%nvctr,id='dham(jdir)%matrix_compr')
-    dovrlp_(jdir)%matrix_compr=f_malloc_ptr(dovrlp(jdir)%nvctr,id='dovrlp(jdir)%matrix_compr')
+    !dham_(jdir)%matrix_compr=f_malloc_ptr(dham(jdir)%nvctr,id='dham(jdir)%matrix_compr')
+    !dovrlp_(jdir)%matrix_compr=f_malloc_ptr(dovrlp(jdir)%nvctr,id='dovrlp(jdir)%matrix_compr')
+    dham_(jdir)%matrix_compr=sparsematrix_malloc_ptr(dham(jdir),iaction=SPARSE_FULL,id='dham(jdir)%matrix_compr')
+    dovrlp_(jdir)%matrix_compr=sparsematrix_malloc_ptr(dovrlp(jdir),iaction=SPARSE_FULL,id='dovrlp(jdir)%matrix_compr')
 
     call get_derivative(jdir, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%lzd%hgrids(1), tmb%orbs, &
          tmb%ham_descr%lzd, tmb%ham_descr%psi, lhphilarge)
@@ -602,32 +602,44 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
    call to_zero(3*at%astruct%nat, fpulay(1,1))
    do jdir=1,3
      !do ialpha=1,tmb%orbs%norb
-     if (tmb%orbs%norbp>0) then
-         isegstart=dham(jdir)%istsegline(tmb%orbs%isorb_par(iproc)+1)
-         if (tmb%orbs%isorb+tmb%orbs%norbp<tmb%orbs%norb) then
-             isegend=dham(jdir)%istsegline(tmb%orbs%isorb_par(iproc+1)+1)-1
-         else
-             isegend=dham(jdir)%nseg
-         end if
-         do iseg=isegstart,isegend
-              ii=dham(jdir)%keyv(iseg)-1
-              do jorb=dham(jdir)%keyg(1,iseg),dham(jdir)%keyg(2,iseg)
-                  ii=ii+1
-                  iialpha = (jorb-1)/tmb%orbs%norb + 1
-                  ibeta = jorb - (iialpha-1)*tmb%orbs%norb
-                  jat=tmb%orbs%onwhichatom(iialpha)
-                  kernel = 0.d0
-                  ekernel= 0.d0
-                  do iorb=1,orbs%norb
-                      kernel  = kernel+orbs%occup(iorb)*tmb%coeff(iialpha,iorb)*tmb%coeff(ibeta,iorb)
-                      ekernel = ekernel+tmb%orbs%eval(iorb)*orbs%occup(iorb) &
-                           *tmb%coeff(iialpha,iorb)*tmb%coeff(ibeta,iorb) 
+     do ispin=1,tmb%linmat%m%nspin
+         ishift=(ispin-1)*tmb%linmat%m%nvctr
+         if (tmb%linmat%m%nfvctrp>0) then
+             isegstart=dham(jdir)%istsegline(tmb%linmat%m%isfvctr_par(iproc)+1)
+             if (tmb%linmat%m%isfvctr+tmb%linmat%m%nfvctrp<tmb%linmat%m%nfvctr) then
+                 isegend=dham(jdir)%istsegline(tmb%linmat%m%isfvctr_par(iproc+1)+1)-1
+             else
+                 isegend=dham(jdir)%nseg
+             end if
+             do iseg=isegstart,isegend
+                  ii=dham(jdir)%keyv(iseg)-1
+                  do jorb=dham(jdir)%keyg(1,iseg),dham(jdir)%keyg(2,iseg)
+                      ii=ii+1
+                      iialpha = (jorb-1)/tmb%linmat%m%nfvctr + 1
+                      ibeta = jorb - (iialpha-1)*tmb%linmat%m%nfvctr
+                      jat=tmb%orbs%onwhichatom(iialpha)
+                      kernel = 0.d0
+                      ekernel= 0.d0
+                      if (ispin==1) then
+                          is=1
+                          ie=orbs%norbu
+                      else
+                          is=orbs%norbu+1
+                          ie=orbs%norb
+                      end if
+                      do iorb=is,ie
+                          kernel  = kernel+orbs%occup(iorb)*tmb%coeff(iialpha,iorb)*tmb%coeff(ibeta,iorb)
+                          !!ekernel = ekernel+tmb%orbs%eval(iorb)*orbs%occup(iorb) &
+                          !!     *tmb%coeff(iialpha,iorb)*tmb%coeff(ibeta,iorb) 
+                          ekernel = ekernel+orbs%eval(iorb)*orbs%occup(iorb) &
+                               *tmb%coeff(iialpha,iorb)*tmb%coeff(ibeta,iorb) 
+                      end do
+                      fpulay(jdir,jat)=fpulay(jdir,jat)+&
+                             2.0_gp*(kernel*dham_(jdir)%matrix_compr(ishift+ii)-ekernel*dovrlp_(jdir)%matrix_compr(ishift+ii))
                   end do
-                  fpulay(jdir,jat)=fpulay(jdir,jat)+&
-                         2.0_gp*(kernel*dham_(jdir)%matrix_compr(ii)-ekernel*dovrlp_(jdir)%matrix_compr(ii))
-              end do
-         end do
-     end if
+             end do
+         end if
+      end do
    end do 
 
    if (nproc > 1) then

@@ -462,6 +462,9 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   character(len = *), parameter :: subname = "mix_rhopot"
   character(len = 500) :: errmess
   integer, allocatable :: user_data(:)
+  real(8) :: ddot !debug
+
+  !write(*,*) 'mix%nfft, npoints', mix%nfft, npoints
 
   ! Calculate the residue and put it in rhopot
   if (istep > 1) then
@@ -470,6 +473,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
           & rhopot(1), 1)
      call dscal(npoints, 1.d0 - alphamix, rhopot(1), 1)
      ! rhopot = alpha(vin - v(out-1))
+  !write(*,'(a,i7,es16.7)') 'in mix_rhopot, after axpy: iproc, ddot', iproc, ddot(npoints,rhopot,1,rhopot,1)
   else
      mix%f_fftgr(:,:, mix%i_vrespc(1)) = 0.d0
   end if
@@ -478,11 +482,13 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
        & rhopot(1), 1)
 
   ! Store the scattering of rho in user_data
-  user_data = f_malloc(2 * nproc,id='user_data')
+  user_data = f_malloc(3 * nproc,id='user_data')
   do ii = 1, nproc, 1
-     user_data(1 + (ii - 1 ) * 2:ii * 2) = &
-          & n1 * n2 * (/ nscatterarr(iproc, 2), nscatterarr(iproc, 4) /)
+     user_data(1 + (ii - 1 ) * 3:ii * 3) = &
+          & n1 * n2 * (/ nscatterarr(iproc, 2), nscatterarr(iproc, 4), nscatterarr(iproc,1) /)
   end do
+
+  !write(*,'(a,i8,3x,4i7)') 'iproc, nscatterarr(iproc,:)',iproc, nscatterarr(iproc,:)
 
   ! Do the mixing 
   call ab7_mixing_eval(mix, rhopot, istep, n1 * n2 * n3, ucvol, &
@@ -492,8 +498,10 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
      if (iproc == 0) write(0,*) errmess
      call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
   end if
+  !write(*,'(a,i7,2es16.7)') 'in mix_rhopot: iproc, rpnrm, ddot', iproc, rpnrm, ddot(npoints,rhopot,1,rhopot,1)
   rpnrm = sqrt(rpnrm) / real(n1 * n2 * n3, gp)
   rpnrm = rpnrm / (1.d0 - alphamix)
+  !write(*,*) 'in mix_rhopot 2: iproc, rpnrm', iproc, rpnrm
 
   call f_free(user_data)
   ! Copy new in vrespc

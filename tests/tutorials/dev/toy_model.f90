@@ -13,6 +13,7 @@ program wvl
 
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use BigDFT_API
+  use bigdft_run
   use dynamic_memory
   use yaml_output
   use module_input_dicts
@@ -50,20 +51,19 @@ program wvl
   integer, dimension(:,:,:), allocatable :: irrzon
   real(dp), dimension(:,:,:), allocatable :: phnons
   type(coulomb_operator) :: pkernel
-  type(dictionary), pointer :: user_inputs
+  type(dictionary), pointer :: user_inputs,options
   !temporary variables
-  integer, dimension(4) :: mpi_info
+  !integer, dimension(4) :: mpi_info
   character(len=60) :: run_id
 
   call f_lib_initialize()
-   !-finds the number of taskgroup size
-   !-initializes the mpi_environment for each group
-   !-decides the radical name for each run
-   call bigdft_init(mpi_info,nconfig,run_id,ierr)
-
-   !just for backward compatibility
-   iproc=mpi_info(1)
-   nproc=mpi_info(2)
+  nullify(options)
+  !-initializes the mpi_environment for each group
+  call bigdft_init(options)
+  call dict_free(options)
+!just for backward compatibility
+  iproc=bigdft_mpi%iproc
+  nproc=bigdft_mpi%nproc
    call dict_init(user_inputs)
    call user_dict_from_files(user_inputs, 'input', 'posinp', bigdft_mpi)
    call inputs_from_dict(inputs, atoms, user_inputs)
@@ -101,7 +101,7 @@ program wvl
   ! Setting up the wavefunction representations (descriptors for the
   !  compressed form...).
   call createWavefunctionsDescriptors(iproc,inputs%hx,inputs%hy,inputs%hz, &
-       & atoms,atoms%astruct%rxyz,radii_cf,inputs%crmult,inputs%frmult,Lzd%Glr)
+       & atoms,atoms%astruct%rxyz,radii_cf,inputs%crmult,inputs%frmult,.true.,Lzd%Glr)
   call print_wfd(Lzd%Glr%wfd)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
 
@@ -128,7 +128,7 @@ program wvl
                    & trim(yaml_toa(max(orbs%npsidim_orbs,orbs%npsidim_comp))))
   !write(*,*) "Proc", iproc, " allocates psi to",max(orbs%npsidim_orbs,orbs%npsidim_comp)
 
-  call bigdft_utils_flush(unit=6)
+  call yaml_flush_document()
   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
   !-------------------------!
@@ -150,7 +150,7 @@ program wvl
                       & trim(yaml_toa(orbs%isorb + i)) // " is of norm " // trim(yaml_toa(nrm)))
   end do
 
-  call bigdft_utils_flush(unit=6)
+  call yaml_flush_document()
   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
   !---------------------------!
@@ -202,7 +202,7 @@ program wvl
   call untranspose_v(iproc,nproc,orbs,Lzd%glr%wfd,comms,psi(1),work_add=w(1))
   deallocate(w)
 
-  call bigdft_utils_flush(unit=6)
+  call yaml_flush_document()
   call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
   !-------------------------!

@@ -27,8 +27,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.4.90
- Timestamp of this run                 : 2014-07-17 15:20:11.740
+ Version Number                        : 1.7.5
+ Timestamp of this run                 : 2014-09-03 08:07:20.004
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -91,6 +91,7 @@
    mixing_after_inputguess             : Yes #    Mixing step after linear input guess (T/F)
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 1 #      Enables linear sumrho check
+   check_overlap                       : 2 #      Enables linear overlap check
    experimental_mode                   : Yes #    Activate the experimental mode in linear scaling
    write_orbitals                      : No #     Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
    explicit_locregcenters              : No #     Linear scaling explicitely specify localization centers
@@ -109,6 +110,7 @@
    correction_co_contra                : Yes #    linear scaling correction covariant / contravariant gradient
    fscale_lowerbound                   : 5.0000000000000001E-003 # linear scaling lower bound for the error function decay length
    fscale_upperbound                   : 5.0000000000000003E-002 # linear scaling upper bound for the error function decay length
+   imethod_overlap                     : 1 #      method to calculate the overlap matrices (1=old, 2=new)
    FOE_restart                         : 0 #      Restart method to be used for the FOE method
  dft:
    hgrids: [0.42, 0.42, 0.42] #                   Grid spacing in the three directions (bohr)
@@ -133,6 +135,7 @@
    nvirt                               : 0 #      No. of virtual orbs
    nplot                               : 0 #      No. of plotted orbs
    disablesym                          : Yes #    Disable the symmetry detection
+   itermin                             : 0 #      Min. iterations of wfn. opt. steps
  kpt:
    method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
@@ -732,9 +735,11 @@
  total elements                        :  18496
  non-zero elements                     :  11452
  sparsity in %                         :  38.08
+ sparse matmul load balancing naive / optimized:  [  1.42,  1.04 ]
  total elements                        :  18496
  non-zero elements                     :  5714
  sparsity in %                         :  69.11
+ sparse matmul load balancing naive / optimized:  [  1.42,  1.05 ]
  Checking Compression/Uncompression of small sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -751,6 +756,9 @@
  total elements                        :  18496
  non-zero elements                     :  11548
  sparsity in %                         :  37.56
+ sparse matmul load balancing naive / optimized:  [  1.42,  1.04 ]
+ sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+ sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
  Checking Compression/Uncompression of large sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -764,6 +772,18 @@
    Tolerance for the following test    :  9.999999999999999988E-15
    transposition check, mean error     :  0.000000000000000000E+00
    transposition check, max error      :  0.000000000000000000E+00
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  38906,  1408 ]
+   Tolerances for this check: [ 5.54735301524157544E-07,  3.01980662698042579E-14]
+   Maxdiff for transpose (checksum)    :  9.31322574615478516E-10
+   Maxdiff for overlap calculation     :  2.38418579101562500E-07
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  34538,  1144 ]
+   Tolerances for this check: [ 2.55360297527072644E-06,  3.01980662698042579E-14]
+   Maxdiff for transpose (checksum)    :  1.86264514923095703E-09
+   Maxdiff for overlap calculation     :  1.60932540893554688E-06
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Ion-Ion interaction energy            :  1.63695751304881E+03
   #---------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -169.999999769710
@@ -800,7 +820,7 @@
  calculate S^x: {mode: sparse, x: -1, order:  6, 
  max / mean error:  [  9.87E-09,  4.32E-10 ]}, 
  Preconditioning:  Yes, rel D:  0.00E+00, 
- iter:  1, fnrm:  5.26E-01, Omega: -2.282725104513893E+02, D: -2.28E+02, D best: -2.28E+02, 
+ iter:  1, fnrm:  5.26E-01, Omega: -2.282725104513902E+02, D: -2.28E+02, D best: -2.28E+02, 
  Optimization: {algorithm: DIIS, history length:  2, consecutive failures:  0, 
            total failures:  0}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  6, 
@@ -813,12 +833,12 @@
  calculate S^x: {mode: sparse, x: -1, order:  6, 
  max / mean error:  [  9.87E-10,  4.03E-11 ]}, 
  Preconditioning:  Yes, rel D:  3.74E-03, kappa:  1.372E-01, 
- iter:  2, fnrm:  3.62E-01, Omega: -2.291267812512694E+02, D: -8.54E-01, D best: -8.54E-01, 
+ iter:  2, fnrm:  3.62E-01, Omega: -2.291267812512704E+02, D: -8.54E-01, D best: -8.54E-01, 
  exit criterion: extended input guess}
      -  &final_supfun000  { #------------------------------------------------------ iter: 2
  target function: TRACE, 
  Energies: {Ekin:  3.54532250502E+02, Epot: -3.72937344439E+02, Enl:  4.73649507829E+01}, 
- iter:  2, fnrm:  3.62E-01, Omega: -2.291267812512694E+02, D: -8.54E-01, D best: -8.54E-01}
+ iter:  2, fnrm:  3.62E-01, Omega: -2.291267812512704E+02, D: -8.54E-01, D best: -8.54E-01}
         #Support functions created
    Kernel update:
      max dev from unity                :  1.03E-02
@@ -834,7 +854,7 @@
      decay length of error function    :  1.000E-02
      decay length multiplicator        :  1.000E+00
      polynomial degree multiplicator   :  3.000E+00
-     FOE to determine density kernel: &it_foe000-000-01
+     FOE to determine density kernel: &it_foe000-000-01-01
      -  { #---------------------------------------------------------------------- it FOE: 1
  bisec/eval bounds:  [ -0.10,  0.10, -1.00,  1.00 ], pol deg:  600, eF: -1.000000000E-01, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  No,  No,  No ]}
@@ -878,7 +898,7 @@
  interpol check: {D eF:  9.230900E-06, D Tr:  1.967666E-03, interpol possible:  Yes}, 
  Search new eF: {det:  2.298E-17, limit:  1.000E-20, method: cubic interpolation, 
     guess for new ef:  7.80599413E-02}, 
- iter:  8, Tr(K):  1.700000640E+02, charge diff:  6.401138870E-05}
+ iter:  8, Tr(K):  1.700000640E+02, charge diff:  6.401138882E-05}
      -  { #---------------------------------------------------------------------- it FOE: 9
  bisec/eval bounds:  [  0.08,  0.08, -1.00,  1.20 ], pol deg:  660, eF:  7.805994127E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
@@ -886,9 +906,10 @@
  Search new eF: {det:  5.838E-24, limit:  1.000E-20, guess for new ef:  7.80599413E-02}, 
  iter:  9, Tr(K):  1.700000000E+02, charge diff:  2.309548108E-10}
      diff from reference kernel        :  7.266E-02
-     ebs                               : -38.04652879123466
-     ebs_check                         : -38.04628545390939
-     diff                              :  2.4333732527281882E-004
+     ebs                               : -38.04652879124097
+     ebs_check                         : -38.0462854539157
+     diff                              :  2.4333732526571339E-004
+     relative diff                     :  6.3957825587950686E-006
      modify fscale                     : increase
      Final kernel purification:
        tr(KS) before purification      :  170.0000000001677
@@ -902,7 +923,7 @@
        -  {iter:  6, diff from idempotency:  8.768E-03, charge diff:  1.478E-03}
        -  {iter:  7, diff from idempotency:  1.667E-04, charge diff:  5.527E-05}
        -  {iter:  8, diff from idempotency:  6.094E-08, charge diff:  3.908E-08}
-       -  {iter:  9, diff from idempotency:  1.079E-14, charge diff: -8.527E-14}
+       -  {iter:  9, diff from idempotency:  1.065E-14, charge diff: -1.137E-13}
        tr(KS) after purification       :  169.9999999999999
      trace(KS)                         :  169.9999999999999
      need to repeat with sharper decay (new):  No
@@ -915,16 +936,6 @@
     Total charge:  1.699999542900E+02, INFO mixing parameter for this step:  1.0, 
  Poisson Solver: {BC: Free, Box:  [  219,  159,  145 ], MPI tasks:  4}}
     #================================================================= Input guess generated
- Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  38906,  1408 ]
-   Tolerances for this check: [ 5.54735301524157544E-07,  3.01980662698042579E-14]
-   Maxdiff for transpose (checksum)    :  2.32830643653869629E-10
-   Maxdiff for untranspose             :  0.00000000000000000E+00
- Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  34538,  1144 ]
-   Tolerances for this check: [ 2.55360297527072644E-06,  3.01980662698042579E-14]
-   Maxdiff for transpose (checksum)    :  1.86264514923095703E-09
-   Maxdiff for untranspose             :  0.00000000000000000E+00
   #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
     #WARNING: No orthogonalizing of the support functions
@@ -932,11 +943,11 @@
  - support function optimization: &it_supfun001
    -  {Initial kernel purification:  Yes, tr(KS) before purification:  169.9999999999999, 
  shift of eigenvalues:  0.000E+00, purification process: [
- {iter:  1, diff from idempotency:  2.183E-02, charge diff: -8.527E-14}, 
+ {iter:  1, diff from idempotency:  2.183E-02, charge diff: -1.137E-13}, 
  {iter:  2, diff from idempotency:  2.429E-03, charge diff: -6.660E-03}, 
  {iter:  3, diff from idempotency:  1.253E-05, charge diff: -3.540E-05}, 
  {iter:  4, diff from idempotency:  3.394E-10, charge diff: -9.584E-10}, 
- {iter:  5, diff from idempotency:  6.808E-15, charge diff: -2.842E-14}], 
+ {iter:  5, diff from idempotency:  6.580E-15, charge diff: -2.842E-14}], 
  tr(KS) after purification:  170.0}
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, Hamiltonian Applied:  Yes, 
@@ -949,14 +960,14 @@
  Optimization: {algorithm: DIIS, history length:  2, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  No, Normalization:  Yes, purify kernel:  Yes, 
- tr(KS) before purification:  170.0568047812756, 
+ tr(KS) before purification:  170.0568047812755, 
  shift of eigenvalues:  0.000E+00, purification process: [
  {iter:  1, diff from idempotency:  2.284E-01, charge diff:  5.680E-02}, 
  {iter:  2, diff from idempotency:  2.642E-02, charge diff: -3.146E-01}, 
  {iter:  3, diff from idempotency:  4.668E-04, charge diff: -4.216E-03}, 
  {iter:  4, diff from idempotency:  2.046E-07, charge diff: -1.313E-06}, 
- {iter:  5, diff from idempotency:  5.961E-14, charge diff: -1.990E-13}], 
- tr(KS) after purification:  170.0000000000001}
+ {iter:  5, diff from idempotency:  5.924E-14, charge diff: -2.558E-13}], 
+ tr(KS) after purification:  170.0}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: HYBRID, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  2.95314365528E+02, Epot: -3.18478876310E+02, Enl:  2.60942569279E+01}, 
@@ -988,7 +999,7 @@
        decay length of error function  :  1.250E-02
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
-       FOE to determine density kernel: &it_foe001-001-01
+       FOE to determine density kernel: &it_foe001-001-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
  bisec/eval bounds:  [  0.00,  0.16, -1.00,  1.20 ], pol deg:  528, eF: -2.940058730E-03, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  No,  No,  No,  No ]}
@@ -1047,14 +1058,15 @@
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -8.759504E-07, D Tr: -3.072741E-04, interpol possible:  Yes}, 
  Search new eF: {det:  1.192E-21, limit:  1.000E-20, guess for new ef:  8.58646796E-02}, 
- iter:  12, Tr(K):  1.699999999E+02, charge diff: -1.101722660E-07}
+ iter:  12, Tr(K):  1.699999999E+02, charge diff: -1.101722091E-07}
        diff from reference kernel      :  1.878E-01
-       ebs                             : -102.7933974220685
-       ebs_check                       : -102.8068525222733
-       diff                            : -1.3455100204836867E-002
+       ebs                             : -102.7933974275633
+       ebs_check                       : -102.8068525277993
+       diff                            : -1.3455100235944428E-002
+       relative diff                   :  1.3089459607973356E-004
        modify fscale                   : decrease
        Final kernel purification:
-         tr(KS) before purification    :  169.9999998633282
+         tr(KS) before purification    :  169.9999998633283
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  4.191E-01, charge diff: -1.367E-07}
@@ -1068,14 +1080,14 @@
          -  {iter:  9, diff from idempotency:  2.698E-03, charge diff:  1.995E+00}
          -  {iter:  10, diff from idempotency:  2.217E-05, charge diff:  2.000E+00}
          -  {iter:  11, diff from idempotency:  1.492E-09, charge diff:  2.000E+00}
-         -  {iter:  12, diff from idempotency:  4.969E-15, charge diff:  2.000E+00}
+         -  {iter:  12, diff from idempotency:  4.768E-15, charge diff:  2.000E+00}
          tr(KS) after purification     :  172.0000000000001
        trace(KS)                       :  172.0000000000001
        need to repeat with sharper decay (new):  Yes
        decay length of error function  :  6.250E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
-       FOE to determine density kernel: &it_foe001-001-02
+       FOE to determine density kernel: &it_foe001-001-02-01
        -  { #-------------------------------------------------------------------- it FOE: 1
  bisec/eval bounds:  [  0.02,  0.15, -2.07,  2.49 ], pol deg:  2190, eF:  2.025467959E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
@@ -1116,21 +1128,22 @@
  interpol check: {D eF: -3.094918E-04, D Tr: -1.475392E-01, interpol possible:  Yes}, 
  Search new eF: {det: -2.085E-14, limit:  1.000E-20, method: cubic interpolation, 
     guess for new ef:  8.44925986E-02}, 
- iter:  7, Tr(K):  1.699995208E+02, charge diff: -4.791834613E-04}
+ iter:  7, Tr(K):  1.699995208E+02, charge diff: -4.791834620E-04}
        -  { #-------------------------------------------------------------------- it FOE: 8
  bisec/eval bounds:  [  0.08,  0.08, -2.07,  2.49 ], pol deg:  2190, eF:  8.449259863E-02, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  9.930681E-07, D Tr:  4.798448E-04, interpol possible:  Yes}, 
  Search new eF: {det:  6.441E-21, limit:  1.000E-20, guess for new ef:  8.44925973E-02}, 
- iter:  8, Tr(K):  1.700000007E+02, charge diff:  6.613367418E-07}
+ iter:  8, Tr(K):  1.700000007E+02, charge diff:  6.613368839E-07}
        diff from reference kernel      :  1.498E-01
-       ebs                             : -102.7996329239948
-       ebs_check                       : -102.8125912373401
-       diff                            : -1.2958313345279748E-002
+       ebs                             : -102.799632929428
+       ebs_check                       : -102.8125912428059
+       diff                            : -1.2958313377964714E-002
+       relative diff                   :  1.2605408218588297E-004
        modify fscale                   : decrease
        fscale reached lower limit; reset to:  5.0000000000000001E-003
        Final kernel purification:
-         tr(KS) before purification    :  170.0000006351349
+         tr(KS) before purification    :  170.000000635135
          shift of eigenvalues          :  0.000E+00
          purification process:
          -  {iter:  1, diff from idempotency:  3.516E-01, charge diff:  6.351E-07}
@@ -1144,9 +1157,9 @@
          -  {iter:  9, diff from idempotency:  1.197E-02, charge diff:  2.451E-02}
          -  {iter:  10, diff from idempotency:  4.417E-04, charge diff:  8.940E-04}
          -  {iter:  11, diff from idempotency:  5.924E-07, charge diff:  1.198E-06}
-         -  {iter:  12, diff from idempotency:  1.065E-12, charge diff:  2.217E-12}
-         tr(KS) after purification     :  170.0000000000001
-       trace(KS)                       :  170.0000000000001
+         -  {iter:  12, diff from idempotency:  1.065E-12, charge diff:  2.160E-12}
+         tr(KS) after purification     :  170.0
+       trace(KS)                       :  170.0
        need to repeat with sharper decay (new):  Yes
        limit reached, exit loop        :  Yes
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -1173,7 +1186,7 @@
        decay length of error function  :  5.000E-03
        decay length multiplicator      :  1.000E+00
        polynomial degree multiplicator :  3.000E+00
-       FOE to determine density kernel: &it_foe001-002-01
+       FOE to determine density kernel: &it_foe001-002-01-01
        -  { #-------------------------------------------------------------------- it FOE: 1
  bisec/eval bounds:  [  0.03,  0.14, -2.07,  2.49 ], pol deg:  2737, eF:  3.134849726E-02, 
        polynomials: recalculated,   eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  No ]}
@@ -1207,38 +1220,39 @@
  interpol check: {D eF:  5.242596E-03, D Tr:  2.525834E+00, interpol possible:  Yes}, 
  Search new eF: {det:  5.854E-14, limit:  1.000E-20, method: cubic interpolation, 
     guess for new ef:  1.24966652E-01}, 
- iter:  6, Tr(K):  1.700028518E+02, charge diff:  2.851834208E-03}
+ iter:  6, Tr(K):  1.700028518E+02, charge diff:  2.851834209E-03}
        -  { #-------------------------------------------------------------------- it FOE: 7
  bisec/eval bounds:  [  0.12,  0.12, -2.07,  2.49 ], pol deg:  2737, eF:  1.249666523E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -6.565053E-06, D Tr: -2.864084E-03, interpol possible:  Yes}, 
  Search new eF: {det:  8.329E-20, limit:  1.000E-20, method: cubic interpolation, 
     guess for new ef:  1.24966680E-01}, 
- iter:  7, Tr(K):  1.699999878E+02, charge diff: -1.224966891E-05}
+ iter:  7, Tr(K):  1.699999878E+02, charge diff: -1.224966911E-05}
        -  { #-------------------------------------------------------------------- it FOE: 8
  bisec/eval bounds:  [  0.12,  0.12, -2.07,  2.49 ], pol deg:  2737, eF:  1.249666804E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  2.807025E-08, D Tr:  1.224972E-05, interpol possible:  Yes}, 
- Search new eF: {det:  1.732E-25, limit:  1.000E-20, guess for new ef:  1.24966680E-01}, 
- iter:  8, Tr(K):  1.700000000E+02, charge diff:  4.979483492E-11}
+ Search new eF: {det:  1.733E-25, limit:  1.000E-20, guess for new ef:  1.24966680E-01}, 
+ iter:  8, Tr(K):  1.700000000E+02, charge diff:  4.695266398E-11}
        diff from reference kernel      :  1.640E-01
-       ebs                             : -60.64068177269687
-       ebs_check                       : -60.65514465481993
-       diff                            : -1.4462882123055465E-002
+       ebs                             : -60.64068177274746
+       ebs_check                       : -60.65514465485707
+       diff                            : -1.4462882109604891E-002
+       relative diff                   :  2.3850131111330375E-004
        modify fscale                   : decrease
        fscale reached lower limit; reset to:  5.0000000000000001E-003
        Final kernel purification:
-         tr(KS) before purification    :  169.9999999998072
+         tr(KS) before purification    :  169.9999999998044
          shift of eigenvalues          :  0.000E+00
          purification process:
-         -  {iter:  1, diff from idempotency:  2.678E-01, charge diff: -1.928E-10}
+         -  {iter:  1, diff from idempotency:  2.678E-01, charge diff: -1.956E-10}
          -  {iter:  2, diff from idempotency:  1.806E-01, charge diff:  1.456E-01}
          -  {iter:  3, diff from idempotency:  9.281E-02, charge diff:  1.406E-01}
          -  {iter:  4, diff from idempotency:  2.696E-02, charge diff:  5.140E-02}
          -  {iter:  5, diff from idempotency:  2.279E-03, charge diff:  4.608E-03}
          -  {iter:  6, diff from idempotency:  1.588E-05, charge diff:  3.227E-05}
          -  {iter:  7, diff from idempotency:  7.687E-10, charge diff:  1.562E-09}
-         -  {iter:  8, diff from idempotency:  5.212E-15, charge diff:  0.000E+00}
+         -  {iter:  8, diff from idempotency:  5.421E-15, charge diff:  0.000E+00}
          tr(KS) after purification     :  170.0
        trace(KS)                       :  170.0
        need to repeat with sharper decay (new):  Yes
@@ -1252,15 +1266,15 @@
     Total charge:  1.699999669335E+02, 
  Poisson Solver: {BC: Free, Box:  [  219,  159,  145 ], MPI tasks:  4}}
      summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  2, 
- iter:  2, delta:  5.71E-06, energy: -3.41846046810058169E+02, D:  4.519E+01}]
+ iter:  2, delta:  5.71E-06, energy: -3.41846046810057715E+02, D:  4.519E+01}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: FOE, mixing quantity: DENS, mix hist:  2, 
- iter:  3, delta:  5.71E-06, energy: -3.41846046810058169E+02, D:  4.519E+01}]}
+ iter:  3, delta:  5.71E-06, energy: -3.41846046810057715E+02, D:  4.519E+01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: HYBRID, mean conf prefac:  3.90E-02, 
  iterations to converge support functions:  2, kernel optimization: FOE,  #WARNING: density optimization not converged
- iter low:  1, delta out:  1.492E-06, energy: -3.41846046810058169E+02, D: -3.418E+02}
+ iter low:  1, delta out:  1.492E-06, energy: -3.41846046810057715E+02, D: -3.418E+02}
    Kernel update:
      max dev from unity                :  3.64E-02
      mean dev from unity               :  5.58E-03
@@ -1293,7 +1307,7 @@
  {e: -6.195191687777E-01, f:  1.0000},  # 00019
  {e: -5.919215009436E-01, f:  1.0000},  # 00020
  {e: -5.721006066979E-01, f:  1.0000},  # 00021
- {e: -5.570248706649E-01, f:  1.0000},  # 00022
+ {e: -5.570248706650E-01, f:  1.0000},  # 00022
  {e: -5.454744030509E-01, f:  1.0000},  # 00023
  {e: -5.095937704378E-01, f:  1.0000},  # 00024
  {e: -5.045864091434E-01, f:  1.0000},  # 00025
@@ -1342,7 +1356,7 @@
  {e: -2.412151277658E-02, f:  1.0000},  # 00068
  {e: -2.085408248470E-02, f:  1.0000},  # 00069
  {e: -7.307776665980E-03, f:  1.0000},  # 00070
- {e:  8.745742126007E-03, f:  1.0000},  # 00071
+ {e:  8.745742126009E-03, f:  1.0000},  # 00071
  {e:  1.061234599191E-02, f:  1.0000},  # 00072
  {e:  1.500881768612E-02, f:  1.0000},  # 00073
  {e:  2.202995172466E-02, f:  1.0000},  # 00074
@@ -1414,7 +1428,7 @@
  Energies: {Ekin:  2.95314365528E+02, Epot: -3.25250970482E+02, Enl:  2.60942569279E+01, 
               EH:  1.94915017541E+03,  EXC: -9.22432480198E+01, EvXC: -1.20941251060E+02}, 
         iter low:  1,            delta out:  1.492E-06, 
-          energy: -3.41846046810058169E+02,                       D:  0.000E+00,  #FINAL
+          energy: -3.41846046810057715E+02,                       D:  0.000E+00,  #FINAL
  }
  Total charge                          :  1.699999666765E+02
   #---------------------------------------------------------------------- Forces Calculation
@@ -1426,53 +1440,53 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -3.99168107E-01, y: -5.91556332E-02, z:  7.52268277E-01, 
                     total:  8.53663943E-01}
- Clean forces norm (Ha/Bohr): {maxval:  9.827232875040E-01, fnrm2:  9.130058767395E+00}
+ Clean forces norm (Ha/Bohr): {maxval:  9.827232875041E-01, fnrm2:  9.130058767396E+00}
  Raw forces norm (Ha/Bohr): {maxval:  1.148862459885E+00, fnrm2:  1.103239895914E+01}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [-1.818784199939E-01,  3.970402236713E-01, -9.088164925899E-02]} # 0001
- -  {O: [-1.204750738954E-01,  1.325000569141E-01, -1.666436015966E-01]} # 0002
- -  {C: [ 9.149951378054E-02,  6.256824687611E-02, -2.056334584623E-01]} # 0003
- -  {C: [ 1.037010233613E-01,  1.776836521774E-01,  1.220302548902E-02]} # 0004
- -  {O: [ 2.562524311491E-02,  3.401485423216E-01,  1.120069792778E-01]} # 0005
- -  {C: [ 5.727840924495E-02,  2.078100969005E-01,  9.898766461920E-02]} # 0006
- -  {O: [ 1.493093015409E-01,  3.363540150263E-01,  2.092135071408E-01]} # 0007
- -  {C: [ 4.109397884287E-02,  8.037589775789E-02, -6.208366814200E-02]} # 0008
- -  {O: [ 1.658408572123E-01,  1.318156514055E-01, -2.887510733405E-01]} # 0009
- -  {P: [ 8.599656235068E-02,  1.638138626605E-01,  1.196519207462E-01]} # 0010
- -  {O: [-1.778970507856E-02,  8.410326980313E-03, -4.186027504728E-01]} # 0011
- -  {P: [-3.744830607772E-01, -7.046847610764E-02,  2.487695408910E-01]} # 0012
+ -  {C: [-1.818784199939E-01,  3.970402236713E-01, -9.088164925898E-02]} # 0001
+ -  {O: [-1.204750738953E-01,  1.325000569140E-01, -1.666436015965E-01]} # 0002
+ -  {C: [ 9.149951378054E-02,  6.256824687613E-02, -2.056334584623E-01]} # 0003
+ -  {C: [ 1.037010233613E-01,  1.776836521774E-01,  1.220302548904E-02]} # 0004
+ -  {O: [ 2.562524311491E-02,  3.401485423217E-01,  1.120069792777E-01]} # 0005
+ -  {C: [ 5.727840924494E-02,  2.078100969005E-01,  9.898766461924E-02]} # 0006
+ -  {O: [ 1.493093015410E-01,  3.363540150263E-01,  2.092135071408E-01]} # 0007
+ -  {C: [ 4.109397884287E-02,  8.037589775790E-02, -6.208366814199E-02]} # 0008
+ -  {O: [ 1.658408572123E-01,  1.318156514054E-01, -2.887510733405E-01]} # 0009
+ -  {P: [ 8.599656235067E-02,  1.638138626605E-01,  1.196519207462E-01]} # 0010
+ -  {O: [-1.778970507856E-02,  8.410326980338E-03, -4.186027504729E-01]} # 0011
+ -  {P: [-3.744830607772E-01, -7.046847610766E-02,  2.487695408910E-01]} # 0012
  -  {O: [-5.351308066100E-01, -2.951996657045E-01, -2.143555681155E-01]} # 0013
  -  {P: [-6.227011975244E-01, -3.755870951935E-01,  4.279312143328E-01]} # 0014
- -  {O: [-1.605919195773E-01, -7.449811026789E-03, -5.771896417339E-02]} # 0015
- -  {O: [-2.291065282681E-01, -8.196074912143E-03, -1.327124832650E-01]} # 0016
- -  {O: [-1.257212800323E-01, -1.260419988483E-01, -1.274766159054E-01]} # 0017
- -  {O: [-7.638467001068E-01,  4.115930486504E-01,  3.701832028772E-01]} # 0018
- -  {O: [-4.104927688294E-01, -5.724567188970E-01,  5.004328829140E-01]} # 0019
- -  {O: [-4.162758818067E-01,  5.946170071102E-01,  3.508626511373E-01]} # 0020
- -  {O: [ 5.364165683965E-02, -3.185168280223E-01,  4.952764353032E-01]} # 0021
+ -  {O: [-1.605919195774E-01, -7.449811026786E-03, -5.771896417338E-02]} # 0015
+ -  {O: [-2.291065282681E-01, -8.196074912154E-03, -1.327124832649E-01]} # 0016
+ -  {O: [-1.257212800323E-01, -1.260419988483E-01, -1.274766159053E-01]} # 0017
+ -  {O: [-7.638467001068E-01,  4.115930486504E-01,  3.701832028771E-01]} # 0018
+ -  {O: [-4.104927688294E-01, -5.724567188971E-01,  5.004328829139E-01]} # 0019
+ -  {O: [-4.162758818067E-01,  5.946170071102E-01,  3.508626511374E-01]} # 0020
+ -  {O: [ 5.364165683965E-02, -3.185168280223E-01,  4.952764353031E-01]} # 0021
  -  {N: [-1.942274449617E-01,  4.281813424685E-01, -1.582884847066E-01]} # 0022
- -  {C: [ 5.825899480244E-02, -4.109708187963E-01,  3.711096765907E-01]} # 0023
- -  {N: [ 3.852142150274E-01, -8.412717038918E-01,  3.310845640837E-01]} # 0024
- -  {C: [ 3.131341209375E-01, -4.022748492520E-01,  6.303582239920E-02]} # 0025
+ -  {C: [ 5.825899480243E-02, -4.109708187963E-01,  3.711096765906E-01]} # 0023
+ -  {N: [ 3.852142150274E-01, -8.412717038919E-01,  3.310845640836E-01]} # 0024
+ -  {C: [ 3.131341209375E-01, -4.022748492520E-01,  6.303582239916E-02]} # 0025
  -  {C: [ 2.697441521309E-01,  2.414360585620E-01, -5.115343332029E-01]} # 0026
  -  {N: [ 1.717121694338E-01,  4.337301441923E-01, -3.623214910661E-01]} # 0027
- -  {C: [ 2.866989433538E-01,  2.925735219230E-02, -8.938450474471E-02]} # 0028
+ -  {C: [ 2.866989433538E-01,  2.925735219231E-02, -8.938450474470E-02]} # 0028
  -  {N: [ 5.527978455501E-01, -2.431136324643E-01, -2.439402348703E-01]} # 0029
- -  {C: [ 4.871023048436E-01, -2.546839502626E-01, -3.245318855767E-01]} # 0030
+ -  {C: [ 4.871023048436E-01, -2.546839502625E-01, -3.245318855767E-01]} # 0030
  -  {N: [ 2.390190915976E-01, -4.474070388117E-01, -1.154706780580E-01]} # 0031
- -  {H: [ 9.222764519285E-02,  1.065882099592E-01, -3.602664579444E-02]} # 0032
- -  {H: [ 6.272964225284E-02,  7.950513167999E-02, -1.103775591057E-01]} # 0033
- -  {H: [ 2.115081792083E-02,  6.633147773073E-03,  6.955375625526E-02]} # 0034
- -  {H: [ 4.769512293872E-03, -1.111788872265E-02,  1.844148262081E-02]} # 0035
- -  {H: [-5.066300498481E-02, -6.323535277808E-02,  1.073078956481E-01]} # 0036
- -  {H: [ 2.444438122388E-01,  1.157526898451E-01, -2.859173464764E-02]} # 0037
- -  {H: [ 3.846756111288E-04,  2.017880835746E-02,  4.411059729660E-02]} # 0038
- -  {H: [ 5.690508864721E-02, -6.403135107299E-02, -7.285145160845E-02]} # 0039
- -  {H: [ 3.448925357715E-02, -6.083126775347E-02, -3.098745988164E-02]} # 0040
- -  {H: [-1.254288993408E-02,  8.280643936748E-02, -7.055312384208E-02]} # 0041
- -  {H: [ 5.808565926648E-02,  1.518201751840E-02,  6.493745219544E-02]} # 0042
- -  {H: [ 1.030721914142E-01, -3.112744784967E-02, -9.538085198048E-02]} # 0043
+ -  {H: [ 9.222764519285E-02,  1.065882099592E-01, -3.602664579441E-02]} # 0032
+ -  {H: [ 6.272964225284E-02,  7.950513168000E-02, -1.103775591057E-01]} # 0033
+ -  {H: [ 2.115081792084E-02,  6.633147773083E-03,  6.955375625526E-02]} # 0034
+ -  {H: [ 4.769512293867E-03, -1.111788872265E-02,  1.844148262082E-02]} # 0035
+ -  {H: [-5.066300498482E-02, -6.323535277809E-02,  1.073078956481E-01]} # 0036
+ -  {H: [ 2.444438122388E-01,  1.157526898451E-01, -2.859173464762E-02]} # 0037
+ -  {H: [ 3.846756111265E-04,  2.017880835747E-02,  4.411059729661E-02]} # 0038
+ -  {H: [ 5.690508864721E-02, -6.403135107298E-02, -7.285145160845E-02]} # 0039
+ -  {H: [ 3.448925357715E-02, -6.083126775347E-02, -3.098745988163E-02]} # 0040
+ -  {H: [-1.254288993409E-02,  8.280643936749E-02, -7.055312384207E-02]} # 0041
+ -  {H: [ 5.808565926648E-02,  1.518201751840E-02,  6.493745219546E-02]} # 0042
+ -  {H: [ 1.030721914142E-01, -3.112744784967E-02, -9.538085198046E-02]} # 0043
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1480,15 +1494,15 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  76.23
-   Elapsed time (s)                    :  42.12
+   CPU time (s)                        :  85.27
+   Elapsed time (s)                    :  46.34
  Memory Consumption Report:
-   Tot. No. of Allocations             :  30072
-   Tot. No. of Deallocations           :  30072
+   Tot. No. of Allocations             :  39697
+   Tot. No. of Deallocations           :  39697
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  892
+     Peak Value (MB)                   :  887
      for the array                     : nrecvdspls
      in the routine                    : transpose_localized
- Max No. of dictionaries used          :  7045 #( 798 still in use)
+ Max No. of dictionaries used          :  7203 #( 803 still in use)
  Number of dictionary folders allocated:  1

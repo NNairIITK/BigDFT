@@ -36,6 +36,8 @@ Keys to ignore:
  - Dictionary for lin
  - Raw version
  - Size of the global database
+ - Total No. of Taskgroups created
+ - sparse matmul load balancing naive / optimized
 Patterns to ignore:
  - Timestamp
  - memory
@@ -276,6 +278,7 @@ mixpotential:
  Omega: 6.58e-11
  Ekin: 1.1e-10
  EXC: 1.1e-10
+ Enl: 2.1e-11
 
 IO-wf_plain-read:
  Energies: 1.1e-10
@@ -356,10 +359,10 @@ cleanup:
  Clean forces norm (Ha/Bohr): 3.7e-9
  Raw forces norm (Ha/Bohr): 3.5e-9
  Epot: 3.9e-9
- Orbitals: 5.7e-10
- EH: 3.7e-9
+ Orbitals: 6.1e-10
+ EH: 3.8e-9
  EXC: 1.9e-9
- EvXC: 8.7e-10
+ EvXC: 2.3e-9
  Enl: 9.1e-10
  Omega: 2.12e-9
  Pulay Forces (Ha/Bohr): 1.9e-9
@@ -814,7 +817,7 @@ experimentalfoe_medium:
  eF: 8.3e-8
  guess for new ef: 8.3e-8
  D Tr: 1.1e-6
- D eF: 3.4e-8 
+ D eF: 4.2e-8 
  Tr(K): 2.5e-7
  ebs: 2.5e-7
  ebs_check: 4.4e-8
@@ -1031,3 +1034,65 @@ geoptconstrained:
  EH: 1.1e-10
  charge diff: 4.2e-11
  D Tr: 1.1e-9
+
+O2spin_diag:
+ Atomic Forces (Ha/Bohr): 7.4e-8
+ Average noise forces: 6.1e-8
+ Clean forces norm (Ha/Bohr): 2.7e-7
+ Raw forces norm (Ha/Bohr): 2.7e-7
+ Orbitals: 2.7e-7
+ EH: 4.0e-7
+ EXC: 5.9e-8
+ Ekin: 5.9e-7
+ Enl: 2.4e-8
+ Epot: 8.8e-7
+ EvXC: 7.7e-8
+ Omega: 1.7e-7
+ energy: 3.1e-8
+ multiplicator for the confinement: 1.2e-7
+
+O2spin_foe:
+ Atomic Forces (Ha/Bohr): 6.7e-10
+ EH: 1.9e-8
+ EXC: 2.6e-9
+ Ekin: 4.8e-9
+ Epot: 5.9e-9
+ EvXC: 3.4e-9
+ Enl: 2.6e-9
+ Tr(K): 1.4e-8
+ charge diff: 1.3e-8
+ eF: 1.1-10
+ guess for new ef: 2.6e-9
+ ebs: 4.8e-9
+ ebs_check: 2.6e-9
+ Omega: 2.3e-9
+ energy: 2.6e-9
+ Raw forces norm (Ha/Bohr): 2.7e-9
+ Clean forces norm (Ha/Bohr): 2.7e-9
+ Average noise forces: 2.6e-9
+ Total charge: 2.4e-9
+ decay length of error function: 1.1e-5
+ diff: 4.8e-9
+
+O2spin_dirmin:
+ Atomic Forces (Ha/Bohr): 3.9e-6
+ Average noise forces: 2.4e-5
+ Clean forces norm (Ha/Bohr): 2.4e-5
+ Electric Dipole Moment (AU): 2.4e-5
+ Electric Dipole Moment (Debye): 2.4e-5
+ eBS: 1.8e-6
+ fnrm: 2.1e-6
+ EH: 3.1e-6
+ EXC: 3.6e-7
+ Ekin: 2.4e-6
+ Enl: 8.4e-8
+ Epot: 4.3e-6
+ EvXC: 4.8e-7
+ energydiff: 5.3e-7
+ energy: 3.6e-7
+ Omega: 2.4e-7
+ Raw forces norm (Ha/Bohr): 2.4e-5
+ D: 1.1e-6
+ DIIS weights: 1.1
+ Max deviation from unity in reorthonormalize_coeff: 1.1e-7
+ Mean deviation from unity in reorthonormalize_coeff: 1.1e-7
