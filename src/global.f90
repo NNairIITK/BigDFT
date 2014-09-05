@@ -12,13 +12,14 @@
 program MINHOP
   use module_base
   use bigdft_run
-  use module_types, only: input_variables,bigdft_run_id_toa
+  use module_types, only: input_variables,bigdft_run_id_toa,BIGDFT_SUCCESS
   use module_interfaces
   use module_input_dicts
   use m_ab6_symmetry
   use yaml_output
   use module_atoms, only: deallocate_atoms_data,atoms_data
-  implicit real(kind=8) (a-h,o-z)
+  !implicit real(kind=8) (a-h,o-z) !!!dangerous when using modules!!!
+  implicit none
   logical :: newmin,CPUcheck,occured,exist_poslocm,exist_posacc
   character(len=20) :: unitsp,atmn
   character(len=60) :: run_id
@@ -36,7 +37,10 @@ program MINHOP
   real(kind=8),allocatable, dimension(:,:) :: fp_arr
   real(kind=8),allocatable, dimension(:) :: fp,wfp,fphop
   real(kind=8),allocatable, dimension(:,:,:) :: pl_arr
-  integer :: iproc,nproc,iat,ierr,infocode,nksevals,i,natoms
+  integer :: iproc,nproc,iat,ierr,infocode,nksevals,i,natoms,nrandoff,nsoften
+  integer :: n_unique,n_nonuni,nputback,i_stat,ncount_bigdft,ngeopt,nid,nlmin,nlminx
+  integer :: ilmin,ierror,natp,k,nvisit,kid,k_e,nlmin_old,ndfree,ndfroz,ixyz,nummax,nummin
+  integer :: istepnext,istep
   integer :: bigdft_get_number_of_atoms,bigdft_get_number_of_orbitals
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
@@ -47,7 +51,13 @@ program MINHOP
   character(len=50) :: comment
 !  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   integer :: nconfig
-  integer, dimension(4) :: mpi_info
+  !integer, dimension(4) :: mpi_info
+  real(kind=4) :: tcpu1,ts,tcpu2,cpulimit
+  real(kind=8) :: accepted,ediff,ekinetic,dt,av_ekinetic,av_ediff,escape,escape_sam
+  real(kind=8) :: escape_old,escape_new,rejected,fp_sep,e_hop,count_sdcg,count_soft
+  real(kind=8) :: count_md,count_bfgs,energyold,e_pos,tt,en_delta,fp_delta
+  real(kind=8) :: t1,t2,t3,ebest_l,dmin,tleft,d,ss
+  real(kind=8), external :: dnrm2
 
   type(run_objects) :: runObj
   type(DFT_global_output) :: outs
@@ -61,7 +71,7 @@ logical:: disable_hatrans
   call bigdft_init(options)
   if (bigdft_nruns(options) > 1) call f_err_throw('runs-file not supported for frequencies executable')
   !temporary
-  run_id = options // 0 // 'name'
+  run_id = options // 'BigDFT' // 0 // 'name'
   call dict_free(options)
 
 !!$  call bigdft_init(mpi_info,nconfig,run_id,ierr)
@@ -134,6 +144,7 @@ logical:: disable_hatrans
   gg = f_malloc((/ 3, natoms /),id='gg')
   poshop = f_malloc((/ 3, natoms /),id='poshop')
   rcov = f_malloc(natoms,id='rcov')
+  pos = f_malloc_ptr((/ 3, natoms /),id='pos')
 
   call give_rcov(bigdft_mpi%iproc,atoms,natoms,rcov)
 
@@ -172,7 +183,7 @@ logical:: disable_hatrans
   escape_sam=0.d0
   escape_old=0.d0
   escape_new=0.d0
-  rejected=0
+  rejected=0.d0
   fp_sep=0.d0
   e_hop=1.d100
 
@@ -264,11 +275,12 @@ logical:: disable_hatrans
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of initial conf.',ncount_bigdft)
   count_bfgs=count_bfgs+ncount_bigdft
         e_pos = outs%energy
-        do iat=1,atoms%astruct%nat
-          pos(1,iat)=atoms%astruct%rxyz(1,iat)
-          pos(2,iat)=atoms%astruct%rxyz(2,iat)
-          pos(3,iat)=atoms%astruct%rxyz(3,iat)
-        enddo
+        call f_memcpy(src=atoms%astruct%rxyz,dest=pos)
+!!$        do iat=1,atoms%astruct%nat
+!!$          pos(1,iat)=atoms%astruct%rxyz(1,iat)
+!!$          pos(2,iat)=atoms%astruct%rxyz(2,iat)
+!!$          pos(3,iat)=atoms%astruct%rxyz(3,iat)
+!!$        enddo
   if (bigdft_mpi%iproc == 0) then
      call yaml_map('(MH) INPUT(relaxed), e_pos ',outs%energy,fmt='(e17.10)')
   end if
@@ -430,8 +442,8 @@ logical:: disable_hatrans
   nlmin_old=nlmin
   CPUcheck=.false.
 
-  pos = f_malloc_ptr((/ 3, atoms%astruct%nat /),id='pos')
-  call vcopy(3*atoms%astruct%nat, atoms%astruct%rxyz(1,1) , 1, pos(1,1), 1)
+  call f_memcpy(src=atoms%astruct%rxyz,dest=pos)
+  !call vcopy(3*atoms%astruct%nat, atoms%astruct%rxyz(1,1) , 1, pos(1,1), 1)
 
   !C outer (hopping) loop
    hopping_loop: do
@@ -778,13 +790,16 @@ contains
     use module_types
     use module_interfaces
     use m_ab6_symmetry
-    implicit real*8 (a-h,o-z)
+    implicit none !real*8 (a-h,o-z)
+    integer :: nsoften,mdmin,ngeopt,iproc,nproc
+    real(kind=8) :: ekinetic,dt,count_md
     type(run_objects), intent(inout) :: runObj
     type(DFT_global_output), intent(inout) :: outs
-    dimension gg(3,atoms%astruct%nat),vxyz(3,atoms%astruct%nat)
+    real(kind=8), dimension(3,atoms%astruct%nat) :: gg,vxyz
     character(len=4) :: fn4
     logical :: move_this_coordinate
-    real(gp) :: e0
+    real(gp) :: e0,enmin1,en0000,econs_max,econs_min,rkin,enmin2
+    real(kind=8) :: devcon,at1,at2,at3
     !type(wavefunctions_descriptors), intent(inout) :: wfd
     !real(kind=8), pointer :: psi(:), eval(:)
 
