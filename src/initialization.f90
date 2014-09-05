@@ -87,55 +87,6 @@ contains
 
 END SUBROUTINE command_line_information
 
-subroutine bigdft_command_line_options(parser)
-  use yaml_parse
-  use dictionaries, only: dict_new,operator(.is.)
-  implicit none
-  type(yaml_cl_parse), intent(inout) :: parser
-  
-  call yaml_cl_parse_option(parser,'name','None',&
-       'name of the run','n',&
-       dict_new('Usage' .is. &
-       'Name of the run. When <name> is given, input files like <name>.* are used. '//&
-       'The file "default.yaml" set the default values. If name is given as a list in yaml format, '//&
-       'this is interpreted as a list of runs as if a runs-file has been given.',&
-       'Allowed values' .is. &
-       'String value.'),first_option=.true.)
-
-  call yaml_cl_parse_option(parser,'outdir','.',&
-       'output directory','d',&
-       dict_new('Usage' .is. &
-       'Set the directory where all the output files have to be written.',&
-       'Allowed values' .is. &
-       'String value, indicating the path of the directory. If the last subdirectory is not existing, it will be created'))
-
-  call yaml_cl_parse_option(parser,'logfile','No',&
-       'create logfile','l',&
-       dict_new('Usage' .is. &
-       'When "Yes", write the result of the run in file "log.yaml" or "log-<name>.yaml" if the run has a specified name.',&
-       'Allowed values' .is. &
-       'Boolean (yaml syntax). Automatically set to true when using runs-file or output directory different from "."'))
-
-  call yaml_cl_parse_option(parser,'runs-file','None',&
-       'list_posinp filename','r',&
-       dict_new('Usage' .is. &
-       'File containing the list of the run ids which have to be launched independently (list in yaml format). '//&
-       'The option runs-file is not compatible with the --name option.',&
-       'Allowed values' .is. &
-       'String value. Should be associated to a existing filename'),&
-       conflicts='[name]')
-
-  call yaml_cl_parse_option(parser,'taskgroup-size','None',&
-       'mpi_groupsize (number of MPI runs for a single instance of BigDFT)','t',&
-       dict_new('Usage' .is. &
-       'Indicates the number of mpi tasks associated to a single instance of BigDFT run',&
-       'Allowed values' .is. &
-       'Integer value. Disabled if not a divisor of the total No. of MPI tasks.'))
-
-
-end subroutine bigdft_command_line_options
-
-
 !> Initialization of acceleration (OpenCL)
 subroutine init_material_acceleration(iproc,matacc,GPU)
   use module_base

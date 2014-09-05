@@ -127,7 +127,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       call yaml_mapping_close()
    end if
 
-   !init varaibles
+   !init variables
    debug=.false.
    fail=.true.
    displr=0.0_gp
@@ -209,8 +209,9 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
        write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))') &
        ncount_bigdft,0,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
-       'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)), &
-       'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
+       'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',&
+       trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),&
+       'dsplp=',trim(adjustl(cdmy9_2))
    endif
 
    do it=1,nit!start main loop
@@ -328,8 +329,9 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    
             write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))') &
              ncount_bigdft,it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
-             'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)), &
-             'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
+             'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,&
+             'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),&
+             'dsplp=',trim(adjustl(cdmy9_2))
             call yaml_mapping_open('Geometry')
                call yaml_map('Ncount_BigDFT',ncount_bigdft)
                call yaml_map('Geometry step',it)
@@ -388,8 +390,9 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
          write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))') &
           ncount_bigdft,it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
-          'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)), &
-          'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
+          'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',&
+          trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),&
+          'dsplp=',trim(adjustl(cdmy9_2))
          call yaml_mapping_open('Geometry')
             call yaml_map('Ncount_BigDFT',ncount_bigdft)
             call yaml_map('Geometry step',it)
@@ -522,7 +525,6 @@ subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzra
 !    if(eeval)call energyandforces(nat,alat,rat,fat,fnoise,epot)
 !    fxyzraw=fat
 !    fstretch=0.0_gp
-
 
     call vcopy(3 * runObj%atoms%astruct%nat, rat(1,1), 1,rxyzraw(1,1), 1)
     if(eeval)then

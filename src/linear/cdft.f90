@@ -200,6 +200,7 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
   character(len=*),parameter :: subname='calculate_weight_matrix_using_density'
   type(matrices) :: weight_
 
+  energs=energy_terms_null()
   call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
   call start_onesided_communication(bigdft_mpi%iproc,bigdft_mpi%nproc,&
        max(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,1),cdft%weight_function, &

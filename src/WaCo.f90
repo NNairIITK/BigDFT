@@ -20,6 +20,7 @@ program WaCo
    use module_atoms, only: deallocate_atoms_data
    use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
+   use bigdft_run
    implicit none
    character :: filetype*4,outputype*4
    type(locreg_descriptors) :: Glr
@@ -68,7 +69,7 @@ program WaCo
    integer, dimension(:),allocatable :: bandlist
    logical :: idemp
    integer, dimension(4) :: mpi_info
-   type(dictionary), pointer :: user_inputs
+   type(dictionary), pointer :: user_inputs,options
    external :: gather_timings
    ! ONLY FOR DEBUG
 !   real(gp) :: Gnorm, Lnorm
@@ -104,16 +105,26 @@ program WaCo
       end subroutine scalar_kmeans_diffIG
    end interface
 
-   !-finds the number of taskgroup size
-   !-initializes the mpi_environment for each group
-   !-decides the radical name for each run
-   call bigdft_init(mpi_info,nconfig,run_id,ierr)
 
-   !just for backward compatibility
-   iproc=mpi_info(1)
-   nproc=mpi_info(2)
+   call bigdft_command_line_options(options)
+   call bigdft_init(options)!mpi_info,nconfig,run_id,ierr)
+   iproc=bigdft_mpi%iproc!mpi_info(1)
+   nproc=bigdft_mpi%nproc!mpi_info(2)
+   if (bigdft_nruns(options) > 1) stop 'runs-file not supported for BigDFT2Wannier executable'
+   run_id = options // 0 // 'name'
+   call dict_free(options)
 
-   if (nconfig < 0) stop 'runs-file not supported for WaCo executable'
+
+!!$   !-finds the number of taskgroup size
+!!$   !-initializes the mpi_environment for each group
+!!$   !-decides the radical name for each run
+!!$   call bigdft_init(mpi_info,nconfig,run_id,ierr)
+!!$
+!!$   !just for backward compatibility
+!!$   iproc=mpi_info(1)
+!!$   nproc=mpi_info(2)
+!!$
+!!$   if (nconfig < 0) stop 'runs-file not supported for WaCo executable'
 
    call dict_init(user_inputs)
    call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &

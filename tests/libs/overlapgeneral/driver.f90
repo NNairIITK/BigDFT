@@ -10,6 +10,7 @@
 
 !> Test the overlapgeneral routine
 program driver
+  use bigdft_run
   use module_base
   use module_types
   use module_interfaces
@@ -55,10 +56,11 @@ program driver
 
   ! Initialize
   call f_lib_initialize()
-  call bigdft_init(mpi_info,nconfig,run_id,ierr)
+
+  call bigdft_init()!mpi_info,nconfig,run_id,ierr)
   !just for backward compatibility
-  iproc=mpi_info(1)
-  nproc=mpi_info(2)
+  iproc=bigdft_mpi%iproc!mpi_info(1)
+  nproc=bigdft_mpi%nproc!mpi_info(2)
 
 
   if (iproc==0) then

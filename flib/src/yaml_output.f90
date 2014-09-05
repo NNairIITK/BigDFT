@@ -715,7 +715,8 @@ contains
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
-    call dump(streams(strm),' #WARNING: '//trim(message))
+!    call dump(streams(strm),' #WARNING: '//trim(message))
+    call yaml_comment('WARNING: '//trim(message),unit=unt)
     !here we should add a collection of all the warning which are printed out in the code.
     if (.not. streams(strm)%document_closed) then
 !!$       if (.not. associated(streams(strm)%dict_warning)) then

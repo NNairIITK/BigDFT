@@ -10,7 +10,7 @@ module module_init
     public :: print_input
     public :: print_logo_mhgps
     public :: give_rcov
-    
+
 contains
 
     subroutine read_input()
@@ -50,7 +50,8 @@ contains
             read(u,*)saddle_steepthresh_trans,saddle_steepthresh_rot
             read(u,*)saddle_fnrmtol
             if(saddle_biomode)then
-                read(u,*)saddle_alpha0_trans, saddle_alpha0_rot, saddle_alpha_stretch0, saddle_alpha_rot_stretch0
+                read(u,*)saddle_alpha0_trans, saddle_alpha0_rot,&
+                     saddle_alpha_stretch0, saddle_alpha_rot_stretch0
             else
                 read(u,*)saddle_alpha0_trans, saddle_alpha0_rot
             endif
@@ -65,7 +66,7 @@ contains
             read(u,*)saddle_stepoff, saddle_scale_stepoff
             if(.not.external_mini)then
                 read(u,*)mini_nhistx
-                read(u,*)mini_ncluster_x 
+                read(u,*)mini_ncluster_x
                 read(u,*)mini_frac_fluct
                 read(u,*)mini_forcemax
                 read(u,*)mini_maxrise
@@ -84,47 +85,47 @@ contains
         integer, parameter :: u=237
         character(17), parameter :: filename='mhgps.inp_default'
         open(u,file=filename)
-            write(u,'(1x,i0.0,1x,a)')mhgps_verbosity,' #mhgps_verbosity'
-            write(u,'(1x,L,1x,L,1x,a)')operation_mode,random_minmode_guess, ' #mode, random_minmode_guess'
-            write(u,'(1x,i0.0,1x,a)')nsadmax,' #nsadmax'
-            write(u,'(1x,a,1x,L,1x,a)')trim(adjustl(efmethod)),external_mini,' #efmethod, external minimizer'
-            write(u,'(es10.3,1x,es10.3,1x,a)')en_delta_min,fp_delta_min,' #en_delta_min, fp_delta_min'
-            write(u,'(es10.3,1x,es10.3,1x,a)')en_delta_sad,fp_delta_sad,' #en_delta_sad, fp_delta_sad'
-            write(u,'(1x,L,1x,a)')saddle_biomode,' #biomode'
-            write(u,'(1x,es10.3,1x,a)') lst_interpol_stepfrct, &
-                ' #inward interpolation distance as fraction of initial distance'
-            write(u,'(1x,es10.3,1x,a)') ts_guess_gammainv, &
-                ' #step size for perpedicular optimization in freezing string method'
-            write(u,'(1x,es10.3,1x,a)') ts_guess_perpnrmtol, &
-                ' #convergence criterion perpedicular force in freezing string method &
-                &(disable perpend. optim. by setting this value to a negative number)'
-            write(u,'(1x,es10.3,1x,a)') ts_guess_trust, &
-                ' #trust radius freezing string method (maximum change of any coordinate'
-            write(u,'(1x,i0,1x,a)') ts_guess_nstepsmax, &
-                ' #maximum number of steps in perpendicular optimization in freezing stringmethod'
-            write(u,'(1x,es10.3,1x,es10.3,1x,a)')lst_dt_max, lst_fmax_tol, &
-                '#max. time step in fire optimizer of lst function, convergence criterion'
-            write(u,'(1x,i0,1x,i0,1x,a)')saddle_nit_trans, saddle_nit_rot,'  #nit_trans, not_rot'
-            write(u,'(1x,i0,1x,i0,1x,a)')saddle_nhistx_trans, saddle_nhistx_rot,' #nhistx_trans, nhistx_rot'
-            write(u,'(es10.3,1x,es10.3,a)')saddle_steepthresh_trans,saddle_steepthresh_rot, &
-                ' #saddle_steepthresh_trans,saddle_steepthresh_rot'
-            write(u,'(es10.3,1x,a)')saddle_fnrmtol,' #fnrm tolerence convergence criterion for saddle point'
+            write(u,'(1x,i0.0,1x,1a)')mhgps_verbosity,' #mhgps_verbosity'
+            write(u,'(1x,1L,1x,1L,1x,1a)')operation_mode,random_minmode_guess,&
+                 ' #mode, random_minmode_guess'
+            write(u,'(1x,i0.0,1x,1a)')nsadmax,' #nsadmax'
+            write(u,'(1x,1a,1x,1L,1x,1a)')trim(adjustl(efmethod)),external_mini,&
+                 ' #efmethod, external minimizer'
+            write(u,'(es10.3,1x,es10.3,1x,1a)')en_delta_min,fp_delta_min,' #en_delta_min, fp_delta_min'
+            write(u,'(es10.3,1x,es10.3,1x,1a)')en_delta_sad,fp_delta_sad,' #en_delta_sad, fp_delta_sad'
+            write(u,'(1x,1L,1x,1a)')saddle_biomode,' #biomode'
+            write(u,'(1x,es10.3,1x,1a)') lst_interpol_stepfrct,&
+                 ' #inward interpolation distance as fraction of initial distance'
+            write(u,'(1x,es10.3,1x,1a)') ts_guess_gammainv,' #step size for perpedicular optimization in freezing string method'
+            write(u,'(1x,es10.3,1x,1a)') ts_guess_perpnrmtol,&
+                 ' #convergence criterion perpedicular force in freezing string method'//&
+                 ' (disable perpend. optim. by setting this value to a negative number)'
+            write(u,'(1x,es10.3,1x,1a)') ts_guess_trust,' #trust radius freezing string method (maximum change of any coordinate'
+            write(u,'(1x,i0,1x,1a)') ts_guess_nstepsmax,&
+                 ' #maximum number of steps in perpendicular optimization in freezing stringmethod'
+            write(u,'(1x,es10.3,1x,es10.3,1x,1a)')lst_dt_max, lst_fmax_tol,&
+                 '#max. time step in fire optimizer of lst function, convergence criterion'
+            write(u,'(1x,i0,1x,i0,1x,1a)')saddle_nit_trans, saddle_nit_rot,'  #nit_trans, not_rot'
+            write(u,'(1x,i0,1x,i0,1x,1a)')saddle_nhistx_trans, saddle_nhistx_rot,' #nhistx_trans, nhistx_rot'
+            write(u,'(es10.3,1x,es10.3,1a)')saddle_steepthresh_trans,saddle_steepthresh_rot,&
+                 ' #saddle_steepthresh_trans,saddle_steepthresh_rot'
+            write(u,'(es10.3,1x,1a)')saddle_fnrmtol,' #fnrm tolerence convergence criterion for saddle point'
             if(saddle_biomode)then
-                write(u,'(es10.3,3(1x,es10.3),a)')saddle_alpha0_trans, saddle_alpha0_rot, &
-                    saddle_alpha_stretch0, saddle_alpha_rot_stretch0, &
-                    ' #alpha0_trans, alpha0_rot, alpha_stretch0, alpha_rot_stretch0'
+                write(u,'(es10.3,3(1x,es10.3),1a)')saddle_alpha0_trans, saddle_alpha0_rot,&
+                     saddle_alpha_stretch0, saddle_alpha_rot_stretch0,&
+                     ' #alpha0_trans, alpha0_rot, alpha_stretch0, alpha_rot_stretch0'
             else
-                write(u,'(es10.3,1x,es10.3,a)')saddle_alpha0_trans, saddle_alpha0_rot,' #alpha0_trans, alpha0_rot'
+                write(u,'(es10.3,1x,es10.3,1a)')saddle_alpha0_trans, saddle_alpha0_rot,' #alpha0_trans, alpha0_rot'
             endif
-            write(u,'(es10.3,1x,a)')saddle_curvgraddiff,' #curvgraddif'
-            write(u,'(es10.3,1x,es10.3,1x,a)')saddle_rmsdispl0,saddle_trustr,' #rmsdispl0, trustr'
-            write(u,'(es10.3,1x,es10.3,1x,a)')saddle_tolc,saddle_tolf,' #tolc, tolf'
-            write(u,'(es10.3,1x,a)')saddle_minoverlap0,' #minoverlap0'
-            write(u,'(es10.3,1x,a)')saddle_tightenfac,' #tightenfac'
-            write(u,'(es10.3,1x,a)')saddle_maxcurvrise,' #maxcurvrise'
-            write(u,'(es10.3,1x,a)')saddle_cutoffratio,' #cutoffratio'
-            write(u,'(1x,i0,1x,a)')saddle_recompIfCurvPos,' #recompIfCurvPos'
-            write(u,'(es10.3,1x,es10.3,1x,a)')saddle_stepoff,saddle_scale_stepoff, ' #stepoff, stepoff_scale'
+            write(u,'(es10.3,1x,1a)')saddle_curvgraddiff,' #curvgraddif'
+            write(u,'(es10.3,1x,es10.3,1x,1a)')saddle_rmsdispl0,saddle_trustr,' #rmsdispl0, trustr'
+            write(u,'(es10.3,1x,es10.3,1x,1a)')saddle_tolc,saddle_tolf,' #tolc, tolf'
+            write(u,'(es10.3,1x,1a)')saddle_minoverlap0,' #minoverlap0'
+            write(u,'(es10.3,1x,1a)')saddle_tightenfac,' #tightenfac'
+            write(u,'(es10.3,1x,1a)')saddle_maxcurvrise,' #maxcurvrise'
+            write(u,'(es10.3,1x,1a)')saddle_cutoffratio,' #cutoffratio'
+            write(u,'(1x,i0,1x,1a)')saddle_recompIfCurvPos,' #recompIfCurvPos'
+            write(u,'(es10.3,1x,es10.3,1x,1a)')saddle_stepoff,saddle_scale_stepoff, ' #stepoff, stepoff_scale'
         close(u)
     end subroutine
     subroutine print_input()
