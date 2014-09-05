@@ -605,7 +605,7 @@ module communications_init
           call f_free(istartendseg_c)
           call f_free(nval_c)
           call f_free(weightpp_c)
-          !!write(*,'(a,i7,100i12)') 'new: iproc, istartend_c',iproc, istartend_c 
+          write(*,'(a,i7,100i12)') 'new: iproc, istartend_c',iproc, istartend_c 
           !!write(*,'(a,i7,100i12)') 'new: iproc, istartp_seg_c', iproc, istartp_seg_c
           !!write(*,'(a,i7,100i12)') 'new: iproc, iendp_seg_c', iproc, iendp_seg_c
           !!write(*,'(a,i7,100i12)') 'new: iproc, nvalp_c', iproc, nvalp_c
@@ -795,7 +795,7 @@ module communications_init
           call f_free(istartendseg_f)
           call f_free(nval_f)
           call f_free(weightpp_f)
-          !!write(*,'(a,i7,100i12)') 'new: iproc, istartend_f',iproc, istartend_f 
+          write(*,'(a,i7,100i12)') 'new: iproc, istartend_f',iproc, istartend_f 
           !!write(*,'(a,i7,100i12)') 'new: iproc, istartp_seg_f', iproc, istartp_seg_f
           !!write(*,'(a,i7,100i12)') 'new: iproc, iendp_seg_f', iproc, iendp_seg_f
           write(*,'(a,i7,100i12)') 'new: iproc, nvalp_f', iproc, nvalp_f
@@ -1371,8 +1371,10 @@ module communications_init
       gridpoint_start_c = f_malloc(istartend_c(1,iproc).to.istartend_c(2,iproc),id='gridpoint_start_c')
       gridpoint_start_f = f_malloc(istartend_f(1,iproc).to.istartend_f(2,iproc),id='gridpoint_start_f')
       if (nspin==2) then
-          gridpoint_start_tmp_c = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_tmp_c')
-          gridpoint_start_tmp_f = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_tmp_f')
+          !!gridpoint_start_tmp_c = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_tmp_c')
+          !!gridpoint_start_tmp_f = f_malloc((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(lzd%glr%d%n3+1),id='gridpoint_start_tmp_f')
+          gridpoint_start_tmp_c = f_malloc(istartend_c(1,iproc).to.istartend_c(2,iproc),id='gridpoint_start_tmp_c')
+          gridpoint_start_tmp_f = f_malloc(istartend_f(1,iproc).to.istartend_f(2,iproc),id='gridpoint_start_tmp_f')
       end if
       gridpoint_start_c=-1
       gridpoint_start_f=-1
