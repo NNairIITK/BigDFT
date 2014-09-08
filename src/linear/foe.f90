@@ -21,7 +21,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
-                          uncompress_matrix_distributed
+                          uncompress_matrix_distributed, orb_from_index
   use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                       foe_data_get_logical
   use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
@@ -1049,18 +1049,19 @@ subroutine foe(iproc, nproc, tmprtr, &
       subroutine scale_and_shift_hamiltonian()
         implicit none
 
+        integer,dimension(2) :: irowcol
+
         call f_routine(id='scale_and_shift_hamiltonian')
 
         scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
         shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh",ispin)+foe_data_get_real(foe_obj,"evlow",ispin))
-        !$omp parallel default(none) private(ii,irow,icol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
+        !$omp parallel default(none) private(ii,irowcol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
         !$omp shared(tmb,hamscal_compr,scale_factor,shift_value,isshift,imshift)
         !$omp do
         do ii=1,tmb%linmat%l%nvctr
-            irow = tmb%linmat%l%orb_from_index(1,ii)
-            icol = tmb%linmat%l%orb_from_index(2,ii)
-            iismall_ovrlp = matrixindex_in_compressed(tmb%linmat%s, irow, icol)
-            iismall_ham = matrixindex_in_compressed(tmb%linmat%m, irow, icol)
+            irowcol = orb_from_index(tmb%linmat%l,ii)
+            iismall_ovrlp = matrixindex_in_compressed(tmb%linmat%s, irowcol(1), irowcol(2))
+            iismall_ham = matrixindex_in_compressed(tmb%linmat%m, irowcol(1), irowcol(2))
             if (iismall_ovrlp>0) then
                 tt_ovrlp=tmb%linmat%ovrlp_%matrix_compr(isshift+iismall_ovrlp)
             else

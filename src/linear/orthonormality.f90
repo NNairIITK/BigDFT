@@ -141,7 +141,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
                                assignment(=)
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed, compress_matrix_distributed, &
-                          sequential_acces_matrix_fast, sparsemm, transform_sparse_matrix
+                          sequential_acces_matrix_fast, sparsemm, transform_sparse_matrix, orb_from_index
   implicit none
 
   ! Calling arguments
@@ -174,6 +174,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   type(matrices) :: inv_ovrlp_
   real(8),dimension(:),allocatable :: inv_ovrlp_seq, lagmat_large
   real(8),dimension(:,:),allocatable :: lagmatp, inv_lagmatp
+  integer,dimension(2) :: irowcol
 
   call f_routine(id='orthoconstraintNonorthogonal')
 
@@ -206,9 +207,10 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   do ispin=1,lagmat%nspin
       ishift=(ispin-1)*lagmat%nvctr
       do ii=1,lagmat%nvctr
-         iorb = lagmat%orb_from_index(1,ii)
-         jorb = lagmat%orb_from_index(2,ii)
-         ii_trans=matrixindex_in_compressed(lagmat,jorb,iorb)
+         !iorb = lagmat%orb_from_index(1,ii)
+         !jorb = lagmat%orb_from_index(2,ii)
+         irowcol = orb_from_index(lagmat, ii)
+         ii_trans=matrixindex_in_compressed(lagmat,irowcol(2),irowcol(1))
          lagmat_%matrix_compr(ii+ishift) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
          !if (iorb==jorb) then
          !    orbs%eval(iorb)=lagmat_%matrix_compr(ii)

@@ -154,12 +154,15 @@ module sparsematrix_base
     end subroutine allocate_sparse_matrix_basic
 
 
-    subroutine allocate_sparse_matrix_keys(sparsemat)
+    subroutine allocate_sparse_matrix_keys(store_index, sparsemat)
       implicit none
+      logical,intent(in) :: store_index
       type(sparse_matrix),intent(inout) :: sparsemat
       sparsemat%keyv=f_malloc_ptr(sparsemat%nseg,id='sparsemat%keyv')
       sparsemat%keyg=f_malloc_ptr((/2,sparsemat%nseg/),id='sparsemat%keyg')
-      sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
+      if (store_index) then
+          sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
+      end if
     end subroutine allocate_sparse_matrix_keys
 
 

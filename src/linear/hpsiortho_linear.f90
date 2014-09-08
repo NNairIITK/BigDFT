@@ -22,7 +22,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use sparsematrix_base, only: matrices, matrices_null, deallocate_matrices, &
                                sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: transform_sparse_matrix
+  use sparsematrix, only: transform_sparse_matrix, orb_from_index
   implicit none
 
   ! Calling arguments
@@ -59,6 +59,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(:), pointer :: kernel_compr_tmp
   real(kind=8), dimension(:), allocatable :: prefac
   real(kind=8),dimension(2) :: reducearr
+  integer,dimension(2) :: irowcol
   real(wp), dimension(2) :: garray
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
   type(matrices) :: matrixm
@@ -112,9 +113,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           do ispin=1,tmb%linmat%l%nspin
               ishift=(ispin-1)*tmb%linmat%l%nvctr
               do ii=1,tmb%linmat%l%nvctr
-                      iiorb = tmb%linmat%l%orb_from_index(1,ii)
-                      jjorb = tmb%linmat%l%orb_from_index(2,ii)
-                  if(iiorb==jjorb) then
+                      !iiorb = tmb%linmat%l%orb_from_index(1,ii)
+                      !jjorb = tmb%linmat%l%orb_from_index(2,ii)
+                      irowcol = orb_from_index(tmb%linmat%l, ii)
+                  if(irowcol(1)==irowcol(2)) then
                       tmb%linmat%kernel_%matrix_compr(ii+ishift)=0.d0
                   else
                       tmb%linmat%kernel_%matrix_compr(ii+ishift)=kernel_compr_tmp(ii+ishift)
@@ -131,10 +133,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                   ispin=2
               end if
               do ii=1,tmb%linmat%l%nvctr
-                      iiorb = tmb%linmat%l%orb_from_index(1,ii)
-                      jjorb = tmb%linmat%l%orb_from_index(2,ii)
+                      !iiorb = tmb%linmat%l%orb_from_index(1,ii)
+                      !jjorb = tmb%linmat%l%orb_from_index(2,ii)
+                      irowcol = orb_from_index(tmb%linmat%l, ii)
                       ishift=(ispin-1)*tmb%linmat%l%nvctr
-                      if(iiorb==jjorb .and. iiorb==iorb) then
+                      if(irowcol(1)==irowcol(2) .and. irowcol(1)==iorb) then
                           ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
                           call dscal(ncount, kernel_compr_tmp(ii+ishift), tmb%hpsi(ist), 1)
                           ist=ist+ncount

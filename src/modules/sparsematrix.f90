@@ -28,6 +28,7 @@ module sparsematrix
   public :: uncompress_matrix_distributed
   public :: sequential_acces_matrix_fast
   public :: sparsemm
+  public :: orb_from_index
 
   contains
 
@@ -45,6 +46,7 @@ module sparsematrix
       integer :: jj, irow, jcol, jjj, ierr, ishift, ispin
       real(kind=8),dimension(:,:,:),pointer :: inm
       real(kind=8),dimension(:),pointer :: outm
+      integer,dimension(2) :: irowcol
 
       !if (present(outmat)) then
       !    if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
@@ -69,13 +71,14 @@ module sparsematrix
       if (sparsemat%parallel_compression==0.or.bigdft_mpi%nproc==1) then
          do ispin=1,sparsemat%nspin
              ishift=(ispin-1)*sparsemat%nfvctr**2
-             !$omp parallel default(none) private(jj,irow,jcol) &
+             !$omp parallel default(none) private(jj,irowcol) &
              !$omp shared(sparsemat,inm,outm,ishift,ispin)
              !$omp do
              do jj=1,sparsemat%nvctr
-                irow = sparsemat%orb_from_index(1,jj)
-                jcol = sparsemat%orb_from_index(2,jj)
-                outm(jj+ishift)=inm(irow,jcol,ispin)
+                !irow = sparsemat%orb_from_index(1,jj)
+                !jcol = sparsemat%orb_from_index(2,jj)
+                irowcol = orb_from_index(sparsemat, jj)
+                outm(jj+ishift)=inm(irowcol(1),irowcol(2),ispin)
              end do
              !$omp end do
              !$omp end parallel
@@ -132,6 +135,7 @@ module sparsematrix
       integer :: ii, irow, jcol, iii, ierr, ishift, ispin
       real(kind=8),dimension(:),pointer :: inm
       real(kind=8),dimension(:,:,:),pointer :: outm
+      integer,dimension(2) :: irowcol
 
       !!if (present(outmat)) then
       !!    if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
@@ -160,9 +164,10 @@ module sparsematrix
              ishift=(ispin-1)*sparsemat%nvctr
              !$omp do
              do ii=1,sparsemat%nvctr
-                irow = sparsemat%orb_from_index(1,ii)
-                jcol = sparsemat%orb_from_index(2,ii)
-                outm(irow,jcol,ispin)=inm(ii+ishift)
+                !irow = sparsemat%orb_from_index(1,ii)
+                !jcol = sparsemat%orb_from_index(2,ii)
+                irowcol = orb_from_index(sparsemat, ii)
+                outm(irowcol(1),irowcol(2),ispin)=inm(ii+ishift)
              end do
              !$omp end do
              !$omp end parallel
@@ -643,6 +648,40 @@ module sparsematrix
        
    end subroutine sparsemm
 
+
+   function orb_from_index(smat, ival)
+     use sparsematrix_base, only: sparse_matrix
+     implicit none
+     ! Calling arguments
+     type(sparse_matrix),intent(in) :: smat
+     integer,intent(in) :: ival
+     integer,dimension(2) :: orb_from_index
+
+     if (smat%store_index) then
+         orb_from_index(:) = smat%orb_from_index(:,ival)
+     else
+         orb_from_index(:) = orb_from_index_fn(smat, ival)
+     end if
+
+     contains
+
+       function orb_from_index_fn(smat, ival)
+         implicit none
+         ! Calling arguments
+         type(sparse_matrix),intent(in) :: smat
+         integer,intent(in) :: ival
+         integer,dimension(2) :: orb_from_index_fn
+         ! Local variables
+         integer :: ind_glob
+
+         ind_glob = smat%keyv(ival)
+
+         orb_from_index_fn(2) = (ind_glob-1)/smat%nfvctr + 1
+         orb_from_index_fn(1) = ind_glob - (orb_from_index_fn(2)-1)*smat%nfvctr
+
+       end function orb_from_index_fn
+
+   end function orb_from_index
 
 
 end module sparsematrix

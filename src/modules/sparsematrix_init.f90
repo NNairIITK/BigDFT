@@ -142,6 +142,8 @@ contains
     end function matrixindex_in_compressed
 
 
+
+
     subroutine check_kernel_cutoff(iproc, orbs, atoms, lzd)
       use module_types
       use yaml_output
@@ -503,7 +505,7 @@ contains
           call yaml_map('sparsity in %',1.d2*dble(norbu**2-sparsemat%nvctr)/dble(norbu**2),fmt='(f5.2)')
       end if
     
-      call allocate_sparse_matrix_keys(sparsemat)
+      call allocate_sparse_matrix_keys(store_index, sparsemat)
     
 
 
@@ -550,23 +552,25 @@ contains
              end do
           end do
           !$omp end parallel do
+
+          ! Initialize sparsemat%orb_from_index
+          ind = 0
+          do iseg = 1, sparsemat%nseg
+             do segn = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
+                ind=ind+1
+                iorb = (segn - 1) / sparsemat%nfvctr + 1
+                jorb = segn - (iorb-1)*sparsemat%nfvctr
+                sparsemat%orb_from_index(1,ind) = jorb
+                sparsemat%orb_from_index(2,ind) = iorb
+             end do
+          end do
     
       else
           ! Otherwise alwyas calculate them on-the-fly
           sparsemat%store_index=.false.
       end if
     
-      ind = 0
-      do iseg = 1, sparsemat%nseg
-         do segn = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
-            ind=ind+1
-            iorb = (segn - 1) / sparsemat%nfvctr + 1
-            jorb = segn - (iorb-1)*sparsemat%nfvctr
-            sparsemat%orb_from_index(1,ind) = jorb
-            sparsemat%orb_from_index(2,ind) = iorb
-         end do
-      end do
-    
+
       ! parallelization of matrices, following same idea as norb/norbp/isorb
     
       !most equal distribution, but want corresponding to norbp for second column

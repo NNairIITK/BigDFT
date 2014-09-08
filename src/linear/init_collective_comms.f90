@@ -414,6 +414,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix
+  use sparsematrix, only : orb_from_index
   implicit none
   
   ! Calling arguments
@@ -442,6 +443,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   integer, allocatable, dimension(:) :: numops
   logical :: ifnd, jfnd
   integer :: iorb, jorb, imat
+  integer,dimension(2) :: irowcol
 
   call timing(iproc,'ovrlptransComp','ON') !lr408t
 
@@ -465,8 +467,9 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
       do ispin=1,smat%nspin
           do imat=1,smat%nvctr
             !call get_orbs(smat,i,iorb,jorb) !lookup on work array of size smat%nvctr 
-            iorb=smat%orb_from_index(2,imat)
-            jorb=smat%orb_from_index(1,imat)
+            !iorb=smat%orb_from_index(2,imat)
+            !jorb=smat%orb_from_index(1,imat)
+            irowcol = orb_from_index(smat, imat)
             ovrlp%matrix_compr(imat)=0.0_wp
       
             do ipt=1,collcom%nptsp_c
@@ -477,12 +480,12 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
               do i=1,ii
                 iiorb=collcom%indexrecvorbital_c(i0+i)
                 iiorb=mod(iiorb-1,smat%nfvctr)+1
-                if (iiorb == iorb) then        
+                if (iiorb == irowcol(1)) then        
                    ifnd=.true.
                    i0i=i0+i
                    !i0i=collcom%iextract_c(i0+i)
                 end if 
-                if (iiorb == jorb) then
+                if (iiorb == irowcol(2)) then
                     jfnd=.true.
                     i0j=i0+i
                     !i0j=collcom%iextract_c(i0+i)
@@ -501,12 +504,12 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
               do i=1,ii
                 iiorb=collcom%indexrecvorbital_f(i0+i)
                 iiorb=mod(iiorb-1,smat%nfvctr)+1
-                if (iiorb == iorb) then        
+                if (iiorb == irowcol(1)) then        
                    ifnd=.true.
                    i0i=i0+i
                    !i0i=collcom%iextract_f(i0+i)
                 end if 
-                if (iiorb == jorb) then
+                if (iiorb == irowcol(2)) then
                     jfnd=.true.
                     i0j=i0+i
                     !i0j=collcom%iextract_f(i0+i)

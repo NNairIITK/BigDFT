@@ -1827,6 +1827,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   use module_interfaces, except_this_one => reorthonormalize_coeff
   use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
        allocate_matrices, deallocate_matrices
+  use sparsematrix, only: orb_from_index
   use yaml_output, only: yaml_newline, yaml_map
   implicit none
 
@@ -1847,6 +1848,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   real(kind=8),dimension(:,:),pointer :: ovrlp_matrix, inv_ovrlp_matrix
   character(len=*),parameter:: subname='reorthonormalize_coeff'
   type(matrices) :: KS_ovrlp_, inv_ovrlp_
+  integer,dimension(2) :: irowcol
   !integer :: iorb, jorb !DEBUG
   real(kind=8) :: tt, max_error, mean_error!, tt2, tt3, ddot   !DEBUG
   !logical :: dense
@@ -1955,25 +1957,26 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
          indc=0
          do ind = 1, basis_overlap%nvctr
-            korb = basis_overlap%orb_from_index(1,ind)
-            llorb = basis_overlap%orb_from_index(2,ind)
-            if (korb<llorb) cycle ! so still only doing half
+            !korb = basis_overlap%orb_from_index(1,ind)
+            !llorb = basis_overlap%orb_from_index(2,ind)
+            irowcol = orb_from_index(basis_overlap, ind)
+            if (irowcol(1)<irowcol(2)) cycle ! so still only doing half
             indc = indc + 1
             if (indc < ind_start .or. indc > ind_end) cycle
 
             do iorb=1,norb
-                 if (llorb==korb) then
-                    tt=basis_overlap_mat%matrix_compr(ind)*coeff(korb,iorb)
+                 if (irowcol(2)==irowcol(1)) then
+                    tt=basis_overlap_mat%matrix_compr(ind)*coeff(irowcol(1),iorb)
                     do jorb=iorb,norb
                         !SM: need to fix the spin here
                         KS_ovrlp_%matrix(jorb,iorb,1)=KS_ovrlp_%matrix(jorb,iorb,1) &
-                             +coeff(llorb,jorb)*tt
+                             +coeff(irowcol(2),jorb)*tt
                     end do
                  else
                     do jorb=iorb,norb
                         !SM: need to fix the spin here
                         KS_ovrlp_%matrix(jorb,iorb,1)=KS_ovrlp_%matrix(jorb,iorb,1) &
-                             +(coeff(llorb,iorb)*coeff(korb,jorb)+coeff(llorb,jorb)*coeff(korb,iorb))&
+                             +(coeff(irowcol(2),iorb)*coeff(irowcol(1),jorb)+coeff(irowcol(2),jorb)*coeff(irowcol(1),iorb))&
                              *basis_overlap_mat%matrix_compr(ind)
                     end do
                  end if
