@@ -101,11 +101,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   
   real(kind=8),dimension(:,:),allocatable :: locreg_centers
 
-  !Variables for WVL+PAW
-  integer:: iatyp
-  type(gaussian_basis),dimension(max(atoms%astruct%ntypes,0))::proj_G
-  type(rholoc_objects)::rholoc_tmp
-
   ! testing
   real(kind=8),dimension(:,:),pointer :: locregcenters
   integer :: ilr, nlr, ioffset, linear_iscf
@@ -419,11 +414,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
        energs%eion,fion,in%dispersion,energs%edisp,fdisp,ewaldstr,&
        n1,n2,n3,denspot%V_ext,denspot%pkernel,denspot%psoffset)
   !calculate effective ionic potential, including counter ions if any.
-  call nullify_rholoc_objects(rholoc_tmp)
   call createEffectiveIonicPotential(iproc,nproc,(iproc == 0),in,atoms,rxyz,shift,KSwfn%Lzd%Glr,&
        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
-       denspot%dpbox,denspot%pkernel,denspot%V_ext,in%elecfield,denspot%psoffset,&
-       rholoc_tmp)
+       denspot%dpbox,denspot%pkernel,denspot%V_ext,in%elecfield,denspot%psoffset)
   if (denspot%c_obj /= 0) then
      call denspot_emit_v_ext(denspot, iproc, nproc)
   end if
@@ -519,7 +512,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   skip_if_linear: if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
                      .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      call kswfn_optimization_loop(iproc, nproc, optLoop, &
-     & in%alphamix, in%idsx, inputpsi, KSwfn, denspot, nlpsp, energs, atoms, rxyz, GPU, xcstr, &
+     & in%alphamix, in%idsx, inputpsi, KSwfn, denspot, nlpsp, energs, atoms, GPU, xcstr, &
      & in)
      infocode = optLoop%infocode
 
@@ -666,7 +659,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
 
      !infocode = 0
   end if skip_if_linear
-
 
   ! allocate KSwfn%psi here instead for case of linear?!
   !if(inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR .or. &
@@ -831,6 +823,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
   call f_free_ptr(fion)
   call f_free_ptr(fdisp)
 
+  call deallocate_paw_objects(KSwfn%paw)
+
   !if (nvirt > 0 .and. in%inputPsiId == 0) then
   if (DoDavidson) then
 
@@ -838,11 +832,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      if (associated(in%kptv) .and. in%nkptv > 0) then
         band_structure_eval = f_malloc((/ KSwfn%orbs%norbu+KSwfn%orbs%norbd+in%nspin*norbv, in%nkptv /),id='band_structure_eval')
      end if
-
-     !proj_G is dummy here, it is only used for PAW
-     do iatyp=1,atoms%astruct%ntypes
-        call nullify_gaussian_basis(proj_G(iatyp))
-     end do
 
      !calculate Davidson procedure for all the groups of k-points which are chosen
      ikpt=1
@@ -879,7 +868,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
            call timing(iproc,'CrtProjectors ','ON')
            call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,VTwfn%orbs,&
                 radii_cf,in%frmult,in%frmult,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-                .false.,nlpsp,proj_G) 
+                .false.,nlpsp) 
            call timing(iproc,'CrtProjectors ','OF') 
            if (iproc == 0) call print_nlpsp(nlpsp)
 
@@ -1333,7 +1322,7 @@ END SUBROUTINE cluster
 
 !> Kohn-Sham wavefunction optimization loop
 subroutine kswfn_optimization_loop(iproc, nproc, opt, &
-     & alphamix, idsx, inputpsi, KSwfn, denspot, nlpsp, energs, atoms, rxyz, GPU, xcstr, &
+     & alphamix, idsx, inputpsi, KSwfn, denspot, nlpsp, energs, atoms, GPU, xcstr, &
      & in)
   use module_base
   use module_types
@@ -1351,7 +1340,6 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   type(atoms_data), intent(in) :: atoms
   type(GPU_pointers), intent(inout) :: GPU
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
-  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   type(input_variables), intent(in) :: in !<todo: Remove me
 
   character(len = *), parameter :: subname = "kswfn_optimization_loop"
@@ -1466,7 +1454,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 
            !Calculates the application of the Hamiltonian on the wavefunction
            call psitohpsi(iproc,nproc,atoms,scpot,denspot,opt%itrp,opt%iter,opt%iscf,alphamix,&
-                nlpsp,rxyz,linflag,in%unblock_comms,GPU,KSwfn,energs,opt%rpnrm,xcstr)
+                nlpsp,linflag,in%unblock_comms,GPU,KSwfn,energs,opt%rpnrm,xcstr)
 
            endlooprp= (opt%itrp > 1 .and. opt%rpnrm <= opt%rpnrm_cv) .or. opt%itrp == opt%itrpmax
 
@@ -1486,7 +1474,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !control the previous value of idsx_actual
            idsx_actual_before=KSwfn%diis%idsx
            iter_for_diis=iter_for_diis+1
-           call hpsitopsi(iproc,nproc,iter_for_diis,idsx,KSwfn,atoms,nlpsp)
+           call hpsitopsi(iproc,nproc,iter_for_diis,idsx,KSwfn,atoms,nlpsp,energs%eproj)
 
            if (inputpsi == INPUT_PSI_LCAO) then
               if ((opt%gnrm > 4.d0 .and. KSwfn%orbs%norbu /= KSwfn%orbs%norbd) .or. &
@@ -1571,7 +1559,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
 !!$        !EXPERIMENTAL
 !!$        !check if after convergence the integral equation associated with Helmholtz' Green function is satisfied
 !!$        !note: valid only for negative-energy eigenstates
-!!$        call integral_equation(iproc,nproc,atoms,KSwfn,denspot%dpbox%ngatherarr,denspot%rhov,GPU,proj,nlpspd,rxyz)
+!!$        call integral_equation(iproc,nproc,atoms,KSwfn,denspot%dpbox%ngatherarr,denspot%rhov,GPU,proj,nlpspd,rxyz,KSwfn%paw)
 
         !exit if the opt%infocode is correct
         if (opt%infocode /= 0) then

@@ -117,6 +117,9 @@ subroutine inputs_from_dict(in, atoms, dict)
   use input_old_text_format, only: dict_from_frag
   use module_atoms, only: atoms_data,atoms_data_null
   use yaml_strings, only: f_strcpy
+  use psp_projectors, only: PSPCODE_PAW
+  use m_ab6_symmetry, only: symmetry_get_n_sym
+  use interfaces_42_libpaw
   implicit none
   !Arguments
   type(input_variables), intent(out) :: in
@@ -129,6 +132,11 @@ subroutine inputs_from_dict(in, atoms, dict)
   character(len = max_field_length) :: writing_dir, output_dir, run_name, msg
 !  type(f_dict) :: dict
   type(dictionary), pointer :: dict_minimal, var
+
+  integer, parameter :: pawlcutd = 10, pawlmix = 10, pawnphi = 13, pawntheta = 12, pawxcdev = 1
+  integer, parameter :: xclevel = 1, usepotzero = 0
+  integer :: nsym
+  real(gp) :: gsqcut_shp
 
 !  dict => dict//key
 
@@ -250,7 +258,8 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   ! Add missing pseudo information.
   do ityp = 1, atoms%astruct%ntypes, 1
-     call psp_dict_fill_all(dict, atoms%astruct%atomnames(ityp), in%ixc)
+     call psp_dict_fill_all(dict, atoms%astruct%atomnames(ityp), in%ixc, &
+          & in%projrad, in%crmult, in%frmult)
   end do
 
   ! Update atoms with pseudo information.
@@ -268,6 +277,16 @@ subroutine inputs_from_dict(in, atoms, dict)
        & in%gen_norbu, in%gen_norbd, in%gen_occup, &
        & in%gen_nkpt, in%nspin, in%norbsempty, nelec_up, nelec_down, norb_max)
   in%gen_norb = in%gen_norbu + in%gen_norbd
+
+  ! Complement PAW initialisation.
+  if (any(atoms%npspcode == PSPCODE_PAW)) then
+     !gsqcut_shp = two*abs(dtset%diecut)*dtset%dilatmx**2/pi**2
+     gsqcut_shp = 2._gp * 2.2_gp / pi_param ** 2
+     call symmetry_get_n_sym(atoms%astruct%sym%symObj, nsym, ierr)
+     call pawinit(1, gsqcut_shp, pawlcutd, pawlmix, maxval(atoms%pawtab(:)%lmn_size) + 1, &
+          & pawnphi, nsym, pawntheta, atoms%pawang, atoms%pawrad, 0, &
+          & atoms%pawtab, pawxcdev, xclevel, usepotzero)
+  end if
   
   if (in%gen_nkpt > 1 .and. in%gaussian_help) then
      if (bigdft_mpi%iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')

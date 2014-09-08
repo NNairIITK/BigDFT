@@ -13,6 +13,9 @@
 module module_atoms
   use module_defs, only: dp,gp
   use ao_inguess, only: aoig_data
+  use m_pawrad, only: pawrad_type
+  use m_pawtab, only: pawtab_type
+  use m_pawang, only: pawang_type
   implicit none
   private
 
@@ -75,6 +78,9 @@ module module_atoms
      integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc !< Number of valence and core gaussians describing NLCC 
      real(gp), dimension(:,:), pointer :: nlccpar        !< Parameters for the non-linear core correction, if present
 !     real(gp), dimension(:,:), pointer :: ig_nlccpar    !< Parameters for the input NLCC
+     type(pawrad_type), dimension(:), pointer :: pawrad  !< PAW radial objects.
+     type(pawtab_type), dimension(:), pointer :: pawtab  !< PAW objects for something.
+     type(pawang_type) :: pawang                         !< PAW angular mesh definition.
 
      !! for abscalc with pawpatch
      integer, dimension(:), pointer ::  paw_NofL, paw_l, paw_nofchannels
@@ -145,6 +151,7 @@ module module_atoms
 
 
     pure subroutine nullify_atoms_data(at)
+      use m_pawang, only: pawang_nullify
       implicit none
       type(atoms_data), intent(out) :: at
       call nullify_atomic_structure(at%astruct)
@@ -177,6 +184,9 @@ module module_atoms
       nullify(at%paw_H_matrices)
       nullify(at%paw_S_matrices)
       nullify(at%paw_Sm1_matrices)
+      nullify(at%pawrad)
+      nullify(at%pawtab)
+      !call pawang_nullify(at%pawang) !not needed in fact
     end subroutine nullify_atoms_data
 
 
@@ -235,10 +245,14 @@ module module_atoms
     subroutine deallocate_atoms_data(atoms) 
       use module_base
       use dynamic_memory
+      use m_pawrad, only: pawrad_destroy
+      use m_pawtab, only: pawtab_destroy
+      use m_pawang, only: pawang_destroy
       implicit none
       type(atoms_data), intent(inout) :: atoms
       !local variables
       character(len=*), parameter :: subname='dellocate_atoms_data' !remove
+      integer :: ityp
 
       ! Deallocate atomic structure
       call deallocate_atomic_structure(atoms%astruct) 
@@ -295,6 +309,20 @@ module module_atoms
          call f_free_ptr(atoms%paw_Sm1_matrices)
       end if
 
+      ! Free PAW data.
+      if (associated(atoms%pawrad)) then
+         do ityp = 1, size(atoms%pawrad)
+            call pawrad_destroy(atoms%pawrad(ityp))
+         end do
+         deallocate(atoms%pawrad)
+      end if
+      if (associated(atoms%pawtab)) then
+         do ityp = 1, size(atoms%pawtab)
+            call pawtab_destroy(atoms%pawtab(ityp))
+         end do
+         deallocate(atoms%pawtab)
+      end if
+      call pawang_destroy(atoms%pawang)
     END SUBROUTINE deallocate_atoms_data
 
 

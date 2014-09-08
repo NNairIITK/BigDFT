@@ -110,8 +110,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
 
   !write reference in the array
   call vcopy(3*atoms%astruct%nat,rst%rxyz_new(1,1),1,rxyz_ref(1,1),1)
-  call read_radii_variables(atoms, radii_cf, &
-       & inputs%crmult, inputs%frmult, inputs%projrad)
+  radii_cf = atoms%radii_cf
 
   do iat=1,atoms%astruct%nat
 
@@ -802,7 +801,6 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
      orbs,nlpsp,wfd,psi,fsep,refill,strten)
   use module_base
   use module_types
-  use gaussians, only: gaussian_basis, nullify_gaussian_basis
   use psp_projectors, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
        PSPCODE_PAW
   implicit none
@@ -830,16 +828,10 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
   real(gp), dimension(6) :: sab
-  type(gaussian_basis),dimension(at%astruct%ntypes)::proj_G
 
   call f_routine(id=subname)
   call to_zero(6,strten(1)) 
   
-  !nullify PAW objects
-  do iatyp=1,at%astruct%ntypes
-    call nullify_gaussian_basis(proj_G(iatyp))
-  end do
-
   !quick return if no orbitals on this processor
   if (orbs%norbp == 0) return
      
@@ -919,13 +911,14 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
               ityp=at%astruct%iatype(iat)
               !calculate projectors
               istart_c=1
-              call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
-                   lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpsp%pspd(iat)%plr,&
-                   nlpsp%proj,nwarnings)!,proj_G)
+              call atom_projector(nlpsp, ityp, iat, at%astruct%atomnames(ityp), &
+                   & at%astruct%geocode, idir, lr, hx, hy, hz, &
+                   & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), &
+                   & istart_c, iproj, nwarnings)
               !!do i_all=1,nlpspd%nprojel
               !!    write(850+iat,*) i_all, proj(i_all)
               !!end do
-              !print '(a,i6,i6,1pe14.6)','iat,idir,sum(proj)',iat,idir,sum(proj)
+              !print '(a,i6,i6,1pe14.6)','iat,idir,sum(proj)',iat,idir,sum(nlpsp%proj)
  
               !calculate the contribution for each orbital
               !here the nspinor contribution should be adjusted
@@ -4358,9 +4351,10 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                ityp=at%astruct%iatype(iat)
                   !calculate projectors
                   istart_c=1
-                  call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
-                       lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpsp%pspd(iat)%plr,&
-                       nlpsp%proj,nwarnings)
+                  call atom_projector(nlpsp, ityp, iat, at%astruct%atomnames(ityp), &
+                       & at%astruct%geocode, idir, lr, hx, hy, hz, &
+                       & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), &
+                       & istart_c, iproj, nwarnings)
                    !!do i_all=1,nlpspd%nprojel
                    !!    write(800+iat,*) i_all, proj(i_all)
                    !!end do

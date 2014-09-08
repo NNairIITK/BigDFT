@@ -29,7 +29,8 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   !local variables
   character(len=*), parameter :: subname='orthogonalize'
   !integer :: i,idx
-  integer :: ispin,nspin,nspinor,usepaw=0
+  integer :: ispin,nspin,nspinor
+  logical :: usepaw=.false.
   integer, dimension(:,:), allocatable :: ndim_ovrlp
   real(wp), dimension(:), allocatable :: ovrlp
   integer,dimension(:),allocatable:: norbArr
@@ -71,7 +72,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
 
      ! Make a loop over npsin; calculate the overlap matrix (for up/down, resp.) and orthogonalize (again for up/down, resp.).
      do ispin=1,nspin
-        if(usepaw==1) then
+        if(usepaw) then
            call getOverlap_paw(iproc,nproc,nspin,norbArr(ispin),orbs,comms,&
                 psi(1),paw%spsi(1),ndim_ovrlp,ovrlp,norbArr,1,ispin,category)
 
@@ -121,7 +122,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
      call timing(iproc, trim(category)//'_comput', 'ON')
 
      ! Make a hybrid Gram-Schmidt/Cholesky orthonormalization.
-     if(usepaw==1) then
+     if(usepaw) then
         call gsChol(iproc,nproc,psi(1),orthpar,nspinor,orbs,nspin,ndim_ovrlp,norbArr,comms,paw)
      else
         call gsChol(iproc,nproc,psi(1),orthpar,nspinor,orbs,nspin,ndim_ovrlp,norbArr,comms)
@@ -138,7 +139,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
 
      ! Make a loop over npsin; calculate the overlap matrix (for up/down,resp.) and orthogonalize (again for up/down,resp.).
      do ispin=1,nspin
-        if(usepaw==1) then
+        if(usepaw) then
            call getOverlap_paw(iproc,nproc,nspin,norbArr(ispin),orbs,comms,&
                 psi(1),paw%spsi(1),ndim_ovrlp,ovrlp,norbArr,1,ispin,category)
            call loewdin(iproc,norbArr(ispin),1,ispin,orbs,comms,&
@@ -1789,7 +1790,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
   real(wp),dimension(:), allocatable :: ovrlp
   integer :: iblock, jblock, ist, jst, iter, iter2, gcd, blocksize, blocksizeSmall
   integer :: getBlocksize, ispin
-  integer :: usepaw=0
+  logical :: usepaw=.false.
   
   if(present(paw)) usepaw=paw%usepaw  
 
@@ -1815,7 +1816,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
         do jblock=1,iblock-1
            ! jst is the starting vector of the bunch to which the current bunch has to be orthogonalized.
            jst=blocksize*(jblock-1)+1
-           if(usepaw==1) then
+           if(usepaw) then
               call getOverlapDifferentPsi_paw(iproc, nproc, nspin, blocksize,orbs, &
                    comms, psi(1),paw%spsi(1), ndim_ovrlp, ovrlp, norbArr, ist, jst, ispin, category)
               call gramschmidt(iproc, blocksize, psi(1), ndim_ovrlp, ovrlp, &
@@ -1829,7 +1830,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
         end do
     
         ! Orthonormalize the current bunch of vectors.
-        if(usepaw==1) then
+        if(usepaw) then
            call getOverlap_paw(iproc, nproc, nspin, blocksize, orbs, comms, psi(1), &
                 paw%spsi(1),ndim_ovrlp, ovrlp, norbArr, ist, ispin, category)
            call cholesky(iproc, nspin,blocksize, psi(1), orbs, &
@@ -1869,7 +1870,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
             do jblock=1,(blocksize*iter)/blocksizeSmall+iblock-1
                 ! jst is the starting vector of the bunch to which the current bunch has to be orthogonalized.
                 jst=blocksizeSmall*(jblock-1)+1
-                if(usepaw==1) then
+                if(usepaw) then
                    call getOverlapDifferentPsi_paw(iproc, nproc, nspin, blocksizeSmall, &
                         orbs, comms, psi(1), paw%spsi(1),ndim_ovrlp, ovrlp, norbArr, ist, jst, ispin, category)
                    call gramschmidt(iproc, blocksizeSmall, psi(1), ndim_ovrlp, &
@@ -1883,7 +1884,7 @@ subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,no
 
             end do
             ! Orthonormalize the current bunch of vectors.
-            if(usepaw==1) then
+            if(usepaw) then
                call getOverlap_paw(iproc, nproc, nspin, blocksizeSmall, orbs, comms,&
                     psi(1), paw%spsi(1),ndim_ovrlp, ovrlp, norbArr, ist, ispin, category)
                call cholesky(iproc, nspin, blocksizeSmall, psi(1), &
@@ -1943,7 +1944,8 @@ real(wp),dimension(ndim_ovrlp(nspin,orbs%nkpts)):: ovrlp
 integer,dimension(nspin):: norbTot
 
 ! Local arguments
-integer:: nvctrp, ncomp, ikptp, ikpt, ispin, norb, norbs, istThis, istOther,usepaw=0
+integer:: nvctrp, ncomp, ikptp, ikpt, ispin, norb, norbs, istThis, istOther
+logical :: usepaw=.false.
 !real(kind=8),allocatable::raux(:)
 real(kind=8),dimension(:),allocatable:: A1D
 character(len=*),parameter:: subname='gramschmidt'
@@ -1994,7 +1996,7 @@ do ikptp=1,orbs%nkptsp
                 call daxpy(nvctrp*norb*nspinor,1.d0,A1D(1),1,psit(istThis),1)
             end if
 
-           if(paw%usepaw==1) then
+           if(paw%usepaw) then
            !Do the same for SPSI and cprj:
            !Pending: This is not yet coded
               stop
@@ -2092,7 +2094,7 @@ character(len=*), parameter :: subname='cholesky'
 real(kind=8), dimension(:,:), allocatable :: raux
 integer :: ist, info, ispin, ikptp, ikpt, ncomp, norbs, norb,nspinor
 integer :: iat
-integer :: usepaw=0
+logical :: usepaw=.false.
 
 if(present(paw))usepaw=paw%usepaw
  
@@ -2139,20 +2141,20 @@ do ikptp=1,orbs%nkptsp
             if(nspinor==1) then
                 call dtrmm('r', 'l', 't', 'n', nvctrp, norb, 1.d0, &
                      ovrlp(ndim_ovrlp(ispin,ikpt-1)+1,1), norb, psi(ist), nvctrp)
-                if(usepaw==1) then
+                if(usepaw) then
                    call dtrmm('r', 'l', 't', 'n', nvctrp, norb, 1.d0, &
                         ovrlp(ndim_ovrlp(ispin,ikpt-1)+1,1), norb, paw%spsi(ist), nvctrp)
                 end if
             else
                 call ztrmm('r', 'l', 'c', 'n', ncomp*nvctrp, norb, (1.d0,0.d0),&
                      ovrlp(ndim_ovrlp(ispin,ikpt-1)+1,1), norb, psi(ist), ncomp*nvctrp)
-                if(usepaw==1) then
+                if(usepaw) then
                    call ztrmm('r', 'l', 'c', 'n', ncomp*nvctrp, norb, (1.d0,0.d0),&
                         ovrlp(ndim_ovrlp(ispin,ikpt-1)+1,1), norb, paw%spsi(ist), ncomp*nvctrp)
                 end if
             end if
 
-            if(usepaw==1) then
+            if(usepaw) then
               !Pending: check that this works in parallel, and with nspinor=2
               !update cprj
               raux = f_malloc((/ 2*paw%lmnmax, norb*nspinor /),id='raux')
@@ -2222,7 +2224,8 @@ integer,dimension(nspin,0:orbs%nkpts):: ndim_ovrlp
 real(kind=8),dimension(ndim_ovrlp(nspin,orbs%nkpts)):: ovrlp
 integer,dimension(nspin):: norbTot
 ! Local variables
-integer:: jorb, lorb, info, nvctrp, nspinor,ispin, ist, ikptp, ikpt, ncomp, norbs, norb, lwork,usepaw=0
+integer:: jorb, lorb, info, nvctrp, nspinor,ispin, ist, ikptp, ikpt, ncomp, norbs, norb, lwork
+logical :: usepaw=.false.
 integer:: ii,iat,jj,shift,ispinor,iorb,ilmn
 real(kind=8),allocatable::raux(:,:,:,:)
 real(kind=8),dimension(:),allocatable:: evall, psitt
@@ -2307,7 +2310,7 @@ do ikptp=1,orbs%nkptsp
             call vcopy(nvctrp*norb*nspinor, psitt(1), 1, psit(ist), 1)
 
             ! For PAW: upgrade also spsi and cprj
-            if(usepaw==1) then
+            if(usepaw) then
 
                if(nspinor==1) then
                    call dgemm('n', 'n', nvctrp, norb, norb, 1.d0, paw%spsi(ist), &

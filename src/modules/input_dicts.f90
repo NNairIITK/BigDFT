@@ -223,7 +223,7 @@ contains
   end subroutine user_dict_from_files
 
   !> Fill up the dict with all pseudopotential information
-  subroutine psp_dict_fill_all(dict, atomname, run_ixc)
+  subroutine psp_dict_fill_all(dict, atomname, run_ixc, projrad, crmult, frmult)
     use module_defs, only: gp, UNINITIALIZED, bigdft_mpi
     use ao_inguess, only: atomic_info
     use module_atoms, only : RADII_SOURCE, RADII_SOURCE_HARD_CODED, RADII_SOURCE_FILE
@@ -232,8 +232,10 @@ contains
     implicit none
     !Arguments
     type(dictionary), pointer :: dict          !< Input dictionary (inout)
-    character(len = *), intent(in) :: atomname !< Atome name
+    character(len = *), intent(in) :: atomname !< Atom name
     integer, intent(in) :: run_ixc             !< XC functional
+    real(gp), intent(in) :: projrad            !< projector radius
+    real(gp), intent(in) :: crmult, frmult     !< radius multipliers
     !Local variables
     integer :: ixc, ierr
     character(len=27) :: filename
@@ -241,21 +243,13 @@ contains
     integer :: nzatom, nelpsp, npspcode
     real(gp), dimension(0:4,0:6) :: psppar
     integer :: i
-    real(gp) :: ehomo,radfine,rad
+    real(gp) :: ehomo,radfine,rad,maxrad
     type(dictionary), pointer :: radii,dict_psp
     real(gp), dimension(3) :: radii_cf
     character(len = max_field_length) :: source_val
 
     filename = 'psppar.' // atomname
-    radii_cf = UNINITIALIZED(1._gp)
     dict_psp => dict // filename !inquire for the key?
-    !example with the .get. operator
-!    print *,'here',associated(radii)
-    nullify(radii)
-    radii = dict_psp .get. RADII_KEY
-    radii_cf(1) = radii .get. COARSE
-    radii_cf(2) = radii .get. FINE
-    radii_cf(3) = radii .get. COARSE_PSP
 
 !!$    if (has_key(dict_psp, RADII_KEY)) then
 !!$       radii => dict_psp // RADII_KEY
@@ -294,6 +288,21 @@ contains
 !!$       stop
     end if
 
+    radii_cf = UNINITIALIZED(1._gp)
+    !example with the .get. operator
+!    print *,'here',associated(radii)
+    nullify(radii)
+    radii = dict_psp .get. RADII_KEY
+    radii_cf(1) = radii .get. COARSE
+    radii_cf(2) = radii .get. FINE
+    radii_cf(3) = radii .get. COARSE_PSP
+    !if (has_key(dict // filename, "Radii of active regions (AU)")) then
+    !   radii => dict // filename // "Radii of active regions (AU)"
+    !   if (has_key(radii, "Coarse")) radii_cf(1) =  radii // "Coarse"
+    !   if (has_key(radii, "Fine")) radii_cf(2) =  radii // "Fine"
+    !   if (has_key(radii, "Coarse PSP")) radii_cf(3) =  radii // "Coarse PSP"
+    !end if
+
     write(source_val, "(A)") RADII_SOURCE(RADII_SOURCE_FILE)
     if (radii_cf(1) == UNINITIALIZED(1.0_gp)) then
        !see whether the atom is semicore or not
@@ -319,15 +328,28 @@ contains
        radii_cf(2)=radfine
        write(source_val, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
     end if
-    if (radii_cf(3) == UNINITIALIZED(1.0_gp)) then
-       radii_cf(3)=radii_cf(2)
-       write(source_val, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
+    if (radii_cf(3) == UNINITIALIZED(1.0_gp)) radii_cf(3)=crmult*radii_cf(1)/frmult
+    ! Correct radii_cf(3) for the projectors.
+    maxrad=0.e0_gp ! This line added by Alexey, 03.10.08, to be able to compile with -g -C
+    if (has_key( dict_psp, NLPSP_KEY)) then
+       do i=1, dict_len(dict_psp // NLPSP_KEY)
+          rad =  dict_psp  // NLPSP_KEY // (i - 1) // "Rloc"
+          if (rad /= 0._gp) then
+             maxrad=max(maxrad, rad)
+          end if
+       end do
+    end if
+    if (maxrad == 0.0_gp) then
+       radii_cf(3)=0.0_gp
+    else
+       radii_cf(3)=max(min(radii_cf(3),projrad*maxrad/frmult),radii_cf(2))
     end if
     radii => dict_psp // RADII_KEY
     call set(radii // COARSE, radii_cf(1))
     call set(radii // FINE, radii_cf(2))
     call set(radii // COARSE_PSP, radii_cf(3))
     call set(radii // SOURCE_KEY, source_val)
+    
   end subroutine psp_dict_fill_all
 
   
@@ -337,16 +359,20 @@ contains
     use module_types, only: atoms_data
     use module_atoms, only: allocate_atoms_data
     use dictionaries
+    use m_pawrad, only: pawrad_type, pawrad_nullify
+    use m_pawtab, only: pawtab_type, pawtab_nullify
+    use psp_projectors, only: PSPCODE_PAW
     implicit none
     !Arguments
     type(dictionary), pointer :: dict        !< Input dictionary
     type(atoms_data), intent(inout) :: atoms !Atoms structure to fill up
     !Local variables
-    integer :: ityp
+    integer :: ityp, ityp2
     character(len = 27) :: filename
     real(gp), dimension(3) :: radii_cf
     logical :: pawpatch, l
     integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
+    character(len = max_field_length) :: fpaw
 
     if (.not. associated(atoms%nzatom)) then
        call allocate_atoms_data(atoms)
@@ -364,11 +390,29 @@ contains
        l = .false.
        if (has_key(dict // filename, "PAW patch")) l = dict // filename // "PAW patch"
        pawpatch = pawpatch .and. l
+
+       ! PAW case.
+       if (l .and. atoms%npspcode(ityp) == PSPCODE_PAW) then
+          ! Allocate the PAW arrays on the fly.
+          if (.not. associated(atoms%pawrad)) then
+             allocate(atoms%pawrad(atoms%astruct%ntypes))
+             allocate(atoms%pawtab(atoms%astruct%ntypes))
+             do ityp2 = 1, atoms%astruct%ntypes
+                call pawrad_nullify(atoms%pawrad(ityp2))
+                call pawtab_nullify(atoms%pawtab(ityp2))
+             end do
+          end if
+          ! Re-read the pseudo for PAW arrays.
+          fpaw = dict // filename // "Source"
+          !write(*,*) 'Reading of PAW atomic-data, under development', trim(fpaw)
+          call paw_from_file(atoms%pawrad(ityp), atoms%pawtab(ityp), trim(fpaw), &
+               & atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%ixcpsp(ityp))
+       end if
     end do
     call nlcc_set_from_dict(dict, atoms)
 
     !For PAW psp
-    if (pawpatch) then
+    if (pawpatch.and. any(atoms%npspcode /= PSPCODE_PAW)) then
        paw_tot_l=0
        paw_tot_q=0
        paw_tot_coefficients=0
@@ -690,7 +734,11 @@ contains
 
        exists = has_key(dict, key)
        if (exists) then
-          str = dict_value(dict // key)
+          if (has_key(dict // key, "Source")) then
+             str = dict_value(dict // key // "Source")
+          else
+             str = dict_value(dict // key)
+          end if
           if (trim(str) /= "" .and. trim(str) /= TYPE_LIST .and. trim(str) /= TYPE_DICT) then
              !Read the PSP file and merge to dict
              call psp_file_merge_to_dict(dict, key, trim(str))

@@ -795,7 +795,7 @@ end subroutine pawpsp_cg
 !!
 !! SOURCE
 
-subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
+subroutine pawpsp_read(core_mesh,funit,imainmesh,lmax,&
 & ncore,nmesh,pawrad,pawtab,pspversion,radmesh,save_core_msz,&
 & tncore,tnvale,tproj,tproj_mesh,usexcnhat_in,usexcnhat_out,vale_mesh,&
 & vlocopt,vlocr,vloc_mesh,znucl)
@@ -811,6 +811,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
  implicit none
 
 !Arguments ------------------------------------
+ integer,intent(in):: funit
  integer,intent(in):: lmax,usexcnhat_in
  integer,intent(out) :: imainmesh,pspversion,usexcnhat_out,vlocopt
  logical,intent(in) :: save_core_msz
@@ -849,27 +850,27 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 !Read lines 4 to 11 of the header
 
 !This is important for BigDFT in standalone mode
- call pawpsp_read_header_2(pspversion,pawtab%basis_size,pawtab%lmn_size)
+ call pawpsp_read_header_2(funit,pspversion,pawtab%basis_size,pawtab%lmn_size)
 
 !Have to maintain compatibility with Abinit v4.2.x
  if (pspversion==1) then
    ABI_ALLOCATE(pawtab%orbitals,(pawtab%basis_size))
-   read(tmp_unit,*) (pawtab%orbitals(ib), ib=1,pawtab%basis_size)
+   read(funit,*) (pawtab%orbitals(ib), ib=1,pawtab%basis_size)
    pawtab%l_size=2*maxval(pawtab%orbitals)+1
    nmesh=3
    ABI_DATATYPE_ALLOCATE(radmesh,(nmesh))
-   read(tmp_unit,'(a80)') pspline
+   read(funit,'(a80)') pspline
    radmesh(1)%lstep=zero
    read(unit=pspline,fmt=*,err=10,end=10) radmesh(1)%mesh_type,&
 &   radmesh(1)%rstep,radmesh(1)%lstep
-   10 read(tmp_unit,*) pawtab%rpaw
-   read(tmp_unit,*) radmesh(1)%mesh_size,radmesh(2)%mesh_size,&
+   10 read(funit,*) pawtab%rpaw
+   read(funit,*) radmesh(1)%mesh_size,radmesh(2)%mesh_size,&
 &   radmesh(3)%mesh_size
-   read(tmp_unit,'(a80)') pspline
+   read(funit,'(a80)') pspline
    pawtab%shape_lambda=-1;pawtab%shape_sigma=1.d99
    read(unit=pspline,fmt=*,err=11,end=11) pawtab%shape_type,&
 &   pawtab%shape_lambda,pawtab%shape_sigma
-   11 read(tmp_unit,*) creatorid
+   11 read(funit,*) creatorid
    if (pawtab%shape_type==3) pawtab%shape_type=-1
    radmesh(2)%mesh_type=radmesh(1)%mesh_type
    radmesh(3)%mesh_type=radmesh(1)%mesh_type
@@ -881,13 +882,13 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 
 !  Here psp file for Abinit 4.3+
    ABI_ALLOCATE(pawtab%orbitals,(pawtab%basis_size))
-   read(tmp_unit,*) (pawtab%orbitals(ib), ib=1,pawtab%basis_size)
+   read(funit,*) (pawtab%orbitals(ib), ib=1,pawtab%basis_size)
    pawtab%l_size=2*maxval(pawtab%orbitals)+1
-   read(tmp_unit,*) nmesh
+   read(funit,*) nmesh
    ABI_DATATYPE_ALLOCATE(radmesh,(nmesh))
    do imsh=1,nmesh
      rread2=zero
-     read(tmp_unit,'(a80)') pspline
+     read(funit,'(a80)') pspline
      read(unit=pspline,fmt=*,err=20,end=20) ii,iread1,iread2,rread1,rread2
      20 continue
      if (ii<=nmesh) then
@@ -902,8 +903,8 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
        MSG_ERROR(message)
      end if
    end do
-   read(tmp_unit,*) pawtab%rpaw
-   read(tmp_unit,'(a80)') pspline
+   read(funit,*) pawtab%rpaw
+   read(funit,'(a80)') pspline
    read(unit=pspline,fmt=*) pawtab%shape_type
    pawtab%shape_lambda=-1;pawtab%shape_sigma=1.d99
  end if
@@ -1088,9 +1089,9 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 !---------------------------------
 !Read wave-functions (phi)
  do ib=1,pawtab%basis_size
-   read (tmp_unit,*)
+   read (funit,*)
    if (pspversion==1) iread1=1
-   if (pspversion>1) read (tmp_unit,*) iread1
+   if (pspversion>1) read (funit,*) iread1
    if (ib==1) then
      call pawrad_destroy(pawrad)
      call pawrad_init(pawrad,mesh_size=radmesh(iread1)%mesh_size,mesh_type=radmesh(iread1)%mesh_type,&
@@ -1104,23 +1105,23 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 &     '  Action: check your pseudopotential file.'
      MSG_ERROR(message)
    end if
-   read (tmp_unit,*) (pawtab%phi(ir,ib),ir=1,pawrad%mesh_size)
+   read (funit,*) (pawtab%phi(ir,ib),ir=1,pawrad%mesh_size)
  end do
 
 !---------------------------------
 !Read pseudo wave-functions (tphi)
  ABI_ALLOCATE(pawtab%tphi,(pawrad%mesh_size,pawtab%basis_size))
  do ib=1,pawtab%basis_size
-   read (tmp_unit,*)
+   read (funit,*)
    if (pspversion==1) iread1=1
-   if (pspversion>1) read (tmp_unit,*) iread1
+   if (pspversion>1) read (funit,*) iread1
    if (iread1/=imainmesh) then
      write(message, '(a,a,a)' )&
 &     '  All Phi and tPhi must be given on the same radial mesh !',ch10,&
 &     '  Action: check your pseudopotential file.'
      MSG_ERROR(message)
    end if
-   read (tmp_unit,*) (pawtab%tphi(ir,ib),ir=1,pawrad%mesh_size)
+   read (funit,*) (pawtab%tphi(ir,ib),ir=1,pawrad%mesh_size)
  end do
  write(message,'(a,i1)') &
 & ' Radial grid used for partial waves is grid ',imainmesh
@@ -1130,9 +1131,9 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 !---------------------------------
 !Read projectors (tproj)
  do ib=1,pawtab%basis_size
-   read (tmp_unit,*)
+   read (funit,*)
    if (pspversion==1) iread1=2
-   if (pspversion>1) read (tmp_unit,*) iread1
+   if (pspversion>1) read (funit,*) iread1
    if (ib==1) then
      iprojmesh=iread1
      call pawrad_copy(radmesh(iprojmesh),tproj_mesh)
@@ -1144,7 +1145,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
      MSG_ERROR(message)
    end if
 !  read projectors from a mesh
-   read (tmp_unit,*) (tproj(ir,ib),ir=1,tproj_mesh%mesh_size)
+   read (funit,*) (tproj(ir,ib),ir=1,tproj_mesh%mesh_size)
  end do
  write(message,'(a,i2)') &
 & ' Radial grid used for projectors is grid ',iprojmesh
@@ -1155,16 +1156,16 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 !Read gaussian projectors for wavelets
 !  -- only if pawtab%has_wvl flag is on
 !  -- if not, we skip the lines
- read(tmp_unit,'(a80)') pspline
+ read(funit,'(a80)') pspline
  if(index(trim(pspline),'GAUSSIAN')/=0) read_gauss=.true.
  if (read_gauss) then
    if (pawtab%has_wvl>0) then
      call wvlpaw_allocate(pawtab%wvl)
      jj=0
      do ib=1,pawtab%basis_size
-       if(ib/=1) read(tmp_unit,*) pspline
+       if(ib/=1) read(funit,*) pspline
 !      read Gaussian coefficients
-       read(tmp_unit,*) pngau_, ptotgau_ !total number of gaussians
+       read(funit,*) pngau_, ptotgau_ !total number of gaussians
        if(ib==1) then
          pawtab%wvl%ptotgau=ptotgau_
          ABI_ALLOCATE(pawtab%wvl%pngau,(pawtab%basis_size))
@@ -1178,8 +1179,8 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
            MSG_ERROR(message)
          end if
        end if !ib==1
-       read(tmp_unit,*)(pawtab%wvl%parg(:,ii),ii=jj+1,jj+pngau_)
-       read(tmp_unit,*)(pawtab%wvl%pfac(:,ii),ii=jj+1,jj+pngau_)
+       read(funit,*)(pawtab%wvl%parg(:,ii),ii=jj+1,jj+pngau_)
+       read(funit,*)(pawtab%wvl%pfac(:,ii),ii=jj+1,jj+pngau_)
        pawtab%wvl%pngau(ib)=pngau_
        jj=jj+pngau_
      end do
@@ -1187,17 +1188,17 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    else
 !    If pawtab%has_wvl=0, we skip the lines
      do ib=1,pawtab%basis_size
-       if(ib/=1) read(tmp_unit,*) 
-       read(tmp_unit,*);read(tmp_unit,*);read(tmp_unit,*)
+       if(ib/=1) read(funit,*) 
+       read(funit,*);read(funit,*);read(funit,*)
      end do
    end if
  end if
 
 !---------------------------------
 !Read core density (coredens)
- if(read_gauss) read (tmp_unit,*) !if not read_gauss, this line was already read
+ if(read_gauss) read (funit,*) !if not read_gauss, this line was already read
  if (pspversion==1) iread1=1
- if (pspversion>1) read (tmp_unit,*) iread1
+ if (pspversion>1) read (funit,*) iread1
  icoremesh=iread1
  call pawrad_copy(radmesh(icoremesh),core_mesh)
  if ((radmesh(icoremesh)%mesh_type/=pawrad%mesh_type).or.&
@@ -1210,7 +1211,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    MSG_ERROR(message)
  end if
  ABI_ALLOCATE(ncore,(core_mesh%mesh_size))
- read (tmp_unit,*) (ncore(ir),ir=1,core_mesh%mesh_size)
+ read (funit,*) (ncore(ir),ir=1,core_mesh%mesh_size)
 
 !Construct and save VH[z_NC] if requested
  if (pawtab%has_vhnzc==1) then
@@ -1236,9 +1237,9 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    ABI_ALLOCATE(pawtab%tcoredens,(pawtab%core_mesh_size,1))
  end if
  pawtab%tcoredens=zero
- read (tmp_unit,*)
+ read (funit,*)
  if (pspversion==1) iread1=1
- if (pspversion>1) read (tmp_unit,*) iread1
+ if (pspversion>1) read (funit,*) iread1
  if (iread1/=icoremesh) then
    write(message, '(a,a,a,a,a,a,a,a)' )&
 &   '  Pseudized core density (tNcore) must be given',ch10,&
@@ -1247,7 +1248,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    MSG_ERROR(message)
  end if
  ABI_ALLOCATE(tncore,(core_mesh%mesh_size))
- read (tmp_unit,*) (tncore(ir),ir=1,core_mesh%mesh_size)
+ read (funit,*) (tncore(ir),ir=1,core_mesh%mesh_size)
  if (maxval(abs(tncore(:)))<tol6) then
    pawtab%usetcore=0
    !JB:I've added initialization just after allocation
@@ -1264,26 +1265,26 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 !---------------------------------
 !Read frozen part of Dij terms (dij0)
  ABI_ALLOCATE(pawtab%dij0,(pawtab%lmn2_size))
- read (tmp_unit,*)
- read (tmp_unit,*) (pawtab%dij0(ib),ib=1,pawtab%lmn2_size)
+ read (funit,*)
+ read (funit,*) (pawtab%dij0(ib),ib=1,pawtab%lmn2_size)
 
 !---------------------------------
 !Read initial guess of rhoij (rhoij0)
  ABI_ALLOCATE(pawtab%rhoij0,(pawtab%lmn2_size))
- read (tmp_unit,*)
- read (tmp_unit,*) (pawtab%rhoij0(ib),ib=1,pawtab%lmn2_size)
+ read (funit,*)
+ read (funit,*) (pawtab%rhoij0(ib),ib=1,pawtab%lmn2_size)
 
 !---------------------------------
 !Read local pseudopotential=Vh(tn_zc) or Vbare
- read (tmp_unit,*)
+ read (funit,*)
  if (pspversion==1) ivlocmesh=3
  vlocopt=1
  if (pspversion==2) then
-   read (tmp_unit,*) ivlocmesh
+   read (funit,*) ivlocmesh
  else if (pspversion>2) then
-!  read (tmp_unit,fmt=*,err=30,end=30) ivlocmesh,vlocopt
+!  read (funit,fmt=*,err=30,end=30) ivlocmesh,vlocopt
    message=blank
-   read (tmp_unit,fmt='(a)') message
+   read (funit,fmt='(a)') message
    read (message,fmt=*) ivlocmesh
    write(numb,'(i1)')ivlocmesh
    ii=index(message,numb)
@@ -1303,7 +1304,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
  usexcnhat_out=0;if (vlocopt==1) usexcnhat_out=1
  call pawrad_copy(radmesh(ivlocmesh),vloc_mesh)
  ABI_ALLOCATE(vlocr,(vloc_mesh%mesh_size))
- read (tmp_unit,*) (vlocr(ir),ir=1,vloc_mesh%mesh_size)
+ read (funit,*) (vlocr(ir),ir=1,vloc_mesh%mesh_size)
  write(message,'(a,i1)') &
 & ' Radial grid used for Vloc is grid ',ivlocmesh
  call wrtout(ab_out,message,'COLL')
@@ -1314,9 +1315,9 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
  if (pawtab%shape_type==-1) then
    ABI_ALLOCATE(pawtab%shapefunc,(pawrad%mesh_size,pawtab%l_size))
    do il=1,pawtab%l_size
-     read (tmp_unit,*)
+     read (funit,*)
      if (pspversion==1) iread1=1
-     if (pspversion>1) read (tmp_unit,*) iread1
+     if (pspversion>1) read (funit,*) iread1
      if (il==1) then
        call pawrad_copy(radmesh(iread1),shpf_mesh)
        ishpfmesh=iread1
@@ -1327,7 +1328,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 &       '  Action: check your pseudopotential file.'
        MSG_ERROR(message)
      end if
-     read (tmp_unit,*) (shpf(ir,il),ir=1,shpf_mesh%mesh_size)
+     read (funit,*) (shpf(ir,il),ir=1,shpf_mesh%mesh_size)
    end do
    write(message,'(a,i1)') &
 &   ' Radial grid used for shape functions is grid ',iread1
@@ -1362,12 +1363,12 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 !---------------------------------
 !Read pseudo valence density (if psp version >=4)
  if (pspversion>=4) then
-   read (tmp_unit,*)
-   read (tmp_unit,*) iread1
+   read (funit,*)
+   read (funit,*) iread1
    ivalemesh=iread1
    call pawrad_copy(radmesh(iread1),vale_mesh)
    ABI_ALLOCATE(tnvale,(vale_mesh%mesh_size))
-   read (tmp_unit,*) (tnvale(ir),ir=1,vale_mesh%mesh_size)
+   read (funit,*) (tnvale(ir),ir=1,vale_mesh%mesh_size)
    pawtab%has_tvale=1
    write(message,'(a,i1)') &
 &   ' Radial grid used for pseudo valence density is grid ',ivalemesh
@@ -3838,7 +3839,7 @@ subroutine pawpsp_7in(epsatm,ffspl,icoulomb,ixc,&
  nullify(tproj);nullify(vlocr)
  nullify(radmesh)
 
- call pawpsp_read(core_mesh,imainmesh,lmax,&
+ call pawpsp_read(core_mesh,tmp_unit,imainmesh,lmax,&
 &  ncore,nmesh,pawrad,pawtab,pspversion,radmesh,save_core_msz,&
 &  tncore,tnvale,tproj,tproj_mesh,usexcnhat_in,usexcnhat,vale_mesh,vlocopt,vlocr,&
 &  vloc_mesh,znucl)
@@ -4084,7 +4085,7 @@ end subroutine pawpsp_7in
 !! SOURCE
 
 
-subroutine pawpsp_read_header(lloc,lmax,mmax,pspcod,pspxc,r2well,zion,znucl)
+subroutine pawpsp_read_header(funit,lloc,lmax,mmax,pspcod,pspxc,r2well,zion,znucl)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -4097,6 +4098,7 @@ subroutine pawpsp_read_header(lloc,lmax,mmax,pspcod,pspxc,r2well,zion,znucl)
 implicit none
 !Arguments ------------------------------------
 !scalars
+ integer,intent(in):: funit
  integer,intent(out):: lloc,lmax,mmax,pspcod,pspxc
  real(dp),intent(out):: r2well,zion,znucl
 !Local variables-------------------------------
@@ -4106,19 +4108,19 @@ implicit none
 ! *************************************************************************
 
 !Read and write some description of file from first line (character data)
- read (tmp_unit,'(a)') title
+ read (funit,'(a)') title
  write(message, '(a,a)' ) '- ',trim(title)
  call wrtout(ab_out,message,'COLL')
  call wrtout(std_out,  message,'COLL')
 
 !Read and write more data describing psp parameters
- read (tmp_unit,*) znucl,zion,pspdat
+ read (funit,*) znucl,zion,pspdat
  write(message, '(a,f9.5,f10.5,2x,i8,t47,a)' ) &
 & '-',znucl,zion,pspdat,'znucl, zion, pspdat'
  call wrtout(ab_out,message,'COLL')
  call wrtout(std_out,  message,'COLL')
 
- read (tmp_unit,*) pspcod,pspxc,lmax,lloc,mmax,r2well
+ read (funit,*) pspcod,pspxc,lmax,lloc,mmax,r2well
  if(pspxc<0) then
    write(message, '(i5,i8,2i5,i10,f10.5,t47,a)' ) &
 &   pspcod,pspxc,lmax,lloc,mmax,r2well,&
@@ -4167,7 +4169,7 @@ end subroutine pawpsp_read_header
 !! SOURCE
 
 
-subroutine pawpsp_read_header_2(pspversion,basis_size,lmn_size)
+subroutine pawpsp_read_header_2(funit,pspversion,basis_size,lmn_size)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -4180,6 +4182,7 @@ implicit none
 
 !Arguments ------------------------------------
 !scalars
+ integer,intent(in):: funit
  integer,intent(out) :: pspversion,basis_size,lmn_size
 
 !Local variables-------------------------------
@@ -4191,7 +4194,7 @@ implicit none
 
 !Read psp version in line 4 of the header
  pspversion=1
- read (tmp_unit,'(a80)') pspline;pspline=adjustl(pspline)
+ read (funit,'(a80)') pspline;pspline=adjustl(pspline)
  if (pspline(1:3)=="paw".or.pspline(1:3)=="PAW") &
 & read(unit=pspline(4:80),fmt=*) pspversion
  if (pspversion<1.or.pspversion>5) then
@@ -4206,7 +4209,7 @@ implicit none
  else
 !  Here psp file for Abinit 4.3+
    read (unit=pspline(5:80),fmt=*) creatorid
-   read (tmp_unit,*) basis_size,lmn_size
+   read (funit,*) basis_size,lmn_size
  end if
 
 end subroutine pawpsp_read_header_2
@@ -4396,7 +4399,7 @@ implicit none
  integer,intent(out):: lloc,lmax,pspcod,pspxc
  real(dp),intent(out):: r2well,zion,znucl
 !Local variables-------------------------------
- integer :: ii,il
+ integer :: il
  character(len=100) :: xclibxc
  character(len=500) :: message
 !arrays
@@ -4913,7 +4916,7 @@ subroutine pawpsp_main( &
      open (unit=tmp_unit,file=filpsp,form='formatted',status='old')
      rewind (unit=tmp_unit)
 !    Read first 3 lines of psp file:
-     call pawpsp_read_header(lloc,lmax,mmax,pspcod,&
+     call pawpsp_read_header(tmp_unit,lloc,lmax,mmax,pspcod,&
 &     pspxc,r2well,zion,znucl)
 
    else if (usexml == 1) then

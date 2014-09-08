@@ -355,13 +355,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !! to apply paw projectors
    type(PAWproj_data_type) ::PAWD
 
-   !fow wvl+PAW
-   integer::iatyp
-   type(rholoc_objects)::rholoc_tmp
-   type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_tmp
-
    energs= energy_terms_null()
-
    if (in%potshortcut==0) then
       if(nproc>1) call MPI_Finalize(ierr)
       stop '   in%potshortcut==0 calculating spectra. Use rather box2Box option      '
@@ -479,14 +473,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
    call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,orbs,comms)  
 
-   !nullify dummy variables only used for PAW. This can be used also for pcProjectors
-   do iatyp=1,atoms%astruct%ntypes
-     call nullify_gaussian_basis(proj_tmp(iatyp))
-   end do
-
-
    call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,orbs,&
-        radii_cf,cpmult,fpmult,hx,hy,hz,.false.,nlpsp,proj_tmp)
+        radii_cf,cpmult,fpmult,hx,hy,hz,.false.,nlpsp)
    if (iproc == 0) call print_nlpsp(nlpsp)
 
    call check_linear_and_create_Lzd(iproc,nproc,in%linear,KSwfn%Lzd,atoms,orbs,in%nspin,rxyz)
@@ -596,8 +584,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         n1,n2,n3,pot_ion,pkernel,psoffset)
 
    call createIonicPotential(atoms%astruct%geocode,iproc,nproc, (iproc == 0), atoms,rxyz,hxh,hyh,hzh,&
-        in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,&
-        rholoc_tmp)
+        in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
 
 
    !Allocate Charge density, Potential in real space

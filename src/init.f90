@@ -221,11 +221,11 @@ END SUBROUTINE wfd_from_grids
 
 !> Determine localization region for all projectors, but do not yet fill the descriptor arrays
 subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
-         & radii_cf,cpmult,fpmult,hx,hy,hz,dry_run,nl,proj_G)
+         & radii_cf,cpmult,fpmult,hx,hy,hz,dry_run,nl)
   use module_base
   use psp_projectors
   use module_types
-  use gaussians, only: gaussian_basis
+  use gaussians, only: gaussian_basis, gaussian_basis_from_psp, gaussian_basis_from_paw
   implicit none
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
   type(locreg_descriptors),intent(in) :: lr
@@ -233,7 +233,6 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
-  type(gaussian_basis),dimension(at%astruct%ntypes),intent(in) :: proj_G
   type(DFT_PSP_projectors), intent(out) :: nl
   logical, intent(in) :: dry_run !< .true. to compute the size only and don't allocate
   !local variables
@@ -255,6 +254,20 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
      nl%pspd(iat)=nonlocal_psp_descriptors_null()
   end do
 
+  ! Convert the pseudo coefficients into gaussian projectors.
+  if (all(at%npspcode == PSPCODE_PAW)) then
+     call gaussian_basis_from_paw(at%astruct%nat, at%astruct%iatype, rxyz, &
+          & at%pawtab, at%astruct%ntypes, nl%proj_G)
+     do iat=1,at%astruct%nat
+        nl%pspd(iat)%gau_cut = at%pawtab(at%astruct%iatype(iat))%rpaw
+     end do
+     nl%normalized = .false.
+  else
+     call gaussian_basis_from_psp(at%astruct%nat, at%astruct%iatype, rxyz, &
+          & at%psppar, at%astruct%ntypes, nl%proj_G)
+     nl%normalized = .true.
+  end if
+
   ! define the region dimensions
   n1 = lr%d%n1
   n2 = lr%d%n2
@@ -264,7 +277,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   logrid=f_malloc((/0.to.n1,0.to.n2,0.to.n3/),id='logrid')
 
   call localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,&
-       rxyz,radii_cf,logrid,at,orbs,nl,proj_G)
+       rxyz,radii_cf,logrid,at,orbs,nl)
 
   if (dry_run) then
      call f_free(logrid)
@@ -967,7 +980,7 @@ END SUBROUTINE input_wf_disk
 subroutine input_wf_diag(iproc,nproc,at,denspot,&
      orbs,nvirt,comms,Lzd,energs,rxyz,&
      nlpsp,ixc,psi,hpsi,psit,G,&
-     nspin,GPU,input,onlywf,proj_G,paw)
+     nspin,GPU,input,onlywf)
   ! Input wavefunctions are found by a diagonalization in a minimal basis set
   ! Each processors write its initial wavefunctions into the wavefunction file
   ! The files are then read by readwave
@@ -999,8 +1012,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   type(gaussian_basis), intent(out) :: G !basis for davidson IG
   real(wp), dimension(:), pointer :: psi,hpsi,psit
-  type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G
-  type(paw_objects),optional,intent(inout)::paw
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
   logical :: switchGPUconv,switchOCLconv
@@ -1019,6 +1030,10 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   type(confpot_data), dimension(:), allocatable :: confdatarr
   type(local_zone_descriptors) :: Lzde
   type(GPU_pointers) :: GPUe
+
+  type(paw_objects) :: paw
+
+  paw%usepaw = .false. ! PAW is not used in input guess.
 !!$   integer :: idum=0
 !!$   real(kind=4) :: tt,builtin_rand
 !!$   real(wp), dimension(:), allocatable :: ovrlp
@@ -1147,10 +1162,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
      !allocate the wavefunction in the transposed way to avoid allocations/deallocations
      hpsi = f_malloc_ptr(max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp)),id='hpsi')
-
-     if(present(paw)) then
-        paw%spsi = f_malloc_ptr(max(1,max(orbs%npsidim_orbs,orbs%npsidim_comp)),id='paw%spsi')
-     end if
 
      !The following lines are copied from LDiagHam:
      nullify(psit)
@@ -1342,8 +1353,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   !update the locregs in the case of locreg for input guess
 
   !write(*,*) 'size(denspot%pot_work)', size(denspot%pot_work)
-  call FullHamiltonianApplication(iproc,nproc,at,orbse,rxyz,&
-       Lzde,nlpsp,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,psi,hpsi,&
+  call FullHamiltonianApplication(iproc,nproc,at,orbse,&
+       Lzde,nlpsp,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,psi,hpsi,paw,&
        energs,input%SIC,GPUe,denspot%xc,&
        pkernel=denspot%pkernelseq)
 !!$   if (orbse%npsidim_orbs > 0) call to_zero(orbse%npsidim_orbs,hpsi(1))
@@ -1557,6 +1568,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use gaussians, only: gaussian_basis, nullify_gaussian_basis
   use sparsematrix_base, only: sparse_matrix
   use communications, only: transpose_localized, untranspose_localized
+  use m_paw_ij, only: paw_ij_init
+  use psp_projectors, only: PSPCODE_PAW, PSPCODE_HGH, free_DFT_PSP_projectors
   implicit none
 
   integer, intent(in) :: iproc, nproc, inputpsi, input_wf_format
@@ -1588,25 +1601,16 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(gaussian_basis) :: Gvirt
   real(wp), allocatable, dimension(:) :: norm
   !wvl+PAW objects
-  integer :: iatyp
-  type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_G
-  type(paw_objects)::paw
+  type(DFT_PSP_projectors) :: nl
   logical :: overlap_calculated, perx,pery,perz, rho_negative
   real(gp) :: tx,ty,tz,displ,mindist
   real(gp), dimension(:), pointer :: in_frag_charge
-  integer :: infoCoeff, iorb, nstates_max, order_taylor
+  integer :: infoCoeff, iorb, nstates_max, order_taylor, npspcode
   real(kind=8) :: pnrm
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
 
   call f_routine(id='input_wf')
-
-  !nullify paw objects:
-  do iatyp=1,atoms%astruct%ntypes
-     call nullify_gaussian_basis(proj_G(iatyp))
-  end do
-  paw%usepaw=0 !Not using PAW
-  call nullify_paw_objects(paw)
 
  !determine the orthogonality parameters
   KSwfn%orthpar = in%orthpar
@@ -1700,18 +1704,37 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           KSwfn%psi,KSwfn%orbs)
 
   case(INPUT_PSI_LCAO)
+     ! PAW case, generate nlpsp on the fly with psppar data instead of paw data.
+     npspcode = atoms%npspcode(1)
+     if (any(atoms%npspcode == PSPCODE_PAW)) then
+        ! Cheating line here.
+        atoms%npspcode(1) = PSPCODE_HGH
+        call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,KSwfn%orbs,&
+             atoms%radii_cf,in%frmult,in%frmult,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
+             KSwfn%Lzd%hgrids(3),.false.,nl)
+        if (iproc == 0) call print_nlpsp(nl)
+     else
+        nl = nlpsp
+     end if
+
      if (iproc == 0) then
         !write(*,'(1x,a)')&
         !     &   '------------------------------------------------------- Input Wavefunctions Creation'
         call yaml_comment('Wavefunctions from PSP Atomic Orbitals Initialization',hfill='-')
         call yaml_mapping_open('Input Hamiltonian')
      end if
+     
      nspin=in%nspin
      !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
      call input_wf_diag(iproc,nproc, atoms,denspot,&
           KSwfn%orbs,norbv,KSwfn%comms,KSwfn%Lzd,energs,rxyz,&
-          nlpsp,in%ixc,KSwfn%psi,KSwfn%hpsi,KSwfn%psit,&
+          nl,in%ixc,KSwfn%psi,KSwfn%hpsi,KSwfn%psit,&
           Gvirt,nspin,GPU,in,.false.)
+
+     if (npspcode == PSPCODE_PAW) then
+        call free_DFT_PSP_projectors(nl)
+        atoms%npspcode(1) = npspcode
+     end if
 
   case(INPUT_PSI_MEMORY_WVL)
      !restart from previously calculated wavefunctions, in memory
@@ -2169,6 +2192,10 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         inputpsi == INPUT_PSI_MEMORY_LINEAR ).and. tmb%c_obj /= 0) then
       call kswfn_emit_psi(tmb, 0, 0, iproc, nproc)
    end if
+
+   ! Init PAW from input wavefunctions.
+   call paw_init(KSwfn%paw, atoms, KSwfn%orbs%nspinor, in%nspin, &
+        & max(1,max(KSwfn%orbs%npsidim_orbs, KSwfn%orbs%npsidim_comp)), KSwfn%orbs%norb)
 
    call f_release_routine()
 

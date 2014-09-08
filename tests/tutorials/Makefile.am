@@ -8,9 +8,10 @@ TESTDIRS = CH4 \
 	  H2O-bader \
 	  scalability \
 	  dev
+EXTRA_TESTDIRS =
 
 if USE_OCL
-  TESTDIRS +=
+  EXTRA_TESTDIRS += N2
 else
   TESTDIRS += N2
 endif

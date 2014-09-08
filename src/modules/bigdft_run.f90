@@ -90,7 +90,7 @@ module bigdft_run
     !> Allocate and nullify restart objects
     pure subroutine restart_objects_new(rst)
       use module_defs, only: UNINITIALIZED
-      use module_types, only: nullify_local_zone_descriptors,CUBIC_VERSION
+      use module_types, only: nullify_local_zone_descriptors,CUBIC_VERSION,nullify_paw_objects
       use locregs, only: nullify_locreg_descriptors
       implicit none
       !Arguments
@@ -108,6 +108,8 @@ module bigdft_run
       rst%KSwfn%c_obj = 0
       nullify(rst%KSwfn%psi)
       nullify(rst%KSwfn%orbs%eval)
+      call nullify_paw_objects(rst%KSwfn%paw)
+      call nullify_paw_objects(rst%tmb%paw)
 
       nullify(rst%KSwfn%gaucoeffs)
       nullify(rst%KSwfn%oldpsis)
@@ -316,9 +318,7 @@ module bigdft_run
          call vcopy(3 * atoms%astruct%nat, rxyz0, 1, runObj%atoms%astruct%rxyz(1,1), 1)
       end if
 
-      runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), id="runObj%radii_cf")
-      call read_radii_variables(runObj%atoms, runObj%radii_cf, &
-           & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
+      runObj%radii_cf = f_malloc_ptr(src=runObj%atoms%radii_cf, id="runObj%radii_cf")
     END SUBROUTINE run_objects_associate
 
 !!    subroutine global_output_merge_to_dict(dict, outs, astruct)
@@ -1030,9 +1030,7 @@ subroutine run_objects_parse(runObj)
   ! Generate radii
   call f_free_ptr(runObj%radii_cf)
 
-  runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), id="runObj%radii_cf")
-  call read_radii_variables(runObj%atoms, runObj%radii_cf, &
-       & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
+  runObj%radii_cf = f_malloc_ptr(src=runObj%atoms%radii_cf, id="runObj%radii_cf")
 
 END SUBROUTINE run_objects_parse
 

@@ -746,11 +746,10 @@ END SUBROUTINE apply_potential
 !!   to all distributed orbitals
 subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
      rxyz,hx,hy,hz,wfd,nlpsp,psi,hpsi,eproj_sum,&
-     proj_G,paw)
+     paw)
   use module_base
   use module_types
   use yaml_output
-  use gaussians, only:gaussian_basis
   use psp_projectors, only: PSPCODE_PAW
   implicit none
   integer, intent(in) :: iproc
@@ -764,7 +763,6 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
   real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(in) :: psi
   real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%nspinor*orbs%norbp), intent(inout) :: hpsi
   real(gp), intent(out) :: eproj_sum
-  type(gaussian_basis),dimension(at%astruct%ntypes),optional,intent(in)::proj_G
   type(paw_objects),optional,intent(inout)::paw
   !local variables
   integer :: iat,nwarnings,iproj,iorb
@@ -795,14 +793,11 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
      do iat=1,at%astruct%nat
         iatype=at%astruct%iatype(iat)
         istart_c=1
-        if(at%npspcode(iatype) == PSPCODE_PAW) then
-          call atom_projector_paw(ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
-               lr,hx,hy,hz,paw%rpaw(iatype),rxyz(1,iat),at,orbs,nlpsp%pspd(iat)%plr,nlpsp%proj,&
-               nwarnings,proj_G(iatype))
-        else
-          call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
-               lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpsp%pspd(iat)%plr,nlpsp%proj,nwarnings)
-        end if
+
+        call atom_projector(nlpsp, iatype, iat, at%astruct%atomnames(iatype), &
+             & at%astruct%geocode, idir, lr, hx, hy, hz, &
+             & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), &
+             & istart_c, iproj, nwarnings)
 
         !apply the projector to all the orbitals belonging to the processor
         ispsi=ispsi_k
@@ -810,9 +805,9 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
            istart_c=1
            if(at%npspcode(iatype) == PSPCODE_PAW) then
            !    PAW case:
-              call apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nlpsp%nprojel,&
-                   at,orbs,wfd,nlpsp%pspd(iat)%plr,nlpsp%proj,&
-                   psi(ispsi),hpsi(ispsi),eproj_sum,proj_G(iatype),paw)
+              call apply_atproj_iorb_paw(iat,iorb,istart_c,&
+                   at,orbs,wfd,nlpsp,&
+                   psi(ispsi),hpsi(ispsi),paw%spsi(ispsi),eproj_sum,paw)
            else
            !    HGH or GTH case:
               call apply_atproj_iorb_new(iat,iorb,istart_c,nlpsp%nprojel,&
@@ -1063,38 +1058,39 @@ END SUBROUTINE applyprojector
 !sij_opt=2 : obtain spsi
 !sij_opt=3 : obtain hpsi and spsi
 !
-subroutine applyprojector_paw(ncplx,istart_c,&
+subroutine applyprojector_paw(ncplx,istart_c,iat,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj,&
      psi,hpsi,spsi,eproj,proj_G,paw_ij,&
-     indlmn,lmnmax,cprj_out,sij_opt,sij)
+     lmn2_size,cprj_out,sij_opt,sij)
   use module_base
   use module_types
-  use gaussians, only:gaussian_basis
+  use gaussians, only:gaussian_basis_new, gaussian_basis_iter, gaussian_iter_start, gaussian_iter_next_shell
+  use m_paw_ij, only: paw_ij_type
+  use m_pawcprj, only: pawcprj_type
   implicit none
   integer,parameter::nspinor=1  !not yet implemented
   integer, intent(inout)::istart_c
-  integer, intent(in) :: ncplx,lmnmax,sij_opt
+  integer, intent(in) :: ncplx,lmn2_size,sij_opt,iat
   integer, intent(in) :: nvctr_c,nvctr_f,nseg_c,nseg_f,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
   integer, dimension(nseg_c+nseg_f), intent(in) :: keyv
   integer, dimension(2,nseg_c+nseg_f), intent(in) :: keyg
   integer, dimension(mbseg_c+mbseg_f), intent(in) :: keyv_p
   integer, dimension(2,mbseg_c+mbseg_f), intent(in) :: keyg_p
-  integer, dimension(6,lmnmax),intent(in)::indlmn
   real(wp), dimension(*), intent(in) :: proj
   real(wp), dimension(nvctr_c+7*nvctr_f,ncplx), intent(in) :: psi
-  type(gaussian_basis),intent(in)::proj_G
-  type(paw_ij_objects),intent(in)::paw_ij
+  type(gaussian_basis_new),intent(in)::proj_G
+  type(paw_ij_type),intent(in)::paw_ij
   !type(cprj_objects),dimension(1,nspinor),intent(out)::cprj_out
-  type(cprj_objects),intent(out)::cprj_out
+  type(pawcprj_type),intent(inout)::cprj_out
   real(gp), intent(out) :: eproj
   real(wp), dimension(nvctr_c+7*nvctr_f,ncplx), intent(inout) :: hpsi
   real(wp), dimension(nvctr_c+7*nvctr_f,ncplx), intent(inout) :: spsi
-  real(wp), dimension(lmnmax*(lmnmax+1)/2),intent(in)::sij
+  real(wp), dimension(lmn2_size),intent(in)::sij
   !local variables
   character(len=*),parameter::subname='applyprojector_paw'
-  integer :: i_shell,j_shell,ilmn,jlmn,klmn,j0lmn,ispinor
-  integer :: i_l,j_l,klmnc,i_m,j_m,iaux
+  integer :: ilmn,jlmn,klmn,j0lmn,ispinor
+  integer :: klmnc,i_m,j_m,iaux
   integer :: istart_j,icplx
   real(gp)::eproj_i
   real(gp)::ddot
@@ -1103,6 +1099,7 @@ subroutine applyprojector_paw(ncplx,istart_c,&
   !real(wp), dimension(:,:), allocatable :: cprj_i
   real(wp), dimension(:,:), allocatable :: cprj,dprj !scalar products with the projectors (always assumed to be complex and spinorial)
   integer :: proj_count
+  type(gaussian_basis_iter) :: iter, iter2, iter0
 
 ! change: keyv_p by nlpspd%keyv_p(jseg_c),&
 
@@ -1150,12 +1147,15 @@ subroutine applyprojector_paw(ncplx,istart_c,&
   !  deallocate(cprj_i)
   !else !use standart subroutine for projector application
 
-  istart_j=istart_c
+  call gaussian_iter_start(proj_G, iat, iter0)
+
 ! Get cprj:
   jlmn=0
-  do j_shell=1,proj_G%nshltot
-     j_l=proj_G%nam(j_shell)
-     do j_m=1,2*j_l-1
+  istart_j=istart_c
+  iter = iter0
+  do
+     if (.not. gaussian_iter_next_shell(proj_G, iter)) exit
+     do j_m=1,2*iter%l-1
         jlmn=jlmn+1
         !loop over all the components of the wavefunction
         do ispinor=1,nspinor,ncplx
@@ -1182,7 +1182,7 @@ subroutine applyprojector_paw(ncplx,istart_c,&
 !  end do
   do ispinor=1,nspinor
      cprj_out%cp(ispinor,:)=cprj(ispinor,:)
-     write(*,*)'applyprojector_paw: erase me: l1212 cprj=',cprj_out%cp(ispinor,:)
+     !write(*,*)'applyprojector_paw: erase me: l1212 cprj=',cprj_out%cp(ispinor,:)
   end do
 !
 
@@ -1201,8 +1201,8 @@ subroutine applyprojector_paw(ncplx,istart_c,&
      !DEBUG: calculate <PSI|H|PSI>, only for 1 orbital and ncplx=1
      do ispinor=1,nspinor,ncplx
         scpr(1)=ddot(nvctr_c+7*nvctr_f,psi(istart_c,ispinor),1,hpsi(istart_c,ispinor),1)
-        write(*,*)'erase me: applyprojector_paw l1231'
-        write(*,*)'<psi|H|psi>= ',scpr(1:ncplx)
+        !write(*,*)'erase me: applyprojector_paw l1231'
+        !write(*,*)'<psi|H|psi>= ',scpr(1:ncplx)
      end do !ispinor
   end if
   if(sij_opt==2 .or. sij_opt==3) then
@@ -1258,9 +1258,10 @@ subroutine applyprojector_paw(ncplx,istart_c,&
 
      !apply the matrix of the coefficients on the cprj array
      jlmn=0
-     do j_shell=1,proj_G%nshltot
-        j_l=proj_G%nam(j_shell)
-        do j_m=1,2*j_l-1
+     iter = iter0
+     do
+        if (.not. gaussian_iter_next_shell(proj_G, iter)) exit
+        do j_m=1,2*iter%l-1
            jlmn=jlmn+1
            j0lmn=jlmn*(jlmn-1)/2
            !Diagonal components
@@ -1275,10 +1276,11 @@ subroutine applyprojector_paw(ncplx,istart_c,&
            end do
            !Off-diagonal components
            ilmn=0
-           do i_shell=1,j_shell
-              i_l=proj_G%nam(i_shell)
-              do i_m=1,2*i_l-1
-                 if(i_m>=j_m .and. i_shell==j_shell) cycle
+           iter2 = iter0
+           do
+              if (.not. gaussian_iter_next_shell(proj_G, iter2)) exit
+              do i_m=1,2*iter2%l-1
+                 if(i_m>=j_m .and. iter%ishell==iter2%ishell) cycle
                  ilmn=ilmn+1
                  klmn=j0lmn+ilmn;klmnc=paw_ij%cplex_dij*(klmn-1)
                  dij=paw_ij%dij(klmn,1)
@@ -1308,9 +1310,10 @@ subroutine applyprojector_paw(ncplx,istart_c,&
      !for the moment use the traditional waxpy instead of daxpy, for test purposes
      eproj_i=0.0_gp
      jlmn=0
-     do j_shell=1,proj_G%nshltot
-        j_l=proj_G%nam(j_shell)
-        do j_m=1,2*j_l-1
+     iter = iter0
+     do
+        if (.not. gaussian_iter_next_shell(proj_G, iter)) exit
+        do j_m=1,2*iter%l-1
            jlmn=jlmn+1
            do ispinor=1,nspinor,ncplx
               do icplx=1,ncplx
@@ -1562,25 +1565,22 @@ END SUBROUTINE apply_atproj_iorb_new
 
 !> Applies the projector associated on a given atom on a corresponding orbital
 !! uses a generic representation of the projector to generalize the form of the projector  
-subroutine apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nprojel,at,orbs,wfd,&
-     plr,proj,&
-     psi,hpsi,eproj,proj_G,paw)
+subroutine apply_atproj_iorb_paw(iat,iorb,istart_c,at,orbs,wfd,&
+     nlpsp,psi,hpsi,spsi,eproj,paw)
   use module_base
   use module_types
   use gaussians, only: gaussian_basis
   implicit none
-  integer, intent(in) :: iat,iorb,ispsi,nprojel
+  integer, intent(in) :: iat,iorb
   integer, intent(inout)::istart_c
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   type(wavefunctions_descriptors), intent(in) :: wfd
-  type(locreg_descriptors), intent(in) :: plr
-  !type(nonlocal_psp_descriptors), intent(in) :: nlpspd
-  real(wp), dimension(nprojel), intent(in) :: proj
+  type(DFT_PSP_projectors), intent(in) :: nlpsp
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(in) :: psi
   real(gp), intent(inout) :: eproj
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(inout) :: hpsi
-  type(gaussian_basis), intent(in) :: proj_G
+  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor), intent(inout) :: spsi
   type(paw_objects),intent(inout)::paw
   !local variables
   !character(len=*), parameter :: subname='apply_atproj_iorb'
@@ -1589,15 +1589,10 @@ subroutine apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nprojel,at,orbs,wfd,&
   integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
   real(gp) :: eproj_i
 
-  !Note:
-  !spsi should be in a wvl structure. 
-  !in that case spsi(ispsi) will be passed here, and 
-  !ispsi will no longer be an argument
-
   !parameter for the descriptors of the projectors
   ityp=at%astruct%iatype(iat)
 
-  call plr_segs_and_vctrs(plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+  call plr_segs_and_vctrs(nlpsp%pspd(iat)%plr,mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
  
   !complex functions or not
   !this should be decided as a function of the orbital
@@ -1610,15 +1605,15 @@ subroutine apply_atproj_iorb_paw(iat,iorb,ispsi,istart_c,nprojel,at,orbs,wfd,&
   
   sij_opt=3 !get hpsi and spsi
 
-   call applyprojector_paw(ncplx,istart_c,&
+   call applyprojector_paw(ncplx,istart_c,iat,&
         wfd%nvctr_c,wfd%nvctr_f,wfd%nseg_c,wfd%nseg_f,wfd%keyvglob,wfd%keyglob,&
         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-        plr%wfd%keyvglob,& !nlpspd%keyv_p(jseg_c),
-        plr%wfd%keyglob,& !nlpspd%keyg_p(1,jseg_c),&
-        proj(1),&
-        psi,hpsi,paw%spsi(ispsi),eproj_i,proj_G,paw%paw_ij(iat),&
-        paw%indlmn(:,:,at%astruct%iatype(iat)),paw%lmnmax,paw%cprj(iat,iorb),&
-        sij_opt,paw%sij(:,ityp))  
+        nlpsp%pspd(iat)%plr%wfd%keyvglob,& !nlpspd%keyv_p(jseg_c),
+        nlpsp%pspd(iat)%plr%wfd%keyglob,& !nlpspd%keyg_p(1,jseg_c),&
+        nlpsp%proj,&
+        psi,hpsi,spsi,eproj_i,nlpsp%proj_G,paw%paw_ij(iat),&
+        at%pawtab(ityp)%lmn2_size,paw%cprj(iat,iorb),&
+        sij_opt,at%pawtab(ityp)%sij)  
 
   !DEBUG
   !do ii=1,wfd%nvctr_c+7*wfd%nvctr_f
