@@ -163,8 +163,8 @@
    Radii of active regions (AU):
      Coarse                            : 1.713892
      Fine                              : 0.5
-     Coarse PSP                        : 0.5
      Source                            : User-defined
+     Coarse PSP                        : 0.9100475625
    PAW patch                           : No
    Source                              : psppar.Si
  psppar.H:
@@ -178,8 +178,8 @@
    Radii of active regions (AU):
      Coarse                            : 1.3600000000000001
      Fine                              : 0.14999999999999999
-     Coarse PSP                        : 0.14999999999999999
      Source                            : User-defined
+     Coarse PSP                        : 0.0
    PAW patch                           : No
    Source                              : psppar.H
   #--------------------------------------------------------------------------------------- |
