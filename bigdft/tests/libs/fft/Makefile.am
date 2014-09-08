@@ -45,5 +45,5 @@ fft_cache.report: fft_cache.dat
 check: fft_check.report fft_cache.report
 
 report:
-	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
+	@if test $(MAKELEVEL) = 0 ; then python $(top_builddir)/tests/report.py ; fi
 

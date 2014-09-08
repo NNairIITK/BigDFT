@@ -49,4 +49,4 @@ check: PS_Check.out.yaml
 
 
 report: 
-	python $(top_srcdir)/tests/report.py
+	python $(top_builddir)/tests/report.py

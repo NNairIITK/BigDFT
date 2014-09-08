@@ -32,7 +32,7 @@ endif
 check: check_lib_plain.report check_lib_binary.report $(etsf_tests) $(bindings_tests)
 
 report:
-	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
+	@if test $(MAKELEVEL) = 0 ; then python $(top_builddir)/tests/report.py ; fi
 
 check_PROGRAMS = check_lib $(bindings_bin)
 
