@@ -131,7 +131,7 @@ contains
     nl%nprojel=0
     nl%natoms=0
     nl%zerovol=100.0_gp
-    nl%proj_G = gaussian_basis_null()
+    call nullify_gaussian_basis_new(nl%proj_G)! = gaussian_basis_null()
     nullify(nl%proj)
     nullify(nl%pspd)
     nullify(nl%wpack)
