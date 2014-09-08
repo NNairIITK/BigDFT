@@ -29,11 +29,14 @@ AX_LINALG()
 
 AX_LIBXC()
 
+AX_PYYAML()
+
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
 tests/Makefile
+tests/report.py
 tests/atoms/Makefile
 tests/C-pseudo/Makefile
 tests/H-pseudo/Makefile
