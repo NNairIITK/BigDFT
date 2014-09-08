@@ -1205,7 +1205,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   type(dictionary), pointer :: dict
   real(dp), dimension(2) :: charges_mpi
   real(dp), dimension(:), allocatable :: potion_corr
-  real(gp), dimension(:,:), allocatable :: radii_cf
+!  real(gp), dimension(:,:), allocatable :: radii_cf
 
   call timing(iproc,'CrtLocPot     ','ON')
   
@@ -1233,9 +1233,9 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   call dict_free(dict)
 
   !read the specifications of the counter ions from pseudopotentials
-  radii_cf = f_malloc((/ at%astruct%ntypes, 3 /),id='radii_cf')
-  radii_cf = at%radii_cf
-  if (iproc == 0) call print_atomic_variables(at, radii_cf, max(in%hx,in%hy,in%hz), in%ixc, in%dispersion)
+!  radii_cf = f_malloc((/ at%astruct%ntypes, 3 /),id='radii_cf')
+!  radii_cf = at%radii_cf
+  if (iproc == 0) call print_atomic_variables(at, max(in%hx,in%hy,in%hz), in%ixc, in%dispersion)
 
   ! Ionic charge (must be calculated for the PS active processes)
   rholeaked=0.d0
@@ -1430,7 +1430,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   !deallocations
   call deallocate_atoms_data(at) 
 
-  call f_free(radii_cf)
+!  call f_free(radii_cf)
 
   call f_free_ptr(at%astruct%rxyz)
 

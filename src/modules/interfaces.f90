@@ -53,7 +53,7 @@ module module_interfaces
          real(wp), dimension(:), pointer :: psi,psi_old
       END SUBROUTINE copy_old_wavefunctions
 
-      subroutine system_properties(iproc,nproc,in,at,orbs,radii_cf)
+      subroutine system_properties(iproc,nproc,in,at,orbs)
         use module_defs, only: gp
          use module_types
          implicit none
@@ -61,17 +61,17 @@ module module_interfaces
          type(input_variables), intent(in) :: in
          type(atoms_data), intent(in) :: at
          type(orbitals_data), intent(inout) :: orbs
-         real(gp), dimension(at%astruct%ntypes,3), intent(out) :: radii_cf
+         !real(gp), dimension(at%astruct%ntypes,3), intent(out) :: radii_cf
       END SUBROUTINE system_properties
 
-      subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,shift)
+      subroutine system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,OCLconv,Glr,shift)
         use module_defs, only: gp
          use module_types
          implicit none
          type(atoms_data), intent(inout) :: atoms
          real(gp), intent(in) :: crmult,frmult
          real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
-         real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+         !real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
          real(gp), intent(inout) :: hx,hy,hz
          logical, intent(in) :: OCLconv
          type(locreg_descriptors), intent(out) :: Glr
@@ -192,7 +192,7 @@ module module_interfaces
        real(gp), dimension(3,nkpt), intent(in) :: kpt
      END SUBROUTINE orbitals_descriptors_forLinear
 
-      subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
+      subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,&
             &   crmult,frmult,Glr,output_denspot)
         use module_defs, only: gp
         use module_types
@@ -202,13 +202,13 @@ module module_interfaces
          integer, intent(in) :: iproc
          real(gp), intent(in) :: hx,hy,hz,crmult,frmult
          real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
-         real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+         !real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
          type(locreg_descriptors), intent(inout) :: Glr
          logical, intent(in), optional :: output_denspot
       END SUBROUTINE createWavefunctionsDescriptors
 
       subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
-           radii_cf,cpmult,fpmult,hx,hy,hz,dry_run,nlpsp)
+           cpmult,fpmult,hx,hy,hz,dry_run,nlpsp)
         !n(c) use module_base
         use module_types
         implicit none
@@ -217,7 +217,7 @@ module module_interfaces
         real(kind=8), intent(in) :: cpmult,fpmult,hx,hy,hz
         type(locreg_descriptors),intent(in) :: lr
         real(kind=8), dimension(3,at%astruct%nat), intent(in) :: rxyz
-        real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
+        !real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
         logical, intent(in) :: dry_run
         type(DFT_PSP_projectors), intent(out) :: nlpsp
       END SUBROUTINE createProjectorsArrays
@@ -236,7 +236,7 @@ module module_interfaces
       end subroutine dpbox_set
 
       subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
-           rho_commun,rxyz,radii_cf,rhodsc)
+           rho_commun,rxyz,rhodsc)
         use module_defs, only: gp
         use module_types
         use module_xc
@@ -248,7 +248,7 @@ module module_interfaces
         type(denspot_distribution), intent(in) :: dpbox
         character(len=3), intent(in) :: rho_commun
         real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
-        real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+        !real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
         type(rho_descriptors), intent(out) :: rhodsc
       end subroutine density_descriptors
 
@@ -512,7 +512,7 @@ module module_interfaces
         real(dp), dimension(max(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3d,1),nspin), intent(out) :: rho
       END SUBROUTINE communicate_density
 
-      subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
+      subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,&
             &   n1i,n2i,n3i,hxh,hyh,hzh,nspin,rho_d,iprint)
         use module_defs, only: gp
         use module_types
@@ -521,7 +521,7 @@ module module_interfaces
          type(atoms_data), intent(in) :: at
          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
-         real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
+         !real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
          logical,intent(in) :: iprint
          type(rho_descriptors),intent(inout) :: rho_d
        END SUBROUTINE rho_segkey
@@ -665,7 +665,7 @@ module module_interfaces
       END SUBROUTINE calculate_forces
 
       subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
-           Glr,nlpsp,ncongt,pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,&
+           Glr,nlpsp,ncongt,pot,hgrid,rxyz,crmult,frmult,nspin,&
            psi,output_denspot,ekin_sum,epot_sum,eproj_sum,paw)
         use module_defs, only: gp,wp,dp
          use module_types
@@ -678,7 +678,7 @@ module module_interfaces
          integer, intent(in) :: iproc,nproc,ncongt,nspin
          logical, intent(in) :: output_denspot
          real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
-         real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
+         !real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
          real(kind=8), dimension(3,at%astruct%nat), intent(in) :: rxyz
          real(kind=8), dimension(Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nspin), intent(in) :: pot
          real(kind=8), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%norbp), intent(in) :: psi
@@ -2227,7 +2227,7 @@ module module_interfaces
 
        subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,&
             & dry_run,in,atoms,rxyz,OCLconv,&
-            orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpsp,comms,shift,radii_cf,&
+            orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpsp,comms,shift,&
             ref_frags, denspot, locregcenters, inwhichlocreg_old, onwhichatom_old, output_grid)
          use module_base
          use module_types
@@ -2247,7 +2247,7 @@ module module_interfaces
          type(DFT_PSP_projectors), intent(out) :: nlpsp
          type(comms_cubic), intent(out) :: comms
          real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
-         real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+         !real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
          type(system_fragment), dimension(:), pointer :: ref_frags
          real(kind=8),dimension(3,atoms%astruct%nat),intent(inout),optional :: locregcenters
          integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old

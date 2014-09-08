@@ -182,8 +182,8 @@ module bigdft_forces
       allocate(runObj%rst)
       call init_restart_objects(me, runObj%inputs, runObj%atoms, runObj%rst)
 
-      runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /),id='runObj%radii_cf')
-      runObj%radii_cf = runObj%atoms%radii_cf
+!!$      runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /),id='runObj%radii_cf')
+!!$      runObj%radii_cf = runObj%atoms%radii_cf
 
    END SUBROUTINE bigdft_init_art
 

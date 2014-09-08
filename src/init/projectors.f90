@@ -10,7 +10,7 @@
 
 !> Localize the projectors for pseudopotential calculations
 subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
-     radii_cf,logrid,at,orbs,nl)
+     logrid,at,orbs,nl)
   use module_base
   use module_types, only: atoms_data,orbitals_data
   use gaussians, only: gaussian_basis_iter, gaussian_iter_start, gaussian_iter_next_shell
@@ -23,7 +23,7 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   type(orbitals_data), intent(in) :: orbs
   type(DFT_PSP_projectors), intent(inout) :: nl
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
+  !real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
   logical, dimension(0:n1,0:n2,0:n3), intent(inout) :: logrid
   !Local variables
   !n(c) logical :: cmplxprojs
@@ -64,7 +64,7 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
         nl%nproj=nl%nproj+mproj
 
         ! coarse grid quantities
-        call pregion_size(at%astruct%geocode,rxyz(1,iat),radii_cf(at%astruct%iatype(iat),3),&
+        call pregion_size(at%astruct%geocode,rxyz(1,iat),at%radii_cf(at%astruct%iatype(iat),3),&
              cpmult,hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
         call bounds_to_plr_limits(.true.,1,nl%pspd(iat)%plr,&
@@ -72,7 +72,7 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
 
         !these routines are associated to the handling of a locreg
         call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,&
-             at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),radii_cf(1,3),&
+             at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),at%radii_cf(1,3),&
              cpmult,hx,hy,hz,logrid)
         call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
 
@@ -86,7 +86,7 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
         !print *,'iat,mvctr',iat,mvctr,mseg,mproj
 
         ! fine grid quantities
-        call pregion_size(at%astruct%geocode,rxyz(1,iat),radii_cf(at%astruct%iatype(iat),2),fpmult,&
+        call pregion_size(at%astruct%geocode,rxyz(1,iat),at%radii_cf(at%astruct%iatype(iat),2),fpmult,&
              hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
         call bounds_to_plr_limits(.true.,2,nl%pspd(iat)%plr,&
@@ -94,7 +94,7 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
 
         call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
              at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),&
-             radii_cf(1,2),fpmult,hx,hy,hz,logrid)
+             at%radii_cf(1,2),fpmult,hx,hy,hz,logrid)
         call num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
         !if (iproc.eq.0) write(*,'(1x,a,2(1x,i0))') 'mseg,mvctr, fine  projectors ',mseg,mvctr
 
@@ -118,14 +118,14 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
         !! coarse grid quantities ( when used preconditioners are applied to all atoms
         !! even H if present )
         call pregion_size(at%astruct%geocode,rxyz(1,iat),&
-             radii_cf(at%astruct%iatype(iat),3),cpmult, &
+             at%radii_cf(at%astruct%iatype(iat),3),cpmult, &
              hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
         call bounds_to_plr_limits(.true.,1,nl%pspd(iat)%plr,&
              nl1,nl2,nl3,nu1,nu2,nu3)
 
         ! fine grid quantities
-        call pregion_size(at%astruct%geocode,rxyz(1,iat),radii_cf(at%astruct%iatype(iat),2),fpmult,&
+        call pregion_size(at%astruct%geocode,rxyz(1,iat),at%radii_cf(at%astruct%iatype(iat),2),fpmult,&
              hx,hy,hz,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3)
 
         call bounds_to_plr_limits(.true.,2,nl%pspd(iat)%plr,&
@@ -158,13 +158,13 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
      totfullvol=0.0_gp
      do iat=1,at%astruct%nat
         ityp=at%astruct%iatype(iat)
-        maxrad=min(maxval(at%psppar(1:4,0,ityp)),cpmult/15.0_gp*radii_cf(ityp,3))
+        maxrad=min(maxval(at%psppar(1:4,0,ityp)),cpmult/15.0_gp*at%radii_cf(ityp,3))
         nl%zerovol=0.0_gp
         fullvol=0.0_gp
         do l=1,4
            do i=1,3
               if (at%psppar(l,i,ityp) /= 0.0_gp) then
-                 rad=min(at%psppar(l,0,ityp),cpmult/15.0_gp*radii_cf(ityp,3))
+                 rad=min(at%psppar(l,0,ityp),cpmult/15.0_gp*at%radii_cf(ityp,3))
                  nl%zerovol=nl%zerovol+(maxrad**3-rad**3)
                  fullvol=fullvol+maxrad**3
               end if

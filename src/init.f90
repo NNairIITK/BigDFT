@@ -7,12 +7,11 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-
 !> Calculates the descriptor arrays and nvctrp
 !! Calculates also the bounds arrays needed for convolutions
 !! Refers this information to the global localisation region descriptor
-subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-     &   crmult,frmult,Glr,output_denspot)
+subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,&
+     crmult,frmult,Glr,output_denspot)
   use module_base
   use module_types
   use yaml_output
@@ -23,7 +22,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz,crmult,frmult
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
-  real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+  !real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   type(locreg_descriptors), intent(inout) :: Glr
   logical, intent(in), optional :: output_denspot
   !local variables
@@ -34,7 +33,6 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
 
   call f_routine(id=subname)
   call timing(iproc,'CrtDescriptors','ON')
-  
 
   !assign the dimensions to improve (a little) readability
   n1=Glr%d%n1
@@ -57,9 +55,9 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
   ! coarse/fine grid quantities
   if (atoms%astruct%ntypes > 0) then
      call fill_logrid(atoms%astruct%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%astruct%nat,&
-          &   atoms%astruct%ntypes,atoms%astruct%iatype,rxyz,radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
+          &   atoms%astruct%ntypes,atoms%astruct%iatype,rxyz,atoms%radii_cf(1,1),crmult,hx,hy,hz,logrid_c)
      call fill_logrid(atoms%astruct%geocode,n1,n2,n3,0,n1,0,n2,0,n3,0,atoms%astruct%nat,&
-          &   atoms%astruct%ntypes,atoms%astruct%iatype,rxyz,radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
+          &   atoms%astruct%ntypes,atoms%astruct%iatype,rxyz,atoms%radii_cf(1,2),frmult,hx,hy,hz,logrid_f)
   else
      logrid_c=.true.
      logrid_f=.true.
@@ -221,7 +219,7 @@ END SUBROUTINE wfd_from_grids
 
 !> Determine localization region for all projectors, but do not yet fill the descriptor arrays
 subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
-         & radii_cf,cpmult,fpmult,hx,hy,hz,dry_run,nl)
+     cpmult,fpmult,hx,hy,hz,dry_run,nl)
   use module_base
   use psp_projectors
   use module_types
@@ -232,7 +230,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
+  !real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
   type(DFT_PSP_projectors), intent(out) :: nl
   logical, intent(in) :: dry_run !< .true. to compute the size only and don't allocate
   !local variables
@@ -277,7 +275,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   logrid=f_malloc((/0.to.n1,0.to.n2,0.to.n3/),id='logrid')
 
   call localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,&
-       rxyz,radii_cf,logrid,at,orbs,nl)
+       rxyz,logrid,at,orbs,nl)
 
   if (dry_run) then
      call f_free(logrid)
@@ -330,7 +328,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
 !!$        !which make radiicf and rxyz the only external data needed
 
         call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-             at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),radii_cf(1,3),&
+             at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),at%radii_cf(1,3),&
              cpmult,hx,hy,hz,logrid)
 
         call segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,&
@@ -345,7 +343,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
              nl1,nl2,nl3,nu1,nu2,nu3)         
 
         call fill_logrid(at%astruct%geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,0,1,  &
-             & at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),radii_cf(1,2),&
+             & at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),at%radii_cf(1,2),&
              fpmult,hx,hy,hz,logrid)
 
         mseg=nl%pspd(iat)%plr%wfd%nseg_f
@@ -1710,7 +1708,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         ! Cheating line here.
         atoms%npspcode(1) = PSPCODE_HGH
         call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,KSwfn%orbs,&
-             atoms%radii_cf,in%frmult,in%frmult,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
+             in%frmult,in%frmult,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
              KSwfn%Lzd%hgrids(3),.false.,nl)
         if (iproc == 0) call print_nlpsp(nl)
      else

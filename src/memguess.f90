@@ -429,9 +429,9 @@ program memguess
          call optimise_volume(runObj%atoms,&
               & runObj%inputs%crmult,runObj%inputs%frmult,&
               & runObj%inputs%hx,runObj%inputs%hy,runObj%inputs%hz,&
-              & runObj%atoms%astruct%rxyz,runObj%radii_cf)
+              & runObj%atoms%astruct%rxyz)
       else
-         call shift_periodic_directions(runObj%atoms,runObj%atoms%astruct%rxyz,runObj%radii_cf)
+         call shift_periodic_directions(runObj%atoms,runObj%atoms%astruct%rxyz,runObj%atoms%radii_cf)
       end if
       write(*,'(1x,a)')'Writing optimised positions in file posopt.[xyz,ascii]...'
       write(comment,'(a)')'POSITIONS IN OPTIMIZED CELL '
@@ -451,7 +451,7 @@ program memguess
         & runObj%inputs, runObj%atoms, runObj%atoms%astruct%rxyz, runObj%rst%GPU%OCLconv, &
         & runObj%rst%KSwfn%orbs, runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
         & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, nlpsp, runObj%rst%KSwfn%comms, &
-        & shift,runObj%radii_cf, ref_frags, output_grid = (output_grid > 0))
+        & shift, ref_frags, output_grid = (output_grid > 0))
    call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
         & runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&
         & runObj%rst%KSwfn%orbs%nkpts,nlpsp%nprojel,&
@@ -627,13 +627,14 @@ END PROGRAM memguess
 
 !> Rotate the molecule via an orthogonal matrix in order to minimise the
 !! volume of the cubic cell
-subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
+subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz)
    use module_base
    use module_types
+   use module_interfaces, only: system_size
    implicit none
    type(atoms_data), intent(inout) :: atoms
-   real(gp), intent(in) :: crmult,frmult,hx,hy,hz
-   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+   real(gp), intent(in) :: crmult,frmult
+   real(gp), intent(inout) :: hx,hy,hz
    real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
    !local variables
    character(len=*), parameter :: subname='optimise_volume'
@@ -645,7 +646,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
    real(gp), dimension(:,:), allocatable :: txyz
 
    txyz = f_malloc((/ 3, atoms%astruct%nat /),id='txyz')
-   call system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,.false.,Glr,shift)
+   call system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,.false.,Glr,shift)
    !call volume(nat,rxyz,vol)
    vol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3)
    write(*,'(1x,a,1pe16.8)')'Initial volume (Bohr^3)',vol
@@ -696,7 +697,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
          txyz(:,iat)=x*urot(:,1)+y*urot(:,2)+z*urot(:,3)
       enddo
 
-      call system_size(atoms,txyz,radii_cf,crmult,frmult,hx,hy,hz,.false.,Glr,shift)
+      call system_size(atoms,txyz,crmult,frmult,hx,hy,hz,.false.,Glr,shift)
       tvol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3)
       !call volume(nat,txyz,tvol)
       if (tvol < vol) then

@@ -34,7 +34,7 @@ module bigdft_run
      type(input_variables), pointer    :: inputs
      type(atoms_data), pointer         :: atoms
      type(restart_objects), pointer    :: rst
-     real(gp), dimension(:,:), pointer :: radii_cf
+     !real(gp), dimension(:,:), pointer :: radii_cf
   end type run_objects
 
 
@@ -318,7 +318,7 @@ module bigdft_run
          call vcopy(3 * atoms%astruct%nat, rxyz0, 1, runObj%atoms%astruct%rxyz(1,1), 1)
       end if
 
-      runObj%radii_cf = f_malloc_ptr(src=runObj%atoms%radii_cf, id="runObj%radii_cf")
+      !runObj%radii_cf = f_malloc_ptr(src=runObj%atoms%radii_cf, id="runObj%radii_cf")
     END SUBROUTINE run_objects_associate
 
 !!    subroutine global_output_merge_to_dict(dict, outs, astruct)
@@ -411,7 +411,7 @@ module bigdft_run
       nullify(runObj%inputs)
       nullify(runObj%atoms)
       nullify(runObj%rst)
-      nullify(runObj%radii_cf)
+      !nullify(runObj%radii_cf)
     END SUBROUTINE run_objects_nullify
 
 
@@ -439,7 +439,7 @@ module bigdft_run
          call free_input_variables(runObj%inputs)
          deallocate(runObj%inputs)
       end if
-      call f_free_ptr(runObj%radii_cf)
+      !call f_free_ptr(runObj%radii_cf)
 
     END SUBROUTINE run_objects_free
 
@@ -455,7 +455,7 @@ module bigdft_run
       ! User inputs are always owned by run objects.
       call dict_free(runObj%user_inputs)
       ! Radii_cf are always owned by run objects.
-      call f_free_ptr(runObj%radii_cf)
+      !call f_free_ptr(runObj%radii_cf)
       ! Currently do nothing except nullifying everything.
       call run_objects_nullify(runObj)
     END SUBROUTINE run_objects_free_container
@@ -891,7 +891,7 @@ subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
      end if
 
      !Main routine calculating the KS orbitals
-     call cluster(nproc,iproc,runObj%atoms,runObj%rst%rxyz_new, runObj%radii_cf, &
+     call cluster(nproc,iproc,runObj%atoms,runObj%rst%rxyz_new, &
           outs%energy, outs%energs, outs%fxyz, outs%strten, outs%fnoise, outs%pressure,&
           runObj%rst%KSwfn,runObj%rst%tmb,&
           runObj%rst%rxyz_old,runObj%rst%hx_old,runObj%rst%hy_old,runObj%rst%hz_old,&
@@ -1028,13 +1028,13 @@ subroutine run_objects_parse(runObj)
   call restart_objects_set_mat_acc(runObj%rst, bigdft_mpi%iproc, runObj%inputs%matacc)
 
   ! Generate radii
-  call f_free_ptr(runObj%radii_cf)
+  !call f_free_ptr(runObj%radii_cf)
 
-  runObj%radii_cf = f_malloc_ptr(src=runObj%atoms%radii_cf, id="runObj%radii_cf")
+  !runObj%radii_cf = f_malloc_ptr(src=runObj%atoms%radii_cf, id="runObj%radii_cf")
 
 END SUBROUTINE run_objects_parse
 
-
+!> this routine should be used in memguess executable also
 subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   use module_base, only: gp,f_memcpy
   use bigdft_run
@@ -1065,7 +1065,7 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
        & runObj%inputs, runObj%atoms, rxyz, runObj%rst%GPU%OCLconv, runObj%rst%KSwfn%orbs, &
        & runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
        & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, &
-       & nlpsp, runObj%rst%KSwfn%comms, shift, runObj%radii_cf, &
+       & nlpsp, runObj%rst%KSwfn%comms, shift, &
        & ref_frags)
   call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
        & runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&

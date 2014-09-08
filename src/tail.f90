@@ -11,7 +11,7 @@
 !> Calculate the finite size corrections over wavefunctions
 !! Conceived only for isolated Boundary Conditions, no SIC correction
 subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
-     Glr,nlpsp,ncongt,pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,&
+     Glr,nlpsp,ncongt,pot,hgrid,rxyz,crmult,frmult,nspin,&
      psi,output_denspot,ekin_sum,epot_sum,eproj_sum,paw)
   use module_base
   use module_types
@@ -26,7 +26,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   integer, intent(in) :: iproc,nproc,ncongt,nspin
   logical, intent(in) :: output_denspot
   real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
-  real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
+  !real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
   real(kind=8), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(kind=8), dimension(Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nspin), intent(in) :: pot
   real(kind=8), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%norbp), intent(in) :: psi
@@ -187,7 +187,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
   ! coarse grid quantities
   call fill_logrid('F',nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,nbuf,at%astruct%nat,at%astruct%ntypes,at%astruct%iatype,txyz, & 
-       radii_cf(1,1),crmult,hgrid,hgrid,hgrid,logrid_c)
+       at%radii_cf(1,1),crmult,hgrid,hgrid,hgrid,logrid_c)
   call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,nvctrb_c)
 
   if (iproc == 0) then
@@ -203,7 +203,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
   ! fine grid quantities
   call fill_logrid('F',nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,0,at%astruct%nat,at%astruct%ntypes,at%astruct%iatype,txyz, & 
-       radii_cf(1,2),frmult,hgrid,hgrid,hgrid,logrid_f)
+       at%radii_cf(1,2),frmult,hgrid,hgrid,hgrid,logrid_f)
   call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,nvctrb_f)
   if (iproc == 0) then
      !Bug in yaml_output solved

@@ -220,7 +220,7 @@ void bigdft_locreg_init_wfd(BigDFT_Locreg *glr)
   FC_FUNC_(glr_set_wave_descriptors,
            GLR_SET_WAVE_DESCRIPTORS)(&iproc, glr->h, glr->h + 1, glr->h + 2,
                                      glr->parent.data, glr->parent.rxyz.data,
-                                     &g_array_index(glr->radii, double, 0),
+                                     //&g_array_index(glr->radii, double, 0),
                                      &glr->crmult, &glr->frmult, glr->data);
   _locreg_copy_wfd(glr);
 }

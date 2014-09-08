@@ -40,7 +40,7 @@ program wvl
   integer :: i, j, ierr, iproc, nproc ,nconfig
   real(dp) :: nrm, epot_sum
   real(gp) :: psoffset
-  real(gp), allocatable :: radii_cf(:,:)
+!  real(gp), allocatable :: radii_cf(:,:)
   real(gp), dimension(3) :: shift
   real(gp), dimension(:,:), pointer :: rxyz_old
   real(dp), dimension(:), pointer   :: rhor, pot_ion, potential
@@ -88,11 +88,11 @@ program wvl
 !!$  posinp_name='posinp'
 !!$  call read_input_variables(iproc,nproc,posinp_name,inputs, atoms, atoms%astruct%rxyz,1,'input',0)
 
-  allocate(radii_cf(atoms%astruct%ntypes,3))
-  call system_properties(iproc,nproc,inputs,atoms,orbs,radii_cf)
+!  allocate(radii_cf(atoms%astruct%ntypes,3))
+  call system_properties(iproc,nproc,inputs,atoms,orbs)!,radii_cf)
   
   call lzd_set_hgrids(Lzd,(/inputs%hx,inputs%hy,inputs%hz/)) 
-  call system_size(atoms,atoms%astruct%rxyz,radii_cf,inputs%crmult,inputs%frmult, &
+  call system_size(atoms,atoms%astruct%rxyz,inputs%crmult,inputs%frmult, &
        & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),GPU%OCLconv,Lzd%Glr,shift)
   call print_atoms_and_grid(Lzd%Glr, atoms, atoms%astruct%rxyz, shift, &
        & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3))
@@ -100,7 +100,7 @@ program wvl
   ! Setting up the wavefunction representations (descriptors for the
   !  compressed form...).
   call createWavefunctionsDescriptors(iproc,inputs%hx,inputs%hy,inputs%hz, &
-       & atoms,atoms%astruct%rxyz,radii_cf,inputs%crmult,inputs%frmult,Lzd%Glr)
+       & atoms,atoms%astruct%rxyz,inputs%crmult,inputs%frmult,Lzd%Glr)
   call print_wfd(Lzd%Glr%wfd)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
 
@@ -233,7 +233,7 @@ program wvl
 
   call xc_init(xc, inputs%ixc, XC_ABINIT, inputs%nspin)
   call density_descriptors(iproc,nproc,xc,inputs%nspin,inputs%crmult,inputs%frmult,atoms,&
-       dpcom,inputs%rho_commun,atoms%astruct%rxyz,radii_cf,rhodsc)
+       dpcom,inputs%rho_commun,atoms%astruct%rxyz,rhodsc)
 
 !!$  ! Equivalent BigDFT routine.
 !!$  allocate(nscatterarr(0:nproc-1,4))

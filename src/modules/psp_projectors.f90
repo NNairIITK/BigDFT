@@ -43,7 +43,7 @@ module psp_projectors
      integer :: strategy !< can be MASK,KEYS,MASK_PACK,KEYS_PACK,SKIP
      integer :: nmseg_c !< number of segments intersecting in the coarse region
      integer :: nmseg_f !< number of segments intersecting in the fine region
-     integer, dimension(:,:), pointer :: mask !<mask array of dimesion 3,nmseg_c+nmseg_f for psp applilcation
+     integer, dimension(:,:), pointer :: mask !<mask array of dimesion 3,nmseg_c+nmseg_f for psp application
   end type nlpsp_to_wfd
 
 
@@ -420,35 +420,9 @@ contains
           !if there is overlap, activate the strategy for the application
           if (overlap) then
              call init_tolr(tolr(ilr),lrs(ilr)%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf)
-!!$             !calculate the size of the mask array
-!!$             call vcopy(lrs(ilr)%wfd%nseg_c+lrs(ilr)%wfd%nseg_f,&
-!!$                  lrs(ilr)%wfd%keyglob(1,1),2,keyag_lin_cf(1),1)
-!!$             call to_zero(plr%wfd%nseg_c+plr%wfd%nseg_f,nbsegs_cf(1))
-!!$             call mask_sizes(lrs(ilr)%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf,&
-!!$                  tolr(ilr)%nmseg_c,tolr(ilr)%nmseg_f)
-!!$             !then allocate and fill it
-!!$             tolr(ilr)%mask=&
-!!$                  f_malloc0_ptr((/3,tolr(ilr)%nmseg_c+tolr(ilr)%nmseg_f/),&
-!!$                  id='mask')
-!!$             !and filled
-!!$             call init_mask(lrs(ilr)%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf,&
-!!$                  tolr(ilr)%nmseg_c,tolr(ilr)%nmseg_f,tolr(ilr)%mask)
           end if
        else
           call init_tolr(tolr(ilr),Glr%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf)
-!!$          !calculate the size of the mask array
-!!$          call vcopy(Glr%wfd%nseg_c+Glr%wfd%nseg_f,&
-!!$               Glr%wfd%keyglob(1,1),2,keyag_lin_cf(1),1)
-!!$          call to_zero(plr%wfd%nseg_c+plr%wfd%nseg_f,nbsegs_cf(1))
-!!$          call mask_sizes(Glr%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf,&
-!!$               tolr(ilr)%nmseg_c,tolr(ilr)%nmseg_f)
-!!$          !then allocate and fill it
-!!$          tolr(ilr)%mask=&
-!!$               f_malloc0_ptr((/3,tolr(ilr)%nmseg_c+tolr(ilr)%nmseg_f/),&
-!!$               id='mask')
-!!$          !and filled
-!!$          call init_mask(Glr%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf,&
-!!$               tolr(ilr)%nmseg_c,tolr(ilr)%nmseg_f,tolr(ilr)%mask)
        end if
        !then the best strategy can be decided according to total number of 
        !common points

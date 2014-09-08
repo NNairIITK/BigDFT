@@ -346,7 +346,7 @@ subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
 END SUBROUTINE glr_set_wfd_dims
 
 
-subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
+subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,&
       &   crmult,frmult,Glr)
    use module_base, only: gp
    use module_types
@@ -357,11 +357,11 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    integer, intent(in) :: iproc
    real(gp), intent(in) :: hx,hy,hz,crmult,frmult
    real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
-   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+   !real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
    type(locreg_descriptors), intent(inout) :: Glr
 
-   call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-      &   crmult,frmult,Glr)
+   call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,&
+        crmult,frmult,Glr)
 end subroutine glr_set_wave_descriptors
 
 

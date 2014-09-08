@@ -42,7 +42,6 @@ program BigDFT2Wannier
    real(kind=8) :: znorm,xnorm,ortho,ddot
    real(kind=8),parameter :: eps6=1.0d-6!, eps8=1.0d-8
    real(gp), dimension(:,:), pointer :: rxyz_old
-   real(gp), dimension(:,:), allocatable :: radii_cf
    real(gp), dimension(3) :: shift
    real(wp), allocatable :: psi_etsf(:,:),psi_etsfv(:),sph_har_etsf(:),psir(:),psir_re(:),psir_im(:),sph_daub(:)
    real(wp), allocatable :: psi_daub_im(:),psi_daub_re(:),psi_etsf2(:) !!,pvirt(:)
@@ -173,9 +172,9 @@ program BigDFT2Wannier
 !!$
 !!$   if (iproc == 0) call print_general_parameters(input,atoms)
 
-   radii_cf = f_malloc((/ atoms%astruct%ntypes, 3 /),id='radii_cf')
+   !radii_cf = f_malloc((/ atoms%astruct%ntypes, 3 /),id='radii_cf')
 
-   call system_properties(iproc,nproc,input,atoms,orbs,radii_cf)
+   call system_properties(iproc,nproc,input,atoms,orbs)
 
 
    ! use the new lzd type for compatibility reasons, i.e. replace Glr by glr%lzd
@@ -184,19 +183,16 @@ program BigDFT2Wannier
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
-   call system_size(atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
+   call system_size(atoms,atoms%astruct%rxyz,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
       &   .false.,lzd%Glr,shift)
    if (iproc == 0) &
         & call print_atoms_and_grid(lzd%Glr, atoms, atoms%astruct%rxyz, shift, input%hx,input%hy,input%hz)
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
-      & atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,lzd%Glr)
+      & atoms,atoms%astruct%rxyz,input%crmult,input%frmult,lzd%Glr)
    if (iproc == 0) call print_wfd(lzd%Glr%wfd)
 
-   ! don't need radii_cf anymore
-   i_all = -product(shape(radii_cf))*kind(radii_cf)
-   call f_free(radii_cf)
 
    ! Allocate communications arrays (allocate it before Projectors because of the definition of iskpts and nkptsp)
    call orbitals_communicators(iproc,nproc,lzd%Glr,orbs,comms)

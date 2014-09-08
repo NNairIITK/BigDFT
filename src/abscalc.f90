@@ -288,7 +288,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    type(energy_terms) :: energs
 
    !integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
-   real(kind=8), dimension(:,:), allocatable :: radii_cf
+!   real(kind=8), dimension(:,:), allocatable :: radii_cf
    !real(kind=8), dimension(:,:), allocatable :: gxyz
    real(gp), dimension(:,:),pointer :: fdisp,fion
    ! Charge density/potential,ionic potential, pkernel
@@ -406,9 +406,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    !these routines can be regrouped in one
 
-   radii_cf = f_malloc((/ atoms%astruct%ntypes, 3 /),id='radii_cf')
-
-
    if (iproc==0) then
       write( *,'(1x,a)')&
            &   '------------------------------------------------------------------ System Properties'
@@ -427,14 +424,14 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       PSquiet='YES'
    end if
 
-   call system_properties(iproc,nproc,in,atoms,KSwfn%orbs,radii_cf)
+   call system_properties(iproc,nproc,in,atoms,KSwfn%orbs)
 
    call nullify_locreg_descriptors(KSwfn%Lzd%Glr)
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
 
-   call system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,.false.,KSwfn%Lzd%Glr,shift)
+   call system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,.false.,KSwfn%Lzd%Glr,shift)
    if (iproc == 0) call print_atoms_and_grid(KSwfn%Lzd%Glr, atoms, rxyz, shift, hx, hy, hz)
 
    if ( KSwfn%orbs%nspinor.gt.1) then
@@ -444,7 +441,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
-       atoms,rxyz,radii_cf,crmult,frmult,KSwfn%Lzd%Glr)
+        atoms,rxyz,crmult,frmult,KSwfn%Lzd%Glr)
    if (iproc == 0) call print_wfd(KSwfn%Lzd%Glr%wfd)
 
    KSwfn%Lzd%hgrids(1)=hx
@@ -474,7 +471,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,orbs,comms)  
 
    call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,orbs,&
-        radii_cf,cpmult,fpmult,hx,hy,hz,.false.,nlpsp)
+        cpmult,fpmult,hx,hy,hz,.false.,nlpsp)
    if (iproc == 0) call print_nlpsp(nlpsp)
 
    call check_linear_and_create_Lzd(iproc,nproc,in%linear,KSwfn%Lzd,atoms,orbs,in%nspin,rxyz)
@@ -491,7 +488,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         & in%SIC%approach,atoms%astruct%geocode,nspin)
 
   call density_descriptors(iproc,nproc,xc,in%nspin,in%crmult,in%frmult,atoms,&
-       dpcom,in%rho_commun,rxyz,radii_cf,rhodsc)
+       dpcom,in%rho_commun,rxyz,rhodsc)
 
 !!$
 !!$  !calculate the descriptors for rho and the potentials.
@@ -561,7 +558,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       ! the following routine calls a specialized version of localize_projectors
       ! which does not interfere with the global DistProjApply
       call createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
-           radii_cf,cpmult,fpmult,hx,hy,hz, &
+           cpmult,fpmult,hx,hy,hz, &
            PAWD, KSwfn%Lzd%Glr )
       call timing(iproc,'CrtPawProjects ','OF')
    endif
@@ -574,7 +571,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       ! the following routine calls  localize_projectors again
       ! but this should be in coherence with the previous call for psp projectos 
       call createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
-           radii_cf,cpmult,fpmult,hx,hy,hz,-0.1_gp, &
+           cpmult,fpmult,hx,hy,hz,-0.1_gp, &
            PPD, KSwfn%Lzd%Glr  )
       call timing(iproc,'CrtPcProjects ','OF')
    endif
@@ -1141,20 +1138,20 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       if (in%iabscalc_type==2) then
          call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
+             nlpsp,KSwfn%Lzd,dpcom,&
              rhopot(1,1,1,1),energs,xc,in%nspin,GPU,&
              in%iat_absorber,in,PAWD,orbs)
 
       else if (in%iabscalc_type==1) then
          call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
-            &   rhopot(1,1,1,1) ,energs,xc,in%nspin,GPU &
-            &   , in%iat_absorber, in, PAWD, orbs)
+              nlpsp,KSwfn%Lzd,dpcom,&
+              rhopot(1,1,1,1) ,energs,xc,in%nspin,GPU, &
+              in%iat_absorber, in, PAWD, orbs)
       else if (in%iabscalc_type==3) then
          call xabs_cg(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
-            &   rhopot(1,1,1,1) ,energs,xc,in%nspin,GPU &
-            &   , in%iat_absorber, in, rhoXanes(1,1,1,1), PAWD, PPD, orbs)
+              nlpsp,KSwfn%Lzd,dpcom,&
+              rhopot(1,1,1,1) ,energs,xc,in%nspin,GPU, &
+              in%iat_absorber, in, rhoXanes(1,1,1,1), PAWD, PPD, orbs)
       else
          if (iproc == 0) write(*,*)' iabscalc_type not known, does not perform calculation'
       endif
@@ -1267,9 +1264,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       call free_DFT_PSP_projectors(nlpsp)
       !call deallocate_proj_descr(nlpspd,subname)
-
-
-      call f_free(radii_cf)
 
       call deallocate_rho_descriptors(rhodsc)
 

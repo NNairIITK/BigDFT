@@ -1114,7 +1114,7 @@ subroutine uncompress_rho_old(sprho_comp,dprho_comp,&
 END SUBROUTINE uncompress_rho_old
 
 
-subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
+subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,&
       &   n1i,n2i,n3i,hxh,hyh,hzh,nspin,rhodsc,iprint)
    use module_base
    use module_types
@@ -1123,7 +1123,7 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    type(atoms_data), intent(in) :: at
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
-   real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
+   !real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
    logical,intent(in) :: iprint
    type(rho_descriptors),intent(inout) :: rhodsc
    !local variables
@@ -1172,7 +1172,7 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    corz=nl3+nbz+1 
 
    ! set the boundaries of the regions that we will determine the segment structure
-   call get_boxbound(at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,spadd,dpmult,&
+   call get_boxbound(at,rxyz,crmult,frmult,hxh,hyh,hzh,spadd,dpmult,&
       &   n1i,n2i,n3i,corx,cory,corz,i1min,i1max,i2min,i2max,i3min,i3max)
 
    nrhomin = (i3min-1)*n1i*n2i+(i2min-1)*n1i+i1min
@@ -1200,13 +1200,13 @@ subroutine rho_segkey(iproc,at,rxyz,crmult,frmult,radii_cf,&
    !$omp end parallel
 
    do iat=1,nat
-      call get_atbound(iat,at,rxyz,radii_cf,crmult,frmult,hxh,&
+      call get_atbound(iat,at,rxyz,crmult,frmult,hxh,&
          &   hyh,hzh,spadd,dpmult,n1i,n2i,n3i,corx,cory,corz,&
          &   i1cmin(iat),i1cmax(iat),i2cmin(iat),i2cmax(iat),i3cmin(iat),i3cmax(iat),&
          &   i1fmin(iat),i1fmax(iat),i2fmin(iat),i2fmax(iat),i3fmin(iat),i3fmax(iat))
 
-      dsq_cr(iat)=(radii_cf(at%astruct%iatype(iat),1)*crmult+hxh*spadd)**2
-      dsq_fr(iat)=(radii_cf(at%astruct%iatype(iat),2)*frmult*dpmult)**2
+      dsq_cr(iat)=(at%radii_cf(at%astruct%iatype(iat),1)*crmult+hxh*spadd)**2
+      dsq_fr(iat)=(at%radii_cf(at%astruct%iatype(iat),2)*frmult*dpmult)**2
    enddo
 
    !$omp parallel default(none)&
@@ -1454,7 +1454,7 @@ subroutine gridcorrection(nbx,nby,nbz,nl1,nl2,nl3,geocode)
 END SUBROUTINE gridcorrection
 
 
-subroutine get_boxbound(at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,spadd,dpmult,&
+subroutine get_boxbound(at,rxyz,crmult,frmult,hxh,hyh,hzh,spadd,dpmult,&
       &   n1i,n2i,n3i,corx,cory,corz,i1min,i1max,i2min,i2max,i3min,i3max)
    use module_base
    use module_types
@@ -1464,7 +1464,7 @@ subroutine get_boxbound(at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,spadd,dpmult,
    type(atoms_data), intent(in) :: at
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
-   real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
+   !real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
    integer,intent(out) :: i1min,i1max,i2min,i2max,i3min,i3max
    integer,dimension(at%astruct%nat,6) :: crbound,frbound
    real(gp) :: sprad,dprad
@@ -1483,8 +1483,8 @@ subroutine get_boxbound(at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,spadd,dpmult,
 
    ! setup up the cubes that determines the single and double precision segments
    do iat=1,at%astruct%nat
-      sprad=radii_cf(at%astruct%iatype(iat),1)*crmult+hxh*spadd
-      dprad=radii_cf(at%astruct%iatype(iat),2)*frmult*dpmult
+      sprad=at%radii_cf(at%astruct%iatype(iat),1)*crmult+hxh*spadd
+      dprad=at%radii_cf(at%astruct%iatype(iat),2)*frmult*dpmult
       crbound(iat,1)=floor((rxyz(1,iat)-sprad)/hxh)+corx
 !write(*,*) 'crbound(iat,1)',crbound(iat,1)
       crbound(iat,2)=floor((rxyz(1,iat)+sprad)/hxh)+corx
@@ -1525,7 +1525,7 @@ subroutine get_boxbound(at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,spadd,dpmult,
 END SUBROUTINE get_boxbound
 
 
-subroutine get_atbound(iat,at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,&
+subroutine get_atbound(iat,at,rxyz,crmult,frmult,hxh,hyh,hzh,&
       &   spadd,dpmult,n1i,n2i,n3i,corx,cory,corz,&
       &   i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax,&
       &   i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax)
@@ -1537,13 +1537,13 @@ subroutine get_atbound(iat,at,rxyz,radii_cf,crmult,frmult,hxh,hyh,hzh,&
    type(atoms_data), intent(in) :: at
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(gp), intent(in) :: crmult,frmult,hxh,hyh,hzh
-   real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
+   !real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
    integer,intent(out) :: i1cmin,i1cmax,i2cmin,i2cmax,i3cmin,i3cmax
    integer,intent(out) :: i1fmin,i1fmax,i2fmin,i2fmax,i3fmin,i3fmax
    real(gp) :: sprad,dprad
 
-   sprad=radii_cf(at%astruct%iatype(iat),1)*crmult+hxh*spadd
-   dprad=dpmult*frmult*radii_cf(at%astruct%iatype(iat),2)
+   sprad=at%radii_cf(at%astruct%iatype(iat),1)*crmult+hxh*spadd
+   dprad=dpmult*frmult*at%radii_cf(at%astruct%iatype(iat),2)
 
    i1cmin=floor((rxyz(1,iat)-sprad)/hxh)+corx+1
    i1cmax=floor((rxyz(1,iat)+sprad)/hxh)+corx-1

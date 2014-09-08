@@ -569,7 +569,7 @@ end subroutine dpbox_repartition
 !END SUBROUTINE createDensPotDescriptors
 
 subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
-     rho_commun,rxyz,radii_cf,rhodsc)
+     rho_commun,rxyz,rhodsc)
   use module_base
   use module_types
   use module_xc
@@ -582,7 +582,7 @@ subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
   type(denspot_distribution), intent(in) :: dpbox
   character(len=3), intent(in) :: rho_commun
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
-  real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+  !real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   type(rho_descriptors), intent(out) :: rhodsc
   !local variables
 
@@ -627,7 +627,7 @@ subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
   !allocate rho_descriptors if the density repartition is activated
 
   if (rhodsc%icomm==2) then !rho_commun=='MIX' .and. (atoms%astruct%geocode.eq.'F') .and. (nproc > 1)) then! .and. xc_isgga()) then
-     call rho_segkey(iproc,atoms,rxyz,crmult,frmult,radii_cf,&
+     call rho_segkey(iproc,atoms,rxyz,crmult,frmult,&
           dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),&
           dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),nspin,rhodsc,.false.)
   else
