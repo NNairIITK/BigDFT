@@ -65,6 +65,9 @@
     <branch repo="local" module="pseudo-1.7.5.tar.gz" version="1.7.5" checkoutdir="pseudo"/>
     <dependencies>
       <dep package="libxc"/>
+      <if condition-set="testing">
+        <dep package="PyYAML"/>
+      </if>
     </dependencies>
   </autotools>
 
