@@ -1,4 +1,5 @@
 !!  Minima hopping program
+!!$  enddo
 !! @author
 !!    Copyright (C) 2008-2013 UNIBAS
 !!    This file is not freely distributed.
@@ -11,13 +12,14 @@
 program MINHOP
   use module_base
   use bigdft_run
-  use module_types, only: input_variables,bigdft_run_id_toa
+  use module_types, only: input_variables,bigdft_run_id_toa,BIGDFT_SUCCESS
   use module_interfaces
   use module_input_dicts
   use m_ab6_symmetry
   use yaml_output
   use module_atoms, only: deallocate_atoms_data,atoms_data
-  implicit real(kind=8) (a-h,o-z)
+  !implicit real(kind=8) (a-h,o-z) !!!dangerous when using modules!!!
+  implicit none
   logical :: newmin,CPUcheck,occured,exist_poslocm,exist_posacc
   character(len=20) :: unitsp,atmn
   character(len=60) :: run_id
@@ -35,8 +37,10 @@ program MINHOP
   real(kind=8),allocatable, dimension(:,:) :: fp_arr
   real(kind=8),allocatable, dimension(:) :: fp,wfp,fphop
   real(kind=8),allocatable, dimension(:,:,:) :: pl_arr
-  !integer :: iproc,nproc,
-  integer :: iat,ierr,infocode,nksevals,i,igroup,ngroups,natoms
+  integer :: iproc,nproc,iat,ierr,infocode,nksevals,i,natoms,nrandoff,nsoften
+  integer :: n_unique,n_nonuni,nputback,i_stat,ncount_bigdft,ngeopt,nid,nlmin,nlminx
+  integer :: ilmin,ierror,natp,k,nvisit,kid,k_e,nlmin_old,ndfree,ndfroz,ixyz,nummax,nummin
+  integer :: istepnext,istep
   integer :: bigdft_get_number_of_atoms,bigdft_get_number_of_orbitals
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
@@ -48,6 +52,13 @@ program MINHOP
 !  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   integer :: nconfig
   !integer, dimension(4) :: mpi_info
+  real(kind=4) :: tcpu1,ts,tcpu2,cpulimit
+  real(kind=8) :: accepted,ediff,ekinetic,dt,av_ekinetic,av_ediff,escape,escape_sam
+  real(kind=8) :: escape_old,escape_new,rejected,fp_sep,e_hop,count_sdcg,count_soft
+  real(kind=8) :: count_md,count_bfgs,energyold,e_pos,tt,en_delta,fp_delta
+  real(kind=8) :: t1,t2,t3,ebest_l,dmin,tleft,d,ss
+  real(kind=8), external :: dnrm2
+
   type(run_objects) :: runObj
   type(DFT_global_output) :: outs
   type(dictionary), pointer :: user_inputs,options
@@ -58,14 +69,12 @@ logical:: disable_hatrans
 
   call bigdft_command_line_options(options)
   call bigdft_init(options)
-
   if (bigdft_nruns(options) > 1) call f_err_throw('runs-file not supported for frequencies executable')
-  
   !temporary
-  run_id = options // 0 // 'name'
+  run_id = options // 'BigDFT' // 0 // 'name'
   call dict_free(options)
-  !  call bigdft_init(mpi_info,nconfig,run_id,ierr)
-!!$
+
+!!$  call bigdft_init(mpi_info,nconfig,run_id,ierr)
 !!$  if (nconfig < 0) stop 'runs-file not supported for MH executable'
 !!$  
 !!$   iproc=mpi_info(1)
@@ -135,6 +144,7 @@ logical:: disable_hatrans
   gg = f_malloc((/ 3, natoms /),id='gg')
   poshop = f_malloc((/ 3, natoms /),id='poshop')
   rcov = f_malloc(natoms,id='rcov')
+  pos = f_malloc_ptr((/ 3, natoms /),id='pos')
 
   call give_rcov(bigdft_mpi%iproc,atoms,natoms,rcov)
 
@@ -173,7 +183,7 @@ logical:: disable_hatrans
   escape_sam=0.d0
   escape_old=0.d0
   escape_new=0.d0
-  rejected=0
+  rejected=0.d0
   fp_sep=0.d0
   e_hop=1.d100
 
@@ -234,22 +244,22 @@ logical:: disable_hatrans
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) number of posacc files that exist already ',nposacc)
 
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
-  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for approximate geo. rel of initial conf., e_pos',ncount_bigdft)
+  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for approximate geo. rel of initial conf.',ncount_bigdft)
   count_sdcg=count_sdcg+ncount_bigdft
 
   ngeopt=ngeopt+1
-  if (bigdft_mpi%iproc == 0) then 
-     tt=dnrm2(3*natoms,ff,1)
-     write(fn4,'(i4.4)') ngeopt
-     write(comment,'(a,1pe10.3)')'fnrm= ',tt
-     call write_atomic_file('posimed_'//fn4//'_'//trim(bigdft_run_id_toa()),&
-          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
-      open(unit=864,file='ksemed_'//fn4//'_'//trim(bigdft_run_id_toa()))
-      do i=1,nksevals
-      write(864,*) ksevals(i)
-      enddo
-      close(864)
-  endif
+!  if (bigdft_mpi%iproc == 0) then 
+!     tt=dnrm2(3*natoms,ff,1)
+!     write(fn4,'(i4.4)') ngeopt
+!     write(comment,'(a,1pe10.3)')'fnrm= ',tt
+!     call write_atomic_file('posimed_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+!          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
+!      open(unit=864,file='ksemed_'//fn4//'_'//trim(bigdft_run_id_toa()))
+!      do i=1,nksevals
+!      write(864,*) ksevals(i)
+!      enddo
+!      close(864)
+!  endif
 
   if (atoms%astruct%geocode=='F' .and. (.not. disable_hatrans)) call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
 
@@ -264,7 +274,24 @@ logical:: disable_hatrans
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of initial conf.',ncount_bigdft)
   count_bfgs=count_bfgs+ncount_bigdft
-  e_pos = outs%energy
+        e_pos = outs%energy
+        call f_memcpy(src=atoms%astruct%rxyz,dest=pos)
+!!$        do iat=1,atoms%astruct%nat
+!!$          pos(1,iat)=atoms%astruct%rxyz(1,iat)
+!!$          pos(2,iat)=atoms%astruct%rxyz(2,iat)
+!!$          pos(3,iat)=atoms%astruct%rxyz(3,iat)
+!!$        enddo
+  if (bigdft_mpi%iproc == 0) then
+     call yaml_map('(MH) INPUT(relaxed), e_pos ',outs%energy,fmt='(e17.10)')
+  end if
+
+        nid=natoms
+        fp = f_malloc(nid,id='fp')
+        wfp = f_malloc(nid,id='wfp')
+        fphop = f_malloc(nid,id='fphop')
+
+  call fingerprint(bigdft_mpi%iproc,atoms%astruct%nat,nid,pos,rcov,fp,atoms%astruct%geocode,atoms%astruct%cell_dim)
+
 
   call bigdft_get_eigenvalues(rst,ksevals,i_stat)
   if (i_stat /= BIGDFT_SUCCESS) then
@@ -299,17 +326,6 @@ logical:: disable_hatrans
       close(864)
   endif
   
-        nid=natoms
-        fp = f_malloc(nid,id='fp')
-        wfp = f_malloc(nid,id='wfp')
-        fphop = f_malloc(nid,id='fphop')
-
-  call fingerprint(bigdft_mpi%iproc,atoms%astruct%nat,nid,atoms%astruct%rxyz,rcov,fp, & 
-                   atoms%astruct%geocode,atoms%astruct%cell_dim)
-  if (bigdft_mpi%iproc == 0) then
-     call yaml_map('(MH) INPUT(relaxed), e_pos ',outs%energy,fmt='(e17.10)')
-  end if
-
 
 ! Read previously found energies and properties
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) name of enarr','enarr'//trim(bigdft_run_id_toa()))
@@ -380,10 +396,6 @@ logical:: disable_hatrans
      if (bigdft_mpi%iproc == 0) call yaml_map('(MH) number of read poslow files', nlmin)
 
 
-        e_wpos=outs%energy
-        do i=1,nid
-          wfp(i)=fp(i)
-        enddo
 
         ebest_l=outs%energy 
   if (nlmin.eq.0) then !new run
@@ -400,24 +412,18 @@ logical:: disable_hatrans
           pl_arr(3,iat,1)=atoms%astruct%rxyz(3,iat) 
         enddo
 
-!!$        do iat=1,atoms%astruct%nat
-!!$          wpos(1,iat)=atoms%astruct%rxyz(1,iat)
-!!$          wpos(2,iat)=atoms%astruct%rxyz(2,iat)
-!!$          wpos(3,iat)=atoms%astruct%rxyz(3,iat)
-!!$        enddo
-
   else  ! continuation run, check whether the poscur file has been modified by hand
-     call identical(bigdft_mpi%iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp_delta,&
-          newmin,kid,dmin,k_e_wpos,n_unique,n_nonuni)
+     call identical(bigdft_mpi%iproc,nlminx,nlmin,nid,e_pos,fp,en_arr,fp_arr,en_delta,fp_delta,&
+          newmin,kid,dmin,k_e,n_unique,n_nonuni)
      if (newmin) then  
         if (bigdft_mpi%iproc == 0) call yaml_map('(MH) initial minimum is new, dmin= ',dmin)
         nlmin=nlmin+1
         if (nlmin.gt.nlminx) stop 'nlminx too small'
         !            add minimum to history list
-        call insert(bigdft_mpi%iproc,nlminx,nlmin,nid,natoms,k_e_wpos,e_wpos,wfp,pos,en_arr,ct_arr,fp_arr,pl_arr)
-        k_e_wpos=k_e_wpos+1
-        if (k_e_wpos .gt. nlminx .or. k_e_wpos .lt. 1) stop "k_e_wpos out of bounds"
-        nvisit=int(ct_arr(k_e_wpos))
+        call insert(bigdft_mpi%iproc,nlminx,nlmin,nid,natoms,k_e,e_pos,fp,pos,en_arr,ct_arr,fp_arr,pl_arr)  
+        k_e=k_e+1
+        if (k_e .gt. nlminx .or. k_e .lt. 1) stop "k_e out of bounds"
+        nvisit=int(ct_arr(k_e))
      else
         if (bigdft_mpi%iproc == 0) call yaml_map('(MH) initial minimum is old, dmin=',dmin)
         if (kid .gt. nlminx .or. kid .lt. 1) stop "kid out of bounds"
@@ -427,7 +433,7 @@ logical:: disable_hatrans
 
   if (bigdft_mpi%iproc == 0) then
           write(2,'((1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),a,i5)')  &
-          escape,e_wpos,ediff,ekinetic,'  P ',nvisit 
+          escape,e_pos,ediff,ekinetic,'  P ',nvisit 
           call f_utils_flush(2)
           !call bigdft_utils_flush(unit=2)
           !flush(2)
@@ -436,8 +442,8 @@ logical:: disable_hatrans
   nlmin_old=nlmin
   CPUcheck=.false.
 
-  pos = f_malloc_ptr((/ 3, atoms%astruct%nat /),id='pos')
-  call vcopy(3*atoms%astruct%nat, atoms%astruct%rxyz(1,1) , 1, pos(1,1), 1)
+  call f_memcpy(src=atoms%astruct%rxyz,dest=pos)
+  !call vcopy(3*atoms%astruct%nat, atoms%astruct%rxyz(1,1) , 1, pos(1,1), 1)
 
   !C outer (hopping) loop
    hopping_loop: do
@@ -472,14 +478,8 @@ logical:: disable_hatrans
   endif
   CPUcheck=.true.
 
-!!$  do iat=1,atoms%astruct%nat
-!!$     wpos(1,iat)=pos(1,iat)
-!!$     wpos(2,iat)=pos(2,iat) 
-!!$     wpos(3,iat)=pos(3,iat)
-!!$  enddo
   call run_objects_associate(runObj, inputs_md, atoms, rst, pos(1,1))
   escape=escape+1.d0
-!  e_pos = outs%energy !MUST NOT UPDATE e_pos HERE!!
   call mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, runObj, outs, &
                 ngeopt,bigdft_mpi%nproc,bigdft_mpi%iproc)
   if (bigdft_mpi%iproc == 0) then 
@@ -503,18 +503,18 @@ logical:: disable_hatrans
      count_sdcg=count_sdcg+ncount_bigdft
 
   ngeopt=ngeopt+1
-  if (bigdft_mpi%iproc == 0) then 
-     tt=dnrm2(3*outs%fdim,outs%fxyz,1)
-     write(fn4,'(i4.4)') ngeopt
-     write(comment,'(a,1pe10.3)')'fnrm= ',tt
-     call write_atomic_file('posimed_'//fn4//'_'//trim(bigdft_run_id_toa()),&
-          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
-      open(unit=864,file='ksemed_'//fn4//'_'//trim(bigdft_run_id_toa()))
-      do i=1,nksevals
-      write(864,*) ksevals(i)
-      enddo
-      close(864)
-  endif
+!  if (bigdft_mpi%iproc == 0) then 
+!     tt=dnrm2(3*outs%fdim,outs%fxyz,1)
+!     write(fn4,'(i4.4)') ngeopt
+!     write(comment,'(a,1pe10.3)')'fnrm= ',tt
+!     call write_atomic_file('posimed_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+!          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
+!      open(unit=864,file='ksemed_'//fn4//'_'//trim(bigdft_run_id_toa()))
+!      do i=1,nksevals
+!      write(864,*) ksevals(i)
+!      enddo
+!      close(864)
+!  endif
 
   if (atoms%astruct%geocode=='F' .and. (.not. disable_hatrans)) call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
 
@@ -556,7 +556,7 @@ logical:: disable_hatrans
   if (bigdft_mpi%iproc == 0) then 
      call yaml_mapping_open('(MH) GEOPT finished')
      call yaml_map('nlminx, nlmin',(/nlminx,nlmin/))
-     call yaml_map('(MH) e_wpos, e_pos',(/outs%energy,e_pos/))
+     call yaml_map('(MH) new e_pos, old e_pos',(/outs%energy,e_pos/))
      call yaml_mapping_close()
   endif
 
@@ -593,12 +593,12 @@ logical:: disable_hatrans
 
   !C  check whether new minimum
   call identical(bigdft_mpi%iproc,nlminx,nlmin,nid,outs%energy,wfp,en_arr,fp_arr,en_delta,fp_delta,&
-       newmin,kid,dmin,k_e_wpos,n_unique,n_nonuni)
+       newmin,kid,dmin,k_e,n_unique,n_nonuni)
   if (newmin) then
       escape_new=escape_new+1.d0
       ekinetic=ekinetic*beta_N
       nlmin=nlmin+1
-      call insert(bigdft_mpi%iproc,nlminx,nlmin,nid,atoms%astruct%nat,k_e_wpos,outs%energy,wfp,&
+      call insert(bigdft_mpi%iproc,nlminx,nlmin,nid,atoms%astruct%nat,k_e,outs%energy,wfp,&
            & atoms%astruct%rxyz,en_arr,ct_arr,fp_arr,pl_arr)
 ! write intermediate results
       if (bigdft_mpi%iproc == 0) call yaml_comment('(MH) WINTER')
@@ -790,13 +790,16 @@ contains
     use module_types
     use module_interfaces
     use m_ab6_symmetry
-    implicit real*8 (a-h,o-z)
+    implicit none !real*8 (a-h,o-z)
+    integer :: nsoften,mdmin,ngeopt,iproc,nproc
+    real(kind=8) :: ekinetic,dt,count_md
     type(run_objects), intent(inout) :: runObj
     type(DFT_global_output), intent(inout) :: outs
-    dimension gg(3,atoms%astruct%nat),vxyz(3,atoms%astruct%nat)
+    real(kind=8), dimension(3,atoms%astruct%nat) :: gg,vxyz
     character(len=4) :: fn4
     logical :: move_this_coordinate
-    real(gp) :: e0
+    real(gp) :: e0,enmin1,en0000,econs_max,econs_min,rkin,enmin2
+    real(kind=8) :: devcon,at1,at2,at3
     !type(wavefunctions_descriptors), intent(inout) :: wfd
     !real(kind=8), pointer :: psi(:), eval(:)
 
