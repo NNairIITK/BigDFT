@@ -214,21 +214,6 @@ function bigdft_error_ret(err_signal,err_message) result (ierr)
   
 end function bigdft_error_ret
 
-!accessors for external programs
-!> Get the number of orbitals of the run in rst
-function bigdft_get_number_of_atoms(atoms) result(nat)
-  use module_base
-  use module_types
-  implicit none
-  type(atoms_data), intent(in) :: atoms !> BigDFT restart variables. call_bigdft already called
-  integer :: nat !> Number of atoms
-
-  nat=atoms%astruct%nat
-
-  if (f_err_raise(nat < 0 ,'Number of atoms unitialized')) return
-
-end function bigdft_get_number_of_atoms
-
 !> Get the number of orbitals of the run in rst
 function bigdft_get_number_of_orbitals(rst,istat) result(norb)
   use module_types, only: BIGDFT_SUCCESS,BIGDFT_UNINITIALIZED

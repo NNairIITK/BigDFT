@@ -60,7 +60,7 @@ module module_interfaces
          implicit none
          integer, intent(in) :: iproc,nproc
          type(input_variables), intent(in) :: in
-         type(atoms_data), intent(inout) :: at
+         type(atoms_data), intent(in) :: at
          type(orbitals_data), intent(inout) :: orbs
          real(gp), dimension(at%astruct%ntypes,3), intent(out) :: radii_cf
       END SUBROUTINE system_properties
@@ -3722,7 +3722,7 @@ module module_interfaces
           implicit none
           integer:: iproc, nproc
           type(DFT_wavefunction),intent(inout) :: tmb, KSwfn
-          type(atoms_data), intent(inout) :: at
+          type(atoms_data), intent(in) :: at
           real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
           type(DFT_local_fields), intent(inout) :: denspot
           type(GPU_pointers), intent(inout) :: GPU

@@ -53,7 +53,7 @@ program BigDFT
    run => dict_iter(options .get. 'BigDFT')
    do while(associated(run))
       call run_objects_init(runObj,run)
-      call init_global_output(outs,runObj%atoms%astruct%nat)
+      call init_global_output(outs,bigdft_nat(runObj))
 
       posinp_id = run // 'posinp' 
       call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)

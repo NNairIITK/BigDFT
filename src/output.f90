@@ -1271,7 +1271,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
   use psp_projectors, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
        PSPCODE_PAW,PSPCODE_GTH
   implicit none
-  type(atoms_data), intent(inout) :: atoms
+  type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: hmax
   integer, intent(in) :: ixc, dispersion
   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf

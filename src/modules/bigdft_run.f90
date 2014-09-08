@@ -53,6 +53,7 @@ module bigdft_run
   public :: run_objects_associate,run_objects_free_container,init_restart_objects
   public :: global_output_set_from_dict,free_restart_objects
   public :: run_objects_init,bigdft_init,bigdft_command_line_options,bigdft_nruns
+  public :: bigdft_nat
 
 !!$  ! interfaces of external routines 
 !!$  interface
@@ -305,7 +306,7 @@ module bigdft_run
       type(input_variables), intent(in), target :: inputs
       type(atoms_data), intent(in), target :: atoms
       type(restart_objects), intent(in), target :: rst
-      real(gp), intent(in), optional :: rxyz0
+      real(gp), intent(inout), optional :: rxyz0 !<fake intent(in)
 
       call run_objects_free_container(runObj)
       runObj%atoms  => atoms
@@ -460,35 +461,60 @@ module bigdft_run
     END SUBROUTINE run_objects_free_container
 
     !> Read all input files and create the objects to run BigDFT
-    subroutine run_objects_init(runObj, run_dict)
+    subroutine run_objects_init(runObj,run_dict,source)
       use module_base, only: bigdft_mpi,dict_init
       use module_types
       use module_input_dicts, only: user_dict_from_files
       implicit none
+      !> Object for BigDFT run. Has to be initialized by this routine in order to
+      !! call bigdft main routine.
       type(run_objects), intent(out) :: runObj
-      type(dictionary), pointer :: run_dict
+      !> dictionary containing instructions for the run.
+      !! identifies the instructions needed to initialize the run.
+      !! essentially, run id, input positions id and so on.
+      !! this dictionary is an element of the list that can be found 
+      !! in options // 'BigDFT' after the call to bigdft_init routine
+      !! if absent, the run objects need src argument to be initialized
+      !! otherwise the runObj is a empty structure
+      type(dictionary), pointer, optional :: run_dict
+      !> template to perform a shallow copy of the arguments already inside.
+      !! if run_dict is absent
+      !! if present together with run_dict, it performs a shallow copy of the restart variables 
+      !! variables given by is *except* the structures inputs and atoms, 
+      !! which are provided by the informations given by run_dict
+      type(run_objects), intent(in), optional :: source
       !local variables
       character(len=max_field_length) :: radical, posinp
 
-      radical = run_dict // 'name'
-      posinp = run_dict // 'posinp' 
-
       call run_objects_nullify(runObj)
 
-      ! Allocate persistent structures.
-      allocate(runObj%rst)
-      call restart_objects_new(runObj%rst)
+      if (present(run_dict)) then
+         radical = run_dict // 'name'
+         posinp = run_dict // 'posinp'
+         
+         !here the control of the logfile can be inserted, driven by run_dict and not anymore by 
+         ! user_inputs
+ 
+         ! Generate input dictionary and parse it.
+         call dict_init(runObj%user_inputs)
+         call user_dict_from_files(runObj%user_inputs, radical, posinp, bigdft_mpi)
+      end if
 
-      ! Generate input dictionary and parse it.
-      call dict_init(runObj%user_inputs)
-      call user_dict_from_files(runObj%user_inputs, radical, posinp, bigdft_mpi)
-      call run_objects_parse(runObj)
-
-      ! Start the signaling loop in a thread if necessary.
-      if (runObj%inputs%signaling .and. bigdft_mpi%iproc == 0) then
-         call bigdft_signals_init(runObj%inputs%gmainloop, 2, &
-              & runObj%inputs%domain, len_trim(runObj%inputs%domain))
-         call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
+      if (present(source)) then
+         
+      else
+         ! Allocate persistent structures.
+         allocate(runObj%rst)
+         call restart_objects_new(runObj%rst)
+         
+         call run_objects_parse(runObj)
+         
+         ! Start the signaling loop in a thread if necessary.
+         if (runObj%inputs%signaling .and. bigdft_mpi%iproc == 0) then
+            call bigdft_signals_init(runObj%inputs%gmainloop, 2, &
+                 & runObj%inputs%domain, len_trim(runObj%inputs%domain))
+            call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
+         end if
       end if
     END SUBROUTINE run_objects_init
 
@@ -711,6 +737,23 @@ module bigdft_run
       bigdft_nruns=dict_len(runs)
       if (bigdft_nruns < 0) bigdft_nruns=0
     end function bigdft_nruns
+
+    !accessors for external programs
+    !> Get the number of orbitals of the run in rst
+    function bigdft_nat(runObj) result(nat)
+      implicit none
+      type(run_objects), intent(in) :: runObj !> BigDFT run structure
+      integer :: nat !> Number of atoms
+
+      if (associated(runObj%atoms)) then
+         nat=runObj%atoms%astruct%nat
+      else
+         nat=-1
+      end if
+      if (f_err_raise(nat < 0 ,'Number of atoms unitialized',&
+           err_name='BIGDFT_RUNTIME_ERROR')) return
+
+    end function bigdft_nat
 
   
 end module bigdft_run
@@ -972,7 +1015,7 @@ subroutine run_objects_parse(runObj)
   ! Regenerate inputs and atoms.
   call inputs_from_dict(runObj%inputs, runObj%atoms, runObj%user_inputs)
 
-  ! Number of atoms should not change.
+  ! Number of atoms should not change durung the calculation 
   if (runObj%rst%nat > 0 .and. runObj%rst%nat /= runObj%atoms%astruct%nat) then
      call f_err_throw("The number of atoms changed!",err_name='BIGDFT_RUNTIME_ERROR')
   else if (runObj%rst%nat == 0) then

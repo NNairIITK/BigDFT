@@ -1645,8 +1645,6 @@ subroutine clean_rho(iproc, nproc, npt, rho)
   
 end subroutine clean_rho
 
-
-
 subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
   use module_types
   use module_interfaces

@@ -69,7 +69,7 @@ logical:: disable_hatrans
 
   call bigdft_command_line_options(options)
   call bigdft_init(options)
-  if (bigdft_nruns(options) > 1) call f_err_throw('runs-file not supported for frequencies executable')
+  if (bigdft_nruns(options) > 1) call f_err_throw('runs-file not supported for MINHOP executable')
   !temporary
   run_id = options // 'BigDFT' // 0 // 'name'
   call dict_free(options)
@@ -104,12 +104,16 @@ logical:: disable_hatrans
        & 'poscur'//trim(bigdft_run_id_toa()), bigdft_mpi)
   call inputs_from_dict(inputs_opt, atoms, user_inputs)
   call dict_free(user_inputs)
+
   !unoptimized input parameters
   call dict_init(user_inputs)
   call user_dict_from_files(user_inputs, 'md'//trim(run_id)//trim(bigdft_run_id_toa()), &
        & 'poscur'//trim(bigdft_run_id_toa()), bigdft_mpi)
   call inputs_from_dict(inputs_md, md_atoms, user_inputs)
   call dict_free(user_inputs)
+  !use only the atoms structure for the run
+  call deallocate_atoms_data(md_atoms) 
+
 !   write(*,*) 'nat=',atoms%astruct%nat
   ! Create the DFT_global_output container.
   call init_global_output(outs, atoms%astruct%nat)
@@ -128,12 +132,9 @@ logical:: disable_hatrans
      inputs_md%dir_output=inputs_opt%dir_output
   end if
 
-  !use only the atoms structure for the run
-!!$  call init_atomic_values((bigdft_mpi%iproc == 0),md_atoms,inputs_md%ixc)
-  call deallocate_atoms_data(md_atoms) 
-
   !get number of atoms of the system, to allocate local arrays
-  natoms=bigdft_get_number_of_atoms(atoms)
+  !temporary workaround before starting with the unification of the high-level input structures
+  natoms=atoms%astruct%nat!bigdft_get_number_of_atoms(atoms)
 
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) beta_S, beta_O, beta_N',(/beta_S,beta_O,beta_N/),fmt='(1pe11.4)')
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) alpha_A, alpha_R',(/alpha_A,alpha_R/),fmt='(1pe11.4)')

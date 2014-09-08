@@ -382,7 +382,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf)
   implicit none
   integer, intent(in) :: iproc,nproc
   type(input_variables), intent(in) :: in
-  type(atoms_data), intent(inout) :: atoms
+  type(atoms_data), intent(in) :: atoms
   type(orbitals_data), intent(inout) :: orbs
   real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
   !local variables
