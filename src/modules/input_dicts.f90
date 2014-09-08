@@ -266,6 +266,7 @@ contains
 !!$            & ixc = dict_psp // PSPXC_KEY
        call psp_from_data(atomname, nzatom, &
             & nelpsp, npspcode, ixc, psppar(:,:), exists)
+       radii_cf(:) = UNINITIALIZED(1._gp)
        call psp_data_merge_to_dict(dict_psp, nzatom, nelpsp, npspcode, ixc, &
             & psppar(0:4,0:6), radii_cf, UNINITIALIZED(1._gp), UNINITIALIZED(1._gp))
        call set(dict_psp // SOURCE_KEY, "Hard-Coded")
