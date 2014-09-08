@@ -85,7 +85,7 @@ distclean: $(CLEANS)
 failed-check: $(FAILEDCHECKS) report
 
 report:
-	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
+	@if test $(MAKELEVEL) = 0 ; then python $(top_builddir)/tests/report.py ; fi
 
 #Binary dependencies
 $(abs_top_builddir)/src/BigDFT2Wannier:
