@@ -42,7 +42,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   ! need to do this properly/rearrange routines
   if (cdft) then
      ! otherwise doesn't make sense
-     if (input%frag%nfrag==2) homo_diff=(ref_frags(1)%eval(ceiling(ref_frags(1)%nelec/2.0_gp))&
+     if (input%frag%nfrag_ref==2) homo_diff=(ref_frags(1)%eval(ceiling(ref_frags(1)%nelec/2.0_gp))&
           -ref_frags(2)%eval(ceiling(ref_frags(2)%nelec/2.0_gp)))/2.0d0
      !if (cdft%charge<0) lag_mult=-0.5, otherwise +0.5
      lag_mult=-0.05d0

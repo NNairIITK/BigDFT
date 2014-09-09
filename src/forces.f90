@@ -25,13 +25,14 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   character(len=*), parameter :: subname='forces_via_finite_differences'
   character(len=4) :: cc
   integer :: ik,km,n_order,i_all,i_stat,iat,ii,i,k,order,iorb_ref
-  real(gp) :: dd,alat,functional_ref,fd_alpha,energy_ref
+  real(gp) :: dd,alat,functional_ref,fd_alpha,energy_ref,pressure
   real(gp), dimension(3) :: fd_step
   real(gp), dimension(6) :: strten
   integer, dimension(:), allocatable :: kmoves
   real(gp), dimension(:), allocatable :: functional,dfunctional
-  real(gp), dimension(:,:), allocatable :: radii_cf, rxyz_ref,fxyz_fake
+  real(gp), dimension(:,:), allocatable :: radii_cf, rxyz_ref, fxyz_fake
   logical :: move_this_coordinate
+  type(energy_terms) :: energs
 
 !!$  interface !not needed anymore
 !!$     subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
@@ -157,7 +158,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
            end if
            inputs%inputPsiId=1
            !here we should call cluster
-           call cluster(nproc,iproc,atoms,rst%rxyz_new,radii_cf,energy,fxyz_fake,strten,fnoise,&
+           call cluster(nproc,iproc,atoms,rst%rxyz_new,radii_cf,energy,energs,fxyz_fake,strten,fnoise,pressure,&
                 rst%KSwfn,rst%tmb,&!psi,rst%Lzd,rst%gaucoeffs,rst%gbd,rst%orbs,&
                 rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,inputs,rst%GPU,infocode)
 
@@ -175,7 +176,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
 !!$           end if
            
         end do
-        ! Build the finite-difference quantity if the calculatio has converged properly
+        ! Build the finite-difference quantity if the calculation has converged properly
         if (infocode ==0) then
            !Force is -dE/dR
            if (order == -1) then

@@ -549,7 +549,8 @@ contains
 
 
    !> Defines a new dictionary from a key and a value
-   pure function dict_cont_new_with_value(key, val) result(cont)
+   !pure 
+   function dict_cont_new_with_value(key, val) result(cont)
      implicit none
      character(len = *), intent(in) :: val
      include 'dict_cont-inc.f90'

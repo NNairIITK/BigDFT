@@ -521,8 +521,8 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
    logical, dimension(0:n1,0:n2,0:n3), intent(out) :: logrid
    !local variables
    real(kind=8), parameter :: eps_mach=1.d-12
-   integer :: i1,i2,i3,iat,ml1,ml2,ml3,mu1,mu2,mu3,j1,j2,j3
-   real(gp) :: dx,dy2,dz2,rad
+   integer :: i1,i2,i3,iat,ml1,ml2,ml3,mu1,mu2,mu3,j1,j2,j3,i1s,i1e,i2s,i2e,i3s,i3e
+   real(gp) :: dx,dy2,dz2,rad,dy2pdz2,radsq
 
    call f_routine(id='fill_logrid')
 
@@ -607,19 +607,29 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
                stop
            end if
          end if
+         i3s=max(ml3,-n3/2-1)
+         i3e=min(mu3,n3+n3/2+1)
+         i2s=max(ml2,-n2/2-1)
+         i2e=min(mu2,n2+n2/2+1)
+         i1s=max(ml1,-n1/2-1)
+         i1e=min(mu1,n1+n1/2+1)
+         radsq=rad**2
          !what follows works always provided the check before
-         !$omp parallel default(shared) private(i3,dz2,j3,i2,dy2,j2,i1,j1,dx)
-         !$omp do
-         do i3=max(ml3,-n3/2-1),min(mu3,n3+n3/2+1)
-            dz2=(real(i3,gp)*hz-rxyz(3,iat))**2
+         !$omp parallel default(shared) private(i3,dz2,j3,i2,dy2,j2,i1,j1,dx,dy2pdz2)
+         !$omp do schedule(static,1)
+         do i3=i3s,i3e
+            dz2=(real(i3,gp)*hz-rxyz(3,iat))**2-eps_mach
+            if (dz2>radsq) cycle
             j3=modulo(i3,n3+1)
-            do i2=max(ml2,-n2/2-1),min(mu2,n2+n2/2+1)
+            do i2=i2s,i2e
                dy2=(real(i2,gp)*hy-rxyz(2,iat))**2
+               dy2pdz2=dy2+dz2
+               if (dy2pdz2>radsq) cycle
                j2=modulo(i2,n2+1)
-               do i1=max(ml1,-n1/2-1),min(mu1,n1+n1/2+1)
+               do i1=i1s,i1e
                   j1=modulo(i1,n1+1)
                   dx=real(i1,gp)*hx-rxyz(1,iat)
-                  if (dx**2+(dy2+dz2)-eps_mach <= rad**2) then 
+                  if (dx**2+dy2pdz2 <= radsq) then 
                      logrid(j1,j2,j3)=.true.
                   endif
                enddo
@@ -645,6 +655,8 @@ subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
    !local variables
    integer :: i1,i2,i3
 
+   !$omp parallel default(shared) private(i3,i2,i1)
+   !$omp do
    do i3=0,n3 
       do i2=0,n2 
          ibyz(1,i2,i3)= 1000
@@ -665,8 +677,9 @@ subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
          enddo loop_i1e
       end do
    end do
+   !$omp end do
 
-
+   !$omp do
    do i3=0,n3 
       do i1=0,n1
          ibxz(1,i1,i3)= 1000
@@ -688,7 +701,9 @@ subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
 
       end do
    end do
+   !$omp end do
 
+   !$omp do
    do i2=0,n2 
       do i1=0,n1 
          ibxy(1,i1,i2)= 1000
@@ -709,5 +724,7 @@ subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
          enddo loop_i3e
       end do
    end do
+   !$omp end do
+   !$omp end parallel
 
 END SUBROUTINE make_bounds

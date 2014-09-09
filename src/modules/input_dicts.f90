@@ -488,7 +488,7 @@ contains
     type(dictionary), pointer :: loc
     character(len = max_field_length) :: str
     real(gp), dimension(3) :: radii_cf
-    integer :: i, l
+    integer :: i, l, dlen
 
     nzatom = -1
     radii_cf(:) = UNINITIALIZED(1._gp)
@@ -675,7 +675,7 @@ contains
 
     type(dictionary), pointer :: types
     character(len = max_field_length) :: str
-    integer :: iat
+    integer :: iat, stypes
     character(len=max_field_length), dimension(:), allocatable :: keys
     character(len=27) :: key
     logical :: exists
@@ -685,7 +685,8 @@ contains
     if ( .not. associated(types)) return
     allocate(keys(dict_size(types)))
     keys = dict_keys(types)
-    do iat = 1, dict_size(types), 1
+    stypes = dict_size(types)
+    do iat = 1, stypes, 1
        key = 'psppar.' // trim(keys(iat))
 
        exists = has_key(dict, key)
@@ -797,7 +798,7 @@ contains
     type(dictionary), pointer :: dict
     type(atomic_structure), intent(in) :: astruct
     real(gp), dimension(3, astruct%nat), intent(in) :: rxyz
-    character(len=*), intent(in), optional :: comment
+    character(len=1024), intent(in), optional :: comment
     !local variables
     type(dictionary), pointer :: pos, at
     integer :: iat,ichg,ispol
@@ -893,7 +894,7 @@ contains
 
     type(dictionary), pointer :: atoms, at
     character(len = max_field_length) :: str
-    integer :: iat, ityp
+    integer :: iat, ityp, dlen
 
     if (ASTRUCT_POSITIONS .notin. dict) then
        nullify(types)
@@ -902,7 +903,8 @@ contains
     call dict_init(types)
     atoms => dict // ASTRUCT_POSITIONS
     ityp = 0
-    do iat = 1, dict_len(atoms), 1
+    dlen = dict_len(atoms)
+    do iat = 1, dlen, 1
        at => dict_iter(atoms // (iat - 1))
        do while(associated(at))
           str = dict_key(at)
@@ -1461,7 +1463,7 @@ contains
     character(len = *), intent(in) :: filename, key
 
     logical :: exists
-    integer :: ierror, ntu, ntd, nt, i, iorb
+    integer :: ierror, ntu, ntd, nt, i, iorb, lline, lstring
     character(len = 100) :: line, string
     type(dictionary), pointer :: valu, vald
     
@@ -1496,7 +1498,8 @@ contains
           exit
        end if
        !Transform the line in case there are slashes (to ease the parsing)
-       do i=1,len(line)
+       lline = len(line)
+       do i=1,lline
           if (line(i:i) == '/') then
              line(i:i) = ':'
           end if
@@ -1506,7 +1509,8 @@ contains
           exit
        end if
        !Transform back the ':' into '/'
-       do i=1,len(string)
+       lstring = len(string)
+       do i=1,lstring
           if (string(i:i) == ':') then
              string(i:i) = '/'
           end if

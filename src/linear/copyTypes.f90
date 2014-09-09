@@ -866,21 +866,21 @@ subroutine sparse_copy_pattern(sparseMat_in, sparseMat_out, iproc, subname)
      end do
   end if
 
-  if(associated(sparsemat_out%orb_from_index)) then
-     call f_free_ptr(sparsemat_out%orb_from_index)
-  end if
-  if(associated(sparsemat_in%orb_from_index)) then
-     iis1=lbound(sparsemat_in%orb_from_index,1)
-     iie1=ubound(sparsemat_in%orb_from_index,1)
-     iis2=lbound(sparsemat_in%orb_from_index,2)
-     iie2=ubound(sparsemat_in%orb_from_index,2)
-     sparsemat_out%orb_from_index=f_malloc_ptr((/iis1.to.iie1,iis2.to.iie2/),id='sparsemat_out%orb_from_index')
-     do i1=iis1,iie1
-        do i2 = iis2,iie2
-           sparsemat_out%orb_from_index(i1,i2) = sparsemat_in%orb_from_index(i1,i2)
-        end do
-     end do
-  end if
+  !!if(associated(sparsemat_out%orb_from_index)) then
+  !!   call f_free_ptr(sparsemat_out%orb_from_index)
+  !!end if
+  !!if(associated(sparsemat_in%orb_from_index)) then
+  !!   iis1=lbound(sparsemat_in%orb_from_index,1)
+  !!   iie1=ubound(sparsemat_in%orb_from_index,1)
+  !!   iis2=lbound(sparsemat_in%orb_from_index,2)
+  !!   iie2=ubound(sparsemat_in%orb_from_index,2)
+  !!   sparsemat_out%orb_from_index=f_malloc_ptr((/iis1.to.iie1,iis2.to.iie2/),id='sparsemat_out%orb_from_index')
+  !!   do i1=iis1,iie1
+  !!      do i2 = iis2,iie2
+  !!         sparsemat_out%orb_from_index(i1,i2) = sparsemat_in%orb_from_index(i1,i2)
+  !!      end do
+  !!   end do
+  !!end if
 
   if(associated(sparsemat_out%matrixindex_in_compressed_fortransposed)) then
      call f_free_ptr(sparsemat_out%matrixindex_in_compressed_fortransposed)
@@ -1070,7 +1070,7 @@ subroutine copy_sparse_matrix(smat_in, smat_out)
   call allocate_and_copy(smat_in%keyg, smat_out%keyg, id='smat_out%keyg')
   call allocate_and_copy(smat_in%matrixindex_in_compressed_arr, smat_out%matrixindex_in_compressed_arr, &
                          id='smat_out%matrixindex_in_compressed_arr')
-  call allocate_and_copy(smat_in%orb_from_index, smat_out%orb_from_index, id='smat_out%orb_from_index')
+  !!call allocate_and_copy(smat_in%orb_from_index, smat_out%orb_from_index, id='smat_out%orb_from_index')
   call allocate_and_copy(smat_in%matrixindex_in_compressed_fortransposed, smat_out%matrixindex_in_compressed_fortransposed, &
                          id='smat_out%matrixindex_in_compressed_fortransposed')
 

@@ -37,7 +37,7 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     integer :: icc !for amber
     real(gp) :: rxyzint(3,nat)
     real(gp) :: alatint(3)
-    if(nat/=fdim)stop'nat /= fdim'
+    if(nat/=fdim)stop 'nat /= fdim'
     ef_counter=ef_counter+1.0_gp 
     if(trim(adjustl(efmethod))=='LJ')then
         call lenjon(nat,rxyz(1,1),fxyz(1,1),epot)
