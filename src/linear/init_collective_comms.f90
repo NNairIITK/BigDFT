@@ -442,7 +442,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   integer :: totops, avops, ops, opsn
   integer, allocatable, dimension(:) :: numops
   logical :: ifnd, jfnd
-  integer :: iorb, jorb, imat
+  integer :: iorb, jorb, imat, iseg
   integer,dimension(2) :: irowcol
 
   call timing(iproc,'ovrlptransComp','ON') !lr408t
@@ -451,6 +451,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
 
   call to_zero(smat%nvctr*smat%nspin, ovrlp%matrix_compr(1))
 
+  ! WARNING: METHOD 2 NOT EXTENSIVELY TESTED
   method_if: if (collcom%imethod_overlap==2) then
 
       !!!iicnt=0
@@ -465,11 +466,13 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
       !!!end do
       
       do ispin=1,smat%nspin
-          do imat=1,smat%nvctr
+        do iseg=1,smat%nseg
+          imat=smat%keyv(iseg)
+          do j=smat%keyg(1,iseg),smat%keyg(2,iseg)
             !call get_orbs(smat,i,iorb,jorb) !lookup on work array of size smat%nvctr 
             !iorb=smat%orb_from_index(2,imat)
             !jorb=smat%orb_from_index(1,imat)
-            irowcol = orb_from_index(smat, imat)
+            irowcol = orb_from_index(smat, j)
             ovrlp%matrix_compr(imat)=0.0_wp
       
             do ipt=1,collcom%nptsp_c
@@ -527,8 +530,9 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                 if (jfnd .and. ifnd) exit
               end do
             end do
-      
-          end do    
+            imat=imat+1
+           end do 
+         end do    
       end do
 
   else if (collcom%imethod_overlap==1) then method_if

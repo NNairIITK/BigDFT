@@ -553,17 +553,17 @@ contains
           end do
           !$omp end parallel do
 
-          ! Initialize sparsemat%orb_from_index
-          ind = 0
-          do iseg = 1, sparsemat%nseg
-             do segn = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
-                ind=ind+1
-                iorb = (segn - 1) / sparsemat%nfvctr + 1
-                jorb = segn - (iorb-1)*sparsemat%nfvctr
-                sparsemat%orb_from_index(1,ind) = jorb
-                sparsemat%orb_from_index(2,ind) = iorb
-             end do
-          end do
+          !!! Initialize sparsemat%orb_from_index
+          !!ind = 0
+          !!do iseg = 1, sparsemat%nseg
+          !!   do segn = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
+          !!      ind=ind+1
+          !!      iorb = (segn - 1) / sparsemat%nfvctr + 1
+          !!      jorb = segn - (iorb-1)*sparsemat%nfvctr
+          !!      sparsemat%orb_from_index(1,ind) = jorb
+          !!      sparsemat%orb_from_index(2,ind) = iorb
+          !!   end do
+          !!end do
     
       else
           ! Otherwise alwyas calculate them on-the-fly

@@ -1055,24 +1055,29 @@ subroutine foe(iproc, nproc, tmprtr, &
 
         scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
         shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh",ispin)+foe_data_get_real(foe_obj,"evlow",ispin))
-        !$omp parallel default(none) private(ii,irowcol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
+        !$omp parallel default(none) private(iseg,ii,i,irowcol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
         !$omp shared(tmb,hamscal_compr,scale_factor,shift_value,isshift,imshift)
         !$omp do
-        do ii=1,tmb%linmat%l%nvctr
-            irowcol = orb_from_index(tmb%linmat%l,ii)
-            iismall_ovrlp = matrixindex_in_compressed(tmb%linmat%s, irowcol(1), irowcol(2))
-            iismall_ham = matrixindex_in_compressed(tmb%linmat%m, irowcol(1), irowcol(2))
-            if (iismall_ovrlp>0) then
-                tt_ovrlp=tmb%linmat%ovrlp_%matrix_compr(isshift+iismall_ovrlp)
-            else
-                tt_ovrlp=0.d0
-            end if
-            if (iismall_ham>0) then
-                tt_ham=tmb%linmat%ham_%matrix_compr(imshift+iismall_ham)
-            else
-                tt_ham=0.d0
-            end if
-            hamscal_compr(ii)=scale_factor*(tt_ham-shift_value*tt_ovrlp)
+        do iseg=1,tmb%linmat%l%nseg
+            !do ii=1,tmb%linmat%l%nvctr
+            ii=tmb%linmat%l%keyv(iseg)
+            do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
+                irowcol = orb_from_index(tmb%linmat%l,i)
+                iismall_ovrlp = matrixindex_in_compressed(tmb%linmat%s, irowcol(1), irowcol(2))
+                iismall_ham = matrixindex_in_compressed(tmb%linmat%m, irowcol(1), irowcol(2))
+                if (iismall_ovrlp>0) then
+                    tt_ovrlp=tmb%linmat%ovrlp_%matrix_compr(isshift+iismall_ovrlp)
+                else
+                    tt_ovrlp=0.d0
+                end if
+                if (iismall_ham>0) then
+                    tt_ham=tmb%linmat%ham_%matrix_compr(imshift+iismall_ham)
+                else
+                    tt_ham=0.d0
+                end if
+                hamscal_compr(ii)=scale_factor*(tt_ham-shift_value*tt_ovrlp)
+                ii=ii+1
+            end do
         end do
         !$omp end do
         !$omp end parallel
@@ -1796,7 +1801,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                                SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed
+  use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, orb_from_index
   use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                       foe_data_set_logical, foe_data_get_logical
   use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
@@ -1814,7 +1819,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
   ! Local variables
   integer :: npl, jorb, it, ii, iseg
   integer :: isegstart, isegend, iismall, nsize_polynomial
-  integer :: iismall_ovrlp, iismall_ham, npl_boundaries
+  integer :: iismall_ovrlp, iismall_ham, npl_boundaries, i
   integer,parameter :: nplx=50000
   real(kind=8),dimension(:,:),allocatable :: cc, chebyshev_polynomials
   real(kind=8),dimension(:,:),pointer :: inv_ovrlp_matrixp
@@ -1826,6 +1831,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
   real(kind=8),dimension(2) :: allredarr
   real(kind=8),dimension(:),allocatable :: hamscal_compr, SHS
   logical,dimension(2) :: eval_bounds_ok
+  integer,dimension(2) :: irowcol
   integer :: irow, icol, iflag, ispin, isshift, ilshift
   logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
   integer,parameter :: NPL_MIN=5
@@ -1951,25 +1957,28 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                       foe_data_get_real(foe_obj,"evhigh",ispin)/=evhigh_old) then
                       shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh",ispin)+foe_data_get_real(foe_obj,"evlow",ispin))
                       scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
-                      !$omp parallel default(none) private(ii,irow,icol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
+                      !$omp parallel default(none) private(iseg,i,ii,irowcol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
                       !$omp shared(inv_ovrlp_smat,ovrlp_smat,hamscal_compr,ovrlp_mat,scale_factor,shift_value,isshift)
                       !$omp do
-                      do ii=1,inv_ovrlp_smat%nvctr
-                          irow = inv_ovrlp_smat%orb_from_index(1,ii)
-                          icol = inv_ovrlp_smat%orb_from_index(2,ii)
-                          iismall_ovrlp = matrixindex_in_compressed(ovrlp_smat, irow, icol)
-                          if (iismall_ovrlp>0) then
-                              if (irow==icol) then
-                                  tt_ovrlp=1.d0
+                      do iseg=1,inv_ovrlp_smat%nseg
+                          ii = inv_ovrlp_smat%keyv(iseg)
+                          do i=inv_ovrlp_smat%keyg(1,iseg),inv_ovrlp_smat%keyg(2,iseg)
+                              irowcol = orb_from_index(inv_ovrlp_smat,i)
+                              iismall_ovrlp = matrixindex_in_compressed(ovrlp_smat, irowcol(1), irowcol(2))
+                              if (iismall_ovrlp>0) then
+                                  if (irowcol(1)==irowcol(2)) then
+                                      tt_ovrlp = 1.d0
+                                  else
+                                      tt_ovrlp = 0.d0
+                                  end if
+                                  tt_ham = ovrlp_mat%matrix_compr(isshift+iismall_ovrlp)
                               else
-                                  tt_ovrlp=0.d0
+                                  tt_ovrlp = 0.d0
+                                  tt_ham = 0.d0
                               end if
-                              tt_ham=ovrlp_mat%matrix_compr(isshift+iismall_ovrlp)
-                          else
-                              tt_ovrlp=0.d0
-                              tt_ham=0.d0
-                          end if
-                          hamscal_compr(ii)=scale_factor*(tt_ham-shift_value*tt_ovrlp)
+                              hamscal_compr(ii) = scale_factor*(tt_ham-shift_value*tt_ovrlp)
+                              ii = ii + 1
+                          end do
                       end do
                       !$omp end do
                       !$omp end parallel
