@@ -120,13 +120,15 @@ MODULE NEB_routines
       call f_lib_initialize()
       nullify(dict,options)
       !no options fof BigDFT
-      call bigdft_init()!options)!mpi_info, nconfig, run_id, ierr)
+   call bigdft_command_line_options(options)
+   call bigdft_init(options)!mpi_info, nconfig, run_id, ierr)
+   run_id=options // 'BigDFT' // 0 // 'name'
       neb_mpi = bigdft_mpi!mpi_environment_null()
 !!$      neb_mpi%igroup = mpi_info(1)
 !!$      neb_mpi%ngroup = mpi_info(2)
 !!$      neb_mpi%iproc  = mpi_info(3)
 !!$      neb_mpi%nproc  = mpi_info(4)
-!!$      neb_mpi%mpi_comm = MPI_COMM_NULL
+      neb_mpi%mpi_comm = MPI_COMM_NULL
       !this is redundant
       if (neb_mpi%nproc > 1) then
          call create_rank_comm(bigdft_mpi%mpi_comm, neb_mpi%mpi_comm)

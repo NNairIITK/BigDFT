@@ -34,7 +34,7 @@ module sparsematrix_base
       integer :: nvctr, nseg, nvctrp, isvctr, parallel_compression, nfvctr, nfvctrp, isfvctr, nspin
       integer,dimension(:),pointer :: keyv, nsegline, istsegline, isvctr_par, nvctr_par, isfvctr_par, nfvctr_par
       integer,dimension(:,:),pointer :: keyg
-      integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr, orb_from_index
+      integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr!, orb_from_index
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
       logical :: store_index, can_use_dense
       type(sparse_matrix_matrix_multiplication) :: smmm
@@ -118,7 +118,7 @@ module sparsematrix_base
       nullify(sparsemat%keyg)
       nullify(sparsemat%istsegline)
       nullify(sparsemat%matrixindex_in_compressed_arr)
-      nullify(sparsemat%orb_from_index)
+      !nullify(sparsemat%orb_from_index)
       nullify(sparsemat%matrixindex_in_compressed_fortransposed)
       nullify(sparsemat%nvctr_par)
       nullify(sparsemat%isvctr_par)
@@ -154,12 +154,15 @@ module sparsematrix_base
     end subroutine allocate_sparse_matrix_basic
 
 
-    subroutine allocate_sparse_matrix_keys(sparsemat)
+    subroutine allocate_sparse_matrix_keys(store_index, sparsemat)
       implicit none
+      logical,intent(in) :: store_index
       type(sparse_matrix),intent(inout) :: sparsemat
       sparsemat%keyv=f_malloc_ptr(sparsemat%nseg,id='sparsemat%keyv')
       sparsemat%keyg=f_malloc_ptr((/2,sparsemat%nseg/),id='sparsemat%keyg')
-      sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
+      !!if (store_index) then
+      !!    sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
+      !!end if
     end subroutine allocate_sparse_matrix_keys
 
 
@@ -247,7 +250,7 @@ module sparsematrix_base
       if (associated(sparseMat%nvctr_par)) call f_free_ptr(sparseMat%nvctr_par)
       if (associated(sparseMat%isfvctr_par)) call f_free_ptr(sparseMat%isfvctr_par)
       if (associated(sparseMat%nfvctr_par)) call f_free_ptr(sparseMat%nfvctr_par)
-      if (associated(sparseMat%orb_from_index)) call f_free_ptr(sparseMat%orb_from_index)
+      !!if (associated(sparseMat%orb_from_index)) call f_free_ptr(sparseMat%orb_from_index)
       call deallocate_sparse_matrix_matrix_multiplication(sparsemat%smmm)
     end subroutine deallocate_sparse_matrix
 

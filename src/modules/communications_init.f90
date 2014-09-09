@@ -22,7 +22,7 @@ module communications_init
 
   contains
 
-    subroutine init_comms_linear(iproc, nproc, imethod_overlap, npsidim_orbs, orbs, lzd, nspin, nscatterarr, collcom)
+    subroutine init_comms_linear(iproc, nproc, imethod_overlap, npsidim_orbs, orbs, lzd, nspin, collcom)
       use module_base
       use module_types
       implicit none
@@ -31,7 +31,6 @@ module communications_init
       integer,intent(in) :: iproc, nproc, imethod_overlap, npsidim_orbs, nspin
       type(orbitals_data),intent(in) :: orbs
       type(local_zone_descriptors),intent(in) :: lzd
-      integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr
       type(comms_linear),intent(inout) :: collcom
       
       ! Local variables
@@ -93,8 +92,8 @@ module communications_init
       index_in_global_c=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,ii3min.to.ii3max/),id='index_in_global_c')
       index_in_global_f=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,ii3min.to.ii3max/),id='index_in_global_f')
 
-      weightppp_c=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,1.to.n3p/),id='weightppp_c')
-      weightppp_f=f_malloc((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,1.to.n3p/),id='weightppp_c')
+      weightppp_c=f_malloc0((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,1.to.max(1,n3p)/),id='weightppp_c')
+      weightppp_f=f_malloc0((/0.to.lzd%glr%d%n1,0.to.lzd%glr%d%n2,1.to.max(1,n3p)/),id='weightppp_c')
       
     
       call get_weights(iproc, nproc, orbs, lzd, i3s, n3p, weightppp_c, weightppp_f, weight_c_tot, weight_f_tot)
@@ -222,7 +221,7 @@ module communications_init
       integer,intent(in) :: iproc, nproc, i3s, n3p
       type(orbitals_data),intent(in) :: orbs
       type(local_zone_descriptors),intent(in) :: lzd
-      real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,1:n3p),intent(out) :: weightppp_c, weightppp_f
+      real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,1:max(1,n3p)),intent(out) :: weightppp_c, weightppp_f
       real(kind=8),intent(out) :: weight_c_tot, weight_f_tot
       
       ! Local variables
@@ -494,7 +493,7 @@ module communications_init
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, i3s, n3p
       type(local_zone_descriptors),intent(in) :: lzd
-      real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,1:n3p),intent(in) :: weightppp_c, weightppp_f
+      real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,1:max(1,n3p)),intent(in) :: weightppp_c, weightppp_f
       real(kind=8),intent(in) :: weight_tot_c, weight_tot_f
       integer,dimension(2,0:nproc-1),intent(out) :: istartend_c, istartend_f
       integer,intent(out) :: istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f
@@ -1575,7 +1574,7 @@ module communications_init
       type(local_zone_descriptors),intent(in):: lzd
       integer,dimension(2,0:nproc-1),intent(in):: istartend_c, istartend_f
       real(kind=8),intent(in):: weightp_c, weightp_f
-      real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,1:n3p),intent(in),target :: weightppp_c, weightppp_f
+      real(kind=8),dimension(0:lzd%glr%d%n1,0:lzd%glr%d%n2,1:max(1,n3p)),intent(in),target :: weightppp_c, weightppp_f
       integer,dimension(nptsp_c),intent(out):: norb_per_gridpoint_c
       integer,dimension(nptsp_f),intent(out):: norb_per_gridpoint_f
       

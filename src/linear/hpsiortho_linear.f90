@@ -22,7 +22,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use sparsematrix_base, only: matrices, matrices_null, deallocate_matrices, &
                                sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: transform_sparse_matrix
+  use sparsematrix, only: transform_sparse_matrix, orb_from_index
   use constrained_dft, only: cdft_data
   implicit none
 
@@ -53,7 +53,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i
-  integer :: lwork, info, ishift,ispin
+  integer :: lwork, info, ishift,ispin, iseg
   real(kind=8) :: ddot, tt, fnrmOvrlp_tot, fnrm_tot, fnrmold_tot, tt2, trkw
   character(len=*), parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8), dimension(:), pointer :: hpsittmp_c, hpsittmp_f
@@ -61,6 +61,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(:), pointer :: kernel_compr_tmp
   real(kind=8), dimension(:), allocatable :: prefac
   real(kind=8),dimension(2) :: reducearr
+  integer,dimension(2) :: irowcol
   real(wp), dimension(2) :: garray
   real(dp) :: gnrm,gnrm_zero,gnrmMax,gnrm_old ! for preconditional2, replace with fnrm eventually, but keep separate for now
   type(matrices) :: matrixm
@@ -113,14 +114,19 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
           do ispin=1,tmb%linmat%l%nspin
               ishift=(ispin-1)*tmb%linmat%l%nvctr
-              do ii=1,tmb%linmat%l%nvctr
-                      iiorb = tmb%linmat%l%orb_from_index(1,ii)
-                      jjorb = tmb%linmat%l%orb_from_index(2,ii)
-                  if(iiorb==jjorb) then
-                      tmb%linmat%kernel_%matrix_compr(ii+ishift)=0.d0
-                  else
-                      tmb%linmat%kernel_%matrix_compr(ii+ishift)=kernel_compr_tmp(ii+ishift)
-                  end if
+              do iseg=1,tmb%linmat%l%nseg
+                  ii=tmb%linmat%l%keyv(iseg)
+                  do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
+                          !iiorb = tmb%linmat%l%orb_from_index(1,ii)
+                          !jjorb = tmb%linmat%l%orb_from_index(2,ii)
+                          irowcol = orb_from_index(tmb%linmat%l, i)
+                      if(irowcol(1)==irowcol(2)) then
+                          tmb%linmat%kernel_%matrix_compr(ii+ishift)=0.d0
+                      else
+                          tmb%linmat%kernel_%matrix_compr(ii+ishift)=kernel_compr_tmp(ii+ishift)
+                      end if
+                      ii=ii+1
+                  end do
               end do
           end do
 
@@ -132,15 +138,20 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
               else
                   ispin=2
               end if
-              do ii=1,tmb%linmat%l%nvctr
-                      iiorb = tmb%linmat%l%orb_from_index(1,ii)
-                      jjorb = tmb%linmat%l%orb_from_index(2,ii)
+              do iseg=1,tmb%linmat%l%nseg
+                  ii=tmb%linmat%l%keyv(iseg)
+                  do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
+                      !iiorb = tmb%linmat%l%orb_from_index(1,ii)
+                      !jjorb = tmb%linmat%l%orb_from_index(2,ii)
+                      irowcol = orb_from_index(tmb%linmat%l, i)
                       ishift=(ispin-1)*tmb%linmat%l%nvctr
-                      if(iiorb==jjorb .and. iiorb==iorb) then
+                      if(irowcol(1)==irowcol(2) .and. irowcol(1)==iorb) then
                           ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
                           call dscal(ncount, kernel_compr_tmp(ii+ishift), tmb%hpsi(ist), 1)
                           ist=ist+ncount
                       end if
+                      ii=ii+1
+                  end do
               end do
           end do
           call timing(iproc,'eglincomms','OF')
