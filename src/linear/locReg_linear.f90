@@ -589,10 +589,10 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
 
    !Now, fill the descriptors:
 
-   keygloc_tmp = f_malloc((/ 2, max(llr(ilr)%wfd%nseg_c,llr(ilr)%wfd%nseg_f) /),id='keygloc_tmp')
+   keygloc_tmp = f_malloc((/ 2, (llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f) /),id='keygloc_tmp')
 
    !$omp parallel default(private) &
-   !$omp shared(Glr,llr,hx,hy,hz,ilr)  
+   !$omp shared(Glr,llr,hx,hy,hz,ilr,keygloc_tmp)  
    !$omp sections
    !$omp section
 
@@ -606,7 +606,8 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         Glr%wfd%nseg_c, Glr%wfd%keygloc(1,1), &
         Glr%wfd%keyvloc(1), &
         llr(ilr)%wfd%keygloc(1,1),llr(ilr)%wfd%keyglob(1,1), &
-        llr(ilr)%wfd%keyvloc(1), llr(ilr)%wfd%keyvglob(1), keygloc_tmp)
+        llr(ilr)%wfd%keyvloc(1), llr(ilr)%wfd%keyvglob(1), &
+        keygloc_tmp(1,1))
 
    !$omp section
    !fine part
@@ -621,7 +622,8 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         llr(ilr)%wfd%keygloc(1,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
         llr(ilr)%wfd%keyglob(1,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
         llr(ilr)%wfd%keyvloc(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
-        llr(ilr)%wfd%keyvglob(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), keygloc_tmp)  
+        llr(ilr)%wfd%keyvglob(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
+        keygloc_tmp(1,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)))  
    !$omp end sections
    !$omp end parallel
 
