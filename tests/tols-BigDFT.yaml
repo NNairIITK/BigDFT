@@ -1060,13 +1060,13 @@ O2spin_foe:
  Epot: 4.4e-8
  EvXC: 3.4e-9
  Enl: 2.6e-9
- Tr(K): 4.4e-8
- charge diff: 4.3e-8
+ Tr(K): 4.8e-8
+ charge diff: 4.8e-8
  eF: 1.1-10
  D eF: 4.4e-8
  guess for new ef: 2.6e-9
  ebs: 4.8e-9
- ebs_check: 2.9e-9
+ ebs_check: 3.3e-9
  Omega: 2.3e-9
  energy: 2.6e-9
  Raw forces norm (Ha/Bohr): 2.7e-9
