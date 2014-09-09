@@ -486,7 +486,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   smat%istsegline = istsegline_init ()
   smat%keyv = keyv_init()
   smat%keyg = keyg_init()
-  call init_orbs_from_index(smat)
+  !!call init_orbs_from_index(smat)
 
   call init_nonzero_arrays(norbp, isorb, smat, nnonzero, nonzero)
 
@@ -696,33 +696,33 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
     end function keyg_init
 
 
-    subroutine init_orbs_from_index(sparsemat)
-      use module_base
-      use module_types
-      use sparsematrix_base, only: sparse_matrix
-      implicit none
+    !!subroutine init_orbs_from_index(sparsemat)
+    !!  use module_base
+    !!  use module_types
+    !!  use sparsematrix_base, only: sparse_matrix
+    !!  implicit none
 
-      ! Calling arguments
-      type(sparse_matrix),intent(inout) :: sparsemat
+    !!  ! Calling arguments
+    !!  type(sparse_matrix),intent(inout) :: sparsemat
 
-      ! local variables
-      integer :: ind, iseg, segn, iorb, jorb
-      character(len=*),parameter :: subname='init_orbs_from_index'
+    !!  ! local variables
+    !!  integer :: ind, iseg, segn, iorb, jorb
+    !!  character(len=*),parameter :: subname='init_orbs_from_index'
 
-      sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
+    !!  sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
 
-      ind = 0
-      do iseg = 1, sparsemat%nseg
-         do segn = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
-            ind=ind+1
-            iorb = (segn - 1) / sparsemat%nfvctr + 1
-            jorb = segn - (iorb-1)*sparsemat%nfvctr
-            sparsemat%orb_from_index(1,ind) = jorb
-            sparsemat%orb_from_index(2,ind) = iorb
-         end do
-      end do
+    !!  ind = 0
+    !!  do iseg = 1, sparsemat%nseg
+    !!     do segn = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
+    !!        ind=ind+1
+    !!        iorb = (segn - 1) / sparsemat%nfvctr + 1
+    !!        jorb = segn - (iorb-1)*sparsemat%nfvctr
+    !!        sparsemat%orb_from_index(1,ind) = jorb
+    !!        sparsemat%orb_from_index(2,ind) = iorb
+    !!     end do
+    !!  end do
 
-    end subroutine init_orbs_from_index
+    !!end subroutine init_orbs_from_index
 
     subroutine init_nonzero_arrays(norbp, isorb, sparsemat, nnonzero, nonzero)
       use sparsematrix_base, only : sparse_matrix
@@ -770,6 +770,7 @@ end subroutine sparse_matrix_init_fake
 subroutine write_matrix_compressed(message, smat, mat)
   use yaml_output
   use sparsematrix_base, only: sparse_matrix, matrices
+  use sparsematrix, only: orb_from_index
   implicit none
 
   ! Calling arguments
@@ -778,7 +779,8 @@ subroutine write_matrix_compressed(message, smat, mat)
   type(matrices),intent(in) :: mat
 
   ! Local variables
-  integer :: iseg, ilen, istart, iend, i, iorb, jorb
+  integer :: iseg, i, ii, iorb, jorb
+  integer,dimension(2) :: irowcol
 
   !!call yaml_sequence_open(trim(message))
   !!do iseg=1,smat%nseg
@@ -797,21 +799,25 @@ subroutine write_matrix_compressed(message, smat, mat)
   call yaml_sequence_open(trim(message))
   do iseg=1,smat%nseg
       call yaml_sequence(advance='no')
-      ilen=smat%keyg(2,iseg)-smat%keyg(1,iseg)+1
+      !ilen=smat%keyg(2,iseg)-smat%keyg(1,iseg)+1
       call yaml_mapping_open(flow=.true.)
       call yaml_map('segment',iseg)
       call yaml_sequence_open('elements')
-      istart=smat%keyv(iseg)
-      iend=smat%keyv(iseg)+ilen-1
-      do i=istart,iend
+      !istart=smat%keyv(iseg)
+      !iend=smat%keyv(iseg)+ilen-1
+      !do i=istart,iend
+      ii=smat%keyv(iseg)
+      do i=smat%keyg(1,iseg),smat%keyg(2,iseg)
           call yaml_newline()
           call yaml_sequence(advance='no')
           call yaml_mapping_open(flow=.true.)
-          iorb=smat%orb_from_index(1,i)
-          jorb=smat%orb_from_index(2,i)
-          call yaml_map('coordinates',(/jorb,iorb/))
-          call yaml_map('value',mat%matrix_compr(i))
+          irowcol=orb_from_index(smat,i)
+          !iorb=orb_from_index(1,i)
+          !jorb=orb_from_index(2,i)
+          call yaml_map('coordinates',(/irowcol(2),irowcol(1)/))
+          call yaml_map('value',mat%matrix_compr(ii))
           call yaml_mapping_close()
+          ii=ii+1
       end do
       call yaml_sequence_close()
       !call yaml_map('values',smat%matrix_compr(istart:iend))
@@ -826,6 +832,7 @@ end subroutine write_matrix_compressed
 function check_symmetry(norb, smat)
   use module_base
   use sparsematrix_base, only: sparse_matrix
+  use sparsematrix, only: orb_from_index
   implicit none
 
   ! Calling arguments
@@ -834,16 +841,22 @@ function check_symmetry(norb, smat)
   logical :: check_symmetry
 
   ! Local variables
-  integer :: i, iorb, jorb
+  integer :: i, iseg, ii, jorb, iorb
   logical,dimension(:,:),allocatable :: lgrid
+  integer,dimension(2) :: irowcol
 
   lgrid=f_malloc((/norb,norb/),id='lgrid')
   lgrid=.false.
 
-  do i=1,smat%nvctr
-      iorb=smat%orb_from_index(1,i)
-      jorb=smat%orb_from_index(2,i)
-      lgrid(jorb,iorb)=.true.
+  do iseg=1,smat%nseg
+      ii=smat%keyv(iseg)
+      do i=smat%keyg(1,iseg),smat%keyg(2,iseg)
+          irowcol=orb_from_index(smat,i)
+          !!iorb=smat%orb_from_index(1,i)
+          !!jorb=smat%orb_from_index(2,i)
+          lgrid(irowcol(2),irowcol(1))=.true.
+          ii=ii+1
+      end do
   end do
 
   check_symmetry=.true.
