@@ -22,7 +22,7 @@ module communications_init
 
   contains
 
-    subroutine init_comms_linear(iproc, nproc, imethod_overlap, npsidim_orbs, orbs, lzd, nspin, nscatterarr, collcom)
+    subroutine init_comms_linear(iproc, nproc, imethod_overlap, npsidim_orbs, orbs, lzd, nspin, collcom)
       use module_base
       use module_types
       implicit none
@@ -31,7 +31,6 @@ module communications_init
       integer,intent(in) :: iproc, nproc, imethod_overlap, npsidim_orbs, nspin
       type(orbitals_data),intent(in) :: orbs
       type(local_zone_descriptors),intent(in) :: lzd
-      integer,dimension(0:nproc-1,4),intent(in) :: nscatterarr
       type(comms_linear),intent(inout) :: collcom
       
       ! Local variables

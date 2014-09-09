@@ -141,7 +141,7 @@ subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc, nspin, imethod_overlap)
   wfn%collcom=comms_linear_null()
   wfn%collcom_sr=comms_linear_null()
 
-  call init_comms_linear(iproc, nproc, imethod_overlap, wfn%npsidim_orbs, wfn%orbs, wfn%lzd, nspin, dpbox%nscatterarr, wfn%collcom)
+  call init_comms_linear(iproc, nproc, imethod_overlap, wfn%npsidim_orbs, wfn%orbs, wfn%lzd, nspin, wfn%collcom)
   call init_comms_linear_sumrho(iproc, nproc, wfn%lzd, wfn%orbs, nspin, dpbox%nscatterarr, wfn%collcom_sr)
 
 END SUBROUTINE kswfn_init_comm
