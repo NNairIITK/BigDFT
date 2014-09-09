@@ -1350,12 +1350,18 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      !call deallocate_sparse_matrix(tmb%linmat%ovrlp)
      !!call deallocate_sparse_matrix(tmb%linmat%ham)
 
-     do ispin=1,tmb%linmat%l%nspin
-         call deallocate_sparse_matrix(tmb%linmat%ks(ispin))
-         call deallocate_sparse_matrix(tmb%linmat%ks_e(ispin))
-     end do
-     deallocate(tmb%linmat%ks)
-     deallocate(tmb%linmat%ks_e)
+     if (associated(tmb%linmat%ks)) then
+         do ispin=1,tmb%linmat%l%nspin
+             call deallocate_sparse_matrix(tmb%linmat%ks(ispin))
+         end do
+         deallocate(tmb%linmat%ks)
+     end if
+     if (associated(tmb%linmat%ks_e)) then
+         do ispin=1,tmb%linmat%l%nspin
+             call deallocate_sparse_matrix(tmb%linmat%ks_e(ispin))
+         end do
+         deallocate(tmb%linmat%ks_e)
+     end if
      call deallocate_sparse_matrix(tmb%linmat%s)
      call deallocate_sparse_matrix(tmb%linmat%m)
      call deallocate_sparse_matrix(tmb%linmat%l)
