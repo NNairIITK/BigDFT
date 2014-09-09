@@ -8,6 +8,9 @@
 !!   For the list of contributors, see ~/AUTHORS 
  
 
+
+
+
 !>  Main routine which does self-consistent loop.
 !!  Does not parse input file and no geometry optimization.
 !!  Does an electronic structure calculation. 
@@ -635,19 +638,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,radii_cf,energy,energs,fxyz,strten,fno
      end if
 
      ! deallocate fragments
-     if (inputpsi == INPUT_PSI_DISK_LINEAR) then
-        if (in%lin%fragment_calculation) then ! we really need to deallocate
-           do ifrag=1,in%frag%nfrag_ref
-              call fragment_free(ref_frags(ifrag))
-           end do
-        else ! we haven't actually allocated anything, so can just nullify - should make this more robust/general
-           do ifrag=1,in%frag%nfrag_ref
-              ref_frags(ifrag)%astruct_frg%nat=-1
-              ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
-              call fragment_free(ref_frags(ifrag))
-              !ref_frags(ifrag)=fragment_null()
-           end do
-        end if
+      if (in%lin%fragment_calculation) then ! we really need to deallocate
+         do ifrag=1,in%frag%nfrag_ref
+            call fragment_free(ref_frags(ifrag))
+         end do
+        deallocate(ref_frags)
+      else if (inputpsi == INPUT_PSI_DISK_LINEAR) then! we haven't actually allocated anything, so can just nullify - should make this more robust/general
+         do ifrag=1,in%frag%nfrag_ref
+            ref_frags(ifrag)%astruct_frg%nat=-1
+            ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
+            call fragment_free(ref_frags(ifrag))
+            !ref_frags(ifrag)=fragment_null()
+         end do
         deallocate(ref_frags)
      end if
 

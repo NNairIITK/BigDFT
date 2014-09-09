@@ -1,10 +1,1 @@
  <BigDFT> log of the run will be written in logfile: ./log-ohoh.yaml
- 
-itc, N, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N), V, Vold, EBS, energy   1    8.0000E+00    7.8449E+00   -1.5512E-01    7.7561E-03   -5.0000E-02   -5.0000E-02     -2.935170E+00     -3.251158E+01
-itn, V, Vg   1    -5.000000E-002    -1.551228E-001
- 
-itc, N, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N), V, Vold, EBS, energy   2    8.0000E+00    7.8938E+00   -1.0616E-01    1.0616E-02   -1.0000E-01   -5.0000E-02     -2.899017E+00     -3.250827E+01
-itn, V, Vold, Vg, Vgold, Vg2, Vg/Vg2   2    -1.000000E-001    -5.000000E-002    -1.061562E-001    -1.551228E-001    -9.793333E-001     1.083964E-001
- 
-itc, N, Tr(KW), Tr(KW)-N, V*(Tr(KW)-N), V, Vold, EBS, energy   3    8.0000E+00    7.9936E+00   -6.3944E-03    1.3326E-03   -2.0840E-01   -1.0000E-01     -2.846216E+00     -3.249382E+01
-itn, V, Vold, Vg, Vgold, Vg2, Vg/Vg2   3    -2.083964E-001    -1.000000E-001    -6.394425E-003    -1.061562E-001    -9.203421E-001     6.947878E-003
