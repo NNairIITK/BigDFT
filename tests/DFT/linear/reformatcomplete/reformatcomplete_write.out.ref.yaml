@@ -27,8 +27,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.4.90
- Timestamp of this run                 : 2014-07-17 15:29:23.918
+ Version Number                        : 1.7.5
+ Timestamp of this run                 : 2014-09-09 12:23:33.427
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -38,7 +38,7 @@
  Compilation options:
    Configure arguments:
      " 'FC=/opt/openmpi-1.6.4/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -i_dynamic -msse4.2 
-     -heap-arrays 1024 -openmp' 
+     -heap-arrays 1024 -openmp -traceback' 
      '--with-ext-linalg=/opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_scalapa
      ck_lp64.a  -Wl,--start-group  
      /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_cdft_core.a 
@@ -50,7 +50,8 @@
    Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.4/bin/mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
+     FCFLAGS:
+       -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp -traceback
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : write
@@ -92,6 +93,7 @@
    mixing_after_inputguess             : Yes #    Mixing step after linear input guess (T/F)
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 2 #      Enables linear sumrho check
+   check_overlap                       : 2 #      Enables linear overlap check
    experimental_mode                   : No #     Activate the experimental mode in linear scaling
    write_orbitals                      : No #     Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
    explicit_locregcenters              : No #     Linear scaling explicitely specify localization centers
@@ -110,6 +112,7 @@
    correction_co_contra                : No #     linear scaling correction covariant / contravariant gradient
    fscale_lowerbound                   : 5.0000000000000001E-003 # linear scaling lower bound for the error function decay length
    fscale_upperbound                   : 5.0000000000000003E-002 # linear scaling upper bound for the error function decay length
+   imethod_overlap                     : 1 #      method to calculate the overlap matrices (1=old, 2=new)
    FOE_restart                         : 0 #      Restart method to be used for the FOE method
  dft:
    hgrids: [0.3, 0.3, 0.3] #                      Grid spacing in the three directions (bohr)
@@ -134,6 +137,7 @@
    nvirt                               : 0 #      No. of virtual orbs
    nplot                               : 0 #      No. of plotted orbs
    disablesym                          : No #     Disable the symmetry detection
+   itermin                             : 0 #      Min. iterations of wfn. opt. steps
  kpt:
    method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
@@ -242,8 +246,8 @@
      source                            : write
    forces (Ha/Bohr):
    - O: [-1.6919069286801109E-006, -2.6560415866041586E-007, -7.8907301417701288E-007]
-   - H: [1.1667263807609731E-006, -2.361168656675476E-007, -1.89287030997516E-007]
-   - H: [5.2518054791858025E-007, 5.0172102432738642E-007, 9.7836004517457162E-007]
+   - H: [ 1.1667263807609731E-006, -2.361168656675476E-007, -1.89287030997516E-007]
+   - H: [ 5.2518054791858025E-007,  5.0172102432738642E-007,  9.7836004517457162E-007]
    energy (Ha)                         : -17.18324279353662
  psppar.O:
    Pseudopotential type                : HGH-K
@@ -461,9 +465,11 @@
  total elements                        :  36
  non-zero elements                     :  36
  sparsity in %                         :  0.00
+ sparse matmul load balancing naive / optimized:  [  2.00,  2.00 ]
  total elements                        :  36
  non-zero elements                     :  36
  sparsity in %                         :  0.00
+ sparse matmul load balancing naive / optimized:  [  2.00,  2.00 ]
  Checking Compression/Uncompression of small sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -477,6 +483,9 @@
  total elements                        :  36
  non-zero elements                     :  36
  sparsity in %                         :  0.00
+ sparse matmul load balancing naive / optimized:  [  2.00,  2.00 ]
+ sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+ sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
  Checking Compression/Uncompression of large sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -491,9 +500,21 @@
    transposition check, mean error     :  0.000000000000000000E+00
    transposition check, max error      :  0.000000000000000000E+00
    Tolerance for the following test    :  9.999999999999999799E-13
-   calculation check, error sum        :  2.405765079376759555E-14
+   calculation check, error sum        :  2.405765079376759239E-14
    Tolerance for the following test    :  1.000000000000000036E-10
    calculation check, error max        :  2.557953848736360669E-13
+ Checking Communications of Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  21320,  316 ]
+   Tolerances for this check: [ 7.69835010278399623E-06,  1.33226762955018785E-15]
+   Maxdiff for transpose (checksum)    :  1.74622982740402222E-10
+   Maxdiff for overlap calculation     :  7.91624188423156738E-09
+   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Checking Communications of Enlarged Minimal Basis:
+   Number of coarse and fine DoF (MasterMPI task):  [  19686,  316 ]
+   Tolerances for this check: [ 8.75990011695720883E-06,  1.33226762955018785E-15]
+   Maxdiff for transpose (checksum)    :  1.16415321826934814E-10
+   Maxdiff for overlap calculation     :  5.82076609134674072E-09
+   Maxdiff for untranspose             :  0.00000000000000000E+00
  Ion-Ion interaction energy            :  6.88204568003066E+00
   #---------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -8.000000000000
@@ -539,16 +560,6 @@
     Total charge:  7.999999942968E+00, 
  Poisson Solver: {BC: Free, Box:  [  131,  137,  143 ], MPI tasks:  4}}
     #================================================================= Input guess generated
- Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  21321,  317 ]
-   Tolerances for this check: [ 7.69835010278399623E-06,  1.33226762955018785E-15]
-   Maxdiff for transpose (checksum)    :  1.74622982740402222E-10
-   Maxdiff for untranspose             :  0.00000000000000000E+00
- Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  19687,  317 ]
-   Tolerances for this check: [ 8.75990011695720883E-06,  1.33226762955018785E-15]
-   Maxdiff for transpose (checksum)    :  1.74622982740402222E-10
-   Maxdiff for untranspose             :  0.00000000000000000E+00
   #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
     #========================================================= support function optimization
@@ -558,7 +569,7 @@
  Energies: {Ekin:  1.16412119733E+01, Epot: -1.33260633248E+01, Enl:  7.18918925674E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  3.33E-16,  6.92E-17 ]}, 
+ max / mean error:  [  3.33E-16,  7.85E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  4.24E-01, Omega: -1.605053660375351E+01, D: -1.61E+01, D best: -1.61E+01, 
  Optimization: {algorithm: SD, mean alpha:  1.000E+00, max alpha:  1.000E+00, 
@@ -575,9 +586,9 @@
  Energies: {Ekin:  1.00941198761E+01, Epot: -1.20441766974E+01, Enl:  7.05982074375E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  3.20E-17 ]}, 
+ max / mean error:  [  3.33E-16,  6.14E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  2.06E-01, Omega: -1.660682124604571E+01, D: -5.56E-01, D best: -5.56E-01, 
+ iter:  2, fnrm:  2.06E-01, Omega: -1.660682124604572E+01, D: -5.56E-01, D best: -5.56E-01, 
  Optimization: {algorithm: SD, mean alpha:  1.017E+00, max alpha:  1.100E+00, 
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  8, 
@@ -594,7 +605,7 @@
  calculate S^x: {mode: sparse, x: -1, order:  8, 
  max / mean error:  [  2.22E-16,  3.70E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  3, fnrm:  1.25E-01, Omega: -1.676745004357632E+01, D: -1.61E-01, D best: -1.61E-01, 
+ iter:  3, fnrm:  1.25E-01, Omega: -1.676745004357631E+01, D: -1.61E-01, D best: -1.61E-01, 
  Optimization: {algorithm: SD, mean alpha:  1.027E+00, max alpha:  1.210E+00, 
     consecutive successes:  3}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  8, 
@@ -609,14 +620,14 @@
  Energies: {Ekin:  8.91135520563E+00, Epot: -1.09014273866E+01, Enl:  6.33960989332E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
+ max / mean error:  [  3.33E-16,  6.67E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  4, fnrm:  8.26E-02, Omega: -1.683089413536776E+01, D: -6.34E-02, D best: -6.34E-02, 
+ iter:  4, fnrm:  8.26E-02, Omega: -1.683089413536777E+01, D: -6.34E-02, D best: -6.34E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 4
  target function: TRACE, 
  Energies: {Ekin:  8.91135520563E+00, Epot: -1.09014273866E+01, Enl:  6.33960989332E-01}, 
- iter:  4, fnrm:  8.26E-02, Omega: -1.683089413536776E+01, D: -6.34E-02, D best: -6.34E-02}
+ iter:  4, fnrm:  8.26E-02, Omega: -1.683089413536777E+01, D: -6.34E-02, D best: -6.34E-02}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -628,9 +639,9 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff001_001_001
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
+ max / mean error:  [  3.33E-16,  6.67E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.91E-03, 
  Mean deviation from unity in reorthonormalize_coeff:  7.78E-04, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
@@ -651,7 +662,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  2.53E-06, energy: -1.72834388746473380E+01, D: -1.728E+01}]
+ iter:  1, delta:  2.53E-06, energy: -1.72834388746473486E+01, D: -1.728E+01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  2.73E-06
@@ -660,19 +671,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff001_001_002
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
+ max / mean error:  [  3.33E-16,  6.67E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.76E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  4.80E-05, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.53E-02, eBS: -3.16476712254605452E+00, D: -1.385E+00, 
+ iter:  1, fnrm:  5.53E-02, eBS: -3.16476712254604120E+00, D: -1.385E+00, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  1.429E-01
        Coefficients available          :  Yes
      alpha                             :  0.1
-     energydiff                        :  0.1570368269476745
+     energydiff                        :  0.1570368269476852
      Hamiltonian update: {
  Energies: {Ekin:  8.91135520563E+00, Epot: -1.17229473692E+01, Enl:  6.33960989332E-01, 
               EH:  2.06989118969E+01,  EXC: -3.99374245847E+00, EvXC: -5.23388134671E+00}, 
@@ -694,19 +705,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff001_001_003
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
+ max / mean error:  [  3.33E-16,  6.67E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.08E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  3.38E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.95E-02, eBS: -4.54967471903020027E+00, D:  6.486E-02, 
+ iter:  1, fnrm:  2.95E-02, eBS: -4.54967471903020293E+00, D:  6.486E-02, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  1.390E-01
        Coefficients available          :  Yes
      alpha                             :  0.11
-     energydiff                        : -1.7291158404830753E-004
+     energydiff                        : -1.7291158405186025E-004
      Hamiltonian update: {
  Energies: {Ekin:  8.91135520563E+00, Epot: -1.16839918886E+01, Enl:  6.33960989332E-01, 
               EH:  2.07675739707E+01,  EXC: -4.00505588191E+00, EvXC: -5.24882608759E+00}, 
@@ -719,7 +730,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.76E-08, energy: -1.71265749592837118E+01, D: -1.729E-04}]
+ iter:  3, delta:  1.76E-08, energy: -1.71265749592837153E+01, D: -1.729E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        max dev from unity              :  2.73E-06
@@ -728,14 +739,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff001_001_004
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
+ max / mean error:  [  3.33E-16,  6.67E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  7.39E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  2.55E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.34E-02, eBS: -4.48481687430234111E+00, D:  1.515E-02, 
+ iter:  1, fnrm:  2.34E-02, eBS: -4.48481687430234643E+00, D:  1.515E-02, 
           alpha:  1.100E-01}
        Kohn-Sham residue               :  1.381E-01
        Coefficients available          :  Yes
@@ -753,7 +764,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  1.45E-08, energy: -1.71267857234154235E+01, D: -2.108E-04}]
+ iter:  4, delta:  1.45E-08, energy: -1.71267857234154270E+01, D: -2.108E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        max dev from unity              :  2.73E-06
@@ -762,14 +773,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff001_001_005
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
+ max / mean error:  [  3.33E-16,  6.67E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  4.75E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  1.91E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.83E-02, eBS: -4.46966706968397354E+00, D:  1.224E-02, 
+ iter:  1, fnrm:  1.83E-02, eBS: -4.46966706968398420E+00, D:  1.224E-02, 
           alpha:  1.210E-01}
        Kohn-Sham residue               :  1.374E-01
        Coefficients available          :  Yes
@@ -787,7 +798,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  1.16E-08, energy: -1.71269283093677096E+01, D: -1.426E-04}]
+ iter:  5, delta:  1.16E-08, energy: -1.71269283093677132E+01, D: -1.426E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        max dev from unity              :  2.73E-06
@@ -796,19 +807,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff001_001_006
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
+ max / mean error:  [  3.33E-16,  6.67E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.85E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  1.43E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.44E-02, eBS: -4.45743118384360848E+00, D:  9.499E-03, 
+ iter:  1, fnrm:  1.44E-02, eBS: -4.45743118384361825E+00, D:  9.499E-03, 
           alpha:  1.331E-01}
        Kohn-Sham residue               :  1.368E-01
        Coefficients available          :  Yes
      alpha                             :  0.14641
-     energydiff                        : -9.6833381306282718E-005
+     energydiff                        : -9.6833381302730004E-005
      Hamiltonian update: {
  Energies: {Ekin:  8.91135520563E+00, Epot: -1.16616985955E+01, Enl:  6.33960989332E-01, 
               EH:  2.08070086093E+01,  EXC: -4.01159679394E+00, EvXC: -5.25746710944E+00}, 
@@ -830,19 +841,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff001_001_007
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
+ max / mean error:  [  3.33E-16,  6.67E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.51E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  1.10E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.14E-02, eBS: -4.44793252900127989E+00, D:  7.026E-03, 
+ iter:  1, fnrm:  1.14E-02, eBS: -4.44793252900127722E+00, D:  7.026E-03, 
           alpha:  1.464E-01}
        Kohn-Sham residue               :  1.364E-01
        Coefficients available          :  Yes
      alpha                             :  0.1610510000000001
-     energydiff                        : -6.6911514039702524E-005
+     energydiff                        : -6.6911514043255238E-005
      Hamiltonian update: {
  Energies: {Ekin:  8.91135520563E+00, Epot: -1.16574666299E+01, Enl:  6.33960989332E-01, 
               EH:  2.08145045878E+01,  EXC: -4.01285051431E+00, EvXC: -5.25912347161E+00}, 
@@ -855,7 +866,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  7, delta:  7.11E-09, energy: -1.71270920542630556E+01, D: -6.691E-05}]
+ iter:  7, delta:  7.11E-09, energy: -1.71270920542630591E+01, D: -6.691E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 8
      Kernel update:
        max dev from unity              :  2.73E-06
@@ -864,19 +875,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff001_001_008
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
+ max / mean error:  [  3.33E-16,  6.67E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.45E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  8.70E-07, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  9.08E-03, eBS: -4.44090610383468665E+00, D:  4.889E-03, 
+ iter:  1, fnrm:  9.08E-03, eBS: -4.44090610383468398E+00, D:  4.889E-03, 
           alpha:  1.611E-01}
        Kohn-Sham residue               :  1.361E-01
        Coefficients available          :  Yes
      alpha                             :  0.1771561000000001
-     energydiff                        : -4.7362871171685583E-005
+     energydiff                        : -4.7362871182343724E-005
      Hamiltonian update: {
  Energies: {Ekin:  8.91135520563E+00, Epot: -1.16545201839E+01, Enl:  6.33960989332E-01, 
               EH:  2.08197237960E+01,  EXC: -4.01373019402E+00, EvXC: -5.26028571922E+00}, 
@@ -889,15 +900,15 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  8, delta:  5.67E-09, energy: -1.71271394171342273E+01, D: -4.736E-05}]
+ iter:  8, delta:  5.67E-09, energy: -1.71271394171342415E+01, D: -4.736E-05}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 9
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  9, delta:  5.67E-09, energy: -1.71271394171342273E+01, D: -4.736E-05}]}
+ iter:  9, delta:  5.67E-09, energy: -1.71271394171342415E+01, D: -4.736E-05}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: TRACE,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter low:  1, delta out:  2.467E-06, energy: -1.71271394171342273E+01, D: -1.713E+01}
+ iter low:  1, delta out:  2.467E-06, energy: -1.71271394171342415E+01, D: -1.713E+01}
     #========================================================= support function optimization
  - support function optimization: &it_supfun002
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -905,7 +916,7 @@
  Energies: {Ekin:  8.91135520563E+00, Epot: -1.15688011383E+01, Enl:  6.33960989332E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
+ max / mean error:  [  3.33E-16,  6.67E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  1.30E-01, Omega: -1.674125876969861E+01, D:  2.62E-02, D best:  2.62E-02, 
  Optimization: {algorithm: SD, mean alpha:  1.129E+00, max alpha:  1.129E+00, 
@@ -922,13 +933,13 @@
  Energies: {Ekin:  9.56133056202E+00, Epot: -1.23848332189E+01, Enl:  7.46832434919E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.90E-17 ]}, 
+ max / mean error:  [  3.33E-16,  7.17E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  8.96E-02, Omega: -1.684762932691537E+01, D: -1.06E-01, D best: -1.06E-01, 
+ iter:  2, fnrm:  8.96E-02, Omega: -1.684762932691536E+01, D: -1.06E-01, D best: -1.06E-01, 
  Optimization: {algorithm: SD, mean alpha:  8.658E-01, max alpha:  1.242E+00, 
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  8, 
- max / mean error:  [  1.55E-15,  4.84E-16 ]}, 
+ max / mean error:  [  1.33E-15,  4.58E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.02E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  2.92E-07, 
@@ -939,13 +950,13 @@
  Energies: {Ekin:  9.66843241453E+00, Epot: -1.24875603298E+01, Enl:  7.32547867652E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.53E-17 ]}, 
+ max / mean error:  [  3.33E-16,  5.85E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  3, fnrm:  5.82E-02, Omega: -1.686744897833138E+01, D: -1.98E-02, D best: -1.98E-02, 
+ iter:  3, fnrm:  5.82E-02, Omega: -1.686744897833137E+01, D: -1.98E-02, D best: -1.98E-02, 
  Optimization: {algorithm: SD, mean alpha:  7.924E-01, max alpha:  1.366E+00, 
     consecutive successes:  3}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  8, 
- max / mean error:  [  6.66E-16,  1.25E-16 ]}, 
+ max / mean error:  [  2.22E-16,  5.80E-17 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  7.31E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  2.45E-07, 
@@ -956,14 +967,14 @@
  Energies: {Ekin:  9.76394809390E+00, Epot: -1.25854002187E+01, Enl:  7.30105178917E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  3.33E-16,  5.85E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  4, fnrm:  4.19E-02, Omega: -1.687698277481440E+01, D: -9.53E-03, D best: -9.53E-03, 
+ iter:  4, fnrm:  4.19E-02, Omega: -1.687698277481439E+01, D: -9.53E-03, D best: -9.53E-03, 
  exit criterion: net number of iterations}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 4
  target function: TRACE, 
  Energies: {Ekin:  9.76394809390E+00, Epot: -1.25854002187E+01, Enl:  7.30105178917E-01}, 
- iter:  4, fnrm:  4.19E-02, Omega: -1.687698277481440E+01, D: -9.53E-03, D best: -9.53E-03}
+ iter:  4, fnrm:  4.19E-02, Omega: -1.687698277481439E+01, D: -9.53E-03, D best: -9.53E-03}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
@@ -975,14 +986,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff002_001_001
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  3.33E-16,  5.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.67E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  4.57E-05, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.35E-02, eBS: -4.43601682631615901E+00, D: -8.224E-02, 
+ iter:  1, fnrm:  5.35E-02, eBS: -4.43601682631616523E+00, D: -8.224E-02, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  5.071E-02
        Coefficients available          :  Yes
@@ -998,7 +1009,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.69E-06, energy: -1.72125409034718793E+01, D: -8.540E-02}]
+ iter:  1, delta:  1.69E-06, energy: -1.72125409034718722E+01, D: -8.540E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  2.03E-06
@@ -1007,14 +1018,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff002_001_002
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  3.33E-16,  5.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.07E-03, 
  Mean deviation from unity in reorthonormalize_coeff:  2.96E-04, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.40E-01, eBS: -4.51825202044436747E+00, D:  1.425E+00, 
+ iter:  1, fnrm:  1.40E-01, eBS: -4.51825202044436214E+00, D:  1.425E+00, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  1.148E-01
        Coefficients available          :  Yes
@@ -1032,7 +1043,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  2.21E-07, energy: -1.71524242806967386E+01, D:  6.012E-02}]
+ iter:  2, delta:  2.21E-07, energy: -1.71524242806967315E+01, D:  6.012E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        max dev from unity              :  2.03E-06
@@ -1041,19 +1052,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff002_001_003
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  3.33E-16,  5.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  9.71E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  2.64E-05, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  8.31E-02, eBS: -3.09289220221109851E+00, D: -2.392E-01, 
+ iter:  1, fnrm:  8.31E-02, eBS: -3.09289220221110117E+00, D: -2.392E-01, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  9.779E-02
        Coefficients available          :  Yes
      alpha                             :  0.11
-     energydiff                        : -1.074618672419092E-003
+     energydiff                        : -1.0746186724333029E-003
      Hamiltonian update: {
  Energies: {Ekin:  9.76394809390E+00, Epot: -1.19881449343E+01, Enl:  7.30105178917E-01, 
               EH:  2.20225983907E+01,  EXC: -4.23916027152E+00, EvXC: -5.55830531212E+00}, 
@@ -1066,7 +1077,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  6.30E-08, energy: -1.71534988993691577E+01, D: -1.075E-03}]
+ iter:  3, delta:  6.30E-08, energy: -1.71534988993691648E+01, D: -1.075E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        max dev from unity              :  2.03E-06
@@ -1075,19 +1086,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff002_001_004
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  3.33E-16,  5.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  7.51E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  2.06E-05, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  6.72E-02, eBS: -3.33209122931258728E+00, D: -6.966E-02, 
+ iter:  1, fnrm:  6.72E-02, eBS: -3.33209122931259083E+00, D: -6.966E-02, 
           alpha:  1.100E-01}
        Kohn-Sham residue               :  9.256E-02
        Coefficients available          :  Yes
      alpha                             :  0.121
-     energydiff                        : -1.7492091849611313E-003
+     energydiff                        : -1.7492091849504732E-003
      Hamiltonian update: {
  Energies: {Ekin:  9.76394809390E+00, Epot: -1.20285586312E+01, Enl:  7.30105178917E-01, 
               EH:  2.19510669471E+01,  EXC: -4.22784668744E+00, EvXC: -5.54336709926E+00}, 
@@ -1100,7 +1111,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  5.45E-08, energy: -1.71552481085541189E+01, D: -1.749E-03}]
+ iter:  4, delta:  5.45E-08, energy: -1.71552481085541153E+01, D: -1.749E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        max dev from unity              :  2.03E-06
@@ -1109,19 +1120,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff002_001_005
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  3.33E-16,  5.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  5.50E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  1.55E-05, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.35E-02, eBS: -3.40174725331680206E+00, D: -5.998E-02, 
+ iter:  1, fnrm:  5.35E-02, eBS: -3.40174725331680383E+00, D: -5.998E-02, 
           alpha:  1.210E-01}
        Kohn-Sham residue               :  8.826E-02
        Coefficients available          :  Yes
      alpha                             :  0.1331
-     energydiff                        : -1.208865550022864E-003
+     energydiff                        : -1.2088655500264167E-003
      Hamiltonian update: {
  Energies: {Ekin:  9.76394809390E+00, Epot: -1.20635823155E+01, Enl:  7.30105178917E-01, 
               EH:  2.18891719900E+01,  EXC: -4.21809405246E+00, EvXC: -5.53049027305E+00}, 
@@ -1143,9 +1154,9 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff002_001_006
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  3.33E-16,  5.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.79E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  1.14E-05, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
@@ -1155,7 +1166,7 @@
        Kohn-Sham residue               :  8.480E-02
        Coefficients available          :  Yes
      alpha                             :  0.14641
-     energydiff                        : -8.178832905798572E-004
+     energydiff                        : -8.1788329057275178E-004
      Hamiltonian update: {
  Energies: {Ekin:  9.76394809390E+00, Epot: -1.20930847410E+01, Enl:  7.30105178917E-01, 
               EH:  2.18370839173E+01,  EXC: -4.20992002740E+00, EvXC: -5.51969805549E+00}, 
@@ -1168,7 +1179,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  6, delta:  3.75E-08, energy: -1.71572748573947216E+01, D: -8.179E-04}]
+ iter:  6, delta:  3.75E-08, energy: -1.71572748573947145E+01, D: -8.179E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 7
      Kernel update:
        max dev from unity              :  2.03E-06
@@ -1177,19 +1188,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff002_001_007
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  3.33E-16,  5.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.44E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  8.23E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.29E-02, eBS: -3.51201464821709219E+00, D: -4.100E-02, 
+ iter:  1, fnrm:  3.29E-02, eBS: -3.51201464821709486E+00, D: -4.100E-02, 
           alpha:  1.464E-01}
        Kohn-Sham residue               :  8.210E-02
        Coefficients available          :  Yes
      alpha                             :  0.1610510000000001
-     energydiff                        : -5.4607929551053758E-004
+     energydiff                        : -5.4607929552119572E-004
      Hamiltonian update: {
  Energies: {Ekin:  9.76394809390E+00, Epot: -1.21172134745E+01, Enl:  7.30105178917E-01, 
               EH:  2.17944952511E+01,  EXC: -4.20326683356E+00, EvXC: -5.51091407072E+00}, 
@@ -1202,7 +1213,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  7, delta:  2.99E-08, energy: -1.71578209366902321E+01, D: -5.461E-04}]
+ iter:  7, delta:  2.99E-08, energy: -1.71578209366902357E+01, D: -5.461E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 8
      Kernel update:
        max dev from unity              :  2.03E-06
@@ -1211,14 +1222,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff002_001_008
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  3.33E-16,  5.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.82E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  6.09E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.56E-02, eBS: -3.55301860275227721E+00, D: -3.250E-02, 
+ iter:  1, fnrm:  2.56E-02, eBS: -3.55301860275227366E+00, D: -3.250E-02, 
           alpha:  1.611E-01}
        Kohn-Sham residue               :  8.002E-02
        Coefficients available          :  Yes
@@ -1236,15 +1247,15 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  8, delta:  2.33E-08, energy: -1.71581837954340557E+01, D: -3.629E-04}]
+ iter:  8, delta:  2.33E-08, energy: -1.71581837954340592E+01, D: -3.629E-04}]
    -  &final_kernel002  { #-------------------------------------------------------- iter: 9
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  9, delta:  2.33E-08, energy: -1.71581837954340557E+01, D: -3.629E-04}]}
+ iter:  9, delta:  2.33E-08, energy: -1.71581837954340592E+01, D: -3.629E-04}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
    -  {iter:  2, target function: TRACE,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter low:  2, delta out:  1.461E-06, energy: -1.71581837954340557E+01, D: -3.104E-02}
+ iter low:  2, delta out:  1.461E-06, energy: -1.71581837954340592E+01, D: -3.104E-02}
     #========================================================= Adjustments for high accuracy
    Locreg increased                    :  No
    Kernel update:
@@ -1254,14 +1265,14 @@
      method                            : directmin
      expansion coefficients optimization: &it_coeff003_000_000
      -  { #-------------------------------------------------------------------- it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  3.33E-16,  5.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.53E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  4.70E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.99E-02, eBS: -3.58551463261216830E+00, D: -2.504E-02, 
+ iter:  1, fnrm:  1.99E-02, eBS: -3.58551463261217407E+00, D: -2.504E-02, 
           alpha:  1.772E-01}
      Kohn-Sham residue                 :  7.847E-02
      Coefficients available            :  Yes
@@ -1272,9 +1283,9 @@
  Energies: {Ekin:  9.76394809390E+00, Epot: -1.21511191528E+01, Enl:  7.30105178917E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  3.33E-16,  5.85E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  1.27E-01, Omega: -1.715842548885050E+01, D: -2.91E-01, D best: -2.91E-01, 
+ iter:  1, fnrm:  1.27E-01, Omega: -1.715842548885049E+01, D: -2.91E-01, D best: -2.91E-01, 
  Optimization: {algorithm: SD, mean alpha:  8.095E-01, max alpha:  8.095E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  8, 
@@ -1289,7 +1300,7 @@
  Energies: {Ekin:  9.15739179631E+00, Epot: -1.14588966887E+01, Enl:  6.27147517057E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  2, fnrm:  9.39E-02, Omega: -1.719214428664028E+01, D: -3.37E-02, D best: -3.37E-02, 
  exit criterion: net number of iterations}
@@ -1308,14 +1319,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff003_001_001
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.06E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  3.94E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.64E-02, eBS: -3.61055314493638146E+00, D: -3.391E-02, 
+ iter:  1, fnrm:  1.64E-02, eBS: -3.61055314493638280E+00, D: -3.391E-02, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1330,7 +1341,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.07E-06, energy: -1.71923379224899193E+01, D: -3.415E-02}]
+ iter:  1, delta:  1.07E-06, energy: -1.71923379224899158E+01, D: -3.415E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  9.21E-07
@@ -1339,19 +1350,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff003_001_002
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  5.85E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  1.68E-04, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.07E-01, eBS: -3.64446557857579201E+00, D: -9.807E-01, 
+ iter:  1, fnrm:  1.07E-01, eBS: -3.64446557857579467E+00, D: -9.807E-01, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  9.613E-02
        Coefficients available          :  Yes
      alpha                             :  0.1
-     energydiff                        :  2.4920201965425548E-002
+     energydiff                        :  2.4920201965418443E-002
      Hamiltonian update: {
  Energies: {Ekin:  9.15739179631E+00, Epot: -1.20415250787E+01, Enl:  6.27147517057E-01, 
               EH:  2.06663090575E+01,  EXC: -3.99896320283E+00, EvXC: -5.24097208848E+00}, 
@@ -1364,7 +1375,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.70E-07, energy: -1.71674177205244938E+01, D:  2.492E-02}]
+ iter:  2, delta:  1.70E-07, energy: -1.71674177205244973E+01, D:  2.492E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        max dev from unity              :  9.21E-07
@@ -1373,19 +1384,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff003_001_003
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  4.75E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  1.28E-05, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.74E-02, eBS: -4.62516322868091212E+00, D:  1.659E-01, 
+ iter:  1, fnrm:  5.74E-02, eBS: -4.62516322868090590E+00, D:  1.659E-01, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  8.525E-02
        Coefficients available          :  Yes
      alpha                             :  0.11
-     energydiff                        : -3.1378076415933265E-004
+     energydiff                        : -3.1378076414867451E-004
      Hamiltonian update: {
  Energies: {Ekin:  9.15739179631E+00, Epot: -1.19417197483E+01, Enl:  6.27147517057E-01, 
               EH:  2.08415188244E+01,  EXC: -4.02709985985E+00, EvXC: -5.27813101934E+00}, 
@@ -1398,7 +1409,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  4.44E-08, energy: -1.71677315012886531E+01, D: -3.138E-04}]
+ iter:  3, delta:  4.44E-08, energy: -1.71677315012886460E+01, D: -3.138E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        max dev from unity              :  9.21E-07
@@ -1407,14 +1418,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff003_001_004
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.61E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  9.60E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.50E-02, eBS: -4.45928951636933402E+00, D:  4.243E-02, 
+ iter:  1, fnrm:  4.50E-02, eBS: -4.45928951636932069E+00, D:  4.243E-02, 
           alpha:  1.100E-01}
        Kohn-Sham residue               :  8.237E-02
        Coefficients available          :  Yes
@@ -1432,7 +1443,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  3.76E-08, energy: -1.71684988737283071E+01, D: -7.674E-04}]
+ iter:  4, delta:  3.76E-08, energy: -1.71684988737283000E+01, D: -7.674E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        max dev from unity              :  9.21E-07
@@ -1441,19 +1452,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff003_001_005
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.63E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  6.94E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.45E-02, eBS: -4.41686425224470369E+00, D:  3.601E-02, 
+ iter:  1, fnrm:  3.45E-02, eBS: -4.41686425224469925E+00, D:  3.601E-02, 
           alpha:  1.210E-01}
        Kohn-Sham residue               :  8.010E-02
        Coefficients available          :  Yes
      alpha                             :  0.1331
-     energydiff                        : -4.9092710382581117E-004
+     energydiff                        : -4.909271038329166E-004
      Hamiltonian update: {
  Energies: {Ekin:  9.15739179631E+00, Epot: -1.18943116036E+01, Enl:  6.27147517057E-01, 
               EH:  2.09255354188E+01,  EXC: -4.04058594783E+00, EvXC: -5.29594148563E+00}, 
@@ -1475,19 +1486,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff003_001_006
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.83E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  4.81E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.60E-02, eBS: -4.38085559981667849E+00, D:  2.981E-02, 
+ iter:  1, fnrm:  2.60E-02, eBS: -4.38085559981666783E+00, D:  2.981E-02, 
           alpha:  1.331E-01}
        Kohn-Sham residue               :  7.836E-02
        Coefficients available          :  Yes
      alpha                             :  0.14641
-     energydiff                        : -3.0223090529801766E-004
+     energydiff                        : -3.0223090529446495E-004
      Hamiltonian update: {
  Energies: {Ekin:  9.15739179631E+00, Epot: -1.18764764598E+01, Enl:  6.27147517057E-01, 
               EH:  2.09572786484E+01,  EXC: -4.04567833537E+00, EvXC: -5.30266670339E+00}, 
@@ -1500,7 +1511,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  6, delta:  2.51E-08, energy: -1.71692920317374309E+01, D: -3.022E-04}]
+ iter:  6, delta:  2.51E-08, energy: -1.71692920317374274E+01, D: -3.022E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 7
      Kernel update:
        max dev from unity              :  9.21E-07
@@ -1509,19 +1520,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff003_001_007
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.20E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  3.17E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.92E-02, eBS: -4.35104743141693184E+00, D:  2.401E-02, 
+ iter:  1, fnrm:  1.92E-02, eBS: -4.35104743141692296E+00, D:  2.401E-02, 
           alpha:  1.464E-01}
        Kohn-Sham residue               :  7.704E-02
        Coefficients available          :  Yes
      alpha                             :  0.1610510000000001
-     energydiff                        : -1.7920290563111507E-004
+     energydiff                        : -1.792029056382205E-004
      Hamiltonian update: {
  Energies: {Ekin:  9.15739179631E+00, Epot: -1.18621807056E+01, Enl:  6.27147517057E-01, 
               EH:  2.09827822687E+01,  EXC: -4.04976590869E+00, EvXC: -5.30806483176E+00}, 
@@ -1534,7 +1545,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  7, delta:  1.97E-08, energy: -1.71694712346430620E+01, D: -1.792E-04}]
+ iter:  7, delta:  1.97E-08, energy: -1.71694712346430656E+01, D: -1.792E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 8
      Kernel update:
        max dev from unity              :  9.21E-07
@@ -1543,14 +1554,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff003_001_008
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  7.38E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  1.99E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.40E-02, eBS: -4.32703356904849912E+00, D:  1.879E-02, 
+ iter:  1, fnrm:  1.40E-02, eBS: -4.32703356904848491E+00, D:  1.879E-02, 
           alpha:  1.611E-01}
        Kohn-Sham residue               :  7.606E-02
        Coefficients available          :  Yes
@@ -1568,15 +1579,15 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  8, delta:  1.50E-08, energy: -1.71695737608354584E+01, D: -1.025E-04}]
+ iter:  8, delta:  1.50E-08, energy: -1.71695737608354619E+01, D: -1.025E-04}]
    -  &final_kernel003  { #-------------------------------------------------------- iter: 9
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  9, delta:  1.50E-08, energy: -1.71695737608354584E+01, D: -1.025E-04}]}
+ iter:  9, delta:  1.50E-08, energy: -1.71695737608354619E+01, D: -1.025E-04}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc003
    -  {iter:  3, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  3, delta out:  8.859E-07, energy: -1.71695737608354584E+01, D: -1.139E-02}
+ iter high:  3, delta out:  8.859E-07, energy: -1.71695737608354619E+01, D: -1.139E-02}
     #========================================================= support function optimization
  - support function optimization: &it_supfun004
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -1584,13 +1595,13 @@
  Energies: {Ekin:  9.15739179631E+00, Epot: -1.18426311340E+01, Enl:  6.27147517057E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  1.21E-01, Omega: -1.716956645298640E+01, D: -1.11E-02, D best: -1.11E-02, 
  Optimization: {algorithm: SD, mean alpha:  4.857E-01, max alpha:  4.857E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  8, 
- max / mean error:  [  1.72E-13,  3.45E-14 ]}, 
+ max / mean error:  [  1.72E-13,  3.44E-14 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  7.96E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  4.07E-08, 
@@ -1601,7 +1612,7 @@
  Energies: {Ekin:  9.41126083924E+00, Epot: -1.21788765304E+01, Enl:  7.01137023308E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
+ max / mean error:  [  2.22E-16,  5.55E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  2, fnrm:  5.32E-02, Omega: -1.718638678683191E+01, D: -1.68E-02, D best: -1.68E-02, 
  exit criterion: net number of iterations}
@@ -1620,14 +1631,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff004_001_001
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
+ max / mean error:  [  2.22E-16,  5.55E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  6.52E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  2.06E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.15E-02, eBS: -4.30824797779218560E+00, D: -2.609E-03, 
+ iter:  1, fnrm:  1.15E-02, eBS: -4.30824797779217850E+00, D: -2.609E-03, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1651,14 +1662,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff004_001_002
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
+ max / mean error:  [  2.22E-16,  5.55E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  9.01E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  2.78E-05, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.41E-02, eBS: -4.31085674212306458E+00, D:  4.821E-01, 
+ iter:  1, fnrm:  4.41E-02, eBS: -4.31085674212305747E+00, D:  4.821E-01, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  3.334E-02
        Coefficients available          :  Yes
@@ -1685,19 +1696,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff004_001_003
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
+ max / mean error:  [  2.22E-16,  5.55E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  7.48E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  2.12E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.39E-02, eBS: -3.82877368776274674E+00, D: -7.161E-02, 
+ iter:  1, fnrm:  2.39E-02, eBS: -3.82877368776273563E+00, D: -7.161E-02, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  2.986E-02
        Coefficients available          :  Yes
      alpha                             :  0.11
-     energydiff                        : -5.9395384514715488E-005
+     energydiff                        : -5.9395384521820915E-005
      Hamiltonian update: {
  Energies: {Ekin:  9.41126083924E+00, Epot: -1.19340815740E+01, Enl:  7.01137023308E-01, 
               EH:  2.14487837573E+01,  EXC: -4.13587537936E+00, EvXC: -5.42183574009E+00}, 
@@ -1710,7 +1721,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.90E-08, energy: -1.71811628746346834E+01, D: -5.940E-05}]
+ iter:  3, delta:  1.90E-08, energy: -1.71811628746346905E+01, D: -5.940E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        max dev from unity              :  1.44E-07
@@ -1719,19 +1730,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff004_001_004
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
+ max / mean error:  [  2.22E-16,  5.55E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  5.67E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  1.57E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.86E-02, eBS: -3.90038515808935404E+00, D: -1.948E-02, 
+ iter:  1, fnrm:  1.86E-02, eBS: -3.90038515808934116E+00, D: -1.948E-02, 
           alpha:  1.100E-01}
        Kohn-Sham residue               :  2.895E-02
        Coefficients available          :  Yes
      alpha                             :  0.121
-     energydiff                        : -1.3115147291387075E-004
+     energydiff                        : -1.3115147290676532E-004
      Hamiltonian update: {
  Energies: {Ekin:  9.41126083924E+00, Epot: -1.19456057548E+01, Enl:  7.01137023308E-01, 
               EH:  2.14283846232E+01,  EXC: -4.13260563824E+00, EvXC: -5.41751772424E+00}, 
@@ -1753,14 +1764,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff004_001_005
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
+ max / mean error:  [  2.22E-16,  5.55E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  4.09E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  1.12E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.42E-02, eBS: -3.91986716897975906E+00, D: -1.655E-02, 
+ iter:  1, fnrm:  1.42E-02, eBS: -3.91986716897975551E+00, D: -1.655E-02, 
           alpha:  1.210E-01}
        Kohn-Sham residue               :  2.830E-02
        Coefficients available          :  Yes
@@ -1787,19 +1798,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff004_001_006
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
+ max / mean error:  [  2.22E-16,  5.55E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.79E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  7.60E-07, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.06E-02, eBS: -3.93641487400557377E+00, D: -1.367E-02, 
+ iter:  1, fnrm:  1.06E-02, eBS: -3.93641487400556667E+00, D: -1.367E-02, 
           alpha:  1.331E-01}
        Kohn-Sham residue               :  2.785E-02
        Coefficients available          :  Yes
      alpha                             :  0.14641
-     energydiff                        : -4.9498632549216381E-005
+     energydiff                        : -4.9498632556321809E-005
      Hamiltonian update: {
  Energies: {Ekin:  9.41126083924E+00, Epot: -1.19635231172E+01, Enl:  7.01137023308E-01, 
               EH:  2.13966738893E+01,  EXC: -4.12753529446E+00, EvXC: -5.41082203487E+00}, 
@@ -1812,7 +1823,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  6, delta:  1.07E-08, energy: -1.71814258591253726E+01, D: -4.950E-05}]
+ iter:  6, delta:  1.07E-08, energy: -1.71814258591253797E+01, D: -4.950E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 7
      Kernel update:
        max dev from unity              :  1.44E-07
@@ -1821,19 +1832,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff004_001_007
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
+ max / mean error:  [  2.22E-16,  5.55E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.79E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  4.91E-07, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  7.74E-03, eBS: -3.95008439026253244E+00, D: -1.096E-02, 
+ iter:  1, fnrm:  7.74E-03, eBS: -3.95008439026252756E+00, D: -1.096E-02, 
           alpha:  1.464E-01}
        Kohn-Sham residue               :  2.754E-02
        Coefficients available          :  Yes
      alpha                             :  0.1610510000000001
-     energydiff                        : -2.8636046295105189E-005
+     energydiff                        : -2.8636046287999761E-005
      Hamiltonian update: {
  Energies: {Ekin:  9.41126083924E+00, Epot: -1.19700260843E+01, Enl:  7.01137023308E-01, 
               EH:  2.13851589717E+01,  EXC: -4.12570003931E+00, EvXC: -5.40839856106E+00}, 
@@ -1855,14 +1866,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff004_001_008
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
+ max / mean error:  [  2.22E-16,  5.55E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.07E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  3.03E-07, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.57E-03, eBS: -3.96103972524767078E+00, D: -8.499E-03, 
+ iter:  1, fnrm:  5.57E-03, eBS: -3.96103972524766057E+00, D: -8.499E-03, 
           alpha:  1.611E-01}
        Kohn-Sham residue               :  2.734E-02
        Coefficients available          :  Yes
@@ -1896,9 +1907,9 @@
  Energies: {Ekin:  9.41126083924E+00, Epot: -1.19788460742E+01, Enl:  7.01137023308E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
+ max / mean error:  [  2.22E-16,  5.55E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  4.28E-02, Omega: -1.718146926974904E+01, D: -1.19E-02, D best: -1.19E-02, 
+ iter:  1, fnrm:  4.28E-02, Omega: -1.718146926974905E+01, D: -1.19E-02, D best: -1.19E-02, 
  Optimization: {algorithm: SD, mean alpha:  2.914E-01, max alpha:  2.914E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  8, 
@@ -1913,7 +1924,7 @@
  Energies: {Ekin:  9.38563402049E+00, Epot: -1.19423119737E+01, Enl:  6.89717678741E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  2, fnrm:  1.58E-02, Omega: -1.718253798098802E+01, D: -1.07E-03, D best: -1.07E-03, 
  exit criterion: net number of iterations}
@@ -1932,14 +1943,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff005_001_001
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  5.97E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  1.87E-07, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.59E-03, eBS: -3.96953847060367515E+00, D: -7.437E-03, 
+ iter:  1, fnrm:  3.59E-03, eBS: -3.96953847060367471E+00, D: -7.437E-03, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -1954,7 +1965,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  5.27E-08, energy: -1.71825472756413298E+01, D: -1.077E-03}]
+ iter:  1, delta:  5.27E-08, energy: -1.71825472756413333E+01, D: -1.077E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  2.54E-08
@@ -1963,19 +1974,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff005_001_002
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  8.28E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  2.44E-07, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.08E-03, eBS: -3.97697573732858656E+00, D: -5.569E-02, 
+ iter:  1, fnrm:  4.08E-03, eBS: -3.97697573732858212E+00, D: -5.569E-02, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  1.112E-02
        Coefficients available          :  Yes
      alpha                             :  0.1
-     energydiff                        :  6.8877430024372188E-005
+     energydiff                        :  6.8877430031477616E-005
      Hamiltonian update: {
  Energies: {Ekin:  9.38563402049E+00, Epot: -1.19758317987E+01, Enl:  6.89717678741E-01, 
               EH:  2.13103568053E+01,  EXC: -4.11260802059E+00, EvXC: -5.39110704859E+00}, 
@@ -1988,7 +1999,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  6.21E-09, energy: -1.71824783982113054E+01, D:  6.888E-05}]
+ iter:  2, delta:  6.21E-09, energy: -1.71824783982113019E+01, D:  6.888E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        max dev from unity              :  2.54E-08
@@ -1997,19 +2008,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff005_001_003
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  4.99E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  1.56E-08, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.08E-03, eBS: -4.03266630098896073E+00, D:  6.111E-03, 
+ iter:  1, fnrm:  2.08E-03, eBS: -4.03266630098896606E+00, D:  6.111E-03, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  1.111E-02
        Coefficients available          :  Yes
      alpha                             :  0.11
-     energydiff                        : -4.4994071402015834E-007
+     energydiff                        : -4.4994071757287202E-007
      Hamiltonian update: {
  Energies: {Ekin:  9.38563402049E+00, Epot: -1.19721550611E+01, Enl:  6.89717678741E-01, 
               EH:  2.13168035029E+01,  EXC: -4.11365226262E+00, EvXC: -5.39248623964E+00}, 
@@ -2031,14 +2042,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff005_001_004
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.36E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  1.09E-08, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.59E-03, eBS: -4.02655500225517216E+00, D:  1.517E-03, 
+ iter:  1, fnrm:  1.59E-03, eBS: -4.02655500225517393E+00, D:  1.517E-03, 
           alpha:  1.100E-01}
        Kohn-Sham residue               :  1.111E-02
        Coefficients available          :  Yes
@@ -2065,14 +2076,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff005_001_005
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.11E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  7.37E-09, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.19E-03, eBS: -4.02503803141153238E+00, D:  1.248E-03, 
+ iter:  1, fnrm:  1.19E-03, eBS: -4.02503803141153327E+00, D:  1.248E-03, 
           alpha:  1.210E-01}
        Kohn-Sham residue               :  1.111E-02
        Coefficients available          :  Yes
@@ -2099,19 +2110,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff005_001_006
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.30E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  4.81E-09, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  8.70E-04, eBS: -4.02379046746213476E+00, D:  9.904E-04, 
+ iter:  1, fnrm:  8.70E-04, eBS: -4.02379046746213653E+00, D:  9.904E-04, 
           alpha:  1.331E-01}
        Kohn-Sham residue               :  1.111E-02
        Coefficients available          :  Yes
      alpha                             :  0.14641
-     energydiff                        : -3.339187841788771E-007
+     energydiff                        : -3.3391878773159078E-007
      Hamiltonian update: {
  Energies: {Ekin:  9.38563402049E+00, Epot: -1.19698958182E+01, Enl:  6.89717678741E-01, 
               EH:  2.13207665822E+01,  EXC: -4.11429544761E+00, EvXC: -5.39333574444E+00}, 
@@ -2124,7 +2135,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  6, delta:  7.96E-10, energy: -1.71824806973188835E+01, D: -3.339E-07}]
+ iter:  6, delta:  7.96E-10, energy: -1.71824806973188871E+01, D: -3.339E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 7
      Kernel update:
        max dev from unity              :  2.54E-08
@@ -2133,19 +2144,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff005_001_007
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  8.44E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  3.09E-09, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  6.32E-04, eBS: -4.02280009199210831E+00, D:  7.545E-04, 
+ iter:  1, fnrm:  6.32E-04, eBS: -4.02280009199210653E+00, D:  7.545E-04, 
           alpha:  1.464E-01}
        Kohn-Sham residue               :  1.111E-02
        Coefficients available          :  Yes
      alpha                             :  0.1610510000000001
-     energydiff                        : -1.9362622438734434E-007
+     energydiff                        : -1.9362622794005802E-007
      Hamiltonian update: {
  Energies: {Ekin:  9.38563402049E+00, Epot: -1.19694419346E+01, Enl:  6.89717678741E-01, 
               EH:  2.13215628370E+01,  EXC: -4.11442502499E+00, EvXC: -5.39350689111E+00}, 
@@ -2158,7 +2169,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  7, delta:  5.98E-10, energy: -1.71824808909451079E+01, D: -1.936E-07}]
+ iter:  7, delta:  5.98E-10, energy: -1.71824808909451150E+01, D: -1.936E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 8
      Kernel update:
        max dev from unity              :  2.54E-08
@@ -2167,19 +2178,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff005_001_008
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  5.27E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  2.02E-09, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.63E-04, eBS: -4.02204560012301382E+00, D:  5.474E-04, 
+ iter:  1, fnrm:  4.63E-04, eBS: -4.02204560012301116E+00, D:  5.474E-04, 
           alpha:  1.611E-01}
        Kohn-Sham residue               :  1.112E-02
        Coefficients available          :  Yes
      alpha                             :  0.1771561000000001
-     energydiff                        : -1.1530179833130205E-007
+     energydiff                        : -1.1530179477858837E-007
      Hamiltonian update: {
  Energies: {Ekin:  9.38563402049E+00, Epot: -1.19691125725E+01, Enl:  6.89717678741E-01, 
               EH:  2.13221405799E+01,  EXC: -4.11451928047E+00, EvXC: -5.39363138688E+00}, 
@@ -2192,15 +2203,15 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  8, delta:  4.39E-10, energy: -1.71824810062469062E+01, D: -1.153E-07}]
+ iter:  8, delta:  4.39E-10, energy: -1.71824810062469098E+01, D: -1.153E-07}]
    -  &final_kernel005  { #-------------------------------------------------------- iter: 9
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  9, delta:  4.39E-10, energy: -1.71824810062469062E+01, D: -1.153E-07}]}
+ iter:  9, delta:  4.39E-10, energy: -1.71824810062469098E+01, D: -1.153E-07}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc005
    -  {iter:  5, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  5, delta out:  4.416E-08, energy: -1.71824810062469062E+01, D: -1.010E-03}
+ iter high:  5, delta out:  4.416E-08, energy: -1.71824810062469098E+01, D: -1.010E-03}
     #========================================================= support function optimization
  - support function optimization: &it_supfun006
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -2208,9 +2219,9 @@
  Energies: {Ekin:  9.38563402049E+00, Epot: -1.19688873319E+01, Enl:  6.89717678741E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.14E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  1.44E-02, Omega: -1.718248100193389E+01, D: -1.01E-03, D best: -1.01E-03, 
+ iter:  1, fnrm:  1.44E-02, Omega: -1.718248100193388E+01, D: -1.01E-03, D best: -1.01E-03, 
  Optimization: {algorithm: SD, mean alpha:  3.206E-01, max alpha:  3.206E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  8, 
@@ -2225,7 +2236,7 @@
  Energies: {Ekin:  9.38162440378E+00, Epot: -1.19616166964E+01, Enl:  6.86467191888E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  3.70E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.53E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  2, fnrm:  6.14E-03, Omega: -1.718253962349730E+01, D: -5.86E-05, D best: -5.86E-05, 
  exit criterion: net number of iterations}
@@ -2244,14 +2255,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff006_001_001
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  3.70E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.53E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.78E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  1.04E-09, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.68E-04, eBS: -4.02149821282819087E+00, D:  3.155E-04, 
+ iter:  1, fnrm:  2.68E-04, eBS: -4.02149821282819353E+00, D:  3.155E-04, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -2266,7 +2277,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  8.93E-09, energy: -1.71825396756902613E+01, D: -5.867E-05}]
+ iter:  1, delta:  8.93E-09, energy: -1.71825396756902578E+01, D: -5.867E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  1.82E-08
@@ -2275,19 +2286,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff006_001_002
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  3.70E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.53E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  6.16E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  1.82E-08, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.11E-03, eBS: -4.02118266738208874E+00, D: -1.007E-02, 
+ iter:  1, fnrm:  1.11E-03, eBS: -4.02118266738208341E+00, D: -1.007E-02, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  7.460E-03
        Coefficients available          :  Yes
      alpha                             :  0.1
-     energydiff                        :  1.4782920949585332E-006
+     energydiff                        :  1.4782920914058195E-006
      Hamiltonian update: {
  Energies: {Ekin:  9.38162440378E+00, Epot: -1.19677234722E+01, Enl:  6.86467191888E-01, 
               EH:  2.13118689895E+01,  EXC: -4.11271398540E+00, EvXC: -5.39124844067E+00}, 
@@ -2309,19 +2320,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff006_001_003
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  3.70E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.53E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  5.21E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  1.41E-09, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.95E-04, eBS: -4.03124934317648798E+00, D:  1.768E-03, 
+ iter:  1, fnrm:  5.95E-04, eBS: -4.03124934317648620E+00, D:  1.768E-03, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  7.453E-03
        Coefficients available          :  Yes
      alpha                             :  0.11
-     energydiff                        : -3.650222879514331E-008
+     energydiff                        : -3.6502232347856989E-008
      Hamiltonian update: {
  Energies: {Ekin:  9.38162440378E+00, Epot: -1.19666652509E+01, Enl:  6.86467191888E-01, 
               EH:  2.13137331862E+01,  EXC: -4.11301405027E+00, EvXC: -5.39164472666E+00}, 
@@ -2334,7 +2345,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  4.65E-10, energy: -1.71825382339003951E+01, D: -3.650E-08}]
+ iter:  3, delta:  4.65E-10, energy: -1.71825382339003987E+01, D: -3.650E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        max dev from unity              :  1.82E-08
@@ -2343,19 +2354,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff006_001_004
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  3.70E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.53E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  4.03E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  1.07E-09, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.63E-04, eBS: -4.02948140413525291E+00, D:  4.620E-04, 
+ iter:  1, fnrm:  4.63E-04, eBS: -4.02948140413525113E+00, D:  4.620E-04, 
           alpha:  1.100E-01}
        Kohn-Sham residue               :  7.452E-03
        Coefficients available          :  Yes
      alpha                             :  0.121
-     energydiff                        : -8.1226680492818559E-008
+     energydiff                        : -8.1226684045532238E-008
      Hamiltonian update: {
  Energies: {Ekin:  9.38162440378E+00, Epot: -1.19663890731E+01, Enl:  6.86467191888E-01, 
               EH:  2.13142203953E+01,  EXC: -4.11309236589E+00, EvXC: -5.39174815340E+00}, 
@@ -2368,7 +2379,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  3.94E-10, energy: -1.71825383151270756E+01, D: -8.123E-08}]
+ iter:  4, delta:  3.94E-10, energy: -1.71825383151270827E+01, D: -8.123E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        max dev from unity              :  1.82E-08
@@ -2377,19 +2388,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff006_001_005
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  3.70E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.53E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.98E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  7.86E-10, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.54E-04, eBS: -4.02901938740410515E+00, D:  3.887E-04, 
+ iter:  1, fnrm:  3.54E-04, eBS: -4.02901938740410070E+00, D:  3.887E-04, 
           alpha:  1.210E-01}
        Kohn-Sham residue               :  7.451E-03
        Coefficients available          :  Yes
      alpha                             :  0.1331
-     energydiff                        : -5.1297188718990583E-008
+     energydiff                        : -5.1297185166276904E-008
      Hamiltonian update: {
  Energies: {Ekin:  9.38162440378E+00, Epot: -1.19661568721E+01, Enl:  6.86467191888E-01, 
               EH:  2.13146302589E+01,  EXC: -4.11315821578E+00, EvXC: -5.39183511667E+00}, 
@@ -2402,7 +2413,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  3.25E-10, energy: -1.71825383664242644E+01, D: -5.130E-08}]
+ iter:  5, delta:  3.25E-10, energy: -1.71825383664242679E+01, D: -5.130E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        max dev from unity              :  1.82E-08
@@ -2411,19 +2422,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff006_001_006
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  3.70E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.53E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.12E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  5.56E-10, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.65E-04, eBS: -4.02863068841732996E+00, D:  3.176E-04, 
+ iter:  1, fnrm:  2.65E-04, eBS: -4.02863068841733440E+00, D:  3.176E-04, 
           alpha:  1.331E-01}
        Kohn-Sham residue               :  7.450E-03
        Coefficients available          :  Yes
      alpha                             :  0.14641
-     energydiff                        : -3.1255790844397779E-008
+     energydiff                        : -3.1255794397111458E-008
      Hamiltonian update: {
  Energies: {Ekin:  9.38162440378E+00, Epot: -1.19659672894E+01, Enl:  6.86467191888E-01, 
               EH:  2.13149651227E+01,  EXC: -4.11321198540E+00, EvXC: -5.39190612570E+00}, 
@@ -2436,7 +2447,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  6, delta:  2.62E-10, energy: -1.71825383976800552E+01, D: -3.126E-08}]
+ iter:  6, delta:  2.62E-10, energy: -1.71825383976800623E+01, D: -3.126E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 7
      Kernel update:
        max dev from unity              :  1.82E-08
@@ -2445,19 +2456,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff006_001_007
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  3.70E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.53E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.43E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  3.79E-10, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.96E-04, eBS: -4.02831309536069160E+00, D:  2.512E-04, 
+ iter:  1, fnrm:  1.96E-04, eBS: -4.02831309536068449E+00, D:  2.512E-04, 
           alpha:  1.464E-01}
        Kohn-Sham residue               :  7.450E-03
        Coefficients available          :  Yes
      alpha                             :  0.1610510000000001
-     energydiff                        : -1.8523227396372022E-008
+     energydiff                        : -1.8523223843658343E-008
      Hamiltonian update: {
  Energies: {Ekin:  9.38162440378E+00, Epot: -1.19658174857E+01, Enl:  6.86467191888E-01, 
               EH:  2.13152299377E+01,  EXC: -4.11325448030E+00, EvXC: -5.39196224452E+00}, 
@@ -2470,7 +2481,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  7, delta:  2.05E-10, energy: -1.71825384162032826E+01, D: -1.852E-08}]
+ iter:  7, delta:  2.05E-10, energy: -1.71825384162032861E+01, D: -1.852E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 8
      Kernel update:
        max dev from unity              :  1.82E-08
@@ -2479,19 +2490,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff006_001_008
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  3.70E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.53E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  9.23E-10, 
  Mean deviation from unity in reorthonormalize_coeff:  2.49E-10, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.43E-04, eBS: -4.02806192277695096E+00, D:  1.916E-04, 
+ iter:  1, fnrm:  1.43E-04, eBS: -4.02806192277695541E+00, D:  1.916E-04, 
           alpha:  1.611E-01}
        Kohn-Sham residue               :  7.450E-03
        Coefficients available          :  Yes
      alpha                             :  0.1771561000000001
-     energydiff                        : -1.0812858164399586E-008
+     energydiff                        : -1.0812861717113265E-008
      Hamiltonian update: {
  Energies: {Ekin:  9.38162440378E+00, Epot: -1.19657033583E+01, Enl:  6.86467191888E-01, 
               EH:  2.13154318817E+01,  EXC: -4.11328686431E+00, EvXC: -5.39200501030E+00}, 
@@ -2504,15 +2515,15 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  8, delta:  1.58E-10, energy: -1.71825384270161408E+01, D: -1.081E-08}]
+ iter:  8, delta:  1.58E-10, energy: -1.71825384270161479E+01, D: -1.081E-08}]
    -  &final_kernel006  { #-------------------------------------------------------- iter: 9
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  9, delta:  1.58E-10, energy: -1.71825384270161408E+01, D: -1.081E-08}]}
+ iter:  9, delta:  1.58E-10, energy: -1.71825384270161479E+01, D: -1.081E-08}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc006
    -  {iter:  6, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  6, delta out:  6.644E-09, energy: -1.71825384270161408E+01, D: -5.742E-05}
+ iter high:  6, delta out:  6.644E-09, energy: -1.71825384270161479E+01, D: -5.742E-05}
     #========================================================= support function optimization
  - support function optimization: &it_supfun007
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -2520,7 +2531,7 @@
  Energies: {Ekin:  9.38162440378E+00, Epot: -1.19656198841E+01, Enl:  6.86467191888E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  2.22E-16,  3.70E-17 ]}, 
+ max / mean error:  [  2.22E-16,  4.53E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  6.12E-03, Omega: -1.718253842636532E+01, D: -5.74E-05, D best: -5.74E-05, 
  Optimization: {algorithm: SD, mean alpha:  3.526E-01, max alpha:  3.526E-01, 
@@ -2537,14 +2548,14 @@
  Energies: {Ekin:  9.38108378430E+00, Epot: -1.19642707488E+01, Enl:  6.85684892057E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  3.38E-03, Omega: -1.718254807467774E+01, D: -9.65E-06, D best: -9.65E-06, 
+ iter:  2, fnrm:  3.38E-03, Omega: -1.718254807467775E+01, D: -9.65E-06, D best: -9.65E-06, 
  exit criterion: net number of iterations}
    -  &final_supfun007  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.38108378430E+00, Epot: -1.19642707488E+01, Enl:  6.85684892057E-01}, 
- iter:  2, fnrm:  3.38E-03, Omega: -1.718254807467774E+01, D: -9.65E-06, D best: -9.65E-06}
+ iter:  2, fnrm:  3.38E-03, Omega: -1.718254807467775E+01, D: -9.65E-06, D best: -9.65E-06}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel007
@@ -2556,14 +2567,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff007_001_001
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  5.43E-10, 
  Mean deviation from unity in reorthonormalize_coeff:  1.73E-10, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  9.65E-05, eBS: -4.02787037131591497E+00, D:  1.306E-04, 
+ iter:  1, fnrm:  9.65E-05, eBS: -4.02787037131591941E+00, D:  1.306E-04, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -2578,7 +2589,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  2.37E-09, energy: -1.71825480813657130E+01, D: -9.654E-06}]
+ iter:  1, delta:  2.37E-09, energy: -1.71825480813657165E+01, D: -9.654E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  6.23E-09
@@ -2587,19 +2598,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff007_001_002
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.95E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  1.26E-09, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.90E-04, eBS: -4.02773974532251877E+00, D: -2.611E-03, 
+ iter:  1, fnrm:  2.90E-04, eBS: -4.02773974532251522E+00, D: -2.611E-03, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  6.507E-03
        Coefficients available          :  Yes
      alpha                             :  0.1
-     energydiff                        :  6.6856692626515724E-008
+     energydiff                        :  6.6856699731943081E-008
      Hamiltonian update: {
  Energies: {Ekin:  9.38108378430E+00, Epot: -1.19658851983E+01, Enl:  6.85684892057E-01, 
               EH:  2.13128267999E+01,  EXC: -4.11286434196E+00, EvXC: -5.39144845047E+00}, 
@@ -2612,7 +2623,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  4.59E-10, energy: -1.71825480145090204E+01, D:  6.686E-08}]
+ iter:  2, delta:  4.59E-10, energy: -1.71825480145090168E+01, D:  6.686E-08}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        max dev from unity              :  6.23E-09
@@ -2621,19 +2632,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff007_001_003
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.31E-10, 
  Mean deviation from unity in reorthonormalize_coeff:  1.02E-10, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.60E-04, eBS: -4.03035100314735750E+00, D:  4.593E-04, 
+ iter:  1, fnrm:  1.60E-04, eBS: -4.03035100314734507E+00, D:  4.593E-04, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  6.506E-03
        Coefficients available          :  Yes
      alpha                             :  0.11
-     energydiff                        : -3.0486262403428555E-009
+     energydiff                        : -3.0486333457702131E-009
      Hamiltonian update: {
  Energies: {Ekin:  9.38108378430E+00, Epot: -1.19656104529E+01, Enl:  6.85684892057E-01, 
               EH:  2.13133110714E+01,  EXC: -4.11294215020E+00, EvXC: -5.39155120751E+00}, 
@@ -2646,7 +2657,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.23E-10, energy: -1.71825480175576466E+01, D: -3.049E-09}]
+ iter:  3, delta:  1.23E-10, energy: -1.71825480175576502E+01, D: -3.049E-09}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        max dev from unity              :  6.23E-09
@@ -2655,19 +2666,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff007_001_004
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.55E-10, 
  Mean deviation from unity in reorthonormalize_coeff:  7.97E-11, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.26E-04, eBS: -4.02989168350852722E+00, D:  1.214E-04, 
+ iter:  1, fnrm:  1.26E-04, eBS: -4.02989168350852545E+00, D:  1.214E-04, 
           alpha:  1.100E-01}
        Kohn-Sham residue               :  6.506E-03
        Coefficients available          :  Yes
      alpha                             :  0.121
-     energydiff                        : -6.1050755562064296E-009
+     energydiff                        : -6.1050791089201084E-009
      Hamiltonian update: {
  Energies: {Ekin:  9.38108378430E+00, Epot: -1.19655379612E+01, Enl:  6.85684892057E-01, 
               EH:  2.13134390379E+01,  EXC: -4.11296266179E+00, EvXC: -5.39157829518E+00}, 
@@ -2680,7 +2691,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  1.04E-10, energy: -1.71825480236627222E+01, D: -6.105E-09}]
+ iter:  4, delta:  1.04E-10, energy: -1.71825480236627293E+01, D: -6.105E-09}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        max dev from unity              :  6.23E-09
@@ -2689,19 +2700,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff007_001_005
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.88E-10, 
  Mean deviation from unity in reorthonormalize_coeff:  6.06E-11, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  9.85E-05, eBS: -4.02977029923124519E+00, D:  1.027E-04, 
+ iter:  1, fnrm:  9.85E-05, eBS: -4.02977029923124341E+00, D:  1.027E-04, 
           alpha:  1.210E-01}
        Kohn-Sham residue               :  6.506E-03
        Coefficients available          :  Yes
      alpha                             :  0.1331
-     energydiff                        : -4.0477843299413507E-009
+     energydiff                        : -4.0477807772276719E-009
      Hamiltonian update: {
  Energies: {Ekin:  9.38108378430E+00, Epot: -1.19654766791E+01, Enl:  6.85684892057E-01, 
               EH:  2.13135472836E+01,  EXC: -4.11297999449E+00, EvXC: -5.39160118449E+00}, 
@@ -2714,15 +2725,15 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  8.71E-11, energy: -1.71825480277105065E+01, D: -4.048E-09}]
+ iter:  5, delta:  8.71E-11, energy: -1.71825480277105100E+01, D: -4.048E-09}]
    -  &final_kernel007  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  8.71E-11, energy: -1.71825480277105065E+01, D: -4.048E-09}]}
+ iter:  5, delta:  8.71E-11, energy: -1.71825480277105100E+01, D: -4.048E-09}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc007
    -  {iter:  7, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  7, delta out:  2.055E-09, energy: -1.71825480277105065E+01, D: -9.601E-06}
+ iter high:  7, delta out:  2.055E-09, energy: -1.71825480277105100E+01, D: -9.601E-06}
     #========================================================= support function optimization
  - support function optimization: &it_supfun008
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -2730,13 +2741,13 @@
  Energies: {Ekin:  9.38108378430E+00, Epot: -1.19654262855E+01, Enl:  6.85684892057E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  3.39E-03, Omega: -1.718254802748074E+01, D: -9.60E-06, D best: -9.60E-06, 
  Optimization: {algorithm: SD, mean alpha:  3.879E-01, max alpha:  3.879E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  8, 
- max / mean error:  [  4.44E-16,  9.25E-17 ]}, 
+ max / mean error:  [  3.33E-16,  9.25E-17 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  6.61E-10, 
  Mean deviation from unity in reorthonormalize_coeff:  1.92E-10, 
@@ -2747,7 +2758,7 @@
  Energies: {Ekin:  9.38113501041E+00, Epot: -1.19653657210E+01, Enl:  6.85596100445E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  2.07E-25,  6.67E-26 ]}, 
  Preconditioning:  Yes, 
  iter:  2, fnrm:  2.28E-03, Omega: -1.718255180095325E+01, D: -3.77E-06, D best: -3.77E-06, 
  exit criterion: net number of iterations}
@@ -2766,14 +2777,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff008_001_001
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  2.07E-25,  6.67E-26 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.38E-10, 
  Mean deviation from unity in reorthonormalize_coeff:  9.56E-11, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  7.31E-05, eBS: -4.02966761417735508E+00, D:  8.074E-05, 
+ iter:  1, fnrm:  7.31E-05, eBS: -4.02966761417735242E+00, D:  8.074E-05, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -2788,7 +2799,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.45E-09, energy: -1.71825518047964358E+01, D: -3.777E-06}]
+ iter:  1, delta:  1.45E-09, energy: -1.71825518047964287E+01, D: -3.777E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  7.01E-10
@@ -2797,19 +2808,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff008_001_002
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  2.07E-25,  6.67E-26 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.59E-10, 
  Mean deviation from unity in reorthonormalize_coeff:  1.58E-10, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  9.92E-05, eBS: -4.02958687909603519E+00, D: -7.029E-04, 
+ iter:  1, fnrm:  9.92E-05, eBS: -4.02958687909602808E+00, D: -7.029E-04, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  6.147E-03
        Coefficients available          :  Yes
      alpha                             :  0.1
-     energydiff                        :  3.4548790495136927E-009
+     energydiff                        :  3.4548719440863351E-009
      Hamiltonian update: {
  Energies: {Ekin:  9.38113501041E+00, Epot: -1.19658138321E+01, Enl:  6.85596100445E-01, 
               EH:  2.13129025433E+01,  EXC: -4.11289461841E+00, EvXC: -5.39148950847E+00}, 
@@ -2831,19 +2842,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff008_001_003
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  2.07E-25,  6.67E-26 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.02E-11, 
  Mean deviation from unity in reorthonormalize_coeff:  1.54E-11, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  5.94E-05, eBS: -4.03028982809154890E+00, D:  1.470E-04, 
+ iter:  1, fnrm:  5.94E-05, eBS: -4.03028982809155956E+00, D:  1.470E-04, 
           alpha:  1.000E-01}
        Kohn-Sham residue               :  6.147E-03
        Coefficients available          :  Yes
      alpha                             :  0.11
-     energydiff                        : -6.5221072986787476E-010
+     energydiff                        : -6.5221428258155356E-010
      Hamiltonian update: {
  Energies: {Ekin:  9.38113501041E+00, Epot: -1.19657258754E+01, Enl:  6.85596100445E-01, 
               EH:  2.13130575617E+01,  EXC: -4.11291948109E+00, EvXC: -5.39152234269E+00}, 
@@ -2856,15 +2867,15 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  4.15E-11, energy: -1.71825518019937675E+01, D: -6.522E-10}]
+ iter:  3, delta:  4.15E-11, energy: -1.71825518019937711E+01, D: -6.522E-10}]
    -  &final_kernel008  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  4.15E-11, energy: -1.71825518019937675E+01, D: -6.522E-10}]}
+ iter:  3, delta:  4.15E-11, energy: -1.71825518019937711E+01, D: -6.522E-10}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc008
    -  {iter:  8, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  8, delta out:  1.463E-09, energy: -1.71825518019937675E+01, D: -3.774E-06}
+ iter high:  8, delta out:  1.463E-09, energy: -1.71825518019937711E+01, D: -3.774E-06}
     #========================================================= support function optimization
  - support function optimization: &it_supfun009
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -2872,13 +2883,13 @@
  Energies: {Ekin:  9.38113501041E+00, Epot: -1.19657024774E+01, Enl:  6.85596100445E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  2.07E-25,  6.67E-26 ]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  2.28E-03, Omega: -1.718255180194302E+01, D: -3.77E-06, D best: -3.77E-06, 
+ iter:  1, fnrm:  2.28E-03, Omega: -1.718255180194303E+01, D: -3.77E-06, D best: -3.77E-06, 
  Optimization: {algorithm: SD, mean alpha:  4.267E-01, max alpha:  4.267E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  8, 
- max / mean error:  [  6.66E-16,  1.49E-16 ]}, 
+ max / mean error:  [  4.44E-16,  1.06E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.72E-10, 
  Mean deviation from unity in reorthonormalize_coeff:  6.31E-11, 
@@ -2889,14 +2900,14 @@
  Energies: {Ekin:  9.38114317930E+00, Epot: -1.19657183085E+01, Enl:  6.85622975921E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  2.07E-25,  4.27E-26 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  1.62E-03, Omega: -1.718255369470081E+01, D: -1.89E-06, D best: -1.89E-06, 
+ iter:  2, fnrm:  1.62E-03, Omega: -1.718255369470082E+01, D: -1.89E-06, D best: -1.89E-06, 
  exit criterion: net number of iterations}
    -  &final_supfun009  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.38114317930E+00, Epot: -1.19657183085E+01, Enl:  6.85622975921E-01}, 
- iter:  2, fnrm:  1.62E-03, Omega: -1.718255369470081E+01, D: -1.89E-06, D best: -1.89E-06}
+ iter:  2, fnrm:  1.62E-03, Omega: -1.718255369470082E+01, D: -1.89E-06, D best: -1.89E-06}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel009
@@ -2908,14 +2919,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff009_001_001
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.07E-25,  4.27E-26 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  6.25E-11, 
  Mean deviation from unity in reorthonormalize_coeff:  4.29E-11, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.83E-05, eBS: -4.03014278196550890E+00, D:  3.729E-05, 
+ iter:  1, fnrm:  4.83E-05, eBS: -4.03014278196551778E+00, D:  3.729E-05, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -2939,14 +2950,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff009_001_002
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.07E-25,  4.27E-26 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  9.89E-11, 
  Mean deviation from unity in reorthonormalize_coeff:  6.02E-11, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  6.01E-05, eBS: -4.03010549156305586E+00, D: -3.731E-04, 
+ iter:  1, fnrm:  6.01E-05, eBS: -4.03010549156306830E+00, D: -3.731E-04, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  5.951E-03
        Coefficients available          :  Yes
@@ -2980,13 +2991,13 @@
  Energies: {Ekin:  9.38114317930E+00, Epot: -1.19659041909E+01, Enl:  6.85622975921E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  2.07E-25,  4.27E-26 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  1.62E-03, Omega: -1.718255369663430E+01, D: -1.89E-06, D best: -1.89E-06, 
  Optimization: {algorithm: SD, mean alpha:  4.694E-01, max alpha:  4.694E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  8, 
- max / mean error:  [  5.55E-16,  1.32E-16 ]}, 
+ max / mean error:  [  3.33E-16,  8.87E-17 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  4.07E-11, 
  Mean deviation from unity in reorthonormalize_coeff:  2.62E-11, 
@@ -2997,7 +3008,7 @@
  Energies: {Ekin:  9.38111226837E+00, Epot: -1.19658760551E+01, Enl:  6.85641461850E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  7.99E-26,  2.36E-26 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  2, fnrm:  1.15E-03, Omega: -1.718255470697623E+01, D: -1.01E-06, D best: -1.01E-06, 
  exit criterion: net number of iterations}
@@ -3016,14 +3027,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff010_001_001
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  7.99E-26,  2.36E-26 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.98E-11, 
  Mean deviation from unity in reorthonormalize_coeff:  2.46E-11, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.66E-05, eBS: -4.03047863412449381E+00, D:  8.287E-05, 
+ iter:  1, fnrm:  3.66E-05, eBS: -4.03047863412449914E+00, D:  8.287E-05, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -3047,14 +3058,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff010_001_002
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  7.99E-26,  2.36E-26 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  5.50E-11, 
  Mean deviation from unity in reorthonormalize_coeff:  3.19E-11, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  4.40E-05, eBS: -4.03039576017600254E+00, D: -2.234E-04, 
+ iter:  1, fnrm:  4.40E-05, eBS: -4.03039576017599988E+00, D: -2.234E-04, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  5.829E-03
        Coefficients available          :  Yes
@@ -3088,13 +3099,13 @@
  Energies: {Ekin:  9.38111226837E+00, Epot: -1.19659785753E+01, Enl:  6.85641461850E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  7.99E-26,  2.36E-26 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  1.15E-03, Omega: -1.718255470899198E+01, D: -1.01E-06, D best: -1.01E-06, 
  Optimization: {algorithm: SD, mean alpha:  5.163E-01, max alpha:  5.163E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  8, 
- max / mean error:  [  4.44E-16,  1.35E-16 ]}, 
+ max / mean error:  [  4.44E-16,  1.13E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  4.30E-11, 
  Mean deviation from unity in reorthonormalize_coeff:  2.04E-11, 
@@ -3105,14 +3116,14 @@
  Energies: {Ekin:  9.38107315268E+00, Epot: -1.19659392455E+01, Enl:  6.85653758333E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  8.08E-04, Omega: -1.718255525684165E+01, D: -5.48E-07, D best: -5.48E-07, 
+ iter:  2, fnrm:  8.08E-04, Omega: -1.718255525684164E+01, D: -5.48E-07, D best: -5.48E-07, 
  exit criterion: net number of iterations}
    -  &final_supfun011  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.38107315268E+00, Epot: -1.19659392455E+01, Enl:  6.85653758333E-01}, 
- iter:  2, fnrm:  8.08E-04, Omega: -1.718255525684165E+01, D: -5.48E-07, D best: -5.48E-07}
+ iter:  2, fnrm:  8.08E-04, Omega: -1.718255525684164E+01, D: -5.48E-07, D best: -5.48E-07}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel011
@@ -3124,9 +3135,9 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff011_001_001
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.51E-11, 
  Mean deviation from unity in reorthonormalize_coeff:  1.32E-11, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
@@ -3146,7 +3157,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  3.69E-10, energy: -1.71825552573793310E+01, D: -5.483E-07}]
+ iter:  1, delta:  3.69E-10, energy: -1.71825552573793274E+01, D: -5.483E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  1.44E-09
@@ -3155,19 +3166,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff011_001_002
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.08E-11, 
  Mean deviation from unity in reorthonormalize_coeff:  1.56E-11, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  3.09E-05, eBS: -4.03055948648642115E+00, D: -1.248E-04, 
+ iter:  1, fnrm:  3.09E-05, eBS: -4.03055948648641582E+00, D: -1.248E-04, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  5.755E-03
        Coefficients available          :  Yes
      alpha                             :  0.22
-     energydiff                        : -7.6772010970671545E-010
+     energydiff                        : -7.6772366242039425E-010
      Hamiltonian update: {
  Energies: {Ekin:  9.38107315268E+00, Epot: -1.19660151225E+01, Enl:  6.85653758333E-01, 
               EH:  2.13124977011E+01,  EXC: -4.11284796009E+00, EvXC: -5.39142900670E+00}, 
@@ -3196,13 +3207,13 @@
  Energies: {Ekin:  9.38107315268E+00, Epot: -1.19659903282E+01, Enl:  6.85653758333E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
+ max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  8.08E-04, Omega: -1.718255525809114E+01, D: -5.49E-07, D best: -5.49E-07, 
+ iter:  1, fnrm:  8.08E-04, Omega: -1.718255525809113E+01, D: -5.49E-07, D best: -5.49E-07, 
  Optimization: {algorithm: SD, mean alpha:  5.679E-01, max alpha:  5.679E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  8, 
- max / mean error:  [  5.55E-16,  1.13E-16 ]}, 
+ max / mean error:  [  4.44E-16,  9.25E-17 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  4.17E-11, 
  Mean deviation from unity in reorthonormalize_coeff:  1.52E-11, 
@@ -3213,14 +3224,14 @@
  Energies: {Ekin:  9.38104131869E+00, Epot: -1.19659552012E+01, Enl:  6.85660107052E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  5.50E-04, Omega: -1.718255555073174E+01, D: -2.93E-07, D best: -2.93E-07, 
+ iter:  2, fnrm:  5.50E-04, Omega: -1.718255555073173E+01, D: -2.93E-07, D best: -2.93E-07, 
  exit criterion: net number of iterations}
    -  &final_supfun012  { #-------------------------------------------------------- iter: 2
  target function: ENERGY, 
  Energies: {Ekin:  9.38104131869E+00, Epot: -1.19659552012E+01, Enl:  6.85660107052E-01}, 
- iter:  2, fnrm:  5.50E-04, Omega: -1.718255555073174E+01, D: -2.93E-07, D best: -2.93E-07}
+ iter:  2, fnrm:  5.50E-04, Omega: -1.718255555073173E+01, D: -2.93E-07, D best: -2.93E-07}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel012
@@ -3232,14 +3243,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff012_001_001
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.34E-11, 
  Mean deviation from unity in reorthonormalize_coeff:  6.62E-12, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.94E-05, eBS: -4.03068428365998432E+00, D:  4.122E-05, 
+ iter:  1, fnrm:  1.94E-05, eBS: -4.03068428365997988E+00, D:  4.122E-05, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -3254,7 +3265,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  2.26E-10, energy: -1.71825555510075709E+01, D: -2.929E-07}]
+ iter:  1, delta:  2.26E-10, energy: -1.71825555510075603E+01, D: -2.929E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  1.17E-09
@@ -3263,19 +3274,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff012_001_002
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.46E-11, 
  Mean deviation from unity in reorthonormalize_coeff:  6.97E-12, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.07E-05, eBS: -4.03064306587998367E+00, D: -6.252E-05, 
+ iter:  1, fnrm:  2.07E-05, eBS: -4.03064306587998189E+00, D: -6.252E-05, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  5.710E-03
        Coefficients available          :  Yes
      alpha                             :  0.22
-     energydiff                        : -4.1043080045710667E-010
+     energydiff                        : -4.1044145859814307E-010
      Hamiltonian update: {
  Energies: {Ekin:  9.38104131869E+00, Epot: -1.19659923104E+01, Enl:  6.85660107052E-01, 
               EH:  2.13124758417E+01,  EXC: -4.11284512100E+00, EvXC: -5.39142531619E+00}, 
@@ -3304,13 +3315,13 @@
  Energies: {Ekin:  9.38104131869E+00, Epot: -1.19659761687E+01, Enl:  6.85660107052E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  1.11E-16,  1.85E-17 ]}, 
+ max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  5.50E-04, Omega: -1.718255555139415E+01, D: -2.93E-07, D best: -2.93E-07, 
  Optimization: {algorithm: SD, mean alpha:  5.774E-01, max alpha:  5.774E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  8, 
- max / mean error:  [  4.44E-16,  9.79E-17 ]}, 
+ max / mean error:  [  2.22E-16,  6.67E-17 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  4.16E-11, 
  Mean deviation from unity in reorthonormalize_coeff:  1.28E-11, 
@@ -3321,7 +3332,7 @@
  Energies: {Ekin:  9.38102189944E+00, Epot: -1.19659531646E+01, Enl:  6.85663175811E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  2.58E-26,  4.86E-27 ]}, 
+ max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  2, fnrm:  3.74E-04, Omega: -1.718255569205037E+01, D: -1.41E-07, D best: -1.41E-07, 
  exit criterion: net number of iterations}
@@ -3340,14 +3351,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff013_001_001
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.58E-26,  4.86E-27 ]}, 
+ max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  6.03E-12, 
  Mean deviation from unity in reorthonormalize_coeff:  3.09E-12, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.34E-05, eBS: -4.03070558497310572E+00, D:  2.690E-05, 
+ iter:  1, fnrm:  1.34E-05, eBS: -4.03070558497310483E+00, D:  2.690E-05, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -3362,7 +3373,7 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.23E-10, energy: -1.71825556921805642E+01, D: -1.408E-07}]
+ iter:  1, delta:  1.23E-10, energy: -1.71825556921805678E+01, D: -1.408E-07}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  8.78E-10
@@ -3371,19 +3382,19 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff013_001_002
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  2.58E-26,  4.86E-27 ]}, 
+ max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  5.64E-12, 
  Mean deviation from unity in reorthonormalize_coeff:  2.75E-12, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  1.29E-05, eBS: -4.03067868993965917E+00, D: -2.391E-05, 
+ iter:  1, fnrm:  1.29E-05, eBS: -4.03067868993965384E+00, D: -2.391E-05, 
           alpha:  2.000E-01}
        Kohn-Sham residue               :  5.687E-03
        Coefficients available          :  Yes
      alpha                             :  0.22
-     energydiff                        : -1.8182433336733084E-010
+     energydiff                        : -1.8181722793997324E-010
      Hamiltonian update: {
  Energies: {Ekin:  9.38102189944E+00, Epot: -1.19659668288E+01, Enl:  6.85663175811E-01, 
               EH:  2.13124791831E+01,  EXC: -4.11284574563E+00, EvXC: -5.39142615635E+00}, 
@@ -3396,15 +3407,15 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.72E-11, energy: -1.71825556923623886E+01, D: -1.818E-10}]
+ iter:  2, delta:  1.72E-11, energy: -1.71825556923623850E+01, D: -1.818E-10}]
    -  &final_kernel013  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.72E-11, energy: -1.71825556923623886E+01, D: -1.818E-10}]}
+ iter:  2, delta:  1.72E-11, energy: -1.71825556923623850E+01, D: -1.818E-10}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc013
    -  {iter:  13, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  13, delta out:  1.260E-10, energy: -1.71825556923623886E+01, D: -1.409E-07}
+ iter high:  13, delta out:  1.260E-10, energy: -1.71825556923623850E+01, D: -1.409E-07}
     #========================================================= support function optimization
  - support function optimization: &it_supfun014
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -3412,13 +3423,13 @@
  Energies: {Ekin:  9.38102189944E+00, Epot: -1.19659573079E+01, Enl:  6.85663175811E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  2.58E-26,  4.86E-27 ]}, 
+ max / mean error:  [  1.11E-16,  2.62E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  3.75E-04, Omega: -1.718255569235404E+01, D: -1.41E-07, D best: -1.41E-07, 
+ iter:  1, fnrm:  3.75E-04, Omega: -1.718255569235403E+01, D: -1.41E-07, D best: -1.41E-07, 
  Optimization: {algorithm: SD, mean alpha:  5.870E-01, max alpha:  5.870E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  8, 
- max / mean error:  [  8.88E-16,  1.87E-16 ]}, 
+ max / mean error:  [  6.66E-16,  1.50E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  2.45E-11, 
  Mean deviation from unity in reorthonormalize_coeff:  7.27E-12, 
@@ -3429,7 +3440,7 @@
  Energies: {Ekin:  9.38100938760E+00, Epot: -1.19659414089E+01, Enl:  6.85664384467E-01}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  1.03E-25,  2.47E-26 ]}, 
+ max / mean error:  [  1.03E-25,  1.83E-26 ]}, 
  Preconditioning:  Yes, 
  iter:  2, fnrm:  2.55E-04, Omega: -1.718255576061300E+01, D: -6.83E-08, D best: -6.83E-08, 
  exit criterion: net number of iterations}
@@ -3448,14 +3459,14 @@
        method                          : directmin
        expansion coefficients optimization: &it_coeff014_001_001
        -  { #------------------------------------------------------------------ it coeff: 1
- calculate density kernel, communication strategy: ALLREDUCE, 
+ communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, x: -1, order:  8, 
- max / mean error:  [  1.03E-25,  2.47E-26 ]}, 
+ max / mean error:  [  1.03E-25,  1.83E-26 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  2.17E-12, 
  Mean deviation from unity in reorthonormalize_coeff:  1.35E-12, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  8.78E-06, eBS: -4.03070260004604375E+00, D:  1.588E-05, 
+ iter:  1, fnrm:  8.78E-06, eBS: -4.03070260004604553E+00, D:  1.588E-05, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -3470,15 +3481,15 @@
  {e: -4.559098128438E-01, f:  2.0000},  # 00003
  {e: -3.936386967807E-01, f:  2.0000}] # 00004
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  6.96E-11, energy: -1.71825557606686274E+01, D: -6.831E-08}]
+ iter:  1, delta:  6.96E-11, energy: -1.71825557606686203E+01, D: -6.831E-08}]
    -  &final_kernel014  { #-------------------------------------------------------- iter: 1
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  6.96E-11, energy: -1.71825557606686274E+01, D: -6.831E-08}]}
+ iter:  1, delta:  6.96E-11, energy: -1.71825557606686203E+01, D: -6.831E-08}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc014
    -  {iter:  14, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  14, delta out:  6.955E-11, energy: -1.71825557606686274E+01, D: -6.831E-08}
+ iter high:  14, delta out:  6.955E-11, energy: -1.71825557606686203E+01, D: -6.831E-08}
    Kernel update:
      max dev from unity                :  7.04E-10
      mean dev from unity               :  1.79E-10
@@ -3502,14 +3513,14 @@
  Energies: {Ekin:  9.38100938760E+00, Epot: -1.19659476708E+01, Enl:  6.85664384467E-01, 
               EH:  2.13124839012E+01,  EXC: -4.11284638658E+00, EvXC: -5.39142700378E+00}, 
        iter high:  14,           delta out:  6.955E-11, 
-          energy: -1.71825557606686274E+01,                       D:  0.000E+00,  #FINAL
+          energy: -1.71825557606686203E+01,                       D:  0.000E+00,  #FINAL
  }
  Write wavefunctions to file           : ./data-write/minBasis.*
  Wavefunction written No.              :  2
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  7.0E-01,  6.477E-01 ]}
+ -  {Process:  0, Timing:  [  6.7E-01,  6.352E-01 ]}
  Overview of the reformatting (several categories may apply):
    No reformatting required            :  4
    Grid spacing has changed            :  0
@@ -3528,13 +3539,13 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  3.90497803E-04, y:  3.83838708E-04, z: -2.09677093E-04, 
                     total:  5.86331963E-04}
- Clean forces norm (Ha/Bohr): {maxval:  5.057863667905E-04, fnrm2:  4.157424581978E-07}
- Raw forces norm (Ha/Bohr): {maxval:  1.078403509138E-03, fnrm2:  1.200811070455E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  5.057863667921E-04, fnrm2:  4.157424582021E-07}
+ Raw forces norm (Ha/Bohr): {maxval:  1.078403509153E-03, fnrm2:  1.200811070489E-06}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 4.928065110471E-04, -9.220399701256E-05, -6.678333950616E-05]} # 0001
- -  {H: [-1.466892486644E-04, -4.945740666732E-07, -2.899597915347E-05]} # 0002
- -  {H: [-3.461172623827E-04,  9.269857107923E-05,  9.577931865963E-05]} # 0003
+ -  {O: [ 4.928065110465E-04, -9.220399701796E-05, -6.678333951573E-05]} # 0001
+ -  {H: [-1.466892486599E-04, -4.945740645554E-07, -2.899597914889E-05]} # 0002
+ -  {H: [-3.461172623866E-04,  9.269857108252E-05,  9.577931866462E-05]} # 0003
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -3568,15 +3579,15 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  96.96
-   Elapsed time (s)                    :  49.30
+   CPU time (s)                        :  95.10
+   Elapsed time (s)                    :  48.66
  Memory Consumption Report:
-   Tot. No. of Allocations             :  17749
-   Tot. No. of Deallocations           :  17749
+   Tot. No. of Allocations             :  16741
+   Tot. No. of Deallocations           :  16741
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  307
+     Peak Value (MB)                   :  304
      for the array                     : psir
      in the routine                    : LocalHamiltonianApplication
- Max No. of dictionaries used          :  3117 #( 798 still in use)
+ Max No. of dictionaries used          :  3453 #( 803 still in use)
  Number of dictionary folders allocated:  1
