@@ -711,7 +711,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   character(len=*), parameter :: subname='NonLocalHamiltonianApplication' 
   logical :: dosome, overlap
   integer :: ikpt,istart_ck,ispsi_k,isorb,ieorb,nspinor,iorb,iat,nwarnings
-  integer :: iproj,ispsi,istart_c,ilr,ilr_skip,mproj,iatype,ispinor,iilr
+  integer :: iproj,ispsi,istart_c,ilr,ilr_skip,mproj,iatype,ispinor,iilr, ii
   real(wp) :: hp,eproj
   real(wp), dimension(:), allocatable :: scpr
   !integer :: ierr
@@ -770,6 +770,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
 
      call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
      !localisation regions loop
+     ii=0
      loop_lr: do ilr=1,Lzd%nlr
         !do something only if at least one of the orbitals lives in the ilr
         dosome=.false.
@@ -780,6 +781,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
            if (dosome) exit
         end do
         if (.not. dosome) cycle loop_lr
+        ii=ii+1
 
         if (nl%on_the_fly) then
            !first create a projector ,then apply it for everyone
@@ -791,7 +793,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
               !no projector on this atom
               if(mproj == 0) cycle
               !projector not overlapping with the locreg
-              iilr=nl%pspd(iat)%lut_tolr(ilr)
+              iilr=nl%pspd(iat)%lut_tolr(ii)
               if (iilr==PSP_APPLY_SKIP) cycle
               if(nl%pspd(iat)%tolr(iilr)%strategy == PSP_APPLY_SKIP) cycle
               !check if the atom projector intersect with the given localisation region
@@ -885,7 +887,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
                  mproj=nl%pspd(iat)%mproj
                  if(mproj == 0) cycle
                  !projector not overlapping with the locreg
-                 iilr=nl%pspd(iat)%lut_tolr(ilr)
+                 iilr=nl%pspd(iat)%lut_tolr(ii)
                  if (iilr==PSP_APPLY_SKIP) cycle
                  if(nl%pspd(iat)%tolr(iilr)%strategy == PSP_APPLY_SKIP) cycle
 
