@@ -244,6 +244,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   integer :: iat,iseg
   integer, dimension(:), allocatable :: nbsegs_cf,keyg_lin
   logical, dimension(:,:,:), allocatable :: logrid
+  integer,dimension(1) :: idummy
   call f_routine(id=subname)
 
   !start from a null structure
@@ -350,7 +351,8 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
         end if
         !in the case of linear scaling this section has to be built again
         call set_nlpsp_to_wfd(lr,nl%pspd(iat)%plr,&
-             keyg_lin,nbsegs_cf,nl%pspd(iat)%tolr)
+             keyg_lin,nbsegs_cf,nl%pspd(iat)%lut_tolr,nl%pspd(iat)%tolr,&
+             1,1,1,idummy) ! this is just here since the interface demands it
      endif
   enddo
 
@@ -1848,7 +1850,8 @@ contains
 !!$       if (Lzd%nlr /=1) then
 !!$          call f_err_throw('The cubic localization region has always nlr=1',err_name='BIGDFT_RUNTIME_ERROR')
 !!$       else
-          call update_nlpsp(nlpsp,Lzd%nlr,Lzd%llr,Lzd%Glr,(/(.true.,ii=1,Lzd%nlr)/))
+          call update_nlpsp(nlpsp,Lzd%nlr,Lzd%llr,Lzd%Glr,(/(.true.,ii=1,Lzd%nlr)/),&
+               orbs%norb,orbs%isorb,orbs%norbp,orbs%inwhichlocreg)
           if (iproc == 0) call print_nlpsp(nlpsp)
 !!$       end if
     end if

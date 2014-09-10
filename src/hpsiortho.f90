@@ -711,7 +711,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   character(len=*), parameter :: subname='NonLocalHamiltonianApplication' 
   logical :: dosome, overlap
   integer :: ikpt,istart_ck,ispsi_k,isorb,ieorb,nspinor,iorb,iat,nwarnings
-  integer :: iproj,ispsi,istart_c,ilr,ilr_skip,mproj,iatype,ispinor
+  integer :: iproj,ispsi,istart_c,ilr,ilr_skip,mproj,iatype,ispinor,iilr, ii
   real(wp) :: hp,eproj
   real(wp), dimension(:), allocatable :: scpr
   !integer :: ierr
@@ -770,6 +770,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
 
      call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
      !localisation regions loop
+     ii=0
      loop_lr: do ilr=1,Lzd%nlr
         !do something only if at least one of the orbitals lives in the ilr
         dosome=.false.
@@ -780,6 +781,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
            if (dosome) exit
         end do
         if (.not. dosome) cycle loop_lr
+        ii=ii+1
 
         if (nl%on_the_fly) then
            !first create a projector ,then apply it for everyone
@@ -791,7 +793,9 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
               !no projector on this atom
               if(mproj == 0) cycle
               !projector not overlapping with the locreg
-              if(nl%pspd(iat)%tolr(ilr)%strategy == PSP_APPLY_SKIP) cycle
+              iilr=nl%pspd(iat)%lut_tolr(ii)
+              if (iilr==PSP_APPLY_SKIP) cycle
+              if(nl%pspd(iat)%tolr(iilr)%strategy == PSP_APPLY_SKIP) cycle
               !check if the atom projector intersect with the given localisation region
               !this part can be moved at the place of the analysis between psp and lrs
               !call cpu_time(tr0)
@@ -883,7 +887,9 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
                  mproj=nl%pspd(iat)%mproj
                  if(mproj == 0) cycle
                  !projector not overlapping with the locreg
-                 if(nl%pspd(iat)%tolr(ilr)%strategy == PSP_APPLY_SKIP) cycle
+                 iilr=nl%pspd(iat)%lut_tolr(ii)
+                 if (iilr==PSP_APPLY_SKIP) cycle
+                 if(nl%pspd(iat)%tolr(iilr)%strategy == PSP_APPLY_SKIP) cycle
 
                  !check if the atom intersect with the given localisation region
                  call check_overlap(Lzd%Llr(ilr), nl%pspd(iat)%plr, Lzd%Glr, overlap)
@@ -1011,7 +1017,7 @@ contains
        
        call NL_HGH_application(hij,&
             ncplx_p,mproj,nl%pspd(iat)%plr%wfd,nl%proj(istart_c),&
-            ncplx_w,n_w,Lzd%Llr(ilr)%wfd,nl%pspd(iat)%tolr(ilr),nl%wpack,nl%scpr,nl%cproj,nl%hcproj,&
+            ncplx_w,n_w,Lzd%Llr(ilr)%wfd,nl%pspd(iat)%tolr(iilr),nl%wpack,nl%scpr,nl%cproj,nl%hcproj,&
             psi(ispsi),hpsi(ispsi),eproj)
 
 !!$       !free workspaces
