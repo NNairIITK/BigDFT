@@ -164,3 +164,10 @@ bigdft/convolutions/.directory
 bigdft/wavelib/scalar_product.f90
 wannier90-*.tar.*
 wannier90-*/
+glib-*.tar.*
+glib-*/
+gobject-introspection-*.tar.*
+gobject-introspection-*/
+pygobject-*.tar.*
+pygobject-*/
+libffi*

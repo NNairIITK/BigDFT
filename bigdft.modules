@@ -12,6 +12,8 @@
 
   <repository type="tarball" name="local" href="./"/>
 
+  <include href="gnome.modules"/>
+
   <autotools id="libxc" check-target="false"> <!-- autogen-sh="autoreconf" -->
     <!--<branch repo="libxc" checkoutdir="libxc-2.0.x"/>-->
     <branch repo="local" module="libxc-2.0.x.tar.gz" version="2.0.x" checkoutdir="libxc"/>
@@ -56,6 +58,10 @@
       <dep package="libABINIT"/>
       <if condition-set="testing">
         <dep package="PyYAML"/>
+      </if>
+      <if condition-set="python">
+        <dep package="pygobject"/>
+        <dep package="gobject-introspection"/>
       </if>
     </dependencies>
   </autotools>
