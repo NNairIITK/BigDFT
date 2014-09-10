@@ -792,7 +792,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
               if(mproj == 0) cycle
               !projector not overlapping with the locreg
               iilr=nl%pspd(iat)%lut_tolr(ilr)
-              if (iilr==PSP_APPLY_SKIP) stop 'applying a projector which is not allocated'
+              if (iilr==PSP_APPLY_SKIP) cycle
               if(nl%pspd(iat)%tolr(iilr)%strategy == PSP_APPLY_SKIP) cycle
               !check if the atom projector intersect with the given localisation region
               !this part can be moved at the place of the analysis between psp and lrs
@@ -886,7 +886,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
                  if(mproj == 0) cycle
                  !projector not overlapping with the locreg
                  iilr=nl%pspd(iat)%lut_tolr(ilr)
-                 if (iilr==PSP_APPLY_SKIP) stop 'applying a projector which is not allocated'
+                 if (iilr==PSP_APPLY_SKIP) cycle
                  if(nl%pspd(iat)%tolr(iilr)%strategy == PSP_APPLY_SKIP) cycle
 
                  !check if the atom intersect with the given localisation region

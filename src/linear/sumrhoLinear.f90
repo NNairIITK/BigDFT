@@ -580,7 +580,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   logical,intent(in),optional :: print_results
 
   ! Local variables
-  integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr, ind, ispin, ishift, ishift_mat
+  integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr, ind, ispin, ishift, ishift_mat, iorb_shift
   real(8) :: tt, total_charge, hxh, hyh, hzh, factor, tt1
   integer,dimension(:),allocatable :: isend_total
   real(kind=8),dimension(:),allocatable :: rho_local
@@ -638,9 +638,10 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
       else
           ishift=collcom_sr%ndimind_c/2
       end if
+      iorb_shift=(ispin-1)*denskern%nfvctr
       ishift_mat=(ispin-1)*denskern%nvctr
       !$omp parallel default(private) &
-      !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local, irho, ispin, ishift, ishift_mat)
+      !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local, irho, ispin, ishift, ishift_mat, iorb_shift)
       !$omp do schedule(static,50) reduction(+:total_charge, irho)
       do ipt=1,collcom_sr%nptsp_c
           ii=collcom_sr%norb_per_gridpoint_c(ipt)
@@ -648,8 +649,8 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
           i0=collcom_sr%isptsp_c(ipt)+ishift
           tt=1.e-20_dp
           do i=1,ii
-              iiorb=collcom_sr%indexrecvorbital_c(i0+i)
-              iiorb=mod(iiorb-1,denskern%nfvctr)+1
+              iiorb=collcom_sr%indexrecvorbital_c(i0+i) - iorb_shift
+              !iiorb=mod(iiorb-1,denskern%nfvctr)+1
     !ispin=spinsgn(iiorb) 
               tt1=collcom_sr%psit_c(i0+i)
               ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
@@ -657,8 +658,8 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
               tt=tt+denskern_%matrix_compr(ind)*tt1*tt1
     !tt(ispin)=tt(ispin)+denskern_%matrix_compr(ind)*tt1*tt1
               do j=i+1,ii
-                  jjorb=collcom_sr%indexrecvorbital_c(i0+j)
-                  jjorb=mod(jjorb-1,denskern%nfvctr)+1
+                  jjorb=collcom_sr%indexrecvorbital_c(i0+j) - iorb_shift
+                  !jjorb=mod(jjorb-1,denskern%nfvctr)+1
                   ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
                   ind=ind+ishift_mat
                   if (ind==0) cycle
