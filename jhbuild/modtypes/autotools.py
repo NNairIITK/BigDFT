@@ -313,6 +313,23 @@ class AutogenModule(MakeModule, DownloadableModule):
     do_dist.depends = [PHASE_CONFIGURE]
     do_dist.error_phases = [PHASE_FORCE_CHECKOUT, PHASE_CONFIGURE]
 
+    def do_setup(self, buildscript):
+        buildscript.set_action(_('Regenerating build system for'), self)
+        srcdir = self.get_srcdir(buildscript)
+        # autoreconf doesn't honour ACLOCAL_FLAGS, therefore we pass
+        # a crafted ACLOCAL variable.  (GNOME bug 590064)
+        extra_env = {}
+        if self.extra_env:
+            extra_env = self.extra_env.copy()
+        extra_env['ACLOCAL'] = ' '.join((
+            extra_env.get('ACLOCAL', os.environ.get('ACLOCAL', 'aclocal')),
+            extra_env.get('ACLOCAL_FLAGS', os.environ.get('ACLOCAL_FLAGS', ''))))
+        buildscript.execute(['autoreconf', '-fi'], cwd=srcdir,
+                extra_env=extra_env)
+        os.chmod(os.path.join(srcdir, 'configure'), 0755)
+    do_dist.depends = [PHASE_CHECKOUT]
+    do_dist.error_phases = [PHASE_FORCE_CHECKOUT, PHASE_CLEAN]
+
     def do_distcheck(self, buildscript):
         buildscript.set_action(_('Dist checking'), self)
         makeargs = self.get_makeargs(buildscript)
