@@ -107,7 +107,7 @@ AX_FC_POINTER()
 
 dnl Look for GLib and friends for bindings.
 AC_ARG_ENABLE(bindings, AS_HELP_STRING([--enable-bindings], [Build C bindings (disabled by default).]),
-              ac_build_bindings=$enableval, ac_build_bindings="no")
+              ac_build_bindings=$enableval, ac_build_bindings="yes")
 if test x"$ac_build_bindings" = x"yes" -a $F90_1D_POINTER_SIZE = 0 ; then
   ac_build_bindings="warn"
 fi
