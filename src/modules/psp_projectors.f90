@@ -51,7 +51,8 @@ module psp_projectors
      integer :: mproj !< number of projectors for this descriptor
      integer :: nlr !< total no. localization regions potentially interacting with the psp
      type(locreg_descriptors) :: plr !< localization region descriptor of a given projector (null if nlp=0)
-     type(nlpsp_to_wfd), dimension(:), pointer :: tolr !<maskings for the locregs, dimension nlr
+     type(nlpsp_to_wfd), dimension(:), pointer :: tolr !<maskings for the locregs
+     integer,dimension(:),pointer :: lut_tolr !< lookup table for tolr, dimension nlr
   end type nonlocal_psp_descriptors
 
 
@@ -109,6 +110,7 @@ contains
     pspd%nlr=0
     call nullify_locreg_descriptors(pspd%plr)
     nullify(pspd%tolr)
+    nullify(pspd%lut_tolr)
   end subroutine nullify_nonlocal_psp_descriptors
 
   pure function DFT_PSP_projectors_null() result(nl)
@@ -149,7 +151,7 @@ contains
     !local variables
     integer :: ilr
     if (associated(pspd%tolr)) then
-       do ilr=1,pspd%nlr
+       do ilr=1,size(pspd%tolr)
           call deallocate_nlpsp_to_wfd(pspd%tolr(ilr))
           call nullify_nlpsp_to_wfd(pspd%tolr(ilr))
        end do
@@ -157,6 +159,7 @@ contains
        nullify(pspd%tolr)
     end if
     call deallocate_locreg_descriptors(pspd%plr)
+    call f_free_ptr(pspd%lut_tolr)
   end subroutine deallocate_nonlocal_psp_descriptors
 
 
@@ -350,18 +353,19 @@ contains
     do iat=1,nl%natoms
        !free the pre-existing array of structures
        if (associated(nl%pspd(iat)%tolr)) then
-          do ilr=1,nl%pspd(iat)%nlr
+          do ilr=1,size(nl%pspd(iat)%tolr)
              call deallocate_nlpsp_to_wfd(nl%pspd(iat)%tolr(ilr))
              call nullify_nlpsp_to_wfd(nl%pspd(iat)%tolr(ilr))
           end do
           deallocate(nl%pspd(iat)%tolr)
           nullify(nl%pspd(iat)%tolr)
+          call f_free_ptr(nl%pspd(iat)%lut_tolr)
        end if
        if (nl%pspd(iat)%mproj > 0) then 
           !then fill it again, if the locreg is demanded
           nl%pspd(iat)%nlr=nlr
           call set_nlpsp_to_wfd(Glr,nl%pspd(iat)%plr,&
-               keyg_lin,nbsegs_cf,nl%pspd(iat)%tolr,lrs,lr_mask)
+               keyg_lin,nbsegs_cf,nl%pspd(iat)%lut_tolr,nl%pspd(iat)%tolr,lrs,lr_mask)
        end if
     end do
 
@@ -374,7 +378,7 @@ contains
 
   !> initialize the information for matching the localisation region
   !! of each projector to all the localisation regions of the system
-  subroutine set_nlpsp_to_wfd(Glr,plr,keyag_lin_cf,nbsegs_cf,tolr,lrs,lr_mask)
+  subroutine set_nlpsp_to_wfd(Glr,plr,keyag_lin_cf,nbsegs_cf,lut_tolr,tolr,lrs,lr_mask)
     implicit none
     type(locreg_descriptors), intent(in) :: Glr !<global simulation domain
     type(locreg_descriptors), intent(in) :: plr !<locreg of the projector
@@ -384,6 +388,7 @@ contains
     !! the dimension has to be maxval(lrs(:)%nseg_c+lrs(:)%nseg_f)
     integer, dimension(*), intent(inout) :: keyag_lin_cf
     !>structures which have to be filled to prepare projector applications
+    integer,dimension(:),pointer :: lut_tolr
     type(nlpsp_to_wfd), dimension(:), pointer :: tolr 
     !> mask array which is associated to the localization regions of interest in this processor
     logical, dimension(:), optional, intent(in) :: lr_mask
@@ -392,25 +397,55 @@ contains
     type(locreg_descriptors), dimension(:), optional, intent(in) :: lrs
     !local variables
     logical :: overlap
-    integer :: ilr,nlr
+    integer :: ilr,nlr, iilr, noverlap, ioverlap
 
     call f_routine(id='set_nlpsp_to_wfd')
 
+    ! Determine the size of tolr and initialize the corresponding lookup table
     nlr=1
     overlap=.true.
-    if (present(lrs)) nlr=size(lrs)
+    if (present(lrs)) then
+        nlr=size(lrs)
+    end if
     if (nlr <=0) return
+    lut_tolr = f_malloc_ptr(nlr,id='lut_tolr')
+    lut_tolr = PSP_APPLY_SKIP
+
+    noverlap=0
+    do ilr=1,nlr
+       !control if the projector overlaps with this locreg
+       if (present(lrs)) then
+          overlap=.true.
+          if (present(lr_mask)) overlap=lr_mask(ilr)
+          if (overlap) call check_overlap(lrs(ilr),plr,Glr,overlap)
+          !if there is overlap, activate the strategy for the application
+          if (overlap) then
+              noverlap=noverlap+1
+              lut_tolr(ilr)=noverlap
+          end if
+       else
+          noverlap=noverlap+1
+          lut_tolr(ilr)=noverlap
+       end if
+    end do
+
+
+
     if (present(lrs) .and. present(lr_mask)) then
        if (f_err_raise(nlr /= size(lr_mask),'The sizes of lr_mask and lrs should coincide',&
             err_name='BIGDFT_RUNTIME_ERROR')) return
     end if
     !allocate the pointer with the good size
-    allocate(tolr(nlr))
+    allocate(tolr(noverlap))
     !then for any of the localization regions check the strategy
     !for applying the projectors
+    ioverlap=0
     do ilr=1,nlr
+       iilr=lut_tolr(ilr)
+       if (iilr==PSP_APPLY_SKIP) cycle
+       ioverlap=ioverlap+1
        !this will set to PSP_APPLY_SKIP the projector application
-       call nullify_nlpsp_to_wfd(tolr(ilr))
+       call nullify_nlpsp_to_wfd(tolr(ioverlap))
        !now control if the projector overlaps with this locreg
        if (present(lrs)) then
           overlap=.true.
@@ -418,41 +453,15 @@ contains
           if (overlap) call check_overlap(lrs(ilr),plr,Glr,overlap)
           !if there is overlap, activate the strategy for the application
           if (overlap) then
-             call init_tolr(tolr(ilr),lrs(ilr)%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf)
-!!$             !calculate the size of the mask array
-!!$             call vcopy(lrs(ilr)%wfd%nseg_c+lrs(ilr)%wfd%nseg_f,&
-!!$                  lrs(ilr)%wfd%keyglob(1,1),2,keyag_lin_cf(1),1)
-!!$             call to_zero(plr%wfd%nseg_c+plr%wfd%nseg_f,nbsegs_cf(1))
-!!$             call mask_sizes(lrs(ilr)%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf,&
-!!$                  tolr(ilr)%nmseg_c,tolr(ilr)%nmseg_f)
-!!$             !then allocate and fill it
-!!$             tolr(ilr)%mask=&
-!!$                  f_malloc0_ptr((/3,tolr(ilr)%nmseg_c+tolr(ilr)%nmseg_f/),&
-!!$                  id='mask')
-!!$             !and filled
-!!$             call init_mask(lrs(ilr)%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf,&
-!!$                  tolr(ilr)%nmseg_c,tolr(ilr)%nmseg_f,tolr(ilr)%mask)
+             call init_tolr(tolr(ioverlap),lrs(ilr)%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf)
           end if
        else
-          call init_tolr(tolr(ilr),Glr%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf)
-!!$          !calculate the size of the mask array
-!!$          call vcopy(Glr%wfd%nseg_c+Glr%wfd%nseg_f,&
-!!$               Glr%wfd%keyglob(1,1),2,keyag_lin_cf(1),1)
-!!$          call to_zero(plr%wfd%nseg_c+plr%wfd%nseg_f,nbsegs_cf(1))
-!!$          call mask_sizes(Glr%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf,&
-!!$               tolr(ilr)%nmseg_c,tolr(ilr)%nmseg_f)
-!!$          !then allocate and fill it
-!!$          tolr(ilr)%mask=&
-!!$               f_malloc0_ptr((/3,tolr(ilr)%nmseg_c+tolr(ilr)%nmseg_f/),&
-!!$               id='mask')
-!!$          !and filled
-!!$          call init_mask(Glr%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf,&
-!!$               tolr(ilr)%nmseg_c,tolr(ilr)%nmseg_f,tolr(ilr)%mask)
+          call init_tolr(tolr(ioverlap),Glr%wfd,plr%wfd,keyag_lin_cf,nbsegs_cf)
        end if
        !then the best strategy can be decided according to total number of 
        !common points
        !complete stategy, the packing array is created after first projector
-       if (overlap) tolr(ilr)%strategy=PSP_APPLY_MASK_PACK
+       if (overlap) tolr(ioverlap)%strategy=PSP_APPLY_MASK_PACK
        !masking is used but packing is not created, 
        !useful when only one projector has to be applied
        !tolr(ilr)%strategy=PSP_APPLY_MASK
@@ -460,6 +469,8 @@ contains
        !most likely this scheme is useful for debugging purposes
        !tolr(ilr)%strategy=PSP_APPLY_KEYS
     end do
+
+    if (ioverlap/=noverlap) stop 'ioverlap/=noverlap'
 
     call f_release_routine()
 

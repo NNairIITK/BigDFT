@@ -350,7 +350,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
         end if
         !in the case of linear scaling this section has to be built again
         call set_nlpsp_to_wfd(lr,nl%pspd(iat)%plr,&
-             keyg_lin,nbsegs_cf,nl%pspd(iat)%tolr)
+             keyg_lin,nbsegs_cf,nl%pspd(iat)%lut_tolr,nl%pspd(iat)%tolr)
      endif
   enddo
 

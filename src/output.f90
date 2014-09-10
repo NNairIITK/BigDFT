@@ -1654,7 +1654,8 @@ subroutine print_nlpsp(nlpsp)
      end if
      sizemask=0
      if (associated(nlpsp%pspd(iat)%tolr)) then
-        do ilr=1,nlpsp%pspd(iat)%nlr
+        !do ilr=1,nlpsp%pspd(iat)%nlr
+        do ilr=1,size(nlpsp%pspd(iat)%tolr)
            sizemask=sizemask+&
                 nlpsp%pspd(iat)%tolr(ilr)%nmseg_c+nlpsp%pspd(iat)%tolr(ilr)%nmseg_f
         end do
