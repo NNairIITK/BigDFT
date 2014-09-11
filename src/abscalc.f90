@@ -15,7 +15,7 @@ program abscalc_main
 !!$   use module_interfaces
 !!$   use m_ab6_symmetry
    !  use minimization, only: parameterminimization 
-
+   use yaml_output
    implicit none
    character(len=*), parameter :: subname='abscalc_main'
    integer :: iproc,nproc,ierr,infocode
@@ -30,50 +30,45 @@ program abscalc_main
    real(gp), dimension(:,:), allocatable :: fxyz
    integer :: iconfig,nconfig,igroup,ngroups
    integer, dimension(4) :: mpi_info
+   type(dictionary), pointer :: options,run
    logical :: exists
 
    call f_lib_initialize()
-   !-finds the number of taskgroup size
-   !-initializes the mpi_environment for each group
-   !-decides the radical name for each run
-   call bigdft_init(mpi_info,nconfig,run_id,ierr)
+
+   call bigdft_command_line_options(options)
+   call bigdft_init(options)
 
    !just for backward compatibility
-   iproc=mpi_info(1)
-   nproc=mpi_info(2)
+   iproc=bigdft_mpi%iproc!mpi_info(1)
+   nproc=bigdft_mpi%nproc!mpi_info(2)
 
-   igroup=mpi_info(3)
+   igroup=bigdft_mpi%igroup!mpi_info(3)
    !number of groups
-   ngroups=mpi_info(4)
+   ngroups=bigdft_mpi%ngroup!mpi_info(4)
+!!$   !allocate arrays of run ids
+!!$   allocate(arr_radical(abs(nconfig)))
+!!$   allocate(arr_posinp(abs(nconfig)))
+!!$
+!!$   !here we call  a routine which
+!!$   ! Read a possible radical format argument.
+!!$   call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierr)
 
-   !allocate arrays of run ids
-   allocate(arr_radical(abs(nconfig)))
-   allocate(arr_posinp(abs(nconfig)))
-
-   !here we call  a routine which
-   ! Read a possible radical format argument.
-   call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierr)
-
-   do iconfig=1,abs(nconfig)
-      if (modulo(iconfig-1,ngroups)==igroup) then
-
+   !alternative way of looping over runs
+   do iconfig=0,bigdft_nruns(options)-1!abs(nconfig)
+      run => options // 'BigDFT' // iconfig
+      !if (modulo(iconfig-1,ngroups)==igroup) then
+      run_id =  run // 'name'
          !Welcome screen
-         call run_objects_init_from_files(runObj, arr_radical(iconfig),arr_posinp(iconfig))
+         call run_objects_init(runObj,run)! arr_radical(iconfig),arr_posinp(iconfig))
 
          call f_file_exists(trim(run_id)//".abscalc",exists)
          !inquire(file=trim(run_id)//".abscalc",exist=exists)
          if (.not. exists) then
-!!$            if (iproc == 0) write(*,*) 'ERROR: need file input.abscalc for x-ray absorber treatment.'
-!!$            if(nproc/=0)   call MPI_FINALIZE(ierr)
-!!$            stop
             call f_err_throw('Need file input.abscalc for x-ray absorber treatment',&
                  err_name='BIGDFT_INPUT_FILE_ERROR')
          end if
       call abscalc_input_variables(iproc,trim(run_id)//".abscalc",runObj%inputs)
       if( runObj%inputs%iat_absorber <1 .or. runObj%inputs%iat_absorber > runObj%atoms%astruct%nat) then
-!!$         if (iproc == 0) write(*,*)'ERROR: inputs%iat_absorber  must .ge. 1 and .le. number_of_atoms '
-!!$         if(nproc/=0)   call MPI_FINALIZE(ierr)
-!!$         stop
          call f_err_throw('inputs%iat_absorber  must .ge. 1 and .le. number_of_atoms',&
               err_name='BIGDFT_INPUT_VARIABLES_ERROR')
       endif
@@ -93,11 +88,11 @@ program abscalc_main
 
       call run_objects_free(runObj)
 
-   end if
+ !  end if
    enddo !loop over iconfig
 
-   deallocate(arr_posinp,arr_radical)
-
+!   deallocate(arr_posinp,arr_radical)
+   call dict_free(options)
    call bigdft_finalize(ierr)
    call f_lib_finalize()
 
@@ -365,6 +360,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    type(rholoc_objects)::rholoc_tmp
    type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_tmp
 
+   energs= energy_terms_null()
 
    if (in%potshortcut==0) then
       if(nproc>1) call MPI_Finalize(ierr)

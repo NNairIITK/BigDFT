@@ -158,7 +158,9 @@ contains
 
        call set(option//OPTSNAME,shortname)
     end if
-    if (present(help_dict)) call set(option//OPTHELP,help_dict)
+    if (present(help_dict)) then
+       call set(option//OPTHELP,help_dict)
+    end if
 
     if (present(conflicts)) then
        if (trim(default) /= "None") then
@@ -280,14 +282,18 @@ contains
 
   
   !> routine for parsing the command line
-  subroutine yaml_cl_parse_cmd_line(parser)
+  subroutine yaml_cl_parse_cmd_line(parser,args)
     use dictionaries
     use yaml_strings, only:f_strcpy
     use yaml_output
     !use yaml_output
     implicit none
     !> the parser which has to be updated
+    !! resulting command line arguments are written in parser%args
     type(yaml_cl_parse), intent(inout) :: parser
+    !> dictionary of the arguments.
+    !! if present, the arguments are copied into this dictionary
+    type(dictionary), pointer, intent(out), optional :: args
     !local variables
     integer :: icommands,ncommands
     type(dictionary), pointer :: dict,conf
@@ -325,7 +331,10 @@ contains
        dict => dict_next(dict)
     end do
 
-
+    if (present(args)) then
+       nullify(args) 
+       call dict_copy(src=parser%args,dest=args)
+    end if
     contains
 
       !> parse the input command and returns the dictionary which is associated to it

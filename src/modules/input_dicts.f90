@@ -350,8 +350,6 @@ contains
 
     if (.not. associated(atoms%nzatom)) then
        call allocate_atoms_data(atoms)
-       !call allocate_atoms_nat(atoms, "psp_dict_analyse")
-       !call allocate_atoms_ntypes(atoms, "psp_dict_analyse")
     end if
 
     pawpatch = .true.

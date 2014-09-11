@@ -38,6 +38,7 @@ program mhgps
     character(len=300)  :: comment
     logical :: converged=.false.
     type(connect_object) :: cobj
+    type(dictionary), pointer :: options
     integer :: nsad
     logical :: connected
 
@@ -90,23 +91,25 @@ real(gp), allocatable :: fat(:,:)
     isForceField=.false.
     if(efmethod=='BIGDFT')then
         isForceField=.false.
-        call bigdft_init(mpi_info,nconfig,run_id,ierr)
-        iproc=mpi_info(1)
-        nproc=mpi_info(2)
-        igroup=mpi_info(3)
+        call bigdft_command_line_options(options)
+        call bigdft_init(options)!mpi_info,nconfig,run_id,ierr)
+        iproc=bigdft_mpi%iproc!mpi_info(1)
+        nproc=bigdft_mpi%nproc!mpi_info(2)
+        igroup=bigdft_mpi%igroup!mpi_info(3)
         !number of groups
-         ngroups=mpi_info(4)
+         ngroups=bigdft_mpi%ngroup!mpi_info(4)
         !actual value of iproc
         iproc=iproc+igroup*ngroups
-        if (nconfig < 0) then
-            call yaml_warning('runs-file not supported for MHGPS '//&
+        if (bigdft_nruns(options) > 1) then
+            call f_err_throw('runs-file not supported for MHGPS '//&
                               'executable')
-            stop
         endif
+        run_id = options // 0 // 'name'
         if(iproc==0) call print_logo_mhgps()
         call dict_init(user_inputs)
         write(currDir,'(a,i3.3)')'input',ifolder
         write(filename,'(a,i3.3)')'pos',ifile
+        !LG: why not initialize only run_objects?
         call user_dict_from_files(user_inputs, trim(run_id)//&
              trim(bigdft_run_id_toa()),currDir//'/'//filename//&
              trim(bigdft_run_id_toa()), bigdft_mpi)
@@ -118,6 +121,8 @@ real(gp), allocatable :: fat(:,:)
                                  rst)
         call run_objects_nullify(runObj)
         call run_objects_associate(runObj, inputs_opt, atoms, rst)
+        call dict_free(options)
+        !LG : to be wrapped again
         !set minimum number of wave function optimizations
 !        if(runObj%inputs%itermin<5)then
 !            itermin=5

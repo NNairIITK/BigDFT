@@ -458,29 +458,29 @@ module module_types
 
   !> Contains all energy terms
   type, public :: energy_terms
-     real(gp) :: eh      =0.0_gp !< Hartree energy
-     real(gp) :: exc     =0.0_gp !< Exchange-correlation energy
-     real(gp) :: evxc    =0.0_gp !< Energy from the exchange-correlation potential
-     real(gp) :: eion    =0.0_gp !< Ion-Ion interaction
-     real(gp) :: edisp   =0.0_gp !< Dispersion force
-     real(gp) :: ekin    =0.0_gp !< Kinetic term
-     real(gp) :: epot    =0.0_gp
-     real(gp) :: eproj   =0.0_gp
-     real(gp) :: eexctX  =0.0_gp
-     real(gp) :: ebs     =0.0_gp
-     real(gp) :: eKS     =0.0_gp
-     real(gp) :: trH     =0.0_gp
-     real(gp) :: evsum   =0.0_gp
-     real(gp) :: evsic   =0.0_gp 
-     real(gp) :: excrhoc =0.0_gp 
-     real(gp) :: eTS     =0.0_gp
-     real(gp) :: ePV     =0.0_gp !< pressure term
-     real(gp) :: energy  =0.0_gp !< the functional which is minimized
-     real(gp) :: e_prev  =0.0_gp !< the previous value, to show the delta
-     real(gp) :: trH_prev=0.0_gp !< the previous value, to show the delta
+     real(gp) :: eh      !< Hartree energy
+     real(gp) :: exc     !< Exchange-correlation energy
+     real(gp) :: evxc    !< Energy from the exchange-correlation potential
+     real(gp) :: eion    !< Ion-Ion interaction
+     real(gp) :: edisp   !< Dispersion force
+     real(gp) :: ekin    !< Kinetic term
+     real(gp) :: epot    
+     real(gp) :: eproj   
+     real(gp) :: eexctX  
+     real(gp) :: ebs     
+     real(gp) :: eKS     
+     real(gp) :: trH     
+     real(gp) :: evsum   
+     real(gp) :: evsic   
+     real(gp) :: excrhoc 
+     real(gp) :: eTS     
+     real(gp) :: ePV     !< pressure term
+     real(gp) :: energy  !< the functional which is minimized
+     real(gp) :: e_prev  !< the previous value, to show the delta
+     real(gp) :: trH_prev!< the previous value, to show the delta
      !real(gp), dimension(:,:), pointer :: fion,f
 
-     integer(kind = 8) :: c_obj = 0  !< Storage of the C wrapper object.
+     integer(kind = 8) :: c_obj !< Storage of the C wrapper object.
   end type energy_terms
 
 
@@ -1228,8 +1228,35 @@ module module_types
  public :: nullify_paw_objects,frag_from_dict,copy_grid_dimensions
  public :: cprj_to_array,deallocate_gwf_c
  public :: SIC_data_null,output_wf_format_help
+ public :: energy_terms_null
 
 contains
+
+  pure function energy_terms_null() result(en)
+    implicit none
+    type(energy_terms) :: en
+    en%eh      =0.0_gp 
+    en%exc     =0.0_gp 
+    en%evxc    =0.0_gp 
+    en%eion    =0.0_gp 
+    en%edisp   =0.0_gp 
+    en%ekin    =0.0_gp 
+    en%epot    =0.0_gp
+    en%eproj   =0.0_gp
+    en%eexctX  =0.0_gp
+    en%ebs     =0.0_gp
+    en%eKS     =0.0_gp
+    en%trH     =0.0_gp
+    en%evsum   =0.0_gp
+    en%evsic   =0.0_gp 
+    en%excrhoc =0.0_gp 
+    en%eTS     =0.0_gp
+    en%ePV     =0.0_gp 
+    en%energy  =0.0_gp 
+    en%e_prev  =0.0_gp 
+    en%trH_prev=0.0_gp 
+    en%c_obj   =int(0,kind=8) 
+  end function energy_terms_null
 
   pure function SIC_data_null() result(SIC)
     implicit none

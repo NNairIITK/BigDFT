@@ -521,7 +521,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
   end do
 
   if (nproc > 1) then
-     call mpiallred(hamks(1),ndim_ovrlp(nspin,orbs%nkpts),MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(hamks,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   end if
 
   !now each processors knows all the overlap matrices for each k-point
@@ -695,7 +695,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
                 & hamks(ndim_ovrlp(ispin,ikpt-1)+1:ndim_ovrlp(ispin,ikpt-1)+norbs*norb) = 0._wp
         end do
      end do
-     call mpiallred(hamks(1),ndim_ovrlp(nspin,orbs%nkpts),MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(hamks,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   end if
 
   ispsi=1

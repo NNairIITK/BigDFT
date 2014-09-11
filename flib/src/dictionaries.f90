@@ -549,7 +549,8 @@ contains
 
 
    !> Defines a new dictionary from a key and a value
-   pure function dict_cont_new_with_value(key, val) result(cont)
+   !pure 
+   function dict_cont_new_with_value(key, val) result(cont)
      implicit none
      character(len = *), intent(in) :: val
      include 'dict_cont-inc.f90'
@@ -1600,12 +1601,12 @@ contains
    end subroutine dict_update
 
 
-   subroutine dict_copy(dict, ref)
+   subroutine dict_copy(dest, src)
      implicit none
-     type(dictionary), pointer :: dict, ref
+     type(dictionary), pointer :: src, dest
 
-     if (.not. associated(dict)) call dict_init(dict)
-     call copy(dict, ref)
+     if (.not. associated(dest)) call dict_init(dest)
+     call copy(dest, src)
 
      contains
        recursive subroutine copy(dict, ref)
