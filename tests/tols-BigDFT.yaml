@@ -619,6 +619,7 @@ water_foe:
  eF: 2.4e-8
  D eF: 2.3e-8
  D Tr: 3.1e-11
+ guess for new ef: 1.1e-9
 
 water_dirmin:
  max alpha: 1.1e-04
@@ -852,6 +853,10 @@ paracetamol:
  Tr(K): 1.6e-6
  D Tr: 1.6e-6
  tr(KS) before purification: 1.6e-6
+ guess for new ef: 7.5e-7
+ ebs_check: 9.1e-9
+ ebs: 7.5e-7
+ diff: 7.5e-7
 
 reformatcomplete_write:
  Epot: 1.1e-10

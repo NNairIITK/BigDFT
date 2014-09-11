@@ -411,7 +411,10 @@ subroutine foe(iproc, nproc, tmprtr, &
                   ! Check the eigenvalue bounds. Only necessary if calculate_SHS is true
                   ! (otherwise this has already been checked in the previous iteration).
                   if (calculate_SHS) then
-                      call check_eigenvalue_spectrum()
+                      !!call check_eigenvalue_spectrum()
+                      call check_eigenvalue_spectrum(nproc, tmb%linmat%l, tmb%linmat%s, tmb%linmat%ovrlp_, ispin, &
+                            isshift, 1.2d0, 1.2d0, penalty_ev, anoise, .true., &
+                            foe_obj, restart, eval_bounds_ok)
                   end if
         
                   call f_free(cc)
@@ -520,11 +523,11 @@ subroutine foe(iproc, nproc, tmprtr, &
         
         
     
-         call compress_matrix_distributed(iproc, tmb%linmat%l, DENSE_MATMUL, &
+         call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
               tmb%linmat%kernel_%matrixp(:,1:tmb%linmat%l%smmm%nfvctrp,1), &
               tmb%linmat%kernel_%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr))
     
-         call compress_matrix_distributed(iproc, tmb%linmat%l, DENSE_MATMUL, fermip_check, fermi_check_compr(1))
+         call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, fermip_check, fermi_check_compr(1))
     
     
         
@@ -826,7 +829,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
           call to_zero(tmb%linmat%l%nvctr, matrix_compr(1))
-          call compress_matrix_distributed(iproc, tmb%linmat%l, DENSE_MATMUL, inv_ovrlpp, matrix_compr)
+          call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, inv_ovrlpp, matrix_compr)
 
           call f_free_ptr(inv_ovrlpp)
           call f_free_ptr(tempp)
@@ -974,76 +977,70 @@ subroutine foe(iproc, nproc, tmprtr, &
 !!      end subroutine determine_new_fermi_level
 
 
-      subroutine check_eigenvalue_spectrum()
-        implicit none
-        real(kind=8) :: bound_low, bound_up
+      !!subroutine check_eigenvalue_spectrum()
+      !!  implicit none
+      !!  real(kind=8) :: bound_low, bound_up
 
-        call f_routine(id='check_eigenvalue_spectrum')
+      !!  call f_routine(id='check_eigenvalue_spectrum')
 
-        ! The penalty function must be smaller than the noise.
-        bound_low=0.d0
-        bound_up=0.d0
-        if (tmb%linmat%l%smmm%nfvctrp>0) then
-            isegstart = tmb%linmat%l%istsegline(tmb%linmat%l%smmm%isfvctr+1)
-            isegend = tmb%linmat%l%istsegline(tmb%linmat%l%smmm%isfvctr+tmb%linmat%l%smmm%nfvctrp) + &
-                      tmb%linmat%l%nsegline(tmb%linmat%l%smmm%isfvctr+tmb%linmat%l%smmm%nfvctrp)-1
-            !!isegstart=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+1)
-            !!if (tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp<tmb%linmat%l%nfvctr) then
-            !!    isegend=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr_par(iproc+1)+1)-1
-            !!else
-            !!    isegend=tmb%linmat%l%nseg
-            !!end if
+      !!  ! The penalty function must be smaller than the noise.
+      !!  bound_low=0.d0
+      !!  bound_up=0.d0
+      !!  if (tmb%linmat%l%smmm%nfvctrp>0) then
+      !!      isegstart = tmb%linmat%l%istsegline(tmb%linmat%l%smmm%isfvctr+1)
+      !!      isegend = tmb%linmat%l%istsegline(tmb%linmat%l%smmm%isfvctr+tmb%linmat%l%smmm%nfvctrp) + &
+      !!                tmb%linmat%l%nsegline(tmb%linmat%l%smmm%isfvctr+tmb%linmat%l%smmm%nfvctrp)-1
 
-            !$omp parallel default(private) &
-            !$omp shared(isegstart, isegend, penalty_ev, tmb, bound_low, bound_up, isshift)
-            !$omp do reduction(+:bound_low,bound_up)
-            do iseg=isegstart,isegend
-                ii=tmb%linmat%l%keyv(iseg)-1
-                do jorb=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
-                    ii=ii+1
-                    iiorb = (jorb-1)/tmb%linmat%l%nfvctr + 1
-                    jjorb = jorb - (iiorb-1)*tmb%linmat%l%nfvctr
-                    iismall = matrixindex_in_compressed(tmb%linmat%s, iiorb, jjorb)
-                    if (iismall>0) then
-                        tt=tmb%linmat%ovrlp_%matrix_compr(isshift+iismall)
-                    else
-                        tt=0.d0
-                    end if
-                    bound_low = bound_low + penalty_ev(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr,2)*tt
-                    bound_up = bound_up +penalty_ev(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr,1)*tt
-                end do  
-            end do
-            !$omp end do
-            !$omp end parallel
-        end if
+      !!      !$omp parallel default(private) &
+      !!      !$omp shared(isegstart, isegend, penalty_ev, tmb, bound_low, bound_up, isshift)
+      !!      !$omp do reduction(+:bound_low,bound_up)
+      !!      do iseg=isegstart,isegend
+      !!          ii=tmb%linmat%l%keyv(iseg)-1
+      !!          do jorb=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
+      !!              ii=ii+1
+      !!              iiorb = (jorb-1)/tmb%linmat%l%nfvctr + 1
+      !!              jjorb = jorb - (iiorb-1)*tmb%linmat%l%nfvctr
+      !!              iismall = matrixindex_in_compressed(tmb%linmat%s, iiorb, jjorb)
+      !!              if (iismall>0) then
+      !!                  tt=tmb%linmat%ovrlp_%matrix_compr(isshift+iismall)
+      !!              else
+      !!                  tt=0.d0
+      !!              end if
+      !!              bound_low = bound_low + penalty_ev(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr,2)*tt
+      !!              bound_up = bound_up +penalty_ev(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr,1)*tt
+      !!          end do  
+      !!      end do
+      !!      !$omp end do
+      !!      !$omp end parallel
+      !!  end if
     
-        allredarr(1)=bound_low
-        allredarr(2)=bound_up
+      !!  allredarr(1)=bound_low
+      !!  allredarr(2)=bound_up
 
-        if (nproc > 1) then
-            call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
-        end if
+      !!  if (nproc > 1) then
+      !!      call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+      !!  end if
 
-        allredarr=abs(allredarr) !for some crazy situations this may be negative
-        anoise=100.d0*anoise
-        if (allredarr(1)>anoise) then
-            eval_bounds_ok(1)=.false.
-            call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*1.2d0,ispin)
-            restart=.true.
-        else
-            eval_bounds_ok(1)=.true.
-        end if
-        if (allredarr(2)>anoise) then
-            eval_bounds_ok(2)=.false.
-            call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*1.2d0,ispin)
-            restart=.true.
-        else
-            eval_bounds_ok(2)=.true.
-        end if
+      !!  allredarr=abs(allredarr) !for some crazy situations this may be negative
+      !!  anoise=100.d0*anoise
+      !!  if (allredarr(1)>anoise) then
+      !!      eval_bounds_ok(1)=.false.
+      !!      call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*1.2d0,ispin)
+      !!      restart=.true.
+      !!  else
+      !!      eval_bounds_ok(1)=.true.
+      !!  end if
+      !!  if (allredarr(2)>anoise) then
+      !!      eval_bounds_ok(2)=.false.
+      !!      call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*1.2d0,ispin)
+      !!      restart=.true.
+      !!  else
+      !!      eval_bounds_ok(2)=.true.
+      !!  end if
 
-        call f_release_routine()
+      !!  call f_release_routine()
 
-      end subroutine check_eigenvalue_spectrum
+      !!end subroutine check_eigenvalue_spectrum
 
 
       subroutine scale_and_shift_hamiltonian()
@@ -1898,12 +1895,6 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
       isegstart = inv_ovrlp_smat%istsegline(inv_ovrlp_smat%smmm%isfvctr+1)
       isegend = inv_ovrlp_smat%istsegline(inv_ovrlp_smat%smmm%isfvctr+inv_ovrlp_smat%smmm%nfvctrp) + &
                 inv_ovrlp_smat%nsegline(inv_ovrlp_smat%smmm%isfvctr+inv_ovrlp_smat%smmm%nfvctrp)-1
-      !!isegstart=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc)+1)
-      !!if (inv_ovrlp_smat%isfvctr+inv_ovrlp_smat%nfvctrp<inv_ovrlp_smat%nfvctr) then
-      !!    isegend=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc+1)+1)-1
-      !!else
-      !!    isegend=inv_ovrlp_smat%nseg
-      !!end if
       !$omp parallel default(private) shared(isegstart, isegend, inv_ovrlp_smat, nsize_polynomial)
       !$omp do reduction(+:nsize_polynomial)
       do iseg=isegstart,isegend
@@ -2116,7 +2107,10 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                   ! Check the eigenvalue bounds. Only necessary if calculate_SHS is true
                   ! (otherwise this has already been checked in the previous iteration).
                   if (calculate_SHS) then
-                      call check_eigenvalue_spectrum()
+                      !call check_eigenvalue_spectrum()
+                      call check_eigenvalue_spectrum(nproc, inv_ovrlp_smat, ovrlp_smat, ovrlp_mat, 1, &
+                           0, 1.2d0, 1.d0/1.2d0, penalty_ev, anoise, .false., &
+                           foe_obj, restart, eval_bounds_ok)
                   end if
         
                   call f_free(cc)
@@ -2143,7 +2137,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
         
         
     
-          call compress_matrix_distributed(iproc, inv_ovrlp_smat, DENSE_MATMUL, inv_ovrlp_matrixp, &
+          call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, inv_ovrlp_matrixp, &
                inv_ovrlp%matrix_compr(ilshift+1:ilshift+inv_ovrlp_smat%nvctr))
     
 
@@ -2166,80 +2160,74 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
   call f_release_routine()
 
 
-      contains
+      !!contains
 
 
-      subroutine check_eigenvalue_spectrum()
-        implicit none
-        real(kind=8) :: bound_low, bound_up
+      !!subroutine check_eigenvalue_spectrum()
+      !!  implicit none
+      !!  real(kind=8) :: bound_low, bound_up
 
-        ! The penalty function must be smaller than the noise.
-        bound_low=0.d0
-        bound_up=0.d0
-        if (inv_ovrlp_smat%smmm%nfvctrp>0) then
-            isegstart = inv_ovrlp_smat%istsegline(inv_ovrlp_smat%smmm%isfvctr+1)
-            isegend = inv_ovrlp_smat%istsegline(inv_ovrlp_smat%smmm%isfvctr+inv_ovrlp_smat%smmm%nfvctrp) + &
-                      inv_ovrlp_smat%nsegline(inv_ovrlp_smat%smmm%isfvctr+inv_ovrlp_smat%smmm%nfvctrp)-1
-            !!isegstart=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc)+1)
-            !!if (inv_ovrlp_smat%isfvctr+inv_ovrlp_smat%nfvctrp<inv_ovrlp_smat%nfvctr) then
-            !!    isegend=inv_ovrlp_smat%istsegline(inv_ovrlp_smat%isfvctr_par(iproc+1)+1)-1
-            !!else
-            !!    isegend=inv_ovrlp_smat%nseg
-            !!end if
-            !$omp parallel default(none) &
-            !$omp private(iseg, ii, jorb, irow, icol, iismall, tt) &
-            !$omp shared(isegstart, isegend, inv_ovrlp_smat, penalty_ev, bound_low, bound_up)
-            !$omp do reduction(+:bound_low,bound_up)
-            do iseg=isegstart,isegend
-                ii=inv_ovrlp_smat%keyv(iseg)-1
-                do jorb=inv_ovrlp_smat%keyg(1,iseg),inv_ovrlp_smat%keyg(2,iseg)
-                    ii=ii+1
-                    irow = (jorb-1)/inv_ovrlp_smat%nfvctr + 1
-                    icol = jorb - (irow-1)*inv_ovrlp_smat%nfvctr
-                    iismall = matrixindex_in_compressed(inv_ovrlp_smat, irow, icol)
-                    if (iismall>0) then
-                        if (irow==jorb) then
-                            tt=1.d0
-                        else
-                            tt=0.d0
-                        end if
-                    else
-                        tt=0.d0
-                    end if
-                    bound_low = bound_low + penalty_ev(icol,irow-inv_ovrlp_smat%smmm%isfvctr,2)*tt
-                    bound_up = bound_up +penalty_ev(icol,irow-inv_ovrlp_smat%smmm%isfvctr,1)*tt
-                end do  
-            end do
-            !$omp end do
-            !$omp end parallel
-        end if
+      !!  ! The penalty function must be smaller than the noise.
+      !!  bound_low=0.d0
+      !!  bound_up=0.d0
+      !!  if (inv_ovrlp_smat%smmm%nfvctrp>0) then
+      !!      isegstart = inv_ovrlp_smat%istsegline(inv_ovrlp_smat%smmm%isfvctr+1)
+      !!      isegend = inv_ovrlp_smat%istsegline(inv_ovrlp_smat%smmm%isfvctr+inv_ovrlp_smat%smmm%nfvctrp) + &
+      !!                inv_ovrlp_smat%nsegline(inv_ovrlp_smat%smmm%isfvctr+inv_ovrlp_smat%smmm%nfvctrp)-1
+      !!      !$omp parallel default(none) &
+      !!      !$omp private(iseg, ii, jorb, irow, icol, iismall, tt) &
+      !!      !$omp shared(isegstart, isegend, inv_ovrlp_smat, penalty_ev, bound_low, bound_up)
+      !!      !$omp do reduction(+:bound_low,bound_up)
+      !!      do iseg=isegstart,isegend
+      !!          ii=inv_ovrlp_smat%keyv(iseg)-1
+      !!          do jorb=inv_ovrlp_smat%keyg(1,iseg),inv_ovrlp_smat%keyg(2,iseg)
+      !!              ii=ii+1
+      !!              irow = (jorb-1)/inv_ovrlp_smat%nfvctr + 1
+      !!              icol = jorb - (irow-1)*inv_ovrlp_smat%nfvctr
+      !!              iismall = matrixindex_in_compressed(inv_ovrlp_smat, irow, icol)
+      !!              if (iismall>0) then
+      !!                  if (irow==jorb) then
+      !!                      tt=1.d0
+      !!                  else
+      !!                      tt=0.d0
+      !!                  end if
+      !!              else
+      !!                  tt=0.d0
+      !!              end if
+      !!              bound_low = bound_low + penalty_ev(icol,irow-inv_ovrlp_smat%smmm%isfvctr,2)*tt
+      !!              bound_up = bound_up +penalty_ev(icol,irow-inv_ovrlp_smat%smmm%isfvctr,1)*tt
+      !!          end do  
+      !!      end do
+      !!      !$omp end do
+      !!      !$omp end parallel
+      !!  end if
     
-        allredarr(1)=bound_low
-        allredarr(2)=bound_up
+      !!  allredarr(1)=bound_low
+      !!  allredarr(2)=bound_up
 
-        if (nproc > 1) then
-            call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
-        end if
+      !!  if (nproc > 1) then
+      !!      call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+      !!  end if
 
-        allredarr=abs(allredarr) !for some crazy situations this may be negative
-        anoise=100.d0*anoise
-        !write(*,*) 'allredarr, anoise', allredarr, anoise
-        if (allredarr(1)>anoise) then
-            eval_bounds_ok(1)=.false.
-            call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",1)/1.2d0,1)
-            restart=.true.
-        else
-            eval_bounds_ok(1)=.true.
-        end if
-        if (allredarr(2)>anoise) then
-            eval_bounds_ok(2)=.false.
-            call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",1)*1.2d0,1)
-            restart=.true.
-        else
-            eval_bounds_ok(2)=.true.
-        end if
+      !!  allredarr=abs(allredarr) !for some crazy situations this may be negative
+      !!  anoise=100.d0*anoise
+      !!  !write(*,*) 'allredarr, anoise', allredarr, anoise
+      !!  if (allredarr(1)>anoise) then
+      !!      eval_bounds_ok(1)=.false.
+      !!      call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",1)/1.2d0,1)
+      !!      restart=.true.
+      !!  else
+      !!      eval_bounds_ok(1)=.true.
+      !!  end if
+      !!  if (allredarr(2)>anoise) then
+      !!      eval_bounds_ok(2)=.false.
+      !!      call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",1)*1.2d0,1)
+      !!      restart=.true.
+      !!  else
+      !!      eval_bounds_ok(2)=.true.
+      !!  end if
 
-      end subroutine check_eigenvalue_spectrum
+      !!end subroutine check_eigenvalue_spectrum
 
 end subroutine ice
 
@@ -2304,3 +2292,103 @@ subroutine cheb_exp(A,B,N,cc,ex)
   call f_release_routine()
 
 end subroutine cheb_exp
+
+
+
+subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift, &
+           factor_high, factor_low, penalty_ev, anoise, trace_with_overlap, &
+           foe_obj, restart, eval_bounds_ok)
+  use module_base
+  use sparsematrix_base, only: sparse_matrix, matrices
+  use sparsematrix_init, only: matrixindex_in_compressed
+  use foe_base, only: foe_data, foe_data_set_real, foe_data_get_real
+  implicit none
+
+  ! Calling arguments
+  type(sparse_matrix),intent(in) :: smat_l, smat_s
+  type(matrices),intent(in) :: mat
+  integer,intent(in) :: nproc, ispin, isshift
+  real(kind=8),intent(in) :: factor_high, factor_low, anoise
+  real(kind=8),dimension(smat_l%nfvctr,smat_l%smmm%nfvctrp,2),intent(in) :: penalty_ev
+  logical,intent(in) :: trace_with_overlap
+  type(foe_data),intent(inout) :: foe_obj
+  logical,intent(out) :: restart
+  logical,dimension(2),intent(out) :: eval_bounds_ok
+
+  ! Local variables
+  integer :: isegstart, isegend, iseg, ii, jorb, irow, icol, iismall
+  real(kind=8) :: bound_low, bound_up, tt, noise
+  real(kind=8),dimension(2) :: allredarr
+
+  call f_routine(id='check_eigenvalue_spectrum')
+
+  ! The penalty function must be smaller than the noise.
+  bound_low=0.d0
+  bound_up=0.d0
+  if (smat_l%smmm%nfvctrp>0) then
+      isegstart = smat_l%istsegline(smat_l%smmm%isfvctr+1)
+      isegend = smat_l%istsegline(smat_l%smmm%isfvctr+smat_l%smmm%nfvctrp) + &
+                smat_l%nsegline(smat_l%smmm%isfvctr+smat_l%smmm%nfvctrp)-1
+      !$omp parallel default(none) &
+      !$omp private(iseg, ii, jorb, irow, icol, iismall, tt) &
+      !$omp shared(isegstart, isegend, smat_l, smat_s, mat, penalty_ev) &
+      !$omp shared(bound_low, bound_up, isshift, trace_with_overlap) 
+      !$omp do reduction(+:bound_low,bound_up)
+      do iseg=isegstart,isegend
+          ii=smat_l%keyv(iseg)-1
+          do jorb=smat_l%keyg(1,iseg),smat_l%keyg(2,iseg)
+              ii=ii+1
+              irow = (jorb-1)/smat_l%nfvctr + 1
+              icol = jorb - (irow-1)*smat_l%nfvctr
+              iismall = matrixindex_in_compressed(smat_s, irow, icol)
+              if (iismall>0) then
+                  if (trace_with_overlap) then
+                      ! Take the trace of the product matrix times overlap
+                      tt=mat%matrix_compr(isshift+iismall)
+                  else
+                      ! Take the trace of the matrix alone, i.e. set the second matrix to the identity
+                      if (irow==jorb) then
+                          tt=1.d0
+                      else
+                          tt=0.d0
+                      end if
+                  end if
+              else
+                  tt=0.d0
+              end if
+              bound_low = bound_low + penalty_ev(icol,irow-smat_l%smmm%isfvctr,2)*tt
+              bound_up = bound_up +penalty_ev(icol,irow-smat_l%smmm%isfvctr,1)*tt
+          end do  
+      end do
+      !$omp end do
+      !$omp end parallel
+  end if
+
+  allredarr(1)=bound_low
+  allredarr(2)=bound_up
+
+  if (nproc > 1) then
+      call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
+  allredarr=abs(allredarr) !for some crazy situations this may be negative
+  noise=100.d0*anoise
+  !write(*,*) 'allredarr, anoise', allredarr, anoise
+  if (allredarr(1)>noise) then
+      eval_bounds_ok(1)=.false.
+      call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*factor_low,ispin)
+      restart=.true.
+  else
+      eval_bounds_ok(1)=.true.
+  end if
+  if (allredarr(2)>noise) then
+      eval_bounds_ok(2)=.false.
+      call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*factor_high,ispin)
+      restart=.true.
+  else
+      eval_bounds_ok(2)=.true.
+  end if
+
+  call f_release_routine()
+
+end subroutine check_eigenvalue_spectrum

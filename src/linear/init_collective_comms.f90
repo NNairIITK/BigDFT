@@ -264,7 +264,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
                    call f_free(psii)
                end do
                ist=(ispin-1)*smat%nvctr+1
-               call compress_matrix_distributed(iproc, smat, DENSE_PARALLEL, matp, mat_compr(ist))
+               call compress_matrix_distributed(iproc, nproc, smat, DENSE_PARALLEL, matp, mat_compr(ist))
            end do
            maxdiff=0.d0
            call f_free(psiig)
@@ -586,8 +586,8 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
     
     
       !$omp parallel default(none) &
-      !$omp shared(collcom, smat, ovrlp, psit_c1, psit_c2, psit_f1, psit_f2, n, iorb_shift) &
-      !$omp private(tid, iend, istart, ipt, ii, i0, i, iiorb, m, j, i0j, jjorb, ishift_mat, ind0) &
+      !$omp shared(collcom, smat, ovrlp, psit_c1, psit_c2, psit_f1, psit_f2, n) &
+      !$omp private(tid, ispin, iend, istart, ipt, ii, i0, i, iiorb, m, j, i0j, jjorb, ishift_mat, iorb_shift, ind0) &
       !$omp private(jjorb0, jjorb1, ind1, jjorb2, ind2, jjorb3, ind3, jjorb4, ind4, jjorb5, ind5, jjorb6, ind6) &
       !$omp private(i0i, i07i, i07j, tt06, tt05, tt04, tt03, tt02, tt01, tt00) &
       !$omp private(tt16, tt15, tt14, tt13, tt12, tt11, tt10) & 

@@ -1793,7 +1793,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
         call f_err_throw('The cubic localization region should have always nlr=1',&
              err_name='BIGDFT_RUNTIME_ERROR')
      else
-        call update_nlpsp(nlpsp,Lzd%nlr,Lzd%llr,Lzd%Glr,(/.true./),orbs%norb,orbs%isorb,orbs%norbp,orbs%inwhichlocreg)
+        call update_nlpsp(nlpsp,Lzd%nlr,Lzd%llr,Lzd%Glr,(/.true./))
         if (iproc == 0) call print_nlpsp(nlpsp)
      end if
   end if

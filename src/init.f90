@@ -244,7 +244,6 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   integer :: iat,iseg
   integer, dimension(:), allocatable :: nbsegs_cf,keyg_lin
   logical, dimension(:,:,:), allocatable :: logrid
-  integer,dimension(1) :: idummy
   call f_routine(id=subname)
 
   !start from a null structure
@@ -351,8 +350,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
         end if
         !in the case of linear scaling this section has to be built again
         call set_nlpsp_to_wfd(lr,nl%pspd(iat)%plr,&
-             keyg_lin,nbsegs_cf,nl%pspd(iat)%lut_tolr,nl%pspd(iat)%tolr,&
-             1,1,1,idummy) ! this is just here since the interface demands it
+             keyg_lin,nbsegs_cf,nl%pspd(iat)%noverlap,nl%pspd(iat)%lut_tolr,nl%pspd(iat)%tolr)
      endif
   enddo
 
@@ -805,7 +803,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       ! Extract to a dense format, since this is independent of the sparsity pattern
       kernelp = sparsematrix_malloc(tmb%linmat%l, iaction=DENSE_PARALLEL, id='kernelp')
       call uncompress_matrix_distributed(iproc, tmb_old%linmat%l, DENSE_PARALLEL, tmb_old%linmat%kernel_%matrix_compr, kernelp)
-      call compress_matrix_distributed(iproc, tmb%linmat%l, DENSE_PARALLEL, kernelp, tmb%linmat%kernel_%matrix_compr)
+      call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_PARALLEL, kernelp, tmb%linmat%kernel_%matrix_compr)
       call f_free(kernelp)
   end if
           !!write(*,*) 'after vcopy, iproc',iproc
@@ -1027,7 +1025,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        tmb_old%linmat%ovrlp_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s,iaction=SPARSE_FULL, &
                                                                     id='tmb_old%linmat%ovrlp_%matrix_compr')
 
-       call compress_matrix_distributed(iproc, tmb%linmat%s, DENSE_PARALLEL, ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr)
+       call compress_matrix_distributed(iproc, nproc, tmb%linmat%s, DENSE_PARALLEL, ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr)
        call f_free(ovrlpp)
        call renormalize_kernel(iproc, nproc, input%lin%order_taylor, max_inversion_error, tmb, &
             tmb%linmat%ovrlp_, tmb_old%linmat%ovrlp_)
@@ -1850,8 +1848,7 @@ contains
 !!$       if (Lzd%nlr /=1) then
 !!$          call f_err_throw('The cubic localization region has always nlr=1',err_name='BIGDFT_RUNTIME_ERROR')
 !!$       else
-          call update_nlpsp(nlpsp,Lzd%nlr,Lzd%llr,Lzd%Glr,(/(.true.,ii=1,Lzd%nlr)/),&
-               orbs%norb,orbs%isorb,orbs%norbp,orbs%inwhichlocreg)
+          call update_nlpsp(nlpsp,Lzd%nlr,Lzd%llr,Lzd%Glr,(/(.true.,ii=1,Lzd%nlr)/))
           if (iproc == 0) call print_nlpsp(nlpsp)
 !!$       end if
     end if
