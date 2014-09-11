@@ -8,7 +8,11 @@
   <repository type="tarball" name="libyaml" href="http://pyyaml.org/download/libyaml/"/>
   <repository type="svn" name="libxc" href="http://www.tddft.org/svn/"/>
   <repository type="bzr" name="bigdft" href="lp:/"/>
-  <repository type="tarball" name="wannier" href="http://www.wannier.org/code/"/>
+  <repository type="tarball" name="wannier"
+              href="http://www.wannier.org/code/"/>
+  <repository type="tarball" name="unidata"
+              href="ftp://ftp.unidata.ucar.edu/pub/"/>
+  <repository type="tarball" name="etsf" href="http://www.etsf.eu/system/files/"/>
 
   <repository type="tarball" name="local" href="./"/>
 
@@ -82,6 +86,27 @@
       <patch file="wannier90-2.0.0.patch" />
     </branch>
   </makesys>
+
+  <autotools id="netcdf" autogenargs="--disable-netcdf-4">
+    <branch repo="unidata" module="netcdf/netcdf-4.3.2.tar.gz"
+            version="4.3.2"/>
+  </autotools>
+
+  <autotools id="netcdff">
+    <branch repo="unidata" module="netcdf/netcdf-fortran-4.4.1.tar.gz"
+            version="4.4.1"/>
+    <dependencies>
+      <dep package="netcdf"/>
+    </dependencies>
+  </autotools>
+
+  <autotools id="etsf_io">
+    <branch repo="etsf" module="etsf_io-1.0.4.tar.gz"
+            version="1.0.4"/>
+    <dependencies>
+      <dep package="netcdff"/>
+    </dependencies>
+  </autotools>
 
   <metamodule id="bigdft-suite-1.7.5">
     <dependencies>
