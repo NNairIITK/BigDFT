@@ -2331,7 +2331,8 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
                 smat_l%nsegline(smat_l%smmm%isfvctr+smat_l%smmm%nfvctrp)-1
       !$omp parallel default(none) &
       !$omp private(iseg, ii, jorb, irow, icol, iismall, tt) &
-      !$omp shared(isegstart, isegend, smat_l, smat_s, mat, penalty_ev, bound_low, bound_up, isshift)
+      !$omp shared(isegstart, isegend, smat_l, smat_s, mat, penalty_ev) &
+      !$omp shared(bound_low, bound_up, isshift, trace_with_overlap) 
       !$omp do reduction(+:bound_low,bound_up)
       do iseg=isegstart,isegend
           ii=smat_l%keyv(iseg)-1
