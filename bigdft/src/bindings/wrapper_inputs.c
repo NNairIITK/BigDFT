@@ -1,4 +1,4 @@
-/** @file
+/* @file
  * Bindings for the BigDFT package
  * @author
  * Copyright (C) 2013-2013 BigDFT group

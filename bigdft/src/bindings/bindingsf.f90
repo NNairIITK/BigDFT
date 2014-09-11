@@ -1296,7 +1296,6 @@ END SUBROUTINE global_output_new
 
 
 subroutine global_output_free(outs)
-  use module_types
   use bigdft_run
   implicit none
   type(DFT_global_output), pointer :: outs

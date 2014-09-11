@@ -1,4 +1,4 @@
-/** @file 
+/*  @file 
      Define KeyIds for BigDFT input paramater structure.
     @author
      Copyright (C) 2011-2013 BigDFT group (DC)

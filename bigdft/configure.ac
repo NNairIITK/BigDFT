@@ -409,7 +409,7 @@ AM_CONDITIONAL(USE_MIC, test "$ac_use_mic" = "yes")
 
 dnl Use ETSF_IO
 ac_use_etsfio=no
-AC_ARG_WITH(etsf-io, AS_HELP_STRING([--with-etsf-io], [Link with ETSF_IO library (default = no).]), etsfio=$withval, etsfio=no)
+AC_ARG_WITH(etsf-io, AS_HELP_STRING([--with-etsf-io], [Link with ETSF_IO library (default = no).]), etsfio=$withval, etsfio="yes")
 AC_ARG_WITH(etsf-io-path, AS_HELP_STRING([--with-etsf-io-path], [Give the path of the ETSF_IO installation (default = /usr).]),
             ac_etsfio_dir=$withval, ac_etsfio_dir=)
 AC_ARG_WITH(netcdf-path, AS_HELP_STRING([--with-netcdf-path], [Give the path to NetCDF (required by ETSF_IO) (default = /usr).]),
@@ -422,7 +422,13 @@ if test "$etsfio" = "yes" ; then
    FCFLAGS_SVG="$FCFLAGS"
    if test -n "$ac_etsfio_dir" ; then
       LDFLAGS="$LDFLAGS -L$ac_etsfio_dir/lib"
-      FCFLAGS="$FCFLAGS -I$ac_etsfio_dir/include"
+      ac_etsfio_incs="-I$ac_etsfio_dir/include"
+      FCFLAGS="$FCFLAGS $ac_etsfio_incs"
+   elif test -n "$C_INCLUDE_PATH"; then
+      for path in ${C_INCLUDE_PATH//:/ }; do
+         ac_etsfio_incs="$ac_etsfio_incs -I$path"
+      done
+      FCFLAGS="$FCFLAGS $ac_etsfio_incs"
    fi
    if test -n "$ac_netcdf_dir" -a x"$ac_netcdf_dir" != x"$ac_etsfio_dir" ; then
       LDFLAGS="$LDFLAGS -L$ac_netcdf_dir/lib"
@@ -445,10 +451,6 @@ end]], ac_use_etsfio=yes, ac_use_etsfio=no)
    LIBS="$LIBS_SVG"
    FCFLAGS="$FCFLAGS_SVG"
    if test "$ac_use_etsfio" = "yes"; then
-      ac_etsfio_incs=""
-      if test -n "$ac_etsfio_dir" ; then
-         ac_etsfio_incs=$ac_etsfio_incs" -I$ac_etsfio_dir/include"
-      fi
       if test -n "$ac_netcdf_dir" -a x"$ac_netcdf_dir" != x"$ac_etsfio_dir" ; then
          ac_etsfio_incs=$ac_etsfio_incs" -I$ac_netcdf_dir/include"
       fi
@@ -561,7 +563,7 @@ fi
 
 LDFLAGS_SVG="$LDFLAGS"
 AC_LANG_PUSH(C)
-LDFLAGS="-L$ac_path_yaml/lib"
+LDFLAGS="$LDFLAGS -L$ac_path_yaml/lib"
 AC_CHECK_LIB([yaml], [yaml_parser_parse],
              [ac_use_libyaml=yes], [ac_use_libyaml=no])
 if test x"$ac_use_libyaml" = x"yes"; then
@@ -586,21 +588,49 @@ dnl Test the libXC library
 AX_LIBXC()
 
 dnl Test the ABINIT library
-AC_ARG_WITH(libabinit-path, AS_HELP_STRING([--with-libabinit-path],
-                                           [Give the path for an external libABINIT library, lib and module files (default = /etsf).]),
-            ac_libabinit_dir=$withval, ac_libabinit_dir="/etsf")
-ac_use_libabinit="no"
+AC_ARG_WITH(libabinit-incs, AS_HELP_STRING([--with-libabinit-incs],
+                                           [Give the compiler include flags for an external libABINIT library (default = None).]),
+            ac_libabinit_incs=$withval, ac_libabinit_incs="")
+AC_ARG_WITH(libabinit-incs, AS_HELP_STRING([--with-libabinit-incs],
+                                           [Give the linker flags for an external libABINIT modules (default = None).]),
+            ac_libabinit_libs=$withval, ac_libabinit_libs="")
+
 dnl Test the given implementation of libabinit.
-LDFLAGS="$LDFLAGS -L$ac_libabinit_dir/lib"
-AC_CHECK_LIB(abinit, symbrav, withlibabinit=yes, withlibabinit=no)
-AC_CHECK_FILE($ac_libabinit_dir/include/ab6_moldyn.$ax_fc_mod_ext, moldyn="yes", moldyn="no")
-AC_CHECK_FILE($ac_libabinit_dir/include/m_ab6_symmetry.$ax_fc_mod_ext, sym="yes", sym="no")
-dnl AC_CHECK_FILE($ac_libabinit_dir/include/libxc_functionals.$ax_fc_mod_ext, libxc="yes", libxc="no")
-if test "$withlibabinit" = "yes" -a "$moldyn" = "yes" -a "$sym" = "yes"; then
-  ac_use_libabinit="yes"
-  ac_libabinit_incs="-I$ac_libabinit_dir/include"
+AC_MSG_CHECKING([for libABINIT modules])
+FCFLAGS_SVG=$FCFLAGS
+if test -n "$ac_libabinit_incs" ; then
+  FCFLAGS="$FCFLAGS $ac_libabinit_incs"
+elif test -n "$C_INCLUDE_PATH" ; then
+  for path in ${C_INCLUDE_PATH//:/ }; do
+    ac_libabinit_incs="$ac_libabinit_incs -I$path"
+  done
+  FCFLAGS="$FCFLAGS $ac_libabinit_incs"
+fi
+AC_COMPILE_IFELSE([[program main
+  use ab6_moldyn
+  use m_ab6_symmetry
+  use m_ab6_kpoints
+  use m_ab7_mixing
+
+  write(*,*) AB7_MIXING_DENSITY
+end program]], withabinitmod=yes, withabinitmod=no)
+FCFLAGS=$FCFLAGS_SVG
+AC_MSG_RESULT($withabinitmod)
+
+LIBS_SVG=$LIBS
+if test -n "$ac_libabinit_libs" ; then
+  LIBS="$LIBS $ac_libabinit_libs"
 else
-  AC_MSG_ERROR([Missing libABINIT headers, consider using --with-liabinit-path.])
+  ac_libabinit_libs="-labinit"
+fi
+AC_CHECK_LIB(abinit, symbrav, withlibabinit=yes, withlibabinit=no)
+LIBS=$LIBS_SVG
+
+ac_use_libabinit="no"
+if test "$withlibabinit" = "yes" -a "$withabinitmod" = "yes"; then
+  ac_use_libabinit="yes"
+else
+  AC_MSG_ERROR([Missing libABINIT, consider using --with-libabinit-[incs,libs].])
 fi
 
 dnl Test the libPAW library.
@@ -614,15 +644,14 @@ else
    dnl Given path should be tested here.
    ac_libpaw_incs="-I$ac_internal_libpaw/include"
    LDFLAGS="$LDFLAGS -L$ac_internal_libpaw/lib"
-   LIBABINIT_LIBS="-lpaw $LIBABINIT_LIBS"
+   LIB_ABINIT_LIBS="-lpaw $LIB_ABINIT_LIBS"
 fi
 
-AC_DEFINE([HAVE_LIBABINIT], [1], [use libABINIT in BigDFT.])
 AC_SUBST(LIBABINIT_INCLUDE, "$ac_libpaw_incs $ac_libabinit_incs")
 if test x"$ac_internal_libpaw" == x"yes" ; then
-  LIBABINIT_LIBS="-labinit"
+  LIB_ABINIT_LIBS=$ac_libabinit_libs
 else
-  LIBABINIT_LIBS="-lpaw -labinit"
+  LIB_ABINIT_LIBS="-lpaw $ac_libabinit_libs"
 fi
 
 dnl Test S_GPU library.
@@ -676,7 +705,7 @@ LDFLAGS="$LDFLAGS $LDFLAGS_MIC"
 dnl Agregate all the optional libs.
 LIBS_EXT_DEPS="$LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
 AC_SUBST(LIBS_EXT_DEPS, [$LIBS_EXT_DEPS])
-LIBS_SHORT_DEPS="$LIBABINIT_LIBS $LIB_XC_LIBS $LIBSGPU_LIBS $LIBS_EXT_DEPS"
+LIBS_SHORT_DEPS="$LIB_ABINIT_LIBS $LIB_XC_LIBS $LIBSGPU_LIBS $LIBS_EXT_DEPS"
 AC_SUBST(LIBS_SHORT_DEPS, [$LIBS_SHORT_DEPS])
 
 dnl Test for the documentation.

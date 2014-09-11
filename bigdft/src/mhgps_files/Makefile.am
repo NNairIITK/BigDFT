@@ -27,7 +27,7 @@ mhgps_SOURCES = $(mhgps_objects)
 ##AM_FCFLAGS = -I. -I$(top_builddir)/includes
 ##AM_FCFLAGS = -I. I$(top_builddir)/includes
 AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@\
-             @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+             @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@
 
 CLEANFILES = *.@MODULE_EXT@ 
 noinst_LIBRARIES = libmhgps.a

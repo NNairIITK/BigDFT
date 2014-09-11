@@ -97,6 +97,10 @@ module_extra_env = {}
 module_makecheck = {}
 module_nopoison = {}
 
+# Specific autogenargs
+module_autogenargs['PyYAML'] = "build_ext -I%(prefix)s/include -L%(prefix)s/lib --rpath=%(prefix)s/lib " % {"prefix": prefix}
+module_autogenargs['etsf_io'] = "--with-moduledir=%(prefix)s/include " % {"prefix": prefix}
+
 # control parts of the build process
 nonetwork     = False  # never touch the network
 alwaysautogen = False  # always call autogen.sh

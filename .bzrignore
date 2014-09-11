@@ -171,3 +171,9 @@ gobject-introspection-*/
 pygobject-*.tar.*
 pygobject-*/
 libffi*
+etsf_io-*.tar.*
+etsf_io-*/
+netcdf-*.tar.*
+netcdf-*/
+netcdf-fortran-*.tar.*
+netcdf-fortran-*/

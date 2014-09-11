@@ -141,7 +141,7 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,&
   end do
   znucl = f_malloc(at%astruct%ntypes,id='znucl')
   znucl = real(at%nzatom)
-  spnames = f_malloc(at%astruct%ntypes,id='spnames')
+  spnames = f_malloc_str(at%astruct%ntypes,id='spnames')
   do iat = 1, at%astruct%ntypes, 1
      !call nzsymbol(at%nzatom(iat), spnames(iat))
      call atomic_info(at%nzatom(iat),at%nelpsp(iat),symbol=spnames(iat))
@@ -159,7 +159,7 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,&
   end if
   call f_free(xred)
   call f_free(znucl)
-  call f_free(spnames)
+  call f_free_str(etsf_chemlen, spnames)
 
   ! We switch to write mode.
   call etsf_io_low_set_write_mode(ncid, lstat, error_data = error)
