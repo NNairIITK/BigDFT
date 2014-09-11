@@ -435,18 +435,21 @@ module sparsematrix
     end subroutine transform_sparse_matrix
 
 
-   subroutine compress_matrix_distributed(iproc, smat, layout, matrixp, matrix_compr)
+   subroutine compress_matrix_distributed(iproc, nproc, smat, layout, matrixp, matrix_compr)
      use module_base
      implicit none
 
      ! Calling arguments
-     integer,intent(in) :: iproc, layout
+     integer,intent(in) :: iproc, nproc, layout
      type(sparse_matrix),intent(in) :: smat
      real(kind=8),dimension(:,:),intent(in) :: matrixp
-     real(kind=8),dimension(smat%nvctr),intent(out) :: matrix_compr
+     real(kind=8),dimension(smat%nvctr),target,intent(out) :: matrix_compr
 
      ! Local variables
-     integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr
+     integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, ierr
+     real(kind=8),dimension(:),pointer :: matrix_local
+
+     call f_routine(id='compress_matrix_distributed')
 
      call timing(iproc,'compress_uncom','ON')
 
@@ -462,7 +465,12 @@ module sparsematrix
          isfvctr=smat%smmm%isfvctr
      end if
 
-     call to_zero(smat%nvctr, matrix_compr(1))
+     !call to_zero(smat%nvctr, matrix_compr(1))
+     if (nproc>1) then
+         matrix_local = f_malloc0_ptr(smat%nvctrp,id='matrix_local')
+     else
+         matrix_local => matrix_compr
+     end if
 
      if (nfvctrp>0) then
          isegstart=smat%istsegline(isfvctr+1)
@@ -473,7 +481,7 @@ module sparsematrix
          !!    isegend=smat%nseg
          !!end if
          !$omp parallel default(none) &
-         !$omp shared(isegstart, isegend, matrixp, smat, matrix_compr, isfvctr) &
+         !$omp shared(isegstart, isegend, matrixp, smat, matrix_local, isfvctr) &
          !$omp private(iseg, ii, jorb, iiorb, jjorb)
          !$omp do
          do iseg=isegstart,isegend
@@ -482,7 +490,7 @@ module sparsematrix
                  ii=ii+1
                  iiorb = (jorb-1)/smat%nfvctr + 1
                  jjorb = jorb - (iiorb-1)*smat%nfvctr
-                 matrix_compr(ii)=matrixp(jjorb,iiorb-isfvctr)
+                 matrix_local(ii-smat%isvctr)=matrixp(jjorb,iiorb-isfvctr)
              end do
          end do
          !$omp end do
@@ -490,10 +498,16 @@ module sparsematrix
      end if
 
      if (bigdft_mpi%nproc>1) then
-         call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+         !call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+         call mpi_allgatherv(matrix_local(1), smat%nvctrp, mpi_double_precision, &
+              matrix_compr(1), smat%nvctr_par, smat%isvctr_par, mpi_double_precision, &
+              bigdft_mpi%mpi_comm, ierr)
+         call f_free_ptr(matrix_local)
      end if
 
      call timing(iproc,'compress_uncom','OF')
+
+     call f_release_routine()
 
   end subroutine compress_matrix_distributed
 
