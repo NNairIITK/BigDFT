@@ -11,7 +11,7 @@
 !> Initialize the objects needed for the computation: basis sets, allocate required space
 subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_run,&
      & in,atoms,rxyz,OCLconv,&
-     orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpsp,comms,shift,radii_cf,&
+     orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpsp,comms,shift,&
      ref_frags, denspot, locregcenters, inwhichlocreg_old, onwhichatom_old,output_grid)
   use module_base
   use module_types
@@ -37,7 +37,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   type(DFT_PSP_projectors), intent(out) :: nlpsp
   type(comms_cubic), intent(out) :: comms
   real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
-  real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+  !real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   type(system_fragment), dimension(:), pointer :: ref_frags
   real(kind=8),dimension(3,atoms%astruct%nat),intent(inout),optional :: locregcenters
   integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
@@ -57,7 +57,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   if (present(output_grid)) output_grid_ = output_grid
 
   if (iproc == 0 .and. dump) &
-       & call print_atomic_variables(atoms, radii_cf, max(in%hx,in%hy,in%hz), &
+       & call print_atomic_variables(atoms, max(in%hx,in%hy,in%hz), &
        & in%ixc, in%dispersion)
 
   !grid spacings of the zone descriptors (not correct, the set is done by system size)
@@ -67,7 +67,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
-  call system_size(atoms,rxyz,radii_cf,in%crmult,in%frmult,&
+  call system_size(atoms,rxyz,in%crmult,in%frmult,&
        Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),OCLconv,Lzd%Glr,shift)
   if (iproc == 0 .and. dump) &
        & call print_atoms_and_grid(Lzd%Glr, atoms, rxyz, shift, &
@@ -98,7 +98,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call createWavefunctionsDescriptors(iproc,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),atoms,&
-       rxyz,radii_cf,in%crmult,in%frmult,Lzd%Glr, output_grid_)
+       rxyz,in%crmult,in%frmult,Lzd%Glr, output_grid_)
   if (iproc == 0 .and. dump) call print_wfd(Lzd%Glr%wfd)
 
   ! Create global orbs data structure.
@@ -272,7 +272,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call createProjectorsArrays(Lzd%Glr,rxyz,atoms,orbs,&
-       radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
+       in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
        Lzd%hgrids(3),dry_run,nlpsp)
   if (iproc == 0 .and. dump) call print_nlpsp(nlpsp)
   !the complicated part of the descriptors has not been filled
@@ -287,7 +287,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   if (present(denspot)) then
      !here dpbox can be put as input
      call density_descriptors(iproc,nproc,denspot%xc,in%nspin,in%crmult,in%frmult,atoms,&
-          denspot%dpbox,in%rho_commun,rxyz,radii_cf,denspot%rhod)
+          denspot%dpbox,in%rho_commun,rxyz,denspot%rhod)
      !allocate the arrays.
      call allocateRhoPot(Lzd%Glr,in%nspin,atoms,rxyz,denspot)
   end if
@@ -369,24 +369,24 @@ END SUBROUTINE system_createKernels
 
 
 !> Calculate the important objects related to the physical properties of the system
-subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf)
+subroutine system_properties(iproc,nproc,in,atoms,orbs)!,radii_cf)
   use module_base
   use module_types
   use module_interfaces, except_this_one => system_properties
   implicit none
   integer, intent(in) :: iproc,nproc
   type(input_variables), intent(in) :: in
-  type(atoms_data), intent(inout) :: atoms
+  type(atoms_data), intent(in) :: atoms
   type(orbitals_data), intent(inout) :: orbs
-  real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
+!  real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
   !local variables
   !n(c) character(len=*), parameter :: subname='system_properties'
   integer :: nspinor
 
-  radii_cf = atoms%radii_cf
+!  radii_cf = atoms%radii_cf
 !!$  call read_radii_variables(atoms, radii_cf, in%crmult, in%frmult, in%projrad)
 !!$  call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
-  if (iproc == 0) call print_atomic_variables(atoms, radii_cf, max(in%hx,in%hy,in%hz), in%ixc, in%dispersion)
+  if (iproc == 0) call print_atomic_variables(atoms, max(in%hx,in%hy,in%hz), in%ixc, in%dispersion)
   if(in%nspin==4) then
      nspinor=4
   else

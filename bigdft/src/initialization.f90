@@ -7,241 +7,6 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-
-!> Routines to handle the argument objects of call_bigdft().
-subroutine run_objects_nullify(runObj)
-  use module_types
-  implicit none
-  type(run_objects), intent(out) :: runObj
-
-  nullify(runObj%user_inputs)
-  nullify(runObj%inputs)
-  nullify(runObj%atoms)
-  nullify(runObj%rst)
-  nullify(runObj%radii_cf)
-END SUBROUTINE run_objects_nullify
-
-
-!> Freed the run_objects structure
-subroutine run_objects_free(runObj, subname)
-  use module_types
-  use module_base
-  use dynamic_memory
-  use yaml_output
-  use dictionaries
-  use  module_atoms, only: deallocate_atoms_data
-  implicit none
-  type(run_objects), intent(inout) :: runObj
-  character(len = *), intent(in) :: subname
-
-  if (associated(runObj%user_inputs)) then
-     call dict_free(runObj%user_inputs)
-  end if
-  if (associated(runObj%rst)) then
-     call free_restart_objects(runObj%rst)
-     deallocate(runObj%rst)
-  end if
-  if (associated(runObj%atoms)) then
-     call deallocate_atoms_data(runObj%atoms) 
-     deallocate(runObj%atoms)
-  end if
-  if (associated(runObj%inputs)) then
-     call free_input_variables(runObj%inputs)
-     deallocate(runObj%inputs)
-  end if
-  if (associated(runObj%radii_cf)) then
-     call f_free_ptr(runObj%radii_cf)
-  end if
-  ! to be inserted again soon call f_lib_finalize()
-  !call yaml_close_all_streams()
-END SUBROUTINE run_objects_free
-
-
-!> Deallocate run_objects
-subroutine run_objects_free_container(runObj)
-  use module_types
-  use module_base
-  use dynamic_memory
-  use yaml_output
-  implicit none
-  type(run_objects), intent(inout) :: runObj
-
-  ! User inputs are always owned by run objects.
-  if (associated(runObj%user_inputs)) then
-     call dict_free(runObj%user_inputs)
-  end if
-  ! Radii_cf are always owned by run objects.
-  call f_free_ptr(runObj%radii_cf)
-  ! Currently do nothing except nullifying everything.
-  call run_objects_nullify(runObj)
-END SUBROUTINE run_objects_free_container
-
-
-!> Read all input files and create the objects to run BigDFT
-subroutine run_objects_init_from_files(runObj, radical, posinp)
-  use module_base, only: bigdft_mpi,dict_init
-  use module_types
-  use module_input_dicts, only: user_dict_from_files
-  implicit none
-  type(run_objects), intent(out) :: runObj
-  character(len = *), intent(in) :: radical, posinp
-
-  call run_objects_nullify(runObj)
-
-  ! Allocate persistent structures.
-  allocate(runObj%rst)
-  call restart_objects_new(runObj%rst)
-
-  ! Generate input dictionary and parse it.
-  call dict_init(runObj%user_inputs)
-  call user_dict_from_files(runObj%user_inputs, radical, posinp, bigdft_mpi)
-  call run_objects_parse(runObj)
-
-  ! Start the signaling loop in a thread if necessary.
-  if (runObj%inputs%signaling .and. bigdft_mpi%iproc == 0) then
-     call bigdft_signals_init(runObj%inputs%gmainloop, 2, &
-          & runObj%inputs%domain, len_trim(runObj%inputs%domain))
-     call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
-  end if
-END SUBROUTINE run_objects_init_from_files
-
-
-subroutine run_objects_update(runObj, dict)
-  use module_types
-  use dictionaries, only: dictionary, dict_update, max_field_length, dict_value
-  use yaml_output
-  implicit none
-  type(run_objects), intent(inout) :: runObj
-  type(dictionary), pointer :: dict
-
-  ! We merge the previous dictionnary with new entries.
-  call dict_update(runObj%user_inputs, dict)
-  
-  ! Parse new dictionnary.
-  call run_objects_parse(runObj)
-END SUBROUTINE run_objects_update
-
-
-!> Parse the input dictiionary and create all run_objects
-subroutine run_objects_parse(runObj)
-  use module_base, only: bigdft_mpi
-  use module_types
-  use module_interfaces, only: atoms_new, inputs_new, inputs_from_dict, create_log_file
-  use dynamic_memory
-  use dictionaries
-  use module_atoms, only: deallocate_atoms_data
-  implicit none
-  type(run_objects), intent(inout) :: runObj
-  character(len=*), parameter :: subname = "run_objects_parse"
-
-  ! Free potential previous inputs and atoms.
-  if (associated(runObj%atoms)) then
-     call deallocate_atoms_data(runObj%atoms) 
-     deallocate(runObj%atoms)
-  end if
-  ! Allocate atoms_data structure
-  call atoms_new(runObj%atoms)
-  if (associated(runObj%inputs)) then
-     call free_input_variables(runObj%inputs)
-     deallocate(runObj%inputs)
-  end if
-  !Allocation input_variables structure and initialize it with default values
-  call inputs_new(runObj%inputs)
-
-  ! Regenerate inputs and atoms.
-  call inputs_from_dict(runObj%inputs, runObj%atoms, runObj%user_inputs)
-
-  ! Number of atoms should not change.
-  if (runObj%rst%nat > 0 .and. runObj%rst%nat /= runObj%atoms%astruct%nat) then
-     stop "nat changed"
-  else if (runObj%rst%nat == 0) then
-     call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat)
-  end if
-  call restart_objects_set_mode(runObj%rst, runObj%inputs%inputpsiid)
-  if (associated(runObj%rst)) then
-     call release_material_acceleration(runObj%rst%GPU)
-  end if
-  call restart_objects_set_mat_acc(runObj%rst, bigdft_mpi%iproc, runObj%inputs%matacc)
-
-  ! Generate radii
-  call f_free_ptr(runObj%radii_cf)
-
-  runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), id="runObj%radii_cf")
-  runObj%radii_cf = runObj%atoms%radii_cf
-
-END SUBROUTINE run_objects_parse
-
-
-!> Associate to the structure run_objects, the input_variable structure and the atomic positions (atoms_data)
-subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
-  use module_base
-  use module_types
-  implicit none
-  type(run_objects), intent(out) :: runObj
-  type(input_variables), intent(in), target :: inputs
-  type(atoms_data), intent(in), target :: atoms
-  type(restart_objects), intent(in), target :: rst
-  real(gp), intent(in), optional :: rxyz0
-
-  call run_objects_free_container(runObj)
-  runObj%atoms  => atoms
-  runObj%inputs => inputs
-  runObj%rst    => rst
-  if (present(rxyz0)) then
-     call vcopy(3 * atoms%astruct%nat, rxyz0, 1, runObj%atoms%astruct%rxyz(1,1), 1)
-  end if
-
-  runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), id="runObj%radii_cf")
-  runObj%radii_cf = runObj%atoms%radii_cf
-END SUBROUTINE run_objects_associate
-
-
-subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
-  use module_base, only: gp,f_memcpy
-  use module_types
-  use module_fragments
-  use module_interfaces, only: system_initialization
-  use psp_projectors
-  use communications_base, only: deallocate_comms
-  implicit none
-  type(run_objects), intent(inout) :: runObj
-  integer, intent(in) :: iproc, nproc
-  real(gp), dimension(3,runObj%atoms%astruct%nat), intent(out) :: rxyz
-  real(gp), dimension(3), intent(out) :: shift
-  type(memory_estimation), intent(out) :: mem
-
-  integer :: inputpsi, input_wf_format
-  type(DFT_PSP_projectors) :: nlpsp
-  type(system_fragment), dimension(:), pointer :: ref_frags
-  character(len = *), parameter :: subname = "run_objects_estimate_memory"
-
-  ! Copy rxyz since system_size() will shift them.
-!!$  allocate(rxyz(3,runObj%atoms%astruct%nat+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,rxyz,'rxyz',subname)
-  call f_memcpy(src=runObj%atoms%astruct%rxyz,dest=rxyz)
-  !call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, rxyz(1,1), 1)
-
-  call system_initialization(iproc, nproc, .true., inputpsi, input_wf_format, .true., &
-       & runObj%inputs, runObj%atoms, rxyz, runObj%rst%GPU%OCLconv, runObj%rst%KSwfn%orbs, &
-       & runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
-       & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, &
-       & nlpsp, runObj%rst%KSwfn%comms, shift, runObj%radii_cf, &
-       & ref_frags)
-  call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
-       & runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&
-       & runObj%rst%KSwfn%orbs%nkpts,nlpsp%nprojel,&
-       & runObj%inputs%nspin,runObj%inputs%itrpmax,runObj%inputs%iscf,mem)
-
-  ! De-allocations
-  call deallocate_Lzd_except_Glr(runObj%rst%KSwfn%Lzd)
-  call deallocate_comms(runObj%rst%KSwfn%comms)
-  call deallocate_orbs(runObj%rst%KSwfn%orbs)
-  call free_DFT_PSP_projectors(nlpsp)
-  call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
-  call nullify_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
-END SUBROUTINE run_objects_system_setup
-
-
 !> Read the options in the command line using get_command statement
 subroutine command_line_information(mpi_groupsize,posinp_file,run_id,ierr)
   use module_types
@@ -271,7 +36,6 @@ subroutine command_line_information(mpi_groupsize,posinp_file,run_id,ierr)
      command=repeat(' ',len(command))
      call get_command_argument(icommands,value=command,status=ierr)
      if (ierr /= 0) return
-     !print *,'test',ncommands,icommands,command
      call find_command()
      if (ierr /= 0) return
   end do
@@ -290,13 +54,13 @@ contains
        ipos=index(command,'=')
        read(command(ipos+1:len(command)),*)mpi_groupsize
     else if (index(command,'--run-id=') > 0) then
-       if (len_trim(run_id) > 0) then
+       if (trim(run_id) /= 'input') then
           ierr=bigdft_error_ret(BIGDFT_INVALID,'run_id specified twice')
        end if
        ipos=index(command,'=')
        read(command(ipos+1:len(command)),*)run_id
     else if (index(command,'--runs-file=') > 0) then
-       if (len_trim(posinp_file) > 0 .or. len_trim(run_id) >0) then
+       if (len_trim(posinp_file) > 0 .or. trim(run_id) /= 'input') then
           ierr=bigdft_error_ret(BIGDFT_INVALID,'posinp_file specified twice or run_id already known')
        end if
        ipos=index(command,'=')
@@ -322,7 +86,6 @@ contains
   end subroutine help_screen
 
 END SUBROUTINE command_line_information
-
 
 !> Initialization of acceleration (OpenCL)
 subroutine init_material_acceleration(iproc,matacc,GPU)

@@ -346,7 +346,7 @@ subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
 END SUBROUTINE glr_set_wfd_dims
 
 
-subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
+subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,&
       &   crmult,frmult,Glr)
    use module_base, only: gp
    use module_types
@@ -357,11 +357,11 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    integer, intent(in) :: iproc
    real(gp), intent(in) :: hx,hy,hz,crmult,frmult
    real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
-   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+   !real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
    type(locreg_descriptors), intent(inout) :: Glr
 
-   call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-      &   crmult,frmult,Glr)
+   call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,&
+        crmult,frmult,Glr)
 end subroutine glr_set_wave_descriptors
 
 
@@ -1275,7 +1275,8 @@ END SUBROUTINE orbs_get_iorbp
 
 subroutine global_output_new(self, outs, energs, fxyz, nat)
   use module_defs, only: gp
-  use module_types
+  use module_types,only: energy_terms
+  use bigdft_run
   implicit none
   integer(kind = 8), intent(in) :: self
   type(DFT_global_output), pointer :: outs
@@ -1296,6 +1297,7 @@ END SUBROUTINE global_output_new
 
 subroutine global_output_free(outs)
   use module_types
+  use bigdft_run
   implicit none
   type(DFT_global_output), pointer :: outs
 
@@ -1306,7 +1308,8 @@ END SUBROUTINE global_output_free
 
 subroutine global_output_get(outs, energs, fxyz, fdim, fnoise, pressure, strten, etot)
   use module_defs, only: gp
-  use module_types
+  use module_types, only: energy_terms
+  use bigdft_run
   implicit none
   type(DFT_global_output), intent(in), target :: outs
   type(energy_terms), pointer :: energs
@@ -1517,7 +1520,7 @@ END SUBROUTINE optloop_bcast
 
 
 subroutine run_objects_new(runObj)
-  use module_types
+  use bigdft_run
   implicit none
   type(run_objects), pointer :: runObj
 
@@ -1534,9 +1537,7 @@ END SUBROUTINE run_objects_new
 
 
 subroutine run_objects_destroy(runObj)
-  use module_types
-  use module_base
-  use yaml_output
+  use bigdft_run
   implicit none
   type(run_objects), pointer :: runObj
 
@@ -1547,7 +1548,9 @@ end subroutine run_objects_destroy
 
 
 subroutine run_objects_get(runObj, dict, inputs, atoms)
-  use module_types
+  use bigdft_run
+  use module_types, only: input_variables
+  use module_atoms, only: atoms_data
   use dictionaries
   implicit none
   type(run_objects), intent(in) :: runObj
@@ -1600,7 +1603,7 @@ END SUBROUTINE run_objects_dump_to_file
 
 
 subroutine run_objects_set_dict(runObj, dict)
-  use module_types, only: run_objects
+  use bigdft_run, only: run_objects
   use dictionaries, only: dictionary
   implicit none
   type(run_objects), intent(inout) :: runObj
@@ -1613,7 +1616,7 @@ END SUBROUTINE run_objects_set_dict
 
 
 subroutine run_objects_nullify_dict(runObj)
-  use module_types, only: run_objects
+  use bigdft_run, only: run_objects
   implicit none
   type(run_objects), intent(inout) :: runObj
 
@@ -1622,7 +1625,7 @@ END SUBROUTINE run_objects_nullify_dict
 
 
 subroutine run_objects_nullify_volatile(runObj)
-  use module_types, only: run_objects
+  use bigdft_run, only: run_objects
   implicit none
   type(run_objects), intent(inout) :: runObj
 

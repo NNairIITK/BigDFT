@@ -20,9 +20,22 @@ module module_input_dicts
   character(len=*), parameter :: ASTRUCT_CELL = 'cell' 
   character(len=*), parameter :: ASTRUCT_POSITIONS = 'positions' 
   character(len=*), parameter :: ASTRUCT_PROPERTIES = 'properties' 
-  character(len=*), parameter :: GOUT_ENERGY = 'energy (Ha)' 
-  character(len=*), parameter :: GOUT_FORCES = 'forces (Ha/Bohr)' 
-
+  character(len=*), parameter, public :: GOUT_ENERGY = 'energy (Ha)' 
+  character(len=*), parameter, public :: GOUT_FORCES = 'forces (Ha/Bohr)' 
+  character(len=*), parameter :: FORMAT_KEY = 'format' 
+  character(len=*), parameter :: OCCUPATION = 'occupation' 
+  character(len=*), parameter :: FORMAT_YAML = 'yaml' 
+  character(len=*), parameter :: RADII_KEY = 'Radii of active regions (AU)' 
+  character(len=*), parameter :: LPSP_KEY = 'Local Pseudo Potential (HGH convention)' 
+  character(len=*), parameter :: NLPSP_KEY = 'NonLocal PSP Parameters'
+  character(len=*), parameter :: PSPXC_KEY = 'Pseudopotential XC'
+  character(len=*), parameter :: PSP_TYPE = 'Pseudopotential type'
+  character(len=*), parameter :: COARSE = 'Coarse'
+  character(len=*), parameter :: COARSE_PSP = 'Coarse PSP'
+  character(len=*), parameter :: FINE = 'Fine'
+  character(len=*), parameter :: SOURCE_KEY = 'Source'
+  character(len=*), parameter :: ATOMIC_NUMBER = 'Atomic number'
+  character(len=*), parameter :: ELECTRON_NUMBER = 'No. of Electrons'
   ! Update a dictionary from a input file
   public :: merge_input_file_to_dict
 
@@ -41,12 +54,10 @@ module module_input_dicts
   public :: atomic_data_set_from_dict
   public :: occupation_set_from_dict
   public :: neb_set_from_dict
-  public :: global_output_set_from_dict
 
   ! Types to dictionaries
   public :: psp_data_merge_to_dict
   public :: astruct_merge_to_dict
-  public :: global_output_merge_to_dict
 
   ! Dictionaries from files (old formats).
   public :: psp_file_merge_to_dict, nlcc_file_merge_to_dict
@@ -75,7 +86,6 @@ contains
     end if
   end function file_exists
 
-
   !> Routine to read YAML input files and create input dictionary.
   !! Update the input dictionary with the result of yaml_parse
   subroutine merge_input_file_to_dict(dict, fname, mpi_env)
@@ -87,7 +97,7 @@ contains
     implicit none
     !Arguments
     type(dictionary), pointer :: dict            !< Dictionary of the input files. Should be initialized on entry
-    character(len = *), intent(in) :: fname      !< Name of the file where the dictionaryt has to be read from 
+    character(len = *), intent(in) :: fname      !< Name of the file where the dictionary has to be read from 
     type(mpi_environment), intent(in) :: mpi_env !< Environment of the reading. Used for broadcasting the result
     !local variables
     integer(kind = 8) :: cbuf, cbuf_len
@@ -105,6 +115,7 @@ contains
     !else
        !call mpi_bcast(cbuf_len, 1, MPI_INTEGER8, 0, mpi_env%mpi_comm, ierr)
     end if
+
     if (mpi_env%nproc > 1) call mpibcast(cbuf_len,comm=mpi_env%mpi_comm)
     fbuf=f_malloc0_str(1,int(cbuf_len),id='fbuf')
 
@@ -116,6 +127,7 @@ contains
 !    else
 !       if (cbuf_len > 0) call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
     end if
+
     !this call can be replaced with the size of the character array
     if (mpi_env%nproc > 1) call mpibcast(fbuf,comm=mpi_env%mpi_comm)
 
@@ -126,17 +138,16 @@ contains
     if (dict_len(udict) > 0) then
        call dict_update(dict, udict // 0)
     end if
-
     call dict_free(udict)
     ierr = 0
     if (f_err_check()) ierr = f_get_last_error(val)
+    !call f_dump_all_errors()
     call f_err_close_try()
-    !in the present implementation f_err_check is not cleaned after the close of the try
+
     if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = val)
     call f_release_routine()
 
   END SUBROUTINE merge_input_file_to_dict
-
 
   !> Read from all input files and build a dictionary
   subroutine user_dict_from_files(dict,radical,posinp_name, mpi_env)
@@ -172,10 +183,11 @@ contains
           !Only add the format
           at => dict //POSINP
           if (.not. has_key(at, ASTRUCT_PROPERTIES)) then
-             call set(at // ASTRUCT_PROPERTIES // "format", "yaml")
+             call set(at // ASTRUCT_PROPERTIES // FORMAT_KEY, FORMAT_YAML)
           else
              at => at // ASTRUCT_PROPERTIES
-             if (.not. has_key(at, "format")) call set(at // "format", "yaml")
+             if (FORMAT_KEY .notin. at) &
+                  call set(at // FORMAT_KEY, FORMAT_YAML)
           end if
        end if
     end if
@@ -187,7 +199,8 @@ contains
     if (.not. has_key(dict,IG_OCCUPATION)) then
        !yaml format should be used even for old method
        if (file_exists(trim(radical)//".occup")) &
-            call merge_input_file_to_dict(dict//IG_OCCUPATION,trim(radical)//".occup",mpi_env)
+            call merge_input_file_to_dict(dict//IG_OCCUPATION,&
+            trim(radical)//".occup",mpi_env)
     else !otherwise the input file always supersedes
        str = dict_value(dict //IG_OCCUPATION)
        if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
@@ -197,19 +210,17 @@ contains
        end if
     end if
 
-    if (.not. has_key(dict, "occupation")) then
+    if (OCCUPATION .notin. dict) then
        ! Add old input.occ
-       call occupation_data_file_merge_to_dict(dict, "occupation", &
-            & trim(radical) // ".occ")
+       call occupation_data_file_merge_to_dict(dict,OCCUPATION,trim(radical) // ".occ")
     else
-       str = dict_value(dict // "occupation")
+       str = dict_value(dict //OCCUPATION)
        if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
-          call occupation_data_file_merge_to_dict(dict, "occupation", trim(str))
+          call occupation_data_file_merge_to_dict(dict,OCCUPATION, trim(str))
        end if
     end if
 
   end subroutine user_dict_from_files
-
 
   !> Fill up the dict with all pseudopotential information
   subroutine psp_dict_fill_all(dict, atomname, run_ixc, projrad, crmult, frmult)
@@ -231,52 +242,69 @@ contains
     logical :: exists
     integer :: nzatom, nelpsp, npspcode
     real(gp), dimension(0:4,0:6) :: psppar
-!    integer, parameter :: nmax=6,lmax=4
-    !integer, parameter :: nelecmax=32
-!    character(len=2) :: symbol
-    integer :: i!,mxpl,mxchg,nsccode
-    real(gp) :: ehomo,radfine,rad,maxrad!,amu,rcov,rprb
-!    real(kind=8), dimension(nmax,0:lmax-1) :: neleconf
-    type(dictionary), pointer :: radii
+    integer :: i
+    real(gp) :: ehomo,radfine,rad,maxrad
+    type(dictionary), pointer :: radii,dict_psp
     real(gp), dimension(3) :: radii_cf
-    character(len = max_field_length) :: source
+    character(len = max_field_length) :: source_val
 
     filename = 'psppar.' // atomname
+    dict_psp => dict // filename !inquire for the key?
 
-    exists = has_key(dict // filename, "Local Pseudo Potential (HGH convention)")
+!!$    if (has_key(dict_psp, RADII_KEY)) then
+!!$       radii => dict_psp // RADII_KEY
+!!$       if (has_key(radii, COARSE)) radii_cf(1) =  radii // COARSE
+!!$       if (has_key(radii, FINE)) radii_cf(2) =  radii // FINE
+!!$       if (has_key(radii, COARSE_PSP)) radii_cf(3) =  radii // COARSE_PSP
+!!$    end if
+
+    exists = has_key(dict_psp, LPSP_KEY)
     if (.not. exists) then
        ixc = run_ixc
-       if (has_key(dict // filename, "Pseudopotential XC")) &
-            & ixc = dict // filename // "Pseudopotential XC"
+       ixc = dict_psp .get. PSPXC_KEY
+!!$       if (has_key(dict_psp, PSPXC_KEY)) &
+!!$            & ixc = dict_psp // PSPXC_KEY
        call psp_from_data(atomname, nzatom, &
             & nelpsp, npspcode, ixc, psppar(:,:), exists)
        radii_cf(:) = UNINITIALIZED(1._gp)
-       call psp_data_merge_to_dict(dict // filename, nzatom, nelpsp, npspcode, ixc, &
+       call psp_data_merge_to_dict(dict_psp, nzatom, nelpsp, npspcode, ixc, &
             & psppar(0:4,0:6), radii_cf, UNINITIALIZED(1._gp), UNINITIALIZED(1._gp))
-       call set(dict // filename // "Source", "Hard-Coded")
+       call set(dict_psp // SOURCE_KEY, "Hard-Coded")
     else
-       nzatom = dict // filename // "Atomic number"
-       nelpsp = dict // filename // "No. of Electrons"
+       nzatom = dict_psp // ATOMIC_NUMBER
+       nelpsp = dict_psp // ELECTRON_NUMBER
     end if
 
     if (.not. exists) then
-       call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-       write(*,'(1x,5a)')&
-            'ERROR: The pseudopotential parameter file "',trim(filename),&
-            '" is lacking, and no registered pseudo found for "', &
-            & trim(atomname), '", exiting...'
-       stop
+     !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+       call f_err_throw('The pseudopotential parameter file "'//&
+            trim(filename)//&
+            '" is lacking, and no registered pseudo found for "'//&
+            trim(atomname),err_name='BIGDFT_INPUT_FILE_ERROR')
+       return
+!!$       write(*,'(1x,5a)')&
+!!$            'ERROR: The pseudopotential parameter file "',trim(filename),&
+!!$            '" is lacking, and no registered pseudo found for "', &
+!!$            & trim(atomname), '", exiting...'
+!!$       stop
     end if
 
     radii_cf = UNINITIALIZED(1._gp)
-    if (has_key(dict // filename, "Radii of active regions (AU)")) then
-       radii => dict // filename // "Radii of active regions (AU)"
-       if (has_key(radii, "Coarse")) radii_cf(1) =  radii // "Coarse"
-       if (has_key(radii, "Fine")) radii_cf(2) =  radii // "Fine"
-       if (has_key(radii, "Coarse PSP")) radii_cf(3) =  radii // "Coarse PSP"
-    end if
+    !example with the .get. operator
+!    print *,'here',associated(radii)
+    nullify(radii)
+    radii = dict_psp .get. RADII_KEY
+    radii_cf(1) = radii .get. COARSE
+    radii_cf(2) = radii .get. FINE
+    radii_cf(3) = radii .get. COARSE_PSP
+    !if (has_key(dict // filename, "Radii of active regions (AU)")) then
+    !   radii => dict // filename // "Radii of active regions (AU)"
+    !   if (has_key(radii, "Coarse")) radii_cf(1) =  radii // "Coarse"
+    !   if (has_key(radii, "Fine")) radii_cf(2) =  radii // "Fine"
+    !   if (has_key(radii, "Coarse PSP")) radii_cf(3) =  radii // "Coarse PSP"
+    !end if
 
-    write(source, "(A)") RADII_SOURCE(RADII_SOURCE_FILE)
+    write(source_val, "(A)") RADII_SOURCE(RADII_SOURCE_FILE)
     if (radii_cf(1) == UNINITIALIZED(1.0_gp)) then
        !see whether the atom is semicore or not
        !and consider the ground state electronic configuration
@@ -286,27 +314,27 @@ contains
 
        !assigning the radii by calculating physical parameters
        radii_cf(1)=1._gp/sqrt(abs(2._gp*ehomo))
-       write(source, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
+       write(source_val, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
     end if
     if (radii_cf(2) == UNINITIALIZED(1.0_gp)) then
-       radfine = dict // filename // "Local Pseudo Potential (HGH convention)" // "Rloc"
-       if (has_key(dict // filename, "NonLocal PSP Parameters")) then
-          do i=1, dict_len(dict // filename // "NonLocal PSP Parameters")
-             rad = dict // filename // "NonLocal PSP Parameters" // (i - 1) // "Rloc"
+       radfine = dict_psp // LPSP_KEY // "Rloc"
+       if (has_key(dict_psp, NLPSP_KEY)) then
+          do i=1, dict_len(dict_psp // NLPSP_KEY)
+             rad = dict_psp // NLPSP_KEY // (i - 1) // "Rloc"
              if (rad /= 0._gp) then
                 radfine=min(radfine, rad)
              end if
           end do
        end if
        radii_cf(2)=radfine
-       write(source, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
+       write(source_val, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
     end if
     if (radii_cf(3) == UNINITIALIZED(1.0_gp)) radii_cf(3)=crmult*radii_cf(1)/frmult
     ! Correct radii_cf(3) for the projectors.
     maxrad=0.e0_gp ! This line added by Alexey, 03.10.08, to be able to compile with -g -C
-    if (has_key(dict // filename, "NonLocal PSP Parameters")) then
-       do i=1, dict_len(dict // filename // "NonLocal PSP Parameters")
-          rad = dict // filename // "NonLocal PSP Parameters" // (i - 1) // "Rloc"
+    if (has_key( dict_psp, NLPSP_KEY)) then
+       do i=1, dict_len(dict_psp // NLPSP_KEY)
+          rad =  dict_psp  // NLPSP_KEY // (i - 1) // "Rloc"
           if (rad /= 0._gp) then
              maxrad=max(maxrad, rad)
           end if
@@ -317,12 +345,12 @@ contains
     else
        radii_cf(3)=max(min(radii_cf(3),projrad*maxrad/frmult),radii_cf(2))
     end if
+    radii => dict_psp // RADII_KEY
+    call set(radii // COARSE, radii_cf(1))
+    call set(radii // FINE, radii_cf(2))
+    call set(radii // COARSE_PSP, radii_cf(3))
+    call set(radii // SOURCE_KEY, source_val)
     
-    radii => dict // filename // "Radii of active regions (AU)"
-    call set(radii // "Coarse", radii_cf(1))
-    call set(radii // "Fine", radii_cf(2))
-    call set(radii // "Coarse PSP", radii_cf(3))
-    call set(radii // "Source", source)
   end subroutine psp_dict_fill_all
 
   
@@ -349,8 +377,6 @@ contains
 
     if (.not. associated(atoms%nzatom)) then
        call allocate_atoms_data(atoms)
-       !call allocate_atoms_nat(atoms, "psp_dict_analyse")
-       !call allocate_atoms_ntypes(atoms, "psp_dict_analyse")
     end if
 
     pawpatch = .true.
@@ -514,13 +540,13 @@ contains
     psppar(:,:) = 0._gp
 
     ! We set nzatom at the end as a flag that the psp data are complete.
-    if (.not. has_key(dict, "No. of Electrons")) return
-    nelpsp = dict // "No. of Electrons"
-    if (.not. has_key(dict, "Pseudopotential XC")) return
-    ixcpsp = dict // "Pseudopotential XC"
+    if (.not. has_key(dict, ELECTRON_NUMBER)) return
+    nelpsp = dict // ELECTRON_NUMBER
+    if (.not. has_key(dict, PSPXC_KEY)) return
+    ixcpsp = dict // PSPXC_KEY
     ! Local terms
-    if (.not. has_key(dict, "Local Pseudo Potential (HGH convention)")) return
-    loc => dict // "Local Pseudo Potential (HGH convention)"
+    if (.not. has_key(dict, LPSP_KEY)) return
+    loc => dict // LPSP_KEY
     if (.not. has_key(loc, "Rloc")) return
     psppar(0,0) = loc // 'Rloc'
     if (.not. has_key(loc, "Coefficients (c1 .. c4)")) return
@@ -529,9 +555,9 @@ contains
     psppar(0,3) = loc // 'Coefficients (c1 .. c4)' // 2
     psppar(0,4) = loc // 'Coefficients (c1 .. c4)' // 3
     ! Nonlocal terms
-    if (has_key(dict, "NonLocal PSP Parameters")) then
-       do i = 1, dict_len(dict // "NonLocal PSP Parameters"), 1
-          loc => dict // "NonLocal PSP Parameters" // (i - 1)
+    if (has_key(dict, NLPSP_KEY)) then
+       do i = 1, dict_len(dict // NLPSP_KEY), 1
+          loc => dict // NLPSP_KEY // (i - 1)
           if (.not. has_key(loc, "Channel (l)")) return
           l = loc // "Channel (l)"
           l = l + 1
@@ -547,8 +573,8 @@ contains
        end do
     end if
     ! Type
-    if (.not. has_key(dict, "Pseudopotential type")) return
-    str = dict // "Pseudopotential type"
+    if (.not. has_key(dict, PSP_TYPE)) return
+    str = dict // PSP_TYPE
     select case(trim(str))
     case("GTH")
        npspcode = PSPCODE_GTH
@@ -570,19 +596,19 @@ contains
        if (.not. has_key(loc, "Core charge")) return
     end if
     ! Valid pseudo, we set nzatom
-    if (.not. has_key(dict, "Atomic number")) return
-    nzatom = dict // "Atomic number"
+    if (.not. has_key(dict, ATOMIC_NUMBER)) return
+    nzatom = dict // ATOMIC_NUMBER
 
     ! Optional values.
-    if (has_key(dict, "Radii of active regions (AU)")) then
-       loc => dict // "Radii of active regions (AU)"
-       if (has_key(loc, "Coarse")) radii_cf(1) =  loc // "Coarse"
-       if (has_key(loc, "Fine")) radii_cf(2) =  loc // "Fine"
-       if (has_key(loc, "Coarse PSP")) radii_cf(3) =  loc // "Coarse PSP"
+    if (has_key(dict, RADII_KEY)) then
+       loc => dict // RADII_KEY
+       if (has_key(loc, COARSE)) radii_cf(1) =  loc // COARSE
+       if (has_key(loc, FINE)) radii_cf(2) =  loc // FINE
+       if (has_key(loc, COARSE_PSP)) radii_cf(3) =  loc // COARSE_PSP
        
-       if (has_key(loc, "Source")) then
+       if (has_key(loc, SOURCE_KEY)) then
           ! Source of the radii
-          str = loc // "Source"
+          str = loc // SOURCE_KEY
           select case(str)
           case(RADII_SOURCE(RADII_SOURCE_HARD_CODED))
              iradii_source = RADII_SOURCE_HARD_CODED
@@ -625,20 +651,20 @@ contains
     ! Type
     select case(npspcode)
     case(PSPCODE_GTH)
-       call set(dict // "Pseudopotential type", 'GTH')
+       call set(dict // PSP_TYPE, 'GTH')
     case(PSPCODE_HGH)
-       call set(dict // "Pseudopotential type", 'HGH')
+       call set(dict // PSP_TYPE, 'HGH')
     case(PSPCODE_HGH_K)
-       call set(dict // "Pseudopotential type", 'HGH-K')
+       call set(dict // PSP_TYPE, 'HGH-K')
     case(PSPCODE_HGH_K_NLCC)
-       call set(dict // "Pseudopotential type", 'HGH-K + NLCC')
+       call set(dict // PSP_TYPE, 'HGH-K + NLCC')
     case(PSPCODE_PAW)
-       call set(dict // "Pseudopotential type", 'PAW')
+       call set(dict // PSP_TYPE, 'PAW')
     end select
 
-    call set(dict // "Atomic number", nzatom)
-    call set(dict // "No. of Electrons", nelpsp)
-    call set(dict // "Pseudopotential XC", ixcpsp)
+    call set(dict // ATOMIC_NUMBER, nzatom)
+    call set(dict // ELECTRON_NUMBER, nelpsp)
+    call set(dict // PSPXC_KEY, ixcpsp)
 
     ! Local terms
     if (psppar(0,0)/=0) then
@@ -647,7 +673,7 @@ contains
        do i = 1, 4, 1
           call add(channel // 'Coefficients (c1 .. c4)', psppar(0,i))
        end do
-       call set(dict // 'Local Pseudo Potential (HGH convention)', channel)
+       call set(dict // LPSP_KEY, channel)
     end if
 
     ! nlcc term
@@ -673,11 +699,11 @@ contains
     ! Radii (& carottes)
     if (any(radii_cf /= UNINITIALIZED(1._gp))) then
        call dict_init(radii)
-       if (radii_cf(1) /= UNINITIALIZED(1._gp)) call set(radii // "Coarse", radii_cf(1))
-       if (radii_cf(2) /= UNINITIALIZED(1._gp)) call set(radii // "Fine", radii_cf(2))
-       if (radii_cf(3) /= UNINITIALIZED(1._gp)) call set(radii // "Coarse PSP", radii_cf(3))
-       call set(radii // "Source", RADII_SOURCE_FILE)
-       call set(dict // "Radii of active regions (AU)", radii)
+       if (radii_cf(1) /= UNINITIALIZED(1._gp)) call set(radii // COARSE, radii_cf(1))
+       if (radii_cf(2) /= UNINITIALIZED(1._gp)) call set(radii // FINE, radii_cf(2))
+       if (radii_cf(3) /= UNINITIALIZED(1._gp)) call set(radii // COARSE_PSP, radii_cf(3))
+       call set(radii // SOURCE_KEY, RADII_SOURCE_FILE)
+       call set(dict // RADII_KEY, radii)
     end if
 
   end subroutine psp_data_merge_to_dict
@@ -758,7 +784,7 @@ contains
     call psp_data_merge_to_dict(dict // key, nzatom, nelpsp, npspcode, ixcpsp, &
          & psppar, radii_cf, rcore, qcore)
     call set(dict // key // "PAW patch", pawpatch)
-    call set(dict // key // "Source", filename)
+    call set(dict // key // SOURCE_KEY, filename)
   end subroutine psp_file_merge_to_dict
 
 
@@ -958,10 +984,9 @@ contains
   !> Read Atomic positions and merge into dict
   subroutine astruct_file_merge_to_dict(dict, key, filename)
     use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine, &
-        & BIGDFT_INPUT_FILE_ERROR, BIGDFT_INPUT_VARIABLES_ERROR
+        & BIGDFT_INPUT_FILE_ERROR, BIGDFT_INPUT_VARIABLES_ERROR,f_free_ptr
     use module_atoms, only: set_astruct_from_file,atomic_structure,&
          nullify_atomic_structure,deallocate_atomic_structure
-    use module_types, only: DFT_global_output, nullify_global_output, deallocate_global_output
     use module_input_keys, only: POSINP,RADICAL_NAME
     use dictionaries
     use yaml_strings
@@ -972,49 +997,68 @@ contains
     character(len = *), intent(in) :: filename !< Name of the filename where the astruct should be read
     !Local variables
     type(atomic_structure) :: astruct
-    type(DFT_global_output) :: outs
+    !type(DFT_global_output) :: outs
     character(len=max_field_length) :: msg,radical
-    integer :: ierr
+    integer :: ierr,iat
+    real(gp) :: energy
+    real(gp), dimension(:,:), pointer :: fxyz
+    type(dictionary), pointer :: dict_tmp,pos
+
 
     call f_routine(id='astruct_file_merge_to_dict')
     ! Read atomic file, old way
     call nullify_atomic_structure(astruct)
-    call nullify_global_output(outs)
+    !call nullify_global_output(outs)
 
     !Try to read the atomic coordinates from files
     call f_err_open_try()
+!!$    call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
+!!$         & energy = outs%energy, fxyz = outs%fxyz)
+    nullify(fxyz)
     call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
-         & energy = outs%energy, fxyz = outs%fxyz)
-
+         energy = energy, fxyz = fxyz)
+    !print *,'test2',associated(fxyz)
     !Check if BIGDFT_INPUT_FILE_ERROR
     ierr = f_get_last_error(msg) 
     call f_err_close_try()
 
     if (ierr == 0) then
+       dict_tmp => dict // key
        !No errors: we have all information in astruct and put into dict
-       call astruct_merge_to_dict(dict // key, astruct, astruct%rxyz)
-       call set(dict // key // ASTRUCT_PROPERTIES // "source", filename)
-       call global_output_merge_to_dict(dict // key, outs, astruct)
+       call astruct_merge_to_dict(dict_tmp, astruct, astruct%rxyz)
+       call set(dict_tmp // ASTRUCT_PROPERTIES // "source", filename)
+
+       if (GOUT_FORCES .in. dict_tmp) call dict_remove(dict_tmp, GOUT_FORCES)
+       if (associated(fxyz)) then
+          pos => dict_tmp // GOUT_FORCES
+          do iat=1,astruct%nat
+             call add(pos, dict_new(astruct%atomnames(astruct%iatype(iat)) .is. fxyz(:,iat)))
+          end do
+       end if
+       if (GOUT_ENERGY .in. dict_tmp) call dict_remove(dict_tmp, GOUT_ENERGY)
+       if (energy /= UNINITIALIZED(energy)) call set(dict_tmp // GOUT_ENERGY, energy)
+
+       !call global_output_merge_to_dict(dict // key, outs, astruct)
        call deallocate_atomic_structure(astruct)
 
     else if (ierr == BIGDFT_INPUT_FILE_ERROR) then
        !Found no file: maybe already inside the yaml file ?
        !Check if posinp is in dict
-       if (.not.has_key(dict,POSINP)) then
+       if ( POSINP .notin.  dict) then
           ! Raise an error
-          if (has_key(dict,RADICAL_NAME)) then 
-             radical = dict//RADICAL_NAME
-             msg = "No section 'posinp' for the atomic positions in the file '" &
-                 & // trim(radical) // ".yaml'. " // trim(msg)
-          end if
+          call f_strcpy(src='input',dest=radical)
+          !modify the radical name if it exists
+          radical = dict .get. RADICAL_NAME
+          msg = "No section 'posinp' for the atomic positions in the file '"//&
+               trim(radical) // ".yaml'. " // trim(msg)
           call f_err_throw(err_msg=msg,err_id=ierr)
        end if
     else 
        ! Raise an error
        call f_err_throw(err_msg=msg,err_id=ierr)
     end if
-
-    call deallocate_global_output(outs)
+    call f_free_ptr(fxyz)
+    !call deallocate_global_output(outs)
     call f_release_routine()
 
   end subroutine astruct_file_merge_to_dict
@@ -1542,69 +1586,9 @@ contains
        call set(dict // key // "K point 1", valu)
     end if
 
-    call set(dict // key // "Source", filename)
+    call set(dict // key // SOURCE_KEY, filename)
 
   end subroutine occupation_data_file_merge_to_dict
-
-  subroutine global_output_merge_to_dict(dict, outs, astruct)
-    use module_defs, only: gp, UNINITIALIZED
-    use module_types, only: atomic_structure, DFT_global_output
-    use dictionaries
-    implicit none
-    type(dictionary), pointer :: dict
-    type(DFT_global_output), intent(in) :: outs
-    type(atomic_structure), intent(in) :: astruct
-
-    integer :: iat
-    type(dictionary), pointer :: pos, fxyz
-
-    if (has_key(dict, GOUT_FORCES)) call dict_remove(dict, GOUT_FORCES)
-    if (associated(outs%fxyz)) then
-       pos => dict // GOUT_FORCES
-       do iat=1,astruct%nat
-          call dict_init(fxyz)
-          call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 0, outs%fxyz(1, iat))
-          call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 1, outs%fxyz(2, iat))
-          call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 2, outs%fxyz(3, iat))
-          call add(pos, fxyz)
-       end do
-    end if
-
-    if (has_key(dict, GOUT_ENERGY)) call dict_remove(dict, GOUT_ENERGY)
-    if (outs%energy /= UNINITIALIZED(outs%energy)) &
-         & call set(dict // GOUT_ENERGY, outs%energy)
-
-  end subroutine global_output_merge_to_dict
-
-  subroutine global_output_set_from_dict(outs, dict)
-    use module_types, only: DFT_global_output, init_global_output
-    use dictionaries
-    implicit none
-    type(dictionary), pointer :: dict
-    type(DFT_global_output), intent(inout) :: outs
-    
-    integer :: i
-    type(dictionary), pointer :: it
-
-    if (has_key(dict, GOUT_FORCES)) then
-       if (.not. associated(outs%fxyz)) &
-            & call init_global_output(outs, dict_len(dict // GOUT_FORCES))
-       do i = 1, outs%fdim, 1
-          it => dict_iter(dict // GOUT_FORCES // (i - 1))
-          do while (associated(it))
-             if (dict_len(it) == 3) then
-                outs%fxyz(1, i) = it // 0
-                outs%fxyz(2, i) = it // 1
-                outs%fxyz(3, i) = it // 2
-                exit
-             end if
-             it => dict_next(it)
-          end do
-       end do
-    end if
-
-    if (has_key(dict, GOUT_ENERGY)) outs%energy = dict // GOUT_ENERGY
-  end subroutine global_output_set_from_dict
 
   subroutine neb_set_from_dict(dict, opt, climbing_, imax, nimg_, &
        & cv, tol, ds_, kmin, kmax, temp_, damp_, meth)

@@ -59,7 +59,7 @@ module gaussians
 
   public :: nullify_gaussian_basis, deallocate_gwf, gaussian_basis_null, gaussian_basis_free
 
-  public :: gaussian_basis_from_psp, gaussian_basis_from_paw
+  public :: gaussian_basis_from_psp, gaussian_basis_from_paw,nullify_gaussian_basis_new
 
   type, public :: gaussian_basis_iter
      integer :: nshell = 0 !< Number of shells to iter on, read only.
@@ -114,6 +114,11 @@ contains
   pure function gaussian_basis_null() result(G)
     implicit none
     type(gaussian_basis_new) :: G
+    call nullify_gaussian_basis_new(G)
+  end function gaussian_basis_null
+  pure subroutine nullify_gaussian_basis_new(G)
+    implicit none
+    type(gaussian_basis_new), intent(out) :: G
     G%nat=0
     G%ncoeff=0
     G%nshltot=0
@@ -123,7 +128,7 @@ contains
     nullify(G%shid)
     nullify(G%sd)
     nullify(G%rxyz)
-  end function gaussian_basis_null
+  end subroutine nullify_gaussian_basis_new
 
 
   subroutine init_gaussian_basis(nat,nshell,rxyz,G)

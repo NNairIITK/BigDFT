@@ -20,6 +20,7 @@ program WaCo
    use module_atoms, only: deallocate_atoms_data
    use communications_base, only: comms_cubic,deallocate_comms
    use communications_init, only: orbitals_communicators
+   use bigdft_run
    implicit none
    character :: filetype*4,outputype*4
    type(locreg_descriptors) :: Glr
@@ -47,7 +48,6 @@ program WaCo
    character(len=4) :: num, units
    integer, allocatable :: wann_list(:), Zatoms(:,:), ncenters(:), wtypes(:,:)
    real(gp), dimension(:,:), pointer :: rxyz_old, cxyz,rxyz_wann
-   real(gp), dimension(:,:), allocatable :: radii_cf
    real(gp), allocatable :: sprd(:), locrad(:), eigen(:,:), proj(:,:), projC(:,:),distw(:),charge(:),prodw(:),wannocc(:)
    real(wp), allocatable :: psi(:,:),wann(:),wannr(:),lwann(:)
    real(wp), allocatable :: ham(:,:,:),hamr(:,:,:)
@@ -68,7 +68,7 @@ program WaCo
    integer, dimension(:),allocatable :: bandlist
    logical :: idemp
    integer, dimension(4) :: mpi_info
-   type(dictionary), pointer :: user_inputs
+   type(dictionary), pointer :: user_inputs,options
    external :: gather_timings
    ! ONLY FOR DEBUG
 !   real(gp) :: Gnorm, Lnorm
@@ -104,16 +104,26 @@ program WaCo
       end subroutine scalar_kmeans_diffIG
    end interface
 
-   !-finds the number of taskgroup size
-   !-initializes the mpi_environment for each group
-   !-decides the radical name for each run
-   call bigdft_init(mpi_info,nconfig,run_id,ierr)
 
-   !just for backward compatibility
-   iproc=mpi_info(1)
-   nproc=mpi_info(2)
+   call bigdft_command_line_options(options)
+   call bigdft_init(options)!mpi_info,nconfig,run_id,ierr)
+   iproc=bigdft_mpi%iproc!mpi_info(1)
+   nproc=bigdft_mpi%nproc!mpi_info(2)
+   if (bigdft_nruns(options) > 1) stop 'runs-file not supported for BigDFT2Wannier executable'
+   run_id = options // 0 // 'name'
+   call dict_free(options)
 
-   if (nconfig < 0) stop 'runs-file not supported for WaCo executable'
+
+!!$   !-finds the number of taskgroup size
+!!$   !-initializes the mpi_environment for each group
+!!$   !-decides the radical name for each run
+!!$   call bigdft_init(mpi_info,nconfig,run_id,ierr)
+!!$
+!!$   !just for backward compatibility
+!!$   iproc=mpi_info(1)
+!!$   nproc=mpi_info(2)
+!!$
+!!$   if (nconfig < 0) stop 'runs-file not supported for WaCo executable'
 
    call dict_init(user_inputs)
    call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
@@ -151,13 +161,11 @@ program WaCo
 
    call read_input_waco(trim(radical)//'.waco',nwannCon,ConstList,linear,nbandCon,bandlist) 
 
-   radii_cf = f_malloc((/ atoms%astruct%ntypes, 3 /),id='radii_cf')
-
-   call system_properties(iproc,nproc,input,atoms,orbs,radii_cf)
+   call system_properties(iproc,nproc,input,atoms,orbs)
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
-   call system_size(atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
+   call system_size(atoms,atoms%astruct%rxyz,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
         .false.,Glr,shift)
    if (iproc == 0) &
         & call print_atoms_and_grid(Glr, atoms, atoms%astruct%rxyz, shift, input%hx,input%hy,input%hz)
@@ -168,11 +176,8 @@ program WaCo
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
-        atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,Glr)
+        atoms,atoms%astruct%rxyz,input%crmult,input%frmult,Glr)
    if (iproc == 0) call print_wfd(Glr%wfd)
-
-   ! don't need radii_cf anymore
-   call f_free(radii_cf)
 
    !#################################################################
    ! Read Other files

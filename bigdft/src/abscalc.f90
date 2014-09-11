@@ -11,11 +11,11 @@
 program abscalc_main
 
    use module_base
-   use module_types
-   use module_interfaces
-   use m_ab6_symmetry
+   use bigdft_run!module_types
+!!$   use module_interfaces
+!!$   use m_ab6_symmetry
    !  use minimization, only: parameterminimization 
-
+   use yaml_output
    implicit none
    character(len=*), parameter :: subname='abscalc_main'
    integer :: iproc,nproc,ierr,infocode
@@ -30,61 +30,47 @@ program abscalc_main
    real(gp), dimension(:,:), allocatable :: fxyz
    integer :: iconfig,nconfig,igroup,ngroups
    integer, dimension(4) :: mpi_info
+   type(dictionary), pointer :: options,run
    logical :: exists
 
    call f_lib_initialize()
-   !-finds the number of taskgroup size
-   !-initializes the mpi_environment for each group
-   !-decides the radical name for each run
-   call bigdft_init(mpi_info,nconfig,run_id,ierr)
+
+   call bigdft_command_line_options(options)
+   call bigdft_init(options)
 
    !just for backward compatibility
-   iproc=mpi_info(1)
-   nproc=mpi_info(2)
+   iproc=bigdft_mpi%iproc!mpi_info(1)
+   nproc=bigdft_mpi%nproc!mpi_info(2)
 
-   igroup=mpi_info(3)
+   igroup=bigdft_mpi%igroup!mpi_info(3)
    !number of groups
-   ngroups=mpi_info(4)
+   ngroups=bigdft_mpi%ngroup!mpi_info(4)
+!!$   !allocate arrays of run ids
+!!$   allocate(arr_radical(abs(nconfig)))
+!!$   allocate(arr_posinp(abs(nconfig)))
+!!$
+!!$   !here we call  a routine which
+!!$   ! Read a possible radical format argument.
+!!$   call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierr)
 
-   !allocate arrays of run ids
-   allocate(arr_radical(abs(nconfig)))
-   allocate(arr_posinp(abs(nconfig)))
-
-   !here we call  a routine which
-   ! Read a possible radical format argument.
-   call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierr)
-
-   do iconfig=1,abs(nconfig)
-      if (modulo(iconfig-1,ngroups)==igroup) then
-
+   !alternative way of looping over runs
+   do iconfig=0,bigdft_nruns(options)-1!abs(nconfig)
+      run => options // 'BigDFT' // iconfig
+      !if (modulo(iconfig-1,ngroups)==igroup) then
+      run_id =  run // 'name'
          !Welcome screen
-         !if (iproc==0) call print_logo()
-         call run_objects_init_from_files(runObj, arr_radical(iconfig),arr_posinp(iconfig))
+         call run_objects_init(runObj,run)! arr_radical(iconfig),arr_posinp(iconfig))
 
-!!$
-!!$      ! Read all input files.
-!!$      !standard names
-!!$      call standard_inputfile_names(inputs,radical,nproc)
-!!$      call read_input_variables(iproc,nproc,arr_posinp(iconfig),inputs, atoms, rxyz,nconfig,radical,istat)
-!!$
-!!$      !Initialize memory counting
-!!$      !call memocc(0,iproc,'count','start')
-!!$
-!!$      !Read absorption-calculation input variables
-!!$      !inquire for the needed file 
-!!$      !if not present, set default (no absorption calculation)
-
-      inquire(file=trim(run_id)//".abscalc",exist=exists)
-      if (.not. exists) then
-         if (iproc == 0) write(*,*) 'ERROR: need file input.abscalc for x-ray absorber treatment.'
-         if(nproc/=0)   call MPI_FINALIZE(ierr)
-         stop
-      end if
+         call f_file_exists(trim(run_id)//".abscalc",exists)
+         !inquire(file=trim(run_id)//".abscalc",exist=exists)
+         if (.not. exists) then
+            call f_err_throw('Need file input.abscalc for x-ray absorber treatment',&
+                 err_name='BIGDFT_INPUT_FILE_ERROR')
+         end if
       call abscalc_input_variables(iproc,trim(run_id)//".abscalc",runObj%inputs)
       if( runObj%inputs%iat_absorber <1 .or. runObj%inputs%iat_absorber > runObj%atoms%astruct%nat) then
-         if (iproc == 0) write(*,*)'ERROR: inputs%iat_absorber  must .ge. 1 and .le. number_of_atoms '
-         if(nproc/=0)   call MPI_FINALIZE(ierr)
-         stop
+         call f_err_throw('inputs%iat_absorber  must .ge. 1 and .le. number_of_atoms',&
+              err_name='BIGDFT_INPUT_VARIABLES_ERROR')
       endif
 
 
@@ -92,25 +78,21 @@ program abscalc_main
       fxyz = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='fxyz')
 
       call call_abscalc(nproc,iproc,runObj%atoms,runObj%atoms%astruct%rxyz, &
-           & runObj%inputs,etot,fxyz,runObj%rst,infocode)
+           runObj%inputs,etot,fxyz,runObj%rst,infocode)
 
       ! if (iproc == 0) call write_forces(atoms,fxyz)
 
       !De-allocations
-      !call deallocate_abscalc_input(runObj%inputs)
       call f_free_ptr(runObj%inputs%Gabs_coeffs)
-!      call deallocate_local_zone_descriptors(rst%Lzd, subname)
-
-
       call f_free(fxyz)
 
-      call run_objects_free(runObj, subname)
+      call run_objects_free(runObj)
 
-   end if
+ !  end if
    enddo !loop over iconfig
 
-   deallocate(arr_posinp,arr_radical)
-
+!   deallocate(arr_posinp,arr_radical)
+   call dict_free(options)
    call bigdft_finalize(ierr)
    call f_lib_finalize()
 
@@ -120,8 +102,9 @@ END PROGRAM abscalc_main
 !> Routines to use abscalc as a blackbox
 subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
    use module_base
-   use module_types
+   use module_types, only: input_variables,deallocate_wfd,atoms_data
    use module_interfaces
+   use bigdft_run
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc
@@ -159,7 +142,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
 !!$   end interface
 
    !put a barrier for all the processes
-   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+   call mpibarrier()
 
    !assign the verbosity of the output
    !the verbose variables is defined in module_base
@@ -185,8 +168,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
          stop 'ERROR'
       else
          call abscalc(nproc,iproc,atoms,rxyz,&
-             rst%KSwfn,&!%psi,rst%KSwfn%Lzd,rst%KSwfn%orbs,&
-             rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
+             rst%KSwfn,rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
          fxyz(:,:) = 0.d0
       endif
 
@@ -226,7 +208,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
 
          if (nproc > 1) call MPI_FINALIZE(ierr)
 
-         stop 'normal end'
+         stop 'unnormal end'
       else
          exit loop_cluster
       end if
@@ -306,7 +288,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    type(energy_terms) :: energs
 
    !integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
-   real(kind=8), dimension(:,:), allocatable :: radii_cf
+!   real(kind=8), dimension(:,:), allocatable :: radii_cf
    !real(kind=8), dimension(:,:), allocatable :: gxyz
    real(gp), dimension(:,:),pointer :: fdisp,fion
    ! Charge density/potential,ionic potential, pkernel
@@ -373,6 +355,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !! to apply paw projectors
    type(PAWproj_data_type) ::PAWD
 
+   energs= energy_terms_null()
    if (in%potshortcut==0) then
       if(nproc>1) call MPI_Finalize(ierr)
       stop '   in%potshortcut==0 calculating spectra. Use rather box2Box option      '
@@ -423,9 +406,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    !these routines can be regrouped in one
 
-   radii_cf = f_malloc((/ atoms%astruct%ntypes, 3 /),id='radii_cf')
-
-
    if (iproc==0) then
       write( *,'(1x,a)')&
            &   '------------------------------------------------------------------ System Properties'
@@ -444,14 +424,14 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       PSquiet='YES'
    end if
 
-   call system_properties(iproc,nproc,in,atoms,KSwfn%orbs,radii_cf)
+   call system_properties(iproc,nproc,in,atoms,KSwfn%orbs)
 
    call nullify_locreg_descriptors(KSwfn%Lzd%Glr)
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
 
-   call system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,.false.,KSwfn%Lzd%Glr,shift)
+   call system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,.false.,KSwfn%Lzd%Glr,shift)
    if (iproc == 0) call print_atoms_and_grid(KSwfn%Lzd%Glr, atoms, rxyz, shift, hx, hy, hz)
 
    if ( KSwfn%orbs%nspinor.gt.1) then
@@ -461,7 +441,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
-       atoms,rxyz,radii_cf,crmult,frmult,KSwfn%Lzd%Glr)
+        atoms,rxyz,crmult,frmult,KSwfn%Lzd%Glr)
    if (iproc == 0) call print_wfd(KSwfn%Lzd%Glr%wfd)
 
    KSwfn%Lzd%hgrids(1)=hx
@@ -491,7 +471,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,orbs,comms)  
 
    call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,orbs,&
-        radii_cf,cpmult,fpmult,hx,hy,hz,.false.,nlpsp)
+        cpmult,fpmult,hx,hy,hz,.false.,nlpsp)
    if (iproc == 0) call print_nlpsp(nlpsp)
 
    call check_linear_and_create_Lzd(iproc,nproc,in%linear,KSwfn%Lzd,atoms,orbs,in%nspin,rxyz)
@@ -508,7 +488,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         & in%SIC%approach,atoms%astruct%geocode,nspin)
 
   call density_descriptors(iproc,nproc,xc,in%nspin,in%crmult,in%frmult,atoms,&
-       dpcom,in%rho_commun,rxyz,radii_cf,rhodsc)
+       dpcom,in%rho_commun,rxyz,rhodsc)
 
 !!$
 !!$  !calculate the descriptors for rho and the potentials.
@@ -578,7 +558,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       ! the following routine calls a specialized version of localize_projectors
       ! which does not interfere with the global DistProjApply
       call createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
-           radii_cf,cpmult,fpmult,hx,hy,hz, &
+           cpmult,fpmult,hx,hy,hz, &
            PAWD, KSwfn%Lzd%Glr )
       call timing(iproc,'CrtPawProjects ','OF')
    endif
@@ -591,7 +571,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       ! the following routine calls  localize_projectors again
       ! but this should be in coherence with the previous call for psp projectos 
       call createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
-           radii_cf,cpmult,fpmult,hx,hy,hz,-0.1_gp, &
+           cpmult,fpmult,hx,hy,hz,-0.1_gp, &
            PPD, KSwfn%Lzd%Glr  )
       call timing(iproc,'CrtPcProjects ','OF')
    endif
@@ -1158,20 +1138,20 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       if (in%iabscalc_type==2) then
          call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
+             nlpsp,KSwfn%Lzd,dpcom,&
              rhopot(1,1,1,1),energs,xc,in%nspin,GPU,&
              in%iat_absorber,in,PAWD,orbs)
 
       else if (in%iabscalc_type==1) then
          call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
-            &   rhopot(1,1,1,1) ,energs,xc,in%nspin,GPU &
-            &   , in%iat_absorber, in, PAWD, orbs)
+              nlpsp,KSwfn%Lzd,dpcom,&
+              rhopot(1,1,1,1) ,energs,xc,in%nspin,GPU, &
+              in%iat_absorber, in, PAWD, orbs)
       else if (in%iabscalc_type==3) then
          call xabs_cg(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
-            &   rhopot(1,1,1,1) ,energs,xc,in%nspin,GPU &
-            &   , in%iat_absorber, in, rhoXanes(1,1,1,1), PAWD, PPD, orbs)
+              nlpsp,KSwfn%Lzd,dpcom,&
+              rhopot(1,1,1,1) ,energs,xc,in%nspin,GPU, &
+              in%iat_absorber, in, rhoXanes(1,1,1,1), PAWD, PPD, orbs)
       else
          if (iproc == 0) write(*,*)' iabscalc_type not known, does not perform calculation'
       endif
@@ -1284,9 +1264,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       call free_DFT_PSP_projectors(nlpsp)
       !call deallocate_proj_descr(nlpspd,subname)
-
-
-      call f_free(radii_cf)
 
       call deallocate_rho_descriptors(rhodsc)
 

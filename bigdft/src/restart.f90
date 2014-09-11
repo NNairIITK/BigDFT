@@ -938,7 +938,7 @@ subroutine write_linear_matrices(iproc,nproc,filename,iformat,tmb,at,rxyz)
   integer, intent(in) :: iproc,nproc,iformat
   character(len=*), intent(in) :: filename 
   type(DFT_wavefunction), intent(inout) :: tmb
-  type(atoms_data), intent(inout) :: at
+  type(atoms_data), intent(in) :: at
   real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz
 
   integer :: iorb, jorb, iat, jat

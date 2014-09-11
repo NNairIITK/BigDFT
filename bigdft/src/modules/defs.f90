@@ -65,7 +65,7 @@ module module_defs
   real(gp), parameter :: AU_GPa=29421.010901602753_gp                   !< 1 Ha/Bohr^3 in GPa
   real(gp), parameter :: Radian_Degree = 57.29577951308232087679_gp     !< 1 radian in degrees
 
-  !> Evergreens
+  !> Evergreen
   real(dp), parameter :: pi_param=3.141592653589793238462643383279502884197_dp
 
   !> Error codes, to be documented little by little
@@ -87,11 +87,11 @@ module module_defs
      module procedure safe_dexp
   end interface safe_exp
 
-  interface
-     subroutine bigdft_utils_flush(unit)
-       integer, intent(in) :: unit
-     end subroutine bigdft_utils_flush
-  end interface
+!!$  interface
+!!$     subroutine bigdft_utils_flush(unit)
+!!$       integer, intent(in) :: unit
+!!$     end subroutine bigdft_utils_flush
+!!$  end interface
 
   contains
 
@@ -292,11 +292,11 @@ module module_defs
       double precision :: ex
       !local variables
       !> if the exponent is bigger than this value, the result is tiny(1.0)
-      double precision, parameter :: mn_expo=log(tiny(1.d0))
+      double precision, parameter :: mn_expo=-708.396418532264d0 ! = log(tiny(1.d0))
       !> if the exponent is lower than this value, the result is huge(1.0)
-      double precision, parameter :: mx_expo=log(huge(1.d0))
+      double precision, parameter :: mx_expo=709.78271289338397d0 ! = log(huge(1.d0))
       !> the value of the cropping
-      double precision, parameter :: crop_expo=-2*log(epsilon(1.d0))
+      double precision, parameter :: crop_expo=72.0873067782343d0 ! = -2*log(epsilon(1.d0))
       double precision :: crop,mn,mx
 
       crop=crop_expo

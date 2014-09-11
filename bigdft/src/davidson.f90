@@ -41,6 +41,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
 
    call f_routine(id='direct_minimization')
 
+   energs = energy_terms_null()
    !supplementary messages
    msg=.false.
 
@@ -439,6 +440,8 @@ subroutine davidson(iproc,nproc,in,at,&
    type(paw_objects) :: paw
 
    paw%usepaw = .false.
+
+   energs = energy_terms_null()
 
    !logical flag which control to othogonalise wrt the occupied orbitals or not
    if (orbs%nkpts /= orbsv%nkpts) then

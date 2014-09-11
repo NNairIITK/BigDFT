@@ -12,7 +12,7 @@
 subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,n1,n2,n3,&
      & pot_ion,pkernel,psoffset)
-  use module_base
+  use module_base, pi => pi_param
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use vdwcorrection
@@ -30,7 +30,6 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   real(dp), dimension(*), intent(out) :: pot_ion
   !local variables
   character(len=*), parameter :: subname='IonicEnergyandForces'
-  real(kind=8), parameter :: pi=4.d0*datan(1.d0)
   logical :: slowion=.false.
   logical :: perx,pery,perz,gox,goy,goz
   integer :: n1i,n2i,n3i,i3s,n3pi
@@ -516,8 +515,8 @@ END SUBROUTINE createEffectiveIonicPotential
 !> Create the ionic potential
 subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
+  use module_base, pi => pi_param
   use m_splines, only: splint
-  use module_base
   use module_types
   use yaml_output
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
@@ -537,7 +536,6 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 
   !local variables
   character(len=*), parameter :: subname='createIonicPotential'
-  real(kind=8), parameter :: pi=4.d0*atan(1.d0)
   character(len = 3) :: quiet
   logical :: perx,pery,perz,gox,goy,goz,htoobig=.false.,efwrite,check_potion=.false.
   integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp !n(c) nspin
@@ -1114,7 +1112,7 @@ END SUBROUTINE ind_positions_new
 
 
 subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
-  use module_base
+  use module_base, pi => pi_param
   implicit none
   integer, intent(in) :: nat,ntypes
   real(gp) :: x,y,z
@@ -1124,7 +1122,6 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
   real(gp), dimension(3,nat), intent(in) :: rxyz
   real(wp), intent(out) :: potxyz
   !local variables
-  real(kind=8), parameter :: pi=4.0_wp*atan(1.0_wp)
   integer :: iat,ityp
   real(wp) :: charge
   real(gp) :: r,sq2rl,rx,ry,rz,derf_val
@@ -1175,7 +1172,7 @@ END SUBROUTINE ext_buffers
 !> Read and initialize counter-ions potentials (read psp files)
 subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
      hxh,hyh,hzh,grid,n3pi,i3s,pkernel,pot_ion)
-  use module_base
+  use module_base, pi => pi_param
   use module_types
   use module_interfaces, except_this_one => CounterIonPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
@@ -1196,7 +1193,6 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   real(wp), dimension(*), intent(inout) :: pot_ion
   !local variables
   character(len=*), parameter :: subname='CounterIonPotential'
-  real(kind=8), parameter :: pi=4.d0*atan(1.d0)
   logical :: htoobig=.false.,check_potion=.false.
   logical :: perx,pery,perz,gox,goy,goz
   integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ityp,nspin
@@ -1209,7 +1205,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   type(dictionary), pointer :: dict
   real(dp), dimension(2) :: charges_mpi
   real(dp), dimension(:), allocatable :: potion_corr
-  real(gp), dimension(:,:), allocatable :: radii_cf
+!  real(gp), dimension(:,:), allocatable :: radii_cf
 
   call timing(iproc,'CrtLocPot     ','ON')
   
@@ -1237,9 +1233,9 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   call dict_free(dict)
 
   !read the specifications of the counter ions from pseudopotentials
-  radii_cf = f_malloc((/ at%astruct%ntypes, 3 /),id='radii_cf')
-  radii_cf = at%radii_cf
-  if (iproc == 0) call print_atomic_variables(at, radii_cf, max(in%hx,in%hy,in%hz), in%ixc, in%dispersion)
+!  radii_cf = f_malloc((/ at%astruct%ntypes, 3 /),id='radii_cf')
+!  radii_cf = at%radii_cf
+  if (iproc == 0) call print_atomic_variables(at, max(in%hx,in%hy,in%hz), in%ixc, in%dispersion)
 
   ! Ionic charge (must be calculated for the PS active processes)
   rholeaked=0.d0
@@ -1434,7 +1430,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   !deallocations
   call deallocate_atoms_data(at) 
 
-  call f_free(radii_cf)
+!  call f_free(radii_cf)
 
   call f_free_ptr(at%astruct%rxyz)
 

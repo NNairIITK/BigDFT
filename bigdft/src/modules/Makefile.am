@@ -46,6 +46,8 @@ libmodules_a_SOURCES = base.f90 \
 	foe_base.f90 \
 	internal_coordinates.f90 \
 	fermi_level.f90 \
+	module_sbfgs.f90 \
+	bigdft_run.f90 \
 	$(bindings_headers) \
 	$(BLACS) \
 	configure.c
@@ -81,7 +83,9 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	SPARSEMATRIX.@MODULE_EXT@ \
 	FOE_BASE.@MODULE_EXT@ \
 	INTERNAL_COORDINATES.@MODULE_EXT@ \
-	FERMI_LEVEL.@MODULE_EXT@
+	FERMI_LEVEL.@MODULE_EXT@ \
+	MODULE_SBFGS.@MODULE_EXT@ \
+	BIGDFT_RUN.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
@@ -112,7 +116,9 @@ modules = module_base.@MODULE_EXT@ \
 	sparsematrix.@MODULE_EXT@ \
 	foe_base.@MODULE_EXT@ \
 	internal_coordinates.@MODULE_EXT@ \
-	fermi_level.@MODULE_EXT@
+	fermi_level.@MODULE_EXT@ \
+	module_sbfgs.@MODULE_EXT@ \
+	bigdft_run.@MODULE_EXT@
 endif
 
 AO_INCLUDES = eleconf-inc.f90
@@ -167,9 +173,10 @@ sparsematrix_base.o: base.o
 sparsematrix_init.o: base.o types.o interfaces.o sparsematrix_base.o
 sparsematrix.o: base.o types.o sparsematrix_base.o
 foe_base.o: base.o defs.o
-internat_coodinates.o:
 fermi_level.o: base.o
+module_sbfgs.o: base.o
 xc.o: base.o
+bigdft_run.o: types.o input_dicts.o interfaces.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

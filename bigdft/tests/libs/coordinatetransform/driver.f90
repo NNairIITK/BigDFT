@@ -1,6 +1,7 @@
 !>     program to convert CARTESIAN COORDINATES TO Z-MATRIX
 program carint
   use module_base
+  use bigdft_run
   use internal_coordinates
   use dynamic_memory
   use yaml_output
@@ -17,17 +18,16 @@ program carint
   real(kind=8) :: x, y, z, maxdiff
   integer :: numat, i, istat
   character(len=64) :: tt
-  integer, dimension(4) :: mpi_info
+!  integer, dimension(4) :: mpi_info
   character(len=60) :: run_id
   integer :: nconfig, ierr
 
   ! Initialize
   call f_lib_initialize()
-  call bigdft_init(mpi_info,nconfig,run_id,ierr)
+  call bigdft_init()!mpi_info,nconfig,run_id,ierr)
   !just for backward compatibility
-  iproc=mpi_info(1)
-  nproc=mpi_info(2)
-
+  iproc=bigdft_mpi%iproc!mpi_info(1)
+  nproc=bigdft_mpi%nproc!mpi_info(2)
 
   if (iproc==0) then
       call yaml_comment('Program to check the coordinate transform routines',hfill='/')

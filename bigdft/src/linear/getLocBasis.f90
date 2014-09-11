@@ -430,6 +430,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
   call f_routine(id='getLocalizedBasis')
 
+  energs = energy_terms_null()
   delta_energy_arr=f_malloc(nit_basis+6,id='delta_energy_arr')
   kernel_best=f_malloc(tmb%linmat%l%nvctr,id='kernel_best')
   energy_diff=.false.
@@ -759,7 +760,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           ! print info here anyway for debugging
           if (it_tot<2*nit_basis) then ! just in case the step size is the problem
               call yaml_mapping_close()
-              call bigdft_utils_flush(unit=6)
+              call yaml_flush_document()
+              !call bigdft_utils_flush(unit=6)
              cycle
           else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
              if (iproc==0) call yaml_newline()
@@ -840,7 +842,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (iproc==0) then
               !yaml output
               call yaml_mapping_close() !iteration
-              call bigdft_utils_flush(unit=6)
+              call yaml_flush_document()
+              !call bigdft_utils_flush(unit=6)
           end if
 
           exit iterLoop
@@ -901,7 +904,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       if (iproc==0) then
           call yaml_mapping_close() !iteration
-          call bigdft_utils_flush(unit=6)
+          call yaml_flush_document()
+          !call bigdft_utils_flush(unit=6)
       end if
 
 
@@ -927,7 +931,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call yaml_map('D',ediff,fmt='(es9.2)')
       call yaml_map('D best',ediff_best,fmt='(es9.2)')
       call yaml_mapping_close() !iteration
-      call bigdft_utils_flush(unit=6)
+      call yaml_flush_document()
+      !call bigdft_utils_flush(unit=6)
   end if
 
 

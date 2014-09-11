@@ -33,8 +33,8 @@ module module_xc
 
 
   !> Structure containing the information to call the routines for the calculation of the xc functionals
-  type libxc_functional
-     private
+  type, public :: libxc_functional
+     !private
      type(xc_f90_pointer_t) :: conf !< the pointer used to call the library
      type(xc_f90_pointer_t) :: info !< Information about the functional
   end type libxc_functional
@@ -69,6 +69,8 @@ module module_xc
        &    xc_exctXfac, &
        &    xc_end, &
        &    xc_get_name
+
+
 
 contains
 

@@ -6,18 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-  if (present(comm)) then
-     mpi_comm=comm
-  else
-     mpi_comm=MPI_COMM_WORLD 
-  end if
-  if (present(root)) then
-     iroot=root
-  else
-     iroot=0
-  end if
-  nproc=mpisize(mpi_comm)
-
   if (nproc == 1 .or. ndims == 0) return
 
   !check that the positions are identical for all the processes
@@ -25,13 +13,4 @@
 
   call mpigather(sendbuf=array,recvbuf=array_glob,root=iroot,comm=mpi_comm)
 
-  if ( mpirank(mpi_comm) == iroot) then
-     do jproc=2,nproc
-        do i=1,ndims
-           maxdiff=max(maxdiff,&
-                abs(array_glob(i,jproc)-array_glob(i,1)))
-        end do
-     end do
-  end if
-
-  call f_free(array_glob)
+  include 'maxdiff-end-inc.f90'

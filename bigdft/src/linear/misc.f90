@@ -866,7 +866,7 @@ subroutine build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
   ! Calling arguments
   integer:: iproc, nproc
   type(DFT_wavefunction),intent(inout) :: tmb, KSwfn
-  type(atoms_data), intent(inout) :: at
+  type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   type(DFT_local_fields), intent(inout) :: denspot
   type(GPU_pointers), intent(inout) :: GPU
@@ -1138,7 +1138,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   implicit none
   integer,intent(in) :: iproc
   type(dft_wavefunction),intent(inout) :: tmb
-  type(atoms_data),intent(inout) :: atoms
+  type(atoms_data),intent(in) :: atoms
   type(DFT_local_fields), intent(inout) :: denspot
   logical,intent(in) :: calculate_overlap_matrix, calculate_ovrlp_half
   integer,intent(in) :: meth_overlap
@@ -1676,7 +1676,7 @@ subroutine support_function_multipoles(iproc, tmb, atoms, denspot)
   ! Calling arguments
   integer,intent(in) :: iproc
   type(DFT_wavefunction),intent(in) :: tmb
-  type(atoms_data),intent(inout) :: atoms
+  type(atoms_data),intent(in) :: atoms
   type(DFT_local_fields), intent(inout) :: denspot
 
   integer :: ist, istr, iorb, iiorb, ilr, i

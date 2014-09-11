@@ -1261,7 +1261,7 @@ END SUBROUTINE write_strten_info
 !> Assign some of the physical system variables
 !! Performs also some cross-checks with other variables
 !! The pointers in atoms structure have to be associated or nullified.
-subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
+subroutine print_atomic_variables(atoms, hmax, ixc, dispersion)
   use module_base
   use module_types
   use module_atoms, only: RADII_SOURCE
@@ -1271,10 +1271,9 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
   use psp_projectors, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
        PSPCODE_PAW,PSPCODE_GTH
   implicit none
-  type(atoms_data), intent(inout) :: atoms
+  type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: hmax
   integer, intent(in) :: ixc, dispersion
-  real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   !Local variables
   logical :: nonloc
   integer :: i,j,l,ityp,iat,natyp,mproj,inlcc
@@ -1334,9 +1333,9 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
      call yaml_map('No. of Atoms',natyp)
 
      call yaml_mapping_open('Radii of active regions (AU)')!,flow=.true.)
-       call yaml_map('Coarse',radii_cf(ityp,1),fmt='(f8.5)')
-       call yaml_map('Fine',radii_cf(ityp,2),fmt='(f8.5)')
-       call yaml_map('Coarse PSP',radii_cf(ityp,3),fmt='(f8.5)')
+       call yaml_map('Coarse',atoms%radii_cf(ityp,1),fmt='(f8.5)')
+       call yaml_map('Fine',atoms%radii_cf(ityp,2),fmt='(f8.5)')
+       call yaml_map('Coarse PSP',atoms%radii_cf(ityp,3),fmt='(f8.5)')
        call yaml_map('Source',RADII_SOURCE(atoms%iradii_source(ityp)))
        !if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
        !   call yaml_map('Source','Hard-Coded')
@@ -1351,7 +1350,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
            minrad=min(minrad,atoms%psppar(i,0,ityp))
         end if
      end do
-     if (radii_cf(ityp,2) /=0.0_gp) then
+     if (atoms%radii_cf(ityp,2) /=0.0_gp) then
         call yaml_map('Grid Spacing threshold (AU)',2.5_gp*minrad,fmt='(f5.2)')
      else
         call yaml_map('Grid Spacing threshold (AU)',1.25_gp*minrad,fmt='(f5.2)')

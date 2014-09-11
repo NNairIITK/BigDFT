@@ -286,6 +286,7 @@ module module_types
      integer :: ixc         !< XC functional Id
      integer :: ncharge     !< Total charge of the system
      integer :: itermax     !< Maximal number of SCF iterations
+     integer :: itermin     !< Minimum number of SCF iterations !Bastian
      integer :: nrepmax
      integer :: ncong       !< Number of conjugate gradient iterations for the preconditioner
      integer :: idsx        !< DIIS history
@@ -367,6 +368,8 @@ module module_types
      type(SIC_data) :: SIC               !< Parameters for the SIC methods
      !variables for SBFGS
      integer  :: nhistx
+     logical  :: biomode
+     real(gp) :: beta_stretchx
      real(gp) :: maxrise
      real(gp) :: cutoffratio
      real(gp) :: steepthresh
@@ -460,29 +463,29 @@ module module_types
 
   !> Contains all energy terms
   type, public :: energy_terms
-     real(gp) :: eh      =0.0_gp !< Hartree energy
-     real(gp) :: exc     =0.0_gp !< Exchange-correlation energy
-     real(gp) :: evxc    =0.0_gp !< Energy from the exchange-correlation potential
-     real(gp) :: eion    =0.0_gp !< Ion-Ion interaction
-     real(gp) :: edisp   =0.0_gp !< Dispersion force
-     real(gp) :: ekin    =0.0_gp !< Kinetic term
-     real(gp) :: epot    =0.0_gp
-     real(gp) :: eproj   =0.0_gp
-     real(gp) :: eexctX  =0.0_gp
-     real(gp) :: ebs     =0.0_gp
-     real(gp) :: eKS     =0.0_gp
-     real(gp) :: trH     =0.0_gp
-     real(gp) :: evsum   =0.0_gp
-     real(gp) :: evsic   =0.0_gp 
-     real(gp) :: excrhoc =0.0_gp 
-     real(gp) :: eTS     =0.0_gp
-     real(gp) :: ePV     =0.0_gp !< pressure term
-     real(gp) :: energy  =0.0_gp !< the functional which is minimized
-     real(gp) :: e_prev  =0.0_gp !< the previous value, to show the delta
-     real(gp) :: trH_prev=0.0_gp !< the previous value, to show the delta
+     real(gp) :: eh      !< Hartree energy
+     real(gp) :: exc     !< Exchange-correlation energy
+     real(gp) :: evxc    !< Energy from the exchange-correlation potential
+     real(gp) :: eion    !< Ion-Ion interaction
+     real(gp) :: edisp   !< Dispersion force
+     real(gp) :: ekin    !< Kinetic term
+     real(gp) :: epot    
+     real(gp) :: eproj   
+     real(gp) :: eexctX  
+     real(gp) :: ebs     
+     real(gp) :: eKS     
+     real(gp) :: trH     
+     real(gp) :: evsum   
+     real(gp) :: evsic   
+     real(gp) :: excrhoc 
+     real(gp) :: eTS     
+     real(gp) :: ePV     !< pressure term
+     real(gp) :: energy  !< the functional which is minimized
+     real(gp) :: e_prev  !< the previous value, to show the delta
+     real(gp) :: trH_prev!< the previous value, to show the delta
      !real(gp), dimension(:,:), pointer :: fion,f
 
-     integer(kind = 8) :: c_obj = 0  !< Storage of the C wrapper object.
+     integer(kind = 8) :: c_obj !< Storage of the C wrapper object.
   end type energy_terms
 
 
@@ -857,6 +860,7 @@ module module_types
      integer :: itrpmax !< specify the maximum number of mixing cycle on potential or density
      integer :: nrepmax !< specify the maximum number of restart after re-diagonalization
      integer :: itermax !< specify the maximum number of minimization iterations, self-consistent or not
+     integer :: itermin !< specify the minimum number of minimization iterations, self-consistent or not !Bastian
 
      integer :: itrp    !< actual number of mixing cycle.
      integer :: itrep   !< actual number of re-diagonalisation runs.
@@ -873,40 +877,6 @@ module module_types
 
      integer(kind = 8) :: c_obj = 0 !< Storage of the C wrapper object.
   end type DFT_optimization_loop
-
-
-  !>  Used to restart a new DFT calculation or to save information 
-  !!  for post-treatment
-  type, public :: restart_objects
-     integer :: version !< 0=cubic, 100=linear
-     integer :: n1,n2,n3,nat
-     real(gp) :: hx_old,hy_old,hz_old
-     real(gp), dimension(:,:), pointer :: rxyz_old,rxyz_new
-     type(DFT_wavefunction) :: KSwfn !< Kohn-Sham wavefunctions
-     type(DFT_wavefunction) :: tmb !<support functions for linear scaling
-     type(GPU_pointers) :: GPU 
-  end type restart_objects
-
-
-  !> Public container to be used with call_bigdft().
-  type, public :: run_objects
-     type(dictionary), pointer :: user_inputs
-
-     type(input_variables), pointer    :: inputs
-     type(atoms_data), pointer         :: atoms
-     type(restart_objects), pointer    :: rst
-     real(gp), dimension(:,:), pointer :: radii_cf
-  end type run_objects
-
-
-  !> Used to store results of a DFT calculation.
-  type, public :: DFT_global_output
-     real(gp) :: energy, fnoise, pressure      !< Total energy, noise over forces and pressure
-     type(energy_terms) :: energs              !< All energy terms
-     integer :: fdim                           !< Dimension of allocated forces (second dimension)
-     real(gp), dimension(:,:), pointer :: fxyz !< Atomic forces
-     real(gp), dimension(6) :: strten          !< Stress Tensor
-  end type DFT_global_output
 
 
  interface input_set
@@ -1083,24 +1053,47 @@ module module_types
  public :: wavefunctions_descriptors,atoms_data,DFT_PSP_projectors
  public :: grid_dimensions,p2pComms,comms_linear,sparse_matrix,matrices
  public :: coulomb_operator,symmetry_data,atomic_structure,comms_cubic
- public :: nullify_global_output,deallocate_global_output
- public :: nonlocal_psp_descriptors,init_global_output,dpbox_null
- public :: default_lzd,find_category,old_wavefunction_null
+ public :: nonlocal_psp_descriptors,dpbox_null
+ public :: default_lzd,find_category,old_wavefunction_null,old_wavefunction_free
  public :: bigdft_run_id_toa,material_acceleration_null,input_psi_names
  public :: wf_format_names,bigdft_init_errors,bigdft_init_timing_categories
- public :: restart_objects_set_mode,restart_objects_set_mat_acc
- public :: restart_objects_set_nat,free_restart_objects,restart_objects_new
  public :: deallocate_orbs,deallocate_locreg_descriptors,nullify_wfd
  public :: deallocate_wfd,deallocate_bounds,update_nlpsp,deallocate_paw_objects
  public :: old_wavefunction_set,allocate_wfd,basis_params_set_dict
  public :: input_set,copy_locreg_descriptors,nullify_locreg_descriptors
- public :: copy_global_output,output_wf_format_help
  public :: input_psi_help,deallocate_rho_descriptors
  public :: nullify_paw_objects,frag_from_dict,copy_grid_dimensions
- public :: cprj_to_array,init_restart_objects,deallocate_gwf_c
- public :: SIC_data_null
+ public :: cprj_to_array,deallocate_gwf_c
+ public :: SIC_data_null,output_wf_format_help
+ public :: energy_terms_null
 
 contains
+
+  pure function energy_terms_null() result(en)
+    implicit none
+    type(energy_terms) :: en
+    en%eh      =0.0_gp 
+    en%exc     =0.0_gp 
+    en%evxc    =0.0_gp 
+    en%eion    =0.0_gp 
+    en%edisp   =0.0_gp 
+    en%ekin    =0.0_gp 
+    en%epot    =0.0_gp
+    en%eproj   =0.0_gp
+    en%eexctX  =0.0_gp
+    en%ebs     =0.0_gp
+    en%eKS     =0.0_gp
+    en%trH     =0.0_gp
+    en%evsum   =0.0_gp
+    en%evsic   =0.0_gp 
+    en%excrhoc =0.0_gp 
+    en%eTS     =0.0_gp
+    en%ePV     =0.0_gp 
+    en%energy  =0.0_gp 
+    en%e_prev  =0.0_gp 
+    en%trH_prev=0.0_gp 
+    en%c_obj   =int(0,kind=8) 
+  end function energy_terms_null
 
   pure function SIC_data_null() result(SIC)
     implicit none
@@ -1278,175 +1271,6 @@ contains
     end if
 
   END SUBROUTINE deallocate_orbs
-
-
-  !> All in one routine to initialise and set-up restart objects.
-  subroutine init_restart_objects(iproc,inputs,atoms,rst)
-    use module_base
-    implicit none
-    !Arguments
-    integer, intent(in) :: iproc
-    type(input_variables), intent(in) :: inputs
-    type(atoms_data), intent(in) :: atoms
-    type(restart_objects), intent(out) :: rst
-
-    call restart_objects_new(rst)
-    call restart_objects_set_mode(rst, inputs%inputpsiid)
-    call restart_objects_set_nat(rst, atoms%astruct%nat)
-    call restart_objects_set_mat_acc(rst, iproc, inputs%matacc)
-  END SUBROUTINE init_restart_objects
-
-
-  !> Allocate and nullify restart objects
-  subroutine restart_objects_new(rst)
-    use module_base
-    implicit none
-    !Arguments
-    type(restart_objects), intent(out) :: rst
-
-    ! Decide whether we use the cubic or the linear version
-    rst%version = UNINITIALIZED(CUBIC_VERSION)
-
-    !allocate pointers
-    rst%nat = 0
-    nullify(rst%rxyz_new)
-    nullify(rst%rxyz_old)
-
-    !nullify unallocated pointers
-    rst%KSwfn%c_obj = 0
-    nullify(rst%KSwfn%psi)
-    nullify(rst%KSwfn%orbs%eval)
-    call nullify_paw_objects(rst%KSwfn%paw)
-    call nullify_paw_objects(rst%tmb%paw)
-
-    nullify(rst%KSwfn%gaucoeffs)
-    nullify(rst%KSwfn%oldpsis)
-
-    rst%KSwfn%Lzd%Glr = locreg_null()
-    nullify(rst%KSwfn%Lzd%Glr%wfd%keyglob)
-    nullify(rst%KSwfn%Lzd%Glr%wfd%keygloc)
-    nullify(rst%KSwfn%Lzd%Glr%wfd%keyvloc)
-    nullify(rst%KSwfn%Lzd%Glr%wfd%keyvglob)
-                
-    nullify(rst%KSwfn%gbd%nshell)
-    nullify(rst%KSwfn%gbd%ndoc)
-    nullify(rst%KSwfn%gbd%nam)
-    nullify(rst%KSwfn%gbd%xp)
-    nullify(rst%KSwfn%gbd%psiat)
-    nullify(rst%KSwfn%gbd%rxyz)
-
-    !Nullify LZD for cubic version (new input guess)
-    call nullify_local_zone_descriptors(rst%tmb%lzd)
-
-    !Nullify GPU data
-    rst%GPU%OCLconv=.false.
-  END SUBROUTINE restart_objects_new
-
-
-  subroutine restart_objects_set_mode(rst, inputpsiid)
-    implicit none
-    type(restart_objects), intent(inout) :: rst
-    integer, intent(in) :: inputpsiid
-
-    select case (inputpsiid)
-    case (INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, &
-         INPUT_PSI_DISK_WVL, INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS)
-       rst%version = CUBIC_VERSION
-    case (INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_DISK_LINEAR)
-       rst%version = LINEAR_VERSION
-    end select
-  END SUBROUTINE restart_objects_set_mode
-
-
-  subroutine restart_objects_set_nat(rst, nat)
-    use module_base
-    implicit none
-    !Arguments
-    integer, intent(in) :: nat
-    type(restart_objects), intent(inout) :: rst
-
-    if (associated(rst%rxyz_old)) then
-       call f_free_ptr(rst%rxyz_old)
-    end if
-    if (associated(rst%rxyz_new)) then
-       call f_free_ptr(rst%rxyz_new)
-    end if
-
-    rst%nat = nat
-    rst%rxyz_new = f_malloc_ptr((/ 3, nat /),id='rst%rxyz_new')
-    rst%rxyz_old = f_malloc_ptr((/ 3, nat /),id='rst%rxyz_old')
-  END SUBROUTINE restart_objects_set_nat
-
-
-  subroutine restart_objects_set_mat_acc(rst, iproc, matacc)
-    implicit none
-    !Arguments
-    type(restart_objects), intent(inout) :: rst
-    integer, intent(in) :: iproc
-    type(material_acceleration), intent(in) :: matacc
-    !initialise the acceleration strategy if required
-    call init_material_acceleration(iproc,matacc,rst%GPU)
-  END SUBROUTINE restart_objects_set_mat_acc
-
-  
-  !> De-Allocate restart_objects
-  subroutine free_restart_objects(rst)
-    use module_base
-    use locregs
-    use gaussians, only: deallocate_gwf
-    implicit none
-    type(restart_objects) :: rst
-    !local variables
-    integer :: istep
-
-    if (rst%version == LINEAR_VERSION) then
-       call destroy_DFT_wavefunction(rst%tmb)
-    end if
-    !always deallocate lzd for new input guess
-    !call deallocate_lzd(rst%tmb%lzd)
-    ! Modified by SM
-    call deallocate_local_zone_descriptors(rst%tmb%lzd)
-
-    call deallocate_locreg_descriptors(rst%KSwfn%Lzd%Glr)
-
-    if (associated(rst%KSwfn%psi)) then
-       call f_free_ptr(rst%KSwfn%psi)
-    end if
-
-    if (associated(rst%KSwfn%orbs%eval)) then
-       call f_free_ptr(rst%KSwfn%orbs%eval)
-    end if
-
-    if (associated(rst%KSwfn%oldpsis)) then
-       do istep=0,product(shape(rst%KSwfn%oldpsis))-1
-          call old_wavefunction_free(rst%KSwfn%oldpsis(istep))
-       end do
-       deallocate(rst%KSwfn%oldpsis)
-    end if
-
-    if (associated(rst%rxyz_old)) then
-       call f_free_ptr(rst%rxyz_old)
-    end if
-    if (associated(rst%rxyz_new)) then
-       call f_free_ptr(rst%rxyz_new)
-    end if
-
-    !The gaussian basis descriptors are always allocated together
-    !with the gaussian coefficients
-    if (associated(rst%KSwfn%gbd%rxyz)) then
-       nullify(rst%KSwfn%gbd%rxyz)
-       call deallocate_gwf(rst%KSwfn%gbd)
-    end if
-
-    if (associated(rst%KSwfn%gaucoeffs)) then
-       call f_free_ptr(rst%KSwfn%gaucoeffs)
-    end if
-
-    !finalise the material accelearion usage
-    call release_material_acceleration(rst%GPU)
-
-  END SUBROUTINE free_restart_objects
-
 
   !> Deallocate rho descriptors
   subroutine deallocate_rho_descriptors(rhodsc)
@@ -1777,8 +1601,7 @@ contains
 
   end subroutine nullify_diis_objects
 
-
-  subroutine nullify_paw_objects(paw)
+  pure subroutine nullify_paw_objects(paw)
     implicit none
     type(paw_objects),intent(inout) :: paw
     
@@ -1824,77 +1647,6 @@ contains
        deallocate(paw%pawrhoij)
     end if
   end subroutine deallocate_paw_objects
-
-  !> Initialize the structure DFT_global_output
-  subroutine nullify_global_output(outs)
-    implicit none
-    type(DFT_global_output), intent(out) :: outs
-
-    outs%fdim      = 0
-    nullify(outs%fxyz)
-    outs%energy    = UNINITIALIZED(1.0_gp)
-    outs%fnoise    = UNINITIALIZED(1.0_gp)
-    outs%pressure  = UNINITIALIZED(1.0_gp)
-    outs%strten(:) = UNINITIALIZED(1.0_gp)
-  END SUBROUTINE nullify_global_output
-
-
-  subroutine init_global_output(outs, nat)
-    use module_base
-    use dynamic_memory
-    implicit none
-    type(DFT_global_output), intent(out) :: outs
-    integer, intent(in) :: nat
-
-    call nullify_global_output(outs)
-    outs%fdim = nat
-    outs%fxyz = f_malloc_ptr((/ 3, outs%fdim /),id='outs%fxyz')
-    outs%fxyz(:,:) = UNINITIALIZED(1.0_gp)
-  END SUBROUTINE init_global_output
-
-
-  subroutine deallocate_global_output(outs, fxyz)
-    use module_base
-    use dynamic_memory
-    implicit none
-    type(DFT_global_output), intent(inout) :: outs
-    real(gp), intent(out), optional :: fxyz
-
-    if (associated(outs%fxyz)) then
-       if (present(fxyz)) then
-          call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz, 1)
-       end if
-       call f_free_ptr(outs%fxyz)
-    end if
-  END SUBROUTINE deallocate_global_output
-
-
-  !> Copies outsA to outsB
-  subroutine copy_global_output(outsA,outsB)
-     use module_base
-    implicit none
-    type(DFT_global_output), intent(in) :: outsA
-    type(DFT_global_output), intent(inout) :: outsB
-    integer :: i
-
-    if(outsA%fdim /= outsB%fdim)then
-     write(*,*)"Error in copy_global_output: outsA and outsB have different sizes",outsA%fdim,outsB%fdim
-     stop
-    endif
-    !outsA%fdim == outsB%fdim so it does not have to be copied
-
-     outsB%energy = outsA%energy
-     outsB%fnoise = outsA%fnoise
-     outsB%pressure = outsA%pressure
-     !8.5.2014: outs%energs does not contain any pointers,
-     !so we use intrinisc copy:
-     outsB%energs = outsA%energs
-     call vcopy(3 * outsB%fdim, outsA%fxyz(1,1), 1, outsB%fxyz(1,1), 1)
-     do i=1,6
-        outsB%strten(i) = outsA%strten(i)
-     enddo
-  end subroutine
-
 
   subroutine cprj_to_array(cprj,array,norb,nspinor,shift,option)
     implicit none
@@ -2318,6 +2070,8 @@ contains
           in%gnrm_cv = val !convergence parameters
        case (ITERMAX)
           in%itermax = val
+       case (ITERMIN)
+          in%itermin = val
        case (NREPMAX)
           in%nrepmax = val
        case (NCONG)
@@ -2578,6 +2332,10 @@ contains
           in%cutoffratio = val
        case (STEEPTHRESH)
           in%steepthresh = val
+       case (BIOMODE)
+          in%biomode = val
+       case (BETA_STRETCHX)
+          in%beta_stretchx = val
        case (TRUSTR)
           in%trustr = val
        case DEFAULT

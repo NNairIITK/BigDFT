@@ -2004,6 +2004,7 @@ subroutine eigensystem_info(iproc,nproc,tolerance,nvctr,orbs,psi)
   end if
 
   ! Send all eigenvalues to all procs.
+  !! needed only if nkpts > 1
   call broadcast_kpt_objects(nproc,orbs%nkpts,orbs%norb, &
        orbs%eval,orbs%ikptproc)
 
@@ -2153,16 +2154,25 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
          !if (iproc.lt.1) write(1000+iproc,*) diff,1.d-11*sqrt(electrons),wf
          !if (iproc.lt.1) flush(1000+iproc)
          !Exit criterion satiesfied, Nevertheles do one mor update of fermi level
-         if (abs(diff) < 1.d-11*sqrt(electrons) .and. wf .eq. wf0 ) exitfermi=.true.     ! Assume noise grows as sqrt(electrons)
+         if (abs(diff) < 1.d-11*sqrt(electrons) .and. wf == wf0 ) exitfermi=.true.     ! Assume noise grows as sqrt(electrons)
 
-          corr=diff/abs(dlectrons) ! for case of no-monotonic func. abs is needed
-          if (abs(corr).gt.wf) then   !for such a large correction the linear approximation is not any more valid
-           if (corr > 0.d0) corr=1.d0*wf
-           if (corr < 0.d0*wf) corr=-1.d0*wf
-            if (ii.le.10) wf=2.d0*wf  ! speed up search of approximate Fermi level by using higher Temperature 
-          else
-            wf=max(wf0,.5d0*wf)
-          endif
+         !alternative solution to avoid division by so high value
+         !if (dlectrons == 0.d0) dlectrons=1.d-100  !line to be added
+         if (dlectrons == 0.d0) then
+            !always enter into first case below
+            if (diff > 0.d0) corr=1.d0*wf
+            if (diff < 0.d0) corr=-1.d0*wf
+            if (ii <= 10) wf=2.d0*wf  ! speed up search of approximate Fermi level by using higher Temperature 
+         else
+            corr=diff/abs(dlectrons) ! for case of no-monotonic func. abs is needed
+            if (abs(corr).gt.wf) then   !for such a large correction the linear approximation is not any more valid
+               if (corr > 0.d0) corr=1.d0*wf
+               if (corr < 0.d0*wf) corr=-1.d0*wf
+               if (ii <= 10) wf=2.d0*wf  ! speed up search of approximate Fermi level by using higher Temperature 
+            else
+               wf=max(wf0,.5d0*wf)
+            endif
+         end if
          ef=ef-corr  ! Ef=Ef_guess+corr.
          !if (iproc.lt.1) write(1000+iproc,'(i5,5(1pe17.8))') ii,electrons,ef,dlectrons,abs(dlectrons),corr
 !         if (iproc.lt.1) flush(1000+iproc)
@@ -2776,13 +2786,17 @@ subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)
    real(gp), dimension(ndata,nkpts), intent(inout) :: data
 
    integer :: ikpt, ierr
-
+   call mpibarrier(comm=bigdft_mpi%mpi_comm)
    if (nproc > 1) then
       do ikpt = 1, nkpts
-         call MPI_BCAST(data(1,ikpt), ndata,mpidtypg, &
-            &   ikptproc(ikpt), bigdft_mpi%mpi_comm, ierr)
+         !print *,'data(:),ikpt',data(:,ikpt),ikpt,bigdft_mpi%iproc,ikptproc(ikpt)
+         call mpibcast(data(:,ikpt),root=ikptproc(ikpt),&
+              comm=bigdft_mpi%mpi_comm)!,check=.true.)
+         !call MPI_BCAST(data(1,ikpt), ndata,mpidtypg, &
+         !   &   ikptproc(ikpt), bigdft_mpi%mpi_comm, ierr)
          !redundant barrier 
-         call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+         call mpibarrier(comm=bigdft_mpi%mpi_comm)
+         !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
       end do
    end if
 END SUBROUTINE broadcast_kpt_objects

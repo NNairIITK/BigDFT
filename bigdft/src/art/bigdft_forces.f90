@@ -16,7 +16,7 @@
 module bigdft_forces
 
    use module_base!, only : gp,wp,dp,Bohr_Ang
-   use module_types
+   use bigdft_run!module_types
    use module_atoms
    use module_interfaces
    use defs, only : iproc
@@ -182,8 +182,8 @@ module bigdft_forces
       allocate(runObj%rst)
       call init_restart_objects(me, runObj%inputs, runObj%atoms, runObj%rst)
 
-      runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /),id='runObj%radii_cf')
-      runObj%radii_cf = runObj%atoms%radii_cf
+!!$      runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /),id='runObj%radii_cf')
+!!$      runObj%radii_cf = runObj%atoms%radii_cf
 
    END SUBROUTINE bigdft_init_art
 
@@ -345,14 +345,14 @@ module bigdft_forces
 
    END SUBROUTINE mingeo
 
-
    !> Routine to finalise all BigDFT stuff
-   subroutine bigdft_finalise ( )
+   subroutine bigdft_finalise()
+     use bigdft_run
       implicit none
       !Local variable
       character(len=*), parameter :: subname='bigdft_finalise'
 
-      call run_objects_free(runObj, subname)
+      call run_objects_free(runObj)
    END SUBROUTINE bigdft_finalise
 
    !> Removes the net force taking into account the blocked atoms
