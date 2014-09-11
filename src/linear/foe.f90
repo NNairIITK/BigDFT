@@ -413,7 +413,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   if (calculate_SHS) then
                       !!call check_eigenvalue_spectrum()
                       call check_eigenvalue_spectrum(nproc, tmb%linmat%l, tmb%linmat%s, tmb%linmat%ovrlp_, ispin, &
-                            isshift, 1.2d0, 1.2d0, penalty_ev, anoise, &
+                            isshift, 1.2d0, 1.2d0, penalty_ev, anoise, .true., &
                             foe_obj, restart, eval_bounds_ok)
                   end if
         
@@ -2109,7 +2109,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                   if (calculate_SHS) then
                       !call check_eigenvalue_spectrum()
                       call check_eigenvalue_spectrum(nproc, inv_ovrlp_smat, ovrlp_smat, ovrlp_mat, 1, &
-                           0, 1.d0/1.2d0, 1.2d0, penalty_ev, anoise, &
+                           0, 1.2d0, 1.d0/1.2d0, penalty_ev, anoise, .false., &
                            foe_obj, restart, eval_bounds_ok)
                   end if
         
@@ -2295,7 +2295,8 @@ end subroutine cheb_exp
 
 
 
-subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift, factor_high, factor_low, penalty_ev, anoise, &
+subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift, &
+           factor_high, factor_low, penalty_ev, anoise, trace_with_overlap, &
            foe_obj, restart, eval_bounds_ok)
   use module_base
   use sparsematrix_base, only: sparse_matrix, matrices
@@ -2309,6 +2310,7 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
   integer,intent(in) :: nproc, ispin, isshift
   real(kind=8),intent(in) :: factor_high, factor_low, anoise
   real(kind=8),dimension(smat_l%nfvctr,smat_l%smmm%nfvctrp,2),intent(in) :: penalty_ev
+  logical,intent(in) :: trace_with_overlap
   type(foe_data),intent(inout) :: foe_obj
   logical,intent(out) :: restart
   logical,dimension(2),intent(out) :: eval_bounds_ok
@@ -2339,12 +2341,17 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
               icol = jorb - (irow-1)*smat_l%nfvctr
               iismall = matrixindex_in_compressed(smat_s, irow, icol)
               if (iismall>0) then
-                  tt=mat%matrix_compr(isshift+iismall)
-                  !!if (irow==jorb) then
-                  !!    tt=1.d0
-                  !!else
-                  !!    tt=0.d0
-                  !!end if
+                  if (trace_with_overlap) then
+                      ! Take the trace of the product matrix times overlap
+                      tt=mat%matrix_compr(isshift+iismall)
+                  else
+                      ! Take the trace of the matrix alone, i.e. set the second matrix to the identity
+                      if (irow==jorb) then
+                          tt=1.d0
+                      else
+                          tt=0.d0
+                      end if
+                  end if
               else
                   tt=0.d0
               end if

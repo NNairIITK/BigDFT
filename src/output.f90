@@ -796,7 +796,7 @@ subroutine write_eigenvalues_data(etol,orbs,mom_vec)
                       -1.0_gp,ikptw,mx,my,mz)
                  !yaml output (carriage return)
                  degdw = find_degeneracy_down(iorb+isorb)
-                 if (iorb == orbs%norbd .and. ikpt == orbs%nkpts) then
+                 if (iorb == orbs%norbu+orbs%norbd .and. ikpt == orbs%nkpts) then
                     call yaml_sequence_close(advance='no')
                  end if
                  call yaml_comment(trim(yaml_toa(iorb,fmt='(i5.5)')),advance='no')
