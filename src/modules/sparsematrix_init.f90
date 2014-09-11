@@ -235,6 +235,7 @@ contains
 
       integer :: ierr, jproc, iorb, jjproc, iiorb, nseq_min, nseq_max
       integer,dimension(:),allocatable :: nseq_per_line, norb_par_ideal, isorb_par_ideal
+      integer,dimension(:,:),allocatable :: temparr
       real(kind=8) :: rseq, rseq_ideal, tt, ratio_before, ratio_after
 
       ! Calculate the values of sparsemat%smmm%nout and sparsemat%smmm%nseq with
@@ -310,7 +311,19 @@ contains
 
       call f_free(nseq_per_line)
 
-      call allocate_sparse_matrix_matrix_multiplication(norb, nseg, nsegline, istsegline, keyg, sparsemat%smmm)
+      call allocate_sparse_matrix_matrix_multiplication(nproc, norb, nseg, nsegline, istsegline, keyg, sparsemat%smmm)
+
+
+      ! Calculate some auxiliary variables
+      temparr = f_malloc0((/0.to.nproc-1,1.to.2/),id='isfvctr_par')
+      temparr(iproc,1) = sparsemat%smmm%isfvctr
+      temparr(iproc,2) = sparsemat%smmm%nfvctrp
+      call mpiallred(temparr(0,1), 2*nproc,  mpi_sum, bigdft_mpi%mpi_comm)
+      call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, sparsemat%nseg, sparsemat%nvctr, &
+           temparr(0,1), temparr(0,2), sparsemat%istsegline, sparsemat%keyv, &
+           sparsemat%smmm%isvctr, sparsemat%smmm%nvctrp, sparsemat%smmm%isvctr_par, sparsemat%smmm%nvctr_par)
+      call f_free(temparr)
+
       sparsemat%smmm%nseg=nseg
       call vcopy(norb, nsegline(1), 1, sparsemat%smmm%nsegline(1), 1)
       call vcopy(norb, istsegline(1), 1, sparsemat%smmm%istsegline(1), 1)
@@ -572,27 +585,28 @@ contains
     
 
       ! parallelization of matrices, following same idea as norb/norbp/isorb
-    
       !most equal distribution, but want corresponding to norbp for second column
-
-      do jproc=0,nproc-1
-          jst_line = sparsemat%isfvctr_par(jproc)+1
-          if (sparsemat%nfvctr_par(jproc)==0) then
-             sparsemat%isvctr_par(jproc) = sparsemat%nvctr
-          else
-             jst_seg = sparsemat%istsegline(jst_line)
-             sparsemat%isvctr_par(jproc) = sparsemat%keyv(jst_seg)-1
-          end if
-      end do
-      do jproc=0,nproc-1
-         if (jproc==nproc-1) then
-            sparsemat%nvctr_par(jproc)=sparsemat%nvctr-sparsemat%isvctr_par(jproc)
-         else
-            sparsemat%nvctr_par(jproc)=sparsemat%isvctr_par(jproc+1)-sparsemat%isvctr_par(jproc)
-         end if
-         if (iproc==jproc) sparsemat%isvctr=sparsemat%isvctr_par(jproc)
-         if (iproc==jproc) sparsemat%nvctrp=sparsemat%nvctr_par(jproc)
-      end do
+      call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, sparsemat%nseg, sparsemat%nvctr, &
+           sparsemat%isfvctr_par, sparsemat%nfvctr_par, sparsemat%istsegline, sparsemat%keyv, &
+           sparsemat%isvctr, sparsemat%nvctrp, sparsemat%isvctr_par, sparsemat%nvctr_par)
+      !!do jproc=0,nproc-1
+      !!    jst_line = sparsemat%isfvctr_par(jproc)+1
+      !!    if (sparsemat%nfvctr_par(jproc)==0) then
+      !!       sparsemat%isvctr_par(jproc) = sparsemat%nvctr
+      !!    else
+      !!       jst_seg = sparsemat%istsegline(jst_line)
+      !!       sparsemat%isvctr_par(jproc) = sparsemat%keyv(jst_seg)-1
+      !!    end if
+      !!end do
+      !!do jproc=0,nproc-1
+      !!   if (jproc==nproc-1) then
+      !!      sparsemat%nvctr_par(jproc)=sparsemat%nvctr-sparsemat%isvctr_par(jproc)
+      !!   else
+      !!      sparsemat%nvctr_par(jproc)=sparsemat%isvctr_par(jproc+1)-sparsemat%isvctr_par(jproc)
+      !!   end if
+      !!   if (iproc==jproc) sparsemat%isvctr=sparsemat%isvctr_par(jproc)
+      !!   if (iproc==jproc) sparsemat%nvctrp=sparsemat%nvctr_par(jproc)
+      !!end do
 
     
       ! 0 - none, 1 - mpiallred, 2 - allgather
@@ -908,6 +922,45 @@ contains
     
     end subroutine init_sequential_acces_matrix
 
+
+    subroutine init_matrix_parallelization(iproc, nproc, nfvctr, nseg, nvctr, &
+               isfvctr_par, nfvctr_par, istsegline, keyv, &
+               isvctr, nvctrp, isvctr_par, nvctr_par)
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, nfvctr, nseg, nvctr
+      integer,dimension(0:nproc-1),intent(in) :: isfvctr_par, nfvctr_par
+      integer,dimension(nfvctr),intent(in) :: istsegline
+      integer,dimension(nseg),intent(in) :: keyv
+      integer,intent(out) :: isvctr, nvctrp
+      integer,dimension(0:nproc-1),intent(out) :: isvctr_par, nvctr_par
+      
+      ! Local variables
+      integer :: jproc, jst_line, jst_seg
+
+      ! parallelization of matrices, following same idea as norb/norbp/isorb
+      !most equal distribution, but want corresponding to norbp for second column
+      do jproc=0,nproc-1
+          jst_line = isfvctr_par(jproc)+1
+          if (nfvctr_par(jproc)==0) then
+             isvctr_par(jproc) = nvctr
+          else
+             jst_seg = istsegline(jst_line)
+             isvctr_par(jproc) = keyv(jst_seg)-1
+          end if
+      end do
+      do jproc=0,nproc-1
+         if (jproc==nproc-1) then
+            nvctr_par(jproc)=nvctr-isvctr_par(jproc)
+         else
+            nvctr_par(jproc)=isvctr_par(jproc+1)-isvctr_par(jproc)
+         end if
+         if (iproc==jproc) isvctr=isvctr_par(jproc)
+         if (iproc==jproc) nvctrp=nvctr_par(jproc)
+      end do
+
+    end subroutine init_matrix_parallelization
 
 
 end module sparsematrix_init
