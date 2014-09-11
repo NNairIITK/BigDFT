@@ -113,7 +113,7 @@ if test x"$ac_build_bindings" = x"yes" -a $F90_1D_POINTER_SIZE = 0 ; then
 fi
 AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject],
                      [Build GObject bindings (default is yes).]),
-            ac_use_glib=$withval, ac_use_glib=$ac_build_bindings)
+            ac_use_glib=$withval, ac_use_glib="yes")
 if test x"$ac_use_glib" = x"yes"; then
   PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22, [have_glib=yes], [have_glib=no])
   PKG_CHECK_MODULES(GDBUS, glib-2.0 gobject-2.0 gthread-2.0 gio-2.0 >= 2.22 gio-unix-2.0 >= 2.30, [have_gdbus=yes], [have_gdbus=no])
