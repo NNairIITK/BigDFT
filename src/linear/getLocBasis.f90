@@ -2832,7 +2832,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
               ispin=2
           end if
           ii=mod(iiorb-1,tmb%linmat%l%nfvctr)+1
-          call dgemm('n', 'n', tmb%linmat%l%nfvctr, 1, tmb%linmat%l%nfvctr, 1.0d0, tmb%linmat%kernel_%matrix, &
+          call dgemm('n', 'n', tmb%linmat%l%nfvctr, 1, tmb%linmat%l%nfvctr, 1.0d0, tmb%linmat%kernel_%matrix(1,1,ispin), &
                tmb%linmat%l%nfvctr, gradmat%matrix(1,ii,ispin), tmb%linmat%l%nfvctr, &
                0.d0, Kgrad(1,ii,ispin), tmb%linmat%l%nfvctr)
       end do
