@@ -535,7 +535,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
         lr_mask=f_malloc0(Lzd%nlr,id='lr_mask')
         call update_lrmask_array(Lzd%nlr,orbs,lr_mask)
         !when the new tmbs are created the projector descriptors can be updated
-        call update_nlpsp(nl,Lzd%nlr,Lzd%llr,Lzd%Glr,lr_mask,orbs%norb,orbs%isorb,orbs%norbp,orbs%inwhichlocreg)
+        call update_nlpsp(nl,Lzd%nlr,Lzd%llr,Lzd%Glr,lr_mask)
         if (iproc == 0) call print_nlpsp(nl)
        
         call f_free(lr_mask)
@@ -1151,8 +1151,7 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,input, at, 
   call update_lrmask_array(tmb%lzd%nlr,tmb%orbs,lr_mask)
 
   !when the new tmbs are created the projector descriptors can be updated
-  call update_nlpsp(nlpsp,tmb%ham_descr%lzd%nlr,tmb%ham_descr%lzd%llr,KSwfn%Lzd%Glr,lr_mask,&
-       tmb%orbs%norb,tmb%orbs%isorb,tmb%orbs%norbp,tmb%orbs%inwhichlocreg)
+  call update_nlpsp(nlpsp,tmb%ham_descr%lzd%nlr,tmb%ham_descr%lzd%llr,KSwfn%Lzd%Glr,lr_mask)
   if (iproc == 0) call print_nlpsp(nlpsp)
   call f_free(lr_mask)
   call f_release_routine()
