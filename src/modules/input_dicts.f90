@@ -240,7 +240,7 @@ contains
     logical :: exists
     integer :: nzatom, nelpsp, npspcode
     real(gp), dimension(0:4,0:6) :: psppar
-    integer :: i
+    integer :: i, dlen
     real(gp) :: ehomo,radfine,rad
     type(dictionary), pointer :: radii,dict_psp
     real(gp), dimension(3) :: radii_cf
@@ -309,7 +309,8 @@ contains
     if (radii_cf(2) == UNINITIALIZED(1.0_gp)) then
        radfine = dict_psp // LPSP_KEY // "Rloc"
        if (has_key(dict_psp, NLPSP_KEY)) then
-          do i=1, dict_len(dict_psp // NLPSP_KEY)
+          dlen=dict_len(dict_psp // NLPSP_KEY)
+          do i=1, dlen
              rad = dict_psp // NLPSP_KEY // (i - 1) // "Rloc"
              if (rad /= 0._gp) then
                 radfine=min(radfine, rad)
@@ -511,7 +512,8 @@ contains
     psppar(0,4) = loc // 'Coefficients (c1 .. c4)' // 3
     ! Nonlocal terms
     if (has_key(dict, NLPSP_KEY)) then
-       do i = 1, dict_len(dict // NLPSP_KEY), 1
+       dlen = dict_len(dict // NLPSP_KEY)
+       do i = 1, dlen, 1
           loc => dict // NLPSP_KEY // (i - 1)
           if (.not. has_key(loc, "Channel (l)")) return
           l = loc // "Channel (l)"

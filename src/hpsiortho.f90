@@ -709,9 +709,9 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
   !local variables
   logical :: newmethod
   character(len=*), parameter :: subname='NonLocalHamiltonianApplication' 
-  logical :: dosome, overlap
+  logical :: dosome, overlap, goon
   integer :: ikpt,istart_ck,ispsi_k,isorb,ieorb,nspinor,iorb,iat,nwarnings
-  integer :: iproj,ispsi,istart_c,ilr,ilr_skip,mproj,iatype,ispinor
+  integer :: iproj,ispsi,istart_c,ilr,ilr_skip,mproj,iatype,ispinor,iilr,jlr
   real(wp) :: hp,eproj
   real(wp), dimension(:), allocatable :: scpr
   !integer :: ierr
@@ -784,14 +784,28 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
         if (nl%on_the_fly) then
            !first create a projector ,then apply it for everyone
            iproj=0
-           do iat=1,at%astruct%nat
+           loop_atoms_1: do iat=1,at%astruct%nat
+
+              ! Check whether the projectors of this atom have an overlap with locreg ilr
+              goon=.false.
+              do jlr=1,nl%pspd(iat)%noverlap
+                  if (nl%pspd(iat)%lut_tolr(jlr)==ilr) then
+                      goon=.true.
+                      iilr=jlr
+                      exit
+                  end if
+              end do
+              if (.not.goon) cycle loop_atoms_1
+
               iatype=at%astruct%iatype(iat)
 
               mproj=nl%pspd(iat)%mproj
               !no projector on this atom
               if(mproj == 0) cycle
               !projector not overlapping with the locreg
-              if(nl%pspd(iat)%tolr(ilr)%strategy == PSP_APPLY_SKIP) cycle
+              !!iilr=nl%pspd(iat)%lut_tolr(ilr)
+              !!if (iilr==PSP_APPLY_SKIP) cycle
+              if(nl%pspd(iat)%tolr(iilr)%strategy == PSP_APPLY_SKIP) cycle
               !check if the atom projector intersect with the given localisation region
               !this part can be moved at the place of the analysis between psp and lrs
               !call cpu_time(tr0)
@@ -859,7 +873,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
                          (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*nspinor
                  end do
               end if
-           end do
+           end do loop_atoms_1
            !call cpu_time(tr0)
            !time4=time4+real(tr0-tr1,kind=8)
            !for the moment, localization region method is not tested with
@@ -877,13 +891,28 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
               end if
 
               istart_c=istart_ck !TO BE CHANGED IN ONCE-AND-FOR-ALL 
-              do iat=1,at%astruct%nat
+              loop_atoms_2: do iat=1,at%astruct%nat
+
+
+                  ! Check whether the projectors of this atom have an overlap with locreg ilr
+                  goon=.false.
+                  do jlr=1,nl%pspd(iat)%noverlap
+                      if (nl%pspd(iat)%lut_tolr(jlr)==ilr) then
+                          goon=.true.
+                          iilr=jlr
+                          exit
+                      end if
+                  end do
+                  if (.not.goon) cycle loop_atoms_2
+
                  iatype=at%astruct%iatype(iat)
                  ! Check if atom has projectors, if not cycle
                  mproj=nl%pspd(iat)%mproj
                  if(mproj == 0) cycle
                  !projector not overlapping with the locreg
-                 if(nl%pspd(iat)%tolr(ilr)%strategy == PSP_APPLY_SKIP) cycle
+                 !!iilr=nl%pspd(iat)%lut_tolr(ilr)
+                 !!if (iilr==PSP_APPLY_SKIP) cycle
+                 if(nl%pspd(iat)%tolr(iilr)%strategy == PSP_APPLY_SKIP) cycle
 
                  !check if the atom intersect with the given localisation region
                  call check_overlap(Lzd%Llr(ilr), nl%pspd(iat)%plr, Lzd%Glr, overlap)
@@ -892,7 +921,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,rxyz,&
                  call nl_psp_application()
 
                  !print *,'iorb,iat,eproj',iorb+orbs%isorb,iat,eproj_sum
-              end do
+              end do loop_atoms_2
               !print *,'TOTALPSI',iorb+orbs%isorb,sum(psi(ispsi:&
               !    ispsi+(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor-1)),&
               !     dot((Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor,&
@@ -1011,7 +1040,7 @@ contains
        
        call NL_HGH_application(hij,&
             ncplx_p,mproj,nl%pspd(iat)%plr%wfd,nl%proj(istart_c),&
-            ncplx_w,n_w,Lzd%Llr(ilr)%wfd,nl%pspd(iat)%tolr(ilr),nl%wpack,nl%scpr,nl%cproj,nl%hcproj,&
+            ncplx_w,n_w,Lzd%Llr(ilr)%wfd,nl%pspd(iat)%tolr(iilr),nl%wpack,nl%scpr,nl%cproj,nl%hcproj,&
             psi(ispsi),hpsi(ispsi),eproj)
 
 !!$       !free workspaces

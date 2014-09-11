@@ -889,12 +889,12 @@ subroutine crtproj(geocode,nterm,lr, &
   end if
 
   !REALLY SLOW ON VESTA, TEMPORARY CHANGE ONLY
-  !wprojx = f_malloc((/ 1.to.ncplx_w, 0.to.n1, 1.to.2, 1.to.nterm /),id='wprojx')
-  !wprojy = f_malloc((/ 1.to.ncplx_w, 0.to.n2, 1.to.2, 1.to.nterm /),id='wprojy')
-  !wprojz = f_malloc((/ 1.to.ncplx_w, 0.to.n3, 1.to.2, 1.to.nterm /),id='wprojz')
-  allocate(wprojx(1:ncplx_w,0:n1,1:2,1:nterm))
-  allocate(wprojy(1:ncplx_w,0:n2,1:2,1:nterm))
-  allocate(wprojz(1:ncplx_w,0:n3,1:2,1:nterm))
+  wprojx = f_malloc((/ 1.to.ncplx_w, 0.to.n1, 1.to.2, 1.to.nterm /),id='wprojx')
+  wprojy = f_malloc((/ 1.to.ncplx_w, 0.to.n2, 1.to.2, 1.to.nterm /),id='wprojy')
+  wprojz = f_malloc((/ 1.to.ncplx_w, 0.to.n3, 1.to.2, 1.to.nterm /),id='wprojz')
+  !allocate(wprojx(1:ncplx_w,0:n1,1:2,1:nterm))
+  !allocate(wprojy(1:ncplx_w,0:n2,1:2,1:nterm))
+  !allocate(wprojz(1:ncplx_w,0:n3,1:2,1:nterm))
 
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')
@@ -911,8 +911,8 @@ subroutine crtproj(geocode,nterm,lr, &
   !!$omp private(ithread,ichunk,factor,n_gau)
 
   !!$omp critical
-    !work = f_malloc((/ 0.to.nw, 1.to.2, 1.to.2 /),id='work')
-  allocate(work(0:nw,1:2,1:2))
+    work = f_malloc((/ 0.to.nw, 1.to.2, 1.to.2 /),id='work')
+  !allocate(work(0:nw,1:2,1:2))
   !!$omp end critical
 
   !!$ ithread=omp_get_thread_num()
@@ -942,8 +942,8 @@ subroutine crtproj(geocode,nterm,lr, &
      !!$ endif
   end do
   !!$omp critical
-    !call f_free(work) 
-  deallocate(work)
+    call f_free(work) 
+  !deallocate(work)
   !!$omp end critical
   !!$omp end parallel
 
@@ -1325,12 +1325,12 @@ subroutine crtproj(geocode,nterm,lr, &
 !!  call system_clock(ncount2,ncount_rate,ncount_max)
 !!  write(20,*) 'TIMING2:', dble(ncount2-ncount1)/dble(ncount_rate)
 
-  !call f_free(wprojx)
-  !call f_free(wprojy)
-  !call f_free(wprojz)
-  deallocate(wprojx)
-  deallocate(wprojy)
-  deallocate(wprojz)
+  call f_free(wprojx)
+  call f_free(wprojy)
+  call f_free(wprojz)
+  !deallocate(wprojx)
+  !deallocate(wprojy)
+  !deallocate(wprojz)
 
 !  i_all=-product(shape(work))*kind(work)
 !  deallocate(work,stat=i_stat)
