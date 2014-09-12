@@ -4191,18 +4191,35 @@ module module_interfaces
           type(sparse_matrix),dimension(:),pointer,intent(out) :: smat, smat_extra
         end subroutine init_sparse_matrix_for_KSorbs
 
-subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, ovrlp_mat, inv_ovrlp)
-  use module_base
-  use module_types
-  use yaml_output
-  use sparsematrix_base, only: sparse_matrix, matrices
-  implicit none
-  integer,intent(in) :: iproc, nproc, norder_polynomial
-  type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
-  integer :: ex
-  type(matrices),intent(in) :: ovrlp_mat
-  type(matrices),intent(out) :: inv_ovrlp
-end subroutine ice
+        subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, ovrlp_mat, inv_ovrlp)
+          use module_base
+          use module_types
+          use yaml_output
+          use sparsematrix_base, only: sparse_matrix, matrices
+          implicit none
+          integer,intent(in) :: iproc, nproc, norder_polynomial
+          type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
+          integer :: ex
+          type(matrices),intent(in) :: ovrlp_mat
+          type(matrices),intent(out) :: inv_ovrlp
+        end subroutine ice
+        
+        subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
+                   smat1, mat1, i1shift, smat2, mat2, i2shift, &
+                   matscal_compr, scale_factor, shift_value)
+          use module_base
+          use sparsematrix_base, only: sparse_matrix, matrices
+          use foe_base, only: foe_data
+          integer,intent(in) :: iproc, nproc, ispin, i1shift
+          type(foe_data),intent(in) :: foe_obj
+          type(sparse_matrix),intent(in) :: smatl, smat1
+          type(matrices),intent(in) :: mat1
+          type(sparse_matrix),intent(in),optional :: smat2
+          type(matrices),intent(in),optional :: mat2
+          integer,intent(in),optional :: i2shift
+          real(kind=8),dimension(smatl%nvctr),intent(out) :: matscal_compr
+          real(kind=8),intent(out) :: scale_factor, shift_value
+        end subroutine scale_and_shift_matrix
 
   end interface
 END MODULE module_interfaces

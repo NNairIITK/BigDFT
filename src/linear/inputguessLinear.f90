@@ -876,6 +876,12 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
          pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
      end if
+  else
+      ! This will get back the old charge density
+      call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0,denspot%mix,&
+           denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+           at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+           pnrm,denspot%dpbox%nscatterarr)
   end if
 
   if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
