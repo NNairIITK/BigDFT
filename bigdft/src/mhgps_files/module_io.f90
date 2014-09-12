@@ -31,7 +31,7 @@ subroutine read_mode(nat,filename,minmode)
        .and. trim(astruct%units) /= 'atomicd0'&
        .and. trim(astruct%units) /= 'bohr'&
        .and. trim(astruct%units) /= 'bohrd0') then
-        stop'(MHGPS) severe error units of mode-file must be atomic'
+        stop '(MHGPS) severe error units of mode-file must be atomic'
     endif
 
     call vcopy(3 * astruct%nat,astruct%rxyz(1,1),1,minmode(1,1), 1)

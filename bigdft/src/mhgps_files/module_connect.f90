@@ -720,7 +720,7 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected'
 if(iproc==0)write(*,*)'(MHGS) connection check lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
 if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         ntodo=ntodo+1
-if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
+if(ntodo>nsadmax)stop 'error: ntodo>nsadmax'
         todorxyz(:,:,1,ntodo)=cobj%rightmin(:,:,nsad_loc)
         todorxyz(:,:,2,ntodo)=rxyz2cur
         todofp(:,1,ntodo)=cobj%fpright(:,nsad_loc)
@@ -756,7 +756,7 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected'
 !endif
         !connect left relaxed bar end with left input min
         ntodo=ntodo+1
-if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
+if(ntodo>nsadmax)stop 'error: ntodo>nsadmax'
         todorxyz(:,:,1,ntodo)=rxyz1cur
         todorxyz(:,:,2,ntodo)=cobj%leftmin(:,:,nsad_loc)
         todofp(:,1,ntodo)=fp1cur
@@ -773,7 +773,7 @@ if(iproc==0)write(*,*)'(MHGPS)connection check lnr and not rnl',sqrt(sum((rxyz1-
 if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         !connect right relaxed bar end with left input min
         ntodo=ntodo+1
-if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
+if(ntodo>nsadmax)stop 'error: ntodo>nsadmax'
         todorxyz(:,:,1,ntodo)=rxyz1cur
         todorxyz(:,:,2,ntodo)=cobj%rightmin(:,:,nsad_loc)
         todofp(:,1,ntodo)=fp1cur
@@ -790,7 +790,7 @@ if(iproc==0)write(*,*)'(MHGPS)connection check not lnr and rnl',sqrt(sum((rxyz2-
 if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         !connect left relaxed bar end with right input min
         ntodo=ntodo+1
-if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
+if(ntodo>nsadmax)stop 'error: ntodo>nsadmax'
         todorxyz(:,:,1,ntodo)=rxyz2cur
         todorxyz(:,:,2,ntodo)=cobj%leftmin(:,:,nsad_loc)
         todofp(:,1,ntodo)=fp2cur
@@ -809,7 +809,7 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected'
         !connect left input min with left relaxed bar end  and right
         !input min with right relaxed bar end
         ntodo=ntodo+1
-if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
+if(ntodo>nsadmax)stop 'error: ntodo>nsadmax'
         todorxyz(:,:,1,ntodo)=rxyz1cur
         todorxyz(:,:,2,ntodo)=cobj%leftmin(:,:,nsad_loc)
         todofp(:,1,ntodo)=fp1cur
@@ -817,7 +817,7 @@ if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
         todoenergy(1,ntodo)=ener1cur
         todoenergy(2,ntodo)=cobj%enerleft(nsad_loc)
         ntodo=ntodo+1
-if(ntodo>nsadmax)stop'error: ntodo>nsadmax'
+if(ntodo>nsadmax)stop 'error: ntodo>nsadmax'
         todorxyz(:,:,1,ntodo)=cobj%rightmin(:,:,nsad_loc)
         todorxyz(:,:,2,ntodo)=rxyz2cur
         todofp(:,1,ntodo)=cobj%fpright(:,nsad_loc)
