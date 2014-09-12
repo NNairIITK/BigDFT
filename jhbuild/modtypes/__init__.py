@@ -589,6 +589,7 @@ class MetaModule(Package):
         shutil.copytree(os.path.join(SRCDIR, "jhbuild"), os.path.join(destdir, "jhbuild"))
         shutil.copy(os.path.join(SRCDIR, "jhbuild.py"), destdir)
         shutil.copy(os.path.join(SRCDIR, "bigdft.modules"), destdir)
+        shutil.copy(os.path.join(SRCDIR, "gnome.modules"), destdir)
         shutil.copy(os.path.join(SRCDIR, "jhbuildrc"), destdir)
 
         # Create the tar.
