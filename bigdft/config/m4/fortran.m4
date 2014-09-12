@@ -873,9 +873,9 @@ end program test],
   if test x"$ax_fc_openmp" == x"auto" -o x"$ax_fc_openmp" == x"yes" ; then
     test_flag "-openmp"
     if test x"$ax_fc_openmp" == x"no" ; then
-      test_flag "-fopenmp"
+      test_flag "-qsmp=omp"
       if test x"$ax_fc_openmp" == x"no" ; then
-        test_flag "-qsmp=omp"
+        test_flag "-fopenmp"
       fi
     fi
     if test x"$ax_fc_openmp" == x"no" ; then
