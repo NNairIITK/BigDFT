@@ -1742,8 +1742,8 @@ contains
     call set(dict // EF_INTERPOL_CHARGEDIFF, dummy_real, fmt = "(E9.2)")
 
     !determines whether a mixing step shall be preformed after the input guess !(linear version)
-    call input_var("mixing_after_inputguess",.true.,"mixing  (T/F)",dummy_bool)
-    call set(dict // MIXING_AFTER_INPUTGUESS, dummy_bool)
+    call input_var("mixing_after_inputguess",1,"mixing after inguess (0/1/2)",dummy_int)
+    call set(dict // MIXING_AFTER_INPUTGUESS, dummy_int)
 
     !determines whether the input guess support functions are orthogonalized iteratively (T) or in the standard way (F)
     call input_var("iterative_orthogonalization",.false.," orbitals",dummy_bool)
