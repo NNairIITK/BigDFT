@@ -2392,3 +2392,40 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
   call f_release_routine()
 
 end subroutine check_eigenvalue_spectrum
+
+
+subroutine check_emergency_stop(nproc,emergency_stop)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: nproc
+  logical,intent(inout) :: emergency_stop
+
+  ! Local variables
+  integer :: iflag
+
+  call f_routine(id='check_emergency_stop')
+
+  ! Check for an emergency stop, which happens if the kernel explodes, presumably due
+  ! to the eigenvalue bounds being too small.
+  ! mpi_lor seems not to work on certain systems...
+  if (emergency_stop) then
+      iflag=1
+  else
+      iflag=0
+  end if
+
+  if (nproc > 1) then
+      call mpiallred(iflag, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
+  if (iflag>0) then
+      emergency_stop=.true.
+  else
+      emergency_stop=.false.
+  end if
+
+  call f_release_routine()
+
+end subroutine check_emergency_stop
