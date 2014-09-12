@@ -2473,14 +2473,16 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
   type(sparse_matrix),intent(in),optional :: smat2
   type(matrices),intent(in),optional :: mat2
   integer,intent(in),optional :: i2shift
-  real(kind=8),dimension(smatl%nvctr),intent(out) :: matscal_compr
+  real(kind=8),dimension(smatl%nvctr),target,intent(out) :: matscal_compr
   real(kind=8),intent(out) :: scale_factor, shift_value
 
   ! Local variables
-  integer :: iseg, ii, i, ii1, ii2
+  integer :: iseg, ii, i, ii1, ii2, isegstart, isegend, ierr
   integer,dimension(2) :: irowcol
   real(kind=8) :: tt1, tt2
   logical :: with_overlap
+  real(kind=8),dimension(:),pointer :: matscal_compr_local
+  
 
   call f_routine(id='scale_and_shift_matrix')
 
@@ -2494,12 +2496,57 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
       with_overlap = .false.
   end if
 
+  !!##scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
+  !!##shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh",ispin)+foe_data_get_real(foe_obj,"evlow",ispin))
+  !!##!$omp parallel default(none) private(iseg,ii,i,irowcol,ii2,ii1,tt2,tt1) &
+  !!##!$omp shared(matscal_compr,scale_factor,shift_value,i2shift,i1shift,smatl,smat1,smat2,mat1,mat2,with_overlap)
+  !!##!$omp do
+  !!##do iseg=1,smatl%nseg
+  !!##    ii=smatl%keyv(iseg)
+  !!##    do i=smatl%keyg(1,iseg),smatl%keyg(2,iseg)
+  !!##        irowcol = orb_from_index(smatl,i)
+  !!##        ii1 = matrixindex_in_compressed(smat1, irowcol(1), irowcol(2))
+  !!##        if (ii1>0) then
+  !!##            tt1=mat1%matrix_compr(i1shift+ii1)
+  !!##        else
+  !!##            tt1=0.d0
+  !!##        end if
+  !!##        if (with_overlap) then
+  !!##            ii2 = matrixindex_in_compressed(smat2, irowcol(1), irowcol(2))
+  !!##            if (ii2>0) then
+  !!##                tt2=mat2%matrix_compr(i2shift+ii2)
+  !!##            else
+  !!##                tt2=0.d0
+  !!##            end if
+  !!##        else
+  !!##            if (irowcol(1)==irowcol(2)) then
+  !!##                tt2 = 1.d0
+  !!##            else
+  !!##                tt2 = 0.d0
+  !!##            end if
+  !!##        end if
+  !!##        matscal_compr(ii)=scale_factor*(tt1-shift_value*tt2)
+  !!##        ii=ii+1
+  !!##    end do
+  !!##end do
+  !!##!$omp end do
+  !!##!$omp end parallel
+
   scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
   shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh",ispin)+foe_data_get_real(foe_obj,"evlow",ispin))
+  isegstart = smatl%istsegline(smatl%isfvctr+1)
+  isegend = smatl%istsegline(smatl%isfvctr+smatl%nfvctrp) + &
+            smatl%nsegline(smatl%isfvctr+smatl%nfvctrp)-1
+  if (nproc>1) then
+      matscal_compr_local = f_malloc_ptr(smatl%nvctrp,id='matscal_compr_local')
+  else
+      matscal_compr_local => matscal_compr
+  end if
   !$omp parallel default(none) private(iseg,ii,i,irowcol,ii2,ii1,tt2,tt1) &
-  !$omp shared(matscal_compr,scale_factor,shift_value,i2shift,i1shift,smatl,smat1,smat2,mat1,mat2,with_overlap)
+  !$omp shared(matscal_compr_local,scale_factor,shift_value,i2shift,i1shift,smatl,smat1,smat2,mat1,mat2,with_overlap) &
+  !$omp shared(isegstart,isegend)
   !$omp do
-  do iseg=1,smatl%nseg
+  do iseg=isegstart,isegend
       ii=smatl%keyv(iseg)
       do i=smatl%keyg(1,iseg),smatl%keyg(2,iseg)
           irowcol = orb_from_index(smatl,i)
@@ -2523,13 +2570,22 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
                   tt2 = 0.d0
               end if
           end if
-          matscal_compr(ii)=scale_factor*(tt1-shift_value*tt2)
+          matscal_compr_local(ii-smatl%isvctr)=scale_factor*(tt1-shift_value*tt2)
           ii=ii+1
       end do
   end do
   !$omp end do
   !$omp end parallel
 
-  call f_release_routine
+  if (nproc>1) then
+      call mpi_allgatherv(matscal_compr_local(1), smatl%nvctrp, mpi_double_precision, &
+           matscal_compr(1), smatl%nvctr_par, smatl%isvctr_par, mpi_double_precision, &
+           bigdft_mpi%mpi_comm, ierr)
+      call f_free_ptr(matscal_compr_local)
+  end if
+
+
+
+  call f_release_routine()
 
 end subroutine scale_and_shift_matrix

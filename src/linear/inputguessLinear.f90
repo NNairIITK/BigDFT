@@ -519,7 +519,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!    end do
   !!end do
 
-  if (input%lin%mixing_after_inputguess) then
+  !if (input%lin%mixing_after_inputguess) then
       if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
            .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
           call vcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
@@ -531,7 +531,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
           !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
           pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
       end if
-  end if
+  !end if
   !do ii=1,size(denspot%rhov)
   !    write(9600+iproc,'(a,2i9,es16.5)') 'ii, mod(ii-1,size(denspot%rhov)/2)+1, val', &
   !        ii, mod(ii-1,size(denspot%rhov)/2)+1, denspot%rhov(ii)
