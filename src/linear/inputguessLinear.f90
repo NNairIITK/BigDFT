@@ -583,13 +583,13 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   if (input%lin%mixing_after_inputguess==0 .or.  input%lin%mixing_after_inputguess==1) then
       if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
           call vcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
-          ! initial setting of the old charge density
-          call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.0d0,denspot%mix,&
-               denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
-               at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
-               pnrm,denspot%dpbox%nscatterarr)
-          !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
-          pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
+          !!! initial setting of the old charge density
+          !!call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.0d0,denspot%mix,&
+          !!     denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+          !!     at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+          !!     pnrm,denspot%dpbox%nscatterarr)
+          !!!SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+          !!pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
       end if
   end if
   if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
@@ -878,10 +878,11 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      !!end if
  else if (input%lin%mixing_after_inputguess==0) then
       ! This will get back the old charge density
-      call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0,denspot%mix,&
-           denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
-           at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
-           pnrm,denspot%dpbox%nscatterarr)
+      call vcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, rhopotold(1), 1, denspot%rhov(1), 1)
+      !!call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0,denspot%mix,&
+      !!     denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+      !!     at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+      !!     pnrm,denspot%dpbox%nscatterarr)
   end if
 
   if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
@@ -909,12 +910,13 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
  else if (input%lin%mixing_after_inputguess==0) then
      ! This will get back the old potential
-     call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0,denspot%mix,&
-          denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
-          at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
-          pnrm,denspot%dpbox%nscatterarr)
-     !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
-     pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
+     call vcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, rhopotold(1), 1, denspot%rhov(1), 1)
+     !!call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0,denspot%mix,&
+     !!     denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+     !!     at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+     !!     pnrm,denspot%dpbox%nscatterarr)
+     !!!SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+     !!pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
   end if
 
 
