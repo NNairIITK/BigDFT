@@ -377,6 +377,65 @@ subroutine write_extra_info(extra,natpol,ifrztyp)
 
 END SUBROUTINE write_extra_info
 
+!>Calculate the scalar product between atomic positions by considering
+!!   only non-blocked atoms
+subroutine atomic_dot(astruct,x,y,scpr)
+  use module_defs, only: gp
+  use module_atoms, only: move_this_coordinate,atomic_structure
+  implicit none
+  type(atomic_structure), intent(in) :: astruct
+  real(gp), dimension(3,astruct%nat), intent(in) :: x,y
+  real(gp), intent(out) :: scpr
+  !local variables
+  integer :: iat,i
+  real(gp) :: scpr1,scpr2,scpr3
+  real(gp) :: alphax,alphay,alphaz
+
+  scpr=0.0_gp
+
+  do iat=1,astruct%nat
+     do i=1,3
+        if (move_this_coordinate(astruct%ifrztyp(iat),i)) then
+           scpr=scpr+x(i,iat)*y(i,iat)
+        end if
+     end do
+!!$     call frozen_alpha(astruct%ifrztyp(iat),1,1.0_gp,alphax)
+!!$     call frozen_alpha(astruct%ifrztyp(iat),2,1.0_gp,alphay)
+!!$     call frozen_alpha(astruct%ifrztyp(iat),3,1.0_gp,alphaz)
+!!$     scpr1=alphax*x(1,iat)*y(1,iat)
+!!$     scpr2=alphay*x(2,iat)*y(2,iat)
+!!$     scpr3=alphaz*x(3,iat)*y(3,iat)
+!!$     scpr=scpr+scpr1+scpr2+scpr3
+  end do
+
+
+END SUBROUTINE atomic_dot
+
+!>Calculate the axpy operation between atomic positions by considering
+!!   only non-blocked atoms
+subroutine atomic_axpy(astruct,a,x,y)
+  use module_defs, only: gp
+  use module_atoms, only: move_this_coordinate,atomic_structure
+  implicit none
+  type(atomic_structure), intent(in) :: astruct
+  real(gp), dimension(3,astruct%nat), intent(in) :: x
+  real(gp), dimension(3,astruct%nat), intent(inout) :: y
+  real(gp), intent(in) :: a
+  !local variables
+  integer :: iat,i
+
+
+  do iat=1,astruct%nat
+     do i=1,3
+        if (move_this_coordinate(astruct%ifrztyp(iat),i)) then
+           y(i,iat)=y(i,iat)+a*x(i,iat)
+        end if
+     end do
+  end do
+
+
+END SUBROUTINE atomic_axpy
+
 
 !!$!> Module used for the input positions lines variables
 !!$module position_files

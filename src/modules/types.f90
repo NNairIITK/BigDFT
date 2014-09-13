@@ -1057,7 +1057,7 @@ module module_types
  public :: coulomb_operator,symmetry_data,atomic_structure,comms_cubic
  public :: nonlocal_psp_descriptors,dpbox_null
  public :: default_lzd,find_category,old_wavefunction_null,old_wavefunction_free
- public :: bigdft_run_id_toa,material_acceleration_null,input_psi_names
+ public :: material_acceleration_null,input_psi_names
  public :: wf_format_names,bigdft_init_errors,bigdft_init_timing_categories
  public :: deallocate_orbs,deallocate_locreg_descriptors,nullify_wfd
  public :: deallocate_wfd,deallocate_bounds,update_nlpsp,deallocate_paw_objects
@@ -1157,21 +1157,6 @@ contains
     nullify(lzd%Llr)
   end function default_lzd
  
-
-  function bigdft_run_id_toa()
-    use yaml_output
-    implicit none
-    character(len=20) :: bigdft_run_id_toa
-
-    bigdft_run_id_toa=repeat(' ',len(bigdft_run_id_toa))
-
-    if (bigdft_mpi%ngroup>1) then
-       bigdft_run_id_toa=adjustl(trim(yaml_toa(bigdft_mpi%igroup,fmt='(i15)')))
-    end if
-
-  end function bigdft_run_id_toa
-
-
   !> Fills the old_wavefunction structure with corresponding data
   !! Deallocate previous workspaces if already existing
   subroutine old_wavefunction_set(wfn,nat,norbp,Lzd,rxyz,psi)

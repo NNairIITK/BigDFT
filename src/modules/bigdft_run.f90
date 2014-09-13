@@ -57,8 +57,9 @@ module bigdft_run
   public :: global_output_set_from_dict,free_restart_objects,bigdft_get_rxyz_ptr
   public :: run_objects_init,bigdft_init,bigdft_command_line_options,bigdft_nruns
   public :: bigdft_nat,call_bigdft,free_run_objects,set_run_objects
-  public :: release_run_objects,bigdft_get_cell,bigdft_get_geocode
-  public :: bigdft_get_astruct_ptr,bigdft_write_atomic_file
+  public :: release_run_objects,bigdft_get_cell,bigdft_get_geocode,bigdft_get_run_properties
+  public :: bigdft_get_astruct_ptr,bigdft_write_atomic_file,bigdft_set_run_properties
+  public :: bigdft_norb,bigdft_get_eval,bigdft_run_id_toa,bigdft_get_rxyz
 
 !!$  ! interfaces of external routines 
 !!$  interface
@@ -280,6 +281,7 @@ module bigdft_run
     END SUBROUTINE deallocate_global_output
 
     !> Copies outsA to outsB
+    !! outsB has to be allocated before
     subroutine copy_global_output(outsA,outsB)
       use module_base, only: f_err_throw,f_memcpy
       use yaml_strings, only: yaml_toa
@@ -343,12 +345,60 @@ module bigdft_run
 
     END SUBROUTINE run_objects_associate
 
+    !> set the parameters of the run 
+    subroutine bigdft_set_run_properties(run,run_id,posinp)
+      implicit none
+      type(dictionary), pointer :: run
+      character(len=*), intent(in), optional :: run_id
+      character(len=*), intent(in), optional :: posinp
+
+      if (present(run_id)) call set(run // 'name',trim(run_id))
+      if (present(posinp)) call set(run // 'posinp',trim(posinp))
+
+    end subroutine bigdft_set_run_properties
+
+    !> get the parameters of the run 
+    subroutine bigdft_get_run_properties(run,run_id,posinp)
+      implicit none
+      type(dictionary), pointer :: run
+      character(len=*), intent(out), optional :: run_id
+      character(len=*), intent(out), optional :: posinp
+
+      if (present(run_id)) run_id = run // 'name'
+      if (present(posinp)) posinp = run // 'posinp'
+      
+    end subroutine bigdft_get_run_properties
+
+    function bigdft_run_id_toa()
+      use yaml_output, only: yaml_toa
+      use module_base, only: bigdft_mpi
+      implicit none
+      character(len=20) :: bigdft_run_id_toa
+
+      bigdft_run_id_toa=repeat(' ',len(bigdft_run_id_toa))
+
+      if (bigdft_mpi%ngroup>1) then
+         bigdft_run_id_toa=adjustl(trim(yaml_toa(bigdft_mpi%igroup,fmt='(i15)')))
+      end if
+
+    end function bigdft_run_id_toa
+
+
     !> copy the atom position in runObject into a workspace
-    subroutine bigdft_get_rxyz(runObj,rxyz_add,rxyz)
+    !! of retrieve the positions from a file
+    subroutine bigdft_get_rxyz(runObj,filename,rxyz_add,rxyz)
       use dynamic_memory, only: f_memcpy
       use yaml_strings, only: yaml_toa
+      use module_atoms, only: atomic_structure,nullify_atomic_structure,&
+           set_astruct_from_file,deallocate_atomic_structure
+      use module_base, only: bigdft_mpi
       implicit none
-      type(run_objects), intent(inout) :: runObj
+      !> run object from which the atomic positions have to be 
+      !! retrieved
+      type(run_objects), intent(inout), optional :: runObj
+      !> filename from which the atomic positions have to be read
+      !! alternative to runObj
+      character(len=*), intent(in), optional :: filename
       !>starting position of the atomic position.
       !! the user is responsible to guarantee that the 
       !! correct memory space is allocated thereafter
@@ -357,25 +407,49 @@ module bigdft_run
       real(gp), dimension(:,:), intent(out), optional :: rxyz
       !local variables
       integer :: n
+      type(atomic_structure) :: astruct
 
-      n=3*bigdft_nat(runObj)
-
-      if (present(rxyz_add) .eqv. present(rxyz)) then
-         call f_err_throw('Error in bigdft_get_rxyz: rxyz_add *xor* rxyz'//&
+      if (present(runObj) .eqv. present(filename)) then
+         call f_err_throw('Error in bigdft_get_rxyz: runObj *xor* filename'//&
               'should be present',err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
-      if (present(rxyz_add)) then
-         call f_memcpy(n=n,dest=rxyz_add,src=runObj%atoms%astruct%rxyz(1,1))
-      else if (present(rxyz)) then
-         if (n /= size(rxyz)) then
-            call f_err_throw('Error in bigdft_set_rxyz: wrong size ('//&
-                 trim(yaml_toa(n))//' /= '//trim(yaml_toa(size(rxyz)))//&
-                 ')',err_name='BIGDFT_RUNTIME_ERROR')
-         end if
-         call f_memcpy(dest=rxyz,src=runObj%atoms%astruct%rxyz)
-      end if
+      if (present(runObj)) then
+         n=3*bigdft_nat(runObj)
 
+         if (present(rxyz_add) .eqv. present(rxyz)) then
+            call f_err_throw('Error in bigdft_get_rxyz: rxyz_add *xor* rxyz'//&
+                 'should be present',err_name='BIGDFT_RUNTIME_ERROR')
+         end if
+
+         if (present(rxyz_add)) then
+            call f_memcpy(n=n,dest=rxyz_add,src=runObj%atoms%astruct%rxyz(1,1))
+         else if (present(rxyz)) then
+            if (n /= size(rxyz)) then
+               call f_err_throw('Error in bigdft_set_rxyz: wrong size ('//&
+                    trim(yaml_toa(n))//' /= '//trim(yaml_toa(size(rxyz)))//&
+                    ')',err_name='BIGDFT_RUNTIME_ERROR')
+            end if
+            call f_memcpy(dest=rxyz,src=runObj%atoms%astruct%rxyz)
+         end if
+      else if (present(filename)) then
+         call nullify_atomic_structure(astruct)
+         call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct)
+         n=3*astruct%nat
+         if (present(rxyz_add)) then
+            call f_memcpy(n=n,dest=rxyz_add,src=astruct%rxyz(1,1))
+         else if (present(rxyz)) then
+            if (n /= size(rxyz)) then
+               call f_err_throw('Error in bigdft_set_rxyz: wrong size ('//&
+                    trim(yaml_toa(n))//' /= '//trim(yaml_toa(size(rxyz)))//&
+                    ')',err_name='BIGDFT_RUNTIME_ERROR')
+            end if
+            call f_memcpy(dest=rxyz,src=astruct%rxyz)
+         end if
+
+       call deallocate_atomic_structure(astruct)
+       
+      end if
     end subroutine bigdft_get_rxyz
 
     !> returns the pointer to the atomic positions of the run.
@@ -540,20 +614,38 @@ module bigdft_run
     !! separately from run_objects
     !! should not give exception as release might be called indefinitely
     subroutine release_run_objects(runObj)
+      use module_types
+      use module_base
+      use module_atoms, only: deallocate_atoms_data
       implicit none
       type(run_objects), intent(inout) :: runObj
-      
+      !local variables
+      integer :: count
+
       if (associated(runObj%rst)) then
-         call f_unref(runObj%rst%refcnt)
-         nullify(runObj%rst)
+         call f_unref(runObj%rst%refcnt,count=count)
+         if (count==0) then
+            call free_restart_objects(runObj%rst)
+         else
+            nullify(runObj%rst)
+         end if
       end if
       if (associated(runObj%atoms)) then
-         call f_unref(runObj%atoms%refcnt)
-         nullify(runObj%atoms)
+         call f_unref(runObj%atoms%refcnt,count=count)
+         if (count==0) then
+            call deallocate_atoms_data(runObj%atoms) 
+         else
+            nullify(runObj%atoms)
+         end if
       end if
       if (associated(runObj%inputs)) then
-         call f_unref(runObj%inputs%refcnt)
-         nullify(runObj%inputs)
+         call f_unref(runObj%inputs%refcnt,count=count)
+         if (count==0) then
+            call free_input_variables(runObj%inputs)
+         else
+            nullify(runObj%inputs)
+         end if
+            
       end if
       call nullify_run_objects(runObj)
     end subroutine release_run_objects
@@ -563,7 +655,7 @@ module bigdft_run
     subroutine free_run_objects(runObj)
       use module_types
       use module_base
-      use  module_atoms, only: deallocate_atoms_data
+      use module_atoms, only: deallocate_atoms_data
       implicit none
       type(run_objects), intent(inout) :: runObj
 

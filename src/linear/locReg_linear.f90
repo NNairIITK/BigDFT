@@ -430,40 +430,40 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
 
 !!contains 
 
-  subroutine create_orbsder()
-    call nullify_orbitals_data(orbsder)
-    norbsperatom = f_malloc0(astruct%nat,id='norbsperatom')
-    locregCenter = f_malloc((/ 3, nlr /),id='locregCenter')
-    norbsPerLocreg = f_malloc(nlr,id='norbsPerLocreg')
-    do iorb=1,orbs%norb
-        iat=orbs%onwhichatom(iorb)
-        norbsperatom(iat)=norbsperatom(iat)+3
-    end do
-    norb=3*orbs%norb
-    norbu=norb
-    norbd=0
-    nspin=1
-    call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs%nspinor,&
-         orbs%nkpts, orbs%kpts, orbs%kwgts, orbsder,.true.) !simple repartition
-    call f_free_ptr(orbsder%onwhichatom)
-
-    do ilr=1,nlr
-        locregCenter(:,ilr)=llr(ilr)%locregCenter
-    end do
-                 
-    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, astruct%nat, astruct%nat, &
-         nspin, norbsPerAtom, locregCenter, orbsder%onwhichatom)
-
-    call f_free_ptr(orbsder%inWhichLocreg)
-    norbsPerLocreg=3
-
-    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, astruct%nat, nlr, &
-         nspin, norbsPerLocreg, locregCenter, orbsder%inwhichlocreg)
-
-    call f_free(locregCenter)
-    call f_free(norbsPerLocreg)
-    call f_free(norbsperatom)
-  end subroutine create_orbsder
+!!$  subroutine create_orbsder()
+!!$    call nullify_orbitals_data(orbsder)
+!!$    norbsperatom = f_malloc0(astruct%nat,id='norbsperatom')
+!!$    locregCenter = f_malloc((/ 3, nlr /),id='locregCenter')
+!!$    norbsPerLocreg = f_malloc(nlr,id='norbsPerLocreg')
+!!$    do iorb=1,orbs%norb
+!!$        iat=orbs%onwhichatom(iorb)
+!!$        norbsperatom(iat)=norbsperatom(iat)+3
+!!$    end do
+!!$    norb=3*orbs%norb
+!!$    norbu=norb
+!!$    norbd=0
+!!$    nspin=1
+!!$    call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs%nspinor,&
+!!$         orbs%nkpts, orbs%kpts, orbs%kwgts, orbsder,.true.) !simple repartition
+!!$    call f_free_ptr(orbsder%onwhichatom)
+!!$
+!!$    do ilr=1,nlr
+!!$        locregCenter(:,ilr)=llr(ilr)%locregCenter
+!!$    end do
+!!$                 
+!!$    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, astruct%nat, astruct%nat, &
+!!$         nspin, norbsPerAtom, locregCenter, orbsder%onwhichatom)
+!!$
+!!$    call f_free_ptr(orbsder%inWhichLocreg)
+!!$    norbsPerLocreg=3
+!!$
+!!$    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, astruct%nat, nlr, &
+!!$         nspin, norbsPerLocreg, locregCenter, orbsder%inwhichlocreg)
+!!$
+!!$    call f_free(locregCenter)
+!!$    call f_free(norbsPerLocreg)
+!!$    call f_free(norbsperatom)
+!!$  end subroutine create_orbsder
 
 END SUBROUTINE determine_locregSphere_parallel
 
