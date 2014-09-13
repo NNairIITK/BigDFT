@@ -257,6 +257,8 @@ module module_types
   !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
 
+     !>reference counter
+     type(f_reference_counter) :: refcnt
      !> Strings of the input files
      character(len=100) :: file_occnum !< Occupation number (input)
      character(len=100) :: file_igpop

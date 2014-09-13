@@ -85,30 +85,6 @@ module module_interfaces
          character(len = *), intent(in) :: radical
       END SUBROUTINE standard_inputfile_names
 
-      !> @author
-      !! Written by Laurent K Beland 2011 UdeM
-      !! For QM/MM implementation of BigDFT-ART
-      subroutine initialize_atomic_file(iproc,at,rxyz)
-         use module_defs, only: gp
-         use module_types, only: atoms_data
-         implicit none
-         integer, intent(in) :: iproc
-         type(atoms_data), intent(inout) :: at
-         real(gp), dimension(:,:), pointer :: rxyz
-      END SUBROUTINE initialize_atomic_file
-
-      subroutine write_atomic_file(filename,energy,rxyz,ixyz,atoms,comment,forces)
-        use module_defs, only: gp
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: filename,comment
-         type(atoms_data), intent(in) :: atoms
-         real(gp), intent(in) :: energy
-         real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
-         integer,dimension(3,atoms%astruct%nat),intent(in) :: ixyz
-         real(gp), dimension(3,atoms%astruct%nat), intent(in), optional :: forces
-      END SUBROUTINE write_atomic_file
-
       subroutine read_input_dict_from_files(radical, mpi_env,dict)
         use dictionaries, only: dictionary
         use wrapper_MPI, only: mpi_environment
@@ -350,7 +326,7 @@ module module_interfaces
        END SUBROUTINE input_wf_memory
 
        subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
-            & in, atoms, rxyz, rxyz_old, wfd, orbs, psi)
+            in, atoms, rxyz, wfd, orbs, psi)
          use module_defs
          use module_types
          implicit none
@@ -360,7 +336,7 @@ module module_interfaces
          type(input_variables), intent(in) :: in
          type(atoms_data), intent(in) :: atoms
          real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
-         real(gp), dimension(3, atoms%astruct%nat), intent(out) :: rxyz_old
+         !real(gp), dimension(3, atoms%astruct%nat), intent(out) :: rxyz_old
          type(wavefunctions_descriptors), intent(in) :: wfd
          type(orbitals_data), intent(inout) :: orbs
          real(wp), dimension(:), pointer :: psi
@@ -422,7 +398,7 @@ module module_interfaces
          integer, intent(out) :: norbv
          type(DFT_PSP_projectors), intent(inout) :: nlpsp
          type(grid_dimensions), intent(in) :: d_old
-         real(gp), dimension(3, atoms%astruct%nat), intent(inout) :: rxyz_old
+         real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz_old
          type(local_zone_descriptors),intent(inout):: lzd_old
          type(wavefunctions_descriptors), intent(inout) :: wfd_old
          type(system_fragment), dimension(:), pointer :: ref_frags
@@ -2646,7 +2622,7 @@ module module_interfaces
          real(gp), dimension(:,:), intent(out), optional :: rxyz_old
        end subroutine io_read_descr_linear
 
-        subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb,rxyz_old,rxyz,&
+        subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb,rxyz,&
                ref_frags,input_frag,frag_calc,orblist)
           use module_base
           use module_types
@@ -2658,7 +2634,7 @@ module module_interfaces
           type(atoms_data), intent(in) :: at
           type(DFT_wavefunction), intent(inout) :: tmb
           real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-          real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
+          !real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
           character(len=*), intent(in) :: dir_output, filename
           type(fragmentInputParameters), intent(in) :: input_frag
           type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags

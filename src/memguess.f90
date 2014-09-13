@@ -20,7 +20,7 @@ program memguess
    use module_fragments
    use yaml_output
    use bigdft_run
-   use module_atoms, only: set_astruct_from_file
+   use module_atoms, only: set_astruct_from_file,astruct_dump_to_file
    use internal_coordinates
    use gaussians, only: gaussian_basis, deallocate_gwf
    use communications_base, only: deallocate_comms
@@ -315,13 +315,20 @@ program memguess
       end if
       
       if (associated(fxyz)) then
-         call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at%astruct%ixyz_int,at,&
-              trim(fcomment) // ' (converted from '//trim(fileFrom)//")", forces=fxyz)
+         call astruct_dump_to_file(at%astruct,fileTo(1:irad-1),&
+              trim(fcomment) // ' (converted from '//trim(fileFrom)//")",&
+              energy,forces=fxyz)
+!!$         call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at%astruct%ixyz_int,at,&
+!!$              trim(fcomment) // ' (converted from '//trim(fileFrom)//")", forces=fxyz)
 
          call f_free_ptr(fxyz)
       else
-         call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at%astruct%ixyz_int,at,&
-              trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
+         call astruct_dump_to_file(at%astruct,fileTo(1:irad-1),&
+              trim(fcomment) // ' (converted from '//trim(fileFrom)//")",&
+              energy)
+!!$
+!!$         call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at%astruct%ixyz_int,at,&
+!!$              trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
       end if
       stop
    end if
@@ -399,11 +406,18 @@ program memguess
            !     degree, at%astruct%rxyz_int)
            !! The bond angle must be modified (take 180 degrees minus the angle)
            !at%astruct%rxyz_int(2:2,1:at%astruct%nat) = pi_param - at%astruct%rxyz_int(2:2,1:at%astruct%nat)
-           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz_int,&
-                at%astruct%ixyz_int,at,trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
+           call astruct_dump_to_file(at%astruct,fileTo(1:irad-1),&
+                trim(fcomment) // ' (converted from '//trim(fileFrom)//")",&
+                rxyz=at%astruct%rxyz_int)
+
+!!$           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz_int,&
+!!$                at%astruct%ixyz_int,at,trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
        else if (direction=='intcar' .or. direction=='carcar') then
-           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz,&
-                at%astruct%ixyz_int,at,trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
+          call astruct_dump_to_file(at%astruct,fileTo(1:irad-1),&
+               trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
+
+!!$           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz,&
+!!$                at%astruct%ixyz_int,at,trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
        end if
 
        write(*,*) 'Done.'
@@ -435,8 +449,11 @@ program memguess
       end if
       write(*,'(1x,a)')'Writing optimised positions in file posopt.[xyz,ascii]...'
       write(comment,'(a)')'POSITIONS IN OPTIMIZED CELL '
-      call write_atomic_file('posopt',0.d0,runObj%atoms%astruct%rxyz,&
-           runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment))
+
+      call astruct_dump_to_file(at%astruct,'posopt',trim(comment))
+
+!!$      call write_atomic_file('posopt',0.d0,runObj%atoms%astruct%rxyz,&
+!!$           runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment))
       !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
    end if
 
@@ -606,7 +623,7 @@ program memguess
    !remove the directory which has been created if it is possible
    call deldir(runObj%inputs%dir_output,len(trim(runObj%inputs%dir_output)),ierror)
 
-   call run_objects_free(runObj)
+   call free_run_objects(runObj)
 !   !finalize memory counting
 !   call memocc(0,0,'count','stop')
 

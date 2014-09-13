@@ -86,7 +86,7 @@ program abscalc_main
       call f_free_ptr(runObj%inputs%Gabs_coeffs)
       call f_free(fxyz)
 
-      call run_objects_free(runObj)
+      call free_run_objects(runObj)
 
  !  end if
    enddo !loop over iconfig
@@ -105,6 +105,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
    use module_types, only: input_variables,deallocate_wfd,atoms_data
    use module_interfaces
    use bigdft_run
+   use module_atoms, only: astruct_dump_to_file
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc
@@ -194,7 +195,9 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
             write(comment,'(a)')'UNCONVERGED WF '
             !call wtxyz('posfail',energy,rxyz,atoms,trim(comment))
 
-            call write_atomic_file("posfail",energy,rxyz,atoms%astruct%ixyz_int,atoms,trim(comment))
+            call astruct_dump_to_file(atoms%astruct,"posfail",&
+                 'UNCONVERGED WF ')
+!!$            call write_atomic_file("posfail",energy,rxyz,atoms%astruct%ixyz_int,atoms,trim(comment))
 
          end if 
 
@@ -242,7 +245,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use communications_base, only: comms_cubic
    use communications_init, only: orbitals_communicators
    use ao_inguess, only: set_aocc_from_string
-   use gaussians, only: gaussian_basis, nullify_gaussian_basis
+   use gaussians, only: gaussian_basis
    use yaml_output, only: yaml_warning,yaml_toa
    use psp_projectors, only: free_DFT_PSP_projectors
    implicit none

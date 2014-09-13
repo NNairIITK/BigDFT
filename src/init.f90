@@ -933,7 +933,7 @@ END SUBROUTINE input_memory_linear
 
 
 subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
-     & in, atoms, rxyz, rxyz_old, wfd, orbs, psi)
+     in, atoms, rxyz, wfd, orbs, psi)
   use module_base
   use module_types
   use module_interfaces, except_this_one => input_wf_disk
@@ -945,10 +945,14 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
-  real(gp), dimension(3, atoms%astruct%nat), intent(out) :: rxyz_old
+!  real(gp), dimension(3, atoms%astruct%nat), intent(out) :: rxyz_old
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(orbitals_data), intent(inout) :: orbs
   real(wp), dimension(:), pointer :: psi
+  !local variables
+  real(gp), dimension(:,:), allocatable :: rxyz_old !<this is read from the disk and not needed
+
+  rxyz_old=f_malloc([3,atoms%astruct%nat],id='rxyz_old')
 
   !restart from previously calculated wavefunctions, on disk
   !since each processor read only few eigenvalues, initialise them to zero for all
@@ -971,6 +975,9 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
      !        atoms%astruct%geocode,ngatherarr,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,n3p,in%nspin,hxh,hyh,hzh,rhopot)
      !end if
   end if
+
+  call f_free(rxyz_old)
+
 END SUBROUTINE input_wf_disk
 
 
@@ -1563,7 +1570,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use constrained_dft
   use dynamic_memory
   use yaml_output
-  use gaussians, only: gaussian_basis, nullify_gaussian_basis
+  use gaussians, only: gaussian_basis
   use sparsematrix_base, only: sparse_matrix
   use communications, only: transpose_localized, untranspose_localized
   use m_paw_ij, only: paw_ij_init
@@ -1587,7 +1594,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   !type(gaussian_basis), intent(inout) :: gbd
   !real(wp), dimension(:,:), pointer :: gaucoeffs
   type(grid_dimensions), intent(in) :: d_old
-  real(gp), dimension(3, atoms%astruct%nat), intent(inout) :: rxyz_old
+  real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz_old
   type(local_zone_descriptors),intent(inout):: lzd_old
   type(wavefunctions_descriptors), intent(inout) :: wfd_old
   type(system_fragment), dimension(:), pointer :: ref_frags
@@ -1802,7 +1809,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      end if
      call input_wf_disk(iproc, nproc, input_wf_format, KSwfn%Lzd%Glr%d,&
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-          in, atoms, rxyz, rxyz_old, KSwfn%Lzd%Glr%wfd, KSwfn%orbs, KSwfn%psi)
+          in, atoms, rxyz, KSwfn%Lzd%Glr%wfd, KSwfn%orbs, KSwfn%psi)
 
   case(INPUT_PSI_MEMORY_GAUSS)
      !restart from previously calculated gaussian coefficients
@@ -1881,7 +1888,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !     & atoms,rxyz_old,rxyz,tmb%psi,tmb%coeff)
 
      call readmywaves_linear_new(iproc,nproc,trim(in%dir_output),'minBasis',input_wf_format,&
-          atoms,tmb,rxyz_old,rxyz,ref_frags,in%frag,in%lin%fragment_calculation)
+          atoms,tmb,rxyz,ref_frags,in%frag,in%lin%fragment_calculation)
 
      ! normalize tmbs - only really needs doing if we reformatted, but will need to calculate transpose after anyway
      !nullify(tmb%psit_c)                                                                

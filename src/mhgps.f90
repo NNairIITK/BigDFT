@@ -14,7 +14,9 @@ program mhgps
     use module_atoms, only: deallocate_atoms_data,&
                             deallocate_atomic_structure,&
                             atomic_structure,&
-                            read_atomic_file=>set_astruct_from_file
+                            read_atomic_file=>set_astruct_from_file,&
+                            astruct_dump_to_file
+    
     use module_global_variables
     use module_init
     use module_energyandforces, only: energyandforces
@@ -119,7 +121,7 @@ real(gp), allocatable :: fat(:,:)
         fdim=outs%fdim
         call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,&
                                  rst)
-        call run_objects_nullify(runObj)
+        call nullify_run_objects(runObj)
         call run_objects_associate(runObj, inputs_opt, atoms, rst)
         call dict_free(options)
         !LG : to be wrapped again
@@ -331,14 +333,23 @@ allocate(fat(3,nat))
                 write(comment,'(a)')&
                      'TS guess; forces below give guessed '//&
                      'minimummode.'
-                call write_atomic_file(currDir//'/sad'//&
-                     trim(adjustl(isadc))//'_ig_finalM',&
-                     tsgenergy,tsguess(1,1),ixyz_int,atoms,&
-                     comment,forces=minmodeguess(1,1))
-                call write_atomic_file(currDir//'/sad'//&
-                     trim(adjustl(isadc))//'_ig_finalF',&
-                     tsgenergy,tsguess(1,1),ixyz_int,atoms,&
-                     comment,forces=tsgforces(1,1))
+                call astruct_dump_to_file(atoms%astruct,&
+                     currDir//'/sad'//trim(adjustl(isadc))//'_ig_finalM',&
+                     comment,&
+                     tsgenergy,rxyz=tsguess,forces=minmodeguess)
+!!$                call write_atomic_file(currDir//'/sad'//&
+!!$                     trim(adjustl(isadc))//'_ig_finalM',&
+!!$                     tsgenergy,tsguess(1,1),ixyz_int,atoms,&
+!!$                     comment,forces=minmodeguess(1,1))
+
+                call astruct_dump_to_file(atoms%astruct,&
+                     currDir//'/sad'//trim(adjustl(isadc))//'_ig_finalF',&
+                     comment,&
+                     tsgenergy,rxyz=tsguess,forces=tsgforces)
+!!$                call write_atomic_file(currDir//'/sad'//&
+!!$                     trim(adjustl(isadc))//'_ig_finalF',&
+!!$                     tsgenergy,tsguess(1,1),ixyz_int,atoms,&
+!!$                     comment,forces=tsgforces(1,1))
             else if(trim(adjustl(operation_mode))=='connect')&
                                                                  then
                 !read second file
@@ -425,18 +436,28 @@ allocate(fat(3,nat))
                        'but the final minmode| '//&
                        'fnrm, fmax = ',fnrm,fmax
 
-                        call write_atomic_file(currDir//'/sad'//&
-                        trim(adjustl(isadc))//'_finalM',energy,&
-                        rxyz(1,1),ixyz_int,atoms,comment,&
-                        forces=minmode(1,1))
+                        call astruct_dump_to_file(atoms%astruct,&
+                             currDir//'/sad'//trim(adjustl(isadc))//&
+                             '_finalM',&
+                             comment,&
+                             energy,rxyz=rxyz,forces=minmode)
+!!$                        call write_atomic_file(currDir//'/sad'//&
+!!$                        trim(adjustl(isadc))//'_finalM',energy,&
+!!$                        rxyz(1,1),ixyz_int,atoms,comment,&
+!!$                        forces=minmode(1,1))
                         !atoms,comment,forces=fxyz(1,1))
 
                         write(comment,'(a,1pe10.3,5x1pe10.3)')&
                        'fnrm, fmax = ',fnrm,fmax
-                        call write_atomic_file(currDir//'/sad'//&
-                        trim(adjustl(isadc))//'_finalF',energy,&
-                        rxyz(1,1),ixyz_int,atoms,comment,&
-                        forces=fxyz(1,1))
+                        call astruct_dump_to_file(atoms%astruct,&
+                             currDir//'/sad'//trim(adjustl(isadc))//&
+                             '_finalF',&
+                             comment,&
+                             energy,rxyz=rxyz,forces=fxyz)
+!!$                        call write_atomic_file(currDir//'/sad'//&
+!!$                        trim(adjustl(isadc))//'_finalF',energy,&
+!!$                        rxyz(1,1),ixyz_int,atoms,comment,&
+!!$                        forces=fxyz(1,1))
                         
                         call write_mode(nat,currDir//'/sad'//&
                         trim(adjustl(isadc))//'_mode_final',&
@@ -474,7 +495,8 @@ allocate(fat(3,nat))
         call free_restart_objects(rst)
         call deallocate_atoms_data(atoms)
         call deallocate_global_output(outs)
-        call run_objects_free_container(runObj)
+        !call run_objects_free_container(runObj)
+        call release_run_objects(runObj)
         call free_input_variables(inputs_opt)
         call bigdft_finalize(ierr)
     elseif(efmethod=='LJ'.or.efmethod=='AMBER')then

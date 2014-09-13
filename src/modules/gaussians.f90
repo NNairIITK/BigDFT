@@ -77,12 +77,16 @@ contains
 
 
   !> Nullify the pointers of the structure gaussian_basis
-  subroutine nullify_gaussian_basis(G)
+  pure subroutine nullify_gaussian_basis(G)
 
     implicit none
     !Arguments
     type(gaussian_basis),intent(inout) :: G 
 
+    G%nat=0     
+    G%ncoeff=0  
+    G%nshltot=0 
+    G%nexpo=0   
     G%ncplx=1
     nullify(G%nshell)
     nullify(G%ndoc)
@@ -90,7 +94,6 @@ contains
     nullify(G%psiat)
     nullify(G%xp)
     nullify(G%rxyz)
-
   END SUBROUTINE nullify_gaussian_basis
 
 

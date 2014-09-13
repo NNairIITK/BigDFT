@@ -16,6 +16,9 @@ module module_atoms
   use m_pawrad, only: pawrad_type
   use m_pawtab, only: pawtab_type
   use m_pawang, only: pawang_type
+  use dynamic_memory, only: f_reference_counter,nullify_f_ref,f_ref_new
+  use public_keys, only : ASTRUCT_CELL,ASTRUCT_POSITIONS,&
+       ASTRUCT_PROPERTIES,ASTRUCT_UNITS
   implicit none
   private
 
@@ -60,10 +63,12 @@ module module_atoms
 
   !> Data containing the information about the atoms in the system
   type, public :: atoms_data
+     !>reference counter
+     type(f_reference_counter) :: refcnt
      type(atomic_structure) :: astruct                   !< Atomic structure (positions and so on)
      type(aoig_data), dimension(:), pointer :: aoig      !< Contains the information needed for generating the AO inputguess data for each atom
      integer :: natsc                                    !< Number of atoms with semicore occupations at the input guess
-!     integer, dimension(:), pointer :: iasctype
+     !     integer, dimension(:), pointer :: iasctype
      integer, dimension(:), pointer :: nelpsp
      integer, dimension(:), pointer :: npspcode          !< PSP codes (see @link psp_projectors::pspcode_hgh @endlink)
      integer, dimension(:), pointer :: ixcpsp            !< PSP ixc code
@@ -77,7 +82,7 @@ module module_atoms
      logical :: multipole_preserving                     !< Activate preservation of the multipole moment for the ionic charge
      integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc !< Number of valence and core gaussians describing NLCC 
      real(gp), dimension(:,:), pointer :: nlccpar        !< Parameters for the non-linear core correction, if present
-!     real(gp), dimension(:,:), pointer :: ig_nlccpar    !< Parameters for the input NLCC
+     !     real(gp), dimension(:,:), pointer :: ig_nlccpar    !< Parameters for the input NLCC
      type(pawrad_type), dimension(:), pointer :: pawrad  !< PAW radial objects.
      type(pawtab_type), dimension(:), pointer :: pawtab  !< PAW objects for something.
      type(pawang_type) :: pawang                         !< PAW angular mesh definition.
@@ -91,238 +96,221 @@ module module_atoms
   end type atoms_data
 
   public :: atoms_data_null,nullify_atoms_data,deallocate_atoms_data
-  public :: atomic_structure_null,nullify_atomic_structure,deallocate_atomic_structure
+  public :: atomic_structure_null,nullify_atomic_structure,deallocate_atomic_structure,astruct_merge_to_dict
   public :: deallocate_symmetry_data,set_symmetry_data
-  public :: set_astruct_from_file
-  public :: allocate_atoms_data
+  public :: set_astruct_from_file,astruct_dump_to_file
+  public :: allocate_atoms_data,move_this_coordinate,frozen_itof,frozen_ftoi
+  public :: rxyz_inside_box,check_atoms_positions
 
 
-  contains
+contains
 
 
-    !> Creators and destructors
-    pure function symmetry_data_null() result(sym)
-      implicit none
-      type(symmetry_data) :: sym
-      call nullify_symmetry_data(sym)
-    end function symmetry_data_null
+  !> Creators and destructors
+  pure function symmetry_data_null() result(sym)
+    implicit none
+    type(symmetry_data) :: sym
+    call nullify_symmetry_data(sym)
+  end function symmetry_data_null
 
 
-    pure subroutine nullify_symmetry_data(sym)
-      type(symmetry_data), intent(out) :: sym
-      sym%symObj=-1
-      nullify(sym%irrzon)
-      nullify(sym%phnons)
-    end subroutine nullify_symmetry_data
+  pure subroutine nullify_symmetry_data(sym)
+    type(symmetry_data), intent(out) :: sym
+    sym%symObj=-1
+    nullify(sym%irrzon)
+    nullify(sym%phnons)
+  end subroutine nullify_symmetry_data
 
 
-    pure function atomic_structure_null() result(astruct)
-      implicit none
-      type(atomic_structure) :: astruct
-      call nullify_atomic_structure(astruct)
-    end function atomic_structure_null
+  pure function atomic_structure_null() result(astruct)
+    implicit none
+    type(atomic_structure) :: astruct
+    call nullify_atomic_structure(astruct)
+  end function atomic_structure_null
 
 
-    !> Initialize the structure atomic_structure
-    pure subroutine nullify_atomic_structure(astruct)
-      implicit none
-      type(atomic_structure), intent(out) :: astruct
-      astruct%geocode='X'
-      astruct%inputfile_format=repeat(' ',len(astruct%inputfile_format))
-      astruct%units=repeat(' ',len(astruct%units))
-      astruct%angle=repeat(' ',len(astruct%angle))
-      astruct%nat=-1
-      astruct%ntypes=-1
-      astruct%cell_dim=0.0_gp
-      nullify(astruct%input_polarization)
-      nullify(astruct%ifrztyp)
-      nullify(astruct%atomnames)
-      nullify(astruct%iatype)
-      nullify(astruct%rxyz)
-      call nullify_symmetry_data(astruct%sym)
-    end subroutine nullify_atomic_structure
+  !> Initialize the structure atomic_structure
+  pure subroutine nullify_atomic_structure(astruct)
+    implicit none
+    type(atomic_structure), intent(out) :: astruct
+    astruct%geocode='X'
+    astruct%inputfile_format=repeat(' ',len(astruct%inputfile_format))
+    astruct%units=repeat(' ',len(astruct%units))
+    astruct%angle=repeat(' ',len(astruct%angle))
+    astruct%nat=-1
+    astruct%ntypes=-1
+    astruct%cell_dim=0.0_gp
+    nullify(astruct%input_polarization)
+    nullify(astruct%ifrztyp)
+    nullify(astruct%atomnames)
+    nullify(astruct%iatype)
+    nullify(astruct%rxyz)
+    call nullify_symmetry_data(astruct%sym)
+  end subroutine nullify_atomic_structure
 
 
-    !> Nullify atoms_data structure
-    pure function atoms_data_null() result(at)
-      type(atoms_data) :: at
-      call nullify_atoms_data(at)
-    end function atoms_data_null
+  !> Nullify atoms_data structure
+  pure function atoms_data_null() result(at)
+    type(atoms_data) :: at
+    call nullify_atoms_data(at)
+  end function atoms_data_null
 
 
-    pure subroutine nullify_atoms_data(at)
-      use m_pawang, only: pawang_nullify
-      implicit none
-      type(atoms_data), intent(out) :: at
-      call nullify_atomic_structure(at%astruct)
-      nullify(at%aoig)
-      at%natsc=0
-      at%donlcc=.false.
-      at%multipole_preserving=.false.
-      at%iat_absorber=-1
-      !     nullify(at%iasctype)
-      nullify(at%nelpsp)
-      nullify(at%npspcode)
-      nullify(at%ixcpsp)
-      nullify(at%nzatom)
-      nullify(at%radii_cf)
-      nullify(at%iradii_source)
-      nullify(at%amu)
-      !     nullify(at%aocc)
-      !nullify(at%rloc)
-      nullify(at%psppar)
-      nullify(at%nlcc_ngv)
-      nullify(at%nlcc_ngc)
-      nullify(at%nlccpar)
-      nullify(at%paw_NofL)
-      nullify(at%paw_l)
-      nullify(at%paw_nofchannels)
-      nullify(at%paw_nofgaussians)
-      nullify(at%paw_Greal)
-      nullify(at%paw_Gimag)
-      nullify(at%paw_Gcoeffs)
-      nullify(at%paw_H_matrices)
-      nullify(at%paw_S_matrices)
-      nullify(at%paw_Sm1_matrices)
-      nullify(at%pawrad)
-      nullify(at%pawtab)
-      !call pawang_nullify(at%pawang) !not needed in fact
-    end subroutine nullify_atoms_data
+  pure subroutine nullify_atoms_data(at)
+    use m_pawang, only: pawang_nullify
+    implicit none
+    type(atoms_data), intent(out) :: at
+    call nullify_f_ref(at%refcnt)
+    call nullify_atomic_structure(at%astruct)
+    nullify(at%aoig)
+    at%natsc=0
+    at%donlcc=.false.
+    at%multipole_preserving=.false.
+    at%iat_absorber=-1
+    !     nullify(at%iasctype)
+    nullify(at%nelpsp)
+    nullify(at%npspcode)
+    nullify(at%ixcpsp)
+    nullify(at%nzatom)
+    nullify(at%radii_cf)
+    nullify(at%iradii_source)
+    nullify(at%amu)
+    !     nullify(at%aocc)
+    !nullify(at%rloc)
+    nullify(at%psppar)
+    nullify(at%nlcc_ngv)
+    nullify(at%nlcc_ngc)
+    nullify(at%nlccpar)
+    nullify(at%paw_NofL)
+    nullify(at%paw_l)
+    nullify(at%paw_nofchannels)
+    nullify(at%paw_nofgaussians)
+    nullify(at%paw_Greal)
+    nullify(at%paw_Gimag)
+    nullify(at%paw_Gcoeffs)
+    nullify(at%paw_H_matrices)
+    nullify(at%paw_S_matrices)
+    nullify(at%paw_Sm1_matrices)
+    nullify(at%pawrad)
+    nullify(at%pawtab)
+    !call pawang_nullify(at%pawang) !not needed in fact
+  end subroutine nullify_atoms_data
 
 
-    !> Destructor of symmetry data operations
-    subroutine deallocate_symmetry_data(sym)
-      use dynamic_memory, only: f_free_ptr
-      use m_ab6_symmetry, only: symmetry_free
-      implicit none
-      type(symmetry_data), intent(inout) :: sym
-      !character(len = *), intent(in) :: subname
-!      integer :: i_stat, i_all
+  !> Destructor of symmetry data operations
+  subroutine deallocate_symmetry_data(sym)
+    use dynamic_memory, only: f_free_ptr
+    use m_ab6_symmetry, only: symmetry_free
+    implicit none
+    type(symmetry_data), intent(inout) :: sym
+    !character(len = *), intent(in) :: subname
+    !      integer :: i_stat, i_all
 
-      if (sym%symObj >= 0) then
-         call symmetry_free(sym%symObj)
-      end if
-      call f_free_ptr(sym%irrzon)
-      call f_free_ptr(sym%phnons)
-    end subroutine deallocate_symmetry_data
-
-
-    !> Deallocate the structure atoms_data.
-    subroutine deallocate_atomic_structure(astruct)!,subname) 
-      use dynamic_memory, only: f_free_ptr
-      use module_base, only: memocc
-      implicit none
-      !character(len=*), intent(in) :: subname
-      type(atomic_structure), intent(inout) :: astruct
-      !local variables
-      character(len=*), parameter :: subname='deallocate_atomic_structure' !remove
-      integer :: i_stat, i_all
+    if (sym%symObj >= 0) then
+       call symmetry_free(sym%symObj)
+    end if
+    call f_free_ptr(sym%irrzon)
+    call f_free_ptr(sym%phnons)
+  end subroutine deallocate_symmetry_data
 
 
-      ! Deallocations for the geometry part.
-      if (astruct%nat >= 0) then
-         call f_free_ptr(astruct%ifrztyp)
-         call f_free_ptr(astruct%iatype)
-         call f_free_ptr(astruct%input_polarization)
-         call f_free_ptr(astruct%rxyz)
-         call f_free_ptr(astruct%rxyz_int)
-         call f_free_ptr(astruct%ixyz_int)
-      end if
-      if (astruct%ntypes >= 0) then
-          if (associated(astruct%atomnames)) then
-             i_all=-product(shape(astruct%atomnames))*kind(astruct%atomnames)
-             deallocate(astruct%atomnames, stat=i_stat)
-             call memocc(i_stat, i_all, 'astruct%atomnames', subname)
-          end if
-      end if
-      ! Free additional stuff.
-      call deallocate_symmetry_data(astruct%sym)
-
-    END SUBROUTINE deallocate_atomic_structure
+  !> Deallocate the structure atoms_data.
+  subroutine deallocate_atomic_structure(astruct)!,subname) 
+    use dynamic_memory, only: f_free_ptr
+    use module_base, only: memocc
+    implicit none
+    !character(len=*), intent(in) :: subname
+    type(atomic_structure), intent(inout) :: astruct
+    !local variables
+    character(len=*), parameter :: subname='deallocate_atomic_structure' !remove
+    integer :: i_stat, i_all
 
 
-    !> Deallocate the structure atoms_data.
-    subroutine deallocate_atoms_data(atoms) 
-      use module_base
-      use dynamic_memory
-      use m_pawrad, only: pawrad_destroy
-      use m_pawtab, only: pawtab_destroy
-      use m_pawang, only: pawang_destroy
-      implicit none
-      type(atoms_data), intent(inout) :: atoms
-      !local variables
-      character(len=*), parameter :: subname='dellocate_atoms_data' !remove
-      integer :: ityp
+    ! Deallocations for the geometry part.
+    if (astruct%nat >= 0) then
+       call f_free_ptr(astruct%ifrztyp)
+       call f_free_ptr(astruct%iatype)
+       call f_free_ptr(astruct%input_polarization)
+       call f_free_ptr(astruct%rxyz)
+       call f_free_ptr(astruct%rxyz_int)
+       call f_free_ptr(astruct%ixyz_int)
+    end if
+    if (astruct%ntypes >= 0) then
+       if (associated(astruct%atomnames)) then
+          i_all=-product(shape(astruct%atomnames))*kind(astruct%atomnames)
+          deallocate(astruct%atomnames, stat=i_stat)
+          call memocc(i_stat, i_all, 'astruct%atomnames', subname)
+       end if
+    end if
+    ! Free additional stuff.
+    call deallocate_symmetry_data(astruct%sym)
 
-      ! Deallocate atomic structure
-      call deallocate_atomic_structure(atoms%astruct) 
+  END SUBROUTINE deallocate_atomic_structure
 
-      ! Deallocations related to pseudos.
-      if (associated(atoms%nzatom)) then
-         call f_free_ptr(atoms%nzatom)
-         call f_free_ptr(atoms%psppar)
-         call f_free_ptr(atoms%nelpsp)
-         call f_free_ptr(atoms%ixcpsp)
-         call f_free_ptr(atoms%npspcode)
-         call f_free_ptr(atoms%nlcc_ngv)
-         call f_free_ptr(atoms%nlcc_ngc)
-         call f_free_ptr(atoms%radii_cf)
-         call f_free_ptr(atoms%iradii_source)
-         call f_free_ptr(atoms%amu)
-      end if
-      if (associated(atoms%aoig)) then
-         !no flib calls for derived types for the moment
-         deallocate(atoms%aoig)
-         nullify(atoms%aoig)
-      end if
-         call f_free_ptr(atoms%nlccpar)
 
-      !  Free data for pawpatch
-      if(associated(atoms%paw_l)) then
-         call f_free_ptr(atoms%paw_l)
-      end if
-      if(associated(atoms%paw_NofL)) then
-         call f_free_ptr(atoms%paw_NofL)
-      end if
-      if(associated(atoms%paw_nofchannels)) then
-         call f_free_ptr(atoms%paw_nofchannels)
-      end if
-      if(associated(atoms%paw_nofgaussians)) then
-         call f_free_ptr(atoms%paw_nofgaussians)
-      end if
-      if(associated(atoms%paw_Greal)) then
-         call f_free_ptr(atoms%paw_Greal)
-      end if
-      if(associated(atoms%paw_Gimag)) then
-         call f_free_ptr(atoms%paw_Gimag)
-      end if
-      if(associated(atoms%paw_Gcoeffs)) then
-         call f_free_ptr(atoms%paw_Gcoeffs)
-      end if
-      if(associated(atoms%paw_H_matrices)) then
-         call f_free_ptr(atoms%paw_H_matrices)
-      end if
-      if(associated(atoms%paw_S_matrices)) then
-         call f_free_ptr(atoms%paw_S_matrices)
-      end if
-      if(associated(atoms%paw_Sm1_matrices)) then
-         call f_free_ptr(atoms%paw_Sm1_matrices)
-      end if
+  !> Deallocate the structure atoms_data.
+  subroutine deallocate_atoms_data(atoms) 
+    use module_base
+    use dynamic_memory
+    use m_pawrad, only: pawrad_destroy
+    use m_pawtab, only: pawtab_destroy
+    use m_pawang, only: pawang_destroy
+    implicit none
+    type(atoms_data), intent(inout) :: atoms
+    !local variables
+    character(len=*), parameter :: subname='dellocate_atoms_data' !remove
+    integer :: ityp
 
-      ! Free PAW data.
-      if (associated(atoms%pawrad)) then
-         do ityp = 1, size(atoms%pawrad)
-            call pawrad_destroy(atoms%pawrad(ityp))
-         end do
-         deallocate(atoms%pawrad)
-      end if
-      if (associated(atoms%pawtab)) then
-         do ityp = 1, size(atoms%pawtab)
-            call pawtab_destroy(atoms%pawtab(ityp))
-         end do
-         deallocate(atoms%pawtab)
-      end if
-      call pawang_destroy(atoms%pawang)
+    !check if the freeing is possible
+    call f_ref_free(atoms%refcnt)
+
+    ! Deallocate atomic structure
+    call deallocate_atomic_structure(atoms%astruct) 
+
+    ! Deallocations related to pseudos.
+    call f_free_ptr(atoms%nzatom)
+    call f_free_ptr(atoms%psppar)
+    call f_free_ptr(atoms%nelpsp)
+    call f_free_ptr(atoms%ixcpsp)
+    call f_free_ptr(atoms%npspcode)
+    call f_free_ptr(atoms%nlcc_ngv)
+    call f_free_ptr(atoms%nlcc_ngc)
+    call f_free_ptr(atoms%radii_cf)
+    call f_free_ptr(atoms%iradii_source)
+    call f_free_ptr(atoms%amu)
+    if (associated(atoms%aoig)) then
+       !no flib calls for derived types for the moment
+       deallocate(atoms%aoig)
+       nullify(atoms%aoig)
+    end if
+    call f_free_ptr(atoms%nlccpar)
+
+    !  Free data for pawpatch
+    call f_free_ptr(atoms%paw_l)
+    call f_free_ptr(atoms%paw_NofL)
+    call f_free_ptr(atoms%paw_nofchannels)
+    call f_free_ptr(atoms%paw_nofgaussians)
+    call f_free_ptr(atoms%paw_Greal)
+    call f_free_ptr(atoms%paw_Gimag)
+    call f_free_ptr(atoms%paw_Gcoeffs)
+    call f_free_ptr(atoms%paw_H_matrices)
+    call f_free_ptr(atoms%paw_S_matrices)
+    call f_free_ptr(atoms%paw_Sm1_matrices)
+
+    ! Free PAW data.
+    if (associated(atoms%pawrad)) then
+       do ityp = 1, size(atoms%pawrad)
+          call pawrad_destroy(atoms%pawrad(ityp))
+       end do
+       deallocate(atoms%pawrad)
+    end if
+    if (associated(atoms%pawtab)) then
+       do ityp = 1, size(atoms%pawtab)
+          call pawtab_destroy(atoms%pawtab(ityp))
+       end do
+       deallocate(atoms%pawtab)
+    end if
+    call pawang_destroy(atoms%pawang)
     END SUBROUTINE deallocate_atoms_data
 
 
@@ -408,7 +396,7 @@ module module_atoms
       real(gp) :: energy_
       real(gp), dimension(:,:), pointer :: fxyz_
       character(len = 1024) :: comment_, files
-      external :: openNextCompress, check_atoms_positions
+      external :: openNextCompress
       real(gp),parameter :: degree = 57.295779513d0
 
       file_exists = .false.
@@ -605,9 +593,208 @@ module module_atoms
 
     END SUBROUTINE set_astruct_from_file
 
+    !> Write an atomic file
+    !! Yaml output included
+    subroutine astruct_dump_to_file(astruct,filename,comment,energy,rxyz,forces,fmt,unit)
+      use module_base
+      use yaml_output
+      use yaml_strings, only: f_strcpy
+      use internal_coordinates, only : xyzint
+      implicit none
+      character(len=*), intent(in) :: filename,comment
+      type(atomic_structure), intent(in) :: astruct
+      real(gp), intent(in), optional :: energy
+      real(gp), dimension(3,astruct%nat), intent(in), target, optional :: rxyz
+      real(gp), dimension(3,astruct%nat), intent(in), optional :: forces
+      !> unit of file writing. Has to be already opened
+      !! if filename is 'stdout' then this value is ignored
+      !! otherwise, the filename is ignored
+      integer, intent(in), optional :: unit
+      !> force the format of the output
+      !! the default is otherwise used as defined in inputfile_format
+      character(len=*), intent(in), optional :: fmt
+
+      !local variables
+      character(len = 15) :: arFile
+      integer :: iunit
+      character(len = 1024) :: fname
+      real(gp), dimension(3), parameter :: dummy = (/ 0._gp, 0._gp, 0._gp /)
+      type(dictionary), pointer :: dict
+      real(gp),dimension(:,:),allocatable :: rxyz_int
+      real(kind=8),parameter :: degree=1.d0
+      real(gp) :: energy_
+      real(gp), dimension(:,:), pointer :: rxyz_
+      character(len=len(astruct%inputfile_format)) :: formt
+
+      energy_=0.0_gp
+      if (present(energy)) energy_ =energy
+      rxyz_ => astruct%rxyz
+      if (present(rxyz)) rxyz_ => rxyz
+      formt=astruct%inputfile_format
+      if (present(fmt)) call f_strcpy(src=fmt,dest=formt)
+      iunit=9
+      if (present(unit)) iunit=unit
+
+      if (trim(filename) == "stdout") then
+         iunit = 6
+      else if (.not. present(unit)) then
+         !also unit opening should be checked
+         write(fname,"(A)") trim(filename)//'.'//trim(astruct%inputfile_format)
+         if (formt == 'yaml') then
+            call yaml_set_stream(unit = iunit, filename = trim(fname), &
+                 record_length = 92, setdefault = .false., tabbing = 0)
+         else
+            !here the f_utils module should be defined to control file opening
+            open(unit = iunit, file = trim(fname))
+         end if
+      end if
+
+      select case(formt)
+      case('xyz')
+         call wtxyz(iunit,energy_,rxyz_,astruct,comment)
+         if (present(forces)) call wtxyz_forces(9,forces,astruct)
+      case('ascii')
+         call wtascii(iunit,energy_,rxyz_,astruct,comment)
+         if (present(forces)) call wtascii_forces(9,forces,astruct)
+      case ('int')
+         !if (.not.present(na) .or. .not.present(nb) .or. .not.present(nc)) then
+         !    call f_err_throw('na, nb, nc must be present to write a file in internal coordinates', &
+         !         err_name='BIGDFT_RUNTIME_ERROR')
+         !end if
+         rxyz_int = f_malloc((/3,astruct%nat/),id='rxyz_int')
+         !call wtint(iunit,energy_,rxyz,astruct,comment,ixyz(1,:),ixyz(2,:),ixyz(3,:))
+         call xyzint(rxyz_, astruct%nat, &
+              astruct%ixyz_int(1,:), astruct%ixyz_int(2,:),astruct%ixyz_int(3,:), &
+              degree, rxyz_int)
+         call wtint(iunit,energy_,rxyz_int,astruct,comment,astruct%ixyz_int(1,:),astruct%ixyz_int(2,:),astruct%ixyz_int(3,:))
+         call f_free(rxyz_int)
+      case('yaml')
+         call yaml_new_document(unit = iunit)
+         call dict_init(dict)
+         call astruct_merge_to_dict(dict, astruct, rxyz_, comment)
+         call yaml_dict_dump(dict, unit = iunit)
+         call dict_free(dict)
+      case default
+         call f_err_throw('Writing the atomic file. Error, unknown file format ("'//&
+              trim(astruct%inputfile_format)//'")', &
+              err_name='BIGDFT_RUNTIME_ERROR')
+      end select
+
+      if (iunit /= 6 .and. .not. present(unit)) then
+         if (astruct%inputfile_format == 'yaml') then
+            call yaml_close_stream(unit = iunit)
+         else
+            close(unit = iunit)
+         end if
+         ! Add to archive
+         if (index(filename, "posout_") == 1 .or. index(filename, "posmd_") == 1) then
+            write(arFile, "(A)") "posout.tar.bz2"
+            if (index(filename, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
+            call addToCompress(trim(arFile), len(trim(arFile)), trim(fname), len(trim(fname)))
+         end if
+      end if
+    END SUBROUTINE astruct_dump_to_file
+
+    !> Convert astruct to dictionary for later dump.
+    subroutine astruct_merge_to_dict(dict, astruct, rxyz, comment)
+      use module_defs, only: gp, UNINITIALIZED, Bohr_Ang
+      use dictionaries
+      use yaml_strings
+      use ao_inguess, only: charge_and_spol
+      implicit none
+      type(dictionary), pointer :: dict
+      type(atomic_structure), intent(in) :: astruct
+      real(gp), dimension(3, astruct%nat), intent(in) :: rxyz
+      character(len=*), intent(in), optional :: comment
+      !local variables
+      type(dictionary), pointer :: pos, at
+      integer :: iat,ichg,ispol
+      real(gp) :: factor(3)
+      logical :: reduced
+      character(len = 4) :: frzstr
+
+      !call dict_init(dict)
+
+      reduced = .false.
+      factor=1.0_gp
+      Units: select case(trim(astruct%units))
+      case('angstroem','angstroemd0')
+         call set(dict // ASTRUCT_UNITS, 'angstroem')
+         factor=Bohr_Ang
+      case('reduced')
+         call set(dict // ASTRUCT_UNITS, 'reduced')
+         reduced = .true.
+      case('atomic','atomicd0','bohr','bohrd0')
+         ! Default, store nothing
+      end select Units
+
+      !cell information
+      BC :select case(astruct%geocode)
+      case('S')
+         call set(dict // ASTRUCT_CELL // 0, yaml_toa(astruct%cell_dim(1)*factor(1)))
+         call set(dict // ASTRUCT_CELL // 1, '.inf')
+         call set(dict // ASTRUCT_CELL // 2, yaml_toa(astruct%cell_dim(3)*factor(3)))
+         !angdeg to be added
+         if (reduced) then
+            factor(1) = 1._gp / astruct%cell_dim(1)
+            factor(3) = 1._gp / astruct%cell_dim(3)
+         end if
+      case('W')
+         call set(dict // ASTRUCT_CELL // 0, '.inf')
+         call set(dict // ASTRUCT_CELL // 1, '.inf')
+         call set(dict // ASTRUCT_CELL // 2, yaml_toa(astruct%cell_dim(3)*factor(3)))
+         if (reduced) then
+            factor(3) = 1._gp / astruct%cell_dim(3)
+         end if
+      case('P')
+         call set(dict // ASTRUCT_CELL // 0, yaml_toa(astruct%cell_dim(1)*factor(1)))
+         call set(dict // ASTRUCT_CELL // 1, yaml_toa(astruct%cell_dim(2)*factor(2)))
+         call set(dict // ASTRUCT_CELL // 2, yaml_toa(astruct%cell_dim(3)*factor(3)))
+         !angdeg to be added
+         if (reduced) then
+            factor(1) = 1._gp / astruct%cell_dim(1)
+            factor(2) = 1._gp / astruct%cell_dim(2)
+            factor(3) = 1._gp / astruct%cell_dim(3)
+         end if
+      case('F')
+         ! Default, store nothing and erase key if already exist.
+         if (has_key(dict, ASTRUCT_CELL)) call dict_remove(dict, ASTRUCT_CELL)
+      end select BC
+
+      if (has_key(dict, ASTRUCT_POSITIONS)) call dict_remove(dict, ASTRUCT_POSITIONS)
+      if (astruct%nat > 0) pos => dict // ASTRUCT_POSITIONS
+      do iat=1,astruct%nat
+         call dict_init(at)
+         call add(at // astruct%atomnames(astruct%iatype(iat)), rxyz(1,iat) * factor(1))
+         call add(at // astruct%atomnames(astruct%iatype(iat)), rxyz(2,iat) * factor(2))
+         call add(at // astruct%atomnames(astruct%iatype(iat)), rxyz(3,iat) * factor(3))
+         if (astruct%ifrztyp(iat) /= 0) then
+            call frozen_itof(astruct%ifrztyp(iat), frzstr)
+            call set(at // "Frozen", adjustl(frzstr))
+         end if
+         call charge_and_spol(astruct%input_polarization(iat),ichg,ispol)
+         if (ichg /= 0) call set(at // "IGChg", ichg)
+         if (ispol /= 0) call set(at // "IGSpin", ispol)
+         ! information for internal coordinates
+         if (astruct%inputfile_format=='int') then
+            call set(at // "int_ref_atoms_1", astruct%ixyz_int(1,iat))
+            call set(at // "int_ref_atoms_2", astruct%ixyz_int(2,iat))
+            call set(at // "int_ref_atoms_3", astruct%ixyz_int(3,iat))
+         end if
+         call add(pos, at)
+      end do
+
+      if (present(comment)) then
+         if (len_trim(comment) > 0) &
+              & call add(dict // ASTRUCT_PROPERTIES // "info", comment)
+      end if
+
+      if (len_trim(astruct%inputfile_format) > 0) &
+           & call set(dict // ASTRUCT_PROPERTIES // "format", astruct%inputfile_format)
+    end subroutine astruct_merge_to_dict
+
 
     include 'astruct-inc.f90'
-
 
     !> Terminate the allocation of the memory in the pointers of atoms
     subroutine allocate_atoms_data(atoms)
@@ -632,6 +819,7 @@ subroutine astruct_set_n_atoms(astruct, nat)
   integer, intent(in) :: nat
   !local variables
   character(len=*), parameter :: subname='astruct_set_n_atoms' !<remove
+
 
   astruct%nat = nat
 
@@ -795,6 +983,9 @@ subroutine allocate_atoms_nat(atoms)
   type(atoms_data), intent(inout) :: atoms
   integer :: iat
 
+  !create the reference counter
+  atoms%refcnt=f_ref_new('atoms')
+
   allocate(atoms%aoig(atoms%astruct%nat))
   do iat=1,atoms%astruct%nat
      atoms%aoig(iat)=aoig_data_null()
@@ -853,3 +1044,31 @@ subroutine atoms_free(atoms)
   call deallocate_atoms_data(atoms)
   deallocate(atoms)
 END SUBROUTINE atoms_free
+
+!> Add a displacement of atomic positions and put in the box
+subroutine astruct_set_displacement(astruct, randdis)
+  use module_defs, only: gp
+  use module_atoms, only: rxyz_inside_box,atomic_structure,&
+       move_this_coordinate
+  implicit none
+  type(atomic_structure), intent(inout) :: astruct
+  real(gp), intent(in) :: randdis !< random displacement
+
+  integer :: iat,i
+  real :: tt
+
+  !Shake atoms if required.
+  if (randdis > 0.d0) then
+     do iat=1,astruct%nat
+        do i=1,3
+           if (move_this_coordinate(astruct%ifrztyp(iat),i)) then
+              call random_number(tt)
+              astruct%rxyz(i,iat)=astruct%rxyz(i,iat)+randdis*real(tt,gp)
+            end if
+         end do
+      end do
+   end if
+
+   call rxyz_inside_box(astruct)
+   
+END SUBROUTINE astruct_set_displacement

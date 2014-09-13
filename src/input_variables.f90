@@ -477,6 +477,8 @@ subroutine default_input_variables(in)
   implicit none
 
   type(input_variables), intent(inout) :: in
+  
+  in%refcnt=f_ref_new('inputs')
 
   in%matacc=material_acceleration_null()
 
@@ -772,12 +774,12 @@ subroutine free_input_variables(in)
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_input_variables'
 
-!!$  if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) &
-!!$       & call deallocateBasicArraysInput(in%lin)
+  !check if freeing is possible
+  call f_ref_free(in%refcnt)
 
   call free_geopt_variables(in)
   call free_kpt_variables(in)
-  if (associated(in%gen_occup)) call f_free_ptr(in%gen_occup)
+  call f_free_ptr(in%gen_occup)
   call deallocateBasicArraysInput(in%lin)
   call deallocateInputFragArrays(in%frag)
 

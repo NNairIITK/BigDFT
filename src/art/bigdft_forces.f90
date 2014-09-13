@@ -160,7 +160,7 @@ module bigdft_forces
          call prepare_quantum_atoms_Si(atoms_all,posquant,natoms_calcul)
          !we just copy it in a smaller vect
          call copy_atoms_object(atoms_all,runObj%atoms,runObj%atoms%astruct%rxyz,natoms_calcul,total_nb_atoms,posquant)
-         call initialize_atomic_file(me_,runObj%atoms,runObj%atoms%astruct%rxyz)
+         call initialize_atomic_file(me_,runObj%atoms%astruct,runObj%atoms%astruct%rxyz)
       endif
       call astruct_merge_to_dict(dict // "posinp", runObj%atoms%astruct, runObj%atoms%astruct%rxyz)
 
@@ -186,6 +186,96 @@ module bigdft_forces
 !!$      runObj%radii_cf = runObj%atoms%radii_cf
 
    END SUBROUTINE bigdft_init_art
+
+   !> This routine does the same operations as read_atomic_file but uses inputs from memory
+   !! as input positions instead of inputs from file
+   !! Useful for QM/MM implementation of BigDFT-ART
+   !! @author Written by Laurent K Beland 2011 UdeM
+   subroutine initialize_atomic_file(iproc,astruct,rxyz)
+     use module_base
+     use m_ab6_symmetry
+     use yaml_output
+     use module_atoms
+     implicit none
+     integer, intent(in) :: iproc
+     type(atomic_structure), intent(inout) :: astruct
+     real(gp), dimension(:,:), pointer :: rxyz
+     !local variables
+     character(len=*), parameter :: subname='initialize_atomic_file'
+     integer :: iat,i,ierr
+
+     if (astruct%geocode=='S') then 
+        astruct%cell_dim(2)=0.0_gp
+     else if (astruct%geocode=='F') then !otherwise free bc    
+        astruct%cell_dim(1)=0.0_gp
+        astruct%cell_dim(2)=0.0_gp
+        astruct%cell_dim(3)=0.0_gp
+     else
+        astruct%cell_dim(1)=0.0_gp
+        astruct%cell_dim(2)=0.0_gp
+        astruct%cell_dim(3)=0.0_gp
+     end if
+
+     !reduced coordinates are possible only with periodic units
+     if (astruct%units == 'reduced' .and. astruct%geocode == 'F') then
+        if (iproc==0) write(*,'(1x,a)')&
+             'ERROR: Reduced coordinates are not allowed with isolated BC'
+     end if
+
+     !convert the values of the cell sizes in bohr
+     if (astruct%units=='angstroem' .or. astruct%units=='angstroemd0') then
+        ! if Angstroem convert to Bohr
+        astruct%cell_dim(1)=astruct%cell_dim(1)/Bohr_Ang
+        astruct%cell_dim(2)=astruct%cell_dim(2)/Bohr_Ang
+        astruct%cell_dim(3)=astruct%cell_dim(3)/Bohr_Ang
+     else if (astruct%units == 'reduced') then
+        !assume that for reduced coordinates cell size is in bohr
+        astruct%cell_dim(1)=real(astruct%cell_dim(1),gp)
+        astruct%cell_dim(2)=real(astruct%cell_dim(2),gp)
+        astruct%cell_dim(3)=real(astruct%cell_dim(3),gp)
+     else
+        call yaml_warning('Length units in input file unrecognized')
+        call yaml_warning('recognized units are angstroem or atomic = bohr')
+        call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
+     endif
+
+     do iat=1,astruct%nat
+        !xyz input file, allow extra information
+
+        if (astruct%units == 'reduced') then !add treatment for reduced coordinates
+           rxyz(1,iat)=modulo(rxyz(1,iat),1.0_gp)
+           if (astruct%geocode == 'P') rxyz(2,iat)=modulo(rxyz(2,iat),1.0_gp)
+           rxyz(3,iat)=modulo(rxyz(3,iat),1.0_gp)
+        else if (astruct%geocode == 'P') then
+           rxyz(1,iat)=modulo(rxyz(1,iat),astruct%cell_dim(1))
+           rxyz(2,iat)=modulo(rxyz(2,iat),astruct%cell_dim(2))
+           rxyz(3,iat)=modulo(rxyz(3,iat),astruct%cell_dim(3))
+        else if (astruct%geocode == 'S') then
+           rxyz(1,iat)=modulo(rxyz(1,iat),astruct%cell_dim(1))
+           rxyz(3,iat)=modulo(rxyz(3,iat),astruct%cell_dim(3))
+        end if
+
+        if (astruct%units=='angstroem' .or. astruct%units=='angstroemd0') then
+           ! if Angstroem convert to Bohr
+           do i=1,3 
+              rxyz(i,iat)=rxyz(i,iat)/Bohr_Ang
+           enddo
+        else if (astruct%units == 'reduced') then 
+           rxyz(1,iat)=rxyz(1,iat)*astruct%cell_dim(1)
+           if (astruct%geocode == 'P') rxyz(2,iat)=rxyz(2,iat)*astruct%cell_dim(2)
+           rxyz(3,iat)=rxyz(3,iat)*astruct%cell_dim(3)
+        endif
+     enddo
+
+     !control atom positions
+     call check_atoms_positions(astruct,(iproc == 0))
+
+     ! We delay the calculation of the symmetries.
+     astruct%sym%symObj = -1
+     nullify(astruct%sym%irrzon)
+     nullify(astruct%sym%phnons)
+
+   END SUBROUTINE initialize_atomic_file
 
 
    !> ART calcforce_bigdft
@@ -229,7 +319,7 @@ module bigdft_forces
 
          runObj%inputs%inputPsiId = 0
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft(runObj, outs, nproc, me, infocode )
+         call call_bigdft(runObj, outs, infocode )
          evalf_number = evalf_number + 1
 
          runObj%inputs%inputPsiId = 1
@@ -254,7 +344,7 @@ module bigdft_forces
 
          ! Get into BigDFT
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft(runObj, outs, nproc, me, infocode )
+         call call_bigdft(runObj, outs, infocode )
          evalf_number = evalf_number + 1
 
       end if
@@ -352,7 +442,7 @@ module bigdft_forces
       !Local variable
       character(len=*), parameter :: subname='bigdft_finalise'
 
-      call run_objects_free(runObj)
+      call free_run_objects(runObj)
    END SUBROUTINE bigdft_finalise
 
    !> Removes the net force taking into account the blocked atoms
@@ -618,7 +708,7 @@ module bigdft_forces
       end do
 
       call MPI_Barrier(MPI_COMM_WORLD,ierror)
-      call call_bigdft(runObj, outs, nproc, me, infocode )
+      call call_bigdft(runObj, outs, infocode )
       evalf_number = evalf_number + 1
       runObj%inputs%inputPsiId = 1
 
@@ -639,7 +729,7 @@ module bigdft_forces
          ! and we clean again here
          runObj%inputs%inputPsiId = 0 
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft(runObj, outs, nproc, me, infocode )
+         call call_bigdft(runObj, outs, infocode )
          evalf_number = evalf_number + 1
          runObj%inputs%inputPsiId = 1
 

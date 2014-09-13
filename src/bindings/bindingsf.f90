@@ -509,10 +509,12 @@ END SUBROUTINE lzd_get_llr
 subroutine inputs_new(in)
   use module_types
   use dictionaries
+  use dynamic_memory
   implicit none
   type(input_variables), pointer :: in
   allocate(in)
-  call default_input_variables(in)
+  call nullify_f_ref(in%refcnt)
+  !call default_input_variables(in)
 end subroutine inputs_new
 
 
@@ -1527,12 +1529,12 @@ subroutine run_objects_new(runObj)
   type(run_objects), pointer :: intern
 
   allocate(intern)
-  call run_objects_nullify(intern)
+  call nullify_run_objects(intern)
   runObj => intern
 
   ! Allocate persistent structures.
   allocate(runObj%rst)
-  call restart_objects_new(runObj%rst)
+  call nullify_restart_objects(runObj%rst)
 END SUBROUTINE run_objects_new
 
 
@@ -1542,7 +1544,7 @@ subroutine run_objects_destroy(runObj)
   type(run_objects), pointer :: runObj
 
   ! The caller is responsible to nullify attributes he wants to keep.
-  call run_objects_free(runObj)
+  call free_run_objects(runObj)
   deallocate(runObj)
 end subroutine run_objects_destroy
 
@@ -1601,6 +1603,17 @@ subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly)
   call yaml_set_default_stream(iunit_def, iostat)
 END SUBROUTINE run_objects_dump_to_file
 
+!wrapper to call_bigdft in bigdft run
+subroutine bigdft_exec(runObj,outs,infocode)
+  use bigdft_run, only: run_objects,DFT_global_output,call_bigdft
+  implicit none
+  type(run_objects), intent(inout) :: runObj
+  type(DFT_global_output), intent(inout) :: outs
+  integer, intent(inout) :: infocode
+
+  call call_bigdft(runObj,outs,infocode)
+
+end subroutine bigdft_exec
 
 subroutine run_objects_set_dict(runObj, dict)
   use bigdft_run, only: run_objects

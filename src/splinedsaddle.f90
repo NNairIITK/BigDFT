@@ -75,8 +75,7 @@ program splined_saddle
         runObj%inputs%last_run = 1
      end if
 
-     call call_bigdft(runObj, outs,&
-          bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+     call call_bigdft(runObj, outs,infocode)
 
      if (runObj%inputs%ncount_cluster_x > -1) then
         if (bigdft_mpi%iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
@@ -104,13 +103,13 @@ program splined_saddle
      !if there is a last run to be performed do it now before stopping
      if (runObj%inputs%last_run == -1) then
         runObj%inputs%last_run = 1
-        call call_bigdft(runObj, outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+        call call_bigdft(runObj, outs,infocode)
      end if
 
      if (bigdft_mpi%iproc == 0) call write_forces(runObj%atoms,outs%fxyz)
 
      call deallocate_global_output(outs)
-     call run_objects_free(runObj)
+     call free_run_objects(runObj)
      run => dict_next(run)
   end do
 
@@ -253,7 +252,8 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     use minimization_sp, only:parameterminimization_sp  !Reza
     use modulesplinedsaddle, only:parametersplinedsaddle
     use module_input_dicts
-    use module_atoms, only: deallocate_atoms_data
+    use module_atoms, only: deallocate_atoms_data,astruct_dump_to_file,&
+         move_this_coordinate
     use bigdft_run
     implicit none
     integer, intent(in) :: nproc,iproc
@@ -278,7 +278,6 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     type(DFT_global_output), dimension(2) :: outends
     !character(50)::ssm
     character(len=20)::filename
-    logical::move_this_coordinate
     character(40)::comment
     integer, parameter::ndeb1=0,ndeb2=0
     !---------------------------------------------------------------------------
@@ -383,20 +382,21 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     !---------------------------------------------------------------------------
     call vcopy(n, fatsp(1,1), 1, outends(1)%fxyz(1,1), 1)
     pnow%exends_b(1)=epot_sp
-    call atomic_dot(atoms,outends(1)%fxyz(1,1),outends(1)%fxyz(1,1),fnrm1)
+    call atomic_dot(atoms%astruct,outends(1)%fxyz(1,1),outends(1)%fxyz(1,1),fnrm1)
     fnrm1=sqrt(fnrm1)
-    call run_objects_nullify(runObj)
+    call nullify_run_objects(runObj)
     call run_objects_associate(runObj, inputs, atoms, rst, x(1,np))
     !if(iproc==0) write(*,*) 'ALIREZA-03'
     call cpu_time(time1)
-    call call_bigdft(runObj,outends(2),nproc,iproc,infocode)
+    call call_bigdft(runObj,outends(2),infocode)
     call cpu_time(time2)
-    call run_objects_free_container(runObj)
+    call release_run_objects(runObj)
+    !call run_objects_free_container(runObj)
     pnow%exends_b(2)=outends(2)%energy
     ncount_bigdft=ncount_bigdft+1
     pnow%ncount=2
     pnow%time=2.d0*(time2-time1)
-    call atomic_dot(atoms,outends(2)%fxyz(1,1),outends(2)%fxyz(1,1),fnrm2)
+    call atomic_dot(atoms%astruct,outends(2)%fxyz(1,1),outends(2)%fxyz(1,1),fnrm2)
     fnrm2=sqrt(fnrm2)
     !if(iproc==0) write(*,*) 'ALIREZA-04'
     if(iproc==0) then
@@ -407,10 +407,10 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     endif
     !---------------------------------------------------------------------------
     if(trim(pnow%hybrid)=='yes') then
-       call run_objects_nullify(ll_runObj)
+       call nullify_run_objects(ll_runObj)
        call run_objects_associate(ll_runObj, ll_inputs, atoms, rst, x(1,0))
        call cpu_time(time1)
-       call call_bigdft(ll_runObj,outends(1),nproc,iproc,infocode)
+       call call_bigdft(ll_runObj,outends(1),infocode)
        pnow%exends(1) = outends(1)%energy
        call cpu_time(time2)
        ncount_bigdft=ncount_bigdft+1
@@ -418,9 +418,10 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
        pnow%time_ll=pnow%time_ll+(time2-time1)
        call vcopy(n, x(1,np), 1, ll_runObj%atoms%astruct%rxyz(1,1), 1)
        call cpu_time(time1)
-       call call_bigdft(ll_runObj,outends(2),nproc,iproc,infocode)
+       call call_bigdft(ll_runObj,outends(2),infocode)
        call cpu_time(time2)
-       call run_objects_free_container(ll_runObj)
+       call release_run_objects(ll_runObj)
+       !call run_objects_free_container(ll_runObj)
        pnow%exends(2) = outends(2)%energy
        ncount_bigdft=ncount_bigdft+1
        pnow%ncount_ll=pnow%ncount_ll+1
@@ -471,9 +472,11 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,atoms,rst,inputs,n
     if(iproc==0) call writepathway(n,np,x,'pathout.xyz',atoms)
     call finalminimize(parmin)
     if (iproc==0) then
-        call atomic_dot(atoms,fatsp,fatsp,fnrm);fnrm=sqrt(fnrm)
+        call atomic_dot(atoms%astruct,fatsp,fatsp,fnrm);fnrm=sqrt(fnrm)
        write(comment,'(a,1pe10.3)')'CONJG:fnrm= ',fnrm
-       call write_atomic_file('saddle',epot_sp,ratsp,atoms%astruct%ixyz_int,atoms,trim(comment))
+       call astruct_dump_to_file(atoms%astruct,'saddle',trim(comment),&
+            energy=epot_sp,rxyz=ratsp)
+!!$       call write_atomic_file('saddle',epot_sp,ratsp,atoms%astruct%ixyz_int,atoms,trim(comment))
     endif
     if(iproc==0) then
         mm1=pnow%ncount
@@ -505,7 +508,7 @@ end subroutine givemesaddle
 
 
 subroutine change_np(n,np1,x1,atoms,np2,x2)
-    use module_types
+    use module_atoms, only: atoms_data,move_this_coordinate
     !use modulesplinedsaddle, only:parametersplinedsaddle
     !use energyandforces, only:calenergyforces
     implicit none
@@ -513,7 +516,6 @@ subroutine change_np(n,np1,x1,atoms,np2,x2)
     real(kind=8)::x1(n,0:np1),x2(n,0:np2)
     real(kind=8)::s(0:100),h(100),y(0:100),e1(200-1),e2(200-2),c(0:200),tt,dt,ed_tt,edd_tt
     type(atoms_data), intent(inout) :: atoms
-    logical::move_this_coordinate
     !x_t(1:n,0:np)=x(1:n,0:np)
     !deallocate(x,stat=istat);if(istat/=0) stop 'ERROR: failure deallocating x'
     !allocate(x(n,0:50+ndeb2),stat=istat);if(istat/=0) stop 'ERROR: failure allocating x'
@@ -557,6 +559,7 @@ subroutine improvepeak(n,nr,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,nc
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     use bigdft_run
+    use module_atoms, only: move_this_coordinate
     !use energyandforces, only:calenergyforces
     implicit none
     integer :: n,nr,np,i,ip,npv,nproc,iproc,mp,lp,iat,ixyz,iter,ncount_bigdft,infocode
@@ -569,7 +572,6 @@ subroutine improvepeak(n,nr,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,nc
     type(restart_objects), intent(inout) :: rst
     type(parametersplinedsaddle)::pnow,pold
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
-    logical::move_this_coordinate
     type(run_objects) :: runObj
     type(DFT_global_output) :: outs
 
@@ -613,24 +615,24 @@ subroutine improvepeak(n,nr,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,nc
             x(i,1:np-1)=x(i,0)
         endif
     enddo
-    call run_objects_nullify(runObj)
+    call nullify_run_objects(runObj)
     call run_objects_associate(runObj, ll_inputs, atoms, rst)
     lp=mp+1
     do iter=1,10
         !call calenergyforces(n,x(1,lp),epot,ft)
         call cpu_time(time1)
         call vcopy(n, x(1,lp), 1, runObj%atoms%astruct%rxyz(1,1), 1)
-        call call_bigdft(runObj,outs,nproc,iproc,infocode)
+        call call_bigdft(runObj,outs,infocode)
         call cpu_time(time2)
         ncount_bigdft=ncount_bigdft+1
         pnow%ncount_ll=pnow%ncount_ll+1
         pnow%time_ll=pnow%time_ll+(time2-time1)
         !fnrm=DNRM2(2,ft,1)
-        call atomic_dot(atoms,outs%fxyz(1,1),outs%fxyz(1,1),fnrm);fnrm=sqrt(fnrm)
+        call atomic_dot(atoms%astruct,outs%fxyz(1,1),outs%fxyz(1,1),fnrm);fnrm=sqrt(fnrm)
         xt(1:n)=x(1:n,lp)-x(1:n,mp)
         call normalizevector2(nr,xt)
         !proj=DDOT(nr,ft,1,xt,1)
-        call atomic_dot(atoms,outs%fxyz(1,1),xt,proj)
+        call atomic_dot(atoms%astruct,outs%fxyz(1,1),xt,proj)
         if(iproc==0) then
             write(*,*) 'REZA ',x(1,3),x(2,3)
             write(*,*) 'proj ',proj,sqrt(fnrm**2-proj**2)
@@ -646,7 +648,8 @@ subroutine improvepeak(n,nr,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,nc
             endif
         enddo
     enddo
-    call run_objects_free_container(runObj)
+    call release_run_objects(runObj)
+    !call run_objects_free_container(runObj)
     call f_free(xt)
     call deallocate_global_output(outs)
 end subroutine improvepeak
@@ -658,6 +661,7 @@ subroutine pickbestanchors2(n,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     use bigdft_run
+    use module_atoms, only: move_this_coordinate
     !use energyandforces, only:calenergyforces
     implicit none
     integer :: n,np,i,ip,npv,nproc,iproc,mp,ncount_bigdft,ixyz,iat,icycle,ncycle
@@ -672,7 +676,7 @@ subroutine pickbestanchors2(n,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,
     real(kind=8)::ttmin,ttmax,emin,e1,e2,exo(0:100),exn(0:100),area,areatot
     real(kind=8)::s_t(0:100)
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
-    logical::move_this_coordinate
+
     if(mod(np+pnow%ns2,2)==0) then
         npv=np+pnow%ns2+4
     else
@@ -799,6 +803,7 @@ subroutine pickbestanchors(n,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,n
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     use bigdft_run
+    use module_atoms, only: move_this_coordinate
     !use energyandforces, only:calenergyforces
     implicit none
     integer :: n,np,i,ip,npv,nproc,iproc,mp,ncount_bigdft,ixyz,iat
@@ -812,7 +817,6 @@ subroutine pickbestanchors(n,np,x,outends,pnow,nproc,iproc,atoms,rst,ll_inputs,n
     type(parametersplinedsaddle)::pnow,pold
     integer, parameter :: ndeb1=0
     !integer, parameter :: ndeb2=0
-    logical::move_this_coordinate
     if(mod(np+pnow%ns2,2)==0) then
         npv=np+pnow%ns2+4
     else
@@ -1032,7 +1036,7 @@ subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,atoms,rst,ll_inputs,ncount_bigd
     type(DFT_global_output), dimension(1:np - 1) :: outs
     
     integer, parameter::ndeb1=0,ndeb2=0
-    !logical::move_this_coordinate
+
     parmin%converged=.false.
     if(iproc==0) then
     write(pnow%ifile,'(a,1x,a)') 'begin of minimization_sp using ',parmin%approach
@@ -1263,12 +1267,11 @@ end subroutine neb
 
 
 subroutine calmaxforcecomponentsub(atoms,f,fnrm,fspmax)
-    use module_types
+    use module_atoms, only: atoms_data,move_this_coordinate
     implicit none
     type(atoms_data), intent(inout) :: atoms
     integer::i,iat,ixyz
     real(kind=8)::f(3*atoms%astruct%nat),fnrm,fspmax
-    logical::move_this_coordinate
     fspmax=0.d0
     fnrm=0.d0
     do i=1,3*atoms%astruct%nat
@@ -1284,14 +1287,14 @@ end subroutine calmaxforcecomponentsub
 
 
 subroutine calmaxforcecomponentanchors(atoms,np,outs,fnrm,fspmax)
-    use module_types, only: atoms_data
+    use module_atoms, only: atoms_data,move_this_coordinate
     use bigdft_run, only: DFT_global_output
     implicit none
     type(atoms_data), intent(inout) :: atoms
     integer::np,i,ip,iat,ixyz
     real(kind=8)::fnrm,fspmax
     type(DFT_global_output), dimension(1:np-1), intent(in) :: outs
-    logical::move_this_coordinate
+
     fspmax=0.d0
     fnrm=0.d0
     do i=1,3*atoms%astruct%nat
@@ -1303,7 +1306,7 @@ subroutine calmaxforcecomponentanchors(atoms,np,outs,fnrm,fspmax)
                 fspmax=max(fspmax,abs(outs(ip)%fxyz(ixyz,iat)))
             enddo
         endif
-    enddo
+     enddo
     fnrm=sqrt(fnrm)
 end subroutine calmaxforcecomponentanchors
 
@@ -1329,6 +1332,7 @@ subroutine nebforce(n,np,x,outs,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,nco
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     use bigdft_run
+    use module_atoms, only: move_this_coordinate
     implicit none
     integer, intent(in) :: nproc,iproc
     type(atoms_data), intent(inout) :: atoms
@@ -1341,20 +1345,19 @@ subroutine nebforce(n,np,x,outs,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,nco
     real(kind=8)::tt,t1,t2,springcons,fnrmtot,time1,time2,fnrmarr(99),fspmaxarr(99)!,DNRM2
     real(kind=8), allocatable::tang(:,:)
     type(parametersplinedsaddle)::pnow
-    logical::move_this_coordinate
     integer::iat,ixyz,mp
     integer, parameter::ndeb1=0,ndeb2=0
     type(run_objects) :: runObj
 
     tang = f_malloc((/ 1.to.n, 0.to.np+ndeb2 /),id='tang')
     !call dmemocc(n*(np+1),n*(np+1+ndeb2),tang,'tang')
-    call run_objects_nullify(runObj)
+    call nullify_run_objects(runObj)
     call run_objects_associate(runObj, ll_inputs, atoms, rst)
     !call dmemocc(3*atoms%astruct%nat,3*(atoms%astruct%nat+ndeb1),runObj%atoms%astruct%rxyz,'runObj%atoms%astruct%rxyz')
     do ip=1,np-1
         call vcopy(n, x(1,ip), 1, runObj%atoms%astruct%rxyz(1,1), 1)
         call cpu_time(time1)
-        call call_bigdft(runObj,outs(ip),nproc,iproc,infocode)
+        call call_bigdft(runObj,outs(ip),infocode)
         pnow%ex(ip) = outs(ip)%energy
         call cpu_time(time2)
         ncount_bigdft=ncount_bigdft+1
@@ -1363,7 +1366,8 @@ subroutine nebforce(n,np,x,outs,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,nco
         call calmaxforcecomponentanchors(atoms,2,outs(ip:ip),fnrmarr(ip),fspmaxarr(ip))
         !fnrmarr(ip)=DNRM2(n,f(1,ip),1) !HERE
     enddo
-    call run_objects_free_container(runObj)
+    call release_run_objects(runObj)
+    !call run_objects_free_container(runObj)
     call caltangentupwind(n,np,x,pnow%ex,tang)
     springcons=5.d-2
     !springcons=1.d-1 !non-BigDFT
@@ -1385,7 +1389,7 @@ subroutine nebforce(n,np,x,outs,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,nco
     endif
     fnrmtot=0.d0
     do ip=1,np-1
-        call atomic_dot(atoms,outs(ip)%fxyz(1,1),tang(1,ip),tt)
+        call atomic_dot(atoms%astruct,outs(ip)%fxyz(1,1),tang(1,ip),tt)
         tt=-tt
         t1=0.d0;t2=0.d0
         do i=1,n
@@ -1409,7 +1413,7 @@ subroutine nebforce(n,np,x,outs,fnrmtot,pnow,nproc,iproc,atoms,rst,ll_inputs,nco
                outs(ip)%fxyz(ixyz, iat) = outs(ip)%fxyz(ixyz, iat) + tt * tang(i,ip)
             endif
         enddo
-        call atomic_dot(atoms,outs(ip)%fxyz(1,1),outs(ip)%fxyz(1,1),tt);tt=sqrt(tt)
+        call atomic_dot(atoms%astruct,outs(ip)%fxyz(1,1),outs(ip)%fxyz(1,1),tt);tt=sqrt(tt)
         fnrmtot=fnrmtot+tt
     enddo
     call f_free(tang)
@@ -2045,6 +2049,7 @@ subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     use bigdft_run
+    use module_atoms, only: move_this_coordinate
     implicit none
     integer, intent(in) :: nproc,iproc
     type(atoms_data), intent(inout) :: atoms
@@ -2056,7 +2061,6 @@ subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
     type(parametersplinedsaddle)::pnow
     real(kind=8)::tt,fnrm,fnrmmax,time1,time2
     real(kind=8), allocatable::tang(:,:)
-    logical::move_this_coordinate
     integer::iat,ixyz
     integer, parameter::ndeb1=0,ndeb2=0
     type(run_objects) :: runObj
@@ -2064,12 +2068,12 @@ subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
 
     tang = f_malloc((/ 1.to.n, 0.to.np+ndeb2 /),id='tang')
     !call dmemocc(n*(np+1),n*(np+1+ndeb2),tang,'tang')
-    call run_objects_nullify(runObj)
+    call nullify_run_objects(runObj)
     call run_objects_associate(runObj, ll_inputs, atoms, rst)
     mp=-1
     fnrmmax=0.d0
     do ip=1,np-1
-        call atomic_dot(atoms,f(1,ip),f(1,ip),fnrm) ; fnrm=sqrt(fnrm)
+        call atomic_dot(atoms%astruct,f(1,ip),f(1,ip),fnrm) ; fnrm=sqrt(fnrm)
         if(fnrm>fnrmmax) then
             fnrmmax=fnrm
             mp=ip
@@ -2081,20 +2085,20 @@ subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,atoms,rst,ll_inputs,ncou
        call init_global_output(outs(ip), atoms%astruct%nat)
         call vcopy(n, x(1,ip), 1, runObj%atoms%astruct%rxyz(1,1), 1)
         call cpu_time(time1)
-        call call_bigdft(runObj,outs(ip),nproc,iproc,infocode)
+        call call_bigdft(runObj,outs(ip),infocode)
         epotarr(ip) = outs(ip)%energy
         call cpu_time(time2)
         ncount_bigdft=ncount_bigdft+1
         pnow%ncount_ll=pnow%ncount_ll+1
         pnow%time_ll=pnow%time_ll+(time2-time1)
     enddo
-    call run_objects_free_container(runObj)
+    call release_run_objects(runObj)
     epotarr(0)=pnow%ex(0)
     epotarr(np)=pnow%ex(pnow%npv)
     call caltangentupwind(n,np,x,epotarr,tang)
     !do ip=1,np-1
     do ip=mp,mp
-        call atomic_dot(atoms,outs(ip)%fxyz(1,1),tang(1,ip),tt)
+        call atomic_dot(atoms%astruct,outs(ip)%fxyz(1,1),tang(1,ip),tt)
         tt=-tt
         do i=1,n
             iat=(i-1)/3+1
@@ -2144,14 +2148,15 @@ subroutine calvmaxanchorforces(istep,n,np,x,xold,outends,etmax,f,xtmax,pnow,pold
     call caltmax2(istep,n,np,x,xold,outends,etmax,xtmax,ftmax,pnow,pold,nproc,iproc,&
         atoms,rst,ll_inputs,ncount_bigdft)
     if(trim(pnow%hybrid)=='yes') then
-       call run_objects_nullify(runObj)
+       call nullify_run_objects(runObj)
        call run_objects_associate(runObj, inputs, atoms, rst, xtmax(1))
        call init_global_output(outs, atoms%astruct%nat)
        inputs%inputPsiId=0
        call cpu_time(time1)
-       call call_bigdft(runObj,outs,nproc,iproc,infocode)
+       call call_bigdft(runObj,outs,infocode)
        call cpu_time(time2)
-       call run_objects_free_container(runObj)
+       call release_run_objects(runObj)
+       !call run_objects_free_container(runObj)
        etmax = outs%energy
        call deallocate_global_output(outs, ftmax(1))
        ncount_bigdft=ncount_bigdft+1
@@ -2437,7 +2442,7 @@ subroutine caltmax2(istep,n,np,x,xold,outends,epot,xt,ft,pnow,pold,nproc,iproc,a
     !    goto 1358
     !endif
     !----------------------------
-    call atomic_dot(atoms,ft,ft,fnrm);fnrm=sqrt(fnrm)
+    call atomic_dot(atoms%astruct,ft,ft,fnrm);fnrm=sqrt(fnrm)
     if(iproc==0) then
         !write(51,frt)           istep,0,npv,epot,vd,fnrm,vdd,alpha,pnow%tmax,pnow%tmax/pnow%s(np)
         write(*,frt2) 'fort51 ',istep,0,npv,epot,vd,fnrm,vdd,alpha,pnow%tmax,pnow%tmax/pnow%s(np)
@@ -2496,7 +2501,7 @@ subroutine caltmax2(istep,n,np,x,xold,outends,epot,xt,ft,pnow,pold,nproc,iproc,a
         endif
         vdold=vd
         !-------------------------
-        call atomic_dot(atoms,ft,ft,fnrm);fnrm=sqrt(fnrm)
+        call atomic_dot(atoms%astruct,ft,ft,fnrm);fnrm=sqrt(fnrm)
         if(iproc==0) then
             !write(51,frt)           istep,iter,npv,epot,vd,fnrm,vdd,alpha,pnow%tmax,pnow%tmax/pnow%s(np)
             write(*,frt2) 'fort51 ',istep,iter,npv,epot,vd,fnrm,vdd,alpha,pnow%tmax,pnow%tmax/pnow%s(np)
@@ -2795,6 +2800,7 @@ subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,atom
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     use bigdft_run
+    use module_atoms, only: move_this_coordinate
     implicit none
     integer, intent(in) :: nproc,iproc
     type(atoms_data), intent(inout) :: atoms
@@ -2807,7 +2813,7 @@ subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,atom
     type(parametersplinedsaddle)::pnow,pold
     real(kind=8)::t1,tt,time1,time2
     real(kind=8), allocatable::tang(:)
-    logical::move_this_coordinate
+
     integer::iat,ixyz
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
     type(run_objects) :: runObj
@@ -2815,7 +2821,7 @@ subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,atom
 
     tang = f_malloc(n+ndeb1,id='tang')
     !call dmemocc(n,n+ndeb1,tang,'tang')
-    call run_objects_nullify(runObj)
+    call nullify_run_objects(runObj)
     call run_objects_associate(runObj, ll_inputs, atoms, rst)
     call init_global_output(outs, atoms%astruct%nat)
     pnow%ex(0)=pnow%exends(1)
@@ -2916,30 +2922,31 @@ subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,atom
         !    tang(i)=0.d0
         !enddo
         if(ip==0) then
-            call atomic_dot(atoms,outends(1)%fxyz(1,1),tang,tt)
+            call atomic_dot(atoms%astruct,outends(1)%fxyz(1,1),tang,tt)
             pnow%exd(ip)=-tt
             !pnow%exd(ip)=-mydot(n,fends(1,1),tang) 
         elseif(ip==npv) then
-            call atomic_dot(atoms,outends(2)%fxyz(1,1),tang,tt)
+            call atomic_dot(atoms%astruct,outends(2)%fxyz(1,1),tang,tt)
             pnow%exd(ip)=-tt
             !pnow%exd(ip)=-mydot(n,fends(1,2),tang) 
         else
             !call calenergyforces(n,xt,pnow%ex(ip),ft)
            call vcopy(n, xt(1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
             call cpu_time(time1)
-            call call_bigdft(runObj,outs,nproc,iproc,infocode)
+            call call_bigdft(runObj,outs,infocode)
             pnow%ex(ip) = outs%energy
             call cpu_time(time2)
             call vcopy(n, outs%fxyz(1,1), 1, ft(1), 1)
             ncount_bigdft=ncount_bigdft+1
             pnow%ncount_ll=pnow%ncount_ll+1
             pnow%time_ll=pnow%time_ll+(time2-time1)
-            call atomic_dot(atoms,ft,tang,tt)
+            call atomic_dot(atoms%astruct,ft,tang,tt)
             pnow%exd(ip)=-tt
             !pnow%exd(ip)=-mydot(n,ft,tang) 
         endif
     enddo
-    call run_objects_free_container(runObj)
+    call release_run_objects(runObj)
+    !call run_objects_free_container(runObj)
     call f_free(tang)
     call deallocate_global_output(outs)
 end subroutine fill_ex_exd
@@ -3650,6 +3657,7 @@ end subroutine calindex
 subroutine prepdd(atoms,n,np,x,e1,e2,h,s,mp,tmax,dd)
   use module_base
   use module_types
+  use module_atoms, only: move_this_coordinate
     implicit none
     type(atoms_data), intent(inout) :: atoms
     integer::n,np,mp,i,info,ip,j,jp
@@ -3663,7 +3671,6 @@ subroutine prepdd(atoms,n,np,x,e1,e2,h,s,mp,tmax,dd)
     real(kind=8), allocatable::ddt(:)
     real(kind=8), allocatable::yi(:)
     real(kind=8), allocatable::yj(:)
-    logical::move_this_coordinate
     integer::ixyz,iat,jxyz,jat
     integer, parameter::ndeb1=0
 
@@ -3890,6 +3897,7 @@ subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,atoms,rst,ll_inputs
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     use bigdft_run
+    use module_atoms, only: move_this_coordinate
     implicit none
     integer, intent(in) :: nproc,iproc
     type(atoms_data), intent(inout) :: atoms
@@ -3900,7 +3908,6 @@ subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,atoms,rst,ll_inputs
     type(parametersplinedsaddle)::pnow
     real(kind=8)::tt,ett,x(n,0:np),epot,xt(n),ft(n),t1,time1,time2
     real(kind=8), allocatable::tang(:)
-    logical::move_this_coordinate
     integer::ixyz,iat
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
     type(run_objects) :: runObj
@@ -3924,19 +3931,20 @@ subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,atoms,rst,ll_inputs
     !    tang(i)=0.d0
     !enddo
     !call calenergyforces(n,xt,epot,ft)
-    call run_objects_nullify(runObj)
+    call nullify_run_objects(runObj)
     call run_objects_associate(runObj, ll_inputs, atoms, rst, xt(1))
     call init_global_output(outs, atoms%astruct%nat)
     call cpu_time(time1)
-    call call_bigdft(runObj,outs,nproc,iproc,infocode)
+    call call_bigdft(runObj,outs,infocode)
     call cpu_time(time2)
-    call run_objects_free_container(runObj)
+    call release_run_objects(runObj)
+    !call run_objects_free_container(runObj)
     epot = outs%energy
     call deallocate_global_output(outs, ft(1))
     ncount_bigdft=ncount_bigdft+1
     pnow%ncount_ll=pnow%ncount_ll+1
     pnow%time_ll=pnow%time_ll+(time2-time1)
-    call atomic_dot(atoms,ft,tang,ett)
+    call atomic_dot(atoms%astruct,ft,tang,ett)
     !ett=mydot(n,ft,tang)
     !write(*,'(a20,2f24.15,e24.15)') 'inside: tt,epot,ett',tt,epot,ett
     call f_free(tang)
@@ -3944,13 +3952,13 @@ end subroutine func
 
 
 subroutine equalarclengthparametrization(atoms,n,np,x,s,h)
-    use module_types
+    use module_atoms, only: atoms_data,move_this_coordinate
     implicit none
     type(atoms_data), intent(in) :: atoms
     integer::n,np
     real(kind=8)::x(n,0:np),s(0:np),h(np),tt
     integer::i,ip,ixyz,iat
-    logical::move_this_coordinate
+
     s(0)=0.d0
     do ip=1,np
         tt=0.d0
@@ -4202,14 +4210,14 @@ end subroutine checkconvergence
 !if the atom are frozen they are not moved
 subroutine atomic_copycoord(atoms,xyzi,xyzo)
   use module_defs, only: gp
-  use module_types
+  use module_atoms, only: atoms_data,move_this_coordinate
   implicit none
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: xyzi
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: xyzo
   !local variables
   integer :: iat,ix,iy,iz
-  logical::move_this_coordinate
+
 
   do iat=1,atoms%astruct%nat
      ix=0;iy=0;iz=0
@@ -4601,7 +4609,8 @@ end function calnorm
 
 subroutine writepathway(n,np,x,filename,atoms)
   use module_base
-    use module_types
+  !use module_types
+  use module_atoms, only: atoms_data,move_this_coordinate
     implicit none
     integer::n,np,jp,iat
     real(kind=8)::x(n,0:np),ed_tt,edd_tt,dtt,tt,xyz(3)
@@ -4619,7 +4628,7 @@ subroutine writepathway(n,np,x,filename,atoms)
     real(kind=8), allocatable::e2(:)
     real(kind=8), allocatable::y(:)
     real(kind=8), allocatable::c(:)
-    logical::move_this_coordinate
+
     integer::ixyz
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
     s = f_malloc(0.to.np,id='s')
@@ -4773,12 +4782,12 @@ end subroutine readanchorpoints
 
 
 subroutine initializepoints(atoms,n,x1,x2,np,x)
-    use module_types
+    use module_atoms, only: atoms_data,move_this_coordinate
     implicit none
     type(atoms_data), intent(inout) :: atoms
     integer::n,np,ip,i,iat,ixyz
     real(kind=8)::x1(n),x2(n),x(n,0:np),dt,t,tt
-    logical::move_this_coordinate
+
     dt=1.d0/np
     !linear interpolation between the two ends.
     x(1:n,0)=x1(1:n)
@@ -4849,3 +4858,37 @@ subroutine imemocc(n1,n2,v,chv)
         enddo
     endif
 end subroutine imemocc
+
+!>Calculate the scalar product between atomic positions by considering
+!!   only non-blocked atoms
+subroutine atomic_dot(astruct,x,y,scpr)
+  use module_defs, only: gp
+  use module_atoms, only: move_this_coordinate,atomic_structure
+  implicit none
+  type(atomic_structure), intent(in) :: astruct
+  real(gp), dimension(3,astruct%nat), intent(in) :: x,y
+  real(gp), intent(out) :: scpr
+  !local variables
+  integer :: iat,i
+  real(gp) :: scpr1,scpr2,scpr3
+  real(gp) :: alphax,alphay,alphaz
+
+  scpr=0.0_gp
+
+  do iat=1,astruct%nat
+     do i=1,3
+        if (move_this_coordinate(astruct%ifrztyp(iat),i)) then
+           scpr=scpr+x(i,iat)*y(i,iat)
+        end if
+     end do
+!!$     call frozen_alpha(astruct%ifrztyp(iat),1,1.0_gp,alphax)
+!!$     call frozen_alpha(astruct%ifrztyp(iat),2,1.0_gp,alphay)
+!!$     call frozen_alpha(astruct%ifrztyp(iat),3,1.0_gp,alphaz)
+!!$     scpr1=alphax*x(1,iat)*y(1,iat)
+!!$     scpr2=alphay*x(2,iat)*y(2,iat)
+!!$     scpr3=alphaz*x(3,iat)*y(3,iat)
+!!$     scpr=scpr+scpr1+scpr2+scpr3
+  end do
+
+
+END SUBROUTINE atomic_dot

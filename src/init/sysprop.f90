@@ -745,7 +745,8 @@ END SUBROUTINE nlcc_dim_from_file
 !> Calculate the number of electrons and check the polarisation (mpol)
 subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
      & atoms, ncharge, nspin, mpol, norbsempty)
-  use module_types, only: atoms_data
+  use module_atoms, only: atoms_data
+  use ao_inguess, only: charge_and_spol
   use module_base, only: gp, f_err_throw
   use yaml_output, only: yaml_toa , yaml_warning, yaml_comment
   !use ao_inguess, only : count_atomic_shells

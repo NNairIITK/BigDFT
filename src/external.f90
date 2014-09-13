@@ -214,53 +214,6 @@ function bigdft_error_ret(err_signal,err_message) result (ierr)
   
 end function bigdft_error_ret
 
-!> Get the number of orbitals of the run in rst
-function bigdft_get_number_of_orbitals(rst,istat) result(norb)
-  use module_types, only: BIGDFT_SUCCESS,BIGDFT_UNINITIALIZED
-  use bigdft_run
-  implicit none
-  type(restart_objects), intent(in) :: rst !> BigDFT restart variables. call_bigdft already called
-  integer :: norb !> Number of orbitals of run in rst
-  integer, intent(out) :: istat
-
-  istat=BIGDFT_SUCCESS
-
-  norb=rst%KSwfn%orbs%norb
-  if (norb==0) istat = BIGDFT_UNINITIALIZED
-
-end function bigdft_get_number_of_orbitals
-
-!> Fill the array eval with the number of orbitals of the last run
-subroutine bigdft_get_eigenvalues(rst,eval,istat)
-  use module_base, only: gp,f_memcpy,vcopy
-  use module_types
-  use bigdft_run
-  implicit none
-  type(restart_objects), intent(in) :: rst !> BigDFT restart variables. call_bigdft already called
-  real(gp), dimension(*), intent(out) :: eval !> Buffer for eigenvectors. Should have at least dimension equal to bigdft_get_number_of_orbitals(rst,istat)
-  integer, intent(out) :: istat !> Error code
-  !local variables
-  integer :: norb,bigdft_get_number_of_orbitals
-
-  norb=bigdft_get_number_of_orbitals(rst,istat)
-
-  if (istat /= BIGDFT_SUCCESS) return
-
-  if (.not. associated(rst%KSwfn%orbs%eval)) then
-     istat = BIGDFT_UNINITIALIZED
-     return
-  end if
-
-  if (product(shape(rst%KSwfn%orbs%eval)) < norb) then
-     istat = BIGDFT_INCONSISTENCY
-     return
-  end if
-  !probleb with inout
-  call f_memcpy(n=norb,src=rst%KSwfn%orbs%eval(1),dest=eval(1))
-  !call vcopy(norb,rst%KSwfn%orbs%eval(1),1,eval(1),1)
-
-end subroutine bigdft_get_eigenvalues
-
 !> Abort bigdft program
 subroutine bigdft_severe_abort()
   use module_base

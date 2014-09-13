@@ -12,6 +12,7 @@
 subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fnoise,rst,infocode)
   use module_base
   use module_types
+  use module_atoms, only: move_this_coordinate
   use bigdft_run
   implicit none
   integer, intent(in) :: iproc,nproc
@@ -31,7 +32,6 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   integer, dimension(:), allocatable :: kmoves
   real(gp), dimension(:), allocatable :: functional,dfunctional
   real(gp), dimension(:,:), allocatable :: radii_cf, rxyz_ref,fxyz_fake
-  logical :: move_this_coordinate
 
 !!$  interface !not needed anymore
 !!$     subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
@@ -3669,7 +3669,7 @@ END SUBROUTINE normalizevector
 
 subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   use module_base
-  use module_types
+  use module_atoms!types
   use yaml_output
   implicit none
   integer, intent(in) :: iproc
@@ -3678,7 +3678,6 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   real(gp), dimension(3,at%astruct%nat), intent(inout) :: fxyz
   real(gp), intent(out) :: fnoise
   !local variables
-  logical :: move_this_coordinate
   integer :: iat,ixyz, ijk(3)
   real(gp) :: sumx,sumy,sumz, u(3), scal
   !my variables

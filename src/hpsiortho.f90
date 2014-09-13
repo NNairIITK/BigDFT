@@ -911,11 +911,6 @@ contains
     integer :: ncplx_p,ncplx_w,n_w,nvctr_p
     real(gp), dimension(3,3,4) :: hij
     real(gp) :: eproj
-!!$    type(nlpsp_to_wfd) :: tolr 
-!!$    integer, dimension(:), allocatable :: nbsegs_cf,keyag_lin_cf
-!!$    real(wp), dimension(:,:), allocatable :: psi_pack
-!!$    real(wp), dimension(:,:,:), allocatable :: pdpsi,hpdpsi
-!!$    real(wp), dimension(:,:,:,:), allocatable :: scpr
 
     if (newmethod) then
 
@@ -934,32 +929,11 @@ contains
        
        !extract hij parameters
        call hgh_hij_matrix(at%npspcode(iatype),at%psppar(0,0,iatype),hij)
-
-!!$       !allocate temporary workspace
-!!$       keyag_lin_cf=f_malloc(Lzd%Llr(ilr)%wfd%nseg_c+Lzd%Llr(ilr)%wfd%nseg_f,id='keyag_lin_cf')
-!!$       nbsegs_cf=f_malloc0(nl%pspd(iat)%plr%wfd%nseg_c+nl%pspd(iat)%plr%wfd%nseg_f,id='nbsegs_cf')  
-!!$       call nullify_nlpsp_to_wfd(tolr)
-!!$       call init_tolr(tolr,Lzd%Llr(ilr)%wfd,nl%pspd(iat)%plr%wfd,keyag_lin_cf,nbsegs_cf)
-!!$       call f_free(keyag_lin_cf,nbsegs_cf)
-
-!!$       !create other workspaces  
-!!$       psi_pack=f_malloc0(&
-!!$            (/nl%pspd(iat)%plr%wfd%nvctr_c+7*nl%pspd(iat)%plr%wfd%nvctr_f,n_w*ncplx_w/),id='psi_pack')
-!!$       scpr=f_malloc((/ncplx_w,n_w,ncplx_p,mproj/),id='scpr')
-!!$       pdpsi=f_malloc((/max(ncplx_w,ncplx_p),n_w,mproj/),id='pdpsi')
-!!$       hpdpsi=f_malloc((/max(ncplx_w,ncplx_p),n_w,mproj/),id='hpdpsi')
-       
+      
        call NL_HGH_application(hij,&
             ncplx_p,mproj,nl%pspd(iat)%plr%wfd,nl%proj(istart_c),&
             ncplx_w,n_w,Lzd%Llr(ilr)%wfd,nl%pspd(iat)%tolr(ilr),nl%wpack,nl%scpr,nl%cproj,nl%hcproj,&
             psi(ispsi),hpsi(ispsi),eproj)
-
-!!$       !free workspaces
-!!$       call f_free(psi_pack)
-!!$       call f_free(scpr)     
-!!$       call f_free(pdpsi)
-!!$       call f_free(hpdpsi)
-!!$       call deallocate_nlpsp_to_wfd(tolr)
 
        nvctr_p=nl%pspd(iat)%plr%wfd%nvctr_c+7*nl%pspd(iat)%plr%wfd%nvctr_f
        istart_c=istart_c+nvctr_p*ncplx_p*mproj

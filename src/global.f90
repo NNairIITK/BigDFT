@@ -23,9 +23,9 @@ program MINHOP
   logical :: newmin,CPUcheck,occured,exist_poslocm,exist_posacc
   character(len=20) :: unitsp,atmn
   character(len=60) :: run_id
-  type(atoms_data) :: atoms,md_atoms
-  type(input_variables), target :: inputs_opt, inputs_md
-  type(restart_objects) :: rst
+!  type(atoms_data) :: atoms,md_atoms
+!  type(input_variables), target :: inputs_opt, inputs_md
+!  type(restart_objects) :: rst
   !C parameters for minima hopping
   integer, parameter :: mdmin=2
   real(kind=8), parameter :: beta_S=1.10d0,beta_O=1.10d0,beta_N=1.d0/1.10d0
@@ -41,7 +41,6 @@ program MINHOP
   integer :: n_unique,n_nonuni,nputback,i_stat,ncount_bigdft,ngeopt,nid,nlmin,nlminx
   integer :: ilmin,ierror,natp,k,nvisit,kid,k_e,nlmin_old,ndfree,ndfroz,ixyz,nummax,nummin
   integer :: istepnext,istep
-  integer :: bigdft_get_number_of_atoms,bigdft_get_number_of_orbitals
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
   character(len=4) :: fn4
@@ -59,11 +58,11 @@ program MINHOP
   real(kind=8) :: t1,t2,t3,ebest_l,dmin,tleft,d,ss
   real(kind=8), external :: dnrm2
 
-  type(run_objects) :: runObj
+  type(run_objects) :: run_opt,run_md !< the two runs parameters
   type(DFT_global_output) :: outs
-  type(dictionary), pointer :: user_inputs,options
-integer:: nposacc=0
-logical:: disable_hatrans
+  type(dictionary), pointer :: user_inputs,options,run
+  integer:: nposacc=0
+  logical:: disable_hatrans
 
   call f_lib_initialize()
 
@@ -71,23 +70,13 @@ logical:: disable_hatrans
   call bigdft_init(options)
   if (bigdft_nruns(options) > 1) call f_err_throw('runs-file not supported for MINHOP executable')
   !temporary
-  run_id = options // 'BigDFT' // 0 // 'name'
-  call dict_free(options)
+  run => options // 'BigDFT' // 0
 
-!!$  call bigdft_init(mpi_info,nconfig,run_id,ierr)
-!!$  if (nconfig < 0) stop 'runs-file not supported for MH executable'
-!!$  
-!!$   iproc=mpi_info(1)
-!!$   nproc=mpi_info(2)
-!!$   igroup=mpi_info(3)
-!!$   !number of groups
-!!$   ngroups=mpi_info(4)
-   
-   !actual value of iproc
-   iproc=bigdft_mpi%iproc+bigdft_mpi%igroup*bigdft_mpi%ngroup
+  
+  !actual value of iproc
+  iproc=bigdft_mpi%iproc+bigdft_mpi%igroup*bigdft_mpi%ngroup
    
 
-  !open(unit=67,file='global.out')
    if (iproc==0) call print_logo_MH()
 
   !if (iproc == 0) write(*,'(a,2(1x,1pe10.3))') '(MH) predicted fraction accepted, rejected', & 
@@ -97,44 +86,59 @@ logical:: disable_hatrans
 
   call cpu_time(tcpu1)
 
-  !for each of the configuration set the input files
-  !optimized input parameters
-  call dict_init(user_inputs)
-  call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
-       & 'poscur'//trim(bigdft_run_id_toa()), bigdft_mpi)
-  call inputs_from_dict(inputs_opt, atoms, user_inputs)
-  call dict_free(user_inputs)
+  !reset input and output positions of run (to be inserted in bigdft_run)
+  run_id = run // 'name'
+  call set(run // 'name',trim(run_id)//trim(bigdft_run_id_toa()))
+  call set(run // 'posinp','poscur'//trim(bigdft_run_id_toa()))
 
-  !unoptimized input parameters
-  call dict_init(user_inputs)
-  call user_dict_from_files(user_inputs, 'md'//trim(run_id)//trim(bigdft_run_id_toa()), &
-       & 'poscur'//trim(bigdft_run_id_toa()), bigdft_mpi)
-  call inputs_from_dict(inputs_md, md_atoms, user_inputs)
-  call dict_free(user_inputs)
-  !use only the atoms structure for the run
-  call deallocate_atoms_data(md_atoms) 
+  call run_objects_init(run_opt,run)
+  !then the unoptimized parameters
+  call set(run // 'name','md'//trim(run_id)//trim(bigdft_run_id_toa()))
+  call run_objects_init(run_md,run,source=run_opt)
+  
+  !options and run are not needed
+  call dict_free(options)
+  nullify(run)
+
+!!$  !for each of the configuration set the input files
+!!$  !optimized input parameters
+!!$  call dict_init(user_inputs)
+!!$  call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
+!!$       & 'poscur'//trim(bigdft_run_id_toa()), bigdft_mpi)
+!!$  call inputs_from_dict(inputs_opt, atoms, user_inputs)
+!!$  call dict_free(user_inputs)
+!!$
+!!$  !unoptimized input parameters
+!!$  call dict_init(user_inputs)
+!!$  call user_dict_from_files(user_inputs, 'md'//trim(run_id)//trim(bigdft_run_id_toa()), &
+!!$       & 'poscur'//trim(bigdft_run_id_toa()), bigdft_mpi)
+!!$  call inputs_from_dict(inputs_md, md_atoms, user_inputs)
+!!$  call dict_free(user_inputs)
+!!$  !use only the atoms structure for the run
+!!$  call deallocate_atoms_data(md_atoms) 
 
 !   write(*,*) 'nat=',atoms%astruct%nat
   ! Create the DFT_global_output container.
   call init_global_output(outs, atoms%astruct%nat)
 
-    if ( inputs_opt%inguess_geopt .ne. inputs_md%inguess_geopt) then 
-        write(*,*) "input guess methods in MD and OPT have to be identical"
-        stop
-    endif
+  !performs few checks
+  if (run_opt%inputs%inguess_geopt .ne. run_md%inputs%inguess_geopt) then 
+     write(*,*) "input guess methods in MD and OPT have to be identical"
+     stop
+  endif
 
-  !associate the same output directory
-  if (inputs_opt%dir_output /= inputs_md%dir_output) then
-     call deldir(trim(inputs_md%dir_output),len_trim(inputs_md%dir_output),ierr)
+  !associate the same output directory 
+  if (run_opt%inputs%dir_output /= run_md%inputs%dir_output) then
+     call deldir(trim(run_md%inputs%dir_output),len_trim(run_md%inputs%dir_output),ierr)
      if (ierr /=0) then
-        call yaml_warning('Error found while deleting '//trim(inputs_md%dir_output))
+        call yaml_warning('Error found while deleting '//&
+             trim(run_md%inputs%dir_output))
      end if
-     inputs_md%dir_output=inputs_opt%dir_output
+     run_md%inputs%dir_output=run_opt%inputs%dir_output
   end if
 
   !get number of atoms of the system, to allocate local arrays
-  !temporary workaround before starting with the unification of the high-level input structures
-  natoms=atoms%astruct%nat!bigdft_get_number_of_atoms(atoms)
+  natoms=bigdft_nat(run_opt)!bigdft_get_number_of_atoms(atoms)
 
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) beta_S, beta_O, beta_N',(/beta_S,beta_O,beta_N/),fmt='(1pe11.4)')
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) alpha_A, alpha_R',(/alpha_A,alpha_R/),fmt='(1pe11.4)')
@@ -147,7 +151,7 @@ logical:: disable_hatrans
   rcov = f_malloc(natoms,id='rcov')
   pos = f_malloc_ptr((/ 3, natoms /),id='pos')
 
-  call give_rcov(bigdft_mpi%iproc,atoms,natoms,rcov)
+  call give_rcov(bigdft_mpi%iproc,run_opt%atoms,natoms,rcov)
 
 ! read random offset
   open(unit=11,file='rand'//trim(bigdft_run_id_toa())//'.inp')
@@ -163,7 +167,7 @@ logical:: disable_hatrans
   ! open output files
   if (bigdft_mpi%iproc==0) then 
      !open(unit=2,file='global'//trim(bigdft_run_id_toa())//'.mon',status='unknown',position='append')
-     open(unit=2,file=trim(inputs_md%dir_output)//'global.mon',status='unknown',position='append')
+     open(unit=2,file=trim(run_md%inputs%dir_output)//'global.mon',status='unknown',position='append')
      !open(unit=16,file='geopt'//trim(bigdft_run_id_toa())//'.mon',status='unknown')
      !open(unit=16,file=trim(inputs_md%dir_output)//'geopt.mon',status='unknown')
   endif
@@ -195,15 +199,16 @@ logical:: disable_hatrans
   count_md=0.d0
   nputback=0
 
-  inputs_opt%inputPsiId=0
+  run_opt%inputs%inputPsiId=0
 
-  call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,rst)
-  call run_objects_nullify(runObj)
-  call run_objects_associate(runObj, inputs_md, atoms, rst)
-  call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+!!$  call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,rst)
+!!$  call nullify_run_objects(runObj)
+!!$  call run_objects_associate(runObj, inputs_md, atoms, rst)
+  !we start with md
+  call call_bigdft(run_md,outs,infocode)
 
   !example for retrieving the eigenvalues from this run
-  nksevals=bigdft_get_number_of_orbitals(rst,i_stat)
+  nksevals=bigdft_get_number_of_orbitals(run_md%rst,i_stat)
   if (i_stat /= BIGDFT_SUCCESS) then
      write(*,*)'#error (norbs), i_stat',i_stat
      if (bigdft_mpi%iproc == 0) call yaml_map('error (norbs), i_stat',i_stat)
@@ -244,7 +249,8 @@ logical:: disable_hatrans
   enddo 
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) number of posacc files that exist already ',nposacc)
 
-  call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
+  call geopt(run_md, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
+!  call release_run_objects(runObj)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for approximate geo. rel of initial conf.',ncount_bigdft)
   count_sdcg=count_sdcg+ncount_bigdft
 
@@ -262,7 +268,7 @@ logical:: disable_hatrans
 !      close(864)
 !  endif
 
-  if (atoms%astruct%geocode=='F' .and. (.not. disable_hatrans)) call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
+  if (bigdft_get_geocode(run_md)=='F' .and. (.not. disable_hatrans)) call ha_trans(bigdft_nat(run_md),bigdft_get_rxyz_ptr(run_md))
 
 !  if ( .not. atoms%astruct%geocode=='F') then 
 !         write(*,*) 'Generating new input guess'
@@ -271,17 +277,14 @@ logical:: disable_hatrans
 !          call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 !          inputs_opt%inputPsiId=1
 !  endif   
-  call run_objects_associate(runObj, inputs_opt, atoms, rst)
-  call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
+  !call run_objects_associate(runObj, inputs_opt, atoms, rst)
+  call geopt(run_opt, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
+  !call release_run_objects(runObj)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of initial conf.',ncount_bigdft)
   count_bfgs=count_bfgs+ncount_bigdft
         e_pos = outs%energy
-        call f_memcpy(src=atoms%astruct%rxyz,dest=pos)
-!!$        do iat=1,atoms%astruct%nat
-!!$          pos(1,iat)=atoms%astruct%rxyz(1,iat)
-!!$          pos(2,iat)=atoms%astruct%rxyz(2,iat)
-!!$          pos(3,iat)=atoms%astruct%rxyz(3,iat)
-!!$        enddo
+        call bigdft_get_rxyz(run_opt,rxyz=pos)
+        !call f_memcpy(src=atoms%astruct%rxyz,dest=pos)
   if (bigdft_mpi%iproc == 0) then
      call yaml_map('(MH) INPUT(relaxed), e_pos ',outs%energy,fmt='(e17.10)')
   end if
@@ -291,8 +294,8 @@ logical:: disable_hatrans
         wfp = f_malloc(nid,id='wfp')
         fphop = f_malloc(nid,id='fphop')
 
-  call fingerprint(bigdft_mpi%iproc,atoms%astruct%nat,nid,pos,rcov,fp,atoms%astruct%geocode,atoms%astruct%cell_dim)
-
+  call fingerprint(bigdft_mpi%iproc,bigdft_nat(run_opt),nid,pos,rcov,fp,&
+       atoms%astruct%geocode,atoms%astruct%cell_dim)
 
   call bigdft_get_eigenvalues(rst,ksevals,i_stat)
   if (i_stat /= BIGDFT_SUCCESS) then
@@ -313,7 +316,6 @@ logical:: disable_hatrans
           outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
   endif
 
-
   if (bigdft_mpi%iproc == 0) then 
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
      write(fn4,'(i4.4)') ngeopt
@@ -326,7 +328,6 @@ logical:: disable_hatrans
       enddo
       close(864)
   endif
-  
 
 ! Read previously found energies and properties
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) name of enarr','enarr'//trim(bigdft_run_id_toa()))
@@ -341,77 +342,75 @@ logical:: disable_hatrans
   if (bigdft_mpi%iproc == 0 .and. nlmin.gt.nlminx) call yaml_scalar('nlmin>nlminx')
   if (nlmin.gt.nlminx) stop 'nlmin>nlminx'
 
-        en_arr = f_malloc(nlminx,id='en_arr')
-        ct_arr = f_malloc(nlminx,id='ct_arr')
-        fp_arr = f_malloc((/ nid, nlminx /),id='fp_arr')
-        pl_arr = f_malloc((/ 3, natoms, nlminx /),id='pl_arr')
-        if (nlmin.eq.0) then 
-            if (bigdft_mpi%iproc == 0) call yaml_map('(MH) New run with nlminx=',nlminx)
-        else
-            if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Restart run with nlmin, nlminx=',(/nlmin,nlminx/))
-            do k=1,nlmin
-              read(12,*) en_arr(k),ct_arr(k)
-              if (en_arr(k).lt.en_arr(max(1,k-1))) stop 'wrong ordering in enarr.dat'
-              if (nlmin.gt.0) read(14,*) (fp_arr(i,k),i=1,nid)
-            enddo
-        endif
-        close(12)
-        close(14)
-        if (bigdft_mpi%iproc == 0) call yaml_map('(MH) read idarr','idarr'//trim(bigdft_run_id_toa()))
-
+  en_arr = f_malloc(nlminx,id='en_arr')
+  ct_arr = f_malloc(nlminx,id='ct_arr')
+  fp_arr = f_malloc((/ nid, nlminx /),id='fp_arr')
+  pl_arr = f_malloc((/ 3, natoms, nlminx /),id='pl_arr')
+  if (nlmin.eq.0) then 
+     if (bigdft_mpi%iproc == 0) call yaml_map('(MH) New run with nlminx=',nlminx)
+  else
+     if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Restart run with nlmin, nlminx=',(/nlmin,nlminx/))
+     do k=1,nlmin
+        read(12,*) en_arr(k),ct_arr(k)
+        if (en_arr(k).lt.en_arr(max(1,k-1))) stop 'wrong ordering in enarr.dat'
+        if (nlmin.gt.0) read(14,*) (fp_arr(i,k),i=1,nid)
+     enddo
+  endif
+  close(12)
+  close(14)
+  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) read idarr','idarr'//trim(bigdft_run_id_toa()))
+  
   ! If restart read previous poslocm's
   ! here we should use bigdft built-in routines to read atomic positions
-     do ilmin=1,nlmin
+  do ilmin=1,nlmin
 
-        write(fn5,'(i5.5)') ilmin
-        filename = 'poslow'//fn5//'_'//trim(bigdft_run_id_toa())//'.xyz'
-        open(unit=192,file=filename,status='old',iostat=ierror)
-        if (ierror == 0) then
+     write(fn5,'(i5.5)') ilmin
+     filename = 'poslow'//fn5//'_'//trim(bigdft_run_id_toa())//'.xyz'
+     open(unit=192,file=filename,status='old',iostat=ierror)
+     if (ierror /= 0) then
+        write(*,*) bigdft_mpi%iproc,' COULD not read file ',filename
+        exit
+     end if
+     read(192,*) natp,unitsp,en_arr(ilmin)
+     if (natoms.ne.natp) stop   'nat <> natp'
+     if (trim(unitsp).ne.trim(atoms%astruct%units) .and. bigdft_mpi%iproc.eq.0) write(*,*)  & 
+          '(MH) different units in poslow and poscur file: ',trim(unitsp),' ',trim(atoms%astruct%units)
+     if (trim(unitsp).ne.trim(atoms%astruct%units) .and. bigdft_mpi%iproc.eq.0) call yaml_scalar( &
+          '(MH) different units in poslow and poscur file: '//trim(unitsp)//' , '//trim(atoms%astruct%units))
+     write(*,*) "Bohr_Ang",Bohr_Ang
+     read(192,*) 
+     do iat=1,natoms
+        read(192,*) atmn,t1,t2,t3
+        if (atoms%astruct%units=='angstroem' .or. atoms%astruct%units=='angstroemd0') then ! if Angstroem convert to Bohr
+           pl_arr(1,iat,ilmin)=t1/Bohr_Ang
+           pl_arr(2,iat,ilmin)=t2/Bohr_Ang
+           pl_arr(3,iat,ilmin)=t3/Bohr_Ang
         else
-           write(*,*) bigdft_mpi%iproc,' COULD not read file ',filename
-           exit
-        end if
-        read(192,*) natp,unitsp,en_arr(ilmin)
-        if (natoms.ne.natp) stop   'nat <> natp'
-        if (trim(unitsp).ne.trim(atoms%astruct%units) .and. bigdft_mpi%iproc.eq.0) write(*,*)  & 
-                 '(MH) different units in poslow and poscur file: ',trim(unitsp),' ',trim(atoms%astruct%units)
-        if (trim(unitsp).ne.trim(atoms%astruct%units) .and. bigdft_mpi%iproc.eq.0) call yaml_scalar( &
-                 '(MH) different units in poslow and poscur file: '//trim(unitsp)//' , '//trim(atoms%astruct%units))
-        write(*,*) "Bohr_Ang",Bohr_Ang
-        read(192,*) 
-        do iat=1,natoms
-          read(192,*) atmn,t1,t2,t3
-          if (atoms%astruct%units=='angstroem' .or. atoms%astruct%units=='angstroemd0') then ! if Angstroem convert to Bohr
-              pl_arr(1,iat,ilmin)=t1/Bohr_Ang
-              pl_arr(2,iat,ilmin)=t2/Bohr_Ang
-              pl_arr(3,iat,ilmin)=t3/Bohr_Ang
-          else
-              pl_arr(1,iat,ilmin)=t1
-              pl_arr(2,iat,ilmin)=t2
-              pl_arr(3,iat,ilmin)=t3
-          endif
-        enddo
-        close(192)
-        if (bigdft_mpi%iproc == 0) call yaml_scalar('(MH) read file '//trim(filename))
-     end do
-     if (bigdft_mpi%iproc == 0) call yaml_map('(MH) number of read poslow files', nlmin)
-
-
-
-        ebest_l=outs%energy 
+           pl_arr(1,iat,ilmin)=t1
+           pl_arr(2,iat,ilmin)=t2
+           pl_arr(3,iat,ilmin)=t3
+        endif
+     enddo
+     close(192)
+     if (bigdft_mpi%iproc == 0) call yaml_scalar('(MH) read file '//trim(filename))
+  end do
+  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) number of read poslow files', nlmin)
+  
+  ebest_l=outs%energy 
   if (nlmin.eq.0) then !new run
-        nlmin=1
-        en_arr(1)=outs%energy
-        ct_arr(1)=1.d0
-        nvisit=1
-        do i=1,nid
-          fp_arr(i,1)=fp(i)
-        enddo
-        do iat=1,natoms
-          pl_arr(1,iat,1)=atoms%astruct%rxyz(1,iat) 
-          pl_arr(2,iat,1)=atoms%astruct%rxyz(2,iat) 
-          pl_arr(3,iat,1)=atoms%astruct%rxyz(3,iat) 
-        enddo
+     nlmin=1
+     en_arr(1)=outs%energy
+     ct_arr(1)=1.d0
+     nvisit=1
+     do i=1,nid
+        fp_arr(i,1)=fp(i)
+     enddo
+     call bigdft_get_rxyz(run_opt,rxyz_add=pl_arr(1,1,1))
+!!$     do iat=1,natoms
+!!$        pl_arr(1,iat,1)=atoms%astruct%rxyz(1,iat) 
+!!$        pl_arr(2,iat,1)=atoms%astruct%rxyz(2,iat) 
+!!$        pl_arr(3,iat,1)=atoms%astruct%rxyz(3,iat) 
+!!$     enddo
 
   else  ! continuation run, check whether the poscur file has been modified by hand
      call identical(bigdft_mpi%iproc,nlminx,nlmin,nid,e_pos,fp,en_arr,fp_arr,en_delta,fp_delta,&
@@ -443,7 +442,9 @@ logical:: disable_hatrans
   nlmin_old=nlmin
   CPUcheck=.false.
 
-  call f_memcpy(src=atoms%astruct%rxyz,dest=pos)
+  !equivalent methods
+  call bigdft_get_rxyz(run_opt,rxyz=pos)
+  !call f_memcpy(src=atoms%astruct%rxyz,dest=pos)
   !call vcopy(3*atoms%astruct%nat, atoms%astruct%rxyz(1,1) , 1, pos(1,1), 1)
 
   !C outer (hopping) loop
@@ -472,16 +473,19 @@ logical:: disable_hatrans
   end if
 555 continue
   close(55)
-  call MPI_BCAST(tleft,1,MPI_DOUBLE_PRECISION,0,bigdft_mpi%mpi_comm,ierr)
+  !maybe broadcast on comm_world?
+  call mpibcast(tleft,1,comm=bigdft_mpi%mpi_comm)
+  !call MPI_BCAST(tleft,1,MPI_DOUBLE_PRECISION,0,bigdft_mpi%mpi_comm,ierr)
   if (tleft < 0.d0) then
      call yaml_map('(MH) Process'//trim(yaml_toa(bigdft_mpi%iproc))//' has exceeded CPU time. Tleft',tleft)
      exit hopping_loop
   endif
   CPUcheck=.true.
 
-  call run_objects_associate(runObj, inputs_md, atoms, rst, pos(1,1))
+  !call run_objects_associate(runObj, inputs_md, atoms, rst, pos(1,1))
+  
   escape=escape+1.d0
-  call mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, runObj, outs, &
+  call mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, run_md, outs, &
                 ngeopt,bigdft_mpi%nproc,bigdft_mpi%iproc)
   if (bigdft_mpi%iproc == 0) then 
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
@@ -492,14 +496,16 @@ logical:: disable_hatrans
   endif
 
      if (atoms%astruct%geocode == 'F') &
-          & call fixfrag_posvel(bigdft_mpi%iproc,atoms%astruct%nat,rcov,atoms%astruct%rxyz,vxyz,1,occured)
+          & call fixfrag_posvel(bigdft_mpi%iproc,bigdft_nat(run_md),rcov,bigdft_get_rxyz_ptr(run_md),vxyz,1,occured)
      if (atoms%astruct%geocode == 'S') &
-          & call fixfrag_posvel_slab(bigdft_mpi%iproc,atoms%astruct%nat,rcov,atoms%astruct%rxyz,vxyz,1)
+          & call fixfrag_posvel_slab(bigdft_mpi%iproc,bigdft_nat(run_md),rcov,bigdft_get_rxyz_ptr(run_md),vxyz,1)
      
   av_ekinetic=av_ekinetic+ekinetic
   ncount_bigdft=0
 
-  call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
+  call geopt(run_md, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
+  !call release_run_objects(runObj)  
+
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for approximate geo. rel of MD conf.',ncount_bigdft)
      count_sdcg=count_sdcg+ncount_bigdft
 
@@ -517,7 +523,7 @@ logical:: disable_hatrans
 !      close(864)
 !  endif
 
-  if (atoms%astruct%geocode=='F' .and. (.not. disable_hatrans)) call ha_trans(atoms%astruct%nat,atoms%astruct%rxyz)
+  if (atoms%astruct%geocode=='F' .and. (.not. disable_hatrans)) call ha_trans(bigdft_nat(run_md),bigdft_get_rxyz_ptr(run_md))
 
 !  if ( .not. atoms%astruct%geocode=='F') then 
 !         write(*,*) 'Generating new input guess'
@@ -526,9 +532,9 @@ logical:: disable_hatrans
 !          call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 !          inputs_opt%inputPsiId=1
 !  endif   
-  call run_objects_associate(runObj, inputs_opt, atoms, rst)
-
-  call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
+  !call run_objects_associate(runObj, inputs_opt, atoms, rst)
+  call geopt(run_opt, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
+  !call release_run_objects(runObj)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of MD conf',ncount_bigdft)
      count_bfgs=count_bfgs+ncount_bigdft
 
@@ -561,7 +567,7 @@ logical:: disable_hatrans
      call yaml_mapping_close()
   endif
 
-  call fingerprint(bigdft_mpi%iproc,atoms%astruct%nat,nid,atoms%astruct%rxyz,rcov,wfp, & 
+  call fingerprint(bigdft_mpi%iproc,bigdft_nat(run_opt),nid,bigdft_get_rxyz_ptr(run_opt),rcov,wfp, & 
                    atoms%astruct%geocode,atoms%astruct%cell_dim)
 
      if (abs(outs%energy-e_pos).lt.en_delta) then
@@ -599,8 +605,8 @@ logical:: disable_hatrans
       escape_new=escape_new+1.d0
       ekinetic=ekinetic*beta_N
       nlmin=nlmin+1
-      call insert(bigdft_mpi%iproc,nlminx,nlmin,nid,atoms%astruct%nat,k_e,outs%energy,wfp,&
-           & atoms%astruct%rxyz,en_arr,ct_arr,fp_arr,pl_arr)
+      call insert(bigdft_mpi%iproc,nlminx,nlmin,nid,bigdft_nat(run_opt),k_e,outs%energy,wfp,&
+           nid,bigdft_get_rxyz_ptr(run_opt),en_arr,ct_arr,fp_arr,pl_arr)
 ! write intermediate results
       if (bigdft_mpi%iproc == 0) call yaml_comment('(MH) WINTER')
       if (bigdft_mpi%iproc == 0) call winter(natoms,atoms,nid,nlminx,nlmin,en_delta,fp_delta, &
@@ -634,18 +640,17 @@ logical:: disable_hatrans
           escape,outs%energy,ediff,ekinetic, &
           escape_sam/escape,escape_old/escape,escape_new/escape,'  I ',nvisit
           call f_utils_flush(2)
-          !call bigdft_utils_flush(unit=2)
-          !flush(2)
      endif
 
   !  hopp=hopp+1.d0
   if (outs%energy.lt.e_hop) then
      e_hop=outs%energy
-     do iat=1,natoms
-        poshop(1,iat)=atoms%astruct%rxyz(1,iat) 
-        poshop(2,iat)=atoms%astruct%rxyz(2,iat) 
-        poshop(3,iat)=atoms%astruct%rxyz(3,iat)
-     enddo
+     call bigdft_get_rxyz(run_opt,rxyz=poshop)
+!!$     do iat=1,natoms
+!!$        poshop(1,iat)=atoms%astruct%rxyz(1,iat) 
+!!$        poshop(2,iat)=atoms%astruct%rxyz(2,iat) 
+!!$        poshop(3,iat)=atoms%astruct%rxyz(3,iat)
+!!$     enddo
      do i=1,nid
        fphop(i)=wfp(i)
      enddo
@@ -657,11 +662,12 @@ logical:: disable_hatrans
      !C          local minima accepted -------------------------------------------------------
      accepted=accepted+1.d0
      e_pos=e_hop
-     do iat=1,natoms
-        pos(1,iat)=poshop(1,iat) 
-        pos(2,iat)=poshop(2,iat) 
-        pos(3,iat)=poshop(3,iat)
-     enddo
+     call f_memcpy(src=poshop,dest=pos)
+!!$     do iat=1,natoms
+!!$        pos(1,iat)=poshop(1,iat) 
+!!$        pos(2,iat)=poshop(2,iat) 
+!!$        pos(3,iat)=poshop(3,iat)
+!!$     enddo
      do i=1,nid
         fp(i)=fphop(i)
      enddo
@@ -753,8 +759,12 @@ end do hopping_loop
   endif
   close(2) 
   !deallocations as in BigDFT
-  call free_restart_objects(rst)
-  call deallocate_atoms_data(atoms)
+  !call run_objects_free_container(runObj)
+
+  !call free_restart_objects(rst)
+  call release_restart_objects(run_md)
+  call free_restart_objects(run_opt)
+!!$  call deallocate_atoms_data(atoms)
 
   ! deallocation of global's variables
 
@@ -773,9 +783,8 @@ end do hopping_loop
   call f_free(ksevals)
 
   call deallocate_global_output(outs)
-  call run_objects_free_container(runObj)
-  call free_input_variables(inputs_md)
-  call free_input_variables(inputs_opt)
+!!$  call free_input_variables(inputs_md)
+!!$  call free_input_variables(inputs_opt)
 
   call bigdft_finalize(ierr)
 
@@ -871,7 +880,7 @@ rkin=dot(3*atoms%astruct%nat,vxyz(1,1),1,vxyz(1,1),1)
        enmin1=en0000
        !    if (iproc == 0) write(*,*) 'CLUSTER FOR  MD'
        inputs_md%inputPsiId=1
-       call call_bigdft(runObj, outs, nproc,iproc,infocode)
+       call call_bigdft(runObj, outs,infocode)
 
        if (iproc == 0) then
           write(fn4,'(i4.4)') istep
@@ -990,7 +999,7 @@ rkin=dot(3*atoms%astruct%nat,vxyz(1,1),1,vxyz(1,1),1)
 
     inputs_md%inputPsiId=1
     if(iproc==0) call yaml_comment('(MH) soften initial step ',hfill='~')
-    call call_bigdft(runObj,outs,nproc,iproc,infocode)
+    call call_bigdft(runObj,outs,infocode)
     etot0 = outs%energy
 
     ! scale velocity to generate dimer 
@@ -1011,7 +1020,7 @@ rkin=dot(3*atoms%astruct%nat,vxyz(1,1),1,vxyz(1,1),1)
        
        call vcopy(3*atoms%astruct%nat, pos0(1), 1, atoms%astruct%rxyz(1,1), 1)
        call axpy(3*atoms%astruct%nat, 1.d0, vxyz(1), 1, atoms%astruct%rxyz(1,1), 1)
-       call call_bigdft(runObj,outs,nproc,iproc,infocode)
+       call call_bigdft(runObj,outs,infocode)
        fd2=2.d0*(outs%energy-etot0)/eps_vxyz**2
 
        sdf=0.d0
