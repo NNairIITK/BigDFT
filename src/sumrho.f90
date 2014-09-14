@@ -53,9 +53,9 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,
      call axpy(dpbox%ndimpot,1.0_dp,rho(1+dpbox%ndimpot),1,rho(1),1)
   end if
   if (dpbox%ndimpot>0) then
-     vh = f_malloc_ptr(dpbox%ndimpot+ndebug,id='vh')
+     vh = f_malloc_ptr(dpbox%ndimpot,id='vh')
   else
-     vh = f_malloc_ptr(1+ndebug,id='vh')
+     vh = f_malloc_ptr(1,id='vh')
   end if
 
   if (xc%id(1) /= XC_NO_HARTREE) then
@@ -124,8 +124,8 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
       stop
    end if
    !print *,'here',Lzd%linear,present(mapping),dpbox%iproc_world
-   !write(*,*) 'iproc,rhoarray dim', iproc, Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,nspinn+ndebug
-   rho_p = f_malloc_ptr((/ Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*rhodsc%nrhotot , nspinn+ndebug /),id='rho_p')
+   !write(*,*) 'iproc,rhoarray dim', iproc, Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,nspinn
+   rho_p = f_malloc_ptr((/ Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*rhodsc%nrhotot , nspinn /),id='rho_p')
 
    !switch between GPU/CPU treatment of the density
    !here also one might decide to save the value of psir and of its laplacian 

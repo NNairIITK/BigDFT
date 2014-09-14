@@ -2729,8 +2729,9 @@ subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
    end do loop_np1
 
    Wpweight = f_malloc((/ nwann, ntype /),id='Wpweight')
-   allocate(Wplabel(ntype),stat=i_stat)
-   call memocc(i_stat,Wplabel,'Wplabel',subname)
+   Wplabel  = f_malloc_str(len(Wplabel),ntype,id='Wplabel')
+!!$   allocate(Wplabel(ntype),stat=i_stat)
+!!$   call memocc(i_stat,Wplabel,'Wplabel',subname)
 
    ! Construct the weights of each type
    ii = 0
@@ -2784,9 +2785,10 @@ subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
 
     call f_free(norm)
     call f_free(Wpweight)
-    i_all = -product(shape(Wplabel))*kind(Wplabel)
-    deallocate(Wplabel,stat=i_stat)
-    call memocc(i_stat,i_all,'Wplabel',subname)
+    call f_free_str(len(Wplabel),Wplabel)
+!!$    i_all = -product(shape(Wplabel))*kind(Wplabel)
+!!$    deallocate(Wplabel,stat=i_stat)
+!!$    call memocc(i_stat,i_all,'Wplabel',subname)
 
 end subroutine character_list
 

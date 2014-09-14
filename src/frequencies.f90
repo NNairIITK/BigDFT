@@ -441,7 +441,7 @@ contains
 
       call f_routine(id=subname)
       lwork=3*n
-      work=f_malloc(lwork+ndebug,id='work')
+      work=f_malloc(lwork,id='work')
 
       call dsyev('V','U',n,dynamical,n,eigens,work,lwork,info)
       vectors = dynamical

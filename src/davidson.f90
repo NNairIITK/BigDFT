@@ -108,7 +108,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    !still the exact exchange with occorbs=.false. has to be verified
    if (exctX) then
       psirocc = f_malloc_ptr(max(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*KSwfn%orbs%norbp,&
-         &   dpcom%ngatherarr(0,1)*KSwfn%orbs%norb),1)+ndebug,id='psirocc')
+         &   dpcom%ngatherarr(0,1)*KSwfn%orbs%norb),1),id='psirocc')
 
       call prepare_psirocc(iproc,nproc,KSwfn%Lzd%Glr,KSwfn%orbs,dpcom%nscatterarr(iproc,2),dpcom%ngatherarr(0,1),KSwfn%psi,psirocc)
    else if (in%SIC%approach=='NK') then
@@ -173,7 +173,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    ! 1st Hamilton application on psivirt
    !if(iproc==0)write(*,'(1x,a)')"done."
 
-   VTwfn%hpsi = f_malloc_ptr(max(VTwfn%orbs%npsidim_orbs,VTwfn%orbs%npsidim_comp)+ndebug,id='VTwfn%hpsi')
+   VTwfn%hpsi = f_malloc_ptr(max(VTwfn%orbs%npsidim_orbs,VTwfn%orbs%npsidim_comp),id='VTwfn%hpsi')
    if (nproc > 1) then
       VTwfn%psit = f_malloc_ptr(max(VTwfn%orbs%npsidim_orbs, VTwfn%orbs%npsidim_comp),id='VTwfn%psit')
       !transpose the psivirt 
@@ -512,7 +512,7 @@ subroutine davidson(iproc,nproc,in,at,&
    !wavefunctions in real space, for exact exchange calculations
    if (exctX) then
       psirocc = f_malloc_ptr(max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%norbp,&
-         &   dpcom%ngatherarr(0,1)*orbs%norb),1)+ndebug,id='psirocc')
+         &   dpcom%ngatherarr(0,1)*orbs%norb),1),id='psirocc')
 
       call prepare_psirocc(iproc,nproc,Lzd%Glr,orbs,dpcom%nscatterarr(iproc,2),dpcom%ngatherarr(0,1),psi,psirocc)
    else if (in%SIC%approach=='NK') then
@@ -537,7 +537,7 @@ subroutine davidson(iproc,nproc,in,at,&
       call f_free_ptr(psiw)
    end if
 
-   orbsv%eval = f_malloc_ptr(orbsv%norb*orbsv%nkpts+ndebug,id='orbsv%eval')
+   orbsv%eval = f_malloc_ptr(orbsv%norb*orbsv%nkpts,id='orbsv%eval')
 
    orbsv%eval(1:orbsv%norb*orbsv%nkpts)=-0.5d0
 
@@ -703,7 +703,7 @@ subroutine davidson(iproc,nproc,in,at,&
    call dimension_ovrlp(nspin,orbsv,ndimovrlp)
 
    !the dimension should be chosen with the max between k-points
-   !allocate(hamovr(n2virt,n2virt,2,orbsv%nkpts+ndebug),stat=i_stat)
+   !allocate(hamovr(n2virt,n2virt,2,orbsv%nkpts),stat=i_stat)
    hamovr = f_malloc(8*ndimovrlp(nspin, orbsv%nkpts),id='hamovr')
 
    !put to zero all the k-points which are not needed

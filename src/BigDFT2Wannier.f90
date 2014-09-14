@@ -389,6 +389,7 @@ program BigDFT2Wannier
             call mpiallred(overlap_proj(1,1),orbsp%norb*orbsp%norb,MPI_SUM)
          end if
          !print *,'overlap_proj',overlap_proj
+         !print *,'orbsp%norb',orbsp%norb
          ipiv = f_malloc(orbsp%norb,id='ipiv')
          call dgetrf( orbsp%norb, orbsp%norb, overlap_proj, orbsp%norb, ipiv, info )
          pwork = f_malloc_ptr(1,id='pwork')

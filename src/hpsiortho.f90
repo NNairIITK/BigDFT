@@ -240,7 +240,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
            stop
         end if
 
-        denspot%rho_work = f_malloc_ptr(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim+ndebug,id='denspot%rho_work')
+        denspot%rho_work = f_malloc_ptr(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,id='denspot%rho_work')
         call vcopy(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,denspot%rhov(1),1,&
              denspot%rho_work(1),1)
      end if
@@ -607,7 +607,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    else
 
 !!$      !temporary allocation
-!!$      allocate(fake_pot(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin+ndebug),stat=i_stat)
+!!$      allocate(fake_pot(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin),stat=i_stat)
 !!$      call memocc(i_stat,fake_pot,'fake_pot',subname)
 !!$
 !!$      call to_zero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin,fake_pot(1))
@@ -1088,7 +1088,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       !this routine should then be modified or integrated in HamiltonianApplication
       if (dpbox%mpi_env%nproc > 1) then
 
-         pot1 = f_malloc_ptr(npot+ndebug,id='pot1')
+         pot1 = f_malloc_ptr(npot,id='pot1')
          ispot=1
          ispotential=1
          do ispin=1,orbs%nspin
@@ -1111,7 +1111,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
          end if
       else
          if (odp) then
-            pot1 = f_malloc_ptr(npot+ndebug,id='pot1')
+            pot1 = f_malloc_ptr(npot,id='pot1')
             call vcopy(dpbox%ndimgrid*orbs%nspin,potential(1),1,pot1(1),1)
             if (dpbox%i3rho_add >0 .and. orbs%norbp > 0) then
                ispot=dpbox%ndimgrid*orbs%nspin+1
@@ -1208,15 +1208,15 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
    ! Depending on the scheme, cut out the local pieces of the potential
    !#################################################################################################################################################
    if(iflag==0) then
-      !       allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
+      !       allocate(pot(lzd%ndimpotisf),stat=i_stat)
       !       call vcopy(lzd%ndimpotisf,pot,1,pot,1) 
       ! This is due to the dynamic memory managment. The original version was: pot=>pot1
-      !pot = f_malloc_ptr(npot+ndebug,id='pot')
+      !pot = f_malloc_ptr(npot,id='pot')
       !pot=pot1
       !call f_free_ptr(pot1)
       pot=>pot1
    else if(iflag>0 .and. iflag<2) then
-      pot = f_malloc_ptr(lzd%ndimpotisf+ndebug,id='pot')
+      pot = f_malloc_ptr(lzd%ndimpotisf,id='pot')
       ! Cut potential
       istl=1
       do iorb=1,nilr
@@ -1227,7 +1227,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       end do
    else
       if(.not.associated(pot)) then !otherwise this has been done already... Should be improved.
-         pot = f_malloc_ptr(lzd%ndimpotisf+ndebug,id='pot')
+         pot = f_malloc_ptr(lzd%ndimpotisf,id='pot')
 
          ist=1
          do iorb=1,nilr
@@ -1852,7 +1852,7 @@ subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
       !allocate hpsi array (used also as transposed)
       !allocated in the transposed way such as 
       !it can also be used as the transposed hpsi
-      hpsi =f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug,id='hpsi')
+      hpsi =f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp),id='hpsi')
       !allocate transposed principal wavefunction
       psit = f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp),id='psit')
    else
@@ -1889,7 +1889,7 @@ subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
    if (nproc == 1) then
       nullify(psit)
       !allocate hpsi array
-      hpsi = f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug,id='hpsi')
+      hpsi = f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp),id='hpsi')
    end if
 
 END SUBROUTINE first_orthon
@@ -2827,12 +2827,12 @@ END SUBROUTINE broadcast_kpt_objects
 !!
 !!  !number of components for the overlap matrix in wp-kind real numbers
 !!
-!!  allocate(ndimovrlp(nspin,0:orbs%nkpts+ndebug),stat=i_stat)
+!!  allocate(ndimovrlp(nspin,0:orbs%nkpts),stat=i_stat)
 !!  call memocc(i_stat,ndimovrlp,'ndimovrlp',subname)
 !!
 !!  call dimension_ovrlp(nspin,orbs,ndimovrlp)
 !!
-!!  allocate(alag(ndimovrlp(nspin,orbs%nkpts)+ndebug),stat=i_stat)
+!!  allocate(alag(ndimovrlp(nspin,orbs%nkpts) ),stat=i_stat)
 !!  call memocc(i_stat,alag,'alag',subname)
 !!
 !!  !put to zero all the k-points which are not needed

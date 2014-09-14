@@ -206,12 +206,12 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
          nullify(rst%KSwfn%orbs%eval)
 
         call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd)
-         !finalize memory counting (there are still the positions and the forces allocated)
-         call memocc(0,0,'count','stop')
 
-         if (nproc > 1) call MPI_FINALIZE(ierr)
-
-         stop 'unnormal end'
+        !test if stderr works
+        write(0,*)'unnormal end'
+        call mpibarrier(bigdft_mpi%mpi_comm)
+        call f_err_throw('Convergence error, cannot proceed. '//&
+             'Writing positions in file posfail.xyz',err_name='BIGDFT_RUNTIME_ERROR')
       else
          exit loop_cluster
       end if
@@ -1056,7 +1056,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          spot_a = 0.8d0
          hpot_a = 3.0d0
 
-         allocate(radpot(60000 ,2+ndebug ))
+         allocate(radpot(60000 ,2))
          radpotcount=60000
 
          open(unit=22,file='pot.dat', status='old')
@@ -1328,7 +1328,7 @@ subroutine abscalc_input_variables(iproc,filename,in)
   read(iunit,*,iostat=ierror)  in%L_absorber
   call check()
 
-  in%Gabs_coeffs = f_malloc_ptr(2*in%L_absorber +1+ndebug,id='in%Gabs_coeffs')
+  in%Gabs_coeffs = f_malloc_ptr(2*in%L_absorber +1,id='in%Gabs_coeffs')
 
   read(iunit,*,iostat=ierror)  (in%Gabs_coeffs(i), i=1,2*in%L_absorber +1 )
   call check()

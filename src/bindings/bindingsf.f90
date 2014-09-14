@@ -15,20 +15,20 @@ subroutine memocc_report()
 end subroutine memocc_report
 
 
-subroutine memocc_verbose()
-  use memory_profiling, only: mstate => memocc_set_state
-  implicit none
-  call mstate(2)
-end subroutine memocc_verbose
+!!$subroutine memocc_verbose()
+!!$  use memory_profiling, only: mstate => memocc_set_state
+!!$  implicit none
+!!$  call mstate(2)
+!!$end subroutine memocc_verbose
 
 
-subroutine memocc_set_output(file, ln)
-  use memory_profiling, only: mstate => memocc_set_filename
-  implicit none
-  integer, intent(in) :: ln
-  character(len = ln), intent(in) :: file
-  call mstate(file)
-end subroutine memocc_set_output
+!!$subroutine memocc_set_output(file, ln)
+!!$  use memory_profiling, only: mstate => memocc_set_filename
+!!$  implicit none
+!!$  integer, intent(in) :: ln
+!!$  character(len = ln), intent(in) :: file
+!!$  call mstate(file)
+!!$end subroutine memocc_set_output
 
 
 subroutine f90_pointer_1D_init(pt_c, size_c)

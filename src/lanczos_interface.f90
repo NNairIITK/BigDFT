@@ -151,17 +151,17 @@ contains
     !! arrays which are used in the direct rep after retrieval
     !! from transposed memory
 
-    Qvect_tmp = f_malloc_ptr(EP_dim_tot_touse+ndebug , id='Qvect_tmp')
-    wrk = f_malloc_ptr(EP_dim_tot_touse+ndebug,id='wrk')
-    wrk1 = f_malloc_ptr(EP_dim_tot_touse+ndebug,id='wrk1')
-    wrk2 = f_malloc_ptr(EP_dim_tot_touse+ndebug,id='wrk2')
+    Qvect_tmp = f_malloc_ptr(EP_dim_tot_touse , id='Qvect_tmp')
+    wrk = f_malloc_ptr(EP_dim_tot_touse,id='wrk')
+    wrk1 = f_malloc_ptr(EP_dim_tot_touse,id='wrk1')
+    wrk2 = f_malloc_ptr(EP_dim_tot_touse,id='wrk2')
 
     EP_shift=0.0
 
     EP_norb=0
     EP_doorthoocc=.false.
 
-    EP_norma2_initialized_state = f_malloc_ptr(ha%orbs%norbp+ndebug,id='EP_norma2_initialized_state')
+    EP_norma2_initialized_state = f_malloc_ptr(ha%orbs%norbp,id='EP_norma2_initialized_state')
 
     !added for nullification of the pointers in the lanczos_base module
     nullify(Qvect,dumQvect)
@@ -228,7 +228,7 @@ contains
        call f_free_ptr(Qvect)
     endif
 
-    Qvect = f_malloc_ptr( (/1.to.EP_dim , 0.to.nsteps+ndebug /),id='Qvect')
+    Qvect = f_malloc_ptr( (/1.to.EP_dim , 0.to.nsteps /),id='Qvect')
     do i=0,nsteps
        do j=1,EP_dim
           Qvect(j,i)=0.0_wp
@@ -244,7 +244,7 @@ contains
        call f_free_ptr(dumQvect)
     endif
 
-    dumQvect = f_malloc_ptr( (/1.to.EP_dim , 0.to.nd+1+ndebug/),id='dumQvect')
+    dumQvect = f_malloc_ptr( (/1.to.EP_dim , 0.to.nd+1/),id='dumQvect')
   END SUBROUTINE EP_make_dummy_vectors
 
   subroutine EP_store_occupied_orbitals( norb, Occ_psit )
@@ -255,7 +255,7 @@ contains
     EP_doorthoocc=.true.
     EP_norb=norb
     occQvect=>Occ_psit
-    EP_occprojections = f_malloc_ptr(EP_norb+ndebug,id='EP_occprojections')
+    EP_occprojections = f_malloc_ptr(EP_norb,id='EP_occprojections')
 
   END SUBROUTINE EP_store_occupied_orbitals
 

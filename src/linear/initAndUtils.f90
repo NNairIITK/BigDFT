@@ -343,7 +343,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
 
 
   if(linType /= INPUT_IG_TMO) then
-     allocate(Lzd%Llr(Lzd%nlr+ndebug))
+     allocate(Lzd%Llr(Lzd%nlr))
      do ilr=1,Lzd%nlr
         Lzd%Llr(ilr)=locreg_null()
      end do

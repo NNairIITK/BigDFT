@@ -216,8 +216,7 @@ contains
 
   !> Deallocate the structure atoms_data.
   subroutine deallocate_atomic_structure(astruct)!,subname) 
-    use dynamic_memory, only: f_free_ptr
-    use module_base, only: memocc
+    use dynamic_memory, only: f_free_ptr,f_free_str_ptr
     implicit none
     !character(len=*), intent(in) :: subname
     type(atomic_structure), intent(inout) :: astruct
@@ -236,11 +235,12 @@ contains
        call f_free_ptr(astruct%ixyz_int)
     end if
     if (astruct%ntypes >= 0) then
-       if (associated(astruct%atomnames)) then
-          i_all=-product(shape(astruct%atomnames))*kind(astruct%atomnames)
-          deallocate(astruct%atomnames, stat=i_stat)
-          call memocc(i_stat, i_all, 'astruct%atomnames', subname)
-       end if
+       call f_free_str_ptr(len(astruct%atomnames),astruct%atomnames)
+!!$       if (associated(astruct%atomnames)) then
+!!$          i_all=-product(shape(astruct%atomnames))*kind(astruct%atomnames)
+!!$          deallocate(astruct%atomnames, stat=i_stat)
+!!$          call memocc(i_stat, i_all, 'astruct%atomnames', subname)
+!!$       end if
     end if
     ! Free additional stuff.
     call deallocate_symmetry_data(astruct%sym)
@@ -857,12 +857,14 @@ subroutine astruct_set_n_types(astruct, ntypes)
   astruct%ntypes = ntypes
 
   ! Allocate geometry related stuff.
-  allocate(astruct%atomnames(astruct%ntypes),stat=i_stat)
-  call memocc(i_stat,astruct%atomnames,'astruct%atomnames',subname)
+  astruct%atomnames=f_malloc0_str_ptr(len(astruct%atomnames),astruct%ntypes,&
+       id='atomnames')
+!!$  allocate(astruct%atomnames(astruct%ntypes),stat=i_stat)
+!!$  call memocc(i_stat,astruct%atomnames,'astruct%atomnames',subname)
 
-  do i = 1, astruct%ntypes, 1
-     write(astruct%atomnames(i), "(A)") " "
-  end do
+!!$  do i = 1, astruct%ntypes, 1
+!!$     write(astruct%atomnames(i), "(A)") " "
+!!$  end do
 END SUBROUTINE astruct_set_n_types
 
 

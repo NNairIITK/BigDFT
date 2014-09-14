@@ -197,7 +197,6 @@ libabinit_a_SOURCES = \
 	56_mixing/dotprodm_vn.F90 \
 	56_mixing/findminscf.F90 \
 	56_mixing/interfaces_56_mixing.F90 \
-	56_mixing/m_ab6_mixing.F90 \
 	56_mixing/scfcge.F90 \
 	56_mixing/scfeig.F90 \
 	56_mixing/scfopt.F90 \

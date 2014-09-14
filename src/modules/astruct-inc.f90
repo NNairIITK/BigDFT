@@ -13,7 +13,6 @@
 subroutine read_xyz_positions(ifile,filename,astruct,comment,energy,fxyz,getLine)
   use module_defs, only: gp,UNINITIALIZED,Bohr_Ang, BIGDFT_INPUT_VARIABLES_ERROR
   use dictionaries, only: f_err_raise, f_err_throw
-  use module_base, only: ndebug,memocc
   use dynamic_memory
   implicit none
   !Arguments
@@ -524,7 +523,6 @@ END SUBROUTINE read_ascii_positions
 subroutine read_int_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
   use module_defs, only: gp,UNINITIALIZED,Bohr_Ang, Radian_Degree
   use dictionaries, only: f_err_raise
-  use module_base, only: ndebug,memocc
   use dynamic_memory
   implicit none
   integer, intent(in) :: iproc,ifile

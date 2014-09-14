@@ -555,16 +555,18 @@ module bigdft_forces
       rxyz(2,:) = posquant(1+total_nb_atoms:nat+total_nb_atoms)
       rxyz(3,:) = posquant(1+total_nb_atoms+total_nb_atoms:nat+total_nb_atoms+total_nb_atoms)
 
-      atoms2%astruct%ntypes  = atoms1%astruct%ntypes
+      
+!!$      atoms2%astruct%ntypes  = atoms1%astruct%ntypes
 
-
+      call astruct_set_n_types(atoms2%astruct,atoms1%astruct%ntypes)
 
 
       atoms2%astruct%iatype = f_malloc_ptr(atoms2%astruct%nat,id='atoms2%astruct%iatype')
       atoms2%astruct%iatype(:) = atoms1%astruct%iatype(1:nat)
+      
 
-      allocate(atoms2%astruct%atomnames(atoms2%astruct%ntypes+ndebug),stat=i_stat)
-      call memocc(i_stat,atoms2%astruct%atomnames,'atoms%astruct%atomnames',subname)
+!!$      allocate(atoms2%astruct%atomnames(atoms2%astruct%ntypes+ndebug),stat=i_stat)
+!!$      call memocc(i_stat,atoms2%astruct%atomnames,'atoms%astruct%atomnames',subname)
       atoms2%astruct%atomnames(1:atoms2%astruct%ntypes)=atoms1%astruct%atomnames(1:atoms2%astruct%ntypes)
       atoms2%astruct%inputfile_format = atoms1%astruct%inputfile_format
 
@@ -627,9 +629,11 @@ module bigdft_forces
          if (.not. have_hydro) then
             atomnames(1:atoms%astruct%ntypes) = atoms%astruct%atomnames(1:atoms%astruct%ntypes)
             atoms%astruct%ntypes = atoms%astruct%ntypes +1
-            i_all=-product(shape(atoms%astruct%atomnames))*kind(atoms%astruct%atomnames)
-            deallocate(atoms%astruct%atomnames, stat=i_stat)
-            call memocc(i_stat, i_all, 'atoms%astruct%atomnames', subname)
+            call f_free_str_ptr(len(atoms%astruct%atomnames),&
+                 atoms%astruct%atomnames)
+!!$            i_all=-product(shape(atoms%astruct%atomnames))*kind(atoms%astruct%atomnames)
+!!$            deallocate(atoms%astruct%atomnames, stat=i_stat)
+!!$            call memocc(i_stat, i_all, 'atoms%astruct%atomnames', subname)
             atomnames(atoms%astruct%ntypes) = "H"
             atoms%astruct%atomnames(1:atoms%astruct%ntypes) = atomnames(1:atoms%astruct%ntypes)
             hydro_atom_type = atoms%astruct%ntypes

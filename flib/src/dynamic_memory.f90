@@ -11,8 +11,7 @@
 !> Module used to manage memory allocations and de-allocations
 module dynamic_memory
 
-  !use m_profiling, except => ndebug, and=> d_nan, also=> r_nan
-  use memory_profiling, except => ndebug
+  use memory_profiling
   use dictionaries, info_length => max_field_length
   use yaml_strings, only: yaml_toa,yaml_date_and_time_toa
   use module_f_malloc
@@ -99,7 +98,7 @@ module dynamic_memory
      module procedure z1_ptr
      !strings and pointers for characters
      module procedure c1_all
-!     module procedure c1_ptr
+     module procedure c1_ptr
   end interface
 
   interface f_free
@@ -881,11 +880,8 @@ contains
 
     if (present(memory_limit)) call memocc_set_memory_limit(memory_limit)
 
-    if (present(output_level)) call memocc_set_state(output_level)
-
-    if (present(unit)) call memocc_set_stdout(unit)
-
-    if (present(logfile_name)) call memocc_set_filename(logfile_name)
+!this has to be redefined if the new memocc works
+!    if (present(logfile_name)) call memocc_set_filename(logfile_name)
        
     if (present(iproc)) call set(mems(ictrl)%dict_global//processid,iproc)
   end subroutine f_malloc_set_status

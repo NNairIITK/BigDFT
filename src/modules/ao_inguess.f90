@@ -11,7 +11,7 @@
 
 !> Handling of input guess creation from basis of atomic orbitals
 module ao_inguess
-  use module_base, only: gp,f_err_raise,ndebug,to_zero,f_err_throw,bigdft_mpi
+  use module_base, only: gp,f_err_raise,to_zero,f_err_throw,bigdft_mpi
   use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
 
   implicit none

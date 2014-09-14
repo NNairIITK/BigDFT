@@ -732,6 +732,9 @@ module bigdft_run
          !this will fill atoms and inputs
          call set_run_objects(runObj)
 
+         !the user input is not needed anymore
+         call dict_free(runObj%user_inputs)
+
          !decide what to do with restart
          if (present(source)) then
             if (associated(runObj%rst)) call f_unref(runObj%rst%refcnt)

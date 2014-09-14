@@ -618,13 +618,18 @@ subroutine allocateInputFragArrays(input_frag)
   !allocate(input_frag%frag_info(input_frag%nfrag_ref,2), stat=i_stat)
   !call memocc(i_stat, input_frag%frag_info, 'input_frag%frag_info', subname)
 
-  allocate(input_frag%label(input_frag%nfrag_ref), stat=i_stat)
-  call memocc(i_stat, input_frag%label, 'input_frag%label', subname)
+  input_frag%label=f_malloc_str_ptr(len(input_frag%label),&
+       input_frag%nfrag_ref,id='input_frag%label')
+!!$  allocate(input_frag%label(input_frag%nfrag_ref), stat=i_stat)
+!!$  call memocc(i_stat, input_frag%label, 'input_frag%label', subname)
 
 
   !f_malloc0_str_ptr should be used here
-  allocate(input_frag%dirname(input_frag%nfrag_ref), stat=i_stat)
-  call memocc(i_stat, input_frag%dirname, 'input_frag%dirname', subname)
+  input_frag%dirname=f_malloc_str_ptr(len(input_frag%dirname),&
+       input_frag%nfrag_ref,id='input_frag%label')
+
+!!$  allocate(input_frag%dirname(input_frag%nfrag_ref), stat=i_stat)
+!!$  call memocc(i_stat, input_frag%dirname, 'input_frag%dirname', subname)
 
   !set the variables to their default value
 
@@ -651,29 +656,27 @@ subroutine deallocateInputFragArrays(input_frag)
   !  nullify(input_frag%frag_info)
   !end if 
 
-  if(associated(input_frag%frag_index)) then
-     call f_free_ptr(input_frag%frag_index)
-     nullify(input_frag%frag_index)
-  end if
+  call f_free_ptr(input_frag%frag_index)
+  
+  
+  call f_free_ptr(input_frag%charge)
+  
+  call f_free_str_ptr(len(input_frag%label),input_frag%label)
+  call f_free_str_ptr(len(input_frag%dirname),input_frag%dirname)
 
-  if(associated(input_frag%charge)) then
-     call f_free_ptr(input_frag%charge)
-     nullify(input_frag%charge)
-  end if
-
-  if(associated(input_frag%label)) then
-     i_all = -product(shape(input_frag%label))*kind(input_frag%label)
-     deallocate(input_frag%label,stat=i_stat)
-     call memocc(i_stat,i_all,'input_frag%label',subname)
-     nullify(input_frag%label)
-  end if
-
-  if(associated(input_frag%dirname)) then
-     i_all = -product(shape(input_frag%dirname))*kind(input_frag%dirname)
-     deallocate(input_frag%dirname,stat=i_stat)
-     call memocc(i_stat,i_all,'input_frag%dirname',subname)
-     nullify(input_frag%dirname)
-  end if
+!!$  if(associated(input_frag%label)) then
+!!$     i_all = -product(shape(input_frag%label))*kind(input_frag%label)
+!!$     deallocate(input_frag%label,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'input_frag%label',subname)
+!!$     nullify(input_frag%label)
+!!$  end if
+!!$
+!!$  if(associated(input_frag%dirname)) then
+!!$     i_all = -product(shape(input_frag%dirname))*kind(input_frag%dirname)
+!!$     deallocate(input_frag%dirname,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'input_frag%dirname',subname)
+!!$     nullify(input_frag%dirname)
+!!$  end if
 
 end subroutine deallocateInputFragArrays
 
@@ -726,23 +729,21 @@ subroutine free_kpt_variables(in)
   character(len=*), parameter :: subname='free_kpt_variables'
   integer :: i_stat, i_all
 
-  if (associated(in%gen_kpt)) then
-     i_all=-product(shape(in%gen_kpt))*kind(in%gen_kpt)
-     deallocate(in%gen_kpt,stat=i_stat)
-     call memocc(i_stat,i_all,'in%gen_kpt',subname)
-  end if
-  if (associated(in%gen_wkpt)) then
-     i_all=-product(shape(in%gen_wkpt))*kind(in%gen_wkpt)
-     deallocate(in%gen_wkpt,stat=i_stat)
-     call memocc(i_stat,i_all,'in%gen_wkpt',subname)
-  end if
-  if (associated(in%kptv)) then
-     call f_free_ptr(in%kptv)
-  end if
-  if (associated(in%nkptsv_group)) then
-     call f_free_ptr(in%nkptsv_group)
-  end if
-  nullify(in%gen_kpt)
+!!$  if (associated(in%gen_kpt)) then
+!!$     i_all=-product(shape(in%gen_kpt))*kind(in%gen_kpt)
+!!$     deallocate(in%gen_kpt,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'in%gen_kpt',subname)
+!!$  end if
+!!$  if (associated(in%gen_wkpt)) then
+!!$     i_all=-product(shape(in%gen_wkpt))*kind(in%gen_wkpt)
+!!$     deallocate(in%gen_wkpt,stat=i_stat)
+!!$     call memocc(i_stat,i_all,'in%gen_wkpt',subname)
+!!$  end if
+  call f_free_ptr(in%gen_kpt)
+  call f_free_ptr(in%gen_wkpt)
+  call f_free_ptr(in%kptv)
+  call f_free_ptr(in%nkptsv_group)
+    nullify(in%gen_kpt)
   nullify(in%gen_wkpt)
   nullify(in%kptv)
   nullify(in%nkptsv_group)
@@ -975,7 +976,8 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   real(gp), dimension(3,8) :: shiftk_
   real(gp) :: kptrlen_, norm
   character(len = 6) :: method
-  
+  real(gp), dimension(:,:), pointer :: gen_kpt   !< K points coordinates
+  real(gp), dimension(:), pointer :: gen_wkpt    !< Weights of k points
   ! Set default values.
   in%gen_nkpt=1
   in%nkptv=0
@@ -990,14 +992,18 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
      kptrlen_ = dict // KPTRLEN
      if (geocode == 'F') then
         in%gen_nkpt = 1
-        allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
-        call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
-        in%gen_kpt = 0.
-        allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
-        call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
+!!$        allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
+!!$        call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
+!!$        in%gen_kpt = 0.
+        in%gen_kpt=f_malloc0_ptr([3, in%gen_nkpt],id='gen_kpt')
+
+!!$        allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
+!!$        call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
+        in%gen_kpt=f_malloc_ptr(in%gen_nkpt,id='gen_wkpt')
+                
         in%gen_wkpt = 1.
      else
-        call kpoints_get_auto_k_grid(sym%symObj, in%gen_nkpt, in%gen_kpt, in%gen_wkpt, &
+        call kpoints_get_auto_k_grid(sym%symObj, in%gen_nkpt, gen_kpt, gen_wkpt, &
              & kptrlen_, ierror)
         if (ierror /= AB7_NO_ERROR) then
            if (iproc==0) &
@@ -1006,8 +1012,11 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
            stop
         end if
         !assumes that the allocation went through (arrays allocated by abinit routines)
-        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
-        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
+        in%gen_kpt=f_malloc_ptr(src=gen_kpt,id='gen_kpt')
+        in%gen_wkpt=f_malloc_ptr(src=gen_wkpt,id='gen_wkpt')
+        deallocate(gen_kpt,gen_wkpt)
+!!$        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
+!!$        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
      end if
   else if (input_keys_equal(trim(method), 'mpgrid')) then
      !take the points of Monkhorst-pack grid
@@ -1030,14 +1039,16 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
         if (iproc==0 .and. (maxval(ngkpt_) > 1 .or. maxval(abs(shiftk_)) > 0.)) &
              & call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
         in%gen_nkpt = 1
-        allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
-        call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
-        in%gen_kpt = 0.
-        allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
-        call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
+        in%gen_kpt=f_malloc0_ptr([3, in%gen_nkpt],id='gen_kpt')
+!!$        allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
+!!$        call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
+!!$        in%gen_kpt = 0.
+!!$        allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
+!!$        call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
+        in%gen_kpt=f_malloc_ptr(in%gen_nkpt,id='gen_wkpt')
         in%gen_wkpt = 1.
      else
-        call kpoints_get_mp_k_grid(sym%symObj, in%gen_nkpt, in%gen_kpt, in%gen_wkpt, &
+        call kpoints_get_mp_k_grid(sym%symObj, in%gen_nkpt, gen_kpt, gen_wkpt, &
              & ngkpt_, nshiftk, shiftk_, ierror)
         if (ierror /= AB7_NO_ERROR) then
            if (iproc==0) &
@@ -1045,9 +1056,13 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
                 & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))
            stop
         end if
-        !assumes that the allocation went through (arrays allocated by abinit routines)
-        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
-        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
+        !assumes that the allocation went through 
+        !(arrays allocated by abinit routines)
+        in%gen_kpt=f_malloc_ptr(src=gen_kpt,id='gen_kpt')
+        in%gen_wkpt=f_malloc_ptr(src=gen_wkpt,id='gen_wkpt')
+        deallocate(gen_kpt,gen_wkpt)
+!!$        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
+!!$        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
      end if
   else if (input_keys_equal(trim(method), 'manual')) then
      in%gen_nkpt = max(1, dict_len(dict//KPT))
@@ -1055,10 +1070,13 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
         if (iproc==0) call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
         in%gen_nkpt = 1
      end if
-     allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
-     call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
-     allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
-     call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
+     in%gen_kpt=f_malloc_ptr([3, in%gen_nkpt],id='gen_kpt')
+     in%gen_wkpt=f_malloc_ptr(in%gen_nkpt,id='gen_wkpt')
+
+!!$     allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
+!!$     allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
+!!$     call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
      norm=0.0_gp
      do i=1,in%gen_nkpt
         in%gen_kpt(1, i) = dict // KPT // (i-1) // 0

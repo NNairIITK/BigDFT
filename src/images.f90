@@ -995,16 +995,20 @@ contains
     integer :: i_all, i_stat
     character(len = *), parameter :: subname = "image_update_pos_from_file"
 
-    if (associated(rxyzp1)) then
-      i_all=-product(shape(rxyzp1))*kind(rxyzp1)
-      deallocate(rxyzp1,stat=i_stat)
-      call memocc(i_stat,i_all,'rxyzp1',subname)
-    end if
-    if (associated(rxyzm1)) then
-      i_all=-product(shape(rxyzm1))*kind(rxyzm1)
-      deallocate(rxyzm1,stat=i_stat)
-      call memocc(i_stat,i_all,'rxyzm1',subname)
-    end if
+    !if should work now as the dictionary
+    !is base on the addres of the first element
+    call f_free_ptr(rxyzp1)
+    call f_free_ptr(rxyzm1)
+!!$    if (associated(rxyzp1)) then
+!!$      i_all=-product(shape(rxyzp1))*kind(rxyzp1)
+!!$      deallocate(rxyzp1,stat=i_stat)
+!!$      call memocc(i_stat,i_all,'rxyzp1',subname)
+!!$    end if
+!!$    if (associated(rxyzm1)) then
+!!$      i_all=-product(shape(rxyzm1))*kind(rxyzm1)
+!!$      deallocate(rxyzm1,stat=i_stat)
+!!$      call memocc(i_stat,i_all,'rxyzm1',subname)
+!!$    end if
     call deallocate_atomic_structure(astruct)
     call f_release_routine()
   end subroutine free_me
