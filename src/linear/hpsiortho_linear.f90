@@ -773,6 +773,8 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
   real(kind=8),dimension(:),pointer :: kernel_compr_tmp
   real(kind=8),dimension(:),pointer :: matrix_local
 
+      call f_routine(id='build_gradient')
+
       if(tmb%ham_descr%collcom%ndimind_c>0) &
           call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsittmp_c(1), 1)
       if(tmb%ham_descr%collcom%ndimind_f>0) &
@@ -857,4 +859,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
                tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
       end if
+
+      call f_release_routine()
+
 end subroutine build_gradient
