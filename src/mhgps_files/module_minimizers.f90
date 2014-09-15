@@ -71,6 +71,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
                                       fdim,&
                                       isadc,&
                                       currDir
+   use module_atoms, only: astruct_dump_to_file
    implicit none
    !parameter
    integer, intent(in)                    :: nat, nbond,imode
@@ -352,10 +353,16 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
       if (iproc == 0 .and. mhgps_verbosity >=4) then
          write(fn4,'(i4.4)') int(energycounter)
          write(comment,'(a,1pe10.3)')'SBFGS:fnrm= ',fnrm
-         call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
+         call astruct_dump_to_file(atoms%astruct,&
+              currDir//'/sad'//trim(adjustl(isadc))&
               //'_posmini'//trim(adjustl(writePostfix))//'_'//fn4, &
-              etotp,rxyz(1,1,nhist),ixyz_int,atoms,trim(comment),&
-              forces=fxyz(1,1,nhist))
+              trim(comment),energy=etotp,rxyz=rxyz(:,:,nhist),&
+              forces=fxyz(:,:,nhist))
+!!$
+!!$         call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
+!!$              //'_posmini'//trim(adjustl(writePostfix))//'_'//fn4, &
+!!$              etotp,rxyz(1,1,nhist),ixyz_int,atoms,trim(comment),&
+!!$              forces=fxyz(1,1,nhist))
       endif
 
       if (fmax < 3.e-1_gp) call updatefluctsum(fnoise,fluct)

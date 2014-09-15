@@ -209,11 +209,18 @@ contains
          & AB6_MAX_SYMMETRIES,nshiftk,sym%nSym,0,sym%rprimd,&
          & shiftk,sym%symAfm,sym%sym,sym%vacuum)
     if (AB_DBG) write(std_err,*) "AB symmetry: testkgrid -> kptrlatt=", kptrlatt
+    
+    !LG: the array kpt seems not allocated here.
+    !I would classify it as a bug
+    !therefore:
+    allocate(kpt(3, nkpt))
+    allocate(wkpt(nkpt))
 
     call getkgrid(6, 1, kpt, 1, kptrlatt, kptrlen, &
          & AB6_MAX_SYMMETRIES, 0, nkpt, nshiftk, sym%nSym, &
          & sym%rprimd, shiftk, sym%symAfm, sym%sym, &
          & sym%vacuum, wkpt)
+    deallocate(kpt,wkpt)
     if (AB_DBG) write(std_err,*) "AB symmetry: getkgrid -> nkpt=", nkpt
   end subroutine kpoints_binding_auto_k_1
 

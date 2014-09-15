@@ -129,7 +129,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
   !write(*,'(a,3i6)') 'iproc, orbse%isorb, orbse%norbp', iproc, orbse%isorb,orbse%norbp
   !write(*,'(a,3i6)') 'norbe, orbse%nspinor, orbse%isorb+orbse%norbp+ndebug', norbe, orbse%nspinor, orbse%isorb+orbse%norbp+ndebug
    !allocate the gaussian coefficients for the number of orbitals which is needed
-   psigau = f_malloc_ptr((/ norbe , orbse%nspinor , orbse%isorb+orbse%norbp+ndebug /),id='psigau')
+   psigau = f_malloc_ptr((/ norbe , orbse%nspinor , orbse%isorb+orbse%norbp /),id='psigau')
    iorbtolr = f_malloc(orbse%norbp,id='iorbtolr')
 
    !fill just the interesting part of the orbital
