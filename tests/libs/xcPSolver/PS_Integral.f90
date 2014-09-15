@@ -161,23 +161,15 @@ dx_field=dx/hx
 
 
 !1d
-   allocate(psifscfold(-nb1:2*n1_old+1+nb1,-nb2:2*n2_old+1+nb2,1+ndebug),stat=i_stat)
-  call memocc(i_stat,psifscfold,'psifscfold',subname)
-   allocate(psi_w(-nb1:2*n1+1+nb1,-nb2:2*n2_old+1+nb2,1+ndebug),stat=i_stat)
-  call memocc(i_stat,psi_w,'psi_w',subname)
-   allocate(psi_w2(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,1+ndebug),stat=i_stat)
-   call memocc(i_stat,psi_w,'psi_w',subname)
-   allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2_old+1+nb2,1+ndebug),stat=i_stat)
-  call memocc(i_stat,psifscf,'psifscf',subname)
+   psifscfold = f_malloc((/ -nb1.to.2*n1_old+1+nb1, -nb2.to.2*n2_old+1+nb2, 1.to.1 /),id='psifscfold')
+   psi_w = f_malloc((/ -nb1.to.2*n1+1+nb1, -nb2.to.2*n2_old+1+nb2, 1.to.1 /),id='psi_w')
+   psi_w2 = f_malloc((/ -nb1.to.2*n1+1+nb1, -nb2.to.2*n2+1+nb2, 1.to.1 /),id='psi_w2')
+   psifscf = f_malloc((/ -nb1.to.2*n1+1+nb1, -nb2.to.2*n2_old+1+nb2, 1.to.1 /),id='psifscf')
 
 !   allocate(psifscfold(-nb1:2*n1_old+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
-!   call memocc(i_stat,psifscfold,'psifscfold',subname)
 !   allocate(psi_w(-nb1:2*n1+1+nb1,-nb2:2*n2_old+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
-!   call memocc(i_stat,psi_w,'psi_w',subname)
 !   allocate(psi_w2(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3_old+1+nb3+ndebug),stat=i_stat)
-!   call memocc(i_stat,psi_w2,'psi_w2',subname)
 !   allocate(psifscf(-nb1:2*n1+1+nb1,-nb2:2*n2+1+nb2,-nb3:2*n3+1+nb3+ndebug),stat=i_stat)
-!   call memocc(i_stat,psifscf,'psifscf',subname)
 
   ! fill psifscfold with a gaussian
   x=-n1_old*hx!0.d0
@@ -230,12 +222,10 @@ dy_field(j,i,k) =((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x
   end do
   
 !!$     allocate(x_phi(0:nd+ndebug),stat=i_stat )
-!!$     call memocc(i_stat,x_phi,'x_phi',subname)
 
   x_phi=f_malloc(bounds=(/0.to.nd/),id='x_phi')
 
-  allocate(y_phi(0:nd,2+ndebug) ,stat=i_stat )
-  call memocc(i_stat,y_phi,'y_phi',subname)
+  y_phi = f_malloc((/ 0.to.nd, 1.to.2 /),id='y_phi')
 
   print *, " scaling function for interpolation "
 
@@ -269,7 +259,6 @@ dy_field(j,i,k) =((1.0d0/cos(theta))-1.0d0)*y+tan(theta)*x
 stop
 !    i_all=-product(shape(x_phi))*kind(x_phi)
 !    deallocate(x_phi,stat=i_stat)
-!    call memocc(i_stat,i_all,'x_phi',subname)
 
 !call interpolate_and_transpose(h,t0,nphi,nrange,phi,ndat,nin,psi_in,nout,psi_out)
 
@@ -355,8 +344,8 @@ stop
     x=x+hx
   end do
 
-deallocate(dy_field)
-deallocate(dx_field)
+call f_free(dy_field)
+call f_free(dx_field)
 
 
   ! original norm
@@ -468,27 +457,17 @@ stop
     x=x+hx
   end do
 
-  i_all=-product(shape(psifscf))*kind(psifscf)
-  deallocate(psifscf,stat=i_stat)
-  call memocc(i_stat,i_all,'psifscf',subname)
+  call f_free(psifscf)
 
 
 
-  i_all=-product(shape(psifscfold))*kind(psifscfold)
-  deallocate(psifscfold,stat=i_stat)
-  call memocc(i_stat,i_all,'psifscfold',subname)
+  call f_free(psifscfold)
 
-  i_all=-product(shape(psi_w2))*kind(psi_w2)
-  deallocate(psi_w2,stat=i_stat)
-  call memocc(i_stat,i_all,'psi_w2',subname)
+  call f_free(psi_w2)
 
-  i_all=-product(shape(psi_w))*kind(psi_w)
-  deallocate(psi_w,stat=i_stat)
-  call memocc(i_stat,i_all,'psi_w',subname)
+  call f_free(psi_w)
 
-  i_all=-product(shape(y_phi))*kind(y_phi)
-  deallocate(y_phi,stat=i_stat)
-  call memocc(i_stat,i_all,'y_phi',subname)
+  call f_free(y_phi)
 
   stop
   !end testing interpolate
@@ -829,14 +808,14 @@ stop
 
 
 
-  deallocate(gaussian, stat = i_stat)
-  deallocate(work, stat = i_stat)
-  deallocate(kernel_scf, stat = i_stat)
-  deallocate(x_scf, stat = i_stat)
-  deallocate(y_scf, stat = i_stat)
-  deallocate(analytic_integral_result, stat=i_stat)
-  deallocate(analytic_vs_naive, stat=i_stat)
-  deallocate(timings, stat=i_stat)
+  call f_free(gaussian)
+  call f_free(work)
+  call f_free(kernel_scf)
+  call f_free(x_scf)
+  call f_free(y_scf)
+  call f_free(analytic_integral_result)
+  call f_free(analytic_vs_naive)
+  call f_free(timings)
 
   call f_lib_finalize()
 
@@ -874,16 +853,16 @@ subroutine discretize_gaussian(nrange,fac,pgauss,x0,hgrid,filename)
   real(gp), dimension(:), allocatable :: f_i,f_phi_i,f_phi_i2,x_scf,y_scf
 
   !allocate the three gaussians arrays
-  allocate(f_i(-nrange:nrange))
-  allocate(f_phi_i(-nrange:nrange))
-  allocate(f_phi_i2(-nrange:nrange))
+  f_i = f_malloc(-nrange.to.nrange,id='f_i')
+  f_phi_i = f_malloc(-nrange.to.nrange,id='f_phi_i')
+  f_phi_i2 = f_malloc(-nrange.to.nrange,id='f_phi_i2')
 
   !Number of integration points = 2*itype_scf*n_points
   n_scf=2*itype_scf*npoints
 
   !Other allocations
-  allocate(x_scf(0:n_scf))
-  allocate(y_scf(0:n_scf))
+  x_scf = f_malloc(0.to.n_scf,id='x_scf')
+  y_scf = f_malloc(0.to.n_scf,id='y_scf')
 
   !Build the scaling function
   call scaling_function(itype_scf,n_scf,n_range,x_scf,y_scf)
@@ -946,7 +925,9 @@ subroutine discretize_gaussian(nrange,fac,pgauss,x0,hgrid,filename)
      close(unit=200+j)
   end do
 
-  deallocate(f_i,f_phi_i,f_phi_i2)
+  call f_free(f_i)
+  call f_free(f_phi_i)
+  call f_free(f_phi_i2)
 
 end subroutine discretize_gaussian
 
@@ -1589,8 +1570,7 @@ subroutine my_interpolate_and_transpose(t0,nphi,nrange,phi,ndat,nin,psi_in,nout,
 
  m_isf=nrange/2
  !calculate the shift filter for the given t0
- allocate(shf(-m_isf:m_isf+ndebug),stat=i_stat )
- call memocc(i_stat,shf,'shf',subname)
+ shf = f_malloc(-m_isf.to.m_isf,id='shf')
 
  !number of points for a unit displacement
  nunit=nphi/nrange 
@@ -1649,9 +1629,7 @@ end do
 
 
 
- i_all=-product(shape(shf))*kind(shf)
- deallocate(shf,stat=i_stat)
- call memocc(i_stat,i_all,'shf',subname)
+ call f_free(shf)
 
 end subroutine my_interpolate_and_transpose
 
@@ -1686,8 +1664,7 @@ subroutine scaling_function4b2B_again(itype,nd,nrange,a,x)
    !from -itype to itype
    ni=2*itype
    nrange = ni
-   allocate(y(0:nd+ndebug),stat=i_stat)
-   call memocc(i_stat,y,'y',subname)
+   y = f_malloc(0.to.nd,id='y')
 
    ! plot scaling function
    call zero(nd+1,x)
@@ -1735,9 +1712,7 @@ subroutine scaling_function4b2B_again(itype,nd,nrange,a,x)
    end do
    !close(1)
 
-   i_all=-product(shape(y))*kind(y)
-   deallocate(y,stat=i_stat)
-   call memocc(i_stat,i_all,'y',subname)
+   call f_free(y)
  END SUBROUTINE scaling_function4b2B_again
 
 !!$
@@ -1769,7 +1744,6 @@ subroutine scaling_function4b2B_again(itype,nd,nrange,a,x)
 !!$
 !!$ !calculate the shift filter for the given t0
 !!$ allocate(shf(-m_isf:m_isf+ndebug),stat=i_stat )
-!!$ call memocc(i_stat,shf,'shf',subname)
 !!$
 !!$ !number of points for a unit displacement
 !!$ nunit=nphi/nrange 
@@ -1918,7 +1892,6 @@ subroutine scaling_function4b2B_again(itype,nd,nrange,a,x)
 !!$
 !!$ i_all=-product(shape(shf))*kind(shf)
 !!$ deallocate(shf,stat=i_stat)
-!!$ call memocc(i_stat,i_all,'shf',subname)
 !!$
 !!$end subroutine my_morph_and_transpose
 
