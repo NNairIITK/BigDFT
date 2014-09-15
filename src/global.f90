@@ -256,6 +256,7 @@ logical:: disable_hatrans
 !          inputs_opt%inputPsiId=1
 !  endif   
   call run_objects_associate(runObj, inputs_opt, atoms, rst)
+  outs%fnoise = 0.0_gp !Bastian: reset noise from coarse level
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of initial conf.',ncount_bigdft)
   count_bfgs=count_bfgs+ncount_bigdft
@@ -522,6 +523,7 @@ logical:: disable_hatrans
 !  endif   
   call run_objects_associate(runObj, inputs_opt, atoms, rst)
 
+  outs%fnoise = 0.0_gp !Bastian: reset noise from coarse level
   call geopt(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of MD conf',ncount_bigdft)
      count_bfgs=count_bfgs+ncount_bigdft
