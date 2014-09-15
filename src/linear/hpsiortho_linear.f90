@@ -814,7 +814,8 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
               !$omp end parallel
               if (nproc>1) then
                    call mpi_allgatherv(matrix_local(1), tmb%linmat%l%nvctrp, mpi_double_precision, &
-                        tmb%linmat%kernel_%matrix_compr(ishift+1), tmb%linmat%l%nvctr_par, tmb%linmat%l%isvctr_par, mpi_double_precision, &
+                        tmb%linmat%kernel_%matrix_compr(ishift+1), tmb%linmat%l%nvctr_par, &
+                        tmb%linmat%l%isvctr_par, mpi_double_precision, &
                         bigdft_mpi%mpi_comm, ierr)
                    call f_free_ptr(matrix_local)
                end if
