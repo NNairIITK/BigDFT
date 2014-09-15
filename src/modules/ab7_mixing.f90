@@ -50,7 +50,7 @@ module m_ab7_mixing
   public :: ab7_mixing_eval_allocate
   public :: ab7_mixing_eval
   public :: ab7_mixing_eval_deallocate
-  public :: fnrm_denpot,fdot_denpot
+  public :: fnrm_denpot,fdot_denpot,fnrm_denpot_forlinear,fdot_denpot_forlinear
 
 contains
 
@@ -779,5 +779,148 @@ contains
        ierr = 0
     end if
   end function fdot_denpot
+
+
+
+  function fnrm_denpot_forlinear(x,cplex,nfft,nspden,opt_denpot,user_data)
+    use wrapper_MPI, only: mpirank,mpiallred,mpi_sum
+    implicit none
+    !Arguments
+    integer, intent(in) :: cplex,nfft,nspden,opt_denpot
+    double precision, dimension(*), intent(in) :: x
+    integer, dimension(:), intent(in) :: user_data
+    !Local variables
+    integer :: ierr, ie, iproc, npoints, ishift, ioffset, ispin
+    double precision :: fnrm_denpot_forlinear, ar, nrm_local, dnrm2, tt
+
+    ! In case of density, we use nscatterarr.
+    if (opt_denpot == AB7_MIXING_DENSITY) then
+       iproc=mpirank(bigdft_mpi%mpi_comm)
+       npoints = cplex * user_data(3 * iproc + 1)
+       ishift  =         user_data(3 * iproc + 2) ! GGA shift
+       ioffset = cplex * user_data(3 * iproc + 3) ! gives the start of the spin down component
+    else
+       npoints = cplex * nfft
+       ishift  = 0
+       ioffset = 0
+    end if
+
+
+    ! Norm on spin up and spin down
+    !nrm_local = dnrm2(npoints * min(nspden,2), x(1 + ishift), 1)
+    !nrm_local = nrm_local ** 2
+    nrm_local=0.d0
+    do ispin=1,nspden
+        tt = dnrm2(npoints, x(1 + ishift + (ispin-1)*ioffset), 1)
+        nrm_local = nrm_local + tt ** 2
+    end do
+
+    if (nspden==4) then
+       stop 'SM: I think that one needs to include ioffset as well here...'
+       ! Add the magnetisation
+       ar = dnrm2(npoints * 2, x(1 + cplex * nfft * 2 + ishift), 1)
+       ar = ar ** 2
+       if (opt_denpot == 0) then
+          if (cplex == 1) then
+             nrm_local = nrm_local + 2.d0 * ar
+          else
+             nrm_local = nrm_local + ar
+          end if
+       else
+          nrm_local = 0.5d0 * (nrm_local + ar)
+       end if
+    end if
+    
+    ! Summarize on processors
+    !fnrm_denpot_forlinear = nrm_local
+    if (bigdft_mpi%nproc>1) then
+        call mpiallred(sendbuf=nrm_local, count=1, op=mpi_sum, &
+             comm=bigdft_mpi%mpi_comm, recvbuf=fnrm_denpot_forlinear)
+    else
+        fnrm_denpot_forlinear = nrm_local
+        ierr = 0
+    end if
+  end function fnrm_denpot_forlinear
+
+
+  function fdot_denpot_forlinear(x,y,cplex,nfft,nspden,opt_denpot,user_data)
+    use wrapper_MPI, only: mpirank,mpiallred,MPI_SUM
+    implicit none
+    integer, intent(in) :: cplex,nfft,nspden,opt_denpot
+    double precision, intent(in) :: x(*), y(*)
+    integer, intent(in) :: user_data(:)
+
+    integer :: ierr, ie, iproc, npoints, ishift, ioffset, ispin
+    double precision :: fdot_denpot_forlinear, ar, dot_local, ddot
+
+    ! In case of density, we use nscatterarr.
+    if (opt_denpot == AB7_MIXING_DENSITY) then
+       iproc=mpirank(bigdft_mpi%mpi_comm)
+       npoints = cplex * user_data(3 * iproc + 1)
+       ishift  =         user_data(3 * iproc + 2) ! GGA shift
+       ioffset = cplex * user_data(3 * iproc + 3) ! gives the start of the spin down component
+    else
+       npoints = cplex * nfft
+       ishift  = 0
+    end if
+
+    if (opt_denpot == 0 .or. opt_denpot == 1) then
+       ! Norm on spin up and spin down
+       !dot_local = ddot(npoints * min(nspden,2), x(1 + ishift), 1, y(1 + ishift), 1)
+       dot_local=0.d0
+       do ispin=1,nspden
+           dot_local = dot_local + &
+                       ddot(npoints, x(1 + ishift + (ispin-1)*ioffset), 1, y(1 + ishift + (ispin-1)*ioffset), 1)
+       end do
+
+       if (nspden==4) then
+          stop 'SM: I think that one needs to include ioffset as well here...'
+          ! Add the magnetisation
+          ar = ddot(npoints * 2, x(1 + cplex * nfft * 2 + ishift), 1, &
+               & y(1 + cplex * nfft * 2 + ishift), 1)
+          if (opt_denpot == 0) then
+             if (cplex == 1) then
+                dot_local = dot_local + 2.d0 * ar
+             else
+                dot_local = dot_local + ar
+             end if
+          else
+             dot_local = 0.5d0 * (dot_local + ar)
+          end if
+       end if
+    else
+       if(nspden==1)then
+          dot_local = ddot(npoints, x(1 + ishift), 1, y(1 + ishift), 1)
+       else if(nspden==2)then
+          ! This is the spin up contribution
+          dot_local = ddot(npoints, x(1 + ishift + nfft), 1, y(1 + ishift), 1)
+          ! This is the spin down contribution
+          dot_local = dot_local + ddot(npoints, x(1 + ishift ), 1, y(1 + ishift+ nfft), 1)
+       else if(nspden==4)then
+          !  \rho{\alpha,\beta} V^{\alpha,\beta} =
+          !  rho*(V^{11}+V^{22})/2$
+          !  + m_x Re(V^{12})- m_y Im{V^{12}}+ m_z(V^{11}-V^{22})/2
+          dot_local = 0.5d0 * (ddot(npoints, x(1 + ishift), 1, y(1 + ishift), 1) + &
+               & ddot(npoints, x(1 + ishift), 1, y(1 + ishift + nfft), 1))
+          dot_local = dot_local + 0.5d0 * ( &
+               & ddot(npoints, x(1 + ishift + 3 * nfft), 1, y(1 + ishift), 1) - &
+               & ddot(npoints, x(1 + ishift + 3 * nfft), 1, y(1 + ishift + nfft), 1))
+          dot_local = dot_local + &
+               & ddot(npoints, x(1 + ishift + nfft), 1, y(1 + ishift + 2 * nfft), 1)
+          dot_local = dot_local - &
+               & ddot(npoints, x(1 + ishift + 2 * nfft), 1, y(1 + ishift + 3 * nfft), 1)
+       end if
+    end if
+    
+    ! Summarize on processors
+    fdot_denpot_forlinear = dot_local
+    if (bigdft_mpi%nproc>1) then
+        call mpiallred(dot_local,1,MPI_SUM,bigdft_mpi%mpi_comm,&
+             recvbuf=fdot_denpot_forlinear)
+    else
+        fdot_denpot_forlinear = dot_local
+        ierr = 0
+    end if
+  end function fdot_denpot_forlinear
 
 end module m_ab7_mixing
