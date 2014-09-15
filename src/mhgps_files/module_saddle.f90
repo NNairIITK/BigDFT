@@ -18,7 +18,8 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
                   rotforce,converged)
     !imode=1 for clusters
     !imode=2 for biomolecules
-    use module_base
+  use module_base
+  use module_atoms, only: astruct_dump_to_file
     use yaml_output
     use module_interfaces
     use module_sbfgs
@@ -131,7 +132,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
 
 
     if(atoms%astruct%geocode/='F'.and. .not. (trim(adjustl(efmethod))=='LENSIc'))&
-    stop'STOP: saddle search only implemented for free BC'
+    stop 'STOP: saddle search only implemented for free BC'
 
     if(iproc==0)then
         call yaml_comment('(MHGPS) Start Saddle Search ....',&
@@ -360,12 +361,17 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
         if (iproc == 0 .and. mhgps_verbosity >=4) then
            fc=fc+1
            write(fn9,'(i9.9)') fc
-           write(comment,'(a,1pe10.3,5x1pe10.3)')&
+           write(comment,'(a,1pe10.3,5x,1pe10.3)')&
            'ATTENTION! Forces below are no forces but tangents to '//&
            'the guessed reaction path| fnrm, fmax = ',fnrm,fmax
-           call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))//'_posout_'//fn9,&
-                etotp,rxyz(1,1,nhist),ixyz_int,&
-                atoms,trim(comment),forces=minmode)
+!!$           call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))//'_posout_'//fn9,&
+!!$                etotp,rxyz(1,1,nhist),ixyz_int,&
+!!$                atoms,trim(comment),forces=minmode)
+           
+           call astruct_dump_to_file(atoms%astruct,&
+                currDir//'/sad'//trim(adjustl(isadc))//'_posout_'//fn9,&
+                trim(comment),&
+                etotp,rxyz(:,:,nhist),forces=minmode)
                 !atoms,trim(comment),forces=fxyzraw(1,1,nhist))
         endif
 

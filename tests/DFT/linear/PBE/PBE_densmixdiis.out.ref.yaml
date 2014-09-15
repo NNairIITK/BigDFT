@@ -315,7 +315,7 @@
    Radii of active regions (AU):
      Coarse                            : 1.3702564821663192
      Fine                              : 0.24549452999999999
-     Coarse PSP                        : 0.24549452999999999
+     Coarse PSP                        : 0.85135
      Source                            : Hard-coded
  psppar.C:
    Pseudopotential type                : HGH-K
@@ -336,7 +336,7 @@
    Radii of active regions (AU):
      Coarse                            : 1.5843663028121528
      Fine                              : 0.29150693999999999
-     Coarse PSP                        : 0.29150693999999999
+     Coarse PSP                        : 1.00858583333
      Source                            : Hard-coded
  psppar.O:
    Pseudopotential type                : HGH-K
@@ -357,7 +357,7 @@
    Radii of active regions (AU):
      Coarse                            : 1.2155757214997522
      Fine                              : 0.21133246999999999
-     Coarse PSP                        : 0.21133246999999999
+     Coarse PSP                        : 0.736519733333
      Source                            : Hard-coded
  psppar.S:
    Pseudopotential type                : HGH-K
@@ -379,7 +379,7 @@
    Radii of active regions (AU):
      Coarse                            : 1.382302380445572
      Fine                              : 0.36482035
-     Coarse PSP                        : 0.36482035
+     Coarse PSP                        : 1.22871322706
      Source                            : Hard-Coded
  psppar.H:
    Pseudopotential type                : HGH-K
@@ -393,7 +393,7 @@
    Radii of active regions (AU):
      Coarse                            : 1.463418464633951
      Fine                              : 0.2
-     Coarse PSP                        : 0.2
+     Coarse PSP                        : 0.
      Source                            : Hard-Coded
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data-densmixdiis/

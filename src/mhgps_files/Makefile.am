@@ -66,7 +66,7 @@ module_interpol.o : module_global_variables.o ../modules/BigDFT_API.o
 module_connect.o: module_misc.o module_ls_rmsd.o\
                   module_global_variables.o module_saddle.o\
                   module_freezingstring.o module_minimizers.o\
-                  ../modules/BigDFT_API.o
+                  ../modules/BigDFT_API.o module_fingerprints.o
 module_ls_rmsd.o: module_misc.o ../modules/BigDFT_API.o
 module_misc.o: ../modules/BigDFT_API.o
 module_fingerprints.o: module_global_variables.o\

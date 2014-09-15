@@ -11,14 +11,13 @@
 !> Initialize the objects needed for the computation: basis sets, allocate required space
 subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_run,&
      & in,atoms,rxyz,OCLconv,&
-     orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpsp,comms,shift,radii_cf,&
+     orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpsp,comms,shift,&
      ref_frags, denspot, locregcenters, inwhichlocreg_old, onwhichatom_old,output_grid)
   use module_base
   use module_types
   use module_interfaces, fake_name => system_initialization
   use module_xc
   use module_fragments
-  use gaussians, only: gaussian_basis, nullify_gaussian_basis
   use vdwcorrection
   use yaml_output
   use module_atoms, only: set_symmetry_data
@@ -38,7 +37,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   type(DFT_PSP_projectors), intent(out) :: nlpsp
   type(comms_cubic), intent(out) :: comms
   real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
-  real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+  !real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   type(system_fragment), dimension(:), pointer :: ref_frags
   real(kind=8),dimension(3,atoms%astruct%nat),intent(inout),optional :: locregcenters
   integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
@@ -46,24 +45,19 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   logical, intent(in), optional :: output_grid
   !local variables
   character(len = *), parameter :: subname = "system_initialization"
-  integer :: nB,nKB,nMB,ii,iat,iorb,iatyp,nspin_ig,norbe,norbsc,ifrag,nspinor
+  integer :: nB,nKB,nMB,ii,iat,iorb,nspin_ig,norbe,norbsc,ifrag,nspinor
   real(gp), dimension(3) :: h_input
   logical:: present_inwhichlocreg_old, present_onwhichatom_old, output_grid_
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(kind=8), dimension(:), allocatable :: locrad
-  !Note proj_G should be filled for PAW:
-  type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_G
+
   call f_routine(id=subname)
-  !nullify dummy variables only used for PAW:
-  do iatyp=1,atoms%astruct%ntypes
-    call nullify_gaussian_basis(proj_G(iatyp))
-  end do
 
   output_grid_ = .false.
   if (present(output_grid)) output_grid_ = output_grid
 
   if (iproc == 0 .and. dump) &
-       & call print_atomic_variables(atoms, radii_cf, max(in%hx,in%hy,in%hz), &
+       & call print_atomic_variables(atoms, max(in%hx,in%hy,in%hz), &
        & in%ixc, in%dispersion)
 
   !grid spacings of the zone descriptors (not correct, the set is done by system size)
@@ -73,7 +67,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
-  call system_size(atoms,rxyz,radii_cf,in%crmult,in%frmult,&
+  call system_size(atoms,rxyz,in%crmult,in%frmult,&
        Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),OCLconv,Lzd%Glr,shift)
   if (iproc == 0 .and. dump) &
        & call print_atoms_and_grid(Lzd%Glr, atoms, rxyz, shift, &
@@ -104,7 +98,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
   call createWavefunctionsDescriptors(iproc,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),atoms,&
-       rxyz,radii_cf,in%crmult,in%frmult,Lzd%Glr, output_grid_)
+       rxyz,in%crmult,in%frmult,Lzd%Glr, output_grid_)
   if (iproc == 0 .and. dump) call print_wfd(Lzd%Glr%wfd)
 
   ! Create global orbs data structure.
@@ -278,8 +272,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   call createProjectorsArrays(Lzd%Glr,rxyz,atoms,orbs,&
-       radii_cf,in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
-       Lzd%hgrids(3),dry_run,nlpsp,proj_G)
+       in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
+       Lzd%hgrids(3),dry_run,nlpsp)
   if (iproc == 0 .and. dump) call print_nlpsp(nlpsp)
   !the complicated part of the descriptors has not been filled
   if (dry_run) then
@@ -293,7 +287,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   if (present(denspot)) then
      !here dpbox can be put as input
      call density_descriptors(iproc,nproc,denspot%xc,in%nspin,in%crmult,in%frmult,atoms,&
-          denspot%dpbox,in%rho_commun,rxyz,radii_cf,denspot%rhod)
+          denspot%dpbox,in%rho_commun,rxyz,denspot%rhod)
      !allocate the arrays.
      call allocateRhoPot(Lzd%Glr,in%nspin,atoms,rxyz,denspot)
   end if
@@ -375,23 +369,24 @@ END SUBROUTINE system_createKernels
 
 
 !> Calculate the important objects related to the physical properties of the system
-subroutine system_properties(iproc,nproc,in,atoms,orbs,radii_cf)
+subroutine system_properties(iproc,nproc,in,atoms,orbs)!,radii_cf)
   use module_base
   use module_types
   use module_interfaces, except_this_one => system_properties
   implicit none
   integer, intent(in) :: iproc,nproc
   type(input_variables), intent(in) :: in
-  type(atoms_data), intent(inout) :: atoms
+  type(atoms_data), intent(in) :: atoms
   type(orbitals_data), intent(inout) :: orbs
-  real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
+!  real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
   !local variables
   !n(c) character(len=*), parameter :: subname='system_properties'
   integer :: nspinor
 
-  call read_radii_variables(atoms, radii_cf, in%crmult, in%frmult, in%projrad)
+!  radii_cf = atoms%radii_cf
+!!$  call read_radii_variables(atoms, radii_cf, in%crmult, in%frmult, in%projrad)
 !!$  call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
-  if (iproc == 0) call print_atomic_variables(atoms, radii_cf, max(in%hx,in%hy,in%hz), in%ixc, in%dispersion)
+  if (iproc == 0) call print_atomic_variables(atoms, max(in%hx,in%hy,in%hz), in%ixc, in%dispersion)
   if(in%nspin==4) then
      nspinor=4
   else
@@ -444,7 +439,7 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
 
   if (at%donlcc) then
      !allocate pointer rhocore
-     rhocore = f_malloc_ptr((/ d%n1i , d%n2i , n3d , 10+ndebug /),id='rhocore')
+     rhocore = f_malloc_ptr((/ d%n1i , d%n2i , n3d , 10 /),id='rhocore')
      !initalise it 
      if (n3d > 0) call to_zero(d%n1i*d%n2i*n3d*10,rhocore(1,1,1,1))
      !perform the loop on any of the atoms which have this feature
@@ -510,6 +505,7 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      & ixcpsp, psppar, donlcc, rcore, qcore, radii_cf, exists, pawpatch)
   use module_base
   use ao_inguess
+  use m_pawpsp, only: pawpsp_read_header_2
   implicit none
   
   character(len = *), intent(in) :: filename
@@ -523,7 +519,9 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
   character(len=20) :: skip
 
   integer :: ierror, ierror1, i, j, nn, nlterms, nprl, l, nzatom_, nelpsp_, npspcode_
-  real(dp) :: nelpsp_dp,nzatom_dp
+  integer :: lmax,lloc,mmax
+  integer:: pspversion,basis_size,lmn_size
+  real(dp) :: nelpsp_dp,nzatom_dp,r2well
   character(len=100) :: line
 
   radii_cf = UNINITIALIZED(1._gp)
@@ -542,7 +540,7 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
   read(11,*)
   read(11,*) nzatom_dp, nelpsp_dp
   nzatom=int(nzatom_dp); nelpsp=int(nelpsp_dp)
-  read(11,*) npspcode, ixcpsp
+  read(11,*) npspcode, ixcpsp, lmax, lloc, mmax, r2well
 
   psppar(:,:)=0._gp
   if (npspcode == 2) then !GTH case
@@ -566,9 +564,10 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      if (.not.exists) stop "Implement here."
 
      ! PAW format using libPAW.
-     write(*,*) 'Reading of PAW atomic-data, under development'
-     call psp_from_file_paw()
-     
+     call pawpsp_read_header_2(11,pspversion,basis_size,lmn_size)
+     ! PAW data will not be saved in the input dictionary,
+     ! we keep their reading for later.
+     pawpatch = .true.
   else if (npspcode == 10) then !HGH-K case
      read(11,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
      read(11,*) nlterms !number of channels of the pseudo
@@ -616,146 +615,86 @@ subroutine psp_from_file(filename, nzatom, nelpsp, npspcode, &
      stop
   end if
 
-  if (npspcode == 7) return !Skip the rest for PAW
-
-  !old way of calculating the radii, requires modification of the PSP files
-  read(11,'(a100)',iostat=ierror) line
-  if (ierror /=0) then
-     !if (iproc ==0) write(*,*)&
-     !     ' WARNING: last line of pseudopotential missing, put an empty line'
-     line=''
-  end if
-  read(line,*,iostat=ierror1) radii_cf(1),radii_cf(2),radii_cf(3)
-  if (ierror1 /= 0 ) then
-     read(line,*,iostat=ierror) radii_cf(1),radii_cf(2)
-     radii_cf(3)=radii_cf(2)
-     ! Open64 behaviour, if line is PAWPATCH, then radii_cf(1) = 0.
-     if (ierror /= 0) radii_cf = UNINITIALIZED(1._gp)
-  end if
-  pawpatch = (trim(line) == "PAWPATCH")
-  do
+  if (npspcode /= 7) then
+     
+     !old way of calculating the radii, requires modification of the PSP files
      read(11,'(a100)',iostat=ierror) line
-     if (ierror /= 0 .or. pawpatch) exit
+     if (ierror /=0) then
+        !if (iproc ==0) write(*,*)&
+        !     ' WARNING: last line of pseudopotential missing, put an empty line'
+        line=''
+     end if
+     read(line,*,iostat=ierror1) radii_cf(1),radii_cf(2),radii_cf(3)
+     if (ierror1 /= 0 ) then
+        read(line,*,iostat=ierror) radii_cf(1),radii_cf(2)
+        radii_cf(3)=UNINITIALIZED(1._gp)
+        ! Open64 behaviour, if line is PAWPATCH, then radii_cf(1) = 0.
+        if (ierror /= 0) radii_cf = UNINITIALIZED(1._gp)
+     end if
      pawpatch = (trim(line) == "PAWPATCH")
-  end do
+     do
+        read(11,'(a100)',iostat=ierror) line
+        if (ierror /= 0 .or. pawpatch) exit
+        pawpatch = (trim(line) == "PAWPATCH")
+     end do
+  end if
+
   close(11)
-
-contains
-
-   subroutine psp_from_file_paw()
-     use module_base
-     use m_pawpsp, only: pawpsp_main, pawpsp_read_header, pawpsp_read_header_2
-     use defs_basis, only: tol14, fnlen
-     use m_pawrad, only: pawrad_type, pawrad_nullify, pawrad_destroy
-     use m_pawtab, only: pawtab_type, pawtab_nullify, pawtab_destroy
-     implicit none
-     integer:: icoulomb,ipsp,ixc,lnmax
-     integer:: lloc,l_size,lmax,mmax,pspcod,pspxc
-     integer:: pspversion,basis_size,lmn_size
-     integer:: mpsang,mqgrid_ff,mqgrid_vl,mqgrid_shp
-     integer:: pawxcdev,usewvl,usexcnhat,xclevel
-     integer::pspso
-     real(dp):: r2well
-     real(dp):: xc_denpos,zionpsp,znuclpsp
-     real(dp)::epsatm,xcccrc
-     character(len=fnlen):: filpsp   ! name of the psp file
-     character(len = *), parameter :: subname = "psp_from_file_paw"
-     type(pawrad_type):: pawrad
-     type(pawtab_type):: pawtab
-     integer:: comm_mpi
-   !  type(paw_setup_t),optional,intent(in) :: psxml
-   !!arrays
-    integer:: wvl_ngauss(2)
-    real(dp),allocatable:: qgrid_ff(:),qgrid_vl(:)
-    real(dp),allocatable:: ffspl(:,:,:)
-    real(dp),allocatable:: vlspl(:,:)
-    integer:: mesh_size
-
-
-     !These should be passed as arguments:
-     !Defines the number of Gaussian functions for projectors
-     !See ABINIT input files documentation
-     wvl_ngauss=[10,10]
-     icoulomb= 1 !Fake argument, this only indicates that we are inside bigdft..
-                 !do not change, even if icoulomb/=1
-     ipsp=1      !This is relevant only for XML.
-                 !This is not yet working
-     xclevel=1 ! xclevel=XC functional level (1=LDA, 2=GGA)
-               ! For the moment, it will just work for LDA
-     pspso=0 !No spin-orbit for the moment
-
-   ! Read PSP header:
-     rewind(11)
-     call pawpsp_read_header(lloc,l_size,mmax,pspcod,pspxc,r2well,zionpsp,znuclpsp)
-     call pawpsp_read_header_2(pspversion,basis_size,lmn_size)
-
-   ! Problem lnmax are unknown here,
-   ! we have to read all of the pseudo files to know it!
-   ! We should change the way this is done in ABINIT:
-   ! For the moment lnmax=basis_size
-   ! The same problem for mpsang
-     lnmax=basis_size
-     lmax=l_size
-   !  do ii=1,psps%npsp
-   !   mpsang=max(pspheads(ii)%lmax+1,mpsang)
-   !  end do
-     mpsang=lmax+1
-
-   ! These are just useful for 
-   !reciprocal space approaches (plane-waves):
-     mqgrid_shp=0; mqgrid_ff=0; mqgrid_vl=0 
-                             
-   qgrid_ff = f_malloc(mqgrid_ff,id='qgrid_ff')
-   qgrid_vl = f_malloc(mqgrid_vl,id='qgrid_vl')
-   ffspl = f_malloc((/ mqgrid_ff, 2, lnmax /),id='ffspl')
-   vlspl = f_malloc((/ mqgrid_vl, 2 /),id='vlspl')
-
-   ! Define parameters:
-     pawxcdev=1; usewvl=1 ; usexcnhat=0 !default
-     xc_denpos=tol14
-     filpsp=trim(filename)
-     comm_mpi=bigdft_mpi%mpi_comm  
-     mesh_size=mmax
-
-     call pawrad_nullify(pawrad)
-     call pawtab_nullify(pawtab)
-
-     close(11)
-
-     call pawpsp_main( &
-   & pawrad,pawtab,&
-   & filpsp,usewvl,icoulomb,ixc,xclevel,pawxcdev,usexcnhat,&
-   & qgrid_ff,qgrid_vl,ffspl,vlspl,epsatm,xcccrc,zionpsp,znuclpsp,&
-   & wvl_ngauss,comm_mpi=comm_mpi)
-
-   !Print out data to validate this test:
-     write(*,'(a)') 'PAW Gaussian projectors:'
-     write(*,'("No. of Gaussians:", i4)')pawtab%wvl%pngau
-     write(*,'("First five Gaussian complex coefficients:")')
-     write(*,'(5("(",f13.7,",",f13.7")"))')pawtab%wvl%parg(:,1:5)
-     write(*,'("First five Gaussian complex factors:")')
-     write(*,'(5("(",f13.7,",",f13.7")"))')pawtab%wvl%pfac(:,1:5)
-   !
-     write(*,'(a)') 'GTH parameters (for initial guess):'
-     write(*,'("radii_cf= ",3f10.7)')radii_cf(:)
-     write(*,'("psppar(0:1,0)= ",2f10.7)')psppar(0:1,0)
-
-   ! Destroy and deallocate objects
-     call pawrad_destroy(pawrad)
-     call pawtab_destroy(pawtab)
-
-   call f_free(qgrid_ff)
-   call f_free(qgrid_vl)
-   call f_free(ffspl)
-   call f_free(vlspl)
-
-   !PAW is not yet working!
-   !Exit here
-    stop
-
-   END SUBROUTINE psp_from_file_paw
-
 END SUBROUTINE psp_from_file
+
+subroutine paw_from_file(pawrad, pawtab, filename, nzatom, nelpsp, ixc)
+  use module_base
+  use m_pawpsp, only: pawpsp_main
+  use defs_basis, only: tol14, fnlen
+  use m_pawrad, only: pawrad_type, pawrad_nullify
+  use m_pawtab, only: pawtab_type, pawtab_nullify
+  implicit none
+
+  type(pawrad_type), intent(out) :: pawrad
+  type(pawtab_type), intent(out) :: pawtab
+  character(len = *), intent(in) :: filename
+  integer, intent(in) :: nzatom, nelpsp, ixc
+
+  integer:: icoulomb,ipsp
+  integer:: pawxcdev,usewvl,usexcnhat,xclevel
+  integer::pspso
+  real(dp):: xc_denpos
+  real(dp)::epsatm,xcccrc
+  character(len=fnlen):: filpsp   ! name of the psp file
+  !  type(paw_setup_t),optional,intent(in) :: psxml
+  !!arrays
+  integer:: wvl_ngauss(2)
+  integer, parameter :: mqgrid_ff = 0, mqgrid_vl = 0
+  real(dp):: qgrid_ff(mqgrid_ff),qgrid_vl(mqgrid_vl)
+  real(dp):: ffspl(mqgrid_ff,2,1)
+  real(dp):: vlspl(mqgrid_vl,2)
+
+  call pawrad_nullify(pawrad)
+  call pawtab_nullify(pawtab)
+
+  !These should be passed as arguments:
+  !Defines the number of Gaussian functions for projectors
+  !See ABINIT input files documentation
+  wvl_ngauss=[10,10]
+  icoulomb= 1 !Fake argument, this only indicates that we are inside bigdft..
+  !do not change, even if icoulomb/=1
+  ipsp=1      !This is relevant only for XML.
+  !This is not yet working
+  xclevel=1 ! xclevel=XC functional level (1=LDA, 2=GGA)
+  ! For the moment, it will just work for LDA
+  pspso=0 !No spin-orbit for the moment
+
+  ! Define parameters:
+  pawxcdev=1; usewvl=1 ; usexcnhat=0 !default
+  xc_denpos=tol14
+  filpsp=trim(filename)
+
+  call pawpsp_main( &
+       & pawrad,pawtab,&
+       & filpsp,usewvl,icoulomb,ixc,xclevel,pawxcdev,usexcnhat,&
+       & qgrid_ff,qgrid_vl,ffspl,vlspl,epsatm,xcccrc,real(nelpsp, dp),real(nzatom, dp),&
+       & wvl_ngauss,comm_mpi=bigdft_mpi%mpi_comm)
+END SUBROUTINE paw_from_file
 
 
 subroutine nlcc_dim_from_file(filename, ngv, ngc, dim, read_nlcc)
@@ -803,63 +742,11 @@ subroutine nlcc_dim_from_file(filename, ngv, ngc, dim, read_nlcc)
 END SUBROUTINE nlcc_dim_from_file
 
 
-!> Update radii_cf and occupation for each type of atoms (related to pseudopotential)
-subroutine read_radii_variables(atoms, radii_cf, crmult, frmult, projrad)
-  use module_base
-  use ao_inguess, only: atomic_info
-  use module_types
-  implicit none
-  !Arguments
-  type(atoms_data), intent(in) :: atoms
-  real(gp), intent(in) :: crmult, frmult, projrad
-  real(gp), dimension(atoms%astruct%ntypes,3), intent(out) :: radii_cf
-  !Local Variables
-  !integer, parameter :: nelecmax=32
-  !character(len=2) :: symbol
-  integer :: i,ityp!,mxpl,mxchg,nsccode
-  real(gp) :: ehomo,maxrad,radfine!,rcov,rprb,amu
-
-  do ityp=1,atoms%astruct%ntypes
-
-     call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),ehomo=ehomo)
-          
-     if (any(atoms%radii_cf(ityp, :) == UNINITIALIZED(1.0_gp))) then
-        !assigning the radii by calculating physical parameters
-        if (radii_cf(ityp,1) == UNINITIALIZED(1.0_gp)) radii_cf(ityp,1)=1._gp/sqrt(abs(2._gp*ehomo))
-        radfine=100._gp
-        do i=0,4
-           if (atoms%psppar(i,0,ityp)/=0._gp) then
-              radfine=min(radfine,atoms%psppar(i,0,ityp))
-           end if
-        end do
-        if (radii_cf(ityp,2) == UNINITIALIZED(1.0_gp)) radii_cf(ityp,2)=radfine
-        if (radii_cf(ityp,3) == UNINITIALIZED(1.0_gp)) radii_cf(ityp,3)=radfine
-     else
-        !Everything is already provided
-        radii_cf(ityp, :) = atoms%radii_cf(ityp, :)
-     end if
-
-     ! Correct radii_cf(:,3) for the projectors.
-     maxrad=0.e0_gp ! This line added by Alexey, 03.10.08, to be able to compile with -g -C
-     do i=1,4
-        !the maximum radii is useful only for projectors
-        if (atoms%psppar(i,0,ityp)/=0._gp) then
-           maxrad=max(maxrad,atoms%psppar(i,0,ityp))
-        end if
-     end do
-     if (maxrad == 0.0_gp) then
-        radii_cf(ityp,3)=0.0_gp
-     else
-        radii_cf(ityp,3)=max(min(crmult*radii_cf(ityp,1),projrad*maxrad)/frmult,radii_cf(ityp,2))
-     end if
-  enddo
-END SUBROUTINE read_radii_variables
-
-
 !> Calculate the number of electrons and check the polarisation (mpol)
 subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
      & atoms, ncharge, nspin, mpol, norbsempty)
-  use module_types, only: atoms_data
+  use module_atoms, only: atoms_data
+  use ao_inguess, only: charge_and_spol
   use module_base, only: gp, f_err_throw
   use yaml_output, only: yaml_toa , yaml_warning, yaml_comment
   !use ao_inguess, only : count_atomic_shells
@@ -1023,15 +910,15 @@ END SUBROUTINE nlcc_start_position
 !!!  integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
 !!!
 !!!
-!!!  allocate(orbs%norb_par(0:nproc-1+ndebug,0:nkpt),stat=i_stat)
+!!!  allocate(orbs%norb_par(0:nproc-1,0:nkpt),stat=i_stat)
 !!!  call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
 !!!
 !!!  !assign the value of the k-points
 !!!  orbs%nkpts=nkpt
 !!!  !allocate vectors related to k-points
-!!!  allocate(orbs%kpts(3,orbs%nkpts+ndebug),stat=i_stat)
+!!!  allocate(orbs%kpts(3,orbs%nkpts),stat=i_stat)
 !!!  call memocc(i_stat,orbs%kpts,'orbs%kpts',subname)
-!!!  allocate(orbs%kwgts(orbs%nkpts+ndebug),stat=i_stat)
+!!!  allocate(orbs%kwgts(orbs%nkpts),stat=i_stat)
 !!!  call memocc(i_stat,orbs%kwgts,'orbs%kwgts',subname)
 !!!  orbs%kpts(:,1:nkpt) = kpt(:,:)
 !!!  orbs%kwgts(1:nkpt) = wkpt(:)
@@ -1052,7 +939,7 @@ END SUBROUTINE nlcc_start_position
 !!!  !create an array which indicate which processor has a GPU associated 
 !!!  !from the viewpoint of the BLAS routines (deprecated, not used anymore)
 !!!  if (.not. GPUshare) then
-!!!     allocate(GPU_for_orbs(0:nproc-1+ndebug),stat=i_stat)
+!!!     allocate(GPU_for_orbs(0:nproc-1),stat=i_stat)
 !!!     call memocc(i_stat,GPU_for_orbs,'GPU_for_orbs',subname)
 !!!     
 !!!     if (nproc > 1) then
@@ -1067,7 +954,7 @@ END SUBROUTINE nlcc_start_position
 !!!     call memocc(i_stat,i_all,'GPU_for_orbs',subname)
 !!!  end if
 !!!
-!!!  allocate(norb_par(0:nproc-1,orbs%nkpts+ndebug),stat=i_stat)
+!!!  allocate(norb_par(0:nproc-1,orbs%nkpts),stat=i_stat)
 !!!  call memocc(i_stat,norb_par,'norb_par',subname)
 !!!
 !!!  !old system for calculating k-point repartition
@@ -1091,7 +978,7 @@ END SUBROUTINE nlcc_start_position
 !!!!!$  end if
 !!!!!$
 !!!!!$  !calculate the k-points related quantities
-!!!!!$  allocate(mykpts(orbs%nkpts+ndebug),stat=i_stat)
+!!!!!$  allocate(mykpts(orbs%nkpts),stat=i_stat)
 !!!!!$  call memocc(i_stat,mykpts,'mykpts',subname)
 !!!!!$
 !!!!!$  call parallel_repartition_per_kpoints(iproc,nproc,orbs%nkpts,norb,orbs%norb_par,&
@@ -1720,7 +1607,7 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
   if(.not. storeit) then
      !if(ityp == 1) then !this implies that the PSP are all present
      if (.not. associated(atoms%paw_NofL)) then
-        atoms%paw_NofL = f_malloc_ptr(atoms%astruct%ntypes+ndebug,id='atoms%paw_NofL')
+        atoms%paw_NofL = f_malloc_ptr(atoms%astruct%ntypes,id='atoms%paw_NofL')
      end if
      ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
      open(unit=11,file=trim(filename),status='old',iostat=ierror)
@@ -1885,7 +1772,85 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
      close(11)
   endif
 end subroutine pawpatch_from_file
- 
+
+subroutine paw_init(paw, at, nspinor, nspin, npsidim, norb)
+  use module_base
+  use module_types
+  use m_paw_an, only: paw_an_init
+  use m_paw_ij, only: paw_ij_init
+  use m_pawcprj, only: pawcprj_alloc, pawcprj_getdim
+  use m_pawfgrtab, only: pawfgrtab_init
+  use interfaces_42_libpaw, only: initrhoij
+  implicit none
+  type(paw_objects), intent(out) :: paw
+  type(atoms_data), intent(in) :: at
+  integer, intent(in) :: nspinor, nspin, npsidim, norb
+
+  integer, parameter :: cplex = 1, pawxcdev = 1, pawcpxocc = 1, pawspnorb = 0
+  integer :: i
+  integer, dimension(:), allocatable :: nlmn, nattyp, l_size_atm, lexexch, lpawu
+  real(gp), dimension(:,:), allocatable :: spinat
+
+  call nullify_paw_objects(paw)
+  if (.not. associated(at%pawtab)) return
+
+  paw%usepaw = .true.
+  paw%ntypes = at%astruct%ntypes
+  paw%natom  = at%astruct%nat
+  paw%lmnmax = maxval(at%pawtab(:)%lmn_size)
+
+  allocate(paw%paw_an(at%astruct%nat))
+  call paw_an_init(paw%paw_an, at%astruct%nat, at%astruct%ntypes, 0, nspin, cplex, pawxcdev, &
+       & at%astruct%iatype, at%pawang, at%pawtab, &
+       & has_vxc=1, has_vxc_ex=1, has_vhartree=1) !, &
+  !&   mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab)
+
+  allocate(paw%paw_ij(at%astruct%nat))
+  call paw_ij_init(paw%paw_ij,cplex,nspinor,nspin,nspin,&
+       &   0,at%astruct%nat,at%astruct%ntypes,at%astruct%iatype,at%pawtab,&
+       &   has_dij=1,has_dijhartree=1,has_dijso=0,has_dijhat=0,&
+       &   has_pawu_occ=1,has_exexch_pot=1) !,&
+  !&   mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab)
+
+  allocate(paw%cprj(at%astruct%nat, nspinor * nspin * norb))
+  nlmn = f_malloc(at%astruct%nat, id = "nlmn")
+  nattyp = f_malloc(at%astruct%ntypes, id = "nattyp")
+  call to_zero(at%astruct%ntypes, nattyp(1))
+  do i = 1, at%astruct%nat
+     nattyp(at%astruct%iatype(i)) = nattyp(at%astruct%iatype(i)) + 1
+  end do
+  call pawcprj_getdim(nlmn, at%astruct%nat, nattyp, at%astruct%ntypes, &
+       & at%astruct%iatype, at%pawtab, 'O')
+  call f_free(nattyp)
+  call pawcprj_alloc(paw%cprj, 0, nlmn)
+  call f_free(nlmn)
+
+  allocate(paw%pawfgrtab(at%astruct%nat))
+  l_size_atm = f_malloc(at%astruct%nat, id = "l_size_atm")
+  do i = 1, at%astruct%nat
+     l_size_atm(i) = at%pawtab(at%astruct%iatype(i))%lcut_size
+  end do
+  call pawfgrtab_init(paw%pawfgrtab, cplex, l_size_atm, nspin, at%astruct%iatype) !,&
+  !&     mpi_atmtab=mpi_enreg%my_atmtab,mpi_comm_atom=mpi_enreg%comm_atom)
+  call f_free(l_size_atm)
+
+  allocate(paw%pawrhoij(at%astruct%nat))
+  spinat = f_malloc((/3, at%astruct%nat/), id = "spinat")
+  call to_zero(3 * at%astruct%nat, spinat(1,1))
+  lexexch = f_malloc(at%astruct%ntypes, id = "lexexch")
+  lexexch = -1
+  lpawu = f_malloc(at%astruct%ntypes, id = "lpawu")
+  lpawu = -1
+  call initrhoij(pawcpxocc, lexexch, lpawu, &
+       & at%astruct%nat, at%astruct%nat, nspin, nspinor, nspin, &
+       & at%astruct%ntypes, paw%pawrhoij, pawspnorb, at%pawtab, spinat, at%astruct%iatype) !,&
+  !&   mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab)
+  call f_free(lpawu)
+  call f_free(lexexch)
+  call f_free(spinat)
+
+  paw%spsi = f_malloc_ptr(npsidim,id='paw%spsi')
+end subroutine paw_init
 
 subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, energs, denspot, optloop, &
        & ntypes, radii_cf, crmult, frmult)

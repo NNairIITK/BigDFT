@@ -12,10 +12,8 @@
 program BigDFT
    use module_base
    use bigdft_run!module_types
-   use module_interfaces, only: write_atomic_file
    use yaml_strings, only: f_strcpy
    use yaml_output, only: yaml_map
-   use yaml_parse
    !use internal_coordinates, only : get_neighbors
 
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
@@ -53,10 +51,10 @@ program BigDFT
    run => dict_iter(options .get. 'BigDFT')
    do while(associated(run))
       call run_objects_init(runObj,run)
-      call init_global_output(outs,runObj%atoms%astruct%nat)
+      call init_global_output(outs,bigdft_nat(runObj))
 
       posinp_id = run // 'posinp' 
-      call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+      call call_bigdft(runObj,outs,infocode)
 
          if (runObj%inputs%ncount_cluster_x > 1) then
             if (bigdft_mpi%iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
@@ -67,24 +65,30 @@ program BigDFT
          !if there is a last run to be performed do it now before stopping
          if (runObj%inputs%last_run == -1) then
             runObj%inputs%last_run = 1
-            call call_bigdft(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+            call call_bigdft(runObj, outs,infocode)
          end if
 
          if (runObj%inputs%ncount_cluster_x > 1) then
             !filename='final_'//trim(posinp_id)
             call f_strcpy(src='final_'//trim(posinp_id),dest=filename)
-            if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,runObj%atoms%astruct%rxyz, &
-                 & runObj%atoms%astruct%ixyz_int, runObj%atoms,'FINAL CONFIGURATION',forces=outs%fxyz)
+            call bigdft_write_atomic_file(runObj,outs,filename,&
+                 'FINAL CONFIGURATION',cwd_path=.true.)
+
+!!$            if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,runObj%atoms%astruct%rxyz, &
+!!$                 & runObj%atoms%astruct%ixyz_int, runObj%atoms,'FINAL CONFIGURATION',forces=outs%fxyz)
          else
             !filename='forces_'//trim(arr_posinp(iconfig))
             call f_strcpy(src='forces_'//trim(posinp_id),dest=filename)
-            if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,runObj%atoms%astruct%rxyz, &
-                 & runObj%atoms%astruct%ixyz_int, runObj%atoms,'Geometry + metaData forces',forces=outs%fxyz)
+            call bigdft_write_atomic_file(runObj,outs,filename,&
+                 'Geometry + metaData forces',cwd_path=.true.)
+
+!!$            if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,runObj%atoms%astruct%rxyz, &
+!!$                 & runObj%atoms%astruct%ixyz_int, runObj%atoms,'Geometry + metaData forces',forces=outs%fxyz)
          end if
 
          ! Deallocations.
          call deallocate_global_output(outs)
-         call run_objects_free(runObj)
+         call free_run_objects(runObj)
          run => dict_next(run)
    end do !loop over iconfig
 

@@ -11,12 +11,14 @@ module bigdft_run
   use dictionaries
   use module_types, only: input_variables,DFT_wavefunction,GPU_pointers,energy_terms
   use module_atoms, only: atoms_data
-
+  use dynamic_memory, only: f_reference_counter,f_ref_new,f_ref,f_unref,&
+       nullify_f_ref
   private
 
   !>  Used to restart a new DFT calculation or to save information 
   !!  for post-treatment
   type, public :: restart_objects
+     type(f_reference_counter) :: refcnt
      integer :: version !< 0=cubic, 100=linear
      integer :: n1,n2,n3,nat
      real(gp) :: hx_old,hy_old,hz_old
@@ -26,15 +28,16 @@ module bigdft_run
      type(GPU_pointers) :: GPU 
   end type restart_objects
 
-
   !> Public container to be used with call_bigdft().
   type, public :: run_objects
+     !> user input specifications
      type(dictionary), pointer :: user_inputs
-
+     !> structure of BigDFT input variables
      type(input_variables), pointer    :: inputs
+     !> datatype describing the atomic system.
      type(atoms_data), pointer         :: atoms
+     !> datatype describing the wavefunctions objects
      type(restart_objects), pointer    :: rst
-     real(gp), dimension(:,:), pointer :: radii_cf
   end type run_objects
 
 
@@ -49,10 +52,14 @@ module bigdft_run
 
   public :: init_global_output,deallocate_global_output,restart_objects_set_mat_acc
   public :: run_objects_free,copy_global_output,restart_objects_set_mode
-  public :: run_objects_nullify,restart_objects_set_nat,restart_objects_new
-  public :: run_objects_associate,run_objects_free_container,init_restart_objects
-  public :: global_output_set_from_dict,free_restart_objects
+  public :: nullify_run_objects,restart_objects_set_nat,nullify_restart_objects
+  public :: run_objects_associate,init_restart_objects,bigdft_set_rxyz
+  public :: global_output_set_from_dict,free_restart_objects,bigdft_get_rxyz_ptr
   public :: run_objects_init,bigdft_init,bigdft_command_line_options,bigdft_nruns
+  public :: bigdft_nat,call_bigdft,free_run_objects,set_run_objects
+  public :: release_run_objects,bigdft_get_cell,bigdft_get_geocode,bigdft_get_run_properties
+  public :: bigdft_get_astruct_ptr,bigdft_write_atomic_file,bigdft_set_run_properties
+  public :: bigdft_norb,bigdft_get_eval,bigdft_run_id_toa,bigdft_get_rxyz
 
 !!$  ! interfaces of external routines 
 !!$  interface
@@ -72,29 +79,41 @@ module bigdft_run
   contains
     
     !> All in one routine to initialise and set-up restart objects.
+    !! in case of previously initialized structure
     subroutine init_restart_objects(iproc,inputs,atoms,rst)
       implicit none
       !Arguments
       integer, intent(in) :: iproc
       type(input_variables), intent(in) :: inputs
       type(atoms_data), intent(in) :: atoms
-      type(restart_objects), intent(out) :: rst
+      type(restart_objects), intent(inout) :: rst
 
-      call restart_objects_new(rst)
+      !call restart_objects_new(rst)
+      ! Number of atoms should not change durung the calculation 
+      if (rst%nat > 0 .and. rst%nat /= atoms%astruct%nat) then
+         call f_err_throw("The number of atoms changed!",&
+              err_name='BIGDFT_RUNTIME_ERROR')
+      else if (rst%nat == 0) then
+         !create reference counter
+         rst%refcnt=f_ref_new('rst')
+         call restart_objects_set_nat(rst, atoms%astruct%nat)
+      end if
       call restart_objects_set_mode(rst, inputs%inputpsiid)
-      call restart_objects_set_nat(rst, atoms%astruct%nat)
-      call restart_objects_set_mat_acc(rst, iproc, inputs%matacc)
+      call release_material_acceleration(rst%GPU)
+      call restart_objects_set_mat_acc(rst,iproc, inputs%matacc)
     END SUBROUTINE init_restart_objects
 
     !> Allocate and nullify restart objects
-    pure subroutine restart_objects_new(rst)
+    pure subroutine nullify_restart_objects(rst)
       use module_defs, only: UNINITIALIZED
-      use module_types, only: nullify_local_zone_descriptors,CUBIC_VERSION
+      use module_types, only: nullify_local_zone_descriptors,CUBIC_VERSION,nullify_paw_objects
       use locregs, only: nullify_locreg_descriptors
+      use gaussians, only: nullify_gaussian_basis
       implicit none
       !Arguments
       type(restart_objects), intent(out) :: rst
 
+      call nullify_f_ref(rst%refcnt)
       ! Decide whether we use the cubic or the linear version
       rst%version = UNINITIALIZED(CUBIC_VERSION)
 
@@ -104,32 +123,26 @@ module bigdft_run
       nullify(rst%rxyz_old)
 
       !nullify unallocated pointers
+      !here whe should define the nullification of the whole 
+      !DFT wavefunction structure
       rst%KSwfn%c_obj = 0
       nullify(rst%KSwfn%psi)
       nullify(rst%KSwfn%orbs%eval)
+      call nullify_paw_objects(rst%KSwfn%paw)
+      call nullify_paw_objects(rst%tmb%paw)
 
       nullify(rst%KSwfn%gaucoeffs)
       nullify(rst%KSwfn%oldpsis)
 
       call nullify_locreg_descriptors(rst%KSwfn%Lzd%Glr)
-      nullify(rst%KSwfn%Lzd%Glr%wfd%keyglob)
-      nullify(rst%KSwfn%Lzd%Glr%wfd%keygloc)
-      nullify(rst%KSwfn%Lzd%Glr%wfd%keyvloc)
-      nullify(rst%KSwfn%Lzd%Glr%wfd%keyvglob)
-
-      nullify(rst%KSwfn%gbd%nshell)
-      nullify(rst%KSwfn%gbd%ndoc)
-      nullify(rst%KSwfn%gbd%nam)
-      nullify(rst%KSwfn%gbd%xp)
-      nullify(rst%KSwfn%gbd%psiat)
-      nullify(rst%KSwfn%gbd%rxyz)
+      call nullify_gaussian_basis(rst%KSwfn%gbd)
 
       !Nullify LZD for cubic version (new input guess)
       call nullify_local_zone_descriptors(rst%tmb%lzd)
 
       !Nullify GPU data
       rst%GPU%OCLconv=.false.
-    END SUBROUTINE restart_objects_new
+    END SUBROUTINE nullify_restart_objects
 
 
     pure subroutine restart_objects_set_mode(rst, inputpsiid)
@@ -146,7 +159,6 @@ module bigdft_run
          rst%version = LINEAR_VERSION
       end select
     END SUBROUTINE restart_objects_set_mode
-
 
     subroutine restart_objects_set_nat(rst, nat)
       use module_base
@@ -174,7 +186,6 @@ module bigdft_run
       call init_material_acceleration(iproc,matacc,rst%GPU)
     END SUBROUTINE restart_objects_set_mat_acc
 
-
     !> De-Allocate restart_objects
     subroutine free_restart_objects(rst)
       use module_base
@@ -185,6 +196,9 @@ module bigdft_run
       type(restart_objects) :: rst
       !local variables
       integer :: istep
+
+      !check if the object can be freed
+      call f_ref_free(rst%refcnt)
 
       if (rst%version == LINEAR_VERSION) then
          call destroy_DFT_wavefunction(rst%tmb)
@@ -267,6 +281,7 @@ module bigdft_run
     END SUBROUTINE deallocate_global_output
 
     !> Copies outsA to outsB
+    !! outsB has to be allocated before
     subroutine copy_global_output(outsA,outsB)
       use module_base, only: f_err_throw,f_memcpy
       use yaml_strings, only: yaml_toa
@@ -289,11 +304,7 @@ module bigdft_run
       !so we use intrinisc copy:
       outsB%energs = outsA%energs
       call f_memcpy(src=outsA%fxyz,dest=outsB%fxyz)
-      !call vcopy(3 * outsB%fdim, outsA%fxyz(1,1), 1, outsB%fxyz(1,1), 1)
       call f_memcpy(src=outsA%strten,dest=outsB%strten)
-!!$      do i=1,6
-!!$         outsB%strten(i) = outsA%strten(i)
-!!$      enddo
     end subroutine copy_global_output
 
     !> Associate to the structure run_objects, the input_variable structure and the atomic positions (atoms_data)
@@ -301,59 +312,242 @@ module bigdft_run
       use module_base
       use module_types
       implicit none
-      type(run_objects), intent(out) :: runObj
+      type(run_objects), intent(inout) :: runObj
       type(input_variables), intent(in), target :: inputs
       type(atoms_data), intent(in), target :: atoms
       type(restart_objects), intent(in), target :: rst
-      real(gp), intent(in), optional :: rxyz0
+      real(gp), intent(inout), optional :: rxyz0 !<fake intent(in)
 
-      call run_objects_free_container(runObj)
-      runObj%atoms  => atoms
-      runObj%inputs => inputs
-      runObj%rst    => rst
-      if (present(rxyz0)) then
-         call vcopy(3 * atoms%astruct%nat, rxyz0, 1, runObj%atoms%astruct%rxyz(1,1), 1)
+      !call run_objects_free_container(runObj)
+      !associate only meaningful objects
+      if (f_ref_count(rst%refcnt) >= 0) then
+         if (associated(runObj%rst)) call f_unref(runObj%rst%refcnt)
+         runObj%rst    => rst
+         call f_ref(runObj%rst%refcnt)
       end if
 
-      runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), id="runObj%radii_cf")
-      call read_radii_variables(runObj%atoms, runObj%radii_cf, &
-           & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
+      if (f_ref_count(atoms%refcnt) >= 0) then
+         if (associated(runObj%atoms)) call f_unref(runObj%atoms%refcnt)
+         runObj%atoms  => atoms
+         call f_ref(runObj%atoms%refcnt)
+      end if
+
+      if (f_ref_count(inputs%refcnt) >= 0) then
+         if (associated(runObj%inputs)) call f_unref(runObj%inputs%refcnt)
+         runObj%inputs => inputs
+         call f_ref(runObj%inputs%refcnt)
+      end if
+
+      if (present(rxyz0)) then
+         call bigdft_set_rxyz(runObj,rxyz_add=rxyz0)
+         !call vcopy(3 * atoms%astruct%nat, rxyz0, 1, runObj%atoms%astruct%rxyz(1,1), 1)
+      end if
+
     END SUBROUTINE run_objects_associate
 
-!!    subroutine global_output_merge_to_dict(dict, outs, astruct)
-!!      use module_defs, only: gp, UNINITIALIZED
-!!      use module_atoms, only: atomic_structure
-!!      use dictionaries
-!!      implicit none
-!!      type(dictionary), pointer :: dict
-!!      type(DFT_global_output), intent(in) :: outs
-!!      type(atomic_structure), intent(in) :: astruct
-!!
-!!      integer :: iat
-!!      type(dictionary), pointer :: pos, fxyz
-!!
-!!      if (has_key(dict, GOUT_FORCES)) call dict_remove(dict, GOUT_FORCES)
-!!      if (associated(outs%fxyz)) then
-!!         pos => dict // GOUT_FORCES
-!!         do iat=1,astruct%nat
-!!!!$            call dict_init(fxyz)
-!!!!$            call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 0, outs%fxyz(1, iat))
-!!!!$            call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 1, outs%fxyz(2, iat))
-!!!!$            call set(fxyz // astruct%atomnames(astruct%iatype(iat)) // 2, outs%fxyz(3, iat))
-!!!!$            call add(pos, fxyz)
-!!            call add(pos, dict_new(astruct%atomnames(astruct%iatype(iat)) .is. outs%fxyz(:,iat)))
-!!         end do
-!!      end if
-!!
-!!      if (has_key(dict, GOUT_ENERGY)) call dict_remove(dict, GOUT_ENERGY)
-!!      if (outs%energy /= UNINITIALIZED(outs%energy)) &
-!!           & call set(dict // GOUT_ENERGY, outs%energy)
-!!
-!!    end subroutine global_output_merge_to_dict
+    !> set the parameters of the run 
+    subroutine bigdft_set_run_properties(run,run_id,posinp)
+      implicit none
+      type(dictionary), pointer :: run
+      character(len=*), intent(in), optional :: run_id
+      character(len=*), intent(in), optional :: posinp
+
+      if (present(run_id)) call set(run // 'name',trim(run_id))
+      if (present(posinp)) call set(run // 'posinp',trim(posinp))
+
+    end subroutine bigdft_set_run_properties
+
+    !> get the parameters of the run 
+    subroutine bigdft_get_run_properties(run,run_id,posinp)
+      implicit none
+      type(dictionary), pointer :: run
+      character(len=*), intent(out), optional :: run_id
+      character(len=*), intent(out), optional :: posinp
+
+      if (present(run_id)) run_id = run // 'name'
+      if (present(posinp)) posinp = run // 'posinp'
+      
+    end subroutine bigdft_get_run_properties
+
+    function bigdft_run_id_toa()
+      use yaml_output, only: yaml_toa
+      use module_base, only: bigdft_mpi
+      implicit none
+      character(len=20) :: bigdft_run_id_toa
+
+      bigdft_run_id_toa=repeat(' ',len(bigdft_run_id_toa))
+
+      if (bigdft_mpi%ngroup>1) then
+         bigdft_run_id_toa=adjustl(trim(yaml_toa(bigdft_mpi%igroup,fmt='(i15)')))
+      end if
+
+    end function bigdft_run_id_toa
+
+
+    !> copy the atom position in runObject into a workspace
+    !! of retrieve the positions from a file
+    subroutine bigdft_get_rxyz(runObj,filename,rxyz_add,rxyz)
+      use dynamic_memory, only: f_memcpy
+      use yaml_strings, only: yaml_toa
+      use module_atoms, only: atomic_structure,nullify_atomic_structure,&
+           set_astruct_from_file,deallocate_atomic_structure
+      use module_base, only: bigdft_mpi
+      implicit none
+      !> run object from which the atomic positions have to be 
+      !! retrieved
+      type(run_objects), intent(inout), optional :: runObj
+      !> filename from which the atomic positions have to be read
+      !! alternative to runObj
+      character(len=*), intent(in), optional :: filename
+      !>starting position of the atomic position.
+      !! the user is responsible to guarantee that the 
+      !! correct memory space is allocated thereafter
+      real(gp), intent(inout), optional :: rxyz_add
+      !> array of correct size (3,bigdft_nat(runObj)) with the atomic positions
+      real(gp), dimension(:,:), intent(out), optional :: rxyz
+      !local variables
+      integer :: n
+      type(atomic_structure) :: astruct
+
+      if (present(runObj) .eqv. present(filename)) then
+         call f_err_throw('Error in bigdft_get_rxyz: runObj *xor* filename'//&
+              'should be present',err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+
+      if (present(runObj)) then
+         n=3*bigdft_nat(runObj)
+
+         if (present(rxyz_add) .eqv. present(rxyz)) then
+            call f_err_throw('Error in bigdft_get_rxyz: rxyz_add *xor* rxyz'//&
+                 'should be present',err_name='BIGDFT_RUNTIME_ERROR')
+         end if
+
+         if (present(rxyz_add)) then
+            call f_memcpy(n=n,dest=rxyz_add,src=runObj%atoms%astruct%rxyz(1,1))
+         else if (present(rxyz)) then
+            if (n /= size(rxyz)) then
+               call f_err_throw('Error in bigdft_set_rxyz: wrong size ('//&
+                    trim(yaml_toa(n))//' /= '//trim(yaml_toa(size(rxyz)))//&
+                    ')',err_name='BIGDFT_RUNTIME_ERROR')
+            end if
+            call f_memcpy(dest=rxyz,src=runObj%atoms%astruct%rxyz)
+         end if
+      else if (present(filename)) then
+         call nullify_atomic_structure(astruct)
+         call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct)
+         n=3*astruct%nat
+         if (present(rxyz_add)) then
+            call f_memcpy(n=n,dest=rxyz_add,src=astruct%rxyz(1,1))
+         else if (present(rxyz)) then
+            if (n /= size(rxyz)) then
+               call f_err_throw('Error in bigdft_set_rxyz: wrong size ('//&
+                    trim(yaml_toa(n))//' /= '//trim(yaml_toa(size(rxyz)))//&
+                    ')',err_name='BIGDFT_RUNTIME_ERROR')
+            end if
+            call f_memcpy(dest=rxyz,src=astruct%rxyz)
+         end if
+
+       call deallocate_atomic_structure(astruct)
+       
+      end if
+    end subroutine bigdft_get_rxyz
+
+    !> returns the pointer to the atomic positions of the run.
+    !! it performas a shallwo copy therefore this routine is intended to 
+    !! provide acces to position for reading.
+    !! Use at own risk to modify the value of the atomic positions.
+    !! it returns nullified pointer in the case runObj is not properly
+    !! initialized
+    function bigdft_get_rxyz_ptr(runObj) result(rxyz)
+      implicit none
+      type(run_objects), intent(in) :: runObj
+      real(gp), dimension(:,:), pointer :: rxyz
+
+      nullify(rxyz)
+      if (associated(runObj%atoms)) rxyz => runObj%atoms%astruct%rxyz
+
+    end function bigdft_get_rxyz_ptr
+
+    function bigdft_get_astruct_ptr(runObj) result(astruct)
+      use module_atoms, only: atomic_structure
+      implicit none
+      type(run_objects), intent(in), target :: runObj
+      type(atomic_structure), pointer :: astruct
+
+      nullify(astruct)
+      if (associated(runObj%atoms)) astruct => runObj%atoms%astruct
+    end function bigdft_get_astruct_ptr
+
+    !> routine to dump the atomic file in normal BigDFT mode
+    subroutine bigdft_write_atomic_file(runObj,outs,filename,comment,&
+         cwd_path)
+      use module_base, only: bigdft_mpi
+      use module_atoms, only: astruct_dump_to_file
+      implicit none
+      type(run_objects), intent(in) :: runObj
+      type(DFT_global_output), intent(in) :: outs
+      character(len=*), intent(in) :: filename,comment
+      !> when present and true, output the file in the main 
+      !! working directory (where input files are present)
+      !! and not in dir_output
+      logical, intent(in), optional :: cwd_path
+      !local variables
+      logical :: indir
+
+      !only master node dumps on disk
+      if (bigdft_mpi%iproc /= 0) return
+
+      indir=.false.
+      if(present(cwd_path)) indir=cwd_path
+
+      if (indir) then
+         call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
+              trim(filename),comment,&
+              energy=outs%energy,forces=outs%fxyz)
+      else
+         call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
+              trim(runObj%inputs%dir_output)//trim(filename),comment,&
+              energy=outs%energy,forces=outs%fxyz)
+      end if
+      
+    end subroutine bigdft_write_atomic_file
+
+    !>import positions for the run object from a given array
+    subroutine bigdft_set_rxyz(runObj,rxyz_add,rxyz)
+      use dynamic_memory, only: f_memcpy
+      use yaml_strings, only: yaml_toa
+      implicit none
+      type(run_objects), intent(inout) :: runObj
+      !>starting position of the atomic position.
+      !! the user is responsible to guarantee that the 
+      !! correct memory space is allocated thereafter
+      real(gp), intent(inout), optional :: rxyz_add
+      !> array of correct size (3,bigdft_nat(runObj)) with the atomic positions
+      real(gp), dimension(:,:), intent(in), optional :: rxyz
+      !local variables
+      integer :: n
+
+      n=3*bigdft_nat(runObj)
+
+      if (present(rxyz_add) .eqv. present(rxyz)) then
+         call f_err_throw('Error in bigdft_set_rxyz: rxyz_add *xor* rxyz'//&
+              'should be present',err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+      if (present(rxyz_add)) then
+         call f_memcpy(n=n,src=rxyz_add,dest=runObj%atoms%astruct%rxyz(1,1))
+      else if (present(rxyz)) then
+         if (n /= size(rxyz)) then
+            call f_err_throw('Error in bigdft_set_rxyz: wrong size ('//&
+                 trim(yaml_toa(n))//' /= '//trim(yaml_toa(size(rxyz)))//&
+                 ')',err_name='BIGDFT_RUNTIME_ERROR')
+         end if
+         call f_memcpy(src=rxyz,dest=runObj%atoms%astruct%rxyz)
+      end if
+    end subroutine bigdft_set_rxyz
 
     subroutine global_output_set_from_dict(outs, dict)
       use dictionaries
-      use module_input_dicts, only: GOUT_ENERGY,GOUT_FORCES
+      use public_keys, only: GOUT_ENERGY,GOUT_FORCES
       implicit none
       type(dictionary), pointer :: dict
       type(DFT_global_output), intent(inout) :: outs
@@ -401,7 +595,7 @@ module bigdft_run
     end subroutine global_output_set_from_dict
 
     !> Routines to handle the argument objects of call_bigdft().
-    subroutine run_objects_nullify(runObj)
+    pure subroutine nullify_run_objects(runObj)
       use module_types
       implicit none
       type(run_objects), intent(out) :: runObj
@@ -410,18 +604,58 @@ module bigdft_run
       nullify(runObj%inputs)
       nullify(runObj%atoms)
       nullify(runObj%rst)
-      nullify(runObj%radii_cf)
-    END SUBROUTINE run_objects_nullify
-
-
-    !> Freed the run_objects structure
-    subroutine run_objects_free(runObj)
+    END SUBROUTINE nullify_run_objects
+    
+    !>release run_objects structure as a whole
+    !! if the reference counter goes to zero, do not free
+    !! the structure as other atoms and inputs may live somewhere
+    !! freeing command has to be given explicitly until we are 
+    !! sure that it would be illegal to have inputs and atoms living
+    !! separately from run_objects
+    !! should not give exception as release might be called indefinitely
+    subroutine release_run_objects(runObj)
       use module_types
       use module_base
-      use dynamic_memory
-      use yaml_output
-      use dictionaries
-      use  module_atoms, only: deallocate_atoms_data
+      use module_atoms, only: deallocate_atoms_data
+      implicit none
+      type(run_objects), intent(inout) :: runObj
+      !local variables
+      integer :: count
+
+      if (associated(runObj%rst)) then
+         call f_unref(runObj%rst%refcnt,count=count)
+         if (count==0) then
+            call free_restart_objects(runObj%rst)
+         else
+            nullify(runObj%rst)
+         end if
+      end if
+      if (associated(runObj%atoms)) then
+         call f_unref(runObj%atoms%refcnt,count=count)
+         if (count==0) then
+            call deallocate_atoms_data(runObj%atoms) 
+         else
+            nullify(runObj%atoms)
+         end if
+      end if
+      if (associated(runObj%inputs)) then
+         call f_unref(runObj%inputs%refcnt,count=count)
+         if (count==0) then
+            call free_input_variables(runObj%inputs)
+         else
+            nullify(runObj%inputs)
+         end if
+            
+      end if
+      call nullify_run_objects(runObj)
+    end subroutine release_run_objects
+
+    !> Free the run_objects structure, &
+    !! if all the objects have been dereferenced
+    subroutine free_run_objects(runObj)
+      use module_types
+      use module_base
+      use module_atoms, only: deallocate_atoms_data
       implicit none
       type(run_objects), intent(inout) :: runObj
 
@@ -438,58 +672,101 @@ module bigdft_run
          call free_input_variables(runObj%inputs)
          deallocate(runObj%inputs)
       end if
-      call f_free_ptr(runObj%radii_cf)
+      call nullify_run_objects(runObj)
+    END SUBROUTINE free_run_objects
 
-    END SUBROUTINE run_objects_free
-
-    !> Deallocate run_objects
-    subroutine run_objects_free_container(runObj)
-      use module_types
-      use module_base
-      use dynamic_memory
-      use yaml_output
-      implicit none
-      type(run_objects), intent(inout) :: runObj
-
-      ! User inputs are always owned by run objects.
-      call dict_free(runObj%user_inputs)
-      ! Radii_cf are always owned by run objects.
-      call f_free_ptr(runObj%radii_cf)
-      ! Currently do nothing except nullifying everything.
-      call run_objects_nullify(runObj)
-    END SUBROUTINE run_objects_free_container
+!!$    !> Deallocate run_objects, this routine should disappear
+!!$    subroutine run_objects_free_container(runObj)
+!!$      use module_types
+!!$      use module_base
+!!$      use dynamic_memory
+!!$      use yaml_output
+!!$      implicit none
+!!$      type(run_objects), intent(inout) :: runObj
+!!$
+!!$      ! User inputs are always owned by run objects.
+!!$      call dict_free(runObj%user_inputs)
+!!$      ! Currently do nothing except nullifying everything.
+!!$      call run_objects_nullify(runObj)
+!!$    END SUBROUTINE run_objects_free_container
 
     !> Read all input files and create the objects to run BigDFT
-    subroutine run_objects_init(runObj, run_dict)
+    subroutine run_objects_init(runObj,run_dict,source)
       use module_base, only: bigdft_mpi,dict_init
       use module_types
       use module_input_dicts, only: user_dict_from_files
       implicit none
+      !> Object for BigDFT run. Has to be initialized by this routine in order to
+      !! call bigdft main routine.
       type(run_objects), intent(out) :: runObj
-      type(dictionary), pointer :: run_dict
+      !> dictionary containing instructions for the run.
+      !! identifies the instructions needed to initialize the run.
+      !! essentially, run id, input positions id and so on.
+      !! this dictionary is an element of the list that can be found 
+      !! in options // 'BigDFT' after the call to bigdft_init routine
+      !! if absent, the run objects need src argument to be initialized
+      !! otherwise the runObj is a empty structure
+      type(dictionary), pointer, optional :: run_dict
+      !> template to perform a shallow copy of the arguments already inside.
+      !! if run_dict is absent
+      !! if present together with run_dict, it performs a shallow copy of the restart variables 
+      !! given by it *except* the structures inputs and atoms, 
+      !! which are provided by the informations given by run_dict
+      type(run_objects), intent(in), optional :: source
       !local variables
       character(len=max_field_length) :: radical, posinp
 
-      radical = run_dict // 'name'
-      posinp = run_dict // 'posinp' 
+      call nullify_run_objects(runObj)
 
-      call run_objects_nullify(runObj)
+      if (present(run_dict)) then
+         radical = run_dict // 'name'
+         posinp = run_dict // 'posinp'
+         
+         !here the control of the logfile can be inserted, driven by run_dict and not anymore by 
+         ! user_inputs
+ 
+         ! Generate input dictionary and parse it.
+         call dict_init(runObj%user_inputs)
+         call user_dict_from_files(runObj%user_inputs, radical, posinp, bigdft_mpi)
 
-      ! Allocate persistent structures.
-      allocate(runObj%rst)
-      call restart_objects_new(runObj%rst)
+         !this will fill atoms and inputs
+         call set_run_objects(runObj)
 
-      ! Generate input dictionary and parse it.
-      call dict_init(runObj%user_inputs)
-      call user_dict_from_files(runObj%user_inputs, radical, posinp, bigdft_mpi)
-      call run_objects_parse(runObj)
+         !the user input is not needed anymore
+         call dict_free(runObj%user_inputs)
 
-      ! Start the signaling loop in a thread if necessary.
-      if (runObj%inputs%signaling .and. bigdft_mpi%iproc == 0) then
-         call bigdft_signals_init(runObj%inputs%gmainloop, 2, &
-              & runObj%inputs%domain, len_trim(runObj%inputs%domain))
-         call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
+         !decide what to do with restart
+         if (present(source)) then
+            if (associated(runObj%rst)) call f_unref(runObj%rst%refcnt)
+            runObj%rst => source%rst
+            call f_ref(runObj%rst%refcnt)
+            !check the restart coherence
+            ! Number of atoms should not change during the calculation 
+            if (runObj%rst%nat > 0 .and. &
+                 runObj%rst%nat /= runObj%atoms%astruct%nat) then
+               call f_err_throw("The number of atoms changed!",&
+                    err_name='BIGDFT_RUNTIME_ERROR')
+            end if
+         else
+            ! Allocate persistent structures.
+            allocate(runObj%rst)
+            call nullify_restart_objects(runObj%rst)
+            !init and update the restart objects
+            call init_restart_objects(bigdft_mpi%iproc,&
+                 runObj%inputs,runObj%atoms,runObj%rst)
+         end if
+         ! Start the signaling loop in a thread if necessary.
+         if (runObj%inputs%signaling .and. bigdft_mpi%iproc == 0) then
+            call bigdft_signals_init(runObj%inputs%gmainloop, 2, &
+                 & runObj%inputs%domain, len_trim(runObj%inputs%domain))
+            call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
+         end if
+         
+      else if (present(source)) then
+         call run_objects_associate(runObj,&
+              source%inputs,source%atoms,source%rst)
       end if
+
     END SUBROUTINE run_objects_init
 
     subroutine bigdft_init(options)
@@ -712,6 +989,291 @@ module bigdft_run
       if (bigdft_nruns < 0) bigdft_nruns=0
     end function bigdft_nruns
 
+    !accessors for external programs
+    !> Get the number of orbitals of the run in rst
+    function bigdft_nat(runObj) result(nat)
+      implicit none
+      type(run_objects), intent(in) :: runObj !> BigDFT run structure
+      integer :: nat !> Number of atoms
+
+      if (associated(runObj%atoms)) then
+         nat=runObj%atoms%astruct%nat
+      else
+         nat=-1
+      end if
+      if (f_err_raise(nat < 0 ,'Number of atoms unitialized',&
+           err_name='BIGDFT_RUNTIME_ERROR')) return
+
+    end function bigdft_nat
+
+    function bigdft_norb(runObj) result(norb)
+      implicit none
+      type(run_objects), intent(in) :: runObj
+      integer :: norb
+
+      norb=0
+      if (associated(runObj%rst)) norb=runObj%rst%KSwfn%orbs%norb
+      if (norb <= 0) call f_err_throw('Number of orbitals unitialized',&
+           err_name='BIGDFT_RUNTIME_ERROR')
+    end function bigdft_norb
+
+    !> Fill the array eval with the number of orbitals of the last run
+    !! the array eval should have been allocated with the correct size
+    subroutine bigdft_get_eval(runObj,eval)
+      use module_base, only: gp,f_memcpy
+      implicit none
+      type(run_objects), intent(in) :: runObj !< BigDFT run structure
+      !> Buffer for eigenvectors. Should have at least dimension equal to 
+      !! bigdft_norb(runObj)
+      real(gp), dimension(*), intent(out) :: eval 
+      !local variables
+      integer :: norb
+
+      norb=bigdft_norb(runObj)
+
+      call f_memcpy(n=norb,src=runObj%rst%KSwfn%orbs%eval(1),dest=eval(1))
+    end subroutine bigdft_get_eval
+
+
+    function bigdft_get_geocode(runObj) result(geocode)
+      implicit none
+      type(run_objects), intent(in) :: runObj
+      character :: geocode
+
+      geocode=' '
+      if (associated(runObj%atoms)) geocode=runObj%atoms%astruct%geocode
+      if (all(geocode /= ['F','S','W','P'])) &
+           call f_err_throw('Geometry code uninitialized',&
+           err_name='BIGDFT_RUNTIME_ERROR')
+            
+    end function bigdft_get_geocode
+
+    function bigdft_get_cell(runObj) result(cell)
+      implicit none
+      type(run_objects), intent(in) :: runObj
+      real(gp), dimension(3) :: cell
+      
+      cell=0.0_gp
+      if (associated(runObj%atoms)) then
+         cell=runObj%atoms%astruct%cell_dim
+      else
+         call f_err_throw('Cell uninitialized',&
+              err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+    end function bigdft_get_cell
+
+    !> Routine to use BigDFT as a blackbox
+    subroutine call_bigdft(runObj,outs,infocode)
+      use module_base
+      use yaml_output
+      use module_atoms, only: astruct_dump_to_file,rxyz_inside_box
+      use module_types, only: INPUT_PSI_MEMORY_LINEAR,LINEAR_VERSION,INPUT_PSI_MEMORY_GAUSS, &
+           INPUT_PSI_LCAO,INPUT_PSI_MEMORY_WVL,old_wavefunction_null,INPUT_PSI_LINEAR_AO,deallocate_wfd
+      !use communications_base
+      implicit none
+      type(run_objects), intent(inout) :: runObj
+      type(DFT_global_output), intent(inout) :: outs
+      integer, intent(inout) :: infocode
+      !local variables
+      character(len=*), parameter :: subname='call_bigdft'
+      character(len=40) :: comment
+      logical :: exists
+      integer :: ierr,inputPsiId_orig,iat,iorb,istep
+      real(gp) :: maxdiff
+      external :: cluster,forces_via_finite_differences
+
+      !put a barrier for all the processes
+      call mpibarrier(bigdft_mpi%mpi_comm)
+      call f_routine(id=subname)
+      !Check the consistency between MPI processes of the atomic coordinates
+      maxdiff=mpimaxdiff(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,bcast=.true.)
+      if (maxdiff > epsilon(1.0_gp)) then
+         if (bigdft_mpi%iproc==0) then
+            call yaml_warning('Input positions not identical! '//&
+                 '(difference:'//trim(yaml_toa(maxdiff))//' ), broadcasting from master node.')
+            call yaml_comment('If the code hangs here, this means that not all the tasks met the threshold')
+            call yaml_comment('This might be related to arithmetics in performing the comparison')
+            call yaml_flush_document()
+         end if
+         !the check=.true. is important here: it controls that each process
+         !will participate in the broadcasting
+         call mpibcast(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,&
+              check=.true.)
+      end if
+
+      !fill the rxyz array with the positions
+      !wrap the atoms in the periodic directions when needed
+      call rxyz_inside_box(runObj%atoms%astruct,rxyz=runObj%rst%rxyz_new)
+!!$      select case(runObj%atoms%astruct%geocode)
+!!$      case('P')
+!!$         do iat=1,runObj%atoms%astruct%nat
+!!$            runObj%rst%rxyz_new(1,iat)=modulo(runObj%atoms%astruct%rxyz(1,iat),runObj%atoms%astruct%cell_dim(1))
+!!$            runObj%rst%rxyz_new(2,iat)=modulo(runObj%atoms%astruct%rxyz(2,iat),runObj%atoms%astruct%cell_dim(2))
+!!$            runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
+!!$         end do
+!!$      case('S')
+!!$         do iat=1,runObj%atoms%astruct%nat
+!!$            runObj%rst%rxyz_new(1,iat)=modulo(runObj%atoms%astruct%rxyz(1,iat),runObj%atoms%astruct%cell_dim(1))
+!!$            runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
+!!$            runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
+!!$         end do
+!!$      case('W')
+!!$         do iat=1,runObj%atoms%astruct%nat
+!!$            runObj%rst%rxyz_new(1,iat)=runObj%atoms%astruct%rxyz(1,iat)
+!!$            runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
+!!$            runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
+!!$         end do
+!!$      case('F')
+!!$         do iat=1,runObj%atoms%astruct%nat
+!!$            runObj%rst%rxyz_new(1,iat)=runObj%atoms%astruct%rxyz(1,iat)
+!!$            runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
+!!$            runObj%rst%rxyz_new(3,iat)=runObj%atoms%astruct%rxyz(3,iat)
+!!$         end do
+!!$      end select
+
+      !assign the verbosity of the output
+      !the verbose variables is defined in module_base
+      verbose=runObj%inputs%verbosity
+
+      ! Use the restart for the linear scaling version... probably to be modified.
+      if(runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL) then
+         if (runObj%rst%version == LINEAR_VERSION) then
+            runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_LINEAR
+            if (any(runObj%inputs%lin%locrad_lowaccuracy /= &
+                 runObj%inputs%lin%locrad_highaccuracy)) then
+               call f_err_throw('The radii for low and high accuracy must be the same '//&
+                    'when using the linear restart!',&
+                    err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+            end if
+         end if
+      end if
+      inputPsiId_orig=runObj%inputs%inputPsiId
+
+      loop_cluster: do
+         !allocate history container if it has not been done
+         if (runObj%inputs%wfn_history > 1  .and. .not. associated(runObj%rst%KSwfn%oldpsis)) then
+            allocate(runObj%rst%KSwfn%oldpsis(0:runObj%inputs%wfn_history+1))
+            runObj%rst%KSwfn%istep_history=0
+            do istep=0,runObj%inputs%wfn_history+1
+               runObj%rst%KSwfn%oldpsis(istep)=old_wavefunction_null() 
+            end do
+         end if
+
+         if (runObj%inputs%inputPsiId == INPUT_PSI_LCAO .and. associated(runObj%rst%KSwfn%psi)) then
+            call f_free_ptr(runObj%rst%KSwfn%psi)
+            call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
+            call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
+         end if
+
+         !backdoor for hacking, finite difference method for calculating forces on particular quantities
+         call f_file_exists('input.finite_difference_forces',exists)
+         if (exists) then
+            runObj%inputs%last_run=1 !do the last_run things nonetheless
+            runObj%inputs%inputPsiId = INPUT_PSI_LCAO !the first run always restart from IG
+            !experimental_modulebase_var_onlyfion=.true. !put only ionic forces in the forces
+         end if
+
+         !Main routine calculating the KS orbitals
+         call cluster(bigdft_mpi%nproc,bigdft_mpi%iproc,runObj%atoms,runObj%rst%rxyz_new, &
+              outs%energy, outs%energs, outs%fxyz, outs%strten, outs%fnoise, outs%pressure,&
+              runObj%rst%KSwfn,runObj%rst%tmb,&
+              runObj%rst%rxyz_old,runObj%rst%hx_old,runObj%rst%hy_old,runObj%rst%hz_old,&
+              runObj%inputs,runObj%rst%GPU,infocode)
+
+         !save the new atomic positions in the rxyz_old array
+         call f_memcpy(src=runObj%rst%rxyz_new,dest=runObj%rst%rxyz_old)
+
+         if (exists) then
+            call forces_via_finite_differences(bigdft_mpi%iproc,bigdft_mpi%nproc,runObj%atoms,runObj%inputs, &
+                 & outs%energy,outs%fxyz,outs%fnoise,runObj%rst,infocode)
+         end if
+
+         !Check infocode in function of the inputPsiId parameters
+         !and change the strategy of input guess psi
+         if (runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL .and. infocode==2) then
+            if (runObj%inputs%gaussian_help) then
+               runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_GAUSS
+            else
+               runObj%inputs%inputPsiId = INPUT_PSI_LCAO
+            end if
+         else if (runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_LINEAR .and. infocode==2) then
+            ! problems after restart for linear version
+            runObj%inputs%inputPsiId = INPUT_PSI_LINEAR_AO
+         else if ((runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL .or. &
+              runObj%inputs%inputPsiId == INPUT_PSI_LCAO) .and. infocode==1) then
+            runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_WVL
+            exit loop_cluster
+         else if (runObj%inputs%inputPsiId == INPUT_PSI_LCAO .and. infocode==3) then
+            if (bigdft_mpi%iproc == 0) then
+               call astruct_dump_to_file(runObj%atoms%astruct,"posfail",&
+                    'UNCONVERGED WF ',outs%energy,runObj%rst%rxyz_new)
+            end if
+
+            call f_free_ptr(runObj%rst%KSwfn%psi)
+            call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
+
+            call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
+
+            !test if stderr works
+            write(0,*)'unnormal end'
+            call mpibarrier(bigdft_mpi%mpi_comm)
+            call f_err_throw('Convergence error, cannot proceed. '//&
+                 'Writing positions in file posfail.xyz',err_name='BIGDFT_RUNTIME_ERROR')
+
+         else
+            exit loop_cluster
+         end if
+
+      end do loop_cluster
+
+      !preserve the previous value
+      runObj%inputs%inputPsiId=inputPsiId_orig
+
+      !put a barrier for all the processes
+      call f_release_routine()
+      call mpibarrier(bigdft_mpi%mpi_comm)
+
+    END SUBROUTINE call_bigdft
+
+    !> Parse the input dictionary and create all run_objects
+    !! in particular this routine identifies the input and the atoms structure
+    subroutine set_run_objects(runObj)
+      use module_base, only: bigdft_mpi,f_err_throw
+      use module_interfaces, only: atoms_new, inputs_new, inputs_from_dict, create_log_file
+      use module_atoms, only: deallocate_atoms_data
+      implicit none
+      type(run_objects), intent(inout) :: runObj
+      character(len=*), parameter :: subname = "run_objects_parse"
+
+      ! Free potential previous inputs and atoms.
+      if (associated(runObj%atoms)) then
+         call deallocate_atoms_data(runObj%atoms) 
+         deallocate(runObj%atoms)
+      end if
+      ! Allocate atoms_data structure
+      call atoms_new(runObj%atoms)
+
+      if (associated(runObj%inputs)) then
+         call free_input_variables(runObj%inputs)
+         deallocate(runObj%inputs)
+      end if
+      !Allocation input_variables structure and initialize it with default values
+      call inputs_new(runObj%inputs)
+
+      ! Regenerate inputs and atoms.
+      call inputs_from_dict(runObj%inputs, runObj%atoms, runObj%user_inputs)
+
+!!$  ! Number of atoms should not change durung the calculation 
+!!$  if (runObj%rst%nat > 0 .and. runObj%rst%nat /= runObj%atoms%astruct%nat) then
+!!$     call f_err_throw("The number of atoms changed!",err_name='BIGDFT_RUNTIME_ERROR')
+!!$  else if (runObj%rst%nat == 0) then
+!!$     call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat)
+!!$  end if
+!!$  call restart_objects_set_mode(runObj%rst, runObj%inputs%inputpsiid)
+!!$  call release_material_acceleration(runObj%rst%GPU)
+!!$  call restart_objects_set_mat_acc(runObj%rst, bigdft_mpi%iproc, runObj%inputs%matacc)
+
+    END SUBROUTINE set_run_objects
   
 end module bigdft_run
 
@@ -733,204 +1295,9 @@ subroutine run_objects_init_from_run_name(runObj, radical, posinp)
   call dict_free(run_dict)
 END SUBROUTINE run_objects_init_from_run_name
 
-
-!> Routine to use BigDFT as a blackbox
-subroutine call_bigdft(runObj,outs,nproc,iproc,infocode)
-  use module_base
-  use module_interfaces, only: write_atomic_file
-  use yaml_output
-  use module_types, only: INPUT_PSI_MEMORY_LINEAR,LINEAR_VERSION,INPUT_PSI_MEMORY_GAUSS, &
-       INPUT_PSI_LCAO,INPUT_PSI_MEMORY_WVL,old_wavefunction_null,INPUT_PSI_LINEAR_AO,deallocate_wfd
-  use bigdft_run
-  !use communications_base
-  implicit none
-  integer, intent(in) :: iproc,nproc
-  type(run_objects), intent(inout) :: runObj
-  type(DFT_global_output), intent(inout) :: outs
-  integer, intent(inout) :: infocode
-  !local variables
-  character(len=*), parameter :: subname='call_bigdft'
-  character(len=40) :: comment
-  logical :: exists
-  integer :: ierr,inputPsiId_orig,iat,iorb,istep
-  real(gp) :: maxdiff
-  external :: cluster,forces_via_finite_differences
-
-  !put a barrier for all the processes
-  call mpibarrier(bigdft_mpi%mpi_comm)
-  call f_routine(id=subname)
-  !Check the consistency between MPI processes of the atomic coordinates
-  maxdiff=mpimaxdiff(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,bcast=.true.)
-  !even when broadcasting results, there can be truncation errors
-  !therefore increase the threshold for checking
-  if (maxdiff > epsilon(1.0_gp)) then
-     if (iproc==0) then
-        call yaml_warning('Input positions not identical! '//&
-             '(difference:'//trim(yaml_toa(maxdiff))//' ), broadcasting from master node.')
-        call yaml_comment('If the code hangs here, this means that not all the tasks met the threshold')
-        call yaml_flush_document()
-     end if
-        !the check=.true. is important here: it controls that each process
-     !will participate in the broadcasting
-     call mpibcast(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,&
-          check=.true.)
-  end if
-
-  !fill the rxyz array with the positions
-  !wrap the atoms in the periodic directions when needed
-  select case(runObj%atoms%astruct%geocode)
-  case('P')
-     do iat=1,runObj%atoms%astruct%nat
-        runObj%rst%rxyz_new(1,iat)=modulo(runObj%atoms%astruct%rxyz(1,iat),runObj%atoms%astruct%cell_dim(1))
-        runObj%rst%rxyz_new(2,iat)=modulo(runObj%atoms%astruct%rxyz(2,iat),runObj%atoms%astruct%cell_dim(2))
-        runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
-     end do
-  case('S')
-     do iat=1,runObj%atoms%astruct%nat
-        runObj%rst%rxyz_new(1,iat)=modulo(runObj%atoms%astruct%rxyz(1,iat),runObj%atoms%astruct%cell_dim(1))
-        runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
-        runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
-     end do
-  case('W')
-     do iat=1,runObj%atoms%astruct%nat
-        runObj%rst%rxyz_new(1,iat)=runObj%atoms%astruct%rxyz(1,iat)
-        runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
-        runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
-     end do
-  case('F')
-     do iat=1,runObj%atoms%astruct%nat
-        runObj%rst%rxyz_new(1,iat)=runObj%atoms%astruct%rxyz(1,iat)
-        runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
-        runObj%rst%rxyz_new(3,iat)=runObj%atoms%astruct%rxyz(3,iat)
-     end do
-  end select
-
-  !assign the verbosity of the output
-  !the verbose variables is defined in module_base
-  verbose=runObj%inputs%verbosity
-
-  ! Use the restart for the linear scaling version... probably to be modified.
-  if(runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL) then
-     if (runObj%rst%version == LINEAR_VERSION) then
-        runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_LINEAR
-        if (any(runObj%inputs%lin%locrad_lowaccuracy /= &
-             runObj%inputs%lin%locrad_highaccuracy)) then
-           call f_err_throw('The radii for low and high accuracy must be the same '//&
-                'when using the linear restart!',&
-                err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-        end if
-     end if
-  end if
-  inputPsiId_orig=runObj%inputs%inputPsiId
-
-  loop_cluster: do
-     !allocate history container if it has not been done
-     if (runObj%inputs%wfn_history > 1  .and. .not. associated(runObj%rst%KSwfn%oldpsis)) then
-        allocate(runObj%rst%KSwfn%oldpsis(0:runObj%inputs%wfn_history+1))
-        runObj%rst%KSwfn%istep_history=0
-        do istep=0,runObj%inputs%wfn_history+1
-           runObj%rst%KSwfn%oldpsis(istep)=old_wavefunction_null() 
-        end do
-     end if
-
-     if (runObj%inputs%inputPsiId == INPUT_PSI_LCAO .and. associated(runObj%rst%KSwfn%psi)) then
-        call f_free_ptr(runObj%rst%KSwfn%psi)
-        call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
-        call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
-     end if
-
-     !experimental, finite difference method for calculating forces on particular quantities
-     call f_file_exists('input.finite_difference_forces',exists)
-     if (exists) then
-        runObj%inputs%last_run=1 !do the last_run things nonetheless
-        runObj%inputs%inputPsiId = INPUT_PSI_LCAO !the first run always restart from IG
-        !experimental_modulebase_var_onlyfion=.true. !put only ionic forces in the forces
-     end if
-
-     !Main routine calculating the KS orbitals
-     call cluster(nproc,iproc,runObj%atoms,runObj%rst%rxyz_new, runObj%radii_cf, &
-          outs%energy, outs%energs, outs%fxyz, outs%strten, outs%fnoise, outs%pressure,&
-          runObj%rst%KSwfn,runObj%rst%tmb,&
-          runObj%rst%rxyz_old,runObj%rst%hx_old,runObj%rst%hy_old,runObj%rst%hz_old,&
-          runObj%inputs,runObj%rst%GPU,infocode)
-
-     !save the new atomic positions in the rxyz_old array
-     call f_memcpy(src=runObj%rst%rxyz_new,dest=runObj%rst%rxyz_old)
-     !do iat=1,runObj%atoms%astruct%nat
-     !   runObj%rst%rxyz_old(1,iat)=runObj%rst%rxyz_new(1,iat)
-     !   runObj%rst%rxyz_old(2,iat)=runObj%rst%rxyz_new(2,iat)
-     !   runObj%rst%rxyz_old(3,iat)=runObj%rst%rxyz_new(3,iat)
-     !enddo
-
-     if (exists) then
-        call forces_via_finite_differences(iproc,nproc,runObj%atoms,runObj%inputs, &
-             & outs%energy,outs%fxyz,outs%fnoise,runObj%rst,infocode)
-     end if
-
-     !Check infocode in function of the inputPsiId parameters
-     !and change the strategy of input guess psi
-     if (runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL .and. infocode==2) then
-        if (runObj%inputs%gaussian_help) then
-           runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_GAUSS
-        else
-           runObj%inputs%inputPsiId = INPUT_PSI_LCAO
-        end if
-     else if (runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_LINEAR .and. infocode==2) then
-        ! problems after restart for linear version
-        runObj%inputs%inputPsiId = INPUT_PSI_LINEAR_AO
-     else if ((runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL .or. &
-          runObj%inputs%inputPsiId == INPUT_PSI_LCAO) .and. infocode==1) then
-        !runObj%inputs%inputPsiId=INPUT_PSI_LCAO !better to diagonalise than to restart an input guess
-        runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_WVL
-        !if (iproc==0) then
-        !   call yaml_warning('Self-consistent cycle did not meet convergence criteria')
-        !   write(*,*)&
-        !        &   ' WARNING: Self-consistent cycle did not meet convergence criteria'
-        !end if
-        exit loop_cluster
-     else if (runObj%inputs%inputPsiId == INPUT_PSI_LCAO .and. infocode==3) then
-        if (iproc == 0) then
-!!$               write( *,'(1x,a)')'Convergence error, cannot proceed.'
-!!$               write( *,'(1x,a)')' writing positions in file posfail.xyz then exiting'
-!!$               write(comment,'(a)')'UNCONVERGED WF '
-           !call wtxyz('posfail',energy,rxyz,atoms,trim(comment))
-           call write_atomic_file("posfail",outs%energy,runObj%rst%rxyz_new,&
-                runObj%atoms%astruct%ixyz_int,runObj%atoms,'UNCONVERGED WF ')
-        end if
-
-        call f_free_ptr(runObj%rst%KSwfn%psi)
-        call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
-
-        call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
-
-!!$            !finalize memory counting (there are still at least positions and the forces allocated)
-!!$            call memocc(0,0,'count','stop')
-!!$
-!!$            if (nproc > 1) call MPI_FINALIZE(ierr)
-
-        !test if stderr works
-        write(0,*)'unnormal end'
-        call mpibarrier(bigdft_mpi%mpi_comm)
-        call f_err_throw('Convergence error, cannot proceed. '//&
-             'Writing positions in file posfail.xyz',err_name='BIGDFT_RUNTIME_ERROR')
-
-     else
-        exit loop_cluster
-     end if
-
-  end do loop_cluster
-
-  !preserve the previous value
-  runObj%inputs%inputPsiId=inputPsiId_orig
-
-  !put a barrier for all the processes
-  call f_release_routine()
-  call mpibarrier(bigdft_mpi%mpi_comm)
-
-END SUBROUTINE call_bigdft
-
 subroutine run_objects_update(runObj, dict)
-  use bigdft_run, only: run_objects
+  use module_base, only: bigdft_mpi
+  use bigdft_run, only: run_objects,init_restart_objects,set_run_objects
   use dictionaries, only: dictionary, dict_update
   implicit none
   type(run_objects), intent(inout) :: runObj
@@ -939,61 +1306,16 @@ subroutine run_objects_update(runObj, dict)
   ! We merge the previous dictionnary with new entries.
   call dict_update(runObj%user_inputs, dict)
 
-  ! Parse new dictionnary.
-  call run_objects_parse(runObj)
+  ! Parse new dictionary.
+  call set_run_objects(runObj)
+  !init and update the restart objects
+  call init_restart_objects(bigdft_mpi%iproc,runObj%inputs,runObj%atoms,&
+       runObj%rst)
+
 END SUBROUTINE run_objects_update
 
-!> Parse the input dictionary and create all run_objects
-subroutine run_objects_parse(runObj)
-  use module_base, only: bigdft_mpi,f_err_throw
-  use module_interfaces, only: atoms_new, inputs_new, inputs_from_dict, create_log_file
-  use dynamic_memory
-  use dictionaries
-  use module_atoms, only: deallocate_atoms_data
-  use bigdft_run
-  implicit none
-  type(run_objects), intent(inout) :: runObj
-  character(len=*), parameter :: subname = "run_objects_parse"
 
-  ! Free potential previous inputs and atoms.
-  if (associated(runObj%atoms)) then
-     call deallocate_atoms_data(runObj%atoms) 
-     deallocate(runObj%atoms)
-  end if
-  ! Allocate atoms_data structure
-  call atoms_new(runObj%atoms)
-  if (associated(runObj%inputs)) then
-     call free_input_variables(runObj%inputs)
-     deallocate(runObj%inputs)
-  end if
-  !Allocation input_variables structure and initialize it with default values
-  call inputs_new(runObj%inputs)
-
-  ! Regenerate inputs and atoms.
-  call inputs_from_dict(runObj%inputs, runObj%atoms, runObj%user_inputs)
-
-  ! Number of atoms should not change.
-  if (runObj%rst%nat > 0 .and. runObj%rst%nat /= runObj%atoms%astruct%nat) then
-     call f_err_throw("The number of atoms changed!",err_name='BIGDFT_RUNTIME_ERROR')
-  else if (runObj%rst%nat == 0) then
-     call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat)
-  end if
-  call restart_objects_set_mode(runObj%rst, runObj%inputs%inputpsiid)
-  if (associated(runObj%rst)) then
-     call release_material_acceleration(runObj%rst%GPU)
-  end if
-  call restart_objects_set_mat_acc(runObj%rst, bigdft_mpi%iproc, runObj%inputs%matacc)
-
-  ! Generate radii
-  call f_free_ptr(runObj%radii_cf)
-
-  runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), id="runObj%radii_cf")
-  call read_radii_variables(runObj%atoms, runObj%radii_cf, &
-       & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
-
-END SUBROUTINE run_objects_parse
-
-
+!> this routine should be used in memguess executable also
 subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   use module_base, only: gp,f_memcpy
   use bigdft_run
@@ -1024,7 +1346,7 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
        & runObj%inputs, runObj%atoms, rxyz, runObj%rst%GPU%OCLconv, runObj%rst%KSwfn%orbs, &
        & runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
        & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, &
-       & nlpsp, runObj%rst%KSwfn%comms, shift, runObj%radii_cf, &
+       & nlpsp, runObj%rst%KSwfn%comms, shift, &
        & ref_frags)
   call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
        & runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&

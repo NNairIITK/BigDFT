@@ -90,7 +90,7 @@ interfaces_28_numeric_noabirule.o: 28_numeric_noabirule/interfaces_28_numeric_no
 	$(PPFCCOMPILE) -c -o interfaces_28_numeric_noabirule.o `test -f '28_numeric_noabirule/interfaces_28_numeric_noabirule.F90' || echo '$(srcdir)/'`28_numeric_noabirule/interfaces_28_numeric_noabirule.F90
 
 m_splines.o: 28_numeric_noabirule/m_splines.F90 \
-	defs_basis.o
+	defs_basis.o m_errors.o
 	$(PPFCCOMPILE) -c -o m_splines.o `test -f '28_numeric_noabirule/m_splines.F90' || echo '$(srcdir)/'`28_numeric_noabirule/m_splines.F90
 
 sort_dp.o: 28_numeric_noabirule/sort_dp.F90
@@ -511,7 +511,8 @@ xredxcart.o: 42_geometry/xredxcart.F90 \
 	interfaces_32_util.o
 	$(PPFCCOMPILE) -c -o xredxcart.o `test -f '42_geometry/xredxcart.F90' || echo '$(srcdir)/'`42_geometry/xredxcart.F90
 
-interfaces_42_libpaw.o: 42_libpaw/interfaces_42_libpaw.F90
+interfaces_42_libpaw.o: 42_libpaw/interfaces_42_libpaw.F90 \
+	m_pawang.o m_pawrad.o m_pawtab.o m_pawrhoij.o m_errors.o
 	$(PPFCCOMPILE) -c -o interfaces_42_libpaw.o `test -f '42_libpaw/interfaces_42_libpaw.F90' || echo '$(srcdir)/'`42_libpaw/interfaces_42_libpaw.F90
 
 m_atompaw.o: 42_libpaw/m_atompaw.F90 \
@@ -914,3 +915,24 @@ xfpack.o: 72_geomoptim/xfpack.F90 \
 	interfaces_42_geometry.o
 	$(PPFCCOMPILE) -c -o xfpack.o `test -f '72_geomoptim/xfpack.F90' || echo '$(srcdir)/'`72_geomoptim/xfpack.F90
 
+pawinit.o: 42_libpaw/pawinit.F90 \
+	defs_basis.o \
+	m_errors.o \
+	m_profiling.o \
+	m_splines.o \
+	m_pawpsp.o \
+	m_atompaw.o \
+	m_pawang.o \
+	m_pawrad.o \
+	m_pawtab.o \
+	interfaces_18_timing.o
+	$(PPFCCOMPILE) -c -o pawinit.o `test -f '42_libpaw/pawinit.F90' || echo '$(srcdir)/'`42_libpaw/pawinit.F90
+
+initrhoij.o: 42_libpaw/initrhoij.F90 \
+	defs_basis.o \
+	m_errors.o \
+	m_profiling.o \
+	m_pawtab.o \
+	m_pawrhoij.o \
+	m_paral_atom.o
+	$(PPFCCOMPILE) -c -o initrhoij.o `test -f '42_libpaw/initrhoij.F90' || echo '$(srcdir)/'`42_libpaw/initrhoij.F90

@@ -108,7 +108,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    !still the exact exchange with occorbs=.false. has to be verified
    if (exctX) then
       psirocc = f_malloc_ptr(max(max(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*KSwfn%Lzd%Glr%d%n3i*KSwfn%orbs%norbp,&
-         &   dpcom%ngatherarr(0,1)*KSwfn%orbs%norb),1)+ndebug,id='psirocc')
+         &   dpcom%ngatherarr(0,1)*KSwfn%orbs%norb),1),id='psirocc')
 
       call prepare_psirocc(iproc,nproc,KSwfn%Lzd%Glr,KSwfn%orbs,dpcom%nscatterarr(iproc,2),dpcom%ngatherarr(0,1),KSwfn%psi,psirocc)
    else if (in%SIC%approach=='NK') then
@@ -173,7 +173,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    ! 1st Hamilton application on psivirt
    !if(iproc==0)write(*,'(1x,a)')"done."
 
-   VTwfn%hpsi = f_malloc_ptr(max(VTwfn%orbs%npsidim_orbs,VTwfn%orbs%npsidim_comp)+ndebug,id='VTwfn%hpsi')
+   VTwfn%hpsi = f_malloc_ptr(max(VTwfn%orbs%npsidim_orbs,VTwfn%orbs%npsidim_comp),id='VTwfn%hpsi')
    if (nproc > 1) then
       VTwfn%psit = f_malloc_ptr(max(VTwfn%orbs%npsidim_orbs, VTwfn%orbs%npsidim_comp),id='VTwfn%psit')
       !transpose the psivirt 
@@ -251,8 +251,8 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       !terminate SCF loop if forced to switch more than once from DIIS to SD
       !endloop=endloop .or. ndiis_sd_sw > 2
 
-      call FullHamiltonianApplication(iproc,nproc,at,VTwfn%orbs,rxyz,&
-           VTwfn%Lzd,nlpsp,VTwfn%confdatarr,dpcom%ngatherarr,pot,VTwfn%psi,VTwfn%hpsi,&
+      call FullHamiltonianApplication(iproc,nproc,at,VTwfn%orbs,&
+           VTwfn%Lzd,nlpsp,VTwfn%confdatarr,dpcom%ngatherarr,pot,VTwfn%psi,VTwfn%hpsi,VTwfn%paw,&
            energs,in%SIC,GPU,xc,&
            pkernel,KSwfn%orbs,psirocc)
 
@@ -437,6 +437,9 @@ subroutine davidson(iproc,nproc,in,at,&
    real(wp), dimension(:), pointer :: psiw,psirocc,pot
    type(confpot_data), dimension(:), allocatable :: confdatarr
    type(energy_terms) :: energs
+   type(paw_objects) :: paw
+
+   paw%usepaw = .false.
 
    energs = energy_terms_null()
 
@@ -509,7 +512,7 @@ subroutine davidson(iproc,nproc,in,at,&
    !wavefunctions in real space, for exact exchange calculations
    if (exctX) then
       psirocc = f_malloc_ptr(max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%norbp,&
-         &   dpcom%ngatherarr(0,1)*orbs%norb),1)+ndebug,id='psirocc')
+         &   dpcom%ngatherarr(0,1)*orbs%norb),1),id='psirocc')
 
       call prepare_psirocc(iproc,nproc,Lzd%Glr,orbs,dpcom%nscatterarr(iproc,2),dpcom%ngatherarr(0,1),psi,psirocc)
    else if (in%SIC%approach=='NK') then
@@ -534,7 +537,7 @@ subroutine davidson(iproc,nproc,in,at,&
       call f_free_ptr(psiw)
    end if
 
-   orbsv%eval = f_malloc_ptr(orbsv%norb*orbsv%nkpts+ndebug,id='orbsv%eval')
+   orbsv%eval = f_malloc_ptr(orbsv%norb*orbsv%nkpts,id='orbsv%eval')
 
    orbsv%eval(1:orbsv%norb*orbsv%nkpts)=-0.5d0
 
@@ -609,8 +612,8 @@ subroutine davidson(iproc,nproc,in,at,&
    !experimental: add parabolic potential to the hamiltonian
    !call add_parabolic_potential(at%astruct%geocode,at%astruct%nat,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,12.0_gp,rxyz,pot)
 
-   call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
-        Lzd,nlpsp,confdatarr,dpcom%ngatherarr,pot,v,hv,&
+   call FullHamiltonianApplication(iproc,nproc,at,orbsv,&
+        Lzd,nlpsp,confdatarr,dpcom%ngatherarr,pot,v,hv,paw,&
         energs,in%SIC,GPU,xc,&
         pkernel,orbs,psirocc)
 
@@ -700,7 +703,7 @@ subroutine davidson(iproc,nproc,in,at,&
    call dimension_ovrlp(nspin,orbsv,ndimovrlp)
 
    !the dimension should be chosen with the max between k-points
-   !allocate(hamovr(n2virt,n2virt,2,orbsv%nkpts+ndebug),stat=i_stat)
+   !allocate(hamovr(n2virt,n2virt,2,orbsv%nkpts),stat=i_stat)
    hamovr = f_malloc(8*ndimovrlp(nspin, orbsv%nkpts),id='hamovr')
 
    !put to zero all the k-points which are not needed
@@ -914,8 +917,8 @@ subroutine davidson(iproc,nproc,in,at,&
 
       hg = f_malloc(max(orbsv%npsidim_orbs, orbsv%npsidim_comp),id='hg')
 
-      call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
-           Lzd,nlpsp,confdatarr,dpcom%ngatherarr,pot,g,hg,&
+      call FullHamiltonianApplication(iproc,nproc,at,orbsv,&
+           Lzd,nlpsp,confdatarr,dpcom%ngatherarr,pot,g,hg,paw,&
            energs,in%SIC,GPU,xc,&
            pkernel,orbs,psirocc)
 
@@ -1179,8 +1182,8 @@ subroutine davidson(iproc,nproc,in,at,&
       ! Hamilton application on v
       !if(iproc==0)write(*,'(1x,a)',advance="no")"done."
 
-      call FullHamiltonianApplication(iproc,nproc,at,orbsv,rxyz,&
-           Lzd,nlpsp,confdatarr,dpcom%ngatherarr,pot,v,hv,&
+      call FullHamiltonianApplication(iproc,nproc,at,orbsv,&
+           Lzd,nlpsp,confdatarr,dpcom%ngatherarr,pot,v,hv,paw,&
            energs,in%SIC,GPU,xc,&
            pkernel,orbs,psirocc)
 

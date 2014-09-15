@@ -1324,7 +1324,7 @@ type(atoms_data), intent(in) :: atoms
 integer, intent(in) :: iproc
 real(gp), intent(in) :: hx,hy,hz,crmult,frmult
 real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
-real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+!real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
 type(locreg_descriptors), intent(inout) :: Glr
 */
 void FC_FUNC_(glr_set_wave_descriptors, GLR_SET_WAVE_DESCRIPTORS)(const int *iproc, 
@@ -1333,7 +1333,7 @@ void FC_FUNC_(glr_set_wave_descriptors, GLR_SET_WAVE_DESCRIPTORS)(const int *ipr
                                                                   const double *hz, 
                                                                   const f90_atoms_data *atoms, 
                                                                   const double *rxyz, 
-                                                                  const double *radii_cf, 
+                                                                  //const double *radii_cf, 
                                                                   const double *crmult, 
                                                                   const double *frmult, 
                                                                   f90_locreg_descriptors *Glr);
