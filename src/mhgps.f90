@@ -106,7 +106,8 @@ real(gp), allocatable :: fat(:,:)
             call f_err_throw('runs-file not supported for MHGPS '//&
                               'executable')
         endif
-        run_id = options // 0 // 'name'
+        run_id = options // 'BigDFT' // 0
+!        run_id = options // 0 // 'name'
         if(iproc==0) call print_logo_mhgps()
         call dict_init(user_inputs)
         write(currDir,'(a,i3.3)')'input',ifolder
