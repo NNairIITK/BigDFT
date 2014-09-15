@@ -1104,3 +1104,4 @@ O2spin_dirmin:
  DIIS weights: 1.1
  Max deviation from unity in reorthonormalize_coeff: 1.1e-7
  Mean deviation from unity in reorthonormalize_coeff: 1.1e-7
+ delta: 1.1e-10

@@ -103,7 +103,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   if(target_function==TARGET_FUNCTION_IS_ENERGY .or. &
      target_function==TARGET_FUNCTION_IS_HYBRID) then
      call build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f)
-     !!! 
+      
      !!! if(tmb%ham_descr%collcom%ndimind_c>0) &
      !!!     call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsittmp_c(1), 1)
      !!! if(tmb%ham_descr%collcom%ndimind_f>0) &
@@ -144,6 +144,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      !!!                 ishift=(ispin-1)*tmb%linmat%l%nvctr
      !!!                 if(irowcol(1)==irowcol(2) .and. irowcol(1)==iorb) then
      !!!                     ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
+     !!!                     write(*,*) 'iorb, ii, ishift, ist', iorb, ii, ishift, ist
      !!!                     call dscal(ncount, kernel_compr_tmp(ii+ishift), tmb%hpsi(ist), 1)
      !!!                     ist=ist+ncount
      !!!                 end if
@@ -761,14 +762,14 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, target_function
-  type(DFT_wavefunction),intent(inout),target :: tmb
+  type(DFT_wavefunction),intent(inout) :: tmb
   real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c),intent(inout) :: hpsit_c
   real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f),intent(inout) :: hpsit_f
   real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c),intent(out) :: hpsittmp_c !<workarray
   real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f),intent(out) :: hpsittmp_f !<workarray
 
   ! Local variables
-  integer :: ispin, ishift, iseg, ii, i, ist, ncount, iorb, ilr, isegstart, isegend, ierr
+  integer :: ispin, ishift, iseg, ii, i, ist, ncount, iorb, ilr, isegstart, isegend, ierr, iiorb
   integer,dimension(2) :: irowcol
   real(kind=8),dimension(:),pointer :: kernel_compr_tmp
   real(kind=8),dimension(:),pointer :: matrix_local
@@ -787,11 +788,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
           isegstart = tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+1)
           isegend = tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp) + &
                     tmb%linmat%l%nsegline(tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp)-1
-          if (nproc>1) then
-              matrix_local = f_malloc_ptr(tmb%linmat%l%nvctrp,id='matrix_local')
-          else
-              matrix_local => tmb%linmat%kernel_%matrix_compr
-          end if
+          matrix_local = f_malloc_ptr(tmb%linmat%l%nvctrp,id='matrix_local')
           do ispin=1,tmb%linmat%l%nspin
               ishift=(ispin-1)*tmb%linmat%l%nvctr
               !$omp parallel default(none) &
@@ -803,9 +800,9 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
                   do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
                       irowcol = orb_from_index(tmb%linmat%l, i)
                       if(irowcol(1)==irowcol(2)) then
-                          matrix_local(ii-tmb%linmat%l%isvctr+ishift)=0.d0
+                          matrix_local(ii-tmb%linmat%l%isvctr)=0.d0
                       else
-                          matrix_local(ii-tmb%linmat%l%isvctr+ishift)=kernel_compr_tmp(ii+ishift)
+                          matrix_local(ii-tmb%linmat%l%isvctr)=kernel_compr_tmp(ii+ishift)
                       end if
                       ii=ii+1
                   end do
@@ -817,9 +814,13 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
                         tmb%linmat%kernel_%matrix_compr(ishift+1), tmb%linmat%l%nvctr_par, &
                         tmb%linmat%l%isvctr_par, mpi_double_precision, &
                         bigdft_mpi%mpi_comm, ierr)
-                   call f_free_ptr(matrix_local)
+                    if (ispin==tmb%linmat%l%nspin) call f_free_ptr(matrix_local)
+               else
+                   call vcopy(tmb%linmat%l%nvctr, matrix_local(1), 1, &
+                        tmb%linmat%kernel_%matrix_compr(ishift+1), 1)
                end if
           end do
+
 
           ist=1
           do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
@@ -829,18 +830,20 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
               else
                   ispin=2
               end if
+              iiorb = mod(iorb-1,tmb%linmat%l%nfvctr)+1 ! spin-independent index
               ishift=(ispin-1)*tmb%linmat%l%nvctr
-              isegstart = tmb%linmat%l%istsegline(iorb)
-              isegend = tmb%linmat%l%istsegline(iorb) + tmb%linmat%l%nsegline(iorb) - 1
+              isegstart = tmb%linmat%l%istsegline(iiorb)
+              isegend = tmb%linmat%l%istsegline(iiorb) + tmb%linmat%l%nsegline(iiorb) - 1
               do iseg=isegstart,isegend
               !do iseg=1, tmb%linmat%l%nseg
                   ii=tmb%linmat%l%keyv(iseg)
                   do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
                       irowcol = orb_from_index(tmb%linmat%l, i)
-                      if (irowcol(2)/=iorb) stop'irowcol(2)/=iorb'
-                      !if(irowcol(1)==irowcol(2) .and. irowcol(1)==iorb) then
+                      if (irowcol(2)/=iiorb) stop'irowcol(2)/=iiorb'
+                      !if(irowcol(1)==irowcol(2) .and. irowcol(1)==iiorb) then
                       if(irowcol(1)==irowcol(2)) then
                           ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
+                          !write(*,*) 'iorb, ii, ishift, ist', iorb, ii, ishift, ist
                           call dscal(ncount, kernel_compr_tmp(ii+ishift), tmb%hpsi(ist), 1)
                           ist=ist+ncount
                       end if
