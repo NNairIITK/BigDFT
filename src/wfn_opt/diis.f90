@@ -493,7 +493,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   ! Do the mixing 
   call ab7_mixing_eval(mix, rhopot, istep, n1 * n2 * n3, ucvol, &
        & bigdft_mpi%mpi_comm, (nproc > 1), ierr, errmess, resnrm = rpnrm, &
-       & fnrm = fnrm_denpot, fdot = fdot_denpot, user_data = user_data)
+       & fnrm = fnrm_denpot_forlinear, fdot = fdot_denpot_forlinear, user_data = user_data)
   if (ierr /= AB7_NO_ERROR) then
      if (iproc == 0) write(0,*) errmess
      call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
