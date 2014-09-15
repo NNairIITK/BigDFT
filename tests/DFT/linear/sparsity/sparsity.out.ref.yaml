@@ -320,7 +320,7 @@
    Radii of active regions (AU):
      Coarse                            : 1.584366302812153
      Fine                              : 0.2326773
-     Coarse PSP                        : 0.2326773
+     Coarse PSP                        : 0.91365963
      Source                            : Hard-Coded
  psppar.O:
    Pseudopotential type                : HGH-K
@@ -341,7 +341,7 @@
    Radii of active regions (AU):
      Coarse                            : 1.215575721499752
      Fine                              : 0.22178614
-     Coarse PSP                        : 0.22178614
+     Coarse PSP                        : 0.7704867
      Source                            : Hard-Coded
  psppar.P:
    Pseudopotential type                : HGH-K
@@ -362,7 +362,7 @@
    Radii of active regions (AU):
      Coarse                            : 1.557639957122584
      Fine                              : 0.38980284
-     Coarse PSP                        : 0.38980284
+     Coarse PSP                        : 1.2461119657
      Source                            : Hard-Coded
  psppar.N:
    Pseudopotential type                : HGH-K
@@ -383,7 +383,7 @@
    Radii of active regions (AU):
      Coarse                            : 1.370256482166319
      Fine                              : 0.25660487
-     Coarse PSP                        : 0.25660487
+     Coarse PSP                        : 0.81040107
      Source                            : Hard-Coded
  psppar.H:
    Pseudopotential type                : HGH-K
@@ -397,7 +397,7 @@
    Radii of active regions (AU):
      Coarse                            : 1.463418464633951
      Fine                              : 0.2
-     Coarse PSP                        : 0.2
+     Coarse PSP                        : 0.
      Source                            : Hard-Coded
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data/

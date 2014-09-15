@@ -377,7 +377,7 @@ subroutine diis_opt(iproc,nproc,ngrp,isgrp,ngrpp,igrpproc,ncomp_grp,ndim_psi,psi
 
     call DIIS_update_psi(ngrp,isgrp,ngrpp,ncomp_grp,ndim_psi,psi,diis)
 
-end subroutine
+  end subroutine diis_opt
 
 
 

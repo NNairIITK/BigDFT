@@ -128,7 +128,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
    !!!
    !!!  !allocate the pointer for virtual orbitals
    !!!  if(present(orbsv) .and. present(psivirt) .and. orbsv%norb > 0) then
-   !!!     allocate(psivirt(orbsv%npsidim+ndebug),stat=i_stat)
+   !!!     allocate(psivirt(orbsv%npsidim),stat=i_stat)
    !!!     call memocc(i_stat,psivirt,'psivirt',subname)
    !!!  end if
    !!!
@@ -178,12 +178,12 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
    !!!
    !!!
    !!!  if (minimal) then
-   !!!     allocate(hpsi(orbs%npsidim+ndebug),stat=i_stat)
+   !!!     allocate(hpsi(orbs%npsidim),stat=i_stat)
    !!!     call memocc(i_stat,hpsi,'hpsi',subname)
    !!!!     hpsi=0.0d0
    !!!     if (nproc > 1) then
    !!!        !allocate the direct wavefunction
-   !!!        allocate(psi(orbs%npsidim+ndebug),stat=i_stat)
+   !!!        allocate(psi(orbs%npsidim),stat=i_stat)
    !!!        call memocc(i_stat,psi,'psi',subname)
    !!!     else
    !!!        psi => psit
@@ -504,7 +504,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar)
   end if
 
-  hpsi = f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug,id='hpsi')
+  hpsi = f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp),id='hpsi')
   !     hpsi=0.0d0
   if (nproc > 1) then
      !allocate the direct wavefunction

@@ -25,8 +25,9 @@ subroutine read_mode(nat,filename,minmode)
 
 
     call read_atomic_file(filename,iproc,astruct)
-    if(nat/=astruct%nat)stop '(MHGPS) severe error in read_mode: '//&
-                             'nat/=astruct%nat'
+    if(nat/=astruct%nat) &
+         call f_err_throw('(MHGPS) severe error in read_mode: '//&
+         'nat/=astruct%nat')
     if (trim(astruct%units) /= 'atomic'&
        .and. trim(astruct%units) /= 'atomicd0'&
        .and. trim(astruct%units) /= 'bohr'&
@@ -41,7 +42,7 @@ subroutine write_mode(nat,filename,minmode,rotforce)
     use module_base, only: gp
     use module_types
     use module_interfaces
-    use module_atoms, only: read_atomic_file=>set_astruct_from_file
+    use module_atoms, only: astruct_dump_to_file
     use module_global_variables, only: iproc, atoms, ixyz_int
     implicit none
     !parameters
@@ -56,13 +57,19 @@ subroutine write_mode(nat,filename,minmode,rotforce)
     units=atoms%astruct%units
     atoms%astruct%units='atomicd0'
     if(present(rotforce))then
-        call write_atomic_file(filename,&
-              0.0_gp,minmode(1,1),ixyz_int,&
-              atoms,trim(comment),forces=rotforce(1,1))
+       call astruct_dump_to_file(atoms%astruct,filename,trim(comment),&
+            rxyz=minmode,forces=rotforce)
+!!$
+!!$        call write_atomic_file(filename,&
+!!$              0.0_gp,minmode(1,1),ixyz_int,&
+!!$              atoms,trim(comment),forces=rotforce(1,1))
     else
-        call write_atomic_file(filename,&
-              0.0_gp,minmode(1,1),ixyz_int,&
-              atoms,trim(comment))
+       call astruct_dump_to_file(atoms%astruct,filename,trim(comment),&
+            rxyz=minmode)
+!!$
+!!$        call write_atomic_file(filename,&
+!!$              0.0_gp,minmode(1,1),ixyz_int,&
+!!$              atoms,trim(comment))
     endif
     atoms%astruct%units=units
 end subroutine

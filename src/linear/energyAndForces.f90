@@ -43,10 +43,10 @@ else
    if (.not. associated(denspot%V_XC)) then   
       !Allocate XC potential
       if (denspot%dpbox%n3p >0) then
-         denspot%V_XC = f_malloc_ptr((/ denspot%dpbox%ndims(1) , denspot%dpbox%ndims(2) , denspot%dpbox%n3p , nspin+ndebug /),&
+         denspot%V_XC = f_malloc_ptr((/ denspot%dpbox%ndims(1) , denspot%dpbox%ndims(2) , denspot%dpbox%n3p , nspin /),&
                             id='denspot%V_XC')
       else
-         denspot%V_XC = f_malloc_ptr((/ 1 , 1 , 1 , 1+ndebug /),id='denspot%V_XC')
+         denspot%V_XC = f_malloc_ptr((/ 1 , 1 , 1 , 1 /),id='denspot%V_XC')
       end if
       nullifyVXC=.true.
    end if

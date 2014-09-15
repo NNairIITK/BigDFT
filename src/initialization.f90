@@ -269,6 +269,7 @@ subroutine create_log_file(dict, writing_directory, dir_output, run_name)
   use yaml_strings
   use yaml_output
   use dictionaries
+  use bigdft_run, only: bigdft_run_id_toa
   implicit none
   type(dictionary), pointer :: dict
   character(len = max_field_length), intent(out) :: writing_directory, dir_output, run_name

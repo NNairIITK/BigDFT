@@ -24,6 +24,11 @@ module module_types
   use communications_base, only: comms_linear, comms_cubic, p2pComms
   use sparsematrix_base, only: matrices, sparse_matrix
   use foe_base, only: foe_data
+  use m_pawcprj, only: pawcprj_type
+  use m_paw_an, only: paw_an_type
+  use m_paw_ij, only: paw_ij_type
+  use m_pawfgrtab, only: pawfgrtab_type
+  use m_pawrhoij, only: pawrhoij_type
 
   implicit none
 
@@ -252,6 +257,8 @@ module module_types
   !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
 
+     !>reference counter
+     type(f_reference_counter) :: refcnt
      !> Strings of the input files
      character(len=100) :: file_occnum !< Occupation number (input)
      character(len=100) :: file_igpop
@@ -518,15 +525,6 @@ module module_types
 
 
 
-  !> Contains arguments needed for rho_local for WVL+PAW
-  type, public :: rholoc_objects
-    integer , pointer, dimension(:)    :: msz ! mesh size for local rho
-    real(gp), pointer, dimension(:,:,:) :: d! local rho and derivatives
-    real(gp), pointer, dimension(:,:)  :: rad!radial mesh for local rho
-    real(gp), pointer, dimension(:) :: radius !after this radius, rholoc is zero
-  end type rholoc_objects
-
-  
   !> Define the structure used for the atomic positions
   !> Structure to store the density / potential distribution among processors.
   type, public :: denspot_distribution
@@ -809,12 +807,26 @@ module module_types
      logical :: can_use_transposed
   end type hamiltonian_descriptors
 
+  !> Contains the arguments needed for the PAW implementation:
+  !> to be better integrated into the other structures.
+  type, public :: paw_objects
+     logical :: usepaw
+     integer :: lmnmax
+     integer :: ntypes
+     integer :: natom
+     type(paw_an_type), dimension(:), pointer :: paw_an
+     type(paw_ij_type), dimension(:), pointer :: paw_ij
+     type(pawcprj_type), dimension(:,:), pointer :: cprj
+     type(pawfgrtab_type), dimension(:), pointer :: pawfgrtab
+     type(pawrhoij_type), dimension(:), pointer :: pawrhoij
+
+     real(wp), dimension(:), pointer :: spsi !< Metric operator applied to psi (To be used for PAW)
+  end type paw_objects
 
   !> The wavefunction which have to be considered at the DFT level
   type, public :: DFT_wavefunction
      !coefficients
      real(wp), dimension(:), pointer :: psi,hpsi,psit,psit_c,psit_f !< orbitals, or support functions, in wavelet basis
-     real(wp), dimension(:), pointer :: spsi !< Metric operator applied to psi (To be used for PAW)
      real(wp), dimension(:,:), pointer :: gaucoeffs !orbitals in gbd basis
      !basis sets
      type(gaussian_basis) :: gbd !<gaussian basis description, if associated
@@ -829,6 +841,7 @@ module module_types
      type(diis_objects) :: diis
      type(confpot_data), dimension(:), pointer :: confdatarr !<data for the confinement potential
      type(SIC_data) :: SIC !<control the activation of SIC scheme in the wavefunction
+     type(paw_objects) :: paw !< PAW objects
      type(orthon_data) :: orthpar !< control the application of the orthogonality scheme for cubic DFT wavefunction
      character(len=4) :: exctxpar !< Method for exact exchange parallelisation for the wavefunctions, in case
      type(p2pComms) :: comgp !<describing p2p communications for distributing the potential
@@ -876,180 +889,6 @@ module module_types
      integer(kind = 8) :: c_obj = 0 !< Storage of the C wrapper object.
   end type DFT_optimization_loop
 
-
-  !> type paw_ij_objects
-  type, public :: paw_ij_objects
-     !Integer scalars
-     !> cplex=1 if all on-site PAW quantities are real, 2 if they are complex
-     !! cplex=2 is useful for RF calculations
-     integer :: cplex
-     !> cplex=1 if dij are real, 2 if they are complex
-     integer :: cplex_dij
-     !!!!$integer :: has_dijexxcore !> does this makes sense?
-     ! 1 if dijexxcore is allocated
-     ! 2 if dijexxcore is already computed
-     !> 1 if dij is allocated
-     !! 2 if dij is already computed
-     integer :: has_dij
-   
-    integer :: has_dijfr
-     ! 1 if dijfr is allocated
-     ! 2 if dijfr is already computed
-   
-    integer :: has_dijhartree
-     ! 1 if dijhartree is allocated
-     ! 2 if dijhartree is already computed
-   
-    integer :: has_dijhat
-     ! 1 if dijhat is allocated
-     ! 2 if dijhat is already computed
-   
-    integer :: has_dijso
-     ! 1 if dijso is associated and used, 0 otherwise
-     ! 2 if dijso is already computed
-   
-    integer :: has_dijU
-     ! 1 if dijU is associated and used, 0 otherwise
-     ! 2 if dijU is already computed
-   
-    integer :: has_dijxc
-     ! 1 if dijxc is associated and used, 0 otherwise
-     ! 2 if dijxc is already computed
-   
-    integer :: has_dijxc_val
-     ! 1 if dijxc_val is associated and used, 0 otherwise
-     ! 2 if dijxc_val is already computed
-   
-    integer :: has_exexch_pot
-     ! 1 if PAW+(local exact exchange) potential is allocated
-   
-    integer :: has_pawu_occ
-     ! 1 if PAW+U occupations are allocated
-   
-    integer :: lmn_size
-     ! Number of (l,m,n) elements for the paw basis
-   
-    integer :: lmn2_size
-     ! lmn2_size=lmn_size*(lmn_size+1)/2
-     ! where lmn_size is the number of (l,m,n) elements for the paw basis
-   
-    integer :: ndij
-     ! Number of components of dij
-     ! Usually ndij=nspden, except for nspinor==2 (where ndij=nspinor**2)
-   
-    integer :: nspden
-     ! Number of spin-density components (may be different from dtset%nspden if spin-orbit)
-   
-    integer :: nsppol
-     ! Number of independant spin-components
-
-!Real (real(dp)) arrays
-
-    real(dp), pointer :: dij(:,:)
-     ! dij(cplex_dij*lmn2_size,ndij)
-     ! Dij term (non-local operator)
-     ! May be complex if cplex_dij=2
-     !  dij(:,:,1) contains Dij^up-up
-     !  dij(:,:,2) contains Dij^dn-dn
-     !  dij(:,:,3) contains Dij^up-dn (only if nspinor=2)
-     !  dij(:,:,4) contains Dij^dn-up (only if nspinor=2)
-
-    !real(dp), pointer :: dijexxcore(:,:)
-    ! dijexxcore(cplex_dij*lmn2_size,ndij)
-    ! Onsite matrix elements of the Fock operator generated by core electrons
-
-    !  real(dp), pointer :: dijfr(:,:)
-    !   ! dijhat(cplex_dij*lmn2_size,ndij)
-    !   ! For response function calculation only
-    !   ! RF Frozen part of Dij (depends on q vector but not on 1st-order wave function)
-    !   ! Same storage as Dij (see above)
-    !
-    !  real(dp), pointer :: dijhartree(:)
-    !   ! dijhartree(cplex*lmn2_size)
-    !   ! Dij_hartree term
-    !   ! Contains all contributions to Dij from hartree
-    !   ! Warning: Dimensioned by cplex, not cplex_dij
-    !   ! Same storage as Dij (see above)
-    !
-    !  real(dp), pointer :: dijhat(:,:)
-    !   ! dijhat(cplex_dij*lmn2_size,ndij)
-    !   ! Dij_hat term (non-local operator) i.e \sum_LM \int_FFT Q_{ij}^{LM} vtrial
-    !   ! Same storage as Dij (see above)
-    !
-    !  real(dp), pointer :: dijU(:,:)
-    !   ! dijU(cplex_dij*lmn2_size,ndij)
-    !   ! Onsite matrix elements of the U part of the PAW Hamiltonian.
-    !   ! Same storage as Dij (see above)
-    !
-    !  real(dp), pointer :: dijso(:,:)
-    !   ! dijso(cplex_dij*lmn2_size,ndij)
-    !   ! Onsite matrix elements of L.S i.e <phi_i|L.S|phi_j>
-    !   ! Same storage as Dij (see above)
-    !
-    !  real(dp), pointer :: dijxc(:,:)
-    !   ! dijxc(cplex_dij*lmn2_size,ndij)
-    !   ! Onsite matrix elements of vxc i.e
-    !   ! <phi_i|vxc[n1+nc]|phi_j> - <tphi_i|vxc(tn1+nhat+tnc]|tphi_j>
-    !   ! Same storage as Dij (see above)
-    !
-    !  real(dp), pointer :: dijxc_val(:,:)
-    !   ! dijxc_val(cplex_dij*lmn2_size,ndij)
-    !   ! Onsite matrix elements of valence-only vxc i.e
-    !   ! <phi_i|vxc[n1]|phi_j> - <tphi_i|vxc(tn1+nhat]|tphi_j>
-    !   ! Same storage as Dij (see above)
-    !
-    !  real(dp), pointer :: noccmmp(:,:,:,:)
-    !   ! noccmmp(cplex_dij,2*lpawu+1,2*lpawu+1,nocc_nspden)
-    !   ! cplex_dij=1 if collinear
-    !   ! cplex_dij=2 if spin orbit is used
-    !   ! cplex_dij=2 is used if non-collinear (for coherence, it is not necessary in this case, however)
-    !   ! gives occupation matrix for lda+u (computed in setnoccmmp)
-    !   ! Stored as: noccmmp(:,:,1)=   n^{up,up}_{m,mp}
-    !   !            noccmmp(:,:,2)=   n^{dn,dn}_{m,mp}
-    !   !            noccmmp(:,:,3)=   n^{up,dn}_{m,mp}
-    !   !            noccmmp(:,:,4)=   n^{dn,up}_{m,mp}
-    !   ! noccmmp(m,mp,:) is computed from rhoij(klmn) with  m=klmntomn(2)>mp=klmntomn(1)
-    !
-    !  real(dp), pointer :: nocctot(:)
-    !   ! nocctot(nspden)
-    !   ! gives trace of occupation matrix for lda+u (computed in pawdenpot)
-    !   ! for each value of ispden (1 or 2)
-    !
-    !  real(dp), pointer :: vpawx(:,:,:)
-    !   ! vpawx(2*lexexch+1,2*lexexch+1,nspden)
-    !   ! exact exchange potential
-
-  end type paw_ij_objects
-
-
-  !> This is cprj_type in ABINIT,
-  !! this will be obsolete with the PAW Library
-  type, public :: cprj_objects
-    !Integer scalars
-    integer :: ncpgr !< Number of gradients of cp=<p_lmn|Cnk>
-    integer :: nlmn  !< Number of (l,m,n) non-local projectors
-    !Real (real(dp)) arrays
-    real(wp), pointer :: cp (:,:) !< cp(2,nlmn): <p_lmn|Cnk> projected scalars for a given atom and wave function
-    real(wp), pointer :: dcp (:,:,:)
-    ! dcp(2,ncpgr,nlmn)
-    ! derivatives of <p_lmn|Cnk> projected scalars for a given atom and wave function
-
- end type cprj_objects
-
-
- !> Contains the arguments needed for the PAW implementation:
- type, public :: paw_objects
-   integer :: lmnmax
-   integer :: ntypes
-   integer :: natom
-   integer :: usepaw
-   integer, dimension(:,:,:), pointer :: indlmn
-   type(paw_ij_objects), dimension(:), allocatable :: paw_ij
-   type(cprj_objects), dimension(:,:), allocatable :: cprj
-   real(wp), dimension(:), pointer :: spsi
-   real(wp), dimension(:,:), pointer :: sij
-   real(gp),dimension(:),pointer :: rpaw
- end type paw_objects
 
  interface input_set
     module procedure input_set_char, input_set_int, input_set_dbl, input_set_bool, &
@@ -1227,13 +1066,13 @@ module module_types
  public :: coulomb_operator,symmetry_data,atomic_structure,comms_cubic
  public :: nonlocal_psp_descriptors,dpbox_null
  public :: default_lzd,find_category,old_wavefunction_null,old_wavefunction_free
- public :: bigdft_run_id_toa,material_acceleration_null,input_psi_names
+ public :: material_acceleration_null,input_psi_names
  public :: wf_format_names,bigdft_init_errors,bigdft_init_timing_categories
  public :: deallocate_orbs,deallocate_locreg_descriptors,nullify_wfd
- public :: deallocate_wfd,deallocate_bounds,update_nlpsp
+ public :: deallocate_wfd,deallocate_bounds,update_nlpsp,deallocate_paw_objects
  public :: old_wavefunction_set,allocate_wfd,basis_params_set_dict
  public :: input_set,copy_locreg_descriptors,nullify_locreg_descriptors
- public :: input_psi_help,deallocate_rho_descriptors,nullify_rholoc_objects
+ public :: input_psi_help,deallocate_rho_descriptors
  public :: nullify_paw_objects,frag_from_dict,copy_grid_dimensions
  public :: cprj_to_array,deallocate_gwf_c
  public :: SIC_data_null,local_zone_descriptors_null,output_wf_format_help
@@ -1327,21 +1166,6 @@ contains
     nullify(lzd%Llr)
   end function default_lzd
  
-
-  function bigdft_run_id_toa()
-    use yaml_output
-    implicit none
-    character(len=20) :: bigdft_run_id_toa
-
-    bigdft_run_id_toa=repeat(' ',len(bigdft_run_id_toa))
-
-    if (bigdft_mpi%ngroup>1) then
-       bigdft_run_id_toa=adjustl(trim(yaml_toa(bigdft_mpi%igroup,fmt='(i15)')))
-    end if
-
-  end function bigdft_run_id_toa
-
-
   !> Fills the old_wavefunction structure with corresponding data
   !! Deallocate previous workspaces if already existing
   subroutine old_wavefunction_set(wfn,nat,norbp,Lzd,rxyz,psi)
@@ -1358,7 +1182,7 @@ contains
     !first, free the workspace if not already done
     call old_wavefunction_free(wfn)
     !then allocate the workspaces and fill them
-    wfn%psi = f_malloc_ptr((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norbp+ndebug,id='wfn%psi')
+    wfn%psi = f_malloc_ptr((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norbp,id='wfn%psi')
     
     if (norbp>0) call vcopy((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norbp,&
          psi(1),1,wfn%psi(1),1)
@@ -1775,123 +1599,58 @@ contains
 
   end subroutine nullify_diis_objects
 
-
-  subroutine nullify_rholoc_objects(rholoc)
-    implicit none
-    type(rholoc_objects),intent(inout) :: rholoc
-    
-    nullify(rholoc%msz)
-    nullify(rholoc%d)
-    nullify(rholoc%rad)
-    nullify(rholoc%radius) 
-  end subroutine nullify_rholoc_objects
-
-
-  subroutine nullify_paw_objects(paw,rholoc)
+  pure subroutine nullify_paw_objects(paw)
     implicit none
     type(paw_objects),intent(inout) :: paw
-    type(rholoc_objects),optional :: rholoc
     
-    nullify(paw%indlmn) 
-    nullify(paw%spsi) 
-    nullify(paw%sij) 
-    nullify(paw%rpaw)
+    paw%usepaw = .false.
+    nullify(paw%spsi)
 
-    if(present(rholoc)) then
-     nullify(rholoc%msz)
-     nullify(rholoc%d)
-     nullify(rholoc%rad)
-     nullify(rholoc%radius) 
-    end if
+    nullify(paw%paw_an)
+    nullify(paw%paw_ij)
+    nullify(paw%cprj)
+    nullify(paw%pawfgrtab)
+    nullify(paw%pawrhoij)
   end subroutine nullify_paw_objects
 
-
-  subroutine nullify_paw_ij_objects(paw_ij)
+  subroutine deallocate_paw_objects(paw)
+    use m_paw_an, only: paw_an_destroy
+    use m_paw_ij, only: paw_ij_destroy
+    use m_pawcprj, only: pawcprj_destroy
+    use m_pawfgrtab, only: pawfgrtab_destroy
+    use m_pawrhoij, only: pawrhoij_destroy
     implicit none
-    !Arguments
-    type(paw_ij_objects), intent(inout) :: paw_ij
+    type(paw_objects),intent(inout) :: paw
+    
+    call f_free_ptr(paw%spsi)
 
-    nullify(paw_ij%dij) 
-  end subroutine nullify_paw_ij_objects
-
-
-  subroutine nullify_cprj_objects(cprj)
-    implicit none
-    type(cprj_objects),intent(inout) :: cprj
-
-    nullify(cprj%cp)
-    nullify(cprj%dcp)
-  end subroutine nullify_cprj_objects
-
-
-  !> cprj_clean will be obsolete with the PAW library
-  !! this is cprj_free in abinit.
-  subroutine cprj_clean(cprj)
-
-    implicit none
-    !Arguments
-    type(cprj_objects),intent(inout) :: cprj(:,:)
-    !Local variables
-    integer :: ii,jj,n1dim,n2dim
-
-    n1dim=size(cprj,dim=1);n2dim=size(cprj,dim=2)
-    !write(std_out,*) "cprj_free ndim = ", n1dim, n2dim
-    do jj=1,n2dim
-      do ii=1,n1dim
-         call f_free_ptr(cprj(ii, jj)%cp)
-         call f_free_ptr(cprj(ii, jj)%dcp)
-      end do
-    end do
-  end subroutine cprj_clean
-
-
-  !> This routine is cprj_alloc in abinit
-  !! with the PAW library this will be obsolet.
-  subroutine cprj_paw_alloc(cprj,ncpgr,nlmn)
-
-    implicit none
-    !Arguments
-    !scalars
-    integer,intent(in) :: ncpgr
-    !arrays
-    integer,intent(in) :: nlmn(:)
-    type(cprj_objects),intent(inout) :: cprj(:,:)
-    !Local variables
-    integer :: ii,jj,n1dim,n2dim,nn
-
-    n1dim=size(cprj,dim=1);n2dim=size(cprj,dim=2);nn=size(nlmn,dim=1)
-    if (nn/=n1dim) then
-      write(*,*)"Error in cprj_alloc: wrong sizes !",nn,n1dim
-      stop
+    if (associated(paw%paw_an)) then
+       call paw_an_destroy(paw%paw_an)
+       deallocate(paw%paw_an)
     end if
-   !write(std_out,*) "cprj_alloc ndim = ", n1dim, n2dim
-    do jj=1,n2dim
-      do ii=1,n1dim
-        nullify (cprj(ii,jj)%cp)
-        nullify (cprj(ii,jj)%dcp)
- 
-        nn=nlmn(ii)
-        cprj(ii,jj)%nlmn=nn
-        cprj(ii,jj)%cp = f_malloc0_ptr((/ 2 , nn /),id='cprj(ii,jj)%cp')
-   !    XG 080820 Was needed to get rid of problems with test paral#R with four procs
-        !cprj(ii,jj)%cp=0.0_dp
-   !    END XG 080820
- 
-        cprj(ii,jj)%ncpgr=ncpgr
-        if (ncpgr>0) then
-          cprj(ii,jj)%dcp = f_malloc0_ptr((/ 2 , ncpgr,  nn /),id='cprj(ii,jj)%cp')
-          !cprj(ii,jj)%dcp=0.0_dp
-        end if
-      end do
-    end do
-  end subroutine cprj_paw_alloc
-
+    if (associated(paw%paw_ij)) then
+       call paw_ij_destroy(paw%paw_ij)
+       deallocate(paw%paw_ij)
+    end if
+    if (associated(paw%cprj)) then
+       call pawcprj_destroy(paw%cprj)
+       deallocate(paw%cprj)
+    end if
+    if (associated(paw%pawfgrtab)) then
+       call pawfgrtab_destroy(paw%pawfgrtab)
+       deallocate(paw%pawfgrtab)
+    end if
+    if (associated(paw%pawrhoij)) then
+       call pawrhoij_destroy(paw%pawrhoij)
+       deallocate(paw%pawrhoij)
+    end if
+  end subroutine deallocate_paw_objects
 
   subroutine cprj_to_array(cprj,array,norb,nspinor,shift,option)
     implicit none
     integer,intent(in) :: option,norb,nspinor,shift
     real(kind=8),intent(inout) :: array(:,:)
-    type(cprj_objects),intent(inout) :: cprj(:)
+    type(pawcprj_type),intent(inout) :: cprj(:)
     !
     integer :: ii,jj,ilmn,iorb
     !

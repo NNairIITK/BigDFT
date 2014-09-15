@@ -48,7 +48,6 @@ program WaCo
    character(len=4) :: num, units
    integer, allocatable :: wann_list(:), Zatoms(:,:), ncenters(:), wtypes(:,:)
    real(gp), dimension(:,:), pointer :: rxyz_old, cxyz,rxyz_wann
-   real(gp), dimension(:,:), allocatable :: radii_cf
    real(gp), allocatable :: sprd(:), locrad(:), eigen(:,:), proj(:,:), projC(:,:),distw(:),charge(:),prodw(:),wannocc(:)
    real(wp), allocatable :: psi(:,:),wann(:),wannr(:),lwann(:)
    real(wp), allocatable :: ham(:,:,:),hamr(:,:,:)
@@ -162,13 +161,11 @@ program WaCo
 
    call read_input_waco(trim(radical)//'.waco',nwannCon,ConstList,linear,nbandCon,bandlist) 
 
-   radii_cf = f_malloc((/ atoms%astruct%ntypes, 3 /),id='radii_cf')
-
-   call system_properties(iproc,nproc,input,atoms,orbs,radii_cf)
+   call system_properties(iproc,nproc,input,atoms,orbs)
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
-   call system_size(atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
+   call system_size(atoms,atoms%astruct%rxyz,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
         .false.,Glr,shift)
    if (iproc == 0) &
         & call print_atoms_and_grid(Glr, atoms, atoms%astruct%rxyz, shift, input%hx,input%hy,input%hz)
@@ -179,11 +176,8 @@ program WaCo
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
-        atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,.true.,Glr)
+        atoms,atoms%astruct%rxyz,input%crmult,input%frmult,.true.,Glr)
    if (iproc == 0) call print_wfd(Glr%wfd)
-
-   ! don't need radii_cf anymore
-   call f_free(radii_cf)
 
    !#################################################################
    ! Read Other files
@@ -2735,8 +2729,9 @@ subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
    end do loop_np1
 
    Wpweight = f_malloc((/ nwann, ntype /),id='Wpweight')
-   allocate(Wplabel(ntype),stat=i_stat)
-   call memocc(i_stat,Wplabel,'Wplabel',subname)
+   Wplabel  = f_malloc_str(len(Wplabel),ntype,id='Wplabel')
+!!$   allocate(Wplabel(ntype),stat=i_stat)
+!!$   call memocc(i_stat,Wplabel,'Wplabel',subname)
 
    ! Construct the weights of each type
    ii = 0
@@ -2790,9 +2785,10 @@ subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
 
     call f_free(norm)
     call f_free(Wpweight)
-    i_all = -product(shape(Wplabel))*kind(Wplabel)
-    deallocate(Wplabel,stat=i_stat)
-    call memocc(i_stat,i_all,'Wplabel',subname)
+    call f_free_str(len(Wplabel),Wplabel)
+!!$    i_all = -product(shape(Wplabel))*kind(Wplabel)
+!!$    deallocate(Wplabel,stat=i_stat)
+!!$    call memocc(i_stat,i_all,'Wplabel',subname)
 
 end subroutine character_list
 

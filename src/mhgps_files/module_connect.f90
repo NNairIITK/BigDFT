@@ -107,7 +107,8 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,&
                      nsad,cobj,connected)
     !if called from outside recursion, connected has to be set 
     !to .true. and nsad=0
-    use module_base
+  use module_base
+  use module_atoms, only: astruct_dump_to_file
     use module_global_variables,&
        only: atoms,&
              imode,&
@@ -211,15 +212,27 @@ use module_energyandforces
         'below give no forces, but the final minmode| fnrm, fmax = ',&
         fnrm,fmax
 
-        call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
-        //'_finalM',cobj%enersad(nsad),cobj%saddle(1,1,nsad),&
-        ixyz_int,atoms,comment,forces=cobj%minmode(1,1,nsad))
+!!$        call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
+!!$        //'_finalM',cobj%enersad(nsad),cobj%saddle(1,1,nsad),&
+!!$        ixyz_int,atoms,comment,forces=cobj%minmode(1,1,nsad))
+
+        call astruct_dump_to_file(atoms%astruct,&
+             currDir//'/sad'//trim(adjustl(isadc))//'_finalM',&
+             comment,&
+             cobj%enersad(nsad),rxyz=cobj%saddle(:,:,nsad),&
+             forces=cobj%minmode(:,:,nsad))
 
         write(comment,'(a,1pe10.3,5x,1pe10.3)')&
                                             'fnrm, fmax = ',fnrm,fmax
-        call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
-        //'_finalF',cobj%enersad(nsad),cobj%saddle(1,1,nsad),&
-        ixyz_int,atoms,comment,forces=cobj%fsad(1,1,nsad))
+!!$        call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
+!!$        //'_finalF',cobj%enersad(nsad),cobj%saddle(1,1,nsad),&
+!!$        ixyz_int,atoms,comment,forces=cobj%fsad(1,1,nsad))
+
+        call astruct_dump_to_file(atoms%astruct,&
+             currDir//'/sad'//trim(adjustl(isadc))//'_finalF',&
+             comment,&
+             cobj%enersad(nsad),rxyz=cobj%saddle(:,:,nsad),&
+             forces=cobj%fsad(:,:,nsad))
 
         call write_mode(nat,currDir//'/sad'//trim(adjustl(isadc))//&
         '_mode_final',cobj%minmode(1,1,nsad),cobj%rotforce(1,1,nsad))
@@ -250,9 +263,15 @@ use module_energyandforces
         write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,&
                                               fmax
         if(iproc==0)&
-        call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
-        //'_minFinalL',cobj%enerleft(nsad),cobj%leftmin(1,1,nsad),&
-        ixyz_int,atoms,comment,cobj%fleft(1,1,nsad))
+             call astruct_dump_to_file(atoms%astruct,&
+             currDir//'/sad'//trim(adjustl(isadc))//'_minFinalL',&
+             comment,&
+             cobj%enerleft(nsad),cobj%leftmin(:,:,nsad),&
+             cobj%fleft(:,:,nsad))
+
+!!$        call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
+!!$        //'_minFinalL',cobj%enerleft(nsad),cobj%leftmin(1,1,nsad),&
+!!$        ixyz_int,atoms,comment,cobj%fleft(1,1,nsad))
         call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
                         cobj%leftmin(1,1,nsad),cobj%fpleft(1,nsad))
         if(.not.equal(nid,en_delta_sad,fp_delta_sad,&
@@ -265,10 +284,15 @@ use module_energyandforces
             if(iproc==0)then
                 write(comment,'(a)')'Prob: Neighbors '//&
                 'unknown (stepoff converged back to saddle)'
-                call write_atomic_file(currDir//'/sadProb'//&
-                trim(adjustl(isadprobc))//'_finalM',&
-                cobj%enersad(nsad),cobj%saddle(1,1,nsad),ixyz_int,&
-                atoms,comment,forces=cobj%minmode(1,1,nsad))
+                call astruct_dump_to_file(atoms%astruct,&
+                     currDir//'/sadProb'//trim(adjustl(isadprobc))//'_finalM',&
+                     comment,&
+                cobj%enersad(nsad),rxyz=cobj%saddle(:,:,nsad),&
+                forces=cobj%minmode(:,:,nsad))
+!!$                call write_atomic_file(currDir//'/sadProb'//&
+!!$                trim(adjustl(isadprobc))//'_finalM',&
+!!$                cobj%enersad(nsad),cobj%saddle(1,1,nsad),ixyz_int,&
+!!$                atoms,comment,forces=cobj%minmode(1,1,nsad))
             endif
     
             connected=.false.
@@ -314,9 +338,14 @@ use module_energyandforces
         write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,&
                                               fmax
         if(iproc==0)&
-        call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
-        //'_minFinalR',cobj%enerright(nsad),cobj%rightmin(1,1,nsad),&
-        ixyz_int,atoms,comment,cobj%fright(1,1,nsad))
+             call astruct_dump_to_file(atoms%astruct,&
+             currDir//'/sad'//trim(adjustl(isadc))//'_minFinalR',&
+             comment,&
+             cobj%enerright(nsad),cobj%rightmin(1,1,nsad),&
+             cobj%fright(1,1,nsad))
+!!$        call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
+!!$        //'_minFinalR',cobj%enerright(nsad),cobj%rightmin(1,1,nsad),&
+!!$        ixyz_int,atoms,comment,cobj%fright(1,1,nsad))
         call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
                         cobj%rightmin(1,1,nsad),cobj%fpright(1,nsad))
         if(.not.equal(nid,en_delta_sad,fp_delta_sad,&
@@ -328,11 +357,18 @@ use module_energyandforces
             write(isadprobc,'(i5.5)')isadprob
             if(iproc==0)then
                 write(comment,'(a)')'Prob: Neighbors '//&
-                'unknown (stepoff converged back to saddle)'
-                call write_atomic_file(currDir//'/sadProb'//&
-                trim(adjustl(isadprobc))//'_finalM',&
-                cobj%enersad(nsad),cobj%saddle(1,1,nsad),ixyz_int,&
-                atoms,comment,forces=cobj%minmode(1,1,nsad))
+                     'unknown (stepoff converged back to saddle)'
+                        
+                call astruct_dump_to_file(atoms%astruct,&
+                     currDir//'/sadProb'//trim(adjustl(isadprobc))//'_finalM',&
+                     comment,&
+                     cobj%enersad(nsad),cobj%saddle(:,:,nsad),&
+                     forces=cobj%minmode(:,:,nsad))
+
+!!$                call write_atomic_file(currDir//'/sadProb'//&
+!!$                trim(adjustl(isadprobc))//'_finalM',&
+!!$                cobj%enersad(nsad),cobj%saddle(1,1,nsad),ixyz_int,&
+!!$                atoms,comment,forces=cobj%minmode(1,1,nsad))
             endif
     
             connected=.false.
@@ -467,9 +503,9 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected'
     call yaml_warning('(MHGPS) Severe error in connect: none of '//&
                       'the checks in connect subroutine were '//&
                        'successful! STOP') 
-    stop '(MHGPS) Severe error in connect: none of '//&
-                      'the checks in connect subroutine were '//&
-                       'successful! STOP' 
+    call f_err_throw('(MHGPS) Severe error in connect: none of '//&
+         'the checks in connect subroutine were '//&
+         'successful! STOP')
 
 end subroutine
 !=====================================================================
@@ -480,6 +516,7 @@ subroutine connect(nat,nid,alat,rcov,nbond,&
     !if called from outside recursion, connected has to be set 
     !to .true. and nsad=0
     use module_base
+    use module_atoms, only: astruct_dump_to_file
     use module_global_variables,&
        only: atoms,&
              imode,&
@@ -602,15 +639,27 @@ connectloop: do while(ntodo>=1)
         'below give no forces, but the final minmode| fnrm, fmax = ',&
         fnrm,fmax
 
-        call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
-        //'_finalM',cobj%enersad(nsad),cobj%saddle(1,1,nsad),&
-        ixyz_int,atoms,comment,forces=cobj%minmode(1,1,nsad))
+        call astruct_dump_to_file(atoms%astruct,&
+             currDir//'/sad'//trim(adjustl(isadc))//'_finalM',&
+             comment,&
+             cobj%enersad(nsad),cobj%saddle(:,:,nsad),&
+             forces=cobj%minmode(:,:,nsad))
+
+!!$        call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
+!!$        //'_finalM',cobj%enersad(nsad),cobj%saddle(1,1,nsad),&
+!!$        ixyz_int,atoms,comment,forces=cobj%minmode(1,1,nsad))
 
         write(comment,'(a,1pe10.3,5x,1pe10.3)')&
                                             'fnrm, fmax = ',fnrm,fmax
-        call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
-        //'_finalF',cobj%enersad(nsad),cobj%saddle(1,1,nsad),&
-        ixyz_int,atoms,comment,forces=cobj%fsad(1,1,nsad))
+        call astruct_dump_to_file(atoms%astruct,&
+             currDir//'/sad'//trim(adjustl(isadc))//'_finalF',&
+             comment,&
+             cobj%enersad(nsad),cobj%saddle(:,:,nsad),&
+             forces=cobj%minmode(:,:,nsad))
+
+!!$        call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
+!!$        //'_finalF',cobj%enersad(nsad),cobj%saddle(1,1,nsad),&
+!!$        ixyz_int,atoms,comment,forces=cobj%fsad(1,1,nsad))
 
         call write_mode(nat,currDir//'/sad'//trim(adjustl(isadc))//&
         '_mode_final',cobj%minmode(1,1,nsad),cobj%rotforce(1,1,nsad))
@@ -636,9 +685,15 @@ connectloop: do while(ntodo>=1)
     call fnrmandforcemax(cobj%fleft(1,1,nsad),fnrm,fmax,nat)
     write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,fmax
     if(iproc==0)&
-    call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
-    //'_minFinalL',cobj%enerleft(nsad),cobj%leftmin(1,1,nsad),&
-    ixyz_int,atoms,comment,cobj%fleft(1,1,nsad))
+         call astruct_dump_to_file(atoms%astruct,&
+         currDir//'/sad'//trim(adjustl(isadc))//'_minFinalL',&
+         comment,&
+         cobj%enerleft(nsad),cobj%leftmin(:,:,nsad),&
+         forces=cobj%fleft(:,:,nsad))
+
+!!$    call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
+!!$    //'_minFinalL',cobj%enerleft(nsad),cobj%leftmin(1,1,nsad),&
+!!$    ixyz_int,atoms,comment,cobj%fleft(1,1,nsad))
 
     if(iproc==0)&
     call yaml_comment('(MHGPS) Relax from right side ',hfill='.')
@@ -652,9 +707,14 @@ connectloop: do while(ntodo>=1)
     call fnrmandforcemax(cobj%fright(1,1,nsad),fnrm,fmax,nat)
     write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,fmax
     if(iproc==0)&
-    call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
-    //'_minFinalR',cobj%enerright(nsad),cobj%rightmin(1,1,nsad),&
-    ixyz_int,atoms,comment,cobj%fright(1,1,nsad))
+         call astruct_dump_to_file(atoms%astruct,&
+         currDir//'/sad'//trim(adjustl(isadc))//'_minFinalR',&
+         comment,&
+         cobj%enerright(nsad),cobj%rightmin(:,:,nsad),&
+         cobj%fright(:,:,nsad))
+!!$    call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))&
+!!$    //'_minFinalR',cobj%enerright(nsad),cobj%rightmin(1,1,nsad),&
+!!$    ixyz_int,atoms,comment,cobj%fright(1,1,nsad))
 
     call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
                     cobj%leftmin(1,1,nsad),cobj%fpleft(1,nsad))
@@ -671,10 +731,16 @@ connectloop: do while(ntodo>=1)
         if(iproc==0)then
             write(comment,'(a)')'Prob: Neighbors '//&
             'unknown (converged back to saddle after stepoff)'
-            call write_atomic_file(currDir//'/sadProb'//&
-            trim(adjustl(isadprobc))//'_finalM',cobj%enersad(nsad),&
-            cobj%saddle(1,1,nsad),ixyz_int,atoms,comment,&
-            forces=cobj%minmode(1,1,nsad))
+            call astruct_dump_to_file(atoms%astruct,&
+                 currDir//'/sadProb'//trim(adjustl(isadprobc))//'_finalM',&
+                 comment,&
+                 cobj%enersad(nsad),cobj%saddle(:,:,nsad),&
+                 forces=cobj%minmode(:,:,nsad))
+
+!!$            call write_atomic_file(currDir//'/sadProb'//&
+!!$            trim(adjustl(isadprobc))//'_finalM',cobj%enersad(nsad),&
+!!$            cobj%saddle(1,1,nsad),ixyz_int,atoms,comment,&
+!!$            forces=cobj%minmode(1,1,nsad))
         endif
 
         connected=.false.
@@ -839,9 +905,9 @@ if(ntodo>nsadmax)stop 'error: ntodo>nsadmax'
         call yaml_warning('(MHGPS) Severe error in connect: none '//&
                           'of the checks in connect subroutine '//&
                           'were successful! STOP') 
-        stop '(MHGPS) Severe error in connect: none '//&
+        call f_err_throw('(MHGPS) Severe error in connect: none '//&
                           'of the checks in connect subroutine '//&
-                          'were successful! STOP'
+                          'were successful! STOP')
     endif
 do i=1,2*nsadmax
 write(*,*)'ener',todoenergy(1,i),todoenergy(2,i)

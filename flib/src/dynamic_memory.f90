@@ -11,8 +11,7 @@
 !> Module used to manage memory allocations and de-allocations
 module dynamic_memory
 
-  !use m_profiling, except => ndebug, and=> d_nan, also=> r_nan
-  use memory_profiling, except => ndebug
+  use memory_profiling
   use dictionaries, info_length => max_field_length
   use yaml_strings, only: yaml_toa,yaml_date_and_time_toa
   use module_f_malloc
@@ -51,6 +50,7 @@ module dynamic_memory
   integer, save :: ERR_MEMLIMIT
   integer, save :: ERR_INVALID_COPY
   integer, save :: ERR_MALLOC_INTERNAL
+  integer, save :: ERR_REFERENCE_COUNTERS
 
   !> Timing categories
   integer, public, save :: TCAT_ARRAY_ALLOCATIONS
@@ -71,6 +71,16 @@ module dynamic_memory
      type(dictionary), pointer :: dict_codepoint !<points to where we are in the previous dictionary
   end type mem_ctrl
   
+  !> reference counter. Can be used to control the pointer
+  !! referencing to a derived datatype
+  type, public :: f_reference_counter
+     !> counter of references. When nullified or zero, 
+     !! the associated object is ready to be destroyed
+     integer, pointer :: iref 
+     !> information about the associated object
+     type(dictionary), pointer :: info
+  end type f_reference_counter
+
   !> Global variable controlling the different instances of the calls
   !! the 0 component is supposed to be unused, it is allocated to avoid segfaults
   !! if the library routines are called without initialization
@@ -88,7 +98,7 @@ module dynamic_memory
      module procedure z1_ptr
      !strings and pointers for characters
      module procedure c1_all
-!     module procedure c1_ptr
+     module procedure c1_ptr
   end interface
 
   interface f_free
@@ -139,6 +149,9 @@ module dynamic_memory
   public :: f_free,f_free_ptr,f_free_str,f_free_str_ptr
   public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_initialize,f_malloc_finalize
   public :: f_time,to_zero,f_memcpy
+  !reference counters
+  public :: f_ref_new,f_ref_null,f_unref,f_ref_free,f_ref_associate
+  public :: nullify_f_ref,f_ref,f_ref_count
   public :: assignment(=),operator(.to.)
 
   !for internal f_lib usage
@@ -191,6 +204,173 @@ contains
     mem%dict_codepoint => mem%dict_calling_sequence
     call set_routine_info(mem%present_routine,mem%profile_routine)
   end subroutine initialize_mem_ctrl
+
+  !!!reference counter objects
+  pure function f_ref_null() result(f_ref)
+    implicit none
+    type(f_reference_counter) :: f_ref
+    call nullify_f_ref(f_ref)
+  end function f_ref_null
+  pure subroutine nullify_f_ref(f_ref)
+    implicit none
+    type(f_reference_counter), intent(out) :: f_ref
+    nullify(f_ref%iref)
+    nullify(f_ref%info)
+  end subroutine nullify_f_ref
+
+  subroutine dunp_ref_cnt(f_ref)
+    use yaml_output, only: yaml_dict_dump,yaml_map
+    implicit none
+    type(f_reference_counter), intent(in) :: f_ref
+
+    call yaml_dict_dump(f_ref%info)
+    call yaml_map('References',f_ref%iref)
+  end subroutine dunp_ref_cnt
+
+  !> allocate a reference counter
+  !! this function should be called whe the associated object starts
+  !! to be non-trivial
+  function f_ref_new(id,address) result(f_ref)
+    implicit none
+    character(len=*), intent(in) :: id
+    integer(kind=8), intent(in), optional :: address
+    type(f_reference_counter) :: f_ref
+    !local variables
+    type(dictionary), pointer :: dict
+
+    call nullify_f_ref(f_ref)
+    allocate(f_ref%iref)
+    call dict_init(f_ref%info)
+    dict=>f_ref%info//'Reference counter'
+    call set(dict//'Id',id)
+    if (present(address)) &
+         call set(dict//'Address of referenced object',address)
+    f_ref%iref=1
+  end function f_ref_new
+
+  !>dereferencing counter
+  subroutine f_unref(f_ref,count)
+    implicit none
+    type(f_reference_counter), intent(inout) :: f_ref
+    !> reference counter. Gives the user the possiblity to free after unref
+    !! if present, it returns the number of counters associated to the object
+    !! if absent f_unref raise an exception in the case the object is orphan
+    integer, intent(out), optional :: count
+    
+    if (.not. associated(f_ref%iref)) then
+       call f_err_throw('Illegal dereference: nullified object',&
+            err_id=ERR_REFERENCE_COUNTERS)
+    else
+       if (f_ref%iref <= 1 .and. .not. present(count) .or. f_ref%iref==0 .and. present(count)) then
+          call dunp_ref_cnt(f_ref)
+          call f_err_throw('Illegal dereference:'//&
+               ' object is orphan, it should be freed',&
+               err_id=ERR_REFERENCE_COUNTERS)
+       else
+          f_ref%iref=f_ref%iref-1
+          if (present(count)) count=f_ref%iref
+       end if
+    end if
+
+  end subroutine f_unref
+  
+  !> returns the number of reference to an object.
+  !! it returns a negative number if the object is nullified
+  function f_ref_count(f_ref) result(count)
+    implicit none
+    type(f_reference_counter), intent(in) :: f_ref
+    integer :: count
+
+    if (associated(f_ref%iref)) then
+       count=f_ref%iref
+    else
+       count=-1
+    end if
+  end function f_ref_count
+
+  !> free and check a reference counter
+  !!this should be called when calling the destructor of the
+  !!associated object
+  subroutine f_ref_free(f_ref)
+    implicit none
+    type(f_reference_counter), intent(inout) :: f_ref
+
+    if (.not. associated(f_ref%iref)) then
+       call f_err_throw('Illegal free of reference counter, nullified object',&
+            err_id=ERR_REFERENCE_COUNTERS)
+    else
+       if (f_ref%iref > 1) then
+          call dunp_ref_cnt(f_ref)
+          call f_err_throw('Illegal free : object is still referenced',&
+               err_id=ERR_REFERENCE_COUNTERS)
+       else
+          deallocate(f_ref%iref)
+          call dict_free(f_ref%info)
+          f_ref=f_ref_null()
+       end if
+    end if
+
+  end subroutine f_ref_free
+
+  !> increase the reference counter of a associated source
+  subroutine f_ref(src)
+    implicit none
+    type(f_reference_counter), intent(inout) :: src
+    !check source validity
+    if (.not. associated(src%iref)) then
+       call f_err_throw('Illegal reference: nullified source',&
+            err_id=ERR_REFERENCE_COUNTERS)
+    else if (src%iref <= 0) then
+       call dunp_ref_cnt(src)
+       call f_err_throw('Illegal reference: the source'//&
+            ' is already dereferenced, it must be destroyed',&
+            err_id=ERR_REFERENCE_COUNTERS)
+    else
+       src%iref=src%iref+1
+    end if
+  end subroutine f_ref
+
+  !> associate two reference objects.
+  !! the destination is supposed to be in a nullified status,
+  !! and the second one is supposed to be valid
+  subroutine f_ref_associate(src,dest)
+    use yaml_output, only: yaml_dict_dump
+    implicit none
+    !>source reference. Should be in a valid state, which means
+    !! that iref should be at least one.
+    type(f_reference_counter), intent(in) :: src
+    type(f_reference_counter), intent(inout) :: dest
+    
+    !check source validity
+    if (.not. associated(src%iref)) then
+       call f_err_throw('Illegal association: nullified source',&
+            err_id=ERR_REFERENCE_COUNTERS)
+    else if (src%iref <= 0) then
+       call dunp_ref_cnt(src)
+       call f_err_throw('Illegal association: the source '//&
+            'is already dereferenced, it must be destroyed',&
+            err_id=ERR_REFERENCE_COUNTERS)
+    end if
+
+    !check destination suitablity
+    if (associated(dest%iref)) then
+       if (dest%iref == 1) then
+          call dunp_ref_cnt(dest)
+          call f_err_throw('Illegal association: destination '//&
+               ' is orphan, it must be destroyed to avoid memory leak',&
+               err_id=ERR_REFERENCE_COUNTERS)
+       end if
+       !otherwise decrement it
+       dest%iref=dest%iref-1
+    end if
+
+    !then reassociate the pointers
+    dest%iref=>src%iref
+    dest%info=>src%info
+    
+    dest%iref=dest%iref+1
+
+  end subroutine f_ref_associate
 
   !>transfer to the f_malloc_module the information of the routine
   subroutine set_routine_info(name,profile)
@@ -596,13 +776,14 @@ contains
 
   !routine which is called for most of the errors of the module
   subroutine f_malloc_callback()
-    use yaml_output, only: yaml_warning
+    use yaml_output, only: yaml_warning,yaml_flush_document
     use exception_callbacks, only: severe_callback_add 
     implicit none
     call yaml_warning('An error occured in dynamic memory module. Printing info')
     !if f_err_severe is not overridden, dump memory
     !status in the default stream
     if (severe_callback_add == 0) call f_malloc_dump_status()
+    call yaml_flush_document()
     call f_err_severe()
   end subroutine f_malloc_callback
 
@@ -633,7 +814,12 @@ contains
          err_id=ERR_MALLOC_INTERNAL,&
          err_action='An invalid operation occurs, submit bug report to developers',&
          callback=f_malloc_callback)
-    
+    call f_err_define(err_name='ERR_REFERENCE_COUNTERS',&
+         err_msg='Error in the usage of the reference counter',&
+         err_id=ERR_REFERENCE_COUNTERS,&
+         err_action='When a reference counter is present each pointer association should be tracked, check for it',&
+         callback=f_malloc_callback)
+
   end subroutine dynamic_memory_errors
 
   !> opens a new instance of the dynamic memory handling
@@ -695,11 +881,8 @@ contains
 
     if (present(memory_limit)) call memocc_set_memory_limit(memory_limit)
 
-    if (present(output_level)) call memocc_set_state(output_level)
-
-    if (present(unit)) call memocc_set_stdout(unit)
-
-    if (present(logfile_name)) call memocc_set_filename(logfile_name)
+!this has to be redefined if the new memocc works
+!    if (present(logfile_name)) call memocc_set_filename(logfile_name)
        
     if (present(iproc)) call set(mems(ictrl)%dict_global//processid,iproc)
   end subroutine f_malloc_set_status

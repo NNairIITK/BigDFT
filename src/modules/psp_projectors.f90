@@ -11,6 +11,7 @@
 !> Module defining datatypes of the projectors as well as constructors and destructors
 module psp_projectors
   use module_base
+  use gaussians
   use locregs
   implicit none
 
@@ -42,13 +43,14 @@ module psp_projectors
      integer :: strategy !< can be MASK,KEYS,MASK_PACK,KEYS_PACK,SKIP
      integer :: nmseg_c !< number of segments intersecting in the coarse region
      integer :: nmseg_f !< number of segments intersecting in the fine region
-     integer, dimension(:,:), pointer :: mask !<mask array of dimesion 3,nmseg_c+nmseg_f for psp applilcation
+     integer, dimension(:,:), pointer :: mask !<mask array of dimesion 3,nmseg_c+nmseg_f for psp application
   end type nlpsp_to_wfd
 
 
   !> Non local pseudopotential descriptors
   type, public :: nonlocal_psp_descriptors
      integer :: mproj !< number of projectors for this descriptor
+     real(gp) :: gau_cut !< cutting radius for the gaussian description of projectors.
      integer :: nlr !< total no. localization regions potentially interacting with the psp
      type(locreg_descriptors) :: plr !< localization region descriptor of a given projector (null if nlp=0)
      type(nlpsp_to_wfd), dimension(:), pointer :: tolr !<maskings for the locregs, dimension noverlap
@@ -60,8 +62,10 @@ module psp_projectors
   !> describe the information associated to the non-local part of Pseudopotentials
   type, public :: DFT_PSP_projectors 
      logical :: on_the_fly             !< strategy for projector creation
+     logical :: normalized             !< .true. if projectors are normalized to one.
      integer :: nproj,nprojel,natoms   !< Number of projectors and number of elements
      real(gp) :: zerovol               !< Proportion of zero components.
+     type(gaussian_basis_new) :: proj_G !< Store the projector representations is gaussians.
      real(wp), dimension(:), pointer :: proj !<storage space of the projectors in wavelet basis
      type(nonlocal_psp_descriptors), dimension(:), pointer :: pspd !<descriptor per projector, of size natom
      !>workspace for packing the wavefunctions in the case of multiple projectors
@@ -105,9 +109,11 @@ contains
   end function nonlocal_psp_descriptors_null
 
   pure subroutine nullify_nonlocal_psp_descriptors(pspd)
+    use module_defs, only: UNINITIALIZED
     implicit none
     type(nonlocal_psp_descriptors), intent(out) :: pspd
     pspd%mproj=0
+    pspd%gau_cut = UNINITIALIZED(pspd%gau_cut)
     pspd%nlr=0
     call nullify_locreg_descriptors(pspd%plr)
     nullify(pspd%tolr)
@@ -129,6 +135,7 @@ contains
     nl%nprojel=0
     nl%natoms=0
     nl%zerovol=100.0_gp
+    call nullify_gaussian_basis_new(nl%proj_G)! = gaussian_basis_null()
     nullify(nl%proj)
     nullify(nl%pspd)
     nullify(nl%wpack)
@@ -178,6 +185,8 @@ contains
        deallocate(nl%pspd)
        nullify(nl%pspd)
     end if
+    nullify(nl%proj_G%rxyz)
+    call gaussian_basis_free(nl%proj_G)
     call f_free_ptr(nl%proj)
     call f_free_ptr(nl%wpack)
     call f_free_ptr(nl%scpr)
