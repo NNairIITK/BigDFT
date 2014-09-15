@@ -189,8 +189,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
   ! Invert the overlap matrix
   inv_ovrlp_ = matrices_null()
-  !call allocate_matrices(linmat%l, allocate_full=.false., &
-  !     matname='inv_ovrlp_', mat=inv_ovrlp_)
   inv_ovrlp_%matrix_compr = sparsematrix_malloc_ptr(linmat%l,iaction=SPARSE_FULL,id='inv_ovrlp_%matrix_compr')
   call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, -1, &
        imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
