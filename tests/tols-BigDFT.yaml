@@ -520,8 +520,9 @@ molecule_foe:
  energy: 6.9e-10
  Omega: 8.6e-9
  Total charge: 2.5e-10
- eF: 1.1e-10
- D eF: 1.1e-10
+ eF: 1.1e-9
+ guess for new ef: 1.1e-9
+ D eF: 1.1e-9
  Tr(K): 1.1e-07
  D Tr: 1.1e-7
  tr(KS) before purification: 5.1e-10
@@ -848,15 +849,16 @@ paracetamol:
  Omega: 1.1e-9
  energy: 1.5e-10
  Total charge: 2.1e-11
- charge diff: 1.6e-6
+ charge diff: 1.9e-6
  D eF: 1.6e-6
- Tr(K): 1.6e-6
- D Tr: 1.6e-6
+ Tr(K): 1.9e-6
+ D Tr: 1.9e-6
  tr(KS) before purification: 1.6e-6
  guess for new ef: 7.5e-7
  ebs_check: 9.1e-9
  ebs: 7.5e-7
  diff: 7.5e-7
+ relative diff: 1.9e-6
 
 reformatcomplete_write:
  Epot: 1.1e-10
