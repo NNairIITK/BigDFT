@@ -10,89 +10,54 @@
 
 !> Main program to calculate electronic structures
 program BigDFT
-
    use module_base
-   use module_types
-   use module_interfaces
-   use yaml_output
-   use internal_coordinates, only : get_neighbors
+   use bigdft_run!module_types
+   use yaml_strings, only: f_strcpy
+   use yaml_output, only: yaml_map
+   !use internal_coordinates, only : get_neighbors
 
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
 
    character(len=*), parameter :: subname='BigDFT' !< Used by memocc routine (timing)
-   integer :: iproc,nproc,ierr,infocode
+   integer :: ierr,infocode!,iproc,nproc
    integer :: ncount_bigdft
    !input variables
    type(run_objects) :: runObj
    !output variables
    type(DFT_global_output) :: outs
    character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
-   character(len=60) :: filename, run_id
-   !information for mpi_initalization
-   integer, dimension(4) :: mpi_info
-   integer :: iconfig,nconfig,ngroups,igroup
+   character(len=60) :: filename,posinp_id!, run_id
+   integer :: iconfig,nconfig!,ngroups,igroup
    real(kind=8),dimension(:,:),allocatable :: fxyz
    integer :: iat
    logical :: file_exists
    integer,dimension(:),allocatable :: atoms_ref
+   type(dictionary), pointer :: run,options
 
    call f_lib_initialize()
 
-!call test_dictionaries0()
-!call test_error_handling()
-!call test_timing()
+   !call test_dictionaries0()
+   !call test_error_handling()
+   !call test_timing()
+   call bigdft_command_line_options(options)
+
    !-finds the number of taskgroup size
    !-initializes the mpi_environment for each group
    !-decides the radical name for each run
-   call bigdft_init(mpi_info,nconfig,run_id,ierr)
+   call bigdft_init(options)
 
-   !just for backward compatibility
-   iproc=mpi_info(1)
-   nproc=mpi_info(2)
+   !case with parser information
+   !this key will contain the runs which are associated to the current BigDFT instance
+   run => dict_iter(options .get. 'BigDFT')
+   do while(associated(run))
+      call run_objects_init(runObj,run)
+      call init_global_output(outs,bigdft_nat(runObj))
 
-   igroup=mpi_info(3)
-   !number of groups
-   ngroups=mpi_info(4)
-   
-   !allocate arrays of run ids
-   allocate(arr_radical(abs(nconfig)))
-   allocate(arr_posinp(abs(nconfig)))
-
-   !here we call a routine which reads a possible radical format argument.
-   call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierr)
-
-   do iconfig=1,abs(nconfig)
-      if (modulo(iconfig-1,ngroups)==igroup) then
-         !print *,'iconfig,arr_radical(iconfig),arr_posinp(iconfig)',arr_radical(iconfig),arr_posinp(iconfig),iconfig,igroup
-         ! Read all input files.
-         call run_objects_init_from_files(runObj, arr_radical(iconfig), arr_posinp(iconfig))
-         call init_global_output(outs, runObj%atoms%astruct%nat)
-
-
-         !!! THIS IS TEMPORARY, SHOULD BE DONE IN A BETTER WAY ####################
-         !!inquire(file='posinp.fix',exist=file_exists)
-         !!if (file_exists) then
-         !!    atoms_ref = f_malloc(runObj%atoms%astruct%nat,id='atoms_ref')
-         !!    open(unit=123,file='posinp.fix')
-         !!    do iat=1,runObj%atoms%astruct%nat
-         !!        read(123,*) atoms_ref(iat), runObj%atoms%astruct%fix_int(1:3,iat)
-         !!    end do
-         !!    close(unit=123)
-         !!    if (iproc==0) call yaml_map('before: runObj%atoms%astruct%ixyz_int',runObj%atoms%astruct%ixyz_int)
-         !!    !!call get_neighbors(runObj%atoms%astruct%rxyz, runObj%atoms%astruct%nat, runObj%atoms%astruct%ixyz_int(1,:), &
-         !!    !!     runObj%atoms%astruct%ixyz_int(2,:), runObj%atoms%astruct%ixyz_int(3,:),atoms_ref)
-         !!    call f_free(atoms_ref)
-         !!    if (iproc==0) call yaml_map('after: runObj%atoms%astruct%ixyz_int',runObj%atoms%astruct%ixyz_int)
-         !!else
-         !!    call get_neighbors(runObj%atoms%astruct%rxyz, runObj%atoms%astruct%nat, runObj%atoms%astruct%ixyz_int(1,:), &
-         !!         runObj%atoms%astruct%ixyz_int(2,:), runObj%atoms%astruct%ixyz_int(3,:))
-         !!end if
-         !!! ######################################################################
-
-         call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+      posinp_id = run // 'posinp' 
+      call call_bigdft(runObj,outs,infocode)
 
          if (runObj%inputs%ncount_cluster_x > 1) then
-            if (iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
+            if (bigdft_mpi%iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
             ! geometry optimization
             call geopt(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
          end if
@@ -100,30 +65,36 @@ program BigDFT
          !if there is a last run to be performed do it now before stopping
          if (runObj%inputs%last_run == -1) then
             runObj%inputs%last_run = 1
-            call call_bigdft(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+            call call_bigdft(runObj, outs,infocode)
          end if
 
          if (runObj%inputs%ncount_cluster_x > 1) then
-            filename=trim('final_'//trim(arr_posinp(iconfig)))
-            if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,runObj%atoms%astruct%rxyz, &
-                 & runObj%atoms%astruct%ixyz_int, runObj%atoms,'FINAL CONFIGURATION',forces=outs%fxyz)
+            !filename='final_'//trim(posinp_id)
+            call f_strcpy(src='final_'//trim(posinp_id),dest=filename)
+            call bigdft_write_atomic_file(runObj,outs,filename,&
+                 'FINAL CONFIGURATION',cwd_path=.true.)
+
+!!$            if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,runObj%atoms%astruct%rxyz, &
+!!$                 & runObj%atoms%astruct%ixyz_int, runObj%atoms,'FINAL CONFIGURATION',forces=outs%fxyz)
          else
-            filename=trim('forces_'//trim(arr_posinp(iconfig)))
-            if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,runObj%atoms%astruct%rxyz, &
-                 & runObj%atoms%astruct%ixyz_int, runObj%atoms,'Geometry + metaData forces',forces=outs%fxyz)
+            !filename='forces_'//trim(arr_posinp(iconfig))
+            call f_strcpy(src='forces_'//trim(posinp_id),dest=filename)
+            call bigdft_write_atomic_file(runObj,outs,filename,&
+                 'Geometry + metaData forces',cwd_path=.true.)
+
+!!$            if (bigdft_mpi%iproc == 0) call write_atomic_file(filename,outs%energy,runObj%atoms%astruct%rxyz, &
+!!$                 & runObj%atoms%astruct%ixyz_int, runObj%atoms,'Geometry + metaData forces',forces=outs%fxyz)
          end if
 
          ! Deallocations.
          call deallocate_global_output(outs)
-         call run_objects_free(runObj, subname)
-         !temporary
-         !call f_malloc_dump_status()
-      end if
-   enddo !loop over iconfig
+         call free_run_objects(runObj)
+         run => dict_next(run)
+   end do !loop over iconfig
 
-   deallocate(arr_posinp,arr_radical)
-
+   call dict_free(options)
    call bigdft_finalize(ierr)
+
 
    call f_lib_finalize()
 

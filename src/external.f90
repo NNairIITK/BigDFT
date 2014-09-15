@@ -11,10 +11,8 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-
-
 !> Routine which initalizes the BigDFT environment
-subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
+subroutine bigdft_init_old(mpi_info,nconfig,run_id,ierr)
   use BigDFT_API
   implicit none
   integer, dimension(4), intent(out) :: mpi_info !< first entry: id of MPI task in the groups,
@@ -29,8 +27,9 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
 
   !Initalize the global mpi environment
   call bigdft_mpi_init(ierr)
-  if (ierr /= MPI_SUCCESS) return
-
+  if (ierr /= MPI_SUCCESS) then
+     return
+  end if
   call command_line_information(mpi_groupsize,posinp_file,radical,ierr)
   call bigdft_init_mpi_env(mpi_info, mpi_groupsize, ierr)
 
@@ -51,7 +50,7 @@ subroutine bigdft_init(mpi_info,nconfig,run_id,ierr)
         stop
      end if
   end if
-end subroutine bigdft_init
+end subroutine bigdft_init_old
 
 
 subroutine bigdft_mpi_init(ierr)
@@ -80,6 +79,7 @@ subroutine bigdft_init_mpi_env(mpi_info,mpi_groupsize, ierr)
   !local variables
   integer :: iproc,nproc,ngroup_size
 
+  !here wrappers for MPI should be used
   call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
   if (ierr /= MPI_SUCCESS) return
@@ -121,13 +121,19 @@ subroutine bigdft_finalize(ierr)
   use BigDFT_API
   implicit none
   integer, intent(out) :: ierr
-  
+
+  ierr=0
+
   !here a routine to free the environment should be called
-   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-   call mpi_environment_free(bigdft_mpi)
-   !wait all processes before finalisation
-   call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-   call MPI_FINALIZE(ierr)
+  call mpibarrier() !over comm world
+  !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+  call mpi_environment_free(bigdft_mpi)
+  call mpibarrier() !over comm world
+  !wait all processes before finalisation
+  !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+  !call MPI_FINALIZE(ierr)
+  call mpifinalize()
+  
 end subroutine bigdft_finalize
 
 
@@ -207,66 +213,6 @@ function bigdft_error_ret(err_signal,err_message) result (ierr)
   ierr=err_signal
   
 end function bigdft_error_ret
-
-!accessors for external programs
-!> Get the number of orbitals of the run in rst
-function bigdft_get_number_of_atoms(atoms) result(nat)
-  use module_base
-  use module_types
-  implicit none
-  type(atoms_data), intent(in) :: atoms !> BigDFT restart variables. call_bigdft already called
-  integer :: nat !> Number of atoms
-
-  nat=atoms%astruct%nat
-
-  if (f_err_raise(nat < 0 ,'Number of atoms unitialized')) return
-
-end function bigdft_get_number_of_atoms
-
-!> Get the number of orbitals of the run in rst
-function bigdft_get_number_of_orbitals(rst,istat) result(norb)
-  use module_base
-  use module_types
-  implicit none
-  type(restart_objects), intent(in) :: rst !> BigDFT restart variables. call_bigdft already called
-  integer :: norb !> Number of orbitals of run in rst
-  integer, intent(out) :: istat
-
-  istat=BIGDFT_SUCCESS
-
-  norb=rst%KSwfn%orbs%norb
-  if (norb==0) istat = BIGDFT_UNINITIALIZED
-
-end function bigdft_get_number_of_orbitals
-
-!> Fill the array eval with the number of orbitals of the last run
-subroutine bigdft_get_eigenvalues(rst,eval,istat)
-  use module_base
-  use module_types
-  implicit none
-  type(restart_objects), intent(in) :: rst !> BigDFT restart variables. call_bigdft already called
-  real(gp), dimension(*), intent(out) :: eval !> Buffer for eigenvectors. Should have at least dimension equal to bigdft_get_number_of_orbitals(rst,istat)
-  integer, intent(out) :: istat !> Error code
-  !local variables
-  integer :: norb,bigdft_get_number_of_orbitals
-
-  norb=bigdft_get_number_of_orbitals(rst,istat)
-
-  if (istat /= BIGDFT_SUCCESS) return
-
-  if (.not. associated(rst%KSwfn%orbs%eval)) then
-     istat = BIGDFT_UNINITIALIZED
-     return
-  end if
-
-  if (product(shape(rst%KSwfn%orbs%eval)) < norb) then
-     istat = BIGDFT_INCONSISTENCY
-     return
-  end if
-
-  call vcopy(norb,rst%KSwfn%orbs%eval(1),1,eval(1),1)
-
-end subroutine bigdft_get_eigenvalues
 
 !> Abort bigdft program
 subroutine bigdft_severe_abort()

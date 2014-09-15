@@ -13,6 +13,7 @@ program wvl
 
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use BigDFT_API
+  use bigdft_run
   use dynamic_memory
   use yaml_output
   use module_input_dicts
@@ -36,11 +37,10 @@ program wvl
   type(rho_descriptors)                :: rhodsc
   type(denspot_distribution)           :: dpcom
   type(GPU_pointers)                   :: GPU
-  type(rholoc_objects)                 :: rholoc_tmp
   integer :: i, j, ierr, iproc, nproc ,nconfig
   real(dp) :: nrm, epot_sum
   real(gp) :: psoffset
-  real(gp), allocatable :: radii_cf(:,:)
+!  real(gp), allocatable :: radii_cf(:,:)
   real(gp), dimension(3) :: shift
   real(gp), dimension(:,:), pointer :: rxyz_old
   real(dp), dimension(:), pointer   :: rhor, pot_ion, potential
@@ -50,20 +50,19 @@ program wvl
   integer, dimension(:,:,:), allocatable :: irrzon
   real(dp), dimension(:,:,:), allocatable :: phnons
   type(coulomb_operator) :: pkernel
-  type(dictionary), pointer :: user_inputs
+  type(dictionary), pointer :: user_inputs,options
   !temporary variables
-  integer, dimension(4) :: mpi_info
+  !integer, dimension(4) :: mpi_info
   character(len=60) :: run_id
 
   call f_lib_initialize()
-   !-finds the number of taskgroup size
-   !-initializes the mpi_environment for each group
-   !-decides the radical name for each run
-   call bigdft_init(mpi_info,nconfig,run_id,ierr)
-
-   !just for backward compatibility
-   iproc=mpi_info(1)
-   nproc=mpi_info(2)
+  nullify(options)
+  !-initializes the mpi_environment for each group
+  call bigdft_init(options)
+  call dict_free(options)
+!just for backward compatibility
+  iproc=bigdft_mpi%iproc
+  nproc=bigdft_mpi%nproc
    call dict_init(user_inputs)
    call user_dict_from_files(user_inputs, 'input', 'posinp', bigdft_mpi)
    call inputs_from_dict(inputs, atoms, user_inputs)
@@ -89,11 +88,11 @@ program wvl
 !!$  posinp_name='posinp'
 !!$  call read_input_variables(iproc,nproc,posinp_name,inputs, atoms, atoms%astruct%rxyz,1,'input',0)
 
-  allocate(radii_cf(atoms%astruct%ntypes,3))
-  call system_properties(iproc,nproc,inputs,atoms,orbs,radii_cf)
+!  allocate(radii_cf(atoms%astruct%ntypes,3))
+  call system_properties(iproc,nproc,inputs,atoms,orbs)!,radii_cf)
   
   call lzd_set_hgrids(Lzd,(/inputs%hx,inputs%hy,inputs%hz/)) 
-  call system_size(atoms,atoms%astruct%rxyz,radii_cf,inputs%crmult,inputs%frmult, &
+  call system_size(atoms,atoms%astruct%rxyz,inputs%crmult,inputs%frmult, &
        & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),GPU%OCLconv,Lzd%Glr,shift)
   call print_atoms_and_grid(Lzd%Glr, atoms, atoms%astruct%rxyz, shift, &
        & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3))
@@ -101,7 +100,7 @@ program wvl
   ! Setting up the wavefunction representations (descriptors for the
   !  compressed form...).
   call createWavefunctionsDescriptors(iproc,inputs%hx,inputs%hy,inputs%hz, &
-       & atoms,atoms%astruct%rxyz,radii_cf,inputs%crmult,inputs%frmult,Lzd%Glr)
+       & atoms,atoms%astruct%rxyz,inputs%crmult,inputs%frmult,Lzd%Glr)
   call print_wfd(Lzd%Glr%wfd)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
 
@@ -234,7 +233,7 @@ program wvl
 
   call xc_init(xc, inputs%ixc, XC_ABINIT, inputs%nspin)
   call density_descriptors(iproc,nproc,xc,inputs%nspin,inputs%crmult,inputs%frmult,atoms,&
-       dpcom,inputs%rho_commun,atoms%astruct%rxyz,radii_cf,rhodsc)
+       dpcom,inputs%rho_commun,atoms%astruct%rxyz,rhodsc)
 
 !!$  ! Equivalent BigDFT routine.
 !!$  allocate(nscatterarr(0:nproc-1,4))
@@ -270,7 +269,7 @@ program wvl
        & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
        & inputs%elecfield,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
        & dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, &
-       & pkernel,pot_ion,psoffset,rholoc_tmp)
+       & pkernel,pot_ion,psoffset)
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,xc,pot_ion,potential)
 !!$  call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p, &

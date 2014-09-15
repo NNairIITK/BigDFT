@@ -12,10 +12,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 !call_bigdft has to be run once on runObj and outs !before calling this routine
 !sbfgs will return to caller the energies and coordinates used/obtained from the last accepted iteration step
    use module_base
-   use module_types, only: run_objects, DFT_global_output,&
-                           init_global_output, copy_global_output,&
-                           deallocate_global_output
-   use module_interfaces, only: write_atomic_file, call_bigdft
+   use bigdft_run!module_types
    use yaml_output
    use module_sbfgs, only: modify_gradient, getSubSpaceEvecEval, findbonds
    implicit none
@@ -129,7 +126,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       call yaml_mapping_close()
    end if
 
-   !init varaibles
+   !init variables
    debug=.false.
    fail=.true.
    displr=0.0_gp
@@ -211,7 +208,9 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
        write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))') &
        ncount_bigdft,0,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
-       'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
+       'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',&
+       trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),&
+       'dsplp=',trim(adjustl(cdmy9_2))
    endif
 
    do it=1,nit!start main loop
@@ -305,9 +304,12 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       if (iproc == 0) then
          write(fn4,'(i4.4)') ncount_bigdft
          write(comment,'(a,1pe10.3)')'SBFGS:fnrm= ',fnrm
-         call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-              outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
-              runObj%atoms,trim(comment),forces=outs%fxyz)
+         call bigdft_write_atomic_file(runObj,outs,'posout_'//fn4,&
+              trim(comment))
+!!$
+!!$         call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+!!$              outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
+!!$              runObj%atoms,trim(comment),forces=outs%fxyz)
       endif
 
       if (fmax < 3.e-1_gp) call updatefluctsum(outs%fnoise,fluct)
@@ -329,7 +331,9 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    
             write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))') &
              ncount_bigdft,it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
-             'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
+             'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,&
+             'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),&
+             'dsplp=',trim(adjustl(cdmy9_2))
             call yaml_mapping_open('Geometry')
                call yaml_map('Ncount_BigDFT',ncount_bigdft)
                call yaml_map('Geometry step',it)
@@ -388,7 +392,9 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
          write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))') &
           ncount_bigdft,it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
-          'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),'dsplp=',trim(adjustl(cdmy9_2))
+          'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',&
+          trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy9_1)),&
+          'dsplp=',trim(adjustl(cdmy9_2))
          call yaml_mapping_open('Geometry')
             call yaml_map('Ncount_BigDFT',ncount_bigdft)
             call yaml_map('Geometry step',it)
@@ -456,7 +462,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
 1000 continue!converged successfully
    
-   if(iproc==0) write(16,'(2(a,xi0))') "SBFGS converged at iteration ",it,". Needed bigdft calls: ",ncount_bigdft
+   if(iproc==0) write(16,'(2(a,1x,i0))') "SBFGS converged at iteration ",it,". Needed bigdft calls: ",ncount_bigdft
    if(iproc==0)  call yaml_map('Iterations when SBFGS converged',it)
    fail=.false.
    
@@ -493,7 +499,7 @@ end subroutine
 subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzraw,fat,fstretch,&
            fxyzraw,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
     use module_base
-    use module_types
+    use bigdft_run!module_types
     use module_sbfgs
     use module_interfaces
     implicit none
@@ -522,12 +528,11 @@ subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzra
 !    fxyzraw=fat
 !    fstretch=0.0_gp
 
-
     call vcopy(3 * runObj%atoms%astruct%nat, rat(1,1), 1,rxyzraw(1,1), 1)
     if(eeval)then
         call vcopy(3 * runObj%atoms%astruct%nat, rat(1,1), 1,runObj%atoms%astruct%rxyz(1,1), 1)
         runObj%inputs%inputPsiId=1
-        call call_bigdft(runObj,outs,nproc,iproc,infocode)
+        call call_bigdft(runObj,outs,infocode)
     endif
     call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fat(1,1), 1)
     call vcopy(3 * outs%fdim, fat(1,1), 1,fxyzraw(1,1), 1)

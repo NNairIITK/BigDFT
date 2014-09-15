@@ -62,7 +62,7 @@
             memocc_internal  !central routine to be used for deallocation
     end interface
 
-    public :: memocc
+!    public :: memocc
     public :: memocc_get_info
     public :: memocc_set_state
     public :: memocc_set_memory_limit

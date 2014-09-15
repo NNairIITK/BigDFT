@@ -15,9 +15,9 @@ subroutine precong_per_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nseg_c,nvctr_c
   use module_base
   implicit none
 integer , intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,ncong
-  integer ,intent(in), dimension(2,0:n2,0:n3+ndebug) :: ibyz
-  integer ,intent(in), dimension(2,0:n1,0:n3+ndebug) :: ibxz
-  integer ,intent(in), dimension(2,0:n1,0:n2+ndebug) :: ibxy
+  integer ,intent(in), dimension(2,0:n2,0:n3) :: ibyz
+  integer ,intent(in), dimension(2,0:n1,0:n3) :: ibxz
+  integer ,intent(in), dimension(2,0:n1,0:n2) :: ibxy
   integer , intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
   real(gp), intent(in) :: hx,hy,hz,cprecr
   integer , dimension(2,nseg_c+nseg_f), intent(in) :: keyg
@@ -147,7 +147,7 @@ subroutine apply_hp_hyb(n1,n2,n3, &
   use module_base
   implicit none
   integer , intent(in) :: n1,n2,n3
-  integer ,intent(in) :: ibyz(2,0:n2,0:n3+ndebug),ibxz(2,0:n1,0:n3+ndebug),ibxy(2,0:n1,0:n2+ndebug)
+  integer ,intent(in) :: ibyz(2,0:n2,0:n3),ibxz(2,0:n1,0:n3),ibxy(2,0:n1,0:n2)
   integer ,intent(in) :: nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,nf
   integer , intent(in) :: nseg_c,nvctr_c,nseg_f,nvctr_f
   real(gp), intent(in) :: hx,hy,hz,cprecr

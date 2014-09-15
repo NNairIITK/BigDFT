@@ -18,7 +18,8 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
                   rotforce,converged)
     !imode=1 for clusters
     !imode=2 for biomolecules
-    use module_base
+  use module_base
+  use module_atoms, only: astruct_dump_to_file
     use yaml_output
     use module_interfaces
     use module_sbfgs
@@ -131,7 +132,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
 
 
     if(atoms%astruct%geocode/='F'.and. .not. (trim(adjustl(efmethod))=='LENSIc'))&
-    stop'STOP: saddle search only implemented for free BC'
+    stop 'STOP: saddle search only implemented for free BC'
 
     if(iproc==0)then
         call yaml_comment('(MHGPS) Start Saddle Search ....',&
@@ -360,12 +361,17 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
         if (iproc == 0 .and. mhgps_verbosity >=4) then
            fc=fc+1
            write(fn9,'(i9.9)') fc
-           write(comment,'(a,1pe10.3,5x1pe10.3)')&
+           write(comment,'(a,1pe10.3,5x,1pe10.3)')&
            'ATTENTION! Forces below are no forces but tangents to '//&
            'the guessed reaction path| fnrm, fmax = ',fnrm,fmax
-           call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))//'_posout_'//fn9,&
-                etotp,rxyz(1,1,nhist),ixyz_int,&
-                atoms,trim(comment),forces=minmode)
+!!$           call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))//'_posout_'//fn9,&
+!!$                etotp,rxyz(1,1,nhist),ixyz_int,&
+!!$                atoms,trim(comment),forces=minmode)
+           
+           call astruct_dump_to_file(atoms%astruct,&
+                currDir//'/sad'//trim(adjustl(isadc))//'_posout_'//fn9,&
+                trim(comment),&
+                etotp,rxyz(:,:,nhist),forces=minmode)
                 !atoms,trim(comment),forces=fxyzraw(1,1,nhist))
         endif
 
@@ -377,7 +383,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
                  dot_double(3*nat,dd0(1,1),1,dd0(1,1),1))
 
         if(iproc==0.and.mhgps_verbosity>=2)&
-            write(*,'(a,xi4.4,xi4.4,1x,es21.14,4(1x,es9.2),xi3.3,1x,es9.2)')&
+            write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es9.2)')&
             '   (MHGPS) GEOPT ',nint(ener_count),it,etotp,detot,fmax,&
             fnrm, alpha,ndim!,maxd,
 
@@ -633,7 +639,8 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT mino
         enddo
     endif
 
-!    call minenergyandforces(nat,rxyz(1,1,0),rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,wold,alpha_stretch)
+!    call minenergyandforces(nat,rxyz(1,1,0),rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),&
+!    fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,wold,alpha_stretch)
 !    rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
 !    ec=ec+1.0_gp
      call mincurvforce(imode,nat,alat,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
@@ -729,8 +736,10 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT mino
 !        &'CURV  it,curv,curvold,Dcurv,fnrm,alpha,alpha_stretch,ndim',&
 !        &it-1,curvp,curvold,dcurv,fnrm,alpha,alpha_stretch,ndim
 
-overlap=ddot(3*nat,dxyzin0(1,1),1,rxyz(1,1,nhist),1)
-if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,1x,es21.14,4(1x,es9.2),xi3.3,2(1x,es9.2))')'   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap
+        overlap=ddot(3*nat,dxyzin0(1,1),1,rxyz(1,1,nhist),1)
+if(iproc==0.and.mhgps_verbosity>=2)&
+     write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2))')&
+     '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap
 !HIER WEITER HIER WEITER: beautify output
 
         if (dcurv.gt.maxcurvrise .and. alpha>1.e-1_gp*alpha0) then 
@@ -745,12 +754,15 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,1x,es21.14,4(1x,es9.2
             ndim=0
         if(.not. isForceField)then
             if(iproc==0 .and. mhgps_verbosity>=3)&
-                call yaml_comment('INFO: (MHGPS) Will use LCAO input guess from now on (until end of current minmode optimization).')
+                call yaml_comment('INFO: (MHGPS) Will use LCAO input guess from now on '//&
+                '(until end of current minmode optimization).')
             inputPsiId=0
             call mincurvforce(imode,nat,alat,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist-1),&
                 rxyzraw(1,1,nhist-1),fxyz(1,1,nhist-1),fstretch(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
                 curvold,1,ener_count,iconnect,nbond,wold,alpha_stretch0,alpha_stretch)
-if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,xi4.4,xi4.4,1x,es21.14,4(1x,es9.2),xi3.3,1x,es9.2)')'   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch
+            if(iproc==0.and.mhgps_verbosity>=2)&
+                 write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es9.2)')&
+                 '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch
         endif
 
 !            if(.not.steep)then

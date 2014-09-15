@@ -146,7 +146,7 @@ module module_abscalc
           &   psi, aeval, occup, psp_modifier, &
           Nsol, Labs, Ngrid,Ngrid_box, Egrid,  rgrid , psigrid, Npaw,  PAWpatch , psipsigrid )
 
-       use module_base, only: gp, memocc,ndebug
+       use module_base, only: gp
        implicit none
        integer, intent(in) :: iproc,izatom,ielpsp,ng,npspcode,noccmax, lmax, Nsol, labs, Ngrid,  Ngrid_box
        real(gp), dimension(0:4,0:6), intent(in) :: psppar

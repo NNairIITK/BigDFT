@@ -12,6 +12,7 @@
 program BigDFT2Wannier
 
    use BigDFT_API
+   use bigdft_run
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use module_interfaces
    use yaml_output
@@ -33,7 +34,7 @@ program BigDFT2Wannier
    type(workarr_sumrho) :: w
    type(comms_cubic), target :: comms, commsp,commsv,commsb
    integer, parameter :: WF_FORMAT_CUBE = 4
-   integer :: iproc, nproc, i_stat, ind, ierr, npsidim, npsidim2
+   integer :: i_stat, ind, ierr, npsidim, npsidim2,iproc, nproc
    integer :: n_proj,nvctrp,npp,nvirtu,nvirtd,pshft,nbl1,nbl2,nbl3,iformat,info
    integer :: ncount0,ncount1,ncount_rate,ncount_max,nbr1,nbr2,nbr3,shft,wshft,lwork
    real :: tcpu0,tcpu1
@@ -41,7 +42,6 @@ program BigDFT2Wannier
    real(kind=8) :: znorm,xnorm,ortho,ddot
    real(kind=8),parameter :: eps6=1.0d-6!, eps8=1.0d-8
    real(gp), dimension(:,:), pointer :: rxyz_old
-   real(gp), dimension(:,:), allocatable :: radii_cf
    real(gp), dimension(3) :: shift
    real(wp), allocatable :: psi_etsf(:,:),psi_etsfv(:),sph_har_etsf(:),psir(:),psir_re(:),psir_im(:),sph_daub(:)
    real(wp), allocatable :: psi_daub_im(:),psi_daub_re(:),psi_etsf2(:) !!,pvirt(:)
@@ -71,19 +71,22 @@ program BigDFT2Wannier
    integer, allocatable, dimension (:) :: excb,ipiv
    integer, allocatable, dimension (:) :: virt_list, amnk_bands_sorted
    real(kind=8), parameter :: pi=3.141592653589793238462643383279d0
-   integer, dimension(4) :: mpi_info
+!   integer, dimension(4) :: mpi_info
    type(dictionary), pointer :: user_inputs
+   type(dictionary), pointer :: options
    external :: gather_timings
+
 
    call f_lib_initialize()
    !-finds the number of taskgroup size
    !-initializes the mpi_environment for each group
    !-decides the radical name for each run
-   call bigdft_init(mpi_info,nconfig,run_id,ierr)
+   call bigdft_command_line_options(options)
+   call bigdft_init(options)!mpi_info,nconfig,run_id,ierr)
 
    !just for backward compatibility
-   iproc=mpi_info(1)
-   nproc=mpi_info(2)
+   iproc=bigdft_mpi%iproc!mpi_info(1)
+   nproc=bigdft_mpi%nproc!mpi_info(2)
 
 !!$   ! Start MPI in parallel version
 !!$   !in the case of MPIfake libraries the number of processors is automatically adjusted
@@ -95,13 +98,14 @@ program BigDFT2Wannier
 !!$
 !!$   call memocc_set_memory_limit(memorylimit)
 
-   if (nconfig < 0) stop 'runs-file not supported for BigDFT2Wannier executable'
-
+   if (bigdft_nruns(options) > 1) stop 'runs-file not supported for BigDFT2Wannier executable'
+   run_id = options // 'BigDFT' // 0 // 'name'
    call dict_init(user_inputs)
    call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
         & 'posinp'//trim(bigdft_run_id_toa()), bigdft_mpi)
    call inputs_from_dict(input, atoms, user_inputs)
    call dict_free(user_inputs)
+   call dict_free(options)
 
 !!$   if (input%verbosity > 2) then
 !!$      nproctiming=-nproc !timing in debug mode
@@ -168,9 +172,9 @@ program BigDFT2Wannier
 !!$
 !!$   if (iproc == 0) call print_general_parameters(input,atoms)
 
-   radii_cf = f_malloc((/ atoms%astruct%ntypes, 3 /),id='radii_cf')
+   !radii_cf = f_malloc((/ atoms%astruct%ntypes, 3 /),id='radii_cf')
 
-   call system_properties(iproc,nproc,input,atoms,orbs,radii_cf)
+   call system_properties(iproc,nproc,input,atoms,orbs)
 
 
    ! use the new lzd type for compatibility reasons, i.e. replace Glr by glr%lzd
@@ -179,19 +183,16 @@ program BigDFT2Wannier
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
-   call system_size(atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
+   call system_size(atoms,atoms%astruct%rxyz,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
       &   .false.,lzd%Glr,shift)
    if (iproc == 0) &
         & call print_atoms_and_grid(lzd%Glr, atoms, atoms%astruct%rxyz, shift, input%hx,input%hy,input%hz)
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
-      & atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,lzd%Glr)
+      & atoms,atoms%astruct%rxyz,input%crmult,input%frmult,lzd%Glr)
    if (iproc == 0) call print_wfd(lzd%Glr%wfd)
 
-   ! don't need radii_cf anymore
-   i_all = -product(shape(radii_cf))*kind(radii_cf)
-   call f_free(radii_cf)
 
    ! Allocate communications arrays (allocate it before Projectors because of the definition of iskpts and nkptsp)
    call orbitals_communicators(iproc,nproc,lzd%Glr,orbs,comms)
@@ -388,6 +389,7 @@ program BigDFT2Wannier
             call mpiallred(overlap_proj(1,1),orbsp%norb*orbsp%norb,MPI_SUM)
          end if
          !print *,'overlap_proj',overlap_proj
+         !print *,'orbsp%norb',orbsp%norb
          ipiv = f_malloc(orbsp%norb,id='ipiv')
          call dgetrf( orbsp%norb, orbsp%norb, overlap_proj, orbsp%norb, ipiv, info )
          pwork = f_malloc_ptr(1,id='pwork')
@@ -407,9 +409,7 @@ program BigDFT2Wannier
             &   sph_daub(1),max(1,nvctrp),0.0_wp,amnk(1,1),orbsv%norb)
 
          ! Construction of the whole Amnk_guess matrix.
-         if(nproc > 1) then
-            call mpiallred(amnk(1,1),orbsv%norb*orbsp%norb,MPI_SUM)
-         end if
+         if(nproc > 1) call mpiallred(amnk,MPI_SUM)
 
          ! For each unoccupied orbitals, check how they project on spherical harmonics.
          ! The greater amnk_guess(nb) is, the more they project on spherical harmonics.
@@ -421,7 +421,7 @@ program BigDFT2Wannier
                        amnk(nb,np)*amnk(nb,j)*overlap_proj(np,j)
                end do
             end do
-            print *,'debugiproc',amnk_guess(nb),iproc,dsqrt(amnk_guess(nb))
+            !print *,'debugiproc',amnk_guess(nb),iproc,dsqrt(amnk_guess(nb))
             if (iproc==0) then
                call yaml_map('Virtual band',nb)
                call yaml_map('amnk_guess(nb)',sqrt(amnk_guess(nb)))

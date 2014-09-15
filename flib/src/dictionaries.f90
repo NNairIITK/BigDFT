@@ -12,7 +12,7 @@
 module dictionaries
    use exception_callbacks
    use dictionaries_base
-   use yaml_strings, only: read_fraction_string
+   use yaml_strings, only: read_fraction_string,yaml_toa
    implicit none
 
    private
@@ -49,12 +49,13 @@ module dictionaries
    end interface
 
    interface operator(.item.)
-      module procedure item_char,item_dict
+      module procedure item_char,item_dict,item_dbl,item_int
    end interface
 
    interface operator(.is.)
       module procedure dict_cont_new_with_value, dict_cont_new_with_dict
-      module procedure dict_cont_new_with_int
+      module procedure dict_cont_new_with_int,dict_cont_new_with_dbl
+      module procedure dict_cont_new_with_int_v,dict_cont_new_with_dbl_v,dict_cont_new_with_value_v
    end interface 
 
    interface operator(.in.)
@@ -95,6 +96,7 @@ module dictionaries
 
    interface set
       module procedure put_child,put_value,put_list,put_integer,put_real,put_double,put_long,put_lg
+      module procedure put_listd,put_listi
    end interface
 
    interface add
@@ -107,6 +109,11 @@ module dictionaries
    interface operator(.get.)
       module procedure list_container_if_key_exists
    end interface
+
+   interface dict_iter
+      module procedure dict_iter, dict_iter_lc
+   end interface
+
 
    interface list_new
       module procedure list_new,list_new_elems
@@ -123,8 +130,8 @@ module dictionaries
    public :: set,dict_init,dict_free,append,prepend,add
    public :: dict_copy, dict_update,dict_remove,dict_remove_last
    !> Handle exceptions
-   public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next,dict_iter,has_key,dict_keys
-   public :: dict_new,list_new
+   public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next
+   public :: dict_new,list_new,dict_iter,has_key,dict_keys
    !> Public elements of dictionary_base
    public :: operator(.is.),operator(.item.)
    public :: operator(.pop.),operator(.notin.)
@@ -542,27 +549,24 @@ contains
 
 
    !> Defines a new dictionary from a key and a value
-   function dict_cont_new_with_value(key, val)
+   !pure 
+   function dict_cont_new_with_value(key, val) result(cont)
      implicit none
-     character(len = *), intent(in) :: key, val
-     type(dictionary_container) :: dict_cont_new_with_value
-
-     dict_cont_new_with_value%key(1:max_field_length) = key
-     dict_cont_new_with_value%value(1:max_field_length) = val
-
+     character(len = *), intent(in) :: val
+     include 'dict_cont-inc.f90'
    end function dict_cont_new_with_value
 
-   function dict_cont_new_with_int(key, val)
-     use yaml_strings, only: yaml_toa
+   pure function dict_cont_new_with_int(key, val) result(cont)
      implicit none
-     character(len = *), intent(in) :: key
      integer, intent(in) :: val
-     type(dictionary_container) :: dict_cont_new_with_int
-
-     dict_cont_new_with_int%key(1:max_field_length) = key
-     dict_cont_new_with_int%value(1:max_field_length) = yaml_toa(val)
-
+     include 'dict_cont-inc.f90'
    end function dict_cont_new_with_int
+
+   pure function dict_cont_new_with_dbl(key, val) result(cont)
+     implicit none
+     double precision, intent(in) :: val
+     include 'dict_cont-inc.f90'
+   end function dict_cont_new_with_dbl
 
    function dict_cont_new_with_dict(key, val)
      implicit none
@@ -574,6 +578,26 @@ contains
      dict_cont_new_with_dict%child => val
 
    end function dict_cont_new_with_dict
+
+   !arrays
+   function dict_cont_new_with_value_v(key, val) result(cont)
+     implicit none
+     character(len = *), dimension(:), intent(in) :: val
+     include 'dict_cont_arr-inc.f90'
+   end function dict_cont_new_with_value_v
+
+   function dict_cont_new_with_dbl_v(key, val) result(cont)
+     implicit none
+     double precision, dimension(:), intent(in) :: val
+     include 'dict_cont_arr-inc.f90'
+   end function dict_cont_new_with_dbl_v
+
+   function dict_cont_new_with_int_v(key, val) result(cont)
+     implicit none
+     integer, dimension(:), intent(in) :: val
+     include 'dict_cont_arr-inc.f90'
+   end function dict_cont_new_with_int_v
+
 
    !>initialize the iterator to be used with next
    function dict_iter(dict)
@@ -587,6 +611,18 @@ contains
         nullify(dict_iter)
      end if
    end function dict_iter
+
+   !>version of the function to be used with list container
+   !! to be used when .get. operator is called
+   function dict_iter_lc(list)
+     implicit none
+     type(list_container), intent(in) :: list
+     type(dictionary), pointer :: dict_iter_lc
+
+     dict_iter_lc => dict_iter(list%dict)
+
+   end function dict_iter_lc
+
 
    function dict_next(dict)
      implicit none
@@ -870,7 +906,12 @@ contains
      character(len=*), intent(in) :: key
      logical :: key_in_dictionary
      
-     key_in_dictionary=has_key(dict,key)
+     !if it is a list check the value
+     if (dict_len(dict) > 0) then
+        key_in_dictionary = (dict .index. key) >= 0
+     else
+        key_in_dictionary=has_key(dict,key)
+     end if
    end function key_in_dictionary
 
    function key_notin_dictionary(key,dict)
@@ -879,7 +920,7 @@ contains
      character(len=*), intent(in) :: key
      logical :: key_notin_dictionary
 
-     key_notin_dictionary=.not. has_key(dict,key)
+     key_notin_dictionary=.not. key_in_dictionary(key,dict)
    end function key_notin_dictionary
 
 
@@ -1062,21 +1103,24 @@ contains
    end subroutine put_value
 
 
-   !> Assign the value to the dictionary (to be rewritten)
-   subroutine put_list(dict,list)!,nitems)
+   !> Assign the value to the dictionary 
+   subroutine put_list(dict,list)
      implicit none
-     type(dictionary), pointer :: dict
-!     integer, intent(in) :: nitems
      character(len=*), dimension(:), intent(in) :: list
-     !local variables
-     integer :: item,nitems
-
-     nitems=size(list)
-     do item=1,nitems
-        call set(dict//(item-1),list(item))
-     end do
-
+     include 'set_arr-inc.f90'
    end subroutine put_list
+
+   subroutine put_listd(dict,list)
+     implicit none
+     double precision, dimension(:), intent(in) :: list
+     include 'set_arr-inc.f90'
+   end subroutine put_listd
+
+   subroutine put_listi(dict,list)
+     implicit none
+     integer, dimension(:), intent(in) :: list
+     include 'set_arr-inc.f90'
+   end subroutine put_listi
 
 
    elemental function item_char(val) result(elem)
@@ -1087,6 +1131,25 @@ contains
      elem%val(1:max_field_length)=val
 
    end function item_char
+
+   elemental function item_dbl(val) result(elem)
+     implicit none
+     double precision, intent(in) :: val
+     type(list_container) :: elem
+
+     elem%val(1:max_field_length)=yaml_toa(val)
+
+   end function item_dbl
+
+   elemental function item_int(val) result(elem)
+     implicit none
+     integer, intent(in) :: val
+     type(list_container) :: elem
+
+     elem%val(1:max_field_length)=yaml_toa(val)
+
+   end function item_int
+
 
 
    function item_dict(val) result(elem)
@@ -1360,7 +1423,11 @@ contains
      implicit none
      type(dictionary), pointer, intent(inout) :: dict
      type(list_container), intent(in) :: el
-     if (associated(el%dict)) dict=>el%dict
+     if (associated(el%dict)) then
+        dict=>el%dict
+     else
+        nullify(dict)
+     end if
    end subroutine safe_get_dict
 
    subroutine safe_get_integer(val,el)
@@ -1534,12 +1601,12 @@ contains
    end subroutine dict_update
 
 
-   subroutine dict_copy(dict, ref)
+   subroutine dict_copy(dest, src)
      implicit none
-     type(dictionary), pointer :: dict, ref
+     type(dictionary), pointer :: src, dest
 
-     if (.not. associated(dict)) call dict_init(dict)
-     call copy(dict, ref)
+     if (.not. associated(dest)) call dict_init(dest)
+     call copy(dest, src)
 
      contains
        recursive subroutine copy(dict, ref)

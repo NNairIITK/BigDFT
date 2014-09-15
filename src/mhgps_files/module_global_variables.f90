@@ -8,6 +8,7 @@
 module module_global_variables
     use module_base !bigdft base module
     use module_types
+    use bigdft_run
     implicit none
     character(len = *), public, parameter :: mhgps_version   = '0.01'
     character(len = *), public, parameter :: inputdir   = 'input'
@@ -104,17 +105,17 @@ module module_global_variables
     real(gp)              :: en_delta_min, fp_delta_min
     real(gp)              :: en_delta_sad, fp_delta_sad
 
-
-    !bigdft data types and variables
-    type(run_objects) :: runObj
-    type(dictionary), pointer :: user_inputs
-    type(DFT_global_output) :: outs
-    integer :: fdim
-    type(atoms_data) :: atoms
-    integer, dimension(4) :: mpi_info
+    !bigdft data types and variables 
+    !(these objects must preserve their status in the module)
+    type(run_objects), save :: runObj
+    type(dictionary), pointer, save :: user_inputs
+    type(DFT_global_output), save :: outs
+    integer, save :: fdim
+    type(atoms_data), save :: atoms
+    !integer, dimension(4) :: mpi_info
     integer :: infocode
     type(input_variables), target :: inputs_opt
-    type(restart_objects) :: rst
+    type(restart_objects), save :: rst
     integer :: inputPsiId=0
     integer :: iproc=0,nproc=1,igroup=0,ngroups=1
     integer :: itermin=0

@@ -33,6 +33,7 @@ module yaml_parse
   character(len=*), parameter :: OPTSNAME   = 'shortname'
   character(len=*), parameter :: OPTSHELP   = 'shorthelp'
   character(len=*), parameter :: OPTHELP    = 'help'
+  character(len=*), parameter :: OPTCONFL    = 'conflicts'
 
 
   !> command line parser to determine options
@@ -77,7 +78,7 @@ contains
   end subroutine nullify_yaml_cl_parse
 
   subroutine yaml_cl_parse_free(parser)
-    use dictionaries, only: dict_free
+    use dictionaries_base, only: dict_free
     implicit none
     type(yaml_cl_parse), intent(inout) :: parser
     call dict_free(parser%options)
@@ -87,7 +88,8 @@ contains
 
   !> used to set up input parameters
   !! similar behaviour as python optparse options
-  subroutine yaml_cl_parse_option(parser,name,default,help_string,shortname,help_dict,first_option)
+  subroutine yaml_cl_parse_option(parser,name,default,help_string,&
+       shortname,help_dict,first_option,conflicts)
     use dictionaries
     use yaml_strings
     implicit none
@@ -106,15 +108,28 @@ contains
     !> shortkey name. in this case the option invoked is as -k value
     !! the only protected key if h as it stands for shorthelp
     character(len=1), intent(in), optional :: shortname
+    !> character string containing list (in yaml format) of 
+    !! options that conflicts with the one given
+    !! the options may not have been defined yet. 
+    !!The check is performed at the end of the parsing procedure
+    character(len=*), intent(in), optional :: conflicts
+
     !> help dict intended as a more eextended help, to be invoked when help on command line is given
     !! this dictionary is stolen by the parser and nullified at exit
     type(dictionary), pointer, optional :: help_dict
     !local variables
     logical :: first
-    type(dictionary), pointer :: option
+    character(len=1) :: shname
+    type(dictionary), pointer :: option,iter
 
     if (trim(name) == 'help') then
        call f_err_throw('The "help" option is reserved',err_id=ERROR_YAML_COMMAND_LINE_PARSER)
+       return
+    end if
+
+    if (trim(name) .in. parser%options) then
+       call f_err_throw('Option "'//trim(name)//&
+            '" already specified',err_id=ERROR_YAML_COMMAND_LINE_PARSER)
        return
     end if
 
@@ -125,9 +140,41 @@ contains
                err_id=ERROR_YAML_COMMAND_LINE_PARSER)
           return
        end if
+       !search if another shortname has already been specified
+       shname='h' !protected value
+       iter => dict_iter(parser%options)
+       do while (associated(iter))
+          shname = iter .get. OPTSNAME
+          if (shname == shortname) then
+             call f_err_throw('Option "'//trim(name)//&
+                  '" error; shortname "'//trim(shortname)//&
+                  '" already specified in option "'//&
+                  trim(dict_key(iter))//'"',&
+                  err_id=ERROR_YAML_COMMAND_LINE_PARSER)
+             return
+          end if
+          iter => dict_next(iter)
+       end do
+
        call set(option//OPTSNAME,shortname)
     end if
-    if (present(help_dict)) call set(option//OPTHELP,help_dict)
+    if (present(help_dict)) then
+       call set(option//OPTHELP,help_dict)
+    end if
+
+    if (present(conflicts)) then
+       if (trim(default) /= "None") then
+          call f_err_throw('Error in defining "'//&
+               trim(name)//&
+               '"; a conflicting option must have "None" as its default value',&
+               err_id=ERROR_YAML_COMMAND_LINE_PARSER)
+          return
+       end if
+       iter=>yaml_a_todict(trim(conflicts),OPTCONFL)
+       call dict_update(option,iter)
+       call dict_free(iter)
+    end if
+
 
     !then insert it in the dict of options
     if (.not. associated(parser%options)) call dict_init(parser%options)
@@ -136,15 +183,19 @@ contains
 
     first=.false.
     if (present(first_option)) first=first_option
-    if (first) call f_strcpy(src=name,dest=parser%first_command_key)
+    if (first) then
+       !check if this has already been initialized
+       if (len_trim(parser%first_command_key) /= 0) then
+          call f_err_throw('Option "'//trim(parser%first_command_key)//&
+               '" has already been set as first_option',&
+               err_id=ERROR_YAML_COMMAND_LINE_PARSER)
+          return
+       end if
+       call f_strcpy(src=name,dest=parser%first_command_key)
+    end if
+
 
   end subroutine yaml_cl_parse_option
-
-!  subroutine parser_help(parser)
-!    use dictionaries
-!    implicit none
-!    type(yaml_cl_parse), intent(in) :: parser
-!  end subroutine parser_help
 
   !> fill the parsed dictionary with default values
   subroutine yaml_cl_parse_init(parser)
@@ -169,17 +220,83 @@ contains
     end do
   end subroutine yaml_cl_parse_init
 
+  !> dump on stdout the long help for each of the options
+  subroutine parser_help(parser,short)
+    use dictionaries
+    use yaml_output
+    implicit none
+    logical, intent(in) :: short
+    type(yaml_cl_parse), intent(in) :: parser  
+    !local variables
+    character(len=1) :: shortopt
+    character(len=max_field_length) :: default
+    type(dictionary), pointer :: iter
+
+    call yaml_comment('Command-line arguments help',hfill='-',unit=6)
+    !iterate on all the options
+    iter => dict_iter(parser%options)
+    do while(associated(iter))
+       !find if this is the first option
+       if (trim(parser%first_command_key) /= dict_key(iter)) then 
+          call option_help(iter)
+       end if
+       iter => dict_next(iter)
+    end do
+    call yaml_map('--help (-h)',&
+         'Print this screen message (-h would produce a compact form)',&
+         unit=6)
+    if (len_trim(parser%first_command_key) /=0) then
+       call option_help(parser%options//trim(parser%first_command_key))
+       call yaml_comment('The above option can also be specified as a first argument')
+    end if
+   
+    contains 
+
+      subroutine option_help(opt)
+        implicit none
+        type(dictionary), pointer :: opt
+        !find if this is the first option
+        if (OPTSNAME .in. opt) then
+           shortopt=opt//OPTSNAME
+           call yaml_mapping_open('--'//trim(adjustl(dict_key(opt)))//&
+                ' (-'//shortopt//')',unit=6)
+        else
+           call yaml_mapping_open('--'//trim(adjustl(dict_key(opt))),&
+                unit=6)
+        end if
+        if ((OPTHELP .in. opt) .and. .not. short) then
+           call yaml_dict_dump(opt//OPTHELP,unit=6)
+        else
+           call yaml_dict_dump(opt//OPTSHELP,unit=6)
+        end if
+        default=opt//OPTDEFAULT
+        if (trim(default) /= 'None') then
+           call yaml_map('Default value (when not specified)',default,&
+                unit=6)
+        end if
+        call yaml_mapping_close(unit=6)
+
+      end subroutine option_help
+
+  end subroutine parser_help
+
+  
   !> routine for parsing the command line
-  subroutine yaml_cl_parse_cmd_line(parser)
+  subroutine yaml_cl_parse_cmd_line(parser,args)
     use dictionaries
     use yaml_strings, only:f_strcpy
+    use yaml_output
     !use yaml_output
     implicit none
     !> the parser which has to be updated
+    !! resulting command line arguments are written in parser%args
     type(yaml_cl_parse), intent(inout) :: parser
+    !> dictionary of the arguments.
+    !! if present, the arguments are copied into this dictionary
+    type(dictionary), pointer, intent(out), optional :: args
     !local variables
     integer :: icommands,ncommands
-    type(dictionary), pointer :: dict
+    type(dictionary), pointer :: dict,conf
     !fill the parser with default values
     call yaml_cl_parse_init(parser)
 
@@ -196,6 +313,28 @@ contains
        call dict_free(dict)
     end do
 
+    !coherence checks. 
+    dict => dict_iter(parser%args)
+    do while(associated(dict))
+       !See if some option conflicts with others
+       conf => dict_iter(parser%options//dict_key(dict) .get. OPTCONFL)
+       do while(associated(conf))
+          if (trim(dict_value(conf)) .in. parser%args) then
+             call f_err_throw('The option "'//trim(dict_key(dict))//&
+                  '" conflicts with the presence of "'//&
+                  trim(dict_value(conf))//'"',&
+                  err_id=ERROR_YAML_COMMAND_LINE_PARSER)
+          end if
+          conf => dict_next(conf)
+       end do
+       
+       dict => dict_next(dict)
+    end do
+
+    if (present(args)) then
+       nullify(args) 
+       call dict_copy(src=parser%args,dest=args)
+    end if
     contains
 
       !> parse the input command and returns the dictionary which is associated to it
@@ -216,10 +355,9 @@ contains
 
         call get_cmd(icommands,command)
         icommands=icommands+1
-
         !search for the long key value
         ipos=index(command,'--')
-        if (ipos > 0) then
+        if (ipos > 0 .and. len_trim(command(1:ipos-1)) == 0) then
            ipos=ipos+2
            !the help key is a particular case
            if (trim(command(ipos:)) == 'help') then
@@ -228,15 +366,17 @@ contains
                       err_id=ERROR_YAML_COMMAND_LINE_PARSER)
                  return
               end if
-              !call parser_help(parser)
-              return
+              call parser_help(parser,.false.)
+              !usually, after the help screen is called, the code should exit
+              call yaml_cl_parse_free(parser)
+              call f_lib_finalize_noreport()
+              stop
            end if
-
            !a long key has always to be specified as --key=yaml_dict
            jpos=index(command(ipos+1:),'=')
            if (jpos == 0) then
-              call f_err_throw('Argument to '//trim(command(ipos:))//&
-                   ' is missing',&
+              call f_err_throw('A long key must be followed by its value. Write (--'//&
+                   trim(command(ipos:))//'=<val>)',&
                    err_id=ERROR_YAML_COMMAND_LINE_PARSER)
               return
            end if
@@ -244,15 +384,24 @@ contains
            call f_strcpy(src=trim(command(ipos:ipos+jpos-1)),dest=key)
 
            !check if the key is among the known values
+           if (key .notin. parser%options) then
+              call f_err_throw('The key "'//trim(key)//&
+                   '" is not among the known values',err_id=ERROR_YAML_COMMAND_LINE_PARSER)
+           end if
 
            !then parse the value as a yaml_string
            jpos=jpos+1
-           dict=>yaml_a_todict(trim(command(ipos+jpos:)),key)
+           if (len_trim(command(ipos+jpos:)) > 0) then
+              dict=>yaml_a_todict(trim(command(ipos+jpos:)),key)
+           else
+              call f_err_throw('Empty value for key "'//trim(key)//&
+                   '"',err_id=ERROR_YAML_COMMAND_LINE_PARSER)
+           end if
         else
            !search for short string format (one letter only)
            !example -k yaml_dict
            ipos=index(command,'-')
-           if (ipos > 0) then
+           if (ipos > 0 .and. len_trim(command(1:ipos-1)) == 0) then
               ipos=ipos+1
               short_key=command(ipos:ipos)
               if (len_trim(command(ipos+1:)) > 0) then
@@ -268,8 +417,11 @@ contains
                          err_id=ERROR_YAML_COMMAND_LINE_PARSER)
                     return
                  end if
-                 !call parser_shorthelp(parser)
-                 return
+                 call parser_help(parser,.true.)
+                 !usually, after the help screen is called, the code should exit
+                 call yaml_cl_parse_free(parser)
+                 call f_lib_finalize_noreport()
+                 stop
               end if
               !then fill the key according to the set values
               opt_iter=>dict_iter(parser%options)
@@ -302,7 +454,8 @@ contains
                  key=parser%first_command_key
                  dict=>yaml_a_todict(trim(command),key)
               else
-                 call f_err_throw('Unrecognized command, value='//trim(command),&
+                 call f_err_throw('Unrecognized option "'//&
+                      trim(command)//'"',&
                       err_id=ERROR_YAML_COMMAND_LINE_PARSER)
                  return
               end if
@@ -348,11 +501,15 @@ contains
          &                     "mapping values" .is. &
          & "The indentation is different at this line." )
 
-
     call f_err_define(err_name='YAML_PARSE_UNSUPPORTED',&
          err_msg='YAML standard not supported.',&
          err_action='kindly ask developers to finish implementation.',&
          err_id=YAML_PARSE_UNSUPPORTED)
+
+    call f_err_define(err_name='ERROR_YAML_COMMAND_LINE_PARSER',&
+         err_msg='Error in yaml parsing of the command line',&
+         err_action='Check the allowed options and their values (--help)',&
+         err_id=ERROR_YAML_COMMAND_LINE_PARSER)
 
   end subroutine yaml_parse_errors
 
@@ -395,7 +552,6 @@ contains
     call yaml_parser_c_init_from_buf(parser, str, len_trim(str))
     dict => yaml_parse_(parser)
   end subroutine yaml_parse_from_string
-
 
   function yaml_parse_(parser) result(output)
     use dictionaries
@@ -660,13 +816,12 @@ contains
     use dictionaries
     implicit none
     !Argument
-    character(max_field_length) :: val
+    character(len=max_field_length) :: val
     !Local variables
     type(dictionary), pointer :: error
     !type(dictionary), pointer :: dict_error
     character(max_field_length) :: key,message
     !integer :: pp
-
     !dict_error=>dict_new()
     !pp = index(val,':')
     !key = val(1:pp-1)
@@ -686,13 +841,12 @@ contains
     !call f_err_throw(err_id = YAML_PARSE_ERROR, err_dict = dict_error)
     !We add quite to have a yaml standard output.
     call f_err_throw(err_msg = '"'//trim(message)//'"',err_id = YAML_PARSE_ERROR)
-     
   end subroutine yaml_parse_error_throw
 
 
   !> Nullify the dictionary dict_yaml_errs
   subroutine yaml_parse_errors_finalize()
-     use dictionaries, only: dict_free
+     use dictionaries_base, only: dict_free
      implicit none
      call dict_free(dict_yaml_errs)
 

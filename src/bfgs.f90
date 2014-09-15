@@ -11,7 +11,8 @@
 !> BFGS driver routine
 subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
   use module_base
-    use module_types
+  use module_atoms, only: move_this_coordinate
+    use bigdft_run!module_types
     use module_interfaces
     use yaml_output
     use minpar
@@ -27,7 +28,6 @@ subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
     integer :: infocode,i,ixyz,iat,i_stat,icall,icheck,i_all
     character(len=4) :: fn4
     character(len=40) :: comment
-    logical :: move_this_coordinate
     integer :: nr
     integer :: nwork
     real(gp), allocatable, dimension(:) :: x,f,work
@@ -61,7 +61,7 @@ subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
         !    call atomic_copymoving_forward(atoms,n,f(1,ip),nr,fa(1,ip))
         !enddo
         !if(icall/=0) then
-            call call_bigdft(runObj,outs,nproc,iproc,infocode)
+            call call_bigdft(runObj,outs,infocode)
             ncount_bigdft=ncount_bigdft+1
         !endif
         call atomic_copymoving_forward(runObj%atoms,3*outs%fdim,outs%fxyz,nr,f)
@@ -81,9 +81,11 @@ subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
         if (iproc == 0) then
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
-           call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
-                runObj%atoms,trim(comment),forces=outs%fxyz)
+           call bigdft_write_atomic_file(runObj,outs,'posout_'//fn4,&
+                trim(comment))
+!!$           call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+!!$                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
+!!$                runObj%atoms,trim(comment),forces=outs%fxyz)
         endif
 
         call bfgs_reza(iproc,runObj%inputs%dir_output,nr,x,outs%energy,f,nwork,work,&
@@ -96,9 +98,12 @@ subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
            if(iproc==0) then
               write(fn4,'(i4.4)') ncount_bigdft
               write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
-              call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-                   & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
-                   runObj%atoms,trim(comment),forces=outs%fxyz)
+              call bigdft_write_atomic_file(runObj,outs,'posout_'//fn4,&
+                   trim(comment))
+!!$
+!!$              call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+!!$                   & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
+!!$                   runObj%atoms,trim(comment),forces=outs%fxyz)
            endif
         endif
         !if(ncount_bigdft>in%ncount_cluster_x-1)
@@ -568,7 +573,8 @@ END SUBROUTINE bfgs_reza
 !! This is helpfull when we are looking for the source of problems during BFGS runs
 subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail) 
   use module_base
-  use module_types
+  use module_atoms, only: move_this_coordinate
+  use bigdft_run!module_types
   use module_interfaces
 !  use par_driver
   use minpar
@@ -590,7 +596,6 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   real(gp) :: fnormmax_sw,etotprev
   character(len=4) :: fn4
   character(len=40) :: comment
-  logical :: move_this_coordinate
 
   integer ::  n,nr,ndim
   integer ::  NWORK
@@ -674,8 +679,10 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      if (iproc == 0) then
         write(fn4,'(i4.4)') ncount_bigdft
         write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
-        call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-             & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment),forces=outs%fxyz)
+        call bigdft_write_atomic_file(runObj,outs,'posout_'//fn4,&
+             trim(comment))
+!!$        call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+!!$             & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment),forces=outs%fxyz)
      endif
      parmin%IWRITE=.false.
   endif
@@ -724,8 +731,10 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      if (iproc == 0) then
         write(fn4,'(i4.4)') ncount_bigdft
         write(comment,'(a,1pe10.3)')'BFGS:fnrm= ',sqrt(fnrm)
-        call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-             & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment),forces=outs%fxyz)
+        call bigdft_write_atomic_file(runObj,outs,'posout_'//fn4,&
+             trim(comment))
+!!$        call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+!!$             & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment),forces=outs%fxyz)
      endif
      goto 100
   endif
@@ -739,7 +748,7 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   runObj%inputs%inputPsiId=1
 !  if(ICALL.ne.0) call call_bigdft(nproc,iproc,at,rxyz,in,F,fxyz,rst,infocode)
   if(ICALL.ne.0) then
-     call call_bigdft(runObj,outs,nproc,iproc,infocode)
+     call call_bigdft(runObj,outs,infocode)
      F=outs%energy
      ncount_bigdft=ncount_bigdft+1
   end if
@@ -776,12 +785,11 @@ END SUBROUTINE lbfgsdriver
 
 
 subroutine atomic_copymoving_forward(atoms,n,x,nr,xa)
-    use module_types
+  use module_atoms
     implicit none
     type(atoms_data), intent(inout) :: atoms
     integer :: n,nr,i,iat,ixyz,ir
     real(kind=8) :: x(n),xa(nr)
-    logical :: move_this_coordinate
     ir=0
     do i=1,3*atoms%astruct%nat
         iat=(i-1)/3+1
@@ -796,12 +804,11 @@ END SUBROUTINE atomic_copymoving_forward
 
 
 subroutine atomic_copymoving_backward(atoms,nr,xa,n,x)
-    use module_types
+  use module_atoms
     implicit none
     type(atoms_data), intent(inout) :: atoms
     integer :: n,nr,i,iat,ixyz,ir
     real(kind=8) :: x(n),xa(nr)
-    logical :: move_this_coordinate
     ir=0
     do i=1,3*atoms%astruct%nat
         iat=(i-1)/3+1

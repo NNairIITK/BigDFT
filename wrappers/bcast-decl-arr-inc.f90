@@ -9,11 +9,12 @@
 !!    For the list of contributors, see ~/AUTHORS
   integer, intent(in), optional :: root  !< @copydoc doc::root
   integer, intent(in), optional :: comm  !< @copydoc doc::comm  
+  logical, intent(in), optional :: check !< performs the check of the arguments
   !local variables
+  logical chk
   integer :: n,iroot,mpi_comm,ierr
   external :: MPI_BCAST
 
+  chk=.false.
   n=size(buffer)
-  !no bcast if size is zero
-  if (n==0) return
 

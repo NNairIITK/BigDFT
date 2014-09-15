@@ -69,7 +69,7 @@ subroutine xx_all(array,m)
            end if
         end if
         call memocc(ierror,int(ilsize),m%array_id,m%routine_id)
-     end if
+     end if ! end of profiling
   else
      !$ if(not_omp) then
      call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS

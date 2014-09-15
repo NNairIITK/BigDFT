@@ -245,7 +245,7 @@
    Radii of active regions (AU):
      Coarse                            : 1.463418464633951
      Fine                              : 0.2
-     Coarse PSP                        : 0.2
+     Coarse PSP                        : 0.0
      Source                            : Hard-Coded
  ig_occupation:
    Si:
@@ -271,7 +271,7 @@
    Radii of active regions (AU):
      Coarse                            : 1.806025343502968
      Fine                              : 0.42273813
-     Coarse PSP                        : 0.42273813
+     Coarse PSP                        : 1.03773947143
      Source                            : Hard-Coded
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data/

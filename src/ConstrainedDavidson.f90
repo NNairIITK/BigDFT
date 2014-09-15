@@ -88,7 +88,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   real(wp), dimension(:), allocatable :: ALPHAR,ALPHAI,BETA,VR,VL
   type(paw_objects) ::paw !dummy herem, only used for PAW
   
-  paw%usepaw=0 !Not using PAW
+  paw%usepaw=.false. !Not using PAW
   call nullify_paw_objects(paw)
   
   !logical flag which control to othogonalise wrt the occupied orbitals or not
@@ -152,9 +152,10 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !before transposition, create the array of the occupied
   !wavefunctions in real space, for exact exchange calculations
   if (exctX) then
-     allocate(psirocc(max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%norbp,&
-          dpcom%ngatherarr(0,1)*orbs%norb),1)+ndebug),stat=i_stat)
-     call memocc(i_stat,psirocc,'psirocc',subname)
+     psirocc=f_malloc_ptr(max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%norbp,&
+          dpcom%ngatherarr(0,1)*orbs%norb),1),id='psirocc')
+!!$     allocate(psirocc(max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%norbp,&
+!!$          dpcom%ngatherarr(0,1)*orbs%norb),1)+ndebug),stat=i_stat)
 
      call prepare_psirocc(iproc,nproc,Lzd%Glr,orbs,dpcom%nscatterarr(iproc,2),dpcom%ngatherarr(0,1),psi,psirocc)
   end if
@@ -165,8 +166,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !
   !allocate the work array for transpositions
   if(nproc > 1)then
-     allocate(psiw(max(orbs%npsidim_comp,orbs%npsidim_orbs)+ndebug),stat=i_stat)
-     call memocc(i_stat,psiw,'psiw',subname)
+     psiw = f_malloc_ptr(max(orbs%npsidim_comp, orbs%npsidim_orbs),id='psiw')
   else
      psiw => null()
   end if
@@ -199,20 +199,15 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   
   ! **********************************************
   ! some memory work memory 
-  allocate(hv(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
-  call memocc(i_stat,hv,'hv',subname)
+  hv = f_malloc(max(orbsv%npsidim_orbs, orbsv%npsidim_comp),id='hv')
 
-  allocate(e(orbsv%norb,orbsv%nkpts,2+ndebug),stat=i_stat)
-  call memocc(i_stat,e,'e',subname)
+  e = f_malloc((/ orbsv%norb, orbsv%nkpts, 2 /),id='e')
   
-  allocate(eg(orbsv%norb,orbsv%nkpts,2+ndebug),stat=i_stat)
-  call memocc(i_stat,eg,'eg',subname)
+  eg = f_malloc((/ orbsv%norb, orbsv%nkpts, 2 /),id='eg')
   
-  allocate(e_tmp(orbsv%norb,orbsv%nkpts,2+ndebug),stat=i_stat)
-  call memocc(i_stat,eg,'e_tmp',subname)
+  e_tmp = f_malloc((/ orbsv%norb, orbsv%nkpts, 2 /),id='e_tmp')
 
-  allocate(eg_tmp(orbsv%norb,orbsv%nkpts,2+ndebug),stat=i_stat)
-  call memocc(i_stat,eg,'eg_tmp',subname)
+  eg_tmp = f_malloc((/ orbsv%norb, orbsv%nkpts, 2 /),id='eg_tmp')
 
   if (orbsv%nspinor > 1) then
      ncplx=2
@@ -221,29 +216,21 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   end if
   
   nwork=max(10,16*orbsv%norb)
-  allocate(work(ncplx*nwork+ndebug),stat=i_stat)
-  call memocc(i_stat,work,'work',subname)
+  work = f_malloc(ncplx*nwork,id='work')
   
-  allocate(ALPHAR(2*orbsv%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,ALPHAR,'ALPHAR',subname)
+  ALPHAR = f_malloc(2*orbsv%norb,id='ALPHAR')
 
-  allocate(ALPHAI(2*orbsv%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,ALPHAI,'ALPHAI',subname)
+  ALPHAI = f_malloc(2*orbsv%norb,id='ALPHAI')
   
-  allocate(BETA(2*orbsv%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,BETA,'BETA',subname)
+  BETA = f_malloc(2*orbsv%norb,id='BETA')
  
-  allocate(VR(4*orbsv%norb*orbsv%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,VR,'VR',subname)
+  VR = f_malloc(4*orbsv%norb*orbsv%norb,id='VR')
 
-  allocate(ew(2*orbsv%norb+ndebug),stat=i_stat)
-  call memocc(i_stat,ew,'ew',subname)
+  ew = f_malloc(2*orbsv%norb,id='ew')
 
-  allocate(g(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
-  call memocc(i_stat,g,'g',subname)
+  g = f_malloc(max(orbsv%npsidim_orbs, orbsv%npsidim_comp),id='g')
 
-  allocate(hg(max(orbsv%npsidim_orbs,orbsv%npsidim_comp)+ndebug),stat=i_stat)
-  call memocc(i_stat,hg,'hg',subname)
+  hg = f_malloc(max(orbsv%npsidim_orbs, orbsv%npsidim_comp),id='hg')
   ! end memory work memory 
   ! **********************************************
 
@@ -381,8 +368,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !
   ! number of components for the overlap matrix in wp-kind real numbers
   !
-  allocate(ndimovrlp(nspin,0:orbsv%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,ndimovrlp,'ndimovrlp',subname)
+  ndimovrlp = f_malloc((/ 1.to.nspin, 0.to.orbsv%nkpts /),id='ndimovrlp')
   !
   ! fill ndimovrlp
   !
@@ -390,8 +376,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !
   ! the dimension should be chosen with the max between k-points
   !
-  allocate(hamovr(8*ndimovrlp(nspin,orbsv%nkpts)+ndebug),stat=i_stat)
-  call memocc(i_stat,hamovr,'hamovr',subname)
+  hamovr = f_malloc(8*ndimovrlp(nspin, orbsv%nkpts),id='hamovr')
   !
   ! put to zero all the k-points which are not needed
   !
@@ -737,8 +722,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
            ! complex case
            else
               ! allocate work array for complex arithmetic
-              allocate(work_rp(6*norb+1+ndebug),stat=i_stat)
-              call memocc(i_stat,work_rp,'work_rp',subname)
+              work_rp = f_malloc(6*norb+1,id='work_rp')
               ! call lapack GEVP
               call hegv(1,'V','U',2*norb,hamovr(ish1),2*norb,hamovr(ish2),2*norb,&
                    ew(1),work(1),nwork,work_rp(1),i_stat)! Lapack GEVP
@@ -746,9 +730,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
               if (i_stat /= 0) write(*,*) &
                    'Error in HEGV on process ',iproc,', infocode ', i_stat
               ! free memory
-              i_all=-product(shape(work_rp))*kind(work_rp)
-              deallocate(work_rp,stat=i_stat)
-              call memocc(i_stat,i_all,'work_rp',subname)
+              call f_free(work_rp)
            end if
            !
            ! keep eigen values
@@ -958,81 +940,47 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   ! ******************************************************
   ! memory work  
   ! deallocate potential
-  i_all=-product(shape(hg))*kind(hg)
-  deallocate(hg,stat=i_stat)
-  call memocc(i_stat,i_all,'hg',subname)
+  call f_free(hg)
 
-  i_all=-product(shape(g))*kind(g)
-  deallocate(g,stat=i_stat)
-  call memocc(i_stat,i_all,'g',subname)
+  call f_free(g)
 
   call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
 
-  i_all=-product(shape(ndimovrlp))*kind(ndimovrlp)
-  deallocate(ndimovrlp,stat=i_stat)
-  call memocc(i_stat,i_all,'ndimovrlp',subname)
+  call f_free(ndimovrlp)
 
-  i_all=-product(shape(hamovr))*kind(hamovr)
-  deallocate(hamovr,stat=i_stat)
-  call memocc(i_stat,i_all,'hamovr',subname)
+  call f_free(hamovr)
 
-  i_all=-product(shape(work))*kind(work)
-  deallocate(work,stat=i_stat)
-  call memocc(i_stat,i_all,'work',subname)
+  call f_free(work)
 
-  i_all=-product(shape(ew))*kind(ew)
-  deallocate(ew,stat=i_stat)
-  call memocc(i_stat,i_all,'ew',subname)
+  call f_free(ew)
 
   !deallocate real array of wavefunctions
   if(exctX)then
-     i_all=-product(shape(psirocc))*kind(psirocc)
-     deallocate(psirocc,stat=i_stat)
-     call memocc(i_stat,i_all,'psirocc',subname)
+     call f_free_ptr(psirocc)
   end if
 
   if(nproc > 1) then
-     i_all=-product(shape(psiw))*kind(psiw)
-     deallocate(psiw,stat=i_stat)
-     call memocc(i_stat,i_all,'psiw',subname)
+     call f_free_ptr(psiw)
   end if
 
-  i_all=-product(shape(hv))*kind(hv)
-  deallocate(hv,stat=i_stat)
-  call memocc(i_stat,i_all,'hv',subname)
+  call f_free(hv)
 
-  i_all=-product(shape(e))*kind(e)
-  deallocate(e,stat=i_stat)
-  call memocc(i_stat,i_all,'e',subname)
+  call f_free(e)
 
-  i_all=-product(shape(eg))*kind(eg)
-  deallocate(eg,stat=i_stat)
-  call memocc(i_stat,i_all,'eg',subname)
+  call f_free(eg)
 
-  i_all=-product(shape(e_tmp))*kind(e_tmp)
-  deallocate(e_tmp,stat=i_stat)
-  call memocc(i_stat,i_all,'e_tmp',subname)
+  call f_free(e_tmp)
 
-  i_all=-product(shape(eg_tmp))*kind(eg_tmp)
-  deallocate(eg_tmp,stat=i_stat)
-  call memocc(i_stat,i_all,'eg_tmp',subname)
+  call f_free(eg_tmp)
   
   
-  i_all=-product(shape(ALPHAR))*kind(ALPHAR)
-  deallocate(ALPHAR,stat=i_stat)
-  call memocc(i_stat,i_all,'ALPHAR',subname)
+  call f_free(ALPHAR)
   
-  i_all=-product(shape(ALPHAI))*kind(ALPHAI)
-  deallocate(ALPHAI,stat=i_stat)
-  call memocc(i_stat,i_all,'ALPHAI',subname)
+  call f_free(ALPHAI)
   
-  i_all=-product(shape(BETA))*kind(BETA)
-  deallocate(BETA,stat=i_stat)
-  call memocc(i_stat,i_all,'BETA',subname)
+  call f_free(BETA)
   
-  i_all=-product(shape(VR))*kind(VR)
-  deallocate(VR,stat=i_stat)
-  call memocc(i_stat,i_all,'VR',subname)
+  call f_free(VR)
 
   ! end memory work  
   ! ******************************************************

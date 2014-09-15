@@ -367,7 +367,7 @@ subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  integer,intent(in)::ibyz(2,0:n2,0:n3+ndebug),ibxz(2,0:n1,0:n3+ndebug),ibxy(2,0:n1,0:n2+ndebug)
+  integer,intent(in)::ibyz(2,0:n2,0:n3),ibxz(2,0:n1,0:n3),ibxy(2,0:n1,0:n2)
   real(gp), intent(in) :: hgrid(3)
   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x_c
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: x_f
@@ -931,7 +931,7 @@ subroutine convolut_kinetic_hyb_c(n1,n2,n3, &
   use module_base
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  integer,intent(in)::ibyz(2,0:n2,0:n3+ndebug),ibxz(2,0:n1,0:n3+ndebug),ibxy(2,0:n1,0:n2+ndebug)
+  integer,intent(in)::ibyz(2,0:n2,0:n3),ibxz(2,0:n1,0:n3),ibxy(2,0:n1,0:n2)
   real(gp), intent(in) :: hgrid(3)
   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x_c
   real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: x_f

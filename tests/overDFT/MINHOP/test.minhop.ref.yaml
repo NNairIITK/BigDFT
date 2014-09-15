@@ -2191,7 +2191,7 @@
  ncount_bigdft in CG                   :  11
  Average CG stepsize in terms of betax : -1.00000
  End of minimization using             : SDCG
- (MH) Wvfnctn Opt. steps for approximate geo. rel of initial conf., e_pos:  11
+ (MH) Wvfnctn Opt. steps for approximate geo. rel of initial conf. :  11
 ---
   #----------------------------------------------------------- Geometry minimization using SDCG
  Begin of minimization using           : SDCG
@@ -8045,7 +8045,7 @@
  (MH) Wvfnctn Opt. steps for accurate geo. rel of MD conf:  6
  (MH) GEOPT finished:
    nlminx, nlmin                       :  [  2,  1 ]
-   (MH) e_wpos, e_pos                  :  [ -11.535116051924771, -11.306270611924152 ]
+   (MH) new e_pos, old e_pos           :  [ -11.535116051924771, -11.306270611924152 ]
  (MH) new locally lowest               : -11.535116051924771
   #(MH) WINTER
  (MH) name of idarr                    : idarr

@@ -208,7 +208,7 @@ END MODULE Minimization_routines
 
 module module_images
   use module_defs
-  use module_types
+  use bigdft_run!module_types
 
   implicit none
 
@@ -303,7 +303,9 @@ contains
 
   !> Initialize the images (replica) of the atomic coordinates along the NEB
   subroutine image_init(img, inputs, atoms, rst, algorithm)
-    use module_interfaces, only: run_objects_associate
+    use bigdft_run
+    use module_types, only: input_variables
+    use module_atoms, only: atoms_data
     use dynamic_memory, only: to_zero
     implicit none
     type(run_image), intent(out) :: img
@@ -323,7 +325,7 @@ contains
     nullify(img%delta_pos)
     nullify(img%vel)
 
-    call run_objects_nullify(img%run)
+    call nullify_run_objects(img%run)
     call run_objects_associate(img%run, inputs, atoms, rst)
     call init_global_output(img%outs, atoms%astruct%nat)
 
@@ -360,7 +362,8 @@ contains
     logical, intent(in) :: free_subs
 
     if (free_subs) then
-       call run_objects_free_container(img%run)
+       call release_run_objects(img%run)
+       !call run_objects_free_container(img%run)
        call deallocate_global_output(img%outs)
     end if
 
@@ -992,16 +995,20 @@ contains
     integer :: i_all, i_stat
     character(len = *), parameter :: subname = "image_update_pos_from_file"
 
-    if (associated(rxyzp1)) then
-      i_all=-product(shape(rxyzp1))*kind(rxyzp1)
-      deallocate(rxyzp1,stat=i_stat)
-      call memocc(i_stat,i_all,'rxyzp1',subname)
-    end if
-    if (associated(rxyzm1)) then
-      i_all=-product(shape(rxyzm1))*kind(rxyzm1)
-      deallocate(rxyzm1,stat=i_stat)
-      call memocc(i_stat,i_all,'rxyzm1',subname)
-    end if
+    !if should work now as the dictionary
+    !is base on the addres of the first element
+    call f_free_ptr(rxyzp1)
+    call f_free_ptr(rxyzm1)
+!!$    if (associated(rxyzp1)) then
+!!$      i_all=-product(shape(rxyzp1))*kind(rxyzp1)
+!!$      deallocate(rxyzp1,stat=i_stat)
+!!$      call memocc(i_stat,i_all,'rxyzp1',subname)
+!!$    end if
+!!$    if (associated(rxyzm1)) then
+!!$      i_all=-product(shape(rxyzm1))*kind(rxyzm1)
+!!$      deallocate(rxyzm1,stat=i_stat)
+!!$      call memocc(i_stat,i_all,'rxyzm1',subname)
+!!$    end if
     call deallocate_atomic_structure(astruct)
     call f_release_routine()
   end subroutine free_me
@@ -1013,7 +1020,7 @@ subroutine image_calculate(img, iteration, id)
   use module_base, only: bigdft_mpi
   use module_types
   use module_images
-  use module_interfaces, only: write_atomic_file
+  use bigdft_run, only: call_bigdft,bigdft_write_atomic_file
   implicit none
   type(run_image), intent(inout) :: img
   integer :: iteration
@@ -1033,15 +1040,17 @@ subroutine image_calculate(img, iteration, id)
      if (ierr == 0) call yaml_get_default_stream(unit_log)
      call yaml_comment("NEB iteration #" // trim(yaml_toa(iteration, fmt = "(I3.3)")), hfill="-")
   end if
-  call call_bigdft(img%run, img%outs, bigdft_mpi%nproc, bigdft_mpi%iproc, infocode)
+  call call_bigdft(img%run, img%outs, infocode)
   if (unit_log /= 0) call yaml_close_stream(unit_log)
 
   ! Output the corresponding file.
   if (bigdft_mpi%iproc == 0) then
      write(fn4, "(I4.4)") iteration
-     call write_atomic_file(trim(img%run%inputs%dir_output)//'posout_'//fn4, &
-          & img%outs%energy, img%run%atoms%astruct%rxyz,  img%run%atoms%astruct%ixyz_int, &
-          img%run%atoms, "", forces = img%outs%fxyz)
+     call bigdft_write_atomic_file(img%run,img%outs,'posout_'//fn4,"")
+
+!!$     call write_atomic_file(trim(img%run%inputs%dir_output)//'posout_'//fn4, &
+!!$          & img%outs%energy, img%run%atoms%astruct%rxyz,  img%run%atoms%astruct%ixyz_int, &
+!!$          img%run%atoms, "", forces = img%outs%fxyz)
   end if
 end subroutine image_calculate
 
@@ -1102,7 +1111,9 @@ END SUBROUTINE images_distribute_tasks
 
 !> Routines for bindings.
 subroutine image_new(img, run, outs, atoms, inputs, rst, algorithm)
-  use module_types
+  use module_types, only: input_variables
+  use module_atoms, only: atoms_data
+  use bigdft_run
   use module_images
   implicit none
 
@@ -1122,7 +1133,7 @@ END SUBROUTINE image_new
 
 
 subroutine image_free(img, run, outs)
-  use module_types
+  use bigdft_run!module_types
   use module_images
   implicit none
 

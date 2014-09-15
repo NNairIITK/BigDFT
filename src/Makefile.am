@@ -21,7 +21,7 @@ SUBDIRS = \
 	OpenCL \
 	bindings \
 	art \
-    mhgps_files \
+	mhgps_files \
 	$(sub_dirs_bin)
 
 EXTRA_DIST = \
@@ -310,7 +310,7 @@ bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
 
-mhgps_SOURCES = mhgps_files/mhgps.f90
+mhgps_SOURCES = mhgps.f90
 ##LIB_AMBERTOOLS=/kernph/schaba00/amber_lib
 mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 ##mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ mhgps_files/wrap.o

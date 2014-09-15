@@ -92,7 +92,7 @@ module yaml_output
      !other scalars
      module procedure yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l
      !vectors
-     module procedure yaml_map_iv,yaml_map_dv,yaml_map_cv,yaml_map_lv
+     module procedure yaml_map_iv,yaml_map_dv,yaml_map_cv,yaml_map_rv,yaml_map_lv
      !matrices (rank2)
      module procedure yaml_map_dm,yaml_map_rm,yaml_map_im,yaml_map_lm
   end interface
@@ -715,7 +715,8 @@ contains
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
-    call dump(streams(strm),' #WARNING: '//trim(message))
+!    call dump(streams(strm),' #WARNING: '//trim(message))
+    call yaml_comment('WARNING: '//trim(message),unit=unt)
     !here we should add a collection of all the warning which are printed out in the code.
     if (.not. streams(strm)%document_closed) then
 !!$       if (.not. associated(streams(strm)%dict_warning)) then
@@ -1231,6 +1232,13 @@ contains
     real(kind=8), dimension(:), intent(in) :: mapvalue
     include 'yaml_map-arr-inc.f90'
   end subroutine yaml_map_dv
+
+  subroutine yaml_map_rv(mapname,mapvalue,label,advance,unit,fmt)
+    implicit none
+    real, dimension(:), intent(in) :: mapvalue
+    include 'yaml_map-arr-inc.f90'
+  end subroutine yaml_map_rv
+
 
   !> Character vector
   subroutine yaml_map_cv(mapname,mapvalue,label,advance,unit,fmt)
