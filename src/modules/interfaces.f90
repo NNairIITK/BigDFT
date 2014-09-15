@@ -4221,5 +4221,17 @@ module module_interfaces
           real(kind=8),intent(out) :: scale_factor, shift_value
         end subroutine scale_and_shift_matrix
 
+        subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f)
+          use module_base
+          use module_types
+          implicit none
+          integer,intent(in) :: iproc, nproc, target_function
+          type(DFT_wavefunction),intent(inout),target :: tmb
+          real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c),intent(inout) :: hpsit_c
+          real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f),intent(inout) :: hpsit_f
+          real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c),intent(out) :: hpsittmp_c !<workarray
+          real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f),intent(out) :: hpsittmp_f !<workarray
+        end subroutine build_gradient
+
   end interface
 END MODULE module_interfaces

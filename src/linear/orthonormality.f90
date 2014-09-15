@@ -154,7 +154,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   integer,intent(in) :: correction_orthoconstraint
   real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(in) :: lphi
   real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(inout) :: lhphi
-  type(sparse_matrix),intent(inout) :: lagmat
+  type(sparse_matrix),target,intent(inout) :: lagmat
   type(matrices),intent(out) :: lagmat_
   real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: hpsit_c
   real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: hpsit_f
@@ -168,6 +168,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
   ! Local variables
   integer :: iorb, jorb, ii, ii_trans, irow, jcol, info, lwork, jj, ispin, ishift, iseg, i
+  integer :: isegstart, isegend, ierr
   real(kind=8) :: max_error, mean_error
   real(kind=8),dimension(:),allocatable :: tmp_mat_compr, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra
   integer,dimension(:),allocatable :: ipiv
@@ -175,6 +176,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   real(8),dimension(:),allocatable :: inv_ovrlp_seq, lagmat_large
   real(8),dimension(:,:),allocatable :: lagmatp, inv_lagmatp
   integer,dimension(2) :: irowcol
+  real(kind=8),dimension(:),pointer :: matrix_local
 
   call f_routine(id='orthoconstraintNonorthogonal')
 
@@ -204,23 +206,26 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
   tmp_mat_compr = sparsematrix_malloc(lagmat,iaction=SPARSE_FULL,id='tmp_mat_compr')
   call vcopy(lagmat%nvctr*lagmat%nspin, lagmat_%matrix_compr(1), 1, tmp_mat_compr(1), 1)
-  do ispin=1,lagmat%nspin
-      ishift=(ispin-1)*lagmat%nvctr
-      do iseg=1,lagmat%nseg
-          ii=lagmat%keyv(iseg)
-          do i=lagmat%keyg(1,iseg),lagmat%keyg(2,iseg)
-             !iorb = lagmat%orb_from_index(1,ii)
-             !jorb = lagmat%orb_from_index(2,ii)
-             irowcol = orb_from_index(lagmat, i)
-             ii_trans=matrixindex_in_compressed(lagmat,irowcol(2),irowcol(1))
-             lagmat_%matrix_compr(ii+ishift) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
-             !if (iorb==jorb) then
-             !    orbs%eval(iorb)=lagmat_%matrix_compr(ii)
-             !end if
-             ii=ii+1
-          end do
-      end do
-  end do
+  !!do ispin=1,lagmat%nspin
+  !!    ishift=(ispin-1)*lagmat%nvctr
+  !!    do iseg=1,lagmat%nseg
+  !!        ii=lagmat%keyv(iseg)
+  !!        do i=lagmat%keyg(1,iseg),lagmat%keyg(2,iseg)
+  !!           !iorb = lagmat%orb_from_index(1,ii)
+  !!           !jorb = lagmat%orb_from_index(2,ii)
+  !!           irowcol = orb_from_index(lagmat, i)
+  !!           ii_trans=matrixindex_in_compressed(lagmat,irowcol(2),irowcol(1))
+  !!           lagmat_%matrix_compr(ii+ishift) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
+  !!           !if (iorb==jorb) then
+  !!           !    orbs%eval(iorb)=lagmat_%matrix_compr(ii)
+  !!           !end if
+  !!           ii=ii+1
+  !!        end do
+  !!    end do
+  !!end do
+
+  call symmetrize_matrix()
+
   call f_free(tmp_mat_compr)
 
   ! Apply S^-1
@@ -269,6 +274,53 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   call f_free(hphi_nococontra)
 
   call f_release_routine()
+
+
+  contains
+
+
+    subroutine symmetrize_matrix()
+      implicit none
+
+      call f_routine(id='symmetrize_matrix')
+
+      isegstart = lagmat%istsegline(lagmat%isfvctr+1)
+      isegend = lagmat%istsegline(lagmat%isfvctr+lagmat%nfvctrp) + &
+                lagmat%nsegline(lagmat%isfvctr+lagmat%nfvctrp)-1
+      if (nproc>1) then
+          matrix_local = f_malloc_ptr(lagmat%nvctrp,id='matrix_local')
+      else
+          matrix_local => lagmat_%matrix_compr
+      end if
+      do ispin=1,lagmat%nspin
+          ishift=(ispin-1)*lagmat%nvctr
+          !$omp parallel default(none) &
+          !$omp shared(isegstart,isegend,ishift,lagmat,matrix_local,tmp_mat_compr) &
+          !$omp private(iseg,ii,i,irowcol,ii_trans)
+          !$omp do
+          do iseg=isegstart,isegend
+              ii=lagmat%keyv(iseg)
+              do i=lagmat%keyg(1,iseg),lagmat%keyg(2,iseg)
+                 irowcol = orb_from_index(lagmat, i)
+                 ii_trans = matrixindex_in_compressed(lagmat,irowcol(2),irowcol(1))
+                 matrix_local(ii-lagmat%isvctr+ishift) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
+                 ii=ii+1
+              end do
+          end do
+          !$omp end do
+          !$omp end parallel
+          if (nproc>1) then
+              call mpi_allgatherv(matrix_local(1), lagmat%nvctrp, mpi_double_precision, &
+                   lagmat_%matrix_compr(ishift+1), lagmat%nvctr_par, lagmat%isvctr_par, mpi_double_precision, &
+                   bigdft_mpi%mpi_comm, ierr)
+              call f_free_ptr(matrix_local)
+          end if
+      end do
+
+      call f_release_routine()
+
+    end subroutine symmetrize_matrix
+
 
 end subroutine orthoconstraintNonorthogonal
 
