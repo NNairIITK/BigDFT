@@ -619,8 +619,8 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                   i0 = collcom%isptsp_c(ipt) + (ispin-1)*collcom%ndimind_c/smat%nspin
                   do i=1,ii
                       i0i=i0+i
-                      iiorb=collcom%indexrecvorbital_c(i0i)
-                      iiorb=mod(iiorb-1,smat%nfvctr)+1
+                      iiorb=collcom%indexrecvorbital_c(i0i) - iorb_shift
+                      !iiorb=mod(iiorb-1,smat%nfvctr)+1
                       if(iiorb < istart .or. iiorb > iend) cycle
                       m=mod(ii,7)
                       if(m/=0) then
