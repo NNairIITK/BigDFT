@@ -792,10 +792,10 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
           end if
           do ispin=1,tmb%linmat%l%nspin
               ishift=(ispin-1)*tmb%linmat%l%nvctr
-              !!$omp parallel default(none) &
-              !!$omp shared(isegstart,isegend,tmb,matrix_local,kernel_compr_tmp,ishift) &
-              !!$omp private(iseg,ii,i,irowcol)
-              !!$omp do
+              !$omp parallel default(none) &
+              !$omp shared(isegstart,isegend,tmb,matrix_local,kernel_compr_tmp,ishift) &
+              !$omp private(iseg,ii,i,irowcol)
+              !$omp do
               do iseg=isegstart,isegend
                   ii=tmb%linmat%l%keyv(iseg)
                   do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
@@ -803,13 +803,13 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
                       if(irowcol(1)==irowcol(2)) then
                           matrix_local(ii-tmb%linmat%l%isvctr+ishift)=0.d0
                       else
-                          matrix_local(ii-tmb%linmat%l%isvctr+ishift)=kernel_compr_tmp(ii-tmb%linmat%l%isvctr+ishift)
+                          matrix_local(ii-tmb%linmat%l%isvctr+ishift)=kernel_compr_tmp(ii+ishift)
                       end if
                       ii=ii+1
                   end do
               end do
-              !!$omp end do
-              !!$omp end parallel
+              !$omp end do
+              !$omp end parallel
               if (nproc>1) then
                    call mpi_allgatherv(matrix_local(1), tmb%linmat%l%nvctrp, mpi_double_precision, &
                         tmb%linmat%kernel_%matrix_compr(ishift+1), tmb%linmat%l%nvctr_par, tmb%linmat%l%isvctr_par, mpi_double_precision, &
@@ -829,13 +829,14 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
               ishift=(ispin-1)*tmb%linmat%l%nvctr
               isegstart = tmb%linmat%l%istsegline(iorb)
               isegend = tmb%linmat%l%istsegline(iorb) + tmb%linmat%l%nsegline(iorb) - 1
-              !do iseg=isegstart,isegend
-              do iseg=1, tmb%linmat%l%nseg
+              do iseg=isegstart,isegend
+              !do iseg=1, tmb%linmat%l%nseg
                   ii=tmb%linmat%l%keyv(iseg)
                   do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
                       irowcol = orb_from_index(tmb%linmat%l, i)
-                      !if (irowcol(2)/=iorb) stop'irowcol(2)/=iorb'
-                      if(irowcol(1)==irowcol(2) .and. irowcol(1)==iorb) then
+                      if (irowcol(2)/=iorb) stop'irowcol(2)/=iorb'
+                      !if(irowcol(1)==irowcol(2) .and. irowcol(1)==iorb) then
+                      if(irowcol(1)==irowcol(2)) then
                           ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
                           call dscal(ncount, kernel_compr_tmp(ii+ishift), tmb%hpsi(ist), 1)
                           ist=ist+ncount
