@@ -154,7 +154,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   integer,intent(in) :: correction_orthoconstraint
   real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(in) :: lphi
   real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(inout) :: lhphi
-  type(sparse_matrix),target,intent(inout) :: lagmat
+  type(sparse_matrix),intent(inout) :: lagmat
   type(matrices),intent(out) :: lagmat_
   real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: hpsit_c
   real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: hpsit_f
@@ -287,11 +287,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       isegstart = lagmat%istsegline(lagmat%isfvctr+1)
       isegend = lagmat%istsegline(lagmat%isfvctr+lagmat%nfvctrp) + &
                 lagmat%nsegline(lagmat%isfvctr+lagmat%nfvctrp)-1
-      if (nproc>1) then
-          matrix_local = f_malloc_ptr(lagmat%nvctrp,id='matrix_local')
-      else
-          matrix_local => lagmat_%matrix_compr
-      end if
+      matrix_local = f_malloc_ptr(lagmat%nvctrp,id='matrix_local')
       do ispin=1,lagmat%nspin
           ishift=(ispin-1)*lagmat%nvctr
           !$omp parallel default(none) &
@@ -303,7 +299,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
               do i=lagmat%keyg(1,iseg),lagmat%keyg(2,iseg)
                  irowcol = orb_from_index(lagmat, i)
                  ii_trans = matrixindex_in_compressed(lagmat,irowcol(2),irowcol(1))
-                 matrix_local(ii-lagmat%isvctr+ishift) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
+                 matrix_local(ii-lagmat%isvctr) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
                  ii=ii+1
               end do
           end do
@@ -313,7 +309,9 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
               call mpi_allgatherv(matrix_local(1), lagmat%nvctrp, mpi_double_precision, &
                    lagmat_%matrix_compr(ishift+1), lagmat%nvctr_par, lagmat%isvctr_par, mpi_double_precision, &
                    bigdft_mpi%mpi_comm, ierr)
-              call f_free_ptr(matrix_local)
+               if (ispin==lagmat%nspin) call f_free_ptr(matrix_local)
+          else
+              call vcopy(lagmat%nvctr, matrix_local(1), 1, lagmat_%matrix_compr(ishift+1), 1)
           end if
       end do
 
