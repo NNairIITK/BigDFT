@@ -4226,7 +4226,7 @@ module module_interfaces
           use module_types
           implicit none
           integer,intent(in) :: iproc, nproc, target_function
-          type(DFT_wavefunction),intent(inout),target :: tmb
+          type(DFT_wavefunction),intent(inout) :: tmb
           real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c),intent(inout) :: hpsit_c
           real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f),intent(inout) :: hpsit_f
           real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c),intent(out) :: hpsittmp_c !<workarray
