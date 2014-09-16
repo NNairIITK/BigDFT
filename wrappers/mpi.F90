@@ -1058,7 +1058,7 @@ end subroutine create_group_comm1
     sizeof=mpitypesize(base)
     info=mpiinfo("no_locks", "true")
 
-    call mpi_win_create(base, int(size,kind=MPI_ADDRESS_KIND)*int(sizeof,kind=MPI_ADDRESS_KIND), &
+    call mpi_win_create(base, int(size,kind=mpi_address_kind)*int(sizeof,kind=mpi_address_kind), &
          sizeof, info,comm, window, ierr)
     if (ierr/=0) then
        call f_err_throw('Error in mpi_win_create',&
@@ -1081,7 +1081,7 @@ end subroutine create_group_comm1
     implicit none
     double precision,intent(inout) :: origin !<fake intent(in)
     integer,intent(in) :: count, target_rank,window
-    integer(kind=MPI_ADDRESS_KIND),intent(in) :: target_disp
+    integer(kind=mpi_address_kind),intent(in) :: target_disp
 
     ! Local variables
     integer :: ierr
