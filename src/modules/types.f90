@@ -899,7 +899,7 @@ module module_types
  !>timing categories
  character(len=*), parameter, private :: tgrp_pot='Potential'
  integer, save, public :: TCAT_EXCHANGECORR=TIMING_UNINITIALIZED
- integer, parameter, private :: ncls_max=6,ncat_bigdft=144   ! define timimg categories and classes
+ integer, parameter, private :: ncls_max=6,ncat_bigdft=146   ! define timimg categories and classes
  character(len=14), dimension(ncls_max), parameter, private :: clss = (/ &
       'Communications'    ,  &
       'Convolutions  '    ,  &
@@ -1059,6 +1059,8 @@ module module_types
       'potential_dims','Other         ' ,'auxiliary     ' ,  &
       'sparse_matmul ','Linear Algebra' ,'self-made     ' ,  &
       'transform_matr','Other         ' ,'small to large' ,  &
+      'calctrace_comp','Other         ' ,'Miscellaneous ' ,  &
+      'calctrace_comm','Communications' ,'allreduce     ' ,  &
       'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat_bigdft/))
  integer, dimension(ncat_bigdft), private, save :: cat_ids !< id of the categories to be converted
 

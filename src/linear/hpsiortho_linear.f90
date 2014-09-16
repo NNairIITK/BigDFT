@@ -301,13 +301,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
   ! Calculate trace (or band structure energy, resp.)
-  trH=0.d0
-  call timing(iproc,'buildgrad_mcpy','ON')
-  do iorb=1,tmb%orbs%norb
-     ii=matrixindex_in_compressed(tmb%linmat%m,iorb,iorb)
-     trH = trH + tmb%linmat%ham_%matrix_compr(ii)
-  end do
-  call timing(iproc,'buildgrad_mcpy','OF')
+  call calculate_trace()
 
   if (present(cdft).and..false.) then
     !only correct energy not gradient for now
@@ -433,7 +427,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
   call vcopy(tmb%npsidim_orbs, hpsi_small(1), 1, lhphiold(1), 1)
-  call timing(iproc,'buildgrad_mcpy','OF')
+  !call timing(iproc,'buildgrad_mcpy','OF')
 
   ! if energy has increased or we only wanted to calculate the energy, not gradient, we can return here
   ! rather than calculating the preconditioning for nothing
@@ -506,6 +500,34 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   call f_release_routine()
 
+
+  contains
+
+    subroutine calculate_trace()
+      implicit none
+
+      ! Local variables
+      integer :: iorb, iiorb
+
+      call f_routine(id='calculate_trace')
+      call timing(iproc,'calctrace_comp','ON')
+
+      trH=0.d0
+      do iorb=1,tmb%orbs%norbp
+         iiorb=tmb%orbs%isorb+iorb
+         ii=matrixindex_in_compressed(tmb%linmat%m,iiorb,iiorb)
+         trH = trH + tmb%linmat%ham_%matrix_compr(ii)
+      end do
+      call timing(iproc,'calctrace_comp','OF')
+      call timing(iproc,'calctrace_comm','ON')
+      if (nproc>1) then
+          call mpiallred(trH, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
+      call timing(iproc,'calctrace_comm','OF')
+
+      call f_release_routine()
+
+    end subroutine calculate_trace
 
 end subroutine calculate_energy_and_gradient_linear
 
@@ -820,13 +842,13 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
                    !!     bigdft_mpi%mpi_comm, ierr)
                    if (comm_strategy==ALLGATHERV) then
                        call mpi_allgatherv(matrix_local(1), tmb%linmat%l%nvctrp, mpi_double_precision, &
-                            tmb%linmat%kernel_%matrix_compr(1), tmb%linmat%l%nvctr_par, &
+                            tmb%linmat%kernel_%matrix_compr(ishift+1), tmb%linmat%l%nvctr_par, &
                             tmb%linmat%l%isvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
                        call f_free_ptr(matrix_local)
                    else if (comm_strategy==GET) then
                        call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l%nvctrp, matrix_local, &
                             tmb%linmat%l%nvctr_par, tmb%linmat%l%isvctr_par, &
-                            tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr)
+                            tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ishift+1:ishift+tmb%linmat%l%nvctr))
                    else
                        stop 'build_gradient: wrong communication strategy'
                    end if
