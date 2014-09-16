@@ -449,6 +449,8 @@ module sparsematrix
      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
      integer,dimension(:),pointer :: isvctr_par, nvctr_par
      real(kind=8),dimension(:),pointer :: matrix_local
+     integer,parameter :: ALLGATHERV=51, GET=52
+     integer,parameter :: comm_strategy=GET
 
      call f_routine(id='compress_matrix_distributed')
 
@@ -509,10 +511,18 @@ module sparsematrix
      call timing(iproc,'compressd_mcpy','OF')
      call timing(iproc,'compressd_comm','ON')
      if (bigdft_mpi%nproc>1) then
-         !call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
-         call mpi_allgatherv(matrix_local(1), nvctrp, mpi_double_precision, &
-              matrix_compr(1), nvctr_par, isvctr_par, mpi_double_precision, &
-              bigdft_mpi%mpi_comm, ierr)
+         if (comm_strategy==ALLGATHERV) then
+             !call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+             call mpi_allgatherv(matrix_local(1), nvctrp, mpi_double_precision, &
+                  matrix_compr(1), nvctr_par, isvctr_par, mpi_double_precision, &
+                  bigdft_mpi%mpi_comm, ierr)
+             call f_free_ptr(matrix_local)
+         else if (comm_strategy==GET) then
+             call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, nvctrp, matrix_local, &
+                  nvctr_par, isvctr_par, smat%nvctr, matrix_compr)
+         else
+             stop 'compress_matrix_distributed: wrong communication strategy'
+         end if
          call f_free_ptr(matrix_local)
      end if
 
