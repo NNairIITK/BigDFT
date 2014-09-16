@@ -27,8 +27,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.5
- Timestamp of this run                 : 2014-09-09 12:24:59.058
+ Version Number                        : 1.7.5.10
+ Timestamp of this run                 : 2014-09-16 09:37:04.656
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -90,7 +90,7 @@
    maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
    ef_interpol_det                     : 0.10E-19 # FOE max determinant of cubic interpolation matrix
    ef_interpol_chargediff              : 0.10E+02 # FOE max charge difference for interpolation
-   mixing_after_inputguess             : Yes #    Mixing step after linear input guess (T/F)
+   mixing_after_inputguess             : 1 #      Mixing step after linear input gues
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 2 #      Enables linear sumrho check
    check_overlap                       : 2 #      Enables linear overlap check
@@ -276,7 +276,7 @@
    Radii of active regions (AU):
      Coarse                            : 1.215575721499752
      Fine                              : 0.22178614
-     Coarse PSP                        : 0.22178614
+     Coarse PSP                        : 0.5503476428571429
      Source                            : Hard-Coded
  psppar.H:
    Pseudopotential type                : HGH-K
@@ -290,7 +290,7 @@
    Radii of active regions (AU):
      Coarse                            : 1.463418464633951
      Fine                              : 0.2
-     Coarse PSP                        : 0.2
+     Coarse PSP                        : 0.0
      Source                            : Hard-Coded
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data-read45/
@@ -560,7 +560,7 @@
      Molecule was shifted              :  24
      Molecule was rotated              :  18
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  1.799E+01,  1.131E+01 ]}
+   -  {Process:  0, Timing:  [  1.623E+01,  9.313E+00 ]}
    Max deviation from unity in reorthonormalize_coeff:  4.75E-06
    Mean deviation from unity in reorthonormalize_coeff:  2.36E-06
    Max deviation from unity in reorthonormalize_coeff:  1.67E-06
@@ -661,12 +661,12 @@
  calculate S^x: {mode: sparse, x: -1, order:  8, 
  max / mean error:  [  7.86E-04,  1.22E-04 ]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  1.85E-01, Omega: -6.872039787634843E+01, D: -6.87E+01, D best: -6.87E+01, 
+ iter:  1, fnrm:  1.85E-01, Omega: -6.872039787634840E+01, D: -6.87E+01, D best: -6.87E+01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 1
  target function: ENERGY, 
  Energies: {Ekin:  3.75283659278E+01, Epot: -4.81106526827E+01, Enl:  2.75406487401E+00}, 
- iter:  1, fnrm:  1.85E-01, Omega: -6.872039787634843E+01, D: -6.87E+01, D best: -6.87E+01}
+ iter:  1, fnrm:  1.85E-01, Omega: -6.872039787634840E+01, D: -6.87E+01, D best: -6.87E+01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -685,7 +685,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  8.66E-06, 
  calculate S^x: {mode: dense, x: -1/2, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.45E-02, eBS: -1.62499998164626902E+01, D: -1.771E-03, 
+ iter:  1, fnrm:  2.45E-02, eBS: -1.62499998164626973E+01, D: -1.771E-03, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -712,15 +712,15 @@
  {e: -2.698798569525E-01, f:  2.0000},  # 00015
  {e: -2.698798569525E-01, f:  2.0000}] # 00016
      summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  3.40E-08, energy: -6.87221689347601199E+01, D: -6.872E+01}]
+ iter:  1, delta:  3.40E-08, energy: -6.87221689347600915E+01, D: -6.872E+01}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel optimization: DMIN, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  3.40E-08, energy: -6.87221689347601199E+01, D: -6.872E+01}]}
+ iter:  2, delta:  3.40E-08, energy: -6.87221689347600915E+01, D: -6.872E+01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  1, delta out:  3.396E-08, energy: -6.87221689347601199E+01, D: -6.872E+01}
+ iter high:  1, delta out:  3.396E-08, energy: -6.87221689347600915E+01, D: -6.872E+01}
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
  {e: -9.212807585703E-01, f:  1.0000},  # 00001
@@ -813,7 +813,7 @@
  Energies: {Ekin:  3.75283659278E+01, Epot: -4.81106526827E+01, Enl:  2.75406487401E+00, 
               EH:  1.42312085313E+02,  EXC: -1.64931125244E+01, EvXC: -2.16204272760E+01}, 
        iter high:  1,            delta out:  3.396E-08, 
-          energy: -6.87221689347601199E+01,                       D:  0.000E+00,  #FINAL
+          energy: -6.87221689347600915E+01,                       D:  0.000E+00,  #FINAL
  }
  Total charge                          :  3.199999499062E+01
   #---------------------------------------------------------------------- Forces Calculation
@@ -825,22 +825,22 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  1.20251760E-02, y: -5.91981293E-02, z:  3.59641403E-02, 
                     total:  7.03025089E-02}
- Clean forces norm (Ha/Bohr): {maxval:  8.121636211823E-02, fnrm2:  1.232147890898E-02}
- Raw forces norm (Ha/Bohr): {maxval:  1.152527862041E-01, fnrm2:  2.129280103656E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  8.121636211831E-02, fnrm2:  1.232147890901E-02}
+ Raw forces norm (Ha/Bohr): {maxval:  1.152527862041E-01, fnrm2:  2.129280103655E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 2.609639914913E-02, -7.266318073279E-02,  2.520193629390E-02]} # 0001
- -  {H: [-4.504345903109E-03,  1.146942960794E-02, -1.211039894230E-02]} # 0002
- -  {H: [-3.466147468775E-03,  8.141333715352E-03, -5.937290509689E-03]} # 0003
- -  {O: [ 3.751855990888E-03, -3.901455688021E-02,  2.557630241918E-02]} # 0004
- -  {H: [-2.307005134984E-02,  7.943737349359E-03, -1.183098521934E-02]} # 0005
- -  {H: [-1.115522444413E-02,  5.342461411489E-03, -8.474081471367E-03]} # 0006
- -  {O: [-1.547805548031E-02,  1.102351342072E-02, -2.244107978437E-03]} # 0007
- -  {H: [ 8.549044352063E-03,  2.345036861109E-02, -6.268846585850E-03]} # 0008
- -  {H: [ 3.676010023381E-03,  2.536038504827E-02, -1.093771082667E-02]} # 0009
- -  {O: [ 1.220026283698E-02,  9.604226792612E-03,  1.057438767667E-03]} # 0010
- -  {H: [ 2.132172509741E-04,  2.185891360686E-03,  6.980837808652E-03]} # 0011
- -  {H: [ 3.187035042755E-03,  7.156390295490E-03, -1.013093755745E-03]} # 0012
+ -  {O: [ 2.609639914835E-02, -7.266318073312E-02,  2.520193629402E-02]} # 0001
+ -  {H: [-4.504345902952E-03,  1.146942960788E-02, -1.211039894233E-02]} # 0002
+ -  {H: [-3.466147468551E-03,  8.141333715302E-03, -5.937290509704E-03]} # 0003
+ -  {O: [ 3.751855990261E-03, -3.901455688044E-02,  2.557630241923E-02]} # 0004
+ -  {H: [-2.307005134951E-02,  7.943737349455E-03, -1.183098521933E-02]} # 0005
+ -  {H: [-1.115522444379E-02,  5.342461411587E-03, -8.474081471355E-03]} # 0006
+ -  {O: [-1.547805548068E-02,  1.102351342149E-02, -2.244107978983E-03]} # 0007
+ -  {H: [ 8.549044352045E-03,  2.345036861107E-02, -6.268846585898E-03]} # 0008
+ -  {H: [ 3.676010023438E-03,  2.536038504818E-02, -1.093771082671E-02]} # 0009
+ -  {O: [ 1.220026283752E-02,  9.604226792101E-03,  1.057438768205E-03]} # 0010
+ -  {H: [ 2.132172510086E-04,  2.185891360867E-03,  6.980837808621E-03]} # 0011
+ -  {H: [ 3.187035042854E-03,  7.156390295630E-03, -1.013093755767E-03]} # 0012
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -848,15 +848,15 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  36.70
-   Elapsed time (s)                    :  21.29
+   CPU time (s)                        :  32.83
+   Elapsed time (s)                    :  18.29
  Memory Consumption Report:
-   Tot. No. of Allocations             :  3382
-   Tot. No. of Deallocations           :  3382
+   Tot. No. of Allocations             :  3643
+   Tot. No. of Deallocations           :  3643
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  564
+     Peak Value (MB)                   :  574
      for the array                     : psir
      in the routine                    : LocalHamiltonianApplication
- Max No. of dictionaries used          :  3357 #( 803 still in use)
+ Max No. of dictionaries used          :  3156 #( 825 still in use)
  Number of dictionary folders allocated:  1
