@@ -1094,7 +1094,7 @@ end subroutine create_group_comm1
     end if
   end subroutine mpiget_d0
 
-  subroutine mpi_get_to_allgatherv_double(sendbuf,sendcount,recvbuf,recvcounts,displs,comm,check,window_)
+  subroutine mpi_get_to_allgatherv_double(sendbuf,sendcount,recvbuf,recvcounts,displs,comm,check_,window_)
     use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
@@ -1104,15 +1104,22 @@ end subroutine create_group_comm1
     double precision,intent(inout) :: recvbuf
     integer,dimension(:),intent(in) :: recvcounts, displs
     integer,intent(in) :: comm, sendcount
-    logical,intent(in),optional :: check
+    logical,intent(in),optional :: check_
     integer,intent(out),pointer,optional :: window_
     !local variables
     integer :: nproc,jproc,nrecvbuf,ierr
     external :: getall
+    logical :: check
     integer,target:: window
 
     nproc=mpisize(comm)
     nrecvbuf=sum(recvcounts)
+
+    if (present(check_)) then
+        check = check_
+    else
+        check = .false.
+    end if
 
     if (check) then
        !check coherence
@@ -1124,12 +1131,14 @@ end subroutine create_group_comm1
        end if
     end if
 
+
     if (present(window_)) then
         window_ => window
     end if
     !else
     window = mpiwindow(sendcount,sendbuf,comm)
     !end if
+
 
     call getall_d(nproc,recvcounts,displs,window,nrecvbuf,recvbuf)
 
