@@ -816,7 +816,9 @@ contains
     end do
 
     if (nspden==4) then
-       stop 'SM: I think that one needs to include ioffset as well here...'
+       if (ishift/=0) then
+           stop 'GGA shifts are not yet possible for nspden=4'
+       end if
        ! Add the magnetisation
        ar = dnrm2(npoints * 2, x(1 + cplex * nfft * 2 + ishift), 1)
        ar = ar ** 2
@@ -874,7 +876,9 @@ contains
        end do
 
        if (nspden==4) then
-          stop 'SM: I think that one needs to include ioffset as well here...'
+          if (ishift/=0) then
+              stop 'GGA shifts are not yet possible for nspden=4'
+          end if
           ! Add the magnetisation
           ar = ddot(npoints * 2, x(1 + cplex * nfft * 2 + ishift), 1, &
                & y(1 + cplex * nfft * 2 + ishift), 1)
