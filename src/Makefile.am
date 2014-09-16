@@ -311,11 +311,11 @@ bart_FCFLAGS = -I. -Iart -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_I
 bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
 
 mhgps_SOURCES = mhgps.f90
-##LIB_AMBERTOOLS=/kernph/schaba00/amber_lib
-mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-##mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ mhgps_files/wrap.o
-mhgps_LDADD = mhgps_files/libmhgps.a $(bigdft_library) @LINALG_LIBS@
-##mhgps_LDADD = -L$(LIB_AMBERTOOLS)  -lsff -lnab -lpbsa -lcifparse -lrism -lfftw3 -larpack mhgps_files/libmhgps.a $(bigdft_library) @LINALG_LIBS@
+LIB_AMBERTOOLS=/kernph/schaba00/amber_lib
+##mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ mhgps_files/wrap.o
+##mhgps_LDADD = mhgps_files/libmhgps.a $(bigdft_library) @LINALG_LIBS@
+mhgps_LDADD = -L$(LIB_AMBERTOOLS)  -lsff -lnab -lpbsa -lcifparse -lrism -lfftw3 -larpack mhgps_files/libmhgps.a $(bigdft_library) @LINALG_LIBS@
 
 global_SOURCES = global.f90
 global_LDADD = $(bigdft_library) @LINALG_LIBS@

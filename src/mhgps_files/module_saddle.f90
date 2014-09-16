@@ -79,6 +79,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     integer, intent(in)       :: iconnect(2,nbond)
     real(gp), intent(in)      :: rotforce(3,nat)
     !internal
+    real(gp), allocatable, dimension(:,:)   :: rxyzold
     real(gp), allocatable, dimension(:,:)   :: dds
     real(gp), allocatable, dimension(:,:)   :: dd0
     real(gp), allocatable, dimension(:,:)   :: delta
@@ -157,6 +158,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     alpha_stretch=alpha_stretch0
 
     ! allocate arrays
+    rxyzold = f_malloc((/ 1.to.3, 1.to.nat/),id='rxyzold')
     dds = f_malloc((/ 1.to.3, 1.to.nat/),id='dds')
     dd0 = f_malloc((/ 1.to.3, 1.to.nat/),id='dd0')
     delta = f_malloc((/ 1.to.3, 1.to.nat/),id='delta')
@@ -177,6 +179,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     call minenergyandforces(.true.,imode,nat,alat,rxyz(1,1,0),rxyzraw(1,1,0),&
     fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,&
     wold,alpha_stretch0,alpha_stretch)
+    rxyzold=rxyz(:,:,0)
     ener_count=ener_count+1.0_gp
     if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
     call fnrmandforcemax(fxyzraw(1,1,0),fnrm,fmax,nat)
@@ -347,12 +350,15 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
            call yaml_comment('fragmentation fixed')
         !displ=displ+tt
  
+        delta=rxyz(:,:,nhist)-rxyzold
+        displ=displ+dnrm2(3*nat,delta(1,1),1)
         inputPsiId=1
         call minenergyandforces(.true.,imode,nat,alat,rxyz(1,1,nhist),&
                 rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),&
                 fxyzraw(1,1,nhist),etotp,iconnect,nbond,wold,&
                 alpha_stretch0,alpha_stretch)
         ener_count=ener_count+1.0_gp
+        rxyzold=rxyz(:,:,nhist)
         detot=etotp-etotold
  
         call fnrmandforcemax(fxyzraw(1,1,nhist),fnrm,fmax,nat)
@@ -386,6 +392,20 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
             write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es9.2)')&
             '   (MHGPS) GEOPT ',nint(ener_count),it,etotp,detot,fmax,&
             fnrm, alpha,ndim!,maxd,
+!        write(cdmy8,'(es8.1)')abs(maxd)
+!        write(cdmy9_1,'(es9.2)')abs(displr)
+!        write(cdmy9_2,'(es9.2)')abs(displp)
+!        write(cdmy9_3,'(es9.2)')abs(beta)
+!        if(iproc==0.and.mhgps_verbosity>=2)&
+!            write(16,'(a,1x,i5.5,1x,i5.5,1x,1es21.14,1x,es9.2,es11.3'//&
+!            ',3es10.2,1x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))')&
+!            '   (MHGPS) GEOPT ',nint(ener_count),it,etotp,detot,fmax,fnrm,&
+!            fluct*runObj%inputs%frac_fluct,fluct,&
+!            'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,&
+!            'maxd=',trim(adjustl(cdmy8)),&
+!            'dsplr=',trim(adjustl(cdmy9_1)),&
+!            'dsplp=',trim(adjustl(cdmy9_2))
+
 
         etot=etotp
         etotold=etot
@@ -434,8 +454,8 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
                 cutoffratio,lwork,work,rxyz,fxyz,aa,rr,ff,rrr,fff,&
                 eval,res,subspaceSucc)
 
-        delta=rxyz(:,:,nhist)-rxyz(:,:,nhist-1)
-        displ=displ+dnrm2(3*nat,delta(1,1),1)
+!        delta=rxyz(:,:,nhist)-rxyz(:,:,nhist-1)
+!        displ=displ+dnrm2(3*nat,delta(1,1),1)
   enddo
 
   if(iproc==0)call yaml_warning('(MHGPS) No convergence in findsad')
@@ -1649,7 +1669,7 @@ subroutine minenergyandforces(eeval,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
     integer, intent(in)           :: nbond_
     integer, intent(in)           :: iconnect(2,nbond_)
     real(gp), intent(in)          :: alat(3)
-    real(gp),intent(inout)           :: rat(3,nat)
+    real(gp),intent(in)           :: rat(3,nat)
     real(gp),intent(out)          :: rxyzraw(3,nat)
     real(gp),intent(out)          :: fxyzraw(3,nat)
     real(gp),intent(inout)          :: fat(3,nat)

@@ -144,32 +144,32 @@ real(gp), allocatable :: fat(:,:)
                               atoms%astruct)
         fdim=atoms%astruct%nat
         call print_logo_mhgps()
-!    elseif(efmethod=='AMBER')then
-!        iproc=0
-!        isForceField=.true.
-!        write(currDir,'(a,i3.3)')'input',ifolder
-!        write(filename,'(a,i3.3)')'pos',ifile
-!        call deallocate_atomic_structure(atoms%astruct)
-!        call read_atomic_file(currDir//'/'//filename,iproc,&
-!                              atoms%astruct)
-!        fdim=atoms%astruct%nat
-!        !alanine stuff ......................START!>
-!          l_sat=5
-!          allocate(atomnamesdmy(1000))
-!          rxyzdmy = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
-!                            id='rxyzdmy')
-!          fxyzdmy = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
-!                            id='fxyzdmy')
-!          fnpdb='ald_new.pdb'
-!          nfnpdb=len(trim(fnpdb));
-!          call nab_init(atoms%astruct%nat,rxyzdmy,fxyzdmy,&
-!                        trim(fnpdb),nfnpdb,l_sat,atomnamesdmy)
-!          call f_free(rxyzdmy)
-!          call f_free(fxyzdmy)
-!          deallocate(atomnamesdmy)
-!        !alanine stuff ......................END!>
-!
-!        call print_logo_mhgps()
+    elseif(efmethod=='AMBER')then
+        iproc=0
+        isForceField=.true.
+        write(currDir,'(a,i3.3)')'input',ifolder
+        write(filename,'(a,i3.3)')'pos',ifile
+        call deallocate_atomic_structure(atoms%astruct)
+        call read_atomic_file(currDir//'/'//filename,iproc,&
+                              atoms%astruct)
+        fdim=atoms%astruct%nat
+        !alanine stuff ......................START!>
+          l_sat=5
+          allocate(atomnamesdmy(1000))
+          rxyzdmy = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+                            id='rxyzdmy')
+          fxyzdmy = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+                            id='fxyzdmy')
+          fnpdb='ald_new.pdb'
+          nfnpdb=len(trim(fnpdb));
+          call nab_init(atoms%astruct%nat,rxyzdmy,fxyzdmy,&
+                        trim(fnpdb),nfnpdb,l_sat,atomnamesdmy)
+          call f_free(rxyzdmy)
+          call f_free(fxyzdmy)
+          deallocate(atomnamesdmy)
+        !alanine stuff ......................END!>
+
+        call print_logo_mhgps()
     else
         call yaml_warning('Following method for evaluation of '//&
         'energies and forces is unknown: '//trim(adjustl(efmethod)))
