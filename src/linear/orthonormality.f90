@@ -311,12 +311,12 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
               !!     bigdft_mpi%mpi_comm, ierr)
               if (comm_strategy==ALLGATHERV) then
                   call mpi_allgatherv(matrix_local(1), lagmat%nvctrp, mpi_double_precision, &
-                       lagmat_%matrix_compr(1), lagmat%nvctr_par, lagmat%isvctr_par, mpi_double_precision, &
+                       lagmat_%matrix_compr(ishift+1), lagmat%nvctr_par, lagmat%isvctr_par, mpi_double_precision, &
                        bigdft_mpi%mpi_comm, ierr)
                   call f_free_ptr(matrix_local)
               else if (comm_strategy==GET) then
                   call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, lagmat%nvctrp, matrix_local, &
-                       lagmat%nvctr_par, lagmat%isvctr_par, lagmat%nvctr, lagmat_%matrix_compr)
+                       lagmat%nvctr_par, lagmat%isvctr_par, lagmat%nvctr, lagmat_%matrix_compr(ishift+1:ishift+lagmat%nvctr))
               else
                   stop 'symmetrize_matrix: wrong communication strategy'
               end if
