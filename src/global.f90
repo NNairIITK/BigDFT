@@ -278,6 +278,7 @@ program MINHOP
   !call run_objects_associate(runObj, inputs_opt, atoms, rst)
   !here the atomic positions of run_opt have to be updated
   call bigdft_set_rxyz(run_opt,rxyz=bigdft_get_rxyz_ptr(run_md))
+  outs%fnoise = 0.0_gp !Bastian: reset noise from coarse level
   call geopt(run_opt, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   !call release_run_objects(runObj)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of initial conf.',ncount_bigdft)
@@ -551,6 +552,7 @@ program MINHOP
 !  endif   
   !call run_objects_associate(runObj, inputs_opt, atoms, rst)
   call bigdft_set_rxyz(run_opt,rxyz=bigdft_get_rxyz_ptr(run_md))
+  outs%fnoise = 0.0_gp !Bastian: reset noise from coarse level
   call geopt(run_opt, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   !call release_run_objects(runObj)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of MD conf',ncount_bigdft)
