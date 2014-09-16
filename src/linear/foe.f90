@@ -2485,6 +2485,7 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
   
 
   call f_routine(id='scale_and_shift_matrix')
+  call timing(iproc,'foe_aux_mcpy  ','ON')
 
   ! smat2 and mat2 must be present at the same time
   if (all((/present(smat2),present(mat2),present(i2shift)/))) then
@@ -2495,42 +2496,6 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
       end if
       with_overlap = .false.
   end if
-
-  !!##scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
-  !!##shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh",ispin)+foe_data_get_real(foe_obj,"evlow",ispin))
-  !!##!$omp parallel default(none) private(iseg,ii,i,irowcol,ii2,ii1,tt2,tt1) &
-  !!##!$omp shared(matscal_compr,scale_factor,shift_value,i2shift,i1shift,smatl,smat1,smat2,mat1,mat2,with_overlap)
-  !!##!$omp do
-  !!##do iseg=1,smatl%nseg
-  !!##    ii=smatl%keyv(iseg)
-  !!##    do i=smatl%keyg(1,iseg),smatl%keyg(2,iseg)
-  !!##        irowcol = orb_from_index(smatl,i)
-  !!##        ii1 = matrixindex_in_compressed(smat1, irowcol(1), irowcol(2))
-  !!##        if (ii1>0) then
-  !!##            tt1=mat1%matrix_compr(i1shift+ii1)
-  !!##        else
-  !!##            tt1=0.d0
-  !!##        end if
-  !!##        if (with_overlap) then
-  !!##            ii2 = matrixindex_in_compressed(smat2, irowcol(1), irowcol(2))
-  !!##            if (ii2>0) then
-  !!##                tt2=mat2%matrix_compr(i2shift+ii2)
-  !!##            else
-  !!##                tt2=0.d0
-  !!##            end if
-  !!##        else
-  !!##            if (irowcol(1)==irowcol(2)) then
-  !!##                tt2 = 1.d0
-  !!##            else
-  !!##                tt2 = 0.d0
-  !!##            end if
-  !!##        end if
-  !!##        matscal_compr(ii)=scale_factor*(tt1-shift_value*tt2)
-  !!##        ii=ii+1
-  !!##    end do
-  !!##end do
-  !!##!$omp end do
-  !!##!$omp end parallel
 
   scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
   shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh",ispin)+foe_data_get_real(foe_obj,"evlow",ispin))
@@ -2577,15 +2542,15 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
   !$omp end do
   !$omp end parallel
 
+  call timing(iproc,'foe_aux_mcpy  ','OF')
+  call timing(iproc,'foe_aux_comm  ','ON')
   if (nproc>1) then
       call mpi_allgatherv(matscal_compr_local(1), smatl%nvctrp, mpi_double_precision, &
            matscal_compr(1), smatl%nvctr_par, smatl%isvctr_par, mpi_double_precision, &
            bigdft_mpi%mpi_comm, ierr)
       call f_free_ptr(matscal_compr_local)
   end if
-
-
-
+  call timing(iproc,'foe_aux_comm  ','OF')
   call f_release_routine()
 
 end subroutine scale_and_shift_matrix

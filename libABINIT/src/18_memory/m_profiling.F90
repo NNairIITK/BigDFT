@@ -63,11 +63,11 @@
     end interface
 
 !    public :: memocc
-    public :: memocc_get_info
-    public :: memocc_set_state
-    public :: memocc_set_memory_limit
-    public :: memocc_report
-    public :: d_nan,r_nan
+!    public :: memocc_get_info
+!    public :: memocc_set_state
+!    public :: memocc_set_memory_limit
+!    public :: memocc_report
+!    public :: d_nan,r_nan
 !!***
 
   contains

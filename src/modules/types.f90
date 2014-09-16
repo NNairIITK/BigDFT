@@ -899,7 +899,7 @@ module module_types
  !>timing categories
  character(len=*), parameter, private :: tgrp_pot='Potential'
  integer, save, public :: TCAT_EXCHANGECORR=TIMING_UNINITIALIZED
- integer, parameter, private :: ncls_max=6,ncat_bigdft=140   ! define timimg categories and classes
+ integer, parameter, private :: ncls_max=6,ncat_bigdft=144   ! define timimg categories and classes
  character(len=14), dimension(ncls_max), parameter, private :: clss = (/ &
       'Communications'    ,  &
       'Convolutions  '    ,  &
@@ -996,7 +996,8 @@ module module_types
       'updatelocreg1 ','Other         ' ,'Miscellaneous ' ,  &
       'linscalinit   ','Other         ' ,'Miscellaneous ' ,  &
       'commbasis4dens','Communications' ,'Miscellaneous ' ,  &
-      'eglincomms    ','Communications' ,'Miscellaneous ' ,  &
+      'buildgrad_mcpy','Other         ' ,'Miscellaneous ' ,  &
+      'buildgrad_comm','Communications' ,'Allgatherv    ' ,  &
       'allocommsumrho','Communications' ,'Miscellaneous ' ,  &
       'ovrlptransComp','Other         ' ,'Miscellaneous ' ,  &
       'ovrlptransComm','Communications' ,'mpi_allreduce ' ,  &
@@ -1029,7 +1030,10 @@ module module_types
       'chebyshev_coef','Other         ' ,'Miscellaneous ' ,  &
       'FOE_auxiliary ','Other         ' ,'Miscellaneous ' ,  &
       'FOE_init      ','Other         ' ,'Miscellaneous ' ,  &
-      'compress_uncom','Other         ' ,'Miscellaneous ' ,  &
+      'compressd_mcpy','Other         ' ,'Miscellaneous ' ,  &
+      'compressd_comm','Communications' ,'Allgatherv    ' ,  &
+      'foe_aux_mcpy  ','Other         ' ,'Miscellaneous ' ,  &
+      'foe_aux_comm  ','Communications' ,'Allgatherv    ' ,  &
       'norm_trans    ','Other         ' ,'Miscellaneous ' ,  &
       'misc          ','Other         ' ,'Miscellaneous ' ,  &
       'sparse_copy   ','Other         ' ,'Miscellaneous ' ,  &
