@@ -1707,6 +1707,7 @@ subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, 
   use module_types
   use module_interfaces
   use yaml_output
+  use dynamic_memory
   implicit none
 
   ! Calling arguments
@@ -1717,20 +1718,12 @@ subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, 
   type(DFT_wavefunction), intent(inout) :: tmb
   type(DFT_local_fields), intent(inout) :: denspot
 
-  !!if (iproc==0) then
-  !!    !call yaml_sequence_open()
-  !!    !call yaml_mapping_open()
-  !!    call yaml_newline()
-  !!    call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
-  !!end if
-  !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+  call f_routine(id='corrections_for_negative_charge')
+
   if (iproc==0) call yaml_warning('No increase of FOE cutoff')
-  !call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
   call clean_rho(iproc, nproc, denspot%dpbox%ndimrhopot, denspot%rhov)
-  if (iproc==0) then
-      !call yaml_mapping_close()
-      !call yaml_sequence_close()
-  end if
+
+  call f_release_routine()
 
 end subroutine corrections_for_negative_charge
 

@@ -846,9 +846,12 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
                             tmb%linmat%l%isvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
                        call f_free_ptr(matrix_local)
                    else if (comm_strategy==GET) then
-                       call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l%nvctrp, matrix_local, &
-                            tmb%linmat%l%nvctr_par, tmb%linmat%l%isvctr_par, &
-                            tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ishift+1:ishift+tmb%linmat%l%nvctr))
+                       !!call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l%nvctrp, matrix_local, &
+                       !!     tmb%linmat%l%nvctr_par, tmb%linmat%l%isvctr_par, &
+                       !!     tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ishift+1:ishift+tmb%linmat%l%nvctr))
+                       call mpi_get_to_allgatherv(matrix_local(1), tmb%linmat%l%nvctrp, &
+                            tmb%linmat%kernel_%matrix_compr(ishift+1), &
+                            tmb%linmat%l%nvctr_par, tmb%linmat%l%isvctr_par, bigdft_mpi%mpi_comm)
                    else
                        stop 'build_gradient: wrong communication strategy'
                    end if

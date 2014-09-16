@@ -2557,8 +2557,10 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
                bigdft_mpi%mpi_comm, ierr)
           call f_free_ptr(matscal_compr_local)
       else if (comm_strategy==GET) then
-          call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, smatl%nvctrp, matscal_compr_local, &
-               smatl%nvctr_par, smatl%isvctr_par, smatl%nvctr, matscal_compr)
+          !!call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, smatl%nvctrp, matscal_compr_local, &
+          !!     smatl%nvctr_par, smatl%isvctr_par, smatl%nvctr, matscal_compr)
+          call mpi_get_to_allgatherv(matscal_compr_local(1), smatl%nvctrp, matscal_compr(1), &
+               smatl%nvctr_par, smatl%isvctr_par, bigdft_mpi%mpi_comm)
       else
           stop 'scale_and_shift_matrix: wrong communication strategy'
       end if

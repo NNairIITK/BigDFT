@@ -77,9 +77,21 @@ module wrapper_MPI
      module procedure mpibcast_c1,mpibcast_d1,mpibcast_d2
   end interface mpibcast
 
+  interface mpi_get_to_allgatherv
+     module procedure mpi_get_to_allgatherv_double
+  end interface mpi_get_to_allgatherv
+
   interface mpiget
-    module procedure mpiget_double
+    module procedure mpiget_d0
   end interface mpiget
+
+  interface mpitypesize
+    module procedure mpitypesize_d0, mpitypesize_d1
+  end interface mpitypesize
+
+  interface mpiwindow
+    module procedure mpiwindow_d0
+  end interface mpiwindow
 
   !> Interface for MPI_ALLGATHERV routine
   interface mpiallgatherv
@@ -964,83 +976,259 @@ end subroutine create_group_comm1
    include 'maxdiff-arr-inc.f90'
   end function mpimaxdiff_d2
 
+  !!function mpitypesize_d(foo) result(sizeof)
+  !!  use dictionaries, only: f_err_throw,f_err_define
+  !!  implicit none
+  !!  double precision, intent(in) :: foo
+  !!  integer :: sizeof, ierr
 
-  subroutine mpiget_double(iproc, nproc, mpi_comm, norigin_buffer, origin_buffer, &
-             dest_counts, dest_displacements, ndest_buffer, dest_buffer)
+  !!  call mpi_type_size(mpi_double_precision, sizeof, ierr)
+  !!  if (ierr/=0) then
+  !!      call f_err_throw('Error in mpi_type_size',&
+  !!           err_id=ERR_MPI_WRAPPERS)
+  !!  end if
+  !!end function mpitypesize_d
+
+  function mpitypesize_d0(foo) result(sizeof)
     use dictionaries, only: f_err_throw,f_err_define
     implicit none
-
-    ! Calling arguments
-    integer,intent(in) :: iproc !< process ID
-    integer,intent(in) :: nproc !< number of processes
-    integer,intent(in) :: mpi_comm !< MPI communicator
-    integer,intent(in) :: norigin_buffer !< size of the origin buffer
-    real(kind=8),dimension(norigin_buffer),intent(in) :: origin_buffer !< origin buffer, i.e. the data to be communicated
-    integer,dimension(0:nproc-1),intent(in) :: dest_counts !< elements to be gathered from each process
-    integer,dimension(0:nproc-1),intent(in) :: dest_displacements !< displacements for the blocks to be gathered from each process
-    integer,intent(in) :: ndest_buffer !< size of the destination buffer
-    real(kind=8),dimension(ndest_buffer),intent(out) :: dest_buffer !< dest buffer, i.e. where the data will be received
-
-    ! Local variables
-    integer :: size_of_double, ierr, info, window, jproc, jcount, jst
-
-    ! Initialize the MPI window
-    call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+    double precision, intent(in) :: foo
+    integer :: sizeof, ierr
+    
+    call mpi_type_size(mpi_double_precision, sizeof, ierr)
     if (ierr/=0) then
-        call throw_error() ; return
+        call f_err_throw('Error in mpi_type_size',&
+             err_id=ERR_MPI_WRAPPERS)
     end if
+  end function mpitypesize_d0
+
+  function mpitypesize_d1(foo) result(sizeof)
+      implicit none
+      double precision, dimension(:), intent(in) :: foo
+      integer :: sizeof
+      sizeof=mpitypesize(1.d0)
+  end function mpitypesize_d1
+
+  function mpiinfo(key,val) result(info)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    character(len=*), intent(in) :: key
+    character(len=*), intent(in) :: val
+    integer :: info, ierr
+    
     call mpi_info_create(info, ierr)
     if (ierr/=0) then
-        call throw_error() ; return
+       call f_err_throw('Error in mpi_info_create',&
+            err_id=ERR_MPI_WRAPPERS)
+       return
     end if
     call mpi_info_set(info, "no_locks", "true", ierr)
     if (ierr/=0) then
-        call throw_error() ; return
+       !!call f_err_throw('Error in mpi_info_set, key='//trim(key)//&
+       !!     ', value=',trim(val),err_id=ERR_MPI_WRAPPERS)
+       call f_err_throw('Error in mpi_info_set, key='//trim(key)//&
+            ', value='//trim(val),err_id=ERR_MPI_WRAPPERS)
     end if
-    call mpi_win_create(origin_buffer(1), int(norigin_buffer*size_of_double,kind=mpi_address_kind), &
-         size_of_double, info, mpi_comm, window, ierr)
-    if (ierr/=0) then
-        call throw_error() ; return
-    end if
+    
+  end function mpiinfo
+
+  subroutine mpiinfofree(info)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    integer, intent(inout) :: info
+    ! Local variables
+    integer :: ierr
     call mpi_info_free(info, ierr)
     if (ierr/=0) then
-        call throw_error() ; return
-    end if
-    call mpi_win_fence(mpi_mode_noprecede, window, ierr)
+       call f_err_throw('Error in mpi_info_free',&
+            err_id=ERR_MPI_WRAPPERS)
+   end if
+  end subroutine mpiinfofree
+
+  function mpiwindow_d0(size,base,comm) result(window)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    integer,intent(in) :: size
+    double precision,intent(in) :: base
+    integer,intent(in) :: comm
+    !local variables
+    integer :: sizeof,info,ierr
+    integer :: window
+
+    sizeof=mpitypesize(base)
+    info=mpiinfo("no_locks", "true")
+
+    call mpi_win_create(base, int(size,kind=MPI_ADDRESS_KIND)*int(sizeof,kind=MPI_ADDRESS_KIND), &
+         sizeof, info,comm, window, ierr)
     if (ierr/=0) then
-        call throw_error() ; return
+       call f_err_throw('Error in mpi_win_create',&
+            err_id=ERR_MPI_WRAPPERS)
     end if
 
+    call mpiinfofree(info)
 
-    do jproc=0,nproc-1
-        jcount=dest_counts(jproc)
-        jst=dest_displacements(jproc)
-        call mpi_get(dest_buffer(jst+1), jcount, mpi_double_precision, jproc, &
-             int(0,kind=mpi_address_kind), jcount, mpi_double_precision, window, ierr)
-        if (ierr/=0) then
-            call throw_error() ; return
-        end if
-    end do
-
-    ! Synchronize the communication
-    call mpi_win_fence(0, window, ierr)
+    call mpi_win_fence(MPI_MODE_NOPRECEDE, window, ierr)
     if (ierr/=0) then
-        call throw_error() ; return
+       call f_err_throw('Error in mpi_win_fence',&
+            err_id=ERR_MPI_WRAPPERS)
     end if
-    call mpi_win_free(window, ierr)
+
+    
+  end function mpiwindow_d0
+
+  subroutine mpiget_d0(origin,count,target_rank,target_disp,window)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    double precision,intent(inout) :: origin !<fake intent(in)
+    integer,intent(in) :: count, target_rank,window
+    integer(kind=MPI_ADDRESS_KIND),intent(in) :: target_disp
+
+    ! Local variables
+    integer :: ierr
+
+    call mpi_get(origin,count,mpitype(1.d0),target_rank, &
+         target_disp,count,mpitype(origin), window, ierr)
     if (ierr/=0) then
-        call throw_error() ; return
+       call f_err_throw('Error in mpi_get',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+  end subroutine mpiget_d0
+
+  subroutine mpi_get_to_allgatherv_double(sendbuf,sendcount,recvbuf,recvcounts,displs,comm,check,window_)
+    use dictionaries, only: f_err_throw,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    !!double precision,dimension(:),intent(in) :: sendbuf
+    !!double precision,dimension(:),intent(inout) :: recvbuf
+    double precision,intent(in) :: sendbuf
+    double precision,intent(inout) :: recvbuf
+    integer,dimension(:),intent(in) :: recvcounts, displs
+    integer,intent(in) :: comm, sendcount
+    logical,intent(in),optional :: check
+    integer,intent(out),pointer,optional :: window_
+    !local variables
+    integer :: nproc,jproc,nrecvbuf,ierr
+    external :: getall
+    integer,target:: window
+
+    nproc=mpisize(comm)
+    nrecvbuf=sum(recvcounts)
+
+    if (check) then
+       !check coherence
+       if (any([size(recvcounts),size(displs)] /= nproc)) then
+          call f_err_throw("Error in get_to_gatherv, sizes not coherent with communicator"//&
+               trim(yaml_toa([size(recvcounts),size(displs), nproc])),&
+               err_id=ERR_MPI_WRAPPERS)
+          return
+       end if
     end if
 
+    if (present(window_)) then
+        window_ => window
+    end if
+    !else
+    window = mpiwindow(sendcount,sendbuf,comm)
+    !end if
 
-    contains
+    call getall_d(nproc,recvcounts,displs,window,nrecvbuf,recvbuf)
 
-      subroutine throw_error()
-        call f_err_throw('An error in the wrapper mpiget occured',&
-             err_id=ERR_MPI_WRAPPERS)
-      end subroutine throw_error
+    if (.not. present(window_)) then
+       ! Synchronize the communication
+       call mpi_win_fence(0, window, ierr)
+       if (ierr/=0) then
+          call f_err_throw('Error in mpi_win_fence',&
+               err_id=ERR_MPI_WRAPPERS)  
+       end if
+       call mpi_win_free(window, ierr)
+       if (ierr/=0) then
+          call f_err_throw('Error in mpi_win_fence',&
+               err_id=ERR_MPI_WRAPPERS)  
+       end if
+    end if
 
-  end subroutine mpiget_double
+  end subroutine mpi_get_to_allgatherv_double
+
+!!  subroutine mpiget_double(iproc, nproc, mpi_comm, norigin_buffer, origin_buffer, &
+!!             dest_counts, dest_displacements, ndest_buffer, dest_buffer)
+!!    use dictionaries, only: f_err_throw,f_err_define
+!!    implicit none
+!!
+!!    ! Calling arguments
+!!    integer,intent(in) :: iproc !< process ID
+!!    integer,intent(in) :: nproc !< number of processes
+!!    integer,intent(in) :: mpi_comm !< MPI communicator
+!!    integer,intent(in) :: norigin_buffer !< size of the origin buffer
+!!    real(kind=8),dimension(norigin_buffer),intent(in) :: origin_buffer !< origin buffer, i.e. the data to be communicated
+!!    integer,dimension(0:nproc-1),intent(in) :: dest_counts !< elements to be gathered from each process
+!!    integer,dimension(0:nproc-1),intent(in) :: dest_displacements !< displacements for the blocks to be gathered from each process
+!!    integer,intent(in) :: ndest_buffer !< size of the destination buffer
+!!    real(kind=8),dimension(ndest_buffer),intent(out) :: dest_buffer !< dest buffer, i.e. where the data will be received
+!!
+!!    ! Local variables
+!!    integer :: size_of_double, ierr, info, window, jproc, jcount, jst
+!!
+!!    ! Initialize the MPI window
+!!!!$    call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+!!!!$    if (ierr/=0) then
+!!!!$        call throw_error() ; return
+!!!!$    end if
+!!!!$    call mpi_info_create(info, ierr)
+!!!!$    if (ierr/=0) then
+!!!!$        call throw_error() ; return
+!!!!$    end if
+!!!!$    call mpi_info_set(info, "no_locks", "true", ierr)
+!!!!$    if (ierr/=0) then
+!!!!$        call throw_error() ; return
+!!!!$    end if
+!!
+!!!!$    call mpi_win_create(origin_buffer(1), int(norigin_buffer*size_of_double,kind=mpi_address_kind), &
+!!!!$         size_of_double, info, mpi_comm, window, ierr)
+!!!!$    if (ierr/=0) then
+!!!!$        call throw_error() ; return
+!!!!$    end if
+!!!!$    call mpi_info_free(info, ierr)
+!!!!$    if (ierr/=0) then
+!!!!$        call throw_error() ; return
+!!!!$    end if
+!!!!$    call mpiinfofree(info)
+!!!!$
+!!!!$    call mpi_win_fence(mpi_mode_noprecede, window, ierr)
+!!!!$    if (ierr/=0) then
+!!!!$        call throw_error() ; return
+!!!!$    end if
+!!
+!!    window=mpiwindow(origin_buffer,norigin_buffer,mpi_comm)
+!!
+!!    do jproc=0,nproc-1
+!!        jcount=dest_counts(jproc)
+!!        jst=dest_displacements(jproc)
+!!        call mpi_get(dest_buffer(jst+1), jcount, mpi_double_precision, jproc, &
+!!             int(0,kind=mpi_address_kind), jcount, mpi_double_precision, window, ierr)
+!!        if (ierr/=0) then
+!!            call throw_error() ; return
+!!        end if
+!!    end do
+!!
+!!    ! Synchronize the communication
+!!    call mpi_win_fence(0, window, ierr)
+!!    if (ierr/=0) then
+!!        call throw_error() ; return
+!!    end if
+!!    call mpi_win_free(window, ierr)
+!!    if (ierr/=0) then
+!!        call throw_error() ; return
+!!    end if
+!!
+!!
+!!    contains
+!!
+!!      subroutine throw_error()
+!!        call f_err_throw('An error in the wrapper mpiget occured',&
+!!             err_id=ERR_MPI_WRAPPERS)
+!!      end subroutine throw_error
+!!
+!!  end subroutine mpiget_double
 
   
 
@@ -1057,6 +1245,26 @@ subroutine gather_timings(ndata,nproc,mpi_comm,src,dest)
   call mpigather(sendbuf=src,recvbuf=dest,root=0,comm=mpi_comm)
 
 end subroutine gather_timings
+
+
+!> used by get_to_allgatherv to pass the good addresses to the mpiget wrapper
+subroutine getall_d(nproc,recvcounts,displs,window,nrecvbuffer,recvbuffer)
+  use wrapper_MPI, only: mpiget, mpi_address_kind
+  implicit none
+  integer,intent(in) :: nproc,nrecvbuffer,window
+  integer,dimension(0:nproc-1),intent(in) :: recvcounts,displs
+  double precision,dimension(nrecvbuffer),intent(out) :: recvbuffer
+  ! Local variables
+  integer :: jproc, jcount, jst
+
+  do jproc=0,nproc-1
+     jcount=recvcounts(jproc)
+     jst=displs(jproc)
+     call mpiget(recvbuffer(jst+1), jcount, jproc, int(0,kind=mpi_address_kind), window)
+  end do
+
+end subroutine getall_d
+
 
 
 !> Activates the nesting for UNBLOCK_COMMS performance case
