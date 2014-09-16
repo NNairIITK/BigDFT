@@ -464,6 +464,8 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   integer, allocatable :: user_data(:)
   real(8) :: ddot !debug
 
+  call f_routine(id='mix_rhopot')
+
   !write(*,*) 'mix%nfft, npoints', mix%nfft, npoints
 
   ! Calculate the residue and put it in rhopot
@@ -506,6 +508,8 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   call f_free(user_data)
   ! Copy new in vrespc
   call vcopy(npoints, rhopot(1), 1, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1)
+
+  call f_release_routine()
 
 END SUBROUTINE mix_rhopot
 

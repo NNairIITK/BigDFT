@@ -1521,6 +1521,7 @@ end subroutine check_communication_sumrho
 
 subroutine check_negative_rho(ndimrho, rho, rho_negative)
   use module_base
+  use dynamic_memory
   implicit none
 
   ! Calling arguments
@@ -1530,6 +1531,8 @@ subroutine check_negative_rho(ndimrho, rho, rho_negative)
 
   ! Local variables
   integer :: i, irho, ierr
+
+  call f_routine(id='check_negative_rho')
 
   irho=0
   do i=1,ndimrho
@@ -1548,5 +1551,7 @@ subroutine check_negative_rho(ndimrho, rho, rho_negative)
   else
       rho_negative=.false.
   end if
+
+  call f_release_routine()
 
 end subroutine check_negative_rho
