@@ -2482,6 +2482,9 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
   real(kind=8) :: tt1, tt2
   logical :: with_overlap
   real(kind=8),dimension(:),pointer :: matscal_compr_local
+  integer,parameter :: ALLGATHERV=51, GET=52
+  integer,parameter :: comm_strategy=GET
+
   
 
   call f_routine(id='scale_and_shift_matrix')
@@ -2545,9 +2548,20 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
   call timing(iproc,'foe_aux_mcpy  ','OF')
   call timing(iproc,'foe_aux_comm  ','ON')
   if (nproc>1) then
-      call mpi_allgatherv(matscal_compr_local(1), smatl%nvctrp, mpi_double_precision, &
-           matscal_compr(1), smatl%nvctr_par, smatl%isvctr_par, mpi_double_precision, &
-           bigdft_mpi%mpi_comm, ierr)
+      !!call mpi_allgatherv(matscal_compr_local(1), smatl%nvctrp, mpi_double_precision, &
+      !!     matscal_compr(1), smatl%nvctr_par, smatl%isvctr_par, mpi_double_precision, &
+      !!     bigdft_mpi%mpi_comm, ierr)
+      if (comm_strategy==ALLGATHERV) then
+          call mpi_allgatherv(matscal_compr_local(1), smatl%nvctrp, mpi_double_precision, &
+               matscal_compr(1), smatl%nvctr_par, smatl%isvctr_par, mpi_double_precision, &
+               bigdft_mpi%mpi_comm, ierr)
+          call f_free_ptr(matscal_compr_local)
+      else if (comm_strategy==GET) then
+          call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, smatl%nvctrp, matscal_compr_local, &
+               smatl%nvctr_par, smatl%isvctr_par, smatl%nvctr, matscal_compr)
+      else
+          stop 'scale_and_shift_matrix: wrong communication strategy'
+      end if
       call f_free_ptr(matscal_compr_local)
   end if
   call timing(iproc,'foe_aux_comm  ','OF')

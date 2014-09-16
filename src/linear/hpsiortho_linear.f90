@@ -773,6 +773,8 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
   integer,dimension(2) :: irowcol
   real(kind=8),dimension(:),pointer :: kernel_compr_tmp
   real(kind=8),dimension(:),pointer :: matrix_local
+  integer,parameter :: ALLGATHERV=51, GET=52
+  integer,parameter :: comm_strategy=GET
 
       call f_routine(id='build_gradient')
       call timing(iproc,'buildgrad_mcpy','ON')
@@ -812,10 +814,22 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
               if (nproc>1) then
                    call timing(iproc,'buildgrad_mcpy','OF')
                    call timing(iproc,'buildgrad_comm','ON')
-                   call mpi_allgatherv(matrix_local(1), tmb%linmat%l%nvctrp, mpi_double_precision, &
-                        tmb%linmat%kernel_%matrix_compr(ishift+1), tmb%linmat%l%nvctr_par, &
-                        tmb%linmat%l%isvctr_par, mpi_double_precision, &
-                        bigdft_mpi%mpi_comm, ierr)
+                   !!call mpi_allgatherv(matrix_local(1), tmb%linmat%l%nvctrp, mpi_double_precision, &
+                   !!     tmb%linmat%kernel_%matrix_compr(ishift+1), tmb%linmat%l%nvctr_par, &
+                   !!     tmb%linmat%l%isvctr_par, mpi_double_precision, &
+                   !!     bigdft_mpi%mpi_comm, ierr)
+                   if (comm_strategy==ALLGATHERV) then
+                       call mpi_allgatherv(matrix_local(1), tmb%linmat%l%nvctrp, mpi_double_precision, &
+                            tmb%linmat%kernel_%matrix_compr(1), tmb%linmat%l%nvctr_par, &
+                            tmb%linmat%l%isvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+                       call f_free_ptr(matrix_local)
+                   else if (comm_strategy==GET) then
+                       call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l%nvctrp, matrix_local, &
+                            tmb%linmat%l%nvctr_par, tmb%linmat%l%isvctr_par, &
+                            tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr)
+                   else
+                       stop 'build_gradient: wrong communication strategy'
+                   end if
                    call timing(iproc,'buildgrad_comm','OF')
                    call timing(iproc,'buildgrad_mcpy','ON')
                    if (ispin==tmb%linmat%l%nspin) call f_free_ptr(matrix_local)
