@@ -27,8 +27,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.5
- Timestamp of this run                 : 2014-08-26 15:52:33.355
+ Version Number                        : 1.7.5.10
+ Timestamp of this run                 : 2014-09-16 14:28:23.363
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -38,7 +38,7 @@
  Compilation options:
    Configure arguments:
      " 'FC=/opt/openmpi-1.6.4/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -i_dynamic -msse4.2 
-     -heap-arrays 1024 -openmp' 
+     -heap-arrays 1024 -openmp -traceback' 
      '--with-ext-linalg=/opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_scalapa
      ck_lp64.a  -Wl,--start-group  
      /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_cdft_core.a 
@@ -50,7 +50,8 @@
    Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.4/bin/mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
+     FCFLAGS:
+       -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp -traceback
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : plain
@@ -89,9 +90,10 @@
    maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
    ef_interpol_det                     : 0.10E-19 # FOE max determinant of cubic interpolation matrix
    ef_interpol_chargediff              : 0.10E+02 # FOE max charge difference for interpolation
-   mixing_after_inputguess             : Yes #    Mixing step after linear input guess (T/F)
+   mixing_after_inputguess             : 1 #      Mixing step after linear input gues
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 2 #      Enables linear sumrho check
+   check_overlap                       : 2 #      Enables linear overlap check
    experimental_mode                   : No #     Activate the experimental mode in linear scaling
    write_orbitals                      : No #     Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
    explicit_locregcenters              : No #     Linear scaling explicitely specify localization centers
@@ -110,6 +112,7 @@
    correction_co_contra                : No #     linear scaling correction covariant / contravariant gradient
    fscale_lowerbound                   : 5.0000000000000001E-003 # linear scaling lower bound for the error function decay length
    fscale_upperbound                   : 5.0000000000000003E-002 # linear scaling upper bound for the error function decay length
+   imethod_overlap                     : 1 #      method to calculate the overlap matrices (1=old, 2=new)
    FOE_restart                         : 0 #      Restart method to be used for the FOE method
  dft:
    hgrids: [0.4, 0.4, 0.4] #                      Grid spacing in the three directions (bohr)
@@ -134,6 +137,7 @@
    nvirt                               : 0 #      No. of virtual orbs
    nplot                               : 0 #      No. of plotted orbs
    disablesym                          : Yes #    Disable the symmetry detection
+   itermin                             : 0 #      Min. iterations of wfn. opt. steps
  kpt:
    method                              : MPgrid # K-point sampling method
    ngkpt: [3, 1, 1] #                             No. of Monkhorst-Pack grid points
@@ -248,7 +252,7 @@
    Radii of active regions (AU):
      Coarse                            : 1.215575721499752
      Fine                              : 0.21133247
-     Coarse PSP                        : 0.21133247
+     Coarse PSP                        : 0.41429235
      Source                            : Hard-Coded
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data-plain/
@@ -470,7 +474,7 @@
      MPI tasks                         :  4
    Energies: {Ekin:  2.38568191900E+01, Epot: -3.30380927139E+01, Enl:  2.79817343755E+00, 
                 EH:  2.02044854640E+01,  EXC: -6.88908378753E+00, EvXC: -8.95086618468E+00}
-   EKS                                 : -3.20647550202284322E+01
+   EKS                                 : -3.20647550202284464E+01
    Input Guess Overlap Matrices: {Calculated:  Yes, Diagonalized:  Yes}
    Total magnetization                 :  4.000000
     #Eigenvalues and New Occupation Numbers
@@ -505,19 +509,19 @@
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
  Energies: {Ekin:  2.58842246387E+01, Epot: -3.40009627344E+01, Enl:  2.63593900719E+00, 
               EH:  2.02930930728E+01,  EXC: -7.03180785282E+00, EvXC: -9.12864729385E+00}, 
- iter:  1, EKS: -3.12160045872815921E+01, gnrm:  2.80E-01, D:  8.49E-01, 
+ iter:  1, EKS: -3.12160045872816099E+01, gnrm:  2.80E-01, D:  8.49E-01, 
  SDalpha:  2.000E+00, Orthogonalization Method:  0}
        -  &FINAL001  { #----------------------------------------------------------- iter: 2
  GPU acceleration:  No, Rho Commun: ALLRED, Total electronic charge:  11.999999453999, 
  Poisson Solver: {BC: Periodic, Box:  [  48,  48,  48 ], MPI tasks:  4}, 
  Hamiltonian Applied:  Yes, 
- iter:  2, EKS: -3.13343723620770014E+01, gnrm:  2.80E-01, D: -1.18E-01,  #FINAL
+ iter:  2, EKS: -3.13343723620770085E+01, gnrm:  2.80E-01, D: -1.18E-01,  #FINAL
  Energies: {Ekin:  2.58311951051E+01, Epot: -3.36861624128E+01, Enl:  2.79018687907E+00, 
               EH:  2.08466310406E+01,  EXC: -7.09509222749E+00, EvXC: -9.21108320163E+00, 
             Eion: -7.53895186698E+00}, 
  SCF criterion:  0}
         #WARNING: No convergence within the allowed number of minimization steps
-       Non-Hermiticity of Hamiltonian in the Subspace:  3.59E-30
+       Non-Hermiticity of Hamiltonian in the Subspace:  4.90E-30
         #WARNING: Wavefunctions not converged after cycle  1
        Total magnetization             :  4.000000
         #Eigenvalues and New Occupation Numbers
@@ -554,7 +558,7 @@
   # 6th wavefunction written
   # 6th wavefunction written
  Write Waves Time:
- -  {Process:  0, Timing:  [  1.06E+00,  9.593E-01 ]}
+ -  {Process:  0, Timing:  [  9.9E-01,  9.838E-01 ]}
   #---------------------------------------------------------------------- Forces Calculation
  GPU acceleration                      :  No
  Rho Commun                            : RED_SCT
@@ -576,17 +580,17 @@
  Clean forces norm (Ha/Bohr): {maxval:  4.846821384223E-01, fnrm2:  4.633456084392E-01}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [-1.663990328739E-04, -7.106958142606E-05, -4.779422563387E-01]} # 0001
- -  {O: [-2.315496513152E-04, -9.753037035229E-05,  4.846820732998E-01]} # 0002
+ -  {O: [-1.663990328742E-04, -7.106958142515E-05, -4.779422563387E-01]} # 0001
+ -  {O: [-2.315496513179E-04, -9.753037035309E-05,  4.846820732998E-01]} # 0002
  Stress Tensor:
    Total stress tensor matrix (Ha/Bohr^3):
-   -  [ -4.739406561758E-04, -4.863593156283E-07, -3.324444373964E-09 ]
-   -  [ -4.863593156283E-07, -2.109450790446E-04, -1.555582886411E-09 ]
-   -  [ -3.324444373964E-09, -1.555582886411E-09, -3.457292927750E-03 ]
+   -  [ -4.739406561758E-04, -4.863593144188E-07, -3.324444374005E-09 ]
+   -  [ -4.863593144188E-07, -2.109450790446E-04, -1.555582887254E-09 ]
+   -  [ -3.324444374005E-09, -1.555582887254E-09, -3.457292927750E-03 ]
    Pressure:
-     Ha/Bohr^3                         : -1.38072622098997E-03
+     Ha/Bohr^3                         : -1.38072622098999E-03
      GPa                               : -40.6224
-     PV (Ha)                           : -0.84906651780211
+     PV (Ha)                           : -0.84906651780212
   #WARNING: Self-consistent cycle did not meet convergence criteria
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
@@ -596,17 +600,17 @@
  - Self-consistent cycle did not meet convergence criteria
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  9.14
-   Elapsed time (s)                    :  5.02
+   CPU time (s)                        :  8.82
+   Elapsed time (s)                    :  4.92
  Memory Consumption Report:
-   Tot. No. of Allocations             :  618
-   Tot. No. of Deallocations           :  618
+   Tot. No. of Allocations             :  586
+   Tot. No. of Deallocations           :  586
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  56
      for the array                     : wz
      in the routine                    : input_wf
- Max No. of dictionaries used          :  2882 #( 798 still in use)
+ Max No. of dictionaries used          :  2980 #( 833 still in use)
  Number of dictionary folders allocated:  1
 ---
  Code logo:
@@ -637,8 +641,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.5
- Timestamp of this run                 : 2014-08-26 15:52:38.719
+ Version Number                        : 1.7.5.10
+ Timestamp of this run                 : 2014-09-16 14:28:28.546
  Root process Hostname                 : localhost
  Number of MPI tasks                   :  0
  OpenMP parallelization                :  Yes
@@ -647,7 +651,7 @@
  Compilation options:
    Configure arguments:
      " 'FC=/opt/openmpi-1.6.4/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -i_dynamic -msse4.2 
-     -heap-arrays 1024 -openmp' 
+     -heap-arrays 1024 -openmp -traceback' 
      '--with-ext-linalg=/opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_scalapa
      ck_lp64.a  -Wl,--start-group  
      /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_cdft_core.a 
@@ -659,7 +663,8 @@
    Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.4/bin/mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
+     FCFLAGS:
+       -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp -traceback
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : plain-read
@@ -698,9 +703,10 @@
    maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
    ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
    ef_interpol_chargediff              : 10. #    FOE max charge difference for interpolation
-   mixing_after_inputguess             : Yes #    Mixing step after linear input guess (T/F)
+   mixing_after_inputguess             : 1 #      Mixing step after linear input gues
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 2 #      Enables linear sumrho check
+   check_overlap                       : 2 #      Enables linear overlap check
    experimental_mode                   : No #     Activate the experimental mode in linear scaling
    write_orbitals                      : No #     Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
    explicit_locregcenters              : No #     Linear scaling explicitely specify localization centers
@@ -720,6 +726,7 @@
    fscale_lowerbound                   : 5.e-3 #  linear scaling lower bound for the error function decay length
    fscale_upperbound                   : 5.e-2 #  linear scaling upper bound for the error function decay length
    FOE_restart                         : 0 #      Restart method to be used for the FOE method
+   imethod_overlap                     : 1 #      method to calculate the overlap matrices (1=old, 2=new)
  dft:
    hgrids: [0.3, 0.3, 0.3] #                      Grid spacing in the three directions (bohr)
    rmult: [6.0, 8.0] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
@@ -743,6 +750,7 @@
    nvirt                               : 0 #      No. of virtual orbs
    nplot                               : 0 #      No. of plotted orbs
    disablesym                          : Yes #    Disable the symmetry detection
+   itermin                             : 0 #      Min. iterations of wfn. opt. steps
  kpt:
    method                              : MPgrid # K-point sampling method
    ngkpt: [3, 1, 1] #                             No. of Monkhorst-Pack grid points
@@ -857,7 +865,7 @@
    Radii of active regions (AU):
      Coarse                            : 1.215575721499752
      Fine                              : 0.21133247
-     Coarse PSP                        : 0.21133247
+     Coarse PSP                        : 0.41429235
      Source                            : Hard-Coded
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : data-plain-read/
@@ -992,14 +1000,14 @@
  Export wavefunction from file         : data-plain-read/wavefunction-k002-DI.b0003
   #Reading wavefunctions in plain text file format.
  Memory Consumption Report:
-   Tot. No. of Allocations             :  101
-   Tot. No. of Deallocations           :  101
+   Tot. No. of Allocations             :  103
+   Tot. No. of Deallocations           :  103
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  6
      for the array                     : ww
      in the routine                    : reformatonewave
- Max No. of dictionaries used          :  2816 #( 800 still in use)
+ Max No. of dictionaries used          :  2907 #( 835 still in use)
  Number of dictionary folders allocated:  1
 #Error, found unfreed dictionaries after finalization: 3
 #Unfreed key: "" value: "__not_a_value__"
