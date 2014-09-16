@@ -66,7 +66,7 @@ module sparsematrix
       !    inm => sparsemat%matrix
       !end if
     
-      call timing(iproc,'compress_uncom','ON')
+      call timing(iproc,'compressd_mcpy','ON')
     
       if (sparsemat%parallel_compression==0.or.bigdft_mpi%nproc==1) then
          do ispin=1,sparsemat%nspin
@@ -120,7 +120,7 @@ module sparsematrix
          !!#call f_free_ptr(sparsemat%matrix_comprp)
       end if
     
-      call timing(iproc,'compress_uncom','OF')
+      call timing(iproc,'compressd_mcpy','OF')
     
     end subroutine compress_matrix
 
@@ -160,7 +160,7 @@ module sparsematrix
       !!    inm => sparsemat%matrix_compr
       !!end if
     
-      call timing(iproc,'compress_uncom','ON')
+      call timing(iproc,'compressd_mcpy','ON')
     
       if (sparsemat%parallel_compression==0.or.bigdft_mpi%nproc==1) then
          call to_zero(sparsemat%nfvctr**2*sparsemat%nspin, outm(1,1,1))
@@ -215,7 +215,7 @@ module sparsematrix
       end if
       sparsemat%can_use_dense=.true.  
     
-      call timing(iproc,'compress_uncom','OF')
+      call timing(iproc,'compressd_mcpy','OF')
     
     end subroutine uncompress_matrix
 
@@ -452,7 +452,7 @@ module sparsematrix
 
      call f_routine(id='compress_matrix_distributed')
 
-     call timing(iproc,'compress_uncom','ON')
+     call timing(iproc,'compressd_mcpy','ON')
 
      ! Check the dimensions of the input array and assign some values
      if (size(matrixp,1)/=smat%nfvctr) stop 'size(matrixp,1)/=smat%nfvctr'
@@ -506,6 +506,8 @@ module sparsematrix
          !$omp end parallel
      end if
 
+     call timing(iproc,'compressd_mcpy','OF')
+     call timing(iproc,'compressd_comm','ON')
      if (bigdft_mpi%nproc>1) then
          !call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
          call mpi_allgatherv(matrix_local(1), nvctrp, mpi_double_precision, &
@@ -514,7 +516,7 @@ module sparsematrix
          call f_free_ptr(matrix_local)
      end if
 
-     call timing(iproc,'compress_uncom','OF')
+     call timing(iproc,'compressd_comm','OF')
 
      call f_release_routine()
 
@@ -534,7 +536,7 @@ module sparsematrix
     ! Local variables
     integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr
 
-      call timing(iproc,'compress_uncom','ON')
+      call timing(iproc,'compressd_mcpy','ON')
 
      ! Check the dimensions of the output array and assign some values
      if (size(matrixp,1)/=smat%nfvctr) stop 'size(matrixp,1)/=smat%nfvctr'
@@ -574,7 +576,7 @@ module sparsematrix
            !$omp end parallel do
        end if
 
-      call timing(iproc,'compress_uncom','OF')
+      call timing(iproc,'compressd_mcpy','OF')
 
    end subroutine uncompress_matrix_distributed
 

@@ -72,7 +72,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       hpsi_conf = f_malloc(tmb%npsidim_orbs,id='hpsi_conf')
       call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
            tmb%orbs, tmb%hpsi, hpsi_conf)
-      call timing(iproc,'eglincomms','ON')
+      call timing(iproc,'buildgrad_mcpy','ON')
       ist=1
       do iorb=1,tmb%orbs%norbp
           iiorb=tmb%orbs%isorb+iorb
@@ -82,7 +82,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           call daxpy(ncount, -tt, tmb%psi(ist), 1, hpsi_conf(ist), 1)
           ist=ist+ncount
       end do
-      call timing(iproc,'eglincomms','OF')
+      call timing(iproc,'buildgrad_mcpy','OF')
   end if
 
   ! by default no quick exit
@@ -110,7 +110,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      !!!     call vcopy(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsittmp_f(1), 1)
 
      !!! if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-     !!!     call timing(iproc,'eglincomms','ON')
+     !!!     call timing(iproc,'buildgrad_mcpy','ON')
      !!!     kernel_compr_tmp = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=SPARSE_FULL,id='kernel_compr_tmp')
      !!!     call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
      !!!     do ispin=1,tmb%linmat%l%nspin
@@ -152,7 +152,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      !!!             end do
      !!!         end do
      !!!     end do
-     !!!     call timing(iproc,'eglincomms','OF')
+     !!!     call timing(iproc,'buildgrad_mcpy','OF')
      !!!     call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
      !!!          tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
      !!!     call build_linear_combination_transposed(tmb%ham_descr%collcom, &
@@ -302,12 +302,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Calculate trace (or band structure energy, resp.)
   trH=0.d0
-  call timing(iproc,'eglincomms','ON')
+  call timing(iproc,'buildgrad_mcpy','ON')
   do iorb=1,tmb%orbs%norb
      ii=matrixindex_in_compressed(tmb%linmat%m,iorb,iorb)
      trH = trH + tmb%linmat%ham_%matrix_compr(ii)
   end do
-  call timing(iproc,'eglincomms','OF')
+  call timing(iproc,'buildgrad_mcpy','OF')
 
   if (present(cdft).and..false.) then
     !only correct energy not gradient for now
@@ -433,7 +433,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
   call vcopy(tmb%npsidim_orbs, hpsi_small(1), 1, lhphiold(1), 1)
-  call timing(iproc,'eglincomms','OF')
+  call timing(iproc,'buildgrad_mcpy','OF')
 
   ! if energy has increased or we only wanted to calculate the energy, not gradient, we can return here
   ! rather than calculating the preconditioning for nothing
@@ -775,6 +775,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
   real(kind=8),dimension(:),pointer :: matrix_local
 
       call f_routine(id='build_gradient')
+      call timing(iproc,'buildgrad_mcpy','ON')
 
       if(tmb%ham_descr%collcom%ndimind_c>0) &
           call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsittmp_c(1), 1)
@@ -782,7 +783,6 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
           call vcopy(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsittmp_f(1), 1)
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-          call timing(iproc,'eglincomms','ON')
           kernel_compr_tmp = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=SPARSE_FULL,id='kernel_compr_tmp')
           call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
           isegstart = tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+1)
@@ -810,11 +810,15 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
               !$omp end do
               !$omp end parallel
               if (nproc>1) then
+                   call timing(iproc,'buildgrad_mcpy','OF')
+                   call timing(iproc,'buildgrad_comm','ON')
                    call mpi_allgatherv(matrix_local(1), tmb%linmat%l%nvctrp, mpi_double_precision, &
                         tmb%linmat%kernel_%matrix_compr(ishift+1), tmb%linmat%l%nvctr_par, &
                         tmb%linmat%l%isvctr_par, mpi_double_precision, &
                         bigdft_mpi%mpi_comm, ierr)
-                    if (ispin==tmb%linmat%l%nspin) call f_free_ptr(matrix_local)
+                   call timing(iproc,'buildgrad_comm','OF')
+                   call timing(iproc,'buildgrad_mcpy','ON')
+                   if (ispin==tmb%linmat%l%nspin) call f_free_ptr(matrix_local)
                else
                    call vcopy(tmb%linmat%l%nvctr, matrix_local(1), 1, &
                         tmb%linmat%kernel_%matrix_compr(ishift+1), 1)
@@ -851,7 +855,6 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
                   end do
               end do
           end do
-          call timing(iproc,'eglincomms','OF')
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
@@ -864,6 +867,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
                tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
       end if
 
+      call timing(iproc,'buildgrad_mcpy','ON')
       call f_release_routine()
 
 end subroutine build_gradient
