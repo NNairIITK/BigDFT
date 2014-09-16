@@ -1119,6 +1119,8 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   real(gp) :: tol
   character(len=*),parameter:: subname='tmb_overlap_onsite'
   type(fragment_transformation) :: frag_trans
+  integer :: ierr, ncount, iroot, jproc
+  integer,dimension(:),allocatable :: workarray
 
   ! move all psi into psi_tmp all centred in the same place and calculate overlap matrix
   tol=1.d-3
@@ -1129,6 +1131,37 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   norb_tmp=tmb%orbs%norb/2
   ilr_tmp=tmb%orbs%inwhichlocreg(norb_tmp) 
   iiat_tmp=tmb%orbs%onwhichatom(norb_tmp)
+
+  ! Find out which process handles TMB norb_tmp and get the keys from that process
+  do jproc=0,nproc-1
+      if (tmb%orbs%isorb_par(jproc)<norb_tmp .and. norb_tmp<=tmb%orbs%isorb_par(jproc)+tmb%orbs%norb_par(jproc,0)) then
+          iroot=jproc
+          exit
+      end if
+  end do
+  if (iproc/=iroot) then
+      ! some processes might already have it allocated
+      call deallocate_wfd(tmb%lzd%llr(ilr_tmp)%wfd)
+      call allocate_wfd(tmb%lzd%llr(ilr_tmp)%wfd)
+  end if
+  if (nproc>1) then
+      ncount = tmb%lzd%llr(ilr_tmp)%wfd%nseg_c + tmb%lzd%llr(ilr_tmp)%wfd%nseg_f
+      workarray = f_malloc(6*ncount,id='workarray')
+      if (iproc==iroot) then
+          call vcopy(2*ncount, tmb%lzd%llr(ilr_tmp)%wfd%keygloc(1,1), 1, workarray(1), 1)
+          call vcopy(2*ncount, tmb%lzd%llr(ilr_tmp)%wfd%keyglob(1,1), 1, workarray(2*ncount+1), 1)
+          call vcopy(ncount, tmb%lzd%llr(ilr_tmp)%wfd%keyvloc(1), 1, workarray(4*ncount+1), 1)
+          call vcopy(ncount, tmb%lzd%llr(ilr_tmp)%wfd%keyvglob(1), 1, workarray(5*ncount+1), 1)
+      end if
+      call mpi_bcast(workarray(1), 6*ncount, mpi_integer, iroot, bigdft_mpi%mpi_comm, ierr)
+      if (iproc/=iroot) then
+          call vcopy(2*ncount, workarray(1), 1, tmb%lzd%llr(ilr_tmp)%wfd%keygloc(1,1), 1)
+          call vcopy(2*ncount, workarray(2*ncount+1), 1, tmb%lzd%llr(ilr_tmp)%wfd%keyglob(1,1), 1)
+          call vcopy(ncount, workarray(4*ncount+1), 1, tmb%lzd%llr(ilr_tmp)%wfd%keyvloc(1), 1)
+          call vcopy(ncount, workarray(5*ncount+1), 1, tmb%lzd%llr(ilr_tmp)%wfd%keyvglob(1), 1)
+      end if
+      call f_free(workarray)
+  end if
 
   ! find biggest instead
   !do ilr=1,tmb%lzr%nlr
