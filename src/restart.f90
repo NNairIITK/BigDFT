@@ -1101,7 +1101,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, imethod_overlap
   type(atoms_data), intent(inout) :: at
-  type(DFT_wavefunction),intent(in):: tmb
+  type(DFT_wavefunction),intent(inout):: tmb
   real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz
 
   ! Local variables
