@@ -279,6 +279,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
     subroutine symmetrize_matrix()
       implicit none
+      integer,parameter :: ALLGATHERV=51, GET=52
+      integer,parameter :: comm_strategy=GET
 
       call f_routine(id='symmetrize_matrix')
 
@@ -304,10 +306,21 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
           !$omp end do
           !$omp end parallel
           if (nproc>1) then
-              call mpi_allgatherv(matrix_local(1), lagmat%nvctrp, mpi_double_precision, &
-                   lagmat_%matrix_compr(ishift+1), lagmat%nvctr_par, lagmat%isvctr_par, mpi_double_precision, &
-                   bigdft_mpi%mpi_comm, ierr)
-               if (ispin==lagmat%nspin) call f_free_ptr(matrix_local)
+              !!call mpi_allgatherv(matrix_local(1), lagmat%nvctrp, mpi_double_precision, &
+              !!     lagmat_%matrix_compr(ishift+1), lagmat%nvctr_par, lagmat%isvctr_par, mpi_double_precision, &
+              !!     bigdft_mpi%mpi_comm, ierr)
+              if (comm_strategy==ALLGATHERV) then
+                  call mpi_allgatherv(matrix_local(1), lagmat%nvctrp, mpi_double_precision, &
+                       lagmat_%matrix_compr(1), lagmat%nvctr_par, lagmat%isvctr_par, mpi_double_precision, &
+                       bigdft_mpi%mpi_comm, ierr)
+                  call f_free_ptr(matrix_local)
+              else if (comm_strategy==GET) then
+                  call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, lagmat%nvctrp, matrix_local, &
+                       lagmat%nvctr_par, lagmat%isvctr_par, lagmat%nvctr, lagmat_%matrix_compr)
+              else
+                  stop 'symmetrize_matrix: wrong communication strategy'
+              end if
+              if (ispin==lagmat%nspin) call f_free_ptr(matrix_local)
           else
               call vcopy(lagmat%nvctr, matrix_local(1), 1, lagmat_%matrix_compr(ishift+1), 1)
           end if
