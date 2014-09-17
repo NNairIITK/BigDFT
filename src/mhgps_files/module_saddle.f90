@@ -474,6 +474,7 @@ stop 'no convergence in findsad'
         enddo
     enddo
 2000 continue
+    call f_free(rxyzold)
     call f_free(dds)
     call f_free(dd0)
     call f_free(delta)
