@@ -323,10 +323,10 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
               else
                   stop 'symmetrize_matrix: wrong communication strategy'
               end if
-              if (ispin==lagmat%nspin) call f_free_ptr(matrix_local)
           else
               call vcopy(lagmat%nvctr, matrix_local(1), 1, lagmat_%matrix_compr(ishift+1), 1)
           end if
+          if (ispin==lagmat%nspin) call f_free_ptr(matrix_local)
       end do
 
       call f_release_routine()
