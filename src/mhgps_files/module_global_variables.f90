@@ -108,14 +108,12 @@ module module_global_variables
     !bigdft data types and variables 
     !(these objects must preserve their status in the module)
     type(run_objects), save :: runObj
-    type(dictionary), pointer, save :: user_inputs
     type(DFT_global_output), save :: outs
     integer, save :: fdim
-    type(atoms_data), save :: atoms
+    !type(atoms_data), save :: atoms
+    type(atomic_structure), pointer, save :: astruct
     !integer, dimension(4) :: mpi_info
     integer :: infocode
-    type(input_variables), target :: inputs_opt
-    type(restart_objects), save :: rst
     integer :: inputPsiId=0
     integer :: iproc=0,nproc=1,igroup=0,ngroups=1
     integer :: itermin=0

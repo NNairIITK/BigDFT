@@ -191,7 +191,7 @@ contains
     end subroutine print_logo_mhgps
 
 
-subroutine give_rcov(atoms,nat,rcov)
+subroutine give_rcov(astruct,nat,rcov)
   use module_base, only: gp
   use module_types
   use yaml_output
@@ -199,197 +199,197 @@ subroutine give_rcov(atoms,nat,rcov)
   implicit none
   !Arguments
   integer, intent(in) :: nat
-  type(atoms_data), intent(in) :: atoms
+  type(atomic_structure), intent(in) :: astruct
   real(gp), intent(out) :: rcov(nat)
   !Local variables
   integer :: iat
 
   do iat=1,nat
-     if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='H') then
+     if (trim(astruct%atomnames(astruct%iatype(iat)))=='H') then
         rcov(iat)=0.75d0
 !        rcov(iat)=0.75d0*0.529177211d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='LJ') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='LJ') then
         rcov(iat)=0.56d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='He') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='He') then
         rcov(iat)=0.75d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Li') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Li') then
         rcov(iat)=3.40d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Be') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Be') then
         rcov(iat)=2.30d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='B' ) then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='B' ) then
         rcov(iat)=1.55d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='C' ) then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='C' ) then
         rcov(iat)=1.45d0
 !        rcov(iat)=1.45d0*0.529177211d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='N' ) then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='N' ) then
         rcov(iat)=1.42d0
 !        rcov(iat)=1.42d0*0.529177211d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='O' ) then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='O' ) then
         rcov(iat)=1.38d0
 !        rcov(iat)=1.38d0*0.529177211d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='F' ) then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='F' ) then
         rcov(iat)=1.35d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ne') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Ne') then
         rcov(iat)=1.35d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Na') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Na') then
         rcov(iat)=3.40d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Mg') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Mg') then
         rcov(iat)=2.65d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Al') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Al') then
         rcov(iat)=2.23d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Si') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Si') then
         rcov(iat)=2.09d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='P' ) then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='P' ) then
         rcov(iat)=2.00d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='S' ) then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='S' ) then
         rcov(iat)=1.92d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cl') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Cl') then
         rcov(iat)=1.87d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ar') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Ar') then
         rcov(iat)=1.80d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='K' ) then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='K' ) then
         rcov(iat)=4.00d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ca') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Ca') then
         rcov(iat)=3.00d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sc') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Sc') then
         rcov(iat)=2.70d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ti') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Ti') then
         rcov(iat)=2.70d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='V' ) then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='V' ) then
         rcov(iat)=2.60d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cr') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Cr') then
         rcov(iat)=2.60d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Mn') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Mn') then
         rcov(iat)=2.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Fe') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Fe') then
         rcov(iat)=2.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Co') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Co') then
         rcov(iat)=2.40d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ni') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Ni') then
         rcov(iat)=2.30d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cu') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Cu') then
         rcov(iat)=2.30d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Zn') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Zn') then
         rcov(iat)=2.30d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ga') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Ga') then
         rcov(iat)=2.10d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ge') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Ge') then
         rcov(iat)=2.40d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='As') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='As') then
         rcov(iat)=2.30d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Se') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Se') then
         rcov(iat)=2.30d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Br') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Br') then
         rcov(iat)=2.20d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Kr') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Kr') then
         rcov(iat)=2.20d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Rb') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Rb') then
         rcov(iat)=4.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sr') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Sr') then
         rcov(iat)=3.30d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Y' ) then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Y' ) then
         rcov(iat)=3.30d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Zr') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Zr') then
         rcov(iat)=3.00d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Nb') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Nb') then
         rcov(iat)=2.92d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Mo') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Mo') then
         rcov(iat)=2.83d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Tc') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Tc') then
         rcov(iat)=2.75d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ru') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Ru') then
         rcov(iat)=2.67d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Rh') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Rh') then
         rcov(iat)=2.58d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pd') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Pd') then
         rcov(iat)=2.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ag') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Ag') then
         rcov(iat)=2.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cd') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Cd') then
         rcov(iat)=2.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='In') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='In') then
         rcov(iat)=2.30d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sn') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Sn') then
         rcov(iat)=2.66d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sb') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Sb') then
         rcov(iat)=2.66d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Te') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Te') then
         rcov(iat)=2.53d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='I' ) then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='I' ) then
         rcov(iat)=2.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Xe') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Xe') then
         rcov(iat)=2.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cs') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Cs') then
         rcov(iat)=4.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ba') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Ba') then
         rcov(iat)=4.00d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='La') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='La') then
         rcov(iat)=3.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ce') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Ce') then
         rcov(iat)=3.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pr') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Pr') then
         rcov(iat)=3.44d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Nd') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Nd') then
         rcov(iat)=3.38d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pm') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Pm') then
         rcov(iat)=3.33d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sm') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Sm') then
         rcov(iat)=3.27d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Eu') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Eu') then
         rcov(iat)=3.21d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Gd') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Gd') then
         rcov(iat)=3.15d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Td') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Td') then
         rcov(iat)=3.09d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Dy') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Dy') then
         rcov(iat)=3.03d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ho') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Ho') then
         rcov(iat)=2.97d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Er') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Er') then
         rcov(iat)=2.92d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Tm') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Tm') then
         rcov(iat)=2.92d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Yb') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Yb') then
         rcov(iat)=2.80d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Lu') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Lu') then
         rcov(iat)=2.80d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Hf') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Hf') then
         rcov(iat)=2.90d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ta') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Ta') then
         rcov(iat)=2.70d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='W' ) then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='W' ) then
         rcov(iat)=2.60d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Re') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Re') then
         rcov(iat)=2.60d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Os') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Os') then
         rcov(iat)=2.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ir') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Ir') then
         rcov(iat)=2.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pt') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Pt') then
         rcov(iat)=2.60d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Au') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Au') then
         rcov(iat)=2.70d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Hg') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Hg') then
         rcov(iat)=2.80d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Tl') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Tl') then
         rcov(iat)=2.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pb') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Pb') then
         rcov(iat)=3.30d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Bi') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Bi') then
         rcov(iat)=2.90d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Po') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Po') then
         rcov(iat)=2.80d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='At') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='At') then
         rcov(iat)=2.60d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Rn') then
+     else if (trim(astruct%atomnames(astruct%iatype(iat)))=='Rn') then
         rcov(iat)=2.60d0
      else
         call yaml_comment('(MH) no covalent radius stored for this atomtype '&
-             //trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))))
+             //trim(astruct%atomnames(astruct%iatype(iat))))
         stop
      endif
      if (iproc == 0) then
-        call yaml_map('(MHGPS) RCOV:'//trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),rcov(iat))
+        call yaml_map('(MHGPS) RCOV:'//trim(astruct%atomnames(astruct%iatype(iat))),rcov(iat))
      endif
   enddo
 end subroutine give_rcov

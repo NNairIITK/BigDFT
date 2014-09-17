@@ -23,7 +23,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     use yaml_output
     use module_interfaces
     use module_sbfgs
-    use module_global_variables, only: inputPsiId, iproc, ixyz_int, atoms, mhgps_verbosity,&
+    use module_global_variables, only: inputPsiId, iproc, ixyz_int, astruct, mhgps_verbosity,&
                                        currDir, isadc, ndim_rot, nhist_rot, alpha_rot,&
                                        alpha_stretch_rot,saddle_alpha_stretch0,work,lwork,&
                                        saddle_steepthresh_trans ,imode,&
@@ -132,7 +132,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
 
 
 
-    if(atoms%astruct%geocode/='F'.and. .not. (trim(adjustl(efmethod))=='LENSIc'))&
+    if(astruct%geocode/='F'.and. .not. (trim(adjustl(efmethod))=='LENSIc'))&
     stop 'STOP: saddle search only implemented for free BC'
 
     if(iproc==0)then
@@ -374,7 +374,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
 !!$                etotp,rxyz(1,1,nhist),ixyz_int,&
 !!$                atoms,trim(comment),forces=minmode)
            
-           call astruct_dump_to_file(atoms%astruct,&
+           call astruct_dump_to_file(astruct,&
                 currDir//'/sad'//trim(adjustl(isadc))//'_posout_'//fn9,&
                 trim(comment),&
                 etotp,rxyz(:,:,nhist),forces=minmode)
