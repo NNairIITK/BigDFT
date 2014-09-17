@@ -882,7 +882,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
                   ii=tmb%linmat%l%keyv(iseg)
                   do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
                       irowcol = orb_from_index(tmb%linmat%l, i)
-                      if (irowcol(2)/=iiorb) stop'irowcol(2)/=iiorb'
+                      if (irowcol(2)/=iiorb) stop 'irowcol(2)/=iiorb'
                       !if(irowcol(1)==irowcol(2) .and. irowcol(1)==iiorb) then
                       if(irowcol(1)==irowcol(2)) then
                           ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
