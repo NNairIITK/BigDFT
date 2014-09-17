@@ -47,6 +47,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   !in the default case, non local hamiltonian is done after potential creation
   whilepot=.true.
 
+
   !flag for saving the local fields (rho,vxc,vh)
   savefields= (iscf==SCF_KIND_GENERALIZED_DIRMIN)
   correcth=1
@@ -112,8 +113,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
      if (ithread == 0) then
         !$ if (unblock_comms_den) call OMP_SET_NUM_THREADS(1)
         !communicate density 
+        !the rho_p pointer, allocated aoutside form the nested region, is by default
+        !freed by communicate_density routine in the nested region       
         call communicate_density(denspot%dpbox,wfn%orbs%nspin,denspot%rhod,&
-             denspot%rho_psi,denspot%rhov,.false.)
+             denspot%rho_psi,denspot%rhov,.not. unblock_comms_den)
         !write(*,*) 'node:', iproc, ', thread:', ithread, 'mpi communication finished!!'
      end if
      !in case of GPU do not overlap density communication and projectors
@@ -130,6 +133,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
      !$OMP END PARALLEL !if unblock_comms_den
      !$ if (unblock_comms_den) then
      !$ call bigdft_close_nesting(nthread_max)
+     !$ call f_free_ptr(denspot%rho_psi) !now the pointer can be freed
      !$ call timing(iproc,'UnBlockDen    ','OF')
      !$ end if
 
