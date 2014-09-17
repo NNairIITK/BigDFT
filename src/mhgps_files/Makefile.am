@@ -35,19 +35,21 @@ noinst_LIBRARIES = libmhgps.a
 libmhgps_a_SOURCES = $(mhgps_SOURCES)
 
 ####for amber supp.:
-%.o:     %.c
-	        nab -c  -g $<
+##%.o:     %.c
+##	        nab -c  -g $<
 
 #dependencies
-##mhgps.o : $(mhgps_objects:.f90=.o) ../modules/BigDFT_API.o
+mhgps.o : $(mhgps_objects:.f90=.o) ../modules/BigDFT_API.o
 ##for amber support:
-mhgps.o : $(mhgps_objects:.f90=.o) ../modules/BigDFT_API.o wrap.o
+##mhgps.o : $(mhgps_objects:.f90=.o) ../modules/BigDFT_API.o wrap.o
 
 module_energyandforces.o : module_lenosky_si.o \
                            module_lj.o \
                            module_global_variables.o \
                            module_init.o \
-                           ../modules/BigDFT_API.o wrap.o
+                           ../modules/BigDFT_API.o
+##amber
+##                           ../modules/BigDFT_API.o wrap.o
 module_init.o : module_global_variables.o ../modules/BigDFT_API.o 
 module_saddle.o : module_global_variables.o module_io.o\
                   module_energyandforces.o ../modules/module_sbfgs.o\

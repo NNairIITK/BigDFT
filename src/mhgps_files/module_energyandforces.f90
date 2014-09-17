@@ -65,21 +65,21 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
         fxyz(1:3,1:nat)=fxyz(1:3,1:nat)*0.01944690466683907_gp
         fnoise=0.0_gp
         return
-    else if(trim(adjustl(efmethod))=='AMBER')then
-        icc=1
-        !convert from bohr to ansgtroem
-        rxyzint=0.52917721092_gp*rxyz
-        call call_nab_gradient(rxyzint(1,1),fxyz(1,1),epot,icc)
-        epot=epot*0.001593601437458137_gp !from kcal_th/mol to hartree
-                                          !(thermochemical calorie
-                                          !used: 1cal_th=4.184J)
-                                          !also see:
-                          !http://archive.ambermd.org/201009/0039.html
-        !convert from gradient in kcal_th/mol/angstrom to
-        !force in hartree/bohr
-        fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)*0.0008432975639921999_gp
-        fnoise=0.0_gp
-        return
+!    else if(trim(adjustl(efmethod))=='AMBER')then
+!        icc=1
+!        !convert from bohr to ansgtroem
+!        rxyzint=0.52917721092_gp*rxyz
+!        call call_nab_gradient(rxyzint(1,1),fxyz(1,1),epot,icc)
+!        epot=epot*0.001593601437458137_gp !from kcal_th/mol to hartree
+!                                          !(thermochemical calorie
+!                                          !used: 1cal_th=4.184J)
+!                                          !also see:
+!                          !http://archive.ambermd.org/201009/0039.html
+!        !convert from gradient in kcal_th/mol/angstrom to
+!        !force in hartree/bohr
+!        fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)*0.0008432975639921999_gp
+!        fnoise=0.0_gp
+!        return
     else if(trim(adjustl(efmethod))=='BIGDFT')then
         if(nat/=runObj%atoms%astruct%nat)then
             call yaml_warning('nat /= runObj%atoms%astruct%nat in '//&
