@@ -426,7 +426,7 @@ module bigdft_run
             call f_memcpy(n=n,dest=rxyz_add,src=runObj%atoms%astruct%rxyz(1,1))
          else if (present(rxyz)) then
             if (n /= size(rxyz)) then
-               call f_err_throw('Error in bigdft_set_rxyz: wrong size ('//&
+               call f_err_throw('Error in bigdft_get_rxyz: wrong size ('//&
                     trim(yaml_toa(n))//' /= '//trim(yaml_toa(size(rxyz)))//&
                     ')',err_name='BIGDFT_RUNTIME_ERROR')
             end if
@@ -440,7 +440,7 @@ module bigdft_run
             call f_memcpy(n=n,dest=rxyz_add,src=astruct%rxyz(1,1))
          else if (present(rxyz)) then
             if (n /= size(rxyz)) then
-               call f_err_throw('Error in bigdft_set_rxyz: wrong size ('//&
+               call f_err_throw('Error in bigdft_get_rxyz: wrong size ('//&
                     trim(yaml_toa(n))//' /= '//trim(yaml_toa(size(rxyz)))//&
                     ')',err_name='BIGDFT_RUNTIME_ERROR')
             end if
@@ -516,6 +516,7 @@ module bigdft_run
     subroutine bigdft_set_rxyz(runObj,rxyz_add,rxyz)
       use dynamic_memory, only: f_memcpy
       use yaml_strings, only: yaml_toa
+      use yaml_output
       implicit none
       type(run_objects), intent(inout) :: runObj
       !>starting position of the atomic position.
@@ -543,6 +544,7 @@ module bigdft_run
          end if
          call f_memcpy(src=rxyz,dest=runObj%atoms%astruct%rxyz)
       end if
+
     end subroutine bigdft_set_rxyz
 
     subroutine global_output_set_from_dict(outs, dict)
