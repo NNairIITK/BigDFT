@@ -520,8 +520,8 @@ module sparsematrix
          else if (comm_strategy==GET) then
              !!call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, nvctrp, matrix_local, &
              !!     nvctr_par, isvctr_par, smat%nvctr, matrix_compr)
-             call mpi_get_to_allgatherv(matrix_local(1), smat%nvctrp, matrix_compr(1), &
-                  smat%nvctr_par, smat%isvctr_par, bigdft_mpi%mpi_comm)
+             call mpi_get_to_allgatherv(matrix_local(1), nvctrp, matrix_compr(1), &
+                  nvctr_par, isvctr_par, bigdft_mpi%mpi_comm)
          else
              stop 'compress_matrix_distributed: wrong communication strategy'
          end if
