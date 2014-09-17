@@ -569,7 +569,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
             end do
          end do
          totops=sum(numops)
-         avops=totops/nthreads
+         avops=nint(totops/dble(nthreads))
          jjorb=1
          do i=1,nthreads
             ops=0
@@ -590,7 +590,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                ops=opsn
             end do
             if (i/=nthreads) then
-               avops=nint(dble(totops)/dble(nthreads-i))
+               avops=nint(totops/dble(nthreads-i))
             end if
          end do
 
