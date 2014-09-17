@@ -32,7 +32,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use yaml_output
   use psp_projectors
   use sparsematrix_base, only: sparse_matrix_null, matrices_null, allocate_matrices
-  use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff
+  use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff, init_matrix_taskgroups
   use sparsematrix, only: check_matrix_compression
   use communications_base, only: comms_linear_null
   implicit none
@@ -103,15 +103,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   type(dictionary), pointer :: dict_timing_info
   
   real(kind=8),dimension(:,:),allocatable :: locreg_centers
-  integer :: ishift, ipt, ii, i0, i0i, iiorb, j, i0j, jjorb, ind, ind_min, ind_max, iseq, ntaskgroups, jproc, jstart, jend, kkproc, kproc, itaskgroups, lproc, llproc
-  integer,dimension(:,:),allocatable :: iuse_startend, icalc_startend, itaskgroups_startend
-  integer :: ntaskgrp_calc, ntaskgrp_use
-  logical :: go_on
 
   ! testing
   real(kind=8),dimension(:,:),pointer :: locregcenters
   integer :: ilr, nlr, ioffset, linear_iscf
   character(len=20) :: comment
+
+  integer :: ishift
 
   !debug
   !real(kind=8) :: ddot
@@ -312,172 +310,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%s)
 
 
-     !@NEW ###############################################
-     icalc_startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='icalc_startend')
-     iuse_startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='iuse_startend')
-     ind_min = 1000000000
-     ind_max = -1000000000
-     do ipt=1,tmb%collcom%nptsp_c
-         ii=tmb%collcom%norb_per_gridpoint_c(ipt)
-         i0 = tmb%collcom%isptsp_c(ipt)
-         do i=1,ii
-             i0i=i0+i
-             iiorb=tmb%collcom%indexrecvorbital_c(i0i)
-             do j=1,ii
-                 i0j=i0+j
-                 jjorb=tmb%collcom%indexrecvorbital_c(i0j)
-                 ind = tmb%linmat%s%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                 ind_min = min(ind_min,ind)
-                 ind_max = max(ind_max,ind)
-             end do
-         end do
-     end do
-     do ipt=1,tmb%collcom%nptsp_f
-         ii=tmb%collcom%norb_per_gridpoint_f(ipt)
-         i0 = tmb%collcom%isptsp_f(ipt)
-         do i=1,ii
-             i0i=i0+i
-             iiorb=tmb%collcom%indexrecvorbital_f(i0i)
-             do j=1,ii
-                 i0j=i0+j
-                 jjorb=tmb%collcom%indexrecvorbital_f(i0j)
-                 ind = tmb%linmat%s%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                 ind_min = min(ind_min,ind)
-                 ind_max = max(ind_max,ind)
-             end do
-         end do
-     end do
-     icalc_startend(1,iproc) = ind_min
-     icalc_startend(2,iproc) = ind_max
-     !write(*,*) 'CALC: iproc, ind_min, ind_max', iproc, ind_min, ind_max
-     ind_min = 1000000000
-     ind_max = -1000000000
-     do iseq=1,tmb%linmat%s%smmm%nseq
-         ind=tmb%linmat%s%smmm%indices_extract_sequential(iseq)
-         ind_min = min(ind_min,ind)
-         ind_max = max(ind_max,ind)
-     end do
-     !write(*,*) 'USE: iproc, ind_min, ind_max', iproc, ind_min, ind_max
-     iuse_startend(1,iproc) = ind_min
-     iuse_startend(2,iproc) = ind_max
-     call mpiallred(icalc_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
-     call mpiallred(iuse_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
-
-     if (iproc==0) write(*,'(a,100(2i7,4x))') 'iuse_startend',iuse_startend
-     if (iproc==0) write(*,'(a,100(2i7,4x))') 'icalc_startend',icalc_startend
-
-     ntaskgroups = 1
-     llproc=0
-     ii = 0
-     do 
-         jproc = llproc + ii
-         if (jproc==nproc-1) exit
-         jstart = iuse_startend(1,jproc) !beginning of part used by task jproc
-         jend = iuse_startend(2,jproc) !end of part used by task jproc
-         ii = ii + 1
-         !search the last process whose calculation stops prior to iend
-         go_on = .false.
-         do kproc=nproc-1,llproc,-1
-             if (icalc_startend(2,kproc)<=jend) then
-                 go_on = .true.
-                 exit
-             end if
-         end do
-         !if (iproc==0) write(*,*) '1: llproc, ii, jproc, go_on', llproc, ii, jproc, go_on
-         do lproc=nproc-1,0,-1
-             if (iuse_startend(1,lproc)<=jend) then
-                 !if (iproc==0) write(*,'(a,3i8)') 'lproc, iuse_startend(1,lproc), iuse_startend(2,llproc)', lproc, iuse_startend(1,lproc), iuse_startend(2,llproc)
-                 if (iuse_startend(1,lproc)<=iuse_startend(2,llproc)) then
-                     go_on = .false.
-                 end if
-                 exit
-             end if
-         end do
-         !if (iproc==0) write(*,*) '2: llproc, ii, jproc, go_on', llproc, ii, jproc, go_on
-         if (.not.go_on) cycle
-         ntaskgroups = ntaskgroups + 1
-         ! Search the starting point of the next taskgroups, defined as the
-         ! largest starting part which is smaller than jend
-         llproc=nproc-1
-         do lproc=nproc-1,0,-1
-             if (iuse_startend(1,lproc)<=jend) then
-                 llproc = lproc
-                 exit
-             end if
-         end do
-         !if (iproc==0) write(*,*) 'llproc, ii, jproc, ntaskgroups', llproc, ii, jproc, ntaskgroups
-         ii = 0
-         !if (llproc==nproc-1) exit
-     end do
-     if (iproc==0) write(*,*) 'iproc, ntaskgroups', iproc, ntaskgroups
-
-     itaskgroups_startend = f_malloc0((/2,ntaskgroups/),id='itaskgroups_startend')
-     itaskgroups_startend(1,1) = 1
-     itaskgroups = 1
-     llproc=0
-     ii = 0
-     do 
-         jproc = llproc + ii
-         if (jproc==nproc-1) exit
-         jstart = iuse_startend(1,jproc) !beginning of part used by task jproc
-         jend = iuse_startend(2,jproc) !end of part used by task jproc
-         ii = ii + 1
-         !search the last process whose calculation stops prior to jend
-         go_on = .false.
-         do kproc=nproc-1,llproc,-1
-             if (icalc_startend(2,kproc)<=jend) then
-                 go_on = .true.
-                 exit
-             end if
-         end do
-         do lproc=nproc-1,0,-1
-             if (iuse_startend(1,lproc)<=jend) then
-                 if (iuse_startend(1,lproc)<=iuse_startend(2,llproc)) then
-                     go_on = .false.
-                 end if
-                 exit
-             end if
-         end do
-         if (.not.go_on) cycle
-         itaskgroups_startend(2,itaskgroups) = jend
-         itaskgroups = itaskgroups + 1
-         ! Search the starting point of the next taskgroups, defined as the
-         ! largest starting part which is smaller than jend
-         llproc=nproc-1
-         do lproc=nproc-1,0,-1
-             if (iuse_startend(1,lproc)<=jend) then
-                 itaskgroups_startend(1,itaskgroups) = iuse_startend(1,lproc)
-                 llproc = lproc
-                 exit
-             end if
-         end do
-         ii = 0
-         !if (llproc==nproc-1) exit
-     end do
-     itaskgroups_startend(2,itaskgroups) = iuse_startend(2,nproc-1)
-     if (itaskgroups/=ntaskgroups) stop 'itaskgroups/=ntaskgroups'
-     if (iproc==0) write(*,'(a,100(2i7,4x))') 'itaskgroups_startend', itaskgroups_startend
-
-     ! Assign the processes to the taskgroups
-     ntaskgrp_calc = 0
-     do itaskgroups=1,ntaskgroups
-         if ( icalc_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
-              icalc_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups) ) then
-              ntaskgrp_calc = ntaskgrp_calc + 1
-             write(*,'(2(a,i0))') 'CALC: task ',iproc,' is in taskgroup ',itaskgroups
-         end if
-     end do
-     if (ntaskgrp_calc>2) stop 'ntaskgrp_calc>2'
-     ntaskgrp_use = 0
-     do itaskgroups=1,ntaskgroups
-         if ( iuse_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
-              iuse_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups) ) then
-             write(*,'(2(a,i0))') 'USE: task ',iproc,' is in taskgroup ',itaskgroups
-              ntaskgrp_use = ntaskgrp_use + 1
-         end if
-     end do
-     if (ntaskgrp_use>2) stop 'ntaskgrp_use>2'
-     !@END NEW ###########################################
 
      if (in%check_matrix_compression) then
          if (iproc==0) call yaml_mapping_open('Checking Compression/Uncompression of small sparse matrices')
@@ -503,6 +335,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
+
+     call init_matrix_taskgroups(iproc, nproc, tmb%collcom, tmb%linmat%s)
+     call init_matrix_taskgroups(iproc, nproc, tmb%ham_descr%collcom, tmb%linmat%m)
+     call init_matrix_taskgroups(iproc, nproc, tmb%ham_descr%collcom, tmb%linmat%l)
 
      !call nullify_sparse_matrix(tmb%linmat%inv_ovrlp_large)
      !tmb%linmat%inv_ovrlp_large=sparse_matrix_null()

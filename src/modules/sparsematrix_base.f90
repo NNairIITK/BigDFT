@@ -31,6 +31,7 @@ module sparsematrix_base
       integer,dimension(:),pointer :: isvctr_par, nvctr_par !<array that contains the values of nvctrp and isvctr of all MPI tasks
       integer,dimension(:),pointer :: ivectorindex, nsegline, istsegline, indices_extract_sequential
       integer,dimension(:,:),pointer :: onedimindices, keyg
+      integer,dimension(2) :: istartend_mm !< starting and ending indices of the matrix subpart which is actually used for the multiplication
   end type sparse_matrix_matrix_multiplication
 
   type,public :: sparse_matrix
@@ -41,6 +42,13 @@ module sparsematrix_base
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
       logical :: store_index, can_use_dense
       type(sparse_matrix_matrix_multiplication) :: smmm
+      integer :: ntaskgroup !< total number of MPI taskgroups to which this task belongs
+      integer :: ntaskgroupp !< number of MPI taskgroups to which this task belongs
+      !> (1:2,1,:) gives the start and end of the taskgroups (in terms of total matrix indices), 
+      !! (1:2,2,:) gives the start and end of the disjoint submatrix handled by the taskgroup
+      !! The last rank is of dimension ntaskgroup
+      integer,dimension(:,:,:),pointer :: taskgroup_startend
+      integer,dimension(:),pointer :: inwhichtaskgroup !< dimension ntaskgroupp, tells to which taskgroups a given task belongs
   end type sparse_matrix
 
 

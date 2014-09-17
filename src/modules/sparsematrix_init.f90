@@ -21,6 +21,7 @@ module sparsematrix_init
   public :: compressed_index
   public :: matrixindex_in_compressed
   public :: check_kernel_cutoff
+  public :: init_matrix_taskgroups
 
 contains
 
@@ -233,7 +234,7 @@ contains
       integer,dimension(2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(inout) :: sparsemat
 
-      integer :: ierr, jproc, iorb, jjproc, iiorb, nseq_min, nseq_max
+      integer :: ierr, jproc, iorb, jjproc, iiorb, nseq_min, nseq_max, iseq, ind
       integer,dimension(:),allocatable :: nseq_per_line, norb_par_ideal, isorb_par_ideal
       integer,dimension(:,:),allocatable :: temparr
       real(kind=8) :: rseq, rseq_ideal, tt, ratio_before, ratio_after
@@ -339,6 +340,17 @@ contains
       call init_sequential_acces_matrix(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
            nsegline, istsegline, keyg, sparsemat, sparsemat%smmm%nseq, &
            sparsemat%smmm%indices_extract_sequential)
+
+      ! This array gives the starting and ending indices of the submatrix which
+      ! is used by a given MPI task
+
+      sparsemat%smmm%istartend_mm(1) = 1000000000
+      sparsemat%smmm%istartend_mm(2) = -1000000000
+      do iseq=1,sparsemat%smmm%nseq
+          ind=sparsemat%smmm%indices_extract_sequential(iseq)
+          sparsemat%smmm%istartend_mm(1) = min(sparsemat%smmm%istartend_mm(1),ind)
+          sparsemat%smmm%istartend_mm(2) = max(sparsemat%smmm%istartend_mm(2),ind)
+      end do
 
       call f_free(norb_par_ideal)
       call f_free(isorb_par_ideal)
@@ -964,5 +976,266 @@ contains
 
     end subroutine init_matrix_parallelization
 
+
+    subroutine init_matrix_taskgroups(iproc, nproc, collcom, smat)
+      use module_base
+      use module_types
+      use communications_base, only: comms_linear
+      implicit none
+
+      ! Caling arguments
+      integer,intent(in) :: iproc, nproc
+      type(comms_linear),intent(in) :: collcom
+      type(sparse_matrix),intent(inout) :: smat
+
+      ! Local variables
+      integer :: ishift, ipt, ii, i0, i0i, iiorb, j, i0j, jjorb, ind, ind_min, ind_max, iseq, ntaskgroups, jproc, jstart, jend, kkproc, kproc, itaskgroups, lproc, llproc
+      integer,dimension(:,:),allocatable :: iuse_startend, icalc_startend, itaskgroups_startend
+      integer,dimension(:),allocatable :: tasks_per_taskgroup
+      integer :: ntaskgrp_calc, ntaskgrp_use, i, ncount, iitaskgroup
+      logical :: go_on
+
+      !@NEW ###############################################
+      icalc_startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='icalc_startend')
+      iuse_startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='iuse_startend')
+      ind_min = 1000000000
+      ind_max = -1000000000
+      do ipt=1,collcom%nptsp_c
+          ii=collcom%norb_per_gridpoint_c(ipt)
+          i0 = collcom%isptsp_c(ipt)
+          do i=1,ii
+              i0i=i0+i
+              iiorb=collcom%indexrecvorbital_c(i0i)
+              do j=1,ii
+                  i0j=i0+j
+                  jjorb=collcom%indexrecvorbital_c(i0j)
+                  ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                  ind_min = min(ind_min,ind)
+                  ind_max = max(ind_max,ind)
+              end do
+          end do
+      end do
+      do ipt=1,collcom%nptsp_f
+          ii=collcom%norb_per_gridpoint_f(ipt)
+          i0 = collcom%isptsp_f(ipt)
+          do i=1,ii
+              i0i=i0+i
+              iiorb=collcom%indexrecvorbital_f(i0i)
+              do j=1,ii
+                  i0j=i0+j
+                  jjorb=collcom%indexrecvorbital_f(i0j)
+                  ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                  ind_min = min(ind_min,ind)
+                  ind_max = max(ind_max,ind)
+              end do
+          end do
+      end do
+      icalc_startend(1,iproc) = ind_min
+      icalc_startend(2,iproc) = ind_max
+      !write(*,*) 'CALC: iproc, ind_min, ind_max', iproc, ind_min, ind_max
+      ind_min = 1000000000
+      ind_max = -1000000000
+      do iseq=1,smat%smmm%nseq
+          ind=smat%smmm%indices_extract_sequential(iseq)
+          ind_min = min(ind_min,ind)
+          ind_max = max(ind_max,ind)
+      end do
+      !write(*,*) 'USE: iproc, ind_min, ind_max', iproc, ind_min, ind_max
+      iuse_startend(1,iproc) = ind_min
+      iuse_startend(2,iproc) = ind_max
+      call mpiallred(icalc_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(iuse_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+ 
+      if (iproc==0) write(*,'(a,100(2i7,4x))') 'iuse_startend',iuse_startend
+      if (iproc==0) write(*,'(a,100(2i7,4x))') 'icalc_startend',icalc_startend
+ 
+      ntaskgroups = 1
+      llproc=0
+      ii = 0
+      do 
+          jproc = llproc + ii
+          if (jproc==nproc-1) exit
+          jstart = iuse_startend(1,jproc) !beginning of part used by task jproc
+          jend = iuse_startend(2,jproc) !end of part used by task jproc
+          ii = ii + 1
+          !search the last process whose calculation stops prior to iend
+          go_on = .false.
+          do kproc=nproc-1,llproc,-1
+              if (icalc_startend(2,kproc)<=jend) then
+                  go_on = .true.
+                  exit
+              end if
+          end do
+          !if (iproc==0) write(*,*) '1: llproc, ii, jproc, go_on', llproc, ii, jproc, go_on
+          do lproc=nproc-1,0,-1
+              if (iuse_startend(1,lproc)<=jend) then
+                  !if (iproc==0) write(*,'(a,3i8)') 'lproc, iuse_startend(1,lproc), iuse_startend(2,llproc)', lproc, iuse_startend(1,lproc), iuse_startend(2,llproc)
+                  if (iuse_startend(1,lproc)<=iuse_startend(2,llproc)) then
+                      go_on = .false.
+                  end if
+                  exit
+              end if
+          end do
+          !if (iproc==0) write(*,*) '2: llproc, ii, jproc, go_on', llproc, ii, jproc, go_on
+          if (.not.go_on) cycle
+          ntaskgroups = ntaskgroups + 1
+          ! Search the starting point of the next taskgroups, defined as the
+          ! largest starting part which is smaller than jend
+          llproc=nproc-1
+          do lproc=nproc-1,0,-1
+              if (iuse_startend(1,lproc)<=jend) then
+                  llproc = lproc
+                  exit
+              end if
+          end do
+          !if (iproc==0) write(*,*) 'llproc, ii, jproc, ntaskgroups', llproc, ii, jproc, ntaskgroups
+          ii = 0
+          !if (llproc==nproc-1) exit
+      end do
+      if (iproc==0) write(*,*) 'iproc, ntaskgroups', iproc, ntaskgroups
+
+      smat%ntaskgroup = ntaskgroups
+ 
+      itaskgroups_startend = f_malloc0((/2,ntaskgroups/),id='itaskgroups_startend')
+      itaskgroups_startend(1,1) = 1
+      itaskgroups = 1
+      llproc=0
+      ii = 0
+      do 
+          jproc = llproc + ii
+          if (jproc==nproc-1) exit
+          jstart = iuse_startend(1,jproc) !beginning of part used by task jproc
+          jend = iuse_startend(2,jproc) !end of part used by task jproc
+          ii = ii + 1
+          !search the last process whose calculation stops prior to jend
+          go_on = .false.
+          do kproc=nproc-1,llproc,-1
+              if (icalc_startend(2,kproc)<=jend) then
+                  go_on = .true.
+                  exit
+              end if
+          end do
+          do lproc=nproc-1,0,-1
+              if (iuse_startend(1,lproc)<=jend) then
+                  if (iuse_startend(1,lproc)<=iuse_startend(2,llproc)) then
+                      go_on = .false.
+                  end if
+                  exit
+              end if
+          end do
+          if (.not.go_on) cycle
+          itaskgroups_startend(2,itaskgroups) = jend
+          itaskgroups = itaskgroups + 1
+          ! Search the starting point of the next taskgroups, defined as the
+          ! largest starting part which is smaller than jend
+          llproc=nproc-1
+          do lproc=nproc-1,0,-1
+              if (iuse_startend(1,lproc)<=jend) then
+                  itaskgroups_startend(1,itaskgroups) = iuse_startend(1,lproc)
+                  llproc = lproc
+                  exit
+              end if
+          end do
+          ii = 0
+          !if (llproc==nproc-1) exit
+      end do
+      itaskgroups_startend(2,itaskgroups) = iuse_startend(2,nproc-1)
+      if (itaskgroups/=ntaskgroups) stop 'itaskgroups/=ntaskgroups'
+      write(*,'(a,i8,4x,100(2i7,4x))') 'iproc, itaskgroups_startend', itaskgroups_startend
+ 
+      ! Assign the processes to the taskgroups
+      ntaskgrp_calc = 0
+      do itaskgroups=1,ntaskgroups
+          if ( icalc_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
+               icalc_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups) ) then
+               ntaskgrp_calc = ntaskgrp_calc + 1
+              write(*,'(2(a,i0))') 'CALC: task ',iproc,' is in taskgroup ',itaskgroups
+          end if
+      end do
+      if (ntaskgrp_calc>2) stop 'ntaskgrp_calc>2'
+      ntaskgrp_use = 0
+      do itaskgroups=1,ntaskgroups
+          if ( iuse_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
+               iuse_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups) ) then
+              write(*,'(2(a,i0))') 'USE: task ',iproc,' is in taskgroup ',itaskgroups
+               ntaskgrp_use = ntaskgrp_use + 1
+          end if
+      end do
+      if (ntaskgrp_use>2) stop 'ntaskgrp_use>2'
+
+      smat%ntaskgroupp = max(ntaskgrp_calc,ntaskgrp_use)
+
+      smat%taskgroup_startend = f_malloc_ptr((/2,2,smat%ntaskgroup/),id='smat%taskgroup_startend')
+      smat%inwhichtaskgroup = f_malloc_ptr((/smat%ntaskgroupp/),id='smat%ntaskgroupp')
+
+
+      i = 0
+      do itaskgroups=1,smat%ntaskgroup
+          !!if ( (icalc_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
+          !!      icalc_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups)) .or. &
+          !!     (iuse_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
+          !!      iuse_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups)) ) then
+               i = i + 1
+               smat%taskgroup_startend(1,1,i) = itaskgroups_startend(1,itaskgroups)
+               smat%taskgroup_startend(2,1,i) = itaskgroups_startend(2,itaskgroups)
+               smat%inwhichtaskgroup(i) = itaskgroups
+          !!end if
+      end do
+      if (i/=smat%ntaskgroup) then
+          write(*,*) 'i, smat%ntaskgroup', i, smat%ntaskgroup
+          stop 'i/=smat%ntaskgroup'
+      end if
+
+      i = 0
+      do itaskgroups=1,smat%ntaskgroup
+          if ( (icalc_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
+                icalc_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups)) .or. &
+               (iuse_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
+                iuse_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups)) ) then
+               i = i + 1
+               smat%inwhichtaskgroup(i) = itaskgroups
+          end if
+      end do
+      if (i/=smat%ntaskgroupp) then
+          write(*,*) 'i, smat%ntaskgroupp', i, smat%ntaskgroupp
+          stop 'i/=smat%ntaskgroupp'
+      end if
+
+      ! Partition the entire matrix in disjoint submatrices
+      smat%taskgroup_startend(1,2,1) = smat%taskgroup_startend(1,1,1)
+      do itaskgroups=2,smat%ntaskgroup
+          smat%taskgroup_startend(1,2,itaskgroups) = (smat%taskgroup_startend(2,1,itaskgroups-1)+smat%taskgroup_startend(1,1,itaskgroups)) / 2
+          smat%taskgroup_startend(2,2,itaskgroups-1) = smat%taskgroup_startend(1,2,itaskgroups)-1
+      end do
+      smat%taskgroup_startend(2,2,smat%ntaskgroup) = smat%taskgroup_startend(2,1,smat%ntaskgroup)
+
+      write(*,'(a,100(2i8,4x))') 'iproc, smat%taskgroup_startend(:,2,:)',smat%taskgroup_startend(:,2,:)
+
+      !Check
+      ncount = 0
+      do itaskgroups=1,smat%ntaskgroup
+          ncount = ncount + smat%taskgroup_startend(2,2,itaskgroups)-smat%taskgroup_startend(1,2,itaskgroups)+1
+      end do
+      if (ncount/=smat%nvctr) then
+          write(*,*) 'ncount, smat%nvctr', ncount, smat%nvctr
+          stop 'ncount/=smat%nvctr'
+      end if
+
+
+
+      ! Create the taskgroups
+      ! Count the number of tasks per taskgroup
+      tasks_per_taskgroup = f_malloc0(smat%ntaskgroup,id='tasks_per_taskgroup')
+      do itaskgroups=1,smat%ntaskgroupp
+          iitaskgroup = smat%inwhichtaskgroup(itaskgroups)
+          tasks_per_taskgroup(iitaskgroup) = tasks_per_taskgroup(iitaskgroup) + 1
+      end do
+      call mpiallred(tasks_per_taskgroup(1), smat%ntaskgroup, mpi_sum, bigdft_mpi%mpi_comm)
+      write(*,*) 'iproc, tasks_per_taskgroup', iproc, tasks_per_taskgroup
+      !call mpi_comm_group(bigdft_mpi%mpi_comm, group, ierr)
+
+      !@END NEW ###########################################
+ 
+    end subroutine init_matrix_taskgroups
 
 end module sparsematrix_init
