@@ -213,6 +213,7 @@ contains
     !LG: the array kpt seems not allocated here.
     !I would classify it as a bug
     !therefore:
+    nkpt=0
     allocate(kpt(3, nkpt))
     allocate(wkpt(nkpt))
 
