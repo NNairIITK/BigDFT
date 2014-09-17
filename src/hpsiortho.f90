@@ -116,7 +116,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
         !the rho_p pointer, allocated aoutside form the nested region, is by default
         !freed by communicate_density routine in the nested region       
         call communicate_density(denspot%dpbox,wfn%orbs%nspin,denspot%rhod,&
-             denspot%rho_psi,denspot%rhov,.not. unblock_comms_den)
+             denspot%rho_psi,denspot%rhov,unblock_comms_den)
         !write(*,*) 'node:', iproc, ', thread:', ithread, 'mpi communication finished!!'
      end if
      !in case of GPU do not overlap density communication and projectors
