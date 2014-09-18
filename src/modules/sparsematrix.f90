@@ -71,9 +71,10 @@ module sparsematrix
       if (sparsemat%parallel_compression==0.or.bigdft_mpi%nproc==1) then
          do ispin=1,sparsemat%nspin
              ishift=(ispin-1)*sparsemat%nfvctr**2
-             !$omp parallel default(none) private(iseg,j,jj,irowcol) &
-             !$omp shared(sparsemat,inm,outm,ishift,ispin)
-             !$omp do
+             !OpenMP broken on Vesta
+             !!$omp parallel default(none) private(iseg,j,jj,irowcol) &
+             !!$omp shared(sparsemat,inm,outm,ishift,ispin)
+             !!$omp do
              do iseg=1,sparsemat%nseg
                  jj=sparsemat%keyv(iseg)
                  do j=sparsemat%keyg(1,iseg),sparsemat%keyg(2,iseg)
@@ -85,7 +86,7 @@ module sparsematrix
                     jj=jj+1
                  end do
              end do
-             !$omp end do
+             !!$omp end do
              !$omp end parallel
          end do
       else if (sparsemat%parallel_compression==1) then
@@ -166,8 +167,9 @@ module sparsematrix
          call to_zero(sparsemat%nfvctr**2*sparsemat%nspin, outm(1,1,1))
          do ispin=1,sparsemat%nspin
              ishift=(ispin-1)*sparsemat%nvctr
-             !$omp parallel default(none) private(iseg,i,ii,irowcol) shared(sparsemat,inm,outm,ispin,ishift)
-             !$omp do
+             !OpenMP broken on Vesta
+             !!$omp parallel default(none) private(iseg,i,ii,irowcol) shared(sparsemat,inm,outm,ispin,ishift)
+             !!$omp do
              do iseg=1,sparsemat%nseg
                  ii=sparsemat%keyv(iseg)
                  do i=sparsemat%keyg(1,iseg),sparsemat%keyg(2,iseg)
@@ -178,8 +180,8 @@ module sparsematrix
                     ii=ii+1
                 end do
              end do
-             !$omp end do
-             !$omp end parallel
+             !!$omp end do
+             !!$omp end parallel
          end do
       else if (sparsemat%parallel_compression==1) then
          stop 'needs to be fixed'
