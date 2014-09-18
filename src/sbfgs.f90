@@ -140,6 +140,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    beta=betax
    beta_stretch=runObj%inputs%beta_stretchx
    maxd=0.0_gp
+   ts=0.0_gp
 
    ! allocate arrays
    lwork=1000+10*nat**2
