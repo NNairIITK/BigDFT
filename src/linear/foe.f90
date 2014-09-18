@@ -707,8 +707,8 @@ subroutine foe(iproc, nproc, tmprtr, &
           ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
           istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
           ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
-          ebsp=ebsp/scale_factor+shift_value*sumn
           call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          ebsp=ebsp/scale_factor+shift_value*sumn
     
     
           if (iproc==0) call yaml_map('trace(KS)',sumn)
