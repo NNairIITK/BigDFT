@@ -1045,6 +1045,8 @@ subroutine copy_sparse_matrix(smat_in, smat_out)
   type(sparse_matrix),intent(in) :: smat_in
   type(sparse_matrix),intent(out) :: smat_out
 
+  ! Local variables
+  integer :: i, is, ie
 
 
   smat_out%nvctr = smat_in%nvctr
@@ -1058,6 +1060,10 @@ subroutine copy_sparse_matrix(smat_in, smat_out)
   smat_out%nspin = smat_in%nspin
   smat_out%store_index = smat_in%store_index
   smat_out%can_use_dense = smat_in%store_index
+  smat_out%ntaskgroup = smat_in%ntaskgroup
+  smat_out%ntaskgroupp = smat_in%ntaskgroupp
+  smat_out%istartendseg_t(1:2) = smat_in%istartendseg_t(1:2)
+  smat_out%istartend_t(1:2) = smat_in%istartend_t(1:2)
 
   call allocate_and_copy(smat_in%keyv, smat_out%keyv, id='smat_out%')
   call allocate_and_copy(smat_in%nsegline, smat_out%nsegline, id='smat_out%nsegline')
@@ -1070,16 +1076,23 @@ subroutine copy_sparse_matrix(smat_in, smat_out)
   call allocate_and_copy(smat_in%keyg, smat_out%keyg, id='smat_out%keyg')
   call allocate_and_copy(smat_in%matrixindex_in_compressed_arr, smat_out%matrixindex_in_compressed_arr, &
                          id='smat_out%matrixindex_in_compressed_arr')
-  !!call allocate_and_copy(smat_in%orb_from_index, smat_out%orb_from_index, id='smat_out%orb_from_index')
   call allocate_and_copy(smat_in%matrixindex_in_compressed_fortransposed, smat_out%matrixindex_in_compressed_fortransposed, &
                          id='smat_out%matrixindex_in_compressed_fortransposed')
+  call allocate_and_copy(smat_in%taskgroup_startend, smat_out%taskgroup_startend, id='smat_out%taskgroup_startend')
+  call allocate_and_copy(smat_in%inwhichtaskgroup, smat_out%inwhichtaskgroup, id='smat_out%inwhichtaskgroup')
 
-  !!call allocate_and_copy(smat_in%matrix_compr, smat_out%matrix_compr, id='smat_out%matrix_compr')
-  !!call allocate_and_copy(smat_in%matrix_comprp, smat_out%matrix_comprp, id='smat_out%matrix_comprp')
 
-  !!call allocate_and_copy(smat_in%matrix, smat_out%matrix, id='smat_out%matrix')
-  !!call allocate_and_copy(smat_in%matrixp, smat_out%matrixp, id='smat_out%matrixp')
+  call copy_sparse_matrix_matrix_multiplication(smat_in%smmm, smat_out%smmm)
 
+  is = lbound(smat_in%mpi_groups,1)
+  ie = ubound(smat_in%mpi_groups,1)
+  if (associated(smat_out%mpi_groups)) then
+      deallocate(smat_out%mpi_groups)
+  end if
+  allocate(smat_out%mpi_groups(is:ie))
+  do i=is,ie
+      call copy_mpi_environment(smat_in%mpi_groups(i), smat_out%mpi_groups(i))
+  end do
 
 end subroutine copy_sparse_matrix
 
@@ -1178,3 +1191,19 @@ subroutine copy_comms_linear(comms_in, comms_out)
     call allocate_and_copy(comms_in%psit_f, comms_out%psit_f, id='comms_out%psit_f')
 
 end subroutine copy_comms_linear
+
+
+subroutine copy_mpi_environment(mpi_in, mpi_out)
+  use wrapper_MPI, only: mpi_environment
+  implicit none
+  ! Calling arguments
+  type(mpi_environment),intent(in) :: mpi_in
+  type(mpi_environment),intent(out) :: mpi_out
+
+  mpi_out%mpi_comm = mpi_in%mpi_comm
+  mpi_out%iproc = mpi_in%iproc
+  mpi_out%nproc = mpi_in%nproc
+  mpi_out%igroup = mpi_in%igroup
+  mpi_out%ngroup = mpi_in%ngroup
+
+end subroutine copy_mpi_environment
