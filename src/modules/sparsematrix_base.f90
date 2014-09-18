@@ -49,6 +49,7 @@ module sparsematrix_base
       !! The last rank is of dimension ntaskgroup
       integer,dimension(:,:,:),pointer :: taskgroup_startend
       integer,dimension(:),pointer :: inwhichtaskgroup !< dimension ntaskgroupp, tells to which taskgroups a given task belongs
+      type(mpi_environment),dimension(:),pointer :: mpi_groups
   end type sparse_matrix
 
 

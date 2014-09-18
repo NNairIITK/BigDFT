@@ -990,10 +990,11 @@ contains
 
       ! Local variables
       integer :: ishift, ipt, ii, i0, i0i, iiorb, j, i0j, jjorb, ind, ind_min, ind_max, iseq, ntaskgroups, jproc, jstart, jend, kkproc, kproc, itaskgroups, lproc, llproc
-      integer,dimension(:,:),allocatable :: iuse_startend, icalc_startend, itaskgroups_startend
+      integer,dimension(:,:),allocatable :: iuse_startend, icalc_startend, itaskgroups_startend, ranks
       integer,dimension(:),allocatable :: tasks_per_taskgroup
-      integer :: ntaskgrp_calc, ntaskgrp_use, i, ncount, iitaskgroup
+      integer :: ntaskgrp_calc, ntaskgrp_use, i, ncount, iitaskgroup, group, ierr, iitaskgroups, newgroup
       logical :: go_on
+      integer,dimension(:,:),allocatable :: in_taskgroup
 
       !@NEW ###############################################
       icalc_startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='icalc_startend')
@@ -1178,7 +1179,7 @@ contains
                i = i + 1
                smat%taskgroup_startend(1,1,i) = itaskgroups_startend(1,itaskgroups)
                smat%taskgroup_startend(2,1,i) = itaskgroups_startend(2,itaskgroups)
-               smat%inwhichtaskgroup(i) = itaskgroups
+               !!smat%inwhichtaskgroup(i) = itaskgroups
           !!end if
       end do
       if (i/=smat%ntaskgroup) then
@@ -1232,7 +1233,42 @@ contains
       end do
       call mpiallred(tasks_per_taskgroup(1), smat%ntaskgroup, mpi_sum, bigdft_mpi%mpi_comm)
       write(*,*) 'iproc, tasks_per_taskgroup', iproc, tasks_per_taskgroup
-      !call mpi_comm_group(bigdft_mpi%mpi_comm, group, ierr)
+      call mpi_comm_group(bigdft_mpi%mpi_comm, group, ierr)
+
+      in_taskgroup = f_malloc0((/0.to.nproc-1,1.to.smat%ntaskgroup/),id='in_taskgroup')
+      ranks = f_malloc((/maxval(tasks_per_taskgroup),smat%ntaskgroup/),id='ranks')
+      do itaskgroups=1,smat%ntaskgroupp
+          iitaskgroups = smat%inwhichtaskgroup(itaskgroups)
+          in_taskgroup(iproc,iitaskgroups) = 1
+      end do
+      call mpiallred(in_taskgroup(0,1), nproc*smat%ntaskgroup, mpi_sum, bigdft_mpi%mpi_comm)
+
+      allocate(smat%mpi_groups(smat%ntaskgroup))
+      do itaskgroups=1,smat%ntaskgroup
+          smat%mpi_groups(itaskgroups) = mpi_environment_null()
+      end do
+      do itaskgroups=1,smat%ntaskgroup
+          ii = 0
+          do jproc=0,nproc-1
+              if (in_taskgroup(jproc,itaskgroups)>0) then
+                  ii = ii + 1
+                  ranks(ii,itaskgroups) = jproc
+              end if
+          end do
+          if (ii/=tasks_per_taskgroup(itaskgroups)) stop 'ii/=tasks_per_taskgroup(itaskgroups)'
+          call mpi_group_incl(group, ii, ranks(1,itaskgroups), newgroup, ierr)
+          call mpi_comm_create(bigdft_mpi%mpi_comm, newgroup, smat%mpi_groups(itaskgroups)%mpi_comm, ierr)
+          if (smat%mpi_groups(itaskgroups)%mpi_comm/=MPI_COMM_NULL) then
+              call mpi_comm_size(smat%mpi_groups(itaskgroups)%mpi_comm, smat%mpi_groups(itaskgroups)%nproc, ierr)
+              call mpi_comm_rank(smat%mpi_groups(itaskgroups)%mpi_comm, smat%mpi_groups(itaskgroups)%iproc, ierr)
+          end if
+          smat%mpi_groups(itaskgroups)%igroup = itaskgroups
+          smat%mpi_groups(itaskgroups)%ngroup = smat%ntaskgroup
+      end do
+
+      do itaskgroups=1,smat%ntaskgroup
+      if (smat%mpi_groups(itaskgroups)%iproc==0) write(*,'(2(a,i0))') 'process ',iproc,' is first in taskgroup ',itaskgroups 
+      end do
 
       !@END NEW ###########################################
  

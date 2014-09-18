@@ -58,7 +58,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8),parameter :: charge_tolerance=1.d-6 ! exit criterion
   logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
   real(kind=8) :: trace_sparse, temp_multiplicator, ebs_check, ef, ebsp
-  integer :: irow, icol, itemp, iflag,info, ispin, isshift, imshift, ilshift, i, j
+  integer :: irow, icol, itemp, iflag,info, ispin, isshift, imshift, ilshift, i, j, itg, ncount, istl, ists
   logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
   real(kind=8),parameter :: FSCALE_LOWER_LIMIT=5.d-3
   real(kind=8),parameter :: FSCALE_UPPER_LIMIT=5.d-2
@@ -561,10 +561,37 @@ subroutine foe(iproc, nproc, tmprtr, &
     
           ! Calculate trace(KH). Since they have the same sparsity pattern and K is
           ! symmetric, this is a simple ddot.
-          ebsp=ddot(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ilshift+1),1 , hamscal_compr, 1)
+          !ebsp=ddot(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ilshift+1),1 , hamscal_compr, 1)
+          ebsp = 0.d0
+          do itg=1,tmb%linmat%l%ntaskgroup
+              if (tmb%linmat%l%mpi_groups(itg)%iproc==0) then
+                  ncount = tmb%linmat%l%taskgroup_startend(2,2,itg)-tmb%linmat%l%taskgroup_startend(1,2,itg)+1
+                  istl = tmb%linmat%l%taskgroup_startend(1,2,itg)
+                  ists = tmb%linmat%l%taskgroup_startend(1,2,itg)-tmb%linmat%l%taskgroup_startend(1,1,itg)+1
+                  !ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ists), 1)
+                  ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
+              end if
+          end do
+          call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
+
+
           ebsp=ebsp/scale_factor+shift_value*sumn
     
-          ebs_check=ddot(tmb%linmat%l%nvctr, fermi_check_compr,1 , hamscal_compr, 1)
+          !ebs_check=ddot(tmb%linmat%l%nvctr, fermi_check_compr, 1 , hamscal_compr, 1)
+          ebs_check = 0.d0
+          do itg=1,tmb%linmat%l%ntaskgroup
+              if (tmb%linmat%l%mpi_groups(itg)%iproc==0) then
+                  ncount = tmb%linmat%l%taskgroup_startend(2,2,itg)-tmb%linmat%l%taskgroup_startend(1,2,itg)+1
+                  istl = tmb%linmat%l%taskgroup_startend(1,2,itg)
+                  ists = tmb%linmat%l%taskgroup_startend(1,2,itg)-tmb%linmat%l%taskgroup_startend(1,1,itg)+1
+                  !ebs_check = ddot(ncount, fermi_check_compr(istl), 1, hamscal_compr(ists), 1)
+                  ebs_check = ddot(ncount, fermi_check_compr(istl), 1, hamscal_compr(istl), 1)
+              end if
+          end do
+          call mpiallred(ebs_check, 1, mpi_sum, bigdft_mpi%mpi_comm)
+
+
+
           ebs_check=ebs_check/scale_factor+shift_value*sumn_check
           diff=abs(ebs_check-ebsp)
           diff=diff/abs(ebsp)
@@ -653,7 +680,18 @@ subroutine foe(iproc, nproc, tmprtr, &
           ! If no purification is done, this should not be necessary.
           ! Since K and H have the same sparsity pattern and K is
           ! symmetric, the trace is a simple ddot.
-          ebsp=ddot(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ilshift+1),1 , hamscal_compr, 1)
+          !ebsp=ddot(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ilshift+1),1 , hamscal_compr, 1)
+          ebsp = 0.d0
+          do itg=1,tmb%linmat%l%ntaskgroup
+              if (tmb%linmat%l%mpi_groups(itg)%iproc==0) then
+                  ncount = tmb%linmat%l%taskgroup_startend(2,2,itg)-tmb%linmat%l%taskgroup_startend(1,2,itg)+1
+                  istl = tmb%linmat%l%taskgroup_startend(1,2,itg)
+                  ists = tmb%linmat%l%taskgroup_startend(1,2,itg)-tmb%linmat%l%taskgroup_startend(1,1,itg)+1
+                  !ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ists), 1)
+                  ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
+              end if
+          end do
+          call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
           ebsp=ebsp/scale_factor+shift_value*sumn
     
     
