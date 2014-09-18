@@ -86,7 +86,7 @@ contains
         character(17), parameter :: filename='mhgps.inp_default'
         open(u,file=filename)
             write(u,'(1x,i0.0,1x,1a)')mhgps_verbosity,' #mhgps_verbosity'
-            write(u,'(1x,1L1,1x,1L1,1x,1a)')operation_mode,random_minmode_guess,&
+            write(u,'(1x,1L1,1x,1L1,1x,1a)')trim(adjustl(operation_mode)),random_minmode_guess,&
                  ' #mode, random_minmode_guess'
             write(u,'(1x,i0.0,1x,1a)')nsadmax,' #nsadmax'
             write(u,'(1x,1a,1x,1L1,1x,1a)')trim(adjustl(efmethod)),external_mini,&
@@ -105,7 +105,7 @@ contains
                  ' #maximum number of steps in perpendicular optimization in freezing stringmethod'
             write(u,'(1x,es10.3,1x,es10.3,1x,1a)')lst_dt_max, lst_fmax_tol,&
                  '#max. time step in fire optimizer of lst function, convergence criterion'
-            write(u,'(1x,i0,1x,i0,1x,1a)')saddle_nit_trans, saddle_nit_rot,'  #nit_trans, not_rot'
+            write(u,'(1x,i0,1x,i0,1x,1a)')saddle_nit_trans, saddle_nit_rot,'  #nit_trans, nit_rot'
             write(u,'(1x,i0,1x,i0,1x,1a)')saddle_nhistx_trans, saddle_nhistx_rot,' #nhistx_trans, nhistx_rot'
             write(u,'(es10.3,1x,es10.3,1a)')saddle_steepthresh_trans,saddle_steepthresh_rot,&
                  ' #saddle_steepthresh_trans,saddle_steepthresh_rot'
@@ -126,6 +126,16 @@ contains
             write(u,'(es10.3,1x,1a)')saddle_cutoffratio,' #cutoffratio'
             write(u,'(1x,i0,1x,1a)')saddle_recompIfCurvPos,' #recompIfCurvPos'
             write(u,'(es10.3,1x,es10.3,1x,1a)')saddle_stepoff,saddle_scale_stepoff, ' #stepoff, stepoff_scale'
+            write(u,'(1x,i0,1x,1a)')mini_nhistx,'#mini_nhistx'
+            write(u,'(1x,i0,1x,1a)')mini_ncluster_x,'#mini_ncluster_x'
+            write(u,'(es10.3,1x,1a)')mini_frac_fluct,'#mini_frac_fluct'
+            write(u,'(es10.3,1x,1a)')mini_forcemax,'#mini_forcemax'
+            write(u,'(es10.3,1x,1a)')mini_maxrise,'#mini_maxrise'
+            write(u,'(es10.3,1x,1a)')mini_betax,'#mini_betax'
+            write(u,'(es10.3,1x,1a)')mini_beta_stretchx,'#mini_beta_stretchx'
+            write(u,'(es10.3,1x,1a)')mini_cutoffRatio,'#mini_cutoffRatio'
+            write(u,'(es10.3,1x,1a)')mini_steepthresh,'#mini_steepthresh'
+            write(u,'(es10.3,1x,1a)')mini_trustr,'#mini_trustr'
         close(u)
     end subroutine
     subroutine print_input()
@@ -133,14 +143,27 @@ contains
         use yaml_output
         call yaml_comment('(MHGPS) Input Parameters',hfill='-')
         call yaml_map('(MHGPS) mhgps_verbosity',mhgps_verbosity)
-        call yaml_map('(MHGPS) operation_mode',operation_mode)
+        call yaml_map('(MHGPS) operation_mode',trim(adjustl(operation_mode)))
         call yaml_map('(MHGPS) random_minmode_guess',random_minmode_guess)
+        call yaml_map('(MHGPS) nsadmax',nsadmax)
         call yaml_map('(MHGPS) Energy and forces method',trim(adjustl(efmethod)))
+        call yaml_map('(MHGPS) external minimizer',external_mini)
+        call yaml_map('(MHGPS) en_delta_min',en_delta_min)
+        call yaml_map('(MHGPS) en_delta_sad',en_delta_sad)
         call yaml_map('(MHGPS) Biomolecule mode',saddle_biomode)
+        call yaml_map('(MHGPS) lst_interpol_stepfrct',lst_interpol_stepfrct)
+        call yaml_map('(MHGPS) ts_guess_gammainv',ts_guess_gammainv)
+        call yaml_map('(MHGPS) ts_guess_perpnrmtol',ts_guess_perpnrmtol)
+        call yaml_map('(MHGPS) ts_guess_trust',ts_guess_trust)
+        call yaml_map('(MHGPS) ts_guess_nstepsmax',ts_guess_nstepsmax)
+        call yaml_map('(MHGPS) lst_dt_max',lst_dt_max)
+        call yaml_map('(MHGPS) lst_fmax_tol',lst_fmax_tol)
         call yaml_map('(MHGPS) saddle_nit_trans',saddle_nit_trans)
         call yaml_map('(MHGPS) saddle_nit_rot',saddle_nit_rot)
         call yaml_map('(MHGPS) saddle_nhistx_trans',saddle_nhistx_trans)
         call yaml_map('(MHGPS) saddle_nhistx_rot',saddle_nhistx_rot)
+        call yaml_map('(MHGPS) saddle_steepthresh_trans',saddle_steepthresh_trans)
+        call yaml_map('(MHGPS) saddle_steepthresh_rot',saddle_steepthresh_rot)
         call yaml_map('(MHGPS) saddle_fnrmtol',saddle_fnrmtol)
         call yaml_map('(MHGPS) saddle_alpha0_trans',saddle_alpha0_trans)
         call yaml_map('(MHGPS) saddle_alpha0_rot',saddle_alpha0_rot)
@@ -157,6 +180,20 @@ contains
         call yaml_map('(MHGPS) saddle_maxcurvrise',saddle_maxcurvrise)
         call yaml_map('(MHGPS) saddle_cutoffratio',saddle_cutoffratio)
         call yaml_map('(MHGPS) saddle_recompIfCurvPos',saddle_recompIfCurvPos)
+        call yaml_map('(MHGPS) saddle_stepoff',saddle_stepoff)
+        call yaml_map('(MHGPS) saddle_scale_stepoff',saddle_scale_stepoff)
+        if(.not.external_mini)then
+            call yaml_map('(MHGPS) mini_nhistx', mini_nhistx)
+            call yaml_map('(MHGPS) mini_ncluster_x', mini_ncluster_x)
+            call yaml_map('(MHGPS) mini_frac_fluct', mini_frac_fluct)
+            call yaml_map('(MHGPS) mini_forcemax', mini_forcemax)
+            call yaml_map('(MHGPS) mini_maxrise', mini_maxrise)
+            call yaml_map('(MHGPS) mini_betax', mini_betax)
+            call yaml_map('(MHGPS) mini_beta_stretchx', mini_beta_stretchx)
+            call yaml_map('(MHGPS) mini_cutoffRatio', mini_cutoffRatio)
+            call yaml_map('(MHGPS) mini_steepthresh', mini_steepthresh)
+            call yaml_map('(MHGPS) mini_trustr', mini_trustr)
+        endif
     end subroutine print_input
 
     subroutine print_logo_mhgps()
