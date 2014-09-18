@@ -422,20 +422,6 @@ contains
             call dict_free_(child)
          end if
       end do
-
-!!$
-!!$      !first destroy the children
-!!$      if (associated(dict%child)) then
-!!$         call dict_free_(dict%child)
-!!$         call dict_destroy(dict%child)
-!!$      end if
-!!$      !then destroy younger brothers
-!!$      if (associated(dict%next)) then
-!!$         call dict_free_(dict%next)
-!!$         call dict_destroy(dict%next)
-!!$      end if
-!!$      call dictionary_nullify(dict)
-
     end subroutine dict_free_
 
   end subroutine dict_free
@@ -497,45 +483,45 @@ contains
   end function name_is
 
 
-  !> Fill output with input and the rest with blanks
-  !! this routine is only useful for its interface
-  pure subroutine set_field(input,output)
-    implicit none
-    character(len=*), intent(in) :: input 
-    character(len=max_field_length), intent(out) :: output 
-    !local variables
-    integer :: ipos,i
+!!$  !> Fill output with input and the rest with blanks
+!!$  !! this routine is only useful for its interface
+!!$  pure subroutine set_field(input,output)
+!!$    implicit none
+!!$    character(len=*), intent(in) :: input 
+!!$    character(len=max_field_length), intent(out) :: output 
+!!$    !local variables
+!!$    integer :: ipos,i
+!!$
+!!$    !one could also write
+!!$    !output(1:len(output))=input
+!!$
+!!$    ipos=min(len(trim(input)),max_field_length)
+!!$    do i=1,ipos
+!!$       output(i:i)=input(i:i)
+!!$    end do
+!!$    do i=ipos+1,max_field_length
+!!$       output(i:i)=' ' 
+!!$    end do
+!!$
+!!$  end subroutine set_field
 
-    !one could also write
-    !output(1:len(output))=input
 
-    ipos=min(len(trim(input)),max_field_length)
-    do i=1,ipos
-       output(i:i)=input(i:i)
-    end do
-    do i=ipos+1,max_field_length
-       output(i:i)=' ' 
-    end do
-
-  end subroutine set_field
-
-
-  pure subroutine get_field(input,output)
-    implicit none
-    character(len=max_field_length), intent(in) :: input
-    character(len=*), intent(out) :: output
-    !local variables
-    integer :: ipos,i
-
-    ipos=min(len(output),max_field_length)
-    do i=1,ipos
-       output(i:i)=input(i:i)
-    end do
-    do i=ipos+1,len(output)
-       output(i:i)=' ' 
-    end do
-
-  end subroutine get_field
+!!$  pure subroutine get_field(input,output)
+!!$    implicit none
+!!$    character(len=max_field_length), intent(in) :: input
+!!$    character(len=*), intent(out) :: output
+!!$    !local variables
+!!$    integer :: ipos,i
+!!$
+!!$    ipos=min(len(output),max_field_length)
+!!$    do i=1,ipos
+!!$       output(i:i)=input(i:i)
+!!$    end do
+!!$    do i=ipos+1,len(output)
+!!$       output(i:i)=' ' 
+!!$    end do
+!!$
+!!$  end subroutine get_field
 
 
   !> Returns the value of the key of the dictionary
@@ -620,12 +606,13 @@ contains
   !> This routine creates a key for the dictionary in case it is absent
   !! the it adds one to the number of elements of the parent dictionary
   pure subroutine set_elem(dict,key)
+    use yaml_strings, only: f_strcpy
     implicit none
     type(dictionary), pointer :: dict !!TO BE VERIFIED
     character(len=*), intent(in) :: key
 
     !print *,'set_elem in ',trim(key),dict%data%nelems,dict%parent%data%nelems
-    call set_field(trim(key),dict%data%key)
+    call f_strcpy(src=trim(key),dest=dict%data%key)
     if (associated(dict%parent)) then
        dict%parent%data%nelems=dict%parent%data%nelems+1
     else
@@ -668,7 +655,6 @@ contains
        subd_ptr => get_dict_ptr(dict%child,key)
     else
        call dict_init(dict%child)
-       !call set_field(key,dict%child%data%key)
        call define_parent(dict,dict%child)
        call set_elem(dict%child,key)
        subd_ptr => dict%child
@@ -694,11 +680,9 @@ contains
        dict_ptr => get_dict_ptr(dict%next,key)
     else if (no_key(dict)) then !this is useful for the first assignation
        call set_elem(dict,key)
-       !call set_field(key,dict%data%key)
        dict_ptr => dict
     else
        call dict_init(dict%next)
-       !call set_field(key,dict%next%data%key)
        call define_brother(dict,dict%next) !chain the list in both directions
        if (associated(dict%parent)) call define_parent(dict%parent,dict%next)
        call set_elem(dict%next,key)
@@ -797,30 +781,33 @@ contains
 
   !> Defines a storage structure with a key-value couple
   elemental pure function storage_data(key,val)
+    use yaml_strings, only: f_strcpy
     character(len=*), intent(in) :: key,val
     type(storage) :: storage_data
 
     storage_data=storage_null()
 
-    call set_field(key,storage_data%key)
-    call set_field(val,storage_data%value)
+    call f_strcpy(src=key,dest=storage_data%key)
+    call f_strcpy(src=val,dest=storage_data%value)
 
   end function storage_data
 
   !> Test to see the g95 behaviour
   pure function stored_key(st) result(key)
+    use yaml_strings, only: f_strcpy
     implicit none
     type(storage), intent(in) :: st
     character(len=max_field_length) :: key
-    call get_field(st%key,key)
+    call f_strcpy(src=st%key,dest=key)
   end function stored_key
 
   !> test to see the g95 behaviour
   pure function stored_value(st) result(val)
+    use yaml_strings, only: f_strcpy
     implicit none
     type(storage), intent(in) :: st
     character(len=max_field_length) :: val
-    call get_field(st%value,val)
+    call f_strcpy(src=st%value,dest=val)
   end function stored_value
 
 

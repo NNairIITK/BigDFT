@@ -12,7 +12,7 @@
 module dictionaries
    use exception_callbacks
    use dictionaries_base
-   use yaml_strings, only: read_fraction_string,yaml_toa
+   use yaml_strings, only: read_fraction_string,yaml_toa,f_strcpy
    implicit none
 
    private
@@ -1018,8 +1018,9 @@ contains
 !!$     end if
 
      if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
-
-     call set_field(repeat(' ',max_field_length),dict%data%value)
+     
+     call f_strcpy(src=' ',dest=dict%data%value)
+     !call set_field(repeat(' ',max_field_length),dict%data%value)
      if ( .not. associated(dict%child,target=subd) .and. &
           associated(dict%child)) then
         call dict_free(dict%child)
@@ -1121,7 +1122,8 @@ contains
      end if
      if (associated(dict%child)) call dict_free(dict%child)
 
-     call set_field(val,dict%data%value)
+     call f_strcpy(src=val,dest=dict%data%value)
+     !call set_field(val,dict%data%value)
 
    end subroutine put_value
 
@@ -1267,7 +1269,8 @@ contains
      val(1:len(val))=' '
      if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
      if (f_err_raise(no_value(dict),'The key is "'//trim(dict%data%key)//'"',err_id=DICT_VALUE_ABSENT)) return
-     call get_field(dict%data%value,val)
+     call f_strcpy(src=dict%data%value,dest=val)
+     !call get_field(dict%data%value,val)
 
    end subroutine get_value
 

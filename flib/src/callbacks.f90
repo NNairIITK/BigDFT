@@ -64,6 +64,7 @@ contains
   subroutine err_set_callback_simple(callback)
     implicit none
     external :: callback !< Error routine which will be called
+    !$ include 'halt_omp-inc.f90'
 
     callback_add=f_loc(callback)
     callback_data_add=0
@@ -75,6 +76,7 @@ contains
     implicit none
     integer(kind=8), intent(in) :: callback_data_address
     external :: callback
+    !$ include 'halt_omp-inc.f90'
 
     callback_add=f_loc(callback)
     callback_data_add=callback_data_address
@@ -84,6 +86,7 @@ contains
 
   subroutine f_err_unset_callback()
     implicit none
+    !$ include 'halt_omp-inc.f90'
 
     callback_add=0
     callback_data_add=0
@@ -93,6 +96,7 @@ contains
   subroutine f_err_severe_override(callback)
     implicit none
     external :: callback
+    !$ include 'halt_omp-inc.f90'
 
     severe_callback_add=f_loc(callback)
   end subroutine f_err_severe_override
@@ -100,6 +104,7 @@ contains
 
   subroutine f_err_severe_restore()
     implicit none
+    !$ include 'halt_omp-inc.f90'
     severe_callback_add=0
   end subroutine f_err_severe_restore
 

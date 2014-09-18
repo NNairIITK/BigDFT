@@ -113,7 +113,6 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    real(gp) :: beta  !< current step size
    real(gp) :: beta_stretch  !< current step size in bond-stretching directions
    real(gp) :: cosangle
-   real(gp) :: ts
    real(gp) :: tt
    real(gp) :: maxd !< maximum displacement of single atom
    real(gp) :: scl
@@ -360,10 +359,6 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
                              etotp,iconnect,nbond,wold,beta_stretchx,beta_stretch)
       detot=etotp-etotold
       energycounter=energycounter+1.0_gp
-
-      if(debug.and.iproc==0)write(100,'(a,i6,2(1x,e21.14),1x,5(1x,e10.3),1x,i0)')&
-            'SBFGS it,etot,etotold,Detot,fnrm,fnrmp/fnrm,dnrm/fnrm,beta,ndim',&
-             it-1,etotp,etotold,detot,fnrm,sqrt(ts)/fnrm,sqrt(tt)/fnrm,beta,ndim
 
 
       call fnrmandforcemax(fxyzraw(1,1,nhist),fnrm,fmax,nat)
