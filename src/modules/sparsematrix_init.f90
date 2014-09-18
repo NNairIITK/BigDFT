@@ -1044,7 +1044,7 @@ contains
       integer :: ishift, ipt, ii, i0, i0i, iiorb, j, i0j, jjorb, ind, ind_min, ind_max, iseq, ntaskgroups, jproc, jstart, jend, kkproc, kproc, itaskgroups, lproc, llproc
       integer,dimension(:,:),allocatable :: iuse_startend, icalc_startend, itaskgroups_startend, ranks
       integer,dimension(:),allocatable :: tasks_per_taskgroup
-      integer :: ntaskgrp_calc, ntaskgrp_use, i, ncount, iitaskgroup, group, ierr, iitaskgroups, newgroup
+      integer :: ntaskgrp_calc, ntaskgrp_use, i, ncount, iitaskgroup, group, ierr, iitaskgroups, newgroup, iseg
       logical :: go_on
       integer,dimension(:,:),allocatable :: in_taskgroup
 
@@ -1087,6 +1087,25 @@ contains
       end do
       icalc_startend(1,iproc) = ind_min
       icalc_startend(2,iproc) = ind_max
+
+      ! This corresponds to the values for the transposed operation bounds
+      smat%istartend_t(1) = ind_min
+      smat%istartend_t(1) = ind_max
+      ! Determine to which segments this corresponds
+      do iseg=1,smat%nseg
+          if (smat%keyv(iseg)>=smat%smmm%istartend_mm(1)) then
+              smat%istartendseg_t(1)=iseg
+              exit
+          end if
+      end do
+      do iseg=smat%nseg,1,-1
+          if (smat%keyv(iseg)<=smat%smmm%istartend_mm(2)) then
+              smat%istartendseg_t(2)=iseg
+              exit
+          end if
+      end do
+
+
       !write(*,*) 'CALC: iproc, ind_min, ind_max', iproc, ind_min, ind_max
       ind_min = 1000000000
       ind_max = -1000000000

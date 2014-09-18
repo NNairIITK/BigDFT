@@ -795,8 +795,9 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
   integer,dimension(2) :: irowcol
   real(kind=8),dimension(:),pointer :: kernel_compr_tmp
   real(kind=8),dimension(:),pointer :: matrix_local
-  integer,parameter :: ALLGATHERV=51, GET=52
+  integer,parameter :: ALLGATHERV=51, GET=52, GLOBAL_MATRIX=101, SUBMATRIX=102
   integer,parameter :: comm_strategy=GET
+  integer,parameter :: data_strategy=GLOBAL_MATRIX
 
       call f_routine(id='build_gradient')
       call timing(iproc,'buildgrad_mcpy','ON')
@@ -809,60 +810,87 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           kernel_compr_tmp = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=SPARSE_FULL,id='kernel_compr_tmp')
           call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
-          isegstart = tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+1)
-          isegend = tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp) + &
-                    tmb%linmat%l%nsegline(tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp)-1
-          matrix_local = f_malloc_ptr(tmb%linmat%l%nvctrp,id='matrix_local')
-          do ispin=1,tmb%linmat%l%nspin
-              ishift=(ispin-1)*tmb%linmat%l%nvctr
-              !$omp parallel default(none) &
-              !$omp shared(isegstart,isegend,tmb,matrix_local,kernel_compr_tmp,ishift) &
-              !$omp private(iseg,ii,i,irowcol)
-              !$omp do
-              do iseg=isegstart,isegend
-                  ii=tmb%linmat%l%keyv(iseg)
-                  do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
-                      irowcol = orb_from_index(tmb%linmat%l, i)
-                      if(irowcol(1)==irowcol(2)) then
-                          matrix_local(ii-tmb%linmat%l%isvctr)=0.d0
-                      else
-                          matrix_local(ii-tmb%linmat%l%isvctr)=kernel_compr_tmp(ii+ishift)
-                      end if
-                      ii=ii+1
+          if (data_strategy==GLOBAL_MATRIX) then
+              isegstart = tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+1)
+              isegend = tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp) + &
+                        tmb%linmat%l%nsegline(tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp)-1
+              matrix_local = f_malloc_ptr(tmb%linmat%l%nvctrp,id='matrix_local')
+              do ispin=1,tmb%linmat%l%nspin
+                  ishift=(ispin-1)*tmb%linmat%l%nvctr
+                  !$omp parallel default(none) &
+                  !$omp shared(isegstart,isegend,tmb,matrix_local,kernel_compr_tmp,ishift) &
+                  !$omp private(iseg,ii,i,irowcol)
+                  !$omp do
+                  do iseg=isegstart,isegend
+                      ii=tmb%linmat%l%keyv(iseg)
+                      do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
+                          irowcol = orb_from_index(tmb%linmat%l, i)
+                          if(irowcol(1)==irowcol(2)) then
+                              matrix_local(ii-tmb%linmat%l%isvctr)=0.d0
+                          else
+                              matrix_local(ii-tmb%linmat%l%isvctr)=kernel_compr_tmp(ii+ishift)
+                          end if
+                          ii=ii+1
+                      end do
                   end do
-              end do
-              !$omp end do
-              !$omp end parallel
-              if (nproc>1) then
-                   call timing(iproc,'buildgrad_mcpy','OF')
-                   call timing(iproc,'buildgrad_comm','ON')
-                   !!call mpi_allgatherv(matrix_local(1), tmb%linmat%l%nvctrp, mpi_double_precision, &
-                   !!     tmb%linmat%kernel_%matrix_compr(ishift+1), tmb%linmat%l%nvctr_par, &
-                   !!     tmb%linmat%l%isvctr_par, mpi_double_precision, &
-                   !!     bigdft_mpi%mpi_comm, ierr)
-                   if (comm_strategy==ALLGATHERV) then
-                       call mpi_allgatherv(matrix_local(1), tmb%linmat%l%nvctrp, mpi_double_precision, &
-                            tmb%linmat%kernel_%matrix_compr(ishift+1), tmb%linmat%l%nvctr_par, &
-                            tmb%linmat%l%isvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-                       call f_free_ptr(matrix_local)
-                   else if (comm_strategy==GET) then
-                       !!call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l%nvctrp, matrix_local, &
-                       !!     tmb%linmat%l%nvctr_par, tmb%linmat%l%isvctr_par, &
-                       !!     tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ishift+1:ishift+tmb%linmat%l%nvctr))
-                       call mpi_get_to_allgatherv(matrix_local(1), tmb%linmat%l%nvctrp, &
-                            tmb%linmat%kernel_%matrix_compr(ishift+1), &
-                            tmb%linmat%l%nvctr_par, tmb%linmat%l%isvctr_par, bigdft_mpi%mpi_comm)
+                  !$omp end do
+                  !$omp end parallel
+                  if (nproc>1) then
+                       call timing(iproc,'buildgrad_mcpy','OF')
+                       call timing(iproc,'buildgrad_comm','ON')
+                       !!call mpi_allgatherv(matrix_local(1), tmb%linmat%l%nvctrp, mpi_double_precision, &
+                       !!     tmb%linmat%kernel_%matrix_compr(ishift+1), tmb%linmat%l%nvctr_par, &
+                       !!     tmb%linmat%l%isvctr_par, mpi_double_precision, &
+                       !!     bigdft_mpi%mpi_comm, ierr)
+                       if (comm_strategy==ALLGATHERV) then
+                           call mpi_allgatherv(matrix_local(1), tmb%linmat%l%nvctrp, mpi_double_precision, &
+                                tmb%linmat%kernel_%matrix_compr(ishift+1), tmb%linmat%l%nvctr_par, &
+                                tmb%linmat%l%isvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+                           call f_free_ptr(matrix_local)
+                       else if (comm_strategy==GET) then
+                           !!call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l%nvctrp, matrix_local, &
+                           !!     tmb%linmat%l%nvctr_par, tmb%linmat%l%isvctr_par, &
+                           !!     tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ishift+1:ishift+tmb%linmat%l%nvctr))
+                           call mpi_get_to_allgatherv(matrix_local(1), tmb%linmat%l%nvctrp, &
+                                tmb%linmat%kernel_%matrix_compr(ishift+1), &
+                                tmb%linmat%l%nvctr_par, tmb%linmat%l%isvctr_par, bigdft_mpi%mpi_comm)
+                       else
+                           stop 'build_gradient: wrong communication strategy'
+                       end if
+                       call timing(iproc,'buildgrad_comm','OF')
+                       call timing(iproc,'buildgrad_mcpy','ON')
+                       if (ispin==tmb%linmat%l%nspin) call f_free_ptr(matrix_local)
                    else
-                       stop 'build_gradient: wrong communication strategy'
+                       call vcopy(tmb%linmat%l%nvctr, matrix_local(1), 1, &
+                            tmb%linmat%kernel_%matrix_compr(ishift+1), 1)
                    end if
-                   call timing(iproc,'buildgrad_comm','OF')
-                   call timing(iproc,'buildgrad_mcpy','ON')
-                   if (ispin==tmb%linmat%l%nspin) call f_free_ptr(matrix_local)
-               else
-                   call vcopy(tmb%linmat%l%nvctr, matrix_local(1), 1, &
-                        tmb%linmat%kernel_%matrix_compr(ishift+1), 1)
-               end if
-          end do
+              end do
+          else if (data_strategy==SUBMATRIX) then
+              do ispin=1,tmb%linmat%l%nspin
+                  ishift=(ispin-1)*tmb%linmat%l%nvctr
+                  !$omp parallel default(none) &
+                  !$omp shared(isegstart,isegend,tmb,matrix_local,kernel_compr_tmp,ishift) &
+                  !$omp private(iseg,ii,i,irowcol)
+                  !$omp do
+                  do iseg=tmb%linmat%l%istartendseg_t(1),tmb%linmat%l%istartendseg_t(2)
+                      ii=tmb%linmat%l%keyv(iseg)
+                      do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg) !this is too much, but for the moment ok
+                          irowcol = orb_from_index(tmb%linmat%l, i)
+                          if(irowcol(1)==irowcol(2)) then
+                              tmb%linmat%kernel_%matrix_compr(ii+ishift)=0.d0
+                          else
+                              tmb%linmat%kernel_%matrix_compr(ii+ishift)=kernel_compr_tmp(ii+ishift)
+                          end if
+                          ii=ii+1
+                      end do
+                  end do
+                  !$omp end do
+                  !$omp end parallel
+              end do
+          else
+              stop 'build_gradient: wrong data strategy'
+          end if
+
 
 
           ist=1

@@ -53,6 +53,11 @@ module sparsematrix_base
       integer,dimension(:,:,:),pointer :: taskgroup_startend
       integer,dimension(:),pointer :: inwhichtaskgroup !< dimension ntaskgroupp, tells to which taskgroups a given task belongs
       type(mpi_environment),dimension(:),pointer :: mpi_groups
+      integer,dimension(2) :: istartendseg_t !< starting and ending indices of the matrix subpart which is actually used i
+                                             !! for the transposed operation (overlap calculation / orthocontraint)
+                                             !! WARNING: the essential bounds are given by istartend_t, the segments are you used to speed up the code
+      integer,dimension(2) :: istartend_t !< starting and ending indices of the matrix subpart which is actually used i
+                                          !! for the transposed operation (overlap calculation / orthocontraint
   end type sparse_matrix
 
 
