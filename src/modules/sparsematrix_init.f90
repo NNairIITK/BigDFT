@@ -1009,6 +1009,7 @@ contains
       use module_base
       use module_types
       use communications_base, only: comms_linear
+      use yaml_output
       implicit none
 
       ! Caling arguments
@@ -1123,7 +1124,7 @@ contains
           ii = 0
           !if (llproc==nproc-1) exit
       end do
-      if (iproc==0) write(*,*) 'iproc, ntaskgroups', iproc, ntaskgroups
+      !if (iproc==0) write(*,*) 'iproc, ntaskgroups', iproc, ntaskgroups
 
       smat%ntaskgroup = ntaskgroups
  
@@ -1172,7 +1173,7 @@ contains
       end do
       itaskgroups_startend(2,itaskgroups) = iuse_startend(2,nproc-1)
       if (itaskgroups/=ntaskgroups) stop 'itaskgroups/=ntaskgroups'
-      if (iproc==0) write(*,'(a,i8,4x,1000(2i7,4x))') 'iproc, itaskgroups_startend', itaskgroups_startend
+      !if (iproc==0) write(*,'(a,i8,4x,1000(2i7,4x))') 'iproc, itaskgroups_startend', itaskgroups_startend
  
       ! Assign the processes to the taskgroups
       ntaskgrp_calc = 0
@@ -1240,7 +1241,7 @@ contains
       end do
       smat%taskgroup_startend(2,2,smat%ntaskgroup) = smat%taskgroup_startend(2,1,smat%ntaskgroup)
 
-      if (iproc==0) write(*,'(a,1000(2i8,4x))') 'iproc, smat%taskgroup_startend(:,2,:)',smat%taskgroup_startend(:,2,:)
+      !if (iproc==0) write(*,'(a,1000(2i8,4x))') 'iproc, smat%taskgroup_startend(:,2,:)',smat%taskgroup_startend(:,2,:)
 
       !Check
       ncount = 0
@@ -1262,7 +1263,7 @@ contains
           tasks_per_taskgroup(iitaskgroup) = tasks_per_taskgroup(iitaskgroup) + 1
       end do
       call mpiallred(tasks_per_taskgroup(1), smat%ntaskgroup, mpi_sum, bigdft_mpi%mpi_comm)
-      if (iproc==0) write(*,'(a,i7,4x,1000i7)') 'iproc, tasks_per_taskgroup', iproc, tasks_per_taskgroup
+      !if (iproc==0) write(*,'(a,i7,4x,1000i7)') 'iproc, tasks_per_taskgroup', iproc, tasks_per_taskgroup
       call mpi_comm_group(bigdft_mpi%mpi_comm, group, ierr)
 
       in_taskgroup = f_malloc0((/0.to.nproc-1,1.to.smat%ntaskgroup/),id='in_taskgroup')
@@ -1302,6 +1303,25 @@ contains
       !    if (smat%mpi_groups(itaskgroups)%iproc==0) write(*,'(2(a,i0))') 'process ',iproc,' is first in taskgroup ',itaskgroups 
       !end do
 
+      ! Print a summary
+      if (iproc==0) then
+          call yaml_mapping_open('taskgroup summary')
+          call yaml_map('number of taskgroups',smat%ntaskgroup)
+          call yaml_sequence_open('taskgroups overview')
+          do itaskgroups=1,smat%ntaskgroup
+              call yaml_sequence(advance='no')
+              call yaml_mapping_open(flow=.true.)
+              call yaml_map('number of tasks',tasks_per_taskgroup(itaskgroups))
+              call yaml_map('IDs',ranks(1:tasks_per_taskgroup(itaskgroups),itaskgroups))
+              call yaml_newline()
+              call yaml_map('start / end',smat%taskgroup_startend(1:2,1,itaskgroups))
+              call yaml_map('start / end disjoint',smat%taskgroup_startend(1:2,2,itaskgroups))
+              call yaml_mapping_close()
+          end do
+          call yaml_sequence_close()
+          call yaml_mapping_close()
+      end if
+
       call f_free(in_taskgroup)
       call f_free(iuse_startend)
       call f_free(itaskgroups_startend)
@@ -1310,6 +1330,9 @@ contains
       call f_free(ranks)
 
       !@END NEW ###########################################
+
+
+
 
       call f_release_routine()
 
