@@ -234,8 +234,9 @@ contains
       integer,dimension(2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(inout) :: sparsemat
 
-      integer :: ierr, jproc, iorb, jjproc, iiorb, nseq_min, nseq_max, iseq, ind
+      integer :: ierr, jproc, iorb, jjproc, iiorb, nseq_min, nseq_max, iseq, ind, ii
       integer,dimension(:),allocatable :: nseq_per_line, norb_par_ideal, isorb_par_ideal
+      integer,dimension(:,:),allocatable :: istartend_dj, istartend_mm
       integer,dimension(:,:),allocatable :: temparr
       real(kind=8) :: rseq, rseq_ideal, tt, ratio_before, ratio_after
 
@@ -343,7 +344,6 @@ contains
 
       ! This array gives the starting and ending indices of the submatrix which
       ! is used by a given MPI task
-
       sparsemat%smmm%istartend_mm(1) = 1000000000
       sparsemat%smmm%istartend_mm(2) = -1000000000
       do iseq=1,sparsemat%smmm%nseq
@@ -352,8 +352,36 @@ contains
           sparsemat%smmm%istartend_mm(2) = max(sparsemat%smmm%istartend_mm(2),ind)
       end do
 
+      istartend_mm = f_malloc0((/1.to.2,0.to.nproc-1/),id='istartend_mm')
+      istartend_mm(1:2,iproc) = sparsemat%smmm%istartend_mm(1:2)
+      call mpiallred(istartend_mm(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+
+      ! Partition the entire matrix in disjoint submatrices
+      istartend_dj = f_malloc((/1.to.2,0.to.nproc-1/),id='istartend_dj')
+      istartend_dj(1,0) = istartend_mm(1,0)
+      do jproc=1,nproc-1
+          istartend_dj(1,jproc) = (istartend_mm(2,jproc-1)+istartend_mm(1,jproc))/2
+          istartend_dj(2,jproc-1) = istartend_dj(1,jproc)-1
+      end do
+      istartend_dj(2,nproc-1) = istartend_mm(2,nproc-1)
+
+      ! Some checks
+      ii = 0
+      do jproc=0,nproc-1
+          ii = ii + istartend_dj(2,jproc)-istartend_dj(1,jproc) + 1
+          if (ii<0) stop 'init_sparse_matrix_matrix_multiplication: ii<0'
+      end do
+      if (ii/=sparsemat%nvctr) stop 'init_sparse_matrix_matrix_multiplication: ii/=sparsemat%nvctr'
+
+      ! Keep the values of its own task
+      sparsemat%smmm%istartend_mm_dj(1) = istartend_dj(1,iproc)
+      sparsemat%smmm%istartend_mm_dj(2) = istartend_dj(2,iproc)
+
+
       call f_free(norb_par_ideal)
       call f_free(isorb_par_ideal)
+      call f_free(istartend_mm)
+      call f_free(istartend_dj)
     end subroutine init_sparse_matrix_matrix_multiplication
 
 
@@ -1284,6 +1312,21 @@ contains
       !@END NEW ###########################################
 
       call f_release_routine()
+
+
+      !!contains
+
+
+      !!  function get_start_of_segment(smat, iiseg) result(ist)
+
+      !!      do iseg=smat%nseg,1,-1
+      !!          if (iiseg>=smat%keyv(iseg)) then
+      !!              it = smat%keyv(iseg)
+      !!              exit
+      !!          end if
+      !!      end do
+
+      !!  end function get_start_of_segment
  
     end subroutine init_matrix_taskgroups
 

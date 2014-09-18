@@ -76,6 +76,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   integer,parameter :: DENSE=2
   integer,parameter :: imode=SPARSE
   type(fermi_aux) :: f
+  real(kind=8),dimension(2) :: temparr
   
 
 
@@ -562,36 +563,47 @@ subroutine foe(iproc, nproc, tmprtr, &
           ! Calculate trace(KH). Since they have the same sparsity pattern and K is
           ! symmetric, this is a simple ddot.
           !ebsp=ddot(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ilshift+1),1 , hamscal_compr, 1)
-          ebsp = 0.d0
-          do itg=1,tmb%linmat%l%ntaskgroup
-              if (tmb%linmat%l%mpi_groups(itg)%iproc==0) then
-                  ncount = tmb%linmat%l%taskgroup_startend(2,2,itg)-tmb%linmat%l%taskgroup_startend(1,2,itg)+1
-                  istl = tmb%linmat%l%taskgroup_startend(1,2,itg)
-                  ists = tmb%linmat%l%taskgroup_startend(1,2,itg)-tmb%linmat%l%taskgroup_startend(1,1,itg)+1
-                  !ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ists), 1)
-                  ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
-              end if
-          end do
-          call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          !!ebsp = 0.d0
+          !!do itg=1,tmb%linmat%l%ntaskgroup
+          !!    if (tmb%linmat%l%mpi_groups(itg)%iproc==0) then
+          !!        ncount = tmb%linmat%l%taskgroup_startend(2,2,itg)-tmb%linmat%l%taskgroup_startend(1,2,itg)+1
+          !!        istl = tmb%linmat%l%taskgroup_startend(1,2,itg)
+          !!        ists = tmb%linmat%l%taskgroup_startend(1,2,itg)-tmb%linmat%l%taskgroup_startend(1,1,itg)+1
+          !!        !ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ists), 1)
+          !!        ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
+          !!    end if
+          !!end do
+          ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
+          istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
+          ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
+          !call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
+
+
+    
+          !ebs_check=ddot(tmb%linmat%l%nvctr, fermi_check_compr, 1 , hamscal_compr, 1)
+          !!ebs_check = 0.d0
+          !!do itg=1,tmb%linmat%l%ntaskgroup
+          !!    if (tmb%linmat%l%mpi_groups(itg)%iproc==0) then
+          !!        ncount = tmb%linmat%l%taskgroup_startend(2,2,itg)-tmb%linmat%l%taskgroup_startend(1,2,itg)+1
+          !!        istl = tmb%linmat%l%taskgroup_startend(1,2,itg)
+          !!        ists = tmb%linmat%l%taskgroup_startend(1,2,itg)-tmb%linmat%l%taskgroup_startend(1,1,itg)+1
+          !!        !ebs_check = ddot(ncount, fermi_check_compr(istl), 1, hamscal_compr(ists), 1)
+          !!        ebs_check = ddot(ncount, fermi_check_compr(istl), 1, hamscal_compr(istl), 1)
+          !!    end if
+          !!end do
+          ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
+          istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
+          ebs_check = ddot(ncount, fermi_check_compr(istl), 1, hamscal_compr(istl), 1)
+          !call mpiallred(ebs_check, 1, mpi_sum, bigdft_mpi%mpi_comm)
+
+          temparr(1) = ebsp
+          temparr(2) = ebs_check
+          call mpiallred(temparr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+          ebsp = temparr(1)
+          ebs_check = temparr(2)
 
 
           ebsp=ebsp/scale_factor+shift_value*sumn
-    
-          !ebs_check=ddot(tmb%linmat%l%nvctr, fermi_check_compr, 1 , hamscal_compr, 1)
-          ebs_check = 0.d0
-          do itg=1,tmb%linmat%l%ntaskgroup
-              if (tmb%linmat%l%mpi_groups(itg)%iproc==0) then
-                  ncount = tmb%linmat%l%taskgroup_startend(2,2,itg)-tmb%linmat%l%taskgroup_startend(1,2,itg)+1
-                  istl = tmb%linmat%l%taskgroup_startend(1,2,itg)
-                  ists = tmb%linmat%l%taskgroup_startend(1,2,itg)-tmb%linmat%l%taskgroup_startend(1,1,itg)+1
-                  !ebs_check = ddot(ncount, fermi_check_compr(istl), 1, hamscal_compr(ists), 1)
-                  ebs_check = ddot(ncount, fermi_check_compr(istl), 1, hamscal_compr(istl), 1)
-              end if
-          end do
-          call mpiallred(ebs_check, 1, mpi_sum, bigdft_mpi%mpi_comm)
-
-
-
           ebs_check=ebs_check/scale_factor+shift_value*sumn_check
           diff=abs(ebs_check-ebsp)
           diff=diff/abs(ebsp)
@@ -681,17 +693,20 @@ subroutine foe(iproc, nproc, tmprtr, &
           ! Since K and H have the same sparsity pattern and K is
           ! symmetric, the trace is a simple ddot.
           !ebsp=ddot(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ilshift+1),1 , hamscal_compr, 1)
-          ebsp = 0.d0
-          do itg=1,tmb%linmat%l%ntaskgroup
-              if (tmb%linmat%l%mpi_groups(itg)%iproc==0) then
-                  ncount = tmb%linmat%l%taskgroup_startend(2,2,itg)-tmb%linmat%l%taskgroup_startend(1,2,itg)+1
-                  istl = tmb%linmat%l%taskgroup_startend(1,2,itg)
-                  ists = tmb%linmat%l%taskgroup_startend(1,2,itg)-tmb%linmat%l%taskgroup_startend(1,1,itg)+1
-                  !ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ists), 1)
-                  ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
-              end if
-          end do
-          call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          !!ebsp = 0.d0
+          !!do itg=1,tmb%linmat%l%ntaskgroup
+          !!    if (tmb%linmat%l%mpi_groups(itg)%iproc==0) then
+          !!        ncount = tmb%linmat%l%taskgroup_startend(2,2,itg)-tmb%linmat%l%taskgroup_startend(1,2,itg)+1
+          !!        istl = tmb%linmat%l%taskgroup_startend(1,2,itg)
+          !!        ists = tmb%linmat%l%taskgroup_startend(1,2,itg)-tmb%linmat%l%taskgroup_startend(1,1,itg)+1
+          !!        !ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ists), 1)
+          !!        ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
+          !!    end if
+          !!end do
+          !!call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
+          istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
+          ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
           ebsp=ebsp/scale_factor+shift_value*sumn
     
     
@@ -2615,41 +2630,34 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
       !!$omp parallel default(none) private(ii,i,irowcol,ii2,ii1,tt2,tt1) &
       !!$omp shared(matscal_compr,scale_factor,shift_value,i2shift,i1shift,smatl,smat1,smat2,mat1,mat2,with_overlap)
       !!$omp do
-      do itaskgroup=1,smatl%ntaskgroupp
-          iitaskgroup = smatl%inwhichtaskgroup(itaskgroup)
-          !do i=smatl%smmm%istartend_mm(1),smatl%smmm%istartend_mm(2)
-          !!write(*,'(a,3i9)') 'iproc, smatl%taskgroup_startend(1,1,iitaskgroup),smatl%taskgroup_startend(2,1,iitaskgroup)', &
-          !!                    iproc, smatl%taskgroup_startend(1,1,iitaskgroup),smatl%taskgroup_startend(2,1,iitaskgroup)
-          do iseg=1,smatl%nseg
-              if (smatl%keyv(min(iseg+1,smatl%nseg))<smatl%taskgroup_startend(1,1,iitaskgroup)) cycle
-              if (smatl%keyv(iseg)>smatl%taskgroup_startend(2,1,iitaskgroup)) exit
-              !do i=smatl%taskgroup_startend(1,1,iitaskgroup),smatl%taskgroup_startend(2,1,iitaskgroup)
-              do i=smatl%keyg(1,iseg),smatl%keyg(2,iseg) !this is too much, but for the moment ok 
-                  irowcol = orb_from_index(smatl,i)
-                  ii1 = matrixindex_in_compressed(smat1, irowcol(1), irowcol(2))
-                  if (ii1>0) then
-                      tt1=mat1%matrix_compr(i1shift+ii1)
+      do iseg=1,smatl%nseg
+          if (smatl%keyv(min(iseg+1,smatl%nseg))<smatl%smmm%istartend_mm(1)) cycle
+          if (smatl%keyv(iseg)>smatl%smmm%istartend_mm(2)) exit
+          do i=smatl%keyg(1,iseg),smatl%keyg(2,iseg) !this is too much, but for the moment ok 
+              irowcol = orb_from_index(smatl,i)
+              ii1 = matrixindex_in_compressed(smat1, irowcol(1), irowcol(2))
+              if (ii1>0) then
+                  tt1=mat1%matrix_compr(i1shift+ii1)
+              else
+                  tt1=0.d0
+              end if
+              if (with_overlap) then
+                  ii2 = matrixindex_in_compressed(smat2, irowcol(1), irowcol(2))
+                  if (ii2>0) then
+                      tt2=mat2%matrix_compr(i2shift+ii2)
                   else
-                      tt1=0.d0
+                      tt2=0.d0
                   end if
-                  if (with_overlap) then
-                      ii2 = matrixindex_in_compressed(smat2, irowcol(1), irowcol(2))
-                      if (ii2>0) then
-                          tt2=mat2%matrix_compr(i2shift+ii2)
-                      else
-                          tt2=0.d0
-                      end if
+              else
+                  if (irowcol(1)==irowcol(2)) then
+                      tt2 = 1.d0
                   else
-                      if (irowcol(1)==irowcol(2)) then
-                          tt2 = 1.d0
-                      else
-                          tt2 = 0.d0
-                      end if
+                      tt2 = 0.d0
                   end if
-                  ii=matrixindex_in_compressed(smatl, irowcol(1), irowcol(2))
-                  !write(*,*) 'i, ii, tt1, tt2', i, ii, tt1, tt2
-                  matscal_compr(ii)=scale_factor*(tt1-shift_value*tt2)
-              end do
+              end if
+              ii=matrixindex_in_compressed(smatl, irowcol(1), irowcol(2))
+              !write(*,*) 'i, ii, tt1, tt2', i, ii, tt1, tt2
+              matscal_compr(ii)=scale_factor*(tt1-shift_value*tt2)
           end do
       end do
       !!$omp end do
