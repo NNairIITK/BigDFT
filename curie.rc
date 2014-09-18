@@ -1,4 +1,5 @@
 conditions.add("testing")
+conditions.add("python")
 
 #build_policy = "all"
 
