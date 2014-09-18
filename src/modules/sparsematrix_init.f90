@@ -234,7 +234,7 @@ contains
       integer,dimension(2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(inout) :: sparsemat
 
-      integer :: ierr, jproc, iorb, jjproc, iiorb, nseq_min, nseq_max, iseq, ind, ii, ind
+      integer :: ierr, jproc, iorb, jjproc, iiorb, nseq_min, nseq_max, iseq, ind, ii
       integer,dimension(:),allocatable :: nseq_per_line, norb_par_ideal, isorb_par_ideal
       integer,dimension(:,:),allocatable :: istartend_dj, istartend_mm
       integer,dimension(:,:),allocatable :: temparr
