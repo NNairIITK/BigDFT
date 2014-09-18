@@ -2609,6 +2609,7 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
           end if
           call f_free_ptr(matscal_compr_local)
       end if
+      call timing(iproc,'foe_aux_comm  ','OF')
 
   else if (data_strategy==SUBMATRIX) then
       !!$omp parallel default(none) private(ii,i,irowcol,ii2,ii1,tt2,tt1) &
@@ -2653,14 +2654,14 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
       end do
       !!$omp end do
       !!$omp end parallel
+      call timing(iproc,'foe_aux_mcpy  ','OF')
   else
       stop 'scale_and_shift_matrix: wrong data strategy'
   end if
 
-  do i=1,smatl%nvctr
-      write(500+iproc,*) 'i, matscal_compr(i)', i, matscal_compr(i)
-  end do
-  call timing(iproc,'foe_aux_comm  ','OF')
+  !!do i=1,smatl%nvctr
+  !!    write(500+iproc,*) 'i, matscal_compr(i)', i, matscal_compr(i)
+  !!end do
   call f_release_routine()
 
 end subroutine scale_and_shift_matrix
