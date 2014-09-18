@@ -996,6 +996,8 @@ contains
       logical :: go_on
       integer,dimension(:,:),allocatable :: in_taskgroup
 
+      call f_routine(id='init_matrix_taskgroups')
+
       !@NEW ###############################################
       icalc_startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='icalc_startend')
       iuse_startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='iuse_startend')
@@ -1047,8 +1049,8 @@ contains
       call mpiallred(icalc_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
       call mpiallred(iuse_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
  
-      if (iproc==0) write(*,'(a,100(2i7,4x))') 'iuse_startend',iuse_startend
-      if (iproc==0) write(*,'(a,100(2i7,4x))') 'icalc_startend',icalc_startend
+      !if (iproc==0) write(*,'(a,100(2i7,4x))') 'iuse_startend',iuse_startend
+      !if (iproc==0) write(*,'(a,100(2i7,4x))') 'icalc_startend',icalc_startend
  
       ntaskgroups = 1
       llproc=0
@@ -1142,7 +1144,7 @@ contains
       end do
       itaskgroups_startend(2,itaskgroups) = iuse_startend(2,nproc-1)
       if (itaskgroups/=ntaskgroups) stop 'itaskgroups/=ntaskgroups'
-      write(*,'(a,i8,4x,100(2i7,4x))') 'iproc, itaskgroups_startend', itaskgroups_startend
+      if (iproc==0) write(*,'(a,i8,4x,1000(2i7,4x))') 'iproc, itaskgroups_startend', itaskgroups_startend
  
       ! Assign the processes to the taskgroups
       ntaskgrp_calc = 0
@@ -1150,7 +1152,7 @@ contains
           if ( icalc_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
                icalc_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups) ) then
                ntaskgrp_calc = ntaskgrp_calc + 1
-              write(*,'(2(a,i0))') 'CALC: task ',iproc,' is in taskgroup ',itaskgroups
+              !write(*,'(2(a,i0))') 'CALC: task ',iproc,' is in taskgroup ',itaskgroups
           end if
       end do
       if (ntaskgrp_calc>2) stop 'ntaskgrp_calc>2'
@@ -1158,7 +1160,7 @@ contains
       do itaskgroups=1,ntaskgroups
           if ( iuse_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
                iuse_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups) ) then
-              write(*,'(2(a,i0))') 'USE: task ',iproc,' is in taskgroup ',itaskgroups
+              !write(*,'(2(a,i0))') 'USE: task ',iproc,' is in taskgroup ',itaskgroups
                ntaskgrp_use = ntaskgrp_use + 1
           end if
       end do
@@ -1167,7 +1169,7 @@ contains
       smat%ntaskgroupp = max(ntaskgrp_calc,ntaskgrp_use)
 
       smat%taskgroup_startend = f_malloc_ptr((/2,2,smat%ntaskgroup/),id='smat%taskgroup_startend')
-      smat%inwhichtaskgroup = f_malloc_ptr((/smat%ntaskgroupp/),id='smat%ntaskgroupp')
+      smat%inwhichtaskgroup = f_malloc_ptr((/smat%ntaskgroupp/),id='smat%smat%inwhichtaskgroup')
 
 
       i = 0
@@ -1210,7 +1212,7 @@ contains
       end do
       smat%taskgroup_startend(2,2,smat%ntaskgroup) = smat%taskgroup_startend(2,1,smat%ntaskgroup)
 
-      write(*,'(a,100(2i8,4x))') 'iproc, smat%taskgroup_startend(:,2,:)',smat%taskgroup_startend(:,2,:)
+      if (iproc==0) write(*,'(a,1000(2i8,4x))') 'iproc, smat%taskgroup_startend(:,2,:)',smat%taskgroup_startend(:,2,:)
 
       !Check
       ncount = 0
@@ -1232,7 +1234,7 @@ contains
           tasks_per_taskgroup(iitaskgroup) = tasks_per_taskgroup(iitaskgroup) + 1
       end do
       call mpiallred(tasks_per_taskgroup(1), smat%ntaskgroup, mpi_sum, bigdft_mpi%mpi_comm)
-      write(*,*) 'iproc, tasks_per_taskgroup', iproc, tasks_per_taskgroup
+      if (iproc==0) write(*,'(a,i7,4x,1000i7)') 'iproc, tasks_per_taskgroup', iproc, tasks_per_taskgroup
       call mpi_comm_group(bigdft_mpi%mpi_comm, group, ierr)
 
       in_taskgroup = f_malloc0((/0.to.nproc-1,1.to.smat%ntaskgroup/),id='in_taskgroup')
@@ -1266,11 +1268,20 @@ contains
           smat%mpi_groups(itaskgroups)%ngroup = smat%ntaskgroup
       end do
 
-      do itaskgroups=1,smat%ntaskgroup
-      if (smat%mpi_groups(itaskgroups)%iproc==0) write(*,'(2(a,i0))') 'process ',iproc,' is first in taskgroup ',itaskgroups 
-      end do
+      !do itaskgroups=1,smat%ntaskgroup
+      !    if (smat%mpi_groups(itaskgroups)%iproc==0) write(*,'(2(a,i0))') 'process ',iproc,' is first in taskgroup ',itaskgroups 
+      !end do
+
+      call f_free(in_taskgroup)
+      call f_free(iuse_startend)
+      call f_free(itaskgroups_startend)
+      call f_free(icalc_startend)
+      call f_free(tasks_per_taskgroup)
+      call f_free(ranks)
 
       !@END NEW ###########################################
+
+      call f_release_routine()
  
     end subroutine init_matrix_taskgroups
 

@@ -136,6 +136,9 @@ module sparsematrix_base
       nullify(sparsemat%isvctr_par)
       nullify(sparsemat%nfvctr_par)
       nullify(sparsemat%isfvctr_par)
+      nullify(sparsemat%taskgroup_startend)
+      nullify(sparsemat%inwhichtaskgroup)
+      nullify(sparsemat%mpi_groups)
       call nullify_sparse_matrix_matrix_multiplication(sparsemat%smmm) 
     end subroutine nullify_sparse_matrix
 
@@ -267,6 +270,8 @@ module sparsematrix_base
       if (associated(sparseMat%isfvctr_par)) call f_free_ptr(sparseMat%isfvctr_par)
       if (associated(sparseMat%nfvctr_par)) call f_free_ptr(sparseMat%nfvctr_par)
       !!if (associated(sparseMat%orb_from_index)) call f_free_ptr(sparseMat%orb_from_index)
+      call f_free_ptr(sparseMat%taskgroup_startend)
+      call f_free_ptr(sparseMat%inwhichtaskgroup)
       call deallocate_sparse_matrix_matrix_multiplication(sparsemat%smmm)
     end subroutine deallocate_sparse_matrix
 
