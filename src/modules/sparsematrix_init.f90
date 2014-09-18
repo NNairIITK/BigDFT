@@ -1266,7 +1266,9 @@ contains
           end if
           smat%mpi_groups(itaskgroups)%igroup = itaskgroups
           smat%mpi_groups(itaskgroups)%ngroup = smat%ntaskgroup
+          call mpi_group_free(newgroup, ierr)
       end do
+      call mpi_group_free(group, ierr)
 
       !do itaskgroups=1,smat%ntaskgroup
       !    if (smat%mpi_groups(itaskgroups)%iproc==0) write(*,'(2(a,i0))') 'process ',iproc,' is first in taskgroup ',itaskgroups 
