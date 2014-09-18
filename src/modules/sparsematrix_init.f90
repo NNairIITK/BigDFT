@@ -234,7 +234,7 @@ contains
       integer,dimension(2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(inout) :: sparsemat
 
-      integer :: ierr, jproc, iorb, jjproc, iiorb, nseq_min, nseq_max, iseq, ind, ii
+      integer :: ierr, jproc, iorb, jjproc, iiorb, nseq_min, nseq_max, iseq, ind, ii, ind
       integer,dimension(:),allocatable :: nseq_per_line, norb_par_ideal, isorb_par_ideal
       integer,dimension(:,:),allocatable :: istartend_dj, istartend_mm
       integer,dimension(:,:),allocatable :: temparr
@@ -360,7 +360,11 @@ contains
       istartend_dj = f_malloc((/1.to.2,0.to.nproc-1/),id='istartend_dj')
       istartend_dj(1,0) = istartend_mm(1,0)
       do jproc=1,nproc-1
-          istartend_dj(1,jproc) = (istartend_mm(2,jproc-1)+istartend_mm(1,jproc))/2
+          ind = (istartend_mm(2,jproc-1)+istartend_mm(1,jproc))/2
+          ! check that this is inside the segment of istartend_mm(:,jproc)
+          ind = max(ind,istartend_mm(1,jproc))
+          ind = min(ind,istartend_mm(2,jproc))
+          istartend_dj(1,jproc) = ind
           istartend_dj(2,jproc-1) = istartend_dj(1,jproc)-1
       end do
       istartend_dj(2,nproc-1) = istartend_mm(2,nproc-1)
