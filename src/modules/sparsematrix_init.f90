@@ -234,7 +234,7 @@ contains
       integer,dimension(2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(inout) :: sparsemat
 
-      integer :: ierr, jproc, iorb, jjproc, iiorb, nseq_min, nseq_max, iseq, ind, ii
+      integer :: ierr, jproc, iorb, jjproc, iiorb, nseq_min, nseq_max, iseq, ind, ii, iseg
       integer,dimension(:),allocatable :: nseq_per_line, norb_par_ideal, isorb_par_ideal
       integer,dimension(:,:),allocatable :: istartend_dj, istartend_mm
       integer,dimension(:,:),allocatable :: temparr
@@ -352,6 +352,20 @@ contains
           sparsemat%smmm%istartend_mm(2) = max(sparsemat%smmm%istartend_mm(2),ind)
       end do
 
+      ! Determine to which segments this corresponds
+      do iseg=1,sparsemat%nseg
+          if (sparsemat%keyv(iseg)>=sparsemat%smmm%istartend_mm(1)) then
+              sparsemat%smmm%istartendseg_mm(1)=iseg
+              exit
+          end if
+      end do
+      do iseg=sparsemat%nseg,1,-1
+          if (sparsemat%keyv(iseg)<=sparsemat%smmm%istartend_mm(2)) then
+              sparsemat%smmm%istartendseg_mm(2)=iseg
+              exit
+          end if
+      end do
+
       istartend_mm = f_malloc0((/1.to.2,0.to.nproc-1/),id='istartend_mm')
       istartend_mm(1:2,iproc) = sparsemat%smmm%istartend_mm(1:2)
       call mpiallred(istartend_mm(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
@@ -370,10 +384,15 @@ contains
       istartend_dj(2,nproc-1) = istartend_mm(2,nproc-1)
 
       ! Some checks
+      if (istartend_dj(1,0)/=1) stop 'istartend_dj(1,0)/=1'
+      if (istartend_dj(2,nproc-1)/=sparsemat%nvctr) stop 'istartend_dj(2,nproc-1)/=sparsemat%nvctr'
       ii = 0
       do jproc=0,nproc-1
           ii = ii + istartend_dj(2,jproc)-istartend_dj(1,jproc) + 1
           if (ii<0) stop 'init_sparse_matrix_matrix_multiplication: ii<0'
+          if (jproc>0) then
+              if (istartend_dj(1,jproc)/=istartend_dj(2,jproc-1)+1) stop 'istartend_dj(1,jproc)/=istartend_dj(2,jproc-1)'
+          end if
       end do
       if (ii/=sparsemat%nvctr) stop 'init_sparse_matrix_matrix_multiplication: ii/=sparsemat%nvctr'
 

@@ -2628,12 +2628,12 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
       call timing(iproc,'foe_aux_comm  ','OF')
 
   else if (data_strategy==SUBMATRIX) then
-      !!$omp parallel default(none) private(ii,i,irowcol,ii2,ii1,tt2,tt1) &
-      !!$omp shared(matscal_compr,scale_factor,shift_value,i2shift,i1shift,smatl,smat1,smat2,mat1,mat2,with_overlap)
-      !!$omp do
-      do iseg=1,smatl%nseg
-          if (smatl%keyv(min(iseg+1,smatl%nseg))<smatl%smmm%istartend_mm(1)) cycle
-          if (smatl%keyv(iseg)>smatl%smmm%istartend_mm(2)) exit
+      !$omp parallel default(none) private(ii,i,irowcol,ii2,ii1,tt2,tt1,iseg) &
+      !$omp shared(matscal_compr,scale_factor,shift_value,i2shift,i1shift,smatl,smat1,smat2,mat1,mat2,with_overlap)
+      !$omp do
+      do iseg=smatl%smmm%istartendseg_mm(1),smatl%smmm%istartendseg_mm(2)
+          !if (smatl%keyv(min(iseg+1,smatl%nseg))<smatl%smmm%istartend_mm(1)) cycle
+          !if (smatl%keyv(iseg)>smatl%smmm%istartend_mm(2)) exit
           do i=smatl%keyg(1,iseg),smatl%keyg(2,iseg) !this is too much, but for the moment ok 
               irowcol = orb_from_index(smatl,i)
               ii1 = matrixindex_in_compressed(smat1, irowcol(1), irowcol(2))
@@ -2661,8 +2661,8 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
               matscal_compr(ii)=scale_factor*(tt1-shift_value*tt2)
           end do
       end do
-      !!$omp end do
-      !!$omp end parallel
+      !$omp end do
+      !$omp end parallel
       call timing(iproc,'foe_aux_mcpy  ','OF')
   else
       stop 'scale_and_shift_matrix: wrong data strategy'
