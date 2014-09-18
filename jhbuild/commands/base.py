@@ -344,6 +344,44 @@ class cmd_buildone(BuildCommand):
 
 register_command(cmd_buildone)
 
+class cmd_distone(Command):
+    doc = N_('Dist one or more modules')
+
+    name = 'distone'
+    usage_args = N_('[ options ... ] [ modules ... ]')
+
+    def __init__(self):
+        Command.__init__(self, [
+            make_option('-s', '--skip', metavar='MODULES',
+                        action='append', dest='skip', default=[],
+                        help=_('don\'t package the given modules')),
+            make_option('-c', '--compress-kind', metavar='MODULE',
+                        action='store', dest='compress', default="gz",
+                        help=_('compression type (default is gzip)')),
+            make_option('-f', '--full',
+                        action='store_true', dest='full', default=False,
+                        help=_('package also non BigDFT specific libraries')),
+            ])
+
+    def run(self, config, options, args, help=None):
+        module_set = jhbuild.moduleset.load(config)
+        try:
+            module_list = [module_set.get_module(modname, ignore_case = True) for modname in args]
+        except KeyError, e:
+            raise FatalError(_("A module called '%s' could not be found.") % e)
+
+        if not module_list:
+            self.parser.error(_('This command requires a module parameter.'))
+
+        config.compress = options.compress
+        config.full = options.full
+
+        build = jhbuild.frontends.get_buildscript(config, module_list, module_set=module_set)
+        return build.build(phases=['dist'])
+
+register_command(cmd_distone)
+
+
 class cmd_run(Command):
     doc = N_('Run a command under the JHBuild environment')
 

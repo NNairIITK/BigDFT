@@ -39,9 +39,12 @@ class cmd_dist(Command):
             make_option('-t', '--start-at', metavar='MODULE',
                         action='store', dest='startat', default=None,
                         help=_('start building at the given module')),
-            make_option('-c', '--compress-kind', metavar='MODULE',
+            make_option('-c', '--compress-kind', metavar='COMP',
                         action='store', dest='compress', default="gz",
                         help=_('compression type (default is gzip)')),
+            make_option('-f', '--full',
+                        action='store_true', dest='full', default=False,
+                        help=_('package also non BigDFT specific libraries')),
             ])
 
     def run(self, config, options, args, help=None):
@@ -58,6 +61,7 @@ class cmd_dist(Command):
                 raise FatalError(_('%s not in module list') % options.startat)
 
         config.compress = options.compress
+        config.full = options.full
 
         build = jhbuild.frontends.get_buildscript(config, module_list, module_set=module_set)
         return build.build(phases=['dist'])

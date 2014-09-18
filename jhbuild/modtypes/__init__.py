@@ -572,14 +572,18 @@ class MetaModule(Package):
             shutil.rmtree(destdir)
         os.mkdir(destdir)
 
+        # We get the full dependencies of this meta-module.
+        module_list = buildscript.moduleset.get_module_list((self.name, ), buildscript.config.skip)
+        
         # Scan all available tars to add to the tarball.
-        for mod in buildscript.modulelist:
-            if mod.branch is not None and mod.branch.repository.name == "local":
-                tar = os.path.join(mod.get_builddir(buildscript), mod.branch.module)
+        for mod in module_list:
+            if mod.branch is not None and (mod.branch.repository.name == "local" or
+                                           buildscript.config.full):
+                tar = os.path.join(mod.get_builddir(buildscript), os.path.basename(mod.branch.module))
                 try:
                     shutil.copy(tar, destdir)
                 except:
-                    tar = os.path.join(SRCDIR, mod.branch.module)
+                    tar = os.path.join(SRCDIR, os.path.basename(mod.branch.module))
                     shutil.copy(tar, destdir)
             if mod.branch is not None and hasattr(mod.branch, "patches"):
                 for patch in mod.branch.patches:
@@ -591,6 +595,8 @@ class MetaModule(Package):
         shutil.copy(os.path.join(SRCDIR, "bigdft.modules"), destdir)
         shutil.copy(os.path.join(SRCDIR, "gnome.modules"), destdir)
         shutil.copy(os.path.join(SRCDIR, "jhbuildrc"), destdir)
+        shutil.copy(os.path.join(SRCDIR, "turing.rc"), destdir)
+        shutil.copy(os.path.join(SRCDIR, "curie.rc"), destdir)
 
         # Create the tar.
         import tarfile
