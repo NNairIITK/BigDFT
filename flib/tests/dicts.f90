@@ -237,7 +237,9 @@ subroutine test_dictionaries1()
    !try with these examples
    call yaml_map('Size before removing',dict_size(dict2))
    call dict_remove(dict2,'One')
+   call yaml_map('First removal',dict2)
    call dict_remove(dict2,'Two')
+   call yaml_map('Second removal',dict2)
 !   call pop(dict2,'Three')
    !a further element can be added
    call set(dict//'First'//'Four',4)
@@ -625,6 +627,7 @@ subroutine test_dictionaries1()
 
 subroutine test_dictionary_for_atoms()
   use yaml_output
+  use yaml_strings, only: f_strcpy
   implicit none
 
 !!$  character(len = 50) :: gu
@@ -668,7 +671,6 @@ subroutine test_dictionary_for_atoms()
 
   !now print some double precision values to understand which is the best format
   tt=real(0.5e0,kind=8) !use a conversion from float
-
   call yaml_map('Real without format',clean_zeroes(yaml_toa('0.2000000000000000000')))
   fmts(1:len(fmts))='(1pe25.17)'
   call yaml_map('Real with format '//trim(fmts),clean_zeroes(yaml_toa(tt,fmt=fmts)))
@@ -740,7 +742,8 @@ subroutine test_dictionary_for_atoms()
          !then copy the exponent
          if (str(iexpo:) /= 'E+00' .and. str(iexpo:) /= 'e+00' .and. str(iexpo:) /= 'E+000' .and. &
               str(iexpo:) /= 'e+000') then
-            clean_zeroes(i+1:max_value_length)=str(iexpo:)
+            call f_strcpy(src=str(iexpo:),dest=clean_zeroes(i+1:))
+            !clean_zeroes(i+1:max_value_length)=str(iexpo:)
          else
             clean_zeroes(i+1:max_value_length)=' '
          end if

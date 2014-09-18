@@ -46,7 +46,6 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   use module_base
   use bigdft_run
   use yaml_output
-  use module_interfaces, only: write_atomic_file
   use minpar
   implicit none
   !Arguments
@@ -99,8 +98,10 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
      if (trim(parmin%approach)=='AB6MD') fmt = '(i5.5)'
      write(fn4,fmt) ncount_bigdft
      write(comment,'(a)')'INITIAL_CONFIGURATION '
-     call write_atomic_file(trim(runObj%inputs%dir_output)//trim(outfile)//'_'//trim(fn4),&
-          & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment),forces=outs%fxyz)
+     call bigdft_write_atomic_file(runObj,outs,&
+          trim(outfile)//'_'//trim(fn4),trim(comment))
+!!$     call write_atomic_file(trim(runObj%inputs%dir_output)//trim(outfile)//'_'//trim(fn4),&
+!!$          & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment),forces=outs%fxyz)
      call yaml_new_document()
      call yaml_comment('Geometry minimization using ' // trim(parmin%approach),hfill='-')
      call yaml_map('Begin of minimization using ',parmin%approach)
@@ -147,7 +148,7 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
      call fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   case('SBFGS')                                                  
    if (iproc ==0) call yaml_map('ENTERING SBFGS',ncount_bigdft)
-   call sbfgs(runObj,outs,nproc,iproc,ncount_bigdft,fail)
+   call sbfgs(runObj,outs,nproc,iproc,parmin%verbosity,ncount_bigdft,fail)
   case('DIIS')   
      if (iproc ==0) call yaml_map('ENTERING DIIS',ncount_bigdft)
      call rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
@@ -334,30 +335,6 @@ subroutine fnrmandforcemax(ff,fnrm,fmax,nat)
   fnrm=dot(3*nat,ff(1,1),1,ff(1,1),1)
 END SUBROUTINE fnrmandforcemax
 
-
-subroutine fnrmandforcemax_old(ff,fnrm,fmax,at)
-  use module_base
-  use module_types
-  implicit none
-  type(atoms_data), intent(in) :: at
-  real(gp), intent(in):: ff(3,at%astruct%nat)
-  real(gp), intent(out):: fnrm, fmax
-  real(gp):: t1,t2,t3
-  integer:: iat
-
-  fmax=0._gp
-  do iat=1,at%astruct%nat
-     call frozen_alpha(at%astruct%ifrztyp(iat),1,ff(1,iat)**2,t1)
-     call frozen_alpha(at%astruct%ifrztyp(iat),2,ff(2,iat)**2,t2)
-     call frozen_alpha(at%astruct%ifrztyp(iat),3,ff(3,iat)**2,t3)
-     fmax=max(fmax,sqrt(t1+t2+t3))
-  enddo
-
-  !This is the norm of the forces of non-blocked atoms
-  call atomic_dot(at,ff,ff,fnrm)
-END SUBROUTINE fnrmandforcemax_old
-
-
 subroutine updatefluctsum(fnoise,fluct) !n(c) nat (arg:1)
   use module_base
   use module_types
@@ -397,35 +374,6 @@ subroutine transforce(at,fxyz,sumx,sumy,sumz)
 
   end do
 END SUBROUTINE transforce
-
-
-!> Should we evaluate the translational force also with blocked atoms?
-subroutine transforce_forfluct(at,fxyz,sumx,sumy,sumz)
-  use module_base
-  use module_types
-  implicit none
-  type(atoms_data), intent(in) :: at
-  real(gp),intent(in):: fxyz(3,at%astruct%nat)
-  real(gp), intent(out) :: sumx,sumy,sumz
-  integer :: iat
-  real(gp) :: alphax,alphay,alphaz
-
-  !atomic_dot with one
-  sumx=0._gp 
-  sumy=0._gp 
-  sumz=0._gp
-  do iat=1,at%astruct%nat
-
-     call frozen_alpha(at%astruct%ifrztyp(iat),1,1.0_gp,alphax)
-     call frozen_alpha(at%astruct%ifrztyp(iat),2,1.0_gp,alphay)
-     call frozen_alpha(at%astruct%ifrztyp(iat),3,1.0_gp,alphaz)
-
-     sumx=sumx+alphax*fxyz(1,iat) 
-     sumy=sumy+alphay*fxyz(2,iat) 
-     sumz=sumz+alphaz*fxyz(3,iat)
-
-  end do
-END SUBROUTINE transforce_forfluct
 
 
 !> DIIS relax. Original source from ART from N. Mousseau.
@@ -552,7 +500,7 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      runObj%inputs%inputPsiId=1
      etotprev=outs%energy
 
-     call call_bigdft(runObj,outs,nproc,iproc,infocode)
+     call call_bigdft(runObj,outs,infocode)
 
 !!$     if (iproc == 0) then
 !!$        call transforce(at,f,sumx,sumy,sumz)
@@ -576,8 +524,10 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 !             & fmax,'fnrm=',    fnrm    ,'fluct=', fluct
         write(fn4,'(i4.4)') ncount_bigdft
         write(comment,'(a,1pe10.3)')'DIIS:fnrm= ',sqrt(fnrm)
-        call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-             & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment),forces=outs%fxyz)
+        call bigdft_write_atomic_file(runObj,outs,&
+             'posout_'//fn4,trim(comment))
+!!$        call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+!!$             & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment),forces=outs%fxyz)
      endif
 
      if(check > 5)then
@@ -676,8 +626,9 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      enddo
 
      runObj%inputs%inputPsiId=1
-     call vcopy(3 * runObj%atoms%astruct%nat, pospred(1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
-     call call_bigdft(runObj,outs,nproc,iproc,infocode)
+     call bigdft_set_rxyz(runObj,rxyz_add=pospred(1))
+!!$     call vcopy(3 * runObj%atoms%astruct%nat, pospred(1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
+     call call_bigdft(runObj,outs,infocode)
      call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fpred(1), 1)
      ncount_bigdft=ncount_bigdft+1
      call fnrmandforcemax(fpred,fnrm,fmax,outs%fdim)
@@ -692,8 +643,10 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      if (iproc == 0) then
         write(fn4,'(i4.4)') ncount_bigdft
         write(comment,'(a,1pe10.3)')'FIRE:fnrm= ',sqrt(fnrm)
-        call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4,&
-             & outs%energy,pospred,runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment),forces=fpred)
+        call bigdft_write_atomic_file(runObj,outs,&
+             'posout_'//fn4,trim(comment))
+!!$        call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4,&
+!!$             & outs%energy,pospred,runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment),forces=fpred)
      endif
      if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct) !n(m)
 

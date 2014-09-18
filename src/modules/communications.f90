@@ -924,16 +924,18 @@ module communications
 
       call f_routine(id=subname)
     
-      allocate(worksend_char(orbs%norbp), stat=istat)
-      call memocc(istat, worksend_char, 'worksend_char', subname)
+!!$      allocate(worksend_char(orbs%norbp), stat=istat)
+!!$      call memocc(istat, worksend_char, 'worksend_char', subname)
+      worksend_char= f_malloc_str(len(worksend_char),orbs%norbp,&
+           id='worksend_char')
       worksend_log = f_malloc(orbs%norbp,id='worksend_log')
       worksend_int = f_malloc((/ 11, orbs%norbp /),id='worksend_int')
       worksend_dbl = f_malloc((/ 6, orbs%norbp /),id='worksend_dbl')
     
-      allocate(workrecv_char(orbs%norb), stat=istat)
-      call memocc(istat, workrecv_char, 'workrecv_char', subname)
-      !workrecv_char = f_malloc_str(1,orbs%norb,id='workrecv_char')
-      !call f_free_str(1,workrecv_str)
+      workrecv_char= f_malloc_str(len(workrecv_char),orbs%norb,&
+           id='workrecv_char')
+!!$      allocate(workrecv_char(orbs%norb), stat=istat)
+!!$      call memocc(istat, workrecv_char, 'workrecv_char', subname)
       workrecv_log = f_malloc(orbs%norb,id='workrecv_log')
       workrecv_int = f_malloc((/ 11, orbs%norb /),id='workrecv_int')
       workrecv_dbl = f_malloc((/ 6, orbs%norb /),id='workrecv_dbl')
@@ -1035,16 +1037,18 @@ module communications
       end do
     
     
-      iall=-product(shape(worksend_char))*kind(worksend_char)
-      deallocate(worksend_char,stat=istat)
-      call memocc(istat, iall, 'worksend_char', subname)
+!!$      iall=-product(shape(worksend_char))*kind(worksend_char)
+!!$      deallocate(worksend_char,stat=istat)
+!!$      call memocc(istat, iall, 'worksend_char', subname)
+      call f_free_str(len(worksend_char),worksend_char)
       call f_free(worksend_log)
       call f_free(worksend_int)
       call f_free(worksend_dbl)
 
-      iall=-product(shape(workrecv_char))*kind(workrecv_char)
-      deallocate(workrecv_char,stat=istat)
-      call memocc(istat, iall, 'workrecv_char', subname)
+!!$      iall=-product(shape(workrecv_char))*kind(workrecv_char)
+!!$      deallocate(workrecv_char,stat=istat)
+!!$      call memocc(istat, iall, 'workrecv_char', subname)
+      call f_free_str(len(workrecv_char),workrecv_char)
       call f_free(workrecv_log)
       call f_free(workrecv_int)
       call f_free(workrecv_dbl)

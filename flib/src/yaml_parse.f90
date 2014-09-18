@@ -78,7 +78,7 @@ contains
   end subroutine nullify_yaml_cl_parse
 
   subroutine yaml_cl_parse_free(parser)
-    use dictionaries, only: dict_free
+    use dictionaries_base, only: dict_free
     implicit none
     type(yaml_cl_parse), intent(inout) :: parser
     call dict_free(parser%options)
@@ -158,7 +158,9 @@ contains
 
        call set(option//OPTSNAME,shortname)
     end if
-    if (present(help_dict)) call set(option//OPTHELP,help_dict)
+    if (present(help_dict)) then
+       call set(option//OPTHELP,help_dict)
+    end if
 
     if (present(conflicts)) then
        if (trim(default) /= "None") then
@@ -280,14 +282,18 @@ contains
 
   
   !> routine for parsing the command line
-  subroutine yaml_cl_parse_cmd_line(parser)
+  subroutine yaml_cl_parse_cmd_line(parser,args)
     use dictionaries
     use yaml_strings, only:f_strcpy
     use yaml_output
     !use yaml_output
     implicit none
     !> the parser which has to be updated
+    !! resulting command line arguments are written in parser%args
     type(yaml_cl_parse), intent(inout) :: parser
+    !> dictionary of the arguments.
+    !! if present, the arguments are copied into this dictionary
+    type(dictionary), pointer, intent(out), optional :: args
     !local variables
     integer :: icommands,ncommands
     type(dictionary), pointer :: dict,conf
@@ -325,7 +331,10 @@ contains
        dict => dict_next(dict)
     end do
 
-
+    if (present(args)) then
+       nullify(args) 
+       call dict_copy(src=parser%args,dest=args)
+    end if
     contains
 
       !> parse the input command and returns the dictionary which is associated to it
@@ -543,7 +552,6 @@ contains
     call yaml_parser_c_init_from_buf(parser, str, len_trim(str))
     dict => yaml_parse_(parser)
   end subroutine yaml_parse_from_string
-
 
   function yaml_parse_(parser) result(output)
     use dictionaries
@@ -838,7 +846,7 @@ contains
 
   !> Nullify the dictionary dict_yaml_errs
   subroutine yaml_parse_errors_finalize()
-     use dictionaries, only: dict_free
+     use dictionaries_base, only: dict_free
      implicit none
      call dict_free(dict_yaml_errs)
 

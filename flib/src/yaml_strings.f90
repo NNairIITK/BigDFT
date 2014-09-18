@@ -27,6 +27,7 @@ module yaml_strings
   interface yaml_toa             !< Convert into a character string yaml_toa(xxx,fmt)
      module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_ctoa
      module procedure yaml_dvtoa,yaml_ivtoa,yaml_cvtoa,yaml_ztoa,yaml_zvtoa,yaml_lvtoa,yaml_rvtoa
+     module procedure yaml_livtoa
   end interface
 
   interface cnv_fmt  !< Give the default format corresponding to the nature of the data
@@ -214,15 +215,15 @@ contains
   pure function yaml_ctoa(d,fmt)
     implicit none
     character(len=*), intent(in) :: d
-    character(len=max_value_length) :: yaml_ctoa
+    character(len=len(d)) :: yaml_ctoa
     character(len=*), optional, intent(in) :: fmt
 
     if (present(fmt)) then
-       write(yaml_ctoa(1:max_value_length),fmt) trim(d)
+       write(yaml_ctoa,fmt) trim(d)
     else
-       yaml_ctoa(1:max_value_length)=trim(d)
+       call f_strcpy(src=d,dest=yaml_ctoa)
+       !yaml_ctoa(1:max_value_length)=trim(d)
     end if
-
   end function yaml_ctoa
 
 
@@ -328,6 +329,12 @@ contains
     real, dimension(:), intent(in) :: vec
     include 'yaml_toa-arr-inc.f90'
   end function yaml_rvtoa
+
+  pure function yaml_livtoa(vec,fmt) result(vec_toa)
+    implicit none
+    integer(kind=8), dimension(:), intent(in) :: vec
+    include 'yaml_toa-arr-inc.f90'
+  end function yaml_livtoa
 
   !> Yaml Spaced format for Date and Time
   function yaml_date_and_time_toa(values,zone)

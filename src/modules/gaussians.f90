@@ -41,7 +41,7 @@ module gaussians
   end type gaussian_basis
 
   !> Structures of basis of gaussian functions
-  type :: gaussian_basis_new
+  type, public :: gaussian_basis_new
      integer :: nat     !< Number of centers
      integer :: ncoeff  !< Number of total basis elements
      integer :: nshltot !< Total number of shells (m quantum number ignored) 
@@ -57,19 +57,36 @@ module gaussians
   public :: gaudim_check,normalize_shell,gaussian_overlap,kinetic_overlap,gauint0
   public :: initialize_real_space_conversion,finalize_real_space_conversion,scfdotf,mp_exp
 
-  public :: nullify_gaussian_basis, deallocate_gwf
+  public :: nullify_gaussian_basis, deallocate_gwf, gaussian_basis_null, gaussian_basis_free
 
+  public :: gaussian_basis_from_psp, gaussian_basis_from_paw,nullify_gaussian_basis_new
+
+  type, public :: gaussian_basis_iter
+     integer :: nshell = 0 !< Number of shells to iter on, read only.
+     integer :: ishell = 0 !< Current shell id, read only.
+     integer :: ndoc       !< Number of gaussians for current shell, read only.
+     integer :: idoc       !< Current gaussian id, read only.
+     integer :: l, n       !< Quantum number of current shell, read only.
+
+     integer :: ishell_s   !< Internal, may change.
+     integer :: iexpo      !< Internal, may change.
+  end type gaussian_basis_iter
+  public :: gaussian_iter_start, gaussian_iter_next_shell, gaussian_iter_next_gaussian
 
 contains
 
 
   !> Nullify the pointers of the structure gaussian_basis
-  subroutine nullify_gaussian_basis(G)
+  pure subroutine nullify_gaussian_basis(G)
 
     implicit none
     !Arguments
     type(gaussian_basis),intent(inout) :: G 
 
+    G%nat=0     
+    G%ncoeff=0  
+    G%nshltot=0 
+    G%nexpo=0   
     G%ncplx=1
     nullify(G%nshell)
     nullify(G%ndoc)
@@ -77,7 +94,6 @@ contains
     nullify(G%psiat)
     nullify(G%xp)
     nullify(G%rxyz)
-
   END SUBROUTINE nullify_gaussian_basis
 
 
@@ -98,9 +114,14 @@ contains
 
 
   !> Nullify the pointers of the structure gaussian_basis_new
-  function gaussian_basis_null() result(G)
+  pure function gaussian_basis_null() result(G)
     implicit none
     type(gaussian_basis_new) :: G
+    call nullify_gaussian_basis_new(G)
+  end function gaussian_basis_null
+  pure subroutine nullify_gaussian_basis_new(G)
+    implicit none
+    type(gaussian_basis_new), intent(out) :: G
     G%nat=0
     G%ncoeff=0
     G%nshltot=0
@@ -110,7 +131,7 @@ contains
     nullify(G%shid)
     nullify(G%sd)
     nullify(G%rxyz)
-  end function gaussian_basis_null
+  end subroutine nullify_gaussian_basis_new
 
 
   subroutine init_gaussian_basis(nat,nshell,rxyz,G)
@@ -138,8 +159,203 @@ contains
     end do
 
     G%shid = f_malloc_ptr((/ NSHID_, G%nshltot /),id='G%shid')
-
   end subroutine init_gaussian_basis
+
+  subroutine gaussian_basis_from_psp(nat,iatyp,rxyz,psppar,ntyp,G)
+    implicit none
+    integer, intent(in) :: nat, ntyp
+    integer, dimension(nat) :: iatyp
+    real(gp), dimension(0:4,0:6,ntyp), intent(in) :: psppar
+    real(gp), dimension(3,nat), intent(in), target :: rxyz
+    type(gaussian_basis_new),intent(out) :: G
+    !local variables
+    integer, dimension(nat) :: nshell
+    integer :: iat, l, i, ishell, iexpo
+    
+    ! Build nshell from psppar.
+    do iat = 1, nat
+       nshell(iat) = 0
+       do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
+          do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
+             if (psppar(l,i,iatyp(iat)) /= 0.0_gp) then
+                nshell(iat) = nshell(iat) + 1
+             end if
+          end do
+       end do
+    end do
+
+    call init_gaussian_basis(nat,nshell,rxyz,G)
+
+    ! Associate values in shid.
+    ishell = 1
+    do iat = 1, nat
+       do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
+          do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
+             if (psppar(l,i,iatyp(iat)) /= 0.0_gp) then
+                G%shid(DOC_, ishell) = 1
+                G%shid(L_, ishell) = l
+                G%shid(N_, ishell) = i
+                G%nexpo=G%nexpo+1
+                G%ncoeff=G%ncoeff+2*l-1
+                ishell = ishell + 1
+             end if
+          end do
+       end do
+    end do
+
+    !allocate storage space (real exponents and coeffs for the moment)
+    G%sd = f_malloc_ptr((/ G%ncplx*NSD_, G%nexpo /),id='G%sd')
+
+    ! Associate values in sd.
+    iexpo = 1
+    do iat = 1, nat
+       do l=1,4 !generic case, also for HGHs (for GTH it will stop at l=2)
+          do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
+             if (psppar(l,i,iatyp(iat)) /= 0.0_gp) then
+                G%sd(EXPO_,iexpo)  = 0.5_gp/(psppar(l,0,iatyp(iat))**2)
+                G%sd(COEFF_,iexpo) = 1._gp
+                iexpo = iexpo + 1
+             end if
+          end do
+       end do
+    end do
+  end subroutine gaussian_basis_from_psp
+
+  !> Initialise the gaussian basis from PAW datas.
+  subroutine gaussian_basis_from_paw(nat, iatyp, rxyz, pawtab, ntyp, G)
+    use m_pawtab, only : pawtab_type
+    
+    implicit none
+
+    !Arguments ------------------------------------
+    integer, intent(in) :: nat, ntyp
+    integer, dimension(nat) :: iatyp
+    type(pawtab_type), dimension(ntyp), intent(in) :: pawtab
+    real(gp), dimension(3,nat), intent(in), target :: rxyz
+    type(gaussian_basis_new),intent(out) :: G
+
+    !Local variables-------------------------------
+    integer, dimension(nat) :: nshell
+    integer :: iat, i, ib, lprev, nprev, l, n, ishell, iexpo
+
+    ! Build nshell from pawtab.
+    do iat = 1, nat
+       nshell(iat) = pawtab(iatyp(iat))%basis_size
+    end do
+    call init_gaussian_basis(nat,nshell,rxyz,G)
+
+    ! Store stuff.
+    G%ncplx=2 !Complex gaussians
+
+    ! Associate values in shid.
+    ishell = 1
+    do iat = 1, nat
+       ib = 1
+       l = -1
+       n = -1
+       do i = 1, G%nshell(iat)
+          ! Look for next (l,n) tuple.
+          do
+             if (ib > pawtab(iatyp(iat))%lmn_size) stop "indlmn impl."
+             lprev = l
+             nprev = n
+             l = pawtab(iatyp(iat))%indlmn(1, ib)
+             n = pawtab(iatyp(iat))%indlmn(3, ib)
+             ib = ib + 1
+             !    write(*,*)ll,pawtab(itypat)%indlmn(2,ib),nn
+             if (l /= lprev .or. n /= nprev) exit
+             !    write(*,*)jb,pawtab(itypat)%indlmn(1:3,ib)
+          end do
+
+          G%shid(DOC_, ishell) = pawtab(iatyp(iat))%wvl%pngau(i)
+          G%shid(L_, ishell) = l + 1 ! 1 is added due to BigDFT convention
+          G%shid(N_, ishell) = 1
+          G%nexpo  = G%nexpo  + G%shid(DOC_, ishell)
+          G%ncoeff = G%ncoeff + 2*G%shid(L_, ishell)-1
+          ishell = ishell + 1
+       end do
+    end do
+    !allocate storage space (real exponents and coeffs for the moment)
+    G%sd = f_malloc_ptr((/ G%ncplx*NSD_, G%nexpo /),id='G%sd')
+    ! Copy coefficients and factors.
+    iexpo = 0
+    do iat = 1, nat
+       do i = 1, pawtab(iatyp(iat))%wvl%ptotgau
+          ! minus real part is for BigDFT convention.
+          G%sd((EXPO_ - 1) * 2 + 1,iexpo + i)  = -pawtab(iatyp(iat))%wvl%parg(1,i)
+          G%sd((EXPO_ - 1) * 2 + 2,iexpo + i)  = pawtab(iatyp(iat))%wvl%parg(2,i)
+          G%sd((COEFF_ - 1) * 2 + 1,iexpo + i) = pawtab(iatyp(iat))%wvl%pfac(1,i)
+          G%sd((COEFF_ - 1) * 2 + 2,iexpo + i) = pawtab(iatyp(iat))%wvl%pfac(2,i)
+!!$          write(*,*) iat, iexpo, i, G%sd((EXPO_ - 1) * 2 + 1,iexpo + i), &
+!!$               & G%sd((EXPO_ - 1) * 2 + 2,iexpo + i), G%sd((COEFF_ - 1) * 2 + 1,iexpo + i), &
+!!$               & G%sd((COEFF_ - 1) * 2 + 2,iexpo + i)
+       end do
+       iexpo = iexpo + pawtab(iatyp(iat))%wvl%ptotgau
+    end do
+  end subroutine gaussian_basis_from_paw
+
+  !> Start a new iterator on gaussian basis for the shells of a given atom.
+  subroutine gaussian_iter_start(G, iat, iter)
+    implicit none
+    type(gaussian_basis_new), intent(in) :: G
+    integer, intent(in) :: iat
+    type(gaussian_basis_iter), intent(out) :: iter
+
+    integer :: i, j
+
+    ! Compute offset in shell array and exposant array.
+    iter%ishell_s = 0
+    iter%iexpo    = 0
+    do i = 1, iat - 1
+       do j = iter%ishell_s + 1, iter%ishell_s + G%nshell(i)
+          iter%iexpo = iter%iexpo + G%shid(DOC_, j)
+       end do
+       iter%ishell_s = iter%ishell_s + G%nshell(i)
+    end do
+
+    iter%ishell = 0
+    iter%nshell = G%nshell(iat)
+  end subroutine gaussian_iter_start
+
+  !> Go to the next shell of the current iterator.
+  function gaussian_iter_next_shell(G, iter)
+    implicit none
+    type(gaussian_basis_new), intent(in) :: G
+    type(gaussian_basis_iter), intent(inout) :: iter
+    logical :: gaussian_iter_next_shell
+
+    gaussian_iter_next_shell = .false.
+    ! End of loop case
+    if (iter%ishell >= iter%nshell) return
+
+    iter%ishell = iter%ishell + 1
+    iter%l      = G%shid(L_, iter%ishell_s + iter%ishell)
+    iter%n      = G%shid(N_, iter%ishell_s + iter%ishell)
+    iter%ndoc   = G%shid(DOC_, iter%ishell_s + iter%ishell)
+    iter%idoc   = 0
+    if (iter%ishell > 1) iter%iexpo = iter%iexpo + G%shid(DOC_, iter%ishell_s + iter%ishell - 1)
+    gaussian_iter_next_shell = .true.
+  end function gaussian_iter_next_shell
+
+  !> Go to the next gaussian of the current shell.
+  function gaussian_iter_next_gaussian(G, iter, coeff, expo)
+    implicit none
+    type(gaussian_basis_new), intent(in) :: G
+    type(gaussian_basis_iter), intent(inout) :: iter
+    real(gp), dimension(G%ncplx), intent(out), optional :: coeff, expo
+    logical :: gaussian_iter_next_gaussian
+
+    gaussian_iter_next_gaussian = .false.
+    ! End of loop case
+    if (iter%idoc >= iter%ndoc) return
+
+    iter%idoc  = iter%idoc + 1
+    coeff(1) = G%sd(G%ncplx * (COEFF_ - 1) + 1, iter%iexpo + iter%idoc)
+    expo(1)  = G%sd(G%ncplx * (EXPO_ - 1) + 1, iter%iexpo + iter%idoc)
+    coeff(G%ncplx) = G%sd(G%ncplx * (COEFF_ - 1) + G%ncplx, iter%iexpo + iter%idoc)
+    expo(G%ncplx)  = G%sd(G%ncplx * (EXPO_ - 1) + G%ncplx, iter%iexpo + iter%idoc)
+    gaussian_iter_next_gaussian = .true.
+  end function gaussian_iter_next_gaussian
 
 
   subroutine gaussian_basis_convert(G,Gold)
@@ -311,7 +527,6 @@ contains
     gint = gint*dx
 
   end function scfdotf
-
 
   !> Overlap matrix between two different basis structures
   subroutine gaussian_overlap(A,B,ovrlp)

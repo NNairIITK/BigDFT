@@ -15,7 +15,6 @@
 program PSolver_Program
   use Poisson_Solver
   use wrapper_mpi
-  use memory_profiling, only: memocc
   use time_profiling
   use dynamic_memory
   implicit none
@@ -61,6 +60,8 @@ program PSolver_Program
   !mode="monopolar"
   mode="zigzag_model_wire"
     
+
+  call f_lib_initialize()
 
   !Use arguments
   call get_command_argument(1,chain)
@@ -471,8 +472,7 @@ program PSolver_Program
      call f_free(pot_ion)
   end if
 
-  !finalize memory counting
-  call memocc(0,0,'count','stop')
+  call f_lib_finalize()
 
   call MPI_FINALIZE(ierr)
 

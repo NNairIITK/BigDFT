@@ -193,10 +193,10 @@ subroutine check_communications_locreg(iproc,nproc,orbs,Lzd,collcom,npsidim_orbs
       abort = .true.
    end if
 
-   if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
+   if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,11,ierr)
 
    if (nproc > 1) then
-      call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
+      !call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
       call mpiallred(maxdiff,1,MPI_MAX,bigdft_mpi%mpi_comm)
    end if
 

@@ -25,13 +25,17 @@ EXTRA_DIST =
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
   TESTDIRS += GPU
+else
+  EXTRA_TESTDIRS += GPU
 endif
 if USE_OCL
   TESTDIRS += OCL
+  EXTRA_TESTDIRS += H Graphene FeHyb Mn2 SIC
 else
 #Add H (box too small) and Graphene (different algorithm) only if we do not use OCL (see README)
 #OCL not implemented with spin=4 (Fehyb and Mn2)
   TESTDIRS += H Graphene FeHyb Mn2 SIC
+  EXTRA_TESTDIRS += OCL
 endif
 
 # Give here the pseudo-potentials used by each test.

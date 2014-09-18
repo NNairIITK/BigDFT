@@ -8,27 +8,27 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine memocc_report()
-  use memory_profiling, only: mreport => memocc_report
-  implicit none
-  call mreport()
-end subroutine memocc_report
+!!$subroutine memocc_report()
+!!$  use memory_profiling, only: mreport => memocc_report
+!!$  implicit none
+!!$  call mreport()
+!!$end subroutine memocc_report
 
 
-subroutine memocc_verbose()
-  use memory_profiling, only: mstate => memocc_set_state
-  implicit none
-  call mstate(2)
-end subroutine memocc_verbose
+!!$subroutine memocc_verbose()
+!!$  use memory_profiling, only: mstate => memocc_set_state
+!!$  implicit none
+!!$  call mstate(2)
+!!$end subroutine memocc_verbose
 
 
-subroutine memocc_set_output(file, ln)
-  use memory_profiling, only: mstate => memocc_set_filename
-  implicit none
-  integer, intent(in) :: ln
-  character(len = ln), intent(in) :: file
-  call mstate(file)
-end subroutine memocc_set_output
+!!$subroutine memocc_set_output(file, ln)
+!!$  use memory_profiling, only: mstate => memocc_set_filename
+!!$  implicit none
+!!$  integer, intent(in) :: ln
+!!$  character(len = ln), intent(in) :: file
+!!$  call mstate(file)
+!!$end subroutine memocc_set_output
 
 
 subroutine f90_pointer_1D_init(pt_c, size_c)
@@ -346,7 +346,7 @@ subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
 END SUBROUTINE glr_set_wfd_dims
 
 
-subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
+subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,&
       &   crmult,frmult,Glr)
    use module_base, only: gp
    use module_types
@@ -357,11 +357,11 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
    integer, intent(in) :: iproc
    real(gp), intent(in) :: hx,hy,hz,crmult,frmult
    real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
-   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+   !real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
    type(locreg_descriptors), intent(inout) :: Glr
 
-   call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,radii_cf,&
-      &   crmult,frmult,Glr)
+   call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,&
+        crmult,frmult,Glr)
 end subroutine glr_set_wave_descriptors
 
 
@@ -509,10 +509,12 @@ END SUBROUTINE lzd_get_llr
 subroutine inputs_new(in)
   use module_types
   use dictionaries
+  use dynamic_memory
   implicit none
   type(input_variables), pointer :: in
   allocate(in)
-  call default_input_variables(in)
+  call nullify_f_ref(in%refcnt)
+  !call default_input_variables(in)
 end subroutine inputs_new
 
 
@@ -1146,7 +1148,6 @@ subroutine wf_init(wf)
   nullify(wf%psi)
   nullify(wf%hpsi)
   nullify(wf%psit)
-  nullify(wf%spsi)
   nullify(wf%comms%nvctr_par)
 end subroutine wf_init
 
@@ -1528,12 +1529,12 @@ subroutine run_objects_new(runObj)
   type(run_objects), pointer :: intern
 
   allocate(intern)
-  call run_objects_nullify(intern)
+  call nullify_run_objects(intern)
   runObj => intern
 
   ! Allocate persistent structures.
   allocate(runObj%rst)
-  call restart_objects_new(runObj%rst)
+  call nullify_restart_objects(runObj%rst)
 END SUBROUTINE run_objects_new
 
 
@@ -1543,7 +1544,7 @@ subroutine run_objects_destroy(runObj)
   type(run_objects), pointer :: runObj
 
   ! The caller is responsible to nullify attributes he wants to keep.
-  call run_objects_free(runObj)
+  call free_run_objects(runObj)
   deallocate(runObj)
 end subroutine run_objects_destroy
 
@@ -1602,6 +1603,17 @@ subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly)
   call yaml_set_default_stream(iunit_def, iostat)
 END SUBROUTINE run_objects_dump_to_file
 
+!wrapper to call_bigdft in bigdft run
+subroutine bigdft_exec(runObj,outs,infocode)
+  use bigdft_run, only: run_objects,DFT_global_output,call_bigdft
+  implicit none
+  type(run_objects), intent(inout) :: runObj
+  type(DFT_global_output), intent(inout) :: outs
+  integer, intent(inout) :: infocode
+
+  call call_bigdft(runObj,outs,infocode)
+
+end subroutine bigdft_exec
 
 subroutine run_objects_set_dict(runObj, dict)
   use bigdft_run, only: run_objects

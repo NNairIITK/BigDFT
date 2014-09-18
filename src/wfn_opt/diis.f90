@@ -405,7 +405,7 @@ subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis)
   !add the possibility of more than one diis group
   ngroup=1
 
-  diis%psidst = f_malloc_ptr(npsidim*idsx+ndebug,id='diis%psidst')
+  diis%psidst = f_malloc_ptr(npsidim*idsx,id='diis%psidst')
   diis%hpsidst = f_malloc_ptr(npsidim*idsx,id='diis%hpsidst')
   diis%ads = f_malloc_ptr((/ ncplx, idsx+1, idsx+1, ngroup, nkptsp, 1 /),id='diis%ads')
   call to_zero(nkptsp*ncplx*ngroup*(idsx+1)**2,diis%ads(1,1,1,1,1,1))

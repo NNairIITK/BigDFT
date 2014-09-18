@@ -598,7 +598,7 @@ subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nsp
  end if
 
  !let us initialize the larger vector to calculate the gradient
- density = f_malloc((/ n1+8 , n2+8 , n3grad+8+ndebug /),id='density')
+ density = f_malloc((/ n1+8 , n2+8 , n3grad+8/),id='density')
 
  do ispden=1,nspden !loop over up/dw densities
     select case(geocode)
