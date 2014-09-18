@@ -851,15 +851,15 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   !end if
 
   ncount = 0
-  do itg=1,smat%ntaskgroup
+  do itg=1,smat%ntaskgroupp
       iitg = smat%inwhichtaskgroup(itg)
       ncount = ncount + smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
   end do
   recvbuf = f_malloc(ncount,id='recvbuf')
 
   ncount = 0
-  request = f_malloc(smat%ntaskgroup,id='request')
-  do itg=1,smat%ntaskgroup
+  request = f_malloc(smat%ntaskgroupp,id='request')
+  do itg=1,smat%ntaskgroupp
       iitg = smat%inwhichtaskgroup(itg)
       ist_send = smat%taskgroup_startend(1,1,iitg)
       ist_recv = ncount + 1
@@ -867,8 +867,9 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
       call mpi_iallreduce(ovrlp%matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
            mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
   end do
-  call mpi_waitall(smat%ntaskgroup, request, mpi_statuses_ignore, ierr)
-  do itg=1,smat%ntaskgroup
+  call mpi_waitall(smat%ntaskgroupp, request, mpi_statuses_ignore, ierr)
+  ncount = 0
+  do itg=1,smat%ntaskgroupp
       iitg = smat%inwhichtaskgroup(itg)
       ist_send = smat%taskgroup_startend(1,1,iitg)
       ist_recv = ncount + 1
