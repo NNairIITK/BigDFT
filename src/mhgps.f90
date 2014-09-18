@@ -472,33 +472,33 @@ allocate(fat(3,nat))
                         minmode(1,1),rotforce(1,1))
                     endif
             else if(trim(adjustl(operation_mode))=='minimize')then
-!                ec=0.0_gp
-                call energyandforces(nat,alat,rxyz,fat,fnoise,energy)
-!!                call minimize(imode,nat,alat,nbond,iconnect,&
-!!                rxyz(1,1),fxyz(1,1),fnoise,energy,ec,converged,'')
-!                if(.not.converged)then
-!                    call yaml_warning('Minimization '//yaml_toa(isad)&
-!                         //' not converged')
-!                endif
-!                call fnrmandforcemax(fxyz(1,1),fnrm,fmax,nat)
-!                if (iproc == 0) then
-!                    write(comment,'(a,1pe10.3,5x1pe10.3)')&
-!                         'fnrm, fmax = ',fnrm,fmax
-!
-!                    call astruct_dump_to_file(astruct,&
-!                         currDir//'/min'//trim(adjustl(isadc))//&
-!                         '_final',&
-!                         comment,&
-!                         energy,rxyz=rxyz,forces=fxyz)
-!
-!                    write(comment,'(a,1pe10.3,5x1pe10.3)')&
-!                   'fnrm, fmax = ',fnrm,fmax
-!                    call astruct_dump_to_file(astruct,&
-!                         currDir//'/sad'//trim(adjustl(isadc))//&
-!                         '_finalF',&
-!                         comment,&
-!                         energy,rxyz=rxyz,forces=fxyz)
-!                endif
+                ec=0.0_gp
+                call energyandforces(nat,alat,rxyz,fxyz,fnoise,energy)
+                call minimize(imode,nat,alat,nbond,iconnect,&
+                rxyz(1,1),fxyz(1,1),fnoise,energy,ec,converged,'')
+                if(.not.converged)then
+                    call yaml_warning('Minimization '//yaml_toa(isad)&
+                         //' not converged')
+                endif
+                call fnrmandforcemax(fxyz(1,1),fnrm,fmax,nat)
+                if (iproc == 0) then
+                    write(comment,'(a,1pe10.3,5x1pe10.3)')&
+                         'fnrm, fmax = ',fnrm,fmax
+
+                    call astruct_dump_to_file(astruct,&
+                         currDir//'/min'//trim(adjustl(isadc))//&
+                         '_final',&
+                         comment,&
+                         energy,rxyz=rxyz,forces=fxyz)
+
+                    write(comment,'(a,1pe10.3,5x1pe10.3)')&
+                   'fnrm, fmax = ',fnrm,fmax
+                    call astruct_dump_to_file(astruct,&
+                         currDir//'/sad'//trim(adjustl(isadc))//&
+                         '_finalF',&
+                         comment,&
+                         energy,rxyz=rxyz,forces=fxyz)
+                endif
             else if(trim(adjustl(operation_mode))=='hessian')then
                 call cal_hessian_fd(iproc,nat,alat,rxyz,hess)
                 if(iproc==0)then

@@ -247,6 +247,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    call vcopy(3*nat, rxyzio(1,1), 1,rxyz(1,1,0), 1)
    call vcopy(3*nat, rxyzio(1,1), 1,rxyzOld(1,1), 1)
    call vcopy(3*fdim, fxyzio(1,1), 1, fxyz(1,1,0), 1)
+
    etot=energyio
    fnoise=fnoiseio
    call minenergyandforces(.false.,imode,nat,alat,rxyz(1,1,0),&
