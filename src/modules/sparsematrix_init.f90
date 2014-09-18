@@ -234,7 +234,7 @@ contains
       integer,dimension(2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(inout) :: sparsemat
 
-      integer :: ierr, jproc, iorb, jjproc, iiorb, nseq_min, nseq_max, iseq, ind, ii, iseg
+      integer :: ierr, jproc, iorb, jjproc, iiorb, nseq_min, nseq_max, iseq, ind, ii, iseg, ncount
       integer,dimension(:),allocatable :: nseq_per_line, norb_par_ideal, isorb_par_ideal
       integer,dimension(:,:),allocatable :: istartend_dj, istartend_mm
       integer,dimension(:,:),allocatable :: temparr
@@ -378,6 +378,8 @@ contains
           ! check that this is inside the segment of istartend_mm(:,jproc)
           ind = max(ind,istartend_mm(1,jproc))
           ind = min(ind,istartend_mm(2,jproc))
+          ! check that this is not smaller than the beginning of the previous chunk
+          ind = max(ind,istartend_dj(1,jproc-1))+1
           istartend_dj(1,jproc) = ind
           istartend_dj(2,jproc-1) = istartend_dj(1,jproc)-1
       end do
@@ -388,7 +390,9 @@ contains
       if (istartend_dj(2,nproc-1)/=sparsemat%nvctr) stop 'istartend_dj(2,nproc-1)/=sparsemat%nvctr'
       ii = 0
       do jproc=0,nproc-1
-          ii = ii + istartend_dj(2,jproc)-istartend_dj(1,jproc) + 1
+          ncount = istartend_dj(2,jproc)-istartend_dj(1,jproc) + 1
+          if (ncount<0) stop 'ncount<0'
+          ii = ii + ncount
           if (ii<0) stop 'init_sparse_matrix_matrix_multiplication: ii<0'
           if (jproc>0) then
               if (istartend_dj(1,jproc)/=istartend_dj(2,jproc-1)+1) stop 'istartend_dj(1,jproc)/=istartend_dj(2,jproc-1)'
