@@ -1,0 +1,15 @@
+conditions.add("testing")
+
+#build_policy = "all"
+
+# List of modules to be built by default
+modules = ['bigdft',]
+
+# Specific configure arguments for each module
+module_autogenargs['libxc'] = "FC=mpif90 CC=gcc --enable-shared"
+
+module_autogenargs['bigdft'] = "FC=mpif90 FCFLAGS='-O2 -g -traceback' --with-pyyaml-path=%(prefix)s/lib/python2.7/site-packages" % globals() + " --with-ext-linalg='%s'" % os.getenv("MKL_LIBS")
+
+module_autogenargs['libABINIT'] = "FC=mpif90 FCFLAGS='-fPIC'"
+
+module_autogenargs['etsf_io'] += "FCFLAGS='-fPIC'"

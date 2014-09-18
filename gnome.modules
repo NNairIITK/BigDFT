@@ -7,7 +7,7 @@
   <repository type="tarball" name="gnome.org" href="http://ftp.gnome.org/pub/GNOME/sources/"/>
   <repository type="tarball" name="sourceware" href="http://mirrors.kernel.org/sources.redhat.com/"/>
 
-  <autotools id="pygobject" autogenargs="--disable-cairo">
+  <autotools id="pygobject" autogenargs="--disable-cairo" autogen-sh="configure">
     <branch repo="gnome.org" version="3.12" module="pygobject/3.12/pygobject-3.12.2.tar.xz" />
     <dependencies>
       <dep package="glib"/>
@@ -16,7 +16,7 @@
     </dependencies>
   </autotools>
 
-  <autotools id="gobject-introspection">
+  <autotools id="gobject-introspection" autogen-sh="configure">
     <branch repo="gnome.org" version="1.40" module="gobject-introspection/1.40/gobject-introspection-1.40.0.tar.xz" />
     <dependencies>
       <dep package="bison"/>
@@ -26,7 +26,7 @@
     </dependencies>
   </autotools>
 
-  <autotools id="glib">
+  <autotools id="glib" autogen-sh="configure">
     <branch repo="gnome.org" version="2.40" module="glib/2.40/glib-2.40.0.tar.xz" />
     <dependencies>
       <dep package="libffi"/>
