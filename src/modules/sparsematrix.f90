@@ -87,7 +87,7 @@ module sparsematrix
                  end do
              end do
              !!$omp end do
-             !$omp end parallel
+             !!$omp end parallel
          end do
       else if (sparsemat%parallel_compression==1) then
          stop 'this needs to be fixed'

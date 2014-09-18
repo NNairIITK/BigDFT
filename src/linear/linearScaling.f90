@@ -761,7 +761,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              ! update occupations wrt eigenvalues (NB for directmin these aren't guaranteed to be true eigenvalues)
              ! switch off for FOE at the moment
-             if (input%lin%scf_mode/=LINEAR_FOE) then
+             ! switch off for directmin too, unless we decide to reactivate calculating the expectation values the output is meaningless
+             if (input%lin%scf_mode/=LINEAR_FOE .and. input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
                  !call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
                  ! Copy the spin up eigenvalues (or all in the case of a non-polarized calculation)
                  call vcopy(kswfn%orbs%norbu,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
@@ -1045,11 +1046,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        !!if (input%lin%scf_mode==LINEAR_FOE) then
        !!    call f_free_ptr(tmb%coeff)
        !!end if
-  end if
 
        if (bigdft_mpi%iproc ==0) then 
           call write_eigenvalues_data(0.1d0,tmb%orbs,mom_vec_fake)
        end if
+  end if
+
 
 
   !! TEST ##########################
