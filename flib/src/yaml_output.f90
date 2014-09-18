@@ -564,7 +564,7 @@ contains
     implicit none
     integer, optional, intent(in) :: unit  !< @copydoc doc::unit
     !local variables
-    integer :: unt,strm,unit_prev
+    integer :: unt,strm
 
     unt=0
     if (present(unit)) unt=unit
