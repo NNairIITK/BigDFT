@@ -1091,6 +1091,7 @@ subroutine copy_sparse_matrix(smat_in, smat_out)
   end if
   allocate(smat_out%mpi_groups(is:ie))
   do i=is,ie
+      smat_out%mpi_groups(i) = mpi_environment_null()
       call copy_mpi_environment(smat_in%mpi_groups(i), smat_out%mpi_groups(i))
   end do
 
