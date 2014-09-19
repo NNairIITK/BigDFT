@@ -138,7 +138,7 @@ install-data-hook:
 $(modules): $(libflib_1_a_OBJECTS)
 yaml_strings.o: $(STRINGS_INCLUDES)
 dictionaries_base.o: yaml_strings.o
-dictionaries.o: yaml_strings.o  $(DICT_INCLUDES) callbacks.o
+dictionaries.o: yaml_strings.o dictionaries_base.o $(DICT_INCLUDES) callbacks.o
 callbacks.o: $(NOOMP_INCLUDES)
 #mem_profiling.o : error_handling.o
 yaml_output.o : dictionaries.o $(YAML_INCLUDES)
