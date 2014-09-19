@@ -1045,7 +1045,9 @@ contains
       type(sparse_matrix),intent(inout) :: smat
 
       ! Local variables
-      integer :: ishift, ipt, ii, i0, i0i, iiorb, j, i0j, jjorb, ind, ind_min, ind_max, iseq, ntaskgroups, jproc, jstart, jend, kkproc, kproc, itaskgroups, lproc, llproc
+      integer :: ishift, ipt, ii, i0, i0i, iiorb, j, i0j, jjorb, ind, ind_min, ind_max, iseq
+      integer :: ntaskgroups, jproc, jstart, jend, kkproc, kproc, itaskgroups, lproc, llproc
+      integer :: nfvctrp, isfvctr, isegstart, isegend, jorb
       integer,dimension(:,:),allocatable :: iuse_startend, icalc_startend, itaskgroups_startend, ranks
       integer,dimension(:),allocatable :: tasks_per_taskgroup
       integer :: ntaskgrp_calc, ntaskgrp_use, i, ncount, iitaskgroup, group, ierr, iitaskgroups, newgroup, iseg
@@ -1089,8 +1091,6 @@ contains
               end do
           end do
       end do
-      icalc_startend(1,iproc) = ind_min
-      icalc_startend(2,iproc) = ind_max
 
       ! This corresponds to the values for the transposed operation bounds
       smat%istartend_t(1) = ind_min
@@ -1109,10 +1109,38 @@ contains
           end if
       end do
 
+      ! The compress_distributed 
+      do i=1,2
+          if (i==1) then
+              nfvctrp = smat%nfvctrp
+              isfvctr = smat%isfvctr
+          else if (i==2) then
+              nfvctrp = smat%smmm%nfvctrp
+              isfvctr = smat%smmm%isfvctr
+          end if
+          if (nfvctrp>0) then
+              isegstart=smat%istsegline(isfvctr+1)
+              isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
+              do iseg=isegstart,isegend
+                  ii=smat%keyv(iseg)-1
+                  do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
+                      ii=ii+1
+                      ind_min = min(ii,ind_min)
+                      ind_max = min(ii,ind_max)
+                  end do
+              end do
+          end if
+      end do
+      icalc_startend(1,iproc) = ind_min
+      icalc_startend(2,iproc) = ind_max
+
+
+
 
       !write(*,*) 'CALC: iproc, ind_min, ind_max', iproc, ind_min, ind_max
       ind_min = 1000000000
       ind_max = -1000000000
+      ! Thematrix matrix multiplications
       do iseq=1,smat%smmm%nseq
           ind=smat%smmm%indices_extract_sequential(iseq)
           ind_min = min(ind_min,ind)
