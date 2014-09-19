@@ -283,12 +283,14 @@ module sparsematrix_base
       call f_free_ptr(sparseMat%taskgroup_startend)
       call f_free_ptr(sparseMat%inwhichtaskgroup)
       call deallocate_sparse_matrix_matrix_multiplication(sparsemat%smmm)
-      is=lbound(sparseMat%mpi_groups,1)
-      ie=ubound(sparseMat%mpi_groups,1)
-      do i=is,ie
-          call mpi_environment_free(sparseMat%mpi_groups(i))
-      end do
-      deallocate(sparseMat%mpi_groups)
+      if (associated(sparseMat%mpi_groups)) then
+          is=lbound(sparseMat%mpi_groups,1)
+          ie=ubound(sparseMat%mpi_groups,1)
+          do i=is,ie
+              call mpi_environment_free(sparseMat%mpi_groups(i))
+          end do
+          deallocate(sparseMat%mpi_groups)
+      end if
     end subroutine deallocate_sparse_matrix
 
     subroutine deallocate_sparse_matrix_matrix_multiplication(smmm)

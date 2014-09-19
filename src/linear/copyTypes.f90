@@ -1213,10 +1213,15 @@ subroutine copy_mpi_environment(mpi_in, mpi_out)
   ! Calling arguments
   type(mpi_environment),intent(in) :: mpi_in
   type(mpi_environment),intent(out) :: mpi_out
+  ! Local variables
+  integer :: ierr
 
-  mpi_out%mpi_comm = mpi_in%mpi_comm
-  mpi_out%iproc = mpi_in%iproc
-  mpi_out%nproc = mpi_in%nproc
+  !mpi_out%mpi_comm = mpi_in%mpi_comm
+  !mpi_out%iproc = mpi_in%iproc
+  !mpi_out%nproc = mpi_in%nproc
+  call mpi_comm_dup(mpi_in%mpi_comm, mpi_out%mpi_comm, ierr)
+  call mpi_comm_size(mpi_out%mpi_comm, mpi_out%nproc, ierr)
+  call mpi_comm_rank(mpi_out%mpi_comm, mpi_out%nproc, ierr)
   mpi_out%igroup = mpi_in%igroup
   mpi_out%ngroup = mpi_in%ngroup
 

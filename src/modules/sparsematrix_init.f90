@@ -1045,7 +1045,7 @@ contains
       type(sparse_matrix),intent(inout) :: smat
 
       ! Local variables
-      integer :: ishift, ipt, ii, i0, i0i, iiorb, j, i0j, jjorb, ind, ind_min, ind_max, iseq
+      integer :: ipt, ii, i0, i0i, iiorb, j, i0j, jjorb, ind, ind_min, ind_max, iseq
       integer :: ntaskgroups, jproc, jstart, jend, kkproc, kproc, itaskgroups, lproc, llproc
       integer :: nfvctrp, isfvctr, isegstart, isegend, jorb
       integer,dimension(:,:),allocatable :: iuse_startend, icalc_startend, itaskgroups_startend, ranks
@@ -1150,7 +1150,7 @@ contains
       ! The sumrho operation
       do ipt=1,collcom_sr%nptsp_c
           ii=collcom_sr%norb_per_gridpoint_c(ipt)
-          i0=collcom_sr%isptsp_c(ipt)+ishift
+          i0=collcom_sr%isptsp_c(ipt)
           do i=1,ii
               iiorb=collcom_sr%indexrecvorbital_c(i0+i)
               ind=smat%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
