@@ -613,9 +613,8 @@ AC_COMPILE_IFELSE([[program main
   use ab6_moldyn
   use m_ab6_symmetry
   use m_ab6_kpoints
-  use m_ab7_mixing
 
-  write(*,*) AB7_MIXING_DENSITY
+  write(*,*) AB6_MAX_SYMMETRIES
 end program]], withabinitmod=yes, withabinitmod=no)
 FCFLAGS=$FCFLAGS_SVG
 AC_MSG_RESULT($withabinitmod)

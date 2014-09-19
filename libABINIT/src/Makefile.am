@@ -255,7 +255,6 @@ modules = AB6_MOLDYN.@MODULE_EXT@ \
         LIBXC_FUNCTIONALS.@MODULE_EXT@ \
         M_AB6_KPOINTS.@MODULE_EXT@ \
         M_AB6_SYMMETRY.@MODULE_EXT@ \
-        M_AB7_MIXING.@MODULE_EXT@ \
         M_ATOMPAW.@MODULE_EXT@ \
         M_ERRORS.@MODULE_EXT@ \
         M_FSTRINGS.@MODULE_EXT@ \
@@ -304,7 +303,6 @@ modules = ab6_moldyn.@MODULE_EXT@ \
         libxc_functionals.@MODULE_EXT@ \
         m_ab6_kpoints.@MODULE_EXT@ \
         m_ab6_symmetry.@MODULE_EXT@ \
-        m_ab7_mixing.@MODULE_EXT@ \
         m_atompaw.@MODULE_EXT@ \
         m_errors.@MODULE_EXT@ \
         m_fstrings.@MODULE_EXT@ \
