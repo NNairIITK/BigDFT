@@ -583,7 +583,8 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
 
   !call nullify_sparse_matrix(grad_ovrlp)
   grad_ovrlp=sparse_matrix_null()
-  call sparse_copy_pattern(tmb%linmat%m, grad_ovrlp, iproc, subname)
+  !call sparse_copy_pattern(tmb%linmat%m, grad_ovrlp, iproc, subname)
+  call copy_sparse_matrix(tmb%linmat%m, grad_ovrlp)
   !grad_ovrlp%matrix_compr=f_malloc_ptr(grad_ovrlp%nvctr,id='grad_ovrlp%matrix_compr')
   grad_ovrlp_ = matrices_null()
   call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
