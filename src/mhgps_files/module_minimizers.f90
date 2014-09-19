@@ -95,11 +95,9 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    logical :: debug !< set .true. for debug output to fort.100
    logical :: steep !< steepest descent flag
    logical :: success
-   real(gp) :: displrOld
    real(gp) :: displr !< (non-physical) integrated path length,
                       !< includes displacements from rejctions
                       !< (denoted as dsplr in geopt.mon)
-   real(gp) :: displpOld
    real(gp) :: displp !< (physical) integrated path length,
                       !< includes NO displacements from rejections
                       !< (denoted as dsplp in geopt.mon)
@@ -149,11 +147,9 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    real(gp), allocatable, dimension(:)     :: wold
    character(len=4)                        :: fn4
    character(len=40)                       :: comment
-   character(len=9)                        :: cdmy9_1
-   character(len=9)                        :: cdmy9_2
-   character(len=9)                        :: cdmy9_3
-   character(len=9)                        :: cdmy9_4
-   character(len=9)                        :: cdmy9_5
+   character(len=12)                        :: cdmy12_1
+   character(len=12)                        :: cdmy12_2
+   character(len=9)                        :: cdmy9
    character(len=8)                        :: cdmy8
     !functions
     real(gp) :: ddot,dnrm2
@@ -199,9 +195,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    !init varaibles
    debug=.false.
    converged=.false.
-   displrOld=0.0_gp
    displr=0.0_gp
-   displpOld=0.0_gp
    displp=0.0_gp
    fluct=0.0_gp
    icheck=0
@@ -265,17 +259,15 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    if (iproc==0 .and. mhgps_verbosity > 0) then
        !avoid space for leading sign (numbers are positive, anyway)
        write(cdmy8,'(es8.1)')abs(maxd)
-       write(cdmy9_1,'(es9.2)')abs(displr)
-       write(cdmy9_2,'(es9.2)')abs(displp)
-       write(cdmy9_3,'(es9.2)')abs(beta)
+       write(cdmy12_1,'(es12.5)')abs(displr)
+       write(cdmy12_2,'(es12.5)')abs(displp)
+       write(cdmy9,'(es9.2)')abs(beta)
 
-       write(cdmy9_4,'(es9.2)')abs(displrOld)
-       write(cdmy9_5,'(es9.2)')abs(displpOld)
 
-       write(*,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,4(1x,a9,a8))') &
+       write(*,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a11))') &
        int(energycounter),0,'(MHGPS) GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
-       'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),&
-       'dsplr=',trim(adjustl(cdmy9_1)), 'dsplrOld=',trim(adjustl(cdmy9_4)),'dsplp=',trim(adjustl(cdmy9_2)),'dsplpOld=',trim(adjustl(cdmy9_2))
+       'beta=',trim(adjustl(cdmy9)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),&
+       'dsplr=',trim(adjustl(cdmy12_1)), 'dsplp=',trim(adjustl(cdmy12_2))
    endif
 
    do it=1,nit!start main loop
@@ -334,7 +326,6 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
          maxd=maxd*scl
       endif
 !      displr=displr+tt
-      displrOld=displrOld+tt
    
       !update positions
       do iat=1,nat
@@ -393,17 +384,15 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
          if (iproc==0.and.mhgps_verbosity > 0) then
             !avoid space for leading sign (numbers are positive, anyway)
             write(cdmy8,'(es8.1)')abs(maxd)
-            write(cdmy9_1,'(es9.2)')abs(displr)
-            write(cdmy9_2,'(es9.2)')abs(displp)
-            write(cdmy9_3,'(es9.2)')abs(beta)
+            write(cdmy12_1,'(es12.5)')abs(displr)
+            write(cdmy12_2,'(es12.5)')abs(displp)
+            write(cdmy9,'(es9.2)')abs(beta)
 
-            write(cdmy9_4,'(es9.2)')abs(displrOld)
-            write(cdmy9_5,'(es9.2)')abs(displpOld)
 
-            write(*,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,4(1x,a9,a8))') &
+            write(*,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a11))') &
              int(energycounter),it,'(MHGPS) GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
-             'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),&
-             'dsplr=',trim(adjustl(cdmy9_1)),'dsplrOld=',trim(adjustl(cdmy9_4)),'dsplp=',trim(adjustl(cdmy9_2)),'dsplpOld=',trim(adjustl(cdmy9_5))
+             'beta=',trim(adjustl(cdmy9)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),&
+             'dsplr=',trim(adjustl(cdmy12_1)),'dsplp=',trim(adjustl(cdmy12_2))
 !            call yaml_mapping_open('Geometry')
 !               call yaml_map('Ncount_BigDFT',int(energycounter))
 !               call yaml_map('Geometry step',it)
@@ -458,25 +447,32 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
          goto  500
       endif
 
+      if (iproc == 0 .and. mhgps_verbosity >=4) then
+         write(fn4,'(i4.4)') nit
+         write(comment,'(a,1pe10.3)')'SBFGS:fnrm= ',fnrm
+         call astruct_dump_to_file(astruct,&
+              currDir//'/sad'//trim(adjustl(isadc))&
+              //'_posminiP'//trim(adjustl(writePostfix))//'_'//fn4, &
+              trim(comment),energy=etotp,rxyz=rxyz(:,:,nhist),&
+              forces=fxyz(:,:,nhist))
+      endif
+
       delta=rxyz(:,:,nhist)-rxyzOld
       displp=displp+dnrm2(3*nat,delta(1,1),1)
       rxyzOld=rxyz(:,:,nhist)
 !      displp=displp+tt
-      displpOld=displpOld+tt
       if (iproc==0.and.mhgps_verbosity > 0) then
          !avoid space for leading sign (numbers are positive, anyway)
          write(cdmy8,'(es8.1)')abs(maxd)
-         write(cdmy9_1,'(es9.2)')abs(displr)
-         write(cdmy9_2,'(es9.2)')abs(displp)
-         write(cdmy9_3,'(es9.2)')abs(beta)
+         write(cdmy12_1,'(es12.5)')abs(displr)
+         write(cdmy12_2,'(es12.5)')abs(displp)
+         write(cdmy9,'(es9.2)')abs(beta)
 
-         write(cdmy9_4,'(es9.2)')abs(displrOld)
-         write(cdmy9_5,'(es9.2)')abs(displpOld)
 
-         write(*,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,4(1x,a9,a8))') &
+         write(*,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a11))') &
           int(energycounter),it,'(MHGPS) GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
-          'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),&
-          'dsplr=',trim(adjustl(cdmy9_1)),'dsplrOld=',trim(adjustl(cdmy9_4)),'dsplp=',trim(adjustl(cdmy9_2)),'dsplpOld=',trim(adjustl(cdmy9_5))
+          'beta=',trim(adjustl(cdmy9)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),&
+          'dsplr=',trim(adjustl(cdmy12_1)),'dsplp=',trim(adjustl(cdmy12_2))
 !         call yaml_mapping_open('Geometry')
 !            call yaml_map('Ncount_BigDFT',int(energycounter))
 !            call yaml_map('Geometry step',it)
@@ -563,6 +559,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
 !deallocations
    call f_free(rxyz)
    call f_free(rxyzOld)
+   call f_free(delta)
    call f_free(rxyzraw)
    call f_free(fxyz)
    call f_free(fxyzraw)
