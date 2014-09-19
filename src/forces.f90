@@ -4648,7 +4648,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   recvcounts(iproc) = ncount
   call mpiallred(recvcounts(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
   recvdspls(0) = 0
-  do jproc=0,nproc-1
+  do jproc=1,nproc-1
       recvdspls(jproc) = recvdspls(jproc-1) + recvcounts(jproc-1)
   end do
   ist_send = denskern%smmm%istartend_mm_dj(1)

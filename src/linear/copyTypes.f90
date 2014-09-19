@@ -1085,16 +1085,20 @@ subroutine copy_sparse_matrix(smat_in, smat_out)
 
   call copy_sparse_matrix_matrix_multiplication(smat_in%smmm, smat_out%smmm)
 
-  is = lbound(smat_in%mpi_groups,1)
-  ie = ubound(smat_in%mpi_groups,1)
-  if (associated(smat_out%mpi_groups)) then
-      deallocate(smat_out%mpi_groups)
+  if (associated(smat_in%mpi_groups)) then
+      is = lbound(smat_in%mpi_groups,1)
+      ie = ubound(smat_in%mpi_groups,1)
+      if (associated(smat_out%mpi_groups)) then
+          deallocate(smat_out%mpi_groups)
+      end if
+      allocate(smat_out%mpi_groups(is:ie))
+      do i=is,ie
+          smat_out%mpi_groups(i) = mpi_environment_null()
+          call copy_mpi_environment(smat_in%mpi_groups(i), smat_out%mpi_groups(i))
+      end do
+  else
+      nullify(smat_out%mpi_groups)
   end if
-  allocate(smat_out%mpi_groups(is:ie))
-  do i=is,ie
-      smat_out%mpi_groups(i) = mpi_environment_null()
-      call copy_mpi_environment(smat_in%mpi_groups(i), smat_out%mpi_groups(i))
-  end do
 
 end subroutine copy_sparse_matrix
 
@@ -1216,9 +1220,6 @@ subroutine copy_mpi_environment(mpi_in, mpi_out)
   ! Local variables
   integer :: ierr
 
-  !mpi_out%mpi_comm = mpi_in%mpi_comm
-  !mpi_out%iproc = mpi_in%iproc
-  !mpi_out%nproc = mpi_in%nproc
   call mpi_comm_dup(mpi_in%mpi_comm, mpi_out%mpi_comm, ierr)
   call mpi_comm_size(mpi_out%mpi_comm, mpi_out%nproc, ierr)
   call mpi_comm_rank(mpi_out%mpi_comm, mpi_out%nproc, ierr)
