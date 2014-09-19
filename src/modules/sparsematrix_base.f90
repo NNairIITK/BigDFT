@@ -265,6 +265,8 @@ module sparsematrix_base
       implicit none
       ! Calling arguments
       type(sparse_matrix),intent(inout):: sparsemat
+      ! Local variables
+      integer :: i, is, ie
       if (associated(sparseMat%keyg)) call f_free_ptr(sparseMat%keyg)
       if (associated(sparseMat%keyv)) call f_free_ptr(sparseMat%keyv)
       if (associated(sparseMat%nsegline)) call f_free_ptr(sparseMat%nsegline)
@@ -281,6 +283,12 @@ module sparsematrix_base
       call f_free_ptr(sparseMat%taskgroup_startend)
       call f_free_ptr(sparseMat%inwhichtaskgroup)
       call deallocate_sparse_matrix_matrix_multiplication(sparsemat%smmm)
+      is=lbound(sparseMat%mpi_groups,1)
+      ie=ubound(sparseMat%mpi_groups,1)
+      do i=is,ie
+          call mpi_environment_free(sparseMat%mpi_groups(i))
+      end do
+      deallocate(sparseMat%mpi_groups)
     end subroutine deallocate_sparse_matrix
 
     subroutine deallocate_sparse_matrix_matrix_multiplication(smmm)
