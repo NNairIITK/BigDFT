@@ -1137,9 +1137,9 @@ contains
 
 
 
-      !write(*,*) 'CALC: iproc, ind_min, ind_max', iproc, ind_min, ind_max
-      ind_min = 1000000000
-      ind_max = -1000000000
+      !!!write(*,*) 'CALC: iproc, ind_min, ind_max', iproc, ind_min, ind_max
+      !!ind_min = 1000000000
+      !!ind_max = -1000000000
       ! Thematrix matrix multiplications
       do iseq=1,smat%smmm%nseq
           ind=smat%smmm%indices_extract_sequential(iseq)
@@ -1179,12 +1179,12 @@ contains
           ii = ii + 1
           !search the last process whose calculation stops prior to iend
           go_on = .false.
-          do kproc=nproc-1,llproc,-1
-              if (icalc_startend(2,kproc)<=jend) then
+          !!do kproc=nproc-1,llproc,-1
+          !!    if (icalc_startend(2,kproc)<=jend) then
                   go_on = .true.
-                  exit
-              end if
-          end do
+          !!        exit
+          !!    end if
+          !!end do
           !if (iproc==0) write(*,*) '1: llproc, ii, jproc, go_on', llproc, ii, jproc, go_on
           do lproc=nproc-1,0,-1
               if (iuse_startend(1,lproc)<=jend) then
@@ -1228,12 +1228,12 @@ contains
           ii = ii + 1
           !search the last process whose calculation stops prior to jend
           go_on = .false.
-          do kproc=nproc-1,llproc,-1
-              if (icalc_startend(2,kproc)<=jend) then
+          !!do kproc=nproc-1,llproc,-1
+          !!    if (icalc_startend(2,kproc)<=jend) then
                   go_on = .true.
-                  exit
-              end if
-          end do
+          !!        exit
+          !!    end if
+          !!end do
           do lproc=nproc-1,0,-1
               if (iuse_startend(1,lproc)<=jend) then
                   if (iuse_startend(1,lproc)<=iuse_startend(2,llproc)) then
@@ -1264,14 +1264,14 @@ contains
  
       ! Assign the processes to the taskgroups
       ntaskgrp_calc = 0
-      do itaskgroups=1,ntaskgroups
-          if ( icalc_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
-               icalc_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups) ) then
-               ntaskgrp_calc = ntaskgrp_calc + 1
-              !write(*,'(2(a,i0))') 'CALC: task ',iproc,' is in taskgroup ',itaskgroups
-          end if
-      end do
-      if (ntaskgrp_calc>2) stop 'ntaskgrp_calc>2'
+      !!do itaskgroups=1,ntaskgroups
+      !!    if ( icalc_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
+      !!         icalc_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups) ) then
+      !!         ntaskgrp_calc = ntaskgrp_calc + 1
+      !!        !write(*,'(2(a,i0))') 'CALC: task ',iproc,' is in taskgroup ',itaskgroups
+      !!    end if
+      !!end do
+      !!if (ntaskgrp_calc>2) stop 'ntaskgrp_calc>2'
       ntaskgrp_use = 0
       do itaskgroups=1,ntaskgroups
           if ( iuse_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
