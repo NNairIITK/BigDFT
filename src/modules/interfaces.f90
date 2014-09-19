@@ -3799,7 +3799,7 @@ module module_interfaces
           implicit none
           integer,intent(in) :: iproc
           type(dft_wavefunction),intent(inout) :: tmb
-          type(atoms_data),intent(inout) :: atoms
+          type(atoms_data),intent(in) :: atoms
           type(DFT_local_fields), intent(inout) :: denspot
           logical,intent(in) :: calculate_overlap_matrix, calculate_ovrlp_half
           integer,intent(in) :: meth_overlap
