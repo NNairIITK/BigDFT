@@ -1039,6 +1039,7 @@ end subroutine copy_linear_matrices
 subroutine copy_sparse_matrix(smat_in, smat_out)
   use sparsematrix_base, only: sparse_matrix
   use copy_utils, only: allocate_and_copy
+  use wrapper_MPI, only: mpi_environment_null
   implicit none
 
   ! Calling arguments

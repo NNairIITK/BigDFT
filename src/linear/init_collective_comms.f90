@@ -884,7 +884,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
       call f_free(request)
       call f_free(recvbuf)
   else
-      stop 'compress_matrix_distributed: wrong data_strategy'
+      stop 'calculate_overlap_transposed: wrong data_strategy'
   end if
 
 
