@@ -1323,7 +1323,8 @@ contains
       ! Partition the entire matrix in disjoint submatrices
       smat%taskgroup_startend(1,2,1) = smat%taskgroup_startend(1,1,1)
       do itaskgroups=2,smat%ntaskgroup
-          smat%taskgroup_startend(1,2,itaskgroups) = (smat%taskgroup_startend(2,1,itaskgroups-1)+smat%taskgroup_startend(1,1,itaskgroups)) / 2
+          smat%taskgroup_startend(1,2,itaskgroups) = &
+              (smat%taskgroup_startend(2,1,itaskgroups-1)+smat%taskgroup_startend(1,1,itaskgroups)) / 2
           smat%taskgroup_startend(2,2,itaskgroups-1) = smat%taskgroup_startend(1,2,itaskgroups)-1
       end do
       smat%taskgroup_startend(2,2,smat%ntaskgroup) = smat%taskgroup_startend(2,1,smat%ntaskgroup)

@@ -641,7 +641,7 @@ module module_interfaces
         real(gp), intent(out) :: fnoise,pressure
         real(gp), dimension(6), intent(out) :: strten
         real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
-        type(DFT_wavefunction),intent(in) :: tmb
+        type(DFT_wavefunction),intent(inout) :: tmb
       END SUBROUTINE calculate_forces
 
       subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
@@ -3223,7 +3223,7 @@ module module_interfaces
           real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
           real(wp), dimension(npsidim_orbs), intent(in) :: phi
           type(sparse_matrix),intent(in) :: denskern
-          type(matrices),intent(in) :: denskern_mat
+          type(matrices),intent(inout) :: denskern_mat
           real(gp), dimension(3,at%astruct%nat), intent(inout) :: fsep
           real(gp), dimension(6), intent(out) :: strten
         end subroutine nonlocal_forces_linear
