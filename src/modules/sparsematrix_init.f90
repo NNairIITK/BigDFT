@@ -1032,7 +1032,7 @@ contains
     end subroutine init_matrix_parallelization
 
 
-    subroutine init_matrix_taskgroups(iproc, nproc, collcom, smat)
+    subroutine init_matrix_taskgroups(iproc, nproc, collcom, collcom_sr, smat)
       use module_base
       use module_types
       use communications_base, only: comms_linear
@@ -1041,7 +1041,7 @@ contains
 
       ! Caling arguments
       integer,intent(in) :: iproc, nproc
-      type(comms_linear),intent(in) :: collcom
+      type(comms_linear),intent(in) :: collcom, collcom_sr
       type(sparse_matrix),intent(inout) :: smat
 
       ! Local variables
@@ -1146,6 +1146,19 @@ contains
           ind_min = min(ind_min,ind)
           ind_max = max(ind_max,ind)
       end do
+
+      ! The sumrho operation
+      do ipt=1,collcom_sr%nptsp_c
+          ii=collcom_sr%norb_per_gridpoint_c(ipt)
+          i0=collcom_sr%isptsp_c(ipt)+ishift
+          do i=1,ii
+              iiorb=collcom_sr%indexrecvorbital_c(i0+i)
+              ind=smat%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
+              ind_min = min(ind_min,ind)
+              ind_max = max(ind_max,ind)
+          end do
+      end do
+
       !write(*,*) 'USE: iproc, ind_min, ind_max', iproc, ind_min, ind_max
       iuse_startend(1,iproc) = ind_min
       iuse_startend(2,iproc) = ind_max

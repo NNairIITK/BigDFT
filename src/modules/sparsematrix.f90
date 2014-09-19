@@ -556,36 +556,38 @@ module sparsematrix
 
          call timing(iproc,'compressd_mcpy','OF')
          call timing(iproc,'compressd_comm','ON')
-             ncount = 0
-             do itg=1,smat%ntaskgroupp
-                 iitg = smat%inwhichtaskgroup(itg)
-                 ncount = ncount + smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
-             end do
-             recvbuf = f_malloc(ncount,id='recvbuf')
+         ncount = 0
+         do itg=1,smat%ntaskgroupp
+             iitg = smat%inwhichtaskgroup(itg)
+             ncount = ncount + smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+         end do
+         recvbuf = f_malloc(ncount,id='recvbuf')
 
-             ncount = 0
-             request = f_malloc(smat%ntaskgroupp,id='request')
-             do itg=1,smat%ntaskgroupp
-                 iitg = smat%inwhichtaskgroup(itg)
-                 ist_send = smat%taskgroup_startend(1,1,iitg)
-                 ist_recv = ncount + 1
-                 ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
-                 call mpi_iallreduce(matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
-                      mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
-             end do
-             call mpi_waitall(smat%ntaskgroupp, request, mpi_statuses_ignore, ierr)
-             ncount = 0
-             do itg=1,smat%ntaskgroupp
-                 iitg = smat%inwhichtaskgroup(itg)
-                 ist_send = smat%taskgroup_startend(1,1,iitg)
-                 ist_recv = ncount + 1
-                 ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
-                 call vcopy(ncount, recvbuf(ist_recv), 1, matrix_compr(ist_send), 1)
-             end do
+         ncount = 0
+         request = f_malloc(smat%ntaskgroupp,id='request')
+         do itg=1,smat%ntaskgroupp
+             iitg = smat%inwhichtaskgroup(itg)
+             ist_send = smat%taskgroup_startend(1,1,iitg)
+             ist_recv = ncount + 1
+             ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+             call mpi_iallreduce(matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
+                  mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
+         end do
+         call mpi_waitall(smat%ntaskgroupp, request, mpi_statuses_ignore, ierr)
+         ncount = 0
+         do itg=1,smat%ntaskgroupp
+             iitg = smat%inwhichtaskgroup(itg)
+             ist_send = smat%taskgroup_startend(1,1,iitg)
+             ist_recv = ncount + 1
+             ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+             call vcopy(ncount, recvbuf(ist_recv), 1, matrix_compr(ist_send), 1)
+         end do
 
-             call f_free(request)
-             call f_free(recvbuf)
+         call f_free(request)
+         call f_free(recvbuf)
          call timing(iproc,'compressd_comm','OF')
+     else
+         stop 'compress_matrix_distributed: wrong data_strategy'
      end if
 
      call timing(iproc,'compressd_comm','OF')

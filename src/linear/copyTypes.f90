@@ -1059,7 +1059,7 @@ subroutine copy_sparse_matrix(smat_in, smat_out)
   smat_out%isfvctr = smat_in%isfvctr
   smat_out%nspin = smat_in%nspin
   smat_out%store_index = smat_in%store_index
-  smat_out%can_use_dense = smat_in%store_index
+  smat_out%can_use_dense = smat_in%can_use_dense
   smat_out%ntaskgroup = smat_in%ntaskgroup
   smat_out%ntaskgroupp = smat_in%ntaskgroupp
   smat_out%istartendseg_t(1:2) = smat_in%istartendseg_t(1:2)
@@ -1108,11 +1108,23 @@ subroutine copy_sparse_matrix_matrix_multiplication(smmm_in, smmm_out)
   smmm_out%nout = smmm_in%nout
   smmm_out%nseq = smmm_in%nseq
   smmm_out%nseg = smmm_in%nseg
+  smmm_out%nfvctrp = smmm_in%nfvctrp
+  smmm_out%isfvctr = smmm_in%isfvctr
+  smmm_out%nvctrp = smmm_in%nvctrp
+  smmm_out%isvctr = smmm_in%isvctr
+  smmm_out%istartendseg_mm(1:2) = smmm_in%istartendseg_mm(1:2)
+  smmm_out%istartend_mm(1:2) = smmm_in%istartend_mm(1:2)
+  smmm_out%istartend_mm_dj(1:2) = smmm_in%istartend_mm_dj(1:2)
 
-  call allocate_and_copy(smmm_in%ivectorindex, smmm_out%ivectorindex, id='ivectorindex')
-  call allocate_and_copy(smmm_in%nsegline, smmm_out%nsegline, id='nsegline')
-  call allocate_and_copy(smmm_in%istsegline, smmm_out%istsegline, id='istsegline')
-  call allocate_and_copy(smmm_in%indices_extract_sequential, smmm_out%indices_extract_sequential, id='indices_extract_sequential')
+  call allocate_and_copy(smmm_in%ivectorindex, smmm_out%ivectorindex, id='smmm_out%ivectorindex')
+  call allocate_and_copy(smmm_in%nsegline, smmm_out%nsegline, id='smmm_out%segline')
+  call allocate_and_copy(smmm_in%istsegline, smmm_out%istsegline, id='smmm_out%stsegline')
+  call allocate_and_copy(smmm_in%indices_extract_sequential, smmm_out%indices_extract_sequential, &
+       id='smmm_out%ndices_extract_sequential')
+  call allocate_and_copy(smmm_in%isvctr_par, smmm_out%isvctr_par, id='smmm_out%isvctr_par')
+  call allocate_and_copy(smmm_in%nvctr_par, smmm_out%nvctr_par, id='smmm_out%nvctr_par')
+  call allocate_and_copy(smmm_in%onedimindices, smmm_out%onedimindices, id='smmm_out%onedimindices')
+  call allocate_and_copy(smmm_in%keyg, smmm_out%keyg, id='smmm_out%keyg')
 end subroutine copy_sparse_matrix_matrix_multiplication
 
 
