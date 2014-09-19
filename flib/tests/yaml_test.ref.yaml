@@ -23,8 +23,9 @@
      shorthelp                         : this is a test option
      shortname                         : T
      help:
-
-       Usage                           : Unused option3, just for testing the command line parser
+       Usage:
+         Unused option3, just for testing the command line parser, also the long help lines 
+         have to be tested in order to understand if it works
      conflicts: [test2, test]
  Parsed info:
    test                                : All
@@ -165,9 +166,9 @@
    Late afternoon is best. Backup contact is Nancy Billsmer @ 338-4338
 ---
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Error Handling Module Test
- Raising the TOTO error, errcode       :  23
+ Raising the TOTO error, errcode       :  24
  ERR_TOTO:
-   Id                                  : 23
+   Id                                  : 24
    Message:
      This is the error message for the error of kind 1 and it is written extensively on 
      purpose to see whether yaml module prints it
@@ -176,10 +177,10 @@
    Callback Procedure Address          : 4207056
  Additional Info                       : Extra message added
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TOTO
- Print the error ID                    :  23
+ Print the error ID                    :  24
  Raising the TOTO error, by name, without condition: ERR_TOTO
  ERR_TOTO:
-   Id                                  : 23
+   Id                                  : 24
    Message:
      This is the error message for the error of kind 1 and it is written extensively on 
      purpose to see whether yaml module prints it
@@ -188,7 +189,7 @@
    Callback Procedure Address          : 4207056
  Additional Info                       : Extra message added again
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TOTO
- Callback done, errcode                :  23
+ Callback done, errcode                :  24
  GENERIC_ERROR:
    Id                                  : 1
    Message                             : UNSPECIFIED
@@ -291,7 +292,14 @@
      Message                           : Internal error of memory profiler
      Action:
        An invalid operation occurs, submit bug report to developers
-     Callback Procedure Address        : 4559216
+     Callback Procedure Address        : 4583632
+ - ERR_REFERENCE_COUNTERS:
+     Id                                : 22
+     Message                           : Error in the usage of the reference counter
+     Action:
+       When a reference counter is present each pointer association should be tracked, check 
+       for it
+     Callback Procedure Address        : 4583632
  - TIMING_INVALID:
      Id                                : 22
      Message                           : Error in timing routines
@@ -334,10 +342,10 @@
  Error check value before try          :  No
  Number of errors(1)                   :  1
  Number of errors(2)                   :  0
- ID                                    :  23
+ ID                                    :  24
  MSG                                   : two
  ERR_TOTO:
-   Id                                  : 23
+   Id                                  : 24
    Message:
      This is the error message for the error of kind 1 and it is written extensively on 
      purpose to see whether yaml module prints it
@@ -395,6 +403,13 @@
  Number of Groups                      : 1
  First: {One: 1, Two: 2, Three: 3, Threeb: 3b}
  Size before removing                  :  4
+ First removal:
+   Two                                 : 2
+   Three                               : 3
+   Threeb                              : 3b
+ Second removal:
+   Three                               : 3
+   Threeb                              : 3b
  After pop:
    Number of Groups                    : 1
    First:
@@ -568,6 +583,28 @@
  Value of dictA                        : __list__
  Dictionary now:
  - atom: [5.0, 5.0, 5.0]
+ Dictionary now2:
+ - atom: [6.0, 6.0, 6.0]
+ Dictionary now3:
+ - atom: [ 7.0,  7.0,  7.0]
+ Dictionary now3:
+ - atom: [ 8.0,  8.0,  8.0]
+ Dictionary:
+ -  8.0
+ -  8.0
+ -  8.0
+ i=1:
+    8.0
+ i=2:
+    8.0
+ i=3:
+    8.0
+ i2=1:
+    8.0
+ i2=2:
+    8.0
+ i2=3:
+    8.0
 ---
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Routine-Tree creation example
  Address of first element              :  25734856
@@ -700,9 +737,79 @@
      0
   #---------------------------------------------------- Entering in OpenMP section if available
  Entering Thread No.                   :  0
- Address of metadata                   :  7175232
- Something to use ab                   :  100.0
- Something to use b                    :  200.0
+ Address of metadata                   :  8014176
+ Entering Thread No.                   :  3
+ Address of metadata                   :  47417537560448
+ Entering Thread No.                   :  1
+ Address of metadata                   :  47417537625984
+ Entering Thread No.                   :  2
+ Address of metadata                   :  47417537593216
+ Entering Thread No.                   :  4
+ Address of metadata                   :  47417537494912
+ Entering Thread No.                   :  5
+ Address of metadata                   :  47417537462144
+ Entering Thread No.                   :  6
+ Address of metadata                   :  47417537429376
+ Entering Thread No.                   :  7
+ Address of metadata                   :  47417537396608
+ Something to use ab                   :  800.0
+ Errors found while (de)allocating ab and b:  8
+ ERR_ALLOCATE:
+   Id                                  : 16
+   Message                             : Allocation error
+   Action:
+     Control the order of the allocation or if the memory limit has been reached
+   Callback Procedure Address          : 4583632
+ Additional Info                       : Allocation problem, error code  151
+ ERR_ALLOCATE:
+   Id                                  : 16
+   Message                             : Allocation error
+   Action:
+     Control the order of the allocation or if the memory limit has been reached
+   Callback Procedure Address          : 4583632
+ Additional Info                       : Allocation problem, error code  151
+ ERR_ALLOCATE:
+   Id                                  : 16
+   Message                             : Allocation error
+   Action:
+     Control the order of the allocation or if the memory limit has been reached
+   Callback Procedure Address          : 4583632
+ Additional Info                       : Allocation problem, error code  151
+ ERR_ALLOCATE:
+   Id                                  : 16
+   Message                             : Allocation error
+   Action:
+     Control the order of the allocation or if the memory limit has been reached
+   Callback Procedure Address          : 4583632
+ Additional Info                       : Allocation problem, error code  151
+ ERR_ALLOCATE:
+   Id                                  : 16
+   Message                             : Allocation error
+   Action:
+     Control the order of the allocation or if the memory limit has been reached
+   Callback Procedure Address          : 4583632
+ Additional Info                       : Allocation problem, error code  151
+ ERR_ALLOCATE:
+   Id                                  : 16
+   Message                             : Allocation error
+   Action:
+     Control the order of the allocation or if the memory limit has been reached
+   Callback Procedure Address          : 4583632
+ Additional Info                       : Allocation problem, error code  151
+ ERR_ALLOCATE:
+   Id                                  : 16
+   Message                             : Allocation error
+   Action:
+     Control the order of the allocation or if the memory limit has been reached
+   Callback Procedure Address          : 4583632
+ Additional Info                       : Allocation problem, error code  151
+ ERR_ALLOCATE:
+   Id                                  : 16
+   Message                             : Allocation error
+   Action:
+     Control the order of the allocation or if the memory limit has been reached
+   Callback Procedure Address          : 4583632
+ Additional Info                       : Allocation problem, error code  151
  Calling sequence of Main program (routines with * are not closed yet):
  - Main program: [ 1.301E-02,  1, ~*]
    Subroutines:

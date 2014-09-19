@@ -33,6 +33,7 @@ program yaml_test
           ALLOCATIONS        ]
    
    type(dictionary), pointer :: dict_tmp,run
+   type(yaml_cl_parse) :: parser
    !logical :: fl
 
    call f_lib_initialize()
