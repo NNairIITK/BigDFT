@@ -575,7 +575,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           !!end do
           ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
           istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
-          ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
+          ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
           !call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
 
 
@@ -706,7 +706,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           !!call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
           ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
           istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
-          ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
+          ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
           call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
           ebsp=ebsp/scale_factor+shift_value*sumn
     

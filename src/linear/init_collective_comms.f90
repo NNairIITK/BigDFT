@@ -442,7 +442,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   integer :: totops, avops, ops, opsn
   integer, allocatable, dimension(:) :: numops
   logical :: ifnd, jfnd
-  integer :: iorb, jorb, imat, iseg, iorb_shift, itg, iitg, ist_send, ist_recv, ncount
+  integer :: iorb, jorb, imat, iseg, iorb_shift, itg, iitg, ist_send, ist_recv, ncount, ishift
   integer,dimension(:),allocatable :: request
   real(kind=8),dimension(:),allocatable :: recvbuf
   integer,dimension(2) :: irowcol
@@ -854,37 +854,42 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
       end if
 
   else if (data_strategy==SUBMATRIX) then
-      ncount = 0
-      do itg=1,smat%ntaskgroupp
-          iitg = smat%inwhichtaskgroup(itg)
-          ncount = ncount + smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
-      end do
-      recvbuf = f_malloc(ncount,id='recvbuf')
 
-      ncount = 0
-      request = f_malloc(smat%ntaskgroupp,id='request')
-      do itg=1,smat%ntaskgroupp
-          iitg = smat%inwhichtaskgroup(itg)
-          ist_send = smat%taskgroup_startend(1,1,iitg)
-          ist_recv = ncount + 1
-          ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
-          !!call mpi_iallreduce(ovrlp%matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
-          !!     mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
-          call mpiiallred(ovrlp%matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
-               mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg))
-      end do
-      call mpiwaitall(smat%ntaskgroupp, request)
-      ncount = 0
-      do itg=1,smat%ntaskgroupp
-          iitg = smat%inwhichtaskgroup(itg)
-          ist_send = smat%taskgroup_startend(1,1,iitg)
-          ist_recv = ncount + 1
-          ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
-          call vcopy(ncount, recvbuf(ist_recv), 1, ovrlp%matrix_compr(ist_send), 1)
-      end do
+      if (nproc>1) then
+          request = f_malloc(smat%ntaskgroupp,id='request')
+          do ispin=1,smat%nspin
+              ishift = (ispin-1)*smat%nvctr
+              ncount = 0
+              do itg=1,smat%ntaskgroupp
+                  iitg = smat%inwhichtaskgroup(itg)
+                  ncount = ncount + smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+              end do
+              if (ispin==1) recvbuf = f_malloc(ncount,id='recvbuf')
 
-      call f_free(request)
-      call f_free(recvbuf)
+              ncount = 0
+              do itg=1,smat%ntaskgroupp
+                  iitg = smat%inwhichtaskgroup(itg)
+                  ist_send = smat%taskgroup_startend(1,1,iitg)
+                  ist_recv = ncount + 1
+                  ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+                  !!call mpi_iallreduce(ovrlp%matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
+                  !!     mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
+                  call mpiiallred(ovrlp%matrix_compr(ishift+ist_send), recvbuf(ist_recv), ncount, &
+                       mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg))
+              end do
+              call mpiwaitall(smat%ntaskgroupp, request)
+              ncount = 0
+              do itg=1,smat%ntaskgroupp
+                  iitg = smat%inwhichtaskgroup(itg)
+                  ist_send = smat%taskgroup_startend(1,1,iitg)
+                  ist_recv = ncount + 1
+                  ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+                  call vcopy(ncount, recvbuf(ist_recv), 1, ovrlp%matrix_compr(ishift+ist_send), 1)
+              end do
+          end do
+          call f_free(request)
+          call f_free(recvbuf)
+      end if
   else
       stop 'calculate_overlap_transposed: wrong data_strategy'
   end if
