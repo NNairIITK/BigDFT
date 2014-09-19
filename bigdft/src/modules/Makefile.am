@@ -21,6 +21,8 @@ endif
 
 libmodules_a_SOURCES = base.f90 \
 	defs.f90 \
+	public_keys.f90 \
+	ab7_mixing.f90 \
 	gaussians.f90 \
 	locregs.f90 \
 	psp_projectors.f90 \
@@ -59,6 +61,8 @@ if CAPITALIZE
 modules = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_DEFS.@MODULE_EXT@ \
 	MODULE_TYPES.@MODULE_EXT@ \
+	M_AB7_MIXING.@MODULE_EXT@ \
+	PUBLIC_KEYS.@MODULE_EXT@ \
 	MODULE_INTERFACES.@MODULE_EXT@ \
 	MODULE_PRIVATE_API.@MODULE_EXT@ \
 	MODULE_XC.@MODULE_EXT@ \
@@ -92,6 +96,8 @@ else
 modules = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
 	module_types.@MODULE_EXT@ \
+	m_ab7_mixing.@MODULE_EXT@ \
+	public_keys.@MODULE_EXT@ \
 	module_interfaces.@MODULE_EXT@ \
 	module_private_api.@MODULE_EXT@ \
 	module_xc.@MODULE_EXT@ \
@@ -150,9 +156,9 @@ endif
 #dependencies
 $(modules): $(libmodules_a_OBJECTS)
 input_keys.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o base.o
-base.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o
+base.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o public_keys.o
 types.o: base.o gaussians.o locregs.o psp_projectors.o ao_inguess.o atoms_data.o communications_base.o \
-	sparsematrix_base.o xc.o foe_base.o
+	sparsematrix_base.o xc.o foe_base.o ab7_mixing.o
 input.o: base.o types.o input_keys.o
 interfaces.o: base.o types.o xc.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o foe_base.o
 gaussians.o: base.o
@@ -179,6 +185,7 @@ fermi_level.o: base.o
 module_sbfgs.o: base.o
 xc.o: base.o
 bigdft_run.o: types.o input_dicts.o interfaces.o
+ab7_mixing.o: defs.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

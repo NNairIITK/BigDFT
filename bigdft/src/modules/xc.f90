@@ -537,6 +537,7 @@ contains
                            & vxcgr(ipts + 2 * npts:ipte + 2 * npts) + &
                            & vsigma(1, 1:nb)*real(2,dp)
                 else
+                   !here a FPE has been found in XC test
                    vxcgr(ipts:ipte) = &
                         & vxcgr(ipts:ipte) + real(2,dp)*vsigma(1, 1:nb) - vsigma(2, 1:nb)
                    vxcgr(ipts + npts:ipte + npts) = &

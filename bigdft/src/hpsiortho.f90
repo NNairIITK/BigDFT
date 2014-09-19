@@ -47,6 +47,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   !in the default case, non local hamiltonian is done after potential creation
   whilepot=.true.
 
+
   !flag for saving the local fields (rho,vxc,vh)
   savefields= (iscf==SCF_KIND_GENERALIZED_DIRMIN)
   correcth=1
@@ -112,8 +113,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
      if (ithread == 0) then
         !$ if (unblock_comms_den) call OMP_SET_NUM_THREADS(1)
         !communicate density 
+        !the rho_p pointer, allocated aoutside form the nested region, is by default
+        !freed by communicate_density routine in the nested region       
         call communicate_density(denspot%dpbox,wfn%orbs%nspin,denspot%rhod,&
-             denspot%rho_psi,denspot%rhov,.false.)
+             denspot%rho_psi,denspot%rhov,unblock_comms_den)
         !write(*,*) 'node:', iproc, ', thread:', ithread, 'mpi communication finished!!'
      end if
      !in case of GPU do not overlap density communication and projectors
@@ -130,6 +133,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
      !$OMP END PARALLEL !if unblock_comms_den
      !$ if (unblock_comms_den) then
      !$ call bigdft_close_nesting(nthread_max)
+     !$ call f_free_ptr(denspot%rho_psi) !now the pointer can be freed
      !$ call timing(iproc,'UnBlockDen    ','OF')
      !$ end if
 
@@ -240,7 +244,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
            stop
         end if
 
-        denspot%rho_work = f_malloc_ptr(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim+ndebug,id='denspot%rho_work')
+        denspot%rho_work = f_malloc_ptr(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,id='denspot%rho_work')
         call vcopy(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,denspot%rhov(1),1,&
              denspot%rho_work(1),1)
      end if
@@ -607,7 +611,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    else
 
 !!$      !temporary allocation
-!!$      allocate(fake_pot(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin+ndebug),stat=i_stat)
+!!$      allocate(fake_pot(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin),stat=i_stat)
 !!$      call memocc(i_stat,fake_pot,'fake_pot',subname)
 !!$
 !!$      call to_zero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin,fake_pot(1))
@@ -911,11 +915,6 @@ contains
     integer :: ncplx_p,ncplx_w,n_w,nvctr_p
     real(gp), dimension(3,3,4) :: hij
     real(gp) :: eproj
-!!$    type(nlpsp_to_wfd) :: tolr 
-!!$    integer, dimension(:), allocatable :: nbsegs_cf,keyag_lin_cf
-!!$    real(wp), dimension(:,:), allocatable :: psi_pack
-!!$    real(wp), dimension(:,:,:), allocatable :: pdpsi,hpdpsi
-!!$    real(wp), dimension(:,:,:,:), allocatable :: scpr
 
     if (newmethod) then
 
@@ -934,32 +933,11 @@ contains
        
        !extract hij parameters
        call hgh_hij_matrix(at%npspcode(iatype),at%psppar(0,0,iatype),hij)
-
-!!$       !allocate temporary workspace
-!!$       keyag_lin_cf=f_malloc(Lzd%Llr(ilr)%wfd%nseg_c+Lzd%Llr(ilr)%wfd%nseg_f,id='keyag_lin_cf')
-!!$       nbsegs_cf=f_malloc0(nl%pspd(iat)%plr%wfd%nseg_c+nl%pspd(iat)%plr%wfd%nseg_f,id='nbsegs_cf')  
-!!$       call nullify_nlpsp_to_wfd(tolr)
-!!$       call init_tolr(tolr,Lzd%Llr(ilr)%wfd,nl%pspd(iat)%plr%wfd,keyag_lin_cf,nbsegs_cf)
-!!$       call f_free(keyag_lin_cf,nbsegs_cf)
-
-!!$       !create other workspaces  
-!!$       psi_pack=f_malloc0(&
-!!$            (/nl%pspd(iat)%plr%wfd%nvctr_c+7*nl%pspd(iat)%plr%wfd%nvctr_f,n_w*ncplx_w/),id='psi_pack')
-!!$       scpr=f_malloc((/ncplx_w,n_w,ncplx_p,mproj/),id='scpr')
-!!$       pdpsi=f_malloc((/max(ncplx_w,ncplx_p),n_w,mproj/),id='pdpsi')
-!!$       hpdpsi=f_malloc((/max(ncplx_w,ncplx_p),n_w,mproj/),id='hpdpsi')
-       
+      
        call NL_HGH_application(hij,&
             ncplx_p,mproj,nl%pspd(iat)%plr%wfd,nl%proj(istart_c),&
             ncplx_w,n_w,Lzd%Llr(ilr)%wfd,nl%pspd(iat)%tolr(ilr),nl%wpack,nl%scpr,nl%cproj,nl%hcproj,&
             psi(ispsi),hpsi(ispsi),eproj)
-
-!!$       !free workspaces
-!!$       call f_free(psi_pack)
-!!$       call f_free(scpr)     
-!!$       call f_free(pdpsi)
-!!$       call f_free(hpdpsi)
-!!$       call deallocate_nlpsp_to_wfd(tolr)
 
        nvctr_p=nl%pspd(iat)%plr%wfd%nvctr_c+7*nl%pspd(iat)%plr%wfd%nvctr_f
        istart_c=istart_c+nvctr_p*ncplx_p*mproj
@@ -1114,7 +1092,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       !this routine should then be modified or integrated in HamiltonianApplication
       if (dpbox%mpi_env%nproc > 1) then
 
-         pot1 = f_malloc_ptr(npot+ndebug,id='pot1')
+         pot1 = f_malloc_ptr(npot,id='pot1')
          ispot=1
          ispotential=1
          do ispin=1,orbs%nspin
@@ -1137,7 +1115,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
          end if
       else
          if (odp) then
-            pot1 = f_malloc_ptr(npot+ndebug,id='pot1')
+            pot1 = f_malloc_ptr(npot,id='pot1')
             call vcopy(dpbox%ndimgrid*orbs%nspin,potential(1),1,pot1(1),1)
             if (dpbox%i3rho_add >0 .and. orbs%norbp > 0) then
                ispot=dpbox%ndimgrid*orbs%nspin+1
@@ -1234,15 +1212,15 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
    ! Depending on the scheme, cut out the local pieces of the potential
    !#################################################################################################################################################
    if(iflag==0) then
-      !       allocate(pot(lzd%ndimpotisf+ndebug),stat=i_stat)
+      !       allocate(pot(lzd%ndimpotisf),stat=i_stat)
       !       call vcopy(lzd%ndimpotisf,pot,1,pot,1) 
       ! This is due to the dynamic memory managment. The original version was: pot=>pot1
-      !pot = f_malloc_ptr(npot+ndebug,id='pot')
+      !pot = f_malloc_ptr(npot,id='pot')
       !pot=pot1
       !call f_free_ptr(pot1)
       pot=>pot1
    else if(iflag>0 .and. iflag<2) then
-      pot = f_malloc_ptr(lzd%ndimpotisf+ndebug,id='pot')
+      pot = f_malloc_ptr(lzd%ndimpotisf,id='pot')
       ! Cut potential
       istl=1
       do iorb=1,nilr
@@ -1253,7 +1231,7 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
       end do
    else
       if(.not.associated(pot)) then !otherwise this has been done already... Should be improved.
-         pot = f_malloc_ptr(lzd%ndimpotisf+ndebug,id='pot')
+         pot = f_malloc_ptr(lzd%ndimpotisf,id='pot')
 
          ist=1
          do iorb=1,nilr
@@ -1878,7 +1856,7 @@ subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
       !allocate hpsi array (used also as transposed)
       !allocated in the transposed way such as 
       !it can also be used as the transposed hpsi
-      hpsi =f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug,id='hpsi')
+      hpsi =f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp),id='hpsi')
       !allocate transposed principal wavefunction
       psit = f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp),id='psit')
    else
@@ -1915,7 +1893,7 @@ subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
    if (nproc == 1) then
       nullify(psit)
       !allocate hpsi array
-      hpsi = f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug,id='hpsi')
+      hpsi = f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp),id='hpsi')
    end if
 
 END SUBROUTINE first_orthon
@@ -2853,12 +2831,12 @@ END SUBROUTINE broadcast_kpt_objects
 !!
 !!  !number of components for the overlap matrix in wp-kind real numbers
 !!
-!!  allocate(ndimovrlp(nspin,0:orbs%nkpts+ndebug),stat=i_stat)
+!!  allocate(ndimovrlp(nspin,0:orbs%nkpts),stat=i_stat)
 !!  call memocc(i_stat,ndimovrlp,'ndimovrlp',subname)
 !!
 !!  call dimension_ovrlp(nspin,orbs,ndimovrlp)
 !!
-!!  allocate(alag(ndimovrlp(nspin,orbs%nkpts)+ndebug),stat=i_stat)
+!!  allocate(alag(ndimovrlp(nspin,orbs%nkpts) ),stat=i_stat)
 !!  call memocc(i_stat,alag,'alag',subname)
 !!
 !!  !put to zero all the k-points which are not needed

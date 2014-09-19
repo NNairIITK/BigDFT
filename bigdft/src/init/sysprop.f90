@@ -439,7 +439,7 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
 
   if (at%donlcc) then
      !allocate pointer rhocore
-     rhocore = f_malloc_ptr((/ d%n1i , d%n2i , n3d , 10+ndebug /),id='rhocore')
+     rhocore = f_malloc_ptr((/ d%n1i , d%n2i , n3d , 10 /),id='rhocore')
      !initalise it 
      if (n3d > 0) call to_zero(d%n1i*d%n2i*n3d*10,rhocore(1,1,1,1))
      !perform the loop on any of the atoms which have this feature
@@ -745,7 +745,8 @@ END SUBROUTINE nlcc_dim_from_file
 !> Calculate the number of electrons and check the polarisation (mpol)
 subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
      & atoms, ncharge, nspin, mpol, norbsempty)
-  use module_types, only: atoms_data
+  use module_atoms, only: atoms_data
+  use ao_inguess, only: charge_and_spol
   use module_base, only: gp, f_err_throw
   use yaml_output, only: yaml_toa , yaml_warning, yaml_comment
   !use ao_inguess, only : count_atomic_shells
@@ -909,15 +910,15 @@ END SUBROUTINE nlcc_start_position
 !!!  integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
 !!!
 !!!
-!!!  allocate(orbs%norb_par(0:nproc-1+ndebug,0:nkpt),stat=i_stat)
+!!!  allocate(orbs%norb_par(0:nproc-1,0:nkpt),stat=i_stat)
 !!!  call memocc(i_stat,orbs%norb_par,'orbs%norb_par',subname)
 !!!
 !!!  !assign the value of the k-points
 !!!  orbs%nkpts=nkpt
 !!!  !allocate vectors related to k-points
-!!!  allocate(orbs%kpts(3,orbs%nkpts+ndebug),stat=i_stat)
+!!!  allocate(orbs%kpts(3,orbs%nkpts),stat=i_stat)
 !!!  call memocc(i_stat,orbs%kpts,'orbs%kpts',subname)
-!!!  allocate(orbs%kwgts(orbs%nkpts+ndebug),stat=i_stat)
+!!!  allocate(orbs%kwgts(orbs%nkpts),stat=i_stat)
 !!!  call memocc(i_stat,orbs%kwgts,'orbs%kwgts',subname)
 !!!  orbs%kpts(:,1:nkpt) = kpt(:,:)
 !!!  orbs%kwgts(1:nkpt) = wkpt(:)
@@ -938,7 +939,7 @@ END SUBROUTINE nlcc_start_position
 !!!  !create an array which indicate which processor has a GPU associated 
 !!!  !from the viewpoint of the BLAS routines (deprecated, not used anymore)
 !!!  if (.not. GPUshare) then
-!!!     allocate(GPU_for_orbs(0:nproc-1+ndebug),stat=i_stat)
+!!!     allocate(GPU_for_orbs(0:nproc-1),stat=i_stat)
 !!!     call memocc(i_stat,GPU_for_orbs,'GPU_for_orbs',subname)
 !!!     
 !!!     if (nproc > 1) then
@@ -953,7 +954,7 @@ END SUBROUTINE nlcc_start_position
 !!!     call memocc(i_stat,i_all,'GPU_for_orbs',subname)
 !!!  end if
 !!!
-!!!  allocate(norb_par(0:nproc-1,orbs%nkpts+ndebug),stat=i_stat)
+!!!  allocate(norb_par(0:nproc-1,orbs%nkpts),stat=i_stat)
 !!!  call memocc(i_stat,norb_par,'norb_par',subname)
 !!!
 !!!  !old system for calculating k-point repartition
@@ -977,7 +978,7 @@ END SUBROUTINE nlcc_start_position
 !!!!!$  end if
 !!!!!$
 !!!!!$  !calculate the k-points related quantities
-!!!!!$  allocate(mykpts(orbs%nkpts+ndebug),stat=i_stat)
+!!!!!$  allocate(mykpts(orbs%nkpts),stat=i_stat)
 !!!!!$  call memocc(i_stat,mykpts,'mykpts',subname)
 !!!!!$
 !!!!!$  call parallel_repartition_per_kpoints(iproc,nproc,orbs%nkpts,norb,orbs%norb_par,&
@@ -1606,7 +1607,7 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
   if(.not. storeit) then
      !if(ityp == 1) then !this implies that the PSP are all present
      if (.not. associated(atoms%paw_NofL)) then
-        atoms%paw_NofL = f_malloc_ptr(atoms%astruct%ntypes+ndebug,id='atoms%paw_NofL')
+        atoms%paw_NofL = f_malloc_ptr(atoms%astruct%ntypes,id='atoms%paw_NofL')
      end if
      ! if (iproc.eq.0) write(*,*) 'opening PSP file ',filename
      open(unit=11,file=trim(filename),status='old',iostat=ierror)

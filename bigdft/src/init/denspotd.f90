@@ -472,22 +472,22 @@ subroutine allocateRhoPot(Glr,nspin,atoms,rxyz,denspot)
 
   !allocate ionic potential
   if (denspot%dpbox%n3pi > 0) then
-     denspot%V_ext = f_malloc_ptr((/ Glr%d%n1i , Glr%d%n2i , denspot%dpbox%n3pi , 1+ndebug /),id='denspot%V_ext')
+     denspot%V_ext = f_malloc_ptr((/ Glr%d%n1i , Glr%d%n2i , denspot%dpbox%n3pi , 1 /),id='denspot%V_ext')
   else
-     denspot%V_ext = f_malloc_ptr((/ 1 , 1 , 1 , 1+ndebug /),id='denspot%V_ext')
+     denspot%V_ext = f_malloc_ptr((/ 1 , 1 , 1 , 1 /),id='denspot%V_ext')
   end if
   !Allocate XC potential
   if (denspot%dpbox%n3p >0) then
-     denspot%V_XC = f_malloc_ptr((/ Glr%d%n1i , Glr%d%n2i , denspot%dpbox%n3p , nspin+ndebug /),id='denspot%V_XC')
+     denspot%V_XC = f_malloc_ptr((/ Glr%d%n1i , Glr%d%n2i , denspot%dpbox%n3p , nspin /),id='denspot%V_XC')
   else
-     denspot%V_XC = f_malloc_ptr((/ 1 , 1 , 1 , nspin+ndebug /),id='denspot%V_XC')
+     denspot%V_XC = f_malloc_ptr((/ 1 , 1 , 1 , nspin /),id='denspot%V_XC')
   end if
 
   if (denspot%dpbox%n3d >0) then
      denspot%rhov = f_malloc_ptr(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d*&
-          denspot%dpbox%nrhodim+ndebug,id='denspot%rhov')
+          denspot%dpbox%nrhodim,id='denspot%rhov')
   else
-     denspot%rhov = f_malloc_ptr(denspot%dpbox%nrhodim+ndebug,id='denspot%rhov')
+     denspot%rhov = f_malloc_ptr(denspot%dpbox%nrhodim,id='denspot%rhov')
   end if
   !check if non-linear core correction should be applied, and allocate the 
   !pointer if it is the case

@@ -13,7 +13,6 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 !sbfgs will return to caller the energies and coordinates used/obtained from the last accepted iteration step
    use module_base
    use bigdft_run!module_types
-   use module_interfaces, only: write_atomic_file
    use yaml_output
    use module_sbfgs, only: modify_gradient, getSubSpaceEvecEval, findbonds
    implicit none
@@ -141,6 +140,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    beta=betax
    beta_stretch=runObj%inputs%beta_stretchx
    maxd=0.0_gp
+   ts=0.0_gp
 
    ! allocate arrays
    lwork=1000+10*nat**2
@@ -305,9 +305,12 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       if (iproc == 0) then
          write(fn4,'(i4.4)') ncount_bigdft
          write(comment,'(a,1pe10.3)')'SBFGS:fnrm= ',fnrm
-         call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-              outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
-              runObj%atoms,trim(comment),forces=outs%fxyz)
+         call bigdft_write_atomic_file(runObj,outs,'posout_'//fn4,&
+              trim(comment))
+!!$
+!!$         call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+!!$              outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
+!!$              runObj%atoms,trim(comment),forces=outs%fxyz)
       endif
 
       if (fmax < 3.e-1_gp) call updatefluctsum(outs%fnoise,fluct)
@@ -530,7 +533,7 @@ subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzra
     if(eeval)then
         call vcopy(3 * runObj%atoms%astruct%nat, rat(1,1), 1,runObj%atoms%astruct%rxyz(1,1), 1)
         runObj%inputs%inputPsiId=1
-        call call_bigdft(runObj,outs,nproc,iproc,infocode)
+        call call_bigdft(runObj,outs,infocode)
     endif
     call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fat(1,1), 1)
     call vcopy(3 * outs%fdim, fat(1,1), 1,fxyzraw(1,1), 1)

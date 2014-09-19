@@ -37,7 +37,7 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     integer :: icc !for amber
     real(gp) :: rxyzint(3,nat)
     real(gp) :: alatint(3)
-    if(nat/=fdim) stop 'nat /= fdim'
+    if(nat/=fdim)stop 'nat /= fdim'
     ef_counter=ef_counter+1.0_gp 
     if(trim(adjustl(efmethod))=='LJ')then
         call lenjon(nat,rxyz(1,1),fxyz(1,1),epot)
@@ -90,8 +90,7 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
              runObj%atoms%astruct%rxyz(1,1), 1)
         runObj%inputs%inputPsiId=inputPsiId
         runObj%inputs%itermin=itermin
-        call call_bigdft(runObj,outs,bigdft_mpi%nproc,&
-             bigdft_mpi%iproc,infocode)
+        call call_bigdft(runObj,outs,infocode)
         call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1), 1)
         call vcopy(3 * runObj%atoms%astruct%nat,&
              runObj%atoms%astruct%ixyz_int(1,1),1,&

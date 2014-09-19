@@ -25,7 +25,7 @@ program frequencies
    use yaml_output
    use bigdft_run
    use dictionaries, only: f_err_throw
-
+   use module_Atoms, only: move_this_coordinate
    implicit none
 
    !Parameters
@@ -56,7 +56,6 @@ program frequencies
    real(gp), dimension(:,:,:), allocatable :: forces   !< Atomic forces for all moves
 
    !Function used to determine if the coordinate of the given atom is frozen
-   logical :: move_this_coordinate
 
    character(len=len(runObj%inputs%run_name)) :: prefix
    integer, dimension(:), allocatable :: ifrztyp0 !< To avoid to freeze the atoms for call_bigdft
@@ -95,13 +94,6 @@ program frequencies
         'An invalid value for the order of the finite difference was given.',&
         FREQUENCIES_RUNTIME_ERROR,&
         err_action='Contact the developers')
-
-!!$   !just for backward compatibility
-!!$   iproc=mpi_info(1)
-!!$   nproc=mpi_info(2)
-!!$   igroup=mpi_info(3)
-!!$   !number of groups
-!!$   ngroups=mpi_info(4)
 
    !print *,'iconfig,arr_radical(iconfig),arr_posinp(iconfig)',arr_radical(iconfig),arr_posinp(iconfig),iconfig,igroup
    ! Read all input files. This should be the sole routine which is called to initialize the run.
@@ -179,7 +171,7 @@ program frequencies
       infocode=0
    else
       if (bigdft_mpi%iproc == 0) call yaml_comment('(F) Reference state calculation',hfill='=')
-      call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+      call call_bigdft(runObj,outs,infocode)
       call frequencies_write_restart(0,0,0,runObj%atoms%astruct%rxyz,outs%energy,outs%fxyz, &
            & n_order=n_order,freq_step=freq_step,amu=runObj%atoms%amu)
       moves(:,0) = .true.
@@ -262,7 +254,7 @@ program frequencies
             else
                runObj%atoms%astruct%rxyz(i,iat)=rxyz0(i,iat)+dd
             end if
-            call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+            call call_bigdft(runObj,outs,infocode)
             call frequencies_write_restart(km,i,iat,runObj%atoms%astruct%rxyz,outs%energy,outs%fxyz)
             call vcopy(3*outs%fdim, outs%fxyz(1,1), 1, fpos(1,km), 1)
             moves(km,ii) = .true.
@@ -426,7 +418,7 @@ program frequencies
 
    call f_release_routine()
 
-   call run_objects_free(runObj)
+   call free_run_objects(runObj)
    call dict_free(options)
    call bigdft_finalize(ierr)
 
@@ -449,7 +441,7 @@ contains
 
       call f_routine(id=subname)
       lwork=3*n
-      work=f_malloc(lwork+ndebug,id='work')
+      work=f_malloc(lwork,id='work')
 
       call dsyev('V','U',n,dynamical,n,eigens,work,lwork,info)
       vectors = dynamical

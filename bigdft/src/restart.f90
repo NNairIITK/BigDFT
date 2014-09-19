@@ -57,7 +57,7 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
 !  psi_old=&
 !       f_malloc_ptr((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*orbs%norbp*orbs%nspinor,!&
 !       id='psi_old')
-  psi_old = f_malloc_ptr((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*orbs%norbp*orbs%nspinor+ndebug,id='psi_old')
+  psi_old = f_malloc_ptr((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*orbs%norbp*orbs%nspinor,id='psi_old')
 
   do iorb=1,orbs%norbp
      tt=0.d0
@@ -2027,7 +2027,7 @@ END SUBROUTINE read_coeff_minbasis
 
 !> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
 !! have changed
-subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb,rxyz_old,rxyz,&
+subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb,rxyz,&
        ref_frags,input_frag,frag_calc,orblist)
   use module_base
   use module_types
@@ -2041,7 +2041,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   type(atoms_data), intent(in) :: at
   type(DFT_wavefunction), intent(inout) :: tmb
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
+  !real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
   character(len=*), intent(in) :: dir_output, filename
   type(fragmentInputParameters), intent(in) :: input_frag
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
@@ -2067,6 +2067,8 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   real(gp), dimension(:,:), allocatable :: rxyz_ref, rxyz_new, rxyz4_ref, rxyz4_new
   real(gp), dimension(:), allocatable :: dist
   integer, dimension(:), allocatable :: ipiv
+  real(gp), dimension(:,:), allocatable :: rxyz_old !<this is read from the disk and not needed
+
   logical :: skip
 !!$ integer :: ierr
 
@@ -2079,15 +2081,16 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
 
   ! check file format
   if (iformat == WF_FORMAT_ETSF) then
-     stop 'Linear scaling with ETSF writing not implemented yet'
+     call f_err_throw('Linear scaling with ETSF writing not implemented yet')
   else if (iformat /= WF_FORMAT_BINARY .and. iformat /= WF_FORMAT_PLAIN) then
-     call yaml_warning('Unknown wavefunction file format from filename.')
-     stop
+     call f_err_throw('Unknown wavefunction file format from filename.')
   end if
+
+  rxyz_old=f_malloc([3,at%astruct%nat],id='rxyz_old')
 
   ! to be fixed
   if (present(orblist)) then
-     stop 'orblist no longer functional in initialize_linear_from_file due to addition of fragment calculation'
+     call f_err_throw('orblist no longer functional in initialize_linear_from_file due to addition of fragment calculation')
   end if
 
   ! lzd_old => ref_frags(onwhichfrag)%frag_basis%lzd
@@ -2403,6 +2406,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   end do
 
   deallocate(phi_array_old)
+  call f_free(rxyz_old)
   call deallocate_local_zone_descriptors(lzd_old)
 
   !! DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs

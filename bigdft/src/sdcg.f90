@@ -84,7 +84,7 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
         call axpy(3 * runObj%atoms%astruct%nat, beta0, hh(1,1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
 
         runObj%inputs%inputPsiId=1
-        call call_bigdft(runObj,l_outs,nproc,iproc,infocode)
+        call call_bigdft(runObj,l_outs,infocode)
 !!$        if (iproc == 0) then
 !!$           call transforce(at,gpf,sumx,sumy,sumz)
 !!$           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
@@ -126,7 +126,7 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
         end do
 
         etotprev=outs%energy
-        call call_bigdft(runObj,outs,nproc,iproc,infocode)
+        call call_bigdft(runObj,outs,infocode)
 !!$        if (iproc == 0) then
 !!$           call transforce(at,fxyz,sumx,sumy,sumz)
 !!$           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
@@ -169,10 +169,13 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
         if (iproc==0) then 
            write(fn4,'(i4.4)') ncount_bigdft
            write(comment,'(a,1pe10.3)')'CONJG:fnrm= ',sqrt(fnrm)
-           call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
-                runObj%atoms,trim(comment),&
-                forces=outs%fxyz)
+           call bigdft_write_atomic_file(runObj,outs,'posout_'//fn4,&
+                trim(comment))
+
+!!$           call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+!!$                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
+!!$                runObj%atoms,trim(comment),&
+!!$                forces=outs%fxyz)
         endif
 
         !if (iproc == 0) write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'CG ',ncount_bigdft,etot,sqrt(fnrm)
@@ -322,6 +325,7 @@ END SUBROUTINE conjgrad
 !> Steepest descent method
 subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd,fluct)
   use module_base
+  use module_atoms, only: move_this_coordinate
   use bigdft_run!module_types
   use module_interfaces
   use minpar
@@ -338,7 +342,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
   real(gp), intent(in)::forcemax_sw
   !local variables
   character(len=*), parameter :: subname='steepdes'
-  logical :: care,move_this_coordinate
+  logical :: care
   integer :: nsatur,iat,itot,itsd,i_stat,i_all,infocode,nbeqbx,i,ixyz,nr
   real(gp) :: etotitm2,fnrmitm2,etotitm1,fnrmitm1,anoise
   real(gp) :: fmax,de1,de2,df1,df2,beta,etotprev
@@ -398,7 +402,7 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
         itot=itot+1
 
         runObj%inputs%inputPsiId=1
-        call call_bigdft(runObj,outs,nproc,iproc,infocode)
+        call call_bigdft(runObj,outs,infocode)
 !!$        if (iproc == 0) then
 !!$           call transforce(at,ff,sumx,sumy,sumz)
 !!$           write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx
@@ -459,10 +463,13 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
 !                & write(16,'(i5,1x,e12.5,1x,e21.14,a)') itsd,sqrt(fnrm),etot,' GEOPT SD '
            write(fn4,'(i4.4)') ncount_bigdft 
            write(comment,'(a,1pe10.3)')'SD:fnrm= ',sqrt(fnrm)
-           call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int, &
-                runObj%atoms,trim(comment),&
-                forces=outs%fxyz)
+           call bigdft_write_atomic_file(runObj,outs,'posout_'//fn4,&
+                trim(comment))
+
+!!$           call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+!!$                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int, &
+!!$                runObj%atoms,trim(comment),&
+!!$                forces=outs%fxyz)
 
            !write(17,'(a,i5,1x,e17.10,1x,e9.2)') 'SD ',ncount_bigdft,etot,sqrt(fnrm)
         end if
@@ -627,7 +634,7 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
   beta=runObj%inputs%betax
   itsd=0
   runObj%inputs%inputPsiId=1
-  call call_bigdft(runObj,outsold,nproc,iproc,infocode)
+  call call_bigdft(runObj,outsold,infocode)
   call fnrmandforcemax(outsold%fxyz,fnrm,fmax,outsold%fdim)
   if (fmax < 3.d-1) call updatefluctsum(outsold%fnoise,fluct) !n(m)
   if (iproc == 0) then
@@ -654,10 +661,12 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
 
      write(fn4,'(i4.4)') ncount_bigdft
      write(comment,'(a,1pe10.3)')'Initial VSSD:fnrm= ',sqrt(fnrm)
-     call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-          & outsold%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
-          runObj%atoms,trim(comment),&
-          forces=outsold%fxyz)
+     call bigdft_write_atomic_file(runObj,outsold,'posout_'//fn4,&
+          trim(comment))
+!!$     call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+!!$          & outsold%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
+!!$          runObj%atoms,trim(comment),&
+!!$          forces=outsold%fxyz)
 !     if (parmin%verbosity > 0) &
 !          & write(16,'(1x,e12.5,1x,e21.14,a,e10.3)')sqrt(fnrm),etotold,' GEOPT VSSD ',beta
   end if
@@ -684,7 +693,7 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
   nitsd=1000
   loop_ntsd: do itsd=1,nitsd
      runObj%inputs%inputPsiId=1
-     call call_bigdft(runObj,outs,nproc,iproc,infocode)
+     call call_bigdft(runObj,outs,infocode)
 !!$     if (iproc == 0) then                                        
 !!$        call transforce(at,outs%fxyz,sumx,sumy,sumz)                         
 !!$        write(*,'(a,1x,1pe24.17)') 'translational force along x=', sumx  
@@ -736,10 +745,13 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
         if (iproc == 0) then
            write(fn4,'(i4.4)') ncount_bigdft-1
            write(comment,'(a,1pe10.3)')'VSSD:fnrm= ',sqrt(fnrm)
-           call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
-                runObj%atoms,trim(comment),&
-                forces=outs%fxyz)
+           call bigdft_write_atomic_file(runObj,outs,'posout_'//fn4,&
+                trim(comment))
+
+!!$           call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+!!$                & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
+!!$                runObj%atoms,trim(comment),&
+!!$                forces=outs%fxyz)
         endif
 
         do iat=1,runObj%atoms%astruct%nat
@@ -820,10 +832,12 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
      end if
      write(fn4,'(i4.4)') ncount_bigdft-1
      write(comment,'(a,1pe10.3)')'VSSD:fnrm= ',sqrt(fnrm)
-     call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
-          & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
-          runObj%atoms,trim(comment),&
-          forces=outs%fxyz)
+     call bigdft_write_atomic_file(runObj,outs,'posout_'//fn4,&
+          trim(comment))
+!!$     call write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4, &
+!!$          & outs%energy,runObj%atoms%astruct%rxyz,runObj%atoms%astruct%ixyz_int,&
+!!$          runObj%atoms,trim(comment),&
+!!$          forces=outs%fxyz)
   endif
 
 

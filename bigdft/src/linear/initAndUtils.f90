@@ -343,7 +343,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
 
 
   if(linType /= INPUT_IG_TMO) then
-     allocate(Lzd%Llr(Lzd%nlr+ndebug))
+     allocate(Lzd%Llr(Lzd%nlr))
      do ilr=1,Lzd%nlr
         Lzd%Llr(ilr)=locreg_null()
      end do
@@ -942,7 +942,7 @@ subroutine destroy_DFT_wavefunction(wfn)
 
   character(len=*), parameter :: subname='destroy_DFT_wavefunction'
 
-  call f_routine(id=subname)
+!  call f_routine(id=subname)
 
   call f_free_ptr(wfn%psi)
   call f_free_ptr(wfn%psit_c)
@@ -962,11 +962,9 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_comms_linear(wfn%collcom_sr)
   call deallocate_local_zone_descriptors(wfn%lzd)
 
-  if (associated(wfn%coeff)) then
-      call f_free_ptr(wfn%coeff)
-  end if
+  call f_free_ptr(wfn%coeff)
 
-  call f_release_routine()
+!  call f_release_routine()
 
 end subroutine destroy_DFT_wavefunction
 

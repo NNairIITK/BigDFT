@@ -11,7 +11,7 @@
 
 !> Handling of input guess creation from basis of atomic orbitals
 module ao_inguess
-  use module_base, only: gp,f_err_raise,ndebug,to_zero,f_err_throw,bigdft_mpi
+  use module_base, only: gp,f_err_raise,to_zero,f_err_throw,bigdft_mpi
   use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
 
   implicit none
@@ -47,7 +47,7 @@ module ao_inguess
   public :: atomic_info
   public :: iguess_generator,count_atomic_shells,print_eleconf
   public :: ao_nspin_ig,ao_ig_charge,aoig_set_from_dict,aoig_set,aoig_data_null
-  public :: set_aocc_from_string
+  public :: set_aocc_from_string,charge_and_spol
 
 
 contains
@@ -1255,6 +1255,26 @@ contains
        read(string,*)occ
     end if
   END SUBROUTINE read_fraction_string_old
+
+  !> Calculate the charge and the spin polarisation to be placed on a given atom
+  !! RULE: natpol = c*1000 + sgn(c)*100 + s: charged and polarised atom (charge c, polarisation s)
+  subroutine charge_and_spol(natpol,nchrg,nspol)
+    implicit none
+    integer, intent(in) :: natpol
+    integer, intent(out) :: nchrg,nspol
+    !local variables
+    integer :: nsgn
+
+    nchrg=natpol/1000
+    if (nchrg>=0) then
+       nsgn=1
+    else
+       nsgn=-1
+    end if
+
+    nspol=natpol-1000*nchrg-nsgn*100
+
+  END SUBROUTINE charge_and_spol
 
 
   include 'eleconf-inc.f90'
