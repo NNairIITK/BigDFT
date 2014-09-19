@@ -112,7 +112,6 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     real(gp) :: displold
     real(gp) :: rmsdispl
     real(gp) :: curv
-    real(gp) :: displ2
     real(gp) :: overlap
     real(gp) :: minoverlap
     real(gp) :: tnatdmy(3,nat)
@@ -152,8 +151,8 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     subspaceSucc=.true.
     tol=tolc
     displ=0.0_gp
-    displ2=0.0_gp
     displold=0.0_gp
+    detot=0.0_gp
     curv=1000.0_gp
     alpha_stretch=alpha_stretch0
 
@@ -187,11 +186,20 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     etotold=etot
     etotp=etot
 
+
 !    itswitch=2
     itswitch=-2
     ndim=0
     nhist=0
     alpha=alpha0_trans
+    if(iproc==0.and.mhgps_verbosity>=2)then
+        write(*,'(a)')&
+        '  #(MHGPS) METHOD COUNT  IT  Energy                '//&
+        'DIFF      FMAX      FNRM      alpha    ndim   dspl   alpha_strtch'
+        write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es12.5,1x,es9.2)')&
+        '   (MHGPS) GEOPT ',nint(ener_count),0,etotp,detot,fmax,&
+        fnrm, alpha,ndim,displ,alpha_stretch
+    endif
     do it=1,nit_trans
         nhist=nhist+1
 
@@ -270,12 +278,12 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
             !DIFF      FMAX      FNRM      alpha    ndim')
             if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a)')&
             '  #(MHGPS) METHOD COUNT  IT  CURVATURE             '//&
-            'DIFF      FMAX      FNRM      alpha    ndim'
+            'DIFF      FMAX      FNRM      alpha    ndim    alpha_strtch   overlap   displr   displp'
             inputPsiId=1
              !inputPsiId=0
             call opt_curv(it,imode,nat,alat,alpha0_rot,curvforcediff,nit_rot,&
                           nhistx_rot,rxyzraw(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
-                          minmode(1,1),curv,rotforce(1,1),tol,displ2,ener_count,&
+                          minmode(1,1),curv,rotforce(1,1),tol,ener_count,&
                           optCurvConv,iconnect,nbond,alpha_rot_stretch0,&
                           maxcurvrise,cutoffratio,minoverlap)
 !pos=rxyzraw(:,:,nhist-1)
@@ -304,7 +312,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
             !DIFF      FMAX      FNRM      alpha    ndim')
             if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a)')&
             '  #(MHGPS) METHOD COUNT  IT  Energy                '//&
-            'DIFF      FMAX      FNRM      alpha    ndim'
+            'DIFF      FMAX      FNRM      alpha    ndim   dspl   alpha_strtch'
         endif
         !END FINDING LOWEST MODE
         
@@ -389,9 +397,9 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
                  dot_double(3*nat,dd0(1,1),1,dd0(1,1),1))
 
         if(iproc==0.and.mhgps_verbosity>=2)&
-            write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es9.2)')&
+            write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es12.5,1x,es9.2)')&
             '   (MHGPS) GEOPT ',nint(ener_count),it,etotp,detot,fmax,&
-            fnrm, alpha,ndim!,maxd,
+            fnrm, alpha,ndim,displ,alpha_stretch
 !        write(cdmy8,'(es8.1)')abs(maxd)
 !        write(cdmy9_1,'(es9.2)')abs(displr)
 !        write(cdmy9_2,'(es9.2)')abs(displp)
@@ -585,7 +593,7 @@ subroutine elim_torque_fs(nat,rxyz,vxyz)
 end subroutine
 
 subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_fix,&
-                    fxyz_fix,dxyzin,curv,fout,fnrmtol,displ,ener_count,&
+                    fxyz_fix,dxyzin,curv,fout,fnrmtol,ener_count,&
                     converged,iconnect,nbond,alpha_stretch0,&
                     maxcurvrise,cutoffratio,minoverlap)!,mode)
     use module_base
@@ -630,14 +638,18 @@ subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_
     logical                    :: steep
     integer                    :: i,iat,l,itswitch
     integer                    :: ihist,it,nat
-    real(gp)                   :: displ,ener_count,curv
+    real(gp)                   :: ener_count,curv
     real(gp)                   :: fnrmtol,curvold,fnrm,curvp,fmax
     real(gp)                   :: dcurv,st,tt,cosangle
     real(gp)                   :: overlap
     logical                    :: subspaceSucc
     real(gp), dimension(3,nat) :: dxyzin0
+    !internal
+    real(gp), dimension(3,nat) :: rxyzOld,delta
+    real(gp)                   :: displr,displp
     !functions
     real(gp)                   :: ddot
+    real(gp)                   :: dnrm2
 if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT minoverlap',minoverlap
 
     if(.not.share)then
@@ -649,12 +661,15 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT mino
 
     converged =.false.
     subspaceSucc=.true.
-    displ=0.0_gp
+    displr=0.0_gp
+    displp=0.0_gp
+    dcurv=0.0_gp
     wold=0.0_gp
     if(nhist==0)then
         do iat=1,nat
            do l=1,3
               rxyz(l,iat,nhist)=dxyzin(l,iat)
+              rxyzOld(l,iat)=dxyzin(l,iat)
               dxyzin0(l,iat)=dxyzin(l,iat)
            enddo
         enddo
@@ -678,7 +693,11 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT mino
     fnrm=sqrt(fnrm)
     curvold=curv
     curvp=curv
+    overlap=ddot(3*nat,dxyzin0(1,1),1,rxyz(1,1,nhist),1)
  
+if(iproc==0.and.mhgps_verbosity>=2)&
+     write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5)))')&
+     '   (MHGPS) CUOPT ',nint(ener_count),0,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap,displr,displp
 !    itswitch=2
    itswitch=-2
     do it=1,nit
@@ -720,7 +739,7 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT mino
                 tt=tt+dd(l,iat)**2
             enddo
         enddo
-        displ=displ+sqrt(tt)
+!        displ=displ+sqrt(tt)
 !write(444,*)'dd',nhist
 
         do iat=1,nat
@@ -730,10 +749,12 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT mino
         enddo
 !write(444,*)1,rxyz(1,1,nhist)
 
+     delta=rxyz(:,:,nhist)-rxyzOld
+     displr=displr+dnrm2(3*nat,delta(1,1),1)
      call mincurvforce(imode,nat,alat,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
           rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
           curvp,1,ener_count,iconnect,nbond,wold,alpha_stretch0,alpha_stretch)
-        dcurv=curvp-curvold
+     dcurv=curvp-curvold
 
 
 !        s=0.0_gp ; st=0.0_gp
@@ -757,16 +778,15 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT mino
 !        &'CURV  it,curv,curvold,Dcurv,fnrm,alpha,alpha_stretch,ndim',&
 !        &it-1,curvp,curvold,dcurv,fnrm,alpha,alpha_stretch,ndim
 
-        overlap=ddot(3*nat,dxyzin0(1,1),1,rxyz(1,1,nhist),1)
-if(iproc==0.and.mhgps_verbosity>=2)&
-     write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2))')&
-     '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap
-!HIER WEITER HIER WEITER: beautify output
 
         if (dcurv.gt.maxcurvrise .and. alpha>1.e-1_gp*alpha0) then 
             if(iproc==0 .and. mhgps_verbosity>=3)&
                 call yaml_comment('INFO: (MHGPS) Curv. raised by more than maxcurvrise '//&
                      trim(yaml_toa(it))//''//trim(yaml_toa(dcurv)))
+            overlap=ddot(3*nat,dxyzin0(1,1),1,rxyz(1,1,nhist),1)
+            if(iproc==0.and.mhgps_verbosity>=2)&
+                write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5)))')&
+                '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap,displr,displp
             !alpha=min(.5_gp*alpha,alpha0)
             alpha=.5_gp*alpha
             if(iproc==0 .and. mhgps_verbosity>=3)&
@@ -782,8 +802,8 @@ if(iproc==0.and.mhgps_verbosity>=2)&
                 rxyzraw(1,1,nhist-1),fxyz(1,1,nhist-1),fstretch(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
                 curvold,1,ener_count,iconnect,nbond,wold,alpha_stretch0,alpha_stretch)
             if(iproc==0.and.mhgps_verbosity>=2)&
-                 write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es9.2)')&
-                 '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch
+                 write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es9.2,2(1x,es12.5)))')&
+                 '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,displr,displp
         endif
 
 !            if(.not.steep)then
@@ -806,8 +826,16 @@ if(iproc==0.and.mhgps_verbosity>=2)&
 !            endif
             goto  500
         endif
-            curv=curvp
-            curvold=curv
+     curv=curvp
+     curvold=curv
+
+     delta=rxyz(:,:,nhist)-rxyzOld
+     displp=displp+dnrm2(3*nat,delta(1,1),1)
+     rxyzOld=rxyz(:,:,nhist)
+        overlap=ddot(3*nat,dxyzin0(1,1),1,rxyz(1,1,nhist),1)
+if(iproc==0.and.mhgps_verbosity>=2)&
+     write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5))')&
+     '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap,displr,displp
 !        if (fnrm.le.fnrmtol) goto 1000
     do iat=1,nat
         do l=1,3
