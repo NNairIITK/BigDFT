@@ -10,19 +10,18 @@
 
 AC_DEFUN([AX_PYYAML],
 [dnl Test for libXC
+  dnl Python itself (set to ":" if not present).
+  AC_REQUIRE([AM_PATH_PYTHON])
+
   AC_ARG_WITH([pyyaml-path],
               AS_HELP_STRING([--with-pyyaml-path], [give a path to find YAML python module.]),
-              [AX_PYYAML_PATH=$withval], [AX_PYYAML_PATH="system"])
-  dnl Python itself (set to ":" if not present).
-  AM_PATH_PYTHON([2.3], , [:])
+              [AX_PYYAML_PATH=$withval], [AX_PYYAML_PATH=$pyexecdir])
   ax_have_pyyaml="no"
   if test "$PYTHON" != ":" ; then
     AC_MSG_CHECKING([for PyYAML and CLoader from])
     cat > pytest << EOF
-PyYAML_path = "$AX_PYYAML_PATH"
-if not PyYAML_path == "system":
-  import sys
-  sys.path.insert(0, PyYAML_path)
+import sys
+sys.path.insert(0, "$AX_PYYAML_PATH")
 
 try:
   import yaml

@@ -451,6 +451,9 @@ rotatesmall_write:
 wrappers.out:
  EH: 1.1e-10
  fnrm2: 1.1e-10
+pywrappers.out:
+ EH: 1.1e-10
+ fnrm2: 1.1e-10
 
 rotatesmall_read:
  Epsilon: 2.4e-11

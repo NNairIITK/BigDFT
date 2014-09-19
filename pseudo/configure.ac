@@ -29,6 +29,9 @@ AX_LINALG()
 
 AX_LIBXC()
 
+dnl Check for python
+AM_PATH_PYTHON([2.3], , [:])
+
 AX_PYYAML()
 
 dnl Give the name of file.in to transform to file

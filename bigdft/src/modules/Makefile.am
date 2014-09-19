@@ -1,8 +1,10 @@
 # To be installed:
+overridesdir = $(pyexecdir)/gi/overrides
 noinst_LIBRARIES = libmodules.a
 module_DATA = $(modules)
 include_HEADERS = bigdft.h bigdft_input_keys.h
 nodist_include_HEADERS = bigdft_cst.h
+overrides_DATA = BigDFT.py
 
 # Code source.
 if USE_BLACS
@@ -125,7 +127,7 @@ AO_INCLUDES = eleconf-inc.f90
 ATOMS_INCLUDES = astruct-inc.f90
 COMMS_INCLUDES = check_array-inc.f90
 
-EXTRA_DIST = configure.inc.in bigdft_cst.h.in BigDFT.py \
+EXTRA_DIST = configure.inc.in bigdft_cst.h.in \
 	$(AO_INCLUDES) $(ATOMS_INCLUDES) $(COMMS_INCLUDES)
 CLEANFILES = $(modules)
 

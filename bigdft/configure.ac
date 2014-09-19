@@ -96,6 +96,9 @@ if test "$ar" = ":" ; then
   AC_MSG_ERROR(["No 'ar' program found."])
 fi
 
+dnl Check for python
+AM_PATH_PYTHON([2.3], , [:])
+
 dnl Search for pkg-config
 PKG_PROG_PKG_CONFIG()
 
@@ -781,6 +784,7 @@ tests/libs/IO-wf/Makefile
 tests/libs/dsygv/Makefile
 tests/libs/ftypes/Makefile
 tests/libs/wrappers/Makefile
+tests/libs/wrappers/check_wrappers.py
 tests/libs/psp/Makefile
 tests/libs/overlapgeneral/Makefile
 tests/libs/coordinatetransform/Makefile
