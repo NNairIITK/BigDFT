@@ -77,8 +77,10 @@ ERR_INCLUDES = get_err-inc.f90
 DICT_INCLUDES = error_handling.f90 $(ERR_INCLUDES) dict_add-inc.f90 dict_getvec-inc.f90 \
 	set_arr-inc.f90 dict_cont-inc.f90 dict_cont_arr-inc.f90
 GETADD_INCLUDES = getadd-c-inc.f90
+NOOMP_INCLUDES = remove_omp-inc.f90 halt_omp-inc.f90
 
-EXTRA_DIST = $(DYN_INCLUDES) $(YAML_INCLUDES) $(STRINGS_INCLUDES) $(ERR_INCLUDES) $(DICT_INCLUDES) $(GETADD_INCLUDES) $(F_MALLOC_INCLUDES)
+EXTRA_DIST = $(DYN_INCLUDES) $(YAML_INCLUDES) $(STRINGS_INCLUDES) $(ERR_INCLUDES) \
+	$(DICT_INCLUDES) $(GETADD_INCLUDES) $(F_MALLOC_INCLUDES) $(NOOMP_INCLUDES)
 
 # Module files.
 if CAPITALIZE
@@ -136,6 +138,8 @@ install-data-hook:
 $(modules): $(libflib_1_a_OBJECTS)
 yaml_strings.o: $(STRINGS_INCLUDES)
 dictionaries.o: yaml_strings.o dictionaries_base.o $(DICT_INCLUDES) callbacks.o
+dictionaries_base.o: yaml_strings.o
+callbacks.o: $(NOOMP_INCLUDES)
 #mem_profiling.o : error_handling.o
 yaml_output.o : dictionaries.o $(YAML_INCLUDES)
 yaml_parse.o : dictionaries.o yaml_output.o

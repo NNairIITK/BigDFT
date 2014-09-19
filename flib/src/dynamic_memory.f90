@@ -84,7 +84,12 @@ module dynamic_memory
   !> Global variable controlling the different instances of the calls
   !! the 0 component is supposed to be unused, it is allocated to avoid segfaults
   !! if the library routines are called without initialization
-  type(mem_ctrl), dimension(0:max_ctrl) :: mems
+  type(mem_ctrl), dimension(0:max_ctrl), save :: mems
+  !> Global status of the memory, used in memory_profiling module
+  !! it considers the overall status of the memory regardless of the
+  !! number of active instances in mems
+  type(memory_state), save :: memstate 
+
 
   interface assignment(=)
      module procedure i1_all,i2_all,i3_all,i4_all
@@ -218,14 +223,14 @@ contains
     nullify(f_ref%info)
   end subroutine nullify_f_ref
 
-  subroutine dunp_ref_cnt(f_ref)
+  subroutine dump_ref_cnt(f_ref)
     use yaml_output, only: yaml_dict_dump,yaml_map
     implicit none
     type(f_reference_counter), intent(in) :: f_ref
 
     call yaml_dict_dump(f_ref%info)
     call yaml_map('References',f_ref%iref)
-  end subroutine dunp_ref_cnt
+  end subroutine dump_ref_cnt
 
   !> allocate a reference counter
   !! this function should be called whe the associated object starts
@@ -262,7 +267,7 @@ contains
             err_id=ERR_REFERENCE_COUNTERS)
     else
        if (f_ref%iref <= 1 .and. .not. present(count) .or. f_ref%iref==0 .and. present(count)) then
-          call dunp_ref_cnt(f_ref)
+          call dump_ref_cnt(f_ref)
           call f_err_throw('Illegal dereference:'//&
                ' object is orphan, it should be freed',&
                err_id=ERR_REFERENCE_COUNTERS)
@@ -300,7 +305,7 @@ contains
             err_id=ERR_REFERENCE_COUNTERS)
     else
        if (f_ref%iref > 1) then
-          call dunp_ref_cnt(f_ref)
+          call dump_ref_cnt(f_ref)
           call f_err_throw('Illegal free : object is still referenced',&
                err_id=ERR_REFERENCE_COUNTERS)
        else
@@ -321,7 +326,7 @@ contains
        call f_err_throw('Illegal reference: nullified source',&
             err_id=ERR_REFERENCE_COUNTERS)
     else if (src%iref <= 0) then
-       call dunp_ref_cnt(src)
+       call dump_ref_cnt(src)
        call f_err_throw('Illegal reference: the source'//&
             ' is already dereferenced, it must be destroyed',&
             err_id=ERR_REFERENCE_COUNTERS)
@@ -346,7 +351,7 @@ contains
        call f_err_throw('Illegal association: nullified source',&
             err_id=ERR_REFERENCE_COUNTERS)
     else if (src%iref <= 0) then
-       call dunp_ref_cnt(src)
+       call dump_ref_cnt(src)
        call f_err_throw('Illegal association: the source '//&
             'is already dereferenced, it must be destroyed',&
             err_id=ERR_REFERENCE_COUNTERS)
@@ -355,7 +360,7 @@ contains
     !check destination suitablity
     if (associated(dest%iref)) then
        if (dest%iref == 1) then
-          call dunp_ref_cnt(dest)
+          call dump_ref_cnt(dest)
           call f_err_throw('Illegal association: destination '//&
                ' is orphan, it must be destroyed to avoid memory leak',&
                err_id=ERR_REFERENCE_COUNTERS)
@@ -835,6 +840,9 @@ contains
     !extra options can be passed at the initialization
     mems(ictrl)=mem_ctrl_init()
 
+    !in the first instance initialize the global memory info
+    if (ictrl==1) call memstate_init(memstate)
+
     !initialize the memprofiling counters
     call set(mems(ictrl)%dict_global//'Timestamp of Profile initialization',&
          trim(yaml_date_and_time_toa()))
@@ -879,10 +887,7 @@ contains
 !!$       call f_routine(id='Main program')
 !!$    end if
 
-    if (present(memory_limit)) call memocc_set_memory_limit(memory_limit)
-
-!this has to be redefined if the new memocc works
-!    if (present(logfile_name)) call memocc_set_filename(logfile_name)
+    if (present(memory_limit)) call f_set_memory_limit(memory_limit)
        
     if (present(iproc)) call set(mems(ictrl)%dict_global//processid,iproc)
   end subroutine f_malloc_set_status
@@ -945,12 +950,14 @@ contains
        call dict_free(mems(ictrl)%dict_calling_sequence)
     end if
 
-    if (mems(ictrl)%profile_initialized) call memocc_report(dump=dump_status)
+    if (mems(ictrl)%profile_initialized) call memstate_report(memstate,dump=dump_status)
 
     !nullify control structure
     mems(ictrl)=mem_ctrl_null()
     !lower the level
     ictrl=ictrl-1
+    !clean the memory report (reentrant)
+    if (ictrl == 0)  call memstate_init(memstate)
   end subroutine f_malloc_finalize
 
   !> Dump all allocations

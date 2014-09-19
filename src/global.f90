@@ -47,6 +47,7 @@ program MINHOP
 !  character(len=16) :: fn16
 !  character(len=18) :: fn18
   character(len=50) :: comment
+  character(len=128) :: msg
 !  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   integer :: nconfig
   !integer, dimension(4) :: mpi_info
@@ -56,7 +57,8 @@ program MINHOP
   real(kind=8) :: count_md,count_bfgs,energyold,e_pos,tt,en_delta,fp_delta
   real(kind=8) :: t1,t2,t3,ebest_l,dmin,tleft,d,ss
   real(kind=8), external :: dnrm2
-
+  real(kind=8), dimension(:,:), pointer :: rxyz_opt,rxyz_md
+  
   type(run_objects) :: run_opt,run_md !< the two runs parameters
   type(DFT_global_output) :: outs
   type(dictionary), pointer :: user_inputs,options,run
@@ -145,6 +147,11 @@ program MINHOP
 
   !get number of atoms of the system, to allocate local arrays
   natoms=bigdft_nat(run_opt)!bigdft_get_number_of_atoms(atoms)
+
+  !define pointers towards the atomic positions
+  rxyz_md => bigdft_get_rxyz_ptr(run_md)
+  rxyz_opt => bigdft_get_rxyz_ptr(run_opt)
+
 
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) beta_S, beta_O, beta_N',(/beta_S,beta_O,beta_N/),fmt='(1pe11.4)')
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) alpha_A, alpha_R',(/alpha_A,alpha_R/),fmt='(1pe11.4)')
@@ -265,8 +272,10 @@ program MINHOP
 !      enddo
 !      close(864)
 !  endif
+! call yaml_map('Conditions for ha_trans',[bigdft_get_geocode(run_md)=='F',(.not. disable_hatrans)])
 
-  if (bigdft_get_geocode(run_md)=='F' .and. (.not. disable_hatrans)) call ha_trans(bigdft_nat(run_md),bigdft_get_rxyz_ptr(run_md))
+
+  if (bigdft_get_geocode(run_md)=='F' .and. (.not. disable_hatrans)) call ha_trans(bigdft_nat(run_md),rxyz_md)
 
 !  if ( .not. atoms%astruct%geocode=='F') then 
 !         write(*,*) 'Generating new input guess'
@@ -277,8 +286,9 @@ program MINHOP
 !  endif   
   !call run_objects_associate(runObj, inputs_opt, atoms, rst)
   !here the atomic positions of run_opt have to be updated
-  call bigdft_set_rxyz(run_opt,rxyz=bigdft_get_rxyz_ptr(run_md))
+  call bigdft_set_rxyz(run_opt,rxyz=rxyz_md)!bigdft_get_rxyz_ptr(run_md))
   outs%fnoise = 0.0_gp !Bastian: reset noise from coarse level
+
   call geopt(run_opt, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   !call release_run_objects(runObj)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of initial conf.',ncount_bigdft)
@@ -368,17 +378,26 @@ program MINHOP
   
   ! If restart read previous poslocm's
   ! here we should use bigdft built-in routines to read atomic positions
+  call f_err_open_try()
+  ierr=0
   do ilmin=1,nlmin
 
      write(fn5,'(i5.5)') ilmin
-     filename = 'poslow'//fn5//'_'//trim(bigdft_run_id_toa())//'.xyz'
-     call f_file_exists(filename,exist_poslocm)
-     if (.not. exist_poslocm) then
-        write(*,*) bigdft_mpi%iproc,' COULD not read file ',filename
-        exit
-     end if
-
+     filename = 'poslow'//fn5//'_'//trim(bigdft_run_id_toa())!//'.xyz'
+!!$     call f_file_exists(filename,exist_poslocm)
+!!$     if (.not. exist_poslocm) then
+!!$        write(*,*) bigdft_mpi%iproc,' COULD not read file ',filename
+!!$        exit
+!!$     end if
      call bigdft_get_rxyz(filename=filename,rxyz_add=pl_arr(1,1,ilmin))
+     if (f_err_check()) then
+        if (f_err_check(err_name='BIGDFT_INPUT_FILE_ERROR')) then
+           write(*,*) bigdft_mpi%iproc,' COULD not read file ',filename
+           exit
+        else
+           ierr = f_get_last_error(msg)
+        end if
+     end if
 !!$     open(unit=192,file=filename,status='old',iostat=ierror)
 !!$     if (ierror /= 0) then
 !!$        write(*,*) bigdft_mpi%iproc,' COULD not read file ',filename
@@ -407,6 +426,9 @@ program MINHOP
 !!$     close(192)
      if (bigdft_mpi%iproc == 0) call yaml_scalar('(MH) read file '//trim(filename))
   end do
+  call f_err_close_try()
+  if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = msg)
+             
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) number of read poslow files', nlmin)
   
   ebest_l=outs%energy 
@@ -514,9 +536,9 @@ program MINHOP
   endif
 
      if (bigdft_get_geocode(run_md) == 'F') &
-          & call fixfrag_posvel(bigdft_mpi%iproc,bigdft_nat(run_md),rcov,bigdft_get_rxyz_ptr(run_md),vxyz,1,occured)
+          & call fixfrag_posvel(bigdft_mpi%iproc,bigdft_nat(run_md),rcov,rxyz_md,vxyz,1,occured)
      if (bigdft_get_geocode(run_md) == 'S') &
-          & call fixfrag_posvel_slab(bigdft_mpi%iproc,bigdft_nat(run_md),rcov,bigdft_get_rxyz_ptr(run_md),vxyz,1)
+          & call fixfrag_posvel_slab(bigdft_mpi%iproc,bigdft_nat(run_md),rcov,rxyz_md,vxyz,1)
      
   av_ekinetic=av_ekinetic+ekinetic
   ncount_bigdft=0
@@ -541,7 +563,7 @@ program MINHOP
 !      close(864)
 !  endif
 
-  if (bigdft_get_geocode(run_md)=='F' .and. (.not. disable_hatrans)) call ha_trans(bigdft_nat(run_md),bigdft_get_rxyz_ptr(run_md))
+  if (bigdft_get_geocode(run_md)=='F' .and. (.not. disable_hatrans)) call ha_trans(bigdft_nat(run_md),rxyz_md)
 
 !  if ( .not. atoms%astruct%geocode=='F') then 
 !         write(*,*) 'Generating new input guess'
@@ -551,7 +573,7 @@ program MINHOP
 !          inputs_opt%inputPsiId=1
 !  endif   
   !call run_objects_associate(runObj, inputs_opt, atoms, rst)
-  call bigdft_set_rxyz(run_opt,rxyz=bigdft_get_rxyz_ptr(run_md))
+  call bigdft_set_rxyz(run_opt,rxyz=rxyz_md)
   outs%fnoise = 0.0_gp !Bastian: reset noise from coarse level
   call geopt(run_opt, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
   !call release_run_objects(runObj)
@@ -591,7 +613,7 @@ program MINHOP
      call yaml_mapping_close()
   endif
 
-  call fingerprint(bigdft_mpi%iproc,bigdft_nat(run_opt),nid,bigdft_get_rxyz_ptr(run_opt),rcov,wfp, & 
+  call fingerprint(bigdft_mpi%iproc,bigdft_nat(run_opt),nid,rxyz_opt,rcov,wfp, & 
                    bigdft_get_geocode(run_opt),bigdft_get_cell(run_opt))
 
      if (abs(outs%energy-e_pos).lt.en_delta) then
@@ -630,7 +652,7 @@ program MINHOP
       ekinetic=ekinetic*beta_N
       nlmin=nlmin+1
       call insert(bigdft_mpi%iproc,nlminx,nlmin,nid,bigdft_nat(run_opt),k_e,outs%energy,wfp,&
-           bigdft_get_rxyz_ptr(run_opt),en_arr,ct_arr,fp_arr,pl_arr)
+           rxyz_opt,en_arr,ct_arr,fp_arr,pl_arr)
 ! write intermediate results
       if (bigdft_mpi%iproc == 0) call yaml_comment('(MH) WINTER')
       if (bigdft_mpi%iproc == 0) call winter(natoms,bigdft_get_astruct_ptr(run_opt),nid,nlminx,nlmin,en_delta,fp_delta, &
@@ -839,6 +861,7 @@ contains
     character(len=4) :: fn4
     real(gp) :: e0,enmin1,en0000,econs_max,econs_min,rkin,enmin2
     real(kind=8) :: devcon,at1,at2,at3
+    real(gp), dimension(:,:), pointer :: rxyz_run
     !type(wavefunctions_descriptors), intent(inout) :: wfd
     !real(kind=8), pointer :: psi(:), eval(:)
 
@@ -847,6 +870,8 @@ contains
     !C initialize positions,velocities, forces
     e0 = outs%energy
 
+    rxyz_run => bigdft_get_rxyz_ptr(runObj)
+
   !! Either random velocity distribution 
   !        call randdist(nat,rxyz,vxyz)
   !! or Gauss velocity distribution
@@ -854,7 +879,7 @@ contains
   !        call expdist(nat,rxyz,vxyz)
   !! or localized velocities
   !        call localdist(nat,rxyz,vxyz)
-    call randdist(natoms,bigdft_get_geocode(runObj),bigdft_get_rxyz_ptr(runObj),vxyz)
+    call randdist(natoms,bigdft_get_geocode(runObj),rxyz_run,vxyz)
 
     !!! Put to zero the velocities for all boron atoms
     !!do iat=1,natoms
@@ -874,7 +899,7 @@ contains
     call velnorm(natoms,(ekinetic*ndfree)/(ndfree+ndfroz),vxyz)
     call to_zero(3*natoms,gg)
 
-    if(iproc==0) call torque(natoms,bigdft_get_rxyz_ptr(runObj),vxyz)
+    if(iproc==0) call torque(natoms,rxyz_run,vxyz)
 
     if(iproc==0) call yaml_map('(MH) MINHOP start MD',(/ndfree,ndfroz/))
     !C inner (escape) loop
@@ -888,8 +913,8 @@ contains
     md_loop: do istep=1,200
 
 !C      Evolution of the system according to 'VELOCITY VERLET' algorithm
-       call daxpy(3*natoms,dt,vxyz(1,1),1,bigdft_get_rxyz_ptr(runObj),1)
-       call daxpy(3*natoms,0.5_gp*dt*dt,gg(1,1),1,bigdft_get_rxyz_ptr(runObj),1)
+       call daxpy(3*natoms,dt,vxyz(1,1),1,rxyz_run,1)
+       call daxpy(3*natoms,0.5_gp*dt*dt,gg(1,1),1,rxyz_run,1)
 
        rkin=dot(3*natoms,vxyz(1,1),1,vxyz(1,1),1)
        rkin=rkin*.5d0
@@ -956,10 +981,10 @@ contains
        end do
 
    if (bigdft_get_geocode(runObj) == 'S') then 
-      call fixfrag_posvel_slab(iproc,bigdft_nat(runObj),rcov,bigdft_get_rxyz_ptr(runObj),vxyz,2)
+      call fixfrag_posvel_slab(iproc,bigdft_nat(runObj),rcov,rxyz_run,vxyz,2)
    else if (bigdft_get_geocode(runObj) == 'F') then
      if (istep == istepnext) then 
-           call fixfrag_posvel(iproc,bigdft_nat(runObj),rcov,bigdft_get_rxyz_ptr(runObj),vxyz,2,occured)
+           call fixfrag_posvel(iproc,bigdft_nat(runObj),rcov,rxyz_run,vxyz,2,occured)
         if (occured) then 
           istepnext=istep+4
         else
@@ -1013,9 +1038,12 @@ contains
     real(kind=8), dimension(3*natoms) :: pos0
     real(kind=8) :: alpha,curv,curv0,eps_vxyz,etot0,fd2,res,sdf,svxyz
     integer :: it
+    real(gp), dimension(:,:), pointer :: rxyz_run
 
 !    eps_vxyz=1.d-1*natoms
     alpha=runObj%inputs%betax
+
+    rxyz_run => bigdft_get_rxyz_ptr(runObj)
 
     ! Save starting positions.
     !allocate(wpos(3,nat),fxyz(3,nat))
@@ -1046,7 +1074,7 @@ contains
        
        !call vcopy(3*natoms, pos0(1), 1, bigdft_get_rxyz_ptr(runObj), 1)
        call bigdft_set_rxyz(runObj,rxyz_add=pos0(1))
-       call daxpy(3*natoms, 1.d0, vxyz(1), 1, bigdft_get_rxyz_ptr(runObj), 1)
+       call daxpy(3*natoms, 1.d0, vxyz(1), 1,rxyz_run, 1)
        call call_bigdft(runObj,outs,infocode)
        fd2=2.d0*(outs%energy-etot0)/eps_vxyz**2
 
@@ -1125,7 +1153,7 @@ contains
 !          end if
 !       end do
 !       call atomic_axpy_forces(atoms,wpos,alpha,fxyz,wpos)
-        call daxpy(3*natoms,alpha,outs%fxyz(1,1),1,bigdft_get_rxyz_ptr(runObj),1)
+        call daxpy(3*natoms,alpha,outs%fxyz(1,1),1,rxyz_run,1)
         !call vcopy(3*natoms, atoms%astruct%rxyz(1,1), 1, vxyz(1), 1)
         call bigdft_get_rxyz(runObj,rxyz_add=vxyz(1))
 
@@ -3057,6 +3085,8 @@ end subroutine fingerprint
    !dimension pos(3,nat),pos_s(3)
    ! dimension theta(3,3),theta_e(3),work(lwork)
 
+!   call yaml_map('Entering ha_trans',pos)
+
    ! positions relative to center of mass
    pos_s(1)=0.d0
    pos_s(2)=0.d0
@@ -3076,6 +3106,7 @@ end subroutine fingerprint
       pos(3,iat)=pos(3,iat)-pos_s(3)
    enddo
 
+!   call yaml_map('Entering ha_trans2',pos)
    ! Calculate inertia tensor theta
    theta=0.0_gp
 !!$   do 10,j=1,3
@@ -3164,10 +3195,12 @@ end subroutine fingerprint
       pos(3,iat) = theta(1,ipiv(3))*p1+ theta(2,ipiv(3))*p2+ theta(3,ipiv(3))*p3
    enddo
 
+!   call yaml_map('Exiting ha_trans',pos)
+
 !!$   do j=1,3
 !!$      call yaml_map('Thetaj',theta(:,j))
 !!$   end do
-!!$   stop
+!   stop
 END SUBROUTINE ha_trans
 
 !> put velocities for frozen degrees of freedom to zero

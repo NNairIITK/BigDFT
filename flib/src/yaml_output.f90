@@ -92,7 +92,7 @@ module yaml_output
      !other scalars
      module procedure yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l
      !vectors
-     module procedure yaml_map_iv,yaml_map_dv,yaml_map_cv,yaml_map_rv,yaml_map_lv
+     module procedure yaml_map_iv,yaml_map_dv,yaml_map_cv,yaml_map_rv,yaml_map_lv,yaml_map_liv
      !matrices (rank2)
      module procedure yaml_map_dm,yaml_map_rm,yaml_map_im,yaml_map_lm
   end interface
@@ -1252,6 +1252,12 @@ contains
     logical, dimension(:), intent(in) :: mapvalue
     include 'yaml_map-arr-inc.f90'
   end subroutine yaml_map_lv
+
+  subroutine yaml_map_liv(mapname,mapvalue,label,advance,unit,fmt)
+    implicit none
+    integer(kind=8), dimension(:), intent(in) :: mapvalue
+    include 'yaml_map-arr-inc.f90'
+  end subroutine yaml_map_liv
 
   subroutine yaml_map_iv(mapname,mapvalue,label,advance,unit,fmt)
     implicit none

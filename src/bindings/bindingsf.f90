@@ -8,11 +8,11 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine memocc_report()
-  use memory_profiling, only: mreport => memocc_report
-  implicit none
-  call mreport()
-end subroutine memocc_report
+!!$subroutine memocc_report()
+!!$  use memory_profiling, only: mreport => memocc_report
+!!$  implicit none
+!!$  call mreport()
+!!$end subroutine memocc_report
 
 
 !!$subroutine memocc_verbose()
