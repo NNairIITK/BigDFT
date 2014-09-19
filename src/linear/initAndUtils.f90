@@ -1470,6 +1470,10 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      !tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
      !call sparse_copy_pattern(tmb%linmat%l, tmb%linmat%inv_ovrlp_large, iproc, subname)
 
+     call init_matrix_taskgroups(iproc, nproc, tmb%collcom, tmb%collcom_sr, tmb%linmat%s)
+     call init_matrix_taskgroups(iproc, nproc, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
+     call init_matrix_taskgroups(iproc, nproc, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
+
 
      !tmb%linmat%ks = sparse_matrix_null()
      !tmb%linmat%ks_e = sparse_matrix_null()
