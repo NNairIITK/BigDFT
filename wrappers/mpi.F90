@@ -1239,7 +1239,64 @@ end subroutine create_group_comm1
 !!
 !!  end subroutine mpiget_double
 
+
+
+!!subroutine mpi_iallreduce_fallback_double(sendbuf, recvbuf, ncount, datatype, op, comm, request, ierr)
+!!  implicit none
+!!  ! Calling arguments
+!!  integer,intent(in) :: ncount, datatype, op, comm, request
+!!  double precision,intent(in) :: sendbuf
+!!  double precision,intent(out) :: recvbuf
+!!  integer,intent(out) :: ierr
+!!  ! Local variables
+!!  integer :: window
+!!
+!!  ! Get the number of processes and the ID
+!!  nproc = mpisize(comm)
+!!  iproc = mpirank(comm)
+!!
+!!
+!!
+!!  iactive = nproc
+!!  iter = 0
+!!  do 
+!!      iter = iter + 1 !iteration counter
+!!      ioffset_target = 2**iter !offset between the target tasks (i.e. these tasks whose buffers will be modified)
+!!      ioffset_origin = 2**(iter-1) !offset between the target tasks and the next orgin task
+!!
+!!      ! Determine whether a given task is target or origin
+!!      is_target = (mod(iproc,ioffset_target)==0)
+!!      is_origin = (mod(iproc,ioffset_target)==ioffset_origin)
+!!
+!!      ! Create an MPI window for the target tasks; the others expose no data
+!!      if (is_target) then
+!!          window = mpiwindow(ncount, sendbuf, comm)
+!!      else
+!!          window = mpiwindow(0, sendbuf, comm)
+!!      end if
+!!
+!!      ! Accumulate the buffer of the target tasks with the content of the origin tasks
+!!      if (is_origin) then
+!!          call mpi_accumulate(sendbuf(1), ncount, mpi_double_precision, iproc-ioffset_origin, &
+!!               int(0,kind=mpi_address_kind), ncount, mpi_double_precision, op, window, ierr)
+!!      end if
+!!
+!!
+!!  end do
+!!
+!!end subroutine mpi_iallreduce_fallback
   
+  subroutine mpiiallred(sendbuf, recvbuf, ncount, datatype, op, comm, request, ierr)
+    implicit none
+    ! Calling arguments
+    integer,intent(in) :: ncount, datatype, op, comm, request
+    double precision,intent(in) :: sendbuf
+    double precision,intent(out) :: recvbuf
+    integer,intent(out) :: ierr
+
+    if (have_mpi3) then
+        call mpi_iallreduce(sendbuf, recvbuf, ncount, datatype, op, comm, request, ierr)
+  end subroutine mpiiallred
 
 end module wrapper_MPI
 
