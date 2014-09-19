@@ -252,6 +252,15 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    call fnrmandforcemax(fxyzraw(1,1,0),fnrm,fmax,nat)
    fnrm=sqrt(fnrm)
    if (fmax < 3.e-1_gp) call updatefluctsum(fnoise,fluct)
+if (iproc == 0 .and. mhgps_verbosity >=4) then
+   write(fn4,'(i4.4)') 0
+   write(comment,'(a,1pe10.3)')'SBFGS:fnrm= ',fnrm
+   call astruct_dump_to_file(astruct,&
+        currDir//'/sad'//trim(adjustl(isadc))&
+        //'_posminiP'//trim(adjustl(writePostfix))//'_'//fn4, &
+        trim(comment),energy=etotp,rxyz=rxyz(:,:,nhist),&
+        forces=fxyz(:,:,nhist))
+endif
 
    etotold=etot
    etotp=etot
@@ -448,7 +457,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
       endif
 
       if (iproc == 0 .and. mhgps_verbosity >=4) then
-         write(fn4,'(i4.4)') nit
+         write(fn4,'(i4.4)') it
          write(comment,'(a,1pe10.3)')'SBFGS:fnrm= ',fnrm
          call astruct_dump_to_file(astruct,&
               currDir//'/sad'//trim(adjustl(isadc))&

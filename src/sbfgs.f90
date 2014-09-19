@@ -389,7 +389,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       endif
 
       if (iproc == 0) then
-         write(fn4,'(i4.4)') nit
+         write(fn4,'(i4.4)') it
          write(comment,'(a,1pe10.3)')'SBFGS:fnrm= ',fnrm
          call bigdft_write_atomic_file(runObj,outs,'posoutP_'//fn4,&
               trim(comment))

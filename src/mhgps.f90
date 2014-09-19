@@ -472,6 +472,8 @@ allocate(fat(3,nat))
                         minmode(1,1),rotforce(1,1))
                     endif
             else if(trim(adjustl(operation_mode))=='minimize')then
+                isad=isad+1
+                write(isadc,'(i3.3)')isad
                 ec=0.0_gp
                 call energyandforces(nat,alat,rxyz,fxyz,fnoise,energy)
                 call minimize(imode,nat,alat,nbond,iconnect,&
