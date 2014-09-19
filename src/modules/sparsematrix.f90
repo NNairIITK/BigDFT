@@ -447,10 +447,14 @@ module sparsematrix
 
      ! Local variables
      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
+     integer :: ncount, itg, iitg, ist_send, ist_recv
      integer,dimension(:),pointer :: isvctr_par, nvctr_par
+     integer,dimension(:),allocatable :: request
      real(kind=8),dimension(:),pointer :: matrix_local
-     integer,parameter :: ALLGATHERV=51, GET=52
+     real(kind=8),dimension(:),allocatable :: recvbuf
+     integer,parameter :: ALLGATHERV=51, GET=52, GLOBAL_MATRIX=101, SUBMATRIX=102
      integer,parameter :: comm_strategy=GET
+     integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
 
      call f_routine(id='compress_matrix_distributed')
 
@@ -470,62 +474,120 @@ module sparsematrix
          if (size(matrixp,2)/=smat%smmm%nfvctrp) stop '(ubound(matrixp,2)/=smat%smmm%nfvctrp'
          nfvctrp = smat%smmm%nfvctrp
          isfvctr = smat%smmm%isfvctr
-         nvctrp = smat%smmM%nvctrp
+         nvctrp = smat%smmm%nvctrp
          isvctr = smat%smmm%isvctr
          isvctr_par => smat%smmm%isvctr_par
          nvctr_par => smat%smmm%nvctr_par
      end if
 
-     !call to_zero(smat%nvctr, matrix_compr(1))
-     if (nproc>1) then
-         matrix_local = f_malloc0_ptr(nvctrp,id='matrix_local')
-     else
-         matrix_local => matrix_compr
-     end if
-
-     if (nfvctrp>0) then
-         isegstart=smat%istsegline(isfvctr+1)
-         isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
-         !!if (isfvctr+nfvctrp<smat%nfvctr) then
-         !!    isegend=smat%istsegline(smat%isfvctr_par(iproc+1)+1)-1
-         !!else
-         !!    isegend=smat%nseg
-         !!end if
-         !$omp parallel default(none) &
-         !$omp shared(isegstart, isegend, matrixp, smat, matrix_local, isvctr, isfvctr) &
-         !$omp private(iseg, ii, jorb, iiorb, jjorb)
-         !$omp do
-         do iseg=isegstart,isegend
-             ii=smat%keyv(iseg)-1
-             do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
-                 ii=ii+1
-                 iiorb = (jorb-1)/smat%nfvctr + 1
-                 jjorb = jorb - (iiorb-1)*smat%nfvctr
-                 matrix_local(ii-isvctr)=matrixp(jjorb,iiorb-isfvctr)
-             end do
-         end do
-         !$omp end do
-         !$omp end parallel
-     end if
-
-     call timing(iproc,'compressd_mcpy','OF')
-     call timing(iproc,'compressd_comm','ON')
-     if (bigdft_mpi%nproc>1) then
-         if (comm_strategy==ALLGATHERV) then
-             !call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
-             call mpi_allgatherv(matrix_local(1), nvctrp, mpi_double_precision, &
-                  matrix_compr(1), nvctr_par, isvctr_par, mpi_double_precision, &
-                  bigdft_mpi%mpi_comm, ierr)
-             call f_free_ptr(matrix_local)
-         else if (comm_strategy==GET) then
-             !!call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, nvctrp, matrix_local, &
-             !!     nvctr_par, isvctr_par, smat%nvctr, matrix_compr)
-             call mpi_get_to_allgatherv(matrix_local(1), nvctrp, matrix_compr(1), &
-                  nvctr_par, isvctr_par, bigdft_mpi%mpi_comm)
+     if (data_strategy==GLOBAL_MATRIX) then
+         !call to_zero(smat%nvctr, matrix_compr(1))
+         if (nproc>1) then
+             matrix_local = f_malloc0_ptr(nvctrp,id='matrix_local')
          else
-             stop 'compress_matrix_distributed: wrong communication strategy'
+             matrix_local => matrix_compr
          end if
-         call f_free_ptr(matrix_local)
+
+         if (nfvctrp>0) then
+             isegstart=smat%istsegline(isfvctr+1)
+             isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
+             !!if (isfvctr+nfvctrp<smat%nfvctr) then
+             !!    isegend=smat%istsegline(smat%isfvctr_par(iproc+1)+1)-1
+             !!else
+             !!    isegend=smat%nseg
+             !!end if
+             !$omp parallel default(none) &
+             !$omp shared(isegstart, isegend, matrixp, smat, matrix_local, isvctr, isfvctr) &
+             !$omp private(iseg, ii, jorb, iiorb, jjorb)
+             !$omp do
+             do iseg=isegstart,isegend
+                 ii=smat%keyv(iseg)-1
+                 do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
+                     ii=ii+1
+                     iiorb = (jorb-1)/smat%nfvctr + 1
+                     jjorb = jorb - (iiorb-1)*smat%nfvctr
+                     matrix_local(ii-isvctr)=matrixp(jjorb,iiorb-isfvctr)
+                 end do
+             end do
+             !$omp end do
+             !$omp end parallel
+         end if
+
+         call timing(iproc,'compressd_mcpy','OF')
+         call timing(iproc,'compressd_comm','ON')
+         if (bigdft_mpi%nproc>1) then
+             if (comm_strategy==ALLGATHERV) then
+                 !call mpiallred(matrix_compr(1), smat%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+                 call mpi_allgatherv(matrix_local(1), nvctrp, mpi_double_precision, &
+                      matrix_compr(1), nvctr_par, isvctr_par, mpi_double_precision, &
+                      bigdft_mpi%mpi_comm, ierr)
+                 call f_free_ptr(matrix_local)
+             else if (comm_strategy==GET) then
+                 !!call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, nvctrp, matrix_local, &
+                 !!     nvctr_par, isvctr_par, smat%nvctr, matrix_compr)
+                 call mpi_get_to_allgatherv(matrix_local(1), nvctrp, matrix_compr(1), &
+                      nvctr_par, isvctr_par, bigdft_mpi%mpi_comm)
+             else
+                 stop 'compress_matrix_distributed: wrong communication strategy'
+             end if
+             call f_free_ptr(matrix_local)
+         end if
+     else if (data_strategy==SUBMATRIX) then
+         if (nfvctrp>0) then
+             call to_zero(smat%nvctr, matrix_compr(1))
+             isegstart=smat%istsegline(isfvctr+1)
+             isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
+             !$omp parallel default(none) &
+             !$omp shared(isegstart, isegend, matrixp, smat, matrix_compr, isfvctr) &
+             !$omp private(iseg, ii, jorb, iiorb, jjorb)
+             !$omp do
+             do iseg=isegstart,isegend
+                 ii=smat%keyv(iseg)-1
+                 do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
+                     ii=ii+1
+                     iiorb = (jorb-1)/smat%nfvctr + 1
+                     jjorb = jorb - (iiorb-1)*smat%nfvctr
+                     matrix_compr(ii)=matrixp(jjorb,iiorb-isfvctr)
+                 end do
+             end do
+             !$omp end do
+             !$omp end parallel
+         end if
+
+         call timing(iproc,'compressd_mcpy','OF')
+         call timing(iproc,'compressd_comm','ON')
+         ncount = 0
+         do itg=1,smat%ntaskgroupp
+             iitg = smat%inwhichtaskgroup(itg)
+             ncount = ncount + smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+         end do
+         recvbuf = f_malloc(ncount,id='recvbuf')
+
+         ncount = 0
+         request = f_malloc(smat%ntaskgroupp,id='request')
+         do itg=1,smat%ntaskgroupp
+             iitg = smat%inwhichtaskgroup(itg)
+             ist_send = smat%taskgroup_startend(1,1,iitg)
+             ist_recv = ncount + 1
+             ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+             call mpi_iallreduce(matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
+                  mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
+         end do
+         call mpi_waitall(smat%ntaskgroupp, request, mpi_statuses_ignore, ierr)
+         ncount = 0
+         do itg=1,smat%ntaskgroupp
+             iitg = smat%inwhichtaskgroup(itg)
+             ist_send = smat%taskgroup_startend(1,1,iitg)
+             ist_recv = ncount + 1
+             ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+             call vcopy(ncount, recvbuf(ist_recv), 1, matrix_compr(ist_send), 1)
+         end do
+
+         call f_free(request)
+         call f_free(recvbuf)
+         call timing(iproc,'compressd_comm','OF')
+     else
+         stop 'compress_matrix_distributed: wrong data_strategy'
      end if
 
      call timing(iproc,'compressd_comm','OF')

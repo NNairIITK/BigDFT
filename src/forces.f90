@@ -4240,7 +4240,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   !local variables--------------
   integer :: istart_c,iproj,iat,ityp,i,j,l,m,iorbout,iiorb,ilr
   integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,ind,iseg,jjorb,ispin
-  integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd
+  integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd,ncount,ist_send
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,Enl,vol
   !real(gp) :: orbfac,strc
   integer :: idir,i_all,i_stat,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb,jproc,ii,ist,ierr,iiat
@@ -4252,6 +4252,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   real(dp),dimension(:,:,:,:,:,:,:),allocatable :: scalprod_sendbuf
   real(dp),dimension(:),allocatable :: scalprod_recvbuf
   integer,parameter :: ndir=3 !3 for forces, 9 for forces and stresses
+  real(kind=8),dimension(:),allocatable :: denskern_gathered
 
   !integer :: ldim, gdim
   !real(8),dimension(:),allocatable :: phiglobal
@@ -4637,6 +4638,25 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       end do
   end do
 
+
+  ! The density kernel is distributed over the taskgroups, but here the entire
+  ! array is needed. Therefore gather it together from the taskgroups. If one
+  ! wants to avoid this, the parallelization scheme of the subroutine must be changed.
+  call to_zero(nproc, recvcounts(0))
+  call to_zero(nproc, recvdspls(0))
+  ncount = denskern%smmm%istartend_mm_dj(2) - denskern%smmm%istartend_mm_dj(1) + 1
+  recvcounts(iproc) = ncount
+  call mpiallred(recvcounts(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+  recvdspls(0) = 0
+  do jproc=0,nproc-1
+      recvdspls(jproc) = recvdspls(jproc-1) + recvcounts(jproc-1)
+  end do
+  ist_send = denskern%smmm%istartend_mm_dj(1)
+  denskern_gathered = f_malloc(denskern%nvctr, id='denskern_gathered')
+  call mpi_get_to_allgatherv_double(denskern_mat%matrix_compr(ist_send), ncount, denskern_gathered(1), recvcounts, recvdspls, bigdft_mpi%mpi_comm)
+  call vcopy(denskern%nvctr, denskern_gathered(1), 1, denskern_mat%matrix_compr(1), 1)
+  call f_free(denskern_gathered)
+  
 
   fxyz_orb = f_malloc((/ 3, at%astruct%nat /),id='fxyz_orb')
 

@@ -442,8 +442,12 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   integer :: totops, avops, ops, opsn
   integer, allocatable, dimension(:) :: numops
   logical :: ifnd, jfnd
-  integer :: iorb, jorb, imat, iseg, iorb_shift
+  integer :: iorb, jorb, imat, iseg, iorb_shift, itg, iitg, ist_send, ist_recv, ncount
+  integer,dimension(:),allocatable :: request
+  real(kind=8),dimension(:),allocatable :: recvbuf
   integer,dimension(2) :: irowcol
+  integer,parameter :: GLOBAL_MATRIX=101, SUBMATRIX=102
+  integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
 
   call timing(iproc,'ovrlptransComp','ON') !lr408t
 
@@ -844,8 +848,43 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
 
   call timing(iproc,'ovrlptransComm','ON') !lr408t
 
-  if(nproc > 1) then
-      call mpiallred(ovrlp%matrix_compr(1), smat%nvctr*smat%nspin, mpi_sum, bigdft_mpi%mpi_comm)
+  if (data_strategy==GLOBAL_MATRIX) then
+      if(nproc > 1) then
+          call mpiallred(ovrlp%matrix_compr(1), smat%nvctr*smat%nspin, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
+
+  else if (data_strategy==SUBMATRIX) then
+      ncount = 0
+      do itg=1,smat%ntaskgroupp
+          iitg = smat%inwhichtaskgroup(itg)
+          ncount = ncount + smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+      end do
+      recvbuf = f_malloc(ncount,id='recvbuf')
+
+      ncount = 0
+      request = f_malloc(smat%ntaskgroupp,id='request')
+      do itg=1,smat%ntaskgroupp
+          iitg = smat%inwhichtaskgroup(itg)
+          ist_send = smat%taskgroup_startend(1,1,iitg)
+          ist_recv = ncount + 1
+          ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+          call mpi_iallreduce(ovrlp%matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
+               mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
+      end do
+      call mpi_waitall(smat%ntaskgroupp, request, mpi_statuses_ignore, ierr)
+      ncount = 0
+      do itg=1,smat%ntaskgroupp
+          iitg = smat%inwhichtaskgroup(itg)
+          ist_send = smat%taskgroup_startend(1,1,iitg)
+          ist_recv = ncount + 1
+          ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+          call vcopy(ncount, recvbuf(ist_recv), 1, ovrlp%matrix_compr(ist_send), 1)
+      end do
+
+      call f_free(request)
+      call f_free(recvbuf)
+  else
+      stop 'calculate_overlap_transposed: wrong data_strategy'
   end if
 
 

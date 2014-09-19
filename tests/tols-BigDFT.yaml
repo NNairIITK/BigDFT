@@ -38,6 +38,12 @@ Keys to ignore:
  - Size of the global database
  - Total No. of Taskgroups created
  - sparse matmul load balancing naive / optimized
+ - number of taskgroups
+ - taskgroups overview
+ #- number of tasks
+ #- IDs
+ #- start / end
+ #- start / end disjoint
 Patterns to ignore:
  - Timestamp
  - memory
@@ -1107,3 +1113,10 @@ O2spin_dirmin:
  Max deviation from unity in reorthonormalize_coeff: 2.1e-7
  Mean deviation from unity in reorthonormalize_coeff: 1.1e-7
  delta: 1.1e-10
+
+verysparse:
+ Total charge: 1.1e-10
+ EXC: 1.1e-9
+ Keys to ignore:
+  - Calculating wavelets expansion of projectors, found warnings
+  - found warnings

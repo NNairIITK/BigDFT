@@ -3796,7 +3796,6 @@ module module_interfaces
           use module_types
           use communications, only: transpose_localized
           use sparsematrix_base, only: sparse_matrix
-          use sparsematrix, only: compress_matrix, uncompress_matrix
           implicit none
           integer,intent(in) :: iproc
           type(dft_wavefunction),intent(inout) :: tmb
