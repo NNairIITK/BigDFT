@@ -97,6 +97,10 @@ module wrapper_MPI
   interface mpiallgatherv
      module procedure mpiallgatherv_double
   end interface mpiallgatherv
+  
+  interface mpiiallred
+      module procedure mpiiallred_double
+  end interface mpiiallred
 
   !> Global MPI communicator which contains all information related to the MPI process
   type, public :: mpi_environment
@@ -1158,145 +1162,55 @@ end subroutine create_group_comm1
 
   end subroutine mpi_get_to_allgatherv_double
 
-!!  subroutine mpiget_double(iproc, nproc, mpi_comm, norigin_buffer, origin_buffer, &
-!!             dest_counts, dest_displacements, ndest_buffer, dest_buffer)
-!!    use dictionaries, only: f_err_throw,f_err_define
-!!    implicit none
-!!
-!!    ! Calling arguments
-!!    integer,intent(in) :: iproc !< process ID
-!!    integer,intent(in) :: nproc !< number of processes
-!!    integer,intent(in) :: mpi_comm !< MPI communicator
-!!    integer,intent(in) :: norigin_buffer !< size of the origin buffer
-!!    real(kind=8),dimension(norigin_buffer),intent(in) :: origin_buffer !< origin buffer, i.e. the data to be communicated
-!!    integer,dimension(0:nproc-1),intent(in) :: dest_counts !< elements to be gathered from each process
-!!    integer,dimension(0:nproc-1),intent(in) :: dest_displacements !< displacements for the blocks to be gathered from each process
-!!    integer,intent(in) :: ndest_buffer !< size of the destination buffer
-!!    real(kind=8),dimension(ndest_buffer),intent(out) :: dest_buffer !< dest buffer, i.e. where the data will be received
-!!
-!!    ! Local variables
-!!    integer :: size_of_double, ierr, info, window, jproc, jcount, jst
-!!
-!!    ! Initialize the MPI window
-!!!!$    call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-!!!!$    if (ierr/=0) then
-!!!!$        call throw_error() ; return
-!!!!$    end if
-!!!!$    call mpi_info_create(info, ierr)
-!!!!$    if (ierr/=0) then
-!!!!$        call throw_error() ; return
-!!!!$    end if
-!!!!$    call mpi_info_set(info, "no_locks", "true", ierr)
-!!!!$    if (ierr/=0) then
-!!!!$        call throw_error() ; return
-!!!!$    end if
-!!
-!!!!$    call mpi_win_create(origin_buffer(1), int(norigin_buffer*size_of_double,kind=mpi_address_kind), &
-!!!!$         size_of_double, info, mpi_comm, window, ierr)
-!!!!$    if (ierr/=0) then
-!!!!$        call throw_error() ; return
-!!!!$    end if
-!!!!$    call mpi_info_free(info, ierr)
-!!!!$    if (ierr/=0) then
-!!!!$        call throw_error() ; return
-!!!!$    end if
-!!!!$    call mpiinfofree(info)
-!!!!$
-!!!!$    call mpi_win_fence(mpi_mode_noprecede, window, ierr)
-!!!!$    if (ierr/=0) then
-!!!!$        call throw_error() ; return
-!!!!$    end if
-!!
-!!    window=mpiwindow(origin_buffer,norigin_buffer,mpi_comm)
-!!
-!!    do jproc=0,nproc-1
-!!        jcount=dest_counts(jproc)
-!!        jst=dest_displacements(jproc)
-!!        call mpi_get(dest_buffer(jst+1), jcount, mpi_double_precision, jproc, &
-!!             int(0,kind=mpi_address_kind), jcount, mpi_double_precision, window, ierr)
-!!        if (ierr/=0) then
-!!            call throw_error() ; return
-!!        end if
-!!    end do
-!!
-!!    ! Synchronize the communication
-!!    call mpi_win_fence(0, window, ierr)
-!!    if (ierr/=0) then
-!!        call throw_error() ; return
-!!    end if
-!!    call mpi_win_free(window, ierr)
-!!    if (ierr/=0) then
-!!        call throw_error() ; return
-!!    end if
-!!
-!!
-!!    contains
-!!
-!!      subroutine throw_error()
-!!        call f_err_throw('An error in the wrapper mpiget occured',&
-!!             err_id=ERR_MPI_WRAPPERS)
-!!      end subroutine throw_error
-!!
-!!  end subroutine mpiget_double
-
-
-
-!!subroutine mpi_iallreduce_fallback_double(sendbuf, recvbuf, ncount, datatype, op, comm, request, ierr)
-!!  implicit none
-!!  ! Calling arguments
-!!  integer,intent(in) :: ncount, datatype, op, comm, request
-!!  double precision,intent(in) :: sendbuf
-!!  double precision,intent(out) :: recvbuf
-!!  integer,intent(out) :: ierr
-!!  ! Local variables
-!!  integer :: window
-!!
-!!  ! Get the number of processes and the ID
-!!  nproc = mpisize(comm)
-!!  iproc = mpirank(comm)
-!!
-!!
-!!
-!!  iactive = nproc
-!!  iter = 0
-!!  do 
-!!      iter = iter + 1 !iteration counter
-!!      ioffset_target = 2**iter !offset between the target tasks (i.e. these tasks whose buffers will be modified)
-!!      ioffset_origin = 2**(iter-1) !offset between the target tasks and the next orgin task
-!!
-!!      ! Determine whether a given task is target or origin
-!!      is_target = (mod(iproc,ioffset_target)==0)
-!!      is_origin = (mod(iproc,ioffset_target)==ioffset_origin)
-!!
-!!      ! Create an MPI window for the target tasks; the others expose no data
-!!      if (is_target) then
-!!          window = mpiwindow(ncount, sendbuf, comm)
-!!      else
-!!          window = mpiwindow(0, sendbuf, comm)
-!!      end if
-!!
-!!      ! Accumulate the buffer of the target tasks with the content of the origin tasks
-!!      if (is_origin) then
-!!          call mpi_accumulate(sendbuf(1), ncount, mpi_double_precision, iproc-ioffset_origin, &
-!!               int(0,kind=mpi_address_kind), ncount, mpi_double_precision, op, window, ierr)
-!!      end if
-!!
-!!
-!!  end do
-!!
-!!end subroutine mpi_iallreduce_fallback
   
-  subroutine mpiiallred(sendbuf, recvbuf, ncount, datatype, op, comm, request, ierr)
+  subroutine mpiiallred_double(sendbuf, recvbuf, ncount, datatype, op, comm, request)
+    use dictionaries, only: f_err_throw,f_err_define
     implicit none
     ! Calling arguments
-    integer,intent(in) :: ncount, datatype, op, comm, request
+    integer,intent(in) :: ncount, datatype, op, comm
     double precision,intent(in) :: sendbuf
     double precision,intent(out) :: recvbuf
-    integer,intent(out) :: ierr
+    integer,intent(out) :: request
+    ! Local variables
+    integer :: ierr
 
-    if (have_mpi3) then
-        call mpi_iallreduce(sendbuf, recvbuf, ncount, datatype, op, comm, request, ierr)
-  end subroutine mpiiallred
+#ifdef HAVE_MPI3
+    call mpi_iallreduce(sendbuf, recvbuf, ncount, datatype, op, comm, request, ierr)
+    if (ierr/=0) then
+       call f_err_throw('An error in calling to MPI_IALLREDUCE occured',&
+            err_id=ERR_MPI_WRAPPERS)
+       return
+    end if
+#else
+    call mpi_allreduce(sendbuf, recvbuf, ncount, datatype, op, comm, ierr)
+    if (ierr/=0) then
+       call f_err_throw('An error in calling to MPI_ALLREDUCE occured',&
+            err_id=ERR_MPI_WRAPPERS)
+       return
+    end if
+    request = MPI_REQUEST_NULL
+#endif
+
+  end subroutine mpiiallred_double
+
+
+  subroutine mpiwaitall(ncount, array_of_requests)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    ! Local variables
+    integer,intent(in) :: ncount
+    integer,dimension(ncount),intent(in) :: array_of_requests
+    ! Local variables
+    integer :: ierr
+
+    call mpi_waitall(ncount, array_of_requests, MPI_STATUSES_IGNORE, ierr)
+    if (ierr/=0) then
+       call f_err_throw('An error in calling to MPI_WAITALL occured',&
+            err_id=ERR_MPI_WRAPPERS)
+       return
+    end if
+
+  end subroutine mpiwaitall
 
 end module wrapper_MPI
 

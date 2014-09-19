@@ -570,10 +570,12 @@ module sparsematrix
              ist_send = smat%taskgroup_startend(1,1,iitg)
              ist_recv = ncount + 1
              ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
-             call mpi_iallreduce(matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
-                  mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
+             !!call mpi_iallreduce(matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
+             !!     mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
+             call mpiiallred(matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
+                  mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg))
          end do
-         call mpi_waitall(smat%ntaskgroupp, request, mpi_statuses_ignore, ierr)
+         call mpiwaitall(smat%ntaskgroupp, request)
          ncount = 0
          do itg=1,smat%ntaskgroupp
              iitg = smat%inwhichtaskgroup(itg)

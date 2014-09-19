@@ -292,6 +292,32 @@ end
       AC_DEFINE([HAVE_MPI2], [1], [use MPI2 capabilities.])
     fi
 
+    dnl Test for MPI3.
+    AC_ARG_WITH(mpi3, AS_HELP_STRING([--with-mpi3],
+                [Use MPI3 capabilities like MPI_IALLREDUCE.]),
+                ac_with_mpi3=$withval, ac_with_mpi3="auto")
+    if test x"$ac_with_mpi3" == x"yes" -o x"$ac_with_mpi3" == x"auto" ; then
+      AC_MSG_CHECKING([for MPI 3 capabilities])
+      AC_LINK_IFELSE([[
+program main
+implicit none
+
+integer :: ierr,request
+real :: rho(3),rho2(3)
+
+include "mpif.h"
+
+call MPI_IALLREDUCE(rho2,rho,3,&
+              MPI_REAL,MPI_SUM,MPI_COMM_WORLD,request,ierr)
+end
+]], ac_with_mpi3="yes", ac_with_mpi3="no")
+      AC_MSG_RESULT([$ac_with_mpi3])
+    fi
+
+    if test x"$ac_with_mpi3" = x"yes" ; then
+      AC_DEFINE([HAVE_MPI3], [1], [use MPI3 capabilities (like MPI_IALLREDUCE).])
+    fi
+
   else
     AC_MSG_WARN([MPI is not working and has been disabled.])
     AC_MSG_WARN([  If you don't want to see this warning,])

@@ -21,7 +21,7 @@ TESTDIRS = Locreg \
 	   DIIShistory \
 	   PBE \
 	   geoptconstrained \
-	   O2spin \ 
+	   O2spin \
        verysparse
 
 EXTRA_TESTDIRS = reformatcomplete \
