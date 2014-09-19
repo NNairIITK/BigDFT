@@ -537,7 +537,8 @@ allocate(fat(3,nat))
 !        call free_input_variables(inputs_opt)
         call deallocate_global_output(outs)
         call bigdft_finalize(ierr)
-    elseif(efmethod=='LJ'.or.efmethod=='AMBER')then
+    elseif(efmethod=='LJ'.or.efmethod=='AMBER'.or.&
+           efmethod=='LENSIc' .or. efmethod=='LENSIb')then
         call deallocate_atomic_structure(astruct)
         nullify(astruct)
     endif
