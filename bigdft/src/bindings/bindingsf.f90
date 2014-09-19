@@ -1768,14 +1768,19 @@ END SUBROUTINE dict_dump_to_file
 
 subroutine dict_parse(dict, buf)
   use dictionaries, only: dictionary, operator(//), dict_len
+  use dictionaries_base, only: dict_destroy
   use yaml_parse, only: yaml_parse_from_string
   implicit none
   type(dictionary), pointer :: dict
   character(len = *), intent(in) :: buf
 
+  type(dictionary), pointer :: tmp
+
   call yaml_parse_from_string(dict, buf)
   if (dict_len(dict) == 1) then
+     tmp => dict
      dict => dict // 0
+     call dict_destroy(tmp)
   end if
 END SUBROUTINE dict_parse
 

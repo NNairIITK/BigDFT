@@ -325,15 +325,16 @@ class Inputs(BigDFT.Inputs):
       for pair in args[0].items():
         self.set(*pair)
       return
-    (key, val) = args
+    key, val = args
+    level, key = key.split("/", 2)
     if isinstance(val, tuple) or isinstance(val, list):
       if all([isinstance(elem, tuple) or isinstance(elem, list) for elem in val]):
         for (i, elem) in enumerate(val):
-          self.set_array_at(key, i, map(str, elem))
+          self.set_array_at(level, key, i, map(str, elem))
       else:
-        self.set_array(key, map(str, val))
+        self.set_array(level, key, map(str, val))
     else:
-      super(BigDFT.Inputs, self).set(key, str(val))
+      super(BigDFT.Inputs, self).set(level, key, str(val))
 
 Inputs = override(Inputs)
 __all__.append('Inputs')
