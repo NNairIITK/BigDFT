@@ -294,7 +294,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   real(gp), intent(out) :: fnoise,pressure
   real(gp), dimension(6), intent(out) :: strten
   real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
-  type(DFT_wavefunction),intent(in) :: tmb
+  type(DFT_wavefunction),intent(inout) :: tmb
   !local variables
   integer :: iat,i,j
   real(gp) :: charge,ucvol,maxdiff
@@ -4234,7 +4234,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(npsidim_orbs), intent(in) :: phi
   type(sparse_matrix),intent(in) :: denskern
-  type(matrices),intent(in) :: denskern_mat
+  type(matrices),intent(inout) :: denskern_mat
   real(gp), dimension(3,at%astruct%nat), intent(inout) :: fsep
   real(gp), dimension(6), intent(out) :: strten
   !local variables--------------
@@ -4653,7 +4653,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   end do
   ist_send = denskern%smmm%istartend_mm_dj(1)
   denskern_gathered = f_malloc(denskern%nvctr, id='denskern_gathered')
-  call mpi_get_to_allgatherv_double(denskern_mat%matrix_compr(ist_send), ncount, denskern_gathered(1), recvcounts, recvdspls, bigdft_mpi%mpi_comm)
+  call mpi_get_to_allgatherv_double(denskern_mat%matrix_compr(ist_send), ncount, &
+       denskern_gathered(1), recvcounts, recvdspls, bigdft_mpi%mpi_comm)
   call vcopy(denskern%nvctr, denskern_gathered(1), 1, denskern_mat%matrix_compr(1), 1)
   call f_free(denskern_gathered)
   

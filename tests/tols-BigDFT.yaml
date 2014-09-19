@@ -855,9 +855,9 @@ paracetamol:
  Omega: 1.1e-9
  energy: 1.5e-10
  Total charge: 2.1e-11
- charge diff: 1.9e-6
+ charge diff: 2.0e-6
  D eF: 1.6e-6
- Tr(K): 1.9e-6
+ Tr(K): 2.0e-6
  D Tr: 1.9e-6
  tr(KS) before purification: 1.6e-6
  guess for new ef: 7.5e-7
