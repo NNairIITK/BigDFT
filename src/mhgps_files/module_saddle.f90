@@ -195,7 +195,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     if(iproc==0.and.mhgps_verbosity>=2)then
         write(*,'(a)')&
         '  #(MHGPS) METHOD COUNT  IT  Energy                '//&
-        'DIFF      FMAX      FNRM      alpha    ndim   dspl   alpha_strtch'
+        'DIFF      FMAX      FNRM      alpha    ndim dspl         alpha_strtch'
         write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es12.5,1x,es9.2)')&
         '   (MHGPS) GEOPT ',nint(ener_count),0,etotp,detot,fmax,&
         fnrm, alpha,ndim,displ,alpha_stretch
@@ -278,7 +278,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
             !DIFF      FMAX      FNRM      alpha    ndim')
             if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a)')&
             '  #(MHGPS) METHOD COUNT  IT  CURVATURE             '//&
-            'DIFF      FMAX      FNRM      alpha    ndim    alpha_strtch   overlap   displr   displp'
+            'DIFF      FMAX      FNRM      alpha    ndim alpha_strtch overl. displr       displp'
             inputPsiId=1
              !inputPsiId=0
             call opt_curv(it,imode,nat,alat,alpha0_rot,curvforcediff,nit_rot,&
@@ -312,7 +312,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
             !DIFF      FMAX      FNRM      alpha    ndim')
             if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a)')&
             '  #(MHGPS) METHOD COUNT  IT  Energy                '//&
-            'DIFF      FMAX      FNRM      alpha    ndim   dspl   alpha_strtch'
+            'DIFF      FMAX      FNRM      alpha    ndim dspl         alpha_strtch'
         endif
         !END FINDING LOWEST MODE
         
