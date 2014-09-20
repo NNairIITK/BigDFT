@@ -39,9 +39,9 @@ libmhgps_a_SOURCES = $(mhgps_SOURCES)
 ##	        nab -c  -g $<
 
 #dependencies
-mhgps.o : $(mhgps_objects:.f90=.o) ../modules/BigDFT_API.o
+##mhgps.o : $(mhgps_objects:.f90=.o) ../modules/BigDFT_API.o
 ##for amber support:
-##mhgps.o : $(mhgps_objects:.f90=.o) ../modules/BigDFT_API.o wrap.o
+mhgps.o : $(mhgps_objects:.f90=.o) ../modules/BigDFT_API.o wrap.o
 
 module_energyandforces.o : module_lenosky_si.o \
                            module_lj.o \

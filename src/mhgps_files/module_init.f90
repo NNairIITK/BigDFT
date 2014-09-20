@@ -57,9 +57,8 @@ contains
             endif
             read(u,*)saddle_curvgraddiff
             read(u,*)saddle_rmsdispl0,saddle_trustr
-            read(u,*)saddle_tolc,saddle_tolf
+            read(u,*)saddle_tolc,saddle_tolf,saddle_tighten
             read(u,*)saddle_minoverlap0
-            read(u,*)saddle_tightenfac
             read(u,*)saddle_maxcurvrise
             read(u,*)saddle_cutoffratio
             read(u,*)saddle_recompIfCurvPos
@@ -119,9 +118,8 @@ contains
             endif
             write(u,'(es10.3,1x,1a)')saddle_curvgraddiff,' #curvgraddif'
             write(u,'(es10.3,1x,es10.3,1x,1a)')saddle_rmsdispl0,saddle_trustr,' #rmsdispl0, trustr'
-            write(u,'(es10.3,1x,es10.3,1x,1a)')saddle_tolc,saddle_tolf,' #tolc, tolf'
+            write(u,'(es10.3,1x,es10.3,1x,1L1,1x,1a)')saddle_tolc,saddle_tolf,saddle_tighten,' #tolc, tolf, tighten'
             write(u,'(es10.3,1x,1a)')saddle_minoverlap0,' #minoverlap0'
-            write(u,'(es10.3,1x,1a)')saddle_tightenfac,' #tightenfac'
             write(u,'(es10.3,1x,1a)')saddle_maxcurvrise,' #maxcurvrise'
             write(u,'(es10.3,1x,1a)')saddle_cutoffratio,' #cutoffratio'
             write(u,'(1x,i0,1x,1a)')saddle_recompIfCurvPos,' #recompIfCurvPos'
@@ -176,7 +174,7 @@ contains
         call yaml_map('(MHGPS) saddle_trustr',saddle_trustr)
         call yaml_map('(MHGPS) saddle_tolc',saddle_tolc)
         call yaml_map('(MHGPS) saddle_tolf',saddle_tolf)
-        call yaml_map('(MHGPS) saddle_tightenfac',saddle_tightenfac)
+        call yaml_map('(MHGPS) saddle_tighten',saddle_tighten)
         call yaml_map('(MHGPS) saddle_maxcurvrise',saddle_maxcurvrise)
         call yaml_map('(MHGPS) saddle_cutoffratio',saddle_cutoffratio)
         call yaml_map('(MHGPS) saddle_recompIfCurvPos',saddle_recompIfCurvPos)

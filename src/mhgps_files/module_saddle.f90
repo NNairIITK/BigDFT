@@ -26,10 +26,10 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     use module_global_variables, only: inputPsiId, iproc, ixyz_int, astruct, mhgps_verbosity,&
                                        currDir, isadc, ndim_rot, nhist_rot, alpha_rot,&
                                        alpha_stretch_rot,saddle_alpha_stretch0,work,lwork,&
-                                       saddle_steepthresh_trans ,imode,&
+                                       saddle_steepthresh_trans,imode,saddle_tighten,&
                                        recompIfCurvPos => saddle_recompIfCurvPos,&
                                        minoverlap0   => saddle_minoverlap0,&
-                                       tightenfac    => saddle_tightenfac,&
+!                                       tightenfac    => saddle_tightenfac,&
                                        maxcurvrise   => saddle_maxcurvrise,&
                                        cutoffratio   => saddle_cutoffratio,&
                                        fnrmtol       => saddle_fnrmtol,&
@@ -108,6 +108,8 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     integer  :: i
     integer  :: recompute
     integer  :: fc=0
+    integer  :: icheck
+    integer  :: icheckmax
     real(gp) :: tol
     real(gp) :: displold
     real(gp) :: rmsdispl
@@ -117,10 +119,11 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     real(gp) :: tnatdmy(3,nat)
     real(gp) :: tmp
     logical  :: optCurvConv
-    logical  :: flag
+!    logical  :: flag
     logical  :: tooFar
     logical  :: fixfragmented
     logical  :: subspaceSucc
+    logical  :: tighten
     character(len=9)   :: fn9
     character(len=300)  :: comment
     character(len=100) :: filename
@@ -144,7 +147,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     alpha_rot=alpha0_rot
     alpha_stretch_rot=saddle_alpha_stretch0
     rmsdispl=rmsdispl0
-    flag=.true.
+!    flag=.true.
     fc=0
     fixfragmented=.false.
     converged=.false.
@@ -154,6 +157,9 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     displold=0.0_gp
     detot=0.0_gp
     curv=1000.0_gp
+    icheck=0
+    icheckmax=5
+    tighten=.false.
     alpha_stretch=alpha_stretch0
 
     ! allocate arrays
@@ -237,25 +243,26 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
         !might be only done in a flat region, but not at the end
         !close to the transition state (may happen sometimes
         !for biomolecules)
-        if(fnrm > 2.0_gp*tightenfac*fnrmtol)then
-             flag=.true.
-        endif
+!        if(fnrm > 2.0_gp*tightenfac*fnrmtol)then
+!             flag=.true.
+!        endif
         !determine if final tightening should be done:
-        if(fnrm<=tightenfac*fnrmtol .and. curv<0.d0 .and. (flag .or. tooFar))then
- !       if(fnrm<=tightenfac*fnrmtol .and. flag)then
+        if(tighten.and.saddle_tighten)then
+!        if(fnrm<=tightenfac*fnrmtol .and. curv<0.d0 .and. (flag .or. tooFar))then
+!!       if(fnrm<=tightenfac*fnrmtol .and. flag)then
             if(iproc==0.and.mhgps_verbosity>=2)then
-                if(flag)then
+!                if(flag)then
                     call yaml_comment('(MHGPS) tightening')
-                else
-                    call yaml_warning('(MHGPS) redo tightening '//&
-                         'since walked too far at small forces. '//&
-                         'Is tightenfac chosen too large?')
-                endif
+!                else
+!                    call yaml_warning('(MHGPS) redo tightening '//&
+!                         'since walked too far at small forces. '//&
+!                         'Is tightenfac chosen too large?')
+!                endif
             endif
             tol=tolf
             recompute=it
             minoverlap=-2._gp !disable overlap control in opt_curv
-            flag=.false.
+!            flag=.false.
  !       else if(it==1)then
  !           tol=tolc
         else
@@ -417,7 +424,15 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
 
         etot=etotp
         etotold=etot
-        if (fnrm.le.fnrmtol .and. curv<0.0_gp) goto 1000
+        call convcheck_sad(fnrm,curv,0.0_gp,fnrmtol,icheck)
+        if(icheck>icheckmax)then
+            goto 1000
+        else if(icheck == icheckmax)then
+            tighten=.true.
+        else if(icheck == 0)then
+            tighten=.false.
+        endif
+!        if (fnrm.le.fnrmtol .and. curv<0.0_gp) goto 1000
 !       if (fnrm.le.fnrmtol) goto 1000
 
         !now do step in hard directions
@@ -1875,6 +1890,18 @@ use module_base
   if (vnrm /= 0.0_gp) v(1:n)=v(1:n)/vnrm
 
 END SUBROUTINE normalizevector
+subroutine convcheck_sad(fmax,curv,fluctfrac_fluct,forcemax,check)
+  use module_base
+  implicit none
+  real(gp), intent(in):: fmax, fluctfrac_fluct,forcemax,curv
+  integer, intent(inout)::check
+
+  if ( fmax < max(forcemax,fluctfrac_fluct).and. curv <0.0_gp) then
+    check=check+1
+  else
+    check=0
+  endif
+end subroutine convcheck_sad
 !!!!subroutine cal_hessian_fd_m(iproc,nat,alat,pos,hess)
 !!!!use module_base
 !!!!use module_energyandforces

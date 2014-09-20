@@ -41,7 +41,8 @@ module module_global_variables
     real(gp)         :: saddle_trustr              = 0.2_gp
     real(gp)         :: saddle_tolc                = 7.0_gp
     real(gp)         :: saddle_tolf                = 7.0_gp
-    real(gp)         :: saddle_tightenfac          = -1.0_gp
+    logical          :: saddle_tighten             = .true.
+!    real(gp)         :: saddle_tightenfac          = -1.0_gp
     real(gp)         :: saddle_maxcurvrise         = 1.e-6_gp
     real(gp)         :: saddle_cutoffratio         = 1.e-4_gp
     real(gp)         :: saddle_minoverlap0         = 0.95_gp
