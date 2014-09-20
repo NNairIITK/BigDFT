@@ -6,15 +6,20 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
  !local variables
   integer :: ierror
-  logical :: use_global
+  ! logical :: use_global
   !$ logical :: not_omp
   !$ logical, external :: omp_in_parallel,omp_get_nested
-  integer(kind=8) :: ilsize,jlsize,iadd
-  character(len=namelen) :: array_id,routine_id
-  character(len=info_length) :: array_info
-  type(dictionary), pointer :: dict_add
+  integer(kind=8) :: ilsize
+  ! integer(kind=8) :: jlsize
+  integer(kind=8) :: iadd
+  ! character(len=namelen) :: array_id
+  ! character(len=namelen) :: routine_id
+  ! character(len=info_length) :: array_info
+  ! type(dictionary), pointer :: dict_add
 
   if (f_err_raise(ictrl == 0,&
        'ERROR (f_free): the routine f_malloc_initialize has not been called',&

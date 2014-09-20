@@ -64,20 +64,20 @@ module dynamic_memory
      logical :: routine_opened       !< global variable (can be stored in dictionaries)
      logical :: profile_routine      !< decide whether the routine has to be profiled
      character(len=namelen) :: present_routine !< name of the active routine 
-     !>dictionaries needed for profiling storage
+     !> Dictionaries needed for profiling storage
      type(dictionary), pointer :: dict_global    !<status of the memory at higher level
      type(dictionary), pointer :: dict_routine   !<status of the memory inside the routine
      type(dictionary), pointer :: dict_calling_sequence !<profiling of the routines
      type(dictionary), pointer :: dict_codepoint !<points to where we are in the previous dictionary
   end type mem_ctrl
   
-  !> reference counter. Can be used to control the pointer
+  !> Reference counter. Can be used to control the pointer
   !! referencing to a derived datatype
   type, public :: f_reference_counter
-     !> counter of references. When nullified or zero, 
+     !> Counter of references. When nullified or zero, 
      !! the associated object is ready to be destroyed
      integer, pointer :: iref 
-     !> information about the associated object
+     !> Information about the associated object
      type(dictionary), pointer :: info
   end type f_reference_counter
 
@@ -123,7 +123,7 @@ module dynamic_memory
      module procedure z1_ptr_free
   end interface
 
-  !> initialize to zero an array (should be called f_memset)
+  !> Initialize to zero an array (should be called f_memset)
   interface to_zero
      module procedure put_to_zero_simple, &
            put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2, &
@@ -183,7 +183,7 @@ contains
     mem%routine_opened=.false.      
     mem%profile_routine=.true.
     mem%present_routine=repeat(' ',namelen)
-    !>dictionaries needed for profiling storage
+    !> Dictionaries needed for profiling storage
     nullify(mem%dict_global)
     nullify(mem%dict_routine)
     nullify(mem%dict_calling_sequence)
@@ -232,7 +232,7 @@ contains
     call yaml_map('References',f_ref%iref)
   end subroutine dump_ref_cnt
 
-  !> allocate a reference counter
+  !> Allocate a reference counter
   !! this function should be called whe the associated object starts
   !! to be non-trivial
   function f_ref_new(id,address) result(f_ref)
@@ -253,11 +253,11 @@ contains
     f_ref%iref=1
   end function f_ref_new
 
-  !>dereferencing counter
+  !> Dereferencing counter
   subroutine f_unref(f_ref,count)
     implicit none
     type(f_reference_counter), intent(inout) :: f_ref
-    !> reference counter. Gives the user the possiblity to free after unref
+    !> Reference counter. Gives the user the possiblity to free after unref
     !! if present, it returns the number of counters associated to the object
     !! if absent f_unref raise an exception in the case the object is orphan
     integer, intent(out), optional :: count
@@ -279,7 +279,7 @@ contains
 
   end subroutine f_unref
   
-  !> returns the number of reference to an object.
+  !> Returns the number of reference to an object.
   !! it returns a negative number if the object is nullified
   function f_ref_count(f_ref) result(count)
     implicit none
@@ -293,7 +293,7 @@ contains
     end if
   end function f_ref_count
 
-  !> free and check a reference counter
+  !> Free and check a reference counter
   !!this should be called when calling the destructor of the
   !!associated object
   subroutine f_ref_free(f_ref)
@@ -317,7 +317,7 @@ contains
 
   end subroutine f_ref_free
 
-  !> increase the reference counter of a associated source
+  !> Increase the reference counter of a associated source
   subroutine f_ref(src)
     implicit none
     type(f_reference_counter), intent(inout) :: src
@@ -335,13 +335,13 @@ contains
     end if
   end subroutine f_ref
 
-  !> associate two reference objects.
+  !> Associate two reference objects.
   !! the destination is supposed to be in a nullified status,
   !! and the second one is supposed to be valid
   subroutine f_ref_associate(src,dest)
     use yaml_output, only: yaml_dict_dump
     implicit none
-    !>source reference. Should be in a valid state, which means
+    !> Source reference. Should be in a valid state, which means
     !! that iref should be at least one.
     type(f_reference_counter), intent(in) :: src
     type(f_reference_counter), intent(inout) :: dest
@@ -377,7 +377,7 @@ contains
 
   end subroutine f_ref_associate
 
-  !>transfer to the f_malloc_module the information of the routine
+  !> Transfer to the f_malloc_module the information of the routine
   subroutine set_routine_info(name,profile)
     implicit none
     logical, intent(in) :: profile
@@ -538,7 +538,7 @@ contains
     if (.not. within_openmp) call f_timer_resume()
   end subroutine put_to_zero_integer
 
-  !>copy the contents of an array into another one
+  !> Copy the contents of an array into another one
   include 'f_memcpy-inc.f90'
 
   !> This routine adds the corresponding subprogram name to the dictionary
@@ -699,30 +699,32 @@ contains
     call f_timer_resume()
   end subroutine f_release_routine
 
-  !>create the id of a new routine in the codepoint and points to it.
+
+  !> Create the id of a new routine in the codepoint and points to it.
   !! works for sequences
-  subroutine open_routine(dict)
-    implicit none
-    type(dictionary), pointer :: dict
-    !local variables
-    integer :: ival
-    character(len=info_length) :: routinename
-    type(dictionary), pointer :: dict_tmp
+!!$ subroutine open_routine(dict)
+!!$   implicit none
+!!$   type(dictionary), pointer :: dict
+!!$   !local variables
+!!$   integer :: ival
+!!$   character(len=info_length) :: routinename
+!!$   type(dictionary), pointer :: dict_tmp
+!!$
+!!$   !now imagine that a new routine is created
+!!$   ival=dict_len(dict)-1
+!!$   routinename=dict//ival
+!!$
+!!$   !call yaml_map('The routine which has to be converted is',trim(routinename))
+!!$
+!!$   call dict_remove(dict,ival)
+!!$
+!!$   dict_tmp=>dict//ival//trim(routinename)
+!!$
+!!$   dict => dict_tmp
+!!$   nullify(dict_tmp)
+!!$
+!!$ end subroutine open_routine
 
-    !now imagine that a new routine is created
-    ival=dict_len(dict)-1
-    routinename=dict//ival
-
-    !call yaml_map('The routine which has to be converted is',trim(routinename))
-
-    call dict_remove(dict,ival)
-
-    dict_tmp=>dict//ival//trim(routinename)
-
-    dict => dict_tmp
-    nullify(dict_tmp)
-
-  end subroutine open_routine
 
   subroutine close_routine(dict,jump_up)
     !use yaml_output !debug
@@ -826,7 +828,7 @@ contains
 
   end subroutine dynamic_memory_errors
 
-  !> opens a new instance of the dynamic memory handling
+  !> Opens a new instance of the dynamic memory handling
   subroutine f_malloc_initialize()
     implicit none
     
@@ -1000,11 +1002,13 @@ contains
      end do
   end subroutine dump_leaked_memory
 
+
+  !> Dump the status of the allocated memory (and all allocations)
   subroutine f_malloc_dump_status(filename,dict_summary)
     use yaml_output
     implicit none
     character(len=*), intent(in), optional :: filename
-    !> if present, this dictionary is filled with the summary of the 
+    !> If present, this dictionary is filled with the summary of the 
     !! dumped dictionary. Its presence disables the normal dumping
     type(dictionary), pointer, optional, intent(out) :: dict_summary 
     !local variables
@@ -1072,7 +1076,7 @@ contains
   recursive subroutine postreatment_of_calling_sequence(base_time,&
        dict_cs,dict_pt)
     implicit none
-    !>time on which percentages has to be given
+    !> Time on which percentages has to be given
     double precision, intent(in) :: base_time 
     type(dictionary), pointer :: dict_cs,dict_pt
     !local variables

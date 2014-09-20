@@ -137,6 +137,7 @@ install-data-hook:
 # Dependencies
 $(modules): $(libflib_1_a_OBJECTS)
 yaml_strings.o: $(STRINGS_INCLUDES)
+dictionaries_base.o: yaml_strings.o
 dictionaries.o: yaml_strings.o dictionaries_base.o $(DICT_INCLUDES) callbacks.o
 dictionaries_base.o: yaml_strings.o
 callbacks.o: $(NOOMP_INCLUDES)

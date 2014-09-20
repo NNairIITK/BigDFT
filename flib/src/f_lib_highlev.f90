@@ -113,8 +113,7 @@ end subroutine initialize_flib_timing_categories
 !! is taken
 subroutine f_lib_initialize()
   use dictionaries, only: f_err_initialize
-  use dynamic_memory, only: f_malloc_initialize,&
-       TCAT_INIT_TO_ZERO,TCAT_ARRAY_ALLOCATIONS
+  use dynamic_memory, only: f_malloc_initialize
   use time_profiling, only: f_timing_initialize
   implicit none
   

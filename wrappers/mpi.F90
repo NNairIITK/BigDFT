@@ -12,6 +12,7 @@
 #include <config.inc>
 #endif
 
+
 !> Module defining the routines which wrap the MPI calls
 module wrapper_MPI
   ! TO BE REMOVED with f_malloc
@@ -132,19 +133,18 @@ contains
     mpi_env=mpi_environment_null()
   end subroutine mpi_environment_free
 
+
   !> Set the MPI environment (i.e. taskgroup or MPI communicator)
-  !! @param mpi_env   MPI environment (out)
-  !! @param iproc     proc id
-  !! @param nproc     total number of MPI processes
-  !! @param mpi_comm  global MPI_communicator
-  !! @param groupsize Number of MPI processes by (task)group
-  !!                  if 0 one taskgroup (MPI_COMM_WORLD)
   subroutine mpi_environment_set(mpi_env,iproc,nproc,mpi_comm,groupsize)
     use dynamic_memory
     use yaml_output
     implicit none
-    integer, intent(in) :: iproc,nproc,mpi_comm,groupsize
-    type(mpi_environment), intent(out) :: mpi_env
+    integer, intent(in) :: iproc     !<  Proc id
+    integer, intent(in) :: nproc     !<  Total number of MPI processes
+    integer, intent(in) :: mpi_comm  !<  Global MPI_communicator
+    integer, intent(in) :: groupsize !<  Number of MPI processes by (task)group
+                                     !!  if 0 one taskgroup (MPI_COMM_WORLD)   
+    type(mpi_environment), intent(out) :: mpi_env  !< MPI environment (out)
     !local variables
     integer :: j
     integer, dimension(:), allocatable :: group_list
@@ -176,6 +176,7 @@ contains
 
     call f_release_routine()
   end subroutine mpi_environment_set
+
 
 !!! PSolver n1-n2 plane mpi partitioning !!! 
   !> This is exactly like mpi_environment_set but it always creates groups
@@ -214,7 +215,8 @@ contains
 !!$    call f_release_routine()
 !!$  end subroutine mpi_environment_set2
 
-  !this is a different procedure to assign the iproc according to the groups.
+
+  !> This is a different procedure to assign the iproc according to the groups.
   subroutine mpi_environment_set1(mpi_env,iproc,nproc,mpi_comm,groupsize,ngroup)
     use yaml_output
     use dynamic_memory
@@ -259,7 +261,8 @@ contains
     call f_release_routine()
   end subroutine mpi_environment_set1
 
-  !> create communicators associated to the groups of size group_size
+
+  !> Create communicators associated to the groups of size group_size
   subroutine create_group_comm(base_comm,group_size,group_list,group_comm)
     implicit none
     integer, intent(in) :: base_comm,group_size
@@ -315,51 +318,53 @@ contains
 
   end subroutine create_group_comm
 
-!!! PSolver n1-n2 plane mpi partitioning !!! 
-!this routine is like create_group_comm with a different group_list
-subroutine create_group_comm1(base_comm,nproc_base,group_id,ngroup,group_size,group_comm)
-  use dynamic_memory
-  use yaml_output
-  implicit none
-  integer, intent(in) :: base_comm,group_size,nproc_base,group_id,ngroup
-  integer, intent(out) :: group_comm
-  !local variables
-  character(len=*), parameter :: subname='create_group_comm'
-  integer :: grp,ierr,i,j,base_grp,temp_comm!,i_stat,i_all
-  integer, dimension(:), allocatable :: group_list
 
-! allocate(group_list(group_size+ndebug),stat=i_stat)
-  group_list = f_malloc(group_size,id='group_list')
+  !!! PSolver n1-n2 plane mpi partitioning !!! 
+  !> This routine is like create_group_comm with a different group_list
+  subroutine create_group_comm1(base_comm,nproc_base,group_id,ngroup,group_size,group_comm)
+    use dynamic_memory
+    use yaml_output
+    implicit none
+    integer, intent(in) :: base_comm,group_size,nproc_base,group_id,ngroup
+    integer, intent(out) :: group_comm
+    !local variables
+    character(len=*), parameter :: subname='create_group_comm'
+    integer :: grp,ierr,i,j,base_grp,temp_comm!,i_stat,i_all
+    integer, dimension(:), allocatable :: group_list
 
-  !take the base group
-  call MPI_COMM_GROUP(base_comm,base_grp,ierr)
-  if (ierr /=0) then
-     call yaml_warning('Problem in group creation, ierr:'//yaml_toa(ierr))
-     call MPI_ABORT(base_comm,1,ierr)
-  end if
-  do i=0,ngroup-1
-     !define the new groups and thread_id
-     do j=0,group_size-1
-        group_list(j+1)=i+j*ngroup
-     enddo
-     call MPI_GROUP_INCL(base_grp,group_size,group_list,grp,ierr)
-     if (ierr /=0) then
-        call yaml_warning('Problem in group inclusion, ierr:'//yaml_toa(ierr))
-        call MPI_ABORT(base_comm,1,ierr)
-     end if
-     call MPI_COMM_CREATE(base_comm,grp,temp_comm,ierr)
-     if (ierr /=0) then
-        call yaml_warning('Problem in communicator creator, ierr:'//yaml_toa(ierr))
-        call MPI_ABORT(base_comm,1,ierr)
-     end if
-     !print *,'i,group_id,temp_comm',i,group_id,temp_comm
-     if (i.eq. group_id) group_comm=temp_comm
-  enddo
+  ! allocate(group_list(group_size+ndebug),stat=i_stat)
+    group_list = f_malloc(group_size,id='group_list')
 
-!i_all=-product(shape(group_list ))*kind(group_list )
-! deallocate(group_list,stat=i_stat)
-  call f_free(group_list)
-end subroutine create_group_comm1
+    !take the base group
+    call MPI_COMM_GROUP(base_comm,base_grp,ierr)
+    if (ierr /=0) then
+       call yaml_warning('Problem in group creation, ierr:'//yaml_toa(ierr))
+       call MPI_ABORT(base_comm,1,ierr)
+    end if
+    do i=0,ngroup-1
+       !define the new groups and thread_id
+       do j=0,group_size-1
+          group_list(j+1)=i+j*ngroup
+       enddo
+       call MPI_GROUP_INCL(base_grp,group_size,group_list,grp,ierr)
+       if (ierr /=0) then
+          call yaml_warning('Problem in group inclusion, ierr:'//yaml_toa(ierr))
+          call MPI_ABORT(base_comm,1,ierr)
+       end if
+       call MPI_COMM_CREATE(base_comm,grp,temp_comm,ierr)
+       if (ierr /=0) then
+          call yaml_warning('Problem in communicator creator, ierr:'//yaml_toa(ierr))
+          call MPI_ABORT(base_comm,1,ierr)
+       end if
+       !print *,'i,group_id,temp_comm',i,group_id,temp_comm
+       if (i.eq. group_id) group_comm=temp_comm
+    enddo
+
+  !i_all=-product(shape(group_list ))*kind(group_list )
+  ! deallocate(group_list,stat=i_stat)
+    call f_free(group_list)
+  end subroutine create_group_comm1
+
 
   !> Create a communicator between proc of same rank between the taskgroups.
   subroutine create_rank_comm(group_comm, rank_comm)
@@ -408,6 +413,7 @@ end subroutine create_group_comm1
     call f_free(ids)
   END SUBROUTINE create_rank_comm
 
+
   subroutine wmpi_init_thread(ierr)
     use dictionaries, only: f_err_throw
     implicit none
@@ -432,7 +438,8 @@ end subroutine create_group_comm1
 #endif
   end subroutine wmpi_init_thread
 
-  !> finalization of the mpi
+
+  !> Finalization of the mpi
   subroutine mpifinalize()
     use dictionaries, only: f_err_throw
     implicit none
@@ -446,7 +453,8 @@ end subroutine create_group_comm1
     end if
   end subroutine mpifinalize
 
-  !> initialize timings and also mpi errors
+
+  !> Initialize timings and also mpi errors
   subroutine mpi_initialize_timing_categories()
     use time_profiling, only: f_timing_category_group,f_timing_category
     use dictionaries, only: f_err_throw,f_err_define
@@ -547,7 +555,7 @@ end subroutine create_group_comm1
     mt=MPI_CHARACTER
   end function mpitype_c1
 
-  !>function giving the mpi rank id for a given communicator
+  !> Function giving the mpi rank id for a given communicator
   function mpirank(comm)
     use dictionaries, only: f_err_throw
     implicit none
@@ -567,7 +575,7 @@ end subroutine create_group_comm1
 
   end function mpirank
 
-  !> returns the number of mpi_tasks associated to a given communicator
+  !> Returns the number of mpi_tasks associated to a given communicator
   function mpisize(comm)
     use dictionaries, only: f_err_throw
     implicit none
@@ -588,7 +596,7 @@ end subroutine create_group_comm1
 
   end function mpisize
 
-  !> performs the barrier of a given communicator, if present
+  !> Performs the barrier of a given communicator, if present
   subroutine mpibarrier(comm)
     use dictionaries, only: f_err_throw
     implicit none
@@ -609,7 +617,7 @@ end subroutine create_group_comm1
     end if
   end subroutine mpibarrier
 
-  !gather the results of a given array into the root proc
+  !> Gather the results of a given array into the root proc
   subroutine mpigather_d1d1(sendbuf,recvbuf,root,comm)
     use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
@@ -665,8 +673,8 @@ end subroutine create_group_comm1
     include 'gather-inc.f90'   
   end subroutine mpigather_d2
 
-  !gather the results of a given array into the root proc, version 
-  !working with adresses
+  !> Gather the results of a given array into the root proc, version 
+  !! working with adresses
   subroutine mpigather_i0i2(sendbuf,sendcount,recvbuf,root,comm)
     use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
@@ -709,7 +717,7 @@ end subroutine create_group_comm1
   
 
 
-  !interface for MPI_ALLGATHERV operations
+  !> Interface for MPI_ALLGATHERV operations
   subroutine mpiallgatherv_double(buffer,counts,displs,me,mpi_comm,ierr)
     use dynamic_memory
     implicit none
@@ -744,7 +752,7 @@ end subroutine create_group_comm1
     if (ierr /=0) stop 'MPIALLGATHERV_DBL'
   end subroutine mpiallgatherv_double
 
-  !interface for MPI_ALLREDUCE operations
+  !> Interface for MPI_ALLREDUCE operations
   subroutine mpiallred_int(sendbuf,count,op,comm,recvbuf)
     use dictionaries, only: f_err_throw,f_err_define
     use dynamic_memory
@@ -755,7 +763,7 @@ end subroutine create_group_comm1
     include 'allreduce-inc.f90'
   end subroutine mpiallred_int
 
-  !interface for MPI_ALLREDUCE operations
+  !> Interface for MPI_ALLREDUCE operations
   subroutine mpiallred_real(sendbuf,count,op,comm,recvbuf)
     use dynamic_memory
     use dictionaries, only: f_err_throw,f_err_define
@@ -863,7 +871,7 @@ end subroutine create_group_comm1
   end subroutine mpibcast_d2
 
 
-  !> detect the maximum difference between arrays all over a given communicator
+  !> Detect the maximum difference between arrays all over a given communicator
   function mpimaxdiff_i0(n,array,root,comm,bcast) result(maxdiff)
     use dynamic_memory
     implicit none
@@ -964,6 +972,7 @@ end subroutine create_group_comm1
 
 end module wrapper_MPI
 
+
 !> Routine to gather the clocks of all the instances of flib time module
 subroutine gather_timings(ndata,nproc,mpi_comm,src,dest)
   use wrapper_MPI
@@ -994,6 +1003,7 @@ subroutine bigdft_open_nesting(num_threads)
   idummy=num_threads
 #endif
 end subroutine bigdft_open_nesting
+
 
 !> Activates the nesting for UNBLOCK_COMMS performance case
 subroutine bigdft_close_nesting(num_threads)

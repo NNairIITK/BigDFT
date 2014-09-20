@@ -93,8 +93,8 @@ contains
     character(len=*), intent(in) :: array,routine
     ! Local variables
     !logical :: lmpinit
-    logical :: linq
-    integer :: ierr,istat_del!,impinit
+    !logical :: linq
+    !integer :: ierr,istat_del,impinit
     character(len=256) :: message
 
     !Total counter, for all the processes
