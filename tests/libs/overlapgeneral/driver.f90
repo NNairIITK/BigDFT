@@ -446,7 +446,8 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
-  use sparsematrix_init, only: init_sparse_matrix
+  use sparsematrix_init, only: init_sparse_matrix, init_matrix_taskgroups, init_matrix_taskgroups
+  use communications_base, only: comms_linear_null
   implicit none
 
   ! Calling arguments
@@ -457,6 +458,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   integer :: nnonzero, nspin, norbu, norbup, isorbu
   integer,dimension(:),allocatable :: nvctr_per_segment
   integer ,dimension(:),pointer :: nonzero
+  type(comms_linear) :: collcom_dummy
 
   ! Some checks whether the arguments are reasonable
   if (nseg > nvctr) stop 'sparse matrix would have more segments than elements'
@@ -502,6 +504,9 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   call f_free_ptr(nonzero)
 
   call f_free(nvctr_per_segment)
+
+  collcom_dummy = comms_linear_null()
+  call init_matrix_taskgroups(iproc, nproc, collcom_dummy, collcom_dummy, smat)
 
   !!! Initialize the parameters for the spare matrix matrix multiplication
   !!call init_sparse_matrix_matrix_multiplication(norb, norbp, isorb, smat%nseg, &

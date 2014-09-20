@@ -239,6 +239,7 @@ contains
       integer,dimension(:,:),allocatable :: istartend_dj, istartend_mm
       integer,dimension(:,:),allocatable :: temparr
       real(kind=8) :: rseq, rseq_ideal, tt, ratio_before, ratio_after
+      logical :: printable
 
       ! Calculate the values of sparsemat%smmm%nout and sparsemat%smmm%nseq with
       ! the default partitioning of the matrix columns.
@@ -290,7 +291,12 @@ contains
       if (nproc>1) call mpiallred(nseq_min, 1, mpi_min, bigdft_mpi%mpi_comm)
       nseq_max = sparsemat%smmm%nseq
       if (nproc>1) call mpiallred(nseq_max, 1, mpi_max, bigdft_mpi%mpi_comm)
-      ratio_before = real(nseq_max,kind=8)/real(nseq_min,kind=8)
+      if (nseq_min>0) then
+          ratio_before = real(nseq_max,kind=8)/real(nseq_min,kind=8)
+          printable=.true.
+      else
+          printable=.false.
+      end if
 
 
       ! Realculate the values of sparsemat%smmm%nout and sparsemat%smmm%nseq with
@@ -305,9 +311,19 @@ contains
       if (nproc>1) call mpiallred(nseq_min, 1, mpi_min, bigdft_mpi%mpi_comm)
       nseq_max = sparsemat%smmm%nseq
       if (nproc>1) call mpiallred(nseq_max, 1, mpi_max, bigdft_mpi%mpi_comm)
-      ratio_after = real(nseq_max,kind=8)/real(nseq_min,kind=8)
+      ! Not necessary to set the pritable flag (if nseq_min was zero before it should be zero here as well)
+      if (nseq_min>0) then
+          ratio_after = real(nseq_max,kind=8)/real(nseq_min,kind=8)
+          if (.not.printable) stop 'this should not happen'
+      else
+          if (printable) stop 'this should not happen'
+      end if
       if (iproc==0) then
-          call yaml_map('sparse matmul load balancing naive / optimized',(/ratio_before,ratio_after/),fmt='(f4.2)')
+          if (printable) then
+              call yaml_map('sparse matmul load balancing naive / optimized',(/ratio_before,ratio_after/),fmt='(f4.2)')
+          else
+              call yaml_map('sparse matmul load balancing naive / optimized','printing not meaningful (division by zero)')
+          end if
       end if
       
 
@@ -344,13 +360,18 @@ contains
 
       ! This array gives the starting and ending indices of the submatrix which
       ! is used by a given MPI task
-      sparsemat%smmm%istartend_mm(1) = 1000000000
-      sparsemat%smmm%istartend_mm(2) = -1000000000
-      do iseq=1,sparsemat%smmm%nseq
-          ind=sparsemat%smmm%indices_extract_sequential(iseq)
-          sparsemat%smmm%istartend_mm(1) = min(sparsemat%smmm%istartend_mm(1),ind)
-          sparsemat%smmm%istartend_mm(2) = max(sparsemat%smmm%istartend_mm(2),ind)
-      end do
+      if (sparsemat%smmm%nseq>0) then
+          sparsemat%smmm%istartend_mm(1) = sparsemat%nvctr
+          sparsemat%smmm%istartend_mm(2) = 1
+          do iseq=1,sparsemat%smmm%nseq
+              ind=sparsemat%smmm%indices_extract_sequential(iseq)
+              sparsemat%smmm%istartend_mm(1) = min(sparsemat%smmm%istartend_mm(1),ind)
+              sparsemat%smmm%istartend_mm(2) = max(sparsemat%smmm%istartend_mm(2),ind)
+          end do
+      else
+          sparsemat%smmm%istartend_mm(1)=sparsemat%nvctr+1
+          sparsemat%smmm%istartend_mm(2)=sparsemat%nvctr
+      end if
 
       ! Determine to which segments this corresponds
       do iseg=1,sparsemat%nseg
@@ -380,10 +401,14 @@ contains
           ind = min(ind,istartend_mm(2,jproc))
           ! check that this is not smaller than the beginning of the previous chunk
           ind = max(ind,istartend_dj(1,jproc-1))+1
+          ! check that this is not outside the total matrix size (may happen if there are more processes than matrix columns)
+          ind = min(ind,sparsemat%nvctr+1) ! +1 since the length shoulb be 0
           istartend_dj(1,jproc) = ind
           istartend_dj(2,jproc-1) = istartend_dj(1,jproc)-1
       end do
       istartend_dj(2,nproc-1) = istartend_mm(2,nproc-1)
+      if (iproc==0) write(*,'(a,100(2i7,3x))') 'istartend_mm',istartend_mm
+      if (iproc==0) write(*,'(a,100(2i7,3x))') 'istartend_dj',istartend_dj
 
       ! Some checks
       if (istartend_dj(1,0)/=1) stop 'istartend_dj(1,0)/=1'
