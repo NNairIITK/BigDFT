@@ -141,6 +141,15 @@ contains
     nullify(comms%nsenddspls_repartitionrho)
     nullify(comms%nrecvdspls_repartitionrho)
     nullify(comms%commarr_repartitionrho)
+    comms%nptsp_c = 0
+    comms%ndimpsi_c = 0
+    comms%ndimind_c = 0
+    comms%ndimind_f = 0
+    comms%nptsp_f = 0
+    comms%ndimpsi_f = 0
+    comms%ncomms_repartitionrho = 0
+    comms%window = 0
+    comms%imethod_overlap = 0
   end subroutine nullify_comms_linear
 
 

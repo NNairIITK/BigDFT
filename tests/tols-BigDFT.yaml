@@ -1118,10 +1118,11 @@ verysparse:
  Total charge: 1.1e-10
  EXC: 1.1e-9
  Enl: 1.1e-10
- ebs: 1.1e-10
- ebs_check: 1.1e-10
- Omega: 1.1e-10
- energy: 1.1e-10
+ Epot: 1.1e-9
+ ebs: 1.1e-9
+ ebs_check: 1.1e-9
+ Omega: 1.1e-9
+ energy: 1.1e-9
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
