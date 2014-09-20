@@ -385,7 +385,7 @@ module bigdft_run
 
 
     !> copy the atom position in runObject into a workspace
-    !! of retrieve the positions from a file
+    !! or retrieve the positions from a file
     subroutine bigdft_get_rxyz(runObj,filename,rxyz_add,rxyz)
       use dynamic_memory, only: f_memcpy
       use yaml_strings, only: yaml_toa
