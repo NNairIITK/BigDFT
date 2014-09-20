@@ -294,8 +294,8 @@ use module_energyandforces
                               'proceed with next connection attempt.')
             return
         endif
-        if(iproc==0)&
         scl=saddle_scale_stepoff*scl
+        if(iproc==0)&
         call yaml_comment('INFO: (MHGPS) After pushoff, left side '//&
                        'converged back to saddle. Will retry with '//&
                        'increased pushoff: '//&
@@ -363,8 +363,8 @@ use module_energyandforces
                               'proceed with next connection attempt.')
             return
         endif
-        if(iproc==0)&
         scl=saddle_scale_stepoff*scl
+        if(iproc==0)&
         call yaml_comment('INFO: (MHGPS) After pushoff, right side'//&
                        ' converged back to saddle. Will retry with'//&
                        ' increased pushoff: '//&
