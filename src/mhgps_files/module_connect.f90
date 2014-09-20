@@ -268,7 +268,7 @@ use module_energyandforces
            cobj%enersad(nsad),cobj%enerleft(nsad),cobj%fpsad(1,nsad),&
            cobj%fpleft(1,nsad)))then
            exit loopL 
-        elseif(ipush>=2)then
+        elseif(ipush>=3)then
             isadprob=isadprob+1
             write(isadprobc,'(i5.5)')isadprob
             if(iproc==0)then
@@ -295,11 +295,11 @@ use module_energyandforces
             return
         endif
         if(iproc==0)&
+        scl=saddle_scale_stepoff*scl
         call yaml_comment('INFO: (MHGPS) After pushoff, left side '//&
                        'converged back to saddle. Will retry with '//&
                        'increased pushoff: '//&
-                        yaml_toa(saddle_scale_stepoff))
-        scl=saddle_scale_stepoff*scl
+                        yaml_toa(scl))
         ipush=ipush+1
     enddo loopL
 
@@ -335,7 +335,7 @@ use module_energyandforces
            cobj%enersad(nsad),cobj%enerright(nsad),&
            cobj%fpsad(1,nsad),cobj%fpright(1,nsad)))then
            exit loopR 
-        elseif(ipush>=2)then
+        elseif(ipush>=3)then
             isadprob=isadprob+1
             write(isadprobc,'(i5.5)')isadprob
             if(iproc==0)then
@@ -364,11 +364,11 @@ use module_energyandforces
             return
         endif
         if(iproc==0)&
+        scl=saddle_scale_stepoff*scl
         call yaml_comment('INFO: (MHGPS) After pushoff, right side'//&
                        ' converged back to saddle. Will retry with'//&
                        ' increased pushoff: '//&
-                        yaml_toa(saddle_scale_stepoff))
-        scl=saddle_scale_stepoff*scl
+                        yaml_toa(scl))
         ipush=ipush+1
     enddo loopR
 
