@@ -910,13 +910,42 @@ subroutine pushoffsingle(nat,saddle,minmode,scl,pushed)
     real(gp), intent(in) :: scl
     real(gp), intent(out) :: pushed(3,nat)
     !internal
-    real(gp)  :: step(3,nat)
-
+    integer  :: iat 
+    real(gp) :: step(3,nat)
+    real(gp) :: maxd, tt, dp
     !functions
     real(gp) :: dnrm2
 
-    step = saddle_stepoff*minmode
+    tt=0.0_gp
+    dp=0.0_gp
+    maxd=-huge(1.0_gp)
+    do iat=1,nat
+        dp=minmode(1,iat)**2+minmode(2,iat)**2+minmode(3,iat)**2
+        tt=tt+dp
+        maxd=max(maxd,dp)
+    enddo
+    tt=sqrt(tt)
+    maxd=sqrt(maxd)
+
+    step = minmode*saddle_stepoff/maxd
     pushed = saddle + scl*step
+
+    !control:
+    tt=0.0_gp
+    dp=0.0_gp
+    maxd=-huge(1.0_gp)
+    do iat=1,nat
+        dp=step(1,iat)**2+step(2,iat)**2+step(3,iat)**2
+        tt=tt+dp
+        maxd=max(maxd,dp)
+    enddo
+    tt=sqrt(tt)
+    maxd=sqrt(maxd)
+    write(133,*)scl, maxd
+
+! old:
+!    step = saddle_stepoff*minmode
+!    pushed = saddle + scl*step
 
 end subroutine
 !=====================================================================
