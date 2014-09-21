@@ -353,7 +353,8 @@ contains
                   call kpoints_get_irreductible_zone(irrzon, phnons, n1i, 1, n3i, &
                        & nspin, nspin, sym%symObj, i_stat)
                   sym%irrzon(:,:,i_third:i_third) = irrzon
-                  call vcopy(2*n1i*n3i, phnons(1,1,1), 1, sym%phnons(1,1,i_third), 1)
+                  !call vcopy(2*n1i*n3i, phnons(1,1,1), 1, sym%phnons(1,1,i_third), 1)
+                  call f_memcpy(src=phnons,dest=sym%phnons(:,:,i_third))
                end do
                call f_free(irrzon)
                call f_free(phnons)

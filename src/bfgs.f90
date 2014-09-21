@@ -784,17 +784,17 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 END SUBROUTINE lbfgsdriver
 
 
-subroutine atomic_copymoving_forward(atoms,n,x,nr,xa)
+subroutine atomic_copymoving_forward(astruct,n,x,nr,xa)
   use module_atoms
     implicit none
-    type(atoms_data), intent(inout) :: atoms
+    type(atomic_structure), intent(in) :: astruct
     integer :: n,nr,i,iat,ixyz,ir
     real(kind=8) :: x(n),xa(nr)
     ir=0
-    do i=1,3*atoms%astruct%nat
+    do i=1,3*astruct%nat
         iat=(i-1)/3+1
         ixyz=mod(i-1,3)+1
-        if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
+        if(move_this_coordinate(astruct%ifrztyp(iat),ixyz)) then
             ir=ir+1
             xa(ir)=x(i)
         endif
@@ -803,17 +803,17 @@ subroutine atomic_copymoving_forward(atoms,n,x,nr,xa)
 END SUBROUTINE atomic_copymoving_forward
 
 
-subroutine atomic_copymoving_backward(atoms,nr,xa,n,x)
+subroutine atomic_copymoving_backward(astruct,nr,xa,n,x)
   use module_atoms
     implicit none
-    type(atoms_data), intent(inout) :: atoms
+    type(atomic_structure), intent(in) :: astruct
     integer :: n,nr,i,iat,ixyz,ir
     real(kind=8) :: x(n),xa(nr)
     ir=0
-    do i=1,3*atoms%astruct%nat
+    do i=1,3*astruct%nat
         iat=(i-1)/3+1
         ixyz=mod(i-1,3)+1
-        if(move_this_coordinate(atoms%astruct%ifrztyp(iat),ixyz)) then
+        if(move_this_coordinate(astruct%ifrztyp(iat),ixyz)) then
             ir=ir+1
             x(i)=xa(ir)
         endif

@@ -75,7 +75,7 @@ module wrapper_MPI
 
   interface mpibcast
      module procedure mpibcast_i0,mpibcast_li0,mpibcast_d0
-     module procedure mpibcast_c1,mpibcast_d1,mpibcast_d2
+     module procedure mpibcast_c1,mpibcast_d1,mpibcast_d2,mpibcast_i1
   end interface mpibcast
 
   !> Interface for MPI_ALLGATHERV routine
@@ -851,6 +851,15 @@ contains
     include 'bcast-decl-arr-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_c1
+
+  subroutine mpibcast_i1(buffer,root,comm,check)
+    use dictionaries, only: f_err_throw
+    use yaml_output !for check=.true.
+    implicit none
+    integer, dimension(:), intent(inout) ::  buffer      
+    include 'bcast-decl-arr-inc.f90'
+    include 'bcast-inc.f90'
+  end subroutine mpibcast_i1
 
   subroutine mpibcast_d1(buffer,root,comm,check)
     use dictionaries, only: f_err_throw

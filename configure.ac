@@ -894,7 +894,7 @@ if test x"$ac_use_libxc" != x"no" ; then
   use libxc_funcs_m
   use xc_f90_lib_m
 
-  write(*,*) XC_FAMILY_GGA
+  write(*,*) AB6_MAX_SYMMETRIES
 end program]], withlibxcmod=yes, withlibxcmod=no)
       AC_MSG_RESULT($withlibxcmod)
       FCFLAGS=$FCFLAGS_SVG
