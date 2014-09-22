@@ -3,7 +3,7 @@
 import sys
 
 #Hack for non-system installations.
-sys.path.insert(0, "@AX_PYYAML_PATH@")
+sys.path.insert(0, "@pyexecdir@")
 
 from gi.repository import BigDFT
 

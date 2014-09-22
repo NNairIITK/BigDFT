@@ -7,7 +7,9 @@ EXTRA_DIST = \
 	yaml_hl.cfg \
 	yaml_hl.py \
 	parse_log.py \
-	tols-BigDFT.yaml
+	tols-BigDFT.yaml \
+	fldiff_yaml.py.in \
+	report.py.in
 
 SUBDIRS = \
 	  DFT \
@@ -50,10 +52,26 @@ oclrun: head_message $(mpirun_message)
 
 CLEANFILES =
 
-all: head_message foot_message
+all: head_message foot_message report.py fldiff_yaml.py
 
 check:
 	@if test $(MAKELEVEL) = 0 ; then $(MAKE) report ; fi
 
-report: 
+report.py: report.py.in
+	sed							\
+		-e s!\@prefix\@!$(prefix)!			\
+		-e s!\@exec_prefix\@!$(exec_prefix)!		\
+		-e s!\@pyexecdir\@!$(pyexecdir)!		\
+		-e s!\@AX_PYYAML_PATH\@!$(AX_PYYAML_PATH)!	\
+		< $< > $@
+
+fldiff_yaml.py: fldiff_yaml.py.in
+	sed							\
+		-e s!\@prefix\@!$(prefix)!			\
+		-e s!\@exec_prefix\@!$(exec_prefix)!		\
+		-e s!\@pyexecdir\@!$(pyexecdir)!		\
+		-e s!\@AX_PYYAML_PATH\@!$(AX_PYYAML_PATH)!	\
+		< $< > $@
+
+report:
 	python $(top_builddir)/tests/report.py

@@ -16,7 +16,7 @@ check_wrappers_SOURCES = check_wrappers.c
 check_wrappers_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_builddir)/src/modules @GLIB_CFLAGS@
 check_wrappers_LDADD = -lbigdft-1
 
-EXTRA_DIST = wrappers.out.ref.yaml posinp.ref.yaml pywrappers.out.ref.yaml
+EXTRA_DIST = wrappers.out.ref.yaml posinp.ref.yaml pywrappers.out.ref.yaml check_wrappers.py.in
 CLEANFILES = default.* posinp.yaml time.yaml wrappers.out.yaml pywrappers.out.yaml *report.yaml input_minimal.yaml input.yaml
 
 if WITH_GOBJECT_INTROSPECTION
@@ -38,6 +38,13 @@ posinp.yaml: wrappers.out.yaml
 
 wrappers.out.yaml: check_wrappers
 	-$(run_parallel) ./check_wrappers | grep -v "Unable to read mpd.hosts" > $@
+
+check_wrappers.py: check_wrappers.py.in
+	sed							\
+		-e s!\@prefix\@!$(prefix)!			\
+		-e s!\@exec_prefix\@!$(exec_prefix)!		\
+		-e s!\@pyexecdir\@!$(pyexecdir)!		\
+		< $< > $@
 
 pywrappers.out.yaml: check_wrappers.py
 	-$(run_parallel) python check_wrappers.py | grep -v "Unable to read mpd.hosts" > $@

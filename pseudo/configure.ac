@@ -39,7 +39,6 @@ AC_CONFIG_FILES([
 Makefile
 src/Makefile
 tests/Makefile
-tests/report.py
 tests/atoms/Makefile
 tests/C-pseudo/Makefile
 tests/H-pseudo/Makefile

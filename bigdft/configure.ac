@@ -770,8 +770,6 @@ src/mhgps_files/Makefile
 src/tools/Makefile
 src/tools/bader/Makefile
 tests/Makefile
-tests/fldiff_yaml.py
-tests/report.py
 tests/libs/Makefile
 tests/libs/fft/Makefile
 tests/libs/OP2P/Makefile
@@ -783,7 +781,6 @@ tests/libs/IO-wf/Makefile
 tests/libs/dsygv/Makefile
 tests/libs/ftypes/Makefile
 tests/libs/wrappers/Makefile
-tests/libs/wrappers/check_wrappers.py
 tests/libs/psp/Makefile
 tests/libs/overlapgeneral/Makefile
 tests/libs/coordinatetransform/Makefile
