@@ -279,6 +279,14 @@ use module_energyandforces
                      comment,&
                 cobj%enersad(nsad),rxyz=cobj%saddle(:,:,nsad),&
                 forces=cobj%minmode(:,:,nsad))
+                call astruct_dump_to_file(astruct,&
+                     currDir//'/sadProb'//trim(adjustl(isadprobc))//'_Reactant',&
+                     comment,&
+                0.0_gp,rxyz=cobj%rxyz1)
+                call astruct_dump_to_file(astruct,&
+                     currDir//'/sadProb'//trim(adjustl(isadprobc))//'_Product',&
+                     comment,&
+                0.0_gp,rxyz=cobj%rxyz2)
             endif
     
             connected=.false.
@@ -347,6 +355,14 @@ use module_energyandforces
                      comment,&
                      cobj%enersad(nsad),cobj%saddle(:,:,nsad),&
                      forces=cobj%minmode(:,:,nsad))
+                call astruct_dump_to_file(astruct,&
+                     currDir//'/sadProb'//trim(adjustl(isadprobc))//'_Reactant',&
+                     comment,&
+                0.0_gp,rxyz=cobj%rxyz1)
+                call astruct_dump_to_file(astruct,&
+                     currDir//'/sadProb'//trim(adjustl(isadprobc))//'_Product',&
+                     comment,&
+                0.0_gp,rxyz=cobj%rxyz2)
 
             endif
     
