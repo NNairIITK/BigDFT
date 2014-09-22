@@ -341,11 +341,11 @@ subroutine grow_freezstring(nat,alat,gammainv,perpnrmtol,trust,&
                  finished)
             if(finished/=0)then
 !if(i/=nstring)stop'DEBUGGING i/=nstring'
-!               if(perpnrmtol>0 .and. nstepsmax > 0)& 
-!                call optim_cg(nat,alat,finished,step,gammainv,&
-!                    perpnrmtol_squared,trust_squared,nstepsmax,&
-!                    tangentleft,tangentright,string(1,1,i+1),&
-!                    string(1,2,i+1))
+               if(perpnrmtol>0 .and. nstepsmax > 0)& 
+                call optim_cg(nat,alat,finished,step,gammainv,&
+                    perpnrmtol_squared,trust_squared,nstepsmax,&
+                    tangentleft,tangentright,string(1,1,i+1),&
+                    string(1,2,i+1))
                 nstring=nstring+1
             endif
         enddo
