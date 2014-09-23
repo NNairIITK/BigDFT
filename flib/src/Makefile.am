@@ -152,7 +152,7 @@ f_malloc.o: dictionaries.o $(F_MALLOC_INCLUDES)
 dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o yaml_parse.o mem_profiling.o f_malloc.o $(DYN_INCLUDES)
 mem_profiling.o: yaml_output.o $(mpi_include) yaml_parse.o
 f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o time.o
-f_utils.o: dictionaries.o yaml_strings.o
+f_utils.o: dictionaries.o yaml_strings.o callbacks.o
 getadd.o: yaml_strings.o $(GETADD_INCLUDES)
 $(flush_object): yaml_output.o dictionaries.o
 
