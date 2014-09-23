@@ -43,7 +43,6 @@ contains
     logical :: unit_is_open
     integer :: ierr,ierr_recl
     integer(kind=recl_kind) :: recl_file
-    !$ include 'halt_omp-inc.f90' 
 
     !in case of any error, the value is set to recl_max
     recl=recl_max
