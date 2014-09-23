@@ -13,6 +13,7 @@
 !! Use when allocating Fortran structures
 subroutine f_update_database(size,kind,rank,address,id,routine)
   use metadata_interfaces, only: long_toa
+  use yaml_output, only: yaml_flush_document
   implicit none
   !> Number of elements of the buffer
   integer(kind=8), intent(in) :: size
@@ -30,7 +31,7 @@ subroutine f_update_database(size,kind,rank,address,id,routine)
   !> Id of the allocating routine
   character(len=*), intent(in) :: routine
   !local variables
-  integer(kind=8) :: ilsize
+  integer(kind=8) :: ilsize,jproc
   !$ include 'remove_omp-inc.f90' 
 
   ilsize=max(int(kind,kind=8)*size,int(0,kind=8))
@@ -45,6 +46,13 @@ subroutine f_update_database(size,kind,rank,address,id,routine)
              trim(yaml_toa(ilsize))//', '//trim(yaml_toa(rank))//']')
   end if
   call memstate_update(memstate,ilsize,id,routine)
+  if (mems(ictrl)%output_level==2) then
+     jproc = mems(ictrl)%dict_global//processid
+     if (jproc ==0) then
+        call dump_status_line(memstate,mems(ictrl)%logfile_unit,trim(routine),trim(id))
+        call yaml_flush_document(unit=mems(ictrl)%logfile_unit)
+     end if
+  end if
 end subroutine f_update_database
 
 
@@ -52,6 +60,7 @@ end subroutine f_update_database
 !! Use when allocating Fortran structures
 subroutine f_purge_database(size,kind,address,id,routine)
   use metadata_interfaces, only: long_toa
+  use yaml_output, only: yaml_flush_document
   implicit none
   !> Number of elements of the buffer
   integer(kind=8), intent(in) :: size
@@ -68,6 +77,7 @@ subroutine f_purge_database(size,kind,address,id,routine)
   character(len=*), intent(in), optional :: routine
   !local variables
   logical :: use_global
+  integer :: jproc
   integer(kind=8) :: ilsize,jlsize,iadd
   character(len=namelen) :: array_id,routine_id
   character(len=info_length) :: array_info
@@ -124,7 +134,25 @@ subroutine f_purge_database(size,kind,address,id,routine)
   end if
 
   call memstate_update(memstate,-ilsize,trim(array_id),trim(routine_id))
-  
+  !here in the case of output_level == 2 the data can be extracted  
+  if (mems(ictrl)%output_level==2) then
+     jproc = mems(ictrl)%dict_global//processid
+     if (jproc ==0) then
+        if (len_trim(array_id) == 0) then
+           if (len_trim(routine_id) == 0) then
+              call dump_status_line(memstate,mems(ictrl)%logfile_unit,&
+                   'Unknown','Unknown')
+           else
+              call dump_status_line(memstate,mems(ictrl)%logfile_unit,trim(routine_id),'Unknown')
+           end if
+        else if (len_trim(routine_id) == 0) then
+           call dump_status_line(memstate,mems(ictrl)%logfile_unit,'Unknown',trim(array_id))
+        else
+           call dump_status_line(memstate,mems(ictrl)%logfile_unit,trim(routine_id),trim(array_id))
+        end if
+        call yaml_flush_document(unit=mems(ictrl)%logfile_unit)
+     end if
+  end if
 end subroutine f_purge_database
 
 

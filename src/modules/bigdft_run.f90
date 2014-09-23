@@ -787,6 +787,7 @@ module bigdft_run
       use yaml_strings, only: f_strcpy,yaml_toa
       use module_defs, only: bigdft_mpi
       use module_input_dicts, only: merge_input_file_to_dict
+      use f_utils, only: f_file_exists
       implicit none
       !> dictionary of the options of the run
       !! on entry, it contains the options for initializing

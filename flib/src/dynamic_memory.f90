@@ -64,6 +64,9 @@ module dynamic_memory
      logical :: routine_opened       !< global variable (can be stored in dictionaries)
      logical :: profile_routine      !< decide whether the routine has to be profiled
      character(len=namelen) :: present_routine !< name of the active routine 
+     character(len=256) :: logfile !<file in which reports are written
+     integer :: logfile_unit !< unit of the logfile stream
+     integer :: output_level !< decide the level of reporting
      !> Dictionaries needed for profiling storage
      type(dictionary), pointer :: dict_global    !<status of the memory at higher level
      type(dictionary), pointer :: dict_routine   !<status of the memory inside the routine
@@ -183,6 +186,9 @@ contains
     mem%routine_opened=.false.      
     mem%profile_routine=.true.
     mem%present_routine=repeat(' ',namelen)
+    mem%logfile=repeat(' ',len(mem%logfile))
+    mem%logfile_unit=-1 !< not initialized
+    mem%output_level=0
     !> Dictionaries needed for profiling storage
     nullify(mem%dict_global)
     nullify(mem%dict_routine)
@@ -631,7 +637,9 @@ contains
   !> Close a previously opened routine
   subroutine f_release_routine()
     use yaml_output, only: yaml_dict_dump
+    use f_utils, only: f_rewind
     implicit none
+    integer :: jproc
 
     if (f_err_raise(ictrl == 0,&
          '(f_release_routine): the routine f_malloc_initialize has not been called',&
@@ -655,6 +663,7 @@ contains
 !!$       call f_timer_resume()
 !!$       return
 !!$    end if
+
     !last_opened_routine=trim(dict_key(dict_codepoint))!repeat(' ',namelen)
     !the main program is opened until there is a subprograms keyword
     if (f_err_raise(.not. associated(mems(ictrl)%dict_codepoint%parent),&
@@ -696,6 +705,18 @@ contains
 !!$    call yaml_mapping_close()
 !!$    call yaml_comment('End of release routine',hfill='=')
     !end debug
+
+    !write the report for the output_level
+    if (mems(ictrl)%output_level == 1) then
+       jproc = mems(ictrl)%dict_global//processid
+       if (jproc ==0) then
+          !rewind unit
+          call f_rewind(mems(ictrl)%logfile_unit)
+          !write present value
+          call dump_status_line(memstate,mems(ictrl)%logfile_unit,mems(ictrl)%present_routine)
+       end if
+    end if
+
     call f_timer_resume()
   end subroutine f_release_routine
 
@@ -858,16 +879,19 @@ contains
   end subroutine f_malloc_initialize
 
   !> Initialize the library
-  subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,unit,iproc)
-    use yaml_output, only: yaml_date_and_time_toa
+  subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,iproc)
+    use yaml_output!, only: yaml_date_and_time_toa
+    use f_utils
+    use yaml_strings, only: f_strcpy
     implicit none
     !Arguments
     character(len=*), intent(in), optional :: logfile_name   !< Name of the logfile
     real(kind=4), intent(in), optional :: memory_limit       !< Memory limit
     integer, intent(in), optional :: output_level            !< Level of output for memocc
                                                              !! 0 no file, 1 light, 2 full
-    integer, intent(in), optional :: unit                    !< Indicate file unit for the output
     integer, intent(in), optional :: iproc                   !< Process Id (used to dump, by default one 0)
+    !local variables
+    integer :: unt,jctrl
 
     if (f_err_raise(ictrl == 0,&
          'ERROR (f_malloc_set_status): the routine f_malloc_initialize has not been called',&
@@ -888,6 +912,47 @@ contains
 !!$       call f_routine(id='Main program')
 !!$    end if
 
+    if (present(output_level)) then
+       if (output_level > 0) then
+          if (.not. present(logfile_name)) &
+               call f_err_throw('Error, f_malloc_set_status needs logfile_name for nontrivial output level',&
+               err_id=ERR_INVALID_MALLOC)
+          !first, close the previously opened stream
+          if (mems(ictrl)%logfile_unit > 0) then
+             call yaml_close_stream(unit=mems(ictrl)%logfile_unit)
+          end if
+          !check if it is assigned to 
+          !a previous instance of malloc_set_status, and raise and exception if it is so
+          do jctrl=ictrl-1,1,-1
+             if (trim(logfile_name)==mems(jctrl)%logfile) &
+                  call f_err_throw('Logfile name "'//trim(logfile_name)//&
+                  '" in f_malloc_set_status invalid, aleady in use for instance No.'//&
+                  trim(yaml_toa(jctrl)),err_id=ERR_INVALID_MALLOC)
+             exit
+          end do
+          !eliminate the previous existing file if it has the same name
+          !check if the file is opened
+          call f_file_unit(trim(logfile_name),unt)
+          !after this check an opened filename may now be closed
+          call f_close(unt)
+          !now the file can be opened
+          !get a free unit, starting from 98
+          unt=f_get_free_unit(98)
+          call yaml_set_stream(unit=unt,filename=trim(logfile_name),position='rewind',setdefault=.false.,&
+               record_length=131)
+          if (output_level==2) then
+             call yaml_comment(&
+               'Present Array,Present Routine, Present Memory, Peak Memory, Peak Array, Peak Routine',&
+               unit=unt)
+             call yaml_sequence_open('List of allocations',unit=unt)
+          end if
+          !store the found unit in the structure
+          mems(ictrl)%logfile_unit=unt
+          call f_strcpy(dest=mems(ictrl)%logfile,src=logfile_name)
+       end if
+       mems(ictrl)%output_level=output_level
+    end if
+
     if (present(memory_limit)) call f_set_memory_limit(memory_limit)
        
     if (present(iproc)) call set(mems(ictrl)%dict_global//processid,iproc)
@@ -895,7 +960,8 @@ contains
 
   !> Finalize f_malloc (Display status)
   subroutine f_malloc_finalize(dump,process_id)
-    use yaml_output, only: yaml_warning,yaml_mapping_open,yaml_mapping_close,yaml_dict_dump,yaml_get_default_stream,yaml_map
+    use yaml_output
+    use f_utils
     implicit none
     !Arguments
     logical, intent(in), optional :: dump !< Dump always information, 
@@ -943,8 +1009,8 @@ contains
           call dump_leaked_memory(mems(ictrl)%dict_global)
           call yaml_mapping_close()
        end if
-       call dict_free(mems(ictrl)%dict_global)
        call f_release_routine() !release main
+       call dict_free(mems(ictrl)%dict_global)
        !    call yaml_mapping_open('Calling sequence')
        !    call yaml_dict_dump(dict_calling_sequence)
        !    call yaml_mapping_close()
@@ -952,6 +1018,16 @@ contains
     end if
 
     if (mems(ictrl)%profile_initialized) call memstate_report(memstate,dump=dump_status)
+
+    !close or delete report file
+    if (mems(ictrl)%output_level >= 1) then
+       if (mems(ictrl)%output_level == 2) call yaml_sequence_close(unit=mems(ictrl)%logfile_unit)
+       call yaml_close_stream(unit=mems(ictrl)%logfile_unit)
+
+       !in this case the file has to be removed
+       !as it is used only to clarify the active codepoint
+       if (mems(ictrl)%output_level == 1) call f_delete_file(mems(ictrl)%logfile)
+    end if
 
     !nullify control structure
     mems(ictrl)=mem_ctrl_null()

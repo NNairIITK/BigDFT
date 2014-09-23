@@ -64,8 +64,8 @@ subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
             call call_bigdft(runObj,outs,infocode)
             ncount_bigdft=ncount_bigdft+1
         !endif
-        call atomic_copymoving_forward(runObj%atoms,3*outs%fdim,outs%fxyz,nr,f)
-        call atomic_copymoving_forward(runObj%atoms,3*runObj%atoms%astruct%nat,runObj%atoms%astruct%rxyz,nr,x)
+        call atomic_copymoving_forward(runObj%atoms%astruct,3*outs%fdim,outs%fxyz,nr,f)
+        call atomic_copymoving_forward(runObj%atoms%astruct,3*runObj%atoms%astruct%nat,runObj%atoms%astruct%rxyz,nr,x)
 
         call fnrmandforcemax(outs%fxyz,fnrm,fmax,outs%fdim)
         if(fmax<3.d-1) call updatefluctsum(outs%fnoise,fluct) !n(m)
@@ -92,7 +92,7 @@ subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
              & runObj%inputs%betax,sqrt(fnrm),fmax,ncount_bigdft,&
              & fluct*runObj%inputs%frac_fluct,fluct,runObj%atoms)
         !x(1:nr)=x(1:nr)+1.d-2*f(1:nr)
-        call atomic_copymoving_backward(runObj%atoms,nr,x,3*runObj%atoms%astruct%nat,runObj%atoms%astruct%rxyz)
+        call atomic_copymoving_backward(runObj%atoms%astruct,nr,x,3*runObj%atoms%astruct%nat,runObj%atoms%astruct%rxyz)
         if(parmin%converged) then
            if(iproc==0) write(16,'(a,i0,a)') "   BFGS converged in ",icall," iterations"
            if(iproc==0) then
@@ -659,7 +659,7 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   DIAG = f_malloc(NDIM,id='DIAG')
   W = f_malloc(NWORK,id='W')
 
-  call atomic_copymoving_forward(runObj%atoms,n,runObj%atoms%astruct%rxyz,nr,X)
+  call atomic_copymoving_forward(runObj%atoms%astruct,n,runObj%atoms%astruct%rxyz,nr,X)
 
   N=nr
   M=parmin%MSAVE
@@ -741,7 +741,7 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
   
   runObj%atoms%astruct%rxyz=rxyz0
-  call atomic_copymoving_backward(runObj%atoms,nr,X,n,runObj%atoms%astruct%rxyz)
+  call atomic_copymoving_backward(runObj%atoms%astruct,nr,X,n,runObj%atoms%astruct%rxyz)
 !  txyz=rxyz
 !  alpha=0._gp
 !  call atomic_axpy(at,txyz,alpha,sxyz,rxyz)
@@ -752,7 +752,7 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      F=outs%energy
      ncount_bigdft=ncount_bigdft+1
   end if
-  call atomic_copymoving_forward(runObj%atoms,n,outs%fxyz,nr,G)
+  call atomic_copymoving_forward(runObj%atoms%astruct,n,outs%fxyz,nr,G)
   outs%energy=F
   G=-G
   call fnrmandforcemax(outs%fxyz,fnrm,fmax,outs%fdim)
