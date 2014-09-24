@@ -78,7 +78,8 @@ subroutine gatom(energ, verbose)
          do iocc=1,noccmax
             do ispin=1,nspin
                do i=0,ng
-                  psi(i,iocc,l+1,ispin)=1.d-8
+                  call random_number(ts)
+                  psi(i,iocc,l+1,ispin)=1.d-8*ts
                end do
             end do
          end do
