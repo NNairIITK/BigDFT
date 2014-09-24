@@ -8,27 +8,30 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
-!>update the memory database with the data provided
+
+!> Update the memory database with the data provided
+!! Use when allocating Fortran structures
 subroutine f_update_database(size,kind,rank,address,id,routine)
   use metadata_interfaces, only: long_toa
+  use yaml_output, only: yaml_flush_document
   implicit none
-  !>number of elements of the buffer
+  !> Number of elements of the buffer
   integer(kind=8), intent(in) :: size
-  !>size in bytes of one buffer element
+  !> Size in bytes of one buffer element
   integer, intent(in) :: kind
-  !>rank of the array
+  !> Rank of the array
   integer, intent(in) :: rank
-  !>address of the first buffer element.
-  !!used to store the address in the dictionary.
-  !!if this argument is zero, only the memory is updated
-  !!otherwise the dictionary is created and stored
+  !> Address of the first buffer element.
+  !! Used to store the address in the dictionary.
+  !! If this argument is zero, only the memory is updated
+  !! Otherwise the dictionary is created and stored
   integer(kind=8), intent(in) :: address
-  !> id of the array
+  !> Id of the array
   character(len=*), intent(in) :: id
-  !>id of the allocating routine
+  !> Id of the allocating routine
   character(len=*), intent(in) :: routine
   !local variables
-  integer(kind=8) :: ilsize
+  integer(kind=8) :: ilsize,jproc
   !$ include 'remove_omp-inc.f90' 
 
   ilsize=max(int(kind,kind=8)*size,int(0,kind=8))
@@ -43,27 +46,38 @@ subroutine f_update_database(size,kind,rank,address,id,routine)
              trim(yaml_toa(ilsize))//', '//trim(yaml_toa(rank))//']')
   end if
   call memstate_update(memstate,ilsize,id,routine)
+  if (mems(ictrl)%output_level==2) then
+     jproc = mems(ictrl)%dict_global//processid
+     if (jproc ==0) then
+        call dump_status_line(memstate,mems(ictrl)%logfile_unit,trim(routine),trim(id))
+        call yaml_flush_document(unit=mems(ictrl)%logfile_unit)
+     end if
+  end if
 end subroutine f_update_database
 
-!> clean the database with the information of the array
+
+!> Clean the database with the information of the array
+!! Use when allocating Fortran structures
 subroutine f_purge_database(size,kind,address,id,routine)
   use metadata_interfaces, only: long_toa
+  use yaml_output, only: yaml_flush_document
   implicit none
-  !>number of elements of the buffer
+  !> Number of elements of the buffer
   integer(kind=8), intent(in) :: size
-  !>size in bytes of one buffer element
+  !> Size in bytes of one buffer element
   integer, intent(in) :: kind
-  !>address of the first buffer element.
-  !!used to store the address in the dictionary.
-  !!if this argument is zero, only the memory is updated
-  !!otherwise the dictionary is created and stored
+  !> Address of the first buffer element.
+  !! Used to store the address in the dictionary.
+  !! If this argument is zero, only the memory is updated
+  !! Otherwise the dictionary is created and stored
   integer(kind=8), intent(in), optional :: address
-  !> id of the array
+  !> Id of the array
   character(len=*), intent(in), optional :: id
-  !>id of the allocating routine
+  !> Id of the allocating routine
   character(len=*), intent(in), optional :: routine
   !local variables
   logical :: use_global
+  integer :: jproc
   integer(kind=8) :: ilsize,jlsize,iadd
   character(len=namelen) :: array_id,routine_id
   character(len=info_length) :: array_info
@@ -120,8 +134,27 @@ subroutine f_purge_database(size,kind,address,id,routine)
   end if
 
   call memstate_update(memstate,-ilsize,trim(array_id),trim(routine_id))
-  
+  !here in the case of output_level == 2 the data can be extracted  
+  if (mems(ictrl)%output_level==2) then
+     jproc = mems(ictrl)%dict_global//processid
+     if (jproc ==0) then
+        if (len_trim(array_id) == 0) then
+           if (len_trim(routine_id) == 0) then
+              call dump_status_line(memstate,mems(ictrl)%logfile_unit,&
+                   'Unknown','Unknown')
+           else
+              call dump_status_line(memstate,mems(ictrl)%logfile_unit,trim(routine_id),'Unknown')
+           end if
+        else if (len_trim(routine_id) == 0) then
+           call dump_status_line(memstate,mems(ictrl)%logfile_unit,'Unknown',trim(array_id))
+        else
+           call dump_status_line(memstate,mems(ictrl)%logfile_unit,trim(routine_id),trim(array_id))
+        end if
+        call yaml_flush_document(unit=mems(ictrl)%logfile_unit)
+     end if
+  end if
 end subroutine f_purge_database
+
 
 subroutine xx_all(array,m)
   use metadata_interfaces
@@ -129,8 +162,8 @@ subroutine xx_all(array,m)
   type(malloc_information_all), intent(in) :: m
   integer, dimension(:), allocatable, intent(inout) :: array
   !--- allocate_profile-inc.f90
-  integer :: ierror,sizeof
-  integer(kind=8) :: iadd,ilsize
+  integer :: ierror
+  integer(kind=8) :: iadd
   !$ logical :: not_omp
   !$ logical, external :: omp_in_parallel,omp_get_nested
 
@@ -184,6 +217,7 @@ subroutine xx_all(array,m)
   !END--- allocate-inc.f90
 end subroutine xx_all
 
+
 subroutine xx_all_free(array)
   use metadata_interfaces
   implicit none
@@ -191,13 +225,9 @@ subroutine xx_all_free(array)
   !--'deallocate-profile-inc.f90' 
   !local variables
   integer :: ierror
-  logical :: use_global
   !$ logical :: not_omp
   !$ logical, external :: omp_in_parallel,omp_get_nested
-  integer(kind=8) :: ilsize,jlsize,iadd
-  character(len=namelen) :: array_id,routine_id
-  character(len=info_length) :: array_info
-  type(dictionary), pointer :: dict_add
+  integer(kind=8) :: ilsize,iadd
 
   if (f_err_raise(ictrl == 0,&
        'ERROR (f_free): the routine f_malloc_initialize has not been called',&
@@ -238,6 +268,7 @@ subroutine xx_all_free(array)
   !$ end if
   !END-- 'deallocate-inc.f90' 
 end subroutine xx_all_free
+
 
 subroutine i1_all(array,m)
   use metadata_interfaces, metadata_address => geti1

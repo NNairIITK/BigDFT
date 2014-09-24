@@ -215,7 +215,8 @@ contains
     real(gp), intent(in) :: projrad            !< projector radius
     real(gp), intent(in) :: crmult, frmult     !< radius multipliers
     !Local variables
-    integer :: ixc, ierr
+    integer :: ixc
+    !integer :: ierr
     character(len=27) :: filename
     logical :: exists
     integer :: nzatom, nelpsp, npspcode

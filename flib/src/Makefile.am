@@ -52,6 +52,7 @@ endif
 libflib_1_a_SOURCES = utils.c utilsadd.c \
 	yaml_strings.f90 dictionaries_base.f90 dictionaries.f90 \
 	callbacks.f90 f_malloc.f90 \
+	f_utils.f90 \
 	yaml_output.f90 mem_profiling.f90 dynamic_memory.f90 \
 	razero.f90 getadd.f90 time.f90 f_lib_highlev.f90 \
 	yaml_parser.c yaml_parse.f90 \
@@ -94,6 +95,7 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	DYNAMIC_MEMORY.@MODULE_EXT@ \
 	RANDOMDATA.@MODULE_EXT@ \
 	MEMORY_PROFILING.@MODULE_EXT@ \
+	F_UTILS.@MODULE_EXT@ \
 	EXCEPTION_CALLBACKS.@MODULE_EXT@ \
 	TIME_PROFILING.@MODULE_EXT@
 else
@@ -107,11 +109,12 @@ modules = yaml_strings.@MODULE_EXT@ \
 	dynamic_memory.@MODULE_EXT@ \
 	randomdata.@MODULE_EXT@ \
 	memory_profiling.@MODULE_EXT@ \
+	f_utils.@MODULE_EXT@ \
 	exception_callbacks.@MODULE_EXT@ \
 	time_profiling.@MODULE_EXT@
 endif
 
-CLEANFILES = $(modules) *.@MODULE_EXT@ $(mpi_include)
+CLEANFILES = $(modules) *.@MODULE_EXT@ $(mpi_include) memstatus.yaml
 
 #AM_FCFLAGS = -I$(srcdir) $(mpi_inc) @LIBABINIT_INCLUDE@ @MPI_INCLUDE@
 AM_FCFLAGS = -I. -I$(srcdir) $(mpi_inc) @MPI_INCLUDE@
@@ -137,16 +140,19 @@ install-data-hook:
 # Dependencies
 $(modules): $(libflib_1_a_OBJECTS)
 yaml_strings.o: $(STRINGS_INCLUDES)
+dictionaries_base.o: yaml_strings.o
 dictionaries.o: yaml_strings.o dictionaries_base.o $(DICT_INCLUDES) callbacks.o
+dictionaries_base.o: yaml_strings.o
 callbacks.o: $(NOOMP_INCLUDES)
 #mem_profiling.o : error_handling.o
-yaml_output.o : dictionaries.o $(YAML_INCLUDES)
+yaml_output.o : dictionaries.o f_utils.o $(YAML_INCLUDES)
 yaml_parse.o : dictionaries.o yaml_output.o
 #error_handling.o: dictionaries.o callbacks.o yaml_output.o $(ERR_INCLUDES)
 f_malloc.o: dictionaries.o $(F_MALLOC_INCLUDES)
 dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o yaml_parse.o mem_profiling.o f_malloc.o $(DYN_INCLUDES)
-mem_profiling.o: yaml_output.o $(mpi_include)
+mem_profiling.o: yaml_output.o $(mpi_include) yaml_parse.o
 f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o time.o
+f_utils.o: dictionaries.o yaml_strings.o
 getadd.o: yaml_strings.o $(GETADD_INCLUDES)
 $(flush_object): yaml_output.o dictionaries.o
 

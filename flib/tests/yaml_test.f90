@@ -14,6 +14,7 @@ program yaml_test
    use dictionaries, dict_char_len=> max_field_length
    use dynamic_memory
    use yaml_parse
+   use f_utils
    implicit none
    integer, parameter :: isize=16 !< size of functionality
    character(len=isize), parameter :: YAML               ='yaml'
@@ -37,6 +38,8 @@ program yaml_test
    !logical :: fl
 
    call f_lib_initialize()
+   !test output level
+   call f_malloc_set_status(output_level=2,logfile_name='memstatus.yaml')
 
    parser=yaml_cl_parse_null()
    !set valid options
@@ -55,7 +58,6 @@ program yaml_test
         'Unused option3, just for testing the command line parser, '//&
         'also the long help lines have to be tested in order to understand if it works'),&
         conflicts='[test2,test]')
-
 
    !verify the parsing
    call yaml_cl_parse_cmd_line(parser)
@@ -149,6 +151,7 @@ program yaml_test
       call f_malloc_dump_status(dict_summary=dict_tmp)
       call yaml_map('Summary',dict_tmp)
       call dict_free(dict_tmp)
+      call yaml_map('Test for pid',f_getpid())
    end if
 
    if (TREES .in. run) then
@@ -233,4 +236,5 @@ end subroutine yaml_parse_file_and_string
     write(*,*)' --run-id=<name of the run>: it can be also specified as unique argument'
     write(*,*)' --help : prints this help screen'
   end subroutine help_screen
+
 

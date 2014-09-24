@@ -64,6 +64,7 @@ yaml_test:
    - Entering Thread No.
    - Elapsed time (ns)
    - Elapsed time (mus)
+   - Test for pid
  Patterns to ignore:
    - errcode
    - Time

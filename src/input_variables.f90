@@ -119,6 +119,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   use psp_projectors, only: PSPCODE_PAW
   use m_ab6_symmetry, only: symmetry_get_n_sym
   use interfaces_42_libpaw
+  use bigdft_run, only: bigdft_run_id_toa
   implicit none
   !Arguments
   type(input_variables), intent(out) :: in
@@ -128,7 +129,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   !type(dictionary), pointer :: profs, dict_frag
   logical :: found
   integer :: ierr, ityp, nelec_up, nelec_down, norb_max, jtype
-  character(len = max_field_length) :: writing_dir, output_dir, run_name, msg
+  character(len = max_field_length) :: writing_dir, output_dir, run_name, msg,filename
 !  type(f_dict) :: dict
   type(dictionary), pointer :: dict_minimal, var
 
@@ -209,15 +210,29 @@ subroutine inputs_from_dict(in, atoms, dict)
      var => dict_next(var)
   end do
 
-  !status of the allocation verbosity and profiling
-  if (.not. in%debug) then
-     !call ab7_memocc_set_state(1)
-     call f_malloc_set_status(output_level=1)
-  end if
   call set_cache_size(in%ncache_fft)
-  if (in%verbosity == 0 ) then
-     !call ab7_memocc_set_state(0)
-     call f_malloc_set_status(output_level=0)
+
+  !status of the allocation verbosity and profiling
+  !filename of the memory allocation status, if needed
+  if (len_trim(run_name) == 0) then
+     call f_strcpy(src=trim(writing_dir)//'memstatus' // trim(bigdft_run_id_toa()) // '.yaml',&
+          dest=filename)
+  else
+     call f_strcpy(src=trim(writing_dir)//'memstatus-' // trim(run_name) // '.yaml',&
+          dest=filename)
+  end if
+
+  if (.not. in%debug) then
+     if (in%verbosity==3) then
+        call f_malloc_set_status(output_level=1,&
+             iproc=bigdft_mpi%iproc,logfile_name=filename)
+     else
+        call f_malloc_set_status(output_level=0,&
+             iproc=bigdft_mpi%iproc)
+     end if
+  else
+     call f_malloc_set_status(output_level=2,&
+          iproc=bigdft_mpi%iproc,logfile_name=filename)
   end if
 
   call nullifyInputLinparameters(in%lin)

@@ -56,10 +56,11 @@ module bigdft_run
   public :: run_objects_associate,init_restart_objects,bigdft_set_rxyz
   public :: global_output_set_from_dict,free_restart_objects,bigdft_get_rxyz_ptr
   public :: run_objects_init,bigdft_init,bigdft_command_line_options,bigdft_nruns
-  public :: bigdft_nat,call_bigdft,free_run_objects,set_run_objects
+  public :: bigdft_nat,call_bigdft,free_run_objects,set_run_objects,bigdft_run_new
   public :: release_run_objects,bigdft_get_cell,bigdft_get_geocode,bigdft_get_run_properties
   public :: bigdft_get_astruct_ptr,bigdft_write_atomic_file,bigdft_set_run_properties
   public :: bigdft_norb,bigdft_get_eval,bigdft_run_id_toa,bigdft_get_rxyz
+  public :: bigdft_dot,bigdft_nrm2
 
 !!$  ! interfaces of external routines 
 !!$  interface
@@ -345,6 +346,14 @@ module bigdft_run
 
     END SUBROUTINE run_objects_associate
 
+    !> default run properties
+    subroutine bigdft_run_new(run)
+      implicit none
+      type(dictionary), pointer :: run
+      
+      run => dict_new('name' .is. 'input','posinp' .is. 'posinp')
+    end subroutine bigdft_run_new
+
     !> set the parameters of the run 
     subroutine bigdft_set_run_properties(run,run_id,posinp)
       implicit none
@@ -385,7 +394,7 @@ module bigdft_run
 
 
     !> copy the atom position in runObject into a workspace
-    !! of retrieve the positions from a file
+    !! or retrieve the positions from a file
     subroutine bigdft_get_rxyz(runObj,filename,rxyz_add,rxyz)
       use dynamic_memory, only: f_memcpy
       use yaml_strings, only: yaml_toa
@@ -434,7 +443,7 @@ module bigdft_run
          end if
       else if (present(filename)) then
          call nullify_atomic_structure(astruct)
-         call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct)
+         call set_astruct_from_file(trim(filename), bigdft_mpi%iproc, astruct)
          n=3*astruct%nat
          if (present(rxyz_add)) then
             call f_memcpy(n=n,dest=rxyz_add,src=astruct%rxyz(1,1))
@@ -778,6 +787,7 @@ module bigdft_run
       use yaml_strings, only: f_strcpy,yaml_toa
       use module_defs, only: bigdft_mpi
       use module_input_dicts, only: merge_input_file_to_dict
+      use f_utils, only: f_file_exists
       implicit none
       !> dictionary of the options of the run
       !! on entry, it contains the options for initializing
@@ -1003,7 +1013,7 @@ module bigdft_run
       else
          nat=-1
       end if
-      if (f_err_raise(nat < 0 ,'Number of atoms unitialized',&
+      if (f_err_raise(nat < 0 ,'Number of atoms uninitialized',&
            err_name='BIGDFT_RUNTIME_ERROR')) return
 
     end function bigdft_nat
@@ -1083,7 +1093,6 @@ module bigdft_run
       integer :: ierr,inputPsiId_orig,iat,iorb,istep
       real(gp) :: maxdiff
       external :: cluster,forces_via_finite_differences
-
       !put a barrier for all the processes
       call mpibarrier(bigdft_mpi%mpi_comm)
       call f_routine(id=subname)
@@ -1276,7 +1285,83 @@ module bigdft_run
 !!$  call restart_objects_set_mat_acc(runObj%rst, bigdft_mpi%iproc, runObj%inputs%matacc)
 
     END SUBROUTINE set_run_objects
+
+    !> performs the scalar product between two
+    !! set of atomic positions 
+    !! The results is considered only in non-frozen directions
+    function bigdft_dot(runObj,dx,dy_add,dy,dx_add) result(scpr)
+      implicit none
+      !> run_object bigdft structure
+      type(run_objects), intent(in) :: runObj
+      !> x vector of atomic positions. Has to be given in alternative to 
+      !! dx_add
+      real(gp), dimension(3,runObj%atoms%astruct%nat), intent(in), optional :: dx
+      !> position of the first element of x vector. 
+      !! Has to be given in alternative to dx_add
+      real(gp), optional :: dx_add
+      !> y vector of atomic positions. Has to be given in alternative to 
+      !! dy_add
+      real(gp), dimension(3,runObj%atoms%astruct%nat), intent(in), optional :: dy
+      !> position of the first element of y vector. 
+      !! Has to be given in alternative to dy_add
+      real(gp), optional :: dy_add
+      !> result of the ddot procedure
+      real(gp) :: scpr
+      external :: atomic_dot
+
+      if (present(dx) .eqv. present(dx_add)) then
+         call f_err_throw('Error in bigdft_dot: dx *xor* dx_add have to be present',err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+      if (present(dy) .eqv. present(dy_add)) then
+         call f_err_throw('Error in bigdft_dot: dy *xor* dy_add have to be present',err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+
+      if (present(dx)) then
+         if (present(dy)) then
+            call atomic_dot(bigdft_get_astruct_ptr(runObj),dx,dy,scpr)
+         else
+            call atomic_dot(bigdft_get_astruct_ptr(runObj),dx,dy_add,scpr)
+         end if
+      else
+         if (present(dy)) then
+            call atomic_dot(bigdft_get_astruct_ptr(runObj),dx_add,dy,scpr)
+         else
+            call atomic_dot(bigdft_get_astruct_ptr(runObj),dx_add,dy_add,scpr)
+         end if
+      end if
+    end function bigdft_dot
   
+    !> square root of bigdft_dot(runObj,dx,dx)
+    function bigdft_nrm2(runObj,dx,dx_add) result(scpr)
+      use yaml_output, only: yaml_toa
+      implicit none
+      !> run_object bigdft structure
+      type(run_objects), intent(in) :: runObj
+      !> x vector of atomic positions. Has to be given in alternative to 
+      !! dx_add
+      real(gp), dimension(3,runObj%atoms%astruct%nat), intent(in), optional :: dx
+      !> position of the first element of x vector. 
+      !! Has to be given in alternative to dx_add
+      real(gp), optional :: dx_add
+      !> result of the dnrm2 procedure
+      real(gp) :: scpr
+
+      if (present(dx) .eqv. present(dx_add)) then
+         call f_err_throw('Error in bigdft_nrm2: dx *xor* dx_add have to be present',err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+
+      if (present(dx)) then
+         scpr=bigdft_dot(runObj,dx=dx,dy=dx)
+      else
+         scpr=bigdft_dot(runObj,dx_add=dx_add,dy_add=dx_add)
+      end if
+      if (scpr <=0.0_gp) call f_err_throw(&
+           'Meaningless result in bigdft_nrm2! (<x|x>='//&
+           trim(yaml_toa(scpr))//')',err_name='BIGDFT_RUNTIME_ERROR')
+      
+      scpr=sqrt(scpr)
+    end function bigdft_nrm2
+
 end module bigdft_run
 
 !external wrapper temporary to make the code compiling with wrappers
@@ -1300,20 +1385,21 @@ END SUBROUTINE run_objects_init_from_run_name
 subroutine run_objects_update(runObj, dict)
   use module_base, only: bigdft_mpi
   use bigdft_run, only: run_objects,init_restart_objects,set_run_objects
-  use dictionaries, only: dictionary, dict_update
+  use dictionaries, only: dictionary, dict_update,dict_free
+  use yaml_output
   implicit none
   type(run_objects), intent(inout) :: runObj
   type(dictionary), pointer :: dict
 
-  ! We merge the previous dictionnary with new entries.
+  ! We merge the previous dictionary with new entries.
   call dict_update(runObj%user_inputs, dict)
 
   ! Parse new dictionary.
   call set_run_objects(runObj)
+
   !init and update the restart objects
   call init_restart_objects(bigdft_mpi%iproc,runObj%inputs,runObj%atoms,&
        runObj%rst)
-
 END SUBROUTINE run_objects_update
 
 

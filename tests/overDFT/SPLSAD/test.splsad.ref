@@ -22,7 +22,6 @@ DOF: n,nr 12 12
  -----------------------------------------------------------
  number of anchor points            2
  degree of freedom: n,nr           12          12
- ALIREZA-02
 ENDs: epot1,fnrm1,epot2,fnrm2   -0.117016503759512E+02   0.965168486458405E-03  -0.117016265025982E+02   0.963598002056119E-03
 begin of minimization_sp using  BFGS      
 BFGSMIN      0  1.023696996598112E-01  0.000E+00 1.02370E-01 5.88692E-02  1.0000E+00

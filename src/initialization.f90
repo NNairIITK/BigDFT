@@ -358,14 +358,6 @@ subroutine create_log_file(dict, writing_directory, dir_output, run_name)
         if (ierr == 0) then
            call yaml_get_default_stream(unit_log)
            call input_set_stdout(unit=unit_log)
-           if (len_trim(run_name) == 0) then
-              call f_malloc_set_status(unit=unit_log, &
-                   & logfile_name='malloc' // trim(bigdft_run_id_toa()) // '.prc')
-           else
-              call f_malloc_set_status(unit=unit_log, &
-                   & logfile_name='malloc-' // trim(run_name) // '.prc')
-           end if
-           !call memocc_set_stdout(unit=70)
         else
            call yaml_warning('Logfile '//trim(logfile)//' cannot be created, stream already present. Ignoring...')
         end if

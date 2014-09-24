@@ -253,7 +253,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   end do
 
   ! Convert the pseudo coefficients into gaussian projectors.
-  if (all(at%npspcode == PSPCODE_PAW)) then
+  if (all(at%npspcode == PSPCODE_PAW) .and. at%astruct%ntypes > 0) then
      call gaussian_basis_from_paw(at%astruct%nat, at%astruct%iatype, rxyz, &
           & at%pawtab, at%astruct%ntypes, nl%proj_G)
      do iat=1,at%astruct%nat
