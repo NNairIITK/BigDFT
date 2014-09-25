@@ -132,9 +132,11 @@ contains
     if (mpi_env%mpi_comm /= MPI_COMM_WORLD .and. &
          mpi_env%mpi_comm /= MPI_COMM_NULL) then
        call MPI_COMM_FREE(mpi_env%mpi_comm,ierr)
-       call f_err_throw('Problem in MPI_COMM_FREE, ierr:'//&
-            yaml_toa(ierr),err_name='BIGDFT_MPI_ERROR')
-       return
+       if (ierr /=0) then
+          call f_err_throw('Problem in MPI_COMM_FREE, ierr:'//&
+               yaml_toa(ierr),err_name='BIGDFT_MPI_ERROR')
+          return
+       end if
     end if
     mpi_env=mpi_environment_null()
   end subroutine mpi_environment_free
