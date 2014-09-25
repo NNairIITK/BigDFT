@@ -20,7 +20,7 @@ module dynamic_memory
 
   private 
 
-  logical, parameter :: track_origins=.true.      !< When true keeps track of all the allocation statuses using dictionaries
+  logical, parameter :: track_origins=.false.!.true.      !< When true keeps track of all the allocation statuses using dictionaries
   integer, parameter :: namelen=f_malloc_namelen  !< Length of the character variables
   integer, parameter :: error_string_len=80       !< Length of error string
   integer, parameter :: ndebug=0                  !< Size of debug parameters
@@ -889,9 +889,9 @@ contains
     real(kind=4), intent(in), optional :: memory_limit       !< Memory limit
     integer, intent(in), optional :: output_level            !< Level of output for memocc
                                                              !! 0 no file, 1 light, 2 full
-    integer, intent(in), optional :: iproc                   !< Process Id (used to dump, by default one 0)
+    integer, intent(in), optional :: iproc                   !< Process Id (used to dump, by default 0)
     !local variables
-    integer :: unt,jctrl
+    integer :: unt,jctrl,jproc
 
     if (f_err_raise(ictrl == 0,&
          'ERROR (f_malloc_set_status): the routine f_malloc_initialize has not been called',&
@@ -914,11 +914,17 @@ contains
 
     if (present(output_level)) then
        if (output_level > 0) then
+          !first, check if we already know which proc we are
+          jproc=0
+          jproc=mems(ictrl)%dict_global .get. processid
+          !if iproc is present, overrides
+          if (present(iproc)) jproc=iproc
+
           if (.not. present(logfile_name)) &
                call f_err_throw('Error, f_malloc_set_status needs logfile_name for nontrivial output level',&
                err_id=ERR_INVALID_MALLOC)
           !first, close the previously opened stream
-          if (mems(ictrl)%logfile_unit > 0) then
+          if (mems(ictrl)%logfile_unit > 0 .and. jproc==0) then
              call yaml_close_stream(unit=mems(ictrl)%logfile_unit)
           end if
           !check if it is assigned to 
@@ -930,21 +936,23 @@ contains
                   trim(yaml_toa(jctrl)),err_id=ERR_INVALID_MALLOC)
              exit
           end do
-          !eliminate the previous existing file if it has the same name
-          !check if the file is opened
-          call f_file_unit(trim(logfile_name),unt)
-          !after this check an opened filename may now be closed
-          call f_close(unt)
-          !now the file can be opened
-          !get a free unit, starting from 98
-          unt=f_get_free_unit(98)
-          call yaml_set_stream(unit=unt,filename=trim(logfile_name),position='rewind',setdefault=.false.,&
-               record_length=131)
-          if (output_level==2) then
-             call yaml_comment(&
-               'Present Array,Present Routine, Present Memory, Peak Memory, Peak Array, Peak Routine',&
-               unit=unt)
-             call yaml_sequence_open('List of allocations',unit=unt)
+          if (jproc == 0) then
+             !eliminate the previous existing file if it has the same name
+             !check if the file is opened
+             call f_file_unit(trim(logfile_name),unt)
+             !after this check an opened filename may now be closed
+             call f_close(unt)
+             !now the file can be opened
+             !get a free unit, starting from 98
+             unt=f_get_free_unit(98)
+             call yaml_set_stream(unit=unt,filename=trim(logfile_name),position='rewind',setdefault=.false.,&
+                  record_length=131)
+             if (output_level==2) then
+                call yaml_comment(&
+                     'Present Array,Present Routine, Present Memory, Peak Memory, Peak Array, Peak Routine',&
+                     unit=unt)
+                call yaml_sequence_open('List of allocations',unit=unt)
+             end if
           end if
           !store the found unit in the structure
           mems(ictrl)%logfile_unit=unt
@@ -978,7 +986,7 @@ contains
          ERR_MALLOC_INTERNAL)) return
 
     if (present(process_id)) process_id=-1
-
+    pid=0
     !quick return if variables not associated
     if (associated(mems(ictrl)%dict_global)) then
        !put the last values in the dictionary if not freed
@@ -988,10 +996,12 @@ contains
        end if
        if (present(process_id)) process_id = mems(ictrl)%dict_global//processid
 
+       !retrieve nonetheless
+       pid = mems(ictrl)%dict_global//processid
+
        if (present(dump)) then
           dump_status=dump
        else 
-          pid = mems(ictrl)%dict_global//processid
           if (pid == 0) then
              dump_status=.true.
           else
@@ -1020,7 +1030,7 @@ contains
     if (mems(ictrl)%profile_initialized) call memstate_report(memstate,dump=dump_status)
 
     !close or delete report file
-    if (mems(ictrl)%output_level >= 1) then
+    if (mems(ictrl)%output_level >= 1 .and. pid==0) then
        if (mems(ictrl)%output_level == 2) call yaml_sequence_close(unit=mems(ictrl)%logfile_unit)
        call yaml_close_stream(unit=mems(ictrl)%logfile_unit)
 
