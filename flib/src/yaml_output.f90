@@ -702,7 +702,12 @@ contains
     do istream=1,active_streams
        unt=stream_units(istream)
        !unit 6 cannot be closed
-       if (unt /= 6) call yaml_close_stream(unit=unt)
+       if (unt /= 6) then
+          call yaml_close_stream(unit=unt)
+          !but its document can be released
+       else
+          call yaml_release_document(unit=unt)
+       end if
     end do
     call dict_free(stream_files)
     stream_units=6

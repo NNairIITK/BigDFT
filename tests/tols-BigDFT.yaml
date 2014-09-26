@@ -451,6 +451,7 @@ rotatesmall_write:
 
 wrappers.out:
  EH: 1.1e-10
+ Epot: 1.01e-10
  fnrm2: 1.1e-10
 
 rotatesmall_read:

@@ -215,10 +215,10 @@ subroutine inputs_from_dict(in, atoms, dict)
   !status of the allocation verbosity and profiling
   !filename of the memory allocation status, if needed
   if (len_trim(run_name) == 0) then
-     call f_strcpy(src=trim(writing_dir)//'memstatus' // trim(bigdft_run_id_toa()) // '.yaml',&
+     call f_strcpy(src=trim(writing_dir)//'/memstatus' // trim(bigdft_run_id_toa()) // '.yaml',&
           dest=filename)
   else
-     call f_strcpy(src=trim(writing_dir)//'memstatus-' // trim(run_name) // '.yaml',&
+     call f_strcpy(src=trim(writing_dir)//'/memstatus-' // trim(run_name) // '.yaml',&
           dest=filename)
   end if
 

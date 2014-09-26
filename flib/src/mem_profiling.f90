@@ -85,9 +85,10 @@ contains
        call yaml_mapping_close()
     end if
 
-    !retrieve separate variables, units are in MB
+    !retrieve separate variables, units are in MB here
     if (present(peak)) peak=int(memstate%memtot%peak/int(1048576,kind=8))
-    if (present(memory)) memory=int(memstate%memtot%memory/int(1048576,kind=8))
+    !and kB here (the limit for local memory reporesentation is therefore 200 GB)
+    if (present(memory)) memory=int(memstate%memtot%memory/int(1024,kind=8))
     if (present(array_peak)) then
        if (len_trim(memstate%memtot%array) > 0) then
           call f_strcpy(src=memstate%memtot%array,dest=array_peak)
@@ -112,6 +113,7 @@ contains
   subroutine dump_status_line(memstate,unit,routine,array)
     use yaml_output
     use dictionaries
+    use yaml_strings, only: f_strcpy
     implicit none
     integer, intent(in) :: unit
     type(memory_state), intent(in) :: memstate
@@ -119,22 +121,34 @@ contains
     character(len=*), intent(in), optional :: array
     !local variables
     integer :: peak,memory
+    character(len=40) :: localpoint
+    character(len=24) :: peakpoint
     character(len=max_field_length) :: peakstr,memstr,arr,rout
 
     !retrieve values
     call memstate_report(memstate,dump=.false.,peak=peak,memory=memory,&
          true_proc_peak=peakstr,true_proc_memory=memstr,array_peak=arr,routine_peak=rout)
 
+    !describe localpoint
+    if (present(array)) then
+       call f_strcpy(src=trim(array)//'('//trim(routine)//')',&
+            dest=localpoint)
+    else
+       call f_strcpy(src=trim(routine),dest=localpoint)
+    end if
+
+    !describe peakpoint
+    call f_strcpy(src=trim(arr)//'('//trim(rout)//')',&
+         dest=peakpoint)
+
     call yaml_sequence(advance='no',unit=unit)
     call yaml_sequence_open(flow=.true.,unit=unit)
-      if (present(array)) call yaml_sequence(trim(array),advance='no',unit=unit,padding=16)
-      call yaml_sequence(trim(routine),advance='no',unit=unit,padding=16)
-      call yaml_sequence(trim(yaml_toa(memory)),advance='no',unit=unit,padding=7)
-      call yaml_sequence(trim(yaml_toa(peak)),advance='no',unit=unit,padding=7)
-      call yaml_sequence(trim(arr),advance='no',unit=unit,padding=16)
-      call yaml_sequence(trim(rout),advance='no',unit=unit,padding=16)
-      call yaml_sequence(trim(memstr),advance='no',unit=unit,padding=7)
-      call yaml_sequence(trim(peakstr),advance='no',unit=unit,padding=7)
+      call yaml_sequence(trim(localpoint),advance='no',unit=unit,padding=len(localpoint))
+      call yaml_sequence(trim(yaml_toa(memory)),advance='no',unit=unit,padding=10)
+      call yaml_sequence(trim(yaml_toa(peak)),advance='no',unit=unit,padding=5)
+      call yaml_sequence(trim(peakpoint),advance='no',unit=unit,padding=len(peakpoint))
+      call yaml_sequence(trim(memstr),advance='no',unit=unit,padding=12)
+      call yaml_sequence(trim(peakstr),advance='no',unit=unit,padding=12)
     call yaml_sequence_close(unit=unit)
   end subroutine dump_status_line
 

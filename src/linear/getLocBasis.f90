@@ -2595,7 +2595,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
   ! Calculate S^1/2 * K * S^1/2
-  call retransform()
+  call retransform_local()
 
   ! Calculate S^-1/2 for the new overlap matrix
   call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
@@ -2605,7 +2605,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
   ! Calculate S^-1/2 * K * S^-1/2
-  call retransform()
+  call retransform_local()
 
   call f_free_ptr(inv_ovrlpp)
   call f_free_ptr(tempp)
@@ -2617,8 +2617,9 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
   contains
 
-      subroutine retransform()
-          use sparsematrix, only: sequential_acces_matrix_fast, sparsemm
+      subroutine retransform_local()
+          use sparsematrix, only: sequential_acces_matrix_fast, sparsemm, &
+               & uncompress_matrix_distributed, compress_matrix_distributed
 
           call sequential_acces_matrix_fast(tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, kernel_compr_seq)
           call sequential_acces_matrix_fast(tmb%linmat%l, &
@@ -2634,6 +2635,6 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
           call to_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
           call compress_matrix_distributed(iproc, tmb%linmat%l, inv_ovrlpp, tmb%linmat%kernel_%matrix_compr)
 
-      end subroutine retransform
+      end subroutine retransform_local
 
 end subroutine renormalize_kernel
