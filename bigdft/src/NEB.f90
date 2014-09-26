@@ -112,7 +112,7 @@ MODULE NEB_routines
       INTEGER, PARAMETER :: unit = 10
       REAL (gp), DIMENSION(:,:), ALLOCATABLE :: d_R
       real(gp), dimension(3) :: acell1, acell2
-      integer :: ierr, nconfig, algorithm, unit_log
+      integer :: ierr, algorithm, unit_log
       type(mpi_environment) :: bigdft_mpi_svg
       character(len=60) :: run_id
       type(dictionary), pointer :: dict, dict_min,options
