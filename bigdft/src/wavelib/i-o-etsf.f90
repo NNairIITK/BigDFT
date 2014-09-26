@@ -1088,11 +1088,11 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
          elec%occupations%data1D => orbs%occup
       else
          elec%eigenvalues%data3D = f_malloc_ptr((/ dims%max_number_of_states , &
-             dims%number_of_kpoints , dims%number_of_spins + ndebug /), &
+             dims%number_of_kpoints , dims%number_of_spins /), &
              id='elec%eigenvalues%data3D')
          elec%eigenvalues%data3D = UNINITIALIZED(1.d0)
          elec%occupations%data3D = f_malloc_ptr((/ dims%max_number_of_states , &
-             dims%number_of_kpoints , dims%number_of_spins + ndebug /), &
+             dims%number_of_kpoints , dims%number_of_spins /), &
              id='elec%occupations%data3D')
          elec%occupations%data3D = UNINITIALIZED(1.d0)
          do i = 1, orbs%norb*orbs%nkpts, 1
@@ -1107,7 +1107,7 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
          end do
       end if
       elec%number_of_states%data2D = f_malloc_ptr((/ dims%number_of_kpoints , &
-          dims%number_of_spins + ndebug /),id='elec%number_of_states%data2D')
+          dims%number_of_spins /),id='elec%number_of_states%data2D')
       do ispin = 1, dims%number_of_spins, 1
          do i = 1, orbs%nkpts, 1
             if (ispin == 1) then
