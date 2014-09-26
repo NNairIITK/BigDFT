@@ -1463,7 +1463,7 @@ subroutine optloop_emit_iter(optloop, id, energs, iproc, nproc)
         ! After handling the signal, iproc 0 broadcasts to other
         ! proc to continue (jproc == -1).
         message = SIGNAL_DONE
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+        call mpibcast(message,1,comm= bigdft_mpi%mpi_comm)
      end if
   else
      message = SIGNAL_WAIT
@@ -1471,7 +1471,7 @@ subroutine optloop_emit_iter(optloop, id, energs, iproc, nproc)
         if (message == SIGNAL_DONE) then
            exit
         end if
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+        call mpibcast(message, 1,comm=bigdft_mpi%mpi_comm)
         
         if (message >= 0) then
            ! sync values from proc 0.
@@ -1503,10 +1503,11 @@ subroutine optloop_bcast(optloop, iproc)
      rData(2) = optloop%rpnrm_cv
      rData(3) = optloop%gnrm_startmix
 
-     call MPI_BCAST(0, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+     !what is this?
+     !call MPI_BCAST(0, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
   end if
-  call MPI_BCAST(iData, 4, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
-  call MPI_BCAST(rData, 3, MPI_DOUBLE_PRECISION, 0, bigdft_mpi%mpi_comm, ierr)
+  call mpibcast(iData,comm=bigdft_mpi%mpi_comm)
+  call mpibcast(rData,comm=bigdft_mpi%mpi_comm)
   if (iproc /= 0) then
      optloop%iscf = iData(1)
      optloop%itrpmax = iData(2)
@@ -1600,6 +1601,7 @@ subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly)
   close(unit = iunit)
 
   call yaml_set_default_stream(iunit_def, iostat)
+
 END SUBROUTINE run_objects_dump_to_file
 
 !wrapper to call_bigdft in bigdft run
@@ -1609,7 +1611,6 @@ subroutine bigdft_exec(runObj,outs,infocode)
   type(run_objects), intent(inout) :: runObj
   type(DFT_global_output), intent(inout) :: outs
   integer, intent(inout) :: infocode
-
   call call_bigdft(runObj,outs,infocode)
 
 end subroutine bigdft_exec

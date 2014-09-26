@@ -47,6 +47,7 @@ program MINHOP
 !  character(len=16) :: fn16
 !  character(len=18) :: fn18
   character(len=50) :: comment
+  character(len=128) :: msg
 !  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
   integer :: nconfig
   !integer, dimension(4) :: mpi_info
@@ -377,17 +378,26 @@ program MINHOP
   
   ! If restart read previous poslocm's
   ! here we should use bigdft built-in routines to read atomic positions
+  call f_err_open_try()
+  ierr=0
   do ilmin=1,nlmin
 
      write(fn5,'(i5.5)') ilmin
-     filename = 'poslow'//fn5//'_'//trim(bigdft_run_id_toa())//'.xyz'
-     call f_file_exists(filename,exist_poslocm)
-     if (.not. exist_poslocm) then
-        write(*,*) bigdft_mpi%iproc,' COULD not read file ',filename
-        exit
-     end if
-
+     filename = 'poslow'//fn5//'_'//trim(bigdft_run_id_toa())!//'.xyz'
+!!$     call f_file_exists(filename,exist_poslocm)
+!!$     if (.not. exist_poslocm) then
+!!$        write(*,*) bigdft_mpi%iproc,' COULD not read file ',filename
+!!$        exit
+!!$     end if
      call bigdft_get_rxyz(filename=filename,rxyz_add=pl_arr(1,1,ilmin))
+     if (f_err_check()) then
+        if (f_err_check(err_name='BIGDFT_INPUT_FILE_ERROR')) then
+           write(*,*) bigdft_mpi%iproc,' COULD not read file ',filename
+           exit
+        else
+           ierr = f_get_last_error(msg)
+        end if
+     end if
 !!$     open(unit=192,file=filename,status='old',iostat=ierror)
 !!$     if (ierror /= 0) then
 !!$        write(*,*) bigdft_mpi%iproc,' COULD not read file ',filename
@@ -416,6 +426,9 @@ program MINHOP
 !!$     close(192)
      if (bigdft_mpi%iproc == 0) call yaml_scalar('(MH) read file '//trim(filename))
   end do
+  call f_err_close_try()
+  if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = msg)
+             
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) number of read poslow files', nlmin)
   
   ebest_l=outs%energy 
@@ -3182,7 +3195,7 @@ end subroutine fingerprint
       pos(3,iat) = theta(1,ipiv(3))*p1+ theta(2,ipiv(3))*p2+ theta(3,ipiv(3))*p3
    enddo
 
-   call yaml_map('Exiting ha_trans',pos)
+!   call yaml_map('Exiting ha_trans',pos)
 
 !!$   do j=1,3
 !!$      call yaml_map('Thetaj',theta(:,j))
