@@ -426,8 +426,11 @@ end subroutine test_dynamic_memory
 subroutine verify_heap_allocation_status()
   use yaml_output
   use dynamic_memory
+  use dictionaries, only: f_loc
   implicit none
   !local variables
+  logical, parameter :: traditional=.true.
+  character(len=*), parameter :: subname='verify_heap_allocation_status' 
   logical :: all
   integer :: maxnum,maxmem,i,nall,ndeall,nsize,ibuf
   real :: tt,total_time,t0,t1,tel
@@ -436,7 +439,7 @@ subroutine verify_heap_allocation_status()
      double precision, dimension(:), pointer :: buffer
   end type to_alloc
   type(to_alloc), dimension(:), allocatable :: pool
-  call f_routine(id='verify_heap_allocation_status')
+  call f_routine(id=subname)
 
   !decide total cpu time of the run (seconds)
   total_time=30.e0
@@ -477,7 +480,14 @@ subroutine verify_heap_allocation_status()
            end if
         end do
         if (ibuf==-1) cycle !try again
-        pool(ibuf)%buffer=f_malloc(nsize,id='buf'//trim(adjustl(yaml_toa(ibuf))))
+        !allocate
+        if (traditional) then
+           allocate(pool(ibuf)%buffer(nsize))
+           call f_update_database(int(nsize,kind=8),kind(1.d0),1,f_loc(pool(ibuf)%buffer),&
+                'buf'//trim(adjustl(yaml_toa(ibuf))),subname)
+        else
+           pool(ibuf)%buffer=f_malloc_ptr(nsize,id='buf'//trim(adjustl(yaml_toa(ibuf))))
+        end if
         do i=1,nsize
            call random_number(tt)
            pool(ibuf)%buffer(i)=dble(tt)
@@ -493,7 +503,13 @@ subroutine verify_heap_allocation_status()
         end do
         if (ibuf==-1) cycle !try again
         chk=-sum(pool(ibuf)%buffer)
-        call f_free_ptr(pool(ibuf)%buffer)
+        if (traditional) then
+           call f_purge_database(int(nsize,kind=8),kind(1.d0),f_loc(pool(ibuf)%buffer),&
+                'buf'//trim(adjustl(yaml_toa(ibuf))),subname)
+           deallocate(pool(ibuf)%buffer)
+        else
+           call f_free_ptr(pool(ibuf)%buffer)
+        end if
         ndeall=ndeall+1
      end if
      checksum=checksum+chk
