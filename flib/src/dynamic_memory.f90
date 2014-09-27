@@ -42,7 +42,7 @@ module dynamic_memory
   character(len=*), parameter :: t0_time='Time of last opening'
   character(len=*), parameter :: tot_time='Total time (s)'
   character(len=*), parameter :: prof_enabled='Profiling Enabled'
-  character(len=*), parameter :: main='Main program'
+  character(len=*), parameter :: main='Main_program'
 
   !> Error codes
   integer, save :: ERR_ALLOCATE

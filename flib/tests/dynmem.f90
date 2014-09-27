@@ -421,6 +421,100 @@ call f_free(weight)
      end subroutine free_dummy
 end subroutine test_dynamic_memory
 
+!> this subroutine performs random allocations and operations on different arrays 
+!! in order to verify if the memory statis is in agreement with the process usage
+subroutine verify_heap_allocation_status()
+  use yaml_output
+  use dynamic_memory
+  implicit none
+  !local variables
+  logical :: all
+  integer :: maxnum,maxmem,i,nall,ndeall,nsize,ibuf
+  real :: tt,total_time,t0,t1,tel
+  double precision :: checksum,chk
+  type :: to_alloc
+     double precision, dimension(:), pointer :: buffer
+  end type to_alloc
+  type(to_alloc), dimension(:), allocatable :: pool
+  call f_routine(id='verify_heap_allocation_status')
+
+  !decide total cpu time of the run (seconds)
+  total_time=30.e0
+
+  !maximum simultaenously allocated arrays
+  maxnum=1000
+  
+  !maximum value of memory to be used, in MB
+  maxmem=100
+
+  !size of each chunk 
+  nsize=int((int(maxmem,kind=8)*1024*1024/8)/maxnum)
+  !start timer
+  call cpu_time(t0)
+  !elapsed time
+  tel=0.e0
+  !prepare the pool for allocations
+  allocate(pool(maxnum))
+  do i=1,maxnum
+     nullify(pool(i)%buffer)
+  end do
+
+  checksum=0.d0
+  nall=0
+  ndeall=0
+  do while (tel < total_time)
+
+     !extract the allocation action
+     call random_number(tt)
+     all= (tt < 0.5e0) 
+     ibuf=-1 !failsafe
+     !find the first unallocated
+     if (all) then
+        do i=1,maxnum
+           if (.not. associated(pool(i)%buffer)) then
+              ibuf=i
+              exit
+           end if
+        end do
+        if (ibuf==-1) cycle !try again
+        pool(ibuf)%buffer=f_malloc(nsize,id='buf'//trim(adjustl(yaml_toa(ibuf))))
+        do i=1,nsize
+           call random_number(tt)
+           pool(ibuf)%buffer(i)=dble(tt)
+        end do
+        chk=sum(pool(ibuf)%buffer)
+        nall=nall+1
+     else !find the first allocated
+        do i=1,maxnum
+           if (associated(pool(i)%buffer)) then
+              ibuf=i
+              exit
+           end if
+        end do
+        if (ibuf==-1) cycle !try again
+        chk=-sum(pool(ibuf)%buffer)
+        call f_free_ptr(pool(ibuf)%buffer)
+        ndeall=ndeall+1
+     end if
+     checksum=checksum+chk
+     call cpu_time(t1)
+     tel=t1-t0
+  end do
+
+  !deallocate all the residual
+  do i=1,maxnum
+     call f_free_ptr(pool(i)%buffer)
+  end do
+
+  deallocate(pool)
+
+  call yaml_map('Total elapsed time',tel)
+  call yaml_map('Allocations, deallocations',[nall,ndeall])
+  call yaml_map('Checksum value',checksum)
+
+  call f_release_routine()
+end subroutine verify_heap_allocation_status
+
 subroutine dynmem_sandbox()
   use yaml_output
   use dictionaries, dict_char_len=> max_field_length
@@ -541,3 +635,5 @@ subroutine dynmem_sandbox()
    end subroutine add_routine
 
 end subroutine dynmem_sandbox
+
+

@@ -349,9 +349,7 @@ BigDFT_Run* bigdft_run_new_from_dict(BigDFT_Dict *dict)
 
   /* Associate the dictionary and parse it. */
   FC_FUNC_(run_objects_update, RUN_OBJECTS_UPDATE)(F_TYPE(run->data), &dict->root);
-
   _attributes_from_fortran(run);
-
   return run;
 }
 
@@ -437,9 +435,11 @@ gboolean bigdft_run_dump(BigDFT_Run *run, const gchar *filename, gboolean full)
 {
   int iostat;
   int userOnly = !full;
+  int ln;
 
+  ln=strlen(filename);
   FC_FUNC_(run_objects_dump_to_file, RUN_OBJECTS_DUMP_TO_FILE)
-    (&iostat, &run->dict->root, filename, &userOnly, strlen(filename));
+    (&iostat, &run->dict->root, filename, &userOnly, &ln);
 
   return (iostat == 0);
 }
