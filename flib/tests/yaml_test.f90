@@ -173,9 +173,9 @@ program yaml_test
    if (TREES_EXTRAS .in. run) then
       call profile_dictionary_usage()
    end if
-   if (ALLOCATIONS .in. run) then
-      call verify_heap_allocation_status()
-   end if
+!!$   if (ALLOCATIONS .in. run) then
+!!$      call verify_heap_allocation_status()
+!!$   end if
 
 
    call dict_free(run)

@@ -1573,6 +1573,7 @@ subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly,ln)
   use module_defs, only: UNINITIALIZED, gp
   use yaml_output
   use f_utils, only: f_get_free_unit
+  use yaml_strings, only: f_strcpy
   implicit none
   integer, intent(in) :: ln
   integer, intent(out) :: iostat
@@ -1583,6 +1584,7 @@ subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly,ln)
   integer, parameter :: iunit_true = 145214 !< Hopefully being unique...
   integer :: iunit_def,iunit
   real(gp), dimension(3), parameter :: dummy = (/ 0._gp, 0._gp, 0._gp /)
+  character(len=256) :: filetmp
 
   !check free unit
   iunit=f_get_free_unit(iunit_true)
@@ -1592,7 +1594,8 @@ subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly,ln)
      iostat = 1
      return
   end if
-  open(unit = iunit, file = fname(1:len(fname)), iostat = iostat)
+  call f_strcpy(src=fname,dest=filetmp)
+  open(unit = iunit, file =trim(filetmp), iostat = iostat)
   if (iostat /= 0) return
   call yaml_set_stream(unit = iunit, tabbing = 40, record_length = 100, istat = iostat)
   if (iostat /= 0) return

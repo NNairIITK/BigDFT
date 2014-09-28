@@ -75,9 +75,10 @@ int main(int argc, const char **argv)
   run = bigdft_run_new_from_dict(dict);
   bigdft_dict_unref(dict);
 
-
   atoms = bigdft_run_get_atoms(run);
+
   if (iproc == 0) bigdft_atoms_write(atoms, "posinp", "yaml");
+
   bigdft_atoms_unref(atoms);
 
 
@@ -87,10 +88,10 @@ int main(int argc, const char **argv)
 
 
   bigdft_inputs_set(ins, "dft", "gnrm_cv", "1.e-5");
+
   bigdft_inputs_unref(ins);
 
   if (iproc == 0) bigdft_run_dump(run, "input.yaml", TRUE);
-
   /* bigdft_run_memoryEstimation(run, iproc, nproc); */
   /* print_memory_estimation_(run->mem.data); */
 
