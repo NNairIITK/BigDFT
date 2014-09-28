@@ -196,7 +196,7 @@ subroutine write_path(nat,npath,path,energies,tangent)
     use module_base
     use module_interfaces
     use module_atoms, only: astruct_dump_to_file
-    use module_global_variables, only: isadc, atoms,ixyz_int,&
+    use module_global_variables, only: isadc, astruct_ptr,ixyz_int,&
                                        currDir
     implicit none
     !parameters
@@ -223,15 +223,11 @@ subroutine write_path(nat,npath,path,energies,tangent)
         write(comment,'(a)')&
            'ATTENTION! Forces below are no forces but tangents to '//&
            'the guessed reaction path'
-        call astruct_dump_to_file(atoms%astruct,&
+        call astruct_dump_to_file(astruct_ptr,&
              currDir//'/sad'//isadc//'_igpath_'//fn4,&
              trim(comment),&
              energies(ipath),rxyz=pathint(:,:,ipath),&
              forces=tangent(:,:,ipath))
-!!$        call write_atomic_file(currDir//'/sad'//isadc//'_igpath_'//&
-!!$             fn4,energies(ipath),pathint(1,1,ipath),ixyz_int,&
-!!$             atoms,trim(comment),forces=tangent(1,1,ipath))
-
     enddo
 end subroutine
 !=====================================================================
@@ -345,11 +341,11 @@ subroutine grow_freezstring(nat,alat,gammainv,perpnrmtol,trust,&
                  finished)
             if(finished/=0)then
 !if(i/=nstring)stop'DEBUGGING i/=nstring'
-!               if(perpnrmtol>0 .and. nstepsmax > 0)& 
-!                call optim_cg(nat,alat,finished,step,gammainv,&
-!                    perpnrmtol_squared,trust_squared,nstepsmax,&
-!                    tangentleft,tangentright,string(1,1,i+1),&
-!                    string(1,2,i+1))
+               if(perpnrmtol>0 .and. nstepsmax > 0)& 
+                call optim_cg(nat,alat,finished,step,gammainv,&
+                    perpnrmtol_squared,trust_squared,nstepsmax,&
+                    tangentleft,tangentright,string(1,1,i+1),&
+                    string(1,2,i+1))
                 nstring=nstring+1
             endif
         enddo

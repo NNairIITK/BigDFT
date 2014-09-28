@@ -2343,7 +2343,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   !call to_zero(lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*npsir*orbs%norbp,psir(1,1,1)) 
   call to_zero(nbox*npsir*orbs%norbp,psir_old(1,1,1)) 
 
-  call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*5, shift(1,1))
+  !call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*5, shift(1,1))
 
   ist=1
   loop_orbs: do iorb=1,orbs%norbp

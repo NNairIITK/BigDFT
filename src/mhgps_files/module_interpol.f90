@@ -4,27 +4,50 @@
 !! routine
 module lst_penalty_wrapper
   use module_defs, only: gp
+  implicit none  
 
   !usage of pointers, just for fun
-  real(gp), pointer, private :: lambda_ptr=>null()
-  real(gp), dimension(:,:), pointer, private :: rxyzR_ptr=>null(),rxyzP_ptr=>null()
+!  real(gp), pointer, private :: lambda_ptr=>null()
+!  real(gp), dimension(:,:), pointer, private :: rxyzR_ptr=>null(),rxyzP_ptr=>null()
+  real(gp), private :: lambda_int
+  real(gp), dimension(:,:), allocatable, private :: rxyzR_int,rxyzP_int
  
 contains
 
-  subroutine init_lst_wrapper(nat,rxyzR,rxyzP,lambda)
+subroutine init_lst_wrapper(nat,rxyzR,rxyzP,lambda)
+    use module_base
     implicit none
     integer, intent(in) :: nat
+!    real(gp), intent(in), target :: rxyzR(3,nat) !reactant
+!    real(gp), intent(in), target :: rxyzP(3,nat) !product
+!    real(gp), intent(in), target :: lambda !interpolation parameter
     real(gp), intent(in), target :: rxyzR(3,nat) !reactant
     real(gp), intent(in), target :: rxyzP(3,nat) !product
     real(gp), intent(in), target :: lambda !interpolation parameter
 
-    rxyzR_ptr => rxyzR
-    rxyzP_ptr => rxyzP
-    lambda_ptr=> lambda
+!pointer lead to segault after some hours
+!(intel ifort 14)
+!    rxyzR_ptr => rxyzR
+!    rxyzP_ptr => rxyzP
+!    lambda_ptr=> lambda
+    rxyzR_int = f_malloc((/ 1.to.3, 1.to.nat/),id='rxyzR_int')
+    rxyzP_int = f_malloc((/ 1.to.3, 1.to.nat/),id='rxyzP_int')
 
-  end subroutine init_lst_wrapper
+    rxyzR_int = rxyzR
+    rxyzP_int = rxyzP
+    lambda_int = lambda
 
-  subroutine valforce(nat,rat,fat,epot)
+end subroutine init_lst_wrapper
+!=====================================================================
+subroutine finalize_lst_wrapper()
+    use module_base
+    implicit none
+
+    call f_free(rxyzR_int)
+    call f_free(rxyzP_int)
+end subroutine finalize_lst_wrapper
+!=====================================================================
+subroutine valforce(nat,rat,fat,epot)
      !wrapper function for lst_penalty
     use module_base
     implicit none
@@ -34,11 +57,12 @@ contains
     real(gp), intent(out) :: fat(3,nat)
     real(gp), intent(out) :: epot
     !local variables
-    call lst_penalty(nat,rxyzR_ptr,rxyzP_ptr,rat,lambda_ptr,epot,fat)
-  end subroutine valforce
+!    call lst_penalty(nat,rxyzR_ptr,rxyzP_ptr,rat,lambda_ptr,epot,fat)
+    call lst_penalty(nat,rxyzR_int,rxyzP_int,rat,lambda_int,epot,fat)
+end subroutine valforce
 
-  !=====================================================================
-  subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
+!=====================================================================
+subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
     !computes the linear synchronous penalty function
     !and gradient
     !
@@ -51,7 +75,7 @@ contains
     !
     !and
     !
-    !Behn, A., Zimmerman, P. M., Bell, A. T., & Head-Gordon, M. (2011).
+    !Behn, A., Zimmerman, P. M., Bell, A. T., & Head-Gordon, M. (2011)
     !Incorporating Linear Synchronous Transit Interpolation into
     !the Growing String Method: Algorithm and Applications.
     !Journal of Chemical Theory and Computation, 7(12), 4019–4025.
@@ -253,6 +277,7 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
 !<-DEBUG END-------------------------------------------------------->
     call init_lst_wrapper(nat,rxyzR,rxyzP,lambda)
     call fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
+    call finalize_lst_wrapper()
 !<-DEBUG START------------------------------------------------------>
 !if(mod(ic,10)==0)then
 !write(fc5,'(i5.5)')ic
