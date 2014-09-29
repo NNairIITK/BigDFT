@@ -2968,7 +2968,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
   ! Calculate S^1/2 * K * S^1/2
-  call retransform()
+  call retransform_local()
   !!tr=0.d0
   !!do iorb=1,tmb%orbs%norb
   !!    ind=tmb%linmat%l%matrixindex_in_compressed_fortransposed(iorb,iorb)
@@ -2984,7 +2984,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
   ! Calculate S^-1/2 * K * S^-1/2
-  call retransform()
+  call retransform_local()
 
 
   call f_free_ptr(inv_ovrlpp)
@@ -2997,8 +2997,9 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
   contains
 
-      subroutine retransform()
-          use sparsematrix, only: sequential_acces_matrix_fast, sparsemm
+      subroutine retransform_local()
+          use sparsematrix, only: sequential_acces_matrix_fast, sparsemm, &
+               & uncompress_matrix_distributed, compress_matrix_distributed
           integer :: ncount
 
           call sequential_acces_matrix_fast(tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, kernel_compr_seq)
@@ -3020,6 +3021,6 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
           call to_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
           call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, inv_ovrlpp, tmb%linmat%kernel_%matrix_compr)
 
-      end subroutine retransform
+      end subroutine retransform_local
 
 end subroutine renormalize_kernel

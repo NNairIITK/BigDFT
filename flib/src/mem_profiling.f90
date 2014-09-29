@@ -38,31 +38,147 @@ contains
     memorylimit = limit
   end subroutine f_set_memory_limit
 
-  !> dump variable has now become useless
-  subroutine memstate_report(memstate,dump)
+  !> retrieve the information of the present memory state
+  subroutine memstate_report(memstate,dump,peak,memory,array,routine,&
+       array_peak,routine_peak,&
+       true_proc_peak,true_proc_memory)
     use yaml_output
+    use dictionaries
+    use yaml_strings, only: f_strcpy
     implicit none
     type(memory_state), intent(in) :: memstate
+    !> if true, dump on default yaml stream the information about memory occupation
     logical, intent(in), optional :: dump
+    integer, intent(out), optional :: peak,memory
+    character(len=*), intent(out), optional :: array_peak, routine_peak,true_proc_peak,true_proc_memory
+    character(len=*), intent(out), optional :: array, routine
     !local variables
     logical :: dmp
+    character(len=max_field_length) :: proc_peak,proc_memory
+    type(dictionary), pointer :: procstatus
     dmp=.true.
     if (present(dump)) dmp=dump
+    
+    !determine if procstatus has to be filled
+    if (dmp .or. present(true_proc_memory) .or. &
+         present(true_proc_memory)) then
+       call get_proc_status_dict(procstatus)
+       call f_strcpy(src='unknown',dest=proc_peak)
+       call f_strcpy(src='unknown',dest=proc_memory)
+       !retrieve values if they exists
+       proc_peak = procstatus .get. 'VmHWM'
+       proc_memory = procstatus .get. 'VmRSS'
+       call dict_free(procstatus)
+    end if
+
     if (dmp) then
        call yaml_mapping_open('Memory Consumption Report')
-       call yaml_map('Tot. No. of Allocations',memstate%memalloc)
-       call yaml_map('Tot. No. of Deallocations',memstate%memdealloc)
-       call yaml_map('Remaining Memory (B)',memstate%memtot%memory)
-       call yaml_mapping_open('Memory occupation')
-       call yaml_map('Peak Value (MB)',memstate%memtot%peak/int(1048576,kind=8))
-       call yaml_map('for the array',trim(memstate%memtot%array))
-       call yaml_map('in the routine',trim(memstate%memtot%routine))
+         call yaml_map('Tot. No. of Allocations',memstate%memalloc)
+         call yaml_map('Tot. No. of Deallocations',memstate%memdealloc)
+         call yaml_map('Remaining Memory (B)',memstate%memtot%memory)
+         call yaml_mapping_open('Memory occupation')
+          call yaml_map('Peak Value (MB)',memstate%memtot%peak/int(1048576,kind=8))
+          call yaml_map('for the array',trim(memstate%memtot%array))
+          call yaml_map('in the routine',trim(memstate%memtot%routine))
+          call yaml_map('Memory Peak of process',proc_peak)
+         call yaml_mapping_close()
        call yaml_mapping_close()
-       call yaml_mapping_close()
-    else
-       !call memocc(0,-1,'count','stop')
     end if
+
+    !retrieve separate variables, units are in MB here
+    if (present(peak)) peak=int(memstate%memtot%peak/int(1048576,kind=8))
+    !and kB here (the limit for local memory reporesentation is therefore 200 GB)
+    if (present(memory)) memory=int(memstate%memtot%memory/int(1024,kind=8))
+    if (present(array_peak)) then
+       if (len_trim(memstate%memtot%array) > 0) then
+          call f_strcpy(src=memstate%memtot%array,dest=array_peak)
+       else
+          call f_strcpy(src='Unknown',dest=array_peak)
+       end if
+    end if
+    if (present(routine_peak)) then
+       if (len_trim(memstate%memtot%routine) ==0) then
+          call f_strcpy(src='Unknown',dest=routine_peak)
+       else
+          call f_strcpy(src=memstate%memtot%routine,dest=routine_peak)
+       end if
+    end if
+    if (present(true_proc_peak)) call f_strcpy(src=proc_peak,dest=true_proc_peak)
+    if (present(true_proc_memory)) call f_strcpy(src=proc_memory,dest=true_proc_memory)
+    if (present(array)) call f_strcpy(src=memstate%memloc%array,dest=array)
+    if (present(routine)) call f_strcpy(src=memstate%memloc%routine,dest=routine)
+
   end subroutine memstate_report
+
+  subroutine dump_status_line(memstate,unit,routine,array)
+    use yaml_output
+    use dictionaries
+    use yaml_strings, only: f_strcpy
+    implicit none
+    integer, intent(in) :: unit
+    type(memory_state), intent(in) :: memstate
+    character(len=*), intent(in) :: routine
+    character(len=*), intent(in), optional :: array
+    !local variables
+    integer :: peak,memory
+    character(len=40) :: localpoint
+    character(len=24) :: peakpoint
+    character(len=max_field_length) :: peakstr,memstr,arr,rout
+
+    !retrieve values
+    call memstate_report(memstate,dump=.false.,peak=peak,memory=memory,&
+         true_proc_peak=peakstr,true_proc_memory=memstr,array_peak=arr,routine_peak=rout)
+
+    !describe localpoint
+    if (present(array)) then
+       call f_strcpy(src=trim(array)//'('//trim(routine)//')',&
+            dest=localpoint)
+    else
+       call f_strcpy(src=trim(routine),dest=localpoint)
+    end if
+
+    !describe peakpoint
+    call f_strcpy(src=trim(arr)//'('//trim(rout)//')',&
+         dest=peakpoint)
+
+    call yaml_sequence(advance='no',unit=unit)
+    call yaml_sequence_open(flow=.true.,unit=unit)
+      call yaml_sequence(trim(localpoint),advance='no',unit=unit,padding=len(localpoint))
+      call yaml_sequence(trim(yaml_toa(memory)),advance='no',unit=unit,padding=10)
+      call yaml_sequence(trim(yaml_toa(peak)),advance='no',unit=unit,padding=5)
+      call yaml_sequence(trim(peakpoint),advance='no',unit=unit,padding=len(peakpoint))
+      call yaml_sequence(trim(memstr),advance='no',unit=unit,padding=12)
+      call yaml_sequence(trim(peakstr),advance='no',unit=unit,padding=12)
+    call yaml_sequence_close(unit=unit)
+  end subroutine dump_status_line
+
+  subroutine get_proc_status_dict(dict)
+    use yaml_parse
+    use f_utils
+    use yaml_strings, only: f_strcpy
+    use dictionaries
+    implicit none
+    type(dictionary), pointer :: dict
+    !local variables
+    logical :: exists
+    integer :: pid
+    character(len=64) :: filename
+    type(dictionary), pointer :: dict_loaded
+
+    nullify(dict)
+    !inquire for the existence of /proc/<pid>/status
+    pid=f_getpid()
+    call f_strcpy(src='/proc/'//trim(adjustl(yaml_toa(pid)))//'/status',dest=filename)
+    call f_file_exists(trim(filename),exists)
+
+    if (exists) then
+       call yaml_parse_from_file(dict_loaded,trim(filename))
+       dict => dict_loaded .pop. 0
+       call dict_free(dict_loaded)
+    end if
+
+  end subroutine get_proc_status_dict
+
 
   !> Put to zero memocc counters
   pure subroutine memstate_init(memstate)
@@ -93,8 +209,8 @@ contains
     character(len=*), intent(in) :: array,routine
     ! Local variables
     !logical :: lmpinit
-    logical :: linq
-    integer :: ierr,istat_del!,impinit
+    !logical :: linq
+    !integer :: ierr,istat_del,impinit
     character(len=256) :: message
 
     !Total counter, for all the processes

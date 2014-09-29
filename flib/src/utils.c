@@ -203,3 +203,8 @@ void FC_FUNC(freecbuffer, FREECBUFFER)(void **buf)
 {
   free(*buf);
 }
+
+void FC_FUNC(getprocid, GETPROCID)(int *procid)
+{
+  *procid = (int) getpid();
+}

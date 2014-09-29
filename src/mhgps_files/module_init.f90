@@ -57,9 +57,8 @@ contains
             endif
             read(u,*)saddle_curvgraddiff
             read(u,*)saddle_rmsdispl0,saddle_trustr
-            read(u,*)saddle_tolc,saddle_tolf
+            read(u,*)saddle_tolc,saddle_tolf,saddle_tighten
             read(u,*)saddle_minoverlap0
-            read(u,*)saddle_tightenfac
             read(u,*)saddle_maxcurvrise
             read(u,*)saddle_cutoffratio
             read(u,*)saddle_recompIfCurvPos
@@ -86,7 +85,7 @@ contains
         character(17), parameter :: filename='mhgps.inp_default'
         open(u,file=filename)
             write(u,'(1x,i0.0,1x,1a)')mhgps_verbosity,' #mhgps_verbosity'
-            write(u,'(1x,1L1,1x,1L1,1x,1a)')operation_mode,random_minmode_guess,&
+            write(u,'(1x,1L1,1x,1L1,1x,1a)')trim(adjustl(operation_mode)),random_minmode_guess,&
                  ' #mode, random_minmode_guess'
             write(u,'(1x,i0.0,1x,1a)')nsadmax,' #nsadmax'
             write(u,'(1x,1a,1x,1L1,1x,1a)')trim(adjustl(efmethod)),external_mini,&
@@ -105,7 +104,7 @@ contains
                  ' #maximum number of steps in perpendicular optimization in freezing stringmethod'
             write(u,'(1x,es10.3,1x,es10.3,1x,1a)')lst_dt_max, lst_fmax_tol,&
                  '#max. time step in fire optimizer of lst function, convergence criterion'
-            write(u,'(1x,i0,1x,i0,1x,1a)')saddle_nit_trans, saddle_nit_rot,'  #nit_trans, not_rot'
+            write(u,'(1x,i0,1x,i0,1x,1a)')saddle_nit_trans, saddle_nit_rot,'  #nit_trans, nit_rot'
             write(u,'(1x,i0,1x,i0,1x,1a)')saddle_nhistx_trans, saddle_nhistx_rot,' #nhistx_trans, nhistx_rot'
             write(u,'(es10.3,1x,es10.3,1a)')saddle_steepthresh_trans,saddle_steepthresh_rot,&
                  ' #saddle_steepthresh_trans,saddle_steepthresh_rot'
@@ -119,13 +118,22 @@ contains
             endif
             write(u,'(es10.3,1x,1a)')saddle_curvgraddiff,' #curvgraddif'
             write(u,'(es10.3,1x,es10.3,1x,1a)')saddle_rmsdispl0,saddle_trustr,' #rmsdispl0, trustr'
-            write(u,'(es10.3,1x,es10.3,1x,1a)')saddle_tolc,saddle_tolf,' #tolc, tolf'
+            write(u,'(es10.3,1x,es10.3,1x,1L1,1x,1a)')saddle_tolc,saddle_tolf,saddle_tighten,' #tolc, tolf, tighten'
             write(u,'(es10.3,1x,1a)')saddle_minoverlap0,' #minoverlap0'
-            write(u,'(es10.3,1x,1a)')saddle_tightenfac,' #tightenfac'
             write(u,'(es10.3,1x,1a)')saddle_maxcurvrise,' #maxcurvrise'
             write(u,'(es10.3,1x,1a)')saddle_cutoffratio,' #cutoffratio'
             write(u,'(1x,i0,1x,1a)')saddle_recompIfCurvPos,' #recompIfCurvPos'
             write(u,'(es10.3,1x,es10.3,1x,1a)')saddle_stepoff,saddle_scale_stepoff, ' #stepoff, stepoff_scale'
+            write(u,'(1x,i0,1x,1a)')mini_nhistx,'#mini_nhistx'
+            write(u,'(1x,i0,1x,1a)')mini_ncluster_x,'#mini_ncluster_x'
+            write(u,'(es10.3,1x,1a)')mini_frac_fluct,'#mini_frac_fluct'
+            write(u,'(es10.3,1x,1a)')mini_forcemax,'#mini_forcemax'
+            write(u,'(es10.3,1x,1a)')mini_maxrise,'#mini_maxrise'
+            write(u,'(es10.3,1x,1a)')mini_betax,'#mini_betax'
+            write(u,'(es10.3,1x,1a)')mini_beta_stretchx,'#mini_beta_stretchx'
+            write(u,'(es10.3,1x,1a)')mini_cutoffRatio,'#mini_cutoffRatio'
+            write(u,'(es10.3,1x,1a)')mini_steepthresh,'#mini_steepthresh'
+            write(u,'(es10.3,1x,1a)')mini_trustr,'#mini_trustr'
         close(u)
     end subroutine
     subroutine print_input()
@@ -133,14 +141,27 @@ contains
         use yaml_output
         call yaml_comment('(MHGPS) Input Parameters',hfill='-')
         call yaml_map('(MHGPS) mhgps_verbosity',mhgps_verbosity)
-        call yaml_map('(MHGPS) operation_mode',operation_mode)
+        call yaml_map('(MHGPS) operation_mode',trim(adjustl(operation_mode)))
         call yaml_map('(MHGPS) random_minmode_guess',random_minmode_guess)
+        call yaml_map('(MHGPS) nsadmax',nsadmax)
         call yaml_map('(MHGPS) Energy and forces method',trim(adjustl(efmethod)))
+        call yaml_map('(MHGPS) external minimizer',external_mini)
+        call yaml_map('(MHGPS) en_delta_min',en_delta_min)
+        call yaml_map('(MHGPS) en_delta_sad',en_delta_sad)
         call yaml_map('(MHGPS) Biomolecule mode',saddle_biomode)
+        call yaml_map('(MHGPS) lst_interpol_stepfrct',lst_interpol_stepfrct)
+        call yaml_map('(MHGPS) ts_guess_gammainv',ts_guess_gammainv)
+        call yaml_map('(MHGPS) ts_guess_perpnrmtol',ts_guess_perpnrmtol)
+        call yaml_map('(MHGPS) ts_guess_trust',ts_guess_trust)
+        call yaml_map('(MHGPS) ts_guess_nstepsmax',ts_guess_nstepsmax)
+        call yaml_map('(MHGPS) lst_dt_max',lst_dt_max)
+        call yaml_map('(MHGPS) lst_fmax_tol',lst_fmax_tol)
         call yaml_map('(MHGPS) saddle_nit_trans',saddle_nit_trans)
         call yaml_map('(MHGPS) saddle_nit_rot',saddle_nit_rot)
         call yaml_map('(MHGPS) saddle_nhistx_trans',saddle_nhistx_trans)
         call yaml_map('(MHGPS) saddle_nhistx_rot',saddle_nhistx_rot)
+        call yaml_map('(MHGPS) saddle_steepthresh_trans',saddle_steepthresh_trans)
+        call yaml_map('(MHGPS) saddle_steepthresh_rot',saddle_steepthresh_rot)
         call yaml_map('(MHGPS) saddle_fnrmtol',saddle_fnrmtol)
         call yaml_map('(MHGPS) saddle_alpha0_trans',saddle_alpha0_trans)
         call yaml_map('(MHGPS) saddle_alpha0_rot',saddle_alpha0_rot)
@@ -153,10 +174,24 @@ contains
         call yaml_map('(MHGPS) saddle_trustr',saddle_trustr)
         call yaml_map('(MHGPS) saddle_tolc',saddle_tolc)
         call yaml_map('(MHGPS) saddle_tolf',saddle_tolf)
-        call yaml_map('(MHGPS) saddle_tightenfac',saddle_tightenfac)
+        call yaml_map('(MHGPS) saddle_tighten',saddle_tighten)
         call yaml_map('(MHGPS) saddle_maxcurvrise',saddle_maxcurvrise)
         call yaml_map('(MHGPS) saddle_cutoffratio',saddle_cutoffratio)
         call yaml_map('(MHGPS) saddle_recompIfCurvPos',saddle_recompIfCurvPos)
+        call yaml_map('(MHGPS) saddle_stepoff',saddle_stepoff)
+        call yaml_map('(MHGPS) saddle_scale_stepoff',saddle_scale_stepoff)
+        if(.not.external_mini)then
+            call yaml_map('(MHGPS) mini_nhistx', mini_nhistx)
+            call yaml_map('(MHGPS) mini_ncluster_x', mini_ncluster_x)
+            call yaml_map('(MHGPS) mini_frac_fluct', mini_frac_fluct)
+            call yaml_map('(MHGPS) mini_forcemax', mini_forcemax)
+            call yaml_map('(MHGPS) mini_maxrise', mini_maxrise)
+            call yaml_map('(MHGPS) mini_betax', mini_betax)
+            call yaml_map('(MHGPS) mini_beta_stretchx', mini_beta_stretchx)
+            call yaml_map('(MHGPS) mini_cutoffRatio', mini_cutoffRatio)
+            call yaml_map('(MHGPS) mini_steepthresh', mini_steepthresh)
+            call yaml_map('(MHGPS) mini_trustr', mini_trustr)
+        endif
     end subroutine print_input
 
     subroutine print_logo_mhgps()
@@ -191,7 +226,7 @@ contains
     end subroutine print_logo_mhgps
 
 
-subroutine give_rcov(atoms,nat,rcov)
+subroutine give_rcov(astruct,nat,rcov)
   use module_base, only: gp
   use module_types
   use yaml_output
@@ -199,197 +234,198 @@ subroutine give_rcov(atoms,nat,rcov)
   implicit none
   !Arguments
   integer, intent(in) :: nat
-  type(atoms_data), intent(in) :: atoms
+  type(atomic_structure), intent(in) :: astruct
   real(gp), intent(out) :: rcov(nat)
   !Local variables
   integer :: iat
 
   do iat=1,nat
-     if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='H') then
+     select case(trim(astruct%atomnames(astruct%iatype(iat))))
+     case('H') 
         rcov(iat)=0.75d0
 !        rcov(iat)=0.75d0*0.529177211d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='LJ') then
+     case('LJ') 
         rcov(iat)=0.56d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='He') then
+     case('He') 
         rcov(iat)=0.75d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Li') then
+     case('Li') 
         rcov(iat)=3.40d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Be') then
+     case('Be') 
         rcov(iat)=2.30d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='B' ) then
+     case('B' ) 
         rcov(iat)=1.55d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='C' ) then
+     case('C' ) 
         rcov(iat)=1.45d0
 !        rcov(iat)=1.45d0*0.529177211d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='N' ) then
+     case('N' ) 
         rcov(iat)=1.42d0
 !        rcov(iat)=1.42d0*0.529177211d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='O' ) then
+     case('O' ) 
         rcov(iat)=1.38d0
 !        rcov(iat)=1.38d0*0.529177211d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='F' ) then
+     case('F' ) 
         rcov(iat)=1.35d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ne') then
+     case('Ne') 
         rcov(iat)=1.35d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Na') then
+     case('Na') 
         rcov(iat)=3.40d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Mg') then
+     case('Mg') 
         rcov(iat)=2.65d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Al') then
+     case('Al') 
         rcov(iat)=2.23d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Si') then
+     case('Si') 
         rcov(iat)=2.09d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='P' ) then
+     case('P' ) 
         rcov(iat)=2.00d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='S' ) then
+     case('S' ) 
         rcov(iat)=1.92d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cl') then
+     case('Cl') 
         rcov(iat)=1.87d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ar') then
+     case('Ar') 
         rcov(iat)=1.80d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='K' ) then
+     case('K' ) 
         rcov(iat)=4.00d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ca') then
+     case('Ca') 
         rcov(iat)=3.00d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sc') then
+     case('Sc') 
         rcov(iat)=2.70d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ti') then
+     case('Ti') 
         rcov(iat)=2.70d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='V' ) then
+     case('V' ) 
         rcov(iat)=2.60d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cr') then
+     case('Cr') 
         rcov(iat)=2.60d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Mn') then
+     case('Mn') 
         rcov(iat)=2.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Fe') then
+     case('Fe') 
         rcov(iat)=2.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Co') then
+     case('Co') 
         rcov(iat)=2.40d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ni') then
+     case('Ni') 
         rcov(iat)=2.30d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cu') then
+     case('Cu') 
         rcov(iat)=2.30d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Zn') then
+     case('Zn') 
         rcov(iat)=2.30d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ga') then
+     case('Ga') 
         rcov(iat)=2.10d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ge') then
+     case('Ge') 
         rcov(iat)=2.40d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='As') then
+     case('As') 
         rcov(iat)=2.30d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Se') then
+     case('Se') 
         rcov(iat)=2.30d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Br') then
+     case('Br') 
         rcov(iat)=2.20d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Kr') then
+     case('Kr') 
         rcov(iat)=2.20d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Rb') then
+     case('Rb') 
         rcov(iat)=4.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sr') then
+     case('Sr') 
         rcov(iat)=3.30d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Y' ) then
+     case('Y' ) 
         rcov(iat)=3.30d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Zr') then
+     case('Zr') 
         rcov(iat)=3.00d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Nb') then
+     case('Nb') 
         rcov(iat)=2.92d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Mo') then
+     case('Mo') 
         rcov(iat)=2.83d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Tc') then
+     case('Tc') 
         rcov(iat)=2.75d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ru') then
+     case('Ru') 
         rcov(iat)=2.67d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Rh') then
+     case('Rh') 
         rcov(iat)=2.58d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pd') then
+     case('Pd') 
         rcov(iat)=2.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ag') then
+     case('Ag') 
         rcov(iat)=2.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cd') then
+     case('Cd') 
         rcov(iat)=2.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='In') then
+     case('In') 
         rcov(iat)=2.30d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sn') then
+     case('Sn') 
         rcov(iat)=2.66d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sb') then
+     case('Sb') 
         rcov(iat)=2.66d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Te') then
+     case('Te') 
         rcov(iat)=2.53d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='I' ) then
+     case('I' ) 
         rcov(iat)=2.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Xe') then
+     case('Xe') 
         rcov(iat)=2.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cs') then
+     case('Cs') 
         rcov(iat)=4.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ba') then
+     case('Ba') 
         rcov(iat)=4.00d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='La') then
+     case('La') 
         rcov(iat)=3.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ce') then
+     case('Ce') 
         rcov(iat)=3.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pr') then
+     case('Pr') 
         rcov(iat)=3.44d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Nd') then
+     case('Nd') 
         rcov(iat)=3.38d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pm') then
+     case('Pm') 
         rcov(iat)=3.33d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sm') then
+     case('Sm') 
         rcov(iat)=3.27d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Eu') then
+     case('Eu') 
         rcov(iat)=3.21d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Gd') then
+     case('Gd') 
         rcov(iat)=3.15d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Td') then
+     case('Td') 
         rcov(iat)=3.09d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Dy') then
+     case('Dy') 
         rcov(iat)=3.03d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ho') then
+     case('Ho') 
         rcov(iat)=2.97d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Er') then
+     case('Er') 
         rcov(iat)=2.92d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Tm') then
+     case('Tm') 
         rcov(iat)=2.92d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Yb') then
+     case('Yb') 
         rcov(iat)=2.80d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Lu') then
+     case('Lu') 
         rcov(iat)=2.80d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Hf') then
+     case('Hf') 
         rcov(iat)=2.90d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ta') then
+     case('Ta') 
         rcov(iat)=2.70d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='W' ) then
+     case('W' ) 
         rcov(iat)=2.60d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Re') then
+     case('Re') 
         rcov(iat)=2.60d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Os') then
+     case('Os') 
         rcov(iat)=2.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ir') then
+     case('Ir') 
         rcov(iat)=2.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pt') then
+     case('Pt') 
         rcov(iat)=2.60d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Au') then
+     case('Au') 
         rcov(iat)=2.70d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Hg') then
+     case('Hg') 
         rcov(iat)=2.80d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Tl') then
+     case('Tl') 
         rcov(iat)=2.50d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pb') then
+     case('Pb') 
         rcov(iat)=3.30d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Bi') then
+     case('Bi') 
         rcov(iat)=2.90d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Po') then
+     case('Po') 
         rcov(iat)=2.80d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='At') then
+     case('At') 
         rcov(iat)=2.60d0
-     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Rn') then
+     case('Rn') 
         rcov(iat)=2.60d0
-     else
-        call yaml_comment('(MH) no covalent radius stored for this atomtype '&
-             //trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))))
-        stop
-     endif
+     case default
+        call f_err_throw('(MH) no covalent radius stored for this atomtype '&
+             //trim(astruct%atomnames(astruct%iatype(iat))),&
+             err_name='BIGDFT_RUNTIME_ERROR')
+     end select
      if (iproc == 0) then
-        call yaml_map('(MHGPS) RCOV:'//trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),rcov(iat))
+        call yaml_map('(MHGPS) RCOV:'//trim(astruct%atomnames(astruct%iatype(iat))),rcov(iat))
      endif
   enddo
 end subroutine give_rcov

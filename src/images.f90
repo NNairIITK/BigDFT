@@ -215,8 +215,8 @@ module module_images
   private
 
   CHARACTER (LEN=*), PARAMETER ::                                              &
-  fmt1 = "(3(2X,F12.8),3(2X,I3),3(2X,F12.8))",                                 &
-  fmt2 = "(3(2X,F12.8))",                                                      &
+  fmt1 = "(3(2X,F15.8),3(2X,I5),3(2X,F15.8))",                                 &
+  fmt2 = "(3(2X,F15.8))",                                                      &
   fmt3 = "(2X,F16.8)"
 
   ! Calculation routines.
@@ -992,7 +992,6 @@ contains
 
   subroutine free_me()
     implicit none
-    integer :: i_all, i_stat
     character(len = *), parameter :: subname = "image_update_pos_from_file"
 
     !if should work now as the dictionary
@@ -1030,6 +1029,9 @@ subroutine image_calculate(img, iteration, id)
   character(len = 4) :: fn4
 
   !Why (TD) ??
+  !Because (tm) (DC)
+  ! in details, because the worker may run several images, so it should
+  ! restart from scratch since positions may be very different.
   img%run%inputs%inputpsiid = 0
   if (iteration > 0 .and. abs(img%id - id) < 2) img%run%inputs%inputpsiid = 1
 

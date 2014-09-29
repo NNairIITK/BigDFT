@@ -858,7 +858,8 @@ subroutine foe(iproc, nproc, tmprtr, &
 
 
       subroutine retransform(matrix_compr)
-          use sparsematrix, only: sequential_acces_matrix_fast, sparsemm
+          use sparsematrix, only: sequential_acces_matrix_fast, sparsemm, &
+               & uncompress_matrix_distributed, compress_matrix_distributed
           ! Calling arguments
           real(kind=8),dimension(tmb%linmat%l%nvctr),intent(inout) :: matrix_compr
 
