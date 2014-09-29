@@ -1309,6 +1309,7 @@ contains
        dict_cs,dict_pt)
     implicit none
     !> Time on which percentages has to be given
+    double precision, intent(in) :: base_time !< needs to be explained
     type(dictionary), pointer :: dict_pt      !< needs to be explained
     type(dictionary), pointer :: dict_cs      !< needs to be explained
     !local variables
