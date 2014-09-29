@@ -165,33 +165,33 @@ program mhgps
         astruct_ptr=>atom_struct
         fdim=astruct_ptr%nat
         call print_logo_mhgps()
-!    elseif(efmethod=='AMBER')then
-!        iproc=0
-!        isForceField=.true.
-!        write(currDir,'(a,i3.3)')'input',ifolder
-!        write(filename,'(a,i3.3)')'pos',ifile
-!        call deallocate_atomic_structure(atom_struct)
-!        call read_atomic_file(currDir//'/'//filename,iproc,&
-!                              atom_struct)
-!        astruct=>atom_struct
-!        fdim=astruct%nat
-!        !alanine stuff ......................START!>
-!          l_sat=5
-!          allocate(atomnamesdmy(1000))
-!          rxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct%nat/),&
-!                            id='rxyzdmy')
-!          fxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct%nat/),&
-!                            id='fxyzdmy')
-!          fnpdb='ald_new.pdb'
-!          nfnpdb=len(trim(fnpdb));
-!          call nab_init(astruct%nat,rxyzdmy,fxyzdmy,&
-!                        trim(fnpdb),nfnpdb,l_sat,atomnamesdmy)
-!          call f_free(rxyzdmy)
-!          call f_free(fxyzdmy)
-!          deallocate(atomnamesdmy)
-!        !alanine stuff ......................END!>
-!
-!        call print_logo_mhgps()
+    elseif(efmethod=='AMBER')then
+        iproc=0
+        isForceField=.true.
+        write(currDir,'(a,i3.3)')'input',ifolder
+        write(filename,'(a,i3.3)')'pos',ifile
+        call deallocate_atomic_structure(atom_struct)
+        call read_atomic_file(currDir//'/'//filename,iproc,&
+                              atom_struct)
+        astruct_ptr=>atom_struct
+        fdim=astruct_ptr%nat
+        !alanine stuff ......................START!>
+          l_sat=5
+          allocate(atomnamesdmy(1000))
+          rxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct_ptr%nat/),&
+                            id='rxyzdmy')
+          fxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct_ptr%nat/),&
+                            id='fxyzdmy')
+          fnpdb='ald_new.pdb'
+          nfnpdb=len(trim(fnpdb));
+          call nab_init(astruct_ptr%nat,rxyzdmy,fxyzdmy,&
+                        trim(fnpdb),nfnpdb,l_sat,atomnamesdmy)
+          call f_free(rxyzdmy)
+          call f_free(fxyzdmy)
+          deallocate(atomnamesdmy)
+        !alanine stuff ......................END!>
+
+        call print_logo_mhgps()
     else
         call yaml_warning('Following method for evaluation of '//&
         'energies and forces is unknown: '//trim(adjustl(efmethod)))
@@ -199,9 +199,13 @@ program mhgps
     endif
     if(iproc==0) call print_input()
 
-    nat = bigdft_nat(runObj)
+    !don't use bigdft_nat here since if not using BigDFT, runObj is not present!
+!    nat = bigdft_nat(runObj)
+    nat = astruct_ptr%nat
     nid = nat !s-overlap fingerprints
-    alat =bigdft_get_cell(runObj)!astruct_ptr%cell_dim
+    !don't use bigdft_get_cell here since if not using BigDFT, runObj is not present!
+!    alat =bigdft_get_cell(runObj)!astruct_ptr%cell_dim
+    alat =astruct_ptr%cell_dim
     
     !allocate more arrays
     lwork=1000+10*nat**2
