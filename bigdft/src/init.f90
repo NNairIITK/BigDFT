@@ -668,7 +668,7 @@ end subroutine input_wf_memory_history
 
 subroutine input_wf_memory(iproc, atoms, &
      & rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old, &
-     & rxyz, hx, hy, hz, d, wfd, psi, orbs)
+     & rxyz, lzd, psi, orbs)
   use module_base, only: gp,wp,f_free_ptr
   use module_types
   use module_interfaces, except_this_one => input_wf_memory
@@ -677,10 +677,10 @@ subroutine input_wf_memory(iproc, atoms, &
   integer, intent(in) :: iproc
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz, rxyz_old
-  real(gp), intent(in) :: hx, hy, hz, hx_old, hy_old, hz_old
-  type(grid_dimensions), intent(in) :: d, d_old
-  type(wavefunctions_descriptors), intent(in) :: wfd
-  type(wavefunctions_descriptors), intent(inout) :: wfd_old
+  real(gp), intent(in) :: hx_old, hy_old, hz_old
+  type(local_zone_descriptors), intent(in) :: lzd
+  type(grid_dimensions), intent(in) :: d_old
+  type(wavefunctions_descriptors), intent(in) :: wfd_old
   type(orbitals_data), intent(in) :: orbs
   real(wp), dimension(:), pointer :: psi, psi_old
 
@@ -688,8 +688,9 @@ subroutine input_wf_memory(iproc, atoms, &
 
   !these parts should be reworked for the non-collinear spin case
   call reformatmywaves(iproc,orbs,atoms,hx_old,hy_old,hz_old,&
-       d_old%n1,d_old%n2,d_old%n3,rxyz_old,wfd_old,psi_old,hx,hy,hz,&
-       & d%n1,d%n2,d%n3,rxyz,wfd,psi)
+       d_old%n1,d_old%n2,d_old%n3,rxyz_old,wfd_old,psi_old,&
+       & lzd%hgrids(1),lzd%hgrids(2),lzd%hgrids(3),lzd%Glr%d%n1, lzd%Glr%d%n2, lzd%Glr%d%n3, &
+       & rxyz,lzd%Glr%wfd,psi)
 
 
   call f_free_ptr(psi_old)
@@ -1561,7 +1562,7 @@ END SUBROUTINE input_wf_diag
 !> Determine the input guess wavefunctions
 subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      denspot,denspot0,nlpsp,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-     lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft,&
+     lzd_old,psi_old,rxyz_old,tmb_old,ref_frags,cdft,&
      locregcenters)
   use module_base
   use module_types
@@ -1580,7 +1581,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   integer, intent(in) :: iproc, nproc, inputpsi, input_wf_format
   type(input_variables), intent(in) :: in
   type(GPU_pointers), intent(inout) :: GPU
-  real(gp), intent(in) :: hx_old,hy_old,hz_old
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(3, atoms%astruct%nat), target, intent(in) :: rxyz
   type(DFT_local_fields), intent(inout) :: denspot
@@ -1593,10 +1593,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   !type(gaussian_basis), intent(inout) :: gbd
   !real(wp), dimension(:,:), pointer :: gaucoeffs
-  type(grid_dimensions), intent(in) :: d_old
   real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz_old
-  type(local_zone_descriptors),intent(inout):: lzd_old
-  type(wavefunctions_descriptors), intent(inout) :: wfd_old
+  type(local_zone_descriptors),intent(in):: lzd_old
   type(system_fragment), dimension(:), pointer :: ref_frags
   type(cdft_data), intent(out) :: cdft
   real(kind=8),dimension(3,atoms%astruct%nat),intent(in),optional :: locregcenters
@@ -1768,9 +1766,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         if (in%wfn_history <= 2) then
            call timing(iproc,'restart_wvl   ','ON')
            call input_wf_memory(iproc, atoms, &
-                rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old, &
-                rxyz,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-                KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs)
+                rxyz_old, lzd_old%hgrids(1), lzd_old%hgrids(2), lzd_old%hgrids(3), &
+                & lzd_old%Glr%d, lzd_old%Glr%wfd, psi_old, &
+                rxyz,KSwfn%Lzd, KSwfn%psi, KSwfn%orbs)
               call timing(iproc,'restart_wvl   ','OF')
         else
            call input_wf_memory_history(iproc,KSwfn%orbs,atoms,in%wfn_history,&
@@ -1779,9 +1777,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      else if(in%inguess_geopt == 1) then
         call timing(iproc,'restart_rsp   ','ON')
         call input_wf_memory_new(nproc, iproc, atoms, &
-             rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old,lzd_old, &
-             rxyz,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-             KSwfn%Lzd%Glr%d,KSwfn%Lzd%Glr%wfd,KSwfn%psi, KSwfn%orbs,KSwfn%lzd,displ)
+             rxyz_old, lzd_old%hgrids(1), lzd_old%hgrids(2), lzd_old%hgrids(3), &
+             & psi_old,lzd_old, &
+             rxyz,KSwfn%psi, KSwfn%orbs,KSwfn%lzd)
         call timing(iproc,'restart_rsp   ','OF')
      else
         !stop 'Wrong value of inguess_geopt in input.perf'
@@ -2281,8 +2279,8 @@ END SUBROUTINE input_check_psi_id
 
 
 subroutine input_wf_memory_new(nproc, iproc, atoms, &
-           rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old,lzd_old, &
-           rxyz,hx,hy,hz,d,wfd,psi,orbs,lzd,displ)
+           rxyz_old, hx_old, hy_old, hz_old, psi_old,lzd_old, &
+           rxyz,psi,orbs,lzd)
 
   use module_base
   use ao_inguess, only: atomic_info
@@ -2294,12 +2292,9 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   integer, intent(in) :: nproc, iproc
   type(atoms_data), intent(in) :: atoms
   real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz, rxyz_old
-  real(gp), intent(in) :: hx, hy, hz, hx_old, hy_old, hz_old,displ
-  type(grid_dimensions), intent(in) :: d, d_old
-  type(wavefunctions_descriptors), intent(in) :: wfd
-  type(wavefunctions_descriptors), intent(inout) :: wfd_old
+  real(gp), intent(in) :: hx_old, hy_old, hz_old
   type(orbitals_data), intent(in) :: orbs
-  type(local_zone_descriptors), intent(inout) :: lzd_old
+  type(local_zone_descriptors), intent(in) :: lzd_old
   type(local_zone_descriptors), intent(in) :: lzd
   real(wp), dimension(:), pointer :: psi, psi_old
 
@@ -2356,9 +2351,9 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   hhy_old = 0.5*hy_old
   hhz_old = 0.5*hz_old  
 
-  hhx = 0.5*hx
-  hhy = 0.5*hy
-  hhz = 0.5*hz  
+  hhx = 0.5*lzd%hgrids(1)
+  hhy = 0.5*lzd%hgrids(2)
+  hhz = 0.5*lzd%hgrids(3)
   
   jacdet = 0.d0
   expfct = 0.d0

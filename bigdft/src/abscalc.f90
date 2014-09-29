@@ -121,6 +121,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
    character(len=*), parameter :: subname='call_abscalc'
    character(len=40) :: comment
    integer :: ierr,inputPsiId_orig,icycle
+   real(gp) :: hx_old, hy_old, hz_old
 
 !!$   !temporary interface
 !!$   interface
@@ -169,7 +170,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
          stop 'ERROR'
       else
          call abscalc(nproc,iproc,atoms,rxyz,&
-             rst%KSwfn,rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
+             rst%KSwfn,hx_old,hy_old,hz_old,in,rst%GPU,infocode)
          fxyz(:,:) = 0.d0
       endif
 
