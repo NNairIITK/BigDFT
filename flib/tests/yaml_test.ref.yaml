@@ -23,8 +23,9 @@
      shorthelp                         : this is a test option
      shortname                         : T
      help:
-
-       Usage                           : Unused option3, just for testing the command line parser
+       Usage:
+         Unused option3, just for testing the command line parser, also the long help lines 
+         have to be tested in order to understand if it works
      conflicts: [test2, test]
  Parsed info:
    test                                : All
@@ -116,7 +117,7 @@
 ---
   #----------------------------------------------------------------------- Yaml Invoice Example
  invoice                               :  34843
- date                                  :  2014-08-27
+ date                                  :  2014-09-23
  bill-to: &id001
    given                               : Chris
    address:
@@ -141,7 +142,7 @@
   #--------------------------------------------------- Yaml Invoice Example, using dictionaries
  Retrieve the price value              :  2392.0
  invoice                               : 34843
- date                                  :  2014-08-27
+ date                                  :  2014-09-23
  bill-to:
    given                               : Chris
    family                              : Dumars
@@ -165,30 +166,30 @@
    Late afternoon is best. Backup contact is Nancy Billsmer @ 338-4338
 ---
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Error Handling Module Test
- Raising the TOTO error, errcode       :  23
+ Raising the TOTO error, errcode       :  25
  ERR_TOTO:
-   Id                                  : 23
+   Id                                  : 25
    Message:
      This is the error message for the error of kind 1 and it is written extensively on 
      purpose to see whether yaml module prints it
    Action:
      For this error, contact the routine developer at mail at univ dot gov
-   Callback Procedure Address          : 4207056
+   Callback Procedure Address          : 4206512
  Additional Info                       : Extra message added
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TOTO
- Print the error ID                    :  23
+ Print the error ID                    :  25
  Raising the TOTO error, by name, without condition: ERR_TOTO
  ERR_TOTO:
-   Id                                  : 23
+   Id                                  : 25
    Message:
      This is the error message for the error of kind 1 and it is written extensively on 
      purpose to see whether yaml module prints it
    Action:
      For this error, contact the routine developer at mail at univ dot gov
-   Callback Procedure Address          : 4207056
+   Callback Procedure Address          : 4206512
  Additional Info                       : Extra message added again
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TOTO
- Callback done, errcode                :  23
+ Callback done, errcode                :  25
  GENERIC_ERROR:
    Id                                  : 1
    Message                             : UNSPECIFIED
@@ -230,98 +231,112 @@
      Id                                : 8
      Message                           : Conversion error of the dictionary value
      Action                            : Check the nature of the conversion
- - YAML_INVALID:
+ - INPUT_OUTPUT_ERROR:
      Id                                : 9
+     Message:
+       Some of intrinsic I/O fortan routines returned an error code
+     Action:
+       Check if you have correct file system permission in i/o library or check the fortan 
+       runtime library
+ - YAML_INVALID:
+     Id                                : 10
      Message                           : Generic error of yaml module, invalid operation
  - YAML_STREAM_ALREADY_PRESENT:
-     Id                                : 10
+     Id                                : 11
      Message                           : The stream is already present
  - YAML_STREAM_NOT_FOUND:
-     Id                                : 11
+     Id                                : 12
      Message                           : The stream has not been found
  - YAML_UNIT_INCONSISTENCY:
-     Id                                : 12
+     Id                                : 13
      Message:
        The array of the units is not in agreement with the array of the streams
      Action:
        This is an internal error of yaml_output module, contact developers
  - YAML_PARSE_ERROR:
-     Id                                : 13
+     Id                                : 14
      Message                           : YAML parse error.
      Action                            : Modify your inputs.
  - YAML_PARSE_UNSUPPORTED:
-     Id                                : 14
+     Id                                : 15
      Message                           : YAML standard not supported.
      Action                            : kindly ask developers to finish implementation.
  - ERROR_YAML_COMMAND_LINE_PARSER:
-     Id                                : 15
+     Id                                : 16
      Message                           : Error in yaml parsing of the command line
      Action                            : Check the allowed options and their values (--help)
  - ERR_ALLOCATE:
-     Id                                : 16
+     Id                                : 17
      Message                           : Allocation error
      Action:
        Control the order of the allocation or if the memory limit has been reached
-     Callback Procedure Address        : 4559216
+     Callback Procedure Address        : 4505840
  - ERR_DEALLOCATE:
-     Id                                : 17
+     Id                                : 18
      Message                           : Deallocation error
      Action:
        Control the order of the allocation or if the memory limit has been reached
-     Callback Procedure Address        : 4559216
+     Callback Procedure Address        : 4505840
  - ERR_MEMLIMIT:
-     Id                                : 18
+     Id                                : 19
      Message                           : Memory limit reached
      Action:
        Control the size of the arrays needed for this run with bigdft-tool program
-     Callback Procedure Address        : 4559216
+     Callback Procedure Address        : 4505840
  - ERR_INVALID_COPY:
-     Id                                : 19
+     Id                                : 20
      Message                           : Copy not allowed
      Action:
        A f_memcpy command failed, probably invalid sizes: check sizes of arrays at runtime
-     Callback Procedure Address        : 4559216
+     Callback Procedure Address        : 4505840
  - ERR_INVALID_MALLOC:
-     Id                                : 20
+     Id                                : 21
      Message                           : Invalid specification of f_malloc
      Action                            : Put coherent data for the memory space allocation
-     Callback Procedure Address        : 4559216
+     Callback Procedure Address        : 4505840
  - ERR_MALLOC_INTERNAL:
-     Id                                : 21
+     Id                                : 22
      Message                           : Internal error of memory profiler
      Action:
        An invalid operation occurs, submit bug report to developers
-     Callback Procedure Address        : 4559216
+     Callback Procedure Address        : 4505840
+ - ERR_REFERENCE_COUNTERS:
+     Id                                : 23
+     Message                           : Error in the usage of the reference counter
+     Action:
+       When a reference counter is present each pointer association should be tracked, check 
+       for it
+     Callback Procedure Address        : 4505840
  - TIMING_INVALID:
-     Id                                : 22
+     Id                                : 24
      Message                           : Error in timing routines
 
      Action                            : Control the running conditions of f_timing routines called
-     Callback Procedure Address        : 4580368
+     Callback Procedure Address        : 4526784
  - ERR_TOTO:
-     Id                                : 23
+     Id                                : 25
      Message:
        This is the error message for the error of kind 1 and it is written extensively on 
        purpose to see whether yaml module prints it
      Action:
        For this error, contact the routine developer at mail at univ dot gov
-     Callback Procedure Address        : 4207056
+     Callback Procedure Address        : 4206512
  - ERR_TITI:
-     Id                                : 24
+     Id                                : 26
      Message                           : test2
-     Callback Procedure Address        : 4206992
-     Callback Procedure Data Address   : 140734751481200
+     Callback Procedure Address        : 4206448
+     Callback Procedure Data Address   : 140735036985072
  - ERR_GRAVE:
-     Id                                : 25
+     Id                                : 27
      Message                           : test2
-     Callback Procedure Address        : 4311008
+     Callback Procedure Address        : 4316816
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ End of error list
  Additional Info                       : This is the list of the errors
  ERR_TITI:
-   Id                                  : 24
+   Id                                  : 26
    Message                             : test2
-   Callback Procedure Address          : 4206992
-   Callback Procedure Data Address     : 140734751481200
+   Callback Procedure Address          : 4206448
+   Callback Procedure Data Address     : 140735036985072
  Additional Info                       : Now TITI error has been raised
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TITI
  Callback done                         :  Yes
@@ -334,16 +349,16 @@
  Error check value before try          :  No
  Number of errors(1)                   :  1
  Number of errors(2)                   :  0
- ID                                    :  23
+ ID                                    :  25
  MSG                                   : two
  ERR_TOTO:
-   Id                                  : 23
+   Id                                  : 25
    Message:
      This is the error message for the error of kind 1 and it is written extensively on 
      purpose to see whether yaml module prints it
    Action:
      For this error, contact the routine developer at mail at univ dot gov
-   Callback Procedure Address          : 4207056
+   Callback Procedure Address          : 4206512
  Number of errors(3)                   :  1
  Error check value after try           :  No
 ---
@@ -395,6 +410,13 @@
  Number of Groups                      : 1
  First: {One: 1, Two: 2, Three: 3, Threeb: 3b}
  Size before removing                  :  4
+ First removal:
+   Two                                 : 2
+   Three                               : 3
+   Threeb                              : 3b
+ Second removal:
+   Three                               : 3
+   Threeb                              : 3b
  After pop:
    Number of Groups                    : 1
    First:
@@ -568,14 +590,36 @@
  Value of dictA                        : __list__
  Dictionary now:
  - atom: [5.0, 5.0, 5.0]
+ Dictionary now2:
+ - atom: [6.0, 6.0, 6.0]
+ Dictionary now3:
+ - atom: [ 7.0,  7.0,  7.0]
+ Dictionary now3:
+ - atom: [ 8.0,  8.0,  8.0]
+ Dictionary:
+ -  8.0
+ -  8.0
+ -  8.0
+ i=1:
+    8.0
+ i=2:
+    8.0
+ i=3:
+    8.0
+ i2=1:
+    8.0
+ i2=2:
+    8.0
+ i2=3:
+    8.0
 ---
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Routine-Tree creation example
- Address of first element              :  25734856
+ Address of first element              :  20397768
  Associated                            :  [  No,  No ]
  Associated                            :  [  Yes,  Yes ]
- Address of first element              :  25734904
- Address of first element, explicit (1):  25734904
- Address of first element, explicit (2):  25734904
+ Address of first element              :  20397816
+ Address of first element, explicit (1):  20397816
+ Address of first element, explicit (2):  20397816
  Associated                            :  [  Yes,  No,  Yes ]
   #debug 1
   #debug 2
@@ -604,63 +648,63 @@
                                            0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
                                            0,  0,  0,  0,  0,  0,  0,  0]
  Calling sequence of Main program (routines with * are not closed yet):
- - Main program: [ 8.420E-03,  1, ~*]
+ - Main program: [ 3.168E-02,  1, ~*]
    Subroutines:
-   - PS_Check: [ 4.447E-03,  1,  52.82%*]
+   - PS_Check: [ 2.534E-02,  1,  79.97%*]
      Subroutines:
-     - Routine D: [ 3.984E-03,  1,  89.59%*]
+     - Routine D: [ 2.629E-02,  1,  103.73%*]
        Subroutines:
-       - SubCase 1: [ 2.232E-03,  1,  56.03%]
-       - Subcase 2: [ 1.079E-03,  1,  27.08%]
+       - SubCase 3: [ 2.203E-02,  1,  83.78%*]
+       - Subcase 2: [ 5.105E-03,  1,  19.42%]
          Subroutines:
-         - SubSubcase1: [ 1.008E-03,  1,  93.39%]
-       - SubCase 3: [ 8.092E-04,  1,  20.31%*]
-     - Routine A: [ 2.525E-04,  1,  5.68%]
-     - Routine 0: [ 1.748E-04,  1,  3.93%]
+         - SubSubcase1: [ 4.996E-03,  1,  97.86%]
+       - SubCase 1: [ 4.943E-03,  1,  18.80%]
+     - Routine A: [ 2.704E-03,  1,  10.67%]
+     - Routine 0: [ 1.861E-03,  1,  7.35%]
  Routine dictionary:
-   25735528:
+   20398504:
      [ weight, SubCase 3,  4,  3]
-   25758184:
+   20421096:
      [ orbital_id, SubCase 3,  28,  4]
  Global dictionary (size 4):
-   25734856:
+   20397768:
      [ density, Routine 0,  48,  1]
-   25735448:
+   20398424:
      [ potential, Routine 0,  24,  1]
    Timestamp of Profile initialization:
-     2014-08-27 15:37:35.744
+     2014-09-23 18:35:43.155
    Process Id:
      0
   #Test for debug
   #End test for debug
   #End test for debug2
  Calling sequence of Main program (routines with * are not closed yet):
- - Main program: [ 1.006E-02,  1, ~*]
+ - Main program: [ 6.760E-02,  1, ~*]
    Subroutines:
-   - PS_Check: [ 6.043E-03,  1,  60.07%*]
+   - PS_Check: [ 6.124E-02,  1,  90.59%*]
      Subroutines:
-     - Routine D: [ 4.925E-03,  1,  81.50%]
+     - Routine D: [ 4.320E-02,  1,  70.54%]
        Subroutines:
-       - SubCase 1: [ 2.232E-03,  1,  45.32%]
-       - SubCase 3: [ 1.449E-03,  1,  29.42%]
-       - Subcase 2: [ 1.079E-03,  1,  21.91%]
+       - SubCase 3: [ 3.297E-02,  1,  76.31%]
+       - Subcase 2: [ 5.105E-03,  1,  11.82%]
          Subroutines:
-         - SubSubcase1: [ 1.008E-03,  1,  93.39%]
-     - Routine F: [ 4.346E-04,  1,  7.19%*]
-     - Routine A: [ 2.525E-04,  1,  4.18%]
-     - Routine 0: [ 1.748E-04,  1,  2.89%]
-     - Routine E: [ 6.221E-05,  1,  1.03%]
-     - PS_Check: [ 5.464E-05,  2,  0.90%]
+         - SubSubcase1: [ 4.996E-03,  1,  97.86%]
+       - SubCase 1: [ 4.943E-03,  1,  11.44%]
+     - Routine F: [ 1.775E-02,  1,  28.99%*]
+     - Routine A: [ 2.704E-03,  1,  4.42%]
+     - Routine 0: [ 1.861E-03,  1,  3.04%]
+     - Routine E: [ 1.025E-03,  1,  1.67%]
+     - PS_Check: [ 9.850E-05,  2,  0.16%]
  Routine dictionary:
-   25734856:
+   20397768:
      [ xc_pot, Routine F,  48,  1]
-   25758104:
+   20421016:
      [ rhopot, Routine F,  48,  1]
  Global dictionary (size 3):
-   25735448:
+   20398424:
      [ potential, Routine 0,  24,  1]
    Timestamp of Profile initialization:
-     2014-08-27 15:37:35.744
+     2014-09-23 18:35:43.155
    Process Id:
      0
  Parsed string:
@@ -672,76 +716,77 @@
  - elem2
  - 3.d0
  Calling sequence of Main program (routines with * are not closed yet):
- - Main program: [ 1.146E-02,  1, ~*]
+ - Main program: [ 9.779E-02,  1, ~*]
    Subroutines:
-   - PS_Check: [ 7.460E-03,  1,  65.09%*]
+   - PS_Check: [ 9.141E-02,  1,  93.47%*]
      Subroutines:
-     - Routine D: [ 4.925E-03,  1,  66.02%]
+     - Routine F: [ 4.787E-02,  1,  52.36%*]
+     - Routine D: [ 4.320E-02,  1,  47.26%]
        Subroutines:
-       - SubCase 1: [ 2.232E-03,  1,  45.32%]
-       - SubCase 3: [ 1.449E-03,  1,  29.42%]
-       - Subcase 2: [ 1.079E-03,  1,  21.91%]
+       - SubCase 3: [ 3.297E-02,  1,  76.31%]
+       - Subcase 2: [ 5.105E-03,  1,  11.82%]
          Subroutines:
-         - SubSubcase1: [ 1.008E-03,  1,  93.39%]
-     - Routine F: [ 1.850E-03,  1,  24.79%*]
-     - Routine A: [ 2.525E-04,  1,  3.39%]
-     - Routine 0: [ 1.748E-04,  1,  2.34%]
-     - Routine E: [ 6.221E-05,  1,  0.83%]
-     - PS_Check: [ 5.464E-05,  2,  0.73%]
+         - SubSubcase1: [ 4.996E-03,  1,  97.86%]
+       - SubCase 1: [ 4.943E-03,  1,  11.44%]
+     - Routine A: [ 2.704E-03,  1,  2.96%]
+     - Routine 0: [ 1.861E-03,  1,  2.04%]
+     - Routine E: [ 1.025E-03,  1,  1.12%]
+     - PS_Check: [ 9.850E-05,  2,  0.11%]
  Routine dictionary:
-   25734856:
+   20397768:
      [ xc_pot, Routine F,  48,  1]
  Global dictionary (size 3):
-   25735448:
+   20398424:
      [ potential, Routine 0,  24,  1]
    Timestamp of Profile initialization:
-     2014-08-27 15:37:35.744
+     2014-09-23 18:35:43.155
    Process Id:
      0
   #---------------------------------------------------- Entering in OpenMP section if available
  Entering Thread No.                   :  0
- Address of metadata                   :  7175232
+ Address of metadata                   :  7100448
  Something to use ab                   :  100.0
  Something to use b                    :  200.0
  Calling sequence of Main program (routines with * are not closed yet):
- - Main program: [ 1.301E-02,  1, ~*]
+ - Main program: [ 0.135,  1, ~*]
    Subroutines:
-   - PS_Check: [ 8.780E-03,  1,  67.49%]
+   - PS_Check: [ 0.120,  1,  88.81%]
      Subroutines:
-     - Routine D: [ 4.925E-03,  1,  56.09%]
+     - Routine F: [ 7.040E-02,  1,  58.67%]
+     - Routine D: [ 4.320E-02,  1,  36.00%]
        Subroutines:
-       - SubCase 1: [ 2.232E-03,  1,  45.32%]
-       - SubCase 3: [ 1.449E-03,  1,  29.42%]
-       - Subcase 2: [ 1.079E-03,  1,  21.91%]
+       - SubCase 3: [ 3.297E-02,  1,  76.31%]
+       - Subcase 2: [ 5.105E-03,  1,  11.82%]
          Subroutines:
-         - SubSubcase1: [ 1.008E-03,  1,  93.39%]
-     - Routine F: [ 2.848E-03,  1,  32.43%]
-     - Routine A: [ 3.185E-04,  4,  3.63%]
-     - Routine 0: [ 1.748E-04,  1,  1.99%]
-     - Routine E: [ 6.221E-05,  1,  0.71%]
-     - PS_Check: [ 5.464E-05,  2,  0.62%]
+         - SubSubcase1: [ 4.996E-03,  1,  97.86%]
+       - SubCase 1: [ 4.943E-03,  1,  11.44%]
+     - Routine A: [ 2.825E-03,  4,  2.35%]
+     - Routine 0: [ 1.861E-03,  1,  1.55%]
+     - Routine E: [ 1.025E-03,  1,  0.85%]
+     - PS_Check: [ 9.850E-05,  2,  0.08%]
  Global dictionary (size 2):
    Timestamp of Profile initialization:
-     2014-08-27 15:37:35.744
+     2014-09-23 18:35:43.155
    Process Id:
      0
  Summary:
- - Main program: [ 1.423E-02,  1, ~*]
+ - Main program: [ 0.164,  1, ~*]
    Subroutines:
-   - PS_Check: [ 8.780E-03,  1,  61.70%]
+   - PS_Check: [ 0.120,  1,  73.11%]
      Subroutines:
-     - Routine D: [ 4.925E-03,  1,  56.09%]
+     - Routine F: [ 7.040E-02,  1,  58.67%]
+     - Routine D: [ 4.320E-02,  1,  36.00%]
        Subroutines:
-       - SubCase 1: [ 2.232E-03,  1,  45.32%]
-       - SubCase 3: [ 1.449E-03,  1,  29.42%]
-       - Subcase 2: [ 1.079E-03,  1,  21.91%]
+       - SubCase 3: [ 3.297E-02,  1,  76.31%]
+       - Subcase 2: [ 5.105E-03,  1,  11.82%]
          Subroutines:
-         - SubSubcase1: [ 1.008E-03,  1,  93.39%]
-     - Routine F: [ 2.848E-03,  1,  32.43%]
-     - Routine A: [ 3.185E-04,  4,  3.63%]
-     - Routine 0: [ 1.748E-04,  1,  1.99%]
-     - Routine E: [ 6.221E-05,  1,  0.71%]
-     - PS_Check: [ 5.464E-05,  2,  0.62%]
+         - SubSubcase1: [ 4.996E-03,  1,  97.86%]
+       - SubCase 1: [ 4.943E-03,  1,  11.44%]
+     - Routine A: [ 2.825E-03,  4,  2.35%]
+     - Routine 0: [ 1.861E-03,  1,  1.55%]
+     - Routine E: [ 1.025E-03,  1,  0.85%]
+     - PS_Check: [ 9.850E-05,  2,  0.08%]
+ Test for pid                          :  5495
 ---
  test dict_copy:
    original:
@@ -812,23 +857,23 @@
  Real with format (es27.20)            :  4.99999999999999777955E-01
  Real with format (es26.19)            :  2.2204460492503130808E-16
  Real with format (es27.20)            : -2.22044604925031308085E-16
- Timings for search: {No. of items:  1, Elapsed time (ns):  0.98}
- Timings for search: {No. of items:  10001, Elapsed time (ns):  0.97}
- Timings for search: {No. of items:  20001, Elapsed time (ns):  0.96}
- Timings for search: {No. of items:  30001, Elapsed time (ns):  0.97}
- Timings for search: {No. of items:  40001, Elapsed time (ns):  0.97}
- Timings for search: {No. of items:  50001, Elapsed time (ns):  0.97}
- Timings for search: {No. of items:  60001, Elapsed time (ns):  0.96}
- Timings for search: {No. of items:  70001, Elapsed time (ns):  0.97}
- Timings for search: {No. of items:  80001, Elapsed time (ns):  0.96}
- Timings for search: {No. of items:  90001, Elapsed time (ns):  0.97}
- Timings for search: {No. of items:  100001, Elapsed time (ns):  0.97}
+ Timings for search: {No. of items:  1, Elapsed time (ns):  1.64}
+ Timings for search: {No. of items:  10001, Elapsed time (ns):  1.64}
+ Timings for search: {No. of items:  20001, Elapsed time (ns):  1.64}
+ Timings for search: {No. of items:  30001, Elapsed time (ns):  1.64}
+ Timings for search: {No. of items:  40001, Elapsed time (ns):  1.64}
+ Timings for search: {No. of items:  50001, Elapsed time (ns):  1.64}
+ Timings for search: {No. of items:  60001, Elapsed time (ns):  1.64}
+ Timings for search: {No. of items:  70001, Elapsed time (ns):  1.64}
+ Timings for search: {No. of items:  80001, Elapsed time (ns):  1.64}
+ Timings for search: {No. of items:  90001, Elapsed time (ns):  1.64}
+ Timings for search: {No. of items:  100001, Elapsed time (ns):  1.64}
  Some value                            :  1111033000
- Timings for search: {No. of items:  1, Elapsed time (mus):  7.11}
- Timings for search: {No. of items:  5001, Elapsed time (mus):  46.82}
- Timings for search: {No. of items:  10001, Elapsed time (mus):  82.53}
- Timings for search: {No. of items:  15001, Elapsed time (mus):  119.73}
- Timings for search: {No. of items:  20001, Elapsed time (mus):  166.35}
+ Timings for search: {No. of items:  1, Elapsed time (mus):  13.12}
+ Timings for search: {No. of items:  5001, Elapsed time (mus):  76.77}
+ Timings for search: {No. of items:  10001, Elapsed time (mus):  140.93}
+ Timings for search: {No. of items:  15001, Elapsed time (mus):  205.76}
+ Timings for search: {No. of items:  20001, Elapsed time (mus):  279.91}
  Other value                           :  2000000.0
  Memory Consumption Report:
    Tot. No. of Allocations             :  89
@@ -838,5 +883,6 @@
      Peak Value (MB)                   :  0
      for the array                     : weight
      in the routine                    : Routine A
- Max No. of dictionaries used          :  25226 #( 159 still in use)
+     Memory Peak of process            : 18716 kB
+ Max No. of dictionaries used          :  25238 #( 170 still in use)
  Number of dictionary folders allocated:  3

@@ -45,7 +45,7 @@ character(len=4) :: fn4
 !!temporary output for geopt paper
 if (iproc == 0) then
    write(fn4,'(i4.4)') int(ef_counter)
-   call astruct_dump_to_file(astruct,&
+   call astruct_dump_to_file(astruct_ptr,&
         currDir//'/dump_'//fn4, &
         '',energy=0.0_gp,rxyz=rxyz,&
         forces=fxyz)

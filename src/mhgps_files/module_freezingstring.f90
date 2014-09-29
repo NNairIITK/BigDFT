@@ -196,7 +196,7 @@ subroutine write_path(nat,npath,path,energies,tangent)
     use module_base
     use module_interfaces
     use module_atoms, only: astruct_dump_to_file
-    use module_global_variables, only: isadc, astruct,ixyz_int,&
+    use module_global_variables, only: isadc, astruct_ptr,ixyz_int,&
                                        currDir
     implicit none
     !parameters
@@ -223,7 +223,7 @@ subroutine write_path(nat,npath,path,energies,tangent)
         write(comment,'(a)')&
            'ATTENTION! Forces below are no forces but tangents to '//&
            'the guessed reaction path'
-        call astruct_dump_to_file(astruct,&
+        call astruct_dump_to_file(astruct_ptr,&
              currDir//'/sad'//isadc//'_igpath_'//fn4,&
              trim(comment),&
              energies(ipath),rxyz=pathint(:,:,ipath),&

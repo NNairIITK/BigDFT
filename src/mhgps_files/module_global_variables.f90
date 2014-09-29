@@ -98,7 +98,7 @@ module module_global_variables
     logical               :: isForceField=.false.
     real(gp)              :: ef_counter=0.d0
     character(len=8)      :: currDir
-    character(len=3),parameter      :: prefix='pos'
+    character(len=3), parameter :: prefix='pos'
     character(len=5)      :: isadc
     integer               :: isad
     character(len=5)      :: isadprobc
@@ -112,7 +112,7 @@ module module_global_variables
     type(DFT_global_output), save :: outs
     integer, save :: fdim
     !type(atoms_data), save :: atoms
-    type(atomic_structure), pointer, save :: astruct
+    type(atomic_structure), pointer, save :: astruct_ptr
     !integer, dimension(4) :: mpi_info
     integer :: infocode
     integer :: inputPsiId=0

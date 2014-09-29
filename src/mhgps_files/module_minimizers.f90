@@ -57,7 +57,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
                                       inputPsiId,&
                                       mhgps_verbosity,&
                                       ixyz_int,&
-                                      astruct,&
+                                      astruct_ptr,&
                                       mini_frac_fluct,&
                                       mini_ncluster_x,&
                                       mini_betax,&
@@ -250,7 +250,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
 if (iproc == 0 .and. mhgps_verbosity >=4) then
    write(fn4,'(i4.4)') 0
    write(comment,'(a,1pe10.3)')'SBFGS:fnrm= ',fnrm
-   call astruct_dump_to_file(astruct,&
+   call astruct_dump_to_file(astruct_ptr,&
         currDir//'/sad'//trim(adjustl(isadc))&
         //'_posmini'//trim(adjustl(writePostfix))//'_'//fn4, &
         trim(comment),energy=etotp,rxyz=rxyz(:,:,nhist),&
@@ -368,7 +368,7 @@ endif
       if (iproc == 0 .and. mhgps_verbosity >=4) then
          write(fn4,'(i4.4)') int(energycounter)
          write(comment,'(a,1pe10.3)')'SBFGS:fnrm= ',fnrm
-         call astruct_dump_to_file(astruct,&
+         call astruct_dump_to_file(astruct_ptr,&
               currDir//'/sad'//trim(adjustl(isadc))&
               //'_posmini'//trim(adjustl(writePostfix))//'_'//fn4, &
               trim(comment),energy=etotp,rxyz=rxyz(:,:,nhist),&
@@ -459,7 +459,7 @@ endif
       if (iproc == 0 .and. mhgps_verbosity >=4) then
          write(fn4,'(i4.4)') it
          write(comment,'(a,1pe10.3)')'SBFGS:fnrm= ',fnrm
-         call astruct_dump_to_file(astruct,&
+         call astruct_dump_to_file(astruct_ptr,&
               currDir//'/sad'//trim(adjustl(isadc))&
               //'_posminiP'//trim(adjustl(writePostfix))//'_'//fn4, &
               trim(comment),energy=etotp,rxyz=rxyz(:,:,nhist),&

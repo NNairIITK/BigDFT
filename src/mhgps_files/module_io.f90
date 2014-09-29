@@ -43,7 +43,7 @@ subroutine write_mode(nat,filename,minmode,rotforce)
     use module_types
     use module_interfaces
     use module_atoms, only: astruct_dump_to_file
-    use module_global_variables, only: iproc, astruct, ixyz_int
+    use module_global_variables, only: iproc, astruct=>astruct_ptr, ixyz_int
     implicit none
     !parameters
     integer, intent(in) :: nat

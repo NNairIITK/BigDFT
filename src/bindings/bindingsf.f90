@@ -1464,7 +1464,7 @@ subroutine optloop_emit_iter(optloop, id, energs, iproc, nproc)
         ! After handling the signal, iproc 0 broadcasts to other
         ! proc to continue (jproc == -1).
         message = SIGNAL_DONE
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+        call mpibcast(message,1,comm= bigdft_mpi%mpi_comm)
      end if
   else
      message = SIGNAL_WAIT
@@ -1472,7 +1472,7 @@ subroutine optloop_emit_iter(optloop, id, energs, iproc, nproc)
         if (message == SIGNAL_DONE) then
            exit
         end if
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+        call mpibcast(message, 1,comm=bigdft_mpi%mpi_comm)
         
         if (message >= 0) then
            ! sync values from proc 0.
@@ -1504,10 +1504,11 @@ subroutine optloop_bcast(optloop, iproc)
      rData(2) = optloop%rpnrm_cv
      rData(3) = optloop%gnrm_startmix
 
-     call MPI_BCAST(0, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+     !what is this?
+     !call MPI_BCAST(0, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
   end if
-  call MPI_BCAST(iData, 4, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
-  call MPI_BCAST(rData, 3, MPI_DOUBLE_PRECISION, 0, bigdft_mpi%mpi_comm, ierr)
+  call mpibcast(iData,comm=bigdft_mpi%mpi_comm)
+  call mpibcast(rData,comm=bigdft_mpi%mpi_comm)
   if (iproc /= 0) then
      optloop%iscf = iData(1)
      optloop%itrpmax = iData(2)
@@ -1566,40 +1567,43 @@ subroutine run_objects_get(runObj, dict, inputs, atoms)
 END SUBROUTINE run_objects_get
 
 
-subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly)
+subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly,ln)
   use dictionaries, only: dictionary
   use module_input_keys, only: input_keys_dump
   use module_defs, only: UNINITIALIZED, gp
   use yaml_output
+  use f_utils, only: f_get_free_unit
+  use yaml_strings, only: f_strcpy
   implicit none
+  integer, intent(in) :: ln
   integer, intent(out) :: iostat
   type(dictionary), pointer :: dict
-  character(len = *), intent(in) :: fname
+  character(len = ln), intent(in) :: fname
   logical, intent(in) :: userOnly
 
-  integer, parameter :: iunit = 145214 !< Hopefully being unique...
-  integer :: iunit_def
+  integer, parameter :: iunit_true = 145214 !< Hopefully being unique...
+  integer :: iunit_def,iunit
   real(gp), dimension(3), parameter :: dummy = (/ 0._gp, 0._gp, 0._gp /)
+  character(len=256) :: filetmp
+
+  !check free unit
+  iunit=f_get_free_unit(iunit_true)
 
   call yaml_get_default_stream(iunit_def)
   if (iunit_def == iunit) then
      iostat = 1
      return
   end if
-  
-  open(unit = iunit, file = fname(1:len(fname)), iostat = iostat)
+  call f_strcpy(src=fname,dest=filetmp)
+  open(unit = iunit, file =trim(filetmp), iostat = iostat)
   if (iostat /= 0) return
-
   call yaml_set_stream(unit = iunit, tabbing = 40, record_length = 100, istat = iostat)
   if (iostat /= 0) return
-
   call yaml_new_document(unit = iunit)
   call input_keys_dump(dict, userOnly)
-
   call yaml_close_stream(iunit, iostat)
   if (iostat /= 0) return
   close(unit = iunit)
-
   call yaml_set_default_stream(iunit_def, iostat)
 END SUBROUTINE run_objects_dump_to_file
 
@@ -1610,7 +1614,6 @@ subroutine bigdft_exec(runObj,outs,infocode)
   type(run_objects), intent(inout) :: runObj
   type(DFT_global_output), intent(inout) :: outs
   integer, intent(inout) :: infocode
-
   call call_bigdft(runObj,outs,infocode)
 
 end subroutine bigdft_exec
@@ -1781,16 +1784,19 @@ END SUBROUTINE dict_dump_to_file
 
 
 subroutine dict_parse(dict, buf)
-  use dictionaries, only: dictionary, operator(//), dict_len
+  use dictionaries, only: dictionary, operator(//), dict_len,operator(.pop.),dict_free
   use yaml_parse, only: yaml_parse_from_string
   implicit none
   type(dictionary), pointer :: dict
   character(len = *), intent(in) :: buf
+  type(dictionary), pointer :: dict_load
 
-  call yaml_parse_from_string(dict, buf)
-  if (dict_len(dict) == 1) then
-     dict => dict // 0
+  nullify(dict_load)
+  call yaml_parse_from_string(dict_load, buf)
+  if (dict_len(dict_load) == 1) then
+     dict => dict_load .pop. 0
   end if
+  call dict_free(dict_load)
 END SUBROUTINE dict_parse
 
 

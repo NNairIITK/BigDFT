@@ -17,12 +17,12 @@ module dictionaries
 
    private
 
-   !> public to be used in list_new() constructor.
+   !> Public to be used in list_new() constructor.
    type, public :: list_container
       character(len=max_field_length) :: val=' '
       type(dictionary), pointer :: dict => null()
    end type list_container
-   !> public to be used in dict_new() constructor.
+   !> Public to be used in dict_new() constructor.
    type, public :: dictionary_container
       character(len=max_field_length) :: key=' '
       character(len=max_field_length) :: value=' '
@@ -103,7 +103,7 @@ module dictionaries
       module procedure add_char,add_dict,add_integer,add_real,add_double,add_long, add_log
    end interface
 
-   !> used to retrieve the pointer to the dictionary which has the key,
+   !> Used to retrieve the pointer to the dictionary which has the key,
    !! if the keys exists. In the case it does not, it returns a nullified dictionary
    !! should be used in assignments, like for example val= dict .get. "key"
    interface operator(.get.)
@@ -337,9 +337,9 @@ contains
        character(len=*), intent(in) :: key
        logical, intent(in) :: dst
        !local variables
-       logical :: key_found
+       !$ logical :: key_found
        type(dictionary), pointer :: dict_first !<in case of first occurrence
-       type(dictionary), pointer :: iter !< iterator to avoid stack overflow
+       !$ type(dictionary), pointer :: iter       !< iterator to avoid stack overflow
 
 !!$       iter => dict
 !!$       key_found=.false.
@@ -672,7 +672,7 @@ contains
      notequal= .not. dicts_are_equal(dict1,dict2)
    end function dicts_are_not_equal
 
-   !> function verifying the dictionaries are equal to each other
+   !> Function verifying the dictionaries are equal to each other
    !! this function is not checking whether the dictionary are deep copy of each other or not
    function dicts_are_equal(dict1,dict2) result(equal)
      use yaml_strings, only: is_atoi,is_atof,is_atol
@@ -1185,7 +1185,7 @@ contains
      elem%dict=>val
    end function item_dict
    
-   !> internal procedure for .get. operator interface
+   !> Internal procedure for .get. operator interface
    function list_container_if_key_exists(dict,key) result(list)
      implicit none
      type(dictionary), pointer, intent(in) :: dict
@@ -1444,7 +1444,7 @@ contains
 
    end subroutine get_double
 
-   !safe getter, uses list_container as generated from the .get. operator
+   !> Safe getter, uses list_container as generated from the .get. operator
    subroutine safe_get_dict(dict,el)
      implicit none
      type(dictionary), pointer, intent(inout) :: dict

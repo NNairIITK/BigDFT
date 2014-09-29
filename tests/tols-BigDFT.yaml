@@ -64,6 +64,7 @@ yaml_test:
    - Entering Thread No.
    - Elapsed time (ns)
    - Elapsed time (mus)
+   - Test for pid
  Patterns to ignore:
    - errcode
    - Time
@@ -355,8 +356,8 @@ cleanup:
  Average noise forces: 3.1e-10
  Clean forces norm (Ha/Bohr): 2.28e-10
  Raw forces norm (Ha/Bohr): 3.04e-10
- Epot: 3.3e-9
- Orbitals: 4.71e-10
+ Epot: 3.7e-9
+ Orbitals: 4.81e-10
  EH: 2.9e-9
  EXC: 1.9e-9
  EvXC: 8.7e-10
@@ -450,6 +451,7 @@ rotatesmall_write:
 
 wrappers.out:
  EH: 1.1e-10
+ Epot: 1.01e-10
  fnrm2: 1.1e-10
 
 rotatesmall_read:

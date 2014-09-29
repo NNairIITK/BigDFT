@@ -717,7 +717,7 @@ module communications
     end subroutine transpose_switch_psir
     
     subroutine transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
-      use module_base, only: bigdft_mpi, mpi_double_precision
+      use module_base, only: bigdft_mpi, mpi_double_precision,f_memcpy
       use wrapper_linalg, only: vcopy
       implicit none
     
@@ -735,7 +735,8 @@ module communications
           call mpi_alltoallv(psirwork, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, mpi_double_precision, psirtwork, &
                collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
       else
-          call vcopy(collcom_sr%ndimpsi_c, psirwork(1), 1, psirtwork(1), 1)
+         !call vcopy(collcom_sr%ndimpsi_c, psirwork(1), 1, psirtwork(1), 1)
+         call f_memcpy(src=psirwork,dest=psirtwork)
       end if
     
     
