@@ -25,6 +25,7 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     use module_interfaces
     use yaml_output
     use module_global_variables
+use module_atoms, only: astruct_dump_to_file
     implicit none
     !parameters
     integer, intent(in) :: nat
@@ -37,8 +38,21 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     integer :: icc !for amber
     real(gp) :: rxyzint(3,nat)
     real(gp) :: alatint(3)
+character(len=4) :: fn4
     if(nat/=fdim)stop 'nat /= fdim'
-    ef_counter=ef_counter+1.0_gp 
+    ef_counter=ef_counter+1.0_gp
+
+!!temporary output for geopt paper
+if (iproc == 0) then
+   write(fn4,'(i4.4)') int(ef_counter)
+   call astruct_dump_to_file(astruct,&
+        currDir//'/dump_'//fn4, &
+        '',energy=0.0_gp,rxyz=rxyz,&
+        forces=fxyz)
+endif
+
+
+ 
     if(trim(adjustl(efmethod))=='LJ')then
         call lenjon(nat,rxyz(1,1),fxyz(1,1),epot)
         fnoise=0.0_gp
