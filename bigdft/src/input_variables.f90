@@ -1038,9 +1038,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
      !read the shifts
      shiftk_=0.0_gp
      do i=1,nshiftk
-        shiftk_(1,i) = dict // SHIFTK // (i-1) // 0
-        shiftk_(2,i) = dict // SHIFTK // (i-1) // 1
-        shiftk_(3,i) = dict // SHIFTK // (i-1) // 2
+        shiftk_(1:3,i) = dict // SHIFTK // (i-1)
      end do
 
      !control whether we are giving k-points to Free BC
@@ -1088,9 +1086,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
 !!$     call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
      norm=0.0_gp
      do i=1,in%gen_nkpt
-        in%gen_kpt(1, i) = dict // KPT // (i-1) // 0
-        in%gen_kpt(2, i) = dict // KPT // (i-1) // 1
-        in%gen_kpt(3, i) = dict // KPT // (i-1) // 2
+        in%gen_kpt(1:3, i) = dict // KPT // (i-1)
         if (geocode == 'S' .and. in%gen_kpt(2,i) /= 0.) then
            in%gen_kpt(2,i) = 0.
            if (iproc==0) call yaml_warning('Surface conditions, suppressing k-points along y.')
