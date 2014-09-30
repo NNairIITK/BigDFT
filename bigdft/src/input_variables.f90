@@ -623,7 +623,6 @@ subroutine allocateInputFragArrays(input_frag)
   type(fragmentInputParameters),intent(inout) :: input_frag
 
   ! Local variables
-  integer :: i_stat
   character(len=*),parameter :: subname='allocateInputFragArrays'
 
   input_frag%frag_index = f_malloc_ptr(input_frag%nfrag,id='input_frag%frag_index')
@@ -660,7 +659,6 @@ subroutine deallocateInputFragArrays(input_frag)
   type(fragmentInputParameters),intent(inout) :: input_frag
 
   ! Local variables
-  integer :: i_stat,i_all
   character(len=*),parameter :: subname='deallocateInputFragArrays'
 
   !if(associated(input_frag%frag_info)) then
@@ -741,7 +739,6 @@ subroutine free_kpt_variables(in)
   implicit none
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_kpt_variables'
-  integer :: i_stat, i_all
 
 !!$  if (associated(in%gen_kpt)) then
 !!$     i_all=-product(shape(in%gen_kpt))*kind(in%gen_kpt)
@@ -984,7 +981,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   !local variables
   logical :: lstat
   character(len=*), parameter :: subname='kpt_input_analyse'
-  integer :: i_stat,ierror,i, nshiftk, ikpt, j, ncount, nseg, iseg_, ngranularity_
+  integer :: ierror,i, nshiftk, ikpt, j, ncount, nseg, iseg_, ngranularity_
   integer, dimension(3) :: ngkpt_
   real(gp), dimension(3) :: alat_
   real(gp), dimension(3,8) :: shiftk_
@@ -1034,9 +1031,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
      end if
   else if (input_keys_equal(trim(method), 'mpgrid')) then
      !take the points of Monkhorst-pack grid
-     ngkpt_(1) = dict // NGKPT // 0
-     ngkpt_(2) = dict // NGKPT // 1
-     ngkpt_(3) = dict // NGKPT // 2
+     ngkpt_(1:3) = dict // NGKPT
      if (geocode == 'S') ngkpt_(2) = 1
      !shift
      nshiftk = dict_len(dict//SHIFTK)
