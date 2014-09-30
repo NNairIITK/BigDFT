@@ -19,7 +19,7 @@ program MINHOP
   use module_atoms, only: deallocate_atoms_data,atoms_data,astruct_dump_to_file
   !implicit real(kind=8) (a-h,o-z) !!!dangerous when using modules!!!
   implicit none
-  logical :: newmin,CPUcheck,occured,exist_poslocm,exist_posacc
+  logical :: newmin,CPUcheck,occured,exist_poslocm,exist_posacc,singlestep
   character(len=20) :: unitsp,atmn
   character(len=60) :: run_id
 !  type(atoms_data) :: atoms,md_atoms
@@ -350,7 +350,7 @@ program MINHOP
   open(unit=12,file='enarr'//trim(bigdft_run_id_toa()),status='unknown')
    if (bigdft_mpi%iproc == 0) call yaml_map('(MH) name of idarr','idarr'//trim(bigdft_run_id_toa()))
   open(unit=14,file='idarr'//trim(bigdft_run_id_toa()),status='unknown')
-  read(12,*) nlmin,nlminx
+  read(12,*) nlmin,nlminx,singlestep
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) nlmin,nlminx',(/nlmin,nlminx/))
   if (nlmin.gt.nlminx) stop 'nlmin>nlminx'
   read(12,*) en_delta,fp_delta
@@ -490,6 +490,9 @@ program MINHOP
      endif
      exit hopping_loop
   endif
+
+  !for runs over the queing system with short run times quit after 1 accepted minimum
+  if (accepted .ge. 1 .and. singlestep) exit hopping_loop
 
 5555 continue
 
@@ -655,7 +658,7 @@ program MINHOP
            rxyz_opt,en_arr,ct_arr,fp_arr,pl_arr)
 ! write intermediate results
       if (bigdft_mpi%iproc == 0) call yaml_comment('(MH) WINTER')
-      if (bigdft_mpi%iproc == 0) call winter(natoms,bigdft_get_astruct_ptr(run_opt),nid,nlminx,nlmin,en_delta,fp_delta, &
+      if (bigdft_mpi%iproc == 0) call winter(natoms,bigdft_get_astruct_ptr(run_opt),nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
            en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nsoften)
       if (bigdft_mpi%iproc == 0) then
          !call yaml_stream_attributes()
@@ -774,7 +777,7 @@ end do hopping_loop
      call yaml_mapping_open('(MH) Final results')
      call yaml_map('(MH) Total number of minima found',nlmin)
      call yaml_map('(MH) Number of accepted minima',accepted)
-     call winter(natoms,bigdft_get_astruct_ptr(run_opt),nid,nlminx,nlmin,en_delta,fp_delta, &
+     call winter(natoms,bigdft_get_astruct_ptr(run_opt),nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
            en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nsoften)
   endif
 
@@ -814,12 +817,15 @@ end do hopping_loop
   !call run_objects_free_container(runObj)
 
   !call free_restart_objects(rst)
+  if (iproc==0) write(*,*) 'quit 1'
   call release_run_objects(run_md)
+  if (iproc==0) write(*,*) 'quit 2'
   call free_run_objects(run_opt)
 !!$  call deallocate_atoms_data(atoms)
 
   ! deallocation of global's variables
 
+  if (iproc==0) write(*,*) 'quit 3'
   call f_free_ptr(pos)
   call f_free(en_arr)
   call f_free(ct_arr)
@@ -833,14 +839,18 @@ end do hopping_loop
   call f_free(fphop)
   call f_free(rcov)
   call f_free(ksevals)
+  if (iproc==0) write(*,*) 'quit 4'
 
   call deallocate_global_output(outs)
 !!$  call free_input_variables(inputs_md)
 !!$  call free_input_variables(inputs_opt)
 
+  if (iproc==0) write(*,*) 'quit 5'
   call bigdft_finalize(ierr)
 
+  if (iproc==0) write(*,*) 'quit 6'
   call f_lib_finalize()
+  if (iproc==0) write(*,*) 'quit 7'
 
 contains
 
@@ -1593,7 +1603,7 @@ subroutine elim_moment(nat,vxyz)
 END SUBROUTINE elim_moment
 
 
-subroutine winter(nat,astruct,nid,nlminx,nlmin,en_delta,fp_delta, &
+subroutine winter(nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
      en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nsoften)
   use module_base
   use bigdft_run, only: bigdft_run_id_toa
@@ -1611,6 +1621,7 @@ subroutine winter(nat,astruct,nid,nlminx,nlmin,en_delta,fp_delta, &
   real(gp), intent(in) :: en_arr(nlminx),ct_arr(nlminx),fp_arr(nid,nlminx),pl_arr(3,nat,nlminx)
   !local variables
   integer :: k,i
+  logical :: singlestep
   !character(len=50) :: comment
   character(len=5) :: fn5
 
@@ -1618,7 +1629,8 @@ subroutine winter(nat,astruct,nid,nlminx,nlmin,en_delta,fp_delta, &
 
   ! write enarr file
   open(unit=12,file='enarr'//trim(bigdft_run_id_toa()),status='unknown')
-  write(12,'(2(i10),a)') nlmin,nlmin+5,' # of minima already found, # of minima to be found in consecutive run'
+  write(12,'(2(i10),l,a)') nlmin,nlmin+5,singlestep, & 
+      ' # of minima already found, # of minima to be found in consecutive run, singlestep mode'
   write(12,'(2(e24.17,1x),a)') en_delta,fp_delta,' en_delta,fp_delta'
   do k=1,nlmin
      write(12,'(e24.17,1x,e17.10)') en_arr(k),ct_arr(k)
