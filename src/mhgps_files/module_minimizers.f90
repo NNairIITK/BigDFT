@@ -247,6 +247,9 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    call minenergyandforces(.false.,imode,nat,alat,rxyz(1,1,0),&
        rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),fnoise,&
        etot,iconnect,nbond,wold,beta_stretchx,beta_stretch)
+   call fnrmandforcemax(fxyzraw(1,1,0),fnrm,fmax,nat)
+   fnrm=sqrt(fnrm)
+   if (fmax < 3.e-1_gp) call updatefluctsum(fnoise,fluct)
 if (iproc == 0 .and. mhgps_verbosity >=4) then
    write(fn4,'(i4.4)') 0
    write(comment,'(a,1pe10.3)')'SBFGS:fnrm= ',fnrm
@@ -258,9 +261,6 @@ if (iproc == 0 .and. mhgps_verbosity >=4) then
 endif
    if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+beta_stretch*fstretch(:,:,0)
 
-   call fnrmandforcemax(fxyzraw(1,1,0),fnrm,fmax,nat)
-   fnrm=sqrt(fnrm)
-   if (fmax < 3.e-1_gp) call updatefluctsum(fnoise,fluct)
 
    etotold=etot
    etotp=etot

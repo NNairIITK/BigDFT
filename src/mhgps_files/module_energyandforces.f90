@@ -35,21 +35,22 @@ use module_atoms, only: astruct_dump_to_file
     real(gp), intent(out) :: fnoise
     real(gp), intent(out) :: epot
     !internal
+    integer :: iat
     integer :: icc !for amber
     real(gp) :: rxyzint(3,nat)
     real(gp) :: alatint(3)
-character(len=4) :: fn4
+character(len=9) :: fn9
     if(nat/=fdim)stop 'nat /= fdim'
     ef_counter=ef_counter+1.0_gp
 
 !!temporary output for geopt paper
-if (iproc == 0) then
-   write(fn4,'(i4.4)') int(ef_counter)
-   call astruct_dump_to_file(astruct_ptr,&
-        currDir//'/dump_'//fn4, &
-        '',energy=0.0_gp,rxyz=rxyz,&
-        forces=fxyz)
-endif
+!!if (iproc == 0) then
+!!   write(fn4,'(i9.9)') int(ef_counter)
+!!   call astruct_dump_to_file(astruct_ptr,&
+!!        currDir//'/dump_'//fn4, &
+!!        '',energy=0.0_gp,rxyz=rxyz,&
+!!        forces=fxyz)
+!!endif
 
 
  
@@ -93,6 +94,24 @@ endif
         !force in hartree/bohr
         fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)*0.0008432975639921999_gp
         fnoise=0.0_gp
+        return
+    else if(trim(adjustl(efmethod))=='AMBEROF')then
+        !convert from bohr to ansgtroem
+        rxyzint=0.52917721092_gp*rxyz
+        open(33,file="posinp.amber")
+        do iat=1,nat
+        write(33,'(3(1x,es24.17))')rxyzint(1,iat),rxyzint(2,iat),rxyzint(3,iat)
+        enddo
+        close(33)
+        
+        call system("./amber.x")
+        
+        open(33,file="posout.amber")
+        read(33,*)epot
+        do iat=1,nat
+        read(33,*)fxyz(1,iat),fxyz(2,iat),fxyz(3,iat)
+        enddo
+        close(33)
         return
     else if(trim(adjustl(efmethod))=='BIGDFT')then
         if(nat/=runObj%atoms%astruct%nat)then

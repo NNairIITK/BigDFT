@@ -192,6 +192,17 @@ program mhgps
         !alanine stuff ......................END!>
 
         call print_logo_mhgps()
+    elseif(efmethod=='AMBEROF')then
+        iproc=0
+        isForceField=.true.
+        write(currDir,'(a,i3.3)')'input',ifolder
+        write(filename,'(a,i3.3)')'pos',ifile
+        call deallocate_atomic_structure(atom_struct)
+        call read_atomic_file(currDir//'/'//filename,iproc,&
+                              atom_struct)
+        astruct_ptr=>atom_struct
+        fdim=astruct_ptr%nat
+        call print_logo_mhgps()
     else
         call yaml_warning('Following method for evaluation of '//&
         'energies and forces is unknown: '//trim(adjustl(efmethod)))
@@ -456,6 +467,7 @@ allocate(fat(3,nat))
                     endif
                     call fnrmandforcemax(fxyz(1,1),fnrm,&
                                         fmax,nat)
+                    fnrm = sqrt(fnrm)
                     if (iproc == 0) then
                         write(comment,'(a,1pe10.3,5x1pe10.3)')&
                        'ATTENTION! Forces below give no forces, '//&
@@ -548,7 +560,7 @@ allocate(fat(3,nat))
 !        call free_input_variables(inputs_opt)
         call deallocate_global_output(outs)
         call bigdft_finalize(ierr)
-    elseif(efmethod=='LJ'.or.efmethod=='AMBER'.or.&
+    elseif(efmethod=='LJ'.or.efmethod=='AMBER'.or.efmethod=='AMBEROF'.or.&
            efmethod=='LENSIc' .or. efmethod=='LENSIb')then
         call deallocate_atomic_structure(atom_struct)
         nullify(astruct_ptr)
