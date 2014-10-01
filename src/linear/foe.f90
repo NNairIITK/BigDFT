@@ -575,7 +575,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           !!end do
           ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
           istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
-          ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
+          ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
           !call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
 
 
@@ -598,7 +598,9 @@ subroutine foe(iproc, nproc, tmprtr, &
 
           temparr(1) = ebsp
           temparr(2) = ebs_check
-          call mpiallred(temparr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+          if (nproc>1) then
+              call mpiallred(temparr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+          end if
           ebsp = temparr(1)
           ebs_check = temparr(2)
 
@@ -706,8 +708,10 @@ subroutine foe(iproc, nproc, tmprtr, &
           !!call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
           ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
           istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
-          ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
-          call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
+          if (nproc>1) then
+              call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          end if
           ebsp=ebsp/scale_factor+shift_value*sumn
     
     
@@ -858,7 +862,8 @@ subroutine foe(iproc, nproc, tmprtr, &
 
 
       subroutine retransform(matrix_compr)
-          use sparsematrix, only: sequential_acces_matrix_fast, sparsemm
+          use sparsematrix, only: sequential_acces_matrix_fast, sparsemm, &
+               & uncompress_matrix_distributed, compress_matrix_distributed
           ! Calling arguments
           real(kind=8),dimension(tmb%linmat%l%nvctr),intent(inout) :: matrix_compr
 

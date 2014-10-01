@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7.5.11],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7.5.12],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -920,7 +920,7 @@ if test x"$ac_use_libxc" != x"no" ; then
   use libxc_funcs_m
   use xc_f90_lib_m
 
-  write(*,*) XC_FAMILY_GGA
+  write(*,*) AB6_MAX_SYMMETRIES
 end program]], withlibxcmod=yes, withlibxcmod=no)
       AC_MSG_RESULT($withlibxcmod)
       FCFLAGS=$FCFLAGS_SVG

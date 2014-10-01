@@ -215,12 +215,13 @@ contains
     real(gp), intent(in) :: projrad            !< projector radius
     real(gp), intent(in) :: crmult, frmult     !< radius multipliers
     !Local variables
-    integer :: ixc, ierr
+    integer :: ixc
+    !integer :: ierr
     character(len=27) :: filename
     logical :: exists
     integer :: nzatom, nelpsp, npspcode
     real(gp), dimension(0:4,0:6) :: psppar
-    integer :: i, dlen
+    integer :: i,nlen
     real(gp) :: ehomo,radfine,rad,maxrad
     type(dictionary), pointer :: radii,dict_psp
     real(gp), dimension(3) :: radii_cf
@@ -229,19 +230,11 @@ contains
     filename = 'psppar.' // atomname
     dict_psp => dict // filename !inquire for the key?
 
-!!$    if (has_key(dict_psp, RADII_KEY)) then
-!!$       radii => dict_psp // RADII_KEY
-!!$       if (has_key(radii, COARSE)) radii_cf(1) =  radii // COARSE
-!!$       if (has_key(radii, FINE)) radii_cf(2) =  radii // FINE
-!!$       if (has_key(radii, COARSE_PSP)) radii_cf(3) =  radii // COARSE_PSP
-!!$    end if
 
     exists = has_key(dict_psp, LPSP_KEY)
     if (.not. exists) then
        ixc = run_ixc
        ixc = dict_psp .get. PSPXC_KEY
-!!$       if (has_key(dict_psp, PSPXC_KEY)) &
-!!$            & ixc = dict_psp // PSPXC_KEY
        call psp_from_data(atomname, nzatom, &
             & nelpsp, npspcode, ixc, psppar(:,:), exists)
        radii_cf(:) = UNINITIALIZED(1._gp)
@@ -254,17 +247,11 @@ contains
     end if
 
     if (.not. exists) then
-     !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
        call f_err_throw('The pseudopotential parameter file "'//&
             trim(filename)//&
             '" is lacking, and no registered pseudo found for "'//&
             trim(atomname),err_name='BIGDFT_INPUT_FILE_ERROR')
        return
-!!$       write(*,'(1x,5a)')&
-!!$            'ERROR: The pseudopotential parameter file "',trim(filename),&
-!!$            '" is lacking, and no registered pseudo found for "', &
-!!$            & trim(atomname), '", exiting...'
-!!$       stop
     end if
 
     radii_cf = UNINITIALIZED(1._gp)
@@ -275,12 +262,6 @@ contains
     radii_cf(1) = radii .get. COARSE
     radii_cf(2) = radii .get. FINE
     radii_cf(3) = radii .get. COARSE_PSP
-    !if (has_key(dict // filename, "Radii of active regions (AU)")) then
-    !   radii => dict // filename // "Radii of active regions (AU)"
-    !   if (has_key(radii, "Coarse")) radii_cf(1) =  radii // "Coarse"
-    !   if (has_key(radii, "Fine")) radii_cf(2) =  radii // "Fine"
-    !   if (has_key(radii, "Coarse PSP")) radii_cf(3) =  radii // "Coarse PSP"
-    !end if
 
     write(source_val, "(A)") RADII_SOURCE(RADII_SOURCE_FILE)
     if (radii_cf(1) == UNINITIALIZED(1.0_gp)) then
@@ -297,8 +278,8 @@ contains
     if (radii_cf(2) == UNINITIALIZED(1.0_gp)) then
        radfine = dict_psp // LPSP_KEY // "Rloc"
        if (has_key(dict_psp, NLPSP_KEY)) then
-          dlen=dict_len(dict_psp // NLPSP_KEY)
-          do i=1, dlen
+          nlen=dict_len(dict_psp // NLPSP_KEY)
+          do i=1, nlen
              rad = dict_psp // NLPSP_KEY // (i - 1) // "Rloc"
              if (rad /= 0._gp) then
                 radfine=min(radfine, rad)
@@ -312,7 +293,8 @@ contains
     ! Correct radii_cf(3) for the projectors.
     maxrad=0.e0_gp ! This line added by Alexey, 03.10.08, to be able to compile with -g -C
     if (has_key( dict_psp, NLPSP_KEY)) then
-       do i=1, dict_len(dict_psp // NLPSP_KEY)
+       nlen=dict_len(dict_psp // NLPSP_KEY)
+       do i=1, nlen
           rad =  dict_psp  // NLPSP_KEY // (i - 1) // "Rloc"
           if (rad /= 0._gp) then
              maxrad=max(maxrad, rad)
@@ -512,7 +494,7 @@ contains
     type(dictionary), pointer :: loc
     character(len = max_field_length) :: str
     real(gp), dimension(3) :: radii_cf
-    integer :: i, l, dlen
+    integer :: i, l,nlen
 
     nzatom = -1
     radii_cf(:) = UNINITIALIZED(1._gp)
@@ -529,14 +511,16 @@ contains
     if (.not. has_key(loc, "Rloc")) return
     psppar(0,0) = loc // 'Rloc'
     if (.not. has_key(loc, "Coefficients (c1 .. c4)")) return
-    psppar(0,1) = loc // 'Coefficients (c1 .. c4)' // 0
-    psppar(0,2) = loc // 'Coefficients (c1 .. c4)' // 1
-    psppar(0,3) = loc // 'Coefficients (c1 .. c4)' // 2
-    psppar(0,4) = loc // 'Coefficients (c1 .. c4)' // 3
+    psppar(0,1:4) = loc // 'Coefficients (c1 .. c4)'
+    !psppar(0,1) = loc // 'Coefficients (c1 .. c4)' // 0
+    !psppar(0,2) = loc // 'Coefficients (c1 .. c4)' // 1
+    !psppar(0,3) = loc // 'Coefficients (c1 .. c4)' // 2
+    !psppar(0,4) = loc // 'Coefficients (c1 .. c4)' // 3
+
     ! Nonlocal terms
     if (has_key(dict, NLPSP_KEY)) then
-       dlen = dict_len(dict // NLPSP_KEY)
-       do i = 1, dlen, 1
+       nlen=dict_len(dict // NLPSP_KEY)
+       do i = 1, nlen
           loc => dict // NLPSP_KEY // (i - 1)
           if (.not. has_key(loc, "Channel (l)")) return
           l = loc // "Channel (l)"
@@ -544,12 +528,13 @@ contains
           if (.not. has_key(loc, "Rloc")) return
           psppar(l,0) = loc // 'Rloc'
           if (.not. has_key(loc, "h_ij terms")) return
-          psppar(l,1) = loc // 'h_ij terms' // 0
-          psppar(l,2) = loc // 'h_ij terms' // 1
-          psppar(l,3) = loc // 'h_ij terms' // 2
-          psppar(l,4) = loc // 'h_ij terms' // 3
-          psppar(l,5) = loc // 'h_ij terms' // 4
-          psppar(l,6) = loc // 'h_ij terms' // 5
+          psppar(l,1:6) = loc // 'h_ij terms'
+          !psppar(l,1) = loc // 'h_ij terms' // 0
+          !psppar(l,2) = loc // 'h_ij terms' // 1
+          !psppar(l,3) = loc // 'h_ij terms' // 2
+          !psppar(l,4) = loc // 'h_ij terms' // 3
+          !psppar(l,5) = loc // 'h_ij terms' // 4
+          !psppar(l,6) = loc // 'h_ij terms' // 5
        end do
     end if
     ! Type
@@ -894,8 +879,6 @@ contains
 
     !Try to read the atomic coordinates from files
     call f_err_open_try()
-!!$    call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
-!!$         & energy = outs%energy, fxyz = outs%fxyz)
     nullify(fxyz)
     call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
          energy = energy, fxyz = fxyz)
@@ -1200,7 +1183,7 @@ contains
     enddo
   end subroutine atomic_data_set_from_dict
   
-
+!!$
 
   subroutine occupation_set_from_dict(dict, key, norbu, norbd, occup, &
        & nkpts, nspin, norbsempty, nelec_up, nelec_down, norb_max)
@@ -1233,9 +1216,6 @@ contains
        end if
     end if
     norbd = norb - norbu
-!!$    write(*,*) nelec_up, nelec_down, norbsempty, norb_max
-!!$    write(*,*) norbu, norbd, norb
-!!$    stop
     ! Modify the default with occupation
     nullify(occup_src)
     if (has_key(dict, key)) then
@@ -1380,7 +1360,7 @@ contains
       end do
     end subroutine fill_for_kpt
   end subroutine occupation_set_from_dict
-
+!!$
 
   subroutine occupation_data_file_merge_to_dict(dict, key, filename)
     use module_defs, only: gp, UNINITIALIZED

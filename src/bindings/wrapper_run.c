@@ -344,21 +344,12 @@ BigDFT_Run* bigdft_run_new_from_files(const gchar *radical, const gchar *posinp)
 BigDFT_Run* bigdft_run_new_from_dict(BigDFT_Dict *dict)
 {
   BigDFT_Run *run;
-  f90_dictionary_pointer copy;
 
   run = bigdft_run_new();
 
-  /* Make a copy of the given dictionary. */
-  FC_FUNC_(dict_init_binding, DICT_INIT_BINDING)(&copy);
-  FC_FUNC_(dict_copy_binding, DICT_COPY_BINDING)(&copy, &dict->root);
-
   /* Associate the dictionary and parse it. */
-  FC_FUNC_(run_objects_update, RUN_OBJECTS_UPDATE)(F_TYPE(run->data), &copy);
-  //FC_FUNC_(run_objects_set_dict, RUN_OBJECTS_SET_DICT)(F_TYPE(run->data), &copy);
-  //FC_FUNC_(set_run_objects, SET_RUN_OBJECTS)(F_TYPE(run->data));
-
+  FC_FUNC_(run_objects_update, RUN_OBJECTS_UPDATE)(F_TYPE(run->data), &dict->root);
   _attributes_from_fortran(run);
-
   return run;
 }
 
@@ -444,10 +435,10 @@ gboolean bigdft_run_dump(BigDFT_Run *run, const gchar *filename, gboolean full)
 {
   int iostat;
   int userOnly = !full;
-
+  int ln;
+  ln=strlen(filename);
   FC_FUNC_(run_objects_dump_to_file, RUN_OBJECTS_DUMP_TO_FILE)
-    (&iostat, &run->dict->root, filename, &userOnly, strlen(filename));
-
+    (&iostat, &run->dict->root, filename, &userOnly, &ln);
   return (iostat == 0);
 }
 /**

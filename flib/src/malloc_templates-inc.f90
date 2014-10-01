@@ -7,130 +7,14 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-
-!>update the memory database with the data provided
-subroutine f_update_database(size,kind,rank,address,id,routine)
-  use metadata_interfaces, only: long_toa
-  implicit none
-  !>number of elements of the buffer
-  integer(kind=8), intent(in) :: size
-  !>size in bytes of one buffer element
-  integer, intent(in) :: kind
-  !>rank of the array
-  integer, intent(in) :: rank
-  !>address of the first buffer element.
-  !!used to store the address in the dictionary.
-  !!if this argument is zero, only the memory is updated
-  !!otherwise the dictionary is created and stored
-  integer(kind=8), intent(in) :: address
-  !> id of the array
-  character(len=*), intent(in) :: id
-  !>id of the allocating routine
-  character(len=*), intent(in) :: routine
-  !local variables
-  integer(kind=8) :: ilsize
-  !$ include 'remove_omp-inc.f90' 
-
-  ilsize=max(int(kind,kind=8)*size,int(0,kind=8))
-  !store information only for array of size /=0
-  if (track_origins .and. address /= int(0,kind=8) .and. ilsize /= int(0,kind=8)) then
-     !create the dictionary array
-     if (.not. associated(mems(ictrl)%dict_routine)) then
-        call dict_init(mems(ictrl)%dict_routine)
-     end if
-     call set(mems(ictrl)%dict_routine//long_toa(address),&
-          '[ '//trim(id)//', '//trim(routine)//', '//&
-             trim(yaml_toa(ilsize))//', '//trim(yaml_toa(rank))//']')
-  end if
-  call memstate_update(memstate,ilsize,id,routine)
-end subroutine f_update_database
-
-!> clean the database with the information of the array
-subroutine f_purge_database(size,kind,address,id,routine)
-  use metadata_interfaces, only: long_toa
-  implicit none
-  !>number of elements of the buffer
-  integer(kind=8), intent(in) :: size
-  !>size in bytes of one buffer element
-  integer, intent(in) :: kind
-  !>address of the first buffer element.
-  !!used to store the address in the dictionary.
-  !!if this argument is zero, only the memory is updated
-  !!otherwise the dictionary is created and stored
-  integer(kind=8), intent(in), optional :: address
-  !> id of the array
-  character(len=*), intent(in), optional :: id
-  !>id of the allocating routine
-  character(len=*), intent(in), optional :: routine
-  !local variables
-  logical :: use_global
-  integer(kind=8) :: ilsize,jlsize,iadd
-  character(len=namelen) :: array_id,routine_id
-  character(len=info_length) :: array_info
-  type(dictionary), pointer :: dict_add
-  !$ include 'remove_omp-inc.f90' 
-
-  iadd=int(0,kind=8)
-  if (present(address)) iadd=address
-  ilsize=max(int(kind,kind=8)*size,int(0,kind=8))
-  !address of first element (not needed for deallocation)
-  if (track_origins .and. iadd/=int(0,kind=8)) then
-     !hopefully only address is necessary for the deallocation
-
-     !search in the dictionaries the address
-     dict_add=>find_key(mems(ictrl)%dict_routine,long_toa(iadd))
-     if (.not. associated(dict_add)) then
-        dict_add=>find_key(mems(ictrl)%dict_global,long_toa(iadd))
-        if (.not. associated(dict_add)) then
-           call f_err_throw('Address '//trim(long_toa(iadd))//&
-                ' not present in dictionary',ERR_INVALID_MALLOC)
-           return
-        else
-           use_global=.true.
-        end if
-     else
-        use_global=.false.
-     end if
-
-     !transform the dict_add in a list
-     !retrieve the string associated to the database
-     array_info=dict_add
-     dict_add => yaml_a_todict(array_info)
-     !then retrieve the array information
-     array_id=dict_add//0
-     routine_id=dict_add//1
-     jlsize=dict_add//2
-
-     call dict_free(dict_add)
-
-     if (ilsize /= jlsize) then
-        call f_err_throw('Size of array '//trim(array_id)//&
-             ' ('//trim(yaml_toa(ilsize))//') not coherent with dictionary, found='//&
-             trim(yaml_toa(jlsize)),ERR_MALLOC_INTERNAL)
-        return
-     end if
-     if (use_global) then
-        call dict_remove(mems(ictrl)%dict_global,long_toa(iadd))
-     else
-        call dict_remove(mems(ictrl)%dict_routine,long_toa(iadd))
-     end if
-  else
-     array_id(1:len(array_id))=id
-     routine_id(1:len(routine_id))=routine
-  end if
-
-  call memstate_update(memstate,-ilsize,trim(array_id),trim(routine_id))
-  
-end subroutine f_purge_database
-
 subroutine xx_all(array,m)
   use metadata_interfaces
   implicit none
   type(malloc_information_all), intent(in) :: m
   integer, dimension(:), allocatable, intent(inout) :: array
   !--- allocate_profile-inc.f90
-  integer :: ierror,sizeof
-  integer(kind=8) :: iadd,ilsize
+  integer :: ierror
+  integer(kind=8) :: iadd
   !$ logical :: not_omp
   !$ logical, external :: omp_in_parallel,omp_get_nested
 
@@ -184,6 +68,7 @@ subroutine xx_all(array,m)
   !END--- allocate-inc.f90
 end subroutine xx_all
 
+
 subroutine xx_all_free(array)
   use metadata_interfaces
   implicit none
@@ -191,13 +76,9 @@ subroutine xx_all_free(array)
   !--'deallocate-profile-inc.f90' 
   !local variables
   integer :: ierror
-  logical :: use_global
   !$ logical :: not_omp
   !$ logical, external :: omp_in_parallel,omp_get_nested
-  integer(kind=8) :: ilsize,jlsize,iadd
-  character(len=namelen) :: array_id,routine_id
-  character(len=info_length) :: array_info
-  type(dictionary), pointer :: dict_add
+  integer(kind=8) :: ilsize,iadd
 
   if (f_err_raise(ictrl == 0,&
        'ERROR (f_free): the routine f_malloc_initialize has not been called',&
@@ -238,6 +119,7 @@ subroutine xx_all_free(array)
   !$ end if
   !END-- 'deallocate-inc.f90' 
 end subroutine xx_all_free
+
 
 subroutine i1_all(array,m)
   use metadata_interfaces, metadata_address => geti1

@@ -72,6 +72,7 @@ yaml_test:
    - Entering Thread No.
    - Elapsed time (ns)
    - Elapsed time (mus)
+   - Test for pid
  Patterns to ignore:
    - errcode
    - Time
@@ -459,6 +460,7 @@ rotatesmall_write:
 
 wrappers.out:
  EH: 1.1e-10
+ Epot: 1.01e-10
  fnrm2: 1.1e-10
 
 rotatesmall_read:
@@ -1049,20 +1051,20 @@ geoptconstrained:
  D Tr: 1.1e-9
 
 O2spin_diag:
- Atomic Forces (Ha/Bohr): 7.4e-8
+ Atomic Forces (Ha/Bohr): 1.1e-7
  Average noise forces: 6.1e-8
- Clean forces norm (Ha/Bohr): 2.7e-7
- Raw forces norm (Ha/Bohr): 2.7e-7
+ Clean forces norm (Ha/Bohr): 3.9e-7
+ Raw forces norm (Ha/Bohr): 3.9e-7
  Orbitals: 2.7e-7
- EH: 8.5e-7
- EXC: 5.9e-8
- Ekin: 5.9e-7
- Enl: 2.4e-8
- Epot: 8.8e-7
- EvXC: 7.7e-8
+ EH: 1.4e-6
+ EXC: 3.4e-7
+ Ekin: 1.4e-6
+ Enl: 1.4e-6
+ Epot: 1.4e-6
+ EvXC: 1.4e-6
  Omega: 1.7e-7
  energy: 3.1e-8
- multiplicator for the confinement: 1.2e-7
+ multiplicator for the confinement: 1.4e-6
  D: 1.1e-10
 
 O2spin_foe:
@@ -1117,6 +1119,14 @@ O2spin_dirmin:
 verysparse:
  Total charge: 1.1e-10
  EXC: 1.1e-9
+ Enl: 1.1e-10
+ Epot: 1.1e-9
+ ebs: 1.1e-9
+ ebs_check: 1.1e-9
+ Omega: 1.1e-9
+ energy: 1.1e-9
+ Total ionic charge: 1.1e-10
+ decay length of error function: 1.1e-5
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
