@@ -519,6 +519,7 @@ contains
     use dictionaries
     use yaml_output, only: yaml_toa,yaml_map
     use public_keys, only: EXTRA_SHELLS_KEY, IG_OCCUPATION
+    use yaml_strings, only: is_atoi
     implicit none
     type(dictionary), pointer :: dict
     integer, intent(in) :: nspin_in
@@ -529,7 +530,7 @@ contains
     integer, parameter :: max_size=20
     character(len = max_field_length) :: key
     !character(max_field_length), dimension(:), allocatable :: keys
-    integer :: ln,nempty
+    integer :: ln,nempty,ierr
     integer :: m,n,iocc,icoll,inl,noncoll,l,ispin,is,nspin,iocc_old
 !!$ integer :: lsc
     real(gp) :: tt,sh_chg
@@ -576,7 +577,7 @@ contains
 
        aocc_new(:)=0.0_gp
        iocc=0
-       iocc_old=1
+       iocc_old=0
        do l=1,lmax_ao+1
           iocc=iocc+1
           iocc_old=iocc_old+1
@@ -618,7 +619,13 @@ contains
           is = 1
           if (key(1:1) == "(" .and. key(ln:ln) == ")") is = 2
           ! Read the major quantum number
-          read(key(is:is), "(I1)") n
+          if (is_atoi(key(is:is))) then
+             read(key(is:is), "(I1)") n
+          else
+             call f_err_throw('Error in parsing occupation dictionary, the key "'//&
+                  trim(key)//'" is expected to contain a integer inside',&
+                  err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+          end if
           is = is + 1
           ! Read the channel
           l=ishell(key(is:is))
