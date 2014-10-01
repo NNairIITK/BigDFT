@@ -1,0 +1,1317 @@
+# Definitions of the input variables
+##inputvar: #name of the variable as declared in the code
+## DESCRIPTION: Extended description of the variable to be used for documentation
+## COMMENT: This is the description of the variable as will appear in the logfile
+## RANGE: [from,to] #always put two numbers (also .inf can be put)
+## EXCLUSIVE: #here follows a list of allowed values (either RANGE or EXCLUSIVE)
+##  - Value1:  comments of value1
+##  - Value2:  comment of value2
+## CONDITION: #here the conditions for which the variable makes sense are written
+##   MASTER_KEY: foo #this means that inputvar makes sense only if foo is specified
+##   WHEN: #provide a list of allowed values of foo for which inputvars is meaningful
+##     - fooval1
+##     - fooval2   
+## PROFILE_FROM: foo #inputvar inherit the profile from the one specified by foo variable
+###then the profiles follows, which gives to the variables the allowed name
+## default: value of the default, written as a string 
+## profile1: value1 # if the user specifies inputvar: profile1 then inputvars will be value1
+## profile2: value2
+##
+## DO NOT USE the character ':' and "" in the COMMENT of DESCRIPTION
+############################################
+# Density Functional Theory parameters
+ dft:
+   DESCRIPTION: Density Functional Theory parameters
+   hgrids:
+     COMMENT: Grid spacing in the three directions (bohr)
+     DESCRIPTION: |
+      Grid spacing in three directions (Bohr units) of the coarse mesh as [0.5, 0.45, 0.4].
+      A scalar can also be given as 0.45.
+     RANGE: [0., 2.]
+     default: [0.45, 0.45, 0.45]
+     fast: [0.55, 0.55, 0.55]
+     accurate: [0.30, 0.30, 0.30]
+   rmult:
+     COMMENT: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
+     DESCRIPTION: Coarse and fine multiplier as [4.0, 8.0].
+                 These numbers determine the extension of the coarse and fine region respectively.
+     RANGE: [0., 100.]
+     default: [5., 8.]
+   ixc:
+     COMMENT: Exchange-correlation parameter (LDA=1,PBE=11)
+     DESCRIPTION: Determine the exchange-correlation functional.
+     default: 1
+     #Here follow a number of possibilities for the different XC functionals
+     LDA (ABINIT): 1
+     PBE (ABINIT): 11
+     LDA: -20
+     PBE: -101130
+     PBE0: -406
+     B97-D: -170 #to be verified
+     B3LYP: -402
+     HF: 100 #Hartree-Fock
+   ncharge:
+     COMMENT: Charge of the system
+     DESCRIPTION: Total charge of the system. A negative value means that extra electrons are added.
+     RANGE: [-500., 500.]
+     default: 0
+   elecfield:
+     COMMENT: Electric field (Ex,Ey,Ez)
+     default: [0., 0., 0.]
+   nspin:
+     COMMENT: Spin polarization treatment
+     DESCRIPTION: |
+            Spin polarization treatment;
+            1 no spin (as LDA),
+            2 spin-polarisation (LSD or collinear) and
+            4 non-collinear i.e. two components per electron.
+     EXCLUSIVE:
+       1: No spin
+       2: Collinear
+       4: Non-collinear
+     default: 1
+   mpol:
+     COMMENT: Total magnetic moment
+     DESCRIPTION: Total magnetic moment which has to be the same parity 
+                  as the total number of electrons (nelec_up-nelec_down=mpol).
+                  You should also define the keyword 'IGSpin' or add a spin per atom to specify the polarisation for the input guess.
+     default: 0
+   gnrm_cv:
+     COMMENT: convergence criterion gradient
+     DESCRIPTION: Maximal value of the norm 2 of the electronic orbitals used as convergence criterion
+     RANGE: [1.e-20, 1.]
+     default: 1.e-4
+     fast: 1.e-3
+     accurate: 1.e-5
+   itermax:
+     COMMENT: Max. iterations of wfn. opt. steps
+     RANGE: [0, 10000]
+     default: 50
+   itermin:
+     COMMENT: Min. iterations of wfn. opt. steps
+     RANGE: [0, 10000]
+     default: 0
+   nrepmax:
+     COMMENT: Max. number of re-diag. runs
+     RANGE: [0, 1000]
+     default: 1
+     accurate: 10
+   ncong:
+     COMMENT: No. of CG it. for preconditioning eq.
+     RANGE: [0, 20]
+     default: 6
+   idsx:
+     COMMENT: Wfn. diis history
+     RANGE: [0, 15]
+     default: 6
+     low_memory: 2
+   dispersion:
+     COMMENT: Dispersion correction potential (values 1,2,3,4,5), 0=none
+     RANGE: [0, 5]
+     default: 0
+   inputpsiid:
+     COMMENT: Input guess wavefunctions
+     default: 0
+     EXCLUSIVE:
+       -1000: Empty
+       -2:    Random
+       -1:    CP2K
+       0:     LCAO
+       1:     Wvl. in memory
+       2:     Wvl. on disk
+       10:    LCAO + gauss.
+       11:    Gauss. in memory
+       12:    Gauss. on disk
+       100:   Linear AO
+       101:   Linear restart
+       102:   Linear on disk
+     #Here follow two shortcuts for linear
+     linear: 100
+     linear_restart: 102
+   output_wf:
+     COMMENT: Output of the wavefunctions
+     default: 0
+     EXCLUSIVE:
+       0: None
+       1: Plain text
+       2: Fortran binary
+       3: ETSF file format
+   output_denspot:
+     COMMENT: Output of the density or the potential
+     default: 0
+     EXCLUSIVE:
+       0:  None
+       1:  Density in plain text
+       2:  Density and potentials in plain text
+       11: Density in ETSF file format
+       12: Density and potentials in ETSF file format
+       21: Density in cube file format
+       22: Density and potentials in cube file format
+   rbuf:
+     COMMENT: Length of the tail (AU)
+     RANGE: [0., 10.]
+     default: 0.
+     #Here shortcut
+     with tails: 5.
+   ncongt:
+     COMMENT: No. of tail CG iterations
+     RANGE: [0, 50]
+     default: 30
+   norbv:
+     COMMENT: Davidson subspace dimension (No. virtual orbitals)
+     DESCRIPTION: Determine the dimension of the subspace i.e. the number of virtual orbitals
+                  to calculate via a Davidson diagonalisation.
+     RANGE: [-9999, 9999]
+     default: 0
+   nvirt:
+     COMMENT: No. of virtual orbs
+     DESCRIPTION: Number of virtual (unoccupied) orbital to optimize
+                  (should be < norbv)
+     RANGE: [0, 9999]
+     default: 0
+   nplot:
+     COMMENT: No. of plotted orbs
+     DESCRIPTION: Number of orbitals to be plotted
+     RANGE: [0, 9999]
+     default: 0
+   disablesym:
+     COMMENT: Disable the symmetry detection
+     DESCRIPTION: Disable the symmetry detection (by default No except for isolated systems)
+     default: No
+
+#K points parameters
+ kpt:
+   DESCRIPTION: K points defined in the Brillouin zone for periodic system calculations
+   method:
+     COMMENT: K-point sampling method
+     EXCLUSIVE:
+       auto:   Based on kptrlen
+       MPGrid: Monkhorst-Pack
+       manual: Based on raw coordinates
+     default:  manual
+   kptrlen:
+     COMMENT: Equivalent length of K-space resolution (Bohr)
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - auto
+     RANGE: [0, 1e4]
+     default: 0.
+   ngkpt:
+     COMMENT: No. of Monkhorst-Pack grid points
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - MPGrid
+     RANGE: [1, 10000]
+     default: [1, 1, 1]
+   shiftk:
+     COMMENT: Grid shifts
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - MPGrid
+     default: [[0., 0., 0.]]
+   kpt:
+     COMMENT: Kpt coordinates
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - manual
+     default:
+     -  [0., 0., 0.]
+   wkpt:
+     COMMENT: Kpt weights
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - manual
+     RANGE: [0., 1e4]
+     default:
+     - 1.
+   bands:
+     COMMENT: For doing band structure calculation
+     default: No
+   iseg:
+     COMMENT: Points for each segment of the Brillouin zone path
+     CONDITION:
+       MASTER_KEY: bands
+       WHEN:
+       - Yes
+     default:
+     - 1
+   kptv:
+     COMMENT: K points defining each segment of the Brillouin zone path
+     CONDITION:
+       MASTER_KEY: bands
+       WHEN:
+       - Yes
+     default:
+     -  [0., 0., 0.]
+     -  [0.5, 0.5, 0.5]
+   ngranularity:
+     COMMENT: No. of points done for each group
+     CONDITION:
+       MASTER_KEY: bands
+       WHEN:
+       - Yes
+     RANGE: [1, 1000]
+     default: 1
+   band_structure_filename:
+     COMMENT: Filename given the local potential for band structure calculations
+     CONDITION:
+       MASTER_KEY: bands
+       WHEN:
+       - Yes
+     default: ''
+
+#Geometry Optimisation  and Molecular Dynamics parameters
+ geopt:
+   DESCRIPTION: Parameters for the geometry relaxation and molecular dynamics
+   method:
+     COMMENT: Geometry optimisation method
+     EXCLUSIVE:
+       none:   No geometry optimization
+       SDCG:   A combination of Steepest Descent and Conjugate Gradient
+       VSSD:   Variable Stepsize Steepest Descent method
+       LBFGS:  Limited-memory BFGS
+       BFGS:   Broyden-Fletcher-Goldfarb-Shanno
+       PBFGS:  Same as BFGS with an initial Hessian obtained from a force field
+       AB6MD:  Molecular dynamics from ABINIT
+       DIIS:   Direct inversion of iterative subspace
+       FIRE:   Fast Inertial Relaxation Engine as described by Bitzek et al.
+       NEB:    Nudged Elastic Band
+       SBFGS:  Stefans new optimizer
+     default: none
+   ncount_cluster_x:
+     COMMENT: Maximum number of force evaluations
+     RANGE: [0, 2000]
+     PROFILE_FROM: method
+     default: 50
+     none: 1
+   frac_fluct:
+     COMMENT: Fraction of force fluctuations. Stop if fmax < forces_fluct*frac_fluct
+     RANGE: [0., 10.]
+     default: 1.
+   forcemax:
+     COMMENT: Max forces criterion when stop
+     RANGE: [0., 10.]
+     PROFILE_FROM: method
+     default: 0.
+     NEB: 5e-3
+   randdis:
+     COMMENT: Random displacement amplitude
+     RANGE: [0., 10.]
+     default: 0.
+   betax:
+     COMMENT: Stepsize for the geometry optimization
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SDCG
+       - VSSD
+       - LBFGS
+       - BFGS
+       - PBFGS
+       - DIIS
+       - FIRE
+       - NEB
+       - SBFGS
+       - none
+     PROFILE_FROM: method
+     RANGE: [0., 100.]
+     default: 4.
+     DIIS: 2.
+     NEB: 0.5
+   history:
+     COMMENT: History for DIIS method
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - DIIS
+     RANGE: [0, 100]
+     default: 4
+   dtinit:
+     COMMENT: Initial time step for the FIRE method
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - FIRE
+     RANGE: [0, 1e4]
+     default: 0.75
+   dtmax:
+     COMMENT: Maximal time step for the FIRE method
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - FIRE
+     RANGE: [0, 1e4]
+     default: 1.5
+   nhistx:
+     COMMENT: maximum history length
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SBFGS
+     RANGE: [0, 1000]
+     default: 10
+   biomode:
+     COMMENT: Enable mode for biomolecules.
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SBFGS
+     default: No
+   beta_stretchx:
+     COMMENT: Stepsize for steepest descent in stretching mode direction (only if in biomode)
+     CONDITION:
+       MASTER_KEY: biomode
+       WHEN:
+       - Yes
+     RANGE: [0., 100.]
+     default: 5e-1
+   maxrise:
+     COMMENT: maximum allowed rise in energy in one geopt step
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SBFGS
+     RANGE: [0., 1e10]
+     default: 1e-6
+   cutoffratio:
+     COMMENT: if ratio of eigenvalues of displacement overlapmatrix is smaller than cutoffratio, the corresponding directions are not used
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SBFGS
+     RANGE: [0., 1.]
+     default: 1e-4
+   steepthresh:
+     COMMENT: if fnrm < steepthresh, geopt method uses steepest descent
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SBFGS
+     RANGE: [0., 1e10]
+     default: 0.5
+   trustr:
+     COMMENT: maximum displacement of single atom
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SBFGS
+     RANGE: [0., 1e10]
+     default: 0.5
+   ionmov:
+     COMMENT: Movement ion method
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - AB6MD
+     EXCLUSIVE:
+       6:  Simple velocity-Verlet molecular dynamic
+       7:  Quenched molecular dynamic
+       8:  Nose-Hoover thermostat
+       9:  Langevin dynamic
+       12: Isokinetic ensemble molecular dynamics
+       13: Iosthermal/isenthalpic ensemble
+     default: 6
+   dtion:
+     COMMENT: Time step - Atomic Units (20.670689 AU=0.5 fs)
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - AB6MD
+     RANGE: [0, 1e3]
+     default: 20.670689
+   mditemp:
+     COMMENT: Temperature of molecular dynamics
+     CONDITION:
+       MASTER_KEY: ionmov
+       WHEN: [8, 9, 12, 13]
+#       - 6
+     RANGE: [0, 1e9]
+     default: 300.
+   mdftemp:
+     COMMENT: Final temperature of molecular dynamics
+     CONDITION:
+       MASTER_KEY: ionmov
+       WHEN: [8, 9, 12, 13]
+     RANGE: [0, 1e9]
+     default: 300.
+   noseinert:
+     COMMENT: Thermostat inertia coefficient for Nose_Hoover dynamics
+     CONDITION:
+       MASTER_KEY: ionmov
+       WHEN:
+       - 8
+     RANGE: [0, 1e9]
+     default: 1e5
+   friction:
+     COMMENT: Friction coefficient for Langevin dynamics
+     CONDITION:
+       MASTER_KEY: ionmov
+       WHEN:
+       - 9
+     RANGE: [0, 1e5]
+     default: 1e-3
+   mdwall:
+     COMMENT: Distance in bohr where atoms can bounce for Langevin dynamics
+     CONDITION:
+       MASTER_KEY: ionmov
+       WHEN:
+       - 9
+     RANGE: [0, 1e5]
+     default: 1e4
+   qmass:
+     COMMENT: Mass of each thermostat (isothermal/isenthalpic ensemble)
+     CONDITION:
+       MASTER_KEY: ionmov
+       WHEN:
+       - 13
+     RANGE: [0, 1e9]
+     default:
+     - 0.
+   bmass:
+     COMMENT: Barostat masses (isothermal/isenthalpic ensemble)
+     CONDITION:
+       MASTER_KEY: ionmov
+       WHEN:
+       - 13
+     RANGE: [0, 1e9]
+     default: 10.
+   vmass:
+     COMMENT: Barostat masses (isothermal/isenthalpic ensemble)
+     CONDITION:
+       MASTER_KEY: ionmov
+       WHEN:
+       - 13
+     RANGE: [0, 1e9]
+     default: 1.
+   climbing:
+     COMMENT: make the highest energy image to climb along the path
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - NEB
+     default: No
+   extrema_opt:
+     COMMENT: minimize the energy of extremum images during NEB optimization
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - NEB
+     default: No
+   neb_method:
+     COMMENT: image minimization method
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - NEB
+     EXCLUSIVE:
+       steepest_descent: steepest descent
+       fletcher-reeves: Fletcher Reeves
+       polak-ribiere: Polak Ribiere
+       quick-min: Conjugate gradient
+       damped-verlet: Verlet with damp
+       sim-annealing: Simulation of annealing
+     default: quick-min
+   temp:
+     COMMENT: temperature for simulated annealing
+     RANGE: [0.,1000.]
+     default: 0.
+     CONDITION:
+       MASTER_KEY: neb_method
+       WHEN:
+       - sim-annealing
+   damp:
+     COMMENT: damping factor
+     RANGE: [0.,1000.]
+     default: 1.
+     CONDITION:
+       MASTER_KEY: neb_method
+       WHEN:
+       - damped-verlet
+   springs_k:
+     COMMENT: maximum and minimum value when changing spring constant during optimization
+     RANGE: [0.,1000.]
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - NEB
+     default: [0.05,0.1]
+   fix_tol:
+     COMMENT: tolerance to apply on atom moves between extrema
+     RANGE: [0,100]
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - NEB
+     default: 1e-4
+   nimg:
+     COMMENT: number of images
+     RANGE: [3,100]
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - NEB
+     default: 15
+
+#Mixing parameters (do diagonalisation scheme instead of direct minimisation one)
+ mix:
+   DESCRIPTION: Mixing parameters for SCF
+   iscf:
+     COMMENT: Mixing parameters
+     DESCRIPTION: Describe the scheme used to solve the self-consistent field
+     EXCLUSIVE:
+       -1: Reserved, do not use it.
+       0:  Direct minimization
+       1:  Get the largest eigenvalue of the SCF cycle
+       2:  Simple mixing of the potential
+       3:  Anderson mixing of the potential
+       4:  Anderson mixing of the potential based on the two previous iterations
+       5:  CG based on the minim. of the energy with respect to the potential
+       7:  Pulay mixing of the potential based on npulayit previous iterations
+       12: Simple mixing of the density
+       13: Anderson mixing of the density
+       14: Anderson mixing of the density based on the two previous iterations
+       15: CG based on the minim. of the energy with respect to the density
+       17: Pulay mixing of the density
+     default: 0
+   itrpmax:
+     COMMENT: Maximum number of diagonalisation iterations
+     RANGE: [0, 10000]
+     default: 1
+   rpnrm_cv:
+     COMMENT: Stop criterion on the residue of potential or density
+     RANGE: [0., 10.]
+     default: 1e-4
+   norbsempty:
+     COMMENT: No. of additional bands
+     RANGE: [0, 10000]
+     default: 0
+   tel:
+     COMMENT: Electronic temperature
+     RANGE: [0., 1e6]
+     default: 0.
+   occopt:
+     COMMENT: Smearing method
+     EXCLUSIVE:
+       1: Error function smearing
+       2: Normal Fermi distribution
+       3: Marzari cold smearing a=-.5634 (bumb minimization)
+       4: Marzari cold smearing with a=-.8165 (monotonic tail)
+       5: Methfessel and Paxton (same as cold with a=0)
+     default: 1
+   alphamix:
+     COMMENT: Multiplying factors for the mixing
+     RANGE: [0, 1.]
+     default: 0.
+   alphadiis:
+     COMMENT: Multiplying factors for the electronic DIIS
+     RANGE: [0., 10.]
+     default: 2.
+
+#Self-Interaction Correction
+ sic:
+   DESCRIPTION: Self-Interaction Correction parameters 
+   sic_approach:
+     COMMENT: SIC (self-interaction correction) method
+     EXCLUSIVE:
+       none: No self-interaction correction
+       PZ:   Perdew-Zunger SIC scheme
+       NK:   Non-Koopmans correction (Experimental)
+     default: none
+   sic_alpha:
+     COMMENT: SIC downscaling parameter
+     RANGE: [0, 1.]
+     default: 0.
+   sic_fref:
+     COMMENT: Reference occupation fref (for Non-Koopman case only)
+     CONDITION:
+       MASTER_KEY: sic_approach
+       WHEN:
+       - NK
+     RANGE: [0., 1.]
+     default: 0.
+#Time-Dependent DFT parameters
+ tddft:
+   tddft_approach:
+     COMMENT: Time-Dependent DFT method
+     EXCLUSIVE:
+       none: no tddft post-processing
+       TDA: ???
+     default: none
+#Performance parameters
+ perf:
+   debug:
+     COMMENT: Debug option
+     default: No
+   fftcache:
+     COMMENT: Cache size for the FFT
+     default: 8192
+   accel:
+     COMMENT: Acceleration (hardware) 
+     EXCLUSIVE:
+       NO:      No material acceleration
+       CUDAGPU: CUDA
+       OCLGPU:  OpenCL on GPU
+       OCLCPU:  OpenCL on CPU
+       OCLACC:  ???
+     default:   NO
+   ocl_platform:
+     COMMENT: Chosen OCL platform
+     default: ~
+   ocl_devices:
+     COMMENT: Chosen OCL devices
+     default: ~
+   blas:
+     COMMENT: CUBLAS acceleration
+     default: No
+   projrad:
+     COMMENT: Radius of the projector as a function of the maxrad
+     RANGE: [0., 100.]
+     default: 15.
+   exctxpar:
+     COMMENT: Exact exchange parallelisation scheme
+     EXCLUSIVE:
+       BC: ???
+       OP2P: ???
+     default: OP2P
+   ig_diag:
+     COMMENT: Input guess (T=Direct, F=Iterative) diag. of Ham.
+     default: Yes
+   ig_norbp:
+     COMMENT: Input guess Orbitals per process for iterative diag.
+     RANGE: [1, 1000]
+     default: 5
+   ig_blocks:
+     COMMENT: Input guess Block sizes for orthonormalisation
+     RANGE: [1, 100000]
+     default: [300, 800]
+   ig_tol:
+     COMMENT: Input guess Tolerance criterion
+     RANGE: [0., 1.]
+     default: 1e-4
+   methortho:
+     COMMENT: Orthogonalisation
+     EXCLUSIVE:
+       0: Cholesky
+       1: Gram-Schmidt/Cholesky
+       2: Loewdin
+     default: 0
+   rho_commun:
+     COMMENT: Density communication scheme (DBL, RSC, MIX)
+     default: DEF
+   psolver_groupsize:
+     COMMENT: Size of Poisson Solver taskgroups (0=nproc)
+     RANGE: [0, 1000000]
+     default: 0
+   psolver_accel:
+     COMMENT: Acceleration of the Poisson Solver (0=none, 1=CUDA)
+     EXCLUSIVE:
+       0: None
+       1: CUDA
+     default: 0
+   unblock_comms:
+     COMMENT: Overlap Communications of fields (OFF,DEN,POT)
+     EXCLUSIVE:
+       OFF: Synchronous run
+       DEN: ???
+       POT: ???
+     default: OFF
+   linear:
+     COMMENT: Linear Input Guess approach
+     EXCLUSIVE:
+       OFF: ???
+       LIG: ???
+       FUL: ???
+       TMO: ???
+     default: OFF
+   tolsym:
+     COMMENT: Tolerance for symmetry detection
+     RANGE: [0., 1.]
+     default: 1e-8
+   signaling:
+     COMMENT: Expose calculation results on Network
+     default: No
+   signaltimeout:
+     COMMENT: Time out on startup for signal connection (in seconds)
+     RANGE: [-1, 3600]
+     default: 0
+   domain:
+     COMMENT: Domain to add to the hostname to find the IP
+     default: ~
+   inguess_geopt:
+     COMMENT: Input guess to be used during the optimization
+     EXCLUSIVE:
+       0: Wavelet input guess
+       1: Real space input guess
+     default: 0
+   store_index:
+     COMMENT: Store indices or recalculate them for linear scaling
+     default: Yes
+   verbosity:
+     COMMENT: Verbosity of the output
+     EXCLUSIVE:
+       0: ???
+       1: ???
+       2: ???
+       3: ???
+     default: 2
+   outdir:
+     COMMENT: Writing directory
+     default: .
+   psp_onfly:
+     COMMENT: Calculate pseudopotential projectors on the fly
+     default: Yes
+   multipole_preserving:
+     COMMENT: (EXPERIMENTAL) Preserve the multipole moment of the ionic density
+     default: No
+   pdsyev_blocksize:
+     COMMENT: SCALAPACK linear scaling blocksize
+     default: -8
+   pdgemm_blocksize:
+     COMMENT: SCALAPACK linear scaling blocksize
+     default: -8
+   maxproc_pdsyev:
+     COMMENT: SCALAPACK linear scaling max num procs
+     default: 4
+   maxproc_pdgemm:
+     COMMENT: SCALAPACK linear scaling max num procs
+     default: 4
+   ef_interpol_det:
+     COMMENT: FOE max determinant of cubic interpolation matrix
+     RANGE: [0., 1.]
+     default: 1.e-12
+   ef_interpol_chargediff:
+     COMMENT: FOE max charge difference for interpolation
+     RANGE: [0., 1000.]
+     default: 10.
+   mixing_after_inputguess:
+     COMMENT: Mixing step after linear input guess (T/F)
+     default: Yes
+   iterative_orthogonalization:
+     COMMENT: Iterative_orthogonalization for input guess orbitals
+     default: No
+   check_sumrho:
+     COMMENT: Enables linear sumrho check
+     default: 2
+     EXCLUSIVE:
+       0: No check
+       1: Light check
+       2: Full check
+   experimental_mode:
+     COMMENT: Activate the experimental mode in linear scaling
+     default: No
+   write_orbitals:
+     COMMENT: Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
+     default: No
+   explicit_locregcenters:
+     COMMENT: Linear scaling explicitely specify localization centers 
+     default: No
+   calculate_KS_residue:
+     COMMENT: Linear scaling calculate Kohn-Sham residue
+     default: Yes
+   intermediate_forces:
+     COMMENT: Linear scaling calculate intermediate forces
+     default: No
+   kappa_conv:
+     COMMENT: Exit kappa for extended input guess (experimental mode)
+     default: 0.1
+   evbounds_nsatur:
+     COMMENT: Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
+     default: 3
+   evboundsshrink_nsatur:
+     COMMENT: maximal number of unsuccessful eigenvalue bounds shrinkings
+     default: 4
+   method_updatekernel:
+     COMMENT: linear scaling update density kernel during the sup. func. optimization (0 purification, 1 FOE, 2 renormalization)
+     default: 0
+     EXCLUSIVE:
+       0: purification
+       1: FOE
+       2: renormalization
+   purification_quickreturn:
+     COMMENT: linear scaling quick return in purification
+     default: No
+   adjust_FOE_temperature:
+     COMMENT: linear scaling dynamic adjustment of the decay length of the FOE error function
+     default: Yes
+   calculate_gap:
+     COMMENT: linear scaling calculate the HOMO LUMO gap
+     default: No
+   loewdin_charge_analysis:
+     COMMENT: linear scaling perform a Loewdin charge analysis at the end of the calculation
+     default: No
+   check_matrix_compression:
+     COMMENT: linear scaling perform a check of the matrix compression routines
+     default: Yes
+   correction_co_contra:
+     COMMENT: linear scaling correction covariant / contravariant gradient
+     default: No
+   fscale_lowerbound:
+     COMMENT: linear scaling lower bound for the error function decay length
+     RANGE: [1.e-4,1.e-2]
+     default: 5.e-3
+   fscale_upperbound:
+     COMMENT: linear scaling upper bound for the error function decay length
+     default: 5.e-2
+     RANGE: [1.e-2,1.0]
+ lin_general:
+     hybrid: 
+       COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
+       default: No
+     nit:
+       COMMENT: number of iteration with low/high accuracy
+       DESCRIPTION: |
+                    possible value: 2 non-negative integer numbers
+                    Maximal number of outer loop iterations (high / low accuracy).
+                    In each iteration both the support function and the kernel are optimized.
+                    When the hybrid mode is used, only the first entry is taken into account.
+       RANGE: [0,1000]
+       PROFILE_FROM: hybrid
+       default: [100,100]
+       Yes: [100, 1]
+     rpnrm_cv:
+       COMMENT: convergence criterion for low/high accuracy
+       DESCRIPTION: |
+                    possible value: 2 non-negative real numbers
+                    Convergence criterion for the outer loop iterations (high / low accuracy).
+                    The optimization stops if the mean change of the charge density / potential falls below this threshold.
+                    When the hybrid mode is used, only the first entry is taken into account.
+       RANGE: [1.e-15,1.e-5]
+       default: [1.e-12,1.e-12]
+     conf_damping:
+       COMMENT: how the confinement should be decreased, only relevant for hybrid mode; negative -> automatic
+       DESCRIPTION: |
+                    possible value: 1 real number
+                    Prescription how the prefactor for the confining potential should be decreased:
+                     * negative value => automatic adjustment (recommended)
+                     * positive value => at each iteration the prefactor is multiplied with the specified value
+                    This variable is only relevant for the hybrid mode.
+       RANGE: [-1.0,1.0]
+       default: -0.5
+     taylor_order:
+       COMMENT: order of the Taylor approximation; 0 -> exact
+       DESCRIPTION: |
+                    possible value: 1 integer number
+                    Indicates how the matrix powers are calculated:
+                     * n<0 => Laura's method of order n
+                     * n=0 => exact calculation
+                     * n>0 => Taylor series of order n
+       RANGE: [-100,100]
+       default: 0
+     max_inversion_error:
+       COMMENT: linear scaling maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
+       DESCRIPTION: |
+                    possible value: 1 positive real number
+                    Maximal error of the Taylor approximations which are used to  calculate the inverse of the overlap matrix.
+                    If this error is larger than the specified value, the order of the Taylor approximation is increased.
+                    The default value is set very large, such such in this case no automatic adjustment is performed.
+       default: 1.d0
+       RANGE: [1.e-20,1.0]
+     output_wf:
+       COMMENT: output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
+       DESCRIPTION: |
+                    possible value: 1 nonnegative-integer number
+                    Indicates how the support functions should be written to disk at the end of the run:
+                     * 0 => no output
+                     * 1 => formatted output
+                     * 2 => Fortran bin
+                     * 3 => ETSF
+       EXCLUSIVE:
+         0: no output
+         1: formatted output
+         2: Fortran bin
+         3: ETSF
+       default: 0
+     calc_dipole:
+       DESCRIPTION: |
+                    possible value: 1 logical
+                    Indicates whether the dipole moment should be calculated at the run or not
+       COMMENT: calculate dipole
+       default: No
+# this is now an array!
+     calc_pulay:
+       COMMENT: calculate Pulay forces (old/new version)
+       DESCRIPTION: |
+                    possible value: 2 logicals
+                    Indicates whether the Pulay corrections (old / new) shall be calculated at the end of the run
+       default: [No,No]
+       new: [ No, Yes]
+       old: [ Yes, No] 
+# this name might be misleading
+     subspace_diag: #called calc_ks, to be renamed
+       COMMENT: diagonalization at the end
+       DESCRIPTION: |
+                    possible value: logical
+                    Indicates whether a diagonliazation shall be performed at the end of the run
+       default: No
+     extra_states:
+       COMMENT: extra states to optimize (dmin only)
+       default: 0
+       RANGE: [0, 10000]
+#Parameters for the localised basis set (or support function) for the linear scaling version
+ lin_basis:
+     nit:
+       COMMENT: maximal number of iterations in the optimization of the support functions
+       DESCRIPTION: |
+                    possible value: 2 non-negative integers
+                    Maximal number of iterations in the optimization of the support functions.
+                    The first number is used for the low accuracy part, the second one for the high accuracy part.
+                    If the hybrid mode is used, only the first value is taken into account.
+       RANGE: [0,100]
+       default: [4,5]
+     idsx:
+       COMMENT: DIIS history for optimization of the support functions (low/high accuracy); 0 -> SD
+       DESCRIPTION: |
+                    possible values: 2 non-negative integers
+                    Indicates the method with which the support functions are optimized
+                     * n=0 => steepest descent
+                     * n>0 => DIIS with history length n
+       RANGE: [0,20]
+       default: [6,6]
+     gnrm_cv:
+       COMMENT: convergence criterion for the optimization of the support functions (low/high accuracy)
+       DESCRIPTION: |
+                    possible value: 2 non-negative real numbers
+                    Convergence criterion for optimization of the support functions (high / low accuracy).
+                    The optimization stops if the mean gradient norm falls below this threshold.
+                    When the hybrid mode is used, only the first entry is taken into account.
+       RANGE: [1.e-6,1.0]
+       default: [1.e-2,1.e-4]
+     deltae_cv:
+       COMMENT: total relative energy difference to stop the optimization ('experimental_mode' only)
+       DESCRIPTION: |
+                    possible value: 1 non-negative real number
+                    The optimization of the support functions stops if the total relative gain in the target function during the given cycle of support function optimization falls below this threshold
+       RANGE: [1.e-6,1.e-1]
+       default: 1.e-4
+     gnrm_dyn:
+       COMMENT: dynamic convergence criterion ('experimental_mode' only)
+       DESCRIPTION: |
+                    possible value: 1 non-negative real number
+                    From this value the effective dynamic convergence criterion is calculated by a division by kappa.
+                    Then the optimization of the support functions stops if the mean gradient norm falls below this effective dynamic convergence criterion 
+                    and is at the same time smaller than the value of min_gnrm_for_dynamic.
+                    The specified value should be approximately 10 times smaller than the value of gnrm_cv.
+                    This value is only used for the experimental mode.
+       RANGE: [1.e-7,1.e-1]
+       default: 1.e-4
+     min_gnrm_for_dynamic:
+       COMMENT: minimal gnrm to active the dynamic gnrm criterion
+       DESCRIPTION: |
+                    possible value: non-negative real number
+                    The dynamic convergence criterion (specified by gnrm_dyn) is only active if the mean gradient norm of the support functions is below this threshold
+       RANGE: [1.e-7,1.0]
+       default: 1.e-3
+     alpha_diis:
+       COMMENT: multiplicator for DIIS
+       DESCRIPTION: |
+                    possible value: 2 positive real numbers
+                    The support functions gradient is multiplied by this number before being used for the DIIS optimization.
+                    The first entry for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
+       RANGE: [0.1,10]
+       default: 1.0
+     alpha_sd:
+       COMMENT: initial step size for SD
+       DESCRIPTION: |
+                    possible values: 2 positive real numbers
+                    The initial step size which is used to optimize the support functions with steepest descent.
+                    If the specified value is not appropriate, it will be adjusted automatically.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
+       RANGE: [1.e-4,10.0]
+       default: 1.0
+     nstep_prec:
+       COMMENT: number of iterations in the preconditioner
+       DESCRIPTION: |
+                    possible values: non-negative integer
+                    Indicates how many iterations in the preconditioning of the gradient shall be performed
+       RANGE: [1,30]
+       default: 5
+     fix_basis:
+       COMMENT: fix the support functions if the density change is below this threshold
+       RANGE: [1.e-14,1.e-6]
+       default: 1.e-10
+     correction_orthoconstraint:
+       COMMENT: correction for the slight non-orthonormality in the orthoconstraint
+       DESCRIPTION: |
+                    possible values: non-negative integer
+                    Indicates whether the slight non-orthogonality of the support functions should be taken into account during the application of the orthogonality constraint:
+                      * 0 => take into account
+                      * 1 => don't take into account
+       default: 1 
+ #Parameters for the calculation of the kernel (linear scaling version)
+ lin_kernel:
+     nstep:
+       COMMENT: number of steps taken when updating the coefficients via direct minimization for each iteration of the density kernel loop
+       DESCRIPTION: |
+                    possible value: 2 non-negative integers
+                    Indicates the number of steps taken when updating the coefficients via direct minimization for each iteration of the density kernel loop.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
+       RANGE: [0,100]
+       default: [1,1]
+     nit:
+       COMMENT: number of iterations in the (self-consistent) optimization of the density kernel
+       DESCRIPTION: |
+                    possible value: 2 non-negative integers
+                    Indicates the number of iterations in the (self-consistent) optimization of the density kernel.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
+       RANGE: [0,100]
+       default: [5,5]
+# check whether there are different DIIS histories...
+     idsx_coeff:
+       COMMENT: DIIS history for direct mininimization
+       default: [0,0]
+     idsx:
+       COMMENT: mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
+       DESCRIPTION: |
+                    possible value: 2 non-negative integer numbers
+                    Indicates how the density / potential mixing shall be performed:
+                    n=0 => linear mixing
+                    n=1 => Pulay mixing with history length n
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
+       RANGE: [0,20]
+       default: [0,0]
+     alphamix:
+       COMMENT: mixing parameter (low/high accuracy)
+       DESCRIPTION: |
+                    possible value: 2 non-negative real numbers
+                    Indicates the mixing parameter used for the mixing of the charge density / potential.
+                    The larger the value, the more of the previous value will be kept.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
+       RANGE: [0.0,1.0]
+       default: [0.5,0.5]
+     gnrm_cv_coeff:
+       COMMENT: convergence criterion on the gradient for direct minimization
+       DESCRIPTION: |
+                    possible value: 2 non-negative real numbers
+                    Convergence criterion on the gradient for direct minimization.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
+       default: [1.e-5,1.e-5]
+     rpnrm_cv:
+       COMMENT: convergence criterion (change in density/potential) for the kernel optimization
+       DESCRIPTION: |
+                    possible value: 2 non-negative real numbers
+                    The optimization of the density kernel is stopped as soon as the mean change of the charge density / potential between two iterations falls below this threshold.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
+       RANGE: [1.e-14,1.e-5]
+       default: [1.e-10,1.e-10]
+     linear_method:
+       COMMENT: method to optimize the density kernel
+       DESCRIPTION: |
+                    possible value: string
+                    Indicates the method with which the density kernel is optimized:
+                     * DIRMIN => direct minimization
+                     * DIAG => diagonalization with density mixing
+                     * FOE => Fermi Operator Expansion
+       EXCLUSIVE:
+         DIRMIN: direct minimization
+         DIAG: diagonalization
+         FOE: Fermi Operator Expansion
+       default: DIAG
+     mixing_method:
+       COMMENT: quantity to be mixed
+       DESCRIPTION: |
+                    type: string scalar
+                    Indicates which quantity should be used for the mixing procedure:
+                     DEN => density mixing
+                     POT => potential mixing
+       EXCLUSIVE:
+         DEN: density mixing
+         POT: potential mixing
+       default: DEN
+     alpha_sd_coeff:
+       COMMENT: initial step size for SD for direct minimization
+       default: 0.2
+     alpha_fit_coeff:
+       COMMENT: update the SD step size by fitting a quadratic polynomial to the energy along the direction of the gradient during direct mininimization.     
+       default: No
+     eval_range_foe:
+       COMMENT: lower and upper bound of the eigenvalue spectrum, will be adjusted automatically if chosen unproperly
+       DESCRIPTION: |
+                    possible value: 2 real numbers (one negative, one positive)
+                    Indicates the lower and upper bound of the eigenvalue spectrum which is used for the Fermi Operator Expansion.
+                    This spectrum will be adjusted automatically if not chosen appropriately.
+       RANGE: [-10.0,10.0]
+       default: [-0.5,0.5]
+     fscale_foe: 
+       COMMENT: decay length of the error function
+       DESCRIPTION: |
+                    possible value: 1 non-negative real number
+                    Indicates the decay length of the error function which is used by the Fermi Operator Expasion to construct the density kernel.
+                    This value will be adjusted automatically if not chosen appropriately.
+       RANGE: [1.e-3,5.e-2]
+       default: 2.e-2
+#Parameters to define the localized basis set or support functions (linear scaling version)
+ lin_basis_params:
+     nbasis:
+       COMMENT: number of support functions per atom
+       DESCRIPTION: |
+                    possible value: 1 positive integer
+                    Indicates the number of support fuctions centered on this atom type. Possible values are:
+                     * 1 (s orbital type)
+                     * 4 (s,p orbital types)
+                     * 9 (s,p,d orbital types)
+                     * 16 (s,p,d,f orbital types)
+       EXCLUSIVE:
+         1: s orbital type
+         4: s,p orbital types
+         9: s,p,d orbital types
+         16: s,p,d,f orbital types
+       default: 4
+     ao_confinement:
+       COMMENT: prefactor for the input guess confining potential
+       DESCRIPTION: |
+                    possible value: 1 non-negative real value
+                    Indicates the prefactor of the confining potential of this atom type which is used to generate the input guess.
+       RANGE: [0.0,10.0]
+       default: 8.3e-3
+     confinement:
+       COMMENT: prefactor for the confining potential (low/high accuracy)
+       DESCRIPTION: |
+                    possible value: 2 non-negative real values
+                    Indicates the prefactor of the confining potential of this atom type.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part.
+                    When the hybrid mode is used, only the first entry is taken into account.
+       RANGE: [0.0,10.0]
+       default: [8.3e-3,0.0]
+     rloc:
+       COMMENT: localization radius for the support functions
+       DESCRIPTION: |
+                    possible value: 2 real numbers
+                    Indicates the cutoff radius for the support functions.
+                    The first entry is used for the low accuracy part, the second one for the high accuracy part; the second value must not be smaller than the first one.
+                    When the hybrid mode is used, only the first entry is taken into account.
+       RANGE: [2.0,1000.0]
+       default: [7.0,7.0]
+     rloc_kernel:
+       COMMENT: localization radius for the density kernel
+       DESCRIPTION: |
+                    possible value: 1 real number
+                    Indicates the cutoff radius for the density kernel.
+                    Must be at least as large as the support function cutoff plus 8 times the grid spacing; will be adjusted automatically if it is chosen too small.
+       RANGE: [2.0,1000.0] 
+       default: 9.0
+     rloc_kernel_foe:
+       COMMENT: cutoff radius for the FOE matrix vector multiplications
+       DESCRIPTION: |
+                    possible value: 1 real number
+                    Indicates the cutoff radius used for the matrix vector multiplications.
+                    Must be at least as large as the kernel cutoff.
+       RANGE: [2.0,1000]
+       default: 14.0
+--- #here starts the document of possible input files
+linear_accurate:
+  COMMENT: appropriate input parameters for a high accuracy linear scaling calculation
+  DESCRIPTION: This profile should be chosen if highly accurate energy differences are required
+  dft:
+    hgrids: accurate
+    ixc: PBE
+  perf:
+    ef_interpol_chargediff: 1.0
+    experimental_mode: Yes
+    method_updatekernel: 2
+    purification_quickreturn: Yes
+    correction_co_contra: Yes
+  lin_general:
+    hybrid: Yes
+    taylor_order: 10
+    max_inversion_error: 1.0e-8
+  lin_basis:
+    nit: [10,10]
+    gnrm_cv: [1.e-3,1.e-3]
+    gnrm_dyn: 1.e-4
+    deltae_cv: 5.e-5
+    min_gnrm_for_dynamic: 2.e-3
+    alpha_diis: 0.5
+    alpha_sd: 0.5
+    nstep_prec: 6
+    fix_basis: 1.e-12
+    correction_orthoconstraint: 0
+  lin_kernel:
+    nit: [3,3]
+    idsx: [6,6]
+    alphamix: [0.2,0.2]
+    rpnrm_cv: [1.e-12,1.e-12]
+    linear_method: FOE
+linear_moderate:
+  COMMENT: appropriate input parameters for a moderate accuracy linear scaling calculation
+  DESCRIPTION: This profile should be chosen if accurate forces are required, but there is no need for extremely accurate energies
+  dft:
+    hgrids: accurate
+    ixc: PBE
+  perf:
+    ef_interpol_chargediff: 1.0
+    experimental_mode: Yes
+    method_updatekernel: 2
+    purification_quickreturn: Yes
+    correction_co_contra: Yes
+  lin_general:
+    hybrid: Yes
+    taylor_order: 10
+  lin_basis:
+    nit: [10,10]
+    gnrm_cv: [2.e-3,2.e-3]
+    gnrm_dyn: 2.e-4
+    deltae_cv: 5.e-5
+    min_gnrm_for_dynamic: 4.e-3
+    alpha_diis: 0.5
+    alpha_sd: 0.5
+    nstep_prec: 6
+    fix_basis: 1.e-11
+    correction_orthoconstraint: 0
+  lin_kernel:
+    nit: [3,3]
+    idsx: [6,6]
+    alphamix: [0.2,0.2]
+    rpnrm_cv: [1.e-11,1.e-11]
+    linear_method: FOE
+linear_fast:
+  COMMENT: appropriate input parameters for a low accuracy linear scaling calculation
+  DESCRIPTION: This profile should be chosen if speed is more important than accuracy
+  dft:
+    hgrids: accurate
+    ixc: PBE
+  perf:
+    ef_interpol_chargediff: 1.0
+    experimental_mode: Yes
+    method_updatekernel: 2
+    purification_quickreturn: Yes
+    correction_co_contra: Yes
+  lin_general:
+    hybrid: Yes
+    taylor_order: 10
+  lin_basis:
+    nit: [10,10]
+    gnrm_cv: [4.e-3,4.e-3]
+    gnrm_dyn: 4.e-4
+    deltae_cv: 5.e-5
+    min_gnrm_for_dynamic: 8.e-3
+    alpha_diis: 0.5
+    alpha_sd: 0.5
+    nstep_prec: 6
+    fix_basis: 1.e-10
+    correction_orthoconstraint: 0
+  lin_kernel:
+    nit: [10,10]
+    idsx: [6,0]
+    alphamix: [0.2,0.2]
+    rpnrm_cv: [1.e-10,1.e-10]
+    linear_method: FOE
+structural:
+  COMMENT: for geopt
+  dft:
+    hgrids: fast
+    ixc: PBE
+  geopt:
+    method: FIRE

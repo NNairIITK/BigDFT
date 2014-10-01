@@ -38,13 +38,7 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 
 lib_LIBRARIES = libabinit.a
 
-if USE_LIBXC
-if BUILD_LIB_BIGDFT
-LIBXC_DEFS = -DHAVE_LIBXC
-endif
-else
-LIBXC_DEFS =
-endif
+module_DATA = $(modules)
 
 # Special treatment for libpaw
 # Deactivate temporarily some mandatory code sections
@@ -54,16 +48,42 @@ LIBPAW_DEFS = -UHAVE_DFT_BIGDFT -UHAVE_DFT_LIBXC
 # Don't use the HAVE_CONFIG_H
 MPI_DEFS = -DHAVE_MPI -DHAVE_MPI1
 
-DEFS = $(MPI_DEFS) $(LIBXC_DEFS) $(LIBPAW_DEFS)
+DEFS = $(MPI_DEFS) $(LIBPAW_DEFS)
 
 DEFS_1 = $(DEFS:-D%=@FCDEFS@-D%)
 DEFS_FORTRAN = $(DEFS_1:-U%=@FCDEFS@-U%)
 
-AM_FCFLAGS = @MPI_INCLUDE@ @LIBXC_INCLUDE@ -I$(srcdir)/72_geomoptim -I$(srcdir)/incs
+AM_FCFLAGS = @MPI_INCLUDE@ -I$(srcdir)/72_geomoptim -I$(srcdir)/incs
 
 # Hack for XLF strange DEFS option.
 PPFCCOMPILE = $(FC) $(DEFS_FORTRAN) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_FCFLAGS) $(FCFLAGS)
+
+if BUILD_LIBPAW
+libpaw_files = \
+	42_libpaw/interfaces_42_libpaw.F90 \
+	42_libpaw/m_atompaw.F90 \
+	42_libpaw/m_gaussfit.F90 \
+	42_libpaw/m_paral_atom.F90 \
+	42_libpaw/m_paw_an.F90 \
+	42_libpaw/m_pawang.F90 \
+	42_libpaw/m_pawcprj.F90 \
+	42_libpaw/m_pawdij.F90 \
+	42_libpaw/m_pawfgrtab.F90 \
+	42_libpaw/m_paw_finegrid.F90 \
+	42_libpaw/m_paw_ij.F90 \
+	42_libpaw/m_pawio.F90 \
+	42_libpaw/m_paw_numeric.F90 \
+	42_libpaw/m_pawpsp.F90 \
+	42_libpaw/m_pawrad.F90 \
+	42_libpaw/m_pawrhoij.F90 \
+	42_libpaw/m_pawtab.F90 \
+	42_libpaw/m_pawxc.F90 \
+	42_libpaw/m_pawxmlps.F90 \
+	42_libpaw/m_sphharm.F90
+else
+libpaw_files =
+endif
 
 libabinit_a_SOURCES = \
 	01_interfaces_ext/interfaces_linalg.F90 \
@@ -162,34 +182,15 @@ libabinit_a_SOURCES = \
 	42_geometry/symspgr.F90 \
 	42_geometry/symzat.F90 \
 	42_geometry/xredxcart.F90 \
-	42_libpaw/interfaces_42_libpaw.F90 \
-	42_libpaw/m_atompaw.F90 \
-	42_libpaw/m_gaussfit.F90 \
-	42_libpaw/m_paral_atom.F90 \
-	42_libpaw/m_paw_an.F90 \
-	42_libpaw/m_pawang.F90 \
-	42_libpaw/m_pawcprj.F90 \
-	42_libpaw/m_pawdij.F90 \
-	42_libpaw/m_pawfgrtab.F90 \
-	42_libpaw/m_paw_finegrid.F90 \
-	42_libpaw/m_paw_ij.F90 \
-	42_libpaw/m_pawio.F90 \
-	42_libpaw/m_paw_numeric.F90 \
-	42_libpaw/m_pawpsp.F90 \
-	42_libpaw/m_pawrad.F90 \
-	42_libpaw/m_pawrhoij.F90 \
-	42_libpaw/m_pawtab.F90 \
-	42_libpaw/m_pawxc.F90 \
-	42_libpaw/m_pawxmlps.F90 \
-	42_libpaw/m_sphharm.F90 \
 	42_geometry/interfaces_42_geometry.F90 \
+	42_libpaw/pawinit.F90 \
+	42_libpaw/initrhoij.F90 \
 	50_abitypes_defs/defs_abitypes.F90 \
 	56_mixing/aprxdr.F90 \
 	56_mixing/dotprodm_v.F90 \
 	56_mixing/dotprodm_vn.F90 \
 	56_mixing/findminscf.F90 \
 	56_mixing/interfaces_56_mixing.F90 \
-	56_mixing/m_ab6_mixing.F90 \
 	56_mixing/scfcge.F90 \
 	56_mixing/scfeig.F90 \
 	56_mixing/scfopt.F90 \
@@ -207,9 +208,12 @@ libabinit_a_SOURCES = \
 	67_common/prtxvf.F90 \
 	72_geomoptim/ab6_moldyn.F90 \
 	72_geomoptim/xfpack.F90 \
-	42_geometry/symmetry.c
+	42_geometry/symmetry.c \
+	$(libpaw_files)
 
 CLEANFILES = mpif.h *.@MODULE_EXT@
+
+$(modules): $(libabinit_a_OBJECTS)
 
 #dependencies
 mpif.h:
@@ -228,6 +232,105 @@ mpif.h:
 	 echo "integer, parameter :: MPI_REQUEST_NULL=1, MPI_PACKED=1, MPI_ERRORS_RETURN=1" >> mpif.h
 	 echo "integer, parameter :: MPI_ERR_COMM=1, MPI_ERR_GROUP=1" >> mpif.h
 	 echo "real(kind=8), external :: MPI_WTICK" >> mpif.h
+
+# Modules
+if CAPITALIZE
+modules = AB6_MOLDYN.@MODULE_EXT@ \
+        DEFS_ABITYPES.@MODULE_EXT@ \
+        DEFS_BASIS.@MODULE_EXT@ \
+        DEFS_DATATYPES.@MODULE_EXT@ \
+        DEFS_PARAMETERS.@MODULE_EXT@ \
+        INTERFACES_12_HIDE_MPI.@MODULE_EXT@ \
+        INTERFACES_14_HIDEWRITE.@MODULE_EXT@ \
+        INTERFACES_16_HIDELEAVE.@MODULE_EXT@ \
+        INTERFACES_18_TIMING.@MODULE_EXT@ \
+        INTERFACES_28_NUMERIC_NOABIRULE.@MODULE_EXT@ \
+        INTERFACES_32_UTIL.@MODULE_EXT@ \
+        INTERFACES_41_XC_LOWLEVEL.@MODULE_EXT@ \
+        INTERFACES_42_GEOMETRY.@MODULE_EXT@ \
+        INTERFACES_42_LIBPAW.@MODULE_EXT@ \
+        INTERFACES_56_MIXING.@MODULE_EXT@ \
+        INTERFACES_56_RECIPSPACE.@MODULE_EXT@ \
+        INTERFACES_LINALG.@MODULE_EXT@ \
+        LIBXC_FUNCTIONALS.@MODULE_EXT@ \
+        M_AB6_KPOINTS.@MODULE_EXT@ \
+        M_AB6_SYMMETRY.@MODULE_EXT@ \
+        M_ATOMPAW.@MODULE_EXT@ \
+        M_ERRORS.@MODULE_EXT@ \
+        M_FSTRINGS.@MODULE_EXT@ \
+        M_GAUSSFIT.@MODULE_EXT@ \
+        M_IO_TOOLS.@MODULE_EXT@ \
+        M_PARAL_ATOM.@MODULE_EXT@ \
+        M_PAWANG.@MODULE_EXT@ \
+        M_PAW_AN.@MODULE_EXT@ \
+        M_PAWCPRJ.@MODULE_EXT@ \
+        M_PAWDIJ.@MODULE_EXT@ \
+        M_PAWFGRTAB.@MODULE_EXT@ \
+        M_PAW_FINEGRID.@MODULE_EXT@ \
+        M_PAW_IJ.@MODULE_EXT@ \
+        M_PAWIO.@MODULE_EXT@ \
+        M_PAW_NUMERIC.@MODULE_EXT@ \
+        M_PAWPSP.@MODULE_EXT@ \
+        M_PAWRAD.@MODULE_EXT@ \
+        M_PAWRHOIJ.@MODULE_EXT@ \
+        M_PAWTAB.@MODULE_EXT@ \
+        M_PAWXC.@MODULE_EXT@ \
+        M_PAWXMLPS.@MODULE_EXT@ \
+        M_PROFILING.@MODULE_EXT@ \
+        M_SPHHARM.@MODULE_EXT@ \
+        M_SPLINES.@MODULE_EXT@ \
+        M_XIEEE.@MODULE_EXT@ \
+        M_XMPI.@MODULE_EXT@ \
+        M_XOMP.@MODULE_EXT@
+else
+modules = ab6_moldyn.@MODULE_EXT@ \
+        defs_abitypes.@MODULE_EXT@ \
+        defs_basis.@MODULE_EXT@ \
+        defs_datatypes.@MODULE_EXT@ \
+        defs_parameters.@MODULE_EXT@ \
+        interfaces_12_hide_mpi.@MODULE_EXT@ \
+        interfaces_14_hidewrite.@MODULE_EXT@ \
+        interfaces_16_hideleave.@MODULE_EXT@ \
+        interfaces_18_timing.@MODULE_EXT@ \
+        interfaces_28_numeric_noabirule.@MODULE_EXT@ \
+        interfaces_32_util.@MODULE_EXT@ \
+        interfaces_41_xc_lowlevel.@MODULE_EXT@ \
+        interfaces_42_geometry.@MODULE_EXT@ \
+        interfaces_42_libpaw.@MODULE_EXT@ \
+        interfaces_56_mixing.@MODULE_EXT@ \
+        interfaces_56_recipspace.@MODULE_EXT@ \
+        interfaces_linalg.@MODULE_EXT@ \
+        libxc_functionals.@MODULE_EXT@ \
+        m_ab6_kpoints.@MODULE_EXT@ \
+        m_ab6_symmetry.@MODULE_EXT@ \
+        m_atompaw.@MODULE_EXT@ \
+        m_errors.@MODULE_EXT@ \
+        m_fstrings.@MODULE_EXT@ \
+        m_gaussfit.@MODULE_EXT@ \
+        m_io_tools.@MODULE_EXT@ \
+        m_paral_atom.@MODULE_EXT@ \
+        m_pawang.@MODULE_EXT@ \
+        m_paw_an.@MODULE_EXT@ \
+        m_pawcprj.@MODULE_EXT@ \
+        m_pawdij.@MODULE_EXT@ \
+        m_pawfgrtab.@MODULE_EXT@ \
+        m_paw_finegrid.@MODULE_EXT@ \
+        m_paw_ij.@MODULE_EXT@ \
+        m_pawio.@MODULE_EXT@ \
+        m_paw_numeric.@MODULE_EXT@ \
+        m_pawpsp.@MODULE_EXT@ \
+        m_pawrad.@MODULE_EXT@ \
+        m_pawrhoij.@MODULE_EXT@ \
+        m_pawtab.@MODULE_EXT@ \
+        m_pawxc.@MODULE_EXT@ \
+        m_pawxmlps.@MODULE_EXT@ \
+        m_profiling.@MODULE_EXT@ \
+        m_sphharm.@MODULE_EXT@ \
+        m_splines.@MODULE_EXT@ \
+        m_xieee.@MODULE_EXT@ \
+        m_xmpi.@MODULE_EXT@ \
+        m_xomp.@MODULE_EXT@
+endif
 
 # Automatic ones...
 include $(srcdir)/deps

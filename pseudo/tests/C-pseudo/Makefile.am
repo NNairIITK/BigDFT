@@ -10,7 +10,7 @@ REPORTS = \
 check: report
 
 report: $(REPORTS)
-	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
+	@if test $(MAKELEVEL) = 0 ; then python $(top_builddir)/tests/report.py ; fi
 
 %.report: %
 	python $(abs_top_srcdir)/tests/fldiff.py --mode=pseudo --discrepancy=1.e-4 \

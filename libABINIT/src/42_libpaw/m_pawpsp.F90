@@ -74,7 +74,6 @@ module m_pawpsp
  public:: pawpsp_bcast           ! broadcast PAW psp data
  public:: pawpsp_cg              !compute sin FFT transform of a density
  public:: pawpsp_lo              !compute sin FFT transform of local potential
- private:: pawpsp_fill_hgh       !fills HGH parameters from database
  private:: pawpsp_wvl_sin2gauss  !convert sin/cos to gaussians
 !!***
 
@@ -796,7 +795,7 @@ end subroutine pawpsp_cg
 !!
 !! SOURCE
 
-subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
+subroutine pawpsp_read(core_mesh,funit,imainmesh,lmax,&
 & ncore,nmesh,pawrad,pawtab,pspversion,radmesh,save_core_msz,&
 & tncore,tnvale,tproj,tproj_mesh,usexcnhat_in,usexcnhat_out,vale_mesh,&
 & vlocopt,vlocr,vloc_mesh,znucl)
@@ -812,6 +811,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
  implicit none
 
 !Arguments ------------------------------------
+ integer,intent(in):: funit
  integer,intent(in):: lmax,usexcnhat_in
  integer,intent(out) :: imainmesh,pspversion,usexcnhat_out,vlocopt
  logical,intent(in) :: save_core_msz
@@ -850,27 +850,27 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 !Read lines 4 to 11 of the header
 
 !This is important for BigDFT in standalone mode
- call pawpsp_read_header_2(pspversion,pawtab%basis_size,pawtab%lmn_size)
+ call pawpsp_read_header_2(funit,pspversion,pawtab%basis_size,pawtab%lmn_size)
 
 !Have to maintain compatibility with Abinit v4.2.x
  if (pspversion==1) then
    ABI_ALLOCATE(pawtab%orbitals,(pawtab%basis_size))
-   read(tmp_unit,*) (pawtab%orbitals(ib), ib=1,pawtab%basis_size)
+   read(funit,*) (pawtab%orbitals(ib), ib=1,pawtab%basis_size)
    pawtab%l_size=2*maxval(pawtab%orbitals)+1
    nmesh=3
    ABI_DATATYPE_ALLOCATE(radmesh,(nmesh))
-   read(tmp_unit,'(a80)') pspline
+   read(funit,'(a80)') pspline
    radmesh(1)%lstep=zero
    read(unit=pspline,fmt=*,err=10,end=10) radmesh(1)%mesh_type,&
 &   radmesh(1)%rstep,radmesh(1)%lstep
-   10 read(tmp_unit,*) pawtab%rpaw
-   read(tmp_unit,*) radmesh(1)%mesh_size,radmesh(2)%mesh_size,&
+   10 read(funit,*) pawtab%rpaw
+   read(funit,*) radmesh(1)%mesh_size,radmesh(2)%mesh_size,&
 &   radmesh(3)%mesh_size
-   read(tmp_unit,'(a80)') pspline
+   read(funit,'(a80)') pspline
    pawtab%shape_lambda=-1;pawtab%shape_sigma=1.d99
    read(unit=pspline,fmt=*,err=11,end=11) pawtab%shape_type,&
 &   pawtab%shape_lambda,pawtab%shape_sigma
-   11 read(tmp_unit,*) creatorid
+   11 read(funit,*) creatorid
    if (pawtab%shape_type==3) pawtab%shape_type=-1
    radmesh(2)%mesh_type=radmesh(1)%mesh_type
    radmesh(3)%mesh_type=radmesh(1)%mesh_type
@@ -882,13 +882,13 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 
 !  Here psp file for Abinit 4.3+
    ABI_ALLOCATE(pawtab%orbitals,(pawtab%basis_size))
-   read(tmp_unit,*) (pawtab%orbitals(ib), ib=1,pawtab%basis_size)
+   read(funit,*) (pawtab%orbitals(ib), ib=1,pawtab%basis_size)
    pawtab%l_size=2*maxval(pawtab%orbitals)+1
-   read(tmp_unit,*) nmesh
+   read(funit,*) nmesh
    ABI_DATATYPE_ALLOCATE(radmesh,(nmesh))
    do imsh=1,nmesh
      rread2=zero
-     read(tmp_unit,'(a80)') pspline
+     read(funit,'(a80)') pspline
      read(unit=pspline,fmt=*,err=20,end=20) ii,iread1,iread2,rread1,rread2
      20 continue
      if (ii<=nmesh) then
@@ -903,8 +903,8 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
        MSG_ERROR(message)
      end if
    end do
-   read(tmp_unit,*) pawtab%rpaw
-   read(tmp_unit,'(a80)') pspline
+   read(funit,*) pawtab%rpaw
+   read(funit,'(a80)') pspline
    read(unit=pspline,fmt=*) pawtab%shape_type
    pawtab%shape_lambda=-1;pawtab%shape_sigma=1.d99
  end if
@@ -1089,9 +1089,9 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 !---------------------------------
 !Read wave-functions (phi)
  do ib=1,pawtab%basis_size
-   read (tmp_unit,*)
+   read (funit,*)
    if (pspversion==1) iread1=1
-   if (pspversion>1) read (tmp_unit,*) iread1
+   if (pspversion>1) read (funit,*) iread1
    if (ib==1) then
      call pawrad_destroy(pawrad)
      call pawrad_init(pawrad,mesh_size=radmesh(iread1)%mesh_size,mesh_type=radmesh(iread1)%mesh_type,&
@@ -1105,23 +1105,23 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 &     '  Action: check your pseudopotential file.'
      MSG_ERROR(message)
    end if
-   read (tmp_unit,*) (pawtab%phi(ir,ib),ir=1,pawrad%mesh_size)
+   read (funit,*) (pawtab%phi(ir,ib),ir=1,pawrad%mesh_size)
  end do
 
 !---------------------------------
 !Read pseudo wave-functions (tphi)
  ABI_ALLOCATE(pawtab%tphi,(pawrad%mesh_size,pawtab%basis_size))
  do ib=1,pawtab%basis_size
-   read (tmp_unit,*)
+   read (funit,*)
    if (pspversion==1) iread1=1
-   if (pspversion>1) read (tmp_unit,*) iread1
+   if (pspversion>1) read (funit,*) iread1
    if (iread1/=imainmesh) then
      write(message, '(a,a,a)' )&
 &     '  All Phi and tPhi must be given on the same radial mesh !',ch10,&
 &     '  Action: check your pseudopotential file.'
      MSG_ERROR(message)
    end if
-   read (tmp_unit,*) (pawtab%tphi(ir,ib),ir=1,pawrad%mesh_size)
+   read (funit,*) (pawtab%tphi(ir,ib),ir=1,pawrad%mesh_size)
  end do
  write(message,'(a,i1)') &
 & ' Radial grid used for partial waves is grid ',imainmesh
@@ -1131,9 +1131,9 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 !---------------------------------
 !Read projectors (tproj)
  do ib=1,pawtab%basis_size
-   read (tmp_unit,*)
+   read (funit,*)
    if (pspversion==1) iread1=2
-   if (pspversion>1) read (tmp_unit,*) iread1
+   if (pspversion>1) read (funit,*) iread1
    if (ib==1) then
      iprojmesh=iread1
      call pawrad_copy(radmesh(iprojmesh),tproj_mesh)
@@ -1145,7 +1145,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
      MSG_ERROR(message)
    end if
 !  read projectors from a mesh
-   read (tmp_unit,*) (tproj(ir,ib),ir=1,tproj_mesh%mesh_size)
+   read (funit,*) (tproj(ir,ib),ir=1,tproj_mesh%mesh_size)
  end do
  write(message,'(a,i2)') &
 & ' Radial grid used for projectors is grid ',iprojmesh
@@ -1156,16 +1156,16 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 !Read gaussian projectors for wavelets
 !  -- only if pawtab%has_wvl flag is on
 !  -- if not, we skip the lines
- read(tmp_unit,'(a80)') pspline
+ read(funit,'(a80)') pspline
  if(index(trim(pspline),'GAUSSIAN')/=0) read_gauss=.true.
  if (read_gauss) then
    if (pawtab%has_wvl>0) then
      call wvlpaw_allocate(pawtab%wvl)
      jj=0
      do ib=1,pawtab%basis_size
-       if(ib/=1) read(tmp_unit,*) pspline
+       if(ib/=1) read(funit,*) pspline
 !      read Gaussian coefficients
-       read(tmp_unit,*) pngau_, ptotgau_ !total number of gaussians
+       read(funit,*) pngau_, ptotgau_ !total number of gaussians
        if(ib==1) then
          pawtab%wvl%ptotgau=ptotgau_
          ABI_ALLOCATE(pawtab%wvl%pngau,(pawtab%basis_size))
@@ -1179,8 +1179,8 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
            MSG_ERROR(message)
          end if
        end if !ib==1
-       read(tmp_unit,*)(pawtab%wvl%parg(:,ii),ii=jj+1,jj+pngau_)
-       read(tmp_unit,*)(pawtab%wvl%pfac(:,ii),ii=jj+1,jj+pngau_)
+       read(funit,*)(pawtab%wvl%parg(:,ii),ii=jj+1,jj+pngau_)
+       read(funit,*)(pawtab%wvl%pfac(:,ii),ii=jj+1,jj+pngau_)
        pawtab%wvl%pngau(ib)=pngau_
        jj=jj+pngau_
      end do
@@ -1188,17 +1188,17 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    else
 !    If pawtab%has_wvl=0, we skip the lines
      do ib=1,pawtab%basis_size
-       if(ib/=1) read(tmp_unit,*) 
-       read(tmp_unit,*);read(tmp_unit,*);read(tmp_unit,*)
+       if(ib/=1) read(funit,*) 
+       read(funit,*);read(funit,*);read(funit,*)
      end do
    end if
  end if
 
 !---------------------------------
 !Read core density (coredens)
- if(read_gauss) read (tmp_unit,*) !if not read_gauss, this line was already read
+ if(read_gauss) read (funit,*) !if not read_gauss, this line was already read
  if (pspversion==1) iread1=1
- if (pspversion>1) read (tmp_unit,*) iread1
+ if (pspversion>1) read (funit,*) iread1
  icoremesh=iread1
  call pawrad_copy(radmesh(icoremesh),core_mesh)
  if ((radmesh(icoremesh)%mesh_type/=pawrad%mesh_type).or.&
@@ -1211,7 +1211,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    MSG_ERROR(message)
  end if
  ABI_ALLOCATE(ncore,(core_mesh%mesh_size))
- read (tmp_unit,*) (ncore(ir),ir=1,core_mesh%mesh_size)
+ read (funit,*) (ncore(ir),ir=1,core_mesh%mesh_size)
 
 !Construct and save VH[z_NC] if requested
  if (pawtab%has_vhnzc==1) then
@@ -1237,9 +1237,9 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    ABI_ALLOCATE(pawtab%tcoredens,(pawtab%core_mesh_size,1))
  end if
  pawtab%tcoredens=zero
- read (tmp_unit,*)
+ read (funit,*)
  if (pspversion==1) iread1=1
- if (pspversion>1) read (tmp_unit,*) iread1
+ if (pspversion>1) read (funit,*) iread1
  if (iread1/=icoremesh) then
    write(message, '(a,a,a,a,a,a,a,a)' )&
 &   '  Pseudized core density (tNcore) must be given',ch10,&
@@ -1248,7 +1248,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
    MSG_ERROR(message)
  end if
  ABI_ALLOCATE(tncore,(core_mesh%mesh_size))
- read (tmp_unit,*) (tncore(ir),ir=1,core_mesh%mesh_size)
+ read (funit,*) (tncore(ir),ir=1,core_mesh%mesh_size)
  if (maxval(abs(tncore(:)))<tol6) then
    pawtab%usetcore=0
    !JB:I've added initialization just after allocation
@@ -1265,26 +1265,26 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 !---------------------------------
 !Read frozen part of Dij terms (dij0)
  ABI_ALLOCATE(pawtab%dij0,(pawtab%lmn2_size))
- read (tmp_unit,*)
- read (tmp_unit,*) (pawtab%dij0(ib),ib=1,pawtab%lmn2_size)
+ read (funit,*)
+ read (funit,*) (pawtab%dij0(ib),ib=1,pawtab%lmn2_size)
 
 !---------------------------------
 !Read initial guess of rhoij (rhoij0)
  ABI_ALLOCATE(pawtab%rhoij0,(pawtab%lmn2_size))
- read (tmp_unit,*)
- read (tmp_unit,*) (pawtab%rhoij0(ib),ib=1,pawtab%lmn2_size)
+ read (funit,*)
+ read (funit,*) (pawtab%rhoij0(ib),ib=1,pawtab%lmn2_size)
 
 !---------------------------------
 !Read local pseudopotential=Vh(tn_zc) or Vbare
- read (tmp_unit,*)
+ read (funit,*)
  if (pspversion==1) ivlocmesh=3
  vlocopt=1
  if (pspversion==2) then
-   read (tmp_unit,*) ivlocmesh
+   read (funit,*) ivlocmesh
  else if (pspversion>2) then
-!  read (tmp_unit,fmt=*,err=30,end=30) ivlocmesh,vlocopt
+!  read (funit,fmt=*,err=30,end=30) ivlocmesh,vlocopt
    message=blank
-   read (tmp_unit,fmt='(a)') message
+   read (funit,fmt='(a)') message
    read (message,fmt=*) ivlocmesh
    write(numb,'(i1)')ivlocmesh
    ii=index(message,numb)
@@ -1304,7 +1304,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
  usexcnhat_out=0;if (vlocopt==1) usexcnhat_out=1
  call pawrad_copy(radmesh(ivlocmesh),vloc_mesh)
  ABI_ALLOCATE(vlocr,(vloc_mesh%mesh_size))
- read (tmp_unit,*) (vlocr(ir),ir=1,vloc_mesh%mesh_size)
+ read (funit,*) (vlocr(ir),ir=1,vloc_mesh%mesh_size)
  write(message,'(a,i1)') &
 & ' Radial grid used for Vloc is grid ',ivlocmesh
  call wrtout(ab_out,message,'COLL')
@@ -1315,9 +1315,9 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
  if (pawtab%shape_type==-1) then
    ABI_ALLOCATE(pawtab%shapefunc,(pawrad%mesh_size,pawtab%l_size))
    do il=1,pawtab%l_size
-     read (tmp_unit,*)
+     read (funit,*)
      if (pspversion==1) iread1=1
-     if (pspversion>1) read (tmp_unit,*) iread1
+     if (pspversion>1) read (funit,*) iread1
      if (il==1) then
        call pawrad_copy(radmesh(iread1),shpf_mesh)
        ishpfmesh=iread1
@@ -1328,7 +1328,7 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 &       '  Action: check your pseudopotential file.'
        MSG_ERROR(message)
      end if
-     read (tmp_unit,*) (shpf(ir,il),ir=1,shpf_mesh%mesh_size)
+     read (funit,*) (shpf(ir,il),ir=1,shpf_mesh%mesh_size)
    end do
    write(message,'(a,i1)') &
 &   ' Radial grid used for shape functions is grid ',iread1
@@ -1363,12 +1363,12 @@ subroutine pawpsp_read(core_mesh,imainmesh,lmax,&
 !---------------------------------
 !Read pseudo valence density (if psp version >=4)
  if (pspversion>=4) then
-   read (tmp_unit,*)
-   read (tmp_unit,*) iread1
+   read (funit,*)
+   read (funit,*) iread1
    ivalemesh=iread1
    call pawrad_copy(radmesh(iread1),vale_mesh)
    ABI_ALLOCATE(tnvale,(vale_mesh%mesh_size))
-   read (tmp_unit,*) (tnvale(ir),ir=1,vale_mesh%mesh_size)
+   read (funit,*) (tnvale(ir),ir=1,vale_mesh%mesh_size)
    pawtab%has_tvale=1
    write(message,'(a,i1)') &
 &   ' Radial grid used for pseudo valence density is grid ',ivalemesh
@@ -1837,7 +1837,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
    write(message, '(a,a,a)' )&
 &   '  Rmax for Vloc < Rmax for Phi !',ch10,&
 &   '  Action : check your pseudopotential (increase Vloc meshSize).'
-   MSG_ERROR(message)
+!   MSG_ERROR(message)
  end if
 
 !Are mmax and mesh_size for partial waves compatibles ?
@@ -2224,36 +2224,71 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
      end if
      nwk=nwk-nhatwk
      nwk=sqrt(four_pi)*nwk;nhatwk=sqrt(four_pi)*nhatwk ! 0th-order moment of densities
+
 !    Compute Vxc without nhat (vxc1) and with nhat (vxc2)
-     ABI_ALLOCATE(vxc1,(msz))
-     ABI_ALLOCATE(vxc2,(msz))
-     ABI_ALLOCATE(work1,(msz))
-     if (pawxcdev/=0) then
-       call pawxcm(ncorwk,yp1,ypn,0,ixc,work1,1,tmp_lmselect,nhatwk,0,1,5,&
-&       pawang_tmp,vloc_mesh,pawxcdev,nwk,pawtab%usetcore,0,vxc1,xclevel,xc_denpos)
-       call pawxcm(ncorwk,yp1,ypn,0,ixc,work1,1,tmp_lmselect,nhatwk,0,1,5,&
-&       pawang_tmp,vloc_mesh,pawxcdev,nwk,pawtab%usetcore,2,vxc2,xclevel,xc_denpos)
-       vxc1=vxc1/sqrt(four_pi);vxc2=vxc2/sqrt(four_pi) ! Deduce Vxc from its first moment
+     nspden=1
+#if defined HAVE_DFT_LIBXC
+     if (ixc<0) nspden=libxc_functionals_nspin()
+#endif
+     if (ixc<0) then
+       ABI_ALLOCATE(vxc1,(msz*nspden))
+       ABI_ALLOCATE(vxc2,(msz*nspden))
+       ABI_ALLOCATE(work1,(msz))
+       ABI_ALLOCATE(work2,(msz*nspden))
+       ABI_ALLOCATE(work3,(msz*nspden))
+       work2(1:msz)=nwk
+       work3(1:msz)=nhatwk
+       if (nspden==2) work2(msz+1:2*msz)=half*nwk
+       if (nspden==2) work3(msz+1:2*msz)=half*nhatwk
+       if (pawxcdev/=0) then
+         call pawxcm(ncorwk,yp1,ypn,0,ixc,work1,1,tmp_lmselect,work3,0,nspden,5,&
+&         pawang_tmp,vloc_mesh,pawxcdev,work2,pawtab%usetcore,0,vxc1,xclevel,xc_denpos)
+         call pawxcm(ncorwk,yp1,ypn,0,ixc,work1,1,tmp_lmselect,work3,0,nspden,5,&
+&         pawang_tmp,vloc_mesh,pawxcdev,work2,pawtab%usetcore,2,vxc2,xclevel,xc_denpos)
+         vxc1=vxc1/sqrt(four_pi);vxc2=vxc2/sqrt(four_pi) ! Deduce Vxc from its first moment
+       else
+         call pawxc(ncorwk,yp1,ypn,ixc,work1,1,tmp_lmselect,work3,0,nspden,5,&
+&         pawang_tmp,vloc_mesh,work2,pawtab%usetcore,0,vxc1,xclevel,xc_denpos)
+         call pawxc(ncorwk,yp1,ypn,ixc,work1,1,tmp_lmselect,work3,0,nspden,5,&
+&         pawang_tmp,vloc_mesh,work2,pawtab%usetcore,2,vxc2,xclevel,xc_denpos)
+       end if
+       ABI_DEALLOCATE(nwk)
+       ABI_DEALLOCATE(ncorwk)
+       ABI_DEALLOCATE(nhatwk)
+       ABI_DEALLOCATE(work1)
+       ABI_DEALLOCATE(work2)
+       ABI_DEALLOCATE(work3)
      else
-       call pawxc(ncorwk,yp1,ypn,ixc,work1,1,tmp_lmselect,nhatwk,0,1,5,&
-&       pawang_tmp,vloc_mesh,nwk,pawtab%usetcore,0,vxc1,xclevel,xc_denpos)
-       call pawxc(ncorwk,yp1,ypn,ixc,work1,1,tmp_lmselect,nhatwk,0,1,5,&
-&       pawang_tmp,vloc_mesh,nwk,pawtab%usetcore,2,vxc2,xclevel,xc_denpos)
-     end if
-     ABI_DEALLOCATE(nwk)
-     ABI_DEALLOCATE(ncorwk)
-     ABI_DEALLOCATE(nhatwk)
-     ABI_DEALLOCATE(work1)
+       ABI_ALLOCATE(vxc1,(msz))
+       ABI_ALLOCATE(vxc2,(msz))
+       ABI_ALLOCATE(work1,(msz))
+       if (pawxcdev/=0) then
+         call pawxcm(ncorwk,yp1,ypn,0,ixc,work1,1,tmp_lmselect,nhatwk,0,1,5,&
+&         pawang_tmp,vloc_mesh,pawxcdev,nwk,pawtab%usetcore,0,vxc1,xclevel,xc_denpos)
+         call pawxcm(ncorwk,yp1,ypn,0,ixc,work1,1,tmp_lmselect,nhatwk,0,1,5,&
+&         pawang_tmp,vloc_mesh,pawxcdev,nwk,pawtab%usetcore,2,vxc2,xclevel,xc_denpos)
+         vxc1=vxc1/sqrt(four_pi);vxc2=vxc2/sqrt(four_pi) ! Deduce Vxc from its first moment
+       else
+         call pawxc(ncorwk,yp1,ypn,ixc,work1,1,tmp_lmselect,nhatwk,0,1,5,&
+&         pawang_tmp,vloc_mesh,nwk,pawtab%usetcore,0,vxc1,xclevel,xc_denpos)
+         call pawxc(ncorwk,yp1,ypn,ixc,work1,1,tmp_lmselect,nhatwk,0,1,5,&
+&         pawang_tmp,vloc_mesh,nwk,pawtab%usetcore,2,vxc2,xclevel,xc_denpos)
+       end if
+       ABI_DEALLOCATE(nwk)
+       ABI_DEALLOCATE(ncorwk)
+       ABI_DEALLOCATE(nhatwk)
+       ABI_DEALLOCATE(work1)
+     endif
 !    Compute difference of XC potentials
-     if (usexcnhat==0.and.pawtab%usexcnhat/=0)  vxc1=vxc2-vxc1
-     if (usexcnhat/=0.and.pawtab%usexcnhat==0)  vxc1=vxc1-vxc2
+     if (usexcnhat==0.and.pawtab%usexcnhat/=0)  vxc1(1:msz)=vxc2(1:msz)-vxc1(1:msz)
+     if (usexcnhat/=0.and.pawtab%usexcnhat==0)  vxc1(1:msz)=vxc1(1:msz)-vxc2(1:msz)
 !    Modify VH(tnzc)
      vlocr(1:msz)=vlocr(1:msz)-vxc1(1:msz)
      if (has_dij0) then
 !      Modify  Dij0
        ABI_ALLOCATE(work2,(pawtab%lmn2_size))
        call atompaw_kij(pawtab%indlmn,work2,pawtab%lmn_size,ncore,0,0,pawtab,pawrad,&
-&                       core_mesh,vloc_mesh,vxc1,znucl)
+&                       core_mesh,vloc_mesh,vxc1(1:msz),znucl)
        pawtab%dij0=work2
        ABI_DEALLOCATE(work2)
      end if
@@ -2267,7 +2302,6 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
    call wrtout(ab_out,message,'COLL')
    call wrtout(std_out,  message,'COLL')
  end if
-
 
 !==========================================================
 ! calculate the coefficient beta = \int { vH[nZc](r) - vloc(r) } 4pi r^2 dr
@@ -3035,6 +3069,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
  integer :: ib,icoremesh,il,ilm,ilmn,ilmn0,iln,imainmesh,imsh,iprojmesh,ipsploc
  integer :: ir,iread1,ishpfmesh,ivalemesh,ivlocmesh,j0lmn,jlm
  integer :: jlmn,jln,klmn,msz,nmesh,nval,pspversion,sz10,usexcnhat,vlocopt
+ real(dp), parameter :: rmax_vloc=10.0_dp
  real(dp) :: fourpi,occ,rc,yp1,ypn
  logical,parameter :: save_core_msz=.false. ! Temporary
  character(len=500) :: message
@@ -3210,6 +3245,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
  write(message,'(a,i1,a)')' ',nmesh,' radial meshes are used:'
  call wrtout(ab_out,message,'COLL')
  call wrtout(std_out,  message,'COLL')
+
  do imsh=1,nmesh
    if (radmesh(imsh)%mesh_type==1) &
 &   write(message,'(a,i1,a,i4,a,g12.5)') &
@@ -3485,8 +3521,15 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
      end if
    end do
    ivlocmesh=iread1
-   call pawrad_copy(radmesh(ivlocmesh),vloc_mesh)
+   vloc_mesh%mesh_type=radmesh(ivlocmesh)%mesh_type
+   vloc_mesh%rstep=radmesh(ivlocmesh)%rstep
+   vloc_mesh%lstep=radmesh(ivlocmesh)%lstep
+   vloc_mesh%mesh_size=pawrad_ifromr(radmesh(ivlocmesh),rmax_vloc)
+   call pawrad_init(vloc_mesh)
+!   call pawrad_copy(radmesh(ivlocmesh),vloc_mesh)
    ABI_ALLOCATE(vlocr,(vloc_mesh%mesh_size))
+   vlocr=zero
+!   vlocr(1:radmesh(ivlocmesh)%mesh_size)=paw_setup(ipsploc)%zero_potential%data(1:radmesh(ivlocmesh)%mesh_size)/sqrt(fourpi)
    vlocr(1:vloc_mesh%mesh_size)=paw_setup(ipsploc)%zero_potential%data(1:vloc_mesh%mesh_size)/sqrt(fourpi)
 !  write(std_out,*)"VBARE= "
 !  write(std_out,*)vlocr(1:vloc_mesh%mesh_size)
@@ -3671,6 +3714,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
  ABI_DATATYPE_DEALLOCATE(radmesh)
 
  call pawrad_destroy(tproj_mesh)
+
  call pawrad_destroy(core_mesh)
  call pawrad_destroy(vloc_mesh)
 
@@ -3678,12 +3722,14 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
  ABI_DEALLOCATE(ncore)
  ABI_DEALLOCATE(tncore)
  ABI_DEALLOCATE(tproj)
+
  if(pawtab%shape_type==-1) then
    call pawrad_destroy(shpf_mesh)
  end if
  if (paw_setup(ipsploc)%pseudo_valence_density%tread) then
    call pawrad_destroy(vale_mesh)
  end if
+
  ABI_DEALLOCATE(tnvale)
 
  DBG_EXIT('COLL')
@@ -3793,7 +3839,7 @@ subroutine pawpsp_7in(epsatm,ffspl,icoulomb,ixc,&
  nullify(tproj);nullify(vlocr)
  nullify(radmesh)
 
- call pawpsp_read(core_mesh,imainmesh,lmax,&
+ call pawpsp_read(core_mesh,tmp_unit,imainmesh,lmax,&
 &  ncore,nmesh,pawrad,pawtab,pspversion,radmesh,save_core_msz,&
 &  tncore,tnvale,tproj,tproj_mesh,usexcnhat_in,usexcnhat,vale_mesh,vlocopt,vlocr,&
 &  vloc_mesh,znucl)
@@ -3841,177 +3887,6 @@ subroutine pawpsp_7in(epsatm,ffspl,icoulomb,ixc,&
  DBG_EXIT('COLL')
 
 end subroutine pawpsp_7in
-!!***
-
-!-------------------------------------------------------------------------
-
-!!****f* m_pawpsp/pawpsp_fill_hgh
-!! NAME
-!! pawpsp_fill_hgh
-!!
-!! FUNCTION
-!! Compute data related to pspcod=7 or 17 ("PAW pseudopotentials") 
-!! for wavelets.
-!! Fills the HGH parameters from 
-!! BigDFT database.
-!!
-!! COPYRIGHT
-!! Copyright (C) 2013-2014 ABINIT group (TRangel)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt .
-!!
-!! INPUTS
-!!  wvl_crmult,wvl_frmult= variables definining the fine and coarse grids in a wavelets calculation
-!!
-!! OUTPUT
-!! Stores HGH parameters to be used with wavelets
-!!
-!! SIDE EFFECTS
-!!
-!! NOTES
-!!  
-!!
-!! PARENTS
-!!      m_pawpsp
-!!
-!! CHILDREN
-!!      wrtout
-!!
-!! SOURCE
-
-subroutine pawpsp_fill_hgh(gth_hasGeometry,&
-& gth_psppar,gth_radii_cf,gth_radii_cov,&
-& gth_semicore,npspcode,wvl_crmult,wvl_frmult,zion,znuclpsp)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-#undef ABI_FUNC
-#define ABI_FUNC 'pawpsp_fill_hgh'
- use interfaces_14_hidewrite
-!End of the abilint section
-
- implicit none
-
-!Arguments ------------------------------------
-!scalars
- integer,intent(out):: gth_semicore, npspcode
- logical,intent(out):: gth_hasGeometry
- real(dp),intent(in):: zion,znuclpsp
- real(dp),intent(in):: wvl_crmult,wvl_frmult
- real(dp),intent(out)::gth_radii_cov
-!arrays
- real(dp),intent(out):: gth_psppar(0:4,0:6)
- real(dp),intent(out):: gth_radii_cf(3)
-
-!Local variables ------------------------------
-!scalars
-#if defined HAVE_DFT_BIGDFT
- integer :: ii,isc
- real(dp) :: rad_core,rad_cov,rad_long
- character(len=500) :: message
- integer :: mxpl,mxchg
- character(len=2) :: symbol
- integer :: nzatom, nelpsp, ixc_
- real(dp) :: maxrad
- logical::exists
- real(dp) :: amu,rcov, rprb, ehomo, radfine
- real(dp) :: neleconf(6,0:3)
-#endif
-!arrays
-
-
-! *************************************************************************
- 
-!==========================================================
- DBG_ENTER("COLL")
-
-
-#if defined HAVE_DFT_BIGDFT
-!Obtain physical quantities
- call eleconf(int(znuclpsp), int(zion), symbol, rcov, rprb, &
-& ehomo, neleconf, isc, mxpl, mxchg,amu)
-
-!Obtain the HGH parameters by default from BigDFT
-!the radius psppar(0,0) is needed for the definition of the mesh in BigDFT
-!the remaining parameters are needed for the initial guess wavefunction in BigDFT
-
-!!  Define a dummy value for rad_core
-!rad_core=pawtab%rshp/4.d0 !dummy now
-!psps%gth_params%psppar(0, 0, ipsp) = rad_core !(/ rloc, cc1, cc2, cc3, cc4, zero, zero /)
-
-!I use the XC: Perdew, Burke & Ernzerhof  as default, since
-!other XC potentials may not be in the BigDFT table.
- ixc_=1 
- call psp_from_data(symbol, nzatom, nelpsp, npspcode, ixc_, gth_psppar(:,:), exists)
- if(.not. exists) then
-   write(message,'(a,a,a,a)')ch10,&
-&   "pawpsp_fill_hgh : bug, Chemical element not found in BigDFT table",ch10,&
-&   "Action: upgrade BigDFT table"
-   call wrtout(ab_out,message,'COLL')
-   MSG_BUG(message)
- end if
-!assigning the radii by calculating physical parameters
- rad_long = one / sqrt(abs(two * ehomo))
- radfine  = 100.d0
- do ii = 0, 4, 1
-   if (gth_psppar(ii, 0) /= zero) then
-     radfine = min(radfine, gth_psppar(ii, 0))
-   end if
- end do
- rad_core=radfine
- rad_cov=rcov
- write(message, '(9a)' ) '-', ch10,&
-& '- pawpsp_fill_hgh : COMMENT -',ch10,&
-& "-  HGH geometric informations have been computed:",ch10,&
-& "-  These are needed for the initial guess",ch10,&
-& "-  and to set the size of the mesh around the atoms"
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
- write(message, '(a,f12.7,a,f12.7,a,f12.7)' )&
-& '  radii_cf(1)=', rad_long,'; radii_cf(2)=', rad_core, "; rad_cov=", rad_cov
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
-!
- gth_radii_cf(1:3)  = (/ rad_long, rad_core,rad_core /)
- gth_radii_cov    = rad_cov
- if (rad_core > tol12 .and. rad_long > tol12) then
-   gth_hasGeometry = .true.
- else
-   gth_hasGeometry = .false.
- end if
- gth_semicore     = isc
-!correct the coarse and the fine radius for projectors
- maxrad = zero
- do ii = 0, 4, 1
-!  the maximum radii is useful only for projectors
-   if (ii == 1) maxrad = zero
-   if (gth_psppar(ii, 0) /= zero) then
-     maxrad = max(maxrad, gth_psppar(ii, 0))
-   end if
- end do
-!For H, for instance maxrad=0, and the radii for projectors 
-!(radii_cf(ipsp,3)) should  not be zero.
- if(abs(maxrad)>tol3) then
-   gth_radii_cf(3)   = min(wvl_crmult * &
-&   gth_radii_cf(1), real(15.0, dp) * maxrad) / wvl_frmult
- else
-!  psps%gth_params%radii_cf(ipsp,3)   = max(pawtab%rpaw /wvl_frmult,&
-!  &     psps%gth_params%radii_cf(ipsp,2))
-   gth_radii_cf(3)   = &
-&   (gth_radii_cf(1)+gth_radii_cf(2))/2.d0
- end if
- write(message, '(a,f12.7,a)' )&
-& '  radii for projectors: radii_cf(3)=', gth_radii_cf(3),ch10
- call wrtout(ab_out,message,'COLL')
- call wrtout(std_out,  message,'COLL')
-#endif
-
- DBG_EXIT('COLL')
-
-end subroutine pawpsp_fill_hgh
 !!***
 
 !-------------------------------------------------------------------------
@@ -4210,7 +4085,7 @@ end subroutine pawpsp_fill_hgh
 !! SOURCE
 
 
-subroutine pawpsp_read_header(lloc,lmax,mmax,pspcod,pspxc,r2well,zion,znucl)
+subroutine pawpsp_read_header(funit,lloc,lmax,mmax,pspcod,pspxc,r2well,zion,znucl)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -4223,6 +4098,7 @@ subroutine pawpsp_read_header(lloc,lmax,mmax,pspcod,pspxc,r2well,zion,znucl)
 implicit none
 !Arguments ------------------------------------
 !scalars
+ integer,intent(in):: funit
  integer,intent(out):: lloc,lmax,mmax,pspcod,pspxc
  real(dp),intent(out):: r2well,zion,znucl
 !Local variables-------------------------------
@@ -4232,19 +4108,19 @@ implicit none
 ! *************************************************************************
 
 !Read and write some description of file from first line (character data)
- read (tmp_unit,'(a)') title
+ read (funit,'(a)') title
  write(message, '(a,a)' ) '- ',trim(title)
  call wrtout(ab_out,message,'COLL')
  call wrtout(std_out,  message,'COLL')
 
 !Read and write more data describing psp parameters
- read (tmp_unit,*) znucl,zion,pspdat
+ read (funit,*) znucl,zion,pspdat
  write(message, '(a,f9.5,f10.5,2x,i8,t47,a)' ) &
 & '-',znucl,zion,pspdat,'znucl, zion, pspdat'
  call wrtout(ab_out,message,'COLL')
  call wrtout(std_out,  message,'COLL')
 
- read (tmp_unit,*) pspcod,pspxc,lmax,lloc,mmax,r2well
+ read (funit,*) pspcod,pspxc,lmax,lloc,mmax,r2well
  if(pspxc<0) then
    write(message, '(i5,i8,2i5,i10,f10.5,t47,a)' ) &
 &   pspcod,pspxc,lmax,lloc,mmax,r2well,&
@@ -4293,7 +4169,7 @@ end subroutine pawpsp_read_header
 !! SOURCE
 
 
-subroutine pawpsp_read_header_2(pspversion,basis_size,lmn_size)
+subroutine pawpsp_read_header_2(funit,pspversion,basis_size,lmn_size)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -4306,6 +4182,7 @@ implicit none
 
 !Arguments ------------------------------------
 !scalars
+ integer,intent(in):: funit
  integer,intent(out) :: pspversion,basis_size,lmn_size
 
 !Local variables-------------------------------
@@ -4317,7 +4194,7 @@ implicit none
 
 !Read psp version in line 4 of the header
  pspversion=1
- read (tmp_unit,'(a80)') pspline;pspline=adjustl(pspline)
+ read (funit,'(a80)') pspline;pspline=adjustl(pspline)
  if (pspline(1:3)=="paw".or.pspline(1:3)=="PAW") &
 & read(unit=pspline(4:80),fmt=*) pspversion
  if (pspversion<1.or.pspversion>5) then
@@ -4332,7 +4209,7 @@ implicit none
  else
 !  Here psp file for Abinit 4.3+
    read (unit=pspline(5:80),fmt=*) creatorid
-   read (tmp_unit,*) basis_size,lmn_size
+   read (funit,*) basis_size,lmn_size
  end if
 
 end subroutine pawpsp_read_header_2
@@ -4371,9 +4248,7 @@ end subroutine pawpsp_read_header_2
 !! SOURCE
 
 
-subroutine pawpsp_wvl(filpsp,gth_hasGeometry,gth_psppar,&
-& gth_radii_cf,gth_radii_cov,gth_semicore,pawrad, pawtab,&
-& usewvl, wvl_crmult, wvl_frmult, wvl_ngauss, zion, znuclpsp, comm_mpi)
+subroutine pawpsp_wvl(filpsp,pawrad, pawtab,usewvl, wvl_ngauss, comm_mpi)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -4388,17 +4263,11 @@ implicit none
 !Arguments------------------------------------
 !scalars
  integer, optional,intent(in):: comm_mpi
- integer, intent(out):: gth_semicore
  integer, intent(in):: usewvl, wvl_ngauss(2)
- logical, intent(out):: gth_hasGeometry
- real(dp), intent(in):: wvl_crmult,wvl_frmult, zion, znuclpsp
- real(dp),intent(out)::gth_radii_cov
  character(len=fnlen),intent(in)::filpsp
  type(pawrad_type),intent(in) :: pawrad
  type(pawtab_type),intent(inout):: pawtab
 !arrays
- real(dp),intent(out):: gth_psppar(0:4,0:6)
- real(dp),intent(out):: gth_radii_cf(3)
 
 !Local variables-------------------------------
 !scalars
@@ -4413,12 +4282,6 @@ implicit none
 
  call pawrad_nullify(tproj_mesh) !for safety
  me=0; if (present(comm_mpi))me=xcomm_rank(comm_mpi)
-
-!Fill in HGH infos required for BigDFT routines:
- call pawpsp_fill_hgh(gth_hasGeometry,&
-& gth_psppar,gth_radii_cf,gth_radii_cov,&
-& gth_semicore,pawtab%wvl%npspcode_init_guess,&
-& wvl_crmult,wvl_frmult,zion,znuclpsp)
 
 !If usewvl flag is on, we must have the pawtab%wvl pointer allocated
  if (usewvl==1.and.pawtab%has_wvl==0) then
@@ -4536,7 +4399,7 @@ implicit none
  integer,intent(out):: lloc,lmax,pspcod,pspxc
  real(dp),intent(out):: r2well,zion,znucl
 !Local variables-------------------------------
- integer :: ii,il
+ integer :: il
  character(len=100) :: xclibxc
  character(len=500) :: message
 !arrays
@@ -4554,7 +4417,6 @@ implicit none
  do il=1,psxml%valence_states%nval
    if(psxml%valence_states%state(il)%ll>lmax) lmax=psxml%valence_states%state(il)%ll
  end do
-
 !pspxc
  select case(trim(psxml%xc_functional%name))
    case('PZ')
@@ -4652,7 +4514,7 @@ implicit none
      if (xclibxc(1:3)=='XC_'  .or.xclibxc(1:3)=='xc_'  .or. &
 &        xclibxc(1:5)=='LDA_X'.or.xclibxc(1:5)=='LDA_C'.or. &
 &        xclibxc(1:5)=='lda_x'.or.xclibxc(1:5)=='lda_c'.or. &
-&        xclibxc(1:5)=='LDA_X'.or.xclibxc(1:5)=='LDA_C'.or. &
+&        xclibxc(1:5)=='GGA_X'.or.xclibxc(1:5)=='GGA_C'.or. &
 &        xclibxc(1:5)=='gga_x'.or.xclibxc(1:5)=='gga_c') then
 #if defined HAVE_DFT_LIBXC
        ii=index(xclibxc,'+')
@@ -4941,13 +4803,6 @@ end subroutine pawpsp_bcast
 !!  zionpsp=valence of atom as specified in input file
 !!  znuclpsp=atomic number of atom as specified in input file
 !!  ===== Optional arguments for wvl =====
-!!    gth_hasGeometry
-!!    gth_psppar
-!!    gth_radii_cf
-!!    gth_radii_cov
-!!    gth_semicore
-!!    wvl_crmult
-!!    wvl_frmult
 !!    wvl_ngauss
 !!  ===== Other optional arguments =====
 !!    psxml=datastructure containing a XMP PAW dataset
@@ -4975,9 +4830,7 @@ subroutine pawpsp_main( &
 & pawrad,pawtab,&
 & filpsp,usewvl,icoulomb,ixc,xclevel,pawxcdev,usexcnhat,&
 & qgrid_ff,qgrid_vl,ffspl,vlspl,epsatm,xcccrc,zionpsp,znuclpsp,&
-& gth_hasGeometry,gth_psppar,gth_radii_cf,gth_radii_cov,gth_semicore,&
-& wvl_crmult,wvl_frmult,wvl_ngauss,&
-& psxml,comm_mpi,xc_denpos)
+& wvl_ngauss,psxml,comm_mpi,xc_denpos)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -4994,13 +4847,9 @@ subroutine pawpsp_main( &
  integer,intent(in) :: icoulomb,ixc
  integer,intent(in) :: pawxcdev,usewvl,usexcnhat,xclevel
  integer,optional,intent(in) :: comm_mpi
- integer,optional,intent(out) :: gth_semicore
- logical,optional,intent(out) :: gth_hasGeometry
  real(dp),intent(in):: zionpsp,znuclpsp
  real(dp),optional,intent(in) :: xc_denpos
  real(dp),intent(out) :: epsatm,xcccrc
- real(dp),optional,intent(in) :: wvl_crmult,wvl_frmult
- real(dp),optional,intent(out):: gth_radii_cov
  character(len=fnlen),intent(in):: filpsp   ! name of the psp file
  type(pawrad_type),intent(inout) :: pawrad
  type(pawtab_type),intent(inout) :: pawtab
@@ -5010,7 +4859,6 @@ subroutine pawpsp_main( &
  real(dp),intent(in) :: qgrid_ff(:),qgrid_vl(:)
  real(dp),intent(inout) :: ffspl(:,:,:) !vz_i
  real(dp),intent(out) :: vlspl(:,:)     !vz_i
- real(dp),optional,intent(out) :: gth_psppar(0:4,0:6),gth_radii_cf(3)
 
 !Local variables-------------------------------
  integer :: has_tproj,has_wvl,ipsp,lmax,lloc,lnmax,mmax,me,mqgrid_ff,mqgrid_vl
@@ -5027,10 +4875,7 @@ subroutine pawpsp_main( &
 
 !Check consistency of parameters
  if (icoulomb/= 0.or.usewvl==1) then
-   if ((.not.present(gth_hasGeometry)).or.(.not.present(gth_psppar)).or.&
-&      (.not.present(gth_radii_cf)).or.(.not.present(gth_radii_cov)).or.&
-&      (.not.present(gth_semicore)).or.(.not.present(wvl_crmult)).or.&
-&      (.not.present(wvl_frmult)).or.(.not.present(wvl_ngauss))) then
+   if (.not.present(wvl_ngauss)) then
      message='usewvl==1 or icoulomb/=0: a mandatory argument is missing!'
      MSG_BUG(message)
    end if
@@ -5071,7 +4916,7 @@ subroutine pawpsp_main( &
      open (unit=tmp_unit,file=filpsp,form='formatted',status='old')
      rewind (unit=tmp_unit)
 !    Read first 3 lines of psp file:
-     call pawpsp_read_header(lloc,lmax,mmax,pspcod,&
+     call pawpsp_read_header(tmp_unit,lloc,lmax,mmax,pspcod,&
 &     pspxc,r2well,zion,znucl)
 
    else if (usexml == 1) then
@@ -5133,13 +4978,9 @@ subroutine pawpsp_main( &
 !WVL+PAW:
  if(icoulomb/=0.or.usewvl==1) then
    if(present(comm_mpi))then
-    call pawpsp_wvl(filpsp,gth_hasGeometry,gth_psppar,gth_radii_cf,&
-&    gth_radii_cov,gth_semicore,pawrad,pawtab,usewvl,wvl_crmult,wvl_frmult,&
-&    wvl_ngauss,zionpsp,znuclpsp,comm_mpi)
+    call pawpsp_wvl(filpsp,pawrad,pawtab,usewvl,wvl_ngauss,comm_mpi)
    else
-    call pawpsp_wvl(filpsp,gth_hasGeometry,gth_psppar,gth_radii_cf,&
-&    gth_radii_cov,gth_semicore,pawrad,pawtab,usewvl,wvl_crmult,wvl_frmult,&
-&    wvl_ngauss,zionpsp,znuclpsp)
+    call pawpsp_wvl(filpsp,pawrad,pawtab,usewvl,wvl_ngauss)
    end if
  end if
 
@@ -5274,19 +5115,6 @@ implicit none
 !Local variables-------------------------------
 
 ! *************************************************************************
-
-!Check gth parameters are present for WVL:
- if(icoulomb /= 0 .or. usewvl==1) then
-   if(.not. (present(gth_hasGeometry) .and. present(gth_psppar)&
-&   .and. present(gth_radii_cf) .and. present(gth_radii_cov)&
-&   .and. present(gth_semicore))) then
-     write(message, '(7a)' ) ch10,&
-&     ' pawpsp_main: BUG -',ch10,&
-&     '  gth parameters are not present', ch10,&
-&     '  contact the ABINIT group',ch10
-     MSG_ERROR(message)
-   end if
- end if
 
 !Check pspcod=7 or 17
  if(pspcod/=7 .and. pspcod/=17)then
