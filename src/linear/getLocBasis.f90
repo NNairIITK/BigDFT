@@ -250,8 +250,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call vcopy(tmb%linmat%m%nfvctr*tmb%linmat%m%smmm%nfvctrp, tempmat(1,1), 1, &
                tmb%linmat%ham_%matrix(1,tmb%linmat%m%smmm%isfvctr+1,ispin), 1)
           call f_free(tempmat)
-          call mpiallred(tmb%linmat%ham_%matrix(1,1,ispin), tmb%linmat%m%nfvctr**2, &
-               mpi_sum, bigdft_mpi%mpi_comm)
+          if (nproc>1) then
+              call mpiallred(tmb%linmat%ham_%matrix(1,1,ispin), tmb%linmat%m%nfvctr**2, &
+                   mpi_sum, bigdft_mpi%mpi_comm)
+          end if
 
           call to_zero(tmb%linmat%s%nfvctr**2, tmb%linmat%ovrlp_%matrix(1,1,ispin))
           tempmat = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_MATMUL, id='tempmat')
@@ -260,8 +262,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call vcopy(tmb%linmat%s%nfvctr*tmb%linmat%s%smmm%nfvctrp, tempmat(1,1), 1, &
                tmb%linmat%ovrlp_%matrix(1,tmb%linmat%s%smmm%isfvctr+1,ispin), 1)
           call f_free(tempmat)
-          call mpiallred(tmb%linmat%ovrlp_%matrix(1,1,ispin), tmb%linmat%s%nfvctr**2, &
-               mpi_sum, bigdft_mpi%mpi_comm)
+          if (nproc>1) then
+              call mpiallred(tmb%linmat%ovrlp_%matrix(1,1,ispin), tmb%linmat%s%nfvctr**2, &
+                   mpi_sum, bigdft_mpi%mpi_comm)
+          end if
       end do
   end if
 
