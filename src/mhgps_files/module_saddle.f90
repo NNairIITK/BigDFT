@@ -23,13 +23,13 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     use yaml_output
     use module_interfaces
     use module_sbfgs
-    use module_global_variables, only: inputPsiId, iproc, ixyz_int, atoms, mhgps_verbosity,&
+    use module_global_variables, only: inputPsiId, iproc, ixyz_int, astruct_ptr, mhgps_verbosity,&
                                        currDir, isadc, ndim_rot, nhist_rot, alpha_rot,&
                                        alpha_stretch_rot,saddle_alpha_stretch0,work,lwork,&
-                                       saddle_steepthresh_trans ,imode,&
+                                       saddle_steepthresh_trans,imode,saddle_tighten,&
                                        recompIfCurvPos => saddle_recompIfCurvPos,&
                                        minoverlap0   => saddle_minoverlap0,&
-                                       tightenfac    => saddle_tightenfac,&
+!                                       tightenfac    => saddle_tightenfac,&
                                        maxcurvrise   => saddle_maxcurvrise,&
                                        cutoffratio   => saddle_cutoffratio,&
                                        fnrmtol       => saddle_fnrmtol,&
@@ -79,6 +79,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     integer, intent(in)       :: iconnect(2,nbond)
     real(gp), intent(in)      :: rotforce(3,nat)
     !internal
+    real(gp), allocatable, dimension(:,:)   :: rxyzold
     real(gp), allocatable, dimension(:,:)   :: dds
     real(gp), allocatable, dimension(:,:)   :: dd0
     real(gp), allocatable, dimension(:,:)   :: delta
@@ -107,20 +108,22 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     integer  :: i
     integer  :: recompute
     integer  :: fc=0
+    integer  :: icheck
+    integer  :: icheckmax
     real(gp) :: tol
     real(gp) :: displold
     real(gp) :: rmsdispl
     real(gp) :: curv
-    real(gp) :: displ2
     real(gp) :: overlap
     real(gp) :: minoverlap
     real(gp) :: tnatdmy(3,nat)
     real(gp) :: tmp
     logical  :: optCurvConv
-    logical  :: flag
+!    logical  :: flag
     logical  :: tooFar
     logical  :: fixfragmented
     logical  :: subspaceSucc
+    logical  :: tighten
     character(len=9)   :: fn9
     character(len=300)  :: comment
     character(len=100) :: filename
@@ -131,7 +134,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
 
 
 
-    if(atoms%astruct%geocode/='F'.and. .not. (trim(adjustl(efmethod))=='LENSIc'))&
+    if(astruct_ptr%geocode/='F'.and. .not. (trim(adjustl(efmethod))=='LENSIc'))&
     stop 'STOP: saddle search only implemented for free BC'
 
     if(iproc==0)then
@@ -144,19 +147,23 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     alpha_rot=alpha0_rot
     alpha_stretch_rot=saddle_alpha_stretch0
     rmsdispl=rmsdispl0
-    flag=.true.
+!    flag=.true.
     fc=0
     fixfragmented=.false.
     converged=.false.
     subspaceSucc=.true.
     tol=tolc
     displ=0.0_gp
-    displ2=0.0_gp
     displold=0.0_gp
+    detot=0.0_gp
     curv=1000.0_gp
+    icheck=0
+    icheckmax=5
+    tighten=.false.
     alpha_stretch=alpha_stretch0
 
     ! allocate arrays
+    rxyzold = f_malloc((/ 1.to.3, 1.to.nat/),id='rxyzold')
     dds = f_malloc((/ 1.to.3, 1.to.nat/),id='dds')
     dd0 = f_malloc((/ 1.to.3, 1.to.nat/),id='dd0')
     delta = f_malloc((/ 1.to.3, 1.to.nat/),id='delta')
@@ -177,6 +184,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     call minenergyandforces(.true.,imode,nat,alat,rxyz(1,1,0),rxyzraw(1,1,0),&
     fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,&
     wold,alpha_stretch0,alpha_stretch)
+    rxyzold=rxyz(:,:,0)
     ener_count=ener_count+1.0_gp
     if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
     call fnrmandforcemax(fxyzraw(1,1,0),fnrm,fmax,nat)
@@ -184,11 +192,20 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     etotold=etot
     etotp=etot
 
+
 !    itswitch=2
     itswitch=-2
     ndim=0
     nhist=0
     alpha=alpha0_trans
+    if(iproc==0.and.mhgps_verbosity>=2)then
+        write(*,'(a)')&
+        '  #(MHGPS) METHOD COUNT  IT  Energy                '//&
+        'DIFF      FMAX      FNRM      alpha    ndim dspl         alpha_strtch'
+        write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es12.5,1x,es9.2)')&
+        '   (MHGPS) GEOPT ',nint(ener_count),0,etotp,detot,fmax,&
+        fnrm, alpha,ndim,displ,alpha_stretch
+    endif
     do it=1,nit_trans
         nhist=nhist+1
 
@@ -226,25 +243,26 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
         !might be only done in a flat region, but not at the end
         !close to the transition state (may happen sometimes
         !for biomolecules)
-        if(fnrm > 2.0_gp*tightenfac*fnrmtol)then
-             flag=.true.
-        endif
+!        if(fnrm > 2.0_gp*tightenfac*fnrmtol)then
+!             flag=.true.
+!        endif
         !determine if final tightening should be done:
-        if(fnrm<=tightenfac*fnrmtol .and. curv<0.d0 .and. (flag .or. tooFar))then
- !       if(fnrm<=tightenfac*fnrmtol .and. flag)then
+        if(tighten.and.saddle_tighten)then
+!        if(fnrm<=tightenfac*fnrmtol .and. curv<0.d0 .and. (flag .or. tooFar))then
+!!       if(fnrm<=tightenfac*fnrmtol .and. flag)then
             if(iproc==0.and.mhgps_verbosity>=2)then
-                if(flag)then
+!                if(flag)then
                     call yaml_comment('(MHGPS) tightening')
-                else
-                    call yaml_warning('(MHGPS) redo tightening '//&
-                         'since walked too far at small forces. '//&
-                         'Is tightenfac chosen too large?')
-                endif
+!                else
+!                    call yaml_warning('(MHGPS) redo tightening '//&
+!                         'since walked too far at small forces. '//&
+!                         'Is tightenfac chosen too large?')
+!                endif
             endif
             tol=tolf
             recompute=it
             minoverlap=-2._gp !disable overlap control in opt_curv
-            flag=.false.
+!            flag=.false.
  !       else if(it==1)then
  !           tol=tolc
         else
@@ -267,12 +285,12 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
             !DIFF      FMAX      FNRM      alpha    ndim')
             if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a)')&
             '  #(MHGPS) METHOD COUNT  IT  CURVATURE             '//&
-            'DIFF      FMAX      FNRM      alpha    ndim'
+            'DIFF      FMAX      FNRM      alpha    ndim alpha_strtch overl. displr       displp'
             inputPsiId=1
              !inputPsiId=0
             call opt_curv(it,imode,nat,alat,alpha0_rot,curvforcediff,nit_rot,&
                           nhistx_rot,rxyzraw(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
-                          minmode(1,1),curv,rotforce(1,1),tol,displ2,ener_count,&
+                          minmode(1,1),curv,rotforce(1,1),tol,ener_count,&
                           optCurvConv,iconnect,nbond,alpha_rot_stretch0,&
                           maxcurvrise,cutoffratio,minoverlap)
 !pos=rxyzraw(:,:,nhist-1)
@@ -301,7 +319,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
             !DIFF      FMAX      FNRM      alpha    ndim')
             if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a)')&
             '  #(MHGPS) METHOD COUNT  IT  Energy                '//&
-            'DIFF      FMAX      FNRM      alpha    ndim'
+            'DIFF      FMAX      FNRM      alpha    ndim dspl         alpha_strtch'
         endif
         !END FINDING LOWEST MODE
         
@@ -347,12 +365,15 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
            call yaml_comment('fragmentation fixed')
         !displ=displ+tt
  
+        delta=rxyz(:,:,nhist)-rxyzold
+        displ=displ+dnrm2(3*nat,delta(1,1),1)
         inputPsiId=1
         call minenergyandforces(.true.,imode,nat,alat,rxyz(1,1,nhist),&
                 rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),&
                 fxyzraw(1,1,nhist),etotp,iconnect,nbond,wold,&
                 alpha_stretch0,alpha_stretch)
         ener_count=ener_count+1.0_gp
+        rxyzold=rxyz(:,:,nhist)
         detot=etotp-etotold
  
         call fnrmandforcemax(fxyzraw(1,1,nhist),fnrm,fmax,nat)
@@ -368,7 +389,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
 !!$                etotp,rxyz(1,1,nhist),ixyz_int,&
 !!$                atoms,trim(comment),forces=minmode)
            
-           call astruct_dump_to_file(atoms%astruct,&
+           call astruct_dump_to_file(astruct_ptr,&
                 currDir//'/sad'//trim(adjustl(isadc))//'_posout_'//fn9,&
                 trim(comment),&
                 etotp,rxyz(:,:,nhist),forces=minmode)
@@ -383,13 +404,35 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
                  dot_double(3*nat,dd0(1,1),1,dd0(1,1),1))
 
         if(iproc==0.and.mhgps_verbosity>=2)&
-            write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es9.2)')&
+            write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es12.5,1x,es9.2)')&
             '   (MHGPS) GEOPT ',nint(ener_count),it,etotp,detot,fmax,&
-            fnrm, alpha,ndim!,maxd,
+            fnrm, alpha,ndim,displ,alpha_stretch
+!        write(cdmy8,'(es8.1)')abs(maxd)
+!        write(cdmy9_1,'(es9.2)')abs(displr)
+!        write(cdmy9_2,'(es9.2)')abs(displp)
+!        write(cdmy9_3,'(es9.2)')abs(beta)
+!        if(iproc==0.and.mhgps_verbosity>=2)&
+!            write(16,'(a,1x,i5.5,1x,i5.5,1x,1es21.14,1x,es9.2,es11.3'//&
+!            ',3es10.2,1x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))')&
+!            '   (MHGPS) GEOPT ',nint(ener_count),it,etotp,detot,fmax,fnrm,&
+!            fluct*runObj%inputs%frac_fluct,fluct,&
+!            'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,&
+!            'maxd=',trim(adjustl(cdmy8)),&
+!            'dsplr=',trim(adjustl(cdmy9_1)),&
+!            'dsplp=',trim(adjustl(cdmy9_2))
+
 
         etot=etotp
         etotold=etot
-        if (fnrm.le.fnrmtol .and. curv<0.0_gp) goto 1000
+        call convcheck_sad(fnrm,curv,0.0_gp,fnrmtol,icheck)
+        if(icheck>icheckmax)then
+            goto 1000
+        else if(icheck == icheckmax)then
+            tighten=.true.
+        else if(icheck == 0)then
+            tighten=.false.
+        endif
+!        if (fnrm.le.fnrmtol .and. curv<0.0_gp) goto 1000
 !       if (fnrm.le.fnrmtol) goto 1000
 
         !now do step in hard directions
@@ -434,8 +477,8 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
                 cutoffratio,lwork,work,rxyz,fxyz,aa,rr,ff,rrr,fff,&
                 eval,res,subspaceSucc)
 
-        delta=rxyz(:,:,nhist)-rxyz(:,:,nhist-1)
-        displ=displ+dnrm2(3*nat,delta(1,1),1)
+!        delta=rxyz(:,:,nhist)-rxyz(:,:,nhist-1)
+!        displ=displ+dnrm2(3*nat,delta(1,1),1)
   enddo
 
   if(iproc==0)call yaml_warning('(MHGPS) No convergence in findsad')
@@ -454,6 +497,7 @@ stop 'no convergence in findsad'
         enddo
     enddo
 2000 continue
+    call f_free(rxyzold)
     call f_free(dds)
     call f_free(dd0)
     call f_free(delta)
@@ -564,7 +608,7 @@ subroutine elim_torque_fs(nat,rxyz,vxyz)
 end subroutine
 
 subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_fix,&
-                    fxyz_fix,dxyzin,curv,fout,fnrmtol,displ,ener_count,&
+                    fxyz_fix,dxyzin,curv,fout,fnrmtol,ener_count,&
                     converged,iconnect,nbond,alpha_stretch0,&
                     maxcurvrise,cutoffratio,minoverlap)!,mode)
     use module_base
@@ -609,14 +653,18 @@ subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_
     logical                    :: steep
     integer                    :: i,iat,l,itswitch
     integer                    :: ihist,it,nat
-    real(gp)                   :: displ,ener_count,curv
+    real(gp)                   :: ener_count,curv
     real(gp)                   :: fnrmtol,curvold,fnrm,curvp,fmax
     real(gp)                   :: dcurv,st,tt,cosangle
     real(gp)                   :: overlap
     logical                    :: subspaceSucc
     real(gp), dimension(3,nat) :: dxyzin0
+    !internal
+    real(gp), dimension(3,nat) :: rxyzOld,delta
+    real(gp)                   :: displr,displp
     !functions
     real(gp)                   :: ddot
+    real(gp)                   :: dnrm2
 if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT minoverlap',minoverlap
 
     if(.not.share)then
@@ -628,12 +676,15 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT mino
 
     converged =.false.
     subspaceSucc=.true.
-    displ=0.0_gp
+    displr=0.0_gp
+    displp=0.0_gp
+    dcurv=0.0_gp
     wold=0.0_gp
     if(nhist==0)then
         do iat=1,nat
            do l=1,3
               rxyz(l,iat,nhist)=dxyzin(l,iat)
+              rxyzOld(l,iat)=dxyzin(l,iat)
               dxyzin0(l,iat)=dxyzin(l,iat)
            enddo
         enddo
@@ -657,7 +708,11 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT mino
     fnrm=sqrt(fnrm)
     curvold=curv
     curvp=curv
+    overlap=ddot(3*nat,dxyzin0(1,1),1,rxyz(1,1,nhist),1)
  
+if(iproc==0.and.mhgps_verbosity>=2)&
+     write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5)))')&
+     '   (MHGPS) CUOPT ',nint(ener_count),0,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap,displr,displp
 !    itswitch=2
    itswitch=-2
     do it=1,nit
@@ -699,7 +754,7 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT mino
                 tt=tt+dd(l,iat)**2
             enddo
         enddo
-        displ=displ+sqrt(tt)
+!        displ=displ+sqrt(tt)
 !write(444,*)'dd',nhist
 
         do iat=1,nat
@@ -709,10 +764,12 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT mino
         enddo
 !write(444,*)1,rxyz(1,1,nhist)
 
+     delta=rxyz(:,:,nhist)-rxyzOld
+     displr=displr+dnrm2(3*nat,delta(1,1),1)
      call mincurvforce(imode,nat,alat,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
           rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
           curvp,1,ener_count,iconnect,nbond,wold,alpha_stretch0,alpha_stretch)
-        dcurv=curvp-curvold
+     dcurv=curvp-curvold
 
 
 !        s=0.0_gp ; st=0.0_gp
@@ -736,16 +793,15 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT mino
 !        &'CURV  it,curv,curvold,Dcurv,fnrm,alpha,alpha_stretch,ndim',&
 !        &it-1,curvp,curvold,dcurv,fnrm,alpha,alpha_stretch,ndim
 
-        overlap=ddot(3*nat,dxyzin0(1,1),1,rxyz(1,1,nhist),1)
-if(iproc==0.and.mhgps_verbosity>=2)&
-     write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2))')&
-     '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap
-!HIER WEITER HIER WEITER: beautify output
 
         if (dcurv.gt.maxcurvrise .and. alpha>1.e-1_gp*alpha0) then 
             if(iproc==0 .and. mhgps_verbosity>=3)&
                 call yaml_comment('INFO: (MHGPS) Curv. raised by more than maxcurvrise '//&
                      trim(yaml_toa(it))//''//trim(yaml_toa(dcurv)))
+            overlap=ddot(3*nat,dxyzin0(1,1),1,rxyz(1,1,nhist),1)
+            if(iproc==0.and.mhgps_verbosity>=2)&
+                write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5)))')&
+                '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap,displr,displp
             !alpha=min(.5_gp*alpha,alpha0)
             alpha=.5_gp*alpha
             if(iproc==0 .and. mhgps_verbosity>=3)&
@@ -761,8 +817,8 @@ if(iproc==0.and.mhgps_verbosity>=2)&
                 rxyzraw(1,1,nhist-1),fxyz(1,1,nhist-1),fstretch(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
                 curvold,1,ener_count,iconnect,nbond,wold,alpha_stretch0,alpha_stretch)
             if(iproc==0.and.mhgps_verbosity>=2)&
-                 write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es9.2)')&
-                 '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch
+                 write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es9.2,2(1x,es12.5)))')&
+                 '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,displr,displp
         endif
 
 !            if(.not.steep)then
@@ -785,8 +841,16 @@ if(iproc==0.and.mhgps_verbosity>=2)&
 !            endif
             goto  500
         endif
-            curv=curvp
-            curvold=curv
+     curv=curvp
+     curvold=curv
+
+     delta=rxyz(:,:,nhist)-rxyzOld
+     displp=displp+dnrm2(3*nat,delta(1,1),1)
+     rxyzOld=rxyz(:,:,nhist)
+        overlap=ddot(3*nat,dxyzin0(1,1),1,rxyz(1,1,nhist),1)
+if(iproc==0.and.mhgps_verbosity>=2)&
+     write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5))')&
+     '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap,displr,displp
 !        if (fnrm.le.fnrmtol) goto 1000
     do iat=1,nat
         do l=1,3
@@ -1649,7 +1713,7 @@ subroutine minenergyandforces(eeval,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
     integer, intent(in)           :: nbond_
     integer, intent(in)           :: iconnect(2,nbond_)
     real(gp), intent(in)          :: alat(3)
-    real(gp),intent(inout)           :: rat(3,nat)
+    real(gp),intent(in)           :: rat(3,nat)
     real(gp),intent(out)          :: rxyzraw(3,nat)
     real(gp),intent(out)          :: fxyzraw(3,nat)
     real(gp),intent(inout)          :: fat(3,nat)
@@ -1826,6 +1890,18 @@ use module_base
   if (vnrm /= 0.0_gp) v(1:n)=v(1:n)/vnrm
 
 END SUBROUTINE normalizevector
+subroutine convcheck_sad(fmax,curv,fluctfrac_fluct,forcemax,check)
+  use module_base
+  implicit none
+  real(gp), intent(in):: fmax, fluctfrac_fluct,forcemax,curv
+  integer, intent(inout)::check
+
+  if ( fmax < max(forcemax,fluctfrac_fluct).and. curv <0.0_gp) then
+    check=check+1
+  else
+    check=0
+  endif
+end subroutine convcheck_sad
 !!!!subroutine cal_hessian_fd_m(iproc,nat,alat,pos,hess)
 !!!!use module_base
 !!!!use module_energyandforces

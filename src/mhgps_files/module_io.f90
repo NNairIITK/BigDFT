@@ -43,7 +43,7 @@ subroutine write_mode(nat,filename,minmode,rotforce)
     use module_types
     use module_interfaces
     use module_atoms, only: astruct_dump_to_file
-    use module_global_variables, only: iproc, atoms, ixyz_int
+    use module_global_variables, only: iproc, astruct=>astruct_ptr, ixyz_int
     implicit none
     !parameters
     integer, intent(in) :: nat
@@ -54,24 +54,24 @@ subroutine write_mode(nat,filename,minmode,rotforce)
     character(len=7) :: comment='minmode'
     character(len=11) :: units
 
-    units=atoms%astruct%units
-    atoms%astruct%units='atomicd0'
+    units=astruct%units
+    astruct%units='atomicd0'
     if(present(rotforce))then
-       call astruct_dump_to_file(atoms%astruct,filename,trim(comment),&
+       call astruct_dump_to_file(astruct,filename,trim(comment),&
             rxyz=minmode,forces=rotforce)
 !!$
 !!$        call write_atomic_file(filename,&
 !!$              0.0_gp,minmode(1,1),ixyz_int,&
 !!$              atoms,trim(comment),forces=rotforce(1,1))
     else
-       call astruct_dump_to_file(atoms%astruct,filename,trim(comment),&
+       call astruct_dump_to_file(astruct,filename,trim(comment),&
             rxyz=minmode)
 !!$
 !!$        call write_atomic_file(filename,&
 !!$              0.0_gp,minmode(1,1),ixyz_int,&
 !!$              atoms,trim(comment))
     endif
-    atoms%astruct%units=units
+    astruct%units=units
 end subroutine
 
 end module

@@ -263,7 +263,7 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   ! Shake atoms, if required.
   call astruct_set_displacement(atoms%astruct, in%randdis)
-  if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
+  if (bigdft_mpi%nproc > 1) call mpibarrier(bigdft_mpi%mpi_comm)
   ! Update atoms with symmetry information
   call astruct_set_symmetries(atoms%astruct, in%disableSym, in%symTol, in%elecfield, in%nspin)
 

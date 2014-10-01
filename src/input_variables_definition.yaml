@@ -79,7 +79,7 @@
    gnrm_cv:
      COMMENT: convergence criterion gradient
      DESCRIPTION: Maximal value of the norm 2 of the electronic orbitals used as convergence criterion
-     RANGE: [1.e-20, 1.]
+     RANGE: [0., 1.]
      default: 1.e-4
      fast: 1.e-3
      accurate: 1.e-5

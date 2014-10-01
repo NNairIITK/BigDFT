@@ -2336,14 +2336,14 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   nbox = lzd_old%Glr%d%n1i*Lzd_old%Glr%d%n2i*Lzd_old%Glr%d%n3i
 
   psir_old = f_malloc((/ nbox, npsir, orbs%norbp /),id='psir_old')
-  psir = f_malloc((/ lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i, npsir, orbs%norbp /),id='psir')
-  shift = f_malloc((/ lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, 5 /),id='shift')
+  psir = f_malloc0((/ lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i, npsir, orbs%norbp /),id='psir')
+  shift = f_malloc0((/ lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, 5 /),id='shift')
   
   call to_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1)) 
-  call to_zero(lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*npsir*orbs%norbp,psir(1,1,1)) 
+  !call to_zero(lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*npsir*orbs%norbp,psir(1,1,1)) 
   call to_zero(nbox*npsir*orbs%norbp,psir_old(1,1,1)) 
 
-  call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*5, shift(1,1))
+  !call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*5, shift(1,1))
 
   ist=1
   loop_orbs: do iorb=1,orbs%norbp
