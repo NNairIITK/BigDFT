@@ -83,10 +83,11 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, foe_obj, k
 
               do iseg=isegstart,isegend
                   ii=kernel%keyv(iseg)-1
-                  do jorb=kernel%keyg(1,iseg),kernel%keyg(2,iseg)
+                  ! A segment is always on one line, therefore no double loop
+                  do jorb=kernel%keyg(1,1,iseg),kernel%keyg(2,1,iseg)
                       ii=ii+1
-                      iiorb = (jorb-1)/kernel%nfvctr + 1
-                      jjorb = jorb - (iiorb-1)*kernel%nfvctr
+                      iiorb = kernel%keyg(1,2,iseg)
+                      jjorb = jorb
                       matrix(jjorb,iiorb-kernel%smmm%isfvctr)=ovrlp_compr(ii)
                       !if (jjorb==iiorb) then
                       !    matrix(jjorb,iiorb-kernel%isfvctr)=1.d0
@@ -136,10 +137,11 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, foe_obj, k
               !!end if
               do iseg=isegstart,isegend
                   ii=kernel%keyv(iseg)-1
-                  do jorb=kernel%keyg(1,iseg),kernel%keyg(2,iseg)
+                  ! A segment is always on one line, therefore no double loop
+                  do jorb=kernel%keyg(1,1,iseg),kernel%keyg(2,1,iseg)
                       ii=ii+1
-                      iiorb = (jorb-1)/kernel%nfvctr + 1
-                      jjorb = jorb - (iiorb-1)*kernel%nfvctr
+                      iiorb = kernel%keyg(1,2,iseg)
+                      jjorb = jorb
                       SHS(ii)=matrix(jjorb,iiorb-kernel%smmm%isfvctr)
                   end do
               end do

@@ -615,10 +615,10 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
              end if
              do iseg=isegstart,isegend
                   ii=dham(jdir)%keyv(iseg)-1
-                  do jorb=dham(jdir)%keyg(1,iseg),dham(jdir)%keyg(2,iseg)
+                  do jorb=dham(jdir)%keyg(1,1,iseg),dham(jdir)%keyg(2,1,iseg)
                       ii=ii+1
-                      iialpha = (jorb-1)/tmb%linmat%m%nfvctr + 1
-                      ibeta = jorb - (iialpha-1)*tmb%linmat%m%nfvctr
+                      iialpha = dham(jdir)%keyg(1,2,iseg)
+                      ibeta = jorb
                       jat=tmb%orbs%onwhichatom(iialpha)
                       kernel = 0.d0
                       ekernel= 0.d0

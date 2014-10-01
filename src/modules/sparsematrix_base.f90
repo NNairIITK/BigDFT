@@ -40,7 +40,7 @@ module sparsematrix_base
   type,public :: sparse_matrix
       integer :: nvctr, nseg, nvctrp, isvctr, parallel_compression, nfvctr, nfvctrp, isfvctr, nspin
       integer,dimension(:),pointer :: keyv, nsegline, istsegline, isvctr_par, nvctr_par, isfvctr_par, nfvctr_par
-      integer,dimension(:,:),pointer :: keyg
+      integer,dimension(:,:,:),pointer :: keyg
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr!, orb_from_index
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
       logical :: store_index, can_use_dense
@@ -184,7 +184,7 @@ module sparsematrix_base
       logical,intent(in) :: store_index
       type(sparse_matrix),intent(inout) :: sparsemat
       sparsemat%keyv=f_malloc_ptr(sparsemat%nseg,id='sparsemat%keyv')
-      sparsemat%keyg=f_malloc_ptr((/2,sparsemat%nseg/),id='sparsemat%keyg')
+      sparsemat%keyg=f_malloc_ptr((/2,2,sparsemat%nseg/),id='sparsemat%keyg')
       !!if (store_index) then
       !!    sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
       !!end if

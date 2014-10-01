@@ -76,12 +76,13 @@ module sparsematrix
              !$omp do
              do iseg=1,sparsemat%nseg
                  jj=sparsemat%keyv(iseg)
-                 do j=sparsemat%keyg(1,iseg),sparsemat%keyg(2,iseg)
+                 ! A segment is always on one line, therefore no double loop
+                 do j=sparsemat%keyg(1,1,iseg),sparsemat%keyg(2,1,iseg)
                     !irow = sparsemat%orb_from_index(1,jj)
                     !jcol = sparsemat%orb_from_index(2,jj)
-                    irowcol = orb_from_index(sparsemat, j)
+                    !irowcol = orb_from_index(sparsemat, j)
                     !write(*,*) 'iseg, j, jj', iseg, j, jj
-                    outm(jj+ishift)=inm(irowcol(1),irowcol(2),ispin)
+                    outm(jj+ishift)=inm(j,sparsemat%keyg(1,2,iseg),ispin)
                     jj=jj+1
                  end do
              end do
@@ -170,11 +171,12 @@ module sparsematrix
              !$omp do
              do iseg=1,sparsemat%nseg
                  ii=sparsemat%keyv(iseg)
-                 do i=sparsemat%keyg(1,iseg),sparsemat%keyg(2,iseg)
+                 ! A segment is always on one line, therefore no double loop
+                 do i=sparsemat%keyg(1,1,iseg),sparsemat%keyg(2,1,iseg)
                     !irow = sparsemat%orb_from_index(1,ii)
                     !jcol = sparsemat%orb_from_index(2,ii)
-                    irowcol = orb_from_index(sparsemat, i)
-                    outm(irowcol(1),irowcol(2),ispin)=inm(ii+ishift)
+                    !irowcol = orb_from_index(sparsemat, i)
+                    outm(i,sparsemat%keyg(1,2,iseg),ispin)=inm(ii+ishift)
                     ii=ii+1
                 end do
              end do
@@ -239,8 +241,11 @@ module sparsematrix
     
       call to_zero(sparsemat%nfvctr**2*sparsemat%nspin,mat%matrix(1,1,1))
       do iseg = 1, sparsemat%nseg
-         do jorb = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
-            call get_indices(jorb,irow,icol)
+         ! A segment is always on one line, therefore no double loop
+         do jorb = sparsemat%keyg(1,1,iseg), sparsemat%keyg(2,1,iseg)
+            !call get_indices(jorb,irow,icol)
+            irow = jorb
+            icol = sparsemat%keyg(1,2,iseg)
             !print *,'jorb, irow,icol',jorb, irow, icol,test_value_matrix(sparsemat%nfvctr, irow, icol)
             !SM: need to fix spin 
             mat%matrix(irow,icol,1) = test_value_matrix(sparsemat%nfvctr, irow, icol)
@@ -254,8 +259,11 @@ module sparsematrix
       maxdiff = 0.d0
       do iseg = 1, sparsemat%nseg
          ii=0
-         do jorb = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
-            call get_indices(jorb,irow,icol)
+         ! A segment is always on one line, therefore no double loop
+         do jorb = sparsemat%keyg(1,1,iseg), sparsemat%keyg(2,1,iseg)
+            !call get_indices(jorb,irow,icol)
+            irow = jorb
+            icol = sparsemat%keyg(1,2,iseg)
             !write(*,'(a,4i8,2es13.3)') 'jorb, irow, icol, sparsemat%keyv(iseg)+ii, val, ref', jorb, irow, icol, sparsemat%keyv(iseg)+ii, mat%matrix_compr(sparsemat%keyv(iseg)+ii), test_value_matrix(sparsemat%nfvctr, irow, icol)
             maxdiff = max(abs(mat%matrix_compr(sparsemat%keyv(iseg)+ii)&
                  -test_value_matrix(sparsemat%nfvctr, irow, icol)),maxdiff)
@@ -277,8 +285,11 @@ module sparsematrix
     
       maxdiff = 0.d0
       do iseg = 1, sparsemat%nseg
-         do jorb = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
-            call get_indices(jorb,irow,icol)
+         ! A segment is always on one line, therefore no double loop
+         do jorb = sparsemat%keyg(1,1,iseg), sparsemat%keyg(2,1,iseg)
+            !call get_indices(jorb,irow,icol)
+            irow = jorb
+            icol = sparsemat%keyg(1,2,iseg)
             maxdiff = max(abs(mat%matrix(irow,icol,1)-test_value_matrix(sparsemat%nfvctr, irow, icol)),maxdiff) 
          end do
       end do
@@ -373,11 +384,12 @@ module sparsematrix
           !$omp firstprivate(ilsegstart)
           !$omp do reduction(+:icheck)
           sloop: do isseg=1,smat%nseg
-              isstart=smat%keyg(1,isseg)
-              isend=smat%keyg(2,isseg)
+              isstart = (smat%keyg(1,2,isseg)-1)*smat%nfvctr + smat%keyg(1,1,isseg)
+              isend = (smat%keyg(2,2,isseg)-1)*smat%nfvctr + smat%keyg(2,1,isseg)
+              ! A segment is always on one line, therefore no double loop
               lloop: do ilseg=ilsegstart,lmat%nseg
-                  ilstart=lmat%keyg(1,ilseg)
-                  ilend=lmat%keyg(2,ilseg)
+                  ilstart = (lmat%keyg(1,2,ilseg)-1)*lmat%nfvctr + lmat%keyg(1,1,ilseg)
+                  ilend = (lmat%keyg(2,2,ilseg)-1)*lmat%nfvctr + lmat%keyg(2,1,ilseg)
     
                   ! check whether there is an overlap:
                   ! if not, increase loop counters
@@ -395,8 +407,8 @@ module sparsematrix
                   ilength=ioend-iostart+1
     
                   ! offset with respect to the starting point of the segment
-                  isoffset=iostart-smat%keyg(1,isseg)
-                  iloffset=iostart-lmat%keyg(1,ilseg)
+                  isoffset = iostart - ((smat%keyg(1,2,isseg)-1)*smat%nfvctr + smat%keyg(1,1,isseg))
+                  iloffset = iostart - ((lmat%keyg(1,2,ilseg)-1)*lmat%nfvctr + lmat%keyg(1,1,ilseg))
     
                   ! determine start end and of the overlapping segment in compressed form
                   iscostart=smat%keyv(isseg)+isoffset
@@ -502,10 +514,11 @@ module sparsematrix
              !$omp do
              do iseg=isegstart,isegend
                  ii=smat%keyv(iseg)-1
-                 do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
+                 ! A segment is always on one line, therefore no double loop
+                 do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
                      ii=ii+1
-                     iiorb = (jorb-1)/smat%nfvctr + 1
-                     jjorb = jorb - (iiorb-1)*smat%nfvctr
+                     iiorb = smat%keyg(1,2,iseg)
+                     jjorb = jorb
                      matrix_local(ii-isvctr)=matrixp(jjorb,iiorb-isfvctr)
                  end do
              end do
@@ -543,10 +556,11 @@ module sparsematrix
              !$omp do
              do iseg=isegstart,isegend
                  ii=smat%keyv(iseg)-1
-                 do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
+                 ! A segment is always on one line, therefore no double loop
+                 do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
                      ii=ii+1
-                     iiorb = (jorb-1)/smat%nfvctr + 1
-                     jjorb = jorb - (iiorb-1)*smat%nfvctr
+                     iiorb = smat%keyg(1,2,iseg)
+                     jjorb = jorb
                      matrix_compr(ii)=matrixp(jjorb,iiorb-isfvctr)
                  end do
              end do
@@ -648,10 +662,11 @@ module sparsematrix
            !$omp shared(isegstart, isegend, smat, matrixp, matrix_compr, isfvctr)
            do iseg=isegstart,isegend
                ii=smat%keyv(iseg)-1
-               do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
+               ! A segment is always on one line, therefore no double loop
+               do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
                    ii=ii+1
-                   iiorb = (jorb-1)/smat%nfvctr + 1
-                   jjorb = jorb - (iiorb-1)*smat%nfvctr
+                   iiorb = smat%keyg(1,2,iseg)
+                   jjorb = jorb
                    matrixp(jjorb,iiorb-isfvctr) = matrix_compr(ii)
                end do
            end do
