@@ -1059,7 +1059,7 @@ contains
     end subroutine init_matrix_parallelization
 
 
-    subroutine init_matrix_taskgroups(iproc, nproc, collcom, collcom_sr, smat)
+    subroutine init_matrix_taskgroups(iproc, nproc, parallel_layout, collcom, collcom_sr, smat)
       use module_base
       use module_types
       use communications_base, only: comms_linear
@@ -1068,6 +1068,7 @@ contains
 
       ! Caling arguments
       integer,intent(in) :: iproc, nproc
+      logical,intent(in) :: parallel_layout
       type(comms_linear),intent(in) :: collcom, collcom_sr
       type(sparse_matrix),intent(inout) :: smat
 
@@ -1086,20 +1087,29 @@ contains
       ! First determine the minimal and maximal value oft the matrix which is used by each process
       iuse_startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='iuse_startend')
 
-      ind_min = smat%nvctr
-      ind_max = 0
 
-      ! The operations done in the transposed wavefunction layout
-      call check_transposed_layout()
+      if (parallel_layout) then
+          ! The matrices can be parallelized
 
-      ! Now check the compress_distributed layout
-      call check_compress_distributed_layout()
+          ind_min = smat%nvctr
+          ind_max = 0
 
-      ! Now check the matrix matrix multiplications layout
-      call check_matmul_layout()
+          ! The operations done in the transposed wavefunction layout
+          call check_transposed_layout()
 
-      ! Now check the sumrho operations
-      call check_sumrho_layout()
+          ! Now check the compress_distributed layout
+          call check_compress_distributed_layout()
+
+          ! Now check the matrix matrix multiplications layout
+          call check_matmul_layout()
+
+          ! Now check the sumrho operations
+          call check_sumrho_layout()
+      else
+          ! The matrices can not be parallelized
+          ind_min = 1
+          ind_max = smat%nvctr
+      end if
 
       ! Now the minimal and maximla values are known
       iuse_startend(1,iproc) = ind_min
