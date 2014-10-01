@@ -18,59 +18,76 @@ module sparsematrix_init
 
   !> Public routines
   public :: init_sparse_matrix
-  public :: compressed_index
+  !!public :: compressed_index
   public :: matrixindex_in_compressed
   public :: check_kernel_cutoff
   public :: init_matrix_taskgroups
 
 contains
 
-    !> Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
-    function compressed_index(irow, jcol, norb, sparsemat)
-      implicit none
-    
-      ! Calling arguments
-      integer,intent(in) :: irow, jcol, norb
-      type(sparse_matrix),intent(in) :: sparsemat
-      integer :: compressed_index
-    
-      ! Local variables
-      integer :: ii, iseg
-    
-      ii=(jcol-1)*norb+irow
-    
-      iseg=sparsemat%istsegline(jcol)
-      do
-          if (ii>=sparsemat%keyg(1,iseg) .and. ii<=sparsemat%keyg(2,iseg)) then
-              ! The matrix element is in this segment
-               compressed_index = sparsemat%keyv(iseg) + ii - sparsemat%keyg(1,iseg)
-              return
-          end if
-          iseg=iseg+1
-          if (iseg>sparsemat%nseg) exit
-          if (ii<sparsemat%keyg(1,iseg)) then
-              compressed_index=0
-              return
-          end if
-      end do
-    
-      ! Not found
-      compressed_index=0
-    
-    end function compressed_index
+    !!!> Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+    !!function compressed_index(irow, jcol, norb, sparsemat)
+    !!  implicit none
+    !!
+    !!  ! Calling arguments
+    !!  integer,intent(in) :: irow, jcol, norb
+    !!  type(sparse_matrix),intent(in) :: sparsemat
+    !!  integer :: compressed_index
+    !!
+    !!  ! Local variables
+    !!  integer :: ii, iseg
+    !!
+    !!  ii=(jcol-1)*norb+irow
+    !!
+    !!  iseg=sparsemat%istsegline(jcol)
+    !!  do
+    !!      if (ii>=sparsemat%keyg(1,iseg) .and. ii<=sparsemat%keyg(2,iseg)) then
+    !!          ! The matrix element is in this segment
+    !!           compressed_index = sparsemat%keyv(iseg) + ii - sparsemat%keyg(1,iseg)
+    !!          return
+    !!      end if
+    !!      iseg=iseg+1
+    !!      if (iseg>sparsemat%nseg) exit
+    !!      if (ii<sparsemat%keyg(1,iseg)) then
+    !!          compressed_index=0
+    !!          return
+    !!      end if
+    !!  end do
+    !!
+    !!  ! Not found
+    !!  compressed_index=0
+    !!
+    !!end function compressed_index
 
 
-    integer function matrixindex_in_compressed(sparsemat, iorb, jorb)
+    integer function matrixindex_in_compressed(sparsemat, iorb, jorb, init_, n_)
       use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
       type(sparse_matrix),intent(in) :: sparsemat
       integer,intent(in) :: iorb, jorb
+      !> The optional arguments should only be used for initialization purposes
+      !! if one is sure what one is doing. Might be removed later.
+      logical,intent(in),optional :: init_
+      integer,intent(in),optional :: n_
     
       ! Local variables
       integer :: ii, ispin, iiorb, jjorb
-      logical :: lispin, ljspin
+      logical :: lispin, ljspin, init
+
+      if (present(init_)) then
+          init = init_
+      else
+          init = .false.
+      end if
+
+      ! Use the built-in function and return, without any check. Can be used for initialization purposes.
+      if (init) then
+          if (.not.present(n_)) stop 'matrixindex_in_compressed: n_ must be present if init_ is true'
+          matrixindex_in_compressed = compressed_index_fn(iorb, jorb, n_, sparsemat)
+          return
+      end if
 
       !ii=(jorb-1)*sparsemat%nfvctr+iorb
       !ispin=(ii-1)/sparsemat%nfvctr**2+1 !integer division to get the spin (1 for spin up (or non polarized), 2 for spin down)
@@ -657,7 +674,8 @@ contains
           !$omp parallel do default(private) shared(sparsemat,norbu) 
           do iorb=1,norbu
              do jorb=1,norbu
-                sparsemat%matrixindex_in_compressed_arr(iorb,jorb)=compressed_index(iorb,jorb,norbu,sparsemat)
+                !sparsemat%matrixindex_in_compressed_arr(iorb,jorb)=compressed_index(iorb,jorb,norbu,sparsemat)
+                sparsemat%matrixindex_in_compressed_arr(iorb,jorb) = matrixindex_in_compressed(sparsemat, iorb, jorb, .true., norbu)
              end do
           end do
           !$omp end parallel do

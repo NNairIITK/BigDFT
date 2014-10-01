@@ -32,7 +32,7 @@ module sparsematrix_base
       integer,dimension(:),pointer :: ivectorindex, nsegline, istsegline, indices_extract_sequential
       integer,dimension(:,:),pointer :: onedimindices, keyg
       integer,dimension(2) :: istartendseg_mm !< starting and ending segments of the matrix subpart which is actually used for the multiplication
-                                              !! WARNING: the essential bounds are given by istartend_mm, the segments are you used to speed up the code
+                                              !! WARNING: the essential bounds are given by istartend_mm, the segments are used to speed up the code
       integer,dimension(2) :: istartend_mm !< starting and ending indices of the matrix subpart which is actually used for the multiplication
       integer,dimension(2) :: istartend_mm_dj !< starting and ending indices of the submatrices (partitioned in disjoint chunks)
   end type sparse_matrix_matrix_multiplication
