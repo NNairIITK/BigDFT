@@ -598,7 +598,9 @@ subroutine foe(iproc, nproc, tmprtr, &
 
           temparr(1) = ebsp
           temparr(2) = ebs_check
-          call mpiallred(temparr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+          if (nproc>1) then
+              call mpiallred(temparr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+          end if
           ebsp = temparr(1)
           ebs_check = temparr(2)
 
@@ -707,7 +709,9 @@ subroutine foe(iproc, nproc, tmprtr, &
           ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
           istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
           ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
-          call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          if (nproc>1) then
+              call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          end if
           ebsp=ebsp/scale_factor+shift_value*sumn
     
     
