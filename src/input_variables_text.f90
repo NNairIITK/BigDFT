@@ -84,7 +84,8 @@ subroutine fragment_input_variables_check(iproc,dump,filename,lin)
   use module_types
   use module_input
   use yaml_output, only: yaml_map
-  use module_input_keys
+  !use module_input_keys
+  use public_keys
   implicit none
   integer, intent(in) :: iproc
   !integer, intent(inout) :: files

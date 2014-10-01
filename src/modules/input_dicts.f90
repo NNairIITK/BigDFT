@@ -30,7 +30,6 @@ module module_input_dicts
   ! Types from dictionaries
   public :: astruct_set_from_dict
   public :: psp_set_from_dict, nlcc_set_from_dict
-  public :: atomic_data_set_from_dict
   public :: occupation_set_from_dict
   public :: neb_set_from_dict
 
@@ -133,7 +132,7 @@ contains
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
     use module_defs, only: mpi_environment
     use module_interfaces, only: read_input_dict_from_files
-    use module_input_keys, only: POSINP,IG_OCCUPATION
+    use public_keys, only: POSINP,IG_OCCUPATION
     use yaml_output
     implicit none
     !Arguments
@@ -679,7 +678,7 @@ contains
     use dictionaries
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
     use yaml_output, only: yaml_warning
-    use module_input_keys, only: POSINP
+    use public_keys, only: POSINP
     implicit none
     type(dictionary), pointer :: dict
 
@@ -852,7 +851,7 @@ contains
         & BIGDFT_INPUT_FILE_ERROR, BIGDFT_INPUT_VARIABLES_ERROR,f_free_ptr
     use module_atoms, only: set_astruct_from_file,atomic_structure,&
          nullify_atomic_structure,deallocate_atomic_structure,astruct_merge_to_dict
-    use module_input_keys, only: POSINP,RADICAL_NAME
+    use public_keys, only: POSINP,RADICAL_NAME
     use dictionaries
     use yaml_strings
     implicit none
@@ -1117,71 +1116,6 @@ contains
     end do
   end subroutine aocc_to_dict
 
-
-  subroutine atomic_data_set_from_dict(dict, key, atoms, nspin)
-    use module_defs, only: gp
-    use ao_inguess, only: ao_ig_charge,atomic_info,aoig_set_from_dict,&
-         print_eleconf,aoig_set
-    use module_types, only: atoms_data
-    use dictionaries
-!    use dynamic_memory
-    use yaml_output, only: yaml_warning, yaml_toa
-    implicit none
-    type(dictionary), pointer :: dict
-    type(atoms_data), intent(inout) :: atoms
-    character(len = *), intent(in) :: key
-    integer, intent(in) :: nspin
-
-    integer :: iat, ityp
-    real(gp) :: rcov,elec!,rprb,ehomo,elec
-    character(len = max_field_length) :: at
-    type(dictionary), pointer :: dict_tmp
-
-    do ityp = 1, atoms%astruct%ntypes, 1
-       !only amu and rcov are extracted here
-       call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),&
-            amu=atoms%amu(ityp),rcov=rcov)
-!       atoms%rloc(ityp,:) = rcov * 10.0
-
-       do iat = 1, atoms%astruct%nat, 1
-          if (atoms%astruct%iatype(iat) /= ityp) cycle
-
-          !fill the atomic IG configuration from the input_polarization
-          atoms%aoig(iat)=aoig_set(atoms%nzatom(ityp),atoms%nelpsp(ityp),&
-               atoms%astruct%input_polarization(iat),nspin)
-
-          ! Possible overwrite, if the dictionary has the item
-          if (has_key(dict, key)) then
-             nullify(dict_tmp)
-             at(1:len(at))="Atom "//trim(adjustl(yaml_toa(iat)))
-             if (has_key(dict // key,trim(at))) &
-                  dict_tmp=>dict//key//trim(at)
-             if (has_key(dict // key, trim(atoms%astruct%atomnames(ityp)))) &
-                  dict_tmp=>dict // key // trim(atoms%astruct%atomnames(ityp))
-             if (associated(dict_tmp)) then
-                atoms%aoig(iat)=aoig_set_from_dict(dict_tmp,nspin)
-                !check the total number of electrons
-                elec=ao_ig_charge(nspin,atoms%aoig(iat)%aocc)
-                if (nint(elec) /= atoms%nelpsp(ityp)) then
-                   call print_eleconf(nspin,atoms%aoig(iat)%aocc,atoms%aoig(iat)%nl_sc)
-                   call yaml_warning('The total atomic charge '//trim(yaml_toa(elec))//&
-                        ' is different from the PSP charge '//trim(yaml_toa(atoms%nelpsp(ityp))))
-                end if
-             end if
-          end if
-       end do
-
-    end do
-
-    !number of atoms with semicore channels
-    atoms%natsc = 0
-    do iat=1,atoms%astruct%nat
-       if (atoms%aoig(iat)%nao_sc /= 0) atoms%natsc=atoms%natsc+1
-       !if (atoms%aoig(iat)%iasctype /= 0) atoms%natsc=atoms%natsc+1
-    enddo
-  end subroutine atomic_data_set_from_dict
-  
-!!$
 
   subroutine occupation_set_from_dict(dict, key, norbu, norbd, occup, &
        & nkpts, nspin, norbsempty, nelec_up, nelec_down, norb_max)
@@ -1453,7 +1387,8 @@ contains
        & cv, tol, ds_, kmin, kmax, temp_, damp_, meth)
     use module_defs, only: gp
     use dictionaries
-    use module_input_keys
+    !use module_input_keys
+    use public_keys
     use yaml_output
     implicit none
     type(dictionary), pointer :: dict

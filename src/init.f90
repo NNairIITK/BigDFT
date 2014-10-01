@@ -2213,6 +2213,7 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
   use yaml_output
   use module_fragments
   use module_interfaces, except_this_one=>input_check_psi_id
+  use dictionaries, only: f_err_throw
   implicit none
   integer, intent(out) :: input_wf_format         !< (out) Format of WF
   integer, intent(inout) :: inputpsi              !< (in) indicate how check input psi, (out) give how to build psi
@@ -2272,7 +2273,9 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
            !if (iproc==0) write(*,*)'*********************************************************************'
            !if (iproc==0) write(*,*)''
            inputpsi=INPUT_PSI_LINEAR_AO
-           ! if one directoy doesn't exist, exit
+           ! if one directory doesn't exist, throw an error than exit
+           if (nfrag > 1) call f_err_throw('Fragment calculation cannot be done without template',&
+                err_name='BIGDFT_INPUT_VARIABLES_ERROR')
            exit
         end if
      end do
