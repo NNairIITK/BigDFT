@@ -360,7 +360,7 @@ subroutine atom_projector(nl, ityp, iat, atomname, &
      if (.not. gaussian_iter_next_shell(nl%proj_G, iter)) exit
      nc = (mbvctr_c+7*mbvctr_f) * (2*iter%l-1) * ncplx_k
      if (istart_c + nc > nl%nprojel+1) stop 'istart_c > nprojel+1'
-     ! Loop on contraction, treat the first gaussian separatly for performence reasons.
+     ! Loop on contraction, treat the first gaussian separatly for performance reasons.
      if (gaussian_iter_next_gaussian(nl%proj_G, iter, coeff, expo)) &
           & call projector(geocode, iat, idir, iter%l, iter%n, coeff, expo, &
           & nl%pspd(iat)%gau_cut, nl%proj_G%rxyz(1, iat), lr%ns1, lr%ns2, lr%ns3, lr%d%n1, lr%d%n2, lr%d%n3, &

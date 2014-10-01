@@ -506,7 +506,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   call f_free(nvctr_per_segment)
 
   collcom_dummy = comms_linear_null()
-  call init_matrix_taskgroups(iproc, nproc, collcom_dummy, collcom_dummy, smat)
+  call init_matrix_taskgroups(iproc, nproc, .false., collcom_dummy, collcom_dummy, smat)
 
   !!! Initialize the parameters for the spare matrix matrix multiplication
   !!call init_sparse_matrix_matrix_multiplication(norb, norbp, isorb, smat%nseg, &

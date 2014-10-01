@@ -6,8 +6,12 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-  integer :: ierror,sizeof
-  integer(kind=8) :: iadd,ilsize
+
+
+  integer :: ierror
+  ! integer :: sizeof
+  integer(kind=8) :: iadd
+  ! integer(kind=8) :: ilsize
   !$ logical :: not_omp
   !$ logical, external :: omp_in_parallel,omp_get_nested
 

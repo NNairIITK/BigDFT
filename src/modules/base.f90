@@ -16,6 +16,7 @@ module module_base
   use dictionaries, dict_set => set !error_handling
   use dynamic_memory
   use time_profiling
+  use f_utils
   !use memory_profiling, only: memocc,ndebug
   implicit none  
 end module module_base

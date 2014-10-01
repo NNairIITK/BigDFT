@@ -162,7 +162,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
        end if
     
        if (nproc > 1) then
-          call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
+          !call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
           call mpiallred(checksum(1,1),2*orbs%norb*orbs%nspinor,MPI_SUM,bigdft_mpi%mpi_comm)
        end if
     
@@ -874,10 +874,16 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                   ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
                   !!call mpi_iallreduce(ovrlp%matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
                   !!     mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
-                  call mpiiallred(ovrlp%matrix_compr(ishift+ist_send), recvbuf(ist_recv), ncount, &
-                       mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg))
+                  if (nproc>1) then
+                      call mpiiallred(ovrlp%matrix_compr(ishift+ist_send), recvbuf(ist_recv), ncount, &
+                           mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg))
+                  else
+                      call vcopy(ncount, ovrlp%matrix_compr(ishift+ist_send), 1, recvbuf(ist_recv), 1)
+                  end if
               end do
-              call mpiwaitall(smat%ntaskgroupp, request)
+              if (nproc>1) then
+                  call mpiwaitall(smat%ntaskgroupp, request)
+              end if
               ncount = 0
               do itg=1,smat%ntaskgroupp
                   iitg = smat%inwhichtaskgroup(itg)

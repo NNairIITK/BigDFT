@@ -798,7 +798,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
   real(kind=8),dimension(:),pointer :: matrix_local
   integer,parameter :: ALLGATHERV=51, GET=52, GLOBAL_MATRIX=101, SUBMATRIX=102
   integer,parameter :: comm_strategy=GET
-  integer,parameter :: data_strategy=GLOBAL_MATRIX
+  integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
 
       call f_routine(id='build_gradient')
       call timing(iproc,'buildgrad_mcpy','ON')

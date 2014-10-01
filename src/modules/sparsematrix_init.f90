@@ -389,7 +389,9 @@ contains
 
       istartend_mm = f_malloc0((/1.to.2,0.to.nproc-1/),id='istartend_mm')
       istartend_mm(1:2,iproc) = sparsemat%smmm%istartend_mm(1:2)
-      call mpiallred(istartend_mm(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc>1) then
+          call mpiallred(istartend_mm(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
 
       ! Partition the entire matrix in disjoint submatrices
       istartend_dj = f_malloc((/1.to.2,0.to.nproc-1/),id='istartend_dj')
@@ -407,8 +409,8 @@ contains
           istartend_dj(2,jproc-1) = istartend_dj(1,jproc)-1
       end do
       istartend_dj(2,nproc-1) = istartend_mm(2,nproc-1)
-      if (iproc==0) write(*,'(a,100(2i7,3x))') 'istartend_mm',istartend_mm
-      if (iproc==0) write(*,'(a,100(2i7,3x))') 'istartend_dj',istartend_dj
+      !if (iproc==0) write(*,'(a,100(2i7,3x))') 'istartend_mm',istartend_mm
+      !if (iproc==0) write(*,'(a,100(2i7,3x))') 'istartend_dj',istartend_dj
 
       ! Some checks
       if (istartend_dj(1,0)/=1) stop 'istartend_dj(1,0)/=1'
@@ -1057,7 +1059,7 @@ contains
     end subroutine init_matrix_parallelization
 
 
-    subroutine init_matrix_taskgroups(iproc, nproc, collcom, collcom_sr, smat)
+    subroutine init_matrix_taskgroups(iproc, nproc, parallel_layout, collcom, collcom_sr, smat)
       use module_base
       use module_types
       use communications_base, only: comms_linear
@@ -1066,6 +1068,7 @@ contains
 
       ! Caling arguments
       integer,intent(in) :: iproc, nproc
+      logical,intent(in) :: parallel_layout
       type(comms_linear),intent(in) :: collcom, collcom_sr
       type(sparse_matrix),intent(inout) :: smat
 
@@ -1073,7 +1076,7 @@ contains
       integer :: ipt, ii, i0, i0i, iiorb, j, i0j, jjorb, ind, ind_min, ind_max, iseq
       integer :: ntaskgroups, jproc, jstart, jend, kkproc, kproc, itaskgroups, lproc, llproc
       integer :: nfvctrp, isfvctr, isegstart, isegend, jorb
-      integer,dimension(:,:),allocatable :: iuse_startend, icalc_startend, itaskgroups_startend, ranks
+      integer,dimension(:,:),allocatable :: iuse_startend, itaskgroups_startend, ranks
       integer,dimension(:),allocatable :: tasks_per_taskgroup
       integer :: ntaskgrp_calc, ntaskgrp_use, i, ncount, iitaskgroup, group, ierr, iitaskgroups, newgroup, iseg
       logical :: go_on
@@ -1081,117 +1084,41 @@ contains
 
       call f_routine(id='init_matrix_taskgroups')
 
-      !@NEW ###############################################
-      icalc_startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='icalc_startend')
+      ! First determine the minimal and maximal value oft the matrix which is used by each process
       iuse_startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='iuse_startend')
-      ind_min = 1000000000
-      ind_max = -1000000000
-      do ipt=1,collcom%nptsp_c
-          ii=collcom%norb_per_gridpoint_c(ipt)
-          i0 = collcom%isptsp_c(ipt)
-          do i=1,ii
-              i0i=i0+i
-              iiorb=collcom%indexrecvorbital_c(i0i)
-              do j=1,ii
-                  i0j=i0+j
-                  jjorb=collcom%indexrecvorbital_c(i0j)
-                  ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  ind_min = min(ind_min,ind)
-                  ind_max = max(ind_max,ind)
-              end do
-          end do
-      end do
-      do ipt=1,collcom%nptsp_f
-          ii=collcom%norb_per_gridpoint_f(ipt)
-          i0 = collcom%isptsp_f(ipt)
-          do i=1,ii
-              i0i=i0+i
-              iiorb=collcom%indexrecvorbital_f(i0i)
-              do j=1,ii
-                  i0j=i0+j
-                  jjorb=collcom%indexrecvorbital_f(i0j)
-                  ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  ind_min = min(ind_min,ind)
-                  ind_max = max(ind_max,ind)
-              end do
-          end do
-      end do
-
-      ! This corresponds to the values for the transposed operation bounds
-      smat%istartend_t(1) = ind_min
-      smat%istartend_t(1) = ind_max
-      ! Determine to which segments this corresponds
-      do iseg=1,smat%nseg
-          if (smat%keyv(iseg)>=smat%smmm%istartend_mm(1)) then
-              smat%istartendseg_t(1)=iseg
-              exit
-          end if
-      end do
-      do iseg=smat%nseg,1,-1
-          if (smat%keyv(iseg)<=smat%smmm%istartend_mm(2)) then
-              smat%istartendseg_t(2)=iseg
-              exit
-          end if
-      end do
-
-      ! The compress_distributed 
-      do i=1,2
-          if (i==1) then
-              nfvctrp = smat%nfvctrp
-              isfvctr = smat%isfvctr
-          else if (i==2) then
-              nfvctrp = smat%smmm%nfvctrp
-              isfvctr = smat%smmm%isfvctr
-          end if
-          if (nfvctrp>0) then
-              isegstart=smat%istsegline(isfvctr+1)
-              isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
-              do iseg=isegstart,isegend
-                  ii=smat%keyv(iseg)-1
-                  do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
-                      ii=ii+1
-                      ind_min = min(ii,ind_min)
-                      ind_max = min(ii,ind_max)
-                  end do
-              end do
-          end if
-      end do
-      icalc_startend(1,iproc) = ind_min
-      icalc_startend(2,iproc) = ind_max
 
 
+      if (parallel_layout) then
+          ! The matrices can be parallelized
 
+          ind_min = smat%nvctr
+          ind_max = 0
 
-      !!!write(*,*) 'CALC: iproc, ind_min, ind_max', iproc, ind_min, ind_max
-      !!ind_min = 1000000000
-      !!ind_max = -1000000000
-      ! Thematrix matrix multiplications
-      do iseq=1,smat%smmm%nseq
-          ind=smat%smmm%indices_extract_sequential(iseq)
-          ind_min = min(ind_min,ind)
-          ind_max = max(ind_max,ind)
-      end do
+          ! The operations done in the transposed wavefunction layout
+          call check_transposed_layout()
 
-      ! The sumrho operation
-      do ipt=1,collcom_sr%nptsp_c
-          ii=collcom_sr%norb_per_gridpoint_c(ipt)
-          i0=collcom_sr%isptsp_c(ipt)
-          do i=1,ii
-              iiorb=collcom_sr%indexrecvorbital_c(i0+i)
-              ind=smat%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
-              ind_min = min(ind_min,ind)
-              ind_max = max(ind_max,ind)
-          end do
-      end do
+          ! Now check the compress_distributed layout
+          call check_compress_distributed_layout()
 
-      !write(*,*) 'USE: iproc, ind_min, ind_max', iproc, ind_min, ind_max
+          ! Now check the matrix matrix multiplications layout
+          call check_matmul_layout()
+
+          ! Now check the sumrho operations
+          call check_sumrho_layout()
+      else
+          ! The matrices can not be parallelized
+          ind_min = 1
+          ind_max = smat%nvctr
+      end if
+
+      ! Now the minimal and maximla values are known
       iuse_startend(1,iproc) = ind_min
       iuse_startend(2,iproc) = ind_max
-      call mpiallred(icalc_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
-      call mpiallred(iuse_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc>1) then
+          call mpiallred(iuse_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
  
       !if (iproc==0) write(*,'(a,100(2i7,4x))') 'iuse_startend',iuse_startend
-      !if (iproc==0) write(*,'(a,100(2i7,4x))') 'icalc_startend',icalc_startend
  
       ntaskgroups = 1
       llproc=0
@@ -1203,14 +1130,7 @@ contains
           jend = iuse_startend(2,jproc) !end of part used by task jproc
           ii = ii + 1
           !search the last process whose calculation stops prior to iend
-          go_on = .false.
-          !!do kproc=nproc-1,llproc,-1
-          !!    if (icalc_startend(2,kproc)<=jend) then
-                  go_on = .true.
-          !!        exit
-          !!    end if
-          !!end do
-          !if (iproc==0) write(*,*) '1: llproc, ii, jproc, go_on', llproc, ii, jproc, go_on
+          go_on = .true.
           do lproc=nproc-1,0,-1
               if (iuse_startend(1,lproc)<=jend) then
                   !if (iproc==0) write(*,'(a,3i8)') 'lproc, iuse_startend(1,lproc), iuse_startend(2,llproc)', lproc, iuse_startend(1,lproc), iuse_startend(2,llproc)
@@ -1252,13 +1172,7 @@ contains
           jend = iuse_startend(2,jproc) !end of part used by task jproc
           ii = ii + 1
           !search the last process whose calculation stops prior to jend
-          go_on = .false.
-          !!do kproc=nproc-1,llproc,-1
-          !!    if (icalc_startend(2,kproc)<=jend) then
-                  go_on = .true.
-          !!        exit
-          !!    end if
-          !!end do
+          go_on = .true.
           do lproc=nproc-1,0,-1
               if (iuse_startend(1,lproc)<=jend) then
                   if (iuse_startend(1,lproc)<=iuse_startend(2,llproc)) then
@@ -1289,14 +1203,6 @@ contains
  
       ! Assign the processes to the taskgroups
       ntaskgrp_calc = 0
-      !!do itaskgroups=1,ntaskgroups
-      !!    if ( icalc_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
-      !!         icalc_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups) ) then
-      !!         ntaskgrp_calc = ntaskgrp_calc + 1
-      !!        !write(*,'(2(a,i0))') 'CALC: task ',iproc,' is in taskgroup ',itaskgroups
-      !!    end if
-      !!end do
-      !!if (ntaskgrp_calc>2) stop 'ntaskgrp_calc>2'
       ntaskgrp_use = 0
       do itaskgroups=1,ntaskgroups
           if ( iuse_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
@@ -1315,15 +1221,9 @@ contains
 
       i = 0
       do itaskgroups=1,smat%ntaskgroup
-          !!if ( (icalc_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
-          !!      icalc_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups)) .or. &
-          !!     (iuse_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
-          !!      iuse_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups)) ) then
-               i = i + 1
-               smat%taskgroup_startend(1,1,i) = itaskgroups_startend(1,itaskgroups)
-               smat%taskgroup_startend(2,1,i) = itaskgroups_startend(2,itaskgroups)
-               !!smat%inwhichtaskgroup(i) = itaskgroups
-          !!end if
+          i = i + 1
+          smat%taskgroup_startend(1,1,i) = itaskgroups_startend(1,itaskgroups)
+          smat%taskgroup_startend(2,1,i) = itaskgroups_startend(2,itaskgroups)
       end do
       if (i/=smat%ntaskgroup) then
           write(*,*) 'i, smat%ntaskgroup', i, smat%ntaskgroup
@@ -1332,10 +1232,8 @@ contains
 
       i = 0
       do itaskgroups=1,smat%ntaskgroup
-          if ( (icalc_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
-                icalc_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups)) .or. &
-               (iuse_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
-                iuse_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups)) ) then
+          if( iuse_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
+               iuse_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups) ) then
                i = i + 1
                smat%inwhichtaskgroup(i) = itaskgroups
           end if
@@ -1375,7 +1273,9 @@ contains
           iitaskgroup = smat%inwhichtaskgroup(itaskgroups)
           tasks_per_taskgroup(iitaskgroup) = tasks_per_taskgroup(iitaskgroup) + 1
       end do
-      call mpiallred(tasks_per_taskgroup(1), smat%ntaskgroup, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc>1) then
+          call mpiallred(tasks_per_taskgroup(1), smat%ntaskgroup, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
       !if (iproc==0) write(*,'(a,i7,4x,1000i7)') 'iproc, tasks_per_taskgroup', iproc, tasks_per_taskgroup
       call mpi_comm_group(bigdft_mpi%mpi_comm, group, ierr)
 
@@ -1385,7 +1285,9 @@ contains
           iitaskgroups = smat%inwhichtaskgroup(itaskgroups)
           in_taskgroup(iproc,iitaskgroups) = 1
       end do
-      call mpiallred(in_taskgroup(0,1), nproc*smat%ntaskgroup, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc>1) then
+          call mpiallred(in_taskgroup(0,1), nproc*smat%ntaskgroup, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
 
       allocate(smat%mpi_groups(smat%ntaskgroup))
       do itaskgroups=1,smat%ntaskgroup
@@ -1438,11 +1340,9 @@ contains
       call f_free(in_taskgroup)
       call f_free(iuse_startend)
       call f_free(itaskgroups_startend)
-      call f_free(icalc_startend)
       call f_free(tasks_per_taskgroup)
       call f_free(ranks)
 
-      !@END NEW ###########################################
 
 
 
@@ -1450,7 +1350,104 @@ contains
       call f_release_routine()
 
 
-      !!contains
+      contains
+
+        subroutine check_transposed_layout()
+          do ipt=1,collcom%nptsp_c
+              ii=collcom%norb_per_gridpoint_c(ipt)
+              i0 = collcom%isptsp_c(ipt)
+              do i=1,ii
+                  i0i=i0+i
+                  iiorb=collcom%indexrecvorbital_c(i0i)
+                  do j=1,ii
+                      i0j=i0+j
+                      jjorb=collcom%indexrecvorbital_c(i0j)
+                      ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                      ind_min = min(ind_min,ind)
+                      ind_max = max(ind_max,ind)
+                  end do
+              end do
+          end do
+          do ipt=1,collcom%nptsp_f
+              ii=collcom%norb_per_gridpoint_f(ipt)
+              i0 = collcom%isptsp_f(ipt)
+              do i=1,ii
+                  i0i=i0+i
+                  iiorb=collcom%indexrecvorbital_f(i0i)
+                  do j=1,ii
+                      i0j=i0+j
+                      jjorb=collcom%indexrecvorbital_f(i0j)
+                      ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                      ind_min = min(ind_min,ind)
+                      ind_max = max(ind_max,ind)
+                  end do
+              end do
+          end do
+
+          ! Store these values
+          smat%istartend_t(1) = ind_min
+          smat%istartend_t(2) = ind_max
+          ! Determine to which segments this corresponds
+          do iseg=1,smat%nseg
+              if (smat%keyv(iseg)+smat%keyg(2,iseg)-smat%keyg(1,iseg)>=smat%istartend_t(1)) then
+                  smat%istartendseg_t(1)=iseg
+                  exit
+              end if
+          end do
+          do iseg=smat%nseg,1,-1
+              if (smat%keyv(iseg)<=smat%istartend_t(2)) then
+                  smat%istartendseg_t(2)=iseg
+                  exit
+              end if
+          end do
+        end subroutine check_transposed_layout
+
+
+        subroutine check_compress_distributed_layout()
+          do i=1,2
+              if (i==1) then
+                  nfvctrp = smat%nfvctrp
+                  isfvctr = smat%isfvctr
+              else if (i==2) then
+                  nfvctrp = smat%smmm%nfvctrp
+                  isfvctr = smat%smmm%isfvctr
+              end if
+              if (nfvctrp>0) then
+                  isegstart=smat%istsegline(isfvctr+1)
+                  isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
+                  do iseg=isegstart,isegend
+                      ii=smat%keyv(iseg)-1
+                      do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
+                          ii=ii+1
+                          ind_min = min(ii,ind_min)
+                          ind_max = min(ii,ind_max)
+                      end do
+                  end do
+              end if
+          end do
+        end subroutine check_compress_distributed_layout
+
+
+        subroutine check_matmul_layout()
+          do iseq=1,smat%smmm%nseq
+              ind=smat%smmm%indices_extract_sequential(iseq)
+              ind_min = min(ind_min,ind)
+              ind_max = max(ind_max,ind)
+          end do
+        end subroutine check_matmul_layout
+
+        subroutine check_sumrho_layout()
+          do ipt=1,collcom_sr%nptsp_c
+              ii=collcom_sr%norb_per_gridpoint_c(ipt)
+              i0=collcom_sr%isptsp_c(ipt)
+              do i=1,ii
+                  iiorb=collcom_sr%indexrecvorbital_c(i0+i)
+                  ind=smat%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
+                  ind_min = min(ind_min,ind)
+                  ind_max = max(ind_max,ind)
+              end do
+          end do
+        end subroutine check_sumrho_layout
 
 
       !!  function get_start_of_segment(smat, iiseg) result(ist)
