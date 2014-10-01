@@ -562,11 +562,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   ! Allocate all local arrays.
   call allocateLocalArrays()
 
-  write(*,'(a,i7,2es18.7)') 'start getLoc, iproc, sum(psit, psitlarge)', iproc ,&
-             sum(tmb%psit_c)+sum(tmb%psit_f), &
-             sum(tmb%ham_descr%psit_c)+sum(tmb%ham_descr%psit_f)
-  write(*,'(a,i7,2es18.7)') 'start getLoc, iproc, sum(psi, psilarge)', iproc ,&
-             sum(tmb%psi), sum(tmb%ham_descr%psi)
 
   call timing(iproc,'getlocbasinit','ON')
   tmb%can_use_transposed=.false.
@@ -719,13 +714,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
 
 
-      hpsit_c=0.d0
-      hpsit_f=0.d0
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                hpsi_tmp, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
-  write(*,'(a,i7,2es18.7)') 'after transpose, iproc, sum(hpsi_noconf, hpsit)', iproc ,&
-             sum(hpsi_tmp), sum(hpsit_c)+sum(hpsit_f)
           if (method_updatekernel==UPDATE_BY_FOE .or. method_updatekernel==UPDATE_BY_RENORMALIZATION) then
               if (method_updatekernel==UPDATE_BY_FOE) then
                   call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
@@ -805,9 +796,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
       end if
 
-
-  write(*,'(a,i7,2es18.7)') 'before calc_gradient, iproc, sum(hpsi_noconf, hpsit)', iproc ,&
-             sum(hpsi_tmp), sum(hpsit_c)+sum(hpsit_f)
 
 
       ! use hpsi_tmp as temporary array for hpsi_noprecond, even if it is allocated with a larger size

@@ -186,15 +186,10 @@ module communications
       !!    iirecv=iirecv+nrecvcounts(jproc)
       !!end do
     
-      write(*,'(a,i4,4x,100i12)') 'iproc, nsendcounts', iproc, collcom%nsendcounts_c
-      write(*,'(a,i4,4x,100i12)') 'iproc, nsenddspls', iproc, collcom%nsenddspls_c
-      write(*,'(a,i4,4x,100i12)') 'iproc, nrecvcounts', iproc, collcom%nrecvcounts_c
-      write(*,'(a,i4,4x,100i12)') 'iproc, nrecvdspls', iproc, collcom%nrecvdspls_c
-
-      write(*,'(a,i4,4x,100i12)') 'iproc, nsendcounts', iproc, collcom%nsendcounts_f
-      write(*,'(a,i4,4x,100i12)') 'iproc, nsenddspls', iproc, collcom%nsenddspls_f
-      write(*,'(a,i4,4x,100i12)') 'iproc, nrecvcounts', iproc, collcom%nrecvcounts_f
-      write(*,'(a,i4,4x,100i12)') 'iproc, nrecvdspls', iproc, collcom%nrecvdspls_f
+      !write(*,'(a,i4,4x,100i8)') 'iproc, nsendcounts', iproc, nsendcounts
+      !write(*,'(a,i4,4x,100i8)') 'iproc, nsenddspls', iproc, nsenddspls
+      !write(*,'(a,i4,4x,100i8)') 'iproc, nrecvcounts', iproc, nrecvcounts
+      !write(*,'(a,i4,4x,100i8)') 'iproc, nrecvdspls', iproc, nrecvdspls
       
       ! coarse part
       call mpi_alltoallv(psiwork_c, collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, psitwork_c, &
@@ -600,9 +595,6 @@ module communications
       call timing(iproc,'Un-TransSwitch','OF')
     
       call timing(iproc,'Un-TransComm  ','ON')
-
-      write(*,'(a,i7,es16.7)') 'after switch: iproc, sum(psiwork)', &
-               iproc, sum(psiwork_c)+sum(psiwork_f)
       if(nproc>1) then
           call transpose_communicate_psi(iproc, nproc, collcom, psiwork_c, psiwork_f, psitwork_c, psitwork_f)
       else
@@ -610,8 +602,6 @@ module communications
           psitwork_f=psiwork_f
       end if
       call timing(iproc,'Un-TransComm  ','OF')
-      write(*,'(a,i7,es16.7)') 'after transcomm: iproc, sum(psitwork)', &
-               iproc, sum(psitwork_c)+sum(psitwork_f)
     
       call timing(iproc,'Un-TransSwitch','ON')
       call transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
