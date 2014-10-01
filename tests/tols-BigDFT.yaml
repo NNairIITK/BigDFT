@@ -1066,6 +1066,7 @@ O2spin_diag:
  energy: 3.1e-8
  multiplicator for the confinement: 1.4e-6
  D: 1.1e-10
+ kappa: 1.1e-4
 
 O2spin_foe:
  Atomic Forces (Ha/Bohr): 6.7e-10
