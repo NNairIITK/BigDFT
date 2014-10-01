@@ -75,7 +75,7 @@ module wrapper_MPI
 
   interface mpibcast
      module procedure mpibcast_i0,mpibcast_li0,mpibcast_d0
-     module procedure mpibcast_c1,mpibcast_d1,mpibcast_d2
+     module procedure mpibcast_c1,mpibcast_d1,mpibcast_d2,mpibcast_i1
   end interface mpibcast
 
   !> Interface for MPI_ALLGATHERV routine
@@ -122,14 +122,22 @@ contains
   end function mpi_environment_null
 
   subroutine mpi_environment_free(mpi_env)
+    use yaml_strings, only: yaml_toa
+    use dictionaries, only: f_err_throw
     implicit none
     type(mpi_environment), intent(inout) :: mpi_env
     !local variables
     integer :: ierr
 
     if (mpi_env%mpi_comm /= MPI_COMM_WORLD .and. &
-         mpi_env%mpi_comm /= MPI_COMM_NULL) &
-         call MPI_COMM_FREE(mpi_env%mpi_comm,ierr)
+         mpi_env%mpi_comm /= MPI_COMM_NULL) then
+       call MPI_COMM_FREE(mpi_env%mpi_comm,ierr)
+       if (ierr /=0) then
+          call f_err_throw('Problem in MPI_COMM_FREE, ierr:'//&
+               yaml_toa(ierr),err_name='BIGDFT_MPI_ERROR')
+          return
+       end if
+    end if
     mpi_env=mpi_environment_null()
   end subroutine mpi_environment_free
 
@@ -851,6 +859,15 @@ contains
     include 'bcast-decl-arr-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_c1
+
+  subroutine mpibcast_i1(buffer,root,comm,check)
+    use dictionaries, only: f_err_throw
+    use yaml_output !for check=.true.
+    implicit none
+    integer, dimension(:), intent(inout) ::  buffer      
+    include 'bcast-decl-arr-inc.f90'
+    include 'bcast-inc.f90'
+  end subroutine mpibcast_i1
 
   subroutine mpibcast_d1(buffer,root,comm,check)
     use dictionaries, only: f_err_throw

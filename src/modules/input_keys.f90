@@ -590,6 +590,7 @@ contains
     use dynamic_memory
     use module_defs, only: gp, pi_param
     use yaml_output
+    use public_keys
     !use yaml_output
     implicit none
     type(dictionary), pointer :: dict,dict_minimal
@@ -605,7 +606,7 @@ contains
 
     ! Overriding the default for isolated system
     if (POSINP .in. dict) then
-       if (.not.has_key(dict//POSINP,"Cell") .and. .not. has_key(dict//DFT_VARIABLES,DISABLE_SYM)) then
+       if (.not.has_key(dict//POSINP,ASTRUCT_CELL) .and. .not. has_key(dict//DFT_VARIABLES,DISABLE_SYM)) then
           call set(dict // DFT_VARIABLES // DISABLE_SYM,.true.)
        end if
     end if

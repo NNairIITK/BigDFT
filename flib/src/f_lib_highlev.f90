@@ -71,12 +71,14 @@ end subroutine f_dump_possible_errors
 subroutine initialize_flib_errors()
   use dictionaries, only: dictionaries_errors
   use yaml_output, only: yaml_output_errors
+  use f_utils, only: f_utils_errors
   use yaml_parse, only: yaml_parse_errors
   use dynamic_memory, only: dynamic_memory_errors
   use time_profiling, only: timing_errors
   implicit none
 
   call dictionaries_errors()
+  call f_utils_errors()
   call yaml_output_errors()
   !Intilialize the error to parse yaml documents
   call yaml_parse_errors()

@@ -250,20 +250,20 @@ contains
     module_initialized=.true.
   end subroutine yaml_output_errors
 
-  function stream_next_free_unit()
-    integer :: stream_next_free_unit
-    logical :: unit_is_open
-    integer :: ierr
-
-    stream_next_free_unit = 75214
-    unit_is_open = .true.
-    do while (unit_is_open)
-       stream_next_free_unit = stream_next_free_unit + 1
-       inquire(unit=stream_next_free_unit,opened=unit_is_open,iostat=ierr)
-       if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='//trim(yaml_toa(ierr)),&
-            YAML_INVALID)) return
-    end do
-  end function stream_next_free_unit
+!!$  function stream_next_free_unit()
+!!$    integer :: stream_next_free_unit
+!!$    logical :: unit_is_open
+!!$    integer :: ierr
+!!$
+!!$    stream_next_free_unit = 75214
+!!$    unit_is_open = .true.
+!!$    do while (unit_is_open)
+!!$       stream_next_free_unit = stream_next_free_unit + 1
+!!$       inquire(unit=stream_next_free_unit,opened=unit_is_open,iostat=ierr)
+!!$       if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='//trim(yaml_toa(ierr)),&
+!!$            YAML_INVALID)) return
+!!$    end do
+!!$  end function stream_next_free_unit
   
   !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if
   !! The stream has not be initialized.
@@ -296,6 +296,7 @@ contains
   !> Set all the output from now on to the file indicated by stdout
   !! therefore the default stream is now the one indicated by unit
   subroutine yaml_set_stream(unit,filename,istat,tabbing,record_length,position,setdefault)
+    use f_utils, only: f_utils_recl,f_get_free_unit
     implicit none
     integer, optional, intent(in) :: unit              !< File unit specified by the user.(by default 6) Returns a error code if the unit
                                                        !! is not 6 and it has already been opened by the processor
@@ -327,7 +328,7 @@ contains
           if (has_key(stream_files, trim(filename))) then
              unt=stream_files // trim(filename)
           else
-             unt=stream_next_free_unit()
+             unt=f_get_free_unit()!stream_next_free_unit()
           end if
        else
           unt=6
@@ -403,6 +404,20 @@ contains
           end if
        end if
     end do
+
+    !if there is no active streams setdefault cannot be false.
+    !at least open the stdout
+    if (.not. set_default .and. active_streams==0) then
+       !this is equivalent to yaml_set_streams(record_length=92)
+       !assign the unit to the new stream
+       active_streams=active_streams+1
+       !initalize the stream
+       streams(active_streams)=stream_null()
+       streams(active_streams)%unit=6
+       stream_units(active_streams)=6
+       streams(active_streams)%max_record_length=92
+    end if
+
     !assign the unit to the new stream
     active_streams=active_streams+1
     !initalize the stream
@@ -412,9 +427,6 @@ contains
 
     ! set last opened stream as default stream
     if (set_default) default_stream=active_streams
-
-    !set stream non-default attributes
-    streams(active_streams)%unit=unt
 
     if (present(tabbing)) then
        streams(active_streams)%tabref=tabbing
@@ -690,7 +702,12 @@ contains
     do istream=1,active_streams
        unt=stream_units(istream)
        !unit 6 cannot be closed
-       if (unt /= 6) call yaml_close_stream(unit=unt)
+       if (unt /= 6) then
+          call yaml_close_stream(unit=unt)
+          !but its document can be released
+       else
+          call yaml_release_document(unit=unt)
+       end if
     end do
     call dict_free(stream_files)
     stream_units=6
@@ -1026,14 +1043,15 @@ contains
 
 
   !> Write directly a yaml sequence, i.e. en element of a list
-  subroutine yaml_sequence(seqvalue,label,advance,unit)
+  subroutine yaml_sequence(seqvalue,label,advance,unit,padding)
     implicit none
     integer, optional, intent(in) :: unit               !<@copydoc doc::unit
     character(len=*), optional, intent(in) :: label     !<@copydoc doc::label
-    character(len=*), optional, intent(in) :: seqvalue  !< what is this?
+    character(len=*), optional, intent(in) :: seqvalue  !< value of the sequence
     character(len=*), optional, intent(in) :: advance   !<@copydoc doc::advance
+    integer, intent(in), optional :: padding            !<pad the seqvalue with blanks to have more readable output
     !local variables
-    integer :: msg_lgt,unt,strm
+    integer :: msg_lgt,unt,strm,tb,ipos
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -1053,6 +1071,11 @@ contains
     !put the value
     if (present(seqvalue)) &
          call buffer_string(towrite,len(towrite),trim(seqvalue),msg_lgt)
+
+    if (present(padding)) then
+       tb=padding-len_trim(seqvalue)
+       if (tb > 0) call buffer_string(towrite,len(towrite),repeat(' ',tb),msg_lgt)
+    end if
 
     call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=SEQUENCE_ELEM)
   end subroutine yaml_sequence
