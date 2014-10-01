@@ -68,6 +68,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   call f_routine(id='calculate_energy_and_gradient_linear')
 
+
+    call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
+         tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
+    write(*,'(a,i7,es16.7)') 'start calc_gradent, iproc, sum(lagmat)', &
+                   iproc, sum(tmb%linmat%ham_%matrix_compr)
+
   if (target_function==TARGET_FUNCTION_IS_HYBRID) then
       hpsi_conf = f_malloc(tmb%npsidim_orbs,id='hpsi_conf')
       call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
@@ -166,6 +172,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      !!! end if
   end if
 
+    call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
+         tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
+    write(*,'(a,i7,es16.7)') 'after build_gradient, iproc, sum(lagmat)', &
+                   iproc, sum(tmb%linmat%ham_%matrix_compr)
+
   ! WARNING: TO BE CHECKED!!!!
   ! For the non polarized case, a factor of two is already included in the
   ! kernel. Therefore explicitely add this factor for the polarized case 
@@ -198,6 +209,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
           call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
                tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+          write(*,'(a,i8,es15.8)') 'after calc overlap: iproc, sum', &
+              iproc, sum(tmb%linmat%ovrlp_%matrix_compr)
            !write(*,*) 'corr cocontra: sums(ovrlp)', &
            !    sum(tmb%linmat%ovrlp_%matrix_compr(1:tmb%linmat%s%nvctr)), sum(tmb%linmat%ovrlp_%matrix_compr(tmb%linmat%s%nvctr+1:2*tmb%linmat%s%nvctr))
       end if
@@ -208,6 +221,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       ! To this end use ham_.
       call transform_sparse_matrix(tmb%linmat%s, tmb%linmat%m, &
            tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ham_%matrix_compr, 'small_to_large')
+      write(*,'(a,i8,es17.8)') 'before build lincomb: iproc, sum(mat)', &
+              iproc, sum(tmb%linmat%ham_%matrix_compr)
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
            tmb%linmat%m, tmb%linmat%ham_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
 
@@ -252,6 +267,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   !!    end do
   !!end if
 
+  write(*,'(a,i7,2es18.7)') 'before orthoconstraint, iproc, sum(psi, hpsi)', iproc ,&
+             sum(tmb%ham_descr%psit_c)+sum(tmb%ham_descr%psit_f), &
+             sum(hpsit_c)+sum(hpsit_f)
+  write(*,*) 'before orthoconstraint, sum(lagmat)', sum(tmb%linmat%ham_%matrix_compr)
+
   call orthoconstraintNonorthogonal(iproc, nproc, tmb%ham_descr%lzd, &
        tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
        tmb%orbs, tmb%ham_descr%collcom, tmb%orthpar, correction_orthoconstraint, &
@@ -260,6 +280,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        hpsit_c, hpsit_f, tmb%ham_descr%can_use_transposed, &
        overlap_calculated, experimental_mode, norder_taylor, max_inversion_error, &
        tmb%npsidim_orbs, tmb%lzd, hpsi_noprecond)
+
+  write(*,*) 'after orthoconstraint, sum(lagmat)', sum(tmb%linmat%ham_%matrix_compr)
 
   !!if (target_function==TARGET_FUNCTION_IS_ENERGY .and. iproc==0) then
   !!    ist=0
@@ -811,6 +833,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           kernel_compr_tmp = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=SPARSE_FULL,id='kernel_compr_tmp')
           call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
+          write(*,'(a,es16.7)') 'in build_grad: sum(kernel_compr_tmp)', sum(kernel_compr_tmp)
           if (data_strategy==GLOBAL_MATRIX) then
               isegstart = tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+1)
               isegend = tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp) + &
@@ -925,6 +948,8 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
           end do
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+          write(*,'(a,es16.8)') 'in build_grad, before build_lincomb: sum(kernel)', &
+                 sum(tmb%linmat%kernel_%matrix_compr)
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
                tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           ! copy correct kernel back

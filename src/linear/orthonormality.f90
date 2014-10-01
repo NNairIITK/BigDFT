@@ -201,7 +201,12 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
 
   ! Calculate <phi_alpha|g_beta>
+  call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, lagmat, lagmat_)
+  write(*,'(a,i7,es16.7)') 'after calculate lagmat, iproc, sum(lagmat)', &
+         iproc, sum(lagmat_%matrix_compr)
+
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
+
   tmp_mat_compr = sparsematrix_malloc(lagmat,iaction=SPARSE_FULL,id='tmp_mat_compr')
   call vcopy(lagmat%nvctr*lagmat%nspin, lagmat_%matrix_compr(1), 1, tmp_mat_compr(1), 1)
   !!do ispin=1,lagmat%nspin

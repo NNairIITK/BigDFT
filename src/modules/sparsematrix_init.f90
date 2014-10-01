@@ -1084,6 +1084,9 @@ contains
       ! First determine the minimal and maximal value oft the matrix which is used by each process
       iuse_startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='iuse_startend')
 
+      ind_min = smat%nvctr
+      ind_max = 0
+
       ! The operations done in the transposed wavefunction layout
       call check_transposed_layout()
 
@@ -1365,16 +1368,16 @@ contains
 
           ! Store these values
           smat%istartend_t(1) = ind_min
-          smat%istartend_t(1) = ind_max
+          smat%istartend_t(2) = ind_max
           ! Determine to which segments this corresponds
           do iseg=1,smat%nseg
-              if (smat%keyv(iseg)>=smat%smmm%istartend_mm(1)) then
+              if (smat%keyv(iseg)+smat%keyg(2,iseg)-smat%keyg(1,iseg)>=smat%istartend_t(1)) then
                   smat%istartendseg_t(1)=iseg
                   exit
               end if
           end do
           do iseg=smat%nseg,1,-1
-              if (smat%keyv(iseg)<=smat%smmm%istartend_mm(2)) then
+              if (smat%keyv(iseg)<=smat%istartend_t(2)) then
                   smat%istartendseg_t(2)=iseg
                   exit
               end if
