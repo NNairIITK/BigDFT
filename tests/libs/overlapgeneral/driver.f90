@@ -39,7 +39,7 @@ program driver
   integer, dimension(4) :: mpi_info
   character(len=60) :: run_id
   integer,parameter :: ncheck=33
-  integer,dimension(:,:),allocatable :: keyg_tmp
+  !!integer,dimension(:,:),allocatable :: keyg_tmp
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
 
@@ -197,17 +197,17 @@ program driver
 
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
-  keyg_tmp=f_malloc((/2,smat_A%nseg/))
-  do iseg=1,smat_A%nseg
-      iorb=smat_A%keyg(1,iseg)
-      iiorb=mod(iorb-1,norb)+1
-      !!write(*,*) 'iorb, iiorb', iorb, iiorb
-      keyg_tmp(1,iseg)=iiorb
-      iorb=smat_A%keyg(2,iseg)
-      iiorb=mod(iorb-1,norb)+1
-      !!write(*,*) 'iorb, iiorb', iorb, iiorb
-      keyg_tmp(2,iseg)=iiorb
-  end do
+  !!keyg_tmp=f_malloc((/2,smat_A%nseg/))
+  !!do iseg=1,smat_A%nseg
+  !!    iorb=smat_A%keyg(1,iseg)
+  !!    iiorb=mod(iorb-1,norb)+1
+  !!    !!write(*,*) 'iorb, iiorb', iorb, iiorb
+  !!    keyg_tmp(1,iseg)=iiorb
+  !!    iorb=smat_A%keyg(2,iseg)
+  !!    iiorb=mod(iorb-1,norb)+1
+  !!    !!write(*,*) 'iorb, iiorb', iorb, iiorb
+  !!    keyg_tmp(2,iseg)=iiorb
+  !!end do
 
   if (ortho_check) call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norb, 0, ovrlp, smat_A, max_error, mean_error)
   if (ortho_check.and.iproc==0) call yaml_map('max deviation from unity',max_error)
@@ -279,7 +279,7 @@ program driver
 
   if (iproc==0) call yaml_comment('checks finished',hfill='=')
 
-  call f_free(keyg_tmp)
+  !!call f_free(keyg_tmp)
 
   call deallocate_orbitals_data(orbs)
   call deallocate_sparse_matrix(smat_A)
@@ -529,7 +529,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
       smat%istsegline=f_malloc_ptr(norb,id='smat%istsegline')
       nvctr_per_segment=f_malloc(nseg,id='nvctr_per_segment')
       smat%keyv=f_malloc_ptr(nseg,id='smat%keyv')
-      smat%keyg=f_malloc_ptr((/2,nseg/),id='smat%keyg')
+      smat%keyg=f_malloc_ptr((/2,2,nseg/),id='smat%keyg')
       !!smat%matrix_compr=f_malloc_ptr(smat%nvctr,id='smat%matrix_compr')
       !!smat%matrix=f_malloc_ptr((/norb,norb/),id='smat%matrix')
     end subroutine allocate_arrays
@@ -589,7 +589,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
 
 
     function keyg_init() result(keyg)
-      integer,dimension(2,smat%nseg) :: keyg
+      integer,dimension(2,2,smat%nseg) :: keyg
       integer :: jorb, nempty, jseg, jjseg, ii, j, ist, itot, istart, iend, idiag
       integer :: idist_start, idist_end, ilen
       integer,dimension(:),allocatable :: nempty_arr
@@ -676,8 +676,10 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
               jjseg=smat%istsegline(jorb)+jseg-1
               istart=itot+ist
               iend=istart+nvctr_per_segment(jjseg)-1
-              keyg(1,jjseg)=istart
-              keyg(2,jjseg)=iend
+              keyg(1,1,jjseg)=mod(istart-1,smat%nfvctr)+1
+              keyg(2,1,jjseg)=mod(iend-1,smat%nfvctr)+1
+              keyg(1,2,jjseg)=(istart-1)/smat%nfvctr+1
+              keyg(2,2,jjseg)=(iend-1)/smat%nfvctr+1
               ist=ist+nvctr_per_segment(jjseg)
               ist=ist+nempty_arr(jseg)
           end do
@@ -688,7 +690,8 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
       ! Check that the total number is correct
       itot=0
       do jseg=1,smat%nseg
-          ilen=keyg(2,jseg)-keyg(1,jseg)+1
+          ! A segment is always on one line, therefore no double loop
+          ilen=keyg(2,1,jseg)-keyg(1,1,jseg)+1
           if (ilen/=nvctr_per_segment(jseg)) stop 'ilen/=nvctr_per_segment(jseg)'
           if (jseg/=smat%nseg) then
               if (ilen/=(smat%keyv(jseg+1)-smat%keyv(jseg))) stop 'ilen/=(smat%keyv(jseg+1)-smat%keyv(jseg))'
@@ -746,8 +749,9 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
       do iorb=1,norbp
           iiorb=isorb+iorb
           do iseg=1,sparsemat%nsegline(iiorb)
+              ! A segment is always on one line, therefore no double loop
               iiseg=sparsemat%istsegline(iiorb)+iseg-1
-              ilen=sparsemat%keyg(2,iiseg)-sparsemat%keyg(1,iiseg)+1
+              ilen=sparsemat%keyg(2,1,iiseg)-sparsemat%keyg(1,1,iiseg)+1
               nnonzero=nnonzero+ilen
           end do
       end do
@@ -758,10 +762,11 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
       do iorb=1,norbp
           iiorb=isorb+iorb
           do iseg=1,sparsemat%nsegline(iiorb)
+              ! A segment is always on one line, therefore no double loop
               iiseg=sparsemat%istsegline(iiorb)+iseg-1
-              do i=sparsemat%keyg(1,iiseg),sparsemat%keyg(2,iiseg)
+              do i=sparsemat%keyg(1,1,iiseg),sparsemat%keyg(2,1,iiseg)
                   ii=ii+1
-                  nonzero(ii)=i
+                  nonzero(ii)=(sparsemat%keyg(1,2,iiseg)-1)*sparsemat%nfvctr+i
               end do
           end do
       end do
@@ -803,6 +808,7 @@ subroutine write_matrix_compressed(message, smat, mat)
 
   call yaml_sequence_open(trim(message))
   do iseg=1,smat%nseg
+      ! A segment is always on one line, therefore no double loop
       call yaml_sequence(advance='no')
       !ilen=smat%keyg(2,iseg)-smat%keyg(1,iseg)+1
       call yaml_mapping_open(flow=.true.)
@@ -812,14 +818,14 @@ subroutine write_matrix_compressed(message, smat, mat)
       !iend=smat%keyv(iseg)+ilen-1
       !do i=istart,iend
       ii=smat%keyv(iseg)
-      do i=smat%keyg(1,iseg),smat%keyg(2,iseg)
+      do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
           call yaml_newline()
           call yaml_sequence(advance='no')
           call yaml_mapping_open(flow=.true.)
-          irowcol=orb_from_index(smat,i)
+          !irowcol=orb_from_index(smat,i)
           !iorb=orb_from_index(1,i)
           !jorb=orb_from_index(2,i)
-          call yaml_map('coordinates',(/irowcol(2),irowcol(1)/))
+          call yaml_map('coordinates',(/smat%keyg(1,2,iseg),i/))
           call yaml_map('value',mat%matrix_compr(ii))
           call yaml_mapping_close()
           ii=ii+1
@@ -855,11 +861,12 @@ function check_symmetry(norb, smat)
 
   do iseg=1,smat%nseg
       ii=smat%keyv(iseg)
-      do i=smat%keyg(1,iseg),smat%keyg(2,iseg)
-          irowcol=orb_from_index(smat,i)
+      ! A segment is always on one line, therefore no double loop
+      do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+          !irowcol=orb_from_index(smat,i)
           !!iorb=smat%orb_from_index(1,i)
           !!jorb=smat%orb_from_index(2,i)
-          lgrid(irowcol(2),irowcol(1))=.true.
+          lgrid(smat%keyg(1,2,iseg),i)=.true.
           ii=ii+1
       end do
   end do
