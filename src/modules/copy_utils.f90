@@ -95,7 +95,7 @@ module copy_utils
           ncount=(iie1-iis1+1)*(iie2-iis2+1)*(iie3-iis3+1)
           if (ncount>0) then
               array_out = f_malloc_ptr((/iis1.to.iie1,iis2.to.iie2,iis3.to.iie3/),id=id)
-              call vcopy(ncount, array_in(iis1,iis2,iis3), 1, array_out(iis1,iis2,iie3), 1)
+              call vcopy(ncount, array_in(iis1,iis2,iis3), 1, array_out(iis1,iis2,iis3), 1)
           else
               nullify(array_out)
           end if
@@ -182,7 +182,7 @@ module copy_utils
           ncount=(iie1-iis1+1)*(iie2-iis2+1)*(iie3-iis3+1)
           if (ncount>0) then
               array_out = f_malloc_ptr((/iis1.to.iie1,iis2.to.iie2,iis3.to.iie3/),id=id)
-              call vcopy(ncount, array_in(iis1,iis2,iis3), 1, array_out(iis1,iis2,iie3), 1)
+              call vcopy(ncount, array_in(iis1,iis2,iis3), 1, array_out(iis1,iis2,iis3), 1)
           else
               nullify(array_out)
           end if
