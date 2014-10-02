@@ -623,7 +623,8 @@ contains
              read(key(is:is), "(I1)") n
           else
              call f_err_throw('Error in parsing occupation dictionary, the key "'//&
-                  trim(key)//'" is expected to contain a integer inside',&
+                  trim(key)//'" is expected to contain a integer inside.'//&
+                  'The other allowed value is "'//EXTRA_SHELLS_KEY//'".',&
                   err_name='BIGDFT_INPUT_VARIABLES_ERROR')
           end if
           is = is + 1
