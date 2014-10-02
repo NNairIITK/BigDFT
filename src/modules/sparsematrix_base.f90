@@ -30,7 +30,8 @@ module sparsematrix_base
       integer :: isvctr !< modified starting entry of the compressed matrix elements
       integer,dimension(:),pointer :: isvctr_par, nvctr_par !<array that contains the values of nvctrp and isvctr of all MPI tasks
       integer,dimension(:),pointer :: ivectorindex, nsegline, istsegline, indices_extract_sequential
-      integer,dimension(:,:),pointer :: onedimindices, keyg
+      integer,dimension(:,:),pointer :: onedimindices
+      !!integer,dimension(:,:,:),pointer :: keyg
       integer,dimension(2) :: istartendseg_mm !< starting and ending segments of the matrix subpart which is actually used for the multiplication
                                               !! WARNING: the essential bounds are given by istartend_mm, the segments are used to speed up the code
       integer,dimension(2) :: istartend_mm !< starting and ending indices of the matrix subpart which is actually used for the multiplication
@@ -157,7 +158,7 @@ module sparsematrix_base
       nullify(smmm%onedimindices)
       nullify(smmm%nsegline)
       nullify(smmm%istsegline)
-      nullify(smmm%keyg)
+      !!nullify(smmm%keyg)
       nullify(smmm%indices_extract_sequential)
       nullify(smmm%nvctr_par)
       nullify(smmm%isvctr_par)
@@ -202,7 +203,7 @@ module sparsematrix_base
       smmm%onedimindices=f_malloc_ptr((/4,smmm%nout/),id='smmm%onedimindices')
       smmm%nsegline=f_malloc_ptr(norb,id='smmm%nsegline')
       smmm%istsegline=f_malloc_ptr(norb,id='smmm%istsegline')
-      smmm%keyg=f_malloc_ptr((/2,nseg/),id='smmm%istsegline')
+      !!smmm%keyg=f_malloc_ptr((/2,2,nseg/),id='smmm%istsegline')
       smmm%indices_extract_sequential=f_malloc_ptr(smmm%nseq,id='smmm%indices_extract_sequential')
       smmm%nvctr_par=f_malloc_ptr(0.to.nproc-1,id='smmm%nvctr_par')
       smmm%isvctr_par=f_malloc_ptr(0.to.nproc-1,id='smmm%isvctr_par')
@@ -300,7 +301,7 @@ module sparsematrix_base
       call f_free_ptr(smmm%onedimindices)
       call f_free_ptr(smmm%nsegline)
       call f_free_ptr(smmm%istsegline)
-      call f_free_ptr(smmm%keyg)
+      !!call f_free_ptr(smmm%keyg)
       call f_free_ptr(smmm%indices_extract_sequential)
       call f_free_ptr(smmm%nvctr_par)
       call f_free_ptr(smmm%isvctr_par)

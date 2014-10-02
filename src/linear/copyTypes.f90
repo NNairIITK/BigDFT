@@ -1130,7 +1130,7 @@ subroutine copy_sparse_matrix_matrix_multiplication(smmm_in, smmm_out)
   call allocate_and_copy(smmm_in%isvctr_par, smmm_out%isvctr_par, id='smmm_out%isvctr_par')
   call allocate_and_copy(smmm_in%nvctr_par, smmm_out%nvctr_par, id='smmm_out%nvctr_par')
   call allocate_and_copy(smmm_in%onedimindices, smmm_out%onedimindices, id='smmm_out%onedimindices')
-  call allocate_and_copy(smmm_in%keyg, smmm_out%keyg, id='smmm_out%keyg')
+  !!call allocate_and_copy(smmm_in%keyg, smmm_out%keyg, id='smmm_out%keyg')
 end subroutine copy_sparse_matrix_matrix_multiplication
 
 
