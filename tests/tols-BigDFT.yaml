@@ -1052,18 +1052,18 @@ geoptconstrained:
 
 O2spin_diag:
  Atomic Forces (Ha/Bohr): 1.1e-7
- Average noise forces: 6.1e-8
- Clean forces norm (Ha/Bohr): 3.9e-7
- Raw forces norm (Ha/Bohr): 3.9e-7
+ Average noise forces: 7.4e-8
+ Clean forces norm (Ha/Bohr): 7.6e-7
+ Raw forces norm (Ha/Bohr): 7.6e-7
  Orbitals: 2.7e-7
- EH: 1.4e-6
+ EH: 1.5e-6
  EXC: 3.4e-7
- Ekin: 1.4e-6
+ Ekin: 1.7e-6
  Enl: 1.4e-6
- Epot: 1.4e-6
+ Epot: 2.1e-6
  EvXC: 1.4e-6
- Omega: 1.7e-7
- energy: 3.5e-8
+ Omega: 2.0e-7
+ energy: 5.9e-8
  multiplicator for the confinement: 1.4e-6
  D: 1.1e-10
  kappa: 1.1e-4

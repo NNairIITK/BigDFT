@@ -247,8 +247,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           tempmat = sparsematrix_malloc(tmb%linmat%m, iaction=DENSE_MATMUL, id='tempmat')
           call uncompress_matrix_distributed(iproc, tmb%linmat%m, DENSE_MATMUL, &
                tmb%linmat%ham_%matrix_compr(ishiftm+1:ishiftm+tmb%linmat%m%nvctr), tempmat)
-          call vcopy(tmb%linmat%m%nfvctr*tmb%linmat%m%smmm%nfvctrp, tempmat(1,1), 1, &
-               tmb%linmat%ham_%matrix(1,tmb%linmat%m%smmm%isfvctr+1,ispin), 1)
+          if (tmb%linmat%m%smmm%nfvctrp>0) then
+              call vcopy(tmb%linmat%m%nfvctr*tmb%linmat%m%smmm%nfvctrp, tempmat(1,1), 1, &
+                   tmb%linmat%ham_%matrix(1,tmb%linmat%m%smmm%isfvctr+1,ispin), 1)
+          end if
           call f_free(tempmat)
           if (nproc>1) then
               call mpiallred(tmb%linmat%ham_%matrix(1,1,ispin), tmb%linmat%m%nfvctr**2, &
@@ -259,8 +261,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           tempmat = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_MATMUL, id='tempmat')
           call uncompress_matrix_distributed(iproc, tmb%linmat%s, DENSE_MATMUL, &
                tmb%linmat%ovrlp_%matrix_compr(ishifts+1:ishifts+tmb%linmat%s%nvctr), tempmat)
-          call vcopy(tmb%linmat%s%nfvctr*tmb%linmat%s%smmm%nfvctrp, tempmat(1,1), 1, &
-               tmb%linmat%ovrlp_%matrix(1,tmb%linmat%s%smmm%isfvctr+1,ispin), 1)
+          if (tmb%linmat%m%smmm%nfvctrp>0) then
+              call vcopy(tmb%linmat%s%nfvctr*tmb%linmat%s%smmm%nfvctrp, tempmat(1,1), 1, &
+                   tmb%linmat%ovrlp_%matrix(1,tmb%linmat%s%smmm%isfvctr+1,ispin), 1)
+          end if
           call f_free(tempmat)
           if (nproc>1) then
               call mpiallred(tmb%linmat%ovrlp_%matrix(1,1,ispin), tmb%linmat%s%nfvctr**2, &
