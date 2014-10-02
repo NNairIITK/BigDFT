@@ -574,8 +574,8 @@ contains
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, nspin, norb, norbp, isorb, norbu, norbup, isorbu, nnonzero, nnonzero_mult
       logical,intent(in) :: store_index
-      integer,dimension(nnonzero),intent(in) :: nonzero
-      integer,dimension(nnonzero_mult),intent(in) :: nonzero_mult
+      integer,dimension(2,nnonzero),intent(in) :: nonzero
+      integer,dimension(2,nnonzero_mult),intent(in) :: nonzero_mult
       type(sparse_matrix), intent(out) :: sparsemat
       logical,intent(in),optional :: allocate_full_, print_info_
       
@@ -818,18 +818,20 @@ contains
 
           ! Calling arguments
           integer :: nnonzero, iiorb
-          integer,dimension(nnonzero) :: nonzero
+          integer,dimension(2,nnonzero) :: nonzero
 
           ! Local variables
-          integer :: ist, iend, i, jjorb
+          integer(kind=8) :: ist, iend, ind
+          integer :: i, jjorb
 
           lut = .false.
-          ist=(iiorb-1)*norbu+1
-          iend=iiorb*norbu
+          ist = int(iiorb-1,kind=8)*int(norbu,kind=8) + int(1,kind=8)
+          iend = int(iiorb,kind=8)*int(norbu,kind=8)
           do i=1,nnonzero
-              if (nonzero(i)<ist) cycle
-              if (nonzero(i)>iend) exit
-              jjorb=mod(nonzero(i)-1,norbu)+1
+              ind = int(nonzero(2,i)-1,kind=8)*int(norbu,kind=8) + int(nonzero(1,i),kind=8)
+              if (ind<ist) cycle
+              if (ind>iend) exit
+              jjorb=nonzero(1,i)
               lut(jjorb)=.true.
           end do
         end subroutine create_lookup_table
