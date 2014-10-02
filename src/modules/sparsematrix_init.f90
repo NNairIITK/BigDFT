@@ -392,7 +392,7 @@ contains
           ! check that this is not smaller than the beginning of the previous chunk
           ind = max(ind,istartend_dj(1,jproc-1))+1
           ! check that this is not outside the total matrix size (may happen if there are more processes than matrix columns)
-          ind = min(ind,sparsemat%nvctr+1) ! +1 since the length shoulb be 0
+          ind = min(ind,sparsemat%nvctr)
           istartend_dj(1,jproc) = ind
           istartend_dj(2,jproc-1) = istartend_dj(1,jproc)-1
       end do
