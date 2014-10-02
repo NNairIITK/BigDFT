@@ -222,7 +222,7 @@ contains
     type(atomic_structure), intent(inout) :: astruct
     !local variables
     character(len=*), parameter :: subname='deallocate_atomic_structure' !remove
-    integer :: i_stat, i_all
+    !   integer :: i_stat, i_all
 
 
     ! Deallocations for the geometry part.
@@ -853,7 +853,8 @@ subroutine astruct_set_n_types(astruct, ntypes)
   !character(len = *), intent(in) :: subname
   !local variables
   character(len=*), parameter :: subname='astruct_set_n_types' !<remove
-  integer :: i, i_stat
+  ! integer :: i
+  ! integer :: i_stat
 
   astruct%ntypes = ntypes
 
