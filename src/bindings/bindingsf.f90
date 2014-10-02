@@ -1505,7 +1505,8 @@ subroutine optloop_bcast(optloop, iproc)
      rData(3) = optloop%gnrm_startmix
 
      !what is this?
-     !call MPI_BCAST(0, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+     !zero=0
+     !call MPI_BCAST(zero, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
   end if
   call mpibcast(iData,comm=bigdft_mpi%mpi_comm)
   call mpibcast(rData,comm=bigdft_mpi%mpi_comm)

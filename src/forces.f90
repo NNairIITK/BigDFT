@@ -159,7 +159,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
            !here we should call cluster
            call cluster(nproc,iproc,atoms,rst%rxyz_new,radii_cf,energy,energs,fxyz_fake,strten,fnoise,pressure,&
                 rst%KSwfn,rst%tmb,&!psi,rst%Lzd,rst%gaucoeffs,rst%gbd,rst%orbs,&
-                rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,inputs,rst%GPU,infocode)
+                rst%rxyz_old,inputs,rst%GPU,infocode)
 
            !assign the quantity which should be differentiated
            functional(km)=functional_definition(iorb_ref,energy)
@@ -4683,12 +4683,12 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
          ii=0
          spin_loop: do ispin=1,denskern%nspin
             do iseg=1,denskern%nseg
-               do jjorb=denskern%keyg(1,iseg),denskern%keyg(2,iseg)
+               do jjorb=denskern%keyg(1,1,iseg),denskern%keyg(2,1,iseg)
                   ii=ii+1
                   !!iorbout = (jjorb-1)/orbs%norb + 1
                   !!jorb = jjorb - (iorbout-1)*orbs%norb
-                  iorbout = (jjorb-1)/denskern%nfvctr + 1
-                  jorb = jjorb - (iorbout-1)*denskern%nfvctr
+                  iorbout = denskern%keyg(1,2,iseg)
+                  jorb = jjorb
                   !spin shift
                   if (ispin==2) then
                       iorbout = iorbout + denskern%nfvctr

@@ -18,59 +18,42 @@ module sparsematrix_init
 
   !> Public routines
   public :: init_sparse_matrix
-  public :: compressed_index
+  !!public :: compressed_index
   public :: matrixindex_in_compressed
   public :: check_kernel_cutoff
   public :: init_matrix_taskgroups
 
 contains
 
-    !> Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
-    function compressed_index(irow, jcol, norb, sparsemat)
-      implicit none
-    
-      ! Calling arguments
-      integer,intent(in) :: irow, jcol, norb
-      type(sparse_matrix),intent(in) :: sparsemat
-      integer :: compressed_index
-    
-      ! Local variables
-      integer :: ii, iseg
-    
-      ii=(jcol-1)*norb+irow
-    
-      iseg=sparsemat%istsegline(jcol)
-      do
-          if (ii>=sparsemat%keyg(1,iseg) .and. ii<=sparsemat%keyg(2,iseg)) then
-              ! The matrix element is in this segment
-               compressed_index = sparsemat%keyv(iseg) + ii - sparsemat%keyg(1,iseg)
-              return
-          end if
-          iseg=iseg+1
-          if (iseg>sparsemat%nseg) exit
-          if (ii<sparsemat%keyg(1,iseg)) then
-              compressed_index=0
-              return
-          end if
-      end do
-    
-      ! Not found
-      compressed_index=0
-    
-    end function compressed_index
 
-
-    integer function matrixindex_in_compressed(sparsemat, iorb, jorb)
+    integer function matrixindex_in_compressed(sparsemat, iorb, jorb, init_, n_)
       use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
       type(sparse_matrix),intent(in) :: sparsemat
       integer,intent(in) :: iorb, jorb
+      !> The optional arguments should only be used for initialization purposes
+      !! if one is sure what one is doing. Might be removed later.
+      logical,intent(in),optional :: init_
+      integer,intent(in),optional :: n_
     
       ! Local variables
       integer :: ii, ispin, iiorb, jjorb
-      logical :: lispin, ljspin
+      logical :: lispin, ljspin, init
+
+      if (present(init_)) then
+          init = init_
+      else
+          init = .false.
+      end if
+
+      ! Use the built-in function and return, without any check. Can be used for initialization purposes.
+      if (init) then
+          if (.not.present(n_)) stop 'matrixindex_in_compressed: n_ must be present if init_ is true'
+          matrixindex_in_compressed = compressed_index_fn(iorb, jorb, n_, sparsemat)
+          return
+      end if
 
       !ii=(jorb-1)*sparsemat%nfvctr+iorb
       !ispin=(ii-1)/sparsemat%nfvctr**2+1 !integer division to get the spin (1 for spin up (or non polarized), 2 for spin down)
@@ -117,20 +100,25 @@ contains
         type(sparse_matrix),intent(in) :: sparsemat
       
         ! Local variables
-        integer :: ii, iseg
+        integer(kind=8) :: ii, istart, iend
+        integer :: iseg
       
-        ii=(jcol-1)*norb+irow
+        ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
       
         iseg=sparsemat%istsegline(jcol)
         do
-            if (ii>=sparsemat%keyg(1,iseg) .and. ii<=sparsemat%keyg(2,iseg)) then
+            istart = int((sparsemat%keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+                     int(sparsemat%keyg(1,1,iseg),kind=8)
+            iend = int((sparsemat%keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+                   int(sparsemat%keyg(2,1,iseg),kind=8)
+            if (ii>=istart .and. ii<=iend) then
                 ! The matrix element is in sparsemat segment
-                 compressed_index_fn = sparsemat%keyv(iseg) + ii - sparsemat%keyg(1,iseg)
+                 compressed_index_fn = sparsemat%keyv(iseg) + int(ii-istart,kind=4)
                 return
             end if
             iseg=iseg+1
             if (iseg>sparsemat%nseg) exit
-            if (ii<sparsemat%keyg(1,iseg)) then
+            if (ii<istart) then
                 compressed_index_fn=0
                 return
             end if
@@ -347,7 +335,7 @@ contains
       sparsemat%smmm%nseg=nseg
       call vcopy(norb, nsegline(1), 1, sparsemat%smmm%nsegline(1), 1)
       call vcopy(norb, istsegline(1), 1, sparsemat%smmm%istsegline(1), 1)
-      call vcopy(2*nseg, keyg(1,1), 1, sparsemat%smmm%keyg(1,1), 1)
+      !!call vcopy(2*nseg, keyg(1,1), 1, sparsemat%smmm%keyg(1,1), 1)
       call init_onedimindices_new(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
            nsegline, istsegline, keyg, &
            sparsemat, sparsemat%smmm%nout, sparsemat%smmm%onedimindices)
@@ -404,7 +392,7 @@ contains
           ! check that this is not smaller than the beginning of the previous chunk
           ind = max(ind,istartend_dj(1,jproc-1))+1
           ! check that this is not outside the total matrix size (may happen if there are more processes than matrix columns)
-          ind = min(ind,sparsemat%nvctr+1) ! +1 since the length shoulb be 0
+          ind = min(ind,sparsemat%nvctr)
           istartend_dj(1,jproc) = ind
           istartend_dj(2,jproc-1) = istartend_dj(1,jproc)-1
       end do
@@ -485,6 +473,56 @@ contains
       integer,intent(in) :: norb, nseg, iline, istseg
       logical,dimension(norb),intent(in) :: lut
       integer,intent(inout) :: ivctr
+      integer,dimension(2,2,nseg),intent(out) :: keyg
+      
+      ! Local variables
+      integer :: iseg, jorb, ijorb
+      logical :: segment_started, overlap
+
+      ! Always start a new segment for each line
+      segment_started=.false.
+      !iseg=sparsemat%istsegline(iline)-1
+      iseg=istseg-1
+      do jorb=1,norb
+          overlap=lut(jorb)
+          ijorb=(iline-1)*norb+jorb
+          if (overlap) then
+              if (segment_started) then
+                  ! there is no "hole" in between, i.e. we are in the same segment
+                  ivctr=ivctr+1
+              else
+                  ! there was a "hole" in between, i.e. we are in a new segment.
+                  iseg=iseg+1
+                  ivctr=ivctr+1
+                  ! open the current segment
+                  keyg(1,1,iseg)=jorb
+                  keyg(1,2,iseg)=iline
+              end if
+              segment_started=.true.
+          else
+              if (segment_started) then
+                  ! close the previous segment
+                  keyg(2,1,iseg)=jorb-1
+                  keyg(2,2,iseg)=iline
+              end if
+              segment_started=.false.
+          end if
+      end do
+      ! close the last segment on the line if necessary
+      if (segment_started) then
+          keyg(2,1,iseg)=norb
+          keyg(2,2,iseg)=iline
+      end if
+    end subroutine keyg_per_line
+
+
+    subroutine keyg_per_line_old(norb, nseg, iline, istseg, lut, ivctr, keyg)
+      implicit none
+      
+      ! Calling arguments
+      integer,intent(in) :: norb, nseg, iline, istseg
+      logical,dimension(norb),intent(in) :: lut
+      integer,intent(inout) :: ivctr
       integer,dimension(2,nseg),intent(out) :: keyg
       
       ! Local variables
@@ -522,7 +560,7 @@ contains
       if (segment_started) then
           keyg(2,iseg)=iline*norb
       end if
-    end subroutine keyg_per_line
+    end subroutine keyg_per_line_old
 
 
 
@@ -636,14 +674,15 @@ contains
           stop
       end if
       if (nproc>1) then
-          call mpiallred(sparsemat%keyg(1,1), 2*sparsemat%nseg, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(sparsemat%keyg(1,1,1), 2*2*sparsemat%nseg, mpi_sum, bigdft_mpi%mpi_comm)
       end if
 
 
       ! start of the segments
       sparsemat%keyv(1)=1
       do iseg=2,sparsemat%nseg
-          sparsemat%keyv(iseg) = sparsemat%keyv(iseg-1) + sparsemat%keyg(2,iseg-1) - sparsemat%keyg(1,iseg-1) + 1
+          ! A segment is always on one line, therefore no double loop
+          sparsemat%keyv(iseg) = sparsemat%keyv(iseg-1) + sparsemat%keyg(2,1,iseg-1) - sparsemat%keyg(1,1,iseg-1) + 1
       end do
 
     
@@ -657,7 +696,8 @@ contains
           !$omp parallel do default(private) shared(sparsemat,norbu) 
           do iorb=1,norbu
              do jorb=1,norbu
-                sparsemat%matrixindex_in_compressed_arr(iorb,jorb)=compressed_index(iorb,jorb,norbu,sparsemat)
+                !sparsemat%matrixindex_in_compressed_arr(iorb,jorb)=compressed_index(iorb,jorb,norbu,sparsemat)
+                sparsemat%matrixindex_in_compressed_arr(iorb,jorb) = matrixindex_in_compressed(sparsemat, iorb, jorb, .true., norbu)
              end do
           end do
           !$omp end parallel do
@@ -739,7 +779,7 @@ contains
       do iorb=1,norbup
          iiorb=isorbu+iorb
          call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb)
-         call keyg_per_line(norbu, nseg_mult, iiorb, istsegline_mult(iiorb), &
+         call keyg_per_line_old(norbu, nseg_mult, iiorb, istsegline_mult(iiorb), &
               lut, ivctr_mult, keyg_mult)
       end do
       ! check whether the number of elements agrees
@@ -843,7 +883,8 @@ contains
               iend=mod(iend-1,norb)+1
               do iorb=istart,iend
                   do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
-                      do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
+                      ! A segment is always on one line, therefore no double loop
+                      do jorb = sparsemat%keyg(1,1,jseg),sparsemat%keyg(2,1,jseg)
                           nseq=nseq+1
                           nseqline=nseqline+1
                       end do
@@ -919,7 +960,8 @@ contains
                   onedimindices(2,ii)=iorb
                   ilen=0
                   do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
-                      ilen=ilen+sparsemat%keyg(2,jseg)-sparsemat%keyg(1,jseg)+1
+                      ! A segment is always on one line, therefore no double loop
+                      ilen=ilen+sparsemat%keyg(2,1,jseg)-sparsemat%keyg(1,1,jseg)+1
                   end do
                   onedimindices(3,ii)=ilen
                   onedimindices(4,ii)=itot
@@ -962,8 +1004,9 @@ contains
               do iorb=istart,iend
                   !!istindexarr(iorb-istart+1,iseg,i)=ii
                   do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
-                      do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
-                          jjorb = jorb - (iorb-1)*norb
+                      ! A segment is always on one line, therefore no double loop
+                      do jorb = sparsemat%keyg(1,1,jseg),sparsemat%keyg(2,1,jseg)
+                          jjorb = jorb
                           ivectorindex(ii)=jjorb
                           ii = ii+1
                       end do
@@ -1005,8 +1048,9 @@ contains
               iend=mod(iend-1,norb)+1
               do iorb=istart,iend
                   do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
+                      ! A segment is always on one line, therefore no double loop
                       jj=1
-                      do jorb = sparsemat%keyg(1,jseg),sparsemat%keyg(2,jseg)
+                      do jorb = sparsemat%keyg(1,1,jseg),sparsemat%keyg(2,1,jseg)
                           indices_extract_sequential(ii)=sparsemat%keyv(jseg)+jj-1
                           jj = jj+1
                           ii = ii+1
@@ -1389,7 +1433,8 @@ contains
           smat%istartend_t(2) = ind_max
           ! Determine to which segments this corresponds
           do iseg=1,smat%nseg
-              if (smat%keyv(iseg)+smat%keyg(2,iseg)-smat%keyg(1,iseg)>=smat%istartend_t(1)) then
+              ! A segment is always on one line
+              if (smat%keyv(iseg)+smat%keyg(2,1,iseg)-smat%keyg(1,1,iseg)>=smat%istartend_t(1)) then
                   smat%istartendseg_t(1)=iseg
                   exit
               end if
@@ -1417,7 +1462,8 @@ contains
                   isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
                   do iseg=isegstart,isegend
                       ii=smat%keyv(iseg)-1
-                      do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
+                      ! A segment is always on one line, therefore no double loop
+                      do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
                           ii=ii+1
                           ind_min = min(ii,ind_min)
                           ind_max = min(ii,ind_max)

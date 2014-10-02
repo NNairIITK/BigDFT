@@ -592,8 +592,8 @@ fructose:
 geopt_foe:
  D eF: 7.1e-6
  D: 1.e-10
- eF: 2.3e-7
- guess for new ef: 2.3e-7
+ eF: 2.4e-7
+ guess for new ef: 2.4e-7
  Epot: 1.1e-10
  EH: 1.1e-10
  Ekin: 1.1e-10
@@ -1051,21 +1051,21 @@ geoptconstrained:
  D Tr: 1.1e-9
 
 O2spin_diag:
- Atomic Forces (Ha/Bohr): 1.1e-7
- Average noise forces: 6.1e-8
- Clean forces norm (Ha/Bohr): 3.9e-7
- Raw forces norm (Ha/Bohr): 3.9e-7
+ Atomic Forces (Ha/Bohr): 1.6e-7
+ Average noise forces: 7.4e-8
+ Clean forces norm (Ha/Bohr): 7.6e-7
+ Raw forces norm (Ha/Bohr): 7.6e-7
  Orbitals: 2.7e-7
- EH: 1.4e-6
+ EH: 1.5e-6
  EXC: 3.4e-7
- Ekin: 1.4e-6
+ Ekin: 1.7e-6
  Enl: 1.4e-6
- Epot: 1.4e-6
+ Epot: 2.1e-6
  EvXC: 1.4e-6
- Omega: 1.7e-7
- energy: 3.1e-8
+ Omega: 2.0e-7
+ energy: 5.9e-8
  multiplicator for the confinement: 1.4e-6
- D: 1.1e-10
+ D: 1.1e-9
  kappa: 1.1e-4
 
 O2spin_foe:
@@ -1105,7 +1105,7 @@ O2spin_dirmin:
  EXC: 5.6e-6
  Ekin: 6.6e-6
  Enl: 1.9e-7
- Epot: 8.3e-6
+ Epot: 9.0e-6
  EvXC: 6.0e-6
  energydiff: 6.0e-6
  energy: 7.0e-7

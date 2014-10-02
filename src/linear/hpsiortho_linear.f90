@@ -824,9 +824,9 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
                   !$omp do
                   do iseg=isegstart,isegend
                       ii=tmb%linmat%l%keyv(iseg)
-                      do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
-                          irowcol = orb_from_index(tmb%linmat%l, i)
-                          if(irowcol(1)==irowcol(2)) then
+                      ! A segment is always on one line, therefore no double loop
+                      do i=tmb%linmat%l%keyg(1,1,iseg),tmb%linmat%l%keyg(2,1,iseg)
+                          if(i==tmb%linmat%l%keyg(1,2,iseg)) then
                               matrix_local(ii-tmb%linmat%l%isvctr)=0.d0
                           else
                               matrix_local(ii-tmb%linmat%l%isvctr)=kernel_compr_tmp(ii+ishift)
@@ -875,9 +875,9 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
                   !$omp do
                   do iseg=tmb%linmat%l%istartendseg_t(1),tmb%linmat%l%istartendseg_t(2)
                       ii=tmb%linmat%l%keyv(iseg)
-                      do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg) !this is too much, but for the moment ok
-                          irowcol = orb_from_index(tmb%linmat%l, i)
-                          if(irowcol(1)==irowcol(2)) then
+                      ! A segment is always on one line, therefore no double loop
+                      do i=tmb%linmat%l%keyg(1,1,iseg),tmb%linmat%l%keyg(2,1,iseg) !this is too much, but for the moment ok
+                          if(i==tmb%linmat%l%keyg(1,2,iseg)) then
                               tmb%linmat%kernel_%matrix_compr(ii+ishift)=0.d0
                           else
                               tmb%linmat%kernel_%matrix_compr(ii+ishift)=kernel_compr_tmp(ii+ishift)
@@ -909,11 +909,10 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
               do iseg=isegstart,isegend
               !do iseg=1, tmb%linmat%l%nseg
                   ii=tmb%linmat%l%keyv(iseg)
-                  do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
-                      irowcol = orb_from_index(tmb%linmat%l, i)
-                      if (irowcol(2)/=iiorb) stop 'irowcol(2)/=iiorb'
-                      !if(irowcol(1)==irowcol(2) .and. irowcol(1)==iiorb) then
-                      if(irowcol(1)==irowcol(2)) then
+                  ! A segment is always on one line, therefore no double loop
+                  do i=tmb%linmat%l%keyg(1,1,iseg),tmb%linmat%l%keyg(2,1,iseg)
+                      if (tmb%linmat%l%keyg(1,2,iseg)/=iiorb) stop 'tmb%linmat%l%keyg(1,2,iseg)/=iiorb'
+                      if(i==tmb%linmat%l%keyg(1,2,iseg)) then
                           ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
                           !write(*,*) 'iorb, ii, ishift, ist', iorb, ii, ishift, ist
                           call dscal(ncount, kernel_compr_tmp(ii+ishift), tmb%hpsi(ist), 1)

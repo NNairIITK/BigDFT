@@ -204,23 +204,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
   tmp_mat_compr = sparsematrix_malloc(lagmat,iaction=SPARSE_FULL,id='tmp_mat_compr')
   call vcopy(lagmat%nvctr*lagmat%nspin, lagmat_%matrix_compr(1), 1, tmp_mat_compr(1), 1)
-  !!do ispin=1,lagmat%nspin
-  !!    ishift=(ispin-1)*lagmat%nvctr
-  !!    do iseg=1,lagmat%nseg
-  !!        ii=lagmat%keyv(iseg)
-  !!        do i=lagmat%keyg(1,iseg),lagmat%keyg(2,iseg)
-  !!           !iorb = lagmat%orb_from_index(1,ii)
-  !!           !jorb = lagmat%orb_from_index(2,ii)
-  !!           irowcol = orb_from_index(lagmat, i)
-  !!           ii_trans=matrixindex_in_compressed(lagmat,irowcol(2),irowcol(1))
-  !!           lagmat_%matrix_compr(ii+ishift) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
-  !!           !if (iorb==jorb) then
-  !!           !    orbs%eval(iorb)=lagmat_%matrix_compr(ii)
-  !!           !end if
-  !!           ii=ii+1
-  !!        end do
-  !!    end do
-  !!end do
 
   call symmetrize_matrix()
 
@@ -284,27 +267,35 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
       call f_routine(id='symmetrize_matrix')
 
-      isegstart = lagmat%istsegline(lagmat%isfvctr+1)
-      isegend = lagmat%istsegline(lagmat%isfvctr+lagmat%nfvctrp) + &
-                lagmat%nsegline(lagmat%isfvctr+lagmat%nfvctrp)-1
-      matrix_local = f_malloc_ptr(lagmat%nvctrp,id='matrix_local')
+      if (lagmat%nvctrp>0) then
+          isegstart = lagmat%istsegline(lagmat%isfvctr+1)
+          isegend = lagmat%istsegline(lagmat%isfvctr+lagmat%nfvctrp) + &
+                    lagmat%nsegline(lagmat%isfvctr+lagmat%nfvctrp)-1
+      else
+          isegstart = 1
+          isegend = 0
+      end if
+      matrix_local = f_malloc_ptr(max(lagmat%nvctrp,1),id='matrix_local')
       do ispin=1,lagmat%nspin
           ishift=(ispin-1)*lagmat%nvctr
-          !$omp parallel default(none) &
-          !$omp shared(isegstart,isegend,ishift,lagmat,matrix_local,tmp_mat_compr) &
-          !$omp private(iseg,ii,i,irowcol,ii_trans)
-          !$omp do
-          do iseg=isegstart,isegend
-              ii=lagmat%keyv(iseg)
-              do i=lagmat%keyg(1,iseg),lagmat%keyg(2,iseg)
-                 irowcol = orb_from_index(lagmat, i)
-                 ii_trans = matrixindex_in_compressed(lagmat,irowcol(2),irowcol(1))
-                 matrix_local(ii-lagmat%isvctr) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
-                 ii=ii+1
+          if (isegend>=isegstart) then
+              !$omp parallel default(none) &
+              !$omp shared(isegstart,isegend,ishift,lagmat,matrix_local,tmp_mat_compr) &
+              !$omp private(iseg,ii,i,irowcol,ii_trans)
+              !$omp do
+              do iseg=isegstart,isegend
+                  ii=lagmat%keyv(iseg)
+                  ! A segment is always on one line, therefore no double loop
+                  do i=lagmat%keyg(1,1,iseg),lagmat%keyg(2,1,iseg)
+                     irowcol = orb_from_index(lagmat, i)
+                     ii_trans = matrixindex_in_compressed(lagmat,lagmat%keyg(1,2,iseg),i)
+                     matrix_local(ii-lagmat%isvctr) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
+                     ii=ii+1
+                  end do
               end do
-          end do
-          !$omp end do
-          !$omp end parallel
+              !$omp end do
+              !$omp end parallel
+          end if
           if (nproc>1) then
               !!call mpi_allgatherv(matrix_local(1), lagmat%nvctrp, mpi_double_precision, &
               !!     lagmat_%matrix_compr(ishift+1), lagmat%nvctr_par, lagmat%isvctr_par, mpi_double_precision, &
@@ -1973,8 +1964,9 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
   type(matrices),intent(inout) :: inv_ovrlp_half_
 
   ! Local variables
-  integer :: iend, i, iorb, n, istat, iall, jorb, korb, jjorb, kkorb!, ilr
-  integer :: iiorb, ierr, ii, iseg, ind, ishift, ispin
+  integer(kind=8) :: ii, iend
+  integer :: i, iorb, n, istat, iall, jorb, korb, jjorb, kkorb!, ilr
+  integer :: iiorb, ierr, iseg, ind, ishift, ispin
   real(kind=8) :: error
   real(kind=8),dimension(:,:),pointer :: ovrlp_tmp, ovrlp_tmp_inv_half
   logical,dimension(:),allocatable :: in_neighborhood
@@ -2027,18 +2019,19 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
          ! Count all orbitals that are in the neighborhood
 
          iseg=inv_ovrlp_half%istsegline(iiorb)
-         iend=iiorb*ovrlp%nfvctr
+         iend=int(iiorb,kind=8)*int(ovrlp%nfvctr,kind=8)
          n=0
          in_neighborhood(:)=.false.
          do 
-            do i=inv_ovrlp_half%keyg(1,iseg),inv_ovrlp_half%keyg(2,iseg)
-               ii=i-(iiorb-1)*ovrlp%nfvctr
-               in_neighborhood(ii)=.true.
+            do i=inv_ovrlp_half%keyg(1,1,iseg),inv_ovrlp_half%keyg(2,1,iseg)
+               in_neighborhood(i)=.true.
                n=n+1
             end do
             iseg=iseg+1
             if (iseg>inv_ovrlp_half%nseg) exit
-            if (inv_ovrlp_half%keyg(1,iseg)>iend) exit
+            ii = int((inv_ovrlp_half%keyg(1,2,iseg)-1),kind=8)*int(inv_ovrlp_half%nfvctr,kind=8) + &
+                 int(inv_ovrlp_half%keyg(1,1,iseg),kind=8)
+            if (ii>iend) exit
          end do
 
          ovrlp_tmp = f_malloc0_ptr((/n,n/),id='ovrlp_tmp')
@@ -2839,9 +2832,10 @@ end subroutine gramschmidt_coeff_trans
      !$omp shared(smat, norb, ovrlpminone_compr, ovrlp_compr)
      do iseg=1,smat%nseg
          ii=smat%keyv(iseg)-1
-         do jorb=smat%keyg(1,iseg),smat%keyg(2,iseg)
-             iiorb = (jorb-1)/norb + 1
-             jjorb = jorb - (iiorb-1)*norb
+          ! A segment is always on one line, therefore no double loop
+         do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+             iiorb = smat%keyg(1,2,iseg)
+             jjorb = jorb
              ii=ii+1
              if (iiorb==jjorb) then
                  ovrlpminone_compr(ii)=ovrlp_compr(ii)-1.d0
@@ -3039,114 +3033,114 @@ subroutine overlap_minus_one_half_serial(iproc, nproc, iorder, power, blocksize,
 end subroutine overlap_minus_one_half_serial
 
 
-subroutine diagonalize_subset(iproc, nproc, orbs, ovrlp, ovrlp_mat, ham, ham_mat)
-  use module_base
-  use module_types
-  use module_interfaces
-  use sparsematrix_base, only: sparse_matrix, matrices!, matrices_null, &
-                               !allocate_matrices, deallocate_matrices
-  use sparsematrix_init, only: matrixindex_in_compressed
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc
-  type(orbitals_data),intent(inout) :: orbs
-  type(sparse_matrix),intent(in) :: ovrlp
-  type(matrices),intent(in) :: ovrlp_mat
-  type(sparse_matrix),intent(in) :: ham
-  type(matrices),intent(in) :: ham_mat
-
-  ! Local variables
-  integer :: iend, i, iorb, n, istat, iall, jorb, korb, jjorb, kkorb!, ilr
-  integer :: iiorb, ierr, ii, iseg, ind, lwork, idiag, ind_ham, ind_ovrlp, info
-  real(kind=8) :: error
-  real(kind=8),dimension(:,:),pointer :: ovrlp_tmp, ham_tmp
-  real(kind=8),dimension(:),allocatable :: eval, work
-  logical,dimension(:),allocatable :: in_neighborhood
-  !type(matrices) :: inv_ovrlp_half_
-
-  call f_routine('diagonalize_subset')
-
-  in_neighborhood = f_malloc(orbs%norb,id='in_neighborhood')
-
-  call to_zero(orbs%norb, orbs%eval(1))
-
-  do iorb=1,orbs%norbp
-     iiorb=orbs%isorb+iorb
-     !ilr=orbs%inwhichlocreg(iiorb)
-     ! We are at the start of a new atom
-     ! Count all orbitals that are in the neighborhood
-
-     iseg=ham%istsegline(iiorb)
-     iend=iiorb*orbs%norb
-     n=0
-     in_neighborhood(:)=.false.
-     do 
-        do i=ham%keyg(1,iseg),ham%keyg(2,iseg)
-           ii=i-(iiorb-1)*orbs%norb
-           in_neighborhood(ii)=.true.
-           n=n+1
-           if (ii==iiorb) then
-               !this is the diagonal element
-               idiag=n
-           end if
-        end do
-        iseg=iseg+1
-        if (iseg>ham%nseg) exit
-        if (ham%keyg(1,iseg)>iend) exit
-     end do
-
-     ham_tmp = f_malloc0_ptr((/n,n/),id='ovrlp_tmp')
-     ovrlp_tmp = f_malloc0_ptr((/n,n/),id='ovrlp_tmp')
-
-     jjorb=0
-     do jorb=1,orbs%norb
-        if (.not.in_neighborhood(jorb)) cycle
-        jjorb=jjorb+1
-        kkorb=0
-        do korb=1,orbs%norb
-           if (.not.in_neighborhood(korb)) cycle
-           kkorb=kkorb+1
-           ind_ham = matrixindex_in_compressed(ham,korb,jorb)
-           ind_ovrlp = matrixindex_in_compressed(ovrlp,korb,jorb)
-           if (ind_ham>0) then
-               ham_tmp(kkorb,jjorb)=ham_mat%matrix_compr(ind_ham)
-           else
-               ham_tmp(kkorb,jjorb)=0.d0
-           end if
-           if (ind_ovrlp>0) then
-              ovrlp_tmp(kkorb,jjorb)=ovrlp_mat%matrix_compr(ind_ovrlp)
-           else
-              ovrlp_tmp(kkorb,jjorb)=0.d0
-           end if
-           !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
-        end do
-     end do
-
-     lwork=100*n
-     work = f_malloc(lwork,id='work')
-     eval = f_malloc(n,id='eval')
-     call dsygv(1, 'n', 'l', n, ham_tmp, n, ovrlp_tmp, n, eval, work, lwork, info)
-     orbs%eval(iiorb)=eval(idiag)
-     call f_free(work)
-     call f_free(eval)
-     call f_free_ptr(ham_tmp)
-     call f_free_ptr(ovrlp_tmp)
-
-
-
-
- end do
-
- call f_free(in_neighborhood)
-
- if (nproc>1) then
-     call mpiallred(orbs%eval(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
- end if
-
-  call f_release_routine()
-
-end subroutine diagonalize_subset
+!!subroutine diagonalize_subset(iproc, nproc, orbs, ovrlp, ovrlp_mat, ham, ham_mat)
+!!  use module_base
+!!  use module_types
+!!  use module_interfaces
+!!  use sparsematrix_base, only: sparse_matrix, matrices!, matrices_null, &
+!!                               !allocate_matrices, deallocate_matrices
+!!  use sparsematrix_init, only: matrixindex_in_compressed
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer,intent(in) :: iproc, nproc
+!!  type(orbitals_data),intent(inout) :: orbs
+!!  type(sparse_matrix),intent(in) :: ovrlp
+!!  type(matrices),intent(in) :: ovrlp_mat
+!!  type(sparse_matrix),intent(in) :: ham
+!!  type(matrices),intent(in) :: ham_mat
+!!
+!!  ! Local variables
+!!  integer :: iend, i, iorb, n, istat, iall, jorb, korb, jjorb, kkorb!, ilr
+!!  integer :: iiorb, ierr, ii, iseg, ind, lwork, idiag, ind_ham, ind_ovrlp, info
+!!  real(kind=8) :: error
+!!  real(kind=8),dimension(:,:),pointer :: ovrlp_tmp, ham_tmp
+!!  real(kind=8),dimension(:),allocatable :: eval, work
+!!  logical,dimension(:),allocatable :: in_neighborhood
+!!  !type(matrices) :: inv_ovrlp_half_
+!!
+!!  call f_routine('diagonalize_subset')
+!!
+!!  in_neighborhood = f_malloc(orbs%norb,id='in_neighborhood')
+!!
+!!  call to_zero(orbs%norb, orbs%eval(1))
+!!
+!!  do iorb=1,orbs%norbp
+!!     iiorb=orbs%isorb+iorb
+!!     !ilr=orbs%inwhichlocreg(iiorb)
+!!     ! We are at the start of a new atom
+!!     ! Count all orbitals that are in the neighborhood
+!!
+!!     iseg=ham%istsegline(iiorb)
+!!     iend=iiorb*orbs%norb
+!!     n=0
+!!     in_neighborhood(:)=.false.
+!!     do 
+!!        do i=ham%keyg(1,iseg),ham%keyg(2,iseg)
+!!           ii=i-(iiorb-1)*orbs%norb
+!!           in_neighborhood(ii)=.true.
+!!           n=n+1
+!!           if (ii==iiorb) then
+!!               !this is the diagonal element
+!!               idiag=n
+!!           end if
+!!        end do
+!!        iseg=iseg+1
+!!        if (iseg>ham%nseg) exit
+!!        if (ham%keyg(1,iseg)>iend) exit
+!!     end do
+!!
+!!     ham_tmp = f_malloc0_ptr((/n,n/),id='ovrlp_tmp')
+!!     ovrlp_tmp = f_malloc0_ptr((/n,n/),id='ovrlp_tmp')
+!!
+!!     jjorb=0
+!!     do jorb=1,orbs%norb
+!!        if (.not.in_neighborhood(jorb)) cycle
+!!        jjorb=jjorb+1
+!!        kkorb=0
+!!        do korb=1,orbs%norb
+!!           if (.not.in_neighborhood(korb)) cycle
+!!           kkorb=kkorb+1
+!!           ind_ham = matrixindex_in_compressed(ham,korb,jorb)
+!!           ind_ovrlp = matrixindex_in_compressed(ovrlp,korb,jorb)
+!!           if (ind_ham>0) then
+!!               ham_tmp(kkorb,jjorb)=ham_mat%matrix_compr(ind_ham)
+!!           else
+!!               ham_tmp(kkorb,jjorb)=0.d0
+!!           end if
+!!           if (ind_ovrlp>0) then
+!!              ovrlp_tmp(kkorb,jjorb)=ovrlp_mat%matrix_compr(ind_ovrlp)
+!!           else
+!!              ovrlp_tmp(kkorb,jjorb)=0.d0
+!!           end if
+!!           !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+!!        end do
+!!     end do
+!!
+!!     lwork=100*n
+!!     work = f_malloc(lwork,id='work')
+!!     eval = f_malloc(n,id='eval')
+!!     call dsygv(1, 'n', 'l', n, ham_tmp, n, ovrlp_tmp, n, eval, work, lwork, info)
+!!     orbs%eval(iiorb)=eval(idiag)
+!!     call f_free(work)
+!!     call f_free(eval)
+!!     call f_free_ptr(ham_tmp)
+!!     call f_free_ptr(ovrlp_tmp)
+!!
+!!
+!!
+!!
+!! end do
+!!
+!! call f_free(in_neighborhood)
+!!
+!! if (nproc>1) then
+!!     call mpiallred(orbs%eval(1), orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+!! end if
+!!
+!!  call f_release_routine()
+!!
+!!end subroutine diagonalize_subset
 
 
 

@@ -55,6 +55,7 @@ subroutine bigdft_signals_init(c_obj, type, domain, ln)
   integer, intent(in) :: type
   integer, intent(in) :: ln
   character(len = ln), intent(in) :: domain
+  c_obj=0
 END SUBROUTINE bigdft_signals_init
 subroutine bigdft_signals_free(c_obj)
   implicit none
@@ -120,16 +121,19 @@ subroutine wf_new_wrapper(c_obj, f_st)
   implicit none
   integer(kind = 8), intent(out) :: c_obj
   type(DFT_wavefunction), intent(in) :: f_st
+  c_obj=0
 END SUBROUTINE wf_new_wrapper
 subroutine localfields_new_wrapper(c_obj, f_st)
   use module_types
   implicit none
   integer(kind = 8), intent(out) :: c_obj
   type(DFT_local_fields), intent(in) :: f_st
+  c_obj=0
 END SUBROUTINE localfields_new_wrapper
 subroutine optloop_new_wrapper(c_obj, f_st)
   use module_types
   implicit none
   integer(kind = 8), intent(out) :: c_obj
   type(DFT_optimization_loop), intent(in) :: f_st
+  c_obj=0
 END SUBROUTINE optloop_new_wrapper

@@ -127,7 +127,8 @@ subroutine foe(iproc, nproc, tmprtr, &
       !$omp parallel default(private) shared(isegstart, isegend, tmb, nsize_polynomial)
       !$omp do reduction(+:nsize_polynomial)
       do iseg=isegstart,isegend
-          do jorb=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
+          ! A segment is always on one line, therefore no double loop
+          do jorb=tmb%linmat%l%keyg(1,1,iseg),tmb%linmat%l%keyg(2,1,iseg)
               nsize_polynomial=nsize_polynomial+1
           end do
       end do
@@ -929,10 +930,11 @@ subroutine foe(iproc, nproc, tmprtr, &
               !$omp do reduction(+:trace)
               do iseg=isegstart,isegend
                   ii=tmb%linmat%l%keyv(iseg)-1
-                  do jorb=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
+                  ! A segment is always on one line, therefore no double loop
+                  do jorb=tmb%linmat%l%keyg(1,1,iseg),tmb%linmat%l%keyg(2,1,iseg)
                       ii=ii+1
-                      iiorb = (jorb-1)/tmb%linmat%l%nfvctr + 1
-                      jjorb = jorb - (iiorb-1)*tmb%linmat%l%nfvctr
+                      iiorb = tmb%linmat%l%keyg(1,2,iseg)
+                      jjorb = jorb
                       if (jjorb==iiorb) trace = trace + matrixp(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr)
                   end do  
               end do
@@ -1703,10 +1705,11 @@ subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norb
       !!$omp do
       do iseg=isegstart,isegend
           !ii=fermi%keyv(iseg)-1
-          do jorb=fermi%keyg(1,iseg),fermi%keyg(2,iseg)
+          ! A segment is always on one line, therefore no double loop
+          do jorb=fermi%keyg(1,1,iseg),fermi%keyg(2,1,iseg)
               ii=ii+1
-              iiorb = (jorb-1)/norb + 1
-              jjorb = jorb - (iiorb-1)*norb
+              iiorb = fermi%keyg(1,2,iseg)
+              jjorb = jorb
               vector_compressed(ii)=vector(jjorb,iiorb-isorb)
               !write(300,*) 'ii, jjorb, iiorb-isorb', ii, jjorb, iiorb-isorb
           end do
@@ -1750,10 +1753,11 @@ subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
       !$omp shared(isegstart, isegend, fermi, vector, vector_compressed)
       do iseg=isegstart,isegend
           ii=fermi%keyv(iseg)-fermi%keyv(isegstart)
-          do jorb=fermi%keyg(1,iseg),fermi%keyg(2,iseg)
+          ! A segment is always on one line, therefore no double loop
+          do jorb=fermi%keyg(1,1,iseg),fermi%keyg(2,1,iseg)
               ii=ii+1
-              iiorb = (jorb-1)/fermi%nfvctr + 1
-              jjorb = jorb - (iiorb-1)*fermi%nfvctr
+              iiorb = fermi%keyg(1,2,iseg)
+              jjorb = jorb
               vector(jjorb,iiorb-fermi%smmm%isfvctr)=vector_compressed(ii)
               !write(*,*) 'ii, iiorb-fermi%isfvctr, jjorb', ii, iiorb-fermi%isfvctr, jjorb
           end do
@@ -1796,22 +1800,17 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
       isegstart = asmat%istsegline(asmat%smmm%isfvctr+1)
       isegend = asmat%istsegline(asmat%smmm%isfvctr+asmat%smmm%nfvctrp) + &
                 asmat%nsegline(asmat%smmm%isfvctr+asmat%smmm%nfvctrp)-1
-      !!isegstart=asmat%istsegline(asmat%isfvctr+1)
-      !!if (asmat%isfvctr+asmat%nfvctrp<asmat%nfvctr) then
-      !!        isegend=asmat%istsegline(asmat%isfvctr_par(iproc+1)+1)-1
-      !!else
-      !!        isegend=asmat%nseg
-      !!end if
       !$omp parallel default(none) &
       !$omp private(iseg, ii, jorb, iiorb, jjorb, iilarge) &
       !$omp shared(isegstart, isegend, bsmat, asmat, amat, bmat, iashift, ibshift, sumn)
       !$omp do reduction(+:sumn)
       do iseg=isegstart,isegend
-              ii=iashift+asmat%keyv(iseg)-1
-              do jorb=asmat%keyg(1,iseg),asmat%keyg(2,iseg)
+          ii=iashift+asmat%keyv(iseg)-1
+          ! A segment is always on one line, therefore no double loop
+          do jorb=asmat%keyg(1,1,iseg),asmat%keyg(2,1,iseg)
               ii=ii+1
-              iiorb = (jorb-1)/asmat%nfvctr + 1
-              jjorb = jorb - (iiorb-1)*asmat%nfvctr
+              iiorb = asmat%keyg(1,2,iseg)
+              jjorb = jorb
               iilarge = ibshift + matrixindex_in_compressed(bsmat, iiorb, jjorb)
               sumn = sumn + amat(ii)*bmat(iilarge)
           end do  
@@ -1962,7 +1961,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
       !$omp parallel default(private) shared(isegstart, isegend, inv_ovrlp_smat, nsize_polynomial)
       !$omp do reduction(+:nsize_polynomial)
       do iseg=isegstart,isegend
-          do jorb=inv_ovrlp_smat%keyg(1,iseg),inv_ovrlp_smat%keyg(2,iseg)
+          ! A segment is always on one line, therefore no double loop
+          do jorb=inv_ovrlp_smat%keyg(1,1,iseg),inv_ovrlp_smat%keyg(2,1,iseg)
               nsize_polynomial=nsize_polynomial+1
           end do
       end do
@@ -2014,33 +2014,6 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                       call scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, inv_ovrlp_smat, &
                            ovrlp_smat, ovrlp_mat, isshift, &
                            matscal_compr=hamscal_compr, scale_factor=scale_factor, shift_value=shift_value)
-                      !!shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh",ispin)+foe_data_get_real(foe_obj,"evlow",ispin))
-                      !!scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
-                      !!!$omp parallel default(none) private(iseg,i,ii,irowcol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
-                      !!!$omp shared(inv_ovrlp_smat,ovrlp_smat,hamscal_compr,ovrlp_mat,scale_factor,shift_value,isshift)
-                      !!!$omp do
-                      !!do iseg=1,inv_ovrlp_smat%nseg
-                      !!    ii = inv_ovrlp_smat%keyv(iseg)
-                      !!    do i=inv_ovrlp_smat%keyg(1,iseg),inv_ovrlp_smat%keyg(2,iseg)
-                      !!        irowcol = orb_from_index(inv_ovrlp_smat,i)
-                      !!        iismall_ovrlp = matrixindex_in_compressed(ovrlp_smat, irowcol(1), irowcol(2))
-                      !!        if (iismall_ovrlp>0) then
-                      !!            if (irowcol(1)==irowcol(2)) then
-                      !!                tt_ovrlp = 1.d0
-                      !!            else
-                      !!                tt_ovrlp = 0.d0
-                      !!            end if
-                      !!            tt_ham = ovrlp_mat%matrix_compr(isshift+iismall_ovrlp)
-                      !!        else
-                      !!            tt_ovrlp = 0.d0
-                      !!            tt_ham = 0.d0
-                      !!        end if
-                      !!        hamscal_compr(ii) = scale_factor*(tt_ham-shift_value*tt_ovrlp)
-                      !!        ii = ii + 1
-                      !!    end do
-                      !!end do
-                      !!!$omp end do
-                      !!!$omp end parallel
                       calculate_SHS=.true.
                   else
                       calculate_SHS=.false.
@@ -2213,106 +2186,6 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
   call f_release_routine()
 
 
-      !!contains
-
-      !!  subroutine scale_and_shift_matrix()
-      !!    shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh",ispin)+foe_data_get_real(foe_obj,"evlow",ispin))
-      !!    scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
-      !!    !$omp parallel default(none) private(iseg,i,ii,irowcol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
-      !!    !$omp shared(inv_ovrlp_smat,ovrlp_smat,hamscal_compr,ovrlp_mat,scale_factor,shift_value,isshift)
-      !!    !$omp do
-      !!    do iseg=1,inv_ovrlp_smat%nseg
-      !!        ii = inv_ovrlp_smat%keyv(iseg)
-      !!        do i=inv_ovrlp_smat%keyg(1,iseg),inv_ovrlp_smat%keyg(2,iseg)
-      !!            irowcol = orb_from_index(inv_ovrlp_smat,i)
-      !!            iismall_ovrlp = matrixindex_in_compressed(ovrlp_smat, irowcol(1), irowcol(2))
-      !!            if (iismall_ovrlp>0) then
-      !!                if (irowcol(1)==irowcol(2)) then
-      !!                    tt_ovrlp = 1.d0
-      !!                else
-      !!                    tt_ovrlp = 0.d0
-      !!                end if
-      !!                tt_ham = ovrlp_mat%matrix_compr(isshift+iismall_ovrlp)
-      !!            else
-      !!                tt_ovrlp = 0.d0
-      !!                tt_ham = 0.d0
-      !!            end if
-      !!            hamscal_compr(ii) = scale_factor*(tt_ham-shift_value*tt_ovrlp)
-      !!            ii = ii + 1
-      !!        end do
-      !!    end do
-      !!    !$omp end do
-      !!    !$omp end parallel
-
-
-      !!end subroutine scale_and_shift_matrix
-
-      !!subroutine check_eigenvalue_spectrum()
-      !!  implicit none
-      !!  real(kind=8) :: bound_low, bound_up
-
-      !!  ! The penalty function must be smaller than the noise.
-      !!  bound_low=0.d0
-      !!  bound_up=0.d0
-      !!  if (inv_ovrlp_smat%smmm%nfvctrp>0) then
-      !!      isegstart = inv_ovrlp_smat%istsegline(inv_ovrlp_smat%smmm%isfvctr+1)
-      !!      isegend = inv_ovrlp_smat%istsegline(inv_ovrlp_smat%smmm%isfvctr+inv_ovrlp_smat%smmm%nfvctrp) + &
-      !!                inv_ovrlp_smat%nsegline(inv_ovrlp_smat%smmm%isfvctr+inv_ovrlp_smat%smmm%nfvctrp)-1
-      !!      !$omp parallel default(none) &
-      !!      !$omp private(iseg, ii, jorb, irow, icol, iismall, tt) &
-      !!      !$omp shared(isegstart, isegend, inv_ovrlp_smat, penalty_ev, bound_low, bound_up)
-      !!      !$omp do reduction(+:bound_low,bound_up)
-      !!      do iseg=isegstart,isegend
-      !!          ii=inv_ovrlp_smat%keyv(iseg)-1
-      !!          do jorb=inv_ovrlp_smat%keyg(1,iseg),inv_ovrlp_smat%keyg(2,iseg)
-      !!              ii=ii+1
-      !!              irow = (jorb-1)/inv_ovrlp_smat%nfvctr + 1
-      !!              icol = jorb - (irow-1)*inv_ovrlp_smat%nfvctr
-      !!              iismall = matrixindex_in_compressed(inv_ovrlp_smat, irow, icol)
-      !!              if (iismall>0) then
-      !!                  if (irow==jorb) then
-      !!                      tt=1.d0
-      !!                  else
-      !!                      tt=0.d0
-      !!                  end if
-      !!              else
-      !!                  tt=0.d0
-      !!              end if
-      !!              bound_low = bound_low + penalty_ev(icol,irow-inv_ovrlp_smat%smmm%isfvctr,2)*tt
-      !!              bound_up = bound_up +penalty_ev(icol,irow-inv_ovrlp_smat%smmm%isfvctr,1)*tt
-      !!          end do  
-      !!      end do
-      !!      !$omp end do
-      !!      !$omp end parallel
-      !!  end if
-    
-      !!  allredarr(1)=bound_low
-      !!  allredarr(2)=bound_up
-
-      !!  if (nproc > 1) then
-      !!      call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
-      !!  end if
-
-      !!  allredarr=abs(allredarr) !for some crazy situations this may be negative
-      !!  anoise=100.d0*anoise
-      !!  !write(*,*) 'allredarr, anoise', allredarr, anoise
-      !!  if (allredarr(1)>anoise) then
-      !!      eval_bounds_ok(1)=.false.
-      !!      call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",1)/1.2d0,1)
-      !!      restart=.true.
-      !!  else
-      !!      eval_bounds_ok(1)=.true.
-      !!  end if
-      !!  if (allredarr(2)>anoise) then
-      !!      eval_bounds_ok(2)=.false.
-      !!      call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",1)*1.2d0,1)
-      !!      restart=.true.
-      !!  else
-      !!      eval_bounds_ok(2)=.true.
-      !!  end if
-
-      !!end subroutine check_eigenvalue_spectrum
-
 end subroutine ice
 
 
@@ -2420,10 +2293,11 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
       !$omp do reduction(+:bound_low,bound_up)
       do iseg=isegstart,isegend
           ii=smat_l%keyv(iseg)-1
-          do jorb=smat_l%keyg(1,iseg),smat_l%keyg(2,iseg)
+          ! A segment is always on one line, therefore no double loop
+          do jorb=smat_l%keyg(1,1,iseg),smat_l%keyg(2,1,iseg)
               ii=ii+1
-              irow = (jorb-1)/smat_l%nfvctr + 1
-              icol = jorb - (irow-1)*smat_l%nfvctr
+              irow = smat_l%keyg(1,2,iseg)
+              icol = jorb
               iismall = matrixindex_in_compressed(smat_s, irow, icol)
               if (iismall>0) then
                   if (trace_with_overlap) then
@@ -2431,7 +2305,7 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
                       tt=mat%matrix_compr(isshift+iismall)
                   else
                       ! Take the trace of the matrix alone, i.e. set the second matrix to the identity
-                      if (irow==jorb) then
+                      if (irow==icol) then
                           tt=1.d0
                       else
                           tt=0.d0
@@ -2537,7 +2411,7 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
 
   ! Local variables
   integer :: iseg, ii, i, ii1, ii2, isegstart, isegend, ierr
-  integer :: itaskgroup, iitaskgroup
+  integer :: itaskgroup, iitaskgroup, j
   integer,dimension(2) :: irowcol
   real(kind=8) :: tt1, tt2
   logical :: with_overlap
@@ -2565,103 +2439,105 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
   shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh",ispin)+foe_data_get_real(foe_obj,"evlow",ispin))
 
   if (data_strategy==GLOBAL_MATRIX) then
-      isegstart = smatl%istsegline(smatl%isfvctr+1)
-      isegend = smatl%istsegline(smatl%isfvctr+smatl%nfvctrp) + &
-                smatl%nsegline(smatl%isfvctr+smatl%nfvctrp)-1
-      if (nproc>1) then
-          matscal_compr_local = f_malloc_ptr(smatl%nvctrp,id='matscal_compr_local')
-      else
-          matscal_compr_local => matscal_compr
-      end if
-      !$omp parallel default(none) private(iseg,ii,i,irowcol,ii2,ii1,tt2,tt1) &
-      !$omp shared(matscal_compr_local,scale_factor,shift_value,i2shift,i1shift,smatl,smat1,smat2,mat1,mat2,with_overlap) &
-      !$omp shared(isegstart,isegend)
-      !$omp do
-      do iseg=isegstart,isegend
-          ii=smatl%keyv(iseg)
-          do i=smatl%keyg(1,iseg),smatl%keyg(2,iseg)
-              irowcol = orb_from_index(smatl,i)
-              ii1 = matrixindex_in_compressed(smat1, irowcol(1), irowcol(2))
-              if (ii1>0) then
-                  tt1=mat1%matrix_compr(i1shift+ii1)
-              else
-                  tt1=0.d0
-              end if
-              if (with_overlap) then
-                  ii2 = matrixindex_in_compressed(smat2, irowcol(1), irowcol(2))
-                  if (ii2>0) then
-                      tt2=mat2%matrix_compr(i2shift+ii2)
-                  else
-                      tt2=0.d0
-                  end if
-              else
-                  if (irowcol(1)==irowcol(2)) then
-                      tt2 = 1.d0
-                  else
-                      tt2 = 0.d0
-                  end if
-              end if
-              !write(*,*) 'ii, tt1, tt2', ii, tt1, tt2
-              matscal_compr_local(ii-smatl%isvctr)=scale_factor*(tt1-shift_value*tt2)
-              ii=ii+1
-          end do
-      end do
-      !$omp end do
-      !$omp end parallel
+      stop 'scale_and_shift_matrix: data_strategy=GLOBAL_MATRIX is deprecated'
+      !!isegstart = smatl%istsegline(smatl%isfvctr+1)
+      !!isegend = smatl%istsegline(smatl%isfvctr+smatl%nfvctrp) + &
+      !!          smatl%nsegline(smatl%isfvctr+smatl%nfvctrp)-1
+      !!if (nproc>1) then
+      !!    matscal_compr_local = f_malloc_ptr(smatl%nvctrp,id='matscal_compr_local')
+      !!else
+      !!    matscal_compr_local => matscal_compr
+      !!end if
+      !!!$omp parallel default(none) private(iseg,ii,i,irowcol,ii2,ii1,tt2,tt1) &
+      !!!$omp shared(matscal_compr_local,scale_factor,shift_value,i2shift,i1shift,smatl,smat1,smat2,mat1,mat2,with_overlap) &
+      !!!$omp shared(isegstart,isegend)
+      !!!$omp do
+      !!do iseg=isegstart,isegend
+      !!    ii=smatl%keyv(iseg)
+      !!    do i=smatl%keyg(1,iseg),smatl%keyg(2,iseg)
+      !!        irowcol = orb_from_index(smatl,i)
+      !!        ii1 = matrixindex_in_compressed(smat1, irowcol(1), irowcol(2))
+      !!        if (ii1>0) then
+      !!            tt1=mat1%matrix_compr(i1shift+ii1)
+      !!        else
+      !!            tt1=0.d0
+      !!        end if
+      !!        if (with_overlap) then
+      !!            ii2 = matrixindex_in_compressed(smat2, irowcol(1), irowcol(2))
+      !!            if (ii2>0) then
+      !!                tt2=mat2%matrix_compr(i2shift+ii2)
+      !!            else
+      !!                tt2=0.d0
+      !!            end if
+      !!        else
+      !!            if (irowcol(1)==irowcol(2)) then
+      !!                tt2 = 1.d0
+      !!            else
+      !!                tt2 = 0.d0
+      !!            end if
+      !!        end if
+      !!        !write(*,*) 'ii, tt1, tt2', ii, tt1, tt2
+      !!        matscal_compr_local(ii-smatl%isvctr)=scale_factor*(tt1-shift_value*tt2)
+      !!        ii=ii+1
+      !!    end do
+      !!end do
+      !!!$omp end do
+      !!!$omp end parallel
 
-      call timing(iproc,'foe_aux_mcpy  ','OF')
-      call timing(iproc,'foe_aux_comm  ','ON')
-      if (nproc>1) then
-          !!call mpi_allgatherv(matscal_compr_local(1), smatl%nvctrp, mpi_double_precision, &
-          !!     matscal_compr(1), smatl%nvctr_par, smatl%isvctr_par, mpi_double_precision, &
-          !!     bigdft_mpi%mpi_comm, ierr)
-          if (comm_strategy==ALLGATHERV) then
-              call mpi_allgatherv(matscal_compr_local(1), smatl%nvctrp, mpi_double_precision, &
-                   matscal_compr(1), smatl%nvctr_par, smatl%isvctr_par, mpi_double_precision, &
-                   bigdft_mpi%mpi_comm, ierr)
-              call f_free_ptr(matscal_compr_local)
-          else if (comm_strategy==GET) then
-              !!call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, smatl%nvctrp, matscal_compr_local, &
-              !!     smatl%nvctr_par, smatl%isvctr_par, smatl%nvctr, matscal_compr)
-              call mpi_get_to_allgatherv(matscal_compr_local(1), smatl%nvctrp, matscal_compr(1), &
-                   smatl%nvctr_par, smatl%isvctr_par, bigdft_mpi%mpi_comm)
-          else
-              stop 'scale_and_shift_matrix: wrong communication strategy'
-          end if
-          call f_free_ptr(matscal_compr_local)
-      end if
-      call timing(iproc,'foe_aux_comm  ','OF')
+      !!call timing(iproc,'foe_aux_mcpy  ','OF')
+      !!call timing(iproc,'foe_aux_comm  ','ON')
+      !!if (nproc>1) then
+      !!    !!call mpi_allgatherv(matscal_compr_local(1), smatl%nvctrp, mpi_double_precision, &
+      !!    !!     matscal_compr(1), smatl%nvctr_par, smatl%isvctr_par, mpi_double_precision, &
+      !!    !!     bigdft_mpi%mpi_comm, ierr)
+      !!    if (comm_strategy==ALLGATHERV) then
+      !!        call mpi_allgatherv(matscal_compr_local(1), smatl%nvctrp, mpi_double_precision, &
+      !!             matscal_compr(1), smatl%nvctr_par, smatl%isvctr_par, mpi_double_precision, &
+      !!             bigdft_mpi%mpi_comm, ierr)
+      !!        call f_free_ptr(matscal_compr_local)
+      !!    else if (comm_strategy==GET) then
+      !!        !!call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, smatl%nvctrp, matscal_compr_local, &
+      !!        !!     smatl%nvctr_par, smatl%isvctr_par, smatl%nvctr, matscal_compr)
+      !!        call mpi_get_to_allgatherv(matscal_compr_local(1), smatl%nvctrp, matscal_compr(1), &
+      !!             smatl%nvctr_par, smatl%isvctr_par, bigdft_mpi%mpi_comm)
+      !!    else
+      !!        stop 'scale_and_shift_matrix: wrong communication strategy'
+      !!    end if
+      !!    call f_free_ptr(matscal_compr_local)
+      !!end if
+      !!call timing(iproc,'foe_aux_comm  ','OF')
 
   else if (data_strategy==SUBMATRIX) then
-      !$omp parallel default(none) private(ii,i,irowcol,ii2,ii1,tt2,tt1,iseg) &
+      !$omp parallel default(none) private(ii,i,j,ii2,ii1,tt2,tt1,iseg) &
       !$omp shared(matscal_compr,scale_factor,shift_value,i2shift,i1shift,smatl,smat1,smat2,mat1,mat2,with_overlap)
       !$omp do
       do iseg=smatl%smmm%istartendseg_mm(1),smatl%smmm%istartendseg_mm(2)
           !if (smatl%keyv(min(iseg+1,smatl%nseg))<smatl%smmm%istartend_mm(1)) cycle
           !if (smatl%keyv(iseg)>smatl%smmm%istartend_mm(2)) exit
-          do i=smatl%keyg(1,iseg),smatl%keyg(2,iseg) !this is too much, but for the moment ok 
-              irowcol = orb_from_index(smatl,i)
-              ii1 = matrixindex_in_compressed(smat1, irowcol(1), irowcol(2))
+          ! A segment is always on one line, therefore no double loop
+          j = smatl%keyg(1,2,iseg)
+          do i=smatl%keyg(1,1,iseg),smatl%keyg(2,1,iseg) !this is too much, but for the moment ok 
+              ii1 = matrixindex_in_compressed(smat1, i, j)
               if (ii1>0) then
                   tt1=mat1%matrix_compr(i1shift+ii1)
               else
                   tt1=0.d0
               end if
               if (with_overlap) then
-                  ii2 = matrixindex_in_compressed(smat2, irowcol(1), irowcol(2))
+                  ii2 = matrixindex_in_compressed(smat2, i, j)
                   if (ii2>0) then
                       tt2=mat2%matrix_compr(i2shift+ii2)
                   else
                       tt2=0.d0
                   end if
               else
-                  if (irowcol(1)==irowcol(2)) then
+                  if (i==j) then
                       tt2 = 1.d0
                   else
                       tt2 = 0.d0
                   end if
               end if
-              ii=matrixindex_in_compressed(smatl, irowcol(1), irowcol(2))
+              ii=matrixindex_in_compressed(smatl, i, j)
               !write(*,*) 'i, ii, tt1, tt2', i, ii, tt1, tt2
               matscal_compr(ii)=scale_factor*(tt1-shift_value*tt2)
           end do

@@ -2029,7 +2029,8 @@ contains
     use dictionaries, only: dictionary, operator(//), assignment(=)
     use dictionaries, only: dict_key, max_field_length, dict_value, dict_len
     use module_defs, only: DistProjApply, GPUblas, gp
-    use module_input_keys
+    use module_input_keys, only: input_keys_equal
+    use public_keys
     use dynamic_memory
     use yaml_output, only: yaml_warning
     implicit none
@@ -2539,7 +2540,8 @@ contains
 
 
   subroutine basis_params_set_dict(dict_basis,lin,jtype)
-    use module_input_keys
+    !use module_input_keys
+    use public_keys
     use dictionaries
     implicit none
     integer, intent(in) :: jtype !< local type of which we are filling the values
@@ -2579,7 +2581,8 @@ contains
   subroutine frag_from_dict(dict,frag)
     use module_base
     use yaml_output, only: yaml_map,is_atoi
-    use module_input_keys
+    !use module_input_keys
+    use public_keys
     implicit none
     type(dictionary), pointer :: dict
     type(fragmentInputParameters), intent(out) :: frag

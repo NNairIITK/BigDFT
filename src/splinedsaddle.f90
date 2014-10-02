@@ -244,7 +244,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,run_opt,ncount_big
     use module_base
     use module_interfaces
     use module_types
-    use module_input_keys, only:DFT_VARIABLES, KPT_VARIABLES
+    !use module_input_keys, only:DFT_VARIABLES, KPT_VARIABLES
     use minimization_sp, only:parameterminimization_sp  !Reza
     use modulesplinedsaddle, only:parametersplinedsaddle
     use module_input_dicts
