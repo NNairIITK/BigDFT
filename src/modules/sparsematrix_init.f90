@@ -100,17 +100,20 @@ contains
         type(sparse_matrix),intent(in) :: sparsemat
       
         ! Local variables
-        integer :: ii, iseg, istart, iend
+        integer(kind=8) :: ii, istart, iend
+        integer :: iseg
       
-        ii=(jcol-1)*norb+irow
+        ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
       
         iseg=sparsemat%istsegline(jcol)
         do
-            istart = (sparsemat%keyg(1,2,iseg)-1)*norb + sparsemat%keyg(1,1,iseg)
-            iend = (sparsemat%keyg(2,2,iseg)-1)*norb + sparsemat%keyg(2,1,iseg)
+            istart = int((sparsemat%keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+                     int(sparsemat%keyg(1,1,iseg),kind=8)
+            iend = int((sparsemat%keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+                   int(sparsemat%keyg(2,1,iseg),kind=8)
             if (ii>=istart .and. ii<=iend) then
                 ! The matrix element is in sparsemat segment
-                 compressed_index_fn = sparsemat%keyv(iseg) + ii - istart
+                 compressed_index_fn = sparsemat%keyv(iseg) + int(ii-istart,kind=4)
                 return
             end if
             iseg=iseg+1

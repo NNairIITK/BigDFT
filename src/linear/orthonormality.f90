@@ -1964,8 +1964,9 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
   type(matrices),intent(inout) :: inv_ovrlp_half_
 
   ! Local variables
-  integer :: iend, i, iorb, n, istat, iall, jorb, korb, jjorb, kkorb!, ilr
-  integer :: iiorb, ierr, ii, iseg, ind, ishift, ispin
+  integer(kind=8) :: ii, iend
+  integer :: i, iorb, n, istat, iall, jorb, korb, jjorb, kkorb!, ilr
+  integer :: iiorb, ierr, iseg, ind, ishift, ispin
   real(kind=8) :: error
   real(kind=8),dimension(:,:),pointer :: ovrlp_tmp, ovrlp_tmp_inv_half
   logical,dimension(:),allocatable :: in_neighborhood
@@ -2018,7 +2019,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
          ! Count all orbitals that are in the neighborhood
 
          iseg=inv_ovrlp_half%istsegline(iiorb)
-         iend=iiorb*ovrlp%nfvctr
+         iend=int(iiorb,kind=8)*int(ovrlp%nfvctr,kind=8)
          n=0
          in_neighborhood(:)=.false.
          do 
@@ -2028,7 +2029,8 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
             end do
             iseg=iseg+1
             if (iseg>inv_ovrlp_half%nseg) exit
-            ii = (inv_ovrlp_half%keyg(1,2,iseg)-1)*inv_ovrlp_half%nfvctr + inv_ovrlp_half%keyg(1,1,iseg)
+            ii = int((inv_ovrlp_half%keyg(1,2,iseg)-1),kind=8)*int(inv_ovrlp_half%nfvctr,kind=8) + &
+                 int(inv_ovrlp_half%keyg(1,1,iseg),kind=8)
             if (ii>iend) exit
          end do
 

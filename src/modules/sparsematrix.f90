@@ -342,9 +342,10 @@ module sparsematrix
       character(len=14),intent(in) :: cmode
     
       ! Local variables
-      integer :: imode, icheck, isseg, isstart, isend, ilseg, ilstart, ilend
-      integer :: iostart, ioend, ilength, isoffset, iloffset, iscostart, ilcostart, i
-      integer :: ilsegstart, ispin, isshift, ilshift
+      integer(kind=8) :: isstart, isend, ilstart, ilend, iostart, ioend
+      integer :: imode, icheck, isseg, ilseg
+      integer :: ilength, iscostart, ilcostart, i
+      integer :: ilsegstart, ispin, isshift, ilshift, isoffset, iloffset
       integer,parameter :: SMALL_TO_LARGE=1
       integer,parameter :: LARGE_TO_SMALL=2
     
@@ -384,12 +385,12 @@ module sparsematrix
           !$omp firstprivate(ilsegstart)
           !$omp do reduction(+:icheck)
           sloop: do isseg=1,smat%nseg
-              isstart = (smat%keyg(1,2,isseg)-1)*smat%nfvctr + smat%keyg(1,1,isseg)
-              isend = (smat%keyg(2,2,isseg)-1)*smat%nfvctr + smat%keyg(2,1,isseg)
+              isstart = int((smat%keyg(1,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) + int(smat%keyg(1,1,isseg),kind=8)
+              isend = int((smat%keyg(2,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) + int(smat%keyg(2,1,isseg),kind=8)
               ! A segment is always on one line, therefore no double loop
               lloop: do ilseg=ilsegstart,lmat%nseg
-                  ilstart = (lmat%keyg(1,2,ilseg)-1)*lmat%nfvctr + lmat%keyg(1,1,ilseg)
-                  ilend = (lmat%keyg(2,2,ilseg)-1)*lmat%nfvctr + lmat%keyg(2,1,ilseg)
+                  ilstart = int((lmat%keyg(1,2,ilseg)-1),kind=8)*int(lmat%nfvctr,kind=8) + int(lmat%keyg(1,1,ilseg),kind=8)
+                  ilend = int((lmat%keyg(2,2,ilseg)-1),kind=8)*int(lmat%nfvctr,kind=8) + int(lmat%keyg(2,1,ilseg),kind=8)
     
                   ! check whether there is an overlap:
                   ! if not, increase loop counters
@@ -407,8 +408,12 @@ module sparsematrix
                   ilength=ioend-iostart+1
     
                   ! offset with respect to the starting point of the segment
-                  isoffset = iostart - ((smat%keyg(1,2,isseg)-1)*smat%nfvctr + smat%keyg(1,1,isseg))
-                  iloffset = iostart - ((lmat%keyg(1,2,ilseg)-1)*lmat%nfvctr + lmat%keyg(1,1,ilseg))
+                  isoffset = int(iostart - &
+                             (int((smat%keyg(1,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) &
+                               + int(smat%keyg(1,1,isseg),kind=8)),kind=4)
+                  iloffset = int(iostart - &
+                             (int((lmat%keyg(1,2,ilseg)-1),kind=8)*int(lmat%nfvctr,kind=8) &
+                               + int(lmat%keyg(1,1,ilseg),kind=8)),kind=4)
     
                   ! determine start end and of the overlapping segment in compressed form
                   iscostart=smat%keyv(isseg)+isoffset
