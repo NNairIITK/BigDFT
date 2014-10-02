@@ -2259,6 +2259,7 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
   use sparsematrix_base, only: sparse_matrix, matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   use foe_base, only: foe_data, foe_data_set_real, foe_data_get_real
+  use yaml_output
   implicit none
 
   ! Calling arguments
@@ -2327,6 +2328,10 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
 
   if (nproc > 1) then
       call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
+  if (bigdft_mpi%iproc==0) then
+      call yaml_map('errors, noise',(/allredarr(1),allredarr(2),anoise/),fmt='(es12.4)')
   end if
 
   allredarr=abs(allredarr) !for some crazy situations this may be negative
