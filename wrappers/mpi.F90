@@ -225,11 +225,11 @@ contains
 
 
   !> This is a different procedure to assign the iproc according to the groups.
-  subroutine mpi_environment_set1(mpi_env,iproc,nproc,mpi_comm,groupsize,ngroup)
+  subroutine mpi_environment_set1(mpi_env,iproc,mpi_comm,groupsize,ngroup)
     use yaml_output
     use dynamic_memory
     implicit none
-    integer, intent(in) :: iproc,nproc,mpi_comm,groupsize,ngroup
+    integer, intent(in) :: iproc,mpi_comm,groupsize,ngroup
     type(mpi_environment), intent(out) :: mpi_env
     !local variables
     integer :: j
@@ -329,11 +329,11 @@ contains
 
   !!! PSolver n1-n2 plane mpi partitioning !!! 
   !> This routine is like create_group_comm with a different group_list
-  subroutine create_group_comm1(base_comm,nproc_base,group_id,ngroup,group_size,group_comm)
+  subroutine create_group_comm1(base_comm,group_id,ngroup,group_size,group_comm)
     use dynamic_memory
     use yaml_output
     implicit none
-    integer, intent(in) :: base_comm,group_size,nproc_base,group_id,ngroup
+    integer, intent(in) :: base_comm,group_size,group_id,ngroup
     integer, intent(out) :: group_comm
     !local variables
     character(len=*), parameter :: subname='create_group_comm'
