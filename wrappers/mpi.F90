@@ -1266,7 +1266,9 @@ subroutine getall_d(nproc,recvcounts,displs,window,nrecvbuffer,recvbuffer)
   do jproc=0,nproc-1
      jcount=recvcounts(jproc)
      jst=displs(jproc)
-     call mpiget(recvbuffer(jst+1), jcount, jproc, int(0,kind=mpi_address_kind), window)
+     if (jcount>0) then
+         call mpiget(recvbuffer(jst+1), jcount, jproc, int(0,kind=mpi_address_kind), window)
+     end if
   end do
 
 end subroutine getall_d

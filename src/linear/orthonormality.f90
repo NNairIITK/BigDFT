@@ -284,27 +284,34 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
       call f_routine(id='symmetrize_matrix')
 
-      isegstart = lagmat%istsegline(lagmat%isfvctr+1)
-      isegend = lagmat%istsegline(lagmat%isfvctr+lagmat%nfvctrp) + &
-                lagmat%nsegline(lagmat%isfvctr+lagmat%nfvctrp)-1
-      matrix_local = f_malloc_ptr(lagmat%nvctrp,id='matrix_local')
+      if (lagmat%nvctrp>0) then
+          isegstart = lagmat%istsegline(lagmat%isfvctr+1)
+          isegend = lagmat%istsegline(lagmat%isfvctr+lagmat%nfvctrp) + &
+                    lagmat%nsegline(lagmat%isfvctr+lagmat%nfvctrp)-1
+      else
+          isegstart = 1
+          isegend = 0
+      end if
+      matrix_local = f_malloc_ptr(max(lagmat%nvctrp,1),id='matrix_local')
       do ispin=1,lagmat%nspin
           ishift=(ispin-1)*lagmat%nvctr
-          !$omp parallel default(none) &
-          !$omp shared(isegstart,isegend,ishift,lagmat,matrix_local,tmp_mat_compr) &
-          !$omp private(iseg,ii,i,irowcol,ii_trans)
-          !$omp do
-          do iseg=isegstart,isegend
-              ii=lagmat%keyv(iseg)
-              do i=lagmat%keyg(1,iseg),lagmat%keyg(2,iseg)
-                 irowcol = orb_from_index(lagmat, i)
-                 ii_trans = matrixindex_in_compressed(lagmat,irowcol(2),irowcol(1))
-                 matrix_local(ii-lagmat%isvctr) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
-                 ii=ii+1
+          if (isegend>=isegstart) then
+              !$omp parallel default(none) &
+              !$omp shared(isegstart,isegend,ishift,lagmat,matrix_local,tmp_mat_compr) &
+              !$omp private(iseg,ii,i,irowcol,ii_trans)
+              !$omp do
+              do iseg=isegstart,isegend
+                  ii=lagmat%keyv(iseg)
+                  do i=lagmat%keyg(1,iseg),lagmat%keyg(2,iseg)
+                     irowcol = orb_from_index(lagmat, i)
+                     ii_trans = matrixindex_in_compressed(lagmat,irowcol(2),irowcol(1))
+                     matrix_local(ii-lagmat%isvctr) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
+                     ii=ii+1
+                  end do
               end do
-          end do
-          !$omp end do
-          !$omp end parallel
+              !$omp end do
+              !$omp end parallel
+          end if
           if (nproc>1) then
               !!call mpi_allgatherv(matrix_local(1), lagmat%nvctrp, mpi_double_precision, &
               !!     lagmat_%matrix_compr(ishift+1), lagmat%nvctr_par, lagmat%isvctr_par, mpi_double_precision, &
