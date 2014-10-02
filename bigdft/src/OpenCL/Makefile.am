@@ -30,7 +30,7 @@ OCL_SOURCES = \
 	Benchmark.c \
 	Benchmark_Generator.cpp   Benchmark_Generator.h
 else
-OCL_SOURCES =
+OCL_SOURCES = fake_wrappers.c
 endif
 libOpenCL_a_SOURCES = $(OCL_SOURCES)
 
