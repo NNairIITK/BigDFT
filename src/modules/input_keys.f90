@@ -16,9 +16,6 @@ module module_input_keys
   
   private
 
-  character(len = *), parameter, public :: CHECK_OVERLAP = "check_overlap"
-  character(len = *), parameter, public :: IMETHOD_OVERLAP = "imethod_overlap"
-  character(len=*), parameter, public :: FOE_RESTART="FOE_restart"
   !> Error ids for this module.
   integer, parameter :: ERR_UNDEF=1
   integer, public :: INPUT_VAR_NOT_IN_LIST = ERR_UNDEF

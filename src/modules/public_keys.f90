@@ -144,6 +144,7 @@ module public_keys
   character(len = *), parameter :: ITERATIVE_ORTHOGONALIZATION = "iterative_orthogonalization"
   character(len = *), parameter :: MULTIPOLE_PRESERVING = "multipole_preserving"
   character(len = *), parameter :: CHECK_SUMRHO = "check_sumrho"
+  character(len = *), parameter :: CHECK_OVERLAP = "check_overlap"
   character(len = *), parameter :: EXPERIMENTAL_MODE = "experimental_mode"
   character(len = *), parameter :: WRITE_ORBITALS = "write_orbitals"
   character(len = *), parameter :: EXPLICIT_LOCREGCENTERS = "explicit_locregcenters"
@@ -204,6 +205,8 @@ module public_keys
   character(len=*), parameter :: EXTRA_STATES="extra_states"
   character(len=*), parameter :: FRAGMENT_NO="Fragment No. "
   character(len=*), parameter :: MAX_INVERSION_ERROR = "max_inversion_error"
+  character(len=*), parameter :: FOE_RESTART="FOE_restart"
+  character(len=*), parameter :: IMETHOD_OVERLAP = "imethod_overlap"
   character(len=*), parameter :: EXTRA_SHELLS_KEY='empty_shells'
 
   !> Parameters to avoid typos in dictionary keys
