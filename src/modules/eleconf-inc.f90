@@ -10,6 +10,7 @@
 
 !>   Give electronic configuration of atom
 subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,mxchg,amu)
+  use module_base, only: f_err_throw,yaml_toa
   implicit none
   ! Arguments
   integer, intent(in) :: nzatom            !< Z number of atom
@@ -1653,8 +1654,9 @@ neleconf(7,0)=1.d-18
      amu=222.0d0
 
   case default
-     write(*,*) "Electronic configuration ",nzatom,nvalelec," not found!"
-     stop
+     call f_err_throw("Electronic configuration "//&
+          trim(yaml_toa([nzatom,nvalelec]))//" not found!",&
+          err_name='BIGDFT_RUNTIME_ERROR')
   end select
 
   ! Test than nvalelec is coherent with neleconf
@@ -1725,3 +1727,34 @@ subroutine nzsymbol(nzatom, symbol)
   end if
   symbol = symbol_(nzatom)
 END SUBROUTINE nzsymbol
+
+!> Give the atomic number from Sybmol.
+function zatom(symbol)
+  implicit none
+  ! Arguments
+  integer :: zatom
+  character(len=*), intent(in) :: symbol
+  !local variables
+  character(len=2), parameter :: symbol_(94)=(/' H','He',        &
+       &   'Li','Be',' B',' C',' N',' O',' F','Ne',   &
+       &   'Na','Mg','Al','Si',' P',' S','Cl','Ar',   &
+       &   ' K','Ca','Sc','Ti',' V','Cr','Mn','Fe','Co','Ni',&
+       &        'Cu','Zn','Ga','Ge','As','Se','Br','Kr',     &
+       &   'Rb','Sr',' Y','Zr','Nb','Mo','Tc','Ru','Rh','Pd',&
+       &        'Ag','Cd','In','Sn','Sb','Te',' I','Xe',     &
+       &   'Cs','Ba','La','Ce','Pr','Nd','Pm','Sm','Eu','Gd',&
+       &                       'Tb','Dy','Ho','Er','Tm','Yb',&
+       &             'Lu','Hf','Ta',' W','Re','Os','Ir','Pt',&
+       &        'Au','Hg','Tl','Pb','Bi','Po','At','Rn',     &
+       &   'Fr','Ra','Ac','Th','Pa',' U','Np','Pu'/)
+  integer :: iat
+
+  zatom=-1
+  find_z: do iat=1,size(symbol_)
+     if (trim(adjustl(symbol)) == trim(adjustl(symbol_(iat)))) then
+        zatom=iat
+        exit find_z
+     end if
+  end do find_z
+
+END function zatom

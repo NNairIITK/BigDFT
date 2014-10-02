@@ -9,16 +9,15 @@
 
 
 !> Copy old wavefunctions from psi to psi_old
-subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
-     n1_old,n2_old,n3_old,wfd_old,psi_old)
+subroutine copy_old_wavefunctions(nproc,orbs,psi,&
+     wfd_old,psi_old)
   use module_base
   use module_types
   use yaml_output
   implicit none
-  integer, intent(in) :: nproc,n1,n2,n3
+  integer, intent(in) :: nproc
   type(orbitals_data), intent(in) :: orbs
-  type(wavefunctions_descriptors), intent(inout) :: wfd,wfd_old
-  integer, intent(out) :: n1_old,n2_old,n3_old
+  type(wavefunctions_descriptors), intent(in) :: wfd_old
   real(wp), dimension(:), pointer :: psi,psi_old
   !Local variables
   character(len=*), parameter :: subname='copy_old_wavefunctions'
@@ -27,31 +26,8 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
   real(kind=8) :: tt
   call f_routine(id=subname)
 
-  wfd_old%nvctr_c = wfd%nvctr_c
-  wfd_old%nvctr_f = wfd%nvctr_f
-  wfd_old%nseg_c  = wfd%nseg_c
-  wfd_old%nseg_f  = wfd%nseg_f
-
-  !allocations
-  call allocate_wfd(wfd_old)
-
-  do iseg=1,wfd_old%nseg_c+wfd_old%nseg_f
-     wfd_old%keyglob(1,iseg)    = wfd%keyglob(1,iseg) 
-     wfd_old%keyglob(2,iseg)    = wfd%keyglob(2,iseg)
-     wfd_old%keygloc(1,iseg)    = wfd%keygloc(1,iseg)
-     wfd_old%keygloc(2,iseg)    = wfd%keygloc(2,iseg)
-     wfd_old%keyvloc(iseg)      = wfd%keyvloc(iseg)
-     wfd_old%keyvglob(iseg)      = wfd%keyvglob(iseg)
-  enddo
-  !deallocation
-  call deallocate_wfd(wfd)
-
-  n1_old = n1
-  n2_old = n2
-  n3_old = n3
-
   !add the number of distributed point for the compressed wavefunction
-  tt=dble(wfd_old%nvctr_c+7*wfd_old%nvctr_f)/dble(nproc)
+  !tt=dble(wfd_old%nvctr_c+7*wfd_old%nvctr_f)/dble(nproc)
   !n(c) nvctrp_old=int((1.d0-eps_mach*tt) + tt)
 
 !  psi_old=&

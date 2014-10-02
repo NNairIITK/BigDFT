@@ -14,7 +14,8 @@
 subroutine read_input_dict_from_files(radical,mpi_env,dict)
   use dictionaries
   use wrapper_MPI
-  use module_input_keys
+  !use module_input_keys
+  use public_keys
   use module_input_dicts, only: merge_input_file_to_dict
   use input_old_text_format
   use yaml_output
@@ -110,11 +111,12 @@ subroutine inputs_from_dict(in, atoms, dict)
   use module_interfaces, except => inputs_from_dict
   use dictionaries
   use module_input_keys
+  use public_keys
   use module_input_dicts
   use dynamic_memory
   use module_xc
   use input_old_text_format, only: dict_from_frag
-  use module_atoms, only: atoms_data,atoms_data_null
+  use module_atoms, only: atoms_data,atoms_data_null,atomic_data_set_from_dict
   use yaml_strings, only: f_strcpy
   use psp_projectors, only: PSPCODE_PAW
   use m_ab6_symmetry, only: symmetry_get_n_sym
@@ -623,7 +625,6 @@ subroutine allocateInputFragArrays(input_frag)
   type(fragmentInputParameters),intent(inout) :: input_frag
 
   ! Local variables
-  integer :: i_stat
   character(len=*),parameter :: subname='allocateInputFragArrays'
 
   input_frag%frag_index = f_malloc_ptr(input_frag%nfrag,id='input_frag%frag_index')
@@ -660,7 +661,6 @@ subroutine deallocateInputFragArrays(input_frag)
   type(fragmentInputParameters),intent(inout) :: input_frag
 
   ! Local variables
-  integer :: i_stat,i_all
   character(len=*),parameter :: subname='deallocateInputFragArrays'
 
   !if(associated(input_frag%frag_info)) then
@@ -741,7 +741,6 @@ subroutine free_kpt_variables(in)
   implicit none
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_kpt_variables'
-  integer :: i_stat, i_all
 
 !!$  if (associated(in%gen_kpt)) then
 !!$     i_all=-product(shape(in%gen_kpt))*kind(in%gen_kpt)
@@ -971,7 +970,8 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   use defs_basis
   use m_ab6_kpoints
   use yaml_output
-  use module_input_keys
+  use module_input_keys, only: input_keys_equal
+  use public_keys
   use dictionaries
   implicit none
   !Arguments
@@ -984,7 +984,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   !local variables
   logical :: lstat
   character(len=*), parameter :: subname='kpt_input_analyse'
-  integer :: i_stat,ierror,i, nshiftk, ikpt, j, ncount, nseg, iseg_, ngranularity_
+  integer :: ierror,i, nshiftk, ikpt, j, ncount, nseg, iseg_, ngranularity_
   integer, dimension(3) :: ngkpt_
   real(gp), dimension(3) :: alat_
   real(gp), dimension(3,8) :: shiftk_
@@ -1034,9 +1034,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
      end if
   else if (input_keys_equal(trim(method), 'mpgrid')) then
      !take the points of Monkhorst-pack grid
-     ngkpt_(1) = dict // NGKPT // 0
-     ngkpt_(2) = dict // NGKPT // 1
-     ngkpt_(3) = dict // NGKPT // 2
+     ngkpt_(1:3) = dict // NGKPT
      if (geocode == 'S') ngkpt_(2) = 1
      !shift
      nshiftk = dict_len(dict//SHIFTK)
