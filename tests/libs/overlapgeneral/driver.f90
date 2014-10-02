@@ -457,7 +457,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   ! Local variables
   integer :: nnonzero, nspin, norbu, norbup, isorbu
   integer,dimension(:),allocatable :: nvctr_per_segment
-  integer ,dimension(:),pointer :: nonzero
+  integer,dimension(:,:),pointer :: nonzero
   type(comms_linear) :: collcom_dummy
 
   ! Some checks whether the arguments are reasonable
@@ -740,7 +740,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
       integer,intent(in) :: norbp, isorb
       type(sparse_matrix),intent(in) :: sparsemat
       integer,intent(out) :: nnonzero
-      integer,dimension(:),pointer :: nonzero
+      integer,dimension(:,:),pointer :: nonzero
 
       ! Local variables
       integer :: iorb, iiorb, iseg, iiseg, ilen, i, ii
@@ -757,7 +757,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
       end do
 
 
-      nonzero = f_malloc_ptr(nnonzero,id='nonzero')
+      nonzero = f_malloc_ptr((/2,nnonzero/),id='nonzero')
       ii=0
       do iorb=1,norbp
           iiorb=isorb+iorb
@@ -766,7 +766,8 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
               iiseg=sparsemat%istsegline(iiorb)+iseg-1
               do i=sparsemat%keyg(1,1,iiseg),sparsemat%keyg(2,1,iiseg)
                   ii=ii+1
-                  nonzero(ii)=(sparsemat%keyg(1,2,iiseg)-1)*sparsemat%nfvctr+i
+                  nonzero(1,ii)=i
+                  nonzero(2,ii)=sparsemat%keyg(1,2,iiseg)
               end do
           end do
       end do

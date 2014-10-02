@@ -3900,7 +3900,7 @@ module module_interfaces
           type(orbitals_data),intent(in) :: orbs
           type(local_zone_descriptors),intent(in) :: lzd
           integer,intent(out) :: nnonzero
-          integer,dimension(:),pointer,intent(out) :: nonzero
+          integer,dimension(:,:),pointer,intent(out) :: nonzero
         end subroutine determine_sparsity_pattern
 
         subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonzero, nonzero)
@@ -3912,7 +3912,7 @@ module module_interfaces
           type(atomic_structure),intent(in) :: astruct
           real(kind=8),dimension(lzd%nlr),intent(in) :: cutoff
           integer,intent(out) :: nnonzero
-          integer,dimension(:),pointer,intent(out) :: nonzero
+          integer,dimension(:,:),pointer,intent(out) :: nonzero
         end subroutine determine_sparsity_pattern_distance
 
         subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, store_index, imode, smat)
