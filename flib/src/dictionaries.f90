@@ -85,7 +85,7 @@ module dictionaries
 
    interface assignment(=)
       module procedure get_value,get_integer,get_real,get_double,get_long,get_lg
-      module procedure get_rvec,get_dvec,get_ilvec,get_ivec,get_lvec
+      module procedure get_rvec,get_dvec,get_ilvec,get_ivec,get_lvec,get_c1vec
       !safe getter from list_container
       module procedure safe_get_dict,safe_get_integer,safe_get_double,safe_get_real,safe_get_char
    end interface
@@ -1384,6 +1384,18 @@ contains
      logical :: tmp
      include 'dict_getvec-inc.f90'
    end subroutine get_lvec
+
+   !> Routine to retrieve an array from a dictionary
+   subroutine get_c1vec(arr,dict)
+     use yaml_strings, only: yaml_toa
+     implicit none
+     character(len=1), dimension(:), intent(out) :: arr
+     type(dictionary), intent(in) :: dict 
+     !local variables
+     character(len=1) :: tmp
+     include 'dict_getvec-inc.f90'
+   end subroutine get_c1vec
+
 
    !> Set and get routines for different types
    subroutine get_real(rval,dict)

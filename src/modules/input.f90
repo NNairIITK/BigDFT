@@ -1179,7 +1179,8 @@ contains
     use module_base
     use module_types
     use module_input
-    use module_input_keys
+    !use module_input_keys
+    use public_keys
     use dictionaries
     !  use yaml_output
     implicit none
@@ -1296,7 +1297,8 @@ contains
     use module_base
     use module_types
     use module_input
-    use module_input_keys
+    use public_keys
+    use module_input_keys, only: input_keys_equal
     use dictionaries
     implicit none
     integer, intent(in) :: iproc
@@ -1397,7 +1399,8 @@ contains
     use module_base
     use module_types
     use module_input
-    use module_input_keys
+    use public_keys
+    !use module_input_keys
     use dictionaries
     implicit none
     !Arguments
@@ -1445,7 +1448,8 @@ contains
   !> Read Self-Interaction Correction (SIC) input parameters
   subroutine read_sic_from_text_format(iproc,dict,filename)
     use module_input
-    use module_input_keys
+    use public_keys
+    use module_input_keys, only: input_keys_equal
     use dictionaries
     implicit none
     integer, intent(in) :: iproc
@@ -1480,7 +1484,8 @@ contains
 
   subroutine read_tddft_from_text_format(iproc,dict,filename)
     use module_input
-    use module_input_keys
+    use public_keys
+    !use module_input_keys
     use dictionaries
     implicit none
     integer, intent(in) :: iproc
@@ -1514,7 +1519,8 @@ contains
     use module_types
     use dictionaries
     use module_input
-    use module_input_keys
+    use public_keys
+    use module_input_keys, only: input_keys_equal
     implicit none
     character(len=*), intent(in) :: filename
     integer, intent(in) :: iproc
@@ -1632,8 +1638,9 @@ contains
   !> Read the input variables which can be used for performances
   subroutine read_perf_from_text_format(iproc,dict,filename)
     use module_input
-    use module_input_keys
+    !use module_input_keys
     use dictionaries
+    use public_keys
     implicit none
     character(len=*), intent(in) :: filename
     type(dictionary), pointer :: dict
@@ -1813,7 +1820,8 @@ contains
   subroutine read_lin_and_frag_from_text_format(iproc,dict,run_name)
     use module_base
     use module_input
-    use module_input_keys
+    !use module_input_keys
+    use public_keys
     implicit none
     character(len=*), intent(in) :: run_name
     type(dictionary), pointer :: dict
@@ -2024,7 +2032,8 @@ contains
   subroutine read_neb_from_text_format(iproc,dict,filename)
     use module_base
     use module_input
-    use module_input_keys
+    !use module_input_keys
+    use public_keys
     use dictionaries
     implicit none
     character(len=*), intent(in) :: filename
@@ -2180,7 +2189,7 @@ contains
     use module_base
     use module_types, only: fragmentInputParameters
     use yaml_output, only: yaml_toa
-    use module_input_keys
+    use public_keys
     implicit none
     type(fragmentInputParameters), intent(in) :: frag
     type(dictionary), pointer :: dict_frag

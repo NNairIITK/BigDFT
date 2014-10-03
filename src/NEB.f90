@@ -97,8 +97,8 @@ MODULE NEB_routines
       use yaml_output
       use dictionaries
       use module_interfaces
-      use module_input_keys, only: input_keys_fill_all, PERF_VARIABLES, OUTDIR, &
-           & GEOPT_VARIABLES
+      use module_input_keys, only: input_keys_fill_all
+      use public_keys, only: PERF_VARIABLES, OUTDIR,GEOPT_VARIABLES
       use module_input_dicts
       use module_atoms, only: atomic_structure, &
            deallocate_atomic_structure, &

@@ -10,7 +10,9 @@ perf:
   outdir: ./
 
 ig_occupation:
-  H: { 1s: 1, 2p: 0, 2s: 0}
+#  H: { 1s: 1, 2p: 0, 2s: 0}
+   H: {empty_shells: [p, s]}
+
 
 posinp:
   positions:

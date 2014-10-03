@@ -41,15 +41,14 @@ module module_interfaces
        character(len=2), intent(in) :: action
      end subroutine timing
 
-      subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
-            &   n1_old,n2_old,n3_old,wfd_old,psi_old)
+      subroutine copy_old_wavefunctions(nproc,orbs,psi,&
+            &   wfd_old,psi_old)
         use module_defs, only: wp
         use module_types
          implicit none
-         integer, intent(in) :: nproc,n1,n2,n3
+         integer, intent(in) :: nproc
          type(orbitals_data), intent(in) :: orbs
-         type(wavefunctions_descriptors), intent(inout) :: wfd,wfd_old
-         integer, intent(out) :: n1_old,n2_old,n3_old
+         type(wavefunctions_descriptors), intent(in) :: wfd_old
          real(wp), dimension(:), pointer :: psi,psi_old
       END SUBROUTINE copy_old_wavefunctions
 
@@ -310,17 +309,17 @@ module module_interfaces
 
        subroutine input_wf_memory(iproc, atoms, &
             & rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old, &
-            & rxyz, hx, hy, hz, d, wfd, psi, orbs)
+            & rxyz, lzd, psi, orbs)
          use module_defs
          use module_types
          implicit none
          integer, intent(in) :: iproc
          type(atoms_data), intent(in) :: atoms
          real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz, rxyz_old
-         real(gp), intent(in) :: hx, hy, hz, hx_old, hy_old, hz_old
-         type(grid_dimensions), intent(in) :: d, d_old
-         type(wavefunctions_descriptors), intent(in) :: wfd
-         type(wavefunctions_descriptors), intent(inout) :: wfd_old
+         real(gp), intent(in) :: hx_old, hy_old, hz_old
+         type(local_zone_descriptors), intent(in) :: lzd
+         type(grid_dimensions), intent(in) :: d_old
+         type(wavefunctions_descriptors), intent(in) :: wfd_old
          type(orbitals_data), intent(in) :: orbs
          real(wp), dimension(:), pointer :: psi, psi_old
        END SUBROUTINE input_wf_memory
@@ -377,7 +376,7 @@ module module_interfaces
 
        subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
             denspot,denspot0,nlpsp,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
-            lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft,&
+            lzd_old,psi_old,rxyz_old,tmb_old,ref_frags,cdft,&
             locregcenters)
          use module_defs
          use module_types
@@ -387,7 +386,6 @@ module module_interfaces
          integer, intent(in) :: iproc, nproc, inputpsi,  input_wf_format
          type(input_variables), intent(in) :: in
          type(GPU_pointers), intent(inout) :: GPU
-         real(gp), intent(in) :: hx_old,hy_old,hz_old
          type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(3, atoms%astruct%nat), target, intent(in) :: rxyz
          type(DFT_local_fields), intent(inout) :: denspot
@@ -397,10 +395,8 @@ module module_interfaces
          real(wp), dimension(:), pointer :: psi_old
          integer, intent(out) :: norbv
          type(DFT_PSP_projectors), intent(inout) :: nlpsp
-         type(grid_dimensions), intent(in) :: d_old
          real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz_old
-         type(local_zone_descriptors),intent(inout):: lzd_old
-         type(wavefunctions_descriptors), intent(inout) :: wfd_old
+         type(local_zone_descriptors),intent(in):: lzd_old
          type(system_fragment), dimension(:), pointer :: ref_frags
          type(cdft_data), intent(out) :: cdft
          real(kind=8),dimension(3,atoms%astruct%nat),intent(in),optional :: locregcenters
@@ -3513,20 +3509,17 @@ module module_interfaces
         end subroutine overlap_plus_minus_one_half_exact
 
         subroutine input_wf_memory_new(nproc,iproc, atoms, &
-                 rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old,lzd_old, &
-                 rxyz,hx,hy,hz,d,wfd,psi,orbs,lzd,displ)
+                 rxyz_old, hx_old, hy_old, hz_old, psi_old,lzd_old, &
+                 rxyz,psi,orbs,lzd)
           use module_defs
           use module_types
           implicit none
           integer, intent(in) :: iproc,nproc
           type(atoms_data), intent(in) :: atoms
           real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz, rxyz_old
-          real(gp), intent(in) :: hx, hy, hz, hx_old, hy_old, hz_old,displ
-          type(grid_dimensions), intent(in) :: d, d_old
-          type(wavefunctions_descriptors), intent(in) :: wfd
-          type(wavefunctions_descriptors), intent(inout) :: wfd_old
+          real(gp), intent(in) :: hx_old, hy_old, hz_old
           type(orbitals_data), intent(in) :: orbs
-          type(local_zone_descriptors), intent(inout) :: lzd_old
+          type(local_zone_descriptors), intent(in) :: lzd_old
           type(local_zone_descriptors), intent(in) :: lzd
           real(wp), dimension(:), pointer :: psi, psi_old
         end subroutine input_wf_memory_new
