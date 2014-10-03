@@ -994,9 +994,9 @@ subroutine localfields_free(denspotd, fion, fdisp)
   if (associated(denspotd%pkernelseq%kernel,target=denspotd%pkernel%kernel)) then
      nullify(denspotd%pkernelseq%kernel)
   else if (associated(denspotd%pkernelseq%kernel)) then
-     call pkernel_free(denspotd%pkernelseq,subname)
+     call pkernel_free(denspotd%pkernelseq)
   end if
-  call pkernel_free(denspotd%pkernel,subname)
+  call pkernel_free(denspotd%pkernel)
 
   call f_free_ptr(denspotd%rhov)
   call f_free_ptr(denspotd%V_XC)
