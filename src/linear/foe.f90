@@ -1903,7 +1903,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
   type(foe_data) :: foe_obj
   real(kind=8),dimension(:),allocatable :: eval, work
   real(kind=8),dimension(:,:),allocatable :: tempmat
-  integer :: lwork, info
+  integer :: lwork, info, j
 
   !!real(kind=8),dimension(ovrlp_smat%nfvctr,ovrlp_smat%nfvctr) :: overlap
   !!real(kind=8),dimension(ovrlp_smat%nfvctr) :: eval
@@ -1944,10 +1944,20 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 
   !@ TEMPORARY: eigenvalues of  the overlap matrix ###################
   tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
-  do i=1,ovrlp_smat%nvctr
-      irowcol = orb_from_index(ovrlp_smat,i)
-      tempmat(irowcol(1),irowcol(2)) = ovrlp_mat%matrix_compr(i)
+  do iseg=1,ovrlp_smat%nseg
+      ii=ovrlp_smat%keyv(iseg)
+      do i=ovrlp_smat%keyg(1,1,iseg),ovrlp_smat%keyg(2,1,iseg)
+          tempmat(i,ovrlp_smat%keyg(1,2,iseg)) = ovrlp_mat%matrix_compr(ii)
+          ii = ii + 1
+      end do
   end do
+  !!if (iproc==0) then
+  !!    do i=1,ovrlp_smat%nfvctr
+  !!        do j=1,ovrlp_smat%nfvctr
+  !!            write(*,'(a,2i6,es17.8)') 'i,j,val',i,j,tempmat(j,i)
+  !!        end do
+  !!    end do
+  !!end if
   eval = f_malloc(ovrlp_smat%nfvctr,id='eval')
   lwork=100*ovrlp_smat%nfvctr
   work = f_malloc(lwork,id='work')
