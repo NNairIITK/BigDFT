@@ -1972,6 +1972,16 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
   logical,dimension(:),allocatable :: in_neighborhood
   character(len=*),parameter :: subname='overlap_power_minus_one_half_parallel'
   !type(matrices) :: inv_ovrlp_half_
+  !!integer :: itaskgroups, iitaskgroup, imin, imax
+
+  !!imin=ovrlp%nvctr
+  !!imax=0
+  !!do itaskgroups=1,ovrlp%ntaskgroupp
+  !!    iitaskgroup = ovrlp%inwhichtaskgroup(itaskgroups)
+  !!    imin = min(imin,ovrlp%taskgroup_startend(1,1,iitaskgroup))
+  !!    imax = max(imax,ovrlp%taskgroup_startend(2,1,iitaskgroup))
+  !!end do
+
 
   call timing(iproc,'lovrlp^-1/2par','ON')
   call f_routine('overlap_power_minus_one_half_parallel')
@@ -2018,19 +2028,19 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
          ! We are at the start of a new atom
          ! Count all orbitals that are in the neighborhood
 
-         iseg=inv_ovrlp_half%istsegline(iiorb)
+         iseg=ovrlp%istsegline(iiorb)
          iend=int(iiorb,kind=8)*int(ovrlp%nfvctr,kind=8)
          n=0
          in_neighborhood(:)=.false.
          do 
-            do i=inv_ovrlp_half%keyg(1,1,iseg),inv_ovrlp_half%keyg(2,1,iseg)
+            do i=ovrlp%keyg(1,1,iseg),ovrlp%keyg(2,1,iseg)
                in_neighborhood(i)=.true.
                n=n+1
             end do
             iseg=iseg+1
-            if (iseg>inv_ovrlp_half%nseg) exit
-            ii = int((inv_ovrlp_half%keyg(1,2,iseg)-1),kind=8)*int(inv_ovrlp_half%nfvctr,kind=8) + &
-                 int(inv_ovrlp_half%keyg(1,1,iseg),kind=8)
+            if (iseg>ovrlp%nseg) exit
+            ii = int((ovrlp%keyg(1,2,iseg)-1),kind=8)*int(ovrlp%nfvctr,kind=8) + &
+                 int(ovrlp%keyg(1,1,iseg),kind=8)
             if (ii>iend) exit
          end do
 
@@ -2046,6 +2056,14 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
                kkorb=kkorb+1
                ind = matrixindex_in_compressed(ovrlp,korb, jorb)
                if (ind>0) then
+                  !!if (ind<imin) then
+                  !!    write(*,*) 'ind,imin',ind,imin
+                  !!    stop 'ind<imin'
+                  !!end if
+                  !!if (ind>imax) then
+                  !!    write(*,*) 'ind,imax',ind,imax
+                  !!    stop 'ind>imax'
+                  !!end if
                   ind=ind+ishift
                   ovrlp_tmp(kkorb,jjorb)=ovrlp_mat%matrix_compr(ind)
                else

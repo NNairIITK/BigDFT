@@ -1895,7 +1895,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
   integer :: irow, icol, iflag, ispin, isshift, ilshift
   logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
   integer,parameter :: NPL_MIN=5
-  real(kind=8),parameter :: DEGREE_MULTIPLICATOR_MAX=10.d0
+  real(kind=8),parameter :: DEGREE_MULTIPLICATOR_MAX=20.d0
   real(kind=8) :: degree_multiplicator
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
@@ -1924,7 +1924,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
      do ispin=1,ovrlp_smat%nspin
          call foe_data_set_real(foe_obj,"ef",0.d0,ispin)
          call foe_data_set_real(foe_obj,"evlow",0.5d0,ispin)
-         call foe_data_set_real(foe_obj,"evhigh",2.5d0,ispin)
+         call foe_data_set_real(foe_obj,"evhigh",1.5d0,ispin)
          call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,ispin)
          call foe_data_set_real(foe_obj,"charge",0.d0,ispin)
      end do
@@ -1942,34 +1942,34 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 !@ ################################################
 
 
-  !@ TEMPORARY: eigenvalues of  the overlap matrix ###################
-  tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
-  do iseg=1,ovrlp_smat%nseg
-      ii=ovrlp_smat%keyv(iseg)
-      do i=ovrlp_smat%keyg(1,1,iseg),ovrlp_smat%keyg(2,1,iseg)
-          tempmat(i,ovrlp_smat%keyg(1,2,iseg)) = ovrlp_mat%matrix_compr(ii)
-          ii = ii + 1
-      end do
-  end do
-  !!if (iproc==0) then
-  !!    do i=1,ovrlp_smat%nfvctr
-  !!        do j=1,ovrlp_smat%nfvctr
-  !!            write(*,'(a,2i6,es17.8)') 'i,j,val',i,j,tempmat(j,i)
-  !!        end do
+  !!!@ TEMPORARY: eigenvalues of  the overlap matrix ###################
+  !!tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
+  !!do iseg=1,ovrlp_smat%nseg
+  !!    ii=ovrlp_smat%keyv(iseg)
+  !!    do i=ovrlp_smat%keyg(1,1,iseg),ovrlp_smat%keyg(2,1,iseg)
+  !!        tempmat(i,ovrlp_smat%keyg(1,2,iseg)) = ovrlp_mat%matrix_compr(ii)
+  !!        ii = ii + 1
   !!    end do
-  !!end if
-  eval = f_malloc(ovrlp_smat%nfvctr,id='eval')
-  lwork=100*ovrlp_smat%nfvctr
-  work = f_malloc(lwork,id='work')
-  call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
-  !if (iproc==0) write(*,*) 'eval',eval
-  if (iproc==0) call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
+  !!end do
+  !!!!if (iproc==0) then
+  !!!!    do i=1,ovrlp_smat%nfvctr
+  !!!!        do j=1,ovrlp_smat%nfvctr
+  !!!!            write(*,'(a,2i6,es17.8)') 'i,j,val',i,j,tempmat(j,i)
+  !!!!        end do
+  !!!!    end do
+  !!!!end if
+  !!eval = f_malloc(ovrlp_smat%nfvctr,id='eval')
+  !!lwork=100*ovrlp_smat%nfvctr
+  !!work = f_malloc(lwork,id='work')
+  !!call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
+  !!!if (iproc==0) write(*,*) 'eval',eval
+  !!if (iproc==0) call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
 
-  call f_free(tempmat)
-  call f_free(eval)
-  call f_free(work)
+  !!call f_free(tempmat)
+  !!call f_free(eval)
+  !!call f_free(work)
 
-  !@ END TEMPORARY: eigenvalues of  the overlap matrix ###############
+  !!!@ END TEMPORARY: eigenvalues of  the overlap matrix ###############
 
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -2363,7 +2363,7 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
 
 
   allredarr=abs(allredarr) !for some crazy situations this may be negative
-  noise=100.d0*anoise
+  noise=1000.d0*anoise
 
   if (bigdft_mpi%iproc==0) then
       call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
