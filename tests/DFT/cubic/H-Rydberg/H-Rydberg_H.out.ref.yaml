@@ -128,9 +128,7 @@
    fscale_upperbound                   : 5.e-2 #  linear scaling upper bound for the error function decay length
  ig_occupation:
    H:
-     1s                                : 1
-     2p                                : 0
-     2s                                : 0
+     empty_shells: [p, s]
  posinp:
    positions:
    - H: [0.0, 0.0, 0.0]

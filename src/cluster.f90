@@ -14,7 +14,7 @@
 !!  Output is the total energy and the forces 
 !!   @warning psi, keyg, keyv and eval should be freed after use outside of the routine.
 subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,pressure,&
-     KSwfn,tmb,rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
+     KSwfn,tmb,rxyz_old,in,GPU,infocode)
   use module_base
   use module_types
   use module_interfaces
@@ -34,7 +34,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   implicit none
   !Arguments
   integer, intent(in) :: nproc,iproc
-  real(gp), intent(inout) :: hx_old,hy_old,hz_old
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(inout) :: atoms
   type(GPU_pointers), intent(inout) :: GPU
@@ -67,8 +66,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   integer :: ierr,inputpsi,igroup,ikpt,nproctiming,ifrag
   real :: tcpu0,tcpu1
   real(kind=8) :: tel
-  type(grid_dimensions) :: d_old
-  type(wavefunctions_descriptors) :: wfd_old
   type(local_zone_descriptors) :: lzd_old
   type(DFT_PSP_projectors) :: nlpsp
   type(DFT_wavefunction) :: VTwfn !< Virtual wavefunction
@@ -142,21 +139,19 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
   !Nullify for new input guess
   call nullify_local_zone_descriptors(lzd_old)
-  !call nullify_wavefunctions_descriptors(wfd_old)
-  call nullify_wfd(wfd_old)
   ! We save the variables that defined the previous psi if the restart is active
   inputpsi = in%inputPsiId
   if (in%inputPsiId == INPUT_PSI_MEMORY_WVL) then
      if (associated(KSwfn%psi)) then
         !regenerate grid spacings (this would not be needed if hgrids is in Lzd)
-        if (atoms%astruct%geocode == 'P') then
-           call correct_grid(atoms%astruct%cell_dim(1),hx_old,KSwfn%Lzd%Glr%d%n1)
-           call correct_grid(atoms%astruct%cell_dim(2),hy_old,KSwfn%Lzd%Glr%d%n2)
-           call correct_grid(atoms%astruct%cell_dim(3),hz_old,KSwfn%Lzd%Glr%d%n3)
-        else if (atoms%astruct%geocode == 'S') then 
-           call correct_grid(atoms%astruct%cell_dim(1),hx_old,KSwfn%Lzd%Glr%d%n1)
-           call correct_grid(atoms%astruct%cell_dim(3),hz_old,KSwfn%Lzd%Glr%d%n3)
-        end if
+!!$        if (atoms%astruct%geocode == 'P') then
+!!$           call correct_grid(atoms%astruct%cell_dim(1),hx_old,KSwfn%Lzd%Glr%d%n1)
+!!$           call correct_grid(atoms%astruct%cell_dim(2),hy_old,KSwfn%Lzd%Glr%d%n2)
+!!$           call correct_grid(atoms%astruct%cell_dim(3),hz_old,KSwfn%Lzd%Glr%d%n3)
+!!$        else if (atoms%astruct%geocode == 'S') then 
+!!$           call correct_grid(atoms%astruct%cell_dim(1),hx_old,KSwfn%Lzd%Glr%d%n1)
+!!$           call correct_grid(atoms%astruct%cell_dim(3),hz_old,KSwfn%Lzd%Glr%d%n3)
+!!$        end if
 
         call copy_local_zone_descriptors(KSwfn%Lzd, lzd_old, subname)
 
@@ -165,14 +160,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            call old_wavefunction_set(KSwfn%oldpsis(in%wfn_history+1),&
                 atoms%astruct%nat,KSwfn%orbs%norbp*KSwfn%orbs%nspinor,&
                 KSwfn%Lzd,rxyz_old,KSwfn%psi)
-           !to maintain the same treatment destroy wfd afterwards (to be unified soon)
-           !deallocation
-           call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
         else
            call copy_old_wavefunctions(nproc,KSwfn%orbs,&
-                KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
-                KSwfn%Lzd%Glr%wfd,KSwfn%psi,d_old%n1,d_old%n2,d_old%n3,wfd_old,psi_old)
+                KSwfn%psi,lzd_old%Glr%wfd,psi_old)
         end if
+
+        !to maintain the same treatment destroy wfd afterwards (to be unified soon)
+        !deallocation
+        call deallocate_wfd(KSwfn%Lzd%Glr%wfd)
         !already here due to new input guess
         call deallocate_bounds(KSwfn%Lzd%Glr%geocode, KSwfn%Lzd%Glr%hybrid_on, KSwfn%lzd%glr%bounds)
      else
@@ -209,8 +204,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. &
       inputpsi == INPUT_PSI_MEMORY_LINEAR .or. &
       inputpsi == INPUT_PSI_DISK_LINEAR) then
+     locregcenters=f_malloc_ptr((/3,atoms%astruct%nat/),id=' locregcenters')
       if (in%explicit_locregcenters) then
-          locregcenters=f_malloc_ptr((/3,atoms%astruct%nat/),id=' locregcenters')
           open(unit=123, file='locregcenters.xyz')
           read(123,*) nlr
           if (nlr/=atoms%astruct%nat) stop 'ERROR: wrong nlr'
@@ -219,7 +214,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
               read(123,*) comment, locregcenters(1,ilr), locregcenters(2,ilr), locregcenters(3,ilr)
           end do
       else
-          locregcenters=f_malloc_ptr((/3,atoms%astruct%nat/),id=' locregcenters')
           locregcenters = rxyz
       end if
   end if
@@ -469,15 +463,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      call denspot_set_history(denspot,linear_iscf,in%nspin, &
           KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,npulayit=in%lin%mixHist_lowaccuracy)
      call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
-          inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft,&
+          inputpsi,input_wf_format,norbv,lzd_old,psi_old,rxyz_old,tmb_old,ref_frags,cdft,&
           locregcenters)
+      call f_free_ptr(locregcenters)
   else
       call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
-           inputpsi,input_wf_format,norbv,lzd_old,wfd_old,psi_old,d_old,hx_old,hy_old,hz_old,rxyz_old,tmb_old,ref_frags,cdft)
-      nvirt=in%nvirt
-      if(in%nvirt > norbv) then
-         nvirt = norbv
-      end if
+           inputpsi,input_wf_format,norbv,lzd_old,psi_old,rxyz_old,tmb_old,ref_frags,cdft)
   end if
   
   nvirt=in%nvirt
@@ -485,25 +476,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      nvirt = norbv
   end if
 
-  if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
-      in%inputPsiId == INPUT_PSI_MEMORY_LINEAR .or. &
-      in%inputPsiId == INPUT_PSI_DISK_LINEAR) then
-      call f_free_ptr(locregcenters)
-  end if
-
-  !call deallocate_wfd(wfd_old,subname)
   ! modified by SM
-  call deallocate_wfd(wfd_old)
   call deallocate_local_zone_descriptors(lzd_old)
-
-  !save the new grid spacing into the hgrid_old value
-  hx_old=KSwfn%Lzd%hgrids(1)
-  hy_old=KSwfn%Lzd%hgrids(2)
-  hz_old=KSwfn%Lzd%hgrids(3)
 
   !end of the initialization part
   call timing(bigdft_mpi%mpi_comm,'INIT','PR')
-
 
   !start the optimization
   energs%eexctX=0.0_gp

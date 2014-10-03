@@ -1152,8 +1152,7 @@ END SUBROUTINE frozen_itof
 
 !> The function which controls all the moving positions
 !! This function is related to frozen_ftoi
-function move_this_coordinate(ifrztyp,ixyz)
-  use module_base
+pure function move_this_coordinate(ifrztyp,ixyz)
   implicit none
   integer, intent(in) :: ifrztyp !< Type of frozen atom
   integer, intent(in) :: ixyz    !w coordinates (x=1, y=2; z=3)
