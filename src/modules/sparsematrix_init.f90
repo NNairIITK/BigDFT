@@ -515,51 +515,51 @@ contains
     end subroutine keyg_per_line
 
 
-    subroutine keyg_per_line_old(norb, nseg, iline, istseg, lut, ivctr, keyg)
-      implicit none
-      
-      ! Calling arguments
-      integer,intent(in) :: norb, nseg, iline, istseg
-      logical,dimension(norb),intent(in) :: lut
-      integer,intent(inout) :: ivctr
-      integer,dimension(2,nseg),intent(out) :: keyg
-      
-      ! Local variables
-      integer :: iseg, jorb, ijorb
-      logical :: segment_started, overlap
+    !!subroutine keyg_per_line_old(norb, nseg, iline, istseg, lut, ivctr, keyg)
+    !!  implicit none
+    !!  
+    !!  ! Calling arguments
+    !!  integer,intent(in) :: norb, nseg, iline, istseg
+    !!  logical,dimension(norb),intent(in) :: lut
+    !!  integer,intent(inout) :: ivctr
+    !!  integer,dimension(2,nseg),intent(out) :: keyg
+    !!  
+    !!  ! Local variables
+    !!  integer :: iseg, jorb, ijorb
+    !!  logical :: segment_started, overlap
 
-      ! Always start a new segment for each line
-      segment_started=.false.
-      !iseg=sparsemat%istsegline(iline)-1
-      iseg=istseg-1
-      do jorb=1,norb
-          overlap=lut(jorb)
-          ijorb=(iline-1)*norb+jorb
-          if (overlap) then
-              if (segment_started) then
-                  ! there is no "hole" in between, i.e. we are in the same segment
-                  ivctr=ivctr+1
-              else
-                  ! there was a "hole" in between, i.e. we are in a new segment.
-                  iseg=iseg+1
-                  ivctr=ivctr+1
-                  ! open the current segment
-                  keyg(1,iseg)=ijorb
-              end if
-              segment_started=.true.
-          else
-              if (segment_started) then
-                  ! close the previous segment
-                  keyg(2,iseg)=ijorb-1
-              end if
-              segment_started=.false.
-          end if
-      end do
-      ! close the last segment on the line if necessary
-      if (segment_started) then
-          keyg(2,iseg)=iline*norb
-      end if
-    end subroutine keyg_per_line_old
+    !!  ! Always start a new segment for each line
+    !!  segment_started=.false.
+    !!  !iseg=sparsemat%istsegline(iline)-1
+    !!  iseg=istseg-1
+    !!  do jorb=1,norb
+    !!      overlap=lut(jorb)
+    !!      ijorb=(iline-1)*norb+jorb
+    !!      if (overlap) then
+    !!          if (segment_started) then
+    !!              ! there is no "hole" in between, i.e. we are in the same segment
+    !!              ivctr=ivctr+1
+    !!          else
+    !!              ! there was a "hole" in between, i.e. we are in a new segment.
+    !!              iseg=iseg+1
+    !!              ivctr=ivctr+1
+    !!              ! open the current segment
+    !!              keyg(1,iseg)=ijorb
+    !!          end if
+    !!          segment_started=.true.
+    !!      else
+    !!          if (segment_started) then
+    !!              ! close the previous segment
+    !!              keyg(2,iseg)=ijorb-1
+    !!          end if
+    !!          segment_started=.false.
+    !!      end if
+    !!  end do
+    !!  ! close the last segment on the line if necessary
+    !!  if (segment_started) then
+    !!      keyg(2,iseg)=iline*norb
+    !!  end if
+    !!end subroutine keyg_per_line_old
 
 
 
