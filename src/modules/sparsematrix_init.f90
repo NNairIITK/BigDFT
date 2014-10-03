@@ -1627,7 +1627,7 @@ contains
 
       subroutine check_ortho_inguess()
         integer :: iorb, iiorb, isegstart, isegsend, iseg, j, i, jorb, korb, ind
-        integer,dimension(:),allocatable :: in_neighborhood
+        logical,dimension(:),allocatable :: in_neighborhood
 
         in_neighborhood = f_malloc(smat%nfvctr,id='in_neighborhood')
         
