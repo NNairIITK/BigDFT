@@ -2290,7 +2290,7 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
   use sparsematrix_base, only: sparse_matrix, matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   use foe_base, only: foe_data, foe_data_set_real, foe_data_get_real
-  use yaml_output
+  !!use yaml_output
   implicit none
 
   ! Calling arguments
@@ -2365,17 +2365,17 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
   allredarr=abs(allredarr) !for some crazy situations this may be negative
   noise=1000.d0*anoise
 
-  if (bigdft_mpi%iproc==0) then
-      call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
-  end if
+  !!if (bigdft_mpi%iproc==0) then
+  !!    call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
+  !!end if
   !write(*,*) 'allredarr, anoise', allredarr, anoise
   if (allredarr(1)>noise) then
       eval_bounds_ok(1)=.false.
       call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*factor_low,ispin)
       restart=.true.
-      if (bigdft_mpi%iproc==0) then
-          call yaml_map('adjust lower bound',.true.)
-      end if
+      !!if (bigdft_mpi%iproc==0) then
+      !!    call yaml_map('adjust lower bound',.true.)
+      !!end if
   else
       eval_bounds_ok(1)=.true.
   end if
@@ -2383,9 +2383,9 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
       eval_bounds_ok(2)=.false.
       call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*factor_high,ispin)
       restart=.true.
-      if (bigdft_mpi%iproc==0) then
-          call yaml_map('adjust upper bound',.true.)
-      end if
+      !!if (bigdft_mpi%iproc==0) then
+      !!    call yaml_map('adjust upper bound',.true.)
+      !!end if
   else
       eval_bounds_ok(2)=.true.
   end if
