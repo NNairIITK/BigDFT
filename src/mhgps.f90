@@ -336,6 +336,7 @@ allocate(fat(3,nat))
         endif
 
         do ifile = 1,nend
+!        do ifile = 0,nend
 
             !read (first) file
             write(filename,'(a,i3.3)')'pos',ifile

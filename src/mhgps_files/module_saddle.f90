@@ -158,7 +158,9 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     detot=0.0_gp
     curv=1000.0_gp
     icheck=0
-    icheckmax=5
+!    icheckmax=5
+    icheckmax=0
+    if(icheckmax==0 .and. saddle_tighten) icheckmax=1
     tighten=.false.
     alpha_stretch=alpha_stretch0
 
