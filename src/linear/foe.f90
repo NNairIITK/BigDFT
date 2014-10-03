@@ -1901,6 +1901,9 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
   integer,parameter :: DENSE=2
   integer,parameter :: imode=SPARSE
   type(foe_data) :: foe_obj
+  real(kind=8),dimension(:),allocatable :: eval, work
+  real(kind=8),dimension(:,:),allocatable :: tempmat
+  integer :: lwork, info
 
   !!real(kind=8),dimension(ovrlp_smat%nfvctr,ovrlp_smat%nfvctr) :: overlap
   !!real(kind=8),dimension(ovrlp_smat%nfvctr) :: eval
@@ -1939,6 +1942,24 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 !@ ################################################
 
 
+  !@ TEMPORARY: eigenvalues of  the overlap matrix ###################
+  tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
+  do i=1,ovrlp_smat%nvctr
+      irowcol = orb_from_index(ovrlp_smat,i)
+      tempmat(irowcol(1),irowcol(2)) = ovrlp_mat%matrix_compr(i)
+  end do
+  eval = f_malloc(ovrlp_smat%nfvctr,id='eval')
+  lwork=100*ovrlp_smat%nfvctr
+  work = f_malloc(lwork,id='work')
+  call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
+  !if (iproc==0) write(*,*) 'eval',eval
+  if (iproc==0) call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
+
+  call f_free(tempmat)
+  call f_free(eval)
+  call f_free(work)
+
+  !@ END TEMPORARY: eigenvalues of  the overlap matrix ###############
 
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -2045,7 +2066,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                   end if
                   if (npl>nplx) stop 'npl>nplx'
         
-                  ! Array the holds the Chebyshev polynomials. Needs to be recalculated
+                  ! Array that holds the Chebyshev polynomials. Needs to be recalculated
                   ! every time the Hamiltonian has been modified.
                   if (calculate_SHS) then
                       call f_free(chebyshev_polynomials)
@@ -2330,17 +2351,21 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
       call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
-  if (bigdft_mpi%iproc==0) then
-      call yaml_map('errors, noise',(/allredarr(1),allredarr(2),anoise/),fmt='(es12.4)')
-  end if
 
   allredarr=abs(allredarr) !for some crazy situations this may be negative
   noise=100.d0*anoise
+
+  if (bigdft_mpi%iproc==0) then
+      call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
+  end if
   !write(*,*) 'allredarr, anoise', allredarr, anoise
   if (allredarr(1)>noise) then
       eval_bounds_ok(1)=.false.
       call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*factor_low,ispin)
       restart=.true.
+      if (bigdft_mpi%iproc==0) then
+          call yaml_map('adjust lower bound',.true.)
+      end if
   else
       eval_bounds_ok(1)=.true.
   end if
@@ -2348,6 +2373,9 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
       eval_bounds_ok(2)=.false.
       call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*factor_high,ispin)
       restart=.true.
+      if (bigdft_mpi%iproc==0) then
+          call yaml_map('adjust upper bound',.true.)
+      end if
   else
       eval_bounds_ok(2)=.true.
   end if
