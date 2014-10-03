@@ -2044,7 +2044,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
             do korb=1,ovrlp%nfvctr
                if (.not.in_neighborhood(korb)) cycle
                kkorb=kkorb+1
-               ind = matrixindex_in_compressed(ovrlp,korb, jorb)
+               ind = matrixindex_in_compressed(ovrlp,korb,jorb)
                if (ind>0) then
                   ind=ind+ishift
                   ovrlp_tmp(kkorb,jjorb)=ovrlp_mat%matrix_compr(ind)

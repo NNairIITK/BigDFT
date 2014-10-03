@@ -1105,7 +1105,7 @@ contains
     end subroutine init_matrix_parallelization
 
 
-    subroutine init_matrix_taskgroups(iproc, nproc, parallel_layout, collcom, collcom_sr, smat)
+    subroutine init_matrix_taskgroups(iproc, nproc, parallel_layout, collcom, collcom_sr, smatl, smat)
       use module_base
       use module_types
       use communications_base, only: comms_linear
@@ -1116,6 +1116,7 @@ contains
       integer,intent(in) :: iproc, nproc
       logical,intent(in) :: parallel_layout
       type(comms_linear),intent(in) :: collcom, collcom_sr
+      type(sparse_matrix),intent(inout) :: smatl
       type(sparse_matrix),intent(inout) :: smat
 
       ! Local variables
@@ -1127,6 +1128,8 @@ contains
       integer :: ntaskgrp_calc, ntaskgrp_use, i, ncount, iitaskgroup, group, ierr, iitaskgroups, newgroup, iseg
       logical :: go_on
       integer,dimension(:,:),allocatable :: in_taskgroup
+      integer :: iproc_start, iproc_end, imin, imax
+      logical :: found
 
       call f_routine(id='init_matrix_taskgroups')
 
@@ -1151,6 +1154,9 @@ contains
 
           ! Now check the sumrho operations
           call check_sumrho_layout()
+
+          ! Now check the pseudo-exact orthonormalization during the input guess
+          call check_ortho_inguess()
       else
           ! The matrices can not be parallelized
           ind_min = 1
@@ -1166,84 +1172,182 @@ contains
  
       !if (iproc==0) write(*,'(a,100(2i7,4x))') 'iuse_startend',iuse_startend
  
+!!      ntaskgroups = 1
+!!      llproc=0 !the first task of the current taskgroup
+!!      ii = 0
+!!      do 
+!!          jproc = llproc + ii
+!!          if (jproc==nproc-1) exit
+!!          jstart = iuse_startend(1,jproc) !beginning of part used by task jproc
+!!          jend = iuse_startend(2,jproc) !end of part used by task jproc
+!!          ii = ii + 1
+!!          !!!search the last process whose part ends prior to iend
+!!          !!go_on = .true.
+!!          !!do lproc=nproc-1,0,-1
+!!          !!    if (iuse_startend(1,lproc)<=jend) then
+!!          !!        !if (iproc==0) write(*,'(a,3i8)') 'lproc, iuse_startend(1,lproc), iuse_startend(2,llproc)', lproc, iuse_startend(1,lproc), iuse_startend(2,llproc)
+!!          !!        if (iuse_startend(1,lproc)<=iuse_startend(2,llproc)) then
+!!          !!            go_on = .false.
+!!          !!        end if
+!!          !!        exit
+!!          !!    end if
+!!          !!end do
+!!          !if (iproc==0) write(*,*) '2: llproc, ii, jproc, go_on', llproc, ii, jproc, go_on
+!!          ! Make sure that the beginning of the part used by jproc is larger than
+!!          ! the end of the part used by llproc (which is the first task of the current taskgroup)
+!!          if (iuse_startend(1,jproc)<=iuse_startend(2,llproc)) then
+!!              cycle
+!!          end if
+!!          ntaskgroups = ntaskgroups + 1
+!!          !!! Search the starting point of the next taskgroups, defined as the
+!!          !!! largest starting part which is smaller than jend
+!!          !!llproc=nproc-1
+!!          !!do lproc=nproc-1,0,-1
+!!          !!    if (iuse_startend(1,lproc)<=jend) then
+!!          !!        llproc = lproc
+!!          !!        exit
+!!          !!    end if
+!!          !!end do
+!!          ! jproc is now the start of the new taskgroup
+!!          llproc=jproc
+!!          !if (iproc==0) write(*,*) 'llproc, ii, jproc, ntaskgroups', llproc, ii, jproc, ntaskgroups
+!!          ii = 0
+!!          !if (llproc==nproc-1) exit
+!!      end do
+!!      !if (iproc==0) write(*,*) 'iproc, ntaskgroups', iproc, ntaskgroups
+
+      !@NEW ###################
       ntaskgroups = 1
-      llproc=0
-      ii = 0
-      do 
-          jproc = llproc + ii
-          if (jproc==nproc-1) exit
-          jstart = iuse_startend(1,jproc) !beginning of part used by task jproc
-          jend = iuse_startend(2,jproc) !end of part used by task jproc
-          ii = ii + 1
-          !search the last process whose calculation stops prior to iend
-          go_on = .true.
-          do lproc=nproc-1,0,-1
-              if (iuse_startend(1,lproc)<=jend) then
-                  !if (iproc==0) write(*,'(a,3i8)') 'lproc, iuse_startend(1,lproc), iuse_startend(2,llproc)', lproc, iuse_startend(1,lproc), iuse_startend(2,llproc)
-                  if (iuse_startend(1,lproc)<=iuse_startend(2,llproc)) then
-                      go_on = .false.
-                  end if
+      iproc_start = 0
+      iproc_end = 0
+      do
+          ! Search the first process whose parts does not overlap any more with
+          ! the end of the first task of the current taskgroup.
+          ! This will be the last task of the current taskgroup.
+          found = .false.
+          do jproc=iproc_start,nproc-1
+              !if (iproc==0) write(*,'(a,2i8)') 'iuse_startend(1,jproc), iuse_startend(2,iproc_start)', iuse_startend(1,jproc), iuse_startend(2,iproc_start)
+              if (iuse_startend(1,jproc)>iuse_startend(2,iproc_start)) then
+                  iproc_end = jproc
+                  found = .true.
                   exit
               end if
           end do
-          !if (iproc==0) write(*,*) '2: llproc, ii, jproc, go_on', llproc, ii, jproc, go_on
-          if (.not.go_on) cycle
-          ntaskgroups = ntaskgroups + 1
-          ! Search the starting point of the next taskgroups, defined as the
-          ! largest starting part which is smaller than jend
-          llproc=nproc-1
-          do lproc=nproc-1,0,-1
-              if (iuse_startend(1,lproc)<=jend) then
-                  llproc = lproc
+          if (.not.found) exit
+
+          ! Search the last process whose part overlaps with the end of the current taskgroup.
+          ! This will be the first task of the next taskgroup.
+          found = .false.
+          do jproc=nproc-1,0,-1
+              !if (iproc==0) write(*,'(a,2i8)') 'iuse_startend(1,jproc), iuse_startend(2,iproc_end)', iuse_startend(1,jproc), iuse_startend(2,iproc_end)
+              if (iuse_startend(1,jproc)<=iuse_startend(2,iproc_end)) then
+                  ntaskgroups = ntaskgroups + 1
+                  iproc_start = jproc
+                  found = .true.
                   exit
               end if
           end do
-          !if (iproc==0) write(*,*) 'llproc, ii, jproc, ntaskgroups', llproc, ii, jproc, ntaskgroups
-          ii = 0
-          !if (llproc==nproc-1) exit
+          if (.not.found) exit
       end do
-      !if (iproc==0) write(*,*) 'iproc, ntaskgroups', iproc, ntaskgroups
+      !@END NEW ###############
 
       smat%ntaskgroup = ntaskgroups
  
       itaskgroups_startend = f_malloc0((/2,ntaskgroups/),id='itaskgroups_startend')
-      itaskgroups_startend(1,1) = 1
+!!      itaskgroups_startend(1,1) = 1
+!!      itaskgroups = 1
+!!      llproc=0
+!!      ii = 0
+!!      do 
+!!          jproc = llproc + ii
+!!          if (jproc==nproc-1) exit
+!!          jstart = iuse_startend(1,jproc) !beginning of part used by task jproc
+!!          jend = iuse_startend(2,jproc) !end of part used by task jproc
+!!          ii = ii + 1
+!!          !!!search the last process whose part ends prior to jend
+!!          !!go_on = .true.
+!!          !!do lproc=nproc-1,0,-1
+!!          !!    if (iuse_startend(1,lproc)<=jend) then
+!!          !!        if (iuse_startend(1,lproc)<=iuse_startend(2,llproc)) then
+!!          !!            go_on = .false.
+!!          !!        end if
+!!          !!        exit
+!!          !!    end if
+!!          !!end do
+!!          ! Make sure that the beginning of the part used by jproc is larger than
+!!          ! the end of the part used by llproc (which is the first task of the current taskgroup)
+!!          if (iuse_startend(1,jproc)<=iuse_startend(2,llproc)) then
+!!              cycle
+!!          end if
+!!          !itaskgroups_startend(2,itaskgroups) = jend
+!!          ! The end of the taskgroup is the end of the first task whose end is
+!!          ! above the start of the new taskgroup
+!!          do lproc=0,nproc-1
+!!              if (iuse_startend(2,lproc)>jstart) then
+!!                  itaskgroups_startend(2,itaskgroups) = iuse_startend(2,lproc)
+!!                  exit
+!!              end if
+!!          end do
+!!          itaskgroups = itaskgroups + 1
+!!          !!! Search the starting point of the next taskgroups, defined as the
+!!          !!! largest starting part which is smaller than jend
+!!          !!llproc=nproc-1
+!!          !!do lproc=nproc-1,0,-1
+!!          !!    if (iuse_startend(1,lproc)<=jend) then
+!!          !!        itaskgroups_startend(1,itaskgroups) = iuse_startend(1,lproc)
+!!          !!        llproc = lproc
+!!          !!        exit
+!!          !!    end if
+!!          !!end do
+!!          ! jproc is now the start of the new taskgroup
+!!          llproc=jproc
+!!          itaskgroups_startend(1,itaskgroups) = iuse_startend(1,llproc)
+!!          ii = 0
+!!          !if (llproc==nproc-1) exit
+!!      end do
+!!      itaskgroups_startend(2,itaskgroups) = iuse_startend(2,nproc-1)
+
+
+      !@NEW ###################
       itaskgroups = 1
-      llproc=0
-      ii = 0
-      do 
-          jproc = llproc + ii
-          if (jproc==nproc-1) exit
-          jstart = iuse_startend(1,jproc) !beginning of part used by task jproc
-          jend = iuse_startend(2,jproc) !end of part used by task jproc
-          ii = ii + 1
-          !search the last process whose calculation stops prior to jend
-          go_on = .true.
-          do lproc=nproc-1,0,-1
-              if (iuse_startend(1,lproc)<=jend) then
-                  if (iuse_startend(1,lproc)<=iuse_startend(2,llproc)) then
-                      go_on = .false.
-                  end if
+      iproc_start = 0
+      iproc_end = 0
+      itaskgroups_startend(1,1) = 1
+      do
+          ! Search the first process whose parts does not overlap any more with
+          ! the end of the first task of the current taskgroup.
+          ! This will be the last task of the current taskgroup.
+          found = .false.
+          do jproc=iproc_start,nproc-1
+              if (iuse_startend(1,jproc)>iuse_startend(2,iproc_start)) then
+                  iproc_end = jproc
+                  itaskgroups_startend(2,itaskgroups) = iuse_startend(2,jproc)
+                  found = .true.
                   exit
               end if
           end do
-          if (.not.go_on) cycle
-          itaskgroups_startend(2,itaskgroups) = jend
-          itaskgroups = itaskgroups + 1
-          ! Search the starting point of the next taskgroups, defined as the
-          ! largest starting part which is smaller than jend
-          llproc=nproc-1
-          do lproc=nproc-1,0,-1
-              if (iuse_startend(1,lproc)<=jend) then
-                  itaskgroups_startend(1,itaskgroups) = iuse_startend(1,lproc)
-                  llproc = lproc
+          if (.not.found) exit
+
+          ! Search the last process whose part overlaps with the end of the current taskgroup.
+          ! This will be the first task of the next taskgroup.
+          found = .false.
+          do jproc=nproc-1,0,-1
+              if (iuse_startend(1,jproc)<=iuse_startend(2,iproc_end)) then
+                  itaskgroups = itaskgroups + 1
+                  iproc_start = jproc
+                  itaskgroups_startend(1,itaskgroups) = iuse_startend(1,jproc)
+                  found = .true.
                   exit
               end if
           end do
-          ii = 0
-          !if (llproc==nproc-1) exit
+          if (.not.found) exit
       end do
-      itaskgroups_startend(2,itaskgroups) = iuse_startend(2,nproc-1)
+      itaskgroups_startend(2,itaskgroups) = smat%nvctr
+      !@END NEW ###############
+
+
+
+
       if (itaskgroups/=ntaskgroups) stop 'itaskgroups/=ntaskgroups'
       !if (iproc==0) write(*,'(a,i8,4x,1000(2i7,4x))') 'iproc, itaskgroups_startend', itaskgroups_startend
  
@@ -1300,15 +1404,39 @@ contains
 
       !if (iproc==0) write(*,'(a,1000(2i8,4x))') 'iproc, smat%taskgroup_startend(:,2,:)',smat%taskgroup_startend(:,2,:)
 
-      !Check
+      ! Some checks
       ncount = 0
       do itaskgroups=1,smat%ntaskgroup
           ncount = ncount + smat%taskgroup_startend(2,2,itaskgroups)-smat%taskgroup_startend(1,2,itaskgroups)+1
+          if (itaskgroups>1) then
+              if (smat%taskgroup_startend(1,1,itaskgroups)>smat%taskgroup_startend(2,1,itaskgroups-1)) then
+                  stop 'smat%taskgroup_startend(1,1,itaskgroups)>smat%taskgroup_startend(2,1,itaskgroups-1)'
+              end if
+          end if
       end do
       if (ncount/=smat%nvctr) then
           write(*,*) 'ncount, smat%nvctr', ncount, smat%nvctr
           stop 'ncount/=smat%nvctr'
       end if
+
+      ! Check that the data that task iproc needs is really contained in the
+      ! taskgroups to which iproc belongs.
+      imin=smat%nvctr
+      imax=1
+      do itaskgroups=1,smat%ntaskgroupp
+          iitaskgroup = smat%inwhichtaskgroup(itaskgroups)
+          imin = min(imin,smat%taskgroup_startend(1,1,iitaskgroup))
+          imax = max(imax,smat%taskgroup_startend(2,1,iitaskgroup))
+      end do
+      if (iuse_startend(1,iproc)<imin) then
+          write(*,*) 'iuse_startend(1,iproc),imin', iuse_startend(1,iproc),imin
+          stop 'iuse_startend(1,iproc)<imin'
+      end if
+      if (iuse_startend(2,iproc)>imax) then
+          write(*,*) 'iuse_startend(2,iproc),imax', iuse_startend(2,iproc),imax
+          stop 'iuse_startend(2,iproc)>imax'
+      end if
+
 
 
 
@@ -1508,7 +1636,64 @@ contains
       !!      end do
 
       !!  end function get_start_of_segment
+
+
+      subroutine check_ortho_inguess()
+        integer :: iorb, iiorb, isegstart, isegsend, iseg, j, i, jorb, korb, ind
+        integer,dimension(:),allocatable :: in_neighborhood
+
+        in_neighborhood = f_malloc(smat%nfvctr,id='in_neighborhood')
+        
+        do iorb=1,smat%nfvctrp
+
+            iiorb = smat%isfvctr + iorb
+            isegstart = smatl%istsegline(iiorb)
+            isegend = smatl%istsegline(iiorb) + smatl%nsegline(iiorb) -1
+            in_neighborhood = .false.
+            do iseg=isegstart,isegend
+                ! A segment is always on one line, therefore no double loop
+                j = smatl%keyg(1,2,iseg)
+                do i=smatl%keyg(1,1,iseg),smatl%keyg(2,1,iseg)
+                    in_neighborhood(i) = .true.
+                end do
+            end do
+
+            do jorb=1,smat%nfvctr
+                if (.not.in_neighborhood(jorb)) cycle
+                do korb=1,smat%nfvctr
+                    if (.not.in_neighborhood(korb)) cycle
+                    ind = matrixindex_in_compressed(smat,korb,jorb)
+                    if (ind>0) then
+                        ind_min = min(ind_min,ind)
+                        ind_max = max(ind_max,ind)
+                    end if
+                end do
+            end do
+
+        end do
+
+        call f_free(in_neighborhood)
+
+        !!do iorb=1,smat%nfvctrp
+        !!    iiorb = smat%isfvctr + iorb
+        !!    isegstart = smat%istsegline(iiorb)
+        !!    isegend = smat%istsegline(iiorb) + smat%nsegline(iiorb) -1
+        !!    do iseg=isegstart,isegend
+        !!        ! A segment is always on one line, therefore no double loop
+        !!        j = smat%keyg(1,2,iseg)
+        !!        do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+        !!            ind = matrixindex_in_compressed(smat,i,j)
+        !!            ind_min = min(ind_min,ind)
+        !!            ind_max = max(ind_max,ind)
+        !!        end do
+        !!    end do
+        !!end do
+
+      end subroutine check_ortho_inguess
  
     end subroutine init_matrix_taskgroups
+
+
+
 
 end module sparsematrix_init
