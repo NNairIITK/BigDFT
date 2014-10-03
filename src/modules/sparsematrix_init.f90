@@ -1105,7 +1105,7 @@ contains
     end subroutine init_matrix_parallelization
 
 
-    subroutine init_matrix_taskgroups(iproc, nproc, parallel_layout, collcom, collcom_sr, smatl, smat)
+    subroutine init_matrix_taskgroups(iproc, nproc, parallel_layout, collcom, collcom_sr, smat)
       use module_base
       use module_types
       use communications_base, only: comms_linear
@@ -1116,7 +1116,6 @@ contains
       integer,intent(in) :: iproc, nproc
       logical,intent(in) :: parallel_layout
       type(comms_linear),intent(in) :: collcom, collcom_sr
-      type(sparse_matrix),intent(inout) :: smatl
       type(sparse_matrix),intent(inout) :: smat
 
       ! Local variables
@@ -1647,13 +1646,13 @@ contains
         do iorb=1,smat%nfvctrp
 
             iiorb = smat%isfvctr + iorb
-            isegstart = smatl%istsegline(iiorb)
-            isegend = smatl%istsegline(iiorb) + smatl%nsegline(iiorb) -1
+            isegstart = smat%istsegline(iiorb)
+            isegend = smat%istsegline(iiorb) + smat%nsegline(iiorb) -1
             in_neighborhood = .false.
             do iseg=isegstart,isegend
                 ! A segment is always on one line, therefore no double loop
-                j = smatl%keyg(1,2,iseg)
-                do i=smatl%keyg(1,1,iseg),smatl%keyg(2,1,iseg)
+                j = smat%keyg(1,2,iseg)
+                do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
                     in_neighborhood(i) = .true.
                 end do
             end do
