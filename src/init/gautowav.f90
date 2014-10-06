@@ -614,18 +614,30 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
      !write(*,'(1x,a)')'done.'
   end if
 
+
   !renormalize the orbitals
   !calculate the deviation from 1 of the orbital norm
   if (nproc > 1) then
-     call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,bigdft_mpi%mpi_comm,ierr)
+     !call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,bigdft_mpi%mpi_comm,ierr)
+     call mpiallred(tt,1,mpi_max,bigdft_mpi%mpi_comm)
+     normdev=tt
   else
      normdev=tt
   end if
+
+  write(20000+iproc,'(a)') 'after mpi_reduce'
+  !call yaml_flush_document(20000+iproc)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+
   if (iproc ==0) then
      !write(*,'(1x,a,1pe12.2)')&
      !  'Deviation from normalization of the imported orbitals',normdev
      call yaml_map('Deviation from normalization',normdev,fmt='(1pe12.2)')
   end if
+
+  write(30000+iproc,'(a)') 'after write'
+  !call yaml_flush_document(30000+iproc)
+  call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
 END SUBROUTINE gaussians_to_wavelets_new
 

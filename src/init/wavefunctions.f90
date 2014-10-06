@@ -81,6 +81,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
      call f_free(GPU_for_orbs)
   end if
 
+
   norb_par = f_malloc((/ 0.to.nproc-1, 1.to.orbs%nkpts /),id='norb_par')
   norbu_par = f_malloc((/ 0.to.nproc-1, 1.to.orbs%nkpts /),id='norbu_par')
   norbd_par = f_malloc((/ 0.to.nproc-1, 1.to.orbs%nkpts /),id='norbd_par')
@@ -221,6 +222,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
 
   orbs%iokpt = f_malloc_ptr(orbs%norbp,id='orbs%iokpt')
 
+
   !assign the k-point to the given orbital, counting one orbital after each other
   jorb=0
   do ikpt=1,orbs%nkpts
@@ -286,6 +288,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   call MPI_Initialized(mpiflag,ierr)
   if(nproc >1 .and. mpiflag /= 0) &
        call mpiallred(orbs%isorb_par(0),nproc,mpi_sum,bigdft_mpi%mpi_comm)
+
 
 END SUBROUTINE orbitals_descriptors
 

@@ -191,7 +191,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
           abort=.true.
        end if
     
-       if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,10,ierr)
+       !if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,10,ierr)
     
     
        !@NEW: check the calculation of the overlap matrices #############
@@ -303,7 +303,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
           abort = .true.
        end if
     
-   if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,11,ierr)
+   !if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,11,ierr)
     
        if (nproc > 1) then
           !call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
