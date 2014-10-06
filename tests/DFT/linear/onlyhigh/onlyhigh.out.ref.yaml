@@ -27,8 +27,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.5.10
- Timestamp of this run                 : 2014-09-16 08:32:02.844
+ Version Number                        : 1.7.5.12
+ Timestamp of this run                 : 2014-10-03 17:02:49.565
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -38,7 +38,7 @@
  Compilation options:
    Configure arguments:
      " 'FC=/opt/openmpi-1.6.4/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -i_dynamic -msse4.2 
-     -heap-arrays 1024 -openmp -traceback' 
+     -heap-arrays 1024 -openmp' 
      '--with-ext-linalg=/opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_scalapa
      ck_lp64.a  -Wl,--start-group  
      /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_cdft_core.a 
@@ -50,8 +50,7 @@
    Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.4/bin/mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS:
-       -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp -traceback
+     FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  perf:
@@ -490,6 +489,21 @@
  non-zero elements                     :  144
  sparsity in %                         :  0.00
  sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+ taskgroup summary:
+   number of taskgroups                :  1
+   taskgroups overview:
+   -  {number of tasks:  4, IDs:  [  0,  1,  2,  3 ], 
+ start / end:  [  1,  144 ], start / end disjoint:  [  1,  144 ]}
+ taskgroup summary:
+   number of taskgroups                :  1
+   taskgroups overview:
+   -  {number of tasks:  4, IDs:  [  0,  1,  2,  3 ], 
+ start / end:  [  1,  144 ], start / end disjoint:  [  1,  144 ]}
+ taskgroup summary:
+   number of taskgroups                :  1
+   taskgroups overview:
+   -  {number of tasks:  4, IDs:  [  0,  1,  2,  3 ], 
+ start / end:  [  1,  144 ], start / end disjoint:  [  1,  144 ]}
  sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
  sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
  Checking Compression/Uncompression of large sparse matrices:
@@ -602,6 +616,21 @@
    non-zero elements                   :  144
    sparsity in %                       :  0.00
    sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
+   taskgroup summary:
+     number of taskgroups              :  1
+     taskgroups overview:
+     -  {number of tasks:  4, IDs:  [  0,  1,  2,  3 ], 
+ start / end:  [  1,  144 ], start / end disjoint:  [  1,  144 ]}
+   taskgroup summary:
+     number of taskgroups              :  1
+     taskgroups overview:
+     -  {number of tasks:  4, IDs:  [  0,  1,  2,  3 ], 
+ start / end:  [  1,  144 ], start / end disjoint:  [  1,  144 ]}
+   taskgroup summary:
+     number of taskgroups              :  1
+     taskgroups overview:
+     -  {number of tasks:  4, IDs:  [  0,  1,  2,  3 ], 
+ start / end:  [  1,  144 ], start / end disjoint:  [  1,  144 ]}
    sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
    sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
    Kernel update:
@@ -620,13 +649,13 @@
  Energies: {Ekin:  2.84386964673E+01, Epot: -3.42468144916E+01, Enl:  1.76061521198E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  1.11E-15,  1.13E-16 ]}, 
+ max / mean error:  [  1.05E-15,  1.14E-16 ]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  5.60E-01, Omega: -3.762086038632795E+01, D: -3.76E+01, D best: -3.76E+01, 
+ iter:  1, fnrm:  5.60E-01, Omega: -3.762086038632796E+01, D: -3.76E+01, D best: -3.76E+01, 
  Optimization: {algorithm: SD, mean alpha:  1.000E+00, max alpha:  1.000E+00, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  0, 
- max / mean error:  [  2.22E-15,  4.33E-16 ]}, 
+ max / mean error:  [  2.89E-15,  5.85E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.99E-03, 
  Mean deviation from unity in reorthonormalize_coeff:  5.13E-04, 
@@ -637,13 +666,13 @@
  Energies: {Ekin:  2.89535775811E+01, Epot: -3.48037769169E+01, Enl:  1.61946051278E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  8.88E-16,  1.12E-16 ]}, 
+ max / mean error:  [  1.11E-15,  1.26E-16 ]}, 
  Preconditioning:  Yes, 
  iter:  2, fnrm:  4.66E-01, Omega: -3.797914124829742E+01, D: -3.58E-01, D best: -3.58E-01, 
  Optimization: {algorithm: SD, mean alpha:  6.000E-01, max alpha:  6.000E-01, 
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  0, 
- max / mean error:  [  3.55E-15,  6.98E-16 ]}, 
+ max / mean error:  [  3.77E-15,  6.04E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  4.41E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  9.57E-05, 
@@ -654,14 +683,14 @@
  Energies: {Ekin:  2.85182741699E+01, Epot: -3.45797327702E+01, Enl:  1.74854913932E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  6.66E-16,  9.66E-17 ]}, 
+ max / mean error:  [  4.44E-16,  8.11E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  3, fnrm:  2.35E-01, Omega: -3.814191469435761E+01, D: -1.63E-01, D best: -1.63E-01, 
+ iter:  3, fnrm:  2.35E-01, Omega: -3.814191469435762E+01, D: -1.63E-01, D best: -1.63E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  2.85182741699E+01, Epot: -3.45797327702E+01, Enl:  1.74854913932E+00}, 
- iter:  3, fnrm:  2.35E-01, Omega: -3.814191469435761E+01, D: -1.63E-01, D best: -1.63E-01}
+ iter:  3, fnrm:  2.35E-01, Omega: -3.814191469435762E+01, D: -1.63E-01, D best: -1.63E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -690,7 +719,7 @@
  {e: -3.189731143784E-01, f:  2.0000},  # 00007
  {e: -3.185810876080E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  7.33E-06, energy: -3.81438087020297019E+01, D: -3.814E+01}]
+ iter:  1, delta:  7.33E-06, energy: -3.81438087020297161E+01, D: -3.814E+01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  1.40E-04
@@ -714,7 +743,7 @@
  {e: -5.135239758436E-01, f:  2.0000},  # 00004
  {e: -4.813950643653E-01, f:  2.0000},  # 00005
  {e: -4.813205402445E-01, f:  2.0000},  # 00006
- {e: -3.870970758588E-01, f:  2.0000},  # 00007
+ {e: -3.870970758589E-01, f:  2.0000},  # 00007
  {e: -3.860774633711E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
  iter:  2, delta:  3.68E-06, energy: -3.76771203395075815E+01, D:  4.667E-01}]
@@ -737,7 +766,7 @@
      Orbitals: [
  {e: -1.058116336784E+00, f:  2.0000},  # 00001
  {e: -1.020908370129E+00, f:  2.0000},  # 00002
- {e: -5.035967923269E-01, f:  2.0000},  # 00003
+ {e: -5.035967923270E-01, f:  2.0000},  # 00003
  {e: -4.726265751522E-01, f:  2.0000},  # 00004
  {e: -4.725033365579E-01, f:  2.0000},  # 00005
  {e: -4.637442846089E-01, f:  2.0000},  # 00006
@@ -769,17 +798,17 @@
  {e: -4.585942556226E-01, f:  2.0000},  # 00005
  {e: -4.584073860161E-01, f:  2.0000},  # 00006
  {e: -3.411938067265E-01, f:  2.0000},  # 00007
- {e: -3.405012722785E-01, f:  2.0000}] # 00008
+ {e: -3.405012722786E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  7.86E-07, energy: -3.75838893489708283E+01, D:  1.303E-02}]
+ iter:  4, delta:  7.86E-07, energy: -3.75838893489708141E+01, D:  1.303E-02}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  7.86E-07, energy: -3.75838893489708283E+01, D:  1.303E-02}]}
+ iter:  5, delta:  7.86E-07, energy: -3.75838893489708141E+01, D:  1.303E-02}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter high:  1, delta out:  3.473E-06, energy: -3.75838893489708283E+01, D: -3.758E+01}
+ iter high:  1, delta out:  3.473E-06, energy: -3.75838893489708141E+01, D: -3.758E+01}
     #========================================================= support function optimization
  - support function optimization: &it_supfun002
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -787,13 +816,13 @@
  Energies: {Ekin:  2.85182741699E+01, Epot: -3.35966331455E+01, Enl:  1.74854913932E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  6.66E-16,  9.66E-17 ]}, 
+ max / mean error:  [  4.44E-16,  8.11E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  2.81E-01, Omega: -3.757570708458051E+01, D:  4.03E-01, D best:  4.03E-01, 
+ iter:  1, fnrm:  2.81E-01, Omega: -3.757570708458054E+01, D:  4.03E-01, D best:  4.03E-01, 
  Optimization: {algorithm: SD, mean alpha:  3.600E-01, max alpha:  3.600E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  0, 
- max / mean error:  [  2.89E-15,  6.07E-16 ]}, 
+ max / mean error:  [  2.0E-15,  6.31E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.40E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  4.36E-05, 
@@ -804,13 +833,13 @@
  Energies: {Ekin:  2.85667994908E+01, Epot: -3.36111500323E+01, Enl:  1.65731842949E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  7.22E-16,  1.01E-16 ]}, 
+ max / mean error:  [  7.22E-16,  1.04E-16 ]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  1.28E-01, Omega: -3.769074672762140E+01, D: -1.15E-01, D best: -1.15E-01, 
+ iter:  2, fnrm:  1.28E-01, Omega: -3.769074672762143E+01, D: -1.15E-01, D best: -1.15E-01, 
  Optimization: {algorithm: SD, mean alpha:  3.810E-01, max alpha:  3.960E-01, 
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  0, 
- max / mean error:  [  2.44E-15,  6.58E-16 ]}, 
+ max / mean error:  [  2.22E-15,  6.12E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  4.02E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  1.01E-05, 
@@ -821,14 +850,14 @@
  Energies: {Ekin:  2.85860095899E+01, Epot: -3.36341359811E+01, Enl:  1.64875820129E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  1.05E-15,  1.18E-16 ]}, 
+ max / mean error:  [  1.05E-15,  1.23E-16 ]}, 
  Preconditioning:  Yes, 
- iter:  3, fnrm:  7.61E-02, Omega: -3.771559541164339E+01, D: -2.48E-02, D best: -2.48E-02, 
+ iter:  3, fnrm:  7.61E-02, Omega: -3.771559541164342E+01, D: -2.48E-02, D best: -2.48E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  2.85860095899E+01, Epot: -3.36341359811E+01, Enl:  1.64875820129E+00}, 
- iter:  3, fnrm:  7.61E-02, Omega: -3.771559541164339E+01, D: -2.48E-02, D best: -2.48E-02}
+ iter:  3, fnrm:  7.61E-02, Omega: -3.771559541164342E+01, D: -2.48E-02, D best: -2.48E-02}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
@@ -857,7 +886,7 @@
  {e: -3.355861808173E-01, f:  2.0000},  # 00007
  {e: -3.354197629972E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  9.41E-07, energy: -3.77182542916796564E+01, D: -1.344E-01}]
+ iter:  1, delta:  9.41E-07, energy: -3.77182542916796848E+01, D: -1.344E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  2.02E-05
@@ -954,13 +983,13 @@
  Energies: {Ekin:  2.85860095899E+01, Epot: -3.37729074726E+01, Enl:  1.64875820129E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  1.05E-15,  1.18E-16 ]}, 
+ max / mean error:  [  1.05E-15,  1.23E-16 ]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  5.83E-02, Omega: -3.771043648938389E+01, D: -1.97E-02, D best: -1.97E-02, 
+ iter:  1, fnrm:  5.83E-02, Omega: -3.771043648938388E+01, D: -1.97E-02, D best: -1.97E-02, 
  Optimization: {algorithm: SD, mean alpha:  4.191E-01, max alpha:  4.191E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  0, 
- max / mean error:  [  3.55E-15,  6.24E-16 ]}, 
+ max / mean error:  [  3.0E-15,  5.29E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.31E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  3.23E-06, 
@@ -971,13 +1000,13 @@
  Energies: {Ekin:  2.86340587878E+01, Epot: -3.38304195596E+01, Enl:  1.65600350160E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  4.44E-16,  7.31E-17 ]}, 
+ max / mean error:  [  4.44E-16,  7.90E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  2, fnrm:  3.26E-02, Omega: -3.771468465388163E+01, D: -4.25E-03, D best: -4.25E-03, 
  Optimization: {algorithm: SD, mean alpha:  4.610E-01, max alpha:  4.610E-01, 
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  0, 
- max / mean error:  [  1.78E-15,  6.73E-16 ]}, 
+ max / mean error:  [  2.0E-15,  6.03E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  5.45E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  1.37E-06, 
@@ -988,14 +1017,14 @@
  Energies: {Ekin:  2.86622370779E+01, Epot: -3.38629716995E+01, Enl:  1.65952866737E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  2.22E-16,  6.01E-17 ]}, 
+ max / mean error:  [  4.44E-16,  6.30E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  3, fnrm:  1.95E-02, Omega: -3.771618013060827E+01, D: -1.50E-03, D best: -1.50E-03, 
+ iter:  3, fnrm:  1.95E-02, Omega: -3.771618013060825E+01, D: -1.50E-03, D best: -1.50E-03, 
  exit criterion: net number of iterations}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  2.86622370779E+01, Epot: -3.38629716995E+01, Enl:  1.65952866737E+00}, 
- iter:  3, fnrm:  1.95E-02, Omega: -3.771618013060827E+01, D: -1.50E-03, D best: -1.50E-03}
+ iter:  3, fnrm:  1.95E-02, Omega: -3.771618013060825E+01, D: -1.50E-03, D best: -1.50E-03}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
@@ -1024,7 +1053,7 @@
  {e: -3.428624155569E-01, f:  2.0000},  # 00007
  {e: -3.427296249835E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  3.55E-07, energy: -3.77170249130416693E+01, D: -5.315E-03}]
+ iter:  1, delta:  3.55E-07, energy: -3.77170249130416551E+01, D: -5.315E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  7.58E-06
@@ -1051,7 +1080,7 @@
  {e: -3.397162910011E-01, f:  2.0000},  # 00007
  {e: -3.396100396396E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  2.44E-07, energy: -3.77166033096404760E+01, D:  4.216E-04}]
+ iter:  2, delta:  2.44E-07, energy: -3.77166033096404902E+01, D:  4.216E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        max dev from unity              :  7.58E-06
@@ -1078,7 +1107,7 @@
  {e: -3.405181341086E-01, f:  2.0000},  # 00007
  {e: -3.403979776595E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  2.17E-07, energy: -3.77165108399533295E+01, D:  9.247E-05}]
+ iter:  3, delta:  2.17E-07, energy: -3.77165108399533153E+01, D:  9.247E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        max dev from unity              :  7.58E-06
@@ -1121,13 +1150,13 @@
  Energies: {Ekin:  2.86622370779E+01, Epot: -3.38469731479E+01, Enl:  1.65952866737E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  2.22E-16,  6.01E-17 ]}, 
+ max / mean error:  [  4.44E-16,  6.30E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  1.76E-02, Omega: -3.771556927536491E+01, D: -8.85E-04, D best: -8.85E-04, 
+ iter:  1, fnrm:  1.76E-02, Omega: -3.771556927536490E+01, D: -8.85E-04, D best: -8.85E-04, 
  Optimization: {algorithm: SD, mean alpha:  5.071E-01, max alpha:  5.071E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  0, 
- max / mean error:  [  1.67E-15,  5.10E-16 ]}, 
+ max / mean error:  [  3.33E-15,  7.26E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  7.89E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  1.87E-06, 
@@ -1138,13 +1167,13 @@
  Energies: {Ekin:  2.86569149577E+01, Epot: -3.38390479628E+01, Enl:  1.65655931693E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  2.22E-16,  5.39E-17 ]}, 
+ max / mean error:  [  4.44E-16,  7.81E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  1.04E-02, Omega: -3.771605458097598E+01, D: -4.85E-04, D best: -4.85E-04, 
+ iter:  2, fnrm:  1.04E-02, Omega: -3.771605458097596E+01, D: -4.85E-04, D best: -4.85E-04, 
  Optimization: {algorithm: SD, mean alpha:  5.367E-01, max alpha:  5.578E-01, 
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  0, 
- max / mean error:  [  2.66E-15,  5.83E-16 ]}, 
+ max / mean error:  [  2.44E-15,  5.55E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  2.09E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  5.03E-07, 
@@ -1155,14 +1184,14 @@
  Energies: {Ekin:  2.86567420469E+01, Epot: -3.38397283357E+01, Enl:  1.65720048643E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  2.22E-16,  5.43E-17 ]}, 
+ max / mean error:  [  2.22E-16,  5.27E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  3, fnrm:  7.05E-03, Omega: -3.771628608998455E+01, D: -2.32E-04, D best: -2.32E-04, 
+ iter:  3, fnrm:  7.05E-03, Omega: -3.771628608998452E+01, D: -2.32E-04, D best: -2.32E-04, 
  exit criterion: net number of iterations}
    -  &final_supfun004  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  2.86567420469E+01, Epot: -3.38397283357E+01, Enl:  1.65720048643E+00}, 
- iter:  3, fnrm:  7.05E-03, Omega: -3.771628608998455E+01, D: -2.32E-04, D best: -2.32E-04}
+ iter:  3, fnrm:  7.05E-03, Omega: -3.771628608998452E+01, D: -2.32E-04, D best: -2.32E-04}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel004
@@ -1191,7 +1220,7 @@
  {e: -3.399482815351E-01, f:  2.0000},  # 00007
  {e: -3.398414384286E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.86E-07, energy: -3.77168778607701114E+01, D: -4.127E-04}]
+ iter:  1, delta:  1.86E-07, energy: -3.77168778607700972E+01, D: -4.127E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  3.11E-06
@@ -1245,7 +1274,7 @@
  {e: -3.410098204348E-01, f:  2.0000},  # 00007
  {e: -3.409063971776E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.73E-07, energy: -3.77168347738634253E+01, D:  1.439E-05}]
+ iter:  3, delta:  1.73E-07, energy: -3.77168347738634111E+01, D:  1.439E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        max dev from unity              :  3.11E-06
@@ -1288,13 +1317,13 @@
  Energies: {Ekin:  2.86567420469E+01, Epot: -3.38614198126E+01, Enl:  1.65720048643E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  2.22E-16,  5.43E-17 ]}, 
+ max / mean error:  [  2.22E-16,  5.27E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  7.65E-03, Omega: -3.771617007681334E+01, D: -1.15E-04, D best: -1.15E-04, 
  Optimization: {algorithm: SD, mean alpha:  5.904E-01, max alpha:  5.904E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  0, 
- max / mean error:  [  3.11E-15,  8.07E-16 ]}, 
+ max / mean error:  [  1.42E-15,  4.70E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.54E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  5.16E-07, 
@@ -1305,13 +1334,13 @@
  Energies: {Ekin:  2.86630392305E+01, Epot: -3.38686754431E+01, Enl:  1.65799671242E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  5.55E-16,  8.00E-17 ]}, 
+ max / mean error:  [  6.11E-16,  8.03E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  5.75E-03, Omega: -3.771633017281732E+01, D: -1.60E-04, D best: -1.60E-04, 
+ iter:  2, fnrm:  5.75E-03, Omega: -3.771633017281735E+01, D: -1.60E-04, D best: -1.60E-04, 
  Optimization: {algorithm: SD, mean alpha:  5.756E-01, max alpha:  6.494E-01, 
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  0, 
- max / mean error:  [  1.44E-15,  4.90E-16 ]}, 
+ max / mean error:  [  1.55E-15,  4.77E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.04E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  3.38E-07, 
@@ -1322,14 +1351,14 @@
  Energies: {Ekin:  2.86642576425E+01, Epot: -3.38700530459E+01, Enl:  1.65802408940E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  5.55E-16,  9.96E-17 ]}, 
+ max / mean error:  [  5.55E-16,  8.72E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  3, fnrm:  4.81E-03, Omega: -3.771644082920457E+01, D: -1.11E-04, D best: -1.11E-04, 
+ iter:  3, fnrm:  4.81E-03, Omega: -3.771644082920460E+01, D: -1.11E-04, D best: -1.11E-04, 
  exit criterion: net number of iterations}
    -  &final_supfun005  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  2.86642576425E+01, Epot: -3.38700530459E+01, Enl:  1.65802408940E+00}, 
- iter:  3, fnrm:  4.81E-03, Omega: -3.771644082920457E+01, D: -1.11E-04, D best: -1.11E-04}
+ iter:  3, fnrm:  4.81E-03, Omega: -3.771644082920460E+01, D: -1.11E-04, D best: -1.11E-04}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel005
@@ -1385,7 +1414,7 @@
  {e: -3.408307195099E-01, f:  2.0000},  # 00007
  {e: -3.407359213825E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.64E-07, energy: -3.77168399895779629E+01, D:  1.162E-05}]
+ iter:  2, delta:  1.64E-07, energy: -3.77168399895779771E+01, D:  1.162E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        max dev from unity              :  1.91E-06
@@ -1412,7 +1441,7 @@
  {e: -3.408213442907E-01, f:  2.0000},  # 00007
  {e: -3.407238168290E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.60E-07, energy: -3.77168309572414273E+01, D:  9.032E-06}]
+ iter:  3, delta:  1.60E-07, energy: -3.77168309572414131E+01, D:  9.032E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        max dev from unity              :  1.91E-06
@@ -1439,15 +1468,15 @@
  {e: -3.406860781455E-01, f:  2.0000},  # 00007
  {e: -3.405920027381E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  1.56E-07, energy: -3.77168219465822148E+01, D:  9.011E-06}]
+ iter:  4, delta:  1.56E-07, energy: -3.77168219465822290E+01, D:  9.011E-06}]
    -  &final_kernel005  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  1.56E-07, energy: -3.77168219465822148E+01, D:  9.011E-06}]}
+ iter:  5, delta:  1.56E-07, energy: -3.77168219465822290E+01, D:  9.011E-06}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc005
    -  {iter:  5, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter high:  5, delta out:  1.344E-08, energy: -3.77168219465822148E+01, D: -5.251E-07}
+ iter high:  5, delta out:  1.344E-08, energy: -3.77168219465822290E+01, D: -5.251E-07}
     #========================================================= support function optimization
  - support function optimization: &it_supfun006
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -1455,13 +1484,13 @@
  Energies: {Ekin:  2.86642576425E+01, Epot: -3.38635944687E+01, Enl:  1.65802408940E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  5.55E-16,  9.96E-17 ]}, 
+ max / mean error:  [  5.55E-16,  8.72E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  5.95E-03, Omega: -3.771626531299130E+01, D:  6.49E-05, D best:  6.49E-05, 
  Optimization: {algorithm: SD, mean alpha:  6.332E-01, max alpha:  6.332E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  0, 
- max / mean error:  [  2.11E-15,  5.36E-16 ]}, 
+ max / mean error:  [  2.0E-15,  4.20E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.17E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  3.81E-07, 
@@ -1472,13 +1501,13 @@
  Energies: {Ekin:  2.86601633224E+01, Epot: -3.38589737402E+01, Enl:  1.65740889966E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  4.44E-16,  7.59E-17 ]}, 
+ max / mean error:  [  4.44E-16,  6.43E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  2, fnrm:  4.90E-03, Omega: -3.771638715747441E+01, D: -1.22E-04, D best: -1.22E-04, 
  Optimization: {algorithm: SD, mean alpha:  6.437E-01, max alpha:  6.965E-01, 
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  0, 
- max / mean error:  [  1.67E-15,  5.08E-16 ]}, 
+ max / mean error:  [  3.77E-15,  6.68E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  8.61E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  2.87E-07, 
@@ -1489,14 +1518,14 @@
  Energies: {Ekin:  2.86584588061E+01, Epot: -3.38576002209E+01, Enl:  1.65766525783E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  1.05E-15,  1.10E-16 ]}, 
+ max / mean error:  [  1.05E-15,  1.07E-16 ]}, 
  Preconditioning:  Yes, 
- iter:  3, fnrm:  4.31E-03, Omega: -3.771647902012843E+01, D: -9.19E-05, D best: -9.19E-05, 
+ iter:  3, fnrm:  4.31E-03, Omega: -3.771647902012842E+01, D: -9.19E-05, D best: -9.19E-05, 
  exit criterion: net number of iterations}
    -  &final_supfun006  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  2.86584588061E+01, Epot: -3.38576002209E+01, Enl:  1.65766525783E+00}, 
- iter:  3, fnrm:  4.31E-03, Omega: -3.771647902012843E+01, D: -9.19E-05, D best: -9.19E-05}
+ iter:  3, fnrm:  4.31E-03, Omega: -3.771647902012842E+01, D: -9.19E-05, D best: -9.19E-05}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel006
@@ -1552,7 +1581,7 @@
  {e: -3.409133502891E-01, f:  2.0000},  # 00007
  {e: -3.408194620091E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.49E-07, energy: -3.77168124771100821E+01, D:  8.425E-06}]
+ iter:  2, delta:  1.49E-07, energy: -3.77168124771100679E+01, D:  8.425E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        max dev from unity              :  1.25E-06
@@ -1606,15 +1635,15 @@
  {e: -3.410979146862E-01, f:  2.0000},  # 00007
  {e: -3.410042547477E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  1.42E-07, energy: -3.77167977065245168E+01, D:  7.213E-06}]
+ iter:  4, delta:  1.42E-07, energy: -3.77167977065245026E+01, D:  7.213E-06}]
    -  &final_kernel006  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  1.42E-07, energy: -3.77167977065245168E+01, D:  7.213E-06}]}
+ iter:  5, delta:  1.42E-07, energy: -3.77167977065245026E+01, D:  7.213E-06}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc006
    -  {iter:  6, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter high:  6, delta out:  6.149E-09, energy: -3.77167977065245168E+01, D:  2.424E-05}
+ iter high:  6, delta out:  6.149E-09, energy: -3.77167977065245026E+01, D:  2.424E-05}
     #========================================================= support function optimization
  - support function optimization: &it_supfun007
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -1622,13 +1651,13 @@
  Energies: {Ekin:  2.86584588061E+01, Epot: -3.38637583025E+01, Enl:  1.65766525783E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  1.05E-15,  1.10E-16 ]}, 
+ max / mean error:  [  1.05E-15,  1.07E-16 ]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  5.36E-03, Omega: -3.771634143170664E+01, D:  4.57E-05, D best:  4.57E-05, 
  Optimization: {algorithm: SD, mean alpha:  6.923E-01, max alpha:  6.923E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  0, 
- max / mean error:  [  2.66E-15,  6.47E-16 ]}, 
+ max / mean error:  [  2.0E-15,  6.10E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  8.98E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  3.16E-07, 
@@ -1639,13 +1668,13 @@
  Energies: {Ekin:  2.86604906992E+01, Epot: -3.38661940894E+01, Enl:  1.65801981639E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  9.99E-16,  1.06E-16 ]}, 
+ max / mean error:  [  1.05E-15,  1.09E-16 ]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  4.43E-03, Omega: -3.771644586621358E+01, D: -1.04E-04, D best: -1.04E-04, 
+ iter:  2, fnrm:  4.43E-03, Omega: -3.771644586621359E+01, D: -1.04E-04, D best: -1.04E-04, 
  Optimization: {algorithm: SD, mean alpha:  6.750E-01, max alpha:  7.615E-01, 
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  0, 
- max / mean error:  [  3.55E-15,  6.57E-16 ]}, 
+ max / mean error:  [  2.0E-15,  4.56E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.04E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  3.14E-07, 
@@ -1656,7 +1685,7 @@
  Energies: {Ekin:  2.86599529011E+01, Epot: -3.38658303315E+01, Enl:  1.65811402468E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  1.11E-15,  1.10E-16 ]}, 
+ max / mean error:  [  1.11E-15,  1.18E-16 ]}, 
  Preconditioning:  Yes, 
  iter:  3, fnrm:  3.94E-03, Omega: -3.771652383826472E+01, D: -7.80E-05, D best: -7.80E-05, 
  exit criterion: net number of iterations}
@@ -1692,7 +1721,7 @@
  {e: -3.411890951620E-01, f:  2.0000},  # 00007
  {e: -3.410938354577E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.38E-07, energy: -3.77167928293953310E+01, D:  4.877E-06}]
+ iter:  1, delta:  1.38E-07, energy: -3.77167928293953452E+01, D:  4.877E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  1.19E-06
@@ -1719,7 +1748,7 @@
  {e: -3.410026275855E-01, f:  2.0000},  # 00007
  {e: -3.409092272877E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  1.35E-07, energy: -3.77167862598640795E+01, D:  6.570E-06}]
+ iter:  2, delta:  1.35E-07, energy: -3.77167862598640511E+01, D:  6.570E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        max dev from unity              :  1.19E-06
@@ -1789,13 +1818,13 @@
  Energies: {Ekin:  2.86599529011E+01, Epot: -3.38632204876E+01, Enl:  1.65811402468E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  1.11E-15,  1.10E-16 ]}, 
+ max / mean error:  [  1.11E-15,  1.18E-16 ]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  5.04E-03, Omega: -3.771639543593540E+01, D:  5.04E-05, D best:  5.04E-05, 
+ iter:  1, fnrm:  5.04E-03, Omega: -3.771639543593542E+01, D:  5.04E-05, D best:  5.04E-05, 
  Optimization: {algorithm: SD, mean alpha:  7.078E-01, max alpha:  7.078E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  0, 
- max / mean error:  [  2.0E-15,  5.25E-16 ]}, 
+ max / mean error:  [  1.78E-15,  4.95E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  9.25E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  2.90E-07, 
@@ -1806,13 +1835,13 @@
  Energies: {Ekin:  2.86584091137E+01, Epot: -3.38613030799E+01, Enl:  1.65774471511E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  7.77E-16,  8.12E-17 ]}, 
+ max / mean error:  [  8.33E-16,  1.04E-16 ]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  4.17E-03, Omega: -3.771648212869795E+01, D: -8.67E-05, D best: -8.67E-05, 
+ iter:  2, fnrm:  4.17E-03, Omega: -3.771648212869798E+01, D: -8.67E-05, D best: -8.67E-05, 
  Optimization: {algorithm: SD, mean alpha:  6.901E-01, max alpha:  7.786E-01, 
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  0, 
- max / mean error:  [  3.66E-15,  7.61E-16 ]}, 
+ max / mean error:  [  2.44E-15,  5.61E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  9.58E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  2.95E-07, 
@@ -1823,14 +1852,14 @@
  Energies: {Ekin:  2.86572095666E+01, Epot: -3.38605368544E+01, Enl:  1.65810103705E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  4.44E-16,  6.93E-17 ]}, 
+ max / mean error:  [  4.44E-16,  7.38E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  3, fnrm:  3.76E-03, Omega: -3.771654767347813E+01, D: -6.55E-05, D best: -6.55E-05, 
+ iter:  3, fnrm:  3.76E-03, Omega: -3.771654767347815E+01, D: -6.55E-05, D best: -6.55E-05, 
  exit criterion: net number of iterations}
    -  &final_supfun008  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  2.86572095666E+01, Epot: -3.38605368544E+01, Enl:  1.65810103705E+00}, 
- iter:  3, fnrm:  3.76E-03, Omega: -3.771654767347813E+01, D: -6.55E-05, D best: -6.55E-05}
+ iter:  3, fnrm:  3.76E-03, Omega: -3.771654767347815E+01, D: -6.55E-05, D best: -6.55E-05}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel008
@@ -1859,7 +1888,7 @@
  {e: -3.409963222978E-01, f:  2.0000},  # 00007
  {e: -3.409022283222E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.25E-07, energy: -3.77167696982823060E+01, D:  4.626E-06}]
+ iter:  1, delta:  1.25E-07, energy: -3.77167696982823202E+01, D:  4.626E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  1.05E-06
@@ -1913,7 +1942,7 @@
  {e: -3.411554973947E-01, f:  2.0000},  # 00007
  {e: -3.410617757462E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.19E-07, energy: -3.77167592199926531E+01, D:  5.044E-06}]
+ iter:  3, delta:  1.19E-07, energy: -3.77167592199926673E+01, D:  5.044E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        max dev from unity              :  1.05E-06
@@ -1956,13 +1985,13 @@
  Energies: {Ekin:  2.86572095666E+01, Epot: -3.38630265335E+01, Enl:  1.65810103705E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  4.44E-16,  6.93E-17 ]}, 
+ max / mean error:  [  4.44E-16,  7.38E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  4.76E-03, Omega: -3.771644342256337E+01, D:  3.87E-05, D best:  3.87E-05, 
  Optimization: {algorithm: SD, mean alpha:  5.940E-01, max alpha:  5.940E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  0, 
- max / mean error:  [  2.0E-15,  6.01E-16 ]}, 
+ max / mean error:  [  2.55E-15,  5.06E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  7.00E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  2.06E-07, 
@@ -1973,13 +2002,13 @@
  Energies: {Ekin:  2.86584616019E+01, Epot: -3.38641557089E+01, Enl:  1.65801793684E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  4.44E-16,  8.70E-17 ]}, 
+ max / mean error:  [  4.44E-16,  6.03E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  2, fnrm:  3.78E-03, Omega: -3.771650514650821E+01, D: -6.17E-05, D best: -6.17E-05, 
  Optimization: {algorithm: SD, mean alpha:  5.296E-01, max alpha:  6.534E-01, 
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  0, 
- max / mean error:  [  1.83E-15,  5.70E-16 ]}, 
+ max / mean error:  [  3.11E-15,  5.30E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.17E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  3.31E-07, 
@@ -1990,14 +2019,14 @@
  Energies: {Ekin:  2.86574079630E+01, Epot: -3.38633756274E+01, Enl:  1.65829006474E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  1.17E-15,  1.14E-16 ]}, 
+ max / mean error:  [  1.22E-15,  1.12E-16 ]}, 
  Preconditioning:  Yes, 
- iter:  3, fnrm:  3.29E-03, Omega: -3.771655016407597E+01, D: -4.50E-05, D best: -4.50E-05, 
+ iter:  3, fnrm:  3.29E-03, Omega: -3.771655016407595E+01, D: -4.50E-05, D best: -4.50E-05, 
  exit criterion: net number of iterations}
    -  &final_supfun009  { #-------------------------------------------------------- iter: 3
  target function: ENERGY, 
  Energies: {Ekin:  2.86574079630E+01, Epot: -3.38633756274E+01, Enl:  1.65829006474E+00}, 
- iter:  3, fnrm:  3.29E-03, Omega: -3.771655016407597E+01, D: -4.50E-05, D best: -4.50E-05}
+ iter:  3, fnrm:  3.29E-03, Omega: -3.771655016407595E+01, D: -4.50E-05, D best: -4.50E-05}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel009
@@ -2080,7 +2109,7 @@
  {e: -3.411493193315E-01, f:  2.0000},  # 00007
  {e: -3.410558179231E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  1.07E-07, energy: -3.77167431428757993E+01, D:  4.100E-06}]
+ iter:  3, delta:  1.07E-07, energy: -3.77167431428758135E+01, D:  4.100E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        max dev from unity              :  1.06E-06
@@ -2107,15 +2136,15 @@
  {e: -3.410698527044E-01, f:  2.0000},  # 00007
  {e: -3.409771229555E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  4, delta:  1.05E-07, energy: -3.77167391568844295E+01, D:  3.986E-06}]
+ iter:  4, delta:  1.05E-07, energy: -3.77167391568844437E+01, D:  3.986E-06}]
    -  &final_kernel009  { #-------------------------------------------------------- iter: 5
  summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  5, delta:  1.05E-07, energy: -3.77167391568844295E+01, D:  3.986E-06}]}
+ iter:  5, delta:  1.05E-07, energy: -3.77167391568844437E+01, D:  3.986E-06}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc009
    -  {iter:  9, target function: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter high:  9, delta out:  2.570E-09, energy: -3.77167391568844295E+01, D:  1.518E-05}
+ iter high:  9, delta out:  2.570E-09, energy: -3.77167391568844437E+01, D:  1.518E-05}
     #========================================================= support function optimization
  - support function optimization: &it_supfun010
    -  { #-------------------------------------------------------------------------- iter: 1
@@ -2123,13 +2152,13 @@
  Energies: {Ekin:  2.86574079630E+01, Epot: -3.38625065346E+01, Enl:  1.65829006474E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  1.17E-15,  1.14E-16 ]}, 
+ max / mean error:  [  1.22E-15,  1.12E-16 ]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  3.95E-03, Omega: -3.771648723722980E+01, D:  1.79E-05, D best:  1.79E-05, 
+ iter:  1, fnrm:  3.95E-03, Omega: -3.771648723722979E+01, D:  1.79E-05, D best:  1.79E-05, 
  Optimization: {algorithm: SD, mean alpha:  5.678E-01, max alpha:  5.678E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  0, 
- max / mean error:  [  1.44E-15,  4.45E-16 ]}, 
+ max / mean error:  [  2.66E-15,  6.43E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.24E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  3.29E-07, 
@@ -2140,13 +2169,13 @@
  Energies: {Ekin:  2.86576904510E+01, Epot: -3.38624735612E+01, Enl:  1.65798304766E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  2.78E-16,  5.94E-17 ]}, 
+ max / mean error:  [  4.44E-16,  7.47E-17 ]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  3.31E-03, Omega: -3.771653561012067E+01, D: -4.84E-05, D best: -4.84E-05, 
+ iter:  2, fnrm:  3.31E-03, Omega: -3.771653561012066E+01, D: -4.84E-05, D best: -4.84E-05, 
  Optimization: {algorithm: SD, mean alpha:  6.009E-01, max alpha:  6.245E-01, 
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, x: -1/2, order:  0, 
- max / mean error:  [  2.22E-15,  5.09E-16 ]}, 
+ max / mean error:  [  2.22E-15,  5.38E-16 ]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  6.19E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  2.04E-07, 
@@ -2157,7 +2186,7 @@
  Energies: {Ekin:  2.86574549465E+01, Epot: -3.38624397644E+01, Enl:  1.65817350814E+00}, 
  Orthoconstraint:  Yes, 
  calculate S^x: {mode: sparse, x: -1, order:  0, 
- max / mean error:  [  4.44E-16,  7.60E-17 ]}, 
+ max / mean error:  [  4.44E-16,  5.81E-17 ]}, 
  Preconditioning:  Yes, 
  iter:  3, fnrm:  2.93E-03, Omega: -3.771657495412519E+01, D: -3.93E-05, D best: -3.93E-05, 
  exit criterion: net number of iterations}
@@ -2188,12 +2217,12 @@
  {e: -1.039516335678E+00, f:  2.0000},  # 00002
  {e: -5.060083252742E-01, f:  2.0000},  # 00003
  {e: -4.782821811479E-01, f:  2.0000},  # 00004
- {e: -4.782177930742E-01, f:  2.0000},  # 00005
+ {e: -4.782177930743E-01, f:  2.0000},  # 00005
  {e: -4.699419992666E-01, f:  2.0000},  # 00006
  {e: -3.411392560922E-01, f:  2.0000},  # 00007
  {e: -3.410458041104E-01, f:  2.0000}] # 00008
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.02E-07, energy: -3.77167370659233825E+01, D:  2.091E-06}]
+ iter:  1, delta:  1.02E-07, energy: -3.77167370659233683E+01, D:  2.091E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  7.61E-07
@@ -2294,7 +2323,7 @@
  {e: -3.410821748670E-01, f:  1.0000},  # 00007
  {e: -3.409898439050E-01, f:  1.0000},  # 00008
  {e: -7.037141014437E-03, f:  1.0000},  # 00009
- {e: -6.856176493074E-03, f:  1.0000},  # 00010
+ {e: -6.856176493075E-03, f:  1.0000},  # 00010
  {e:  2.488743853633E-01, f:  1.0000},  # 00011
  {e:  9.469832756985E-01, f:  1.0000}] # 00012
     #========================================================================= final results
@@ -2308,9 +2337,9 @@
   #WARNING: commented correction_locrad
   #------------------------------------------------------------------------ Pulay Correction
  Pulay Forces (Ha/Bohr):
- -  {O: [-3.459694067752E-04, -5.717889789071E-04, -5.846671825176E-04]} # 0001
- -  {O: [-1.020139526992E-03, -9.458228840614E-04, -9.487719581336E-04]} # 0002
- -  {C: [ 5.648499666674E-03,  6.367944838424E-03,  6.398604278626E-03]} # 0003
+ -  {O: [-3.459694067754E-04, -5.717889789070E-04, -5.846671825172E-04]} # 0001
+ -  {O: [-1.020139526994E-03, -9.458228840610E-04, -9.487719581350E-04]} # 0002
+ -  {C: [ 5.648499666674E-03,  6.367944838423E-03,  6.398604278626E-03]} # 0003
  Total charge                          :  1.599999314549E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -2327,13 +2356,13 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -8.46567522E-03, y: -7.06917204E-03, z: -7.01714780E-03, 
                     total:  1.30721541E-02}
- Clean forces norm (Ha/Bohr): {maxval:  1.015905668790E-02, fnrm2:  1.613022917740E-04}
- Raw forces norm (Ha/Bohr): {maxval:  3.870063937220E-02, fnrm2:  2.943492468563E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  1.015905668791E-02, fnrm2:  1.613022917742E-04}
+ Raw forces norm (Ha/Bohr): {maxval:  3.870063937221E-02, fnrm2:  2.943492468564E-03}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 1.703643361391E-03,  1.871078663674E-03,  2.121457624954E-03]} # 0001
- -  {O: [-5.440758342787E-03, -6.172625729860E-03, -5.958462305198E-03]} # 0002
- -  {C: [ 3.737114981401E-03,  4.301547066184E-03,  3.837004680242E-03]} # 0003
+ -  {O: [ 1.703643361392E-03,  1.871078663675E-03,  2.121457624954E-03]} # 0001
+ -  {O: [-5.440758342790E-03, -6.172625729864E-03, -5.958462305203E-03]} # 0002
+ -  {C: [ 3.737114981403E-03,  4.301547066186E-03,  3.837004680247E-03]} # 0003
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -2360,15 +2389,16 @@
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  35.92
-   Elapsed time (s)                    :  18.14
+   CPU time (s)                        :  37.44
+   Elapsed time (s)                    :  18.91
  Memory Consumption Report:
-   Tot. No. of Allocations             :  16682
-   Tot. No. of Deallocations           :  16682
+   Tot. No. of Allocations             :  17241
+   Tot. No. of Deallocations           :  17241
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  157
      for the array                     : psir
      in the routine                    : LocalHamiltonianApplication
- Max No. of dictionaries used          :  3185 #( 825 still in use)
+     Memory Peak of process            : 193148 kB
+ Max No. of dictionaries used          :  3275 #( 838 still in use)
  Number of dictionary folders allocated:  1
