@@ -181,7 +181,7 @@ subroutine calculate_weight_matrix_lowdin_gradient_fd(weight_matrix,weight_matri
   use module_base
   use module_types
   use module_fragments
-  use module_interfaces, except_this_one => calculate_weight_matrix_lowdin_gradient
+  use module_interfaces
   use communications, only: transpose_localized
   use sparsematrix_base, only: matrices, sparse_matrix, sparsematrix_malloc_ptr, &
                                DENSE_FULL, assignment(=), &
@@ -376,7 +376,7 @@ subroutine calculate_weight_matrix_lowdin_gradient(weight_matrix,weight_matrix_,
   use module_base
   use module_types
   use module_fragments
-  use module_interfaces, except_this_one => calculate_weight_matrix_lowdin_gradient
+  use module_interfaces
   use communications, only: transpose_localized
   use sparsematrix_base, only: matrices, sparse_matrix, sparsematrix_malloc_ptr, &
                                DENSE_FULL, assignment(=), &
