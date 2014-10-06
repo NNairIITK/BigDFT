@@ -2536,18 +2536,16 @@ type(memory_estimation), intent(in) :: mem
 void FC_FUNC_(print_memory_estimation, PRINT_MEMORY_ESTIMATION)(const f90_memory_estimation *mem);
 /* proj_free src/bindings/bindingsf.f90:789 */
 /* Fortran header:
-subroutine proj_free(nlpspd, proj)
+subroutine proj_free(nlpspd)
 use psp_projectors
 use module_types
 use memory_profiling
 implicit none
 type(DFT_PSP_projectors), pointer :: nlpspd
-real(kind=8), dimension(:), pointer :: proj
 
 integer :: i_stat, i_all
 */
-void FC_FUNC_(proj_free, PROJ_FREE)(f90_DFT_PSP_projectors_pointer *nlpspd, 
-                                    f90_pointer_double *proj);
+void FC_FUNC_(proj_free, PROJ_FREE)(f90_DFT_PSP_projectors_pointer *nlpspd);
 /* proj_get_dimensions src/bindings/bindingsf.f90:804 */
 /* Fortran header:
 subroutine proj_get_dimensions(nlpspd, nproj, nprojel)
