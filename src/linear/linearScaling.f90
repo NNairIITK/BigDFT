@@ -1515,15 +1515,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       ioffset=kswfn%Lzd%Glr%d%n1i*kswfn%Lzd%Glr%d%n2i*denspot%dpbox%i3xcsh
 
       if (denspot%dpbox%ndimpot>0) then
-          denspot%pot_work=f_malloc_ptr(denspot%dpbox%ndimpot+ndebug,id='denspot%dpbox%ndimpot+ndebug')
+          denspot%pot_work=f_malloc_ptr(denspot%dpbox%ndimpot,id='denspot%dpbox%ndimpot')
 
       else
-          denspot%pot_work=f_malloc_ptr(1+ndebug,id='denspot%dpbox%ndimpot+ndebug')
+          denspot%pot_work=f_malloc_ptr(1,id='denspot%dpbox%ndimpot')
       end if
       if (denspot%dpbox%ndimrhopot>0) then
-          rhopot_work=f_malloc(denspot%dpbox%ndimrhopot+ndebug,id='rhopot_work')
+          rhopot_work=f_malloc(denspot%dpbox%ndimrhopot,id='rhopot_work')
       else
-          rhopot_work=f_malloc(1+ndebug,id='rhopot_work')
+          rhopot_work=f_malloc(1,id='rhopot_work')
       end if
       call vcopy(denspot%dpbox%ndimrhopot,denspot%rhov(1),1,rhopot_work(1),1)
 

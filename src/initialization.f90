@@ -260,6 +260,45 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
   call f_release_routine()
 END SUBROUTINE processor_id_per_node
 
+subroutine ensure_log_file(writing_directory, logfile, ierr)
+  use yaml_output
+  use yaml_strings
+  implicit none
+  character(len = *), intent(in) :: writing_directory, logfile
+  integer, intent(out) :: ierr
+
+  logical :: exists
+  integer :: lgt
+  character(len = 500) :: logfile_old, logfile_dir, filepath
+
+  ierr = 0
+  filepath = writing_directory//logfile
+  !inquire for the existence of a logfile
+  inquire(file=trim(filepath),exist=exists)
+  if (exists) then
+     logfile_old=writing_directory//'logfiles'
+     call getdir(logfile_old,&
+          len_trim(logfile_old),logfile_dir,len(logfile_dir),ierr)
+     if (ierr /= 0) then
+        write(*,*) "ERROR: cannot create writing directory '" //trim(logfile_dir) // "'."
+        return
+     end if
+     logfile_old=trim(logfile_dir)//logfile
+     !change the name of the existing logfile
+     lgt=index(logfile_old,'.yaml')
+     call buffer_string(logfile_old,len(logfile_old),&
+          trim(adjustl(yaml_time_toa()))//'.yaml',lgt)
+     call movefile(trim(filepath),len_trim(filepath),trim(logfile_old),len_trim(logfile_old),ierr)
+     if (ierr /= 0) then
+        write(*,*) "ERROR: cannot move logfile '"//trim(logfile)
+        write(*,*) '                      into '//trim(logfile_old)// "'."
+        return
+     end if
+     call yaml_map('<BigDFT> Logfile existing, renamed into',&
+          trim(logfile_old),unit=6)
+  end if
+
+end subroutine ensure_log_file
 
 subroutine create_log_file(dict, writing_directory, dir_output, run_name)
 
@@ -269,13 +308,13 @@ subroutine create_log_file(dict, writing_directory, dir_output, run_name)
   use yaml_strings
   use yaml_output
   use dictionaries
+  use bigdft_run, only: bigdft_run_id_toa
   implicit none
   type(dictionary), pointer :: dict
   character(len = max_field_length), intent(out) :: writing_directory, dir_output, run_name
   !local variables
   integer :: ierr,ierror,lgt,unit_log
-  logical :: exists
-  character(len=500) :: logfile,logfile_old,logfile_dir
+  character(len=500) :: logfile,logfile_old,logfile_dir,filepath
   integer :: iproc_node, nproc_node
 
   writing_directory = "."
@@ -313,7 +352,7 @@ subroutine create_log_file(dict, writing_directory, dir_output, run_name)
      if (dir_output(1:1) /= '/') &
           & call buffer_string(dir_output,len(dir_output),&
           & trim(logfile),lgt,back=.true.)
-     if (bigdft_mpi%iproc ==0) then
+     if (bigdft_mpi%iproc == 0) then
         logfile=repeat(' ',len(logfile))
         if (len_trim(run_name) > 0) then
 !           logfile='log-'//trim(run_name)//trim(bigdft_run_id_toa())//'.yaml'
@@ -321,58 +360,35 @@ subroutine create_log_file(dict, writing_directory, dir_output, run_name)
         else
            logfile='log'//trim(bigdft_run_id_toa())//'.yaml'
         end if
-        !inquire for the existence of a logfile
-        call yaml_map('<BigDFT> log of the run will be written in logfile',&
-             trim(writing_directory)//trim(logfile),unit=6)
-        inquire(file=trim(writing_directory)//trim(logfile),exist=exists)
-        if (exists) then
-           logfile_old=trim(writing_directory)//'logfiles'
-           call getdir(logfile_old,&
-                len_trim(logfile_old),logfile_dir,len(logfile_dir),ierr)
-           if (ierr /= 0) then
-              write(*,*) "ERROR: cannot create writing directory '" //trim(logfile_dir) // "'."
-              call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
-           end if
-           logfile_old=trim(logfile_dir)//trim(logfile)
-           logfile=trim(writing_directory)//trim(logfile)
-           !change the name of the existing logfile
-           lgt=index(logfile_old,'.yaml')
-           call buffer_string(logfile_old,len(logfile_old),&
-                trim(adjustl(yaml_time_toa()))//'.yaml',lgt)
-           call movefile(trim(logfile),len_trim(logfile),trim(logfile_old),len_trim(logfile_old),ierr)
-           if (ierr /= 0) then
-              write(*,*) "ERROR: cannot move logfile '"//trim(logfile)
-              write(*,*) '                      into '//trim(logfile_old)// "'."
-              call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
-           end if
-           call yaml_map('<BigDFT> Logfile existing, renamed into',&
-                trim(logfile_old),unit=6)
-
-        else
-           logfile=trim(writing_directory)//trim(logfile)
-        end if
-        !Create stream and logfile
-        call yaml_set_stream(filename=trim(logfile),record_length=92,istat=ierr)
-        !create that only if the stream is not already present, otherwise print a warning
-        if (ierr == 0) then
+        filepath = trim(writing_directory)//trim(logfile)
+        call yaml_map('<BigDFT> log of the run will be written in logfile',filepath,unit=6)
+        ! Check if logfile is already connected.
+        call yaml_stream_connected(trim(filepath), unit_log, ierr)
+        if (ierr /= 0) then
+           ! Move possible existing log file.
+           call ensure_log_file(trim(writing_directory), trim(logfile), ierr)
+           if (ierr /= 0) call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
+           ! Close active stream and logfile if any. (TO BE MOVED IN RUN_UPDATE TO AVOID CLOSURE OF UPLEVEL INSTANCE)
            call yaml_get_default_stream(unit_log)
-           call input_set_stdout(unit=unit_log)
-           if (len_trim(run_name) == 0) then
-              call f_malloc_set_status(unit=unit_log, &
-                   & logfile_name='malloc' // trim(bigdft_run_id_toa()) // '.prc')
+           if (unit_log /= 6) call yaml_close_stream(unit_log, ierr)
+           !Create stream and logfile
+           call yaml_set_stream(filename=trim(filepath),record_length=92,istat=ierr)
+           !create that only if the stream is not already present, otherwise print a warning
+           if (ierr == 0) then
+              call yaml_get_default_stream(unit_log)
+              call input_set_stdout(unit=unit_log)
            else
-              call f_malloc_set_status(unit=unit_log, &
-                   & logfile_name='malloc-' // trim(run_name) // '.prc')
+              call yaml_warning('Logfile '//trim(filepath)//' cannot be created, stream already present. Ignoring...')
            end if
-           !call memocc_set_stdout(unit=70)
         else
-           call yaml_warning('Logfile '//trim(logfile)//' cannot be created, stream already present. Ignoring...')
-        end if
-     end if
+           call yaml_release_document(unit_log)
+           call yaml_set_default_stream(unit_log, ierr)
+        end if ! Logfile already connected
+     end if ! Logfile is created by master proc only
   else
      !use stdout, do not crash if unit is present
      if (bigdft_mpi%iproc==0) call yaml_set_stream(record_length=92,istat=ierr)
-  end if
+  end if ! Need to create a named logfile.
     
   if (bigdft_mpi%iproc==0) then
      !start writing on logfile

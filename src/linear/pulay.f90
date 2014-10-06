@@ -497,8 +497,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
 
 
-  call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,rxyz,&
-       tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,lhphilarge,energs%eproj)
+  call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+       tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,lhphilarge,energs%eproj,tmb%paw)
 
   ! only kinetic because waiting for communications
   call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
@@ -551,8 +551,10 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
     dovrlp_(jdir)=matrices_null()
     dham(jdir)=sparse_matrix_null()
     dham_(jdir)=matrices_null()
-    call sparse_copy_pattern(tmb%linmat%m,dovrlp(jdir),iproc,subname) 
-    call sparse_copy_pattern(tmb%linmat%m,dham(jdir),iproc,subname)
+    !call sparse_copy_pattern(tmb%linmat%m,dovrlp(jdir),iproc,subname) 
+    !call sparse_copy_pattern(tmb%linmat%m,dham(jdir),iproc,subname)
+    call copy_sparse_matrix(tmb%linmat%m,dovrlp(jdir))
+    call copy_sparse_matrix(tmb%linmat%m,dham(jdir))
     !dham_(jdir)%matrix_compr=f_malloc_ptr(dham(jdir)%nvctr,id='dham(jdir)%matrix_compr')
     !dovrlp_(jdir)%matrix_compr=f_malloc_ptr(dovrlp(jdir)%nvctr,id='dovrlp(jdir)%matrix_compr')
     dham_(jdir)%matrix_compr=sparsematrix_malloc_ptr(dham(jdir),iaction=SPARSE_FULL,id='dham(jdir)%matrix_compr')
@@ -613,10 +615,10 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
              end if
              do iseg=isegstart,isegend
                   ii=dham(jdir)%keyv(iseg)-1
-                  do jorb=dham(jdir)%keyg(1,iseg),dham(jdir)%keyg(2,iseg)
+                  do jorb=dham(jdir)%keyg(1,1,iseg),dham(jdir)%keyg(2,1,iseg)
                       ii=ii+1
-                      iialpha = (jorb-1)/tmb%linmat%m%nfvctr + 1
-                      ibeta = jorb - (iialpha-1)*tmb%linmat%m%nfvctr
+                      iialpha = dham(jdir)%keyg(1,2,iseg)
+                      ibeta = jorb
                       jat=tmb%orbs%onwhichatom(iialpha)
                       kernel = 0.d0
                       ekernel= 0.d0

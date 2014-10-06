@@ -11,8 +11,7 @@
 !> Module used to manage memory allocations and de-allocations
 module dynamic_memory
 
-  !use m_profiling, except => ndebug, and=> d_nan, also=> r_nan
-  use memory_profiling, except => ndebug
+  use memory_profiling
   use dictionaries, info_length => max_field_length
   use yaml_strings, only: yaml_toa,yaml_date_and_time_toa
   use module_f_malloc
@@ -43,7 +42,7 @@ module dynamic_memory
   character(len=*), parameter :: t0_time='Time of last opening'
   character(len=*), parameter :: tot_time='Total time (s)'
   character(len=*), parameter :: prof_enabled='Profiling Enabled'
-  character(len=*), parameter :: main='Main program'
+  character(len=*), parameter :: main='Main_program'
 
   !> Error codes
   integer, save :: ERR_ALLOCATE
@@ -51,6 +50,7 @@ module dynamic_memory
   integer, save :: ERR_MEMLIMIT
   integer, save :: ERR_INVALID_COPY
   integer, save :: ERR_MALLOC_INTERNAL
+  integer, save :: ERR_REFERENCE_COUNTERS
 
   !> Timing categories
   integer, public, save :: TCAT_ARRAY_ALLOCATIONS
@@ -64,17 +64,35 @@ module dynamic_memory
      logical :: routine_opened       !< global variable (can be stored in dictionaries)
      logical :: profile_routine      !< decide whether the routine has to be profiled
      character(len=namelen) :: present_routine !< name of the active routine 
-     !>dictionaries needed for profiling storage
+     character(len=256) :: logfile !<file in which reports are written
+     integer :: logfile_unit !< unit of the logfile stream
+     integer :: output_level !< decide the level of reporting
+     !> Dictionaries needed for profiling storage
      type(dictionary), pointer :: dict_global    !<status of the memory at higher level
      type(dictionary), pointer :: dict_routine   !<status of the memory inside the routine
      type(dictionary), pointer :: dict_calling_sequence !<profiling of the routines
      type(dictionary), pointer :: dict_codepoint !<points to where we are in the previous dictionary
   end type mem_ctrl
   
+  !> Reference counter. Can be used to control the pointer
+  !! referencing to a derived datatype
+  type, public :: f_reference_counter
+     !> Counter of references. When nullified or zero, 
+     !! the associated object is ready to be destroyed
+     integer, pointer :: iref 
+     !> Information about the associated object
+     type(dictionary), pointer :: info
+  end type f_reference_counter
+
   !> Global variable controlling the different instances of the calls
   !! the 0 component is supposed to be unused, it is allocated to avoid segfaults
   !! if the library routines are called without initialization
-  type(mem_ctrl), dimension(0:max_ctrl) :: mems
+  type(mem_ctrl), dimension(0:max_ctrl), save :: mems
+  !> Global status of the memory, used in memory_profiling module
+  !! it considers the overall status of the memory regardless of the
+  !! number of active instances in mems
+  type(memory_state), save :: memstate 
+
 
   interface assignment(=)
      module procedure i1_all,i2_all,i3_all,i4_all
@@ -88,7 +106,7 @@ module dynamic_memory
      module procedure z1_ptr
      !strings and pointers for characters
      module procedure c1_all
-!     module procedure c1_ptr
+     module procedure c1_ptr
   end interface
 
   interface f_free
@@ -108,7 +126,7 @@ module dynamic_memory
      module procedure z1_ptr_free
   end interface
 
-  !> initialize to zero an array (should be called f_memset)
+  !> Initialize to zero an array (should be called f_memset)
   interface to_zero
      module procedure put_to_zero_simple, &
            put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2, &
@@ -121,7 +139,7 @@ module dynamic_memory
      module procedure f_memcpy_i0,f_memcpy_i1
      module procedure f_memcpy_r0
      module procedure f_memcpy_d0,f_memcpy_d1,f_memcpy_d2
-     module procedure f_memcpy_d1d2,f_memcpy_d2d1
+     module procedure f_memcpy_d1d2,f_memcpy_d2d1,f_memcpy_d2d3
      module procedure f_memcpy_l0
   end interface f_memcpy
 
@@ -139,6 +157,9 @@ module dynamic_memory
   public :: f_free,f_free_ptr,f_free_str,f_free_str_ptr
   public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_initialize,f_malloc_finalize
   public :: f_time,to_zero,f_memcpy
+  !reference counters
+  public :: f_ref_new,f_ref_null,f_unref,f_ref_free,f_ref_associate
+  public :: nullify_f_ref,f_ref,f_ref_count,f_update_database,f_purge_database
   public :: assignment(=),operator(.to.)
 
   !for internal f_lib usage
@@ -165,7 +186,10 @@ contains
     mem%routine_opened=.false.      
     mem%profile_routine=.true.
     mem%present_routine=repeat(' ',namelen)
-    !>dictionaries needed for profiling storage
+    mem%logfile=repeat(' ',len(mem%logfile))
+    mem%logfile_unit=-1 !< not initialized
+    mem%output_level=0
+    !> Dictionaries needed for profiling storage
     nullify(mem%dict_global)
     nullify(mem%dict_routine)
     nullify(mem%dict_calling_sequence)
@@ -192,7 +216,174 @@ contains
     call set_routine_info(mem%present_routine,mem%profile_routine)
   end subroutine initialize_mem_ctrl
 
-  !>transfer to the f_malloc_module the information of the routine
+  !!!reference counter objects
+  pure function f_ref_null() result(f_ref)
+    implicit none
+    type(f_reference_counter) :: f_ref
+    call nullify_f_ref(f_ref)
+  end function f_ref_null
+  pure subroutine nullify_f_ref(f_ref)
+    implicit none
+    type(f_reference_counter), intent(out) :: f_ref
+    nullify(f_ref%iref)
+    nullify(f_ref%info)
+  end subroutine nullify_f_ref
+
+  subroutine dump_ref_cnt(f_ref)
+    use yaml_output, only: yaml_dict_dump,yaml_map
+    implicit none
+    type(f_reference_counter), intent(in) :: f_ref
+
+    call yaml_dict_dump(f_ref%info)
+    call yaml_map('References',f_ref%iref)
+  end subroutine dump_ref_cnt
+
+  !> Allocate a reference counter
+  !! this function should be called whe the associated object starts
+  !! to be non-trivial
+  function f_ref_new(id,address) result(f_ref)
+    implicit none
+    character(len=*), intent(in) :: id
+    integer(kind=8), intent(in), optional :: address
+    type(f_reference_counter) :: f_ref
+    !local variables
+    type(dictionary), pointer :: dict
+
+    call nullify_f_ref(f_ref)
+    allocate(f_ref%iref)
+    call dict_init(f_ref%info)
+    dict=>f_ref%info//'Reference counter'
+    call set(dict//'Id',id)
+    if (present(address)) &
+         call set(dict//'Address of referenced object',address)
+    f_ref%iref=1
+  end function f_ref_new
+
+  !> Dereferencing counter
+  subroutine f_unref(f_ref,count)
+    implicit none
+    type(f_reference_counter), intent(inout) :: f_ref
+    !> Reference counter. Gives the user the possiblity to free after unref
+    !! if present, it returns the number of counters associated to the object
+    !! if absent f_unref raise an exception in the case the object is orphan
+    integer, intent(out), optional :: count
+    
+    if (.not. associated(f_ref%iref)) then
+       call f_err_throw('Illegal dereference: nullified object',&
+            err_id=ERR_REFERENCE_COUNTERS)
+    else
+       if (f_ref%iref <= 1 .and. .not. present(count) .or. f_ref%iref==0 .and. present(count)) then
+          call dump_ref_cnt(f_ref)
+          call f_err_throw('Illegal dereference:'//&
+               ' object is orphan, it should be freed',&
+               err_id=ERR_REFERENCE_COUNTERS)
+       else
+          f_ref%iref=f_ref%iref-1
+          if (present(count)) count=f_ref%iref
+       end if
+    end if
+
+  end subroutine f_unref
+  
+  !> Returns the number of reference to an object.
+  !! it returns a negative number if the object is nullified
+  function f_ref_count(f_ref) result(count)
+    implicit none
+    type(f_reference_counter), intent(in) :: f_ref
+    integer :: count
+
+    if (associated(f_ref%iref)) then
+       count=f_ref%iref
+    else
+       count=-1
+    end if
+  end function f_ref_count
+
+  !> Free and check a reference counter
+  !!this should be called when calling the destructor of the
+  !!associated object
+  subroutine f_ref_free(f_ref)
+    implicit none
+    type(f_reference_counter), intent(inout) :: f_ref
+
+    if (.not. associated(f_ref%iref)) then
+       call f_err_throw('Illegal free of reference counter, nullified object',&
+            err_id=ERR_REFERENCE_COUNTERS)
+    else
+       if (f_ref%iref > 1) then
+          call dump_ref_cnt(f_ref)
+          call f_err_throw('Illegal free : object is still referenced',&
+               err_id=ERR_REFERENCE_COUNTERS)
+       else
+          deallocate(f_ref%iref)
+          call dict_free(f_ref%info)
+          f_ref=f_ref_null()
+       end if
+    end if
+
+  end subroutine f_ref_free
+
+  !> Increase the reference counter of a associated source
+  subroutine f_ref(src)
+    implicit none
+    type(f_reference_counter), intent(inout) :: src
+    !check source validity
+    if (.not. associated(src%iref)) then
+       call f_err_throw('Illegal reference: nullified source',&
+            err_id=ERR_REFERENCE_COUNTERS)
+    else if (src%iref <= 0) then
+       call dump_ref_cnt(src)
+       call f_err_throw('Illegal reference: the source'//&
+            ' is already dereferenced, it must be destroyed',&
+            err_id=ERR_REFERENCE_COUNTERS)
+    else
+       src%iref=src%iref+1
+    end if
+  end subroutine f_ref
+
+  !> Associate two reference objects.
+  !! the destination is supposed to be in a nullified status,
+  !! and the second one is supposed to be valid
+  subroutine f_ref_associate(src,dest)
+    use yaml_output, only: yaml_dict_dump
+    implicit none
+    !> Source reference. Should be in a valid state, which means
+    !! that iref should be at least one.
+    type(f_reference_counter), intent(in) :: src
+    type(f_reference_counter), intent(inout) :: dest
+    
+    !check source validity
+    if (.not. associated(src%iref)) then
+       call f_err_throw('Illegal association: nullified source',&
+            err_id=ERR_REFERENCE_COUNTERS)
+    else if (src%iref <= 0) then
+       call dump_ref_cnt(src)
+       call f_err_throw('Illegal association: the source '//&
+            'is already dereferenced, it must be destroyed',&
+            err_id=ERR_REFERENCE_COUNTERS)
+    end if
+
+    !check destination suitablity
+    if (associated(dest%iref)) then
+       if (dest%iref == 1) then
+          call dump_ref_cnt(dest)
+          call f_err_throw('Illegal association: destination '//&
+               ' is orphan, it must be destroyed to avoid memory leak',&
+               err_id=ERR_REFERENCE_COUNTERS)
+       end if
+       !otherwise decrement it
+       dest%iref=dest%iref-1
+    end if
+
+    !then reassociate the pointers
+    dest%iref=>src%iref
+    dest%info=>src%info
+    
+    dest%iref=dest%iref+1
+
+  end subroutine f_ref_associate
+
+  !> Transfer to the f_malloc_module the information of the routine
   subroutine set_routine_info(name,profile)
     implicit none
     logical, intent(in) :: profile
@@ -353,7 +544,7 @@ contains
     if (.not. within_openmp) call f_timer_resume()
   end subroutine put_to_zero_integer
 
-  !>copy the contents of an array into another one
+  !> Copy the contents of an array into another one
   include 'f_memcpy-inc.f90'
 
   !> This routine adds the corresponding subprogram name to the dictionary
@@ -446,7 +637,9 @@ contains
   !> Close a previously opened routine
   subroutine f_release_routine()
     use yaml_output, only: yaml_dict_dump
+    use f_utils, only: f_rewind
     implicit none
+    integer :: jproc
 
     if (f_err_raise(ictrl == 0,&
          '(f_release_routine): the routine f_malloc_initialize has not been called',&
@@ -470,6 +663,7 @@ contains
 !!$       call f_timer_resume()
 !!$       return
 !!$    end if
+
     !last_opened_routine=trim(dict_key(dict_codepoint))!repeat(' ',namelen)
     !the main program is opened until there is a subprograms keyword
     if (f_err_raise(.not. associated(mems(ictrl)%dict_codepoint%parent),&
@@ -511,34 +705,193 @@ contains
 !!$    call yaml_mapping_close()
 !!$    call yaml_comment('End of release routine',hfill='=')
     !end debug
+
+    !write the report for the output_level
+    if (mems(ictrl)%output_level == 1) then
+       jproc = mems(ictrl)%dict_global//processid
+       if (jproc ==0) then
+          !rewind unit
+          call f_rewind(mems(ictrl)%logfile_unit)
+          !write present value
+          call dump_status_line(memstate,mems(ictrl)%logfile_unit,mems(ictrl)%present_routine)
+       end if
+    end if
+
     call f_timer_resume()
   end subroutine f_release_routine
 
-  !>create the id of a new routine in the codepoint and points to it.
-  !! works for sequences
-
-  subroutine open_routine(dict)
+  !> Update the memory database with the data provided
+  !! Use when allocating Fortran structures
+  subroutine f_update_database(size,kind,rank,address,id,routine)
+    use metadata_interfaces, only: long_toa
+    use yaml_output, only: yaml_flush_document
     implicit none
-    type(dictionary), pointer :: dict !< needs to be explained!
+    !> Number of elements of the buffer
+    integer(kind=8), intent(in) :: size
+    !> Size in bytes of one buffer element
+    integer, intent(in) :: kind
+    !> Rank of the array
+    integer, intent(in) :: rank
+    !> Address of the first buffer element.
+    !! Used to store the address in the dictionary.
+    !! If this argument is zero, only the memory is updated
+    !! Otherwise the dictionary is created and stored
+    integer(kind=8), intent(in) :: address
+    !> Id of the array
+    character(len=*), intent(in) :: id
+    !> Id of the allocating routine
+    character(len=*), intent(in) :: routine
     !local variables
-    integer :: ival
-    character(len=info_length) :: routinename
-    type(dictionary), pointer :: dict_tmp
+    integer(kind=8) :: ilsize,jproc
+    !$ include 'remove_omp-inc.f90' 
 
-    !now imagine that a new routine is created
-    ival=dict_len(dict)-1
-    routinename=dict//ival
+    ilsize=max(int(kind,kind=8)*size,int(0,kind=8))
+    !store information only for array of size /=0
+    if (track_origins .and. address /= int(0,kind=8) .and. ilsize /= int(0,kind=8)) then
+       !create the dictionary array
+       if (.not. associated(mems(ictrl)%dict_routine)) then
+          call dict_init(mems(ictrl)%dict_routine)
+       end if
+       call set(mems(ictrl)%dict_routine//long_toa(address),&
+            '[ '//trim(id)//', '//trim(routine)//', '//&
+            trim(yaml_toa(ilsize))//', '//trim(yaml_toa(rank))//']')
+    end if
+    call memstate_update(memstate,ilsize,id,routine)
+    if (mems(ictrl)%output_level==2) then
+       jproc = mems(ictrl)%dict_global//processid
+       if (jproc ==0) then
+          call dump_status_line(memstate,mems(ictrl)%logfile_unit,trim(routine),trim(id))
+          call yaml_flush_document(unit=mems(ictrl)%logfile_unit)
+       end if
+    end if
+  end subroutine f_update_database
 
-    !call yaml_map('The routine which has to be converted is',trim(routinename))
 
-    call dict_remove(dict,ival)
+  !> Clean the database with the information of the array
+  !! Use when allocating Fortran structures
+  subroutine f_purge_database(size,kind,address,id,routine)
+    use metadata_interfaces, only: long_toa
+    use yaml_output, only: yaml_flush_document
+    implicit none
+    !> Number of elements of the buffer
+    integer(kind=8), intent(in) :: size
+    !> Size in bytes of one buffer element
+    integer, intent(in) :: kind
+    !> Address of the first buffer element.
+    !! Used to store the address in the dictionary.
+    !! If this argument is zero, only the memory is updated
+    !! Otherwise the dictionary is created and stored
+    integer(kind=8), intent(in), optional :: address
+    !> Id of the array
+    character(len=*), intent(in), optional :: id
+    !> Id of the allocating routine
+    character(len=*), intent(in), optional :: routine
+    !local variables
+    logical :: use_global
+    integer :: jproc
+    integer(kind=8) :: ilsize,jlsize,iadd
+    character(len=namelen) :: array_id,routine_id
+    character(len=info_length) :: array_info
+    type(dictionary), pointer :: dict_add
+    !$ include 'remove_omp-inc.f90' 
 
-    dict_tmp=>dict//ival//trim(routinename)
+    iadd=int(0,kind=8)
+    if (present(address)) iadd=address
+    ilsize=max(int(kind,kind=8)*size,int(0,kind=8))
+    !address of first element (not needed for deallocation)
+    if (track_origins .and. iadd/=int(0,kind=8)) then
+       !hopefully only address is necessary for the deallocation
 
-    dict => dict_tmp
-    nullify(dict_tmp)
+       !search in the dictionaries the address
+       dict_add=>find_key(mems(ictrl)%dict_routine,long_toa(iadd))
+       if (.not. associated(dict_add)) then
+          dict_add=>find_key(mems(ictrl)%dict_global,long_toa(iadd))
+          if (.not. associated(dict_add)) then
+             call f_err_throw('Address '//trim(long_toa(iadd))//&
+                  ' not present in dictionary',ERR_INVALID_MALLOC)
+             return
+          else
+             use_global=.true.
+          end if
+       else
+          use_global=.false.
+       end if
 
-  end subroutine open_routine
+       !transform the dict_add in a list
+       !retrieve the string associated to the database
+       array_info=dict_add
+       dict_add => yaml_a_todict(array_info)
+       !then retrieve the array information
+       array_id=dict_add//0
+       routine_id=dict_add//1
+       jlsize=dict_add//2
+
+       call dict_free(dict_add)
+
+       if (ilsize /= jlsize) then
+          call f_err_throw('Size of array '//trim(array_id)//&
+               ' ('//trim(yaml_toa(ilsize))//') not coherent with dictionary, found='//&
+               trim(yaml_toa(jlsize)),ERR_MALLOC_INTERNAL)
+          return
+       end if
+       if (use_global) then
+          call dict_remove(mems(ictrl)%dict_global,long_toa(iadd))
+       else
+          call dict_remove(mems(ictrl)%dict_routine,long_toa(iadd))
+       end if
+    else
+       array_id(1:len(array_id))=id
+       routine_id(1:len(routine_id))=routine
+    end if
+
+    call memstate_update(memstate,-ilsize,trim(array_id),trim(routine_id))
+    !here in the case of output_level == 2 the data can be extracted  
+    if (mems(ictrl)%output_level==2) then
+       jproc = mems(ictrl)%dict_global//processid
+       if (jproc ==0) then
+          if (len_trim(array_id) == 0) then
+             if (len_trim(routine_id) == 0) then
+                call dump_status_line(memstate,mems(ictrl)%logfile_unit,&
+                     'Unknown','Unknown')
+             else
+                call dump_status_line(memstate,mems(ictrl)%logfile_unit,trim(routine_id),'Unknown')
+             end if
+          else if (len_trim(routine_id) == 0) then
+             call dump_status_line(memstate,mems(ictrl)%logfile_unit,'Unknown',trim(array_id))
+          else
+             call dump_status_line(memstate,mems(ictrl)%logfile_unit,trim(routine_id),trim(array_id))
+          end if
+          call yaml_flush_document(unit=mems(ictrl)%logfile_unit)
+       end if
+    end if
+  end subroutine f_purge_database
+
+
+  !> Create the id of a new routine in the codepoint and points to it.
+  !! works for sequences
+!!$ subroutine open_routine(dict)
+!!$   implicit none
+!!$   type(dictionary), pointer :: dict
+!!$   !local variables
+!!$   integer :: ival
+!!$   character(len=info_length) :: routinename
+!!$   type(dictionary), pointer :: dict_tmp
+!!$
+!!$   !now imagine that a new routine is created
+!!$   ival=dict_len(dict)-1
+!!$   routinename=dict//ival
+!!$
+!!$   !call yaml_map('The routine which has to be converted is',trim(routinename))
+!!$
+!!$   call dict_remove(dict,ival)
+!!$
+!!$   dict_tmp=>dict//ival//trim(routinename)
+!!$
+!!$   dict => dict_tmp
+!!$   nullify(dict_tmp)
+!!$
+!!$ end subroutine open_routine
+
 
   subroutine close_routine(dict,jump_up)
     !use yaml_output !debug
@@ -596,13 +949,14 @@ contains
 
   !routine which is called for most of the errors of the module
   subroutine f_malloc_callback()
-    use yaml_output, only: yaml_warning
+    use yaml_output, only: yaml_warning,yaml_flush_document
     use exception_callbacks, only: severe_callback_add 
     implicit none
     call yaml_warning('An error occured in dynamic memory module. Printing info')
     !if f_err_severe is not overridden, dump memory
     !status in the default stream
     if (severe_callback_add == 0) call f_malloc_dump_status()
+    call yaml_flush_document()
     call f_err_severe()
   end subroutine f_malloc_callback
 
@@ -633,10 +987,15 @@ contains
          err_id=ERR_MALLOC_INTERNAL,&
          err_action='An invalid operation occurs, submit bug report to developers',&
          callback=f_malloc_callback)
-    
+    call f_err_define(err_name='ERR_REFERENCE_COUNTERS',&
+         err_msg='Error in the usage of the reference counter',&
+         err_id=ERR_REFERENCE_COUNTERS,&
+         err_action='When a reference counter is present each pointer association should be tracked, check for it',&
+         callback=f_malloc_callback)
+
   end subroutine dynamic_memory_errors
 
-  !> opens a new instance of the dynamic memory handling
+  !> Opens a new instance of the dynamic memory handling
   subroutine f_malloc_initialize()
     implicit none
     
@@ -648,6 +1007,9 @@ contains
 
     !extra options can be passed at the initialization
     mems(ictrl)=mem_ctrl_init()
+
+    !in the first instance initialize the global memory info
+    if (ictrl==1) call memstate_init(memstate)
 
     !initialize the memprofiling counters
     call set(mems(ictrl)%dict_global//'Timestamp of Profile initialization',&
@@ -663,16 +1025,19 @@ contains
   end subroutine f_malloc_initialize
 
   !> Initialize the library
-  subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,unit,iproc)
-    use yaml_output, only: yaml_date_and_time_toa
+  subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,iproc)
+    use yaml_output!, only: yaml_date_and_time_toa
+    use f_utils
+    use yaml_strings, only: f_strcpy
     implicit none
     !Arguments
     character(len=*), intent(in), optional :: logfile_name   !< Name of the logfile
     real(kind=4), intent(in), optional :: memory_limit       !< Memory limit
     integer, intent(in), optional :: output_level            !< Level of output for memocc
                                                              !! 0 no file, 1 light, 2 full
-    integer, intent(in), optional :: unit                    !< Indicate file unit for the output
-    integer, intent(in), optional :: iproc                   !< Process Id (used to dump, by default one 0)
+    integer, intent(in), optional :: iproc                   !< Process Id (used to dump, by default 0)
+    !local variables
+    integer :: unt,jctrl,jproc
 
     if (f_err_raise(ictrl == 0,&
          'ERROR (f_malloc_set_status): the routine f_malloc_initialize has not been called',&
@@ -693,20 +1058,64 @@ contains
 !!$       call f_routine(id='Main program')
 !!$    end if
 
-    if (present(memory_limit)) call memocc_set_memory_limit(memory_limit)
+    if (present(output_level)) then
+       if (output_level > 0) then
+          !first, check if we already know which proc we are
+          jproc=0
+          jproc=mems(ictrl)%dict_global .get. processid
+          !if iproc is present, overrides
+          if (present(iproc)) jproc=iproc
 
-    if (present(output_level)) call memocc_set_state(output_level)
+          if (.not. present(logfile_name)) &
+               call f_err_throw('Error, f_malloc_set_status needs logfile_name for nontrivial output level',&
+               err_id=ERR_INVALID_MALLOC)
+          !first, close the previously opened stream
+          if (mems(ictrl)%logfile_unit > 0 .and. jproc==0) then
+             call yaml_close_stream(unit=mems(ictrl)%logfile_unit)
+          end if
+          !check if it is assigned to 
+          !a previous instance of malloc_set_status, and raise and exception if it is so
+          do jctrl=ictrl-1,1,-1
+             if (trim(logfile_name)==mems(jctrl)%logfile) &
+                  call f_err_throw('Logfile name "'//trim(logfile_name)//&
+                  '" in f_malloc_set_status invalid, aleady in use for instance No.'//&
+                  trim(yaml_toa(jctrl)),err_id=ERR_INVALID_MALLOC)
+             exit
+          end do
+          if (jproc == 0) then
+             !eliminate the previous existing file if it has the same name
+             !check if the file is opened
+             call f_file_unit(trim(logfile_name),unt)
+             !after this check an opened filename may now be closed
+             call f_close(unt)
+             !now the file can be opened
+             !get a free unit, starting from 98
+             unt=f_get_free_unit(98)
+             call yaml_set_stream(unit=unt,filename=trim(logfile_name),position='rewind',setdefault=.false.,&
+                  record_length=131)
+             if (output_level==2) then
+                call yaml_comment(&
+                     'Present Array,Present Routine, Present Memory, Peak Memory, Peak Array, Peak Routine',&
+                     unit=unt)
+                call yaml_sequence_open('List of allocations',unit=unt)
+             end if
+          end if
+          !store the found unit in the structure
+          mems(ictrl)%logfile_unit=unt
+          call f_strcpy(dest=mems(ictrl)%logfile,src=logfile_name)
+       end if
+       mems(ictrl)%output_level=output_level
+    end if
 
-    if (present(unit)) call memocc_set_stdout(unit)
-
-    if (present(logfile_name)) call memocc_set_filename(logfile_name)
+    if (present(memory_limit)) call f_set_memory_limit(memory_limit)
        
     if (present(iproc)) call set(mems(ictrl)%dict_global//processid,iproc)
   end subroutine f_malloc_set_status
 
   !> Finalize f_malloc (Display status)
   subroutine f_malloc_finalize(dump,process_id)
-    use yaml_output, only: yaml_warning,yaml_mapping_open,yaml_mapping_close,yaml_dict_dump,yaml_get_default_stream,yaml_map
+    use yaml_output
+    use f_utils
     implicit none
     !Arguments
     logical, intent(in), optional :: dump !< Dump always information, 
@@ -723,7 +1132,7 @@ contains
          ERR_MALLOC_INTERNAL)) return
 
     if (present(process_id)) process_id=-1
-
+    pid=0
     !quick return if variables not associated
     if (associated(mems(ictrl)%dict_global)) then
        !put the last values in the dictionary if not freed
@@ -733,10 +1142,12 @@ contains
        end if
        if (present(process_id)) process_id = mems(ictrl)%dict_global//processid
 
+       !retrieve nonetheless
+       pid = mems(ictrl)%dict_global//processid
+
        if (present(dump)) then
           dump_status=dump
        else 
-          pid = mems(ictrl)%dict_global//processid
           if (pid == 0) then
              dump_status=.true.
           else
@@ -754,20 +1165,32 @@ contains
           call dump_leaked_memory(mems(ictrl)%dict_global)
           call yaml_mapping_close()
        end if
-       call dict_free(mems(ictrl)%dict_global)
        call f_release_routine() !release main
+       call dict_free(mems(ictrl)%dict_global)
        !    call yaml_mapping_open('Calling sequence')
        !    call yaml_dict_dump(dict_calling_sequence)
        !    call yaml_mapping_close()
        call dict_free(mems(ictrl)%dict_calling_sequence)
     end if
 
-    if (mems(ictrl)%profile_initialized) call memocc_report(dump=dump_status)
+    if (mems(ictrl)%profile_initialized) call memstate_report(memstate,dump=dump_status)
+
+    !close or delete report file
+    if (mems(ictrl)%output_level >= 1 .and. pid==0) then
+       if (mems(ictrl)%output_level == 2) call yaml_sequence_close(unit=mems(ictrl)%logfile_unit)
+       call yaml_close_stream(unit=mems(ictrl)%logfile_unit)
+
+       !in this case the file has to be removed
+       !as it is used only to clarify the active codepoint
+       if (mems(ictrl)%output_level == 1) call f_delete_file(mems(ictrl)%logfile)
+    end if
 
     !nullify control structure
     mems(ictrl)=mem_ctrl_null()
     !lower the level
     ictrl=ictrl-1
+    !clean the memory report (reentrant)
+    if (ictrl == 0)  call memstate_init(memstate)
   end subroutine f_malloc_finalize
 
   !> Dump all allocations
@@ -811,12 +1234,13 @@ contains
      end do
   end subroutine dump_leaked_memory
 
-  !> Dump the actual status of the memory
+
+  !> Dump the status of the allocated memory (and all allocations)
   subroutine f_malloc_dump_status(filename,dict_summary)
     use yaml_output
     implicit none
     character(len=*), intent(in), optional :: filename  !< file to which the memory should be dumped
-    !> if present, this dictionary is filled with the summary of the 
+    !> If present, this dictionary is filled with the summary of the 
     !! dumped dictionary. Its presence disables the normal dumping
     type(dictionary), pointer, optional, intent(out) :: dict_summary 
     !local variables
@@ -884,7 +1308,8 @@ contains
   recursive subroutine postreatment_of_calling_sequence(base_time,&
        dict_cs,dict_pt)
     implicit none
-    double precision, intent(in) :: base_time !< time on which percentages has to be given
+    !> Time on which percentages has to be given
+    double precision, intent(in) :: base_time !< needs to be explained
     type(dictionary), pointer :: dict_pt      !< needs to be explained
     type(dictionary), pointer :: dict_cs      !< needs to be explained
     !local variables

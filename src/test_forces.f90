@@ -162,7 +162,7 @@ program test_forces
             call print_general_parameters(runObj%inputs,runObj%atoms) ! to know the new positions
          end if
 
-         call call_bigdft(runObj, outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+         call call_bigdft(runObj, outs,infocode)
          !        inputs%inputPsiId=0   ! change PsiId to 0 if you want to  generate a new Psi and not use the found one
 
          if (bigdft_mpi%iproc == 0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
@@ -197,7 +197,7 @@ program test_forces
       endif
 
       call deallocate_global_output(outs)
-      call run_objects_free(runObj)
+      call free_run_objects(runObj)
 
 !!$   end if
       run => dict_next(run)

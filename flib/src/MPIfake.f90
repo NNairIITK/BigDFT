@@ -350,6 +350,15 @@ subroutine mpi_request_free(request,ierr)
   ierr = request
 end subroutine mpi_request_free
 
+subroutine mpi_comm_dup(comm, newcomm, ierr)
+  implicit none
+  integer,intent(in) :: comm
+  integer,intent(out) :: newcomm
+  integer,intent(out) :: ierr
+  newcomm = comm
+  ierr = 0
+end subroutine mpi_comm_dup
+
 subroutine mpi_iprobe()
   implicit none
 end subroutine mpi_iprobe

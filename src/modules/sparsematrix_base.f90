@@ -30,17 +30,35 @@ module sparsematrix_base
       integer :: isvctr !< modified starting entry of the compressed matrix elements
       integer,dimension(:),pointer :: isvctr_par, nvctr_par !<array that contains the values of nvctrp and isvctr of all MPI tasks
       integer,dimension(:),pointer :: ivectorindex, nsegline, istsegline, indices_extract_sequential
-      integer,dimension(:,:),pointer :: onedimindices, keyg
+      integer,dimension(:,:),pointer :: onedimindices
+      !!integer,dimension(:,:,:),pointer :: keyg
+      integer,dimension(2) :: istartendseg_mm !< starting and ending segments of the matrix subpart which is actually used for the multiplication
+                                              !! WARNING: the essential bounds are given by istartend_mm, the segments are used to speed up the code
+      integer,dimension(2) :: istartend_mm !< starting and ending indices of the matrix subpart which is actually used for the multiplication
+      integer,dimension(2) :: istartend_mm_dj !< starting and ending indices of the submatrices (partitioned in disjoint chunks)
   end type sparse_matrix_matrix_multiplication
 
   type,public :: sparse_matrix
       integer :: nvctr, nseg, nvctrp, isvctr, parallel_compression, nfvctr, nfvctrp, isfvctr, nspin
       integer,dimension(:),pointer :: keyv, nsegline, istsegline, isvctr_par, nvctr_par, isfvctr_par, nfvctr_par
-      integer,dimension(:,:),pointer :: keyg
+      integer,dimension(:,:,:),pointer :: keyg
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr!, orb_from_index
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
       logical :: store_index, can_use_dense
       type(sparse_matrix_matrix_multiplication) :: smmm
+      integer :: ntaskgroup !< total number of MPI taskgroups to which this task belongs
+      integer :: ntaskgroupp !< number of MPI taskgroups to which this task belongs
+      !> (1:2,1,:) gives the start and end of the taskgroups (in terms of total matrix indices), 
+      !! (1:2,2,:) gives the start and end of the disjoint submatrix handled by the taskgroup
+      !! The last rank is of dimension ntaskgroup
+      integer,dimension(:,:,:),pointer :: taskgroup_startend
+      integer,dimension(:),pointer :: inwhichtaskgroup !< dimension ntaskgroupp, tells to which taskgroups a given task belongs
+      type(mpi_environment),dimension(:),pointer :: mpi_groups
+      integer,dimension(2) :: istartendseg_t !< starting and ending indices of the matrix subpart which is actually used i
+                                             !! for the transposed operation (overlap calculation / orthocontraint)
+                                             !! WARNING: the essential bounds are given by istartend_t, the segments are you used to speed up the code
+      integer,dimension(2) :: istartend_t !< starting and ending indices of the matrix subpart which is actually used i
+                                          !! for the transposed operation (overlap calculation / orthocontraint
   end type sparse_matrix
 
 
@@ -127,6 +145,9 @@ module sparsematrix_base
       nullify(sparsemat%isvctr_par)
       nullify(sparsemat%nfvctr_par)
       nullify(sparsemat%isfvctr_par)
+      nullify(sparsemat%taskgroup_startend)
+      nullify(sparsemat%inwhichtaskgroup)
+      nullify(sparsemat%mpi_groups)
       call nullify_sparse_matrix_matrix_multiplication(sparsemat%smmm) 
     end subroutine nullify_sparse_matrix
 
@@ -137,7 +158,7 @@ module sparsematrix_base
       nullify(smmm%onedimindices)
       nullify(smmm%nsegline)
       nullify(smmm%istsegline)
-      nullify(smmm%keyg)
+      !!nullify(smmm%keyg)
       nullify(smmm%indices_extract_sequential)
       nullify(smmm%nvctr_par)
       nullify(smmm%isvctr_par)
@@ -164,7 +185,7 @@ module sparsematrix_base
       logical,intent(in) :: store_index
       type(sparse_matrix),intent(inout) :: sparsemat
       sparsemat%keyv=f_malloc_ptr(sparsemat%nseg,id='sparsemat%keyv')
-      sparsemat%keyg=f_malloc_ptr((/2,sparsemat%nseg/),id='sparsemat%keyg')
+      sparsemat%keyg=f_malloc_ptr((/2,2,sparsemat%nseg/),id='sparsemat%keyg')
       !!if (store_index) then
       !!    sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
       !!end if
@@ -172,17 +193,15 @@ module sparsematrix_base
 
 
 
-    subroutine allocate_sparse_matrix_matrix_multiplication(nproc, norb, nseg, nsegline, istsegline, keyg, smmm)
+    subroutine allocate_sparse_matrix_matrix_multiplication(nproc, norb, nseg, nsegline, istsegline, smmm)
       implicit none
       integer,intent(in) :: nproc, norb, nseg
       integer,dimension(norb),intent(in) :: nsegline, istsegline
-      integer,dimension(2,nseg),intent(in) :: keyg
       type(sparse_matrix_matrix_multiplication),intent(inout):: smmm
       smmm%ivectorindex=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex')
       smmm%onedimindices=f_malloc_ptr((/4,smmm%nout/),id='smmm%onedimindices')
       smmm%nsegline=f_malloc_ptr(norb,id='smmm%nsegline')
       smmm%istsegline=f_malloc_ptr(norb,id='smmm%istsegline')
-      smmm%keyg=f_malloc_ptr((/2,nseg/),id='smmm%istsegline')
       smmm%indices_extract_sequential=f_malloc_ptr(smmm%nseq,id='smmm%indices_extract_sequential')
       smmm%nvctr_par=f_malloc_ptr(0.to.nproc-1,id='smmm%nvctr_par')
       smmm%isvctr_par=f_malloc_ptr(0.to.nproc-1,id='smmm%isvctr_par')
@@ -245,6 +264,8 @@ module sparsematrix_base
       implicit none
       ! Calling arguments
       type(sparse_matrix),intent(inout):: sparsemat
+      ! Local variables
+      integer :: i, is, ie
       if (associated(sparseMat%keyg)) call f_free_ptr(sparseMat%keyg)
       if (associated(sparseMat%keyv)) call f_free_ptr(sparseMat%keyv)
       if (associated(sparseMat%nsegline)) call f_free_ptr(sparseMat%nsegline)
@@ -258,7 +279,17 @@ module sparsematrix_base
       if (associated(sparseMat%isfvctr_par)) call f_free_ptr(sparseMat%isfvctr_par)
       if (associated(sparseMat%nfvctr_par)) call f_free_ptr(sparseMat%nfvctr_par)
       !!if (associated(sparseMat%orb_from_index)) call f_free_ptr(sparseMat%orb_from_index)
+      call f_free_ptr(sparseMat%taskgroup_startend)
+      call f_free_ptr(sparseMat%inwhichtaskgroup)
       call deallocate_sparse_matrix_matrix_multiplication(sparsemat%smmm)
+      if (associated(sparseMat%mpi_groups)) then
+          is=lbound(sparseMat%mpi_groups,1)
+          ie=ubound(sparseMat%mpi_groups,1)
+          do i=is,ie
+              call mpi_environment_free(sparseMat%mpi_groups(i))
+          end do
+          deallocate(sparseMat%mpi_groups)
+      end if
     end subroutine deallocate_sparse_matrix
 
     subroutine deallocate_sparse_matrix_matrix_multiplication(smmm)
@@ -268,7 +299,7 @@ module sparsematrix_base
       call f_free_ptr(smmm%onedimindices)
       call f_free_ptr(smmm%nsegline)
       call f_free_ptr(smmm%istsegline)
-      call f_free_ptr(smmm%keyg)
+      !!call f_free_ptr(smmm%keyg)
       call f_free_ptr(smmm%indices_extract_sequential)
       call f_free_ptr(smmm%nvctr_par)
       call f_free_ptr(smmm%isvctr_par)

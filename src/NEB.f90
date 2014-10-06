@@ -75,6 +75,7 @@ MODULE NEB_routines
   use module_images
   use module_interfaces
   USE NEB_variables
+  use module_atoms, only: astruct_dump_to_file
   
   IMPLICIT NONE
 
@@ -96,8 +97,8 @@ MODULE NEB_routines
       use yaml_output
       use dictionaries
       use module_interfaces
-      use module_input_keys, only: input_keys_fill_all, PERF_VARIABLES, OUTDIR, &
-           & GEOPT_VARIABLES
+      use module_input_keys, only: input_keys_fill_all
+      use public_keys, only: PERF_VARIABLES, OUTDIR,GEOPT_VARIABLES
       use module_input_dicts
       use module_atoms, only: atomic_structure, &
            deallocate_atomic_structure, &
@@ -111,7 +112,7 @@ MODULE NEB_routines
       INTEGER, PARAMETER :: unit = 10
       REAL (gp), DIMENSION(:,:), ALLOCATABLE :: d_R
       real(gp), dimension(3) :: acell1, acell2
-      integer :: ierr, nconfig, algorithm, unit_log
+      integer :: ierr, algorithm, unit_log
       type(mpi_environment) :: bigdft_mpi_svg
       character(len=60) :: run_id
       type(dictionary), pointer :: dict, dict_min,options
@@ -147,7 +148,7 @@ MODULE NEB_routines
            & minimization_scheme)
       ! NEB is using cv criterion in ev per ang.
       neb_%convergence = neb_%convergence * Ha_eV / Bohr_Ang
-      call dict_free(dict,dict_min)!,options)
+      call dict_free(dict,dict_min,options)
       !call dict_free(dict_min)
 
       select case(minimization_scheme)
@@ -193,9 +194,12 @@ MODULE NEB_routines
       call mpi_comm_size(MPI_COMM_WORLD, bigdft_mpi%nproc, ierr)
       bigdft_mpi%igroup = 0
       bigdft_mpi%ngroup = num_of_images
+      call nullify_restart_objects(rst)
       
       !Loop over the images (replica)
       do i = 1, num_of_images
+
+         !!!!<<<to substitute
          call user_dict_from_files(dict, trim(arr_radical(i)), &
               & trim(arr_posinp(i)), bigdft_mpi)
          ! Force no geometry relaxation
@@ -203,10 +207,11 @@ MODULE NEB_routines
          call inputs_from_dict(ins(i), atoms(i), dict)
 
          if (.not. external_call .and. i == 1) then
-            call restart_objects_new(rst)
-            call restart_objects_set_mode(rst, ins(1)%inputpsiid)
-            call restart_objects_set_nat(rst, atoms(1)%astruct%nat)
-            call restart_objects_set_mat_acc(rst, bigdft_mpi%iproc, ins(1)%matacc)
+            call init_restart_objects(bigdft_mpi%iproc,ins(1),atoms(1),rst)
+            !call restart_objects_new(rst)
+            !call restart_objects_set_mode(rst, ins(1)%inputpsiid)
+            !call restart_objects_set_nat(rst, atoms(1)%astruct%nat)
+            !call restart_objects_set_mat_acc(rst, bigdft_mpi%iproc, ins(1)%matacc)
          end if
 
          ! Some consistency checks.
@@ -218,6 +223,16 @@ MODULE NEB_routines
          if (f_err_raise(atoms(1)%astruct%nat /= atoms(i)%astruct%nat, &
            &  err_msg="The number of atoms is not constant, N=" // trim(yaml_toa(atoms(1)%astruct%nat)) // &
            &  " and " // trim(yaml_toa(atoms(i)%astruct%nat)),err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
+         !!!!!>>>>>end to substitute
+
+!!$         !the above part might be modified in the following way, by having a array of 
+!!$         !! runObj and not an array of inputs
+!!$         if (.not. external_call .and. i == 1) then
+!!$            call run_objects_init(runObj(1),run//0) !<where run contains information about radical
+!!$         else
+!!$            !here the restart part will be associated
+!!$            call run_objects_init(runObj(i),run//i-1,source=runObj(1))
+!!$         end if
 
          if (bigdft_mpi%iproc == 0) then
             ! Need to close streams here to avoid running out of available streams.
@@ -304,8 +319,13 @@ MODULE NEB_routines
                atoms(j)%astruct%rxyz = atoms(j - 1)%astruct%rxyz + d_R
                ! Dump generated image positions on disk.
                if (bigdft_mpi%iproc == 0) then
-                  call write_atomic_file(trim(arr_posinp(j)) // ".in", UNINITIALIZED(1.d0), &
-                       & atoms(j)%astruct%rxyz, atoms(j)%astruct%ixyz_int, atoms(j), "NEB generated")
+                  call astruct_dump_to_file(atoms(j)%astruct,&
+                       trim(arr_posinp(j)) // ".in",&
+                       "NEB generated")
+                       
+
+!!$                  call write_atomic_file(trim(arr_posinp(j)) // ".in", UNINITIALIZED(1.d0), &
+!!$                       & atoms(j)%astruct%rxyz, atoms(j)%astruct%ixyz_int, atoms(j), "NEB generated")
                end if
                ! Erase forces.
                imgs(j)%outs%fxyz(:,:) = UNINITIALIZED(1.d0)
@@ -420,9 +440,11 @@ MODULE NEB_routines
 
          do i = 1, size(imgs), 1
             filename=trim('final_'//trim(arr_posinp(i)))
-            call write_atomic_file(filename, imgs(i)%outs%energy,imgs(i)%run%atoms%astruct%rxyz, &
-                 imgs(i)%run%atoms%astruct%ixyz_int, &
-                 & imgs(i)%run%atoms,'FINAL CONFIGURATION',forces=imgs(i)%outs%fxyz)
+            call bigdft_write_atomic_file(imgs(i)%run,imgs(i)%outs,&
+                 filename,'FINAL CONFIGURATION',cwd_path=.true.)
+!!$            call write_atomic_file(filename, imgs(i)%outs%energy,imgs(i)%run%atoms%astruct%rxyz, &
+!!$                 imgs(i)%run%atoms%astruct%ixyz_int, &
+!!$                 & imgs(i)%run%atoms,'FINAL CONFIGURATION',forces=imgs(i)%outs%fxyz)
          end do
       end if
     END SUBROUTINE search_MEP
@@ -569,7 +591,7 @@ MODULE NEB_routines
 
       if (.not. external_call) then
          call free_restart_objects(rst)
-         call f_lib_finalize()
+!         call f_lib_finalize()
       end if
 
       call mpi_environment_free(neb_mpi)

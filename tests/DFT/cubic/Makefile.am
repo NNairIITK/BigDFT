@@ -2,7 +2,6 @@
 TESTDIRS = C \
 	  Li+ \
 	  H2-spin \
-	  H-Rydberg \
 	  SiH4 \
 	  NaCl \
 	  Ca2 \
@@ -18,6 +17,9 @@ TESTDIRS = C \
 	  taskgroups \
 	  CH4-D3 
 
+tests_cpu_only = H Graphene FeHyb Mn2 SIC H-Rydberg
+tests_ocl_only = OCL
+
 EXTRA_TESTDIRS =
 
 EXTRA_DIST = 
@@ -25,13 +27,17 @@ EXTRA_DIST =
 #This will run the automatic tests also for GPU
 if USE_CUDA_GPU
   TESTDIRS += GPU
+else
+  EXTRA_TESTDIRS += GPU
 endif
 if USE_OCL
-  TESTDIRS += OCL
+  TESTDIRS += $(tests_ocl_only)
+  EXTRA_TESTDIRS += $(tests_cpu_only)
 else
 #Add H (box too small) and Graphene (different algorithm) only if we do not use OCL (see README)
 #OCL not implemented with spin=4 (Fehyb and Mn2)
-  TESTDIRS += H Graphene FeHyb Mn2 SIC
+  TESTDIRS += $(tests_cpu_only)
+  EXTRA_TESTDIRS += $(tests_ocl_only)
 endif
 
 # Give here the pseudo-potentials used by each test.

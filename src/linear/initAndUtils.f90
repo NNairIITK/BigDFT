@@ -355,7 +355,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
 
 
   if(linType /= INPUT_IG_TMO) then
-     allocate(Lzd%Llr(Lzd%nlr+ndebug))
+     allocate(Lzd%Llr(Lzd%nlr))
      do ilr=1,Lzd%nlr
         Lzd%Llr(ilr)=locreg_null()
      end do
@@ -982,7 +982,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   character(len=*), parameter :: subname='destroy_DFT_wavefunction'
   integer :: ispin
 
-  call f_routine(id=subname)
+!  call f_routine(id=subname)
 
   call f_free_ptr(wfn%psi)
   call f_free_ptr(wfn%psit_c)
@@ -1013,11 +1013,9 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_local_zone_descriptors(wfn%lzd)
   call foe_data_deallocate(wfn%foe_obj)
 
-  if (associated(wfn%coeff)) then
-      call f_free_ptr(wfn%coeff)
-  end if
+  call f_free_ptr(wfn%coeff)
 
-  call f_release_routine()
+!  call f_release_routine()
 
 end subroutine destroy_DFT_wavefunction
 
@@ -1280,7 +1278,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
   use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
-  use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff!, init_sparsity_from_distance
+  use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff, init_matrix_taskgroups
   use foe_base, only: foe_data_deallocate
   implicit none
   
@@ -1472,9 +1470,13 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      !tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
      !call sparse_copy_pattern(tmb%linmat%l, tmb%linmat%inv_ovrlp_large, iproc, subname)
 
+     call init_matrix_taskgroups(iproc, nproc, .true., tmb%collcom, tmb%collcom_sr, tmb%linmat%s)
+     call init_matrix_taskgroups(iproc, nproc, .true., tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
+     call init_matrix_taskgroups(iproc, nproc, .true., tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
 
-     !tmb%linmat%ks = sparse_matrix_null()
-     !tmb%linmat%ks_e = sparse_matrix_null()
+
+     nullify(tmb%linmat%ks)
+     nullify(tmb%linmat%ks_e)
      if (input%lin%scf_mode/=LINEAR_FOE .or. input%lin%pulay_correction .or.  input%lin%new_pulay_correction .or. &
          (input%lin%plotBasisFunctions /= WF_FORMAT_NONE) .or. input%lin%diag_end) then
          call init_sparse_matrix_for_KSorbs(iproc, nproc, KSwfn%orbs, input, input%lin%extra_states, &
@@ -1705,12 +1707,11 @@ subroutine clean_rho(iproc, nproc, npt, rho)
   
 end subroutine clean_rho
 
-
-
 subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
   use module_types
   use module_interfaces
   use yaml_output
+  use dynamic_memory
   implicit none
 
   ! Calling arguments
@@ -1721,20 +1722,12 @@ subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, 
   type(DFT_wavefunction), intent(inout) :: tmb
   type(DFT_local_fields), intent(inout) :: denspot
 
-  !!if (iproc==0) then
-  !!    !call yaml_sequence_open()
-  !!    !call yaml_mapping_open()
-  !!    call yaml_newline()
-  !!    call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
-  !!end if
-  !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+  call f_routine(id='corrections_for_negative_charge')
+
   if (iproc==0) call yaml_warning('No increase of FOE cutoff')
-  !call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
   call clean_rho(iproc, nproc, denspot%dpbox%ndimrhopot, denspot%rhov)
-  if (iproc==0) then
-      !call yaml_mapping_close()
-      !call yaml_sequence_close()
-  end if
+
+  call f_release_routine()
 
 end subroutine corrections_for_negative_charge
 
@@ -1750,7 +1743,7 @@ subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero
       type(orbitals_data), intent(in) :: orbs
       type(local_zone_descriptors), intent(in) :: lzd
       integer, intent(out) :: nnonzero
-      integer, dimension(:), pointer,intent(out) :: nonzero
+      integer, dimension(:,:), pointer,intent(out) :: nonzero
     
       ! Local variables
       integer :: iorb, jorb, ioverlaporb, ilr, jlr, ilrold
@@ -1820,13 +1813,14 @@ subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero
       do iorb=1,orbs%norbup
           nnonzero=nnonzero+noverlapsarr(iorb)
       end do
-      nonzero = f_malloc_ptr(nnonzero,id='nonzero')
+      nonzero = f_malloc_ptr((/2,nnonzero/),id='nonzero')
       ii=0
       do iorb=1,orbs%norbup
           iiorb=orbs%isorbu+iorb
           do jorb=1,noverlapsarr(iorb)
               ii=ii+1
-              nonzero(ii)=(iiorb-1)*orbs%norbu+overlaps_op(jorb,iorb)
+              nonzero(1,ii)=overlaps_op(jorb,iorb)
+              nonzero(2,ii)=iiorb
           end do
       end do
 
@@ -1851,7 +1845,7 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
   type(atomic_structure), intent(in) :: astruct
   real(kind=8),dimension(lzd%nlr), intent(in) :: cutoff
   integer, intent(out) :: nnonzero
-  integer, dimension(:), pointer,intent(out) :: nonzero
+  integer, dimension(:,:), pointer,intent(out) :: nonzero
 
   ! Local variables
   integer :: iorb, iiorb, ilr, iwa, itype, jjorb, jlr, jwa, jtype, ii
@@ -1880,7 +1874,7 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
          end do
       end do
       !call mpiallred(nnonzero, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-      nonzero = f_malloc_ptr(nnonzero,id='nonzero')
+      nonzero = f_malloc_ptr((/2,nnonzero/),id='nonzero')
 
       ii=0
       do iorb=1,orbs%norbup
@@ -1899,7 +1893,8 @@ subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonz
             tt=sqrt(tt)
             if (tt<=cut) then
                ii=ii+1
-               nonzero(ii)=(iiorb-1)*orbs%norbu+jjorb
+               nonzero(1,ii)=jjorb
+               nonzero(2,ii)=iiorb
             end if
          end do
       end do
@@ -1926,7 +1921,7 @@ subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, s
   
   ! Local variables
   integer :: nnonzero, nnonzero_mult, ilr
-  integer, dimension(:), pointer :: nonzero, nonzero_mult
+  integer, dimension(:,:), pointer :: nonzero, nonzero_mult
   real(kind=8),dimension(:), allocatable :: cutoff
   integer, parameter :: KEYS=1
   integer, parameter :: DISTANCE=2
@@ -1973,7 +1968,7 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
 
   ! Local variables
   integer :: i, iorb, iiorb, jorb, ind, norb, norbp, isorb, ispin
-  integer, dimension(:), allocatable :: nonzero
+  integer,dimension(:,:),allocatable :: nonzero
   type(orbitals_data) :: orbs_aux
   character(len=*), parameter :: subname='init_sparse_matrix_for_KSorbs'
 
@@ -2000,14 +1995,15 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
           isorb=orbs%isorbd
       end if
 
-      nonzero = f_malloc(norb*norbp, id='nonzero')
+      nonzero = f_malloc((/2,norb*norbp/), id='nonzero')
       i=0
       do iorb=1,norbp
           iiorb=isorb+iorb
           do jorb=1,norb
               i=i+1
               ind=(iiorb-1)*norb+jorb
-              nonzero(i)=ind
+              nonzero(1,i)=jorb
+              nonzero(2,i)=iiorb
           end do
       end do
       call init_sparse_matrix(iproc, nproc, input%nspin, orbs%norb, orbs%norbp, orbs%isorb, &
@@ -2023,7 +2019,7 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
       call nullify_orbitals_data(orbs_aux)
       call orbitals_descriptors(iproc, nproc, norb+nextra, norb+nextra, 0, input%nspin, orbs%nspinor,&
            input%gen_nkpt, input%gen_kpt, input%gen_wkpt, orbs_aux, .false.)
-      nonzero = f_malloc(orbs_aux%norbu*orbs_aux%norbup, id='nonzero')
+      nonzero = f_malloc((/2,orbs_aux%norbu*orbs_aux%norbup/), id='nonzero')
       !write(*,*) 'iproc, norb, norbp, norbu, norbup', iproc, orbs_aux%norb, orbs_aux%norbp, orbs_aux%norbu, orbs_aux%norbup
       i=0
       do iorb=1,orbs_aux%norbup
@@ -2031,7 +2027,8 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
           do jorb=1,orbs_aux%norbu
               i=i+1
               ind=(iiorb-1)*orbs_aux%norbu+jorb
-              nonzero(i)=ind
+              nonzero(1,i)=jorb
+              nonzero(2,i)=iiorb
           end do
       end do
       !!call init_sparse_matrix(iproc, nproc, input%nspin, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &

@@ -189,13 +189,14 @@ libabinit_a_SOURCES = \
 	42_geometry/symzat.F90 \
 	42_geometry/xredxcart.F90 \
 	42_geometry/interfaces_42_geometry.F90 \
+	42_libpaw/pawinit.F90 \
+	42_libpaw/initrhoij.F90 \
 	50_abitypes_defs/defs_abitypes.F90 \
 	56_mixing/aprxdr.F90 \
 	56_mixing/dotprodm_v.F90 \
 	56_mixing/dotprodm_vn.F90 \
 	56_mixing/findminscf.F90 \
 	56_mixing/interfaces_56_mixing.F90 \
-	56_mixing/m_ab6_mixing.F90 \
 	56_mixing/scfcge.F90 \
 	56_mixing/scfeig.F90 \
 	56_mixing/scfopt.F90 \

@@ -58,7 +58,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8),parameter :: charge_tolerance=1.d-6 ! exit criterion
   logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
   real(kind=8) :: trace_sparse, temp_multiplicator, ebs_check, ef, ebsp
-  integer :: irow, icol, itemp, iflag,info, ispin, isshift, imshift, ilshift, i, j
+  integer :: irow, icol, itemp, iflag,info, ispin, isshift, imshift, ilshift, i, j, itg, ncount, istl, ists
   logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
   real(kind=8),parameter :: FSCALE_LOWER_LIMIT=5.d-3
   real(kind=8),parameter :: FSCALE_UPPER_LIMIT=5.d-2
@@ -76,6 +76,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   integer,parameter :: DENSE=2
   integer,parameter :: imode=SPARSE
   type(fermi_aux) :: f
+  real(kind=8),dimension(2) :: temparr
   
 
 
@@ -126,7 +127,8 @@ subroutine foe(iproc, nproc, tmprtr, &
       !$omp parallel default(private) shared(isegstart, isegend, tmb, nsize_polynomial)
       !$omp do reduction(+:nsize_polynomial)
       do iseg=isegstart,isegend
-          do jorb=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
+          ! A segment is always on one line, therefore no double loop
+          do jorb=tmb%linmat%l%keyg(1,1,iseg),tmb%linmat%l%keyg(2,1,iseg)
               nsize_polynomial=nsize_polynomial+1
           end do
       end do
@@ -258,7 +260,11 @@ subroutine foe(iproc, nproc, tmprtr, &
                   ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
                   if (foe_data_get_real(foe_obj,"evlow",ispin)/=evlow_old .or. &
                       foe_data_get_real(foe_obj,"evhigh",ispin)/=evhigh_old) then
-                      call scale_and_shift_hamiltonian()
+                      !!call scale_and_shift_hamiltonian()
+                      call scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, tmb%linmat%l, &
+                           tmb%linmat%m, tmb%linmat%ham_, imshift, &
+                           smat2=tmb%linmat%s, mat2=tmb%linmat%ovrlp_, i2shift=isshift, &
+                           matscal_compr=hamscal_compr, scale_factor=scale_factor, shift_value=shift_value)
                       calculate_SHS=.true.
                   else
                       calculate_SHS=.false.
@@ -385,7 +391,8 @@ subroutine foe(iproc, nproc, tmprtr, &
     
     
     
-                 call check_emergency_stop()
+                 !call check_emergency_stop()
+                 call check_emergency_stop(nproc,emergency_stop)
                  if (emergency_stop) then
                       eval_bounds_ok(1)=.false.
                       call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*1.2d0,ispin)
@@ -556,10 +563,50 @@ subroutine foe(iproc, nproc, tmprtr, &
     
           ! Calculate trace(KH). Since they have the same sparsity pattern and K is
           ! symmetric, this is a simple ddot.
-          ebsp=ddot(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ilshift+1),1 , hamscal_compr, 1)
-          ebsp=ebsp/scale_factor+shift_value*sumn
+          !ebsp=ddot(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ilshift+1),1 , hamscal_compr, 1)
+          !!ebsp = 0.d0
+          !!do itg=1,tmb%linmat%l%ntaskgroup
+          !!    if (tmb%linmat%l%mpi_groups(itg)%iproc==0) then
+          !!        ncount = tmb%linmat%l%taskgroup_startend(2,2,itg)-tmb%linmat%l%taskgroup_startend(1,2,itg)+1
+          !!        istl = tmb%linmat%l%taskgroup_startend(1,2,itg)
+          !!        ists = tmb%linmat%l%taskgroup_startend(1,2,itg)-tmb%linmat%l%taskgroup_startend(1,1,itg)+1
+          !!        !ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ists), 1)
+          !!        ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
+          !!    end if
+          !!end do
+          ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
+          istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
+          ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
+          !call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
+
+
     
-          ebs_check=ddot(tmb%linmat%l%nvctr, fermi_check_compr,1 , hamscal_compr, 1)
+          !ebs_check=ddot(tmb%linmat%l%nvctr, fermi_check_compr, 1 , hamscal_compr, 1)
+          !!ebs_check = 0.d0
+          !!do itg=1,tmb%linmat%l%ntaskgroup
+          !!    if (tmb%linmat%l%mpi_groups(itg)%iproc==0) then
+          !!        ncount = tmb%linmat%l%taskgroup_startend(2,2,itg)-tmb%linmat%l%taskgroup_startend(1,2,itg)+1
+          !!        istl = tmb%linmat%l%taskgroup_startend(1,2,itg)
+          !!        ists = tmb%linmat%l%taskgroup_startend(1,2,itg)-tmb%linmat%l%taskgroup_startend(1,1,itg)+1
+          !!        !ebs_check = ddot(ncount, fermi_check_compr(istl), 1, hamscal_compr(ists), 1)
+          !!        ebs_check = ddot(ncount, fermi_check_compr(istl), 1, hamscal_compr(istl), 1)
+          !!    end if
+          !!end do
+          ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
+          istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
+          ebs_check = ddot(ncount, fermi_check_compr(istl), 1, hamscal_compr(istl), 1)
+          !call mpiallred(ebs_check, 1, mpi_sum, bigdft_mpi%mpi_comm)
+
+          temparr(1) = ebsp
+          temparr(2) = ebs_check
+          if (nproc>1) then
+              call mpiallred(temparr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+          end if
+          ebsp = temparr(1)
+          ebs_check = temparr(2)
+
+
+          ebsp=ebsp/scale_factor+shift_value*sumn
           ebs_check=ebs_check/scale_factor+shift_value*sumn_check
           diff=abs(ebs_check-ebsp)
           diff=diff/abs(ebsp)
@@ -648,7 +695,24 @@ subroutine foe(iproc, nproc, tmprtr, &
           ! If no purification is done, this should not be necessary.
           ! Since K and H have the same sparsity pattern and K is
           ! symmetric, the trace is a simple ddot.
-          ebsp=ddot(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ilshift+1),1 , hamscal_compr, 1)
+          !ebsp=ddot(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ilshift+1),1 , hamscal_compr, 1)
+          !!ebsp = 0.d0
+          !!do itg=1,tmb%linmat%l%ntaskgroup
+          !!    if (tmb%linmat%l%mpi_groups(itg)%iproc==0) then
+          !!        ncount = tmb%linmat%l%taskgroup_startend(2,2,itg)-tmb%linmat%l%taskgroup_startend(1,2,itg)+1
+          !!        istl = tmb%linmat%l%taskgroup_startend(1,2,itg)
+          !!        ists = tmb%linmat%l%taskgroup_startend(1,2,itg)-tmb%linmat%l%taskgroup_startend(1,1,itg)+1
+          !!        !ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ists), 1)
+          !!        ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
+          !!    end if
+          !!end do
+          !!call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
+          istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
+          ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
+          if (nproc>1) then
+              call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          end if
           ebsp=ebsp/scale_factor+shift_value*sumn
     
     
@@ -799,7 +863,8 @@ subroutine foe(iproc, nproc, tmprtr, &
 
 
       subroutine retransform(matrix_compr)
-          use sparsematrix, only: sequential_acces_matrix_fast, sparsemm
+          use sparsematrix, only: sequential_acces_matrix_fast, sparsemm, &
+               & uncompress_matrix_distributed, compress_matrix_distributed
           ! Calling arguments
           real(kind=8),dimension(tmb%linmat%l%nvctr),intent(inout) :: matrix_compr
 
@@ -865,10 +930,11 @@ subroutine foe(iproc, nproc, tmprtr, &
               !$omp do reduction(+:trace)
               do iseg=isegstart,isegend
                   ii=tmb%linmat%l%keyv(iseg)-1
-                  do jorb=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
+                  ! A segment is always on one line, therefore no double loop
+                  do jorb=tmb%linmat%l%keyg(1,1,iseg),tmb%linmat%l%keyg(2,1,iseg)
                       ii=ii+1
-                      iiorb = (jorb-1)/tmb%linmat%l%nfvctr + 1
-                      jjorb = jorb - (iiorb-1)*tmb%linmat%l%nfvctr
+                      iiorb = tmb%linmat%l%keyg(1,2,iseg)
+                      jjorb = jorb
                       if (jjorb==iiorb) trace = trace + matrixp(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr)
                   end do  
               end do
@@ -1043,74 +1109,74 @@ subroutine foe(iproc, nproc, tmprtr, &
       !!end subroutine check_eigenvalue_spectrum
 
 
-      subroutine scale_and_shift_hamiltonian()
-        implicit none
+      !!subroutine scale_and_shift_hamiltonian()
+      !!  implicit none
 
-        integer,dimension(2) :: irowcol
+      !!  integer,dimension(2) :: irowcol
 
-        call f_routine(id='scale_and_shift_hamiltonian')
+      !!  call f_routine(id='scale_and_shift_hamiltonian')
 
-        scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
-        shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh",ispin)+foe_data_get_real(foe_obj,"evlow",ispin))
-        !$omp parallel default(none) private(iseg,ii,i,irowcol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
-        !$omp shared(tmb,hamscal_compr,scale_factor,shift_value,isshift,imshift)
-        !$omp do
-        do iseg=1,tmb%linmat%l%nseg
-            !do ii=1,tmb%linmat%l%nvctr
-            ii=tmb%linmat%l%keyv(iseg)
-            do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
-                irowcol = orb_from_index(tmb%linmat%l,i)
-                iismall_ovrlp = matrixindex_in_compressed(tmb%linmat%s, irowcol(1), irowcol(2))
-                iismall_ham = matrixindex_in_compressed(tmb%linmat%m, irowcol(1), irowcol(2))
-                if (iismall_ovrlp>0) then
-                    tt_ovrlp=tmb%linmat%ovrlp_%matrix_compr(isshift+iismall_ovrlp)
-                else
-                    tt_ovrlp=0.d0
-                end if
-                if (iismall_ham>0) then
-                    tt_ham=tmb%linmat%ham_%matrix_compr(imshift+iismall_ham)
-                else
-                    tt_ham=0.d0
-                end if
-                hamscal_compr(ii)=scale_factor*(tt_ham-shift_value*tt_ovrlp)
-                ii=ii+1
-            end do
-        end do
-        !$omp end do
-        !$omp end parallel
+      !!  scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
+      !!  shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh",ispin)+foe_data_get_real(foe_obj,"evlow",ispin))
+      !!  !$omp parallel default(none) private(iseg,ii,i,irowcol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
+      !!  !$omp shared(tmb,hamscal_compr,scale_factor,shift_value,isshift,imshift)
+      !!  !$omp do
+      !!  do iseg=1,tmb%linmat%l%nseg
+      !!      !do ii=1,tmb%linmat%l%nvctr
+      !!      ii=tmb%linmat%l%keyv(iseg)
+      !!      do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
+      !!          irowcol = orb_from_index(tmb%linmat%l,i)
+      !!          iismall_ovrlp = matrixindex_in_compressed(tmb%linmat%s, irowcol(1), irowcol(2))
+      !!          iismall_ham = matrixindex_in_compressed(tmb%linmat%m, irowcol(1), irowcol(2))
+      !!          if (iismall_ovrlp>0) then
+      !!              tt_ovrlp=tmb%linmat%ovrlp_%matrix_compr(isshift+iismall_ovrlp)
+      !!          else
+      !!              tt_ovrlp=0.d0
+      !!          end if
+      !!          if (iismall_ham>0) then
+      !!              tt_ham=tmb%linmat%ham_%matrix_compr(imshift+iismall_ham)
+      !!          else
+      !!              tt_ham=0.d0
+      !!          end if
+      !!          hamscal_compr(ii)=scale_factor*(tt_ham-shift_value*tt_ovrlp)
+      !!          ii=ii+1
+      !!      end do
+      !!  end do
+      !!  !$omp end do
+      !!  !$omp end parallel
 
-        call f_release_routine()
+      !!  call f_release_routine()
 
-      end subroutine scale_and_shift_hamiltonian
+      !!end subroutine scale_and_shift_hamiltonian
 
 
-      subroutine check_emergency_stop()
-        implicit none
+      !!subroutine check_emergency_stop()
+      !!  implicit none
 
-        call f_routine(id='check_emergency_stop')
+      !!  call f_routine(id='check_emergency_stop')
 
-        ! Check for an emergency stop, which happens if the kernel explodes, presumably due
-        ! to the eigenvalue bounds being too small.
-        ! mpi_lor seems not to work on certain systems...
-        if (emergency_stop) then
-            iflag=1
-        else
-            iflag=0
-        end if
+      !!  ! Check for an emergency stop, which happens if the kernel explodes, presumably due
+      !!  ! to the eigenvalue bounds being too small.
+      !!  ! mpi_lor seems not to work on certain systems...
+      !!  if (emergency_stop) then
+      !!      iflag=1
+      !!  else
+      !!      iflag=0
+      !!  end if
     
-        if (nproc > 1) then
-            call mpiallred(iflag, 1, mpi_sum, bigdft_mpi%mpi_comm)
-        end if
+      !!  if (nproc > 1) then
+      !!      call mpiallred(iflag, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      !!  end if
     
-        if (iflag>0) then
-            emergency_stop=.true.
-        else
-            emergency_stop=.false.
-        end if
+      !!  if (iflag>0) then
+      !!      emergency_stop=.true.
+      !!  else
+      !!      emergency_stop=.false.
+      !!  end if
 
-        call f_release_routine()
+      !!  call f_release_routine()
 
-      end subroutine check_emergency_stop
+      !!end subroutine check_emergency_stop
 
 end subroutine foe
 
@@ -1639,10 +1705,11 @@ subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norb
       !!$omp do
       do iseg=isegstart,isegend
           !ii=fermi%keyv(iseg)-1
-          do jorb=fermi%keyg(1,iseg),fermi%keyg(2,iseg)
+          ! A segment is always on one line, therefore no double loop
+          do jorb=fermi%keyg(1,1,iseg),fermi%keyg(2,1,iseg)
               ii=ii+1
-              iiorb = (jorb-1)/norb + 1
-              jjorb = jorb - (iiorb-1)*norb
+              iiorb = fermi%keyg(1,2,iseg)
+              jjorb = jorb
               vector_compressed(ii)=vector(jjorb,iiorb-isorb)
               !write(300,*) 'ii, jjorb, iiorb-isorb', ii, jjorb, iiorb-isorb
           end do
@@ -1686,10 +1753,11 @@ subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
       !$omp shared(isegstart, isegend, fermi, vector, vector_compressed)
       do iseg=isegstart,isegend
           ii=fermi%keyv(iseg)-fermi%keyv(isegstart)
-          do jorb=fermi%keyg(1,iseg),fermi%keyg(2,iseg)
+          ! A segment is always on one line, therefore no double loop
+          do jorb=fermi%keyg(1,1,iseg),fermi%keyg(2,1,iseg)
               ii=ii+1
-              iiorb = (jorb-1)/fermi%nfvctr + 1
-              jjorb = jorb - (iiorb-1)*fermi%nfvctr
+              iiorb = fermi%keyg(1,2,iseg)
+              jjorb = jorb
               vector(jjorb,iiorb-fermi%smmm%isfvctr)=vector_compressed(ii)
               !write(*,*) 'ii, iiorb-fermi%isfvctr, jjorb', ii, iiorb-fermi%isfvctr, jjorb
           end do
@@ -1732,22 +1800,17 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
       isegstart = asmat%istsegline(asmat%smmm%isfvctr+1)
       isegend = asmat%istsegline(asmat%smmm%isfvctr+asmat%smmm%nfvctrp) + &
                 asmat%nsegline(asmat%smmm%isfvctr+asmat%smmm%nfvctrp)-1
-      !!isegstart=asmat%istsegline(asmat%isfvctr+1)
-      !!if (asmat%isfvctr+asmat%nfvctrp<asmat%nfvctr) then
-      !!        isegend=asmat%istsegline(asmat%isfvctr_par(iproc+1)+1)-1
-      !!else
-      !!        isegend=asmat%nseg
-      !!end if
       !$omp parallel default(none) &
       !$omp private(iseg, ii, jorb, iiorb, jjorb, iilarge) &
       !$omp shared(isegstart, isegend, bsmat, asmat, amat, bmat, iashift, ibshift, sumn)
       !$omp do reduction(+:sumn)
       do iseg=isegstart,isegend
-              ii=iashift+asmat%keyv(iseg)-1
-              do jorb=asmat%keyg(1,iseg),asmat%keyg(2,iseg)
+          ii=iashift+asmat%keyv(iseg)-1
+          ! A segment is always on one line, therefore no double loop
+          do jorb=asmat%keyg(1,1,iseg),asmat%keyg(2,1,iseg)
               ii=ii+1
-              iiorb = (jorb-1)/asmat%nfvctr + 1
-              jjorb = jorb - (iiorb-1)*asmat%nfvctr
+              iiorb = asmat%keyg(1,2,iseg)
+              jjorb = jorb
               iilarge = ibshift + matrixindex_in_compressed(bsmat, iiorb, jjorb)
               sumn = sumn + amat(ii)*bmat(iilarge)
           end do  
@@ -1832,12 +1895,15 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
   integer :: irow, icol, iflag, ispin, isshift, ilshift
   logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
   integer,parameter :: NPL_MIN=5
-  real(kind=8),parameter :: DEGREE_MULTIPLICATOR_MAX=10.d0
+  real(kind=8),parameter :: DEGREE_MULTIPLICATOR_MAX=20.d0
   real(kind=8) :: degree_multiplicator
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
   integer,parameter :: imode=SPARSE
   type(foe_data) :: foe_obj
+  real(kind=8),dimension(:),allocatable :: eval, work
+  real(kind=8),dimension(:,:),allocatable :: tempmat
+  integer :: lwork, info, j
 
   !!real(kind=8),dimension(ovrlp_smat%nfvctr,ovrlp_smat%nfvctr) :: overlap
   !!real(kind=8),dimension(ovrlp_smat%nfvctr) :: eval
@@ -1858,7 +1924,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
      do ispin=1,ovrlp_smat%nspin
          call foe_data_set_real(foe_obj,"ef",0.d0,ispin)
          call foe_data_set_real(foe_obj,"evlow",0.5d0,ispin)
-         call foe_data_set_real(foe_obj,"evhigh",2.5d0,ispin)
+         call foe_data_set_real(foe_obj,"evhigh",1.5d0,ispin)
          call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,ispin)
          call foe_data_set_real(foe_obj,"charge",0.d0,ispin)
      end do
@@ -1876,6 +1942,34 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 !@ ################################################
 
 
+  !!!@ TEMPORARY: eigenvalues of  the overlap matrix ###################
+  !!tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
+  !!do iseg=1,ovrlp_smat%nseg
+  !!    ii=ovrlp_smat%keyv(iseg)
+  !!    do i=ovrlp_smat%keyg(1,1,iseg),ovrlp_smat%keyg(2,1,iseg)
+  !!        tempmat(i,ovrlp_smat%keyg(1,2,iseg)) = ovrlp_mat%matrix_compr(ii)
+  !!        ii = ii + 1
+  !!    end do
+  !!end do
+  !!!!if (iproc==0) then
+  !!!!    do i=1,ovrlp_smat%nfvctr
+  !!!!        do j=1,ovrlp_smat%nfvctr
+  !!!!            write(*,'(a,2i6,es17.8)') 'i,j,val',i,j,tempmat(j,i)
+  !!!!        end do
+  !!!!    end do
+  !!!!end if
+  !!eval = f_malloc(ovrlp_smat%nfvctr,id='eval')
+  !!lwork=100*ovrlp_smat%nfvctr
+  !!work = f_malloc(lwork,id='work')
+  !!call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
+  !!!if (iproc==0) write(*,*) 'eval',eval
+  !!if (iproc==0) call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
+
+  !!call f_free(tempmat)
+  !!call f_free(eval)
+  !!call f_free(work)
+
+  !!!@ END TEMPORARY: eigenvalues of  the overlap matrix ###############
 
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -1898,7 +1992,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
       !$omp parallel default(private) shared(isegstart, isegend, inv_ovrlp_smat, nsize_polynomial)
       !$omp do reduction(+:nsize_polynomial)
       do iseg=isegstart,isegend
-          do jorb=inv_ovrlp_smat%keyg(1,iseg),inv_ovrlp_smat%keyg(2,iseg)
+          ! A segment is always on one line, therefore no double loop
+          do jorb=inv_ovrlp_smat%keyg(1,1,iseg),inv_ovrlp_smat%keyg(2,1,iseg)
               nsize_polynomial=nsize_polynomial+1
           end do
       end do
@@ -1946,33 +2041,10 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                   ! Scale the Hamiltonian such that all eigenvalues are in the intervall [0:1]
                   if (foe_data_get_real(foe_obj,"evlow",ispin)/=evlow_old .or. &
                       foe_data_get_real(foe_obj,"evhigh",ispin)/=evhigh_old) then
-                      shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh",ispin)+foe_data_get_real(foe_obj,"evlow",ispin))
-                      scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
-                      !$omp parallel default(none) private(iseg,i,ii,irowcol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
-                      !$omp shared(inv_ovrlp_smat,ovrlp_smat,hamscal_compr,ovrlp_mat,scale_factor,shift_value,isshift)
-                      !$omp do
-                      do iseg=1,inv_ovrlp_smat%nseg
-                          ii = inv_ovrlp_smat%keyv(iseg)
-                          do i=inv_ovrlp_smat%keyg(1,iseg),inv_ovrlp_smat%keyg(2,iseg)
-                              irowcol = orb_from_index(inv_ovrlp_smat,i)
-                              iismall_ovrlp = matrixindex_in_compressed(ovrlp_smat, irowcol(1), irowcol(2))
-                              if (iismall_ovrlp>0) then
-                                  if (irowcol(1)==irowcol(2)) then
-                                      tt_ovrlp = 1.d0
-                                  else
-                                      tt_ovrlp = 0.d0
-                                  end if
-                                  tt_ham = ovrlp_mat%matrix_compr(isshift+iismall_ovrlp)
-                              else
-                                  tt_ovrlp = 0.d0
-                                  tt_ham = 0.d0
-                              end if
-                              hamscal_compr(ii) = scale_factor*(tt_ham-shift_value*tt_ovrlp)
-                              ii = ii + 1
-                          end do
-                      end do
-                      !$omp end do
-                      !$omp end parallel
+                      !!call scale_and_shift_matrix()
+                      call scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, inv_ovrlp_smat, &
+                           ovrlp_smat, ovrlp_mat, isshift, &
+                           matscal_compr=hamscal_compr, scale_factor=scale_factor, shift_value=shift_value)
                       calculate_SHS=.true.
                   else
                       calculate_SHS=.false.
@@ -2004,7 +2076,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                   end if
                   if (npl>nplx) stop 'npl>nplx'
         
-                  ! Array the holds the Chebyshev polynomials. Needs to be recalculated
+                  ! Array that holds the Chebyshev polynomials. Needs to be recalculated
                   ! every time the Hamiltonian has been modified.
                   if (calculate_SHS) then
                       call f_free(chebyshev_polynomials)
@@ -2073,22 +2145,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
     
                  ! Check for an emergency stop, which happens if the kernel explodes, presumably due
                  ! to the eigenvalue bounds being too small.
-                 ! mpi_lor seems not to work on certain systems...
-                 if (emergency_stop) then
-                     iflag=1
-                 else
-                     iflag=0
-                 end if
-    
-                 if (nproc > 1) then
-                     call mpiallred(iflag, 1, mpi_sum, bigdft_mpi%mpi_comm)
-                 end if
-    
-                 if (iflag>0) then
-                     emergency_stop=.true.
-                 else
-                     emergency_stop=.false.
-                 end if
+                 call check_emergency_stop(nproc,emergency_stop)
                  if (emergency_stop) then
                       eval_bounds_ok(1)=.false.
                       call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)/1.2d0,ispin)
@@ -2159,75 +2216,6 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
 
   call f_release_routine()
 
-
-      !!contains
-
-
-      !!subroutine check_eigenvalue_spectrum()
-      !!  implicit none
-      !!  real(kind=8) :: bound_low, bound_up
-
-      !!  ! The penalty function must be smaller than the noise.
-      !!  bound_low=0.d0
-      !!  bound_up=0.d0
-      !!  if (inv_ovrlp_smat%smmm%nfvctrp>0) then
-      !!      isegstart = inv_ovrlp_smat%istsegline(inv_ovrlp_smat%smmm%isfvctr+1)
-      !!      isegend = inv_ovrlp_smat%istsegline(inv_ovrlp_smat%smmm%isfvctr+inv_ovrlp_smat%smmm%nfvctrp) + &
-      !!                inv_ovrlp_smat%nsegline(inv_ovrlp_smat%smmm%isfvctr+inv_ovrlp_smat%smmm%nfvctrp)-1
-      !!      !$omp parallel default(none) &
-      !!      !$omp private(iseg, ii, jorb, irow, icol, iismall, tt) &
-      !!      !$omp shared(isegstart, isegend, inv_ovrlp_smat, penalty_ev, bound_low, bound_up)
-      !!      !$omp do reduction(+:bound_low,bound_up)
-      !!      do iseg=isegstart,isegend
-      !!          ii=inv_ovrlp_smat%keyv(iseg)-1
-      !!          do jorb=inv_ovrlp_smat%keyg(1,iseg),inv_ovrlp_smat%keyg(2,iseg)
-      !!              ii=ii+1
-      !!              irow = (jorb-1)/inv_ovrlp_smat%nfvctr + 1
-      !!              icol = jorb - (irow-1)*inv_ovrlp_smat%nfvctr
-      !!              iismall = matrixindex_in_compressed(inv_ovrlp_smat, irow, icol)
-      !!              if (iismall>0) then
-      !!                  if (irow==jorb) then
-      !!                      tt=1.d0
-      !!                  else
-      !!                      tt=0.d0
-      !!                  end if
-      !!              else
-      !!                  tt=0.d0
-      !!              end if
-      !!              bound_low = bound_low + penalty_ev(icol,irow-inv_ovrlp_smat%smmm%isfvctr,2)*tt
-      !!              bound_up = bound_up +penalty_ev(icol,irow-inv_ovrlp_smat%smmm%isfvctr,1)*tt
-      !!          end do  
-      !!      end do
-      !!      !$omp end do
-      !!      !$omp end parallel
-      !!  end if
-    
-      !!  allredarr(1)=bound_low
-      !!  allredarr(2)=bound_up
-
-      !!  if (nproc > 1) then
-      !!      call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
-      !!  end if
-
-      !!  allredarr=abs(allredarr) !for some crazy situations this may be negative
-      !!  anoise=100.d0*anoise
-      !!  !write(*,*) 'allredarr, anoise', allredarr, anoise
-      !!  if (allredarr(1)>anoise) then
-      !!      eval_bounds_ok(1)=.false.
-      !!      call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",1)/1.2d0,1)
-      !!      restart=.true.
-      !!  else
-      !!      eval_bounds_ok(1)=.true.
-      !!  end if
-      !!  if (allredarr(2)>anoise) then
-      !!      eval_bounds_ok(2)=.false.
-      !!      call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",1)*1.2d0,1)
-      !!      restart=.true.
-      !!  else
-      !!      eval_bounds_ok(2)=.true.
-      !!  end if
-
-      !!end subroutine check_eigenvalue_spectrum
 
 end subroutine ice
 
@@ -2302,6 +2290,7 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
   use sparsematrix_base, only: sparse_matrix, matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   use foe_base, only: foe_data, foe_data_set_real, foe_data_get_real
+  !!use yaml_output
   implicit none
 
   ! Calling arguments
@@ -2336,10 +2325,11 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
       !$omp do reduction(+:bound_low,bound_up)
       do iseg=isegstart,isegend
           ii=smat_l%keyv(iseg)-1
-          do jorb=smat_l%keyg(1,iseg),smat_l%keyg(2,iseg)
+          ! A segment is always on one line, therefore no double loop
+          do jorb=smat_l%keyg(1,1,iseg),smat_l%keyg(2,1,iseg)
               ii=ii+1
-              irow = (jorb-1)/smat_l%nfvctr + 1
-              icol = jorb - (irow-1)*smat_l%nfvctr
+              irow = smat_l%keyg(1,2,iseg)
+              icol = jorb
               iismall = matrixindex_in_compressed(smat_s, irow, icol)
               if (iismall>0) then
                   if (trace_with_overlap) then
@@ -2347,7 +2337,7 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
                       tt=mat%matrix_compr(isshift+iismall)
                   else
                       ! Take the trace of the matrix alone, i.e. set the second matrix to the identity
-                      if (irow==jorb) then
+                      if (irow==icol) then
                           tt=1.d0
                       else
                           tt=0.d0
@@ -2371,13 +2361,21 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
       call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
   end if
 
+
   allredarr=abs(allredarr) !for some crazy situations this may be negative
-  noise=100.d0*anoise
+  noise=1000.d0*anoise
+
+  !!if (bigdft_mpi%iproc==0) then
+  !!    call yaml_map('errors, noise',(/allredarr(1),allredarr(2),noise/),fmt='(es12.4)')
+  !!end if
   !write(*,*) 'allredarr, anoise', allredarr, anoise
   if (allredarr(1)>noise) then
       eval_bounds_ok(1)=.false.
       call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*factor_low,ispin)
       restart=.true.
+      !!if (bigdft_mpi%iproc==0) then
+      !!    call yaml_map('adjust lower bound',.true.)
+      !!end if
   else
       eval_bounds_ok(1)=.true.
   end if
@@ -2385,6 +2383,9 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
       eval_bounds_ok(2)=.false.
       call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*factor_high,ispin)
       restart=.true.
+      !!if (bigdft_mpi%iproc==0) then
+      !!    call yaml_map('adjust upper bound',.true.)
+      !!end if
   else
       eval_bounds_ok(2)=.true.
   end if
@@ -2392,3 +2393,208 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
   call f_release_routine()
 
 end subroutine check_eigenvalue_spectrum
+
+
+subroutine check_emergency_stop(nproc,emergency_stop)
+  use module_base
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: nproc
+  logical,intent(inout) :: emergency_stop
+
+  ! Local variables
+  integer :: iflag
+
+  call f_routine(id='check_emergency_stop')
+
+  ! Check for an emergency stop, which happens if the kernel explodes, presumably due
+  ! to the eigenvalue bounds being too small.
+  ! mpi_lor seems not to work on certain systems...
+  if (emergency_stop) then
+      iflag=1
+  else
+      iflag=0
+  end if
+
+  if (nproc > 1) then
+      call mpiallred(iflag, 1, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
+  if (iflag>0) then
+      emergency_stop=.true.
+  else
+      emergency_stop=.false.
+  end if
+
+  call f_release_routine()
+
+end subroutine check_emergency_stop
+
+
+subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
+           smat1, mat1, i1shift, smat2, mat2, i2shift, &
+           matscal_compr, scale_factor, shift_value)
+  use module_base
+  use sparsematrix_base, only: sparse_matrix, matrices
+  use foe_base, only: foe_data, foe_data_get_real
+  use sparsematrix_init, only: matrixindex_in_compressed
+  use sparsematrix, only: orb_from_index
+  implicit none
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, ispin, i1shift
+  type(foe_data),intent(in) :: foe_obj
+  type(sparse_matrix),intent(in) :: smatl, smat1
+  type(matrices),intent(in) :: mat1
+  type(sparse_matrix),intent(in),optional :: smat2
+  type(matrices),intent(in),optional :: mat2
+  integer,intent(in),optional :: i2shift
+  real(kind=8),dimension(smatl%nvctr),target,intent(out) :: matscal_compr
+  real(kind=8),intent(out) :: scale_factor, shift_value
+
+  ! Local variables
+  integer :: iseg, ii, i, ii1, ii2, isegstart, isegend, ierr
+  integer :: itaskgroup, iitaskgroup, j
+  integer,dimension(2) :: irowcol
+  real(kind=8) :: tt1, tt2
+  logical :: with_overlap
+  real(kind=8),dimension(:),pointer :: matscal_compr_local
+  integer,parameter :: ALLGATHERV=51, GET=52, GLOBAL_MATRIX=101, SUBMATRIX=102
+  integer,parameter :: comm_strategy=GET
+  integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
+
+  
+
+  call f_routine(id='scale_and_shift_matrix')
+  call timing(iproc,'foe_aux_mcpy  ','ON')
+
+  ! smat2 and mat2 must be present at the same time
+  if (all((/present(smat2),present(mat2),present(i2shift)/))) then
+      with_overlap = .true.
+  else
+      if (any((/present(smat2),present(mat2),present(i2shift)/))) then
+          stop 'smat2, mat2 and i2shift must be present at the same time'
+      end if
+      with_overlap = .false.
+  end if
+
+  scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
+  shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh",ispin)+foe_data_get_real(foe_obj,"evlow",ispin))
+
+  if (data_strategy==GLOBAL_MATRIX) then
+      stop 'scale_and_shift_matrix: data_strategy=GLOBAL_MATRIX is deprecated'
+      !!isegstart = smatl%istsegline(smatl%isfvctr+1)
+      !!isegend = smatl%istsegline(smatl%isfvctr+smatl%nfvctrp) + &
+      !!          smatl%nsegline(smatl%isfvctr+smatl%nfvctrp)-1
+      !!if (nproc>1) then
+      !!    matscal_compr_local = f_malloc_ptr(smatl%nvctrp,id='matscal_compr_local')
+      !!else
+      !!    matscal_compr_local => matscal_compr
+      !!end if
+      !!!$omp parallel default(none) private(iseg,ii,i,irowcol,ii2,ii1,tt2,tt1) &
+      !!!$omp shared(matscal_compr_local,scale_factor,shift_value,i2shift,i1shift,smatl,smat1,smat2,mat1,mat2,with_overlap) &
+      !!!$omp shared(isegstart,isegend)
+      !!!$omp do
+      !!do iseg=isegstart,isegend
+      !!    ii=smatl%keyv(iseg)
+      !!    do i=smatl%keyg(1,iseg),smatl%keyg(2,iseg)
+      !!        irowcol = orb_from_index(smatl,i)
+      !!        ii1 = matrixindex_in_compressed(smat1, irowcol(1), irowcol(2))
+      !!        if (ii1>0) then
+      !!            tt1=mat1%matrix_compr(i1shift+ii1)
+      !!        else
+      !!            tt1=0.d0
+      !!        end if
+      !!        if (with_overlap) then
+      !!            ii2 = matrixindex_in_compressed(smat2, irowcol(1), irowcol(2))
+      !!            if (ii2>0) then
+      !!                tt2=mat2%matrix_compr(i2shift+ii2)
+      !!            else
+      !!                tt2=0.d0
+      !!            end if
+      !!        else
+      !!            if (irowcol(1)==irowcol(2)) then
+      !!                tt2 = 1.d0
+      !!            else
+      !!                tt2 = 0.d0
+      !!            end if
+      !!        end if
+      !!        !write(*,*) 'ii, tt1, tt2', ii, tt1, tt2
+      !!        matscal_compr_local(ii-smatl%isvctr)=scale_factor*(tt1-shift_value*tt2)
+      !!        ii=ii+1
+      !!    end do
+      !!end do
+      !!!$omp end do
+      !!!$omp end parallel
+
+      !!call timing(iproc,'foe_aux_mcpy  ','OF')
+      !!call timing(iproc,'foe_aux_comm  ','ON')
+      !!if (nproc>1) then
+      !!    !!call mpi_allgatherv(matscal_compr_local(1), smatl%nvctrp, mpi_double_precision, &
+      !!    !!     matscal_compr(1), smatl%nvctr_par, smatl%isvctr_par, mpi_double_precision, &
+      !!    !!     bigdft_mpi%mpi_comm, ierr)
+      !!    if (comm_strategy==ALLGATHERV) then
+      !!        call mpi_allgatherv(matscal_compr_local(1), smatl%nvctrp, mpi_double_precision, &
+      !!             matscal_compr(1), smatl%nvctr_par, smatl%isvctr_par, mpi_double_precision, &
+      !!             bigdft_mpi%mpi_comm, ierr)
+      !!        call f_free_ptr(matscal_compr_local)
+      !!    else if (comm_strategy==GET) then
+      !!        !!call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, smatl%nvctrp, matscal_compr_local, &
+      !!        !!     smatl%nvctr_par, smatl%isvctr_par, smatl%nvctr, matscal_compr)
+      !!        call mpi_get_to_allgatherv(matscal_compr_local(1), smatl%nvctrp, matscal_compr(1), &
+      !!             smatl%nvctr_par, smatl%isvctr_par, bigdft_mpi%mpi_comm)
+      !!    else
+      !!        stop 'scale_and_shift_matrix: wrong communication strategy'
+      !!    end if
+      !!    call f_free_ptr(matscal_compr_local)
+      !!end if
+      !!call timing(iproc,'foe_aux_comm  ','OF')
+
+  else if (data_strategy==SUBMATRIX) then
+      !$omp parallel default(none) private(ii,i,j,ii2,ii1,tt2,tt1,iseg) &
+      !$omp shared(matscal_compr,scale_factor,shift_value,i2shift,i1shift,smatl,smat1,smat2,mat1,mat2,with_overlap)
+      !$omp do
+      do iseg=smatl%smmm%istartendseg_mm(1),smatl%smmm%istartendseg_mm(2)
+          !if (smatl%keyv(min(iseg+1,smatl%nseg))<smatl%smmm%istartend_mm(1)) cycle
+          !if (smatl%keyv(iseg)>smatl%smmm%istartend_mm(2)) exit
+          ! A segment is always on one line, therefore no double loop
+          j = smatl%keyg(1,2,iseg)
+          do i=smatl%keyg(1,1,iseg),smatl%keyg(2,1,iseg) !this is too much, but for the moment ok 
+              ii1 = matrixindex_in_compressed(smat1, i, j)
+              if (ii1>0) then
+                  tt1=mat1%matrix_compr(i1shift+ii1)
+              else
+                  tt1=0.d0
+              end if
+              if (with_overlap) then
+                  ii2 = matrixindex_in_compressed(smat2, i, j)
+                  if (ii2>0) then
+                      tt2=mat2%matrix_compr(i2shift+ii2)
+                  else
+                      tt2=0.d0
+                  end if
+              else
+                  if (i==j) then
+                      tt2 = 1.d0
+                  else
+                      tt2 = 0.d0
+                  end if
+              end if
+              ii=matrixindex_in_compressed(smatl, i, j)
+              !write(*,*) 'i, ii, tt1, tt2', i, ii, tt1, tt2
+              matscal_compr(ii)=scale_factor*(tt1-shift_value*tt2)
+          end do
+      end do
+      !$omp end do
+      !$omp end parallel
+      call timing(iproc,'foe_aux_mcpy  ','OF')
+  else
+      stop 'scale_and_shift_matrix: wrong data strategy'
+  end if
+
+  !!do i=1,smatl%nvctr
+  !!    write(500+iproc,*) 'i, matscal_compr(i)', i, matscal_compr(i)
+  !!end do
+  call f_release_routine()
+
+end subroutine scale_and_shift_matrix

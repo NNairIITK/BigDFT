@@ -22,7 +22,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use yaml_output
   use communications, only: transpose_localized, start_onesided_communication
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, sparsematrix_malloc, &
-                               DENSE_FULL, DENSE_PARALLEL, assignment(=)
+                               DENSE_FULL, DENSE_PARALLEL, DENSE_MATMUL, assignment(=)
   use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed
   implicit none
 
@@ -53,9 +53,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical, optional, intent(in) :: updatekernel
 
   ! Local variables 
-  integer :: iorb, info, ishift, ispin, ii, jorb, i
+  integer :: iorb, info, ishift, ispin, ii, jorb, i, ishifts, ishiftm
   real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, eval
-  real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp
+  real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp, tempmat
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   logical :: update_kernel
@@ -149,8 +149,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       if (tmb%ham_descr%npsidim_orbs > 0) call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
 
-      call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,rxyz,&
-           tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,tmb%hpsi,energs%eproj)
+      call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+           tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,tmb%hpsi,energs%eproj,tmb%paw)
       ! only kinetic as waiting for communications
       call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
            tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,&
@@ -236,11 +236,42 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   if (scf_mode/=LINEAR_FOE) then
       tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
-      call uncompress_matrix(iproc, tmb%linmat%m, &
-           inmat=tmb%linmat%ham_%matrix_compr, outmat=tmb%linmat%ham_%matrix)
       tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-      call uncompress_matrix(iproc, tmb%linmat%s, &
-           inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
+      !call uncompress_matrix(iproc, tmb%linmat%m, &
+      !     inmat=tmb%linmat%ham_%matrix_compr, outmat=tmb%linmat%ham_%matrix)
+      !call uncompress_matrix(iproc, tmb%linmat%s, &
+      !     inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
+      do ispin=1,tmb%linmat%m%nspin
+          ishifts = (ispin-1)*tmb%linmat%s%nvctr
+          ishiftm = (ispin-1)*tmb%linmat%m%nvctr
+          call to_zero(tmb%linmat%m%nfvctr**2, tmb%linmat%ham_%matrix(1,1,ispin))
+          tempmat = sparsematrix_malloc(tmb%linmat%m, iaction=DENSE_MATMUL, id='tempmat')
+          call uncompress_matrix_distributed(iproc, tmb%linmat%m, DENSE_MATMUL, &
+               tmb%linmat%ham_%matrix_compr(ishiftm+1:ishiftm+tmb%linmat%m%nvctr), tempmat)
+          if (tmb%linmat%m%smmm%nfvctrp>0) then
+              call vcopy(tmb%linmat%m%nfvctr*tmb%linmat%m%smmm%nfvctrp, tempmat(1,1), 1, &
+                   tmb%linmat%ham_%matrix(1,tmb%linmat%m%smmm%isfvctr+1,ispin), 1)
+          end if
+          call f_free(tempmat)
+          if (nproc>1) then
+              call mpiallred(tmb%linmat%ham_%matrix(1,1,ispin), tmb%linmat%m%nfvctr**2, &
+                   mpi_sum, bigdft_mpi%mpi_comm)
+          end if
+
+          call to_zero(tmb%linmat%s%nfvctr**2, tmb%linmat%ovrlp_%matrix(1,1,ispin))
+          tempmat = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_MATMUL, id='tempmat')
+          call uncompress_matrix_distributed(iproc, tmb%linmat%s, DENSE_MATMUL, &
+               tmb%linmat%ovrlp_%matrix_compr(ishifts+1:ishifts+tmb%linmat%s%nvctr), tempmat)
+          if (tmb%linmat%m%smmm%nfvctrp>0) then
+              call vcopy(tmb%linmat%s%nfvctr*tmb%linmat%s%smmm%nfvctrp, tempmat(1,1), 1, &
+                   tmb%linmat%ovrlp_%matrix(1,tmb%linmat%s%smmm%isfvctr+1,ispin), 1)
+          end if
+          call f_free(tempmat)
+          if (nproc>1) then
+              call mpiallred(tmb%linmat%ovrlp_%matrix(1,1,ispin), tmb%linmat%s%nfvctr**2, &
+                   mpi_sum, bigdft_mpi%mpi_comm)
+          end if
+      end do
   end if
 
   ! Diagonalize the Hamiltonian.
@@ -341,7 +372,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       call f_free(matrixElements)
   else if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-     if(.not.present(ldiis_coeff)) stop 'ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION'
+     if(.not.present(ldiis_coeff)) &
+          call f_err_throw('ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION',&
+          err_name='BIGDFT_RUNTIME_ERROR')
      ! call routine which updates coeffs for tmb%orbs%norb or orbs%norb depending on whether or not extra states are required
      if (iproc==0) call yaml_map('method','directmin')
      if (extra_states>0) then
@@ -634,8 +667,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
            tmb%orbs, tmb%psi, tmb%ham_descr%psi)
 
-      call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,rxyz,&
-           tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,tmb%hpsi,energs%eproj)
+      call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+           tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,tmb%hpsi,energs%eproj,tmb%paw)
       ! only kinetic because waiting for communications
       call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
            tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,&
@@ -1966,28 +1999,28 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
          indc=0
          do iseg=1,basis_overlap%nseg
              ind=basis_overlap%keyv(iseg)
-             !do ind = 1, basis_overlap%nvctr
-             do i = basis_overlap%keyg(1,iseg),basis_overlap%keyg(2,iseg)
+             ! A segment is always on one line, therefore no double loop
+             do i = basis_overlap%keyg(1,1,iseg),basis_overlap%keyg(2,1,iseg)
                 !korb = basis_overlap%orb_from_index(1,ind)
                 !llorb = basis_overlap%orb_from_index(2,ind)
-                irowcol = orb_from_index(basis_overlap, i)
-                if (irowcol(1)<irowcol(2)) cycle ! so still only doing half
+                if (i<basis_overlap%keyg(1,2,iseg)) cycle ! so still only doing half
                 indc = indc + 1
                 if (indc < ind_start .or. indc > ind_end) cycle
 
                 do iorb=1,norb
-                     if (irowcol(2)==irowcol(1)) then
-                        tt=basis_overlap_mat%matrix_compr(ind)*coeff(irowcol(1),iorb)
+                     if (basis_overlap%keyg(1,2,iseg)==i) then
+                        tt=basis_overlap_mat%matrix_compr(ind)*coeff(i,iorb)
                         do jorb=iorb,norb
                             !SM: need to fix the spin here
                             KS_ovrlp_%matrix(jorb,iorb,1)=KS_ovrlp_%matrix(jorb,iorb,1) &
-                                 +coeff(irowcol(2),jorb)*tt
+                                 +coeff(basis_overlap%keyg(1,2,iseg),jorb)*tt
                         end do
                      else
                         do jorb=iorb,norb
                             !SM: need to fix the spin here
                             KS_ovrlp_%matrix(jorb,iorb,1)=KS_ovrlp_%matrix(jorb,iorb,1) &
-                                 +(coeff(irowcol(2),iorb)*coeff(irowcol(1),jorb)+coeff(irowcol(2),jorb)*coeff(irowcol(1),iorb))&
+                                 +(coeff(basis_overlap%keyg(1,2,iseg),iorb)*coeff(i,jorb) &
+                                 + coeff(basis_overlap%keyg(1,2,iseg),jorb)*coeff(i,iorb))&
                                  *basis_overlap_mat%matrix_compr(ind)
                         end do
                      end if
@@ -2554,8 +2587,9 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                   jsegend=tmb%linmat%l%nseg
               end if
               do jseg=jsegstart,jsegend
-                  do jorb=tmb%linmat%l%keyg(1,jseg),tmb%linmat%l%keyg(2,jseg)
-                      jjorb=jorb-(iorb-1)*tmb%linmat%l%nfvctr
+                  ! A segment is always on one line, therefore no double loop
+                  do jorb=tmb%linmat%l%keyg(1,1,jseg),tmb%linmat%l%keyg(2,1,jseg)
+                      jjorb=jorb
                       diff = diff + (ksk(jjorb,iiorb)-tmb%linmat%kernel_%matrix(jjorb,iorb,1))**2
                   end do
               end do
@@ -2949,7 +2983,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
   ! Calculate S^1/2 * K * S^1/2
-  call retransform()
+  call retransform_local()
   !!tr=0.d0
   !!do iorb=1,tmb%orbs%norb
   !!    ind=tmb%linmat%l%matrixindex_in_compressed_fortransposed(iorb,iorb)
@@ -2965,7 +2999,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
   ! Calculate S^-1/2 * K * S^-1/2
-  call retransform()
+  call retransform_local()
 
 
   call f_free_ptr(inv_ovrlpp)
@@ -2978,8 +3012,9 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
   contains
 
-      subroutine retransform()
-          use sparsematrix, only: sequential_acces_matrix_fast, sparsemm
+      subroutine retransform_local()
+          use sparsematrix, only: sequential_acces_matrix_fast, sparsemm, &
+               & uncompress_matrix_distributed, compress_matrix_distributed
           integer :: ncount
 
           call sequential_acces_matrix_fast(tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, kernel_compr_seq)
@@ -3001,6 +3036,6 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
           call to_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
           call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, inv_ovrlpp, tmb%linmat%kernel_%matrix_compr)
 
-      end subroutine retransform
+      end subroutine retransform_local
 
 end subroutine renormalize_kernel

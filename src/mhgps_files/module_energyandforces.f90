@@ -90,8 +90,7 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
              runObj%atoms%astruct%rxyz(1,1), 1)
         runObj%inputs%inputPsiId=inputPsiId
         runObj%inputs%itermin=itermin
-        call call_bigdft(runObj,outs,bigdft_mpi%nproc,&
-             bigdft_mpi%iproc,infocode)
+        call call_bigdft(runObj,outs,infocode)
         call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1), 1)
         call vcopy(3 * runObj%atoms%astruct%nat,&
              runObj%atoms%astruct%ixyz_int(1,1),1,&
@@ -99,6 +98,10 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
         epot=outs%energy
         fnoise=outs%fnoise
         return
+    else
+        call yaml_warning('Following method for evaluation of '//&
+        'energies and forces is unknown: '//trim(adjustl(efmethod)))
+        stop
     endif
 end subroutine
 end module

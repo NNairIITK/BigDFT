@@ -129,7 +129,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
   !write(*,'(a,3i6)') 'iproc, orbse%isorb, orbse%norbp', iproc, orbse%isorb,orbse%norbp
   !write(*,'(a,3i6)') 'norbe, orbse%nspinor, orbse%isorb+orbse%norbp+ndebug', norbe, orbse%nspinor, orbse%isorb+orbse%norbp+ndebug
    !allocate the gaussian coefficients for the number of orbitals which is needed
-   psigau = f_malloc_ptr((/ norbe , orbse%nspinor , orbse%isorb+orbse%norbp+ndebug /),id='psigau')
+   psigau = f_malloc_ptr((/ norbe , orbse%nspinor , max(orbse%norbp,1) /),id='psigau')
    iorbtolr = f_malloc(orbse%norbp,id='iorbtolr')
 
    !fill just the interesting part of the orbital
@@ -137,16 +137,16 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
        ! this will be use for the linear scaling part
        if(present(quartic_prefactor)) then
            call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,G,&
-                psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
+                psigau(1,1,1),&
                 iorbtolr,mapping,quartic_prefactor)
        else
            call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,G,&
-                psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
+                psigau(1,1,1),&
                 iorbtolr,mapping)
        end if
    else
        call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,G,&
-            psigau(1,1,min(orbse%isorb+1,orbse%norb)),iorbtolr)
+            psigau(1,1,1),iorbtolr)
    end if
 
    call f_free(iorbtolr)

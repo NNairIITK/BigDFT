@@ -162,7 +162,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
        end if
     
        if (nproc > 1) then
-          call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
+          !call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
           call mpiallred(checksum(1,1),2*orbs%norb*orbs%nspinor,MPI_SUM,bigdft_mpi%mpi_comm)
        end if
     
@@ -303,10 +303,10 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
           abort = .true.
        end if
     
-       if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
+   if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,11,ierr)
     
        if (nproc > 1) then
-          call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
+          !call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
           call mpiallred(maxdiff,1,MPI_MAX,bigdft_mpi%mpi_comm)
        end if
     
@@ -443,8 +443,12 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   integer :: avops, ops, opsn
   integer, allocatable, dimension(:) :: numops
   logical :: ifnd, jfnd
-  integer :: iorb, jorb, imat, iseg, iorb_shift
+  integer :: iorb, jorb, imat, iseg, iorb_shift, itg, iitg, ist_send, ist_recv, ncount, ishift
+  integer,dimension(:),allocatable :: request
+  real(kind=8),dimension(:),allocatable :: recvbuf
   integer,dimension(2) :: irowcol
+  integer,parameter :: GLOBAL_MATRIX=101, SUBMATRIX=102
+  integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
 
   call timing(iproc,'ovrlptransComp','ON') !lr408t
 
@@ -455,86 +459,89 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   ! WARNING: METHOD 2 NOT EXTENSIVELY TESTED
   method_if: if (collcom%imethod_overlap==2) then
 
-      !!!iicnt=0
-      !!!sm_it = iterator(collcom)
-      !!!do while(valid(sm_it))
-      !!!icnt=icnt+1
-      !!!call get_position(sm_it,shift=ind0(:),iorb=i0i,jorb=i0j)
-      !!!call ge_orbitals(sm_it,iiorb,ijorb)
-      !!!call get_ind0(iiorb+(norb)*jjorb,ind0)
-      !!!ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_c1(i0i)*psit_c2(i0j)
-      !!!call next(sm_it)
-      !!!end do
-      iorb_shift=(ispin-1)*smat%nfvctr    
-      do ispin=1,smat%nspin
-        do iseg=1,smat%nseg
-          imat=smat%keyv(iseg)
-          do j=smat%keyg(1,iseg),smat%keyg(2,iseg)
-            !call get_orbs(smat,i,iorb,jorb) !lookup on work array of size smat%nvctr 
-            !iorb=smat%orb_from_index(2,imat)
-            !jorb=smat%orb_from_index(1,imat)
-            irowcol = orb_from_index(smat, j)
-            ovrlp%matrix_compr(imat)=0.0_wp
-      
-            do ipt=1,collcom%nptsp_c
-              ii=collcom%norb_per_gridpoint_c(ipt)
-              i0 = collcom%isptsp_c(ipt) + (ispin-1)*collcom%ndimind_c/smat%nspin
-              ifnd=.false.
-              jfnd=.false.
-              do i=1,ii
-                iiorb=collcom%indexrecvorbital_c(i0+i) - iorb_shift
-                !iiorb=mod(iiorb-1,smat%nfvctr)+1
-                if (iiorb == irowcol(1)) then        
-                   ifnd=.true.
-                   i0i=i0+i
-                   !i0i=collcom%iextract_c(i0+i)
-                end if 
-                if (iiorb == irowcol(2)) then
-                    jfnd=.true.
-                    i0j=i0+i
-                    !i0j=collcom%iextract_c(i0+i)
-                end if
-                if (.not. (jfnd .and. ifnd)) cycle
-                ovrlp%matrix_compr(imat) = ovrlp%matrix_compr(imat) +  psit_c1(i0i)*psit_c2(i0j)
-                if (jfnd .and. ifnd) exit
-              end do
-            end do
-      
-            do ipt=1,collcom%nptsp_f
-              ii=collcom%norb_per_gridpoint_f(ipt)
-              i0 = collcom%isptsp_f(ipt) + (ispin-1)*collcom%ndimind_f/smat%nspin
-              ifnd=.false.
-              jfnd=.false.
-              do i=1,ii
-                iiorb=collcom%indexrecvorbital_f(i0+i) - iorb_shift
-                !iiorb=mod(iiorb-1,smat%nfvctr)+1
-                if (iiorb == irowcol(1)) then        
-                   ifnd=.true.
-                   i0i=i0+i
-                   !i0i=collcom%iextract_f(i0+i)
-                end if 
-                if (iiorb == irowcol(2)) then
-                    jfnd=.true.
-                    i0j=i0+i
-                    !i0j=collcom%iextract_f(i0+i)
-                end if
-                if (.not. (jfnd .and. ifnd)) cycle
-                i07i=7*i0i
-                i07j=7*i0j
-                ovrlp%matrix_compr(imat) = ovrlp%matrix_compr(imat) +  psit_f1(i07i-6)*psit_f2(i07j-6)
-                ovrlp%matrix_compr(imat) = ovrlp%matrix_compr(imat) +  psit_f1(i07i-5)*psit_f2(i07j-5)
-                ovrlp%matrix_compr(imat) = ovrlp%matrix_compr(imat) +  psit_f1(i07i-4)*psit_f2(i07j-4)
-                ovrlp%matrix_compr(imat) = ovrlp%matrix_compr(imat) +  psit_f1(i07i-3)*psit_f2(i07j-3)
-                ovrlp%matrix_compr(imat) = ovrlp%matrix_compr(imat) +  psit_f1(i07i-2)*psit_f2(i07j-2)
-                ovrlp%matrix_compr(imat) = ovrlp%matrix_compr(imat) +  psit_f1(i07i-1)*psit_f2(i07j-1)
-                ovrlp%matrix_compr(imat) = ovrlp%matrix_compr(imat) +  psit_f1(i07i-0)*psit_f2(i07j-0)
-                if (jfnd .and. ifnd) exit
-              end do
-            end do
-            imat=imat+1
-           end do 
-         end do    
-      end do
+      stop 'collcom%imethod_overlap=2 is deprecated'
+
+   !!   !!!iicnt=0
+   !!   !!!sm_it = iterator(collcom)
+   !!   !!!do while(valid(sm_it))
+   !!   !!!icnt=icnt+1
+   !!   !!!call get_position(sm_it,shift=ind0(:),iorb=i0i,jorb=i0j)
+   !!   !!!call ge_orbitals(sm_it,iiorb,ijorb)
+   !!   !!!call get_ind0(iiorb+(norb)*jjorb,ind0)
+   !!   !!!ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_c1(i0i)*psit_c2(i0j)
+   !!   !!!call next(sm_it)
+   !!   !!!end do
+   !!   iorb_shift=(ispin-1)*smat%nfvctr    
+   !!   do ispin=1,smat%nspin
+   !!     do iseg=1,smat%nseg
+   !!       imat=smat%keyv(iseg)
+   !!       ! A segment is always on one line, therefore no double loop
+   !!       do j=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+   !!         !call get_orbs(smat,i,iorb,jorb) !lookup on work array of size smat%nvctr 
+   !!         !iorb=smat%orb_from_index(2,imat)
+   !!         !jorb=smat%orb_from_index(1,imat)
+   !!         irowcol = orb_from_index(smat, j)
+   !!         ovrlp%matrix_compr(imat)=0.0_wp
+   !!   
+   !!         do ipt=1,collcom%nptsp_c
+   !!           ii=collcom%norb_per_gridpoint_c(ipt)
+   !!           i0 = collcom%isptsp_c(ipt) + (ispin-1)*collcom%ndimind_c/smat%nspin
+   !!           ifnd=.false.
+   !!           jfnd=.false.
+   !!           do i=1,ii
+   !!             iiorb=collcom%indexrecvorbital_c(i0+i) - iorb_shift
+   !!             !iiorb=mod(iiorb-1,smat%nfvctr)+1
+   !!             if (iiorb == irowcol(1)) then        
+   !!                ifnd=.true.
+   !!                i0i=i0+i
+   !!                !i0i=collcom%iextract_c(i0+i)
+   !!             end if 
+   !!             if (iiorb == irowcol(2)) then
+   !!                 jfnd=.true.
+   !!                 i0j=i0+i
+   !!                 !i0j=collcom%iextract_c(i0+i)
+   !!             end if
+   !!             if (.not. (jfnd .and. ifnd)) cycle
+   !!             ovrlp%matrix_compr(imat) = ovrlp%matrix_compr(imat) +  psit_c1(i0i)*psit_c2(i0j)
+   !!             if (jfnd .and. ifnd) exit
+   !!           end do
+   !!         end do
+   !!   
+   !!         do ipt=1,collcom%nptsp_f
+   !!           ii=collcom%norb_per_gridpoint_f(ipt)
+   !!           i0 = collcom%isptsp_f(ipt) + (ispin-1)*collcom%ndimind_f/smat%nspin
+   !!           ifnd=.false.
+   !!           jfnd=.false.
+   !!           do i=1,ii
+   !!             iiorb=collcom%indexrecvorbital_f(i0+i) - iorb_shift
+   !!             !iiorb=mod(iiorb-1,smat%nfvctr)+1
+   !!             if (iiorb == irowcol(1)) then        
+   !!                ifnd=.true.
+   !!                i0i=i0+i
+   !!                !i0i=collcom%iextract_f(i0+i)
+   !!             end if 
+   !!             if (iiorb == irowcol(2)) then
+   !!                 jfnd=.true.
+   !!                 i0j=i0+i
+   !!                 !i0j=collcom%iextract_f(i0+i)
+   !!             end if
+   !!             if (.not. (jfnd .and. ifnd)) cycle
+   !!             i07i=7*i0i
+   !!             i07j=7*i0j
+   !!             ovrlp%matrix_compr(imat) = ovrlp%matrix_compr(imat) +  psit_f1(i07i-6)*psit_f2(i07j-6)
+   !!             ovrlp%matrix_compr(imat) = ovrlp%matrix_compr(imat) +  psit_f1(i07i-5)*psit_f2(i07j-5)
+   !!             ovrlp%matrix_compr(imat) = ovrlp%matrix_compr(imat) +  psit_f1(i07i-4)*psit_f2(i07j-4)
+   !!             ovrlp%matrix_compr(imat) = ovrlp%matrix_compr(imat) +  psit_f1(i07i-3)*psit_f2(i07j-3)
+   !!             ovrlp%matrix_compr(imat) = ovrlp%matrix_compr(imat) +  psit_f1(i07i-2)*psit_f2(i07j-2)
+   !!             ovrlp%matrix_compr(imat) = ovrlp%matrix_compr(imat) +  psit_f1(i07i-1)*psit_f2(i07j-1)
+   !!             ovrlp%matrix_compr(imat) = ovrlp%matrix_compr(imat) +  psit_f1(i07i-0)*psit_f2(i07j-0)
+   !!             if (jfnd .and. ifnd) exit
+   !!           end do
+   !!         end do
+   !!         imat=imat+1
+   !!        end do 
+   !!      end do    
+   !!   end do
 
   else if (collcom%imethod_overlap==1) then method_if
 
@@ -927,8 +934,56 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
 
   call timing(iproc,'ovrlptransComm','ON') !lr408t
 
-  if(nproc > 1) then
-      call mpiallred(ovrlp%matrix_compr(1), smat%nvctr*smat%nspin, mpi_sum, bigdft_mpi%mpi_comm)
+  if (data_strategy==GLOBAL_MATRIX) then
+      if(nproc > 1) then
+          call mpiallred(ovrlp%matrix_compr(1), smat%nvctr*smat%nspin, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
+
+  else if (data_strategy==SUBMATRIX) then
+
+      if (nproc>1) then
+          request = f_malloc(smat%ntaskgroupp,id='request')
+          do ispin=1,smat%nspin
+              ishift = (ispin-1)*smat%nvctr
+              ncount = 0
+              do itg=1,smat%ntaskgroupp
+                  iitg = smat%inwhichtaskgroup(itg)
+                  ncount = ncount + smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+              end do
+              if (ispin==1) recvbuf = f_malloc(ncount,id='recvbuf')
+
+              ncount = 0
+              do itg=1,smat%ntaskgroupp
+                  iitg = smat%inwhichtaskgroup(itg)
+                  ist_send = smat%taskgroup_startend(1,1,iitg)
+                  ist_recv = ncount + 1
+                  ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+                  !!call mpi_iallreduce(ovrlp%matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
+                  !!     mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
+                  if (nproc>1) then
+                      call mpiiallred(ovrlp%matrix_compr(ishift+ist_send), recvbuf(ist_recv), ncount, &
+                           mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg))
+                  else
+                      call vcopy(ncount, ovrlp%matrix_compr(ishift+ist_send), 1, recvbuf(ist_recv), 1)
+                  end if
+              end do
+              if (nproc>1) then
+                  call mpiwaitall(smat%ntaskgroupp, request)
+              end if
+              ncount = 0
+              do itg=1,smat%ntaskgroupp
+                  iitg = smat%inwhichtaskgroup(itg)
+                  ist_send = smat%taskgroup_startend(1,1,iitg)
+                  ist_recv = ncount + 1
+                  ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+                  call vcopy(ncount, recvbuf(ist_recv), 1, ovrlp%matrix_compr(ishift+ist_send), 1)
+              end do
+          end do
+          call f_free(request)
+          call f_free(recvbuf)
+      end if
+  else
+      stop 'calculate_overlap_transposed: wrong data_strategy'
   end if
 
 

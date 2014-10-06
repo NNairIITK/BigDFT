@@ -27,8 +27,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.5
- Timestamp of this run                 : 2014-08-26 15:48:28.744
+ Version Number                        : 1.7.5.10
+ Timestamp of this run                 : 2014-09-16 14:24:14.942
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -38,7 +38,7 @@
  Compilation options:
    Configure arguments:
      " 'FC=/opt/openmpi-1.6.4/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -i_dynamic -msse4.2 
-     -heap-arrays 1024 -openmp' 
+     -heap-arrays 1024 -openmp -traceback' 
      '--with-ext-linalg=/opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_scalapa
      ck_lp64.a  -Wl,--start-group  
      /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_cdft_core.a 
@@ -50,7 +50,8 @@
    Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.4/bin/mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
+     FCFLAGS:
+       -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp -traceback
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  perf:
@@ -88,9 +89,10 @@
    maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
    ef_interpol_det                     : 0.10E-19 # FOE max determinant of cubic interpolation matrix
    ef_interpol_chargediff              : 0.10E+02 # FOE max charge difference for interpolation
-   mixing_after_inputguess             : Yes #    Mixing step after linear input guess (T/F)
+   mixing_after_inputguess             : 1 #      Mixing step after linear input gues
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 2 #      Enables linear sumrho check
+   check_overlap                       : 2 #      Enables linear overlap check
    experimental_mode                   : No #     Activate the experimental mode in linear scaling
    write_orbitals                      : No #     Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
    explicit_locregcenters              : No #     Linear scaling explicitely specify localization centers
@@ -109,6 +111,7 @@
    correction_co_contra                : No #     linear scaling correction covariant / contravariant gradient
    fscale_lowerbound                   : 5.0000000000000001E-003 # linear scaling lower bound for the error function decay length
    fscale_upperbound                   : 5.0000000000000003E-002 # linear scaling upper bound for the error function decay length
+   imethod_overlap                     : 1 #      method to calculate the overlap matrices (1=old, 2=new)
    FOE_restart                         : 0 #      Restart method to be used for the FOE method
  dft:
    hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
@@ -133,6 +136,7 @@
    nvirt                               : 0 #      No. of virtual orbs
    nplot                               : 0 #      No. of plotted orbs
    disablesym                          : Yes #    Disable the symmetry detection
+   itermin                             : 0 #      Min. iterations of wfn. opt. steps
  kpt:
    method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
@@ -181,8 +185,8 @@
    Radii of active regions (AU):
      Coarse                            : 1.36
      Fine                              : 0.15
-     Coarse PSP                        : 0.15
      Source                            : PSP File
+     Coarse PSP                        : 0.0
    PAW patch                           : No
    Source                              : psppar.H
  lin_general:
@@ -379,7 +383,7 @@
    Inputguess Orbitals Repartition:
      MPI tasks  0- 3                   :  1
    Deviation from normalization        :  1.62E-06
-   EKS                                 : -8.16171562368986470E-01
+   EKS                                 : -8.16171562368986692E-01
    Total magnetization                 :  0.000000
    Accuracy estimation for this run:
      Energy                            :  1.71E-04
@@ -390,22 +394,22 @@
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  {
- iter:  1, EKS: -1.02716489518830945E+00, gnrm:  2.41E-01, D: -2.11E-01}
+ iter:  1, EKS: -1.02716489518830989E+00, gnrm:  2.41E-01, D: -2.11E-01}
        -  {
- iter:  2, EKS: -1.12482970036870245E+00, gnrm:  1.15E-01, D: -9.77E-02}
+ iter:  2, EKS: -1.12482970036870200E+00, gnrm:  1.15E-01, D: -9.77E-02}
        -  {
- iter:  3, EKS: -1.13318025977439985E+00, gnrm:  4.88E-02, D: -8.35E-03}
+ iter:  3, EKS: -1.13318025977439851E+00, gnrm:  4.88E-02, D: -8.35E-03}
        -  {
- iter:  4, EKS: -1.13527714772310984E+00, gnrm:  2.76E-02, D: -2.10E-03}
+ iter:  4, EKS: -1.13527714772311028E+00, gnrm:  2.76E-02, D: -2.10E-03}
        -  {
- iter:  5, EKS: -1.13677110534503178E+00, gnrm:  1.28E-02, D: -1.49E-03}
+ iter:  5, EKS: -1.13677110534503267E+00, gnrm:  1.28E-02, D: -1.49E-03}
        -  {
- iter:  6, EKS: -1.13691647505319171E+00, gnrm:  1.67E-03, D: -1.45E-04}
+ iter:  6, EKS: -1.13691647505319238E+00, gnrm:  1.67E-03, D: -1.45E-04}
        -  {
- iter:  7, EKS: -1.13691727738457193E+00, gnrm:  3.05E-04, D: -8.02E-07}
+ iter:  7, EKS: -1.13691727738457282E+00, gnrm:  3.05E-04, D: -8.02E-07}
        -  {
- iter:  8, EKS: -1.13691730854336748E+00, gnrm:  8.92E-05, D: -3.12E-08}
-       -  &FINAL001  {iter:  9, EKS: -1.13691731045350708E+00, gnrm:  8.92E-05, 
+ iter:  8, EKS: -1.13691730854336837E+00, gnrm:  8.92E-05, D: -3.12E-08}
+       -  &FINAL001  {iter:  9, EKS: -1.13691731045350819E+00, gnrm:  8.92E-05, 
                          D: -1.91E-09, 
  }
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
@@ -424,16 +428,16 @@
    norm(P)                             :  1.079812E-03
  Average noise forces: {x:  1.79468833E-04, y:  2.22049688E-04, z:  2.22049688E-04, 
                     total:  3.61692120E-04}
- Clean forces norm (Ha/Bohr): {maxval:  9.539518700075E-04, fnrm2:  1.820048340582E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.105470481570E-03, fnrm2:  1.951066894403E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  9.539518700072E-04, fnrm2:  1.820048340580E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.105470481570E-03, fnrm2:  1.951066894402E-06}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-9.539518700075E-04,  1.185846126156E-20, -1.694065894509E-21]} # 0001
- -  {H: [ 9.539518700075E-04,  1.524659305058E-20,  1.694065894509E-21]} # 0002
+ -  {H: [-9.539518700072E-04, -1.439956010332E-20, -1.694065894509E-21]} # 0001
+ -  {H: [ 9.539518700072E-04, -1.270549420881E-20,  1.694065894509E-21]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  3.66
-   Elapsed time (s)                    :  1.88
+   CPU time (s)                        :  3.68
+   Elapsed time (s)                    :  1.91
  (F) Exit signal for Wavefunction Optimization Finished:  0
   #========================================================== (F) Start Frequencies calculation
  (F) Move: {atom:  1, direction: -1, axis: x, displacement (Bohr): -7.0312500000E-03}
@@ -553,12 +557,12 @@
        -  {
  iter:  1, EKS: -1.13689474838108384E+00, gnrm:  8.83E-03}
        -  {
- iter:  2, EKS: -1.13691440160212731E+00, gnrm:  1.95E-03, D: -1.97E-05}
+ iter:  2, EKS: -1.13691440160212798E+00, gnrm:  1.95E-03, D: -1.97E-05}
        -  {
- iter:  3, EKS: -1.13691563089229253E+00, gnrm:  2.46E-04, D: -1.23E-06}
+ iter:  3, EKS: -1.13691563089229342E+00, gnrm:  2.46E-04, D: -1.23E-06}
        -  {
- iter:  4, EKS: -1.13691563701480347E+00, gnrm:  3.81E-05, D: -6.12E-09}
-       -  &FINAL001  {iter:  5, EKS: -1.13691563719242450E+00, gnrm:  3.81E-05, D: -1.78E-10, 
+ iter:  4, EKS: -1.13691563701480258E+00, gnrm:  3.81E-05, D: -6.12E-09}
+       -  &FINAL001  {iter:  5, EKS: -1.13691563719242472E+00, gnrm:  3.81E-05, D: -1.78E-10, 
  }
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
        Total magnetization             :  0.000000
@@ -576,15 +580,15 @@
    norm(P)                             :  1.045403E-03
  Average noise forces: {x:  1.71301814E-04, y:  2.21811203E-04, z:  2.21811203E-04, 
                     total:  3.57413949E-04}
- Clean forces norm (Ha/Bohr): {maxval:  1.442530347887E-03, fnrm2:  4.161787609148E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.578004991209E-03, fnrm2:  4.289713362531E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  1.442530347887E-03, fnrm2:  4.161787609151E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.578004991210E-03, fnrm2:  4.289713362534E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [ 1.442530347887E-03, -1.524659305058E-20, -1.694065894509E-21]} # 0001
- -  {H: [-1.442530347887E-03, -1.185846126156E-20,  1.694065894509E-21]} # 0002
+ -  {H: [ 1.442530347887E-03, -8.470329472543E-22, -1.694065894509E-21]} # 0001
+ -  {H: [-1.442530347887E-03,  8.470329472543E-22,  1.694065894509E-21]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  1.86
+   CPU time (s)                        :  1.91
    Elapsed time (s)                    :  0.95
  (F) Move: {atom:  1, direction:  1, axis: x, displacement (Bohr):  7.0312500000E-03}
 ---
@@ -701,13 +705,13 @@
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  {
- iter:  1, EKS: -1.13681883191122557E+00, gnrm:  1.77E-02}
+ iter:  1, EKS: -1.13681883191122601E+00, gnrm:  1.77E-02}
        -  {
- iter:  2, EKS: -1.13689745958753186E+00, gnrm:  3.89E-03, D: -7.86E-05}
+ iter:  2, EKS: -1.13689745958753274E+00, gnrm:  3.89E-03, D: -7.86E-05}
        -  {
  iter:  3, EKS: -1.13690229974716939E+00, gnrm:  4.81E-04, D: -4.84E-06}
        -  {
- iter:  4, EKS: -1.13690232615608489E+00, gnrm:  7.95E-05, D: -2.64E-08}
+ iter:  4, EKS: -1.13690232615608444E+00, gnrm:  7.95E-05, D: -2.64E-08}
        -  &FINAL001  {iter:  5, EKS: -1.13690232688507287E+00, gnrm:  7.95E-05, D: -7.29E-10, 
  }
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
@@ -727,15 +731,15 @@
  Average noise forces: {x:  1.87619795E-04, y:  2.20934806E-04, z:  2.20934806E-04, 
                     total:  3.64452417E-04}
  Clean forces norm (Ha/Bohr): {maxval:  3.294701934990E-03, fnrm2:  2.171012168085E-05}
- Raw forces norm (Ha/Bohr): {maxval:  3.435167758466E-03, fnrm2:  2.184316377652E-05}
+ Raw forces norm (Ha/Bohr): {maxval:  3.435167758466E-03, fnrm2:  2.184316377653E-05}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-3.294701934990E-03, -1.439956010332E-20, -8.470329472543E-22]} # 0001
- -  {H: [ 3.294701934990E-03, -1.270549420881E-20,  8.470329472543E-22]} # 0002
+ -  {H: [-3.294701934990E-03,  1.270549420881E-20, -8.470329472543E-22]} # 0001
+ -  {H: [ 3.294701934990E-03,  1.439956010332E-20,  8.470329472543E-22]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  1.86
-   Elapsed time (s)                    :  0.95
+   CPU time (s)                        :  1.84
+   Elapsed time (s)                    :  0.96
  (F) Move: {atom:  1, direction: -1, axis: y, displacement (Bohr): -7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -851,14 +855,14 @@
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  {
- iter:  1, EKS: -1.13688517086002450E+00, gnrm:  1.20E-02}
+ iter:  1, EKS: -1.13688517086002494E+00, gnrm:  1.20E-02}
        -  {
- iter:  2, EKS: -1.13691515464926196E+00, gnrm:  2.52E-03, D: -3.00E-05}
+ iter:  2, EKS: -1.13691515464926352E+00, gnrm:  2.52E-03, D: -3.00E-05}
        -  {
- iter:  3, EKS: -1.13691704607568811E+00, gnrm:  3.09E-04, D: -1.89E-06}
+ iter:  3, EKS: -1.13691704607568922E+00, gnrm:  3.09E-04, D: -1.89E-06}
        -  {
- iter:  4, EKS: -1.13691705955518096E+00, gnrm:  6.32E-05, D: -1.35E-08}
-       -  &FINAL001  {iter:  5, EKS: -1.13691706002433413E+00, gnrm:  6.32E-05, D: -4.69E-10, 
+ iter:  4, EKS: -1.13691705955518141E+00, gnrm:  6.32E-05, D: -1.35E-08}
+       -  &FINAL001  {iter:  5, EKS: -1.13691706002433479E+00, gnrm:  6.32E-05, D: -4.69E-10, 
  }
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
        Total magnetization             :  0.000000
@@ -876,16 +880,16 @@
    norm(P)                             :  1.058680E-03
  Average noise forces: {x:  1.77470813E-04, y:  2.21336249E-04, z:  2.21094797E-04, 
                     total:  3.59678375E-04}
- Clean forces norm (Ha/Bohr): {maxval:  9.630205540398E-04, fnrm2:  1.854817175006E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.103015002804E-03, fnrm2:  1.995142613331E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  9.630205540404E-04, fnrm2:  1.854817175009E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.103015002805E-03, fnrm2:  1.995142613333E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-9.630091796393E-04,  4.680537755764E-06, -8.470329472543E-22]} # 0001
- -  {H: [ 9.630091796393E-04, -4.680537755764E-06,  8.470329472543E-22]} # 0002
+ -  {H: [-9.630091796399E-04,  4.680537755767E-06, -1.694065894509E-21]} # 0001
+ -  {H: [ 9.630091796399E-04, -4.680537755767E-06,  1.694065894509E-21]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
    CPU time (s)                        :  1.89
-   Elapsed time (s)                    :  0.95
+   Elapsed time (s)                    :  0.96
  (F) Move: {atom:  1, direction:  1, axis: y, displacement (Bohr):  7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -1001,16 +1005,16 @@
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  {
- iter:  1, EKS: -1.13687231681676804E+00, gnrm:  1.62E-02}
+ iter:  1, EKS: -1.13687231681676870E+00, gnrm:  1.62E-02}
        -  {
  iter:  2, EKS: -1.13691425920293643E+00, gnrm:  3.13E-03, D: -4.19E-05}
        -  {
- iter:  3, EKS: -1.13691692973984204E+00, gnrm:  4.17E-04, D: -2.67E-06}
+ iter:  3, EKS: -1.13691692973984337E+00, gnrm:  4.17E-04, D: -2.67E-06}
        -  {
- iter:  4, EKS: -1.13691695991882513E+00, gnrm:  1.12E-04, D: -3.02E-08}
+ iter:  4, EKS: -1.13691695991882535E+00, gnrm:  1.12E-04, D: -3.02E-08}
        -  {
- iter:  5, EKS: -1.13691696097611805E+00, gnrm:  8.02E-06, D: -1.06E-09}
-       -  &FINAL001  {iter:  6, EKS: -1.13691696099643358E+00, gnrm:  8.02E-06, D: -2.03E-11, 
+ iter:  5, EKS: -1.13691696097612005E+00, gnrm:  8.02E-06, D: -1.06E-09}
+       -  &FINAL001  {iter:  6, EKS: -1.13691696099643402E+00, gnrm:  8.02E-06, D: -2.03E-11, 
  }
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
        Total magnetization             :  0.000000
@@ -1028,16 +1032,16 @@
    norm(P)                             :  1.073693E-03
  Average noise forces: {x:  1.79086964E-04, y:  2.21375320E-04, z:  2.21180246E-04, 
                     total:  3.60554953E-04}
- Clean forces norm (Ha/Bohr): {maxval:  9.628607182423E-04, fnrm2:  1.854201525468E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  9.628607182425E-04, fnrm2:  1.854201525469E-06}
  Raw forces norm (Ha/Bohr): {maxval:  1.129141436935E-03, fnrm2:  1.999720374385E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-9.628493457296E-04, -4.679760910990E-06,  0.000000000000E+00]} # 0001
- -  {H: [ 9.628493457296E-04,  4.679760910990E-06,  0.000000000000E+00]} # 0002
+ -  {H: [-9.628493457297E-04, -4.679760910991E-06, -1.694065894509E-21]} # 0001
+ -  {H: [ 9.628493457297E-04,  4.679760910991E-06,  1.694065894509E-21]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  2.14
-   Elapsed time (s)                    :  1.09
+   CPU time (s)                        :  2.17
+   Elapsed time (s)                    :  1.11
  (F) Move: {atom:  1, direction: -1, axis: z, displacement (Bohr): -7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -1153,13 +1157,13 @@
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  {
- iter:  1, EKS: -1.13689473903907978E+00, gnrm:  1.14E-02}
+ iter:  1, EKS: -1.13689473903908023E+00, gnrm:  1.14E-02}
        -  {
- iter:  2, EKS: -1.13691570538586872E+00, gnrm:  2.22E-03, D: -2.10E-05}
+ iter:  2, EKS: -1.13691570538586784E+00, gnrm:  2.22E-03, D: -2.10E-05}
        -  {
- iter:  3, EKS: -1.13691704429760199E+00, gnrm:  2.97E-04, D: -1.34E-06}
+ iter:  3, EKS: -1.13691704429760221E+00, gnrm:  2.97E-04, D: -1.34E-06}
        -  {
- iter:  4, EKS: -1.13691705949170152E+00, gnrm:  7.99E-05, D: -1.52E-08}
+ iter:  4, EKS: -1.13691705949170263E+00, gnrm:  7.99E-05, D: -1.52E-08}
        -  &FINAL001  {iter:  5, EKS: -1.13691706002699600E+00, gnrm:  7.99E-05, D: -5.35E-10, 
  }
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
@@ -1178,16 +1182,16 @@
    norm(P)                             :  1.066565E-03
  Average noise forces: {x:  1.78067431E-04, y:  2.21456566E-04, z:  2.21485496E-04, 
                     total:  3.60287171E-04}
- Clean forces norm (Ha/Bohr): {maxval:  9.622009142936E-04, fnrm2:  1.851661198935E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.102812194783E-03, fnrm2:  1.992214452295E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  9.622009142943E-04, fnrm2:  1.851661198938E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.102812194784E-03, fnrm2:  1.992214452298E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-9.621895495739E-04,  1.355252715607E-20,  4.676554087127E-06]} # 0001
- -  {H: [ 9.621895495739E-04,  1.355252715607E-20, -4.676554087127E-06]} # 0002
+ -  {H: [-9.621895495746E-04,  0.000000000000E+00,  4.676554087130E-06]} # 0001
+ -  {H: [ 9.621895495746E-04,  0.000000000000E+00, -4.676554087130E-06]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  1.84
-   Elapsed time (s)                    :  0.95
+   CPU time (s)                        :  1.89
+   Elapsed time (s)                    :  0.97
  (F) Move: {atom:  1, direction:  1, axis: z, displacement (Bohr):  7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -1305,14 +1309,14 @@
        -  {
  iter:  1, EKS: -1.13687230598323041E+00, gnrm:  1.62E-02}
        -  {
- iter:  2, EKS: -1.13691425848325189E+00, gnrm:  3.13E-03, D: -4.20E-05}
+ iter:  2, EKS: -1.13691425848325278E+00, gnrm:  3.13E-03, D: -4.20E-05}
        -  {
- iter:  3, EKS: -1.13691692972956937E+00, gnrm:  4.17E-04, D: -2.67E-06}
+ iter:  3, EKS: -1.13691692972956981E+00, gnrm:  4.17E-04, D: -2.67E-06}
        -  {
- iter:  4, EKS: -1.13691695991835551E+00, gnrm:  1.12E-04, D: -3.02E-08}
+ iter:  4, EKS: -1.13691695991835595E+00, gnrm:  1.12E-04, D: -3.02E-08}
        -  {
- iter:  5, EKS: -1.13691696097610051E+00, gnrm:  8.03E-06, D: -1.06E-09}
-       -  &FINAL001  {iter:  6, EKS: -1.13691696099642869E+00, gnrm:  8.03E-06, D: -2.03E-11, 
+ iter:  5, EKS: -1.13691696097610007E+00, gnrm:  8.03E-06, D: -1.06E-09}
+       -  &FINAL001  {iter:  6, EKS: -1.13691696099642892E+00, gnrm:  8.03E-06, D: -2.03E-11, 
  }
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
        Total magnetization             :  0.000000
@@ -1330,16 +1334,16 @@
    norm(P)                             :  1.073702E-03
  Average noise forces: {x:  1.79087904E-04, y:  2.21180528E-04, z:  2.21375486E-04, 
                     total:  3.60555695E-04}
- Clean forces norm (Ha/Bohr): {maxval:  9.628607737171E-04, fnrm2:  1.854201739126E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.129142177777E-03, fnrm2:  1.999721117407E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  9.628607737172E-04, fnrm2:  1.854201739127E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.129142177776E-03, fnrm2:  1.999721117407E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-9.628494012038E-04,  6.776263578034E-21, -4.679761180612E-06]} # 0001
- -  {H: [ 9.628494012038E-04,  2.032879073410E-20,  4.679761180612E-06]} # 0002
+ -  {H: [-9.628494012038E-04,  6.776263578034E-21, -4.679761180613E-06]} # 0001
+ -  {H: [ 9.628494012038E-04,  2.032879073410E-20,  4.679761180613E-06]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  2.20
-   Elapsed time (s)                    :  1.10
+   CPU time (s)                        :  2.18
+   Elapsed time (s)                    :  1.11
  (F) Move: {atom:  2, direction: -1, axis: x, displacement (Bohr): -7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -1455,14 +1459,14 @@
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  {
- iter:  1, EKS: -1.13687039487434705E+00, gnrm:  1.20E-02}
+ iter:  1, EKS: -1.13687039487434749E+00, gnrm:  1.20E-02}
        -  {
- iter:  2, EKS: -1.13690045677788643E+00, gnrm:  2.49E-03, D: -3.01E-05}
+ iter:  2, EKS: -1.13690045677788598E+00, gnrm:  2.49E-03, D: -3.01E-05}
        -  {
- iter:  3, EKS: -1.13690231332075564E+00, gnrm:  2.88E-04, D: -1.86E-06}
+ iter:  3, EKS: -1.13690231332075653E+00, gnrm:  2.88E-04, D: -1.86E-06}
        -  {
  iter:  4, EKS: -1.13690232646194200E+00, gnrm:  6.25E-05, D: -1.31E-08}
-       -  &FINAL001  {iter:  5, EKS: -1.13690232690266546E+00, gnrm:  6.25E-05, D: -4.41E-10, 
+       -  &FINAL001  {iter:  5, EKS: -1.13690232690266591E+00, gnrm:  6.25E-05, D: -4.41E-10, 
  }
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
        Total magnetization             :  0.000000
@@ -1480,16 +1484,16 @@
    norm(P)                             :  1.092873E-03
  Average noise forces: {x:  1.85831077E-04, y:  2.20416775E-04, z:  2.20629838E-04, 
                     total:  3.63034805E-04}
- Clean forces norm (Ha/Bohr): {maxval:  3.294739045838E-03, fnrm2:  2.171061076033E-05}
+ Clean forces norm (Ha/Bohr): {maxval:  3.294739045837E-03, fnrm2:  2.171061076033E-05}
  Raw forces norm (Ha/Bohr): {maxval:  3.433893474180E-03, fnrm2:  2.184260848340E-05}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-3.294739045838E-03,  1.101142831431E-20, -8.470329472543E-22]} # 0001
- -  {H: [ 3.294739045838E-03,  1.609362599783E-20,  8.470329472543E-22]} # 0002
+ -  {H: [-3.294739045837E-03, -1.355252715607E-20, -1.694065894509E-21]} # 0001
+ -  {H: [ 3.294739045837E-03, -1.355252715607E-20,  1.694065894509E-21]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  1.86
-   Elapsed time (s)                    :  0.96
+   CPU time (s)                        :  1.92
+   Elapsed time (s)                    :  0.97
  (F) Move: {atom:  2, direction:  1, axis: x, displacement (Bohr):  7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -1605,13 +1609,13 @@
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  {
- iter:  1, EKS: -1.13683237663042958E+00, gnrm:  1.76E-02}
+ iter:  1, EKS: -1.13683237663042891E+00, gnrm:  1.76E-02}
        -  {
- iter:  2, EKS: -1.13691068044047161E+00, gnrm:  3.91E-03, D: -7.83E-05}
+ iter:  2, EKS: -1.13691068044047072E+00, gnrm:  3.91E-03, D: -7.83E-05}
        -  {
- iter:  3, EKS: -1.13691561257389662E+00, gnrm:  4.95E-04, D: -4.93E-06}
+ iter:  3, EKS: -1.13691561257389639E+00, gnrm:  4.95E-04, D: -4.93E-06}
        -  {
- iter:  4, EKS: -1.13691563647181071E+00, gnrm:  7.45E-05, D: -2.39E-08}
+ iter:  4, EKS: -1.13691563647181226E+00, gnrm:  7.45E-05, D: -2.39E-08}
        -  &FINAL001  {iter:  5, EKS: -1.13691563717254662E+00, gnrm:  7.45E-05, D: -7.01E-10, 
  }
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
@@ -1630,16 +1634,16 @@
    norm(P)                             :  1.033480E-03
  Average noise forces: {x:  1.70025396E-04, y:  2.21521408E-04, z:  2.21522274E-04, 
                     total:  3.56444228E-04}
- Clean forces norm (Ha/Bohr): {maxval:  1.442054332968E-03, fnrm2:  4.159041398465E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.576597680278E-03, fnrm2:  4.286275570962E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  1.442054332969E-03, fnrm2:  4.159041398471E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.576597680279E-03, fnrm2:  4.286275570967E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [ 1.442054332968E-03, -1.694065894509E-21, -1.694065894509E-21]} # 0001
- -  {H: [-1.442054332968E-03,  1.694065894509E-21,  1.694065894509E-21]} # 0002
+ -  {H: [ 1.442054332969E-03, -8.470329472543E-22, -8.470329472543E-22]} # 0001
+ -  {H: [-1.442054332969E-03,  8.470329472543E-22,  8.470329472543E-22]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  1.90
-   Elapsed time (s)                    :  0.96
+   CPU time (s)                        :  1.92
+   Elapsed time (s)                    :  0.98
  (F) Move: {atom:  2, direction: -1, axis: y, displacement (Bohr): -7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -1755,14 +1759,14 @@
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  {
- iter:  1, EKS: -1.13688483094494464E+00, gnrm:  1.20E-02}
+ iter:  1, EKS: -1.13688483094494441E+00, gnrm:  1.20E-02}
        -  {
- iter:  2, EKS: -1.13691506472607107E+00, gnrm:  2.52E-03, D: -3.02E-05}
+ iter:  2, EKS: -1.13691506472607196E+00, gnrm:  2.52E-03, D: -3.02E-05}
        -  {
- iter:  3, EKS: -1.13691694635674900E+00, gnrm:  3.03E-04, D: -1.88E-06}
+ iter:  3, EKS: -1.13691694635674923E+00, gnrm:  3.03E-04, D: -1.88E-06}
        -  {
  iter:  4, EKS: -1.13691696051038948E+00, gnrm:  6.45E-05, D: -1.42E-08}
-       -  &FINAL001  {iter:  5, EKS: -1.13691696098333872E+00, gnrm:  6.45E-05, D: -4.73E-10, 
+       -  &FINAL001  {iter:  5, EKS: -1.13691696098334005E+00, gnrm:  6.45E-05, D: -4.73E-10, 
  }
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
        Total magnetization             :  0.000000
@@ -1780,16 +1784,16 @@
    norm(P)                             :  1.082775E-03
  Average noise forces: {x:  1.80082566E-04, y:  2.21338765E-04, z:  2.21299157E-04, 
                     total:  3.61100950E-04}
- Clean forces norm (Ha/Bohr): {maxval:  9.623471234941E-04, fnrm2:  1.852223972195E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.129369695975E-03, fnrm2:  1.998208744803E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  9.623471234944E-04, fnrm2:  1.852223972196E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.129369695976E-03, fnrm2:  1.998208744804E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-9.623357570475E-04, -4.677264702991E-06, -1.694065894509E-21]} # 0001
- -  {H: [ 9.623357570475E-04,  4.677264702991E-06,  1.694065894509E-21]} # 0002
+ -  {H: [-9.623357570478E-04, -4.677264702992E-06, -1.694065894509E-21]} # 0001
+ -  {H: [ 9.623357570478E-04,  4.677264702992E-06,  1.694065894509E-21]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  1.91
-   Elapsed time (s)                    :  0.96
+   CPU time (s)                        :  1.93
+   Elapsed time (s)                    :  0.98
  (F) Move: {atom:  2, direction:  1, axis: y, displacement (Bohr):  7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -1905,16 +1909,16 @@
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  {
- iter:  1, EKS: -1.13687241789372551E+00, gnrm:  1.62E-02}
+ iter:  1, EKS: -1.13687241789372684E+00, gnrm:  1.62E-02}
        -  {
- iter:  2, EKS: -1.13691435854766021E+00, gnrm:  3.13E-03, D: -4.19E-05}
+ iter:  2, EKS: -1.13691435854765976E+00, gnrm:  3.13E-03, D: -4.19E-05}
        -  {
- iter:  3, EKS: -1.13691702876175849E+00, gnrm:  4.17E-04, D: -2.67E-06}
+ iter:  3, EKS: -1.13691702876176004E+00, gnrm:  4.17E-04, D: -2.67E-06}
        -  {
- iter:  4, EKS: -1.13691705894869233E+00, gnrm:  1.13E-04, D: -3.02E-08}
+ iter:  4, EKS: -1.13691705894869211E+00, gnrm:  1.13E-04, D: -3.02E-08}
        -  {
- iter:  5, EKS: -1.13691706001710968E+00, gnrm:  8.05E-06, D: -1.07E-09}
-       -  &FINAL001  {iter:  6, EKS: -1.13691706003743787E+00, gnrm:  8.05E-06, D: -2.03E-11, 
+ iter:  5, EKS: -1.13691706001710946E+00, gnrm:  8.05E-06, D: -1.07E-09}
+       -  &FINAL001  {iter:  6, EKS: -1.13691706003743831E+00, gnrm:  8.05E-06, D: -2.03E-11, 
  }
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
        Total magnetization             :  0.000000
@@ -1932,16 +1936,16 @@
    norm(P)                             :  1.067514E-03
  Average noise forces: {x:  1.78456395E-04, y:  2.21314531E-04, z:  2.21227910E-04, 
                     total:  3.60234083E-04}
- Clean forces norm (Ha/Bohr): {maxval:  9.622402276139E-04, fnrm2:  1.851812511277E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.102943819281E-03, fnrm2:  1.992514876615E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  9.622402276135E-04, fnrm2:  1.851812511275E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.102943819281E-03, fnrm2:  1.992514876614E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-9.622288624299E-04,  4.676745160390E-06, -8.470329472543E-22]} # 0001
- -  {H: [ 9.622288624299E-04, -4.676745160390E-06,  8.470329472543E-22]} # 0002
+ -  {H: [-9.622288624295E-04,  4.676745160388E-06, -8.470329472543E-22]} # 0001
+ -  {H: [ 9.622288624295E-04, -4.676745160388E-06,  8.470329472543E-22]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  2.17
-   Elapsed time (s)                    :  1.11
+   CPU time (s)                        :  2.19
+   Elapsed time (s)                    :  1.13
  (F) Move: {atom:  2, direction: -1, axis: z, displacement (Bohr): -7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -2057,14 +2061,14 @@
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  {
- iter:  1, EKS: -1.13689463992662287E+00, gnrm:  1.14E-02}
+ iter:  1, EKS: -1.13689463992662354E+00, gnrm:  1.14E-02}
        -  {
- iter:  2, EKS: -1.13691560628822308E+00, gnrm:  2.22E-03, D: -2.10E-05}
+ iter:  2, EKS: -1.13691560628822219E+00, gnrm:  2.22E-03, D: -2.10E-05}
        -  {
- iter:  3, EKS: -1.13691694526810871E+00, gnrm:  2.97E-04, D: -1.34E-06}
+ iter:  3, EKS: -1.13691694526810982E+00, gnrm:  2.97E-04, D: -1.34E-06}
        -  {
- iter:  4, EKS: -1.13691696045619950E+00, gnrm:  7.91E-05, D: -1.52E-08}
-       -  &FINAL001  {iter:  5, EKS: -1.13691696098600858E+00, gnrm:  7.91E-05, D: -5.30E-10, 
+ iter:  4, EKS: -1.13691696045619883E+00, gnrm:  7.91E-05, D: -1.52E-08}
+       -  &FINAL001  {iter:  5, EKS: -1.13691696098601103E+00, gnrm:  7.91E-05, D: -5.30E-10, 
  }
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
        Total magnetization             :  0.000000
@@ -2082,16 +2086,16 @@
    norm(P)                             :  1.074717E-03
  Average noise forces: {x:  1.79492153E-04, y:  2.20945163E-04, z:  2.21188865E-04, 
                     total:  3.60497866E-04}
- Clean forces norm (Ha/Bohr): {maxval:  9.629157575294E-04, fnrm2:  1.854413512197E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.129173652927E-03, fnrm2:  1.999624867063E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  9.629157575300E-04, fnrm2:  1.854413512199E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.129173652927E-03, fnrm2:  1.999624867066E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-9.629043843666E-04,  6.776263578034E-21, -4.680028416663E-06]} # 0001
- -  {H: [ 9.629043843666E-04,  2.032879073410E-20,  4.680028416663E-06]} # 0002
+ -  {H: [-9.629043843672E-04, -6.776263578034E-21, -4.680028416666E-06]} # 0001
+ -  {H: [ 9.629043843672E-04,  6.776263578034E-21,  4.680028416666E-06]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  1.87
-   Elapsed time (s)                    :  0.97
+   CPU time (s)                        :  1.90
+   Elapsed time (s)                    :  1.00
  (F) Move: {atom:  2, direction:  1, axis: z, displacement (Bohr):  7.0312500000E-03}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -2207,16 +2211,16 @@
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  {
- iter:  1, EKS: -1.13687240499387032E+00, gnrm:  1.62E-02}
+ iter:  1, EKS: -1.13687240499387099E+00, gnrm:  1.62E-02}
        -  {
  iter:  2, EKS: -1.13691435762836712E+00, gnrm:  3.13E-03, D: -4.20E-05}
        -  {
- iter:  3, EKS: -1.13691702874711642E+00, gnrm:  4.17E-04, D: -2.67E-06}
+ iter:  3, EKS: -1.13691702874711598E+00, gnrm:  4.17E-04, D: -2.67E-06}
        -  {
- iter:  4, EKS: -1.13691705894804618E+00, gnrm:  1.13E-04, D: -3.02E-08}
+ iter:  4, EKS: -1.13691705894804707E+00, gnrm:  1.13E-04, D: -3.02E-08}
        -  {
- iter:  5, EKS: -1.13691706001708681E+00, gnrm:  8.06E-06, D: -1.07E-09}
-       -  &FINAL001  {iter:  6, EKS: -1.13691706003743476E+00, gnrm:  8.06E-06, D: -2.03E-11, 
+ iter:  5, EKS: -1.13691706001708726E+00, gnrm:  8.06E-06, D: -1.07E-09}
+       -  &FINAL001  {iter:  6, EKS: -1.13691706003743609E+00, gnrm:  8.06E-06, D: -2.03E-11, 
  }
        Non-Hermiticity of Hamiltonian in the Subspace:  0.00E+00
        Total magnetization             :  0.000000
@@ -2235,23 +2239,23 @@
  Average noise forces: {x:  1.78455449E-04, y:  2.21227620E-04, z:  2.21314371E-04, 
                     total:  3.60233338E-04}
  Clean forces norm (Ha/Bohr): {maxval:  9.622401745734E-04, fnrm2:  1.851812307126E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.102943077632E-03, fnrm2:  1.992514128011E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.102943077632E-03, fnrm2:  1.992514128010E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {H: [-9.622288093901E-04, -6.776263578034E-21,  4.676744902599E-06]} # 0001
- -  {H: [ 9.622288093901E-04,  6.776263578034E-21, -4.676744902599E-06]} # 0002
+ -  {H: [-9.622288093900E-04, -6.776263578034E-21,  4.676744902599E-06]} # 0001
+ -  {H: [ 9.622288093900E-04,  6.776263578034E-21, -4.676744902599E-06]} # 0002
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  2.20
-   Elapsed time (s)                    :  1.11
+   CPU time (s)                        :  2.25
+   Elapsed time (s)                    :  1.14
   #==================================================================== (F) Frequencies results
  (F) Full Dynamical Matrix Calculation :  Yes
  (F) Number of calculated degrees of freedom:  6
- (F) Dynamical matrix symmetrization   :  3.0710644949453886E-015
- (F) Eigenvalues: [ 3.6667157322E-04,  7.2429665316E-07,  7.2424759530E-07, -1.0827897723E-16, 
-                   -1.4622339162E-14, -2.7546948468E-13]
+ (F) Dynamical matrix symmetrization   :  3.0710644959183317E-015
+ (F) Eigenvalues: [ 3.6667157322E-04,  7.2429665316E-07,  7.2424759530E-07, -1.0827894955E-16, 
+                   -1.4622327252E-14, -2.7546945187E-13]
  (F) Frequencies (Hartree): [ 1.9148670273E-02,  8.5105619859E-04,  8.5102737635E-04, 
-                             -1.0405718487E-08, -1.2092286451E-07, -5.2485186927E-07]
+                             -1.0405717157E-08, -1.2092281527E-07, -5.2485183802E-07]
  (F) Frequencies (cm-1)                :  [  4202.65,  186.79,  186.78,  0.00, -0.03, -0.12 ]
  (F) Frequencies (THz)                 :  [  125.99,  5.60,  5.60,  0.00,  0.00,  0.00 ]
  (F) Zero-point energy (cm-1 and Hartree):  [  2.1013236747E+03,  9.5743351364E-03 ]
@@ -2260,14 +2264,14 @@
  (F) Vibrational Energy (cm-1 and Hartree):  [  2.1013236821E+03,  9.5743351702E-03 ]
  (F) Total Energy (Hartree)            :  9.5743351702E-03
  Memory Consumption Report:
-   Tot. No. of Allocations             :  12374
-   Tot. No. of Deallocations           :  12374
+   Tot. No. of Allocations             :  11564
+   Tot. No. of Deallocations           :  11564
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  59
      for the array                     : wz
      in the routine                    : input_wf
- Max No. of dictionaries used          :  2887 #( 808 still in use)
+ Max No. of dictionaries used          :  2983 #( 843 still in use)
  Number of dictionary folders allocated:  1
 ---
  Code logo:
@@ -2298,8 +2302,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.5
- Timestamp of this run                 : 2014-08-26 15:48:43.915
+ Version Number                        : 1.7.5.10
+ Timestamp of this run                 : 2014-09-16 14:24:30.323
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -2309,7 +2313,7 @@
  Compilation options:
    Configure arguments:
      " 'FC=/opt/openmpi-1.6.4/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -i_dynamic -msse4.2 
-     -heap-arrays 1024 -openmp' 
+     -heap-arrays 1024 -openmp -traceback' 
      '--with-ext-linalg=/opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_scalapa
      ck_lp64.a  -Wl,--start-group  
      /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_cdft_core.a 
@@ -2321,7 +2325,8 @@
    Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.4/bin/mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
+     FCFLAGS:
+       -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp -traceback
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  perf:
@@ -2359,9 +2364,10 @@
    maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
    ef_interpol_det                     : 0.10E-19 # FOE max determinant of cubic interpolation matrix
    ef_interpol_chargediff              : 0.10E+02 # FOE max charge difference for interpolation
-   mixing_after_inputguess             : Yes #    Mixing step after linear input guess (T/F)
+   mixing_after_inputguess             : 1 #      Mixing step after linear input gues
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 2 #      Enables linear sumrho check
+   check_overlap                       : 2 #      Enables linear overlap check
    experimental_mode                   : No #     Activate the experimental mode in linear scaling
    write_orbitals                      : No #     Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
    explicit_locregcenters              : No #     Linear scaling explicitely specify localization centers
@@ -2380,6 +2386,7 @@
    correction_co_contra                : No #     linear scaling correction covariant / contravariant gradient
    fscale_lowerbound                   : 5.0000000000000001E-003 # linear scaling lower bound for the error function decay length
    fscale_upperbound                   : 5.0000000000000003E-002 # linear scaling upper bound for the error function decay length
+   imethod_overlap                     : 1 #      method to calculate the overlap matrices (1=old, 2=new)
    FOE_restart                         : 0 #      Restart method to be used for the FOE method
  dft:
    hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
@@ -2404,6 +2411,7 @@
    nvirt                               : 0 #      No. of virtual orbs
    nplot                               : 0 #      No. of plotted orbs
    disablesym                          : Yes #    Disable the symmetry detection
+   itermin                             : 0 #      Min. iterations of wfn. opt. steps
  kpt:
    method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
@@ -2452,8 +2460,8 @@
    Radii of active regions (AU):
      Coarse                            : 1.36
      Fine                              : 0.15
-     Coarse PSP                        : 0.15
      Source                            : PSP File
+     Coarse PSP                        : 0.0
    PAW patch                           : No
    Source                              : psppar.H
  lin_general:
@@ -2547,11 +2555,11 @@
   #================================================================= (F) Frequencies results
  (F) Full Dynamical Matrix Calculation :  Yes
  (F) Number of calculated degrees of freedom:  6
- (F) Dynamical matrix symmetrization   :  3.0710644949453886E-015
+ (F) Dynamical matrix symmetrization   :  3.0710644959183317E-015
  (F) Eigenvalues: [ 3.6667157322E-04,  7.2429665316E-07,  7.2424759530E-07, 
-                   -1.0827897723E-16, -1.4622339162E-14, -2.7546948468E-13]
+                   -1.0827894955E-16, -1.4622327252E-14, -2.7546945187E-13]
  (F) Frequencies (Hartree): [ 1.9148670273E-02,  8.5105619859E-04,  8.5102737635E-04, 
-                             -1.0405718487E-08, -1.2092286451E-07, -5.2485186927E-07]
+                             -1.0405717157E-08, -1.2092281527E-07, -5.2485183802E-07]
  (F) Frequencies (cm-1): [ 4202.65,  186.79,  186.78,  0.00, -0.03, -0.12]
  (F) Frequencies (THz)                 :  [  125.99,  5.60,  5.60,  0.00,  0.00,  0.00 ]
  (F) Zero-point energy (cm-1 and Hartree):  [  2.1013236747E+03,  9.5743351364E-03 ]
@@ -2560,12 +2568,12 @@
  (F) Vibrational Energy (cm-1 and Hartree):  [  2.1013236821E+03,  9.5743351702E-03 ]
  (F) Total Energy (Hartree)            : -1.1273429753E+00
  Memory Consumption Report:
-   Tot. No. of Allocations             :  66
-   Tot. No. of Deallocations           :  66
+   Tot. No. of Allocations             :  65
+   Tot. No. of Deallocations           :  65
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  0
      for the array                     : params
      in the routine                    : input_keys_fill_all
- Max No. of dictionaries used          :  2887 #( 808 still in use)
+ Max No. of dictionaries used          :  2983 #( 843 still in use)
  Number of dictionary folders allocated:  1

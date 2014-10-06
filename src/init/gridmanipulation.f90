@@ -11,7 +11,7 @@
 !> Calculates the overall size of the simulation cell 
 !! and shifts the atoms such that their position is the most symmetric possible.
 !! Assign these values to the global localisation region descriptor.
-subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,shift)
+subroutine system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,OCLconv,Glr,shift)
    use module_base
    use module_types
    use yaml_output, only: yaml_toa
@@ -19,7 +19,7 @@ subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,sh
    type(atoms_data), intent(inout) :: atoms
    real(gp), intent(in) :: crmult,frmult
    real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
-   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+   !real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
    real(gp), intent(inout) :: hx,hy,hz
    logical, intent(in) :: OCLconv
    type(locreg_descriptors), intent(out) :: Glr
@@ -61,7 +61,7 @@ subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,sh
 
    do iat=1,atoms%astruct%nat
 
-      rad=radii_cf(atoms%astruct%iatype(iat),1)*crmult
+      rad=atoms%radii_cf(atoms%astruct%iatype(iat),1)*crmult
 
       cxmax=max(cxmax,rxyz(1,iat)+rad) 
       cxmin=min(cxmin,rxyz(1,iat)-rad)
@@ -194,7 +194,7 @@ subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,sh
    end if
 
    do iat=1,atoms%astruct%nat
-      rad=radii_cf(atoms%astruct%iatype(iat),2)*frmult
+      rad=atoms%radii_cf(atoms%astruct%iatype(iat),2)*frmult
       if (rad > 0.0_gp) then
          nfl1=min(nfl1,ceiling((rxyz(1,iat)-rad)/hx - eps_mach))
          nfu1=max(nfu1,floor((rxyz(1,iat)+rad)/hx + eps_mach))

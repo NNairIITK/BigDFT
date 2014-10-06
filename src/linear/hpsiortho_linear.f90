@@ -79,7 +79,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       hpsi_conf = f_malloc(tmb%npsidim_orbs,id='hpsi_conf')
       call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
            tmb%orbs, tmb%hpsi, hpsi_conf)
-      call timing(iproc,'eglincomms','ON')
+      call timing(iproc,'buildgrad_mcpy','ON')
       ist=1
       do iorb=1,tmb%orbs%norbp
           iiorb=tmb%orbs%isorb+iorb
@@ -89,7 +89,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           call daxpy(ncount, -tt, tmb%psi(ist), 1, hpsi_conf(ist), 1)
           ist=ist+ncount
       end do
-      call timing(iproc,'eglincomms','OF')
+      call timing(iproc,'buildgrad_mcpy','OF')
   end if
 
   ! by default no quick exit
@@ -109,70 +109,68 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   if(target_function==TARGET_FUNCTION_IS_ENERGY .or. &
      target_function==TARGET_FUNCTION_IS_HYBRID) then
+     call build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f)
+      
+     !!! if(tmb%ham_descr%collcom%ndimind_c>0) &
+     !!!     call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsittmp_c(1), 1)
+     !!! if(tmb%ham_descr%collcom%ndimind_f>0) &
+     !!!     call vcopy(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsittmp_f(1), 1)
 
-      if(tmb%ham_descr%collcom%ndimind_c>0) &
-          call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsittmp_c(1), 1)
-      if(tmb%ham_descr%collcom%ndimind_f>0) &
-          call vcopy(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsittmp_f(1), 1)
+     !!! if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+     !!!     call timing(iproc,'buildgrad_mcpy','ON')
+     !!!     kernel_compr_tmp = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=SPARSE_FULL,id='kernel_compr_tmp')
+     !!!     call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
+     !!!     do ispin=1,tmb%linmat%l%nspin
+     !!!         ishift=(ispin-1)*tmb%linmat%l%nvctr
+     !!!         do iseg=1,tmb%linmat%l%nseg
+     !!!             ii=tmb%linmat%l%keyv(iseg)
+     !!!             do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
+     !!!                 irowcol = orb_from_index(tmb%linmat%l, i)
+     !!!                 if(irowcol(1)==irowcol(2)) then
+     !!!                     tmb%linmat%kernel_%matrix_compr(ii+ishift)=0.d0
+     !!!                 else
+     !!!                     tmb%linmat%kernel_%matrix_compr(ii+ishift)=kernel_compr_tmp(ii+ishift)
+     !!!                 end if
+     !!!                 ii=ii+1
+     !!!             end do
+     !!!         end do
+     !!!     end do
 
-      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-          call timing(iproc,'eglincomms','ON')
-          kernel_compr_tmp = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=SPARSE_FULL,id='kernel_compr_tmp')
-          call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
-          do ispin=1,tmb%linmat%l%nspin
-              ishift=(ispin-1)*tmb%linmat%l%nvctr
-              do iseg=1,tmb%linmat%l%nseg
-                  ii=tmb%linmat%l%keyv(iseg)
-                  do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
-                          !iiorb = tmb%linmat%l%orb_from_index(1,ii)
-                          !jjorb = tmb%linmat%l%orb_from_index(2,ii)
-                          irowcol = orb_from_index(tmb%linmat%l, i)
-                      if(irowcol(1)==irowcol(2)) then
-                          tmb%linmat%kernel_%matrix_compr(ii+ishift)=0.d0
-                      else
-                          tmb%linmat%kernel_%matrix_compr(ii+ishift)=kernel_compr_tmp(ii+ishift)
-                      end if
-                      ii=ii+1
-                  end do
-              end do
-          end do
-
-          ist=1
-          do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
-              ilr=tmb%orbs%inwhichlocreg(iorb)
-              if (tmb%orbs%spinsgn(iorb)>0.d0) then
-                  ispin=1
-              else
-                  ispin=2
-              end if
-              do iseg=1,tmb%linmat%l%nseg
-                  ii=tmb%linmat%l%keyv(iseg)
-                  do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
-                      !iiorb = tmb%linmat%l%orb_from_index(1,ii)
-                      !jjorb = tmb%linmat%l%orb_from_index(2,ii)
-                      irowcol = orb_from_index(tmb%linmat%l, i)
-                      ishift=(ispin-1)*tmb%linmat%l%nvctr
-                      if(irowcol(1)==irowcol(2) .and. irowcol(1)==iorb) then
-                          ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
-                          call dscal(ncount, kernel_compr_tmp(ii+ishift), tmb%hpsi(ist), 1)
-                          ist=ist+ncount
-                      end if
-                      ii=ii+1
-                  end do
-              end do
-          end do
-          call timing(iproc,'eglincomms','OF')
-          call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-               tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
-          call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-               tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
-          ! copy correct kernel back
-          call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
-          call f_free_ptr(kernel_compr_tmp)
-      else
-          call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-               tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
-      end if
+     !!!     ist=1
+     !!!     do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
+     !!!         ilr=tmb%orbs%inwhichlocreg(iorb)
+     !!!         if (tmb%orbs%spinsgn(iorb)>0.d0) then
+     !!!             ispin=1
+     !!!         else
+     !!!             ispin=2
+     !!!         end if
+     !!!         do iseg=1,tmb%linmat%l%nseg
+     !!!             ii=tmb%linmat%l%keyv(iseg)
+     !!!             do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
+     !!!                 irowcol = orb_from_index(tmb%linmat%l, i)
+     !!!                 ishift=(ispin-1)*tmb%linmat%l%nvctr
+     !!!                 if(irowcol(1)==irowcol(2) .and. irowcol(1)==iorb) then
+     !!!                     ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
+     !!!                     write(*,*) 'iorb, ii, ishift, ist', iorb, ii, ishift, ist
+     !!!                     call dscal(ncount, kernel_compr_tmp(ii+ishift), tmb%hpsi(ist), 1)
+     !!!                     ist=ist+ncount
+     !!!                 end if
+     !!!                 ii=ii+1
+     !!!             end do
+     !!!         end do
+     !!!     end do
+     !!!     call timing(iproc,'buildgrad_mcpy','OF')
+     !!!     call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+     !!!          tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+     !!!     call build_linear_combination_transposed(tmb%ham_descr%collcom, &
+     !!!          tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
+     !!!     ! copy correct kernel back
+     !!!     call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+     !!!     call f_free_ptr(kernel_compr_tmp)
+     !!! else
+     !!!     call build_linear_combination_transposed(tmb%ham_descr%collcom, &
+     !!!          tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+     !!! end if
   end if
 
  
@@ -383,13 +381,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
   ! Calculate trace (or band structure energy, resp.)
-  trH=0.d0
-  call timing(iproc,'eglincomms','ON')
-  do iorb=1,tmb%orbs%norb
-     ii=matrixindex_in_compressed(tmb%linmat%m,iorb,iorb)
-     trH = trH + tmb%linmat%ham_%matrix_compr(ii)
-  end do
-  call timing(iproc,'eglincomms','OF')
+  call calculate_trace()
 
   !experimental
   if (present(cdft).and..false.) then
@@ -516,7 +508,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
   call vcopy(tmb%npsidim_orbs, hpsi_small(1), 1, lhphiold(1), 1)
-  call timing(iproc,'eglincomms','OF')
+  call timing(iproc,'buildgrad_mcpy','OF')
 
   ! if energy has increased or we only wanted to calculate the energy, not gradient, we can return here
   ! rather than calculating the preconditioning for nothing
@@ -590,6 +582,34 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   call f_release_routine()
 
 
+  contains
+
+    subroutine calculate_trace()
+      implicit none
+
+      ! Local variables
+      integer :: iorb, iiorb
+
+      call f_routine(id='calculate_trace')
+      call timing(iproc,'calctrace_comp','ON')
+
+      trH=0.d0
+      do iorb=1,tmb%orbs%norbp
+         iiorb=tmb%orbs%isorb+iorb
+         ii=matrixindex_in_compressed(tmb%linmat%m,iiorb,iiorb)
+         trH = trH + tmb%linmat%ham_%matrix_compr(ii)
+      end do
+      call timing(iproc,'calctrace_comp','OF')
+      call timing(iproc,'calctrace_comm','ON')
+      if (nproc>1) then
+          call mpiallred(trH, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
+      call timing(iproc,'calctrace_comm','OF')
+
+      call f_release_routine()
+
+    end subroutine calculate_trace
+
 end subroutine calculate_energy_and_gradient_linear
 
 
@@ -644,7 +664,8 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
 
   !call nullify_sparse_matrix(grad_ovrlp)
   grad_ovrlp=sparse_matrix_null()
-  call sparse_copy_pattern(tmb%linmat%m, grad_ovrlp, iproc, subname)
+  !call sparse_copy_pattern(tmb%linmat%m, grad_ovrlp, iproc, subname)
+  call copy_sparse_matrix(tmb%linmat%m, grad_ovrlp)
   !grad_ovrlp%matrix_compr=f_malloc_ptr(grad_ovrlp%nvctr,id='grad_ovrlp%matrix_compr')
   grad_ovrlp_ = matrices_null()
   call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
@@ -832,3 +853,169 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   call f_release_routine
 
 end subroutine hpsitopsi_linear
+
+
+
+subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f)
+  use module_base
+  use module_types
+  use sparsematrix_base, only: sparsematrix_malloc_ptr, SPARSE_FULL, assignment(=)
+  use sparsematrix, only: orb_from_index
+  use communications, only: transpose_localized
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, target_function
+  type(DFT_wavefunction),intent(inout) :: tmb
+  real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c),intent(inout) :: hpsit_c
+  real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f),intent(inout) :: hpsit_f
+  real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c),intent(out) :: hpsittmp_c !<workarray
+  real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f),intent(out) :: hpsittmp_f !<workarray
+
+  ! Local variables
+  integer :: ispin, ishift, iseg, ii, i, ist, ncount, iorb, ilr, isegstart, isegend, ierr, iiorb
+  integer,dimension(2) :: irowcol
+  real(kind=8),dimension(:),pointer :: kernel_compr_tmp
+  real(kind=8),dimension(:),pointer :: matrix_local
+  integer,parameter :: ALLGATHERV=51, GET=52, GLOBAL_MATRIX=101, SUBMATRIX=102
+  integer,parameter :: comm_strategy=GET
+  integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
+
+      call f_routine(id='build_gradient')
+      call timing(iproc,'buildgrad_mcpy','ON')
+
+      if(tmb%ham_descr%collcom%ndimind_c>0) &
+          call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsittmp_c(1), 1)
+      if(tmb%ham_descr%collcom%ndimind_f>0) &
+          call vcopy(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsittmp_f(1), 1)
+
+      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+          kernel_compr_tmp = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=SPARSE_FULL,id='kernel_compr_tmp')
+          call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
+          if (data_strategy==GLOBAL_MATRIX) then
+              isegstart = tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+1)
+              isegend = tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp) + &
+                        tmb%linmat%l%nsegline(tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp)-1
+              matrix_local = f_malloc_ptr(tmb%linmat%l%nvctrp,id='matrix_local')
+              do ispin=1,tmb%linmat%l%nspin
+                  ishift=(ispin-1)*tmb%linmat%l%nvctr
+                  !$omp parallel default(none) &
+                  !$omp shared(isegstart,isegend,tmb,matrix_local,kernel_compr_tmp,ishift) &
+                  !$omp private(iseg,ii,i,irowcol)
+                  !$omp do
+                  do iseg=isegstart,isegend
+                      ii=tmb%linmat%l%keyv(iseg)
+                      ! A segment is always on one line, therefore no double loop
+                      do i=tmb%linmat%l%keyg(1,1,iseg),tmb%linmat%l%keyg(2,1,iseg)
+                          if(i==tmb%linmat%l%keyg(1,2,iseg)) then
+                              matrix_local(ii-tmb%linmat%l%isvctr)=0.d0
+                          else
+                              matrix_local(ii-tmb%linmat%l%isvctr)=kernel_compr_tmp(ii+ishift)
+                          end if
+                          ii=ii+1
+                      end do
+                  end do
+                  !$omp end do
+                  !$omp end parallel
+                  if (nproc>1) then
+                       call timing(iproc,'buildgrad_mcpy','OF')
+                       call timing(iproc,'buildgrad_comm','ON')
+                       !!call mpi_allgatherv(matrix_local(1), tmb%linmat%l%nvctrp, mpi_double_precision, &
+                       !!     tmb%linmat%kernel_%matrix_compr(ishift+1), tmb%linmat%l%nvctr_par, &
+                       !!     tmb%linmat%l%isvctr_par, mpi_double_precision, &
+                       !!     bigdft_mpi%mpi_comm, ierr)
+                       if (comm_strategy==ALLGATHERV) then
+                           call mpi_allgatherv(matrix_local(1), tmb%linmat%l%nvctrp, mpi_double_precision, &
+                                tmb%linmat%kernel_%matrix_compr(ishift+1), tmb%linmat%l%nvctr_par, &
+                                tmb%linmat%l%isvctr_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+                           call f_free_ptr(matrix_local)
+                       else if (comm_strategy==GET) then
+                           !!call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l%nvctrp, matrix_local, &
+                           !!     tmb%linmat%l%nvctr_par, tmb%linmat%l%isvctr_par, &
+                           !!     tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ishift+1:ishift+tmb%linmat%l%nvctr))
+                           call mpi_get_to_allgatherv(matrix_local(1), tmb%linmat%l%nvctrp, &
+                                tmb%linmat%kernel_%matrix_compr(ishift+1), &
+                                tmb%linmat%l%nvctr_par, tmb%linmat%l%isvctr_par, bigdft_mpi%mpi_comm)
+                       else
+                           stop 'build_gradient: wrong communication strategy'
+                       end if
+                       call timing(iproc,'buildgrad_comm','OF')
+                       call timing(iproc,'buildgrad_mcpy','ON')
+                       if (ispin==tmb%linmat%l%nspin) call f_free_ptr(matrix_local)
+                   else
+                       call vcopy(tmb%linmat%l%nvctr, matrix_local(1), 1, &
+                            tmb%linmat%kernel_%matrix_compr(ishift+1), 1)
+                   end if
+              end do
+          else if (data_strategy==SUBMATRIX) then
+              do ispin=1,tmb%linmat%l%nspin
+                  ishift=(ispin-1)*tmb%linmat%l%nvctr
+                  !$omp parallel default(none) &
+                  !$omp shared(isegstart,isegend,tmb,matrix_local,kernel_compr_tmp,ishift) &
+                  !$omp private(iseg,ii,i,irowcol)
+                  !$omp do
+                  do iseg=tmb%linmat%l%istartendseg_t(1),tmb%linmat%l%istartendseg_t(2)
+                      ii=tmb%linmat%l%keyv(iseg)
+                      ! A segment is always on one line, therefore no double loop
+                      do i=tmb%linmat%l%keyg(1,1,iseg),tmb%linmat%l%keyg(2,1,iseg) !this is too much, but for the moment ok
+                          if(i==tmb%linmat%l%keyg(1,2,iseg)) then
+                              tmb%linmat%kernel_%matrix_compr(ii+ishift)=0.d0
+                          else
+                              tmb%linmat%kernel_%matrix_compr(ii+ishift)=kernel_compr_tmp(ii+ishift)
+                          end if
+                          ii=ii+1
+                      end do
+                  end do
+                  !$omp end do
+                  !$omp end parallel
+              end do
+          else
+              stop 'build_gradient: wrong data strategy'
+          end if
+
+
+
+          ist=1
+          do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
+              ilr=tmb%orbs%inwhichlocreg(iorb)
+              if (tmb%orbs%spinsgn(iorb)>0.d0) then
+                  ispin=1
+              else
+                  ispin=2
+              end if
+              iiorb = mod(iorb-1,tmb%linmat%l%nfvctr)+1 ! spin-independent index
+              ishift=(ispin-1)*tmb%linmat%l%nvctr
+              isegstart = tmb%linmat%l%istsegline(iiorb)
+              isegend = tmb%linmat%l%istsegline(iiorb) + tmb%linmat%l%nsegline(iiorb) - 1
+              do iseg=isegstart,isegend
+              !do iseg=1, tmb%linmat%l%nseg
+                  ii=tmb%linmat%l%keyv(iseg)
+                  ! A segment is always on one line, therefore no double loop
+                  do i=tmb%linmat%l%keyg(1,1,iseg),tmb%linmat%l%keyg(2,1,iseg)
+                      if (tmb%linmat%l%keyg(1,2,iseg)/=iiorb) stop 'tmb%linmat%l%keyg(1,2,iseg)/=iiorb'
+                      if(i==tmb%linmat%l%keyg(1,2,iseg)) then
+                          ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
+                          !write(*,*) 'iorb, ii, ishift, ist', iorb, ii, ishift, ist
+                          call dscal(ncount, kernel_compr_tmp(ii+ishift), tmb%hpsi(ist), 1)
+                          ist=ist+ncount
+                      end if
+                      ii=ii+1
+                  end do
+              end do
+          end do
+          call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+               tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+          call build_linear_combination_transposed(tmb%ham_descr%collcom, &
+               tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
+          ! copy correct kernel back
+          call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+          call f_free_ptr(kernel_compr_tmp)
+      else
+          call build_linear_combination_transposed(tmb%ham_descr%collcom, &
+               tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+      end if
+
+      call timing(iproc,'buildgrad_mcpy','ON')
+      call f_release_routine()
+
+end subroutine build_gradient

@@ -79,7 +79,7 @@
    gnrm_cv:
      COMMENT: convergence criterion gradient
      DESCRIPTION: Maximal value of the norm 2 of the electronic orbitals used as convergence criterion
-     RANGE: [1.e-20, 1.]
+     RANGE: [0., 1.]
      default: 1.e-4
      fast: 1.e-3
      accurate: 1.e-5
@@ -789,8 +789,12 @@
      RANGE: [0., 1000.]
      default: 10.
    mixing_after_inputguess:
-     COMMENT: Mixing step after linear input guess (T/F)
-     default: Yes
+     COMMENT: Mixing step after linear input gues
+     EXCLUSIVE:
+       0: keep the initial input guess density
+       1: perform a mixing step with the default mixing parameter
+       2: keep the new density, completely neglecting the input guess density
+     default: 1
    iterative_orthogonalization:
      COMMENT: Iterative_orthogonalization for input guess orbitals
      default: No

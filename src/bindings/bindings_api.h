@@ -1324,7 +1324,7 @@ type(atoms_data), intent(in) :: atoms
 integer, intent(in) :: iproc
 real(gp), intent(in) :: hx,hy,hz,crmult,frmult
 real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
-real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+!real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
 type(locreg_descriptors), intent(inout) :: Glr
 */
 void FC_FUNC_(glr_set_wave_descriptors, GLR_SET_WAVE_DESCRIPTORS)(const int *iproc, 
@@ -1333,7 +1333,7 @@ void FC_FUNC_(glr_set_wave_descriptors, GLR_SET_WAVE_DESCRIPTORS)(const int *ipr
                                                                   const double *hz, 
                                                                   const f90_atoms_data *atoms, 
                                                                   const double *rxyz, 
-                                                                  const double *radii_cf, 
+                                                                  //const double *radii_cf, 
                                                                   const double *crmult, 
                                                                   const double *frmult, 
                                                                   f90_locreg_descriptors *Glr);
@@ -2668,9 +2668,10 @@ use module_input_keys, only: input_keys_dump
 use module_defs, only: UNINITIALIZED, gp
 use yaml_output
 implicit none
+integer, intent(in) :: ln
 integer, intent(out) :: iostat
 type(dictionary), pointer :: dict
-character(len = *), intent(in) :: fname
+character(len = ln), intent(in) :: fname
 logical, intent(in) :: userOnly
 
 integer, parameter :: iunit = 145214 
@@ -2681,7 +2682,7 @@ void FC_FUNC_(run_objects_dump_to_file, RUN_OBJECTS_DUMP_TO_FILE)(int *iostat,
                                                                   f90_dictionary_pointer *dict, 
                                                                   const char *fname, 
                                                                   const int *userOnly, 
-                                                                  int str_ln_1);
+                                                                  const int* str_ln_1);
 /* run_objects_get src/bindings/bindingsf.f90:1389 */
 /* Fortran header:
 subroutine run_objects_get(runObj, dict, inputs, atoms)

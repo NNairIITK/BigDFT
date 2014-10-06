@@ -80,7 +80,7 @@ function GetBottom(atoms,nspin)
    real(gp), dimension(ng,10) :: psi
 
    real(gp), dimension(nmax_occ_ao) :: gaenes_aux
-   integer :: nspinor, iat, nspin_ig
+   integer :: iat, nspin_ig
 
    ! if (in_iat_absorber.ne.0) then
 
@@ -88,7 +88,7 @@ function GetBottom(atoms,nspin)
 
    GetBottom=1.0e4_gp
 
-   nspin_ig=ao_nspin_ig(nspin,nspinor=nspinor)
+   nspin_ig=ao_nspin_ig(nspin)
 
    do ity=1, atoms%astruct%ntypes
       do iat=1, atoms%astruct%nat

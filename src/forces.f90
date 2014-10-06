@@ -12,6 +12,7 @@
 subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fnoise,rst,infocode)
   use module_base
   use module_types
+  use module_atoms, only: move_this_coordinate
   use bigdft_run
   implicit none
   integer, intent(in) :: iproc,nproc
@@ -31,7 +32,6 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
   integer, dimension(:), allocatable :: kmoves
   real(gp), dimension(:), allocatable :: functional,dfunctional
   real(gp), dimension(:,:), allocatable :: radii_cf, rxyz_ref, fxyz_fake
-  logical :: move_this_coordinate
   type(energy_terms) :: energs
 
 !!$  interface !not needed anymore
@@ -111,8 +111,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
 
   !write reference in the array
   call vcopy(3*atoms%astruct%nat,rst%rxyz_new(1,1),1,rxyz_ref(1,1),1)
-  call read_radii_variables(atoms, radii_cf, &
-       & inputs%crmult, inputs%frmult, inputs%projrad)
+  radii_cf = atoms%radii_cf
 
   do iat=1,atoms%astruct%nat
 
@@ -160,7 +159,7 @@ subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fn
            !here we should call cluster
            call cluster(nproc,iproc,atoms,rst%rxyz_new,radii_cf,energy,energs,fxyz_fake,strten,fnoise,pressure,&
                 rst%KSwfn,rst%tmb,&!psi,rst%Lzd,rst%gaucoeffs,rst%gbd,rst%orbs,&
-                rst%rxyz_old,rst%hx_old,rst%hy_old,rst%hz_old,inputs,rst%GPU,infocode)
+                rst%rxyz_old,inputs,rst%GPU,infocode)
 
            !assign the quantity which should be differentiated
            functional(km)=functional_definition(iorb_ref,energy)
@@ -295,7 +294,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   real(gp), intent(out) :: fnoise,pressure
   real(gp), dimension(6), intent(out) :: strten
   real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
-  type(DFT_wavefunction),intent(in) :: tmb
+  type(DFT_wavefunction),intent(inout) :: tmb
   !local variables
   integer :: iat,i,j
   real(gp) :: charge,ucvol,maxdiff
@@ -824,7 +823,6 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
      orbs,nlpsp,wfd,psi,fsep,refill,strten)
   use module_base
   use module_types
-  use gaussians, only: gaussian_basis, nullify_gaussian_basis
   use psp_projectors, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
        PSPCODE_PAW
   implicit none
@@ -852,23 +850,17 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
   real(gp), dimension(6) :: sab
-  type(gaussian_basis),dimension(at%astruct%ntypes)::proj_G
 
   call f_routine(id=subname)
   call to_zero(6,strten(1)) 
   
-  !nullify PAW objects
-  do iatyp=1,at%astruct%ntypes
-    call nullify_gaussian_basis(proj_G(iatyp))
-  end do
-
   !quick return if no orbitals on this processor
   if (orbs%norbp == 0) return
      
   !always put complex scalprod
   !also nspinor for the moment is the biggest as possible
 
-  !  allocate(scalprod(2,0:3,7,3,4,at%astruct%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
+  !  allocate(scalprod(2,0:3,7,3,4,at%astruct%nat,orbs%norbp*orbs%nspinor),stat=i_stat)
   ! need more components in scalprod to calculate terms like dp/dx*psi*x
   scalprod = f_malloc((/ 1.to.2, 0.to.9, 1.to.7, 1.to.3, 1.to.4, 1.to.at%astruct%nat, 1.to.orbs%norbp*orbs%nspinor /),id='scalprod')
   if (2*10*7*3*4*at%astruct%nat*orbs%norbp*orbs%nspinor>0) then
@@ -941,13 +933,14 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
               ityp=at%astruct%iatype(iat)
               !calculate projectors
               istart_c=1
-              call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
-                   lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpsp%pspd(iat)%plr,&
-                   nlpsp%proj,nwarnings)!,proj_G)
+              call atom_projector(nlpsp, ityp, iat, at%astruct%atomnames(ityp), &
+                   & at%astruct%geocode, idir, lr, hx, hy, hz, &
+                   & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), &
+                   & istart_c, iproj, nwarnings)
               !!do i_all=1,nlpspd%nprojel
               !!    write(850+iat,*) i_all, proj(i_all)
               !!end do
-              !print '(a,i6,i6,1pe14.6)','iat,idir,sum(proj)',iat,idir,sum(proj)
+              !print '(a,i6,i6,1pe14.6)','iat,idir,sum(proj)',iat,idir,sum(nlpsp%proj)
  
               !calculate the contribution for each orbital
               !here the nspinor contribution should be adjusted
@@ -3698,7 +3691,7 @@ END SUBROUTINE normalizevector
 
 subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   use module_base
-  use module_types
+  use module_atoms!types
   use yaml_output
   implicit none
   integer, intent(in) :: iproc
@@ -3707,7 +3700,6 @@ subroutine clean_forces(iproc,at,rxyz,fxyz,fnoise)
   real(gp), dimension(3,at%astruct%nat), intent(inout) :: fxyz
   real(gp), intent(out) :: fnoise
   !local variables
-  logical :: move_this_coordinate
   integer :: iat,ixyz, ijk(3)
   real(gp) :: sumx,sumy,sumz, u(3), scal
   !my variables
@@ -4242,13 +4234,13 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(npsidim_orbs), intent(in) :: phi
   type(sparse_matrix),intent(in) :: denskern
-  type(matrices),intent(in) :: denskern_mat
+  type(matrices),intent(inout) :: denskern_mat
   real(gp), dimension(3,at%astruct%nat), intent(inout) :: fsep
   real(gp), dimension(6), intent(out) :: strten
   !local variables--------------
   integer :: istart_c,iproj,iat,ityp,i,j,l,m,iorbout,iiorb,ilr
   integer :: mbseg_c,mbseg_f,jseg_c,jseg_f,ind,iseg,jjorb,ispin
-  integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd
+  integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd,ncount,ist_send
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,Enl,vol
   !real(gp) :: orbfac,strc
   integer :: idir,i_all,i_stat,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb,jproc,ii,ist,ierr,iiat
@@ -4260,6 +4252,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   real(dp),dimension(:,:,:,:,:,:,:),allocatable :: scalprod_sendbuf
   real(dp),dimension(:),allocatable :: scalprod_recvbuf
   integer,parameter :: ndir=3 !3 for forces, 9 for forces and stresses
+  real(kind=8),dimension(:),allocatable :: denskern_gathered
 
   !integer :: ldim, gdim
   !real(8),dimension(:),allocatable :: phiglobal
@@ -4306,10 +4299,10 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   !always put complex scalprod
   !also nspinor for the moment is the biggest as possible
 
-  !  allocate(scalprod(2,0:3,7,3,4,at%astruct%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
+  !  allocate(scalprod(2,0:3,7,3,4,at%astruct%nat,orbs%norbp*orbs%nspinor),stat=i_stat)
   ! need more components in scalprod to calculate terms like dp/dx*psi*x
   scalprod = f_malloc((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
-                         1.to.at%astruct%nat, 1.to.max(1, orbs%norbp*orbs%nspinor+ndebug) /),id='scalprod')
+                         1.to.at%astruct%nat, 1.to.max(1, orbs%norbp*orbs%nspinor) /),id='scalprod')
   call to_zero(2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norbp*orbs%nspinor),scalprod(1,0,1,1,1,1,1))
 
 
@@ -4380,9 +4373,10 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                ityp=at%astruct%iatype(iat)
                   !calculate projectors
                   istart_c=1
-                  call atom_projector(ikpt,iat,idir,istart_c,iproj,nlpsp%nprojel,&
-                       lr,hx,hy,hz,rxyz(1,iat),at,orbs,nlpsp%pspd(iat)%plr,&
-                       nlpsp%proj,nwarnings)
+                  call atom_projector(nlpsp, ityp, iat, at%astruct%atomnames(ityp), &
+                       & at%astruct%geocode, idir, lr, hx, hy, hz, &
+                       & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), &
+                       & istart_c, iproj, nwarnings)
                    !!do i_all=1,nlpspd%nprojel
                    !!    write(800+iat,*) i_all, proj(i_all)
                    !!end do
@@ -4588,7 +4582,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
 
   scalprod_sendbuf = f_malloc((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
-                                 1.to.max(1, orbs%norbp*orbs%nspinor)+ndebug, 1.to.at%astruct%nat /),id='scalprod_sendbuf')
+                                 1.to.max(1, orbs%norbp*orbs%nspinor), 1.to.at%astruct%nat /),id='scalprod_sendbuf')
   call to_zero(2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norbp*orbs%nspinor),scalprod_sendbuf(1,0,1,1,1,1,1))
 
   ! Copy scalprod to auxiliary array for communication
@@ -4620,7 +4614,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
   !write(*,'(a,i7,es18.8)') 'iproc, scalprod_recvbuf(1)', iproc, scalprod_recvbuf(1)
   
-  !allocate(scalprod(2,0:9,7,3,4,at%astruct%nat,orbs%norbp*orbs%nspinor+ndebug),stat=i_stat)
+  !allocate(scalprod(2,0:9,7,3,4,at%astruct%nat,orbs%norbp*orbs%nspinor),stat=i_stat)
   !allocate(scalprod_sendbuf(2,0:9,7,3,4,orbs%norbp*orbs%nspinor+ndebug,at%astruct%nat),stat=i_stat)
   !allocate(scalprod_recvbuf(2*10*7*3*4*nat_par(iproc)*orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
 
@@ -4645,6 +4639,28 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   end do
 
 
+  if (nproc>1) then
+      ! The density kernel is distributed over the taskgroups, but here the entire
+      ! array is needed. Therefore gather it together from the taskgroups. If one
+      ! wants to avoid this, the parallelization scheme of the subroutine must be changed.
+      call to_zero(nproc, recvcounts(0))
+      call to_zero(nproc, recvdspls(0))
+      ncount = denskern%smmm%istartend_mm_dj(2) - denskern%smmm%istartend_mm_dj(1) + 1
+      recvcounts(iproc) = ncount
+      call mpiallred(recvcounts(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      recvdspls(0) = 0
+      do jproc=1,nproc-1
+          recvdspls(jproc) = recvdspls(jproc-1) + recvcounts(jproc-1)
+      end do
+      ist_send = denskern%smmm%istartend_mm_dj(1)
+      denskern_gathered = f_malloc(denskern%nvctr, id='denskern_gathered')
+      call mpi_get_to_allgatherv_double(denskern_mat%matrix_compr(ist_send), ncount, &
+           denskern_gathered(1), recvcounts, recvdspls, bigdft_mpi%mpi_comm)
+      call vcopy(denskern%nvctr, denskern_gathered(1), 1, denskern_mat%matrix_compr(1), 1)
+      call f_free(denskern_gathered)
+  end if
+  
+
   fxyz_orb = f_malloc((/ 3, at%astruct%nat /),id='fxyz_orb')
 
   natp_if: if (nat_par(iproc)>0) then
@@ -4667,12 +4683,12 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
          ii=0
          spin_loop: do ispin=1,denskern%nspin
             do iseg=1,denskern%nseg
-               do jjorb=denskern%keyg(1,iseg),denskern%keyg(2,iseg)
+               do jjorb=denskern%keyg(1,1,iseg),denskern%keyg(2,1,iseg)
                   ii=ii+1
                   !!iorbout = (jjorb-1)/orbs%norb + 1
                   !!jorb = jjorb - (iorbout-1)*orbs%norb
-                  iorbout = (jjorb-1)/denskern%nfvctr + 1
-                  jorb = jjorb - (iorbout-1)*denskern%nfvctr
+                  iorbout = denskern%keyg(1,2,iseg)
+                  jorb = jjorb
                   !spin shift
                   if (ispin==2) then
                       iorbout = iorbout + denskern%nfvctr

@@ -7,15 +7,14 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-
 subroutine xx_all(array,m)
   use metadata_interfaces
   implicit none
   type(malloc_information_all), intent(in) :: m
   integer, dimension(:), allocatable, intent(inout) :: array
   !--- allocate_profile-inc.f90
-  integer :: ierror,sizeof
-  integer(kind=8) :: iadd,ilsize
+  integer :: ierror
+  integer(kind=8) :: iadd
   !$ logical :: not_omp
   !$ logical, external :: omp_in_parallel,omp_get_nested
 
@@ -47,29 +46,13 @@ subroutine xx_all(array,m)
      !also fill the array with the values of the source if the address is identified in the source
      if (m%srcdata_add /= 0) call c_memcopy(array,m%srcdata_add,product(shape(array))*kind(array))
      !profile the array allocation
-     if (m%profile) then
-        sizeof=kind(array)
-        ilsize=max(int(sizeof,kind=8)*int(product(m%shape(1:m%rank)),kind=8),int(0,kind=8))
-        if (track_origins) then
-           !write the address of the first element in the address string
-           call getlongaddress(array,iadd)
-           !store information only for array of size /=0
-           if (ilsize /= int(0,kind=8)) then
-              !create the dictionary array
-              if (.not. associated(mems(ictrl)%dict_routine)) then
-                 call dict_init(mems(ictrl)%dict_routine)
-              end if
-              call set(mems(ictrl)%dict_routine//long_toa(iadd),&
-                   !dict_new(arrayid .is. trim(m%array_id),&
-                   !routineid .is. trim(m%routine_id),&
-                   !sizeid .is. trim(yaml_toa(ilsize)),&
-                   !'Rank' .is. trim(yaml_toa(m%rank))))
-              '[ '//trim(m%array_id)//', '//trim(m%routine_id)//', '//&
-               trim(yaml_toa(ilsize))//', '//trim(yaml_toa(m%rank))//']')
-           end if
-        end if
-        call memocc(ierror,int(ilsize),m%array_id,m%routine_id)
-     end if
+     iadd=int(0,kind=8)
+        !write the address of the first element in the address string
+     if (m%profile .and. track_origins) call getlongaddress(array,iadd)
+  
+     call f_update_database(product(int(m%shape(1:m%rank),kind=8)),kind(array),m%rank,&
+          iadd,m%array_id,m%routine_id)
+
   else
      !$ if(not_omp) then
      call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
@@ -85,6 +68,7 @@ subroutine xx_all(array,m)
   !END--- allocate-inc.f90
 end subroutine xx_all
 
+
 subroutine xx_all_free(array)
   use metadata_interfaces
   implicit none
@@ -92,13 +76,9 @@ subroutine xx_all_free(array)
   !--'deallocate-profile-inc.f90' 
   !local variables
   integer :: ierror
-  logical :: use_global
   !$ logical :: not_omp
   !$ logical, external :: omp_in_parallel,omp_get_nested
-  integer(kind=8) :: ilsize,jlsize,iadd
-  character(len=namelen) :: array_id,routine_id
-  character(len=info_length) :: array_info
-  type(dictionary), pointer :: dict_add
+  integer(kind=8) :: ilsize,iadd
 
   if (f_err_raise(ictrl == 0,&
        'ERROR (f_free): the routine f_malloc_initialize has not been called',&
@@ -116,7 +96,7 @@ subroutine xx_all_free(array)
   !$ end if
 
   !here the size should be corrected with ndebug (or maybe not)
-  ilsize=int(product(shape(array))*kind(array),kind=8)
+  ilsize=product(int(shape(array),kind=8))
   !retrieve the address of the first element if the size is not zero
   iadd=int(0,kind=8)
   if (ilsize /= int(0,kind=8)) call getlongaddress(array,iadd)
@@ -132,72 +112,14 @@ subroutine xx_all_free(array)
      return
   end if
 
-  !profile address, in case of profiling activated
-  !  if (m%profile) then 
-  !address of first element (not needed for deallocation)
-  if (track_origins .and. iadd/=int(0,kind=8)) then
-     !hopefully only address is necessary for the deallocation
-
-     !search in the dictionaries the address
-     dict_add=>find_key(mems(ictrl)%dict_routine,long_toa(iadd))
-     if (.not. associated(dict_add)) then
-        dict_add=>find_key(mems(ictrl)%dict_global,long_toa(iadd))
-        if (.not. associated(dict_add)) then
-           !$ if (not_omp) then
-           call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
-           !$ end if
-           call f_err_throw('Address '//trim(long_toa(iadd))//&
-                ' not present in dictionary',ERR_INVALID_MALLOC)
-           return
-        else
-           use_global=.true.
-        end if
-     else
-        use_global=.false.
-     end if
-
-     !transform the dict_add in a list
-     !retrieve the string associated to the database
-     array_info=dict_add
-     dict_add => yaml_a_todict(array_info)
-     !then retrieve the array information
-     array_id=dict_add//0
-     routine_id=dict_add//1
-     jlsize=dict_add//2
-
-     call dict_free(dict_add)
-     
-!!$     !here the array information can be retrieved from the database
-!!$     array_id=dict_add//arrayid
-!!$     routine_id=dict_add//routineid
-!!$     jlsize=dict_add//sizeid
-     if (ilsize /= jlsize) then
-        !$ if (not_omp) then
-        call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
-        !$ end if
-        call f_err_throw('Size of array '//trim(array_id)//&
-             ' ('//trim(yaml_toa(ilsize))//') not coherent with dictionary, found='//&
-             trim(yaml_toa(jlsize)),ERR_MALLOC_INTERNAL)
-        return
-     end if
-     if (use_global) then
-        !call yaml_dict_dump(dict_global)
-        call dict_remove(mems(ictrl)%dict_global,long_toa(iadd))
-     else
-        call dict_remove(mems(ictrl)%dict_routine,long_toa(iadd))
-     end if
-  else
-     array_id(1:len(array_id))=arrayid
-     routine_id(1:len(routine_id))=routineid
-  end if
-
-  call memocc(ierror,-int(ilsize),trim(array_id),trim(routine_id))
+  call f_purge_database(ilsize,kind(array),iadd)
 
   !$ if (not_omp) then
   call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
   !$ end if
   !END-- 'deallocate-inc.f90' 
 end subroutine xx_all_free
+
 
 subroutine i1_all(array,m)
   use metadata_interfaces, metadata_address => geti1

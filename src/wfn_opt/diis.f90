@@ -405,7 +405,7 @@ subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis)
   !add the possibility of more than one diis group
   ngroup=1
 
-  diis%psidst = f_malloc_ptr(npsidim*idsx+ndebug,id='diis%psidst')
+  diis%psidst = f_malloc_ptr(npsidim*idsx,id='diis%psidst')
   diis%hpsidst = f_malloc_ptr(npsidim*idsx,id='diis%hpsidst')
   diis%ads = f_malloc_ptr((/ ncplx, idsx+1, idsx+1, ngroup, nkptsp, 1 /),id='diis%ads')
   call to_zero(nkptsp*ncplx*ngroup*(idsx+1)**2,diis%ads(1,1,1,1,1,1))
@@ -464,6 +464,8 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   integer, allocatable :: user_data(:)
   real(8) :: ddot !debug
 
+  call f_routine(id='mix_rhopot')
+
   !write(*,*) 'mix%nfft, npoints', mix%nfft, npoints
 
   ! Calculate the residue and put it in rhopot
@@ -493,7 +495,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   ! Do the mixing 
   call ab7_mixing_eval(mix, rhopot, istep, n1 * n2 * n3, ucvol, &
        & bigdft_mpi%mpi_comm, (nproc > 1), ierr, errmess, resnrm = rpnrm, &
-       & fnrm = fnrm_denpot, fdot = fdot_denpot, user_data = user_data)
+       & fnrm = fnrm_denpot_forlinear, fdot = fdot_denpot_forlinear, user_data = user_data)
   if (ierr /= AB7_NO_ERROR) then
      if (iproc == 0) write(0,*) errmess
      call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
@@ -506,6 +508,8 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   call f_free(user_data)
   ! Copy new in vrespc
   call vcopy(npoints, rhopot(1), 1, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1)
+
+  call f_release_routine()
 
 END SUBROUTINE mix_rhopot
 

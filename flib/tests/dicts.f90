@@ -237,7 +237,9 @@ subroutine test_dictionaries1()
    !try with these examples
    call yaml_map('Size before removing',dict_size(dict2))
    call dict_remove(dict2,'One')
+   call yaml_map('First removal',dict2)
    call dict_remove(dict2,'Two')
+   call yaml_map('Second removal',dict2)
 !   call pop(dict2,'Three')
    !a further element can be added
    call set(dict//'First'//'Four',4)

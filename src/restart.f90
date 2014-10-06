@@ -9,16 +9,15 @@
 
 
 !> Copy old wavefunctions from psi to psi_old
-subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
-     n1_old,n2_old,n3_old,wfd_old,psi_old)
+subroutine copy_old_wavefunctions(nproc,orbs,psi,&
+     wfd_old,psi_old)
   use module_base
   use module_types
   use yaml_output
   implicit none
-  integer, intent(in) :: nproc,n1,n2,n3
+  integer, intent(in) :: nproc
   type(orbitals_data), intent(in) :: orbs
-  type(wavefunctions_descriptors), intent(inout) :: wfd,wfd_old
-  integer, intent(out) :: n1_old,n2_old,n3_old
+  type(wavefunctions_descriptors), intent(in) :: wfd_old
   real(wp), dimension(:), pointer :: psi,psi_old
   !Local variables
   character(len=*), parameter :: subname='copy_old_wavefunctions'
@@ -27,37 +26,14 @@ subroutine copy_old_wavefunctions(nproc,orbs,n1,n2,n3,wfd,psi,&
   real(kind=8) :: tt
   call f_routine(id=subname)
 
-  wfd_old%nvctr_c = wfd%nvctr_c
-  wfd_old%nvctr_f = wfd%nvctr_f
-  wfd_old%nseg_c  = wfd%nseg_c
-  wfd_old%nseg_f  = wfd%nseg_f
-
-  !allocations
-  call allocate_wfd(wfd_old)
-
-  do iseg=1,wfd_old%nseg_c+wfd_old%nseg_f
-     wfd_old%keyglob(1,iseg)    = wfd%keyglob(1,iseg) 
-     wfd_old%keyglob(2,iseg)    = wfd%keyglob(2,iseg)
-     wfd_old%keygloc(1,iseg)    = wfd%keygloc(1,iseg)
-     wfd_old%keygloc(2,iseg)    = wfd%keygloc(2,iseg)
-     wfd_old%keyvloc(iseg)      = wfd%keyvloc(iseg)
-     wfd_old%keyvglob(iseg)      = wfd%keyvglob(iseg)
-  enddo
-  !deallocation
-  call deallocate_wfd(wfd)
-
-  n1_old = n1
-  n2_old = n2
-  n3_old = n3
-
   !add the number of distributed point for the compressed wavefunction
-  tt=dble(wfd_old%nvctr_c+7*wfd_old%nvctr_f)/dble(nproc)
+  !tt=dble(wfd_old%nvctr_c+7*wfd_old%nvctr_f)/dble(nproc)
   !n(c) nvctrp_old=int((1.d0-eps_mach*tt) + tt)
 
 !  psi_old=&
 !       f_malloc_ptr((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*orbs%norbp*orbs%nspinor,!&
 !       id='psi_old')
-  psi_old = f_malloc_ptr((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*orbs%norbp*orbs%nspinor+ndebug,id='psi_old')
+  psi_old = f_malloc_ptr((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*orbs%norbp*orbs%nspinor,id='psi_old')
 
   do iorb=1,orbs%norbp
      tt=0.d0
@@ -938,7 +914,7 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
   integer, intent(in) :: iproc,nproc,imethod_overlap,iformat
   character(len=*), intent(in) :: filename 
   type(DFT_wavefunction), intent(inout) :: tmb
-  type(atoms_data), intent(inout) :: at
+  type(atoms_data), intent(in) :: at
   real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz
 
   integer :: ispin, iorb, jorb, iat, jat
@@ -1101,7 +1077,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, imethod_overlap
   type(atoms_data), intent(inout) :: at
-  type(DFT_wavefunction),intent(in):: tmb
+  type(DFT_wavefunction),intent(inout):: tmb
   real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz
 
   ! Local variables
@@ -1119,6 +1095,8 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   real(gp) :: tol
   character(len=*),parameter:: subname='tmb_overlap_onsite'
   type(fragment_transformation) :: frag_trans
+  integer :: ierr, ncount, iroot, jproc
+  integer,dimension(:),allocatable :: workarray
 
   ! move all psi into psi_tmp all centred in the same place and calculate overlap matrix
   tol=1.d-3
@@ -1129,6 +1107,37 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   norb_tmp=tmb%orbs%norb/2
   ilr_tmp=tmb%orbs%inwhichlocreg(norb_tmp) 
   iiat_tmp=tmb%orbs%onwhichatom(norb_tmp)
+
+  ! Find out which process handles TMB norb_tmp and get the keys from that process
+  do jproc=0,nproc-1
+      if (tmb%orbs%isorb_par(jproc)<norb_tmp .and. norb_tmp<=tmb%orbs%isorb_par(jproc)+tmb%orbs%norb_par(jproc,0)) then
+          iroot=jproc
+          exit
+      end if
+  end do
+  if (iproc/=iroot) then
+      ! some processes might already have it allocated
+      call deallocate_wfd(tmb%lzd%llr(ilr_tmp)%wfd)
+      call allocate_wfd(tmb%lzd%llr(ilr_tmp)%wfd)
+  end if
+  if (nproc>1) then
+      ncount = tmb%lzd%llr(ilr_tmp)%wfd%nseg_c + tmb%lzd%llr(ilr_tmp)%wfd%nseg_f
+      workarray = f_malloc(6*ncount,id='workarray')
+      if (iproc==iroot) then
+          call vcopy(2*ncount, tmb%lzd%llr(ilr_tmp)%wfd%keygloc(1,1), 1, workarray(1), 1)
+          call vcopy(2*ncount, tmb%lzd%llr(ilr_tmp)%wfd%keyglob(1,1), 1, workarray(2*ncount+1), 1)
+          call vcopy(ncount, tmb%lzd%llr(ilr_tmp)%wfd%keyvloc(1), 1, workarray(4*ncount+1), 1)
+          call vcopy(ncount, tmb%lzd%llr(ilr_tmp)%wfd%keyvglob(1), 1, workarray(5*ncount+1), 1)
+      end if
+      call mpi_bcast(workarray(1), 6*ncount, mpi_integer, iroot, bigdft_mpi%mpi_comm, ierr)
+      if (iproc/=iroot) then
+          call vcopy(2*ncount, workarray(1), 1, tmb%lzd%llr(ilr_tmp)%wfd%keygloc(1,1), 1)
+          call vcopy(2*ncount, workarray(2*ncount+1), 1, tmb%lzd%llr(ilr_tmp)%wfd%keyglob(1,1), 1)
+          call vcopy(ncount, workarray(4*ncount+1), 1, tmb%lzd%llr(ilr_tmp)%wfd%keyvloc(1), 1)
+          call vcopy(ncount, workarray(5*ncount+1), 1, tmb%lzd%llr(ilr_tmp)%wfd%keyvglob(1), 1)
+      end if
+      call f_free(workarray)
+  end if
 
   ! find biggest instead
   !do ilr=1,tmb%lzr%nlr
@@ -2035,7 +2044,7 @@ END SUBROUTINE read_coeff_minbasis
 
 !> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
 !! have changed
-subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb,rxyz_old,rxyz,&
+subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb,rxyz,&
        ref_frags,input_frag,frag_calc,orblist)
   use module_base
   use module_types
@@ -2049,7 +2058,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   type(atoms_data), intent(in) :: at
   type(DFT_wavefunction), intent(inout) :: tmb
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
+  !real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
   character(len=*), intent(in) :: dir_output, filename
   type(fragmentInputParameters), intent(in) :: input_frag
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
@@ -2075,6 +2084,8 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   real(gp), dimension(:,:), allocatable :: rxyz_ref, rxyz_new, rxyz4_ref, rxyz4_new
   real(gp), dimension(:), allocatable :: dist
   integer, dimension(:), allocatable :: ipiv
+  real(gp), dimension(:,:), allocatable :: rxyz_old !<this is read from the disk and not needed
+
   logical :: skip
 !!$ integer :: ierr
 
@@ -2087,15 +2098,16 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
 
   ! check file format
   if (iformat == WF_FORMAT_ETSF) then
-     stop 'Linear scaling with ETSF writing not implemented yet'
+     call f_err_throw('Linear scaling with ETSF writing not implemented yet')
   else if (iformat /= WF_FORMAT_BINARY .and. iformat /= WF_FORMAT_PLAIN) then
-     call yaml_warning('Unknown wavefunction file format from filename.')
-     stop
+     call f_err_throw('Unknown wavefunction file format from filename.')
   end if
+
+  rxyz_old=f_malloc([3,at%astruct%nat],id='rxyz_old')
 
   ! to be fixed
   if (present(orblist)) then
-     stop 'orblist no longer functional in initialize_linear_from_file due to addition of fragment calculation'
+     call f_err_throw('orblist no longer functional in initialize_linear_from_file due to addition of fragment calculation')
   end if
 
   ! lzd_old => ref_frags(onwhichfrag)%frag_basis%lzd
@@ -2411,6 +2423,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   end do
 
   deallocate(phi_array_old)
+  call f_free(rxyz_old)
   call deallocate_local_zone_descriptors(lzd_old)
 
   !! DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs

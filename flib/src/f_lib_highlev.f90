@@ -12,7 +12,7 @@
 !> Print error information about last error
 subroutine f_dump_last_error()
   use dictionaries, only: f_get_error_dict,f_get_last_error,max_field_length
-  use yaml_output, only: yaml_dict_dump,yaml_map
+  use yaml_output, only: yaml_dict_dump,yaml_map,yaml_flush_document
   implicit none
   !local variables
   integer :: ierr
@@ -24,6 +24,7 @@ subroutine f_dump_last_error()
      call yaml_dict_dump(f_get_error_dict(ierr))
      if (trim(add_msg)/= 'UNKNOWN') call yaml_map('Additional Info',add_msg)
   end if
+  call yaml_flush_document()
 end subroutine f_dump_last_error
 
 
@@ -70,12 +71,14 @@ end subroutine f_dump_possible_errors
 subroutine initialize_flib_errors()
   use dictionaries, only: dictionaries_errors
   use yaml_output, only: yaml_output_errors
+  use f_utils, only: f_utils_errors
   use yaml_parse, only: yaml_parse_errors
   use dynamic_memory, only: dynamic_memory_errors
   use time_profiling, only: timing_errors
   implicit none
 
   call dictionaries_errors()
+  call f_utils_errors()
   call yaml_output_errors()
   !Intilialize the error to parse yaml documents
   call yaml_parse_errors()
@@ -112,8 +115,7 @@ end subroutine initialize_flib_timing_categories
 !! is taken
 subroutine f_lib_initialize()
   use dictionaries, only: f_err_initialize
-  use dynamic_memory, only: f_malloc_initialize,&
-       TCAT_INIT_TO_ZERO,TCAT_ARRAY_ALLOCATIONS
+  use dynamic_memory, only: f_malloc_initialize
   use time_profiling, only: f_timing_initialize
   implicit none
   

@@ -12,6 +12,7 @@
 #include <config.inc>
 #endif
 
+
 !> Module defining the routines which wrap the MPI calls
 module wrapper_MPI
   ! TO BE REMOVED with f_malloc
@@ -74,13 +75,33 @@ module wrapper_MPI
 
   interface mpibcast
      module procedure mpibcast_i0,mpibcast_li0,mpibcast_d0
-     module procedure mpibcast_c1,mpibcast_d1,mpibcast_d2
+     module procedure mpibcast_c1,mpibcast_d1,mpibcast_d2,mpibcast_i1
   end interface mpibcast
+
+  interface mpi_get_to_allgatherv
+     module procedure mpi_get_to_allgatherv_double
+  end interface mpi_get_to_allgatherv
+
+  interface mpiget
+    module procedure mpiget_d0
+  end interface mpiget
+
+  interface mpitypesize
+    module procedure mpitypesize_d0, mpitypesize_d1
+  end interface mpitypesize
+
+  interface mpiwindow
+    module procedure mpiwindow_d0
+  end interface mpiwindow
 
   !> Interface for MPI_ALLGATHERV routine
   interface mpiallgatherv
      module procedure mpiallgatherv_double
   end interface mpiallgatherv
+  
+  interface mpiiallred
+      module procedure mpiiallred_double
+  end interface mpiiallred
 
   !> Global MPI communicator which contains all information related to the MPI process
   type, public :: mpi_environment
@@ -121,30 +142,37 @@ contains
   end function mpi_environment_null
 
   subroutine mpi_environment_free(mpi_env)
+    use yaml_strings, only: yaml_toa
+    use dictionaries, only: f_err_throw
     implicit none
     type(mpi_environment), intent(inout) :: mpi_env
     !local variables
     integer :: ierr
 
     if (mpi_env%mpi_comm /= MPI_COMM_WORLD .and. &
-         mpi_env%mpi_comm /= MPI_COMM_NULL) &
-         call MPI_COMM_FREE(mpi_env%mpi_comm,ierr)
+         mpi_env%mpi_comm /= MPI_COMM_NULL) then
+       call MPI_COMM_FREE(mpi_env%mpi_comm,ierr)
+       if (ierr /=0) then
+          call f_err_throw('Problem in MPI_COMM_FREE, ierr:'//&
+               yaml_toa(ierr),err_name='BIGDFT_MPI_ERROR')
+          return
+       end if
+    end if
     mpi_env=mpi_environment_null()
   end subroutine mpi_environment_free
 
+
   !> Set the MPI environment (i.e. taskgroup or MPI communicator)
-  !! @param mpi_env   MPI environment (out)
-  !! @param iproc     proc id
-  !! @param nproc     total number of MPI processes
-  !! @param mpi_comm  global MPI_communicator
-  !! @param groupsize Number of MPI processes by (task)group
-  !!                  if 0 one taskgroup (MPI_COMM_WORLD)
   subroutine mpi_environment_set(mpi_env,iproc,nproc,mpi_comm,groupsize)
     use dynamic_memory
     use yaml_output
     implicit none
-    integer, intent(in) :: iproc,nproc,mpi_comm,groupsize
-    type(mpi_environment), intent(out) :: mpi_env
+    integer, intent(in) :: iproc     !<  Proc id
+    integer, intent(in) :: nproc     !<  Total number of MPI processes
+    integer, intent(in) :: mpi_comm  !<  Global MPI_communicator
+    integer, intent(in) :: groupsize !<  Number of MPI processes by (task)group
+                                     !!  if 0 one taskgroup (MPI_COMM_WORLD)   
+    type(mpi_environment), intent(out) :: mpi_env  !< MPI environment (out)
     !local variables
     integer :: j
     integer, dimension(:), allocatable :: group_list
@@ -176,6 +204,7 @@ contains
 
     call f_release_routine()
   end subroutine mpi_environment_set
+
 
 !!! PSolver n1-n2 plane mpi partitioning !!! 
   !> This is exactly like mpi_environment_set but it always creates groups
@@ -214,7 +243,8 @@ contains
 !!$    call f_release_routine()
 !!$  end subroutine mpi_environment_set2
 
-  !this is a different procedure to assign the iproc according to the groups.
+
+  !> This is a different procedure to assign the iproc according to the groups.
   subroutine mpi_environment_set1(mpi_env,iproc,nproc,mpi_comm,groupsize,ngroup)
     use yaml_output
     use dynamic_memory
@@ -259,7 +289,8 @@ contains
     call f_release_routine()
   end subroutine mpi_environment_set1
 
-  !> create communicators associated to the groups of size group_size
+
+  !> Create communicators associated to the groups of size group_size
   subroutine create_group_comm(base_comm,group_size,group_list,group_comm)
     implicit none
     integer, intent(in) :: base_comm,group_size
@@ -315,51 +346,53 @@ contains
 
   end subroutine create_group_comm
 
-!!! PSolver n1-n2 plane mpi partitioning !!! 
-!this routine is like create_group_comm with a different group_list
-subroutine create_group_comm1(base_comm,nproc_base,group_id,ngroup,group_size,group_comm)
-  use dynamic_memory
-  use yaml_output
-  implicit none
-  integer, intent(in) :: base_comm,group_size,nproc_base,group_id,ngroup
-  integer, intent(out) :: group_comm
-  !local variables
-  character(len=*), parameter :: subname='create_group_comm'
-  integer :: grp,ierr,i,j,base_grp,temp_comm!,i_stat,i_all
-  integer, dimension(:), allocatable :: group_list
 
-! allocate(group_list(group_size+ndebug),stat=i_stat)
-  group_list = f_malloc(group_size,id='group_list')
+  !!! PSolver n1-n2 plane mpi partitioning !!! 
+  !> This routine is like create_group_comm with a different group_list
+  subroutine create_group_comm1(base_comm,nproc_base,group_id,ngroup,group_size,group_comm)
+    use dynamic_memory
+    use yaml_output
+    implicit none
+    integer, intent(in) :: base_comm,group_size,nproc_base,group_id,ngroup
+    integer, intent(out) :: group_comm
+    !local variables
+    character(len=*), parameter :: subname='create_group_comm'
+    integer :: grp,ierr,i,j,base_grp,temp_comm!,i_stat,i_all
+    integer, dimension(:), allocatable :: group_list
 
-  !take the base group
-  call MPI_COMM_GROUP(base_comm,base_grp,ierr)
-  if (ierr /=0) then
-     call yaml_warning('Problem in group creation, ierr:'//yaml_toa(ierr))
-     call MPI_ABORT(base_comm,1,ierr)
-  end if
-  do i=0,ngroup-1
-     !define the new groups and thread_id
-     do j=0,group_size-1
-        group_list(j+1)=i+j*ngroup
-     enddo
-     call MPI_GROUP_INCL(base_grp,group_size,group_list,grp,ierr)
-     if (ierr /=0) then
-        call yaml_warning('Problem in group inclusion, ierr:'//yaml_toa(ierr))
-        call MPI_ABORT(base_comm,1,ierr)
-     end if
-     call MPI_COMM_CREATE(base_comm,grp,temp_comm,ierr)
-     if (ierr /=0) then
-        call yaml_warning('Problem in communicator creator, ierr:'//yaml_toa(ierr))
-        call MPI_ABORT(base_comm,1,ierr)
-     end if
-     !print *,'i,group_id,temp_comm',i,group_id,temp_comm
-     if (i.eq. group_id) group_comm=temp_comm
-  enddo
+  ! allocate(group_list(group_size+ndebug),stat=i_stat)
+    group_list = f_malloc(group_size,id='group_list')
 
-!i_all=-product(shape(group_list ))*kind(group_list )
-! deallocate(group_list,stat=i_stat)
-  call f_free(group_list)
-end subroutine create_group_comm1
+    !take the base group
+    call MPI_COMM_GROUP(base_comm,base_grp,ierr)
+    if (ierr /=0) then
+       call yaml_warning('Problem in group creation, ierr:'//yaml_toa(ierr))
+       call MPI_ABORT(base_comm,1,ierr)
+    end if
+    do i=0,ngroup-1
+       !define the new groups and thread_id
+       do j=0,group_size-1
+          group_list(j+1)=i+j*ngroup
+       enddo
+       call MPI_GROUP_INCL(base_grp,group_size,group_list,grp,ierr)
+       if (ierr /=0) then
+          call yaml_warning('Problem in group inclusion, ierr:'//yaml_toa(ierr))
+          call MPI_ABORT(base_comm,1,ierr)
+       end if
+       call MPI_COMM_CREATE(base_comm,grp,temp_comm,ierr)
+       if (ierr /=0) then
+          call yaml_warning('Problem in communicator creator, ierr:'//yaml_toa(ierr))
+          call MPI_ABORT(base_comm,1,ierr)
+       end if
+       !print *,'i,group_id,temp_comm',i,group_id,temp_comm
+       if (i.eq. group_id) group_comm=temp_comm
+    enddo
+
+  !i_all=-product(shape(group_list ))*kind(group_list )
+  ! deallocate(group_list,stat=i_stat)
+    call f_free(group_list)
+  end subroutine create_group_comm1
+
 
   !> Create a communicator between proc of same rank between the taskgroups.
   subroutine create_rank_comm(group_comm, rank_comm)
@@ -408,6 +441,7 @@ end subroutine create_group_comm1
     call f_free(ids)
   END SUBROUTINE create_rank_comm
 
+
   subroutine wmpi_init_thread(ierr)
     use dictionaries, only: f_err_throw
     implicit none
@@ -432,7 +466,8 @@ end subroutine create_group_comm1
 #endif
   end subroutine wmpi_init_thread
 
-  !> finalization of the mpi
+
+  !> Finalization of the mpi
   subroutine mpifinalize()
     use dictionaries, only: f_err_throw
     implicit none
@@ -446,7 +481,8 @@ end subroutine create_group_comm1
     end if
   end subroutine mpifinalize
 
-  !> initialize timings and also mpi errors
+
+  !> Initialize timings and also mpi errors
   subroutine mpi_initialize_timing_categories()
     use time_profiling, only: f_timing_category_group,f_timing_category
     use dictionaries, only: f_err_throw,f_err_define
@@ -547,7 +583,7 @@ end subroutine create_group_comm1
     mt=MPI_CHARACTER
   end function mpitype_c1
 
-  !>function giving the mpi rank id for a given communicator
+  !> Function giving the mpi rank id for a given communicator
   function mpirank(comm)
     use dictionaries, only: f_err_throw
     implicit none
@@ -567,7 +603,7 @@ end subroutine create_group_comm1
 
   end function mpirank
 
-  !> returns the number of mpi_tasks associated to a given communicator
+  !> Returns the number of mpi_tasks associated to a given communicator
   function mpisize(comm)
     use dictionaries, only: f_err_throw
     implicit none
@@ -588,7 +624,7 @@ end subroutine create_group_comm1
 
   end function mpisize
 
-  !> performs the barrier of a given communicator, if present
+  !> Performs the barrier of a given communicator, if present
   subroutine mpibarrier(comm)
     use dictionaries, only: f_err_throw
     implicit none
@@ -609,7 +645,7 @@ end subroutine create_group_comm1
     end if
   end subroutine mpibarrier
 
-  !gather the results of a given array into the root proc
+  !> Gather the results of a given array into the root proc
   subroutine mpigather_d1d1(sendbuf,recvbuf,root,comm)
     use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
@@ -665,8 +701,8 @@ end subroutine create_group_comm1
     include 'gather-inc.f90'   
   end subroutine mpigather_d2
 
-  !gather the results of a given array into the root proc, version 
-  !working with adresses
+  !> Gather the results of a given array into the root proc, version 
+  !! working with adresses
   subroutine mpigather_i0i2(sendbuf,sendcount,recvbuf,root,comm)
     use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
@@ -709,7 +745,7 @@ end subroutine create_group_comm1
   
 
 
-  !interface for MPI_ALLGATHERV operations
+  !> Interface for MPI_ALLGATHERV operations
   subroutine mpiallgatherv_double(buffer,counts,displs,me,mpi_comm,ierr)
     use dynamic_memory
     implicit none
@@ -744,7 +780,7 @@ end subroutine create_group_comm1
     if (ierr /=0) stop 'MPIALLGATHERV_DBL'
   end subroutine mpiallgatherv_double
 
-  !interface for MPI_ALLREDUCE operations
+  !> Interface for MPI_ALLREDUCE operations
   subroutine mpiallred_int(sendbuf,count,op,comm,recvbuf)
     use dictionaries, only: f_err_throw,f_err_define
     use dynamic_memory
@@ -755,7 +791,7 @@ end subroutine create_group_comm1
     include 'allreduce-inc.f90'
   end subroutine mpiallred_int
 
-  !interface for MPI_ALLREDUCE operations
+  !> Interface for MPI_ALLREDUCE operations
   subroutine mpiallred_real(sendbuf,count,op,comm,recvbuf)
     use dynamic_memory
     use dictionaries, only: f_err_throw,f_err_define
@@ -844,6 +880,15 @@ end subroutine create_group_comm1
     include 'bcast-inc.f90'
   end subroutine mpibcast_c1
 
+  subroutine mpibcast_i1(buffer,root,comm,check)
+    use dictionaries, only: f_err_throw
+    use yaml_output !for check=.true.
+    implicit none
+    integer, dimension(:), intent(inout) ::  buffer      
+    include 'bcast-decl-arr-inc.f90'
+    include 'bcast-inc.f90'
+  end subroutine mpibcast_i1
+
   subroutine mpibcast_d1(buffer,root,comm,check)
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
@@ -863,7 +908,7 @@ end subroutine create_group_comm1
   end subroutine mpibcast_d2
 
 
-  !> detect the maximum difference between arrays all over a given communicator
+  !> Detect the maximum difference between arrays all over a given communicator
   function mpimaxdiff_i0(n,array,root,comm,bcast) result(maxdiff)
     use dynamic_memory
     implicit none
@@ -960,9 +1005,240 @@ end subroutine create_group_comm1
    include 'maxdiff-arr-inc.f90'
   end function mpimaxdiff_d2
 
+  !!function mpitypesize_d(foo) result(sizeof)
+  !!  use dictionaries, only: f_err_throw,f_err_define
+  !!  implicit none
+  !!  double precision, intent(in) :: foo
+  !!  integer :: sizeof, ierr
+
+  !!  call mpi_type_size(mpi_double_precision, sizeof, ierr)
+  !!  if (ierr/=0) then
+  !!      call f_err_throw('Error in mpi_type_size',&
+  !!           err_id=ERR_MPI_WRAPPERS)
+  !!  end if
+  !!end function mpitypesize_d
+
+  function mpitypesize_d0(foo) result(sizeof)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    double precision, intent(in) :: foo
+    integer :: sizeof, ierr
+    
+    call mpi_type_size(mpi_double_precision, sizeof, ierr)
+    if (ierr/=0) then
+        call f_err_throw('Error in mpi_type_size',&
+             err_id=ERR_MPI_WRAPPERS)
+    end if
+  end function mpitypesize_d0
+
+  function mpitypesize_d1(foo) result(sizeof)
+      implicit none
+      double precision, dimension(:), intent(in) :: foo
+      integer :: sizeof
+      sizeof=mpitypesize(1.d0)
+  end function mpitypesize_d1
+
+  function mpiinfo(key,val) result(info)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    character(len=*), intent(in) :: key
+    character(len=*), intent(in) :: val
+    integer :: info, ierr
+    
+    call mpi_info_create(info, ierr)
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_info_create',&
+            err_id=ERR_MPI_WRAPPERS)
+       return
+    end if
+    call mpi_info_set(info, "no_locks", "true", ierr)
+    if (ierr/=0) then
+       !!call f_err_throw('Error in mpi_info_set, key='//trim(key)//&
+       !!     ', value=',trim(val),err_id=ERR_MPI_WRAPPERS)
+       call f_err_throw('Error in mpi_info_set, key='//trim(key)//&
+            ', value='//trim(val),err_id=ERR_MPI_WRAPPERS)
+    end if
+    
+  end function mpiinfo
+
+  subroutine mpiinfofree(info)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    integer, intent(inout) :: info
+    ! Local variables
+    integer :: ierr
+    call mpi_info_free(info, ierr)
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_info_free',&
+            err_id=ERR_MPI_WRAPPERS)
+   end if
+  end subroutine mpiinfofree
+
+  function mpiwindow_d0(size,base,comm) result(window)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    integer,intent(in) :: size
+    double precision,intent(in) :: base
+    integer,intent(in) :: comm
+    !local variables
+    integer :: sizeof,info,ierr
+    integer :: window
+
+    sizeof=mpitypesize(base)
+    info=mpiinfo("no_locks", "true")
+
+    call mpi_win_create(base, int(size,kind=mpi_address_kind)*int(sizeof,kind=mpi_address_kind), &
+         sizeof, info,comm, window, ierr)
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_win_create',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+    call mpiinfofree(info)
+
+    call mpi_win_fence(MPI_MODE_NOPRECEDE, window, ierr)
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_win_fence',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+    
+  end function mpiwindow_d0
+
+  subroutine mpiget_d0(origin,count,target_rank,target_disp,window)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    double precision,intent(inout) :: origin !<fake intent(in)
+    integer,intent(in) :: count, target_rank,window
+    integer(kind=mpi_address_kind),intent(in) :: target_disp
+
+    ! Local variables
+    integer :: ierr
+
+    call mpi_get(origin,count,mpitype(1.d0),target_rank, &
+         target_disp,count,mpitype(origin), window, ierr)
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_get',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+  end subroutine mpiget_d0
+
+  subroutine mpi_get_to_allgatherv_double(sendbuf,sendcount,recvbuf,recvcounts,displs,comm,check_,window_)
+    use dictionaries, only: f_err_throw,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    !!double precision,dimension(:),intent(in) :: sendbuf
+    !!double precision,dimension(:),intent(inout) :: recvbuf
+    double precision,intent(in) :: sendbuf
+    double precision,intent(inout) :: recvbuf
+    integer,dimension(:),intent(in) :: recvcounts, displs
+    integer,intent(in) :: comm, sendcount
+    logical,intent(in),optional :: check_
+    integer,intent(out),pointer,optional :: window_
+    !local variables
+    integer :: nproc,jproc,nrecvbuf,ierr
+    external :: getall
+    logical :: check
+    integer,target:: window
+
+    nproc=mpisize(comm)
+    nrecvbuf=sum(recvcounts)
+
+    if (present(check_)) then
+        check = check_
+    else
+        check = .false.
+    end if
+
+    if (check) then
+       !check coherence
+       if (any([size(recvcounts),size(displs)] /= nproc)) then
+          call f_err_throw("Error in get_to_gatherv, sizes not coherent with communicator"//&
+               trim(yaml_toa([size(recvcounts),size(displs), nproc])),&
+               err_id=ERR_MPI_WRAPPERS)
+          return
+       end if
+    end if
+
+
+    if (present(window_)) then
+        window_ => window
+    end if
+    !else
+    window = mpiwindow(sendcount,sendbuf,comm)
+    !end if
+
+
+    call getall_d(nproc,recvcounts,displs,window,nrecvbuf,recvbuf)
+
+    if (.not. present(window_)) then
+       ! Synchronize the communication
+       call mpi_win_fence(0, window, ierr)
+       if (ierr/=0) then
+          call f_err_throw('Error in mpi_win_fence',&
+               err_id=ERR_MPI_WRAPPERS)  
+       end if
+       call mpi_win_free(window, ierr)
+       if (ierr/=0) then
+          call f_err_throw('Error in mpi_win_fence',&
+               err_id=ERR_MPI_WRAPPERS)  
+       end if
+    end if
+
+  end subroutine mpi_get_to_allgatherv_double
+
   
+  subroutine mpiiallred_double(sendbuf, recvbuf, ncount, datatype, op, comm, request)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    ! Calling arguments
+    integer,intent(in) :: ncount, datatype, op, comm
+    double precision,intent(in) :: sendbuf
+    double precision,intent(out) :: recvbuf
+    integer,intent(out) :: request
+    ! Local variables
+    integer :: ierr
+
+#ifdef HAVE_MPI3
+    call mpi_iallreduce(sendbuf, recvbuf, ncount, datatype, op, comm, request, ierr)
+    if (ierr/=0) then
+       call f_err_throw('An error in calling to MPI_IALLREDUCE occured',&
+            err_id=ERR_MPI_WRAPPERS)
+       return
+    end if
+#else
+    call mpi_allreduce(sendbuf, recvbuf, ncount, datatype, op, comm, ierr)
+    if (ierr/=0) then
+       call f_err_throw('An error in calling to MPI_ALLREDUCE occured',&
+            err_id=ERR_MPI_WRAPPERS)
+       return
+    end if
+    request = MPI_REQUEST_NULL
+#endif
+
+  end subroutine mpiiallred_double
+
+
+  subroutine mpiwaitall(ncount, array_of_requests)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    ! Local variables
+    integer,intent(in) :: ncount
+    integer,dimension(ncount),intent(in) :: array_of_requests
+    ! Local variables
+    integer :: ierr
+
+    call mpi_waitall(ncount, array_of_requests, MPI_STATUSES_IGNORE, ierr)
+    if (ierr/=0) then
+       call f_err_throw('An error in calling to MPI_WAITALL occured',&
+            err_id=ERR_MPI_WRAPPERS)
+       return
+    end if
+
+  end subroutine mpiwaitall
 
 end module wrapper_MPI
+
 
 !> Routine to gather the clocks of all the instances of flib time module
 subroutine gather_timings(ndata,nproc,mpi_comm,src,dest)
@@ -975,6 +1251,28 @@ subroutine gather_timings(ndata,nproc,mpi_comm,src,dest)
   call mpigather(sendbuf=src,recvbuf=dest,root=0,comm=mpi_comm)
 
 end subroutine gather_timings
+
+
+!> used by get_to_allgatherv to pass the good addresses to the mpiget wrapper
+subroutine getall_d(nproc,recvcounts,displs,window,nrecvbuffer,recvbuffer)
+  use wrapper_MPI, only: mpiget, mpi_address_kind
+  implicit none
+  integer,intent(in) :: nproc,nrecvbuffer,window
+  integer,dimension(0:nproc-1),intent(in) :: recvcounts,displs
+  double precision,dimension(nrecvbuffer),intent(out) :: recvbuffer
+  ! Local variables
+  integer :: jproc, jcount, jst
+
+  do jproc=0,nproc-1
+     jcount=recvcounts(jproc)
+     jst=displs(jproc)
+     if (jcount>0) then
+         call mpiget(recvbuffer(jst+1), jcount, jproc, int(0,kind=mpi_address_kind), window)
+     end if
+  end do
+
+end subroutine getall_d
+
 
 
 !> Activates the nesting for UNBLOCK_COMMS performance case
@@ -994,6 +1292,7 @@ subroutine bigdft_open_nesting(num_threads)
   idummy=num_threads
 #endif
 end subroutine bigdft_open_nesting
+
 
 !> Activates the nesting for UNBLOCK_COMMS performance case
 subroutine bigdft_close_nesting(num_threads)

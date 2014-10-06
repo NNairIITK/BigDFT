@@ -27,8 +27,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.5
- Timestamp of this run                 : 2014-08-26 15:20:03.006
+ Version Number                        : 1.7.5.10
+ Timestamp of this run                 : 2014-09-16 14:14:42.733
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -38,7 +38,7 @@
  Compilation options:
    Configure arguments:
      " 'FC=/opt/openmpi-1.6.4/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -i_dynamic -msse4.2 
-     -heap-arrays 1024 -openmp' 
+     -heap-arrays 1024 -openmp -traceback' 
      '--with-ext-linalg=/opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_scalapa
      ck_lp64.a  -Wl,--start-group  
      /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_cdft_core.a 
@@ -50,7 +50,8 @@
    Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.4/bin/mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
+     FCFLAGS:
+       -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp -traceback
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  perf:
@@ -88,9 +89,10 @@
    maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
    ef_interpol_det                     : 0.10E-19 # FOE max determinant of cubic interpolation matrix
    ef_interpol_chargediff              : 0.10E+02 # FOE max charge difference for interpolation
-   mixing_after_inputguess             : Yes #    Mixing step after linear input guess (T/F)
+   mixing_after_inputguess             : 1 #      Mixing step after linear input gues
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 2 #      Enables linear sumrho check
+   check_overlap                       : 2 #      Enables linear overlap check
    experimental_mode                   : No #     Activate the experimental mode in linear scaling
    write_orbitals                      : No #     Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
    explicit_locregcenters              : No #     Linear scaling explicitely specify localization centers
@@ -109,6 +111,7 @@
    correction_co_contra                : No #     linear scaling correction covariant / contravariant gradient
    fscale_lowerbound                   : 5.0000000000000001E-003 # linear scaling lower bound for the error function decay length
    fscale_upperbound                   : 5.0000000000000003E-002 # linear scaling upper bound for the error function decay length
+   imethod_overlap                     : 1 #      method to calculate the overlap matrices (1=old, 2=new)
    FOE_restart                         : 0 #      Restart method to be used for the FOE method
  dft:
    hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
@@ -133,6 +136,7 @@
    nvirt                               : 0 #      No. of virtual orbs
    nplot                               : 0 #      No. of plotted orbs
    disablesym                          : Yes #    Disable the symmetry detection
+   itermin                             : 0 #      Min. iterations of wfn. opt. steps
  kpt:
    method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
@@ -190,7 +194,7 @@
    Radii of active regions (AU):
      Coarse                            : 1.589192606340045
      Fine                              : 0.223021
-     Coarse PSP                        : 0.223021
+     Coarse PSP                        : 0.5048775
      Source                            : Hard-Coded
  ig_occupation:
    Atom 1:
@@ -533,7 +537,7 @@
           EexctX: -3.08074060561E+00}, 
  SCF criterion:  0}
         #WARNING: No convergence within the allowed number of minimization steps
-       Non-Hermiticity of Hamiltonian in the Subspace:  9.08E-30
+       Non-Hermiticity of Hamiltonian in the Subspace:  2.07E-29
         #WARNING: Wavefunctions not converged after cycle  1
        Total magnetization             :  4.000000
         #Eigenvalues and New Occupation Numbers
@@ -567,7 +571,7 @@
  Average noise forces: {x: -3.04261960E-03, y: -5.64841704E-04, z: -5.64841704E-04, 
                     total:  3.14573145E-03}
  Clean forces norm (Ha/Bohr): {maxval:  0.000000000000E+00, fnrm2:  0.000000000000E+00}
- Raw forces norm (Ha/Bohr): {maxval:  3.145731448583E-03, fnrm2:  9.895626346607E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  3.145731448565E-03, fnrm2:  9.895626346492E-06}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
  -  {Fe: [ 0.000000000000E+00,  0.000000000000E+00,  0.000000000000E+00]} # 0001
@@ -580,15 +584,15 @@
  - Self-consistent cycle did not meet convergence criteria
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  26.13
-   Elapsed time (s)                    :  14.16
+   CPU time (s)                        :  27.28
+   Elapsed time (s)                    :  14.40
  Memory Consumption Report:
-   Tot. No. of Allocations             :  2707
-   Tot. No. of Deallocations           :  2707
+   Tot. No. of Allocations             :  2161
+   Tot. No. of Deallocations           :  2161
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  383
      for the array                     : cosinarr
      in the routine                    : LocalHamiltonianApplication
- Max No. of dictionaries used          :  2915 #( 798 still in use)
+ Max No. of dictionaries used          :  3012 #( 833 still in use)
  Number of dictionary folders allocated:  1

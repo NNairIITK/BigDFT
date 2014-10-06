@@ -86,7 +86,7 @@ program abscalc_main
       call f_free_ptr(runObj%inputs%Gabs_coeffs)
       call f_free(fxyz)
 
-      call run_objects_free(runObj)
+      call free_run_objects(runObj)
 
  !  end if
    enddo !loop over iconfig
@@ -105,6 +105,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
    use module_types, only: input_variables,deallocate_wfd,atoms_data
    use module_interfaces
    use bigdft_run
+   use module_atoms, only: astruct_dump_to_file
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc
@@ -120,6 +121,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
    character(len=*), parameter :: subname='call_abscalc'
    character(len=40) :: comment
    integer :: ierr,inputPsiId_orig,icycle
+   real(gp) :: hx_old, hy_old, hz_old
 
 !!$   !temporary interface
 !!$   interface
@@ -168,7 +170,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
          stop 'ERROR'
       else
          call abscalc(nproc,iproc,atoms,rxyz,&
-             rst%KSwfn,rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
+             rst%KSwfn,hx_old,hy_old,hz_old,in,rst%GPU,infocode)
          fxyz(:,:) = 0.d0
       endif
 
@@ -194,7 +196,9 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
             write(comment,'(a)')'UNCONVERGED WF '
             !call wtxyz('posfail',energy,rxyz,atoms,trim(comment))
 
-            call write_atomic_file("posfail",energy,rxyz,atoms%astruct%ixyz_int,atoms,trim(comment))
+            call astruct_dump_to_file(atoms%astruct,"posfail",&
+                 'UNCONVERGED WF ')
+!!$            call write_atomic_file("posfail",energy,rxyz,atoms%astruct%ixyz_int,atoms,trim(comment))
 
          end if 
 
@@ -203,12 +207,12 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
          nullify(rst%KSwfn%orbs%eval)
 
         call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd)
-         !finalize memory counting (there are still the positions and the forces allocated)
-         call memocc(0,0,'count','stop')
 
-         if (nproc > 1) call MPI_FINALIZE(ierr)
-
-         stop 'unnormal end'
+        !test if stderr works
+        write(0,*)'unnormal end'
+        call mpibarrier(bigdft_mpi%mpi_comm)
+        call f_err_throw('Convergence error, cannot proceed. '//&
+             'Writing positions in file posfail.xyz',err_name='BIGDFT_RUNTIME_ERROR')
       else
          exit loop_cluster
       end if
@@ -242,7 +246,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use communications_base, only: comms_cubic
    use communications_init, only: orbitals_communicators
    use ao_inguess, only: set_aocc_from_string
-   use gaussians, only: gaussian_basis, nullify_gaussian_basis
+   use gaussians, only: gaussian_basis
    use yaml_output, only: yaml_warning,yaml_toa
    use psp_projectors, only: free_DFT_PSP_projectors
    implicit none
@@ -288,7 +292,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    type(energy_terms) :: energs
 
    !integer, dimension(:,:), allocatable :: nscatterarr,ngatherarr
-   real(kind=8), dimension(:,:), allocatable :: radii_cf
+!   real(kind=8), dimension(:,:), allocatable :: radii_cf
    !real(kind=8), dimension(:,:), allocatable :: gxyz
    real(gp), dimension(:,:),pointer :: fdisp,fion
    ! Charge density/potential,ionic potential, pkernel
@@ -355,13 +359,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !! to apply paw projectors
    type(PAWproj_data_type) ::PAWD
 
-   !fow wvl+PAW
-   integer::iatyp
-   type(rholoc_objects)::rholoc_tmp
-   type(gaussian_basis),dimension(atoms%astruct%ntypes)::proj_tmp
-
    energs= energy_terms_null()
-
    if (in%potshortcut==0) then
       if(nproc>1) call MPI_Finalize(ierr)
       stop '   in%potshortcut==0 calculating spectra. Use rather box2Box option      '
@@ -412,9 +410,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    !these routines can be regrouped in one
 
-   radii_cf = f_malloc((/ atoms%astruct%ntypes, 3 /),id='radii_cf')
-
-
    if (iproc==0) then
       write( *,'(1x,a)')&
            &   '------------------------------------------------------------------ System Properties'
@@ -433,14 +428,14 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       PSquiet='YES'
    end if
 
-   call system_properties(iproc,nproc,in,atoms,KSwfn%orbs,radii_cf)
+   call system_properties(iproc,nproc,in,atoms,KSwfn%orbs)
 
    call nullify_locreg_descriptors(KSwfn%Lzd%Glr)
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
 
-   call system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,.false.,KSwfn%Lzd%Glr,shift)
+   call system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,.false.,KSwfn%Lzd%Glr,shift)
    if (iproc == 0) call print_atoms_and_grid(KSwfn%Lzd%Glr, atoms, rxyz, shift, hx, hy, hz)
 
    if ( KSwfn%orbs%nspinor.gt.1) then
@@ -450,7 +445,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
-       atoms,rxyz,radii_cf,crmult,frmult,.true.,KSwfn%Lzd%Glr)
+       atoms,rxyz,crmult,frmult,.true.,KSwfn%Lzd%Glr)
    if (iproc == 0) call print_wfd(KSwfn%Lzd%Glr%wfd)
 
    KSwfn%Lzd%hgrids(1)=hx
@@ -479,14 +474,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
    call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,orbs,comms)  
 
-   !nullify dummy variables only used for PAW. This can be used also for pcProjectors
-   do iatyp=1,atoms%astruct%ntypes
-     call nullify_gaussian_basis(proj_tmp(iatyp))
-   end do
-
-
    call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,orbs,&
-        radii_cf,cpmult,fpmult,hx,hy,hz,.false.,nlpsp,proj_tmp)
+        cpmult,fpmult,hx,hy,hz,.false.,nlpsp)
    if (iproc == 0) call print_nlpsp(nlpsp)
 
    call check_linear_and_create_Lzd(iproc,nproc,in%linear,KSwfn%Lzd,atoms,orbs,in%nspin,rxyz)
@@ -503,7 +492,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         & in%SIC%approach,atoms%astruct%geocode,nspin)
 
   call density_descriptors(iproc,nproc,xc,in%nspin,in%crmult,in%frmult,atoms,&
-       dpcom,in%rho_commun,rxyz,radii_cf,rhodsc)
+       dpcom,in%rho_commun,rxyz,rhodsc)
 
 !!$
 !!$  !calculate the descriptors for rho and the potentials.
@@ -573,7 +562,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       ! the following routine calls a specialized version of localize_projectors
       ! which does not interfere with the global DistProjApply
       call createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
-           radii_cf,cpmult,fpmult,hx,hy,hz, &
+           cpmult,fpmult,hx,hy,hz, &
            PAWD, KSwfn%Lzd%Glr )
       call timing(iproc,'CrtPawProjects ','OF')
    endif
@@ -586,7 +575,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       ! the following routine calls  localize_projectors again
       ! but this should be in coherence with the previous call for psp projectos 
       call createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,atoms,orbs,&
-           radii_cf,cpmult,fpmult,hx,hy,hz,-0.1_gp, &
+           cpmult,fpmult,hx,hy,hz,-0.1_gp, &
            PPD, KSwfn%Lzd%Glr  )
       call timing(iproc,'CrtPcProjects ','OF')
    endif
@@ -596,8 +585,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         n1,n2,n3,pot_ion,pkernel,psoffset)
 
    call createIonicPotential(atoms%astruct%geocode,iproc,nproc, (iproc == 0), atoms,rxyz,hxh,hyh,hzh,&
-        in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset,&
-        rholoc_tmp)
+        in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
 
 
    !Allocate Charge density, Potential in real space
@@ -1069,7 +1057,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          spot_a = 0.8d0
          hpot_a = 3.0d0
 
-         allocate(radpot(60000 ,2+ndebug ))
+         allocate(radpot(60000 ,2))
          radpotcount=60000
 
          open(unit=22,file='pot.dat', status='old')
@@ -1154,20 +1142,20 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       if (in%iabscalc_type==2) then
          call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
+             nlpsp,KSwfn%Lzd,dpcom,&
              rhopot(1,1,1,1),energs,xc,in%nspin,GPU,&
              in%iat_absorber,in,PAWD,orbs)
 
       else if (in%iabscalc_type==1) then
          call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
-            &   rhopot(1,1,1,1) ,energs,xc,in%nspin,GPU &
-            &   , in%iat_absorber, in, PAWD, orbs)
+              nlpsp,KSwfn%Lzd,dpcom,&
+              rhopot(1,1,1,1) ,energs,xc,in%nspin,GPU, &
+              in%iat_absorber, in, PAWD, orbs)
       else if (in%iabscalc_type==3) then
          call xabs_cg(iproc,nproc,atoms,hx,hy,hz,rxyz,&
-             radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
-            &   rhopot(1,1,1,1) ,energs,xc,in%nspin,GPU &
-            &   , in%iat_absorber, in, rhoXanes(1,1,1,1), PAWD, PPD, orbs)
+              nlpsp,KSwfn%Lzd,dpcom,&
+              rhopot(1,1,1,1) ,energs,xc,in%nspin,GPU, &
+              in%iat_absorber, in, rhoXanes(1,1,1,1), PAWD, PPD, orbs)
       else
          if (iproc == 0) write(*,*)' iabscalc_type not known, does not perform calculation'
       endif
@@ -1281,9 +1269,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       call free_DFT_PSP_projectors(nlpsp)
       !call deallocate_proj_descr(nlpspd,subname)
 
-
-      call f_free(radii_cf)
-
       call deallocate_rho_descriptors(rhodsc)
 
       if( in%iabscalc_type==3) then
@@ -1344,7 +1329,7 @@ subroutine abscalc_input_variables(iproc,filename,in)
   read(iunit,*,iostat=ierror)  in%L_absorber
   call check()
 
-  in%Gabs_coeffs = f_malloc_ptr(2*in%L_absorber +1+ndebug,id='in%Gabs_coeffs')
+  in%Gabs_coeffs = f_malloc_ptr(2*in%L_absorber +1,id='in%Gabs_coeffs')
 
   read(iunit,*,iostat=ierror)  (in%Gabs_coeffs(i), i=1,2*in%L_absorber +1 )
   call check()
@@ -1709,7 +1694,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   call timing(iproc,'wavefunction  ','ON')   
   !use only the part of the arrays for building the hamiltonian matrix
   call gaussians_to_wavelets_new(iproc,nproc,Lzde,orbse,G,&
-       psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
+       psigau(1,1,1),psi)
   call timing(iproc,'wavefunction  ','OF')
   call f_free(locrad)
 

@@ -83,10 +83,12 @@ H2-freq2.post-out:
 	mv log-freq.yaml log.yaml
 
 IO-wf_plain.out.post-out:
+	if test -e data-plain-read; then rm -rf data-plain-read; fi
 	mv -f data-plain data-plain-read
 	$(MAKE) -f ../Makefile IO-wf_plain.cube
 
 IO-wf_binary.out.post-out:
+	if test -e data-binary-read; then rm -rf data-binary-read; fi
 	mv -f data-binary data-binary-read
 	$(MAKE) -f ../Makefile IO-wf_binary.cube
 
@@ -144,7 +146,7 @@ IO-wf_ETSF.cube:
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@
 
 %.report.yaml: %.ref.yaml
-	export PYTHONPATH=${PYTHONPATH} ; \
+	@export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	name2=`basename $< .xabs.ref.yaml` ; \
 	if test "$$name2" = "$<" ; then \
