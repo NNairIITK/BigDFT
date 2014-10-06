@@ -1064,6 +1064,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        end if
   end if
 
+  ! only print eigenvalues if they have meaning, i.e. diag or the case above
+  if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE.or.input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
+     if (bigdft_mpi%iproc ==0) then 
+        call write_eigenvalues_data(0.1d0,tmb%orbs,mom_vec_fake)
+     end if
+  end if
 
 
   !! TEST ##########################
