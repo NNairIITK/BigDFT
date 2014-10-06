@@ -219,7 +219,7 @@ contains
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, norb, norbp, isorb, nseg
       integer,dimension(norb),intent(in) :: nsegline, istsegline
-      integer,dimension(2,nseg),intent(in) :: keyg
+      integer,dimension(2,2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(inout) :: sparsemat
 
       integer :: ierr, jproc, iorb, jjproc, iiorb, nseq_min, nseq_max, iseq, ind, ii, iseg, ncount
@@ -317,7 +317,7 @@ contains
 
       call f_free(nseq_per_line)
 
-      call allocate_sparse_matrix_matrix_multiplication(nproc, norb, nseg, nsegline, istsegline, keyg, sparsemat%smmm)
+      call allocate_sparse_matrix_matrix_multiplication(nproc, norb, nseg, nsegline, istsegline, sparsemat%smmm)
 
 
       ! Calculate some auxiliary variables
@@ -335,7 +335,6 @@ contains
       sparsemat%smmm%nseg=nseg
       call vcopy(norb, nsegline(1), 1, sparsemat%smmm%nsegline(1), 1)
       call vcopy(norb, istsegline(1), 1, sparsemat%smmm%istsegline(1), 1)
-      !!call vcopy(2*nseg, keyg(1,1), 1, sparsemat%smmm%keyg(1,1), 1)
       call init_onedimindices_new(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
            nsegline, istsegline, keyg, &
            sparsemat, sparsemat%smmm%nout, sparsemat%smmm%onedimindices)
@@ -516,51 +515,51 @@ contains
     end subroutine keyg_per_line
 
 
-    subroutine keyg_per_line_old(norb, nseg, iline, istseg, lut, ivctr, keyg)
-      implicit none
-      
-      ! Calling arguments
-      integer,intent(in) :: norb, nseg, iline, istseg
-      logical,dimension(norb),intent(in) :: lut
-      integer,intent(inout) :: ivctr
-      integer,dimension(2,nseg),intent(out) :: keyg
-      
-      ! Local variables
-      integer :: iseg, jorb, ijorb
-      logical :: segment_started, overlap
+    !!subroutine keyg_per_line_old(norb, nseg, iline, istseg, lut, ivctr, keyg)
+    !!  implicit none
+    !!  
+    !!  ! Calling arguments
+    !!  integer,intent(in) :: norb, nseg, iline, istseg
+    !!  logical,dimension(norb),intent(in) :: lut
+    !!  integer,intent(inout) :: ivctr
+    !!  integer,dimension(2,nseg),intent(out) :: keyg
+    !!  
+    !!  ! Local variables
+    !!  integer :: iseg, jorb, ijorb
+    !!  logical :: segment_started, overlap
 
-      ! Always start a new segment for each line
-      segment_started=.false.
-      !iseg=sparsemat%istsegline(iline)-1
-      iseg=istseg-1
-      do jorb=1,norb
-          overlap=lut(jorb)
-          ijorb=(iline-1)*norb+jorb
-          if (overlap) then
-              if (segment_started) then
-                  ! there is no "hole" in between, i.e. we are in the same segment
-                  ivctr=ivctr+1
-              else
-                  ! there was a "hole" in between, i.e. we are in a new segment.
-                  iseg=iseg+1
-                  ivctr=ivctr+1
-                  ! open the current segment
-                  keyg(1,iseg)=ijorb
-              end if
-              segment_started=.true.
-          else
-              if (segment_started) then
-                  ! close the previous segment
-                  keyg(2,iseg)=ijorb-1
-              end if
-              segment_started=.false.
-          end if
-      end do
-      ! close the last segment on the line if necessary
-      if (segment_started) then
-          keyg(2,iseg)=iline*norb
-      end if
-    end subroutine keyg_per_line_old
+    !!  ! Always start a new segment for each line
+    !!  segment_started=.false.
+    !!  !iseg=sparsemat%istsegline(iline)-1
+    !!  iseg=istseg-1
+    !!  do jorb=1,norb
+    !!      overlap=lut(jorb)
+    !!      ijorb=(iline-1)*norb+jorb
+    !!      if (overlap) then
+    !!          if (segment_started) then
+    !!              ! there is no "hole" in between, i.e. we are in the same segment
+    !!              ivctr=ivctr+1
+    !!          else
+    !!              ! there was a "hole" in between, i.e. we are in a new segment.
+    !!              iseg=iseg+1
+    !!              ivctr=ivctr+1
+    !!              ! open the current segment
+    !!              keyg(1,iseg)=ijorb
+    !!          end if
+    !!          segment_started=.true.
+    !!      else
+    !!          if (segment_started) then
+    !!              ! close the previous segment
+    !!              keyg(2,iseg)=ijorb-1
+    !!          end if
+    !!          segment_started=.false.
+    !!      end if
+    !!  end do
+    !!  ! close the last segment on the line if necessary
+    !!  if (segment_started) then
+    !!      keyg(2,iseg)=iline*norb
+    !!  end if
+    !!end subroutine keyg_per_line_old
 
 
 
@@ -586,8 +585,9 @@ contains
       logical,dimension(:),allocatable :: lut
       integer :: nseg_mult, nvctr_mult, ivctr_mult
       integer,dimension(:),allocatable :: nsegline_mult, istsegline_mult
-      integer,dimension(:,:),allocatable :: keyg_mult
+      integer,dimension(:,:,:),allocatable :: keyg_mult
       logical :: allocate_full, print_info
+      integer(kind=8) :: ntot
 
       call timing(iproc,'init_matrCompr','ON')
 
@@ -647,9 +647,10 @@ contains
 
     
       if (iproc==0 .and. print_info) then
-          call yaml_map('total elements',norbu**2)
+          ntot = int(norbu,kind=8)*int(norbu,kind=8)
+          call yaml_map('total elements',ntot)
           call yaml_map('non-zero elements',sparsemat%nvctr)
-          call yaml_map('sparsity in %',1.d2*dble(norbu**2-sparsemat%nvctr)/dble(norbu**2),fmt='(f5.2)')
+          call yaml_map('sparsity in %',1.d2*real(ntot-int(sparsemat%nvctr,kind=8),kind=8)/real(ntot,kind=8),fmt='(f5.2)')
       end if
     
       call allocate_sparse_matrix_keys(store_index, sparsemat)
@@ -773,13 +774,13 @@ contains
           istsegline_mult(iorb) = istsegline_mult(iorb-1) + nsegline_mult(iorb-1)
       end do
 
-      keyg_mult = f_malloc0((/2,nseg_mult/),id='keyg_mult')
+      keyg_mult = f_malloc0((/2,2,nseg_mult/),id='keyg_mult')
 
       ivctr_mult=0
       do iorb=1,norbup
          iiorb=isorbu+iorb
          call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb)
-         call keyg_per_line_old(norbu, nseg_mult, iiorb, istsegline_mult(iiorb), &
+         call keyg_per_line(norbu, nseg_mult, iiorb, istsegline_mult(iiorb), &
               lut, ivctr_mult, keyg_mult)
       end do
       ! check whether the number of elements agrees
@@ -791,7 +792,7 @@ contains
           stop
       end if
       if (nproc>1) then
-          call mpiallred(keyg_mult(1,1), 2*nseg_mult, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(keyg_mult(1,1,1), 2*2*nseg_mult, mpi_sum, bigdft_mpi%mpi_comm)
       end if
 
 
@@ -862,7 +863,7 @@ contains
       ! Calling arguments
       integer,intent(in) :: norb, norbp, isorb, nseg
       integer,dimension(norb),intent(in) :: nsegline, istsegline
-      integer,dimension(2,nseg),intent(in) :: keyg
+      integer,dimension(2,2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(in) :: sparsemat
       integer,intent(out) :: nseq
       integer,dimension(norb),intent(out) :: nseq_per_line
@@ -877,12 +878,9 @@ contains
          isegoffset=istsegline(ii)-1
          nseqline=0
          do iseg=1,nsegline(ii)
-              istart=keyg(1,isegoffset+iseg)
-              iend=keyg(2,isegoffset+iseg)
-              ! keyg is defined in terms of "global coordinates", so get the
-              ! coordinate on a given line by using the mod function
-              istart=mod(istart-1,norb)+1
-              iend=mod(iend-1,norb)+1
+              ! A segment is always on one line, therefore no double loop
+              istart=keyg(1,1,isegoffset+iseg)
+              iend=keyg(2,1,isegoffset+iseg)
               do iorb=istart,iend
                   do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
                       ! A segment is always on one line, therefore no double loop
@@ -905,7 +903,7 @@ contains
       ! Calling arguments
       integer,intent(in) :: norb, norbp, isorb, nseg
       integer,dimension(norb),intent(in) :: nsegline, istsegline
-      integer,dimension(2,nseg),intent(in) :: keyg
+      integer,dimension(2,2,nseg),intent(in) :: keyg
       integer,intent(out) :: nout
     
       ! Local variables
@@ -917,8 +915,9 @@ contains
          iii=isorb+i
          isegoffset=istsegline(iii)-1
          do iseg=1,nsegline(iii)
-              istart=keyg(1,isegoffset+iseg)
-              iend=keyg(2,isegoffset+iseg)
+              ! A segment is always on one line, therefore no double loop
+              istart=keyg(1,1,isegoffset+iseg)
+              iend=keyg(2,1,isegoffset+iseg)
               do iorb=istart,iend
                   nout=nout+1
               end do
@@ -934,7 +933,7 @@ contains
       ! Calling arguments
       integer,intent(in) :: norb, norbp, isorb, nseg
       integer,dimension(norb),intent(in) :: nsegline, istsegline
-      integer,dimension(2,nseg),intent(in) :: keyg
+      integer,dimension(2,2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(in) :: sparsemat
       integer,intent(in) :: nout
       integer,dimension(4,nout) :: onedimindices
@@ -950,12 +949,9 @@ contains
          iii=isorb+i
          isegoffset=istsegline(iii)-1
          do iseg=1,nsegline(iii)
-              istart=keyg(1,isegoffset+iseg)
-              iend=keyg(2,isegoffset+iseg)
-              ! keyg is defined in terms of "global coordinates", so get the
-              ! coordinate on a given line by using the mod function
-              istart=mod(istart-1,norb)+1
-              iend=mod(iend-1,norb)+1
+              istart=keyg(1,1,isegoffset+iseg)
+              iend=keyg(2,1,isegoffset+iseg)
+              ! A segment is always on one line, therefore no double loop
               do iorb=istart,iend
                   ii=ii+1
                   onedimindices(1,ii)=i
@@ -983,7 +979,7 @@ contains
       ! Calling arguments
       integer,intent(in) :: norb, norbp, isorb, nseg, nseq
       integer,dimension(norb),intent(in) :: nsegline, istsegline
-      integer,dimension(2,nseg),intent(in) :: keyg
+      integer,dimension(2,2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(in) :: sparsemat
       integer,dimension(nseq),intent(out) :: ivectorindex
     
@@ -997,12 +993,9 @@ contains
          iii=isorb+i
          isegoffset=istsegline(iii)-1
          do iseg=1,nsegline(iii)
-              istart=keyg(1,isegoffset+iseg)
-              iend=keyg(2,isegoffset+iseg)
-              ! keyg is defined in terms of "global coordinates", so get the
-              ! coordinate on a given line by using the mod function
-              istart=mod(istart-1,norb)+1
-              iend=mod(iend-1,norb)+1
+              istart=keyg(1,1,isegoffset+iseg)
+              iend=keyg(2,1,isegoffset+iseg)
+              ! A segment is always on one line, therefore no double loop
               do iorb=istart,iend
                   !!istindexarr(iorb-istart+1,iseg,i)=ii
                   do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
@@ -1028,7 +1021,7 @@ contains
       ! Calling arguments
       integer,intent(in) :: norb, norbp, isorb, nseg, nseq
       integer,dimension(norb),intent(in) :: nsegline, istsegline
-      integer,dimension(2,nseg),intent(in) :: keyg
+      integer,dimension(2,2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(in) :: sparsemat
       integer,dimension(nseq),intent(out) :: indices_extract_sequential
     
@@ -1042,12 +1035,9 @@ contains
          iii=isorb+i
          isegoffset=istsegline(iii)-1
          do iseg=1,nsegline(iii)
-              istart=keyg(1,isegoffset+iseg)
-              iend=keyg(2,isegoffset+iseg)
-              ! keyg is defined in terms of "global coordinates", so get the
-              ! coordinate on a given line by using the mod function
-              istart=mod(istart-1,norb)+1
-              iend=mod(iend-1,norb)+1
+              istart=keyg(1,1,isegoffset+iseg)
+              iend=keyg(2,1,isegoffset+iseg)
+              ! A segment is always on one line, therefore no double loop
               do iorb=istart,iend
                   do jseg=sparsemat%istsegline(iorb),sparsemat%istsegline(iorb)+sparsemat%nsegline(iorb)-1
                       ! A segment is always on one line, therefore no double loop
@@ -1639,7 +1629,7 @@ contains
 
       subroutine check_ortho_inguess()
         integer :: iorb, iiorb, isegstart, isegsend, iseg, j, i, jorb, korb, ind
-        integer,dimension(:),allocatable :: in_neighborhood
+        logical,dimension(:),allocatable :: in_neighborhood
 
         in_neighborhood = f_malloc(smat%nfvctr,id='in_neighborhood')
         
