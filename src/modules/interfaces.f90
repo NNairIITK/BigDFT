@@ -1477,9 +1477,10 @@ module module_interfaces
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
           gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
-          purification_quickreturn, correction_co_contra, cdft)
+          purification_quickreturn, correction_co_contra, cdft, input_frag, ref_frags)
         use module_base
         use module_types
+        use module_fragments, only: system_fragment
         use constrained_dft, only: cdft_data
         implicit none
 
@@ -1511,7 +1512,10 @@ module module_interfaces
         logical,intent(out) :: can_use_ham
         integer,intent(in) :: method_updatekernel
         logical,intent(in) :: correction_co_contra
+        !these must all be present together
         type(cdft_data),intent(in),optional :: cdft
+        type(fragmentInputParameters),optional,intent(in) :: input_frag
+        type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
       end subroutine getLocalizedBasis
 
     subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
@@ -2465,10 +2469,12 @@ module module_interfaces
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
                   hpsi_small, experimental_mode, correction_co_contra, hpsi_noprecond, &
-                  norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays, cdft)
+                  norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays,&
+                  cdft, input_frag, ref_frags)
          use module_base
          use module_types
          use constrained_dft, only: cdft_data
+         use module_fragments, only: system_fragment
          implicit none
          integer, intent(in) :: iproc, nproc, it, method_updatekernel
          integer,intent(inout) :: norder_taylor
@@ -2493,6 +2499,8 @@ module module_interfaces
          type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
          type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
          type(cdft_data),intent(in),optional :: cdft
+         type(fragmentInputParameters),optional,intent(in) :: input_frag
+         type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
        end subroutine calculate_energy_and_gradient_linear
 
        subroutine improveOrbitals(iproc, nproc, tmb, nspin, ldiis, alpha, gradient, experimental_mode)
@@ -4058,18 +4066,18 @@ module module_interfaces
           real(kind=8),intent(out),optional :: max_error, mean_error
         end subroutine overlap_minus_one_half_serial
 
-        subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_charged,ifrag_charged,tmb,input,ref_frags,&
-             calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
+        subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_charged,ifrag_charged,tmb,input_frag,&
+             ref_frags,calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
           use module_defs, only: gp
           use module_types
           use module_fragments
           implicit none
           type(sparse_matrix), intent(inout) :: weight_matrix
            type(matrices), intent(inout) :: weight_matrix_
-          type(input_variables),intent(in) :: input
+          type(fragmentInputParameters),intent(in) :: input_frag
           type(dft_wavefunction), intent(inout) :: tmb
           logical, intent(in) :: calculate_overlap_matrix, calculate_ovrlp_half
-          type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
+          type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
           integer, intent(in) :: nfrag_charged, meth_overlap
           integer, dimension(2), intent(in) :: ifrag_charged
           !local variables

@@ -87,6 +87,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
    if (iproc==0) call yaml_mapping_open('Kernel update')
   ! should eventually make this an input variable
   if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+      ! maybe need this for fragment calculations also, or make it an input?
      if (present(cdft)) then
         ! factor for scaling gradient
         factor=0.1d0
@@ -454,7 +455,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
     gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
-    purification_quickreturn, correction_co_contra, cdft)
+    purification_quickreturn, correction_co_contra, cdft, input_frag, ref_frags)
   !
   ! Purpose:
   ! ========
@@ -468,6 +469,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use communications, only: transpose_localized, start_onesided_communication
   use sparsematrix_base, only: assignment(=), sparsematrix_malloc, sparsematrix_malloc_ptr, SPARSE_FULL
   use constrained_dft, only: cdft_data
+  use module_fragments, only: system_fragment
   !  use Poisson_Solver
   !use allocModule
   implicit none
@@ -500,7 +502,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical,intent(out) :: can_use_ham
   integer,intent(in) :: method_updatekernel
   logical,intent(in) :: correction_co_contra
-  type(cdft_data),intent(in),optional :: cdft
+  !these must all be present together
+  type(cdft_data),intent(inout),optional :: cdft
+  type(fragmentInputParameters),optional,intent(in) :: input_frag
+  type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
  
   ! Local variables
   integer :: iorb, it, it_tot, ncount, ncharge, ii, kappa_satur, nit_exit, ispin
@@ -780,7 +785,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, hpsi_small, &
            experimental_mode, correction_co_contra, hpsi_noprecond=hpsi_tmp, norder_taylor=order_taylor, &
            max_inversion_error=max_inversion_error, method_updatekernel=method_updatekernel, &
-           precond_convol_workarrays=precond_convol_workarrays, precond_workarrays=precond_workarrays, cdft=cdft)
+           precond_convol_workarrays=precond_convol_workarrays, precond_workarrays=precond_workarrays, &
+           cdft=cdft, input_frag=input_frag, ref_frags=ref_frags)
       !fnrm_old=fnrm
 
 
