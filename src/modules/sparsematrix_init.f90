@@ -587,6 +587,7 @@ contains
       integer,dimension(:),allocatable :: nsegline_mult, istsegline_mult
       integer,dimension(:,:,:),allocatable :: keyg_mult
       logical :: allocate_full, print_info
+      integer(kind=8) :: ntot
 
       call timing(iproc,'init_matrCompr','ON')
 
@@ -646,9 +647,10 @@ contains
 
     
       if (iproc==0 .and. print_info) then
-          call yaml_map('total elements',norbu**2)
+          ntot = int(norbu,kind=8)*int(norbu,kind=8)
+          call yaml_map('total elements',ntot)
           call yaml_map('non-zero elements',sparsemat%nvctr)
-          call yaml_map('sparsity in %',1.d2*dble(norbu**2-sparsemat%nvctr)/dble(norbu**2),fmt='(f5.2)')
+          call yaml_map('sparsity in %',1.d2*real(ntot-int(sparsemat%nvctr,kind=8),kind=8)/real(ntot,kind=8),fmt='(f5.2)')
       end if
     
       call allocate_sparse_matrix_keys(store_index, sparsemat)
