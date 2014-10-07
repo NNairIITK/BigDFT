@@ -71,6 +71,7 @@ module sparsematrix
       if (sparsemat%parallel_compression==0.or.bigdft_mpi%nproc==1) then
          do ispin=1,sparsemat%nspin
              ishift=(ispin-1)*sparsemat%nfvctr**2
+             !OpenMP broken on Vesta
              !$omp parallel default(none) private(iseg,j,jj,irowcol) &
              !$omp shared(sparsemat,inm,outm,ishift,ispin)
              !$omp do
@@ -167,6 +168,7 @@ module sparsematrix
          call to_zero(sparsemat%nfvctr**2*sparsemat%nspin, outm(1,1,1))
          do ispin=1,sparsemat%nspin
              ishift=(ispin-1)*sparsemat%nvctr
+             !OpenMP broken on Vesta
              !$omp parallel default(none) private(iseg,i,ii,irowcol) shared(sparsemat,inm,outm,ispin,ishift)
              !$omp do
              do iseg=1,sparsemat%nseg

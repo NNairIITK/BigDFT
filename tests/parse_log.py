@@ -153,8 +153,42 @@ def parse_arguments():
                     help="File containing the keys which have to be extracted to build the quantities", metavar='FILE')
   parser.add_option('-o', '--output', dest='output', default="/dev/null", #sys.argv[4],
                     help="set the output file (default: /dev/null)", metavar='FILE')
+  parser.add_option('-t', '--timedata', dest='timedata',default=None, #sys.argv[2],
+                    help="BigDFT time.yaml file, a quick report is dumped on screen if this option is given", metavar='FILE')
+
   #Return the parsing
   return parser
+
+def nopc(string):
+  pc=string.rstrip("%")
+  try:
+    fl=float(pc)
+  except:
+    fl=-1.0
+  return fl
+
+def dump_one_timing_level(dict):
+  """Inspect the first level of the given dictionary and dump the profile subroutines at this level"""
+  import pylab
+  n=len(dict)
+  print "we have", n," subroutines"
+  subs=[]
+  for level in dict:
+    #first eliminate the subroutines from the level
+    try:
+      sublevel=level.pop("Subroutines")
+    except:
+      sublevel=None
+    for name in level.keys(): #here we only have two keys at most (level name and "Subroutine", at second place)
+      print "At level", name, " we have",level[name]
+      #subs.append({name: nopc(level[name][-1])})
+      subs.append(nopc(level[name][-1]))
+    if sublevel is not None:
+      dump_one_timing_level(sublevel)
+  print "all the subroutines",subs
+  Z=pylab.np.array(subs)
+  #Z = pylab.np.random.uniform(0,1,n)
+  pylab.pie(Z), pylab.show()
 
 
 if __name__ == "__main__":
@@ -164,6 +198,20 @@ if __name__ == "__main__":
 
 #args=parse_arguments()
 #logfile
+#check if timedata is given
+if args.timedata is not None:
+  #load the yaml document
+  timing = yaml.load(open(args.timedata, "r").read(), Loader = yaml.CLoader)
+  dict_routines = timing["Routines timing and number of calls"]
+  dump_one_timing_level(dict_routines)
+  #dump the loaded info
+  #sys.stdout.write(yaml.dump(dict_routines,default_flow_style=False,explicit_start=True))
+  
+
+if args.data is None:
+  print "No input file given, exiting..."
+  exit(0)
+
 with open(args.data, "r") as fp:
   logfile_lines = fp.readlines()
 #output file

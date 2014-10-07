@@ -440,15 +440,27 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                call yaml_sequence_open('support function optimization',label=&
                               'it_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
            end if
-           call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
-               info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
-               input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
-               nit_basis,&
-               ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
-               input%lin%early_stop, input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
-               can_use_ham, norder_taylor, input%lin%max_inversion_error, input%kappa_conv,&
-               input%method_updatekernel,input%purification_quickreturn, &
-               input%correction_co_contra, cdft)
+           if (input%lin%constrained_dft) then
+              call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
+                  info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
+                  input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
+                  nit_basis,&
+                  ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
+                  input%lin%early_stop, input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
+                  can_use_ham, norder_taylor, input%lin%max_inversion_error, input%kappa_conv,&
+                  input%method_updatekernel,input%purification_quickreturn, &
+                  input%correction_co_contra, cdft, input%frag, ref_frags)
+           else
+              call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
+                  info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
+                  input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
+                  nit_basis,&
+                  ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
+                  input%lin%early_stop, input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
+                  can_use_ham, norder_taylor, input%lin%max_inversion_error, input%kappa_conv,&
+                  input%method_updatekernel,input%purification_quickreturn, &
+                  input%correction_co_contra)
+           end if
            reduce_conf=.true.
            if (iproc==0) then
                call yaml_sequence_close()
@@ -761,7 +773,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
              ! update occupations wrt eigenvalues (NB for directmin these aren't guaranteed to be true eigenvalues)
              ! switch off for FOE at the moment
-             if (input%lin%scf_mode/=LINEAR_FOE) then
+             ! switch off for directmin too, unless we decide to reactivate calculating the expectation values the output is meaningless
+             if (input%lin%scf_mode/=LINEAR_FOE .and. input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
                  !call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
                  ! Copy the spin up eigenvalues (or all in the case of a non-polarized calculation)
                  call vcopy(kswfn%orbs%norbu,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
@@ -1045,11 +1058,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        !!if (input%lin%scf_mode==LINEAR_FOE) then
        !!    call f_free_ptr(tmb%coeff)
        !!end if
-  end if
 
        if (bigdft_mpi%iproc ==0) then 
           call write_eigenvalues_data(0.1d0,tmb%orbs,mom_vec_fake)
        end if
+  end if
+
+  ! only print eigenvalues if they have meaning, i.e. diag or the case above
+  if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE.or.input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE) then
+     if (bigdft_mpi%iproc ==0) then 
+        call write_eigenvalues_data(0.1d0,tmb%orbs,mom_vec_fake)
+     end if
+  end if
 
 
   !! TEST ##########################

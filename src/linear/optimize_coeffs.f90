@@ -495,7 +495,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
 
   do ifrag=1,input%frag%nfrag
      ifrag_charged(1)=ifrag
-     call calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,1,ifrag_charged,tmb,input,ref_frags,&
+     call calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,1,ifrag_charged,tmb,input%frag,ref_frags,&
           .false.,.true.,input%lin%order_taylor)
      weight_matrix_%matrix = sparsematrix_malloc_ptr(weight_matrix,iaction=DENSE_FULL,id='weight_matrix%matrix')
      call uncompress_matrix(iproc,weight_matrix,weight_matrix_%matrix_compr,weight_matrix_%matrix)

@@ -439,7 +439,8 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   real(kind=8) :: tt60, tt61, tt62, tt63, tt64, tt65, tt66
   integer,dimension(:),allocatable :: n
   !$ integer  :: omp_get_thread_num,omp_get_max_threads
-  integer :: totops, avops, ops, opsn
+  real(kind=8) :: totops
+  integer :: avops, ops, opsn
   integer, allocatable, dimension(:) :: numops
   logical :: ifnd, jfnd
   integer :: iorb, jorb, imat, iseg, iorb_shift, itg, iitg, ist_send, ist_recv, ncount, ishift
@@ -544,23 +545,28 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
 
   else if (collcom%imethod_overlap==1) then method_if
 
+      !only optimized for spin=1 for now
+      ispin=1
       nthreads=1
       !$  nthreads = OMP_GET_max_threads()
       n = f_malloc(nthreads,id='n')
-      numops = f_malloc(orbs%norb,id='numops')
+      iorb_shift=(ispin-1)*smat%nfvctr
       ! calculate number of operations for better load balancing of OpenMP
       if (nthreads>1) then
+         numops = f_malloc(orbs%norb,id='numops')
+         !coarse
          numops=0
          do ipt=1,collcom%nptsp_c
             ii=collcom%norb_per_gridpoint_c(ipt)
-            i0 = collcom%isptsp_c(ipt)
+            i0 = collcom%isptsp_c(ipt) + (ispin-1)*collcom%ndimind_c/smat%nspin
             do i=1,ii
-               iiorb=collcom%indexrecvorbital_c(i0+i)
+               i0i=i0+i
+               iiorb=collcom%indexrecvorbital_c(i0+i) - iorb_shift
                numops(iiorb)=numops(iiorb)+ii
             end do
          end do
          totops=sum(numops)
-         avops=totops/nthreads
+         avops=nint(totops/dble(nthreads))
          jjorb=1
          do i=1,nthreads
             ops=0
@@ -581,17 +587,15 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                ops=opsn
             end do
             if (i/=nthreads) then
-               avops=nint(dble(totops)/dble(nthreads-i))
+               avops=nint(totops/dble(nthreads-i))
             end if
          end do
-      
+         call f_free(numops)
       end if
-    
-      call f_free(numops)
-    
+
       n(nthreads)=orbs%norb
     
-    
+
       !$omp parallel default(none) &
       !$omp shared(collcom, smat, ovrlp, psit_c1, psit_c2, psit_f1, psit_f2, n) &
       !$omp private(tid, ispin, iend, istart, ipt, ii, i0, i, iiorb, m, j, i0j, jjorb, ishift_mat, iorb_shift, ind0) &
@@ -612,7 +616,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
          istart=n(tid)+1
       end if
     
-    
+
       !SM: check if the modulo operations take a lot of time. If so, try to use an
       !auxiliary array with shifted bounds in order to access smat%matrixindex_in_compressed_fortransposed
       spin_loop: do ispin=1,smat%nspin
@@ -626,8 +630,8 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                   i0 = collcom%isptsp_c(ipt) + (ispin-1)*collcom%ndimind_c/smat%nspin
                   do i=1,ii
                       i0i=i0+i
-                      iiorb=collcom%indexrecvorbital_c(i0i)
-                      iiorb=mod(iiorb-1,smat%nfvctr)+1
+                      iiorb=collcom%indexrecvorbital_c(i0i) - iorb_shift
+                      !iiorb=mod(iiorb-1,smat%nfvctr)+1
                       if(iiorb < istart .or. iiorb > iend) cycle
                       m=mod(ii,7)
                       if(m/=0) then
@@ -701,6 +705,86 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                   end do
               end do
           end if
+      end do spin_loop
+      !$omp end parallel
+
+
+      !recalculate best OpenMP load balancing for fine grid points - not necessarily the same as coarse
+      !only optimized for spin=1 for now
+      ispin=1
+      nthreads=1
+      !$  nthreads = OMP_GET_max_threads()
+      iorb_shift=(ispin-1)*smat%nfvctr
+      ! calculate number of operations for better load balancing of OpenMP
+      if (nthreads>1) then
+         numops = f_malloc(orbs%norb,id='numops')
+         numops=0
+         !fine
+         do ipt=1,collcom%nptsp_f
+            ii=collcom%norb_per_gridpoint_f(ipt)
+            i0 = collcom%isptsp_f(ipt) + (ispin-1)*collcom%ndimind_f/smat%nspin
+            do i=1,ii
+               i0i=i0+i
+               iiorb=collcom%indexrecvorbital_f(i0i) - iorb_shift
+               numops(iiorb)=numops(iiorb)+ii  !*7
+            end do
+         end do
+         totops=sum(numops)
+         avops=nint(totops/dble(nthreads))
+         jjorb=1
+         do i=1,nthreads
+            ops=0
+            do j=jjorb,orbs%norb
+               opsn=ops+numops(j)
+               if (opsn>=avops) then
+                  if ((opsn-avops)<(avops-ops)) then
+                     n(i)=j
+                     jjorb=j+1
+                     totops=totops-opsn
+                  else
+                     n(i)=j-1
+                     jjorb=j
+                     totops=totops-ops
+                  end if
+                  exit
+               end if
+               ops=opsn
+            end do
+            if (i/=nthreads) then
+               avops=nint(totops/dble(nthreads-i))
+            end if
+         end do
+         call f_free(numops)
+      end if    
+
+      n(nthreads)=orbs%norb
+    
+
+      !$omp parallel default(none) &
+      !$omp shared(collcom, smat, ovrlp, psit_c1, psit_c2, psit_f1, psit_f2, n) &
+      !$omp private(tid, ispin, iend, istart, ipt, ii, i0, i, iiorb, m, j, i0j, jjorb, ishift_mat, iorb_shift, ind0) &
+      !$omp private(jjorb0, jjorb1, ind1, jjorb2, ind2, jjorb3, ind3, jjorb4, ind4, jjorb5, ind5, jjorb6, ind6) &
+      !$omp private(i0i, i07i, i07j, tt06, tt05, tt04, tt03, tt02, tt01, tt00) &
+      !$omp private(tt16, tt15, tt14, tt13, tt12, tt11, tt10) & 
+      !$omp private(tt26, tt25, tt24, tt23, tt22, tt21, tt20) &
+      !$omp private(tt36, tt35, tt34, tt33, tt32, tt31, tt30) &
+      !$omp private(tt46, tt45, tt44, tt43, tt42, tt41, tt40) &
+      !$omp private(tt56, tt55, tt54, tt53, tt52, tt51, tt50) &
+      !$omp private(tt66, tt65, tt64, tt63, tt62, tt61, tt60)
+      tid=0
+      !$ tid = OMP_GET_THREAD_NUM()
+      iend=n(tid+1)
+      if (tid==0) then
+         istart=1
+      else
+         istart=n(tid)+1
+      end if
+    
+      spin_loopf: do ispin=1,smat%nspin
+    
+          ishift_mat=(ispin-1)*smat%nvctr
+          iorb_shift=(ispin-1)*smat%nfvctr
+
           if (collcom%nptsp_f>0) then
               do ipt=1,collcom%nptsp_f 
                   ii=collcom%norb_per_gridpoint_f(ipt) 
@@ -837,8 +921,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
               end do
           end if
     
-      end do spin_loop
-    
+      end do spin_loopf
       !$omp end parallel
 
       call f_free(n)
