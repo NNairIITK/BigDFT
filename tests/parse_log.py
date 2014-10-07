@@ -205,8 +205,87 @@ def dump_timing_level(level,ilev=0,theta=0,
   #pylab.pie(Z), pylab.show()
   return data
 
+#defines the class of the polar plot
+class polar_axis():
+  def __init__(self,data):
+    import pylab
+    self.fig = pylab.figure()
+    self.ax = pylab.axes([0.025,0.025,0.95,0.95], polar=True)
+    self.tot=data["time"][0]
+    self.N=len(data["time"])
+    self.step=5
+    self.width=pylab.np.array(data["time"])/self.tot*2*pylab.np.pi
+    self.theta=pylab.np.array(data["theta"])/self.tot*2*pylab.np.pi
+    self.bot=pylab.np.array(data["level"])
+    self.radii = pylab.np.array(self.N*[self.step])
+    self.bars = pylab.bar(self.theta,self.radii,
+                          width=self.width,
+                          bottom=self.step*self.bot,picker=True)
+    self.names=data["names"]
+
+    ilev=0
+    #maxlev=max(self.bot)
+    for r,bar,ilev in zip(self.radii, self.bars,self.theta):
+       #print ilev,'hello',float(ilev)/float(N),maxlev
+       #bar.set_facecolor( pylab.cm.jet(float(ilev)/maxlev))
+       bar.set_facecolor( pylab.cm.jet(float(ilev)/(2*pylab.np.pi)))
+       bar.set_alpha(0.5)
+       ilev+=1
+
+    self.ax.set_xticklabels([])
+    self.ax.set_yticklabels([])
+    # savefig('../figures/polar_ex.png',dpi=48)
+    self.fig.canvas.mpl_connect('pick_event',self.info_callback)
+
+    try:
+      pylab.show()
+    except KeyboardInterrupt:
+      raise
+
+  def find_name(self,th,level):
+    import pylab
+    levth=[]
+    for i in range(self.N):
+      if self.bot[i]==level:
+        levth.append(self.theta[i])
+    to_find_zero=pylab.np.array(levth)-th
+    if min(abs(to_find_zero))==0.0:
+      routine=pylab.np.argmin(abs(to_find_zero))
+      #print "Ciao",xdata,ydata,level,'end'
+      #print "name",self.names[level],levth[routine]
+      return (th,self.names[level][routine])
+    else:
+      to_find_zero[to_find_zero < 0]=0
+      routine=pylab.np.argmin(to_find_zero)
+      return (self.theta[routine],self.names[level][routine])
+    
+  def info_callback(self,event):
+    thisline = event.artist
+    xdata, ydata = thisline.get_xy()
+    level = ydata/self.step
+    #once that the level has been found filter the list of theta
+    (tt,name)=self.find_name(xdata,level)
+    print "Routine Picked:",name
+    #find lower level
+    it=range(level)
+    it.reverse()
+    for i in it:
+      (tt,name)=self.find_name(tt,i)
+      print "Called by:",name
+##    levth=[]
+##    for i in range(self.N):
+##      if self.bot[i]==level:
+##        levth.append(self.theta[i])
+##    routine=pylab.np.argmin(abs(pylab.np.array(levth)-xdata))
+##    #print "Ciao",xdata,ydata,level,'end'
+##    #print "name",self.names[level],levth[routine]
+##    print self.names[level][routine]
+##
+
+  
 def plot_polar_axis(data):
   import pylab
+  fig = pylab.figure()
   ax = pylab.axes([0.025,0.025,0.95,0.95], polar=True)
   tot=data["time"][0]
   N=len(data["time"])
@@ -214,7 +293,8 @@ def plot_polar_axis(data):
   theta=pylab.np.array(data["theta"])
   bot=pylab.np.array(data["level"])
   radii = pylab.np.array(N*[5])
-  bars = pylab.bar(theta/tot*2*pylab.np.pi, radii, width=width/tot*2*pylab.np.pi, bottom=5*bot)
+  bars = pylab.bar(theta/tot*2*pylab.np.pi, radii,
+                   width=width/tot*2*pylab.np.pi, bottom=5*bot,picker=True)
   ilev=0
   maxlev=max(bot)
   for r,bar,ilev in zip(radii, bars,theta):
@@ -227,6 +307,11 @@ def plot_polar_axis(data):
     ax.set_xticklabels([])
     ax.set_yticklabels([])
     # savefig('../figures/polar_ex.png',dpi=48)
+
+  #vals=None
+  fig.canvas.mpl_connect('pick_event',info_callback)
+
+  
   try:
     pylab.show()
   except KeyboardInterrupt:
@@ -273,7 +358,9 @@ if args.timedata is not None:
   for lev in data["names"]:
     sys.stdout.write(yaml.dump({"Level "+str(ilev):lev},default_flow_style=False,explicit_start=True))
     ilev+=1
-  plot_polar_axis(data)
+  #plot_polar_axis(data)
+  plt=polar_axis(data)
+  #plt.show()
   #print allev
   #dump the loaded info
   sys.stdout.write(yaml.dump(data,default_flow_style=False,explicit_start=True))

@@ -1111,7 +1111,7 @@ contains
       ! Local variables
       integer :: ipt, ii, i0, i0i, iiorb, j, i0j, jjorb, ind, ind_min, ind_max, iseq
       integer :: ntaskgroups, jproc, jstart, jend, kkproc, kproc, itaskgroups, lproc, llproc
-      integer :: nfvctrp, isfvctr, isegstart, isegend, jorb
+      integer :: nfvctrp, isfvctr, isegstart, isegend, jorb, istart, iend
       integer,dimension(:,:),allocatable :: iuse_startend, itaskgroups_startend, ranks
       integer,dimension(:),allocatable :: tasks_per_taskgroup
       integer :: ntaskgrp_calc, ntaskgrp_use, i, ncount, iitaskgroup, group, ierr, iitaskgroups, newgroup, iseg
@@ -1152,7 +1152,19 @@ contains
           ind_max = smat%nvctr
       end if
 
-      ! Now the minimal and maximla values are known
+      ! Enlarge the values if necessary such that they always start and end with a complete segment
+      do iseg=1,smat%nseg
+          istart = smat%keyv(iseg)
+          iend = smat%keyv(iseg) + smat%keyg(2,1,iseg)-smat%keyg(1,1,iseg)
+          if (istart<=ind_min .and. ind_min<=iend) then
+              ind_min = istart
+          end if
+          if (istart<=ind_max .and. ind_max<=iend) then
+              ind_max = iend
+          end if
+      end do
+
+      ! Now the minimal and maximal values are known
       iuse_startend(1,iproc) = ind_min
       iuse_startend(2,iproc) = ind_max
       if (nproc>1) then
