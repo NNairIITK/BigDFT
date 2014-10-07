@@ -216,16 +216,18 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   inv_lagmatp = sparsematrix_malloc(linmat%l, iaction=DENSE_MATMUL, id='inv_lagmatp')
   call sequential_acces_matrix_fast(linmat%l, inv_ovrlp_%matrix_compr, inv_ovrlp_seq)
   ! Transform the matrix to the large sparsity pattern (necessary for the following uncompress_matrix_distributed)
-  if (data_strategy_main==GLOBAL_MATRIX) then
-      call transform_sparse_matrix(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'small_to_large')
-  end if
-  call uncompress_matrix_distributed(iproc, linmat%l, DENSE_MATMUL, lagmat_large, lagmatp)
-  call sparsemm(linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
   if (correction_orthoconstraint==0) then
+      if (data_strategy_main==GLOBAL_MATRIX) then
+          call transform_sparse_matrix(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'small_to_large')
+      end if
       if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
+      call uncompress_matrix_distributed(iproc, linmat%l, DENSE_MATMUL, lagmat_large, lagmatp)
+      call sparsemm(linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
       call compress_matrix_distributed(iproc, nproc, linmat%l, DENSE_MATMUL, inv_lagmatp, lagmat_large)
   end if
-  call transform_sparse_matrix(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'large_to_small')
+  if (data_strategy_main==SUBMATRIX) then
+      call transform_sparse_matrix(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'large_to_small')
+  end if
   call f_free(lagmat_large)
   call f_free(inv_ovrlp_seq)
   call f_free(lagmatp)
@@ -264,7 +266,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
     subroutine symmetrize_matrix()
       implicit none
-      integer :: ishift
+      integer :: ishift, itg, iitg
       integer,parameter :: ALLGATHERV=51, GET=52, GLOBAL_MATRIX=101, SUBMATRIX=102
       integer,parameter :: comm_strategy=GET
       integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
@@ -338,21 +340,37 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
           call transform_sparse_matrix(linmat%m, linmat%l, lagmat_%matrix_compr, tmp_mat_compr, 'small_to_large')
           do ispin=1,lagmat%nspin
               ishift=(ispin-1)*linmat%l%nvctr
-              !$omp parallel default(none) &
-              !$omp shared(linmat,lagmat_large,tmp_mat_compr,ishift) &
-              !$omp private(iseg,ii,i,ii_trans)
-              !$omp do
-              do iseg=linmat%l%istartendseg_t(1),linmat%l%istartendseg_t(2)
-                  ii=linmat%l%keyv(iseg)
-                  ! A segment is always on one line, therefore no double loop
-                  do i=linmat%l%keyg(1,1,iseg),linmat%l%keyg(2,1,iseg) !this is too much, but for the moment ok
-                      ii_trans = matrixindex_in_compressed(linmat%l,linmat%l%keyg(1,2,iseg),i)
-                      lagmat_large(ii+ishift) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
-                      ii=ii+1
+              !!!!$omp parallel default(none) &
+              !!!!$omp shared(linmat,lagmat_large,tmp_mat_compr,ishift) &
+              !!!!$omp private(iseg,ii,i,ii_trans)
+              !!!!$omp do
+              !!!do iseg=linmat%l%istartendseg_t(1),linmat%l%istartendseg_t(2)
+              !!!    ii=linmat%l%keyv(iseg)
+              !!!    ! A segment is always on one line, therefore no double loop
+              !!!    do i=linmat%l%keyg(1,1,iseg),linmat%l%keyg(2,1,iseg) !this is too much, but for the moment ok
+              !!!        ii_trans = matrixindex_in_compressed(linmat%l,linmat%l%keyg(1,2,iseg),i)
+              !!!        lagmat_large(ii+ishift) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
+              !!!        ii=ii+1
+              !!!    end do
+              !!!end do
+              !!!!$omp end do
+              !!!!$omp end parallel
+              do itg=1,linmat%l%ntaskgroupp
+                  iitg = linmat%l%inwhichtaskgroup(itg)
+                  do iseg=1,linmat%l%nseg
+                      ii=linmat%l%keyv(iseg)
+                      if (ii+linmat%l%keyg(2,1,iseg)-linmat%l%keyg(1,1,iseg)<linmat%l%taskgroup_startend(1,1,iitg)) cycle
+                      if (ii>linmat%l%taskgroup_startend(2,1,iitg)) exit
+                      ! A segment is always on one line, therefore no double loop
+                      do i=linmat%l%keyg(1,1,iseg),linmat%l%keyg(2,1,iseg) !this is too much, but for the moment ok
+                          if (ii>=linmat%l%taskgroup_startend(1,1,iitg) .and.  ii<=linmat%l%taskgroup_startend(2,1,iitg)) then
+                              ii_trans = matrixindex_in_compressed(linmat%l,linmat%l%keyg(1,2,iseg),i)
+                              lagmat_large(ii+ishift) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
+                          end if
+                          ii=ii+1
+                      end do
                   end do
               end do
-              !$omp end do
-              !$omp end parallel
           end do
       else
           stop 'symmetrize_matrix: wrong data strategy'

@@ -154,6 +154,8 @@ subroutine assignToLocreg2(iproc, nproc, norb, norbu, norb_par, natom, nlr, nspi
   integer:: iatxmin, iatxmax, iatymin, iatymax, iatzmin, iatzmax, idir
   real(8),dimension(3):: diff
 
+  call f_routine(id='assignToLocreg2')
+
 !!!! NEW VERSION #################################################################
   !allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
   inWhichLocreg = f_malloc_ptr(norb,id='inWhichLocreg')
@@ -348,5 +350,7 @@ subroutine assignToLocreg2(iproc, nproc, norb, norbu, norb_par, natom, nlr, nspi
   end do spin_loop
 
   call f_free(covered)
+
+  call f_release_routine()
 
 end subroutine assignToLocreg2

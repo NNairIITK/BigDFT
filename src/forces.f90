@@ -4722,8 +4722,10 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                            !!write(100+iproc,'(a,9i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,sp0', &
                                            !!                                   iorbout,jorb,icplx,0,m,i,l,iat,iiat,sp0
                                        !end if
+                                       !if (sp0==0.d0) write(*,*) 'sp0 is zero'
                                        do idir=1,3
                                           spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
+                                          !if (spi==0.d0) write(*,*) 'sp0 is zero'
                                           !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
                                           !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
                                           ind=ii

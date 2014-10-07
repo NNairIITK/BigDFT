@@ -167,28 +167,70 @@ def nopc(string):
     fl=-1.0
   return fl
 
-def dump_one_timing_level(dict):
+def dump_timing_level(level,ilev=0,theta=0,
+                      data={"time":[],"level":[],"theta":[],"names":[[]]}):
   """Inspect the first level of the given dictionary and dump the profile subroutines at this level"""
   import pylab
-  n=len(dict)
-  print "we have", n," subroutines"
-  subs=[]
-  for level in dict:
+  #n=len(level)
+  #print "we have", n," subroutines"
+  subs=data["time"]
+  tht=data["theta"]
+  lev=data["level"]
+  nms=data["names"]
+  if ilev == len(nms):
+    nms.append([])
+  #tel=0
+  tel=theta #entry point of the routine
+  for routine in level:
     #first eliminate the subroutines from the level
     try:
-      sublevel=level.pop("Subroutines")
+      sublevel=routine.pop("Subroutines")
     except:
       sublevel=None
-    for name in level.keys(): #here we only have two keys at most (level name and "Subroutine", at second place)
-      print "At level", name, " we have",level[name]
-      #subs.append({name: nopc(level[name][-1])})
-      subs.append(nopc(level[name][-1]))
+    for name in routine:
+      #print "At level", name, " we have",routine[name]
+      #subs.append(nopc(routine[-1])) #take percent
+      t0=routine[name][0] #take the time
+      subs.append(t0) #take the time
+      tht.append(tel)
+      lev.append(ilev)
+      nms[ilev].append(name)
     if sublevel is not None:
-      dump_one_timing_level(sublevel)
-  print "all the subroutines",subs
-  Z=pylab.np.array(subs)
+      jlev=ilev+1
+      dump_timing_level(sublevel,ilev=jlev,theta=tel,data=data)
+    tel=tel+t0
+  #print "all the subroutines",subs
+  #Z=pylab.np.array(subs)
   #Z = pylab.np.random.uniform(0,1,n)
-  pylab.pie(Z), pylab.show()
+  #pylab.pie(Z), pylab.show()
+  return data
+
+def plot_polar_axis(data):
+  import pylab
+  ax = pylab.axes([0.025,0.025,0.95,0.95], polar=True)
+  tot=data["time"][0]
+  N=len(data["time"])
+  width=pylab.np.array(data["time"])
+  theta=pylab.np.array(data["theta"])
+  bot=pylab.np.array(data["level"])
+  radii = pylab.np.array(N*[5])
+  bars = pylab.bar(theta/tot*2*pylab.np.pi, radii, width=width/tot*2*pylab.np.pi, bottom=5*bot)
+  ilev=0
+  maxlev=max(bot)
+  for r,bar,ilev in zip(radii, bars,theta):
+    #print ilev,'hello',float(ilev)/float(N),maxlev
+    #bar.set_facecolor( pylab.cm.jet(float(ilev)/maxlev))
+    bar.set_facecolor( pylab.cm.jet(float(ilev)/tot))
+    bar.set_alpha(0.5)
+    ilev+=1
+
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+    # savefig('../figures/polar_ex.png',dpi=48)
+  try:
+    pylab.show()
+  except KeyboardInterrupt:
+    raise
 
 
 if __name__ == "__main__":
@@ -196,6 +238,29 @@ if __name__ == "__main__":
   (args, argtmp) = parser.parse_args()
 
 
+##
+##
+##N = 20 #number of levels
+##
+##tot=1720.0
+##width = [ 1720.0, 1577.0, 125.0, 5.69, 0.0975, 2.939e-05 , 0.02609]
+###radii = [ 5, 
+##theta = [ 0, 0,  1577.0, 1577.0+ 125.0, 1577.0+ 125.0+ 5.69,1577.0+ 125.0+ 5.69+ 0.0975 , 1577.0+ 125.0+ 5.69 ]
+##bot   = [ 0, 1, 1, 1, 1, 1, 2]
+###theta = pylab.np.arange(0.0, 2*pylab.np.pi, 2*pylab.np.pi/N)
+###radii = 10*pylab.np.random.rand(N)
+###radii = pylab.np.array(range(N+1)[1:])
+##N=len(width)
+##radii = pylab.np.array(N*[5])
+###bot = pylab.np.array(range(N))
+###width = pylab.np.pi/4*pylab.np.random.rand(N)
+##N=len(width)
+##width=pylab.np.array(width)
+##theta=pylab.np.array(theta)
+##bot=pylab.np.array(bot)
+##bars = pylab.bar(theta/tot*2*pylab.np.pi, radii, width=width/tot*2*pylab.np.pi, bottom=5*bot)
+##
+#gsdfg
 #args=parse_arguments()
 #logfile
 #check if timedata is given
@@ -203,9 +268,15 @@ if args.timedata is not None:
   #load the yaml document
   timing = yaml.load(open(args.timedata, "r").read(), Loader = yaml.CLoader)
   dict_routines = timing["Routines timing and number of calls"]
-  dump_one_timing_level(dict_routines)
+  data=dump_timing_level(dict_routines)
+  ilev=1
+  for lev in data["names"]:
+    sys.stdout.write(yaml.dump({"Level "+str(ilev):lev},default_flow_style=False,explicit_start=True))
+    ilev+=1
+  plot_polar_axis(data)
+  #print allev
   #dump the loaded info
-  #sys.stdout.write(yaml.dump(dict_routines,default_flow_style=False,explicit_start=True))
+  sys.stdout.write(yaml.dump(data,default_flow_style=False,explicit_start=True))
   
 
 if args.data is None:
