@@ -167,7 +167,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   real(kind=8),dimension(npsidim_orbs_small),intent(out) :: hpsi_noprecond
 
   ! Local variables
-  integer :: iorb, jorb, ii, ii_trans, irow, jcol, info, lwork, jj, ispin, ishift, iseg, i
+  integer :: iorb, jorb, ii, ii_trans, irow, jcol, info, lwork, jj, ispin, iseg, i
   integer :: isegstart, isegend, ierr
   real(kind=8) :: max_error, mean_error
   real(kind=8),dimension(:),allocatable :: tmp_mat_compr, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra
@@ -177,6 +177,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   real(8),dimension(:,:),allocatable :: lagmatp, inv_lagmatp
   integer,dimension(2) :: irowcol
   real(kind=8),dimension(:),pointer :: matrix_local
+  integer,parameter :: GLOBAL_MATRIX=101, SUBMATRIX=102
+  integer,parameter :: data_strategy_main=SUBMATRIX!GLOBAL_MATRIX
 
   call f_routine(id='orthoconstraintNonorthogonal')
 
@@ -202,12 +204,11 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
   ! Calculate <phi_alpha|g_beta>
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
-  tmp_mat_compr = sparsematrix_malloc(lagmat,iaction=SPARSE_FULL,id='tmp_mat_compr')
-  call vcopy(lagmat%nvctr*lagmat%nspin, lagmat_%matrix_compr(1), 1, tmp_mat_compr(1), 1)
+
+  lagmat_large = sparsematrix_malloc(linmat%l, iaction=SPARSE_FULL, id='lagmat_large')
 
   call symmetrize_matrix()
 
-  call f_free(tmp_mat_compr)
 
   ! Apply S^-1
   inv_ovrlp_seq = sparsematrix_malloc(linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_seq')
@@ -215,15 +216,16 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   inv_lagmatp = sparsematrix_malloc(linmat%l, iaction=DENSE_MATMUL, id='inv_lagmatp')
   call sequential_acces_matrix_fast(linmat%l, inv_ovrlp_%matrix_compr, inv_ovrlp_seq)
   ! Transform the matrix to the large sparsity pattern (necessary for the following uncompress_matrix_distributed)
-  lagmat_large = sparsematrix_malloc(linmat%l, iaction=SPARSE_FULL, id='lagmat_large')
-  call transform_sparse_matrix(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'small_to_large')
+  if (data_strategy_main==GLOBAL_MATRIX) then
+      call transform_sparse_matrix(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'small_to_large')
+  end if
   call uncompress_matrix_distributed(iproc, linmat%l, DENSE_MATMUL, lagmat_large, lagmatp)
   call sparsemm(linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
   if (correction_orthoconstraint==0) then
       if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
       call compress_matrix_distributed(iproc, nproc, linmat%l, DENSE_MATMUL, inv_lagmatp, lagmat_large)
-      call transform_sparse_matrix(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'large_to_small')
   end if
+  call transform_sparse_matrix(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'large_to_small')
   call f_free(lagmat_large)
   call f_free(inv_ovrlp_seq)
   call f_free(lagmatp)
@@ -262,10 +264,17 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
     subroutine symmetrize_matrix()
       implicit none
-      integer,parameter :: ALLGATHERV=51, GET=52
+      integer :: ishift
+      integer,parameter :: ALLGATHERV=51, GET=52, GLOBAL_MATRIX=101, SUBMATRIX=102
       integer,parameter :: comm_strategy=GET
+      integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
 
       call f_routine(id='symmetrize_matrix')
+
+      ! Just to check the consistency
+      if (data_strategy_main/=data_strategy) then
+          stop 'data_strategy_main/=data_strategy'
+      end if
 
       if (lagmat%nvctrp>0) then
           isegstart = lagmat%istsegline(lagmat%isfvctr+1)
@@ -275,51 +284,81 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
           isegstart = 1
           isegend = 0
       end if
-      matrix_local = f_malloc_ptr(max(lagmat%nvctrp,1),id='matrix_local')
-      do ispin=1,lagmat%nspin
-          ishift=(ispin-1)*lagmat%nvctr
-          if (isegend>=isegstart) then
+      if (data_strategy==GLOBAL_MATRIX) then
+          matrix_local = f_malloc_ptr(max(lagmat%nvctrp,1),id='matrix_local')
+          tmp_mat_compr = sparsematrix_malloc(lagmat,iaction=SPARSE_FULL,id='tmp_mat_compr')
+          call vcopy(lagmat%nvctr*lagmat%nspin, lagmat_%matrix_compr(1), 1, tmp_mat_compr(1), 1)
+          do ispin=1,lagmat%nspin
+              ishift=(ispin-1)*lagmat%nvctr
+              if (isegend>=isegstart) then
+                  !$omp parallel default(none) &
+                  !$omp shared(isegstart,isegend,ishift,lagmat,matrix_local,tmp_mat_compr) &
+                  !$omp private(iseg,ii,i,irowcol,ii_trans)
+                  !$omp do
+                  do iseg=isegstart,isegend
+                      ii=lagmat%keyv(iseg)
+                      ! A segment is always on one line, therefore no double loop
+                      do i=lagmat%keyg(1,1,iseg),lagmat%keyg(2,1,iseg)
+                         irowcol = orb_from_index(lagmat, i)
+                         ii_trans = matrixindex_in_compressed(lagmat,lagmat%keyg(1,2,iseg),i)
+                         matrix_local(ii-lagmat%isvctr) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
+                         ii=ii+1
+                      end do
+                  end do
+                  !$omp end do
+                  !$omp end parallel
+              end if
+              if (nproc>1) then
+                  !!call mpi_allgatherv(matrix_local(1), lagmat%nvctrp, mpi_double_precision, &
+                  !!     lagmat_%matrix_compr(ishift+1), lagmat%nvctr_par, lagmat%isvctr_par, mpi_double_precision, &
+                  !!     bigdft_mpi%mpi_comm, ierr)
+                  if (comm_strategy==ALLGATHERV) then
+                      call mpi_allgatherv(matrix_local(1), lagmat%nvctrp, mpi_double_precision, &
+                           lagmat_%matrix_compr(ishift+1), lagmat%nvctr_par, lagmat%isvctr_par, mpi_double_precision, &
+                           bigdft_mpi%mpi_comm, ierr)
+                      call f_free_ptr(matrix_local)
+                  else if (comm_strategy==GET) then
+                      !!call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, lagmat%nvctrp, matrix_local, &
+                      !!     lagmat%nvctr_par, lagmat%isvctr_par, lagmat%nvctr, lagmat_%matrix_compr(ishift+1:ishift+lagmat%nvctr))
+                      call mpi_get_to_allgatherv(matrix_local(1), lagmat%nvctrp, &
+                           lagmat_%matrix_compr(ishift+1), &
+                           lagmat%nvctr_par, lagmat%isvctr_par, bigdft_mpi%mpi_comm)
+                  else
+                      stop 'symmetrize_matrix: wrong communication strategy'
+                  end if
+              else
+                  call vcopy(lagmat%nvctr, matrix_local(1), 1, lagmat_%matrix_compr(ishift+1), 1)
+              end if
+              if (ispin==lagmat%nspin) call f_free_ptr(matrix_local)
+          end do
+      else if (data_strategy==SUBMATRIX) then
+          ! Directly use the large sparsity pattern as this one is used later
+          ! for the matrix vector multiplication
+          tmp_mat_compr = sparsematrix_malloc(linmat%l,iaction=SPARSE_FULL,id='tmp_mat_compr')
+          call transform_sparse_matrix(linmat%m, linmat%l, lagmat_%matrix_compr, tmp_mat_compr, 'small_to_large')
+          do ispin=1,lagmat%nspin
+              ishift=(ispin-1)*linmat%l%nvctr
               !$omp parallel default(none) &
-              !$omp shared(isegstart,isegend,ishift,lagmat,matrix_local,tmp_mat_compr) &
-              !$omp private(iseg,ii,i,irowcol,ii_trans)
+              !$omp shared(linmat,lagmat_large,tmp_mat_compr,ishift) &
+              !$omp private(iseg,ii,i,ii_trans)
               !$omp do
-              do iseg=isegstart,isegend
-                  ii=lagmat%keyv(iseg)
+              do iseg=linmat%l%istartendseg_t(1),linmat%l%istartendseg_t(2)
+                  ii=linmat%l%keyv(iseg)
                   ! A segment is always on one line, therefore no double loop
-                  do i=lagmat%keyg(1,1,iseg),lagmat%keyg(2,1,iseg)
-                     irowcol = orb_from_index(lagmat, i)
-                     ii_trans = matrixindex_in_compressed(lagmat,lagmat%keyg(1,2,iseg),i)
-                     matrix_local(ii-lagmat%isvctr) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
-                     ii=ii+1
+                  do i=linmat%l%keyg(1,1,iseg),linmat%l%keyg(2,1,iseg) !this is too much, but for the moment ok
+                      ii_trans = matrixindex_in_compressed(linmat%l,linmat%l%keyg(1,2,iseg),i)
+                      lagmat_large(ii+ishift) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
+                      ii=ii+1
                   end do
               end do
               !$omp end do
               !$omp end parallel
-          end if
-          if (nproc>1) then
-              !!call mpi_allgatherv(matrix_local(1), lagmat%nvctrp, mpi_double_precision, &
-              !!     lagmat_%matrix_compr(ishift+1), lagmat%nvctr_par, lagmat%isvctr_par, mpi_double_precision, &
-              !!     bigdft_mpi%mpi_comm, ierr)
-              if (comm_strategy==ALLGATHERV) then
-                  call mpi_allgatherv(matrix_local(1), lagmat%nvctrp, mpi_double_precision, &
-                       lagmat_%matrix_compr(ishift+1), lagmat%nvctr_par, lagmat%isvctr_par, mpi_double_precision, &
-                       bigdft_mpi%mpi_comm, ierr)
-                  call f_free_ptr(matrix_local)
-              else if (comm_strategy==GET) then
-                  !!call mpiget(iproc, nproc, bigdft_mpi%mpi_comm, lagmat%nvctrp, matrix_local, &
-                  !!     lagmat%nvctr_par, lagmat%isvctr_par, lagmat%nvctr, lagmat_%matrix_compr(ishift+1:ishift+lagmat%nvctr))
-                  call mpi_get_to_allgatherv(matrix_local(1), lagmat%nvctrp, &
-                       lagmat_%matrix_compr(ishift+1), &
-                       lagmat%nvctr_par, lagmat%isvctr_par, bigdft_mpi%mpi_comm)
-              else
-                  stop 'symmetrize_matrix: wrong communication strategy'
-              end if
-          else
-              call vcopy(lagmat%nvctr, matrix_local(1), 1, lagmat_%matrix_compr(ishift+1), 1)
-          end if
-          if (ispin==lagmat%nspin) call f_free_ptr(matrix_local)
-      end do
+          end do
+      else
+          stop 'symmetrize_matrix: wrong data strategy'
+      end if
 
+      call f_free(tmp_mat_compr)
       call f_release_routine()
 
     end subroutine symmetrize_matrix

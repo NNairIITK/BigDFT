@@ -948,6 +948,8 @@ contains
     character(len = max_field_length) :: str
     integer :: iat, ityp, units, igspin, igchrg, nsgn, ntyp, ierr
 
+    call f_routine(id='astruct_set_from_dict')
+
     call nullify_atomic_structure(astruct)
     astruct%nat = -1
     if (present(comment)) write(comment, "(A)") " "
@@ -1074,6 +1076,8 @@ contains
 
     call dict_free(types)
 
+    call f_release_routine()
+
   end subroutine astruct_set_from_dict
 
   subroutine aocc_to_dict(dict, nspin, noncoll, nstart, aocc, nelecmax, lmax, nsccode)
@@ -1136,6 +1140,8 @@ contains
     integer :: ikpt
     type(dictionary), pointer :: occup_src
     character(len = 12) :: kpt_key
+
+    call f_routine(id='occupation_set_from_dict')
 
     ! Default case.
     if (nspin == 1) then
@@ -1223,6 +1229,8 @@ contains
             & // ' is not equal to' // trim(yaml_toa(nelec_up + nelec_down)))
        stop
     end if
+
+    call f_release_routine()
 
   contains
 
