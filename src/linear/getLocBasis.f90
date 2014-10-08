@@ -2972,8 +2972,8 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
   call f_routine(id='renormalize_kernel')
 
-  inv_ovrlp%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
-                           iaction=SPARSE_FULL, id='inv_ovrlp%matrix_compr')
+  !!inv_ovrlp%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
+  !!                         iaction=SPARSE_FULL, id='inv_ovrlp%matrix_compr')
   inv_ovrlpp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='inv_ovrlpp')
   tempp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='inv_ovrlpp')
   inv_ovrlp_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
@@ -2983,7 +2983,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   ! Calculate S^1/2 for the old overlap matrix
   call overlapPowerGeneral(iproc, nproc, order_taylor, 2, -1, &
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-       ovrlp_mat=ovrlp_old, inv_ovrlp_mat=inv_ovrlp, &
+       ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlp_minusonehalf_, &
        check_accur=.true., max_error=max_error, mean_error=mean_error)
   call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
@@ -3011,7 +3011,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   call f_free_ptr(tempp)
   call f_free(inv_ovrlp_compr_seq)
   call f_free(kernel_compr_seq)
-  call f_free_ptr(inv_ovrlp%matrix_compr)
+  !!call f_free_ptr(inv_ovrlp%matrix_compr)
 
   call f_release_routine()
 
@@ -3026,9 +3026,9 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
           call sequential_acces_matrix_fast(tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, kernel_compr_seq)
           call sequential_acces_matrix_fast(tmb%linmat%l, &
-               inv_ovrlp%matrix_compr, inv_ovrlp_compr_seq)
+               tmb%linmat%ovrlp_minusonehalf_%matrix_compr, inv_ovrlp_compr_seq)
           call uncompress_matrix_distributed(iproc, tmb%linmat%l, DENSE_MATMUL, &
-               inv_ovrlp%matrix_compr, inv_ovrlpp)
+               tmb%linmat%ovrlp_minusonehalf_%matrix_compr, inv_ovrlpp)
 
           ncount=tmb%linmat%l%nfvctr*tmb%linmat%l%smmm%nfvctrp
           if (ncount>0) then
