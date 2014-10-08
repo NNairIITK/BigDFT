@@ -194,7 +194,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   inv_ovrlp_ = matrices_null()
   inv_ovrlp_%matrix_compr = sparsematrix_malloc_ptr(linmat%l,iaction=SPARSE_FULL,id='inv_ovrlp_%matrix_compr')
 
-  if (calculate_inverse) then
+  !!if (calculate_inverse) then
       ! Invert the overlap matrix
       if (iproc==0) call yaml_map('calculation of S^-1','direct calculation')
       call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, -1, &
@@ -206,16 +206,16 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       !if (iproc==0) call yaml_scalar('no check taylor')
       call check_taylor_order(mean_error, max_inversion_error, norder_taylor)
 
-  else
+  !!else
 
-      if (iproc==0) call yaml_map('calculation of S^-1','square of S^-1/2')
-      !@NEW instead of calculating S^-1, take S^-1/2 from memory and square it
-      call sequential_acces_matrix_fast(linmat%l, linmat%ovrlp_minusonehalf_%matrix_compr, inv_ovrlp_seq)
-      call uncompress_matrix_distributed(iproc, linmat%l, DENSE_MATMUL, linmat%ovrlp_minusonehalf_%matrix_compr, lagmatp)
-      call sparsemm(linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
-      call compress_matrix_distributed(iproc, nproc, linmat%l, DENSE_MATMUL, &
-           inv_lagmatp, inv_ovrlp_%matrix_compr(linmat%l%isvctrp_tg+1:))
-  end if
+  !!    if (iproc==0) call yaml_map('calculation of S^-1','square of S^-1/2')
+  !!    !@NEW instead of calculating S^-1, take S^-1/2 from memory and square it
+  !!    call sequential_acces_matrix_fast(linmat%l, linmat%ovrlp_minusonehalf_%matrix_compr, inv_ovrlp_seq)
+  !!    call uncompress_matrix_distributed(iproc, linmat%l, DENSE_MATMUL, linmat%ovrlp_minusonehalf_%matrix_compr, lagmatp)
+  !!    call sparsemm(linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
+  !!    call compress_matrix_distributed(iproc, nproc, linmat%l, DENSE_MATMUL, &
+  !!         inv_lagmatp, inv_ovrlp_%matrix_compr(linmat%l%isvctrp_tg+1:))
+  !!end if
 
 
   ! Calculate <phi_alpha|g_beta>

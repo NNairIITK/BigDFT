@@ -108,7 +108,10 @@ subroutine foe(iproc, nproc, tmprtr, &
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
   if (calculate_minusonehalf) then
+      if (iproc==0) call yaml_map('S^-1/2','recalculate')
       call overlap_minus_onehalf() ! has internal timer
+  else
+      if (iproc==0) call yaml_map('S^-1/2','from memory')
   end if
   call timing(iproc, 'FOE_auxiliary ', 'ON')
 
