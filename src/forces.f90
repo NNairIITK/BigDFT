@@ -4708,7 +4708,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                   ! Check whether this segment is within the range to be considered (check 
                   ! only the line number as one segment is always on one single line).
                   if (denskern%keyg(1,2,iseg)<iorbminmax(iiat,1) .or. denskern%keyg(1,2,iseg)>iorbminmax(iiat,2)) cycle
-                  ii=denskern%keyv(iseg)-1
+                  ii = denskern%keyv(iseg)-1 + (ispin-1)*denskern%nvctr 
                   do jjorb=denskern%keyg(1,1,iseg),denskern%keyg(2,1,iseg)
                      ii=ii+1
                      !!iorbout = (jjorb-1)/orbs%norb + 1
