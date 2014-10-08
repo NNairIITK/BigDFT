@@ -10,7 +10,8 @@
 
 !> Could still do more tidying - assuming all sparse matrices except for Fermi have the same pattern
 subroutine foe(iproc, nproc, tmprtr, &
-           ebs, itout, it_scc, order_taylor, max_inversion_error, purification_quickreturn, foe_verbosity, &
+           ebs, itout, it_scc, order_taylor, max_inversion_error, purification_quickreturn, &
+           calculate_minusonehalf, foe_verbosity, &
            accuracy_level, tmb, foe_obj)
   use module_base
   use module_types
@@ -35,6 +36,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8),intent(in) :: tmprtr
   real(kind=8),intent(out) :: ebs
   logical,intent(in) :: purification_quickreturn
+  logical,intent(in) :: calculate_minusonehalf
   integer,intent(in) :: foe_verbosity
   integer,intent(in) :: accuracy_level
   type(DFT_wavefunction),intent(inout) :: tmb
@@ -68,7 +70,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   real(kind=8),parameter :: TEMP_MULTIPLICATOR_FAST=1.2d0 !2.d0 !1.2d0
   real(kind=8),parameter :: CHECK_RATIO=1.25d0
   integer,parameter :: NPL_MIN=100
-  type(matrices) :: inv_ovrlp
+  !!type(matrices) :: inv_ovrlp
   integer,parameter :: NTEMP_ACCURATE=4
   integer,parameter :: NTEMP_FAST=1
   real(kind=8) :: degree_multiplicator
@@ -88,8 +90,8 @@ subroutine foe(iproc, nproc, tmprtr, &
       stop 'wrong value of accuracy_level'
   end if
 
-  inv_ovrlp%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
-                           iaction=SPARSE_FULL, id='inv_ovrlp%matrix_compr')
+  !!inv_ovrlp%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
+  !!                         iaction=SPARSE_FULL, id='inv_ovrlp%matrix_compr')
 
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -105,7 +107,9 @@ subroutine foe(iproc, nproc, tmprtr, &
 
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
-  call overlap_minus_onehalf() ! has internal timer
+  if (calculate_minusonehalf) then
+      call overlap_minus_onehalf() ! has internal timer
+  end if
   call timing(iproc, 'FOE_auxiliary ', 'ON')
 
 
@@ -378,7 +382,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                       call chebyshev_clean(iproc, nproc, npl, cc, &
                            tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nfvctrp, tmb%linmat%l%smmm%isfvctr, foe_obj, &
                            tmb%linmat%l, hamscal_compr, &
-                           inv_ovrlp%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), calculate_SHS, &
+                           tmb%linmat%ovrlp_minusonehalf_%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), calculate_SHS, &
                            nsize_polynomial, SHS, tmb%linmat%kernel_%matrixp, penalty_ev, chebyshev_polynomials, &
                            emergency_stop)
                   else
@@ -532,9 +536,10 @@ subroutine foe(iproc, nproc, tmprtr, &
     
          call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
               tmb%linmat%kernel_%matrixp(:,1:tmb%linmat%l%smmm%nfvctrp,1), &
-              tmb%linmat%kernel_%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr))
+              tmb%linmat%kernel_%matrix_compr(ilshift+1+tmb%linmat%l%isvctrp_tg:))
     
-         call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, fermip_check, fermi_check_compr(1))
+         call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
+              fermip_check, fermi_check_compr(tmb%linmat%l%isvctrp_tg+1:))
     
     
         
@@ -776,7 +781,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   degree_sufficient=.true.
 
 
-  call f_free_ptr(inv_ovrlp%matrix_compr)
+  !call f_free_ptr(inv_ovrlp%matrix_compr)
   
 
 
@@ -818,23 +823,23 @@ subroutine foe(iproc, nproc, tmprtr, &
           ! Taylor approximation of S^-1/2 up to higher order
           if (imode==DENSE) then
               stop 'overlap_minus_onehalf: DENSE is deprecated'
-              tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, &
-                                         id='tmb%linmat%ovrlp_%matrix')
-              call uncompress_matrix(iproc, tmb%linmat%s, &
-                   inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
+              !!tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, &
+              !!                           id='tmb%linmat%ovrlp_%matrix')
+              !!call uncompress_matrix(iproc, tmb%linmat%s, &
+              !!     inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
 
-              inv_ovrlp%matrix=sparsematrix_malloc_ptr(tmb%linmat%l, &
-                                                iaction=DENSE_FULL, id='inv_ovrlp%matrix')
-              call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
-                   imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-                   ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
-                   check_accur=.true., max_error=max_error, mean_error=mean_error)
-              call compress_matrix(iproc, tmb%linmat%l, inmat=inv_ovrlp%matrix, outmat=inv_ovrlp%matrix_compr)
+              !!inv_ovrlp%matrix=sparsematrix_malloc_ptr(tmb%linmat%l, &
+              !!                                  iaction=DENSE_FULL, id='inv_ovrlp%matrix')
+              !!call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
+              !!     imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+              !!     ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
+              !!     check_accur=.true., max_error=max_error, mean_error=mean_error)
+              !!call compress_matrix(iproc, tmb%linmat%l, inmat=inv_ovrlp%matrix, outmat=inv_ovrlp%matrix_compr)
           end if
           if (imode==SPARSE) then
               call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
                    imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-                   ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
+                   ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=tmb%linmat%ovrlp_minusonehalf_, &
                    check_accur=.true., max_error=max_error, mean_error=mean_error)
           end if
           !!ii=0
@@ -851,11 +856,11 @@ subroutine foe(iproc, nproc, tmprtr, &
           !end if
 
 
-          if (imode==DENSE) then
-              call f_free_ptr(inv_ovrlp%matrix)
+          !!if (imode==DENSE) then
+          !!    call f_free_ptr(inv_ovrlp%matrix)
 
-              call f_free_ptr(tmb%linmat%ovrlp_%matrix)
-          end if
+          !!    call f_free_ptr(tmb%linmat%ovrlp_%matrix)
+          !!end if
 
           call f_release_routine()
       end subroutine overlap_minus_onehalf
@@ -884,9 +889,9 @@ subroutine foe(iproc, nproc, tmprtr, &
           kernel_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
           call sequential_acces_matrix_fast(tmb%linmat%l, matrix_compr, kernel_compr_seq)
           call sequential_acces_matrix_fast(tmb%linmat%l, &
-               inv_ovrlp%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), inv_ovrlp_compr_seq)
+               tmb%linmat%ovrlp_minusonehalf_%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), inv_ovrlp_compr_seq)
           call uncompress_matrix_distributed(iproc, tmb%linmat%l, DENSE_MATMUL, &
-               inv_ovrlp%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), inv_ovrlpp)
+               tmb%linmat%ovrlp_minusonehalf_%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), inv_ovrlpp)
 
            tempp=0.d0
           call sparsemm(tmb%linmat%l, kernel_compr_seq, inv_ovrlpp, tempp)
@@ -894,7 +899,8 @@ subroutine foe(iproc, nproc, tmprtr, &
           call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
           call to_zero(tmb%linmat%l%nvctr, matrix_compr(1))
-          call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, inv_ovrlpp, matrix_compr)
+          call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
+               inv_ovrlpp, matrix_compr(tmb%linmat%l%isvctrp_tg+1:))
 
           call f_free_ptr(inv_ovrlpp)
           call f_free_ptr(tempp)
@@ -2195,7 +2201,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
         
     
           call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, inv_ovrlp_matrixp, &
-               inv_ovrlp%matrix_compr(ilshift+1:ilshift+inv_ovrlp_smat%nvctr))
+               inv_ovrlp%matrix_compr(ilshift+1+inv_ovrlp_smat%isvctrp_tg:))
     
 
       end do spin_loop

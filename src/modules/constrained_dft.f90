@@ -116,6 +116,7 @@ contains
     end if
 
     icharged=1
+    cdft%ifrag_charged=0
     do ifrag=1,input_frag%nfrag
        if (input_frag%charge(ifrag)/=0) then
            cdft%ifrag_charged(icharged)=ifrag

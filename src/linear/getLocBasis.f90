@@ -87,6 +87,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
    if (iproc==0) call yaml_mapping_open('Kernel update')
   ! should eventually make this an input variable
   if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+      ! maybe need this for fragment calculations also, or make it an input?
      if (present(cdft)) then
         ! factor for scaling gradient
         factor=0.1d0
@@ -451,7 +452,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       tmprtr=0.d0
       call foe(iproc, nproc, tmprtr, &
            energs%ebs, itout,it_scc, order_taylor, max_inversion_error, purification_quickreturn, &
-           1, FOE_ACCURATE, tmb, tmb%foe_obj)
+           calculate_overlap_matrix, 1, FOE_ACCURATE, tmb, tmb%foe_obj)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
 
@@ -487,7 +488,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
     gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
-    purification_quickreturn, correction_co_contra, cdft)
+    purification_quickreturn, correction_co_contra, cdft, input_frag, ref_frags)
   !
   ! Purpose:
   ! ========
@@ -501,6 +502,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use communications, only: transpose_localized, start_onesided_communication
   use sparsematrix_base, only: assignment(=), sparsematrix_malloc, sparsematrix_malloc_ptr, SPARSE_FULL
   use constrained_dft, only: cdft_data
+  use module_fragments, only: system_fragment
   !  use Poisson_Solver
   !use allocModule
   implicit none
@@ -533,7 +535,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   logical,intent(out) :: can_use_ham
   integer,intent(in) :: method_updatekernel
   logical,intent(in) :: correction_co_contra
-  type(cdft_data),intent(in),optional :: cdft
+  !these must all be present together
+  type(cdft_data),intent(inout),optional :: cdft
+  type(fragmentInputParameters),optional,intent(in) :: input_frag
+  type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
  
   ! Local variables
   integer :: iorb, it, it_tot, ncount, ncharge, ii, kappa_satur, nit_exit, ispin
@@ -543,6 +548,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_tmp, psidiff
   real(kind=8),dimension(:),allocatable :: delta_energy_arr, hpsi_noprecond, kernel_compr_tmp, kernel_best
   logical :: energy_increased, overlap_calculated, energy_diff, energy_increased_previous, complete_reset, even
+  logical :: calculate_inverse
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
   type(energy_terms) :: energs
   real(kind=8), dimension(2):: reducearr
@@ -682,9 +688,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                & potential=denspot%rhov,comgp=tmb%ham_descr%comgp,&
                hpsi_noconf=hpsi_tmp,econf=econf)
 
-          if (nproc>1) then
-              call mpiallred(econf, 1, mpi_sum, bigdft_mpi%mpi_comm)
-          end if
+          !!if (nproc>1) then
+          !!    call mpiallred(econf, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          !!end if
 
       else
           call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
@@ -748,7 +754,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                   call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
               else if (method_updatekernel==UPDATE_BY_FOE) then
                   call foe(iproc, nproc, 0.d0, &
-                       energs%ebs, -1, -10, order_taylor, max_inversion_error, purification_quickreturn, 0, &
+                       energs%ebs, -1, -10, order_taylor, max_inversion_error, purification_quickreturn, &
+                       .true., 0, &
                        FOE_FAST, tmb, tmb%foe_obj)
               end if
               if (iproc==0) call yaml_sequence_close()
@@ -808,12 +815,16 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       ! use hpsi_tmp as temporary array for hpsi_noprecond, even if it is allocated with a larger size
       !write(*,*) 'calling calc_energy_and.., correction_co_contra',correction_co_contra
-      call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, fnrm_old, alpha, trH, trH_old, fnrm, fnrmMax, &
+      calculate_inverse = (target_function/=TARGET_FUNCTION_IS_HYBRID .or. method_updatekernel/=UPDATE_BY_RENORMALIZATION)
+      call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, &
+           fnrm_old, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, hpsi_small, &
-           experimental_mode, correction_co_contra, hpsi_noprecond=hpsi_tmp, norder_taylor=order_taylor, &
+           experimental_mode, calculate_inverse, &
+           correction_co_contra, hpsi_noprecond=hpsi_tmp, norder_taylor=order_taylor, &
            max_inversion_error=max_inversion_error, method_updatekernel=method_updatekernel, &
-           precond_convol_workarrays=precond_convol_workarrays, precond_workarrays=precond_workarrays, cdft=cdft)
+           precond_convol_workarrays=precond_convol_workarrays, precond_workarrays=precond_workarrays, &
+           cdft=cdft, input_frag=input_frag, ref_frags=ref_frags)
       !fnrm_old=fnrm
 
 
@@ -2988,7 +2999,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   ! Calculate S^-1/2 for the new overlap matrix
   call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-       ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, &
+       ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlp_minusonehalf_, &
        check_accur=.true., max_error=max_error, mean_error=mean_error)
   call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
@@ -3011,6 +3022,8 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
                & uncompress_matrix_distributed, compress_matrix_distributed
           integer :: ncount
 
+          call f_routine(id='retransform_local')
+
           call sequential_acces_matrix_fast(tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, kernel_compr_seq)
           call sequential_acces_matrix_fast(tmb%linmat%l, &
                inv_ovrlp%matrix_compr, inv_ovrlp_compr_seq)
@@ -3027,8 +3040,11 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
           end if
           call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
-          call to_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
-          call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, inv_ovrlpp, tmb%linmat%kernel_%matrix_compr)
+          !call to_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
+          call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
+               inv_ovrlpp, tmb%linmat%kernel_%matrix_compr(tmb%linmat%l%isvctrp_tg+1:))
+
+          call f_release_routine()
 
       end subroutine retransform_local
 

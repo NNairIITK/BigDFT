@@ -899,6 +899,7 @@ contains
   subroutine input_keys_dump(dict, userOnly)
     use yaml_output
     use dictionaries
+    use dynamic_memory
     implicit none
     type(dictionary), pointer :: dict   !< Dictionary to dump
     logical, intent(in), optional :: userOnly
@@ -907,6 +908,8 @@ contains
     integer :: i, dlen, skeys
     character(max_field_length), dimension(:), allocatable :: keys
     logical :: userOnly_
+
+    call f_routine(id='input_keys_dump')
 
     userOnly_ = .false.
     if (present(userOnly)) userOnly_ = userOnly
@@ -934,6 +937,8 @@ contains
     else
        call yaml_scalar(dict%data%value)
     end if
+
+    call f_release_routine()
 
   contains
 

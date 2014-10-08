@@ -71,6 +71,7 @@ module sparsematrix
       if (sparsemat%parallel_compression==0.or.bigdft_mpi%nproc==1) then
          do ispin=1,sparsemat%nspin
              ishift=(ispin-1)*sparsemat%nfvctr**2
+             !OpenMP broken on Vesta
              !$omp parallel default(none) private(iseg,j,jj,irowcol) &
              !$omp shared(sparsemat,inm,outm,ishift,ispin)
              !$omp do
@@ -167,6 +168,7 @@ module sparsematrix
          call to_zero(sparsemat%nfvctr**2*sparsemat%nspin, outm(1,1,1))
          do ispin=1,sparsemat%nspin
              ishift=(ispin-1)*sparsemat%nvctr
+             !OpenMP broken on Vesta
              !$omp parallel default(none) private(iseg,i,ii,irowcol) shared(sparsemat,inm,outm,ispin,ishift)
              !$omp do
              do iseg=1,sparsemat%nseg
@@ -460,7 +462,7 @@ module sparsematrix
      integer,intent(in) :: iproc, nproc, layout
      type(sparse_matrix),intent(in) :: smat
      real(kind=8),dimension(:,:),intent(in) :: matrixp
-     real(kind=8),dimension(smat%nvctr),target,intent(out) :: matrix_compr
+     real(kind=8),dimension(smat%nvctrp_tg),target,intent(out) :: matrix_compr
 
      ! Local variables
      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
@@ -498,6 +500,7 @@ module sparsematrix
      end if
 
      if (data_strategy==GLOBAL_MATRIX) then
+         stop 'compress_matrix_distributed: option GLOBAL_MATRIX is deprecated'
          !call to_zero(smat%nvctr, matrix_compr(1))
          if (nproc>1) then
              matrix_local = f_malloc0_ptr(nvctrp,id='matrix_local')
@@ -552,7 +555,7 @@ module sparsematrix
          end if
      else if (data_strategy==SUBMATRIX) then
          if (nfvctrp>0) then
-             call to_zero(smat%nvctr, matrix_compr(1))
+             call to_zero(smat%nvctrp_tg, matrix_compr(1))
              isegstart=smat%istsegline(isfvctr+1)
              isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
              !$omp parallel default(none) &
@@ -566,7 +569,7 @@ module sparsematrix
                      ii=ii+1
                      iiorb = smat%keyg(1,2,iseg)
                      jjorb = jorb
-                     matrix_compr(ii)=matrixp(jjorb,iiorb-isfvctr)
+                     matrix_compr(ii-smat%isvctrp_tg)=matrixp(jjorb,iiorb-isfvctr)
                  end do
              end do
              !$omp end do
@@ -586,7 +589,7 @@ module sparsematrix
          request = f_malloc(smat%ntaskgroupp,id='request')
          do itg=1,smat%ntaskgroupp
              iitg = smat%inwhichtaskgroup(itg)
-             ist_send = smat%taskgroup_startend(1,1,iitg)
+             ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
              ist_recv = ncount + 1
              ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
              !!call mpi_iallreduce(matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
@@ -604,7 +607,7 @@ module sparsematrix
          ncount = 0
          do itg=1,smat%ntaskgroupp
              iitg = smat%inwhichtaskgroup(itg)
-             ist_send = smat%taskgroup_startend(1,1,iitg)
+             ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
              ist_recv = ncount + 1
              ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
              call vcopy(ncount, recvbuf(ist_recv), 1, matrix_compr(ist_send), 1)

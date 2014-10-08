@@ -51,6 +51,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(kind=8), dimension(:), allocatable :: locrad
   integer :: ilr, iilr
+  logical :: init_projectors_completely
   call f_routine(id=subname)
 
   output_grid_ = .false.
@@ -298,6 +299,11 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   end if
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
+  ! SM: For a linear scaling calculation, some parts can be done later.
+  ! SM: The following flag is false for linear scaling and true otherwise.
+  init_projectors_completely = (inputpsi /= INPUT_PSI_LINEAR_AO .and. &
+                                inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
+                                inputpsi /= INPUT_PSI_MEMORY_LINEAR)
   call createProjectorsArrays(Lzd%Glr,rxyz,atoms,orbs,&
        in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
        Lzd%hgrids(3),dry_run,nlpsp)
@@ -776,6 +782,7 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
   use ao_inguess, only: charge_and_spol
   use module_base, only: gp, f_err_throw
   use yaml_output, only: yaml_toa , yaml_warning, yaml_comment
+  use dynamic_memory
   !use ao_inguess, only : count_atomic_shells
   implicit none
   !Arguments
@@ -787,6 +794,8 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
   !integer, parameter :: nelecmax=32,lmax=4,noccmax=2
   !integer, dimension(lmax) :: nl
   !real(gp), dimension(noccmax,lmax) :: occup
+
+  call f_routine(id='read_n_orbitals')
 
   !calculate number of electrons and orbitals
   ! Number of electrons and number of semicore atoms
@@ -888,6 +897,9 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
      !call count_atomic_shells(nspin,atoms%aoig(iat)%aocc,occup,nl)
      norbe=norbe+atoms%aoig(iat)%nao!nl(1)+3*nl(2)+5*nl(3)+7*nl(4)
   end do
+
+  call f_release_routine()
+
 end subroutine read_n_orbitals
 
 

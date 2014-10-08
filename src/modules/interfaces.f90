@@ -187,7 +187,8 @@ module module_interfaces
       END SUBROUTINE createWavefunctionsDescriptors
 
       subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
-           cpmult,fpmult,hx,hy,hz,dry_run,nlpsp)
+           cpmult,fpmult,hx,hy,hz,dry_run,nlpsp,&
+           init_projectors_completely_)
         !n(c) use module_base
         use module_types
         implicit none
@@ -199,6 +200,7 @@ module module_interfaces
         !real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
         logical, intent(in) :: dry_run
         type(DFT_PSP_projectors), intent(out) :: nlpsp
+        logical,intent(in),optional :: init_projectors_completely_
       END SUBROUTINE createProjectorsArrays
 
       subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,PS_groupsize,SICapproach,geocode,nspin)
@@ -1435,9 +1437,10 @@ module module_interfaces
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
           gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
-          purification_quickreturn, correction_co_contra, cdft)
+          purification_quickreturn, correction_co_contra, cdft, input_frag, ref_frags)
         use module_base
         use module_types
+        use module_fragments, only: system_fragment
         use constrained_dft, only: cdft_data
         implicit none
 
@@ -1469,7 +1472,10 @@ module module_interfaces
         logical,intent(out) :: can_use_ham
         integer,intent(in) :: method_updatekernel
         logical,intent(in) :: correction_co_contra
+        !these must all be present together
         type(cdft_data),intent(in),optional :: cdft
+        type(fragmentInputParameters),optional,intent(in) :: input_frag
+        type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
       end subroutine getLocalizedBasis
 
     subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
@@ -1938,7 +1944,8 @@ module module_interfaces
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
                  correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
                  hpsit_c, hpsit_f, &
-                 can_use_transposed, overlap_calculated, experimental_mode, norder_taylor, max_inversion_error, &
+                 can_use_transposed, overlap_calculated, &
+                 experimental_mode, calculate_inverse, norder_taylor, max_inversion_error, &
            npsidim_orbs_small, lzd_small, hpsi_noprecond)
         use module_base
         use module_types
@@ -1959,7 +1966,7 @@ module module_interfaces
         real(kind=8),dimension(:),pointer :: psit_c, psit_f
         logical,intent(inout) :: can_use_transposed, overlap_calculated
         type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
-        logical,intent(in) :: experimental_mode
+        logical,intent(in) :: experimental_mode, calculate_inverse
         integer,intent(inout) :: norder_taylor
         real(kind=8),intent(in) :: max_inversion_error
         real(kind=8),dimension(npsidim_orbs_small),intent(out) :: hpsi_noprecond
@@ -2416,11 +2423,13 @@ module module_interfaces
                   ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-                  hpsi_small, experimental_mode, correction_co_contra, hpsi_noprecond, &
-                  norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays, cdft)
+                  hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
+                  norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays,&
+                  cdft, input_frag, ref_frags)
          use module_base
          use module_types
          use constrained_dft, only: cdft_data
+         use module_fragments, only: system_fragment
          implicit none
          integer, intent(in) :: iproc, nproc, it, method_updatekernel
          integer,intent(inout) :: norder_taylor
@@ -2439,12 +2448,14 @@ module module_interfaces
          real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c) :: hpsit_c
          real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f) :: hpsit_f
          integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
-         logical, intent(in) :: experimental_mode, correction_co_contra
+         logical, intent(in) :: experimental_mode, calculate_inverse, correction_co_contra
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_small
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_noprecond
          type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
          type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
          type(cdft_data),intent(in),optional :: cdft
+         type(fragmentInputParameters),optional,intent(in) :: input_frag
+         type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
        end subroutine calculate_energy_and_gradient_linear
 
        subroutine improveOrbitals(iproc, nproc, tmb, nspin, ldiis, alpha, gradient, experimental_mode)
@@ -3175,7 +3186,8 @@ module module_interfaces
         end subroutine sumrho_for_TMBs
 
         subroutine foe(iproc, nproc, tmprtr, &
-                   ebs, itout, it_scc, order_taylor, max_inversion_error, purification_quickreturn, foe_verbosity, &
+                   ebs, itout, it_scc, order_taylor, max_inversion_error, purification_quickreturn, &
+                   calculate_minusonehalf, foe_verbosity, &
                    accuracy_level, tmb, foe_obj)
           use module_base
           use module_types
@@ -3187,6 +3199,7 @@ module module_interfaces
           real(kind=8),intent(in) :: tmprtr
           real(kind=8),intent(out) :: ebs
           logical,intent(in) :: purification_quickreturn
+          logical,intent(in) :: calculate_minusonehalf
           integer :: foe_verbosity
           integer,intent(in) :: accuracy_level
           type(DFT_wavefunction),intent(inout) :: tmb
@@ -4006,18 +4019,18 @@ module module_interfaces
           real(kind=8),intent(out),optional :: max_error, mean_error
         end subroutine overlap_minus_one_half_serial
 
-        subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_charged,ifrag_charged,tmb,input,ref_frags,&
-             calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
+        subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_charged,ifrag_charged,tmb,input_frag,&
+             ref_frags,calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
           use module_defs, only: gp
           use module_types
           use module_fragments
           implicit none
           type(sparse_matrix), intent(inout) :: weight_matrix
            type(matrices), intent(inout) :: weight_matrix_
-          type(input_variables),intent(in) :: input
+          type(fragmentInputParameters),intent(in) :: input_frag
           type(dft_wavefunction), intent(inout) :: tmb
           logical, intent(in) :: calculate_overlap_matrix, calculate_ovrlp_half
-          type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
+          type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
           integer, intent(in) :: nfrag_charged, meth_overlap
           integer, dimension(2), intent(in) :: ifrag_charged
           !local variables
