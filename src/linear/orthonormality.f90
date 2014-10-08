@@ -196,6 +196,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
   if (calculate_inverse) then
       ! Invert the overlap matrix
+      if (iproc==0) call yaml_map('calculation of S^-1','direct calculation')
       call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, -1, &
            imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
            ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
@@ -207,6 +208,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
   else
 
+      if (iproc==0) call yaml_map('calculation of S^-1','square of S^-1/2')
       !@NEW instead of calculating S^-1, take S^-1/2 from memory and square it
       call sequential_acces_matrix_fast(linmat%l, linmat%ovrlp_minusonehalf_%matrix_compr, inv_ovrlp_seq)
       call uncompress_matrix_distributed(iproc, linmat%l, DENSE_MATMUL, linmat%ovrlp_minusonehalf_%matrix_compr, lagmatp)

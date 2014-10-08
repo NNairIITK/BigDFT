@@ -2997,7 +2997,6 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   !!write(*,*) 'trace',tr
 
   ! Calculate S^-1/2 for the new overlap matrix
-  if (iproc==0) write(*,*) 'in renormalize_kernel'
   call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
        ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlp_minusonehalf_, &
