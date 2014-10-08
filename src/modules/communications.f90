@@ -808,6 +808,7 @@ module communications
       !write(*,'(a,i12,es16.8)') 'in start_onesided_communication: nsendbuf, sum(sendbuf)', nsendbuf, sum(sendbuf)
     
     
+      call f_routine(id='start_onesided_communication')
       call timing(iproc, 'Pot_comm start', 'ON')
 
       ! the size of the potential without spin (maybe need to find a better way to determine this...)
@@ -900,6 +901,7 @@ module communications
       call f_free(npotarr)
     
       call timing(iproc, 'Pot_comm start', 'OF')
+      call f_release_routine()
     
     end subroutine start_onesided_communication
     

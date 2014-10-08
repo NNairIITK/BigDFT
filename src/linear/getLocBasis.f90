@@ -687,9 +687,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                & potential=denspot%rhov,comgp=tmb%ham_descr%comgp,&
                hpsi_noconf=hpsi_tmp,econf=econf)
 
-          if (nproc>1) then
-              call mpiallred(econf, 1, mpi_sum, bigdft_mpi%mpi_comm)
-          end if
+          !!if (nproc>1) then
+          !!    call mpiallred(econf, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          !!end if
 
       else
           call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
@@ -3017,6 +3017,8 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
                & uncompress_matrix_distributed, compress_matrix_distributed
           integer :: ncount
 
+          call f_routine(id='retransform_local')
+
           call sequential_acces_matrix_fast(tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, kernel_compr_seq)
           call sequential_acces_matrix_fast(tmb%linmat%l, &
                inv_ovrlp%matrix_compr, inv_ovrlp_compr_seq)
@@ -3035,6 +3037,8 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
           call to_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
           call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, inv_ovrlpp, tmb%linmat%kernel_%matrix_compr)
+
+          call f_release_routine()
 
       end subroutine retransform_local
 

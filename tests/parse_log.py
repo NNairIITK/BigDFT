@@ -265,13 +265,14 @@ class polar_axis():
     level = ydata/self.step
     #once that the level has been found filter the list of theta
     (tt,name)=self.find_name(xdata,level)
+    print "======================="
     print "Routine Picked:",name
     #find lower level
     it=range(level)
     it.reverse()
     for i in it:
       (tt,name)=self.find_name(tt,i)
-      print "Called by:",name
+      print "  Called by:",name
 ##    levth=[]
 ##    for i in range(self.N):
 ##      if self.bot[i]==level:
