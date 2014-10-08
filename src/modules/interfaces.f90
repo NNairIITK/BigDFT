@@ -187,7 +187,8 @@ module module_interfaces
       END SUBROUTINE createWavefunctionsDescriptors
 
       subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
-           cpmult,fpmult,hx,hy,hz,dry_run,nlpsp)
+           cpmult,fpmult,hx,hy,hz,dry_run,nlpsp,&
+           init_projectors_completely_)
         !n(c) use module_base
         use module_types
         implicit none
@@ -199,6 +200,7 @@ module module_interfaces
         !real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
         logical, intent(in) :: dry_run
         type(DFT_PSP_projectors), intent(out) :: nlpsp
+        logical,intent(in),optional :: init_projectors_completely_
       END SUBROUTINE createProjectorsArrays
 
       subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,PS_groupsize,SICapproach,geocode,nspin)

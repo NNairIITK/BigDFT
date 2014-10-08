@@ -221,7 +221,8 @@ END SUBROUTINE wfd_from_grids
 
 !> Determine localization region for all projectors, but do not yet fill the descriptor arrays
 subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
-     cpmult,fpmult,hx,hy,hz,dry_run,nl)
+     cpmult,fpmult,hx,hy,hz,dry_run,nl,&
+     init_projectors_completely_)
   use module_base
   use psp_projectors
   use module_types
@@ -233,15 +234,23 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   !real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
-  type(DFT_PSP_projectors), intent(out) :: nl
   logical, intent(in) :: dry_run !< .true. to compute the size only and don't allocate
+  type(DFT_PSP_projectors), intent(out) :: nl
+  logical,intent(in),optional :: init_projectors_completely_
   !local variables
   character(len=*), parameter :: subname='createProjectorsArrays'
   integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,nbseg_dim,npack_dim,mproj_max
   integer :: iat,iseg
   integer, dimension(:), allocatable :: nbsegs_cf,keyg_lin
   logical, dimension(:,:,:), allocatable :: logrid
+  logical :: init_projectors_completely
   call f_routine(id=subname)
+
+  if (present(init_projectors_completely_)) then
+      init_projectors_completely = init_projectors_completely_
+  else
+      init_projectors_completely = .true.
+  end if
 
   !start from a null structure
   nl=DFT_PSP_projectors_null()
@@ -343,8 +352,10 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
                 nl%pspd(iat)%plr%wfd%keygloc(1,iseg)) 
         end if
         !in the case of linear scaling this section has to be built again
-        call set_nlpsp_to_wfd(lr,nl%pspd(iat)%plr,&
-             keyg_lin,nbsegs_cf,nl%pspd(iat)%noverlap,nl%pspd(iat)%lut_tolr,nl%pspd(iat)%tolr)
+        if (init_projectors_completely) then
+           call set_nlpsp_to_wfd(lr,nl%pspd(iat)%plr,&
+                keyg_lin,nbsegs_cf,nl%pspd(iat)%noverlap,nl%pspd(iat)%lut_tolr,nl%pspd(iat)%tolr)
+        end if
      endif
   enddo
 
