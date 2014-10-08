@@ -286,25 +286,8 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   end if
 
   !here the allocation is possible
-  nbseg_dim=0
-  npack_dim=0
-  mproj_max=0
-  do iat=1,nl%natoms
-     !also the fact of allocating pointers with size zero has to be discussed
-     !for the moments the bounds are not needed for projectors
-     call allocate_wfd(nl%pspd(iat)%plr%wfd)
-     if (nl%pspd(iat)%mproj>0) then
-        nbseg_dim=max(nbseg_dim,&
-             nl%pspd(iat)%plr%wfd%nseg_c+nl%pspd(iat)%plr%wfd%nseg_f)
-        mproj_max=max(mproj_max,nl%pspd(iat)%mproj)
-        npack_dim=max(npack_dim,&
-             nl%pspd(iat)%plr%wfd%nvctr_c+7*nl%pspd(iat)%plr%wfd%nvctr_f)
-        !packing array (for the moment all the projectors contribute) 
-        npack_dim=max(npack_dim,nl%pspd(iat)%plr%wfd%nvctr_c+&
-             7*nl%pspd(iat)%plr%wfd%nvctr_f)
-     end if
-     
-  end do
+  call allocate_arrays()
+
   nl%proj=f_malloc0_ptr(nl%nprojel,id='proj')
   !for the work arrays assume always the maximum components
   nl%wpack=f_malloc_ptr(4*npack_dim,id='wpack')
@@ -375,6 +358,37 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   end if
 
   call f_release_routine()
+
+  contains
+
+    subroutine allocate_arrays()
+      implicit none
+
+      call f_routine(id='allocate_arrays')
+
+      nbseg_dim=0
+      npack_dim=0
+      mproj_max=0
+      do iat=1,nl%natoms
+         !also the fact of allocating pointers with size zero has to be discussed
+         !for the moments the bounds are not needed for projectors
+         call allocate_wfd(nl%pspd(iat)%plr%wfd)
+         if (nl%pspd(iat)%mproj>0) then
+            nbseg_dim=max(nbseg_dim,&
+                 nl%pspd(iat)%plr%wfd%nseg_c+nl%pspd(iat)%plr%wfd%nseg_f)
+            mproj_max=max(mproj_max,nl%pspd(iat)%mproj)
+            npack_dim=max(npack_dim,&
+                 nl%pspd(iat)%plr%wfd%nvctr_c+7*nl%pspd(iat)%plr%wfd%nvctr_f)
+            !packing array (for the moment all the projectors contribute) 
+            npack_dim=max(npack_dim,nl%pspd(iat)%plr%wfd%nvctr_c+&
+                 7*nl%pspd(iat)%plr%wfd%nvctr_f)
+         end if
+      end do
+
+      call f_release_routine()
+
+    end subroutine allocate_arrays
+
 END SUBROUTINE createProjectorsArrays
 
 

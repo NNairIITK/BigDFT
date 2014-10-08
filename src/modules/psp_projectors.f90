@@ -521,6 +521,8 @@ contains
     integer, dimension(wfd_p%nseg_c+wfd_p%nseg_f), intent(inout) :: nbsegs_cf
     !> structure for apply the projector to the corresponding locreg
     type(nlpsp_to_wfd), intent(inout) :: tolr
+
+    call f_routine(id='init_tolr')
     
     !calculate the size of the mask array
     call vcopy(wfd_lr%nseg_c+wfd_lr%nseg_f,&
@@ -535,6 +537,8 @@ contains
     !and filled
     call init_mask(wfd_lr,wfd_p,keyag_lin_cf,nbsegs_cf,&
          tolr%nmseg_c,tolr%nmseg_f,tolr%mask)
+
+    call f_release_routine()
 
   end subroutine init_tolr
 
