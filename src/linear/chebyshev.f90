@@ -17,7 +17,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, foe_obj, k
   use module_interfaces, except_this_one => chebyshev_clean
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), &
                                DENSE_MATMUL, SPARSEMM_SEQ
-  use sparsematrix, only: sequential_acces_matrix_fast, sparsemm
+  use sparsematrix, only: sequential_acces_matrix_fast, sparsemm, compress_matrix_distributed
   use foe_base, only: foe_data
   implicit none
 
@@ -148,12 +148,14 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, foe_obj, k
           end if
   
           if (nproc > 1) then
-             call mpiallred(SHS(1), kernel%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+             !call mpiallred(SHS(1), kernel%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+             call compress_matrix_distributed(iproc, nproc, kernel, DENSE_MATMUL, matrix, SHS)
           end if
 
       else
           ! This is quick and dirty...
-          SHS = ham_compr
+          !SHS = ham_compr
+          call vcopy(kernel%nvctr, ham_compr(1), 1, SHS(1), 1)
   
       end if
   

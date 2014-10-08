@@ -1442,16 +1442,15 @@ contains
 
 
       ! Assign the values of nvctrp_tg and iseseg_tg
-      ! Size of the matrix
-      smat%nvctrp_tg = smat%taskgroup_startend(2,1,i) - smat%taskgroup_startend(1,1,i)
       ! First and last segment of the matrix
-      found_start = .false.
-      found_end = .false.
       iistg=smat%inwhichtaskgroup(1) !first taskgroup of task iproc
       iietg=smat%inwhichtaskgroup(smat%ntaskgroupp) !last taskgroup of task iproc
+      found_start = .false.
+      found_end = .false.
       do iseg=1,smat%nseg
           if (smat%keyv(iseg)==smat%taskgroup_startend(1,1,iistg)) then
               smat%iseseg_tg(1) = iseg
+              smat%isvctrp_tg = smat%keyv(iseg)-1
               found_start = .true.
           end if
           if (smat%keyv(iseg)+smat%keyg(2,1,iseg)-smat%keyg(1,1,iseg)==smat%taskgroup_startend(2,1,iietg)) then
@@ -1461,6 +1460,8 @@ contains
       end do
       if (.not.found_start) stop 'first segment of taskgroup matrix not found'
       if (.not.found_end) stop 'last segment of taskgroup matrix not found'
+      ! Size of the matrix
+      smat%nvctrp_tg = smat%taskgroup_startend(2,1,iietg) - smat%taskgroup_startend(1,1,iistg) + 1
 
 
 
