@@ -59,6 +59,8 @@ module sparsematrix_base
                                              !! WARNING: the essential bounds are given by istartend_t, the segments are you used to speed up the code
       integer,dimension(2) :: istartend_t !< starting and ending indices of the matrix subpart which is actually used i
                                           !! for the transposed operation (overlap calculation / orthocontraint
+      integer :: nvctrp_tg !< size of the taskgroup sparse matrix per processor
+      integer,dimension(2) :: iseseg_tg !< first and last segment of the taskgroup sparse matrix
   end type sparse_matrix
 
 

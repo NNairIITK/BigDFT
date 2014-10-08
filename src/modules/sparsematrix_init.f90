@@ -1111,14 +1111,14 @@ contains
       ! Local variables
       integer :: ipt, ii, i0, i0i, iiorb, j, i0j, jjorb, ind, ind_min, ind_max, iseq
       integer :: ntaskgroups, jproc, jstart, jend, kkproc, kproc, itaskgroups, lproc, llproc
-      integer :: nfvctrp, isfvctr, isegstart, isegend, jorb, istart, iend
+      integer :: nfvctrp, isfvctr, isegstart, isegend, jorb, istart, iend, iistg, iietg
       integer,dimension(:,:),allocatable :: iuse_startend, itaskgroups_startend, ranks
       integer,dimension(:),allocatable :: tasks_per_taskgroup
       integer :: ntaskgrp_calc, ntaskgrp_use, i, ncount, iitaskgroup, group, ierr, iitaskgroups, newgroup, iseg
       logical :: go_on
       integer,dimension(:,:),allocatable :: in_taskgroup
       integer :: iproc_start, iproc_end, imin, imax
-      logical :: found
+      logical :: found, found_start, found_end
 
       call f_routine(id='init_matrix_taskgroups')
 
@@ -1381,6 +1381,8 @@ contains
           stop 'i/=smat%ntaskgroup'
       end if
 
+
+
       i = 0
       do itaskgroups=1,smat%ntaskgroup
           if( iuse_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
@@ -1437,6 +1439,28 @@ contains
           write(*,*) 'iuse_startend(2,iproc),imax', iuse_startend(2,iproc),imax
           stop 'iuse_startend(2,iproc)>imax'
       end if
+
+
+      ! Assign the values of nvctrp_tg and iseseg_tg
+      ! Size of the matrix
+      smat%nvctrp_tg = smat%taskgroup_startend(2,1,i) - smat%taskgroup_startend(1,1,i)
+      ! First and last segment of the matrix
+      found_start = .false.
+      found_end = .false.
+      iistg=smat%inwhichtaskgroup(1) !first taskgroup of task iproc
+      iietg=smat%inwhichtaskgroup(smat%ntaskgroupp) !last taskgroup of task iproc
+      do iseg=1,smat%nseg
+          if (smat%keyv(iseg)==smat%taskgroup_startend(1,1,iistg)) then
+              smat%iseseg_tg(1) = iseg
+              found_start = .true.
+          end if
+          if (smat%keyv(iseg)+smat%keyg(2,1,iseg)-smat%keyg(1,1,iseg)==smat%taskgroup_startend(2,1,iietg)) then
+              smat%iseseg_tg(2) = iseg
+              found_end = .true.
+          end if
+      end do
+      if (.not.found_start) stop 'first segment of taskgroup matrix not found'
+      if (.not.found_end) stop 'last segment of taskgroup matrix not found'
 
 
 

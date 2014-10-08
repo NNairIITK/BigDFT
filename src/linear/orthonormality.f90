@@ -355,22 +355,38 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
               !!!end do
               !!!!$omp end do
               !!!!$omp end parallel
-              do itg=1,linmat%l%ntaskgroupp
-                  iitg = linmat%l%inwhichtaskgroup(itg)
-                  do iseg=1,linmat%l%nseg
-                      ii=linmat%l%keyv(iseg)
-                      if (ii+linmat%l%keyg(2,1,iseg)-linmat%l%keyg(1,1,iseg)<linmat%l%taskgroup_startend(1,1,iitg)) cycle
-                      if (ii>linmat%l%taskgroup_startend(2,1,iitg)) exit
-                      ! A segment is always on one line, therefore no double loop
-                      do i=linmat%l%keyg(1,1,iseg),linmat%l%keyg(2,1,iseg) !this is too much, but for the moment ok
-                          if (ii>=linmat%l%taskgroup_startend(1,1,iitg) .and.  ii<=linmat%l%taskgroup_startend(2,1,iitg)) then
-                              ii_trans = matrixindex_in_compressed(linmat%l,linmat%l%keyg(1,2,iseg),i)
-                              lagmat_large(ii+ishift) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
-                          end if
-                          ii=ii+1
-                      end do
+              !!do itg=1,linmat%l%ntaskgroupp
+              !!    iitg = linmat%l%inwhichtaskgroup(itg)
+              !!    do iseg=1,linmat%l%nseg
+              !!        ii=linmat%l%keyv(iseg)
+              !!        if (ii+linmat%l%keyg(2,1,iseg)-linmat%l%keyg(1,1,iseg)<linmat%l%taskgroup_startend(1,1,iitg)) cycle
+              !!        if (ii>linmat%l%taskgroup_startend(2,1,iitg)) exit
+              !!        ! A segment is always on one line, therefore no double loop
+              !!        do i=linmat%l%keyg(1,1,iseg),linmat%l%keyg(2,1,iseg) !this is too much, but for the moment ok
+              !!            if (ii>=linmat%l%taskgroup_startend(1,1,iitg) .and.  ii<=linmat%l%taskgroup_startend(2,1,iitg)) then
+              !!                ii_trans = matrixindex_in_compressed(linmat%l,linmat%l%keyg(1,2,iseg),i)
+              !!                lagmat_large(ii+ishift) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
+              !!            end if
+              !!            ii=ii+1
+              !!        end do
+              !!    end do
+              !!end do
+
+              !$omp parallel default(none) &
+              !$omp shared(linmat,lagmat_large,tmp_mat_compr,ishift) &
+              !$omp private(iseg,ii,i,ii_trans)
+              !$omp do
+              do iseg=linmat%l%iseseg_tg(1),linmat%l%iseseg_tg(2)
+                  ii = linmat%l%keyv(iseg)
+                  ! A segment is always on one line, therefore no double loop
+                  do i=linmat%l%keyg(1,1,iseg),linmat%l%keyg(2,1,iseg) !this is too much, but for the moment ok
+                      ii_trans = matrixindex_in_compressed(linmat%l,linmat%l%keyg(1,2,iseg),i)
+                      lagmat_large(ii+ishift) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
+                      ii=ii+1
                   end do
               end do
+              !$omp end do
+              !$omp end parallel
           end do
       else
           stop 'symmetrize_matrix: wrong data strategy'
