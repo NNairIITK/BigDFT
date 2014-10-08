@@ -263,8 +263,9 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
                    end do
                    call f_free(psii)
                end do
-               ist=(ispin-1)*smat%nvctr+1
-               call compress_matrix_distributed(iproc, nproc, smat, DENSE_PARALLEL, matp, mat_compr(ist))
+               ist=(ispin-1)*smat%nvctr+smat%isvctrp_tg+1
+               call compress_matrix_distributed(iproc, nproc, smat, DENSE_PARALLEL, &
+                    matp, mat_compr(ist:))
            end do
            maxdiff=0.d0
            call f_free(psiig)

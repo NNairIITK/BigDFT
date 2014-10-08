@@ -149,7 +149,8 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, foe_obj, k
   
           if (nproc > 1) then
              !call mpiallred(SHS(1), kernel%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
-             call compress_matrix_distributed(iproc, nproc, kernel, DENSE_MATMUL, matrix, SHS)
+             call compress_matrix_distributed(iproc, nproc, kernel, DENSE_MATMUL, &
+                  matrix, SHS(kernel%isvctrp_tg+1:))
           end if
 
       else

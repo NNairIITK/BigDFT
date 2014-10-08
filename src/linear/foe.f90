@@ -532,9 +532,10 @@ subroutine foe(iproc, nproc, tmprtr, &
     
          call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
               tmb%linmat%kernel_%matrixp(:,1:tmb%linmat%l%smmm%nfvctrp,1), &
-              tmb%linmat%kernel_%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr))
+              tmb%linmat%kernel_%matrix_compr(ilshift+1+tmb%linmat%l%isvctrp_tg:))
     
-         call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, fermip_check, fermi_check_compr(1))
+         call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
+              fermip_check, fermi_check_compr(tmb%linmat%l%isvctrp_tg+1:))
     
     
         
@@ -894,7 +895,8 @@ subroutine foe(iproc, nproc, tmprtr, &
           call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
           call to_zero(tmb%linmat%l%nvctr, matrix_compr(1))
-          call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, inv_ovrlpp, matrix_compr)
+          call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
+               inv_ovrlpp, matrix_compr(tmb%linmat%l%isvctrp_tg+1:))
 
           call f_free_ptr(inv_ovrlpp)
           call f_free_ptr(tempp)
@@ -2195,7 +2197,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
         
     
           call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, inv_ovrlp_matrixp, &
-               inv_ovrlp%matrix_compr(ilshift+1:ilshift+inv_ovrlp_smat%nvctr))
+               inv_ovrlp%matrix_compr(ilshift+1+inv_ovrlp_smat%isvctrp_tg:))
     
 
       end do spin_loop

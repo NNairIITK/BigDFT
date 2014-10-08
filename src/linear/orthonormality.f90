@@ -223,7 +223,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
       call uncompress_matrix_distributed(iproc, linmat%l, DENSE_MATMUL, lagmat_large, lagmatp)
       call sparsemm(linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
-      call compress_matrix_distributed(iproc, nproc, linmat%l, DENSE_MATMUL, inv_lagmatp, lagmat_large)
+      call compress_matrix_distributed(iproc, nproc, linmat%l, DENSE_MATMUL, &
+           inv_lagmatp, lagmat_large(linmat%l%isvctrp_tg+1:))
   end if
   if (data_strategy_main==SUBMATRIX) then
       call transform_sparse_matrix(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'large_to_small')
@@ -899,7 +900,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
               end do
               Amat21_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='Amat21_compr')
               call timing(iproc,'lovrlp^-1     ','OF')
-              call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, Amat21p, Amat21_compr)
+              call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, &
+                   Amat21p, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
               call timing(iproc,'lovrlp^-1     ','ON')
               Amat21_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='Amat21_seq')
               call sequential_acces_matrix_fast(inv_ovrlp_smat, Amat21_compr, Amat21_seq)
@@ -926,7 +928,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
 
                   if (its/=abs(iorder).or.power/=2) then
                       call timing(iproc,'lovrlp^-1     ','OF')
-                      call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, Amat21p, Amat21_compr)
+                      call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, &
+                           Amat21p, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
                       call timing(iproc,'lovrlp^-1     ','ON')
                   end if
                   if (its/=abs(iorder).or.power==1) then
@@ -934,7 +937,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                   end if
                   if (its/=abs(iorder).or.power==2) then
                       call timing(iproc,'lovrlp^-1     ','OF')
-                      call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, Amat12p, Amat12_compr)
+                      call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, &
+                           Amat12p, Amat12_compr(inv_ovrlp_smat%isvctrp_tg+1:))
                       call timing(iproc,'lovrlp^-1     ','ON')
                   end if
                   if (its/=abs(iorder)) then
@@ -950,7 +954,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                   call timing(iproc,'lovrlp^-1     ','OF')
                   call sparsemm(inv_ovrlp_smat, Amat21_seq, Amat21p, Amat12p)
                   call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, Amat12p, &
-                       inv_ovrlp_mat%matrix_compr(ishift+1:ishift+inv_ovrlp_smat%nvctr))
+                       inv_ovrlp_mat%matrix_compr(ishift+inv_ovrlp_smat%isvctrp_tg+1:))
                   call timing(iproc,'lovrlp^-1     ','ON')
               !else if (power==2) then
               !    call vcopy(inv_ovrlp_smat%nvctr,Amat12_compr(1),1,inv_ovrlp_smat%matrix_compr(1),1)
@@ -1038,7 +1042,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
                   !!call to_zero(inv_ovrlp_smat%nvctr, inv_ovrlp_smat%matrix_compr(1))
                   call timing(iproc,'lovrlp^-1     ','OF')
                   call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, invovrlpp, &
-                       inv_ovrlp_mat%matrix_compr(ilshift+1:ilshift+inv_ovrlp_smat%nvctr))
+                       inv_ovrlp_mat%matrix_compr(ilshift+inv_ovrlp_smat%isvctrp_tg+1:))
                   call timing(iproc,'lovrlp^-1     ','ON')
 
               end do

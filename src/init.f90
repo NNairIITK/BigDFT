@@ -829,7 +829,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       ! Extract to a dense format, since this is independent of the sparsity pattern
       kernelp = sparsematrix_malloc(tmb%linmat%l, iaction=DENSE_PARALLEL, id='kernelp')
       call uncompress_matrix_distributed(iproc, tmb_old%linmat%l, DENSE_PARALLEL, tmb_old%linmat%kernel_%matrix_compr, kernelp)
-      call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_PARALLEL, kernelp, tmb%linmat%kernel_%matrix_compr)
+      call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_PARALLEL, &
+           kernelp, tmb%linmat%kernel_%matrix_compr(tmb%linmat%l%isvctrp_tg+1:))
       call f_free(kernelp)
   end if
           !!write(*,*) 'after vcopy, iproc',iproc
@@ -1051,7 +1052,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        tmb_old%linmat%ovrlp_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s,iaction=SPARSE_FULL, &
                                                                     id='tmb_old%linmat%ovrlp_%matrix_compr')
 
-       call compress_matrix_distributed(iproc, nproc, tmb%linmat%s, DENSE_PARALLEL, ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr)
+       call compress_matrix_distributed(iproc, nproc, tmb%linmat%s, DENSE_PARALLEL, &
+            ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr(tmb%linmat%s%isvctrp_tg+1:))
        call f_free(ovrlpp)
        call renormalize_kernel(iproc, nproc, input%lin%order_taylor, max_inversion_error, tmb, &
             tmb%linmat%ovrlp_, tmb_old%linmat%ovrlp_)
