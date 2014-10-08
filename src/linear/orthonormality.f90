@@ -129,7 +129,7 @@ end subroutine orthonormalizeLocalized
 subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
            correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
            hpsit_c, hpsit_f, &
-           can_use_transposed, overlap_calculated, experimental_mode, norder_taylor, max_inversion_error, &
+           can_use_transposed, overlap_calculated, experimental_mode, calculate_inverse, norder_taylor, max_inversion_error, &
            npsidim_orbs_small, lzd_small, hpsi_noprecond)
   use module_base
   use module_types
@@ -161,7 +161,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   real(kind=8),dimension(:),pointer :: psit_c, psit_f
   logical,intent(inout) :: can_use_transposed, overlap_calculated
   type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
-  logical,intent(in) :: experimental_mode
+  logical,intent(in) :: experimental_mode, calculate_inverse
   integer,intent(inout) :: norder_taylor
   real(kind=8),intent(in) :: max_inversion_error
   real(kind=8),dimension(npsidim_orbs_small),intent(out) :: hpsi_noprecond
@@ -188,18 +188,32 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       can_use_transposed=.true.
   end if
 
-
-  ! Invert the overlap matrix
+  inv_ovrlp_seq = sparsematrix_malloc(linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_seq')
+  inv_lagmatp = sparsematrix_malloc(linmat%l, iaction=DENSE_MATMUL, id='inv_lagmatp')
+  lagmatp = sparsematrix_malloc(linmat%l, iaction=DENSE_MATMUL, id='lagmatp')
   inv_ovrlp_ = matrices_null()
   inv_ovrlp_%matrix_compr = sparsematrix_malloc_ptr(linmat%l,iaction=SPARSE_FULL,id='inv_ovrlp_%matrix_compr')
-  call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, -1, &
-       imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
-       ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
-       check_accur=.true., max_error=max_error, mean_error=mean_error)
-  !if (iproc==0) call yaml_map('max error',max_error)
-  !if (iproc==0) call yaml_map('mean error',mean_error)
-  !if (iproc==0) call yaml_scalar('no check taylor')
-  call check_taylor_order(mean_error, max_inversion_error, norder_taylor)
+
+  if (calculate_inverse) then
+      ! Invert the overlap matrix
+      call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, -1, &
+           imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
+           ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
+           check_accur=.true., max_error=max_error, mean_error=mean_error)
+      !if (iproc==0) call yaml_map('max error',max_error)
+      !if (iproc==0) call yaml_map('mean error',mean_error)
+      !if (iproc==0) call yaml_scalar('no check taylor')
+      call check_taylor_order(mean_error, max_inversion_error, norder_taylor)
+
+  else
+
+      !@NEW instead of calculating S^-1, take S^-1/2 from memory and square it
+      call sequential_acces_matrix_fast(linmat%l, linmat%ovrlp_minusonehalf_%matrix_compr, inv_ovrlp_seq)
+      call uncompress_matrix_distributed(iproc, linmat%l, DENSE_MATMUL, linmat%ovrlp_minusonehalf_%matrix_compr, lagmatp)
+      call sparsemm(linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
+      call compress_matrix_distributed(iproc, nproc, linmat%l, DENSE_MATMUL, &
+           inv_lagmatp, inv_ovrlp_%matrix_compr(linmat%l%isvctrp_tg+1:))
+  end if
 
 
   ! Calculate <phi_alpha|g_beta>
@@ -211,9 +225,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
 
   ! Apply S^-1
-  inv_ovrlp_seq = sparsematrix_malloc(linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_seq')
-  lagmatp = sparsematrix_malloc(linmat%l, iaction=DENSE_MATMUL, id='lagmatp')
-  inv_lagmatp = sparsematrix_malloc(linmat%l, iaction=DENSE_MATMUL, id='inv_lagmatp')
   call sequential_acces_matrix_fast(linmat%l, inv_ovrlp_%matrix_compr, inv_ovrlp_seq)
   ! Transform the matrix to the large sparsity pattern (necessary for the following uncompress_matrix_distributed)
   if (correction_orthoconstraint==0) then

@@ -4572,8 +4572,10 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   end if norbp_if
 
   ! Get the minimum and maximum among all tasks
-  call mpiallred(iorbminmax(1,1), at%astruct%nat, mpi_min, bigdft_mpi%mpi_comm)
-  call mpiallred(iorbminmax(1,2), at%astruct%nat, mpi_max, bigdft_mpi%mpi_comm)
+  if (nproc>1) then
+      call mpiallred(iorbminmax(1,1), at%astruct%nat, mpi_min, bigdft_mpi%mpi_comm)
+      call mpiallred(iorbminmax(1,2), at%astruct%nat, mpi_max, bigdft_mpi%mpi_comm)
+  end if
 
   !!call mpiallred(scalprodglobal(1,0,1,1,1,1,1), 2*10*7*3*4*at%astruct%nat*orbsglobal%norb, mpi_sum, bigdft_mpi%mpi_comm, ierr)
 

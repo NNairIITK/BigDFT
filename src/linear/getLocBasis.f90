@@ -548,6 +548,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_tmp, psidiff
   real(kind=8),dimension(:),allocatable :: delta_energy_arr, hpsi_noprecond, kernel_compr_tmp, kernel_best
   logical :: energy_increased, overlap_calculated, energy_diff, energy_increased_previous, complete_reset, even
+  logical :: calculate_inverse
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
   type(energy_terms) :: energs
   real(kind=8), dimension(2):: reducearr
@@ -814,10 +815,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       ! use hpsi_tmp as temporary array for hpsi_noprecond, even if it is allocated with a larger size
       !write(*,*) 'calling calc_energy_and.., correction_co_contra',correction_co_contra
-      call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, fnrm_old, alpha, trH, trH_old, fnrm, fnrmMax, &
+      calculate_inverse = (target_function/=TARGET_FUNCTION_IS_HYBRID .or. method_updatekernel/=UPDATE_BY_RENORMALIZATION)
+      call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, &
+           fnrm_old, alpha, trH, trH_old, fnrm, fnrmMax, &
            meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
            hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, hpsi_small, &
-           experimental_mode, correction_co_contra, hpsi_noprecond=hpsi_tmp, norder_taylor=order_taylor, &
+           experimental_mode, calculate_inverse, &
+           correction_co_contra, hpsi_noprecond=hpsi_tmp, norder_taylor=order_taylor, &
            max_inversion_error=max_inversion_error, method_updatekernel=method_updatekernel, &
            precond_convol_workarrays=precond_convol_workarrays, precond_workarrays=precond_workarrays, &
            cdft=cdft, input_frag=input_frag, ref_frags=ref_frags)
@@ -2993,9 +2997,10 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   !!write(*,*) 'trace',tr
 
   ! Calculate S^-1/2 for the new overlap matrix
+  if (iproc==0) write(*,*) 'in renormalize_kernel'
   call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-       ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, &
+       ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlp_minusonehalf_, &
        check_accur=.true., max_error=max_error, mean_error=mean_error)
   call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 

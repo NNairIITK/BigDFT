@@ -12,7 +12,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
            energy_increased, tmb, lhphiold, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-           hpsi_small, experimental_mode, correction_co_contra, hpsi_noprecond, &
+           hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
            norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays,&
            cdft, input_frag, ref_frags)
   use module_base
@@ -46,7 +46,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c) :: hpsit_c
   real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f) :: hpsit_f
   integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
-  logical, intent(in) :: experimental_mode, correction_co_contra
+  logical, intent(in) :: experimental_mode, calculate_inverse, correction_co_contra
   real(kind=8), dimension(tmb%npsidim_orbs), intent(out) :: hpsi_small
   real(kind=8), dimension(tmb%npsidim_orbs),intent(out) :: hpsi_noprecond
   type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
@@ -266,7 +266,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        tmb%linmat, tmb%ham_descr%psi, tmb%hpsi, &
        tmb%linmat%m, tmb%linmat%ham_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
        hpsit_c, hpsit_f, tmb%ham_descr%can_use_transposed, &
-       overlap_calculated, experimental_mode, norder_taylor, max_inversion_error, &
+       overlap_calculated, experimental_mode, calculate_inverse, norder_taylor, max_inversion_error, &
        tmb%npsidim_orbs, tmb%lzd, hpsi_noprecond)
 
   !EXPERIMENTAL and therefore deactivated

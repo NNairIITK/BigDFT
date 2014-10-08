@@ -1944,7 +1944,8 @@ module module_interfaces
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
                  correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
                  hpsit_c, hpsit_f, &
-                 can_use_transposed, overlap_calculated, experimental_mode, norder_taylor, max_inversion_error, &
+                 can_use_transposed, overlap_calculated, &
+                 experimental_mode, calculate_inverse, norder_taylor, max_inversion_error, &
            npsidim_orbs_small, lzd_small, hpsi_noprecond)
         use module_base
         use module_types
@@ -1965,7 +1966,7 @@ module module_interfaces
         real(kind=8),dimension(:),pointer :: psit_c, psit_f
         logical,intent(inout) :: can_use_transposed, overlap_calculated
         type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
-        logical,intent(in) :: experimental_mode
+        logical,intent(in) :: experimental_mode, calculate_inverse
         integer,intent(inout) :: norder_taylor
         real(kind=8),intent(in) :: max_inversion_error
         real(kind=8),dimension(npsidim_orbs_small),intent(out) :: hpsi_noprecond
@@ -2422,7 +2423,7 @@ module module_interfaces
                   ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-                  hpsi_small, experimental_mode, correction_co_contra, hpsi_noprecond, &
+                  hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
                   norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays,&
                   cdft, input_frag, ref_frags)
          use module_base
@@ -2447,7 +2448,7 @@ module module_interfaces
          real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c) :: hpsit_c
          real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f) :: hpsit_f
          integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
-         logical, intent(in) :: experimental_mode, correction_co_contra
+         logical, intent(in) :: experimental_mode, calculate_inverse, correction_co_contra
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_small
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_noprecond
          type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
