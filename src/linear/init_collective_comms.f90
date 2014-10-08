@@ -271,11 +271,14 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
            call f_free(psiig)
            call f_free(psijg)
            call f_free(matp)
-           do i=1,smat%nvctr
-               maxdiff=max(abs(mat_compr(i)-mat%matrix_compr(i)),maxdiff)
+           do i=1,smat%nvctrp_tg
+               maxdiff=max(abs(mat_compr(i-smat%isvctrp_tg)-mat%matrix_compr(i-smat%isvctrp_tg)),maxdiff)
                !write(8000+iproc,'(a,i7,2es15.5)') 'i, mat_compr(i), mat%matrix_compr(i)', &
                !    i, mat_compr(i), mat%matrix_compr(i)
            end do
+           if (nproc>1) then
+               call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm)
+           end if
            call f_free(mat_compr)
            if (iproc==0) call yaml_map('Maxdiff for overlap calculation',maxdiff,fmt='(1es25.17)')
        end if
