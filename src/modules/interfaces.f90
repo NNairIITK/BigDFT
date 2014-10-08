@@ -3185,7 +3185,8 @@ module module_interfaces
         end subroutine sumrho_for_TMBs
 
         subroutine foe(iproc, nproc, tmprtr, &
-                   ebs, itout, it_scc, order_taylor, max_inversion_error, purification_quickreturn, foe_verbosity, &
+                   ebs, itout, it_scc, order_taylor, max_inversion_error, purification_quickreturn, &
+                   calculate_minusonehalf, foe_verbosity, &
                    accuracy_level, tmb, foe_obj)
           use module_base
           use module_types
@@ -3197,6 +3198,7 @@ module module_interfaces
           real(kind=8),intent(in) :: tmprtr
           real(kind=8),intent(out) :: ebs
           logical,intent(in) :: purification_quickreturn
+          logical,intent(in) :: calculate_minusonehalf
           integer :: foe_verbosity
           integer,intent(in) :: accuracy_level
           type(DFT_wavefunction),intent(inout) :: tmb

@@ -671,7 +671,7 @@ module module_types
       type(sparse_matrix) :: l !< medium: sparsity pattern given by kernel cutoff
       type(sparse_matrix),dimension(:),pointer :: ks !< sparsity pattern for the KS orbitals (i.e. dense); spin up and down
       type(sparse_matrix),dimension(:),pointer :: ks_e !< sparsity pattern for the KS orbitals including extra stated (i.e. dense); spin up and down
-      type(matrices) :: ham_, ovrlp_, kernel_
+      type(matrices) :: ham_, ovrlp_, kernel_, ovrlp_minusonehalf_
   end type linear_matrices
 
 

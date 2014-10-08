@@ -452,7 +452,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       tmprtr=0.d0
       call foe(iproc, nproc, tmprtr, &
            energs%ebs, itout,it_scc, order_taylor, max_inversion_error, purification_quickreturn, &
-           1, FOE_ACCURATE, tmb, tmb%foe_obj)
+           calculate_overlap_matrix, 1, FOE_ACCURATE, tmb, tmb%foe_obj)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
 
@@ -753,7 +753,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                   call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
               else if (method_updatekernel==UPDATE_BY_FOE) then
                   call foe(iproc, nproc, 0.d0, &
-                       energs%ebs, -1, -10, order_taylor, max_inversion_error, purification_quickreturn, 0, &
+                       energs%ebs, -1, -10, order_taylor, max_inversion_error, purification_quickreturn, &
+                       .true., 0, &
                        FOE_FAST, tmb, tmb%foe_obj)
               end if
               if (iproc==0) call yaml_sequence_close()
@@ -3035,7 +3036,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
           end if
           call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
-          call to_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
+          !call to_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
           call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
                inv_ovrlpp, tmb%linmat%kernel_%matrix_compr(tmb%linmat%l%isvctrp_tg+1:))
 
