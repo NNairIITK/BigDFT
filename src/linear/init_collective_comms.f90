@@ -1553,6 +1553,8 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
 !  integer,dimension(:,:),allocatable :: sendbuf, requests, iminmaxarr
   character(len=*),parameter :: subname='init_sparse_matrix'
 
+  call f_routine(id='init_matrixindex_in_compressed_fortransposed')
+
 
   ! for the calculation of overlaps and the charge density
   imin=minval(collcom%indexrecvorbital_c)
@@ -1601,5 +1603,6 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   !@    matrixindex_in_compressed = matrixindex_in_compressed + sparsemat%nvctr
   !@end if
 
+  call f_release_routine()
 
 end subroutine init_matrixindex_in_compressed_fortransposed

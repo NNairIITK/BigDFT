@@ -752,11 +752,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               if (iproc==0) call yaml_newline()
               if (iproc==0) call yaml_sequence_open('kernel update by FOE')
               if (method_updatekernel==UPDATE_BY_RENORMALIZATION) then
-                  if (it==1 .or. energy_increased) then
+                  if (it==1 .or. energy_increased .or. .not.experimental_mode) then
                       ! Calculate S^1/2, as it can not be taken from memory
                       call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/2/), -1, &
                            imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-                           ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
+                           ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
                            check_accur=.true., max_error=max_error, mean_error=mean_error)
                       call check_taylor_order(mean_error, max_inversion_error, order_taylor)
                   end if

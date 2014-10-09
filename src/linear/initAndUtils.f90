@@ -1936,6 +1936,8 @@ subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, s
   integer, parameter :: KEYS=1
   integer, parameter :: DISTANCE=2
 
+  call f_routine(id='init_sparse_matrix_wrapper')
+
   cutoff = f_malloc(lzd%nlr,id='cutoff')
 
   do ilr=1,lzd%nlr
@@ -1956,6 +1958,8 @@ subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, s
   call f_free_ptr(nonzero)
   call f_free_ptr(nonzero_mult)
   call f_free(cutoff)
+
+  call f_release_routine()
 
 end subroutine init_sparse_matrix_wrapper
 
