@@ -562,6 +562,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(workarrays_quartic_convolutions),dimension(:),allocatable :: precond_convol_workarrays
   type(workarr_precond),dimension(:),allocatable :: precond_workarrays
   integer :: iiorb, ilr, i, ist
+  real(kind=8) :: max_error, mean_error
 
   call f_routine(id='getLocalizedBasis')
 
@@ -751,6 +752,14 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               if (iproc==0) call yaml_newline()
               if (iproc==0) call yaml_sequence_open('kernel update by FOE')
               if (method_updatekernel==UPDATE_BY_RENORMALIZATION) then
+                  if (it==1 .or. energy_increased) then
+                      ! Calculate S^1/2, as it can not be taken from memory
+                      call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/2/), -1, &
+                           imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+                           ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
+                           check_accur=.true., max_error=max_error, mean_error=mean_error)
+                      call check_taylor_order(mean_error, max_inversion_error, order_taylor)
+                  end if
                   call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
               else if (method_updatekernel==UPDATE_BY_FOE) then
                   call foe(iproc, nproc, 0.d0, &
@@ -1261,6 +1270,8 @@ subroutine improveOrbitals(iproc, nproc, tmb, nspin, ldiis, alpha, gradient, exp
   ! Local variables
   integer :: istart, iorb, iiorb, ilr, ncount
 
+  call f_routine(id='improveOrbitals')
+
   if(ldiis%isx==0) then ! steepest descents
       call timing(iproc,'optimize_SD   ','ON')
       istart=1
@@ -1281,6 +1292,8 @@ subroutine improveOrbitals(iproc, nproc, tmb, nspin, ldiis, alpha, gradient, exp
       call optimizeDIIS(iproc, nproc, max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, nspin, tmb%lzd, gradient, tmb%psi, ldiis, &
            experimental_mode)
   end if
+
+  call f_release_routine()
 
 end subroutine improveOrbitals
 
@@ -1893,7 +1906,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   real(kind=8), dimension(:,:), pointer :: ovrlp_coeff
   real(kind=8),dimension(:,:),pointer :: ovrlp_matrix, inv_ovrlp_matrix
   character(len=*),parameter:: subname='reorthonormalize_coeff'
-  type(matrices) :: KS_ovrlp_, inv_ovrlp_
+  type(matrices) :: KS_ovrlp_
+  type(matrices),dimension(1) :: inv_ovrlp_
   integer,dimension(2) :: irowcol
   !integer :: iorb, jorb !DEBUG
   real(kind=8) :: tt, max_error, mean_error!, tt2, tt3, ddot   !DEBUG
@@ -2111,10 +2125,10 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
          ! Not clean to use twice basis_overlap, but it should not matter as everything
          ! is done using the dense version
 
-         inv_ovrlp_ = matrices_null()
+         inv_ovrlp_(1) = matrices_null()
          ! can not use the wrapper since it cannot distinguish between up and down spin
          !call allocate_matrices(KS_overlap, allocate_full=.true., matname='inv_ovrlp_', mat=inv_ovrlp_)
-         inv_ovrlp_%matrix = f_malloc_ptr((/norbx,norbx,1/),id='inv_ovrlp_%matrix')
+         inv_ovrlp_(1)%matrix = f_malloc_ptr((/norbx,norbx,1/),id='inv_ovrlp_%matrix')
          
 
          if (norb==orbs%norb) then
@@ -2125,7 +2139,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
              !!        write(2000+iproc,'(a,2i9,es13.5)') 'iorb, jorb, KS_ovrlp_%matrix(jorb,iorb,1)', iorb, jorb, KS_ovrlp_%matrix(jorb,iorb,1)
              !!    end do
              !!end do
-             call overlapPowerGeneral(iproc, nproc, inversion_method, -2, &
+             call overlapPowerGeneral(iproc, nproc, inversion_method, 1, (/-2/), &
                   blocksize_dsyev, imode=2, ovrlp_smat=KS_overlap(ispin), inv_ovrlp_smat=KS_overlap(ispin), &
                   ovrlp_mat=KS_ovrlp_, inv_ovrlp_mat=inv_ovrlp_, &
                   check_accur=.false., nspinx=1)
@@ -2163,7 +2177,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
                 if (norb==orbs%norb) then
                     !SM: need to fix the spin here
                     call dgemm('n', 't', basis_orbs%norb, orbs%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), basis_orbs%norb, &
-                         inv_ovrlp_%matrix(1,orbs%isorb+1,1), orbs%norb, 0.d0, coeff_tmp(1,1), basis_orbs%norb)
+                         inv_ovrlp_(1)%matrix(1,orbs%isorb+1,1), orbs%norb, 0.d0, coeff_tmp(1,1), basis_orbs%norb)
                     !@WARNING: THE FOLLOWING CALL IS NOT TESTED AND MIGHT BE WRONG!!
                     !!call dgemm('n', 't', basis_overlap%nfvctrp, norbx, norbx, 1.d0, coeff(basis_overlap%isfvctr,1), basis_overlap%nfvctr, &
                     !!     inv_ovrlp_%matrix(1,1,1), norbx, 0.d0, coeff_tmp(basis_overlap%isfvctr,1), basis_overlap%nfvctr)
@@ -2187,7 +2201,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
                     !SM: need to fix the spin here
                     !!call dgemm('n', 't', norb, basis_orbs%norbp, norb, 1.d0, inv_ovrlp_%matrix(1,1,1), norb, &
                     !!    coeff(1+basis_orbs%isorb,1), basis_orbs%norb, 0.d0, coeff_tmp(1,1), norb)
-                    call dgemm('n', 't', norbx, basis_overlap%nfvctrp, norbx, 1.d0, inv_ovrlp_%matrix(1,1,1), norbx, &
+                    call dgemm('n', 't', norbx, basis_overlap%nfvctrp, norbx, 1.d0, inv_ovrlp_(1)%matrix(1,1,1), norbx, &
                         coeff(1+basis_overlap%isfvctr,ist), basis_overlap%nfvctr, 0.d0, coeff_tmp(1,1), norbx)
                 else
                     call dgemm('n', 't', norb, basis_orbs%norbp, norb, 1.d0, inv_ovrlp_matrix(1,1), norb, &
@@ -2237,7 +2251,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
 
          call timing(iproc,'renormCoefCom2','OF')
 
-         call deallocate_matrices(inv_ovrlp_)
+         call deallocate_matrices(inv_ovrlp_(1))
          if (norb/=orbs%norb) then
              call f_free_ptr(inv_ovrlp_matrix)
          end if
@@ -2393,7 +2407,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   real(kind=8),dimension(2) :: bisec_bounds
   logical,dimension(2) :: bisec_bounds_ok
   !real(kind=8),dimension(:,:),pointer :: ovrlp_onehalf, ovrlp_minusonehalf
-  type(matrices) :: ovrlp_onehalf_, ovrlp_minusonehalf_
+  type(matrices),dimension(1) :: ovrlppowers_
+  type(matrices),dimension(1) :: ovrlp_onehalf_
 
 
 
@@ -2408,10 +2423,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   isshift=(ispin-1)*tmb%linmat%s%nvctr
   ilshift=(ispin-1)*tmb%linmat%l%nvctr
 
-  ovrlp_onehalf_ = matrices_null()
-  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='ovrlp_onehalf_', mat=ovrlp_onehalf_)
-  ovrlp_minusonehalf_ = matrices_null()
-  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='ovrlp_minusonehalf_', mat=ovrlp_minusonehalf_)
+  ovrlp_onehalf_(1) = matrices_null()
+  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='ovrlp_onehalf_', mat=ovrlp_onehalf_(1))
+  ovrlppowers_(1) = matrices_null()
+  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='ovrlppowers_', mat=ovrlppowers_(1))
 
 
   ! Calculate the overlap matrix between the TMBs.
@@ -2497,10 +2512,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           !SM: need to fix the spin here
           call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
                      1.d0, tmb%linmat%kernel_%matrix, tmb%linmat%l%nfvctr, &
-                     ovrlp_onehalf_%matrix(1,tmb%linmat%l%isfvctr+1,1), tmb%linmat%l%nfvctr, &
+                     ovrlp_onehalf_(1)%matrix(1,tmb%linmat%l%isfvctr+1,1), tmb%linmat%l%nfvctr, &
                      0.d0, ksksk, tmb%linmat%l%nfvctr) 
           call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
-                     1.d0, ovrlp_onehalf_%matrix, tmb%linmat%l%nfvctr, &
+                     1.d0, ovrlp_onehalf_(1)%matrix, tmb%linmat%l%nfvctr, &
                      ksksk, tmb%linmat%l%nfvctr, &
                      0.d0, kernel_prime(1,tmb%linmat%l%isfvctr+1), tmb%linmat%l%nfvctr) 
       end if
@@ -2539,10 +2554,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           if (tmb%linmat%l%nfvctrp>0) then
               call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
                          1.d0, ks, tmb%linmat%l%nfvctr, &
-                         ovrlp_minusonehalf_%matrix(1,tmb%linmat%l%isfvctr+1,1), tmb%linmat%l%nfvctr, &
+                         ovrlppowers_(1)%matrix(1,tmb%linmat%l%isfvctr+1,1), tmb%linmat%l%nfvctr, &
                          0.d0, ksksk, tmb%linmat%l%nfvctr) 
               call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
-                         1.d0, ovrlp_minusonehalf_%matrix, tmb%linmat%l%nfvctr, &
+                         1.d0, ovrlppowers_(1)%matrix, tmb%linmat%l%nfvctr, &
                          ksksk, tmb%linmat%l%nfvctr, &
                          0.d0, tmb%linmat%kernel_%matrix(1,tmb%linmat%l%isfvctr+1,1), tmb%linmat%l%nfvctr) 
           end if
@@ -2723,8 +2738,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   call f_free_ptr(tmb%linmat%ovrlp_%matrix)
   call f_free_ptr(tmb%linmat%kernel_%matrix)
 
-  call deallocate_matrices(ovrlp_onehalf_)
-  call deallocate_matrices(ovrlp_minusonehalf_)
+  call deallocate_matrices(ovrlp_onehalf_(1))
+  call deallocate_matrices(ovrlppowers_(1))
 
   call f_release_routine()
 
@@ -2735,14 +2750,14 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
         subroutine calculate_overlap_onehalf()
           ! Taylor approximation of S^1/2 and S^-1/2 up to higher order
 
-          call overlapPowerGeneral(iproc, nproc, order_taylor, 2, -1, &
+          call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/2/), -1, &
                imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=ovrlp_onehalf_, check_accur=.true., &
                max_error=max_error, mean_error=mean_error)
           call check_taylor_order(mean_error, max_inversion_error, order_taylor)
-          call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
+          call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/-2/), -1, &
                imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-               ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=ovrlp_minusonehalf_, check_accur=.true., &
+               ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=ovrlppowers_, check_accur=.true., &
                max_error=max_error, mean_error=mean_error)
           call check_taylor_order(mean_error, max_inversion_error, order_taylor)
           !if (iproc==0) then
@@ -2980,15 +2995,21 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   kernel_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
 
 
+
+
+  ! Calculate S^1/2 * K * S^1/2. Take the value of S^1/2 from memory (was
+  ! calculated in the last call to this routine or (it it is the first call)
+  ! just before the call.
+  call retransform_local(tmb%linmat%ovrlppowers_(1))
+
   ! Calculate S^1/2 for the old overlap matrix
-  call overlapPowerGeneral(iproc, nproc, order_taylor, 2, -1, &
+  call overlapPowerGeneral(iproc, nproc, order_taylor, 3, (/2,-2,1/), -1, &
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-       ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlp_minusonehalf_, &
+       ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
        check_accur=.true., max_error=max_error, mean_error=mean_error)
   call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
-  ! Calculate S^1/2 * K * S^1/2
-  call retransform_local()
+
   !!tr=0.d0
   !!do iorb=1,tmb%orbs%norb
   !!    ind=tmb%linmat%l%matrixindex_in_compressed_fortransposed(iorb,iorb)
@@ -2996,15 +3017,15 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   !!end do
   !!write(*,*) 'trace',tr
 
-  ! Calculate S^-1/2 for the new overlap matrix
-  call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
-       imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-       ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlp_minusonehalf_, &
-       check_accur=.true., max_error=max_error, mean_error=mean_error)
-  call check_taylor_order(mean_error, max_inversion_error, order_taylor)
+  !!! Calculate S^-1/2 for the new overlap matrix
+  !!call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/-2/), -1, &
+  !!     imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+  !!     ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
+  !!     check_accur=.true., max_error=max_error, mean_error=mean_error)
+  !!call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
   ! Calculate S^-1/2 * K * S^-1/2
-  call retransform_local()
+  call retransform_local(tmb%linmat%ovrlppowers_(2))
 
 
   call f_free_ptr(inv_ovrlpp)
@@ -3017,18 +3038,19 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
   contains
 
-      subroutine retransform_local()
+      subroutine retransform_local(mat)
           use sparsematrix, only: sequential_acces_matrix_fast, sparsemm, &
                & uncompress_matrix_distributed, compress_matrix_distributed
+          type(matrices),intent(in) :: mat
           integer :: ncount
 
           call f_routine(id='retransform_local')
 
           call sequential_acces_matrix_fast(tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, kernel_compr_seq)
           call sequential_acces_matrix_fast(tmb%linmat%l, &
-               tmb%linmat%ovrlp_minusonehalf_%matrix_compr, inv_ovrlp_compr_seq)
+               mat%matrix_compr, inv_ovrlp_compr_seq)
           call uncompress_matrix_distributed(iproc, tmb%linmat%l, DENSE_MATMUL, &
-               tmb%linmat%ovrlp_minusonehalf_%matrix_compr, inv_ovrlpp)
+               mat%matrix_compr, inv_ovrlpp)
 
           ncount=tmb%linmat%l%nfvctr*tmb%linmat%l%smmm%nfvctrp
           if (ncount>0) then

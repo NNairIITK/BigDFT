@@ -9,8 +9,8 @@
 
  
 !> Again assuming all matrices have same sparsity, still some tidying to be done
-subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, foe_obj, kernel, ham_compr, &
-           ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, fermi, penalty_ev, chebyshev_polynomials, &
+subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ham_compr, &
+           ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, ncalc, fermi, penalty_ev, chebyshev_polynomials, &
            emergency_stop)
   use module_base
   use module_types
@@ -22,20 +22,19 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, foe_obj, k
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, norb, norbp, isorb
-  real(8),dimension(npl,3),intent(in) :: cc
-  type(foe_data),intent(in) :: foe_obj
+  integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, norb, norbp, isorb, ncalc
+  real(8),dimension(npl,3,ncalc),intent(in) :: cc
   type(sparse_matrix), intent(in) :: kernel
   real(kind=8),dimension(kernel%nvctr),intent(in) :: ham_compr, ovrlp_compr
   logical,intent(in) :: calculate_SHS
   real(kind=8),dimension(kernel%nvctr),intent(inout) :: SHS
-  real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp),intent(out) :: fermi
+  real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,ncalc),intent(out) :: fermi
   real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,2),intent(out) :: penalty_ev
   real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
   logical,intent(out) :: emergency_stop
   ! Local variables
   integer :: iorb,iiorb, jorb, ipl, ierr, nseq, nmaxvalk
-  integer :: isegstart, isegend, iseg, ii, jjorb, nout
+  integer :: isegstart, isegend, iseg, ii, jjorb, nout, icalc
   character(len=*),parameter :: subname='chebyshev_clean'
   real(8), dimension(:,:,:), allocatable :: vectors
   real(kind=8),dimension(:),allocatable :: ham_compr_seq, ovrlp_compr_seq, SHS_seq
@@ -202,26 +201,30 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, foe_obj, k
           call vcopy(kernel%nfvctr*kernel%smmm%nfvctrp, vectors(1,1,1), 1, vectors(1,1,2), 1)
         
           !initialize fermi
-          call to_zero(kernel%smmm%nfvctrp*kernel%nfvctr, fermi(1,1))
+          call to_zero(kernel%smmm%nfvctrp*kernel%nfvctr*ncalc, fermi(1,1,1))
           call to_zero(2*kernel%nfvctr*kernel%smmm%nfvctrp, penalty_ev(1,1,1))
           call compress_polynomial_vector(iproc, nproc, nsize_polynomial, &
                kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, kernel, &
                vectors(1,1,4), chebyshev_polynomials(1,1))
+          do icalc=1,ncalc
+              call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
+                   0.5d0*cc(1,1,icalc), vectors(1,1,4), fermi(:,1,icalc))
+          end do
           call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
-               0.5d0*cc(1,1), vectors(1,1,4), fermi(:,1))
+               0.5d0*cc(1,3,1), vectors(1,1,4), penalty_ev(:,1,1))
           call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
-               0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,1))
-          call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
-               0.5d0*cc(1,3), vectors(1,1,4), penalty_ev(:,1,2))
+               0.5d0*cc(1,3,1), vectors(1,1,4), penalty_ev(:,1,2))
           call compress_polynomial_vector(iproc, nproc, nsize_polynomial, &
                kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, kernel, &
                vectors(1,1,2), chebyshev_polynomials(1,2))
+          do icalc=1,ncalc
+              call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
+                   cc(2,1,icalc), vectors(1,1,2), fermi(:,1,icalc))
+          end do
           call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
-               cc(2,1), vectors(1,1,2), fermi(:,1))
+               cc(2,3,1), vectors(1,1,2), penalty_ev(:,1,1))
           call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
-               cc(2,3), vectors(1,1,2), penalty_ev(:,1,1))
-          call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
-               -cc(2,3), vectors(1,1,2), penalty_ev(:,1,2))
+               -cc(2,3,1), vectors(1,1,2), penalty_ev(:,1,2))
         
         
           emergency_stop=.false.
@@ -239,15 +242,17 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, foe_obj, k
               call compress_polynomial_vector(iproc, nproc, nsize_polynomial, &
                    kernel%nfvctr, kernel%smmm%nfvctrp, kernel%smmm%isfvctr, kernel, vectors(1,1,3), &
                    chebyshev_polynomials(1,ipl))
+              do icalc=1,ncalc
+                  call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
+                       cc(ipl,1,icalc), vectors(1,1,3), fermi(:,1,icalc))
+              end do
               call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
-                   cc(ipl,1), vectors(1,1,3), fermi(:,1))
-              call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
-                   cc(ipl,3), vectors(1,1,3), penalty_ev(:,1,1))
+                   cc(ipl,3,1), vectors(1,1,3), penalty_ev(:,1,1))
          
               if (mod(ipl,2)==1) then
-                  tt=cc(ipl,3)
+                  tt=cc(ipl,3,1)
               else
-                  tt=-cc(ipl,3)
+                  tt=-cc(ipl,3,1)
               end if
               call axpy_kernel_vectors(kernel%smmm%nfvctrp, kernel%nfvctr, kernel%smmm%nout, kernel%smmm%onedimindices, &
                    tt, vectors(1,1,3), penalty_ev(:,1,2))
@@ -258,9 +263,10 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, foe_obj, k
                    vectors(1,1,3), vectors(1,1,1))
 
               ! Check the norm of the columns of the kernel and set a flag if it explodes, which might
-              ! be a consequence of the eigenvalue bounds being to small.
+              ! be a consequence of the eigenvalue bounds being to small. Only
+              ! check the first matrix to be calculated.
               do iorb=1,kernel%smmm%nfvctrp
-                  tt=ddot(kernel%nfvctr, fermi(1,iorb), 1, fermi(1,iorb), 1)
+                  tt=ddot(kernel%nfvctr, fermi(1,iorb,1), 1, fermi(1,iorb,1), 1)
                   if (abs(tt)>1.d3) then
                       emergency_stop=.true.
                       exit main_loop
@@ -383,21 +389,21 @@ end subroutine axpy_kernel_vectors
 
 
 subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
-           norb, norbp, isorb, fermi, chebyshev_polynomials, cc, kernelp)
+           norb, norbp, isorb, fermi, chebyshev_polynomials, ncalc, cc, kernelp)
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), SPARSE_FULL
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, nsize_polynomial, npl, norb, norbp, isorb
+  integer,intent(in) :: iproc, nproc, nsize_polynomial, npl, norb, norbp, isorb, ncalc
   type(sparse_matrix),intent(in) :: fermi
   real(kind=8),dimension(nsize_polynomial,npl),intent(in) :: chebyshev_polynomials
-  real(kind=8),dimension(npl),intent(in) :: cc
-  real(kind=8),dimension(norb,norbp),intent(out) :: kernelp
+  real(kind=8),dimension(npl,ncalc),intent(in) :: cc
+  real(kind=8),dimension(norb,norbp,ncalc),intent(out) :: kernelp
 
   ! Local variables
-  integer :: ipl, iall
+  integer :: ipl, icalc
   real(kind=8),dimension(:),allocatable :: kernel_compressed
 
   call f_routine(id='chebyshev_fast')
@@ -406,15 +412,15 @@ subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
       kernel_compressed = sparsematrix_malloc(fermi, iaction=SPARSE_FULL, id='kernel_compressed')
 
       call to_zero(nsize_polynomial,kernel_compressed(1))
-      !write(*,*) 'ipl, first element', 1, chebyshev_polynomials(1,1)
-      call daxpy(nsize_polynomial, 0.5d0*cc(1), chebyshev_polynomials(1,1), 1, kernel_compressed(1), 1)
-      do ipl=2,npl
-      !write(*,*) 'ipl, first element', ipl, chebyshev_polynomials(1,ipl)
-          call daxpy(nsize_polynomial, cc(ipl), chebyshev_polynomials(1,ipl), 1, kernel_compressed(1), 1)
+      do icalc=1,ncalc
+          call daxpy(nsize_polynomial, 0.5d0*cc(1,icalc), chebyshev_polynomials(1,1), 1, kernel_compressed(1), 1)
+          do ipl=2,npl
+              call daxpy(nsize_polynomial, cc(ipl,icalc), chebyshev_polynomials(1,ipl), 1, kernel_compressed(1), 1)
+          end do
+          call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
+               norb, norbp, isorb, fermi, kernel_compressed, kernelp(1,1,icalc))
       end do
 
-      call uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
-           norb, norbp, isorb, fermi, kernel_compressed, kernelp)
 
       call f_free(kernel_compressed)
   end if

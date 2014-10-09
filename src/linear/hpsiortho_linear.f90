@@ -891,7 +891,11 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           kernel_compr_tmp = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=SPARSE_FULL,id='kernel_compr_tmp')
-          call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
+          do ispin=1,tmb%linmat%l%nspin
+              !call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
+              ist = (ispin-1)*tmb%linmat%l%nvctr + tmb%linmat%l%isvctrp_tg + 1
+              call vcopy(tmb%linmat%l%nvctrp_tg, tmb%linmat%kernel_%matrix_compr(ist), 1, kernel_compr_tmp(ist), 1)
+          end do
           if (data_strategy==GLOBAL_MATRIX) then
               isegstart = tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+1)
               isegend = tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp) + &
@@ -1008,7 +1012,11 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
                tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           ! copy correct kernel back
-          call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+          do ispin=1,tmb%linmat%l%nspin
+              !call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+              ist = (ispin-1)*tmb%linmat%l%nvctr + tmb%linmat%l%isvctrp_tg + 1
+              call vcopy(tmb%linmat%l%nvctrp_tg, kernel_compr_tmp(ist), 1, tmb%linmat%kernel_%matrix_compr(ist), 1)
+          end do
           call f_free_ptr(kernel_compr_tmp)
       else
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &

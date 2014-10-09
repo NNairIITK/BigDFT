@@ -19,6 +19,7 @@ module sparsematrix_base
   type,public :: matrices
       real(kind=8),dimension(:),pointer :: matrix_compr,matrix_comprp
       real(kind=8),dimension(:,:,:),pointer :: matrix,matrixp
+      real(kind=8) :: power !< power of the matrix; eg.: 0 => original matrix, -1 => inverse, 0.5 => ^1/2, etc.
   end type matrices
 
   !> Contains the parameters needed for the sparse matrix matrix multiplication
@@ -247,6 +248,8 @@ module sparsematrix_base
       else
           mat%matrixp = sparsematrix_malloc_ptr(sparsemat, iaction=DENSE_PARALLEL, id=trim(matname)//'%matrixp')
       end if
+
+      mat%power = 0.d0
     end subroutine allocate_matrices
 
 

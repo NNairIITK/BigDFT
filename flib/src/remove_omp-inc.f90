@@ -13,8 +13,9 @@
 !!    For the list of contributors, see ~/AUTHORS
 
   logical :: in_omp
-  logical, external :: omp_in_parallel,omp_get_nested
-  in_omp=omp_in_parallel() .or. omp_get_nested()
+  logical, external :: omp_get_nested!,omp_in_parallel
+  integer, external :: omp_get_thread_num
+  in_omp=omp_get_thread_num() /=0 .or. omp_get_nested()
 
   !!disable everything if we are into a OMP section
   !!timing routines are not thread-safe

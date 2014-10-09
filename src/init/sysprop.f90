@@ -306,7 +306,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
                                 inputpsi /= INPUT_PSI_MEMORY_LINEAR)
   call createProjectorsArrays(Lzd%Glr,rxyz,atoms,orbs,&
        in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
-       Lzd%hgrids(3),dry_run,nlpsp)
+       Lzd%hgrids(3),dry_run,nlpsp,init_projectors_completely)
   if (iproc == 0 .and. dump) call print_nlpsp(nlpsp)
   !the complicated part of the descriptors has not been filled
   if (dry_run) then

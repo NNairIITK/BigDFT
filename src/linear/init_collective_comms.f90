@@ -272,7 +272,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
            call f_free(psijg)
            call f_free(matp)
            do i=1,smat%nvctrp_tg
-               maxdiff=max(abs(mat_compr(i-smat%isvctrp_tg)-mat%matrix_compr(i-smat%isvctrp_tg)),maxdiff)
+               maxdiff=max(abs(mat_compr(i+smat%isvctrp_tg)-mat%matrix_compr(i+smat%isvctrp_tg)),maxdiff)
                !write(8000+iproc,'(a,i7,2es15.5)') 'i, mat_compr(i), mat%matrix_compr(i)', &
                !    i, mat_compr(i), mat%matrix_compr(i)
            end do
@@ -989,6 +989,9 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
   else
       stop 'calculate_overlap_transposed: wrong data_strategy'
   end if
+
+  ! Indicate the matrix is the "original one" (and not the inverse etc.)
+  ovrlp%power = 0.d0
 
 
   smat%can_use_dense=.false.
