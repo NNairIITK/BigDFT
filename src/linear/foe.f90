@@ -2146,6 +2146,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                            ovrlp_mat%matrix_compr, .false., &
                            nsize_polynomial, SHS, ncalc, inv_ovrlp_matrixp, penalty_ev, chebyshev_polynomials, &
                            emergency_stop)
+                       !write(*,'(a,i5,2es24.8)') 'iproc, sum(inv_ovrlp_matrixp(:,:,1:2)', (sum(inv_ovrlp_matrixp(:,:,icalc)),icalc=1,ncalc)
                   else
                       ! The Chebyshev polynomials are already available
                       !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')

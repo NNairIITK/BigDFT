@@ -562,6 +562,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(workarrays_quartic_convolutions),dimension(:),allocatable :: precond_convol_workarrays
   type(workarr_precond),dimension(:),allocatable :: precond_workarrays
   integer :: iiorb, ilr, i, ist
+  real(kind=8) :: max_error, mean_error
 
   call f_routine(id='getLocalizedBasis')
 
@@ -751,6 +752,14 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               if (iproc==0) call yaml_newline()
               if (iproc==0) call yaml_sequence_open('kernel update by FOE')
               if (method_updatekernel==UPDATE_BY_RENORMALIZATION) then
+                  if (it==1 .or. energy_increased) then
+                      ! Calculate S^1/2, as it can not be taken from memory
+                      call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/2/), -1, &
+                           imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+                           ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
+                           check_accur=.true., max_error=max_error, mean_error=mean_error)
+                      call check_taylor_order(mean_error, max_inversion_error, order_taylor)
+                  end if
                   call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
               else if (method_updatekernel==UPDATE_BY_FOE) then
                   call foe(iproc, nproc, 0.d0, &
@@ -2982,15 +2991,21 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   kernel_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
 
 
+
+
+  ! Calculate S^1/2 * K * S^1/2. Take the value of S^1/2 from memory (was
+  ! calculated in the last call to this routine or (it it is the first call)
+  ! just before the call.
+  call retransform_local(tmb%linmat%ovrlppowers_(1))
+
   ! Calculate S^1/2 for the old overlap matrix
-  call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/2/), -1, &
+  call overlapPowerGeneral(iproc, nproc, order_taylor, 3, (/2,-2,1/), -1, &
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-       ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
+       ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
        check_accur=.true., max_error=max_error, mean_error=mean_error)
   call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
-  ! Calculate S^1/2 * K * S^1/2
-  call retransform_local()
+
   !!tr=0.d0
   !!do iorb=1,tmb%orbs%norb
   !!    ind=tmb%linmat%l%matrixindex_in_compressed_fortransposed(iorb,iorb)
@@ -2998,15 +3013,15 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   !!end do
   !!write(*,*) 'trace',tr
 
-  ! Calculate S^-1/2 for the new overlap matrix
-  call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/-2/), -1, &
-       imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-       ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
-       check_accur=.true., max_error=max_error, mean_error=mean_error)
-  call check_taylor_order(mean_error, max_inversion_error, order_taylor)
+  !!! Calculate S^-1/2 for the new overlap matrix
+  !!call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/-2/), -1, &
+  !!     imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+  !!     ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
+  !!     check_accur=.true., max_error=max_error, mean_error=mean_error)
+  !!call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
   ! Calculate S^-1/2 * K * S^-1/2
-  call retransform_local()
+  call retransform_local(tmb%linmat%ovrlppowers_(2))
 
 
   call f_free_ptr(inv_ovrlpp)
@@ -3019,18 +3034,19 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
   contains
 
-      subroutine retransform_local()
+      subroutine retransform_local(mat)
           use sparsematrix, only: sequential_acces_matrix_fast, sparsemm, &
                & uncompress_matrix_distributed, compress_matrix_distributed
+          type(matrices),intent(in) :: mat
           integer :: ncount
 
           call f_routine(id='retransform_local')
 
           call sequential_acces_matrix_fast(tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, kernel_compr_seq)
           call sequential_acces_matrix_fast(tmb%linmat%l, &
-               tmb%linmat%ovrlppowers_(1)%matrix_compr, inv_ovrlp_compr_seq)
+               mat%matrix_compr, inv_ovrlp_compr_seq)
           call uncompress_matrix_distributed(iproc, tmb%linmat%l, DENSE_MATMUL, &
-               tmb%linmat%ovrlppowers_(1)%matrix_compr, inv_ovrlpp)
+               mat%matrix_compr, inv_ovrlpp)
 
           ncount=tmb%linmat%l%nfvctr*tmb%linmat%l%smmm%nfvctrp
           if (ncount>0) then
