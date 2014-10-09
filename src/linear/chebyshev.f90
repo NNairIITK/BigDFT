@@ -60,7 +60,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ha
       ovrlp_compr_seq = sparsematrix_malloc(kernel, iaction=SPARSEMM_SEQ, id='ovrlp_compr_seq')
     
     
-      if (number_of_matmuls==one) then
+      if (calculate_SHS) then
           matrix = sparsematrix_malloc(kernel, iaction=DENSE_MATMUL, id='matrix')
           SHS_seq = sparsematrix_malloc(kernel, iaction=SPARSEMM_SEQ, id='SHS_seq')
     
@@ -112,58 +112,56 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ha
     
   end if
     
-  if (number_of_matmuls==one) then
   
-      if (calculate_SHS) then
-  
-          if (kernel%smmm%nfvctrp>0) then
-              call sparsemm(kernel, ham_compr_seq, matrix(1,1), vectors(1,1,1))
-              call to_zero(kernel%smmm%nfvctrp*kernel%nfvctr, matrix(1,1))
-              call sparsemm(kernel, ovrlp_compr_seq, vectors(1,1,1), matrix(1,1))
-              !call to_zero(kernel%nvctr, SHS(1))
-          end if
-          call to_zero(kernel%nvctr, SHS(1))
-          
-          if (kernel%smmm%nfvctrp>0) then
-              isegstart=kernel%istsegline(kernel%smmm%isfvctr+1)
-              isegend=kernel%istsegline(kernel%smmm%isfvctr+kernel%smmm%nfvctrp)+ &
-                      kernel%nsegline(kernel%smmm%isfvctr+kernel%smmm%nfvctrp)-1
-              !!isegstart=kernel%istsegline(kernel%smmm%isfvctr+1)
-              !!if (kernel%smmm%isfvctr+kernel%smmm%nfvctrp<kernel%nfvctr) then
-              !!    isegend=kernel%istsegline(kernel%smmm%isfvctr_par(iproc+1)+1)-1
-              !!else
-              !!    isegend=kernel%nseg
-              !!end if
-              do iseg=isegstart,isegend
-                  ii=kernel%keyv(iseg)-1
-                  ! A segment is always on one line, therefore no double loop
-                  do jorb=kernel%keyg(1,1,iseg),kernel%keyg(2,1,iseg)
-                      ii=ii+1
-                      iiorb = kernel%keyg(1,2,iseg)
-                      jjorb = jorb
-                      SHS(ii)=matrix(jjorb,iiorb-kernel%smmm%isfvctr)
-                  end do
-              end do
-          end if
-  
-          if (nproc > 1) then
-             !call mpiallred(SHS(1), kernel%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
-             call compress_matrix_distributed(iproc, nproc, kernel, DENSE_MATMUL, &
-                  matrix, SHS(kernel%isvctrp_tg+1:))
-          end if
-
-      else
-          ! This is quick and dirty...
-          !SHS = ham_compr
-          call vcopy(kernel%nvctr, ham_compr(1), 1, SHS(1), 1)
-  
-      end if
+  if (calculate_SHS) then
   
       if (kernel%smmm%nfvctrp>0) then
-          call sequential_acces_matrix_fast(kernel, SHS, SHS_seq)
+          call sparsemm(kernel, ham_compr_seq, matrix(1,1), vectors(1,1,1))
+          call to_zero(kernel%smmm%nfvctrp*kernel%nfvctr, matrix(1,1))
+          call sparsemm(kernel, ovrlp_compr_seq, vectors(1,1,1), matrix(1,1))
+          !call to_zero(kernel%nvctr, SHS(1))
+      end if
+      call to_zero(kernel%nvctr, SHS(1))
+      
+      if (kernel%smmm%nfvctrp>0) then
+          isegstart=kernel%istsegline(kernel%smmm%isfvctr+1)
+          isegend=kernel%istsegline(kernel%smmm%isfvctr+kernel%smmm%nfvctrp)+ &
+                  kernel%nsegline(kernel%smmm%isfvctr+kernel%smmm%nfvctrp)-1
+          !!isegstart=kernel%istsegline(kernel%smmm%isfvctr+1)
+          !!if (kernel%smmm%isfvctr+kernel%smmm%nfvctrp<kernel%nfvctr) then
+          !!    isegend=kernel%istsegline(kernel%smmm%isfvctr_par(iproc+1)+1)-1
+          !!else
+          !!    isegend=kernel%nseg
+          !!end if
+          do iseg=isegstart,isegend
+              ii=kernel%keyv(iseg)-1
+              ! A segment is always on one line, therefore no double loop
+              do jorb=kernel%keyg(1,1,iseg),kernel%keyg(2,1,iseg)
+                  ii=ii+1
+                  iiorb = kernel%keyg(1,2,iseg)
+                  jjorb = jorb
+                  SHS(ii)=matrix(jjorb,iiorb-kernel%smmm%isfvctr)
+              end do
+          end do
       end if
   
+      if (nproc > 1) then
+         !call mpiallred(SHS(1), kernel%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+         call compress_matrix_distributed(iproc, nproc, kernel, DENSE_MATMUL, &
+              matrix, SHS(kernel%isvctrp_tg+1:))
+      end if
+
+  else
+      ! This is quick and dirty...
+      !SHS = ham_compr
+      call vcopy(kernel%nvctr, ham_compr(1), 1, SHS(1), 1)
+  
   end if
+  
+  if (kernel%smmm%nfvctrp>0) then
+      call sequential_acces_matrix_fast(kernel, SHS, SHS_seq)
+  end if
+  
 
   !!if (iproc==0) then
   !!    do istat=1,kernel%nvctr
