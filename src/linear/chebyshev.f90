@@ -59,10 +59,10 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ha
       ham_compr_seq = sparsematrix_malloc(kernel, iaction=SPARSEMM_SEQ, id='ham_compr_seq')
       ovrlp_compr_seq = sparsematrix_malloc(kernel, iaction=SPARSEMM_SEQ, id='ovrlp_compr_seq')
     
+      SHS_seq = sparsematrix_malloc(kernel, iaction=SPARSEMM_SEQ, id='SHS_seq')
     
       if (calculate_SHS) then
           matrix = sparsematrix_malloc(kernel, iaction=DENSE_MATMUL, id='matrix')
-          SHS_seq = sparsematrix_malloc(kernel, iaction=SPARSEMM_SEQ, id='SHS_seq')
     
           if (kernel%smmm%nfvctrp>0) then
               call to_zero(kernel%nfvctr*kernel%smmm%nfvctrp, matrix(1,1))
@@ -152,8 +152,6 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ha
       end if
 
   else
-      ! This is quick and dirty...
-      !SHS = ham_compr
       call vcopy(kernel%nvctr, ham_compr(1), 1, SHS(1), 1)
   
   end if
@@ -280,10 +278,10 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ha
       call f_free(ham_compr_seq)
       call f_free(ovrlp_compr_seq)
     
-      if (number_of_matmuls==one) then
+      if (calculate_SHS) then
           call f_free(matrix)
-          call f_free(SHS_seq)
       end if
+      call f_free(SHS_seq)
 
   end if
 
