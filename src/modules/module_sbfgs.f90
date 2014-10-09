@@ -29,7 +29,7 @@ subroutine modify_gradient(nat,ndim,rrr,eval,res,fxyz,alpha,dd)
     real(gp), intent(in) :: res(ndim)
     real(gp), intent(in) :: alpha
     !internal
-    integer :: iat,jat,i,l
+    integer :: iat,i,l
     real(gp) :: scpr(ndim)
     real(gp) :: tt
 

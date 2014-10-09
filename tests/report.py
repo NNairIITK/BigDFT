@@ -89,18 +89,18 @@ for file in files:
             elif discrepancy[0][1] == "passed":
                 #passed: significant numbers (more than 5 digits) are < max_discrepancy
                 start = start_pass
-                state = "%7.1e < (%7.1e)    passed" % (diff,max_discrepancy)
+                state = "Passed    %7.1e < (%7.1e)" % (diff,max_discrepancy)
             elif discrepancy[0][1] == "passed":
                 #passed: significant numbers (more than 5 digits) are < max_discrepancy
                 start = start_pass
-                state = "%7.1e < (%7.1e)    passed" % (diff,max_discrepancy)
+                state = "Passed    %7.1e < (%7.1e)" % (diff,max_discrepancy)
             else:
                 #All numbers even with only 5 digits or less
                 start = start_success
-                state = "%7.1e < (%7.1e) succeeded" % (diff,max_discrepancy)
+                state = "Succeeded %7.1e < (%7.1e)" % (diff,max_discrepancy)
         else:
             start = start_fail
-            state = "%7.1e > (%7.1e)    failed" % (diff,max_discrepancy)
+            state =     "Failed    %7.1e > (%7.1e)" % (diff,max_discrepancy)
             Exit = 1
         #Test if time is present
         time = re_time.findall(line)
@@ -109,7 +109,7 @@ for file in files:
             time = "%8ss" % time[0]
         else:
             time = ""
-        print "%s%-74s%s%s%s" % (start,dirfic,state,time,end)
+        print "%s%-67s%s%s%s" % (start,dirfic,state,time,end)
     else:
         if not empty_file:
             start = start_fail

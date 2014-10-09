@@ -516,7 +516,7 @@ module bigdft_forces
       integer, intent(in)         :: nat
       integer,intent(in) :: total_nb_atoms
       real(8), dimension(3*total_nb_atoms),intent(in) :: posquant
-      integer :: i_stat
+      !integer :: i_stat
 
       character(len=*), parameter :: subname='copy_atoms_object'
 
@@ -594,7 +594,7 @@ module bigdft_forces
       real(8) :: xij,yij,zij,rij2
       logical :: have_hydro
       character(len=20), dimension(100) :: atomnames
-      integer :: i_stat, i_all
+      ! integer :: i_stat, i_all
       integer :: hydro_atom_type
 
       integer, dimension(natoms) :: numnei

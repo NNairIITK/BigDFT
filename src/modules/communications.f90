@@ -916,7 +916,8 @@ module communications
       type(locreg_descriptors),dimension(nlr),intent(inout) :: llr
     
       ! Local variables
-      integer:: ierr, istat, iall, ilr, iilr
+      integer:: ierr, ilr, iilr
+      ! integer:: istat, iall
       character(len=1),dimension(:),allocatable :: worksend_char, workrecv_char
       logical,dimension(:),allocatable :: worksend_log, workrecv_log
       integer,dimension(:,:),allocatable :: worksend_int, workrecv_int

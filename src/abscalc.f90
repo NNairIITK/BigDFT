@@ -755,7 +755,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    call f_free(pot_ion)
 
-   call pkernel_free(pkernel,subname)
+   call pkernel_free(pkernel)
 !!$   i_all=-product(shape(pkernel))*kind(pkernel)
 !!$   deallocate(pkernel,stat=i_stat)
 !!$   call memocc(i_stat,i_all,'kernel',subname)
