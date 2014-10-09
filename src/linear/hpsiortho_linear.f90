@@ -893,7 +893,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
           kernel_compr_tmp = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=SPARSE_FULL,id='kernel_compr_tmp')
           do ispin=1,tmb%linmat%l%nspin
               !call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
-              ist = (ispin-1)*tmb%linmat%l%nvctrp + tmb%linmat%l%isvctrp_tg + 1
+              ist = (ispin-1)*tmb%linmat%l%nvctr + tmb%linmat%l%isvctrp_tg + 1
               call vcopy(tmb%linmat%l%nvctrp_tg, tmb%linmat%kernel_%matrix_compr(ist), 1, kernel_compr_tmp(ist), 1)
           end do
           if (data_strategy==GLOBAL_MATRIX) then
@@ -1014,7 +1014,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
           ! copy correct kernel back
           do ispin=1,tmb%linmat%l%nspin
               !call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
-              ist = (ispin-1)*tmb%linmat%l%nvctrp + tmb%linmat%l%isvctrp_tg + 1
+              ist = (ispin-1)*tmb%linmat%l%nvctr + tmb%linmat%l%isvctrp_tg + 1
               call vcopy(tmb%linmat%l%nvctrp_tg, kernel_compr_tmp(ist), 1, tmb%linmat%kernel_%matrix_compr(ist), 1)
           end do
           call f_free_ptr(kernel_compr_tmp)
