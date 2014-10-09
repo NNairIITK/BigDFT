@@ -1367,6 +1367,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call deallocate_matrices(tmb%linmat%ovrlp_)
      call deallocate_matrices(tmb%linmat%ham_)
      call deallocate_matrices(tmb%linmat%kernel_)
+     call deallocate_matrices(tmb%linmat%ovrlp_minusonehalf_)
 
      locregCenter = f_malloc((/ 3, lzd_tmp%nlr /),id='locregCenter')
      locrad_kernel = f_malloc(lzd_tmp%nlr,id='locrad_kernel')
@@ -1463,6 +1464,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
           input%store_index, imode=2, smat=tmb%linmat%l)
      call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
           matname='tmb%linmat%kernel_', mat=tmb%linmat%kernel_)
+     call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
+          matname='tmb%linmat%ovrlp_minusonehalf_', mat=tmb%linmat%ovrlp_minusonehalf_)
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
