@@ -990,6 +990,9 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
       stop 'calculate_overlap_transposed: wrong data_strategy'
   end if
 
+  ! Indicate the matrix is the "original one" (and not the inverse etc.)
+  ovrlp%power = 0.d0
+
 
   smat%can_use_dense=.false.
 
