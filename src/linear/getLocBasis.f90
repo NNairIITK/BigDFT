@@ -2394,7 +2394,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   real(kind=8),dimension(2) :: bisec_bounds
   logical,dimension(2) :: bisec_bounds_ok
   !real(kind=8),dimension(:,:),pointer :: ovrlp_onehalf, ovrlp_minusonehalf
-  type(matrices),dimension(1) :: ovrlp_minusonehalf_
+  type(matrices),dimension(1) :: ovrlppowers_
   type(matrices),dimension(1) :: ovrlp_onehalf_
 
 
@@ -2412,8 +2412,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
   ovrlp_onehalf_(1) = matrices_null()
   call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='ovrlp_onehalf_', mat=ovrlp_onehalf_(1))
-  ovrlp_minusonehalf_(1) = matrices_null()
-  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='ovrlp_minusonehalf_', mat=ovrlp_minusonehalf_(1))
+  ovrlppowers_(1) = matrices_null()
+  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='ovrlppowers_', mat=ovrlppowers_(1))
 
 
   ! Calculate the overlap matrix between the TMBs.
@@ -2541,10 +2541,10 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           if (tmb%linmat%l%nfvctrp>0) then
               call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
                          1.d0, ks, tmb%linmat%l%nfvctr, &
-                         ovrlp_minusonehalf_(1)%matrix(1,tmb%linmat%l%isfvctr+1,1), tmb%linmat%l%nfvctr, &
+                         ovrlppowers_(1)%matrix(1,tmb%linmat%l%isfvctr+1,1), tmb%linmat%l%nfvctr, &
                          0.d0, ksksk, tmb%linmat%l%nfvctr) 
               call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
-                         1.d0, ovrlp_minusonehalf_(1)%matrix, tmb%linmat%l%nfvctr, &
+                         1.d0, ovrlppowers_(1)%matrix, tmb%linmat%l%nfvctr, &
                          ksksk, tmb%linmat%l%nfvctr, &
                          0.d0, tmb%linmat%kernel_%matrix(1,tmb%linmat%l%isfvctr+1,1), tmb%linmat%l%nfvctr) 
           end if
@@ -2726,7 +2726,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   call f_free_ptr(tmb%linmat%kernel_%matrix)
 
   call deallocate_matrices(ovrlp_onehalf_(1))
-  call deallocate_matrices(ovrlp_minusonehalf_(1))
+  call deallocate_matrices(ovrlppowers_(1))
 
   call f_release_routine()
 
@@ -2744,7 +2744,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           call check_taylor_order(mean_error, max_inversion_error, order_taylor)
           call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/-2/), -1, &
                imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-               ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=ovrlp_minusonehalf_, check_accur=.true., &
+               ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=ovrlppowers_, check_accur=.true., &
                max_error=max_error, mean_error=mean_error)
           call check_taylor_order(mean_error, max_inversion_error, order_taylor)
           !if (iproc==0) then
@@ -2985,7 +2985,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   ! Calculate S^1/2 for the old overlap matrix
   call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/2/), -1, &
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-       ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlp_minusonehalf_, &
+       ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
        check_accur=.true., max_error=max_error, mean_error=mean_error)
   call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
@@ -3001,7 +3001,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   ! Calculate S^-1/2 for the new overlap matrix
   call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/-2/), -1, &
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-       ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlp_minusonehalf_, &
+       ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
        check_accur=.true., max_error=max_error, mean_error=mean_error)
   call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
@@ -3028,9 +3028,9 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
           call sequential_acces_matrix_fast(tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, kernel_compr_seq)
           call sequential_acces_matrix_fast(tmb%linmat%l, &
-               tmb%linmat%ovrlp_minusonehalf_(1)%matrix_compr, inv_ovrlp_compr_seq)
+               tmb%linmat%ovrlppowers_(1)%matrix_compr, inv_ovrlp_compr_seq)
           call uncompress_matrix_distributed(iproc, tmb%linmat%l, DENSE_MATMUL, &
-               tmb%linmat%ovrlp_minusonehalf_(1)%matrix_compr, inv_ovrlpp)
+               tmb%linmat%ovrlppowers_(1)%matrix_compr, inv_ovrlpp)
 
           ncount=tmb%linmat%l%nfvctr*tmb%linmat%l%smmm%nfvctrp
           if (ncount>0) then

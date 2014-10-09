@@ -211,8 +211,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
   !!    if (iproc==0) call yaml_map('calculation of S^-1','square of S^-1/2')
   !!    !@NEW instead of calculating S^-1, take S^-1/2 from memory and square it
-  !!    call sequential_acces_matrix_fast(linmat%l, linmat%ovrlp_minusonehalf_%matrix_compr, inv_ovrlp_seq)
-  !!    call uncompress_matrix_distributed(iproc, linmat%l, DENSE_MATMUL, linmat%ovrlp_minusonehalf_%matrix_compr, lagmatp)
+  !!    call sequential_acces_matrix_fast(linmat%l, linmat%ovrlppowers_%matrix_compr, inv_ovrlp_seq)
+  !!    call uncompress_matrix_distributed(iproc, linmat%l, DENSE_MATMUL, linmat%ovrlppowers_%matrix_compr, lagmatp)
   !!    call sparsemm(linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
   !!    call compress_matrix_distributed(iproc, nproc, linmat%l, DENSE_MATMUL, &
   !!         inv_lagmatp, inv_ovrlp_%matrix_compr(linmat%l%isvctrp_tg+1:))

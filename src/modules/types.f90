@@ -672,7 +672,7 @@ module module_types
       type(sparse_matrix),dimension(:),pointer :: ks !< sparsity pattern for the KS orbitals (i.e. dense); spin up and down
       type(sparse_matrix),dimension(:),pointer :: ks_e !< sparsity pattern for the KS orbitals including extra stated (i.e. dense); spin up and down
       type(matrices) :: ham_, ovrlp_, kernel_
-      type(matrices),dimension(3) :: ovrlp_minusonehalf_
+      type(matrices),dimension(3) :: ovrlppowers_
   end type linear_matrices
 
 

@@ -1007,8 +1007,8 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_matrices(wfn%linmat%ovrlp_)
   call deallocate_matrices(wfn%linmat%ham_)
   call deallocate_matrices(wfn%linmat%kernel_)
-  do i=1,size(wfn%linmat%ovrlp_minusonehalf_)
-      call deallocate_matrices(wfn%linmat%ovrlp_minusonehalf_(i))
+  do i=1,size(wfn%linmat%ovrlppowers_)
+      call deallocate_matrices(wfn%linmat%ovrlppowers_(i))
   end do
   call deallocate_orbitals_data(wfn%orbs)
   call deallocate_comms_linear(wfn%collcom)
@@ -1369,8 +1369,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call deallocate_matrices(tmb%linmat%ovrlp_)
      call deallocate_matrices(tmb%linmat%ham_)
      call deallocate_matrices(tmb%linmat%kernel_)
-     do i=1,size(tmb%linmat%ovrlp_minusonehalf_)
-         call deallocate_matrices(tmb%linmat%ovrlp_minusonehalf_(i))
+     do i=1,size(tmb%linmat%ovrlppowers_)
+         call deallocate_matrices(tmb%linmat%ovrlppowers_(i))
      end do
 
      locregCenter = f_malloc((/ 3, lzd_tmp%nlr /),id='locregCenter')
@@ -1468,9 +1468,9 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
           input%store_index, imode=2, smat=tmb%linmat%l)
      call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
           matname='tmb%linmat%kernel_', mat=tmb%linmat%kernel_)
-     do i=1,size(tmb%linmat%ovrlp_minusonehalf_)
+     do i=1,size(tmb%linmat%ovrlppowers_)
          call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
-              matname='tmb%linmat%ovrlp_minusonehalf_(i)', mat=tmb%linmat%ovrlp_minusonehalf_(i))
+              matname='tmb%linmat%ovrlppowers_(i)', mat=tmb%linmat%ovrlppowers_(i))
      end do
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)

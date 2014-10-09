@@ -202,8 +202,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         tmb_old%linmat%ovrlp_ = matrices_null()
         tmb_old%linmat%ham_ = matrices_null()
         tmb_old%linmat%kernel_ = matrices_null()
-        do i=1,size(tmb_old%linmat%ovrlp_minusonehalf_)
-            tmb_old%linmat%ovrlp_minusonehalf_(i) = matrices_null()
+        do i=1,size(tmb_old%linmat%ovrlppowers_)
+            tmb_old%linmat%ovrlppowers_(i) = matrices_null()
         end do
         tmb_old%collcom = comms_linear_null()
         call copy_tmbs(iproc, tmb, tmb_old, subname)
@@ -327,10 +327,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      tmb%linmat%kernel_ = matrices_null()
      call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
           matname='tmb%linmat%kernel_', mat=tmb%linmat%kernel_)
-     do i=1,size(tmb%linmat%ovrlp_minusonehalf_)
-         tmb%linmat%ovrlp_minusonehalf_(i) = matrices_null()
+     do i=1,size(tmb%linmat%ovrlppowers_)
+         tmb%linmat%ovrlppowers_(i) = matrices_null()
          call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
-              matname='tmb%linmat%ovrlp_minusonehalf_(i)', mat=tmb%linmat%ovrlp_minusonehalf_(i))
+              matname='tmb%linmat%ovrlppowers_(i)', mat=tmb%linmat%ovrlppowers_(i))
      end do
 
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
