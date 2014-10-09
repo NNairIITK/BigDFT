@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.5.12
- Timestamp of this run                 : 2014-10-03 17:19:16.614
+ Timestamp of this run                 : 2014-10-09 13:53:26.487
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -636,8 +636,6 @@
    Total number of components          :  33245
    Percent of zero components          :  0
    Size of workspaces                  :  26676
-   Maximum size of masking arrays for a projector:  1209
-   Cumulative size of masking arrays   :  8238
   #WARNING: Do not call check_communications in the linear scaling version!
   #-------------------------------------------------------- Estimation of Memory Consumption
  Memory requirements for principal quantities (MiB.KiB):
@@ -769,84 +767,95 @@
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.51151904124E+01, Epot: -9.47215756326E+01, Enl:  1.16381717009E+01}, 
- Orthoconstraint:  Yes, 
- calculate S^x: {mode: sparse, x: -1, order:  6, 
- max / mean error:  [  1.14E-09,  1.28E-10 ]}, 
+ Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
+ calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
+ error estimation: [
+ max / mean error:  [  1.14E-09,  1.28E-10 ]]}, 
  Preconditioning:  Yes, rel D:  0.00E+00, 
  iter:  1, fnrm:  5.16E-01, Omega: -4.527141121116330E+01, D: -4.53E+01, D best: -4.53E+01, 
  Optimization: {algorithm: DIIS, history length:  6, consecutive failures:  0, 
            total failures:  0}, 
- calculate S^x: {mode: sparse, x: -1/2, order:  6, 
- max / mean error:  [  1.22E-06,  4.45E-08 ]}, 
+ calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  6, 
+ error estimation: [
+ max / mean error:  [  1.22E-06,  4.45E-08 ]]}, 
  Orthogonalization:  Yes}
      -  { #------------------------------------------------------------------------ iter: 2
  target function: TRACE, Calculating wavelets expansion of projectors, found warnings:  12, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.49007651165E+01, Epot: -9.87297327407E+01, Enl:  1.38074461371E+01}, 
- Orthoconstraint:  Yes, 
- calculate S^x: {mode: sparse, x: -1, order:  6, 
- max / mean error:  [  1.18E-11,  9.77E-13 ]}, 
+ Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
+ calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
+ error estimation: [
+ max / mean error:  [  1.18E-11,  9.77E-13 ]]}, 
  Preconditioning:  Yes, rel D:  4.91E-02, kappa:  4.686E-01, 
  iter:  2, fnrm:  1.47E-01, Omega: -4.749561343932106E+01, D: -2.22E+00, D best: -2.22E+00, 
  Optimization: {algorithm: DIIS, history length:  6, consecutive failures:  0, 
            total failures:  0}, 
- calculate S^x: {mode: sparse, x: -1/2, order:  6, 
- max / mean error:  [  2.42E-11,  2.89E-12 ]}, 
+ calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  6, 
+ error estimation: [
+ max / mean error:  [  2.42E-11,  2.89E-12 ]]}, 
  Orthogonalization:  Yes}
      -  { #------------------------------------------------------------------------ iter: 3
  target function: TRACE, Calculating wavelets expansion of projectors, found warnings:  12, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.51407543523E+01, Epot: -9.90315030529E+01, Enl:  1.36085477707E+01}, 
- Orthoconstraint:  Yes, 
- calculate S^x: {mode: sparse, x: -1, order:  6, 
- max / mean error:  [  1.84E-13,  1.75E-14 ]}, 
+ Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
+ calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
+ error estimation: [
+ max / mean error:  [  1.84E-13,  1.75E-14 ]]}, 
  Preconditioning:  Yes, rel D:  5.38E-02, kappa:  5.973E-01, 
  iter:  3, fnrm:  7.92E-02, Omega: -4.770683446785068E+01, D: -2.11E-01, D best: -2.11E-01, 
  Optimization: {algorithm: DIIS, history length:  6, consecutive failures:  0, 
            total failures:  0}, 
- calculate S^x: {mode: sparse, x: -1/2, order:  6, 
- max / mean error:  [  4.0E-11,  2.18E-12 ]}, 
+ calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  6, 
+ error estimation: [
+ max / mean error:  [  4.0E-11,  2.18E-12 ]]}, 
  Orthogonalization:  Yes}
      -  { #------------------------------------------------------------------------ iter: 4
  target function: TRACE, Calculating wavelets expansion of projectors, found warnings:  12, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.49407579277E+01, Epot: -9.89140678268E+01, Enl:  1.35971666816E+01}, 
- Orthoconstraint:  Yes, 
- calculate S^x: {mode: sparse, x: -1, order:  6, 
- max / mean error:  [  3.83E-14,  6.57E-15 ]}, 
+ Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
+ calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
+ error estimation: [
+ max / mean error:  [  3.83E-14,  6.56E-15 ]]}, 
  Preconditioning:  Yes, rel D:  5.49E-02, kappa:  4.456E-01, 
  iter:  4, fnrm:  6.61E-02, Omega: -4.775644108141984E+01, D: -4.96E-02, D best: -4.96E-02, 
  Optimization: {algorithm: DIIS, history length:  6, consecutive failures:  0, 
            total failures:  0}, 
- calculate S^x: {mode: sparse, x: -1/2, order:  6, 
- max / mean error:  [  3.69E-11,  2.09E-12 ]}, 
+ calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  6, 
+ error estimation: [
+ max / mean error:  [  3.69E-11,  2.09E-12 ]]}, 
  Orthogonalization:  Yes}
      -  { #------------------------------------------------------------------------ iter: 5
  target function: TRACE, Calculating wavelets expansion of projectors, found warnings:  12, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.46350136763E+01, Epot: -9.86397569298E+01, Enl:  1.35617784540E+01}, 
- Orthoconstraint:  Yes, 
- calculate S^x: {mode: sparse, x: -1, order:  6, 
- max / mean error:  [  4.02E-14,  7.03E-15 ]}, 
+ Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
+ calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
+ error estimation: [
+ max / mean error:  [  4.02E-14,  7.03E-15 ]]}, 
  Preconditioning:  Yes, rel D:  5.54E-02, kappa:  2.571E-01, 
  iter:  5, fnrm:  6.46E-02, Omega: -4.777756246722441E+01, D: -2.11E-02, D best: -2.11E-02, 
  Optimization: {algorithm: DIIS, history length:  6, consecutive failures:  0, 
            total failures:  0}, 
- calculate S^x: {mode: sparse, x: -1/2, order:  6, 
- max / mean error:  [  4.44E-11,  2.54E-12 ]}, 
+ calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  6, 
+ error estimation: [
+ max / mean error:  [  4.44E-11,  2.54E-12 ]]}, 
  Orthogonalization:  Yes}
      -  { #------------------------------------------------------------------------ iter: 6
  target function: TRACE, Calculating wavelets expansion of projectors, found warnings:  12, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.44448864932E+01, Epot: -9.84546526720E+01, Enl:  1.35382972576E+01}, 
- Orthoconstraint:  Yes, 
- calculate S^x: {mode: sparse, x: -1, order:  6, 
- max / mean error:  [  5.79E-14,  8.58E-15 ]}, 
+ Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
+ calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
+ error estimation: [
+ max / mean error:  [  5.79E-14,  8.58E-15 ]]}, 
  Preconditioning:  Yes, rel D:  5.55E-02, kappa:  8.659E-02, 
  iter:  6, fnrm:  6.42E-02, Omega: -4.778300673408700E+01, D: -5.44E-03, D best: -5.44E-03, 
  exit criterion: extended input guess}
@@ -912,17 +921,18 @@
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.90063399290E+01, Epot: -8.58256290749E+01, Enl:  7.32029639550E+00}, 
- Orthoconstraint:  Yes, 
- calculate S^x: {mode: sparse, x: -1, order:  6, 
- max / mean error:  [  5.79E-14,  8.58E-15 ]}, 
+ Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
+ calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
+ error estimation: [
+ max / mean error:  [  5.79E-14,  8.58E-15 ]]}, 
  Preconditioning:  Yes, rel D:  0.00E+00, 
- iter:  1, fnrm:  3.25E-01, Omega: -7.621349557428437E+01, D: -7.62E+01, D best: -7.62E+01, 
+ iter:  1, fnrm:  3.25E-01, Omega: -7.621349557428454E+01, D: -7.62E+01, D best: -7.62E+01, 
  Optimization: {algorithm: DIIS, history length:  6, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  No, Normalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.07E-01, 
  Mean deviation from unity in reorthonormalize_coeff:  1.69E-02, 
- calculate S^x: {mode: dense, x: -1/2, order:  6}, 
+ calculate S^x: {mode: dense, powers: {x: -1/2}, order:  6}, 
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: HYBRID, 
@@ -930,16 +940,17 @@
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.56911723823E+01, Epot: -8.13376916732E+01, Enl:  6.66998654030E+00}, 
- Orthoconstraint:  Yes, 
- calculate S^x: {mode: sparse, x: -1, order:  6, 
- max / mean error:  [  4.66E-06,  5.00E-07 ]}, 
+ Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
+ calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
+ error estimation: [
+ max / mean error:  [  4.66E-06,  5.00E-07 ]]}, 
  Preconditioning:  Yes, rel D:  1.31E-02, kappa:  1.311E-01, kappa to history:  Yes, 
- iter:  2, fnrm:  4.63E-01, Omega: -7.721350053718726E+01, D: -1.00E+00, D best: -1.00E+00, 
+ iter:  2, fnrm:  4.63E-01, Omega: -7.721350053718737E+01, D: -1.00E+00, D best: -1.00E+00, 
  exit criterion: energy difference}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
  Energies: {Ekin:  8.56911723823E+01, Epot: -8.13376916732E+01, Enl:  6.66998654030E+00}, 
- iter:  2, fnrm:  4.63E-01, Omega: -7.721350053718726E+01, D: -1.00E+00, D best: -1.00E+00}
+ iter:  2, fnrm:  4.63E-01, Omega: -7.721350053718737E+01, D: -1.00E+00, D best: -1.00E+00}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -969,7 +980,7 @@
  {e: -4.199592529386E-01, f:  2.0000},  # 00008
  {e: -3.616676766473E-01, f:  2.0000},  # 00009
  {e: -3.421075611307E-01, f:  2.0000},  # 00010
- {e: -3.072175937641E-01, f:  2.0000},  # 00011
+ {e: -3.072175937640E-01, f:  2.0000},  # 00011
  {e: -2.738217759467E-01, f:  2.0000},  # 00012
  {e: -2.547169982458E-01, f:  2.0000},  # 00013
  {e: -2.275365888989E-01, f:  2.0000},  # 00014
@@ -980,14 +991,14 @@
  {e: -1.793726848249E-01, f:  2.0000},  # 00019
  {e: -1.356602943747E-01, f:  2.0000},  # 00020
  {e: -1.066422588594E-01, f:  2.0000},  # 00021
- {e:  9.389424365517E-03, f:  2.0000},  # 00022
+ {e:  9.389424365524E-03, f:  2.0000},  # 00022
  {e:  1.790899679527E-02, f:  2.0000},  # 00023
  {e:  4.389786030919E-02, f:  2.0000},  # 00024
- {e:  5.798605653157E-02, f:  2.0000},  # 00025
+ {e:  5.798605653158E-02, f:  2.0000},  # 00025
  {e:  1.066840210305E-01, f:  2.0000},  # 00026
  {e:  1.953894435656E-01, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  6.45E-06, energy: -8.66257630540381456E+01, D: -8.663E+01}]
+ iter:  1, delta:  6.45E-06, energy: -8.66257630540383730E+01, D: -8.663E+01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  8.14E-02
@@ -1031,19 +1042,19 @@
  {e: -6.754365529957E-02, f:  2.0000},  # 00022
  {e: -6.519418388054E-02, f:  2.0000},  # 00023
  {e: -6.029336944234E-02, f:  2.0000},  # 00024
- {e: -4.720928011340E-02, f:  2.0000},  # 00025
- {e:  9.226222303529E-03, f:  2.0000},  # 00026
+ {e: -4.720928011339E-02, f:  2.0000},  # 00025
+ {e:  9.226222303533E-03, f:  2.0000},  # 00026
  {e:  1.901151148475E-02, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  2.89E-06, energy: -8.58883664561515729E+01, D:  7.374E-01}]
+ iter:  2, delta:  2.89E-06, energy: -8.58883664561515161E+01, D:  7.374E-01}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  2.89E-06, energy: -8.58883664561515729E+01, D:  7.374E-01}]}
+ iter:  3, delta:  2.89E-06, energy: -8.58883664561515161E+01, D:  7.374E-01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: HYBRID, mean conf prefac:  4.13E-02, 
  iterations to converge support functions:  2, kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  1, delta out:  2.805E-06, energy: -8.58883664561515729E+01, D: -8.589E+01}
+ iter low:  1, delta out:  2.805E-06, energy: -8.58883664561515161E+01, D: -8.589E+01}
    multiplicator for the confinement   :  0.5
     #WARNING: No orthogonalizing of the support functions
     #========================================================= support function optimization
@@ -1054,17 +1065,18 @@
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.56911723823E+01, Epot: -8.64400484652E+01, Enl:  6.66998654030E+00}, 
- Orthoconstraint:  Yes, 
- calculate S^x: {mode: sparse, x: -1, order:  6, 
- max / mean error:  [  4.66E-06,  5.00E-07 ]}, 
+ Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
+ calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
+ error estimation: [
+ max / mean error:  [  4.66E-06,  5.00E-07 ]]}, 
  Preconditioning:  Yes, rel D:  0.00E+00, 
- iter:  1, fnrm:  3.44E-01, Omega: -8.100976444992381E+01, D: -4.80E+00, D best: -4.80E+00, 
+ iter:  1, fnrm:  3.44E-01, Omega: -8.100976444992392E+01, D: -4.80E+00, D best: -4.80E+00, 
  Optimization: {algorithm: DIIS, history length:  6, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  No, Normalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  2.09E-01, 
  Mean deviation from unity in reorthonormalize_coeff:  2.35E-02, 
- calculate S^x: {mode: dense, x: -1/2, order:  6}, 
+ calculate S^x: {mode: dense, powers: {x: -1/2}, order:  6}, 
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: HYBRID, 
@@ -1072,19 +1084,20 @@
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  9.09304209408E+01, Epot: -9.08176187779E+01, Enl:  7.68436121545E+00}, 
- Orthoconstraint:  Yes, 
- calculate S^x: {mode: sparse, x: -1, order:  6, 
- max / mean error:  [  6.2E-06,  5.61E-07 ]}, 
+ Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
+ calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
+ error estimation: [
+ max / mean error:  [  6.2E-06,  5.61E-07 ]]}, 
   #WARNING: target function larger than its minimal value reached so far, D= 2.331E+00
  Preconditioning:  Yes, rel D: -2.88E-02,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, kappa to history:  No, 
- iter:  2, fnrm:  6.48E-01, Omega: -7.867904171895981E+01, D:  2.33E+00, D best:  2.33E+00, 
+ iter:  2, fnrm:  6.48E-01, Omega: -7.867904171895987E+01, D:  2.33E+00, D best:  2.33E+00, 
  Optimization: {algorithm: DIIS, history length:  6, consecutive failures:  1, 
            total failures:  1}, 
  Orthogonalization:  No, Normalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  2.27E-01, 
  Mean deviation from unity in reorthonormalize_coeff:  1.93E-02, 
- calculate S^x: {mode: dense, x: -1/2, order:  6}, 
+ calculate S^x: {mode: dense, powers: {x: -1/2}, order:  6}, 
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 3
  target function: HYBRID, 
@@ -1092,17 +1105,18 @@
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.80425256156E+01, Epot: -8.95511898195E+01, Enl:  7.49059753037E+00}, 
- Orthoconstraint:  Yes, 
- calculate S^x: {mode: sparse, x: -1, order:  6, 
- max / mean error:  [  7.48E-08,  7.70E-09 ]}, 
+ Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
+ calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
+ error estimation: [
+ max / mean error:  [  7.48E-08,  7.70E-09 ]]}, 
  Preconditioning:  Yes, rel D:  6.89E-03,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, kappa to history:  No, 
- iter:  3, fnrm:  2.20E-01, Omega: -8.156828295468273E+01, D: -2.89E+00, D best: -5.59E-01, 
+ iter:  3, fnrm:  2.20E-01, Omega: -8.156828295468284E+01, D: -2.89E+00, D best: -5.59E-01, 
  exit criterion: energy difference}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 3
  target function: HYBRID, 
  Energies: {Ekin:  8.80425256156E+01, Epot: -8.95511898195E+01, Enl:  7.49059753037E+00}, 
- iter:  3, fnrm:  2.20E-01, Omega: -8.156828295468273E+01, D: -2.89E+00, D best: -5.59E-01}
+ iter:  3, fnrm:  2.20E-01, Omega: -8.156828295468284E+01, D: -2.89E+00, D best: -5.59E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
@@ -1133,7 +1147,7 @@
  {e: -3.569835246437E-01, f:  2.0000},  # 00009
  {e: -3.315101865484E-01, f:  2.0000},  # 00010
  {e: -2.944110026412E-01, f:  2.0000},  # 00011
- {e: -2.853251482354E-01, f:  2.0000},  # 00012
+ {e: -2.853251482355E-01, f:  2.0000},  # 00012
  {e: -2.680734188031E-01, f:  2.0000},  # 00013
  {e: -2.600653881645E-01, f:  2.0000},  # 00014
  {e: -2.407698061707E-01, f:  2.0000},  # 00015
@@ -1145,12 +1159,12 @@
  {e: -1.669519394435E-01, f:  2.0000},  # 00021
  {e: -1.342101890854E-01, f:  2.0000},  # 00022
  {e: -1.305898376588E-01, f:  2.0000},  # 00023
- {e: -7.446560489047E-02, f:  2.0000},  # 00024
- {e: -6.474984319867E-02, f:  2.0000},  # 00025
+ {e: -7.446560489048E-02, f:  2.0000},  # 00024
+ {e: -6.474984319868E-02, f:  2.0000},  # 00025
  {e: -3.906648046369E-02, f:  2.0000},  # 00026
  {e:  4.116817839355E-02, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.22E-06, energy: -8.57427485497894963E+01, D:  1.456E-01}]
+ iter:  1, delta:  1.22E-06, energy: -8.57427485497896100E+01, D:  1.456E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  5.03E-02
@@ -1174,7 +1188,7 @@
  {e: -7.322424246592E-01, f:  2.0000},  # 00002
  {e: -6.468980113413E-01, f:  2.0000},  # 00003
  {e: -5.587454765788E-01, f:  2.0000},  # 00004
- {e: -5.137418733592E-01, f:  2.0000},  # 00005
+ {e: -5.137418733591E-01, f:  2.0000},  # 00005
  {e: -4.856256992550E-01, f:  2.0000},  # 00006
  {e: -4.394590572321E-01, f:  2.0000},  # 00007
  {e: -3.959644046533E-01, f:  2.0000},  # 00008
@@ -1192,21 +1206,21 @@
  {e: -1.517351977831E-01, f:  2.0000},  # 00020
  {e: -1.355668289033E-01, f:  2.0000},  # 00021
  {e: -1.252814656769E-01, f:  2.0000},  # 00022
- {e: -7.792118976555E-02, f:  2.0000},  # 00023
- {e: -6.855150198940E-02, f:  2.0000},  # 00024
- {e: -1.274156009279E-02, f:  2.0000},  # 00025
- {e:  6.768849247009E-03, f:  2.0000},  # 00026
+ {e: -7.792118976554E-02, f:  2.0000},  # 00023
+ {e: -6.855150198939E-02, f:  2.0000},  # 00024
+ {e: -1.274156009278E-02, f:  2.0000},  # 00025
+ {e:  6.768849247013E-03, f:  2.0000},  # 00026
  {e:  4.470749117916E-02, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  5.83E-07, energy: -8.57140610852949862E+01, D:  2.869E-02}]
+ iter:  2, delta:  5.83E-07, energy: -8.57140610852949294E+01, D:  2.869E-02}]
    -  &final_kernel002  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  5.83E-07, energy: -8.57140610852949862E+01, D:  2.869E-02}]}
+ iter:  3, delta:  5.83E-07, energy: -8.57140610852949294E+01, D:  2.869E-02}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
    -  {iter:  2, target function: HYBRID, mean conf prefac:  2.07E-02, 
  iterations to converge support functions:  3, kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  2, delta out:  8.384E-07, energy: -8.57140610852949862E+01, D:  1.743E-01}
+ iter low:  2, delta out:  8.384E-07, energy: -8.57140610852949294E+01, D:  1.743E-01}
    multiplicator for the confinement   :  0.5
     #WARNING: No orthogonalizing of the support functions
     #========================================================= support function optimization
@@ -1217,17 +1231,18 @@
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.80425256156E+01, Epot: -8.99420049460E+01, Enl:  7.49059753037E+00}, 
- Orthoconstraint:  Yes, 
- calculate S^x: {mode: sparse, x: -1, order:  6, 
- max / mean error:  [  7.48E-08,  7.70E-09 ]}, 
+ Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
+ calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
+ error estimation: [
+ max / mean error:  [  7.48E-08,  7.70E-09 ]]}, 
  Preconditioning:  Yes, rel D:  0.00E+00, 
- iter:  1, fnrm:  2.33E-01, Omega: -8.366057032050094E+01, D: -4.98E+00, D best: -4.98E+00, 
+ iter:  1, fnrm:  2.33E-01, Omega: -8.366057032050088E+01, D: -4.98E+00, D best: -4.98E+00, 
  Optimization: {algorithm: DIIS, history length:  6, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  No, Normalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  9.98E-02, 
  Mean deviation from unity in reorthonormalize_coeff:  1.58E-02, 
- calculate S^x: {mode: dense, x: -1/2, order:  6}, 
+ calculate S^x: {mode: dense, powers: {x: -1/2}, order:  6}, 
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: HYBRID, 
@@ -1235,19 +1250,20 @@
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.27629659086E+01, Epot: -8.37286619517E+01, Enl:  6.30938091620E+00}, 
- Orthoconstraint:  Yes, 
- calculate S^x: {mode: sparse, x: -1, order:  6, 
- max / mean error:  [  1.23E-05,  1.72E-06 ]}, 
+ Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
+ calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
+ error estimation: [
+ max / mean error:  [  1.23E-05,  1.72E-06 ]]}, 
   #WARNING: target function larger than its minimal value reached so far, D= 1.264E-01
  Preconditioning:  Yes, rel D: -1.51E-03,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, kappa to history:  No, 
- iter:  2, fnrm:  2.99E-01, Omega: -8.353418163262961E+01, D:  1.26E-01, D best:  1.26E-01, 
+ iter:  2, fnrm:  2.99E-01, Omega: -8.353418163262955E+01, D:  1.26E-01, D best:  1.26E-01, 
  Optimization: {algorithm: DIIS, history length:  6, consecutive failures:  1, 
            total failures:  1}, 
  Orthogonalization:  No, Normalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  6.60E-02, 
  Mean deviation from unity in reorthonormalize_coeff:  8.78E-03, 
- calculate S^x: {mode: dense, x: -1/2, order:  6}, 
+ calculate S^x: {mode: dense, powers: {x: -1/2}, order:  6}, 
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 3
  target function: HYBRID, 
@@ -1255,17 +1271,18 @@
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.49363844414E+01, Epot: -8.65734803987E+01, Enl:  7.05174568084E+00}, 
- Orthoconstraint:  Yes, 
- calculate S^x: {mode: sparse, x: -1, order:  6, 
- max / mean error:  [  1.51E-06,  1.73E-07 ]}, 
+ Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
+ calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
+ error estimation: [
+ max / mean error:  [  1.51E-06,  1.73E-07 ]]}, 
  Preconditioning:  Yes, rel D:  4.86E-03,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, kappa to history:  No, 
- iter:  3, fnrm:  9.11E-02, Omega: -8.406718009676547E+01, D: -5.33E-01, D best: -4.07E-01, 
+ iter:  3, fnrm:  9.11E-02, Omega: -8.406718009676541E+01, D: -5.33E-01, D best: -4.07E-01, 
  exit criterion: energy difference}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 3
  target function: HYBRID, 
  Energies: {Ekin:  8.49363844414E+01, Epot: -8.65734803987E+01, Enl:  7.05174568084E+00}, 
- iter:  3, fnrm:  9.11E-02, Omega: -8.406718009676547E+01, D: -5.33E-01, D best: -4.07E-01}
+ iter:  3, fnrm:  9.11E-02, Omega: -8.406718009676541E+01, D: -5.33E-01, D best: -4.07E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
@@ -1301,19 +1318,19 @@
  {e: -2.264340220750E-01, f:  2.0000},  # 00014
  {e: -2.235971905848E-01, f:  2.0000},  # 00015
  {e: -2.196929234919E-01, f:  2.0000},  # 00016
- {e: -2.097908501187E-01, f:  2.0000},  # 00017
+ {e: -2.097908501186E-01, f:  2.0000},  # 00017
  {e: -1.983066174398E-01, f:  2.0000},  # 00018
  {e: -1.648961597268E-01, f:  2.0000},  # 00019
  {e: -1.512377289736E-01, f:  2.0000},  # 00020
- {e: -1.377629966064E-01, f:  2.0000},  # 00021
+ {e: -1.377629966063E-01, f:  2.0000},  # 00021
  {e: -1.305903922777E-01, f:  2.0000},  # 00022
- {e: -9.186057839233E-02, f:  2.0000},  # 00023
- {e: -8.178889931926E-02, f:  2.0000},  # 00024
- {e: -2.980793607641E-02, f:  2.0000},  # 00025
- {e: -1.276766338655E-02, f:  2.0000},  # 00026
- {e:  3.185347622381E-02, f:  2.0000}] # 00027
+ {e: -9.186057839232E-02, f:  2.0000},  # 00023
+ {e: -8.178889931925E-02, f:  2.0000},  # 00024
+ {e: -2.980793607640E-02, f:  2.0000},  # 00025
+ {e: -1.276766338654E-02, f:  2.0000},  # 00026
+ {e:  3.185347622382E-02, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  1, delta:  1.33E-06, energy: -8.64962109103161083E+01, D: -7.821E-01}]
+ iter:  1, delta:  1.33E-06, energy: -8.64962109103160515E+01, D: -7.821E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  8.47E-02
@@ -1345,7 +1362,7 @@
  {e: -3.422875162906E-01, f:  2.0000},  # 00010
  {e: -3.057445753943E-01, f:  2.0000},  # 00011
  {e: -3.022293463134E-01, f:  2.0000},  # 00012
- {e: -2.836381256658E-01, f:  2.0000},  # 00013
+ {e: -2.836381256657E-01, f:  2.0000},  # 00013
  {e: -2.723120741190E-01, f:  2.0000},  # 00014
  {e: -2.620157608173E-01, f:  2.0000},  # 00015
  {e: -2.552531596593E-01, f:  2.0000},  # 00016
@@ -1361,15 +1378,15 @@
  {e: -6.565843299043E-02, f:  2.0000},  # 00026
  {e: -1.152866577197E-02, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  6.23E-07, energy: -8.64452582362748103E+01, D:  5.095E-02}]
+ iter:  2, delta:  6.23E-07, energy: -8.64452582362748672E+01, D:  5.095E-02}]
    -  &final_kernel003  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  6.23E-07, energy: -8.64452582362748103E+01, D:  5.095E-02}]}
+ iter:  3, delta:  6.23E-07, energy: -8.64452582362748672E+01, D:  5.095E-02}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc003
    -  {iter:  3, target function: HYBRID, mean conf prefac:  1.03E-02, 
  iterations to converge support functions:  3, kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  3, delta out:  9.056E-07, energy: -8.64452582362748103E+01, D: -7.312E-01}
+ iter low:  3, delta out:  9.056E-07, energy: -8.64452582362748672E+01, D: -7.312E-01}
    multiplicator for the confinement   :  0.5
     #WARNING: No orthogonalizing of the support functions
     #========================================================= support function optimization
@@ -1380,17 +1397,18 @@
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.49363844414E+01, Epot: -9.02482700319E+01, Enl:  7.05174568084E+00}, 
- Orthoconstraint:  Yes, 
- calculate S^x: {mode: sparse, x: -1, order:  6, 
- max / mean error:  [  1.51E-06,  1.73E-07 ]}, 
+ Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
+ calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
+ error estimation: [
+ max / mean error:  [  1.51E-06,  1.73E-07 ]]}, 
  Preconditioning:  Yes, rel D:  0.00E+00, 
- iter:  1, fnrm:  1.03E-01, Omega: -8.522306533380493E+01, D: -1.69E+00, D best: -1.69E+00, 
+ iter:  1, fnrm:  1.03E-01, Omega: -8.522306533380498E+01, D: -1.69E+00, D best: -1.69E+00, 
  Optimization: {algorithm: DIIS, history length:  6, consecutive failures:  0, 
            total failures:  0}, 
  Orthogonalization:  No, Normalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  5.80E-02, 
  Mean deviation from unity in reorthonormalize_coeff:  7.92E-03, 
- calculate S^x: {mode: dense, x: -1/2, order:  6}, 
+ calculate S^x: {mode: dense, powers: {x: -1/2}, order:  6}, 
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: HYBRID, 
@@ -1398,19 +1416,20 @@
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.48314594085E+01, Epot: -8.98255526736E+01, Enl:  6.96435967276E+00}, 
- Orthoconstraint:  Yes, 
- calculate S^x: {mode: sparse, x: -1, order:  6, 
- max / mean error:  [  1.7E-06,  1.54E-07 ]}, 
+ Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
+ calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
+ error estimation: [
+ max / mean error:  [  1.7E-06,  1.54E-07 ]]}, 
   #WARNING: target function larger than its minimal value reached so far, D= 5.655E-02
  Preconditioning:  Yes, rel D: -6.64E-04,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, kappa to history:  No, 
- iter:  2, fnrm:  1.38E-01, Omega: -8.516651395490283E+01, D:  5.66E-02, D best:  5.66E-02, 
+ iter:  2, fnrm:  1.38E-01, Omega: -8.516651395490288E+01, D:  5.66E-02, D best:  5.66E-02, 
  Optimization: {algorithm: DIIS, history length:  6, consecutive failures:  1, 
            total failures:  1}, 
  Orthogonalization:  No, Normalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  5.24E-02, 
  Mean deviation from unity in reorthonormalize_coeff:  5.68E-03, 
- calculate S^x: {mode: dense, x: -1/2, order:  6}, 
+ calculate S^x: {mode: dense, powers: {x: -1/2}, order:  6}, 
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 3
  target function: HYBRID, 
@@ -1418,17 +1437,18 @@
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.54598169119E+01, Epot: -9.04681626209E+01, Enl:  7.11874266008E+00}, 
- Orthoconstraint:  Yes, 
- calculate S^x: {mode: sparse, x: -1, order:  6, 
- max / mean error:  [  1.41E-06,  1.24E-07 ]}, 
+ Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
+ calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
+ error estimation: [
+ max / mean error:  [  1.41E-06,  1.24E-07 ]]}, 
  Preconditioning:  Yes, rel D:  6.14E-04,  #WARNING: use a fake value for kappa
  kappa:  5.000E-01, kappa to history:  No, 
- iter:  3, fnrm:  3.97E-02, Omega: -8.527540485467159E+01, D: -1.09E-01, D best: -5.23E-02, 
+ iter:  3, fnrm:  3.97E-02, Omega: -8.527540485467165E+01, D: -1.09E-01, D best: -5.23E-02, 
  exit criterion: energy difference,           exit criterion: gradient}
    -  &final_supfun004  { #-------------------------------------------------------- iter: 3
  target function: HYBRID, 
  Energies: {Ekin:  8.54598169119E+01, Epot: -9.04681626209E+01, Enl:  7.11874266008E+00}, 
- iter:  3, fnrm:  3.97E-02, Omega: -8.527540485467159E+01, D: -1.09E-01, D best: -5.23E-02}
+ iter:  3, fnrm:  3.97E-02, Omega: -8.527540485467165E+01, D: -1.09E-01, D best: -5.23E-02}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel004
@@ -1473,7 +1493,7 @@
  {e: -1.616392909132E-01, f:  2.0000},  # 00023
  {e: -1.369387738790E-01, f:  2.0000},  # 00024
  {e: -1.051392829025E-01, f:  2.0000},  # 00025
- {e: -7.968058382643E-02, f:  2.0000},  # 00026
+ {e: -7.968058382644E-02, f:  2.0000},  # 00026
  {e: -2.414486318440E-02, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
  iter:  1, delta:  4.37E-07, energy: -8.65931279133347402E+01, D: -1.479E-01}]
@@ -1508,7 +1528,7 @@
  {e: -3.728833627699E-01, f:  2.0000},  # 00010
  {e: -3.330154844107E-01, f:  2.0000},  # 00011
  {e: -3.314996341717E-01, f:  2.0000},  # 00012
- {e: -3.108317020279E-01, f:  2.0000},  # 00013
+ {e: -3.108317020278E-01, f:  2.0000},  # 00013
  {e: -2.971938762987E-01, f:  2.0000},  # 00014
  {e: -2.928089130131E-01, f:  2.0000},  # 00015
  {e: -2.835733872875E-01, f:  2.0000},  # 00016
@@ -1524,15 +1544,15 @@
  {e: -8.597057946768E-02, f:  2.0000},  # 00026
  {e: -3.882190630558E-02, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  2, delta:  2.23E-07, energy: -8.65888803706061481E+01, D:  4.248E-03}]
+ iter:  2, delta:  2.23E-07, energy: -8.65888803706062617E+01, D:  4.248E-03}]
    -  &final_kernel004  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
- iter:  3, delta:  2.23E-07, energy: -8.65888803706061481E+01, D:  4.248E-03}]}
+ iter:  3, delta:  2.23E-07, energy: -8.65888803706062617E+01, D:  4.248E-03}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc004
    -  {iter:  4, target function: HYBRID, mean conf prefac:  5.16E-03, 
  iterations to converge support functions:  3, kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  4, delta out:  3.225E-07, energy: -8.65888803706061481E+01, D: -1.436E-01}
+ iter low:  4, delta out:  3.225E-07, energy: -8.65888803706062617E+01, D: -1.436E-01}
    multiplicator for the confinement   :  0.5
     #WARNING: No orthogonalizing of the support functions
     #========================================================= support function optimization
@@ -1543,16 +1563,17 @@
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  8.54598169119E+01, Epot: -9.18953618886E+01, Enl:  7.11874266008E+00}, 
- Orthoconstraint:  Yes, 
- calculate S^x: {mode: sparse, x: -1, order:  6, 
- max / mean error:  [  1.41E-06,  1.24E-07 ]}, 
+ Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
+ calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
+ error estimation: [
+ max / mean error:  [  1.41E-06,  1.24E-07 ]]}, 
  Preconditioning:  Yes, rel D:  0.00E+00, 
- iter:  1, fnrm:  4.78E-02, Omega: -8.592986690544825E+01, D: -7.63E-01, D best: -7.63E-01, 
+ iter:  1, fnrm:  4.78E-02, Omega: -8.592986690544819E+01, D: -7.63E-01, D best: -7.63E-01, 
  exit criterion: gradient}
    -  &final_supfun005  { #-------------------------------------------------------- iter: 1
  target function: HYBRID, 
  Energies: {Ekin:  8.54598169119E+01, Epot: -9.18953618886E+01, Enl:  7.11874266008E+00}, 
- iter:  1, fnrm:  4.78E-02, Omega: -8.592986690544825E+01, D: -7.63E-01, D best: -7.63E-01}
+ iter:  1, fnrm:  4.78E-02, Omega: -8.592986690544819E+01, D: -7.63E-01, D best: -7.63E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel005
@@ -1579,26 +1600,26 @@
  {e: -5.937211028826E-01, f:  2.0000},  # 00005
  {e: -5.545060960378E-01, f:  2.0000},  # 00006
  {e: -5.095074652583E-01, f:  2.0000},  # 00007
- {e: -4.663002234274E-01, f:  2.0000},  # 00008
+ {e: -4.663002234273E-01, f:  2.0000},  # 00008
  {e: -4.319939881106E-01, f:  2.0000},  # 00009
  {e: -3.766775616473E-01, f:  2.0000},  # 00010
  {e: -3.368178432078E-01, f:  2.0000},  # 00011
  {e: -3.358430730917E-01, f:  2.0000},  # 00012
  {e: -3.156773666721E-01, f:  2.0000},  # 00013
  {e: -3.019521402566E-01, f:  2.0000},  # 00014
- {e: -2.974473863503E-01, f:  2.0000},  # 00015
+ {e: -2.974473863502E-01, f:  2.0000},  # 00015
  {e: -2.887146561659E-01, f:  2.0000},  # 00016
  {e: -2.764377098866E-01, f:  2.0000},  # 00017
  {e: -2.670409603402E-01, f:  2.0000},  # 00018
  {e: -2.365100159300E-01, f:  2.0000},  # 00019
  {e: -2.265334094805E-01, f:  2.0000},  # 00020
  {e: -2.181611798125E-01, f:  2.0000},  # 00021
- {e: -2.059537802173E-01, f:  2.0000},  # 00022
+ {e: -2.059537802172E-01, f:  2.0000},  # 00022
  {e: -1.756799449659E-01, f:  2.0000},  # 00023
  {e: -1.590263704040E-01, f:  2.0000},  # 00024
  {e: -1.184828614233E-01, f:  2.0000},  # 00025
  {e: -8.906120814378E-02, f:  2.0000},  # 00026
- {e: -4.581462069604E-02, f:  2.0000}] # 00027
+ {e: -4.581462069603E-02, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: DENS, mix hist:  0, 
  iter:  1, delta:  1.16E-07, energy: -8.65880568313489789E+01, D:  8.235E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 2
@@ -1729,26 +1750,26 @@
  Raw forces norm (Ha/Bohr): {maxval:  2.144437854558E-01, fnrm2:  9.786416658506E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {N: [ 9.486128712352E-04, -3.012542365006E-02,  2.751211535571E-02]} # 0001
- -  {C: [-6.993678902637E-03, -5.045693267519E-03,  1.866162168037E-02]} # 0002
- -  {C: [-1.036436786955E-03, -7.937017128723E-02, -5.569849162541E-02]} # 0003
- -  {O: [ 6.251395720199E-02,  1.131553769066E-01,  1.120023784233E-01]} # 0004
- -  {O: [ 4.034777030049E-02,  1.698671267772E-01,  3.047474634195E-02]} # 0005
- -  {C: [ 8.394220234988E-03, -1.547412610142E-02, -1.689966426266E-02]} # 0006
- -  {C: [-8.824964554082E-04, -1.263821551812E-03,  1.865233829179E-03]} # 0007
- -  {S: [-3.592392773177E-02, -1.229042579362E-02, -9.015638592468E-03]} # 0008
- -  {C: [-2.794947910093E-02,  1.230194616686E-03, -2.499685840524E-03]} # 0009
- -  {H: [-1.792277518243E-03, -1.714234681385E-02, -1.725756748600E-02]} # 0010
- -  {H: [ 2.104738263728E-02, -2.583946392460E-02,  8.959779712766E-06]} # 0011
- -  {H: [ 1.044821445878E-03, -1.177755844566E-02, -5.143905529748E-03]} # 0012
- -  {H: [-2.426118894992E-02, -5.486578208169E-02, -2.076595963271E-02]} # 0013
- -  {H: [-1.292248292593E-02, -9.545233116657E-03,  7.957746350287E-04]} # 0014
- -  {H: [ 2.319965742485E-02, -2.198935346710E-02, -8.949203140689E-03]} # 0015
- -  {H: [ 4.836512276759E-03, -1.438543505926E-02,  7.576218830202E-03]} # 0016
- -  {H: [ 1.021984110147E-02,  6.034989696799E-03, -2.023446881271E-02]} # 0017
- -  {H: [-2.069779261510E-02, -9.063238664191E-03, -2.916959288538E-02]} # 0018
- -  {H: [-5.525765239648E-03,  3.888671506258E-03, -5.700714195647E-03]} # 0019
- -  {H: [-3.456724926839E-02,  1.400171372120E-02, -7.562156871505E-03]} # 0020
+ -  {N: [ 9.486128712206E-04, -3.012542365008E-02,  2.751211535570E-02]} # 0001
+ -  {C: [-6.993678902643E-03, -5.045693267522E-03,  1.866162168037E-02]} # 0002
+ -  {C: [-1.036436786962E-03, -7.937017128724E-02, -5.569849162540E-02]} # 0003
+ -  {O: [ 6.251395720198E-02,  1.131553769066E-01,  1.120023784233E-01]} # 0004
+ -  {O: [ 4.034777030047E-02,  1.698671267772E-01,  3.047474634189E-02]} # 0005
+ -  {C: [ 8.394220234992E-03, -1.547412610143E-02, -1.689966426266E-02]} # 0006
+ -  {C: [-8.824964553996E-04, -1.263821551822E-03,  1.865233829182E-03]} # 0007
+ -  {S: [-3.592392773176E-02, -1.229042579362E-02, -9.015638592494E-03]} # 0008
+ -  {C: [-2.794947910093E-02,  1.230194616688E-03, -2.499685840537E-03]} # 0009
+ -  {H: [-1.792277518248E-03, -1.714234681384E-02, -1.725756748599E-02]} # 0010
+ -  {H: [ 2.104738263729E-02, -2.583946392460E-02,  8.959779722229E-06]} # 0011
+ -  {H: [ 1.044821445880E-03, -1.177755844565E-02, -5.143905529732E-03]} # 0012
+ -  {H: [-2.426118894992E-02, -5.486578208170E-02, -2.076595963270E-02]} # 0013
+ -  {H: [-1.292248292592E-02, -9.545233116658E-03,  7.957746350340E-04]} # 0014
+ -  {H: [ 2.319965742485E-02, -2.198935346710E-02, -8.949203140685E-03]} # 0015
+ -  {H: [ 4.836512276765E-03, -1.438543505926E-02,  7.576218830208E-03]} # 0016
+ -  {H: [ 1.021984110148E-02,  6.034989696802E-03, -2.023446881270E-02]} # 0017
+ -  {H: [-2.069779261510E-02, -9.063238664190E-03, -2.916959288538E-02]} # 0018
+ -  {H: [-5.525765239643E-03,  3.888671506262E-03, -5.700714195641E-03]} # 0019
+ -  {H: [-3.456724926840E-02,  1.400171372121E-02, -7.562156871494E-03]} # 0020
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1796,16 +1817,16 @@
  - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  59.90
-   Elapsed time (s)                    :  31.75
+   CPU time (s)                        :  60.36
+   Elapsed time (s)                    :  31.72
  Memory Consumption Report:
-   Tot. No. of Allocations             :  38578
-   Tot. No. of Deallocations           :  38578
+   Tot. No. of Allocations             :  38685
+   Tot. No. of Deallocations           :  38685
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  310
+     Peak Value (MB)                   :  311
      for the array                     : psir_noconf
      in the routine                    : LocalHamiltonianApplication
-     Memory Peak of process            : 377936 kB
- Max No. of dictionaries used          :  3665 #( 838 still in use)
+     Memory Peak of process            : 373972 kB
+ Max No. of dictionaries used          :  3780 #( 838 still in use)
  Number of dictionary folders allocated:  1
