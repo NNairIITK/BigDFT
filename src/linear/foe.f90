@@ -47,7 +47,8 @@ subroutine foe(iproc, nproc, tmprtr, &
   integer :: isegstart, isegend, iismall, iilarge, nsize_polynomial
   integer :: iismall_ovrlp, iismall_ham, ntemp, it_shift, npl_check, npl_boundaries
   integer,parameter :: nplx=50000
-  real(kind=8),dimension(:,:),allocatable :: cc, chebyshev_polynomials, cc_check, fermip_check
+  real(kind=8),dimension(:,:,:),allocatable :: cc, cc_check
+  real(kind=8),dimension(:,:),allocatable :: chebyshev_polynomials, fermip_check
   real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
   real(kind=8) :: anoise, scale_factor, shift_value, sumn, sumn_check, charge_diff, ef_interpol, ddot
   real(kind=8) :: evlow_old, evhigh_old, det, determinant, sumn_old, ef_old, tt
@@ -84,6 +85,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
   call f_routine(id='foe')
 
+
   if (iproc==0) call yaml_comment('FOE calculation of kernel',hfill='~')
 
   if (accuracy_level/=FOE_ACCURATE .and. accuracy_level/=FOE_FAST) then
@@ -108,10 +110,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
   if (calculate_minusonehalf) then
-      if (iproc==0) call yaml_map('S^-1/2','recalculate')
       call overlap_minus_onehalf() ! has internal timer
-  else
-      if (iproc==0) call yaml_map('S^-1/2','from memory')
   end if
   call timing(iproc, 'FOE_auxiliary ', 'ON')
 
@@ -320,8 +319,8 @@ subroutine foe(iproc, nproc, tmprtr, &
                   end if
         
         
-                  cc = f_malloc((/npl,3/),id='cc')
-                  cc_check = f_malloc((/npl,3/),id='cc_check')
+                  cc = f_malloc((/npl,3,1/),id='cc')
+                  cc_check = f_malloc((/npl,3,1/),id='cc_check')
         
                   if (foe_data_get_real(foe_obj,"evlow",ispin)>=0.d0) then
                       stop 'ERROR: lowest eigenvalue must be negative'
@@ -334,23 +333,23 @@ subroutine foe(iproc, nproc, tmprtr, &
                   call timing(iproc, 'chebyshev_coef', 'ON')
         
                   call chebft(foe_data_get_real(foe_obj,"evlow",ispin), &
-                       foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,1), &
+                       foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,1,1), &
                        foe_data_get_real(foe_obj,"ef",ispin), fscale, tmprtr)
                   call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
-                       foe_data_get_real(foe_obj,"evhigh",ispin), cc(1,1), cc(1,2), npl)
+                       foe_data_get_real(foe_obj,"evhigh",ispin), cc(1,1,1), cc(1,2,1), npl)
                   call chebft2(foe_data_get_real(foe_obj,"evlow",ispin), &
-                       foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,3))
-                  call evnoise(npl, cc(1,3), foe_data_get_real(foe_obj,"evlow",ispin), &
+                       foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,3,1))
+                  call evnoise(npl, cc(1,3,1), foe_data_get_real(foe_obj,"evlow",ispin), &
                        foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
     
                   call chebft(foe_data_get_real(foe_obj,"evlow",ispin), &
-                       foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,1), &
+                       foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,1,1), &
                        foe_data_get_real(foe_obj,"ef",ispin), fscale_check, tmprtr)
                   call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
                        foe_data_get_real(foe_obj,"evhigh",ispin), &
-                       cc_check(1,1), cc_check(1,2), npl_check)
+                       cc_check(1,1,1), cc_check(1,2,1), npl_check)
                   call chebft2(foe_data_get_real(foe_obj,"evlow",ispin), &
-                       foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,3))
+                       foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,3,1))
         
                   call timing(iproc, 'chebyshev_coef', 'OF')
                   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -363,12 +362,12 @@ subroutine foe(iproc, nproc, tmprtr, &
                 
                   if (tmb%linmat%l%nspin==1) then
                       do ipl=1,npl
-                          cc(ipl,1)=2.d0*cc(ipl,1)
-                          cc(ipl,2)=2.d0*cc(ipl,2)
-                          cc(ipl,3)=2.d0*cc(ipl,3)
-                          cc_check(ipl,1)=2.d0*cc_check(ipl,1)
-                          cc_check(ipl,2)=2.d0*cc_check(ipl,2)
-                          cc_check(ipl,3)=2.d0*cc_check(ipl,3)
+                          cc(ipl,1,1)=2.d0*cc(ipl,1,1)
+                          cc(ipl,2,1)=2.d0*cc(ipl,2,1)
+                          cc(ipl,3,1)=2.d0*cc(ipl,3,1)
+                          cc_check(ipl,1,1)=2.d0*cc_check(ipl,1,1)
+                          cc_check(ipl,2,1)=2.d0*cc_check(ipl,2,1)
+                          cc_check(ipl,3,1)=2.d0*cc_check(ipl,3,1)
                       end do
                   end if
                 
@@ -383,17 +382,17 @@ subroutine foe(iproc, nproc, tmprtr, &
           !!    write(1000+iproc,'(a,2i8,es16.6)') 'ispin, i, val', ispin, i, hamscal_compr(i)
           !!end do
                       call chebyshev_clean(iproc, nproc, npl, cc, &
-                           tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nfvctrp, tmb%linmat%l%smmm%isfvctr, foe_obj, &
+                           tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nfvctrp, tmb%linmat%l%smmm%isfvctr, &
                            tmb%linmat%l, hamscal_compr, &
                            tmb%linmat%ovrlp_minusonehalf_(1)%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), calculate_SHS, &
-                           nsize_polynomial, SHS, tmb%linmat%kernel_%matrixp, penalty_ev, chebyshev_polynomials, &
+                           nsize_polynomial, SHS, 1, tmb%linmat%kernel_%matrixp, penalty_ev, chebyshev_polynomials, &
                            emergency_stop)
                   else
                       ! The Chebyshev polynomials are already available
                       if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
                       call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                            tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nfvctrp, tmb%linmat%l%smmm%isfvctr, &
-                          tmb%linmat%l, chebyshev_polynomials, cc, tmb%linmat%kernel_%matrixp)
+                          tmb%linmat%l, chebyshev_polynomials, 1, cc, tmb%linmat%kernel_%matrixp)
                   end if 
     
     
@@ -510,7 +509,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                       ! polynomial degree  and calculate the difference
                       call chebyshev_fast(iproc, nproc, nsize_polynomial, npl_check, &
                            tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nfvctrp, tmb%linmat%l%smmm%isfvctr, &
-                           tmb%linmat%l, chebyshev_polynomials, cc_check, fermip_check)
+                           tmb%linmat%l, chebyshev_polynomials, 1, cc_check, fermip_check)
                       call f_free(cc_check)
                       diff=0.d0
                       do iorb=1,tmb%linmat%l%smmm%nfvctrp
@@ -1860,7 +1859,7 @@ end function trace_sparse
 
 
 ! New: chebyshev expansion of the inverse overlap (Inverse Chebyshev Expansion)
-subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, ovrlp_mat, inv_ovrlp)
+subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncalc, ex, ovrlp_mat, inv_ovrlp)
   use module_base
   use module_types
   use module_interfaces, except_this_one => ice
@@ -1878,21 +1877,20 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, norder_polynomial
+  integer,intent(in) :: iproc, nproc, norder_polynomial, ncalc
   type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
-  !type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat !for debug inout
-  integer :: ex
+  integer,dimension(ncalc) :: ex
   type(matrices),intent(in) :: ovrlp_mat
-  type(matrices),intent(out) :: inv_ovrlp
+  type(matrices),dimension(ncalc),intent(out) :: inv_ovrlp
 
   ! Local variables
   integer :: npl, jorb, it, ii, iseg
   integer :: isegstart, isegend, iismall, nsize_polynomial
   integer :: iismall_ovrlp, iismall_ham, npl_boundaries, i
   integer,parameter :: nplx=50000
-  real(kind=8),dimension(:,:),allocatable :: cc, chebyshev_polynomials
-  real(kind=8),dimension(:,:),pointer :: inv_ovrlp_matrixp
-  real(kind=8),dimension(:,:,:),allocatable :: penalty_ev
+  real(kind=8),dimension(:,:),allocatable :: chebyshev_polynomials
+  real(kind=8),dimension(:,:,:),pointer :: inv_ovrlp_matrixp
+  real(kind=8),dimension(:,:,:),allocatable :: cc, penalty_ev
   real(kind=8) :: anoise, scale_factor, shift_value
   real(kind=8) :: evlow_old, evhigh_old, tt
   real(kind=8) :: tt_ovrlp, tt_ham
@@ -1912,7 +1910,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
   type(foe_data) :: foe_obj
   real(kind=8),dimension(:),allocatable :: eval, work
   real(kind=8),dimension(:,:),allocatable :: tempmat
-  integer :: lwork, info, j
+  integer :: lwork, info, j, icalc
 
   !!real(kind=8),dimension(ovrlp_smat%nfvctr,ovrlp_smat%nfvctr) :: overlap
   !!real(kind=8),dimension(ovrlp_smat%nfvctr) :: eval
@@ -2015,8 +2013,10 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
   chebyshev_polynomials = f_malloc((/nsize_polynomial,1/),id='chebyshev_polynomials')
 
 
-  inv_ovrlp_matrixp = sparsematrix_malloc0_ptr(inv_ovrlp_smat, &
-                           iaction=DENSE_MATMUL, id='inv_ovrlp_matrixp')
+  !inv_ovrlp_matrixp = sparsematrix_malloc0_ptr(inv_ovrlp_smat, &
+  !                         iaction=DENSE_MATMUL, id='inv_ovrlp_matrixp')
+  inv_ovrlp_matrixp = f_malloc_ptr((/inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%smmm%nfvctrp,ncalc/),&
+                                    id='inv_ovrlp_matrixp')
 
 
       spin_loop: do ispin=1,ovrlp_smat%nspin
@@ -2036,7 +2036,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
               !!calculate_SHS=.true.
         
               if (inv_ovrlp_smat%smmm%nfvctrp>0) then
-                  call to_zero(inv_ovrlp_smat%nfvctr*inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_matrixp(1,1))
+                  call to_zero(inv_ovrlp_smat%nfvctr*inv_ovrlp_smat%smmm%nfvctrp*ncalc, inv_ovrlp_matrixp(1,1,1))
               end if
         
         
@@ -2102,7 +2102,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                   end if
     
         
-                  cc = f_malloc((/npl,3/),id='cc')
+                  cc = f_malloc((/npl,3,ncalc/),id='cc')
         
                   !!if (foe_data_get_real(foe_obj,"evlow")>=0.d0) then
                   !!    stop 'ERROR: lowest eigenvalue must be negative'
@@ -2114,14 +2114,16 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                   call timing(iproc, 'FOE_auxiliary ', 'OF')
                   call timing(iproc, 'chebyshev_coef', 'ON')
         
-                  call cheb_exp(foe_data_get_real(foe_obj,"evlow",ispin), &
-                       foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,1), ex)
-                  call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
-                       foe_data_get_real(foe_obj,"evhigh",ispin), cc(1,1), cc(1,2), npl)
-                  call chebft2(foe_data_get_real(foe_obj,"evlow",ispin), &
-                       foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,3))
-                  call evnoise(npl, cc(1,3), foe_data_get_real(foe_obj,"evlow",ispin), &
-                       foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
+                  do icalc=1,ncalc
+                      call cheb_exp(foe_data_get_real(foe_obj,"evlow",ispin), &
+                           foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,1,icalc), ex(icalc))
+                      call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
+                           foe_data_get_real(foe_obj,"evhigh",ispin), cc(1,1,icalc), cc(1,2,icalc), npl)
+                      call chebft2(foe_data_get_real(foe_obj,"evlow",ispin), &
+                           foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,3,icalc))
+                      call evnoise(npl, cc(1,3,icalc), foe_data_get_real(foe_obj,"evlow",ispin), &
+                           foe_data_get_real(foe_obj,"evhigh",ispin), anoise)
+                  end do
     
                   call timing(iproc, 'chebyshev_coef', 'OF')
                   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -2136,10 +2138,10 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                       !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
                       call chebyshev_clean(iproc, nproc, npl, cc, &
                            inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
-                           inv_ovrlp_smat%smmm%isfvctr, foe_obj, &
+                           inv_ovrlp_smat%smmm%isfvctr, &
                            inv_ovrlp_smat, hamscal_compr, &
-                           inv_ovrlp%matrix_compr, .false., &
-                           nsize_polynomial, SHS, inv_ovrlp_matrixp, penalty_ev, chebyshev_polynomials, &
+                           ovrlp_mat%matrix_compr, .false., &
+                           nsize_polynomial, SHS, ncalc, inv_ovrlp_matrixp, penalty_ev, chebyshev_polynomials, &
                            emergency_stop)
                   else
                       ! The Chebyshev polynomials are already available
@@ -2147,7 +2149,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
                       call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                            inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
                            inv_ovrlp_smat%smmm%isfvctr, &
-                           inv_ovrlp_smat, chebyshev_polynomials, cc, inv_ovrlp_matrixp)
+                           inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc, inv_ovrlp_matrixp)
                   end if 
     
     
@@ -2203,8 +2205,10 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, 
         
         
     
-          call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, inv_ovrlp_matrixp, &
-               inv_ovrlp%matrix_compr(ilshift+1+inv_ovrlp_smat%isvctrp_tg:))
+          do icalc=1,ncalc
+              call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, inv_ovrlp_matrixp(1:,1:,icalc), &
+                   inv_ovrlp(icalc)%matrix_compr(ilshift+1+inv_ovrlp_smat%isvctrp_tg:))
+          end do
     
 
       end do spin_loop

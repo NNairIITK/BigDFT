@@ -1085,7 +1085,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
               !!case default
               !!    stop 'wrong power(1)'
               !!end select
-              call ice(iproc, nproc, iorder-1000, ovrlp_smat, inv_ovrlp_smat, power(1), ovrlp_mat, inv_ovrlp_mat(1))
+              call ice(iproc, nproc, iorder-1000, ovrlp_smat, inv_ovrlp_smat, ncalc, power, ovrlp_mat, inv_ovrlp_mat)
               ! #####################################
           end if
       end if
