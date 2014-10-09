@@ -558,7 +558,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
           call yaml_map('mode','dense')
       end if
       !call yaml_map('power(1)',power(1))
-      call yaml_mapping_open()
+      call yaml_mapping_open('powers')
       do icalc=1,ncalc
           select case (power(icalc))
           case (-2)
