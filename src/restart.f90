@@ -2035,7 +2035,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   logical :: lstat
   character(len=*), parameter :: subname='readmywaves_linear_new'
   ! to eventually be part of the fragment structure?
-  integer :: ndim_old, iiorb, ifrag, ifrag_ref, isfat, iorbp, iforb, isforb, iiat, iat
+  integer :: ndim_old, iiorb, ifrag, ifrag_ref, isfat, iorbp, iforb, isforb, iiat, iat,ind
   type(local_zone_descriptors) :: lzd_old
   real(wp), dimension(:), pointer :: psi_old
   type(phi_array), dimension(:), pointer :: phi_array_old
@@ -2050,7 +2050,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
 
   ! DEBUG
   ! character(len=12) :: orbname
-  ! real(wp), dimension(:), allocatable :: gpsi
+  real(wp), dimension(:), allocatable :: gpsi
 
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
@@ -2348,8 +2348,9 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
 
               call find_frag_trans(min(4,ref_frags(ifrag_ref)%astruct_frg%nat),rxyz4_ref,rxyz4_new,frag_trans_orb(iorbp))
 
-              !write(*,'(A,I3,1x,I3,1x,3(F12.6,1x),F12.6)') 'ifrag,iorb,rot_axis,theta',&
-              !     ifrag,iiorb,frag_trans_orb(iorbp)%rot_axis,frag_trans_orb(iorbp)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+!!$              print *,'transformation of the fragment, iforb',iforb
+!!$              write(*,'(A,I3,1x,I3,1x,3(F12.6,1x),F12.6)') 'ifrag,iorb,rot_axis,theta',&
+!!$                   ifrag,iiorb,frag_trans_orb(iorbp)%rot_axis,frag_trans_orb(iorbp)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
 
            end do
         end do
@@ -2385,31 +2386,27 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   call f_free(rxyz_old)
   call deallocate_local_zone_descriptors(lzd_old)
 
-  !! DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
-  !ind=1
-  !allocate (gpsi(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f),stat=i_stat)
-  !call memocc(i_stat,gpsi,'gpsi',subname)
-  !do iorbp=1,tmb%orbs%norbp
-  !   iiorb=iorbp+tmb%orbs%isorb
-  !   ilr = tmb%orbs%inwhichlocreg(iiorb)
-  !
-  !   call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
-  !   call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
-  !        tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
-  !        1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
-  ! 
-  !   write(orbname,*) iiorb
-  !   call plot_wf(trim(dir_output)//trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%glr,&
-  !        tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,gpsi)
-  !   !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%Llr(ilr),&
-  !   !     tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,tmb%psi)
-  ! 
-  !   ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
-  !end do
-  !i_all=-product(shape(gpsi))*kind(gpsi)
-  !deallocate(gpsi,stat=i_stat)
-  !call memocc(i_stat,i_all,'gpsi',subname)
-  !! END DEBUG 
+  ! DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
+  ind=1
+  gpsi=f_malloc(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,id='gpsi')
+  do iorbp=1,tmb%orbs%norbp
+     iiorb=iorbp+tmb%orbs%isorb
+     ilr = tmb%orbs%inwhichlocreg(iiorb)
+  
+     call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
+     call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
+          tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
+          1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
+   
+     call plot_wf(trim(dir_output)//trim(adjustl(yaml_toa(iiorb))),1,at,1.0_dp,tmb%Lzd%glr,&
+          tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,gpsi)
+     !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%Llr(ilr),&
+     !     tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,tmb%psi)
+   
+     ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
+  end do
+  call f_free(gpsi)
+  ! END DEBUG 
 
 
   ! Read the coefficient file for each fragment and assemble total coeffs
@@ -2829,7 +2826,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   integer :: ifrag, ifrag_ref, iforb, isforb
   real(kind=gp), dimension(:,:,:), allocatable :: workarraytmp 
 
-!  real(gp) :: dnrm2
+  real(gp), external :: dnrm2
 !  integer :: iat
 
   reformat_reason=0
@@ -2874,7 +2871,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
            lzd_old%llr(ilr_old)%wfd%nvctr_c,lzd_old%llr(ilr_old)%wfd%nvctr_f,&
            tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_f,&
            n_old,n,ns_old,ns,frag_trans(iorb),centre_old_box,centre_new_box,da)  
-
+!reformat=.true. !!!!temporary hack
       ! just copy psi from old to new as reformat not necessary
       if (.not. reformat) then 
 
@@ -2921,6 +2918,14 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
              end do
           end if
 
+!!$          print*, 'norm of read psi ',dnrm2(lzd_old%llr(ilr_old)%wfd%nvctr_c+7*lzd_old%llr(ilr_old)%wfd%nvctr_f,&
+!!$               psi_old(jstart_old),1),&
+!!$               lzd_old%llr(ilr_old)%wfd%nvctr_c,lzd_old%llr(ilr_old)%wfd%nvctr_f
+!!$          print*, 'norm of read psic ',dnrm2(lzd_old%llr(ilr_old)%wfd%nvctr_c,psi_old(jstart_old),1)
+!!$          print*, 'norm of read psif ',dnrm2(lzd_old%llr(ilr_old)%wfd%nvctr_f*7,&
+!!$               psi_old(jstart_old-1+lzd_old%llr(ilr_old)%wfd%nvctr_c+min(1,lzd_old%llr(ilr_old)%wfd%nvctr_f)),1)
+
+
           ! uncompress or point towards correct phigold as necessary
           if (present(phi_array_old)) then
              phigold=>phi_array_old(iorb)%psig
@@ -2933,7 +2938,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
           end if
    
           !write(100+iproc,*) 'norm phigold ',dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
-          !write(*,*) 'iproc,norm phigold ',iproc,dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
+          write(*,*) 'iproc,norm phigold ',iproc,dnrm2(8*product(n_old+1),phigold,1)
 
           ! read psir_old directly from files (don't have lzd_old to rebuild it)
           psirold_ok=.true.
@@ -3000,6 +3005,8 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
           call psig_to_psir_free(n_old(1),n_old(2),n_old(3),workarraytmp,psirold)
           call f_free(workarraytmp)
 
+          write(*,*) 'iproc,norm psirold ',iproc,dnrm2(product(2*n_old+31),psirold,1),2*n_old+31
+                    
           call timing(iproc,'Reformatting ','ON')
           if (psirold_ok) then
              !print*,'using psirold to reformat',iiorb

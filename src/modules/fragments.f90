@@ -67,7 +67,10 @@ module module_fragments
      real(gp), dimension(3) :: rot_center_new !< positions of the centers
      real(gp), dimension(3) :: rot_center !< center of rotation in original coordinates (might be fragment center or not)
      real(gp), dimension(3) :: rot_axis !< unit rotation axis (should have modulus one)
-     real(gp) :: theta !< angle of rotation 
+     real(gp) :: theta !< angle of rotation
+     !> rotation matrix. Should be applied to the fragment
+     !! functions to reformat
+     real(gp), dimension(3,3) :: Rmat 
   end type fragment_transformation
 
   !public operator(*)
@@ -333,8 +336,6 @@ contains
     forbs%ispot => orbs%ispot
   end subroutine orbs_to_min_orbs_point
 
-
-
   subroutine calculate_fragment_density(frag,ndimrho,tmb,iorb_start,charge,atoms,rxyz,denspot)
     use module_types
     implicit none
@@ -542,6 +543,8 @@ contains
     nullify(basis%density)
   end subroutine nullify_fragment_basis
 
+  !> this routine is dangerous as it frees orbs, when forbs points to it
+  !! either garbage collectors or other techniques should be considered
   subroutine minimal_orbitals_data_free(forbs)
     implicit none
     type(minimal_orbitals_data), intent(inout) :: forbs
@@ -693,9 +696,9 @@ contains
     real(gp), dimension(lwork) :: work !< array of SVD and M array
     real(gp), dimension(3,nat) :: J_arr !< matrix for calculating Wahba's cost function
     real(gp), dimension(3,3) :: B_mat,R_mat,U_mat,VT_mat !<matrices of Wahba's problem
-    character(len=100) :: subname
+    !character(len=100) :: subname
 
-    subname='find_frag_trans'
+    !subname='find_frag_trans'
 
     B_mat=0.0_gp
     R_mat=0.0_gp
@@ -714,11 +717,16 @@ contains
     !find rotation matrix
     call dgemm('N','N',3,3,3,1.0_gp,U_mat,3,VT_mat,3,0.0_gp,R_mat,3)
 
+    !store rotation matrix in columns
+    frag_trans%Rmat=transpose(R_mat)
+
     !find the angle from R matrix
     frag_trans%theta=theta_from_r(R_mat)
 
     !find rot_axis
     frag_trans%rot_axis=axis_from_r(R_mat)
+
+    !call yaml_map('Rmat found',R_mat)
 
     !print*,'Rmat:',frag_trans%theta
     !do i=1,3
@@ -750,6 +758,7 @@ contains
        J=J+J_arr(1,iat)**2+J_arr(2,iat)**2+J_arr(3,iat)**2
     end do
 
+    !here yaml output
     if (J>1.0e-3) then
        write(*,'(a,2es18.8)') "Error, Wahba's cost function is too big",J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
     end if
@@ -823,8 +832,6 @@ contains
     end if
 
   end function axis_from_r
-
-
 
   pure function frag_center(nat,rxyz) result(cen)
     implicit none
