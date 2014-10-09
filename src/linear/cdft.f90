@@ -344,7 +344,8 @@ call daxpy(ncount,inv_ovrlp(1)%matrix(10,9,1)*0.5d0,tmb%psi(istart+ncount),1,cal
                   ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
                   check_accur=.false., max_error=max_error, mean_error=mean_error)             
 
-             fd_grad(i+1)=(inv_ovrlp(1)%matrix(9,10,1)-ovrlp_half(1)%matrix(9,10,1)+inv_ovrlp(1)%matrix(10,9,1)-ovrlp_half(1)%matrix(10,9,1))/h
+             fd_grad(i+1) = (inv_ovrlp(1)%matrix(9,10,1)-ovrlp_half(1)%matrix(9,10,1)+ &
+                             inv_ovrlp(1)%matrix(10,9,1)-ovrlp_half(1)%matrix(10,9,1))/h
 
              write(30,*) fd_grad(i+1),calc_grad(i+1),tmb%psi(istart+i)!abs(fd_grad(i+1)-calc_grad(i+1))!,inv_ovrlp%matrix(9,10,1),ovrlp_half%matrix(9,10,1)
 
