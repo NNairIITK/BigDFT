@@ -2143,7 +2143,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                            inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
                            inv_ovrlp_smat%smmm%isfvctr, &
                            inv_ovrlp_smat, hamscal_compr, &
-                           ovrlp_mat%matrix_compr, .false., &
+                           tmb%linmat%ovrlppowers_(1)%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), .false., &
                            nsize_polynomial, SHS, ncalc, inv_ovrlp_matrixp, penalty_ev, chebyshev_polynomials, &
                            emergency_stop)
                        !write(*,'(a,i5,2es24.8)') 'iproc, sum(inv_ovrlp_matrixp(:,:,1:2)', (sum(inv_ovrlp_matrixp(:,:,icalc)),icalc=1,ncalc)
