@@ -171,8 +171,6 @@ def dump_timing_level(level,ilev=0,theta=0,
                       data={"time":[],"level":[],"theta":[],"names":[[]]}):
   """Inspect the first level of the given dictionary and dump the profile subroutines at this level"""
   import pylab
-  #n=len(level)
-  #print "we have", n," subroutines"
   subs=data["time"]
   tht=data["theta"]
   lev=data["level"]
@@ -188,8 +186,6 @@ def dump_timing_level(level,ilev=0,theta=0,
     except:
       sublevel=None
     for name in routine:
-      #print "At level", name, " we have",routine[name]
-      #subs.append(nopc(routine[-1])) #take percent
       t0=routine[name][0] #take the time
       subs.append(t0) #take the time
       tht.append(tel)
@@ -199,10 +195,6 @@ def dump_timing_level(level,ilev=0,theta=0,
       jlev=ilev+1
       dump_timing_level(sublevel,ilev=jlev,theta=tel,data=data)
     tel=tel+t0
-  #print "all the subroutines",subs
-  #Z=pylab.np.array(subs)
-  #Z = pylab.np.random.uniform(0,1,n)
-  #pylab.pie(Z), pylab.show()
   return data
 
 #defines the class of the polar plot
@@ -212,6 +204,7 @@ class polar_axis():
     self.fig = pylab.figure()
     self.ax = pylab.axes([0.025,0.025,0.95,0.95], polar=True)
     self.tot=data["time"][0]
+    self.times=data["time"]
     self.N=len(data["time"])
     self.step=5
     self.width=pylab.np.array(data["time"])/self.tot*2*pylab.np.pi
@@ -237,130 +230,97 @@ class polar_axis():
     # savefig('../figures/polar_ex.png',dpi=48)
     self.fig.canvas.mpl_connect('pick_event',self.info_callback)
 
+  # to be used what it is the moment to show the plot(s)
+  def show(self):
+    import pylab
     try:
       pylab.show()
     except KeyboardInterrupt:
       raise
 
+    
   def find_name(self,th,level):
     import pylab
     levth=[]
+    ipiv=[]
     for i in range(self.N):
       if self.bot[i]==level:
         levth.append(self.theta[i])
+        ipiv.append(i)
     to_find_zero=pylab.np.array(levth)-th
     if min(abs(to_find_zero))==0.0:
       routine=pylab.np.argmin(abs(to_find_zero))
-      #print "Ciao",xdata,ydata,level,'end'
-      #print "name",self.names[level],levth[routine]
-      return (th,self.names[level][routine])
+      return (th,self.names[level][routine],self.times[ipiv[routine]])
     else:
-      to_find_zero[to_find_zero < 0]=0
-      routine=pylab.np.argmin(to_find_zero)
-      return (self.theta[routine],self.names[level][routine])
+      to_find_zero[to_find_zero > 0]=-4*pylab.np.pi
+      routine=pylab.np.argmin(-to_find_zero)
+      return (self.theta[ipiv[routine]],self.names[level][routine],self.times[ipiv[routine]])
     
   def info_callback(self,event):
     thisline = event.artist
     xdata, ydata = thisline.get_xy()
     level = ydata/self.step
     #once that the level has been found filter the list of theta
-    (tt,name)=self.find_name(xdata,level)
-    print "Routine Picked:",name
+    (tt,name,time)=self.find_name(xdata,level)
+    print "Routine Picked:",name,",",time,"s (",time/self.tot*100.0,"% of total time)"
     #find lower level
     it=range(level)
     it.reverse()
     for i in it:
-      (tt,name)=self.find_name(tt,i)
+      (tt,name,time)=self.find_name(tt,i)
       print "Called by:",name
-##    levth=[]
-##    for i in range(self.N):
-##      if self.bot[i]==level:
-##        levth.append(self.theta[i])
-##    routine=pylab.np.argmin(abs(pylab.np.array(levth)-xdata))
-##    #print "Ciao",xdata,ydata,level,'end'
-##    #print "name",self.names[level],levth[routine]
-##    print self.names[level][routine]
-##
-
-  
-def plot_polar_axis(data):
-  import pylab
-  fig = pylab.figure()
-  ax = pylab.axes([0.025,0.025,0.95,0.95], polar=True)
-  tot=data["time"][0]
-  N=len(data["time"])
-  width=pylab.np.array(data["time"])
-  theta=pylab.np.array(data["theta"])
-  bot=pylab.np.array(data["level"])
-  radii = pylab.np.array(N*[5])
-  bars = pylab.bar(theta/tot*2*pylab.np.pi, radii,
-                   width=width/tot*2*pylab.np.pi, bottom=5*bot,picker=True)
-  ilev=0
-  maxlev=max(bot)
-  for r,bar,ilev in zip(radii, bars,theta):
-    #print ilev,'hello',float(ilev)/float(N),maxlev
-    #bar.set_facecolor( pylab.cm.jet(float(ilev)/maxlev))
-    bar.set_facecolor( pylab.cm.jet(float(ilev)/tot))
-    bar.set_alpha(0.5)
-    ilev+=1
-
-    ax.set_xticklabels([])
-    ax.set_yticklabels([])
-    # savefig('../figures/polar_ex.png',dpi=48)
-
-  #vals=None
-  fig.canvas.mpl_connect('pick_event',info_callback)
-
-  
-  try:
-    pylab.show()
-  except KeyboardInterrupt:
-    raise
-
 
 if __name__ == "__main__":
   parser = parse_arguments()
   (args, argtmp) = parser.parse_args()
 
+def bars_data(dict):
+  """Extract the data for plotting the different categories in bar chart"""
+  import pylab
+  toext=["Communications","Convolutions","BLAS-LAPACK","Linear Algebra",
+              "Other","PS Computation","Potential",
+              "Flib LowLevel","Initialization"]
 
-##
-##
-##N = 20 #number of levels
-##
-##tot=1720.0
-##width = [ 1720.0, 1577.0, 125.0, 5.69, 0.0975, 2.939e-05 , 0.02609]
-###radii = [ 5, 
-##theta = [ 0, 0,  1577.0, 1577.0+ 125.0, 1577.0+ 125.0+ 5.69,1577.0+ 125.0+ 5.69+ 0.0975 , 1577.0+ 125.0+ 5.69 ]
-##bot   = [ 0, 1, 1, 1, 1, 1, 2]
-###theta = pylab.np.arange(0.0, 2*pylab.np.pi, 2*pylab.np.pi/N)
-###radii = 10*pylab.np.random.rand(N)
-###radii = pylab.np.array(range(N+1)[1:])
-##N=len(width)
-##radii = pylab.np.array(N*[5])
-###bot = pylab.np.array(range(N))
-###width = pylab.np.pi/4*pylab.np.random.rand(N)
-##N=len(width)
-##width=pylab.np.array(width)
-##theta=pylab.np.array(theta)
-##bot=pylab.np.array(bot)
-##bars = pylab.bar(theta/tot*2*pylab.np.pi, radii, width=width/tot*2*pylab.np.pi, bottom=5*bot)
-##
-#gsdfg
-#args=parse_arguments()
+  ind=pylab.np.arange(1)
+  width=0.35
+  bot=pylab.np.array([0])
+  plts=[]
+  key_legend=[]
+  icol=1.0
+  for cat in toext:
+    dat=pylab.np.array([dict[cat][0]])
+    print 'data',dat
+    plt=pylab.bar(ind,dat,width,bottom=bot,color=pylab.cm.jet(icol/len(toext)))
+    #plt.set_facecolor( pylab.cm.jet(0.3))
+    plts.append(plt)
+    key_legend.append(plt[0])
+    bot+=dat
+    icol+=1.0
+
+  pylab.ylabel('Percent')
+  pylab.title('Time bar chart')
+  pylab.xticks(ind+width/2., ('G1', 'G2', 'G3', 'G4', 'G5') )
+  pylab.yticks(pylab.np.arange(0,100,10))
+  pylab.legend(pylab.np.array(key_legend), pylab.np.array(toext))
+  #pylab.show()
+
 #logfile
 #check if timedata is given
 if args.timedata is not None:
-  #load the yaml document
+  #load the first yaml document
   timing = yaml.load(open(args.timedata, "r").read(), Loader = yaml.CLoader)
   dict_routines = timing["Routines timing and number of calls"]
+  timing["WFN_OPT"]["Classes"].pop("Categories")  
+  sys.stdout.write(yaml.dump(timing["WFN_OPT"]["Classes"],default_flow_style=False,explicit_start=True))
+  bars_data(timing["WFN_OPT"]["Classes"])
   data=dump_timing_level(dict_routines)
-  ilev=1
-  for lev in data["names"]:
-    sys.stdout.write(yaml.dump({"Level "+str(ilev):lev},default_flow_style=False,explicit_start=True))
-    ilev+=1
-  #plot_polar_axis(data)
+  #ilev=1
+  #for lev in data["names"]:
+  #  sys.stdout.write(yaml.dump({"Level "+str(ilev):lev},default_flow_style=False,explicit_start=True))
+  #  ilev+=1
   plt=polar_axis(data)
-  #plt.show()
+  print 'data initialized'
+  plt.show()
   #print allev
   #dump the loaded info
   sys.stdout.write(yaml.dump(data,default_flow_style=False,explicit_start=True))
