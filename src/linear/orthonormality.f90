@@ -699,7 +699,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                   if (nproc>1) then
                       call timing(iproc,'lovrlp^-1     ','OF')
                       call timing(iproc,'lovrlp_comm   ','ON')
-                      call mpi_allgatherv(Amat12p, ovrlp_smat%nfvctr*norbp, mpi_double_precision, inv_ovrlp_mat(1)%matrix(1,1,ispin), &
+                      call mpi_allgatherv(Amat12p, ovrlp_smat%nfvctr*norbp, &
+                           mpi_double_precision, inv_ovrlp_mat(1)%matrix(1,1,ispin), &
                            ovrlp_smat%nfvctr*ovrlp_smat%nfvctr_par(:), ovrlp_smat%nfvctr*ovrlp_smat%isfvctr_par, &
                            mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
                       call timing(iproc,'lovrlp_comm   ','OF')
@@ -1154,7 +1155,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                   isshift=(ispin-1)*ovrlp_smat%nvctr
                   ilshift=(ispin-1)*inv_ovrlp_smat%nvctr
                   call timing(iproc,'lovrlp^-1     ','OF')
-                  call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, DENSE_MATMUL, ovrlp_large_compr(ilshift+1), ovrlp_largep)
+                  call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, &
+                       DENSE_MATMUL, ovrlp_large_compr(ilshift+1), ovrlp_largep)
                   call timing(iproc,'lovrlp^-1     ','ON')
                   call sequential_acces_matrix_fast(inv_ovrlp_smat, &
                        inv_ovrlp_mat(icalc)%matrix_compr(ilshift+1:ilshift+inv_ovrlp_smat%nvctr), invovrlp_compr_seq)
