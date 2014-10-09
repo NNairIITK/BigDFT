@@ -1160,14 +1160,14 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                        inv_ovrlp_mat(icalc)%matrix_compr(ilshift+1:ilshift+inv_ovrlp_smat%nvctr), invovrlp_compr_seq)
                   !!write(*,*) 'sum(inv_ovrlp_mat(1)%matrix_compr(ilshift+1:ilshift+inv_ovrlp_smat%nvctr)', sum(inv_ovrlp_mat(1)%matrix_compr(ilshift+1:ilshift+inv_ovrlp_smat%nvctr))
 
-                  if (power(1)==1) then
+                  if (power(icalc)==1) then
                       call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, &
                            inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_smat%smmm%isfvctr, &
                            inv_ovrlp_smat%smmm%nseq, inv_ovrlp_smat%smmm%nout, &
                            inv_ovrlp_smat%smmm%ivectorindex, inv_ovrlp_smat%smmm%onedimindices, &
                            invovrlp_compr_seq, ovrlp_largep, power(1), &
                            max_error, mean_error)
-                  else if (power(1)==2) then
+                  else if (power(icalc)==2) then
                       call timing(iproc,'lovrlp^-1     ','OF')
                       call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, DENSE_MATMUL, &
                            inv_ovrlp_mat(icalc)%matrix_compr(ilshift+1:ilshift+inv_ovrlp_smat%nvctr), invovrlpp)
@@ -1178,7 +1178,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                            inv_ovrlp_smat%smmm%ivectorindex, inv_ovrlp_smat%smmm%onedimindices, &
                            invovrlp_compr_seq, invovrlpp, power(1), &
                            max_error, mean_error, cmatp=ovrlp_largep)
-                  else if (power(1)==-2) then
+                  else if (power(icalc)==-2) then
                       ovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlp_compr_seq') 
                       call sequential_acces_matrix_fast(inv_ovrlp_smat, ovrlp_large_compr(ilshift+1), ovrlp_compr_seq)
                       call timing(iproc,'lovrlp^-1     ','OF')
@@ -1194,7 +1194,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                            ovrlp_compr_seq)
                       call f_free(ovrlp_compr_seq)
                   else
-                      stop 'wrong power(1)'
+                      stop 'wrong power(icalc)'
                   end if
                   if (iproc==0) then
                       call yaml_newline()
