@@ -327,7 +327,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
           matname='tmb%linmat%kernel_', mat=tmb%linmat%kernel_)
      tmb%linmat%ovrlp_minusonehalf_ = matrices_null()
      call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
-          matname='tmb%linmat%ovrlp_minusonehalf_', mat=tmb%linmat%ovrlp_minusonehalf_)
+          matname='tmb%linmat%ovrlp_minusonehalf_', mat=tmb%linmat%ovrlp_minusonehalf_(1))
 
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)

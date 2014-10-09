@@ -462,7 +462,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   real(kind=8) :: max_error, mean_error
   type(sparse_matrix) :: weight_matrix
   type(matrices) :: weight_matrix_
-  type(matrices) :: inv_ovrlp
+  type(matrices),dimension(1) :: inv_ovrlp
   character(len=256) :: subname='coeff_weight_analysis'
 
   call timing(iproc,'weightanalysis','ON')
@@ -477,8 +477,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   !weight_matrix_%matrix_compr=f_malloc_ptr(weight_matrix%nvctr,id='weight_matrix%matrix_compr')
   weight_matrix_%matrix_compr=sparsematrix_malloc_ptr(weight_matrix,iaction=SPARSE_FULL,id='weight_matrix%matrix_compr')
 
- inv_ovrlp = matrices_null()
- call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp)
+ inv_ovrlp(1) = matrices_null()
+ call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
 
   !weight_coeff=f_malloc((/ksorbs%norb,ksorbs%norb,input%frag%nfrag/), id='weight_coeff')
   weight_coeff_diag=f_malloc((/ksorbs%norb,input%frag%nfrag/), id='weight_coeff')
@@ -486,7 +486,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
   call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%s, &
        inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
-  call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, input%lin%order_taylor, 2, &
+  call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, input%lin%order_taylor, 1, (/2/), &
        tmb%orthpar%blocksize_pdsyev, imode=2, &
        ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
        ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
@@ -524,7 +524,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   end do
   if (iproc==0) call yaml_sequence_close()
 
-  call deallocate_matrices(inv_ovrlp)
+  call deallocate_matrices(inv_ovrlp(1))
 
   call deallocate_sparse_matrix(weight_matrix)
   call deallocate_matrices(weight_matrix_)
@@ -1119,7 +1119,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
   real(gp),dimension(:,:),pointer :: inv_ovrlp
   real(kind=gp), dimension(:,:), allocatable:: grad_full
   character(len=*),parameter:: subname='calculate_coeff_gradient'
-  type(matrices) :: inv_ovrlp_
+  type(matrices),dimension(1) :: inv_ovrlp_
 
   integer :: itmp, itrials, jorb
   integer :: ncount1, ncount_rate, ncount_max, ncount2
@@ -1130,8 +1130,8 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
   call f_routine(id='calculate_coeff_gradient')
   call timing(iproc,'dirmin_lagmat1','ON')
 
-  inv_ovrlp_ = matrices_null()
-  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp_', mat=inv_ovrlp_)
+  inv_ovrlp_(1) = matrices_null()
+  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp_', mat=inv_ovrlp_(1))
 
 
   ! we have the kernel already, but need it to not contain occupations so recalculate here
@@ -1283,7 +1283,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
   if(tmb%orthpar%blocksize_pdsyev<0) then
      call timing(iproc,'dirmin_dgesv','OF')
      inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
-     call overlapPowerGeneral(iproc, nproc, order_taylor, 1, -8, &
+     call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/1/), -8, &
           imode=2, &
           ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, check_accur=.true., &
@@ -1448,7 +1448,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
              else
                  ispin=2
              end if
-             call dgemm('n', 'n', tmb%linmat%m%nfvctr, 1, tmb%linmat%m%nfvctr, 1.d0, inv_ovrlp_%matrix(1,1,ispin), &
+             call dgemm('n', 'n', tmb%linmat%m%nfvctr, 1, tmb%linmat%m%nfvctr, 1.d0, inv_ovrlp_(1)%matrix(1,1,ispin), &
                   tmb%linmat%m%nfvctr, grad_cov(1,iorb), tmb%linmat%m%nfvctr, 0.d0, grad(1,iorb), tmb%linmat%m%nfvctr)
          end do
      end if
@@ -1477,7 +1477,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
      end if
   end if
 
-  call deallocate_matrices(inv_ovrlp_)
+  call deallocate_matrices(inv_ovrlp_(1))
 
   call timing(iproc,'dirmin_dgesv','OF') !lr408t
   call f_release_routine()
@@ -1508,15 +1508,15 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   real(kind=gp), dimension(:), allocatable:: occup_tmp
   real(kind=gp), dimension(:,:), allocatable:: grad_full
   real(kind=gp) :: max_error, mean_error
-  type(matrices) :: inv_ovrlp_
+  type(matrices),dimension(1) :: inv_ovrlp_
 
   if (tmb%linmat%m%nspin==2) stop 'ERROR: calculate_coeff_gradient_extra not yet implemented for npsin==2'
 
   call f_routine(id='calculate_coeff_gradient_extra')
   call timing(iproc,'dirmin_lagmat1','ON')
 
-  inv_ovrlp_ = matrices_null()
-  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp_', mat=inv_ovrlp_)
+  inv_ovrlp_(1) = matrices_null()
+  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp_', mat=inv_ovrlp_(1))
 
 
   occup_tmp=f_malloc(tmb%orbs%norb,id='occup_tmp')
@@ -1620,14 +1620,14 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
      !   call f_free(ipiv)
      !end if
      !!inv_ovrlp=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='inv_ovrlp')
-     call overlapPowerGeneral(iproc, nproc, order_taylor, 1, -8, &
+     call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/1/), -8, &
           imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp_, check_accur=.true., &
           max_error=max_error, mean_error=mean_error)
      call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
      if (tmb%orbs%norbp>0) then
-        call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%orbs%norbp, tmb%linmat%l%nfvctr, 1.d0, inv_ovrlp_%matrix(1,1,1), &
+        call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%orbs%norbp, tmb%linmat%l%nfvctr, 1.d0, inv_ovrlp_(1)%matrix(1,1,1), &
              tmb%linmat%l%nfvctr, grad_cov(1,1), tmb%linmat%l%nfvctr, 0.d0, grad(1,1), tmb%linmat%l%nfvctr)
      end if
      !!call f_free_ptr(inv_ovrlp)
@@ -1659,7 +1659,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
       stop
   end if
 
-  call deallocate_matrices(inv_ovrlp_)
+  call deallocate_matrices(inv_ovrlp_(1))
 
   call timing(iproc,'dirmin_dgesv','OF') !lr408t
   call f_release_routine()

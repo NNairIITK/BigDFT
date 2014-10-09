@@ -385,7 +385,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                       call chebyshev_clean(iproc, nproc, npl, cc, &
                            tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nfvctrp, tmb%linmat%l%smmm%isfvctr, foe_obj, &
                            tmb%linmat%l, hamscal_compr, &
-                           tmb%linmat%ovrlp_minusonehalf_%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), calculate_SHS, &
+                           tmb%linmat%ovrlp_minusonehalf_(1)%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), calculate_SHS, &
                            nsize_polynomial, SHS, tmb%linmat%kernel_%matrixp, penalty_ev, chebyshev_polynomials, &
                            emergency_stop)
                   else
@@ -840,7 +840,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               !!call compress_matrix(iproc, tmb%linmat%l, inmat=inv_ovrlp%matrix, outmat=inv_ovrlp%matrix_compr)
           end if
           if (imode==SPARSE) then
-              call overlapPowerGeneral(iproc, nproc, order_taylor, -2, -1, &
+              call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/-2/), -1, &
                    imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                    ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=tmb%linmat%ovrlp_minusonehalf_, &
                    check_accur=.true., max_error=max_error, mean_error=mean_error)
@@ -892,9 +892,9 @@ subroutine foe(iproc, nproc, tmprtr, &
           kernel_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
           call sequential_acces_matrix_fast(tmb%linmat%l, matrix_compr, kernel_compr_seq)
           call sequential_acces_matrix_fast(tmb%linmat%l, &
-               tmb%linmat%ovrlp_minusonehalf_%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), inv_ovrlp_compr_seq)
+               tmb%linmat%ovrlp_minusonehalf_(1)%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), inv_ovrlp_compr_seq)
           call uncompress_matrix_distributed(iproc, tmb%linmat%l, DENSE_MATMUL, &
-               tmb%linmat%ovrlp_minusonehalf_%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), inv_ovrlpp)
+               tmb%linmat%ovrlp_minusonehalf_(1)%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), inv_ovrlpp)
 
            tempp=0.d0
           call sparsemm(tmb%linmat%l, kernel_compr_seq, inv_ovrlpp, tempp)
