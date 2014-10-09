@@ -558,7 +558,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
           call yaml_map('mode','dense')
       end if
       !call yaml_map('power(1)',power(1))
-      call yaml_sequence_open()
+      call yaml_mapping_open()
       do icalc=1,ncalc
           select case (power(icalc))
           case (-2)
@@ -571,7 +571,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
               stop 'wrong power(icalc)'
           end select
       end do
-      call yaml_sequence_close()
+      call yaml_mapping_close()
       call yaml_map('order',iorder)
   end if
 
@@ -1020,7 +1020,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                    ovrlp_mat%matrix_compr, ovrlp_large_compr, 'small_to_large')
 
               ovrlpminonep = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_MATMUL, id='ovrlpminonep')
-              invovrlpp_arr = f_malloc((/inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%nfvctrp,ncalc/),id='invovrlpp_arr')
+              invovrlpp_arr = f_malloc((/inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%smmm%nfvctrp,ncalc/),id='invovrlpp_arr')
 
               if (iorder>1) then
                   ovrlpminone_sparse_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, &

@@ -36,6 +36,7 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, nspin, lzd, hphi, phi, ldii
   integer,dimension(:),allocatable:: ipiv
   character(len=*),parameter:: subname='optimizeDIIS'
 
+  call f_routine(id='optimizeDIIS')
   call timing(iproc,'optimize_DIIS ','ON')
 
 
@@ -283,6 +284,7 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, nspin, lzd, hphi, phi, ldii
   call f_free(ipiv)
 
   call timing(iproc,'optimize_DIIS ','OF')
+  call f_release_routine()
 
   !!ist=0
   !!do iorb=1,orbs%norbp

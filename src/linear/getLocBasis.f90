@@ -1270,6 +1270,8 @@ subroutine improveOrbitals(iproc, nproc, tmb, nspin, ldiis, alpha, gradient, exp
   ! Local variables
   integer :: istart, iorb, iiorb, ilr, ncount
 
+  call f_routine(id='improveOrbitals')
+
   if(ldiis%isx==0) then ! steepest descents
       call timing(iproc,'optimize_SD   ','ON')
       istart=1
@@ -1290,6 +1292,8 @@ subroutine improveOrbitals(iproc, nproc, tmb, nspin, ldiis, alpha, gradient, exp
       call optimizeDIIS(iproc, nproc, max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, nspin, tmb%lzd, gradient, tmb%psi, ldiis, &
            experimental_mode)
   end if
+
+  call f_release_routine()
 
 end subroutine improveOrbitals
 
