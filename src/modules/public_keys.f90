@@ -230,6 +230,7 @@ module public_keys
   character(len=*), parameter :: SOURCE_KEY = 'Source'
   character(len=*), parameter :: ATOMIC_NUMBER = 'Atomic number'
   character(len=*), parameter :: ELECTRON_NUMBER = 'No. of Electrons'
+  character(len=*), parameter :: POSINP_SOURCE = 'source'
   
 
 

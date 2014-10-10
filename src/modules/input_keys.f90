@@ -892,22 +892,43 @@ contains
     end subroutine validate
   END SUBROUTINE input_keys_set
 
+  !> takes the posinp filename from the dictionary. Starting point is dict//POSINP
+  subroutine astruct_dict_get_source(dict, source)
+    use dictionaries, only: max_field_length, dictionary, has_key, operator(//), dict_value
+    use public_keys, only: POSINP_SOURCE
+    implicit none
+    type(dictionary), pointer :: dict
+    character(len = *), intent(inout) :: source !<preserve provious value if present
+
+    write(source, "(A)") ""
+    if (has_key(dict, ASTRUCT_PROPERTIES)) then
+       if (has_key(dict // ASTRUCT_PROPERTIES, POSINP_SOURCE)) &
+            & source = dict_value(dict // ASTRUCT_PROPERTIES // POSINP_SOURCE)
+    end if
+  end subroutine astruct_dict_get_source
+
 
   !> Dump the dictionary of the input variables.
   !! Should dump only the keys relative to the iunput variables and
   !! print out warnings for the ignored keys
   subroutine input_keys_dump(dict, userOnly)
+    use yaml_strings, only: f_strcpy
     use yaml_output
     use dictionaries
     use dynamic_memory
+    use public_keys, only: POSINP,ASTRUCT_PROPERTIES,ASTRUCT_POSITIONS
+    
     implicit none
     type(dictionary), pointer :: dict   !< Dictionary to dump
     logical, intent(in), optional :: userOnly
 
     !local variables
-    integer :: i, dlen, skeys
+    integer, parameter :: natoms_dump=500
+    integer :: i, dlen, skeys,natoms
     character(max_field_length), dimension(:), allocatable :: keys
+    character(max_field_length) ::  sourcefile
     logical :: userOnly_
+    type(dictionary), pointer :: tmp
 
     call f_routine(id='input_keys_dump')
 
@@ -929,8 +950,22 @@ contains
           allocate(keys(dict_size(dict)))
           keys = dict_keys(dict)
           skeys = size(keys)
-          do i = 1, skeys, 1
-             call dict_dump_(dict // keys(i))
+          do i = 1, skeys
+             if (POSINP == trim(keys(i))) then
+                call f_strcpy(src='not provided',dest=sourcefile)
+                tmp=>dict//POSINP
+                !check the number of atoms
+                natoms=-1
+                if (ASTRUCT_POSITIONS .in. tmp) natoms=dict_len(tmp // ASTRUCT_POSITIONS)
+                if (natoms > natoms_dump) then
+                   call astruct_dict_get_source(tmp, sourcefile)
+                   call yaml_map(POSINP,sourcefile)
+                else
+                   call dict_dump_(dict // keys(i))
+                end if
+             else
+                call dict_dump_(dict // keys(i))
+             end if
           end do
           deallocate(keys)
        end if
