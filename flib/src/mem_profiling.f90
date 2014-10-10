@@ -23,22 +23,25 @@ module memory_profiling
   end type memstat
 
   type, public :: memory_state
-     integer :: memalloc !< number of allocations recorded
-     integer :: memdealloc !<number of deallocations recorded
-     type(memstat) :: memloc !<state of the memory in the local routine
-     type(memstat) :: memtot !<global state of the memory in profiler instance
+     integer :: memalloc     !< Number of allocations recorded
+     integer :: memdealloc   !< Number of deallocations recorded
+     type(memstat) :: memloc !< State of the memory in the local routine
+     type(memstat) :: memtot !< Global state of the memory in profiler instance
   end type memory_state
 
-  real :: memorylimit = 0.e0 !< limit of the memory allowed, in Gb
+  real :: memorylimit = 0.e0 !< Limit of the memory allowed, in Gb
+
+  private :: transform_to_MB
 
 contains
 
+  !> Set a memory limit
   subroutine f_set_memory_limit(limit)
     real, intent(in) :: limit
     memorylimit = limit
   end subroutine f_set_memory_limit
 
-  !> retrieve the information of the present memory state
+  !> Retrieve the information of the present memory state
   subroutine memstate_report(memstate,dump,peak,memory,array,routine,&
        array_peak,routine_peak,&
        true_proc_peak,true_proc_memory)
@@ -66,8 +69,10 @@ contains
        call f_strcpy(src='unknown',dest=proc_peak)
        call f_strcpy(src='unknown',dest=proc_memory)
        !retrieve values if they exists
-       proc_peak = procstatus .get. 'VmHWM'
-       proc_memory = procstatus .get. 'VmRSS'
+       proc_peak = procstatus .get. 'VmHWM'   !Peak of memory
+       proc_memory = procstatus .get. 'VmRSS' !Instant occupation memory
+       call transform_to_MB(proc_peak)
+       call transform_to_MB(proc_memory)
        call dict_free(procstatus)
     end if
 
@@ -77,7 +82,7 @@ contains
          call yaml_map('Tot. No. of Deallocations',memstate%memdealloc)
          call yaml_map('Remaining Memory (B)',memstate%memtot%memory)
          call yaml_mapping_open('Memory occupation')
-          call yaml_map('Peak Value (MB)',memstate%memtot%peak/int(1048576,kind=8))
+          call yaml_map('Peak Value (MB)',real(memstate%memtot%peak,kind=8)/1048576d0,fmt="(f15.3)")
           call yaml_map('for the array',trim(memstate%memtot%array))
           call yaml_map('in the routine',trim(memstate%memtot%routine))
           call yaml_map('Memory Peak of process',proc_peak)
@@ -110,6 +115,38 @@ contains
 
   end subroutine memstate_report
 
+  pure subroutine transform_to_MB(data)
+    use yaml_strings, only: f_strcpy
+    implicit none
+    character(len=*), intent(inout) :: data
+    !local variables
+    integer :: ipos,jpos
+    character(len=256) :: tmp !< should be enough
+
+    !search the kB unit
+    ipos=index(data,'kB')
+    if (ipos==0) ipos=index(data,'KB')
+    if (ipos==0) return !nothing to convert in this case
+    if (ipos > 0) then
+       call f_strcpy(src=adjustl(data(1:ipos-1)),dest=tmp)
+       !add the points before the last digits
+       ipos=len_trim(tmp)
+       if (ipos > 3 .and. ipos < len(tmp)) then
+          !make way for the point
+          do jpos=ipos,ipos-2,-1
+             tmp(jpos+1:jpos+1)=tmp(jpos:jpos)
+          end do
+          !put the point
+          tmp(ipos-2:ipos-2)='.'
+          !then rewrite the data in data
+          call f_strcpy(src=tmp(1:ipos+1)//' MB',dest=data)
+       end if
+    end if
+
+  end subroutine transform_to_MB
+
+
+  !> Dump in the unit yaml stream the status of the memory
   subroutine dump_status_line(memstate,unit,routine,array)
     use yaml_output
     use dictionaries
@@ -152,6 +189,9 @@ contains
     call yaml_sequence_close(unit=unit)
   end subroutine dump_status_line
 
+
+  !> Test the existence of /proc/<pid>/status and read it (yaml format)
+  !! for linux architecture
   subroutine get_proc_status_dict(dict)
     use yaml_parse
     use f_utils
@@ -172,6 +212,7 @@ contains
     call f_file_exists(trim(filename),exists)
 
     if (exists) then
+       !This file has a yaml structure!
        call yaml_parse_from_file(dict_loaded,trim(filename))
        dict => dict_loaded .pop. 0
        call dict_free(dict_loaded)
@@ -198,6 +239,7 @@ contains
     memstate%memloc%memory=int(0,kind=8) !fake initialisation to print the first routine
     memstate%memloc%peak=int(0,kind=8)
   end subroutine memstate_init
+
 
   subroutine memstate_update(memstate,isize,array,routine)
     use yaml_output

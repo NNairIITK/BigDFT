@@ -3289,7 +3289,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
 
      ist=ist+(wfn%Lzd%Llr(ilr)%wfd%nvctr_c+7*wfn%Lzd%Llr(ilr)%wfd%nvctr_f)
 
-     call pkernel_free(G_Helmholtz,'helmholtz_equation')
+     call pkernel_free(G_Helmholtz)
 
   end do
   call deallocate_work_arrays_sumrho(w)
