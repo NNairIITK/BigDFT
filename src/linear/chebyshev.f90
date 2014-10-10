@@ -17,7 +17,8 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ha
   use module_interfaces, except_this_one => chebyshev_clean
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), &
                                DENSE_MATMUL, SPARSEMM_SEQ
-  use sparsematrix, only: sequential_acces_matrix_fast, sparsemm, compress_matrix_distributed
+  use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
+                          sparsemm, compress_matrix_distributed
   use foe_base, only: foe_data
   implicit none
 
@@ -25,9 +26,10 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ha
   integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, norb, norbp, isorb, ncalc
   real(8),dimension(npl,3,ncalc),intent(in) :: cc
   type(sparse_matrix), intent(in) :: kernel
-  real(kind=8),dimension(kernel%nvctr),intent(in) :: ham_compr, ovrlp_compr
+  real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: ham_compr
+  real(kind=8),dimension(kernel%nvctr),intent(in) :: ovrlp_compr
   logical,intent(in) :: calculate_SHS
-  real(kind=8),dimension(kernel%nvctr),intent(inout) :: SHS
+  real(kind=8),dimension(kernel%nvctrp_tg),intent(inout) :: SHS
   real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,ncalc),intent(out) :: fermi
   real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,2),intent(out) :: penalty_ev
   real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
@@ -87,7 +89,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ha
                       ii=ii+1
                       iiorb = kernel%keyg(1,2,iseg)
                       jjorb = jorb
-                      matrix(jjorb,iiorb-kernel%smmm%isfvctr)=ovrlp_compr(ii)
+                      matrix(jjorb,iiorb-kernel%smmm%isfvctr)=ovrlp_compr(ii-kernel%isvctrp_tg)
                       !if (jjorb==iiorb) then
                       !    matrix(jjorb,iiorb-kernel%isfvctr)=1.d0
                       !else
@@ -98,7 +100,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ha
           end if
       end if
     
-      call sequential_acces_matrix_fast(kernel, ham_compr, ham_compr_seq)
+      call sequential_acces_matrix_fast2(kernel, ham_compr, ham_compr_seq)
     
     
       call sequential_acces_matrix_fast(kernel, ovrlp_compr, ovrlp_compr_seq)
@@ -121,7 +123,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ha
           call sparsemm(kernel, ovrlp_compr_seq, vectors(1,1,1), matrix(1,1))
           !call to_zero(kernel%nvctr, SHS(1))
       end if
-      call to_zero(kernel%nvctr, SHS(1))
+      call to_zero(kernel%nvctrp_tg, SHS(1))
       
       if (kernel%smmm%nfvctrp>0) then
           isegstart=kernel%istsegline(kernel%smmm%isfvctr+1)
@@ -140,7 +142,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ha
                   ii=ii+1
                   iiorb = kernel%keyg(1,2,iseg)
                   jjorb = jorb
-                  SHS(ii)=matrix(jjorb,iiorb-kernel%smmm%isfvctr)
+                  SHS(ii-kernel%isvctrp_tg)=matrix(jjorb,iiorb-kernel%smmm%isfvctr)
               end do
           end do
       end if
@@ -148,16 +150,16 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ha
       if (nproc > 1) then
          !call mpiallred(SHS(1), kernel%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
          call compress_matrix_distributed(iproc, nproc, kernel, DENSE_MATMUL, &
-              matrix, SHS(kernel%isvctrp_tg+1:))
+              matrix, SHS)
       end if
 
   else
-      call vcopy(kernel%nvctr, ham_compr(1), 1, SHS(1), 1)
+      call vcopy(kernel%nvctrp_tg, ham_compr(1), 1, SHS(1), 1)
   
   end if
   
   if (kernel%smmm%nfvctrp>0) then
-      call sequential_acces_matrix_fast(kernel, SHS, SHS_seq)
+      call sequential_acces_matrix_fast2(kernel, SHS, SHS_seq)
   end if
   
 

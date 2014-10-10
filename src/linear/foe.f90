@@ -18,7 +18,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   use module_interfaces, except_this_one => foe
   use yaml_output
   use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=), &
-                               SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, &
+                               SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, SPARSE_TASKGROUP, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
@@ -104,7 +104,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
   penalty_ev = f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%smmm%nfvctrp,2/),id='penalty_ev')
   fermip_check = f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%smmm%nfvctrp/),id='fermip_check')
-  SHS = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='SHS')
+  SHS = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='SHS')
   fermi_check_compr = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='fermi_check_compr')
 
 
@@ -118,7 +118,7 @@ subroutine foe(iproc, nproc, tmprtr, &
   call timing(iproc, 'FOE_auxiliary ', 'ON')
 
 
-  hamscal_compr = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='hamscal_compr')
+  hamscal_compr = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
 
     
   ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
@@ -1869,7 +1869,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
   use yaml_output
   use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, &
                                sparsematrix_malloc0_ptr, assignment(=), &
-                               SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, &
+                               SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, SPARSE_TASKGROUP, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, orb_from_index
@@ -1987,10 +1987,10 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
 
 
   penalty_ev = f_malloc((/inv_ovrlp_smat%nfvctr,inv_ovrlp_smat%smmm%nfvctrp,2/),id='penalty_ev')
-  SHS = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='SHS')
+  SHS = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_TASKGROUP, id='SHS')
 
 
-  hamscal_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='hamscal_compr')
+  hamscal_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
 
     
   ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
@@ -2466,7 +2466,7 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
   type(sparse_matrix),intent(in),optional :: smat2
   type(matrices),intent(in),optional :: mat2
   integer,intent(in),optional :: i2shift
-  real(kind=8),dimension(smatl%nvctr),target,intent(out) :: matscal_compr
+  real(kind=8),dimension(smatl%nvctrp_tg),target,intent(out) :: matscal_compr
   real(kind=8),intent(out) :: scale_factor, shift_value
 
   ! Local variables
