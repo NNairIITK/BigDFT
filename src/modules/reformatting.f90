@@ -12,7 +12,7 @@ module reformatting
   
   private
 
-  public :: field_rototranslation3D,my_scaling_function4b2B
+  public :: field_rototranslation3D,my_scaling_function4b2B,back_trans_16_reversed
 
 contains
 

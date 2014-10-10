@@ -76,7 +76,7 @@ module module_fragments
   !public operator(*)
 
   public :: fragment_null, fragment_free, init_fragments, minimal_orbitals_data_null, rotate_vector
-  public :: frag_center, find_frag_trans, calculate_fragment_density
+  public :: frag_center, find_frag_trans, calculate_fragment_density,fragment_transformation_identity
 
 contains
 
@@ -598,6 +598,19 @@ contains
 
   end subroutine fragment_allocate
 
+  !>defines a identity transformation
+  function fragment_transformation_identity() result(ft)
+    type(fragment_transformation) :: ft
+    ft%rot_center_new= 0.0_gp 
+    ft%rot_center    = 0.0_gp 
+    ft%rot_axis      = 0.0_gp
+    ft%rot_axis(1)   = 1.0_gp
+    ft%theta         = 0.0_gp
+    ft%Rmat          = 0.0_gp
+    ft%Rmat(1,1)     = 1.0_gp
+    ft%Rmat(2,2)     = 1.0_gp
+    ft%Rmat(3,3)     = 1.0_gp
+  end function fragment_transformation_identity
 
 
   !function transform_fragment(trans,frag) result(frag_new)
@@ -726,7 +739,7 @@ contains
     !find rot_axis
     frag_trans%rot_axis=axis_from_r(R_mat)
 
-    !call yaml_map('Rmat found',R_mat)
+!!$    call yaml_map('Rmat found',frag_trans%Rmat)
 
     !print*,'Rmat:',frag_trans%theta
     !do i=1,3

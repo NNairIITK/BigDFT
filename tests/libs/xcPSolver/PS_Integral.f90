@@ -15,7 +15,7 @@ program PS_Integral
   use yaml_output
   use dynamic_memory
   use m_profiling
-
+  use reformatting
   implicit none
   integer :: n_points, n_range, n_scf, itype_scf
   integer, dimension(1:7) :: n_points_list = 0
@@ -1635,6 +1635,7 @@ end subroutine my_interpolate_and_transpose
 
 
 subroutine scaling_function4b2B_again(itype,nd,nrange,a,x)
+   use reformatting
    use module_base
    implicit none
    !Arguments

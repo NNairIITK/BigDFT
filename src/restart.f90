@@ -1143,8 +1143,9 @@ subroutine tmb_overlap_onsite(iproc, nproc, at, tmb, rxyz)
       !centre_new(:)=rxyz(:,iiat_tmp)
       !shift(:)=centre_new(:)-centre_old(:)
 
-      frag_trans%theta=0.0d0*(4.0_gp*atan(1.d0)/180.0_gp)
-      frag_trans%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
+      frag_trans=fragment_transformation_identity()
+!!$      frag_trans%theta=0.0d0*(4.0_gp*atan(1.d0)/180.0_gp)
+!!$      frag_trans%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
       frag_trans%rot_center(:)=rxyz(:,iiat)
       frag_trans%rot_center_new(:)=rxyz(:,iiat_tmp)
 
@@ -1671,6 +1672,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   iiat=onwhichatom(iorb)
   tol=1.d-3
 
+  !why these hard-coded values?
   frag_trans%theta=20.0d0*(4.0_gp*atan(1.d0)/180.0_gp)
   frag_trans%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
   frag_trans%rot_center(:)=(/7.8d0,11.8d0,11.6d0/)
@@ -2246,8 +2248,9 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
         call f_free(rxyz_ref)
         call f_free(rxyz_new)
 
-        !write(*,'(A,I3,1x,I3,1x,3(F12.6,1x),F12.6)') 'ifrag,ifrag_ref,rot_axis,theta',&
-        !     ifrag,ifrag_ref,frag_trans_frag(ifrag)%rot_axis,frag_trans_frag(ifrag)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+!!$        write(*,'(A,I3,1x,I3,1x,3(F12.6,1x),F12.6)') 'ifrag,ifrag_ref,rot_axis,theta',&
+!!$             ifrag,ifrag_ref,frag_trans_frag(ifrag)%rot_axis,frag_trans_frag(ifrag)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+!!$        call yaml_map('Rmat again',frag_trans_frag(ifrag)%Rmat)
 
         isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat     
         isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
@@ -2280,6 +2283,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
 
               frag_trans_orb(iorbp)%rot_axis=(frag_trans_frag(ifrag)%rot_axis)
               frag_trans_orb(iorbp)%theta=frag_trans_frag(ifrag)%theta
+              frag_trans_orb(iorbp)%Rmat=frag_trans_frag(ifrag)%Rmat
 
               !write(*,'(a,x,2(i2,x),4(f5.2,x),6(f7.3,x))'),'trans2',ifrag,iiorb,frag_trans_orb(iorbp)%theta,&
               !     frag_trans_orb(iorbp)%rot_axis, &
@@ -2386,27 +2390,27 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   call f_free(rxyz_old)
   call deallocate_local_zone_descriptors(lzd_old)
 
-  ! DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
-  ind=1
-  gpsi=f_malloc(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,id='gpsi')
-  do iorbp=1,tmb%orbs%norbp
-     iiorb=iorbp+tmb%orbs%isorb
-     ilr = tmb%orbs%inwhichlocreg(iiorb)
-  
-     call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
-     call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
-          tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
-          1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
-   
-     call plot_wf(trim(dir_output)//trim(adjustl(yaml_toa(iiorb))),1,at,1.0_dp,tmb%Lzd%glr,&
-          tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,gpsi)
-     !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%Llr(ilr),&
-     !     tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,tmb%psi)
-   
-     ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
-  end do
-  call f_free(gpsi)
-  ! END DEBUG 
+!!$  ! DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
+!!$  ind=1
+!!$  gpsi=f_malloc(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,id='gpsi')
+!!$  do iorbp=1,tmb%orbs%norbp
+!!$     iiorb=iorbp+tmb%orbs%isorb
+!!$     ilr = tmb%orbs%inwhichlocreg(iiorb)
+!!$  
+!!$     call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
+!!$     call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
+!!$          tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
+!!$          1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
+!!$   
+!!$     call plot_wf(trim(dir_output)//trim(adjustl(yaml_toa(iiorb))),1,at,1.0_dp,tmb%Lzd%glr,&
+!!$          tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,gpsi)
+!!$     !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%Llr(ilr),&
+!!$     !     tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,tmb%psi)
+!!$   
+!!$     ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
+!!$  end do
+!!$  call f_free(gpsi)
+!!$  ! END DEBUG 
 
 
   ! Read the coefficient file for each fragment and assemble total coeffs
@@ -2938,7 +2942,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
           end if
    
           !write(100+iproc,*) 'norm phigold ',dnrm2(8*(n1_old+1)*(n2_old+1)*(n3_old+1),phigold,1)
-          write(*,*) 'iproc,norm phigold ',iproc,dnrm2(8*product(n_old+1),phigold,1)
+          !write(*,*) 'iproc,norm phigold ',iproc,dnrm2(8*product(n_old+1),phigold,1)
 
           ! read psir_old directly from files (don't have lzd_old to rebuild it)
           psirold_ok=.true.
@@ -3005,7 +3009,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
           call psig_to_psir_free(n_old(1),n_old(2),n_old(3),workarraytmp,psirold)
           call f_free(workarraytmp)
 
-          write(*,*) 'iproc,norm psirold ',iproc,dnrm2(product(2*n_old+31),psirold,1),2*n_old+31
+          !write(*,*) 'iproc,norm psirold ',iproc,dnrm2(product(2*n_old+31),psirold,1),2*n_old+31
                     
           call timing(iproc,'Reformatting ','ON')
           if (psirold_ok) then

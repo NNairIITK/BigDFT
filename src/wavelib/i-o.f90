@@ -1193,7 +1193,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
 !!$  call yaml_map('Rotation axis',frag_trans%rot_axis,fmt='(1pg20.12)')
 !!$  call yaml_map('Rotation angle (deg)',frag_trans%theta*180.0_gp/pi_param,fmt='(1pg20.12)')
 !!$  call yaml_map('Translation vector',da,fmt='(1pg20.12)')
-!!$  call yaml_map('Rotation matrix delta',frag_trans%Rmat-rmat,fmt='(1pg20.12)')
+!!$  call yaml_map('Rotation matrix ',frag_trans%Rmat,fmt='(1pg20.12)')
 !!$  call yaml_map('Rotation matrix',rmat,fmt='(1pg20.12)')
 !!$  call yaml_map('Determinants',[det_33(frag_trans%Rmat),det_33(rmat)])
 
@@ -1228,11 +1228,11 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
 !!$  irp(2)=1
 !!$  irp(3)=3
 
-  !print the suggested order
+!!$  !print the suggested order
 !!$  call yaml_map('Suggested order for the transformation',irp)
 
   if (.not. present(psirold)) then
-     call field_rototranslation3D(nd+1,nrange,y_phi,frag_trans%Rmat,da,&
+ call field_rototranslation3D(nd+1,nrange,y_phi,frag_trans%Rmat,da,&
           centre_old,centre_new,irp,&
           hgridsh_old,(2*n_old+2+2*nb),psifscfold,hgridsh,(2*n+2+2*nb),psifscf)
   else
@@ -1411,19 +1411,19 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
 !!$      rrow(irp(3))=0.d0
 !!$      irp(2)=maxloc(rrow,1)
 
-      !add to the transformations the sign of the axis of the chosen reference 
-      !coordinate
-      !the second element has the sign which is the ratio of the previous two,
-      !plus a sign which is given by the fact that the order is a cyclic permutation
-      isgn=int(sign(1.0e0,real(rmat(irp(1),1)/rmat(irp(3),3))))
-      if (modulo(irp(1),3)+1 /= irp(2)) isgn=-isgn !cyclic permutation
-      irp(2)=isgn*irp(2)
-
-      !for the first and the third the sign is determined from the matrix element
-      isgn=int(sign(1.0e0,real(rmat(irp(1),1))))
-      irp(1)=isgn*irp(1)
-      isgn=int(sign(1.0e0,real(rmat(irp(3),3))))
-      irp(3)=isgn*irp(3)
+!!$      !add to the transformations the sign of the axis of the chosen reference 
+!!$      !coordinate
+!!$      !the second element has the sign which is the ratio of the previous two,
+!!$      !plus a sign which is given by the fact that the order is a cyclic permutation
+!!$      isgn=int(sign(1.0e0,real(rmat(irp(1),1)/rmat(irp(3),3))))
+!!$      if (modulo(irp(1),3)+1 /= irp(2)) isgn=-isgn !cyclic permutation
+!!$      irp(2)=isgn*irp(2)
+!!$
+!!$      !for the first and the third the sign is determined from the matrix element
+!!$      isgn=int(sign(1.0e0,real(rmat(irp(1),1))))
+!!$      irp(1)=isgn*irp(1)
+!!$      isgn=int(sign(1.0e0,real(rmat(irp(3),3))))
+!!$      irp(3)=isgn*irp(3)
 
     end function selection
 
