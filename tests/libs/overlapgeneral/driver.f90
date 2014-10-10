@@ -247,7 +247,7 @@ program driver
           call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1,1), 1)
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
-          call overlapPowerGeneral(iproc, nproc, iorder, 1, power, blocksize, &
+          call overlapPowerGeneral(iproc, nproc, iorder, 1, (/power/), blocksize, &
                imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, ovrlp_mat=mat_A, inv_ovrlp_mat=inv_mat_B, &
                check_accur=.true., max_error=max_error, mean_error=mean_error)
           if (timer_on) call cpu_time(tr1)
@@ -260,7 +260,7 @@ program driver
           call compress_matrix(iproc, smat_A, inmat=mat_A%matrix, outmat=mat_A%matrix_compr)
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
-          call overlapPowerGeneral(iproc, nproc, iorder, 1, power, blocksize, &
+          call overlapPowerGeneral(iproc, nproc, iorder, 1, (/power/), blocksize, &
                imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, ovrlp_mat=mat_A, inv_ovrlp_mat=inv_mat_B, &
                check_accur=.true., max_error=max_error, mean_error=mean_error)
                !!foe_nseg=smat_A%nseg, foe_kernel_nsegline=smat_A%nsegline, &
