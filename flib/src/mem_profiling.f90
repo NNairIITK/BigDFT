@@ -31,6 +31,8 @@ module memory_profiling
 
   real :: memorylimit = 0.e0 !< Limit of the memory allowed, in Gb
 
+  private :: transform_to_MB
+
 contains
 
   !> Set a memory limit
@@ -69,6 +71,8 @@ contains
        !retrieve values if they exists
        proc_peak = procstatus .get. 'VmHWM'   !Peak of memory
        proc_memory = procstatus .get. 'VmRSS' !Instant occupation memory
+       call transform_to_MB(proc_peak)
+       call transform_to_MB(proc_memory)
        call dict_free(procstatus)
     end if
 
@@ -110,6 +114,36 @@ contains
     if (present(routine)) call f_strcpy(src=memstate%memloc%routine,dest=routine)
 
   end subroutine memstate_report
+
+  pure subroutine transform_to_MB(data)
+    use yaml_strings, only: f_strcpy
+    implicit none
+    character(len=*), intent(inout) :: data
+    !local variables
+    integer :: ipos,jpos
+    character(len=256) :: tmp !< should be enough
+
+    !search the kB unit
+    ipos=index(data,'kB')
+    if (ipos==0) ipos=index(data,'KB')
+    if (ipos==0) return !nothing to convert in this case
+    if (ipos > 0) then
+       call f_strcpy(src=adjustl(data(1:ipos-1)),dest=tmp)
+       !add the points before the last digits
+       ipos=len_trim(tmp)
+       if (ipos > 3 .and. ipos < len(tmp)) then
+          !make way for the point
+          do jpos=ipos,ipos-2,-1
+             tmp(jpos+1:jpos+1)=tmp(jpos:jpos)
+          end do
+          !put the point
+          tmp(ipos-2:ipos-2)='.'
+          !then rewrite the data in data
+          call f_strcpy(src=tmp(1:ipos+1)//' MB',dest=data)
+       end if
+    end if
+
+  end subroutine transform_to_MB
 
 
   !> Dump in the unit yaml stream the status of the memory

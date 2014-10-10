@@ -113,7 +113,7 @@ SiBulk:
 SiH4:
  #due to lack of functionality in fldiff, since energies field is updated
  Energies: &etol 4.6e-9
- Eion: &eion 3.4e-9
+ Eion: &eion 3.7e-9
  EH: *etol
  EXC: *etol
  Eion: *etol
@@ -125,7 +125,7 @@ SiH4:
  Ion-Ion interaction energy: *eion
  Atomic Forces (Ha/Bohr): 2.e-9
  maxval: 2.e-9
- Average noise forces: 1.5e-10
+ Average noise forces: 1.7e-10
  Average CG stepsize in terms of betax: 1.1e-5
 
 Mn2:
