@@ -25,7 +25,7 @@ module module_input_dicts
   public :: psp_dict_fill_all, psp_dict_analyse
 
   ! Dictionary inquire
-  public :: astruct_dict_get_source, astruct_dict_get_types
+  public :: astruct_dict_get_types
 
   ! Types from dictionaries
   public :: astruct_set_from_dict
@@ -324,6 +324,7 @@ contains
     use m_pawrad, only: pawrad_type, pawrad_nullify
     use m_pawtab, only: pawtab_type, pawtab_nullify
     use psp_projectors, only: PSPCODE_PAW
+    use public_keys, only: SOURCE_KEY
     implicit none
     !Arguments
     type(dictionary), pointer :: dict        !< Input dictionary
@@ -365,7 +366,7 @@ contains
              end do
           end if
           ! Re-read the pseudo for PAW arrays.
-          fpaw = dict // filename // "Source"
+          fpaw = dict // filename // SOURCE_KEY
           !write(*,*) 'Reading of PAW atomic-data, under development', trim(fpaw)
           call paw_from_file(atoms%pawrad(ityp), atoms%pawtab(ityp), trim(fpaw), &
                & atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%ixcpsp(ityp))
@@ -679,7 +680,7 @@ contains
     use dictionaries
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
     use yaml_output, only: yaml_warning
-    use public_keys, only: POSINP
+    use public_keys, only: POSINP,SOURCE_KEY
     implicit none
     type(dictionary), pointer :: dict
 
@@ -701,8 +702,8 @@ contains
 
        exists = has_key(dict, key)
        if (exists) then
-          if (has_key(dict // key, "Source")) then
-             str = dict_value(dict // key // "Source")
+          if (has_key(dict // key, SOURCE_KEY)) then
+             str = dict_value(dict // key // SOURCE_KEY)
           else
              str = dict_value(dict // key)
           end if
@@ -834,20 +835,6 @@ contains
   end subroutine astruct_dict_get_types
 
 
-  subroutine astruct_dict_get_source(dict, source)
-    use dictionaries, only: max_field_length, dictionary, has_key, operator(//), dict_value
-    implicit none
-    type(dictionary), pointer :: dict
-    character(len = max_field_length), intent(out) :: source
-    
-    write(source, "(A)") ""
-    if (has_key(dict, ASTRUCT_PROPERTIES)) then
-       if (has_key(dict // ASTRUCT_PROPERTIES, "source")) &
-            & source = dict_value(dict // ASTRUCT_PROPERTIES // "source")
-    end if
-  end subroutine astruct_dict_get_source
-
-
   !> Read Atomic positions and merge into dict
   subroutine astruct_file_merge_to_dict(dict, key, filename)
     use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine, &
@@ -891,8 +878,8 @@ contains
        dict_tmp => dict // key
        !No errors: we have all information in astruct and put into dict
        call astruct_merge_to_dict(dict_tmp, astruct, astruct%rxyz)
-       call set(dict_tmp // ASTRUCT_PROPERTIES // "source", filename)
-
+       call set(dict_tmp // ASTRUCT_PROPERTIES // POSINP_SOURCE, filename)
+          
        if (GOUT_FORCES .in. dict_tmp) call dict_remove(dict_tmp, GOUT_FORCES)
        if (associated(fxyz)) then
           pos => dict_tmp // GOUT_FORCES
