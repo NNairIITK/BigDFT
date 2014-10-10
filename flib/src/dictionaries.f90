@@ -337,10 +337,10 @@ contains
        character(len=*), intent(in) :: key
        logical, intent(in) :: dst
        !local variables
-       !$ logical :: key_found
        type(dictionary), pointer :: dict_first !<in case of first occurrence
-       !$ type(dictionary), pointer :: iter       !< iterator to avoid stack overflow
 
+!!$       !$ logical :: key_found
+!!$       !$ type(dictionary), pointer :: iter       !< iterator to avoid stack overflow
 !!$       iter => dict
 !!$       key_found=.false.
 !!$       find_key: do while(associated(iter))

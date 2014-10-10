@@ -1959,17 +1959,18 @@ subroutine gequad(p,w,urange,drange,acc)
  
 END SUBROUTINE gequad
 
-!>  Build the kernel of the Poisson operator with wires Boundary conditions
-!!  in an interpolating scaling functions basis.
-!!  The periodic direction is z
-subroutine Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray, &
+
+!> Build the kernel of the Poisson operator with wires Boundary conditions
+!! in an interpolating scaling functions basis.
+!! The periodic direction is z
+subroutine Wires_Kernel(nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray, &
                         mu0_screening)
   use Poisson_Solver, only: dp
   use memory_profiling
   use dynamic_memory
   implicit none
   !Arguments
-  integer, intent(in) :: iproc,nproc        !< Number of process, number of processes
+  integer, intent(in) :: nproc              !< Number of processes
   integer, intent(in) :: n01,n02,n03
   integer, intent(in) :: n1,n2,n3           !< Dimensions for the FFT
   integer, intent(in) :: nker1,nker2,nker3  !< Dimensions of the kernel nker(1,2,3)=n(1,2,3)/2+1

@@ -20,16 +20,17 @@ program abscalc_main
    character(len=*), parameter :: subname='abscalc_main'
    integer :: iproc,nproc,ierr,infocode
    real(gp) :: etot
-!!$   logical :: exist_list
    !input variables
    type(run_objects) :: runObj
-   character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
    character(len=60) :: run_id
+!!$   logical :: exist_list
+!!$   character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
 !!$   character(len=60) :: filename
+!!$   integer, dimension(4) :: mpi_info
    ! atomic coordinates, forces
    real(gp), dimension(:,:), allocatable :: fxyz
-   integer :: iconfig,nconfig,igroup,ngroups
-   integer, dimension(4) :: mpi_info
+!!$ integer :: nconfig
+   integer :: iconfig,igroup,ngroups
    type(dictionary), pointer :: options,run
    logical :: exists
 

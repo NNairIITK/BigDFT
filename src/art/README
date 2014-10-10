@@ -2,7 +2,7 @@
 @brief README of the art directory (BigDFT+ART)
 
 @dir
-@brief Contains the version of ART nouveau (Activation Relaxation Technique)
+@brief Contains the version of ART nouveau (Activation Relaxation Technique for PES exploration)
 
 @details
 This version of ART nouveau has been optimized for BigDFT and other cases where
