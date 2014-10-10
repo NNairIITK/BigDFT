@@ -688,93 +688,106 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
 
   call timing(iproc,'sumrho_TMB    ','OF')
 
-  call timing(iproc,'sumrho_allred','ON')
 
-  ! Communicate the density to meet the shape required by the Poisson solver.
-  !!if (nproc>1) then
-  !!    call mpi_alltoallv(rho_local, collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
-  !!                       mpi_double_precision, rho, collcom_sr%nrecvcounts_repartitionrho, &
-  !!                       collcom_sr%nrecvdspls_repartitionrho, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-  !!else
-  !!    call vcopy(ndimrho, rho_local(1), 1, rho(1), 1)
-  !!end if
-
-  !!!!do ierr=1,size(rho)
-  !!!!    write(200+iproc,*) ierr, rho(ierr)
-  !!!!end do
-
-
-
-  if (nproc>1) then
-      call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-      call mpi_info_create(info, ierr)
-      call mpi_info_set(info, "no_locks", "true", ierr)
-      call mpi_win_create(rho_local(1), int(collcom_sr%nptsp_c*denskern%nspin*size_of_double,kind=mpi_address_kind), &
-           size_of_double, info, bigdft_mpi%mpi_comm, collcom_sr%window, ierr)
-      call mpi_info_free(info, ierr)
-
-      call mpi_win_fence(mpi_mode_noprecede, collcom_sr%window, ierr)
-
-      ! This is a bit quick and dirty. Could be done in a better way, but
-      ! would probably required to pass additional arguments to the subroutine
-      isend_total = f_malloc0(0.to.nproc-1,id='isend_total')
-      isend_total(iproc)=collcom_sr%nptsp_c
-      call mpiallred(isend_total(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
-
-
-      do ispin=1,denskern%nspin
-          !ishift_dest=(ispin-1)*sum(collcom_sr%commarr_repartitionrho(4,:)) !spin shift for the receive buffer
-          ishift_dest=(ispin-1)*ndimrho/denskern%nspin
-          do jproc=1,collcom_sr%ncomms_repartitionrho
-              mpisource=collcom_sr%commarr_repartitionrho(1,jproc)
-              istsource=collcom_sr%commarr_repartitionrho(2,jproc)
-              istdest=collcom_sr%commarr_repartitionrho(3,jproc)
-              nsize=collcom_sr%commarr_repartitionrho(4,jproc)
-              ishift_source=(ispin-1)*isend_total(mpisource) !spin shift for the send buffer
-              if (nsize>0) then
-                  call mpi_get(rho(istdest+ishift_dest), nsize, mpi_double_precision, mpisource, &
-                       int((istsource-1+ishift_source),kind=mpi_address_kind), &
-                       nsize, mpi_double_precision, collcom_sr%window, ierr)
-                  !write(*,'(6(a,i0))') 'process ',iproc, ' gets ',nsize,' elements at position ',istdest+ishift_dest, &
-                  !                     ' from position ',istsource+ishift_source,' on process ',mpisource, &
-                  !                     '; error code=',ierr
-              end if
-          end do
-      end do
-      call mpi_win_fence(0, collcom_sr%window, ierr)
-      !!write(*,'(a,i0)') 'mpi_win_fence error code: ',ierr
-      call mpi_win_free(collcom_sr%window, ierr)
-      !!write(*,'(a,i0)') 'mpi_win_free error code: ',ierr
-
-      call f_free(isend_total)
-  else
-      call vcopy(ndimrho, rho_local(1), 1, rho(1), 1)
-  end if
-
-  !do ierr=1,size(rho)
-  !    write(300+iproc,*) ierr, rho(ierr)
-  !end do
-  !call mpi_finalize(ierr)
-  !stop
-
-  if (nproc > 1) then
-     call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm)
-  end if
-
-  !!if(print_local .and. iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', total_charge*hxh*hyh*hzh
-  if (iproc==0 .and. print_local) then
-      call yaml_map('Total charge',total_charge*hxh*hyh*hzh,fmt='(es20.12)')
-  end if
-  
-  call timing(iproc,'sumrho_allred','OF')
+  call communicate_density()
 
   call f_free(rho_local)
+
+  call f_release_routine()
+
+  contains
+
+    subroutine communicate_density()
+      implicit none
+
+      call f_routine(id='communicate_density')
+      call timing(iproc,'sumrho_allred','ON')
+    
+      ! Communicate the density to meet the shape required by the Poisson solver.
+      !!if (nproc>1) then
+      !!    call mpi_alltoallv(rho_local, collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
+      !!                       mpi_double_precision, rho, collcom_sr%nrecvcounts_repartitionrho, &
+      !!                       collcom_sr%nrecvdspls_repartitionrho, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+      !!else
+      !!    call vcopy(ndimrho, rho_local(1), 1, rho(1), 1)
+      !!end if
+    
+      !!!!do ierr=1,size(rho)
+      !!!!    write(200+iproc,*) ierr, rho(ierr)
+      !!!!end do
+    
+    
+    
+      if (nproc>1) then
+          call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+          call mpi_info_create(info, ierr)
+          call mpi_info_set(info, "no_locks", "true", ierr)
+          call mpi_win_create(rho_local(1), int(collcom_sr%nptsp_c*denskern%nspin*size_of_double,kind=mpi_address_kind), &
+               size_of_double, info, bigdft_mpi%mpi_comm, collcom_sr%window, ierr)
+          call mpi_info_free(info, ierr)
+    
+          call mpi_win_fence(mpi_mode_noprecede, collcom_sr%window, ierr)
+    
+          ! This is a bit quick and dirty. Could be done in a better way, but
+          ! would probably required to pass additional arguments to the subroutine
+          isend_total = f_malloc0(0.to.nproc-1,id='isend_total')
+          isend_total(iproc)=collcom_sr%nptsp_c
+          call mpiallred(isend_total(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+    
+    
+          do ispin=1,denskern%nspin
+              !ishift_dest=(ispin-1)*sum(collcom_sr%commarr_repartitionrho(4,:)) !spin shift for the receive buffer
+              ishift_dest=(ispin-1)*ndimrho/denskern%nspin
+              do jproc=1,collcom_sr%ncomms_repartitionrho
+                  mpisource=collcom_sr%commarr_repartitionrho(1,jproc)
+                  istsource=collcom_sr%commarr_repartitionrho(2,jproc)
+                  istdest=collcom_sr%commarr_repartitionrho(3,jproc)
+                  nsize=collcom_sr%commarr_repartitionrho(4,jproc)
+                  ishift_source=(ispin-1)*isend_total(mpisource) !spin shift for the send buffer
+                  if (nsize>0) then
+                      call mpi_get(rho(istdest+ishift_dest), nsize, mpi_double_precision, mpisource, &
+                           int((istsource-1+ishift_source),kind=mpi_address_kind), &
+                           nsize, mpi_double_precision, collcom_sr%window, ierr)
+                      !write(*,'(6(a,i0))') 'process ',iproc, ' gets ',nsize,' elements at position ',istdest+ishift_dest, &
+                      !                     ' from position ',istsource+ishift_source,' on process ',mpisource, &
+                      !                     '; error code=',ierr
+                  end if
+              end do
+          end do
+          call mpi_win_fence(0, collcom_sr%window, ierr)
+          !!write(*,'(a,i0)') 'mpi_win_fence error code: ',ierr
+          call mpi_win_free(collcom_sr%window, ierr)
+          !!write(*,'(a,i0)') 'mpi_win_free error code: ',ierr
+    
+          call f_free(isend_total)
+      else
+          call vcopy(ndimrho, rho_local(1), 1, rho(1), 1)
+      end if
+    
+      !do ierr=1,size(rho)
+      !    write(300+iproc,*) ierr, rho(ierr)
+      !end do
+      !call mpi_finalize(ierr)
+      !stop
+    
+      if (nproc > 1) then
+         call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
+    
+      !!if(print_local .and. iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', total_charge*hxh*hyh*hzh
+      if (iproc==0 .and. print_local) then
+          call yaml_map('Total charge',total_charge*hxh*hyh*hzh,fmt='(es20.12)')
+      end if
+      
+      call timing(iproc,'sumrho_allred','OF')
+      call f_release_routine()
+
+    end subroutine communicate_density
 
   !!write(*,*) 'after deallocate'
   !!call mpi_finalize(ierr)
   !!stop
 
-  call f_release_routine()
 
 end subroutine sumrho_for_TMBs
 

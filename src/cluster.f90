@@ -338,9 +338,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
 
-     call init_matrix_taskgroups(iproc, nproc, .true., tmb%collcom, tmb%collcom_sr, tmb%linmat%s)
-     call init_matrix_taskgroups(iproc, nproc, .true., tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
-     call init_matrix_taskgroups(iproc, nproc, .true., tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
+     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, &
+          tmb%collcom, tmb%collcom_sr, tmb%linmat%s)
+     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, &
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
+     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, &
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
 
      !call nullify_sparse_matrix(tmb%linmat%inv_ovrlp_large)
      !tmb%linmat%inv_ovrlp_large=sparse_matrix_null()

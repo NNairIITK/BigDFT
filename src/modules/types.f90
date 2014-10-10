@@ -467,6 +467,9 @@ module module_types
      !> linear scaling: method to calculate the overlap matrices (1=old, 2=new)
      integer :: imethod_overlap
 
+     !> linear scaling: enable the matrix taskgroups
+     logical :: enable_matrix_taskgroups
+
   end type input_variables
 
 
@@ -2289,6 +2292,9 @@ contains
        case (IMETHOD_OVERLAP)
            ! linear scaling: method to calculate the overlap matrices (1=old, 2=new)
            in%imethod_overlap = val
+       case (ENABLE_MATRIX_TASKGROUPS) 
+           ! linear scaling: enable the matrix taskgroups
+           in%enable_matrix_taskgroups = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

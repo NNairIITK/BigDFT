@@ -881,6 +881,9 @@
        1: old
        2: new
      default: 1
+   enable_matrix_taskgroups:
+     COMMENT: enable the matrix taskgroups
+     default: True
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant

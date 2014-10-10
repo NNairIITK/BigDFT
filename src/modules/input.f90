@@ -1816,6 +1816,9 @@ contains
     call input_var("imethod_overlap", 1, (/1,2/), "lin scaling method to calculate overlap matrix (1:old, 2:new)", dummy_int)
     call set(dict // IMETHOD_OVERLAP, dummy_int)
 
+    call input_var("enable_matrix_taskgroups", .true., "enable matrix taskgroups", dummy_bool)
+    call set(dict // IMETHOD_OVERLAP, dummy_int)
+
     call input_free(.false.)
 
   END SUBROUTINE read_perf_from_text_format

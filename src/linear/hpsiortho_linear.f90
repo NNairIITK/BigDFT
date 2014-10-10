@@ -508,7 +508,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
   call vcopy(tmb%npsidim_orbs, hpsi_small(1), 1, lhphiold(1), 1)
-  call timing(iproc,'buildgrad_mcpy','OF')
+  !!call timing(iproc,'buildgrad_mcpy','OF')
 
   ! if energy has increased or we only wanted to calculate the energy, not gradient, we can return here
   ! rather than calculating the preconditioning for nothing
@@ -1023,7 +1023,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
                tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
       end if
 
-      call timing(iproc,'buildgrad_mcpy','ON')
+      call timing(iproc,'buildgrad_mcpy','OF')
       call f_release_routine()
 
 end subroutine build_gradient
