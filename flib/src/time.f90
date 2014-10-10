@@ -462,7 +462,7 @@ module time_profiling
       integer :: nnodes
       integer(kind=8) :: itns
       type(dictionary), pointer :: dict_tmp
-      !$ integer :: omp_get_max_threads
+!!$      !$ integer :: omp_get_max_threads
 
       !global timer
       itns=f_time()

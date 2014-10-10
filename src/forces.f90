@@ -4677,6 +4677,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       denskern_gathered = f_malloc(denskern%nvctr, id='denskern_gathered')
       call mpi_get_to_allgatherv_double(denskern_mat%matrix_compr(ist_send), ncount, &
            denskern_gathered(1), recvcounts, recvdspls, bigdft_mpi%mpi_comm)
+      !!call mpi_allgatherv(denskern_mat%matrix_compr(ist_send), ncount, mpi_double_precision, &
+      !!                    denskern_gathered(1), recvcounts, recvdspls, mpi_double_precision, &
+      !!                    bigdft_mpi%mpi_comm, ierr)
       call vcopy(denskern%nvctr, denskern_gathered(1), 1, denskern_mat%matrix_compr(1), 1)
       call f_free(denskern_gathered)
   end if

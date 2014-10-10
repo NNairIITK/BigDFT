@@ -13,17 +13,17 @@
 @brief
    C version of some optimized convolutions (using SSE instructions for instance).
 
-@dir ./src/modules
+@dir ./src/init
 @brief
-   All modules of internal part of BigDFT
+   Initialization (guess wavefunctions)
 
 @dir ./src/linear
 @brief
    Linear scaling version routines
 
-@dir ./src/init
+@dir ./src/modules
 @brief
-   Initialization (guess wavefunctions)
+   All modules of internal part of BigDFT
 
 @dir ./src/profiling
 @brief
