@@ -2595,7 +2595,7 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
               end if
               ii=matrixindex_in_compressed(smatl, i, j)
               !write(*,*) 'i, ii, tt1, tt2', i, ii, tt1, tt2
-              matscal_compr(ii)=scale_factor*(tt1-shift_value*tt2)
+              matscal_compr(ii-smatl%isvctrp_tg)=scale_factor*(tt1-shift_value*tt2)
           end do
       end do
       !$omp end do
