@@ -882,6 +882,7 @@ module time_profiling
       end do
       call timing_dump_line('Total',tabfile,total_pc,times(ictrl)%clocks(ncat+1),&
            loads=timeall(ncat+1,0:nextra-1))
+      call yaml_mapping_close() !Classes
       call yaml_mapping_open('Categories',advance='no')
       call yaml_comment('Ordered by time consumption')
       do j=1,ncat

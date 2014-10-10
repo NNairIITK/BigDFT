@@ -806,8 +806,9 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
      do iorb=1,tmb%orbs%norbp
          iiat=tmb%orbs%onwhichatom(iorb+tmb%orbs%isorb)
-         frag_trans(iorb)%theta=0.0d0*(4.0_gp*atan(1.d0)/180.0_gp)
-         frag_trans(iorb)%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
+         frag_trans(iorb)=fragment_transformation_identity()
+!!$         frag_trans(iorb)%theta=0.0d0*(4.0_gp*atan(1.d0)/180.0_gp)
+!!$         frag_trans(iorb)%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
          frag_trans(iorb)%rot_center(:)=rxyz_old(:,iiat)
          frag_trans(iorb)%rot_center_new(:)=rxyz(:,iiat)
      end do

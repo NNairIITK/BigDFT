@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>  Modules which contains all interfaces to parse input dictionary.
+!> Modules which contains all interfaces to parse input dictionary.
 module module_input_dicts
   use public_keys
   implicit none
@@ -199,9 +199,10 @@ contains
 
   end subroutine user_dict_from_files
 
+
   !> Fill up the dict with all pseudopotential information
   subroutine psp_dict_fill_all(dict, atomname, run_ixc, projrad, crmult, frmult)
-    use module_defs, only: gp, UNINITIALIZED, bigdft_mpi
+    use module_defs, only: gp, UNINITIALIZED
     use ao_inguess, only: atomic_info
     use module_atoms, only : RADII_SOURCE, RADII_SOURCE_HARD_CODED, RADII_SOURCE_FILE
     use dictionaries
@@ -850,7 +851,7 @@ contains
   !> Read Atomic positions and merge into dict
   subroutine astruct_file_merge_to_dict(dict, key, filename)
     use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine, &
-        & BIGDFT_INPUT_FILE_ERROR, BIGDFT_INPUT_VARIABLES_ERROR,f_free_ptr
+        & BIGDFT_INPUT_FILE_ERROR,f_free_ptr
     use module_atoms, only: set_astruct_from_file,atomic_structure,&
          nullify_atomic_structure,deallocate_atomic_structure,astruct_merge_to_dict
     use public_keys, only: POSINP,RADICAL_NAME
@@ -1080,47 +1081,48 @@ contains
 
   end subroutine astruct_set_from_dict
 
-  subroutine aocc_to_dict(dict, nspin, noncoll, nstart, aocc, nelecmax, lmax, nsccode)
-    use module_defs, only: gp
-    use dictionaries
-    implicit none
-    integer, intent(in) :: nelecmax, lmax, nsccode, nspin, noncoll, nstart
-    type(dictionary), pointer :: dict
-    real(gp), dimension(nelecmax), intent(in) :: aocc
 
-    type(dictionary), pointer :: val
-    character(len = 4) :: key
-    integer :: l, inl, nl, iocc, sccode, nsc, i
-    character(len = 1), dimension(4), parameter :: lname = (/ "s", "p", "d", "f" /)
+  !subroutine aocc_to_dict(dict, nspin, noncoll, nstart, aocc, nelecmax, lmax, nsccode)
+  !  use module_defs, only: gp
+  !  use dictionaries
+  !  implicit none
+  !  integer, intent(in) :: nelecmax, lmax, nsccode, nspin, noncoll, nstart
+  !  type(dictionary), pointer :: dict
+  !  real(gp), dimension(nelecmax), intent(in) :: aocc
 
-    call dict_init(dict)
+  !  type(dictionary), pointer :: val
+  !  character(len = 4) :: key
+  !  integer :: l, inl, nl, iocc, sccode, nsc, i
+  !  character(len = 1), dimension(4), parameter :: lname = (/ "s", "p", "d", "f" /)
 
-    sccode = nsccode
-    iocc=0
-    do l = 1, lmax
-       iocc=iocc+1
-       ! Get number of shells for this channel 
-       !(to be corrected, the rule is not the same)
-       nl = int(aocc(iocc))
-       ! Get number of semi cores for this channel
-       nsc = modulo(sccode, 4)
-       sccode = sccode / 4
-       if (nl == 0) cycle
-       do inl = 1, nl, 1
-          if (inl <= nsc) then
-             write(key, "(A1,I1,A1,A1)") "(", nstart + inl, lname(l), ")"
-          else
-             write(key, "(I1, A1)") nstart + inl, lname(l)
-          end if
-          call dict_init(val)
-          do i = 1, nspin * noncoll * (2 * l - 1), 1
-             iocc=iocc+1
-             call add(val, aocc(iocc))
-          end do
-          call set(dict // key, val)
-       end do
-    end do
-  end subroutine aocc_to_dict
+  !  call dict_init(dict)
+
+  !  sccode = nsccode
+  !  iocc=0
+  !  do l = 1, lmax
+  !     iocc=iocc+1
+  !     ! Get number of shells for this channel 
+  !     !(to be corrected, the rule is not the same)
+  !     nl = int(aocc(iocc))
+  !     ! Get number of semi cores for this channel
+  !     nsc = modulo(sccode, 4)
+  !     sccode = sccode / 4
+  !     if (nl == 0) cycle
+  !     do inl = 1, nl, 1
+  !        if (inl <= nsc) then
+  !           write(key, "(A1,I1,A1,A1)") "(", nstart + inl, lname(l), ")"
+  !        else
+  !           write(key, "(I1, A1)") nstart + inl, lname(l)
+  !        end if
+  !        call dict_init(val)
+  !        do i = 1, nspin * noncoll * (2 * l - 1), 1
+  !           iocc=iocc+1
+  !           call add(val, aocc(iocc))
+  !        end do
+  !        call set(dict // key, val)
+  !     end do
+  !  end do
+  !end subroutine aocc_to_dict
 
 
   subroutine occupation_set_from_dict(dict, key, norbu, norbd, occup, &

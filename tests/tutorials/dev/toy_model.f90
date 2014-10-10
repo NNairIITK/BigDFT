@@ -313,8 +313,8 @@ program wvl
 
   call deallocate_atoms_data(atoms) 
   call xc_end(xc)
-  call dpbox_free(dpcom,'main')
-  call pkernel_free(pkernel,'main')
+  call dpbox_free(dpcom)
+  call pkernel_free(pkernel)
   call free_input_variables(inputs)
 
   !wait all processes before finalisation

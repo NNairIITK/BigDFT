@@ -911,13 +911,13 @@ subroutine proj_new(nlpspd)
 END SUBROUTINE proj_new
 
 
-subroutine proj_free(nlpspd, proj)
+subroutine proj_free(nlpspd)
   use psp_projectors
   use module_types
   use memory_profiling
   implicit none
   type(DFT_PSP_projectors), pointer :: nlpspd
-  real(kind=8), dimension(:), pointer :: proj
+  !real(kind=8), dimension(:), pointer :: proj
 
   call free_DFT_PSP_projectors(nlpspd)
 END SUBROUTINE proj_free
@@ -994,9 +994,9 @@ subroutine localfields_free(denspotd, fion, fdisp)
   if (associated(denspotd%pkernelseq%kernel,target=denspotd%pkernel%kernel)) then
      nullify(denspotd%pkernelseq%kernel)
   else if (associated(denspotd%pkernelseq%kernel)) then
-     call pkernel_free(denspotd%pkernelseq,subname)
+     call pkernel_free(denspotd%pkernelseq)
   end if
-  call pkernel_free(denspotd%pkernel,subname)
+  call pkernel_free(denspotd%pkernel)
 
   call f_free_ptr(denspotd%rhov)
   call f_free_ptr(denspotd%V_XC)
@@ -1452,7 +1452,7 @@ subroutine optloop_emit_iter(optloop, id, energs, iproc, nproc)
 
   integer, parameter :: SIGNAL_DONE = -1
   integer, parameter :: SIGNAL_WAIT = -2
-  integer :: message, ierr
+  integer :: message
 
   call timing(iproc,'energs_signals','ON')
   if (iproc == 0) then
@@ -1491,8 +1491,8 @@ subroutine optloop_bcast(optloop, iproc)
   type(DFT_optimization_loop), intent(inout) :: optloop
   integer, intent(in) :: iproc
 
-  integer :: iData(4), ierr
-  real(gp) :: rData(3)
+  integer, dimension(4) :: iData
+  real(gp), dimension(3) :: rData
 
   if (iproc == 0) then
      iData(1) = optloop%iscf

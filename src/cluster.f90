@@ -338,9 +338,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
 
-     call init_matrix_taskgroups(iproc, nproc, .true., tmb%collcom, tmb%collcom_sr, tmb%linmat%s)
-     call init_matrix_taskgroups(iproc, nproc, .true., tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
-     call init_matrix_taskgroups(iproc, nproc, .true., tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
+     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, &
+          tmb%collcom, tmb%collcom_sr, tmb%linmat%s)
+     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, &
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
+     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, &
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
 
      !call nullify_sparse_matrix(tmb%linmat%inv_ovrlp_large)
      !tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
@@ -1085,7 +1088,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !if (loc(denspot%pkernelseq%kernel) /= loc(denspot%pkernel%kernel)) then !this is not standard
      if (.not. associated(denspot%pkernelseq%kernel,target=denspot%pkernel%kernel) .and. &
           associated(denspot%pkernelseq%kernel)) then
-        call pkernel_free(denspot%pkernelseq,subname)
+        call pkernel_free(denspot%pkernelseq)
      end if
 !!$     i_all=-product(shape(denspot%pkernelseq))*kind(denspot%pkernelseq)
 !!$     deallocate(denspot%pkernelseq,stat=i_stat)
@@ -1093,7 +1096,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
      nullify(denspot%pkernelseq%kernel)
   end if
-  call pkernel_free(denspot%pkernel,subname)
+  call pkernel_free(denspot%pkernel)
 
 
   !------------------------------------------------------------------------
@@ -1200,12 +1203,12 @@ contains
 !          if (loc(denspot%pkernelseq%kernel) /= loc(denspot%pkernel%kernel)) then !not standard
              if (.not. associated(denspot%pkernelseq%kernel,target=denspot%pkernel%kernel) .and. &
                   associated(denspot%pkernelseq%kernel)) then
-             call pkernel_free(denspot%pkernelseq,subname)
+             call pkernel_free(denspot%pkernelseq)
           end if
        else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
           nullify(denspot%pkernelseq%kernel)
        end if
-       call pkernel_free(denspot%pkernel,subname)
+       call pkernel_free(denspot%pkernel)
 !!$       i_all=-product(shape(denspot%pkernel))*kind(denspot%pkernel)
 !!$       deallocate(denspot%pkernel,stat=i_stat)
 !!$       call memocc(i_stat,i_all,'kernel',subname)
