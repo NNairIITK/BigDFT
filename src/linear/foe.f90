@@ -550,7 +550,7 @@ subroutine foe(iproc, nproc, tmprtr, &
         
           ! Calculate S^-1/2 * K * S^-1/2^T
           ! Since S^-1/2 is symmetric, don't use the transpose
-          call retransform(tmb%linmat%kernel_%matrix_compr(ilshift+tmb%linmat%l%isvctr_tg+1:))
+          call retransform(tmb%linmat%kernel_%matrix_compr(ilshift+tmb%linmat%l%isvctrp_tg+1:))
 
           !!do i=ilshift+1,ilshift+tmb%linmat%l%nvctr
           !!    write(3000+iproc,'(a,2i8,es16.6)') 'ispin, i, val', ispin, i, tmb%linmat%kernel_%matrix_compr(i)
