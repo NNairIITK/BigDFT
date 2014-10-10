@@ -104,7 +104,7 @@ subroutine foe(iproc, nproc, tmprtr, &
 
   penalty_ev = f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%smmm%nfvctrp,2/),id='penalty_ev')
   fermip_check = f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%smmm%nfvctrp/),id='fermip_check')
-  fermi_check_compr = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='fermi_check_compr')
+  fermi_check_compr = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='fermi_check_compr')
 
 
   call timing(iproc, 'FOE_auxiliary ', 'OF')
@@ -543,7 +543,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               tmb%linmat%kernel_%matrix_compr(ilshift+1+tmb%linmat%l%isvctrp_tg:))
     
          call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
-              fermip_check, fermi_check_compr(tmb%linmat%l%isvctrp_tg+1:))
+              fermip_check, fermi_check_compr(1))
     
     
         
@@ -562,10 +562,10 @@ subroutine foe(iproc, nproc, tmprtr, &
 
           !@NEW ##########################
           sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-                 tmb%linmat%ovrlp_%matrix_compr(isshift+1:isshift+tmb%linmat%s%nvctr), &
-                 tmb%linmat%kernel_%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), ispin)
+                 tmb%linmat%ovrlp_%matrix_compr(isshift+tmb%linmat%s%isvctrp_tg+1:), &
+                 tmb%linmat%kernel_%matrix_compr(ilshift+tmb%linmat%l%isvctrp_tg+1:), ispin)
           sumn_check = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-                       tmb%linmat%ovrlp_%matrix_compr(isshift+1:isshift+tmb%linmat%s%nvctr), &
+                       tmb%linmat%ovrlp_%matrix_compr(isshift+tmb%linmat%s%isvctrp_tg+1:), &
                        fermi_check_compr, ispin)
           !@ENDNEW #######################
         
@@ -603,7 +603,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           !!end do
           ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
           istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
-          ebs_check = ddot(ncount, fermi_check_compr(istl), 1, hamscal_compr(istl), 1)
+          ebs_check = ddot(ncount, fermi_check_compr(istl-tmb%linmat%l%isvctrp_tg), 1, hamscal_compr(istl), 1)
           !call mpiallred(ebs_check, 1, mpi_sum, bigdft_mpi%mpi_comm)
 
           temparr(1) = ebsp
@@ -696,8 +696,8 @@ subroutine foe(iproc, nproc, tmprtr, &
         
           ! Calculate trace(KS).
           sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-                 tmb%linmat%ovrlp_%matrix_compr(isshift+1:isshift+tmb%linmat%s%nvctr), &
-                 tmb%linmat%kernel_%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), ispin)
+                 tmb%linmat%ovrlp_%matrix_compr(isshift+tmb%linmat%s%isvctrp_tg+1:), &
+                 tmb%linmat%kernel_%matrix_compr(ilshift+tmb%linmat%l%isvctrp_tg+1:), ispin)
 
 
           ! Recalculate trace(KH) (needed since the kernel was modified in the above purification). 
@@ -871,10 +871,10 @@ subroutine foe(iproc, nproc, tmprtr, &
 
 
       subroutine retransform(matrix_compr)
-          use sparsematrix, only: sequential_acces_matrix_fast, sparsemm, &
+          use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, sparsemm, &
                & uncompress_matrix_distributed, compress_matrix_distributed
           ! Calling arguments
-          real(kind=8),dimension(tmb%linmat%l%nvctr),intent(inout) :: matrix_compr
+          real(kind=8),dimension(tmb%linmat%l%nvctrp_tg),intent(inout) :: matrix_compr
 
           ! Local variables
           real(kind=8),dimension(:,:),pointer :: inv_ovrlpp, tempp
@@ -890,7 +890,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           tempp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='inv_ovrlpp')
           inv_ovrlp_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
           kernel_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
-          call sequential_acces_matrix_fast(tmb%linmat%l, matrix_compr, kernel_compr_seq)
+          call sequential_acces_matrix_fast2(tmb%linmat%l, matrix_compr, kernel_compr_seq)
           call sequential_acces_matrix_fast(tmb%linmat%l, &
                tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), inv_ovrlp_compr_seq)
           call uncompress_matrix_distributed(iproc, tmb%linmat%l, DENSE_MATMUL, &
@@ -901,9 +901,9 @@ subroutine foe(iproc, nproc, tmprtr, &
           inv_ovrlpp=0.d0
           call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
-          call to_zero(tmb%linmat%l%nvctr, matrix_compr(1))
+          call to_zero(tmb%linmat%l%nvctrp_tg, matrix_compr(1))
           call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
-               inv_ovrlpp, matrix_compr(tmb%linmat%l%isvctrp_tg+1:))
+               inv_ovrlpp, matrix_compr)
 
           call f_free_ptr(inv_ovrlpp)
           call f_free_ptr(tempp)
@@ -1790,8 +1790,8 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
   integer,intent(in) :: iproc,  nproc, ispin
   type(orbitals_data),intent(in) :: orbs
   type(sparse_matrix),intent(in) :: asmat, bsmat
-  real(kind=8),dimension(asmat%nvctr),intent(in) :: amat
-  real(kind=8),dimension(bsmat%nvctr),intent(in) :: bmat
+  real(kind=8),dimension(asmat%nvctrp_tg),intent(in) :: amat
+  real(kind=8),dimension(bsmat%nvctrp_tg),intent(in) :: bmat
 
   ! Local variables
   integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iilarge
@@ -1821,7 +1821,7 @@ function trace_sparse(iproc, nproc, orbs, asmat, bsmat, amat, bmat, ispin)
               iiorb = asmat%keyg(1,2,iseg)
               jjorb = jorb
               iilarge = ibshift + matrixindex_in_compressed(bsmat, iiorb, jjorb)
-              sumn = sumn + amat(ii)*bmat(iilarge)
+              sumn = sumn + amat(ii-asmat%isvctrp_tg)*bmat(iilarge-bsmat%isvctrp_tg)
           end do  
       end do
       !$omp end do

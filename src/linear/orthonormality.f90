@@ -138,11 +138,13 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   use yaml_output
   use communications, only: transpose_localized, untranspose_localized
   use sparsematrix_base, only: matrices_null, allocate_matrices, deallocate_matrices, sparsematrix_malloc, &
-                               sparsematrix_malloc_ptr, DENSE_FULL, DENSE_MATMUL, SPARSE_FULL, SPARSEMM_SEQ, &
+                               sparsematrix_malloc_ptr, &
+                               DENSE_FULL, DENSE_MATMUL, SPARSE_FULL, SPARSE_TASKGROUP, SPARSEMM_SEQ, &
                                assignment(=)
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed, compress_matrix_distributed, &
-                          sequential_acces_matrix_fast, sparsemm, transform_sparse_matrix, orb_from_index
+                          sequential_acces_matrix_fast, sparsemm, transform_sparse_matrix, transform_sparse_matrix2, &
+                          orb_from_index
   implicit none
 
   ! Calling arguments
@@ -287,6 +289,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       integer,parameter :: ALLGATHERV=51, GET=52, GLOBAL_MATRIX=101, SUBMATRIX=102
       integer,parameter :: comm_strategy=GET
       integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
+      real(kind=8),dimension(:),allocatable :: tttarr
 
       call f_routine(id='symmetrize_matrix')
 
@@ -353,8 +356,21 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       else if (data_strategy==SUBMATRIX) then
           ! Directly use the large sparsity pattern as this one is used later
           ! for the matrix vector multiplication
-          tmp_mat_compr = sparsematrix_malloc(linmat%l,iaction=SPARSE_FULL,id='tmp_mat_compr')
-          call transform_sparse_matrix(linmat%m, linmat%l, lagmat_%matrix_compr, tmp_mat_compr, 'small_to_large')
+          tmp_mat_compr = sparsematrix_malloc(linmat%l,iaction=SPARSE_TASKGROUP,id='tmp_mat_compr')
+          if (lagmat%nspin==1) then
+              call transform_sparse_matrix2(linmat%m, linmat%l, &
+                   lagmat_%matrix_compr(linmat%m%isvctrp_tg+1:), tmp_mat_compr, 'small_to_large')
+          else
+              ! need to take care because the spin shift is different for the
+              ! SPARSE_FULL and the SPARSE_TASKGROUP matrices. This will vanish later
+              tttarr = sparsematrix_malloc(linmat%l,iaction=SPARSE_TASKGROUP,id='tmp_mat_compr')
+              do ispin=1,lagmat%nspin
+                  call vcopy(lagmat%nvctrp_tg, lagmat_%matrix_compr((ispin-1)*lagmat%nvctr+lagmat%isvctrp_tg+1), 1, &
+                             tttarr((ispin-1)*lagmat%nvctrp_tg+1), 1)
+                  call transform_sparse_matrix2(linmat%m, linmat%l, tttarr, tmp_mat_compr, 'small_to_large')
+              end do
+              call f_free(tttarr)
+          end if
           do ispin=1,lagmat%nspin
               ishift=(ispin-1)*linmat%l%nvctr
               !!!!$omp parallel default(none) &
@@ -398,7 +414,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
                   ! A segment is always on one line, therefore no double loop
                   do i=linmat%l%keyg(1,1,iseg),linmat%l%keyg(2,1,iseg) !this is too much, but for the moment ok
                       ii_trans = matrixindex_in_compressed(linmat%l,linmat%l%keyg(1,2,iseg),i)
-                      lagmat_large(ii+ishift) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
+                      lagmat_large(ii+ishift) = -0.5d0*tmp_mat_compr(ii+ishift) &
+                                                -0.5d0*tmp_mat_compr(ii_trans+ishift)
                       ii=ii+1
                   end do
               end do
