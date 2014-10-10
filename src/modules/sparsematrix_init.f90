@@ -1126,27 +1126,27 @@ contains
       iuse_startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='iuse_startend')
 
 
-      if (parallel_layout) then
-          ! The matrices can be parallelized
+      ! The matrices can be parallelized
 
-          ind_min = smat%nvctr
-          ind_max = 0
+      ind_min = smat%nvctr
+      ind_max = 0
 
-          ! The operations done in the transposed wavefunction layout
-          call check_transposed_layout()
+      ! The operations done in the transposed wavefunction layout
+      call check_transposed_layout()
 
-          ! Now check the compress_distributed layout
-          call check_compress_distributed_layout()
+      ! Now check the compress_distributed layout
+      call check_compress_distributed_layout()
 
-          ! Now check the matrix matrix multiplications layout
-          call check_matmul_layout()
+      ! Now check the matrix matrix multiplications layout
+      call check_matmul_layout()
 
-          ! Now check the sumrho operations
-          call check_sumrho_layout()
+      ! Now check the sumrho operations
+      call check_sumrho_layout()
 
-          ! Now check the pseudo-exact orthonormalization during the input guess
-          call check_ortho_inguess()
-      else
+      ! Now check the pseudo-exact orthonormalization during the input guess
+      call check_ortho_inguess()
+
+      if (.not.parallel_layout) then
           ! The matrices can not be parallelized
           ind_min = 1
           ind_max = smat%nvctr
