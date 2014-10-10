@@ -718,7 +718,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           !!call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
           ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
           istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
-          ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
+          ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl-tmb%linmat%l%isvctrp_tg), 1)
           if (nproc>1) then
               call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
           end if
