@@ -3304,7 +3304,7 @@ module module_interfaces
         end subroutine copy_kernel_vectors
 
         subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ham_compr, &
-                   ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, ncalc, fermi, penalty_ev, chebyshev_polynomials, &
+                   invovrlp_compr, calculate_SHS, nsize_polynomial, ncalc, fermi, penalty_ev, chebyshev_polynomials, &
                    emergency_stop)
           use module_base
           use module_types
@@ -3313,9 +3313,9 @@ module module_interfaces
           integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, norb, norbp, isorb, ncalc
           real(8),dimension(npl,3,ncalc),intent(in) :: cc
           type(sparse_matrix), intent(in) :: kernel
-          real(kind=8),dimension(kernel%nvctr),intent(in) :: ham_compr, ovrlp_compr
+          real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: ham_compr
+          real(kind=8),dimension(kernel%nvctr),intent(in) :: invovrlp_compr
           logical,intent(in) :: calculate_SHS
-          real(kind=8),dimension(kernel%nvctr),intent(inout) :: SHS
           real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,ncalc),intent(out) :: fermi
           real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,2),intent(out) :: penalty_ev
           real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
