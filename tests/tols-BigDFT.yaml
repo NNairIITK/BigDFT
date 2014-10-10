@@ -1095,21 +1095,21 @@ O2spin_foe:
  D Tr: 1.1e-7
 
 O2spin_dirmin:
- Atomic Forces (Ha/Bohr): 7.7e-6
+ Atomic Forces (Ha/Bohr): 9.1e-6
  Average noise forces: 2.4e-5
- Clean forces norm (Ha/Bohr): 4.8e-5
+ Clean forces norm (Ha/Bohr): 5.6e-5
  Electric Dipole Moment (AU): 2.4e-5
  Electric Dipole Moment (Debye): 2.4e-5
  eBS: 6.1e-6
  fnrm: 1.1e-5
- EH: 6.6e-6
+ EH: 7.9e-6
  EXC: 5.6e-6
  Ekin: 6.6e-6
  Enl: 1.9e-7
- Epot: 9.1e-6
+ Epot: 1.2e-5
  EvXC: 6.0e-6
  energydiff: 6.0e-6
- energy: 7.4e-7
+ energy: 9.2e-7
  Omega: 6.1e-6
  Raw forces norm (Ha/Bohr): 4.8e-5
  D: 2.1e-6
