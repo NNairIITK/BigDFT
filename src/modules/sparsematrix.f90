@@ -26,7 +26,7 @@ module sparsematrix
   public :: transform_sparse_matrix
   public :: compress_matrix_distributed
   public :: uncompress_matrix_distributed
-  public :: sequential_acces_matrix_fast
+  public :: sequential_acces_matrix_fast, sequential_acces_matrix_fast2
   public :: sparsemm
   public :: orb_from_index
 
@@ -462,7 +462,7 @@ module sparsematrix
      integer,intent(in) :: iproc, nproc, layout
      type(sparse_matrix),intent(in) :: smat
      real(kind=8),dimension(:,:),intent(in) :: matrixp
-     real(kind=8),dimension(smat%nvctr),target,intent(out) :: matrix_compr
+     real(kind=8),dimension(smat%nvctrp_tg),target,intent(out) :: matrix_compr
 
      ! Local variables
      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
@@ -500,6 +500,7 @@ module sparsematrix
      end if
 
      if (data_strategy==GLOBAL_MATRIX) then
+         stop 'compress_matrix_distributed: option GLOBAL_MATRIX is deprecated'
          !call to_zero(smat%nvctr, matrix_compr(1))
          if (nproc>1) then
              matrix_local = f_malloc0_ptr(nvctrp,id='matrix_local')
@@ -554,7 +555,7 @@ module sparsematrix
          end if
      else if (data_strategy==SUBMATRIX) then
          if (nfvctrp>0) then
-             call to_zero(smat%nvctr, matrix_compr(1))
+             call to_zero(smat%nvctrp_tg, matrix_compr(1))
              isegstart=smat%istsegline(isfvctr+1)
              isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
              !$omp parallel default(none) &
@@ -568,7 +569,7 @@ module sparsematrix
                      ii=ii+1
                      iiorb = smat%keyg(1,2,iseg)
                      jjorb = jorb
-                     matrix_compr(ii)=matrixp(jjorb,iiorb-isfvctr)
+                     matrix_compr(ii-smat%isvctrp_tg)=matrixp(jjorb,iiorb-isfvctr)
                  end do
              end do
              !$omp end do
@@ -588,7 +589,7 @@ module sparsematrix
          request = f_malloc(smat%ntaskgroupp,id='request')
          do itg=1,smat%ntaskgroupp
              iitg = smat%inwhichtaskgroup(itg)
-             ist_send = smat%taskgroup_startend(1,1,iitg)
+             ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
              ist_recv = ncount + 1
              ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
              !!call mpi_iallreduce(matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
@@ -606,7 +607,7 @@ module sparsematrix
          ncount = 0
          do itg=1,smat%ntaskgroupp
              iitg = smat%inwhichtaskgroup(itg)
-             ist_send = smat%taskgroup_startend(1,1,iitg)
+             ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
              ist_recv = ncount + 1
              ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
              call vcopy(ncount, recvbuf(ist_recv), 1, matrix_compr(ist_send), 1)
@@ -705,6 +706,28 @@ module sparsematrix
      !$omp end parallel do
    
    end subroutine sequential_acces_matrix_fast
+
+   subroutine sequential_acces_matrix_fast2(smat, a, a_seq)
+     use module_base
+     implicit none
+   
+     ! Calling arguments
+     type(sparse_matrix),intent(in) :: smat
+     real(kind=8),dimension(smat%nvctrp_tg),intent(in) :: a
+     real(kind=8),dimension(smat%smmm%nseq),intent(out) :: a_seq
+   
+     ! Local variables
+     integer :: iseq, ii
+   
+     !$omp parallel do default(none) private(iseq, ii) &
+     !$omp shared(smat, a_seq, a)
+     do iseq=1,smat%smmm%nseq
+         ii=smat%smmm%indices_extract_sequential(iseq)
+         a_seq(iseq)=a(ii-smat%isvctrp_tg)
+     end do
+     !$omp end parallel do
+   
+   end subroutine sequential_acces_matrix_fast2
 
 
    subroutine sparsemm(smat, a_seq, b, c)

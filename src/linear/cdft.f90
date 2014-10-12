@@ -78,11 +78,11 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
   real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp
   character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
   real(kind=gp) :: max_error, mean_error
-  type(matrices) :: inv_ovrlp
+  type(matrices),dimension(1) :: inv_ovrlp
 
   call f_routine(id='calculate_weight_matrix_lowdin')
 
-  call allocate_matrices(tmb%linmat%s, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp)
+  call allocate_matrices(tmb%linmat%s, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
 
   if (calculate_overlap_matrix) then
      if(.not.tmb%can_use_transposed) then
@@ -107,7 +107,7 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
           inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
      ! Maybe not clean here to use twice tmb%linmat%s, but it should not
      ! matter as dense is used
-     call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
+     call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, (/2/), &
           tmb%orthpar%blocksize_pdsyev, &
           imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%s, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
@@ -142,7 +142,7 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
             tmb%orbs%norb, 1.d0, &
             proj_mat(1,1), tmb%orbs%norb, &
-            inv_ovrlp%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, 0.d0, &
+            inv_ovrlp(1)%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, 0.d0, &
             proj_ovrlp_half(1,1), tmb%orbs%norb)
   end if
   call f_free(proj_mat)
@@ -150,7 +150,7 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
   if (tmb%orbs%norbp>0) then
      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, & 
           tmb%orbs%norb, 1.d0, &
-          inv_ovrlp%matrix(1,1,1), tmb%orbs%norb, &
+          inv_ovrlp(1)%matrix(1,1,1), tmb%orbs%norb, &
           proj_ovrlp_half(1,1), tmb%orbs%norb, 0.d0, &
           weight_matrixp(1,1), tmb%orbs%norb)
   end if
@@ -169,7 +169,7 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
   call f_free(weight_matrixp)
   call compress_matrix(bigdft_mpi%iproc,weight_matrix,weight_matrix_%matrix,weight_matrix_%matrix_compr)
   call f_free_ptr(weight_matrix_%matrix)
-  call deallocate_matrices(inv_ovrlp)
+  call deallocate_matrices(inv_ovrlp(1))
   call f_release_routine()
 
 end subroutine calculate_weight_matrix_lowdin
@@ -202,7 +202,8 @@ subroutine calculate_weight_matrix_lowdin_gradient_fd(weight_matrix,weight_matri
   real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp!, ovrlp_half
   character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
   real(kind=gp) :: max_error, mean_error
-  type(matrices) :: inv_ovrlp, ovrlp_half
+  type(matrices),dimension(1) :: inv_ovrlp
+  type(matrices),dimension(1) :: ovrlp_half
   real(kind=8), dimension(:), pointer :: hpsittmp_c, hpsittmp_f, matrix_compr, psi_orig
   !real(kind=8),dimension(:),pointer :: psitlarge_c, psitlarge_f
   real(kind=8),dimension(:),pointer :: weight_matrix_tmp
@@ -279,8 +280,8 @@ print*,iorb,ilr,ncount
 
 if (.false.) then
      ! for ease, just calc d(S^1/2)ab/dphi_c, where c=9, b=10
-  call allocate_matrices(tmb%linmat%s, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp)
-  call allocate_matrices(tmb%linmat%s, allocate_full=.true., matname='ovrlp_half', mat=ovrlp_half)
+  call allocate_matrices(tmb%linmat%s, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
+  call allocate_matrices(tmb%linmat%s, allocate_full=.true., matname='ovrlp_half', mat=ovrlp_half(1))
      !quick test
      print*,tmb%orbs%inwhichlocreg(1),tmb%orbs%inwhichlocreg(2),&
           tmb%lzd%llr(tmb%orbs%inwhichlocreg(1))%wfd%nvctr_c+7*tmb%lzd%llr(tmb%orbs%inwhichlocreg(1))%wfd%nvctr_f,&
@@ -292,13 +293,13 @@ if (.false.) then
 
 
      !S^-1/2 for calc grad
-             call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, -2, &
+             call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, (/-2/), &
                   tmb%orthpar%blocksize_pdsyev, &
                   imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%s, &
                   ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
                   check_accur=.false., max_error=max_error, mean_error=mean_error)       
 
-             call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
+             call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, (/2/), &
                   tmb%orthpar%blocksize_pdsyev, &
                   imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%s, &
                   ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=ovrlp_half, &
@@ -312,9 +313,9 @@ istart=1
           ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
           calc_grad=f_malloc(ncount,id='calc_grad')
           call vcopy(ncount,tmb%psi(istart+ncount),1,calc_grad(1),1)
-          call dscal(inv_ovrlp%matrix(9,10,1)*0.5d0,calc_grad(1))
+          call dscal(inv_ovrlp(1)%matrix(9,10,1)*0.5d0,calc_grad(1))
 
-call daxpy(ncount,inv_ovrlp%matrix(10,9,1)*0.5d0,tmb%psi(istart+ncount),1,calc_grad(1),1)
+call daxpy(ncount,inv_ovrlp(1)%matrix(10,9,1)*0.5d0,tmb%psi(istart+ncount),1,calc_grad(1),1)
           if (iorb==9) exit
                    istart=istart+ncount 
           call f_free(calc_grad)
@@ -337,13 +338,14 @@ call daxpy(ncount,inv_ovrlp%matrix(10,9,1)*0.5d0,tmb%psi(istart+ncount),1,calc_g
              tmb%linmat%ovrlp_%matrix(9,10,1)=ddot(ncount,tmb%psi(istart),1,tmb%psi(istart+ncount),1)
              tmb%linmat%ovrlp_%matrix(10,9,1)=ddot(ncount,tmb%psi(istart),1,tmb%psi(istart+ncount),1)
 
-             call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
+             call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, (/2/), &
                   tmb%orthpar%blocksize_pdsyev, &
                   imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%s, &
                   ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
                   check_accur=.false., max_error=max_error, mean_error=mean_error)             
 
-             fd_grad(i+1)=(inv_ovrlp%matrix(9,10,1)-ovrlp_half%matrix(9,10,1)+inv_ovrlp%matrix(10,9,1)-ovrlp_half%matrix(10,9,1))/h
+             fd_grad(i+1) = (inv_ovrlp(1)%matrix(9,10,1)-ovrlp_half(1)%matrix(9,10,1)+ &
+                             inv_ovrlp(1)%matrix(10,9,1)-ovrlp_half(1)%matrix(10,9,1))/h
 
              write(30,*) fd_grad(i+1),calc_grad(i+1),tmb%psi(istart+i)!abs(fd_grad(i+1)-calc_grad(i+1))!,inv_ovrlp%matrix(9,10,1),ovrlp_half%matrix(9,10,1)
 
@@ -354,8 +356,8 @@ call daxpy(ncount,inv_ovrlp%matrix(10,9,1)*0.5d0,tmb%psi(istart+ncount),1,calc_g
       !end do
           call f_free(calc_grad)
      call f_free_ptr(tmb%linmat%ovrlp_%matrix)
-  call deallocate_matrices(inv_ovrlp)
-  call deallocate_matrices(ovrlp_half)
+  call deallocate_matrices(inv_ovrlp(1))
+  call deallocate_matrices(ovrlp_half(1))
 end if
 
   call vcopy(tmb%npsidim_orbs,psi_orig(1),1,tmb%psi(1),1)
@@ -397,7 +399,7 @@ subroutine calculate_weight_matrix_lowdin_gradient(weight_matrix,weight_matrix_,
   real(kind=gp), allocatable, dimension(:,:) :: proj_mat, proj_ovrlp_half, weight_matrixp, ovrlp_half
   character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
   real(kind=gp) :: max_error, mean_error
-  type(matrices) :: inv_ovrlp
+  type(matrices),dimension(1) :: inv_ovrlp
   real(kind=8), dimension(:), pointer :: hpsittmp_c, hpsittmp_f, matrix_compr
   !real(kind=8),dimension(:),pointer :: psitlarge_c, psitlarge_f
   real(kind=8),dimension(:,:),pointer :: weight_matrix_tmp
@@ -414,7 +416,7 @@ real(kind=8) :: ddot
   end if
 
 
-  call allocate_matrices(tmb%linmat%s, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp)
+  call allocate_matrices(tmb%linmat%s, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
 
   if (calculate_overlap_matrix) then
      if(.not.tmb%can_use_transposed) then
@@ -441,7 +443,7 @@ real(kind=8) :: ddot
 !print*,'g',ddot(tmb%orbs%norb*tmb%orbs%norb, tmb%linmat%ovrlp_%matrix(1,1,1), 1, tmb%linmat%ovrlp_%matrix(1,1,1), 1)
      ! Maybe not clean here to use twice tmb%linmat%s, but it should not
      ! matter as dense is used
-     call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, -2, &
+     call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, (/-2/), &
           tmb%orthpar%blocksize_pdsyev, &
           imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%s, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, &
@@ -452,7 +454,7 @@ real(kind=8) :: ddot
           call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, &
             tmb%orbs%norb, 1.d0, &
             tmb%linmat%ovrlp_%matrix(1,1,1), tmb%orbs%norb, &
-            inv_ovrlp%matrix(1,1,1), tmb%orbs%norb, 0.d0, &
+            inv_ovrlp(1)%matrix(1,1,1), tmb%orbs%norb, 0.d0, &
             ovrlp_half(1,1), tmb%orbs%norb)
 !print*,'e',ddot(tmb%orbs%norb*tmb%orbs%norb, ovrlp_half(1,1), 1, ovrlp_half(1,1), 1)
      !call f_free_ptr(tmb%linmat%ovrlp_%matrix)
@@ -516,7 +518,7 @@ real(kind=8) :: ddot
   if (tmb%orbs%norbp>0) then
      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, & 
           tmb%orbs%norb, 1.d0, &
-          inv_ovrlp%matrix(1,1,1), tmb%orbs%norb, &
+          inv_ovrlp(1)%matrix(1,1,1), tmb%orbs%norb, &
           !ovrlp_half(1,1), tmb%orbs%norb, &
           weight_matrix_tmp(1,1), tmb%orbs%norb, 0.d0, &
           weight_matrixp(1,1), tmb%orbs%norb)
@@ -578,7 +580,7 @@ call f_free_ptr(tmb%linmat%ovrlp_%matrix)
   call vcopy(weight_matrix%nvctr,weight_matrix_%matrix_compr(1),1,matrix_compr(1),1)
   call compress_matrix(bigdft_mpi%iproc,weight_matrix,weight_matrix_%matrix,weight_matrix_%matrix_compr)
   call f_free_ptr(weight_matrix_%matrix)
-  call deallocate_matrices(inv_ovrlp) ! can move this
+  call deallocate_matrices(inv_ovrlp(1)) ! can move this
 
 
   !psitlarge_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='psitlarge_c')

@@ -51,6 +51,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(kind=8), dimension(:), allocatable :: locrad
   integer :: ilr, iilr
+  logical :: init_projectors_completely
   call f_routine(id=subname)
 
   output_grid_ = .false.
@@ -298,9 +299,14 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   end if
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
+  ! SM: For a linear scaling calculation, some parts can be done later.
+  ! SM: The following flag is false for linear scaling and true otherwise.
+  init_projectors_completely = (inputpsi /= INPUT_PSI_LINEAR_AO .and. &
+                                inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
+                                inputpsi /= INPUT_PSI_MEMORY_LINEAR)
   call createProjectorsArrays(Lzd%Glr,rxyz,atoms,orbs,&
        in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
-       Lzd%hgrids(3),dry_run,nlpsp)
+       Lzd%hgrids(3),dry_run,nlpsp,init_projectors_completely)
   if (iproc == 0 .and. dump) call print_nlpsp(nlpsp)
   !the complicated part of the descriptors has not been filled
   if (dry_run) then

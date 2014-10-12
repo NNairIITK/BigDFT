@@ -187,7 +187,8 @@ module module_interfaces
       END SUBROUTINE createWavefunctionsDescriptors
 
       subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
-           cpmult,fpmult,hx,hy,hz,dry_run,nlpsp)
+           cpmult,fpmult,hx,hy,hz,dry_run,nlpsp,&
+           init_projectors_completely_)
         !n(c) use module_base
         use module_types
         implicit none
@@ -199,6 +200,7 @@ module module_interfaces
         !real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
         logical, intent(in) :: dry_run
         type(DFT_PSP_projectors), intent(out) :: nlpsp
+        logical,intent(in),optional :: init_projectors_completely_
       END SUBROUTINE createProjectorsArrays
 
       subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,PS_groupsize,SICapproach,geocode,nspin)
@@ -1942,7 +1944,8 @@ module module_interfaces
       subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
                  correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
                  hpsit_c, hpsit_f, &
-                 can_use_transposed, overlap_calculated, experimental_mode, norder_taylor, max_inversion_error, &
+                 can_use_transposed, overlap_calculated, &
+                 experimental_mode, calculate_inverse, norder_taylor, max_inversion_error, &
            npsidim_orbs_small, lzd_small, hpsi_noprecond)
         use module_base
         use module_types
@@ -1963,7 +1966,7 @@ module module_interfaces
         real(kind=8),dimension(:),pointer :: psit_c, psit_f
         logical,intent(inout) :: can_use_transposed, overlap_calculated
         type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
-        logical,intent(in) :: experimental_mode
+        logical,intent(in) :: experimental_mode, calculate_inverse
         integer,intent(inout) :: norder_taylor
         real(kind=8),intent(in) :: max_inversion_error
         real(kind=8),dimension(npsidim_orbs_small),intent(out) :: hpsi_noprecond
@@ -2420,7 +2423,7 @@ module module_interfaces
                   ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-                  hpsi_small, experimental_mode, correction_co_contra, hpsi_noprecond, &
+                  hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
                   norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays,&
                   cdft, input_frag, ref_frags)
          use module_base
@@ -2445,7 +2448,7 @@ module module_interfaces
          real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c) :: hpsit_c
          real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f) :: hpsit_f
          integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
-         logical, intent(in) :: experimental_mode, correction_co_contra
+         logical, intent(in) :: experimental_mode, calculate_inverse, correction_co_contra
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_small
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_noprecond
          type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
@@ -3183,7 +3186,8 @@ module module_interfaces
         end subroutine sumrho_for_TMBs
 
         subroutine foe(iproc, nproc, tmprtr, &
-                   ebs, itout, it_scc, order_taylor, max_inversion_error, purification_quickreturn, foe_verbosity, &
+                   ebs, itout, it_scc, order_taylor, max_inversion_error, purification_quickreturn, &
+                   calculate_minusonehalf, foe_verbosity, &
                    accuracy_level, tmb, foe_obj)
           use module_base
           use module_types
@@ -3195,6 +3199,7 @@ module module_interfaces
           real(kind=8),intent(in) :: tmprtr
           real(kind=8),intent(out) :: ebs
           logical,intent(in) :: purification_quickreturn
+          logical,intent(in) :: calculate_minusonehalf
           integer :: foe_verbosity
           integer,intent(in) :: accuracy_level
           type(DFT_wavefunction),intent(inout) :: tmb
@@ -3298,23 +3303,21 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(out) :: b
         end subroutine copy_kernel_vectors
 
-        subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, foe_obj, kernel, ham_compr, &
-                   ovrlp_compr, calculate_SHS, nsize_polynomial, SHS, fermi, penalty_ev, chebyshev_polynomials, &
+        subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ham_compr, &
+                   invovrlp_compr, calculate_SHS, nsize_polynomial, ncalc, fermi, penalty_ev, chebyshev_polynomials, &
                    emergency_stop)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
-          use foe_base, only: foe_data
           implicit none
-          integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, norb, norbp, isorb
-          real(8),dimension(npl,3),intent(in) :: cc
-          type(foe_data),intent(in) :: foe_obj
+          integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, norb, norbp, isorb, ncalc
+          real(8),dimension(npl,3,ncalc),intent(in) :: cc
           type(sparse_matrix), intent(in) :: kernel
-          real(kind=8),dimension(kernel%nvctr),intent(in) :: ham_compr, ovrlp_compr
+          real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: ham_compr
+          real(kind=8),dimension(kernel%nvctr),intent(in) :: invovrlp_compr
           logical,intent(in) :: calculate_SHS
-          real(kind=8),dimension(kernel%nvctr),intent(inout) :: SHS
-          real(kind=8),dimension(norb,norbp),intent(out) :: fermi
-          real(kind=8),dimension(norb,norbp,2),intent(out) :: penalty_ev
+          real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,ncalc),intent(out) :: fermi
+          real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,2),intent(out) :: penalty_ev
           real(kind=8),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
           logical,intent(out) :: emergency_stop
         end subroutine chebyshev_clean
@@ -3500,18 +3503,19 @@ module module_interfaces
         end subroutine gramschmidt_subset
 
 
-        subroutine overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, imode, &
+        subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, imode, &
                    ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, inv_ovrlp_mat, check_accur, &
                    max_error, mean_error, nspinx)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix, SPARSE_FULL, DENSE_PARALLEL, DENSE_FULL, SPARSEMM_SEQ
           use yaml_output
-          implicit none
-          integer,intent(in) :: iproc, nproc, iorder, blocksize, power
+          integer,intent(in) :: iproc, nproc, iorder, blocksize, ncalc
+          integer,dimension(ncalc),intent(in) :: power
           integer,intent(in) :: imode
           type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat
-          type(matrices),intent(inout) :: ovrlp_mat, inv_ovrlp_mat
+          type(matrices),intent(inout) :: ovrlp_mat
+          type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp_mat
           logical,intent(in) :: check_accur
           real(kind=8),intent(out),optional :: max_error, mean_error
           integer,intent(in),optional :: nspinx !< overwrite the default spin value
@@ -4123,17 +4127,19 @@ module module_interfaces
           real(kind=8),intent(out) :: delta_energy
         end subroutine estimate_energy_change
 
-        subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, norb, norbp, isorb, &
-                   fermi, chebyshev_polynomials, cc, kernelp)
+        subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
+                   norb, norbp, isorb, fermi, chebyshev_polynomials, ncalc, cc, kernelp)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
           implicit none
-          integer,intent(in) :: iproc, nproc, nsize_polynomial, npl, norb, norbp, isorb
+        
+          ! Calling arguments
+          integer,intent(in) :: iproc, nproc, nsize_polynomial, npl, norb, norbp, isorb, ncalc
           type(sparse_matrix),intent(in) :: fermi
           real(kind=8),dimension(nsize_polynomial,npl),intent(in) :: chebyshev_polynomials
-          real(kind=8),dimension(npl),intent(in) :: cc
-          real(kind=8),dimension(norb,norbp),intent(out) :: kernelp
+          real(kind=8),dimension(npl,ncalc),intent(in) :: cc
+          real(kind=8),dimension(norb,norbp,ncalc),intent(out) :: kernelp
         end subroutine chebyshev_fast
 
         subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat, smat_extra)
@@ -4147,17 +4153,15 @@ module module_interfaces
           type(sparse_matrix),dimension(:),pointer,intent(out) :: smat, smat_extra
         end subroutine init_sparse_matrix_for_KSorbs
 
-        subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ex, ovrlp_mat, inv_ovrlp)
+        subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncalc, ex, ovrlp_mat, inv_ovrlp)
           use module_base
           use module_types
-          use yaml_output
-          use sparsematrix_base, only: sparse_matrix, matrices
           implicit none
-          integer,intent(in) :: iproc, nproc, norder_polynomial
+          integer,intent(in) :: iproc, nproc, norder_polynomial, ncalc
           type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
-          integer :: ex
+          integer,dimension(ncalc) :: ex
           type(matrices),intent(in) :: ovrlp_mat
-          type(matrices),intent(out) :: inv_ovrlp
+          type(matrices),dimension(ncalc),intent(out) :: inv_ovrlp
         end subroutine ice
         
         subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &

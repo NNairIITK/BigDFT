@@ -12,7 +12,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
            energy_increased, tmb, lhphiold, overlap_calculated, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
-           hpsi_small, experimental_mode, correction_co_contra, hpsi_noprecond, &
+           hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
            norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays,&
            cdft, input_frag, ref_frags)
   use module_base
@@ -46,7 +46,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c) :: hpsit_c
   real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f) :: hpsit_f
   integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
-  logical, intent(in) :: experimental_mode, correction_co_contra
+  logical, intent(in) :: experimental_mode, calculate_inverse, correction_co_contra
   real(kind=8), dimension(tmb%npsidim_orbs), intent(out) :: hpsi_small
   real(kind=8), dimension(tmb%npsidim_orbs),intent(out) :: hpsi_noprecond
   type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
@@ -266,7 +266,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        tmb%linmat, tmb%ham_descr%psi, tmb%hpsi, &
        tmb%linmat%m, tmb%linmat%ham_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
        hpsit_c, hpsit_f, tmb%ham_descr%can_use_transposed, &
-       overlap_calculated, experimental_mode, norder_taylor, max_inversion_error, &
+       overlap_calculated, experimental_mode, calculate_inverse, norder_taylor, max_inversion_error, &
        tmb%npsidim_orbs, tmb%lzd, hpsi_noprecond)
 
   !EXPERIMENTAL and therefore deactivated
@@ -508,7 +508,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
   call vcopy(tmb%npsidim_orbs, hpsi_small(1), 1, lhphiold(1), 1)
-  call timing(iproc,'buildgrad_mcpy','OF')
+  !!call timing(iproc,'buildgrad_mcpy','OF')
 
   ! if energy has increased or we only wanted to calculate the energy, not gradient, we can return here
   ! rather than calculating the preconditioning for nothing
@@ -891,7 +891,11 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
 
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           kernel_compr_tmp = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=SPARSE_FULL,id='kernel_compr_tmp')
-          call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
+          do ispin=1,tmb%linmat%l%nspin
+              !call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
+              ist = (ispin-1)*tmb%linmat%l%nvctr + tmb%linmat%l%isvctrp_tg + 1
+              call vcopy(tmb%linmat%l%nvctrp_tg, tmb%linmat%kernel_%matrix_compr(ist), 1, kernel_compr_tmp(ist), 1)
+          end do
           if (data_strategy==GLOBAL_MATRIX) then
               isegstart = tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+1)
               isegend = tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp) + &
@@ -1008,14 +1012,18 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
                tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           ! copy correct kernel back
-          call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+          do ispin=1,tmb%linmat%l%nspin
+              !call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+              ist = (ispin-1)*tmb%linmat%l%nvctr + tmb%linmat%l%isvctrp_tg + 1
+              call vcopy(tmb%linmat%l%nvctrp_tg, kernel_compr_tmp(ist), 1, tmb%linmat%kernel_%matrix_compr(ist), 1)
+          end do
           call f_free_ptr(kernel_compr_tmp)
       else
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
                tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
       end if
 
-      call timing(iproc,'buildgrad_mcpy','ON')
+      call timing(iproc,'buildgrad_mcpy','OF')
       call f_release_routine()
 
 end subroutine build_gradient

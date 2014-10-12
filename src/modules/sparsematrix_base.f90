@@ -19,6 +19,7 @@ module sparsematrix_base
   type,public :: matrices
       real(kind=8),dimension(:),pointer :: matrix_compr,matrix_comprp
       real(kind=8),dimension(:,:,:),pointer :: matrix,matrixp
+      real(kind=8) :: power !< power of the matrix; eg.: 0 => original matrix, -1 => inverse, 0.5 => ^1/2, etc.
   end type matrices
 
   !> Contains the parameters needed for the sparse matrix matrix multiplication
@@ -59,6 +60,9 @@ module sparsematrix_base
                                              !! WARNING: the essential bounds are given by istartend_t, the segments are you used to speed up the code
       integer,dimension(2) :: istartend_t !< starting and ending indices of the matrix subpart which is actually used i
                                           !! for the transposed operation (overlap calculation / orthocontraint
+      integer :: nvctrp_tg !< size of the taskgroup matrix (per processor)
+      integer :: isvctrp_tg !< offset of the taskgroup matrix, given with respect to the non-parallelized matrix
+      integer,dimension(2) :: iseseg_tg !< first and last segment of the taskgroup sparse matrix
   end type sparse_matrix
 
 
@@ -111,12 +115,13 @@ module sparsematrix_base
   public :: matrices_null
 
   !> Public constants
-  integer,parameter,public :: SPARSE_FULL     = 51
-  integer,parameter,public :: SPARSE_PARALLEL = 52
-  integer,parameter,public :: DENSE_FULL      = 53
-  integer,parameter,public :: DENSE_PARALLEL  = 54
-  integer,parameter,public :: DENSE_MATMUL    = 55
-  integer,parameter,public :: SPARSEMM_SEQ    = 56
+  integer,parameter,public :: SPARSE_TASKGROUP = 50
+  integer,parameter,public :: SPARSE_FULL      = 51
+  integer,parameter,public :: SPARSE_PARALLEL  = 52
+  integer,parameter,public :: DENSE_FULL       = 53
+  integer,parameter,public :: DENSE_PARALLEL   = 54
+  integer,parameter,public :: DENSE_MATMUL     = 55
+  integer,parameter,public :: SPARSEMM_SEQ     = 56
 
 
 
@@ -243,6 +248,8 @@ module sparsematrix_base
       else
           mat%matrixp = sparsematrix_malloc_ptr(sparsemat, iaction=DENSE_PARALLEL, id=trim(matname)//'%matrixp')
       end if
+
+      mat%power = 0.d0
     end subroutine allocate_matrices
 
 
@@ -311,6 +318,8 @@ module sparsematrix_base
       type(sparse_matrix_info_ptr), intent(in) :: smat_info_ptr
 
       select case (smat_info_ptr%iaction)
+      case (SPARSE_TASKGROUP)
+          smat_ptr = f_malloc_ptr(smat_info_ptr%smat%nvctrp_tg*smat_info_ptr%smat%nspin,id=smat_info_ptr%id)
       case (SPARSE_FULL)
           smat_ptr = f_malloc_ptr(smat_info_ptr%smat%nvctr*smat_info_ptr%smat%nspin,id=smat_info_ptr%id)
       case (SPARSE_PARALLEL)
@@ -371,6 +380,8 @@ module sparsematrix_base
       type(sparse_matrix_info), intent(in) :: smat_info
 
       select case (smat_info%iaction)
+      case (SPARSE_TASKGROUP)
+          smat = f_malloc(smat_info%smat%nvctrp_tg*smat_info%smat%nspin,id=smat_info%id)
       case (SPARSE_FULL)
           smat = f_malloc(smat_info%smat%nvctr*smat_info%smat%nspin,id=smat_info%id)
       case (SPARSE_PARALLEL)
@@ -428,6 +439,8 @@ module sparsematrix_base
       type(sparse_matrix_info0_ptr), intent(in) :: smat_info0_ptr
 
       select case (smat_info0_ptr%iaction)
+      case (SPARSE_TASKGROUP)
+          smat_ptr = f_malloc0_ptr(smat_info0_ptr%smat%nvctrp_tg*smat_info0_ptr%smat%nspin,id=smat_info0_ptr%id)
       case (SPARSE_FULL)
           smat_ptr = f_malloc0_ptr(smat_info0_ptr%smat%nvctr*smat_info0_ptr%smat%nspin,id=smat_info0_ptr%id)
       case (SPARSE_PARALLEL)
@@ -488,6 +501,8 @@ module sparsematrix_base
       type(sparse_matrix_info0), intent(in) :: smat_info0
 
       select case (smat_info0%iaction)
+      case (SPARSE_TASKGROUP)
+          smat = f_malloc0(smat_info0%smat%nvctrp_tg*smat_info0%smat%nspin,id=smat_info0%id)
       case (SPARSE_FULL)
           smat = f_malloc0(smat_info0%smat%nvctr*smat_info0%smat%nspin,id=smat_info0%id)
       case (SPARSE_PARALLEL)

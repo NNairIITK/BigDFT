@@ -28,19 +28,29 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.5.12
- Timestamp of this run                 : 2014-10-06 15:24:33.161
- Root process Hostname                 : eaves
+ Timestamp of this run                 : 2014-10-09 12:56:54.247
+ Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
  Maximal OpenMP threads per MPI task   :  2
  MPI tasks of root process node        :  4
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
-   Configure arguments                 : " 'FC=mpif90 -f90=ifort' 'FCFLAGS=-fopenmp'"
-   Compilers (CC, FC, CXX)             :  [ gcc, mpif90 -f90=ifort, g++ ]
+   Configure arguments:
+     " 'FC=/opt/openmpi-1.6.4/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -i_dynamic -msse4.2 
+     -heap-arrays 1024 -openmp' 
+     '--with-ext-linalg=/opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_scalapa
+     ck_lp64.a  -Wl,--start-group  
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_cdft_core.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_lp64.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_thread.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_core.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_blacs_openmpi_lp64.a 
+     -Wl,--end-group -openmp -lpthread -lm'"
+   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.4/bin/mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -fopenmp
+     FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : read35
@@ -449,8 +459,6 @@
    Total number of components          :  12992
    Percent of zero components          :  36
    Size of workspaces                  :  51984
-   Maximum size of masking arrays for a projector:  1824
-   Cumulative size of masking arrays   :  7254
   #WARNING: Do not call check_communications in the linear scaling version!
   #-------------------------------------------------------- Estimation of Memory Consumption
  Memory requirements for principal quantities (MiB.KiB):
@@ -529,20 +537,20 @@
    transposition check, mean error     :  0.000000000000000000E+00
    transposition check, max error      :  0.000000000000000000E+00
    Tolerance for the following test    :  9.999999999999999799E-13
-   calculation check, error sum        :  5.809162482624747800E-14
+   calculation check, error sum        :  5.809162482624746538E-14
    Tolerance for the following test    :  1.000000000000000036E-10
    calculation check, error max        :  1.136868377216160297E-12
  Checking Communications of Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  54895,  1468 ]
    Tolerances for this check: [ 1.07054668095999759E-05,  5.32907051820075139E-15]
    Maxdiff for transpose (checksum)    :  1.86264514923095703E-09
-   Maxdiff for overlap calculation     :  2.90572643280029297E-07
+   Maxdiff for overlap calculation     :  3.20374965667724609E-07
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  47892,  1273 ]
    Tolerances for this check: [ 1.62210002165735778E-05,  5.32907051820075139E-15]
    Maxdiff for transpose (checksum)    :  1.39698386192321777E-09
-   Maxdiff for overlap calculation     :  2.38418579101562500E-07
+   Maxdiff for overlap calculation     :  2.23517417907714844E-07
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Ion-Ion interaction energy            :  8.47841083147392E+01
   #---------------------------------------------------------------- Ionic Potential Creation
@@ -563,7 +571,7 @@
      Molecule was shifted              :  24
      Molecule was rotated              :  18
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  3.162E+01,  1.841E+01 ]}
+   -  {Process:  0, Timing:  [  2.292E+01,  1.345E+01 ]}
    Max deviation from unity in reorthonormalize_coeff:  2.08E-07
    Mean deviation from unity in reorthonormalize_coeff:  7.69E-08
    Max deviation from unity in reorthonormalize_coeff:  1.00E-06
@@ -584,10 +592,10 @@
   {index:  6, value: -4.823943756250E-01}, 
   {index:  7, value: -4.823943756250E-01}, 
   {index:  8, value: -4.823943756250E-01}, 
-  {index:  9, value: -3.417940872785E-01}, 
-  {index:  10, value: -3.417940872785E-01}, 
-  {index:  11, value: -3.417940872785E-01}, 
-  {index:  12, value: -3.417940872785E-01}, 
+  {index:  9, value: -3.417940872784E-01}, 
+  {index:  10, value: -3.417940872784E-01}, 
+  {index:  11, value: -3.417940872784E-01}, 
+  {index:  12, value: -3.417940872784E-01}, 
   {index:  13, value: -2.698798569525E-01}, 
   {index:  14, value: -2.698798569525E-01}, 
   {index:  15, value: -2.698798569525E-01}, 
@@ -611,10 +619,10 @@
  {e: -4.823943756250E-01, f:  2.0000},  # 00006
  {e: -4.823943756250E-01, f:  2.0000},  # 00007
  {e: -4.823943756250E-01, f:  2.0000},  # 00008
- {e: -3.417940872785E-01, f:  2.0000},  # 00009
- {e: -3.417940872785E-01, f:  2.0000},  # 00010
- {e: -3.417940872785E-01, f:  2.0000},  # 00011
- {e: -3.417940872785E-01, f:  2.0000},  # 00012
+ {e: -3.417940872784E-01, f:  2.0000},  # 00009
+ {e: -3.417940872784E-01, f:  2.0000},  # 00010
+ {e: -3.417940872784E-01, f:  2.0000},  # 00011
+ {e: -3.417940872784E-01, f:  2.0000},  # 00012
  {e: -2.698798569525E-01, f:  2.0000},  # 00013
  {e: -2.698798569525E-01, f:  2.0000},  # 00014
  {e: -2.698798569525E-01, f:  2.0000},  # 00015
@@ -623,7 +631,8 @@
    Mean deviation from unity in reorthonormalize_coeff:  1.47E-02
    calculate S^x:
      mode                              : dense
-     x                                 : -1/2
+     powers:
+       x                               : -1/2
      order                             :  8
    communication strategy kernel       : ALLREDUCE
    Total charge                        :  3.199999979179E+01
@@ -645,11 +654,11 @@
      expansion coefficients optimization: &it_coeff001_000_000
      -  { #-------------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
- calculate S^x: {mode: dense, x: -1, order:  8, 
+ calculate S^x: {mode: dense, powers: {x: -1}, order:  8, 
  max / mean error:  [  7.86E-04,  1.22E-04 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  3.35E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  2.77E-06, 
- calculate S^x: {mode: dense, x: -1/2, order:  8}, 
+ calculate S^x: {mode: dense, powers: {x: -1/2}, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  2.65E-02, eBS:  0.00000000000000000E+00, D: -1.627E+01, 
           alpha:  1.000E-01}
@@ -660,16 +669,17 @@
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: ENERGY, Hamiltonian Applied:  Yes, 
  Energies: {Ekin:  3.75195883994E+01, Epot: -4.81117042667E+01, Enl:  2.75316633855E+00}, 
- Orthoconstraint:  Yes, 
- calculate S^x: {mode: sparse, x: -1, order:  8, 
- max / mean error:  [  7.86E-04,  1.22E-04 ]}, 
+ Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
+ calculate S^x: {mode: sparse, powers: {x: -1}, order:  8, 
+ error estimation: [
+ max / mean error:  [  7.86E-04,  1.22E-04 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  2.47E-01, Omega: -6.873747100426166E+01, D: -6.87E+01, D best: -6.87E+01, 
+ iter:  1, fnrm:  2.47E-01, Omega: -6.873747100426169E+01, D: -6.87E+01, D best: -6.87E+01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 1
  target function: ENERGY, 
  Energies: {Ekin:  3.75195883994E+01, Epot: -4.81117042667E+01, Enl:  2.75316633855E+00}, 
- iter:  1, fnrm:  2.47E-01, Omega: -6.873747100426166E+01, D: -6.87E+01, D best: -6.87E+01}
+ iter:  1, fnrm:  2.47E-01, Omega: -6.873747100426169E+01, D: -6.87E+01, D best: -6.87E+01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -682,13 +692,13 @@
        expansion coefficients optimization: &it_coeff001_001_001
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
- calculate S^x: {mode: dense, x: -1, order:  8, 
+ calculate S^x: {mode: dense, powers: {x: -1}, order:  8, 
  max / mean error:  [  7.86E-04,  1.22E-04 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.07E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  8.56E-06, 
- calculate S^x: {mode: dense, x: -1/2, order:  8}, 
+ calculate S^x: {mode: dense, powers: {x: -1/2}, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.44E-02, eBS: -1.62667830631152270E+01, D: -1.744E-03, 
+ iter:  1, fnrm:  2.44E-02, eBS: -1.62667830631151062E+01, D: -1.744E-03, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -708,24 +718,29 @@
  iter high:  1, delta out:  2.541E-08, energy: -6.87392152766127538E+01, D: -6.874E+01}
    calculate S^x:
      mode                              : dense
-     x                                 : 1/2
+     powers:
+       x                               : 1/2
      order                             :  8
      max / mean error                  :  [  7.99E-06,  1.16E-06 ]
    calculate S^x:
      mode                              : dense
-     x                                 : 1/2
+     powers:
+       x                               : 1/2
      order                             :  8
    calculate S^x:
      mode                              : dense
-     x                                 : 1/2
+     powers:
+       x                               : 1/2
      order                             :  8
    calculate S^x:
      mode                              : dense
-     x                                 : 1/2
+     powers:
+       x                               : 1/2
      order                             :  8
    calculate S^x:
      mode                              : dense
-     x                                 : 1/2
+     powers:
+       x                               : 1/2
      order                             :  8
    Weight analysis: [
   #coeff, occ, eval, frac for each frag
@@ -780,22 +795,22 @@
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  9.34203661E-03, y: -5.92656020E-02, z:  3.80984040E-02, 
                     total:  7.10716091E-02}
- Clean forces norm (Ha/Bohr): {maxval:  7.938547784437E-02, fnrm2:  1.198645499462E-02}
- Raw forces norm (Ha/Bohr): {maxval:  1.138974588207E-01, fnrm2:  2.107191114199E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  7.938547784440E-02, fnrm2:  1.198645499464E-02}
+ Raw forces norm (Ha/Bohr): {maxval:  1.138974588208E-01, fnrm2:  2.107191114207E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 2.230252565902E-02, -7.076985013012E-02,  2.821842933914E-02]} # 0001
- -  {H: [-3.792242176265E-03,  1.098840873291E-02, -1.301956476769E-02]} # 0002
- -  {H: [-2.538491631801E-03,  8.323379775428E-03, -6.715418981972E-03]} # 0003
- -  {O: [ 2.378443189897E-03, -3.840775470274E-02,  2.600699154361E-02]} # 0004
- -  {H: [-2.204639538992E-02,  7.813580500062E-03, -1.324769093520E-02]} # 0005
- -  {H: [-9.976073760026E-03,  5.618488991206E-03, -9.541335739213E-03]} # 0006
- -  {O: [-1.543426402062E-02,  7.810567013882E-03, -2.455064968610E-03]} # 0007
- -  {H: [ 8.836067701258E-03,  2.359646414472E-02, -6.596407017648E-03]} # 0008
- -  {H: [ 4.519473097498E-03,  2.574643606571E-02, -1.146755627995E-02]} # 0009
- -  {O: [ 1.147733814785E-02,  9.782649472118E-03,  2.893375119437E-03]} # 0010
- -  {H: [ 4.319305398609E-04,  2.063529262221E-03,  6.885628277337E-03]} # 0011
- -  {H: [ 3.841688643244E-03,  7.434100874599E-03, -9.613855892352E-04]} # 0012
+ -  {O: [ 2.230252565921E-02, -7.076985013018E-02,  2.821842933892E-02]} # 0001
+ -  {H: [-3.792242176268E-03,  1.098840873307E-02, -1.301956476767E-02]} # 0002
+ -  {H: [-2.538491631761E-03,  8.323379775511E-03, -6.715418981996E-03]} # 0003
+ -  {O: [ 2.378443189976E-03, -3.840775470287E-02,  2.600699154355E-02]} # 0004
+ -  {H: [-2.204639539007E-02,  7.813580500114E-03, -1.324769093508E-02]} # 0005
+ -  {H: [-9.976073760083E-03,  5.618488991207E-03, -9.541335739157E-03]} # 0006
+ -  {O: [-1.543426402070E-02,  7.810567013721E-03, -2.455064968355E-03]} # 0007
+ -  {H: [ 8.836067701401E-03,  2.359646414470E-02, -6.596407017582E-03]} # 0008
+ -  {H: [ 4.519473097541E-03,  2.574643606568E-02, -1.146755627989E-02]} # 0009
+ -  {O: [ 1.147733814783E-02,  9.782649472168E-03,  2.893375119111E-03]} # 0010
+ -  {H: [ 4.319305397793E-04,  2.063529262248E-03,  6.885628277397E-03]} # 0011
+ -  {H: [ 3.841688643145E-03,  7.434100874622E-03, -9.613855892605E-04]} # 0012
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -803,16 +818,16 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  74.67
-   Elapsed time (s)                    :  41.12
+   CPU time (s)                        :  55.69
+   Elapsed time (s)                    :  31.29
  Memory Consumption Report:
-   Tot. No. of Allocations             :  3748
-   Tot. No. of Deallocations           :  3748
+   Tot. No. of Allocations             :  3771
+   Tot. No. of Deallocations           :  3771
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  1153
      for the array                     : psir
      in the routine                    : LocalHamiltonianApplication
-     Memory Peak of process            : 1068116 kB
- Max No. of dictionaries used          :  3169 #( 838 still in use)
+     Memory Peak of process            : 1059044 kB
+ Max No. of dictionaries used          :  3173 #( 838 still in use)
  Number of dictionary folders allocated:  1

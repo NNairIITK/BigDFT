@@ -34,7 +34,7 @@ program BigDFT2Wannier
    type(workarr_sumrho) :: w
    type(comms_cubic), target :: comms, commsp,commsv,commsb
    integer, parameter :: WF_FORMAT_CUBE = 4
-   integer :: i_stat, ind, ierr, npsidim, npsidim2,iproc, nproc
+   integer :: ind, ierr, npsidim, npsidim2,iproc, nproc
    integer :: n_proj,nvctrp,npp,nvirtu,nvirtd,pshft,nbl1,nbl2,nbl3,iformat,info
    integer :: ncount0,ncount1,ncount_rate,ncount_max,nbr1,nbr2,nbr3,shft,wshft,lwork
    real :: tcpu0,tcpu1
@@ -55,12 +55,12 @@ program BigDFT2Wannier
    real(kind=8), allocatable :: ylm(:,:,:), func_r(:,:,:)
    real(kind=8), allocatable :: amnk(:,:), amnk_tot(:), amnk_guess(:), amnk_guess_sorted(:),overlap_proj(:,:)
    real(kind=8), allocatable :: mmnk_re(:,:,:), mmnk_im(:,:,:), mmnk_tot(:,:)
-   integer :: i, j, k, np,i_all
+   integer :: i, j, k, np
    character :: seedname*16, dir*16
    logical :: calc_only_A 
    real, dimension(3,3) :: real_latt, recip_latt
    integer :: n_kpts, n_nnkpts, n_excb, n_at, s
-   integer :: n_occ, n_virt, n_virt_tot,nconfig
+   integer :: n_occ, n_virt, n_virt_tot!,nconfig
    logical :: w_unk, w_sph, w_ang, w_rad, pre_check
    real, allocatable, dimension (:,:) :: kpts
    real(kind=8), allocatable, dimension (:,:) :: ctr_proj, x_proj, y_proj, z_proj
@@ -300,7 +300,6 @@ program BigDFT2Wannier
          if(nproc > 1) then
             pwork = f_malloc_ptr(npsidim,id='pwork')
             call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,psi_etsfv(1),pwork(1))
-            i_all = -product(shape(pwork))*kind(pwork)
             call f_free_ptr(pwork)
          end if
 
@@ -2134,7 +2133,7 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
    ! Local variables
    logical :: perx,pery,perz
    integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3
-   integer :: nb, i, j, k, n_bands, i_stat, ind, i_all
+   integer :: nb, i, j, k, n_bands, ind
    character :: s_c*1, nk_c*3, seedname*10,filename*60
    character(len=*), parameter :: subname='write_unk_bin'
    real(wp), dimension(nx*ny*nz) :: psir
@@ -2243,7 +2242,7 @@ subroutine split_vectors_for_parallel(iproc,nproc,nvctr,orbs)
    integer, intent(in) :: nvctr
    type(orbitals_data), intent(inout) :: orbs
    !local variables
-   integer :: ntot,jproc,i_stat,i_all
+   integer :: ntot,jproc
    character(len=*), parameter :: subname='split_vectors_for_parallel'
    integer, dimension(:), allocatable :: nvctr_par,isvctr_par
 

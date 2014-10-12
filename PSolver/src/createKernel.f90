@@ -109,10 +109,9 @@ end function pkernel_init
 
 !> Free memory used by the kernerl operation
 !! @ingroup PSOLVER
-subroutine pkernel_free(kernel,subname)
+subroutine pkernel_free(kernel)
   use dynamic_memory
   implicit none
-  character(len=*), intent(in) :: subname
   type(coulomb_operator), intent(inout) :: kernel
 
   if (associated(kernel%kernel)) then
@@ -431,7 +430,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 !!$     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-     call Wires_Kernel(kernel%mpi_env%iproc,kernelnproc,&
+     call Wires_Kernel(kernelnproc,&
           kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
           n1,n2,n3,nd1,nd2,nd3,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),&
           kernel%itype_scf,kernel%kernel,mu0t)
@@ -632,7 +631,7 @@ subroutine inplane_partitioning(mpi_env,mdz,n2wires,n3planes,part_mpi,inplane_mp
      end if
 
      if (n3pr1>1) &
-          call mpi_environment_set1(inplane_mpi,mpi_env%iproc,mpi_env%nproc, &
+          call mpi_environment_set1(inplane_mpi,mpi_env%iproc, &
           mpi_env%mpi_comm,n3pr1,n3pr2)
   else
      n3pr1=1

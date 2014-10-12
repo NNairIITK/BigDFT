@@ -262,13 +262,14 @@ class polar_axis():
     level = ydata/self.step
     #once that the level has been found filter the list of theta
     (tt,name,time)=self.find_name(xdata,level)
+    print "======================="
     print "Routine Picked:",name,",",time,"s (",time/self.tot*100.0,"% of total time)"
     #find lower level
     it=range(level)
     it.reverse()
     for i in it:
       (tt,name,time)=self.find_name(tt,i)
-      print "Called by:",name
+      print "  Called by:",name
 
 if __name__ == "__main__":
   parser = parse_arguments()
@@ -286,25 +287,26 @@ def bars_data(dict):
   bot=pylab.np.array([0])
   plts=[]
   key_legend=[]
+  values_legend=[]
   icol=1.0
   for cat in toext:
     try:
-	dat=pylab.np.array([dict[cat][0]])
-    	print 'data',dat
-    	plt=pylab.bar(ind,dat,width,bottom=bot,color=pylab.cm.jet(icol/len(toext)))
-    	#plt.set_facecolor( pylab.cm.jet(0.3))
-    	plts.append(plt)
-    	key_legend.append(plt[0])
-    	bot+=dat
-    	icol+=1.0
+      dat=pylab.np.array([dict[cat][0]])
+      print 'data',dat
+      plt=pylab.bar(ind,dat,width,bottom=bot,color=pylab.cm.jet(icol/len(toext)))
+      plts.append(plt)
+      key_legend.append(plt[0])
+      values_legend.append(cat)
+      bot+=dat
+      icol+=1.0
     except:
 	print "category",cat,"not present"
-
+  
   pylab.ylabel('Percent')
   pylab.title('Time bar chart')
   pylab.xticks(ind+width/2., ('G1', 'G2', 'G3', 'G4', 'G5') )
   pylab.yticks(pylab.np.arange(0,100,10))
-  pylab.legend(pylab.np.array(key_legend), pylab.np.array(toext))
+  pylab.legend(pylab.np.array(key_legend), pylab.np.array(values_legend))
   #pylab.show()
 
 #logfile
