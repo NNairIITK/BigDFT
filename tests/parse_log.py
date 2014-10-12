@@ -288,14 +288,17 @@ def bars_data(dict):
   key_legend=[]
   icol=1.0
   for cat in toext:
-    dat=pylab.np.array([dict[cat][0]])
-    print 'data',dat
-    plt=pylab.bar(ind,dat,width,bottom=bot,color=pylab.cm.jet(icol/len(toext)))
-    #plt.set_facecolor( pylab.cm.jet(0.3))
-    plts.append(plt)
-    key_legend.append(plt[0])
-    bot+=dat
-    icol+=1.0
+    try:
+	dat=pylab.np.array([dict[cat][0]])
+    	print 'data',dat
+    	plt=pylab.bar(ind,dat,width,bottom=bot,color=pylab.cm.jet(icol/len(toext)))
+    	#plt.set_facecolor( pylab.cm.jet(0.3))
+    	plts.append(plt)
+    	key_legend.append(plt[0])
+    	bot+=dat
+    	icol+=1.0
+    except:
+	print "category",cat,"not present"
 
   pylab.ylabel('Percent')
   pylab.title('Time bar chart')
@@ -310,7 +313,7 @@ if args.timedata is not None:
   #load the first yaml document
   timing = yaml.load(open(args.timedata, "r").read(), Loader = yaml.CLoader)
   dict_routines = timing["Routines timing and number of calls"]
-  timing["WFN_OPT"]["Classes"].pop("Categories")  
+  #timing["WFN_OPT"]["Classes"].pop("Categories")  #not needed anymore
   sys.stdout.write(yaml.dump(timing["WFN_OPT"]["Classes"],default_flow_style=False,explicit_start=True))
   bars_data(timing["WFN_OPT"]["Classes"])
   data=dump_timing_level(dict_routines)
