@@ -44,13 +44,13 @@ character(len=9) :: fn9
     ef_counter=ef_counter+1.0_gp
 
 !!temporary output for geopt paper
-!!if (iproc == 0) then
-!!   write(fn4,'(i9.9)') int(ef_counter)
-!!   call astruct_dump_to_file(astruct_ptr,&
-!!        currDir//'/dump_'//fn4, &
-!!        '',energy=0.0_gp,rxyz=rxyz,&
-!!        forces=fxyz)
-!!endif
+if (iproc == 0) then
+   write(fn9,'(i9.9)') int(ef_counter)
+   call astruct_dump_to_file(astruct_ptr,&
+        currDir//'/dump_'//fn9, &
+        '',energy=0.0_gp,rxyz=rxyz,&
+        forces=fxyz)
+endif
 
 
  
@@ -62,6 +62,10 @@ character(len=9) :: fn9
         !convert from bohr to ansgtroem
         rxyzint=0.52917721092_gp*rxyz
         alatint=0.52917721092_gp*alat
+!        rxyzint=0.5291772108_gp*rxyz
+!        alatint=0.5291772108_gp*alat
+!        rxyzint=rxyz
+!        alatint=alat
         call lenosky_si_shift(nat,alatint,rxyzint(1,1),fxyz(1,1),epot)
         !convert energy from eV to Hartree
         epot=0.03674932379085202_gp * epot
@@ -73,6 +77,8 @@ character(len=9) :: fn9
         !convert from bohr to ansgtroem
         rxyzint=0.52917721092_gp*rxyz
         alatint=0.52917721092_gp*alat
+!        rxyzint=rxyz
+!        alatint=alat
         call lenosky_si(nat,alatint,rxyzint,fxyz,epot)
         !convert energy from eV to Hartree
         epot=0.03674932379085202_gp * epot

@@ -77,7 +77,8 @@ program mhgps
     !alanine stuff ......................END!>
 
     ifolder=1
-    ifile=1
+!!    ifile=1
+    ifile=0
     ef_counter=0.d0 !from module_global_variables
     isad=0  !from module_global_variables
     isadprob=0
@@ -335,8 +336,8 @@ allocate(fat(3,nat))
             stop '(MHGPS) operation mode unknown STOP'
         endif
 
-        do ifile = 1,nend
-!        do ifile = 0,nend
+!        do ifile = 1,nend
+        do ifile = 0,nend
 
             !read (first) file
             write(filename,'(a,i3.3)')'pos',ifile
@@ -524,6 +525,7 @@ allocate(fat(3,nat))
                          energy,rxyz=rxyz,forces=fxyz)
                 endif
             else if(trim(adjustl(operation_mode))=='hessian')then
+                call energyandforces(nat,alat,rxyz,fxyz,fnoise,energy)
                 call cal_hessian_fd(iproc,nat,alat,rxyz,hess)
                 if(iproc==0)then
                     write(*,*)'(hess) HESSIAN:'

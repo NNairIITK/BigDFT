@@ -134,8 +134,11 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
 
 
 
-    if(astruct_ptr%geocode/='F'.and. .not. (trim(adjustl(efmethod))=='LENSIc'))&
-    stop 'STOP: saddle search only implemented for free BC'
+!    if(astruct_ptr%geocode/='F'.and. .not. (trim(adjustl(efmethod))=='LENSIc'))&
+!    stop 'STOP: saddle search only implemented for free BC'
+
+    if((minoverlap0>=-1.d0).and.saddle_tighten)&
+    stop 'STOP: Don not use minoverlap and no tightening in combination'
 
     if(iproc==0)then
         call yaml_comment('(MHGPS) Start Saddle Search ....',&
@@ -178,9 +181,11 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     fstretch=0.0_gp
     rxyz(:,:,0)=wpos
 
+    if (astruct_ptr%geocode == 'F') then
     call fixfrag_posvel(nat,rcov,rxyz(1,1,0),tnatdmy,1,fixfragmented)
     if(fixfragmented .and. mhgps_verbosity >=0.and. iproc==0)&
        call yaml_comment('fragmentation fixed')
+    endif
 
     inputPsiId=0
     call minenergyandforces(.true.,imode,nat,alat,rxyz(1,1,0),rxyzraw(1,1,0),&
@@ -362,9 +367,11 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
         endif
         !do the move
         rxyz(:,:,nhist)=rxyz(:,:,nhist-1)-dd(:,:)
+        if (astruct_ptr%geocode == 'F') then
         call fixfrag_posvel(nat,rcov,rxyz(1,1,nhist),tnatdmy,1,fixfragmented)
         if(fixfragmented .and. mhgps_verbosity >=2.and. iproc==0)&
            call yaml_comment('fragmentation fixed')
+        endif
         !displ=displ+tt
  
         delta=rxyz(:,:,nhist)-rxyzold
@@ -463,9 +470,11 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
             endif
             !rxyz(:,:,nhist)=rxyz(:,:,nhist)+alpha_stretch*fstretch(:,:,nhist)
             rxyz(:,:,nhist)=rxyz(:,:,nhist)+dds
+            if (astruct_ptr%geocode == 'F') then
             call fixfrag_posvel(nat,rcov,rxyz(1,1,nhist),tnatdmy,1,fixfragmented)
             if(fixfragmented .and. mhgps_verbosity >=2.and. iproc==0)&
               call yaml_comment('fragmentation fixed')
+            endif
         endif
 
         if (cosangle.gt..20_gp) then
@@ -713,7 +722,7 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT mino
     overlap=ddot(3*nat,dxyzin0(1,1),1,rxyz(1,1,nhist),1)
  
 if(iproc==0.and.mhgps_verbosity>=2)&
-     write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5)))')&
+     write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5))')&
      '   (MHGPS) CUOPT ',nint(ener_count),0,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap,displr,displp
 !    itswitch=2
    itswitch=-2
@@ -802,7 +811,7 @@ if(iproc==0.and.mhgps_verbosity>=2)&
                      trim(yaml_toa(it))//''//trim(yaml_toa(dcurv)))
             overlap=ddot(3*nat,dxyzin0(1,1),1,rxyz(1,1,nhist),1)
             if(iproc==0.and.mhgps_verbosity>=2)&
-                write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5)))')&
+                write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5))')&
                 '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap,displr,displp
             !alpha=min(.5_gp*alpha,alpha0)
             alpha=.5_gp*alpha
@@ -810,7 +819,7 @@ if(iproc==0.and.mhgps_verbosity>=2)&
                 call yaml_comment('INFO: (MHGPS) alpha reset (opt. curv): '//&
                      trim(yaml_toa(alpha)))
             ndim=0
-        if(.not. isForceField)then
+        if((.not. isForceField) .and. (inputPsiId/=0))then
             if(iproc==0 .and. mhgps_verbosity>=3)&
                 call yaml_comment('INFO: (MHGPS) Will use LCAO input guess from now on '//&
                 '(until end of current minmode optimization).')
@@ -819,7 +828,7 @@ if(iproc==0.and.mhgps_verbosity>=2)&
                 rxyzraw(1,1,nhist-1),fxyz(1,1,nhist-1),fstretch(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
                 curvold,1,ener_count,iconnect,nbond,wold,alpha_stretch0,alpha_stretch)
             if(iproc==0.and.mhgps_verbosity>=2)&
-                 write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es9.2,2(1x,es12.5)))')&
+                 write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es9.2,2(1x,es12.5))')&
                  '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,displr,displp
         endif
 
