@@ -1063,7 +1063,7 @@ subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,ll_runObj,ncount_bigdft)
     !type(atoms_data), intent(inout) :: atoms
     !type(input_variables), intent(inout) :: ll_inputs
     !type(restart_objects), intent(inout) :: rst
-    type(run_objects), intent(in) :: ll_runObj
+    type(run_objects), intent(inout) :: ll_runObj
     integer, intent(inout) :: ncount_bigdft
     integer::n,nr,np,ip,icall,it,nwork,nra
     real(kind=8)::x(n,0:np)

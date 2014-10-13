@@ -117,8 +117,8 @@ module sparsematrix
       ! Calling arguments
       integer, intent(in) :: iproc
       type(sparse_matrix), intent(inout) :: sparsemat
-      real(kind=8),dimension(sparsemat%nvctr),target,intent(out),optional :: inmat
-      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr),target,intent(out),optional :: outmat
+      real(kind=8),dimension(sparsemat%nvctr),target,intent(in),optional :: inmat
+      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr),target,intent(inout),optional :: outmat
       
       ! Local variables
       integer :: ii, irow, jcol, iii, ierr
@@ -165,7 +165,7 @@ module sparsematrix
          end do
          !$omp end parallel do
          if (bigdft_mpi%nproc > 1) then
-            call mpiallred(sparsemat%matrix(1,1), sparsemat%nfvctr**2,mpi_sum,bigdft_mpi%mpi_comm)
+            call mpiallred(sparsemat%matrix,mpi_sum,bigdft_mpi%mpi_comm)
          end if
       else
          sparsemat%matrixp=f_malloc_ptr((/sparsemat%nfvctr,sparsemat%nfvctrp/),id='sparsemat%matrixp')

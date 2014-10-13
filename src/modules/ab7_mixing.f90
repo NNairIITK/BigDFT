@@ -102,7 +102,7 @@ contains
     integer, intent(in), optional :: npulayit
     logical, intent(in), optional :: useprec
 
-    integer :: ii, i_stat
+    integer :: ii
     character(len = *), parameter :: subname = "ab7_mixing_new"
 
     ! Set default values.
@@ -310,7 +310,7 @@ contains
     type(ab7_mixing_object), intent(inout) :: mix
     integer, intent(in), optional :: istep
 
-    integer :: istep_, i_stat, usepaw
+    integer :: istep_, usepaw
     real(dp) :: tsec(2)
     character(len = *), parameter :: subname = "ab7_mixing_eval_allocate"
 
@@ -361,7 +361,7 @@ contains
 
     type(ab7_mixing_object), intent(inout) :: mix
 
-    integer :: i_all, i_stat
+    integer :: i_all
     real(dp) :: tsec(2)
     character(len = *), parameter :: subname = "ab7_mixing_eval_deallocate"
 
@@ -438,7 +438,7 @@ contains
 
     character(len = *), parameter :: subname = "ab7_mixing_eval"
     integer :: moveAtm, dbl_nnsclo, initialized, isecur_
-    integer :: usepaw, pawoptmix_, response_, i_stat, i_all
+    integer :: usepaw, pawoptmix_, response_, i_all
     integer :: user_data_(2)
     real(dp) :: resnrm_
     real(dp), pointer :: pawarr_(:)
@@ -591,9 +591,9 @@ contains
 
     implicit none
 
+    !Arguments
     type(ab7_mixing_object), intent(inout) :: mix
-
-    integer :: i_all, i_stat
+    !Local variables
     character(len = *), parameter :: subname = "ab7_mixing_deallocate"
 
     call f_free_ptr(mix%i_rhor)
@@ -655,7 +655,7 @@ contains
     double precision, dimension(*), intent(in) :: x
     integer, dimension(:), intent(in) :: user_data
     !Local variables
-    integer :: ierr, ie, iproc, npoints, ishift
+    integer :: ierr, iproc, npoints, ishift
     double precision :: fnrm_denpot, ar, nrm_local, dnrm2
 
     ! In case of density, we use nscatterarr.
@@ -711,7 +711,7 @@ contains
     double precision, intent(in) :: x(*), y(*)
     integer, intent(in) :: user_data(:)
 
-    integer :: ierr, ie, iproc, npoints, ishift
+    integer :: ierr, iproc, npoints, ishift
     double precision :: fdot_denpot, ar, dot_local
     double precision, external :: ddot
 

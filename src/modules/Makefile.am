@@ -46,6 +46,7 @@ libmodules_a_SOURCES = base.f90 \
 	constrained_dft.f90 \
 	diis_module.f90 \
 	ao_inguess.f90 \
+	reformatting.f90 \
 	atoms_data.f90 \
 	communications_base.f90 \
 	communications_init.f90 \
@@ -87,6 +88,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	PSP_PROJECTORS.@MODULE_EXT@ \
 	LOCREGS.@MODULE_EXT@ \
 	AO_INGUESS.@MODULE_EXT@ \
+	REFORMATTING.@MODULE_EXT@ \
 	MODULE_ATOMS.@MODULE_EXT@ \
 	COMMUNICATIONS_BASE.@MODULE_EXT@ \
 	COMMUNICATIONS_INIT.@MODULE_EXT@ \
@@ -122,6 +124,7 @@ modules = module_base.@MODULE_EXT@ \
 	psp_projectors.@MODULE_EXT@ \
 	locregs.@MODULE_EXT@ \
 	ao_inguess.@MODULE_EXT@ \
+	reformatting.@MODULE_EXT@ \
 	module_atoms.@MODULE_EXT@ \
 	communications_base.@MODULE_EXT@ \
 	communications_init.@MODULE_EXT@ \
@@ -184,6 +187,7 @@ psp_projectors.o: locregs.o gaussians.o defs.o
 locregs.o: base.o
 ao_inguess.o: $(AO_INCLUDES) base.o psp_projectors.o
 atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o internal_coordinates.o
+reformatting.o: base.o
 communications_base.o: base.o
 communications_init.o: base.o types.o communications_base.o
 communications.o: base.o types.o communications_base.o

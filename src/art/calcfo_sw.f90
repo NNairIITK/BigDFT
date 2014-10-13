@@ -86,7 +86,7 @@ END MODULE  SWpotential
 !> This subroutine initializes the SW parameters (ART)
 subroutine init_potential_SW()
    use SWpotential
-   use defs, only : natoms
+   use defs, only: natoms
 
    implicit none
 
@@ -306,8 +306,8 @@ END SUBROUTINE fit_SW_potential
 
 
 subroutine mc_fit(vec_size,vector,tolerance,current_value,numnei,nei)
-   use defs,only : iproc,maxnei,natoms,should_fit
-   use SWpotential,only : angles_to_fit
+   use defs, only: maxnei,natoms,should_fit
+   use SWpotential, only: angles_to_fit
    use random
    implicit none
 
@@ -373,8 +373,7 @@ END SUBROUTINE mc_fit
 
 
 subroutine fit_sd(vec_size,vector,tolerance,current_value,numnei,nei)
-   use defs,only : iproc,maxnei,natoms,should_fit
-   use SWpotential,only :angles_to_fit
+   use defs, only: maxnei,natoms
    implicit none
 
    integer,intent(in) :: vec_size
@@ -431,9 +430,9 @@ END SUBROUTINE fit_sd
 
 function diff_square_force_one(P,numnei,nei,this_atom)
 
-   use SWpotential,only : SW_parameters,force_ref_fit,len_vect_to_fit,optimum_angle,&
+   use SWpotential, only: SW_parameters,force_ref_fit,len_vect_to_fit,optimum_angle,&
       &   angles_to_fit,pos_ref_fit,configs_to_fit,force_work_fit
-   use defs,only : should_fit,natoms,pos,boxref,iproc,nbr_to_fit,maxnei,force
+   use defs, only: should_fit,natoms,boxref,maxnei
    implicit none
 
    real(kind=8) :: diff_square_force_one
@@ -448,7 +447,7 @@ function diff_square_force_one(P,numnei,nei,this_atom)
    real(kind=8), dimension(3*natoms,configs_to_fit) :: force_tempo,tmp_force
    interface
       subroutine SWcalczone(nat,posa,boxl,tmp_force, this_atom,numnei,nei)
-         use defs, only : maxnei
+         use defs, only: maxnei
          integer, intent(in)                               :: nat
          real(kind=8), intent(in), dimension(3*nat) :: posa
          real(kind=8), dimension(3), intent(inout)          :: boxl
@@ -502,9 +501,9 @@ END FUNCTION diff_square_force_one
 
 function diff_square_force(P)
 
-   use SWpotential,only : SW_parameters,force_ref_fit,len_vect_to_fit,optimum_angle &
+   use SWpotential, only: SW_parameters,force_ref_fit,len_vect_to_fit,optimum_angle &
       &   ,angles_to_fit,pos_ref_fit,force_work_fit,configs_to_fit
-   use defs,only : should_fit,natoms,pos,boxref,iproc,nbr_to_fit,maxnei,force
+   use defs, only: should_fit,natoms,boxref
    implicit none
 
    real(kind=8) :: diff_square_force
@@ -551,8 +550,8 @@ END FUNCTION diff_square_force
 
 !> Finds the gradient vector
 subroutine deriv_diff_square_force(P,DF,numnei,nei)
-   use SWpotential,only : len_vect_to_fit,angles_to_fit
-   use defs,only : natoms,iproc,nbr_to_fit,maxnei,should_fit
+   use SWpotential, only: len_vect_to_fit,angles_to_fit
+   use defs, only: natoms,maxnei,should_fit
    implicit none
 
    real(kind=8),dimension(len_vect_to_fit),intent(in) :: P
@@ -597,7 +596,7 @@ END SUBROUTINE deriv_diff_square_force
 subroutine SWcalczone(nat,posa,boxl,tmp_force, this_atom,numnei,nei)
 
    use SWpotential
-   use defs, only : boundary,maxnei,iproc,MPI_COMM_WORLD
+   use defs, only: boundary,maxnei,MPI_COMM_WORLD
 
    implicit none
 
@@ -874,7 +873,7 @@ END SUBROUTINE SWcalczone
 subroutine SWcalcforce(nat,posa,boxl,tmp_force, pot_energy)
 
    use SWpotential
-   use defs, only : boundary,maxnei,iproc
+   use defs, only: boundary,maxnei
 
    implicit none
 

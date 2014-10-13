@@ -6,12 +6,14 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
   integer, intent(in), optional :: root !<rank of the process retrieving the diff
   integer, intent(in), optional :: comm
   logical, intent(in), optional :: bcast !< if .true. all the proc will have the same maxdiff (default .false.)
   !local variables
   logical :: bcst
-  integer :: ndims,nproc,mpi_comm,iroot,i,jproc,ierr
+  integer :: ndims,nproc,mpi_comm,iroot,i,jproc
 
   bcst=.false.
   if (present(bcast)) bcst=bcast

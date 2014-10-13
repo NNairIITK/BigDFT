@@ -113,7 +113,7 @@ SiBulk:
 SiH4:
  #due to lack of functionality in fldiff, since energies field is updated
  Energies: &etol 4.6e-9
- Eion: &eion 3.4e-9
+ Eion: &eion 3.7e-9
  EH: *etol
  EXC: *etol
  Eion: *etol
@@ -125,7 +125,7 @@ SiH4:
  Ion-Ion interaction energy: *eion
  Atomic Forces (Ha/Bohr): 2.e-9
  maxval: 2.e-9
- Average noise forces: 1.5e-10
+ Average noise forces: 1.7e-10
  Average CG stepsize in terms of betax: 1.1e-5
 
 Mn2:
@@ -190,7 +190,7 @@ CH3-:
 scalability:
  Energies: 1.e-9
  EKS: 2.14e-10
- Total electronic charge: 1.9e-11
+ Total electronic charge: 2.1e-11
  Expected kinetic energy: 1.1e-10
 
 
@@ -815,7 +815,8 @@ experimentalfoe_medium:
  ebs_check: 4.4e-8
  Epot: 1.1e-9
  EH: 1.1e-9
- Total charge: 3.1e-11
+ EvXC: 1.01e-10
+ Total charge: 4.1e-11
  energy: 1.4e-10
  Omega: 8.1e-10
  decay length of error function: 1.1e-5
@@ -954,6 +955,7 @@ sparsity:
  charge diff: 1.1e-9
  energy: 1.1e-9
  EXC: 1.1e-10
+ EvXC: 1.01e-9
  Epot: 1.1e-9
  eF: 1.1e-9
  D eF: 1.1e-9

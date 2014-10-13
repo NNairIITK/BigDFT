@@ -772,6 +772,7 @@ contains
   subroutine f_purge_database(size,kind,address,id,routine)
     use metadata_interfaces, only: long_toa
     use yaml_output, only: yaml_flush_document
+    use yaml_strings, only: f_strcpy
     implicit none
     !> Number of elements of the buffer
     integer(kind=8), intent(in) :: size
@@ -840,8 +841,16 @@ contains
           call dict_remove(mems(ictrl)%dict_routine,long_toa(iadd))
        end if
     else
-       array_id(1:len(array_id))=id
-       routine_id(1:len(routine_id))=routine
+       if (present(id)) then
+          call f_strcpy(dest=array_id,src=id)
+       else
+          call f_strcpy(dest=array_id,src='Unknown')
+       end if
+       if (present(routine)) then
+          call f_strcpy(dest=routine_id,src=routine)
+       else
+          call f_strcpy(dest=routine_id,src='Unknown')
+       end if
     end if
 
     call memstate_update(memstate,-ilsize,trim(array_id),trim(routine_id))

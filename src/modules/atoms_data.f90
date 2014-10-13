@@ -244,8 +244,6 @@ contains
     type(atoms_data) :: at
     call nullify_atoms_data(at)
   end function atoms_data_null
-
-
   pure subroutine nullify_atoms_data(at)
     use m_pawang, only: pawang_nullify
     implicit none
@@ -312,7 +310,7 @@ contains
     type(atomic_structure), intent(inout) :: astruct
     !local variables
     character(len=*), parameter :: subname='deallocate_atomic_structure' !remove
-    integer :: i_stat, i_all
+    !   integer :: i_stat, i_all
 
 
     ! Deallocations for the geometry part.
@@ -1050,7 +1048,8 @@ subroutine astruct_set_n_types(astruct, ntypes)
   !character(len = *), intent(in) :: subname
   !local variables
   character(len=*), parameter :: subname='astruct_set_n_types' !<remove
-  integer :: i, i_stat
+  ! integer :: i
+  ! integer :: i_stat
 
   astruct%ntypes = ntypes
 

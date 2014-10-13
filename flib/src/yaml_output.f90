@@ -1073,7 +1073,7 @@ contains
     character(len=*), optional, intent(in) :: advance   !<@copydoc doc::advance
     integer, intent(in), optional :: padding            !<pad the seqvalue with blanks to have more readable output
     !local variables
-    integer :: msg_lgt,unt,strm,tb,ipos
+    integer :: msg_lgt,unt,strm,tb
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 

@@ -33,6 +33,9 @@ subroutine test_dynamic_memory()
 
    integer,dimension(:,:,:),allocatable :: weight
    integer,dimension(:,:,:,:),allocatable :: orbital_id
+   character(len=20), dimension(:), allocatable :: str_arr
+   character(len=20), dimension(:), pointer :: str_ptr
+
    type(dummy_type) :: dummy_test
    external :: abort2
    real(kind=8) :: total
@@ -183,6 +186,32 @@ call f_free(weight)
 
      call f_free_ptr(i1_ptr,ptr1)
      call f_release_routine()
+
+     !allocate and test string array
+     str_arr=f_malloc0_str(len(str_arr),4,id='str_arr')
+
+     do i=1,size(str_arr)
+        str_arr(i)='hello, arr'//trim(yaml_toa(i))
+     end do
+
+     call yaml_map('String array values',str_arr)
+     call yaml_map('loc of address and metadata',[f_loc(str_arr),f_loc(str_arr(1)),get_add_str(str_arr)])
+     !then free array
+     call f_free_str(len(str_arr),str_arr)
+
+     !allocate and test string pointer
+     str_ptr=f_malloc0_str_ptr(len(str_arr),4,id='str_ptr')
+
+     do i=1,size(str_ptr)
+        str_ptr(i)='hello, ptr'//trim(yaml_toa(i))
+     end do
+
+     call yaml_map('String pointer values',str_ptr)
+     call yaml_map('loc of address and metadata',[f_loc(str_ptr),f_loc(str_ptr(1)),get_add_str(str_ptr)])
+     !then free array
+     call f_free_str_ptr(len(str_ptr),str_ptr)
+
+     
     call f_release_routine()
     call f_routine(id='SubCase 3')
       weight    =f_malloc((/1.to.1,1.to.1,-1.to.-1/),id='weight')
@@ -341,6 +370,14 @@ call f_free(weight)
    call f_malloc_dump_status()
 
    contains
+
+     function get_add_str(array)
+       implicit none
+       character(len=*), dimension(:), intent(in) :: array
+       integer(kind=8) :: get_add_str
+
+       get_add_str=f_loc(array(1))
+     end function get_add_str
 
      !>routine to retrieve the list element from a string which is 
      !! compliant with yaml standard

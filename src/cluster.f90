@@ -1041,7 +1041,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !if (loc(denspot%pkernelseq%kernel) /= loc(denspot%pkernel%kernel)) then !this is not standard
      if (.not. associated(denspot%pkernelseq%kernel,target=denspot%pkernel%kernel) .and. &
           associated(denspot%pkernelseq%kernel)) then
-        call pkernel_free(denspot%pkernelseq,subname)
+        call pkernel_free(denspot%pkernelseq)
      end if
 !!$     i_all=-product(shape(denspot%pkernelseq))*kind(denspot%pkernelseq)
 !!$     deallocate(denspot%pkernelseq,stat=i_stat)
@@ -1049,7 +1049,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
      nullify(denspot%pkernelseq%kernel)
   end if
-  call pkernel_free(denspot%pkernel,subname)
+  call pkernel_free(denspot%pkernel)
 
 
   !------------------------------------------------------------------------
@@ -1156,12 +1156,12 @@ contains
 !          if (loc(denspot%pkernelseq%kernel) /= loc(denspot%pkernel%kernel)) then !not standard
              if (.not. associated(denspot%pkernelseq%kernel,target=denspot%pkernel%kernel) .and. &
                   associated(denspot%pkernelseq%kernel)) then
-             call pkernel_free(denspot%pkernelseq,subname)
+             call pkernel_free(denspot%pkernelseq)
           end if
        else if (nproc == 1 .and. (in%exctxpar == 'OP2P' .or. in%SIC%alpha /= 0.0_gp)) then
           nullify(denspot%pkernelseq%kernel)
        end if
-       call pkernel_free(denspot%pkernel,subname)
+       call pkernel_free(denspot%pkernel)
 !!$       i_all=-product(shape(denspot%pkernel))*kind(denspot%pkernel)
 !!$       deallocate(denspot%pkernel,stat=i_stat)
 !!$       call memocc(i_stat,i_all,'kernel',subname)
