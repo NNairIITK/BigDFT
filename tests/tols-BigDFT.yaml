@@ -522,15 +522,15 @@ molecule_foe:
  Epot: 1.1e-8
  EXC: 9.1e-10
  EvXC: 1.1e-8
- EH: 1.1e-08
+ EH: 1.1e-8
  Ekin: 1.1e-8
  charge diff: 1.1e-8
  energy: 6.9e-10
  Omega: 8.6e-9
  Total charge: 2.5e-10
- eF: 1.1e-9
- guess for new ef: 1.1e-9
- D eF: 1.1e-9
+ eF: 3.0e-9
+ guess for new ef: 3.0e-9
+ D eF: 3.0e-9
  Tr(K): 1.1e-07
  D Tr: 1.1e-7
  tr(KS) before purification: 5.1e-10
@@ -1133,7 +1133,7 @@ verysparse:
  Total ionic charge: 1.1e-10
  decay length of error function: 1.1e-5
  Clean forces norm (Ha/Bohr): 2.1e-11
- Raw forces norm (Ha/Bohr): 1.1e-11
+ Raw forces norm (Ha/Bohr): 1.1e-10
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
