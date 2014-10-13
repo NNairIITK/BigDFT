@@ -1574,7 +1574,7 @@ subroutine calculate_multipoles(n1i, n2i, n3i, hgrids, phir, charge_center_elec,
               iy=iy-14
               iz=iz-14
 
-              q = phir(jj) * product(hgrids)
+              q = phir(jj)**2 * product(hgrids)
               x = ix*hgrids(1) + (rxyz_center(1)-charge_center_elec(1))
               y = iy*hgrids(2) + (rxyz_center(2)-charge_center_elec(2))
               z = iz*hgrids(3) + (rxyz_center(3)-charge_center_elec(3))
