@@ -51,7 +51,7 @@ program BigDFT2Wannier
    logical :: perx, pery,perz, residentity,write_resid
    integer :: nx, ny, nz, nb, nb1, nk, inn
    real(kind=8) :: b1, b2, b3, r0x, r0y, r0z
-   real(kind=8) :: xx, yy, zz
+   real(kind=8) :: xx, yy, zz,tt
    real(kind=8), allocatable :: ylm(:,:,:), func_r(:,:,:)
    real(kind=8), allocatable :: amnk(:,:), amnk_tot(:), amnk_guess(:), amnk_guess_sorted(:),overlap_proj(:,:)
    real(kind=8), allocatable :: mmnk_re(:,:,:), mmnk_im(:,:,:), mmnk_tot(:,:)
@@ -413,17 +413,20 @@ program BigDFT2Wannier
          ! For each unoccupied orbitals, check how they project on spherical harmonics.
          ! The greater amnk_guess(nb) is, the more they project on spherical harmonics.
          do nb=1,orbsv%norb
-            amnk_guess(nb)=0.0d0
+            !amnk_guess(nb)=0.0d0
+            tt=0.d0
             do np=1,orbsp%norb
                do j=1,orbsp%norb
-                  amnk_guess(nb)= amnk_guess(nb) +&
+                  tt=tt+&
+                  !amnk_guess(nb)= amnk_guess(nb) +&
                        amnk(nb,np)*amnk(nb,j)*overlap_proj(np,j)
                end do
             end do
+            amnk_guess(nb)=tt
             !print *,'debugiproc',amnk_guess(nb),iproc,dsqrt(amnk_guess(nb))
             if (iproc==0) then
                call yaml_map('Virtual band',nb)
-               call yaml_map('amnk_guess(nb)',sqrt(amnk_guess(nb)))
+               call yaml_map('amnk_guess(nb)',sqrt(tt))
             end if
             !if (iproc==0) write(*,'(I4,11x,F12.6)') nb, sqrt(amnk_guess(nb))
          end do
