@@ -236,6 +236,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   if (scf_mode/=LINEAR_FOE) then
       tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
+      !call yaml_map('Ham1com',tmb%linmat%ham_%matrix_compr)
+      !call yaml_map('ovrlpcom',tmb%linmat%ovrlp_%matrix_compr)
+
       tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
       !call uncompress_matrix(iproc, tmb%linmat%m, &
       !     inmat=tmb%linmat%ham_%matrix_compr, outmat=tmb%linmat%ham_%matrix)
@@ -1323,12 +1326,13 @@ subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
   use module_base
   use module_types
   use module_interfaces
+  use yaml_output, only: yaml_map
   implicit none
 
   ! Calling arguments
   integer, intent(in) :: iproc, norb
   real(kind=8),dimension(norb, norb),intent(inout) :: HamSmall
-  real(kind=8),dimension(norb, norb),intent(in) :: ovrlp
+  real(kind=8),dimension(norb, norb),intent(inout) :: ovrlp
   real(kind=8),dimension(norb),intent(out) :: eval
 
   ! Local variables
@@ -1424,6 +1428,7 @@ subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
   !end if
   ! DEBUG: print hamiltonian and overlap matrices
 
+  !call yaml_map('Hamiltonian before',HamSmall)
   ! Get the optimal work array size
   lwork=-1 
   work = f_malloc(100,id='work')

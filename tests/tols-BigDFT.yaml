@@ -110,7 +110,7 @@ SiBulk:
  Average noise forces: 9.3e-10
  HOMO LUMO gap (AU, eV): 1.8e-10
  PV (Ha): 1.89e-10
- Optimization of virtual orbitals: 6.28e-8
+ Optimization of virtual orbitals: 7.0101e-8
  e_occupied: 1.42e-11
  Orbitals: 1.42e-11	
  # Necessary for GPU runs, to be updated...
@@ -835,7 +835,8 @@ experimentalfoe_medium:
  ebs_check: 4.4e-8
  Epot: 1.1e-9
  EH: 1.1e-9
- Total charge: 3.1e-11
+ EvXC: 1.01e-10
+ Total charge: 4.1e-11
  energy: 1.4e-10
  Omega: 8.1e-10
  decay length of error function: 1.1e-5
@@ -979,6 +980,7 @@ sparsity:
  charge diff: 1.1e-9
  energy: 1.1e-9
  EXC: 1.1e-10
+ EvXC: 1.01e-9
  Epot: 1.1e-9
  eF: 1.1e-9
  D eF: 1.1e-9

@@ -135,8 +135,8 @@ module sparsematrix
       ! Calling arguments
       integer, intent(in) :: iproc
       type(sparse_matrix), intent(inout) :: sparsemat
-      real(kind=8),dimension(sparsemat%nvctr*sparsemat%nspin),target,intent(out) :: inmat
-      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),target,intent(out) :: outmat
+      real(kind=8),dimension(sparsemat%nvctr*sparsemat%nspin),target,intent(in) :: inmat
+      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),target,intent(inout) :: outmat
       
       ! Local variables
       integer :: iseg, i, ii, irow, jcol, iii, ierr, ishift, ispin
