@@ -1748,6 +1748,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   use yaml_output
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
+  use sparsematrix_base, only: deallocate_matrices, deallocate_sparse_matrix
 
   implicit none
 
@@ -1771,7 +1772,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 
   !Local variables
   character(len = *), parameter :: subname = "kswfn_post_treatments"
-  integer ::  jproc, nsize_psi, imode
+  integer ::  jproc, nsize_psi, imode, i
   real(dp), dimension(6) :: hstrten
   real(gp) :: ehart_fake
 
@@ -1869,9 +1870,24 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      imode = 1
      nsize_psi=1
      ! This is just to save memory, since calculate_forces will require quite a lot
-     !call deallocate_comms_linear(tmb%collcom)
+     call deallocate_comms_linear(tmb%collcom)
      call deallocate_comms_linear(tmb%ham_descr%collcom)
      call deallocate_comms_linear(tmb%collcom_sr)
+     call deallocate_p2pcomms(tmb%comgp)
+     call deallocate_p2pcomms(tmb%ham_descr%comgp)
+     do i=1,size(tmb%linmat%ovrlppowers_)
+         call deallocate_matrices(tmb%linmat%ovrlppowers_(i))
+     end do
+     call deallocate_matrices(tmb%linmat%ham_)
+     call deallocate_matrices(tmb%linmat%ovrlp_)
+     call deallocate_sparse_matrix(tmb%linmat%s)
+     call deallocate_sparse_matrix(tmb%linmat%m)
+     do i=1,size(tmb%linmat%ks)
+         call deallocate_sparse_matrix(tmb%linmat%ks(i))
+     end do
+     do i=1,size(tmb%linmat%ks_e)
+         call deallocate_sparse_matrix(tmb%linmat%ks_e(i))
+     end do
   else
      imode = 0
      nsize_psi = (KSwfn%Lzd%Glr%wfd%nvctr_c+7*KSwfn%Lzd%Glr%wfd%nvctr_f)*KSwfn%orbs%nspinor*KSwfn%orbs%norbp
