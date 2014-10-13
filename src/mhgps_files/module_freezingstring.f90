@@ -1,11 +1,19 @@
 !> @file
-!! module implementing the freezing string technique
-!!     
-!! @author Bastian Schaefer
-!! @section LICENCE
-!!    Copyright (C) 2014 UNIBAS
+!!    Module implementing the freezing string technique
+!!
+!! @author 
+!!    Copyright (C) 2014 UNIBAS, Bastian Schaefer 
 !!    This file is not freely distributed.
 !!    A licence is necessary from UNIBAS
+!!
+!!    Copyright (C) 2015-2015 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
+!> Module implementing the freezing string technique (minima hopping)
 module module_freezingstring
     implicit none
 
@@ -13,8 +21,9 @@ module module_freezingstring
 
     public :: get_ts_guess
     
-    contains
-!=====================================================================
+contains
+
+
 subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
                         tsgenergy,tsgforces)
     use module_base
@@ -39,7 +48,7 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
     integer :: i,j,iat
     integer :: npath,istring,istringmax,isidemax,ipathmax
     integer :: nnodes,nstring,nstringmax=20
-    integer :: ihigh,ncorr
+    integer :: ncorr
     real(gp), allocatable :: string(:,:,:)
     real(gp), allocatable :: path(:,:,:)
     real(gp), allocatable :: forces(:,:,:)
@@ -191,12 +200,13 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
     call f_free(energies) 
     call f_free(arc) 
 end subroutine
-!=====================================================================
+
+
 subroutine write_path(nat,npath,path,energies,tangent)
     use module_base
     use module_interfaces
     use module_atoms, only: astruct_dump_to_file
-    use module_global_variables, only: isadc, astruct_ptr,ixyz_int,&
+    use module_global_variables, only: isadc, astruct_ptr,&
                                        currDir
     implicit none
     !parameters
@@ -280,6 +290,8 @@ end subroutine
 !
 !end subroutine
 !=====================================================================
+
+
 subroutine grow_freezstring(nat,alat,gammainv,perpnrmtol,trust,&
                        nstepsmax,nstringmax,nstring,string,finished)
     use module_base
@@ -304,7 +316,7 @@ subroutine grow_freezstring(nat,alat,gammainv,perpnrmtol,trust,&
     !constants
     character(len=10), parameter :: method = 'linlst'
     !internal
-    integer :: i,j,k,istart
+    integer :: i,k,istart
     integer, parameter :: resize=10
     real(gp), allocatable :: stringTMP(:,:,:)
     real(gp) :: tangentleft(3*nat)
@@ -640,7 +652,6 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
     real(gp) :: arc(nimages)
     real(gp) :: arcl
     real(gp) :: arcC(nimagesC)
-    real(gp) :: arclC
     real(gp) :: diff(3,nat)
     real(gp) :: nimo
     real(gp) :: yp1=huge(1._gp), ypn=huge(1._gp)!natural splines

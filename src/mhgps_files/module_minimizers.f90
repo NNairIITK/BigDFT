@@ -1,12 +1,19 @@
 !> @file
 !!  Routines for Stefan's new minimization method
 !!     
-!! @author Bastian Schaefer
-!! @section LICENCE
-!!    Copyright (C) 2014 UNIBAS
+!! @author 
+!!    Copyright (C) 2014 UNIBAS (Bastian Schaefer)
 !!    This file is not freely distributed.
 !!    A licence is necessary from UNIBAS
+!!
+!!    Copyright (C) 2015-2015 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 
+
+!> Module containing routines for new minimization method
 module module_minimizers
     implicit none
 
@@ -43,10 +50,11 @@ subroutine minimize(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,&
     
 end subroutine
 
+
+!> call_bigdft has to be run once on runObj and outs !before calling this routine
+!! sbfgs will return to caller the energies and coordinates used/obtained from the last accepted iteration step
 !subroutine geopt(nat,wpos,etot,fout,fnrmtol,count,count_sd,displr)
 subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,energyio,energycounter,converged,writePostfix)
-!call_bigdft has to be run once on runObj and outs !before calling this routine
-!sbfgs will return to caller the energies and coordinates used/obtained from the last accepted iteration step
    use module_base
    use module_types
    use module_interfaces
@@ -56,7 +64,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    use module_global_variables, only: iproc,&
                                       inputPsiId,&
                                       mhgps_verbosity,&
-                                      ixyz_int,&
+!                                      ixyz_int,&
                                       astruct_ptr,&
                                       mini_frac_fluct,&
                                       mini_ncluster_x,&
@@ -83,14 +91,13 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    character(len=*), intent(in)           :: writePostfix
    !local variables
    character(len=*), parameter :: subname='sbfgs'
-   integer :: infocode,info !< variables containing state codes
-   integer :: nhistx !< maximum history length
-   integer :: nhist  !< actual history length
-   integer :: ndim   !< dimension of significant subspace
-   integer :: nit    !< maximum number of iterations
-   integer :: istat,iall
+   ! integer :: infocode !< variables containing state codes
+   integer :: nhistx   !< maximum history length
+   integer :: nhist    !< actual history length
+   integer :: ndim     !< dimension of significant subspace
+   integer :: nit      !< maximum number of iterations
    integer :: lworkf
-   integer :: it,i,iat,l,j,idim,jdim,ihist,icheck !<counter variables
+   integer :: it,iat,l,ihist,icheck !<counter variables
    integer :: itswitch
    logical :: debug !< set .true. for debug output to fort.100
    logical :: steep !< steepest descent flag
@@ -152,7 +159,7 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    character(len=9)                        :: cdmy9
    character(len=8)                        :: cdmy8
     !functions
-    real(gp) :: ddot,dnrm2
+    real(gp) :: dnrm2
 
 
      if (iproc == 0 .and. mhgps_verbosity > 0) write(*,'(a)')  &
@@ -586,6 +593,8 @@ endif
    call f_free(scpr)
    call f_free(wold)
 end subroutine
+
+
 subroutine minenergyandforces(eeval,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
            fxyzraw,fnoise,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
     use module_base, only: gp
@@ -596,17 +605,17 @@ subroutine minenergyandforces(eeval,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
     integer, intent(in)           :: imode
     integer, intent(in)           :: nat
     integer, intent(in)           :: nbond_
-    integer, intent(in)           :: iconnect(2,nbond_)
-    real(gp), intent(in)          :: alat(3)
-    real(gp),intent(inout)           :: rat(3,nat)
-    real(gp),intent(out)          :: rxyzraw(3,nat)
-    real(gp),intent(out)          :: fxyzraw(3,nat)
-    real(gp),intent(inout)          :: fat(3,nat)
-    real(gp),intent(out)          :: fstretch(3,nat)
-    real(gp), intent(inout)       :: wold(nbond_)
+    integer,  dimension(2,nbond_), intent(in)  :: iconnect
+    real(gp), dimension(3), intent(in)         :: alat
+    real(gp), dimension(3,nat), intent(inout)  :: rat
+    real(gp), dimension(3,nat), intent(out)    :: rxyzraw
+    real(gp), dimension(3,nat), intent(out)    :: fxyzraw
+    real(gp), dimension(3,nat), intent(inout)  :: fat
+    real(gp), dimension(3,nat), intent(out)    :: fstretch
+    real(gp), dimension(nbond_), intent(inout) :: wold
     real(gp), intent(in)          :: alpha_stretch0
     real(gp), intent(inout)       :: alpha_stretch
-    real(gp), intent(inout)         :: epot
+    real(gp), intent(inout)       :: epot
     real(gp), intent(out)         :: fnoise
     logical, intent(in)           :: eeval
     !internal

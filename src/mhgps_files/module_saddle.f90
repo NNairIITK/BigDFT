@@ -1,9 +1,19 @@
-!! @file
-!! @author Bastian Schaefer
-!! @section LICENCE
-!!    Copyright (C) 2014 UNIBAS
+!> @file
+!!    Saddle for Minima hopping
+!!
+!! @author 
+!!    Copyright (C) 2014 UNIBAS, Bastian Schaefer 
 !!    This file is not freely distributed.
 !!    A licence is necessary from UNIBAS
+!!
+!!    Copyright (C) 2015-2015 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
+!> Module saddle for minima hopping
 module module_saddle
 implicit none
 
@@ -18,15 +28,16 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
                   rotforce,converged)
     !imode=1 for clusters
     !imode=2 for biomolecules
-  use module_base
-  use module_atoms, only: astruct_dump_to_file
+    use module_base
+    use module_atoms, only: astruct_dump_to_file
     use yaml_output
     use module_interfaces
     use module_sbfgs
-    use module_global_variables, only: inputPsiId, iproc, ixyz_int, astruct_ptr, mhgps_verbosity,&
+    use module_global_variables, only: inputPsiId, iproc, astruct_ptr, mhgps_verbosity,&
                                        currDir, isadc, ndim_rot, nhist_rot, alpha_rot,&
                                        alpha_stretch_rot,saddle_alpha_stretch0,work,lwork,&
                                        saddle_steepthresh_trans,imode,saddle_tighten,&
+                                       ! ixyz_int, &
                                        recompIfCurvPos => saddle_recompIfCurvPos,&
                                        minoverlap0   => saddle_minoverlap0,&
 !                                       tightenfac    => saddle_tightenfac,&
@@ -59,7 +70,6 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
                                        rr            => rr_trans,&
                                        dd            => dd_trans,&
                                        fff           => fff_trans,&
-                                       scpr          => scpr_trans,&
                                        wold          => wold_trans,&
                                        efmethod
  
@@ -126,12 +136,10 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     logical  :: tighten
     character(len=9)   :: fn9
     character(len=300)  :: comment
-    character(len=100) :: filename
 !!real(gp) :: pos(3,nat),hess(3*nat,3*nat),evalh(3*nat)
 !!integer :: info
     !functions
     real(gp) :: ddot,dnrm2
-
 
 
     if(astruct_ptr%geocode/='F'.and. .not. (trim(adjustl(efmethod))=='LENSIc'))&
@@ -323,7 +331,6 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
         endif
         !END FINDING LOWEST MODE
         
-        600 continue
         call modify_gradient(nat,ndim,rrr(1,1,1),eval(1),&
              res(1),fxyz(1,1,nhist-1),alpha,dd(1,1))
  
@@ -607,6 +614,7 @@ subroutine elim_torque_fs(nat,rxyz,vxyz)
     write(100,'(a,3(e11.3))') 'WARNING REMAINING TORQUE',t
 end subroutine
 
+
 subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_fix,&
                     fxyz_fix,dxyzin,curv,fout,fnrmtol,ener_count,&
                     converged,iconnect,nbond,alpha_stretch0,&
@@ -635,7 +643,6 @@ subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_
                                        rr            => rr_rot,&
                                        dd            => dd_rot,&
                                        fff           => fff_rot,&
-                                       scpr          => scpr_rot,&
                                        wold          => wold_rot
     implicit none
     !parameters
@@ -651,11 +658,12 @@ subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_
     real(gp), dimension(3,nat) :: dxyzin,fout,rxyz_fix,fxyz_fix!,mode
     logical, intent(out)       :: converged
     logical                    :: steep
-    integer                    :: i,iat,l,itswitch
+    integer                    :: iat,l,itswitch
     integer                    :: ihist,it,nat
     real(gp)                   :: ener_count,curv
     real(gp)                   :: fnrmtol,curvold,fnrm,curvp,fmax
-    real(gp)                   :: dcurv,st,tt,cosangle
+    real(gp)                   :: dcurv,tt,cosangle
+    !real(gp) :: st
     real(gp)                   :: overlap
     logical                    :: subspaceSucc
     real(gp), dimension(3,nat) :: dxyzin0
@@ -772,7 +780,7 @@ if(iproc==0.and.mhgps_verbosity>=2)&
      dcurv=curvp-curvold
 
 
-!        s=0.0_gp ; st=0.0_gp
+!        s=0.0_gp ; St=0.0_gp
 !        t1=0.0_gp ; t2=0.0_gp ; t3=0.0_gp
 !        t1raw=0.0_gp ; t2raw=0.0_gp ; t3raw=0.0_gp
 !        do iat=1,nat
@@ -892,12 +900,12 @@ stop 'no convergence in optcurv'
     curv=curvp
 end subroutine
 
+
+!> Computes the (curvature along vec) = vec^t H vec / (vec^t*vec)
+!! vec mus be normalized
 subroutine curvforce(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_count)
-    !computes the (curvature along vec) = vec^t H vec / (vec^t*vec)
-    !vec mus be normalized
     use module_base
     use yaml_output
-    use module_global_variables, only: iproc, mhgps_verbosity
     use module_energyandforces
     implicit none
     !parameters
@@ -1738,8 +1746,9 @@ subroutine minenergyandforces(eeval,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
 
 end subroutine minenergyandforces
 
+
 subroutine elim_torque_reza(nat,rat0,fat)
-use module_base
+  use module_base
 !  use module_base
   implicit none
   integer, intent(in) :: nat
@@ -1747,7 +1756,7 @@ use module_base
   real(gp), dimension(3*nat), intent(inout) :: fat
   !local variables
   character(len=*), parameter :: subname='elim_torque_reza'
-  integer :: i,iat,i_all,i_stat
+  integer :: i,iat
   real(gp) :: vrotnrm,cmx,cmy,cmz,alpha,totmass
   !this is an automatic array but it should be allocatable
   real(gp), dimension(3) :: evaleria
@@ -1815,9 +1824,10 @@ real(gp) :: dnrm2
   enddo
 
   call f_free(amass)
-!  call memocc(i_stat,i_all,'amass',subname)
 
 END SUBROUTINE elim_torque_reza
+
+
 subroutine cross(a,b,c)
 use module_base
 !  use module_base
@@ -1842,7 +1852,7 @@ use module_base
   !local variables
   character(len=*), parameter :: subname='moment_of_inertia'
   integer, parameter::lwork=100
-  integer :: iat,info,i_all,i_stat
+  integer :: iat,info
   real(gp) :: tt
   real(gp), dimension(lwork) :: work
   real(gp), dimension(:), allocatable :: amass

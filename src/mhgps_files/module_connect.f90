@@ -1,12 +1,19 @@
 !> @file
-!! module implementing the connection algorithm(s)
-!!     
-!! @author Bastian Schaefer
-!! @section LICENCE
-!!    Copyright (C) 2014 UNIBAS
+!! Module implementing the connection algorithm(s)
+!!
+!! @author 
+!!    Copyright (C) 2014 UNIBAS, Bastian Schaefer 
 !!    This file is not freely distributed.
 !!    A licence is necessary from UNIBAS
+!!
+!!    Copyright (C) 2015-2015 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 
+
+!> Module implementing the connection algorithm(s)
 module module_connect
     use module_base
     use module_interfaces
@@ -117,7 +124,6 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,&
              isad,isadprob,&
              isadc,isadprobc,&
              currDir,&
-             ixyz_int,&
              en_delta_min, fp_delta_min,&
              en_delta_sad, fp_delta_sad,&
              saddle_scale_stepoff
@@ -127,7 +133,8 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,&
     use yaml_output
     use module_saddle
     use module_freezingstring
-use module_energyandforces
+    use module_energyandforces
+
     implicit none
     !parameters
     integer, intent(in)     :: nat
@@ -503,8 +510,9 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGS) connection check connected'
          'successful! STOP')
 
 end subroutine
-!=====================================================================
-!same as connect_recursively, but in an iterative fashion
+
+
+!> Same as connect_recursively, but in an iterative fashion
 subroutine connect(nat,nid,alat,rcov,nbond,&
                      iconnect,rxyz1,rxyz2,ener1,ener2,fp1,fp2,&
                      nsad,cobj,connected)
@@ -520,7 +528,6 @@ subroutine connect(nat,nid,alat,rcov,nbond,&
              isad,isadprob,&
              isadc,isadprobc,&
              currDir,&
-             ixyz_int,&
              en_delta_min, fp_delta_min,&
              en_delta_sad, fp_delta_sad
     use module_ls_rmsd
@@ -890,7 +897,8 @@ enddo
 enddo connectloop
 
 end subroutine
-!=====================================================================
+
+
 subroutine pushoff(nat,saddle,minmode,left,right)
     use module_base
     use module_misc
@@ -905,15 +913,14 @@ subroutine pushoff(nat,saddle,minmode,left,right)
     !internal
     real(gp)  :: step(3,nat)
 
-    !functions
-    real(gp) :: dnrm2
 
     step = saddle_stepoff*minmode
     left = saddle - step
     right = saddle + step
 
 end subroutine
-!=====================================================================
+
+
 subroutine pushoffsingle(nat,saddle,minmode,scl,pushed)
     use module_base, only: gp
     use module_misc
@@ -929,8 +936,6 @@ subroutine pushoffsingle(nat,saddle,minmode,scl,pushed)
     integer  :: iat 
     real(gp) :: step(3,nat)
     real(gp) :: maxd, tt, dp
-    !functions
-    real(gp) :: dnrm2
 
     tt=0.0_gp
     dp=0.0_gp
@@ -964,7 +969,8 @@ subroutine pushoffsingle(nat,saddle,minmode,scl,pushed)
 !    pushed = saddle + scl*step
 
 end subroutine
-!=====================================================================
+
+
 subroutine pushoff_assym(nat,saddle,minmode,scll,sclr,left,right)
     use module_base
     use module_misc
@@ -978,16 +984,12 @@ subroutine pushoff_assym(nat,saddle,minmode,scll,sclr,left,right)
     real(gp), intent(out) :: left(3,nat)
     real(gp), intent(out) :: right(3,nat)
     !internal
-    real(gp)  :: step(3,nat)
-
-    !functions
-    real(gp) :: dnrm2
+    real(gp), dimension(3,nat) :: step
 
     step = saddle_stepoff*minmode
     left = saddle - scll*step
     right = saddle + sclr*step
 end subroutine
-!=====================================================================
 
 
 end module

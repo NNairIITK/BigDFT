@@ -1,12 +1,16 @@
 !> @file
 !!  Module to handle the rotation and translation of a scalar field
 !!  according to a transformation
+!!
 !! @author
-!!    Copyright (C) 2013-2013 BigDFT group
+!!    Copyright (C) 2013-2014 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
+
+!> Module handling the rotation and trasnlation of a scalar field as wavefunctions
 module reformatting
   implicit none
   
@@ -16,7 +20,7 @@ module reformatting
 
 contains
 
-  !> routine which directly applies the 3D transformation of the rototranslation
+  !> Routine which directly applies the 3D transformation of the rototranslation
   !this routine has to be cleaned and the allocations of the work arrays have to be deplaced
   subroutine field_rototranslation3D(n_phi,nrange_phi,phi_ISF,Rmat,da,&
        centre_old,centre_new,&
@@ -40,7 +44,7 @@ contains
     real(gp), dimension(ndims_new(1),ndims_new(2),ndims_new(3)), intent(out) :: f_new
     !local variables
     integer :: m_isf,k1,i,j,k,me,ms
-    real(gp) :: dt,tt,norm!,ux,uy,uz
+    real(gp) :: dt,norm!,tt,ux,uy,uz
     real(gp) :: scal !<scaling factor
     !real(gp), dimension(3,3) :: Rmat !<rotation matrix
     integer, dimension(3) :: isign,irp
@@ -329,7 +333,8 @@ contains
 
     end function ind2
 
-    !> correct the filter for the interpolation if the direction is inverted
+
+    !> Correct the filter for the interpolation if the direction is inverted
     !! after this check put the absolute value in scal
     pure subroutine redirect(m_isf,ms,me,shf,scal)
       implicit none
@@ -338,8 +343,8 @@ contains
       real(gp), intent(inout) :: scal
       real(gp), dimension(-m_isf:m_isf), intent(inout) :: shf
       !local variables
-      integer :: ishf
-      real(gp) :: tt
+      !!!! integer :: ishf
+      !!!! real(gp) :: tt
 
       !do nothing otherwise
 !!$      if (sign(1.0_gp,scal) < 0.0_gp) then
@@ -358,6 +363,7 @@ contains
       scal=sqrt(abs(scal))
     end subroutine redirect
 
+
     pure subroutine shift_and_start(ntr,istep,i2,i3,j1,j2,j3,&
          dt,istart,ms,me,alpha)
       use module_base
@@ -370,9 +376,10 @@ contains
       real(gp), intent(out) :: alpha !< scaling to preserve the normalization
       !local variables
       integer :: ivars
-      integer(kind=8) :: istart_shift
+      !!!! integer(kind=8) :: istart_shift
       real(gp), dimension(3) :: t
-      real(gp) :: coord_old,tt
+      real(gp) :: coord_old
+      !!!! real(gp) :: tt
 
       !define the coordinates in the reference frame, which depends on the transformed variables
       t(1)=-centre_new(1)+real(j1-1,gp)*hgrids_new(1) !the first step is always the same
@@ -517,6 +524,7 @@ contains
       
     end subroutine ibar_and_delta
 
+
     pure subroutine old_coord(icrd,ivars,rmat,x,y,z,coord,alpha)
       use module_defs, only: gp
       implicit none
@@ -599,7 +607,7 @@ contains
       real(gp), intent(in) :: alpha !<scaling factor to be applied after convolution
       real(gp) :: convolve
       !local variables
-      integer :: l,is
+      integer :: l
       real(gp) :: tt
 
       tt=0.0_gp
