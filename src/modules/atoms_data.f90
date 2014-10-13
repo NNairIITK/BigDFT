@@ -244,8 +244,6 @@ contains
     type(atoms_data) :: at
     call nullify_atoms_data(at)
   end function atoms_data_null
-
-
   pure subroutine nullify_atoms_data(at)
     use m_pawang, only: pawang_nullify
     implicit none
