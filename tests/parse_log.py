@@ -315,7 +315,7 @@ if args.timedata is not None:
   #load the first yaml document
   timing = yaml.load(open(args.timedata, "r").read(), Loader = yaml.CLoader)
   dict_routines = timing["Routines timing and number of calls"]
-  timing["WFN_OPT"]["Classes"].pop("Categories")  
+  #timing["WFN_OPT"]["Classes"].pop("Categories")  
   sys.stdout.write(yaml.dump(timing["WFN_OPT"]["Classes"],default_flow_style=False,explicit_start=True))
   bars_data(timing["WFN_OPT"]["Classes"])
   data=dump_timing_level(dict_routines)
