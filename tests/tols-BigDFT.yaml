@@ -1133,7 +1133,7 @@ verysparse:
  Total ionic charge: 1.1e-10
  decay length of error function: 1.1e-5
  Clean forces norm (Ha/Bohr): 2.1e-11
- Raw forces norm (Ha/Bohr): 1.1e-11
+ Raw forces norm (Ha/Bohr): 1.1e-10
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
