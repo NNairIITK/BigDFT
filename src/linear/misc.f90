@@ -1156,7 +1156,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   real(kind=gp), allocatable, dimension(:,:) :: proj_ovrlp_half, weight_matrixp
   character(len=*),parameter :: subname='calculate_weight_matrix_lowdin'
   real(kind=gp) :: max_error, mean_error
-  type(matrices) :: inv_ovrlp
+  type(matrices),dimension(1) :: inv_ovrlp
 
   ! new variables
   integer :: iat
@@ -1172,8 +1172,8 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
 
   call f_routine(id='loewdin_charge_analysis')
 
-  inv_ovrlp = matrices_null()
-  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp)
+  inv_ovrlp(1) = matrices_null()
+  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
 
 
 
@@ -1216,7 +1216,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
      tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
      call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%s, &
           inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
-     call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 2, &
+     call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, (/2/), &
           tmb%orthpar%blocksize_pdsyev, &
           imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
           ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
@@ -1252,7 +1252,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
             tmb%orbs%norb, 1.d0, &
             proj_mat(1,1,1), tmb%orbs%norb, &
-            inv_ovrlp%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, 0.d0, &
+            inv_ovrlp(1)%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, 0.d0, &
             proj_ovrlp_half(1,1), tmb%orbs%norb)
   end if
   call f_free(proj_mat)
@@ -1260,7 +1260,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   if (tmb%orbs%norbp>0) then
      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
           tmb%orbs%norb, 1.d0, &
-          inv_ovrlp%matrix(1,1,1), tmb%orbs%norb, &
+          inv_ovrlp(1)%matrix(1,1,1), tmb%orbs%norb, &
           proj_ovrlp_half(1,1), tmb%orbs%norb, 0.d0, &
           weight_matrixp(1,1), tmb%orbs%norb)
   end if
@@ -1309,7 +1309,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   end if
   !!call support_function_multipoles()
 
-  call deallocate_matrices(inv_ovrlp)
+  call deallocate_matrices(inv_ovrlp(1))
 
   call f_free(charge_per_atom)
   call f_free(weight_matrix)
@@ -1574,7 +1574,7 @@ subroutine calculate_multipoles(n1i, n2i, n3i, hgrids, phir, charge_center_elec,
               iy=iy-14
               iz=iz-14
 
-              q = phir(jj) * product(hgrids)
+              q = phir(jj)**2 * product(hgrids)
               x = ix*hgrids(1) + (rxyz_center(1)-charge_center_elec(1))
               y = iy*hgrids(2) + (rxyz_center(2)-charge_center_elec(2))
               z = iz*hgrids(3) + (rxyz_center(3)-charge_center_elec(3))

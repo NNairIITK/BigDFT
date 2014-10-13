@@ -110,7 +110,7 @@ SiBulk:
  Average noise forces: 9.3e-10
  HOMO LUMO gap (AU, eV): 1.8e-10
  PV (Ha): 1.89e-10
- Optimization of virtual orbitals: 6.28e-8
+ Optimization of virtual orbitals: 7.0101e-8
  e_occupied: 1.42e-11
  Orbitals: 1.42e-11	
  # Necessary for GPU runs, to be updated...
@@ -121,7 +121,7 @@ SiBulk:
 SiH4:
  #due to lack of functionality in fldiff, since energies field is updated
  Energies: &etol 4.6e-9
- Eion: &eion 3.4e-9
+ Eion: &eion 3.7e-9
  EH: *etol
  EXC: *etol
  Eion: *etol
@@ -198,7 +198,7 @@ CH3-:
 scalability:
  Energies: 1.e-9
  EKS: 2.14e-10
- Total electronic charge: 1.9e-11
+ Total electronic charge: 2.1e-11
  Expected kinetic energy: 1.1e-10
 
 
@@ -510,7 +510,7 @@ molecule_dmin:
  Ekin: 1.1e-08
  Epot: 7.1e-09
  energydiff: 2.2e-10
- energy: 2.1e-10
+ energy: 8.1e-9
  Omega: 6.2e-9
  Total charge: 1.1e-10
  eBS: 7.2e-9
@@ -522,15 +522,15 @@ molecule_foe:
  Epot: 1.1e-8
  EXC: 9.1e-10
  EvXC: 1.1e-8
- EH: 1.1e-08
+ EH: 1.1e-8
  Ekin: 1.1e-8
  charge diff: 1.1e-8
  energy: 6.9e-10
  Omega: 8.6e-9
  Total charge: 2.5e-10
- eF: 1.1e-9
- guess for new ef: 1.1e-9
- D eF: 1.1e-9
+ eF: 3.0e-9
+ guess for new ef: 3.0e-9
+ D eF: 3.0e-9
  Tr(K): 1.1e-07
  D Tr: 1.1e-7
  tr(KS) before purification: 5.1e-10
@@ -636,6 +636,7 @@ water_dirmin:
  EXC: 1.1e-10
  EvXC: 1.1e-10
  EH: 1.1e-9
+ Epot: 1.1e-9
  energy: 1.7e-10
  Omega: 1.7e-10
  etot: 1.7e-10
@@ -673,6 +674,7 @@ water_mixpot:
   - WARNINGS
 
 deltascf_read_charge:
+ Ekin: 1.1e-9
  EXC: 1.1e-10
  EvXC: 1.1e-10
  Epot: 1.1e-09
@@ -685,7 +687,7 @@ deltascf_read_charge:
  Clean forces norm (Ha/Bohr): 2.1e-10
  e: 3.8e-11
  Omega: 3.2e-10
- Raw forces norm (Ha/Bohr): 8.1e-11
+ Raw forces norm (Ha/Bohr): 1.6e-10
  EH: 1.1e-9
 
 deltascf_write_neut:
@@ -833,7 +835,8 @@ experimentalfoe_medium:
  ebs_check: 4.4e-8
  Epot: 1.1e-9
  EH: 1.1e-9
- Total charge: 3.1e-11
+ EvXC: 1.01e-10
+ Total charge: 4.1e-11
  energy: 1.4e-10
  Omega: 8.1e-10
  decay length of error function: 1.1e-5
@@ -890,16 +893,16 @@ reformatcomplete_write:
  Epot: 1.1e-10
 
 reformat_read:
- energy: 2.9e-10
+ energy: 4.1e-9
  Omega: 1.4e-10
  etot: 5.0e-11
  EH: 2.1e-9
- EXC: 1.1e-10
+ EXC: 4.1e-9
  EvXC: 4.1e-10
  Enl: 3.6e-9
  Epot: 4.1e-9
  Ekin: 1.1e-9
- Omega: 1.5e-10
+ Omega: 4.1e-9
  Atomic Forces (Ha/Bohr): 3.6e-9
  Average noise forces: 1.1e-10
  Clean forces norm (Ha/Bohr): 2.5e-9
@@ -977,6 +980,7 @@ sparsity:
  charge diff: 1.1e-9
  energy: 1.1e-9
  EXC: 1.1e-10
+ EvXC: 1.01e-9
  Epot: 1.1e-9
  eF: 1.1e-9
  D eF: 1.1e-9
@@ -1094,21 +1098,21 @@ O2spin_foe:
  D Tr: 1.1e-7
 
 O2spin_dirmin:
- Atomic Forces (Ha/Bohr): 7.7e-6
+ Atomic Forces (Ha/Bohr): 9.1e-6
  Average noise forces: 2.4e-5
- Clean forces norm (Ha/Bohr): 4.8e-5
+ Clean forces norm (Ha/Bohr): 5.6e-5
  Electric Dipole Moment (AU): 2.4e-5
  Electric Dipole Moment (Debye): 2.4e-5
  eBS: 6.1e-6
  fnrm: 1.1e-5
- EH: 6.6e-6
+ EH: 7.9e-6
  EXC: 5.6e-6
  Ekin: 6.6e-6
  Enl: 1.9e-7
- Epot: 9.1e-6
+ Epot: 1.2e-5
  EvXC: 6.0e-6
  energydiff: 6.0e-6
- energy: 7.4e-7
+ energy: 9.2e-7
  Omega: 6.1e-6
  Raw forces norm (Ha/Bohr): 4.8e-5
  D: 2.1e-6
@@ -1129,6 +1133,7 @@ verysparse:
  Total ionic charge: 1.1e-10
  decay length of error function: 1.1e-5
  Clean forces norm (Ha/Bohr): 2.1e-11
+ Raw forces norm (Ha/Bohr): 1.1e-10
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings

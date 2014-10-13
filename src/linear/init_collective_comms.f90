@@ -263,18 +263,22 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
                    end do
                    call f_free(psii)
                end do
-               ist=(ispin-1)*smat%nvctr+1
-               call compress_matrix_distributed(iproc, nproc, smat, DENSE_PARALLEL, matp, mat_compr(ist))
+               ist=(ispin-1)*smat%nvctr+smat%isvctrp_tg+1
+               call compress_matrix_distributed(iproc, nproc, smat, DENSE_PARALLEL, &
+                    matp, mat_compr(ist:))
            end do
            maxdiff=0.d0
            call f_free(psiig)
            call f_free(psijg)
            call f_free(matp)
-           do i=1,smat%nvctr
-               maxdiff=max(abs(mat_compr(i)-mat%matrix_compr(i)),maxdiff)
+           do i=1,smat%nvctrp_tg
+               maxdiff=max(abs(mat_compr(i+smat%isvctrp_tg)-mat%matrix_compr(i+smat%isvctrp_tg)),maxdiff)
                !write(8000+iproc,'(a,i7,2es15.5)') 'i, mat_compr(i), mat%matrix_compr(i)', &
                !    i, mat_compr(i), mat%matrix_compr(i)
            end do
+           if (nproc>1) then
+               call mpiallred(maxdiff, 1, mpi_max, bigdft_mpi%mpi_comm)
+           end if
            call f_free(mat_compr)
            if (iproc==0) call yaml_map('Maxdiff for overlap calculation',maxdiff,fmt='(1es25.17)')
        end if
@@ -986,6 +990,9 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
       stop 'calculate_overlap_transposed: wrong data_strategy'
   end if
 
+  ! Indicate the matrix is the "original one" (and not the inverse etc.)
+  ovrlp%power = 0.d0
+
 
   smat%can_use_dense=.false.
 
@@ -1546,6 +1553,8 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
 !  integer,dimension(:,:),allocatable :: sendbuf, requests, iminmaxarr
   character(len=*),parameter :: subname='init_sparse_matrix'
 
+  call f_routine(id='init_matrixindex_in_compressed_fortransposed')
+
 
   ! for the calculation of overlaps and the charge density
   imin=minval(collcom%indexrecvorbital_c)
@@ -1594,5 +1603,6 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   !@    matrixindex_in_compressed = matrixindex_in_compressed + sparsemat%nvctr
   !@end if
 
+  call f_release_routine()
 
 end subroutine init_matrixindex_in_compressed_fortransposed

@@ -7,118 +7,119 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-subroutine xx_all(array,m)
-  use metadata_interfaces
-  implicit none
-  type(malloc_information_all), intent(in) :: m
-  integer, dimension(:), allocatable, intent(inout) :: array
-  !--- allocate_profile-inc.f90
-  integer :: ierror
-  integer(kind=8) :: iadd
-  !$ logical :: not_omp
-  !$ logical, external :: omp_in_parallel,omp_get_nested
-
-  if (f_err_raise(ictrl == 0,&
-       'ERROR (f_malloc): the routine f_malloc_initialize has not been called',&
-       ERR_MALLOC_INTERNAL)) return
-
-  !$ not_omp=.not. (omp_in_parallel() .or. omp_get_nested())
-
-  !here we should add a control of the OMP behaviour of allocation
-  !in particular for what concerns the OMP nesting procedure
-  !the following action is the allocation
-  !$ if(not_omp) then
-  call f_timer_interrupt(TCAT_ARRAY_ALLOCATIONS)
-  !$ end if
-  !END--- allocate_profile-inc.f90
-  !allocate the array
-  allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
-  !--- allocate-inc.f90
-  if (ierror/=0) then
-     !$ if(not_omp) then
-     call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
-     !$ end if
-     call f_err_throw('Allocation problem, error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)
-     return
-  end if
-  if (size(shape(array))==m%rank) then
-     call pad_array(array,m%put_to_zero,m%shape,ndebug)
-     !also fill the array with the values of the source if the address is identified in the source
-     if (m%srcdata_add /= 0) call c_memcopy(array,m%srcdata_add,product(shape(array))*kind(array))
-     !profile the array allocation
-     iadd=int(0,kind=8)
-        !write the address of the first element in the address string
-     if (m%profile .and. track_origins) call getlongaddress(array,iadd)
-  
-     call f_update_database(product(int(m%shape(1:m%rank),kind=8)),kind(array),m%rank,&
-          iadd,m%array_id,m%routine_id)
-
-  else
-     !$ if(not_omp) then
-     call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
-     !$ end if
-     call f_err_throw('Rank specified by f_malloc ('//trim(yaml_toa(m%rank))//&
-          ') is not coherent with the one of the array ('//trim(yaml_toa(size(shape(array))))//')',&
-          ERR_INVALID_MALLOC)
-     return
-  end if
-  !$ if(not_omp) then
-  call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
-  !$ end if
-  !END--- allocate-inc.f90
-end subroutine xx_all
-
-
-subroutine xx_all_free(array)
-  use metadata_interfaces
-  implicit none
-  integer, dimension(:), allocatable, intent(inout) :: array
-  !--'deallocate-profile-inc.f90' 
-  !local variables
-  integer :: ierror
-  !$ logical :: not_omp
-  !$ logical, external :: omp_in_parallel,omp_get_nested
-  integer(kind=8) :: ilsize,iadd
-
-  if (f_err_raise(ictrl == 0,&
-       'ERROR (f_free): the routine f_malloc_initialize has not been called',&
-       ERR_MALLOC_INTERNAL)) return
-
-  !$ not_omp=.not. (omp_in_parallel() .or. omp_get_nested())
-
-  !here we should add a control of the OMP behaviour of allocation
-  !in particular for what concerns the OMP nesting procedure
-
-  !END--'deallocate-profile-inc.f90'
-  !-- 'deallocate-inc.f90' 
-  !$ if (not_omp) then
-  call f_timer_interrupt(TCAT_ARRAY_ALLOCATIONS)
-  !$ end if
-
-  !here the size should be corrected with ndebug (or maybe not)
-  ilsize=product(int(shape(array),kind=8))
-  !retrieve the address of the first element if the size is not zero
-  iadd=int(0,kind=8)
-  if (ilsize /= int(0,kind=8)) call getlongaddress(array,iadd)
-  !fortran deallocation
-  deallocate(array,stat=ierror)
-
-  if (ierror/=0) then
-     !$ if (not_omp) then
-     call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
-     !$ end if
-     call f_err_throw('Deallocation problem, error code '//trim(yaml_toa(ierror)),&
-          ERR_DEALLOCATE)
-     return
-  end if
-
-  call f_purge_database(ilsize,kind(array),iadd)
-
-  !$ if (not_omp) then
-  call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
-  !$ end if
-  !END-- 'deallocate-inc.f90' 
-end subroutine xx_all_free
+!subroutine xx_all(array,m)
+!  use metadata_interfaces
+!  implicit none
+!  type(malloc_information_all), intent(in) :: m
+!  integer, dimension(:), allocatable, intent(inout) :: array
+!  !--- allocate_profile-inc.f90
+!  integer :: ierror
+!  integer(kind=8) :: iadd
+!  !$ logical :: not_omp
+!  !$ logical, external :: omp_in_parallel,omp_get_nested
+!
+!  if (f_err_raise(ictrl == 0,&
+!       'ERROR (f_malloc): the routine f_malloc_initialize has not been called',&
+!       ERR_MALLOC_INTERNAL)) return
+!
+!  !$ not_omp=.not. (omp_in_parallel() .or. omp_get_nested())
+!
+!  !here we should add a control of the OMP behaviour of allocation
+!  !in particular for what concerns the OMP nesting procedure
+!  !the following action is the allocation
+!  !$ if(not_omp) then
+!  call f_timer_interrupt(TCAT_ARRAY_ALLOCATIONS)
+!  !$ end if
+!  !END--- allocate_profile-inc.f90
+!  !allocate the array
+!  allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
+!  !--- allocate-inc.f90
+!  if (ierror/=0) then
+!     !$ if(not_omp) then
+!     call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+!     !$ end if
+!     call f_err_throw('Allocation problem, error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)
+!     return
+!  end if
+!  if (size(shape(array))==m%rank) then
+!     call pad_array(array,m%put_to_zero,m%shape,ndebug)
+!     !also fill the array with the values of the source if the address is identified in the source
+!     if (m%srcdata_add /= 0) call c_memcopy(array,m%srcdata_add,product(shape(array))*kind(array))
+!     !profile the array allocation
+!     iadd=int(0,kind=8)
+!        !write the address of the first element in the address string
+!     if (m%profile .and. track_origins) iadd=loc_arr(array)!call getlongaddress(array,iadd)
+!  
+!     call f_update_database(product(int(m%shape(1:m%rank),kind=8)),kind(array),m%rank,&
+!          iadd,m%array_id,m%routine_id)
+!
+!  else
+!     !$ if(not_omp) then
+!     call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+!     !$ end if
+!     call f_err_throw('Rank specified by f_malloc ('//trim(yaml_toa(m%rank))//&
+!          ') is not coherent with the one of the array ('//trim(yaml_toa(size(shape(array))))//')',&
+!          ERR_INVALID_MALLOC)
+!     return
+!  end if
+!  !$ if(not_omp) then
+!  call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+!  !$ end if
+!  !END--- allocate-inc.f90
+!end subroutine xx_all
+!
+!
+!subroutine xx_all_free(array)
+!  use metadata_interfaces
+!  implicit none
+!  integer, dimension(:), allocatable, intent(inout) :: array
+!  !--'deallocate-profile-inc.f90' 
+!  !local variables
+!  integer :: ierror
+!  !$ logical :: not_omp
+!  !$ logical, external :: omp_in_parallel,omp_get_nested
+!  integer(kind=8) :: ilsize,iadd
+!
+!  if (f_err_raise(ictrl == 0,&
+!       'ERROR (f_free): the routine f_malloc_initialize has not been called',&
+!       ERR_MALLOC_INTERNAL)) return
+!
+!  !$ not_omp=.not. (omp_in_parallel() .or. omp_get_nested())
+!
+!  !here we should add a control of the OMP behaviour of allocation
+!  !in particular for what concerns the OMP nesting procedure
+!
+!  !END--'deallocate-profile-inc.f90'
+!  !-- 'deallocate-inc.f90' 
+!  !$ if (not_omp) then
+!  call f_timer_interrupt(TCAT_ARRAY_ALLOCATIONS)
+!  !$ end if
+!
+!  !here the size should be corrected with ndebug (or maybe not)
+!  ilsize=product(int(shape(array),kind=8))
+!  !retrieve the address of the first element if the size is not zero
+!  !iadd=int(0,kind=8)
+!  !if (ilsize /= int(0,kind=8)) 
+!  iadd=loc_arr(array)!call getlongaddress(array,iadd)
+!  !fortran deallocation
+!  deallocate(array,stat=ierror)
+!
+!  if (ierror/=0) then
+!     !$ if (not_omp) then
+!     call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+!     !$ end if
+!     call f_err_throw('Deallocation problem, error code '//trim(yaml_toa(ierror)),&
+!          ERR_DEALLOCATE)
+!     return
+!  end if
+!
+!  call f_purge_database(ilsize,kind(array),iadd)
+!
+!  !$ if (not_omp) then
+!  call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+!  !$ end if
+!  !END-- 'deallocate-inc.f90' 
+!end subroutine xx_all_free
 
 
 subroutine i1_all(array,m)

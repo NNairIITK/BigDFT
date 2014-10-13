@@ -462,7 +462,7 @@ module time_profiling
       integer :: nnodes
       integer(kind=8) :: itns
       type(dictionary), pointer :: dict_tmp
-      !$ integer :: omp_get_max_threads
+!!$      !$ integer :: omp_get_max_threads
 
       !global timer
       itns=f_time()
@@ -535,12 +535,14 @@ module time_profiling
       !Local variables
       integer(kind=8) :: itns
       real(kind=8) :: t1
-      !$ logical :: in_omp
-      !$ logical, external :: omp_in_parallel,omp_get_nested
-      !$ in_omp=omp_in_parallel() .or. omp_get_nested()
-      !!disable everything if we are into a OMP section
-      !!timing routines are not thread-safe
-      !$ if(in_omp) return
+      !$ include 'remove_omp-inc.f90'
+      
+      !!$ logical :: in_omp
+      !!$ logical, external :: omp_in_parallel,omp_get_nested
+      !!$ in_omp=omp_in_parallel() .or. omp_get_nested()
+      !!!disable everything if we are into a OMP section
+      !!!timing routines are not thread-safe
+      !!$ if(in_omp) return
 
       !first of all, read the time
       itns=f_time()
@@ -880,6 +882,7 @@ module time_profiling
       end do
       call timing_dump_line('Total',tabfile,total_pc,times(ictrl)%clocks(ncat+1),&
            loads=timeall(ncat+1,0:nextra-1))
+      call yaml_mapping_close() !Classes
       call yaml_mapping_open('Categories',advance='no')
       call yaml_comment('Ordered by time consumption')
       do j=1,ncat

@@ -316,7 +316,7 @@ program PSolver_Program
 !!$     end do
 !!$  end do
 !!$  close(65)
-  call pkernel_free(karray,subname)
+  call pkernel_free(karray)
 !!$  i_all=-product(shape(karray))*kind(karray)
 !!$  deallocate(karray,stat=i_stat)
 !!$  call memocc(i_stat,i_all,'karray',subname)
@@ -386,7 +386,7 @@ program PSolver_Program
 !!$             rhopot,karray%kernel,pot_ion,eh,exc,vxc,offset,.true.,1,alpha,beta,gamma)
         
      end if
-     call pkernel_free(karray,subname)
+     call pkernel_free(karray)
 !!$     i_all=-product(shape(karray))*kind(karray)
 !!$     deallocate(karray,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'karray',subname)

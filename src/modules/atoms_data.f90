@@ -244,8 +244,6 @@ contains
     type(atoms_data) :: at
     call nullify_atoms_data(at)
   end function atoms_data_null
-
-
   pure subroutine nullify_atoms_data(at)
     use m_pawang, only: pawang_nullify
     implicit none
@@ -312,7 +310,7 @@ contains
     type(atomic_structure), intent(inout) :: astruct
     !local variables
     character(len=*), parameter :: subname='deallocate_atomic_structure' !remove
-    integer :: i_stat, i_all
+    !   integer :: i_stat, i_all
 
 
     ! Deallocations for the geometry part.
@@ -410,6 +408,7 @@ contains
       use dictionaries
       use yaml_output, only: yaml_warning, yaml_toa
       use yaml_strings, only: f_strcpy
+      use dynamic_memory
       implicit none
       type(dictionary), pointer :: dict
       type(atoms_data), intent(inout) :: atoms
@@ -421,6 +420,8 @@ contains
       character(len = max_field_length) :: at
       type(dictionary), pointer :: dict_tmp
       type(atoms_iterator) :: it
+
+      call f_routine(id='atomic_data_set_from_dict')
 
       !number of atoms with semicore channels
       atoms%natsc = 0
@@ -509,6 +510,9 @@ contains
 !!$         if (atoms%aoig(iat)%nao_sc /= 0) atoms%natsc=atoms%natsc+1
 !!$         !if (atoms%aoig(iat)%iasctype /= 0) atoms%natsc=atoms%natsc+1
 !!$      enddo
+
+      call f_release_routine()
+
     end subroutine atomic_data_set_from_dict
 
     !> set irreductible Brillouin zone
@@ -1050,7 +1054,8 @@ subroutine astruct_set_n_types(astruct, ntypes)
   !character(len = *), intent(in) :: subname
   !local variables
   character(len=*), parameter :: subname='astruct_set_n_types' !<remove
-  integer :: i, i_stat
+  ! integer :: i
+  ! integer :: i_stat
 
   astruct%ntypes = ntypes
 

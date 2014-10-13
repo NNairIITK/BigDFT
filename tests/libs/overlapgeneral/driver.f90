@@ -32,7 +32,8 @@ program driver
   logical :: file_exists, symmetric, check_symmetry, perform_check, optional_parameters
   type(orbitals_data) :: orbs
   type(sparse_matrix) :: smat_A, smat_B
-  type(matrices) :: mat_A, inv_mat_B
+  type(matrices) :: mat_A
+  type(matrices),dimension(1) :: inv_mat_B
   character(len=*),parameter :: filename='inputdata.fake'
   integer :: nconfig, ierr, iseg, iiorb
 !!  integer :: lwork
@@ -180,12 +181,12 @@ program driver
   !!end do
 
   mat_A = matrices_null()
-  inv_mat_B = matrices_null()
+  inv_mat_B(1) = matrices_null()
 
   call allocate_matrices(smat_A, allocate_full=.true., matname='mat_A', mat=mat_A)
   call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1,1), 1)
   call compress_matrix(iproc, smat_A, inmat=mat_A%matrix, outmat=mat_A%matrix_compr)
-  call allocate_matrices(smat_B, allocate_full=.true., matname='inv_mat_B', mat=inv_mat_B)
+  call allocate_matrices(smat_B, allocate_full=.true., matname='inv_mat_B', mat=inv_mat_B(1))
   ! uncomment for sparse and dense modes to be testing the same matrix
   !call uncompress_matrix(iproc, smat_A)
 
@@ -246,20 +247,20 @@ program driver
           call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1,1), 1)
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
-          call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, &
+          call overlapPowerGeneral(iproc, nproc, iorder, 1, (/power/), blocksize, &
                imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, ovrlp_mat=mat_A, inv_ovrlp_mat=inv_mat_B, &
                check_accur=.true., max_error=max_error, mean_error=mean_error)
           if (timer_on) call cpu_time(tr1)
           if (timer_on) call system_clock(ncount2,ncount_rate,ncount_max)
           if (timer_on) time=real(tr1-tr0,kind=8)
           if (timer_on) time2=dble(ncount2-ncount1)/dble(ncount_rate)
-          call compress_matrix(iproc, smat_B, inmat=inv_mat_B%matrix, outmat=inv_mat_B%matrix_compr)
+          call compress_matrix(iproc, smat_B, inmat=inv_mat_B(1)%matrix, outmat=inv_mat_B(1)%matrix_compr)
       else if (imode==SPARSE) then
           call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1,1), 1)
           call compress_matrix(iproc, smat_A, inmat=mat_A%matrix, outmat=mat_A%matrix_compr)
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
-          call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, &
+          call overlapPowerGeneral(iproc, nproc, iorder, 1, (/power/), blocksize, &
                imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, ovrlp_mat=mat_A, inv_ovrlp_mat=inv_mat_B, &
                check_accur=.true., max_error=max_error, mean_error=mean_error)
                !!foe_nseg=smat_A%nseg, foe_kernel_nsegline=smat_A%nsegline, &
@@ -270,7 +271,7 @@ program driver
           if (timer_on) time=real(tr1-tr0,kind=8)
           if (timer_on) time2=dble(ncount2-ncount1)/dble(ncount_rate)
       end if
-      if (print_matrices.and.iproc==0) call write_matrix_compressed('final result', smat_B, inv_mat_B)
+      if (print_matrices.and.iproc==0) call write_matrix_compressed('final result', smat_B, inv_mat_B(1))
       if (iproc==0) call yaml_map('Max error of the result',max_error)
       if (iproc==0) call yaml_map('Mean error of the result',mean_error)
       if (timer_on.and.iproc==0) call yaml_map('time taken (cpu)',time)
@@ -285,7 +286,7 @@ program driver
   call deallocate_sparse_matrix(smat_A)
   call deallocate_sparse_matrix(smat_B)
   call deallocate_matrices(mat_A)
-  call deallocate_matrices(inv_mat_B)
+  call deallocate_matrices(inv_mat_B(1))
 
   deallocate(ovrlp)
 

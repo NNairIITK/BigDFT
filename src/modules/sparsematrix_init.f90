@@ -1111,14 +1111,14 @@ contains
       ! Local variables
       integer :: ipt, ii, i0, i0i, iiorb, j, i0j, jjorb, ind, ind_min, ind_max, iseq
       integer :: ntaskgroups, jproc, jstart, jend, kkproc, kproc, itaskgroups, lproc, llproc
-      integer :: nfvctrp, isfvctr, isegstart, isegend, jorb
+      integer :: nfvctrp, isfvctr, isegstart, isegend, jorb, istart, iend, iistg, iietg
       integer,dimension(:,:),allocatable :: iuse_startend, itaskgroups_startend, ranks
       integer,dimension(:),allocatable :: tasks_per_taskgroup
       integer :: ntaskgrp_calc, ntaskgrp_use, i, ncount, iitaskgroup, group, ierr, iitaskgroups, newgroup, iseg
       logical :: go_on
       integer,dimension(:,:),allocatable :: in_taskgroup
       integer :: iproc_start, iproc_end, imin, imax
-      logical :: found
+      logical :: found, found_start, found_end
 
       call f_routine(id='init_matrix_taskgroups')
 
@@ -1126,33 +1126,45 @@ contains
       iuse_startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='iuse_startend')
 
 
-      if (parallel_layout) then
-          ! The matrices can be parallelized
+      ! The matrices can be parallelized
 
-          ind_min = smat%nvctr
-          ind_max = 0
+      ind_min = smat%nvctr
+      ind_max = 0
 
-          ! The operations done in the transposed wavefunction layout
-          call check_transposed_layout()
+      ! The operations done in the transposed wavefunction layout
+      call check_transposed_layout()
 
-          ! Now check the compress_distributed layout
-          call check_compress_distributed_layout()
+      ! Now check the compress_distributed layout
+      call check_compress_distributed_layout()
 
-          ! Now check the matrix matrix multiplications layout
-          call check_matmul_layout()
+      ! Now check the matrix matrix multiplications layout
+      call check_matmul_layout()
 
-          ! Now check the sumrho operations
-          call check_sumrho_layout()
+      ! Now check the sumrho operations
+      call check_sumrho_layout()
 
-          ! Now check the pseudo-exact orthonormalization during the input guess
-          call check_ortho_inguess()
-      else
+      ! Now check the pseudo-exact orthonormalization during the input guess
+      call check_ortho_inguess()
+
+      if (.not.parallel_layout) then
           ! The matrices can not be parallelized
           ind_min = 1
           ind_max = smat%nvctr
       end if
 
-      ! Now the minimal and maximla values are known
+      ! Enlarge the values if necessary such that they always start and end with a complete segment
+      do iseg=1,smat%nseg
+          istart = smat%keyv(iseg)
+          iend = smat%keyv(iseg) + smat%keyg(2,1,iseg)-smat%keyg(1,1,iseg)
+          if (istart<=ind_min .and. ind_min<=iend) then
+              ind_min = istart
+          end if
+          if (istart<=ind_max .and. ind_max<=iend) then
+              ind_max = iend
+          end if
+      end do
+
+      ! Now the minimal and maximal values are known
       iuse_startend(1,iproc) = ind_min
       iuse_startend(2,iproc) = ind_max
       if (nproc>1) then
@@ -1369,6 +1381,8 @@ contains
           stop 'i/=smat%ntaskgroup'
       end if
 
+
+
       i = 0
       do itaskgroups=1,smat%ntaskgroup
           if( iuse_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
@@ -1425,6 +1439,29 @@ contains
           write(*,*) 'iuse_startend(2,iproc),imax', iuse_startend(2,iproc),imax
           stop 'iuse_startend(2,iproc)>imax'
       end if
+
+
+      ! Assign the values of nvctrp_tg and iseseg_tg
+      ! First and last segment of the matrix
+      iistg=smat%inwhichtaskgroup(1) !first taskgroup of task iproc
+      iietg=smat%inwhichtaskgroup(smat%ntaskgroupp) !last taskgroup of task iproc
+      found_start = .false.
+      found_end = .false.
+      do iseg=1,smat%nseg
+          if (smat%keyv(iseg)==smat%taskgroup_startend(1,1,iistg)) then
+              smat%iseseg_tg(1) = iseg
+              smat%isvctrp_tg = smat%keyv(iseg)-1
+              found_start = .true.
+          end if
+          if (smat%keyv(iseg)+smat%keyg(2,1,iseg)-smat%keyg(1,1,iseg)==smat%taskgroup_startend(2,1,iietg)) then
+              smat%iseseg_tg(2) = iseg
+              found_end = .true.
+          end if
+      end do
+      if (.not.found_start) stop 'first segment of taskgroup matrix not found'
+      if (.not.found_end) stop 'last segment of taskgroup matrix not found'
+      ! Size of the matrix
+      smat%nvctrp_tg = smat%taskgroup_startend(2,1,iietg) - smat%taskgroup_startend(1,1,iistg) + 1
 
 
 

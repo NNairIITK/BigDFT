@@ -232,6 +232,18 @@ interface pad_array
   module procedure pad_z1, pad_z2
 end interface
 
+!>procedure to retrieve the value of the address of the first element of an array
+!!this is made necessary from the fact that the treatment of character arrays is 
+!!not standard
+interface loc_arr
+   module procedure la_i1,la_i2,la_i3,la_i4
+   module procedure la_r1,la_r2,la_r3
+   module procedure la_d1,la_d2,la_d3,la_d4,la_d5,la_d6,la_d7
+   module procedure la_l1,la_l2,la_l3
+   module procedure la_z1,la_z2
+   module procedure la_c1
+end interface
+
 public :: pad_array,geti1,geti2,geti3,geti4
 public :: getc1
 public :: getl1,getl2,getl3
@@ -243,7 +255,7 @@ public :: geti1ptr,geti2ptr,geti3ptr,geti4ptr
 public :: getl2ptr, getl3ptr
 public :: getz1ptr
 public :: getc1ptr
-public :: address_toi,long_toa
+public :: address_toi,long_toa,loc_arr
 
 contains
 
@@ -662,6 +674,135 @@ contains
     long_toa=adjustl(yaml_toa(iadd,fmt=fmtlong))
 
   end function long_toa
+
+  !loc array functions
+  function la_i1(array) result(la)
+    implicit none
+    integer, dimension(:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1))
+  end function la_i1
+  function la_i2(array) result(la)
+    implicit none
+    integer, dimension(:,:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1,1))
+  end function la_i2
+  function la_i3(array) result(la)
+    implicit none
+    integer, dimension(:,:,:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1,1,1))
+  end function la_i3
+  function la_i4(array) result(la)
+    implicit none
+    integer, dimension(:,:,:,:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1,1,1,1))
+  end function la_i4
+  function la_r1(array) result(la)
+    implicit none
+    real, dimension(:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1))
+  end function la_r1
+  function la_r2(array) result(la)
+    implicit none
+    real, dimension(:,:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1,1))
+  end function la_r2
+  function la_r3(array) result(la)
+    implicit none
+    real, dimension(:,:,:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1,1,1))
+  end function la_r3
+  function la_d1(array) result(la)
+    implicit none
+    double precision, dimension(:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1))
+  end function la_d1
+  function la_d2(array) result(la)
+    implicit none
+    double precision, dimension(:,:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1,1))
+  end function la_d2
+  function la_d3(array) result(la)
+    implicit none
+    double precision, dimension(:,:,:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1,1,1))
+  end function la_d3
+  function la_d4(array) result(la)
+    implicit none
+    double precision, dimension(:,:,:,:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1,1,1,1))
+  end function la_d4
+  function la_d5(array) result(la)
+    implicit none
+    double precision, dimension(:,:,:,:,:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1,1,1,1,1))
+  end function la_d5
+  function la_d6(array) result(la)
+    implicit none
+    double precision, dimension(:,:,:,:,:,:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1,1,1,1,1,1))
+  end function la_d6
+  function la_d7(array) result(la)
+    implicit none
+    double precision, dimension(:,:,:,:,:,:,:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1,1,1,1,1,1,1))
+  end function la_d7
+  function la_l1(array) result(la)
+    implicit none
+    logical, dimension(:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1))
+  end function la_l1
+  function la_l2(array) result(la)
+    implicit none
+    logical, dimension(:,:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1,1))
+  end function la_l2
+  function la_l3(array) result(la)
+    implicit none
+    logical, dimension(:,:,:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1,1,1))
+  end function la_l3
+  function la_z1(array) result(la)
+    implicit none
+    double complex, dimension(:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1))
+  end function la_z1
+  function la_z2(array) result(la)
+    implicit none
+    double complex, dimension(:,:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1,1))
+  end function la_z2
+  function la_z3(array) result(la)
+    implicit none
+    double complex, dimension(:,:,:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1,1,1))
+  end function la_z3
+  function la_c1(array) result(la)
+    implicit none
+    character(len=*), dimension(:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1))
+  end function la_c1
+
 
 end module metadata_interfaces
 

@@ -221,7 +221,8 @@ END SUBROUTINE wfd_from_grids
 
 !> Determine localization region for all projectors, but do not yet fill the descriptor arrays
 subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
-     cpmult,fpmult,hx,hy,hz,dry_run,nl)
+     cpmult,fpmult,hx,hy,hz,dry_run,nl,&
+     init_projectors_completely_)
   use module_base
   use psp_projectors
   use module_types
@@ -233,15 +234,23 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   type(orbitals_data), intent(in) :: orbs
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   !real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
-  type(DFT_PSP_projectors), intent(out) :: nl
   logical, intent(in) :: dry_run !< .true. to compute the size only and don't allocate
+  type(DFT_PSP_projectors), intent(out) :: nl
+  logical,intent(in),optional :: init_projectors_completely_
   !local variables
   character(len=*), parameter :: subname='createProjectorsArrays'
   integer :: n1,n2,n3,nl1,nl2,nl3,nu1,nu2,nu3,mseg,nbseg_dim,npack_dim,mproj_max
   integer :: iat,iseg
   integer, dimension(:), allocatable :: nbsegs_cf,keyg_lin
   logical, dimension(:,:,:), allocatable :: logrid
+  logical :: init_projectors_completely
   call f_routine(id=subname)
+
+  if (present(init_projectors_completely_)) then
+      init_projectors_completely = init_projectors_completely_
+  else
+      init_projectors_completely = .true.
+  end if
 
   !start from a null structure
   nl=DFT_PSP_projectors_null()
@@ -286,25 +295,8 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   end if
 
   !here the allocation is possible
-  nbseg_dim=0
-  npack_dim=0
-  mproj_max=0
-  do iat=1,nl%natoms
-     !also the fact of allocating pointers with size zero has to be discussed
-     !for the moments the bounds are not needed for projectors
-     call allocate_wfd(nl%pspd(iat)%plr%wfd)
-     if (nl%pspd(iat)%mproj>0) then
-        nbseg_dim=max(nbseg_dim,&
-             nl%pspd(iat)%plr%wfd%nseg_c+nl%pspd(iat)%plr%wfd%nseg_f)
-        mproj_max=max(mproj_max,nl%pspd(iat)%mproj)
-        npack_dim=max(npack_dim,&
-             nl%pspd(iat)%plr%wfd%nvctr_c+7*nl%pspd(iat)%plr%wfd%nvctr_f)
-        !packing array (for the moment all the projectors contribute) 
-        npack_dim=max(npack_dim,nl%pspd(iat)%plr%wfd%nvctr_c+&
-             7*nl%pspd(iat)%plr%wfd%nvctr_f)
-     end if
-     
-  end do
+  call allocate_arrays()
+
   nl%proj=f_malloc0_ptr(nl%nprojel,id='proj')
   !for the work arrays assume always the maximum components
   nl%wpack=f_malloc_ptr(4*npack_dim,id='wpack')
@@ -360,8 +352,10 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
                 nl%pspd(iat)%plr%wfd%keygloc(1,iseg)) 
         end if
         !in the case of linear scaling this section has to be built again
-        call set_nlpsp_to_wfd(lr,nl%pspd(iat)%plr,&
-             keyg_lin,nbsegs_cf,nl%pspd(iat)%noverlap,nl%pspd(iat)%lut_tolr,nl%pspd(iat)%tolr)
+        if (init_projectors_completely) then
+           call set_nlpsp_to_wfd(lr,nl%pspd(iat)%plr,&
+                keyg_lin,nbsegs_cf,nl%pspd(iat)%noverlap,nl%pspd(iat)%lut_tolr,nl%pspd(iat)%tolr)
+        end if
      endif
   enddo
 
@@ -375,6 +369,37 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   end if
 
   call f_release_routine()
+
+  contains
+
+    subroutine allocate_arrays()
+      implicit none
+
+      call f_routine(id='allocate_arrays')
+
+      nbseg_dim=0
+      npack_dim=0
+      mproj_max=0
+      do iat=1,nl%natoms
+         !also the fact of allocating pointers with size zero has to be discussed
+         !for the moments the bounds are not needed for projectors
+         call allocate_wfd(nl%pspd(iat)%plr%wfd)
+         if (nl%pspd(iat)%mproj>0) then
+            nbseg_dim=max(nbseg_dim,&
+                 nl%pspd(iat)%plr%wfd%nseg_c+nl%pspd(iat)%plr%wfd%nseg_f)
+            mproj_max=max(mproj_max,nl%pspd(iat)%mproj)
+            npack_dim=max(npack_dim,&
+                 nl%pspd(iat)%plr%wfd%nvctr_c+7*nl%pspd(iat)%plr%wfd%nvctr_f)
+            !packing array (for the moment all the projectors contribute) 
+            npack_dim=max(npack_dim,nl%pspd(iat)%plr%wfd%nvctr_c+&
+                 7*nl%pspd(iat)%plr%wfd%nvctr_f)
+         end if
+      end do
+
+      call f_release_routine()
+
+    end subroutine allocate_arrays
+
 END SUBROUTINE createProjectorsArrays
 
 
@@ -781,8 +806,9 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
      do iorb=1,tmb%orbs%norbp
          iiat=tmb%orbs%onwhichatom(iorb+tmb%orbs%isorb)
-         frag_trans(iorb)%theta=0.0d0*(4.0_gp*atan(1.d0)/180.0_gp)
-         frag_trans(iorb)%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
+         frag_trans(iorb)=fragment_transformation_identity()
+!!$         frag_trans(iorb)%theta=0.0d0*(4.0_gp*atan(1.d0)/180.0_gp)
+!!$         frag_trans(iorb)%rot_axis=(/1.0_gp,0.0_gp,0.0_gp/)
          frag_trans(iorb)%rot_center(:)=rxyz_old(:,iiat)
          frag_trans(iorb)%rot_center_new(:)=rxyz(:,iiat)
      end do
@@ -815,7 +841,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       ! Extract to a dense format, since this is independent of the sparsity pattern
       kernelp = sparsematrix_malloc(tmb%linmat%l, iaction=DENSE_PARALLEL, id='kernelp')
       call uncompress_matrix_distributed(iproc, tmb_old%linmat%l, DENSE_PARALLEL, tmb_old%linmat%kernel_%matrix_compr, kernelp)
-      call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_PARALLEL, kernelp, tmb%linmat%kernel_%matrix_compr)
+      call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_PARALLEL, &
+           kernelp, tmb%linmat%kernel_%matrix_compr(tmb%linmat%l%isvctrp_tg+1:))
       call f_free(kernelp)
   end if
           !!write(*,*) 'after vcopy, iproc',iproc
@@ -1037,7 +1064,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        tmb_old%linmat%ovrlp_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s,iaction=SPARSE_FULL, &
                                                                     id='tmb_old%linmat%ovrlp_%matrix_compr')
 
-       call compress_matrix_distributed(iproc, nproc, tmb%linmat%s, DENSE_PARALLEL, ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr)
+       call compress_matrix_distributed(iproc, nproc, tmb%linmat%s, DENSE_PARALLEL, &
+            ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr(tmb%linmat%s%isvctrp_tg+1:))
        call f_free(ovrlpp)
        call renormalize_kernel(iproc, nproc, input%lin%order_taylor, max_inversion_error, tmb, &
             tmb%linmat%ovrlp_, tmb_old%linmat%ovrlp_)

@@ -6,6 +6,9 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
+
+!> Module handling the object for the runs of bigDFT (restart, output, ...)
 module bigdft_run
   use module_defs, only: gp
   use dictionaries
@@ -485,7 +488,7 @@ module bigdft_run
       if (associated(runObj%atoms)) astruct => runObj%atoms%astruct
     end function bigdft_get_astruct_ptr
 
-    !> routine to dump the atomic file in normal BigDFT mode
+    !> Routine to dump the atomic file in normal BigDFT mode
     subroutine bigdft_write_atomic_file(runObj,outs,filename,comment,&
          cwd_path)
       use module_base, only: bigdft_mpi
@@ -519,7 +522,7 @@ module bigdft_run
       
     end subroutine bigdft_write_atomic_file
 
-    !>import positions for the run object from a given array
+    !> Import positions for the run object from a given array
     subroutine bigdft_set_rxyz(runObj,rxyz_add,rxyz)
       use dynamic_memory, only: f_memcpy
       use yaml_strings, only: yaml_toa
@@ -1243,10 +1246,11 @@ module bigdft_run
 
     END SUBROUTINE call_bigdft
 
+
     !> Parse the input dictionary and create all run_objects
     !! in particular this routine identifies the input and the atoms structure
     subroutine set_run_objects(runObj)
-      use module_base, only: bigdft_mpi,f_err_throw
+      use module_base, only: f_err_throw
       use module_interfaces, only: atoms_new, inputs_new, inputs_from_dict, create_log_file
       use module_atoms, only: deallocate_atoms_data
       implicit none

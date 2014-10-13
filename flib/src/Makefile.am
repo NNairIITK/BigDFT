@@ -156,7 +156,7 @@ f_utils.o: dictionaries.o yaml_strings.o
 getadd.o: yaml_strings.o $(GETADD_INCLUDES)
 $(flush_object): yaml_output.o dictionaries.o
 
-time.o: dynamic_memory.o $(mpi_include) #this is temporary, mpif.h should only be in wrappers
+time.o: $(NOOMP_INCLUDES) dynamic_memory.o $(mpi_include) #this is temporary, mpif.h should only be in wrappers
 
 #Fake mpif.h for serial compilation
 mpif.h:
