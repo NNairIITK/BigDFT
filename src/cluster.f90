@@ -1772,7 +1772,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 
   !Local variables
   character(len = *), parameter :: subname = "kswfn_post_treatments"
-  integer ::  jproc, nsize_psi, imode, i
+  integer ::  jproc, nsize_psi, imode, i, ispin
   real(dp), dimension(6) :: hstrten
   real(gp) :: ehart_fake
 
@@ -1882,12 +1882,18 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      call deallocate_matrices(tmb%linmat%ovrlp_)
      call deallocate_sparse_matrix(tmb%linmat%s)
      call deallocate_sparse_matrix(tmb%linmat%m)
-     do i=1,size(tmb%linmat%ks)
-         call deallocate_sparse_matrix(tmb%linmat%ks(i))
-     end do
-     do i=1,size(tmb%linmat%ks_e)
-         call deallocate_sparse_matrix(tmb%linmat%ks_e(i))
-     end do
+     if (associated(tmb%linmat%ks)) then
+         do ispin=1,tmb%linmat%l%nspin
+             call deallocate_sparse_matrix(tmb%linmat%ks(ispin))
+         end do
+         deallocate(tmb%linmat%ks)
+     end if
+     if (associated(tmb%linmat%ks_e)) then
+         do ispin=1,tmb%linmat%l%nspin
+             call deallocate_sparse_matrix(tmb%linmat%ks_e(ispin))
+         end do
+         deallocate(tmb%linmat%ks_e)
+     end if
   else
      imode = 0
      nsize_psi = (KSwfn%Lzd%Glr%wfd%nvctr_c+7*KSwfn%Lzd%Glr%wfd%nvctr_f)*KSwfn%orbs%nspinor*KSwfn%orbs%norbp

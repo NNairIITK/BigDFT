@@ -4658,6 +4658,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       end do
   end do
 
+  call f_free(scalprod_recvbuf)
+
 
   if (nproc>1) then
       ! The density kernel is distributed over the taskgroups, but here the entire
@@ -4682,6 +4684,11 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       call vcopy(denskern%nvctr, denskern_gathered(1), 1, denskern_mat%matrix_compr(1), 1)
       call f_free(denskern_gathered)
   end if
+
+  call f_free(sendcounts)
+  call f_free(recvcounts)
+  call f_free(senddspls)
+  call f_free(recvdspls)
   
 
   fxyz_orb = f_malloc((/ 3, at%astruct%nat /),id='fxyz_orb')
@@ -4883,11 +4890,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   call f_free(scalprod)
   call f_free(nat_par)
   call f_free(isat_par)
-  call f_free(sendcounts)
-  call f_free(recvcounts)
-  call f_free(senddspls)
-  call f_free(recvdspls)
-  call f_free(scalprod_recvbuf)
 
   call f_release_routine()
 
