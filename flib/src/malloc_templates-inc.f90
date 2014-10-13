@@ -48,7 +48,7 @@
 !     !profile the array allocation
 !     iadd=int(0,kind=8)
 !        !write the address of the first element in the address string
-!     if (m%profile .and. track_origins) call getlongaddress(array,iadd)
+!     if (m%profile .and. track_origins) iadd=loc_arr(array)!call getlongaddress(array,iadd)
 !  
 !     call f_update_database(product(int(m%shape(1:m%rank),kind=8)),kind(array),m%rank,&
 !          iadd,m%array_id,m%routine_id)
@@ -67,8 +67,8 @@
 !  !$ end if
 !  !END--- allocate-inc.f90
 !end subroutine xx_all
-
-
+!
+!
 !subroutine xx_all_free(array)
 !  use metadata_interfaces
 !  implicit none
@@ -98,8 +98,9 @@
 !  !here the size should be corrected with ndebug (or maybe not)
 !  ilsize=product(int(shape(array),kind=8))
 !  !retrieve the address of the first element if the size is not zero
-!  iadd=int(0,kind=8)
-!  if (ilsize /= int(0,kind=8)) call getlongaddress(array,iadd)
+!  !iadd=int(0,kind=8)
+!  !if (ilsize /= int(0,kind=8)) 
+!  iadd=loc_arr(array)!call getlongaddress(array,iadd)
 !  !fortran deallocation
 !  deallocate(array,stat=ierror)
 !

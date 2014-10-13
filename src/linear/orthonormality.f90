@@ -1526,7 +1526,7 @@ subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_
   logical, intent(in) :: plusminus
   type(sparse_matrix),intent(in) :: smat
 
-  integer :: info, iorb, jorb, ierr, iiorb, isorb, norbp, lwork, jjorb
+  integer :: info, iorb, jorb, ierr, iiorb, isorb, norbp, lwork, jjorb,ninetynine
   real(kind=8),dimension(:),allocatable :: eval, work
   real(kind=8),dimension(:,:),allocatable :: tempArr, orig_ovrlp
   real(kind=8),dimension(:,:),pointer :: inv_ovrlp_halfp
@@ -1561,6 +1561,12 @@ subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_
         if (check_lapack) then
            orig_ovrlp=f_malloc((/norb,norb/),id='orig_ovrlp')
            call vcopy(norb*norb,inv_ovrlp_half(1,1),1,orig_ovrlp(1,1),1)
+           !the original overlap has to be symmetrized
+           do iorb=1,norb
+              do jorb=1,iorb-1
+                 orig_ovrlp(jorb,iorb)=orig_ovrlp(iorb,jorb)
+              end do
+           end do
         end if
         work=f_malloc(1000,id='work')
         call dsyev('v', 'l', norb, inv_ovrlp_half(1,1), norb, eval, work, -1, info)
@@ -1595,24 +1601,27 @@ subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_
                 norb, tempArr, norb, 0.d0, inv_ovrlp_halfp, norb)
            call f_free(tempArr)
            call max_matrix_diff(bigdft_mpi%iproc, norb, inv_ovrlp_halfp, orig_ovrlp, smat, max_error, mean_error)
-           if (bigdft_mpi%iproc==0.and.abs(max_error)>1.0d-8) then
-              print*,'LAPACK error for dsyev in overlap_plus_minus_one_half_exact',max_error
-              open(99,file='dsyev_input.txt')
-              do iorb=1,norb
-                 do jorb=1,norb
-                   write(99,*) iorb,jorb,orig_ovrlp(iorb,jorb)
+           if (abs(max_error)>1.0d-8) then
+              if (bigdft_mpi%iproc==0) then
+                 ninetynine=f_get_free_unit(99)
+                 open(ninetynine,file='dsyev_input.txt')
+                 do iorb=1,norb
+                    do jorb=1,norb
+                       write(ninetynine,*) iorb,jorb,orig_ovrlp(iorb,jorb)
+                    end do
                  end do
-              end do
-              close(99)
-              open(99,file='dsyev_output.txt')
-              do iorb=1,norb
-                 do jorb=1,norb
-                   write(99,*) iorb,jorb,inv_ovrlp_halfp(iorb,jorb)
+                 call f_close(ninetynine)
+                 open(ninetynine,file='dsyev_output.txt')
+                 do iorb=1,norb
+                    do jorb=1,norb
+                       write(ninetynine,*) iorb,jorb,inv_ovrlp_halfp(iorb,jorb)
+                    end do
                  end do
-              end do
-              close(99)
-              call mpi_finalize(bigdft_mpi%mpi_comm)
-              stop
+                 call f_close(ninetynine)
+              end if
+              call f_err_throw('LAPACK error for dsyev in overlap_plus_minus_one_half_exact (maxerr='//&
+                   trim(yaml_toa(max_error))//'), erroneous matrices dumped in files "dsyev_(in/out)put.txt"',&
+                   err_name='BIGDFT_RUNTIME_ERROR')
            end if
            call f_free_ptr(inv_ovrlp_halfp)
            call f_free(orig_ovrlp)
@@ -3027,7 +3036,7 @@ subroutine overlap_minus_one_half_serial(iproc, nproc, iorder, power, blocksize,
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, iorder, blocksize, power, norb
   real(kind=8),dimension(norb,norb),intent(in) :: ovrlp_matrix
-  real(kind=8),dimension(:,:),pointer,intent(out) :: inv_ovrlp_matrix
+  real(kind=8),dimension(:,:),pointer,intent(inout) :: inv_ovrlp_matrix
   type(sparse_matrix),intent(in) :: smat
   logical,intent(in) :: check_accur
   real(kind=8),intent(out),optional :: max_error, mean_error
