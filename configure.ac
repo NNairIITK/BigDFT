@@ -302,7 +302,7 @@ end
 program main
 implicit none
 
-integer :: ierr,request,nproc,iproca,jproc
+integer :: ierr,request,nproc,iproc,jproc
 real :: rho(3),rho2(3)
 real,dimension(:),allocatable :: sendbuf,recvbuf
 integer,dimension(:),allocatable :: sendcounts,sdispls,recvcounts,rdispls
