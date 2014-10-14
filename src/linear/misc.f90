@@ -1135,6 +1135,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
   use module_base
   use module_types
   use module_interfaces, except_this_one => loewdin_charge_analysis
+  use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, sparsematrix_malloc0, sparsematrix_malloc_ptr, &
                                DENSE_FULL, assignment(=), &
@@ -1192,7 +1193,7 @@ subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
          !!    psit_f_associated=.true.
          !!end if
          call transpose_localized(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-              tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+              TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
          tmb%can_use_transposed=.true.
      end if
 

@@ -334,7 +334,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   else if (imode==1) then
       !linear version of nonlocal forces
       call nonlocal_forces_linear(iproc,nproc,tmb%npsidim_orbs,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
-           tmb%orbs,nlpsp,tmb%lzd,tmb%collcom,tmb%psi,tmb%linmat%l,tmb%linmat%kernel_,fxyz,refill_proj,&
+           tmb%orbs,nlpsp,tmb%lzd,tmb%psi,tmb%linmat%l,tmb%linmat%kernel_,fxyz,refill_proj,&
            strtens(1,2))
       !!do iat=1,atoms%astruct%nat
       !!    write(4200+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
@@ -4214,7 +4214,7 @@ END SUBROUTINE erf_stress
 !! belonging to iproc and adds them to the force array
 !! recalculate the projectors at the end if refill flag is .true.
 subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
-     orbs,nlpsp,lzd,collcom,phi,denskern,denskern_mat,fsep,refill,strten)
+     orbs,nlpsp,lzd,phi,denskern,denskern_mat,fsep,refill,strten)
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix, matrices
@@ -4224,7 +4224,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   !Arguments-------------
   type(atoms_data), intent(in) :: at
   type(local_zone_descriptors), intent(in) :: lzd
-  type(comms_linear),intent(in) :: collcom
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   logical, intent(in) :: refill
   integer, intent(in) :: iproc, nproc, npsidim_orbs
@@ -4303,9 +4302,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
   !  allocate(scalprod(2,0:3,7,3,4,at%astruct%nat,orbs%norbp*orbs%nspinor),stat=i_stat)
   ! need more components in scalprod to calculate terms like dp/dx*psi*x
-  scalprod = f_malloc((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+  scalprod = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
                          1.to.at%astruct%nat, 1.to.max(1, orbs%norbp*orbs%nspinor) /),id='scalprod')
-  call to_zero(2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norbp*orbs%nspinor),scalprod(1,0,1,1,1,1,1))
+  !call to_zero(2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norbp*orbs%nspinor),scalprod(1,0,1,1,1,1,1))
 
 
   Enl=0._gp
@@ -4602,9 +4601,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
      !!end do
 
 
-  scalprod_sendbuf = f_malloc((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+  scalprod_sendbuf = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
                                  1.to.max(1, orbs%norbp*orbs%nspinor), 1.to.at%astruct%nat /),id='scalprod_sendbuf')
-  call to_zero(2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norbp*orbs%nspinor),scalprod_sendbuf(1,0,1,1,1,1,1))
+  !call to_zero(2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norbp*orbs%nspinor),scalprod_sendbuf(1,0,1,1,1,1,1))
 
   ! Copy scalprod to auxiliary array for communication
   do iorb=1,orbs%norbp
@@ -4619,8 +4618,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
   call f_free(scalprod)
 
-  scalprod_recvbuf = f_malloc(2*(ndir+1)*7*3*4*max(1, nat_par(iproc))*orbs%norb*orbs%nspinor,id='scalprod_recvbuf')
-  call to_zero(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod_recvbuf(1))
+  scalprod_recvbuf = f_malloc0(2*(ndir+1)*7*3*4*max(1, nat_par(iproc))*orbs%norb*orbs%nspinor,id='scalprod_recvbuf')
+  !call to_zero(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod_recvbuf(1))
 
   if (nproc>1) then
       call mpi_alltoallv(scalprod_sendbuf, sendcounts, senddspls, mpi_double_precision, &
@@ -4639,9 +4638,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   !allocate(scalprod_sendbuf(2,0:9,7,3,4,orbs%norbp*orbs%nspinor+ndebug,at%astruct%nat),stat=i_stat)
   !allocate(scalprod_recvbuf(2*10*7*3*4*nat_par(iproc)*orbs%norb*orbs%nspinor+ndebug),stat=i_stat)
 
-  scalprod = f_malloc((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
+  scalprod = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
                          1.to.max(1, nat_par(iproc)), 1.to.orbs%norb*orbs%nspinor /),id='scalprod')
-  call to_zero(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod(1,0,1,1,1,1,1))
+  !call to_zero(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*orbs%norb*orbs%nspinor,scalprod(1,0,1,1,1,1,1))
 
   ist=1
   do jproc=0,nproc-1
@@ -4658,6 +4657,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
           end do
       end do
   end do
+
+  call f_free(scalprod_recvbuf)
 
 
   if (nproc>1) then
@@ -4683,6 +4684,11 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       call vcopy(denskern%nvctr, denskern_gathered(1), 1, denskern_mat%matrix_compr(1), 1)
       call f_free(denskern_gathered)
   end if
+
+  call f_free(sendcounts)
+  call f_free(recvcounts)
+  call f_free(senddspls)
+  call f_free(recvdspls)
   
 
   fxyz_orb = f_malloc((/ 3, at%astruct%nat /),id='fxyz_orb')
@@ -4884,11 +4890,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   call f_free(scalprod)
   call f_free(nat_par)
   call f_free(isat_par)
-  call f_free(sendcounts)
-  call f_free(recvcounts)
-  call f_free(senddspls)
-  call f_free(recvdspls)
-  call f_free(scalprod_recvbuf)
 
   call f_release_routine()
 
