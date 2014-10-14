@@ -20,6 +20,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use constrained_dft
   use diis_sd_optimization
   use yaml_output
+  use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, start_onesided_communication
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, sparsematrix_malloc, &
                                DENSE_FULL, DENSE_PARALLEL, DENSE_MATMUL, assignment(=)
@@ -101,7 +102,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   if(calculate_overlap_matrix) then
       if(.not.tmb%can_use_transposed) then
           call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+               TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
           tmb%can_use_transposed=.true.
       end if
 
@@ -192,14 +193,14 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       ! Calculate the matrix elements <phi|H|phi>.
       if(.not.tmb%ham_descr%can_use_transposed) then
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-               tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
+               TRANSPOSE_FULL, tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
           tmb%ham_descr%can_use_transposed=.true.
       end if
 
       hpsit_c = f_malloc(tmb%ham_descr%collcom%ndimind_c,id='hpsit_c')
       hpsit_f = f_malloc(7*tmb%ham_descr%collcom%ndimind_f,id='hpsit_f')
       call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-           tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+           TRANSPOSE_FULL, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
 
 
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
@@ -502,7 +503,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => getLocalizedBasis, except_this_one_A => writeonewave
-  use communications, only: transpose_localized, start_onesided_communication
+  use communications_base, only: work_transpose, TRANSPOSE_FULL, TRANSPOSE_POST, TRANSPOSE_GATHER
+  use communications, only: transpose_localized, untranspose_localized, start_onesided_communication
   use sparsematrix_base, only: assignment(=), sparsematrix_malloc, sparsematrix_malloc_ptr, SPARSE_FULL
   use constrained_dft, only: cdft_data
   use module_fragments, only: system_fragment
@@ -549,7 +551,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   !real(kind=8),dimension(:),allocatable :: occup_tmp
   real(kind=8) :: fnrmMax, meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
   real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_tmp, psidiff
-  real(kind=8),dimension(:),allocatable :: delta_energy_arr, hpsi_noprecond, kernel_compr_tmp, kernel_best
+  real(kind=8),dimension(:),allocatable :: delta_energy_arr, hpsi_noprecond, kernel_compr_tmp, kernel_best, hphi_nococontra
   logical :: energy_increased, overlap_calculated, energy_diff, energy_increased_previous, complete_reset, even
   logical :: calculate_inverse
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
@@ -566,6 +568,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(workarr_precond),dimension(:),allocatable :: precond_workarrays
   integer :: iiorb, ilr, i, ist
   real(kind=8) :: max_error, mean_error
+  type(work_transpose) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
 
   call f_routine(id='getLocalizedBasis')
 
@@ -666,11 +669,20 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           end if
       end if
 
+      ! Start the communication
+      call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+           TRANSPOSE_POST, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd, wt_phi)
 
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
       if (tmb%ham_descr%npsidim_orbs > 0)  call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
       call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
            tmb%orbs, tmb%psi, tmb%ham_descr%psi)
+
+      ! Start the nonblocking transposition (the results will be gathered in
+      ! orthoconstraintNonorthogonal)
+      call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+           TRANSPOSE_POST, tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd, &
+           wt_philarge)
 
       call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
            tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,tmb%hpsi,energs%eproj,tmb%paw)
@@ -731,22 +743,32 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call yaml_map('Orthoconstraint',.true.)
       end if
 
-
+      ! Start the communication
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-               hpsi_tmp, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+               TRANSPOSE_POST, hpsi_tmp, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
+      else
+          call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+               TRANSPOSE_POST, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
+      end if
+
+      ! Gather the data
+      call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+           TRANSPOSE_GATHER, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd, wt_phi)
+
+      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           if (method_updatekernel==UPDATE_BY_FOE .or. method_updatekernel==UPDATE_BY_RENORMALIZATION) then
               if (method_updatekernel==UPDATE_BY_FOE) then
                   call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-                       tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
+                       TRANSPOSE_FULL, tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
+                  call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+                       TRANSPOSE_GATHER, hpsi_tmp, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
                   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
                        tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
                   tmb%ham_descr%can_use_transposed=.true.
               else
                   tmb%ham_descr%can_use_transposed=.false.
               end if
-              call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-                   tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
               call vcopy(tmb%linmat%s%nspin*tmb%linmat%s%nvctr, tmb%linmat%ovrlp_%matrix_compr(1), 1, ovrlp_old%matrix_compr(1), 1)
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
                    tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
@@ -790,9 +812,14 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !!    end do
           !!end if
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-               tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+               TRANSPOSE_GATHER, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
       end if
 
+      ! Gather the data in case it has not been done before
+      if (target_function==TARGET_FUNCTION_IS_HYBRID .and. method_updatekernel/=UPDATE_BY_FOE) then
+          call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+               TRANSPOSE_GATHER, hpsi_tmp, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
+      end if
       ncount=tmb%ham_descr%collcom%ndimind_c
       if(ncount>0) call vcopy(ncount, hpsit_c(1), 1, hpsit_c_tmp(1), 1)
       ncount=7*tmb%ham_descr%collcom%ndimind_f
@@ -836,6 +863,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            correction_co_contra, hpsi_noprecond=hpsi_tmp, norder_taylor=order_taylor, &
            max_inversion_error=max_inversion_error, method_updatekernel=method_updatekernel, &
            precond_convol_workarrays=precond_convol_workarrays, precond_workarrays=precond_workarrays, &
+           wt_philarge=wt_philarge, wt_hpsinoprecond=wt_hpsinoprecond, &
            cdft=cdft, input_frag=input_frag, ref_frags=ref_frags)
       !fnrm_old=fnrm
 
@@ -941,6 +969,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call yaml_mapping_close()
               call yaml_flush_document()
               !call bigdft_utils_flush(unit=6)
+              ! This is to avoid memory leaks
+              call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+                   TRANSPOSE_GATHER, hpsit_c, hpsit_f, hpsi_tmp, tmb%ham_descr%lzd, wt_hpsinoprecond)
              cycle
           else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
              if (iproc==0) call yaml_newline()
@@ -1025,6 +1056,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               !call bigdft_utils_flush(unit=6)
           end if
 
+          ! This is to avoid memory leaks
+          ! Gather together the data (was posted in orthoconstraintNonorthogonal)
+          ! Give hpsit_c and hpsit_f, this should not matter if GATHER is specified.
+          ! To be modified later
+          call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+               TRANSPOSE_GATHER, hpsit_c, hpsit_f, hpsi_tmp, tmb%ham_descr%lzd, wt_hpsinoprecond)
+
           exit iterLoop
       end if
       trH_old=trH
@@ -1042,6 +1080,17 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if(tmb%ham_descr%can_use_transposed) then
           tmb%ham_descr%can_use_transposed=.false.
       end if
+
+      ! Gather together the data (was posted in orthoconstraintNonorthogonal)
+      ! Give hpsit_c and hpsit_f, this should not matter if GATHER is specified.
+      ! To be modified later
+      hphi_nococontra = f_malloc(tmb%ham_descr%npsidim_orbs,id='hphi_nococontra')
+      call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+           TRANSPOSE_GATHER, hpsit_c, hpsit_f, hphi_nococontra, tmb%ham_descr%lzd, wt_hpsinoprecond)
+      call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+           tmb%orbs, hphi_nococontra, hpsi_tmp)
+      call f_free(hphi_nococontra)
+
 
       ! Estimate the energy change, that is to be expected in the next optimization
       ! step, given by the product of the force and the "displacement" .
@@ -1814,6 +1863,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
   use module_base
   use module_types
   use module_interfaces, except_this_one => reconstruct_kernel
+  use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
   use sparsematrix, only: uncompress_matrix
@@ -1844,7 +1894,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
          !!tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
          !!tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
          call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-              tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+              TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
          tmb%can_use_transposed=.true.
      end if
      !call timing(iproc,'renormCoefComp','OF')
@@ -2383,6 +2433,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => purify_kernel
+  use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), matrices, &
                                matrices_null, allocate_matrices, deallocate_matrices
@@ -2446,7 +2497,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
          !!tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
          !!tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
          call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-              tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+              TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
          tmb%can_use_transposed=.true.
      end if
      !call timing(iproc,'renormCoefComp','OF')

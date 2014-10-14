@@ -732,7 +732,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use module_interfaces, except_this_one => input_memory_linear
   use module_fragments
   use yaml_output
-  use communications_base, only: deallocate_comms_linear
+  use communications_base, only: deallocate_comms_linear, TRANSPOSE_FULL
   use communications, only: transpose_localized, untranspose_localized
   use constrained_dft
   use sparsematrix_base, only: sparsematrix_malloc, sparsematrix_malloc_ptr, DENSE_PARALLEL, SPARSE_FULL, &
@@ -878,7 +878,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        overlap_calculated=.false.
 
        call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-            tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+            TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
 
        ! normalize psi
        norm = f_malloc(tmb%orbs%norb,id='norm')
@@ -886,7 +886,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        call normalize_transposed(iproc, nproc, tmb%orbs, input%nspin, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
 
        call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-            tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
+            TRANSPOSE_FULL, tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
 
        call f_free(norm)
    else if (input%FOE_restart==RESTART_REFORMAT .and. input%experimental_mode) then
@@ -1043,11 +1043,11 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        tmb%can_use_transposed=.false.
        tmb_old%can_use_transposed=.false.
        call transpose_localized(iproc, nproc, tmb_old%npsidim_orbs, tmb_old%orbs, tmb_old%collcom, &
-            tmb_old%psi, tmb_old%psit_c, tmb_old%psit_f, tmb_old%lzd)
+            TRANSPOSE_FULL, tmb_old%psi, tmb_old%psit_c, tmb_old%psit_f, tmb_old%lzd)
        call calculate_overlap_transposed(iproc, nproc, tmb_old%orbs, tmb_old%collcom, tmb_old%psit_c, tmb_old%psit_c, &
             tmb_old%psit_f, tmb_old%psit_f, tmb_old%linmat%s, tmb_old%linmat%ovrlp_)
        call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-            tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+            TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
        call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_c, &
             tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
 
@@ -1926,6 +1926,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use yaml_output
   use gaussians, only: gaussian_basis
   use sparsematrix_base, only: sparse_matrix
+  use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, untranspose_localized
   use m_paw_ij, only: paw_ij_init
   use psp_projectors, only: PSPCODE_PAW, PSPCODE_HGH, free_DFT_PSP_projectors
@@ -2251,7 +2252,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
 
      call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-          tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+          TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
 
      ! normalize psi
      norm = f_malloc(tmb%orbs%norb,id='norm')
@@ -2259,7 +2260,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call normalize_transposed(iproc, nproc, tmb%orbs, in%nspin, tmb%collcom, tmb%psit_c, tmb%psit_f, norm)
 
      call untranspose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-          tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
+          TRANSPOSE_FULL, tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
 
      call f_free(norm)
 
