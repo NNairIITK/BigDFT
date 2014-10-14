@@ -209,14 +209,21 @@ module communications
           !!     7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
           !!call mpi_alltoallv(wt%psiwork, wt%nsendcounts, wt%nsenddspls, mpi_double_precision, wt%psitwork, &
           !!     wt%nrecvcounts, wt%nrecvdspls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-          call mpiialltoallv(wt%psiwork(1), wt%nsendcounts(0), wt%nsenddspls(0), mpi_double_precision, wt%psitwork(1), &
-               wt%nrecvcounts(0), wt%nrecvdspls(0), mpi_double_precision, bigdft_mpi%mpi_comm, wt%request)
+          if (nproc>1) then
+              call mpiialltoallv(wt%psiwork(1), wt%nsendcounts(0), wt%nsenddspls(0), mpi_double_precision, wt%psitwork(1), &
+                   wt%nrecvcounts(0), wt%nrecvdspls(0), mpi_double_precision, bigdft_mpi%mpi_comm, wt%request)
+          else
+              call vcopy(wt%nsendcounts(0), wt%psiwork(1), 1, wt%psitwork(1), 1)
+              wt%request = MPI_REQUEST_NULL
+          end if
       end if
     
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_GATHER) then
 
-          call mpiwait(wt%request)
+          if (nproc>1) then
+              call mpiwait(wt%request)
+          end if
 
           ist=1
           ist_c=1
@@ -445,11 +452,21 @@ module communications
       !!! fine part
       !! call mpi_alltoallv(psitwork_f, 7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, psiwork_f, &
       !!      7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-      call mpiialltoallv(wt%psitwork(1), wt%nrecvcounts(0), wt%nrecvdspls(0), mpi_double_precision, wt%psiwork(1), &
-           wt%nsendcounts(0), wt%nsenddspls(0), mpi_double_precision, bigdft_mpi%mpi_comm, wt%request)
+      if (nproc>1) then
+          call mpiialltoallv(wt%psitwork(1), wt%nrecvcounts(0), wt%nrecvdspls(0), mpi_double_precision, wt%psiwork(1), &
+               wt%nsendcounts(0), wt%nsenddspls(0), mpi_double_precision, bigdft_mpi%mpi_comm, wt%request)
+      else
+          call vcopy(wt%nrecvcounts(0), wt%psitwork(1), 1, wt%psiwork(1), 1)
+          wt%request = MPI_REQUEST_NULL
+      end if
     
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_GATHER) then
+
+          if (nproc>1) then
+              call mpiwait(wt%request)
+          end if
+
           ist=1
           ist_c=1
           ist_f=1
@@ -630,11 +647,12 @@ module communications
       ! Point to the provided work arrays
       if (present(wt_)) then
           wt => wt_
+      else
+          allocate(wt)
       end if
 
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_POST) then
-          allocate(wt)
           wt = work_transpose_null()
       end if
 
@@ -643,22 +661,24 @@ module communications
       psiwork_f = f_malloc(7*collcom%ndimpsi_f,id='psiwork_f')
       psitwork_c = f_malloc(collcom%ndimind_c,id='psitwork_c')
       psitwork_f = f_malloc(7*collcom%ndimind_f,id='psitwork_f')
-      
-      call transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
+
+      if (transpose_action == TRANSPOSE_FULL .or. &
+          transpose_action == TRANSPOSE_POST) then
+          call transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
+      end if
       call timing(iproc,'Un-TransSwitch','OF')
     
       call timing(iproc,'Un-TransComm  ','ON')
-      if(nproc>1) then
-          call transpose_communicate_psi(iproc, nproc, collcom, transpose_action, &
-               psiwork_c, psiwork_f, wt, psitwork_c, psitwork_f)
-      else
-          psitwork_c=psiwork_c
-          psitwork_f=psiwork_f
-      end if
+      call transpose_communicate_psi(iproc, nproc, collcom, transpose_action, &
+           psiwork_c, psiwork_f, wt, psitwork_c, psitwork_f)
       call timing(iproc,'Un-TransComm  ','OF')
     
       call timing(iproc,'Un-TransSwitch','ON')
-      call transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
+      if (transpose_action == TRANSPOSE_FULL .or. &
+          transpose_action == TRANSPOSE_GATHER) then
+          call transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
+      end if
+
       
       call f_free(psiwork_c)
       call f_free(psiwork_f)
@@ -667,8 +687,10 @@ module communications
 
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_GATHER) then
-          deallocate(wt)
-          nullify(wt)
+          if (.not.present(wt_)) then
+              deallocate(wt)
+              nullify(wt)
+          end if
       end if
 
       call f_release_routine()
@@ -708,14 +730,14 @@ module communications
       if (transpose_action /= TRANSPOSE_FULL .and. &
           transpose_action /= TRANSPOSE_POST .and. &
           transpose_action /= TRANSPOSE_GATHER)  then
-          call f_err_throw('transpose_localized was called with errorneous arguments',&
+          call f_err_throw('untranspose_localized was called with errorneous arguments',&
                err_id=ERR_LINEAR_TRANSPOSITION)
       end if
 
       if (transpose_action == TRANSPOSE_POST .or. &
           transpose_action == TRANSPOSE_GATHER) then
           if (.not.present(wt_)) then
-              call f_err_throw('transpose_localized was called with errorneous arguments',&
+              call f_err_throw('untranspose_localized was called with errorneous arguments',&
                    err_id=ERR_LINEAR_TRANSPOSITION)
           end if
       end if
@@ -723,11 +745,12 @@ module communications
       ! Point to the provided work arrays
       if (present(wt_)) then
           wt => wt_
+      else
+          allocate(wt)
       end if
 
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_POST) then
-          allocate(wt)
           wt = work_transpose_null()
       end if
       
@@ -737,21 +760,22 @@ module communications
       psitwork_f = f_malloc(7*collcom%ndimind_f,id='psitwork_f')
     
       call timing(iproc,'Un-TransSwitch','ON')
-      call transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f)
+      if (transpose_action == TRANSPOSE_FULL .or. &
+          transpose_action == TRANSPOSE_POST) then
+          call transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f)
+      end if
       call timing(iproc,'Un-TransSwitch','OF')
     
       call timing(iproc,'Un-TransComm  ','ON')
-      if(nproc>1) then
-          call transpose_communicate_psit(iproc, nproc, collcom, transpose_action, &
-               psitwork_c, psitwork_f, wt, psiwork_c, psiwork_f)
-      else
-          psiwork_c=psitwork_c
-          psiwork_f=psitwork_f
-      end if
+      call transpose_communicate_psit(iproc, nproc, collcom, transpose_action, &
+           psitwork_c, psitwork_f, wt, psiwork_c, psiwork_f)
       call timing(iproc,'Un-TransComm  ','OF')
     
       call timing(iproc,'Un-TransSwitch','ON')
-      call transpose_unswitch_psi(npsidim_orbs, orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
+      if (transpose_action == TRANSPOSE_FULL .or. &
+          transpose_action == TRANSPOSE_GATHER) then
+          call transpose_unswitch_psi(npsidim_orbs, orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
+      end if
       call timing(iproc,'Un-TransSwitch','OF')
       
       call f_free(psiwork_c)
@@ -761,8 +785,10 @@ module communications
 
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_GATHER) then
-          deallocate(wt)
-          nullify(wt)
+          if (.not.present(wt_)) then
+              deallocate(wt)
+              nullify(wt)
+          end if
       end if
 
       call f_release_routine()
