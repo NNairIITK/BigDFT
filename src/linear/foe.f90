@@ -92,9 +92,6 @@ subroutine foe(iproc, nproc, tmprtr, &
       stop 'wrong value of accuracy_level'
   end if
 
-  !!inv_ovrlp%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
-  !!                         iaction=SPARSE_FULL, id='inv_ovrlp%matrix_compr')
-
 
   call timing(iproc, 'FOE_auxiliary ', 'ON')
 
@@ -126,12 +123,6 @@ subroutine foe(iproc, nproc, tmprtr, &
       isegstart = tmb%linmat%l%istsegline(tmb%linmat%l%smmm%isfvctr+1)
       isegend = tmb%linmat%l%istsegline(tmb%linmat%l%smmm%isfvctr+tmb%linmat%l%smmm%nfvctrp) + &
                 tmb%linmat%l%nsegline(tmb%linmat%l%smmm%isfvctr+tmb%linmat%l%smmm%nfvctrp)-1
-      !!isegstart=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+1)
-      !!if (tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp<tmb%linmat%l%nfvctr) then
-      !!    isegend=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr_par(iproc+1)+1)-1
-      !!else
-      !!    isegend=tmb%linmat%l%nseg
-      !!end if
       !$omp parallel default(private) shared(isegstart, isegend, tmb, nsize_polynomial)
       !$omp do reduction(+:nsize_polynomial)
       do iseg=isegstart,isegend
@@ -257,12 +248,6 @@ subroutine foe(iproc, nproc, tmprtr, &
                       call yaml_mapping_open(flow=.true.)
                       if (foe_verbosity>=1) call yaml_comment('it FOE:'//yaml_toa(it,fmt='(i6)'),hfill='-')
                   end if
-                  
-    !!              if (adjust_lower_bound) then
-    !!                  call foe_data_set_real(foe_obj,"ef",efarr(1))
-    !!              else if (adjust_upper_bound) then
-    !!                  call foe_data_set_real(foe_obj,"ef",efarr(2))
-    !!              end if
               
         
                   ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
@@ -380,9 +365,6 @@ subroutine foe(iproc, nproc, tmprtr, &
                   if (calculate_SHS) then
                       ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
                       if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
-          !!do i=1,tmb%linmat%l%nvctr
-          !!    write(1000+iproc,'(a,2i8,es16.6)') 'ispin, i, val', ispin, i, hamscal_compr(i)
-          !!end do
                       call chebyshev_clean(iproc, nproc, npl, cc, &
                            tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nfvctrp, tmb%linmat%l%smmm%isfvctr, &
                            tmb%linmat%l, hamscal_compr, &
@@ -468,7 +450,6 @@ subroutine foe(iproc, nproc, tmprtr, &
                   call determine_fermi_level(f, sumn, ef, info)
                   bisection_bounds_ok(1) = fermilevel_get_logical(f,"bisection_bounds_ok(1)")
                   bisection_bounds_ok(2) = fermilevel_get_logical(f,"bisection_bounds_ok(2)")
-                  !write(*,*) 'main: efarr', efarr
                   if (info<0) then
                       if (iproc==0) then
                           if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
@@ -572,40 +553,14 @@ subroutine foe(iproc, nproc, tmprtr, &
     
           ! Calculate trace(KH). Since they have the same sparsity pattern and K is
           ! symmetric, this is a simple ddot.
-          !ebsp=ddot(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ilshift+1),1 , hamscal_compr, 1)
-          !!ebsp = 0.d0
-          !!do itg=1,tmb%linmat%l%ntaskgroup
-          !!    if (tmb%linmat%l%mpi_groups(itg)%iproc==0) then
-          !!        ncount = tmb%linmat%l%taskgroup_startend(2,2,itg)-tmb%linmat%l%taskgroup_startend(1,2,itg)+1
-          !!        istl = tmb%linmat%l%taskgroup_startend(1,2,itg)
-          !!        ists = tmb%linmat%l%taskgroup_startend(1,2,itg)-tmb%linmat%l%taskgroup_startend(1,1,itg)+1
-          !!        !ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ists), 1)
-          !!        ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
-          !!    end if
-          !!end do
           ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
           istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
           ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl-tmb%linmat%l%isvctrp_tg), 1)
-          !call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
 
-
-    
-          !ebs_check=ddot(tmb%linmat%l%nvctr, fermi_check_compr, 1 , hamscal_compr, 1)
-          !!ebs_check = 0.d0
-          !!do itg=1,tmb%linmat%l%ntaskgroup
-          !!    if (tmb%linmat%l%mpi_groups(itg)%iproc==0) then
-          !!        ncount = tmb%linmat%l%taskgroup_startend(2,2,itg)-tmb%linmat%l%taskgroup_startend(1,2,itg)+1
-          !!        istl = tmb%linmat%l%taskgroup_startend(1,2,itg)
-          !!        ists = tmb%linmat%l%taskgroup_startend(1,2,itg)-tmb%linmat%l%taskgroup_startend(1,1,itg)+1
-          !!        !ebs_check = ddot(ncount, fermi_check_compr(istl), 1, hamscal_compr(ists), 1)
-          !!        ebs_check = ddot(ncount, fermi_check_compr(istl), 1, hamscal_compr(istl), 1)
-          !!    end if
-          !!end do
           ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
           istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
           ebs_check = ddot(ncount, fermi_check_compr(istl-tmb%linmat%l%isvctrp_tg), 1, &
                       hamscal_compr(istl-tmb%linmat%l%isvctrp_tg), 1)
-          !call mpiallred(ebs_check, 1, mpi_sum, bigdft_mpi%mpi_comm)
 
           temparr(1) = ebsp
           temparr(2) = ebs_check
@@ -705,18 +660,6 @@ subroutine foe(iproc, nproc, tmprtr, &
           ! If no purification is done, this should not be necessary.
           ! Since K and H have the same sparsity pattern and K is
           ! symmetric, the trace is a simple ddot.
-          !ebsp=ddot(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ilshift+1),1 , hamscal_compr, 1)
-          !!ebsp = 0.d0
-          !!do itg=1,tmb%linmat%l%ntaskgroup
-          !!    if (tmb%linmat%l%mpi_groups(itg)%iproc==0) then
-          !!        ncount = tmb%linmat%l%taskgroup_startend(2,2,itg)-tmb%linmat%l%taskgroup_startend(1,2,itg)+1
-          !!        istl = tmb%linmat%l%taskgroup_startend(1,2,itg)
-          !!        ists = tmb%linmat%l%taskgroup_startend(1,2,itg)-tmb%linmat%l%taskgroup_startend(1,1,itg)+1
-          !!        !ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ists), 1)
-          !!        ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
-          !!    end if
-          !!end do
-          !!call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
           ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
           istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
           ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl-tmb%linmat%l%isvctrp_tg), 1)
@@ -751,54 +694,9 @@ subroutine foe(iproc, nproc, tmprtr, &
 
   if (foe_data_get_logical(foe_obj,"adjust_FOE_temperature") .and. foe_verbosity>=1) then
       call foe_data_set_real(foe_obj,"fscale",fscale_new)
-   !!   if (diff<5.d-3) then
-   !!       ! can decrease polynomial degree
-   !!       !!call foe_data_set_real(foe_obj,"fscale", 1.25d0*foe_data_get_real(foe_obj,"fscale"))
-   !!       !!if (iproc==0) call yaml_map('modify fscale','increase')
-   !!       fscale_new=min(fscale_new,1.25d0*foe_data_get_real(foe_obj,"fscale"))
-   !!       degree_sufficient=.true.
-   !!   else if (diff>=5.d-3 .and. diff < 1.d-2) then
-   !!       ! polynomial degree seems to be appropriate
-   !!       degree_sufficient=.true.
-   !!       !!if (iproc==0) call yaml_map('modify fscale','No')
-   !!       fscale_new=min(fscale_new,foe_data_get_real(foe_obj,"fscale"))
-   !!   else
-   !!       ! polynomial degree too small, increase and recalculate
-   !!       ! the kernel
-   !!       degree_sufficient=.false.
-   !!       !!call foe_data_set_real(foe_obj,"fscale", 0.5*foe_data_get_real(foe_obj,"fscale"))
-   !!       !!if (iproc==0) call yaml_map('modify fscale','decrease')
-   !!       fscale_new=min(fscale_new,0.5d0*foe_data_get_real(foe_obj,"fscale"))
-   !!   end if
-   !!   !!if (foe_data_get_real(foe_obj,"fscale")<foe_data_get_real(foe_obj,"fscale_lowerbound")) then
-   !!   !!    call foe_data_set_real(foe_obj,"fscale",foe_data_get_real(foe_obj,"fscale_lowerbound"))
-   !!   !!    if (iproc==0) call yaml_map('fscale reached lower limit; reset to',foe_data_get_real(foe_obj,"fscale_lowerbound"))
-   !!   !!    reached_limit=.true.
-   !!   !!else if (foe_data_get_real(foe_obj,"fscale")>foe_data_get_real(foe_obj,"fscale_upperbound")) then
-   !!   !!    call foe_data_set_real(foe_obj,"fscale",foe_data_get_real(foe_obj,"fscale_upperbound"))
-   !!   !!    if (iproc==0) call yaml_map('fscale reached upper limit; reset to',foe_data_get_real(foe_obj,"fscale_upperbound"))
-   !!   !!    reached_limit=.true.
-   !!   !!else
-   !!   !!    reached_limit=.false.
-   !!   !!end if
   end if
 
   degree_sufficient=.true.
-
-
-  !call f_free_ptr(inv_ovrlp%matrix_compr)
-  
-
-
-!!  scale_factor=1.d0/scale_factor
-!!  shift_value=-shift_value
-!!
-!!
-!!  ! Calculate trace(KH). Since they have the same sparsity pattern and K is
-!!  ! symmetric, this is a simple ddot.
-!!  ebs=ddot(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(ilshift+1),1 , hamscal_compr, 1)
-!!  ebs=ebs*scale_factor-shift_value*sumn
-
 
   if (iproc==0) call yaml_comment('FOE calculation of kernel finished',hfill='~')
 
@@ -846,25 +744,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                    ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(2), &
                    check_accur=.true., max_error=max_error, mean_error=mean_error)
           end if
-          !!ii=0
-          !!do i=1,tmb%linmat%l%nspin
-          !!    do j=1,tmb%linmat%l%nvctr
-          !!        ii=ii+1
-          !!        write(2000+iproc*10+i,'(a,3i8,es16.6)') 'i, j, ii, val', i, j, ii, inv_ovrlp%matrix_compr(ii)
-          !!    end do
-          !!end do
           call check_taylor_order(mean_error, max_inversion_error, order_taylor)
-          !if (foe_verbosity>=1 .and. iproc==0) then
-          !    call yaml_map('max error of S^-1/2',max_error,fmt='(es9.2)')
-          !    call yaml_map('mean error of S^-1/2',mean_error,fmt='(es9.2)')
-          !end if
-
-
-          !!if (imode==DENSE) then
-          !!    call f_free_ptr(inv_ovrlp%matrix)
-
-          !!    call f_free_ptr(tmb%linmat%ovrlp_%matrix)
-          !!end if
 
           call f_release_routine()
       end subroutine overlap_minus_onehalf
@@ -929,13 +809,6 @@ subroutine foe(iproc, nproc, tmprtr, &
               isegstart = tmb%linmat%l%istsegline(tmb%linmat%l%smmm%isfvctr+1)
               isegend = tmb%linmat%l%istsegline(tmb%linmat%l%smmm%isfvctr+tmb%linmat%l%smmm%nfvctrp) + &
                         tmb%linmat%l%nsegline(tmb%linmat%l%smmm%isfvctr+tmb%linmat%l%smmm%nfvctrp)-1
-              !isegstart=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr+1)
-              !if (tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp<tmb%linmat%l%nfvctr) then
-              !    isegend=tmb%linmat%l%istsegline(tmb%linmat%l%isfvctr_par(iproc+1)+1)-1
-              !else
-              !    isegend=tmb%linmat%l%nseg
-              !end if
-
               !$omp parallel default(private) shared(isegstart, isegend, matrixp, tmb, trace) 
               !$omp do reduction(+:trace)
               do iseg=isegstart,isegend
@@ -959,234 +832,6 @@ subroutine foe(iproc, nproc, tmprtr, &
           call f_release_routine()
       end subroutine calculate_trace_distributed
 
-
-
-!!      subroutine determine_new_fermi_level()
-!!        implicit none
-!!        integer :: info, i
-!!        real(kind=8) :: determinant, m, b
-!!        real(kind=8),dimension(4,4) :: tmp_matrix
-!!        real(kind=8),dimension(4) :: interpol_solution
-!!        integer,dimension(4) :: ipiv
-!!
-!!        ! Shift up the old results.
-!!        if (it_solver>4) then
-!!            do i=1,4
-!!                interpol_matrix(1,i)=interpol_matrix(2,i)
-!!                interpol_matrix(2,i)=interpol_matrix(3,i)
-!!                interpol_matrix(3,i)=interpol_matrix(4,i)
-!!            end do
-!!            interpol_vector(1)=interpol_vector(2)
-!!            interpol_vector(2)=interpol_vector(3)
-!!            interpol_vector(3)=interpol_vector(4)
-!!        end if
-!!        !LG: if it_solver==0 this index comes out of bounds!
-!!        ii=max(min(it_solver,4),1)
-!!        interpol_matrix(ii,1)=foe_data_get_real(foe_obj,"ef")**3
-!!        interpol_matrix(ii,2)=foe_data_get_real(foe_obj,"ef")**2
-!!        interpol_matrix(ii,3)=foe_data_get_real(foe_obj,"ef")
-!!        interpol_matrix(ii,4)=1
-!!        interpol_vector(ii)=sumn-foe_data_get_real(foe_obj,"charge")
-!!    
-!!        ! Solve the linear system interpol_matrix*interpol_solution=interpol_vector
-!!        if (it_solver>=4) then
-!!            do i=1,ii
-!!                interpol_solution(i)=interpol_vector(i)
-!!                tmp_matrix(i,1)=interpol_matrix(i,1)
-!!                tmp_matrix(i,2)=interpol_matrix(i,2)
-!!                tmp_matrix(i,3)=interpol_matrix(i,3)
-!!                tmp_matrix(i,4)=interpol_matrix(i,4)
-!!            end do
-!!    
-!!            call dgesv(ii, 1, tmp_matrix, 4, ipiv, interpol_solution, 4, info)
-!!            if (info/=0) then
-!!               if (iproc==0) write(*,'(1x,a,i0)') 'ERROR in dgesv (FOE), info=',info
-!!            end if
-!!    
-!!    
-!!            call get_roots_of_cubic_polynomial(interpol_solution(1), interpol_solution(2), &
-!!                 interpol_solution(3), interpol_solution(4), foe_data_get_real(foe_obj,"ef"), ef_interpol)
-!!        end if
-!!    
-!!    
-!!    
-!!    
-!!        ! Calculate the new Fermi energy.
-!!        if (foe_verbosity>=1 .and. iproc==0) then
-!!            call yaml_newline()
-!!            call yaml_mapping_open('Search new eF',flow=.true.)
-!!        end if
-!!        if (it_solver>=4 .and.  &
-!!            abs(sumn-foe_data_get_real(foe_obj,"charge"))<foe_data_get_real(foe_obj,"ef_interpol_chargediff")) then
-!!            det=determinant(iproc,4,interpol_matrix)
-!!            if (foe_verbosity>=1 .and. iproc==0) then
-!!                call yaml_map('det',det,fmt='(es10.3)')
-!!                call yaml_map('limit',foe_data_get_real(foe_obj,"ef_interpol_det"),fmt='(es10.3)')
-!!            end if
-!!            if(abs(det)>foe_data_get_real(foe_obj,"ef_interpol_det")) then
-!!                call foe_data_set_real(foe_obj,"ef",ef_interpol)
-!!                if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','cubic interpolation')
-!!            else
-!!                ! linear interpolation
-!!                if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','linear interpolation')
-!!                m = (interpol_vector(4)-interpol_vector(3))/(interpol_matrix(4,3)-interpol_matrix(3,3))
-!!                b = interpol_vector(4)-m*interpol_matrix(4,3)
-!!                call foe_data_set_real(foe_obj,"ef", -b/m)
-!!            end if
-!!        else
-!!            ! Use mean value of bisection and secant method
-!!            ! Secant method solution
-!!            call foe_data_set_real(foe_obj,"ef", &
-!!                 efarr(2)-(sumnarr(2)-foe_data_get_real(foe_obj,"charge"))*(efarr(2)-efarr(1))/(sumnarr(2)-sumnarr(1)))
-!!            ! Add bisection solution
-!!            call foe_data_set_real(foe_obj,"ef", foe_data_get_real(foe_obj,"ef") + .5d0*(efarr(1)+efarr(2)))
-!!            ! Take the mean value
-!!            call foe_data_set_real(foe_obj,"ef", .5d0*foe_data_get_real(foe_obj,"ef"))
-!!            if (foe_verbosity>=1 .and. iproc==0) call yaml_map('method','bisection / secant method')
-!!        end if
-!!        if (foe_verbosity>=1 .and. iproc==0) then
-!!            call yaml_mapping_close()
-!!            !!call bigdft_utils_flush(unit=6)
-!!            !call yaml_newline()
-!!        end if
-!!
-!!      end subroutine determine_new_fermi_level
-
-
-      !!subroutine check_eigenvalue_spectrum()
-      !!  implicit none
-      !!  real(kind=8) :: bound_low, bound_up
-
-      !!  call f_routine(id='check_eigenvalue_spectrum')
-
-      !!  ! The penalty function must be smaller than the noise.
-      !!  bound_low=0.d0
-      !!  bound_up=0.d0
-      !!  if (tmb%linmat%l%smmm%nfvctrp>0) then
-      !!      isegstart = tmb%linmat%l%istsegline(tmb%linmat%l%smmm%isfvctr+1)
-      !!      isegend = tmb%linmat%l%istsegline(tmb%linmat%l%smmm%isfvctr+tmb%linmat%l%smmm%nfvctrp) + &
-      !!                tmb%linmat%l%nsegline(tmb%linmat%l%smmm%isfvctr+tmb%linmat%l%smmm%nfvctrp)-1
-
-      !!      !$omp parallel default(private) &
-      !!      !$omp shared(isegstart, isegend, penalty_ev, tmb, bound_low, bound_up, isshift)
-      !!      !$omp do reduction(+:bound_low,bound_up)
-      !!      do iseg=isegstart,isegend
-      !!          ii=tmb%linmat%l%keyv(iseg)-1
-      !!          do jorb=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
-      !!              ii=ii+1
-      !!              iiorb = (jorb-1)/tmb%linmat%l%nfvctr + 1
-      !!              jjorb = jorb - (iiorb-1)*tmb%linmat%l%nfvctr
-      !!              iismall = matrixindex_in_compressed(tmb%linmat%s, iiorb, jjorb)
-      !!              if (iismall>0) then
-      !!                  tt=tmb%linmat%ovrlp_%matrix_compr(isshift+iismall)
-      !!              else
-      !!                  tt=0.d0
-      !!              end if
-      !!              bound_low = bound_low + penalty_ev(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr,2)*tt
-      !!              bound_up = bound_up +penalty_ev(jjorb,iiorb-tmb%linmat%l%smmm%isfvctr,1)*tt
-      !!          end do  
-      !!      end do
-      !!      !$omp end do
-      !!      !$omp end parallel
-      !!  end if
-    
-      !!  allredarr(1)=bound_low
-      !!  allredarr(2)=bound_up
-
-      !!  if (nproc > 1) then
-      !!      call mpiallred(allredarr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
-      !!  end if
-
-      !!  allredarr=abs(allredarr) !for some crazy situations this may be negative
-      !!  anoise=100.d0*anoise
-      !!  if (allredarr(1)>anoise) then
-      !!      eval_bounds_ok(1)=.false.
-      !!      call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*1.2d0,ispin)
-      !!      restart=.true.
-      !!  else
-      !!      eval_bounds_ok(1)=.true.
-      !!  end if
-      !!  if (allredarr(2)>anoise) then
-      !!      eval_bounds_ok(2)=.false.
-      !!      call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*1.2d0,ispin)
-      !!      restart=.true.
-      !!  else
-      !!      eval_bounds_ok(2)=.true.
-      !!  end if
-
-      !!  call f_release_routine()
-
-      !!end subroutine check_eigenvalue_spectrum
-
-
-      !!subroutine scale_and_shift_hamiltonian()
-      !!  implicit none
-
-      !!  integer,dimension(2) :: irowcol
-
-      !!  call f_routine(id='scale_and_shift_hamiltonian')
-
-      !!  scale_factor=2.d0/(foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
-      !!  shift_value=.5d0*(foe_data_get_real(foe_obj,"evhigh",ispin)+foe_data_get_real(foe_obj,"evlow",ispin))
-      !!  !$omp parallel default(none) private(iseg,ii,i,irowcol,iismall_ovrlp,iismall_ham,tt_ovrlp,tt_ham) &
-      !!  !$omp shared(tmb,hamscal_compr,scale_factor,shift_value,isshift,imshift)
-      !!  !$omp do
-      !!  do iseg=1,tmb%linmat%l%nseg
-      !!      !do ii=1,tmb%linmat%l%nvctr
-      !!      ii=tmb%linmat%l%keyv(iseg)
-      !!      do i=tmb%linmat%l%keyg(1,iseg),tmb%linmat%l%keyg(2,iseg)
-      !!          irowcol = orb_from_index(tmb%linmat%l,i)
-      !!          iismall_ovrlp = matrixindex_in_compressed(tmb%linmat%s, irowcol(1), irowcol(2))
-      !!          iismall_ham = matrixindex_in_compressed(tmb%linmat%m, irowcol(1), irowcol(2))
-      !!          if (iismall_ovrlp>0) then
-      !!              tt_ovrlp=tmb%linmat%ovrlp_%matrix_compr(isshift+iismall_ovrlp)
-      !!          else
-      !!              tt_ovrlp=0.d0
-      !!          end if
-      !!          if (iismall_ham>0) then
-      !!              tt_ham=tmb%linmat%ham_%matrix_compr(imshift+iismall_ham)
-      !!          else
-      !!              tt_ham=0.d0
-      !!          end if
-      !!          hamscal_compr(ii)=scale_factor*(tt_ham-shift_value*tt_ovrlp)
-      !!          ii=ii+1
-      !!      end do
-      !!  end do
-      !!  !$omp end do
-      !!  !$omp end parallel
-
-      !!  call f_release_routine()
-
-      !!end subroutine scale_and_shift_hamiltonian
-
-
-      !!subroutine check_emergency_stop()
-      !!  implicit none
-
-      !!  call f_routine(id='check_emergency_stop')
-
-      !!  ! Check for an emergency stop, which happens if the kernel explodes, presumably due
-      !!  ! to the eigenvalue bounds being too small.
-      !!  ! mpi_lor seems not to work on certain systems...
-      !!  if (emergency_stop) then
-      !!      iflag=1
-      !!  else
-      !!      iflag=0
-      !!  end if
-    
-      !!  if (nproc > 1) then
-      !!      call mpiallred(iflag, 1, mpi_sum, bigdft_mpi%mpi_comm)
-      !!  end if
-    
-      !!  if (iflag>0) then
-      !!      emergency_stop=.true.
-      !!  else
-      !!      emergency_stop=.false.
-      !!  end if
-
-      !!  call f_release_routine()
-
-      !!end subroutine check_emergency_stop
 
 end subroutine foe
 
@@ -1704,12 +1349,6 @@ subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norb
       isegstart = fermi%istsegline(fermi%smmm%isfvctr+1)
       isegend = fermi%istsegline(fermi%smmm%isfvctr+fermi%smmm%nfvctrp) + &
                 fermi%nsegline(fermi%smmm%isfvctr+fermi%smmm%nfvctrp)-1
-      !!isegstart=fermi%istsegline(fermi%isfvctr+1)
-      !!if (isorb+norbp<norb) then
-      !!    isegend=fermi%istsegline(fermi%isfvctr_par(iproc+1)+1)-1
-      !!else
-      !!    isegend=fermi%nseg
-      !!end if
       ii=0
       !!$omp parallel default(private) shared(isegstart, isegend, orbs, fermi, vector, vector_compressed)
       !!$omp do
@@ -1753,12 +1392,6 @@ subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
       isegstart = fermi%istsegline(fermi%smmm%isfvctr+1)
       isegend = fermi%istsegline(fermi%smmm%isfvctr+fermi%smmm%nfvctrp) + &
                 fermi%nsegline(fermi%smmm%isfvctr+fermi%smmm%nfvctrp)-1
-      !!isegstart=fermi%istsegline(fermi%isfvctr+1)
-      !!if (fermi%isfvctr+fermi%smmm%nfvctrp<fermi%nfvctr) then
-      !!    isegend=fermi%istsegline(fermi%isfvctr_par(iproc+1)+1)-1
-      !!else
-      !!    isegend=fermi%nseg
-      !!end if
       !$omp parallel do default(private) &
       !$omp shared(isegstart, isegend, fermi, vector, vector_compressed)
       do iseg=isegstart,isegend
