@@ -412,7 +412,6 @@ module communications
     
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_POST) then
-      if (transpose_action == TRANSPOSE_POST .and. iproc==0) write(*,*) 'allocate with POST'
           wt%psiwork = f_malloc_ptr(collcom%ndimpsi_c+7*collcom%ndimpsi_f,id='wt%psiwork')
           wt%psitwork = f_malloc_ptr(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),id='wt%psitwork')
           wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
@@ -463,7 +462,6 @@ module communications
     
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_GATHER) then
-      if (transpose_action == TRANSPOSE_GATHER .and. iproc==0) write(*,*) 'deallocate with GATHER'
 
           if (nproc>1) then
               call mpiwait(wt%request)
