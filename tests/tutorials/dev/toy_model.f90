@@ -100,7 +100,7 @@ program wvl
   ! Setting up the wavefunction representations (descriptors for the
   !  compressed form...).
   call createWavefunctionsDescriptors(iproc,inputs%hx,inputs%hy,inputs%hz, &
-       & atoms,atoms%astruct%rxyz,inputs%crmult,inputs%frmult,Lzd%Glr)
+       & atoms,atoms%astruct%rxyz,inputs%crmult,inputs%frmult,.true.,Lzd%Glr)
   call print_wfd(Lzd%Glr%wfd)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
 
@@ -214,7 +214,7 @@ program wvl
   ! BigDFT cut rho by slices, while here we keep one array for simplicity.
   allocate(rhor(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * Lzd%Glr%d%n3i))
   call razero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,rhor)
-  call initialize_work_arrays_sumrho(Lzd%Glr,wisf)
+  call initialize_work_arrays_sumrho(1,Lzd%Glr,.true.,wisf)
   do i = 1, orbs%norbp, 1
      ! Calculate values of psi_i on each grid points.
      call daub_to_isf(Lzd%Glr,wisf, &

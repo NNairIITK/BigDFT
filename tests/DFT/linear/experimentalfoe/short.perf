@@ -5,3 +5,5 @@ evbounds_nsatur 100
 calculate_gap T
 method_updatekernel 1
 correction_co_contra
+write_orbitals T
+mixing_after_inputguess 2

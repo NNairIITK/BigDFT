@@ -57,6 +57,7 @@ libmodules_a_SOURCES = base.f90 \
 	foe_base.f90 \
 	internal_coordinates.f90 \
 	fermi_level.f90 \
+	copy_utils.f90 \
 	module_sbfgs.f90 \
 	bigdft_run.f90 \
 	$(bindings_headers) \
@@ -99,6 +100,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	FOE_BASE.@MODULE_EXT@ \
 	INTERNAL_COORDINATES.@MODULE_EXT@ \
 	FERMI_LEVEL.@MODULE_EXT@ \
+	COPY_UTILS.@MODULE_EXT@ \
 	MODULE_SBFGS.@MODULE_EXT@ \
 	BIGDFT_RUN.@MODULE_EXT@
 else
@@ -135,6 +137,7 @@ modules = module_base.@MODULE_EXT@ \
 	foe_base.@MODULE_EXT@ \
 	internal_coordinates.@MODULE_EXT@ \
 	fermi_level.@MODULE_EXT@ \
+	copy_utils.@MODULE_EXT@ \
 	module_sbfgs.@MODULE_EXT@ \
 	bigdft_run.@MODULE_EXT@
 else
@@ -179,7 +182,7 @@ op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o atoms_data.o input_dicts.o ao_inguess.o psp_projectors.o communications_base.o communications_init.o
 vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
-diis_module.o: base.o types.o communications.o sparsematrix_base.o sparsematrix.o
+diis_module.o: base.o types.o communications.o
 fragments.o: base.o types.o
 constrained_dft.o: base.o types.o sparsematrix_base.o
 input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_inguess.o interfaces.o atoms_data.o input_keys.o public_keys.o
@@ -196,6 +199,7 @@ sparsematrix_init.o: base.o types.o interfaces.o sparsematrix_base.o
 sparsematrix.o: base.o types.o sparsematrix_base.o
 foe_base.o: base.o defs.o
 fermi_level.o: base.o
+copy_utils.o: base.o
 module_sbfgs.o: base.o
 bigdft_run.o: types.o input_dicts.o interfaces.o
 ab7_mixing.o: defs.o

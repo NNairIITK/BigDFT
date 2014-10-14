@@ -12,7 +12,7 @@
 !! It uses the cubic strategy for partitioning the orbitals
 !! @param basedist   optional argument indicating the base orbitals distribution to start from
 subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,&
-     orbs,simple,basedist)
+     orbs,simple,basedist,basedistu,basedistd)
   use module_base
   use module_types
   implicit none
@@ -22,17 +22,32 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   type(orbitals_data), intent(inout) :: orbs
   real(gp), dimension(nkpt), intent(in) :: wkpt
   real(gp), dimension(3,nkpt), intent(in) :: kpt
-  integer, dimension(0:nproc-1,nkpt), intent(in), optional :: basedist !> optional argument indicating the base orbitals distribution to start from
-  !local variables
+  integer, dimension(0:nproc-1,nkpt), intent(in), optional :: basedist !> optional argument indicating the base orbitals distribution to start from local variables
+  integer, dimension(0:nproc-1,nkpt), intent(in), optional :: basedistu !> optional argument indicating the base orbitals distribution (up orbitals) to start from local variables
+  integer, dimension(0:nproc-1,nkpt), intent(in), optional :: basedistd !> optional argument indicating the base orbitals distribution (down orbitals) to start from local variables
   character(len=*), parameter :: subname='orbitals_descriptors'
-  integer :: iorb,jproc,norb_tot,ikpt,jorb,ierr,norb_base,iiorb,mpiflag
+  integer :: iorb,jproc,norb_tot,norbu_tot,norbd_tot,ikpt,jorb,ierr,norb_base,iiorb,mpiflag
   logical, dimension(:), allocatable :: GPU_for_orbs
-  integer, dimension(:,:), allocatable :: norb_par !(with k-pts)
+  integer, dimension(:,:), allocatable :: norb_par, norbu_par, norbd_par !(with k-pts)
+
+  ! basedist and basedistu must both be present at the same time
+  !write(*,*) 'present(basedist)',present(basedist)
+  !write(*,*) 'present(basedistu)',present(basedistu)
+  !write(*,*) 'present(basedistd)',present(basedistd)
+  !write(*,*) 'any((/present(basedist),present(basedistu),present(basedistd)/))',any((/present(basedist),present(basedistu),present(basedistd)/))
+  !write(*,*) 'all((/present(basedist),present(basedistu),present(basedistd)/))',all((/present(basedist),present(basedistu),present(basedistd)/))
+  if (any((/present(basedist),present(basedistu),present(basedistd)/))) then
+      if (.not. all((/present(basedist),present(basedistu),present(basedistd)/))) then
+          stop 'basedist, basedistu and basedistd must all be present at the same time'
+      end if
+  end if
 
   !eTS value, updated in evaltocc
   orbs%eTS=0.0_gp
 
-  orbs%norb_par = f_malloc_ptr((/ 0.to.nproc-1 , 0.to.nkpt /),id='orbs%norb_par')
+  orbs%norb_par = f_malloc0_ptr((/ 0.to.nproc-1 , 0.to.nkpt /),id='orbs%norb_par')
+  orbs%norbu_par = f_malloc0_ptr((/ 0.to.nproc-1 , 0.to.nkpt /),id='orbs%norbu_par')
+  orbs%norbd_par = f_malloc0_ptr((/ 0.to.nproc-1 , 0.to.nkpt /),id='orbs%norbd_par')
 
   !assign the value of the k-points
   orbs%nkpts=nkpt
@@ -50,8 +65,6 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   end if
   orbs%nspin = nspin
 
-  !initialise the array
-  call to_zero(nproc*(nkpt+1),orbs%norb_par(0,0))
 
   !create an array which indicate which processor has a GPU associated 
   !from the viewpoint of the BLAS routines (deprecated, not used anymore)
@@ -69,6 +82,8 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   end if
 
   norb_par = f_malloc((/ 0.to.nproc-1, 1.to.orbs%nkpts /),id='norb_par')
+  norbu_par = f_malloc((/ 0.to.nproc-1, 1.to.orbs%nkpts /),id='norbu_par')
+  norbd_par = f_malloc((/ 0.to.nproc-1, 1.to.orbs%nkpts /),id='norbd_par')
 
   !old system for calculating k-point repartition
 !!$  call parallel_repartition_with_kpoints(nproc,orbs%nkpts,norb,orbs%norb_par)
@@ -106,30 +121,73 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
 !!$  call memocc(i_stat,i_all,'mykpts',subname)
 
   !new system for k-point repartition
-  norb_base=0
   if (present(basedist)) then
      !the first k-point takes the number of orbitals
+     norb_base=0
      do jproc=0,nproc-1
         norb_base=norb_base+basedist(jproc,1)
      end do
      call components_kpt_distribution(nproc,orbs%nkpts,norb_base,norb,basedist,norb_par)
+     norb_base=0
+     do jproc=0,nproc-1
+        norb_base=norb_base+basedistu(jproc,1)
+     end do
+     call components_kpt_distribution(nproc,orbs%nkpts,norb_base,norbu,basedistu,norbu_par)
+     norb_base=0
+     do jproc=0,nproc-1
+        norb_base=norb_base+basedistd(jproc,1)
+     end do
+     !write(*,*) 'norbd, basedistd', norbd, basedistd
+     if (norb_base>0) then
+         call components_kpt_distribution(nproc,orbs%nkpts,norb_base,norbd,basedistd,norbd_par)
+     else
+         norbd_par(:,:)=0
+     end if
   else
      call kpts_to_procs_via_obj(nproc,orbs%nkpts,norb,norb_par)
+     call kpts_to_procs_via_obj(nproc,orbs%nkpts,norbu,norbu_par)
+     if (norbd>0) then
+         call kpts_to_procs_via_obj(nproc,orbs%nkpts,norbd,norbd_par)
+     else
+         norbd_par(:,:)=0
+     end if
   end if
   !assign the values for norb_par and check the distribution
   norb_tot=0
+  norbu_tot=0
+  norbd_tot=0
   do jproc=0,nproc-1
-     if (jproc==iproc) orbs%isorb=norb_tot
+     if (jproc==iproc) then
+         orbs%isorb=norb_tot
+         orbs%isorbu=norbu_tot
+         orbs%isorbd=norbd_tot
+     end if
      do ikpt=1,orbs%nkpts
         orbs%norb_par(jproc,0)=orbs%norb_par(jproc,0)+norb_par(jproc,ikpt)
         orbs%norb_par(jproc,ikpt)=norb_par(jproc,ikpt)
+        orbs%norbu_par(jproc,0)=orbs%norbu_par(jproc,0)+norbu_par(jproc,ikpt)
+        orbs%norbu_par(jproc,ikpt)=norbu_par(jproc,ikpt)
+        orbs%norbd_par(jproc,0)=orbs%norbd_par(jproc,0)+norbd_par(jproc,ikpt)
+        orbs%norbd_par(jproc,ikpt)=norbd_par(jproc,ikpt)
      end do
      norb_tot=norb_tot+orbs%norb_par(jproc,0)
+     norbu_tot=norbu_tot+orbs%norbu_par(jproc,0)
+     norbd_tot=norbd_tot+orbs%norbd_par(jproc,0)
   end do
 
   if(norb_tot /= norb*orbs%nkpts) then
      write(*,*)'ERROR: partition of orbitals incorrect, report bug.'
      write(*,*)orbs%norb_par(:,0),norb*orbs%nkpts
+     stop
+  end if
+  if(norbu_tot /= norbu*orbs%nkpts) then
+     write(*,*)'ERROR: partition of up orbitals incorrect, report bug.'
+     write(*,*)orbs%norbu_par(:,0),norbu*orbs%nkpts
+     stop
+  end if
+  if(norbd_tot /= norbd*orbs%nkpts) then
+      write(*,*)'ERROR: partition of down orbitals incorrect, report bug.'
+     write(*,*)orbs%norbd_par(:,0),norbd*orbs%nkpts
      stop
   end if
 
@@ -139,10 +197,14 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
 
   !this array will be reconstructed in the orbitals_communicators routine
   call f_free(norb_par)
+  call f_free(norbu_par)
+  call f_free(norbd_par)
 
   !assign the values of the orbitals data
   orbs%norb=norb
   orbs%norbp=orbs%norb_par(iproc,0)
+  orbs%norbup=orbs%norbu_par(iproc,0)
+  orbs%norbdp=orbs%norbd_par(iproc,0)
   orbs%norbu=norbu
   orbs%norbd=norbd
 
@@ -151,6 +213,10 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   if (simple) then
      call repartitionOrbitals2(iproc,nproc,orbs%norb,orbs%norb_par,&
           orbs%norbp,orbs%isorb)
+     call repartitionOrbitals2(iproc,nproc,orbs%norbu,orbs%norbu_par,&
+          orbs%norbup,orbs%isorbu)
+     call repartitionOrbitals2(iproc,nproc,orbs%norbd,orbs%norbd_par,&
+          orbs%norbdp,orbs%isorbd)
   end if
 
   orbs%iokpt = f_malloc_ptr(orbs%norbp,id='orbs%iokpt')
@@ -514,6 +580,3 @@ subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,nor
   end if
 
 END SUBROUTINE occupation_input_variables
-
-
-

@@ -40,6 +40,7 @@ module communications_base
     integer,dimension(:),pointer :: nsenddspls_repartitionrho, nrecvdspls_repartitionrho
     integer :: ncomms_repartitionrho, window
     integer,dimension(:,:),pointer :: commarr_repartitionrho
+    integer :: imethod_overlap !< method to calculate the overlap
   end type comms_linear
 
 
@@ -53,6 +54,7 @@ module communications_base
     integer, dimension(:,:), pointer :: ise !< Starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
     integer, dimension(:,:), pointer :: mpi_datatypes
     logical :: communication_complete
+    integer :: nspin !< spin polarization (this information is redundant, just for handyness)
   end type p2pComms
 
   !substituted by function mpimaxdiff in wrappers/mpi.f90
@@ -139,6 +141,15 @@ contains
     nullify(comms%nsenddspls_repartitionrho)
     nullify(comms%nrecvdspls_repartitionrho)
     nullify(comms%commarr_repartitionrho)
+    comms%nptsp_c = 0
+    comms%ndimpsi_c = 0
+    comms%ndimind_c = 0
+    comms%ndimind_f = 0
+    comms%nptsp_f = 0
+    comms%ndimpsi_f = 0
+    comms%ncomms_repartitionrho = 0
+    comms%window = 0
+    comms%imethod_overlap = 0
   end subroutine nullify_comms_linear
 
 
@@ -310,7 +321,7 @@ contains
     implicit none
     ! Calling arguments
     type(p2pComms),intent(inout):: comgp
-    comgp%recvBuf = f_malloc_ptr(comgp%nrecvBuf,id='comgp%recvBuf')
+    comgp%recvBuf = f_malloc_ptr(comgp%nrecvBuf*comgp%nspin,id='comgp%recvBuf')
   end subroutine allocate_p2pComms_buffer
   
   

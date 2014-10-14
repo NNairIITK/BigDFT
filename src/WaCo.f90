@@ -18,7 +18,7 @@ program WaCo
    use yaml_output
    use module_input_dicts
    use module_atoms, only: deallocate_atoms_data
-   use communications_base, only: comms_cubic,deallocate_comms
+   use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
    use bigdft_run
    implicit none
@@ -176,7 +176,7 @@ program WaCo
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
-        atoms,atoms%astruct%rxyz,input%crmult,input%frmult,Glr)
+        atoms,atoms%astruct%rxyz,input%crmult,input%frmult,.true.,Glr)
    if (iproc == 0) call print_wfd(Glr%wfd)
 
    !#################################################################
@@ -872,7 +872,7 @@ program WaCo
 
      wann = f_malloc(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,id='wann')
      wannr = f_malloc(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,id='wannr')
-     call initialize_work_arrays_sumrho(Glr,w)
+     call initialize_work_arrays_sumrho(1,Glr,.true.,w)
 
 
      ! Separate plotwann

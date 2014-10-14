@@ -258,7 +258,7 @@ subroutine inputs_from_dict(in, atoms, dict)
      end do
   end do
 
-  call allocate_extra_lin_arrays(in%lin,atoms%astruct)
+  call allocate_extra_lin_arrays(in%lin,in%nspin,atoms%astruct)
 
   ! Cross check values of input_variables.
   call input_analyze(in,atoms%astruct)

@@ -16,7 +16,7 @@ contains
 
    !> Reza's routine for finite difference hessian
    subroutine cal_hessian_fd(iproc,nat,alat,pos,hess)
-      use module_base, only: gp, operator(.to.), f_malloc, f_free, assignment(=)
+      use module_base, only: gp, f_malloc, f_free, assignment(=)
       use module_energyandforces, only: energyandforces
       implicit none
       integer, intent(in):: iproc, nat
@@ -33,12 +33,12 @@ contains
       integer :: i,j,k,lworkf
 
       !allocate(hess(3*nat,3*nat))
-      tpos = f_malloc((/1.to.3*nat/),id='tpos')
-      grad = f_malloc((/1.to.3*nat/),id='grad')
-      eval = f_malloc((/1.to.3*nat/),id='eval')
+      tpos = f_malloc(3*nat,id='tpos')
+      grad = f_malloc(3*nat,id='grad')
+      eval = f_malloc(3*nat,id='eval')
 
       lworkf=1000*nat
-      workf = f_malloc((/1.to.lworkf/),id='workf')
+      workf = f_malloc(lworkf,id='workf')
 
       !h=1.e-1_gp
       !h=7.5e-2_gp

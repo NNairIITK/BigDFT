@@ -244,7 +244,7 @@ module internal_etsf
          lr%d%nfu3 = n3 / 2
       end if
 
-      call wfd_from_grids(logrid_c, logrid_f, lr)
+      call wfd_from_grids(logrid_c, logrid_f, .true., lr)
 
       call f_free(logrid_c)
       call f_free(logrid_f)
@@ -659,7 +659,7 @@ subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
 
    psiscf = f_malloc_ptr((/ lr%d%n1i, lr%d%n2i, lr%d%n3i, orbsd%nspinor  /),id='psiscf')
 
-   call initialize_work_arrays_sumrho(lr,w)
+   call initialize_work_arrays_sumrho(1,lr,.true.,w)
 
    do ispinor = 1, orbsd%nspinor, 1
       call read_psi_compress_etsf(ncid, orbsd%nspinor * (iorbp - 1) + ispinor, &
