@@ -969,6 +969,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call yaml_mapping_close()
               call yaml_flush_document()
               !call bigdft_utils_flush(unit=6)
+              ! This is to avoid memory leaks
+              call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+                   TRANSPOSE_GATHER, hpsit_c, hpsit_f, hpsi_tmp, tmb%ham_descr%lzd, wt_hpsinoprecond)
              cycle
           else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
              if (iproc==0) call yaml_newline()
