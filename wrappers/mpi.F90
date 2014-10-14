@@ -103,6 +103,10 @@ module wrapper_MPI
       module procedure mpiiallred_double
   end interface mpiiallred
 
+  interface mpiialltoallv
+      module procedure mpiialltoallv_double
+  end interface mpiialltoallv
+
   !> Global MPI communicator which contains all information related to the MPI process
   type, public :: mpi_environment
      integer :: mpi_comm !< MPI communicator
@@ -1219,6 +1223,40 @@ contains
   end subroutine mpiiallred_double
 
 
+  subroutine mpiialltoallv_double(sendbuf, sendcounts, senddspls, sendtype, &
+             recvbuf, recvcounts, recvdspls, recvtype, comm, request)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    ! Calling arguments
+    integer,intent(in) :: sendcounts, senddspls, sendtype, recvcounts, recvdspls, recvtype, comm
+    double precision,intent(in) :: sendbuf
+    double precision,intent(out) :: recvbuf
+    integer,intent(out) :: request
+    ! Local variables
+    integer :: ierr
+
+#ifdef HAVE_MPI3
+    call mpi_ialltoallv(sendbuf, sendcounts, senddspls, sendtype, &
+         recvbuf, recvcounts, recvdspls, recvtype, comm, request, ierr)
+    if (ierr/=0) then
+       call f_err_throw('An error in calling to MPI_IALLTOALLV occured',&
+            err_id=ERR_MPI_WRAPPERS)
+       return
+    end if
+#else
+    call mpi_alltoallv(sendbuf, sendcounts, senddspls, sendtype, &
+         recvbuf, recvcounts, recvdspls, recvtype, comm, ierr)
+    if (ierr/=0) then
+       call f_err_throw('An error in calling to MPI_IALLTOALLV occured',&
+            err_id=ERR_MPI_WRAPPERS)
+       return
+    end if
+    request = MPI_REQUEST_NULL
+#endif
+
+  end subroutine mpiialltoallv_double
+
+
   subroutine mpiwaitall(ncount, array_of_requests)
     use dictionaries, only: f_err_throw,f_err_define
     implicit none
@@ -1236,6 +1274,24 @@ contains
     end if
 
   end subroutine mpiwaitall
+
+
+  subroutine mpiwait(request)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    ! Local variables
+    integer,intent(in) :: request
+    ! Local variables
+    integer :: ierr
+
+    call mpi_wait(request, MPI_STATUSES_IGNORE, ierr)
+    if (ierr/=0) then
+       call f_err_throw('An error in calling to MPI_WAIT occured',&
+            err_id=ERR_MPI_WRAPPERS)
+       return
+    end if
+
+  end subroutine mpiwait
 
 end module wrapper_MPI
 

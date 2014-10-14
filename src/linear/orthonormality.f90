@@ -14,6 +14,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthonormalizeLocalized
+  use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, untranspose_localized
   use sparsematrix_base, only: sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: compress_matrix, uncompress_matrix
@@ -56,7 +57,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
 
 
   if(.not.can_use_transposed) then
-      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
+      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, &
+           TRANSPOSE_FULL, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
       !!do i=1,collcom%ndimind_c
       !!    write(750+iproc,'(a,2i8,es14.5)') 'i, mod(i-1,ndimind_c/2)+1, val', i, mod(i-1,collcom%ndimind_c/2)+1, psit_c(i)
@@ -111,7 +113,8 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   call normalize_transposed(iproc, nproc, orbs, ovrlp%nspin, collcom, psit_c, psit_f, norm)
 
   call f_free(norm)
-  call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, lphi, lzd)
+  call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, &
+       TRANSPOSE_FULL, psit_c, psit_f, lphi, lzd)
 
   call f_free(psittemp_c)
   call f_free(psittemp_f)
@@ -136,6 +139,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   use module_types
   use module_interfaces, exceptThisOne => orthoconstraintNonorthogonal
   use yaml_output
+  use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, untranspose_localized
   use sparsematrix_base, only: matrices_null, allocate_matrices, deallocate_matrices, sparsematrix_malloc, &
                                sparsematrix_malloc_ptr, DENSE_FULL, DENSE_MATMUL, SPARSE_FULL, SPARSEMM_SEQ, &
@@ -185,7 +189,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
 
   if(.not. can_use_transposed) then
-      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
+      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, &
+           TRANSPOSE_FULL, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
   end if
 
@@ -254,7 +259,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   call dscal(lagmat%nvctr*lagmat%nspin, -1.d0, lagmat_%matrix_compr(1), 1)
 
 
-  call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, hpsit_c, hpsit_f, lhphi, lzd)
+  call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, &
+       TRANSPOSE_FULL, hpsit_c, hpsit_f, lhphi, lzd)
 
   overlap_calculated=.false.
   
@@ -265,7 +271,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   hphi_nococontra = f_malloc(npsidim_orbs,id='hphi_nococontra')
   call build_linear_combination_transposed(collcom, linmat%l, linmat%ovrlppowers_(3), &
        hpsit_c, hpsit_f, .true., hpsit_tmp_c, hpsit_tmp_f, iproc)
-  call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra, lzd)
+  call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, &
+       TRANSPOSE_FULL, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra, lzd)
   call large_to_small_locreg(iproc, npsidim_orbs_small, npsidim_orbs, lzd_small, lzd, &
        orbs, hphi_nococontra, hpsi_noprecond)
   ! END @NEW
@@ -2330,6 +2337,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthonormalize_subset
+  use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, untranspose_localized
   use sparsematrix_base, only: sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix_init, only: matrixindex_in_compressed
@@ -2383,7 +2391,8 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
       !!psit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='psit_c')
       !!psit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='psit_f')
 
-      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
+      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, &
+           TRANSPOSE_FULL, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
 
   end if
@@ -2509,7 +2518,8 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   norm = f_malloc(orbs%norb,id='norm')
   call normalize_transposed(iproc, nproc, orbs, ovrlp%nspin, collcom, psit_c, psit_f, norm)
   call f_free(norm)
-  call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, lphi, lzd)
+  call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, & 
+       TRANSPOSE_FULL, psit_c, psit_f, lphi, lzd)
 
   call f_free(psittemp_c)
   call f_free(psittemp_f)
@@ -2527,6 +2537,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => gramschmidt_subset
+  use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, untranspose_localized
   use sparsematrix_base, only: sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix_init, only: matrixindex_in_compressed
@@ -2575,7 +2586,8 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
       !!psit_c = f_malloc_ptr(sum(collcom%nrecvcounts_c),id='psit_c')
       !!psit_f = f_malloc_ptr(7*sum(collcom%nrecvcounts_f),id='psit_f')
 
-      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, lphi, psit_c, psit_f, lzd)
+      call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, &
+           TRANSPOSE_FULL, lphi, psit_c, psit_f, lzd)
       can_use_transposed=.true.
 
   end if
@@ -2709,7 +2721,8 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   !call normalize_transposed(iproc, nproc, orbs, collcom, psit_c, psit_f, norm)
 
   call f_free(norm)
-  call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, lphi, lzd)
+  call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, &
+       TRANSPOSE_FULL, psit_c, psit_f, lphi, lzd)
 
   call f_free(psittemp_c)
   call f_free(psittemp_f)

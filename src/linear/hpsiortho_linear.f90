@@ -19,6 +19,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
+  use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, untranspose_localized
   use sparsematrix_base, only: matrices, matrices_null, deallocate_matrices, &
                                sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL
@@ -201,7 +202,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       if ((method_updatekernel/=UPDATE_BY_FOE .and. method_updatekernel/=UPDATE_BY_RENORMALIZATION) &
            .or. target_function/=TARGET_FUNCTION_IS_HYBRID) then
           call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+               TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
           tmb%can_use_transposed=.true.
 
           call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
@@ -230,7 +231,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! Calculate the overlap matrix if necessary
   if (.not.correction_co_contra) then
       call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-           tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+           TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
       tmb%can_use_transposed=.true.
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
            tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
@@ -295,7 +296,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
     cdft_grad=f_malloc_ptr(tmb%ham_descr%npsidim_orbs,id='cdft_grad')
     call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-         cdft_gradt_c, cdft_gradt_f, cdft_grad, tmb%ham_descr%lzd)
+         TRANSPOSE_FULL, cdft_gradt_c, cdft_gradt_f, cdft_grad, tmb%ham_descr%lzd)
     !print*,ddot(tmb%ham_descr%npsidim_orbs, cdft_grad(1), 1, cdft_grad(1), 1)
 
    if (.false.) then
@@ -743,7 +744,6 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => hpsitopsi_linear
-  use communications, only: transpose_localized, untranspose_localized
   implicit none
   
   ! Calling arguments
@@ -861,6 +861,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
   use module_types
   use sparsematrix_base, only: sparsematrix_malloc_ptr, SPARSE_FULL, assignment(=)
   use sparsematrix, only: orb_from_index
+  use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   implicit none
 
@@ -1008,7 +1009,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
               end do
           end do
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-               tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+               TRANSPOSE_FULL, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
                tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           ! copy correct kernel back

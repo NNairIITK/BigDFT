@@ -1069,7 +1069,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   use module_types
   use module_interfaces
   use module_fragments
-  use communications_base, only: comms_linear_null, deallocate_comms_linear
+  use communications_base, only: comms_linear_null, deallocate_comms_linear, TRANSPOSE_FULL
   use communications_init, only: init_comms_linear
   use communications, only: transpose_localized
   implicit none
@@ -1262,7 +1262,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   psit_f_tmp = f_malloc_ptr(7*sum(collcom_tmp%nrecvcounts_f),id='psit_f_tmp')
 
   call transpose_localized(iproc, nproc, ndim_tmp, tmb%orbs, collcom_tmp, &
-       psi_tmp, psit_c_tmp, psit_f_tmp, lzd_tmp)
+       TRANSPOSE_FULL, psi_tmp, psit_c_tmp, psit_f_tmp, lzd_tmp)
 
   ! normalize psi
   norm = f_malloc_ptr(tmb%orbs%norb,id='norm')
