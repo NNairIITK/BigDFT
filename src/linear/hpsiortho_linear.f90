@@ -871,7 +871,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
   use module_types
   use sparsematrix_base, only: sparsematrix_malloc_ptr, SPARSE_FULL, assignment(=)
   use sparsematrix, only: orb_from_index
-  use communications_base, only: work_transpose, TRANSPOSE_POST, TRANSPOSE_GATHER, TRANSPOSE_FULL
+  use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   implicit none
 
@@ -891,7 +891,6 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
   integer,parameter :: ALLGATHERV=51, GET=52, GLOBAL_MATRIX=101, SUBMATRIX=102
   integer,parameter :: comm_strategy=GET
   integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
-  type(work_transpose) :: wt
 
       call f_routine(id='build_gradient')
       call timing(iproc,'buildgrad_mcpy','ON')
@@ -1020,9 +1019,9 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
               end do
           end do
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-               TRANSPOSE_POST, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt)
-
-          ! Do this while the communication takes place...
+               TRANSPOSE_FULL, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+          call build_linear_combination_transposed(tmb%ham_descr%collcom, &
+               tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           ! copy correct kernel back
           do ispin=1,tmb%linmat%l%nspin
               !call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
@@ -1030,12 +1029,6 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
               call vcopy(tmb%linmat%l%nvctrp_tg, kernel_compr_tmp(ist), 1, tmb%linmat%kernel_%matrix_compr(ist), 1)
           end do
           call f_free_ptr(kernel_compr_tmp)
-
-          call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-               TRANSPOSE_GATHER, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt)
-
-          call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-               tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
       else
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
                tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
