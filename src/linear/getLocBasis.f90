@@ -1063,9 +1063,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! Gather together the data (was posted in orthoconstraintNonorthogonal)
       ! Give hpsit_c and hpsit_f, this should not matter if GATHER is specified.
       ! To be modified later
-      call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-           TRANSPOSE_GATHER, hpsit_c, hpsit_f, hpsi_tmp, tmb%ham_descr%lzd, wt_hpsinoprecond)
       hphi_nococontra = f_malloc(tmb%ham_descr%npsidim_orbs,id='hphi_nococontra')
+      call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+           TRANSPOSE_GATHER, hpsit_c, hpsit_f, hphi_nococontra, tmb%ham_descr%lzd, wt_hpsinoprecond)
       call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
            tmb%orbs, hphi_nococontra, hpsi_tmp)
       call f_free(hphi_nococontra)
