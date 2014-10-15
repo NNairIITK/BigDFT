@@ -582,7 +582,7 @@ module sparsematrix
              call timing(iproc,'compressd_comm','ON')
              ncount = 0
              do itg=1,smat%ntaskgroupp
-                 iitg = smat%inwhichtaskgroup(itg)
+                 iitg = smat%taskgroupid(itg)
                  ncount = ncount + smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
              end do
              recvbuf = f_malloc(ncount,id='recvbuf')
@@ -590,7 +590,7 @@ module sparsematrix
              ncount = 0
              request = f_malloc(smat%ntaskgroupp,id='request')
              do itg=1,smat%ntaskgroupp
-                 iitg = smat%inwhichtaskgroup(itg)
+                 iitg = smat%taskgroupid(itg)
                  ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
                  ist_recv = ncount + 1
                  ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
@@ -608,7 +608,7 @@ module sparsematrix
              end if
              ncount = 0
              do itg=1,smat%ntaskgroupp
-                 iitg = smat%inwhichtaskgroup(itg)
+                 iitg = smat%taskgroupid(itg)
                  ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
                  ist_recv = ncount + 1
                  ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
@@ -636,6 +636,9 @@ module sparsematrix
                  if (ii/=smat%smmm%nvctrp) stop 'ii/=smat%smmm%nvctrp'
              end if
 
+             call timing(iproc,'compressd_mcpy','OF')
+             call timing(iproc,'compressd_comm','ON')
+
              if (nproc>1) then
                  call to_zero(smat%nvctrp_tg, matrix_compr(1))
                  window = mpiwindow(smat%smmm%nvctrp, matrix_local(1), bigdft_mpi%mpi_comm)
@@ -649,26 +652,27 @@ module sparsematrix
                      !!call mpi_get(matrix_compr(ist_recv), ncount, mpi_double_precision, jproc_send, &
                      !!     int(ist_send-1,kind=mpi_address_kind), ncount, mpi_double_precision, window, ii)
                  end do
-                 ! Synchronize the communication
-                 call mpi_win_fence(0, window, ierr)
-                 !!if (ierr/=0) then
-                 !!   call f_err_throw('Error in mpi_win_fence',&
-                 !!        err_id=ERR_MPI_WRAPPERS)
-                 !!end if
-                 call mpi_win_free(window, ierr)
-                 !!if (ierr/=0) then
-                 !!   call f_err_throw('Error in mpi_win_fence',&
-                 !!        err_id=ERR_MPI_WRAPPERS)
-                 !!end if
-                 call f_free_ptr(matrix_local)
-                 !!do ii=1,size(matrix_compr)
-                 !!    write(2000+iproc,*) 'ii, matrix_compr(ii)', ii, matrix_compr(ii)
-                 !!end do
              else
                  ist_send = smat%smmm%luccomm_smmm(2,1)
                  ist_recv = smat%smmm%luccomm_smmm(3,1)
                  ncount = smat%smmm%luccomm_smmm(4,1)
                  call vcopy(ncount, matrix_local(ist_send), 1, matrix_compr(ist_recv), 1)
+             end if
+
+             if (nproc>1) then
+                 !!! Synchronize the communication
+                 !!call mpi_win_fence(0, window, ierr)
+                 !!!!if (ierr/=0) then
+                 !!!!   call f_err_throw('Error in mpi_win_fence',&
+                 !!!!        err_id=ERR_MPI_WRAPPERS)
+                 !!!!end if
+                 !!call mpi_win_free(window, ierr)
+                 !!!!if (ierr/=0) then
+                 !!!!   call f_err_throw('Error in mpi_win_fence',&
+                 !!!!        err_id=ERR_MPI_WRAPPERS)
+                 !!!!end if
+                 call mpi_fenceandfree(window)
+                 call f_free_ptr(matrix_local)
              end if
 
          end if

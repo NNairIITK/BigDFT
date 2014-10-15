@@ -56,7 +56,7 @@ module sparsematrix_base
       !! (1:2,2,:) gives the start and end of the disjoint submatrix handled by the taskgroup
       !! The last rank is of dimension ntaskgroup
       integer,dimension(:,:,:),pointer :: taskgroup_startend
-      integer,dimension(:),pointer :: inwhichtaskgroup !< dimension ntaskgroupp, tells to which taskgroups a given task belongs
+      integer,dimension(:),pointer :: taskgroupid !< dimension ntaskgroupp, gives the ID of the taskgroups to which a task belongs
       type(mpi_environment),dimension(:),pointer :: mpi_groups
       integer,dimension(2) :: istartendseg_t !< starting and ending indices of the matrix subpart which is actually used i
                                              !! for the transposed operation (overlap calculation / orthocontraint)
@@ -155,7 +155,7 @@ module sparsematrix_base
       nullify(sparsemat%nfvctr_par)
       nullify(sparsemat%isfvctr_par)
       nullify(sparsemat%taskgroup_startend)
-      nullify(sparsemat%inwhichtaskgroup)
+      nullify(sparsemat%taskgroupid)
       nullify(sparsemat%mpi_groups)
       call nullify_sparse_matrix_matrix_multiplication(sparsemat%smmm) 
     end subroutine nullify_sparse_matrix
@@ -292,7 +292,7 @@ module sparsematrix_base
       if (associated(sparseMat%nfvctr_par)) call f_free_ptr(sparseMat%nfvctr_par)
       !!if (associated(sparseMat%orb_from_index)) call f_free_ptr(sparseMat%orb_from_index)
       call f_free_ptr(sparseMat%taskgroup_startend)
-      call f_free_ptr(sparseMat%inwhichtaskgroup)
+      call f_free_ptr(sparseMat%taskgroupid)
       call deallocate_sparse_matrix_matrix_multiplication(sparsemat%smmm)
       if (associated(sparseMat%mpi_groups)) then
           is=lbound(sparseMat%mpi_groups,1)

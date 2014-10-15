@@ -953,14 +953,14 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
               ishift = (ispin-1)*smat%nvctr
               ncount = 0
               do itg=1,smat%ntaskgroupp
-                  iitg = smat%inwhichtaskgroup(itg)
+                  iitg = smat%taskgroupid(itg)
                   ncount = ncount + smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
               end do
               if (ispin==1) recvbuf = f_malloc(ncount,id='recvbuf')
 
               ncount = 0
               do itg=1,smat%ntaskgroupp
-                  iitg = smat%inwhichtaskgroup(itg)
+                  iitg = smat%taskgroupid(itg)
                   ist_send = smat%taskgroup_startend(1,1,iitg)
                   ist_recv = ncount + 1
                   ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
@@ -978,7 +978,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
               end if
               ncount = 0
               do itg=1,smat%ntaskgroupp
-                  iitg = smat%inwhichtaskgroup(itg)
+                  iitg = smat%taskgroupid(itg)
                   ist_send = smat%taskgroup_startend(1,1,iitg)
                   ist_recv = ncount + 1
                   ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1

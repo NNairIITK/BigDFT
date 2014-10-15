@@ -1371,7 +1371,7 @@ contains
       smat%ntaskgroupp = max(ntaskgrp_calc,ntaskgrp_use)
 
       smat%taskgroup_startend = f_malloc_ptr((/2,2,smat%ntaskgroup/),id='smat%taskgroup_startend')
-      smat%inwhichtaskgroup = f_malloc_ptr((/smat%ntaskgroupp/),id='smat%smat%inwhichtaskgroup')
+      smat%taskgroupid = f_malloc_ptr((/smat%ntaskgroupp/),id='smat%smat%taskgroupid')
 
 
       i = 0
@@ -1392,7 +1392,7 @@ contains
           if( iuse_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
                iuse_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups) ) then
                i = i + 1
-               smat%inwhichtaskgroup(i) = itaskgroups
+               smat%taskgroupid(i) = itaskgroups
           end if
       end do
       if (i/=smat%ntaskgroupp) then
@@ -1431,7 +1431,7 @@ contains
       imin=smat%nvctr
       imax=1
       do itaskgroups=1,smat%ntaskgroupp
-          iitaskgroup = smat%inwhichtaskgroup(itaskgroups)
+          iitaskgroup = smat%taskgroupid(itaskgroups)
           imin = min(imin,smat%taskgroup_startend(1,1,iitaskgroup))
           imax = max(imax,smat%taskgroup_startend(2,1,iitaskgroup))
       end do
@@ -1447,8 +1447,8 @@ contains
 
       ! Assign the values of nvctrp_tg and iseseg_tg
       ! First and last segment of the matrix
-      iistg=smat%inwhichtaskgroup(1) !first taskgroup of task iproc
-      iietg=smat%inwhichtaskgroup(smat%ntaskgroupp) !last taskgroup of task iproc
+      iistg=smat%taskgroupid(1) !first taskgroup of task iproc
+      iietg=smat%taskgroupid(smat%ntaskgroupp) !last taskgroup of task iproc
       found_start = .false.
       found_end = .false.
       do iseg=1,smat%nseg
@@ -1474,7 +1474,7 @@ contains
       ! Count the number of tasks per taskgroup
       tasks_per_taskgroup = f_malloc0(smat%ntaskgroup,id='tasks_per_taskgroup')
       do itaskgroups=1,smat%ntaskgroupp
-          iitaskgroup = smat%inwhichtaskgroup(itaskgroups)
+          iitaskgroup = smat%taskgroupid(itaskgroups)
           tasks_per_taskgroup(iitaskgroup) = tasks_per_taskgroup(iitaskgroup) + 1
       end do
       if (nproc>1) then
@@ -1486,7 +1486,7 @@ contains
       in_taskgroup = f_malloc0((/0.to.nproc-1,1.to.smat%ntaskgroup/),id='in_taskgroup')
       ranks = f_malloc((/maxval(tasks_per_taskgroup),smat%ntaskgroup/),id='ranks')
       do itaskgroups=1,smat%ntaskgroupp
-          iitaskgroups = smat%inwhichtaskgroup(itaskgroups)
+          iitaskgroups = smat%taskgroupid(itaskgroups)
           in_taskgroup(iproc,iitaskgroups) = 1
       end do
       if (nproc>1) then
