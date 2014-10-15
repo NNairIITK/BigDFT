@@ -377,7 +377,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
               !!!!$omp end do
               !!!!$omp end parallel
               !!do itg=1,linmat%l%ntaskgroupp
-              !!    iitg = linmat%l%inwhichtaskgroup(itg)
+              !!    iitg = linmat%l%taskgroupid(itg)
               !!    do iseg=1,linmat%l%nseg
               !!        ii=linmat%l%keyv(iseg)
               !!        if (ii+linmat%l%keyg(2,1,iseg)-linmat%l%keyg(1,1,iseg)<linmat%l%taskgroup_startend(1,1,iitg)) cycle
@@ -397,7 +397,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
               !$omp shared(linmat,lagmat_large,tmp_mat_compr,ishift) &
               !$omp private(iseg,ii,i,ii_trans)
               !$omp do
-              do iseg=linmat%l%iseseg_tg(1),linmat%l%iseseg_tg(2)
+              !do iseg=linmat%l%iseseg_tg(1),linmat%l%iseseg_tg(2)
+              do iseg=linmat%l%istartendseg_local(1),linmat%l%istartendseg_local(2)
                   ii = linmat%l%keyv(iseg)
                   ! A segment is always on one line, therefore no double loop
                   do i=linmat%l%keyg(1,1,iseg),linmat%l%keyg(2,1,iseg) !this is too much, but for the moment ok
@@ -2136,7 +2137,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
   !!imin=ovrlp%nvctr
   !!imax=0
   !!do itaskgroups=1,ovrlp%ntaskgroupp
-  !!    iitaskgroup = ovrlp%inwhichtaskgroup(itaskgroups)
+  !!    iitaskgroup = ovrlp%taskgroupid(itaskgroups)
   !!    imin = min(imin,ovrlp%taskgroup_startend(1,1,iitaskgroup))
   !!    imax = max(imax,ovrlp%taskgroup_startend(2,1,iitaskgroup))
   !!end do

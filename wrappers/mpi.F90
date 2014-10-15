@@ -1109,6 +1109,27 @@ contains
     
   end function mpiwindow_d0
 
+  subroutine mpi_fenceandfree(window)
+    use dictionaries, only: f_err_throw,f_err_define
+    ! Calling arguments
+    integer,intent(inout) :: window !<window to be synchronized and freed
+
+    ! Local variables
+    integer :: ierr
+
+    ! Synchronize the communication
+    call mpi_win_fence(0, window, ierr)
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_win_fence',&
+            err_id=ERR_MPI_WRAPPERS)  
+    end if
+    call mpi_win_free(window, ierr)
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_win_fence',&
+            err_id=ERR_MPI_WRAPPERS)  
+    end if
+  end subroutine mpi_fenceandfree
+
   subroutine mpiget_d0(origin,count,target_rank,target_disp,window)
     use dictionaries, only: f_err_throw,f_err_define
     implicit none
@@ -1176,17 +1197,18 @@ contains
     call getall_d(nproc,recvcounts,displs,window,nrecvbuf,recvbuf)
 
     if (.not. present(window_)) then
-       ! Synchronize the communication
-       call mpi_win_fence(0, window, ierr)
-       if (ierr/=0) then
-          call f_err_throw('Error in mpi_win_fence',&
-               err_id=ERR_MPI_WRAPPERS)  
-       end if
-       call mpi_win_free(window, ierr)
-       if (ierr/=0) then
-          call f_err_throw('Error in mpi_win_fence',&
-               err_id=ERR_MPI_WRAPPERS)  
-       end if
+        call mpi_fenceandfree(window)
+       !!! Synchronize the communication
+       !!call mpi_win_fence(0, window, ierr)
+       !!if (ierr/=0) then
+       !!   call f_err_throw('Error in mpi_win_fence',&
+       !!        err_id=ERR_MPI_WRAPPERS)  
+       !!end if
+       !!call mpi_win_free(window, ierr)
+       !!if (ierr/=0) then
+       !!   call f_err_throw('Error in mpi_win_fence',&
+       !!        err_id=ERR_MPI_WRAPPERS)  
+       !!end if
     end if
 
   end subroutine mpi_get_to_allgatherv_double
