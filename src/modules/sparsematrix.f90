@@ -467,6 +467,7 @@ module sparsematrix
      ! Local variables
      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
      integer :: ncount, itg, iitg, ist_send, ist_recv
+     integer :: window, sizeof, jproc_send, iorb, jproc, info
      integer,dimension(:),pointer :: isvctr_par, nvctr_par
      integer,dimension(:),allocatable :: request
      real(kind=8),dimension(:),pointer :: matrix_local
@@ -554,67 +555,128 @@ module sparsematrix
              call f_free_ptr(matrix_local)
          end if
      else if (data_strategy==SUBMATRIX) then
-         if (nfvctrp>0) then
-             call to_zero(smat%nvctrp_tg, matrix_compr(1))
-             isegstart=smat%istsegline(isfvctr+1)
-             isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
-             !$omp parallel default(none) &
-             !$omp shared(isegstart, isegend, matrixp, smat, matrix_compr, isfvctr) &
-             !$omp private(iseg, ii, jorb, iiorb, jjorb)
-             !$omp do
-             do iseg=isegstart,isegend
-                 ii=smat%keyv(iseg)-1
-                 ! A segment is always on one line, therefore no double loop
-                 do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-                     ii=ii+1
-                     iiorb = smat%keyg(1,2,iseg)
-                     jjorb = jorb
-                     matrix_compr(ii-smat%isvctrp_tg)=matrixp(jjorb,iiorb-isfvctr)
+         if (layout==DENSE_PARALLEL) then
+             if (nfvctrp>0) then
+                 call to_zero(smat%nvctrp_tg, matrix_compr(1))
+                 isegstart=smat%istsegline(isfvctr+1)
+                 isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
+                 !$omp parallel default(none) &
+                 !$omp shared(isegstart, isegend, matrixp, smat, matrix_compr, isfvctr) &
+                 !$omp private(iseg, ii, jorb, iiorb, jjorb)
+                 !$omp do
+                 do iseg=isegstart,isegend
+                     ii=smat%keyv(iseg)-1
+                     ! A segment is always on one line, therefore no double loop
+                     do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+                         ii=ii+1
+                         iiorb = smat%keyg(1,2,iseg)
+                         jjorb = jorb
+                         matrix_compr(ii-smat%isvctrp_tg)=matrixp(jjorb,iiorb-isfvctr)
+                     end do
                  end do
-             end do
-             !$omp end do
-             !$omp end parallel
-         end if
-
-         call timing(iproc,'compressd_mcpy','OF')
-         call timing(iproc,'compressd_comm','ON')
-         ncount = 0
-         do itg=1,smat%ntaskgroupp
-             iitg = smat%inwhichtaskgroup(itg)
-             ncount = ncount + smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
-         end do
-         recvbuf = f_malloc(ncount,id='recvbuf')
-
-         ncount = 0
-         request = f_malloc(smat%ntaskgroupp,id='request')
-         do itg=1,smat%ntaskgroupp
-             iitg = smat%inwhichtaskgroup(itg)
-             ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
-             ist_recv = ncount + 1
-             ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
-             !!call mpi_iallreduce(matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
-             !!     mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
-             if (nproc>1) then
-                 call mpiiallred(matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
-                      mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg))
-             else
-                 call vcopy(ncount, matrix_compr(ist_send), 1,  recvbuf(ist_recv), 1)
+                 !$omp end do
+                 !$omp end parallel
              end if
-         end do
-         if (nproc>1) then
-             call mpiwaitall(smat%ntaskgroupp, request)
-         end if
-         ncount = 0
-         do itg=1,smat%ntaskgroupp
-             iitg = smat%inwhichtaskgroup(itg)
-             ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
-             ist_recv = ncount + 1
-             ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
-             call vcopy(ncount, recvbuf(ist_recv), 1, matrix_compr(ist_send), 1)
-         end do
 
-         call f_free(request)
-         call f_free(recvbuf)
+             call timing(iproc,'compressd_mcpy','OF')
+             call timing(iproc,'compressd_comm','ON')
+             ncount = 0
+             do itg=1,smat%ntaskgroupp
+                 iitg = smat%inwhichtaskgroup(itg)
+                 ncount = ncount + smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+             end do
+             recvbuf = f_malloc(ncount,id='recvbuf')
+
+             ncount = 0
+             request = f_malloc(smat%ntaskgroupp,id='request')
+             do itg=1,smat%ntaskgroupp
+                 iitg = smat%inwhichtaskgroup(itg)
+                 ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
+                 ist_recv = ncount + 1
+                 ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+                 !!call mpi_iallreduce(matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
+                 !!     mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
+                 if (nproc>1) then
+                     call mpiiallred(matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
+                          mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg))
+                 else
+                     call vcopy(ncount, matrix_compr(ist_send), 1,  recvbuf(ist_recv), 1)
+                 end if
+             end do
+             if (nproc>1) then
+                 call mpiwaitall(smat%ntaskgroupp, request)
+             end if
+             ncount = 0
+             do itg=1,smat%ntaskgroupp
+                 iitg = smat%inwhichtaskgroup(itg)
+                 ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
+                 ist_recv = ncount + 1
+                 ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+                 call vcopy(ncount, recvbuf(ist_recv), 1, matrix_compr(ist_send), 1)
+             end do
+             call f_free(request)
+             call f_free(recvbuf)
+         else if (layout==DENSE_MATMUL) then
+             !!do ii=1,size(matrix_compr)
+             !!    write(1000+iproc,*) 'ii, matrix_compr(ii)', ii, matrix_compr(ii)
+             !!end do
+             matrix_local = f_malloc_ptr(smat%smmm%ncl_smmm,id='matrix_local')
+             if (nfvctrp>0) then
+                 ii = 0
+                 isegstart=smat%istsegline(isfvctr+1)
+                 isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
+                 do iseg=isegstart,isegend
+                     ! A segment is always on one line, therefore no double loop
+                     do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+                         iorb = smat%keyg(1,2,iseg)
+                         ii = ii + 1
+                         matrix_local(ii) = matrixp(jorb,iorb-isfvctr)
+                     end do
+                 end do
+                 if (ii/=smat%smmm%ncl_smmm) stop 'ii/=smat%smmm%ncl_smmm'
+             end if
+
+             call to_zero(smat%nvctrp_tg, matrix_compr(1))
+             window = mpiwindow(smat%smmm%ncl_smmm, matrix_local(1), bigdft_mpi%mpi_comm)
+             !!sizeof = mpitypesize(matrix_local)
+             !!call mpi_info_create(info, ii)
+             !!call mpi_info_set(info, "no_locks", "true", ii)
+             !!call mpi_win_create(matrix_local, int(smat%smmm%ncl_smmm,kind=mpi_address_kind)*int(sizeof,kind=mpi_address_kind), &
+             !!     sizeof, info, bigdft_mpi%mpi_comm, window, ii)
+             !!call mpi_info_free(info, ierr)
+             !!call mpi_win_fence(mpi_mode_noprecede, window, ii)
+             !!write(*,*) 'sizeof',sizeof
+             !!do ii=1,size(matrix_compr)
+             !!    write(1500+iproc,*) 'ii, matrix_local(ii)', ii, matrix_local(ii)
+             !!end do
+             do jproc=1,smat%smmm%nccomm_smmm
+                 jproc_send = smat%smmm%luccomm_smmm(1,jproc)
+                 ist_send = smat%smmm%luccomm_smmm(2,jproc)
+                 ist_recv = smat%smmm%luccomm_smmm(3,jproc)
+                 ncount = smat%smmm%luccomm_smmm(4,jproc)
+                 !write(*,'(5(a,i0))') 'task ',iproc,' gets ',ncount,' elements at position ',ist_recv,' from position ',ist_send,' on task ',jproc_send
+                 call mpiget(matrix_compr(ist_recv), ncount, jproc_send, int(ist_send-1,kind=mpi_address_kind), window)
+                 !!call mpi_get(matrix_compr(ist_recv), ncount, mpi_double_precision, jproc_send, &
+                 !!     int(ist_send-1,kind=mpi_address_kind), ncount, mpi_double_precision, window, ii)
+             end do
+             ! Synchronize the communication
+             call mpi_win_fence(0, window, ierr)
+             !!if (ierr/=0) then
+             !!   call f_err_throw('Error in mpi_win_fence',&
+             !!        err_id=ERR_MPI_WRAPPERS)
+             !!end if
+             call mpi_win_free(window, ierr)
+             !!if (ierr/=0) then
+             !!   call f_err_throw('Error in mpi_win_fence',&
+             !!        err_id=ERR_MPI_WRAPPERS)
+             !!end if
+             call f_free_ptr(matrix_local)
+             !!do ii=1,size(matrix_compr)
+             !!    write(2000+iproc,*) 'ii, matrix_compr(ii)', ii, matrix_compr(ii)
+             !!end do
+
+         end if
+
          call timing(iproc,'compressd_comm','OF')
      else
          stop 'compress_matrix_distributed: wrong data_strategy'
