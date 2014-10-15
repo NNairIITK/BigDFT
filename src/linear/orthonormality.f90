@@ -377,7 +377,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
               !!!!$omp end do
               !!!!$omp end parallel
               !!do itg=1,linmat%l%ntaskgroupp
-              !!    iitg = linmat%l%inwhichtaskgroup(itg)
+              !!    iitg = linmat%l%taskgroupid(itg)
               !!    do iseg=1,linmat%l%nseg
               !!        ii=linmat%l%keyv(iseg)
               !!        if (ii+linmat%l%keyg(2,1,iseg)-linmat%l%keyg(1,1,iseg)<linmat%l%taskgroup_startend(1,1,iitg)) cycle
@@ -2136,7 +2136,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
   !!imin=ovrlp%nvctr
   !!imax=0
   !!do itaskgroups=1,ovrlp%ntaskgroupp
-  !!    iitaskgroup = ovrlp%inwhichtaskgroup(itaskgroups)
+  !!    iitaskgroup = ovrlp%taskgroupid(itaskgroups)
   !!    imin = min(imin,ovrlp%taskgroup_startend(1,1,iitaskgroup))
   !!    imax = max(imax,ovrlp%taskgroup_startend(2,1,iitaskgroup))
   !!end do

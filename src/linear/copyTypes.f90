@@ -1080,7 +1080,9 @@ subroutine copy_sparse_matrix(smat_in, smat_out)
   call allocate_and_copy(smat_in%matrixindex_in_compressed_fortransposed, smat_out%matrixindex_in_compressed_fortransposed, &
                          id='smat_out%matrixindex_in_compressed_fortransposed')
   call allocate_and_copy(smat_in%taskgroup_startend, smat_out%taskgroup_startend, id='smat_out%taskgroup_startend')
+  call allocate_and_copy(smat_in%taskgroupid, smat_out%taskgroupid, id='smat_out%taskgroupid')
   call allocate_and_copy(smat_in%inwhichtaskgroup, smat_out%inwhichtaskgroup, id='smat_out%inwhichtaskgroup')
+  call allocate_and_copy(smat_in%isrank, smat_out%isrank, id='smat_out%isrank')
 
 
   call copy_sparse_matrix_matrix_multiplication(smat_in%smmm, smat_out%smmm)
