@@ -37,6 +37,9 @@ module sparsematrix_base
                                               !! WARNING: the essential bounds are given by istartend_mm, the segments are used to speed up the code
       integer,dimension(2) :: istartend_mm !< starting and ending indices of the matrix subpart which is actually used for the multiplication
       integer,dimension(2) :: istartend_mm_dj !< starting and ending indices of the submatrices (partitioned in disjoint chunks)
+      !!integer :: ncl_smmm !< number of elements for the compress local after a sparse matrix matrix multiplication
+      integer :: nccomm_smmm !<number of communications required for the compress distributed after a sparse matrix matrix multiplication
+      integer,dimension(:,:),pointer :: luccomm_smmm !<lookup array for the communications required for the compress distributed after a sparse matrix matrix multiplication
   end type sparse_matrix_matrix_multiplication
 
   type,public :: sparse_matrix
@@ -63,6 +66,7 @@ module sparsematrix_base
       integer :: nvctrp_tg !< size of the taskgroup matrix (per processor)
       integer :: isvctrp_tg !< offset of the taskgroup matrix, given with respect to the non-parallelized matrix
       integer,dimension(2) :: iseseg_tg !< first and last segment of the taskgroup sparse matrix
+      integer,dimension(2) :: istartend_local !< first and last element of the sparse matrix which is actually used by a given MPI task
   end type sparse_matrix
 
 
@@ -167,6 +171,7 @@ module sparsematrix_base
       nullify(smmm%indices_extract_sequential)
       nullify(smmm%nvctr_par)
       nullify(smmm%isvctr_par)
+      nullify(smmm%luccomm_smmm)
     end subroutine nullify_sparse_matrix_matrix_multiplication
 
 
@@ -310,6 +315,7 @@ module sparsematrix_base
       call f_free_ptr(smmm%indices_extract_sequential)
       call f_free_ptr(smmm%nvctr_par)
       call f_free_ptr(smmm%isvctr_par)
+      call f_free_ptr(smmm%luccomm_smmm)
     end subroutine deallocate_sparse_matrix_matrix_multiplication
 
     subroutine allocate_smat_d1_ptr(smat_ptr,smat_info_ptr)

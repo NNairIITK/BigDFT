@@ -1146,6 +1146,7 @@ contains
       ! Now check the pseudo-exact orthonormalization during the input guess
       call check_ortho_inguess()
 
+
       if (.not.parallel_layout) then
           ! The matrices can not be parallelized
           ind_min = 1
@@ -1163,6 +1164,9 @@ contains
               ind_max = iend
           end if
       end do
+
+      smat%istartend_local(1) = ind_min
+      smat%istartend_local(2) = ind_max
 
       ! Now the minimal and maximal values are known
       iuse_startend(1,iproc) = ind_min
@@ -1537,13 +1541,55 @@ contains
           call yaml_mapping_close()
       end if
 
+
+      ! Initialize a "local compress" from the matrix matrix multiplication layout
+      !!!smat%smmm%ncl_smmm = 0
+      !!!if (smat%smmm%nfvctrp>0) then
+      !!!    isegstart=smat%istsegline(smat%smmm%isfvctr+1)
+      !!!    isegend=smat%istsegline(smat%smmm%isfvctr+smat%smmm%nfvctrp)+smat%nsegline(smat%smmm%isfvctr+smat%smmm%nfvctrp)-1
+      !!!    do iseg=isegstart,isegend
+      !!!        ! A segment is always on one line, therefore no double loop
+      !!!        do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+      !!!            smat%smmm%ncl_smmm = smat%smmm%ncl_smmm + 1
+      !!!        end do
+      !!!    end do
+      !!!end if
+      !!!if (smat%smmm%ncl_smmm/=smat%smmm%nvctrp) then
+      !!!    write(*,*) 'smat%smmm%ncl_smmm, smat%smmm%nvctrp', smat%smmm%ncl_smmm, smat%smmm%nvctrp
+      !!!    stop
+      !!!end if
+
+
+      smat%smmm%nccomm_smmm = 0
+      do jproc=0,nproc-1
+          !!if (istartend_local(1) > smat%smmm%isvctr_par(jproc) + smat%smmm%nvctr_par(jproc)) cycle
+          !!if (istartend_local(2) < smat%smmm%isvctr_par(jproc)) exit
+          istart = max(smat%istartend_local(1),smat%smmm%isvctr_par(jproc)+1)
+          iend = min(smat%istartend_local(2),smat%smmm%isvctr_par(jproc)+smat%smmm%nvctr_par(jproc))
+          if (istart>iend) cycle
+          smat%smmm%nccomm_smmm = smat%smmm%nccomm_smmm + 1
+      end do
+
+      smat%smmm%luccomm_smmm = f_malloc_ptr((/4,smat%smmm%nccomm_smmm/),id='smat%smmm%luccomm_smmm')
+      ii = 0
+      do jproc=0,nproc-1
+          !!if (istartend_local(1) > smat%smmm%isvctr_par(jproc) + smat%smmm%nvctr_par(jproc)) cycle
+          !!if (istartend_local(2) < smat%smmm%isvctr_par(jproc)) exit
+          istart = max(smat%istartend_local(1),smat%smmm%isvctr_par(jproc)+1)
+          iend = min(smat%istartend_local(2),smat%smmm%isvctr_par(jproc)+smat%smmm%nvctr_par(jproc))
+          if (istart>iend) cycle
+          ii = ii + 1
+          smat%smmm%luccomm_smmm(1,ii) = jproc !get data from this process
+          smat%smmm%luccomm_smmm(2,ii) = istart-smat%smmm%isvctr_par(jproc) !starting address on sending process
+          smat%smmm%luccomm_smmm(3,ii) = istart-smat%isvctrp_tg !starting address on receiving process
+          smat%smmm%luccomm_smmm(4,ii) = iend-istart+1 !number of elements
+      end do
+
       call f_free(in_taskgroup)
       call f_free(iuse_startend)
       call f_free(itaskgroups_startend)
       call f_free(tasks_per_taskgroup)
       call f_free(ranks)
-
-
 
 
 
