@@ -1543,21 +1543,21 @@ contains
 
 
       ! Initialize a "local compress" from the matrix matrix multiplication layout
-      smat%smmm%ncl_smmm = 0
-      if (smat%smmm%nfvctrp>0) then
-          isegstart=smat%istsegline(smat%smmm%isfvctr+1)
-          isegend=smat%istsegline(smat%smmm%isfvctr+smat%smmm%nfvctrp)+smat%nsegline(smat%smmm%isfvctr+smat%smmm%nfvctrp)-1
-          do iseg=isegstart,isegend
-              ! A segment is always on one line, therefore no double loop
-              do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-                  smat%smmm%ncl_smmm = smat%smmm%ncl_smmm + 1
-              end do
-          end do
-      end if
-      if (smat%smmm%ncl_smmm/=smat%smmm%nvctrp) then
-          write(*,*) 'smat%smmm%ncl_smmm, smat%smmm%nvctrp', smat%smmm%ncl_smmm, smat%smmm%nvctrp
-          stop
-      end if
+      !!!smat%smmm%ncl_smmm = 0
+      !!!if (smat%smmm%nfvctrp>0) then
+      !!!    isegstart=smat%istsegline(smat%smmm%isfvctr+1)
+      !!!    isegend=smat%istsegline(smat%smmm%isfvctr+smat%smmm%nfvctrp)+smat%nsegline(smat%smmm%isfvctr+smat%smmm%nfvctrp)-1
+      !!!    do iseg=isegstart,isegend
+      !!!        ! A segment is always on one line, therefore no double loop
+      !!!        do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+      !!!            smat%smmm%ncl_smmm = smat%smmm%ncl_smmm + 1
+      !!!        end do
+      !!!    end do
+      !!!end if
+      !!!if (smat%smmm%ncl_smmm/=smat%smmm%nvctrp) then
+      !!!    write(*,*) 'smat%smmm%ncl_smmm, smat%smmm%nvctrp', smat%smmm%ncl_smmm, smat%smmm%nvctrp
+      !!!    stop
+      !!!end if
 
 
       smat%smmm%nccomm_smmm = 0

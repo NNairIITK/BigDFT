@@ -37,9 +37,9 @@ module sparsematrix_base
                                               !! WARNING: the essential bounds are given by istartend_mm, the segments are used to speed up the code
       integer,dimension(2) :: istartend_mm !< starting and ending indices of the matrix subpart which is actually used for the multiplication
       integer,dimension(2) :: istartend_mm_dj !< starting and ending indices of the submatrices (partitioned in disjoint chunks)
-      integer :: ncl_smmm !< number of elements for the compress local after a sparse matrix matrix multiplication
+      !!integer :: ncl_smmm !< number of elements for the compress local after a sparse matrix matrix multiplication
       integer :: nccomm_smmm !<number of communications required for the compress distributed after a sparse matrix matrix multiplication
-      integer,dimension(:,:),pointer :: luccomm_smmm !<lookup arrasy for the communications required for the compress distributed after a sparse matrix matrix multiplication
+      integer,dimension(:,:),pointer :: luccomm_smmm !<lookup array for the communications required for the compress distributed after a sparse matrix matrix multiplication
   end type sparse_matrix_matrix_multiplication
 
   type,public :: sparse_matrix

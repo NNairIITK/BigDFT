@@ -620,7 +620,7 @@ module sparsematrix
              !!do ii=1,size(matrix_compr)
              !!    write(1000+iproc,*) 'ii, matrix_compr(ii)', ii, matrix_compr(ii)
              !!end do
-             matrix_local = f_malloc_ptr(smat%smmm%ncl_smmm,id='matrix_local')
+             matrix_local = f_malloc_ptr(smat%smmm%nvctrp,id='matrix_local')
              if (nfvctrp>0) then
                  ii = 0
                  isegstart=smat%istsegline(isfvctr+1)
@@ -633,47 +633,43 @@ module sparsematrix
                          matrix_local(ii) = matrixp(jorb,iorb-isfvctr)
                      end do
                  end do
-                 if (ii/=smat%smmm%ncl_smmm) stop 'ii/=smat%smmm%ncl_smmm'
+                 if (ii/=smat%smmm%nvctrp) stop 'ii/=smat%smmm%nvctrp'
              end if
 
-             call to_zero(smat%nvctrp_tg, matrix_compr(1))
-             window = mpiwindow(smat%smmm%ncl_smmm, matrix_local(1), bigdft_mpi%mpi_comm)
-             !!sizeof = mpitypesize(matrix_local)
-             !!call mpi_info_create(info, ii)
-             !!call mpi_info_set(info, "no_locks", "true", ii)
-             !!call mpi_win_create(matrix_local, int(smat%smmm%ncl_smmm,kind=mpi_address_kind)*int(sizeof,kind=mpi_address_kind), &
-             !!     sizeof, info, bigdft_mpi%mpi_comm, window, ii)
-             !!call mpi_info_free(info, ierr)
-             !!call mpi_win_fence(mpi_mode_noprecede, window, ii)
-             !!write(*,*) 'sizeof',sizeof
-             !!do ii=1,size(matrix_compr)
-             !!    write(1500+iproc,*) 'ii, matrix_local(ii)', ii, matrix_local(ii)
-             !!end do
-             do jproc=1,smat%smmm%nccomm_smmm
-                 jproc_send = smat%smmm%luccomm_smmm(1,jproc)
-                 ist_send = smat%smmm%luccomm_smmm(2,jproc)
-                 ist_recv = smat%smmm%luccomm_smmm(3,jproc)
-                 ncount = smat%smmm%luccomm_smmm(4,jproc)
-                 !write(*,'(5(a,i0))') 'task ',iproc,' gets ',ncount,' elements at position ',ist_recv,' from position ',ist_send,' on task ',jproc_send
-                 call mpiget(matrix_compr(ist_recv), ncount, jproc_send, int(ist_send-1,kind=mpi_address_kind), window)
-                 !!call mpi_get(matrix_compr(ist_recv), ncount, mpi_double_precision, jproc_send, &
-                 !!     int(ist_send-1,kind=mpi_address_kind), ncount, mpi_double_precision, window, ii)
-             end do
-             ! Synchronize the communication
-             call mpi_win_fence(0, window, ierr)
-             !!if (ierr/=0) then
-             !!   call f_err_throw('Error in mpi_win_fence',&
-             !!        err_id=ERR_MPI_WRAPPERS)
-             !!end if
-             call mpi_win_free(window, ierr)
-             !!if (ierr/=0) then
-             !!   call f_err_throw('Error in mpi_win_fence',&
-             !!        err_id=ERR_MPI_WRAPPERS)
-             !!end if
-             call f_free_ptr(matrix_local)
-             !!do ii=1,size(matrix_compr)
-             !!    write(2000+iproc,*) 'ii, matrix_compr(ii)', ii, matrix_compr(ii)
-             !!end do
+             if (nproc>1) then
+                 call to_zero(smat%nvctrp_tg, matrix_compr(1))
+                 window = mpiwindow(smat%smmm%nvctrp, matrix_local(1), bigdft_mpi%mpi_comm)
+                 do jproc=1,smat%smmm%nccomm_smmm
+                     jproc_send = smat%smmm%luccomm_smmm(1,jproc)
+                     ist_send = smat%smmm%luccomm_smmm(2,jproc)
+                     ist_recv = smat%smmm%luccomm_smmm(3,jproc)
+                     ncount = smat%smmm%luccomm_smmm(4,jproc)
+                     !write(*,'(5(a,i0))') 'task ',iproc,' gets ',ncount,' elements at position ',ist_recv,' from position ',ist_send,' on task ',jproc_send
+                     call mpiget(matrix_compr(ist_recv), ncount, jproc_send, int(ist_send-1,kind=mpi_address_kind), window)
+                     !!call mpi_get(matrix_compr(ist_recv), ncount, mpi_double_precision, jproc_send, &
+                     !!     int(ist_send-1,kind=mpi_address_kind), ncount, mpi_double_precision, window, ii)
+                 end do
+                 ! Synchronize the communication
+                 call mpi_win_fence(0, window, ierr)
+                 !!if (ierr/=0) then
+                 !!   call f_err_throw('Error in mpi_win_fence',&
+                 !!        err_id=ERR_MPI_WRAPPERS)
+                 !!end if
+                 call mpi_win_free(window, ierr)
+                 !!if (ierr/=0) then
+                 !!   call f_err_throw('Error in mpi_win_fence',&
+                 !!        err_id=ERR_MPI_WRAPPERS)
+                 !!end if
+                 call f_free_ptr(matrix_local)
+                 !!do ii=1,size(matrix_compr)
+                 !!    write(2000+iproc,*) 'ii, matrix_compr(ii)', ii, matrix_compr(ii)
+                 !!end do
+             else
+                 ist_send = smat%smmm%luccomm_smmm(2,1)
+                 ist_recv = smat%smmm%luccomm_smmm(3,1)
+                 ncount = smat%smmm%luccomm_smmm(4,1)
+                 call vcopy(ncount, matrix_local(ist_send), 1, matrix_compr(ist_recv), 1)
+             end if
 
          end if
 
