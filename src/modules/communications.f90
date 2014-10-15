@@ -164,8 +164,8 @@ module communications
     
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_POST) then
-          wt%psiwork = f_malloc_ptr(collcom%ndimpsi_c+7*collcom%ndimpsi_f,id='wt%psiwork')
-          wt%psitwork = f_malloc_ptr(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),id='wt%psitwork')
+          wt%psiwork = f_malloc_ptr(max(collcom%ndimpsi_c+7*collcom%ndimpsi_f,1),id='wt%psiwork')
+          wt%psitwork = f_malloc_ptr(max(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),1),id='wt%psitwork')
           wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
           wt%nsenddspls = f_malloc_ptr(0.to.nproc-1,id='wt%nsenddspls')
           wt%nrecvcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvcounts')
@@ -412,8 +412,8 @@ module communications
     
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_POST) then
-          wt%psiwork = f_malloc_ptr(collcom%ndimpsi_c+7*collcom%ndimpsi_f,id='wt%psiwork')
-          wt%psitwork = f_malloc_ptr(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),id='wt%psitwork')
+          wt%psiwork = f_malloc_ptr(max(collcom%ndimpsi_c+7*collcom%ndimpsi_f,1),id='wt%psiwork')
+          wt%psitwork = f_malloc_ptr(max(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),1),id='wt%psitwork')
           wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
           wt%nsenddspls = f_malloc_ptr(0.to.nproc-1,id='wt%nsenddspls')
           wt%nrecvcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvcounts')
