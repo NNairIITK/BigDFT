@@ -68,7 +68,9 @@ module sparsematrix_base
       integer :: isvctrp_tg !< offset of the taskgroup matrix, given with respect to the non-parallelized matrix
       integer,dimension(2) :: iseseg_tg !< first and last segment of the taskgroup sparse matrix
       integer,dimension(2) :: istartend_local !< first and last element of the sparse matrix which is actually used by a given MPI task
-      integer,dimension(:),pointer :: isrank !< First task ID of each taskgroup
+      integer,dimension(2) :: istartendseg_local !< first and last segment of the sparse matrix which is actually used by a given MPI task
+      integer,dimension(:,:),pointer :: tgranks !< global task IDs of the tasks in each taskgroup
+      integer,dimension(:),pointer :: nranks !< number of task on each taskgroup
   end type sparse_matrix
 
 
@@ -160,7 +162,8 @@ module sparsematrix_base
       nullify(sparsemat%taskgroupid)
       nullify(sparsemat%mpi_groups)
       nullify(sparsemat%inwhichtaskgroup)
-      nullify(sparsemat%isrank)
+      nullify(sparsemat%tgranks)
+      nullify(sparsemat%nranks)
       call nullify_sparse_matrix_matrix_multiplication(sparsemat%smmm) 
     end subroutine nullify_sparse_matrix
 
@@ -307,7 +310,8 @@ module sparsematrix_base
           deallocate(sparseMat%mpi_groups)
       end if
       call f_free_ptr(sparseMat%inwhichtaskgroup)
-      call f_free_ptr(sparseMat%isrank)
+      call f_free_ptr(sparseMat%tgranks)
+      call f_free_ptr(sparseMat%nranks)
     end subroutine deallocate_sparse_matrix
 
     subroutine deallocate_sparse_matrix_matrix_multiplication(smmm)

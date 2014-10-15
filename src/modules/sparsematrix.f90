@@ -655,7 +655,9 @@ module sparsematrix
                      !write(*,'(5(a,i0))') 'task ',iproc,' gets ',ncount,' elements at position ',ist_recv,' from position ',ist_send,' on task ',jproc_send
                      iitg = get_taskgroup_id(iproc,jproc_send)
                      ! Now get the task ID on the taskgroup (subtract the ID of the first task)
-                     jproc_send = jproc_send - smat%isrank(iitg)
+                     !jproc_send = jproc_send - smat%isrank(iitg)
+                     ii = jproc_send
+                     jproc_send = get_rank_on_taskgroup(ii,iitg)
                      !call mpiget(matrix_compr(ist_recv), ncount, jproc_send, int(ist_send-1,kind=mpi_address_kind), window)
                      !write(*,'(3(a,i0))') 'task ',iproc,' gets data from task ',jproc_send,' on window ',iitg
                      call mpiget(matrix_compr(ist_recv), ncount, jproc_send, int(ist_send-1,kind=mpi_address_kind), windows(iitg))
@@ -715,8 +717,29 @@ module sparsematrix
                  end if
              end do jloop
          end do iloop
-         if (.not.found) stop 'get_taskgroup_id did not succed'
+         if (.not.found) stop 'get_taskgroup_id did not suceed'
        end function get_taskgroup_id
+
+
+       ! Get the ID of task iiproc on taskgroup iitg
+       integer function get_rank_on_taskgroup(iiproc,iitg)
+         implicit none
+         ! Calling arguments
+         integer,intent(in) :: iiproc, iitg
+         ! Local variables
+         integer :: jproc
+         logical :: found
+
+         found = .false.
+         do jproc=0,smat%nranks(iitg)-1
+             if (smat%tgranks(jproc,iitg) == iiproc) then
+                 get_rank_on_taskgroup = jproc
+                 found = .true.
+                 exit
+             end if
+         end do
+         if (.not.found) stop 'get_rank_on_taskgroup did not suceed'
+       end function get_rank_on_taskgroup
 
   end subroutine compress_matrix_distributed
 
