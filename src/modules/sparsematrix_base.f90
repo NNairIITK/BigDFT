@@ -57,6 +57,7 @@ module sparsematrix_base
       !! The last rank is of dimension ntaskgroup
       integer,dimension(:,:,:),pointer :: taskgroup_startend
       integer,dimension(:),pointer :: taskgroupid !< dimension ntaskgroupp, gives the ID of the taskgroups to which a task belongs
+      integer,dimension(:,:),pointer :: inwhichtaskgroup !< dimension (2,0:nproc-1), tells in which taskgroup a given task is
       type(mpi_environment),dimension(:),pointer :: mpi_groups
       integer,dimension(2) :: istartendseg_t !< starting and ending indices of the matrix subpart which is actually used i
                                              !! for the transposed operation (overlap calculation / orthocontraint)
@@ -67,6 +68,7 @@ module sparsematrix_base
       integer :: isvctrp_tg !< offset of the taskgroup matrix, given with respect to the non-parallelized matrix
       integer,dimension(2) :: iseseg_tg !< first and last segment of the taskgroup sparse matrix
       integer,dimension(2) :: istartend_local !< first and last element of the sparse matrix which is actually used by a given MPI task
+      integer,dimension(:),pointer :: isrank !< First task ID of each taskgroup
   end type sparse_matrix
 
 
@@ -157,6 +159,8 @@ module sparsematrix_base
       nullify(sparsemat%taskgroup_startend)
       nullify(sparsemat%taskgroupid)
       nullify(sparsemat%mpi_groups)
+      nullify(sparsemat%inwhichtaskgroup)
+      nullify(sparsemat%isrank)
       call nullify_sparse_matrix_matrix_multiplication(sparsemat%smmm) 
     end subroutine nullify_sparse_matrix
 
@@ -302,6 +306,8 @@ module sparsematrix_base
           end do
           deallocate(sparseMat%mpi_groups)
       end if
+      call f_free_ptr(sparseMat%inwhichtaskgroup)
+      call f_free_ptr(sparseMat%isrank)
     end subroutine deallocate_sparse_matrix
 
     subroutine deallocate_sparse_matrix_matrix_multiplication(smmm)

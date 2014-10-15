@@ -1372,6 +1372,7 @@ contains
 
       smat%taskgroup_startend = f_malloc_ptr((/2,2,smat%ntaskgroup/),id='smat%taskgroup_startend')
       smat%taskgroupid = f_malloc_ptr((/smat%ntaskgroupp/),id='smat%smat%taskgroupid')
+      smat%inwhichtaskgroup = f_malloc0_ptr((/1.to.2,0.to.nproc-1/),id='smat%smat%inwhichtaskgroup')
 
 
       i = 0
@@ -1393,11 +1394,16 @@ contains
                iuse_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups) ) then
                i = i + 1
                smat%taskgroupid(i) = itaskgroups
+               smat%inwhichtaskgroup(i,iproc) = itaskgroups
           end if
       end do
       if (i/=smat%ntaskgroupp) then
           write(*,*) 'i, smat%ntaskgroupp', i, smat%ntaskgroupp
           stop 'i/=smat%ntaskgroupp'
+      end if
+
+      if (nproc>1) then
+          call mpiallred(smat%inwhichtaskgroup(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
       end if
 
       ! Partition the entire matrix in disjoint submatrices
@@ -1485,6 +1491,7 @@ contains
 
       in_taskgroup = f_malloc0((/0.to.nproc-1,1.to.smat%ntaskgroup/),id='in_taskgroup')
       ranks = f_malloc((/maxval(tasks_per_taskgroup),smat%ntaskgroup/),id='ranks')
+      smat%isrank = f_malloc_ptr(smat%ntaskgroup,id='smat%isrank')
       do itaskgroups=1,smat%ntaskgroupp
           iitaskgroups = smat%taskgroupid(itaskgroups)
           in_taskgroup(iproc,iitaskgroups) = 1
@@ -1505,6 +1512,8 @@ contains
                   ranks(ii,itaskgroups) = jproc
               end if
           end do
+          ! Store the ID of the first task of each taskgroup
+          smat%isrank(itaskgroups) = ranks(1,itaskgroups)
           if (ii/=tasks_per_taskgroup(itaskgroups)) stop 'ii/=tasks_per_taskgroup(itaskgroups)'
           call mpi_group_incl(group, ii, ranks(1,itaskgroups), newgroup, ierr)
           call mpi_comm_create(bigdft_mpi%mpi_comm, newgroup, smat%mpi_groups(itaskgroups)%mpi_comm, ierr)
