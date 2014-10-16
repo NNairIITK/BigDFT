@@ -652,7 +652,7 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
   energs=energy_terms_null()
   call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
   call start_onesided_communication(bigdft_mpi%iproc,bigdft_mpi%nproc,&
-       max(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,1),cdft%weight_function, &
+       denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),max(denspot%dpbox%nscatterarr(:,2),1),cdft%weight_function, &
        tmb%ham_descr%comgp%nrecvbuf,tmb%ham_descr%comgp%recvbuf,tmb%ham_descr%comgp,tmb%ham_descr%lzd)
 
   allocate(confdatarrtmp(tmb%orbs%norbp))

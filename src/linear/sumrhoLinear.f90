@@ -869,7 +869,7 @@ subroutine check_communication_potential(iproc,denspot,tmb)
   !calculate the dimensions and communication of the potential element with mpi_get
   call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
   call start_onesided_communication(bigdft_mpi%iproc, bigdft_mpi%nproc, &
-       max(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,1), denspot%rhov, &
+       denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), max(denspot%dpbox%nscatterarr(:,2),1), denspot%rhov, &
        tmb%ham_descr%comgp%nspin*tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, &
        tmb%ham_descr%comgp, tmb%ham_descr%lzd)
 

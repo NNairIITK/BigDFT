@@ -902,17 +902,18 @@ module communications
     
     
     
-    subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, recvbuf, comm, lzd)
+    subroutine start_onesided_communication(iproc, nproc, n1, n2, n3p, sendbuf, nrecvbuf, recvbuf, comm, lzd)
       use module_base
       use module_types, only: local_zone_descriptors
       use communications_base, only: p2pComms
       implicit none
       
       ! Calling arguments
-      integer, intent(in):: iproc, nproc, nsendbuf, nrecvbuf
-      real(kind=8), dimension(nsendbuf), intent(in):: sendbuf
-      real(kind=8), dimension(nrecvbuf), intent(out):: recvbuf
+      integer, intent(in):: iproc, nproc, n1, n2, nrecvbuf
+      integer,dimension(0:nproc-1),intent(in) :: n3p
       type(p2pComms), intent(inout):: comm
+      real(kind=8), dimension(n1*n2*n3p(iproc)*comm%nspin), intent(in):: sendbuf
+      real(kind=8), dimension(nrecvbuf), intent(out):: recvbuf
       type(local_zone_descriptors), intent(in) :: lzd
       
       ! Local variables
@@ -920,6 +921,7 @@ module communications
       integer :: jproc, joverlap, mpisource, istsource, mpidest, istdest, ierr, nit, ispin, ispin_shift
       integer :: ioffset_send, ist, i2, i3, ist2, ist3, info, nsize, size_of_double, npot, isend_shift
       integer,dimension(:),allocatable :: npotarr
+
 
       !!do ist=1,nsendbuf
       !!    write(5400,'(a,2i12,es18.7)') 'iproc, ist, sendbuf(ist)', iproc, ist, sendbuf(ist)
@@ -933,11 +935,11 @@ module communications
       call timing(iproc, 'Pot_comm start', 'ON')
 
       ! the size of the potential without spin (maybe need to find a better way to determine this...)
-      npotarr = f_malloc0(0.to.nproc-1,id='npotarr')
-      npotarr(iproc)=nsendbuf/comm%nspin
-      if (nproc>1) then
-          call mpiallred(npotarr(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
-      end if
+      npotarr = f_malloc(0.to.nproc-1,id='npotarr')
+      npotarr(0:nproc-1)=n1*n2*n3p(0:iproc-1)
+      !!if (nproc>1) then
+      !!    call mpiallred(npotarr(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      !!end if
       !npot=nsendbuf/comm%nspin
     
       if(.not.comm%communication_complete) stop 'ERROR: there is already a p2p communication going on...'
@@ -953,8 +955,8 @@ module communications
                   call mpi_type_size(mpi_double_precision, size_of_double, ierr)
                   call mpi_info_create(info, ierr)
                   call mpi_info_set(info, "no_locks", "true", ierr)
-                  call mpi_win_create(sendbuf(1), int(nsendbuf*size_of_double,kind=mpi_address_kind), size_of_double, &
-                       info, bigdft_mpi%mpi_comm, comm%window, ierr)
+                  call mpi_win_create(sendbuf(1), int(n1*n2*n3p(iproc)*size_of_double,kind=mpi_address_kind), &
+                       size_of_double, info, bigdft_mpi%mpi_comm, comm%window, ierr)
                   call mpi_info_free(info, ierr)
     
                   call mpi_win_fence(mpi_mode_noprecede, comm%window, ierr)
