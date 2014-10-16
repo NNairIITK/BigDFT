@@ -1854,7 +1854,7 @@ subroutine check_accur_overlap_minus_one(iproc,nproc,norb,norbp,isorb,power,ovrl
      call deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, tmpp, smat, max_error, mean_error)
   else if (power==2) then
      if (norbp>0) then
-        call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
+         call dgemm('n', 'n', norb, norbp, norb, 1.d0, inv_ovrlp(1,1), &
              norb, inv_ovrlp(1,isorb+1), norb, 0.d0, tmpp(1,1), norb)
          call max_matrix_diff_parallel(iproc, norb, norbp, isorb, tmpp, ovrlp(1,isorb+1), smat, max_error, mean_error)
          max_error=0.5d0*max_error
@@ -2035,6 +2035,7 @@ subroutine deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, ovrlp
   real(8):: error, num
   real(kind=8),dimension(2) :: reducearr
 
+  call f_routine(id='deviation_from_unity_parallel')
 
   call timing(iproc,'dev_from_unity','ON') 
   max_deviation=0.d0
@@ -2075,6 +2076,8 @@ subroutine deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, ovrlp
   max_deviation=sqrt(max_deviation)
 
   call timing(iproc,'dev_from_unity','OF') 
+
+  call f_release_routine()
 
 end subroutine deviation_from_unity_parallel
 
