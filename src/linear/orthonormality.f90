@@ -397,7 +397,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
               !$omp shared(linmat,lagmat_large,tmp_mat_compr,ishift) &
               !$omp private(iseg,ii,i,ii_trans)
               !$omp do
-              do iseg=linmat%l%iseseg_tg(1),linmat%l%iseseg_tg(2)
+              !do iseg=linmat%l%iseseg_tg(1),linmat%l%iseseg_tg(2)
+              do iseg=linmat%l%istartendseg_local(1),linmat%l%istartendseg_local(2)
                   ii = linmat%l%keyv(iseg)
                   ! A segment is always on one line, therefore no double loop
                   do i=linmat%l%keyg(1,1,iseg),linmat%l%keyg(2,1,iseg) !this is too much, but for the moment ok

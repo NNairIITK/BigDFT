@@ -1111,7 +1111,7 @@ contains
       ! Local variables
       integer :: ipt, ii, i0, i0i, iiorb, j, i0j, jjorb, ind, ind_min, ind_max, iseq
       integer :: ntaskgroups, jproc, jstart, jend, kkproc, kproc, itaskgroups, lproc, llproc
-      integer :: nfvctrp, isfvctr, isegstart, isegend, jorb, istart, iend, iistg, iietg
+      integer :: nfvctrp, isfvctr, isegstart, isegend, jorb, istart, iend, iistg, iietg, itg
       integer,dimension(:,:),allocatable :: iuse_startend, itaskgroups_startend, ranks
       integer,dimension(:),allocatable :: tasks_per_taskgroup
       integer :: ntaskgrp_calc, ntaskgrp_use, i, ncount, iitaskgroup, group, ierr, iitaskgroups, newgroup, iseg
@@ -1167,6 +1167,22 @@ contains
 
       smat%istartend_local(1) = ind_min
       smat%istartend_local(2) = ind_max
+
+      ! Check to which segments these values belong
+      found_start = .false.
+      found_end = .false.
+      do iseg=1,smat%nseg
+          if (smat%keyv(iseg)==smat%istartend_local(1)) then
+              smat%istartendseg_local(1) = iseg
+              found_start = .true.
+          end if
+          if (smat%keyv(iseg)+smat%keyg(2,1,iseg)-smat%keyg(1,1,iseg)==smat%istartend_local(2)) then
+              smat%istartendseg_local(2) = iseg
+              found_end = .true.
+          end if
+      end do
+      if (.not.found_start) stop 'segment corresponding to smat%istartend_local(1) not found!'
+      if (.not.found_end) stop 'segment corresponding to smat%istartend_local(2) not found!'
 
       ! Now the minimal and maximal values are known
       iuse_startend(1,iproc) = ind_min
@@ -1490,8 +1506,15 @@ contains
       call mpi_comm_group(bigdft_mpi%mpi_comm, group, ierr)
 
       in_taskgroup = f_malloc0((/0.to.nproc-1,1.to.smat%ntaskgroup/),id='in_taskgroup')
-      ranks = f_malloc((/maxval(tasks_per_taskgroup),smat%ntaskgroup/),id='ranks')
-      smat%isrank = f_malloc_ptr(smat%ntaskgroup,id='smat%isrank')
+      smat%tgranks = f_malloc_ptr((/0.to.maxval(tasks_per_taskgroup)-1,1.to.smat%ntaskgroup/),id='smat%tgranks')
+      smat%nranks = f_malloc_ptr(smat%ntaskgroup,id='smat%nranks')
+      !smat%isrank = f_malloc_ptr(smat%ntaskgroup,id='smat%isrank')
+
+      ! number of tasks per taskgroup
+      do itg=1,smat%ntaskgroup
+          smat%nranks(itg) = tasks_per_taskgroup(itg)
+      end do
+
       do itaskgroups=1,smat%ntaskgroupp
           iitaskgroups = smat%taskgroupid(itaskgroups)
           in_taskgroup(iproc,iitaskgroups) = 1
@@ -1508,14 +1531,14 @@ contains
           ii = 0
           do jproc=0,nproc-1
               if (in_taskgroup(jproc,itaskgroups)>0) then
+                  smat%tgranks(ii,itaskgroups) = jproc
                   ii = ii + 1
-                  ranks(ii,itaskgroups) = jproc
               end if
           end do
           ! Store the ID of the first task of each taskgroup
-          smat%isrank(itaskgroups) = ranks(1,itaskgroups)
+          !smat%isrank(itaskgroups) = smat%tgranks(1,itaskgroups)
           if (ii/=tasks_per_taskgroup(itaskgroups)) stop 'ii/=tasks_per_taskgroup(itaskgroups)'
-          call mpi_group_incl(group, ii, ranks(1,itaskgroups), newgroup, ierr)
+          call mpi_group_incl(group, ii, smat%tgranks(0,itaskgroups), newgroup, ierr)
           call mpi_comm_create(bigdft_mpi%mpi_comm, newgroup, smat%mpi_groups(itaskgroups)%mpi_comm, ierr)
           if (smat%mpi_groups(itaskgroups)%mpi_comm/=MPI_COMM_NULL) then
               call mpi_comm_size(smat%mpi_groups(itaskgroups)%mpi_comm, smat%mpi_groups(itaskgroups)%nproc, ierr)
@@ -1540,7 +1563,7 @@ contains
               call yaml_sequence(advance='no')
               call yaml_mapping_open(flow=.true.)
               call yaml_map('number of tasks',tasks_per_taskgroup(itaskgroups))
-              call yaml_map('IDs',ranks(1:tasks_per_taskgroup(itaskgroups),itaskgroups))
+              call yaml_map('IDs',smat%tgranks(0:tasks_per_taskgroup(itaskgroups)-1,itaskgroups))
               call yaml_newline()
               call yaml_map('start / end',smat%taskgroup_startend(1:2,1,itaskgroups))
               call yaml_map('start / end disjoint',smat%taskgroup_startend(1:2,2,itaskgroups))
@@ -1598,7 +1621,7 @@ contains
       call f_free(iuse_startend)
       call f_free(itaskgroups_startend)
       call f_free(tasks_per_taskgroup)
-      call f_free(ranks)
+      !!call f_free(ranks)
 
 
 
