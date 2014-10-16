@@ -807,13 +807,13 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   order_taylor=input%lin%order_taylor ! since this is intent(inout)
   if (input%lin%scf_mode==LINEAR_FOE) then
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
+           input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
   else
 
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
+           input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
 

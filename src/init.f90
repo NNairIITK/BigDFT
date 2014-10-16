@@ -1216,12 +1216,12 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
            order_taylor=input%lin%order_taylor ! since this is intent(inout)
            if (input%lin%scf_mode==LINEAR_FOE) then
                call get_coeff(iproc,nproc,LINEAR_FOE,kswfn%orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
-                    input%SIC,tmb,fnrm,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
+                    input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
                     input%purification_quickreturn,&
                     input%calculate_KS_residue,input%calculate_gap)
            else
                call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,kswfn%orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
-                    input%SIC,tmb,fnrm,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
+                    input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
                     input%purification_quickreturn,&
                     input%calculate_KS_residue,input%calculate_gap)
 
@@ -2455,7 +2455,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !end if
         order_taylor=in%lin%order_taylor ! since this is intent(inout)
         call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
-             infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.false.,&
+             infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.true.,.false.,&
              .true.,0,0,0,0,order_taylor,in%lin%max_inversion_error,&
              in%purification_quickreturn,in%calculate_KS_residue,in%calculate_gap) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 

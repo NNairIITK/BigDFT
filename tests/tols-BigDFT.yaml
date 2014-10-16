@@ -1073,7 +1073,7 @@ O2spin_diag:
  kappa: 1.1e-4
 
 O2spin_foe:
- Atomic Forces (Ha/Bohr): 6.7e-10
+ Atomic Forces (Ha/Bohr): 7.1e-9
  EH: 1.9e-8
  EXC: 2.6e-9
  Ekin: 4.8e-9
@@ -1088,11 +1088,11 @@ O2spin_foe:
  ebs: 4.8e-9
  ebs_check: 3.3e-9
  Omega: 2.3e-9
- energy: 2.6e-9
+ energy: 1.1e-7
  Raw forces norm (Ha/Bohr): 2.7e-9
  Clean forces norm (Ha/Bohr): 2.7e-9
  Average noise forces: 2.6e-9
- Total charge: 2.4e-9
+ Total charge: 3.5e-8
  decay length of error function: 1.1e-5
  diff: 4.8e-9
  D Tr: 1.1e-7
