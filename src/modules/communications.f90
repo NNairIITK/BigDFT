@@ -936,7 +936,7 @@ module communications
 
       ! the size of the potential without spin (maybe need to find a better way to determine this...)
       npotarr = f_malloc(0.to.nproc-1,id='npotarr')
-      npotarr(0:nproc-1)=n1*n2*n3p(0:iproc-1)
+      npotarr(0:nproc-1)=n1*n2*n3p(0:nproc-1)
       !!if (nproc>1) then
       !!    call mpiallred(npotarr(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
       !!end if
