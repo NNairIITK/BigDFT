@@ -1089,8 +1089,8 @@ O2spin_foe:
  ebs_check: 3.3e-9
  Omega: 2.3e-9
  energy: 1.1e-7
- Raw forces norm (Ha/Bohr): 2.7e-9
- Clean forces norm (Ha/Bohr): 2.7e-9
+ Raw forces norm (Ha/Bohr): 2.6e-8
+ Clean forces norm (Ha/Bohr): 2.6e-8
  Average noise forces: 2.6e-9
  Total charge: 3.5e-8
  decay length of error function: 1.1e-5
