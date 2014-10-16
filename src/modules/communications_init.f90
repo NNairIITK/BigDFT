@@ -3268,7 +3268,7 @@ module communications_init
       
       ! Determine the bounds of the potential that we need for
       ! the orbitals on this process.
-      iiorb=0
+      !iiorb=0
       is1=1000000000
       ie1=-1000000000
       is2=1000000000
@@ -3278,33 +3278,33 @@ module communications_init
       !do iorb=1,orbs%norbu_par(jproc,0)
       do iorb=1,orbs%norbp
           
-          iiorb=iiorb+1 
+          iiorb=orbs%isorb+iorb 
           ilr=orbs%inwhichlocreg(iiorb)
       
           ii=1+lzd%Llr(ilr)%nsi1
-          if(ii < is1 .or. iorb==1) then
+          if(ii < is1) then
               is1=ii
           end if
           ii=lzd%Llr(ilr)%nsi1+lzd%Llr(ilr)%d%n1i
-          if(ii > ie1 .or. iorb==1) then
+          if(ii > ie1) then
               ie1=ii
           end if
       
           ii=1+lzd%Llr(ilr)%nsi2
-          if(ii < is2 .or. iorb==1) then
+          if(ii < is2) then
               is2=ii
           end if
           ii=lzd%Llr(ilr)%nsi2+lzd%Llr(ilr)%d%n2i
-          if(ii > ie2 .or. iorb==1) then
+          if(ii > ie2) then
               ie2=ii
           end if
       
           ii=1+lzd%Llr(ilr)%nsi3
-          if(ii < is3 .or. iorb==1) then
+          if(ii < is3) then
               is3=ii
           end if
           ii=lzd%Llr(ilr)%nsi3+lzd%Llr(ilr)%d%n3i
-          if(ii > ie3 .or. iorb==1) then
+          if(ii > ie3) then
               ie3=ii
           end if
       
