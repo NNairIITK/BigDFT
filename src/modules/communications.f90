@@ -962,51 +962,49 @@ module communications
                   call mpi_win_fence(mpi_mode_noprecede, comm%window, ierr)
               end if
               
-              do jproc=0,nproc-1
-                  do joverlap=1,comm%noverlaps(jproc)
-                      mpisource=comm%comarr(1,joverlap,jproc)
-                      istsource=comm%comarr(2,joverlap,jproc)
-                      mpidest=comm%comarr(3,joverlap,jproc)
-                      istdest=comm%comarr(4,joverlap,jproc)
-                      nit=comm%comarr(5,joverlap,jproc)
-                      ioffset_send=comm%comarr(6,joverlap,jproc)
-                      isend_shift = (ispin-1)*npotarr(mpisource)
-                      ! only create the derived data types in the first iteration, otherwise simply reuse them
-                      if (ispin==1) then
-                          call mpi_type_create_hvector(nit, 1, int(size_of_double*ioffset_send,kind=mpi_address_kind), &
-                               comm%mpi_datatypes(0,jproc), comm%mpi_datatypes(joverlap,jproc), ierr)
-                          call mpi_type_commit(comm%mpi_datatypes(joverlap,jproc), ierr)
+              do joverlap=1,comm%noverlaps
+                  mpisource=comm%comarr(1,joverlap)
+                  istsource=comm%comarr(2,joverlap)
+                  mpidest=comm%comarr(3,joverlap)
+                  istdest=comm%comarr(4,joverlap)
+                  nit=comm%comarr(5,joverlap)
+                  ioffset_send=comm%comarr(6,joverlap)
+                  isend_shift = (ispin-1)*npotarr(mpisource)
+                  ! only create the derived data types in the first iteration, otherwise simply reuse them
+                  if (ispin==1) then
+                      call mpi_type_create_hvector(nit, 1, int(size_of_double*ioffset_send,kind=mpi_address_kind), &
+                           comm%mpi_datatypes(0), comm%mpi_datatypes(joverlap), ierr)
+                      call mpi_type_commit(comm%mpi_datatypes(joverlap), ierr)
+                  end if
+                  if (iproc==mpidest) then
+                      call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
+                      nsize=nsize/size_of_double
+                      if(nsize>0) then
+                          !!write(*,'(7(a,i0))') 'proc ',iproc,' gets ',nsize,' elements at ',ispin_shift+istdest, &
+                          !!                     ' from proc ',mpisource,' at ',isend_shift+istsource,&
+                          !!                     '; size(send)=',size(sendbuf),', size(recv)=',size(recvbuf)
+                          call mpi_get(recvbuf(ispin_shift+istdest), nsize, &
+                               mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
+                               1, comm%mpi_datatypes(joverlap), comm%window, ierr)
                       end if
-                      if (iproc==mpidest) then
-                          call mpi_type_size(comm%mpi_datatypes(joverlap,jproc), nsize, ierr)
-                          nsize=nsize/size_of_double
-                          if(nsize>0) then
-                              !!write(*,'(7(a,i0))') 'proc ',iproc,' gets ',nsize,' elements at ',ispin_shift+istdest, &
-                              !!                     ' from proc ',mpisource,' at ',isend_shift+istsource,&
-                              !!                     '; size(send)=',size(sendbuf),', size(recv)=',size(recvbuf)
-                              call mpi_get(recvbuf(ispin_shift+istdest), nsize, &
-                                   mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
-                                   1, comm%mpi_datatypes(joverlap,jproc), comm%window, ierr)
-                          end if
-                      end if
-                  end do
+                  end if
               end do
     
           else nproc_if
     
               ist=1
               isend_shift = (ispin-1)*npotarr(iproc)
-              do i3=comm%ise(5,iproc),comm%ise(6,iproc)
+              do i3=comm%ise(5),comm%ise(6)
                   ist3=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
-                  do i2=comm%ise(3,iproc),comm%ise(4,iproc)
+                  do i2=comm%ise(3),comm%ise(4)
                       ist2=(i2-1)*lzd%glr%d%n1i
                       !call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+1), 1, recvbuf(ist), 1)
                       !write(*,'(5(a,i0))') 'proc ',iproc,' gets ',comm%ise(2,iproc)-comm%ise(1,iproc)+1, &
                       !                     ' elements at ',ispin_shift+ist,' from proc ',iproc,' at ', &
                       !                     isend_shift+ist3+ist2+comm%ise(1,iproc)
-                      call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, &
-                                 sendbuf(isend_shift+ist3+ist2+comm%ise(1,iproc)), 1, recvbuf(ispin_shift+ist), 1)
-                      ist=ist+comm%ise(2,iproc)-comm%ise(1,iproc)+1
+                      call vcopy(comm%ise(2)-comm%ise(1)+1, &
+                                 sendbuf(isend_shift+ist3+ist2+comm%ise(1)), 1, recvbuf(ispin_shift+ist), 1)
+                      ist=ist+comm%ise(2)-comm%ise(1)+1
                   end do
               end do
     
@@ -1044,10 +1042,8 @@ module communications
       
       if(.not.comm%communication_complete) then
           call mpi_win_fence(0, comm%window, ierr)
-          do jproc=0,nproc-1
-              do joverlap=1,comm%noverlaps(jproc)
-                  call mpi_type_free(comm%mpi_datatypes(joverlap,jproc), ierr)
-              end do
+          do joverlap=1,comm%noverlaps
+              call mpi_type_free(comm%mpi_datatypes(joverlap), ierr)
           end do
           call mpi_win_free(comm%window, ierr)
       end if
