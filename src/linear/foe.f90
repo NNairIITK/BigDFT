@@ -382,22 +382,22 @@ subroutine foe(iproc, nproc, tmprtr, &
     
     
                  !call check_emergency_stop()
-                 call check_emergency_stop(nproc,emergency_stop)
-                 if (emergency_stop) then
-                      eval_bounds_ok(1)=.false.
-                      call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*1.2d0,ispin)
-                      eval_bounds_ok(2)=.false.
-                      call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*1.2d0,ispin)
-                      if (iproc==0) then
-                          if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
-                               (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
-                          call yaml_mapping_close()
-                          !call bigdft_utils_flush(unit=6)
-                      end if
-                      call f_free(cc)
-                      call f_free(cc_check)
-                      cycle main_loop
-                 end if
+                 !!call check_emergency_stop(nproc,emergency_stop)
+                 !!if (emergency_stop) then
+                 !!     eval_bounds_ok(1)=.false.
+                 !!     call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)*1.2d0,ispin)
+                 !!     eval_bounds_ok(2)=.false.
+                 !!     call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*1.2d0,ispin)
+                 !!     if (iproc==0) then
+                 !!         if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
+                 !!              (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
+                 !!         call yaml_mapping_close()
+                 !!         !call bigdft_utils_flush(unit=6)
+                 !!     end if
+                 !!     call f_free(cc)
+                 !!     call f_free(cc_check)
+                 !!     cycle main_loop
+                 !!end if
         
         
                   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -410,7 +410,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                   if (calculate_SHS) then
                       !!call check_eigenvalue_spectrum()
                       call check_eigenvalue_spectrum(nproc, tmb%linmat%l, tmb%linmat%s, tmb%linmat%ovrlp_, ispin, &
-                            isshift, 1.2d0, 1.2d0, penalty_ev, anoise, .true., &
+                            isshift, 1.2d0, 1.2d0, penalty_ev, anoise, .true., emergency_stop, &
                             foe_obj, restart, eval_bounds_ok)
                   end if
         
@@ -1789,17 +1789,17 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
     
     
     
-                 ! Check for an emergency stop, which happens if the kernel explodes, presumably due
-                 ! to the eigenvalue bounds being too small.
-                 call check_emergency_stop(nproc,emergency_stop)
-                 if (emergency_stop) then
-                      eval_bounds_ok(1)=.false.
-                      call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)/1.2d0,ispin)
-                      eval_bounds_ok(2)=.false.
-                      call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*1.2d0,ispin)
-                      call f_free(cc)
-                      cycle main_loop
-                 end if
+                 !!! Check for an emergency stop, which happens if the kernel explodes, presumably due
+                 !!! to the eigenvalue bounds being too small.
+                 !!call check_emergency_stop(nproc,emergency_stop)
+                 !!if (emergency_stop) then
+                 !!     eval_bounds_ok(1)=.false.
+                 !!     call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",ispin)/1.2d0,ispin)
+                 !!     eval_bounds_ok(2)=.false.
+                 !!     call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",ispin)*1.2d0,ispin)
+                 !!     call f_free(cc)
+                 !!     cycle main_loop
+                 !!end if
         
         
                   call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -1812,7 +1812,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                   if (calculate_SHS) then
                       !call check_eigenvalue_spectrum()
                       call check_eigenvalue_spectrum(nproc, inv_ovrlp_smat, ovrlp_smat, ovrlp_mat, 1, &
-                           0, 1.2d0, 1.d0/1.2d0, penalty_ev, anoise, .false., &
+                           0, 1.2d0, 1.d0/1.2d0, penalty_ev, anoise, .false., emergency_stop, &
                            foe_obj, restart, eval_bounds_ok)
                   end if
         
@@ -1932,7 +1932,7 @@ end subroutine cheb_exp
 
 subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift, &
            factor_high, factor_low, penalty_ev, anoise, trace_with_overlap, &
-           foe_obj, restart, eval_bounds_ok)
+           emergency_stop, foe_obj, restart, eval_bounds_ok)
   use module_base
   use sparsematrix_base, only: sparse_matrix, matrices
   use sparsematrix_init, only: matrixindex_in_compressed
@@ -1946,7 +1946,7 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
   integer,intent(in) :: nproc, ispin, isshift
   real(kind=8),intent(in) :: factor_high, factor_low, anoise
   real(kind=8),dimension(smat_l%nfvctr,smat_l%smmm%nfvctrp,2),intent(in) :: penalty_ev
-  logical,intent(in) :: trace_with_overlap
+  logical,intent(in) :: trace_with_overlap, emergency_stop
   type(foe_data),intent(inout) :: foe_obj
   logical,intent(out) :: restart
   logical,dimension(2),intent(out) :: eval_bounds_ok
@@ -1958,47 +1958,54 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
 
   call f_routine(id='check_eigenvalue_spectrum')
 
-  ! The penalty function must be smaller than the noise.
-  bound_low=0.d0
-  bound_up=0.d0
-  if (smat_l%smmm%nfvctrp>0) then
-      isegstart = smat_l%istsegline(smat_l%smmm%isfvctr+1)
-      isegend = smat_l%istsegline(smat_l%smmm%isfvctr+smat_l%smmm%nfvctrp) + &
-                smat_l%nsegline(smat_l%smmm%isfvctr+smat_l%smmm%nfvctrp)-1
-      !$omp parallel default(none) &
-      !$omp private(iseg, ii, jorb, irow, icol, iismall, tt) &
-      !$omp shared(isegstart, isegend, smat_l, smat_s, mat, penalty_ev) &
-      !$omp shared(bound_low, bound_up, isshift, trace_with_overlap) 
-      !$omp do reduction(+:bound_low,bound_up)
-      do iseg=isegstart,isegend
-          ii=smat_l%keyv(iseg)-1
-          ! A segment is always on one line, therefore no double loop
-          do jorb=smat_l%keyg(1,1,iseg),smat_l%keyg(2,1,iseg)
-              ii=ii+1
-              irow = smat_l%keyg(1,2,iseg)
-              icol = jorb
-              iismall = matrixindex_in_compressed(smat_s, irow, icol)
-              if (iismall>0) then
-                  if (trace_with_overlap) then
-                      ! Take the trace of the product matrix times overlap
-                      tt=mat%matrix_compr(isshift+iismall)
-                  else
-                      ! Take the trace of the matrix alone, i.e. set the second matrix to the identity
-                      if (irow==icol) then
-                          tt=1.d0
+  if (.not.emergency_stop) then
+      ! The penalty function must be smaller than the noise.
+      bound_low=0.d0
+      bound_up=0.d0
+      if (smat_l%smmm%nfvctrp>0) then
+          isegstart = smat_l%istsegline(smat_l%smmm%isfvctr+1)
+          isegend = smat_l%istsegline(smat_l%smmm%isfvctr+smat_l%smmm%nfvctrp) + &
+                    smat_l%nsegline(smat_l%smmm%isfvctr+smat_l%smmm%nfvctrp)-1
+          !$omp parallel default(none) &
+          !$omp private(iseg, ii, jorb, irow, icol, iismall, tt) &
+          !$omp shared(isegstart, isegend, smat_l, smat_s, mat, penalty_ev) &
+          !$omp shared(bound_low, bound_up, isshift, trace_with_overlap) 
+          !$omp do reduction(+:bound_low,bound_up)
+          do iseg=isegstart,isegend
+              ii=smat_l%keyv(iseg)-1
+              ! A segment is always on one line, therefore no double loop
+              do jorb=smat_l%keyg(1,1,iseg),smat_l%keyg(2,1,iseg)
+                  ii=ii+1
+                  irow = smat_l%keyg(1,2,iseg)
+                  icol = jorb
+                  iismall = matrixindex_in_compressed(smat_s, irow, icol)
+                  if (iismall>0) then
+                      if (trace_with_overlap) then
+                          ! Take the trace of the product matrix times overlap
+                          tt=mat%matrix_compr(isshift+iismall)
                       else
-                          tt=0.d0
+                          ! Take the trace of the matrix alone, i.e. set the second matrix to the identity
+                          if (irow==icol) then
+                              tt=1.d0
+                          else
+                              tt=0.d0
+                          end if
                       end if
+                  else
+                      tt=0.d0
                   end if
-              else
-                  tt=0.d0
-              end if
-              bound_low = bound_low + penalty_ev(icol,irow-smat_l%smmm%isfvctr,2)*tt
-              bound_up = bound_up +penalty_ev(icol,irow-smat_l%smmm%isfvctr,1)*tt
-          end do  
-      end do
-      !$omp end do
-      !$omp end parallel
+                  bound_low = bound_low + penalty_ev(icol,irow-smat_l%smmm%isfvctr,2)*tt
+                  bound_up = bound_up +penalty_ev(icol,irow-smat_l%smmm%isfvctr,1)*tt
+              end do  
+          end do
+          !$omp end do
+          !$omp end parallel
+      end if
+  else
+      ! This means that the Chebyshev expansion exploded, so take a very large
+      ! value for the error function such that eigenvalue bounds will be enlarged
+      bound_low = 1.d10
+      bound_up = 1.d10
   end if
 
   allredarr(1)=bound_low

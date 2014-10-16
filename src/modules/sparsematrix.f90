@@ -677,8 +677,9 @@ module sparsematrix
                  end do
                  call f_free(windows)
                  !call mpi_fenceandfree(window)
-                 call f_free_ptr(matrix_local)
              end if
+
+             call f_free_ptr(matrix_local)
 
          end if
 
