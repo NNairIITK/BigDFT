@@ -68,7 +68,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   if(calculate_ham) then
       call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
-      call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,1), denspot%rhov, &
+      call start_onesided_communication(iproc, nproc, denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), &
+           max(denspot%dpbox%nscatterarr(:,2),1), denspot%rhov, &
            tmb%ham_descr%comgp%nrecvbuf*tmb%ham_descr%comgp%nspin, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, &
            tmb%ham_descr%lzd)
   end if
@@ -599,7 +600,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   it_tot=0
   !ortho=.true.
   call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
-  call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,1), denspot%rhov, &
+  call start_onesided_communication(iproc, nproc, denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), &
+       max(denspot%dpbox%nscatterarr(:,2),1), denspot%rhov, &
        tmb%ham_descr%comgp%nrecvbuf*tmb%ham_descr%comgp%nspin, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, &
        tmb%ham_descr%lzd)
 
