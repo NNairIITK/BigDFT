@@ -458,7 +458,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       tmprtr=0.d0
       call foe(iproc, nproc, tmprtr, &
            energs%ebs, itout,it_scc, order_taylor, max_inversion_error, purification_quickreturn, &
-           calculate_overlap_matrix, 1, FOE_ACCURATE, tmb, tmb%foe_obj)
+           invert_overlap_matrix, 1, FOE_ACCURATE, tmb, tmb%foe_obj)
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
 
