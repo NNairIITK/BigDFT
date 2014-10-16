@@ -305,9 +305,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              ! NB nothing is written to screen for this get_coeff
              if (.not. input%lin%constrained_dft) then
                 ! Check whether the overlap matrix must be calculated and inverted (otherwise it has already been done)
-                calculate_overlap = (update_phi .and. .not.input%correction_co_contra)
-                invert_overlap_matrix = (input%method_updatekernel/=UPDATE_BY_FOE .and. &
-                                         input%method_updatekernel/=UPDATE_BY_RENORMALIZATION)
+                calculate_overlap = ((update_phi .and. .not.input%correction_co_contra) .or. cur_it_highaccuracy==1)
+                invert_overlap_matrix = ((input%method_updatekernel/=UPDATE_BY_FOE .and. &
+                                         input%method_updatekernel/=UPDATE_BY_RENORMALIZATION) .or. &
+                                         cur_it_highaccuracy==1)
                 call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                      infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                      .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
@@ -586,9 +587,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 call yaml_comment('kernel iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
              end if
              ! Check whether the overlap matrix must be calculated and inverted (otherwise it has already been done)
-             calculate_overlap = (update_phi .and. .not.input%correction_co_contra)
-             invert_overlap_matrix = (input%method_updatekernel/=UPDATE_BY_FOE .and. &
-                                      input%method_updatekernel/=UPDATE_BY_RENORMALIZATION)
+             calculate_overlap = ((update_phi .and. .not.input%correction_co_contra) .or. cur_it_highaccuracy==1)
+             invert_overlap_matrix = ((input%method_updatekernel/=UPDATE_BY_FOE .and. &
+                                      input%method_updatekernel/=UPDATE_BY_RENORMALIZATION) .or. &
+                                      cur_it_highaccuracy==1)
              if(update_phi .and. can_use_ham) then! .and. info_basis_functions>=0) then
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
