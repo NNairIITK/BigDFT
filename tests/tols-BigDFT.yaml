@@ -1084,7 +1084,7 @@ O2spin_foe:
  charge diff: 1.3e-7
  eF: 1.1-10
  D eF: 4.4e-8
- guess for new ef: 3.1e-9
+ guess for new ef: 4.1e-9
  ebs: 1.7e-8
  ebs_check: 1.7e-8
  Omega: 2.3e-9
@@ -1092,11 +1092,11 @@ O2spin_foe:
  Raw forces norm (Ha/Bohr): 3.4e-8
  Clean forces norm (Ha/Bohr): 3.4e-8
  Average noise forces: 3.2e-8
- Total charge: 3.5e-8
+ Total charge: 4.9e-8
  decay length of error function: 1.1e-5
  diff: 4.8e-9
  D Tr: 2.1e-7
- relative diff: 2.4e-11
+ relative diff: 2.6e-11
 
 O2spin_dirmin:
  Atomic Forces (Ha/Bohr): 9.1e-6
