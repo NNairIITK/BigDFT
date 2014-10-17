@@ -137,7 +137,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
 !    if(astruct_ptr%geocode/='F'.and. .not. (trim(adjustl(efmethod))=='LENSIc'))&
 !    stop 'STOP: saddle search only implemented for free BC'
 
-    if((minoverlap0>=-1.d0).and.saddle_tighten)&
+    if((minoverlap0>=-1.0_gp).and.saddle_tighten)&
     stop 'STOP: Don not use minoverlap and no tightening in combination'
 
     if(iproc==0)then
@@ -937,7 +937,8 @@ subroutine curvforce(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_co
     dfxyz = f_malloc((/ 1.to.3, 1.to.nat/),id='dfxyz')
     call elim_moment_fs(nat,vec(1,1))
 !    call elim_torque_fs(nat,rxyz1(1,1),vec(1,1))
-    call elim_torque_reza(nat,rxyz1(1,1),vec(1,1))
+!    call elim_torque_reza(nat,rxyz1(1,1),vec(1,1))
+    call elim_torque_bastian(nat,rxyz1(1,1),vec(1,1))
 
     vec = vec / dnrm2(3*nat,vec(1,1),1)
     rxyz2 = rxyz1 + diff * vec
@@ -955,7 +956,8 @@ subroutine curvforce(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_co
         call elim_moment_fs(nat,rotforce(1,1))
 !!        call elim_torque_fs(nat,rxyz1(1,1),rotforce(1,1))
 !call torque(nat,rxyz1(1,1),rotforce(1,1))
-        call elim_torque_reza(nat,rxyz1(1,1),rotforce(1,1))
+!        call elim_torque_reza(nat,rxyz1(1,1),rotforce(1,1))
+        call elim_torque_bastian(nat,rxyz1(1,1),rotforce(1,1))
 
 
 
@@ -1372,7 +1374,8 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
 
       call elim_moment_fs(nat,vel)
 !      call elim_torque_fs(nat,pos,vel)
-      call elim_torque_reza(nat,pos,vel)
+!      call elim_torque_reza(nat,pos,vel)
+      call elim_torque_bastian(nat,pos,vel)
 
       ! scale velocities to regain initial ekin0
       ekin=0.0_gp
@@ -1913,6 +1916,109 @@ subroutine convcheck_sad(fmax,curv,fluctfrac_fluct,forcemax,check)
     check=0
   endif
 end subroutine convcheck_sad
+subroutine elim_torque_bastian(nat,ratin,vat)
+use module_base
+!theory:
+!(in the following: x mean cross product)
+!L = sum(r_i x p_i) = I w
+!w = I^-1 L
+!v_ortho = w x r
+!v_tot = v_ortho + v_radial
+!=> vradial = v_tot - w x r
+!note: routine must be modified before using in cases
+!where masses /= 1
+    implicit none
+    integer, intent(in) :: nat
+    real(gp), intent(in) :: ratin(3,nat)
+    real(gp), intent(inout) :: vat(3,nat)
+    !internal
+    integer :: iat
+    real(gp) :: rat(3,nat),cmx,cmy,cmz
+    real(gp) :: tt,tinv(3,3),dettinI,w(3),vo(3),angmom(3)
+    real(gp) :: tin11,tin22,tin33,tin12,tin13
+    real(gp) :: tin23,tin21,tin31,tin32
+    real(gp), dimension(:), allocatable :: amass
+
+    amass = f_malloc((/1.to.nat/),id='amass')
+    amass(1:nat)=1.0d0
+
+    !shift cm to origin
+    cmx=0.0_gp; cmy=0.0_gp; cmz=0.0_gp
+    do iat=1,nat
+        cmx = cmx + ratin(1,iat)
+        cmy = cmy + ratin(2,iat)
+        cmz = cmz + ratin(3,iat)
+    enddo
+    cmx=cmx/nat; cmy=cmy/nat; cmz=cmz/nat
+    do iat=1,nat
+        rat(1,iat) = ratin(1,iat)-cmx
+        rat(2,iat) = ratin(2,iat)-cmy
+        rat(3,iat) = ratin(3,iat)-cmz
+    enddo
+    
+    
+    !calculate inertia tensor
+    tin11=0.0_gp; tin22=0.0_gp; tin33=0.0_gp
+    tin12=0.0_gp; tin13=0.0_gp; tin23=0.0_gp
+    tin21=0.0_gp; tin31=0.0_gp; tin32=0.0_gp
+    do iat=1,nat
+        tt=amass(iat)
+        tin11=tin11+tt*(rat(2,iat)*rat(2,iat)+rat(3,iat)*rat(3,iat))
+        tin22=tin22+tt*(rat(1,iat)*rat(1,iat)+rat(3,iat)*rat(3,iat))
+        tin33=tin33+tt*(rat(1,iat)*rat(1,iat)+rat(2,iat)*rat(2,iat))
+        tin12=tin12-tt*(rat(1,iat)*rat(2,iat))
+        tin13=tin13-tt*(rat(1,iat)*rat(3,iat))
+        tin23=tin23-tt*(rat(2,iat)*rat(3,iat))
+        tin21=tin12
+        tin31=tin13
+        tin32=tin23
+    enddo
+
+    !invert inertia tensor
+    dettinI = 1.0_gp/(tin11*tin22*tin33+tin12*tin23*tin31&
+              +tin13*tin21*tin32-tin13*tin22*tin31-&
+              tin12*tin21*tin33-tin11*tin23*tin32)
+    tinv(1,1)=dettinI*(tin22*tin33-tin23*tin32)
+    tinv(2,2)=dettinI*(tin11*tin33-tin13*tin31)
+    tinv(3,3)=dettinI*(tin11*tin22-tin12*tin21)
+    tinv(1,2)=dettinI*(tin13*tin32-tin12*tin33)
+    tinv(1,3)=dettinI*(tin12*tin23-tin13*tin22)
+    tinv(2,3)=dettinI*(tin13*tin21-tin11*tin23)
+    tinv(2,1)=dettinI*(tin23*tin31-tin21*tin33)
+    tinv(3,1)=dettinI*(tin21*tin32-tin22*tin31)
+    tinv(3,2)=dettinI*(tin12*tin31-tin11*tin32)
+
+    !Compute angular momentum
+    angmom=0.0_gp
+    vo=0.0_gp
+    do iat=1,nat
+        vo(1)=rat(2,iat)*vat(3,iat)-rat(3,iat)*vat(2,iat)
+        vo(2)=rat(3,iat)*vat(1,iat)-rat(1,iat)*vat(3,iat)
+        vo(3)=rat(1,iat)*vat(2,iat)-rat(2,iat)*vat(1,iat)
+        angmom(1)=angmom(1)+vo(1)
+        angmom(2)=angmom(2)+vo(2)
+        angmom(3)=angmom(3)+vo(3)
+    enddo
+
+    !matrix product w= I^-1 L
+    w(1)=tinv(1,1)*angmom(1)+tinv(1,2)*angmom(2)+tinv(1,3)*angmom(3)
+    w(2)=tinv(2,1)*angmom(1)+tinv(2,2)*angmom(2)+tinv(2,3)*angmom(3)
+    w(3)=tinv(3,1)*angmom(1)+tinv(3,2)*angmom(2)+tinv(3,3)*angmom(3)
+
+    vo=0.0_gp
+    do iat=1,nat
+        !tangential velocity v_ortho = w x r_i
+        vo(1)=w(2)*rat(3,iat)-w(3)*rat(2,iat)
+        vo(2)=w(3)*rat(1,iat)-w(1)*rat(3,iat)
+        vo(3)=w(1)*rat(2,iat)-w(2)*rat(1,iat)
+        !remove tangential velocity from velocity of atom iat
+        vat(1,iat) = vat(1,iat) - vo(1)
+        vat(2,iat) = vat(2,iat) - vo(2)
+        vat(3,iat) = vat(3,iat) - vo(3)
+    enddo
+    call f_free(amass)
+end subroutine
+
 !!!!subroutine cal_hessian_fd_m(iproc,nat,alat,pos,hess)
 !!!!use module_base
 !!!!use module_energyandforces

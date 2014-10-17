@@ -44,13 +44,13 @@ character(len=9) :: fn9
     ef_counter=ef_counter+1.0_gp
 
 !!temporary output for geopt paper
-if (iproc == 0) then
-   write(fn9,'(i9.9)') int(ef_counter)
-   call astruct_dump_to_file(astruct_ptr,&
-        currDir//'/dump_'//fn9, &
-        '',energy=0.0_gp,rxyz=rxyz,&
-        forces=fxyz)
-endif
+!if (iproc == 0) then
+!   write(fn9,'(i9.9)') int(ef_counter)
+!   call astruct_dump_to_file(astruct_ptr,&
+!        currDir//'/dump_'//fn9, &
+!        '',energy=0.0_gp,rxyz=rxyz,&
+!        forces=fxyz)
+!endif
 
 
  
@@ -125,14 +125,14 @@ endif
                               'energyandforces')
             stop
         endif
-        call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1),1,&
-             runObj%atoms%astruct%rxyz(1,1), 1)
+!        call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1),1,&
+!             runObj%atoms%astruct%rxyz(1,1), 1)
+        call bigdft_set_rxyz(runObj,rxyz=rxyz)
         runObj%inputs%inputPsiId=inputPsiId
         runObj%inputs%itermin=itermin
         call call_bigdft(runObj,outs,infocode)
         call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1), 1)
-        call vcopy(3 * runObj%atoms%astruct%nat,&
-             runObj%atoms%astruct%ixyz_int(1,1),1,&
+        call vcopy(3 * nat,runObj%atoms%astruct%ixyz_int(1,1),1,&
              ixyz_int(1,1), 1)
         epot=outs%energy
         fnoise=outs%fnoise
