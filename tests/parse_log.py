@@ -275,50 +275,118 @@ if __name__ == "__main__":
   parser = parse_arguments()
   (args, argtmp) = parser.parse_args()
 
-def bars_data(dict):
-  """Extract the data for plotting the different categories in bar chart"""
-  import pylab
-  toext=["Communications","Convolutions","BLAS-LAPACK","Linear Algebra",
-              "Other","PS Computation","Potential",
-              "Flib LowLevel","Initialization"]
+class BigDFTiming:
+  def __init__(self,filename):
+    #here a try-catch section should be added for multiple documents
+    self.log=yaml.load(open(filename, "r").read(), Loader = yaml.CLoader)
 
-  ind=pylab.np.arange(1)
-  width=0.35
-  bot=pylab.np.array([0])
-  plts=[]
-  key_legend=[]
-  values_legend=[]
-  icol=1.0
-  for cat in toext:
-    try:
-      dat=pylab.np.array([dict[cat][0]])
-      print 'data',dat
-      plt=pylab.bar(ind,dat,width,bottom=bot,color=pylab.cm.jet(icol/len(toext)))
-      plts.append(plt)
-      key_legend.append(plt[0])
-      values_legend.append(cat)
-      bot+=dat
-      icol+=1.0
-    except:
+    #shallow copies of important parts
+    self.routines=self.log["Routines timing and number of calls"]
+    self.hostnames=self.log["Hostnames"]
+    self.scf=self.log["WFN_OPT"]
+    self.classes=["Communications","Convolutions","BLAS-LAPACK","Linear Algebra",
+                  "Other","PS Computation","Potential",
+                  "Flib LowLevel","Initialization"]
+
+  def bars_data(self,dict):
+    """Extract the data for plotting the different categories in bar chart"""
+    import pylab
+    ind=pylab.np.arange(1)
+    width=0.35
+    bot=pylab.np.array([0])
+    plts=[]
+    key_legend=[]
+    values_legend=[]
+    icol=1.0
+    print "dict",dict
+    for cat in self.classes:
+      try:
+        dat=pylab.np.array([dict[cat][0]])
+        print 'data',dat
+        print 'unbalancing',dict[cat][2:]
+        plt=pylab.bar(ind,dat,width,bottom=bot,color=pylab.cm.jet(icol/len(self.classes)))
+        plts.append(plt)
+        key_legend.append(plt[0])
+        values_legend.append(cat)
+        bot+=dat
+        icol+=1.0
+      except Exception,e:
+        #print 'EXCEPTION FOUND',e
 	print "category",cat,"not present"
   
-  pylab.ylabel('Percent')
-  pylab.title('Time bar chart')
-  pylab.xticks(ind+width/2., ('G1', 'G2', 'G3', 'G4', 'G5') )
-  pylab.yticks(pylab.np.arange(0,100,10))
-  pylab.legend(pylab.np.array(key_legend), pylab.np.array(values_legend))
-  #pylab.show()
+    pylab.ylabel('Percent')
+    pylab.title('Time bar chart')
+    pylab.xticks(ind+width/2., ('G1', 'G2', 'G3', 'G4', 'G5') )
+    pylab.yticks(pylab.np.arange(0,100,10))
+    pylab.legend(pylab.np.array(key_legend), pylab.np.array(values_legend))
+
+  def unbalanced(self,val):
+    """Criterion for unbalancing"""
+    return val > 1.5 or val < 0.5
+
+  def find_unbalanced(self,data):
+    """Determine lookup array of unbalanced categories"""
+    ipiv=[]
+    for i in range(len(data)):
+      if self.unbalanced(data[i]):
+        ipiv.append(i)
+    return ipiv
+
+  def load_unbalancing(self,dict):
+    """Extract the data for plotting the hostname balancings between different categories in bar chart"""
+    import pylab
+    width=0.50
+    plts=[]
+    key_legend=[]
+    values_legend=[]
+    icol=1.0
+    print "dict",dict
+    for cat in self.classes:
+      try:
+        dat=pylab.np.array([dict[cat][0]])
+        print 'data',dat
+        unb=pylab.np.array(dict[cat][2:])
+        print 'unbalancing',unb
+        unb2=self.find_unbalanced(unb)
+        print 'unbalanced objects',cat
+        print 'vals',[ [i,unb[i],self.hostnames[i]] for i in unb2]
+        ind=pylab.np.arange(len(unb))
+        plt=pylab.bar(ind,unb,width,color=pylab.cm.jet(icol/len(self.classes)))
+        plts.append(plt)
+        key_legend.append(plt[0])
+        values_legend.append(cat)
+        icol+=1.0
+        if (width > 0.05):
+          width -= 0.05
+      except Exception,e:
+        print 'EXCEPTION FOUND',e
+        print "cat",cat,"not found"
+
+    if len(ind) > 2:
+      tmp=pylab.np.array(self.hostnames)
+    else:
+      tmp=pylab.np.array(["max","min"])
+    pylab.ylabel('Load Unbalancing wrt average')
+    pylab.title('Work Load of different classes')
+    pylab.xticks(ind+width/2., tmp)
+    pylab.yticks(pylab.np.arange(0,2,0.25))
+    pylab.legend(pylab.np.array(key_legend), pylab.np.array(values_legend))
+
+
 
 #logfile
 #check if timedata is given
 if args.timedata is not None:
   #load the first yaml document
-  timing = yaml.load(open(args.timedata, "r").read(), Loader = yaml.CLoader)
-  dict_routines = timing["Routines timing and number of calls"]
-  #timing["WFN_OPT"]["Classes"].pop("Categories")  #not needed anymore
-  sys.stdout.write(yaml.dump(timing["WFN_OPT"]["Classes"],default_flow_style=False,explicit_start=True))
-  bars_data(timing["WFN_OPT"]["Classes"])
-  data=dump_timing_level(dict_routines)
+  bt=BigDFTiming(args.timedata)
+  print "hosts",bt.hostnames
+  #timing = yaml.load(open(args.timedata, "r").read(), Loader = yaml.CLoader)
+  #dict_routines = timing["Routines timing and number of calls"]
+  #sys.stdout.write(yaml.dump(timing["WFN_OPT"]["Classes"],default_flow_style=False,explicit_start=True))
+  #bt.bars_data(bt.scf["Classes"]) #timing["WFN_OPT"]["Classes"])
+  bt.load_unbalancing(bt.scf["Classes"]) #timing["WFN_OPT"]["Classes"])
+  data=dump_timing_level(bt.routines) #dict_routines)
+  #sys.stdout.write(yaml.dump(data,default_flow_style=False,explicit_start=True))
   #ilev=1
   #for lev in data["names"]:
   #  sys.stdout.write(yaml.dump({"Level "+str(ilev):lev},default_flow_style=False,explicit_start=True))
@@ -328,7 +396,7 @@ if args.timedata is not None:
   plt.show()
   #print allev
   #dump the loaded info
-  sys.stdout.write(yaml.dump(data,default_flow_style=False,explicit_start=True))
+
   
 
 if args.data is None:

@@ -13,7 +13,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
    use module_base!, only: wp, bigdft_mpi, mpi_sum, mpi_max, mpiallred
    use module_types, only: orbitals_data, local_zone_descriptors, linear_matrices
    use yaml_output
-   use communications_base, only: comms_linear
+   use communications_base, only: comms_linear, TRANSPOSE_FULL
    use communications, only: transpose_localized, untranspose_localized
    use sparsematrix_base, only : sparse_matrix, matrices, DENSE_PARALLEL
    use sparsematrix, only : compress_matrix_distributed
@@ -80,7 +80,8 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
           end do
        end do
     
-       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psi, psit_c, psit_f, lzd)
+       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, TRANSPOSE_FULL, &
+            psi, psit_c, psit_f, lzd)
        !!do i=1,size(psit_c)
        !!    write(7000+iproc,*) i, psit_c(i)
        !!end do
@@ -285,7 +286,8 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
        !@END NEW ########################################################
     
     
-       call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, psi, lzd)
+       call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, &
+            TRANSPOSE_FULL, psit_c, psit_f, psi, lzd)
     
        maxdiff=0.0_wp
        do iorb=1,orbs%norbp
@@ -951,14 +953,14 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
               ishift = (ispin-1)*smat%nvctr
               ncount = 0
               do itg=1,smat%ntaskgroupp
-                  iitg = smat%inwhichtaskgroup(itg)
+                  iitg = smat%taskgroupid(itg)
                   ncount = ncount + smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
               end do
               if (ispin==1) recvbuf = f_malloc(ncount,id='recvbuf')
 
               ncount = 0
               do itg=1,smat%ntaskgroupp
-                  iitg = smat%inwhichtaskgroup(itg)
+                  iitg = smat%taskgroupid(itg)
                   ist_send = smat%taskgroup_startend(1,1,iitg)
                   ist_recv = ncount + 1
                   ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
@@ -976,7 +978,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
               end if
               ncount = 0
               do itg=1,smat%ntaskgroupp
-                  iitg = smat%inwhichtaskgroup(itg)
+                  iitg = smat%taskgroupid(itg)
                   ist_send = smat%taskgroup_startend(1,1,iitg)
                   ist_recv = ncount + 1
                   ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
