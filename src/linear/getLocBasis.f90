@@ -2489,8 +2489,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
   !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
   tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-        tmb%linmat%ovrlp_%matrix_compr(isshift+1:isshift+tmb%linmat%s%nvctr), &
-        tmb%linmat%kernel_%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), ispin)
+        tmb%linmat%ovrlp_%matrix_compr(isshift+tmb%linmat%s%isvctrp_tg+1:), &
+        tmb%linmat%kernel_%matrix_compr(ilshift+tmb%linmat%l%isvctrp_tg+1:), ispin)
   if (iproc==0) then
       call yaml_map('tr(KS) before purification',tr_KS)
       call yaml_newline
@@ -2624,8 +2624,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
           !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
           tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-                tmb%linmat%ovrlp_%matrix_compr(isshift+1:isshift+tmb%linmat%s%nvctr), &
-                tmb%linmat%kernel_%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), ispin)
+                tmb%linmat%ovrlp_%matrix_compr(isshift+tmb%linmat%s%isvctrp_tg+1:), &
+                tmb%linmat%kernel_%matrix_compr(ilshift+tmb%linmat%l%isvctrp_tg+1:), ispin)
           if (tmb%linmat%l%nspin==2) then
               chargediff=tr_KS-foe_data_get_real(tmb%foe_obj,"charge",ispin)
           else if (tmb%linmat%l%nspin==1) then
@@ -2668,8 +2668,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
            inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
       !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
       tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-            tmb%linmat%ovrlp_%matrix_compr(isshift+1:isshift+tmb%linmat%s%nvctr), &
-            tmb%linmat%kernel_%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), ispin)
+            tmb%linmat%ovrlp_%matrix_compr(isshift+tmb%linmat%s%isvctrp_tg+1:), &
+            tmb%linmat%kernel_%matrix_compr(ilshift+tmb%linmat%l%isvctrp_tg+1:), ispin)
       if (tmb%linmat%l%nspin==2) then
           chargediff=tr_KS-foe_data_get_real(tmb%foe_obj,"charge",ispin)
       else if (tmb%linmat%l%nspin==1) then
@@ -2732,8 +2732,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
   !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
   tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-        tmb%linmat%ovrlp_%matrix_compr(isshift+1:isshift+tmb%linmat%s%nvctr), &
-        tmb%linmat%kernel_%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), ispin)
+        tmb%linmat%ovrlp_%matrix_compr(isshift+tmb%linmat%s%isvctrp_tg+1:), &
+        tmb%linmat%kernel_%matrix_compr(ilshift+tmb%linmat%l%isvctrp_tg+1:), ispin)
   if (iproc==0) then
       call yaml_newline()
       call yaml_map('tr(KS) after purification',tr_KS)

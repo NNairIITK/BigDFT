@@ -3216,13 +3216,12 @@ module module_interfaces
 
 
         subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
-             orbs,nlpsp,lzd,collcom,phi,denskern,denskern_mat,fsep,refill,strten)
+             orbs,nlpsp,lzd,phi,denskern,denskern_mat,fsep,refill,strten)
           use module_base
           use module_types
           implicit none
           type(atoms_data), intent(in) :: at
           type(local_zone_descriptors), intent(in) :: lzd
-          type(comms_linear),intent(in) :: collcom
           type(DFT_PSP_projectors), intent(inout) :: nlpsp
           logical, intent(in) :: refill
           integer, intent(in) :: iproc, nproc, npsidim_orbs
