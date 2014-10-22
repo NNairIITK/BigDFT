@@ -446,7 +446,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
-        atoms,rxyz,crmult,frmult,KSwfn%Lzd%Glr)
+       atoms,rxyz,crmult,frmult,.true.,KSwfn%Lzd%Glr)
    if (iproc == 0) call print_wfd(KSwfn%Lzd%Glr%wfd)
 
    KSwfn%Lzd%hgrids(1)=hx
@@ -1695,7 +1695,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   call timing(iproc,'wavefunction  ','ON')   
   !use only the part of the arrays for building the hamiltonian matrix
   call gaussians_to_wavelets_new(iproc,nproc,Lzde,orbse,G,&
-       psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
+       psigau(1,1,1),psi)
   call timing(iproc,'wavefunction  ','OF')
   call f_free(locrad)
 

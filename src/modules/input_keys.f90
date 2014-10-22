@@ -193,7 +193,7 @@ contains
     type(dictionary), pointer :: input_keys_get_profiles
 
     type(dictionary), pointer :: p
-    integer :: i
+    integer :: i, skeys
     character(max_field_length), dimension(:), allocatable :: keys
 
     call input_keys_init()
@@ -205,7 +205,8 @@ contains
     else
        allocate(keys(dict_size(parameters)))
        keys = dict_keys(parameters)
-       do i = 1, size(keys), 1
+       skeys = size(keys)
+       do i = 1, skeys, 1
           call vars(p // keys(i), parameters // keys(i))
        end do
        deallocate(keys)
@@ -222,12 +223,14 @@ contains
       implicit none
       type(dictionary), pointer :: dict, ref
 
-      integer :: i
+      integer :: i, svar
       character(max_field_length), dimension(:), allocatable :: var
 
       allocate(var(dict_size(ref)))
       var = dict_keys(ref)
-      do i = 1, size(var), 1
+      !to avoid problems on BG/Q
+      svar = size(var)
+      do i = 1, svar, 1
          call generate(dict, var(i), ref // var(i))
       end do
       deallocate(var)
@@ -242,12 +245,14 @@ contains
       type(dictionary), pointer :: dict, ref
       character(max_field_length), intent(in) :: key
 
-      integer :: i
+      integer :: i, skeys
       character(max_field_length), dimension(:), allocatable :: keys
 
       allocate(keys(dict_size(ref)))
       keys = dict_keys(ref)
-      do i = 1, size(keys), 1
+      !to avoid problems on BG/Q
+      skeys = size(keys)
+      do i = 1, skeys, 1
          if (trim(keys(i)) /= COMMENT .and. &
               & trim(keys(i)) /= COND .and. &
               & trim(keys(i)) /= RANGE .and. &
@@ -733,7 +738,7 @@ contains
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: file, key
 
-    integer :: i
+    integer :: i, skeys
     type(dictionary), pointer :: ref
     character(len = max_field_length) :: val, profile_
     character(len = max_field_length), dimension(:), allocatable :: keys
@@ -777,7 +782,8 @@ contains
              allocate(keys(dict_size(failed_exclusive)))
              keys = dict_keys(failed_exclusive)
              found = .false.
-             do i = 1, size(keys), 1
+             skeys = size(keys)
+             do i = 1, skeys, 1
                 found = input_keys_equal(trim(val), trim(keys(i)))
                 if (found) exit
              end do
@@ -823,7 +829,7 @@ contains
       type(dictionary), pointer :: dict, ref
       logical :: set_
 
-      integer :: j
+      integer :: j, dlen
       type(dictionary), pointer :: tmp
       character(max_field_length) :: mkey, val_master, val_when
 
@@ -854,18 +860,21 @@ contains
       character(len = max_field_length) :: val
       character(max_field_length), dimension(:), allocatable :: keys
       double precision :: var
+      integer :: dlen, skeys
 
       if (associated(dict%child)) then
          if (dict_len(dict) >= 1) then
             ! List case.
-            do i = 0, dict_len(dict) - 1, 1
+            dlen = dict_len(dict)
+            do i = 0, dlen - 1, 1
                call validate(dict // i, key, rg)
             end do            
          else
             ! Dictionary case
             allocate(keys(dict_size(dict)))
             keys = dict_keys(dict)
-            do i = 1, size(keys), 1
+            skeys = size(keys)
+            do i = 1, skeys, 1
                call validate(dict // keys(i), key, rg)
             end do
             deallocate(keys)
@@ -883,21 +892,45 @@ contains
     end subroutine validate
   END SUBROUTINE input_keys_set
 
+  !> takes the posinp filename from the dictionary. Starting point is dict//POSINP
+  subroutine astruct_dict_get_source(dict, source)
+    use dictionaries, only: max_field_length, dictionary, has_key, operator(//), dict_value
+    use public_keys, only: POSINP_SOURCE
+    implicit none
+    type(dictionary), pointer :: dict
+    character(len = *), intent(inout) :: source !<preserve provious value if present
+
+    write(source, "(A)") ""
+    if (has_key(dict, ASTRUCT_PROPERTIES)) then
+       if (has_key(dict // ASTRUCT_PROPERTIES, POSINP_SOURCE)) &
+            & source = dict_value(dict // ASTRUCT_PROPERTIES // POSINP_SOURCE)
+    end if
+  end subroutine astruct_dict_get_source
+
 
   !> Dump the dictionary of the input variables.
   !! Should dump only the keys relative to the iunput variables and
   !! print out warnings for the ignored keys
   subroutine input_keys_dump(dict, userOnly)
+    use yaml_strings, only: f_strcpy
     use yaml_output
     use dictionaries
+    use dynamic_memory
+    use public_keys, only: POSINP,ASTRUCT_PROPERTIES,ASTRUCT_POSITIONS
+    
     implicit none
     type(dictionary), pointer :: dict   !< Dictionary to dump
     logical, intent(in), optional :: userOnly
 
     !local variables
-    integer :: i
+    integer, parameter :: natoms_dump=500
+    integer :: i, dlen, skeys,natoms
     character(max_field_length), dimension(:), allocatable :: keys
+    character(max_field_length) ::  sourcefile
     logical :: userOnly_
+    type(dictionary), pointer :: tmp
+
+    call f_routine(id='input_keys_dump')
 
     userOnly_ = .false.
     if (present(userOnly)) userOnly_ = userOnly
@@ -908,21 +941,39 @@ contains
     if (associated(dict%child)) then
        if (dict_len(dict) >= 1) then
           ! List case.
-          do i = 0, dict_len(dict) - 1, 1
+          dlen = dict_len(dict)
+          do i = 0,  dlen- 1, 1
              call dict_dump_(dict // i)
           end do
        else
           ! Dictionary case
           allocate(keys(dict_size(dict)))
           keys = dict_keys(dict)
-          do i = 1, size(keys), 1
-             call dict_dump_(dict // keys(i))
+          skeys = size(keys)
+          do i = 1, skeys
+             if (POSINP == trim(keys(i))) then
+                call f_strcpy(src='not provided',dest=sourcefile)
+                tmp=>dict//POSINP
+                !check the number of atoms
+                natoms=-1
+                if (ASTRUCT_POSITIONS .in. tmp) natoms=dict_len(tmp // ASTRUCT_POSITIONS)
+                if (natoms > natoms_dump) then
+                   call astruct_dict_get_source(tmp, sourcefile)
+                   call yaml_map(POSINP,sourcefile)
+                else
+                   call dict_dump_(dict // keys(i))
+                end if
+             else
+                call dict_dump_(dict // keys(i))
+             end if
           end do
           deallocate(keys)
        end if
     else
        call yaml_scalar(dict%data%value)
     end if
+
+    call f_release_routine()
 
   contains
 
@@ -933,7 +984,7 @@ contains
       type(dictionary), pointer :: dict
 
       logical :: flow, userDef
-      integer :: i
+      integer :: i, dlen, skeys
       type(dictionary), pointer :: parent, attr, iter
       character(max_field_length) :: descr, tag, prof, output
       character(max_field_length), dimension(:), allocatable :: keys
@@ -966,7 +1017,8 @@ contains
          else
             call yaml_sequence_open(trim(dict%data%key), tag = tag, flow=flow)
          end if
-         do i = 0, dict_len(dict) - 1, 1
+         dlen = dict_len(dict)
+         do i = 0, dlen - 1, 1
             call yaml_sequence("", advance = "no")
             call dict_dump_(dict // i)
          end do
@@ -985,7 +1037,8 @@ contains
          iter => dict_next(dict)
          allocate(keys(dict_size(dict)))
          keys = dict_keys(dict)
-         do i = 1, size(keys), 1
+         skeys = size(keys)
+         do i = 1, skeys, 1
             call dict_dump_(dict // keys(i))
          end do
          deallocate(keys)

@@ -40,6 +40,8 @@ subroutine nullify_orbitals_data(orbs)
   type(orbitals_data),intent(out):: orbs
   
   nullify(orbs%norb_par)
+  nullify(orbs%norbu_par)
+  nullify(orbs%norbd_par)
   nullify(orbs%iokpt)
   nullify(orbs%ikptproc)
   nullify(orbs%inwhichlocreg)

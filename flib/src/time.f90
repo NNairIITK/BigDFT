@@ -535,12 +535,14 @@ module time_profiling
       !Local variables
       integer(kind=8) :: itns
       real(kind=8) :: t1
-      !$ logical :: in_omp
-      !$ logical, external :: omp_in_parallel,omp_get_nested
-      !$ in_omp=omp_in_parallel() .or. omp_get_nested()
-      !!disable everything if we are into a OMP section
-      !!timing routines are not thread-safe
-      !$ if(in_omp) return
+      !$ include 'remove_omp-inc.f90'
+      
+      !!$ logical :: in_omp
+      !!$ logical, external :: omp_in_parallel,omp_get_nested
+      !!$ in_omp=omp_in_parallel() .or. omp_get_nested()
+      !!!disable everything if we are into a OMP section
+      !!!timing routines are not thread-safe
+      !!$ if(in_omp) return
 
       !first of all, read the time
       itns=f_time()
