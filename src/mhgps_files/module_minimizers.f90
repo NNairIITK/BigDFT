@@ -435,6 +435,7 @@ endif
          beta=.50_gp*beta
          if (debug.and.iproc==0) write(100,'(a,1x,e9.2)') 'WARNING GEOPT_SBFGS: beta reset ',beta
          ndim=0
+         wold=0.d0
          if(.not.steep)then
             do iat=1,nat
                rxyz(1,iat,0)=rxyz(1,iat,nhist-1)
@@ -482,6 +483,7 @@ endif
           int(energycounter),it,'(MHGPS) GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
           'beta=',trim(adjustl(cdmy9)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),&
           'dsplr=',trim(adjustl(cdmy12_1)),'dsplp=',trim(adjustl(cdmy12_2))
+write(99,*)beta_stretch,beta_stretchx
 !         call yaml_mapping_open('Geometry')
 !            call yaml_map('Ncount_BigDFT',int(energycounter))
 !            call yaml_map('Geometry step',it)

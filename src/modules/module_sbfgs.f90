@@ -310,8 +310,9 @@ subroutine projectbond(nat,nbond,rat,fat,fstretch,iconnect,wold,alpha_stretch0,a
       if ( wold(ibond)*w(ibond).gt.0.0_gp) nsame=nsame+1
          wold(ibond)=w(ibond)
      enddo
-     per=float(nsame)/nbond
+     per=real(nsame,gp)/nbond
      if (per.gt. .66_gp) then
+         !alpha_stretch=min(1.e1_gp*alpha_stretch0,alpha_stretch*1.10_gp)
          alpha_stretch=alpha_stretch*1.10_gp
      else
          alpha_stretch=max(1.e-2_gp*alpha_stretch0,alpha_stretch/1.10_gp)

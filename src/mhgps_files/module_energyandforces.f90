@@ -43,14 +43,14 @@ character(len=9) :: fn9
     if(nat/=fdim)stop 'nat /= fdim'
     ef_counter=ef_counter+1.0_gp
 
-!!temporary output for geopt paper
-!if (iproc == 0) then
-!   write(fn9,'(i9.9)') int(ef_counter)
-!   call astruct_dump_to_file(astruct_ptr,&
-!        currDir//'/dump_'//fn9, &
-!        '',energy=0.0_gp,rxyz=rxyz,&
-!        forces=fxyz)
-!endif
+!temporary output for geopt paper
+if (iproc == 0) then
+   write(fn9,'(i9.9)') int(ef_counter)
+   call astruct_dump_to_file(astruct_ptr,&
+        currDir//'/dump_'//fn9, &
+        '',energy=0.0_gp,rxyz=rxyz,&
+        forces=fxyz)
+endif
 
 
  

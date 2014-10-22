@@ -358,8 +358,9 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
         maxd=sqrt(maxd)
  
         !trust radius approach
+!        if(maxd>trustr .or. (curv>=0.0_gp .and. fnrm<fnrmtol))then
         if(maxd>trustr)then
-            if(iproc==0)call yaml_map('  (MHGPS) step too large',maxd)
+            if(iproc==0)call yaml_map('  (MHGPS) resize step ',maxd)
             scl=0.5_gp*trustr/maxd
             dd=dd*scl
             tt=tt*scl
@@ -1940,7 +1941,7 @@ use module_base
     real(gp), dimension(:), allocatable :: amass
 
     amass = f_malloc((/1.to.nat/),id='amass')
-    amass(1:nat)=1.0d0
+    amass(1:nat)=1.0_gp
 
     !shift cm to origin
     cmx=0.0_gp; cmy=0.0_gp; cmz=0.0_gp
