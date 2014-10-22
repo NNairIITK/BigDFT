@@ -366,7 +366,6 @@ subroutine foe(iproc, nproc, tmprtr, &
                       ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
                       if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
                       call chebyshev_clean(iproc, nproc, npl, cc, &
-                           tmb%linmat%l%nfvctr, tmb%linmat%l%smmm%nfvctrp, tmb%linmat%l%smmm%isfvctr, &
                            tmb%linmat%l, hamscal_compr, &
                            tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), calculate_SHS, &
                            nsize_polynomial, 1, tmb%linmat%kernel_%matrixp, penalty_ev, chebyshev_polynomials, &
@@ -1771,8 +1770,6 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                       ! Passing inv_ovrlp(1)%matrix_compr as it will not be
                       ! used, to be improved...
                       call chebyshev_clean(iproc, nproc, npl, cc, &
-                           inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
-                           inv_ovrlp_smat%smmm%isfvctr, &
                            inv_ovrlp_smat, hamscal_compr, &
                            inv_ovrlp(1)%matrix_compr, .false., &
                            nsize_polynomial, ncalc, inv_ovrlp_matrixp, penalty_ev, chebyshev_polynomials, &
