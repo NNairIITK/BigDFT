@@ -243,7 +243,6 @@
    properties:
      format                            : ascii
      source                            : posinp
-   energy (Ha)                         : 6.0134700169990685E-154
  psppar.Si:
    Pseudopotential type                : HGH-K
    Atomic number                       : 14

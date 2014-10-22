@@ -863,7 +863,6 @@ contains
     ! Read atomic file, old way
     call nullify_atomic_structure(astruct)
     !call nullify_global_output(outs)
-
     !Try to read the atomic coordinates from files
     call f_err_open_try()
     nullify(fxyz)
@@ -873,13 +872,14 @@ contains
     !Check if BIGDFT_INPUT_FILE_ERROR
     ierr = f_get_last_error(msg) 
     call f_err_close_try()
-
     if (ierr == 0) then
        dict_tmp => dict // key
        !No errors: we have all information in astruct and put into dict
+
        call astruct_merge_to_dict(dict_tmp, astruct, astruct%rxyz)
+
        call set(dict_tmp // ASTRUCT_PROPERTIES // POSINP_SOURCE, filename)
-          
+
        if (GOUT_FORCES .in. dict_tmp) call dict_remove(dict_tmp, GOUT_FORCES)
        if (associated(fxyz)) then
           pos => dict_tmp // GOUT_FORCES
@@ -887,9 +887,9 @@ contains
              call add(pos, dict_new(astruct%atomnames(astruct%iatype(iat)) .is. fxyz(:,iat)))
           end do
        end if
+
        if (GOUT_ENERGY .in. dict_tmp) call dict_remove(dict_tmp, GOUT_ENERGY)
        if (energy /= UNINITIALIZED(energy)) call set(dict_tmp // GOUT_ENERGY, energy)
-
        !call global_output_merge_to_dict(dict // key, outs, astruct)
        call deallocate_atomic_structure(astruct)
 

@@ -312,7 +312,7 @@ class BigDFTiming:
         icol+=1.0
       except Exception,e:
         #print 'EXCEPTION FOUND',e
-        print "cat",cat,"not found"
+	print "category",cat,"not present"
   
     pylab.ylabel('Percent')
     pylab.title('Time bar chart')
@@ -382,7 +382,6 @@ if args.timedata is not None:
   print "hosts",bt.hostnames
   #timing = yaml.load(open(args.timedata, "r").read(), Loader = yaml.CLoader)
   #dict_routines = timing["Routines timing and number of calls"]
-  #timing["WFN_OPT"]["Classes"].pop("Categories")  
   #sys.stdout.write(yaml.dump(timing["WFN_OPT"]["Classes"],default_flow_style=False,explicit_start=True))
   #bt.bars_data(bt.scf["Classes"]) #timing["WFN_OPT"]["Classes"])
   bt.load_unbalancing(bt.scf["Classes"]) #timing["WFN_OPT"]["Classes"])

@@ -4167,7 +4167,7 @@ module module_interfaces
           type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
           integer,dimension(ncalc) :: ex
           type(matrices),intent(in) :: ovrlp_mat
-          type(matrices),dimension(ncalc),intent(out) :: inv_ovrlp
+          type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp
         end subroutine ice
         
         subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &

@@ -1516,7 +1516,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
   type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
   integer,dimension(ncalc) :: ex
   type(matrices),intent(in) :: ovrlp_mat
-  type(matrices),dimension(ncalc),intent(out) :: inv_ovrlp
+  type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp
 
   ! Local variables
   integer :: npl, jorb, it, ii, iseg
