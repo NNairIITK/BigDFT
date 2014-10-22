@@ -44,7 +44,8 @@ contains
     real(gp), dimension(ndims_new(1),ndims_new(2),ndims_new(3)), intent(out) :: f_new
     !local variables
     integer :: m_isf,k1,i,j,k,me,ms
-    real(gp) :: dt,norm!,tt,ux,uy,uz
+    real(gp) :: dt,norm!,ux,uy,uz
+    !$ real(gp) :: tt
     real(gp) :: scal !<scaling factor
     !real(gp), dimension(3,3) :: Rmat !<rotation matrix
     integer, dimension(3) :: isign,irp
