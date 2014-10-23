@@ -2699,12 +2699,6 @@ module communications_init
       !$omp end parallel
       weight_check=tt
     
-      if (iproc==0) then
-          do jproc=0,nproc-1
-              write(*,*) 'jproc, ise', jproc, istartend(1:2,jproc)
-          end do
-      end if
-    
       ! Some check
       if (nproc > 1) then
         call mpiallred(weight_check, 1, mpi_sum, bigdft_mpi%mpi_comm)
