@@ -2768,7 +2768,10 @@ module communications_init
           ii = ii + lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
       end do
       if (ii/=sum(nsendcounts)) then
-          stop 'ii/=sum(nsendcounts)'
+          call f_err_throw('Error in determine_communication_arrays_sumrho: ii/=sum(nsendcounts); values are'//&
+               trim(yaml_toa(ii))//' and '//&
+               trim(yaml_toa(sum(nsendcounts))),&
+               err_name='BIGDFT_RUNTIME_ERROR')
       end if
       ndimpsi=ii
     
