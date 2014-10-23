@@ -2599,7 +2599,7 @@ module communications_init
       do jproc=0,nproc-2
           istartend(2,jproc)=istartend(1,jproc+1)-1
       end do
-      istartend(2,nproc-1)=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
+      istartend(2,nproc-1)=int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n3i,kind=8)
     
       nptsp = int(istartend(2,iproc)-istartend(1,iproc),kind=4) + 1
     
