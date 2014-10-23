@@ -9,7 +9,7 @@
 
  
 !> Again assuming all matrices have same sparsity, still some tidying to be done
-subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ham_compr, &
+subroutine chebyshev_clean(iproc, nproc, npl, cc, kernel, ham_compr, &
            invovrlp_compr, calculate_SHS, nsize_polynomial, ncalc, fermi, penalty_ev, chebyshev_polynomials, &
            emergency_stop)
   use module_base
@@ -23,7 +23,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ha
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, norb, norbp, isorb, ncalc
+  integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, ncalc
   real(8),dimension(npl,3,ncalc),intent(in) :: cc
   type(sparse_matrix), intent(in) :: kernel
   real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: ham_compr
@@ -41,8 +41,6 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ha
   real(kind=8),dimension(:),allocatable :: mat_seq, mat_compr
   real(kind=8),dimension(:,:),allocatable :: matrix
   real(kind=8) :: tt, ddot
-  integer,parameter :: one=1, three=3
-  !!integer,parameter :: number_of_matmuls=one
 
   call timing(iproc, 'chebyshev_comp', 'ON')
   call f_routine(id='chebyshev_clean')

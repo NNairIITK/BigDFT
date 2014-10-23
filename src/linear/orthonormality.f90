@@ -174,8 +174,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   type(work_transpose),intent(out) :: wt_hphi, wt_hpsinoprecond
 
   ! Local variables
-  integer :: iorb, jorb, ii, ii_trans, irow, jcol, info, lwork, jj, ispin, iseg, i
-  integer :: isegstart, isegend, ierr
   real(kind=8) :: max_error, mean_error
   real(kind=8),dimension(:),allocatable :: tmp_mat_compr, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra
   integer,dimension(:),allocatable :: ipiv
@@ -291,6 +289,9 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       integer,parameter :: ALLGATHERV=51, GET=52, GLOBAL_MATRIX=101, SUBMATRIX=102
       integer,parameter :: comm_strategy=GET
       integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
+      integer :: iorb, jorb, ii, ii_trans, irow, jcol, info, lwork, jj, ispin, iseg, i
+      integer :: isegstart, isegend, ierr
+
 
       call f_routine(id='symmetrize_matrix')
 
