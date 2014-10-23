@@ -103,6 +103,10 @@ module wrapper_MPI
       module procedure mpiiallred_double
   end interface mpiiallred
 
+  interface mpialltoallv
+      module procedure mpialltoallv_int, mpialltoallv_long, mpialltoallv_double
+  end interface mpialltoallv
+
   interface mpiialltoallv
       module procedure mpiialltoallv_double
   end interface mpiialltoallv
@@ -783,6 +787,35 @@ contains
 
     if (ierr /=0) stop 'MPIALLGATHERV_DBL'
   end subroutine mpiallgatherv_double
+
+  subroutine mpialltoallv_int(sendbuf, sendcounts, sdispls, recvbuf, recvcounts, rdispls, comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use dynamic_memory
+    implicit none
+    integer,intent(in) :: sendbuf
+    integer,intent(out) :: recvbuf
+    include 'alltoallv-inc.f90'
+  end subroutine mpialltoallv_int
+
+  subroutine mpialltoallv_long(sendbuf, sendcounts, sdispls, recvbuf, recvcounts, rdispls, comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use dynamic_memory
+    implicit none
+    integer(kind=8),intent(in) :: sendbuf
+    integer(kind=8),intent(out) :: recvbuf
+    include 'alltoallv-inc.f90'
+  end subroutine mpialltoallv_long
+
+  subroutine mpialltoallv_double(sendbuf, sendcounts, sdispls, recvbuf, recvcounts, rdispls, comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use dynamic_memory
+    implicit none
+    double precision,intent(in) :: sendbuf
+    double precision,intent(out) :: recvbuf
+    include 'alltoallv-inc.f90'
+  end subroutine mpialltoallv_double
+
+
 
   !> Interface for MPI_ALLREDUCE operations
   subroutine mpiallred_int(sendbuf,count,op,comm,recvbuf)

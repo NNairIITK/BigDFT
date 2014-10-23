@@ -1524,10 +1524,10 @@ module communications_init
           nrecvdspls_tmp(jproc)=jproc
       end do
       if(nproc>1) then
-          call mpi_alltoallv(nsendcounts_c, nsendcounts_tmp, nsenddspls_tmp, mpi_integer, nrecvcounts_c, &
-               nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, bigdft_mpi%mpi_comm, ierr)
-          call mpi_alltoallv(nsendcounts_f, nsendcounts_tmp, nsenddspls_tmp, mpi_integer, nrecvcounts_f, &
-               nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+          call mpialltoallv(nsendcounts_c(0), nsendcounts_tmp, nsenddspls_tmp, &
+               nrecvcounts_c(0), nrecvcounts_tmp, nrecvdspls_tmp, bigdft_mpi%mpi_comm)
+          call mpialltoallv(nsendcounts_f(0), nsendcounts_tmp, nsenddspls_tmp, &
+               nrecvcounts_f(0), nrecvcounts_tmp, nrecvdspls_tmp, bigdft_mpi%mpi_comm)
       else
           nrecvcounts_c=nsendcounts_c
           nrecvcounts_f=nsendcounts_f
@@ -2007,18 +2007,18 @@ module communications_init
     
       if(nproc>1) then
           ! Communicate indexsendbuf
-          call mpi_alltoallv(indexsendbuf_c, nsendcounts_c, nsenddspls_c, mpi_integer, indexrecvbuf_c, &
-               nrecvcounts_c, nrecvdspls_c, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+          call mpialltoallv(indexsendbuf_c(1), nsendcounts_c, nsenddspls_c, &
+               indexrecvbuf_c(1), nrecvcounts_c, nrecvdspls_c, bigdft_mpi%mpi_comm)
           ! Communicate indexsendorbitals
-          call mpi_alltoallv(indexsendorbital_c, nsendcounts_c, nsenddspls_c, mpi_integer, indexrecvorbital_c, &
-               nrecvcounts_c, nrecvdspls_c, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+          call mpialltoallv(indexsendorbital_c(1), nsendcounts_c, nsenddspls_c, &
+               indexrecvorbital_c(1), nrecvcounts_c, nrecvdspls_c, bigdft_mpi%mpi_comm)
     
           ! Communicate indexsendbuf
-          call mpi_alltoallv(indexsendbuf_f, nsendcounts_f, nsenddspls_f, mpi_integer, indexrecvbuf_f, &
-               nrecvcounts_f, nrecvdspls_f, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+          call mpialltoallv(indexsendbuf_f(1), nsendcounts_f, nsenddspls_f, &
+               indexrecvbuf_f(1), nrecvcounts_f, nrecvdspls_f, bigdft_mpi%mpi_comm)
           ! Communicate indexsendorbitals
-          call mpi_alltoallv(indexsendorbital_f, nsendcounts_f, nsenddspls_f, mpi_integer, indexrecvorbital_f, &
-               nrecvcounts_f, nrecvdspls_f, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+          call mpialltoallv(indexsendorbital_f(1), nsendcounts_f, nsenddspls_f, &
+               indexrecvorbital_f(1), nrecvcounts_f, nrecvdspls_f, bigdft_mpi%mpi_comm)
        else
            indexrecvbuf_c=indexsendbuf_c
            indexrecvorbital_c=indexsendorbital_c
@@ -2583,7 +2583,6 @@ module communications_init
         
       if (nproc > 1) then
           ! call mpiallred(istartend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
-          ! allreduce nit possible for long integers, so do allgatherv with double precision
           recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
           displs = f_malloc(0.to.nproc-1,id='displs')
           do jproc=0,nproc-1
@@ -2591,8 +2590,8 @@ module communications_init
               displs(jproc) = 2*jproc
           end do
           sendbuf = istartend(1,iproc)
-          call mpi_allgatherv(sendbuf, 1, mpi_double_precision, istartend(1,0), &
-               recvcounts, displs, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+          call mpi_allgatherv(sendbuf, 1, mpi_integer8, istartend(1,0), &
+               recvcounts, displs, mpi_integer8, bigdft_mpi%mpi_comm, ierr)
           call f_free(recvcounts)
           call f_free(displs)
       end if
@@ -2811,8 +2810,8 @@ module communications_init
           nrecvdspls_tmp(jproc)=jproc
       end do
       if(nproc>1) then
-          call mpi_alltoallv(nsendcounts, nsendcounts_tmp, nsenddspls_tmp, mpi_integer, nrecvcounts, &
-               nrecvcounts_tmp, nrecvdspls_tmp, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+          call mpialltoallv(nsendcounts(0), nsendcounts_tmp, nsenddspls_tmp, &
+               nrecvcounts(0), nrecvcounts_tmp, nrecvdspls_tmp, bigdft_mpi%mpi_comm)
       else
           nrecvcounts=nsendcounts
       end if
@@ -2952,13 +2951,12 @@ module communications_init
       !!call memocc(istat, indexrecvorbital, 'indexrecvorbital', subname)
     
       if(nproc>1) then
-          ! Communicate indexsendbuf. Use double precision as the array has kind integer(kind=8)
-          call mpi_alltoallv(indexsendbuf, nsendcounts, nsenddspls, mpi_double_precision, indexrecvbuf, &
-               nrecvcounts, nrecvdspls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+          ! Communicate indexsendbuf
+          call mpialltoallv(indexsendbuf(1), nsendcounts, nsenddspls, &
+               indexrecvbuf(1), nrecvcounts, nrecvdspls, bigdft_mpi%mpi_comm)
           ! Communicate indexsendorbitals
-          call mpi_alltoallv(indexsendorbital, nsendcounts, nsenddspls, &
-               mpi_integer, indexrecvorbital, &
-               nrecvcounts, nrecvdspls, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+          call mpialltoallv(indexsendorbital(1), nsendcounts, nsenddspls, &
+               indexrecvorbital(1), nrecvcounts, nrecvdspls, bigdft_mpi%mpi_comm)
        else
            indexrecvbuf=indexsendbuf
            indexrecvorbital=indexsendorbital
