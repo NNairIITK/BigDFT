@@ -1247,11 +1247,11 @@ contains
   end subroutine mpi_get_to_allgatherv_double
 
   
-  subroutine mpiiallred_double(sendbuf, recvbuf, ncount, datatype, op, comm, request)
+  subroutine mpiiallred_double(sendbuf, recvbuf, ncount, op, comm, request)
     use dictionaries, only: f_err_throw,f_err_define
     implicit none
     ! Calling arguments
-    integer,intent(in) :: ncount, datatype, op, comm
+    integer,intent(in) :: ncount, op, comm
     double precision,intent(in) :: sendbuf
     double precision,intent(out) :: recvbuf
     integer,intent(out) :: request
@@ -1259,14 +1259,14 @@ contains
     integer :: ierr
 
 #ifdef HAVE_MPI3
-    call mpi_iallreduce(sendbuf, recvbuf, ncount, datatype, op, comm, request, ierr)
+    call mpi_iallreduce(sendbuf, recvbuf, ncount, mpitype(sendbuf), op, comm, request, ierr)
     if (ierr/=0) then
        call f_err_throw('An error in calling to MPI_IALLREDUCE occured',&
             err_id=ERR_MPI_WRAPPERS)
        return
     end if
 #else
-    call mpi_allreduce(sendbuf, recvbuf, ncount, datatype, op, comm, ierr)
+    call mpi_allreduce(sendbuf, recvbuf, ncount, mpitype(sendbuf), op, comm, ierr)
     if (ierr/=0) then
        call f_err_throw('An error in calling to MPI_ALLREDUCE occured',&
             err_id=ERR_MPI_WRAPPERS)
