@@ -3309,14 +3309,14 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(out) :: b
         end subroutine copy_kernel_vectors
 
-        subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ham_compr, &
+        subroutine chebyshev_clean(iproc, nproc, npl, cc, kernel, ham_compr, &
                    invovrlp_compr, calculate_SHS, nsize_polynomial, ncalc, fermi, penalty_ev, chebyshev_polynomials, &
                    emergency_stop)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
           implicit none
-          integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, norb, norbp, isorb, ncalc
+          integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, ncalc
           real(8),dimension(npl,3,ncalc),intent(in) :: cc
           type(sparse_matrix), intent(in) :: kernel
           real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: ham_compr
@@ -4167,7 +4167,7 @@ module module_interfaces
           type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
           integer,dimension(ncalc) :: ex
           type(matrices),intent(in) :: ovrlp_mat
-          type(matrices),dimension(ncalc),intent(out) :: inv_ovrlp
+          type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp
         end subroutine ice
         
         subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &

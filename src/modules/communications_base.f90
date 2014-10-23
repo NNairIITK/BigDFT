@@ -176,10 +176,8 @@ contains
   pure subroutine nullify_p2pComms(comms)
     implicit none
     type(p2pComms),intent(inout) :: comms
-    !!nullify(comms%noverlaps)
     nullify(comms%recvBuf)
     nullify(comms%comarr)
-    !!nullify(comms%ise)
     nullify(comms%mpi_datatypes)
   end subroutine nullify_p2pComms
 
@@ -339,10 +337,8 @@ contains
     ! Calling arguments
     type(p2pComms),intent(inout):: p2pcomm
     ! Local variables
-    !call f_free_ptr(p2pcomm%noverlaps)
     call f_free_ptr(p2pcomm%recvBuf)
     call f_free_ptr(p2pcomm%comarr)
-    !call f_free_ptr(p2pcomm%ise)
     if (.not.p2pcomm%communication_complete) then
         stop 'cannot deallocate mpi data types if communication has not completed'
     end if

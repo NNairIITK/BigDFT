@@ -332,6 +332,7 @@ taskgroups:
   Energies: 1.1e-10
   EKS: 1.1e-10
   P vector: 1.1e-10
+  Total electronic charge: 1.21e-11
 
 base:
   norm(P): 1.1e-9
@@ -370,7 +371,7 @@ cleanup:
  EH: 3.8e-9
  EXC: 1.9e-9
  EvXC: 2.3e-9
- Enl: 9.1e-10
+ Enl: 1.27e-9
  Omega: 2.12e-9
  Pulay Forces (Ha/Bohr): 1.9e-9
  energy: 2.3e-9
@@ -835,9 +836,10 @@ experimentalfoe_medium:
  ebs_check: 4.4e-8
  Epot: 1.1e-9
  EH: 1.1e-9
+ EXC: 1.01e-10
  EvXC: 1.01e-10
  Total charge: 4.1e-11
- energy: 1.4e-10
+ energy: 1.58e-10
  Omega: 8.1e-10
  decay length of error function: 1.1e-5
 
@@ -1073,7 +1075,7 @@ O2spin_diag:
  kappa: 1.1e-4
 
 O2spin_foe:
- Atomic Forces (Ha/Bohr): 9.9e-9
+ Atomic Forces (Ha/Bohr): 1.5e-8
  EH: 5.1e-8
  EXC: 5.5e-9
  Ekin: 4.8e-9
@@ -1084,19 +1086,19 @@ O2spin_foe:
  charge diff: 1.3e-7
  eF: 1.1-10
  D eF: 4.4e-8
- guess for new ef: 3.1e-9
+ guess for new ef: 4.1e-9
  ebs: 1.7e-8
  ebs_check: 1.7e-8
  Omega: 2.3e-9
  energy: 1.1e-7
- Raw forces norm (Ha/Bohr): 3.4e-8
- Clean forces norm (Ha/Bohr): 3.4e-8
+ Raw forces norm (Ha/Bohr): 7.5e-8
+ Clean forces norm (Ha/Bohr): 7.5e-8
  Average noise forces: 3.2e-8
- Total charge: 3.5e-8
+ Total charge: 7.5e-8
  decay length of error function: 1.1e-5
  diff: 4.8e-9
  D Tr: 2.1e-7
- relative diff: 2.4e-11
+ relative diff: 2.6e-11
 
 O2spin_dirmin:
  Atomic Forces (Ha/Bohr): 9.1e-6

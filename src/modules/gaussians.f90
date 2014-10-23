@@ -171,6 +171,8 @@ contains
     !local variables
     integer, dimension(nat) :: nshell
     integer :: iat, l, i, ishell, iexpo
+
+    call f_routine(id='gaussian_basis_from_psp')
     
     ! Build nshell from psppar.
     do iat = 1, nat
@@ -219,6 +221,9 @@ contains
           end do
        end do
     end do
+
+    call f_release_routine()
+
   end subroutine gaussian_basis_from_psp
 
   !> Initialise the gaussian basis from PAW datas.

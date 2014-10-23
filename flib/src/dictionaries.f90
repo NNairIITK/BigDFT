@@ -884,22 +884,22 @@ contains
         nullify(dict_ptr)
         return
      end if
-     !TEST 
+
      if (.not. associated(dict%parent)) then
         dict_ptr => find_key(dict%child,key)
-        !print *,'parent'
         return
      end if
 
-     !print *,'here ',trim(key),', key ',trim(dict%data%key)
-     !follow the chain, stop at the first occurence
-     if (trim(dict%data%key) == trim(key)) then
-        dict_ptr => dict
-     else if (associated(dict%next)) then
-        dict_ptr => find_key(dict%next,key)
-     else 
-        nullify(dict_ptr)
-     end if
+     dict_ptr => get_dict_from_key(dict,key)
+!!$     !print *,'here ',trim(key),', key ',trim(dict%data%key)
+!!$     !follow the chain, stop at the first occurence
+!!$     if (trim(dict%data%key) == trim(key)) then
+!!$        dict_ptr => dict
+!!$     else if (associated(dict%next)) then
+!!$        dict_ptr => find_key(dict%next,key)
+!!$     else 
+!!$        nullify(dict_ptr)
+!!$     end if
 
    end function find_key
 
@@ -963,32 +963,33 @@ contains
         has_key=.false.
         return
      end if
+     has_key=associated(dict%child)
+     !has_key_(dict%child,key)
+     if (has_key) has_key=associated(get_dict_from_key(dict%child,key))
 
-     has_key=has_key_(dict%child,key)
-
-   contains
-
-     recursive function has_key_(dict,key) result(has)
-       implicit none
-       type(dictionary), intent(in), pointer :: dict 
-       character(len=*), intent(in) :: key
-       logical :: has
-       if (.not. associated(dict)) then
-          has=.false.
-          return
-       end if
-
-       !print *,'here ',trim(key),', key ',trim(dict%data%key)
-       !follow the chain, stop at the first occurence
-       if (trim(dict%data%key) == trim(key)) then
-          has=.true.
-       else if (associated(dict%next)) then
-          has=has_key_(dict%next,key)
-       else 
-          has=.false.
-       end if
-
-     end function has_key_
+!!$   contains
+!!$
+!!$     recursive function has_key_(dict,key) result(has)
+!!$       implicit none
+!!$       type(dictionary), intent(in), pointer :: dict 
+!!$       character(len=*), intent(in) :: key
+!!$       logical :: has
+!!$       if (.not. associated(dict)) then
+!!$          has=.false.
+!!$          return
+!!$       end if
+!!$
+!!$       !print *,'here ',trim(key),', key ',trim(dict%data%key)
+!!$       !follow the chain, stop at the first occurence
+!!$       if (trim(dict%data%key) == trim(key)) then
+!!$          has=.true.
+!!$       else if (associated(dict%next)) then
+!!$          has=has_key_(dict%next,key)
+!!$       else 
+!!$          has=.false.
+!!$       end if
+!!$
+!!$     end function has_key_
    end function has_key
 
 

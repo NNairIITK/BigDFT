@@ -304,6 +304,7 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
   ! Store the file.
   character(len = 150), dimension(5000) :: lines
 
+  energy = UNINITIALIZED(energy)
   ! First pass to store the file in a string buffer.
   nlines = 1
   do

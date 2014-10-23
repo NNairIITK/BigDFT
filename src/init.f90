@@ -252,16 +252,8 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
       init_projectors_completely = .true.
   end if
 
-  !start from a null structure
-  nl=DFT_PSP_projectors_null()
+  call nullify_structure()
 
-  !allocate the different localization regions of the projectors
-  nl%natoms=at%astruct%nat
-  !for a structure let the allocator crash when allocating
-  allocate(nl%pspd(at%astruct%nat))
-  do iat=1,at%astruct%nat
-     nl%pspd(iat)=nonlocal_psp_descriptors_null()
-  end do
 
   ! Convert the pseudo coefficients into gaussian projectors.
   if (all(at%npspcode == PSPCODE_PAW) .and. at%astruct%ntypes > 0) then
@@ -371,6 +363,27 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   call f_release_routine()
 
   contains
+
+
+    subroutine nullify_structure()
+      implicit none
+
+      call f_routine(id='nullify_structure')
+
+      !start from a null structure
+      nl=DFT_PSP_projectors_null()
+
+      !allocate the different localization regions of the projectors
+      nl%natoms=at%astruct%nat
+      !for a structure let the allocator crash when allocating
+      allocate(nl%pspd(at%astruct%nat))
+      do iat=1,at%astruct%nat
+         nl%pspd(iat)=nonlocal_psp_descriptors_null()
+      end do
+
+      call f_release_routine()
+
+    end subroutine nullify_structure
 
     subroutine allocate_arrays()
       implicit none
