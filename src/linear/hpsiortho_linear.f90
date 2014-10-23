@@ -63,8 +63,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i
-  integer :: lwork, info, ishift,ispin, iseg
-  real(kind=8) :: ddot, tt, fnrmOvrlp_tot, fnrm_tot, fnrmold_tot, tt2, trkw
+  integer :: lwork, info, ishift,ispin, iseg, request
+  real(kind=8) :: ddot, tt, fnrmOvrlp_tot, fnrm_tot, fnrmold_tot, tt2, trkw, trH_sendbuf
   character(len=*), parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8), dimension(:), pointer :: hpsittmp_c, hpsittmp_f
   real(kind=8), dimension(:), allocatable :: hpsi_conf
@@ -275,11 +275,14 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
   ! Calculate trace (or band structure energy, resp.)
-  call calculate_trace()
+  ! Here the calculation of the trace is only initiated, trH is not yet available
+  call calculate_trace_start()
   call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
        TRANSPOSE_GATHER, hpsit_c, hpsit_f, tmb%hpsi, tmb%ham_descr%lzd, wt_hphi)
 
+
   !EXPERIMENTAL and therefore deactivated
+  ! SM: WARNING trH is only available after the call to calculate_trace_finish
   !add CDFT gradient, or at least an approximation thereof
   if (present(cdft).and..false.) then
      if (.not.present(input_frag).or..not.present(ref_frags)) stop 'input_frag, ref_frags and cdft must be present together'
@@ -403,6 +406,60 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   end if
 
 
+
+
+  call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+       tmb%orbs, tmb%hpsi, hpsi_small)
+
+  ! Copy the small gradient back to tmb%hpsi as a temporary array 
+  call vcopy(tmb%npsidim_orbs, hpsi_small(1), 1, tmb%hpsi(1), 1)
+
+  ! Do the preconditioning while trH is communicated
+  if(target_function==TARGET_FUNCTION_IS_HYBRID) then
+     ist=1
+     do iorb=1,tmb%orbs%norbp
+        iiorb=tmb%orbs%isorb+iorb
+        ilr = tmb%orbs%inWhichLocreg(iiorb)
+        ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+
+        tt=ddot(ncnt, hpsi_conf(ist), 1, hpsi_small(ist), 1)
+        tt=tt/ddot(ncnt, hpsi_conf(ist), 1, hpsi_conf(ist), 1)
+        call daxpy(ncnt, -tt, hpsi_conf(ist), 1, hpsi_small(ist), 1)
+        call dscal(ncnt, tt, hpsi_conf(ist), 1)
+
+        ist=ist+ncnt
+     end do
+
+     call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
+          tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
+          nit_precond,tmb%npsidim_orbs,hpsi_conf,tmb%confdatarr,gnrm,gnrm_zero, &
+          precond_convol_workarrays, precond_workarrays)
+
+     ! temporarily turn confining potential off...
+     prefac = f_malloc(tmb%orbs%norbp,id='prefac')
+     prefac(:)=tmb%confdatarr(:)%prefac
+     tmb%confdatarr(:)%prefac=0.0d0
+     call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
+          tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
+          nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero, & ! prefac should be zero
+          precond_convol_workarrays, precond_workarrays)
+     call daxpy(tmb%npsidim_orbs, 1.d0, hpsi_conf(1), 1, hpsi_small(1), 1)
+     ! ...revert back to correct value
+     tmb%confdatarr(:)%prefac=prefac
+
+     call f_free(prefac)
+     call f_free(hpsi_conf)
+  else
+     call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
+          tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
+          nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero,&
+          precond_convol_workarrays, precond_workarrays)
+  end if
+
+
+  ! Here the calculation of the trace is completed, trH is available
+  call calculate_trace_finish()
+
   ! WARNING: TO BE CHECKED!!!!
   ! For the polarized case, a factor of two was already multiplied to the
   ! gradient (see above). Therefore now undo this again for the band structure
@@ -436,10 +493,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   end if
 
 
-  call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
-       tmb%orbs, tmb%hpsi, hpsi_small)
-
-
   ! Determine the gradient norm and its maximal component. In addition, adapt the
   ! step size for the steepest descent minimization (depending on the angle 
   ! between the current gradient and the one from the previous iteration).
@@ -455,11 +508,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       iiorb=tmb%orbs%isorb+iorb
       ilr=tmb%orbs%inwhichlocreg(iiorb)
       ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-      tt = ddot(ncount, hpsi_small(ist), 1, hpsi_small(ist), 1)
+      tt = ddot(ncount, tmb%hpsi(ist), 1, tmb%hpsi(ist), 1)
       fnrm = fnrm + tt
       if(tt>fnrmMax) fnrmMax=tt
       if(it>1) then
-          tt2=ddot(ncount, hpsi_small(ist), 1, lhphiold(ist), 1)
+          tt2=ddot(ncount, tmb%hpsi(ist), 1, lhphiold(ist), 1)
           fnrmOvrlp_tot = fnrmOvrlp_tot + tt2
           if(ldiis%isx==0 .and. .not.ldiis%switchSD) then
               ! Adapt step size for the steepest descent minimization.
@@ -518,7 +571,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   alpha_mean=tt/dble(tmb%orbs%norb)
 
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
-  call vcopy(tmb%npsidim_orbs, hpsi_small(1), 1, lhphiold(1), 1)
+  call vcopy(tmb%npsidim_orbs, tmb%hpsi(1), 1, lhphiold(1), 1)
   !!call timing(iproc,'buildgrad_mcpy','OF')
 
   ! if energy has increased or we only wanted to calculate the energy, not gradient, we can return here
@@ -528,46 +581,46 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
 
-  if(target_function==TARGET_FUNCTION_IS_HYBRID) then
-     ist=1
-     do iorb=1,tmb%orbs%norbp
-        iiorb=tmb%orbs%isorb+iorb
-        ilr = tmb%orbs%inWhichLocreg(iiorb)
-        ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!@if(target_function==TARGET_FUNCTION_IS_HYBRID) then
+  !!@   ist=1
+  !!@   do iorb=1,tmb%orbs%norbp
+  !!@      iiorb=tmb%orbs%isorb+iorb
+  !!@      ilr = tmb%orbs%inWhichLocreg(iiorb)
+  !!@      ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
 
-        tt=ddot(ncnt, hpsi_conf(ist), 1, hpsi_small(ist), 1)
-        tt=tt/ddot(ncnt, hpsi_conf(ist), 1, hpsi_conf(ist), 1)
-        call daxpy(ncnt, -tt, hpsi_conf(ist), 1, hpsi_small(ist), 1)
-        call dscal(ncnt, tt, hpsi_conf(ist), 1)
+  !!@      tt=ddot(ncnt, hpsi_conf(ist), 1, hpsi_small(ist), 1)
+  !!@      tt=tt/ddot(ncnt, hpsi_conf(ist), 1, hpsi_conf(ist), 1)
+  !!@      call daxpy(ncnt, -tt, hpsi_conf(ist), 1, hpsi_small(ist), 1)
+  !!@      call dscal(ncnt, tt, hpsi_conf(ist), 1)
 
-        ist=ist+ncnt
-     end do
+  !!@      ist=ist+ncnt
+  !!@   end do
 
-     call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
-          tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
-          nit_precond,tmb%npsidim_orbs,hpsi_conf,tmb%confdatarr,gnrm,gnrm_zero, &
-          precond_convol_workarrays, precond_workarrays)
+  !!@   call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
+  !!@        tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
+  !!@        nit_precond,tmb%npsidim_orbs,hpsi_conf,tmb%confdatarr,gnrm,gnrm_zero, &
+  !!@        precond_convol_workarrays, precond_workarrays)
 
-     ! temporarily turn confining potential off...
-     prefac = f_malloc(tmb%orbs%norbp,id='prefac')
-     prefac(:)=tmb%confdatarr(:)%prefac
-     tmb%confdatarr(:)%prefac=0.0d0
-     call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
-          tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
-          nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero, & ! prefac should be zero
-          precond_convol_workarrays, precond_workarrays)
-     call daxpy(tmb%npsidim_orbs, 1.d0, hpsi_conf(1), 1, hpsi_small(1), 1)
-     ! ...revert back to correct value
-     tmb%confdatarr(:)%prefac=prefac
+  !!@   ! temporarily turn confining potential off...
+  !!@   prefac = f_malloc(tmb%orbs%norbp,id='prefac')
+  !!@   prefac(:)=tmb%confdatarr(:)%prefac
+  !!@   tmb%confdatarr(:)%prefac=0.0d0
+  !!@   call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
+  !!@        tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
+  !!@        nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero, & ! prefac should be zero
+  !!@        precond_convol_workarrays, precond_workarrays)
+  !!@   call daxpy(tmb%npsidim_orbs, 1.d0, hpsi_conf(1), 1, hpsi_small(1), 1)
+  !!@   ! ...revert back to correct value
+  !!@   tmb%confdatarr(:)%prefac=prefac
 
-     call f_free(prefac)
-     call f_free(hpsi_conf)
-  else
-     call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
-          tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
-          nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero,&
-          precond_convol_workarrays, precond_workarrays)
-  end if
+  !!@   call f_free(prefac)
+  !!@   call f_free(hpsi_conf)
+  !!@else
+  !!@   call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
+  !!@        tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
+  !!@        nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero,&
+  !!@        precond_convol_workarrays, precond_workarrays)
+  !!@end if
 
   !!if (target_function==TARGET_FUNCTION_IS_ENERGY .and. iproc==0) then
   !!    ist=0
@@ -595,13 +648,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   contains
 
-    subroutine calculate_trace()
+    subroutine calculate_trace_start()
       implicit none
 
       ! Local variables
       integer :: iorb, iiorb
 
-      call f_routine(id='calculate_trace')
+      call f_routine(id='calculate_trace_start')
       call timing(iproc,'calctrace_comp','ON')
 
       trH=0.d0
@@ -613,13 +666,32 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call timing(iproc,'calctrace_comp','OF')
       call timing(iproc,'calctrace_comm','ON')
       if (nproc>1) then
-          call mpiallred(trH, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          trH_sendbuf = trH
+          call mpiiallred(trH_sendbuf, trH, 1, mpi_sum, bigdft_mpi%mpi_comm, request)
       end if
       call timing(iproc,'calctrace_comm','OF')
 
       call f_release_routine()
 
-    end subroutine calculate_trace
+    end subroutine calculate_trace_start
+
+
+    subroutine calculate_trace_finish()
+      implicit none
+
+      ! Local variables
+      integer :: iorb, iiorb
+
+      call f_routine(id='calculate_trace_finish')
+      call timing(iproc,'calctrace_comm','ON')
+      if (nproc>1) then
+          call mpiwait(request)
+      end if
+      call timing(iproc,'calctrace_comm','OF')
+
+      call f_release_routine()
+
+    end subroutine calculate_trace_finish
 
 end subroutine calculate_energy_and_gradient_linear
 
