@@ -150,7 +150,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      call nullify_local_zone_descriptors(lzd_lin)
      lzd_lin%nlr = 0
      ! Deallocate here fragment stuff
-     if (.not.(frag_allocated .and. (.not. in%lin%fragment_calculation) .and. inputpsi /= INPUT_PSI_DISK_LINEAR)) then
+     !if (.not.(frag_allocated .and. (.not. in%lin%fragment_calculation) .and. inputpsi /= INPUT_PSI_DISK_LINEAR)) then
+     if (frag_allocated) then
          do ifrag=1,in%frag%nfrag_ref
             ref_frags(ifrag)%astruct_frg%nat=-1
             ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
@@ -500,6 +501,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
               !ref_frags(ifrag)=fragment_null()
            end do
           deallocate(ref_frags)
+         frag_allocated=.false.
        end if
      end subroutine fragment_stuff
 
