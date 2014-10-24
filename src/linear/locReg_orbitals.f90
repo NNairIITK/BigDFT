@@ -133,25 +133,28 @@ subroutine wavefunction_dimension(Lzd,orbs)
 end subroutine wavefunction_dimension
 
 
-subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Localnorb, rxyz, inwhichlocreg)
+subroutine assignToLocreg2(iproc, nproc, norb, norbu, norb_par, natom, nlr, nspin, Localnorb, spinsgn, rxyz, inwhichlocreg)
   use module_base
   use module_types
   implicit none
 
-  integer,intent(in):: nlr,iproc,nproc,nspin,natom,norb
+  integer,intent(in):: nlr,iproc,nproc,nspin,natom,norb,norbu
   integer,dimension(nlr),intent(in):: Localnorb
+  real(kind=8),dimension(norb),intent(in):: spinsgn
   integer,dimension(0:nproc-1),intent(in):: norb_par
   real(8),dimension(3,nlr),intent(in):: rxyz
   integer,dimension(:),pointer, intent(out):: inwhichlocreg
 
   ! Local variables
-  integer:: iat, jproc, iiOrb, iorb, jorb, jat, iiat, i_stat, i_all
+  integer:: iat, jproc, iiOrb, iorb, jorb, jat, iiat, i_stat, i_all, ispin, iispin, istart, iend
   character(len=*), parameter :: subname='assignToLocreg'
   logical,dimension(:),allocatable:: covered
   real(kind=8), parameter :: tol=1.0d-6 
   real(8):: tt, dmin, minvalue, xmin, xmax, ymin, ymax, zmin, zmax
   integer:: iatxmin, iatxmax, iatymin, iatymax, iatzmin, iatzmax, idir
   real(8),dimension(3):: diff
+
+  call f_routine(id='assignToLocreg2')
 
 !!!! NEW VERSION #################################################################
   !allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
@@ -162,145 +165,192 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
   covered = f_malloc(nlr,id='covered')
 
 
-  ! Determine in which direction the system has its largest extent
-  xmin=1.d100
-  ymin=1.d100
-  zmin=1.d100
-  xmax=-1.d100
-  ymax=-1.d100
-  zmax=-1.d100
-  do iat=1,nlr
-  !write(*,'(a,2i8,3es16.7)') 'iproc, iat, rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)', iproc, iat, rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)
-      if(rxyz(1,iat)<xmin) then
-          xmin=rxyz(1,iat)
-          iatxmin=iat
-      end if
-      if(rxyz(1,iat)>xmax) then
-          xmax=rxyz(1,iat)
-          iatxmax=iat
-      end if
-      if(rxyz(2,iat)<ymin) then
-          ymin=rxyz(2,iat)
-          iatymin=iat
-      end if
-      if(rxyz(2,iat)>ymax) then
-          ymax=rxyz(2,iat)
-          iatymax=iat
-      end if
-      if(rxyz(3,iat)<zmin) then
-          zmin=rxyz(3,iat)
-          iatzmin=iat
-      end if
-      if(rxyz(3,iat)>zmax) then
-          zmax=rxyz(3,iat)
-          iatzmax=iat
-      end if
-  end do
+  spin_loop: do ispin=1,nspin
 
-  diff(1)=xmax-xmin
-  diff(2)=ymax-ymin
-  diff(3)=zmax-zmin
-  !First 4 ifs control if directions the same length to disambiguate (was random before)
-  !else, just choose the biggest
-  if(abs(diff(1)-diff(2)) < tol .and. diff(1) > diff(3)) then
-    idir=1
-    iiat=iatxmin
-  else if(abs(diff(1)-diff(3)) < tol .and. diff(1) > diff(2)) then
-    idir=1
-    iiat=iatxmin
-  else if(abs(diff(2)-diff(3)) < tol .and. diff(2) > diff(1)) then
-    idir=2
-    iiat=iatymin
-  else if(abs(diff(1)-diff(3)) < tol .and. abs(diff(2)-diff(3)) < tol) then
-    idir=1
-    iiat=iatxmin
-  else
-     if(maxloc(diff,1)==1) then
-         idir=1
-         iiat=iatxmin
-     else if(maxloc(diff,1)==2) then
-         idir=2
-         iiat=iatymin
-     else if(maxloc(diff,1)==3) then
-         idir=3
-         iiat=iatzmin
-     else
-         stop 'ERROR: not possible to determine the maximal extent'
-     end if
-  end if
-
-  !! Determine the atom with lowest z coordinate
-  !zmin=1.d100
-  !    do iat=1,natom
-  !    if(rxyz(3,iat)<zmin) then
-  !        zmin=rxyz(3,iat)
-  !        iiat=iat
-  !    end if
-  !end do
-
-  ! There are four counters:
-  !   jproc: indicates which MPI process is handling the basis function which is being treated
-  !   jat: counts the atom numbers
-  !   jorb: counts the orbitals handled by a given process
-  !   iiOrb: counts the number of orbitals for a given atom thas has already been assigned
-  jproc=0
-  !jat=iiat
-  jat=1
-  jorb=0
-  iiOrb=0
-
-  covered=.false.
-  covered(iiat)=.true.
-  inWhichLocreg(1)=iiat
-  iiorb=1
-
-  do iorb=2,norb
-
-      ! Switch to the next MPI process if the numbers of orbitals for a given
-      ! MPI process is reached.
-      !if(jorb==norb_par(jproc,0)) then
-      if(jorb==norb_par(jproc)) then
-          jproc=jproc+1
-          jorb=0
+      if (nlr==natom) then
+          ! case for onwhichatom, i.e. distributing the orbitals to the atoms
+          istart=1
+          iend=nlr
+      else
+          if (ispin==1) then
+              ! case for inwhichlocreg, i.e. distributing the orbitals to the locregs
+              istart=1
+              iend=norbu
+          else
+              istart=norbu+1
+              iend=norb
+          end if
       end if
 
-      ! Switch to the next atom if the number of basis functions for this atom is reached.
-      !if(iiOrb==Localnorb(jat)) then
-      !if(iproc==0) write(*,*) 'localnorb(iiat)',localnorb(iiat)
-      if(iiOrb==Localnorb(iiat)) then
-          iiOrb=0
-          !jat=jat+1
-          ! Determine the nearest atom which has not been covered yet.
-          !covered(jat)=.true.
-          dmin=1.d100
-          minvalue=1.d100
-          do iat=1,nlr
-              !write(*,'(a,i8,a,l3)') 'iproc, iorb, minvalue, iiat, covered', iproc, ' covered(iat) ', covered(iat)
-              !if(iproc==0 .and. nlr>12) write(*,'(a,2i6,l5,i7)') 'iorb, iat, covered(13), iiat', iorb, iat, covered(13), iiat
-              if(covered(iat)) then
-                  !!write(*,'(a,i8,a,i4)') 'iproc, iorb, minvalue, iiat, covered', iproc, 'cycles for iat=',iat
-                  cycle
-              end if
-              tt = (rxyz(1,iat)-rxyz(1,jat))**2 + (rxyz(2,iat)-rxyz(2,jat))**2 + (rxyz(3,iat)-rxyz(3,jat))**2
-              !if(tt<dmin) then
-              if(rxyz(idir,iat)<minvalue) then
-                  iiat=iat
-                  dmin=tt
-                  minvalue=rxyz(idir,iat)
-              end if
-          end do
-          !jat=iiat
-          jat=jat+1
-          covered(iiat)=.true.
+      ! Determine in which direction the system has its largest extent
+      xmin=1.d100
+      ymin=1.d100
+      zmin=1.d100
+      xmax=-1.d100
+      ymax=-1.d100
+      zmax=-1.d100
+      !do iat=1,nlr
+      do iat=istart,iend
+          !!!SM: mixing nlr with orbs.. not ideal
+          !!if (spinsgn(iat)>0.d0) then
+          !!    iispin=1
+          !!else
+          !!    iispin=2
+          !!end if
+          !!if (ispin/=iispin) cycle
+      !write(*,'(a,2i8,3es16.7)') 'iproc, iat, rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)', iproc, iat, rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)
+          if(rxyz(1,iat)<xmin) then
+              xmin=rxyz(1,iat)
+              iatxmin=iat
+          end if
+          if(rxyz(1,iat)>xmax) then
+              xmax=rxyz(1,iat)
+              iatxmax=iat
+          end if
+          if(rxyz(2,iat)<ymin) then
+              ymin=rxyz(2,iat)
+              iatymin=iat
+          end if
+          if(rxyz(2,iat)>ymax) then
+              ymax=rxyz(2,iat)
+              iatymax=iat
+          end if
+          if(rxyz(3,iat)<zmin) then
+              zmin=rxyz(3,iat)
+              iatzmin=iat
+          end if
+          if(rxyz(3,iat)>zmax) then
+              zmax=rxyz(3,iat)
+              iatzmax=iat
+          end if
+      end do
+
+      diff(1)=xmax-xmin
+      diff(2)=ymax-ymin
+      diff(3)=zmax-zmin
+      !First 4 ifs control if directions the same length to disambiguate (was random before)
+      !else, just choose the biggest
+      if(abs(diff(1)-diff(2)) < tol .and. diff(1) > diff(3)) then
+        idir=1
+        iiat=iatxmin
+      else if(abs(diff(1)-diff(3)) < tol .and. diff(1) > diff(2)) then
+        idir=1
+        iiat=iatxmin
+      else if(abs(diff(2)-diff(3)) < tol .and. diff(2) > diff(1)) then
+        idir=2
+        iiat=iatymin
+      else if(abs(diff(1)-diff(3)) < tol .and. abs(diff(2)-diff(3)) < tol) then
+        idir=1
+        iiat=iatxmin
+      else
+         if(maxloc(diff,1)==1) then
+             idir=1
+             iiat=iatxmin
+         else if(maxloc(diff,1)==2) then
+             idir=2
+             iiat=iatymin
+         else if(maxloc(diff,1)==3) then
+             idir=3
+             iiat=iatzmin
+         else
+             stop 'ERROR: not possible to determine the maximal extent'
+         end if
       end if
-      if(jat > nlr) then
-        jat = 1
+
+      !! Determine the atom with lowest z coordinate
+      !zmin=1.d100
+      !    do iat=1,natom
+      !    if(rxyz(3,iat)<zmin) then
+      !        zmin=rxyz(3,iat)
+      !        iiat=iat
+      !    end if
+      !end do
+
+      ! There are four counters:
+      !   jproc: indicates which MPI process is handling the basis function which is being treated
+      !   jat: counts the atom numbers
+      !   jorb: counts the orbitals handled by a given process
+      !   iiOrb: counts the number of orbitals for a given atom thas has already been assigned
+      jproc=0
+      !jat=iiat
+      jat=1
+      jorb=0
+      iiOrb=0
+
+      covered=.false.
+      covered(iiat)=.true.
+      if (ispin==1) then
+          inWhichLocreg(1)=iiat
+      else
+          inWhichLocreg(norbu+1)=iiat
       end if
-      jorb=jorb+1
-      iiOrb=iiOrb+1
-      inWhichLocreg(iorb)=iiat
-  end do
+      iiorb=1
+
+
+
+      do iorb=1,norb
+      !do iorb=istart+1,iend
+
+          if (iorb==1 .or. iorb==norbu+1) cycle !this values have already been assigned
+
+          !SM: mixing nlr with orbs.. not ideal
+          if (spinsgn(iorb)>0.d0) then
+              iispin=1
+          else
+              iispin=2
+          end if
+          if (ispin/=iispin) cycle
+
+          ! Switch to the next MPI process if the numbers of orbitals for a given
+          ! MPI process is reached.
+          !if(jorb==norb_par(jproc,0)) then
+          if(jorb==norb_par(jproc)) then
+              jproc=jproc+1
+              jorb=0
+          end if
+
+          ! Switch to the next atom if the number of basis functions for this atom is reached.
+          !if(iiOrb==Localnorb(jat)) then
+          !if(iproc==0) write(*,*) 'localnorb(iiat)',localnorb(iiat)
+          if(iiOrb==Localnorb(iiat)) then
+              iiOrb=0
+              !jat=jat+1
+              ! Determine the nearest atom which has not been covered yet.
+              !covered(jat)=.true.
+              dmin=1.d100
+              minvalue=1.d100
+              !do iat=1,nlr
+              do iat=istart,iend
+                  !write(*,'(a,i8,a,l3)') 'iproc, iorb, minvalue, iiat, covered', iproc, ' covered(iat) ', covered(iat)
+                  !if(iproc==0 .and. nlr>12) write(*,'(a,2i6,l5,i7)') 'iorb, iat, covered(13), iiat', iorb, iat, covered(13), iiat
+                  if(covered(iat)) then
+                      !!write(*,'(a,i8,a,i4)') 'iproc, iorb, minvalue, iiat, covered', iproc, 'cycles for iat=',iat
+                      cycle
+                  end if
+                  tt = (rxyz(1,iat)-rxyz(1,jat))**2 + (rxyz(2,iat)-rxyz(2,jat))**2 + (rxyz(3,iat)-rxyz(3,jat))**2
+                  !if(tt<dmin) then
+                  if(rxyz(idir,iat)<minvalue) then
+                      iiat=iat
+                      dmin=tt
+                      minvalue=rxyz(idir,iat)
+                  end if
+              end do
+              !jat=iiat
+              jat=jat+1
+              covered(iiat)=.true.
+          end if
+          if(jat > nlr) then
+            jat = 1
+          end if
+          jorb=jorb+1
+          iiOrb=iiOrb+1
+          inWhichLocreg(iorb)=iiat
+      end do
+
+  end do spin_loop
 
   call f_free(covered)
+
+  call f_release_routine()
 
 end subroutine assignToLocreg2

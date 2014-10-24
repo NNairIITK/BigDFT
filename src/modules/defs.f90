@@ -140,6 +140,7 @@ module module_defs
       uninitialized_logical=.false.
     end function uninitialized_logical
 
+
     !> fpe-free way of calling exp.
     !! Crop the results to zero in the case of underflow
     pure function safe_dexp(x,extra_crop_order,underflow) result(ex)

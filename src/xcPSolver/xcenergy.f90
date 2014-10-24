@@ -270,6 +270,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   real(dp), dimension(6) :: wbstr, rhocstr
 
   !call timing(iproc,'Exchangecorr  ','ON')
+  call f_routine(id='XC_potential')
   call f_timing(TCAT_EXCHANGECORR,'ON')
 
   call to_zero(6,xcstr(1))
@@ -631,6 +632,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   end if
 
   call f_timing(TCAT_EXCHANGECORR,'OF')
+  call f_release_routine()
   !call timing(iproc,'Exchangecorr  ','OF')
   !if (iproc==0 .and. wrtmsg) write(*,'(a)')'done.'
 

@@ -31,6 +31,8 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   integer :: istart,ityp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat,i,l
   integer :: ikpt,nkptsproj,ikptp,izero
   real(gp) :: maxfullvol,totfullvol,totzerovol,fullvol,maxrad,maxzerovol,rad
+
+  call f_routine(id='localize_projectors')
   
   istart=1
   nl%nproj=0
@@ -223,6 +225,10 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   nl%nprojel=nkptsproj*nl%nprojel
 
   !print *,'iproc,nkptsproj',iproc,nkptsproj,nlpspd%nprojel,orbs%iskpts,orbs%iskpts+orbs%nkptsp
+
+
+  call f_release_routine()
+
 END SUBROUTINE localize_projectors
 
 
@@ -242,6 +248,8 @@ subroutine fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
   !Local variables
   !n(c) integer, parameter :: nterm_max=20 !if GTH nterm_max=4
   integer :: istart_c,iat,iproj,nwarnings,ikpt,iskpt,iekpt
+
+  call f_routine(id='fill_projectors')
 
   !if (iproc.eq.0 .and. nlpspd%nproj /=0 .and. idir==0) &
        !write(*,'(1x,a)',advance='no') 'Calculating wavelets expansion of projectors...'
@@ -291,6 +299,8 @@ subroutine fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
         !write(*,'(1x,a,f6.3)') 'Consider the possibility of modifying hgrid and/or the localisation radii.'
      end if
   end if
+
+  call f_release_routine()
 
 END SUBROUTINE fill_projectors
 
@@ -430,6 +440,8 @@ subroutine projector(geocode,iat,idir,l,i,factor,gau_a,rpaw,rxyz,&
   real(gp), dimension(nterm_max,3) :: fac_arr
   real(gp), dimension(ncplx_g) :: gau_c
 
+  !call f_routine(id='projector')
+
   !this value can also be inserted as a parameter
   if (ncplx_g == 1) then
      !fpi=pi^-1/4 pi^-1/2, pi^-1/4 comes from sqrt(gamma(x)) and pi^-1/2 from Ylm.
@@ -468,11 +480,11 @@ subroutine projector(geocode,iat,idir,l,i,factor,gau_a,rpaw,rxyz,&
   istart_c=1
   !start of the projectors expansion routine
   do m=1,2*l-1
-    
+
      if (idir==0) then !normal projector calculation case
         idir2=1
         call calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
-        
+
         do iterm=1,nterm
            factors(:,iterm)=factor(:)*fgamma*fac_arr(iterm,idir2)
         end do
@@ -518,12 +530,16 @@ if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
           gau_c,factors,rx,ry,rz,lx,ly,lz,&
           mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj(istart_c),rpaw)
 
+ 
      !do iterm=1,nterm
      !   if (iproc.eq.0) write(*,'(1x,a,i0,1x,a,1pe10.3,3(1x,i0))') &
      !        'projector: iat,atomname,gau_a,lx,ly,lz ', & 
      !        iat,trim(at%astruct%atomnames(at%astruct%iatype(iat))),gau_a,lx(iterm),ly(iterm),lz(iterm)
      !enddo
      !end testing
+
+  !call f_release_routine()
+
      istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx_k
   enddo
 END SUBROUTINE projector
@@ -566,12 +582,14 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
   real(wp), allocatable, dimension(:,:,:,:) :: wprojx,wprojy,wprojz
   real(wp) :: wprojyz, wprojyz11, wprojyz12, wprojyz21, wprojyz22
   !Variables for OpenMP
-  !$ integer :: ithread,nthread,ichunk
-  !$ integer :: omp_get_thread_num,omp_get_num_threads
+  !!$ integer :: ithread,nthread,ichunk
+  !!$ integer :: omp_get_thread_num,omp_get_num_threads
 
 !!  integer :: ncount0,ncount_rate,ncount_max,ncount1,ncount2
 
   !call initialize_real_space_conversion() !initialize the work arrays needed to integrate with isf
+
+  !call f_routine(id='crtproj')
 
   ! rename region boundaries
   n1p1=n1+1
@@ -607,9 +625,13 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
      stop
   end if
 
+  !REALLY SLOW ON VESTA, TEMPORARY CHANGE ONLY
   wprojx = f_malloc((/ 1.to.ncplx_w, 0.to.n1, 1.to.2, 1.to.nterm /),id='wprojx')
   wprojy = f_malloc((/ 1.to.ncplx_w, 0.to.n2, 1.to.2, 1.to.nterm /),id='wprojy')
   wprojz = f_malloc((/ 1.to.ncplx_w, 0.to.n3, 1.to.2, 1.to.nterm /),id='wprojz')
+  !allocate(wprojx(1:ncplx_w,0:n1,1:2,1:nterm))
+  !allocate(wprojy(1:ncplx_w,0:n2,1:2,1:nterm))
+  !allocate(wprojz(1:ncplx_w,0:n3,1:2,1:nterm))
 
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')
@@ -627,6 +649,7 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
 
   !!$omp critical
     work = f_malloc((/ 0.to.nw, 1.to.2, 1.to.2 /),id='work')
+  !allocate(work(0:nw,1:2,1:2))
   !!$omp end critical
 
   !!$ ithread=omp_get_thread_num()
@@ -656,7 +679,8 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
      !!$ endif
   end do
   !!$omp critical
-    call f_free(work)
+    call f_free(work) 
+  !deallocate(work)
   !!$omp end critical
   !!$omp end parallel
 
@@ -1041,11 +1065,16 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
   call f_free(wprojx)
   call f_free(wprojy)
   call f_free(wprojz)
+  !deallocate(wprojx)
+  !deallocate(wprojy)
+  !deallocate(wprojz)
 
 !  i_all=-product(shape(work))*kind(work)
 !  deallocate(work,stat=i_stat)
 !  call memocc(i_stat,i_all,'work',subname)
   !call finalize_real_space_conversion()
+
+  !call f_release_routine()
 
 contains
 
@@ -1056,10 +1085,9 @@ contains
     real(wp), dimension(2), intent(in) :: a,b,c
     real(wp) :: re_cmplx_prod
 
-    re_cmplx_prod=a(1)*b(1)*c(1) &
-         -a(1)*b(2)*c(2) &
-         -a(2)*b(1)*c(2) &
-         -a(2)*b(2)*c(1)
+    re_cmplx_prod=a(1)*(b(1)*c(1)-b(2)*c(2)) &
+         -a(2)*(b(1)*c(2)+b(2)*c(1))
+         
 
   END FUNCTION re_cmplx_prod
 
@@ -1071,10 +1099,8 @@ contains
     real(wp), dimension(2), intent(in) :: a,b,c
     real(wp) :: im_cmplx_prod
 
-    im_cmplx_prod=-a(2)*b(2)*c(2) &
-         +a(2)*b(1)*c(1) &
-         +a(1)*b(2)*c(1) &
-         +a(1)*b(1)*c(2)
+    im_cmplx_prod=a(2)*(b(1)*c(1)-b(2)*c(2)) &
+         +a(1)*(b(2)*c(1)+b(1)*c(2))
 
   END FUNCTION im_cmplx_prod
 

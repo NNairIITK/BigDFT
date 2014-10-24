@@ -29,6 +29,8 @@ logical :: nullifyVXC
 integer :: istat, iall
 real(dp), dimension(6) :: xcstr
 
+call f_routine(id='updatePotential')
+
 nullifyVXC=.false.
 
 if(nspin==4) then
@@ -75,5 +77,7 @@ else
    end if
 
 end if
+
+call f_release_routine()
 
 END SUBROUTINE updatePotential

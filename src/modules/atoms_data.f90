@@ -408,6 +408,7 @@ contains
       use dictionaries
       use yaml_output, only: yaml_warning, yaml_toa
       use yaml_strings, only: f_strcpy
+      use dynamic_memory
       implicit none
       type(dictionary), pointer :: dict
       type(atoms_data), intent(inout) :: atoms
@@ -419,6 +420,8 @@ contains
       character(len = max_field_length) :: at
       type(dictionary), pointer :: dict_tmp
       type(atoms_iterator) :: it
+
+      call f_routine(id='atomic_data_set_from_dict')
 
       !number of atoms with semicore channels
       atoms%natsc = 0
@@ -507,6 +510,9 @@ contains
 !!$         if (atoms%aoig(iat)%nao_sc /= 0) atoms%natsc=atoms%natsc+1
 !!$         !if (atoms%aoig(iat)%iasctype /= 0) atoms%natsc=atoms%natsc+1
 !!$      enddo
+
+      call f_release_routine()
+
     end subroutine atomic_data_set_from_dict
 
     !> set irreductible Brillouin zone
@@ -956,7 +962,6 @@ contains
          ! Default, store nothing and erase key if already exist.
          if (has_key(dict, ASTRUCT_CELL)) call dict_remove(dict, ASTRUCT_CELL)
       end select BC
-
       if (has_key(dict, ASTRUCT_POSITIONS)) call dict_remove(dict, ASTRUCT_POSITIONS)
       if (astruct%nat > 0) pos => dict // ASTRUCT_POSITIONS
       do iat=1,astruct%nat
