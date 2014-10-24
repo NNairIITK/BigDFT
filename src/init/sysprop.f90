@@ -136,6 +136,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
      call init_linear_orbs(LINEAR_PARTITION_SIMPLE)
+     call fragment_stuff()
      call init_lzd_linear()
      isize_min(1) = lnpsidim_orbs
      isize_max(1) = lnpsidim_orbs
@@ -148,7 +149,24 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      lzd_lin=default_lzd()
      call nullify_local_zone_descriptors(lzd_lin)
      lzd_lin%nlr = 0
+     ! Deallocate here fragment stuff
+     if (.not.(frag_allocated .and. (.not. in%lin%fragment_calculation) .and. inputpsi /= INPUT_PSI_DISK_LINEAR)) then
+         do ifrag=1,in%frag%nfrag_ref
+            ref_frags(ifrag)%astruct_frg%nat=-1
+            ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
+            call fragment_free(ref_frags(ifrag))
+            !ref_frags(ifrag)=fragment_null()
+            !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%iatype)
+            !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%ifrztyp)
+            !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%input_polarization)
+            !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%rxyz)
+            !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%rxyz_int)
+            !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%ixyz_int)
+         end do
+        deallocate(ref_frags)
+     end if
      call init_linear_orbs(LINEAR_PARTITION_OPTIMAL)
+     call fragment_stuff()
      call init_lzd_linear()
      isize_min(2) = lnpsidim_orbs
      isize_max(2) = lnpsidim_orbs
@@ -237,32 +255,32 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   end if
   ! Done orbs
 
-  ! fragment initializations - if not a fragment calculation, set to appropriate dummy values
-  frag_allocated=.false.
-  if (inputpsi == INPUT_PSI_DISK_LINEAR .or. in%lin%fragment_calculation) then
-     allocate(ref_frags(in%frag%nfrag_ref))
-     do ifrag=1,in%frag%nfrag_ref
-        ref_frags(ifrag)=fragment_null()
-     end do
-     call init_fragments(in,lorbs,atoms%astruct,ref_frags)
-    frag_allocated=.true.
-  else
-     nullify(ref_frags)
-  end if
+  !!! fragment initializations - if not a fragment calculation, set to appropriate dummy values
+  !!frag_allocated=.false.
+  !!if (inputpsi == INPUT_PSI_DISK_LINEAR .or. in%lin%fragment_calculation) then
+  !!   allocate(ref_frags(in%frag%nfrag_ref))
+  !!   do ifrag=1,in%frag%nfrag_ref
+  !!      ref_frags(ifrag)=fragment_null()
+  !!   end do
+  !!   call init_fragments(in,lorbs,atoms%astruct,ref_frags)
+  !!  frag_allocated=.true.
+  !!else
+  !!   nullify(ref_frags)
+  !!end if
 
-  call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, &
-       orbs, lorbs, iproc, nproc, in%frag%nfrag_ref, in%frag%dirname, ref_frags)
+  !!call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, &
+  !!     orbs, lorbs, iproc, nproc, in%frag%nfrag_ref, in%frag%dirname, ref_frags)
 
-  ! we need to deallocate the fragment arrays we just allocated as not a restart calculation so this is no longer needed
-  if (frag_allocated .and. (.not. in%lin%fragment_calculation) .and. inputpsi /= INPUT_PSI_DISK_LINEAR) then
-      do ifrag=1,in%frag%nfrag_ref
-         ref_frags(ifrag)%astruct_frg%nat=-1
-         ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
-         call fragment_free(ref_frags(ifrag))
-         !ref_frags(ifrag)=fragment_null()
-      end do
-     deallocate(ref_frags)
-  end if
+  !!! we need to deallocate the fragment arrays we just allocated as not a restart calculation so this is no longer needed
+  !!if (frag_allocated .and. (.not. in%lin%fragment_calculation) .and. inputpsi /= INPUT_PSI_DISK_LINEAR) then
+  !!    do ifrag=1,in%frag%nfrag_ref
+  !!       ref_frags(ifrag)%astruct_frg%nat=-1
+  !!       ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
+  !!       call fragment_free(ref_frags(ifrag))
+  !!       !ref_frags(ifrag)=fragment_null()
+  !!    end do
+  !!   deallocate(ref_frags)
+  !!end if
 
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
@@ -456,6 +474,34 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        !!end do
      end subroutine redistribute
 
+     subroutine fragment_stuff()
+       implicit none
+       frag_allocated=.false.
+       if (inputpsi == INPUT_PSI_DISK_LINEAR .or. in%lin%fragment_calculation) then
+          allocate(ref_frags(in%frag%nfrag_ref))
+          do ifrag=1,in%frag%nfrag_ref
+             ref_frags(ifrag)=fragment_null()
+          end do
+          call init_fragments(in,lorbs,atoms%astruct,ref_frags)
+         frag_allocated=.true.
+       else
+          nullify(ref_frags)
+       end if
+
+       call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, &
+            orbs, lorbs, iproc, nproc, in%frag%nfrag_ref, in%frag%dirname, ref_frags)
+
+       ! we need to deallocate the fragment arrays we just allocated as not a restart calculation so this is no longer needed
+       if (frag_allocated .and. (.not. in%lin%fragment_calculation) .and. inputpsi /= INPUT_PSI_DISK_LINEAR) then
+           do ifrag=1,in%frag%nfrag_ref
+              ref_frags(ifrag)%astruct_frg%nat=-1
+              ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
+              call fragment_free(ref_frags(ifrag))
+              !ref_frags(ifrag)=fragment_null()
+           end do
+          deallocate(ref_frags)
+       end if
+     end subroutine fragment_stuff
 
 END SUBROUTINE system_initialization
 

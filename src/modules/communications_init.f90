@@ -399,24 +399,30 @@ module communications_init
       !!call mpi_info_free(info, ierr)
       !!call mpi_win_fence(mpi_mode_noprecede, window_c, ierr)
 
-      window_c = mpiwindow((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p, weightppp_c(0,0,1), bigdft_mpi%mpi_comm)
+      if (nproc>1) then
+          window_c = mpiwindow((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p, weightppp_c(0,0,1), bigdft_mpi%mpi_comm)
+      end if
 
 
-      do jproc=0,nproc-1
-          !Check whether there is an overlap
-          is = max(i3startend(1,iproc),i3startend(3,jproc))
-          ie = min(i3startend(2,iproc),i3startend(4,jproc))
-          if (ie-is>=0) then
-              !!call mpi_accumulate(weightloc_c(0,0,is-i3start), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), &
-              !!     mpi_double_precision, jproc, &
-              !!     int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(is-i3startend(3,jproc)),kind=mpi_address_kind), &
-              !!     (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), mpi_double_precision, &
-              !!     mpi_sum, window_c, ierr)
-              call mpiaccumulate(weightloc_c(0,0,is-i3start), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), &
-                   jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(is-i3startend(3,jproc)),kind=mpi_address_kind), &
-                   (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), mpi_sum, window_c)
-          end if
-      end do
+      if (nproc>1) then
+          do jproc=0,nproc-1
+              !Check whether there is an overlap
+              is = max(i3startend(1,iproc),i3startend(3,jproc))
+              ie = min(i3startend(2,iproc),i3startend(4,jproc))
+              if (ie-is>=0) then
+                  !!call mpi_accumulate(weightloc_c(0,0,is-i3start), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), &
+                  !!     mpi_double_precision, jproc, &
+                  !!     int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(is-i3startend(3,jproc)),kind=mpi_address_kind), &
+                  !!     (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), mpi_double_precision, &
+                  !!     mpi_sum, window_c, ierr)
+                  call mpiaccumulate(weightloc_c(0,0,is-i3start), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), &
+                       jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(is-i3startend(3,jproc)),kind=mpi_address_kind), &
+                       (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), mpi_sum, window_c)
+              end if
+          end do
+      else
+          call vcopy((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p, weightloc_c(0,0,1), 1, weightppp_c(0,0,1), 1)
+      end if
       !call f_free(i3startend)
       !call mpi_win_fence(0, window_c, ierr)
       !call mpi_win_free(window_c, ierr)
@@ -547,7 +553,9 @@ module communications_init
       !call mpi_info_free(info, ierr)
       !call mpi_win_fence(mpi_mode_noprecede, window_f, ierr)
 
-      window_f = mpiwindow((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p, weightppp_f(0,0,1), bigdft_mpi%mpi_comm)
+      if (nproc>1) then
+          window_f = mpiwindow((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p, weightppp_f(0,0,1), bigdft_mpi%mpi_comm)
+      end if
 
       !!i3startend = f_malloc0((/1.to.4,0.to.nproc-1/),id='i3startend')
       !!i3startend(1,iproc) = i3start+1
@@ -556,21 +564,25 @@ module communications_init
       !!i3startend(4,iproc) = i3s+n3p-1
       !!call mpiallred(i3startend(1,0), 4*nproc, mpi_sum, bigdft_mpi%mpi_comm)
 
-      do jproc=0,nproc-1
-          !Check whether there is an overlap
-          is = max(i3startend(1,iproc),i3startend(3,jproc))
-          ie = min(i3startend(2,iproc),i3startend(4,jproc))
-          if (ie-is>=0) then
-              !call mpi_accumulate(weightloc_f(0,0,is-i3start), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), &
-              !     mpi_double_precision, jproc, &
-              !     int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(is-i3startend(3,jproc)),kind=mpi_address_kind), &
-              !     (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), mpi_double_precision, &
-              !     mpi_sum, window_f, ierr)
-              call mpiaccumulate(weightloc_f(0,0,is-i3start), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), &
-                   jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(is-i3startend(3,jproc)),kind=mpi_address_kind), &
-                   (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), mpi_sum, window_f)
-          end if
-      end do
+      if (nproc>1) then
+          do jproc=0,nproc-1
+              !Check whether there is an overlap
+              is = max(i3startend(1,iproc),i3startend(3,jproc))
+              ie = min(i3startend(2,iproc),i3startend(4,jproc))
+              if (ie-is>=0) then
+                  !call mpi_accumulate(weightloc_f(0,0,is-i3start), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), &
+                  !     mpi_double_precision, jproc, &
+                  !     int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(is-i3startend(3,jproc)),kind=mpi_address_kind), &
+                  !     (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), mpi_double_precision, &
+                  !     mpi_sum, window_f, ierr)
+                  call mpiaccumulate(weightloc_f(0,0,is-i3start), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), &
+                       jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(is-i3startend(3,jproc)),kind=mpi_address_kind), &
+                       (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), mpi_sum, window_f)
+              end if
+          end do
+      else
+          call vcopy((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p, weightloc_f(0,0,1), 1, weightppp_f(0,0,1), 1)
+      end if
       call f_free(i3startend)
       !call mpi_win_fence(0, window, ierr)
       !call mpi_win_free(window, ierr)
@@ -641,8 +653,10 @@ module communications_init
       call f_routine(id='assign_weight_to_process')
 
       ! Wait for the completion of the mpi_accumulate call started in get_weights
-      call mpi_win_fence(0, window_c, ierr)
-      call mpi_win_free(window_c, ierr)
+      if (nproc>1) then
+          call mpi_win_fence(0, window_c, ierr)
+          call mpi_win_free(window_c, ierr)
+      end if
 
       weight_tot_c = 0.d0
       do i3=1,n3p
@@ -850,8 +864,10 @@ module communications_init
       ! Same for fine region
 
       ! Wait for the completion of the mpi_accumulate call started in get_weights
-      call mpi_win_fence(0, window_f, ierr)
-      call mpi_win_free(window_f, ierr)
+      if (nproc>1) then
+          call mpi_win_fence(0, window_f, ierr)
+          call mpi_win_free(window_f, ierr)
+      end if
 
       weight_tot_f = 0.d0
       do i3=1,n3p
