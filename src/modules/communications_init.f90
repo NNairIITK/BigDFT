@@ -390,14 +390,16 @@ module communications_init
 
       !@NEW #########################################
       !!weightppp_c = 0.d0
-      call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-      call mpi_info_create(info, ierr)
-      call mpi_info_set(info, "no_locks", "true", ierr)
-      call mpi_win_create(weightppp_c(0,0,1), &
-           int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p*size_of_double,kind=mpi_address_kind), size_of_double, &
-           info, bigdft_mpi%mpi_comm, window_c, ierr)
-      call mpi_info_free(info, ierr)
-      call mpi_win_fence(mpi_mode_noprecede, window_c, ierr)
+      !!call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+      !!call mpi_info_create(info, ierr)
+      !!call mpi_info_set(info, "no_locks", "true", ierr)
+      !!call mpi_win_create(weightppp_c(0,0,1), &
+      !!     int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p*size_of_double,kind=mpi_address_kind), size_of_double, &
+      !!     info, bigdft_mpi%mpi_comm, window_c, ierr)
+      !!call mpi_info_free(info, ierr)
+      !!call mpi_win_fence(mpi_mode_noprecede, window_c, ierr)
+
+      window_c = mpiwindow((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p, weightppp_c(0,0,1), bigdft_mpi%mpi_comm)
 
 
       do jproc=0,nproc-1
@@ -405,11 +407,14 @@ module communications_init
           is = max(i3startend(1,iproc),i3startend(3,jproc))
           ie = min(i3startend(2,iproc),i3startend(4,jproc))
           if (ie-is>=0) then
-              call mpi_accumulate(weightloc_c(0,0,is-i3start), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), &
-                   mpi_double_precision, jproc, &
-                   int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(is-i3startend(3,jproc)),kind=mpi_address_kind), &
-                   (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), mpi_double_precision, &
-                   mpi_sum, window_c, ierr)
+              !!call mpi_accumulate(weightloc_c(0,0,is-i3start), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), &
+              !!     mpi_double_precision, jproc, &
+              !!     int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(is-i3startend(3,jproc)),kind=mpi_address_kind), &
+              !!     (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), mpi_double_precision, &
+              !!     mpi_sum, window_c, ierr)
+              call mpiaccumulate(weightloc_c(0,0,is-i3start), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), &
+                   jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(is-i3startend(3,jproc)),kind=mpi_address_kind), &
+                   (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), mpi_sum, window_c)
           end if
       end do
       !call f_free(i3startend)
@@ -533,14 +538,16 @@ module communications_init
       !end do
 
       !@NEW #########################################
-      call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-      call mpi_info_create(info, ierr)
-      call mpi_info_set(info, "no_locks", "true", ierr)
-      call mpi_win_create(weightppp_f(0,0,1), &
-           int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p*size_of_double,kind=mpi_address_kind), size_of_double, &
-           info, bigdft_mpi%mpi_comm, window_f, ierr)
-      call mpi_info_free(info, ierr)
-      call mpi_win_fence(mpi_mode_noprecede, window_f, ierr)
+      !call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+      !call mpi_info_create(info, ierr)
+      !call mpi_info_set(info, "no_locks", "true", ierr)
+      !call mpi_win_create(weightppp_f(0,0,1), &
+      !     int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p*size_of_double,kind=mpi_address_kind), size_of_double, &
+      !     info, bigdft_mpi%mpi_comm, window_f, ierr)
+      !call mpi_info_free(info, ierr)
+      !call mpi_win_fence(mpi_mode_noprecede, window_f, ierr)
+
+      window_f = mpiwindow((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p, weightppp_f(0,0,1), bigdft_mpi%mpi_comm)
 
       !!i3startend = f_malloc0((/1.to.4,0.to.nproc-1/),id='i3startend')
       !!i3startend(1,iproc) = i3start+1
@@ -554,11 +561,14 @@ module communications_init
           is = max(i3startend(1,iproc),i3startend(3,jproc))
           ie = min(i3startend(2,iproc),i3startend(4,jproc))
           if (ie-is>=0) then
-              call mpi_accumulate(weightloc_f(0,0,is-i3start), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), &
-                   mpi_double_precision, jproc, &
-                   int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(is-i3startend(3,jproc)),kind=mpi_address_kind), &
-                   (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), mpi_double_precision, &
-                   mpi_sum, window_f, ierr)
+              !call mpi_accumulate(weightloc_f(0,0,is-i3start), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), &
+              !     mpi_double_precision, jproc, &
+              !     int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(is-i3startend(3,jproc)),kind=mpi_address_kind), &
+              !     (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), mpi_double_precision, &
+              !     mpi_sum, window_f, ierr)
+              call mpiaccumulate(weightloc_f(0,0,is-i3start), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), &
+                   jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(is-i3startend(3,jproc)),kind=mpi_address_kind), &
+                   (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), mpi_sum, window_f)
           end if
       end do
       call f_free(i3startend)
