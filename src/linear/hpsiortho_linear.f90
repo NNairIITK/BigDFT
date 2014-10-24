@@ -531,10 +531,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       ist=ist+ncount
   end do
   
-  if (nproc > 1) then
-     call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
-     call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm)
-  end if
+
+  call communicate_fnrm()
 
 
   if (experimental_mode .and. it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
@@ -562,6 +560,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
   ! Determine the mean step size for steepest descent iterations.
+  call communicate_alpha()
   tt=sum(alpha)
   alpha_max=maxval(alpha)
   if (nproc > 1) then
@@ -692,6 +691,29 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call f_release_routine()
 
     end subroutine calculate_trace_finish
+
+
+  subroutine communicate_fnrm()
+    implicit none
+    call f_routine(id='communicate_fnrm')
+    if (nproc > 1) then
+       call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
+       call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm)
+    end if
+    call f_release_routine()
+  end subroutine communicate_fnrm
+
+  subroutine communicate_alpha()
+    implicit none
+    call f_routine(id='communicate_alpha')
+    tt=sum(alpha)
+    alpha_max=maxval(alpha)
+    if (nproc > 1) then
+       call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
+       call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm)
+    end if
+    call f_release_routine()
+  end subroutine communicate_alpha
 
 end subroutine calculate_energy_and_gradient_linear
 
