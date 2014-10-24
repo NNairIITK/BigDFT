@@ -372,11 +372,9 @@ module communications_init
       !!call f_free(dummybuf)
 
       weight_c_tot = 0.d0
-      tt=0
       do i3=1,n3p
           do i2=0,lzd%glr%d%n2
               do i1=0,lzd%glr%d%n1
-                  tt=tt+weightppp_c(i1,i2,i3)
                   weightppp_c(i1,i2,i3)=weightppp_c(i1,i2,i3)**2
                   weight_c_tot = weight_c_tot + weightppp_c(i1,i2,i3)
               end do
@@ -384,7 +382,6 @@ module communications_init
       end do
       if (nproc>1) then
           call mpiallred(weight_c_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
-          call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
       end if
 
 
@@ -2599,7 +2596,7 @@ module communications_init
       do jproc=0,nproc-2
           istartend(2,jproc)=istartend(1,jproc+1)-1
       end do
-      istartend(2,nproc-1)=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i
+      istartend(2,nproc-1)=int(lzd%glr%d%n1i,kind=8)*int(lzd%glr%d%n2i,kind=8)*int(lzd%glr%d%n3i,kind=8)
     
       nptsp = int(istartend(2,iproc)-istartend(1,iproc),kind=4) + 1
     
