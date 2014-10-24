@@ -134,6 +134,11 @@ module module_types
   integer, parameter, public :: UPDATE_BY_PURIFICATION = 0
   integer, parameter, public :: UPDATE_BY_FOE = 1
   integer, parameter, public :: UPDATE_BY_RENORMALIZATION = 2
+
+  !> How to do the partition of the support functions (linear scaling version)
+  integer,parameter,public :: LINEAR_PARTITION_SIMPLE = 61
+  integer,parameter,public :: LINEAR_PARTITION_OPTIMAL = 62
+  integer,parameter,public :: LINEAR_PARTITION_NONE = 63
   
   !> Type used for the orthogonalisation parameters
   type, public :: orthon_data

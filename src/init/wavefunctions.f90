@@ -12,11 +12,11 @@
 !! It uses the cubic strategy for partitioning the orbitals
 !! @param basedist   optional argument indicating the base orbitals distribution to start from
 subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,&
-     orbs,simple,basedist,basedistu,basedistd)
+     orbs,linear_partition,basedist,basedistu,basedistd)
   use module_base
   use module_types
   implicit none
-  logical, intent(in) :: simple !< simple calculation of the repartition
+  integer, intent(in) :: linear_partition !< repartition mode for the linear scaling version
   integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
   integer, intent(in) :: nspinor
   type(orbitals_data), intent(inout) :: orbs
@@ -210,13 +210,26 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
 
 
  ! Modify these values
-  if (simple) then
-     call repartitionOrbitals2(iproc,nproc,orbs%norb,orbs%norb_par,&
-          orbs%norbp,orbs%isorb)
-     call repartitionOrbitals2(iproc,nproc,orbs%norbu,orbs%norbu_par,&
-          orbs%norbup,orbs%isorbu)
-     call repartitionOrbitals2(iproc,nproc,orbs%norbd,orbs%norbd_par,&
-          orbs%norbdp,orbs%isorbd)
+  if (linear_partition==LINEAR_PARTITION_SIMPLE) then
+      call repartitionOrbitals2(iproc,nproc,orbs%norb,orbs%norb_par,&
+           orbs%norbp,orbs%isorb)
+      call repartitionOrbitals2(iproc,nproc,orbs%norbu,orbs%norbu_par,&
+           orbs%norbup,orbs%isorbu)
+      call repartitionOrbitals2(iproc,nproc,orbs%norbd,orbs%norbd_par,&
+           orbs%norbdp,orbs%isorbd)
+  else if (linear_partition==LINEAR_PARTITION_OPTIMAL) then
+      if (.not.present(basedist)) stop 'basedist not present'
+      call repartition_orbitals_optimal(iproc,nproc,basedist,orbs%norb_par,&
+           orbs%norbp,orbs%isorb)
+      if (.not.present(basedistu)) stop 'basedistu not present'
+      call repartition_orbitals_optimal(iproc,nproc,basedistu,orbs%norbu_par,&
+           orbs%norbup,orbs%isorbu)
+      if (.not.present(basedistd)) stop 'basedistd not present'
+      call repartition_orbitals_optimal(iproc,nproc,basedistd,orbs%norbd_par,&
+           orbs%norbdp,orbs%isorbd)
+  else if (linear_partition==LINEAR_PARTITION_NONE) then
+  else
+      stop 'wrong value of linear_partition'
   end if
 
   orbs%iokpt = f_malloc_ptr(orbs%norbp,id='orbs%iokpt')
@@ -375,6 +388,35 @@ subroutine repartitionOrbitals2(iproc, nproc, norb, norb_par, norbp, isorb)
 
 
 end subroutine repartitionOrbitals2
+
+
+subroutine repartition_orbitals_optimal(iproc, nproc, norb_par_ref, norb_par, norbp, isorb)
+  use module_base
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  integer,dimension(0:nproc-1),intent(in):: norb_par_ref
+  integer,dimension(0:nproc-1),intent(out):: norb_par
+  integer,intent(out):: norbp, isorb
+
+  ! Local variables
+  integer:: jproc
+
+
+  ! Take norb_par from the reference
+  call vcopy(nproc, norb_par_ref(0), 1, norb_par(0), 1)
+
+  ! Determine norbp
+  norbp=norb_par(iproc)
+
+  ! Determine isorb
+  isorb=0
+  do jproc=0,iproc-1
+      isorb=isorb+norb_par(jproc)
+  end do
+
+end subroutine repartition_orbitals_optimal
 
 subroutine lzd_set_hgrids(Lzd, hgrids)
   use module_base

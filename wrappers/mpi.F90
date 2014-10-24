@@ -62,7 +62,7 @@ module wrapper_MPI
 
   !> Interface for MPI_ALLREDUCE routine, to be updated little by little
   interface mpiallred
-     module procedure mpiallred_int,mpiallred_real, &
+     module procedure mpiallred_int,mpiallred_long,mpiallred_real, &
           & mpiallred_double,&!,mpiallred_double_1,mpiallred_double_2,&
           & mpiallred_log
      module procedure mpiallred_d1,mpiallred_d2
@@ -827,6 +827,16 @@ contains
     integer, dimension(:), allocatable :: copybuf
     include 'allreduce-inc.f90'
   end subroutine mpiallred_int
+
+  subroutine mpiallred_long(sendbuf,count,op,comm,recvbuf)
+    use dictionaries, only: f_err_throw,f_err_define
+    use dynamic_memory
+    implicit none
+    integer(kind=8), intent(inout) :: sendbuf
+    integer(kind=8), intent(inout), optional :: recvbuf
+    integer(kind=8), dimension(:), allocatable :: copybuf
+    include 'allreduce-inc.f90'
+  end subroutine mpiallred_long
 
   !> Interface for MPI_ALLREDUCE operations
   subroutine mpiallred_real(sendbuf,count,op,comm,recvbuf)

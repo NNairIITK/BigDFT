@@ -876,7 +876,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
                 KSwfn%orbs%nspin,KSwfn%orbs%nspinor,nkptv, &
                 in%kptv(:,sum(in%nkptsv_group(1:igroup - 1)) + 1:sum(in%nkptsv_group(1:igroup))), &
-                wkptv,VTwfn%orbs,.false.)
+                wkptv,VTwfn%orbs,LINEAR_PARTITION_NONE)
            !allocate communications arrays for virtual orbitals
            call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,VTwfn%orbs,VTwfn%comms)  
 
@@ -898,7 +898,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            !the virtual orbitals should be in agreement with the traditional k-points
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
                 KSwfn%orbs%nspin,KSwfn%orbs%nspinor,KSwfn%orbs%nkpts,&
-                KSwfn%orbs%kpts,KSwfn%orbs%kwgts,VTwfn%orbs,.false.,&
+                KSwfn%orbs%kpts,KSwfn%orbs%kwgts,VTwfn%orbs,LINEAR_PARTITION_NONE,&
                 basedist=KSwfn%orbs%norb_par(0:,1:),basedistu=KSwfn%orbs%norbu_par(0:,1:),&
                 basedistd=KSwfn%orbs%norbd_par(0:,1:))
            !allocate communications arrays for virtual orbitals

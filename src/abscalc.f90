@@ -472,7 +472,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !allocate communications arrays (allocate it before Projectors because of the definition
    !of iskpts and nkptsp)
 
-   call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
+   call orbitals_descriptors(iproc,nproc,1,1,0,in%nspin,1,in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,LINEAR_PARTITION_NONE)
    call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,orbs,comms)  
 
    call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,orbs,&

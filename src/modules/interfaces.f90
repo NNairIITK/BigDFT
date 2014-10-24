@@ -144,11 +144,11 @@ module module_interfaces
       END SUBROUTINE check_closed_shell
 
       subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor, &
-                 nkpt,kpt,wkpt,orbs,simple,basedist,basedistu,basedistd)
+                 nkpt,kpt,wkpt,orbs,linear_partition,basedist,basedistu,basedistd)
          use module_defs, only: gp
          use module_types
          implicit none
-         logical, intent(in) :: simple !< simple calculation of the repartition
+         integer, intent(in) :: linear_partition !< repartition mode for the linear scaling version
          integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
          integer, intent(in) :: nspinor
          type(orbitals_data), intent(inout) :: orbs
@@ -2396,7 +2396,8 @@ module module_interfaces
          type(DFT_wavefunction),intent(inout):: wfn
        end subroutine destroy_DFT_wavefunction
 
-       subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, rxyz, lorbs)
+       subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, rxyz, lorbs, &
+           norb_par_ref, norbu_par_ref, norbd_par_ref)
          use module_base
          use module_types
          implicit none
@@ -2405,6 +2406,7 @@ module module_interfaces
          type(atomic_structure),intent(in):: astruct
          real(8),dimension(3,astruct%nat),intent(in):: rxyz
          type(orbitals_data),intent(out):: lorbs
+         integer,dimension(0:nproc-1),intent(in),optional :: norb_par_ref, norbu_par_ref, norbd_par_ref
        end subroutine init_orbitals_data_for_linear
 
        subroutine mix_main(iproc, nproc, mix_mode, mixHist, input, glr, alpha_mix, &

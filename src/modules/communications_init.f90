@@ -277,6 +277,12 @@ module communications_init
 !      end do
 
     
+      i3startend = f_malloc0((/1.to.4,0.to.nproc-1/),id='i3startend')
+      i3startend(1,iproc) = i3start+1
+      i3startend(2,iproc) = i3end+1
+      i3startend(3,iproc) = i3s
+      i3startend(4,iproc) = i3s+n3p-1
+      call mpiallred(i3startend(1,0), 4*nproc, mpi_sum, bigdft_mpi%mpi_comm)
 
 
       !@NEW ##################################
@@ -393,12 +399,6 @@ module communications_init
       call mpi_info_free(info, ierr)
       call mpi_win_fence(mpi_mode_noprecede, window_c, ierr)
 
-      i3startend = f_malloc0((/1.to.4,0.to.nproc-1/),id='i3startend')
-      i3startend(1,iproc) = i3start+1
-      i3startend(2,iproc) = i3end+1
-      i3startend(3,iproc) = i3s
-      i3startend(4,iproc) = i3s+n3p-1
-      call mpiallred(i3startend(1,0), 4*nproc, mpi_sum, bigdft_mpi%mpi_comm)
 
       do jproc=0,nproc-1
           !Check whether there is an overlap
@@ -412,7 +412,7 @@ module communications_init
                    mpi_sum, window_c, ierr)
           end if
       end do
-      call f_free(i3startend)
+      !call f_free(i3startend)
       !call mpi_win_fence(0, window_c, ierr)
       !call mpi_win_free(window_c, ierr)
       !@END NEW #####################################
@@ -542,12 +542,12 @@ module communications_init
       call mpi_info_free(info, ierr)
       call mpi_win_fence(mpi_mode_noprecede, window_f, ierr)
 
-      i3startend = f_malloc0((/1.to.4,0.to.nproc-1/),id='i3startend')
-      i3startend(1,iproc) = i3start+1
-      i3startend(2,iproc) = i3end+1
-      i3startend(3,iproc) = i3s
-      i3startend(4,iproc) = i3s+n3p-1
-      call mpiallred(i3startend(1,0), 4*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      !!i3startend = f_malloc0((/1.to.4,0.to.nproc-1/),id='i3startend')
+      !!i3startend(1,iproc) = i3start+1
+      !!i3startend(2,iproc) = i3end+1
+      !!i3startend(3,iproc) = i3s
+      !!i3startend(4,iproc) = i3s+n3p-1
+      !!call mpiallred(i3startend(1,0), 4*nproc, mpi_sum, bigdft_mpi%mpi_comm)
 
       do jproc=0,nproc-1
           !Check whether there is an overlap

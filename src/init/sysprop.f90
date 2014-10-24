@@ -49,8 +49,11 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   real(gp), dimension(3) :: h_input
   logical:: present_inwhichlocreg_old, present_onwhichatom_old, output_grid_, frag_allocated, calculate_bounds
   integer, dimension(:,:), allocatable :: norbsc_arr
+  integer, dimension(:), allocatable :: norb_par, norbu_par, norbd_par
   real(kind=8), dimension(:), allocatable :: locrad
   integer :: ilr, iilr
+  integer,dimension(2) :: isize_max, isize_min
+  real(kind=8) :: ratio_before, ratio_after
   logical :: init_projectors_completely
   call f_routine(id=subname)
 
@@ -112,7 +115,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      nspinor=1
   end if
   call orbitals_descriptors(iproc, nproc,in%gen_norb,in%gen_norbu,in%gen_norbd,in%nspin,nspinor,&
-       in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
+       in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,LINEAR_PARTITION_NONE)
   !!write(*,*) 'orbs%norbu', orbs%norbu
   !!write(*,*) 'orbs%norbd', orbs%norbd
   !!write(*,*) 'orbs%norb', orbs%norb
@@ -121,44 +124,45 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   !!write(*,*) 'orbs%norbp', orbs%norbp
   orbs%occup(1:orbs%norb*orbs%nkpts) = in%gen_occup
   if (dump .and. iproc==0) call print_orbitals(orbs, atoms%astruct%geocode)
+
+  ! See if linear scaling should be activated and build the correct Lzd 
+  call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
+  lzd_lin=default_lzd()
+  call nullify_local_zone_descriptors(lzd_lin)
+  lzd_lin%nlr = 0
+
+
   ! Create linear orbs data structure.
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-     if (present(locregcenters)) then
-         call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms%astruct, locregcenters, lorbs)
-     else
-         call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms%astruct, atoms%astruct%rxyz, lorbs)
-     end if
-
-     ! There are needed for the restart (at least if the atoms have moved...)
-     present_inwhichlocreg_old = present(inwhichlocreg_old)
-     present_onwhichatom_old = present(onwhichatom_old)
-     if (present_inwhichlocreg_old .and. .not.present_onwhichatom_old &
-         .or. present_onwhichatom_old .and. .not.present_inwhichlocreg_old) then
-         call yaml_warning('inwhichlocreg_old and onwhichatom_old should be present at the same time')
-         stop 
-     end if
-     if (present_inwhichlocreg_old .and. present_onwhichatom_old) then
-         call vcopy(lorbs%norb, onwhichatom_old(1), 1, lorbs%onwhichatom(1), 1)
-         !call vcopy(lorbs%norb, inwhichlocreg_old(1), 1, lorbs%inwhichlocreg(1), 1)
-         !use onwhichatom to build the new inwhichlocreg (because the old inwhichlocreg can be ordered differently)
-         ii = 0
-         do iat=1, atoms%astruct%nat
-            do iorb=1,lorbs%norb
-               if(iat ==  lorbs%onwhichatom(iorb)) then
-                  ii = ii + 1
-                  lorbs%inwhichlocreg(iorb)= ii
-               end if
-            end do 
-         end do
-         !i_all=-product(shape(inwhichlocreg_old))*kind(inwhichlocreg_old)
-         !deallocate(inwhichlocreg_old,stat=i_stat)
-         !call memocc(i_stat,i_all,'inwhichlocreg_old',subname)
-         !i_all=-product(shape(onwhichatom_old))*kind(onwhichatom_old)
-         !deallocate(onwhichatom_old,stat=i_stat)
-         !call memocc(i_stat,i_all,'onwhichatom_old',subname)
-     end if
+     call init_linear_orbs(LINEAR_PARTITION_SIMPLE)
+     call init_lzd_linear()
+     isize_min(1) = lnpsidim_orbs
+     isize_max(1) = lnpsidim_orbs
+     norb_par = f_malloc(0.to.nproc-1,id='norb_par')
+     norbu_par = f_malloc(0.to.nproc-1,id='norbu_par')
+     norbd_par = f_malloc(0.to.nproc-1,id='norbd_par')
+     call optimize_loadbalancing()
+     call deallocate_orbitals_data(lorbs)
+     call deallocate_local_zone_descriptors(lzd_lin)
+     lzd_lin=default_lzd()
+     call nullify_local_zone_descriptors(lzd_lin)
+     lzd_lin%nlr = 0
+     call init_linear_orbs(LINEAR_PARTITION_OPTIMAL)
+     call init_lzd_linear()
+     isize_min(2) = lnpsidim_orbs
+     isize_max(2) = lnpsidim_orbs
+     call mpiallred(isize_min(1), 2, mpi_min, bigdft_mpi%mpi_comm)
+     call mpiallred(isize_max(1), 2, mpi_max, bigdft_mpi%mpi_comm)
+     ratio_before = real(isize_max(1),kind=8)/real(isize_min(1),kind=8)
+     ratio_after = real(isize_max(2),kind=8)/real(isize_min(2),kind=8)
+     if (iproc==0) call yaml_map('support function size load balancing before/after',(/ratio_before,ratio_after/),fmt='(f4.2)')
+     call f_free(norb_par)
+     call f_free(norbu_par)
+     call f_free(norbd_par)
   end if
+
+
   !In the case in which the number of orbitals is not "trivial" check whether they are too many
   if (inputpsi /= INPUT_PSI_RANDOM) then
 
@@ -260,43 +264,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      deallocate(ref_frags)
   end if
 
-  ! See if linear scaling should be activated and build the correct Lzd 
-  call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
-
-  lzd_lin=default_lzd()
-  call nullify_local_zone_descriptors(lzd_lin)
-  lzd_lin%nlr = 0
-
-  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
-     .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-     call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr)
-     call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
-     if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-         !!write(*,*) 'rxyz',rxyz
-         !!write(*,*) 'locregcenters',locregcenters
-         if (present(locregcenters)) then
-            call lzd_init_llr(iproc, nproc, in, atoms%astruct, locregcenters, lorbs, lzd_lin)
-        else
-            call lzd_init_llr(iproc, nproc, in, atoms%astruct, atoms%astruct%rxyz, lorbs, lzd_lin)
-        end if
-
-     else
-        call initialize_linear_from_file(iproc,nproc,in%frag,atoms%astruct,rxyz,lorbs,lzd_lin,&
-             input_wf_format,in%dir_output,'minBasis',ref_frags)
-        !what to do with derivatives?
-        ! These values are not read from file, not very nice this way
-        do ilr=1,lzd_lin%nlr
-            iilr=mod(ilr-1,lorbs%norbu)+1 !correct value for a spin polarized system
-            lzd_lin%llr(ilr)%locrad_kernel=in%lin%locrad_kernel(iilr)
-            lzd_lin%llr(ilr)%locrad_mult=in%lin%locrad_mult(iilr)
-        end do
-     end if
-
-     call initLocregs(iproc, nproc, lzd_lin, Lzd_lin%hgrids(1), Lzd_lin%hgrids(2),Lzd_lin%hgrids(3), &
-          atoms%astruct, lorbs, Lzd_lin%Glr, 's')
-     call update_wavefunctions_size(lzd_lin,lnpsidim_orbs,lnpsidim_comp,lorbs,iproc,nproc)
-
-  end if
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   ! SM: For a linear scaling calculation, some parts can be done later.
@@ -349,6 +316,146 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
   call f_release_routine()
   !---end of system definition routine
+
+
+  contains
+
+    subroutine init_linear_orbs(linear_partition)
+     implicit none
+     integer,intent(in) :: linear_partition
+
+     if (linear_partition==LINEAR_PARTITION_SIMPLE) then
+         if (present(locregcenters)) then
+             call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms%astruct, locregcenters, lorbs)
+         else
+             call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms%astruct, atoms%astruct%rxyz, lorbs)
+         end if
+     else if (linear_partition==LINEAR_PARTITION_OPTIMAL) then
+         if (present(locregcenters)) then
+             call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms%astruct, locregcenters, lorbs, &
+                  norb_par, norbu_par, norbd_par)
+         else
+             call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms%astruct, atoms%astruct%rxyz, lorbs, &
+                  norb_par, norbu_par, norbd_par)
+         end if
+     else
+         stop 'init_linear_orbs: wrong value of linear_partition'
+     end if
+
+       ! There are needed for the restart (at least if the atoms have moved...)
+       present_inwhichlocreg_old = present(inwhichlocreg_old)
+       present_onwhichatom_old = present(onwhichatom_old)
+       if (present_inwhichlocreg_old .and. .not.present_onwhichatom_old &
+           .or. present_onwhichatom_old .and. .not.present_inwhichlocreg_old) then
+           call yaml_warning('inwhichlocreg_old and onwhichatom_old should be present at the same time')
+           stop 
+       end if
+       if (present_inwhichlocreg_old .and. present_onwhichatom_old) then
+           call vcopy(lorbs%norb, onwhichatom_old(1), 1, lorbs%onwhichatom(1), 1)
+           !call vcopy(lorbs%norb, inwhichlocreg_old(1), 1, lorbs%inwhichlocreg(1), 1)
+           !use onwhichatom to build the new inwhichlocreg (because the old inwhichlocreg can be ordered differently)
+           ii = 0
+           do iat=1, atoms%astruct%nat
+              do iorb=1,lorbs%norb
+                 if(iat ==  lorbs%onwhichatom(iorb)) then
+                    ii = ii + 1
+                    lorbs%inwhichlocreg(iorb)= ii
+                 end if
+              end do 
+           end do
+           !i_all=-product(shape(inwhichlocreg_old))*kind(inwhichlocreg_old)
+           !deallocate(inwhichlocreg_old,stat=i_stat)
+           !call memocc(i_stat,i_all,'inwhichlocreg_old',subname)
+           !i_all=-product(shape(onwhichatom_old))*kind(onwhichatom_old)
+           !deallocate(onwhichatom_old,stat=i_stat)
+           !call memocc(i_stat,i_all,'onwhichatom_old',subname)
+       end if
+     end subroutine init_linear_orbs
+
+     subroutine init_lzd_linear()
+       implicit none
+       call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr)
+       call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
+       if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+           !!write(*,*) 'rxyz',rxyz
+           !!write(*,*) 'locregcenters',locregcenters
+           if (present(locregcenters)) then
+              call lzd_init_llr(iproc, nproc, in, atoms%astruct, locregcenters, lorbs, lzd_lin)
+          else
+              call lzd_init_llr(iproc, nproc, in, atoms%astruct, atoms%astruct%rxyz, lorbs, lzd_lin)
+          end if
+
+       else
+          call initialize_linear_from_file(iproc,nproc,in%frag,atoms%astruct,rxyz,lorbs,lzd_lin,&
+               input_wf_format,in%dir_output,'minBasis',ref_frags)
+          !what to do with derivatives?
+          ! These values are not read from file, not very nice this way
+          do ilr=1,lzd_lin%nlr
+              iilr=mod(ilr-1,lorbs%norbu)+1 !correct value for a spin polarized system
+              lzd_lin%llr(ilr)%locrad_kernel=in%lin%locrad_kernel(iilr)
+              lzd_lin%llr(ilr)%locrad_mult=in%lin%locrad_mult(iilr)
+          end do
+       end if
+
+       call initLocregs(iproc, nproc, lzd_lin, Lzd_lin%hgrids(1), Lzd_lin%hgrids(2),Lzd_lin%hgrids(3), &
+            atoms%astruct, lorbs, Lzd_lin%Glr, 's')
+       call update_wavefunctions_size(lzd_lin,lnpsidim_orbs,lnpsidim_comp,lorbs,iproc,nproc)
+     end subroutine init_lzd_linear
+
+     subroutine optimize_loadbalancing()
+       implicit none
+
+       ! Local variables
+       integer(kind=8) :: isize, isize_ideal
+
+       ! Sum up the total size of all support functions
+       isize = int(lnpsidim_orbs,kind=8)
+       call mpiallred(isize, 1, mpi_sum, bigdft_mpi%mpi_comm)
+
+       ! Ideal size per task (integer division)
+       isize_ideal = isize/int(nproc,kind=8)
+
+       ! Redistribute the support functions such that the load balancing is optimal
+       call redistribute(lorbs%norb, isize_ideal, norb_par)
+
+       ! The same for the up and down orbitals
+       isize_ideal = isize_ideal/int(in%nspin,kind=8)
+       call redistribute(lorbs%norbu, isize_ideal, norbu_par)
+       call redistribute(lorbs%norbd, isize_ideal, norbd_par)
+
+     end subroutine optimize_loadbalancing
+
+     subroutine redistribute(norb, isize_ideal, norb_par)
+       implicit none
+       integer,intent(in) :: norb
+       integer(kind=8),intent(in) :: isize_ideal
+       integer,dimension(0:nproc-1),intent(out) :: norb_par
+       integer :: jjorbtot, jjorb, jproc, jlr, jorb
+       integer(kind=8) :: ncount
+
+       call to_zero(nproc, norb_par(0))
+       ncount = int(0,kind=8)
+       jproc = 0
+       jjorb = 0
+       jjorbtot = 0
+       do jorb=1,norb
+           jjorb = jjorb + 1
+           jlr = lorbs%inwhichlocreg(jorb)
+           ncount = ncount + int(lzd_lin%llr(jlr)%wfd%nvctr_c+7*lzd_lin%llr(jlr)%wfd%nvctr_f,kind=8)
+           if (ncount>=isize_ideal*int(jproc+1,kind=8)) then
+               norb_par(jproc) = jjorb
+               jjorbtot = jjorbtot + jjorb
+               jjorb = 0
+               jproc = jproc + 1
+           end if
+           if (jproc==nproc-1) exit
+       end do
+       norb_par(nproc-1) = jjorb + (norb - jjorbtot) !take the rest
+       !!do jproc=0,nproc-1
+       !!    if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
+       !!end do
+     end subroutine redistribute
+
 
 END SUBROUTINE system_initialization
 
@@ -426,7 +533,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs)!,radii_cf)
      nspinor=1
   end if
   call orbitals_descriptors(iproc, nproc,in%gen_norb,in%gen_norbu,in%gen_norbd,in%nspin,nspinor,&
-       in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
+       in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,LINEAR_PARTITION_NONE)
   orbs%occup(1:orbs%norb*orbs%nkpts) = in%gen_occup
   if (iproc==0) call print_orbitals(orbs, atoms%astruct%geocode)
 
