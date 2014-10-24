@@ -590,7 +590,8 @@ end subroutine create_LzdLIG
 
 
 
-subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, rxyz, lorbs)
+subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, rxyz, lorbs, &
+           norb_par_ref, norbu_par_ref, norbd_par_ref)
   use module_base
   use module_types
   use module_interfaces, except_this_one => init_orbitals_data_for_linear
@@ -602,18 +603,37 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   type(atomic_structure), intent(in) :: astruct
   real(kind=8),dimension(3,astruct%nat), intent(in) :: rxyz
   type(orbitals_data), intent(out) :: lorbs
+  integer,dimension(0:nproc-1),intent(in),optional :: norb_par_ref, norbu_par_ref, norbd_par_ref
   
   ! Local variables
   integer :: norb, norbu, norbd, ityp, iat, ilr, iorb, nlr, iiat, ispin
   integer, dimension(:), allocatable :: norbsPerLocreg, norbsPerAtom
   real(kind=8),dimension(:,:), allocatable :: locregCenter
   character(len=*), parameter :: subname='init_orbitals_data_for_linear'
+  logical :: with_optional
+  logical,dimension(3) :: optional_present
 
   call timing(iproc,'init_orbs_lin ','ON')
 
   call f_routine(id='init_orbitals_data_for_linear')
+
+  ! Check the arguments
+  optional_present(1) = present(norb_par_ref)
+  optional_present(2) = present(norbu_par_ref)
+  optional_present(3) = present(norbd_par_ref)
+  if (any(optional_present)) then
+      if (all(optional_present)) then
+          with_optional = .true.
+      else
+          stop 'init_orbitals_data_for_linear: not all optional arguments present'
+      end if
+  else
+          with_optional = .false.
+  end if
+
   
   call nullify_orbitals_data(lorbs)
+
  
   ! Count the number of basis functions.
   norbsPerAtom = f_malloc(astruct%nat*input%nspin,id='norbsPerAtom')
@@ -644,8 +664,14 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
 
  
   ! Distribute the basis functions among the processors.
-  call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
-       input%gen_nkpt, input%gen_kpt, input%gen_wkpt, lorbs,.true.) !simple repartition
+  if (with_optional) then
+      call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
+           input%gen_nkpt, input%gen_kpt, input%gen_wkpt, lorbs,LINEAR_PARTITION_OPTIMAL,&
+           norb_par_ref, norbu_par_ref, norbd_par_ref)
+  else
+      call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, input%nspin, nspinor,&
+           input%gen_nkpt, input%gen_kpt, input%gen_wkpt, lorbs,LINEAR_PARTITION_SIMPLE) !simple repartition
+   end if
 
   locregCenter = f_malloc((/ 3, nlr /),id='locregCenter')
 
@@ -2035,7 +2061,7 @@ subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat
       ! first to calculate a corresponding orbs type.
       call nullify_orbitals_data(orbs_aux)
       call orbitals_descriptors(iproc, nproc, norb+nextra, norb+nextra, 0, input%nspin, orbs%nspinor,&
-           input%gen_nkpt, input%gen_kpt, input%gen_wkpt, orbs_aux, .false.)
+           input%gen_nkpt, input%gen_kpt, input%gen_wkpt, orbs_aux, LINEAR_PARTITION_NONE)
       nonzero = f_malloc((/2,orbs_aux%norbu*orbs_aux%norbup/), id='nonzero')
       !write(*,*) 'iproc, norb, norbp, norbu, norbup', iproc, orbs_aux%norb, orbs_aux%norbp, orbs_aux%norbu, orbs_aux%norbup
       i=0

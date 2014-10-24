@@ -88,11 +88,11 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    case(1)
        ! SM: use for basedistd the same basedist as for the up orbitals. CHECK THIS!!!
        call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-            nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.false.,&
+            nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,LINEAR_PARTITION_NONE,&
             basedist=orbs%norb_par(0:,1:),basedistu=orbs%norbu_par(0:,1:),basedistd=orbs%norbu_par(0:,1:))
    case(2)
        call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-            nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.true.)
+            nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,LINEAR_PARTITION_SIMPLE)
    case default
        call f_err_throw('wrong value of iversion',err_id=BIGDFT_RUNTIME_ERROR)
    end select

@@ -716,14 +716,14 @@ program WaCo
      nvirtd = 0
      if (input%nspin==2) nvirtd=0!nvirtu
      call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-         & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsw,.false.)
+         & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsw,LINEAR_PARTITION_NONE)
      call orbitals_communicators(iproc,nproc,Glr,orbsw,commsw)
 
      nvirtu = n_virt
      nvirtd = 0
      if (input%nspin==2) nvirtd=0!nvirtu
      call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-         & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,.false.)
+         & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,LINEAR_PARTITION_NONE)
 
      if(linear)then
        cxyz = f_malloc_ptr((/ 3, nwannCon /),id='cxyz')
