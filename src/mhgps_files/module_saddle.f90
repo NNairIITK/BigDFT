@@ -138,7 +138,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
 !    stop 'STOP: saddle search only implemented for free BC'
 
     if((minoverlap0>=-1.0_gp).and.saddle_tighten)&
-    stop 'STOP: Don not use minoverlap and no tightening in combination'
+    stop 'STOP: Do not use minoverlap and no tightening in combination'
 
     if(iproc==0)then
         call yaml_comment('(MHGPS) Start Saddle Search ....',&
