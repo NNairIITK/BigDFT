@@ -358,8 +358,8 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
         maxd=sqrt(maxd)
  
         !trust radius approach
-!        if(maxd>trustr .or. (curv>=0.0_gp .and. fnrm<fnrmtol))then
-        if(maxd>trustr)then
+        if(maxd>trustr .or. (curv>=0.0_gp .and. fnrm<fnrmtol))then
+!        if(maxd>trustr)then
             if(iproc==0)call yaml_map('  (MHGPS) resize step ',maxd)
             scl=0.5_gp*trustr/maxd
             dd=dd*scl

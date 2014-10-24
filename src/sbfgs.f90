@@ -367,6 +367,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
          beta=.50_gp*beta
          if (debug.and.iproc==0) write(100,'(a,1x,e9.2)') 'WARNING GEOPT_SBFGS: beta reset ',beta
          ndim=0
+         wold=0.0_gp
          if(.not.steep)then
             do iat=1,nat
                rxyz(1,iat,0)=rxyz(1,iat,nhist-1)
