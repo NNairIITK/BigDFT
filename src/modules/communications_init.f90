@@ -1831,11 +1831,11 @@ module communications_init
     
       call f_routine(id='get_switch_indices')
       
-      indexsendorbital_c = f_malloc(ndimpsi_c,id='indexsendorbital_c')
-      indexsendbuf_c = f_malloc(ndimpsi_c,id='indexsendbuf_c')
+      indexsendorbital_c = f_malloc(max(ndimpsi_c,1),id='indexsendorbital_c')
+      indexsendbuf_c = f_malloc(max(ndimpsi_c,1),id='indexsendbuf_c')
       indexrecvbuf_c = f_malloc(sum(nrecvcounts_c),id='indexrecvbuf_c')
-      indexsendorbital_f = f_malloc(ndimpsi_f,id='indexsendorbital_f')
-      indexsendbuf_f = f_malloc(ndimpsi_f,id='indexsendbuf_f')
+      indexsendorbital_f = f_malloc(max(ndimpsi_f,1),id='indexsendorbital_f')
+      indexsendbuf_f = f_malloc(max(ndimpsi_f,1),id='indexsendbuf_f')
       indexrecvbuf_f = f_malloc(sum(nrecvcounts_f),id='indexrecvbuf_f')
       gridpoint_start_c = f_malloc(istartend_c(1,iproc).to.istartend_c(2,iproc),id='gridpoint_start_c')
       gridpoint_start_f = f_malloc(istartend_f(1,iproc).to.istartend_f(2,iproc),id='gridpoint_start_f')
