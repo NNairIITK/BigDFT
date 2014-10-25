@@ -507,7 +507,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
            end do
            time = maxval(times)
            tt = tt + time
-           write(20000+iproc,'(a,i7,2es13.2)') 'iiorb, time, tottime', iiorb, time, tt
+           write(20000+iproc,'(a,i7,2es13.2,5x,11es12.2)') 'iiorb, time, tottime, alltimes', iiorb, time, tt, times
            times_convol(iiorb) = time
            ist = ist + (lzd_lin%llr(ilr)%wfd%nvctr_c+7*lzd_lin%llr(ilr)%wfd%nvctr_f)*ncplx
        end do
