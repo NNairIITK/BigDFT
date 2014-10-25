@@ -52,6 +52,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   integer, dimension(:), allocatable :: norb_par, norbu_par, norbd_par
   real(kind=8), dimension(:), allocatable :: locrad, times_convol
   integer :: ilr, iilr
+  real(kind=8),dimension(:),allocatable :: totaltimes
   real(kind=8),dimension(2) :: time_max, time_min
   real(kind=8) :: ratio_before, ratio_after
   logical :: init_projectors_completely
@@ -169,21 +170,26 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
         deallocate(ref_frags)
      end if
      call init_linear_orbs(LINEAR_PARTITION_OPTIMAL)
+     totaltimes = f_malloc0(nproc,id='totaltimes')
      call fragment_stuff()
      call init_lzd_linear()
      call test_preconditioning()
      time_min(2) = sum(times_convol(lorbs%isorb+1:lorbs%isorb+lorbs%norbp))
      time_max(2) = time_min(2)
+     totaltimes(iproc+1) = time_min(2)
      call mpiallred(time_min(1), 2, mpi_min, bigdft_mpi%mpi_comm)
      call mpiallred(time_max(1), 2, mpi_max, bigdft_mpi%mpi_comm)
+     call mpiallred(totaltimes(1), nproc, mpi_sum, bigdft_mpi%mpi_comm)
      ratio_before = real(time_max(1),kind=8)/real(time_min(1),kind=8)
      ratio_after = real(time_max(2),kind=8)/real(time_min(2),kind=8)
      if (iproc==0) call yaml_map('preconditioning load balancing min/max before',(/time_min(1),time_max(1)/),fmt='(es9.2)')
      if (iproc==0) call yaml_map('preconditioning load balancing min/max after',(/time_min(2),time_max(2)/),fmt='(es9.2)')
+     if (iproc==0) call yaml_map('task with max load',maxloc(totaltimes)-1)
      call f_free(norb_par)
      call f_free(norbu_par)
      call f_free(norbd_par)
      call f_free(times_convol)
+     call f_free(totaltimes)
   end if
 
 
@@ -438,7 +444,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        type(workarr_precond),dimension(:),allocatable :: precond_workarrays
        real(kind=8),dimension(:),allocatable :: phi
        real(kind=8) :: t1, t2, time, tt
-       integer,parameter :: nit=2
+       integer,parameter :: nit=3
        real(kind=8),dimension(2*nit+1) :: times
 
        phi = f_malloc(lnpsidim_orbs,id='phi')
@@ -500,10 +506,11 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
            end do
            time = maxval(times)
            tt = tt + time
-           if (iproc==0) write(*,'(a,i7,2es9.2)') 'iiorb, time, tottime', iiorb, time, tt
+           write(20000+iproc,'(a,i7,2es13.2)') 'iiorb, time, tottime', iiorb, time, tt
            times_convol(iiorb) = time
            ist = ist + (lzd_lin%llr(ilr)%wfd%nvctr_c+7*lzd_lin%llr(ilr)%wfd%nvctr_f)*ncplx
        end do
+       write(20000+iproc,'(a)') '==========================='
 
        do iorb=1,lorbs%norbp
            iiorb=lorbs%isorb+iorb
