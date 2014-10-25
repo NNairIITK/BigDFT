@@ -178,7 +178,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      call mpiallred(time_max(1), 2, mpi_max, bigdft_mpi%mpi_comm)
      ratio_before = real(time_max(1),kind=8)/real(time_min(1),kind=8)
      ratio_after = real(time_max(2),kind=8)/real(time_min(2),kind=8)
-     if (iproc==0) call yaml_map('support function size load balancing before/after',(/ratio_before,ratio_after/),fmt='(f4.2)')
+     if (iproc==0) call yaml_map('preconditioning load balancing min/max before',(/time_min(1),time_max(1)/),fmt='(es9.2)')
+     if (iproc==0) call yaml_map('preconditioning load balancing min/max after',(/time_min(2),time_max(2)/),fmt='(es9.2)')
      call f_free(norb_par)
      call f_free(norbu_par)
      call f_free(norbd_par)
@@ -430,13 +431,15 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        implicit none
 
        !Local variables
-       integer :: iorb, iiorb, ilr, ncplx, ist
+       integer :: iorb, iiorb, ilr, ncplx, ist, i
        logical :: with_confpot
        real(gp) :: kx, ky, kz
        type(workarrays_quartic_convolutions),dimension(:),allocatable :: precond_convol_workarrays
        type(workarr_precond),dimension(:),allocatable :: precond_workarrays
        real(kind=8),dimension(:),allocatable :: phi
-       real :: t1, t2
+       real(kind=8) :: t1, t2, time, tt
+       integer,parameter :: nit=2
+       real(kind=8),dimension(2*nit+1) :: times
 
        phi = f_malloc(lnpsidim_orbs,id='phi')
        phi=1.d-5
@@ -468,6 +471,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
       call to_zero(lorbs%norb, times_convol(1))
 
        ist=0
+       tt = 0.d0
        do iorb=1,lorbs%norbp
            iiorb = lorbs%isorb + iorb
            ilr = lorbs%inwhichlocreg(iiorb)
@@ -479,14 +483,25 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
            else
               ncplx=1
            end if
-           call cpu_time(t1)
-           call solvePrecondEquation(iproc, nproc, lzd_lin%llr(ilr), ncplx, 5, -0.5d0, &
-                lzd_lin%hgrids(1), lzd_lin%hgrids(2), lzd_lin%hgrids(3), &
-                lorbs%kpts(1,lorbs%iokpt(iorb)), lorbs%kpts(1,lorbs%iokpt(iorb)), lorbs%kpts(1,lorbs%iokpt(iorb)), &
-                phi(1+ist), lzd_lin%llr(ilr)%locregCenter, lorbs,&
-                1.d-3, 4, precond_convol_workarrays(iorb), precond_workarrays(iorb))
-           call cpu_time(t2)
-           times_convol(iiorb) = real(t2-t1,kind=8)
+           do i=1,2*nit+1
+               t1 = mpi_wtime()
+               call solvePrecondEquation(iproc, nproc, lzd_lin%llr(ilr), ncplx, 5, -0.5d0, &
+                    lzd_lin%hgrids(1), lzd_lin%hgrids(2), lzd_lin%hgrids(3), &
+                    lorbs%kpts(1,lorbs%iokpt(iorb)), lorbs%kpts(1,lorbs%iokpt(iorb)), lorbs%kpts(1,lorbs%iokpt(iorb)), &
+                    phi(1+ist), lzd_lin%llr(ilr)%locregCenter, lorbs,&
+                    1.d-3, 4, precond_convol_workarrays(iorb), precond_workarrays(iorb))
+               t2 = mpi_wtime()
+               times(i) = t2-t1
+           end do
+           ! Take the median
+           do i=1,nit
+               times(maxloc(times,1)) = 0.d0
+               times(minloc(times,1)) = 0.d0
+           end do
+           time = maxval(times)
+           tt = tt + time
+           if (iproc==0) write(*,'(a,i7,2es9.2)') 'iiorb, time, tottime', iiorb, time, tt
+           times_convol(iiorb) = time
            ist = ist + (lzd_lin%llr(ilr)%wfd%nvctr_c+7*lzd_lin%llr(ilr)%wfd%nvctr_f)*ncplx
        end do
 
@@ -607,9 +622,10 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        do jorb=1,norb
            if (jproc==nproc-1) exit
            jjorb = jjorb + 1
+           if(jjorb==norb) exit !just to besure that no out of bound happens
            tcount = tcount + times_convol(jorb)
            if (iproc==0) write(*,'(a,i8,2es14.5)') 'jorb, tcount, time_ideal*real(jproc+1,kind=8)', jorb, tcount, time_ideal*real(jproc+1,kind=8)
-           if (tcount>=time_ideal*real(jproc+1,kind=8)) then
+           if (abs(tcount-time_ideal*real(jproc+1,kind=8))<=abs(tcount+times_convol(jorb+1)-time_ideal*real(jproc+1,kind=8))) then
                norb_par(jproc) = jjorb
                jjorbtot = jjorbtot + jjorb
                jjorb = 0
