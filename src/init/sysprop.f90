@@ -50,9 +50,9 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   logical:: present_inwhichlocreg_old, present_onwhichatom_old, output_grid_, frag_allocated, calculate_bounds
   integer, dimension(:,:), allocatable :: norbsc_arr
   integer, dimension(:), allocatable :: norb_par, norbu_par, norbd_par
-  real(kind=8), dimension(:), allocatable :: locrad
+  real(kind=8), dimension(:), allocatable :: locrad, times_convol
   integer :: ilr, iilr
-  integer,dimension(2) :: isize_max, isize_min
+  real(kind=8),dimension(2) :: time_max, time_min
   real(kind=8) :: ratio_before, ratio_after
   logical :: init_projectors_completely
   call f_routine(id=subname)
@@ -138,12 +138,14 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      call init_linear_orbs(LINEAR_PARTITION_SIMPLE)
      call fragment_stuff()
      call init_lzd_linear()
-     isize_min(1) = lnpsidim_orbs
-     isize_max(1) = lnpsidim_orbs
+     times_convol = f_malloc(lorbs%norb,id='times_convol')
+     call test_preconditioning()
+     time_min(1) = sum(times_convol(lorbs%isorb+1:lorbs%isorb+lorbs%norbp))
+     time_max(1) = time_min(1)
      norb_par = f_malloc(0.to.nproc-1,id='norb_par')
      norbu_par = f_malloc(0.to.nproc-1,id='norbu_par')
      norbd_par = f_malloc(0.to.nproc-1,id='norbd_par')
-     call optimize_loadbalancing()
+     call optimize_loadbalancing2()
      call deallocate_orbitals_data(lorbs)
      call deallocate_local_zone_descriptors(lzd_lin)
      lzd_lin=default_lzd()
@@ -169,16 +171,18 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      call init_linear_orbs(LINEAR_PARTITION_OPTIMAL)
      call fragment_stuff()
      call init_lzd_linear()
-     isize_min(2) = lnpsidim_orbs
-     isize_max(2) = lnpsidim_orbs
-     call mpiallred(isize_min(1), 2, mpi_min, bigdft_mpi%mpi_comm)
-     call mpiallred(isize_max(1), 2, mpi_max, bigdft_mpi%mpi_comm)
-     ratio_before = real(isize_max(1),kind=8)/real(isize_min(1),kind=8)
-     ratio_after = real(isize_max(2),kind=8)/real(isize_min(2),kind=8)
+     call test_preconditioning()
+     time_min(2) = sum(times_convol(lorbs%isorb+1:lorbs%isorb+lorbs%norbp))
+     time_max(2) = time_min(2)
+     call mpiallred(time_min(1), 2, mpi_min, bigdft_mpi%mpi_comm)
+     call mpiallred(time_max(1), 2, mpi_max, bigdft_mpi%mpi_comm)
+     ratio_before = real(time_max(1),kind=8)/real(time_min(1),kind=8)
+     ratio_after = real(time_max(2),kind=8)/real(time_min(2),kind=8)
      if (iproc==0) call yaml_map('support function size load balancing before/after',(/ratio_before,ratio_after/),fmt='(f4.2)')
      call f_free(norb_par)
      call f_free(norbu_par)
      call f_free(norbd_par)
+     call f_free(times_convol)
   end if
 
 
@@ -421,6 +425,95 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        call update_wavefunctions_size(lzd_lin,lnpsidim_orbs,lnpsidim_comp,lorbs,iproc,nproc)
      end subroutine init_lzd_linear
 
+
+     subroutine test_preconditioning()
+       implicit none
+
+       !Local variables
+       integer :: iorb, iiorb, ilr, ncplx, ist
+       logical :: with_confpot
+       real(gp) :: kx, ky, kz
+       type(workarrays_quartic_convolutions),dimension(:),allocatable :: precond_convol_workarrays
+       type(workarr_precond),dimension(:),allocatable :: precond_workarrays
+       real(kind=8),dimension(:),allocatable :: phi
+       real :: t1, t2
+
+       phi = f_malloc(lnpsidim_orbs,id='phi')
+       phi=1.d-5
+
+      allocate(precond_convol_workarrays(lorbs%norbp))
+      allocate(precond_workarrays(lorbs%norbp))
+      do iorb=1,lorbs%norbp
+          iiorb=lorbs%isorb+iorb
+          ilr=lorbs%inwhichlocreg(iiorb)
+          with_confpot = .true.
+          call init_local_work_arrays(lzd_lin%llr(ilr)%d%n1, lzd_lin%llr(ilr)%d%n2, lzd_lin%llr(ilr)%d%n3, &
+               lzd_lin%llr(ilr)%d%nfl1, lzd_lin%llr(ilr)%d%nfu1, &
+               lzd_lin%llr(ilr)%d%nfl2, lzd_lin%llr(ilr)%d%nfu2, &
+               lzd_lin%llr(ilr)%d%nfl3, lzd_lin%llr(ilr)%d%nfu3, &
+               with_confpot, precond_convol_workarrays(iorb))
+          kx=lorbs%kpts(1,lorbs%iokpt(iorb))
+          ky=lorbs%kpts(2,lorbs%iokpt(iorb))
+          kz=lorbs%kpts(3,lorbs%iokpt(iorb))
+          if (kx**2+ky**2+kz**2 > 0.0_gp .or. lorbs%nspinor==2 ) then
+             ncplx=2
+          else
+             ncplx=1
+          end if
+          call allocate_work_arrays(lzd_lin%llr(ilr)%geocode, lzd_lin%llr(ilr)%hybrid_on, &
+               ncplx, lzd_lin%llr(ilr)%d, precond_workarrays(iorb))
+      end do
+
+
+      call to_zero(lorbs%norb, times_convol(1))
+
+       ist=0
+       do iorb=1,lorbs%norbp
+           iiorb = lorbs%isorb + iorb
+           ilr = lorbs%inwhichlocreg(iiorb)
+           kx=lorbs%kpts(1,lorbs%iokpt(iorb))
+           ky=lorbs%kpts(2,lorbs%iokpt(iorb))
+           kz=lorbs%kpts(3,lorbs%iokpt(iorb))
+           if (kx**2+ky**2+kz**2 > 0.0_gp .or. lorbs%nspinor==2 ) then
+              ncplx=2
+           else
+              ncplx=1
+           end if
+           call cpu_time(t1)
+           call solvePrecondEquation(iproc, nproc, lzd_lin%llr(ilr), ncplx, 5, -0.5d0, &
+                lzd_lin%hgrids(1), lzd_lin%hgrids(2), lzd_lin%hgrids(3), &
+                lorbs%kpts(1,lorbs%iokpt(iorb)), lorbs%kpts(1,lorbs%iokpt(iorb)), lorbs%kpts(1,lorbs%iokpt(iorb)), &
+                phi(1+ist), lzd_lin%llr(ilr)%locregCenter, lorbs,&
+                1.d-3, 4, precond_convol_workarrays(iorb), precond_workarrays(iorb))
+           call cpu_time(t2)
+           times_convol(iiorb) = real(t2-t1,kind=8)
+           ist = ist + (lzd_lin%llr(ilr)%wfd%nvctr_c+7*lzd_lin%llr(ilr)%wfd%nvctr_f)*ncplx
+       end do
+
+       do iorb=1,lorbs%norbp
+           iiorb=lorbs%isorb+iorb
+           ilr=lorbs%inwhichlocreg(iiorb)
+           call deallocate_workarrays_quartic_convolutions(precond_convol_workarrays(iorb))
+           kx=lorbs%kpts(1,lorbs%iokpt(iorb))
+           ky=lorbs%kpts(2,lorbs%iokpt(iorb))
+           kz=lorbs%kpts(3,lorbs%iokpt(iorb))
+           if (kx**2+ky**2+kz**2 > 0.0_gp .or. lorbs%nspinor==2 ) then
+              ncplx=2
+           else
+              ncplx=1
+           end if
+           call deallocate_work_arrays(lzd_lin%llr(ilr)%geocode, lzd_lin%llr(ilr)%hybrid_on, &
+                ncplx, precond_workarrays(iorb))
+       end do
+       deallocate(precond_convol_workarrays)
+       deallocate(precond_workarrays)
+
+       call f_free(phi)
+
+       call mpiallred(times_convol(1), lorbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+
+     end subroutine test_preconditioning
+
      subroutine optimize_loadbalancing()
        implicit none
 
@@ -470,10 +563,65 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
            if (jproc==nproc-1) exit
        end do
        norb_par(nproc-1) = jjorb + (norb - jjorbtot) !take the rest
-       !!do jproc=0,nproc-1
-       !!    if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
-       !!end do
+       do jproc=0,nproc-1
+           if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
+       end do
      end subroutine redistribute
+
+
+     subroutine optimize_loadbalancing2()
+       implicit none
+
+       ! Local variables
+       real(kind=8) :: time, time_ideal
+
+       ! Sum up the total size of all support functions
+       time = sum(times_convol)
+
+       ! Ideal size per task (integer division)
+       time_ideal = time/int(nproc,kind=8)
+
+       ! Redistribute the support functions such that the load balancing is optimal
+       call redistribute2(lorbs%norb, time_ideal, norb_par)
+
+       ! The same for the up and down orbitals
+       time_ideal = time_ideal/int(in%nspin,kind=8)
+       call redistribute2(lorbs%norbu, time_ideal, norbu_par)
+       call redistribute2(lorbs%norbd, time_ideal, norbd_par)
+
+     end subroutine optimize_loadbalancing2
+
+     subroutine redistribute2(norb, time_ideal, norb_par)
+       implicit none
+       integer,intent(in) :: norb
+       real(kind=8),intent(in) :: time_ideal
+       integer,dimension(0:nproc-1),intent(out) :: norb_par
+       integer :: jjorbtot, jjorb, jproc, jlr, jorb
+       real(kind=8) :: tcount
+
+       call to_zero(nproc, norb_par(0))
+       tcount = 0.d0
+       jproc = 0
+       jjorb = 0
+       jjorbtot = 0
+       do jorb=1,norb
+           if (jproc==nproc-1) exit
+           jjorb = jjorb + 1
+           tcount = tcount + times_convol(jorb)
+           if (iproc==0) write(*,'(a,i8,2es14.5)') 'jorb, tcount, time_ideal*real(jproc+1,kind=8)', jorb, tcount, time_ideal*real(jproc+1,kind=8)
+           if (tcount>=time_ideal*real(jproc+1,kind=8)) then
+               norb_par(jproc) = jjorb
+               jjorbtot = jjorbtot + jjorb
+               jjorb = 0
+               jproc = jproc + 1
+           end if
+       end do
+       norb_par(nproc-1) = jjorb + (norb - jjorbtot) !take the rest
+       do jproc=0,nproc-1
+           if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
+       end do
+     end subroutine redistribute2
+
 
      subroutine fragment_stuff()
        implicit none
