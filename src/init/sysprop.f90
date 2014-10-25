@@ -443,7 +443,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        type(workarrays_quartic_convolutions),dimension(:),allocatable :: precond_convol_workarrays
        type(workarr_precond),dimension(:),allocatable :: precond_workarrays
        real(kind=8),dimension(:),allocatable :: phi
-       real(kind=8) :: t1, t2, time, tt
+       real(kind=8) :: t1, t2, time, tt, maxtime
        integer,parameter :: nit=5
        real(kind=8),dimension(2*nit+1) :: times
 
@@ -501,9 +501,13 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
                times(i) = t2-t1
            end do
            ! Take the median
+           write(20000+iproc,'(a,i7,2es13.2,5x,11es12.2)') 'iiorb, time, tottime, alltimes', iiorb, time, tt, times
+           maxtime = maxval(times)
            do i=1,nit
+               times(minloc(times,1)) = maxtime
+           end do
+           do i=1,2*nit
                times(maxloc(times,1)) = 0.d0
-               times(minloc(times,1)) = 0.d0
            end do
            time = maxval(times)
            tt = tt + time
