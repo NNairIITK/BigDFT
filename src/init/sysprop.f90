@@ -437,14 +437,14 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        implicit none
 
        !Local variables
-       integer :: iorb, iiorb, ilr, ncplx, ist, i
+       integer :: iorb, iiorb, ilr, ncplx, ist, i, ierr
        logical :: with_confpot
        real(gp) :: kx, ky, kz
        type(workarrays_quartic_convolutions),dimension(:),allocatable :: precond_convol_workarrays
        type(workarr_precond),dimension(:),allocatable :: precond_workarrays
        real(kind=8),dimension(:),allocatable :: phi
        real(kind=8) :: t1, t2, time, tt
-       integer,parameter :: nit=4
+       integer,parameter :: nit=5
        real(kind=8),dimension(2*nit+1) :: times
 
        phi = f_malloc(lnpsidim_orbs,id='phi')
@@ -476,6 +476,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
       call to_zero(lorbs%norb, times_convol(1))
 
+      call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
        ist=0
        tt = 0.d0
        do iorb=1,lorbs%norbp
