@@ -334,7 +334,9 @@ contains
     if (any(xcObj%family == XC_FAMILY_HYB_GGA)) then
        !factors for the exact exchange contribution of different hybrid functionals
        if (any(xcObj%id == XC_HYB_GGA_XC_PBEH)) then
-          xc_exctXfac = 0.25d0 
+          xc_exctXfac = 0.25d0 !PBE0
+       else if (any(xcObj%id == XC_HYB_GGA_XC_B3LYP)) then
+          xc_exctXfac = 0.2d0 !B3LYP
        end if
     end if
 
