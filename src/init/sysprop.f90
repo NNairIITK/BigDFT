@@ -602,7 +602,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        end do
        norb_par(nproc-1) = jjorb + (norb - jjorbtot) !take the rest
        do jproc=0,nproc-1
-           if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
+           !if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
        end do
      end subroutine redistribute
 
@@ -647,7 +647,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
            jjorb = jjorb + 1
            if(jjorb==norb) exit !just to besure that no out of bound happens
            tcount = tcount + times_convol(jorb)
-           if (iproc==0) write(*,'(a,2i8,2es14.5)') 'jorb, jproc, tcount, diff to target', jorb, jproc, tcount, abs(tcount-time_ideal*real(jproc+1,kind=8))
+           !if (iproc==0) write(*,'(a,2i8,2es14.5)') 'jorb, jproc, tcount, diff to target', jorb, jproc, tcount, abs(tcount-time_ideal*real(jproc+1,kind=8))
            if (abs(tcount-time_ideal*real(jproc+1,kind=8))<=abs(tcount+times_convol(jorb+1)-time_ideal*real(jproc+1,kind=8))) then
                norb_par(jproc) = jjorb
                jjorbtot = jjorbtot + jjorb
@@ -656,9 +656,9 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
            end if
        end do
        norb_par(nproc-1) = jjorb + (norb - jjorbtot) !take the rest
-       do jproc=0,nproc-1
-           if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
-       end do
+       !do jproc=0,nproc-1
+       !    if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
+       !end do
      end subroutine redistribute2
 
 
