@@ -437,7 +437,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        implicit none
 
        !Local variables
-       integer :: iorb, iiorb, ilr, ncplx, ist, i, ierr
+       integer :: iorb, iiorb, ilr, ncplx, ist, i, ierr, ii
        logical :: with_confpot
        real(gp) :: kx, ky, kz
        type(workarrays_quartic_convolutions),dimension(:),allocatable :: precond_convol_workarrays
@@ -446,6 +446,17 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        real(kind=8) :: t1, t2, time, tt, maxtime
        integer,parameter :: nit=5
        real(kind=8),dimension(2*nit+1) :: times
+
+      call to_zero(lorbs%norb, times_convol(1))
+      do iorb=1,lorbs%norbp
+          iiorb=lorbs%isorb+iorb
+          ilr=lorbs%inwhichlocreg(iiorb)
+          ii = (lzd_lin%llr(ilr)%d%n1+1)*(lzd_lin%llr(ilr)%d%n2+1)*(lzd_lin%llr(ilr)%d%n3+1)
+          times_convol(iiorb) = real(ii,kind=8)
+      end do
+      call mpiallred(times_convol(1), lorbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+
+      return !###############################################3
 
        phi = f_malloc(lnpsidim_orbs,id='phi')
        phi=1.d-5
