@@ -56,7 +56,8 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
 
   !call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
 
-  call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
+  !call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
+  call precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,r)
 
   with_confpot=(potentialPrefac/=0.d0)
   !!call init_local_work_arrays(lr%d%n1, lr%d%n2, lr%d%n3, &
@@ -73,7 +74,9 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
 !!  write(*,*)'debug1',rmr_new
 
   !this operation should be rewritten in a better way
-  r=b-d ! r=b-Ax
+  !r=b-d ! r=b-Ax
+  ! Rewritten using axpy since precondition_preconditioner is now called with r instead of b
+  call axpy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, -1.d0, d(1), 1, r(1), 1)
 
   call calculate_rmr_new(lr%geocode,lr%hybrid_on,ncplx,lr%wfd,scal,r,d,rmr_new)
   !stands for
@@ -101,7 +104,9 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
 
      beta=rmr_new/rmr_old
 
-     d=b+beta*d
+     !d=b+beta*d
+     call swap(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, b(1), 1, d(1), 1)
+     call axpy(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f, beta, b(1), 1, d(1), 1)
     
   enddo
 

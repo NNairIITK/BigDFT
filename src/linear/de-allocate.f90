@@ -237,6 +237,8 @@ subroutine zero_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
   integer:: i, istat
   integer,parameter :: lowfil=-14,lupfil=14
 
+  call f_routine(id='zero_local_work_arrays')
+
   call to_zero((n1+1)*(n2+1)*(n3+1),work%xx_c(0,0,0))!! = f_malloc0_ptr((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='work%xx_c')
   call to_zero((n2+1)*(n1+1)*(n3+1),work%xy_c(0,0,0))!! = f_malloc0_ptr((/ 0.to.n2, 0.to.n1, 0.to.n3 /),id='work%xy_c')
   call to_zero((n3+1)*(n1+1)*(n2+1),work%xz_c(0,0,0))!! = f_malloc0_ptr((/ 0.to.n3, 0.to.n1, 0.to.n2 /),id='work%xz_c')
@@ -331,5 +333,6 @@ subroutine zero_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
      call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, work%yze_f(1,nfl3,nfl1,nfl2))
   end if
   
+  call f_release_routine()
 
 END SUBROUTINE zero_local_work_arrays

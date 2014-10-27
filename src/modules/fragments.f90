@@ -94,6 +94,8 @@ contains
     ! local variables
     integer :: ifrag
 
+    call f_routine(id='init_fragments')
+
     if (in%lin%fragment_calculation) then
         ! read fragment posinps and initialize fragment, except for psi and lzds
         do ifrag=1,in%frag%nfrag_ref
@@ -122,6 +124,8 @@ contains
 
      end if
 
+    call f_release_routine()
+
   end subroutine init_fragments
 
 
@@ -135,6 +139,7 @@ contains
     type(input_variables), intent(in) :: input
     type(atomic_structure), intent(in) :: astruct ! atomic structure of full system
 
+    call f_routine(id='init_fragment_from_file')
 
     ! nullify fragment
     frag=fragment_null()
@@ -160,6 +165,8 @@ contains
     !   integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
     !   type(local_zone_descriptors) :: Lzd
     !   type(minimal_orbitals_data) :: forbs
+
+    call f_release_routine()
 
   end subroutine init_fragment_from_file
 

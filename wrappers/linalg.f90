@@ -100,6 +100,9 @@ module wrapper_linalg
   interface axpy
      module procedure axpy_simple,axpy_double,axpy_simple_to_double
   end interface axpy
+  interface swap
+     module procedure swap_double
+  end interface swap
   interface c_axpy
      module procedure c_axpy_simple,c_axpy_double
   end interface c_axpy
@@ -608,6 +611,16 @@ contains
     !call to BLAS routine
     call ZAXPY(n,da,dx,incx,dy,incy)
   end subroutine c_axpy_double
+
+  subroutine swap_double(n,dx,incx,dy,incy)
+    implicit none
+    integer, intent(in) :: n,incx,incy
+    real(kind=8), intent(inout) :: dx
+    real(kind=8), intent(inout) :: dy
+    !call to BLAS routine
+    call DSWAP(n,dx,incx,dy,incy)
+  end subroutine swap_double
+
 
   !euclidean dot product
   function dot_simple(n,sx,incx,sy,incy)
