@@ -421,8 +421,13 @@ module communications_init
               end if
           end do
       else
-          call vcopy((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p, weightloc_c(0,0,1), 1, weightppp_c(0,0,1), 1)
+          is = i3startend(1,iproc)
+          ie = i3startend(2,iproc)
+          call vcopy((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), weightloc_c(0,0,is-i3start), 1, &
+               weightppp_c(0,0,is-i3startend(3,iproc)+1), 1)
       end if
+
+
       !call f_free(i3startend)
       !call mpi_win_fence(0, window_c, ierr)
       !call mpi_win_free(window_c, ierr)
@@ -581,7 +586,10 @@ module communications_init
               end if
           end do
       else
-          call vcopy((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p, weightloc_f(0,0,1), 1, weightppp_f(0,0,1), 1)
+          is = i3startend(1,iproc)
+          ie = i3startend(2,iproc)
+          call vcopy((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ie-is+1), weightloc_f(0,0,is-i3start), 1, &
+               weightppp_f(0,0,is-i3startend(3,iproc)+1), 1)
       end if
       call f_free(i3startend)
       !call mpi_win_fence(0, window, ierr)
@@ -1057,7 +1065,7 @@ module communications_init
           end if
           if(tt/=weight_tot_f) then
               write(*,*) 'tt, weight_tot_f', tt, weight_tot_f
-              stop 'wrong partition of coarse weights'
+              stop 'wrong partition of fine weights'
           end if
 
           if (nproc > 1) then
