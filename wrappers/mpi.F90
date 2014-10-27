@@ -111,6 +111,10 @@ module wrapper_MPI
       module procedure mpiialltoallv_double
   end interface mpiialltoallv
 
+  interface mpiaccumulate
+      module procedure mpiaccumulate_double
+  end interface mpiaccumulate
+
   !> Global MPI communicator which contains all information related to the MPI process
   type, public :: mpi_environment
      integer :: mpi_comm !< MPI communicator
@@ -1195,8 +1199,6 @@ contains
     use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
-    !!double precision,dimension(:),intent(in) :: sendbuf
-    !!double precision,dimension(:),intent(inout) :: recvbuf
     double precision,intent(in) :: sendbuf
     double precision,intent(inout) :: recvbuf
     integer,dimension(:),intent(in) :: recvcounts, displs
@@ -1232,31 +1234,44 @@ contains
     if (present(window_)) then
         window_ => window
     end if
-    !else
     window = mpiwindow(sendcount,sendbuf,comm)
-    !end if
 
 
     call getall_d(nproc,recvcounts,displs,window,nrecvbuf,recvbuf)
 
     if (.not. present(window_)) then
         call mpi_fenceandfree(window)
-       !!! Synchronize the communication
-       !!call mpi_win_fence(0, window, ierr)
-       !!if (ierr/=0) then
-       !!   call f_err_throw('Error in mpi_win_fence',&
-       !!        err_id=ERR_MPI_WRAPPERS)  
-       !!end if
-       !!call mpi_win_free(window, ierr)
-       !!if (ierr/=0) then
-       !!   call f_err_throw('Error in mpi_win_fence',&
-       !!        err_id=ERR_MPI_WRAPPERS)  
-       !!end if
     end if
 
   end subroutine mpi_get_to_allgatherv_double
 
+
+  subroutine mpiaccumulate_double(origin_addr, origin_count, target_rank, target_disp, target_count, op, wind)
+    use dictionaries, only: f_err_throw,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    double precision,intent(in) :: origin_addr
+    integer,intent(in) :: origin_count, target_rank, target_count, op
+    integer(kind=mpi_address_kind),intent(in) :: target_disp
+    integer,intent(inout) :: wind
+    !local variables
+    integer :: nproc,jproc,nrecvbuf,ierr
+    external :: getall
+    logical :: check
+    integer,target:: window
+
+
+    call mpi_accumulate(origin_addr, origin_count, mpitype(origin_addr), &
+         target_rank, target_disp, target_count, mpitype(origin_addr), op, wind, ierr)
+    if (ierr/=0) then
+       call f_err_throw('An error in calling to MPI_ACCUMULATE occured',&
+            err_id=ERR_MPI_WRAPPERS)
+       return
+    end if
+
+  end subroutine mpiaccumulate_double
   
+
   subroutine mpiiallred_double(sendbuf, recvbuf, ncount, op, comm, request)
     use dictionaries, only: f_err_throw,f_err_define
     implicit none

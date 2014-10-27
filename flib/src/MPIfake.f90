@@ -261,6 +261,11 @@ subroutine mpi_get()
   stop 'MPIFAKE: mpi_get'
 END SUBROUTINE  MPI_GET
 
+subroutine mpi_accumulate()
+  implicit none
+  stop 'MPIFAKE: mpi_accumulate'
+END SUBROUTINE  MPI_ACCUMULATE
+
 subroutine mpi_get_address()
   implicit none
   stop 'MPIFAKE: mpi_get_address'
