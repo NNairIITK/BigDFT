@@ -283,6 +283,9 @@ include "mpif.h"
 
 call MPI_ALLREDUCE(MPI_IN_PLACE,rho,3,&
               MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+call MPI_ACCUMULATE()
+
 end
 ]], ac_with_mpi2="yes", ac_with_mpi2="no")
       AC_MSG_RESULT([$ac_with_mpi2])
