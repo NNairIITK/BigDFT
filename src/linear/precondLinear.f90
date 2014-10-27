@@ -44,6 +44,9 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
   integer :: icong
   real(wp), dimension(:), allocatable :: b,r,d
   logical:: with_confpot
+
+  call f_routine(id='solvePrecondEquation')
+
   !!type(workarrays_quartic_convolutions):: work_conv
 
   !arrays for the CG procedure
@@ -113,6 +116,9 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
   !call timing(iproc,'deallocprec','ON') ! lr408t
   !call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
   !call timing(iproc,'deallocprec','OF') ! lr408t
+
+  call f_release_routine()
+
 END SUBROUTINE solvePrecondEquation
 
 
@@ -134,6 +140,8 @@ subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,
   type(workarrays_quartic_convolutions),intent(inout):: work_conv
   !local variables
   integer :: idx,nf
+
+  call f_routine(id='differentiateBetweenBoundaryConditions')
 
   if (lr%geocode == 'F') then
      do idx=1,ncplx
@@ -195,6 +203,9 @@ subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,
 
      end if
    end if
+
+  call f_release_routine()
+
 END SUBROUTINE differentiateBetweenBoundaryConditions
 
 
@@ -246,6 +257,9 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
   ! Local variables
   character(len=*),parameter:: subname='applyOperator'
 
+
+  call f_routine(id='applyOperator')
+
   ! Uncompress the wavefunction.
   call uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, &
        nseg_c, nvctr_c, keyg_c, keyv_c, nseg_f, nvctr_f,  keyg_f, keyv_f, &
@@ -291,6 +305,8 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
        nseg_c,nvctr_c,keyg_c,keyv_c,  & 
        nseg_f,nvctr_f,keyg_f,keyv_f,  & 
        scal,work_conv%y_c,work_conv%y_f,ypsi_c,ypsi_f)
+
+  call f_release_routine()
 
 END SUBROUTINE applyOperator
 

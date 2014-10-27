@@ -515,6 +515,8 @@ subroutine calculate_rmr_new(geocode,hybrid_on,ncplx,wfd,scal,r,b,rmr_new)
   logical :: noscal
   integer :: idx
 
+  call f_routine(id='calculate_rmr_new')
+
   noscal = ((geocode == 'P' .and. .not. hybrid_on) .or. &
        geocode == 'F' .or. geocode == 'S')
 
@@ -529,6 +531,8 @@ subroutine calculate_rmr_new(geocode,hybrid_on,ncplx,wfd,scal,r,b,rmr_new)
      end do
      rmr_new=dot(ncplx*(wfd%nvctr_c+7*wfd%nvctr_f),r(1,1),1,b(1,1),1)
   end if
+
+  call f_release_routine()
 
 END SUBROUTINE calculate_rmr_new
 
@@ -552,6 +556,8 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
   integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b 
   real(gp) :: fac
   real(wp) :: fac_h,h0,h1,h2,h3
+
+  call f_routine(id='precondition_preconditioner')
     
   if (lr%geocode == 'F') then
      !using hx instead of hgrid for isolated bc
@@ -699,6 +705,8 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
      end do
 
   end if
+
+  call f_release_routine()
   
 END SUBROUTINE precondition_preconditioner
 
