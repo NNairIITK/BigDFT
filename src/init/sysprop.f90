@@ -154,11 +154,12 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      lzd_lin%nlr = 0
      ! Deallocate here fragment stuff
      !if (.not.(frag_allocated .and. (.not. in%lin%fragment_calculation) .and. inputpsi /= INPUT_PSI_DISK_LINEAR)) then
-     if (frag_allocated) then
+     !if (frag_allocated) then
+     if (inputpsi == INPUT_PSI_DISK_LINEAR .or. in%lin%fragment_calculation) then
          do ifrag=1,in%frag%nfrag_ref
+            call fragment_free(ref_frags(ifrag))
             ref_frags(ifrag)%astruct_frg%nat=-1
             ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
-            call fragment_free(ref_frags(ifrag))
             !ref_frags(ifrag)=fragment_null()
             !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%iatype)
             !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%ifrztyp)
@@ -268,6 +269,10 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   ! Done orbs
 
   !!! fragment initializations - if not a fragment calculation, set to appropriate dummy values
+  if (inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
+      .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+      call fragment_stuff()
+  end if
   !!frag_allocated=.false.
   !!if (inputpsi == INPUT_PSI_DISK_LINEAR .or. in%lin%fragment_calculation) then
   !!   allocate(ref_frags(in%frag%nfrag_ref))
@@ -678,6 +683,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
        call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, &
             orbs, lorbs, iproc, nproc, in%frag%nfrag_ref, in%frag%dirname, ref_frags)
+       write(*,*) 'in fragment_stuff: input_wf_format',input_wf_format
 
        ! we need to deallocate the fragment arrays we just allocated as not a restart calculation so this is no longer needed
        if (frag_allocated .and. (.not. in%lin%fragment_calculation) .and. inputpsi /= INPUT_PSI_DISK_LINEAR) then
