@@ -2212,7 +2212,8 @@ module module_interfaces
        subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,&
             & dry_run,in,atoms,rxyz,OCLconv,&
             orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpsp,comms,shift,&
-            ref_frags, denspot, locregcenters, inwhichlocreg_old, onwhichatom_old, output_grid)
+            ref_frags, denspot, locregcenters, inwhichlocreg_old, onwhichatom_old, &
+            norb_par_ref, norbu_par_ref, norbd_par_ref,output_grid)
          use module_base
          use module_types
          use module_fragments
@@ -2235,6 +2236,7 @@ module module_interfaces
          type(system_fragment), dimension(:), pointer :: ref_frags
          real(kind=8),dimension(3,atoms%astruct%nat),intent(inout),optional :: locregcenters
          integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
+         integer,dimension(0:nproc-1),optional:: norb_par_ref, norbu_par_ref, norbd_par_ref !< support function distribution to be used as a reference
          logical, intent(in) :: dry_run, dump
          logical, intent(in), optional :: output_grid
        end subroutine system_initialization

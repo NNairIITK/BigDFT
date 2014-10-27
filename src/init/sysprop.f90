@@ -12,7 +12,8 @@
 subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_run,&
      & in,atoms,rxyz,OCLconv,&
      orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpsp,comms,shift,&
-     ref_frags, denspot, locregcenters, inwhichlocreg_old, onwhichatom_old,output_grid)
+     ref_frags, denspot, locregcenters, inwhichlocreg_old, onwhichatom_old, &
+     norb_par_ref, norbu_par_ref, norbd_par_ref,output_grid)
   use module_base
   use module_types
   use module_interfaces, fake_name => system_initialization
@@ -41,6 +42,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   type(system_fragment), dimension(:), pointer :: ref_frags
   real(kind=8),dimension(3,atoms%astruct%nat),intent(inout),optional :: locregcenters
   integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
+  integer,dimension(0:nproc-1),optional:: norb_par_ref, norbu_par_ref, norbd_par_ref !< support function distribution to be used as a reference
   type(DFT_local_fields), intent(out), optional :: denspot
   logical, intent(in), optional :: output_grid
   !local variables
@@ -57,6 +59,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   real(kind=8) :: ratio_before, ratio_after
   logical :: init_projectors_completely
   call f_routine(id=subname)
+
 
   output_grid_ = .false.
   if (present(output_grid)) output_grid_ = output_grid
@@ -136,61 +139,88 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   ! Create linear orbs data structure.
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-     call init_linear_orbs(LINEAR_PARTITION_SIMPLE)
-     call fragment_stuff()
-     call init_lzd_linear()
-     times_convol = f_malloc(lorbs%norb,id='times_convol')
-     call test_preconditioning()
-     time_min(1) = sum(times_convol(lorbs%isorb+1:lorbs%isorb+lorbs%norbp))
-     time_max(1) = time_min(1)
-     norb_par = f_malloc(0.to.nproc-1,id='norb_par')
-     norbu_par = f_malloc(0.to.nproc-1,id='norbu_par')
-     norbd_par = f_malloc(0.to.nproc-1,id='norbd_par')
-     call optimize_loadbalancing2()
-     call deallocate_orbitals_data(lorbs)
-     call deallocate_local_zone_descriptors(lzd_lin)
-     lzd_lin=default_lzd()
-     call nullify_local_zone_descriptors(lzd_lin)
-     lzd_lin%nlr = 0
-     ! Deallocate here fragment stuff
-     !if (.not.(frag_allocated .and. (.not. in%lin%fragment_calculation) .and. inputpsi /= INPUT_PSI_DISK_LINEAR)) then
-     !if (frag_allocated) then
-     if (inputpsi == INPUT_PSI_DISK_LINEAR .or. in%lin%fragment_calculation) then
-         do ifrag=1,in%frag%nfrag_ref
-            call fragment_free(ref_frags(ifrag))
-            ref_frags(ifrag)%astruct_frg%nat=-1
-            ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
-            !ref_frags(ifrag)=fragment_null()
-            !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%iatype)
-            !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%ifrztyp)
-            !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%input_polarization)
-            !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%rxyz)
-            !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%rxyz_int)
-            !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%ixyz_int)
-         end do
-        deallocate(ref_frags)
+     if (inputpsi == INPUT_PSI_LINEAR_AO) then
+         ! First do a simple redistribution
+         call init_linear_orbs(LINEAR_PARTITION_SIMPLE)
+     else
+         ! Directly used the reference distribution
+         norb_par = f_malloc(0.to.nproc-1,id='norb_par')
+         norbu_par = f_malloc(0.to.nproc-1,id='norbu_par')
+         norbd_par = f_malloc(0.to.nproc-1,id='norbd_par')
+         if (.not.present(norb_par_ref)) then
+             call f_err_throw('norb_par_ref not present', err_name='BIGDFT_RUNTIME_ERROR')
+         end if
+         call vcopy(nproc, norb_par_ref(0), 1, norb_par(0), 1)
+         if (.not.present(norbu_par_ref)) then
+             call f_err_throw('norbu_par_ref not present', err_name='BIGDFT_RUNTIME_ERROR')
+         end if
+         call vcopy(nproc, norbu_par_ref(0), 1, norbu_par(0), 1)
+         if (.not.present(norbd_par_ref)) then
+             call f_err_throw('norbd_par_ref not present', err_name='BIGDFT_RUNTIME_ERROR')
+         end if
+         call vcopy(nproc, norbd_par_ref(0), 1, norbd_par(0), 1)
+         call init_linear_orbs(LINEAR_PARTITION_OPTIMAL)
+         call f_free(norb_par)
+         call f_free(norbu_par)
+         call f_free(norbd_par)
      end if
-     call init_linear_orbs(LINEAR_PARTITION_OPTIMAL)
-     totaltimes = f_malloc0(nproc,id='totaltimes')
      call fragment_stuff()
      call init_lzd_linear()
-     call test_preconditioning()
-     time_min(2) = sum(times_convol(lorbs%isorb+1:lorbs%isorb+lorbs%norbp))
-     time_max(2) = time_min(2)
-     totaltimes(iproc+1) = time_min(2)
-     call mpiallred(time_min(1), 2, mpi_min, bigdft_mpi%mpi_comm)
-     call mpiallred(time_max(1), 2, mpi_max, bigdft_mpi%mpi_comm)
-     call mpiallred(totaltimes(1), nproc, mpi_sum, bigdft_mpi%mpi_comm)
-     ratio_before = real(time_max(1),kind=8)/real(time_min(1),kind=8)
-     ratio_after = real(time_max(2),kind=8)/real(time_min(2),kind=8)
-     if (iproc==0) call yaml_map('preconditioning load balancing min/max before',(/time_min(1),time_max(1)/),fmt='(es9.2)')
-     if (iproc==0) call yaml_map('preconditioning load balancing min/max after',(/time_min(2),time_max(2)/),fmt='(es9.2)')
-     if (iproc==0) call yaml_map('task with max load',maxloc(totaltimes)-1)
-     call f_free(norb_par)
-     call f_free(norbu_par)
-     call f_free(norbd_par)
-     call f_free(times_convol)
-     call f_free(totaltimes)
+     ! For restart calculations, the suport function distribution must not be modified
+     if (inputpsi == INPUT_PSI_LINEAR_AO) then
+         times_convol = f_malloc(lorbs%norb,id='times_convol')
+         call test_preconditioning()
+         time_min(1) = sum(times_convol(lorbs%isorb+1:lorbs%isorb+lorbs%norbp))
+         time_max(1) = time_min(1)
+         norb_par = f_malloc(0.to.nproc-1,id='norb_par')
+         norbu_par = f_malloc(0.to.nproc-1,id='norbu_par')
+         norbd_par = f_malloc(0.to.nproc-1,id='norbd_par')
+         call optimize_loadbalancing2()
+         call deallocate_orbitals_data(lorbs)
+         call deallocate_local_zone_descriptors(lzd_lin)
+         lzd_lin=default_lzd()
+         call nullify_local_zone_descriptors(lzd_lin)
+         lzd_lin%nlr = 0
+         ! Deallocate here fragment stuff
+         !if (.not.(frag_allocated .and. (.not. in%lin%fragment_calculation) .and. inputpsi /= INPUT_PSI_DISK_LINEAR)) then
+         !if (frag_allocated) then
+         if (inputpsi == INPUT_PSI_DISK_LINEAR .or. in%lin%fragment_calculation) then
+             do ifrag=1,in%frag%nfrag_ref
+                call fragment_free(ref_frags(ifrag))
+                ref_frags(ifrag)%astruct_frg%nat=-1
+                ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
+                !ref_frags(ifrag)=fragment_null()
+                !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%iatype)
+                !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%ifrztyp)
+                !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%input_polarization)
+                !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%rxyz)
+                !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%rxyz_int)
+                !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%ixyz_int)
+             end do
+            deallocate(ref_frags)
+         end if
+         call init_linear_orbs(LINEAR_PARTITION_OPTIMAL)
+         totaltimes = f_malloc0(nproc,id='totaltimes')
+         call fragment_stuff()
+         call init_lzd_linear()
+         call test_preconditioning()
+         time_min(2) = sum(times_convol(lorbs%isorb+1:lorbs%isorb+lorbs%norbp))
+         time_max(2) = time_min(2)
+         totaltimes(iproc+1) = time_min(2)
+         call mpiallred(time_min(1), 2, mpi_min, bigdft_mpi%mpi_comm)
+         call mpiallred(time_max(1), 2, mpi_max, bigdft_mpi%mpi_comm)
+         call mpiallred(totaltimes(1), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+         ratio_before = real(time_max(1),kind=8)/real(time_min(1),kind=8)
+         ratio_after = real(time_max(2),kind=8)/real(time_min(2),kind=8)
+         if (iproc==0) call yaml_map('preconditioning load balancing min/max before',(/time_min(1),time_max(1)/),fmt='(es9.2)')
+         if (iproc==0) call yaml_map('preconditioning load balancing min/max after',(/time_min(2),time_max(2)/),fmt='(es9.2)')
+         if (iproc==0) call yaml_map('task with max load',maxloc(totaltimes)-1)
+         call f_free(norb_par)
+         call f_free(norbu_par)
+         call f_free(norbd_par)
+         call f_free(times_convol)
+         call f_free(totaltimes)
+     end if
   end if
 
 

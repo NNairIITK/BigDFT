@@ -537,6 +537,18 @@ if(associated(orbsin%norb_par)) then
 !!$    end do
 end if
 
+call f_free_ptr(orbsout%norbu_par)
+if(associated(orbsin%norbu_par)) then
+   orbsout%norbu_par = &
+        f_malloc_ptr(src=orbsin%norbu_par,lbounds=lbound(orbsin%norbu_par),id='orbsout%norbu_par')
+end if
+
+call f_free_ptr(orbsout%norbd_par)
+if(associated(orbsin%norbd_par)) then
+   orbsout%norbd_par = &
+        f_malloc_ptr(src=orbsin%norbd_par,lbounds=lbound(orbsin%norbd_par),id='orbsout%norbd_par')
+end if
+
 call f_free_ptr(orbsout%iokpt)
 if(associated(orbsin%iokpt)) then
    orbsout%iokpt = f_malloc_ptr(src=orbsin%iokpt,lbounds=lbound(orbsin%iokpt),id='orbsout%iokpt')
