@@ -683,7 +683,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
        call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, &
             orbs, lorbs, iproc, nproc, in%frag%nfrag_ref, in%frag%dirname, ref_frags)
-       write(*,*) 'in fragment_stuff: input_wf_format',input_wf_format
 
        ! we need to deallocate the fragment arrays we just allocated as not a restart calculation so this is no longer needed
        if (frag_allocated .and. (.not. in%lin%fragment_calculation) .and. inputpsi /= INPUT_PSI_DISK_LINEAR) then

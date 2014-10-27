@@ -482,6 +482,8 @@ subroutine finalise_precond_residue(geocode,hybrid_on,ncplx,wfd,scal,x)
   !local variables
   integer :: idx
 
+  call f_routine(id='finalise_precond_residue')
+
   if (geocode == 'F') then
      do idx=1,ncplx
         call wscalv_wrap(wfd%nvctr_c,wfd%nvctr_f,scal,x(1,idx))
@@ -496,6 +498,9 @@ subroutine finalise_precond_residue(geocode,hybrid_on,ncplx,wfd,scal,x)
      end do
   else
   end if
+
+  call f_release_routine()
+
 END SUBROUTINE finalise_precond_residue
 
 
