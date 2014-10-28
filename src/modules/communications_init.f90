@@ -282,7 +282,9 @@ module communications_init
       i3startend(2,iproc) = i3end+1
       i3startend(3,iproc) = i3s
       i3startend(4,iproc) = i3s+n3p-1
-      call mpiallred(i3startend(1,0), 4*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc>1) then
+          call mpiallred(i3startend(1,0), 4*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
 
 
       !@NEW ##################################
@@ -3051,8 +3053,8 @@ module communications_init
     
       nsend = f_malloc(0.to.nproc-1,id='nsend')
       nsend=0
-      indexsendbuf = f_malloc(ndimpsi,id='indexsendbuf')
-      indexsendorbital = f_malloc(ndimpsi,id='indexsendorbital')
+      indexsendbuf = f_malloc(max(1,ndimpsi),id='indexsendbuf')
+      indexsendorbital = f_malloc(max(1,ndimpsi),id='indexsendorbital')
       !!allocate(isendbuf(ndimpsi), stat=istat)
       !!call memocc(istat, isendbuf, 'isendbuf', subname)
     

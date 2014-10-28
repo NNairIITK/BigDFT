@@ -266,14 +266,17 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
   call f_routine(id='applyOperator')
 
   ! Uncompress the wavefunction.
+  call f_routine(id='call_to_uncompress_for_quartic_convolutions')
   call uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, &
        nseg_c, nvctr_c, keyg_c, keyv_c, nseg_f, nvctr_f,  keyg_f, keyv_f, &
        scal, xpsi_c, xpsi_f, &
        work_conv)
+  call f_release_routine()
 
   ! Apply the  following operators to the wavefunctions: kinetic energy + cprec*Id + r^4.
   if(confPotOrder==4) then
      call timing(iproc,'convolQuartic ','ON')
+      call f_routine(id='call_to_ConvolQuartic4')
       call ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, &
            hgrid, ns1, ns2, ns3, ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
            rxyzParab, parabPrefac, .true., cprecr, max(n1,n2,n3), &
@@ -298,6 +301,7 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
 !           work_conv%ceff0_2, work_conv%ceff1_2, work_conv%ceff2_2, work_conv%ceff3_2, &
 !           work_conv%eeff0_2, work_conv%eeff1_2, work_conv%eeff2_2, work_conv%eeff3_2, & 
            work_conv%y_c, work_conv%y_f)
+      call f_release_routine()
       call timing(iproc,'convolQuartic ','OF')
   else if(confPotOrder==6) then
 
@@ -306,10 +310,12 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
   end if
 
   ! Compress the wavefunctions.
+  call f_routine(id='compress_forstandard')
   call compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
        nseg_c,nvctr_c,keyg_c,keyv_c,  & 
        nseg_f,nvctr_f,keyg_f,keyv_f,  & 
        scal,work_conv%y_c,work_conv%y_f,ypsi_c,ypsi_f)
+  call f_release_routine()
 
   call f_release_routine()
 

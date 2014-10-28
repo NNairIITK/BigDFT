@@ -239,12 +239,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
          KSwfn%comms,shift,ref_frags,denspot=denspot,locregcenters=locregcenters,&
          inwhichlocreg_old=tmb_old%orbs%inwhichlocreg,onwhichatom_old=tmb_old%orbs%onwhichatom,&
          norb_par_ref=tmb_old%orbs%norb_par, norbu_par_ref=tmb_old%orbs%norbu_par, norbd_par_ref=tmb_old%orbs%norbd_par)
-  else if(inputpsi == INPUT_PSI_DISK_LINEAR) then
-    call system_initialization(iproc,nproc,.true.,inputpsi,input_wf_format,.false.,in,atoms,rxyz,GPU%OCLconv,&
-         KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,nlpsp,&
-         KSwfn%comms,shift,ref_frags,denspot=denspot,locregcenters=locregcenters, &
-         norb_par_ref=tmb_old%orbs%norb_par, norbu_par_ref=tmb_old%orbs%norbu_par, norbd_par_ref=tmb_old%orbs%norbd_par)
-  else if(inputpsi == INPUT_PSI_LINEAR_AO) then
+  !else if(inputpsi == INPUT_PSI_DISK_LINEAR) then
+  !  call system_initialization(iproc,nproc,.true.,inputpsi,input_wf_format,.false.,in,atoms,rxyz,GPU%OCLconv,&
+  !       KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,nlpsp,&
+  !       KSwfn%comms,shift,ref_frags,denspot=denspot,locregcenters=locregcenters, &
+  !       norb_par_ref=tmb_old%orbs%norb_par, norbu_par_ref=tmb_old%orbs%norbu_par, norbd_par_ref=tmb_old%orbs%norbd_par)
+  else if(inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR) then
     call system_initialization(iproc,nproc,.true.,inputpsi,input_wf_format,.false.,in,atoms,rxyz,GPU%OCLconv,&
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,nlpsp,&
          KSwfn%comms,shift,ref_frags,denspot=denspot,locregcenters=locregcenters)
@@ -641,9 +641,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         deallocate(ref_frags)
       else if (inputpsi == INPUT_PSI_DISK_LINEAR) then! we haven't actually allocated anything, so can just nullify - should make this more robust/general
          do ifrag=1,in%frag%nfrag_ref
+            call fragment_free(ref_frags(ifrag))
             ref_frags(ifrag)%astruct_frg%nat=-1
             ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
-            call fragment_free(ref_frags(ifrag))
             !ref_frags(ifrag)=fragment_null()
          end do
         deallocate(ref_frags)
@@ -1877,30 +1877,30 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      imode = 1
      nsize_psi=1
      ! This is just to save memory, since calculate_forces will require quite a lot
-     call deallocate_comms_linear(tmb%collcom)
-     call deallocate_comms_linear(tmb%ham_descr%collcom)
-     call deallocate_comms_linear(tmb%collcom_sr)
-     call deallocate_p2pcomms(tmb%comgp)
-     call deallocate_p2pcomms(tmb%ham_descr%comgp)
-     do i=1,size(tmb%linmat%ovrlppowers_)
-         call deallocate_matrices(tmb%linmat%ovrlppowers_(i))
-     end do
-     call deallocate_matrices(tmb%linmat%ham_)
-     call deallocate_matrices(tmb%linmat%ovrlp_)
-     call deallocate_sparse_matrix(tmb%linmat%s)
-     call deallocate_sparse_matrix(tmb%linmat%m)
-     if (associated(tmb%linmat%ks)) then
-         do ispin=1,tmb%linmat%l%nspin
-             call deallocate_sparse_matrix(tmb%linmat%ks(ispin))
-         end do
-         deallocate(tmb%linmat%ks)
-     end if
-     if (associated(tmb%linmat%ks_e)) then
-         do ispin=1,tmb%linmat%l%nspin
-             call deallocate_sparse_matrix(tmb%linmat%ks_e(ispin))
-         end do
-         deallocate(tmb%linmat%ks_e)
-     end if
+!     call deallocate_comms_linear(tmb%collcom)
+!     call deallocate_comms_linear(tmb%ham_descr%collcom)
+!     call deallocate_comms_linear(tmb%collcom_sr)
+!     call deallocate_p2pcomms(tmb%comgp)
+!     call deallocate_p2pcomms(tmb%ham_descr%comgp)
+!     do i=1,size(tmb%linmat%ovrlppowers_)
+!         call deallocate_matrices(tmb%linmat%ovrlppowers_(i))
+!     end do
+!     call deallocate_matrices(tmb%linmat%ham_)
+!     call deallocate_matrices(tmb%linmat%ovrlp_)
+!     call deallocate_sparse_matrix(tmb%linmat%s)
+!     call deallocate_sparse_matrix(tmb%linmat%m)
+!     if (associated(tmb%linmat%ks)) then
+!         do ispin=1,tmb%linmat%l%nspin
+!             call deallocate_sparse_matrix(tmb%linmat%ks(ispin))
+!         end do
+!         deallocate(tmb%linmat%ks)
+!     end if
+!     if (associated(tmb%linmat%ks_e)) then
+!         do ispin=1,tmb%linmat%l%nspin
+!             call deallocate_sparse_matrix(tmb%linmat%ks_e(ispin))
+!         end do
+!         deallocate(tmb%linmat%ks_e)
+!     end if
   else
      imode = 0
      nsize_psi = (KSwfn%Lzd%Glr%wfd%nvctr_c+7*KSwfn%Lzd%Glr%wfd%nvctr_f)*KSwfn%orbs%nspinor*KSwfn%orbs%norbp
@@ -1919,11 +1919,11 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 
   if (linear) then
      ! to eventually be better sorted
-     call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
-     call deallocate_p2pComms(tmb%ham_descr%comgp)
-     call deallocate_local_zone_descriptors(tmb%ham_descr%lzd)
-     call deallocate_comms_linear(tmb%ham_descr%collcom)
-     call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
+!     call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
+!     call deallocate_p2pComms(tmb%ham_descr%comgp)
+!     call deallocate_local_zone_descriptors(tmb%ham_descr%lzd)
+!     call deallocate_comms_linear(tmb%ham_descr%collcom)
+!     call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
 
 !!!! TEST ##################
      !!fxyz=0.d0

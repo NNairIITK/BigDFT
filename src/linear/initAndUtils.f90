@@ -1011,10 +1011,16 @@ subroutine destroy_DFT_wavefunction(wfn)
 !  call f_routine(id=subname)
 
   call f_free_ptr(wfn%psi)
+  call f_free_ptr(wfn%hpsi)
+  call f_free_ptr(wfn%psit)
   call f_free_ptr(wfn%psit_c)
   call f_free_ptr(wfn%psit_f)
+  call f_free_ptr(wfn%ham_descr%psi)
+  call f_free_ptr(wfn%ham_descr%psit_c)
+  call f_free_ptr(wfn%ham_descr%psit_f)
 
   call deallocate_p2pComms(wfn%comgp)
+  call deallocate_p2pComms(wfn%ham_descr%comgp)
   if (associated(wfn%linmat%ks)) then
       do ispin=1,wfn%linmat%l%nspin
           call deallocate_sparse_matrix(wfn%linmat%ks(ispin))
@@ -1038,8 +1044,10 @@ subroutine destroy_DFT_wavefunction(wfn)
   end do
   call deallocate_orbitals_data(wfn%orbs)
   call deallocate_comms_linear(wfn%collcom)
+  call deallocate_comms_linear(wfn%ham_descr%collcom)
   call deallocate_comms_linear(wfn%collcom_sr)
   call deallocate_local_zone_descriptors(wfn%lzd)
+  call deallocate_local_zone_descriptors(wfn%ham_descr%lzd)
   call foe_data_deallocate(wfn%foe_obj)
 
   call f_free_ptr(wfn%coeff)

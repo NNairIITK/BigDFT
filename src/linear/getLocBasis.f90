@@ -3061,7 +3061,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   ! just before the call.
   call retransform_local(tmb%linmat%ovrlppowers_(1))
 
-  ! Calculate S^1/2 for the old overlap matrix
+  ! Calculate S^1/2 for the overlap matrix
   call overlapPowerGeneral(iproc, nproc, order_taylor, 3, (/2,-2,1/), -1, &
        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
        ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &

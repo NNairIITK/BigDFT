@@ -320,7 +320,6 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
 
-  write(*,*) 'iformat',iformat
   if (iformat == WF_FORMAT_ETSF) then
      !construct the orblist or use the one in argument
      !do nb1 = 1, orbs%norb
