@@ -694,7 +694,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
                if(jorb==norb) exit !just to besure that no out of bound happens
                tcount = tcount + times_convol(jorb)
                !if (iproc==0) write(*,'(a,2i8,2es14.5)') 'jorb, jproc, tcount, diff to target', jorb, jproc, tcount, abs(tcount-time_ideal*real(jproc+1,kind=8))
-               if (abs(tcount-time_ideal*real(jproc+1,kind=8))<=abs(tcount+times_convol(jorb+1)-time_ideal*real(jproc+1,kind=8))) then
+               if (abs(tcount-time_ideal*real(jproc+1,kind=8)) <= &
+                       abs(tcount+times_convol(jorb+1)-time_ideal*real(jproc+1,kind=8))) then
                    norb_par(jproc) = jjorb
                    jjorbtot = jjorbtot + jjorb
                    jjorb = 0
