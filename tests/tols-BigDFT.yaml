@@ -38,6 +38,8 @@ Keys to ignore:
  - Size of the global database
  - Total No. of Taskgroups created
  - sparse matmul load balancing naive / optimized
+ - preconditioning load balancing min/max before
+ - preconditioning load balancing min/max after
  - number of taskgroups
  - taskgroups overview
  #- number of tasks
@@ -1140,3 +1142,16 @@ verysparse:
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
+
+expfoegeopt:
+ guess for new ef: 2.0e-8
+ eF: 2.0e-8
+ D eF: 2.3e-8
+ charge diff: 2.3e-8
+ ebs: 2.3e-8
+ ebs_check: 1.5e-9
+ D Tr: 1.6e-9
+ Epot: 2.3e-8
+ EvXC: 2.3e-8
+ EXC: 2.3e-8
+ Tr(K): 2.3e-8
