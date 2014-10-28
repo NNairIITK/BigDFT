@@ -13,6 +13,7 @@ subroutine copy_tmbs(iproc, tmbin, tmbout, subname)
   use module_base
   use module_types
   use module_interfaces
+  use copy_utils, only: allocate_and_copy
   implicit none
 
   integer,intent(in) :: iproc
@@ -52,6 +53,13 @@ subroutine copy_tmbs(iproc, tmbin, tmbout, subname)
 
   !call copy_old_inwhichlocreg(tmbin%orbs%norb, tmbin%orbs%inwhichlocreg, tmbout%orbs%inwhichlocreg, &
   !     tmbin%orbs%onwhichatom, tmbout%orbs%onwhichatom)
+  call allocate_and_copy(tmbin%psi, tmbout%psi, id='tmbout%psi')
+
+  ! Not necessary to copy these arrays
+  !call allocate_and_copy(tmbin%hpsi, tmbout%hpsi, id='tmbout%hpsi')
+  !call allocate_and_copy(tmbin%psit, tmbout%psit, id='tmbout%psit')
+  !call allocate_and_copy(tmbin%psit_c, tmbout%psit_c, id='tmbout%psit_c')
+  !call allocate_and_copy(tmbin%psit_f, tmbout%psit_f, id='tmbout%psit_f')
 
   call f_release_routine()
 

@@ -791,9 +791,12 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
   reaL(gp) :: fnrm
   real(gp), dimension(:), pointer :: in_frag_charge
+  real(kind=8),dimension(:),allocatable :: psi_old
+  type(matrices) :: ovrlp_old
 
 
   call f_routine(id='input_memory_linear')
+
 
   nullify(mom_vec_fake)
 
@@ -826,8 +829,12 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
          frag_trans(iorb)%rot_center_new(:)=rxyz(:,iiat)
      end do
 
+     ! This routine might overwrite tmb_old%psi, so save the values
+     psi_old = f_malloc(src=tmb_old%psi,lbounds=lbound(tmb_old%psi),id='psi_old')
      call reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,.true.,tmb,ndim_old,tmb_old%lzd,frag_trans,&
           tmb_old%psi,input%dir_output,input%frag,ref_frags)
+     call vcopy(size(psi_old), psi_old(1), 1, tmb_old%psi(1), 1)
+     call f_free(psi_old)
 
      deallocate(frag_trans)
   end if
@@ -1077,18 +1084,24 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        tmb_old%linmat%ovrlp_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s,iaction=SPARSE_FULL, &
                                                                     id='tmb_old%linmat%ovrlp_%matrix_compr')
 
+       !call compress_matrix_distributed(iproc, nproc, tmb%linmat%s, DENSE_PARALLEL, &
+       !     ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr(tmb%linmat%s%isvctrp_tg+1:))
+       ovrlp_old%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
+                                 iaction=SPARSE_FULL, id='ovrlp_old%matrix_compr')
        call compress_matrix_distributed(iproc, nproc, tmb%linmat%s, DENSE_PARALLEL, &
-            ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr(tmb%linmat%s%isvctrp_tg+1:))
+            ovrlpp, ovrlp_old%matrix_compr(tmb%linmat%s%isvctrp_tg+1:))
+
        call f_free(ovrlpp)
        ! Calculate S^1/2, as it can not be taken from memory
        order_taylor = input%lin%order_taylor
        call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/2/), -1, &
             imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-            ovrlp_mat=tmb_old%linmat%ovrlp_, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
+            ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
             check_accur=.true., max_error=max_error, mean_error=mean_error)
        call check_taylor_order(mean_error, max_inversion_error, order_taylor)
        call renormalize_kernel(iproc, nproc, input%lin%order_taylor, max_inversion_error, tmb, &
             tmb%linmat%ovrlp_, tmb_old%linmat%ovrlp_)
+       call f_free_ptr(ovrlp_old%matrix_compr)
   else
      ! By doing an LCAO input guess
      tmb%can_use_transposed=.false.
