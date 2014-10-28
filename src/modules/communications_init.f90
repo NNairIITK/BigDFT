@@ -3051,8 +3051,8 @@ module communications_init
     
       nsend = f_malloc(0.to.nproc-1,id='nsend')
       nsend=0
-      indexsendbuf = f_malloc(ndimpsi,id='indexsendbuf')
-      indexsendorbital = f_malloc(ndimpsi,id='indexsendorbital')
+      indexsendbuf = f_malloc(max(1,ndimpsi),id='indexsendbuf')
+      indexsendorbital = f_malloc(max(1,ndimpsi),id='indexsendorbital')
       !!allocate(isendbuf(ndimpsi), stat=istat)
       !!call memocc(istat, isendbuf, 'isendbuf', subname)
     

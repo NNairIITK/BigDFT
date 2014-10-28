@@ -213,8 +213,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
              call mpiallred(time_max(1), 2, mpi_max, bigdft_mpi%mpi_comm)
              call mpiallred(totaltimes(1), nproc, mpi_sum, bigdft_mpi%mpi_comm)
          end if
-         ratio_before = real(time_max(1),kind=8)/real(time_min(1),kind=8)
-         ratio_after = real(time_max(2),kind=8)/real(time_min(2),kind=8)
+         ratio_before = real(time_max(1),kind=8)/real(max(1.d0,time_min(1)),kind=8) !max to prevent divide by zero
+         ratio_after = real(time_max(2),kind=8)/real(max(1.d0,time_min(2)),kind=8) !max to prevent divide by zero
          if (iproc==0) call yaml_map('preconditioning load balancing min/max before',(/time_min(1),time_max(1)/),fmt='(es9.2)')
          if (iproc==0) call yaml_map('preconditioning load balancing min/max after',(/time_min(2),time_max(2)/),fmt='(es9.2)')
          if (iproc==0) call yaml_map('task with max load',maxloc(totaltimes)-1)
@@ -681,28 +681,34 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        integer :: jjorbtot, jjorb, jproc, jlr, jorb
        real(kind=8) :: tcount
 
+
        call to_zero(nproc, norb_par(0))
-       tcount = 0.d0
-       jproc = 0
-       jjorb = 0
-       jjorbtot = 0
-       do jorb=1,norb
-           if (jproc==nproc-1) exit
-           jjorb = jjorb + 1
-           if(jjorb==norb) exit !just to besure that no out of bound happens
-           tcount = tcount + times_convol(jorb)
-           !if (iproc==0) write(*,'(a,2i8,2es14.5)') 'jorb, jproc, tcount, diff to target', jorb, jproc, tcount, abs(tcount-time_ideal*real(jproc+1,kind=8))
-           if (abs(tcount-time_ideal*real(jproc+1,kind=8))<=abs(tcount+times_convol(jorb+1)-time_ideal*real(jproc+1,kind=8))) then
-               norb_par(jproc) = jjorb
-               jjorbtot = jjorbtot + jjorb
-               jjorb = 0
-               jproc = jproc + 1
-           end if
-       end do
-       norb_par(nproc-1) = jjorb + (norb - jjorbtot) !take the rest
-       !do jproc=0,nproc-1
-       !    if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
-       !end do
+       if (norb>=nproc) then
+           tcount = 0.d0
+           jproc = 0
+           jjorb = 0
+           jjorbtot = 0
+           do jorb=1,norb
+               if (jproc==nproc-1) exit
+               jjorb = jjorb + 1
+               if(jorb==norb) exit !just to besure that no out of bound happens
+               tcount = tcount + times_convol(jorb)
+               !if (iproc==0) write(*,'(a,2i8,2es14.5)') 'jorb, jproc, tcount, diff to target', jorb, jproc, tcount, abs(tcount-time_ideal*real(jproc+1,kind=8))
+               if (abs(tcount-time_ideal*real(jproc+1,kind=8))<=abs(tcount+times_convol(jorb+1)-time_ideal*real(jproc+1,kind=8))) then
+                   norb_par(jproc) = jjorb
+                   jjorbtot = jjorbtot + jjorb
+                   jjorb = 0
+                   jproc = jproc + 1
+               end if
+           end do
+           norb_par(nproc-1) = jjorb + (norb - jjorbtot) !take the rest
+           !do jproc=0,nproc-1
+           !    if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
+           !end do
+       else
+           ! Equal distribution
+           norb_par(0:norb-1) = 1
+       end if
      end subroutine redistribute2
 
 
