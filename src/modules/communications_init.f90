@@ -282,7 +282,9 @@ module communications_init
       i3startend(2,iproc) = i3end+1
       i3startend(3,iproc) = i3s
       i3startend(4,iproc) = i3s+n3p-1
-      call mpiallred(i3startend(1,0), 4*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc>1) then
+          call mpiallred(i3startend(1,0), 4*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
 
 
       !@NEW ##################################

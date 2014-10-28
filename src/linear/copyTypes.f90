@@ -1186,6 +1186,7 @@ subroutine copy_comms_linear(comms_in, comms_out)
     comms_out%ndimpsi_f = comms_in%ndimpsi_f
     comms_out%ncomms_repartitionrho = comms_in%ncomms_repartitionrho
     comms_out%window = comms_in%window
+    comms_out%imethod_overlap = comms_in%imethod_overlap
 
     call allocate_and_copy(comms_in%nsendcounts_c, comms_out%nsendcounts_c, id='comms_out%nsendcounts_c')
     call allocate_and_copy(comms_in%nsenddspls_c, comms_out%nsenddspls_c, id='comms_out%nsenddspls_c')

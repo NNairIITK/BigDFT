@@ -1877,30 +1877,30 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      imode = 1
      nsize_psi=1
      ! This is just to save memory, since calculate_forces will require quite a lot
-     call deallocate_comms_linear(tmb%collcom)
-     call deallocate_comms_linear(tmb%ham_descr%collcom)
-     call deallocate_comms_linear(tmb%collcom_sr)
-     call deallocate_p2pcomms(tmb%comgp)
-     call deallocate_p2pcomms(tmb%ham_descr%comgp)
-     do i=1,size(tmb%linmat%ovrlppowers_)
-         call deallocate_matrices(tmb%linmat%ovrlppowers_(i))
-     end do
-     call deallocate_matrices(tmb%linmat%ham_)
-     call deallocate_matrices(tmb%linmat%ovrlp_)
-     call deallocate_sparse_matrix(tmb%linmat%s)
-     call deallocate_sparse_matrix(tmb%linmat%m)
-     if (associated(tmb%linmat%ks)) then
-         do ispin=1,tmb%linmat%l%nspin
-             call deallocate_sparse_matrix(tmb%linmat%ks(ispin))
-         end do
-         deallocate(tmb%linmat%ks)
-     end if
-     if (associated(tmb%linmat%ks_e)) then
-         do ispin=1,tmb%linmat%l%nspin
-             call deallocate_sparse_matrix(tmb%linmat%ks_e(ispin))
-         end do
-         deallocate(tmb%linmat%ks_e)
-     end if
+!     call deallocate_comms_linear(tmb%collcom)
+!     call deallocate_comms_linear(tmb%ham_descr%collcom)
+!     call deallocate_comms_linear(tmb%collcom_sr)
+!     call deallocate_p2pcomms(tmb%comgp)
+!     call deallocate_p2pcomms(tmb%ham_descr%comgp)
+!     do i=1,size(tmb%linmat%ovrlppowers_)
+!         call deallocate_matrices(tmb%linmat%ovrlppowers_(i))
+!     end do
+!     call deallocate_matrices(tmb%linmat%ham_)
+!     call deallocate_matrices(tmb%linmat%ovrlp_)
+!     call deallocate_sparse_matrix(tmb%linmat%s)
+!     call deallocate_sparse_matrix(tmb%linmat%m)
+!     if (associated(tmb%linmat%ks)) then
+!         do ispin=1,tmb%linmat%l%nspin
+!             call deallocate_sparse_matrix(tmb%linmat%ks(ispin))
+!         end do
+!         deallocate(tmb%linmat%ks)
+!     end if
+!     if (associated(tmb%linmat%ks_e)) then
+!         do ispin=1,tmb%linmat%l%nspin
+!             call deallocate_sparse_matrix(tmb%linmat%ks_e(ispin))
+!         end do
+!         deallocate(tmb%linmat%ks_e)
+!     end if
   else
      imode = 0
      nsize_psi = (KSwfn%Lzd%Glr%wfd%nvctr_c+7*KSwfn%Lzd%Glr%wfd%nvctr_f)*KSwfn%orbs%nspinor*KSwfn%orbs%norbp
@@ -1919,11 +1919,11 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 
   if (linear) then
      ! to eventually be better sorted
-     call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
-     call deallocate_p2pComms(tmb%ham_descr%comgp)
-     call deallocate_local_zone_descriptors(tmb%ham_descr%lzd)
-     call deallocate_comms_linear(tmb%ham_descr%collcom)
-     call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
+!     call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
+!     call deallocate_p2pComms(tmb%ham_descr%comgp)
+!     call deallocate_local_zone_descriptors(tmb%ham_descr%lzd)
+!     call deallocate_comms_linear(tmb%ham_descr%collcom)
+!     call deallocate_auxiliary_basis_function(subname, tmb%ham_descr%psi, tmb%hpsi)
 
 !!!! TEST ##################
      !!fxyz=0.d0

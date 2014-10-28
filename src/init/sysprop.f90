@@ -527,7 +527,9 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
       call to_zero(lorbs%norb, times_convol(1))
 
-      call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+      if (nproc>1) then
+          call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+      end if
        ist=0
        tt = 0.d0
        do iorb=1,lorbs%norbp

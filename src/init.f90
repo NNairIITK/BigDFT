@@ -782,7 +782,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   real(kind=8),dimension(:,:),allocatable :: kernelp, ovrlpp
   type(localizedDIISParameters) :: ldiis
   logical :: ortho_on, reduce_conf, can_use_ham
-  real(kind=8) :: trace, trace_old, fnrm_tmb, ratio_deltas, ddot
+  real(kind=8) :: trace, trace_old, fnrm_tmb, ratio_deltas, ddot, max_error, mean_error
   integer :: order_taylor, info_basis_functions, iortho, iat, jj, itype, inl
   integer,dimension(:),allocatable :: maxorbs_type, minorbs_type
   integer,dimension(:,:),allocatable :: nl_copy
@@ -1080,6 +1080,13 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        call compress_matrix_distributed(iproc, nproc, tmb%linmat%s, DENSE_PARALLEL, &
             ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr(tmb%linmat%s%isvctrp_tg+1:))
        call f_free(ovrlpp)
+       ! Calculate S^1/2, as it can not be taken from memory
+       order_taylor = input%lin%order_taylor
+       call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/2/), -1, &
+            imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+            ovrlp_mat=tmb_old%linmat%ovrlp_, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
+            check_accur=.true., max_error=max_error, mean_error=mean_error)
+       call check_taylor_order(mean_error, max_inversion_error, order_taylor)
        call renormalize_kernel(iproc, nproc, input%lin%order_taylor, max_inversion_error, tmb, &
             tmb%linmat%ovrlp_, tmb_old%linmat%ovrlp_)
   else
