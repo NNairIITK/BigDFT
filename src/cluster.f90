@@ -641,9 +641,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         deallocate(ref_frags)
       else if (inputpsi == INPUT_PSI_DISK_LINEAR) then! we haven't actually allocated anything, so can just nullify - should make this more robust/general
          do ifrag=1,in%frag%nfrag_ref
+            call fragment_free(ref_frags(ifrag))
             ref_frags(ifrag)%astruct_frg%nat=-1
             ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
-            call fragment_free(ref_frags(ifrag))
             !ref_frags(ifrag)=fragment_null()
          end do
         deallocate(ref_frags)
