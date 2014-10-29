@@ -40,6 +40,7 @@ Keys to ignore:
  - sparse matmul load balancing naive / optimized
  - preconditioning load balancing min/max before
  - preconditioning load balancing min/max after
+ - task with max load
  - number of taskgroups
  - taskgroups overview
  #- number of tasks
