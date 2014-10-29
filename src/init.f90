@@ -1214,93 +1214,93 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
               at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
               pnrm,denspot%dpbox%nscatterarr)
       end if
-      call local_potential_dimensions(iproc,tmb%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
-       if (input%experimental_mode) then
-           ! NEW: TRACE MINIMIZATION WITH ORTHONORMALIZATION ####################################
-           ortho_on=.true.
-           call initializeDIIS(input%lin%DIIS_hist_lowaccur, tmb%lzd, tmb%orbs, ldiis)
-           ldiis%alphaSD=input%lin%alphaSD
-           ldiis%alphaDIIS=input%lin%alphaDIIS
-           energs%eexctX=0.d0 !temporary fix
-           trace_old=0.d0 !initialization
-           if (iproc==0) then
-               !call yaml_mapping_close()
-               call yaml_comment('Extended input guess for experimental mode',hfill='-')
-               call yaml_mapping_open('Extended input guess')
-               call yaml_sequence_open('support function optimization',label=&
-                                                 'it_supfun'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
-           end if
-           order_taylor=input%lin%order_taylor ! since this is intent(inout)
-           call getLocalizedBasis(iproc,nproc,at,tmb%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
-               info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
-               input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
-               50,&
-               ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop,&
-               input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
-               can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
-               input%purification_quickreturn, input%correction_co_contra)
-           reduce_conf=.true.
-           call yaml_sequence_close()
-           call yaml_mapping_close()
-           call deallocateDIIS(ldiis)
-           !call yaml_mapping_open()
+      !call local_potential_dimensions(iproc,tmb%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
+      ! if (input%experimental_mode) then
+      !     ! NEW: TRACE MINIMIZATION WITH ORTHONORMALIZATION ####################################
+      !     ortho_on=.true.
+      !     call initializeDIIS(input%lin%DIIS_hist_lowaccur, tmb%lzd, tmb%orbs, ldiis)
+      !     ldiis%alphaSD=input%lin%alphaSD
+      !     ldiis%alphaDIIS=input%lin%alphaDIIS
+      !     energs%eexctX=0.d0 !temporary fix
+      !     trace_old=0.d0 !initialization
+      !     if (iproc==0) then
+      !         !call yaml_mapping_close()
+      !         call yaml_comment('Extended input guess for experimental mode',hfill='-')
+      !         call yaml_mapping_open('Extended input guess')
+      !         call yaml_sequence_open('support function optimization',label=&
+      !                                           'it_supfun'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
+      !     end if
+      !     order_taylor=input%lin%order_taylor ! since this is intent(inout)
+      !     call getLocalizedBasis(iproc,nproc,at,tmb%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
+      !         info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
+      !         input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
+      !         50,&
+      !         ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop,&
+      !         input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
+      !         can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
+      !         input%purification_quickreturn, input%correction_co_contra)
+      !     reduce_conf=.true.
+      !     call yaml_sequence_close()
+      !     call yaml_mapping_close()
+      !     call deallocateDIIS(ldiis)
+      !     !call yaml_mapping_open()
 
-           ! @@@ calculate a new kernel
-           order_taylor=input%lin%order_taylor ! since this is intent(inout)
-           if (input%lin%scf_mode==LINEAR_FOE) then
-               call get_coeff(iproc,nproc,LINEAR_FOE,kswfn%orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
-                    input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
-                    input%purification_quickreturn,&
-                    input%calculate_KS_residue,input%calculate_gap)
-           else
-               call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,kswfn%orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
-                    input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
-                    input%purification_quickreturn,&
-                    input%calculate_KS_residue,input%calculate_gap)
+      !     ! @@@ calculate a new kernel
+      !     order_taylor=input%lin%order_taylor ! since this is intent(inout)
+      !     if (input%lin%scf_mode==LINEAR_FOE) then
+      !         call get_coeff(iproc,nproc,LINEAR_FOE,kswfn%orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
+      !              input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
+      !              input%purification_quickreturn,&
+      !              input%calculate_KS_residue,input%calculate_gap)
+      !     else
+      !         call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,kswfn%orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
+      !              input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
+      !              input%purification_quickreturn,&
+      !              input%calculate_KS_residue,input%calculate_gap)
 
-               call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
-               call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
-               if (bigdft_mpi%iproc ==0) then
-                  call write_eigenvalues_data(0.1d0,kswfn%orbs,mom_vec_fake)
-               end if
+      !         call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
+      !         call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
+      !         if (bigdft_mpi%iproc ==0) then
+      !            call write_eigenvalues_data(0.1d0,kswfn%orbs,mom_vec_fake)
+      !         end if
 
-           end if
+      !     end if
 
-           ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-            call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
-                 tmb%orbs, tmb%psi, tmb%collcom_sr)
-            !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
-            call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-                 tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
-                 denspot%rhov, rho_negative)
-           if (rho_negative) then
-               call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
-               !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
-               !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
-               !!call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
-           end if
-      
-            call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
-                 denspot%rhov(1), 1, denspot0(1), 1)
-            if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
-               ! set the initial charge density
-               call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
-                    denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
-                    at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
-                    pnrm,denspot%dpbox%nscatterarr)
-            end if
-            call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
-            if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-               ! set the initial potential
-               call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
-                    denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
-                    at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
-                    pnrm,denspot%dpbox%nscatterarr)
-            end if
-            call local_potential_dimensions(iproc,tmb%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
+      !     ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+      !      call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
+      !           tmb%orbs, tmb%psi, tmb%collcom_sr)
+      !      !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
+      !      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+      !           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
+      !           denspot%rhov, rho_negative)
+      !     if (rho_negative) then
+      !         call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+      !         !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+      !         !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+      !         !!call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
+      !     end if
+      !
+      !      call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
+      !           denspot%rhov(1), 1, denspot0(1), 1)
+      !      if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
+      !         ! set the initial charge density
+      !         call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
+      !              denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+      !              at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+      !              pnrm,denspot%dpbox%nscatterarr)
+      !      end if
+      !      call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+      !      if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+      !         ! set the initial potential
+      !         call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
+      !              denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+      !              at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+      !              pnrm,denspot%dpbox%nscatterarr)
+      !      end if
+      !      call local_potential_dimensions(iproc,tmb%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
 
-           ! END NEW ############################################################################
-       end if
+      !     ! END NEW ############################################################################
+      ! end if
   end if
 
   ! Orthonormalize the input guess if necessary
