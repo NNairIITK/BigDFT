@@ -863,6 +863,7 @@ module module_types
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
      type(hamiltonian_descriptors) :: ham_descr
      real(kind=8), dimension(:,:), pointer :: coeff !<expansion coefficients
+     real(kind=8) :: damping_factor_confinement !< damping for the confinement after a restart
   end type DFT_wavefunction
 
 

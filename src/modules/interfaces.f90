@@ -3333,17 +3333,18 @@ module module_interfaces
         end subroutine chebyshev_clean
 
 
-        subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, confdatarr, &
+        subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_converged, damping_factor, confdatarr, &
                    target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix, &
                    conv_crit_TMB)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: nlr
+          integer,intent(in) :: iproc, nlr
           type(input_variables),intent(in) :: input
           type(atoms_data),intent(in) :: at
           type(orbitals_data),intent(in) :: orbs
           logical,intent(out) :: lowaccur_converged
+          real(kind=8),intent(in) :: damping_factor
           type(confpot_data),dimension(orbs%norbp),intent(inout) :: confdatarr
           integer,intent(out) :: target_function, nit_basis, nit_scc, mix_hist
           real(kind=8),dimension(nlr),intent(out) :: locrad

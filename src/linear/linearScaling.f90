@@ -269,7 +269,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
                convcrit_dmin, nitdmin, conv_crit_TMB)
       else if (input%lin%nlevel_accuracy==1 .and. itout==1) then
-          call set_variables_for_hybrid(tmb%lzd%nlr, input, at, tmb%orbs, lowaccur_converged, tmb%confdatarr, &
+          call set_variables_for_hybrid(iproc, tmb%lzd%nlr, input, at, tmb%orbs, &
+               lowaccur_converged, tmb%damping_factor_confinement, tmb%confdatarr, &
                target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix, conv_crit_TMB)
                convcrit_dmin=input%lin%convCritDmin_highaccuracy
                nitdmin=input%lin%nItdmin_highaccuracy

@@ -1601,19 +1601,21 @@ end subroutine check_whether_lowaccuracy_converged
 
 
 
-subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, confdatarr, &
+subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_converged, damping_factor, confdatarr, &
            target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix, &
            conv_crit_TMB)
   use module_base
   use module_types
+  use yaml_output
   implicit none
 
   ! Calling arguments
-  integer, intent(in) :: nlr
+  integer, intent(in) :: iproc, nlr
   type(input_variables), intent(in) :: input
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
   logical,intent(out) :: lowaccur_converged
+  real(kind=8),intent(in) :: damping_factor
   type(confpot_data),dimension(orbs%norbp), intent(inout) :: confdatarr
   integer, intent(out) :: target_function, nit_basis, nit_scc, mix_hist
   real(kind=8),dimension(nlr), intent(out) :: locrad
@@ -1622,11 +1624,12 @@ subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, co
   ! Local variables
   integer :: iorb, ilr, iiat
 
+  if (iproc==0) call yaml_map('damping factor for the confinement',damping_factor)
   lowaccur_converged=.false.
   do iorb=1,orbs%norbp
       ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
       iiat=orbs%onwhichatom(orbs%isorb+iorb)
-      confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%astruct%iatype(iiat))
+      confdatarr(iorb)%prefac=input%lin%potentialPrefac_lowaccuracy(at%astruct%iatype(iiat))*damping_factor
   end do
   target_function=TARGET_FUNCTION_IS_HYBRID
   nit_basis=input%lin%nItBasis_lowaccuracy
