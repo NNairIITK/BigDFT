@@ -3103,7 +3103,9 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   end do
 
   ! Get the maximal shift among all tasks
-  call mpiallred(max_shift, 1, mpi_max, bigdft_mpi%mpi_comm)
+  if (nproc>1) then
+      call mpiallred(max_shift, 1, mpi_max, bigdft_mpi%mpi_comm)
+  end if
 
   ! Determine the dumping factor for the confinement. In the limit where the
   ! atoms have not moved, it goes to zero; in the limit where they have moved a

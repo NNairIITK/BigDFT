@@ -76,7 +76,7 @@ module communications_base
   public :: p2pComms_null
   public :: allocate_MPI_communication_arrays
   public :: allocate_local_comms_cubic
-  public :: allocate_MPI_comms_cubic_repartition
+  !!public :: allocate_MPI_comms_cubic_repartition
   public :: allocate_MPI_comms_cubic_repartitionp2p
   public :: deallocate_comms
   public :: deallocate_comms_linear
@@ -253,15 +253,15 @@ contains
   end subroutine allocate_local_comms_cubic
 
 
-  subroutine allocate_MPI_comms_cubic_repartition(nproc, comms)
-    implicit none
-    integer,intent(in) :: nproc
-    type(comms_linear),intent(inout) :: comms
-    comms%nsendcounts_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nsendcounts_repartitionrho')
-    comms%nrecvcounts_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nrecvcounts_repartitionrho')
-    comms%nsenddspls_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nsenddspls_repartitionrho')
-    comms%nrecvdspls_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nrecvdspls_repartitionrho')
-  end subroutine allocate_MPI_comms_cubic_repartition
+  !!subroutine allocate_MPI_comms_cubic_repartition(nproc, comms)
+  !!  implicit none
+  !!  integer,intent(in) :: nproc
+  !!  type(comms_linear),intent(inout) :: comms
+  !!  comms%nsendcounts_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nsendcounts_repartitionrho')
+  !!  comms%nrecvcounts_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nrecvcounts_repartitionrho')
+  !!  comms%nsenddspls_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nsenddspls_repartitionrho')
+  !!  comms%nrecvdspls_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nrecvdspls_repartitionrho')
+  !!end subroutine allocate_MPI_comms_cubic_repartition
 
 
   subroutine allocate_MPI_comms_cubic_repartitionp2p(ncommunications, commarr_repartitionrho)

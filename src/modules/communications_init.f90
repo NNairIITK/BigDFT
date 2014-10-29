@@ -2570,11 +2570,11 @@ module communications_init
             collcom_sr%isptsp_c(ipt) = collcom_sr%isptsp_c(ipt-1) + collcom_sr%norb_per_gridpoint_c(ipt-1)
       end do
     
-      call allocate_MPI_comms_cubic_repartition(nproc, collcom_sr)
+      !!call allocate_MPI_comms_cubic_repartition(nproc, collcom_sr)
     
-      call communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, istartend, &
-           collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
-           collcom_sr%nrecvcounts_repartitionrho, collcom_sr%nrecvdspls_repartitionrho)
+      !!call communication_arrays_repartitionrho(iproc, nproc, lzd, nscatterarr, istartend, &
+      !!     collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
+      !!     collcom_sr%nrecvcounts_repartitionrho, collcom_sr%nrecvdspls_repartitionrho)
     
       call communication_arrays_repartitionrho_general(iproc, nproc, lzd, nscatterarr, istartend, & 
            collcom_sr%ncomms_repartitionrho, collcom_sr%commarr_repartitionrho)
