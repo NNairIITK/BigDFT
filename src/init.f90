@@ -789,7 +789,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   logical,dimension(:),allocatable :: type_covered
   logical :: finished
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
-  reaL(gp) :: fnrm
+  real(gp) :: fnrm, max_shift
   real(gp), dimension(:), pointer :: in_frag_charge
   real(kind=8),dimension(:),allocatable :: psi_old
   type(matrices) :: ovrlp_old
@@ -832,7 +832,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      ! This routine might overwrite tmb_old%psi, so save the values
      psi_old = f_malloc(src=tmb_old%psi,lbounds=lbound(tmb_old%psi),id='psi_old')
      call reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,.true.,tmb,ndim_old,tmb_old%lzd,frag_trans,&
-          tmb_old%psi,input%dir_output,input%frag,ref_frags)
+          tmb_old%psi,input%dir_output,input%frag,ref_frags,max_shift)
      call vcopy(size(psi_old), psi_old(1), 1, tmb_old%psi(1), 1)
      call f_free(psi_old)
 
@@ -909,7 +909,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
             TRANSPOSE_FULL, tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
 
        call f_free(norm)
-   else if (input%FOE_restart==RESTART_REFORMAT .and. input%experimental_mode) then
+   else if (input%FOE_restart==RESTART_REFORMAT .and. input%experimental_mode .and. max_shift>0.d0) then
       if (.not. input%lin%iterative_orthogonalization) then
          !!%%  ! Orthonormalize
          !!%%  tmb%can_use_transposed=.false.

@@ -3092,7 +3092,7 @@ module module_interfaces
         end subroutine copy_old_inwhichlocreg
 
         subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
-               frag_trans,psi_old,input_dir,input_frag,ref_frags,phi_array_old)
+               frag_trans,psi_old,input_dir,input_frag,ref_frags,max_shift,phi_array_old)
           use module_base
           use module_types
           use module_fragments
@@ -3110,6 +3110,7 @@ module module_interfaces
           character(len=*), intent(in) :: input_dir
           type(fragmentInputParameters), intent(in) :: input_frag
           type(system_fragment), dimension(:), intent(in) :: ref_frags
+          real(gp),intent(out) :: max_shift
         end subroutine reformat_supportfunctions
 
         subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psigold,&
