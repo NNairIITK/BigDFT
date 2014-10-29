@@ -576,7 +576,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
          ! @NEW: adjust the convergence criterion for the kernel optimization
          ! The better the support functions are converged, the better the kernel sould be converged
          convCritMix = convCritMix_init*fnrm_tmb
-         if (iproc==0) call yaml_map('new convergence criterion for kernel',convCritMix)
          kernel_loop : do it_scc=1,nit_scc
              dmin_diag_it=dmin_diag_it+1
              ! If the hamiltonian is available do not recalculate it
@@ -1336,20 +1335,21 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           call yaml_sequence_open('summary',flow=.true.)
           call yaml_mapping_open()
           if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              call yaml_map('kernel optimization','DMIN')
+              call yaml_map('kernel method','DMIN')
           else if (input%lin%scf_mode==LINEAR_FOE) then
-              call yaml_map('kernel optimization','FOE')
+              call yaml_map('kernel method','FOE')
           else
-              call yaml_map('kernel optimization','DIAG')
+              call yaml_map('kernel method','DIAG')
           end if
 
           if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or.  input%lin%scf_mode==LINEAR_FOE &
               .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              call yaml_map('mixing quantity','DENS')
+              call yaml_map('mix entity','DENS')
           else if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-              call yaml_map('mixing quantity','POT')
+              call yaml_map('mix entity','POT')
           end if
           call yaml_map('mix hist',mix_hist)
+          call yaml_map('conv crit',convCritMix,fmt='(es8.2)')
 
 
           if (input%lin%constrained_dft) then
@@ -1407,14 +1407,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           call yaml_mapping_open(flow=.true.)
           call yaml_map('iter',itout)
           if(target_function==TARGET_FUNCTION_IS_TRACE) then
-              call yaml_map('target function','TRACE')
+              call yaml_map('Omega','TRACE')
           else if(target_function==TARGET_FUNCTION_IS_ENERGY) then
-              call yaml_map('target function','ENERGY')
+              call yaml_map('Omega','ENERGY')
           else if(target_function==TARGET_FUNCTION_IS_HYBRID) then
-              call yaml_map('target function','HYBRID')
+              call yaml_map('Omega','HYBRID')
           end if
           if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-              call yaml_map('mean conf prefac',mean_conf,fmt='(es9.2)')
+              call yaml_map('mean conf prefac',mean_conf,fmt='(es8.2)')
+              call yaml_map('damping',tmb%damping_factor_confinement,fmt='(es8.2)')
           end if
           if(info_basis_functions<=0) then
               call yaml_warning('support function optimization not converged')

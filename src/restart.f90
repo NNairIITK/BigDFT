@@ -3106,7 +3106,9 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   end do
 
   ! Get the maximal shift among all tasks
-  call mpiallred(max_shift, 1, mpi_max, bigdft_mpi%mpi_comm)
+  if (nproc>1) then
+      call mpiallred(max_shift, 1, mpi_max, bigdft_mpi%mpi_comm)
+  end if
   if (iproc==0) call yaml_map('max shift of a locreg center',max_shift,fmt='(es9.2)')
 
   ! Determine the dumping factor for the confinement. In the limit where the atoms 
