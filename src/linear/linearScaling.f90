@@ -573,6 +573,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                       'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
              end if
          end if
+         ! @NEW: adjust the convergence criterion for the kernel optimization
+         ! The better the support functions are converged, the better the kernel sould be converged
+         convCritMix = convCritMix*fnrm_tmb
+         if (iproc==0) call yaml_map('new convergence criterion for kernel',convCritMix)
          kernel_loop : do it_scc=1,nit_scc
              dmin_diag_it=dmin_diag_it+1
              ! If the hamiltonian is available do not recalculate it
