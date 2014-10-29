@@ -1624,7 +1624,7 @@ subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_conver
   ! Local variables
   integer :: iorb, ilr, iiat
 
-  if (iproc==0) call yaml_map('damping factor for the confinement',damping_factor,fmt='(es9.2)')
+  !if (iproc==0) call yaml_map('damping factor for the confinement',damping_factor,fmt='(es9.2)')
   lowaccur_converged=.false.
   do iorb=1,orbs%norbp
       ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
