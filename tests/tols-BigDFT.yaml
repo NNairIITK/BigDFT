@@ -1155,3 +1155,4 @@ expfoegeopt:
  EvXC: 2.3e-8
  EXC: 2.3e-8
  Tr(K): 2.3e-8
+ decay length of error function: 1.1e-5

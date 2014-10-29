@@ -2858,7 +2858,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   !!integer :: i
   integer, dimension(3) :: ns_old,ns,n_old,n
   real(gp), dimension(3) :: centre_old_box,centre_new_box,da
-  real(gp) :: tt,tol
+  real(gp) :: tt,tol,max_shift
   real(wp), dimension(:,:,:,:,:,:), pointer :: phigold
   real(wp), dimension(:), allocatable :: phi_old_der
   integer, dimension(0:6) :: reformat_reason
@@ -2876,6 +2876,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
 
   reformat_reason=0
   tol=1.d-3
+  max_shift = 0.d0
 
   ! Get the derivatives of the support functions
   if (add_derivatives) then
@@ -2916,6 +2917,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
            lzd_old%llr(ilr_old)%wfd%nvctr_c,lzd_old%llr(ilr_old)%wfd%nvctr_f,&
            tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_f,&
            n_old,n,ns_old,ns,frag_trans(iorb),centre_old_box,centre_new_box,da)  
+      max_shift = max(max_shift,sqrt(da(1)**2+da(2)**2+da(3)**2))
 !reformat=.true. !!!!temporary hack
       ! just copy psi from old to new as reformat not necessary
       if (.not. reformat) then 
@@ -3099,6 +3101,17 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
       end if
 
   end do
+
+  ! Get the maximal shift among all tasks
+  call mpiallred(max_shift, 1, mpi_max, bigdft_mpi%mpi_comm)
+
+  ! Determine the dumping factor for the confinement. In the limit where the
+  ! atoms have not moved, it goes to zero; in the limit where they have moved a
+  ! lot, it goes to one.
+  tt = exp(max_shift*69.314718056d0) - 1.d0 !exponential which is 0 at 0.0 and 1 at 0.01
+  tt = min(tt,1.d0) !make sure that the value is not larger than 1.0
+  tmb%damping_factor_confinement = tt
+
 
   if (add_derivatives) then
      call f_free(phi_old_der)

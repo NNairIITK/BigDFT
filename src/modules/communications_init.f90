@@ -2169,8 +2169,8 @@ module communications_init
           if(nsend_f(jproc)/=nsendcounts_f(jproc)) stop 'nsend_f(jproc)/=nsendcounts_f(jproc)'
       end do
     
-      indexsendorbital2 = f_malloc(ndimpsi_c,id='indexsendorbital2')
-      indexsendorbital2=indexsendorbital_c
+      indexsendorbital2 = f_malloc(max(1,ndimpsi_c),id='indexsendorbital2')
+      call vcopy(ndimpsi_c, indexsendorbital_c(1), 1, indexsendorbital2(1), 1)
       do i=1,ndimpsi_c
           ind=isendbuf_c(i)
           indexsendorbital_c(ind)=indexsendorbital2(i)
@@ -2180,8 +2180,8 @@ module communications_init
       call get_reverse_indices(ndimpsi_c, isendbuf_c, irecvbuf_c)
     
       call f_free(indexsendorbital2)
-      indexsendorbital2 = f_malloc(ndimpsi_f,id='indexsendorbital2')
-      indexsendorbital2=indexsendorbital_f
+      indexsendorbital2 = f_malloc(max(1,ndimpsi_f),id='indexsendorbital2')
+      call vcopy(ndimpsi_f, indexsendorbital_f(1), 1, indexsendorbital2(1), 1)
       do i=1,ndimpsi_f
           ind=isendbuf_f(i)
           indexsendorbital_f(ind)=indexsendorbital2(i)
@@ -3121,8 +3121,8 @@ module communications_init
       !!allocate(irecvbuf(ndimpsi), stat=istat)
       !!call memocc(istat, irecvbuf, 'irecvbuf', subname)
     
-      indexsendorbital2 = f_malloc(ndimpsi,id='indexsendorbital2')
-      indexsendorbital2=indexsendorbital
+      indexsendorbital2 = f_malloc(max(1,ndimpsi),id='indexsendorbital2')
+      call vcopy(ndimpsi, indexsendorbital(1), 1, indexsendorbital2(1), 1)
       do i=1,ndimpsi
           ind=isendbuf(i)
           indexsendorbital(ind)=indexsendorbital2(i)
