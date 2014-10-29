@@ -53,7 +53,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer :: infoCoeff,istat,it_scc,itout,info_scf,i,iorb
   character(len=*), parameter :: subname='linearScaling'
   real(kind=8),dimension(:),allocatable :: rhopotold_out
-  real(kind=8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
+  real(kind=8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix, convCritMix_init
   type(localizedDIISParameters) :: ldiis
   type(DIIS_obj) :: ldiis_coeff, vdiis
   logical :: can_use_ham, update_phi, locreg_increased, reduce_conf, orthonormalization_on
@@ -266,12 +266,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                lowaccur_converged, pnrm_out)
           ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
           call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
-               convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
+               convCritMix_init, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
                convcrit_dmin, nitdmin, conv_crit_TMB)
       else if (input%lin%nlevel_accuracy==1 .and. itout==1) then
           call set_variables_for_hybrid(iproc, tmb%lzd%nlr, input, at, tmb%orbs, &
                lowaccur_converged, tmb%damping_factor_confinement, tmb%confdatarr, &
-               target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix, conv_crit_TMB)
+               target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix_init, conv_crit_TMB)
                convcrit_dmin=input%lin%convCritDmin_highaccuracy
                nitdmin=input%lin%nItdmin_highaccuracy
       end if
@@ -575,7 +575,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
          end if
          ! @NEW: adjust the convergence criterion for the kernel optimization
          ! The better the support functions are converged, the better the kernel sould be converged
-         convCritMix = convCritMix*fnrm_tmb
+         convCritMix = convCritMix_init*fnrm_tmb
          if (iproc==0) call yaml_map('new convergence criterion for kernel',convCritMix)
          kernel_loop : do it_scc=1,nit_scc
              dmin_diag_it=dmin_diag_it+1
