@@ -3111,10 +3111,9 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   end if
   if (iproc==0) call yaml_map('max shift of a locreg center',max_shift,fmt='(es9.2)')
 
-  ! Determine the dumping factor for the confinement. In the limit where the
-  ! atoms have not moved, it goes to zero; in the limit where they have moved a
-  ! lot, it goes to one.
-  tt = exp(max_shift*34.657359028d0) - 1.d0 !exponential which is 0 at 0.0 and 1 at 0.02
+  ! Determine the dumping factor for the confinement. In the limit where the atoms 
+  ! have not moved, it goes to zero; in the limit where they have moved a lot, it goes to one.
+  tt = exp(max_shift*3.465735903d0) - 1.d0 !exponential which is 0 at 0.0 and 1 at 0.2
   tt = min(tt,1.d0) !make sure that the value is not larger than 1.0
   tmb%damping_factor_confinement = tt
 
