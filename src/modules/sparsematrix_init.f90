@@ -133,13 +133,13 @@ contains
 
 
 
-    subroutine check_kernel_cutoff(iproc, orbs, atoms, lzd)
+    subroutine check_kernel_cutoff(iproc, orbs, atoms, hamapp_radius_incr, lzd)
       use module_types
       use yaml_output
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc
+      integer,intent(in) :: iproc, hamapp_radius_incr
       type(orbitals_data),intent(in) :: orbs
       type(atoms_data),intent(in) :: atoms
       type(local_zone_descriptors),intent(inout) :: lzd
@@ -161,7 +161,7 @@ contains
           ilr=orbs%inwhichlocreg(iorb)
     
           ! cutoff radius of the support function, including shamop region
-          cutoff_sf=lzd%llr(ilr)%locrad+8.d0*lzd%hgrids(1)
+          cutoff_sf=lzd%llr(ilr)%locrad+real(hamapp_radius_incr,kind=8)*lzd%hgrids(1)
     
           ! cutoff of the density kernel
           cutoff_kernel=lzd%llr(ilr)%locrad_kernel

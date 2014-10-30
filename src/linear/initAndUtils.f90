@@ -1150,7 +1150,7 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,input, at, 
       locregCenter(:,ilr)=tmb%lzd%llr(ilr)%locregCenter
   end do
   do ilr=1,tmb%lzd%nlr
-      locrad_tmp(ilr,1)=tmb%lzd%llr(ilr)%locrad+8.d0*tmb%lzd%hgrids(1)
+      locrad_tmp(ilr,1)=tmb%lzd%llr(ilr)%locrad+real(input%hamapp_radius_incr,kind=8)*tmb%lzd%hgrids(1)
       locrad_tmp(ilr,2)=tmb%lzd%llr(ilr)%locrad_kernel
       locrad_tmp(ilr,3)=tmb%lzd%llr(ilr)%locrad_mult
   end do
@@ -1476,7 +1476,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
 
      ! check the extent of the kernel cutoff (must be at least shamop radius)
-     call check_kernel_cutoff(iproc, tmb%orbs, at, tmb%lzd)
+     call check_kernel_cutoff(iproc, tmb%orbs, at, input%hamapp_radius_incr, tmb%lzd)
 
      ! Update sparse matrices
      call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%ham_descr%lzd, at%astruct, &
@@ -1497,7 +1497,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%s)
 
-     call check_kernel_cutoff(iproc, tmb%orbs, at, tmb%lzd)
+     call check_kernel_cutoff(iproc, tmb%orbs, at, input%hamapp_radius_incr, tmb%lzd)
      call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%lzd, at%astruct, &
           input%store_index, imode=2, smat=tmb%linmat%l)
      call allocate_matrices(tmb%linmat%l, allocate_full=.false., &

@@ -475,6 +475,9 @@ module module_types
      !> linear scaling: enable the matrix taskgroups
      logical :: enable_matrix_taskgroups
 
+     !> linear scaling: radius enlargement for the Hamiltonian application (in grid points)
+     integer :: hamapp_radius_incr
+
   end type input_variables
 
 
@@ -2301,6 +2304,9 @@ contains
        case (ENABLE_MATRIX_TASKGROUPS) 
            ! linear scaling: enable the matrix taskgroups
            in%enable_matrix_taskgroups = val
+       case (HAMAPP_RADIUS_INCR)
+           ! linear scaling: radius enlargement for the Hamiltonian application (in grid points)
+           in%hamapp_radius_incr = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
