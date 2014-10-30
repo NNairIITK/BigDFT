@@ -845,7 +845,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      call f_free(psi_old)
 
      if (max_shift>0.2d0) then
-         if (iproc==0) call yaml_scalar('atoms have moved too much, switch to standard input guess')
+         if (iproc==0) call yaml_map('atoms have moved too much, switch to standard input guess',.true.)
          FOE_restart = RESTART_AO
      end if
 
