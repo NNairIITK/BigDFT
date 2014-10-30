@@ -1819,7 +1819,6 @@ contains
     call input_var("enable_matrix_taskgroups", .true., "enable matrix taskgroups", dummy_bool)
     call set(dict // ENABLE_MATRIX_TASKGROUPS, dummy_bool)
 
-    !call input_var("hamapp_radius_incr", 8, (/0,1,2,3,4,5,6,7,8/), "radius enlargement for Ham application", dummy_int)
     call input_var("hamapp_radius_incr", 8, "radius enlargement for Ham application", dummy_int)
     call set(dict // HAMAPP_RADIUS_INCR, dummy_int)
 

@@ -4278,7 +4278,10 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   nat_per_iteration = floor(real(MAX_SIZE,kind=8)/real(168*(ndir+1)*norbp_max,kind=8))
   ! Determine the number of iterations in the outer loop
   nat_out = ceiling(real(at%astruct%nat,kind=8)/real(nat_per_iteration,kind=8))
-  if (iproc==0) call yaml_map('nonlocal forces; maximal number of atoms per iteration, number of iterations',(/nat_per_iteration,nat_out/))
+  if (iproc==0) then
+      call yaml_map('nonlocal forces; maximal number of atoms per iteration, number of iterations', &
+                     (/nat_per_iteration,nat_out/))
+  end if
 
   isat = 1
   outer_atoms_loop: do iat_out=1,nat_out

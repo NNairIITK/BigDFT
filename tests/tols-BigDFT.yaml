@@ -41,6 +41,7 @@ Keys to ignore:
  - preconditioning load balancing min/max before
  - preconditioning load balancing min/max after
  - task with max load
+ - nonlocal forces; maximal number of atoms per iteration, number of iterations
  - number of taskgroups
  - taskgroups overview
  #- number of tasks
