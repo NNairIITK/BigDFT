@@ -749,8 +749,8 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use communications, only: transpose_localized, untranspose_localized
   use constrained_dft
   use sparsematrix_base, only: sparsematrix_malloc, sparsematrix_malloc_ptr, DENSE_PARALLEL, SPARSE_FULL, &
-                               assignment(=), deallocate_sparse_matrix, deallocate_matrices
-  use sparsematrix, only: compress_matrix_distributed, uncompress_matrix_distributed
+                               assignment(=), deallocate_sparse_matrix, deallocate_matrices, DENSE_FULL
+  use sparsematrix, only: compress_matrix_distributed, uncompress_matrix_distributed, uncompress_matrix
   implicit none
 
   ! Calling arguments
@@ -761,7 +761,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(DFT_local_fields), intent(inout) :: denspot
   type(input_variables),intent(in):: input
   real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz_old, rxyz
-  real(8),dimension(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3d,1)),intent(out):: denspot0
+  real(8),dimension(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)),intent(out):: denspot0
   type(energy_terms),intent(inout):: energs
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   type(GPU_pointers), intent(inout) :: GPU
@@ -769,21 +769,21 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(cdft_data), intent(inout) :: cdft
 
   ! Local variables
-  integer :: ndim_old, ndim, iorb, iiorb, ilr, ilr_old, iiat, methTransformOverlap, infoCoeff, ispin
+  integer :: ndim_old, ndim, iorb, iiorb, ilr, ilr_old, iiat, methTransformOverlap, infoCoeff, ispin, ishift, it
   logical:: overlap_calculated
   real(wp), allocatable, dimension(:) :: norm
   type(fragment_transformation), dimension(:), pointer :: frag_trans
   character(len=*),parameter:: subname='input_memory_linear'
-  real(kind=8) :: pnrm, max_inversion_error
+  real(kind=8) :: pnrm, max_inversion_error, max_deviation, mean_deviation, max_deviation_p, mean_deviation_p
   logical :: rho_negative
   integer,parameter :: RESTART_AO = 0
   integer,parameter :: RESTART_REFORMAT = 1
   integer,parameter :: restart_FOE = RESTART_AO!REFORMAT!AO
-  real(kind=8),dimension(:,:),allocatable :: kernelp, ovrlpp
+  real(kind=8),dimension(:,:),allocatable :: kernelp, ovrlpp, ovrlp_fullp
   type(localizedDIISParameters) :: ldiis
   logical :: ortho_on, reduce_conf, can_use_ham
   real(kind=8) :: trace, trace_old, fnrm_tmb, ratio_deltas, ddot, max_error, mean_error
-  integer :: order_taylor, info_basis_functions, iortho, iat, jj, itype, inl
+  integer :: order_taylor, info_basis_functions, iortho, iat, jj, itype, inl, FOE_restart
   integer,dimension(:),allocatable :: maxorbs_type, minorbs_type
   integer,dimension(:,:),allocatable :: nl_copy
   logical,dimension(:),allocatable :: type_covered
@@ -793,12 +793,20 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   real(gp), dimension(:), pointer :: in_frag_charge
   real(kind=8),dimension(:),allocatable :: psi_old
   type(matrices) :: ovrlp_old
+  real(kind=8),dimension(:,:,:),allocatable :: ovrlp_full
+  real(kind=8),dimension(:),allocatable :: eval
+  integer,parameter :: lwork=10000
+  real(kind=8),dimension(lwork) :: work
+  integer :: info
 
 
   call f_routine(id='input_memory_linear')
 
 
   nullify(mom_vec_fake)
+
+  ! Restart method, might be modified if the atoms move too much
+  FOE_restart = input%FOE_restart
 
   ! Determine size of phi_old and phi
   ndim_old=0
@@ -815,7 +823,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
   ! Reformat the support functions if we are not using FOE. Otherwise an AO
   ! input guess wil be done below.
-  if (input%lin%scf_mode/=LINEAR_FOE .or. input%FOE_restart==RESTART_REFORMAT) then
+  if (input%lin%scf_mode/=LINEAR_FOE .or. FOE_restart==RESTART_REFORMAT) then
 
      ! define fragment transformation - should eventually be done automatically...
      allocate(frag_trans(tmb%orbs%norbp))
@@ -835,6 +843,11 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
           tmb_old%psi,input%dir_output,input%frag,ref_frags,max_shift)
      call vcopy(size(psi_old), psi_old(1), 1, tmb_old%psi(1), 1)
      call f_free(psi_old)
+
+     if (max_shift>0.2d0) then
+         if (iproc==0) call yaml_scalar('atoms have moved too much, switch to standard input guess')
+         FOE_restart = RESTART_AO
+     end if
 
      deallocate(frag_trans)
   end if
@@ -857,7 +870,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
           ! Copy the coefficients
   if (input%lin%scf_mode/=LINEAR_FOE) then
       call vcopy(tmb%orbs%norb*tmb%orbs%norb, tmb_old%coeff(1,1), 1, tmb%coeff(1,1), 1)
-  else if (input%FOE_restart==RESTART_REFORMAT) then
+  else if (FOE_restart==RESTART_REFORMAT) then
       ! Extract to a dense format, since this is independent of the sparsity pattern
       kernelp = sparsematrix_malloc(tmb%linmat%l, iaction=DENSE_PARALLEL, id='kernelp')
       call uncompress_matrix_distributed(iproc, tmb_old%linmat%l, DENSE_PARALLEL, tmb_old%linmat%kernel_%matrix_compr, kernelp)
@@ -893,7 +906,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
    ! normalize tmbs - only really needs doing if we reformatted, but will need to calculate transpose after anyway
 
    ! Normalize the input guess. If FOE is used, the input guess will be generated below.
-   if (input%lin%scf_mode/=LINEAR_FOE .or. (input%FOE_restart==RESTART_REFORMAT .and. .not.input%experimental_mode)) then
+   if (input%lin%scf_mode/=LINEAR_FOE .or. (FOE_restart==RESTART_REFORMAT .and. .not.input%experimental_mode)) then
        tmb%can_use_transposed=.true.
        overlap_calculated=.false.
 
@@ -909,7 +922,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
             TRANSPOSE_FULL, tmb%psit_c, tmb%psit_f, tmb%psi, tmb%lzd)
 
        call f_free(norm)
-   else if (input%FOE_restart==RESTART_REFORMAT .and. input%experimental_mode .and. max_shift>0.d0) then
+   else if (FOE_restart==RESTART_REFORMAT .and. input%experimental_mode .and. max_shift>0.d0) then
       if (.not. input%lin%iterative_orthogonalization) then
          !!%%  ! Orthonormalize
          !!%%  tmb%can_use_transposed=.false.
@@ -927,10 +940,36 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
          !!%% !!if (iproc==0) write(*,*) 'WARNING: no ortho in inguess'
           tmb%can_use_transposed=.false.
           methTransformOverlap=-1
-          call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, 1.d0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
-               tmb%linmat%s, tmb%linmat%l, &
-               tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
-               tmb%foe_obj)
+         if (iproc==0) call yaml_map('orthonormalization of input guess','standard')
+         do it=1,10
+              call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, 1.d0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
+                   tmb%linmat%s, tmb%linmat%l, &
+                   tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
+                   tmb%foe_obj)
+              call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+                   TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+              call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_c, &
+                   tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+               ovrlp_fullp = sparsematrix_malloc(tmb%linmat%l,iaction=DENSE_PARALLEL,id='ovrlp_fullp')
+               max_deviation=0.d0
+               mean_deviation=0.d0
+               do ispin=1,tmb%linmat%s%nspin
+                   ishift=(ispin-1)*tmb%linmat%s%nvctr
+                   call uncompress_matrix_distributed(iproc, tmb%linmat%s, DENSE_PARALLEL, &
+                        tmb%linmat%ovrlp_%matrix_compr(ishift+1:ishift+tmb%linmat%s%nvctr), ovrlp_fullp)
+                   call deviation_from_unity_parallel(iproc, nproc, tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
+                        tmb%linmat%s%isfvctr, ovrlp_fullp, &
+                        tmb%linmat%s, max_deviation_p, mean_deviation_p)
+                   max_deviation = max_deviation + max_deviation_p/real(tmb%linmat%s%nspin,kind=8)
+                   mean_deviation = mean_deviation + mean_deviation_p/real(tmb%linmat%s%nspin,kind=8)
+               end do
+               call f_free(ovrlp_fullp)
+               if (iproc==0) then
+                   call yaml_map('max dev from unity',max_deviation,fmt='(es9.2)')
+                   call yaml_map('mean dev from unity',mean_deviation,fmt='(es9.2)')
+               end if
+               if (max_deviation<1.d-2) exit
+           end do
                 
      else
          ! Iterative orthonomalization
@@ -1056,8 +1095,42 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
            tmb%orthpar%blocksize_pdgemm, KSwfn%orbs, tmb, overlap_calculated)
       !call f_free_ptr(tmb%psit_c)
       !call f_free_ptr(tmb%psit_f)
-  else if (input%FOE_restart==RESTART_REFORMAT) then
+  else if (FOE_restart==RESTART_REFORMAT) then
       ! Calculate the old and the new overlap matrix
+
+       !!@NEW #####################################################################
+       !ortho_on=.true.
+       !call initializeDIIS(input%lin%DIIS_hist_lowaccur, tmb%lzd, tmb%orbs, ldiis)
+       !ldiis%alphaSD=input%lin%alphaSD
+       !ldiis%alphaDIIS=input%lin%alphaDIIS
+       !energs%eexctX=0.d0 !temporary fix
+       !trace_old=0.d0 !initialization
+       !if (iproc==0) then
+       !    !call yaml_mapping_close()
+       !    call yaml_comment('Extended input guess for experimental mode',hfill='-')
+       !    call yaml_mapping_open('Extended input guess')
+       !    call yaml_sequence_open('support function optimization',label=&
+       !                                      'it_supfun'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
+       !end if
+       !order_taylor=input%lin%order_taylor ! since this is intent(inout)
+       !call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+       !     TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+       !call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_c, &
+       !     tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+       !if (iproc==0) call yaml_map('ovrlp',tmb%linmat%ovrlp_%matrix_compr)
+       !call getLocalizedBasis(iproc,nproc,at,tmb%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
+       !    info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
+       !    input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
+       !    50,&
+       !    ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop,&
+       !    input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
+       !    can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
+       !    input%purification_quickreturn, input%correction_co_contra)
+       !reduce_conf=.true.
+       !call yaml_sequence_close()
+       !call yaml_mapping_close()
+       !call deallocateDIIS(ldiis)
+       !!@ENDNEW ##################################################################
        tmb_old%psit_c = f_malloc_ptr(tmb_old%collcom%ndimind_c,id='tmb_old%psit_c')
        tmb_old%psit_f = f_malloc_ptr(7*tmb_old%collcom%ndimind_f,id='tmb_old%psit_f')
        tmb%can_use_transposed=.false.
@@ -1070,6 +1143,18 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
             TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
        call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_c, &
             tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+
+       ! ### TEMP #######################################
+       ! diagonalize the old overlap matrix
+       ovrlp_full = sparsematrix_malloc(tmb_old%linmat%s, iaction=DENSE_FULL,id='ovrlp_full')
+       eval = f_malloc(tmb_old%linmat%s%nfvctr,id='eval')
+       if (lwork<4*tmb_old%linmat%s%nfvctr) stop 'lwork<4*tmb_old%linmat%s%nfvctr'
+       call uncompress_matrix(iproc,tmb_old%linmat%s,tmb_old%linmat%ovrlp_%matrix_compr,ovrlp_full)
+       call dsyev('n', 'l', tmb_old%linmat%s%nfvctr, ovrlp_full, tmb_old%linmat%s%nfvctr, eval, work, lwork, info)
+       if (iproc==0) write(*,'(a,2es13.4)') 'min/max eval', eval(1), eval(tmb_old%linmat%s%nfvctr)
+       call f_free(ovrlp_full)
+       call f_free(eval)
+       ! ### TEMP #######################################
 
        call f_free_ptr(tmb_old%psit_c)
        call f_free_ptr(tmb_old%psit_f)
@@ -1158,7 +1243,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
           ! Must initialize rhopotold (FOR NOW... use the trivial one)
   !ALSO assuming we won't combine FOE and CDFT for now...
-  if (input%lin%scf_mode/=LINEAR_FOE .or. input%FOE_restart==RESTART_REFORMAT) then
+  if (input%lin%scf_mode/=LINEAR_FOE .or. FOE_restart==RESTART_REFORMAT) then
       call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
            tmb%orbs, tmb%psi, tmb%collcom_sr)
       !tmb%linmat%kernel_%matrix_compr = tmb%linmat%denskern_large%matrix_compr
@@ -1197,7 +1282,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
      call timing(iproc,'constraineddft','OF')
 
-      call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3d,1)*input%nspin, &
+      call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
            denspot%rhov(1), 1, denspot0(1), 1)
       if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
          ! set the initial charge density
@@ -1214,36 +1299,36 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
               at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
               pnrm,denspot%dpbox%nscatterarr)
       end if
-      !call local_potential_dimensions(iproc,tmb%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
-      ! if (input%experimental_mode) then
-      !     ! NEW: TRACE MINIMIZATION WITH ORTHONORMALIZATION ####################################
-      !     ortho_on=.true.
-      !     call initializeDIIS(input%lin%DIIS_hist_lowaccur, tmb%lzd, tmb%orbs, ldiis)
-      !     ldiis%alphaSD=input%lin%alphaSD
-      !     ldiis%alphaDIIS=input%lin%alphaDIIS
-      !     energs%eexctX=0.d0 !temporary fix
-      !     trace_old=0.d0 !initialization
-      !     if (iproc==0) then
-      !         !call yaml_mapping_close()
-      !         call yaml_comment('Extended input guess for experimental mode',hfill='-')
-      !         call yaml_mapping_open('Extended input guess')
-      !         call yaml_sequence_open('support function optimization',label=&
-      !                                           'it_supfun'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
-      !     end if
-      !     order_taylor=input%lin%order_taylor ! since this is intent(inout)
-      !     call getLocalizedBasis(iproc,nproc,at,tmb%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
-      !         info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
-      !         input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
-      !         50,&
-      !         ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop,&
-      !         input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
-      !         can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
-      !         input%purification_quickreturn, input%correction_co_contra)
-      !     reduce_conf=.true.
-      !     call yaml_sequence_close()
-      !     call yaml_mapping_close()
-      !     call deallocateDIIS(ldiis)
-      !     !call yaml_mapping_open()
+      call local_potential_dimensions(iproc,tmb%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
+      !! if (input%experimental_mode) then
+      !!     ! NEW: TRACE MINIMIZATION WITH ORTHONORMALIZATION ####################################
+      !!     ortho_on=.true.
+      !!     call initializeDIIS(input%lin%DIIS_hist_lowaccur, tmb%lzd, tmb%orbs, ldiis)
+      !!     ldiis%alphaSD=input%lin%alphaSD
+      !!     ldiis%alphaDIIS=input%lin%alphaDIIS
+      !!     energs%eexctX=0.d0 !temporary fix
+      !!     trace_old=0.d0 !initialization
+      !!     if (iproc==0) then
+      !!         !call yaml_mapping_close()
+      !!         call yaml_comment('Extended input guess for experimental mode',hfill='-')
+      !!         call yaml_mapping_open('Extended input guess')
+      !!         call yaml_sequence_open('support function optimization',label=&
+      !!                                           'it_supfun'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
+      !!     end if
+      !!     order_taylor=input%lin%order_taylor ! since this is intent(inout)
+      !!     call getLocalizedBasis(iproc,nproc,at,tmb%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
+      !!         info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
+      !!         input%lin%nItPrecond,TARGET_FUNCTION_IS_HYBRID,input%lin%correctionOrthoconstraint,&
+      !!         20,&
+      !!         ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop,&
+      !!         input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
+      !!         can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
+      !!         input%purification_quickreturn, input%correction_co_contra)
+      !!     reduce_conf=.true.
+      !!     call yaml_sequence_close()
+      !!     call yaml_mapping_close()
+      !!     call deallocateDIIS(ldiis)
+      !!     !call yaml_mapping_open()
 
       !     ! @@@ calculate a new kernel
       !     order_taylor=input%lin%order_taylor ! since this is intent(inout)
@@ -1264,7 +1349,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       !            call write_eigenvalues_data(0.1d0,kswfn%orbs,mom_vec_fake)
       !         end if
 
-      !     end if
+      !!     end if
 
       !     ! @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
       !      call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
@@ -2447,7 +2532,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
     !     atoms,rxyz,denspot%dpbox,1,denspot%rhov)
 
      ! Must initialize rhopotold (FOR NOW... use the trivial one)
-     call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3d,1)*in%nspin, &
+     call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
           denspot%rhov(1), 1, denspot0(1), 1)
      if (in%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
         ! set the initial charge density
