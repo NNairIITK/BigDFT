@@ -310,10 +310,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 !!invert_overlap_matrix = ((input%method_updatekernel/=UPDATE_BY_FOE .and. &
                 !!                         input%method_updatekernel/=UPDATE_BY_RENORMALIZATION) .or. &
                 !!                         cur_it_highaccuracy==1)
-                calculate_overlap = ((update_phi .and. .not.input%correction_co_contra))! .or. cur_it_highaccuracy==1)
-                invert_overlap_matrix = (.not.(target_function==TARGET_FUNCTION_IS_HYBRID .and. &
-                                          (input%method_updatekernel==UPDATE_BY_FOE .or. &
-                                         input%method_updatekernel==UPDATE_BY_RENORMALIZATION)))
+                calculate_overlap = ((update_phi .and. .not.input%correction_co_contra) .or. cur_it_highaccuracy==1)
+                invert_overlap_matrix = calculate_overlap
+                !invert_overlap_matrix = (.not.(target_function==TARGET_FUNCTION_IS_HYBRID .and. &
+                !                          (input%method_updatekernel==UPDATE_BY_FOE .or. &
+                !                         input%method_updatekernel==UPDATE_BY_RENORMALIZATION)))
                 call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                      infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                      .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
