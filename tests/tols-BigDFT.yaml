@@ -1060,7 +1060,7 @@ geoptconstrained:
  D Tr: 1.1e-9
 
 O2spin_diag:
- Atomic Forces (Ha/Bohr): 1.9e-7
+ Atomic Forces (Ha/Bohr): 2.2e-7
  Average noise forces: 7.4e-8
  Clean forces norm (Ha/Bohr): 7.6e-7
  Raw forces norm (Ha/Bohr): 7.6e-7
