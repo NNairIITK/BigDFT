@@ -884,6 +884,10 @@
    enable_matrix_taskgroups:
      COMMENT: enable the matrix taskgroups
      default: True
+   hamapp_radius_incr:
+     COMMENT: radius enlargement for the Hamiltonian application (in grid points)
+     default: 8
+     RANGE: [0,8]
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
