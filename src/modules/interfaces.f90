@@ -1491,7 +1491,7 @@ module module_interfaces
     end subroutine psimix
 
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
-        energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,communicate_phi_for_lsumrho,&
+        energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
         calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,purification_quickreturn,&
         calculate_KS_residue,calculate_gap,&
         convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
@@ -1517,7 +1517,8 @@ module module_interfaces
       type(DFT_PSP_projectors),intent(inout) :: nlpsp
       type(SIC_data),intent(in) :: SIC
       type(DFT_wavefunction),intent(inout) :: tmb
-      logical,intent(in):: calculate_overlap_matrix, communicate_phi_for_lsumrho, purification_quickreturn
+      logical,intent(in):: calculate_overlap_matrix, invert_overlap_matrix
+      logical,intent(in):: communicate_phi_for_lsumrho, purification_quickreturn
       logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
       type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
       integer, intent(in), optional :: nitdmin ! for dmin only
@@ -1946,10 +1947,10 @@ module module_interfaces
                  hpsit_c, hpsit_f, &
                  can_use_transposed, overlap_calculated, &
                  experimental_mode, calculate_inverse, norder_taylor, max_inversion_error, &
-           npsidim_orbs_small, lzd_small, hpsi_noprecond)
+           npsidim_orbs_small, lzd_small, hpsi_noprecond, wt_philarge, wt_hphi, wt_hpsinoprecond)
         use module_base
         use module_types
-        use yaml_output
+        use communications_base, only: work_transpose
         implicit none
         integer,intent(in) :: iproc, nproc, npsidim_orbs, npsidim_comp, npsidim_orbs_small
         type(local_zone_descriptors),intent(in) :: lzd, lzd_small
@@ -1970,6 +1971,8 @@ module module_interfaces
         integer,intent(inout) :: norder_taylor
         real(kind=8),intent(in) :: max_inversion_error
         real(kind=8),dimension(npsidim_orbs_small),intent(out) :: hpsi_noprecond
+        type(work_transpose),intent(inout) :: wt_philarge
+        type(work_transpose),intent(out) :: wt_hphi, wt_hpsinoprecond
       end subroutine orthoconstraintNonorthogonal
 
 
@@ -2425,11 +2428,13 @@ module module_interfaces
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
                   hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
                   norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays,&
+                  wt_philarge, wt_hpsinoprecond, &
                   cdft, input_frag, ref_frags)
          use module_base
          use module_types
          use constrained_dft, only: cdft_data
          use module_fragments, only: system_fragment
+         use communications_base, only: work_transpose
          implicit none
          integer, intent(in) :: iproc, nproc, it, method_updatekernel
          integer,intent(inout) :: norder_taylor
@@ -2453,6 +2458,8 @@ module module_interfaces
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_noprecond
          type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
          type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
+         type(work_transpose),intent(inout) :: wt_philarge
+         type(work_transpose),intent(out) :: wt_hpsinoprecond
          type(cdft_data),intent(in),optional :: cdft
          type(fragmentInputParameters),optional,intent(in) :: input_frag
          type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
@@ -4190,7 +4197,7 @@ end subroutine build_ks_orbitals_laura_tmp
           type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
           integer,dimension(ncalc) :: ex
           type(matrices),intent(in) :: ovrlp_mat
-          type(matrices),dimension(ncalc),intent(out) :: inv_ovrlp
+          type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp
         end subroutine ice
         
         subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &

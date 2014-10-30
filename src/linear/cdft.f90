@@ -59,6 +59,7 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
   use module_types
   use module_fragments
   use module_interfaces, except_this_one => calculate_weight_matrix_lowdin
+  use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use sparsematrix_base, only: matrices, sparse_matrix, sparsematrix_malloc_ptr, &
                                DENSE_FULL, assignment(=), &
@@ -93,7 +94,7 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
          !    tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
          !end if
          call transpose_localized(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-              tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+              TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
          tmb%can_use_transposed=.true.
      end if
 
@@ -182,7 +183,6 @@ subroutine calculate_weight_matrix_lowdin_gradient_fd(weight_matrix,weight_matri
   use module_types
   use module_fragments
   use module_interfaces
-  use communications, only: transpose_localized
   use sparsematrix_base, only: matrices, sparse_matrix, sparsematrix_malloc_ptr, &
                                DENSE_FULL, assignment(=), &
                                allocate_matrices, deallocate_matrices
@@ -209,9 +209,9 @@ subroutine calculate_weight_matrix_lowdin_gradient_fd(weight_matrix,weight_matri
   real(kind=8),dimension(:),pointer :: weight_matrix_tmp
   real(kind=8), dimension(:), allocatable :: calc_grad, fd_grad
   integer :: nfrag_charged, jorb, i, ncount, istart, iiorb, ilr
-real(kind=8) :: ddot, trkw, trkw_new, trkw_old
-real(kind=8), parameter :: h=0.00001d0
-logical, parameter :: forward=.true. !forward or centered diff
+  real(kind=8) :: ddot, trkw, trkw_new, trkw_old
+  real(kind=8), parameter :: h=0.00001d0
+  logical, parameter :: forward=.true. !forward or centered diff
   call f_routine(id='calculate_weight_matrix_lowdin')
 
   !might be better to make this a parameter
@@ -379,6 +379,7 @@ subroutine calculate_weight_matrix_lowdin_gradient(weight_matrix,weight_matrix_,
   use module_types
   use module_fragments
   use module_interfaces
+  use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use sparsematrix_base, only: matrices, sparse_matrix, sparsematrix_malloc_ptr, &
                                DENSE_FULL, assignment(=), &
@@ -427,7 +428,7 @@ real(kind=8) :: ddot
          !    tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
          !end if
          call transpose_localized(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-              tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+              TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
          tmb%can_use_transposed=.true.
      end if
 
@@ -591,7 +592,7 @@ call f_free_ptr(tmb%linmat%ovrlp_%matrix)
 !assuming we still have tmb%ham_descr%psi
 !print*,size(psitlarge_c),size(psitlarge_f),tmb%ham_descr%collcom%ndimind_c,7*tmb%ham_descr%collcom%ndimind_f
           call transpose_localized(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, &
-               tmb%ham_descr%collcom, tmb%ham_descr%psi, psitlarge_c, psitlarge_f, tmb%ham_descr%lzd)
+               tmb%ham_descr%collcom, TRANSPOSE_FULL, tmb%ham_descr%psi, psitlarge_c, psitlarge_f, tmb%ham_descr%lzd)
 !print*,'1',ddot(tmb%ham_descr%collcom%ndimind_c, psitlarge_c(1), 1, psitlarge_c(1), 1),ddot(7*tmb%ham_descr%collcom%ndimind_f, psitlarge_f(1), 1, psitlarge_f(1), 1)
   hpsittmp_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='hpsittmp_c')
   hpsittmp_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='hpsittmp_f')
@@ -629,6 +630,7 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
   use constrained_dft, only: cdft_data
   use module_interfaces, except_this_one => calculate_weight_matrix_using_density
   use module_fragments
+  use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, start_onesided_communication
   use sparsematrix_base, only : matrices_null, allocate_matrices, deallocate_matrices
   implicit none
@@ -650,7 +652,7 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
   energs=energy_terms_null()
   call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
   call start_onesided_communication(bigdft_mpi%iproc,bigdft_mpi%nproc,&
-       max(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,1),cdft%weight_function, &
+       denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),max(denspot%dpbox%nscatterarr(:,2),1),cdft%weight_function, &
        tmb%ham_descr%comgp%nrecvbuf,tmb%ham_descr%comgp%recvbuf,tmb%ham_descr%comgp,tmb%ham_descr%lzd)
 
   allocate(confdatarrtmp(tmb%orbs%norbp))
@@ -688,14 +690,14 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
       !!tmb%ham_descr%psit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='tmb%ham_descr%psit_c')
       !!tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
       call transpose_localized(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs, &
-           tmb%ham_descr%collcom,tmb%ham_descr%psi,tmb%ham_descr%psit_c,tmb%ham_descr%psit_f,tmb%ham_descr%lzd)
+           tmb%ham_descr%collcom,TRANSPOSE_FULL,tmb%ham_descr%psi,tmb%ham_descr%psit_c,tmb%ham_descr%psit_f,tmb%ham_descr%lzd)
       tmb%ham_descr%can_use_transposed=.true.
   end if
 
   hpsit_c = f_malloc(tmb%ham_descr%collcom%ndimind_c,id='hpsit_c')
   hpsit_f = f_malloc(7*tmb%ham_descr%collcom%ndimind_f,id='hpsit_f')
   call transpose_localized(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,  &
-       tmb%ham_descr%collcom,tmb%hpsi,hpsit_c,hpsit_f,tmb%ham_descr%lzd)
+       tmb%ham_descr%collcom,TRANSPOSE_FULL,tmb%hpsi,hpsit_c,hpsit_f,tmb%ham_descr%lzd)
 
   weight_ = matrices_null()
   call allocate_matrices(tmb%linmat%m, allocate_full=.false., &

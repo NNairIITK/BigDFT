@@ -13,6 +13,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   use module_types
   use module_interfaces, except_this_one => pulay_correction_new
   use yaml_output
+  use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
   use sparsematrix, only: compress_matrix, uncompress_matrix
@@ -66,7 +67,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   !!    tmb%psit_f=f_malloc_ptr(isize,id=' tmb%psit_f')
   !!end if
   call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-       tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+       TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
        tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
   ! This can then be deleted if the transition to the new type has been completed.
@@ -102,7 +103,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   do idir=1,3
       ! calculate the overlap matrix among hphi and phi_delta_large
       call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-           phi_delta_large(1,idir), delta_phit_c, delta_phit_f, tmb%ham_descr%lzd)
+           TRANSPOSE_FULL, phi_delta_large(1,idir), delta_phit_c, delta_phit_f, tmb%ham_descr%lzd)
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
            hphit_c, delta_phit_c, hphit_f, delta_phit_f, tmb%linmat%m, tmb%linmat%ham_)
       ! This can then be deleted if the transition to the new type has been completed.
@@ -173,7 +174,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       isize=7*sum(tmb%ham_descr%collcom%nrecvcounts_f)
       hphit_f=f_malloc(isize,id='hphit_f')
       call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-                               tmb%hpsi, hphit_c, hphit_f, tmb%ham_descr%lzd)
+                               TRANSPOSE_FULL, tmb%hpsi, hphit_c, hphit_f, tmb%ham_descr%lzd)
       denskern_tmp=f_malloc(tmb%linmat%l%nvctr,id='denskern_tmp')
       denskern_tmp=tmb%linmat%kernel_%matrix_compr
       tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
@@ -448,6 +449,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   use module_types
   use module_interfaces, except_this_one => pulay_correction
   use yaml_output
+  use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, start_onesided_communication
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                matrices_null, allocate_matrices, deallocate_matrices, &
@@ -490,7 +492,8 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
 
   !!call post_p2p_communication(iproc, nproc, denspot%dpbox%ndimpot, denspot%rhov, &
   !!     tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
-  call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,1), denspot%rhov, &
+  call start_onesided_communication(iproc, nproc, denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), &
+       max(denspot%dpbox%nscatterarr(:,2),1), denspot%rhov, &
        tmb%ham_descr%comgp%nspin*tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
 
   allocate(confdatarrtmp(tmb%orbs%norbp))
@@ -531,10 +534,10 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
 
 
   call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-       tmb%ham_descr%psi, lpsit_c, lpsit_f, tmb%ham_descr%lzd)
+       TRANSPOSE_FULL, tmb%ham_descr%psi, lpsit_c, lpsit_f, tmb%ham_descr%lzd)
 
   call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-       lhphilarge, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+       TRANSPOSE_FULL, lhphilarge, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
 
   !now build the derivative and related matrices <dPhi_a | H | Phi_b> and <dPhi_a | Phi_b>
 
@@ -564,7 +567,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
          tmb%ham_descr%lzd, tmb%ham_descr%psi, lhphilarge)
 
     call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-         lhphilarge, psit_c, psit_f, tmb%ham_descr%lzd)
+         TRANSPOSE_FULL, lhphilarge, psit_c, psit_f, tmb%ham_descr%lzd)
 
     call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom,&
          psit_c, lpsit_c, psit_f, lpsit_f, tmb%linmat%m, ham_)

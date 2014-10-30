@@ -14,16 +14,6 @@ path=os.path.dirname(sys.argv[0])
 #  sys.path.insert(0,'/local/gigi/binaries/ifort-OMP-OCL-CUDA-gC/PyYAML-3.10/lib')
 
 import yaml
-#from yaml_hl import *
-
-#import yaml_hl
-
-class Pouet:
-  def __init__(self):
-    self.input = "report"
-    self.output = None
-    self.style = "ascii"
-    self.config = os.path.join(path,'yaml_hl.cfg')
 
 # print out a python dictionary in yaml syntax
 def dict_dump(dict):
@@ -153,7 +143,7 @@ def parse_arguments():
                     help="File containing the keys which have to be extracted to build the quantities", metavar='FILE')
   parser.add_option('-o', '--output', dest='output', default="/dev/null", #sys.argv[4],
                     help="set the output file (default: /dev/null)", metavar='FILE')
-  parser.add_option('-t', '--timedata', dest='timedata',default=None, #sys.argv[2],
+  parser.add_option('-t', '--timedata', dest='timedata',default=False,action="store_true",
                     help="BigDFT time.yaml file, a quick report is dumped on screen if this option is given", metavar='FILE')
 
   #Return the parsing
@@ -205,7 +195,7 @@ class polar_axis():
     self.ax = pylab.axes([0.025,0.025,0.95,0.95], polar=True)
     self.tot=data["time"][0]
     self.times=data["time"]
-    self.N=len(data["time"])
+    self.N=len(self.times)
     self.step=5
     self.width=pylab.np.array(data["time"])/self.tot*2*pylab.np.pi
     self.theta=pylab.np.array(data["theta"])/self.tot*2*pylab.np.pi
@@ -227,6 +217,7 @@ class polar_axis():
 
     self.ax.set_xticklabels([])
     self.ax.set_yticklabels([])
+    self.info=self.ax.text(0,0,'',fontsize=150)
     # savefig('../figures/polar_ex.png',dpi=48)
     self.fig.canvas.mpl_connect('pick_event',self.info_callback)
 
@@ -238,7 +229,7 @@ class polar_axis():
     except KeyboardInterrupt:
       raise
 
-    
+        
   def find_name(self,th,level):
     import pylab
     levth=[]
@@ -255,6 +246,25 @@ class polar_axis():
       to_find_zero[to_find_zero > 0]=-4*pylab.np.pi
       routine=pylab.np.argmin(-to_find_zero)
       return (self.theta[ipiv[routine]],self.names[level][routine],self.times[ipiv[routine]])
+
+    
+  def info_string(self,xdata,level):
+    #create string to be plotted in plot
+    (tt,name,time)=self.find_name(xdata,level)
+    info=name+':\n'+str(time)+" s ("
+    info+= " %6.2f %s" % (time/self.tot*100.0,"% ) \n")
+    #find lower level
+    it=range(level)
+    it.reverse()
+    parents=''
+    for i in it:
+      (tt,name,time)=self.find_name(tt,i)
+      parents+="-"+name+"("+str(time)+"s,"
+      parents+= " %6.2f %s" % (time/self.tot*100.0,"% ) \n")
+    if len(parents) > 0:
+      info+="Calling path:\n"+parents
+    return info
+        
     
   def info_callback(self,event):
     thisline = event.artist
@@ -262,63 +272,140 @@ class polar_axis():
     level = ydata/self.step
     #once that the level has been found filter the list of theta
     (tt,name,time)=self.find_name(xdata,level)
-    print "======================="
-    print "Routine Picked:",name,",",time,"s (",time/self.tot*100.0,"% of total time)"
+    #print "======================="
+    #print "Routine Picked:",name,",",time,"s (",time/self.tot*100.0,"% of total time)"
     #find lower level
-    it=range(level)
-    it.reverse()
-    for i in it:
-      (tt,name,time)=self.find_name(tt,i)
-      print "  Called by:",name
+    #it=range(level)
+    #it.reverse()
+    #for i in it:
+    #  (tt,name,time)=self.find_name(tt,i)
+    #  print "  Called by:",name
+
+    #then plot the string
+    self.ax.texts.remove(self.info)
+    offset = 0.02
+    #print 'nowinfo',info
+    self.info= self.ax.text( offset, offset, self.info_string(xdata,level),
+                             fontsize = 15,transform = self.ax.transAxes )
+    self.fig.canvas.draw()
+      
+class BigDFTiming:
+  def __init__(self,filename):
+    #here a try-catch section should be added for multiple documents
+    self.log=yaml.load(open(filename, "r").read(), Loader = yaml.CLoader)
+
+    #shallow copies of important parts
+    self.routines=self.log["Routines timing and number of calls"]
+    self.hostnames=self.log["Hostnames"]
+    self.scf=self.log["WFN_OPT"]
+    self.classes=["Communications","Convolutions","BLAS-LAPACK","Linear Algebra",
+                  "Other","PS Computation","Potential",
+                  "Flib LowLevel","Initialization"]
+
+  def bars_data(self,dict):
+    """Extract the data for plotting the different categories in bar chart"""
+    import pylab
+    ind=pylab.np.arange(1)#2)
+    width=0.35
+    bot=pylab.np.array([0])#,0])
+    plts=[]
+    key_legend=[]
+    values_legend=[]
+    icol=1.0
+    print "dict",dict
+    for cat in self.classes:
+      try:
+        dat=pylab.np.array([dict[cat][0]])#,dict[cat][0]])
+        print 'data',dat
+        print 'unbalancing',dict[cat][2:]
+        plt=pylab.bar(ind,dat,width,bottom=bot,color=pylab.cm.jet(icol/len(self.classes)))
+        plts.append(plt)
+        key_legend.append(plt[0])
+        values_legend.append(cat)
+        bot+=dat
+        icol+=1.0
+      except Exception,e:
+        #print 'EXCEPTION FOUND',e
+	print "category",cat,"not present"
+  
+    pylab.ylabel('Percent')
+    pylab.title('Time bar chart')
+    pylab.xticks(ind+width/2., ('G1', 'G2', 'G3', 'G4', 'G5') )
+    pylab.yticks(pylab.np.arange(0,100,10))
+    pylab.legend(pylab.np.array(key_legend), pylab.np.array(values_legend))
+
+  def unbalanced(self,val):
+    """Criterion for unbalancing"""
+    return val > 1.5 or val < 0.5
+
+  def find_unbalanced(self,data):
+    """Determine lookup array of unbalanced categories"""
+    ipiv=[]
+    for i in range(len(data)):
+      if self.unbalanced(data[i]):
+        ipiv.append(i)
+    return ipiv
+
+  def load_unbalancing(self,dict):
+    """Extract the data for plotting the hostname balancings between different categories in bar chart"""
+    import pylab
+    width=0.50
+    plts=[]
+    key_legend=[]
+    values_legend=[]
+    icol=1.0
+    print "dict",dict
+    for cat in self.classes:
+      try:
+        dat=pylab.np.array([dict[cat][0]])
+        print 'data',dat
+        unb=pylab.np.array(dict[cat][2:])
+        print 'unbalancing',unb
+        unb2=self.find_unbalanced(unb)
+        print 'unbalanced objects',cat
+        print 'vals',[ [i,unb[i],self.hostnames[i]] for i in unb2]
+        ind=pylab.np.arange(len(unb))
+        plt=pylab.bar(ind,unb,width,color=pylab.cm.jet(icol/len(self.classes)))
+        plts.append(plt)
+        key_legend.append(plt[0])
+        values_legend.append(cat)
+        icol+=1.0
+        if (width > 0.05):
+          width -= 0.05
+      except Exception,e:
+        print 'EXCEPTION FOUND',e
+        print "cat",cat,"not found"
+
+    if len(ind) > 2:
+      tmp=pylab.np.array(self.hostnames)
+    else:
+      tmp=pylab.np.array(["max","min"])
+    pylab.ylabel('Load Unbalancing wrt average')
+    pylab.title('Work Load of different classes')
+    pylab.xticks(ind+width/2., tmp)
+    pylab.yticks(pylab.np.arange(0,2,0.25))
+    pylab.legend(pylab.np.array(key_legend), pylab.np.array(values_legend))
+
 
 if __name__ == "__main__":
   parser = parse_arguments()
-  (args, argtmp) = parser.parse_args()
+  (args, argcl) = parser.parse_args()
 
-def bars_data(dict):
-  """Extract the data for plotting the different categories in bar chart"""
-  import pylab
-  toext=["Communications","Convolutions","BLAS-LAPACK","Linear Algebra",
-              "Other","PS Computation","Potential",
-              "Flib LowLevel","Initialization"]
-
-  ind=pylab.np.arange(1)
-  width=0.35
-  bot=pylab.np.array([0])
-  plts=[]
-  key_legend=[]
-  values_legend=[]
-  icol=1.0
-  for cat in toext:
-    try:
-      dat=pylab.np.array([dict[cat][0]])
-      print 'data',dat
-      plt=pylab.bar(ind,dat,width,bottom=bot,color=pylab.cm.jet(icol/len(toext)))
-      plts.append(plt)
-      key_legend.append(plt[0])
-      values_legend.append(cat)
-      bot+=dat
-      icol+=1.0
-    except:
-      print "cat",cat,"not found"
-  
-  pylab.ylabel('Percent')
-  pylab.title('Time bar chart')
-  pylab.xticks(ind+width/2., ('G1', 'G2', 'G3', 'G4', 'G5') )
-  pylab.yticks(pylab.np.arange(0,100,10))
-  pylab.legend(pylab.np.array(key_legend), pylab.np.array(values_legend))
-  #pylab.show()
 
 #logfile
 #check if timedata is given
-if args.timedata is not None:
+if args.timedata:
+  print 'args of time',args.timedata,argcl
   #load the first yaml document
-  timing = yaml.load(open(args.timedata, "r").read(), Loader = yaml.CLoader)
-  dict_routines = timing["Routines timing and number of calls"]
-  #timing["WFN_OPT"]["Classes"].pop("Categories")  
-  sys.stdout.write(yaml.dump(timing["WFN_OPT"]["Classes"],default_flow_style=False,explicit_start=True))
-  bars_data(timing["WFN_OPT"]["Classes"])
-  data=dump_timing_level(dict_routines)
+  bt=BigDFTiming(argcl[0])
+  print "hosts",bt.hostnames
+  #timing = yaml.load(open(args.timedata, "r").read(), Loader = yaml.CLoader)
+  #dict_routines = timing["Routines timing and number of calls"]
+  #sys.stdout.write(yaml.dump(timing["WFN_OPT"]["Classes"],default_flow_style=False,explicit_start=True))
+  bt.bars_data(bt.scf["Classes"]) #timing["WFN_OPT"]["Classes"])
+  #bt.load_unbalancing(bt.scf["Classes"]) #timing["WFN_OPT"]["Classes"])
+  data=dump_timing_level(bt.routines) #dict_routines)
+  #sys.stdout.write(yaml.dump(data,default_flow_style=False,explicit_start=True))
   #ilev=1
   #for lev in data["names"]:
   #  sys.stdout.write(yaml.dump({"Level "+str(ilev):lev},default_flow_style=False,explicit_start=True))
@@ -328,7 +415,7 @@ if args.timedata is not None:
   plt.show()
   #print allev
   #dump the loaded info
-  sys.stdout.write(yaml.dump(data,default_flow_style=False,explicit_start=True))
+
   
 
 if args.data is None:
