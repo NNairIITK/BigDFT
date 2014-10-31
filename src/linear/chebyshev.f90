@@ -83,7 +83,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, kernel, ham_compr, &
                       ii=ii+1
                       iiorb = kernel%keyg(1,2,iseg)
                       jjorb = jorb
-                      matrix(jjorb,iiorb-kernel%smmm%isfvctr)=invovrlp_compr(ii+kernel%isvctrp_tg)
+                      matrix(jjorb,iiorb-kernel%smmm%isfvctr)=invovrlp_compr(ii-kernel%isvctrp_tg)
                       !if (jjorb==iiorb) then
                       !    matrix(jjorb,iiorb-kernel%isfvctr)=1.d0
                       !else

@@ -505,7 +505,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
   logical :: ovrlp_allocated, inv_ovrlp_allocated
 
   ! new for sparse taylor
-  integer :: nout, nseq, ispin, ishift, ishift2, isshift, ilshift, nspin
+  integer :: nout, nseq, ispin, ishift, ishift2, isshift, ilshift, ilshift2, nspin
   integer,dimension(:),allocatable :: ivectorindex
   integer,dimension(:,:),pointer :: onedimindices
   integer,dimension(:,:,:),allocatable :: istindexarr
@@ -918,10 +918,11 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
               !call compress_matrix(iproc, inv_ovrlp_smat, inmat=inv_ovrlp_local, outmat=inv_ovrlp_mat(icalc)%matrix_compr)
               do ispin=1,nspin
                   ishift=(ispin-1)*inv_ovrlp_smat%nvctr
+                  ishift2=(ispin-1)*inv_ovrlp_smat%nvctrp_tg
                   call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, layout=DENSE_PARALLEL, &
                        matrixp=&
                          inv_ovrlp_local(1:,inv_ovrlp_smat%isfvctr+1:inv_ovrlp_smat%isfvctr+inv_ovrlp_smat%nfvctrp,ispin), &
-                       matrix_compr=inv_ovrlp_mat(icalc)%matrix_compr(inv_ovrlp_smat%isvctrp_tg+ishift+1:))
+                       matrix_compr=inv_ovrlp_mat(icalc)%matrix_compr(ishift2+1:))
               end do
           end do
           call f_free_ptr(ovrlp_local)
@@ -940,7 +941,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
           end if
           ! save some memory but keep code clear - Amat22 and Amat11 should be identical as only combining S and I
           Amat22p=>Amat11p
-          Amat12_compr=>inv_ovrlp_mat(1)%matrix_compr(inv_ovrlp_smat%isvctrp_tg+1:)
+          Amat12_compr=>inv_ovrlp_mat(1)%matrix_compr(1:)
 
           call transform_sparse_matrix2(ovrlp_smat, inv_ovrlp_smat, &
                ovrlp_mat%matrix_compr(ovrlp_smat%isvctrp_tg:), Amat12_compr, 'small_to_large')
@@ -1017,13 +1018,13 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                   call timing(iproc,'lovrlp^-1     ','OF')
                   call sparsemm(inv_ovrlp_smat, Amat21_seq, Amat21p, Amat12p)
                   call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, Amat12p, &
-                       inv_ovrlp_mat(1)%matrix_compr(ishift+inv_ovrlp_smat%isvctrp_tg+1:))
+                       inv_ovrlp_mat(1)%matrix_compr(ishift2+1:))
                   call timing(iproc,'lovrlp^-1     ','ON')
               !else if (power(1)==2) then
               !    call vcopy(inv_ovrlp_smat%nvctr,Amat12_compr(1),1,inv_ovrlp_smat%matrix_compr(1),1)
               else if (power(1)==-2) then
                   call vcopy(inv_ovrlp_smat%nvctrp_tg,Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1),1,&
-                       inv_ovrlp_mat(1)%matrix_compr(inv_ovrlp_smat%isvctrp_tg+ishift+1),1)
+                       inv_ovrlp_mat(1)%matrix_compr(ishift2+1),1)
               end if
 
           end do
@@ -1057,6 +1058,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
 
                   isshift=(ispin-1)*ovrlp_smat%nvctr
                   ilshift=(ispin-1)*inv_ovrlp_smat%nvctr
+                  ilshift2=(ispin-1)*inv_ovrlp_smat%nvctrp_tg
 
                   if (iorder>1) then
                       !!ovrlpminone_sparse_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, &
@@ -1116,10 +1118,13 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                   !!call to_zero(inv_ovrlp_smat%nvctr, inv_ovrlp_smat%matrix_compr(1))
                   call timing(iproc,'lovrlp^-1     ','OF')
                   do icalc=1,ncalc
+                      write(*,*) 'before compress, size(inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1:))', &
+                                  size(inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1:))
                       call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, &
                            DENSE_MATMUL, invovrlpp_arr(1:,1:,icalc), &
-                           inv_ovrlp_mat(icalc)%matrix_compr(ilshift+inv_ovrlp_smat%isvctrp_tg+1:))
+                           inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1:))
                   end do
+                  write(*,*) 'after compress'
                   call timing(iproc,'lovrlp^-1     ','ON')
 
               end do
@@ -1172,12 +1177,15 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
               do ispin=1,nspin
                   isshift=(ispin-1)*ovrlp_smat%nvctr
                   ilshift=(ispin-1)*inv_ovrlp_smat%nvctr
+                  ilshift2=(ispin-1)*inv_ovrlp_smat%nvctrp_tg
                   call timing(iproc,'lovrlp^-1     ','OF')
                   call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, &
                        DENSE_MATMUL, ovrlp_large_compr(ilshift+1), ovrlp_largep)
                   call timing(iproc,'lovrlp^-1     ','ON')
+                  write(*,*) 'sum(inv_ovrlp_mat(icalc)%matrix_compr)',sum(inv_ovrlp_mat(icalc)%matrix_compr)
                   call sequential_acces_matrix_fast2(inv_ovrlp_smat, &
-                       inv_ovrlp_mat(icalc)%matrix_compr(inv_ovrlp_smat%isvctrp_tg+ilshift+1:), invovrlp_compr_seq)
+                       inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1:), invovrlp_compr_seq)
+                  write(*,*) 'sum(invovrlp_compr_seq)',sum(invovrlp_compr_seq)
                   !!write(*,*) 'sum(inv_ovrlp_mat(1)%matrix_compr(ilshift+1:ilshift+inv_ovrlp_smat%nvctr)', sum(inv_ovrlp_mat(1)%matrix_compr(ilshift+1:ilshift+inv_ovrlp_smat%nvctr))
 
                   if (power(icalc)==1) then
@@ -1190,7 +1198,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                   else if (power(icalc)==2) then
                       call timing(iproc,'lovrlp^-1     ','OF')
                       call uncompress_matrix_distributed2(iproc, inv_ovrlp_smat, DENSE_MATMUL, &
-                           inv_ovrlp_mat(icalc)%matrix_compr(inv_ovrlp_smat%isvctrp_tg+ilshift+1:), invovrlpp)
+                           inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1:), invovrlpp)
                       call timing(iproc,'lovrlp^-1     ','ON')
                       call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, &
                            inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_smat%smmm%isfvctr, &
@@ -1199,11 +1207,14 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                            invovrlp_compr_seq, invovrlpp, power(icalc), &
                            max_error, mean_error, cmatp=ovrlp_largep)
                   else if (power(icalc)==-2) then
+                      write(*,*) 'before check'
                       ovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlp_compr_seq') 
                       call sequential_acces_matrix_fast(inv_ovrlp_smat, ovrlp_large_compr(ilshift+1), ovrlp_compr_seq)
                       call timing(iproc,'lovrlp^-1     ','OF')
                       call uncompress_matrix_distributed2(iproc, inv_ovrlp_smat, DENSE_MATMUL, &
-                           inv_ovrlp_mat(icalc)%matrix_compr(inv_ovrlp_smat%isvctrp_tg+ilshift+1:), invovrlpp)
+                           inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1:), invovrlpp)
+                      write(*,*) 'sum(inv_ovrlp_mat(icalc)%matrix_compr),sum(invovrlpp)', &
+                              sum(inv_ovrlp_mat(icalc)%matrix_compr),sum(invovrlpp)
                       call timing(iproc,'lovrlp^-1     ','ON')
                       call check_accur_overlap_minus_one_sparse(iproc, nproc, inv_ovrlp_smat, ovrlp_smat%nfvctr, &
                            inv_ovrlp_smat%smmm%nfvctrp, inv_ovrlp_smat%smmm%isfvctr, &
@@ -1213,6 +1224,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                            max_error, mean_error, &
                            ovrlp_compr_seq)
                       call f_free(ovrlp_compr_seq)
+                      write(*,*) 'after check'
                   else
                       stop 'wrong power(icalc)'
                   end if
