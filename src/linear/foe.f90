@@ -1661,6 +1661,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
 
           isshift=(ispin-1)*ovrlp_smat%nvctr
           ilshift=(ispin-1)*inv_ovrlp_smat%nvctr
+          ilshift2=(ispin-1)*inv_ovrlp_smat%nvctr
 
           evlow_old=1.d100
           evhigh_old=-1.d100

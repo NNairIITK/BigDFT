@@ -762,10 +762,7 @@ module sparsematrix
              call timing(iproc,'compressd_comm','ON')
 
              if (nproc>1) then
-                 write(*,*) 'before to_zero'
-                 write(*,*) 'size(matrix_compr), smat%nvctrp_tg', size(matrix_compr), smat%nvctrp_tg
                  call to_zero(smat%nvctrp_tg, matrix_compr(1))
-                 write(*,*) 'after to_zero'
                  !window = mpiwindow(smat%smmm%nvctrp, matrix_local(1), bigdft_mpi%mpi_comm)
 
                  ! Create a window for all taskgroups to which iproc belongs (max 2)
@@ -963,10 +960,8 @@ module sparsematrix
 
            call to_zero(smat%nfvctr*nfvctrp,matrixp(1,1))
 
-           !isegstart=smat%istsegline(isfvctr+1)
-           !isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
-           isegstart=smat%iseseg_tg(1)
-           isegend=smat%iseseg_tg(2)
+           isegstart=smat%istsegline(isfvctr+1)
+           isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
            !!isegstart=smat%istsegline(smat%isfvctr_par(iproc)+1)
            !!if (smat%isfvctr_par(iproc)+smat%nfvctrp<smat%nfvctr) then
            !!    isegend=smat%istsegline(smat%isfvctr_par(iproc+1)+1)-1
