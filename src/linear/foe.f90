@@ -367,7 +367,7 @@ subroutine foe(iproc, nproc, tmprtr, &
                       if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
                       call chebyshev_clean(iproc, nproc, npl, cc, &
                            tmb%linmat%l, hamscal_compr, &
-                           tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift+1:ilshift+tmb%linmat%l%nvctr), calculate_SHS, &
+                           tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift+1:), calculate_SHS, &
                            nsize_polynomial, 1, tmb%linmat%kernel_%matrixp, penalty_ev, chebyshev_polynomials, &
                            emergency_stop)
                   else
@@ -1771,7 +1771,7 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
                       ! used, to be improved...
                       call chebyshev_clean(iproc, nproc, npl, cc, &
                            inv_ovrlp_smat, hamscal_compr, &
-                           inv_ovrlp(1)%matrix_compr, .false., &
+                           inv_ovrlp(1)%matrix_compr(ilshift+1:), .false., &
                            nsize_polynomial, ncalc, inv_ovrlp_matrixp, penalty_ev, chebyshev_polynomials, &
                            emergency_stop)
                        !write(*,'(a,i5,2es24.8)') 'iproc, sum(inv_ovrlp_matrixp(:,:,1:2)', (sum(inv_ovrlp_matrixp(:,:,icalc)),icalc=1,ncalc)

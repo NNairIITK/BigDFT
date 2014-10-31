@@ -3325,7 +3325,7 @@ module module_interfaces
           real(8),dimension(npl,3,ncalc),intent(in) :: cc
           type(sparse_matrix), intent(in) :: kernel
           real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: ham_compr
-          real(kind=8),dimension(kernel%nvctr),intent(in) :: invovrlp_compr
+          real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: invovrlp_compr
           logical,intent(in) :: calculate_SHS
           real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,ncalc),intent(out) :: fermi
           real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,2),intent(out) :: penalty_ev
