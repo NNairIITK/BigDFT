@@ -1357,7 +1357,8 @@ subroutine print_atomic_variables(atoms, hmax, ixc, dispersion)
      end if
      !control whether the grid spacing is too high
      if (hmax > 2.5_gp*minrad) then
-        call yaml_warning('Chosen Grid spacings seem too high for this atom. At you own risk!')
+        call yaml_warning('Chosen Grid spacings seem too high for the '// &
+           & trim(atoms%astruct%atomnames(ityp))//' atom type. At you own risk!')
      end if
 
      select case(atoms%npspcode(ityp))

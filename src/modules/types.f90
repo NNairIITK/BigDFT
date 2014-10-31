@@ -831,33 +831,33 @@ module module_types
   type, public :: DFT_wavefunction
      !coefficients
      real(wp), dimension(:), pointer :: psi,hpsi,psit,psit_c,psit_f !< orbitals, or support functions, in wavelet basis
-     real(wp), dimension(:,:), pointer :: gaucoeffs !orbitals in gbd basis
+     real(wp), dimension(:,:), pointer :: gaucoeffs                 !< orbitals in gbd basis
      !basis sets
-     type(gaussian_basis) :: gbd !<gaussian basis description, if associated
+     type(gaussian_basis) :: gbd         !< gaussian basis description, if associated
      type(local_zone_descriptors) :: Lzd !< data on the localisation regions, if associated
      !restart objects (consider to move them in rst structure)
      type(old_wavefunction), dimension(:), pointer :: oldpsis !< previously calculated wfns
-     integer :: istep_history !< present step of wfn history
+     integer :: istep_history                                 !< present step of wfn history
      !data properties
-     logical :: can_use_transposed !< true if the transposed quantities are allocated and can be used
-     type(orbitals_data) :: orbs !<wavefunction specification in terms of orbitals
-     type(comms_cubic) :: comms !< communication objects for the cubic approach
-     type(diis_objects) :: diis
-     type(confpot_data), dimension(:), pointer :: confdatarr !<data for the confinement potential
-     type(SIC_data) :: SIC !<control the activation of SIC scheme in the wavefunction
-     type(paw_objects) :: paw !< PAW objects
-     type(orthon_data) :: orthpar !< control the application of the orthogonality scheme for cubic DFT wavefunction
-     character(len=4) :: exctxpar !< Method for exact exchange parallelisation for the wavefunctions, in case
-     type(p2pComms) :: comgp !<describing p2p communications for distributing the potential
-     type(comms_linear) :: collcom ! describes collective communication
-     type(comms_linear) :: collcom_sr ! describes collective communication for the calculation of the charge density
-     integer(kind = 8) :: c_obj !< Storage of the C wrapper object. it has to be initialized to zero
-     type(foe_data) :: foe_obj        !<describes the structure of the matrices for the linear method foe
+     logical :: can_use_transposed                           !< true if the transposed quantities are allocated and can be used
+     type(orbitals_data) :: orbs                             !< wavefunction specification in terms of orbitals
+     type(comms_cubic) :: comms                              !< communication objects for the cubic approach
+     type(diis_objects) :: diis                              !< DIIS objects
+     type(confpot_data), dimension(:), pointer :: confdatarr !< data for the confinement potential
+     type(SIC_data) :: SIC                                   !< control the activation of SIC scheme in the wavefunction
+     type(paw_objects) :: paw                                !< PAW objects
+     type(orthon_data) :: orthpar                            !< control the application of the orthogonality scheme for cubic DFT wavefunction
+     character(len=4) :: exctxpar                            !< Method for exact exchange parallelisation for the wavefunctions, in case
+     type(p2pComms) :: comgp                                 !< describing p2p communications for distributing the potential
+     type(comms_linear) :: collcom                           !< describes collective communication
+     type(comms_linear) :: collcom_sr                        !< describes collective communication for the calculation of the charge density
+     integer(kind = 8) :: c_obj                              !< Storage of the C wrapper object. it has to be initialized to zero
+     type(foe_data) :: foe_obj                               !< describes the structure of the matrices for the linear method foe
      type(linear_matrices) :: linmat
      integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
      type(hamiltonian_descriptors) :: ham_descr
-     real(kind=8), dimension(:,:), pointer :: coeff !<expansion coefficients
+     real(kind=8), dimension(:,:), pointer :: coeff          !< Expansion coefficients
   end type DFT_wavefunction
 
 
@@ -882,6 +882,13 @@ module module_types
      integer :: iter    !< actual number of minimization iterations.
 
      integer :: infocode !< return value after optimization loop.
+                         !! - 0 run successfully succeded
+                         !! - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
+                         !!     forces may be meaningless   
+                         !! - 2 (present only for inputPsiId=INPUT_PSI_MEMORY_WVL) gnrm of the first iteration > 1 AND growing in
+                         !!     the second iteration OR grnm 1st >2.
+                         !!     Input wavefunctions need to be recalculated.
+                         !! - 3 (present only for inputPsiId=INPUT_PSI_LCAO) gnrm > 4. SCF error.
 
      real(gp) :: gnrm   !< actual value of cv criterion of the minimization loop.
      real(gp) :: rpnrm  !< actual value of cv criterion of the mixing loop.

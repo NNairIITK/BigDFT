@@ -1226,9 +1226,9 @@ module bigdft_run
             call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
 
             !test if stderr works
-            write(0,*)'unnormal end'
+            write(0,*) 'unnormal end'
             call mpibarrier(bigdft_mpi%mpi_comm)
-            call f_err_throw('Convergence error, cannot proceed. '//&
+            call f_err_throw('Convergence error (probably gnrm>4.0), cannot proceed. '//&
                  'Writing positions in file posfail.xyz',err_name='BIGDFT_RUNTIME_ERROR')
 
          else
