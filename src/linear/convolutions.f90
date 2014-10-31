@@ -24,6 +24,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
            y_c, y_f)
 
   use module_base, only: wp,gp,to_zero
+  use dynamic_memory
   implicit none
   
   integer,parameter:: lb=-14 !< The lower bound for the filters.
@@ -691,6 +692,8 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
   logical:: with_confpot
   real(kind=8) :: ddot,prefac1,hgrid2,hgrid3
 
+
+  call f_routine(id='ConvolQuartic4')
 
   ! Flag indicating whether a confining quartic potential is used
   with_confpot=(potentialPrefac/=0.d0)
@@ -1749,6 +1752,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
 !  write(*,*) 'after: ddot',ddot((n1+1)*(n2+1)*(n3+1), y_c, 1, y_c, 1),&
 !       ddot(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),y_f,1,y_f,1)
 
+  call f_release_routine()
 
   contains
     !> identify and evaluate filters associated to the position
@@ -1828,6 +1832,7 @@ subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3
       end select
 
     end subroutine position_dependent_filters
+
 
 
 END SUBROUTINE ConvolQuartic4

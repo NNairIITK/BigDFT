@@ -13,6 +13,7 @@ subroutine copy_tmbs(iproc, tmbin, tmbout, subname)
   use module_base
   use module_types
   use module_interfaces
+  use copy_utils, only: allocate_and_copy
   implicit none
 
   integer,intent(in) :: iproc
@@ -52,6 +53,13 @@ subroutine copy_tmbs(iproc, tmbin, tmbout, subname)
 
   !call copy_old_inwhichlocreg(tmbin%orbs%norb, tmbin%orbs%inwhichlocreg, tmbout%orbs%inwhichlocreg, &
   !     tmbin%orbs%onwhichatom, tmbout%orbs%onwhichatom)
+  call allocate_and_copy(tmbin%psi, tmbout%psi, id='tmbout%psi')
+
+  ! Not necessary to copy these arrays
+  !call allocate_and_copy(tmbin%hpsi, tmbout%hpsi, id='tmbout%hpsi')
+  !call allocate_and_copy(tmbin%psit, tmbout%psit, id='tmbout%psit')
+  !call allocate_and_copy(tmbin%psit_c, tmbout%psit_c, id='tmbout%psit_c')
+  !call allocate_and_copy(tmbin%psit_f, tmbout%psit_f, id='tmbout%psit_f')
 
   call f_release_routine()
 
@@ -535,6 +543,18 @@ if(associated(orbsin%norb_par)) then
 !!$        orbsout%norb_par(i1,i2) = orbsin%norb_par(i1,i2)
 !!$       end do
 !!$    end do
+end if
+
+call f_free_ptr(orbsout%norbu_par)
+if(associated(orbsin%norbu_par)) then
+   orbsout%norbu_par = &
+        f_malloc_ptr(src=orbsin%norbu_par,lbounds=lbound(orbsin%norbu_par),id='orbsout%norbu_par')
+end if
+
+call f_free_ptr(orbsout%norbd_par)
+if(associated(orbsin%norbd_par)) then
+   orbsout%norbd_par = &
+        f_malloc_ptr(src=orbsin%norbd_par,lbounds=lbound(orbsin%norbd_par),id='orbsout%norbd_par')
 end if
 
 call f_free_ptr(orbsout%iokpt)
@@ -1174,6 +1194,7 @@ subroutine copy_comms_linear(comms_in, comms_out)
     comms_out%ndimpsi_f = comms_in%ndimpsi_f
     comms_out%ncomms_repartitionrho = comms_in%ncomms_repartitionrho
     comms_out%window = comms_in%window
+    comms_out%imethod_overlap = comms_in%imethod_overlap
 
     call allocate_and_copy(comms_in%nsendcounts_c, comms_out%nsendcounts_c, id='comms_out%nsendcounts_c')
     call allocate_and_copy(comms_in%nsenddspls_c, comms_out%nsenddspls_c, id='comms_out%nsenddspls_c')

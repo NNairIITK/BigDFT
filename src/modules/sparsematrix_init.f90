@@ -133,13 +133,13 @@ contains
 
 
 
-    subroutine check_kernel_cutoff(iproc, orbs, atoms, lzd)
+    subroutine check_kernel_cutoff(iproc, orbs, atoms, hamapp_radius_incr, lzd)
       use module_types
       use yaml_output
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc
+      integer,intent(in) :: iproc, hamapp_radius_incr
       type(orbitals_data),intent(in) :: orbs
       type(atoms_data),intent(in) :: atoms
       type(local_zone_descriptors),intent(inout) :: lzd
@@ -161,7 +161,7 @@ contains
           ilr=orbs%inwhichlocreg(iorb)
     
           ! cutoff radius of the support function, including shamop region
-          cutoff_sf=lzd%llr(ilr)%locrad+8.d0*lzd%hgrids(1)
+          cutoff_sf=lzd%llr(ilr)%locrad+real(hamapp_radius_incr,kind=8)*lzd%hgrids(1)
     
           ! cutoff of the density kernel
           cutoff_kernel=lzd%llr(ilr)%locrad_kernel
@@ -1119,6 +1119,7 @@ contains
       integer,dimension(:,:),allocatable :: in_taskgroup
       integer :: iproc_start, iproc_end, imin, imax
       logical :: found, found_start, found_end
+      integer :: iprocstart_current, iprocend_current, iprocend_prev, iprocstart_next
 
       call f_routine(id='init_matrix_taskgroups')
 
@@ -1190,6 +1191,22 @@ contains
       if (nproc>1) then
           call mpiallred(iuse_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
       end if
+
+      ! Make sure that the used parts are always "monotonically increasing"
+      do jproc=nproc-2,0,-1
+          ! The start of part jproc must not be greater than the start of part jproc+1
+          iuse_startend(1,jproc) = min(iuse_startend(1,jproc),iuse_startend(1,jproc+1)) 
+      end do
+      do jproc=1,nproc-1
+          ! The end of part jproc must not be smaller than the end of part jproc-1
+          iuse_startend(2,jproc) = max(iuse_startend(2,jproc),iuse_startend(2,jproc-1)) 
+      end do
+
+      !!if (iproc==0)  then
+      !!    do jproc=0,nproc-1
+      !!        call yaml_map('iuse_startend',(/jproc,iuse_startend(1:2,jproc)/))
+      !!    end do
+      !!end if
  
       !if (iproc==0) write(*,'(a,100(2i7,4x))') 'iuse_startend',iuse_startend
  
@@ -1237,40 +1254,126 @@ contains
 !!      end do
 !!      !if (iproc==0) write(*,*) 'iproc, ntaskgroups', iproc, ntaskgroups
 
-      !@NEW ###################
-      ntaskgroups = 1
-      iproc_start = 0
-      iproc_end = 0
-      do
-          ! Search the first process whose parts does not overlap any more with
-          ! the end of the first task of the current taskgroup.
-          ! This will be the last task of the current taskgroup.
-          found = .false.
-          do jproc=iproc_start,nproc-1
-              !if (iproc==0) write(*,'(a,2i8)') 'iuse_startend(1,jproc), iuse_startend(2,iproc_start)', iuse_startend(1,jproc), iuse_startend(2,iproc_start)
-              if (iuse_startend(1,jproc)>iuse_startend(2,iproc_start)) then
-                  iproc_end = jproc
-                  found = .true.
-                  exit
-              end if
-          end do
-          if (.not.found) exit
+!!      !@NEW ###################
+!!      ntaskgroups = 1
+!!      iproc_start = 0
+!!      iproc_end = 0
+!!      do
+!!          ! Search the first process whose parts does not overlap any more with
+!!          ! the end of the first task of the current taskgroup.
+!!          ! This will be the last task of the current taskgroup.
+!!          found = .false.
+!!          do jproc=iproc_start,nproc-1
+!!              !if (iproc==0) write(*,'(a,2i8)') 'iuse_startend(1,jproc), iuse_startend(2,iproc_start)', iuse_startend(1,jproc), iuse_startend(2,iproc_start)
+!!              if (iuse_startend(1,jproc)>iuse_startend(2,iproc_start)) then
+!!                  iproc_end = jproc
+!!                  found = .true.
+!!                  exit
+!!              end if
+!!          end do
+!!          if (.not.found) exit
+!!          !iproc_end = iproc_start
+!!
+!!          !!! Search the last process whose part overlaps with the end of the current taskgroup.
+!!          !!! This will be the first task of the next taskgroup.
+!!          !!found = .false.
+!!          !!do jproc=nproc-1,0,-1
+!!          !!    !if (iproc==0) write(*,'(a,2i8)') 'iuse_startend(1,jproc), iuse_startend(2,iproc_end)', iuse_startend(1,jproc), iuse_startend(2,iproc_end)
+!!          !!    if (iuse_startend(1,jproc)<=iuse_startend(2,iproc_end)) then
+!!          !!        ntaskgroups = ntaskgroups + 1
+!!          !!        iproc_start = jproc
+!!          !!        found = .true.
+!!          !!        exit
+!!          !!    end if
+!!          !!end do
+!!          !!if (iproc==0) write(*,*) 'iproc_start, iproc_end', iproc_start, iproc_end
+!!          !!if (.not.found) exit
+!!          !!if (iproc_start==nproc-1) exit
+!!          ! Search the last process whose part overlaps with the start of the current taskgroup.
+!!          ! This will be the first task of the next taskgroup.
+!!          found = .false.
+!!          !do jproc=nproc-1,0,-1
+!!          do jproc=0,nproc-1
+!!              !if (iproc==0) write(*,'(a,2i8)') 'iuse_startend(1,jproc), iuse_startend(2,iproc_end)', iuse_startend(1,jproc), iuse_startend(2,iproc_end)
+!!              if (iuse_startend(1,jproc)>iuse_startend(1,iproc_end)) then
+!!                  ntaskgroups = ntaskgroups + 1
+!!                  iproc_start = jproc
+!!                  found = .true.
+!!                  exit
+!!              end if
+!!          end do
+!!          if (.not.found) exit
+!!      end do
+!!      !@END NEW ###############
 
-          ! Search the last process whose part overlaps with the end of the current taskgroup.
-          ! This will be the first task of the next taskgroup.
-          found = .false.
-          do jproc=nproc-1,0,-1
-              !if (iproc==0) write(*,'(a,2i8)') 'iuse_startend(1,jproc), iuse_startend(2,iproc_end)', iuse_startend(1,jproc), iuse_startend(2,iproc_end)
-              if (iuse_startend(1,jproc)<=iuse_startend(2,iproc_end)) then
-                  ntaskgroups = ntaskgroups + 1
-                  iproc_start = jproc
-                  found = .true.
-                  exit
-              end if
-          end do
-          if (.not.found) exit
-      end do
-      !@END NEW ###############
+!!      !@NEW2 ###############################################
+!!      iprocstart_next = 0
+!!      iprocstart_current = 0
+!!      iprocend_current = 0
+!!      ntaskgroups = 1
+!!      do
+!!          iprocend_prev = iprocend_current
+!!          iprocstart_current = iprocstart_next 
+!!          !itaskgroups_startend(1,itaskgroups) = iuse_startend(2,iprocstart_current)
+!!          ! Search the first process whose part starts later than then end of the part of iprocend_prev. This will be the first task of
+!!          ! the next taskgroup
+!!          do jproc=0,nproc-1
+!!             if (iuse_startend(1,jproc)>iuse_startend(2,iprocend_prev)) then
+!!                 iprocstart_next = jproc
+!!                 exit
+!!             end if
+!!          end do
+!!          ! Search the first process whose part ends later than then the start of the part of iprocstart_next. This will be the last task of
+!!          ! the current taskgroup
+!!          do jproc=0,nproc-1
+!!             if (iuse_startend(2,jproc)>iuse_startend(1,iprocstart_next)) then
+!!                 iprocend_current = jproc
+!!                 exit
+!!             end if
+!!          end do
+!!          !itaskgroups_startend(2,itaskgroups) = iuse_startend(2,iprocend_current)
+!!          if (iproc==0) write(*,'(a,4i5)') 'iprocend_prev, iprocstart_current, iprocend_current, iprocstart_next', iprocend_prev, iprocstart_current, iprocend_current, iprocstart_next
+!!          if (iprocstart_current==nproc-1) exit
+!!          ntaskgroups = ntaskgroups + 1
+!!      end do
+!!      !@END NEW2 ###########################################
+
+
+        !@NEW3 #############################################
+        ntaskgroups = 1
+        iproc_start = 0
+        iproc_end = 0
+        ii = 0
+        do
+
+            ! Search the first task whose part starts after the end of the part of the reference task
+            found = .false.
+            do jproc=0,nproc-1
+                if (iuse_startend(1,jproc)>iuse_startend(2,iproc_end)) then
+                    iproc_start = jproc
+                    found = .true.
+                    exit
+                end if
+            end do
+
+            ! If this search was successful, start a new taskgroup
+            if (found) then
+                ! Determine the reference task, which is the last task whose part starts before the end of the current taskgroup
+                ii = iuse_startend(2,iproc_start-1)
+                do jproc=nproc-1,0,-1
+                    if (iuse_startend(1,jproc)<=ii) then
+                        iproc_end = jproc
+                        exit
+                    end if
+                end do
+                ! Increase the number of taskgroups
+                ntaskgroups = ntaskgroups + 1
+            else
+                exit
+            end if
+
+        end do
+        !@END NEW3 #########################################
 
       smat%ntaskgroup = ntaskgroups
  
@@ -1329,43 +1432,142 @@ contains
 !!      itaskgroups_startend(2,itaskgroups) = iuse_startend(2,nproc-1)
 
 
-      !@NEW ###################
-      itaskgroups = 1
-      iproc_start = 0
-      iproc_end = 0
-      itaskgroups_startend(1,1) = 1
-      do
-          ! Search the first process whose parts does not overlap any more with
-          ! the end of the first task of the current taskgroup.
-          ! This will be the last task of the current taskgroup.
-          found = .false.
-          do jproc=iproc_start,nproc-1
-              if (iuse_startend(1,jproc)>iuse_startend(2,iproc_start)) then
-                  iproc_end = jproc
-                  itaskgroups_startend(2,itaskgroups) = iuse_startend(2,jproc)
-                  found = .true.
-                  exit
-              end if
-          end do
-          if (.not.found) exit
+!!      !@NEW ###################
+!!      itaskgroups = 1
+!!      iproc_start = 0
+!!      iproc_end = 0
+!!      itaskgroups_startend(1,1) = 1
+!!      do
+!!          ! Search the first process whose parts does not overlap any more with
+!!          ! the end of the first task of the current taskgroup.
+!!          ! This will be the last task of the current taskgroup.
+!!          found = .false.
+!!          do jproc=iproc_start,nproc-1
+!!              if (iuse_startend(1,jproc)>iuse_startend(2,iproc_start)) then
+!!                  iproc_end = jproc
+!!                  itaskgroups_startend(2,itaskgroups) = iuse_startend(2,jproc)
+!!                  found = .true.
+!!                  exit
+!!              end if
+!!          end do
+!!          if (.not.found) exit
+!!          !!iproc_end = iproc_start
+!!          !!itaskgroups_startend(2,itaskgroups) = iuse_startend(2,iproc_end)
+!!
+!!          ! Search the last process whose part overlaps with the end of the current taskgroup.
+!!          ! This will be the first task of the next taskgroup.
+!!          found = .false.
+!!          !do jproc=nproc-1,0,-1
+!!          do jproc=0,nproc-1
+!!              if (iuse_startend(1,jproc)>iuse_startend(1,iproc_end)) then
+!!                  itaskgroups = itaskgroups + 1
+!!                  iproc_start = jproc
+!!                  itaskgroups_startend(1,itaskgroups) = iuse_startend(1,jproc)
+!!                  found = .true.
+!!                  exit
+!!              end if
+!!          end do
+!!          if (.not.found) exit
+!!          !!!!if (iproc_start==nproc-1) exit
+!!          !!! Search the last process whose part overlaps with the end of the current taskgroup.
+!!          !!! This will be the first task of the next taskgroup.
+!!          !!found = .false.
+!!          !!!do jproc=0,nproc-1
+!!          !!do jproc=0,nproc-1
+!!          !!    if (iuse_startend(1,jproc)>iuse_startend(1,iproc_end)) then
+!!          !!        itaskgroups = itaskgroups + 1
+!!          !!        iproc_start = jproc
+!!          !!        itaskgroups_startend(1,itaskgroups) = iuse_startend(1,jproc)
+!!          !!        found = .true.
+!!          !!        exit
+!!          !!    end if
+!!          !!end do
+!!          !!if (.not.found) exit
+!!      end do
+!!      itaskgroups_startend(2,itaskgroups) = smat%nvctr
+!!      !@END NEW ###############
 
-          ! Search the last process whose part overlaps with the end of the current taskgroup.
-          ! This will be the first task of the next taskgroup.
-          found = .false.
-          do jproc=nproc-1,0,-1
-              if (iuse_startend(1,jproc)<=iuse_startend(2,iproc_end)) then
-                  itaskgroups = itaskgroups + 1
-                  iproc_start = jproc
-                  itaskgroups_startend(1,itaskgroups) = iuse_startend(1,jproc)
-                  found = .true.
-                  exit
-              end if
-          end do
-          if (.not.found) exit
-      end do
-      itaskgroups_startend(2,itaskgroups) = smat%nvctr
-      !@END NEW ###############
+!!      !@NEW2 ###############################################
+!!      iprocstart_next = 0
+!!      iprocstart_current = 0
+!!      iprocend_current = 0
+!!      itaskgroups = 1
+!!      do
+!!          iprocend_prev = iprocend_current
+!!          iprocstart_current = iprocstart_next 
+!!          itaskgroups_startend(1,itaskgroups) = iuse_startend(1,iprocstart_current)
+!!          ! Search the first process whose part starts later than then end of the part of iprocend_prev. This will be the first task of
+!!          ! the next taskgroup
+!!          do jproc=0,nproc-1
+!!             if (iuse_startend(1,jproc)>iuse_startend(2,iprocend_prev)) then
+!!                 iprocstart_next = jproc
+!!                 exit
+!!             end if
+!!          end do
+!!          ! Search the first process whose part ends later than then the start of the part of iprocstart_next. This will be the last task of
+!!          ! the current taskgroup
+!!          do jproc=0,nproc-1
+!!             if (iuse_startend(2,jproc)>iuse_startend(1,iprocstart_next)) then
+!!                 iprocend_current = jproc
+!!                 exit
+!!             end if
+!!          end do
+!!          itaskgroups_startend(2,itaskgroups) = iuse_startend(2,iprocend_current)
+!!          if (iprocstart_current==nproc-1) exit
+!!          itaskgroups = itaskgroups +1
+!!      end do
+!!      !@END NEW2 ###########################################
 
+
+        !@NEW3 #############################################
+        itaskgroups = 1
+        iproc_start = 0
+        iproc_end = 0
+        itaskgroups_startend(1,1) = 1
+        do
+
+            ! Search the first task whose part starts after the end of the part of the reference task
+            found = .false.
+            do jproc=0,nproc-1
+                if (iuse_startend(1,jproc)>iuse_startend(2,iproc_end)) then
+                    iproc_start = jproc
+                    found = .true.
+                    exit
+                end if
+            end do
+
+
+            ! If this search was successful, start a new taskgroup
+            if (found) then
+                ! Store the end of the current taskgroup
+                itaskgroups_startend(2,itaskgroups) = iuse_startend(2,iproc_start-1)
+                ! Determine the reference task, which is the last task whose part starts before the end of the current taskgroup
+                do jproc=nproc-1,0,-1
+                    if (iuse_startend(1,jproc)<=itaskgroups_startend(2,itaskgroups)) then
+                        iproc_end = jproc
+                        exit
+                    end if
+                end do
+                ! Increase the number of taskgroups
+                itaskgroups = itaskgroups + 1
+                ! Store the beginning of the new taskgroup
+                itaskgroups_startend(1,itaskgroups) = iuse_startend(1,iproc_start)
+            else
+                ! End of the taskgroup if the search was not successful
+                itaskgroups_startend(2,itaskgroups) = iuse_startend(2,nproc-1)
+                exit
+            end if
+
+        end do
+        !@END NEW3 #########################################
+
+      !!if (iproc==0)  then
+      !!    do jproc=1,smat%ntaskgroup
+      !!        call yaml_map('itaskgroups_startend',itaskgroups_startend(1:2,jproc))
+      !!    end do
+      !!end if
+      !call yaml_flash_document()
+      call mpi_barrier(bigdft_mpi%mpi_comm,jproc)
 
 
 
@@ -1378,7 +1580,7 @@ contains
       do itaskgroups=1,ntaskgroups
           if ( iuse_startend(1,iproc)<=itaskgroups_startend(2,itaskgroups) .and.  &
                iuse_startend(2,iproc)>=itaskgroups_startend(1,itaskgroups) ) then
-              !write(*,'(2(a,i0))') 'USE: task ',iproc,' is in taskgroup ',itaskgroups
+              !!write(*,'(2(a,i0))') 'USE: task ',iproc,' is in taskgroup ',itaskgroups
                ntaskgrp_use = ntaskgrp_use + 1
           end if
       end do
@@ -1563,7 +1765,15 @@ contains
               call yaml_sequence(advance='no')
               call yaml_mapping_open(flow=.true.)
               call yaml_map('number of tasks',tasks_per_taskgroup(itaskgroups))
-              call yaml_map('IDs',smat%tgranks(0:tasks_per_taskgroup(itaskgroups)-1,itaskgroups))
+              !call yaml_map('IDs',smat%tgranks(0:tasks_per_taskgroup(itaskgroups)-1,itaskgroups))
+              call yaml_mapping_open('IDs')
+              do itg=0,tasks_per_taskgroup(itaskgroups)-1
+                  call yaml_mapping_open(yaml_toa(smat%tgranks(itg,itaskgroups),fmt='(i0)'))
+                  call yaml_map('s',iuse_startend(1,smat%tgranks(itg,itaskgroups)))
+                  call yaml_map('e',iuse_startend(2,smat%tgranks(itg,itaskgroups)))
+                  call yaml_mapping_close()
+              end do
+              call yaml_mapping_close()
               call yaml_newline()
               call yaml_map('start / end',smat%taskgroup_startend(1:2,1,itaskgroups))
               call yaml_map('start / end disjoint',smat%taskgroup_startend(1:2,2,itaskgroups))

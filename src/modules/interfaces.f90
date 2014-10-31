@@ -144,11 +144,11 @@ module module_interfaces
       END SUBROUTINE check_closed_shell
 
       subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor, &
-                 nkpt,kpt,wkpt,orbs,simple,basedist,basedistu,basedistd)
+                 nkpt,kpt,wkpt,orbs,linear_partition,basedist,basedistu,basedistd)
          use module_defs, only: gp
          use module_types
          implicit none
-         logical, intent(in) :: simple !< simple calculation of the repartition
+         integer, intent(in) :: linear_partition !< repartition mode for the linear scaling version
          integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
          integer, intent(in) :: nspinor
          type(orbitals_data), intent(inout) :: orbs
@@ -2212,7 +2212,8 @@ module module_interfaces
        subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,&
             & dry_run,in,atoms,rxyz,OCLconv,&
             orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpsp,comms,shift,&
-            ref_frags, denspot, locregcenters, inwhichlocreg_old, onwhichatom_old, output_grid)
+            ref_frags, denspot, locregcenters, inwhichlocreg_old, onwhichatom_old, &
+            norb_par_ref, norbu_par_ref, norbd_par_ref,output_grid)
          use module_base
          use module_types
          use module_fragments
@@ -2235,6 +2236,7 @@ module module_interfaces
          type(system_fragment), dimension(:), pointer :: ref_frags
          real(kind=8),dimension(3,atoms%astruct%nat),intent(inout),optional :: locregcenters
          integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
+         integer,dimension(0:nproc-1),optional:: norb_par_ref, norbu_par_ref, norbd_par_ref !< support function distribution to be used as a reference
          logical, intent(in) :: dry_run, dump
          logical, intent(in), optional :: output_grid
        end subroutine system_initialization
@@ -2396,7 +2398,8 @@ module module_interfaces
          type(DFT_wavefunction),intent(inout):: wfn
        end subroutine destroy_DFT_wavefunction
 
-       subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, rxyz, lorbs)
+       subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, rxyz, lorbs, &
+           norb_par_ref, norbu_par_ref, norbd_par_ref)
          use module_base
          use module_types
          implicit none
@@ -2405,6 +2408,7 @@ module module_interfaces
          type(atomic_structure),intent(in):: astruct
          real(8),dimension(3,astruct%nat),intent(in):: rxyz
          type(orbitals_data),intent(out):: lorbs
+         integer,dimension(0:nproc-1),intent(in),optional :: norb_par_ref, norbu_par_ref, norbd_par_ref
        end subroutine init_orbitals_data_for_linear
 
        subroutine mix_main(iproc, nproc, mix_mode, mixHist, input, glr, alpha_mix, &
@@ -3088,7 +3092,7 @@ module module_interfaces
         end subroutine copy_old_inwhichlocreg
 
         subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
-               frag_trans,psi_old,input_dir,input_frag,ref_frags,phi_array_old)
+               frag_trans,psi_old,input_dir,input_frag,ref_frags,max_shift,phi_array_old)
           use module_base
           use module_types
           use module_fragments
@@ -3106,6 +3110,7 @@ module module_interfaces
           character(len=*), intent(in) :: input_dir
           type(fragmentInputParameters), intent(in) :: input_frag
           type(system_fragment), dimension(:), intent(in) :: ref_frags
+          real(gp),intent(out) :: max_shift
         end subroutine reformat_supportfunctions
 
         subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psigold,&
@@ -3309,14 +3314,14 @@ module module_interfaces
           real(kind=8),dimension(norb,norbp),intent(out) :: b
         end subroutine copy_kernel_vectors
 
-        subroutine chebyshev_clean(iproc, nproc, npl, cc, norb, norbp, isorb, kernel, ham_compr, &
+        subroutine chebyshev_clean(iproc, nproc, npl, cc, kernel, ham_compr, &
                    invovrlp_compr, calculate_SHS, nsize_polynomial, ncalc, fermi, penalty_ev, chebyshev_polynomials, &
                    emergency_stop)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
           implicit none
-          integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, norb, norbp, isorb, ncalc
+          integer,intent(in) :: iproc, nproc, npl, nsize_polynomial, ncalc
           real(8),dimension(npl,3,ncalc),intent(in) :: cc
           type(sparse_matrix), intent(in) :: kernel
           real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: ham_compr
@@ -3329,17 +3334,18 @@ module module_interfaces
         end subroutine chebyshev_clean
 
 
-        subroutine set_variables_for_hybrid(nlr, input, at, orbs, lowaccur_converged, confdatarr, &
+        subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_converged, damping_factor, confdatarr, &
                    target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix, &
                    conv_crit_TMB)
           use module_base
           use module_types
           implicit none
-          integer,intent(in) :: nlr
+          integer,intent(in) :: iproc, nlr
           type(input_variables),intent(in) :: input
           type(atoms_data),intent(in) :: at
           type(orbitals_data),intent(in) :: orbs
           logical,intent(out) :: lowaccur_converged
+          real(kind=8),intent(in) :: damping_factor
           type(confpot_data),dimension(orbs%norbp),intent(inout) :: confdatarr
           integer,intent(out) :: target_function, nit_basis, nit_scc, mix_hist
           real(kind=8),dimension(nlr),intent(out) :: locrad

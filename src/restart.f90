@@ -2087,6 +2087,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   real(gp), dimension(:), allocatable :: dist
   integer, dimension(:), allocatable :: ipiv
   real(gp), dimension(:,:), allocatable :: rxyz_old !<this is read from the disk and not needed
+  real(gp) :: max_shift
 
   logical :: skip
 !!$ integer :: ierr
@@ -2417,7 +2418,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   call timing(iproc,'tmbrestart','OF')
   call reformat_supportfunctions(iproc,nproc,&
        at,rxyz_old,rxyz,.false.,tmb,ndim_old,lzd_old,frag_trans_orb,&
-       psi_old,trim(dir_output),input_frag,ref_frags,phi_array_old)
+       psi_old,trim(dir_output),input_frag,ref_frags,max_shift,phi_array_old)
   call timing(iproc,'tmbrestart','ON')
 
   deallocate(frag_trans_orb)
@@ -2831,11 +2832,12 @@ END SUBROUTINE copy_old_inwhichlocreg
 !> Reformat wavefunctions if the mesh have changed (in a restart)
 !! NB add_derivatives must be false if we are using phi_array_old instead of psi_old and don't have the keys
 subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
-       frag_trans,psi_old,input_dir,input_frag,ref_frags,phi_array_old)
+       frag_trans,psi_old,input_dir,input_frag,ref_frags,max_shift,phi_array_old)
   use module_base
   use module_types
   use module_fragments
   use module_interfaces, except_this_one=>reformat_supportfunctions
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(in) :: ndim_old
@@ -2850,6 +2852,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   character(len=*), intent(in) :: input_dir
   type(fragmentInputParameters), intent(in) :: input_frag
   type(system_fragment), dimension(:), intent(in) :: ref_frags
+  real(gp),intent(out) :: max_shift
   !Local variables
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat
@@ -2876,6 +2879,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
 
   reformat_reason=0
   tol=1.d-3
+  max_shift = 0.d0
 
   ! Get the derivatives of the support functions
   if (add_derivatives) then
@@ -2916,6 +2920,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
            lzd_old%llr(ilr_old)%wfd%nvctr_c,lzd_old%llr(ilr_old)%wfd%nvctr_f,&
            tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_f,&
            n_old,n,ns_old,ns,frag_trans(iorb),centre_old_box,centre_new_box,da)  
+      max_shift = max(max_shift,sqrt(da(1)**2+da(2)**2+da(3)**2))
 !reformat=.true. !!!!temporary hack
       ! just copy psi from old to new as reformat not necessary
       if (.not. reformat) then 
@@ -3099,6 +3104,19 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
       end if
 
   end do
+
+  ! Get the maximal shift among all tasks
+  if (nproc>1) then
+      call mpiallred(max_shift, 1, mpi_max, bigdft_mpi%mpi_comm)
+  end if
+  if (iproc==0) call yaml_map('max shift of a locreg center',max_shift,fmt='(es9.2)')
+
+  ! Determine the dumping factor for the confinement. In the limit where the atoms 
+  ! have not moved, it goes to zero; in the limit where they have moved a lot, it goes to one.
+  tt = exp(max_shift*3.465735903d0) - 1.d0 !exponential which is 0 at 0.0 and 1 at 0.2
+  tt = min(tt,1.d0) !make sure that the value is not larger than 1.0
+  tmb%damping_factor_confinement = tt
+
 
   if (add_derivatives) then
      call f_free(phi_old_der)

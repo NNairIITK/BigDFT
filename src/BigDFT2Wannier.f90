@@ -204,7 +204,7 @@ program BigDFT2Wannier
    call read_nnkp_int_alloc(iproc,seedname, n_kpts, n_proj, n_nnkpts, n_excb)
    call allocate_initial()
    call orbitals_descriptors(iproc,nproc,n_proj,n_proj,0,1,1,&
-        1,(/ 0.0_dp,0.0_dp,0.0_dp /),(/0.0_dp/),orbsp,.false.) 
+        1,(/ 0.0_dp,0.0_dp,0.0_dp /),(/0.0_dp/),orbsp,LINEAR_PARTITION_NONE) 
    if(residentity) n_virt = n_proj
 
    ! Set-up number of virtual states
@@ -220,7 +220,7 @@ program BigDFT2Wannier
    end if
    if (input%nspin==2) nvirtd=nvirtu
    call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-      &   orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,.false.)
+      & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,LINEAR_PARTITION_NONE)
 
    ! Read Wannier90 .nnkp file.
    ! The most important informations to be read are : 
@@ -488,7 +488,7 @@ program BigDFT2Wannier
 
       !Setup the description of the new subspace (they are similar to orbitals)
       call orbitals_descriptors(iproc,nproc,orbs%norb,orbs%norbu,orbs%norbd,orbs%nspin,orbs%nspinor,&
-           orbs%nkpts,orbs%kpts,orbs%kwgts,orbsb,.false.)
+           orbs%nkpts,orbs%kpts,orbs%kwgts,orbsb,LINEAR_PARTITION_NONE)
 
       ! Initialise the arrays n_bands_par, isband_par
       call split_vectors_for_parallel(iproc,nproc,n_virt,orbsv)

@@ -235,6 +235,8 @@ contains
     nullify(astruct%atomnames)
     nullify(astruct%iatype)
     nullify(astruct%rxyz)
+    nullify(astruct%rxyz_int)
+    nullify(astruct%ixyz_int)
     call nullify_symmetry_data(astruct%sym)
   end subroutine nullify_atomic_structure
 

@@ -351,6 +351,7 @@ module sparsematrix
       integer,parameter :: SMALL_TO_LARGE=1
       integer,parameter :: LARGE_TO_SMALL=2
     
+      call f_routine(id='transform_sparse_matrix')
     
       ! determine the case:
       ! SMALL_TO_LARGE -> transform from large sparsity pattern to small one
@@ -450,6 +451,7 @@ module sparsematrix
       end if
 
       call timing(bigdft_mpi%iproc,'transform_matr','RS')
+      call f_release_routine()
     
     end subroutine transform_sparse_matrix
 
@@ -598,7 +600,7 @@ module sparsematrix
                  !!     mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
                  if (nproc>1) then
                      call mpiiallred(matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
-                          mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg))
+                          mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg))
                  else
                      call vcopy(ncount, matrix_compr(ist_send), 1,  recvbuf(ist_recv), 1)
                  end if

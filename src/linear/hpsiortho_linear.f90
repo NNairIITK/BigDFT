@@ -63,8 +63,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i
-  integer :: lwork, info, ishift,ispin, iseg
-  real(kind=8) :: ddot, tt, fnrmOvrlp_tot, fnrm_tot, fnrmold_tot, tt2, trkw
+  integer :: lwork, info, ishift,ispin, iseg, request
+  real(kind=8) :: ddot, tt, fnrmOvrlp_tot, fnrm_tot, fnrmold_tot, tt2, trkw, trH_sendbuf
   character(len=*), parameter :: subname='calculate_energy_and_gradient_linear'
   real(kind=8), dimension(:), pointer :: hpsittmp_c, hpsittmp_f
   real(kind=8), dimension(:), allocatable :: hpsi_conf
@@ -275,11 +275,14 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
   ! Calculate trace (or band structure energy, resp.)
-  call calculate_trace()
+  ! Here the calculation of the trace is only initiated, trH is not yet available
+  call calculate_trace_start()
   call untranspose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
        TRANSPOSE_GATHER, hpsit_c, hpsit_f, tmb%hpsi, tmb%ham_descr%lzd, wt_hphi)
 
+
   !EXPERIMENTAL and therefore deactivated
+  ! SM: WARNING trH is only available after the call to calculate_trace_finish
   !add CDFT gradient, or at least an approximation thereof
   if (present(cdft).and..false.) then
      if (.not.present(input_frag).or..not.present(ref_frags)) stop 'input_frag, ref_frags and cdft must be present together'
@@ -403,131 +406,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   end if
 
 
-  ! WARNING: TO BE CHECKED!!!!
-  ! For the polarized case, a factor of two was already multiplied to the
-  ! gradient (see above). Therefore now undo this again for the band structure
-  ! energy in order to get the analogous result to the non-polarized case.
-  if (tmb%linmat%l%nspin==2 .and. target_function==TARGET_FUNCTION_IS_ENERGY) then
-      if (iproc==0) call yaml_warning('divide the band stucture energy by 2.0, check this!')
-      trH=0.5d0*trH
-  end if
-
-  ! trH is now the total energy (name is misleading, correct this)
-  ! Multiply by 2 because when minimizing trace we don't have kernel
-  if(tmb%orbs%nspin==1 .and. target_function==TARGET_FUNCTION_IS_TRACE) trH=2.d0*trH
-  trH=trH-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
-
-
-  ! Determine whether the target function is increasing
-  !if(.not. ldiis%switchSD .and. ldiis%isx==0) then
-  if(.not. ldiis%switchSD) then
-      if(trH > ldiis%trmin+1.d-12*abs(ldiis%trmin)) then !1.d-12 is here to tolerate some noise...
-          !!if(iproc==0) write(*,'(1x,a,es18.10,a,es18.10)') &
-          !!    'WARNING: the target function is larger than its minimal value reached so far:',trH,' > ', ldiis%trmin
-          if (iproc==0) then
-              call yaml_newline()
-              call yaml_warning('target function larger than its minimal value reached so far, &
-                  &D='//trim(yaml_toa(trH-ldiis%trmin,fmt='(1es10.3)')))!//'. &
-                  !&Decrease step size and restart with previous TMBs')
-          end if
-          !if(iproc==0) write(*,'(1x,a)') 'Decrease step size and restart with previous TMBs'
-          energy_increased=.true.
-      end if
-  end if
 
 
   call large_to_small_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
        tmb%orbs, tmb%hpsi, hpsi_small)
 
+  ! Copy the small gradient back to tmb%hpsi as a temporary array 
+  call vcopy(tmb%npsidim_orbs, hpsi_small(1), 1, tmb%hpsi(1), 1)
 
-  ! Determine the gradient norm and its maximal component. In addition, adapt the
-  ! step size for the steepest descent minimization (depending on the angle 
-  ! between the current gradient and the one from the previous iteration).
-  ! This is of course only necessary if we are using steepest descent and not DIIS.
-  ! if newgradient is true, the angle criterion cannot be used and the choice whether to
-  ! decrease or increase the step size is only based on the fact whether the trace decreased or increased.
-  fnrm=0.d0
-  fnrmMax=0.d0
-  fnrmOvrlp_tot=0.d0
-  fnrmOld_tot=0.d0
-  ist=1
-  do iorb=1,tmb%orbs%norbp
-      iiorb=tmb%orbs%isorb+iorb
-      ilr=tmb%orbs%inwhichlocreg(iiorb)
-      ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
-      tt = ddot(ncount, hpsi_small(ist), 1, hpsi_small(ist), 1)
-      fnrm = fnrm + tt
-      if(tt>fnrmMax) fnrmMax=tt
-      if(it>1) then
-          tt2=ddot(ncount, hpsi_small(ist), 1, lhphiold(ist), 1)
-          fnrmOvrlp_tot = fnrmOvrlp_tot + tt2
-          if(ldiis%isx==0 .and. .not.ldiis%switchSD) then
-              ! Adapt step size for the steepest descent minimization.
-              if (.not.experimental_mode) then
-                  tt2=tt2/sqrt(tt*fnrmOldArr(iorb))
-                  ! apply thresholds so that alpha never goes below around 1.d-2 and above around 2
-                  if(tt2>.6d0 .and. trH<trHold .and. alpha(iorb)<1.8d0) then
-                      alpha(iorb)=alpha(iorb)*1.1d0
-                  else if (alpha(iorb)>1.7d-3) then
-                      alpha(iorb)=alpha(iorb)*.6d0
-                  end if
-              end if
-          end if
-      end if
-      fnrmOldArr(iorb)=tt
-      ist=ist+ncount
-  end do
-  
-  if (nproc > 1) then
-     call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
-     call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm)
-  end if
-
-
-  if (experimental_mode .and. it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
-      !do iorb=1,tmb%orbs%norbp
-      !    fnrmOld_tot=fnrmOld_tot+fnrmOldArr(iorb)
-      !end do
-      if (nproc>1) then
-          call mpiallred(fnrmOvrlp_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
-      end if
-      !tt2=fnrmOvrlp_tot/sqrt(fnrm*fnrmOld_tot)
-      tt2=fnrmOvrlp_tot/sqrt(fnrm*fnrm_old)
-      ! apply thresholds so that alpha never goes below around 1.d-2 and above around 2
-      if(tt2>.6d0 .and. trH<trHold .and. alpha(1)<1.8d0) then ! take alpha(1) since the value is the same for all
-          alpha(:)=alpha(:)*1.1d0
-      else if (alpha(1)>1.7d-3) then
-          alpha(:)=alpha(:)*.6d0
-      end if
-  end if
-
-  fnrm_old=fnrm ! This value will be used in th next call to this routine
-
-  fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
-  fnrmMax=sqrt(fnrmMax)
-
-
-
-  ! Determine the mean step size for steepest descent iterations.
-  tt=sum(alpha)
-  alpha_max=maxval(alpha)
-  if (nproc > 1) then
-     call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
-     call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm)
-  end if
-  alpha_mean=tt/dble(tmb%orbs%norb)
-
-  ! Copy the gradient (will be used in the next iteration to adapt the step size).
-  call vcopy(tmb%npsidim_orbs, hpsi_small(1), 1, lhphiold(1), 1)
-  !!call timing(iproc,'buildgrad_mcpy','OF')
-
-  ! if energy has increased or we only wanted to calculate the energy, not gradient, we can return here
-  ! rather than calculating the preconditioning for nothing
-  ! Do this only for steepest descent
-  if ((energy_increased) .and. target_function/=TARGET_FUNCTION_IS_HYBRID .and. ldiis%isx==0) return
-
-
-
+  ! Do the preconditioning while trH is communicated
   if(target_function==TARGET_FUNCTION_IS_HYBRID) then
      ist=1
      do iorb=1,tmb%orbs%norbp
@@ -569,6 +456,171 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           precond_convol_workarrays, precond_workarrays)
   end if
 
+
+  ! Here the calculation of the trace is completed, trH is available
+  call calculate_trace_finish()
+
+  ! WARNING: TO BE CHECKED!!!!
+  ! For the polarized case, a factor of two was already multiplied to the
+  ! gradient (see above). Therefore now undo this again for the band structure
+  ! energy in order to get the analogous result to the non-polarized case.
+  if (tmb%linmat%l%nspin==2 .and. target_function==TARGET_FUNCTION_IS_ENERGY) then
+      if (iproc==0) call yaml_warning('divide the band stucture energy by 2.0, check this!')
+      trH=0.5d0*trH
+  end if
+
+  ! trH is now the total energy (name is misleading, correct this)
+  ! Multiply by 2 because when minimizing trace we don't have kernel
+  if(tmb%orbs%nspin==1 .and. target_function==TARGET_FUNCTION_IS_TRACE) trH=2.d0*trH
+  trH=trH-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
+
+
+  ! Determine whether the target function is increasing
+  !if(.not. ldiis%switchSD .and. ldiis%isx==0) then
+  if(.not. ldiis%switchSD) then
+      if(trH > ldiis%trmin+1.d-12*abs(ldiis%trmin)) then !1.d-12 is here to tolerate some noise...
+          !!if(iproc==0) write(*,'(1x,a,es18.10,a,es18.10)') &
+          !!    'WARNING: the target function is larger than its minimal value reached so far:',trH,' > ', ldiis%trmin
+          if (iproc==0) then
+              call yaml_newline()
+              call yaml_warning('target function larger than its minimal value reached so far, &
+                  &D='//trim(yaml_toa(trH-ldiis%trmin,fmt='(1es10.3)')))!//'. &
+                  !&Decrease step size and restart with previous TMBs')
+          end if
+          !if(iproc==0) write(*,'(1x,a)') 'Decrease step size and restart with previous TMBs'
+          energy_increased=.true.
+      end if
+  end if
+
+
+  ! Determine the gradient norm and its maximal component. In addition, adapt the
+  ! step size for the steepest descent minimization (depending on the angle 
+  ! between the current gradient and the one from the previous iteration).
+  ! This is of course only necessary if we are using steepest descent and not DIIS.
+  ! if newgradient is true, the angle criterion cannot be used and the choice whether to
+  ! decrease or increase the step size is only based on the fact whether the trace decreased or increased.
+  fnrm=0.d0
+  fnrmMax=0.d0
+  fnrmOvrlp_tot=0.d0
+  fnrmOld_tot=0.d0
+  ist=1
+  do iorb=1,tmb%orbs%norbp
+      iiorb=tmb%orbs%isorb+iorb
+      ilr=tmb%orbs%inwhichlocreg(iiorb)
+      ncount=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      tt = ddot(ncount, tmb%hpsi(ist), 1, tmb%hpsi(ist), 1)
+      fnrm = fnrm + tt
+      if(tt>fnrmMax) fnrmMax=tt
+      if(it>1) then
+          tt2=ddot(ncount, tmb%hpsi(ist), 1, lhphiold(ist), 1)
+          fnrmOvrlp_tot = fnrmOvrlp_tot + tt2
+          if(ldiis%isx==0 .and. .not.ldiis%switchSD) then
+              ! Adapt step size for the steepest descent minimization.
+              if (.not.experimental_mode) then
+                  tt2=tt2/sqrt(tt*fnrmOldArr(iorb))
+                  ! apply thresholds so that alpha never goes below around 1.d-2 and above around 2
+                  if(tt2>.6d0 .and. trH<trHold .and. alpha(iorb)<1.8d0) then
+                      alpha(iorb)=alpha(iorb)*1.1d0
+                  else if (alpha(iorb)>1.7d-3) then
+                      alpha(iorb)=alpha(iorb)*.6d0
+                  end if
+              end if
+          end if
+      end if
+      fnrmOldArr(iorb)=tt
+      ist=ist+ncount
+  end do
+  
+
+  call communicate_fnrm()
+
+
+  if (experimental_mode .and. it>1 .and. ldiis%isx==0 .and. .not.ldiis%switchSD) then
+      !do iorb=1,tmb%orbs%norbp
+      !    fnrmOld_tot=fnrmOld_tot+fnrmOldArr(iorb)
+      !end do
+      if (nproc>1) then
+          call mpiallred(fnrmOvrlp_tot, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
+      !tt2=fnrmOvrlp_tot/sqrt(fnrm*fnrmOld_tot)
+      tt2=fnrmOvrlp_tot/sqrt(fnrm*fnrm_old)
+      ! apply thresholds so that alpha never goes below around 1.d-2 and above around 2
+      if(tt2>.6d0 .and. trH<trHold .and. alpha(1)<1.8d0) then ! take alpha(1) since the value is the same for all
+          alpha(:)=alpha(:)*1.1d0
+      else if (alpha(1)>1.7d-3) then
+          alpha(:)=alpha(:)*.6d0
+      end if
+  end if
+
+  fnrm_old=fnrm ! This value will be used in th next call to this routine
+
+  fnrm=sqrt(fnrm/dble(tmb%orbs%norb))
+  fnrmMax=sqrt(fnrmMax)
+
+
+
+  ! Determine the mean step size for steepest descent iterations.
+  call communicate_alpha()
+  tt=sum(alpha)
+  alpha_max=maxval(alpha)
+  if (nproc > 1) then
+     call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
+     call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm)
+  end if
+  alpha_mean=tt/dble(tmb%orbs%norb)
+
+  ! Copy the gradient (will be used in the next iteration to adapt the step size).
+  call vcopy(tmb%npsidim_orbs, tmb%hpsi(1), 1, lhphiold(1), 1)
+  !!call timing(iproc,'buildgrad_mcpy','OF')
+
+  ! if energy has increased or we only wanted to calculate the energy, not gradient, we can return here
+  ! rather than calculating the preconditioning for nothing
+  ! Do this only for steepest descent
+  if ((energy_increased) .and. target_function/=TARGET_FUNCTION_IS_HYBRID .and. ldiis%isx==0) return
+
+
+
+  !!@if(target_function==TARGET_FUNCTION_IS_HYBRID) then
+  !!@   ist=1
+  !!@   do iorb=1,tmb%orbs%norbp
+  !!@      iiorb=tmb%orbs%isorb+iorb
+  !!@      ilr = tmb%orbs%inWhichLocreg(iiorb)
+  !!@      ncnt=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+
+  !!@      tt=ddot(ncnt, hpsi_conf(ist), 1, hpsi_small(ist), 1)
+  !!@      tt=tt/ddot(ncnt, hpsi_conf(ist), 1, hpsi_conf(ist), 1)
+  !!@      call daxpy(ncnt, -tt, hpsi_conf(ist), 1, hpsi_small(ist), 1)
+  !!@      call dscal(ncnt, tt, hpsi_conf(ist), 1)
+
+  !!@      ist=ist+ncnt
+  !!@   end do
+
+  !!@   call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
+  !!@        tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
+  !!@        nit_precond,tmb%npsidim_orbs,hpsi_conf,tmb%confdatarr,gnrm,gnrm_zero, &
+  !!@        precond_convol_workarrays, precond_workarrays)
+
+  !!@   ! temporarily turn confining potential off...
+  !!@   prefac = f_malloc(tmb%orbs%norbp,id='prefac')
+  !!@   prefac(:)=tmb%confdatarr(:)%prefac
+  !!@   tmb%confdatarr(:)%prefac=0.0d0
+  !!@   call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
+  !!@        tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
+  !!@        nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero, & ! prefac should be zero
+  !!@        precond_convol_workarrays, precond_workarrays)
+  !!@   call daxpy(tmb%npsidim_orbs, 1.d0, hpsi_conf(1), 1, hpsi_small(1), 1)
+  !!@   ! ...revert back to correct value
+  !!@   tmb%confdatarr(:)%prefac=prefac
+
+  !!@   call f_free(prefac)
+  !!@   call f_free(hpsi_conf)
+  !!@else
+  !!@   call preconditionall2(iproc,nproc,tmb%orbs,tmb%Lzd,&
+  !!@        tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3),&
+  !!@        nit_precond,tmb%npsidim_orbs,hpsi_small,tmb%confdatarr,gnrm,gnrm_zero,&
+  !!@        precond_convol_workarrays, precond_workarrays)
+  !!@end if
+
   !!if (target_function==TARGET_FUNCTION_IS_ENERGY .and. iproc==0) then
   !!    ist=0
   !!    do iorb=1,tmb%orbs%norbp
@@ -595,13 +647,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   contains
 
-    subroutine calculate_trace()
+    subroutine calculate_trace_start()
       implicit none
 
       ! Local variables
       integer :: iorb, iiorb
 
-      call f_routine(id='calculate_trace')
+      call f_routine(id='calculate_trace_start')
       call timing(iproc,'calctrace_comp','ON')
 
       trH=0.d0
@@ -613,13 +665,55 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call timing(iproc,'calctrace_comp','OF')
       call timing(iproc,'calctrace_comm','ON')
       if (nproc>1) then
-          call mpiallred(trH, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          trH_sendbuf = trH
+          call mpiiallred(trH_sendbuf, trH, 1, mpi_sum, bigdft_mpi%mpi_comm, request)
       end if
       call timing(iproc,'calctrace_comm','OF')
 
       call f_release_routine()
 
-    end subroutine calculate_trace
+    end subroutine calculate_trace_start
+
+
+    subroutine calculate_trace_finish()
+      implicit none
+
+      ! Local variables
+      integer :: iorb, iiorb
+
+      call f_routine(id='calculate_trace_finish')
+      call timing(iproc,'calctrace_comm','ON')
+      if (nproc>1) then
+          call mpiwait(request)
+      end if
+      call timing(iproc,'calctrace_comm','OF')
+
+      call f_release_routine()
+
+    end subroutine calculate_trace_finish
+
+
+  subroutine communicate_fnrm()
+    implicit none
+    call f_routine(id='communicate_fnrm')
+    if (nproc > 1) then
+       call mpiallred(fnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
+       call mpiallred(fnrmMax, 1, mpi_max, bigdft_mpi%mpi_comm)
+    end if
+    call f_release_routine()
+  end subroutine communicate_fnrm
+
+  subroutine communicate_alpha()
+    implicit none
+    call f_routine(id='communicate_alpha')
+    tt=sum(alpha)
+    alpha_max=maxval(alpha)
+    if (nproc > 1) then
+       call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
+       call mpiallred(alpha_max, 1, mpi_max, bigdft_mpi%mpi_comm)
+    end if
+    call f_release_routine()
+  end subroutine communicate_alpha
 
 end subroutine calculate_energy_and_gradient_linear
 

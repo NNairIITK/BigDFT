@@ -62,7 +62,7 @@ module wrapper_MPI
 
   !> Interface for MPI_ALLREDUCE routine, to be updated little by little
   interface mpiallred
-     module procedure mpiallred_int,mpiallred_real, &
+     module procedure mpiallred_int,mpiallred_long,mpiallred_real, &
           & mpiallred_double,&!,mpiallred_double_1,mpiallred_double_2,&
           & mpiallred_log
      module procedure mpiallred_d1,mpiallred_d2
@@ -103,9 +103,17 @@ module wrapper_MPI
       module procedure mpiiallred_double
   end interface mpiiallred
 
+  interface mpialltoallv
+      module procedure mpialltoallv_int, mpialltoallv_long, mpialltoallv_double
+  end interface mpialltoallv
+
   interface mpiialltoallv
       module procedure mpiialltoallv_double
   end interface mpiialltoallv
+
+  interface mpiaccumulate
+      module procedure mpiaccumulate_double
+  end interface mpiaccumulate
 
   !> Global MPI communicator which contains all information related to the MPI process
   type, public :: mpi_environment
@@ -784,6 +792,35 @@ contains
     if (ierr /=0) stop 'MPIALLGATHERV_DBL'
   end subroutine mpiallgatherv_double
 
+  subroutine mpialltoallv_int(sendbuf, sendcounts, sdispls, recvbuf, recvcounts, rdispls, comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use dynamic_memory
+    implicit none
+    integer,intent(in) :: sendbuf
+    integer,intent(out) :: recvbuf
+    include 'alltoallv-inc.f90'
+  end subroutine mpialltoallv_int
+
+  subroutine mpialltoallv_long(sendbuf, sendcounts, sdispls, recvbuf, recvcounts, rdispls, comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use dynamic_memory
+    implicit none
+    integer(kind=8),intent(in) :: sendbuf
+    integer(kind=8),intent(out) :: recvbuf
+    include 'alltoallv-inc.f90'
+  end subroutine mpialltoallv_long
+
+  subroutine mpialltoallv_double(sendbuf, sendcounts, sdispls, recvbuf, recvcounts, rdispls, comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use dynamic_memory
+    implicit none
+    double precision,intent(in) :: sendbuf
+    double precision,intent(out) :: recvbuf
+    include 'alltoallv-inc.f90'
+  end subroutine mpialltoallv_double
+
+
+
   !> Interface for MPI_ALLREDUCE operations
   subroutine mpiallred_int(sendbuf,count,op,comm,recvbuf)
     use dictionaries, only: f_err_throw,f_err_define
@@ -794,6 +831,16 @@ contains
     integer, dimension(:), allocatable :: copybuf
     include 'allreduce-inc.f90'
   end subroutine mpiallred_int
+
+  subroutine mpiallred_long(sendbuf,count,op,comm,recvbuf)
+    use dictionaries, only: f_err_throw,f_err_define
+    use dynamic_memory
+    implicit none
+    integer(kind=8), intent(inout) :: sendbuf
+    integer(kind=8), intent(inout), optional :: recvbuf
+    integer(kind=8), dimension(:), allocatable :: copybuf
+    include 'allreduce-inc.f90'
+  end subroutine mpiallred_long
 
   !> Interface for MPI_ALLREDUCE operations
   subroutine mpiallred_real(sendbuf,count,op,comm,recvbuf)
@@ -1152,8 +1199,6 @@ contains
     use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
-    !!double precision,dimension(:),intent(in) :: sendbuf
-    !!double precision,dimension(:),intent(inout) :: recvbuf
     double precision,intent(in) :: sendbuf
     double precision,intent(inout) :: recvbuf
     integer,dimension(:),intent(in) :: recvcounts, displs
@@ -1189,36 +1234,49 @@ contains
     if (present(window_)) then
         window_ => window
     end if
-    !else
     window = mpiwindow(sendcount,sendbuf,comm)
-    !end if
 
 
     call getall_d(nproc,recvcounts,displs,window,nrecvbuf,recvbuf)
 
     if (.not. present(window_)) then
         call mpi_fenceandfree(window)
-       !!! Synchronize the communication
-       !!call mpi_win_fence(0, window, ierr)
-       !!if (ierr/=0) then
-       !!   call f_err_throw('Error in mpi_win_fence',&
-       !!        err_id=ERR_MPI_WRAPPERS)  
-       !!end if
-       !!call mpi_win_free(window, ierr)
-       !!if (ierr/=0) then
-       !!   call f_err_throw('Error in mpi_win_fence',&
-       !!        err_id=ERR_MPI_WRAPPERS)  
-       !!end if
     end if
 
   end subroutine mpi_get_to_allgatherv_double
 
+
+  subroutine mpiaccumulate_double(origin_addr, origin_count, target_rank, target_disp, target_count, op, wind)
+    use dictionaries, only: f_err_throw,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    double precision,intent(in) :: origin_addr
+    integer,intent(in) :: origin_count, target_rank, target_count, op
+    integer(kind=mpi_address_kind),intent(in) :: target_disp
+    integer,intent(inout) :: wind
+    !local variables
+    integer :: nproc,jproc,nrecvbuf,ierr
+    external :: getall
+    logical :: check
+    integer,target:: window
+
+
+    call mpi_accumulate(origin_addr, origin_count, mpitype(origin_addr), &
+         target_rank, target_disp, target_count, mpitype(origin_addr), op, wind, ierr)
+    if (ierr/=0) then
+       call f_err_throw('An error in calling to MPI_ACCUMULATE occured',&
+            err_id=ERR_MPI_WRAPPERS)
+       return
+    end if
+
+  end subroutine mpiaccumulate_double
   
-  subroutine mpiiallred_double(sendbuf, recvbuf, ncount, datatype, op, comm, request)
+
+  subroutine mpiiallred_double(sendbuf, recvbuf, ncount, op, comm, request)
     use dictionaries, only: f_err_throw,f_err_define
     implicit none
     ! Calling arguments
-    integer,intent(in) :: ncount, datatype, op, comm
+    integer,intent(in) :: ncount, op, comm
     double precision,intent(in) :: sendbuf
     double precision,intent(out) :: recvbuf
     integer,intent(out) :: request
@@ -1226,14 +1284,14 @@ contains
     integer :: ierr
 
 #ifdef HAVE_MPI3
-    call mpi_iallreduce(sendbuf, recvbuf, ncount, datatype, op, comm, request, ierr)
+    call mpi_iallreduce(sendbuf, recvbuf, ncount, mpitype(sendbuf), op, comm, request, ierr)
     if (ierr/=0) then
        call f_err_throw('An error in calling to MPI_IALLREDUCE occured',&
             err_id=ERR_MPI_WRAPPERS)
        return
     end if
 #else
-    call mpi_allreduce(sendbuf, recvbuf, ncount, datatype, op, comm, ierr)
+    call mpi_allreduce(sendbuf, recvbuf, ncount, mpitype(sendbuf), op, comm, ierr)
     if (ierr/=0) then
        call f_err_throw('An error in calling to MPI_ALLREDUCE occured',&
             err_id=ERR_MPI_WRAPPERS)

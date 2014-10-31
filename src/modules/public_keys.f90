@@ -209,6 +209,7 @@ module public_keys
   character(len=*), parameter :: IMETHOD_OVERLAP = "imethod_overlap"
   character(len=*), parameter :: EXTRA_SHELLS_KEY='empty_shells'
   character(len=*), parameter :: ENABLE_MATRIX_TASKGROUPS='enable_matrix_taskgroups'
+  character(len=*), parameter :: HAMAPP_RADIUS_INCR='hamapp_radius_incr'
 
   !> Parameters to avoid typos in dictionary keys
   character(len=*), parameter :: ASTRUCT_UNITS = 'units' 

@@ -442,22 +442,21 @@ module communications
               iisend=iisend+wt%nsendcounts(jproc)
               iirecv=iirecv+wt%nrecvcounts(jproc)
           end do
-      end if
     
+          !!! coarse part
+          !! call mpi_alltoallv(psitwork_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, psiwork_c, &
+          !!      collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
     
-      !!! coarse part
-      !! call mpi_alltoallv(psitwork_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, psiwork_c, &
-      !!      collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-    
-      !!! fine part
-      !! call mpi_alltoallv(psitwork_f, 7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, psiwork_f, &
-      !!      7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-      if (nproc>1) then
-          call mpiialltoallv(wt%psitwork(1), wt%nrecvcounts(0), wt%nrecvdspls(0), mpi_double_precision, wt%psiwork(1), &
-               wt%nsendcounts(0), wt%nsenddspls(0), mpi_double_precision, bigdft_mpi%mpi_comm, wt%request)
-      else
-          call vcopy(wt%nrecvcounts(0), wt%psitwork(1), 1, wt%psiwork(1), 1)
-          wt%request = MPI_REQUEST_NULL
+          !!! fine part
+          !! call mpi_alltoallv(psitwork_f, 7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, psiwork_f, &
+          !!      7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+          if (nproc>1) then
+              call mpiialltoallv(wt%psitwork(1), wt%nrecvcounts(0), wt%nrecvdspls(0), mpi_double_precision, wt%psiwork(1), &
+                   wt%nsendcounts(0), wt%nsenddspls(0), mpi_double_precision, bigdft_mpi%mpi_comm, wt%request)
+          else
+              call vcopy(wt%nrecvcounts(0), wt%psitwork(1), 1, wt%psiwork(1), 1)
+              wt%request = MPI_REQUEST_NULL
+          end if
       end if
     
       if (transpose_action == TRANSPOSE_FULL .or. &

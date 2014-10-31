@@ -54,7 +54,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer :: infoCoeff,istat,it_scc,itout,info_scf,i,iorb
   character(len=*), parameter :: subname='linearScaling'
   real(kind=8),dimension(:),allocatable :: rhopotold_out
-  real(kind=8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix
+  real(kind=8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix, convCritMix_init
   type(localizedDIISParameters) :: ldiis
   type(DIIS_obj) :: ldiis_coeff, vdiis
   logical :: can_use_ham, update_phi, locreg_increased, reduce_conf, orthonormalization_on
@@ -274,11 +274,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                lowaccur_converged, pnrm_out)
           ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
           call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
-               convCritMix, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
+               convCritMix_init, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
                convcrit_dmin, nitdmin, conv_crit_TMB)
       else if (input%lin%nlevel_accuracy==1 .and. itout==1) then
-          call set_variables_for_hybrid(tmb%lzd%nlr, input, at, tmb%orbs, lowaccur_converged, tmb%confdatarr, &
-               target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix, conv_crit_TMB)
+          call set_variables_for_hybrid(iproc, tmb%lzd%nlr, input, at, tmb%orbs, &
+               lowaccur_converged, tmb%damping_factor_confinement, tmb%confdatarr, &
+               target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix_init, conv_crit_TMB)
                convcrit_dmin=input%lin%convCritDmin_highaccuracy
                nitdmin=input%lin%nItdmin_highaccuracy
       end if
@@ -313,10 +314,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              ! NB nothing is written to screen for this get_coeff
              if (.not. input%lin%constrained_dft) then
                 ! Check whether the overlap matrix must be calculated and inverted (otherwise it has already been done)
+                !!calculate_overlap = ((update_phi .and. .not.input%correction_co_contra) .or. cur_it_highaccuracy==1)
+                !!invert_overlap_matrix = ((input%method_updatekernel/=UPDATE_BY_FOE .and. &
+                !!                         input%method_updatekernel/=UPDATE_BY_RENORMALIZATION) .or. &
+                !!                         cur_it_highaccuracy==1)
                 calculate_overlap = ((update_phi .and. .not.input%correction_co_contra) .or. cur_it_highaccuracy==1)
-                invert_overlap_matrix = ((input%method_updatekernel/=UPDATE_BY_FOE .and. &
-                                         input%method_updatekernel/=UPDATE_BY_RENORMALIZATION) .or. &
-                                         cur_it_highaccuracy==1)
+                invert_overlap_matrix = calculate_overlap
+                !invert_overlap_matrix = (.not.(target_function==TARGET_FUNCTION_IS_HYBRID .and. &
+                !                          (input%method_updatekernel==UPDATE_BY_FOE .or. &
+                !                         input%method_updatekernel==UPDATE_BY_RENORMALIZATION)))
                 call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                      infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                      .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
@@ -580,6 +586,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                       'it_kernel'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
              end if
          end if
+         ! @NEW: adjust the convergence criterion for the kernel optimization
+         ! The better the support functions are converged, the better the kernel sould be converged
+         convCritMix = convCritMix_init*fnrm_tmb
          kernel_loop : do it_scc=1,nit_scc
              dmin_diag_it=dmin_diag_it+1
              ! If the hamiltonian is available do not recalculate it
@@ -595,10 +604,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 call yaml_comment('kernel iter:'//yaml_toa(it_scc,fmt='(i6)'),hfill='-')
              end if
              ! Check whether the overlap matrix must be calculated and inverted (otherwise it has already been done)
-             calculate_overlap = ((update_phi .and. .not.input%correction_co_contra) .or. cur_it_highaccuracy==1)
-             invert_overlap_matrix = ((input%method_updatekernel/=UPDATE_BY_FOE .and. &
-                                      input%method_updatekernel/=UPDATE_BY_RENORMALIZATION) .or. &
-                                      cur_it_highaccuracy==1)
+             calculate_overlap = ((update_phi .and. .not.input%correction_co_contra))! .or. cur_it_highaccuracy==1)
+             invert_overlap_matrix = (.not.(target_function==TARGET_FUNCTION_IS_HYBRID .and. &
+                                       (input%method_updatekernel==UPDATE_BY_FOE .or. &
+                                      input%method_updatekernel==UPDATE_BY_RENORMALIZATION)) .and. &
+                                      it_scc==1)
+                                      !cur_it_highaccuracy==1)
              if(update_phi .and. can_use_ham) then! .and. info_basis_functions>=0) then
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
@@ -1424,20 +1435,21 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           call yaml_sequence_open('summary',flow=.true.)
           call yaml_mapping_open()
           if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              call yaml_map('kernel optimization','DMIN')
+              call yaml_map('kernel method','DMIN')
           else if (input%lin%scf_mode==LINEAR_FOE) then
-              call yaml_map('kernel optimization','FOE')
+              call yaml_map('kernel method','FOE')
           else
-              call yaml_map('kernel optimization','DIAG')
+              call yaml_map('kernel method','DIAG')
           end if
 
           if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or.  input%lin%scf_mode==LINEAR_FOE &
               .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-              call yaml_map('mixing quantity','DENS')
+              call yaml_map('mix entity','DENS')
           else if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-              call yaml_map('mixing quantity','POT')
+              call yaml_map('mix entity','POT')
           end if
           call yaml_map('mix hist',mix_hist)
+          call yaml_map('conv crit',convCritMix,fmt='(es8.2)')
 
 
           if (input%lin%constrained_dft) then
@@ -1495,14 +1507,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           call yaml_mapping_open(flow=.true.)
           call yaml_map('iter',itout)
           if(target_function==TARGET_FUNCTION_IS_TRACE) then
-              call yaml_map('target function','TRACE')
+              call yaml_map('Omega','TRACE')
           else if(target_function==TARGET_FUNCTION_IS_ENERGY) then
-              call yaml_map('target function','ENERGY')
+              call yaml_map('Omega','ENERGY')
           else if(target_function==TARGET_FUNCTION_IS_HYBRID) then
-              call yaml_map('target function','HYBRID')
+              call yaml_map('Omega','HYBRID')
           end if
           if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-              call yaml_map('mean conf prefac',mean_conf,fmt='(es9.2)')
+              call yaml_map('mean conf prefac',mean_conf,fmt='(es8.2)')
+              call yaml_map('damping',tmb%damping_factor_confinement,fmt='(es8.2)')
           end if
           if(info_basis_functions<=0) then
               call yaml_warning('support function optimization not converged')
