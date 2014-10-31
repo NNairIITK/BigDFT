@@ -352,11 +352,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
      do i=1,size(tmb%linmat%ovrlppowers_)
          tmb%linmat%ovrlppowers_(i) = matrices_null()
-         call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
-              matname='tmb%linmat%ovrlppowers_(i)', mat=tmb%linmat%ovrlppowers_(i))
-         !tmb%linmat%ovrlppowers_(i)%matrix_compr = &
-         !    sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='tmb%linmat%ovrlppowers_(i)%matrix_comp')
-         write(*,*) 'size(tmb%linmat%ovrlppowers_(i)%matrix_compr)',size(tmb%linmat%ovrlppowers_(i)%matrix_compr)
+         !call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
+         !     matname='tmb%linmat%ovrlppowers_(i)', mat=tmb%linmat%ovrlppowers_(i))
+         tmb%linmat%ovrlppowers_(i)%matrix_compr = &
+             sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='tmb%linmat%ovrlppowers_(i)%matrix_comp')
      end do
 
      !call nullify_sparse_matrix(tmb%linmat%inv_ovrlp_large)
