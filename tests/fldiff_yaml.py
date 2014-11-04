@@ -182,7 +182,7 @@ def compare_map(map, ref, tols, always_fails=False):
 
 def compare_scl(scl, ref, tols, always_fails=False):
     "Compare the scalars and return the tolerance it the results are ok"
-    global failed_checks, discrepancy, biggest_tol
+    global failed_checks, discrepancy, biggest_tol, comments
     failed = always_fails
     ret = (failed, None)
     #  print scl,ref,tols, type(ref), type(scl)
@@ -222,15 +222,20 @@ def compare_scl(scl, ref, tols, always_fails=False):
                 biggest_tol = max(biggest_tol, math.fabs(tols))
     if failed:
         if failed_checks < 20:
-            print 'fldiff_failure: val, ref, tol, diff, bigtol', scl, ref, tols, discrepancy, biggest_tol
+            #print 'fldiff_failure: val, ref, tol, diff, bigtol', scl, ref, tols, discrepancy, biggest_tol
+            comments += '#fldiff_failure (val, ref, tol, diff, bigtol): %s\n' % str((scl, ref, tols,
+                                                                            discrepancy,
+                                                                            biggest_tol))
         failed_checks += 1
     return ret
 
 
-def document_report(hostname, tol, biggest_disc, nchecks, leaks, nmiss, miss_it, timet, message="",
-                   final = False):
+def document_report(hostname, tol, biggest_disc, nchecks, leaks, nmiss, miss_it, timet,
+                    message="",final = False):
     "Report about the document"
     results = {}
+    if (nchecks > 0 or leaks > 0) and not final:
+        results["All tolerances"] = tols
     failure_reason = None
     #  disc=biggest_disc
     if nchecks > 0 or leaks != 0 or nmiss > 0:
@@ -248,17 +253,15 @@ def document_report(hostname, tol, biggest_disc, nchecks, leaks, nmiss, miss_it,
             failure_reason = "Crash"
         else:
             failure_reason = "Difference"
-    results["Platform"] = hostname
-    results["Test succeeded"] = (nchecks == 0 and nmiss == 0 and leaks == 0)
     if failure_reason is not None:
         results["Failure reason"] = failure_reason
     results["Maximum discrepancy"] = biggest_disc
     results["Maximum tolerance applied"] = tol
-    results["Seconds needed for the test"] = round(timet,2)
     if (nmiss > 0):
         results["Missed Reference Items"] = miss_it
-    if (nchecks > 0 or leaks > 0) and not final:
-        results["All tolerances"] = tols
+    results["Platform"] = hostname
+    results["Seconds needed for the test"] = round(timet,2)
+    results["Test succeeded"] = (nchecks == 0 and nmiss == 0 and leaks == 0)
     #
     return results
 
@@ -281,6 +284,7 @@ options = Pouet()
 # Create style (need to be in __main__)
 Style = yaml_hl.Style
 
+print options.config
 
 def parse_arguments():
     "Parse the arguments"
@@ -442,6 +446,7 @@ for i in range(len(references)):
     docmiss_it = []
     discrepancy = 0.
     reference = references[i]
+    comments = ""
     # this executes the fldiff procedure
     #compare(datas[i], reference, tols)
     try:
@@ -471,14 +476,21 @@ for i in range(len(references)):
     newreport = open("report", "w")
     if failed_checks > 0 or docleaks > 0:
         failed_documents += 1
-    newreport.write(yaml.dump(document_report(hostname, biggest_tol, discrepancy, failed_checks, docleaks, docmiss, docmiss_it, doctime),
+    comments += "#Document: %2d, failed_checks: %d, Max. Diff.: %10.2e, missed_items: %d memory_leaks (B): %d, Elapsed Time (s): %7.2f\n" % \
+                     (i, failed_checks, discrepancy, docmiss, docleaks, doctime)
+    newreport.write(yaml.dump(document_report(hostname, biggest_tol, discrepancy, failed_checks,
+                                              docleaks, docmiss, docmiss_it, doctime),
                           default_flow_style=False, explicit_start=True))
+    if comments:
+        newreport.write(yaml.dump({"Remarks": comments}, default_style="|"))
     newreport.close()
     reports.write(open("report", "rb").read())
     #highlight report file if possible
     highlight_iftty(options)
-    sys.stdout.write("#Document: %2d, failed_checks: %d, Max. Diff.: %10.2e, missed_items: %d memory_leaks (B): %d, Elapsed Time (s): %7.2f\n" %
-                     (i, failed_checks, discrepancy, docmiss, docleaks, doctime))
+    #if comments:
+    #    sys.stdout.write(comments)
+    #sys.stdout.write("#Document: %2d, failed_checks: %d, Max. Diff.: %10.2e, missed_items: %d memory_leaks (B): %d, Elapsed Time (s): %7.2f\n" %
+    #                 (i, failed_checks, discrepancy, docmiss, docleaks, doctime))
 
 
 # Create dictionary for the final report
