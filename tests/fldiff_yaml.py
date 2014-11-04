@@ -5,7 +5,7 @@
 #> @file
 ## Check yaml output for tests
 ## @author
-##    Copyright (C) 2012-2013 BigDFT group
+##    Copyright (C) 2012-2014 BigDFT group
 ##    This file is distributed under the terms of the
 ##    GNU General Public License, see ~/COPYING file
 ##    or http://www.gnu.org/copyleft/gpl.txt .
@@ -181,7 +181,7 @@ def compare_map(map, ref, tols, always_fails=False):
 
 
 def compare_scl(scl, ref, tols, always_fails=False):
-    "Compare the scalars and retrurn the tolerance it the results are ok"
+    "Compare the scalars and return the tolerance it the results are ok"
     global failed_checks, discrepancy, biggest_tol
     failed = always_fails
     ret = (failed, None)
@@ -248,7 +248,7 @@ def document_report(hostname, tol, biggest_disc, nchecks, leaks, nmiss, miss_it,
         else:
             failure_reason = "Difference"
     results["Platform"] = hostname
-    results["Test succeeded"] = nchecks == 0 and nmiss == 0 and leaks == 0
+    results["Test succeeded"] = (nchecks == 0 and nmiss == 0 and leaks == 0)
     if failure_reason is not None:
         results["Failure reason"] = failure_reason
     results["Maximum discrepancy"] = biggest_disc
@@ -465,15 +465,17 @@ for i in range(len(references)):
     leak_memory += docleaks
     total_misses += docmiss
     total_missed_items.append(docmiss_it)
+    newreport = open("report", "w")
     if failed_checks > 0 or docleaks > 0:
         failed_documents += 1
         # optional
         sys.stdout.write(
             yaml.dump(tols, default_flow_style=False, explicit_start=True))
-    newreport = open("report", "w")
     newreport.write(yaml.dump(document_report(hostname, biggest_tol, discrepancy, failed_checks, docleaks, docmiss, docmiss_it, doctime),
                               default_flow_style=False, explicit_start=True))
     newreport.close()
+    if failed_checks > 0 or docleaks > 0:
+       sys.exit(1)
     reports.write(open("report", "rb").read())
     #highlight report file if possible
     highlight_iftty(options)
@@ -485,6 +487,7 @@ for i in range(len(references)):
 if len(references) > 1:
     finres = document_report(hostname, biggest_tol, max_discrepancy,
                              failed_documents, leak_memory, total_misses, total_missed_items, time)
+    finres['Documents'] = len(references)
     newreport = open("report", "w")
     newreport.write(
         yaml.dump(finres, default_flow_style=False, explicit_start=True))
