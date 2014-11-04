@@ -953,7 +953,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
           Amat12_compr=>inv_ovrlp_mat(1)%matrix_compr(1:)
 
           call transform_sparse_matrix2(ovrlp_smat, inv_ovrlp_smat, &
-               ovrlp_mat%matrix_compr(ovrlp_smat%isvctrp_tg:), Amat12_compr, 'small_to_large')
+               ovrlp_mat%matrix_compr(ovrlp_smat%isvctrp_tg+1:), Amat12_compr, 'small_to_large')
           Amat12_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='Amat12_seq')
 
           do ispin=1,nspin

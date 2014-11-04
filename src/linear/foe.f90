@@ -1840,10 +1840,8 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
         
     
           do icalc=1,ncalc
-              write(*,*) 'sum(inv_ovrlp_matrixp)',sum(inv_ovrlp_matrixp)
               call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, inv_ovrlp_matrixp(1:,1:,icalc), &
                    inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
-              write(*,*) 'sum(inv_ovrlp(icalc)%matrix_compr)',sum(inv_ovrlp(icalc)%matrix_compr)
           end do
     
 
