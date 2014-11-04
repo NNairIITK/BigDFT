@@ -222,12 +222,13 @@ def compare_scl(scl, ref, tols, always_fails=False):
                 biggest_tol = max(biggest_tol, math.fabs(tols))
     if failed:
         if failed_checks < 20:
-            print 'fldiff_failure; val, ref, tol, diff, bigtol', scl, ref, tols, discrepancy, biggest_tol
+            print 'fldiff_failure: val, ref, tol, diff, bigtol', scl, ref, tols, discrepancy, biggest_tol
         failed_checks += 1
     return ret
 
 
-def document_report(hostname, tol, biggest_disc, nchecks, leaks, nmiss, miss_it, timet, message=""):
+def document_report(hostname, tol, biggest_disc, nchecks, leaks, nmiss, miss_it, timet, message="",
+                   final = False):
     "Report about the document"
     results = {}
     failure_reason = None
@@ -256,6 +257,8 @@ def document_report(hostname, tol, biggest_disc, nchecks, leaks, nmiss, miss_it,
     results["Seconds needed for the test"] = round(timet,2)
     if (nmiss > 0):
         results["Missed Reference Items"] = miss_it
+    if (nchecks > 0 or leaks > 0) and not final:
+        results["All tolerances"] = tols
     #
     return results
 
@@ -308,12 +311,12 @@ def fatal_error(reports, message='Error in reading datas, Yaml Standard violated
     "Fatal Error: exit after writing the report, assume that the report file is already open)"
     global options
     print message
-    finres = document_report('None', -1., 0., 1, 0, 0, 0, 0,message=message)
+    final_results = document_report('None', -1., 0., 1, 0, 0, 0, 0,message=message,final=True)
     reports.write(
-        yaml.dump(finres, default_flow_style=False, explicit_start=True))
+        yaml.dump(final_results, default_flow_style=False, explicit_start=True))
     newreport = open("report", "w")
     newreport.write(
-        yaml.dump(finres, default_flow_style=False, explicit_start=True))
+        yaml.dump(final_results, default_flow_style=False, explicit_start=True))
     newreport.close()
     highlight_iftty(options)
     #hl = yaml_hl.YAMLHighlight(options)
@@ -468,29 +471,25 @@ for i in range(len(references)):
     newreport = open("report", "w")
     if failed_checks > 0 or docleaks > 0:
         failed_documents += 1
-        # optional
-        sys.stdout.write(
-            yaml.dump(tols, default_flow_style=False, explicit_start=True))
     newreport.write(yaml.dump(document_report(hostname, biggest_tol, discrepancy, failed_checks, docleaks, docmiss, docmiss_it, doctime),
-                              default_flow_style=False, explicit_start=True))
+                          default_flow_style=False, explicit_start=True))
     newreport.close()
-    if failed_checks > 0 or docleaks > 0:
-       sys.exit(1)
     reports.write(open("report", "rb").read())
     #highlight report file if possible
     highlight_iftty(options)
-    sys.stdout.write("#Document: %2d, failed_checks: %d, Max. Diff. %10.2e, missed_items: %d memory_leaks (B): %d, Elapsed Time (s): %7.2f\n" %
+    sys.stdout.write("#Document: %2d, failed_checks: %d, Max. Diff.: %10.2e, missed_items: %d memory_leaks (B): %d, Elapsed Time (s): %7.2f\n" %
                      (i, failed_checks, discrepancy, docmiss, docleaks, doctime))
 
 
 # Create dictionary for the final report
 if len(references) > 1:
-    finres = document_report(hostname, biggest_tol, max_discrepancy,
-                             failed_documents, leak_memory, total_misses, total_missed_items, time)
-    finres['Documents'] = len(references)
+    final_results = document_report(hostname, biggest_tol, max_discrepancy,
+                             failed_documents, leak_memory, total_misses, total_missed_items, time,
+                                   final=True)
+    final_results['Documents'] = len(references)
     newreport = open("report", "w")
     newreport.write(
-        yaml.dump(finres, default_flow_style=False, explicit_start=True))
+        yaml.dump(final_results, default_flow_style=False, explicit_start=True))
     newreport.close()
     reports.write(open("report", "rb").read())
     highlight_iftty(options)
