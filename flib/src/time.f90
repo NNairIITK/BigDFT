@@ -377,6 +377,9 @@ module time_profiling
          times(ictrl)%clocks(i)=0.d0
       enddo
 
+      !temporary: just dump the present categories
+      !call f_timing_callback()
+
     end subroutine f_timing_checkpoint
 
     subroutine gather_and_dump_results(master,ncat,nnodes,message,clocks,mpi_comm,gather_routine)
