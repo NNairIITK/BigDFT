@@ -16,7 +16,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
    use communications_base, only: comms_linear, TRANSPOSE_FULL
    use communications, only: transpose_localized, untranspose_localized
    use sparsematrix_base, only : sparse_matrix, matrices, DENSE_PARALLEL
-   use sparsematrix, only : compress_matrix_distributed
+   use sparsematrix, only : compress_matrix_distributed, gather_matrix_from_taskgroups_inplace
    !use dynamic_memory
    implicit none
    integer, intent(in) :: iproc,nproc,nspin,check_overlap
@@ -199,6 +199,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
        if (check_overlap > 1) then
            call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, &
                 psit_c, psit_f, psit_f, smat, mat)
+           call gather_matrix_from_taskgroups_inplace(iproc, nproc, smat, mat)
            !!do i=1,smat%nvctr*nspin
            !!    write(6000+iproc,'(a,2i8,es16.7)') 'i, mod(i-1,nvctr)+1, val', i, mod(i-1,smat%nvctr)+1, mat%matrix_compr(i)
            !!end do
@@ -460,7 +461,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
 
   call f_routine(id='calculate_overlap_transposed')
 
-  call to_zero(smat%nvctr*smat%nspin, ovrlp%matrix_compr(1))
+  call to_zero(smat%nvctrp_tg*smat%nspin, ovrlp%matrix_compr(1))
 
   ! WARNING: METHOD 2 NOT EXTENSIVELY TESTED
   method_if: if (collcom%imethod_overlap==2) then
@@ -627,7 +628,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
       !auxiliary array with shifted bounds in order to access smat%matrixindex_in_compressed_fortransposed
       spin_loop: do ispin=1,smat%nspin
     
-          ishift_mat=(ispin-1)*smat%nvctr
+          ishift_mat=(ispin-1)*smat%nvctrp_tg-smat%isvctrp_tg
           iorb_shift=(ispin-1)*smat%nfvctr
           if (collcom%nptsp_c>0) then
     
@@ -788,7 +789,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
     
       spin_loopf: do ispin=1,smat%nspin
     
-          ishift_mat=(ispin-1)*smat%nvctr
+          ishift_mat=(ispin-1)*smat%nvctr-smat%isvctrp_tg
           iorb_shift=(ispin-1)*smat%nfvctr
 
           if (collcom%nptsp_f>0) then

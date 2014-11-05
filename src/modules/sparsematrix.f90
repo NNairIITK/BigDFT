@@ -29,6 +29,7 @@ module sparsematrix
   public :: sequential_acces_matrix_fast, sequential_acces_matrix_fast2
   public :: sparsemm
   public :: orb_from_index
+  public :: gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace
 
   contains
 
@@ -1126,5 +1127,90 @@ module sparsematrix
 
    end function orb_from_index
 
+
+   subroutine gather_matrix_from_taskgroups(iproc, nproc, smat, mat_tg, mat_global)
+     use module_base
+     use sparsematrix_base, only: sparse_matrix
+     implicit none
+   
+     ! Calling arguments
+     integer,intent(in) :: iproc, nproc
+     type(sparse_matrix),intent(in) :: smat
+     real(kind=8),dimension(smat%nvctrp_tg),intent(in) :: mat_tg !< matrix distributed over the taskgroups
+     real(kind=8),dimension(smat%nvctr),intent(out) :: mat_global !< global matrix gathered together
+   
+     ! Local variables
+     integer,dimension(:),allocatable :: recvcounts, recvdspls
+     integer :: ncount, ist_send, jproc
+   
+     if (nproc>1) then
+         recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
+         recvdspls = f_malloc(0.to.nproc-1,id='recvdspls')
+         call to_zero(nproc, recvcounts(0))
+         call to_zero(nproc, recvdspls(0))
+         ncount = smat%smmm%istartend_mm_dj(2) - smat%smmm%istartend_mm_dj(1) + 1
+         recvcounts(iproc) = ncount
+         call mpiallred(recvcounts(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+         recvdspls(0) = 0
+         do jproc=1,nproc-1
+             recvdspls(jproc) = recvdspls(jproc-1) + recvcounts(jproc-1)
+         end do
+         ist_send = smat%smmm%istartend_mm_dj(1) - smat%isvctrp_tg
+         call mpi_get_to_allgatherv_double(mat_tg(ist_send), ncount, &
+              mat_global(1), recvcounts, recvdspls, bigdft_mpi%mpi_comm)
+         !!call mpi_allgatherv(mat_tg(ist_send), ncount, mpi_double_precision, &
+         !!                    mat_global(1), recvcounts, recvdspls, mpi_double_precision, &
+         !!                    bigdft_mpi%mpi_comm, ierr)
+         call f_free(recvcounts)
+         call f_free(recvdspls)
+     else
+         call vcopy(smat%nvctrp_tg, mat_tg(1), 1, mat_global(1), 1)
+     end if
+   end subroutine gather_matrix_from_taskgroups
+
+
+   subroutine gather_matrix_from_taskgroups_inplace(iproc, nproc, smat, mat)
+     use module_base
+     use sparsematrix_base, only: sparse_matrix
+     implicit none
+   
+     ! Calling arguments
+     integer,intent(in) :: iproc, nproc
+     type(sparse_matrix),intent(in) :: smat
+     type(matrices),intent(inout) :: mat
+   
+     ! Local variables
+     integer,dimension(:),allocatable :: recvcounts, recvdspls
+     integer :: ncount, ist_send, jproc
+     real(kind=8),dimension(:),allocatable :: mat_global
+   
+     if (nproc>1) then
+         recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
+         recvdspls = f_malloc(0.to.nproc-1,id='recvdspls')
+         call to_zero(nproc, recvcounts(0))
+         call to_zero(nproc, recvdspls(0))
+         ncount = smat%smmm%istartend_mm_dj(2) - smat%smmm%istartend_mm_dj(1) + 1
+         recvcounts(iproc) = ncount
+         call mpiallred(recvcounts(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+         recvdspls(0) = 0
+         do jproc=1,nproc-1
+             recvdspls(jproc) = recvdspls(jproc-1) + recvcounts(jproc-1)
+         end do
+         ist_send = smat%smmm%istartend_mm_dj(1) - smat%isvctrp_tg
+         mat_global = f_malloc(smat%nvctr, id='mat_global')
+         call mpi_get_to_allgatherv_double(mat%matrix_compr(ist_send), ncount, &
+              mat_global(1), recvcounts, recvdspls, bigdft_mpi%mpi_comm)
+         !!call mpi_allgatherv(mat%matrix_compr(ist_send), ncount, mpi_double_precision, &
+         !!                    mat_global(1), recvcounts, recvdspls, mpi_double_precision, &
+         !!                    bigdft_mpi%mpi_comm, ierr)
+         call f_free(recvcounts)
+         call f_free(recvdspls)
+     else
+         call vcopy(smat%nvctrp_tg, mat%matrix_compr(1), 1, mat_global(1), 1)
+     end if
+     call vcopy(smat%nvctrp, mat_global(1), 1, mat%matrix_compr(1), 1)
+     call f_free(mat_global)
+
+   end subroutine gather_matrix_from_taskgroups_inplace
 
 end module sparsematrix

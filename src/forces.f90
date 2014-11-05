@@ -4218,6 +4218,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix, matrices
+  use sparsematrix, only: gather_matrix_from_taskgroups
   use psp_projectors, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
        PSPCODE_PAW
   use yaml_output
@@ -4690,29 +4691,33 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       call f_free(scalprod_recvbuf)
     
     
-      if (nproc>1) then
-          ! The density kernel is distributed over the taskgroups, but here the entire
-          ! array is needed. Therefore gather it together from the taskgroups. If one
-          ! wants to avoid this, the parallelization scheme of the subroutine must be changed.
-          call to_zero(nproc, recvcounts(0))
-          call to_zero(nproc, recvdspls(0))
-          ncount = denskern%smmm%istartend_mm_dj(2) - denskern%smmm%istartend_mm_dj(1) + 1
-          recvcounts(iproc) = ncount
-          call mpiallred(recvcounts(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
-          recvdspls(0) = 0
-          do jproc=1,nproc-1
-              recvdspls(jproc) = recvdspls(jproc-1) + recvcounts(jproc-1)
-          end do
-          ist_send = denskern%smmm%istartend_mm_dj(1)
-          denskern_gathered = f_malloc(denskern%nvctr, id='denskern_gathered')
-          call mpi_get_to_allgatherv_double(denskern_mat%matrix_compr(ist_send), ncount, &
-               denskern_gathered(1), recvcounts, recvdspls, bigdft_mpi%mpi_comm)
-          !!call mpi_allgatherv(denskern_mat%matrix_compr(ist_send), ncount, mpi_double_precision, &
-          !!                    denskern_gathered(1), recvcounts, recvdspls, mpi_double_precision, &
-          !!                    bigdft_mpi%mpi_comm, ierr)
-          call vcopy(denskern%nvctr, denskern_gathered(1), 1, denskern_mat%matrix_compr(1), 1)
-          call f_free(denskern_gathered)
-      end if
+      !!if (nproc>1) then
+      !!    ! The density kernel is distributed over the taskgroups, but here the entire
+      !!    ! array is needed. Therefore gather it together from the taskgroups. If one
+      !!    ! wants to avoid this, the parallelization scheme of the subroutine must be changed.
+      !!    call to_zero(nproc, recvcounts(0))
+      !!    call to_zero(nproc, recvdspls(0))
+      !!    ncount = denskern%smmm%istartend_mm_dj(2) - denskern%smmm%istartend_mm_dj(1) + 1
+      !!    recvcounts(iproc) = ncount
+      !!    call mpiallred(recvcounts(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      !!    recvdspls(0) = 0
+      !!    do jproc=1,nproc-1
+      !!        recvdspls(jproc) = recvdspls(jproc-1) + recvcounts(jproc-1)
+      !!    end do
+      !!    ist_send = denskern%smmm%istartend_mm_dj(1)
+      !!    denskern_gathered = f_malloc(denskern%nvctr, id='denskern_gathered')
+      !!    call mpi_get_to_allgatherv_double(denskern_mat%matrix_compr(ist_send), ncount, &
+      !!         denskern_gathered(1), recvcounts, recvdspls, bigdft_mpi%mpi_comm)
+      !!    !!call mpi_allgatherv(denskern_mat%matrix_compr(ist_send), ncount, mpi_double_precision, &
+      !!    !!                    denskern_gathered(1), recvcounts, recvdspls, mpi_double_precision, &
+      !!    !!                    bigdft_mpi%mpi_comm, ierr)
+      !!    call vcopy(denskern%nvctr, denskern_gathered(1), 1, denskern_mat%matrix_compr(1), 1)
+      !!    call f_free(denskern_gathered)
+      !!end if
+      denskern_gathered = f_malloc(denskern%nvctr, id='denskern_gathered')
+      call gather_matrix_from_taskgroups(iproc, nproc, denskern, denskern_mat%matrix_compr, denskern_gathered)
+      call vcopy(denskern%nvctr, denskern_gathered(1), 1, denskern_mat%matrix_compr(1), 1)
+      call f_free(denskern_gathered)
     
       call f_free(sendcounts)
       call f_free(recvcounts)
@@ -5070,3 +5075,5 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   call f_release_routine()
 
 end subroutine internal_forces
+
+

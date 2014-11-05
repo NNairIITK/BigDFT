@@ -25,7 +25,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use sparsematrix_base, only: matrices, matrices_null, deallocate_matrices, &
                                sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: transform_sparse_matrix, orb_from_index
+  use sparsematrix, only: transform_sparse_matrix, orb_from_index, gather_matrix_from_taskgroups_inplace
   use constrained_dft, only: cdft_data
   use module_fragments, only: system_fragment
   implicit none
@@ -211,6 +211,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
           call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
                tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+          call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
            !write(*,*) 'corr cocontra: sums(ovrlp)', &
            !    sum(tmb%linmat%ovrlp_%matrix_compr(1:tmb%linmat%s%nvctr)), sum(tmb%linmat%ovrlp_%matrix_compr(tmb%linmat%s%nvctr+1:2*tmb%linmat%s%nvctr))
       end if
@@ -238,6 +239,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       tmb%can_use_transposed=.true.
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
            tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+      call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
   end if
 
 
@@ -724,7 +726,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   use module_interfaces, except_this_one => calculate_residue_ks
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                matrices_null, allocate_matrices, deallocate_matrices
-  use sparsematrix, only: uncompress_matrix
+  use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace
   implicit none
 
   ! Calling arguments
@@ -778,6 +780,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
 
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, hpsit_c, hpsit_c, &
        hpsit_f, hpsit_f, tmb%linmat%m, grad_ovrlp_)
+  call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, grad_ovrlp_)
   !! This can then be deleted if the transition to the new type has been completed.
   !grad_ovrlp%matrix_compr=grad_ovrlp_%matrix_compr
 

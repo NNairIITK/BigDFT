@@ -18,7 +18,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   use communications, only: transpose_localized, untranspose_localized
   use sparsematrix_base, only: sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices, &
                                assignment(=), sparsematrix_malloc_ptr, SPARSE_TASKGROUP
-  use sparsematrix, only: compress_matrix, uncompress_matrix
+  use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace
   use foe_base, only: foe_data
   use yaml_output
   implicit none
@@ -71,6 +71,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   ovrlp_ = matrices_null()
   call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
+  call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)
   !!ii=0
   !!do ispin=1,ovrlp%nspin
   !!    do i=1,ovrlp%nvctr
@@ -155,7 +156,8 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
                                assignment(=)
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed, compress_matrix_distributed, &
-                          sequential_acces_matrix_fast2, sparsemm, transform_sparse_matrix, orb_from_index
+                          sequential_acces_matrix_fast2, sparsemm, transform_sparse_matrix, orb_from_index, &
+                          gather_matrix_from_taskgroups_inplace
   implicit none
 
   ! Calling arguments
@@ -224,6 +226,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
 
   ! Calculate <phi_alpha|g_beta>
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
+  call gather_matrix_from_taskgroups_inplace(iproc, nproc, lagmat, lagmat_)
 
   lagmat_large = sparsematrix_malloc(linmat%l, iaction=SPARSE_FULL, id='lagmat_large')
 
@@ -2367,6 +2370,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   use communications, only: transpose_localized, untranspose_localized
   use sparsematrix_base, only: sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix_init, only: matrixindex_in_compressed
+  use sparsematrix, only: gather_matrix_from_taskgroups_inplace
   implicit none
 
   ! Calling arguments
@@ -2426,6 +2430,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   ovrlp_ = matrices_null()
   call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
+  call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)
   ! This can then be deleted if the transition to the new type has been completed.
 
   ! For the "higher" TMBs: delete off-diagonal elements and
@@ -2567,6 +2572,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   use communications, only: transpose_localized, untranspose_localized
   use sparsematrix_base, only: sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix_init, only: matrixindex_in_compressed
+  use sparsematrix, only: gather_matrix_from_taskgroups_inplace
   implicit none
 
   ! Calling arguments
@@ -2622,6 +2628,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   ovrlp_ = matrices_null()
   call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
+  call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)
   ! This can then be deleted if the transition to the new type has been completed.
   !ovrlp%matrix_compr=ovrlp_%matrix_compr
 
