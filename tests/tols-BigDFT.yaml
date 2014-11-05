@@ -121,7 +121,7 @@ SiBulk:
 SiH4:
  #due to lack of functionality in fldiff, since energies field is updated
  Energies: &etol 4.6e-9
- Eion: &eion 3.7e-9
+ Eion: &eion 4.2e-9
  EH: *etol
  EXC: *etol
  Eion: *etol
