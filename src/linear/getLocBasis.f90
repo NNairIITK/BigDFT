@@ -3098,17 +3098,18 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   contains
 
       subroutine retransform_local(mat)
-          use sparsematrix, only: sequential_acces_matrix_fast, sparsemm, &
-               & uncompress_matrix_distributed, compress_matrix_distributed
+          use sparsematrix, only: sequential_acces_matrix_fast2, sparsemm, &
+               uncompress_matrix_distributed2, compress_matrix_distributed, &
+               sequential_acces_matrix_fast
           type(matrices),intent(in) :: mat
           integer :: ncount
 
           call f_routine(id='retransform_local')
 
           call sequential_acces_matrix_fast(tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, kernel_compr_seq)
-          call sequential_acces_matrix_fast(tmb%linmat%l, &
+          call sequential_acces_matrix_fast2(tmb%linmat%l, &
                mat%matrix_compr, inv_ovrlp_compr_seq)
-          call uncompress_matrix_distributed(iproc, tmb%linmat%l, DENSE_MATMUL, &
+          call uncompress_matrix_distributed2(iproc, tmb%linmat%l, DENSE_MATMUL, &
                mat%matrix_compr, inv_ovrlpp)
 
           ncount=tmb%linmat%l%nfvctr*tmb%linmat%l%smmm%nfvctrp
