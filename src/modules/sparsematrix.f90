@@ -681,8 +681,8 @@ module sparsematrix
          end if
      else if (data_strategy==SUBMATRIX) then
          if (layout==DENSE_PARALLEL) then
+             call to_zero(smat%nvctrp_tg, matrix_compr(1))
              if (nfvctrp>0) then
-                 call to_zero(smat%nvctrp_tg, matrix_compr(1))
                  isegstart=smat%istsegline(isfvctr+1)
                  isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
                  !$omp parallel default(none) &
