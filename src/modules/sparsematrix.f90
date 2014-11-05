@@ -30,6 +30,7 @@ module sparsematrix
   public :: sparsemm
   public :: orb_from_index
   public :: gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace
+  public :: extract_taskgroup_inplace
 
   contains
 
@@ -569,8 +570,8 @@ module sparsematrix
     
       ! all elements of the small matrix must have been processed, no matter in
       ! which direction the transformation has been executed
-      if (icheck/=smat%nvctr*smat%nspin) then
-          write(*,'(a,2i8)') 'ERROR: icheck/=smat%nvctr*smat%nspin', icheck, smat%nvctr*smat%nspin
+      if (icheck/=smat%nvctrp_tg*smat%nspin) then
+          write(*,'(a,2i8)') 'ERROR: icheck/=smat%nvctrp_tg*smat%nspin', icheck, smat%nvctrp_tg*smat%nspin
           stop
       end if
 
@@ -1212,5 +1213,22 @@ module sparsematrix
      call f_free(mat_global)
 
    end subroutine gather_matrix_from_taskgroups_inplace
+
+
+   subroutine extract_taskgroup_inplace(smat, mat)
+     implicit none
+   
+     ! Calling arguments
+     type(sparse_matrix),intent(in) :: smat
+     type(matrices),intent(inout) :: mat
+
+     ! Local variables
+     integer :: i
+
+     do i=1,smat%nvctrp_tg
+         mat%matrix_compr(i) = mat%matrix_compr(i+smat%isvctrp_tg)
+     end do
+
+   end subroutine extract_taskgroup_inplace
 
 end module sparsematrix

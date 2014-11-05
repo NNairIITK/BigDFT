@@ -1178,7 +1178,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
        ovrlp_old%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
                                  iaction=SPARSE_FULL, id='ovrlp_old%matrix_compr')
        call compress_matrix_distributed(iproc, nproc, tmb%linmat%s, DENSE_PARALLEL, &
-            ovrlpp, ovrlp_old%matrix_compr(tmb%linmat%s%isvctrp_tg+1:))
+            ovrlpp, ovrlp_old%matrix_compr)
 
        call f_free(ovrlpp)
        ! Calculate S^1/2, as it can not be taken from memory

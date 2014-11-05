@@ -71,7 +71,6 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   ovrlp_ = matrices_null()
   call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
-  call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)
   !!ii=0
   !!do ispin=1,ovrlp%nspin
   !!    do i=1,ovrlp%nvctr
@@ -82,6 +81,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
 
 
   if (methTransformOverlap==-1) then
+      call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)
       call overlap_power_minus_one_half_parallel(iproc, nproc, 0, orbs, ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_(1))
   else
       call overlapPowerGeneral(iproc, nproc, methTransformOverlap, 1, (/-2/), &
@@ -157,7 +157,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed, compress_matrix_distributed, &
                           sequential_acces_matrix_fast2, sparsemm, transform_sparse_matrix, orb_from_index, &
-                          gather_matrix_from_taskgroups_inplace
+                          gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   implicit none
 
   ! Calling arguments
@@ -189,7 +189,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   real(kind=8),dimension(:),allocatable :: tmp_mat_compr, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra
   integer,dimension(:),allocatable :: ipiv
   type(matrices),dimension(1) :: inv_ovrlp_
-  real(8),dimension(:),allocatable :: inv_ovrlp_seq, lagmat_large
+  real(8),dimension(:),allocatable :: inv_ovrlp_seq, lagmat_large, tmpmat, tmparr
   real(8),dimension(:,:),allocatable :: lagmatp, inv_lagmatp
   integer,dimension(2) :: irowcol
   real(kind=8),dimension(:),pointer :: matrix_local
@@ -210,10 +210,15 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   if (calculate_inverse) then
       ! Invert the overlap matrix
       if (iproc==0) call yaml_map('calculation of S^-1','direct calculation')
+      tmparr = sparsematrix_malloc(linmat%s,iaction=SPARSE_FULL,id='tmparr')
+      call vcopy(linmat%s%nvctr, linmat%ovrlp_%matrix_compr(1), 1, tmparr(1), 1)
+      call extract_taskgroup_inplace(linmat%s, linmat%ovrlp_)
       call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, (/1/), -1, &
            imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
            ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=linmat%ovrlppowers_(3), &
            check_accur=.true., max_error=max_error, mean_error=mean_error)
+      call vcopy(linmat%s%nvctr, tmparr(1), 1, linmat%ovrlp_%matrix_compr(1), 1)
+      call f_free(tmparr)
       call check_taylor_order(mean_error, max_inversion_error, norder_taylor)
   else
       if (iproc==0) call yaml_map('calculation of S^-1','from memory')
@@ -492,7 +497,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                           compress_matrix_distributed, &
                           uncompress_matrix_distributed, uncompress_matrix_distributed2, &
                           sequential_acces_matrix_fast2, sequential_acces_matrix_fast, &
-                          sparsemm
+                          sparsemm, gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace
   use yaml_output
   implicit none
   
@@ -529,7 +534,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
   real(kind=8),dimension(:,:),allocatable :: Amat12p, Amat21p, Amat21
   real(kind=8),dimension(:,:),pointer :: Amat12, Amat11p, Amat22p
   real(kind=8),dimension(:),pointer :: Amat12_compr
-  real(kind=8),dimension(:),allocatable :: Amat21_compr, Amat12_seq, Amat21_seq
+  real(kind=8),dimension(:),allocatable :: Amat21_compr, Amat12_seq, Amat21_seq, tmpmat
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
   real(kind=8) :: ex, max_error_p, mean_error_p
@@ -901,7 +906,10 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
           inv_ovrlp_local = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_FULL, id='inv_ovrlp_local')
           do icalc=1,ncalc
               call timing(iproc,'lovrlp^-1     ','OF')
-              call uncompress_matrix(iproc, ovrlp_smat, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_local)
+              tmpmat = sparsematrix_malloc(ovrlp_smat,iaction=SPARSE_FULL,id='tmpmat')
+              call gather_matrix_from_taskgroups(iproc, nproc, ovrlp_smat, ovrlp_mat%matrix_compr, tmpmat)
+              call uncompress_matrix(iproc, ovrlp_smat, inmat=tmpmat, outmat=ovrlp_local)
+              call f_free(tmpmat)
               call timing(iproc,'lovrlp^-1     ','ON')
               do ispin=1,nspin
                   !!write(*,*) 'sum(ovrlp_local(:,:,ispin))',sum(ovrlp_local(:,:,ispin))
@@ -956,7 +964,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
           Amat12_compr=>inv_ovrlp_mat(1)%matrix_compr(1:)
 
           call transform_sparse_matrix2(ovrlp_smat, inv_ovrlp_smat, &
-               ovrlp_mat%matrix_compr(ovrlp_smat%isvctrp_tg+1:), Amat12_compr, 'small_to_large')
+               ovrlp_mat%matrix_compr, Amat12_compr, 'small_to_large')
           Amat12_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='Amat12_seq')
 
           do ispin=1,nspin
@@ -1050,7 +1058,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
       else
           if (iorder<1000) then
               ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlp_large_compr')
-              call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
+              call transform_sparse_matrix2(ovrlp_smat, inv_ovrlp_smat, &
                    ovrlp_mat%matrix_compr, ovrlp_large_compr, 'small_to_large')
 
               ovrlpminonep = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_MATMUL, id='ovrlpminonep')
@@ -1162,7 +1170,12 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
               !!case default
               !!    stop 'wrong power(1)'
               !!end select
+              tmpmat = sparsematrix_malloc(ovrlp_smat,iaction=SPARSE_FULL,id='tmpmat')
+              call vcopy(ovrlp_smat%nvctr, ovrlp_mat%matrix_compr(1), 1, tmpmat(1), 1)
+              call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp_smat, ovrlp_mat)
               call ice(iproc, nproc, iorder-1000, ovrlp_smat, inv_ovrlp_smat, ncalc, power, ovrlp_mat, inv_ovrlp_mat)
+              call vcopy(ovrlp_smat%nvctr, tmpmat(1), 1, ovrlp_mat%matrix_compr(1), 1)
+              call f_free(tmpmat)
               ! #####################################
           end if
       end if
@@ -1172,7 +1185,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
           invovrlpp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_MATMUL, id='invovrlpp')
           if (iorder<1 .or. iorder>=1000) then
               ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlp_large_compr')
-              call transform_sparse_matrix(ovrlp_smat, inv_ovrlp_smat, &
+              call transform_sparse_matrix2(ovrlp_smat, inv_ovrlp_smat, &
                    ovrlp_mat%matrix_compr, ovrlp_large_compr, 'small_to_large')
           end if
           invovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlp_large_compr_seq')
@@ -2368,9 +2381,10 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   use module_interfaces, exceptThisOne => orthonormalize_subset
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, untranspose_localized
-  use sparsematrix_base, only: sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices
+  use sparsematrix_base, only: sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices, &
+                               sparsematrix_malloc, assignment(=), SPARSE_FULL
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: gather_matrix_from_taskgroups_inplace
+  use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   implicit none
 
   ! Calling arguments
@@ -2391,7 +2405,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   integer :: it, istat, iall, iorb, jorb, iat, jat, ii
   logical :: iout, jout
   integer,dimension(:),allocatable :: icount_norb, jcount_norb
-  real(kind=8),dimension(:),allocatable :: psittemp_c, psittemp_f, norm
+  real(kind=8),dimension(:),allocatable :: psittemp_c, psittemp_f, norm, tmparr
   !type(sparse_matrix) :: inv_ovrlp_half
   character(len=*),parameter :: subname='orthonormalize_subset'
   real(kind=8),dimension(:,:),pointer :: inv_ovrlp_null
@@ -2484,12 +2498,17 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
       nullify(inv_ovrlp_null)
       ! do sparse.. check later
       !ovrlp%matrix_compr=ovrlp_%matrix_compr
+      tmparr = sparsematrix_malloc(ovrlp,iaction=SPARSE_FULL,id='tmparr')
+      call vcopy(ovrlp%nvctr, ovrlp_%matrix_compr(1), 1, tmparr(1), 1)
+      call extract_taskgroup_inplace(ovrlp, ovrlp_)
       call overlapPowerGeneral(iproc, nproc, methTransformOverlap, 1, (/-2/), &
            orthpar%blocksize_pdsyev, &
            imode=1, check_accur=.true., &
            ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
            ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
            max_error=max_error, mean_error=mean_error)
+      call vcopy(ovrlp%nvctr, tmparr(1), 1, ovrlp_%matrix_compr(1), 1)
+      call f_free(tmparr)
   end if
 
   ! For the "higher" TMBs: delete off-diagonal elements and

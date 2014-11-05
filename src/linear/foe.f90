@@ -716,9 +716,12 @@ subroutine foe(iproc, nproc, tmprtr, &
       contains
 
         subroutine overlap_minus_onehalf()
+          use sparsematrix_base, only: sparsematrix_malloc, SPARSE_FULL
+          use sparsematrix, only: extract_taskgroup_inplace
           implicit none
           real(kind=8) :: max_error, mean_error
           integer :: i, j, ii
+          real(kind=8),dimension(:),allocatable :: tmparr
 
           call f_routine(id='overlap_minus_onehalf')
 
@@ -739,10 +742,15 @@ subroutine foe(iproc, nproc, tmprtr, &
               !!call compress_matrix(iproc, tmb%linmat%l, inmat=inv_ovrlp%matrix, outmat=inv_ovrlp%matrix_compr)
           end if
           if (imode==SPARSE) then
+              tmparr = sparsematrix_malloc(tmb%linmat%s,iaction=SPARSE_FULL,id='tmparr')
+              call vcopy(tmb%linmat%s%nvctr, tmb%linmat%ovrlp_%matrix_compr(1), 1, tmparr(1), 1)
+              call extract_taskgroup_inplace(tmb%linmat%s, tmb%linmat%ovrlp_)
               call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/-2/), -1, &
                    imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                    ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(2), &
                    check_accur=.true., max_error=max_error, mean_error=mean_error)
+              call vcopy(tmb%linmat%s%nvctr, tmparr(1), 1, tmb%linmat%ovrlp_%matrix_compr(1), 1)
+              call f_free(tmparr)
           end if
           call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 

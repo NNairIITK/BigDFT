@@ -48,6 +48,7 @@ program driver
 !! integer :: i, j, start
   real(kind=4) :: tr0, tr1
   real(kind=8) :: time, time2, tt
+  real(kind=8),dimension(:),allocatable :: tmparr
 !! real(kind=8) :: tmp
   real :: rn
   real(kind=8), external :: ddot, dnrm2
@@ -260,9 +261,14 @@ program driver
           call compress_matrix(iproc, smat_A, inmat=mat_A%matrix, outmat=mat_A%matrix_compr)
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
+          tmparr = f_malloc(smat_A,iaction=SPARSE_FULL,id='tmparr')
+          call vcopy(smat_A%nvctr, mat_A%matrix_compr(1), 1, tmparr(1), 1)
+          call extract_taskgroup_inplace(smat_A, tmb%linmat%ovrlp)
           call overlapPowerGeneral(iproc, nproc, iorder, 1, (/power/), blocksize, &
                imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, ovrlp_mat=mat_A, inv_ovrlp_mat=inv_mat_B, &
                check_accur=.true., max_error=max_error, mean_error=mean_error)
+          call vcopy(smat_A%nvctr, tmparr(1), 1, mat_A%matrix_compr(1), 1)
+          call f_free(tmparr)
                !!foe_nseg=smat_A%nseg, foe_kernel_nsegline=smat_A%nsegline, &
                !!foe_istsegline=smat_A%istsegline, foe_keyg=smat_A%keyg)
            !if (iorder==0) call compress_matrix(iproc, smat_B)
