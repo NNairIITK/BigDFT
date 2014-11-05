@@ -15,9 +15,11 @@ module module_energyandforces
 contains
 !=====================================================================
 subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
+    !IMPORTANT:
     !returns energies in hartree and
     !forces in hartree/bohr
     !(except for LJ)
+    !receives distances in Bohr
     use module_base
     use module_lj
     use module_lenosky_si
@@ -39,18 +41,18 @@ use module_atoms, only: astruct_dump_to_file
     integer :: icc !for amber
     real(gp) :: rxyzint(3,nat)
     real(gp) :: alatint(3)
-character(len=9) :: fn9
+!character(len=9) :: fn9
     if(nat/=fdim)stop 'nat /= fdim'
     ef_counter=ef_counter+1.0_gp
 
-!temporary output for geopt paper
-if (iproc == 0) then
-   write(fn9,'(i9.9)') int(ef_counter)
-   call astruct_dump_to_file(astruct_ptr,&
-        currDir//'/dump_'//fn9, &
-        '',energy=0.0_gp,rxyz=rxyz,&
-        forces=fxyz)
-endif
+!!temporary output for geopt paper
+!if (iproc == 0) then
+!   write(fn9,'(i9.9)') int(ef_counter)
+!   call astruct_dump_to_file(astruct_ptr,&
+!        currDir//'/dump_'//fn9, &
+!        '',energy=0.0_gp,rxyz=rxyz,&
+!        forces=fxyz)
+!endif
 
 
  
@@ -86,39 +88,39 @@ endif
         fxyz(1:3,1:nat)=fxyz(1:3,1:nat)*0.01944690466683907_gp
         fnoise=0.0_gp
         return
-    else if(trim(adjustl(efmethod))=='AMBER')then
-        icc=1
-        !convert from bohr to ansgtroem
-        rxyzint=0.52917721092_gp*rxyz
-        call call_nab_gradient(rxyzint(1,1),fxyz(1,1),epot,icc)
-        epot=epot*0.001593601437458137_gp !from kcal_th/mol to hartree
-                                          !(thermochemical calorie
-                                          !used: 1cal_th=4.184J)
-                                          !also see:
-                          !http://archive.ambermd.org/201009/0039.html
-        !convert from gradient in kcal_th/mol/angstrom to
-        !force in hartree/bohr
-        fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)*0.0008432975639921999_gp
-        fnoise=0.0_gp
-        return
-    else if(trim(adjustl(efmethod))=='AMBEROF')then
-        !convert from bohr to ansgtroem
-        rxyzint=0.52917721092_gp*rxyz
-        open(33,file="posinp.amber")
-        do iat=1,nat
-        write(33,'(3(1x,es24.17))')rxyzint(1,iat),rxyzint(2,iat),rxyzint(3,iat)
-        enddo
-        close(33)
-        
-        call system("./amber.x")
-        
-        open(33,file="posout.amber")
-        read(33,*)epot
-        do iat=1,nat
-        read(33,*)fxyz(1,iat),fxyz(2,iat),fxyz(3,iat)
-        enddo
-        close(33)
-        return
+!    else if(trim(adjustl(efmethod))=='AMBER')then
+!        icc=1
+!        !convert from bohr to ansgtroem
+!        rxyzint=0.52917721092_gp*rxyz
+!        call call_nab_gradient(rxyzint(1,1),fxyz(1,1),epot,icc)
+!        epot=epot*0.001593601437458137_gp !from kcal_th/mol to hartree
+!                                          !(thermochemical calorie
+!                                          !used: 1cal_th=4.184J)
+!                                          !also see:
+!                          !http://archive.ambermd.org/201009/0039.html
+!        !convert from gradient in kcal_th/mol/angstrom to
+!        !force in hartree/bohr
+!        fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)*0.0008432975639921999_gp
+!        fnoise=0.0_gp
+!        return
+!    else if(trim(adjustl(efmethod))=='AMBEROF')then
+!        !convert from bohr to ansgtroem
+!        rxyzint=0.52917721092_gp*rxyz
+!        open(33,file="posinp.amber")
+!        do iat=1,nat
+!        write(33,'(3(1x,es24.17))')rxyzint(1,iat),rxyzint(2,iat),rxyzint(3,iat)
+!        enddo
+!        close(33)
+!        
+!        call system("./amber.x")
+!        
+!        open(33,file="posout.amber")
+!        read(33,*)epot
+!        do iat=1,nat
+!        read(33,*)fxyz(1,iat),fxyz(2,iat),fxyz(3,iat)
+!        enddo
+!        close(33)
+!        return
     else if(trim(adjustl(efmethod))=='BIGDFT')then
         if(nat/=runObj%atoms%astruct%nat)then
             call yaml_warning('nat /= runObj%atoms%astruct%nat in '//&
