@@ -222,7 +222,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call transform_sparse_matrix(tmb%linmat%s, tmb%linmat%m, &
            tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ham_%matrix_compr, 'small_to_large')
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-           tmb%linmat%m, tmb%linmat%ham_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+           tmb%linmat%m, tmb%linmat%ham_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc, 0)
 
       !@END NEW correction for contra / covariant gradient
   end if
@@ -1115,7 +1115,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                TRANSPOSE_FULL, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-               tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
+               tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc, 0)
           ! copy correct kernel back
           do ispin=1,tmb%linmat%l%nspin
               !call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
@@ -1125,7 +1125,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
           call f_free_ptr(kernel_compr_tmp)
       else
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-               tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+               tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc, 0)
       end if
 
       call timing(iproc,'buildgrad_mcpy','OF')

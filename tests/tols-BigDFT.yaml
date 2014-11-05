@@ -41,6 +41,7 @@ Keys to ignore:
  - preconditioning load balancing min/max before
  - preconditioning load balancing min/max after
  - task with max load
+ - nonlocal forces; maximal number of atoms per iteration, number of iterations
  - number of taskgroups
  - taskgroups overview
  #- number of tasks
@@ -596,8 +597,8 @@ fructose:
 geopt_foe:
  D eF: 7.1e-6
  D: 1.e-10
- eF: 2.4e-7
- guess for new ef: 2.4e-7
+ eF: 2.5e-7
+ guess for new ef: 2.5e-7
  Epot: 1.1e-10
  EH: 1.1e-10
  Ekin: 1.1e-10
@@ -1157,5 +1158,5 @@ expfoegeopt:
  EXC: 2.3e-8
  Tr(K): 2.3e-8
  decay length of error function: 1.1e-5
- Omega: 1.5e-11
+ Omega: 1.6e-11
  energy: 1.4e-11

@@ -27,7 +27,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, kernel, ham_compr, &
   real(8),dimension(npl,3,ncalc),intent(in) :: cc
   type(sparse_matrix), intent(in) :: kernel
   real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: ham_compr
-  real(kind=8),dimension(kernel%nvctr),intent(in) :: invovrlp_compr
+  real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: invovrlp_compr
   logical,intent(in) :: calculate_SHS
   real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,ncalc),intent(out) :: fermi
   real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,2),intent(out) :: penalty_ev
@@ -83,7 +83,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, kernel, ham_compr, &
                       ii=ii+1
                       iiorb = kernel%keyg(1,2,iseg)
                       jjorb = jorb
-                      matrix(jjorb,iiorb-kernel%smmm%isfvctr)=invovrlp_compr(ii)
+                      matrix(jjorb,iiorb-kernel%smmm%isfvctr)=invovrlp_compr(ii-kernel%isvctrp_tg)
                       !if (jjorb==iiorb) then
                       !    matrix(jjorb,iiorb-kernel%isfvctr)=1.d0
                       !else
@@ -115,7 +115,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, kernel, ham_compr, &
           call sparsemm(kernel, mat_seq, matrix(1,1), vectors(1,1,1))
           call to_zero(kernel%smmm%nfvctrp*kernel%nfvctr, matrix(1,1))
           ! use mat_seq as workarray
-          call sequential_acces_matrix_fast(kernel, invovrlp_compr, mat_seq)
+          call sequential_acces_matrix_fast2(kernel, invovrlp_compr, mat_seq)
           call sparsemm(kernel, mat_seq, vectors(1,1,1), matrix(1,1))
           !call to_zero(kernel%nvctr, SHS(1))
       end if

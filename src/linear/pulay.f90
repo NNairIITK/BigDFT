@@ -182,7 +182,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       call compress_matrix(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
       call f_free_ptr(tmb%linmat%kernel_%matrix)
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-           tmb%linmat%l, tmb%linmat%kernel_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, .false., hphit_c, hphit_f, iproc)
+           tmb%linmat%l, tmb%linmat%kernel_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, .false., hphit_c, hphit_f, iproc, 0)
       tmb%linmat%kernel_%matrix_compr=denskern_tmp
     
       call f_free(tempmat)

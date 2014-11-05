@@ -3264,7 +3264,7 @@ module module_interfaces
         end subroutine calculate_overlap_transposed
 
         subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork_c, psitwork_f, &
-             reset, psit_c, psit_f, iproc)
+             reset, psit_c, psit_f, iproc, ishift)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
@@ -3279,7 +3279,7 @@ module module_interfaces
           logical,intent(in) :: reset
           real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: psit_c
           real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: psit_f
-          integer, intent(in) :: iproc
+          integer, intent(in) :: iproc, ishift
         end subroutine build_linear_combination_transposed
 
         subroutine axpy_kernel_vectors(norbp, norb, nout, onedimindices, a, x, y)
@@ -3325,7 +3325,7 @@ module module_interfaces
           real(8),dimension(npl,3,ncalc),intent(in) :: cc
           type(sparse_matrix), intent(in) :: kernel
           real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: ham_compr
-          real(kind=8),dimension(kernel%nvctr),intent(in) :: invovrlp_compr
+          real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: invovrlp_compr
           logical,intent(in) :: calculate_SHS
           real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,ncalc),intent(out) :: fermi
           real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,2),intent(out) :: penalty_ev

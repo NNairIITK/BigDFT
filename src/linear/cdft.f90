@@ -604,7 +604,7 @@ call f_free_ptr(tmb%linmat%ovrlp_%matrix)
           call vcopy(7*tmb%ham_descr%collcom%ndimind_f, psitlarge_f(1), 1, hpsittmp_f(1), 1)
 
   call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-       tmb%linmat%m, weight_matrix_, hpsittmp_c, hpsittmp_f, .true., psitlarge_c, psitlarge_f, bigdft_mpi%iproc)
+       tmb%linmat%m, weight_matrix_, hpsittmp_c, hpsittmp_f, .true., psitlarge_c, psitlarge_f, bigdft_mpi%iproc, 0)
 !print*,'2',ddot(tmb%ham_descr%collcom%ndimind_c, psitlarge_c(1), 1, psitlarge_c(1), 1),ddot(7*tmb%ham_descr%collcom%ndimind_f, psitlarge_f(1), 1, psitlarge_f(1), 1)
   call f_free_ptr(hpsittmp_c)
   call f_free_ptr(hpsittmp_f)

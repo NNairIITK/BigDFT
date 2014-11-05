@@ -1364,13 +1364,13 @@ contains
     ! Local variables
     integer :: ierr
 
-    call mpi_wait(request, MPI_STATUSES_IGNORE, ierr)
-    if (ierr/=0) then
-       call f_err_throw('An error in calling to MPI_WAIT occured',&
-            err_id=ERR_MPI_WRAPPERS)
-       return
+    if (request /= MPI_REQUEST_NULL) then
+       call mpi_wait(request, MPI_STATUSES_IGNORE, ierr)
+       if (ierr/=0) then
+          call f_err_throw('An error in calling to MPI_WAIT occured',&
+               err_id=ERR_MPI_WRAPPERS)
+       end if
     end if
-
   end subroutine mpiwait
 
 end module wrapper_MPI
