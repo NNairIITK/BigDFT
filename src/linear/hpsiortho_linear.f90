@@ -26,7 +26,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                                sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL, &
                                sparsematrix_malloc
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: transform_sparse_matrix, orb_from_index, gather_matrix_from_taskgroups_inplace
+  use sparsematrix, only: transform_sparse_matrix, orb_from_index, gather_matrix_from_taskgroups_inplace, &
+                          transform_sparse_matrix2
   use constrained_dft, only: cdft_data
   use module_fragments, only: system_fragment
   implicit none
@@ -212,25 +213,23 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
           call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
                tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
-          call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
-           !write(*,*) 'corr cocontra: sums(ovrlp)', &
-           !    sum(tmb%linmat%ovrlp_%matrix_compr(1:tmb%linmat%s%nvctr)), sum(tmb%linmat%ovrlp_%matrix_compr(tmb%linmat%s%nvctr+1:2*tmb%linmat%s%nvctr))
+          !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
       end if
       call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsittmp_c(1), 1)
       call vcopy(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsittmp_f(1), 1)
 
       ! Transform to the larger sparse region in order to be compatible with tmb%ham_descr%collcom.
       ! To this end use ham_.
-      call transform_sparse_matrix(tmb%linmat%s, tmb%linmat%m, &
+      call transform_sparse_matrix2(tmb%linmat%s, tmb%linmat%m, &
            tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ham_%matrix_compr, 'small_to_large')
 
-      tmparr = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr')
-      call vcopy(tmb%linmat%m%nvctr, tmb%linmat%ham_%matrix_compr(1), 1, tmparr(1), 1)
-      call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
+      !tmparr = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr')
+      !call vcopy(tmb%linmat%m%nvctr, tmb%linmat%ham_%matrix_compr(1), 1, tmparr(1), 1)
+      !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
            tmb%linmat%m, tmb%linmat%ham_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
-      call vcopy(tmb%linmat%m%nvctr, tmparr(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
-      call f_free(tmparr)
+      !call vcopy(tmb%linmat%m%nvctr, tmparr(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
+      !call f_free(tmparr)
 
 
       !@END NEW correction for contra / covariant gradient
@@ -247,7 +246,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       tmb%can_use_transposed=.true.
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
            tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
-      call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
+      !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
   end if
 
 
