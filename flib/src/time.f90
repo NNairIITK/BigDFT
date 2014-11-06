@@ -377,6 +377,9 @@ module time_profiling
          times(ictrl)%clocks(i)=0.d0
       enddo
 
+      !temporary: just dump the present categories
+      !call f_timing_callback()
+
     end subroutine f_timing_checkpoint
 
     subroutine gather_and_dump_results(master,ncat,nnodes,message,clocks,mpi_comm,gather_routine)
@@ -462,7 +465,7 @@ module time_profiling
       integer :: nnodes
       integer(kind=8) :: itns
       type(dictionary), pointer :: dict_tmp
-      !$ integer :: omp_get_max_threads
+!!$      !$ integer :: omp_get_max_threads
 
       !global timer
       itns=f_time()
@@ -535,6 +538,14 @@ module time_profiling
       !Local variables
       integer(kind=8) :: itns
       real(kind=8) :: t1
+      !$ include 'remove_omp-inc.f90'
+      
+      !!$ logical :: in_omp
+      !!$ logical, external :: omp_in_parallel,omp_get_nested
+      !!$ in_omp=omp_in_parallel() .or. omp_get_nested()
+      !!!disable everything if we are into a OMP section
+      !!!timing routines are not thread-safe
+      !!$ if(in_omp) return
 
       !first of all, read the time
       itns=f_time()
@@ -874,6 +885,7 @@ module time_profiling
       end do
       call timing_dump_line('Total',tabfile,total_pc,times(ictrl)%clocks(ncat+1),&
            loads=timeall(ncat+1,0:nextra-1))
+      call yaml_mapping_close() !Classes
       call yaml_mapping_open('Categories',advance='no')
       call yaml_comment('Ordered by time consumption')
       do j=1,ncat
@@ -946,7 +958,7 @@ module time_profiling
 !!!  double precision, dimension(:,:), allocatable :: timecnt 
 !!!  character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
 !!!  type(dictionary), pointer :: dict_info
-!!!  !$ integer :: omp_get_max_threads
+!!!  !$ integer :: omp_cannot intget_max_threads
 !!!
 !!!  ! Not initialised case.
 !!!  if (mpi_comm==MPI_COMM_NULL) return

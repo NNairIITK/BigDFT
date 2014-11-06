@@ -12,8 +12,9 @@
 !> Module determining the Self-Consistent Loop API
 module scfloop_API
 
-  use module_base
-  use module_types
+  use bigdft_run
+!!$  use module_base
+!!$  use module_types
 
   implicit none
 
@@ -44,8 +45,7 @@ end module scfloop_API
 subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred)
   use scfloop_API
   use module_base
-  use module_types
-  use module_interfaces
+  use bigdft_run
 
   implicit none
 
@@ -93,7 +93,7 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
 !!$  close(100+me)
   outs%fxyz => fcart
   scfloop_obj%inputs%inputPsiId = 1
-  call call_bigdft(scfloop_obj,outs,scfloop_nproc,me,infocode)
+  call call_bigdft(scfloop_obj,outs,infocode)
   epot = outs%energy
   nullify(outs%fxyz)
   call deallocate_global_output(outs)
@@ -113,8 +113,8 @@ END SUBROUTINE scfloop_main
 subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel, xred)
   use scfloop_API
   use module_base
-  use module_types
-  use module_interfaces
+  !use module_types
+  use module_atoms, only: astruct_dump_to_file
 
   implicit none
 
@@ -149,8 +149,12 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
 
   write(fn5,'(i5.5)') itime+itime_shift_for_restart
   write(comment,'(a,1pe10.3)')'AB6MD:fnrm= ', sqrt(fnrm)
-  call write_atomic_file(trim(scfloop_obj%inputs%dir_output)//'posmd_'//fn5, &
-       & epot + ekin, xcart, scfloop_obj%atoms%astruct%ixyz_int, scfloop_obj%atoms, trim(comment),forces=fcart)
+  call astruct_dump_to_file(scfloop_obj%atoms%astruct,&
+       trim(scfloop_obj%inputs%dir_output)//'posmd_'//fn5, &
+       trim(comment),&
+       epot + ekin,rxyz=xcart,forces=fcart)
+!!$  call write_atomic_file(trim(scfloop_obj%inputs%dir_output)//'posmd_'//fn5, &
+!!$       & epot + ekin, xcart, scfloop_obj%atoms%astruct%ixyz_int, scfloop_obj%atoms, trim(comment),forces=fcart)
 
   !write velocities
   write(comment,'(a,i6.6)')'Timestep= ',itime+itime_shift_for_restart

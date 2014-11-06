@@ -151,7 +151,6 @@ subroutine scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
    npulay=0
  end if
 
-
 !  Compute the new residual resid_new, from f_fftgr/f_paw(:,:,i_vrespc(1))
 !!$ call sqnormm_v(cplex,i_vrespc(1),mpi_comm,mpi_summarize,1,nfft,resid_new,n_fftgr,nspden,opt_denpot,f_fftgr)
  resid_new(1) = fnrm(f_fftgr(1,1,i_vrespc(1)),cplex,nfft,nspden,opt_denpot,user_data)

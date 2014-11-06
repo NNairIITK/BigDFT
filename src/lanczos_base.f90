@@ -85,7 +85,7 @@ module lanczos_base
       omega = f_malloc_ptr((/ 0.to.LB_nsteps, 0.to.LB_nsteps      /),id='omega')
       evect = f_malloc_ptr((/ 0.to.LB_nsteps-1, 0.to.LB_nsteps-1    /),id='evect')
       LB_eval = f_malloc_ptr(0.to. LB_nsteps-1,id='LB_eval')
-      diagwork = f_malloc_ptr(0.to.LB_nsteps*(3+LB_nsteps+ndebug),id='diagwork')
+      diagwork = f_malloc_ptr(0.to.LB_nsteps*(3+LB_nsteps),id='diagwork')
       oldalpha  = f_malloc_ptr(0.to. LB_nsteps,id='oldalpha ')
 
 

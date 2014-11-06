@@ -18,7 +18,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use module_base
   use module_interfaces, exceptThisOne => inputguessConfinement
   use module_types
-  use gaussians, only: gaussian_basis, deallocate_gwf
+  use gaussians, only: gaussian_basis, deallocate_gwf, nullify_gaussian_basis
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
@@ -52,7 +52,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !real(kind=8), dimension(:,:), allocatable :: aocc
   integer, dimension(:,:), allocatable :: nl_copy 
   integer :: ist,jorb,iadd,ii,jj,ityp,itype,iortho
-  integer :: jlr,iiorb
+  integer :: jlr,iiorb,ispin
   integer :: infoCoeff, jproc
   type(orbitals_data) :: orbs_gauss
   type(GPU_pointers) :: GPUe
@@ -63,7 +63,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   type(mixrhopotDIISParameters) :: mixdiis
   logical :: finished, can_use_ham
   !type(confpot_data), dimension(:), allocatable :: confdatarrtmp
-  integer :: info_basis_functions, order_taylor
+  integer :: info_basis_functions, order_taylor, i, ilr, iii, jjj
   real(kind=8) :: ratio_deltas, trace, trace_old, fnrm_tmb
   logical :: ortho_on, reduce_conf, rho_negative
   type(localizedDIISParameters) :: ldiis
@@ -72,6 +72,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call f_routine(id=subname)
 
   call nullify_orbitals_data(orbs_gauss)
+  call nullify_gaussian_basis(G)
   nullify(mom_vec_fake)
 
   ! Allocate some arrays we need for the input guess.
@@ -160,42 +161,47 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   iiorb=0
   covered=.false.
   if (present(locregcenters)) then
-      do iat=1,at%astruct%nat
-          do iorb=1,norbsPerAt(iat)
-              iiorb=iiorb+1
-              ! Search the corresponding entry in inwhichlocreg
-              do jorb=1,tmb%orbs%norb
-                  if(covered(jorb)) cycle
-                  jlr=tmb%orbs%inwhichlocreg(jorb)
-                  if( tmb%lzd%llr(jlr)%locregCenter(1)==locregcenters(1,iat) .and. &
-                      tmb%lzd%llr(jlr)%locregCenter(2)==locregcenters(2,iat) .and. &
-                      tmb%lzd%llr(jlr)%locregCenter(3)==locregcenters(3,iat) ) then
-                      covered(jorb)=.true.
-                      mapping(iiorb)=jorb
-                      exit
-                  end if
+      do ispin=1,input%nspin
+          do iat=1,at%astruct%nat
+              do iorb=1,norbsPerAt(iat)
+                  iiorb=iiorb+1
+                  ! Search the corresponding entry in inwhichlocreg
+                  do jorb=1,tmb%orbs%norb
+                      if(covered(jorb)) cycle
+                      jlr=tmb%orbs%inwhichlocreg(jorb)
+                      if( tmb%lzd%llr(jlr)%locregCenter(1)==locregcenters(1,iat) .and. &
+                          tmb%lzd%llr(jlr)%locregCenter(2)==locregcenters(2,iat) .and. &
+                          tmb%lzd%llr(jlr)%locregCenter(3)==locregcenters(3,iat) ) then
+                          covered(jorb)=.true.
+                          mapping(iiorb)=jorb
+                          exit
+                      end if
+                  end do
               end do
           end do
       end do
   else
-      do iat=1,at%astruct%nat
-          do iorb=1,norbsPerAt(iat)
-              iiorb=iiorb+1
-              ! Search the corresponding entry in inwhichlocreg
-              do jorb=1,tmb%orbs%norb
-                  if(covered(jorb)) cycle
-                  jlr=tmb%orbs%inwhichlocreg(jorb)
-                  if( tmb%lzd%llr(jlr)%locregCenter(1)==rxyz(1,iat) .and. &
-                      tmb%lzd%llr(jlr)%locregCenter(2)==rxyz(2,iat) .and. &
-                      tmb%lzd%llr(jlr)%locregCenter(3)==rxyz(3,iat) ) then
-                      covered(jorb)=.true.
-                      mapping(iiorb)=jorb
-                      exit
-                  end if
+      do ispin=1,input%nspin
+          do iat=1,at%astruct%nat
+              do iorb=1,norbsPerAt(iat)
+                  iiorb=iiorb+1
+                  ! Search the corresponding entry in inwhichlocreg
+                  do jorb=1,tmb%orbs%norb
+                      if(covered(jorb)) cycle
+                      jlr=tmb%orbs%inwhichlocreg(jorb)
+                      if( tmb%lzd%llr(jlr)%locregCenter(1)==rxyz(1,iat) .and. &
+                          tmb%lzd%llr(jlr)%locregCenter(2)==rxyz(2,iat) .and. &
+                          tmb%lzd%llr(jlr)%locregCenter(3)==rxyz(3,iat) ) then
+                          covered(jorb)=.true.
+                          mapping(iiorb)=jorb
+                          exit
+                      end if
+                  end do
               end do
           end do
       end do
   end if
+
 
   ! Inverse mapping
   do iorb=1,tmb%orbs%norb
@@ -423,8 +429,25 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call wavefunction_dimension(tmb%lzd,orbs_gauss)
   call to_zero(max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%psi(1))
   call gaussians_to_wavelets_new(iproc,nproc,tmb%lzd,orbs_gauss,G,&
-       psigau(1,1,min(tmb%orbs%isorb+1,tmb%orbs%norb)),tmb%psi)
+       psigau(1,1,1),tmb%psi)
+  tmb%can_use_transposed=.false.
 
+  !!ii=0
+  !!do iorb=1,tmb%orbs%norbp
+  !!    iiorb=tmb%orbs%isorb+iorb
+  !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
+  !!    if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+  !!        do i=1,tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!            ii=ii+1
+  !!            write(600,'(a,4i9,es16.7)') 'iorb, iiorb, ilr, i, val', iorb, iiorb, ilr, i, tmb%psi(ii)
+  !!        end do
+  !!    else
+  !!        do i=1,tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!            ii=ii+1
+  !!            write(610,'(a,4i9,es16.7)') 'iorb, iiorb, ilr, i, val', iorb, iiorb, ilr, i, tmb%psi(ii)
+  !!        end do
+  !!    end if
+  !!end do
 
   call f_free_ptr(psigau)
 
@@ -446,7 +469,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   !Put the Density kernel to identity for now
   !call to_zero(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1))
-  call to_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
+  call to_zero(tmb%linmat%l%nvctr*input%nspin, tmb%linmat%kernel_%matrix_compr(1))
   do iorb=1,tmb%orbs%norb
      !ii=matrixindex_in_compressed(tmb%linmat%denskern,iorb,iorb)
      ii=matrixindex_in_compressed(tmb%linmat%l,iorb,iorb)
@@ -459,8 +482,20 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
        tmb%orbs, tmb%psi, tmb%collcom_sr)
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
        denspot%rhov, rho_negative)
+  !!jj=0
+  !!do ispin=1,input%nspin
+  !!    do ii=1,size(denspot%rhov)/input%nspin
+  !!        jj=jj+1
+  !!        jjj=ii+(denspot%dpbox%nscatterarr(iproc,3)-denspot%dpbox%nscatterarr(iproc,4))*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n1i
+  !!        write(9600+10*iproc+ispin,'(a,2i9,es16.5)') 'ii, jjj, val', ii, jjj, denspot%rhov(jj)
+  !!        !if (ispin==2) then
+  !!        !    denspot%rhov(jj)=denspot%rhov(jj-size(denspot%rhov)/input%nspin)
+  !!        !    write(9800+10*iproc+ispin,'(a,i9,es16.5)') 'ii, val', ii, denspot%rhov(jj)
+  !!        !end if
+  !!    end do
+  !!end do
   if (rho_negative) then
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
       !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
@@ -476,7 +511,15 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!stop
 
 
-  if (input%lin%mixing_after_inputguess) then
+  !!jj=0
+  !!do ispin=1,input%nspin
+  !!    do ii=1,size(denspot%rhov)/input%nspin
+  !!        jj=jj+1
+  !!        write(9600+10*iproc+ispin,'(a,i9,es16.5)') 'ii, val', ii, denspot%rhov(jj)
+  !!    end do
+  !!end do
+
+  if (input%lin%mixing_after_inputguess==0 .or.  input%lin%mixing_after_inputguess==1) then
       if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
            .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
           call vcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
@@ -485,9 +528,45 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
                denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                pnrm,denspot%dpbox%nscatterarr)
+          !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+          pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
       end if
   end if
+  !do ii=1,size(denspot%rhov)
+  !    write(9600+iproc,'(a,2i9,es16.5)') 'ii, mod(ii-1,size(denspot%rhov)/2)+1, val', &
+  !        ii, mod(ii-1,size(denspot%rhov)/2)+1, denspot%rhov(ii)
+  !end do
+  !!jj=0
+  !!do ispin=1,input%nspin
+  !!    do ii=1,size(denspot%rhov)/input%nspin
+  !!        jj=jj+1
+  !!        jjj=ii+(denspot%dpbox%nscatterarr(iproc,3)-denspot%dpbox%nscatterarr(iproc,4))*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n1i
+  !!        write(9700+10*iproc+ispin,'(a,2i9,es16.5)') 'ii, jjj, val', ii, jjj, denspot%rhov(jj)
+  !!        !if (ispin==2) then
+  !!        !    denspot%rhov(jj)=denspot%rhov(jj-size(denspot%rhov)/input%nspin)
+  !!        !    write(9800+10*iproc+ispin,'(a,i9,es16.5)') 'ii, val', ii, denspot%rhov(jj)
+  !!        !end if
+  !!    end do
+  !!end do
   call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+
+  !write(9000+iproc,*) denspot%rhov
+  !read(9000+iproc,*) denspot%rhov(1:denspot%dpbox%ndimpot*input%nspin)
+
+  !!write(*,'(a,i7,2i9)') 'iproc, nscatterarr(iproc,3), nscatterarr(iproc,2)', iproc, denspot%dpbox%nscatterarr(iproc,3), denspot%dpbox%nscatterarr(iproc,2)
+  !!jj=0
+  !!do ispin=1,input%nspin
+  !!    do ii=1,denspot%dpbox%ndimpot
+  !!        jj=jj+1
+  !!        jjj=ii+(denspot%dpbox%nscatterarr(iproc,3))*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n1i
+  !!        write(9800+10*iproc+ispin,'(a,2i9,es16.5)') 'ii, jjj, val', ii, jjj, denspot%rhov(jj)
+  !!        !if (ispin==2) then
+  !!        !    denspot%rhov(jj)=denspot%rhov(jj-size(denspot%rhov)/input%nspin)
+  !!        !    write(9800+10*iproc+ispin,'(a,i9,es16.5)') 'ii, val', ii, denspot%rhov(jj)
+  !!        !end if
+  !!    end do
+  !!end do
+  !!write(*,*) 'after first updatePotential'
 
   !!write(*,'(a,4i8)') 'iproc, denspot%dpbox%n3d, denspot%dpbox%n3p, denspot%dpbox%nscatterarr(iproc,2)', &
   !!                    iproc, denspot%dpbox%n3d, denspot%dpbox%n3p, denspot%dpbox%nscatterarr(iproc,2)
@@ -501,7 +580,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!call mpi_finalize(istat)
   !!stop
 
-  if (input%lin%mixing_after_inputguess) then
+  if (input%lin%mixing_after_inputguess==0 .or.  input%lin%mixing_after_inputguess==1) then
       if(input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
           call vcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
           ! initial setting of the old charge density
@@ -509,6 +588,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
                denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
                at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
                pnrm,denspot%dpbox%nscatterarr)
+          !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+          pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
       end if
   end if
   if (input%exctxpar == 'OP2P') energs%eexctX = uninitialized(energs%eexctX)
@@ -551,6 +632,23 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       !minval(tmb%collcom%indexrecvorbital_c),maxval(tmb%collcom%indexrecvorbital_c)
       !!if (iproc==0) write(*,*) 'WARNING: no ortho in inguess'
       methTransformOverlap=-1
+
+      !iii=0
+      !do iorb=1,tmb%orbs%norb
+      !    ilr=tmb%orbs%inwhichlocreg(iorb)
+      !    ii=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      !    if (tmb%orbs%spinsgn(iorb)>0.d0) then
+      !        do i=1,ii
+      !            iii=iii+1
+      !            write(550,*) 'i, iorb, val', i, iorb, tmb%psi(iii)
+      !        end do
+      !    else
+      !        do i=1,ii
+      !            iii=iii+1
+      !            write(551,*) 'i, iorb, val', i, iorb, tmb%psi(iii)
+      !        end do
+      !    end if
+      !end do
       call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, 1.d0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
            tmb%linmat%s, tmb%linmat%l, &
            tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
@@ -689,20 +787,41 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       !call yaml_comment('kernel iter:'//yaml_toa(0,fmt='(i6)'),hfill='-')
   end if
 
+  !!ii=0
+  !!do iorb=1,tmb%orbs%norbp
+  !!    iiorb=tmb%orbs%isorb+iorb
+  !!    ilr=tmb%orbs%inwhichlocreg(iiorb)
+  !!    if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+  !!        do i=1,tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!            ii=ii+1
+  !!            write(1600,'(a,4i9,es16.7)') 'iorb, iiorb, ilr, i, val', iorb, iiorb, ilr, i, tmb%psi(ii)
+  !!        end do
+  !!    else
+  !!        do i=1,tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+  !!            ii=ii+1
+  !!            write(1610,'(a,4i9,es16.7)') 'iorb, iiorb, ilr, i, val', iorb, iiorb, ilr, i, tmb%psi(ii)
+  !!        end do
+  !!    end if
+  !!end do
+
   order_taylor=input%lin%order_taylor ! since this is intent(inout)
   if (input%lin%scf_mode==LINEAR_FOE) then
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
+           input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
   else
+
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
-           input%SIC,tmb,fnrm,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
+           input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
 
-      call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
-      call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
+      !call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
+      ! Keep the ocupations for the moment.. maybe to be activated later (with a better if statement)
+      if (input%Tel > 0.0_gp) then
+          call evaltoocc(iproc,nproc,.false.,input%tel,kswfn%orbs,input%occopt)
+      end if
       if (bigdft_mpi%iproc ==0) then
          call write_eigenvalues_data(0.1d0,kswfn%orbs,mom_vec_fake)
       end if
@@ -722,7 +841,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   end if
 
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, tmb%Lzd%Glr%d%n1i*tmb%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
        denspot%rhov, rho_negative)
   if (rho_negative) then
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
@@ -734,25 +853,37 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!!call plot_density(iproc,nproc,'initial',at,rxyz,denspot%dpbox,input%nspin,denspot%rhov)
 
   ! Mix the density.
-  if (input%lin%mixing_after_inputguess .and. &
-          (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE)) then
-     if (input%experimental_mode) then
-         !if (iproc==0) write(*,*) 'WARNING: TAKE 1.d0 MIXING PARAMETER!'
-         if (iproc==0) call yaml_map('INFO mixing parameter for this step',1.d0)
-         !!call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, 1.d0, &
-         !!     denspot, mixdiis, rhopotold, pnrm)
-         call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
-              denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
-              at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
-              pnrm,denspot%dpbox%nscatterarr)
-     else
-         !!call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
-         !!     denspot, mixdiis, rhopotold, pnrm)
-         call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0-input%lin%alpha_mix_lowaccuracy,denspot%mix,&
-              denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
-              at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
-              pnrm,denspot%dpbox%nscatterarr)
-     end if
+  if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+      if (input%lin%mixing_after_inputguess==1) then
+         !!if (input%experimental_mode) then
+         !!    !if (iproc==0) write(*,*) 'WARNING: TAKE 1.d0 MIXING PARAMETER!'
+         !!    if (iproc==0) call yaml_map('INFO mixing parameter for this step',1.d0)
+         !!    !!call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, 1.d0, &
+         !!    !!     denspot, mixdiis, rhopotold, pnrm)
+         !!    call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
+         !!         denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+         !!         at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+         !!         pnrm,denspot%dpbox%nscatterarr)
+         !!    !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+         !!    pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
+         !!else
+             !!call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
+             !!     denspot, mixdiis, rhopotold, pnrm)
+             call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0-input%lin%alpha_mix_lowaccuracy,denspot%mix,&
+                  denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+                  at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+                  pnrm,denspot%dpbox%nscatterarr)
+             !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+             pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
+         !!end if
+     else if (input%lin%mixing_after_inputguess==0) then
+          ! This will get back the old charge density
+          call vcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, rhopotold(1), 1, denspot%rhov(1), 1)
+          !!call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0,denspot%mix,&
+          !!     denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+          !!     at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+          !!     pnrm,denspot%dpbox%nscatterarr)
+      end if
   end if
 
   if(input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
@@ -762,18 +893,33 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
            denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
            at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
            pnrm,denspot%dpbox%nscatterarr)
+      !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+      pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
   end if
   if (iproc==0) call yaml_newline()
   call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
   if(iproc==0) call yaml_mapping_close()
   ! Mix the potential.
-  if (input%lin%mixing_after_inputguess .and. input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
-     !!call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
-     !!     denspot, mixdiis, rhopotold, pnrm)
-     call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0-input%lin%alpha_mix_lowaccuracy,denspot%mix,&
-          denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
-          at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
-          pnrm,denspot%dpbox%nscatterarr)
+  if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
+      if (input%lin%mixing_after_inputguess==1) then
+         !!call mix_main(iproc, nproc, input%lin%scf_mode, 0, input, tmb%Lzd%Glr, input%lin%alpha_mix_lowaccuracy, &
+         !!     denspot, mixdiis, rhopotold, pnrm)
+         call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0-input%lin%alpha_mix_lowaccuracy,denspot%mix,&
+              denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+              at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+              pnrm,denspot%dpbox%nscatterarr)
+         !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+         pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
+      else if (input%lin%mixing_after_inputguess==0) then
+         ! This will get back the old potential
+         call vcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, rhopotold(1), 1, denspot%rhov(1), 1)
+         !!call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,1.d0,denspot%mix,&
+         !!     denspot%rhov,2,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+         !!     at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
+         !!     pnrm,denspot%dpbox%nscatterarr)
+         !!!SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+         !!pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
+      end if
   end if
 
 
@@ -784,6 +930,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
            denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
            at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
            pnrm,denspot%dpbox%nscatterarr)
+      !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
+      pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
   end if
 
 

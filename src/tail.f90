@@ -11,8 +11,8 @@
 !> Calculate the finite size corrections over wavefunctions
 !! Conceived only for isolated Boundary Conditions, no SIC correction
 subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
-     Glr,nlpsp,ncongt,pot,hgrid,rxyz,radii_cf,crmult,frmult,nspin,&
-     psi,output_denspot,ekin_sum,epot_sum,eproj_sum,proj_G,paw)
+     Glr,nlpsp,ncongt,pot,hgrid,rxyz,crmult,frmult,nspin,&
+     psi,output_denspot,ekin_sum,epot_sum,eproj_sum,paw)
   use module_base
   use module_types
   use yaml_output
@@ -26,12 +26,11 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   integer, intent(in) :: iproc,nproc,ncongt,nspin
   logical, intent(in) :: output_denspot
   real(kind=8), intent(in) :: hgrid,crmult,frmult,rbuf
-  real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
+  !real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
   real(kind=8), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(kind=8), dimension(Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nspin), intent(in) :: pot
   real(kind=8), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%norbp), intent(in) :: psi
   real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
-  type(gaussian_basis),optional,intent(in),dimension(at%astruct%ntypes)::proj_G
   type(paw_objects),optional,intent(inout)::paw
   !local variables
   type(locreg_descriptors) :: lr
@@ -44,8 +43,9 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   type(wavefunctions_descriptors) :: wfdb
   logical, dimension(:,:,:), allocatable :: logrid_c,logrid_f
   integer, dimension(:,:,:), allocatable :: ibbyz_c,ibbyz_f,ibbxz_c,ibbxz_f,ibbxy_c,ibbxy_f
-  real(kind=8), dimension(:,:), allocatable :: txyz,wrkallred
+  real(kind=8), dimension(:,:), allocatable :: wrkallred
   real(kind=8), dimension(:), allocatable :: psib,hpsib,psir
+  real(kind=8), dimension(:,:), pointer :: txyz
   integer, dimension(:), pointer :: keyv
   integer, dimension(:,:), pointer :: keyg
 
@@ -151,7 +151,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   endif
 
   ! change atom coordinates according to the enlarged box
-  txyz = f_malloc((/ 3, at%astruct%nat /),id='txyz')
+  txyz = f_malloc_ptr((/ 3, at%astruct%nat /),id='txyz')
   do iat=1,at%astruct%nat
      txyz(1,iat)=rxyz(1,iat)+real(nbuf,kind=8)*hgrid
      txyz(2,iat)=rxyz(2,iat)+real(nbuf,kind=8)*hgrid
@@ -187,7 +187,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
   ! coarse grid quantities
   call fill_logrid('F',nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,nbuf,at%astruct%nat,at%astruct%ntypes,at%astruct%iatype,txyz, & 
-       radii_cf(1,1),crmult,hgrid,hgrid,hgrid,logrid_c)
+       at%radii_cf(1,1),crmult,hgrid,hgrid,hgrid,logrid_c)
   call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_c,nsegb_c,nvctrb_c)
 
   if (iproc == 0) then
@@ -203,7 +203,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
   ! fine grid quantities
   call fill_logrid('F',nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,0,at%astruct%nat,at%astruct%ntypes,at%astruct%iatype,txyz, & 
-       radii_cf(1,2),frmult,hgrid,hgrid,hgrid,logrid_f)
+       at%radii_cf(1,2),frmult,hgrid,hgrid,hgrid,logrid_f)
   call num_segkeys(nb1,nb2,nb3,0,nb1,0,nb2,0,nb3,logrid_f,nsegb_f,nvctrb_f)
   if (iproc == 0) then
      !Bug in yaml_output solved
@@ -343,6 +343,9 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   call orbitals_descriptors(0,1,1,1,0,1,1,1, &
        reshape((/0._gp,0._gp,0._gp/),(/3,1/)),(/1._gp /),orbsb,.false.)
 
+  !change positions in gaussian projectors
+  nlpsp%proj_G%rxyz => txyz
+
   do iorb=1,orbs%norbp
 
      !build the compressed wavefunction in the enlarged box
@@ -381,7 +384,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
         if (DistProjApply) then
            if(any(at%npspcode == 7)) then
              call applyprojectorsonthefly(0,orbsb,at,lr,&
-                  txyz,hgrid,hgrid,hgrid,wfdb,nlpsp,psib,hpsib,eproj,proj_G,paw)
+                  txyz,hgrid,hgrid,hgrid,wfdb,nlpsp,psib,hpsib,eproj,paw)
            else
              call applyprojectorsonthefly(0,orbsb,at,lr,&
                   txyz,hgrid,hgrid,hgrid,wfdb,nlpsp,psib,hpsib,eproj)
@@ -463,7 +466,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   end if
   call deallocate_orbs(orbsb)
 
-  call f_free(txyz)
+  call f_free_ptr(txyz)
   call f_free(psir)
   call f_free(psib)
   call f_free(hpsib)

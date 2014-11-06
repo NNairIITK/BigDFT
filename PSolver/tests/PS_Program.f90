@@ -15,7 +15,6 @@
 program PSolver_Program
   use Poisson_Solver
   use wrapper_mpi
-  use memory_profiling, only: memocc
   use time_profiling
   use dynamic_memory
   implicit none
@@ -61,6 +60,8 @@ program PSolver_Program
   !mode="monopolar"
   mode="zigzag_model_wire"
     
+
+  call f_lib_initialize()
 
   !Use arguments
   call get_command_argument(1,chain)
@@ -315,7 +316,7 @@ program PSolver_Program
 !!$     end do
 !!$  end do
 !!$  close(65)
-  call pkernel_free(karray,subname)
+  call pkernel_free(karray)
 !!$  i_all=-product(shape(karray))*kind(karray)
 !!$  deallocate(karray,stat=i_stat)
 !!$  call memocc(i_stat,i_all,'karray',subname)
@@ -385,7 +386,7 @@ program PSolver_Program
 !!$             rhopot,karray%kernel,pot_ion,eh,exc,vxc,offset,.true.,1,alpha,beta,gamma)
         
      end if
-     call pkernel_free(karray,subname)
+     call pkernel_free(karray)
 !!$     i_all=-product(shape(karray))*kind(karray)
 !!$     deallocate(karray,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'karray',subname)
@@ -471,8 +472,7 @@ program PSolver_Program
      call f_free(pot_ion)
   end if
 
-  !finalize memory counting
-  call memocc(0,0,'count','stop')
+  call f_lib_finalize()
 
   call MPI_FINALIZE(ierr)
 

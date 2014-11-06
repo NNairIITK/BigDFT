@@ -33,7 +33,8 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   logical :: perx,pery,perz,halffty,cplx
   !Maximum number of points for FFT (should be same number in fft3d routine)
   integer :: ncache,lzt,lot,nfft,ic1,ic2,ic3,Jp2stb,J2stb,Jp2stf,J2stf
-  integer :: j2,j3,i1,i3,i,j,inzee,ierr,i_all,i_stat,n1dim,n2dim,n3dim,ntrig
+  integer :: j2,j3,i1,i3,i,j,inzee,ierr,n1dim,n2dim,n3dim,ntrig, i_stat
+  !integer :: i_all
   real(kind=8) :: twopion
   !work arrays for transpositions
   real(kind=8), dimension(:,:,:), allocatable :: zt
@@ -46,13 +47,15 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   !FFT work arrays
   real(kind=8), dimension(:,:), allocatable :: btrig1,btrig2,btrig3
   real(kind=8), dimension(:,:), allocatable :: ftrig1,ftrig2,ftrig3,cosinarr
-  integer, dimension(:), allocatable :: after1,now1,before1
-  integer, dimension(:), allocatable :: after2,now2,before2,after3,now3,before3
+  integer, dimension(7) :: after1,now1,before1
+  integer, dimension(7) :: after2,now2,before2,after3,now3,before3
   real(gp), dimension(6) :: strten_omp
   !integer :: ncount0,ncount1,ncount_max,ncount_rate
 
   integer :: maxIter
   integer :: n3pr1,n3pr2,j1start,n1p,n2dimp
+
+  call f_routine(id='G_PoissonSolver')
 
   !Initialize stress tensor no matter of the BC
   !call to_zero(6,strten(1))
@@ -147,19 +150,19 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   !Allocations
   btrig1 = f_malloc((/ 2, ntrig /),id='btrig1')
   ftrig1 = f_malloc((/ 2, ntrig /),id='ftrig1')
-  after1 = f_malloc(7,id='after1')
-  now1 = f_malloc(7,id='now1')
-  before1 = f_malloc(7,id='before1')
+!  after1 = f_malloc(7,id='after1')
+!  now1 = f_malloc(7,id='now1')
+!  before1 = f_malloc(7,id='before1')
   btrig2 = f_malloc((/ 2, ntrig /),id='btrig2')
   ftrig2 = f_malloc((/ 2, ntrig /),id='ftrig2')
-  after2 = f_malloc(7,id='after2')
-  now2 = f_malloc(7,id='now2')
-  before2 = f_malloc(7,id='before2')
+!  after2 = f_malloc(7,id='after2')
+!  now2 = f_malloc(7,id='now2')
+!  before2 = f_malloc(7,id='before2')
   btrig3 = f_malloc((/ 2, ntrig /),id='btrig3')
   ftrig3 = f_malloc((/ 2, ntrig /),id='ftrig3')
-  after3 = f_malloc(7,id='after3')
-  now3 = f_malloc(7,id='now3')
-  before3 = f_malloc(7,id='before3')
+!  after3 = f_malloc(7,id='after3')
+!  now3 = f_malloc(7,id='now3')
+!  before3 = f_malloc(7,id='before3')
   !allocate(zw(2,ncache/4,2+ndebug),stat=i_stat)
   !call memocc(i_stat,zw,'zw',subname)
   !allocate(zt(2,lzt,n1+ndebug),stat=i_stat)
@@ -587,19 +590,19 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   !De-allocations  
   call f_free(btrig1)
   call f_free(ftrig1)
-  call f_free(after1)
-  call f_free(now1)
-  call f_free(before1)
+!  call f_free(after1)
+!  call f_free(now1)
+!  call f_free(before1)
   call f_free(btrig2)
   call f_free(ftrig2)
-  call f_free(after2)
-  call f_free(now2)
-  call f_free(before2)
+!  call f_free(after2)
+!  call f_free(now2)
+!  call f_free(before2)
   call f_free(btrig3)
   call f_free(ftrig3)
-  call f_free(after3)
-  call f_free(now3)
-  call f_free(before3)
+!  call f_free(after3)
+!  call f_free(now3)
+!  call f_free(before3)
   call f_free(zmpi2)
   !i_all=-product(shape(zw))*kind(zw)
   !deallocate(zw,stat=i_stat)
@@ -615,6 +618,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
      call f_free(zmpi1)
   end if
   call f_timing(TCAT_PSOLV_COMPUT,'OF')
+  call f_release_routine()
   !call system_clock(ncount1,ncount_rate,ncount_max)
   !write(*,*) 'TIMING:PS ', real(ncount1-ncount0)/real(ncount_rate)
 END SUBROUTINE G_PoissonSolver

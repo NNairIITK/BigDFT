@@ -137,88 +137,117 @@ module communications
 
 
 
-    subroutine transpose_communicate_psi(iproc, nproc, collcom, psiwork_c, psiwork_f, psitwork_c, psitwork_f)
-      use module_base, only: bigdft_mpi, mpi_double_precision
-      use dynamic_memory
+    subroutine transpose_communicate_psi(iproc, nproc, collcom, transpose_action, &
+               psiwork_c, psiwork_f, wt, psitwork_c, psitwork_f)
+      use module_base
+      use communications_base, only: work_transpose, TRANSPOSE_FULL, TRANSPOSE_POST, &
+                                     TRANSPOSE_GATHER, ERR_LINEAR_TRANSPOSITION
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, transpose_action
       type(comms_linear),intent(in) :: collcom
       real(kind=8),dimension(collcom%ndimpsi_c),intent(in) :: psiwork_c
       real(kind=8),dimension(7*collcom%ndimpsi_f),intent(in) :: psiwork_f
+      type(work_transpose),intent(inout) :: wt
       real(kind=8),dimension(collcom%ndimind_c),intent(out) :: psitwork_c
       real(kind=8),dimension(7*collcom%ndimind_f),intent(out) :: psitwork_f
       
       ! Local variables
-      integer :: ierr
-      real(kind=8),dimension(:),allocatable :: psiwork, psitwork
-      integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
-      character(len=*),parameter :: subname='transpose_communicate_psi'
+      integer :: ierr, ist, ist_c, ist_f, iisend, iirecv, jproc
+      !!real(kind=8),dimension(:),allocatable :: psiwork, psitwork
+      !!integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
+      !!character(len=*),parameter :: subname='transpose_communicate_psi'
     
       !call mpi_comm_size(bigdft_mpi%mpi_comm, nproc, ierr)
       !call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, ierr)
     
-      psiwork = f_malloc(collcom%ndimpsi_c+7*collcom%ndimpsi_f,id='psiwork')
-      psitwork = f_malloc(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),id='psitwork')
-      nsendcounts = f_malloc(0.to.nproc-1,id='nsendcounts')
-      nsenddspls = f_malloc(0.to.nproc-1,id='nsenddspls')
-      nrecvcounts = f_malloc(0.to.nproc-1,id='nrecvcounts')
-      nrecvdspls = f_malloc(0.to.nproc-1,id='nrecvdspls')
+      if (transpose_action == TRANSPOSE_FULL .or. &
+          transpose_action == TRANSPOSE_POST) then
+          wt%psiwork = f_malloc_ptr(max(collcom%ndimpsi_c+7*collcom%ndimpsi_f,1),id='wt%psiwork')
+          wt%psitwork = f_malloc_ptr(max(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),1),id='wt%psitwork')
+          wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
+          wt%nsenddspls = f_malloc_ptr(0.to.nproc-1,id='wt%nsenddspls')
+          wt%nrecvcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvcounts')
+          wt%nrecvdspls = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvdspls')
     
-      !!ist=1
-      !!ist_c=1
-      !!ist_f=1
-      !!iisend=0
-      !!iirecv=0
-      !!do jproc=0,nproc-1
-      !!    if(collcom%nsendcounts_c(jproc)>0) call vcopy(collcom%nsendcounts_c(jproc), psiwork_c(ist_c), 1, psiwork(ist), 1)
-      !!    ist_c=ist_c+collcom%nsendcounts_c(jproc)
-      !!    ist=ist+collcom%nsendcounts_c(jproc)
-      !!    if(collcom%nsendcounts_f(jproc)>0) call vcopy(7*collcom%nsendcounts_f(jproc), psiwork_f(ist_f), 1, psiwork(ist), 1)
-      !!    ist_f=ist_f+7*collcom%nsendcounts_f(jproc)
-      !!    ist=ist+7*collcom%nsendcounts_f(jproc)
-      !!    nsendcounts(jproc)=collcom%nsendcounts_c(jproc)+7*collcom%nsendcounts_f(jproc)
-      !!    nsenddspls(jproc)=iisend
-      !!    nrecvcounts(jproc)=collcom%nrecvcounts_c(jproc)+7*collcom%nrecvcounts_f(jproc)
-      !!    nrecvdspls(jproc)=iirecv
-      !!    iisend=iisend+nsendcounts(jproc)
-      !!    iirecv=iirecv+nrecvcounts(jproc)
-      !!end do
+          ist=1
+          ist_c=1
+          ist_f=1
+          iisend=0
+          iirecv=0
+          do jproc=0,nproc-1
+              if(collcom%nsendcounts_c(jproc)>0) then
+                  call vcopy(collcom%nsendcounts_c(jproc), psiwork_c(ist_c), 1, wt%psiwork(ist), 1)
+              end if
+              ist_c=ist_c+collcom%nsendcounts_c(jproc)
+              ist=ist+collcom%nsendcounts_c(jproc)
+              if(collcom%nsendcounts_f(jproc)>0) then
+                  call vcopy(7*collcom%nsendcounts_f(jproc), psiwork_f(ist_f), 1, wt%psiwork(ist), 1)
+              end if
+              ist_f=ist_f+7*collcom%nsendcounts_f(jproc)
+              ist=ist+7*collcom%nsendcounts_f(jproc)
+              wt%nsendcounts(jproc)=collcom%nsendcounts_c(jproc)+7*collcom%nsendcounts_f(jproc)
+              wt%nsenddspls(jproc)=iisend
+              wt%nrecvcounts(jproc)=collcom%nrecvcounts_c(jproc)+7*collcom%nrecvcounts_f(jproc)
+              wt%nrecvdspls(jproc)=iirecv
+              iisend=iisend+wt%nsendcounts(jproc)
+              iirecv=iirecv+wt%nrecvcounts(jproc)
+          end do
     
-      !write(*,'(a,i4,4x,100i8)') 'iproc, nsendcounts', iproc, nsendcounts
-      !write(*,'(a,i4,4x,100i8)') 'iproc, nsenddspls', iproc, nsenddspls
-      !write(*,'(a,i4,4x,100i8)') 'iproc, nrecvcounts', iproc, nrecvcounts
-      !write(*,'(a,i4,4x,100i8)') 'iproc, nrecvdspls', iproc, nrecvdspls
-      
-      ! coarse part
-      call mpi_alltoallv(psiwork_c, collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, psitwork_c, &
-           collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-      
-      ! fine part
-      call mpi_alltoallv(psiwork_f, 7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, psitwork_f, &
-           7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-      !!call mpi_alltoallv(psiwork, nsendcounts, nsenddspls, mpi_double_precision, psitwork, &
-      !!     nrecvcounts, nrecvdspls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+          !write(*,'(a,i4,4x,100i8)') 'iproc, nsendcounts', iproc, nsendcounts
+          !write(*,'(a,i4,4x,100i8)') 'iproc, nsenddspls', iproc, nsenddspls
+          !write(*,'(a,i4,4x,100i8)') 'iproc, nrecvcounts', iproc, nrecvcounts
+          !write(*,'(a,i4,4x,100i8)') 'iproc, nrecvdspls', iproc, nrecvdspls
+          
+          !!! coarse part
+          !!call mpi_alltoallv(psiwork_c, collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, psitwork_c, &
+          !!     collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+          !!
+          !!! fine part
+          !!call mpi_alltoallv(psiwork_f, 7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, psitwork_f, &
+          !!     7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+          !!call mpi_alltoallv(wt%psiwork, wt%nsendcounts, wt%nsenddspls, mpi_double_precision, wt%psitwork, &
+          !!     wt%nrecvcounts, wt%nrecvdspls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+          if (nproc>1) then
+              call mpiialltoallv(wt%psiwork(1), wt%nsendcounts(0), wt%nsenddspls(0), mpi_double_precision, wt%psitwork(1), &
+                   wt%nrecvcounts(0), wt%nrecvdspls(0), mpi_double_precision, bigdft_mpi%mpi_comm, wt%request)
+          else
+              call vcopy(wt%nsendcounts(0), wt%psiwork(1), 1, wt%psitwork(1), 1)
+              wt%request = MPI_REQUEST_NULL
+          end if
+      end if
     
-      !!ist=1
-      !!ist_c=1
-      !!ist_f=1
-      !!do jproc=0,nproc-1
-      !!    if(collcom%nrecvcounts_c(jproc)>0) call vcopy(collcom%nrecvcounts_c(jproc), psitwork(ist), 1, psitwork_c(ist_c), 1)
-      !!    ist_c=ist_c+collcom%nrecvcounts_c(jproc)
-      !!    ist=ist+collcom%nrecvcounts_c(jproc)
-      !!    if(collcom%nrecvcounts_f(jproc)>0) call vcopy(7*collcom%nrecvcounts_f(jproc), psitwork(ist), 1, psitwork_f(ist_f), 1)
-      !!    ist_f=ist_f+7*collcom%nrecvcounts_f(jproc)
-      !!    ist=ist+7*collcom%nrecvcounts_f(jproc)
-      !!end do
+      if (transpose_action == TRANSPOSE_FULL .or. &
+          transpose_action == TRANSPOSE_GATHER) then
+
+          if (nproc>1) then
+              call mpiwait(wt%request)
+          end if
+
+          ist=1
+          ist_c=1
+          ist_f=1
+          do jproc=0,nproc-1
+              if(collcom%nrecvcounts_c(jproc)>0) then
+                  call vcopy(collcom%nrecvcounts_c(jproc), wt%psitwork(ist), 1, psitwork_c(ist_c), 1)
+              end if
+              ist_c=ist_c+collcom%nrecvcounts_c(jproc)
+              ist=ist+collcom%nrecvcounts_c(jproc)
+              if(collcom%nrecvcounts_f(jproc)>0) then
+                  call vcopy(7*collcom%nrecvcounts_f(jproc), wt%psitwork(ist), 1, psitwork_f(ist_f), 1)
+              end if
+              ist_f=ist_f+7*collcom%nrecvcounts_f(jproc)
+              ist=ist+7*collcom%nrecvcounts_f(jproc)
+          end do
     
-      call f_free(psiwork)
-      call f_free(psitwork)
-      call f_free(nsendcounts)
-      call f_free(nsenddspls)
-      call f_free(nrecvcounts)
-      call f_free(nrecvdspls)
+          call f_free_ptr(wt%psiwork)
+          call f_free_ptr(wt%psitwork)
+          call f_free_ptr(wt%nsendcounts)
+          call f_free_ptr(wt%nsenddspls)
+          call f_free_ptr(wt%nrecvcounts)
+          call f_free_ptr(wt%nrecvdspls)
+      end if
     
     
     end subroutine transpose_communicate_psi
@@ -355,21 +384,25 @@ module communications
 
 
 
-    subroutine transpose_communicate_psit(iproc, nproc, collcom, psitwork_c, psitwork_f, psiwork_c, psiwork_f)
-      use module_base, only: bigdft_mpi, mpi_double_precision
+    subroutine transpose_communicate_psit(iproc, nproc, collcom, transpose_action, &
+               psitwork_c, psitwork_f, wt, psiwork_c, psiwork_f)
+      use module_base
+      use communications_base, only: work_transpose, TRANSPOSE_FULL, TRANSPOSE_POST, &
+                                     TRANSPOSE_GATHER, ERR_LINEAR_TRANSPOSITION
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, transpose_action
       type(comms_linear),intent(in) :: collcom
       real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psitwork_c
       real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psitwork_f
+      type(work_transpose),intent(inout) :: wt
       real(kind=8),dimension(collcom%ndimpsi_c),intent(out) :: psiwork_c
       real(kind=8),dimension(7*collcom%ndimpsi_f),intent(out) :: psiwork_f
       
       ! Local variables
       integer :: ierr
-      !!integer :: iall, ist, ist_c, ist_f, jproc, iisend, iirecv, istat
+      integer :: ist, ist_c, ist_f, jproc, iisend, iirecv
       !!real(kind=8),dimension(:),allocatable :: psiwork, psitwork
       !!integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
       !!character(len=*),parameter :: subname='transpose_communicate_psit'
@@ -377,80 +410,86 @@ module communications
       !call mpi_comm_size(bigdft_mpi%mpi_comm, nproc, ierr)
       !call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, ierr)
     
-      !!allocate(psiwork(collcom%ndimpsi_c+7*collcom%ndimpsi_f), stat=istat)
-      !!call memocc(istat, psiwork, 'psiwork', subname)
-      !!allocate(psitwork(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f)), stat=istat)
-      !!call memocc(istat, psitwork, 'psitwork', subname)
-      !!allocate(nsendcounts(0:nproc-1), stat=istat)
-      !!call memocc(istat, nsendcounts, 'nsendcounts', subname)
-      !!allocate(nsenddspls(0:nproc-1), stat=istat)
-      !!call memocc(istat, nsenddspls, 'nsenddspls', subname)
-      !!allocate(nrecvcounts(0:nproc-1), stat=istat)
-      !!call memocc(istat, nrecvcounts, 'nrecvcounts', subname)
-      !!allocate(nrecvdspls(0:nproc-1), stat=istat)
-      !!call memocc(istat, nrecvdspls, 'nrecvdspls', subname)
+      if (transpose_action == TRANSPOSE_FULL .or. &
+          transpose_action == TRANSPOSE_POST) then
+          wt%psiwork = f_malloc_ptr(max(collcom%ndimpsi_c+7*collcom%ndimpsi_f,1),id='wt%psiwork')
+          wt%psitwork = f_malloc_ptr(max(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),1),id='wt%psitwork')
+          wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
+          wt%nsenddspls = f_malloc_ptr(0.to.nproc-1,id='wt%nsenddspls')
+          wt%nrecvcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvcounts')
+          wt%nrecvdspls = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvdspls')
     
-      !!ist=1
-      !!ist_c=1
-      !!ist_f=1
-      !!iisend=0
-      !!iirecv=0
-      !!do jproc=0,nproc-1
-      !!    if(collcom%nrecvcounts_c(jproc)>0) call vcopy(collcom%nrecvcounts_c(jproc), psitwork_c(ist_c), 1, psitwork(ist), 1)
-      !!    ist_c=ist_c+collcom%nrecvcounts_c(jproc)
-      !!    ist=ist+collcom%nrecvcounts_c(jproc)
-      !!    if(collcom%nrecvcounts_f(jproc)>0) call vcopy(7*collcom%nrecvcounts_f(jproc), psitwork_f(ist_f), 1, psitwork(ist), 1)
-      !!    ist_f=ist_f+7*collcom%nrecvcounts_f(jproc)
-      !!    ist=ist+7*collcom%nrecvcounts_f(jproc)
-      !!    nsendcounts(jproc)=collcom%nsendcounts_c(jproc)+7*collcom%nsendcounts_f(jproc)
-      !!    nsenddspls(jproc)=iisend
-      !!    nrecvcounts(jproc)=collcom%nrecvcounts_c(jproc)+7*collcom%nrecvcounts_f(jproc)
-      !!    nrecvdspls(jproc)=iirecv
-      !!    iisend=iisend+nsendcounts(jproc)
-      !!    iirecv=iirecv+nrecvcounts(jproc)
-      !!end do
+          ist=1
+          ist_c=1
+          ist_f=1
+          iisend=0
+          iirecv=0
+          do jproc=0,nproc-1
+              if(collcom%nrecvcounts_c(jproc)>0) then
+                  call vcopy(collcom%nrecvcounts_c(jproc), psitwork_c(ist_c), 1, wt%psitwork(ist), 1)
+              end if
+              ist_c=ist_c+collcom%nrecvcounts_c(jproc)
+              ist=ist+collcom%nrecvcounts_c(jproc)
+              if(collcom%nrecvcounts_f(jproc)>0) then
+                  call vcopy(7*collcom%nrecvcounts_f(jproc), psitwork_f(ist_f), 1, wt%psitwork(ist), 1)
+              end if
+              ist_f=ist_f+7*collcom%nrecvcounts_f(jproc)
+              ist=ist+7*collcom%nrecvcounts_f(jproc)
+              wt%nsendcounts(jproc)=collcom%nsendcounts_c(jproc)+7*collcom%nsendcounts_f(jproc)
+              wt%nsenddspls(jproc)=iisend
+              wt%nrecvcounts(jproc)=collcom%nrecvcounts_c(jproc)+7*collcom%nrecvcounts_f(jproc)
+              wt%nrecvdspls(jproc)=iirecv
+              iisend=iisend+wt%nsendcounts(jproc)
+              iirecv=iirecv+wt%nrecvcounts(jproc)
+          end do
+      end if
     
     
-      ! coarse part
-       call mpi_alltoallv(psitwork_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, psiwork_c, &
-            collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+      !!! coarse part
+      !! call mpi_alltoallv(psitwork_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, psiwork_c, &
+      !!      collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
     
-      ! fine part
-       call mpi_alltoallv(psitwork_f, 7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, psiwork_f, &
-            7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-      !!call mpi_alltoallv(psitwork, nrecvcounts, nrecvdspls, mpi_double_precision, psiwork, &
-      !!     nsendcounts, nsenddspls, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+      !!! fine part
+      !! call mpi_alltoallv(psitwork_f, 7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, psiwork_f, &
+      !!      7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+      if (nproc>1) then
+          call mpiialltoallv(wt%psitwork(1), wt%nrecvcounts(0), wt%nrecvdspls(0), mpi_double_precision, wt%psiwork(1), &
+               wt%nsendcounts(0), wt%nsenddspls(0), mpi_double_precision, bigdft_mpi%mpi_comm, wt%request)
+      else
+          call vcopy(wt%nrecvcounts(0), wt%psitwork(1), 1, wt%psiwork(1), 1)
+          wt%request = MPI_REQUEST_NULL
+      end if
     
-      !!ist=1
-      !!ist_c=1
-      !!ist_f=1
-      !!do jproc=0,nproc-1
-      !!    if(collcom%nsendcounts_c(jproc)>0) call vcopy(collcom%nsendcounts_c(jproc), psiwork(ist), 1, psiwork_c(ist_c), 1)
-      !!    ist_c=ist_c+collcom%nsendcounts_c(jproc)
-      !!    ist=ist+collcom%nsendcounts_c(jproc)
-      !!    if(collcom%nsendcounts_f(jproc)>0) call vcopy(7*collcom%nsendcounts_f(jproc), psiwork(ist), 1, psiwork_f(ist_f), 1)
-      !!    ist_f=ist_f+7*collcom%nsendcounts_f(jproc)
-      !!    ist=ist+7*collcom%nsendcounts_f(jproc)
-      !!end do
+      if (transpose_action == TRANSPOSE_FULL .or. &
+          transpose_action == TRANSPOSE_GATHER) then
+
+          if (nproc>1) then
+              call mpiwait(wt%request)
+          end if
+
+          ist=1
+          ist_c=1
+          ist_f=1
+          do jproc=0,nproc-1
+              if(collcom%nsendcounts_c(jproc)>0) then
+                  call vcopy(collcom%nsendcounts_c(jproc), wt%psiwork(ist), 1, psiwork_c(ist_c), 1)
+              end if
+              ist_c=ist_c+collcom%nsendcounts_c(jproc)
+              ist=ist+collcom%nsendcounts_c(jproc)
+              if(collcom%nsendcounts_f(jproc)>0) then
+                  call vcopy(7*collcom%nsendcounts_f(jproc), wt%psiwork(ist), 1, psiwork_f(ist_f), 1)
+              end if
+              ist_f=ist_f+7*collcom%nsendcounts_f(jproc)
+              ist=ist+7*collcom%nsendcounts_f(jproc)
+          end do
     
-      !!iall=-product(shape(psiwork))*kind(psiwork)
-      !!deallocate(psiwork, stat=istat)
-      !!call memocc(istat, iall, 'psiwork', subname)
-      !!iall=-product(shape(psitwork))*kind(psitwork)
-      !!deallocate(psitwork, stat=istat)
-      !!call memocc(istat, iall, 'psitwork', subname)
-      !!iall=-product(shape(nsendcounts))*kind(nsendcounts)
-      !!deallocate(nsendcounts, stat=istat)
-      !!call memocc(istat, iall, 'nsendcounts', subname)
-      !!iall=-product(shape(nsenddspls))*kind(nsenddspls)
-      !!deallocate(nsenddspls, stat=istat)
-      !!call memocc(istat, iall, 'nsenddspls', subname)
-      !!iall=-product(shape(nrecvcounts))*kind(nrecvcounts)
-      !!deallocate(nrecvcounts, stat=istat)
-      !!call memocc(istat, iall, 'nrecvcounts', subname)
-      !!iall=-product(shape(nrecvdspls))*kind(nrecvdspls)
-      !!deallocate(nrecvdspls, stat=istat)
-      !!call memocc(istat, iall, 'nrecvdspls', subname)
+          call f_free_ptr(wt%psiwork)
+          call f_free_ptr(wt%psitwork)
+          call f_free_ptr(wt%nsendcounts)
+          call f_free_ptr(wt%nsenddspls)
+          call f_free_ptr(wt%nrecvcounts)
+          call f_free_ptr(wt%nrecvdspls)
+      end if
     
     end subroutine transpose_communicate_psit
 
@@ -560,56 +599,99 @@ module communications
 
 
 
-    subroutine transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psi, psit_c, psit_f, lzd)
+    subroutine transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, &
+               transpose_action, psi, psit_c, psit_f, lzd, wt_)
       use module_types, only: orbitals_data, local_zone_descriptors
       use dynamic_memory
+      use dictionaries, only: f_err_throw,f_err_define
+      use communications_base, only: work_transpose, work_transpose_null, &
+                                     TRANSPOSE_FULL, TRANSPOSE_POST, &
+                                     TRANSPOSE_GATHER, ERR_LINEAR_TRANSPOSITION
       !use module_interfaces, except_this_one => transpose_localized
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, npsidim_orbs
+      integer,intent(in) :: iproc, nproc, npsidim_orbs, transpose_action
       type(orbitals_data),intent(in) :: orbs
       type(comms_linear),intent(in) :: collcom
       real(kind=8),dimension(npsidim_orbs),intent(in) :: psi
       real(kind=8),dimension(collcom%ndimind_c),intent(out) :: psit_c
       real(kind=8),dimension(7*collcom%ndimind_f),intent(out) :: psit_f
-      type(local_zone_descriptors),optional,intent(in) :: lzd
+      type(local_zone_descriptors),intent(in) :: lzd
+      type(work_transpose),intent(inout),target,optional :: wt_
       
       ! Local variables
       real(kind=8),dimension(:),allocatable :: psiwork_c, psiwork_f, psitwork_c, psitwork_f
       character(len=*),parameter :: subname='transpose_localized'
+      type(work_transpose),pointer :: wt
 
       call timing(iproc,'Un-TransSwitch','ON')
       call f_routine(id='transpose_localized')
+
+      ! Check the arguments
+      if (transpose_action /= TRANSPOSE_FULL .and. &
+          transpose_action /= TRANSPOSE_POST .and. &
+          transpose_action /= TRANSPOSE_GATHER)  then
+          call f_err_throw('transpose_localized was called with errorneous arguments',&
+               err_id=ERR_LINEAR_TRANSPOSITION)
+      end if
+
+      if (transpose_action == TRANSPOSE_POST .or. &
+          transpose_action == TRANSPOSE_GATHER) then
+          if (.not.present(wt_)) then
+              call f_err_throw('transpose_localized was called with errorneous arguments',&
+                   err_id=ERR_LINEAR_TRANSPOSITION)
+          end if
+      end if
+
+      ! Point to the provided work arrays
+      if (present(wt_)) then
+          wt => wt_
+      else
+          allocate(wt)
+      end if
+
+      if (transpose_action == TRANSPOSE_FULL .or. &
+          transpose_action == TRANSPOSE_POST) then
+          wt = work_transpose_null()
+      end if
+
       
       psiwork_c = f_malloc(collcom%ndimpsi_c,id='psiwork_c')
       psiwork_f = f_malloc(7*collcom%ndimpsi_f,id='psiwork_f')
-      psitwork_c = f_malloc(sum(collcom%nrecvcounts_c),id='psitwork_c')
-      psitwork_f = f_malloc(7*sum(collcom%nrecvcounts_f),id='psitwork_f')
-      
-      if(present(lzd)) then
+      psitwork_c = f_malloc(collcom%ndimind_c,id='psitwork_c')
+      psitwork_f = f_malloc(7*collcom%ndimind_f,id='psitwork_f')
+
+      if (transpose_action == TRANSPOSE_FULL .or. &
+          transpose_action == TRANSPOSE_POST) then
           call transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
-      else
-          call transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f)
       end if
       call timing(iproc,'Un-TransSwitch','OF')
     
       call timing(iproc,'Un-TransComm  ','ON')
-      if(nproc>1) then
-          call transpose_communicate_psi(iproc, nproc, collcom, psiwork_c, psiwork_f, psitwork_c, psitwork_f)
-      else
-          psitwork_c=psiwork_c
-          psitwork_f=psiwork_f
-      end if
+      call transpose_communicate_psi(iproc, nproc, collcom, transpose_action, &
+           psiwork_c, psiwork_f, wt, psitwork_c, psitwork_f)
       call timing(iproc,'Un-TransComm  ','OF')
     
       call timing(iproc,'Un-TransSwitch','ON')
-      call transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
+      if (transpose_action == TRANSPOSE_FULL .or. &
+          transpose_action == TRANSPOSE_GATHER) then
+          call transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
+      end if
+
       
       call f_free(psiwork_c)
       call f_free(psiwork_f)
       call f_free(psitwork_c)
       call f_free(psitwork_f)
+
+      if (transpose_action == TRANSPOSE_FULL .or. &
+          transpose_action == TRANSPOSE_GATHER) then
+          if (.not.present(wt_)) then
+              deallocate(wt)
+              nullify(wt)
+          end if
+      end if
 
       call f_release_routine()
       call timing(iproc,'Un-TransSwitch','OF')
@@ -618,50 +700,81 @@ module communications
 
 
 
-    subroutine untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, psit_c, psit_f, psi, lzd)
+    subroutine untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, &
+               transpose_action, psit_c, psit_f, psi, lzd, wt_)
       use module_types, only: orbitals_data, local_zone_descriptors
       use dynamic_memory
-      !use module_interfaces, except_this_one => untranspose_localized
+      use dictionaries, only: f_err_throw,f_err_define
+      use communications_base, only: work_transpose, work_transpose_null, &
+                                     TRANSPOSE_FULL, TRANSPOSE_POST, &
+                                     TRANSPOSE_GATHER, ERR_LINEAR_TRANSPOSITION
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, npsidim_orbs
+      integer,intent(in) :: iproc, nproc, npsidim_orbs, transpose_action
       type(orbitals_data),intent(in) :: orbs
       type(comms_linear),intent(in) :: collcom
       real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psit_c
       real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f
       real(kind=8),dimension(npsidim_orbs),intent(out) :: psi
-      type(local_zone_descriptors),optional,intent(in) :: lzd
+      type(local_zone_descriptors),intent(in) :: lzd
+      type(work_transpose),intent(inout),target,optional :: wt_
       
       ! Local variables
       real(kind=8),dimension(:),allocatable :: psiwork_c, psiwork_f, psitwork_c, psitwork_f
-      character(len=*),parameter :: subname='untranspose_localized'
+      type(work_transpose),pointer :: wt
 
       call f_routine(id='untranspose_localized')
+
+      ! Check the arguments
+      if (transpose_action /= TRANSPOSE_FULL .and. &
+          transpose_action /= TRANSPOSE_POST .and. &
+          transpose_action /= TRANSPOSE_GATHER)  then
+          call f_err_throw('untranspose_localized was called with errorneous arguments',&
+               err_id=ERR_LINEAR_TRANSPOSITION)
+      end if
+
+      if (transpose_action == TRANSPOSE_POST .or. &
+          transpose_action == TRANSPOSE_GATHER) then
+          if (.not.present(wt_)) then
+              call f_err_throw('untranspose_localized was called with errorneous arguments',&
+                   err_id=ERR_LINEAR_TRANSPOSITION)
+          end if
+      end if
+
+      ! Point to the provided work arrays
+      if (present(wt_)) then
+          wt => wt_
+      else
+          allocate(wt)
+      end if
+
+      if (transpose_action == TRANSPOSE_FULL .or. &
+          transpose_action == TRANSPOSE_POST) then
+          wt = work_transpose_null()
+      end if
       
       psiwork_c = f_malloc(collcom%ndimpsi_c,id='psiwork_c')
       psiwork_f = f_malloc(7*collcom%ndimpsi_f,id='psiwork_f')
-      psitwork_c = f_malloc(sum(collcom%nrecvcounts_c),id='psitwork_c')
-      psitwork_f = f_malloc(7*sum(collcom%nrecvcounts_f),id='psitwork_f')
+      psitwork_c = f_malloc(collcom%ndimind_c,id='psitwork_c')
+      psitwork_f = f_malloc(7*collcom%ndimind_f,id='psitwork_f')
     
       call timing(iproc,'Un-TransSwitch','ON')
-      call transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f)
+      if (transpose_action == TRANSPOSE_FULL .or. &
+          transpose_action == TRANSPOSE_POST) then
+          call transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f)
+      end if
       call timing(iproc,'Un-TransSwitch','OF')
     
       call timing(iproc,'Un-TransComm  ','ON')
-      if(nproc>1) then
-          call transpose_communicate_psit(iproc, nproc, collcom, psitwork_c, psitwork_f, psiwork_c, psiwork_f)
-      else
-          psiwork_c=psitwork_c
-          psiwork_f=psitwork_f
-      end if
+      call transpose_communicate_psit(iproc, nproc, collcom, transpose_action, &
+           psitwork_c, psitwork_f, wt, psiwork_c, psiwork_f)
       call timing(iproc,'Un-TransComm  ','OF')
     
       call timing(iproc,'Un-TransSwitch','ON')
-      if(present(lzd)) then
+      if (transpose_action == TRANSPOSE_FULL .or. &
+          transpose_action == TRANSPOSE_GATHER) then
           call transpose_unswitch_psi(npsidim_orbs, orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
-      else
-          call transpose_unswitch_psi(npsidim_orbs, orbs, collcom, psiwork_c, psiwork_f, psi)
       end if
       call timing(iproc,'Un-TransSwitch','OF')
       
@@ -670,13 +783,17 @@ module communications
       call f_free(psitwork_c)
       call f_free(psitwork_f)
 
+      if (transpose_action == TRANSPOSE_FULL .or. &
+          transpose_action == TRANSPOSE_GATHER) then
+          if (.not.present(wt_)) then
+              deallocate(wt)
+              nullify(wt)
+          end if
+      end if
+
       call f_release_routine()
       
     end subroutine untranspose_localized
-
-
-
-
 
 
     subroutine transpose_switch_psir(collcom_sr, psir, psirwork)
@@ -715,9 +832,10 @@ module communications
     
     
     end subroutine transpose_switch_psir
+
     
     subroutine transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
-      use module_base, only: bigdft_mpi, mpi_double_precision
+      use module_base, only: bigdft_mpi, mpi_double_precision,f_memcpy
       use wrapper_linalg, only: vcopy
       implicit none
     
@@ -735,7 +853,8 @@ module communications
           call mpi_alltoallv(psirwork, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, mpi_double_precision, psirtwork, &
                collcom_sr%nrecvcounts_c, collcom_sr%nrecvdspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
       else
-          call vcopy(collcom_sr%ndimpsi_c, psirwork(1), 1, psirtwork(1), 1)
+         !call vcopy(collcom_sr%ndimpsi_c, psirwork(1), 1, psirtwork(1), 1)
+         call f_memcpy(src=psirwork,dest=psirtwork)
       end if
     
     
@@ -783,82 +902,115 @@ module communications
     
     
     
-
-
-
- 
-    subroutine start_onesided_communication(iproc, nproc, nsendbuf, sendbuf, nrecvbuf, recvbuf, comm, lzd)
+    subroutine start_onesided_communication(iproc, nproc, n1, n2, n3p, sendbuf, nrecvbuf, recvbuf, comm, lzd)
       use module_base
-      use module_types, only: p2pComms, local_zone_descriptors
+      use module_types, only: local_zone_descriptors
+      use communications_base, only: p2pComms
       implicit none
       
       ! Calling arguments
-      integer, intent(in):: iproc, nproc, nsendbuf, nrecvbuf
-      real(kind=8), dimension(nsendbuf), intent(in):: sendbuf
-      real(kind=8), dimension(nrecvbuf), intent(out):: recvbuf
+      integer, intent(in):: iproc, nproc, n1, n2, nrecvbuf
+      integer,dimension(0:nproc-1),intent(in) :: n3p
       type(p2pComms), intent(inout):: comm
+      real(kind=8), dimension(n1*n2*n3p(iproc)*comm%nspin), intent(in):: sendbuf
+      real(kind=8), dimension(nrecvbuf), intent(out):: recvbuf
       type(local_zone_descriptors), intent(in) :: lzd
       
       ! Local variables
       !character(len=*), parameter :: subname='start_onesided_communication'
-      integer :: jproc, joverlap, mpisource, istsource, mpidest, istdest, ierr, nit
-      integer :: ioffset_send, ist, i2, i3, ist2, ist3, info, nsize, size_of_double
+      integer :: jproc, joverlap, mpisource, istsource, mpidest, istdest, ierr, nit, ispin, ispin_shift
+      integer :: ioffset_send, ist, i2, i3, ist2, ist3, info, nsize, size_of_double, npot, isend_shift
+      integer,dimension(:),allocatable :: npotarr
+
+
+      !!do ist=1,nsendbuf
+      !!    write(5400,'(a,2i12,es18.7)') 'iproc, ist, sendbuf(ist)', iproc, ist, sendbuf(ist)
+      !!end do
+      !!recvbuf=123456789.d0
+
+      !write(*,'(a,i12,es16.8)') 'in start_onesided_communication: nsendbuf, sum(sendbuf)', nsendbuf, sum(sendbuf)
     
     
+      call f_routine(id='start_onesided_communication')
       call timing(iproc, 'Pot_comm start', 'ON')
+
+      ! the size of the potential without spin (maybe need to find a better way to determine this...)
+      npotarr = f_malloc(0.to.nproc-1,id='npotarr')
+      npotarr(0:nproc-1)=n1*n2*n3p(0:nproc-1)
+      !!if (nproc>1) then
+      !!    call mpiallred(npotarr(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      !!end if
+      !npot=nsendbuf/comm%nspin
     
       if(.not.comm%communication_complete) stop 'ERROR: there is already a p2p communication going on...'
+
+      spin_loop: do ispin=1,comm%nspin
+
+          ispin_shift = (ispin-1)*comm%nrecvbuf
     
-      nproc_if: if (nproc>1) then
+          nproc_if: if (nproc>1) then
     
-          ! Allocate MPI memory window
-          call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-          call mpi_info_create(info, ierr)
-          call mpi_info_set(info, "no_locks", "true", ierr)
-          call mpi_win_create(sendbuf(1), int(nsendbuf*size_of_double,kind=mpi_address_kind), size_of_double, &
-               info, bigdft_mpi%mpi_comm, comm%window, ierr)
-          call mpi_info_free(info, ierr)
+              ! Allocate MPI memory window. Only necessary in the first iteration.
+              if (ispin==1) then
+                  call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+                  call mpi_info_create(info, ierr)
+                  call mpi_info_set(info, "no_locks", "true", ierr)
+                  call mpi_win_create(sendbuf(1), int(n1*n2*n3p(iproc)*size_of_double,kind=mpi_address_kind), &
+                       size_of_double, info, bigdft_mpi%mpi_comm, comm%window, ierr)
+                  call mpi_info_free(info, ierr)
     
-          call mpi_win_fence(mpi_mode_noprecede, comm%window, ierr)
-          
-          do jproc=0,nproc-1
-              do joverlap=1,comm%noverlaps(jproc)
-                  mpisource=comm%comarr(1,joverlap,jproc)
-                  istsource=comm%comarr(2,joverlap,jproc)
-                  mpidest=comm%comarr(3,joverlap,jproc)
-                  istdest=comm%comarr(4,joverlap,jproc)
-                  nit=comm%comarr(5,joverlap,jproc)
-                  ioffset_send=comm%comarr(6,joverlap,jproc)
-                  call mpi_type_create_hvector(nit, 1, int(size_of_double*ioffset_send,kind=mpi_address_kind), &
-                       comm%mpi_datatypes(0,jproc), comm%mpi_datatypes(joverlap,jproc), ierr)
-                  call mpi_type_commit(comm%mpi_datatypes(joverlap,jproc), ierr)
+                  call mpi_win_fence(mpi_mode_noprecede, comm%window, ierr)
+              end if
+              
+              do joverlap=1,comm%noverlaps
+                  mpisource=comm%comarr(1,joverlap)
+                  istsource=comm%comarr(2,joverlap)
+                  mpidest=comm%comarr(3,joverlap)
+                  istdest=comm%comarr(4,joverlap)
+                  nit=comm%comarr(5,joverlap)
+                  ioffset_send=comm%comarr(6,joverlap)
+                  isend_shift = (ispin-1)*npotarr(mpisource)
+                  ! only create the derived data types in the first iteration, otherwise simply reuse them
+                  if (ispin==1) then
+                      call mpi_type_create_hvector(nit, 1, int(size_of_double*ioffset_send,kind=mpi_address_kind), &
+                           comm%mpi_datatypes(0), comm%mpi_datatypes(joverlap), ierr)
+                      call mpi_type_commit(comm%mpi_datatypes(joverlap), ierr)
+                  end if
                   if (iproc==mpidest) then
-                      call mpi_type_size(comm%mpi_datatypes(joverlap,jproc), nsize, ierr)
+                      call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
                       nsize=nsize/size_of_double
                       if(nsize>0) then
-                          call mpi_get(recvbuf(istdest), nsize, &
-                               mpi_double_precision, mpisource, int((istsource-1),kind=mpi_address_kind), &
-                               1, comm%mpi_datatypes(joverlap,jproc), comm%window, ierr)
+                          !!write(*,'(7(a,i0))') 'proc ',iproc,' gets ',nsize,' elements at ',ispin_shift+istdest, &
+                          !!                     ' from proc ',mpisource,' at ',isend_shift+istsource,&
+                          !!                     '; size(send)=',size(sendbuf),', size(recv)=',size(recvbuf)
+                          call mpi_get(recvbuf(ispin_shift+istdest), nsize, &
+                               mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
+                               1, comm%mpi_datatypes(joverlap), comm%window, ierr)
                       end if
                   end if
               end do
-          end do
     
-      else nproc_if
+          else nproc_if
     
-          ist=1
-          do i3=comm%ise(5,iproc),comm%ise(6,iproc)
-              ist3=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
-              do i2=comm%ise(3,iproc),comm%ise(4,iproc)
-                  ist2=(i2-1)*lzd%glr%d%n1i
-                  !call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+1), 1, recvbuf(ist), 1)
-                  call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+comm%ise(1,iproc)), 1, recvbuf(ist), 1)
-                  ist=ist+comm%ise(2,iproc)-comm%ise(1,iproc)+1
+              ist=1
+              isend_shift = (ispin-1)*npotarr(iproc)
+              do i3=comm%ise(5),comm%ise(6)
+                  ist3=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
+                  do i2=comm%ise(3),comm%ise(4)
+                      ist2=(i2-1)*lzd%glr%d%n1i
+                      !call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+1), 1, recvbuf(ist), 1)
+                      !write(*,'(5(a,i0))') 'proc ',iproc,' gets ',comm%ise(2,iproc)-comm%ise(1,iproc)+1, &
+                      !                     ' elements at ',ispin_shift+ist,' from proc ',iproc,' at ', &
+                      !                     isend_shift+ist3+ist2+comm%ise(1,iproc)
+                      call vcopy(comm%ise(2)-comm%ise(1)+1, &
+                                 sendbuf(isend_shift+ist3+ist2+comm%ise(1)), 1, recvbuf(ispin_shift+ist), 1)
+                      ist=ist+comm%ise(2)-comm%ise(1)+1
+                  end do
               end do
-          end do
     
-      end if nproc_if
+          end if nproc_if
       
+      end do spin_loop
       
       ! Flag indicating whether the communication is complete or not
       if(nproc>1) then
@@ -866,15 +1018,18 @@ module communications
       else
           comm%communication_complete=.true.
       end if
+
+      call f_free(npotarr)
     
       call timing(iproc, 'Pot_comm start', 'OF')
+      call f_release_routine()
     
     end subroutine start_onesided_communication
     
     
     subroutine synchronize_onesided_communication(iproc, nproc, comm)
       use module_base
-      use module_types, only: p2pComms
+      use communications_base, only: p2pComms
       implicit none
       
       ! Calling arguments
@@ -887,10 +1042,8 @@ module communications
       
       if(.not.comm%communication_complete) then
           call mpi_win_fence(0, comm%window, ierr)
-          do jproc=0,nproc-1
-              do joverlap=1,comm%noverlaps(jproc)
-                  call mpi_type_free(comm%mpi_datatypes(joverlap,jproc), ierr)
-              end do
+          do joverlap=1,comm%noverlaps
+              call mpi_type_free(comm%mpi_datatypes(joverlap), ierr)
           end do
           call mpi_win_free(comm%window, ierr)
       end if
@@ -914,7 +1067,8 @@ module communications
       type(locreg_descriptors),dimension(nlr),intent(inout) :: llr
     
       ! Local variables
-      integer:: ierr, istat, iall, ilr, iilr
+      integer:: ierr, ilr, iilr
+      ! integer:: istat, iall
       character(len=1),dimension(:),allocatable :: worksend_char, workrecv_char
       logical,dimension(:),allocatable :: worksend_log, workrecv_log
       integer,dimension(:,:),allocatable :: worksend_int, workrecv_int
@@ -923,18 +1077,20 @@ module communications
 
       call f_routine(id=subname)
     
-      allocate(worksend_char(orbs%norbp), stat=istat)
-      call memocc(istat, worksend_char, 'worksend_char', subname)
+!!$      allocate(worksend_char(orbs%norbp), stat=istat)
+!!$      call memocc(istat, worksend_char, 'worksend_char', subname)
+      worksend_char= f_malloc_str(len(worksend_char),orbs%norbp,&
+           id='worksend_char')
       worksend_log = f_malloc(orbs%norbp,id='worksend_log')
-      worksend_int = f_malloc((/ 11, orbs%norbp /),id='worksend_int')
+      worksend_int = f_malloc((/ 27, orbs%norbp /),id='worksend_int')
       worksend_dbl = f_malloc((/ 6, orbs%norbp /),id='worksend_dbl')
     
-      allocate(workrecv_char(orbs%norb), stat=istat)
-      call memocc(istat, workrecv_char, 'workrecv_char', subname)
-      !workrecv_char = f_malloc_str(1,orbs%norb,id='workrecv_char')
-      !call f_free_str(1,workrecv_str)
+      workrecv_char= f_malloc_str(len(workrecv_char),orbs%norb,&
+           id='workrecv_char')
+!!$      allocate(workrecv_char(orbs%norb), stat=istat)
+!!$      call memocc(istat, workrecv_char, 'workrecv_char', subname)
       workrecv_log = f_malloc(orbs%norb,id='workrecv_log')
-      workrecv_int = f_malloc((/ 11, orbs%norb /),id='workrecv_int')
+      workrecv_int = f_malloc((/ 27, orbs%norb /),id='workrecv_int')
       workrecv_dbl = f_malloc((/ 6, orbs%norb /),id='workrecv_dbl')
     
     
@@ -944,15 +1100,31 @@ module communications
               iilr=iilr+1
               worksend_char(iilr)=llr(ilr)%geocode
               worksend_log(iilr)=llr(ilr)%hybrid_on
-              worksend_int(1,iilr)=llr(ilr)%ns1
-              worksend_int(2,iilr)=llr(ilr)%ns2
-              worksend_int(3,iilr)=llr(ilr)%ns3
-              worksend_int(4,iilr)=llr(ilr)%nsi1
-              worksend_int(5,iilr)=llr(ilr)%nsi2
-              worksend_int(6,iilr)=llr(ilr)%nsi3
-              worksend_int(7,iilr)=llr(ilr)%localnorb
-              worksend_int(8:10,iilr)=llr(ilr)%outofzone(1:3)
-              worksend_int(11,iilr)=ilr
+              worksend_int(1,iilr)=ilr
+              worksend_int(2,iilr)=llr(ilr)%ns1
+              worksend_int(3,iilr)=llr(ilr)%ns2
+              worksend_int(4,iilr)=llr(ilr)%ns3
+              worksend_int(5,iilr)=llr(ilr)%nsi1
+              worksend_int(6,iilr)=llr(ilr)%nsi2
+              worksend_int(7,iilr)=llr(ilr)%nsi3
+              worksend_int(8,iilr)=llr(ilr)%localnorb
+              worksend_int(9:11,iilr)=llr(ilr)%outofzone(1:3)
+              worksend_int(12,iilr)=llr(ilr)%wfd%nvctr_c
+              worksend_int(13,iilr)=llr(ilr)%wfd%nvctr_f
+              worksend_int(14,iilr)=llr(ilr)%wfd%nseg_c
+              worksend_int(15,iilr)=llr(ilr)%wfd%nseg_f
+              worksend_int(16,iilr)=llr(ilr)%d%n1
+              worksend_int(17,iilr)=llr(ilr)%d%n2
+              worksend_int(18,iilr)=llr(ilr)%d%n3
+              worksend_int(19,iilr)=llr(ilr)%d%nfl1
+              worksend_int(20,iilr)=llr(ilr)%d%nfu1
+              worksend_int(21,iilr)=llr(ilr)%d%nfl2
+              worksend_int(22,iilr)=llr(ilr)%d%nfu2
+              worksend_int(23,iilr)=llr(ilr)%d%nfl3
+              worksend_int(24,iilr)=llr(ilr)%d%nfu3
+              worksend_int(25,iilr)=llr(ilr)%d%n1i
+              worksend_int(26,iilr)=llr(ilr)%d%n2i
+              worksend_int(27,iilr)=llr(ilr)%d%n3i
               worksend_dbl(1:3,iilr)=llr(ilr)%locregCenter(1:3)
               worksend_dbl(4,iilr)=llr(ilr)%locrad
               worksend_dbl(5,iilr)=llr(ilr)%locrad_kernel
@@ -964,23 +1136,39 @@ module communications
            orbs%isorb_par, mpi_character, bigdft_mpi%mpi_comm, ierr)
       call mpi_allgatherv(worksend_log, orbs%norbp, mpi_logical, workrecv_log, orbs%norb_par(:,0), &
            orbs%isorb_par, mpi_logical, bigdft_mpi%mpi_comm, ierr)
-      call mpi_allgatherv(worksend_int, 11*orbs%norbp, mpi_integer, workrecv_int, 11*orbs%norb_par(:,0), &
-           11*orbs%isorb_par, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+      call mpi_allgatherv(worksend_int, 27*orbs%norbp, mpi_integer, workrecv_int, 27*orbs%norb_par(:,0), &
+           27*orbs%isorb_par, mpi_integer, bigdft_mpi%mpi_comm, ierr)
       call mpi_allgatherv(worksend_dbl, 6*orbs%norbp, mpi_double_precision, workrecv_dbl, 6*orbs%norb_par(:,0), &
            6*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
     
       do ilr=1,nlr
-          iilr=workrecv_int(11,ilr)
+          iilr=workrecv_int(1,ilr)
           llr(iilr)%geocode=workrecv_char(ilr)
           llr(iilr)%hybrid_on= workrecv_log(ilr)
-          llr(iilr)%ns1=workrecv_int(1,ilr)
-          llr(iilr)%ns2=workrecv_int(2,ilr)
-          llr(iilr)%ns3=workrecv_int(3,ilr)
-          llr(iilr)%nsi1=workrecv_int(4,ilr)
-          llr(iilr)%nsi2=workrecv_int(5,ilr)
-          llr(iilr)%nsi3=workrecv_int(6,ilr)
-          llr(iilr)%localnorb=workrecv_int(7,ilr)
-          llr(iilr)%outofzone(1:3)=workrecv_int(8:10,ilr)
+          llr(iilr)%ns1=workrecv_int(2,ilr)
+          llr(iilr)%ns2=workrecv_int(3,ilr)
+          llr(iilr)%ns3=workrecv_int(4,ilr)
+          llr(iilr)%nsi1=workrecv_int(5,ilr)
+          llr(iilr)%nsi2=workrecv_int(6,ilr)
+          llr(iilr)%nsi3=workrecv_int(7,ilr)
+          llr(iilr)%localnorb=workrecv_int(8,ilr)
+          llr(iilr)%outofzone(1:3)=workrecv_int(9:11,ilr)
+          llr(iilr)%wfd%nvctr_c=workrecv_int(12,ilr)
+          llr(iilr)%wfd%nvctr_f=workrecv_int(13,ilr)
+          llr(iilr)%wfd%nseg_c=workrecv_int(14,ilr)
+          llr(iilr)%wfd%nseg_f=workrecv_int(15,ilr)
+          llr(iilr)%d%n1=workrecv_int(16,ilr)
+          llr(iilr)%d%n2=workrecv_int(17,ilr)
+          llr(iilr)%d%n3=workrecv_int(18,ilr)
+          llr(iilr)%d%nfl1=workrecv_int(19,ilr)
+          llr(iilr)%d%nfu1=workrecv_int(20,ilr)
+          llr(iilr)%d%nfl2=workrecv_int(21,ilr)
+          llr(iilr)%d%nfu2=workrecv_int(22,ilr)
+          llr(iilr)%d%nfl3=workrecv_int(23,ilr)
+          llr(iilr)%d%nfu3=workrecv_int(24,ilr)
+          llr(iilr)%d%n1i=workrecv_int(25,ilr)
+          llr(iilr)%d%n2i=workrecv_int(26,ilr)
+          llr(iilr)%d%n3i=workrecv_int(27,ilr)
           llr(iilr)%locregCenter(1:3)=workrecv_dbl(1:3,ilr)
           llr(iilr)%locrad=workrecv_dbl(4,ilr)
           llr(iilr)%locrad_kernel=workrecv_dbl(5,ilr)
@@ -990,62 +1178,64 @@ module communications
     
       call f_free(worksend_int)
       call f_free(workrecv_int)
-      worksend_int = f_malloc((/ 13, orbs%norbp /),id='worksend_int')
-      workrecv_int = f_malloc((/ 13, orbs%norb /),id='workrecv_int')
+      !!worksend_int = f_malloc((/ 13, orbs%norbp /),id='worksend_int')
+      !!workrecv_int = f_malloc((/ 13, orbs%norb /),id='workrecv_int')
     
     
-      iilr=0
-      do ilr=1,nlr
-          if (iproc==rootarr(ilr)) then
-              iilr=iilr+1
-              worksend_int(1,iilr)=llr(ilr)%d%n1
-              worksend_int(2,iilr)=llr(ilr)%d%n2
-              worksend_int(3,iilr)=llr(ilr)%d%n3
-              worksend_int(4,iilr)=llr(ilr)%d%nfl1
-              worksend_int(5,iilr)=llr(ilr)%d%nfu1
-              worksend_int(6,iilr)=llr(ilr)%d%nfl2
-              worksend_int(7,iilr)=llr(ilr)%d%nfu2
-              worksend_int(8,iilr)=llr(ilr)%d%nfl3
-              worksend_int(9,iilr)=llr(ilr)%d%nfu3
-              worksend_int(10,iilr)=llr(ilr)%d%n1i
-              worksend_int(11,iilr)=llr(ilr)%d%n2i
-              worksend_int(12,iilr)=llr(ilr)%d%n3i
-              worksend_int(13,iilr)=ilr
-          end if
-      end do
+      !!iilr=0
+      !!do ilr=1,nlr
+      !!    if (iproc==rootarr(ilr)) then
+      !!        iilr=iilr+1
+      !!        worksend_int(1,iilr)=llr(ilr)%d%n1
+      !!        worksend_int(2,iilr)=llr(ilr)%d%n2
+      !!        worksend_int(3,iilr)=llr(ilr)%d%n3
+      !!        worksend_int(4,iilr)=llr(ilr)%d%nfl1
+      !!        worksend_int(5,iilr)=llr(ilr)%d%nfu1
+      !!        worksend_int(6,iilr)=llr(ilr)%d%nfl2
+      !!        worksend_int(7,iilr)=llr(ilr)%d%nfu2
+      !!        worksend_int(8,iilr)=llr(ilr)%d%nfl3
+      !!        worksend_int(9,iilr)=llr(ilr)%d%nfu3
+      !!        worksend_int(10,iilr)=llr(ilr)%d%n1i
+      !!        worksend_int(11,iilr)=llr(ilr)%d%n2i
+      !!        worksend_int(12,iilr)=llr(ilr)%d%n3i
+      !!        worksend_int(13,iilr)=ilr
+      !!    end if
+      !!end do
     
-      call mpi_allgatherv(worksend_int, 13*orbs%norbp, mpi_integer, workrecv_int, 13*orbs%norb_par(:,0), &
-           13*orbs%isorb_par, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+      !!call mpi_allgatherv(worksend_int, 13*orbs%norbp, mpi_integer, workrecv_int, 13*orbs%norb_par(:,0), &
+      !!     13*orbs%isorb_par, mpi_integer, bigdft_mpi%mpi_comm, ierr)
     
-      do ilr=1,nlr
-          iilr=workrecv_int(13,ilr)
-          llr(iilr)%d%n1=workrecv_int(1,ilr)
-          llr(iilr)%d%n2=workrecv_int(2,ilr)
-          llr(iilr)%d%n3=workrecv_int(3,ilr)
-          llr(iilr)%d%nfl1=workrecv_int(4,ilr)
-          llr(iilr)%d%nfu1=workrecv_int(5,ilr)
-          llr(iilr)%d%nfl2=workrecv_int(6,ilr)
-          llr(iilr)%d%nfu2=workrecv_int(7,ilr)
-          llr(iilr)%d%nfl3=workrecv_int(8,ilr)
-          llr(iilr)%d%nfu3=workrecv_int(9,ilr)
-          llr(iilr)%d%n1i=workrecv_int(10,ilr)
-          llr(iilr)%d%n2i=workrecv_int(11,ilr)
-          llr(iilr)%d%n3i=workrecv_int(12,ilr)
-      end do
+      !!do ilr=1,nlr
+      !!    iilr=workrecv_int(13,ilr)
+      !!    llr(iilr)%d%n1=workrecv_int(1,ilr)
+      !!    llr(iilr)%d%n2=workrecv_int(2,ilr)
+      !!    llr(iilr)%d%n3=workrecv_int(3,ilr)
+      !!    llr(iilr)%d%nfl1=workrecv_int(4,ilr)
+      !!    llr(iilr)%d%nfu1=workrecv_int(5,ilr)
+      !!    llr(iilr)%d%nfl2=workrecv_int(6,ilr)
+      !!    llr(iilr)%d%nfu2=workrecv_int(7,ilr)
+      !!    llr(iilr)%d%nfl3=workrecv_int(8,ilr)
+      !!    llr(iilr)%d%nfu3=workrecv_int(9,ilr)
+      !!    llr(iilr)%d%n1i=workrecv_int(10,ilr)
+      !!    llr(iilr)%d%n2i=workrecv_int(11,ilr)
+      !!    llr(iilr)%d%n3i=workrecv_int(12,ilr)
+      !!end do
     
     
-      iall=-product(shape(worksend_char))*kind(worksend_char)
-      deallocate(worksend_char,stat=istat)
-      call memocc(istat, iall, 'worksend_char', subname)
+!!$      iall=-product(shape(worksend_char))*kind(worksend_char)
+!!$      deallocate(worksend_char,stat=istat)
+!!$      call memocc(istat, iall, 'worksend_char', subname)
+      call f_free_str(len(worksend_char),worksend_char)
       call f_free(worksend_log)
-      call f_free(worksend_int)
+      !!call f_free(worksend_int)
       call f_free(worksend_dbl)
 
-      iall=-product(shape(workrecv_char))*kind(workrecv_char)
-      deallocate(workrecv_char,stat=istat)
-      call memocc(istat, iall, 'workrecv_char', subname)
+!!$      iall=-product(shape(workrecv_char))*kind(workrecv_char)
+!!$      deallocate(workrecv_char,stat=istat)
+!!$      call memocc(istat, iall, 'workrecv_char', subname)
+      call f_free_str(len(workrecv_char),workrecv_char)
       call f_free(workrecv_log)
-      call f_free(workrecv_int)
+      !!call f_free(workrecv_int)
       call f_free(workrecv_dbl)
 
       call f_release_routine()
@@ -1070,172 +1260,278 @@ module communications
     
        ! Local variables
        integer:: ierr, jorb, ilr, jlr, jtask, root, icomm, nrecv, nalloc, max_sim_comms
-       integer :: maxrecvdim, maxsenddim, ilr_old
+       integer :: maxrecvdim, maxsenddim, ilr_old, ioffset, window, ist_dest, ist_source
+       integer :: iorb, jjorb, ncount, iiorb, size_of_int, info
        logical :: isoverlap
        character(len=*),parameter:: subname='communicate_locreg_descriptors_keys'
        integer,dimension(:),allocatable :: requests
        integer,dimension(:,:),allocatable :: worksend_int, workrecv_int
+       integer,dimension(:),allocatable :: worksend, workrecv
        logical,dimension(:,:),allocatable :: covered
        !integer :: total_sent, total_recv
 
        call f_routine(id=subname)
-    
-       ! This maxval is put out of the allocate to avoid compiler crash with PathScale.
-       jorb = maxval(orbs%norb_par(:,0))
-       requests = f_malloc(8*nproc*jorb,id='requests')
-       covered = f_malloc((/ 1.to.nlr, 0.to.nproc-1 /),id='covered')
-       worksend_int = f_malloc((/ 4, nlr /),id='worksend_int')
-       workrecv_int = f_malloc((/ 4, nlr /),id='workrecv_int')
-    
-       ! divide communications into chunks to avoid problems with memory (too many communications)
-       ! set maximum number of simultaneous communications
-       max_sim_comms=min(nlr,1000)
-       !max_sim_comms=min(nlr,2)
 
 
-       nrecv=0
-       !nsend=0
-       icomm=0
-       maxsenddim=0
+       !@ NEW VESRION #############################################
+       ! should be 1D later...
+       covered = f_malloc((/ 1.to.nlr, iproc.to.iproc /),id='covered')
+
+       ! Determine which locregs process iproc should get.
        do ilr=1,nlr
            root=rootarr(ilr)
-           covered(ilr,:)=.false.
-           do jorb=1,orbs%norb
-               jlr=orbs%inwhichlocreg(jorb)
-               jtask=onwhichmpi(jorb)
-               ! check we're on a sending or receiving proc
-               if (iproc /= root .and. iproc /= jtask) cycle
+           covered(ilr,iproc)=.false.
+           do jorb=1,orbs%norbp
+               jjorb=orbs%isorb+jorb
+               jlr=orbs%inwhichlocreg(jjorb)
                ! don't communicate to ourselves, or if we've already sent this locreg
-               if (jtask == root .or. covered(ilr,jtask)) cycle
+               if (iproc == root .or. covered(ilr,iproc)) cycle
                call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
                if (isoverlap) then         
-                   covered(ilr,jtask)=.true.
-                   if (iproc == root) then
-                      !write(*,'(5(a,i0))') 'process ',iproc,' sends locreg ',ilr,' to process ',&
-                      !    jtask,' with tags ',4*ilr+0,'-',4*ilr+3
-                      worksend_int(1,ilr)=llr(ilr)%wfd%nvctr_c
-                      worksend_int(2,ilr)=llr(ilr)%wfd%nvctr_f
-                      worksend_int(3,ilr)=llr(ilr)%wfd%nseg_c
-                      worksend_int(4,ilr)=llr(ilr)%wfd%nseg_f
-                      icomm=icomm+1
-                      call mpi_isend(worksend_int(1,ilr), 4, mpi_integer, jtask,&
-                           itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
-                      maxsenddim=max(maxsenddim,llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
-                      !nsend=nsend+1
-                   else if (iproc == jtask) then
-                      !write(*,'(5(a,i0))') 'process ',iproc,' receives locreg ',ilr,' from process ',&
-                      !    root,' with tags ',4*ilr+0,'-',4*ilr+3
-                      icomm=icomm+1
-                      call mpi_irecv(workrecv_int(1,ilr), 4, mpi_integer, root,&
-                           itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
-                      nrecv=nrecv+1
-                   end if
+                   covered(ilr,iproc)=.true.
                end if
            end do
-           if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
-              call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
-              if (f_err_raise(ierr /= 0,'problem in communicate locregs: error in mpi_waitall '//&
-                   trim(yaml_toa(ierr))//' for process '//trim(yaml_toa(iproc)),&
-                   err_name='BIGDFT_RUNTIME_ERROR')) return
-              call mpi_barrier(mpi_comm_world,ierr)
-              icomm=0
+       end do
+
+       ! Each process makes its data available in a contiguous workarray.
+       maxsenddim=0.d0
+       do iorb=1,orbs%norbp
+           iiorb=orbs%isorb+iorb
+           ilr=orbs%inwhichlocreg(iiorb)
+           maxsenddim = maxsenddim + 6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
+       end do
+       worksend = f_malloc(max(maxsenddim,1),id='worksend_int')
+
+       ioffset=0
+       do iorb=1,orbs%norbp
+           iiorb=orbs%isorb+iorb
+           ilr=orbs%inwhichlocreg(iiorb)
+           ncount=llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
+           call vcopy(2*ncount, llr(ilr)%wfd%keygloc(1,1), 1, worksend(ioffset+1), 1)
+           call vcopy(2*ncount, llr(ilr)%wfd%keyglob(1,1), 1, worksend(ioffset+2*ncount+1), 1)
+           call vcopy(ncount, llr(ilr)%wfd%keyvloc(1), 1, worksend(ioffset+4*ncount+1), 1)
+           call vcopy(ncount, llr(ilr)%wfd%keyvglob(1), 1, worksend(ioffset+5*ncount+1), 1)
+           ioffset=ioffset+6*ncount
+       end do
+
+       ! Initialize the MPI window
+       call mpi_type_size(mpi_integer, size_of_int, ierr)
+       call mpi_info_create(info, ierr)
+       call mpi_info_set(info, "no_locks", "true", ierr)
+       call mpi_win_create(worksend(1), int(maxsenddim*size_of_int,kind=mpi_address_kind), size_of_int, &
+            info, bigdft_mpi%mpi_comm, window, ierr)
+       call mpi_info_free(info, ierr)
+       call mpi_win_fence(mpi_mode_noprecede, window, ierr)
+
+       ! Allocate the receive buffer
+       maxrecvdim=0
+       do ilr=1,nlr
+           root=rootarr(ilr)
+           if (covered(ilr,iproc)) then
+               ncount=6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
+               maxrecvdim=maxrecvdim+ncount
            end if
        end do
-      
-       !!call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
-       !!call mpi_barrier(mpi_comm_world,ierr)
-    
-       call f_free(worksend_int)
-    
-       nalloc=0
-       maxrecvdim=0
-       do jlr=1,nlr 
-          if (covered(jlr,iproc)) then
-             llr(jlr)%wfd%nvctr_c=workrecv_int(1,jlr)
-             llr(jlr)%wfd%nvctr_f=workrecv_int(2,jlr)
-             llr(jlr)%wfd%nseg_c=workrecv_int(3,jlr)
-             llr(jlr)%wfd%nseg_f=workrecv_int(4,jlr)
-    !         call allocate_wfd(llr(jlr)%wfd,subname)
-             nalloc=nalloc+1
-             maxrecvdim=max(maxrecvdim,llr(jlr)%wfd%nseg_c+llr(jlr)%wfd%nseg_f)
-          end if
-       end do
-       if (f_err_raise(nalloc /= nrecv,'problem in communicate locregs: mismatch in receives '//&
-            trim(yaml_toa(nrecv))//' and allocates '//trim(yaml_toa(nalloc))//' for process '//trim(yaml_toa(iproc)),&
-            err_name='BIGDFT_RUNTIME_ERROR')) return
-    
-       call f_free(workrecv_int)
-    
-       !should reduce memory by not allocating for all llr
-       workrecv_int = f_malloc((/ 6*maxrecvdim, nlr /),id='workrecv_int')
-       worksend_int = f_malloc((/ 6*maxsenddim, nlr /),id='worksend_int')
-    
-       !!! divide communications into chunks to avoid problems with memory (too many communications)
-       !!! set maximum number of simultaneous communications
-       !!!total_sent=0
-       !!!total_recv=0
-       !!max_sim_comms=1000
-       icomm=0
-       ilr_old=0
+       workrecv = f_malloc(maxrecvdim,id='workrecv')
+
+       ! Do the communication
+       ist_dest=1
        do ilr=1,nlr
-          root=rootarr(ilr)
-          do jtask=0,nproc-1
-             if (.not. covered(ilr,jtask)) cycle
-             if (iproc == root) then
-               !write(*,'(5(a,i0))') 'process ',iproc,' sends locreg ',ilr,' to process ',&
-               !     jtask,' with tags ',4*ilr+0,'-',4*ilr+3
-               call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keyglob(1,1),1,worksend_int(1,ilr),1)
-               call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keygloc(1,1),1,&
-                    worksend_int(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1)
-               call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keyvloc(1),1,&
-                    worksend_int(4*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1)
-               call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keyvglob(1),1,&
-                    worksend_int(5*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1)
-               icomm=icomm+1
-               call mpi_isend(worksend_int(1,ilr),6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                    jtask, itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
-             else if (iproc == jtask) then
-                !write(*,'(5(a,i0))') 'process ',iproc,' receives locreg ',ilr,' from process ',&
-                !    root,' with tags ',4*ilr+0,'-',4*ilr+3
-                icomm=icomm+1
-                call mpi_irecv(workrecv_int(1,ilr),6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
-                     root, itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
-             end if
-          end do
-          if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
-             !do jlr=max(ilr-max_sim_comms+1,1),ilr
-             do jlr=ilr_old+1,ilr
-                if (covered(jlr,iproc))  call allocate_wfd(llr(jlr)%wfd)
-             end do
-             call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
-             if (f_err_raise(ierr /= 0,'problem in communicate locregs: error in mpi_waitall '//&
-                  trim(yaml_toa(ierr))//' for process '//trim(yaml_toa(iproc)),&
-                  err_name='BIGDFT_RUNTIME_ERROR')) return
-             call mpi_barrier(mpi_comm_world,ierr)
-             icomm=0
-             ilr_old=ilr
-          end if
+           root=rootarr(ilr)
+           if (covered(ilr,iproc)) then
+               ncount=6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
+               ist_source=get_offset(root,ilr)
+               call mpi_get(workrecv(ist_dest), ncount, mpi_integer, root, &
+                    int(ist_source,kind=mpi_address_kind), ncount, mpi_integer, window, ierr)
+               ist_dest=ist_dest+ncount
+           end if
        end do
-    
-       call f_free(worksend_int)
-    
-       do ilr=1,nlr 
-          if (covered(ilr,iproc)) then
-             call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),workrecv_int(1,ilr),1,llr(ilr)%wfd%keyglob(1,1),1)
-             call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),&
-                  workrecv_int(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1,llr(ilr)%wfd%keygloc(1,1),1)
-             call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),&
-                  workrecv_int(4*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1,llr(ilr)%wfd%keyvloc(1),1)
-             call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),&
-                  workrecv_int(5*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1,llr(ilr)%wfd%keyvglob(1),1)
-          end if
+
+       ! Synchronize the communication
+       call mpi_win_fence(0, window, ierr)
+       call mpi_win_free(window, ierr)
+
+
+       ! Copy the date from the workarrays to the correct locations
+       call f_free(worksend)
+       ist_dest=0
+       do ilr=1,nlr
+           if (covered(ilr,iproc)) then
+               call allocate_wfd(llr(ilr)%wfd)
+               ncount=llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
+               call vcopy(2*ncount, workrecv(ist_dest+1), 1, llr(ilr)%wfd%keygloc(1,1), 1)
+               call vcopy(2*ncount, workrecv(ist_dest+2*ncount+1), 1, llr(ilr)%wfd%keyglob(1,1), 1)
+               call vcopy(ncount, workrecv(ist_dest+4*ncount+1), 1, llr(ilr)%wfd%keyvloc(1), 1)
+               call vcopy(ncount, workrecv(ist_dest+5*ncount+1), 1, llr(ilr)%wfd%keyvglob(1), 1)
+               ist_dest=ist_dest+6*ncount
+           end if
        end do
-    
-       call f_free(workrecv_int)
-    
-       !print*,'iproc,sent,received,num sent,num received',iproc,total_sent,total_recv,nsend,nrecv
-       call f_free(requests)
+       call f_free(workrecv)
        call f_free(covered)
+
+       !@ END NEW VESRION ##########################################
+
+
+    
+!!!       ! This maxval is put out of the allocate to avoid compiler crash with PathScale.
+!!!       jorb = maxval(orbs%norb_par(:,0))
+!!!       requests = f_malloc(8*nproc*jorb,id='requests')
+!!!       covered = f_malloc((/ 1.to.nlr, 0.to.nproc-1 /),id='covered')
+!!!       worksend_int = f_malloc((/ 4, nlr /),id='worksend_int')
+!!!       workrecv_int = f_malloc((/ 4, nlr /),id='workrecv_int')
+!!!    
+!!!       ! divide communications into chunks to avoid problems with memory (too many communications)
+!!!       ! set maximum number of simultaneous communications.
+!!!       ! SM: set this value such tag the MPI tag is never greater than 4000000 (otherwise crash on Cray... is the limit maybe 2^22?)
+!!!       max_sim_comms=min(nlr,int(4000000.d0/real(nproc,kind=8)))
+!!!       !max_sim_comms=min(nlr,2)
+!!!
+!!!
+!!!       nrecv=0
+!!!       !nsend=0
+!!!       icomm=0
+!!!       maxsenddim=0
+!!!       do ilr=1,nlr
+!!!           root=rootarr(ilr)
+!!!           covered(ilr,:)=.false.
+!!!           do jorb=1,orbs%norb
+!!!               jlr=orbs%inwhichlocreg(jorb)
+!!!               jtask=onwhichmpi(jorb)
+!!!               ! check we're on a sending or receiving proc
+!!!               if (iproc /= root .and. iproc /= jtask) cycle
+!!!               ! don't communicate to ourselves, or if we've already sent this locreg
+!!!               if (jtask == root .or. covered(ilr,jtask)) cycle
+!!!               call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
+!!!               if (isoverlap) then         
+!!!                   covered(ilr,jtask)=.true.
+!!!                   if (iproc == root) then
+!!!                   !!   !write(*,'(5(a,i0))') 'process ',iproc,' sends locreg ',ilr,' to process ',&
+!!!                   !!   !    jtask,' with tags ',4*ilr+0,'-',4*ilr+3
+!!!                   !!   worksend_int(1,ilr)=llr(ilr)%wfd%nvctr_c
+!!!                   !!   worksend_int(2,ilr)=llr(ilr)%wfd%nvctr_f
+!!!                   !!   worksend_int(3,ilr)=llr(ilr)%wfd%nseg_c
+!!!                   !!   worksend_int(4,ilr)=llr(ilr)%wfd%nseg_f
+!!!                   !!   icomm=icomm+1
+!!!                   !!   call mpi_isend(worksend_int(1,ilr), 4, mpi_integer, jtask,&
+!!!                   !!        itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
+!!!                      maxsenddim=max(maxsenddim,llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
+!!!                   !!   !nsend=nsend+1
+!!!                   else if (iproc == jtask) then
+!!!                   !!   !write(*,'(5(a,i0))') 'process ',iproc,' receives locreg ',ilr,' from process ',&
+!!!                   !!   !    root,' with tags ',4*ilr+0,'-',4*ilr+3
+!!!                   !!   icomm=icomm+1
+!!!                   !!   call mpi_irecv(workrecv_int(1,ilr), 4, mpi_integer, root,&
+!!!                   !!        itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
+!!!                      nrecv=nrecv+1
+!!!                   end if
+!!!               end if
+!!!           end do
+!!!           !!if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
+!!!           !!   call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
+!!!           !!   if (f_err_raise(ierr /= 0,'problem in communicate locregs: error in mpi_waitall '//&
+!!!           !!        trim(yaml_toa(ierr))//' for process '//trim(yaml_toa(iproc)),&
+!!!           !!        err_name='BIGDFT_RUNTIME_ERROR')) return
+!!!           !!   call mpi_barrier(mpi_comm_world,ierr)
+!!!           !!   icomm=0
+!!!           !!end if
+!!!       end do
+!!!      
+!!!       !!call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
+!!!       !!call mpi_barrier(mpi_comm_world,ierr)
+!!!    
+!!!       call f_free(worksend_int)
+!!!    
+!!!       nalloc=0
+!!!       maxrecvdim=0
+!!!       do jlr=1,nlr 
+!!!          !write(*,*) 'iproc, jlr, covered, nseg_c', iproc, jlr, covered(jlr,iproc), llr(jlr)%wfd%nseg_c
+!!!          if (covered(jlr,iproc)) then
+!!!             !!llr(jlr)%wfd%nvctr_c=workrecv_int(1,jlr)
+!!!             !!llr(jlr)%wfd%nvctr_f=workrecv_int(2,jlr)
+!!!             !!llr(jlr)%wfd%nseg_c=workrecv_int(3,jlr)
+!!!             !!llr(jlr)%wfd%nseg_f=workrecv_int(4,jlr)
+!!!    !         call allocate_wfd(llr(jlr)%wfd,subname)
+!!!             nalloc=nalloc+1
+!!!             maxrecvdim=max(maxrecvdim,llr(jlr)%wfd%nseg_c+llr(jlr)%wfd%nseg_f)
+!!!          end if
+!!!       end do
+!!!       if (f_err_raise(nalloc /= nrecv,'problem in communicate locregs: mismatch in receives '//&
+!!!            trim(yaml_toa(nrecv))//' and allocates '//trim(yaml_toa(nalloc))//' for process '//trim(yaml_toa(iproc)),&
+!!!            err_name='BIGDFT_RUNTIME_ERROR')) return
+!!!    
+!!!       call f_free(workrecv_int)
+!!!    
+!!!       !should reduce memory by not allocating for all llr
+!!!       workrecv_int = f_malloc((/ 6*maxrecvdim, nlr /),id='workrecv_int')
+!!!       worksend_int = f_malloc((/ 6*maxsenddim, nlr /),id='worksend_int')
+!!!    
+!!!       !!! divide communications into chunks to avoid problems with memory (too many communications)
+!!!       !!! set maximum number of simultaneous communications
+!!!       !!!total_sent=0
+!!!       !!!total_recv=0
+!!!       !!max_sim_comms=1000
+!!!       icomm=0
+!!!       ilr_old=0
+!!!       do ilr=1,nlr
+!!!          root=rootarr(ilr)
+!!!          do jtask=0,nproc-1
+!!!             if (.not. covered(ilr,jtask)) cycle
+!!!             if (iproc == root) then
+!!!               !write(*,'(5(a,i0))') 'process ',iproc,' sends locreg ',ilr,' to process ',&
+!!!               !     jtask,' with tags ',4*ilr+0,'-',4*ilr+3
+!!!               call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keyglob(1,1),1,worksend_int(1,ilr),1)
+!!!               call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keygloc(1,1),1,&
+!!!                    worksend_int(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1)
+!!!               call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keyvloc(1),1,&
+!!!                    worksend_int(4*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1)
+!!!               call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),llr(ilr)%wfd%keyvglob(1),1,&
+!!!                    worksend_int(5*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1)
+!!!               icomm=icomm+1
+!!!               call mpi_isend(worksend_int(1,ilr),6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+!!!                    jtask, itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
+!!!             else if (iproc == jtask) then
+!!!                !write(*,'(5(a,i0))') 'process ',iproc,' receives locreg ',ilr,' from process ',&
+!!!                !    root,' with tags ',4*ilr+0,'-',4*ilr+3
+!!!                icomm=icomm+1
+!!!                call mpi_irecv(workrecv_int(1,ilr),6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f), mpi_integer, &
+!!!                     root, itag(ilr,jtask), bigdft_mpi%mpi_comm, requests(icomm), ierr)
+!!!             end if
+!!!          end do
+!!!          if (mod(ilr,max_sim_comms)==0 .or. ilr==nlr) then
+!!!             !do jlr=max(ilr-max_sim_comms+1,1),ilr
+!!!             do jlr=ilr_old+1,ilr
+!!!                !write(*,'(2(a,i0))') 'process ',iproc,' allocates locreg ',jlr
+!!!                if (covered(jlr,iproc))  call allocate_wfd(llr(jlr)%wfd)
+!!!             end do
+!!!             call mpi_waitall(icomm, requests(1), mpi_statuses_ignore, ierr)
+!!!             if (f_err_raise(ierr /= 0,'problem in communicate locregs: error in mpi_waitall '//&
+!!!                  trim(yaml_toa(ierr))//' for process '//trim(yaml_toa(iproc)),&
+!!!                  err_name='BIGDFT_RUNTIME_ERROR')) return
+!!!             call mpi_barrier(mpi_comm_world,ierr)
+!!!             icomm=0
+!!!             ilr_old=ilr
+!!!          end if
+!!!       end do
+!!!    
+!!!       call f_free(worksend_int)
+!!!    
+!!!       do ilr=1,nlr 
+!!!          if (covered(ilr,iproc)) then
+!!!             call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),workrecv_int(1,ilr),1,llr(ilr)%wfd%keyglob(1,1),1)
+!!!             call vcopy(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),&
+!!!                  workrecv_int(2*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1,llr(ilr)%wfd%keygloc(1,1),1)
+!!!             call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),&
+!!!                  workrecv_int(4*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1,llr(ilr)%wfd%keyvloc(1),1)
+!!!             call vcopy((llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f),&
+!!!                  workrecv_int(5*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)+1,ilr),1,llr(ilr)%wfd%keyvglob(1),1)
+!!!          end if
+!!!       end do
+!!!    
+!!!       call f_free(workrecv_int)
+!!!    
+!!!       !print*,'iproc,sent,received,num sent,num received',iproc,total_sent,total_recv,nsend,nrecv
+!!!       call f_free(requests)
+!!!       call f_free(covered)
 
        call f_release_routine()
     
@@ -1247,9 +1543,28 @@ module communications
      integer :: itag
     
      !itag=ilr+recv*nlr
-     itag=ilr+recv*max_sim_comms
+     !itag=ilr+recv*max_sim_comms
+     itag = mod(ilr-1,max_sim_comms)*nproc + recv + 1
     
      end function itag
+
+     !> Get the offset of the data of locreg iilr
+     function get_offset(iiproc, iilr)
+       implicit none
+       integer,intent(in) :: iiproc, iilr
+       integer :: get_offset
+       ! Local variables
+       integer :: jorb, jjorb, jlr, ncount
+
+       get_offset=0
+       do jorb=1,orbs%norb_par(iiproc,0)
+           jjorb=orbs%isorb_par(iiproc)+jorb
+           jlr=orbs%inwhichlocreg(jjorb)
+           if (jlr==iilr) exit ! locreg found
+           ncount=6*(llr(jlr)%wfd%nseg_c+llr(jlr)%wfd%nseg_f)
+           get_offset=get_offset+ncount
+       end do
+     end function get_offset
     
     END SUBROUTINE communicate_locreg_descriptors_keys
     
@@ -1361,8 +1676,8 @@ end module communications
 
 
 subroutine switch_waves_v(nproc,orbs,nvctr,nvctr_par,psi,psiw)
-  !n(c) use module_base
-  use module_types
+  use module_defs, only: wp
+  use module_types, only: orbitals_data
   implicit none
   integer, intent(in) :: nproc,nvctr
   type(orbitals_data), intent(in) :: orbs
@@ -1449,8 +1764,8 @@ END SUBROUTINE switch_waves_v
 
 
 subroutine unswitch_waves_v(nproc,orbs,nvctr,nvctr_par,psiw,psi)
-  !n(c) use module_base
-  use module_types
+  use module_defs, only: wp
+  use module_types, only: orbitals_data
   implicit none
   integer, intent(in) :: nproc,nvctr
   type(orbitals_data), intent(in) :: orbs
@@ -1628,6 +1943,7 @@ subroutine toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,&
      work,outadd) !optional
   use module_base
   use module_types
+  use communications_base, only: comms_cubic
   use communications, only: transpose_v
   implicit none
   integer, intent(in) :: iproc,nproc

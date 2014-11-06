@@ -18,8 +18,9 @@ program WaCo
    use yaml_output
    use module_input_dicts
    use module_atoms, only: deallocate_atoms_data
-   use communications_base, only: comms_cubic
+   use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
+   use bigdft_run
    implicit none
    character :: filetype*4,outputype*4
    type(locreg_descriptors) :: Glr
@@ -36,7 +37,7 @@ program WaCo
    real(gp) :: tel
    real(gp), dimension(3) :: shift,CM
    real(gp) :: dist,rad,sprdfact,sprddiff,enediff,sprdmult
-   integer :: iproc, nproc, i_stat, ierr, npsidim
+   integer :: iproc, nproc, ierr, npsidim
    integer :: nvirtu,nvirtd,nrpts
    integer :: NeglectPoint, CNeglectPoint
    integer :: ncount0,ncount1,ncount_rate,ncount_max,iat,iformat
@@ -47,7 +48,6 @@ program WaCo
    character(len=4) :: num, units
    integer, allocatable :: wann_list(:), Zatoms(:,:), ncenters(:), wtypes(:,:)
    real(gp), dimension(:,:), pointer :: rxyz_old, cxyz,rxyz_wann
-   real(gp), dimension(:,:), allocatable :: radii_cf
    real(gp), allocatable :: sprd(:), locrad(:), eigen(:,:), proj(:,:), projC(:,:),distw(:),charge(:),prodw(:),wannocc(:)
    real(wp), allocatable :: psi(:,:),wann(:),wannr(:),lwann(:)
    real(wp), allocatable :: ham(:,:,:),hamr(:,:,:)
@@ -59,16 +59,16 @@ program WaCo
    integer, allocatable :: nfacets(:),facets(:,:,:),vertex(:,:,:), l(:), mr(:)
    real(gp), dimension(3) :: refpos, normal, box
    real(kind=8),dimension(:,:),allocatable :: umn, umnt, rho, rhoprime, amn, tmatrix
-   integer :: i, j, k, i_all, ilr
+   integer :: i, j, k, ilr
    character(len=16) :: seedname
    integer :: n_occ, n_virt, n_virt_tot, nproj,nband_old,nkpt_old,iwann_out 
    logical :: w_unk, w_sph, w_ang, w_rad, pre_check,residentity,write_resid
    integer, allocatable, dimension (:) :: virt_list
-   integer :: nbandCon,nconfig
+   integer :: nbandCon!,nconfig
    integer, dimension(:),allocatable :: bandlist
    logical :: idemp
-   integer, dimension(4) :: mpi_info
-   type(dictionary), pointer :: user_inputs
+   !integer, dimension(4) :: mpi_info
+   type(dictionary), pointer :: user_inputs,options
    external :: gather_timings
    ! ONLY FOR DEBUG
 !   real(gp) :: Gnorm, Lnorm
@@ -104,16 +104,26 @@ program WaCo
       end subroutine scalar_kmeans_diffIG
    end interface
 
-   !-finds the number of taskgroup size
-   !-initializes the mpi_environment for each group
-   !-decides the radical name for each run
-   call bigdft_init(mpi_info,nconfig,run_id,ierr)
 
-   !just for backward compatibility
-   iproc=mpi_info(1)
-   nproc=mpi_info(2)
+   call bigdft_command_line_options(options)
+   call bigdft_init(options)!mpi_info,nconfig,run_id,ierr)
+   iproc=bigdft_mpi%iproc!mpi_info(1)
+   nproc=bigdft_mpi%nproc!mpi_info(2)
+   if (bigdft_nruns(options) > 1) stop 'runs-file not supported for BigDFT2Wannier executable'
+   run_id = options // 0 // 'name'
+   call dict_free(options)
 
-   if (nconfig < 0) stop 'runs-file not supported for WaCo executable'
+
+!!$   !-finds the number of taskgroup size
+!!$   !-initializes the mpi_environment for each group
+!!$   !-decides the radical name for each run
+!!$   call bigdft_init(mpi_info,nconfig,run_id,ierr)
+!!$
+!!$   !just for backward compatibility
+!!$   iproc=mpi_info(1)
+!!$   nproc=mpi_info(2)
+!!$
+!!$   if (nconfig < 0) stop 'runs-file not supported for WaCo executable'
 
    call dict_init(user_inputs)
    call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
@@ -151,13 +161,11 @@ program WaCo
 
    call read_input_waco(trim(radical)//'.waco',nwannCon,ConstList,linear,nbandCon,bandlist) 
 
-   radii_cf = f_malloc((/ atoms%astruct%ntypes, 3 /),id='radii_cf')
-
-   call system_properties(iproc,nproc,input,atoms,orbs,radii_cf)
+   call system_properties(iproc,nproc,input,atoms,orbs)
 
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
-   call system_size(atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
+   call system_size(atoms,atoms%astruct%rxyz,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
         .false.,Glr,shift)
    if (iproc == 0) &
         & call print_atoms_and_grid(Glr, atoms, atoms%astruct%rxyz, shift, input%hx,input%hy,input%hz)
@@ -168,11 +176,8 @@ program WaCo
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
-        atoms,atoms%astruct%rxyz,radii_cf,input%crmult,input%frmult,Glr)
+        atoms,atoms%astruct%rxyz,input%crmult,input%frmult,.true.,Glr)
    if (iproc == 0) call print_wfd(Glr%wfd)
-
-   ! don't need radii_cf anymore
-   call f_free(radii_cf)
 
    !#################################################################
    ! Read Other files
@@ -406,8 +411,9 @@ program WaCo
       &        amn(1,1),max(1,nband),0.0d0,tmatrix(1,1),max(1,nwann))
 
       if(iproc == 0) then
-         call character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr) 
+         call character_list(nwann,nproj,tmatrix,plotwann,wann_list,l,mr) 
       end if
+
       call f_free(l)
       call f_free(mr)
       call f_free(amn)
@@ -647,7 +653,7 @@ program WaCo
 
      eigen = f_malloc((/ 1, nband /),id='eigen')
      call read_eigenvalues(trim(seedname)//'.eig',nband,1,eigen)
-     call wannier_projected_dos('Wannier_projected_dos.dat',nrpts,nwann,nband,umn,nsprd+1,wtypes,eigen)
+     call wannier_projected_dos('Wannier_projected_dos.dat',nrpts,nwann,nband,umn,eigen)
      call wannier_dos('Wannier_dos.dat',nrpts,nwann,nsprd+1,wtypes,diag)
      call f_free(eigen)
 
@@ -866,7 +872,7 @@ program WaCo
 
      wann = f_malloc(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,id='wann')
      wannr = f_malloc(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,id='wannr')
-     call initialize_work_arrays_sumrho(Glr,w)
+     call initialize_work_arrays_sumrho(1,Glr,.true.,w)
 
 
      ! Separate plotwann
@@ -1113,10 +1119,6 @@ program WaCo
         call deallocate_local_zone_descriptors(Lzd)
         call f_free(locrad)
         call f_free_ptr(cxyz)
-        if(iproc == 0) then
-           i_all = -product(shape(umnt))*kind(umnt)
-           i_all = -product(shape(umnt))*kind(umnt)
-        end if
         call f_free(calcbounds)
      end if
      call deallocate_work_arrays_sumrho(w)
@@ -1143,7 +1145,7 @@ program WaCo
      call f_free(ham)
   end if
   call f_free(wann_list)
-  call deallocate_lr(Glr)
+  call deallocate_locreg_descriptors(Glr)
   call deallocate_orbs(orbs)
   !call deallocate_atoms_scf(atoms,subname)
   call deallocate_atoms_data(atoms)
@@ -1463,6 +1465,7 @@ end subroutine read_inter_header
 
 
 subroutine read_umn(iproc,nwann,nband,seedname,umn)
+  use module_defs, only: gp
    use module_types
    use yaml_output
    implicit none
@@ -1533,6 +1536,7 @@ end subroutine read_umn
 
 
 subroutine read_centers(iproc,nwann,plotwann,natom,seedname,wann_list,cxyz,rxyz_wann,readsprd,sprd)
+  use module_defs, only :gp
    use module_types
    use yaml_output
    implicit none
@@ -1642,6 +1646,7 @@ end subroutine read_nrpts_hamiltonian
 
 
 subroutine read_hamiltonian(iproc,nrpts,nwann,seedname,ham)
+  use module_defs, only :gp
    use module_types
    use yaml_output
    implicit none
@@ -1691,6 +1696,7 @@ subroutine read_hamiltonian(iproc,nrpts,nwann,seedname,ham)
 end subroutine read_hamiltonian
 
 subroutine write_wannier_cube(ifile,filename,atoms,Glr,input,rxyz,wannr)
+  use module_defs, only: gp,dp
    use module_types
    implicit none
    character(len=*), intent(in) :: filename
@@ -1759,7 +1765,7 @@ subroutine scalar_kmeans_diffIG(iproc,nIG,crit,nel,vect,string,nbuf,buf)
   integer, dimension(:), pointer :: buf
   ! local variables
   character(len=*), parameter :: subname='scalar_kmeans_diffIG'
-  integer :: i_stat, i_all, i, iel, iiel, iter
+  integer :: i, iel, iiel, iter
   real :: r
   real(kind=8) :: minold, maxold
   logical :: same
@@ -1905,7 +1911,7 @@ subroutine stereographic_projection(mode,natom, rxyz, refpos, CM, rad, proj, nor
    real(gp), dimension(natom,3), intent(out) :: proj ! atom positions in the projection
    real(gp), dimension(3), intent(out) :: normal   ! normal to the plane of projection
    !Local variables
-   integer :: iat,j,i_stat,i_all
+   integer :: iat,j
    real(kind=8) :: norm, norm2, theta, dotprod, distsph
    real(kind=8), dimension(:,:), allocatable :: pos
    real(kind=8), dimension(3) :: r,W,NQ,Q,vect,check
@@ -2069,6 +2075,7 @@ subroutine stereographic_projection(mode,natom, rxyz, refpos, CM, rad, proj, nor
 end subroutine stereographic_projection
 
 subroutine write_stereographic_projection(unitnumb, filename, atoms, proj, NeglectPoint)
+  use module_defs, only: gp
    use module_types
    implicit none
    integer, intent(in) :: unitnumb
@@ -2101,6 +2108,7 @@ subroutine write_stereographic_projection(unitnumb, filename, atoms, proj, Negle
 end subroutine write_stereographic_projection
 
 subroutine shift_stereographic_projection(nwann,wannr,natom,rxyz)
+  use module_defs, only: gp
    use module_types
    implicit none
 
@@ -2132,6 +2140,7 @@ end subroutine shift_stereographic_projection
 
 subroutine build_stereographic_graph_facets(natoms,nsurf, mcenters,maxbond,rxyz,ncenters,Zatoms,nfacets,facets,vertex)
    use module_interfaces
+   use module_defs, only: gp,dp
    use module_types
    implicit none
    integer, intent(in) :: natoms, nsurf,mcenters
@@ -2173,6 +2182,7 @@ subroutine build_stereographic_graph_facets(natoms,nsurf, mcenters,maxbond,rxyz,
 end subroutine build_stereographic_graph_facets
 
 subroutine output_stereographic_graph(natoms,mcenters,proj,projC,nsurf,ncenters,Zatoms,npoly,poly,vertex,normal,NeglectPoint) 
+  use module_defs, only: gp,dp
    use module_types
    implicit none
    integer, intent(in) :: natoms, mcenters, nsurf, NeglectPoint
@@ -2303,6 +2313,7 @@ subroutine output_stereographic_graph(natoms,mcenters,proj,projC,nsurf,ncenters,
 end subroutine output_stereographic_graph
 
 subroutine wannier_dos(filename,nrpts,nwann,ntypes,wtypes,diag)
+  use module_defs, only :gp,dp
 use module_types
 implicit none
 character(len=*), intent(in) :: filename
@@ -2378,15 +2389,17 @@ close(unit=22)
 
 end subroutine wannier_dos
 
-subroutine wannier_projected_dos(filename,nrpts,nwann,norb,umn,ntypes,wtypes,eigen)
+
+subroutine wannier_projected_dos(filename,nrpts,nwann,norb,umn,eigen)
+  use module_defs, only: gp,dp
 use module_types
 implicit none
 character(len=*), intent(in) :: filename
 integer, intent(in) :: nrpts                           !< Number of unit cells (r-points)
 integer, intent(in) :: nwann                           !< Number of Wannier functions 
-integer, intent(in) :: ntypes                          !< Number of types of Wannier functions
+!integer, intent(in) :: ntypes                          !< Number of types of Wannier functions
 integer, intent(in) :: norb                            !< Number of orbitals
-integer, dimension(nrpts,nwann), intent(in) :: wtypes  !< Types of the Wannier functions
+!integer, dimension(nrpts,nwann), intent(in) :: wtypes  !< Types of the Wannier functions
 real(gp), dimension(nwann,norb), intent(in) :: umn     !< Wannier transformation matrix
 real(gp), dimension(norb),intent(in) :: eigen          !< Diagonal elements of the Hamiltonian in Wannier basis
 !Local variables
@@ -2461,7 +2474,9 @@ close(unit=22)
 
 end subroutine wannier_projected_dos
 
+
 subroutine read_eigenvalues(filename,norb,nkpt,eigen)
+  use module_defs, only :gp
 use module_types
 implicit none
 character(len=*), intent(in) :: filename
@@ -2514,6 +2529,7 @@ close(unit=22)
 end subroutine read_amn_header
 
 subroutine read_amn(filename,amn,nproj,nband,nkpt)
+  use module_defs, only :gp
 use module_types
 use module_interfaces
 implicit none
@@ -2615,7 +2631,8 @@ subroutine read_proj(seedname, n_kpts, n_proj, l, mr)
 
 END SUBROUTINE read_proj
 
-subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
+
+subroutine character_list(nwann,nproj,tmatrix,plotwann,wann_list,l,mr)
    use BigDFT_API
    use module_types
    use module_interfaces
@@ -2624,14 +2641,14 @@ subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
    integer, intent(in) :: nwann, nproj,plotwann
    integer, dimension(nproj), intent(in) :: l, mr
    real(gp), dimension(nwann,nproj), intent(in) :: tmatrix
-   integer, dimension(plotwann), intent(in) :: ncenters
+   !integer, dimension(plotwann), intent(in) :: ncenters
    integer, dimension(nwann),intent(in) :: wann_list
    !Local variables
    character(len=*),parameter :: subname='character_list'
    character(len=2) :: num
    character(len=27):: forma
    character(len=10), dimension(nproj) :: label
-   integer :: np, np2, iwann,iiwann, ntype, ii, i_stat, i_all
+   integer :: np, np2, iwann,iiwann, ntype, ii
    real(gp), dimension(:,:), allocatable :: Wpweight
    real(gp), dimension(:), allocatable :: norm 
    character(len=10),dimension(:), allocatable :: Wplabel
@@ -2712,8 +2729,9 @@ subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
    end do loop_np1
 
    Wpweight = f_malloc((/ nwann, ntype /),id='Wpweight')
-   allocate(Wplabel(ntype),stat=i_stat)
-   call memocc(i_stat,Wplabel,'Wplabel',subname)
+   Wplabel  = f_malloc_str(len(Wplabel),ntype,id='Wplabel')
+!!$   allocate(Wplabel(ntype),stat=i_stat)
+!!$   call memocc(i_stat,Wplabel,'Wplabel',subname)
 
    ! Construct the weights of each type
    ii = 0
@@ -2767,9 +2785,10 @@ subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
 
     call f_free(norm)
     call f_free(Wpweight)
-    i_all = -product(shape(Wplabel))*kind(Wplabel)
-    deallocate(Wplabel,stat=i_stat)
-    call memocc(i_stat,i_all,'Wplabel',subname)
+    call f_free_str(len(Wplabel),Wplabel)
+!!$    i_all = -product(shape(Wplabel))*kind(Wplabel)
+!!$    deallocate(Wplabel,stat=i_stat)
+!!$    call memocc(i_stat,i_all,'Wplabel',subname)
 
 end subroutine character_list
 
@@ -2833,6 +2852,7 @@ END SUBROUTINE read_spread_file
 
 
 subroutine get_mindist(geocode,rxyz,cxyz,box,distw)
+  use module_defs, only :gp
    use module_types
    implicit none
    character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode

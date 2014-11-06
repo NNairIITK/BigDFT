@@ -86,9 +86,10 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    !nspin*noncoll is always <= 2
    select case(iversion)
    case(1)
+       ! SM: use for basedistd the same basedist as for the up orbitals. CHECK THIS!!!
        call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
             nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.false.,&
-            basedist=orbs%norb_par(0:,1:))
+            basedist=orbs%norb_par(0:,1:),basedistu=orbs%norbu_par(0:,1:),basedistd=orbs%norbu_par(0:,1:))
    case(2)
        call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
             nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.true.)
@@ -128,7 +129,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
   !write(*,'(a,3i6)') 'iproc, orbse%isorb, orbse%norbp', iproc, orbse%isorb,orbse%norbp
   !write(*,'(a,3i6)') 'norbe, orbse%nspinor, orbse%isorb+orbse%norbp+ndebug', norbe, orbse%nspinor, orbse%isorb+orbse%norbp+ndebug
    !allocate the gaussian coefficients for the number of orbitals which is needed
-   psigau = f_malloc_ptr((/ norbe , orbse%nspinor , orbse%isorb+orbse%norbp+ndebug /),id='psigau')
+   psigau = f_malloc_ptr((/ norbe , orbse%nspinor , max(orbse%norbp,1) /),id='psigau')
    iorbtolr = f_malloc(orbse%norbp,id='iorbtolr')
 
    !fill just the interesting part of the orbital
@@ -136,16 +137,16 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
        ! this will be use for the linear scaling part
        if(present(quartic_prefactor)) then
            call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,G,&
-                psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
+                psigau(1,1,1),&
                 iorbtolr,mapping,quartic_prefactor)
        else
            call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,G,&
-                psigau(1,1,min(orbse%isorb+1,orbse%norb)),&
+                psigau(1,1,1),&
                 iorbtolr,mapping)
        end if
    else
        call AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,nspin,eks,G,&
-            psigau(1,1,min(orbse%isorb+1,orbse%norb)),iorbtolr)
+            psigau(1,1,1),iorbtolr)
    end if
 
    call f_free(iorbtolr)
@@ -743,7 +744,7 @@ END SUBROUTINE AtomicOrbitals
 !! the output psiatn is a normalized version of psiat
 subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
    use module_base
-   use module_types, only: f_err_throw, BIGDFT_RUNTIME_ERROR
+   !use module_types, only: f_err_throw, BIGDFT_RUNTIME_ERROR
    use yaml_output, only: yaml_toa
    implicit none
    integer, intent(in) :: l,ng
@@ -811,7 +812,6 @@ END SUBROUTINE atomkin
 
 subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
    use module_base
-   use module_types, only: f_err_throw, BIGDFT_RUNTIME_ERROR
    use yaml_output, only: yaml_toa
    implicit none
    integer, intent(in) :: l,m,nterm_max
@@ -1135,8 +1135,7 @@ END SUBROUTINE calc_coeff_inguess
 subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
       &   zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,nintp,&
       &   aeval,ng,psi,res,chrg,iorder)
-   use module_base, only: gp
-   use module_types, only: f_err_throw,BIGDFT_RUNTIME_ERROR
+   use module_base, only: gp,f_err_throw,BIGDFT_RUNTIME_ERROR,safe_exp
    use yaml_output, only: yaml_toa
    implicit none
    integer, parameter :: n_int=100
@@ -1160,7 +1159,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
    !   &   occup(noccmax,lmax+1),
    !   chrg(noccmax,lmax+1),&
    !   &   vh(0:ng,0:ng,4,0:ng,0:ng,4),&
-      &   res(noccmax,lmax+1),xp(0:ng)
+      &   res(noccmax,lmax+1),xp(0:ng)!,work(8*(ng+1)),ar(0:ng),ai(0:ng),beta(0:ng)
    !Local variables
    logical :: noproj
    integer :: i,l,k,j,it,iocc,ilcc,ig,lcx,info
@@ -1170,7 +1169,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
    real(gp), dimension(0:ng,0:ng) :: hh !<hamiltonian matrix in the gaussian basis
    !Functions
    real(kind=8), external :: ddot,gamma_restricted
-   real(gp), external :: spherical_gaussian_value
+   real(gp), external :: spherical_gaussian_value,dlamch
 
    if(iorder /= 2 .and. iorder /= 4) then
        call f_err_throw('Can only use quadratic or quartic potential', err_id=BIGDFT_RUNTIME_ERROR)
@@ -1388,17 +1387,42 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
             end do loop_j
          end do loop_i
 
+         !symmetrize matrices
+         do i=0,ng
+            do j=0,i-1
+               ss(j,i)=ss(i,j)
+               hh(j,i)=hh(i,j)
+               !print *,'i,j,ss',i,j,ss(i,j)
+               !print *,'i,j,ss',i,j,hh(i,j)
+            end do
+         end do
          ! ESSL
          !        call DSYGV(1,hh,ng+1,ss,ng+1,eval,evec,ng+1,ng+1,aux,2*ng+2)
          ! LAPACK
+!!$         call dggev('N','V',ng+1,hh,ng+1,ss,ng+1,ar,ai,beta,&
+!!$              ai,1,evec,ng+1,work,8*(ng+1),info)
+!!$         if (info.ne.0) write(6,*) 'LAPACK',info
+!!$         !naive division
+!!$         do i=0,ng
+!!$            call yaml_newline()
+!!$            call yaml_map('beta,ai,ar',(/beta(i),ai(i),ar(i)/),&
+!!$                 fmt='(1pe12.5)')
+!!$            call yaml_map('e',ar(i)/beta(i),fmt='(1pe12.5)')
+!!$         end do
+
          call DSYGV(1,'V','L',ng+1,hh,ng+1,ss,ng+1,eval,evec,(ng+1)**2,info)
-         if (info.ne.0) write(6,*) 'LAPACK',info
+!!$         do i=0,ng
+!!$            call yaml_newline()
+!!$            call yaml_map('e',eval(i),fmt='(1pe12.5)')
+!!$         end do
+
          do iocc=0,noccmax-1
             do i=0,ng
                evec(i,iocc)=hh(i,iocc)
             end do
          end do
          ! end LAPACK
+
          do iocc=1,noccmax
             evsum=evsum+eval(iocc-1)
             aeval(iocc,l+1)=eval(iocc-1)
@@ -1493,7 +1517,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
    loop_rk1: do 
       tt=0._gp
       do i=0,ng
-         texp=exp(-.25_gp*rk**2/xp(i))
+         texp=safe_exp(-.25_gp*rk**2/xp(i))
          !        texp=exp(-.5_gp*energy/xp(i))
          sd=sqrt(xp(i))
          tt=tt+psi(i,1,1)*0.4431134627263791_gp*texp/sd**3
@@ -1508,7 +1532,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
       loop_rk2: do 
          tt=0._gp
          do i=0,ng
-            texp=exp(-.25_gp*rk**2/xp(i))
+            texp=safe_exp(-.25_gp*rk**2/xp(i))
             sd=sqrt(xp(i))
             tt=tt+psi(i,1,2)*0.2215567313631895_gp*rk*texp/sd**5
          end do
@@ -1523,7 +1547,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
       do 
          tt=0._gp
          do i=0,ng
-            texp=exp(-.25_gp*rk**2/xp(i))
+            texp=safe_exp(-.25_gp*rk**2/xp(i))
             sd=sqrt(xp(i))
             tt=tt+psi(i,1,3)*0.1107783656815948_gp*rk**2*texp/sd**7
          end do
@@ -1539,7 +1563,7 @@ END SUBROUTINE gatom
 subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
       &   ng,res,zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,n_int,&
       &   potgrd,xcgrd,noproj)
-   use module_base, only: gp
+   use module_base, only: gp,safe_exp
    implicit real(gp) (a-h,o-z)
    logical :: noproj
    dimension psi(0:ng,noccmax,lmax+1),rho(0:ng,0:ng,lmax+1),&
@@ -1555,7 +1579,7 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
       call derf_ab(derf_val, r/(sqrt(2._gp)*alpz))
       potgrd(k)= .5_gp*(r/rprb**2)**2 - &
          &   zion*derf_val/r &
-         &   + exp(-.5_gp*(r/alpl)**2)*&
+         &   + safe_exp(-.5_gp*(r/alpl)**2)*&
          &   ( gpot(1) + gpot(2)*(r/alpl)**2 + gpot(3)*(r/alpl)**4 + gpot(4)*(r/alpl)**6  )&
          &   + xcgrd(k)/r**2
       do j=0,ng
@@ -1563,7 +1587,7 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
             spi=1.772453850905516_gp
             d=xp(i)+xp(j)
             sd=sqrt(d)
-            tx=exp(-d*r**2)
+            tx=safe_exp(-d*r**2)
             call derf_ab(tt, sd*r)
             tt=spi*tt
             u_gp=tt/(4._gp*sd**3*r)
@@ -1602,18 +1626,19 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
             rkin=0._gp
             do i=0,ng
                rkin=rkin + psi(i,iocc,ll+1) *  (&
-                  &   xp(i)*(3._gp+2._gp*real(ll,gp)-2._gp*xp(i)*r**2)*exp(-xp(i)*r**2) )
+                  &   xp(i)*(3._gp+2._gp*real(ll,gp)-2._gp*xp(i)*r**2)*&
+                  safe_exp(-xp(i)*r**2) )
             end do
             rkin=rkin*r**ll
             ! separable part
             if (ll.le.lpx .and. .not. noproj) then
                sep =& 
                (scpr1*hsep(1,ll+1) + scpr2*hsep(2,ll+1) + scpr3*hsep(4,ll+1))&
-                  &   *rnrm1*r**ll*exp(-.5_gp*(r/alps(ll+1))**2)   +&
+                  &   *rnrm1*r**ll*safe_exp(-.5_gp*(r/alps(ll+1))**2)   +&
                   &   (scpr1*hsep(2,ll+1) + scpr2*hsep(3,ll+1) + scpr3*hsep(5,ll+1))&
-                  &   *rnrm2*r**(ll+2)*exp(-.5_gp*(r/alps(ll+1))**2)   +&
+                  &   *rnrm2*r**(ll+2)*safe_exp(-.5_gp*(r/alps(ll+1))**2)   +&
                   &   (scpr1*hsep(4,ll+1) + scpr2*hsep(5,ll+1) + scpr3*hsep(6,ll+1))&
-                  &   *rnrm3*r**(ll+4)*exp(-.5_gp*(r/alps(ll+1))**2)
+                  &   *rnrm3*r**(ll+4)*safe_exp(-.5_gp*(r/alps(ll+1))**2)
             else
                sep=0._gp
             end if
@@ -1635,8 +1660,7 @@ END SUBROUTINE resid
 
 
 subroutine crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
-   use module_base, only: gp
-   use module_types, only: f_err_throw,BIGDFT_RUNTIME_ERROR
+   use module_base, only: gp,f_err_throw,BIGDFT_RUNTIME_ERROR,safe_exp
    use yaml_output, only: yaml_toa
    implicit none
    !implicit real(gp) (a-h,o-z)
@@ -1659,7 +1683,8 @@ subroutine crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
          r=(real(k,gp)-.5_gp)*dr
          do j=0,ng
             do i=0,ng
-               rmt(k,i,j,l+1)=(r**2)**l*exp(-(xp(i)+xp(j))*r**2)
+               !rmt(k,i,j,l+1)=(r**2)**l*exp(-(xp(i)+xp(j))*r**2)
+               rmt(k,i,j,l+1)=(r**2)**l*safe_exp(-(xp(i)+xp(j))*r**2)
             end do
          end do
       end do
@@ -1730,7 +1755,7 @@ END SUBROUTINE crtvh
 
 
 function wave(ng,ll,xp,psi,r)
-   use module_base, only: gp
+   use module_base, only: gp,safe_exp
    implicit none
    !Arguments
    integer, intent(in) :: ll,ng
@@ -1741,7 +1766,7 @@ function wave(ng,ll,xp,psi,r)
 
    wave=0._gp
    do i=0,ng
-      wave=wave + psi(i)*exp(-xp(i)*r**2)
+      wave=wave + psi(i)*safe_exp(-xp(i)*r**2)
    end do
    if(ll>0)then
       wave=wave*r**ll
@@ -1792,8 +1817,7 @@ END FUNCTION emuxc
 
 !> Restricted version of the Gamma function
 function gamma_restricted(x)
-   use module_base, only: gp
-   use module_types, only: f_err_throw,BIGDFT_RUNTIME_ERROR
+   use module_base, only: gp,f_err_throw,BIGDFT_RUNTIME_ERROR
    use yaml_output, only: yaml_toa
    implicit none
    !Arguments

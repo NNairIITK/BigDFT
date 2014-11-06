@@ -73,7 +73,7 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
      Lnscatterarr(:,2) = Lzd%Llr(ilr)%d%n3i 
 
 
-     call initialize_work_arrays_sumrho(Lzd%Llr(ilr),w)
+     call initialize_work_arrays_sumrho(1,Lzd%Llr(ilr),.true.,w)
      rho_p = f_malloc(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn,id='rho_p')
      psir = f_malloc((/ Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i, npsir /),id='psir')
   
@@ -169,11 +169,12 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
 END SUBROUTINE local_partial_densityLinear
 
 
-subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, denskern, denskern_)
+subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
+           coeff, denskern, denskern_, keep_uncompressed_)
   use module_base
   use module_types
   use yaml_output
-  use sparsematrix_base, only: sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
   use sparsematrix, only: compress_matrix
   implicit none
 
@@ -181,23 +182,36 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
   integer,intent(in):: iproc, nproc
   type(orbitals_data),intent(in) :: orbs, orbs_tmb
   logical, intent(in) :: isKernel
-  real(kind=8),dimension(orbs_tmb%norb,orbs%norb),intent(in):: coeff   !only use the first (occupied) orbitals
   type(sparse_matrix), intent(inout) :: denskern
+  real(kind=8),dimension(denskern%nfvctr,orbs%norb),intent(in):: coeff   !only use the first (occupied) orbitals
   type(matrices), intent(out) :: denskern_
+  logical,intent(in),optional :: keep_uncompressed_ !< keep the uncompressed kernel in denskern_%matrix (requires that this array is already allocated outside of the routine)
 
   ! Local variables
-  integer :: ierr, sendcount, jproc, iorb, itmb
+  integer :: ierr, sendcount, jproc, iorb, itmb, iiorb, ispin, jorb
   real(kind=8),dimension(:,:),allocatable :: density_kernel_partial, fcoeff
 ! real(kind=8), dimension(:,:,), allocatable :: ks,ksk,ksksk
   character(len=*),parameter :: subname='calculate_density_kernel'
   integer,dimension(:),allocatable :: recvcounts, dspls
   integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
   integer,parameter :: communication_strategy=ALLREDUCE
+  logical :: keep_uncompressed
 
   call f_routine(id='calculate_density_kernel')
 
+  if (present(keep_uncompressed_)) then
+      keep_uncompressed = keep_uncompressed_
+  else
+      keep_uncompressed = .false.
+  end if
+
+  if (keep_uncompressed) then
+      if (.not.associated(denskern_%matrix)) stop 'ERROR: denskern_%matrix must be associated if keep_uncompressed is true'
+  end if
+
   if (communication_strategy==ALLGATHERV) then
       if (iproc==0) call yaml_map('communication strategy kernel','ALLGATHERV')
+      stop 'calculate_density_kernel: ALLGATHERV option needs reworking due to the spin'
       call timing(iproc,'calc_kernel','ON') !lr408t
       !if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       density_kernel_partial=f_malloc((/orbs_tmb%norb,max(orbs_tmb%norbp,1)/), id='density_kernel_partial')
@@ -229,7 +243,11 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
       call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
       call timing(iproc,'waitAllgatKern','OF')
 
-      denskern_%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern_%matrix')
+      !denskern_%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern_%matrix')
+
+      if (.not.keep_uncompressed) then
+          denskern_%matrix=sparsematrix_malloc_ptr(denskern,iaction=DENSE_FULL,id='denskern_%matrix')
+      end if
 
       if (nproc > 1) then
          call timing(iproc,'commun_kernel','ON') !lr408t
@@ -241,57 +259,99 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, coef
          end do
          sendcount=orbs_tmb%norb*orbs_tmb%norbp
          call mpi_allgatherv(density_kernel_partial(1,1), sendcount, mpi_double_precision, &
-              denskern_%matrix(1,1), recvcounts, dspls, mpi_double_precision, &
+              denskern_%matrix(1,1,1), recvcounts, dspls, mpi_double_precision, &
               bigdft_mpi%mpi_comm, ierr)
          call f_free(recvcounts)
          call f_free(dspls)
          call timing(iproc,'commun_kernel','OF') !lr408t
       else
-         call vcopy(orbs_tmb%norb*orbs_tmb%norbp,density_kernel_partial(1,1),1,denskern_%matrix(1,1),1)
+         call vcopy(orbs_tmb%norb*orbs_tmb%norbp,density_kernel_partial(1,1),1,denskern_%matrix(1,1,1),1)
       end if
 
       call f_free(density_kernel_partial)
 
       call compress_matrix(iproc,denskern,inmat=denskern_%matrix,outmat=denskern_%matrix_compr)
-      call f_free_ptr(denskern_%matrix)
+      if (.not.keep_uncompressed) then
+          call f_free_ptr(denskern_%matrix)
+      end if
   else if (communication_strategy==ALLREDUCE) then
       if (iproc==0) call yaml_map('communication strategy kernel','ALLREDUCE')
       call timing(iproc,'calc_kernel','ON') !lr408t
       !!if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
-      denskern_%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern_%matrix_compr')
+      !denskern_%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern_%matrix_compr')
+      if (.not.keep_uncompressed) then
+          denskern_%matrix=sparsematrix_malloc_ptr(denskern,iaction=DENSE_FULL,id='denskern_%matrix_compr')
+      end if
       if(orbs%norbp>0) then
-          fcoeff=f_malloc((/orbs_tmb%norb,orbs%norbp/), id='fcoeff')
+          fcoeff=f_malloc((/denskern%nfvctr,orbs%norbp/), id='fcoeff')
           !decide wether we calculate the density kernel or just transformation matrix
           if(isKernel)then
              do iorb=1,orbs%norbp
                 !call to_zero(orbs_tmb%norb,f_coeff(1,iorb))
                 !call daxpy(orbs_tmb%norb,orbs%occup(orbs%isorb+iorb),coeff(1,orbs%isorb+iorb),1,fcoeff(1,iorb),1)
-                do itmb=1,orbs_tmb%norb
+                do itmb=1,denskern%nfvctr
                     fcoeff(itmb,iorb) = orbs%occup(orbs%isorb+iorb)*coeff(itmb,orbs%isorb+iorb)
                 end do
              end do
           else
              do iorb=1,orbs%norbp
-                call vcopy(orbs_tmb%norb,coeff(1,orbs%isorb+iorb),1,fcoeff(1,iorb),1)
+                call vcopy(denskern%nfvctr,coeff(1,orbs%isorb+iorb),1,fcoeff(1,iorb),1)
              end do
           end if
-          call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), orbs_tmb%norb, &
-               fcoeff(1,1), orbs_tmb%norb, 0.d0, denskern_%matrix(1,1), orbs_tmb%norb)
+      !!if (iproc==0) then
+      !!    do iorb=1,orbs%norbp
+      !!        do jorb=1,denskern%nfvctr
+      !!            write(970,'(a,2i9,f14.7)') 'iorb, jorb, fcoeff(jorb,iorb)', iorb, jorb, fcoeff(jorb,iorb)
+      !!        end do
+      !!    end do
+      !!end if
+          !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), orbs_tmb%norb, &
+          !     fcoeff(1,1), orbs_tmb%norb, 0.d0, denskern_%matrix(1,1,1), orbs_tmb%norb)
+          call to_zero(denskern%nspin*denskern%nfvctr**2, denskern_%matrix(1,1,1))
+          do iorb=1,orbs%norbp
+              iiorb=orbs%isorb+iorb
+              if (orbs%spinsgn(iiorb)>0.d0) then
+                  ispin=1
+              else
+                  ispin=2
+              end if
+              call dgemm('n', 't', denskern%nfvctr, denskern%nfvctr, 1, 1.d0, coeff(1,orbs%isorb+iorb), denskern%nfvctr, &
+                   fcoeff(1,iorb), denskern%nfvctr, 1.d0, denskern_%matrix(1,1,ispin), denskern%nfvctr)
+          end do
           call f_free(fcoeff)
       else
-          call to_zero(orbs_tmb%norb**2, denskern_%matrix(1,1))
+          call to_zero(denskern%nspin*denskern%nfvctr**2, denskern_%matrix(1,1,1))
       end if
       call timing(iproc,'calc_kernel','OF') !lr408t
+
+      !!if (iproc==0) then
+      !!    do ispin=1,denskern%nspin
+      !!        do iorb=1,denskern%nfvctr
+      !!            do jorb=1,denskern%nfvctr
+      !!                write(940+ispin,'(a,3i9,f14.7)') 'ispin, iorb, jorb, denskern_%matrix(jorb,iorb,ispin)', ispin, iorb, jorb, denskern_%matrix(jorb,iorb,ispin)
+      !!            end do
+      !!        end do
+      !!    end do
+      !!end if
 
       call timing(iproc,'waitAllgatKern','ON')
       call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
       call timing(iproc,'waitAllgatKern','OF')
 
       call compress_matrix(iproc,denskern,inmat=denskern_%matrix,outmat=denskern_%matrix_compr)
-      call f_free_ptr(denskern_%matrix)
+      if (keep_uncompressed) then
+          if (nproc > 1) then
+              call timing(iproc,'commun_kernel','ON') !lr408t
+              call mpiallred(denskern_%matrix(1,1,1), denskern%nspin*denskern%nfvctr**2, mpi_sum, bigdft_mpi%mpi_comm)
+              call timing(iproc,'commun_kernel','OF') !lr408t
+          end if
+      end if
+      if (.not.keep_uncompressed) then
+          call f_free_ptr(denskern_%matrix)
+      end if
       if (nproc > 1) then
           call timing(iproc,'commun_kernel','ON') !lr408t
-          call mpiallred(denskern_%matrix_compr(1), denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(denskern_%matrix_compr(1), denskern%nspin*denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
           call timing(iproc,'commun_kernel','OF') !lr408t
       end if
 
@@ -341,161 +401,161 @@ end subroutine calculate_density_kernel
 
 
 
-subroutine calculate_density_kernel_uncompressed(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, kernel)
-  use module_base
-  use module_types
-  use yaml_output
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(orbitals_data),intent(in) :: orbs, orbs_tmb
-  logical, intent(in) :: isKernel
-  real(kind=8),dimension(orbs_tmb%norb,orbs%norb),intent(in):: coeff   !only use the first (occupied) orbitals
-  real(kind=8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out) :: kernel
-
-  ! Local variables
-  integer :: istat, iall, ierr, sendcount, jproc, iorb, itmb
-  real(kind=8),dimension(:,:),allocatable :: density_kernel_partial, fcoeff
-! real(kind=8), dimension(:,:,), allocatable :: ks,ksk,ksksk
-  character(len=*),parameter :: subname='calculate_density_kernel'
-  integer,dimension(:),allocatable :: recvcounts, dspls
-  integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
-  integer,parameter :: communication_strategy=ALLREDUCE
-
-  if (communication_strategy==ALLGATHERV) then
-      if (iproc==0) call yaml_map('calculate density kernel, communication strategy','ALLGATHERV')
-      call timing(iproc,'calc_kernel','ON') !lr408t
-      !if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
-      density_kernel_partial = f_malloc((/ orbs_tmb%norb, max(orbs_tmb%norbp, 1) /),id='density_kernel_partial')
-      fcoeff = f_malloc0((/ orbs_tmb%norb, orbs%norb /),id='fcoeff')
-      if(orbs_tmb%norbp>0) then
-          !decide whether we calculate the density kernel or just transformation matrix
-          if(isKernel) then
-             do iorb=1,orbs%norb
-                !call daxpy(orbs_tmb%norbp,orbs%occup(iorb),coeff(1+orbs_tmb%isorb,iorb),1,fcoeff(1+orbs_tmb%isorb,iorb),1)
-                do itmb=1,orbs_tmb%norbp
-                     fcoeff(orbs_tmb%isorb+itmb,iorb) = orbs%occup(iorb)*coeff(orbs_tmb%isorb+itmb,iorb)
-                end do
-             end do
-          else
-             do iorb=1,orbs%norb
-                do itmb=1,orbs_tmb%norbp
-                     fcoeff(orbs_tmb%isorb+itmb,iorb) = coeff(orbs_tmb%isorb+itmb,iorb)
-                end do
-             end do
-          end if
-
-          call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norbp, orbs%norb, 1.d0, coeff(1,1), orbs_tmb%norb, &
-               fcoeff(orbs_tmb%isorb+1,1), orbs_tmb%norb, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
-      end if
-      call f_free(fcoeff)
-      call timing(iproc,'calc_kernel','OF') !lr408t
-
-      call timing(iproc,'waitAllgatKern','ON')
-      call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
-      call timing(iproc,'waitAllgatKern','OF')
-
-      if (nproc > 1) then
-         call timing(iproc,'commun_kernel','ON') !lr408t
-         recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
-         dspls = f_malloc(0.to.nproc-1,id='dspls')
-         do jproc=0,nproc-1
-             recvcounts(jproc)=orbs_tmb%norb*orbs_tmb%norb_par(jproc,0)
-             dspls(jproc)=orbs_tmb%norb*orbs_tmb%isorb_par(jproc)
-         end do
-         sendcount=orbs_tmb%norb*orbs_tmb%norbp
-         call mpi_allgatherv(density_kernel_partial(1,1), sendcount, mpi_double_precision, &
-              kernel(1,1), recvcounts, dspls, mpi_double_precision, &
-              bigdft_mpi%mpi_comm, ierr)
-         call f_free(recvcounts)
-         call f_free(dspls)
-         call timing(iproc,'commun_kernel','OF') !lr408t
-      else
-         call vcopy(orbs_tmb%norb*orbs_tmb%norbp,density_kernel_partial(1,1),1,kernel(1,1),1)
-      end if
-
-      call f_free(density_kernel_partial)
-  else if (communication_strategy==ALLREDUCE) then
-      if (iproc==0) call yaml_map('calculate density kernel, communication strategy','ALLREDUCE')
-      call timing(iproc,'calc_kernel','ON') !lr408t
-      !!if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
-      if(orbs%norbp>0) then
-          fcoeff = f_malloc0((/ orbs_tmb%norb, orbs%norb /),id='fcoeff')
-
-          !decide wether we calculate the density kernel or just transformation matrix
-          if(isKernel)then
-             do iorb=1,orbs%norbp
-                !call daxpy(orbs_tmb%norb,orbs%occup(orbs%isorb+iorb),coeff(1,orbs%isorb+iorb),1,fcoeff(1,orbs%isorb+iorb),1)
-                do itmb=1,orbs_tmb%norb
-                     fcoeff(itmb,orbs%isorb+iorb) = orbs%occup(orbs%isorb+iorb)*coeff(itmb,orbs%isorb+iorb)
-                end do
-             end do
-          else
-             do iorb=1,orbs%norbp
-                !call daxpy(orbs_tmb%norb,orbs%occup(orbs%isorb+iorb),coeff(1,orbs%isorb+iorb),1,fcoeff(1,orbs%isorb+iorb),1)
-                do itmb=1,orbs_tmb%norb
-                     fcoeff(itmb,orbs%isorb+iorb) = coeff(itmb,orbs%isorb+iorb)
-                end do
-          end do
-
-          end if
-          call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), orbs_tmb%norb, &
-               fcoeff(1,orbs%isorb+1), orbs_tmb%norb, 0.d0, kernel(1,1), orbs_tmb%norb)
-          call f_free(fcoeff)
-      else
-          call to_zero(orbs_tmb%norb**2, kernel(1,1))
-      end if
-      call timing(iproc,'calc_kernel','OF') !lr408t
-
-      call timing(iproc,'waitAllgatKern','ON')
-      call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
-      call timing(iproc,'waitAllgatKern','OF')
-      if (nproc > 1) then
-          call timing(iproc,'commun_kernel','ON') !lr408t
-          call mpiallred(kernel(1,1),orbs_tmb%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
-          call timing(iproc,'commun_kernel','OF') !lr408t
-      end if
-  end if
-
- ! Purify Kernel
- !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norbp, 1.d0, kernel(1,orbs_tmb%isorb+1), orbs_tmb%norb, &
- !           overlap(1,orbs_tmb%isorb+1), orbs_tmb%norb, 0.d0, ks(1,1), orbs_tmb%norb) 
- !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norbp, 1.d0, ks(1,orbs_tmb%isorb+1), orbs_tmb%norb, &
- !           kernel(1,orbs_tmb%isorb+1), orbs_tmb%norb, 0.d0, ksk(1,1), orbs_tmb%norb)
- !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norbp, 1.d0, ks(1,orbs_tmb%isorb+1), orbs_tmb%norb, &
- !           ksk(1,orbs_tmb%isorb+1), orbs_tmb%norb, 0.d0, ksksk(1,1), orbs_tmb%norb)
-
-
- !!if(present(overlap)) then
-   !!allocate(ks(orbs_tmb%norb,orbs_tmb%norb),stat=istat)
-   !!call memocc(istat, ks, 'ks', subname) 
-   !!allocate(ksk(orbs_tmb%norb,orbs_tmb%norb),stat=istat)
-   !!call memocc(istat, ksk, 'ksk', subname) 
-   !!allocate(ksksk(orbs_tmb%norb,orbs_tmb%norb),stat=istat)
-   !!call memocc(istat, ksksk, 'ksksk', subname) 
-
-   !!call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, kernel(1,1), orbs_tmb%norb, &
-   !!           overlap(1,1), orbs_tmb%norb, 0.d0, ks(1,1), orbs_tmb%norb) 
-   !!call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, ks(1,1), orbs_tmb%norb, &
-   !!           kernel(1,1), orbs_tmb%norb, 0.d0, ksk(1,1), orbs_tmb%norb)
-   !!call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, ks(1,1), orbs_tmb%norb, &
-   !!           ksk(1,1), orbs_tmb%norb, 0.d0, ksksk(1,1), orbs_tmb%norb)
-   !!print *,'PURIFYING THE KERNEL'
-   !!kernel = 3*ksk-2*ksksk
-   !!
-   !!iall = -product(shape(ks))*kind(ks)
-   !!deallocate(ks,stat=istat)
-   !!call memocc(istat, iall, 'ks', subname)
-   !!iall = -product(shape(ksk))*kind(ksk)
-   !!deallocate(ksk,stat=istat)
-   !!call memocc(istat, iall, 'ksk', subname)
-   !!iall = -product(shape(ksksk))*kind(ksksk)
-   !!deallocate(ksksk,stat=istat)
-   !!call memocc(istat, iall, 'ksksk', subname)
- !!end if
-
-end subroutine calculate_density_kernel_uncompressed
+!!subroutine calculate_density_kernel_uncompressed(iproc, nproc, isKernel, orbs, orbs_tmb, coeff, kernel)
+!!  use module_base
+!!  use module_types
+!!  use yaml_output
+!!  implicit none
+!!
+!!  ! Calling arguments
+!!  integer,intent(in):: iproc, nproc
+!!  type(orbitals_data),intent(in) :: orbs, orbs_tmb
+!!  logical, intent(in) :: isKernel
+!!  real(kind=8),dimension(orbs_tmb%norb,orbs%norb),intent(in):: coeff   !only use the first (occupied) orbitals
+!!  real(kind=8),dimension(orbs_tmb%norb,orbs_tmb%norb),intent(out) :: kernel
+!!
+!!  ! Local variables
+!!  integer :: istat, iall, ierr, sendcount, jproc, iorb, itmb
+!!  real(kind=8),dimension(:,:),allocatable :: density_kernel_partial, fcoeff
+!!! real(kind=8), dimension(:,:,), allocatable :: ks,ksk,ksksk
+!!  character(len=*),parameter :: subname='calculate_density_kernel_uncompresses'
+!!  integer,dimension(:),allocatable :: recvcounts, dspls
+!!  integer,parameter :: ALLGATHERV=1, ALLREDUCE=2
+!!  integer,parameter :: communication_strategy=ALLREDUCE
+!!
+!!  if (communication_strategy==ALLGATHERV) then
+!!      if (iproc==0) call yaml_map('calculate density kernel, communication strategy','ALLGATHERV')
+!!      call timing(iproc,'calc_kernel','ON') !lr408t
+!!      !if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
+!!      density_kernel_partial = f_malloc((/ orbs_tmb%norb, max(orbs_tmb%norbp, 1) /),id='density_kernel_partial')
+!!      fcoeff = f_malloc0((/ orbs_tmb%norb, orbs%norb /),id='fcoeff')
+!!      if(orbs_tmb%norbp>0) then
+!!          !decide whether we calculate the density kernel or just transformation matrix
+!!          if(isKernel) then
+!!             do iorb=1,orbs%norb
+!!                !call daxpy(orbs_tmb%norbp,orbs%occup(iorb),coeff(1+orbs_tmb%isorb,iorb),1,fcoeff(1+orbs_tmb%isorb,iorb),1)
+!!                do itmb=1,orbs_tmb%norbp
+!!                     fcoeff(orbs_tmb%isorb+itmb,iorb) = orbs%occup(iorb)*coeff(orbs_tmb%isorb+itmb,iorb)
+!!                end do
+!!             end do
+!!          else
+!!             do iorb=1,orbs%norb
+!!                do itmb=1,orbs_tmb%norbp
+!!                     fcoeff(orbs_tmb%isorb+itmb,iorb) = coeff(orbs_tmb%isorb+itmb,iorb)
+!!                end do
+!!             end do
+!!          end if
+!!
+!!          call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norbp, orbs%norb, 1.d0, coeff(1,1), orbs_tmb%norb, &
+!!               fcoeff(orbs_tmb%isorb+1,1), orbs_tmb%norb, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
+!!      end if
+!!      call f_free(fcoeff)
+!!      call timing(iproc,'calc_kernel','OF') !lr408t
+!!
+!!      call timing(iproc,'waitAllgatKern','ON')
+!!      call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
+!!      call timing(iproc,'waitAllgatKern','OF')
+!!
+!!      if (nproc > 1) then
+!!         call timing(iproc,'commun_kernel','ON') !lr408t
+!!         recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
+!!         dspls = f_malloc(0.to.nproc-1,id='dspls')
+!!         do jproc=0,nproc-1
+!!             recvcounts(jproc)=orbs_tmb%norb*orbs_tmb%norb_par(jproc,0)
+!!             dspls(jproc)=orbs_tmb%norb*orbs_tmb%isorb_par(jproc)
+!!         end do
+!!         sendcount=orbs_tmb%norb*orbs_tmb%norbp
+!!         call mpi_allgatherv(density_kernel_partial(1,1), sendcount, mpi_double_precision, &
+!!              kernel(1,1), recvcounts, dspls, mpi_double_precision, &
+!!              bigdft_mpi%mpi_comm, ierr)
+!!         call f_free(recvcounts)
+!!         call f_free(dspls)
+!!         call timing(iproc,'commun_kernel','OF') !lr408t
+!!      else
+!!         call vcopy(orbs_tmb%norb*orbs_tmb%norbp,density_kernel_partial(1,1),1,kernel(1,1),1)
+!!      end if
+!!
+!!      call f_free(density_kernel_partial)
+!!  else if (communication_strategy==ALLREDUCE) then
+!!      if (iproc==0) call yaml_map('calculate density kernel, communication strategy','ALLREDUCE')
+!!      call timing(iproc,'calc_kernel','ON') !lr408t
+!!      !!if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
+!!      if(orbs%norbp>0) then
+!!          fcoeff = f_malloc0((/ orbs_tmb%norb, orbs%norb /),id='fcoeff')
+!!
+!!          !decide wether we calculate the density kernel or just transformation matrix
+!!          if(isKernel)then
+!!             do iorb=1,orbs%norbp
+!!                !call daxpy(orbs_tmb%norb,orbs%occup(orbs%isorb+iorb),coeff(1,orbs%isorb+iorb),1,fcoeff(1,orbs%isorb+iorb),1)
+!!                do itmb=1,orbs_tmb%norb
+!!                     fcoeff(itmb,orbs%isorb+iorb) = orbs%occup(orbs%isorb+iorb)*coeff(itmb,orbs%isorb+iorb)
+!!                end do
+!!             end do
+!!          else
+!!             do iorb=1,orbs%norbp
+!!                !call daxpy(orbs_tmb%norb,orbs%occup(orbs%isorb+iorb),coeff(1,orbs%isorb+iorb),1,fcoeff(1,orbs%isorb+iorb),1)
+!!                do itmb=1,orbs_tmb%norb
+!!                     fcoeff(itmb,orbs%isorb+iorb) = coeff(itmb,orbs%isorb+iorb)
+!!                end do
+!!          end do
+!!
+!!          end if
+!!          call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), orbs_tmb%norb, &
+!!               fcoeff(1,orbs%isorb+1), orbs_tmb%norb, 0.d0, kernel(1,1), orbs_tmb%norb)
+!!          call f_free(fcoeff)
+!!      else
+!!          call to_zero(orbs_tmb%norb**2, kernel(1,1))
+!!      end if
+!!      call timing(iproc,'calc_kernel','OF') !lr408t
+!!
+!!      call timing(iproc,'waitAllgatKern','ON')
+!!      call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
+!!      call timing(iproc,'waitAllgatKern','OF')
+!!      if (nproc > 1) then
+!!          call timing(iproc,'commun_kernel','ON') !lr408t
+!!          call mpiallred(kernel(1,1),orbs_tmb%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
+!!          call timing(iproc,'commun_kernel','OF') !lr408t
+!!      end if
+!!  end if
+!!
+!! ! Purify Kernel
+!! !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norbp, 1.d0, kernel(1,orbs_tmb%isorb+1), orbs_tmb%norb, &
+!! !           overlap(1,orbs_tmb%isorb+1), orbs_tmb%norb, 0.d0, ks(1,1), orbs_tmb%norb) 
+!! !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norbp, 1.d0, ks(1,orbs_tmb%isorb+1), orbs_tmb%norb, &
+!! !           kernel(1,orbs_tmb%isorb+1), orbs_tmb%norb, 0.d0, ksk(1,1), orbs_tmb%norb)
+!! !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norbp, 1.d0, ks(1,orbs_tmb%isorb+1), orbs_tmb%norb, &
+!! !           ksk(1,orbs_tmb%isorb+1), orbs_tmb%norb, 0.d0, ksksk(1,1), orbs_tmb%norb)
+!!
+!!
+!! !!if(present(overlap)) then
+!!   !!allocate(ks(orbs_tmb%norb,orbs_tmb%norb),stat=istat)
+!!   !!call memocc(istat, ks, 'ks', subname) 
+!!   !!allocate(ksk(orbs_tmb%norb,orbs_tmb%norb),stat=istat)
+!!   !!call memocc(istat, ksk, 'ksk', subname) 
+!!   !!allocate(ksksk(orbs_tmb%norb,orbs_tmb%norb),stat=istat)
+!!   !!call memocc(istat, ksksk, 'ksksk', subname) 
+!!
+!!   !!call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, kernel(1,1), orbs_tmb%norb, &
+!!   !!           overlap(1,1), orbs_tmb%norb, 0.d0, ks(1,1), orbs_tmb%norb) 
+!!   !!call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, ks(1,1), orbs_tmb%norb, &
+!!   !!           kernel(1,1), orbs_tmb%norb, 0.d0, ksk(1,1), orbs_tmb%norb)
+!!   !!call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs_tmb%norb, 1.d0, ks(1,1), orbs_tmb%norb, &
+!!   !!           ksk(1,1), orbs_tmb%norb, 0.d0, ksksk(1,1), orbs_tmb%norb)
+!!   !!print *,'PURIFYING THE KERNEL'
+!!   !!kernel = 3*ksk-2*ksksk
+!!   !!
+!!   !!iall = -product(shape(ks))*kind(ks)
+!!   !!deallocate(ks,stat=istat)
+!!   !!call memocc(istat, iall, 'ks', subname)
+!!   !!iall = -product(shape(ksk))*kind(ksk)
+!!   !!deallocate(ksk,stat=istat)
+!!   !!call memocc(istat, iall, 'ksk', subname)
+!!   !!iall = -product(shape(ksksk))*kind(ksksk)
+!!   !!deallocate(ksksk,stat=istat)
+!!   !!call memocc(istat, iall, 'ksksk', subname)
+!! !!end if
+!!
+!!end subroutine calculate_density_kernel_uncompressed
 
 
 
@@ -520,12 +580,13 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   logical,intent(in),optional :: print_results
 
   ! Local variables
-  integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr, ind
+  integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr, ind, ispin, ishift, ishift_mat, iorb_shift
   real(8) :: tt, total_charge, hxh, hyh, hzh, factor, tt1
+  integer,dimension(:),allocatable :: isend_total
   real(kind=8),dimension(:),allocatable :: rho_local
   character(len=*),parameter :: subname='sumrho_for_TMBs'
   logical :: print_local
-  integer :: size_of_double, info, mpisource, istsource, istdest, nsize, jproc, irho
+  integer :: size_of_double, info, mpisource, istsource, istdest, nsize, jproc, irho, ishift_dest, ishift_source
 
   call f_routine('sumrho_for_TMBs')
 
@@ -543,7 +604,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   end if
 
 
-  rho_local = f_malloc(collcom_sr%nptsp_c,id='rho_local')
+  rho_local = f_malloc(collcom_sr%nptsp_c*denskern%nspin,id='rho_local')
 
   ! Define some constant factors.
   hxh=.5d0*hx
@@ -569,36 +630,51 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   irho=0
 
 !ispin=1
-  !$omp parallel default(private) &
-  !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local, irho)
-  !$omp do schedule(static,50) reduction(+:total_charge, irho)
-  do ipt=1,collcom_sr%nptsp_c
-      ii=collcom_sr%norb_per_gridpoint_c(ipt)
-
-      i0=collcom_sr%isptsp_c(ipt)
-      tt=1.e-20_dp
-      do i=1,ii
-          iiorb=collcom_sr%indexrecvorbital_c(i0+i)
-!ispin=spinsgn(iiorb) 
-          tt1=collcom_sr%psit_c(i0+i)
-          ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
-          tt=tt+denskern_%matrix_compr(ind)*tt1*tt1
-!tt(ispin)=tt(ispin)+denskern_%matrix_compr(ind)*tt1*tt1
-          do j=i+1,ii
-              jjorb=collcom_sr%indexrecvorbital_c(i0+j)
-              ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-              if (ind==0) cycle
-              tt=tt+2.0_dp*denskern_%matrix_compr(ind)*tt1*collcom_sr%psit_c(i0+j)
+  !SM: check if the modulo operations take a lot of time. If so, try to use an
+  !auxiliary array with shifted bounds in order to access smat%matrixindex_in_compressed_fortransposed
+  do ispin=1,denskern%nspin
+      if (ispin==1) then
+          ishift=0
+      else
+          ishift=collcom_sr%ndimind_c/2
+      end if
+      iorb_shift=(ispin-1)*denskern%nfvctr
+      ishift_mat=(ispin-1)*denskern%nvctr
+      !$omp parallel default(private) &
+      !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local, irho, ispin, ishift, ishift_mat, iorb_shift)
+      !$omp do schedule(static,50) reduction(+:total_charge, irho)
+      do ipt=1,collcom_sr%nptsp_c
+          ii=collcom_sr%norb_per_gridpoint_c(ipt)
+    
+          i0=collcom_sr%isptsp_c(ipt)+ishift
+          tt=1.e-20_dp
+          do i=1,ii
+              iiorb=collcom_sr%indexrecvorbital_c(i0+i) - iorb_shift
+              !iiorb=mod(iiorb-1,denskern%nfvctr)+1
+    !ispin=spinsgn(iiorb) 
+              tt1=collcom_sr%psit_c(i0+i)
+              ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
+              ind=ind+ishift_mat
+              tt=tt+denskern_%matrix_compr(ind)*tt1*tt1
+    !tt(ispin)=tt(ispin)+denskern_%matrix_compr(ind)*tt1*tt1
+              do j=i+1,ii
+                  jjorb=collcom_sr%indexrecvorbital_c(i0+j) - iorb_shift
+                  !jjorb=mod(jjorb-1,denskern%nfvctr)+1
+                  ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                  ind=ind+ishift_mat
+                  if (ind==0) cycle
+                  tt=tt+2.0_dp*denskern_%matrix_compr(ind)*tt1*collcom_sr%psit_c(i0+j)
+              end do
           end do
+          tt=factor*tt
+          total_charge=total_charge+tt
+          rho_local(ipt+(ispin-1)*collcom_sr%nptsp_c)=tt
+    !rho_local(ipt,ispin)=tt(ispin)
+          if (tt<0.d0) irho=irho+1
       end do
-      tt=factor*tt
-      total_charge=total_charge+tt
-      rho_local(ipt)=tt
-!rho_local(ipt,ispin)=tt(ispin)
-      if (tt<0.d0) irho=irho+1
+      !$omp end do
+      !$omp end parallel
   end do
-  !$omp end do
-  !$omp end parallel
 
   if (nproc > 1) then
      call mpiallred(irho, 1, mpi_sum, bigdft_mpi%mpi_comm)
@@ -612,79 +688,106 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
 
   call timing(iproc,'sumrho_TMB    ','OF')
 
-  call timing(iproc,'sumrho_allred','ON')
 
-  ! Communicate the density to meet the shape required by the Poisson solver.
-  !!if (nproc>1) then
-  !!    call mpi_alltoallv(rho_local, collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
-  !!                       mpi_double_precision, rho, collcom_sr%nrecvcounts_repartitionrho, &
-  !!                       collcom_sr%nrecvdspls_repartitionrho, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-  !!else
-  !!    call vcopy(ndimrho, rho_local(1), 1, rho(1), 1)
-  !!end if
-
-  !!!!do ierr=1,size(rho)
-  !!!!    write(200+iproc,*) ierr, rho(ierr)
-  !!!!end do
-
-
-
-  if (nproc>1) then
-      call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-      call mpi_info_create(info, ierr)
-      call mpi_info_set(info, "no_locks", "true", ierr)
-      call mpi_win_create(rho_local(1), int(collcom_sr%nptsp_c*size_of_double,kind=mpi_address_kind), size_of_double, &
-           info, bigdft_mpi%mpi_comm, collcom_sr%window, ierr)
-      call mpi_info_free(info, ierr)
-
-      call mpi_win_fence(mpi_mode_noprecede, collcom_sr%window, ierr)
-
-      do jproc=1,collcom_sr%ncomms_repartitionrho
-          mpisource=collcom_sr%commarr_repartitionrho(1,jproc)
-          istsource=collcom_sr%commarr_repartitionrho(2,jproc)
-          istdest=collcom_sr%commarr_repartitionrho(3,jproc)
-          nsize=collcom_sr%commarr_repartitionrho(4,jproc)
-          if (nsize>0) then
-              call mpi_get(rho(istdest), nsize, mpi_double_precision, mpisource, &
-                   int((istsource-1),kind=mpi_address_kind), &
-                   nsize, mpi_double_precision, collcom_sr%window, ierr)
-              !!write(*,'(6(a,i0))') 'process ',iproc, ' gets ',nsize,' elements at position ',istdest, &
-              !!                     ' from position ',istsource,' on process ',mpisource, &
-              !!                     '; error code=',ierr
-          end if
-      end do
-      call mpi_win_fence(0, collcom_sr%window, ierr)
-      !!write(*,'(a,i0)') 'mpi_win_fence error code: ',ierr
-      call mpi_win_free(collcom_sr%window, ierr)
-      !!write(*,'(a,i0)') 'mpi_win_free error code: ',ierr
-  else
-      call vcopy(ndimrho, rho_local(1), 1, rho(1), 1)
-  end if
-
-  !do ierr=1,size(rho)
-  !    write(300+iproc,*) ierr, rho(ierr)
-  !end do
-  !call mpi_finalize(ierr)
-  !stop
-
-  if (nproc > 1) then
-     call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm)
-  end if
-
-  !!if(print_local .and. iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', total_charge*hxh*hyh*hzh
-  if (iproc==0 .and. print_local) then
-      call yaml_map('Total charge',total_charge*hxh*hyh*hzh,fmt='(es20.12)')
-  end if
-  
-  call timing(iproc,'sumrho_allred','OF')
+  call communicate_density()
 
   call f_free(rho_local)
+
+  call f_release_routine()
+
+  contains
+
+    subroutine communicate_density()
+      implicit none
+
+      call f_routine(id='communicate_density')
+      call timing(iproc,'sumrho_allred','ON')
+    
+      ! Communicate the density to meet the shape required by the Poisson solver.
+      !!if (nproc>1) then
+      !!    call mpi_alltoallv(rho_local, collcom_sr%nsendcounts_repartitionrho, collcom_sr%nsenddspls_repartitionrho, &
+      !!                       mpi_double_precision, rho, collcom_sr%nrecvcounts_repartitionrho, &
+      !!                       collcom_sr%nrecvdspls_repartitionrho, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+      !!else
+      !!    call vcopy(ndimrho, rho_local(1), 1, rho(1), 1)
+      !!end if
+    
+      !!!!do ierr=1,size(rho)
+      !!!!    write(200+iproc,*) ierr, rho(ierr)
+      !!!!end do
+    
+    
+    
+      if (nproc>1) then
+          call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+          call mpi_info_create(info, ierr)
+          call mpi_info_set(info, "no_locks", "true", ierr)
+          call mpi_win_create(rho_local(1), int(collcom_sr%nptsp_c*denskern%nspin*size_of_double,kind=mpi_address_kind), &
+               size_of_double, info, bigdft_mpi%mpi_comm, collcom_sr%window, ierr)
+          call mpi_info_free(info, ierr)
+    
+          call mpi_win_fence(mpi_mode_noprecede, collcom_sr%window, ierr)
+    
+          ! This is a bit quick and dirty. Could be done in a better way, but
+          ! would probably required to pass additional arguments to the subroutine
+          isend_total = f_malloc0(0.to.nproc-1,id='isend_total')
+          isend_total(iproc)=collcom_sr%nptsp_c
+          call mpiallred(isend_total(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+    
+    
+          do ispin=1,denskern%nspin
+              !ishift_dest=(ispin-1)*sum(collcom_sr%commarr_repartitionrho(4,:)) !spin shift for the receive buffer
+              ishift_dest=(ispin-1)*ndimrho/denskern%nspin
+              do jproc=1,collcom_sr%ncomms_repartitionrho
+                  mpisource=collcom_sr%commarr_repartitionrho(1,jproc)
+                  istsource=collcom_sr%commarr_repartitionrho(2,jproc)
+                  istdest=collcom_sr%commarr_repartitionrho(3,jproc)
+                  nsize=collcom_sr%commarr_repartitionrho(4,jproc)
+                  ishift_source=(ispin-1)*isend_total(mpisource) !spin shift for the send buffer
+                  if (nsize>0) then
+                      call mpi_get(rho(istdest+ishift_dest), nsize, mpi_double_precision, mpisource, &
+                           int((istsource-1+ishift_source),kind=mpi_address_kind), &
+                           nsize, mpi_double_precision, collcom_sr%window, ierr)
+                      !write(*,'(6(a,i0))') 'process ',iproc, ' gets ',nsize,' elements at position ',istdest+ishift_dest, &
+                      !                     ' from position ',istsource+ishift_source,' on process ',mpisource, &
+                      !                     '; error code=',ierr
+                  end if
+              end do
+          end do
+          call mpi_win_fence(0, collcom_sr%window, ierr)
+          !!write(*,'(a,i0)') 'mpi_win_fence error code: ',ierr
+          call mpi_win_free(collcom_sr%window, ierr)
+          !!write(*,'(a,i0)') 'mpi_win_free error code: ',ierr
+    
+          call f_free(isend_total)
+      else
+          call vcopy(ndimrho, rho_local(1), 1, rho(1), 1)
+      end if
+    
+      !do ierr=1,size(rho)
+      !    write(300+iproc,*) ierr, rho(ierr)
+      !end do
+      !call mpi_finalize(ierr)
+      !stop
+    
+      if (nproc > 1) then
+         call mpiallred(total_charge, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
+    
+      !!if(print_local .and. iproc==0) write(*,'(3x,a,es20.12)') 'Calculation finished. TOTAL CHARGE = ', total_charge*hxh*hyh*hzh
+      if (iproc==0 .and. print_local) then
+          call yaml_map('Total charge',total_charge*hxh*hyh*hzh,fmt='(es20.12)')
+      end if
+      
+      call timing(iproc,'sumrho_allred','OF')
+      call f_release_routine()
+
+    end subroutine communicate_density
 
   !!write(*,*) 'after deallocate'
   !!call mpi_finalize(ierr)
   !!stop
 
-  call f_release_routine()
 
 end subroutine sumrho_for_TMBs
 
@@ -720,7 +823,7 @@ end subroutine sumrho_for_TMBs
 
 !> perform the communication needed for the potential and verify that the results is as expected
 subroutine check_communication_potential(iproc,denspot,tmb)
-  use module_base, only:dp,bigdft_mpi,mpi_sum,mpi_max,mpiallred
+  use module_base
   use module_types
   use module_interfaces
   use yaml_output
@@ -732,7 +835,7 @@ subroutine check_communication_potential(iproc,denspot,tmb)
   type(DFT_local_fields), intent(inout) :: denspot
   !local variables
   logical :: dosome
-  integer :: i1,i2,i3,ind,i3s,n3p,ilr,iorb,ilr_orb,n2i,n1i,ierr,numtot,i_stat,i_all
+  integer :: i1,i2,i3,ind,i3s,n3p,ilr,iorb,ilr_orb,n2i,n1i,ierr,numtot,i_stat,i_all,ishift,ispin
   real(dp) :: maxdiff,sumdiff,testval
   real(dp),parameter :: tol_calculation_mean=1.d-12
   real(dp),parameter :: tol_calculation_max=1.d-10
@@ -748,23 +851,36 @@ subroutine check_communication_potential(iproc,denspot,tmb)
 
   !fill the values of the rhov array
   ind=0
-  do i3=i3s,i3s+n3p-1
-     do i2=1,n2i
-        do i1=1,n1i
-           ind=ind+1
-           denspot%rhov(ind)=real(i1+(i2-1)*n1i+(i3-1)*n1i*n2i,dp)
-        end do
-     end do
+  do ispin=1,denspot%dpbox%nrhodim
+      ishift=(ispin-1)*n1i*n2i*n3p
+      do i3=i3s,i3s+n3p-1
+         do i2=1,n2i
+            do i1=1,n1i
+               ind=ind+1
+               !denspot%rhov(ind)=real(ishift+i1+(i2-1)*n1i+(i3-1)*n1i*n2i,dp)
+               denspot%rhov(ind)=real((-1)**(ispin+1)*(i1+(i2-1)*n1i+(i3-1)*n1i*n2i),dp)
+            end do
+         end do
+      end do
   end do
+
+  !!write(*,'(a,3i12)') 'iproc, denspot%dpbox%ndimpot*denspot%dpbox%nrhodim, size(denspot%rhov)', iproc, denspot%dpbox%ndimpot*denspot%dpbox%nrhodim, size(denspot%rhov)
 
   !calculate the dimensions and communication of the potential element with mpi_get
   call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
-  call start_onesided_communication(bigdft_mpi%iproc, bigdft_mpi%nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
-       tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
+  call start_onesided_communication(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+       denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), max(denspot%dpbox%nscatterarr(:,2),1), denspot%rhov, &
+       tmb%ham_descr%comgp%nspin*tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, &
+       tmb%ham_descr%comgp, tmb%ham_descr%lzd)
 
   !check the fetching of the potential element, destroy the MPI window, results in pot_work
   call full_local_potential(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%orbs,tmb%ham_descr%lzd,&
        2,denspot%dpbox,denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
+
+  !!do ind=1,tmb%ham_descr%comgp%nspin*tmb%ham_descr%comgp%nrecvbuf
+  !!    write(5200+iproc,'(a,i10,es16.7)') 'ind, val', ind, tmb%ham_descr%comgp%recvbuf(ind)
+  !!end do
+
 
   maxdiff=0.0_dp
   sumdiff=0.0_dp
@@ -779,6 +895,11 @@ subroutine check_communication_potential(iproc,denspot,tmb)
      if (.not. dosome) cycle loop_lr
 
      loop_orbs: do iorb=1,tmb%orbs%norbp
+        if (tmb%orbs%spinsgn(iorb+tmb%orbs%isorb)>0.d0) then
+            ispin=1
+        else
+            ispin=2
+        end if
         ilr_orb=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
         if (ilr_orb /= ilr) cycle loop_orbs
 
@@ -790,6 +911,10 @@ subroutine check_communication_potential(iproc,denspot,tmb)
                  testval=real(i1+tmb%ham_descr%Lzd%Llr(ilr)%nsi1+&
                       (i2+tmb%ham_descr%Lzd%Llr(ilr)%nsi2-1)*n1i+&
                       (i3+tmb%ham_descr%Lzd%Llr(ilr)%nsi3-1)*n1i*n2i,dp)
+                 testval=real((-1)**(ispin+1)*(i1+tmb%ham_descr%Lzd%Llr(ilr)%nsi1+&
+                      (i2+tmb%ham_descr%Lzd%Llr(ilr)%nsi2-1)*n1i+&
+                      (i3+tmb%ham_descr%Lzd%Llr(ilr)%nsi3-1)*n1i*n2i),dp)
+                 !if (iproc==0) write(*,'(a,4i8,2es14.3)') 'i1, i2, i3, ind, val, ref', i1, i2, i3, ind, denspot%pot_work(ind), testval
                  testval=abs(denspot%pot_work(ind)-testval)
                  maxdiff=max(maxdiff,testval)
                  sumdiff=sumdiff+testval
@@ -798,7 +923,7 @@ subroutine check_communication_potential(iproc,denspot,tmb)
            end do
         end do
 
-     enddo loop_orbs
+     end do loop_orbs
 
   end do loop_lr
 
@@ -864,8 +989,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
 
   ! Local variables
   integer :: ist, iorb, iiorb, ilr, i, iz, ii, iy, ix, iix, iiy, iiz, iixyz, nxyz, ipt, i0, ierr, jproc
-  integer :: i1, i2, i3, is1, is2, is3, ie1, ie2, ie3, ii3s, ii3e, nmax, jj, j, ind, ikernel
-  integer :: iorbmin, iorbmax, jorb, iall, istat
+  integer :: i1, i2, i3, is1, is2, is3, ie1, ie2, ie3, ii3s, ii3e, nmax, jj, j, ind, ikernel, iim
+  integer :: iorbmin, iorbmax, jorb, iall, istat, ispin,ishift
   real(kind=8) :: maxdiff, sumdiff, tt, tti, ttj, hxh, hyh, hzh, factor, ref_value
   real(kind=8) :: diff
   real(kind=8),dimension(:),allocatable :: psir, psirwork, psirtwork, rho, rho_check
@@ -920,6 +1045,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
           iiz=iz+lzd%llr(ilr)%nsi3
           iixyz=(iiz-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(iiy-1)*lzd%glr%d%n1i+iix
           ! assign unique value
+          !psir(ist+i)=dble(iiorb)*orbs%spinsgn(iiorb)!test_value_sumrho(iiorb,iixyz,nxyz)
           psir(ist+i)=test_value_sumrho(iiorb,iixyz,nxyz)
       end do
       !$omp end do
@@ -937,11 +1063,22 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   ! Rearrange data
   call transpose_switch_psir(collcom_sr, psir, psirwork)
 
+  !!! TEST #################################
+  !!do ipt=1,collcom_sr%ndimpsi_c
+  !!if (iproc==0) write(*,'(a,i9,2f13.2)') 'psir, psirwork: ipt, vals', ipt, psir(ipt), psirwork(ipt)
+  !!end do
+  !!! END TEST #############################
+
   ! direct array not needed anymore
   call f_free(psir)
 
   ! Communicate the data
   call transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
+  !! TEST #################################
+  !do ipt=1,collcom_sr%ndimind_c
+  !    if (iproc==0) write(*,'(a,i9,2f13.2)') 'psirtwork, ipt, val', ipt, psirtwork(ipt)
+  !end do
+  !! END TEST #############################
 
   ! Direct workarray not needed anymore
   call f_free(psirwork)
@@ -950,6 +1087,25 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   !LG: WARNING: it is bad practice to consider collcom_sr as intent(in)
   !and collcom_sr%psit_c and intent(out) or intent(inout)!!!
   call transpose_unswitch_psirt(collcom_sr, psirtwork, collcom_sr%psit_c)
+
+  !! TEST #################################
+  !do ipt=1,collcom_sr%ndimind_c
+  !    if (iproc==0) write(*,'(a,i9,2f13.2)') 'psirtwork, collcom_sr%psit_c, ipt, vals', ipt, psirtwork(ipt), collcom_sr%psit_c(ipt)
+  !end do
+  !! END TEST #############################
+
+
+  !!! TEST #################################
+  !!do ispin=1,denskern%nspin
+  !!    do ipt=1,collcom_sr%nptsp_c
+  !!        ii=collcom_sr%norb_per_gridpoint_c(ipt)
+  !!        i0=collcom_sr%isptsp_c(ipt)+(ispin-1)*collcom_sr%ndimind_c/2
+  !!        do i=1,ii
+  !!            if (iproc==0) write(3000+iproc,'(a,4i9,f11.2)') 'ipt, i0, i, npg, val', ipt, i0, i, ii, collcom_sr%psit_c(i0+i)
+  !!        end do
+  !!    end do
+  !!end do
+  !!! END TEST #############################
 
   ! Transposed workarray not needed anymore
   call f_free(psirtwork)
@@ -977,25 +1133,29 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
   call f_free(istarr)
   
   ! Iterate through all the transposed values and check whether they are correct
-  !$omp parallel default(none) &
-  !$omp shared(collcom_sr, ist, nxyz, maxdiff, sumdiff) &
-  !$omp private(ipt, ii, i0, iixyz, i, iiorb, tt, ref_value, diff)
-  !$omp do reduction(+:sumdiff) reduction(max:maxdiff)
-  do ipt=1,collcom_sr%nptsp_c
-      ii=collcom_sr%norb_per_gridpoint_c(ipt)
-      i0=collcom_sr%isptsp_c(ipt)
-      iixyz=ist+ipt
-      do i=1,ii
-          iiorb=collcom_sr%indexrecvorbital_c(i0+i)
-          tt=collcom_sr%psit_c(i0+i)
-          ref_value=test_value_sumrho(iiorb,iixyz,nxyz)
-          diff=abs(tt-ref_value)
-          if (diff>maxdiff) maxdiff=diff
-          sumdiff=sumdiff+diff**2
+  do ispin=1,denskern%nspin
+      !$omp parallel default(none) &
+      !$omp shared(collcom_sr, ist, nxyz, maxdiff, sumdiff, ispin) &
+      !$omp private(ipt, ii, i0, iixyz, i, iiorb, tt, ref_value, diff)
+      !$omp do reduction(+:sumdiff) reduction(max:maxdiff)
+      do ipt=1,collcom_sr%nptsp_c
+          ii=collcom_sr%norb_per_gridpoint_c(ipt)
+          !i0=collcom_sr%isptsp_c(ipt)
+          i0=collcom_sr%isptsp_c(ipt)+(ispin-1)*collcom_sr%ndimind_c/2
+          iixyz=ist+ipt
+          do i=1,ii
+              iiorb=collcom_sr%indexrecvorbital_c(i0+i)
+              tt=collcom_sr%psit_c(i0+i)
+              ref_value=test_value_sumrho(iiorb,iixyz,nxyz)
+              !write(*,'(a,4i9,2f11.2)') 'ipt, i0, i, npg, val, ref', ipt, i0, i, ii, tt, ref_value
+              diff=abs(tt-ref_value)
+              if (diff>maxdiff) maxdiff=diff
+              sumdiff=sumdiff+diff**2
+          end do
       end do
+      !$omp end do
+      !$omp end parallel
   end do
-  !$omp end do
-  !$omp end parallel
 
 
   ! Reduce the results
@@ -1043,7 +1203,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       end if
 
       do i3=ii3s,ii3e
-          do iorb=1,orbs%norb
+          do iorb=1,orbs%norbu
               ilr=orbs%inwhichlocreg(iorb)
               is3=1+lzd%Llr(ilr)%nsi3
               ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
@@ -1077,7 +1237,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       iorbmin=1000000000
       iorbmax=-1000000000
       do i3=ii3s,ii3e
-          do iorb=1,orbs%norb
+          do iorb=1,orbs%norbu
               ilr=orbs%inwhichlocreg(iorb)
               is3=1+lzd%Llr(ilr)%nsi3
               ie3=lzd%Llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i
@@ -1117,8 +1277,11 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ! value of each gridpoint is given by the special pattern and therefore always known.
     
       ! First fill the kernel with some numbers.
-      do i=1,denskern%nvctr
-          denskern%matrix_compr(i)=sine_taylor(real(denskern%nvctr-i+1,kind=8))
+      do i=1,denskern%nvctr*denskern%nspin
+          denskern_%matrix_compr(i)=sine_taylor(real(denskern%nvctr*denskern%nspin-i+1,kind=8))
+          !denskern_%matrix_compr(i)=sine_taylor(real(mod(denskern%nspin*denskern%nvctr-i+1-1,denskern%nvctr)+1,kind=8))
+          !write(660+iproc,'(a,2i8,2es13.5)') 'i, mod(denskern%nspin*denskern%nvctr-i+1-1,denskern%nvctr)+1, arg, val', &
+          !     i, mod(denskern%nspin*denskern%nvctr-i+1-1,denskern%nvctr)+1, real(mod(denskern%nspin*denskern%nvctr-i+1-1,denskern%nvctr)+1,kind=8), denskern_%matrix_compr(i)
       end do
     
       hxh=.5d0*lzd%hgrids(1)
@@ -1145,59 +1308,76 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       !$omp end parallel
     
       ! Now calculate the charge density and store the result in rho_check
-      rho_check=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1),id='rho_check')
-      !$omp parallel default (none) &
-      !$omp private (i3, i2, i1, iixyz, ind, tt, i,j, ii, tti, ikernel, jj, ttj) &
-      !$omp shared (ii3s, ii3e, lzd, weight, orbital_id, denskern, rho_check) &
-      !$omp shared (nxyz, factor, matrixindex_in_compressed_auxilliary)
-      do i3=ii3s,ii3e
-          !$omp do
-          do i2=1,lzd%glr%d%n2i
-              do i1=1,lzd%glr%d%n1i
-                  iixyz=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
-                  ind=(i3-ii3s)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
-                  tt=1.d-20
-                  do i=1,weight(i1,i2,i3) !the number of orbitals touching this grid point
-                      ii=orbital_id(i,i1,i2,i3)
-                      tti=test_value_sumrho(ii,iixyz,nxyz)
-                      ikernel=matrixindex_in_compressed_auxilliary(ii,ii)
-                      tt=tt+denskern%matrix_compr(ikernel)*tti*tti
-                      do j=i+1,weight(i1,i2,i3)
-                          jj=orbital_id(j,i1,i2,i3)
-                          ikernel=matrixindex_in_compressed_auxilliary(jj,ii)
-                          if (ikernel==0) cycle
-                          ttj=test_value_sumrho(jj,iixyz,nxyz)
-                          tt=tt+2.d0*denskern%matrix_compr(ikernel)*tti*ttj
+      rho_check=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)*denskern%nspin,1),id='rho_check')
+      do ispin=1,denskern%nspin
+          ishift=(ispin-1)*lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
+          !$omp parallel default (none) &
+          !$omp private (i3, i2, i1, iixyz, ind, tt, i,j, ii, tti, ikernel, jj, ttj) &
+          !$omp shared (ii3s, ii3e, lzd, weight, orbital_id, denskern, denskern_, rho_check) &
+          !$omp shared (nxyz, factor, matrixindex_in_compressed_auxilliary, ispin, orbs, ishift)
+          do i3=ii3s,ii3e
+              !$omp do
+              do i2=1,lzd%glr%d%n2i
+                  do i1=1,lzd%glr%d%n1i
+                      iixyz=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1
+                      ind=(i3-ii3s)*lzd%glr%d%n1i*lzd%glr%d%n2i+(i2-1)*lzd%glr%d%n1i+i1+ishift
+                      tt=1.d-20
+                      do i=1,weight(i1,i2,i3) !the number of orbitals touching this grid point
+                          ii=orbital_id(i,i1,i2,i3)+(ispin-1)*orbs%norbu
+                          !!iim=mod(ii-1,orbs%norbu)+1 !orbital number regardless of the spin
+                          !!ispin=(ii-1)/orbs%norbu+1 !integer division to get the spin (1 for spin up (or non polarized), 2 for spin down)
+                          tti=test_value_sumrho(ii,iixyz,nxyz)
+                          !ikernel=matrixindex_in_compressed_auxilliary(ii,ii)
+                          ikernel=matrixindex_in_compressed(denskern,ii,ii)
+                          tt=tt+denskern_%matrix_compr(ikernel)*tti*tti
+                          do j=i+1,weight(i1,i2,i3)
+                              jj=orbital_id(j,i1,i2,i3)+(ispin-1)*orbs%norbu
+                              !ikernel=matrixindex_in_compressed_auxilliary(jj,ii)
+                              ikernel=matrixindex_in_compressed(denskern,jj,ii)
+                              if (ikernel==0) cycle
+                              ttj=test_value_sumrho(jj,iixyz,nxyz)
+                              tt=tt+2.d0*denskern_%matrix_compr(ikernel)*tti*ttj
+                              !!if (mod(ind-1,lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1))+1==865737) then
+                              !!    write(6500,'(a,6i8,3es13.5)') 'ind, i, j, ii, jj, ikernel, tti, ttj, valk', &
+                              !!        ind, i, j, ii, jj, ikernel, tti, ttj, denskern_%matrix_compr(ikernel)
+                              !!end if
+                          end do
                       end do
+                      tt=tt*factor
+                      rho_check(ind)=tt
                   end do
-                  tt=tt*factor
-                  rho_check(ind)=tt
               end do
+              !$omp end do
           end do
-          !$omp end do
+          !$omp end parallel
       end do
-      !$omp end parallel
     
       call f_free(matrixindex_in_compressed_auxilliary)
     
       ! Now calculate the charge density in the transposed way using the standard routine
-      rho=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1),1),id='rho')
-      denskern_%matrix_compr = denskern%matrix_compr
+      rho=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)*denskern%nspin,1),id='rho')
+      !denskern_%matrix_compr = denskern%matrix_compr
       call sumrho_for_TMBs(iproc, nproc, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), collcom_sr, denskern, denskern_, &
-           lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%n3d, rho, rho_negative, .false.)
+           denspot%dpbox%ndimrhopot, rho, rho_negative, .false.)
     
       ! Determine the difference between the two versions
       sumdiff=0.d0
       maxdiff=0.d0
-      !$omp parallel default(none) shared(lzd,ii3e,ii3s,rho,rho_check,sumdiff,maxdiff) private(i,tt)
-      !$omp do reduction(+:sumdiff) reduction(max:maxdiff) 
-      do i=1,lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
-          tt=abs(rho(i)-rho_check(i))
-          sumdiff = sumdiff + tt**2
-          if (tt>maxdiff) maxdiff=tt
+      ii=0
+      do ispin=1,denskern%nspin
+          ii=(ispin-1)*lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
+          !$omp parallel default(none) shared(ii,lzd,ii3e,ii3s,rho,rho_check,sumdiff,maxdiff) private(i,tt)
+          !$omp do reduction(+:sumdiff) reduction(max:maxdiff) 
+          do i=1,lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)
+              !ii=ii+1
+              tt=abs(rho(ii+i)-rho_check(ii+i))
+              !write(2000+iproc,'(a,2i9,4es18.8)') 'i,ii,rho(ii),rho_check(ii),diff,sumdiff',i,ii,rho(ii),rho_check(ii), tt, sumdiff
+              sumdiff = sumdiff + tt**2
+              if (tt>maxdiff) maxdiff=tt
+          end do
+          !$omp end do
+          !$omp end parallel
       end do
-      !$omp end do
-      !$omp end parallel
     
       ! Reduce the results
       if (nproc>1) then
@@ -1206,7 +1386,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       end if
     
       ! Get mean value for the sum
-      sumdiff = sumdiff/(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i)
+      sumdiff = sumdiff/(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*denskern%nspin)
       sumdiff=sqrt(sumdiff)
     
       ! Print the results
@@ -1259,6 +1439,7 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       !test_value_sumrho=fac*(ri-1.d0)*rn+rj
       test_value_sumrho=sine_taylor((ri-1.d0)*rn)*cosine_taylor(rj)
       !test_value_sumrho=0.d0
+
 
     end function test_value_sumrho
 
@@ -1353,6 +1534,7 @@ end subroutine check_communication_sumrho
 
 subroutine check_negative_rho(ndimrho, rho, rho_negative)
   use module_base
+  use dynamic_memory
   implicit none
 
   ! Calling arguments
@@ -1362,6 +1544,8 @@ subroutine check_negative_rho(ndimrho, rho, rho_negative)
 
   ! Local variables
   integer :: i, irho, ierr
+
+  call f_routine(id='check_negative_rho')
 
   irho=0
   do i=1,ndimrho
@@ -1380,5 +1564,7 @@ subroutine check_negative_rho(ndimrho, rho, rho_negative)
   else
       rho_negative=.false.
   end if
+
+  call f_release_routine()
 
 end subroutine check_negative_rho

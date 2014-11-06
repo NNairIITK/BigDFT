@@ -21,6 +21,7 @@ SUBDIRS = \
 	OpenCL \
 	bindings \
 	art \
+	mhgps_files \
 	$(sub_dirs_bin)
 
 EXTRA_DIST = \
@@ -45,7 +46,7 @@ subs_static_library = \
 out_static_library =  \
 	$(top_builddir)/PSolver/src/libPSolver-1.a \
 	$(top_builddir)/wrappers/libwrappers.a \
-	$(top_builddir)/flib/src/libflib.a
+	$(top_builddir)/flib/src/libflib-1.a
 if BUILD_DYNAMIC_LIBS
 bigdft_dynamic_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
 bigdft_soname_library = libbigdft-1.so.@BIGDFT_MINOR_VERSION@
@@ -62,7 +63,7 @@ else
 lib_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies global abscalc
+binaries_sources = bigdft memguess splsad NEB frequencies global abscalc mhgps
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
@@ -116,7 +117,7 @@ high_level = cluster.f90 \
 	pdos.f90 \
 	sdcg.f90 \
 	bfgs.f90 \
-   sbfgs.f90 \
+	sbfgs.f90 \
 	scfloop_API.f90 \
 	tddft.f90 \
 	output.f90 \
@@ -309,6 +310,12 @@ bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
 
+mhgps_SOURCES = mhgps.f90
+##LIB_AMBERTOOLS=/kernph/schaba00/amber_lib
+mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+##mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ mhgps_files/wrap.o
+mhgps_LDADD = mhgps_files/libmhgps.a $(bigdft_library) @LINALG_LIBS@
+##mhgps_LDADD = -L$(LIB_AMBERTOOLS)  -lsff -lnab -lpbsa -lcifparse -lrism -lfftw3 -larpack mhgps_files/libmhgps.a $(bigdft_library) @LINALG_LIBS@
 
 global_SOURCES = global.f90
 global_LDADD = $(bigdft_library) @LINALG_LIBS@
@@ -336,7 +343,7 @@ lanczos.o : lanczos_interface.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90
 
-geometry.o bfgs.o sdcg.o: lbfgs.o
+geometry.o bfgs.o sdcg.o sbfgs.o: lbfgs.o
 
 initAndUtils.o linear/initAndUtils.o: linear/initAndUtils.f90 cleanup.o
 

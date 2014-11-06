@@ -1,5 +1,5 @@
 !> @file
-!! Routine to flush a unit file 
+!! Routine to flush a unit file  and to inquire for its record length
 !! @author
 !!    Copyright (C) 2013-2013 BigDFT group
 !!    This file is distributed under the terms of the
@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 !> Routine to flush a unit file 
-subroutine bigdft_utils_flush(unit)
+subroutine f_utils_flush(unit)
   use yaml_output
   use dictionaries
   implicit none
@@ -26,4 +26,4 @@ subroutine bigdft_utils_flush(unit)
   if (unit_is_connected) then
      flush(unit=unit)
   end if
-END SUBROUTINE bigdft_utils_flush
+END SUBROUTINE f_utils_flush

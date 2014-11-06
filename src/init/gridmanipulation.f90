@@ -11,14 +11,15 @@
 !> Calculates the overall size of the simulation cell 
 !! and shifts the atoms such that their position is the most symmetric possible.
 !! Assign these values to the global localisation region descriptor.
-subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,shift)
+subroutine system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,OCLconv,Glr,shift)
    use module_base
    use module_types
+   use yaml_output, only: yaml_toa
    implicit none
    type(atoms_data), intent(inout) :: atoms
    real(gp), intent(in) :: crmult,frmult
    real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
-   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+   !real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
    real(gp), intent(inout) :: hx,hy,hz
    logical, intent(in) :: OCLconv
    type(locreg_descriptors), intent(out) :: Glr
@@ -32,9 +33,13 @@ subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,sh
 
    !check the geometry code with the grid spacings
    if (atoms%astruct%geocode == 'F' .and. (hx/=hy .or. hx/=hz .or. hy/=hz)) then
-      write(*,'(1x,a,3(1x,F6.4))') 'ERROR: The values of the grid spacings must be equal' // &
-           & ' in the Free BC case, while hgrids = ', hx, hy, hz
-      stop
+      call f_err_throw('Grid spacings must be equal' // &
+           ' in the Free BC case, while hgrids = '//&
+           trim(yaml_toa((/ hx, hy, hz/),fmt='(f7.4)')),&
+           err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+      !write(*,'(1x,a,3(1x,F7.4))') 'ERROR: The values of the grid spacings must be equal' // &
+      !     & ' in the Free BC case, while hgrids = ', hx, hy, hz
+      return
    end if
 
    !Special case if no atoms (no posinp by error or electron gas)
@@ -56,7 +61,7 @@ subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,sh
 
    do iat=1,atoms%astruct%nat
 
-      rad=radii_cf(atoms%astruct%iatype(iat),1)*crmult
+      rad=atoms%radii_cf(atoms%astruct%iatype(iat),1)*crmult
 
       cxmax=max(cxmax,rxyz(1,iat)+rad) 
       cxmin=min(cxmin,rxyz(1,iat)-rad)
@@ -189,7 +194,7 @@ subroutine system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,OCLconv,Glr,sh
    end if
 
    do iat=1,atoms%astruct%nat
-      rad=radii_cf(atoms%astruct%iatype(iat),2)*frmult
+      rad=atoms%radii_cf(atoms%astruct%iatype(iat),2)*frmult
       if (rad > 0.0_gp) then
          nfl1=min(nfl1,ceiling((rxyz(1,iat)-rad)/hx - eps_mach))
          nfu1=max(nfu1,floor((rxyz(1,iat)+rad)/hx + eps_mach))
@@ -315,6 +320,7 @@ END SUBROUTINE correct_grid
 
 !> Calculates the length of the keys describing a wavefunction data structure
 subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
+   use dynamic_memory
    implicit none
    integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3
    logical, dimension(0:n1,0:n2,0:n3), intent(in) :: logrid 
@@ -322,6 +328,9 @@ subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
    !local variables
    logical :: plogrid
    integer :: i1,i2,i3,nsrt,nend,nsrti,nendi,mvctri
+
+   call f_routine(id='num_segkeys')
+
    mvctr=0
    nsrt=0
    nend=0
@@ -364,11 +373,14 @@ subroutine num_segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,mvctr)
    endif
    mseg=nend
 
+   call f_release_routine()
+
 END SUBROUTINE num_segkeys
 
 
 !> Calculates the keys describing a wavefunction data structure
 subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
+   use dynamic_memory
    implicit none
    integer, intent(in) :: n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,mseg
    logical, dimension(0:n1,0:n2,0:n3), intent(in) :: logrid  
@@ -377,6 +389,8 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
    !local variables
    logical :: plogrid
    integer :: mvctr,nsrt,nend,i1,i2,i3,ngridp,np,n1p1
+
+   call f_routine(id='segkeys')
 
    mvctr=0
    nsrt=0
@@ -414,10 +428,14 @@ subroutine segkeys(n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,logrid,mseg,keyg,keyv)
       stop 'nend <> nsrt'
    endif
    !mseg=nend
+
+   call f_release_routine()
+
 END SUBROUTINE segkeys
 
 
 subroutine export_grids(fname, atoms, rxyz, hx, hy, hz, n1, n2, n3, logrid_c, logrid_f)
+  use module_defs, only: gp
   use module_types
   implicit none
   character(len = *), intent(in) :: fname
@@ -503,8 +521,10 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
    logical, dimension(0:n1,0:n2,0:n3), intent(out) :: logrid
    !local variables
    real(kind=8), parameter :: eps_mach=1.d-12
-   integer :: i1,i2,i3,iat,ml1,ml2,ml3,mu1,mu2,mu3,j1,j2,j3
-   real(gp) :: dx,dy2,dz2,rad
+   integer :: i1,i2,i3,iat,ml1,ml2,ml3,mu1,mu2,mu3,j1,j2,j3,i1s,i1e,i2s,i2e,i3s,i3e
+   real(gp) :: dx,dy2,dz2,rad,dy2pdz2,radsq
+
+   call f_routine(id='fill_logrid')
 
    !some checks
    if (geocode(1:1) /= 'F') then
@@ -587,19 +607,29 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
                stop
            end if
          end if
+         i3s=max(ml3,-n3/2-1)
+         i3e=min(mu3,n3+n3/2+1)
+         i2s=max(ml2,-n2/2-1)
+         i2e=min(mu2,n2+n2/2+1)
+         i1s=max(ml1,-n1/2-1)
+         i1e=min(mu1,n1+n1/2+1)
+         radsq=rad**2
          !what follows works always provided the check before
-         !$omp parallel default(shared) private(i3,dz2,j3,i2,dy2,j2,i1,j1,dx)
-         !$omp do
-         do i3=max(ml3,-n3/2-1),min(mu3,n3+n3/2+1)
-            dz2=(real(i3,gp)*hz-rxyz(3,iat))**2
+         !$omp parallel default(shared) private(i3,dz2,j3,i2,dy2,j2,i1,j1,dx,dy2pdz2)
+         !$omp do schedule(static,1)
+         do i3=i3s,i3e
+            dz2=(real(i3,gp)*hz-rxyz(3,iat))**2-eps_mach
+            if (dz2>radsq) cycle
             j3=modulo(i3,n3+1)
-            do i2=max(ml2,-n2/2-1),min(mu2,n2+n2/2+1)
+            do i2=i2s,i2e
                dy2=(real(i2,gp)*hy-rxyz(2,iat))**2
+               dy2pdz2=dy2+dz2
+               if (dy2pdz2>radsq) cycle
                j2=modulo(i2,n2+1)
-               do i1=max(ml1,-n1/2-1),min(mu1,n1+n1/2+1)
+               do i1=i1s,i1e
                   j1=modulo(i1,n1+1)
                   dx=real(i1,gp)*hx-rxyz(1,iat)
-                  if (dx**2+(dy2+dz2)-eps_mach <= rad**2) then 
+                  if (dx**2+dy2pdz2 <= radsq) then 
                      logrid(j1,j2,j3)=.true.
                   endif
                enddo
@@ -609,6 +639,8 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
          !$omp end parallel
       end if
    enddo
+
+   call f_release_routine()
 
 END SUBROUTINE fill_logrid
 
@@ -623,6 +655,8 @@ subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
    !local variables
    integer :: i1,i2,i3
 
+   !$omp parallel default(shared) private(i3,i2,i1)
+   !$omp do
    do i3=0,n3 
       do i2=0,n2 
          ibyz(1,i2,i3)= 1000
@@ -643,8 +677,9 @@ subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
          enddo loop_i1e
       end do
    end do
+   !$omp end do
 
-
+   !$omp do
    do i3=0,n3 
       do i1=0,n1
          ibxz(1,i1,i3)= 1000
@@ -666,7 +701,9 @@ subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
 
       end do
    end do
+   !$omp end do
 
+   !$omp do
    do i2=0,n2 
       do i1=0,n1 
          ibxy(1,i1,i2)= 1000
@@ -687,5 +724,7 @@ subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
          enddo loop_i3e
       end do
    end do
+   !$omp end do
+   !$omp end parallel
 
 END SUBROUTINE make_bounds

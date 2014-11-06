@@ -19,10 +19,12 @@ program memguess
    use m_ab6_symmetry
    use module_fragments
    use yaml_output
-   use module_atoms, only: set_astruct_from_file
+   use bigdft_run
+   use module_atoms, only: set_astruct_from_file,astruct_dump_to_file
    use internal_coordinates
    use gaussians, only: gaussian_basis, deallocate_gwf
    use communications_base, only: deallocate_comms
+   use psp_projectors, only: free_DFT_PSP_projectors
    implicit none
    character(len=*), parameter :: subname='memguess'
    character(len=30) :: tatonam, radical
@@ -286,7 +288,7 @@ program memguess
            & dpbox%ndims(1), dpbox%ndims(2), dpbox%ndims(3), &
            & nspin, dpbox%hgrids(1), dpbox%hgrids(2), dpbox%hgrids(3), &
            & rhocoeff, at%astruct%nat, at%astruct%rxyz, at%astruct%iatype, at%nzatom)
-      at%astruct%ntypes = size(at%nzatom) - ndebug
+      at%astruct%ntypes = size(at%nzatom)
       write(*,*) "Write new density file..."
       dpbox%ngatherarr = f_malloc_ptr((/ 0.to.0, 1.to.2 /),id='dpbox%ngatherarr')
 
@@ -313,13 +315,20 @@ program memguess
       end if
       
       if (associated(fxyz)) then
-         call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at%astruct%ixyz_int,at,&
-              trim(fcomment) // ' (converted from '//trim(fileFrom)//")", forces=fxyz)
+         call astruct_dump_to_file(at%astruct,fileTo(1:irad-1),&
+              trim(fcomment) // ' (converted from '//trim(fileFrom)//")",&
+              energy,forces=fxyz)
+!!$         call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at%astruct%ixyz_int,at,&
+!!$              trim(fcomment) // ' (converted from '//trim(fileFrom)//")", forces=fxyz)
 
          call f_free_ptr(fxyz)
       else
-         call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at%astruct%ixyz_int,at,&
-              trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
+         call astruct_dump_to_file(at%astruct,fileTo(1:irad-1),&
+              trim(fcomment) // ' (converted from '//trim(fileFrom)//")",&
+              energy)
+!!$
+!!$         call write_atomic_file(fileTo(1:irad-1),energy,at%astruct%rxyz,at%astruct%ixyz_int,at,&
+!!$              trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
       end if
       stop
    end if
@@ -397,11 +406,17 @@ program memguess
            !     degree, at%astruct%rxyz_int)
            !! The bond angle must be modified (take 180 degrees minus the angle)
            !at%astruct%rxyz_int(2:2,1:at%astruct%nat) = pi_param - at%astruct%rxyz_int(2:2,1:at%astruct%nat)
-           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz_int,&
-                at%astruct%ixyz_int,at,trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
+           call astruct_dump_to_file(at%astruct,fileTo(1:irad-1),&
+                trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
+
+!!$           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz_int,&
+!!$                at%astruct%ixyz_int,at,trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
        else if (direction=='intcar' .or. direction=='carcar') then
-           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz,&
-                at%astruct%ixyz_int,at,trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
+          call astruct_dump_to_file(at%astruct,fileTo(1:irad-1),&
+               trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
+
+!!$           call write_atomic_file(trim(fileTo(1:irad-1)),UNINITIALIZED(123.d0),at%astruct%rxyz,&
+!!$                at%astruct%ixyz_int,at,trim(fcomment) // ' (converted from '//trim(fileFrom)//")")
        end if
 
        write(*,*) 'Done.'
@@ -419,21 +434,25 @@ program memguess
       posinp=trim(radical)
    end if
 
-   call run_objects_init_from_files(runObj, radical, posinp)
+   !this part has to be mergd with the one coming from bigdft_run module
+   call run_objects_init_from_run_name(runObj, radical, posinp)
 
    if (optimise) then
       if (runObj%atoms%astruct%geocode =='F') then
          call optimise_volume(runObj%atoms,&
               & runObj%inputs%crmult,runObj%inputs%frmult,&
               & runObj%inputs%hx,runObj%inputs%hy,runObj%inputs%hz,&
-              & runObj%atoms%astruct%rxyz,runObj%radii_cf)
+              & runObj%atoms%astruct%rxyz)
       else
-         call shift_periodic_directions(runObj%atoms,runObj%atoms%astruct%rxyz,runObj%radii_cf)
+         call shift_periodic_directions(runObj%atoms,runObj%atoms%astruct%rxyz,runObj%atoms%radii_cf)
       end if
       write(*,'(1x,a)')'Writing optimised positions in file posopt.[xyz,ascii]...'
       write(comment,'(a)')'POSITIONS IN OPTIMIZED CELL '
-      call write_atomic_file('posopt',0.d0,runObj%atoms%astruct%rxyz,&
-           runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment))
+
+      call astruct_dump_to_file(at%astruct,'posopt',trim(comment))
+
+!!$      call write_atomic_file('posopt',0.d0,runObj%atoms%astruct%rxyz,&
+!!$           runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment))
       !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
    end if
 
@@ -448,7 +467,7 @@ program memguess
         & runObj%inputs, runObj%atoms, runObj%atoms%astruct%rxyz, runObj%rst%GPU%OCLconv, &
         & runObj%rst%KSwfn%orbs, runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
         & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, nlpsp, runObj%rst%KSwfn%comms, &
-        & shift,runObj%radii_cf, ref_frags, output_grid = (output_grid > 0))
+        & shift, ref_frags, output_grid = (output_grid > 0))
    call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
         & runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&
         & runObj%rst%KSwfn%orbs%nkpts,nlpsp%nprojel,&
@@ -458,7 +477,7 @@ program memguess
       call print_memory_estimation(mem)
    else
       runObj%rst%KSwfn%psi = f_malloc_ptr((runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_c+&
-           & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f)*runObj%rst%KSwfn%orbs%nspinor+ndebug,&
+           & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f)*runObj%rst%KSwfn%orbs%nspinor,&
            id='runObj%rst%KSwfn%psi')
 
       ! Optionally compute iorbp from arguments in case of ETSF.
@@ -603,7 +622,7 @@ program memguess
    !remove the directory which has been created if it is possible
    call deldir(runObj%inputs%dir_output,len(trim(runObj%inputs%dir_output)),ierror)
 
-   call run_objects_free(runObj, subname)
+   call free_run_objects(runObj)
 !   !finalize memory counting
 !   call memocc(0,0,'count','stop')
 
@@ -624,13 +643,14 @@ END PROGRAM memguess
 
 !> Rotate the molecule via an orthogonal matrix in order to minimise the
 !! volume of the cubic cell
-subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
+subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz)
    use module_base
    use module_types
+   use module_interfaces, only: system_size
    implicit none
    type(atoms_data), intent(inout) :: atoms
-   real(gp), intent(in) :: crmult,frmult,hx,hy,hz
-   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+   real(gp), intent(in) :: crmult,frmult
+   real(gp), intent(inout) :: hx,hy,hz
    real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
    !local variables
    character(len=*), parameter :: subname='optimise_volume'
@@ -642,7 +662,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
    real(gp), dimension(:,:), allocatable :: txyz
 
    txyz = f_malloc((/ 3, atoms%astruct%nat /),id='txyz')
-   call system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,.false.,Glr,shift)
+   call system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,.false.,Glr,shift)
    !call volume(nat,rxyz,vol)
    vol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3)
    write(*,'(1x,a,1pe16.8)')'Initial volume (Bohr^3)',vol
@@ -693,7 +713,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz,radii_cf)
          txyz(:,iat)=x*urot(:,1)+y*urot(:,2)+z*urot(:,3)
       enddo
 
-      call system_size(atoms,txyz,radii_cf,crmult,frmult,hx,hy,hz,.false.,Glr,shift)
+      call system_size(atoms,txyz,crmult,frmult,hx,hy,hz,.false.,Glr,shift)
       tvol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3)
       !call volume(nat,txyz,tvol)
       if (tvol < vol) then
@@ -929,7 +949,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
 
    !allocate the wavefunctions
    psi = f_malloc((/ Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f, orbs%nspinor*orbs%norbp /),id='psi')
-   hpsi = f_malloc((/ Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f , orbs%nspinor*orbs%norbp+ndebug /),id='hpsi')
+   hpsi = f_malloc((/ Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f , orbs%nspinor*orbs%norbp /),id='hpsi')
 
    call to_zero(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,psi)
    call to_zero(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f*orbs%nspinor*orbs%norbp,hpsi)
@@ -1088,8 +1108,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    call nanosec(itsc0)
    xc%ixc = 0
    do j=1,ntimes
-      pottmp = f_malloc_ptr(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin+ndebug),id='pottmp')
-      call vcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin+ndebug),pot(1,1,1,1),1,pottmp(1),1)
+      pottmp = f_malloc_ptr(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin),id='pottmp')
+      call vcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin),pot(1,1,1,1),1,pottmp(1),1)
       call local_hamiltonian(iproc,nproc,orbs%npsidim_orbs,orbs,Lzd,hx,hy,hz,0,confdatarr,pottmp,psi,hpsi, &
            fake_pkernelSIC,xc,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
       call f_free_ptr(pottmp)

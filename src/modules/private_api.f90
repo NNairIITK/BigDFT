@@ -40,6 +40,7 @@ module module_private_api
      END SUBROUTINE atoms_free
 
      subroutine atoms_set_n_atoms(atoms, rxyz, nat)
+       use module_defs, only: gp
        use module_types
        use memory_profiling
        implicit none
@@ -64,6 +65,7 @@ module module_private_api
      END SUBROUTINE atoms_set_name
 
      subroutine atoms_sync(atoms, alat1, alat2, alat3, geocode, format, units)
+       use module_defs, only: gp
        use module_types
        implicit none
        type(atoms_data), intent(inout) :: atoms
@@ -158,6 +160,7 @@ module module_private_api
      END SUBROUTINE atoms_get_ixcpsp
 
      subroutine atoms_get_amu(atoms, amu)
+       use module_defs, only: gp
        use module_types
        implicit none
        type(atoms_data), intent(in) :: atoms
@@ -165,6 +168,7 @@ module module_private_api
      END SUBROUTINE atoms_get_amu
 
      subroutine atoms_get_aocc(atoms, aocc)
+       use module_defs, only: gp
        use module_types
        implicit none
        type(atoms_data), intent(in) :: atoms
@@ -172,6 +176,7 @@ module module_private_api
      END SUBROUTINE atoms_get_aocc
 
      subroutine atoms_get_radii_cf(atoms, radii_cf)
+       use module_defs, only: gp
        use module_types
        implicit none
        type(atoms_data), intent(in) :: atoms
@@ -179,13 +184,15 @@ module module_private_api
      END SUBROUTINE atoms_get_radii_cf
 
      subroutine atoms_get_psppar(atoms, psppar)
+       use module_defs, only: gp
        use module_types
        implicit none
        type(atoms_data), intent(in) :: atoms
        real(gp), dimension(:,:,:), pointer :: psppar
      END SUBROUTINE atoms_get_psppar
 
-     subroutine atoms_get_nlccpar(atoms, nlccpar)
+     subroutine atoms_get_nlccpar(atoms, nlccpar)       
+       use module_defs, only: gp
        use module_types
        implicit none
        type(atoms_data), intent(in) :: atoms
@@ -193,6 +200,7 @@ module module_private_api
      END SUBROUTINE atoms_get_nlccpar
 
      subroutine atoms_get_ig_nlccpar(atoms, ig_nlccpar)
+       use module_defs, only: gp
        use module_types
        implicit none
        type(atoms_data), intent(in) :: atoms
@@ -226,6 +234,7 @@ module module_private_api
      END SUBROUTINE atoms_copy_name
 
      subroutine atoms_copy_alat(atoms, alat1, alat2, alat3)
+       use module_defs, only: gp
        use module_types
        implicit none
        type(atoms_data), intent(in) :: atoms
@@ -233,6 +242,7 @@ module module_private_api
      END SUBROUTINE atoms_copy_alat
 
      subroutine atoms_write(atoms, filename, filelen, rxyz, forces, energy, comment, ln)
+       use module_defs, only: gp
        use module_types
        implicit none
        integer, intent(in) :: ln, filelen
@@ -245,6 +255,7 @@ module module_private_api
      END SUBROUTINE atoms_write
 
      subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, psoffset)
+       use module_defs, only: gp,dp
        use module_types
        implicit none
        type(DFT_local_fields), intent(in) :: denspot

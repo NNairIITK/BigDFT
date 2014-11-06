@@ -11,7 +11,7 @@
 
 !> Handling of input guess creation from basis of atomic orbitals
 module ao_inguess
-  use module_base, only: gp,f_err_raise,ndebug,to_zero,f_err_throw,bigdft_mpi
+  use module_base, only: gp,f_err_raise,to_zero,f_err_throw,bigdft_mpi
   use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
 
   implicit none
@@ -47,7 +47,7 @@ module ao_inguess
   public :: atomic_info
   public :: iguess_generator,count_atomic_shells,print_eleconf
   public :: ao_nspin_ig,ao_ig_charge,aoig_set_from_dict,aoig_set,aoig_data_null
-  public :: set_aocc_from_string
+  public :: set_aocc_from_string,charge_and_spol
 
 
 contains
@@ -514,25 +514,32 @@ contains
   end function aoig_set
 
   !> fill electronic configuration of the atom from the input dictionary
-  function aoig_set_from_dict(dict,nspin_in) result(aoig)
+  function aoig_set_from_dict(dict,nspin_in,aoig_source) result(aoig)
     use module_defs, only: gp, UNINITIALIZED
     use dictionaries
     use yaml_output, only: yaml_toa,yaml_map
+    use public_keys, only: EXTRA_SHELLS_KEY, IG_OCCUPATION
+    use yaml_strings, only: is_atoi
     implicit none
     type(dictionary), pointer :: dict
     integer, intent(in) :: nspin_in
+    type(aoig_data), intent(in) :: aoig_source !< original electronic configuration
     type(aoig_data) :: aoig !< electronic configuration of IG atom
 
     !local variables
+    integer, parameter :: max_size=20
     character(len = max_field_length) :: key
     !character(max_field_length), dimension(:), allocatable :: keys
-    integer :: ln
-    integer :: m,n,iocc,icoll,inl,noncoll,l,ispin,is,nspin
+    integer :: ln,nempty
+    integer :: m,n,iocc,icoll,inl,noncoll,l,ispin,is,nspin,iocc_old
 !!$ integer :: lsc
     real(gp) :: tt,sh_chg
     integer, dimension(lmax_ao+1) :: nl,nlsc
     real(gp), dimension(2*(2*lmax_ao-1),nmax_ao,lmax_ao+1) :: allocc
     type(dictionary), pointer :: dict_tmp!,dict_it
+    character(len=1), dimension(max_size) :: empty_shells
+    integer, dimension(lmax_ao+1) :: nl_empty
+    real(gp), dimension(nelecmax_ao) :: aocc_new
 
     aoig=aoig_data_null()
     !control the spin
@@ -542,202 +549,254 @@ contains
     nlsc(:)=0
     allocc(:,:,:) = UNINITIALIZED(1._gp)
 
-    !here we have to iterate on the dictionary instead of allocating the array of the keys
+    !first, check if the dictionary of the atoms has an explicit 
+    !expression or if it only gives the empty shells
+    if (EXTRA_SHELLS_KEY .in. dict) then
+       if (dict_size(dict) > 1) call f_err_throw('If the "'//EXTRA_SHELLS_KEY//&
+            '" is present in the "'//IG_OCCUPATION//&
+            '" key, no others can be present',&
+            err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+       !use the previousy created ao_ig data
+       !put the values in the aocc array
+       !first, copy the structure from the source
+       aoig=aoig_source
 
-    dict_tmp=> dict_iter(dict)
-    do while(associated(dict_tmp))
-       key(1:len(key)) = dict_key(dict_tmp)!keys(i)
-       ln = len_trim(key)
-       is = 1
-       if (key(1:1) == "(" .and. key(ln:ln) == ")") is = 2
-       ! Read the major quantum number
-       read(key(is:is), "(I1)") n
-       is = is + 1
-       ! Read the channel
-       select case(key(is:is))
-       case('s')
-          l=1
-       case('p')
-          l=2
-       case('d')
-          l=3
-       case('f')
-          l=4
-       case default
-          call f_err_throw("wrong channel specified",err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-          return
-       end select
-       nl(l) = nl(l) + 1
-       if (is == 3) nlsc(l) = nlsc(l) + 1
-       if (f_err_raise(nlsc(l) > noccmax_ao,'Cannot admit more than '//&
-            trim(yaml_toa(noccmax_ao))//' semicore orbitals per channel',&
-            err_name='BIGDFT_INPUT_VARIABLES_ERROR')) return
-       !determine how to fill the allocc array according to the value
-       !dict_tmp=>dict // key
-       !call yaml_map('Dict of shell'//trim(yaml_toa(l)),dict_tmp)
-       ln=dict_len(dict_tmp)
-       if (modulo(ln,(2*l-1))==0 .and. ln /=0) then
-          !call yaml_map('here, shell',l)
-          !all the values are given explicitly, in agreement with the spin
-          if (ln==nspin*noncoll*(2*l-1)) then
-             allocc(1:nspin*noncoll*(2*l-1), n, l) = dict_tmp
-          else if (nspin*noncoll == 2) then
-             !the spin is not in agreement (too low: split the result)
-             if (nspin==2) then
-                !first up and then down
-                do m = 1,2*l-1
-                   tt=dict_tmp// (m - 1)
-                   allocc(m, n, l) = 0.5_gp*tt
-                   allocc(m+2*l-1,n,l) = 0.5_gp*tt
-                end do
-             else
-                !majority and minority
-                do m = 1,2*l-1
-                   tt=dict_tmp // (m - 1)
-                   allocc(2*(m-1)+1, n, l) = 0.5_gp*tt
-                   allocc(2*(m-1)+2 ,n,l) = 0.5_gp*tt
-                end do
-             end if
-          else 
-             !third case, too many values given: results of up and down have to be summed
-             do m = 1,2*l-1
-                allocc(m, n, l)=dict_tmp//(m - 1)
-                tt=dict_tmp// (m - 1+2*l-1)
-                allocc(m, n, l)=allocc(m, n, l)+tt
-             end do
-          end if
-       else if (dict_size(dict_tmp) == 2 ) then
-          !call yaml_map('there, shell',l)
-          !the dictionary should contain the up and down spins
-          if (has_key(dict_tmp,'up')) then
-             !call yaml_map('here up, shell',l)
-             if (dict_len(dict_tmp//'up') == 2*l-1) then
-                !up values have been entered explicitly
-                if (noncoll==2) then
-                   !spinorial case
-                   do m = 1,2*l-1
-                      allocc(2*(m-1)+1, n, l)=dict_tmp//'up'//(m-1)
-                   end do
-                else
-                   !collinear spin case
-                   !spin-averaged case
-                   allocc(1:(2*l-1),n,l)=dict_tmp//'up'
-                end if
-             else if (dict_len(dict_tmp//'up') == 0) then
-                !use spherical average for the values
-                tt=dict_tmp//'up'
-                tt=tt/real(2*l-1,gp)
-                if (noncoll == 2) then
-                   !spinorial
-                   do m = 1,2*l-1
-                      allocc(2*(m-1)+1, n, l)=tt
-                   end do
-                else
-                   !collinear and spin averaged
-                   allocc(1:(2*l-1),n,l)=tt
-                end if
-             else
-                call f_err_throw('Only scalar and list of correct lenghts are allowed for '//&
-                     'Atomic occupation number of up channel',&
-                     err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-                return
-             end if
-          end if
-          if (has_key(dict_tmp,'down')) then
-             !call yaml_map('here down, shell',l)
-             if (dict_len(dict_tmp//'down') == 2*l-1) then
-                !down values have been entered explicitly
-                if (noncoll==2) then
-                   !spinorial case
-                   do m = 1,2*l-1
-                      allocc(2*(m-1)+2, n, l)=dict_tmp//'down'//(m-1)
-                   end do
-                else if (nspin==2) then
-                   !collinear spin case
-                   allocc(2*l:2*(2*l-1),n,l)=dict_tmp//'down'
-                else
-                   !spin-averaged case
-                   do m = 1,2*l-1
-                      tt=dict_tmp//'down'//(m-1)
-                      allocc(m,n,l)=allocc(m,n,l)+tt
-                   end do
-                end if
-             else if(dict_len(dict_tmp//'down') == 0) then
-                !use spherical average for the values
-                tt=dict_tmp//'down'
-                tt=tt/real(2*l-1,gp)
-                if (noncoll == 2) then
-                   !spinorial
-                   do m = 1,2*l-1
-                      allocc(2*(m-1)+2, n, l)=tt
-                   end do
-                else if (nspin == 2) then
-                   !collinear spin
-                   allocc(2*l:2*(2*l-1),n,l)=tt
-                else
-                   !spin averaged
-                   do m = 1,2*l-1
-                      allocc(m,n,l)=allocc(m,n,l)+tt
-                   end do
-                end if
-             else
-                call f_err_throw('Only scalar and list of correct lenghts are allowed for '//&
-                     'Atomic occupation number of down channel',&
-                     err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-                return
-             end if
-          end if
-       else if (ln == 0) then
-          !call yaml_map('here AAA, shell',l)
-          !scalar case, the values are assumed to be spherically symmetric in all spins
-          tt=dict//key
-          !call yaml_map('value found',tt)
-          tt=tt/real(nspin*noncoll*(2*l-1),gp)
-          allocc(1:nspin*noncoll*(2*l-1),n,l)=tt
-       else
-          call f_err_throw('Only scalar and list of correct lenghts are allowed for '//&
-               'Atomic occupation number',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-       end if
-       
-       dict_tmp=>dict_next(dict_tmp)
-    end do
 
-    !put the values in the aocc array
-    aoig%aocc(:)=0.0_gp
-    iocc=0
-    do l=1,lmax_ao+1
-       iocc=iocc+1
-       aoig%aocc(iocc)=real(nl(l),gp)
-       aoig%nl(l-1)=nl(l)
-       aoig%nl_sc(l-1)=nlsc(l)
-       !print *,'setl',l,aoig%aocc(iocc),iocc
-       do inl=1,nmax_ao !this is an information which will disappear
-          if (allocc(1, inl, l) == UNINITIALIZED(1._gp)) cycle
-          !otherwise check if the shell is meaningful
-          sh_chg=0.0_gp
-          do ispin=1,nspin
-             do m=1,2*l-1
-                do icoll=1,noncoll !non-trivial only for nspinor=4
-                   iocc=iocc+1
-                   aoig%aocc(iocc)=&
-                        allocc(icoll+(m-1)*noncoll+(ispin-1)*(2*l-1)*noncoll,inl,l)
-                   sh_chg=sh_chg+aoig%aocc(iocc)
+       !Find the empty shells
+       nempty=dict_len(dict // EXTRA_SHELLS_KEY)
+       if (nempty < 1 .or. nempty > size(empty_shells)) &
+            call f_err_throw('Number of empty shells inconsistent ('//trim(yaml_toa(nempty))//&
+            ')',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+       !retrieve values
+       empty_shells(1:nempty)=dict // EXTRA_SHELLS_KEY
+       nl_empty=0
+       do is=1,nempty
+          l=ishell(empty_shells(is))
+          nl_empty(l)=nl_empty(l)+1
+       end do
+
+       aocc_new(:)=0.0_gp
+       iocc=0
+       iocc_old=0
+       do l=1,lmax_ao+1
+          iocc=iocc+1
+          iocc_old=iocc_old+1
+          aocc_new(iocc)=real(aoig%nl(l-1)+nl_empty(l),gp)
+          !insert the old values
+          do inl=1,aoig%nl(l-1)
+             do ispin=1,nspin
+                do m=1,2*l-1
+                   do icoll=1,noncoll !non-trivial only for nspinor=4
+                      iocc=iocc+1
+                      iocc_old=iocc_old+1
+                      aocc_new(iocc)=aoig%aocc(iocc_old)
+                   end do
                 end do
              end do
           end do
-          if (f_err_raise(sh_chg>real(2*(2*l-1),gp)+1.e-8_gp,'The charge of the shell'//&
-               trim(yaml_toa(l))//' is '//trim(yaml_toa(sh_chg))//&
-               ' which is higher than the limit '//&
-               trim(yaml_toa(nspin*noncoll*(2*l-1))),&
-               err_name='BIGDFT_INPUT_VARIABLES_ERROR')) return
+          !insert the new ones (only zeroes)
+          do inl=1,nl_empty(l)
+             do ispin=1,nspin
+                do m=1,2*l-1
+                   do icoll=1,noncoll !non-trivial only for nspinor=4
+                      iocc=iocc+1
+                      aocc_new(iocc)=0.0_gp
+                   end do
+                end do
+             end do
+          end do
+          !increase the number of shells
+          aoig%nl(l-1)=aoig%nl(l-1)+nl_empty(l)
        end do
-    end do
+       aoig%aocc=aocc_new
 
-!!$    !then calculate the nsccode
-!!$    aoig%iasctype=0
-!!$    do lsc=1,lmax_ao+1
-!!$       aoig%iasctype=aoig%iasctype+nlsc(lsc)*(4**(lsc-1))
-!!$    end do
+    else
+       !here we have to iterate on the dictionary instead of allocating the array of the keys
+       dict_tmp=> dict_iter(dict)
+       do while(associated(dict_tmp))
+          key(1:len(key)) = dict_key(dict_tmp)!keys(i)
+          ln = len_trim(key)
+          is = 1
+          if (key(1:1) == "(" .and. key(ln:ln) == ")") is = 2
+          ! Read the major quantum number
+          if (is_atoi(key(is:is))) then
+             read(key(is:is), "(I1)") n
+          else
+             call f_err_throw('Error in parsing occupation dictionary, the key "'//&
+                  trim(key)//'" is expected to contain a integer inside.'//&
+                  'The other allowed value is "'//EXTRA_SHELLS_KEY//'".',&
+                  err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+          end if
+          is = is + 1
+          ! Read the channel
+          l=ishell(key(is:is))
+          nl(l) = nl(l) + 1
+          if (is == 3) nlsc(l) = nlsc(l) + 1
+          if (f_err_raise(nlsc(l) > noccmax_ao,'Cannot admit more than '//&
+               trim(yaml_toa(noccmax_ao))//' semicore orbitals per channel',&
+               err_name='BIGDFT_INPUT_VARIABLES_ERROR')) return
+          !determine how to fill the allocc array according to the value
+          !dict_tmp=>dict // key
+          !call yaml_map('Dict of shell'//trim(yaml_toa(l)),dict_tmp)
+          ln=dict_len(dict_tmp)
+          if (modulo(ln,(2*l-1))==0 .and. ln /=0) then
+             !call yaml_map('here, shell',l)
+             !all the values are given explicitly, in agreement with the spin
+             if (ln==nspin*noncoll*(2*l-1)) then
+                allocc(1:nspin*noncoll*(2*l-1), n, l) = dict_tmp
+             else if (nspin*noncoll == 2) then
+                !the spin is not in agreement (too low: split the result)
+                if (nspin==2) then
+                   !first up and then down
+                   do m = 1,2*l-1
+                      tt=dict_tmp// (m - 1)
+                      allocc(m, n, l) = 0.5_gp*tt
+                      allocc(m+2*l-1,n,l) = 0.5_gp*tt
+                   end do
+                else
+                   !majority and minority
+                   do m = 1,2*l-1
+                      tt=dict_tmp // (m - 1)
+                      allocc(2*(m-1)+1, n, l) = 0.5_gp*tt
+                      allocc(2*(m-1)+2 ,n,l) = 0.5_gp*tt
+                   end do
+                end if
+             else 
+                !third case, too many values given: results of up and down have to be summed
+                do m = 1,2*l-1
+                   allocc(m, n, l)=dict_tmp//(m - 1)
+                   tt=dict_tmp// (m - 1+2*l-1)
+                   allocc(m, n, l)=allocc(m, n, l)+tt
+                end do
+             end if
+          else if (dict_size(dict_tmp) == 2 ) then
+             !call yaml_map('there, shell',l)
+             !the dictionary should contain the up and down spins
+             if (has_key(dict_tmp,'up')) then
+                !call yaml_map('here up, shell',l)
+                if (dict_len(dict_tmp//'up') == 2*l-1) then
+                   !up values have been entered explicitly
+                   if (noncoll==2) then
+                      !spinorial case
+                      do m = 1,2*l-1
+                         allocc(2*(m-1)+1, n, l)=dict_tmp//'up'//(m-1)
+                      end do
+                   else
+                      !collinear spin case
+                      !spin-averaged case
+                      allocc(1:(2*l-1),n,l)=dict_tmp//'up'
+                   end if
+                else if (dict_len(dict_tmp//'up') == 0) then
+                   !use spherical average for the values
+                   tt=dict_tmp//'up'
+                   tt=tt/real(2*l-1,gp)
+                   if (noncoll == 2) then
+                      !spinorial
+                      do m = 1,2*l-1
+                         allocc(2*(m-1)+1, n, l)=tt
+                      end do
+                   else
+                      !collinear and spin averaged
+                      allocc(1:(2*l-1),n,l)=tt
+                   end if
+                else
+                   call f_err_throw('Only scalar and list of correct lenghts are allowed for '//&
+                        'Atomic occupation number of up channel',&
+                        err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+                   return
+                end if
+             end if
+             if (has_key(dict_tmp,'down')) then
+                !call yaml_map('here down, shell',l)
+                if (dict_len(dict_tmp//'down') == 2*l-1) then
+                   !down values have been entered explicitly
+                   if (noncoll==2) then
+                      !spinorial case
+                      do m = 1,2*l-1
+                         allocc(2*(m-1)+2, n, l)=dict_tmp//'down'//(m-1)
+                      end do
+                   else if (nspin==2) then
+                      !collinear spin case
+                      allocc(2*l:2*(2*l-1),n,l)=dict_tmp//'down'
+                   else
+                      !spin-averaged case
+                      do m = 1,2*l-1
+                         tt=dict_tmp//'down'//(m-1)
+                         allocc(m,n,l)=allocc(m,n,l)+tt
+                      end do
+                   end if
+                else if(dict_len(dict_tmp//'down') == 0) then
+                   !use spherical average for the values
+                   tt=dict_tmp//'down'
+                   tt=tt/real(2*l-1,gp)
+                   if (noncoll == 2) then
+                      !spinorial
+                      do m = 1,2*l-1
+                         allocc(2*(m-1)+2, n, l)=tt
+                      end do
+                   else if (nspin == 2) then
+                      !collinear spin
+                      allocc(2*l:2*(2*l-1),n,l)=tt
+                   else
+                      !spin averaged
+                      do m = 1,2*l-1
+                         allocc(m,n,l)=allocc(m,n,l)+tt
+                      end do
+                   end if
+                else
+                   call f_err_throw('Only scalar and list of correct lenghts are allowed for '//&
+                        'Atomic occupation number of down channel',&
+                        err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+                   return
+                end if
+             end if
+          else if (ln == 0) then
+             !call yaml_map('here AAA, shell',l)
+             !scalar case, the values are assumed to be spherically symmetric in all spins
+             tt=dict//key
+             !call yaml_map('value found',tt)
+             tt=tt/real(nspin*noncoll*(2*l-1),gp)
+             allocc(1:nspin*noncoll*(2*l-1),n,l)=tt
+          else
+             call f_err_throw('Only scalar and list of correct lenghts are allowed for '//&
+                  'Atomic occupation number',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+          end if
+
+          dict_tmp=>dict_next(dict_tmp)
+       end do
+
+       !put the values in the aocc array
+       aoig%aocc(:)=0.0_gp
+       iocc=0
+       do l=1,lmax_ao+1
+          iocc=iocc+1
+          aoig%aocc(iocc)=real(nl(l),gp)
+          aoig%nl(l-1)=nl(l)
+          aoig%nl_sc(l-1)=nlsc(l)
+          !print *,'setl',l,aoig%aocc(iocc),iocc
+          do inl=1,nmax_ao !this is an information which will disappear
+             if (allocc(1, inl, l) == UNINITIALIZED(1._gp)) cycle
+             !otherwise check if the shell is meaningful
+             sh_chg=0.0_gp
+             do ispin=1,nspin
+                do m=1,2*l-1
+                   do icoll=1,noncoll !non-trivial only for nspinor=4
+                      iocc=iocc+1
+                      aoig%aocc(iocc)=&
+                           allocc(icoll+(m-1)*noncoll+(ispin-1)*(2*l-1)*noncoll,inl,l)
+                      sh_chg=sh_chg+aoig%aocc(iocc)
+                   end do
+                end do
+             end do
+             if (f_err_raise(sh_chg>real(2*(2*l-1),gp)+1.e-8_gp,'The charge of the shell'//&
+                  trim(yaml_toa(l))//' is '//trim(yaml_toa(sh_chg))//&
+                  ' which is higher than the limit '//&
+                  trim(yaml_toa(nspin*noncoll*(2*l-1))),&
+                  err_name='BIGDFT_INPUT_VARIABLES_ERROR')) return
+          end do
+       end do
+
+    end if
 
     !fill the number of orbitals
     aoig%nao=0
@@ -1125,6 +1184,26 @@ contains
     end do
   END SUBROUTINE at_occnums
 
+  function ishell(sh) result(l)
+    use dictionaries, only: f_err_throw
+    implicit none
+    character(len=1), intent(in) :: sh
+    integer :: l
+    
+    select case(sh)
+    case('s')
+       l=1
+    case('p')
+       l=2
+    case('d')
+       l=3
+    case('f')
+       l=4
+    case default
+       call f_err_throw("wrong channel specified",err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+    end select
+  end function ishell
+
   !> Read the electronic configuration, with the semicore orbitals
   subroutine set_aocc_from_string(string_in,aocc,nl_sc,ndeg)
     use module_defs, only: UNINITIALIZED
@@ -1255,6 +1334,26 @@ contains
        read(string,*)occ
     end if
   END SUBROUTINE read_fraction_string_old
+
+  !> Calculate the charge and the spin polarisation to be placed on a given atom
+  !! RULE: natpol = c*1000 + sgn(c)*100 + s: charged and polarised atom (charge c, polarisation s)
+  subroutine charge_and_spol(natpol,nchrg,nspol)
+    implicit none
+    integer, intent(in) :: natpol
+    integer, intent(out) :: nchrg,nspol
+    !local variables
+    integer :: nsgn
+
+    nchrg=natpol/1000
+    if (nchrg>=0) then
+       nsgn=1
+    else
+       nsgn=-1
+    end if
+
+    nspol=natpol-1000*nchrg-nsgn*100
+
+  END SUBROUTINE charge_and_spol
 
 
   include 'eleconf-inc.f90'

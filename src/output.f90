@@ -796,7 +796,7 @@ subroutine write_eigenvalues_data(etol,orbs,mom_vec)
                       -1.0_gp,ikptw,mx,my,mz)
                  !yaml output (carriage return)
                  degdw = find_degeneracy_down(iorb+isorb)
-                 if (iorb == orbs%norbd .and. ikpt == orbs%nkpts) then
+                 if (iorb == orbs%norbu+orbs%norbd .and. ikpt == orbs%nkpts) then
                     call yaml_sequence_close(advance='no')
                  end if
                  call yaml_comment(trim(yaml_toa(iorb,fmt='(i5.5)')),advance='no')
@@ -1261,18 +1261,19 @@ END SUBROUTINE write_strten_info
 !> Assign some of the physical system variables
 !! Performs also some cross-checks with other variables
 !! The pointers in atoms structure have to be associated or nullified.
-subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
+subroutine print_atomic_variables(atoms, hmax, ixc, dispersion)
   use module_base
   use module_types
   use module_atoms, only: RADII_SOURCE
   use module_xc
   use vdwcorrection
   use yaml_output
+  use psp_projectors, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
+       PSPCODE_PAW,PSPCODE_GTH
   implicit none
-  type(atoms_data), intent(inout) :: atoms
+  type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: hmax
   integer, intent(in) :: ixc, dispersion
-  real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   !Local variables
   logical :: nonloc
   integer :: i,j,l,ityp,iat,natyp,mproj,inlcc
@@ -1332,9 +1333,9 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
      call yaml_map('No. of Atoms',natyp)
 
      call yaml_mapping_open('Radii of active regions (AU)')!,flow=.true.)
-       call yaml_map('Coarse',radii_cf(ityp,1),fmt='(f8.5)')
-       call yaml_map('Fine',radii_cf(ityp,2),fmt='(f8.5)')
-       call yaml_map('Coarse PSP',radii_cf(ityp,3),fmt='(f8.5)')
+       call yaml_map('Coarse',atoms%radii_cf(ityp,1),fmt='(f8.5)')
+       call yaml_map('Fine',atoms%radii_cf(ityp,2),fmt='(f8.5)')
+       call yaml_map('Coarse PSP',atoms%radii_cf(ityp,3),fmt='(f8.5)')
        call yaml_map('Source',RADII_SOURCE(atoms%iradii_source(ityp)))
        !if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
        !   call yaml_map('Source','Hard-Coded')
@@ -1349,7 +1350,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
            minrad=min(minrad,atoms%psppar(i,0,ityp))
         end if
      end do
-     if (radii_cf(ityp,2) /=0.0_gp) then
+     if (atoms%radii_cf(ityp,2) /=0.0_gp) then
         call yaml_map('Grid Spacing threshold (AU)',2.5_gp*minrad,fmt='(f5.2)')
      else
         call yaml_map('Grid Spacing threshold (AU)',1.25_gp*minrad,fmt='(f5.2)')
@@ -1368,6 +1369,8 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
         call yaml_map('Pseudopotential type','HGH-K')
      case(PSPCODE_HGH_K_NLCC)
         call yaml_map('Pseudopotential type','HGH-K + NLCC')
+     case(PSPCODE_PAW)
+        call yaml_map('Pseudopotential type','PAW + HGH')
      end select
      if (atoms%psppar(0,0,ityp)/=0) then
         call yaml_mapping_open('Local Pseudo Potential (HGH convention)')
@@ -1429,7 +1432,19 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
         end do
         call yaml_sequence_close()
      end if
-     call numb_proj(ityp,atoms%astruct%ntypes,atoms%psppar,atoms%npspcode,mproj)
+     ! PAW case.
+     if (atoms%npspcode(ityp) == PSPCODE_PAW) then
+        call yaml_map('No. of gaussians', atoms%pawtab(ityp)%wvl%pngau)
+        call yaml_map('complex coefficients (1..5)', atoms%pawtab(ityp)%wvl%parg(:,1:5))
+        call yaml_map('complex factors (1..5)', atoms%pawtab(ityp)%wvl%pfac(:,1:5))
+     end if
+     mproj = 0
+     do l=1,4 
+        do i=1,3 
+           if (atoms%psppar(l,i,ityp) /= 0.0_gp) mproj=mproj+2*l-1
+        enddo
+     enddo
+     !call numb_proj(ityp,atoms%astruct%ntypes,atoms%psppar,atoms%npspcode,mproj)
      call yaml_map('No. of projectors',mproj)
 
      !control if the PSP is calculated with the same XC value
@@ -1558,8 +1573,8 @@ subroutine print_atoms_and_grid(Glr, atoms, rxyz, shift, hx, hy, hz)
      ! New version
      call yaml_mapping_open('Atomic structure')
      call yaml_get_default_stream(unit = iunit)
-     call wtyaml(iunit, UNINITIALIZED(1.d0), rxyz, atoms, .false., rxyz, &
-          & .true., shift, (/ hx, hy, hz /))
+     call wtyaml(iunit, UNINITIALIZED(1.d0), rxyz, atoms%astruct, .false., rxyz, &
+          .true., shift, (/ hx, hy, hz /))
      call yaml_mapping_close()
   end if
   call yaml_comment('Grid properties',hfill='-')
@@ -1574,27 +1589,178 @@ subroutine print_atoms_and_grid(Glr, atoms, rxyz, shift, hx, hy, hz)
   call yaml_map('To',(/Glr%d%nfu1,Glr%d%nfu2,Glr%d%nfu3/),fmt='(i4)')
   call yaml_mapping_close()
   call yaml_mapping_close()
-!!$      write(*,'(1x,a,19x,a)') 'Shifted atomic positions, Atomic Units:','grid spacing units:'
-!!$      do iat=1,atoms%astruct%nat
-!!$         write(*,'(1x,i5,1x,a6,3(1x,1pe12.5),3x,3(1x,0pf9.3))') &
-!!$            &   iat,trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),&
-!!$            &   (rxyz(j,iat),j=1,3),rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz
-!!$      enddo
-!!$      write(*,'(1x,a,3(1x,1pe12.5),a,3(1x,0pf7.4))') &
-!!$         &   '   Shift of=',-cxmin,-cymin,-czmin,' H grids=',hx,hy,hz
-!!$      write(*,'(1x,a,3(1x,1pe12.5),3x,3(1x,i9))')&
-!!$         &   '  Box Sizes=',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),atoms%astruct%cell_dim(3),n1,n2,n3
-!!$      write(*,'(1x,a,3x,3(3x,i4,a1,i0))')&
-!!$         &   '      Extremes for the high resolution grid points:',&
-!!$         &   nfl1,'<',nfu1,nfl2,'<',nfu2,nfl3,'<',nfu3
-
-!!$   if (Glr%hybrid_on) then
-!!$      if (iproc == 0) write(*,*)'wavelet localization is ON'
-!!$   else
-!!$      if (iproc == 0) write(*,*)'wavelet localization is OFF'
-!!$   endif
   call yaml_map('High Res. box is treated separately',Glr%hybrid_on)
 END SUBROUTINE print_atoms_and_grid
+
+!> Write atomic file in yaml format
+subroutine wtyaml(iunit,energy,rxyz,astruct,wrtforces,forces, &
+     & wrtlog, shift, hgrids)
+  use module_base, only: f_err_throw
+  use module_defs, only: Bohr_Ang, gp, UNINITIALIZED
+  use yaml_output
+  use module_atoms, only: atomic_structure,frozen_itof
+  use ao_inguess, only: charge_and_spol
+  implicit none
+  !Arguments
+  logical, intent(in) :: wrtforces !< True if write the atomic forces
+  logical, intent(in) :: wrtlog
+  integer, intent(in) :: iunit
+  type(atomic_structure), intent(in) :: astruct
+  real(gp), intent(in) :: energy
+  real(gp), dimension(3,astruct%nat), intent(in) :: rxyz,forces
+  real(gp), dimension(3), intent(in) :: shift, hgrids
+  !local variables
+  logical :: reduced, perx, pery, perz
+  character(len=4) :: frzchain
+  real(gp), dimension(3) :: xred
+  real(gp) :: factor
+  integer :: iat,ichg,ispol
+
+  reduced=.false.
+  Units: select case(trim(astruct%units))
+  case('angstroem','angstroemd0')
+     call yaml_map('Units','angstroem', unit = iunit)
+     factor=Bohr_Ang
+  case('reduced')
+     if (.not. wrtlog) then
+        call yaml_map('Units','reduced', unit = iunit)
+        reduced=.true.
+     end if
+     factor = 1.0_gp
+  case('atomic','atomicd0','bohr','bohrd0')
+     ! Default
+     factor=1.0_gp
+     !call yaml_map('Units','bohr')
+  case default
+     call f_err_throw('Writing the atomic file. Error, unknown units ("'// trim(astruct%units)//'")', & 
+          & err_name='BIGDFT_RUNTIME_ERROR')
+  end select Units
+
+  !cell information
+  perx = .false.
+  pery = .false.
+  perz = .false.
+  BC :select case(astruct%geocode)
+  case('S')
+     call yaml_sequence_open('Cell', flow=.true., unit = iunit)
+     call yaml_sequence(yaml_toa(astruct%cell_dim(1)*factor), unit = iunit) !x
+     call yaml_sequence('.inf', unit = iunit)             !y
+     call yaml_sequence(yaml_toa(astruct%cell_dim(3)*factor), unit = iunit) !z
+     call yaml_sequence_close(unit = iunit)
+     !angdeg to be added
+     perx = .true.
+     pery = .false.
+     perz = .true.
+  case('W')
+     call yaml_sequence_open('Cell', flow=.true., unit = iunit)
+     call yaml_sequence('.inf', unit = iunit)             !x
+     call yaml_sequence('.inf', unit = iunit)             !y
+     call yaml_sequence(yaml_toa(astruct%cell_dim(3)*factor), unit = iunit) !z
+     call yaml_sequence_close(unit = iunit)
+     perx = .false.
+     pery = .false.
+     perz = .true.
+  case('P')
+     call yaml_map('Cell',(/astruct%cell_dim(1)*factor, &
+          & astruct%cell_dim(2)*factor, astruct%cell_dim(3)*factor/), unit = iunit)
+     !angdeg to be added
+     perx = .true.
+     pery = .true.
+     perz = .true.
+  case('F')
+     ! Default
+     !call yaml_map('BC','free')
+  end select BC
+
+  !Write atomic positions
+  call yaml_sequence_open('Positions', unit = iunit)
+  do iat=1,astruct%nat
+     call yaml_sequence(advance='no', unit = iunit)
+     if (extra_info(iat)) then
+        call yaml_mapping_open(flow=.true., unit = iunit)
+     end if
+     xred=rxyz(:,iat)
+     if (reduced) then
+        if (perx) xred(1)=rxyz(1,iat)/astruct%cell_dim(1)
+        if (pery) xred(2)=rxyz(2,iat)/astruct%cell_dim(2)
+        if (perz) xred(3)=rxyz(3,iat)/astruct%cell_dim(3)
+     else
+        !Multiply by the factor to have the right units
+        xred = xred*factor
+     end if
+     if (wrtlog) then
+        call print_one_atom(trim(astruct%atomnames(astruct%iatype(iat))),&
+             xred,hgrids,iat)
+!!$        call yaml_map(trim(astruct%atomnames(astruct%iatype(iat))),&
+!!$             & xred,fmt="(g18.10)", unit = iunit, advance = "no")
+!!$        xred(1:3) = rxyz(1:3,iat) / hgrids
+!!$        write(gu, "('[ 'F6.2', 'F6.2', 'F6.2'] 'I4.4)") xred, iat
+!!$        call yaml_comment(gu, unit = iunit)
+     else
+        call yaml_map(trim(astruct%atomnames(astruct%iatype(iat))),&
+             & xred,fmt="(1pg25.17)", unit = iunit)
+     end if
+     if (extra_info(iat)) then
+        call charge_and_spol(astruct%input_polarization(iat),ichg,ispol)
+        if (ispol /=0) call yaml_map('IGSpin',ispol, unit = iunit)
+        if (ichg /=0) call yaml_map('IGChg',ichg, unit = iunit)
+        if (astruct%ifrztyp(iat) /= 0) then
+           call frozen_itof(astruct%ifrztyp(iat),frzchain)
+           call yaml_map('Frozen',frzchain, unit = iunit)
+        end if
+        call yaml_mapping_close(unit = iunit)
+     end if
+  end do
+  call yaml_sequence_close(unit = iunit) !positions
+
+  !Write atomic forces
+  if (wrtforces) then
+     call yaml_sequence_open('Forces (Ha/Bohr)', unit = iunit)
+     do iat=1,astruct%nat
+        call yaml_sequence(advance='no', unit = iunit)
+        call yaml_map(trim(astruct%atomnames(astruct%iatype(iat))),forces(:,iat),fmt='(1pg25.17)', unit = iunit)
+     end do
+     call yaml_sequence_close(unit = iunit) !values
+  end if
+  if (wrtlog) then
+     call yaml_map('Rigid Shift Applied (AU)',(/-shift(1),-shift(2),-shift(3)/),fmt='(1pg12.5)')
+  else
+     call yaml_mapping_open('Properties', unit = iunit)
+     call yaml_map('Timestamp',yaml_date_and_time_toa(), unit = iunit)
+     if (energy /= 0.0_gp .and. energy /= UNINITIALIZED(energy)) then
+        call yaml_map("Energy (Ha)", energy, unit = iunit)
+     end if
+     call yaml_mapping_close(unit = iunit) !properties
+  end if
+
+contains
+
+  function extra_info(iat)
+    implicit none
+    integer, intent(in) :: iat
+    logical extra_info
+    extra_info=astruct%input_polarization(iat) /=100 .or. astruct%ifrztyp(iat)/=0
+  end function extra_info
+
+  subroutine print_one_atom(atomname,rxyz,hgrids,id)
+    implicit none
+    integer, intent(in) :: id
+    character(len=*), intent(in) :: atomname
+    double precision, dimension(3), intent(in) :: rxyz,hgrids
+    !local variables
+    character(len=*), parameter :: fmtat='(1pg18.10)',fmtg='(F6.2)',fmti='(i4.4)'
+    integer :: i
+
+    call yaml_sequence_open(atomname,flow=.true.)
+    do i=1,3
+       call yaml_sequence(yaml_toa(rxyz(i),fmt=fmtat))
+    end do
+    call yaml_sequence_close(advance='no')
+    call yaml_comment(trim(yaml_toa(rxyz/hgrids/factor,fmt=fmtg))//trim(yaml_toa(id,fmt=fmti))) !we can also put tabbing=
+
+  end subroutine print_one_atom
+
+END SUBROUTINE wtyaml
 
 subroutine print_wfd(wfd)
   use module_types, only: wavefunctions_descriptors
@@ -1652,7 +1818,8 @@ subroutine print_nlpsp(nlpsp)
      end if
      sizemask=0
      if (associated(nlpsp%pspd(iat)%tolr)) then
-        do ilr=1,nlpsp%pspd(iat)%nlr
+        !do ilr=1,nlpsp%pspd(iat)%nlr
+        do ilr=1,size(nlpsp%pspd(iat)%tolr)
            sizemask=sizemask+&
                 nlpsp%pspd(iat)%tolr(ilr)%nmseg_c+nlpsp%pspd(iat)%tolr(ilr)%nmseg_f
         end do

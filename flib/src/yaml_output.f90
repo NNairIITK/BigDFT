@@ -92,7 +92,7 @@ module yaml_output
      !other scalars
      module procedure yaml_map_i,yaml_map_li,yaml_map_f,yaml_map_d,yaml_map_l
      !vectors
-     module procedure yaml_map_iv,yaml_map_dv,yaml_map_cv,yaml_map_lv
+     module procedure yaml_map_iv,yaml_map_dv,yaml_map_cv,yaml_map_rv,yaml_map_lv,yaml_map_liv
      !matrices (rank2)
      module procedure yaml_map_dm,yaml_map_rm,yaml_map_im,yaml_map_lm
   end interface
@@ -167,7 +167,7 @@ module yaml_output
   public :: yaml_sequence,yaml_sequence_open,yaml_sequence_close
   public :: yaml_comment,yaml_warning,yaml_scalar,yaml_newline
   public :: yaml_toa,yaml_date_and_time_toa,yaml_date_toa,yaml_time_toa
-  public :: yaml_set_stream
+  public :: yaml_set_stream,yaml_flush_document,yaml_stream_connected
   public :: yaml_set_default_stream,yaml_close_stream,yaml_swap_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
   public :: yaml_dict_dump,yaml_dict_dump_all
@@ -250,20 +250,20 @@ contains
     module_initialized=.true.
   end subroutine yaml_output_errors
 
-  function stream_next_free_unit()
-    integer :: stream_next_free_unit
-    logical :: unit_is_open
-    integer :: ierr
-
-    stream_next_free_unit = 75214
-    unit_is_open = .true.
-    do while (unit_is_open)
-       stream_next_free_unit = stream_next_free_unit + 1
-       inquire(unit=stream_next_free_unit,opened=unit_is_open,iostat=ierr)
-       if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='//trim(yaml_toa(ierr)),&
-            YAML_INVALID)) return
-    end do
-  end function stream_next_free_unit
+!!$  function stream_next_free_unit()
+!!$    integer :: stream_next_free_unit
+!!$    logical :: unit_is_open
+!!$    integer :: ierr
+!!$
+!!$    stream_next_free_unit = 75214
+!!$    unit_is_open = .true.
+!!$    do while (unit_is_open)
+!!$       stream_next_free_unit = stream_next_free_unit + 1
+!!$       inquire(unit=stream_next_free_unit,opened=unit_is_open,iostat=ierr)
+!!$       if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='//trim(yaml_toa(ierr)),&
+!!$            YAML_INVALID)) return
+!!$    end do
+!!$  end function stream_next_free_unit
   
   !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if
   !! The stream has not be initialized.
@@ -293,9 +293,32 @@ contains
   end subroutine yaml_get_default_stream
 
 
+  !> Get the unit associated to filename, if it is currently connected.
+  subroutine yaml_stream_connected(filename, unit, istat)
+    implicit none
+    character(len=*), intent(in) :: filename !< Filename of the stream to inquire
+    integer, intent(out)         :: unit     !< File unit specified by the user.(by default 6) Returns a error code if the unit
+    integer, optional, intent(out) :: istat  !< Status, zero if suceeded. When istat is present this routine is non-blocking, i.e. it does not raise exceptions.
+
+    integer, parameter :: NO_ERRORS           = 0
+
+    !check that the module has been initialized
+    call assure_initialization()
+
+    if (present(istat)) istat = NO_ERRORS !so far
+
+    unit = 0
+    if (has_key(stream_files, trim(filename))) then
+       unit = stream_files // trim(filename)
+    else
+       if (present(istat)) istat = YAML_STREAM_NOT_FOUND
+    end if
+  end subroutine yaml_stream_connected
+
   !> Set all the output from now on to the file indicated by stdout
   !! therefore the default stream is now the one indicated by unit
   subroutine yaml_set_stream(unit,filename,istat,tabbing,record_length,position,setdefault)
+    use f_utils, only: f_utils_recl,f_get_free_unit
     implicit none
     integer, optional, intent(in) :: unit              !< File unit specified by the user.(by default 6) Returns a error code if the unit
                                                        !! is not 6 and it has already been opened by the processor
@@ -311,7 +334,8 @@ contains
     integer, parameter :: NO_ERRORS           = 0
     logical :: unit_is_open,set_default
     integer :: istream,unt,ierr
-    integer(kind=8) :: recl_file
+    !integer(kind=8) :: recl_file
+    integer :: recl_file
     character(len=15) :: pos
         
     !check that the module has been initialized
@@ -326,7 +350,7 @@ contains
           if (has_key(stream_files, trim(filename))) then
              unt=stream_files // trim(filename)
           else
-             unt=stream_next_free_unit()
+             unt=f_get_free_unit()!stream_next_free_unit()
           end if
        else
           unt=6
@@ -367,16 +391,17 @@ contains
              end if
           end if
           open(unit=unt,file=trim(filename),status='unknown',position=trim(pos),iostat=ierr)
-       end if
-       if (present(istat)) then
-          istat=ierr
-       else
-          if (f_err_raise(ierr /=0,'error in file opening, ierr='//trim(yaml_toa(ierr)),&
-               YAML_INVALID)) return
+          if (present(istat)) then
+             istat = ierr
+          else
+             if (f_err_raise(ierr /=0,'error in file opening, ierr='//trim(yaml_toa(ierr)),&
+                  YAML_INVALID)) return
+          end if
        end if
        if (ierr == 0 .and. .not. unit_is_open) then
           !inquire the record length for the unit
-          inquire(unit=unt,recl=recl_file)
+          !inquire(unit=unt,recl=recl_file)
+          if (present(record_length)) call f_utils_recl(unt,record_length,recl_file)
           call set(stream_files // trim(filename), trim(yaml_toa(unt)))
        end if
     end if
@@ -401,6 +426,20 @@ contains
           end if
        end if
     end do
+
+    !if there is no active streams setdefault cannot be false.
+    !at least open the stdout
+    if (.not. set_default .and. active_streams==0) then
+       !this is equivalent to yaml_set_streams(record_length=92)
+       !assign the unit to the new stream
+       active_streams=active_streams+1
+       !initalize the stream
+       streams(active_streams)=stream_null()
+       streams(active_streams)%unit=6
+       stream_units(active_streams)=6
+       streams(active_streams)%max_record_length=92
+    end if
+
     !assign the unit to the new stream
     active_streams=active_streams+1
     !initalize the stream
@@ -411,17 +450,14 @@ contains
     ! set last opened stream as default stream
     if (set_default) default_stream=active_streams
 
-    !set stream non-default attributes
-    streams(active_streams)%unit=unt
-
     if (present(tabbing)) then
        streams(active_streams)%tabref=tabbing
        if (tabbing==0) streams(active_streams)%pp_allowed=.false.
     end if
     !protect the record length to be lower than the maximum allowed by the processor
     if (present(record_length)) then
-       if (recl_file<=0) recl_file=int(record_length,kind=8)
-       streams(active_streams)%max_record_length=int(min(int(record_length,kind=8),recl_file))
+       if (recl_file<=0) recl_file=record_length!int(record_length,kind=8)
+       streams(active_streams)%max_record_length=recl_file!int(min(int(record_length,kind=8),recl_file))
     end if
   end subroutine yaml_set_stream
 
@@ -556,8 +592,24 @@ contains
 
   end subroutine yaml_new_document
 
+  !> Flush the content of the document. 
+  !! @ingroup FLIB_YAML
+  subroutine yaml_flush_document(unit)
+    implicit none
+    integer, optional, intent(in) :: unit  !< @copydoc doc::unit
+    !local variables
+    integer :: unt,strm
 
-  !> Release the document. if a new_document is opened, the sympol of START_DOCUMENT "---"
+    unt=0
+    if (present(unit)) unt=unit
+    call get_stream(unt,strm)
+
+    !call the flush routine which
+    call f_utils_flush(streams(strm)%unit)
+  end subroutine yaml_flush_document
+
+
+  !> Release the document. if a new_document is opened, the symbol of START_DOCUMENT "---"
   !! will be displayed on the corresponding unit
   !! After this routine is called, the new_document will become effective again
   !! @ingroup FLIB_YAML
@@ -672,7 +724,12 @@ contains
     do istream=1,active_streams
        unt=stream_units(istream)
        !unit 6 cannot be closed
-       if (unt /= 6) call yaml_close_stream(unit=unt)
+       if (unt /= 6) then
+          call yaml_close_stream(unit=unt)
+          !but its document can be released
+       else
+          call yaml_release_document(unit=unt)
+       end if
     end do
     call dict_free(stream_files)
     stream_units=6
@@ -697,7 +754,8 @@ contains
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
-    call dump(streams(strm),' #WARNING: '//trim(message))
+!    call dump(streams(strm),' #WARNING: '//trim(message))
+    call yaml_comment('WARNING: '//trim(message),unit=unt)
     !here we should add a collection of all the warning which are printed out in the code.
     if (.not. streams(strm)%document_closed) then
 !!$       if (.not. associated(streams(strm)%dict_warning)) then
@@ -770,7 +828,7 @@ contains
 
        !Detect the last character of the message
        lend=len_trim(message(lstart:))
-       if (lend+msg_lgt > streams(strm)%max_record_length) then
+       if (lend+msg_lgt+2 > streams(strm)%max_record_length) then
           !We have an error from buffer_string so we split it!
           !-1 to be less and -2 for the character '#'
           lend=streams(strm)%max_record_length-msg_lgt-2
@@ -782,13 +840,18 @@ contains
        end if
        call buffer_string(towrite,len(towrite),message(lstart:lstart+lend-1),msg_lgt)
 
+       !print *,'there',trim(towrite),lstart,lend
+       
+
        !Check if possible to hfill
        hmax = max(streams(strm)%max_record_length-ipos-len_trim(message)-3,0)
+       !print *,'hmax',hmax,streams(strm)%max_record_length,ipos,lmsg
        if (present(hfill) .and. hmax > 0) then
           !Fill with the given character and dump
           call dump(streams(strm),repeat(hfill,hmax)//' '//towrite(1:msg_lgt),advance=adv,event=COMMENT)
        else
           !Dump the string towrite into the stream
+          !print *,'dumping here',msg_lgt,towrite(1:msg_lgt)
           call dump(streams(strm),towrite(1:msg_lgt),advance=adv,event=COMMENT)
        end if
 
@@ -1002,14 +1065,15 @@ contains
 
 
   !> Write directly a yaml sequence, i.e. en element of a list
-  subroutine yaml_sequence(seqvalue,label,advance,unit)
+  subroutine yaml_sequence(seqvalue,label,advance,unit,padding)
     implicit none
     integer, optional, intent(in) :: unit               !<@copydoc doc::unit
     character(len=*), optional, intent(in) :: label     !<@copydoc doc::label
-    character(len=*), optional, intent(in) :: seqvalue  !< what is this?
+    character(len=*), optional, intent(in) :: seqvalue  !< value of the sequence
     character(len=*), optional, intent(in) :: advance   !<@copydoc doc::advance
+    integer, intent(in), optional :: padding            !<pad the seqvalue with blanks to have more readable output
     !local variables
-    integer :: msg_lgt,unt,strm
+    integer :: msg_lgt,unt,strm,tb
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -1029,6 +1093,11 @@ contains
     !put the value
     if (present(seqvalue)) &
          call buffer_string(towrite,len(towrite),trim(seqvalue),msg_lgt)
+
+    if (present(padding)) then
+       tb=padding-len_trim(seqvalue)
+       if (tb > 0) call buffer_string(towrite,len(towrite),repeat(' ',tb),msg_lgt)
+    end if
 
     call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=SEQUENCE_ELEM)
   end subroutine yaml_sequence
@@ -1209,6 +1278,13 @@ contains
     include 'yaml_map-arr-inc.f90'
   end subroutine yaml_map_dv
 
+  subroutine yaml_map_rv(mapname,mapvalue,label,advance,unit,fmt)
+    implicit none
+    real, dimension(:), intent(in) :: mapvalue
+    include 'yaml_map-arr-inc.f90'
+  end subroutine yaml_map_rv
+
+
   !> Character vector
   subroutine yaml_map_cv(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
@@ -1221,6 +1297,12 @@ contains
     logical, dimension(:), intent(in) :: mapvalue
     include 'yaml_map-arr-inc.f90'
   end subroutine yaml_map_lv
+
+  subroutine yaml_map_liv(mapname,mapvalue,label,advance,unit,fmt)
+    implicit none
+    integer(kind=8), dimension(:), intent(in) :: mapvalue
+    include 'yaml_map-arr-inc.f90'
+  end subroutine yaml_map_liv
 
   subroutine yaml_map_iv(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
@@ -1505,7 +1587,7 @@ contains
     end if
 
     !standard writing,
-    !if (change_line) print *,'change_line',change_line,'prefix',prefix_lgt,msg_lgt,shift_lgt
+    !if (change_line)  print *,'change_line',change_line,'prefix',prefix_lgt,msg_lgt,shift_lgt
     extra_line=.false.
     if (change_line) then
        !first write prefix, if needed
@@ -1526,7 +1608,7 @@ contains
        if (prefix_lgt > 0)towrite(1:prefix_lgt)=prefix(1:prefix_lgt)
        towrite_lgt=prefix_lgt+msg_lgt+shift_lgt
     end if
-    !print *,'adv',trim(adv),towrite_lgt,icursor,change_line,msg_lgt
+    !print *,'adv',trim(adv),towrite_lgt,stream%icursor,extra_line,msg_lgt,towrite_lgt
     !here we should check whether the size of the string exceeds the maximum length
     if (towrite_lgt > 0) then
        if (towrite_lgt > stream%max_record_length) then
@@ -1541,7 +1623,8 @@ contains
        else
           if (extra_line) write(stream%unit,*)
           !write(*,fmt='(a,i0,a)',advance="no") '(indent_lgt ',indent_lgt,')'
-          write(stream%unit,'(a)',advance=trim(adv))repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt)
+          write(stream%unit,'(a)',advance=trim(adv))&
+               repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt)
        end if
     end if
 

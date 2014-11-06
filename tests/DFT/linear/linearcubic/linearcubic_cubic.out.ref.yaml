@@ -25,10 +25,10 @@
    |     |     |     |     |     |         D               T    T
    |     |     |     |     |     |   DDDDDD       F         TTTT
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
-
+ 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.1.16
- Timestamp of this run                 : 2014-05-27 15:36:35.012
+ Version Number                        : 1.7.5.12
+ Timestamp of this run                 : 2014-10-09 13:47:38.786
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -37,18 +37,20 @@
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FC=/opt/openmpi-1.5.4-gnu/bin/mpif90' 'CC=gcc' 'FCFLAGS=-O2 -Wno-error -fopenmp' 
+     " 'FC=/opt/openmpi-1.6.4/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -i_dynamic -msse4.2 
+     -heap-arrays 1024 -openmp' 
      '--with-ext-linalg=/opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_scalapa
      ck_lp64.a  -Wl,--start-group  
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_cdft_core.a 
      /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_lp64.a 
-     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_sequential.a 
+     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_thread.a 
      /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_core.a 
      /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_blacs_openmpi_lp64.a 
-     -Wl,--end-group -lpthread'"
-   Compilers (CC, FC, CXX)             :  [ gcc, /opt/openmpi-1.5.4-gnu/bin/mpif90, g++ ]
+     -Wl,--end-group -openmp -lpthread -lm'"
+   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.4/bin/mpif90, g++ ]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -Wno-error -fopenmp
+     FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : cubic
@@ -56,8 +58,8 @@
    debug                               : No #     Debug option
    fftcache                            : 8192 #   Cache size for the FFT
    accel                               : NO #     Acceleration (hardware)
-   ocl_platform                        : ~ #      Chosen OCL platform
-   ocl_devices                         : ~ #      Chosen OCL devices
+   ocl_platform                        : null #   Chosen OCL platform
+   ocl_devices                         : null #   Chosen OCL devices
    blas                                : No #     CUBLAS acceleration
    projrad                             : 15.000 # Radius of the projector as a function of the maxrad
    exctxpar                            : OP2P #   Exact exchange parallelisation scheme
@@ -74,31 +76,33 @@
    tolsym                              : 0.1E-07 # Tolerance for symmetry detection
    signaling                           : No #     Expose calculation results on Network
    signaltimeout                       : 0 #      Time out on startup for signal connection (in seconds)
-   domain                              : ~ #      Domain to add to the hostname to find the IP
+   domain                              : null #   Domain to add to the hostname to find the IP
    inguess_geopt                       : 0 #      Input guess to be used during the optimization
    store_index                         : Yes #    Store indices or recalculate them for linear scaling
    verbosity                           : 2 #      Verbosity of the output
    outdir                              : ./ #     Writing directory
    psp_onfly                           : Yes #    Calculate pseudopotential projectors on the fly
+   multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
    pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
    pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
    maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
    maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
    ef_interpol_det                     : 0.10E-19 # FOE max determinant of cubic interpolation matrix
    ef_interpol_chargediff              : 0.10E+02 # FOE max charge difference for interpolation
-   mixing_after_inputguess             : Yes #    Mixing step after linear input guess (T/F)
+   mixing_after_inputguess             : 1 #      Mixing step after linear input gues
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 2 #      Enables linear sumrho check
+   check_overlap                       : 2 #      Enables linear overlap check
    experimental_mode                   : No #     Activate the experimental mode in linear scaling
    write_orbitals                      : No #     Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
    explicit_locregcenters              : No #     Linear scaling explicitely specify localization centers
    calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
    intermediate_forces                 : No #     Linear scaling calculate intermediate forces
-   kappa_conv                          : 0.10000000000000001 # exit kappa for extended input guess (experimental mode)
-   evbounds_nsatur                     : 3 #      number of FOE cycles before the eigenvalue bounds are shrinked
+   kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
+   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
    evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
    method_updatekernel                 : 0 #      linear scaling update density kernel during the sup. func. optimization (0 
-    #                                              purification, 1 FOE)
+    #                                              purification, 1 FOE, 2 renormalization)
    purification_quickreturn            : No #     linear scaling quick return in purification
    adjust_FOE_temperature              : Yes #    linear scaling dynamic adjustment of the decay length of the FOE error function
    calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
@@ -106,16 +110,18 @@
    check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
    correction_co_contra                : No #     linear scaling correction covariant / contravariant gradient
    fscale_lowerbound                   : 5.0000000000000001E-003 # linear scaling lower bound for the error function decay length
-   fscale_upperbound                   : 5.00000000000000028E-002 # linear scaling upper bound for the error function decay length
+   fscale_upperbound                   : 5.0000000000000003E-002 # linear scaling upper bound for the error function decay length
+   imethod_overlap                     : 1 #      method to calculate the overlap matrices (1=old, 2=new)
+   FOE_restart                         : 0 #      Restart method to be used for the FOE method
  dft:
-   hgrids: [0.45000000000000001, 0.45000000000000001, 0.45000000000000001] # Grid spacing in the three directions (bohr)
+   hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
    rmult: [4.0, 5.0] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
    ixc                                 : 1 #      Exchange-correlation parameter (LDA=1,PBE=11)
    ncharge                             : 0 #      Charge of the system
    elecfield: [0.0, 0.0, 0.0] #                   Electric field (Ex,Ey,Ez)
-   nspin                               : 1 #      Spin polarization
+   nspin                               : 1 #      Spin polarization treatment
    mpol                                : 0 #      Total magnetic moment
-   gnrm_cv                             : 5.0000000000000001E-004 # Convergence criterion gradient
+   gnrm_cv                             : 5.0000000000000001E-004 # convergence criterion gradient
    itermax                             : 100 #    Max. iterations of wfn. opt. steps
    nrepmax                             : 1 #      Max. number of re-diag. runs
    ncong                               : 5 #      No. of CG it. for preconditioning eq.
@@ -126,12 +132,13 @@
    output_denspot                      : 0 #      Output of the density or the potential
    rbuf                                : 0.0 #    Length of the tail (AU)
    ncongt                              : 30 #     No. of tail CG iterations
-   norbv                               : 0 #      Davidson subspace dim.
-   nvirt                               : 0 #      No. of opt. orbs
+   norbv                               : 0 #      Davidson subspace dimension (No. virtual orbitals)
+   nvirt                               : 0 #      No. of virtual orbs
    nplot                               : 0 #      No. of plotted orbs
    disablesym                          : Yes #    Disable the symmetry detection
+   itermin                             : 0 #      Min. iterations of wfn. opt. steps
  kpt:
-   method                              : Manual # K-point sampling method
+   method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
    -  [0., 0., 0.]
    wkpt: [1.] #                                   Kpt weights
@@ -139,8 +146,8 @@
  geopt:
    method                              : none #   Geometry optimisation method
    ncount_cluster_x                    : 1 #      Maximum number of force evaluations
-   frac_fluct                          : 1.
-   forcemax                            : 0.
+   frac_fluct                          : 1. #     Fraction of force fluctuations. Stop if fmax < forces_fluct*frac_fluct
+   forcemax                            : 0. #     Max forces criterion when stop
    randdis                             : 0. #     Random displacement amplitude
    betax                               : 4. #     Stepsize for the geometry optimization
  mix:
@@ -153,34 +160,34 @@
    alphamix                            : 0. #     Multiplying factors for the mixing
    alphadiis                           : 2. #     Multiplying factors for the electronic DIIS
  sic:
-   sic_approach                        : none #   SIC method
+   sic_approach                        : none #   SIC (self-interaction correction) method
    sic_alpha                           : 0. #     SIC downscaling parameter
  tddft:
-   tddft_approach                      : none #   TDDFT method
+   tddft_approach                      : none #   Time-Dependent DFT method
  posinp:
    units                               : angstroem
    positions:
    - C: [0.0, 0.0, 0.0]
    - C: [1.402230978012085, 0.0, 0.0]
    - C: [2.091015100479126, 1.220378041267395, 0.0]
-   - C: [1.3735389709472656, 2.425321102142334, 4.38700011000037193E-003]
-   - C: [-3.45540009438991547E-002, 2.4517590999603267, 1.63010004907846451E-002]
-   - C: [-0.71124798059463501, 1.2135289907455442, 5.49700018018484116E-003]
-   - O: [-0.70952200889587402, 3.6377179622650146, 1.99490003287792206E-002]
-   - C: [-2.1419100761413574, 1.1660770177841187, -4.38399985432624817E-003]
-   - O: [-2.7278809547424316, 2.1619389057159424, -0.6909160017967223]
-   - C: [-0.73016202449798584, 4.5304470062255859, 1.037168025970459]
-   - C: [-6.67050033807754517E-002, 4.031914234161377, 2.3076629638671875]
-   - H: [-0.53132301568984985, -0.96719098091125488, -7.49000022187829018E-003]
-   - H: [1.9590469598770142, -0.95218098163604736, -4.2519997805356988E-003]
-   - H: [3.194072961807251, 1.231719970703125, -5.86199993267655373E-003]
-   - H: [1.9330899715423584, 3.3763558864593506, -2.74599995464086533E-003]
-   - O: [-2.7950179576873775, 0.30950400233268738, 0.5488700270652771]
-   - H: [-2.1748220920562744, 2.8324968814849854, -1.1250180006027222]
-   - O: [-1.2637729644775391, 5.6133828163146973, 0.94422101974487305]
-   - H: [-0.33733400702476501, 4.6939411163330078, 3.1611499786376953]
-   - H: [1.0416460037231445, 4.0531110763549805, 2.2141990661621094]
-   - H: [-0.40593200922012335, 3.0053210258483887, 2.5729269981384277]
+   - C: [1.373538970947266, 2.425321102142334, 4.3870001100003719E-003]
+   - C: [-3.4554000943899155E-002, 2.451759099960327, 1.6301000490784645E-002]
+   - C: [-0.711247980594635, 1.213528990745544, 5.4970001801848412E-003]
+   - O: [-0.709522008895874, 3.637717962265015, 1.9949000328779221E-002]
+   - C: [-2.141910076141357, 1.166077017784119, -4.3839998543262482E-003]
+   - O: [-2.727880954742432, 2.161938905715942, -0.6909160017967223]
+   - C: [-0.7301620244979858, 4.530447006225586, 1.037168025970459]
+   - C: [-6.6705003380775452E-002, 4.031914234161377, 2.307662963867188]
+   - H: [-0.5313230156898499, -0.9671909809112549, -7.4900002218782902E-003]
+   - H: [1.959046959877014, -0.9521809816360474, -4.2519997805356988E-003]
+   - H: [3.194072961807251, 1.231719970703125, -5.8619999326765537E-003]
+   - H: [1.933089971542358, 3.376355886459351, -2.7459999546408653E-003]
+   - O: [-2.795017957687377, 0.3095040023326874, 0.5488700270652771]
+   - H: [-2.174822092056274, 2.832496881484985, -1.125018000602722]
+   - O: [-1.263772964477539, 5.613382816314697, 0.944221019744873]
+   - H: [-0.337334007024765, 4.693941116333008, 3.161149978637695]
+   - H: [1.041646003723145, 4.05311107635498, 2.214199066162109]
+   - H: [-0.4059320092201233, 3.005321025848389, 2.572926998138428]
    properties:
      format                            : xyz
      source                            : cubic
@@ -191,39 +198,46 @@
    conf_damping                        : -0.5 #   how the confinement should be decreased, only relevant for hybrid mode; negative -> 
     #                                              automatic
    taylor_order                        : 0 #      order of the Taylor approximation; 0 -> exact
+   max_inversion_error                 : 1.d0 #   linear scaling maximal error of the Taylor approximations to calculate the inverse of 
+    #                                              the overlap matrix
    output_wf                           : 0 #      output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
    calc_dipole                         : No #     calculate dipole
    calc_pulay: [No, No] #                         calculate Pulay forces (old/new version)
    subspace_diag                       : No #     diagonalization at the end
+   extra_states                        : 0 #      extra states to optimize (dmin only)
  lin_basis:
    nit: [4, 5] #                                  maximal number of iterations in the optimization of the 
     #                                              support functions
-   idsx: [6, 6] #                                 DIIS history for optimization of the support function 
+   idsx: [6, 6] #                                 DIIS history for optimization of the support functions 
     #                                              (low/high accuracy); 0 -> SD
    gnrm_cv: [1.e-2, 1.e-4] #                      convergence criterion for the optimization of the support functions 
     #                                              (low/high accuracy)
    deltae_cv                           : 1.e-4 #  total relative energy difference to stop the optimization ('experimental_mode' only)
    gnrm_dyn                            : 1.e-4 #  dynamic convergence criterion ('experimental_mode' only)
    min_gnrm_for_dynamic                : 1.e-3 #  minimal gnrm to active the dynamic gnrm criterion
-   alpha_diis                          : 1.0 #    multiplactor for DIIS
+   alpha_diis                          : 1.0 #    multiplicator for DIIS
    alpha_sd                            : 1.0 #    initial step size for SD
    nstep_prec                          : 5 #      number of iterations in the preconditioner
    fix_basis                           : 1.e-10 # fix the support functions if the density change is below this threshold
    correction_orthoconstraint          : 1 #      correction for the slight non-orthonormality in the orthoconstraint
  lin_kernel:
-   nstep: [1, 1] #                                don't know what this variable stands for...
-   nit: [5, 5] #                                  number of iterations in the optimization of the density 
-    #                                              kernel
-   idsx_coeff: [0, 0] #                           DIIS history for directmin?
+   nstep: [1, 1] #                                number of steps taken when updating the coefficients via 
+    #                                              direct minimization for each iteration of 
+    #                                              the density kernel loop
+   nit: [5, 5] #                                  number of iterations in the (self-consistent) 
+    #                                              optimization of the density kernel
+   idsx_coeff: [0, 0] #                           DIIS history for direct mininimization
    idsx: [0, 0] #                                 mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
    alphamix: [0.5, 0.5] #                         mixing parameter (low/high accuracy)
-   gnrm_cv_coeff: [1.e-5, 1.e-5] #                convergence criterion for directmin (low/high)?
+   gnrm_cv_coeff: [1.e-5, 1.e-5] #                convergence criterion on the gradient for direct minimization
    rpnrm_cv: [1.e-10, 1.e-10] #                   convergence criterion (change in density/potential) for the kernel 
     #                                              optimization
    linear_method                       : DIAG #   method to optimize the density kernel
    mixing_method                       : DEN #    quantity to be mixed
-   alpha_sd_coeff                      : 0.2 #    step size for direct minimization?
-   alpha_fit_coeff                     : No #     don't know exactly what this means
+   alpha_sd_coeff                      : 0.2 #    initial step size for SD for direct minimization
+   alpha_fit_coeff                     : No #     update the SD step size by fitting a quadratic polynomial to the energy along the 
+    #                                              direction of the gradient during direct 
+    #                                              mininimization.
    eval_range_foe: [-0.5, 0.5] #                  lower and upper bound of the eigenvalue spectrum, will be adjusted 
     #                                              automatically if chosen unproperly
    fscale_foe                          : 2.e-2 #  decay length of the error function
@@ -240,12 +254,12 @@
    No. of Electrons                    : 4
    Pseudopotential XC                  : 1
    Local Pseudo Potential (HGH convention):
-     Rloc                              : 0.34883045000000001
-     Coefficients (c1 .. c4): [-8.5137710999999996, 1.22843203, 0.0, 0.0]
+     Rloc                              : 0.34883045
+     Coefficients (c1 .. c4): [-8.5137711, 1.22843203, 0.0, 0.0]
    NonLocal PSP Parameters:
    - Channel (l)                       : 0
-     Rloc                              : 0.30455321000000002
-     h_ij terms: [9.5228417899999993, 0.0, 0.0, 0.0, 0.0, 0.0]
+     Rloc                              : 0.30455321
+     h_ij terms: [9.522841789999999, 0.0, 0.0, 0.0, 0.0, 0.0]
    - Channel (l)                       : 1
      Rloc                              : 0.2326773
      h_ij terms: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -253,7 +267,7 @@
    Radii of active regions (AU):
      Coarse                            : 1.584366302812153
      Fine                              : 0.2326773
-     Coarse PSP                        : 0.2326773
+     Coarse PSP                        : 0.9136596300000001
      Source                            : Hard-Coded
  psppar.O:
    Pseudopotential type                : HGH-K
@@ -262,19 +276,19 @@
    Pseudopotential XC                  : 1
    Local Pseudo Potential (HGH convention):
      Rloc                              : 0.24762086
-     Coefficients (c1 .. c4): [-16.580317969999999, 2.3957009199999999, 0.0, 0.0]
+     Coefficients (c1 .. c4): [-16.58031797, 2.39570092, 0.0, 0.0]
    NonLocal PSP Parameters:
    - Channel (l)                       : 0
-     Rloc                              : 0.22178613999999999
+     Rloc                              : 0.22178614
      h_ij terms: [18.26691718, 0.0, 0.0, 0.0, 0.0, 0.0]
    - Channel (l)                       : 1
-     Rloc                              : 0.25682890000000003
+     Rloc                              : 0.2568289
      h_ij terms: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
    Source                              : Hard-Coded
    Radii of active regions (AU):
      Coarse                            : 1.215575721499752
      Fine                              : 0.22178614
-     Coarse PSP                        : 0.22178614
+     Coarse PSP                        : 0.7704867000000001
      Source                            : Hard-Coded
  psppar.H:
    Pseudopotential type                : HGH-K
@@ -288,7 +302,7 @@
    Radii of active regions (AU):
      Coarse                            : 1.463418464633951
      Fine                              : 0.2
-     Coarse PSP                        : 0.2
+     Coarse PSP                        : 0.0
      Source                            : Hard-Coded
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data-cubic/
@@ -425,27 +439,27 @@
  Atomic structure:
    Units                               : angstroem
    Positions:
-   - C: [ 5.436102986,  4.011518039,  4.220788398] # [  12.08,  8.91,  9.38 ] 0001
-   - C: [ 6.838333964,  4.011518039,  4.220788398] # [  15.20,  8.91,  9.38 ] 0002
-   - C: [ 7.527118086,  5.231896081,  4.220788398] # [  16.73,  11.63,  9.38 ] 0003
-   - C: [ 6.809641957,  6.436839141,  4.225175398] # [  15.13,  14.30,  9.39 ] 0004
-   - C: [ 5.401548985,  6.463277139,  4.237089398] # [  12.00,  14.36,  9.42 ] 0005
-   - C: [ 4.724855005,  5.225047030,  4.226285398] # [  10.50,  11.61,  9.39 ] 0006
-   - O: [ 4.726580977,  7.649236002,  4.240737398] # [  10.50,  17.00,  9.42 ] 0007
-   - C: [ 3.294192909,  5.177595057,  4.216404398] # [  7.32,  11.51,  9.37 ] 0008
-   - O: [ 2.708222031,  6.173456945,  3.529872396] # [  6.02,  13.72,  7.84 ] 0009
-   - C: [ 4.705940961,  8.541965046,  5.257956424] # [  10.46,  18.98,  11.68 ] 0010
-   - C: [ 5.369397982,  8.043432273,  6.528451362] # [  11.93,  17.87,  14.51 ] 0011
-   - H: [ 4.904779970,  3.044327058,  4.213298398] # [  10.90,  6.77,  9.36 ] 0012
-   - H: [ 7.395149945,  3.059337058,  4.216536398] # [  16.43,  6.80,  9.37 ] 0013
-   - H: [ 8.630175947,  5.243238010,  4.214926398] # [  19.18,  11.65,  9.37 ] 0014
-   - H: [ 7.369192957,  7.387873926,  4.218042398] # [  16.38,  16.42,  9.37 ] 0015
-   - O: [ 2.641085028,  4.321022042,  4.769658425] # [  5.87,  9.60,  10.60 ] 0016
-   - H: [ 3.261280893,  6.844014921,  3.095770397] # [  7.25,  15.21,  6.88 ] 0017
-   - O: [ 4.172330021,  9.624900856,  5.165009418] # [  9.27,  21.39,  11.48 ] 0018
-   - H: [ 5.098768979,  8.705459156,  7.381938377] # [  11.33,  19.35,  16.40 ] 0019
-   - H: [ 6.477748989,  8.064629116,  6.434987464] # [  14.39,  17.92,  14.30 ] 0020
-   - H: [ 5.030170976,  7.016839065,  6.793715396] # [  11.18,  15.59,  15.10 ] 0021
+   - C: [ 5.436102986,  4.011518039,  4.220788398] # [  22.83,  16.85,  17.72 ] 0001
+   - C: [ 6.838333964,  4.011518039,  4.220788398] # [  28.72,  16.85,  17.72 ] 0002
+   - C: [ 7.527118086,  5.231896081,  4.220788398] # [  31.61,  21.97,  17.72 ] 0003
+   - C: [ 6.809641957,  6.436839141,  4.225175398] # [  28.60,  27.03,  17.74 ] 0004
+   - C: [ 5.401548985,  6.463277139,  4.237089398] # [  22.68,  27.14,  17.79 ] 0005
+   - C: [ 4.724855005,  5.225047030,  4.226285398] # [  19.84,  21.94,  17.75 ] 0006
+   - O: [ 4.726580977,  7.649236002,  4.240737398] # [  19.85,  32.12,  17.81 ] 0007
+   - C: [ 3.294192909,  5.177595057,  4.216404398] # [  13.83,  21.74,  17.71 ] 0008
+   - O: [ 2.708222031,  6.173456945,  3.529872396] # [  11.37,  25.92,  14.82 ] 0009
+   - C: [ 4.705940961,  8.541965046,  5.257956424] # [  19.76,  35.87,  22.08 ] 0010
+   - C: [ 5.369397982,  8.043432273,  6.528451362] # [  22.55,  33.78,  27.42 ] 0011
+   - H: [ 4.904779970,  3.044327058,  4.213298398] # [  20.60,  12.78,  17.69 ] 0012
+   - H: [ 7.395149945,  3.059337058,  4.216536398] # [  31.06,  12.85,  17.71 ] 0013
+   - H: [ 8.630175947,  5.243238010,  4.214926398] # [  36.24,  22.02,  17.70 ] 0014
+   - H: [ 7.369192957,  7.387873926,  4.218042398] # [  30.95,  31.02,  17.71 ] 0015
+   - O: [ 2.641085028,  4.321022042,  4.769658425] # [  11.09,  18.15,  20.03 ] 0016
+   - H: [ 3.261280893,  6.844014921,  3.095770397] # [  13.70,  28.74,  13.00 ] 0017
+   - O: [ 4.172330021,  9.624900856,  5.165009418] # [  17.52,  40.42,  21.69 ] 0018
+   - H: [ 5.098768979,  8.705459156,  7.381938377] # [  21.41,  36.56,  31.00 ] 0019
+   - H: [ 6.477748989,  8.064629116,  6.434987464] # [  27.20,  33.87,  27.02 ] 0020
+   - H: [ 5.030170976,  7.016839065,  6.793715396] # [  21.12,  29.47,  28.53 ] 0021
    Rigid Shift Applied (AU)            :  [  10.273,  7.5807,  7.9761 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]
@@ -534,374 +548,212 @@
    Need to reformat wavefunctions      :  No
    Need to reformat wavefunctions      :  No
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  8.4E-01,  9.110E-01 ]}
+   -  {Process:  0, Timing:  [  6.0E-01,  4.889E-01 ]}
   #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  { #---------------------------------------------------------------------- iter: 1
- GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980524020, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980524010, 
  Poisson Solver: {BC: Free, Box:  [  129,  133,  119 ], MPI tasks:  4}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  9.90255379431E+01, Epot: -1.35222946016E+02, Enl:  8.92647782420E+00, 
-              EH:  5.06285976762E+02,  EXC: -3.28972984495E+01, EvXC: -4.30906635144E+01}, 
- iter:  1, EKS: -1.18718289074709503E+02, gnrm:  2.56E-01, 
+ Energies: {Ekin:  9.90255404539E+01, Epot: -1.35222934026E+02, Enl:  8.92646507920E+00, 
+              EH:  5.06285979943E+02,  EXC: -3.28972996733E+01, EvXC: -4.30906651296E+01}, 
+ iter:  1, EKS: -1.18718290108618532E+02, gnrm:  2.56E-01, 
  DIIS weights: [ 1.00E+00,  1.00E+00], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 2
- GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980973932, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980972373, 
  Poisson Solver: {BC: Free, Box:  [  129,  133,  119 ], MPI tasks:  4}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  9.36442387133E+01, Epot: -1.36684114552E+02, Enl:  8.50234764924E+00, 
-              EH:  4.99783643938E+02,  EXC: -3.19923859187E+01, EvXC: -4.18981224663E+01}, 
- iter:  2, EKS: -1.19770182708149434E+02, gnrm:  6.63E-02, D: -1.05E+00, 
- DIIS weights: [-1.65E-01,  1.16E+00, -1.98E-02], Orthogonalization Method:  0}
+ Energies: {Ekin:  9.36496017065E+01, Epot: -1.36683095469E+02, Enl:  8.50278929497E+00, 
+              EH:  4.99790755740E+02,  EXC: -3.19934631472E+01, EvXC: -4.18995433767E+01}, 
+ iter:  2, EKS: -1.19770127107205496E+02, gnrm:  6.62E-02, D: -1.05E+00, 
+ DIIS weights: [-1.66E-01,  1.17E+00, -1.98E-02], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 3
- GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980670700, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980671101, 
  Poisson Solver: {BC: Free, Box:  [  129,  133,  119 ], MPI tasks:  4}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  9.36934068105E+01, Epot: -1.37089946844E+02, Enl:  8.86429985023E+00, 
-              EH:  4.99888255424E+02,  EXC: -3.19828147972E+01, EvXC: -4.18864492665E+01}, 
- iter:  3, EKS: -1.19871608266517626E+02, gnrm:  2.62E-02, D: -1.01E-01, 
- DIIS weights: [-3.69E-02, -1.34E-01,  1.17E+00, -1.85E-03], Orthogonalization Method:  0}
+ Energies: {Ekin:  9.36903166930E+01, Epot: -1.37090294151E+02, Enl:  8.86361949300E+00, 
+              EH:  4.99883993176E+02,  EXC: -3.19822427442E+01, EvXC: -4.18856938871E+01}, 
+ iter:  3, EKS: -1.19871647126473647E+02, gnrm:  2.62E-02, D: -1.02E-01, 
+ DIIS weights: [-3.62E-02, -1.37E-01,  1.17E+00, -1.83E-03], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 4
- GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980589641, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980589040, 
  Poisson Solver: {BC: Free, Box:  [  129,  133,  119 ], MPI tasks:  4}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  9.32442283352E+01, Epot: -1.37036526796E+02, Enl:  8.76687454474E+00, 
-              EH:  4.99380282539E+02,  EXC: -3.18921478780E+01, EvXC: -4.17668792198E+01}, 
- iter:  4, EKS: -1.19885722240875850E+02, gnrm:  1.14E-02, D: -1.41E-02, 
- DIIS weights: [ 1.65E-02, -1.13E-01, -9.74E-03,  1.11E+00, -3.21E-04], 
+ Energies: {Ekin:  9.32452399815E+01, Epot: -1.37036734050E+02, Enl:  8.76692986456E+00, 
+              EH:  4.99381212526E+02,  EXC: -3.18923092665E+01, EvXC: -4.17670926572E+01}, 
+ iter:  4, EKS: -1.19885740467592484E+02, gnrm:  1.14E-02, D: -1.41E-02, 
+ DIIS weights: [ 1.65E-02, -1.11E-01, -1.40E-02,  1.11E+00, -3.19E-04], 
      Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 5
- GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980523536, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980523374, 
  Poisson Solver: {BC: Free, Box:  [  129,  133,  119 ], MPI tasks:  4}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  9.33026601141E+01, Epot: -1.37008260324E+02, Enl:  8.81180632524E+00, 
-              EH:  4.99519079527E+02,  EXC: -3.19054598106E+01, EvXC: -4.17844859560E+01}, 
- iter:  5, EKS: -1.19888594395029088E+02, gnrm:  6.31E-03, D: -2.87E-03, 
- DIIS weights: [-8.89E-04,  3.23E-02, -1.67E-01, -2.39E-01,  1.37E+00, -6.11E-05], 
+ Energies: {Ekin:  9.33027491782E+01, Epot: -1.37008235958E+02, Enl:  8.81195297260E+00, 
+              EH:  4.99519354227E+02,  EXC: -3.19054849430E+01, EvXC: -4.17845192047E+01}, 
+ iter:  5, EKS: -1.19888600900680274E+02, gnrm:  6.30E-03, D: -2.86E-03, 
+ DIIS weights: [-9.70E-04,  3.24E-02, -1.67E-01, -2.38E-01,  1.37E+00, -6.09E-05], 
      Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 6
- GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980516229, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980516240, 
  Poisson Solver: {BC: Free, Box:  [  129,  133,  119 ], MPI tasks:  4}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  9.32531981378E+01, Epot: -1.36983722930E+02, Enl:  8.81060100603E+00, 
-              EH:  4.99491334980E+02,  EXC: -3.18968750177E+01, EvXC: -4.17731543125E+01}, 
- iter:  6, EKS: -1.19889726599891276E+02, gnrm:  3.99E-03, D: -1.13E-03, 
- DIIS weights: [-1.91E-03,  2.97E-03,  6.30E-02, -9.44E-02, -5.34E-01,  1.56E+00, 
-                -2.14E-05],           Orthogonalization Method:  0}
+ Energies: {Ekin:  9.32530811954E+01, Epot: -1.36983790386E+02, Enl:  8.81052585208E+00, 
+              EH:  4.99491067855E+02,  EXC: -3.18968458032E+01, EvXC: -4.17731157614E+01}, 
+ iter:  6, EKS: -1.19889728363874895E+02, gnrm:  3.98E-03, D: -1.13E-03, 
+ DIIS weights: [-1.88E-03,  2.69E-03,  6.42E-02, -9.48E-02, -5.40E-01,  1.57E+00, 
+                -2.13E-05],           Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 7
- GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980525711, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980525761, 
  Poisson Solver: {BC: Free, Box:  [  129,  133,  119 ], MPI tasks:  4}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  9.32492503820E+01, Epot: -1.36986214975E+02, Enl:  8.80567404339E+00, 
-              EH:  4.99479913718E+02,  EXC: -3.18951564358E+01, EvXC: -4.17708846075E+01}, 
- iter:  7, EKS: -1.19890223224459476E+02, gnrm:  2.61E-03, D: -4.97E-04, 
- DIIS weights: [ 1.41E-03, -9.86E-03,  2.65E-02,  9.53E-02, -2.34E-01, -6.45E-01, 
-                 1.77E+00, -8.50E-06], Orthogonalization Method:  0}
+ Energies: {Ekin:  9.32493153453E+01, Epot: -1.36986231590E+02, Enl:  8.80568263417E+00, 
+              EH:  4.99479975489E+02,  EXC: -3.18951652659E+01, EvXC: -4.17708962492E+01}, 
+ iter:  7, EKS: -1.19890225244537135E+02, gnrm:  2.61E-03, D: -4.97E-04, 
+ DIIS weights: [ 1.41E-03, -9.82E-03,  2.59E-02,  9.55E-02, -2.30E-01, -6.52E-01, 
+                 1.77E+00, -8.45E-06], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 8
- GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980536195, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980536249, 
  Poisson Solver: {BC: Free, Box:  [  129,  133,  119 ], MPI tasks:  4}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  9.32532814729E+01, Epot: -1.36991149629E+02, Enl:  8.80662508759E+00, 
-              EH:  4.99480228344E+02,  EXC: -3.18950842678E+01, EvXC: -4.17707876193E+01}, 
- iter:  8, EKS: -1.19890515189384871E+02, gnrm:  1.59E-03, D: -2.92E-04, 
- DIIS weights: [-1.47E-04,  7.42E-04, -2.77E-02,  1.22E-03,  2.73E-01, -3.20E-01, 
-                -7.79E-01,  1.85E+00, -3.31E-06], Orthogonalization Method:  0}
+ Energies: {Ekin:  9.32532692980E+01, Epot: -1.36991218040E+02, Enl:  8.80662304865E+00, 
+              EH:  4.99480144693E+02,  EXC: -3.18950773527E+01, EvXC: -4.17707784800E+01}, 
+ iter:  8, EKS: -1.19890516387852529E+02, gnrm:  1.59E-03, D: -2.91E-04, 
+ DIIS weights: [-1.60E-04,  8.06E-04, -2.78E-02,  1.19E-03,  2.73E-01, -3.18E-01, 
+                -7.82E-01,  1.85E+00, -3.29E-06], Orthogonalization Method:  0}
        -  { #---------------------------------------------------------------------- iter: 9
- GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980540071, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980540074, 
  Poisson Solver: {BC: Free, Box:  [  129,  133,  119 ], MPI tasks:  4}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  9.32522881537E+01, Epot: -1.37000489854E+02, Enl:  8.80564585727E+00, 
-              EH:  4.99468735955E+02,  EXC: -3.18941016025E+01, EvXC: -4.17694911681E+01}, 
- iter:  9, EKS: -1.19890649360819509E+02, gnrm:  9.30E-04, D: -1.34E-04, 
- DIIS weights: [-2.36E-04,  2.80E-03, -1.52E-03, -3.28E-02, -3.93E-03,  3.03E-01, 
-                -2.72E-01, -7.21E-01,  1.73E+00, -1.33E-06], Orthogonalization Method:  0}
+ Energies: {Ekin:  9.32522891273E+01, Epot: -1.37000554324E+02, Enl:  8.80563688543E+00, 
+              EH:  4.99468662638E+02,  EXC: -3.18940974019E+01, EvXC: -4.17694856354E+01}, 
+ iter:  9, EKS: -1.19890649844358052E+02, gnrm:  9.26E-04, D: -1.33E-04, 
+ DIIS weights: [-2.29E-04,  2.78E-03, -1.27E-03, -3.28E-02, -6.05E-03,  3.04E-01, 
+                -2.66E-01, -7.29E-01,  1.73E+00, -1.32E-06], Orthogonalization Method:  0}
        -  { #--------------------------------------------------------------------- iter: 10
- GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980538377, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980538364, 
  Poisson Solver: {BC: Free, Box:  [  129,  133,  119 ], MPI tasks:  4}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  9.32510292197E+01, Epot: -1.37001609243E+02, Enl:  8.80652434034E+00, 
-              EH:  4.99467236251E+02,  EXC: -3.18939626688E+01, EvXC: -4.17693072841E+01}, 
- iter:  10, EKS: -1.19890694447110093E+02, gnrm:  5.83E-04, D: -4.51E-05, 
- DIIS weights: [-7.09E-05,  2.15E-04,  6.89E-03,  4.61E-03, -6.78E-02, -2.41E-02, 
-                 3.54E-01, -2.87E-01, -7.69E-01,  1.78E+00, -5.39E-07], 
+ Energies: {Ekin:  9.32510208761E+01, Epot: -1.37001617383E+02, Enl:  8.80653841689E+00, 
+              EH:  4.99467234468E+02,  EXC: -3.18939640640E+01, EvXC: -4.17693091186E+01}, 
+ iter:  10, EKS: -1.19890694631430108E+02, gnrm:  5.81E-04, D: -4.48E-05, 
+ DIIS weights: [-7.55E-05,  1.98E-04,  6.85E-03,  4.68E-03, -6.70E-02, -2.55E-02, 
+                 3.52E-01, -2.82E-01, -7.72E-01,  1.78E+00, -5.35E-07], 
      Orthogonalization Method:  0}
        -  { #--------------------------------------------------------------------- iter: 11
- GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980537724, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980537727, 
  Poisson Solver: {BC: Free, Box:  [  129,  133,  119 ], MPI tasks:  4}, 
  Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, Preconditioning:  Yes, 
- Energies: {Ekin:  9.32479044006E+01, Epot: -1.37000568469E+02, Enl:  8.80736694959E+00, 
-              EH:  4.99465950796E+02,  EXC: -3.18937725125E+01, EvXC: -4.17690553125E+01}, 
- iter:  11, EKS: -1.19890712243218047E+02, gnrm:  3.72E-04, D: -1.78E-05, 
- DIIS weights: [-1.07E-03, -6.71E-04,  1.02E-02,  1.75E-02, -8.38E-02, -5.92E-02, 
-                 3.86E-01, -2.93E-01, -8.55E-01,  1.88E+00, -2.08E-07], 
+ Energies: {Ekin:  9.32478798622E+01, Epot: -1.37000582411E+02, Enl:  8.80736512376E+00, 
+              EH:  4.99465909563E+02,  EXC: -3.18937693727E+01, EvXC: -4.17690511688E+01}, 
+ iter:  11, EKS: -1.19890712321007356E+02, gnrm:  3.71E-04, D: -1.77E-05, 
+ DIIS weights: [-1.06E-03, -7.16E-04,  1.01E-02,  1.79E-02, -8.34E-02, -6.04E-02, 
+                 3.88E-01, -2.95E-01, -8.53E-01,  1.88E+00, -2.06E-07], 
      Orthogonalization Method:  0}
        -  &FINAL001  { #---------------------------------------------------------- iter: 12
- GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980538489, 
+ GPU acceleration:  No, Rho Commun: RED_SCT, Total electronic charge:  67.999980538494, 
  Poisson Solver: {BC: Free, Box:  [  129,  133,  119 ], MPI tasks:  4}, 
  Hamiltonian Applied:  Yes, 
- iter:  12, EKS: -1.19890720310878862E+02, gnrm:  3.72E-04, D: -8.07E-06,  #FINAL
- Energies: {Ekin:  9.32464095077E+01, Epot: -1.37000293637E+02, Enl:  8.80751536708E+00, 
-              EH:  4.99464850797E+02,  EXC: -3.18936590216E+01, EvXC: -4.17689053982E+01, 
+ iter:  12, EKS: -1.19890720344301883E+02, gnrm:  3.71E-04, D: -8.02E-06,  #FINAL
+ Energies: {Ekin:  9.32464092764E+01, Epot: -1.37000292334E+02, Enl:  8.80751867211E+00, 
+              EH:  4.99464855480E+02,  EXC: -3.18936598723E+01, EvXC: -4.17689065213E+01, 
             Eion:  4.04645252871E+02}, 
  SCF criterion:  0}
-       Non-Hermiticity of Hamiltonian in the Subspace:  1.76E-31
+       Non-Hermiticity of Hamiltonian in the Subspace:  9.17E-31
         #Eigenvalues and New Occupation Numbers
        Orbitals: [
- {e: -1.059518775077E+00, f:  2.0000},  # 00001
- {e: -1.013725986705E+00, f:  2.0000},  # 00002
- {e: -9.638227458591E-01, f:  2.0000},  # 00003
- {e: -9.360666356719E-01, f:  2.0000},  # 00004
- {e: -8.118941444476E-01, f:  2.0000},  # 00005
- {e: -7.283619487494E-01, f:  2.0000},  # 00006
- {e: -7.143491284822E-01, f:  2.0000},  # 00007
- {e: -6.918530967895E-01, f:  2.0000},  # 00008
- {e: -6.358297357022E-01, f:  2.0000},  # 00009
- {e: -6.097122919053E-01, f:  2.0000},  # 00010
- {e: -5.790303392632E-01, f:  2.0000},  # 00011
- {e: -5.572821488433E-01, f:  2.0000},  # 00012
- {e: -5.078025851905E-01, f:  2.0000},  # 00013
- {e: -4.831751520717E-01, f:  2.0000},  # 00014
- {e: -4.791010310552E-01, f:  2.0000},  # 00015
- {e: -4.516826792015E-01, f:  2.0000},  # 00016
- {e: -4.459504255629E-01, f:  2.0000},  # 00017
- {e: -4.316449106794E-01, f:  2.0000},  # 00018
- {e: -4.162879339830E-01, f:  2.0000},  # 00019
- {e: -4.115909081981E-01, f:  2.0000},  # 00020
- {e: -3.954996631528E-01, f:  2.0000},  # 00021
- {e: -3.887042518302E-01, f:  2.0000},  # 00022
- {e: -3.776903120861E-01, f:  2.0000},  # 00023
- {e: -3.698393372472E-01, f:  2.0000},  # 00024
- {e: -3.639444469906E-01, f:  2.0000},  # 00025
- {e: -3.504637870742E-01, f:  2.0000},  # 00026
- {e: -3.428426543821E-01, f:  2.0000},  # 00027
- {e: -3.293347167823E-01, f:  2.0000},  # 00028
- {e: -3.070801606391E-01, f:  2.0000},  # 00029
- {e: -2.877531828939E-01, f:  2.0000},  # 00030
- {e: -2.705016952069E-01, f:  2.0000},  # 00031
- {e: -2.683402125972E-01, f:  2.0000},  # 00032
- {e: -2.506662652198E-01, f:  2.0000},  # 00033
- {e: -2.418410916627E-01, f:  2.0000}] # 00034
+ {e: -1.059518529053E+00, f:  2.0000},  # 00001
+ {e: -1.013725967386E+00, f:  2.0000},  # 00002
+ {e: -9.638231804962E-01, f:  2.0000},  # 00003
+ {e: -9.360667205407E-01, f:  2.0000},  # 00004
+ {e: -8.118938969208E-01, f:  2.0000},  # 00005
+ {e: -7.283616373323E-01, f:  2.0000},  # 00006
+ {e: -7.143488909668E-01, f:  2.0000},  # 00007
+ {e: -6.918533335564E-01, f:  2.0000},  # 00008
+ {e: -6.358294567918E-01, f:  2.0000},  # 00009
+ {e: -6.097120405510E-01, f:  2.0000},  # 00010
+ {e: -5.790301566505E-01, f:  2.0000},  # 00011
+ {e: -5.572820453327E-01, f:  2.0000},  # 00012
+ {e: -5.078023332071E-01, f:  2.0000},  # 00013
+ {e: -4.831751704394E-01, f:  2.0000},  # 00014
+ {e: -4.791007571285E-01, f:  2.0000},  # 00015
+ {e: -4.516827471517E-01, f:  2.0000},  # 00016
+ {e: -4.459502654759E-01, f:  2.0000},  # 00017
+ {e: -4.316450480695E-01, f:  2.0000},  # 00018
+ {e: -4.162879846124E-01, f:  2.0000},  # 00019
+ {e: -4.115906886024E-01, f:  2.0000},  # 00020
+ {e: -3.954997351158E-01, f:  2.0000},  # 00021
+ {e: -3.887045898416E-01, f:  2.0000},  # 00022
+ {e: -3.776902643803E-01, f:  2.0000},  # 00023
+ {e: -3.698393007895E-01, f:  2.0000},  # 00024
+ {e: -3.639443292331E-01, f:  2.0000},  # 00025
+ {e: -3.504634183182E-01, f:  2.0000},  # 00026
+ {e: -3.428424134408E-01, f:  2.0000},  # 00027
+ {e: -3.293346806446E-01, f:  2.0000},  # 00028
+ {e: -3.070801202894E-01, f:  2.0000},  # 00029
+ {e: -2.877531416035E-01, f:  2.0000},  # 00030
+ {e: -2.705014358870E-01, f:  2.0000},  # 00031
+ {e: -2.683402873082E-01, f:  2.0000},  # 00032
+ {e: -2.506663999721E-01, f:  2.0000},  # 00033
+ {e: -2.418412254955E-01, f:  2.0000}] # 00034
  Last Iteration                        : *FINAL001
   #---------------------------------------------------------------------- Forces Calculation
  GPU acceleration                      :  No
  Rho Commun                            : RED_SCT
- Total electronic charge               :  67.999980538489
+ Total electronic charge               :  67.999980538494
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  129,  133,  119 ]
    MPI tasks                           :  4
  Electric Dipole Moment (AU):
-   P vector                            :  [  2.2678E+00, -3.3333E-01,  2.5445E-03 ]
-   norm(P)                             :  2.292179E+00
+   P vector                            :  [  2.2678E+00, -3.3332E-01,  2.5561E-03 ]
+   norm(P)                             :  2.292161E+00
  Electric Dipole Moment (Debye):
-   P vector                            :  [  5.7642E+00, -8.4724E-01,  6.4674E-03 ]
-   norm(P)                             :  5.826138E+00
+   P vector                            :  [  5.7642E+00, -8.4720E-01,  6.4969E-03 ]
+   norm(P)                             :  5.826091E+00
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- Average noise forces: {x:  2.85117383E-02, y:  2.74563760E-02, z:  2.30180103E-02, 
-                    total:  4.57886514E-02}
- Clean forces norm (Ha/Bohr): {maxval:  6.209288129760E-02, fnrm2:  1.687982109228E-02}
- Raw forces norm (Ha/Bohr): {maxval:  7.332639040296E-02, fnrm2:  1.962825077005E-02}
+ Average noise forces: {x:  2.85110445E-02, y:  2.74567954E-02, z:  2.30183243E-02, 
+                    total:  4.57886287E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  6.209384491328E-02, fnrm2:  1.687982979338E-02}
+ Raw forces norm (Ha/Bohr): {maxval:  7.332728945050E-02, fnrm2:  1.962826479109E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [ 1.915114526403E-02,  4.346860514404E-03,  5.871152517170E-04]} # 0001
- -  {C: [-7.684322048217E-03,  6.985093594803E-03,  1.051463051999E-03]} # 0002
- -  {C: [-1.523031988153E-02, -5.008407921004E-04,  1.041161211900E-03]} # 0003
- -  {C: [-2.965768043394E-03, -3.586506409587E-03,  5.958304185139E-05]} # 0004
- -  {C: [ 3.067058925920E-02, -3.090523101174E-02,  4.662915782716E-03]} # 0005
- -  {C: [ 2.664084576701E-02, -4.561147292019E-03, -1.979251918945E-03]} # 0006
- -  {O: [-2.869865402776E-02,  2.586265295389E-02, -3.065760134397E-02]} # 0007
- -  {C: [-2.567534906041E-02, -6.130357374557E-03, -4.955428781114E-03]} # 0008
- -  {O: [-1.099094905860E-02, -1.821710898429E-02, -5.424525880200E-04]} # 0009
- -  {C: [-4.451501737030E-03,  1.362092477398E-02,  3.379381836225E-02]} # 0010
- -  {C: [-1.167004422909E-02,  3.370477304985E-03,  5.892134250060E-04]} # 0011
- -  {H: [-3.049985918154E-03,  3.362891164278E-03, -2.538732973634E-03]} # 0012
- -  {H: [-4.599330368956E-03,  4.213345110015E-03, -2.943178205594E-04]} # 0013
- -  {H: [-1.146543336883E-02,  5.546004236120E-04, -4.477202346411E-04]} # 0014
- -  {H: [-1.121116832274E-02, -6.598484281110E-03, -3.186180297841E-03]} # 0015
- -  {O: [ 4.440921382053E-02,  3.971131047821E-02,  1.750312702870E-02]} # 0016
- -  {H: [ 7.278426551253E-03, -9.700776965868E-03, -2.876150208569E-03]} # 0017
- -  {O: [ 4.726110681660E-02, -9.548730459081E-03,  2.293952080472E-02]} # 0018
- -  {H: [-1.193173108471E-02, -7.115839312976E-03, -1.791683513040E-02]} # 0019
- -  {H: [-2.012542434216E-02, -5.348305245602E-03, -5.657329131140E-03]} # 0020
- -  {H: [-5.661345987037E-03,  1.851718107511E-04, -1.117591753202E-02]} # 0021
-  #----------------------------------------------------------------- Timing for root process
+ -  {C: [ 1.915285032545E-02,  4.347066480920E-03,  5.869785867259E-04]} # 0001
+ -  {C: [-7.685943793457E-03,  6.985120876045E-03,  1.051811216575E-03]} # 0002
+ -  {C: [-1.523075359336E-02, -4.993379584157E-04,  1.041423619144E-03]} # 0003
+ -  {C: [-2.964988714593E-03, -3.587143179247E-03,  5.993786195809E-05]} # 0004
+ -  {C: [ 3.066854297197E-02, -3.090567743843E-02,  4.663600334306E-03]} # 0005
+ -  {C: [ 2.664045305389E-02, -4.559016063225E-03, -1.978978280066E-03]} # 0006
+ -  {O: [-2.869856711715E-02,  2.586095914290E-02, -3.065775698008E-02]} # 0007
+ -  {C: [-2.567622061436E-02, -6.130196277123E-03, -4.955170146612E-03]} # 0008
+ -  {O: [-1.099036202358E-02, -1.821708173762E-02, -5.424652210994E-04]} # 0009
+ -  {C: [-4.450474204132E-03,  1.361968352359E-02,  3.379372849114E-02]} # 0010
+ -  {C: [-1.167043006575E-02,  3.370404738465E-03,  5.883941465887E-04]} # 0011
+ -  {H: [-3.049785233745E-03,  3.362931323841E-03, -2.538850851385E-03]} # 0012
+ -  {H: [-4.599375331665E-03,  4.213344973347E-03, -2.943044532134E-04]} # 0013
+ -  {H: [-1.146539438259E-02,  5.546123651357E-04, -4.478189673262E-04]} # 0014
+ -  {H: [-1.121131372597E-02, -6.598666617082E-03, -3.186353621882E-03]} # 0015
+ -  {O: [ 4.441022871568E-02,  3.971182580267E-02,  1.750280128875E-02]} # 0016
+ -  {H: [ 7.278646742100E-03, -9.700922501260E-03, -2.876186699317E-03]} # 0017
+ -  {O: [ 4.726095859020E-02, -9.548523027649E-03,  2.293982766481E-02]} # 0018
+ -  {H: [-1.193157606253E-02, -7.116000568984E-03, -1.791702135285E-02]} # 0019
+ -  {H: [-2.012530755021E-02, -5.348450437552E-03, -5.657464434792E-03]} # 0020
+ -  {H: [-5.661187986207E-03,  1.850665796768E-04, -1.117613220137E-02]} # 0021
+  #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  35.03
-   Elapsed time (s)                    :  19.76
- Size of the global database           :  16
- Raw version:
-   140736016579408:
-     Array Id                          : vh
-     Size (Bytes)                      : 4117680
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668c6ea8d0
-   140736016533360:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-   140736016533360:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-   140736016533360:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-   140736016533360:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-   140736016533360:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-   140736016533360:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-   140736016533360:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-   140736016533360:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-   140736016533360:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-   140736016533360:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-   140736016533360:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-   140736016533360:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668c001510
-   57287856:
-     Array Id                          : KSwfn%psi
-     Size (Bytes)                      : 4034952
-     Allocating Routine Id             : input_wf
-     Address of first element          : 0x44e4450
-   Timestamp of Profile initialization : 2014-05-27 15:36:33.984
-   Process Id                          : 0
- Status of the memory at finalization:
-   vh:
-     Array Id                          : vh
-     Size (Bytes)                      : 4117680
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668c6ea8d0
-     Address of metadata               : 140736016579408
-   pot1:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-     Address of metadata               : 140736016533360
-   pot1:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-     Address of metadata               : 140736016533360
-   pot1:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-     Address of metadata               : 140736016533360
-   pot1:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-     Address of metadata               : 140736016533360
-   pot1:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-     Address of metadata               : 140736016533360
-   pot1:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-     Address of metadata               : 140736016533360
-   pot1:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-     Address of metadata               : 140736016533360
-   pot1:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-     Address of metadata               : 140736016533360
-   pot1:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-     Address of metadata               : 140736016533360
-   pot1:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-     Address of metadata               : 140736016533360
-   pot1:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668cf960c0
-     Address of metadata               : 140736016533360
-   pot1:
-     Array Id                          : pot1
-     Size (Bytes)                      : 16333464
-     Allocating Routine Id             : sum_results
-     Address of first element          : 0x2b668c001510
-     Address of metadata               : 140736016533360
-   KSwfn%psi:
-     Array Id                          : KSwfn%psi
-     Size (Bytes)                      : 4034952
-     Allocating Routine Id             : input_wf
-     Address of first element          : 0x44e4450
-     Address of metadata               : 57287856
-   Timestamp of Profile initialization:
-     2014-05-27 15:36:33.984
-   Process Id:
-     0
+   CPU time (s)                        :  33.32
+   Elapsed time (s)                    :  17.08
  Memory Consumption Report:
-   Tot. No. of Allocations             :  5979
-   Tot. No. of Deallocations           :  5979
+   Tot. No. of Allocations             :  5906
+   Tot. No. of Deallocations           :  5906
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  146
      for the array                     : zmpi1
-     in the routine                    : sum_results
- Max No. of dictionaries used          :  2844 #(  786 still in use)
+     in the routine                    : G_PoissonSolver
+     Memory Peak of process            : 171408 kB
+ Max No. of dictionaries used          :  3152 #( 838 still in use)
  Number of dictionary folders allocated:  1

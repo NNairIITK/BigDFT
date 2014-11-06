@@ -7,243 +7,6 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-
-!> Routines to handle the argument objects of call_bigdft().
-subroutine run_objects_nullify(runObj)
-  use module_types
-  implicit none
-  type(run_objects), intent(out) :: runObj
-
-  nullify(runObj%user_inputs)
-  nullify(runObj%inputs)
-  nullify(runObj%atoms)
-  nullify(runObj%rst)
-  nullify(runObj%radii_cf)
-END SUBROUTINE run_objects_nullify
-
-
-!> Freed the run_objects structure
-subroutine run_objects_free(runObj, subname)
-  use module_types
-  use module_base
-  use dynamic_memory
-  use yaml_output
-  use dictionaries
-  use  module_atoms, only: deallocate_atoms_data
-  implicit none
-  type(run_objects), intent(inout) :: runObj
-  character(len = *), intent(in) :: subname
-
-  if (associated(runObj%user_inputs)) then
-     call dict_free(runObj%user_inputs)
-  end if
-  if (associated(runObj%rst)) then
-     call free_restart_objects(runObj%rst)
-     deallocate(runObj%rst)
-  end if
-  if (associated(runObj%atoms)) then
-     call deallocate_atoms_data(runObj%atoms) 
-     deallocate(runObj%atoms)
-  end if
-  if (associated(runObj%inputs)) then
-     call free_input_variables(runObj%inputs)
-     deallocate(runObj%inputs)
-  end if
-  if (associated(runObj%radii_cf)) then
-     call f_free_ptr(runObj%radii_cf)
-  end if
-  ! to be inserted again soon call f_lib_finalize()
-  !call yaml_close_all_streams()
-END SUBROUTINE run_objects_free
-
-
-!> Deallocate run_objects
-subroutine run_objects_free_container(runObj)
-  use module_types
-  use module_base
-  use dynamic_memory
-  use yaml_output
-  implicit none
-  type(run_objects), intent(inout) :: runObj
-
-  ! User inputs are always owned by run objects.
-  if (associated(runObj%user_inputs)) then
-     call dict_free(runObj%user_inputs)
-  end if
-  ! Radii_cf are always owned by run objects.
-  call f_free_ptr(runObj%radii_cf)
-  ! Currently do nothing except nullifying everything.
-  call run_objects_nullify(runObj)
-END SUBROUTINE run_objects_free_container
-
-
-!> Read all input files and create the objects to run BigDFT
-subroutine run_objects_init_from_files(runObj, radical, posinp)
-  use module_types
-  use module_input_dicts, only: user_dict_from_files
-  implicit none
-  type(run_objects), intent(out) :: runObj
-  character(len = *), intent(in) :: radical, posinp
-
-  call run_objects_nullify(runObj)
-
-  ! Allocate persistent structures.
-  allocate(runObj%rst)
-  call restart_objects_new(runObj%rst)
-
-  ! Generate input dictionary and parse it.
-  call dict_init(runObj%user_inputs)
-  call user_dict_from_files(runObj%user_inputs, radical, posinp, bigdft_mpi)
-  call run_objects_parse(runObj)
-
-  ! Start the signaling loop in a thread if necessary.
-  if (runObj%inputs%signaling .and. bigdft_mpi%iproc == 0) then
-     call bigdft_signals_init(runObj%inputs%gmainloop, 2, &
-          & runObj%inputs%domain, len_trim(runObj%inputs%domain))
-     call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
-  end if
-END SUBROUTINE run_objects_init_from_files
-
-
-subroutine run_objects_update(runObj, dict)
-  use module_types
-  use dictionaries, only: dictionary, dict_update, max_field_length, dict_value
-  use yaml_output
-  implicit none
-  type(run_objects), intent(inout) :: runObj
-  type(dictionary), pointer :: dict
-
-  ! We merge the previous dictionnary with new entries.
-  call dict_update(runObj%user_inputs, dict)
-  
-  ! Parse new dictionnary.
-  call run_objects_parse(runObj)
-END SUBROUTINE run_objects_update
-
-
-!> Parse the input dictiionary and create all run_objects
-subroutine run_objects_parse(runObj)
-  use module_types
-  use module_interfaces, only: atoms_new, inputs_new, inputs_from_dict, create_log_file
-  use dynamic_memory
-  use dictionaries
-  use module_atoms, only: deallocate_atoms_data
-  implicit none
-  type(run_objects), intent(inout) :: runObj
-  character(len=*), parameter :: subname = "run_objects_parse"
-
-  ! Free potential previous inputs and atoms.
-  if (associated(runObj%atoms)) then
-     call deallocate_atoms_data(runObj%atoms) 
-     deallocate(runObj%atoms)
-  end if
-  ! Allocate atoms_data structure
-  call atoms_new(runObj%atoms)
-  if (associated(runObj%inputs)) then
-     call free_input_variables(runObj%inputs)
-     deallocate(runObj%inputs)
-  end if
-  !Allocation input_variables structure and initialize it with default values
-  call inputs_new(runObj%inputs)
-
-  ! Regenerate inputs and atoms.
-  call inputs_from_dict(runObj%inputs, runObj%atoms, runObj%user_inputs)
-
-  ! Number of atoms should not change.
-  if (runObj%rst%nat > 0 .and. runObj%rst%nat /= runObj%atoms%astruct%nat) then
-     stop "nat changed"
-  else if (runObj%rst%nat == 0) then
-     call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat)
-  end if
-  call restart_objects_set_mode(runObj%rst, runObj%inputs%inputpsiid)
-  if (associated(runObj%rst)) then
-     call release_material_acceleration(runObj%rst%GPU)
-  end if
-  call restart_objects_set_mat_acc(runObj%rst, bigdft_mpi%iproc, runObj%inputs%matacc)
-
-  ! Generate radii
-  if (associated(runObj%radii_cf)) then
-     call f_free_ptr(runObj%radii_cf)
-  end if
-
-  runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), id="runObj%radii_cf")
-  call read_radii_variables(runObj%atoms, runObj%radii_cf, &
-       & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
-
-END SUBROUTINE run_objects_parse
-
-
-!> Associate to the structure run_objects, the input_variable structure and the atomic positions (atoms_data)
-subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
-  use module_types
-  implicit none
-  type(run_objects), intent(out) :: runObj
-  type(input_variables), intent(in), target :: inputs
-  type(atoms_data), intent(in), target :: atoms
-  type(restart_objects), intent(in), target :: rst
-  real(gp), intent(in), optional :: rxyz0
-
-  call run_objects_free_container(runObj)
-  runObj%atoms  => atoms
-  runObj%inputs => inputs
-  runObj%rst    => rst
-  if (present(rxyz0)) then
-     call vcopy(3 * atoms%astruct%nat, rxyz0, 1, runObj%atoms%astruct%rxyz(1,1), 1)
-  end if
-
-  runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /), id="runObj%radii_cf")
-  call read_radii_variables(runObj%atoms, runObj%radii_cf, &
-       & runObj%inputs%crmult, runObj%inputs%frmult, runObj%inputs%projrad)
-END SUBROUTINE run_objects_associate
-
-
-subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
-  use module_types
-  use module_fragments
-  use module_interfaces, only: system_initialization
-  use psp_projectors
-  use communications_base, only: deallocate_comms
-  implicit none
-  type(run_objects), intent(inout) :: runObj
-  integer, intent(in) :: iproc, nproc
-  real(gp), dimension(3,runObj%atoms%astruct%nat), intent(out) :: rxyz
-  real(gp), dimension(3), intent(out) :: shift
-  type(memory_estimation), intent(out) :: mem
-
-  integer :: inputpsi, input_wf_format
-  type(DFT_PSP_projectors) :: nlpsp
-  type(system_fragment), dimension(:), pointer :: ref_frags
-  character(len = *), parameter :: subname = "run_objects_estimate_memory"
-
-  ! Copy rxyz since system_size() will shift them.
-!!$  allocate(rxyz(3,runObj%atoms%astruct%nat+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,rxyz,'rxyz',subname)
-  call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, rxyz(1,1), 1)
-
-  call system_initialization(iproc, nproc, .true., inputpsi, input_wf_format, .true., &
-       & runObj%inputs, runObj%atoms, rxyz, runObj%rst%GPU%OCLconv, runObj%rst%KSwfn%orbs, &
-       & runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
-       & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, &
-       & nlpsp, runObj%rst%KSwfn%comms, shift, runObj%radii_cf, &
-       & ref_frags)
-  call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
-       & runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&
-       & runObj%rst%KSwfn%orbs%nkpts,nlpsp%nprojel,&
-       & runObj%inputs%nspin,runObj%inputs%itrpmax,runObj%inputs%iscf,mem)
-
-  ! De-allocations
-!!$  i_all=-product(shape(rxyz))*kind(rxyz)
-!!$  deallocate(rxyz,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'rxyz',subname)
-  call deallocate_Lzd_except_Glr(runObj%rst%KSwfn%Lzd)
-  call deallocate_comms(runObj%rst%KSwfn%comms)
-  call deallocate_orbs(runObj%rst%KSwfn%orbs)
-  call free_DFT_PSP_projectors(nlpsp)
-  call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
-  call nullify_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
-END SUBROUTINE run_objects_system_setup
-
-
 !> Read the options in the command line using get_command statement
 subroutine command_line_information(mpi_groupsize,posinp_file,run_id,ierr)
   use module_types
@@ -273,7 +36,6 @@ subroutine command_line_information(mpi_groupsize,posinp_file,run_id,ierr)
      command=repeat(' ',len(command))
      call get_command_argument(icommands,value=command,status=ierr)
      if (ierr /= 0) return
-     !print *,'test',ncommands,icommands,command
      call find_command()
      if (ierr /= 0) return
   end do
@@ -292,13 +54,13 @@ contains
        ipos=index(command,'=')
        read(command(ipos+1:len(command)),*)mpi_groupsize
     else if (index(command,'--run-id=') > 0) then
-       if (len_trim(run_id) > 0) then
+       if (trim(run_id) /= 'input') then
           ierr=bigdft_error_ret(BIGDFT_INVALID,'run_id specified twice')
        end if
        ipos=index(command,'=')
        read(command(ipos+1:len(command)),*)run_id
     else if (index(command,'--runs-file=') > 0) then
-       if (len_trim(posinp_file) > 0 .or. len_trim(run_id) >0) then
+       if (len_trim(posinp_file) > 0 .or. trim(run_id) /= 'input') then
           ierr=bigdft_error_ret(BIGDFT_INVALID,'posinp_file specified twice or run_id already known')
        end if
        ipos=index(command,'=')
@@ -325,7 +87,6 @@ contains
 
 END SUBROUTINE command_line_information
 
-
 !> Initialization of acceleration (OpenCL)
 subroutine init_material_acceleration(iproc,matacc,GPU)
   use module_base
@@ -338,6 +99,7 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
   !local variables
   integer :: iconv,iblas,initerror,ierror,useGPU,mproc,ierr,nproc_node
   logical :: noaccel
+  integer(kind=8) :: context_address
 
   noaccel = .true.
   if (matacc%iacceleration == 1) then
@@ -390,7 +152,10 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
      call init_acceleration_OCL(matacc,GPU)
      !   end if
      !end do
-     if (GPU%context /= 0.) then
+     !to avoid a representation of the address which is lower than tiny(1.d0)
+     context_address=transfer(GPU%context,context_address)
+     !if (GPU%context /= 0.) then
+     if (context_address /= int(0,kind=8)) then
         GPU%ndevices=min(GPU%ndevices,nproc_node)
         if (iproc == 0) then
            call yaml_map('Material acceleration','OpenCL',advance='no')
@@ -495,6 +260,45 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
   call f_release_routine()
 END SUBROUTINE processor_id_per_node
 
+subroutine ensure_log_file(writing_directory, logfile, ierr)
+  use yaml_output
+  use yaml_strings
+  implicit none
+  character(len = *), intent(in) :: writing_directory, logfile
+  integer, intent(out) :: ierr
+
+  logical :: exists
+  integer :: lgt
+  character(len = 500) :: logfile_old, logfile_dir, filepath
+
+  ierr = 0
+  filepath = writing_directory//logfile
+  !inquire for the existence of a logfile
+  inquire(file=trim(filepath),exist=exists)
+  if (exists) then
+     logfile_old=writing_directory//'logfiles'
+     call getdir(logfile_old,&
+          len_trim(logfile_old),logfile_dir,len(logfile_dir),ierr)
+     if (ierr /= 0) then
+        write(*,*) "ERROR: cannot create writing directory '" //trim(logfile_dir) // "'."
+        return
+     end if
+     logfile_old=trim(logfile_dir)//logfile
+     !change the name of the existing logfile
+     lgt=index(logfile_old,'.yaml')
+     call buffer_string(logfile_old,len(logfile_old),&
+          trim(adjustl(yaml_time_toa()))//'.yaml',lgt)
+     call movefile(trim(filepath),len_trim(filepath),trim(logfile_old),len_trim(logfile_old),ierr)
+     if (ierr /= 0) then
+        write(*,*) "ERROR: cannot move logfile '"//trim(logfile)
+        write(*,*) '                      into '//trim(logfile_old)// "'."
+        return
+     end if
+     call yaml_map('<BigDFT> Logfile existing, renamed into',&
+          trim(logfile_old),unit=6)
+  end if
+
+end subroutine ensure_log_file
 
 subroutine create_log_file(dict, writing_directory, dir_output, run_name)
 
@@ -504,13 +308,13 @@ subroutine create_log_file(dict, writing_directory, dir_output, run_name)
   use yaml_strings
   use yaml_output
   use dictionaries
+  use bigdft_run, only: bigdft_run_id_toa
   implicit none
   type(dictionary), pointer :: dict
   character(len = max_field_length), intent(out) :: writing_directory, dir_output, run_name
   !local variables
   integer :: ierr,ierror,lgt,unit_log
-  logical :: exists
-  character(len=500) :: logfile,logfile_old,logfile_dir
+  character(len=500) :: logfile,logfile_old,logfile_dir,filepath
   integer :: iproc_node, nproc_node
 
   writing_directory = "."
@@ -548,7 +352,7 @@ subroutine create_log_file(dict, writing_directory, dir_output, run_name)
      if (dir_output(1:1) /= '/') &
           & call buffer_string(dir_output,len(dir_output),&
           & trim(logfile),lgt,back=.true.)
-     if (bigdft_mpi%iproc ==0) then
+     if (bigdft_mpi%iproc == 0) then
         logfile=repeat(' ',len(logfile))
         if (len_trim(run_name) > 0) then
 !           logfile='log-'//trim(run_name)//trim(bigdft_run_id_toa())//'.yaml'
@@ -556,58 +360,35 @@ subroutine create_log_file(dict, writing_directory, dir_output, run_name)
         else
            logfile='log'//trim(bigdft_run_id_toa())//'.yaml'
         end if
-        !inquire for the existence of a logfile
-        call yaml_map('<BigDFT> log of the run will be written in logfile',&
-             trim(writing_directory)//trim(logfile),unit=6)
-        inquire(file=trim(writing_directory)//trim(logfile),exist=exists)
-        if (exists) then
-           logfile_old=trim(writing_directory)//'logfiles'
-           call getdir(logfile_old,&
-                len_trim(logfile_old),logfile_dir,len(logfile_dir),ierr)
-           if (ierr /= 0) then
-              write(*,*) "ERROR: cannot create writing directory '" //trim(logfile_dir) // "'."
-              call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
-           end if
-           logfile_old=trim(logfile_dir)//trim(logfile)
-           logfile=trim(writing_directory)//trim(logfile)
-           !change the name of the existing logfile
-           lgt=index(logfile_old,'.yaml')
-           call buffer_string(logfile_old,len(logfile_old),&
-                trim(adjustl(yaml_time_toa()))//'.yaml',lgt)
-           call movefile(trim(logfile),len_trim(logfile),trim(logfile_old),len_trim(logfile_old),ierr)
-           if (ierr /= 0) then
-              write(*,*) "ERROR: cannot move logfile '"//trim(logfile)
-              write(*,*) '                      into '//trim(logfile_old)// "'."
-              call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
-           end if
-           call yaml_map('<BigDFT> Logfile existing, renamed into',&
-                trim(logfile_old),unit=6)
-
-        else
-           logfile=trim(writing_directory)//trim(logfile)
-        end if
-        !Create stream and logfile
-        call yaml_set_stream(filename=trim(logfile),record_length=92,istat=ierr)
-        !create that only if the stream is not already present, otherwise print a warning
-        if (ierr == 0) then
+        filepath = trim(writing_directory)//trim(logfile)
+        call yaml_map('<BigDFT> log of the run will be written in logfile',filepath,unit=6)
+        ! Check if logfile is already connected.
+        call yaml_stream_connected(trim(filepath), unit_log, ierr)
+        if (ierr /= 0) then
+           ! Move possible existing log file.
+           call ensure_log_file(trim(writing_directory), trim(logfile), ierr)
+           if (ierr /= 0) call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
+           ! Close active stream and logfile if any. (TO BE MOVED IN RUN_UPDATE TO AVOID CLOSURE OF UPLEVEL INSTANCE)
            call yaml_get_default_stream(unit_log)
-           call input_set_stdout(unit=unit_log)
-           if (len_trim(run_name) == 0) then
-              call f_malloc_set_status(unit=unit_log, &
-                   & logfile_name='malloc' // trim(bigdft_run_id_toa()) // '.prc')
+           if (unit_log /= 6) call yaml_close_stream(unit_log, ierr)
+           !Create stream and logfile
+           call yaml_set_stream(filename=trim(filepath),record_length=92,istat=ierr)
+           !create that only if the stream is not already present, otherwise print a warning
+           if (ierr == 0) then
+              call yaml_get_default_stream(unit_log)
+              call input_set_stdout(unit=unit_log)
            else
-              call f_malloc_set_status(unit=unit_log, &
-                   & logfile_name='malloc-' // trim(run_name) // '.prc')
+              call yaml_warning('Logfile '//trim(filepath)//' cannot be created, stream already present. Ignoring...')
            end if
-           !call memocc_set_stdout(unit=70)
         else
-           call yaml_warning('Logfile '//trim(logfile)//' cannot be created, stream already present. Ignoring...')
-        end if
-     end if
+           call yaml_release_document(unit_log)
+           call yaml_set_default_stream(unit_log, ierr)
+        end if ! Logfile already connected
+     end if ! Logfile is created by master proc only
   else
      !use stdout, do not crash if unit is present
      if (bigdft_mpi%iproc==0) call yaml_set_stream(record_length=92,istat=ierr)
-  end if
+  end if ! Need to create a named logfile.
     
   if (bigdft_mpi%iproc==0) then
      !start writing on logfile

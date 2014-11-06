@@ -253,7 +253,7 @@ def document_report(hostname, tol, biggest_disc, nchecks, leaks, nmiss, miss_it,
         results["Failure reason"] = failure_reason
     results["Maximum discrepancy"] = biggest_disc
     results["Maximum tolerance applied"] = tol
-    results["Seconds needed for the test"] = timet
+    results["Seconds needed for the test"] = round(timet,2)
     if (nmiss > 0):
         results["Missed Reference Items"] = miss_it
     #

@@ -12,7 +12,7 @@
 subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,n1,n2,n3,&
      & pot_ion,pkernel,psoffset)
-  use module_base
+  use module_base, pi => pi_param
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use vdwcorrection
@@ -30,7 +30,6 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   real(dp), dimension(*), intent(out) :: pot_ion
   !local variables
   character(len=*), parameter :: subname='IonicEnergyandForces'
-  real(kind=8), parameter :: pi=4.d0*datan(1.d0)
   logical :: slowion=.false.
   logical :: perx,pery,perz,gox,goy,goz
   integer :: n1i,n2i,n3i,i3s,n3pi
@@ -324,7 +323,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
                     arg=r2/rloc**2
                     xp=exp(-.5_gp*arg)
                     if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s)*n1i*n2i
                        pot_ion(ind)=pot_ion(ind)-xp*charge
                     endif
                  enddo
@@ -391,7 +390,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
                     arg=r2/rloc**2
                     xp=exp(-.5_gp*arg)
                     if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s)*n1i*n2i
                        !error function part
                        Vel=pot_ion(ind)
                        fxerf=fxerf+xp*Vel*x
@@ -464,7 +463,7 @@ END SUBROUTINE IonicEnergyandForces
 
 
 subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, shift, &
-     & Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, elecfield, psoffset,rholoc)
+     & Glr, hxh, hyh, hzh, rhopotd, pkernel, pot_ion, elecfield, psoffset)
   use module_base
   use module_types
 
@@ -482,8 +481,6 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
-  type(rholoc_objects),intent(in)::rholoc  !Object used for PAW+WVL
-                                           !contains the local density
 
   character(len = *), parameter :: subname = "createEffectiveIonicPotential"
   logical :: counterions
@@ -492,7 +489,7 @@ subroutine createEffectiveIonicPotential(iproc, nproc, verb, in, atoms, rxyz, sh
   ! Compute the main ionic potential.
   call createIonicPotential(atoms%astruct%geocode, iproc, nproc, verb, atoms, rxyz, hxh, hyh, hzh, &
        & elecfield, Glr%d%n1, Glr%d%n2, Glr%d%n3, rhopotd%n3pi, rhopotd%i3s + rhopotd%i3xcsh, &
-       & Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, pkernel, pot_ion, psoffset,rholoc)
+       & Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, pkernel, pot_ion, psoffset)
 
   !inquire for the counter_ion potential calculation (for the moment only xyz format)
   inquire(file='posinp_ci.xyz',exist=counterions)
@@ -517,13 +514,15 @@ END SUBROUTINE createEffectiveIonicPotential
 
 !> Create the ionic potential
 subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
-     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset,rholoc)
-  use module_base
+     hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,psoffset)
+  use module_base, pi => pi_param
+  use m_splines, only: splint
   use module_types
   use yaml_output
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
 !  use module_interfaces, except_this_one => createIonicPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use psp_projectors, only: PSPCODE_PAW
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
@@ -534,18 +533,17 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(in) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
-  type(rholoc_objects),intent(in)::rholoc
 
   !local variables
   character(len=*), parameter :: subname='createIonicPotential'
-  real(kind=8), parameter :: pi=4.d0*atan(1.d0)
   character(len = 3) :: quiet
   logical :: perx,pery,perz,gox,goy,goz,htoobig=.false.,efwrite,check_potion=.false.
   integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ierr,ityp !n(c) nspin
-  integer :: ind,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc
+  integer :: ind,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,nloc,iloc,indj3,indj23
   real(kind=8) :: rholeaked,rloc,charge,cutoff,x,y,z,r2,arg,xp,tt,rx,ry,rz
   real(kind=8) :: tt_tot,rholeaked_tot,potxyz
-  real(kind=8) :: raux,raux2,rr,r2paw
+  real(kind=8) :: raux2,r2paw,rlocsq,zsq,yzsq
+  real(kind=8) :: raux(1),rr(1)
   real(wp) :: maxdiff
   real(gp) :: ehart
   real(dp), dimension(2) :: charges_mpi
@@ -582,6 +580,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
         rz=rxyz(3,iat)
 
         rloc=at%psppar(0,0,ityp)
+        rlocsq=rloc**2
         charge=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
         cutoff=10.d0*rloc
 
@@ -602,24 +601,30 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
               z=real(i3,kind=8)*hzh-rz
               call ind_positions(perz,i3,n3,j3,goz) 
               j3=j3+nbl3+1
+              if (goz .and. (j3<i3s.or.j3>i3s+n3pi-1)) cycle
+              indj3=(j3-i3s)*n1i*n2i
+              zsq=z**2
               do i2=isy,iey
                  y=real(i2,kind=8)*hyh-ry
                  call ind_positions(pery,i2,n2,j2,goy)
+                 if (goz.and.(.not.goy)) cycle
+                 indj23=1+nbl1+(j2+nbl2)*n1i+indj3
+                 yzsq=y**2+zsq
                  do i1=isx,iex
                     x=real(i1,kind=8)*hxh-rx
                     call ind_positions(perx,i1,n1,j1,gox)
-                    r2=x**2+y**2+z**2
-                    arg=r2/rloc**2
+                    r2=x**2+yzsq
+                    arg=r2/rlocsq
                     if (at%multipole_preserving) then
                        !use multipole-preserving function
-                       xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
-                          mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
-                          mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
+                       xp=mp_exp(hxh,rx,0.5_gp/(rlocsq),i1,0,.true.)*&
+                          mp_exp(hyh,ry,0.5_gp/(rlocsq),i2,0,.true.)*&
+                          mp_exp(hzh,rz,0.5_gp/(rlocsq),i3,0,.true.)
                     else
                        xp=exp(-.5d0*arg)
                     end if
-                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1 .and. goy .and. gox) then
+                       ind=j1+indj23
                        pot_ion(ind)=pot_ion(ind)-xp*charge
                     else if (.not. goz ) then
                        rholeaked=rholeaked+xp*charge
@@ -631,33 +636,39 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 !       Calculate Ionic Density using splines, 
 !       PAW case
         else
-             
-           r2paw=rholoc%radius(ityp)**2
+           r2paw=at%pawtab(ityp)%rpaw**2
            do i3=isz,iez
               z=real(i3,kind=8)*hzh-rz
               call ind_positions(perz,i3,n3,j3,goz)
               j3=j3+nbl3+1
+              indj3=(j3-i3s)*n1i*n2i
+              zsq=z**2
               do i2=isy,iey
                  y=real(i2,kind=8)*hyh-ry
                  call ind_positions(pery,i2,n2,j2,goy)
+                 indj23=1+nbl1+(j2+nbl2)*n1i+indj3
+                 yzsq=y**2+zsq
                  do i1=isx,iex
                     x=real(i1,kind=8)*hxh-rx
                     call ind_positions(perx,i1,n1,j1,gox)
-                    r2=x**2+y**2+z**2
+                    r2=x**2+yzsq
                     !if(r2>r2paw) cycle
                     rr=sqrt(r2)
                     if(1==2) then
                       !This converges very slow                
-                      call splint(rholoc%msz(ityp),rholoc%rad(1:rholoc%msz(ityp),ityp),&
-&                      rholoc%d(1:rholoc%msz(ityp),1,ityp),rholoc%d(1:rholoc%msz(ityp),2,ityp),1,rr,raux,ierr)
+                      call splint(at%pawtab(ityp)%wvl%rholoc%msz, &
+                           & at%pawtab(ityp)%wvl%rholoc%rad, &
+                           & at%pawtab(ityp)%wvl%rholoc%d(:,1), &
+                           & at%pawtab(ityp)%wvl%rholoc%d(:,2), &
+                           & 1,rr,raux,ierr)
                     else
                       !Take the HGH form for rho_L (long range)
-                      arg=r2/rloc**2
+                      arg=r2/rlocsq
                       if (at%multipole_preserving) then
                          !use multipole-preserving function
-                         xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
-                            mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
-                            mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
+                         xp=mp_exp(hxh,rx,0.5_gp/(rlocsq),i1,0,.true.)*&
+                            mp_exp(hyh,ry,0.5_gp/(rlocsq),i2,0,.true.)*&
+                            mp_exp(hzh,rz,0.5_gp/(rlocsq),i3,0,.true.)
                       else
                          xp=exp(-.5d0*arg)
                       end if
@@ -666,10 +677,10 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                     !raux=-4.d0**(3.0d0/2.0d0)*exp(-4.d0*pi*r2)
 
                     if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                       pot_ion(ind)=pot_ion(ind)+raux
+                       ind=j1+indj23
+                       pot_ion(ind)=pot_ion(ind)+raux(1)
                     else if (.not. goz ) then
-                       rholeaked=rholeaked-raux
+                       rholeaked=rholeaked-raux(1)
                     endif
                  enddo
               enddo
@@ -686,9 +697,11 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   ! Check
   tt=0.d0
   do j3=1,n3pi
+     indj3=(j3-1)*n1i*n2i
      do i2= -nbl2,2*n2+1+nbr2
+        indj23=1+nbl1+(i2+nbl2)*n1i+indj3
         do i1= -nbl1,2*n1+1+nbr1
-           ind=i1+1+nbl1+(i2+nbl2)*n1i+(j3-1)*n1i*n2i
+           ind=i1+indj23
            tt=tt+pot_ion(ind)
         enddo
      enddo
@@ -806,6 +819,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
         rz=rxyz(3,iat)
 
         rloc=at%psppar(0,0,ityp)
+        rlocsq=rloc**2
         cutoff=10.d0*rloc
 
         isx=floor((rx-cutoff)/hxh)
@@ -834,23 +848,27 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                  z=real(i3,kind=8)*hzh-rz
                  call ind_positions(perz,i3,n3,j3,goz) 
                  j3=j3+nbl3+1
+                 indj3=(j3-i3s)*n1i*n2i
+                 zsq=z**2
                  if (goz .and. j3 >= i3s .and. j3 <=  i3s+n3pi-1) then
                     do i2=isy,iey
                        y=real(i2,kind=8)*hyh-ry
                        call ind_positions(pery,i2,n2,j2,goy)
+                       indj23=1+nbl1+(j2+nbl2)*n1i+indj3
+                       yzsq=y**2+zsq
                        if (goy) then
                           do i1=isx,iex
                              x=real(i1,kind=8)*hxh-rx
                              call ind_positions(perx,i1,n1,j1,gox)
                              if (gox) then
-                                r2=x**2+y**2+z**2
-                                arg=r2/rloc**2
+                                r2=x**2+yzsq
+                                arg=r2/rlocsq
 
                                 if (at%multipole_preserving) then
                                    !use multipole-preserving function
-                                   xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
-                                      mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
-                                      mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
+                                   xp=mp_exp(hxh,rx,0.5_gp/(rlocsq),i1,0,.true.)*&
+                                      mp_exp(hyh,ry,0.5_gp/(rlocsq),i2,0,.true.)*&
+                                      mp_exp(hzh,rz,0.5_gp/(rlocsq),i3,0,.true.)
                                  else
                                     xp=exp(-.5d0*arg)
                                  end if
@@ -859,7 +877,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                                 do iloc=nloc-1,1,-1
                                    tt=arg*tt+at%psppar(0,iloc,ityp)
                                 enddo
-                                ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+                                ind=j1+indj23
                                 pot_ion(ind)=pot_ion(ind)+xp*tt
                              end if
                           enddo
@@ -875,33 +893,40 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
               z=real(i3,kind=8)*hzh-rz
               call ind_positions(perz,i3,n3,j3,goz) 
               j3=j3+nbl3+1
+              indj3=(j3-i3s)*n1i*n2i
+              zsq=z**2
               if (goz .and. j3 >= i3s .and. j3 <=  i3s+n3pi-1) then
                  do i2=isy,iey
                     y=real(i2,kind=8)*hyh-ry
                     call ind_positions(pery,i2,n2,j2,goy)
+                    indj23=1+nbl1+(j2+nbl2)*n1i+indj3
+                    yzsq=y**2+zsq
                     if (goy) then
                        do i1=isx,iex
                           x=real(i1,kind=8)*hxh-rx
                           call ind_positions(perx,i1,n1,j1,gox)
                           if (gox) then
-                             r2=x**2+y**2+z**2
-                             rr=sqrt(r2)
+                             r2=x**2+yzsq
+                             rr(1)=sqrt(r2)
                              !1) V_L^HGH
-                             if(rr>0.01d0) then
-                               arg=rr/(sqrt(2.0)*rloc)
+                             if(rr(1)>0.01d0) then
+                               arg=rr(1)/(sqrt(2.0)*rloc)
                                call derf_ab(tt,arg)
-                               raux2=-charge/rr*tt  
+                               raux2=-charge/rr(1)*tt  
                              else
                                !In this case we deduce the values
                                !from a quadratic interpolation (due to 1/rr factor)
-                               call interpol_vloc(rr,rloc,charge,raux2)
+                               call interpol_vloc(rr(1),rloc,charge,raux2)
                              end if
                              !2) V^PAW from splines
-                             call splint(rholoc%msz(ityp),rholoc%rad(1:rholoc%msz(ityp),ityp),&
-&                              rholoc%d(1:rholoc%msz(ityp),3,ityp),rholoc%d(1:rholoc%msz(ityp),4,ityp),1,rr,raux,ierr)
+                             call splint(at%pawtab(ityp)%wvl%rholoc%msz, &
+                                  & at%pawtab(ityp)%wvl%rholoc%rad, &
+                                  & at%pawtab(ityp)%wvl%rholoc%d(:,3), &
+                                  & at%pawtab(ityp)%wvl%rholoc%d(:,4), &
+                                  & 1,rr,raux,ierr)
                              
-                             ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                             pot_ion(ind)=pot_ion(ind)+raux-raux2
+                             ind=j1+indj23
+                             pot_ion(ind)=pot_ion(ind)+raux(1)-raux2
                           end if
                        enddo
                     end if
@@ -1109,7 +1134,7 @@ END SUBROUTINE ind_positions_new
 
 
 subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
-  use module_base
+  use module_base, pi => pi_param
   implicit none
   integer, intent(in) :: nat,ntypes
   real(gp) :: x,y,z
@@ -1119,7 +1144,6 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
   real(gp), dimension(3,nat), intent(in) :: rxyz
   real(wp), intent(out) :: potxyz
   !local variables
-  real(kind=8), parameter :: pi=4.0_wp*atan(1.0_wp)
   integer :: iat,ityp
   real(wp) :: charge
   real(gp) :: r,sq2rl,rx,ry,rz,derf_val
@@ -1170,15 +1194,15 @@ END SUBROUTINE ext_buffers
 !> Read and initialize counter-ions potentials (read psp files)
 subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
      hxh,hyh,hzh,grid,n3pi,i3s,pkernel,pot_ion)
-  use module_base
+  use module_base, pi => pi_param
   use module_types
   use module_interfaces, except_this_one => CounterIonPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_input_dicts
-  use module_input_keys, only: IG_OCCUPATION
+  use public_keys, only: IG_OCCUPATION
   use dictionaries
   use yaml_output
-  use module_atoms, only: deallocate_atoms_data,nullify_atoms_data
+  use module_atoms, only: deallocate_atoms_data,nullify_atoms_data,atomic_data_set_from_dict
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -1191,7 +1215,6 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   real(wp), dimension(*), intent(inout) :: pot_ion
   !local variables
   character(len=*), parameter :: subname='CounterIonPotential'
-  real(kind=8), parameter :: pi=4.d0*atan(1.d0)
   logical :: htoobig=.false.,check_potion=.false.
   logical :: perx,pery,perz,gox,goy,goz
   integer :: iat,i1,i2,i3,j1,j2,j3,isx,isy,isz,iex,iey,iez,ityp,nspin
@@ -1204,7 +1227,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   type(dictionary), pointer :: dict
   real(dp), dimension(2) :: charges_mpi
   real(dp), dimension(:), allocatable :: potion_corr
-  real(gp), dimension(:,:), allocatable :: radii_cf
+!  real(gp), dimension(:,:), allocatable :: radii_cf
 
   call timing(iproc,'CrtLocPot     ','ON')
   
@@ -1224,18 +1247,17 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
 
   call atoms_file_merge_to_dict(dict)
   do ityp = 1, at%astruct%ntypes, 1
-     call psp_dict_fill_all(dict, at%astruct%atomnames(ityp), in%ixc)
+     call psp_dict_fill_all(dict, at%astruct%atomnames(ityp), in%ixc, in%projrad, in%crmult, in%frmult)
   end do
   call psp_dict_analyse(dict, at)
   ! Read associated pseudo files.
   call atomic_data_set_from_dict(dict,IG_OCCUPATION, at, in%nspin)
   call dict_free(dict)
 
-  radii_cf = f_malloc((/ at%astruct%ntypes, 3 /),id='radii_cf')
-
   !read the specifications of the counter ions from pseudopotentials
-  call read_radii_variables(at, radii_cf, in%crmult, in%frmult, in%projrad)
-  if (iproc == 0) call print_atomic_variables(at, radii_cf, max(in%hx,in%hy,in%hz), in%ixc, in%dispersion)
+!  radii_cf = f_malloc((/ at%astruct%ntypes, 3 /),id='radii_cf')
+!  radii_cf = at%radii_cf
+  if (iproc == 0) call print_atomic_variables(at, max(in%hx,in%hy,in%hz), in%ixc, in%dispersion)
 
   ! Ionic charge (must be calculated for the PS active processes)
   rholeaked=0.d0
@@ -1304,7 +1326,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
                  end if
 
                  if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                    ind=j1+1+nbl1+(j2+nbl2)*grid%n1i+(j3-i3s+1-1)*grid%n1i*grid%n2i
+                    ind=j1+1+nbl1+(j2+nbl2)*grid%n1i+(j3-i3s)*grid%n1i*grid%n2i
                     pot_ion(ind)=pot_ion(ind)-xp*charge
                  else if (.not. goz ) then
                     rholeaked=rholeaked+xp*charge
@@ -1430,7 +1452,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   !deallocations
   call deallocate_atoms_data(at) 
 
-  call f_free(radii_cf)
+!  call f_free(radii_cf)
 
   call f_free_ptr(at%astruct%rxyz)
 

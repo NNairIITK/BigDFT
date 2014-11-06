@@ -9,6 +9,8 @@
 module module_abscalc
   use module_base
   use module_types
+  use psp_projectors, only: free_DFT_PSP_projectors
+  use gaussians, only: deallocate_gwf
   implicit none
 
   !> Contains all array necessary to apply preconditioning projectors 
@@ -144,7 +146,7 @@ module module_abscalc
           &   psi, aeval, occup, psp_modifier, &
           Nsol, Labs, Ngrid,Ngrid_box, Egrid,  rgrid , psigrid, Npaw,  PAWpatch , psipsigrid )
 
-       use module_base, only: gp, memocc,ndebug
+       use module_base, only: gp
        implicit none
        integer, intent(in) :: iproc,izatom,ielpsp,ng,npspcode,noccmax, lmax, Nsol, labs, Ngrid,  Ngrid_box
        real(gp), dimension(0:4,0:6), intent(in) :: psppar
@@ -220,7 +222,6 @@ contains
   !> deallocate_pcproj_data
   subroutine deallocate_pcproj_data(pcproj_data)
     use module_base
-    use gaussians, only: deallocate_gwf
     implicit none
     type(pcproj_data_type), intent(inout) :: pcproj_data
     

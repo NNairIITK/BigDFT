@@ -65,7 +65,7 @@ module module_defs
   real(gp), parameter :: AU_GPa=29421.010901602753_gp                   !< 1 Ha/Bohr^3 in GPa
   real(gp), parameter :: Radian_Degree = 57.29577951308232087679_gp     !< 1 radian in degrees
 
-  !> Evergreens
+  !> Evergreen
   real(dp), parameter :: pi_param=3.141592653589793238462643383279502884197_dp
 
   !> Error codes, to be documented little by little
@@ -83,15 +83,19 @@ module module_defs
      module procedure uninitialized_dbl,uninitialized_int,uninitialized_real,uninitialized_long, uninitialized_logical
   end interface
 
-  interface
-     subroutine bigdft_utils_flush(unit)
-       integer, intent(in) :: unit
-     end subroutine bigdft_utils_flush
-  end interface
+  interface safe_exp
+     module procedure safe_dexp
+  end interface safe_exp
+
+!!$  interface
+!!$     subroutine bigdft_utils_flush(unit)
+!!$       integer, intent(in) :: unit
+!!$     end subroutine bigdft_utils_flush
+!!$  end interface
 
   contains
 
-    function uninitialized_int(one) 
+    pure function uninitialized_int(one) 
       implicit none
       integer(kind = 4), intent(in) :: one
       integer(kind = 4) :: uninitialized_int
@@ -100,7 +104,7 @@ module module_defs
       uninitialized_int=-123456789
     end function uninitialized_int
 
-    function uninitialized_long(one) 
+    pure function uninitialized_long(one) 
       implicit none
       integer(kind = 8), intent(in) :: one
       integer(kind = 8) :: uninitialized_long
@@ -109,7 +113,7 @@ module module_defs
       uninitialized_long=-123456789
     end function uninitialized_long
 
-    function uninitialized_real(one) 
+    pure function uninitialized_real(one) 
       implicit none
       real(kind=4), intent(in) :: one
       real(kind=4) :: uninitialized_real
@@ -118,7 +122,7 @@ module module_defs
       uninitialized_real=-123456789.e0
     end function uninitialized_real
 
-    function uninitialized_dbl(one) 
+    pure function uninitialized_dbl(one) 
       implicit none
       real(kind=8), intent(in) :: one
       real(kind=8) :: uninitialized_dbl
@@ -127,7 +131,7 @@ module module_defs
       uninitialized_dbl=-123456789.d0
     end function uninitialized_dbl
 
-    function uninitialized_logical(one) 
+    pure function uninitialized_logical(one) 
       implicit none
       logical, intent(in) :: one
       logical :: uninitialized_logical
@@ -136,140 +140,43 @@ module module_defs
       uninitialized_logical=.false.
     end function uninitialized_logical
 
-    function fnrm_denpot(x,cplex,nfft,nspden,opt_denpot,user_data)
-      use m_ab7_mixing, only: AB7_MIXING_DENSITY
+
+    !> fpe-free way of calling exp.
+    !! Crop the results to zero in the case of underflow
+    pure function safe_dexp(x,extra_crop_order,underflow) result(ex)
       implicit none
-      !Arguments
-      integer, intent(in) :: cplex,nfft,nspden,opt_denpot
-      double precision, dimension(*), intent(in) :: x
-      integer, dimension(:), intent(in) :: user_data
-      !Local variables
-      integer :: ierr, ie, iproc, npoints, ishift
-      double precision :: fnrm_denpot, ar, nrm_local, dnrm2
+      !> argument of the exponential function
+      double precision, intent(in) :: x
+      !> determine the value under which the result is assumed to be zero
+      double precision, intent(in), optional :: underflow
+      !> further restrict the valid range of the function
+      !! by the order of magnitude indicated.
+      !! Useful when the function has to be multiplied by extra terms
+      !! The default is log of epsilon**2
+      integer, intent(in), optional :: extra_crop_order
+      double precision :: ex
+      !local variables
+      !> if the exponent is bigger than this value, the result is tiny(1.0)
+      double precision, parameter :: mn_expo=-708.396418532264d0 ! = log(tiny(1.d0))
+      !> if the exponent is lower than this value, the result is huge(1.0)
+      double precision, parameter :: mx_expo=709.78271289338397d0 ! = log(huge(1.d0))
+      !> the value of the cropping
+      double precision, parameter :: crop_expo=72.0873067782343d0 ! = -2*log(epsilon(1.d0))
+      double precision :: crop,mn,mx
 
-      ! In case of density, we use nscatterarr.
-      if (opt_denpot == AB7_MIXING_DENSITY) then
-         call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
-         if (ierr /= 0) then
-            call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
-         end if
-         npoints = cplex * user_data(2 * iproc + 1)
-         ishift  =         user_data(2 * iproc + 2)
+      crop=crop_expo
+      if (present(extra_crop_order)) crop=real(extra_crop_order,kind=8)
+      mn=mn_expo+crop
+      mx=mx_expo-crop
+      if (present(underflow)) mn=log(abs(underflow))
+      if (x > mn .and. x< mx) then
+         ex=exp(x)
+      else if (x <= mn) then
+         ex=0.d0
       else
-         npoints = cplex * nfft
-         ishift  = 0
+         ex=exp(mx)
       end if
-
-      ! Norm on spin up and spin down
-      nrm_local = dnrm2(npoints * min(nspden,2), x(1 + ishift), 1)
-      nrm_local = nrm_local ** 2
-
-      if (nspden==4) then
-         ! Add the magnetisation
-         ar = dnrm2(npoints * 2, x(1 + cplex * nfft * 2 + ishift), 1)
-         ar = ar ** 2
-         if (opt_denpot == 0) then
-            if (cplex == 1) then
-               nrm_local = nrm_local + 2.d0 * ar
-            else
-               nrm_local = nrm_local + ar
-            end if
-         else
-            nrm_local = 0.5d0 * (nrm_local + ar)
-         end if
-      end if
-      
-      ! Summarize on processors
-      !fnrm_denpot = nrm_local
-      if (bigdft_mpi%nproc>1) then
-          call MPI_ALLREDUCE(nrm_local, fnrm_denpot, 1, &
-               & MPI_DOUBLE_PRECISION, MPI_SUM, bigdft_mpi%mpi_comm, ierr)
-      else
-          fnrm_denpot = nrm_local
-          ierr = 0
-      end if
-      if (ierr /= 0) then
-         call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
-      end if
-    end function fnrm_denpot
-
-    function fdot_denpot(x,y,cplex,nfft,nspden,opt_denpot,user_data)
-      use m_ab7_mixing
-      implicit none
-      integer, intent(in) :: cplex,nfft,nspden,opt_denpot
-      double precision, intent(in) :: x(*), y(*)
-      integer, intent(in) :: user_data(:)
-
-      integer :: ierr, ie, iproc, npoints, ishift
-      double precision :: fdot_denpot, ar, dot_local, ddot
-
-      ! In case of density, we use nscatterarr.
-      if (opt_denpot == AB7_MIXING_DENSITY) then
-         call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
-         if (ierr /= 0) then
-            call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
-         end if
-         npoints = cplex * user_data(2 * iproc + 1)
-         ishift  =         user_data(2 * iproc + 2)
-      else
-         npoints = cplex * nfft
-         ishift  = 0
-      end if
-
-      if (opt_denpot == 0 .or. opt_denpot == 1) then
-         ! Norm on spin up and spin down
-         dot_local = ddot(npoints * min(nspden,2), x(1 + ishift), 1, y(1 + ishift), 1)
-
-         if (nspden==4) then
-            ! Add the magnetisation
-            ar = ddot(npoints * 2, x(1 + cplex * nfft * 2 + ishift), 1, &
-                 & y(1 + cplex * nfft * 2 + ishift), 1)
-            if (opt_denpot == 0) then
-               if (cplex == 1) then
-                  dot_local = dot_local + 2.d0 * ar
-               else
-                  dot_local = dot_local + ar
-               end if
-            else
-               dot_local = 0.5d0 * (dot_local + ar)
-            end if
-         end if
-      else
-         if(nspden==1)then
-            dot_local = ddot(npoints, x(1 + ishift), 1, y(1 + ishift), 1)
-         else if(nspden==2)then
-            ! This is the spin up contribution
-            dot_local = ddot(npoints, x(1 + ishift + nfft), 1, y(1 + ishift), 1)
-            ! This is the spin down contribution
-            dot_local = dot_local + ddot(npoints, x(1 + ishift ), 1, y(1 + ishift+ nfft), 1)
-         else if(nspden==4)then
-            !  \rho{\alpha,\beta} V^{\alpha,\beta} =
-            !  rho*(V^{11}+V^{22})/2$
-            !  + m_x Re(V^{12})- m_y Im{V^{12}}+ m_z(V^{11}-V^{22})/2
-            dot_local = 0.5d0 * (ddot(npoints, x(1 + ishift), 1, y(1 + ishift), 1) + &
-                 & dot(npoints, x(1 + ishift), 1, y(1 + ishift + nfft), 1))
-            dot_local = dot_local + 0.5d0 * ( &
-                 & ddot(npoints, x(1 + ishift + 3 * nfft), 1, y(1 + ishift), 1) - &
-                 & ddot(npoints, x(1 + ishift + 3 * nfft), 1, y(1 + ishift + nfft), 1))
-            dot_local = dot_local + &
-                 & ddot(npoints, x(1 + ishift + nfft), 1, y(1 + ishift + 2 * nfft), 1)
-            dot_local = dot_local - &
-                 & ddot(npoints, x(1 + ishift + 2 * nfft), 1, y(1 + ishift + 3 * nfft), 1)
-         end if
-      end if
-      
-      ! Summarize on processors
-      fdot_denpot = dot_local
-      if (bigdft_mpi%nproc>1) then
-          call MPI_ALLREDUCE(dot_local, fdot_denpot, 1, &
-               & MPI_DOUBLE_PRECISION, MPI_SUM, bigdft_mpi%mpi_comm, ierr)
-      else
-          fdot_denpot = dot_local
-          ierr = 0
-      end if
-      if (ierr /= 0) then
-         call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
-      end if
-    end function fdot_denpot
+         
+    end function safe_dexp
 
 end module module_defs

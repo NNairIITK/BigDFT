@@ -86,7 +86,7 @@ module dictionaries_base
   !> the database book is a workspace of pre-allocated dictionaries, which is used to manage dictionary creation
   type, private :: database_book
      !> this is the registry of the dictionary. It keeps track of the address of the associated dictionaries
-     !it is null when the corresponding file item is free
+     !!it is null when the corresponding file item is free
      integer(kind=8), dimension(:), pointer :: registry => null()
      !>this is the place occupied by a dictionary, which is pre-allocated by
      !! the allocation in database_book. The routine dict_init associates the dictionary to a database item
@@ -105,12 +105,16 @@ module dictionaries_base
      module procedure get_child_ptr,get_list_ptr
   end interface
 
+  interface dict_free
+     module procedure dict_free, dict_free_multi
+  end interface 
+
 !!$  interface operator(.val.)
 !!$     module procedure list_iter_to_value,dict_iter_to_value
 !!$  end interface
 
   private :: allocate_library, allocate_file, deallocate_file, destroy_library
-
+  public :: dict_free
 
 contains
   
@@ -152,8 +156,6 @@ contains
 !!$
 !!$    val=link_elem%elem
 !!$  end function get_value_le
-
-          
 
   !> Test if keys are present
   pure function no_key(dict)
@@ -374,6 +376,23 @@ contains
     end if
   end subroutine dict_destroy
 
+  !> free different dictionaries at the same time
+  subroutine dict_free_multi(dict0,dict1,dict2,dict3,dict4,dict5,dict6,dict7,dict8,dict9)
+    type(dictionary), pointer :: dict0,dict1
+    type(dictionary), pointer, optional :: dict2,dict3,dict4,dict5,dict6,dict7,dict8,dict9
+    
+    call dict_free(dict0)
+    call dict_free(dict1)
+    if (present(dict2)) call dict_free(dict2)
+    if (present(dict3)) call dict_free(dict3)
+    if (present(dict4)) call dict_free(dict4)
+    if (present(dict5)) call dict_free(dict5)
+    if (present(dict6)) call dict_free(dict6)
+    if (present(dict7)) call dict_free(dict7)
+    if (present(dict8)) call dict_free(dict8)
+    if (present(dict9)) call dict_free(dict9)
+
+  end subroutine dict_free_multi
 
   subroutine dict_free(dict)
     type(dictionary), pointer :: dict
@@ -403,20 +422,6 @@ contains
             call dict_free_(child)
          end if
       end do
-
-!!$
-!!$      !first destroy the children
-!!$      if (associated(dict%child)) then
-!!$         call dict_free_(dict%child)
-!!$         call dict_destroy(dict%child)
-!!$      end if
-!!$      !then destroy younger brothers
-!!$      if (associated(dict%next)) then
-!!$         call dict_free_(dict%next)
-!!$         call dict_destroy(dict%next)
-!!$      end if
-!!$      call dictionary_nullify(dict)
-
     end subroutine dict_free_
 
   end subroutine dict_free
@@ -476,48 +481,6 @@ contains
        name_is=(trim(name) == trim(dict%data%value))
     end if
   end function name_is
-
-
-  !> Fill output with input and the rest with blanks
-  !! this routine is only useful for its interface
-  pure subroutine set_field(input,output)
-    implicit none
-    character(len=*), intent(in) :: input 
-    character(len=max_field_length), intent(out) :: output 
-    !local variables
-    integer :: ipos,i
-
-    !one could also write
-    !output(1:len(output))=input
-
-    ipos=min(len(trim(input)),max_field_length)
-    do i=1,ipos
-       output(i:i)=input(i:i)
-    end do
-    do i=ipos+1,max_field_length
-       output(i:i)=' ' 
-    end do
-
-  end subroutine set_field
-
-
-  pure subroutine get_field(input,output)
-    implicit none
-    character(len=max_field_length), intent(in) :: input
-    character(len=*), intent(out) :: output
-    !local variables
-    integer :: ipos,i
-
-    ipos=min(len(output),max_field_length)
-    do i=1,ipos
-       output(i:i)=input(i:i)
-    end do
-    do i=ipos+1,len(output)
-       output(i:i)=' ' 
-    end do
-
-  end subroutine get_field
-
 
   !> Returns the value of the key of the dictionary
   pure function dict_key(dict)
@@ -601,12 +564,13 @@ contains
   !> This routine creates a key for the dictionary in case it is absent
   !! the it adds one to the number of elements of the parent dictionary
   pure subroutine set_elem(dict,key)
+    use yaml_strings, only: f_strcpy
     implicit none
     type(dictionary), pointer :: dict !!TO BE VERIFIED
     character(len=*), intent(in) :: key
 
     !print *,'set_elem in ',trim(key),dict%data%nelems,dict%parent%data%nelems
-    call set_field(trim(key),dict%data%key)
+    call f_strcpy(src=trim(key),dest=dict%data%key)
     if (associated(dict%parent)) then
        dict%parent%data%nelems=dict%parent%data%nelems+1
     else
@@ -639,17 +603,17 @@ contains
   !! If the key does not exists, create it in the child chain
   function get_child_ptr(dict,key) result(subd_ptr)
     implicit none
-    type(dictionary), intent(in), pointer :: dict !hidden inout
+    type(dictionary), intent(in), pointer :: dict 
     character(len=*), intent(in) :: key
     type(dictionary), pointer :: subd_ptr
 
     !!commented out, the key is checked only when retrieving
     !call check_key(dict)
     if (associated(dict%child)) then
-       subd_ptr => get_dict_ptr(dict%child,key)
+       !subd_ptr => get_dict_ptr(dict%child,key)
+       subd_ptr => get_dict_from_key(dict%child,key,create=.true.)
     else
        call dict_init(dict%child)
-       !call set_field(key,dict%child%data%key)
        call define_parent(dict,dict%child)
        call set_elem(dict%child,key)
        subd_ptr => dict%child
@@ -658,62 +622,108 @@ contains
   end function get_child_ptr
 
 
-  !> Retrieve the pointer to the dictionary which has this key.
-  !! If the key does not exists, create it in the next chain 
-  !! Key Must be already present 
-  recursive function get_dict_ptr(dict,key) result (dict_ptr)
+  !>points to the dictionary which has the key.
+  function get_dict_from_key(dict,key,create) result (dict_ptr)
     implicit none
-    type(dictionary), intent(in), pointer :: dict !hidden inout
+    !> root of the dictionary to start the search from
+    type(dictionary), intent(in), pointer :: dict 
+    !> key that has to be matched, trailing blanks excluded
     character(len=*), intent(in) :: key
+    !> default .false. if present with value .true., a item is created in the dictionary with the key
+    logical, intent(in), optional :: create 
     type(dictionary), pointer :: dict_ptr
+    !local variables
+    logical :: crt
+    type(dictionary), pointer :: iter
 
-!    print *,'here',trim(key)
-    !follow the chain, stop at the first occurence
-    if (trim(dict%data%key) == trim(key)) then
-       dict_ptr => dict
-    else if (associated(dict%next)) then
-       dict_ptr => get_dict_ptr(dict%next,key)
-    else if (no_key(dict)) then !this is useful for the first assignation
-       call set_elem(dict,key)
-       !call set_field(key,dict%data%key)
-       dict_ptr => dict
-    else
-       call dict_init(dict%next)
-       !call set_field(key,dict%next%data%key)
-       call define_brother(dict,dict%next) !chain the list in both directions
-       if (associated(dict%parent)) call define_parent(dict%parent,dict%next)
-       call set_elem(dict%next,key)
-       dict_ptr => dict%next
+    crt=.false.
+    if (present(create)) crt=create
+    !iterate until key found
+    nullify(dict_ptr)
+    iter => dict
+    seek: do 
+       if (iter%data%key == trim(key)) then
+          dict_ptr=> iter
+          exit seek
+       else if (associated(iter%next)) then
+          iter => iter%next
+          cycle seek
+       else 
+          exit seek
+       end if
+    end do seek
+
+    !this is useful for the first assignation, might be moved at the beginning
+    if (crt) then
+       if (no_key(iter)) then 
+          call set_elem(iter,key)
+          dict_ptr => iter
+       end if
+       !if we did not find the key, decide to create it
+       if (.not. associated(dict_ptr)) then
+          call dict_init(iter%next)
+          call define_brother(iter,iter%next) !chain the list in both directions
+          if (associated(iter%parent)) call define_parent(iter%parent,iter%next)
+          call set_elem(iter%next,key)
+          dict_ptr => iter%next
+       end if
     end if
+  end function get_dict_from_key
+!!$
+!!$  !> Retrieve the pointer to the dictionary which has this key.
+!!$  !! If the key does not exists, create it in the next chain 
+!!$  !! Key Must be already present 
+!!$  recursive function get_dict_ptr(dict,key) result (dict_ptr)
+!!$    implicit none
+!!$    type(dictionary), intent(in), pointer :: dict !hidden inout
+!!$    character(len=*), intent(in) :: key
+!!$    type(dictionary), pointer :: dict_ptr
+!!$
+!!$!    print *,'here',trim(key)
+!!$    !follow the chain, stop at the first occurence
+!!$    if (trim(dict%data%key) == trim(key)) then
+!!$       dict_ptr => dict
+!!$    else if (associated(dict%next)) then
+!!$       dict_ptr => get_dict_ptr(dict%next,key)
+!!$    else if (no_key(dict)) then !this is useful for the first assignation
+!!$       call set_elem(dict,key)
+!!$       dict_ptr => dict
+!!$    else
+!!$       call dict_init(dict%next)
+!!$       call define_brother(dict,dict%next) !chain the list in both directions
+!!$       if (associated(dict%parent)) call define_parent(dict%parent,dict%next)
+!!$       call set_elem(dict%next,key)
+!!$       dict_ptr => dict%next
+!!$    end if
+!!$
+!!$  end function get_dict_ptr
 
-  end function get_dict_ptr
 
-
-  !> Retrieve the pointer to the item of the list.
-  !! If the list does not exists, create it in the child chain.
-  !! If the list is too short, create it in the next chain
-  recursive function get_item_ptr(dict,item) result (item_ptr)
-    implicit none
-    type(dictionary), intent(in), pointer :: dict !hidden inout
-    integer, intent(in) :: item
-    type(dictionary), pointer :: item_ptr
-
-    !follow the chain, stop at  first occurence
-    if (dict%data%item == item) then
-       item_ptr => dict
-    else if (associated(dict%next)) then
-       item_ptr => get_item_ptr(dict%next,item)
-    else if (no_key(dict)) then
-       call set_item(dict,item)
-       item_ptr => dict
-    else
-       call dict_init(dict%next)
-       call define_brother(dict,dict%next) !chain the list in both directions
-       if (associated(dict%parent)) call define_parent(dict%parent,dict%next)
-       call set_item(dict%next,item)
-       item_ptr => dict%next
-    end if
-  end function get_item_ptr
+!!$  !> Retrieve the pointer to the item of the list.
+!!$  !! If the list does not exists, create it in the child chain.
+!!$  !! If the list is too short, create it in the next chain
+!!$  recursive function get_item_ptr(dict,item) result (item_ptr)
+!!$    implicit none
+!!$    type(dictionary), intent(in), pointer :: dict !hidden inout
+!!$    integer, intent(in) :: item
+!!$    type(dictionary), pointer :: item_ptr
+!!$
+!!$    !follow the chain, stop at  first occurence
+!!$    if (dict%data%item == item) then
+!!$       item_ptr => dict
+!!$    else if (associated(dict%next)) then
+!!$       item_ptr => get_item_ptr(dict%next,item)
+!!$    else if (no_key(dict)) then
+!!$       call set_item(dict,item)
+!!$       item_ptr => dict
+!!$    else
+!!$       call dict_init(dict%next)
+!!$       call define_brother(dict,dict%next) !chain the list in both directions
+!!$       if (associated(dict%parent)) call define_parent(dict%parent,dict%next)
+!!$       call set_item(dict%next,item)
+!!$       item_ptr => dict%next
+!!$    end if
+!!$  end function get_item_ptr
 
 
   !> Retrieve the pointer to the item of the list.
@@ -721,7 +731,7 @@ contains
   !! If the list is too short, create it in the next chain
   subroutine item_ptr_find(dict,item,item_ptr)
     implicit none
-    type(dictionary), intent(in), pointer :: dict !hidden inout
+    type(dictionary), intent(in), pointer :: dict 
     integer, intent(in) :: item
     type(dictionary), pointer :: item_ptr
 
@@ -778,30 +788,33 @@ contains
 
   !> Defines a storage structure with a key-value couple
   elemental pure function storage_data(key,val)
+    use yaml_strings, only: f_strcpy
     character(len=*), intent(in) :: key,val
     type(storage) :: storage_data
 
     storage_data=storage_null()
 
-    call set_field(key,storage_data%key)
-    call set_field(val,storage_data%value)
+    call f_strcpy(src=key,dest=storage_data%key)
+    call f_strcpy(src=val,dest=storage_data%value)
 
   end function storage_data
 
   !> Test to see the g95 behaviour
   pure function stored_key(st) result(key)
+    use yaml_strings, only: f_strcpy
     implicit none
     type(storage), intent(in) :: st
     character(len=max_field_length) :: key
-    call get_field(st%key,key)
+    call f_strcpy(src=st%key,dest=key)
   end function stored_key
 
   !> test to see the g95 behaviour
   pure function stored_value(st) result(val)
+    use yaml_strings, only: f_strcpy
     implicit none
     type(storage), intent(in) :: st
     character(len=max_field_length) :: val
-    call get_field(st%value,val)
+    call f_strcpy(src=st%value,dest=val)
   end function stored_value
 
 
@@ -884,10 +897,10 @@ end module dictionaries_base
 !LG: having a external routine with the same name of
 ! a routine module is very dangerous! The linker does not complain and
 ! a segfault might arrive due to absence of interface
-subroutine dict_free(dict)
+subroutine dict_free_binding(dict)
   use dictionaries_base, mod_dict_free => dict_free
   implicit none
   type(dictionary), pointer :: dict
 
   call mod_dict_free(dict)
-end subroutine dict_free
+end subroutine dict_free_binding

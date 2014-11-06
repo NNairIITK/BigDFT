@@ -858,7 +858,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
      if(ivalue >= n_scf-intorder-1) exit loop_right
      do i=1,intorder+1
         x=xval(ivalue)-real(ikern,dp)
-        f=yval(ivalue)*dexp(-mu0*x)
+        f=yval(ivalue)*exp(-mu0*x)
         filter=real(intorder,dp)*c(i)
         gright=gright+filter*f
         ivalue=ivalue+1
@@ -868,7 +868,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   iend=n_scf-ivalue
   do i=1,iend
      x=xval(ivalue)-real(ikern,dp)
-     f=yval(ivalue)*dexp(-mu0*x)
+     f=yval(ivalue)*exp(-mu0*x)
      filter=real(intorder,dp)*c(i)
      gright=gright+filter*f
      ivalue=ivalue+1
@@ -890,8 +890,8 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
         if (izero==n_scf)  exit loop_integration
         do i=1,intorder+1
            x=xval(ivalue)
-           fl=yval(ivalue)*dexp(mu0*x)
-           fr=yval(ivalue)*dexp(-mu0*x)
+           fl=yval(ivalue)*exp(mu0*x)
+           fr=yval(ivalue)*exp(-mu0*x)
            filter=real(intorder,dp)*c(i)
            gltmp=gltmp+filter*fl
            grtmp=grtmp+filter*fr
@@ -905,11 +905,11 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
         ivalue=ivalue-1
         izero=izero-1
      end do loop_integration
-     gleft=dexp(-mu0)*(gleft+hres*dexp(-mu0*real(ikern-1,dp))*gltmp)
+     gleft=exp(-mu0)*(gleft+hres*exp(-mu0*real(ikern-1,dp))*gltmp)
      if (izero == n_scf) then
         gright=0._dp
      else
-        gright=dexp(mu0)*(gright-hres*dexp(mu0*real(ikern-1,dp))*grtmp)
+        gright=exp(mu0)*(gright-hres*exp(mu0*real(ikern-1,dp))*grtmp)
      end if
      green(ikern)=gleft+gright
      green(-ikern)=gleft+gright
@@ -1692,9 +1692,9 @@ subroutine gauss_conv_scf(itype_scf,pgauss,hgrid,dx,n_range,n_scf,x_scf,y_scf,ke
   real(dp), dimension(-n_range:n_range), intent(inout) :: work
   real(dp), dimension(-n_range:n_range), intent(inout) :: kernel_scf
   !local variables
-  real(dp), parameter :: p0_ref = 1.0_dp
+  real(dp), parameter :: p0_ref = 1.0_dp,mx_expo=634.71369555645470d0! = -log(tiny(1.0_dp)*1.d32)
   integer :: n_iter,i_kern,i
-  real(dp) :: p0_cell,p0gauss,absci,kern
+  real(dp) :: p0_cell,p0gauss,absci,kern,x_limit
 
   !Step grid for the integration
   !dx = real(n_range,dp)/real(n_scf,dp)
@@ -1710,7 +1710,7 @@ subroutine gauss_conv_scf(itype_scf,pgauss,hgrid,dx,n_range,n_scf,x_scf,y_scf,ke
   else
      p0gauss = pgauss/4._dp**n_iter
   end if
-
+  x_limit= sqrt(mx_expo/p0gauss)/hgrid !to avoid illegal operations
   !Stupid integration
   !Do the integration with the exponential centered in i_kern
   kernel_scf(:) = 0.0_dp
@@ -1718,8 +1718,11 @@ subroutine gauss_conv_scf(itype_scf,pgauss,hgrid,dx,n_range,n_scf,x_scf,y_scf,ke
      kern = 0.0_dp
      do i=0,n_scf
         absci = x_scf(i) - real(i_kern,dp)
-        absci = absci*absci*hgrid**2
-        kern = kern + y_scf(i)*dexp(-p0gauss*absci)
+        if (abs(absci) < x_limit) then
+           absci = absci*absci*hgrid**2
+           !print *,'done',x_limit,abs(absci),exp(-p0gauss*absci),y_scf(i)
+           kern = kern + y_scf(i)*exp(-p0gauss*absci)
+        end if
      end do
      kernel_scf(i_kern) = kern*dx
      kernel_scf(-i_kern) = kern*dx
@@ -1956,17 +1959,18 @@ subroutine gequad(p,w,urange,drange,acc)
  
 END SUBROUTINE gequad
 
-!>  Build the kernel of the Poisson operator with wires Boundary conditions
-!!  in an interpolating scaling functions basis.
-!!  The periodic direction is z
-subroutine Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray, &
+
+!> Build the kernel of the Poisson operator with wires Boundary conditions
+!! in an interpolating scaling functions basis.
+!! The periodic direction is z
+subroutine Wires_Kernel(nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray, &
                         mu0_screening)
   use Poisson_Solver, only: dp
   use memory_profiling
   use dynamic_memory
   implicit none
   !Arguments
-  integer, intent(in) :: iproc,nproc        !< Number of process, number of processes
+  integer, intent(in) :: nproc              !< Number of processes
   integer, intent(in) :: n01,n02,n03
   integer, intent(in) :: n1,n2,n3           !< Dimensions for the FFT
   integer, intent(in) :: nker1,nker2,nker3  !< Dimensions of the kernel nker(1,2,3)=n(1,2,3)/2+1

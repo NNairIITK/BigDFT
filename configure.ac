@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7.1.20],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7.6],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -63,6 +63,8 @@ AC_FC_SRCEXT(f90)
 
 AC_FC_WRAPPERS()
 AX_FC_FLUSH()
+AX_FC_RECL_KIND()
+AC_SUBST(RECL_INT_KIND, $ax_fc_recl_kind)
 AX_FC_DEFS()
 AX_FC_F2003()
 AX_FC_OPENMP()
@@ -281,6 +283,9 @@ include "mpif.h"
 
 call MPI_ALLREDUCE(MPI_IN_PLACE,rho,3,&
               MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+call MPI_ACCUMULATE()
+
 end
 ]], ac_with_mpi2="yes", ac_with_mpi2="no")
       AC_MSG_RESULT([$ac_with_mpi2])
@@ -288,6 +293,47 @@ end
 
     if test x"$ac_with_mpi2" = x"yes" ; then
       AC_DEFINE([HAVE_MPI2], [1], [use MPI2 capabilities.])
+    fi
+
+    dnl Test for MPI3.
+    AC_ARG_WITH(mpi3, AS_HELP_STRING([--with-mpi3],
+                [Use MPI3 capabilities like MPI_IALLREDUCE.]),
+                ac_with_mpi3=$withval, ac_with_mpi3="auto")
+    if test x"$ac_with_mpi3" == x"yes" -o x"$ac_with_mpi3" == x"auto" ; then
+      AC_MSG_CHECKING([for MPI 3 capabilities])
+      AC_LINK_IFELSE([[
+program main
+implicit none
+
+integer :: ierr,request,nproc,iproc,jproc
+real :: rho(3),rho2(3)
+real,dimension(:),allocatable :: sendbuf,recvbuf
+integer,dimension(:),allocatable :: sendcounts,sdispls,recvcounts,rdispls
+
+include "mpif.h"
+
+call mpi_comm_rank(MPI_COMM_WORLD,iproc,ierr)
+call mpi_comm_size(MPI_COMM_WORLD,nproc,ierr)
+allocate(sendbuf(nproc),recvbuf(nproc))
+allocate(sendcounts(0:nproc-1),sdispls(0:nproc-1),recvcounts(0:nproc-1),rdispls(0:nproc-1))
+do jproc=0,nproc-1
+	sendcounts(jproc)=1
+	sdispls(jproc)=jproc
+	recvcounts(jproc)=1
+	rdispls(jproc)=jproc
+end do
+
+call MPI_IALLREDUCE(rho2,rho,3,&
+              MPI_REAL,MPI_SUM,MPI_COMM_WORLD,request,ierr)
+call MPI_IALLTOALLV(sendbuf,sendcounts,sdispls,MPI_REAL,&
+					recvbuf,recvcounts,rdispls,MPI_REAL,MPI_COMM_WORLD,request,ierr)
+end
+]], ac_with_mpi3="yes", ac_with_mpi3="no")
+      AC_MSG_RESULT([$ac_with_mpi3])
+    fi
+
+    if test x"$ac_with_mpi3" = x"yes" ; then
+      AC_DEFINE([HAVE_MPI3], [1], [use MPI3 capabilities (like MPI_IALLREDUCE and MPI_IALLTOALLV).])
     fi
 
   else
@@ -591,17 +637,28 @@ ac_build_bin_cluster="yes"
 
 
 dnl disable different build
+dnl The Poisson solver library
+AC_ARG_ENABLE(libpsolver, AS_HELP_STRING([--disable-libpsolver], [build the PSolver library (default = yes).]), ac_build_lib_PSolver=$enableval, ac_build_lib_PSolver="yes")
 dnl The BigDFT library
 AC_ARG_ENABLE(libbigdft, AS_HELP_STRING([--disable-libbigdft], [build the BigDFT library (default = yes).]), ac_build_lib_BigDFT=$enableval, ac_build_lib_BigDFT="yes")
+if test x"$ac_build_lib_PSolver" != x"yes" -a x"$ac_build_lib_BigDFT" == x"yes" ; then
+  ac_build_lib_BigDFT="disabled"
+fi
+dnl The cluster executable
+AC_ARG_ENABLE(binaries, AS_HELP_STRING([--disable-binaries], [build the binaries (default = yes).]), ac_build_bin_cluster=$enableval, ac_build_bin_cluster="yes")
+if test x"$ac_build_lib_BigDFT" != x"yes" -a x"$ac_build_bin_cluster" == x"yes" ; then
+  ac_build_bin_cluster="disabled"
+fi
+
+AM_CONDITIONAL(BUILD_LIB_PSOLVER, test "$ac_build_lib_PSolver" = "yes")
+AC_MSG_CHECKING([for PSolver library build])
+AC_MSG_RESULT([$ac_build_lib_PSolver])
 AM_CONDITIONAL(BUILD_LIB_BIGDFT, test "$ac_build_lib_BigDFT" = "yes")
 AC_MSG_CHECKING([for BigDFT library build])
 AC_MSG_RESULT([$ac_build_lib_BigDFT])
-dnl The cluster executable
-AC_ARG_ENABLE(binaries, AS_HELP_STRING([--disable-binaries], [build the binaries (default = yes).]), ac_build_bin_cluster=$enableval, ac_build_bin_cluster="yes")
 AM_CONDITIONAL(BUILD_BINARIES, test "$ac_build_bin_cluster" = "yes")
 AC_MSG_CHECKING([for BigDFT binaries build])
 AC_MSG_RESULT([$ac_build_bin_cluster])
-
 
 dnl ---------------------------------------
 
@@ -881,7 +938,7 @@ if test x"$ac_use_libxc" != x"no" ; then
   use libxc_funcs_m
   use xc_f90_lib_m
 
-  write(*,*) XC_FAMILY_GGA
+  write(*,*) AB6_MAX_SYMMETRIES
 end program]], withlibxcmod=yes, withlibxcmod=no)
       AC_MSG_RESULT($withlibxcmod)
       FCFLAGS=$FCFLAGS_SVG
@@ -937,7 +994,7 @@ ac_build_libabinit=$ac_internal_libabinit
 if test "$ac_internal_libabinit" = "yes" ; then
   ac_build_libabinit="yes"
   ac_use_libabinit="yes"
-  AC_SUBST(LIBABINIT_INCLUDE, "-I\$(top_builddir)"/libABINIT/src)
+  ac_libabinit_incs="-I\$(top_builddir)/libABINIT/src"
   LDFLAGS="$LDFLAGS -L\$(top_builddir)/libABINIT/src"
 else
   if test -n "$ac_libabinit_dir" ; then
@@ -950,14 +1007,33 @@ else
     AC_CHECK_FILE($ac_libabinit_dir/include/libxc_functionals.$ax_fc_mod_ext, libxc="yes", libxc="no")
     if test "$withlibabinit" = "yes" -a "$moldyn" = "yes" -a "$sym" = "yes" -a "$libxc" = "yes"; then
       ac_use_libabinit="yes"
-      AC_SUBST(LIBABINIT_INCLUDE, "-I"$ac_libabinit_dir/include)
+      ac_libabinit_incs="-I$ac_libabinit_dir/include"
     fi
   fi
 fi
 AM_CONDITIONAL(BUILD_LIBABINIT, test x"$ac_build_libabinit" = x"yes")
+dnl Test the libPAW library.
+ac_internal_libpaw="yes"
+AC_ARG_WITH(libpaw, AS_HELP_STRING([--with-libpaw],
+                                   [Give the path for an external libPAW library, lib and module files (default = internal).]),
+            ac_internal_libpaw=$withval, ac_internal_libpaw="yes")
+if test x"$ac_internal_libpaw" == x"yes" -o x"$ac_internal_libpaw" == x"internal" ; then
+   ac_internal_libpaw="yes"
+else
+   dnl Given path should be tested here.
+   ac_libpaw_incs="-I$ac_internal_libpaw/include"
+   LDFLAGS="$LDFLAGS -L$ac_internal_libpaw/lib"
+   LIBABINIT_LIBS="-lpaw $LIBABINIT_LIBS"
+fi
+AM_CONDITIONAL(BUILD_LIBPAW, test x"$ac_internal_libpaw" = x"yes")
 if test x"$ac_use_libabinit" = x"yes" ; then
   AC_DEFINE([HAVE_LIBABINIT], [1], [use libABINIT in BigDFT.])
-  LIBABINIT_LIBS="-labinit"
+  AC_SUBST(LIBABINIT_INCLUDE, "$ac_libpaw_incs $ac_libabinit_incs")
+  if test x"$ac_internal_libpaw" == x"yes" ; then
+    LIBABINIT_LIBS="-labinit"
+  else
+    LIBABINIT_LIBS="-lpaw -labinit"
+  fi
 fi
 
 dnl Test S_GPU library.
@@ -999,6 +1075,7 @@ fi
 AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
 
 dnl Test the availability of clock_gettime() and rt library.
+dnl This will be added in libs, on top, therefore care should be taken for a linker which require ordering
 AC_LANG_PUSH(C)
 AC_CHECK_HEADERS([time.h])
 AC_CHECK_LIB([rt], [clock_gettime])
@@ -1009,7 +1086,9 @@ dnl Agregate all flags.
 LDFLAGS="$LDFLAGS $LDFLAGS_MIC"
 
 dnl Agregate all the optional libs.
-LIBS_SHORT_DEPS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIBS_EXT_DEPS="$LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
+AC_SUBST(LIBS_EXT_DEPS, [$LIBS_EXT_DEPS])
+LIBS_SHORT_DEPS="$LIBABINIT_LIBS $LIBXC_LIBS $LIBSGPU_LIBS $LIBS_EXT_DEPS"
 AC_SUBST(LIBS_SHORT_DEPS, [$LIBS_SHORT_DEPS])
 
 dnl Test for the documentation.
@@ -1020,7 +1099,7 @@ AC_CHECK_PROG(ac_have_doxygen, [doxygen], [yes], [no])
 AC_ARG_ENABLE(devel-doc,
               AS_HELP_STRING([--enable-devel-doc],
                              [compile documentation for developers using Doxygen.]),
-              ac_devel_doc=$withval, ac_devel_doc="no")
+              ac_devel_doc=$enableval, ac_devel_doc="no")
 AM_CONDITIONAL(BUILD_DEVDOC, test x"$ac_have_doxygen" = x"yes" -a x"$ac_devel_doc" = x"yes")
 dnl default installation directories
 AC_ARG_WITH(moduledir,
@@ -1047,6 +1126,7 @@ config/Doxyfile
 PyYAML-3.10/Makefile
 flib/Makefile
 flib/src/Makefile
+flib/src/f_utils.inc
 flib/tests/Makefile
 wrappers/Makefile
 PSolver/Makefile
@@ -1066,6 +1146,7 @@ src/OpenCL/Makefile
 src/convolutions-c/Makefile
 src/bindings/Makefile
 src/art/Makefile
+src/mhgps_files/Makefile
 src/tools/Makefile
 src/tools/bader/Makefile
 utils/Makefile
@@ -1129,14 +1210,17 @@ Basics:
   Fortran77 flags:           $FFLAGS
   Linker flags:              $LDFLAGS
   Linked libraries:          $LIBS_DEPENDENCIES $LIBS
+  Linked dependencies:       $LIBS_SHORT_DEPS
 
 Build:
+  Library flib:              yes
+  Library PSolver:           $ac_build_lib_PSolver
   Library BigDFT:            $ac_build_lib_BigDFT
   Main binaries (bigdft,...):$ac_build_bin_cluster
   atom and pseudo binaries:  $ac_build_bin_pseudo
   Bindings:                  $ac_build_bindings
   User documentation:        $ac_have_pdflatex
-  Devel. documentation:      $ac_have_doxygen / $ac_devel_doc
+  Devel. documentation:      $ac_devel_doc (Doxygen: $ac_have_doxygen)
 
 Options:
   Debug version:             $ac_use_debug
@@ -1158,6 +1242,8 @@ Options:
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc
    | include dir.:           $LIBXC_INCLUDE
+  With libPAW:               $ac_use_libabinit
+   | path (or internal):     $ac_internal_libpaw
   With libABINIT:            $ac_use_libabinit
    | internal built:         $ac_build_libabinit
    | include dir.:           $LIBABINIT_INCLUDE

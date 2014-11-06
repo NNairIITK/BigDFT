@@ -57,9 +57,7 @@
 module Poisson_Solver
    use wrapper_linalg
    use wrapper_MPI
-   ! TO BE REMOVED with f_malloc
-   use memory_profiling
-   use dynamic_memory, only: to_zero
+   use dynamic_memory
    use time_profiling, only: TIMING_UNINITIALIZED
    !use m_profiling
    ! TO BE REMOVED with f_malloc

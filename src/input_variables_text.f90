@@ -11,8 +11,6 @@
 !> Define the name of the input files
 subroutine standard_inputfile_names(in, radical)
   use module_types
-  use module_base
-  use yaml_output
   implicit none
   type(input_variables), intent(inout) :: in
   character(len = *), intent(in) :: radical
@@ -49,6 +47,7 @@ end subroutine set_inputfile
 
 subroutine fragment_variables_from_old_text_format(in, run_name)
   use dictionaries
+  use module_base, only: bigdft_mpi
   use module_types
   use input_old_text_format
   implicit none
@@ -85,7 +84,8 @@ subroutine fragment_input_variables_check(iproc,dump,filename,lin)
   use module_types
   use module_input
   use yaml_output, only: yaml_map
-  use module_input_keys
+  !use module_input_keys
+  use public_keys
   implicit none
   integer, intent(in) :: iproc
   !integer, intent(inout) :: files

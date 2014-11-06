@@ -365,11 +365,13 @@ subroutine denspot_emit_rhov(denspot, iter, iproc, nproc)
   real(gp), pointer :: full_dummy(:)
   interface
      subroutine denspot_full_density(denspot, rho_full, iproc, new)
+       use module_defs, only: gp
        use module_types
        implicit none
        type(DFT_local_fields), intent(in) :: denspot
        integer, intent(in) :: iproc
        integer, intent(out) :: new
+
        real(gp), dimension(:), pointer :: rho_full
      END SUBROUTINE denspot_full_density
   end interface
@@ -417,6 +419,7 @@ subroutine denspot_emit_v_ext(denspot, iproc, nproc)
   real(gp), pointer :: full_dummy(:)
   interface
      subroutine denspot_full_v_ext(denspot, pot_full, iproc, new)
+       use module_defs, only: gp
        use module_types
        implicit none
        type(DFT_local_fields), intent(in) :: denspot
@@ -469,22 +472,22 @@ subroutine allocateRhoPot(Glr,nspin,atoms,rxyz,denspot)
 
   !allocate ionic potential
   if (denspot%dpbox%n3pi > 0) then
-     denspot%V_ext = f_malloc_ptr((/ Glr%d%n1i , Glr%d%n2i , denspot%dpbox%n3pi , 1+ndebug /),id='denspot%V_ext')
+     denspot%V_ext = f_malloc_ptr((/ Glr%d%n1i , Glr%d%n2i , denspot%dpbox%n3pi , 1 /),id='denspot%V_ext')
   else
-     denspot%V_ext = f_malloc_ptr((/ 1 , 1 , 1 , 1+ndebug /),id='denspot%V_ext')
+     denspot%V_ext = f_malloc_ptr((/ 1 , 1 , 1 , 1 /),id='denspot%V_ext')
   end if
   !Allocate XC potential
   if (denspot%dpbox%n3p >0) then
-     denspot%V_XC = f_malloc_ptr((/ Glr%d%n1i , Glr%d%n2i , denspot%dpbox%n3p , nspin+ndebug /),id='denspot%V_XC')
+     denspot%V_XC = f_malloc_ptr((/ Glr%d%n1i , Glr%d%n2i , denspot%dpbox%n3p , nspin /),id='denspot%V_XC')
   else
-     denspot%V_XC = f_malloc_ptr((/ 1 , 1 , 1 , nspin+ndebug /),id='denspot%V_XC')
+     denspot%V_XC = f_malloc_ptr((/ 1 , 1 , 1 , nspin /),id='denspot%V_XC')
   end if
 
   if (denspot%dpbox%n3d >0) then
      denspot%rhov = f_malloc_ptr(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d*&
-          denspot%dpbox%nrhodim+ndebug,id='denspot%rhov')
+          denspot%dpbox%nrhodim,id='denspot%rhov')
   else
-     denspot%rhov = f_malloc_ptr(denspot%dpbox%nrhodim+ndebug,id='denspot%rhov')
+     denspot%rhov = f_malloc_ptr(denspot%dpbox%nrhodim,id='denspot%rhov')
   end if
   !check if non-linear core correction should be applied, and allocate the 
   !pointer if it is the case
@@ -566,7 +569,7 @@ end subroutine dpbox_repartition
 !END SUBROUTINE createDensPotDescriptors
 
 subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
-     rho_commun,rxyz,radii_cf,rhodsc)
+     rho_commun,rxyz,rhodsc)
   use module_base
   use module_types
   use module_xc
@@ -579,7 +582,7 @@ subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
   type(denspot_distribution), intent(in) :: dpbox
   character(len=3), intent(in) :: rho_commun
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
-  real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
+  !real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   type(rho_descriptors), intent(out) :: rhodsc
   !local variables
 
@@ -624,7 +627,7 @@ subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
   !allocate rho_descriptors if the density repartition is activated
 
   if (rhodsc%icomm==2) then !rho_commun=='MIX' .and. (atoms%astruct%geocode.eq.'F') .and. (nproc > 1)) then! .and. xc_isgga()) then
-     call rho_segkey(iproc,atoms,rxyz,crmult,frmult,radii_cf,&
+     call rho_segkey(iproc,atoms,rxyz,crmult,frmult,&
           dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),&
           dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),nspin,rhodsc,.false.)
   else

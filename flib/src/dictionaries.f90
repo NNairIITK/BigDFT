@@ -12,17 +12,17 @@
 module dictionaries
    use exception_callbacks
    use dictionaries_base
-   use yaml_strings, only: read_fraction_string
+   use yaml_strings, only: read_fraction_string,yaml_toa,f_strcpy
    implicit none
 
    private
 
-   !> public to be used in list_new() constructor.
+   !> Public to be used in list_new() constructor.
    type, public :: list_container
       character(len=max_field_length) :: val=' '
       type(dictionary), pointer :: dict => null()
    end type list_container
-   !> public to be used in dict_new() constructor.
+   !> Public to be used in dict_new() constructor.
    type, public :: dictionary_container
       character(len=max_field_length) :: key=' '
       character(len=max_field_length) :: value=' '
@@ -49,25 +49,26 @@ module dictionaries
    end interface
 
    interface operator(.item.)
-      module procedure item_char,item_dict
+      module procedure item_char,item_dict,item_dbl,item_int
    end interface
 
    interface operator(.is.)
       module procedure dict_cont_new_with_value, dict_cont_new_with_dict
-      module procedure dict_cont_new_with_int
+      module procedure dict_cont_new_with_int,dict_cont_new_with_dbl
+      module procedure dict_cont_new_with_int_v,dict_cont_new_with_dbl_v,dict_cont_new_with_value_v
    end interface 
 
    interface operator(.in.)
       module procedure key_in_dictionary
-   end interface operator(.in.)
+   end interface 
 
    interface operator(.notin.)
       module procedure key_notin_dictionary
-   end interface operator(.notin.)
+   end interface 
 
    interface operator(.pop.)
       module procedure pop_key,pop_item
-   end interface operator(.pop.)
+   end interface 
 
 !   interface operator(.poplast.)
 !      module procedure pop_last_item
@@ -84,7 +85,9 @@ module dictionaries
 
    interface assignment(=)
       module procedure get_value,get_integer,get_real,get_double,get_long,get_lg
-      module procedure get_rvec,get_dvec,get_ilvec,get_ivec,get_lvec
+      module procedure get_rvec,get_dvec,get_ilvec,get_ivec,get_lvec,get_c1vec
+      !safe getter from list_container
+      module procedure safe_get_dict,safe_get_integer,safe_get_double,safe_get_real,safe_get_char
    end interface
 
    interface dict_remove
@@ -93,11 +96,24 @@ module dictionaries
 
    interface set
       module procedure put_child,put_value,put_list,put_integer,put_real,put_double,put_long,put_lg
+      module procedure put_listd,put_listi
    end interface
 
    interface add
       module procedure add_char,add_dict,add_integer,add_real,add_double,add_long, add_log
    end interface
+
+   !> Used to retrieve the pointer to the dictionary which has the key,
+   !! if the keys exists. In the case it does not, it returns a nullified dictionary
+   !! should be used in assignments, like for example val= dict .get. "key"
+   interface operator(.get.)
+      module procedure list_container_if_key_exists
+   end interface
+
+   interface dict_iter
+      module procedure dict_iter, dict_iter_lc
+   end interface
+
 
    interface list_new
       module procedure list_new,list_new_elems
@@ -114,12 +130,12 @@ module dictionaries
    public :: set,dict_init,dict_free,append,prepend,add
    public :: dict_copy, dict_update,dict_remove,dict_remove_last
    !> Handle exceptions
-   public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next,dict_iter,has_key,dict_keys
-   public :: dict_new,list_new
+   public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next
+   public :: dict_new,list_new,dict_iter,has_key,dict_keys
    !> Public elements of dictionary_base
    public :: operator(.is.),operator(.item.)
    public :: operator(.pop.),operator(.notin.)
-   public :: operator(==),operator(/=),operator(.in.)
+   public :: operator(==),operator(/=),operator(.in.),operator(.get.)
    public :: dictionary,max_field_length,dict_get_num
 
 
@@ -166,7 +182,7 @@ module dictionaries
    public :: f_loc,f_get_past_error,f_get_no_of_errors
 
    !for internal f_lib usage
-   public :: dictionaries_errors
+   public :: dictionaries_errors,TYPE_DICT,TYPE_LIST
 
 
 contains
@@ -279,14 +295,14 @@ contains
    end function pop_item
 
    !> Pop last item from a list
-   function pop_last_item(dict) result(subd)
-     !> As Fortran norm says, here the intent is refererred to the 
-     !! pointer association status
-     type(dictionary), pointer, intent(in) :: dict 
-     type(dictionary), pointer :: subd
+   !function pop_last_item(dict) result(subd)
+   !  !> As Fortran norm says, here the intent is refererred to the 
+   !  !! pointer association status
+   !  type(dictionary), pointer, intent(in) :: dict 
+   !  type(dictionary), pointer :: subd
 
-     subd => pop_item(dict,dict_len(dict)-1)
-   end function pop_last_item
+   !  subd => pop_item(dict,dict_len(dict)-1)
+   !end function pop_last_item
 
 
 
@@ -323,48 +339,71 @@ contains
        !local variables
        type(dictionary), pointer :: dict_first !<in case of first occurrence
 
-       if (associated(dict)) then
-          !follow the chain, stop at the first occurence
-          if (trim(dict%data%key) == trim(key)) then
-             !          print *,'here',trim(key),associated(dict%next)
-             if (associated(dict%parent)) then
-                dict%parent%data%nelems=dict%parent%data%nelems-1
-             else
-                dict%data%nelems=dict%data%nelems-1
-             end if
-!!$             if (associated(dict%next)) then
-!!$                call dict_free(dict%child)
-!!$                dict_first => dict
-!!$                !this is valid if we are not at the first element
-!!$                if (associated(dict%previous)) then
-!!$                   call define_brother(dict%previous,dict%next) 
-!!$                   dict%previous%next => dict%next
-!!$                else
-!!$                   nullify(dict%next%previous)
-!!$                   !the next should now become me
-!!$                   dict => dict%next
-!!$                end if
-!!$                !eliminate the top of the tree
-!!$                !but do not follow the nexts
-!!$                call dict_destroy(dict_first)
+!!$       !$ logical :: key_found
+!!$       !$ type(dictionary), pointer :: iter       !< iterator to avoid stack overflow
+!!$       iter => dict
+!!$       key_found=.false.
+!!$       find_key: do while(associated(iter))
+!!$          !follow the chain, stop at the first occurence
+!!$          print *,'search',trim(key),trim(iter%data%key)
+!!$          if (trim(iter%data%key) == trim(key)) then
+!!$             if (associated(iter%parent)) then
+!!$                iter%parent%data%nelems=iter%parent%data%nelems-1
 !!$             else
-!!$                call dict_free(dict)
+!!$                iter%data%nelems=iter%data%nelems-1
 !!$             end if
-             dict_first => dict_extract(dict)
-             if (dst) call dict_free(dict_first)
+!!$             dict_first => dict_extract(iter)
+!!$             if (dst) call dict_free(dict_first)
+!!$             key_found=.true.
+!!$             exit find_key
+!!$          end if
+!!$          iter => iter%next
+!!$       end do find_key
+!!$       if (.not. key_found) call f_err_throw(err_msg='Key is '//trim(key),&
+!!$            err_id=DICT_KEY_ABSENT)
 
-          else if (associated(dict%next)) then
-             call pop_dict_(dict%next,key,dst)
-          else
-             call f_err_throw(err_msg='Key is '//trim(key),&
-                  err_id=DICT_KEY_ABSENT)
-             return
-          end if
-       else
-          call f_err_throw(err_msg='Key is '//trim(key),&
-               err_id=DICT_KEY_ABSENT)
-          return
-       end if
+      if (associated(dict)) then
+         !follow the chain, stop at the first occurence
+         if (trim(dict%data%key) == trim(key)) then
+            !          print *,'here',trim(key),associated(dict%next)
+            if (associated(dict%parent)) then
+               dict%parent%data%nelems=dict%parent%data%nelems-1
+            else
+               dict%data%nelems=dict%data%nelems-1
+            end if
+!!!!$             if (associated(dict%next)) then
+!!!!$                call dict_free(dict%child)
+!!!!$                dict_first => dict
+!!!!$                !this is valid if we are not at the first element
+!!!!$                if (associated(dict%previous)) then
+!!!!$                   call define_brother(dict%previous,dict%next) 
+!!!!$                   dict%previous%next => dict%next
+!!!!$                else
+!!!!$                   nullify(dict%next%previous)
+!!!!$                   !the next should now become me
+!!!!$                   dict => dict%next
+!!!!$                end if
+!!!!$                !eliminate the top of the tree
+!!!!$                !but do not follow the nexts
+!!!!$                call dict_destroy(dict_first)
+!!!!$             else
+!!!!$                call dict_free(dict)
+!!!!$             end if
+            dict_first => dict_extract(dict)
+            if (dst) call dict_free(dict_first)
+
+         else if (associated(dict%next)) then
+            call pop_dict_(dict%next,key,dst)
+         else
+            call f_err_throw(err_msg='Key is '//trim(key),&
+                 err_id=DICT_KEY_ABSENT)
+            return
+         end if
+      else
+         call f_err_throw(err_msg='Key is '//trim(key),&
+              err_id=DICT_KEY_ABSENT)
+         return
+      end if
 
      end subroutine pop_dict_
    end subroutine remove_dict
@@ -461,8 +500,6 @@ contains
      include 'dict_add-inc.f90'
    end subroutine add_log
 
-
-
    !> Defines a dictionary from a array of storage data
    function dict_new(dicts)
 !     use yaml_output
@@ -535,27 +572,24 @@ contains
 
 
    !> Defines a new dictionary from a key and a value
-   function dict_cont_new_with_value(key, val)
+   !pure 
+   function dict_cont_new_with_value(key, val) result(cont)
      implicit none
-     character(len = *), intent(in) :: key, val
-     type(dictionary_container) :: dict_cont_new_with_value
-
-     dict_cont_new_with_value%key(1:max_field_length) = key
-     dict_cont_new_with_value%value(1:max_field_length) = val
-
+     character(len = *), intent(in) :: val
+     include 'dict_cont-inc.f90'
    end function dict_cont_new_with_value
 
-   function dict_cont_new_with_int(key, val)
-     use yaml_strings, only: yaml_toa
+   pure function dict_cont_new_with_int(key, val) result(cont)
      implicit none
-     character(len = *), intent(in) :: key
      integer, intent(in) :: val
-     type(dictionary_container) :: dict_cont_new_with_int
-
-     dict_cont_new_with_int%key(1:max_field_length) = key
-     dict_cont_new_with_int%value(1:max_field_length) = yaml_toa(val)
-
+     include 'dict_cont-inc.f90'
    end function dict_cont_new_with_int
+
+   pure function dict_cont_new_with_dbl(key, val) result(cont)
+     implicit none
+     double precision, intent(in) :: val
+     include 'dict_cont-inc.f90'
+   end function dict_cont_new_with_dbl
 
    function dict_cont_new_with_dict(key, val)
      implicit none
@@ -567,6 +601,26 @@ contains
      dict_cont_new_with_dict%child => val
 
    end function dict_cont_new_with_dict
+
+   !arrays
+   function dict_cont_new_with_value_v(key, val) result(cont)
+     implicit none
+     character(len = *), dimension(:), intent(in) :: val
+     include 'dict_cont_arr-inc.f90'
+   end function dict_cont_new_with_value_v
+
+   function dict_cont_new_with_dbl_v(key, val) result(cont)
+     implicit none
+     double precision, dimension(:), intent(in) :: val
+     include 'dict_cont_arr-inc.f90'
+   end function dict_cont_new_with_dbl_v
+
+   function dict_cont_new_with_int_v(key, val) result(cont)
+     implicit none
+     integer, dimension(:), intent(in) :: val
+     include 'dict_cont_arr-inc.f90'
+   end function dict_cont_new_with_int_v
+
 
    !>initialize the iterator to be used with next
    function dict_iter(dict)
@@ -580,6 +634,18 @@ contains
         nullify(dict_iter)
      end if
    end function dict_iter
+
+   !>version of the function to be used with list container
+   !! to be used when .get. operator is called
+   function dict_iter_lc(list)
+     implicit none
+     type(list_container), intent(in) :: list
+     type(dictionary), pointer :: dict_iter_lc
+
+     dict_iter_lc => dict_iter(list%dict)
+
+   end function dict_iter_lc
+
 
    function dict_next(dict)
      implicit none
@@ -606,7 +672,7 @@ contains
      notequal= .not. dicts_are_equal(dict1,dict2)
    end function dicts_are_not_equal
 
-   !> function verifying the dictionaries are equal to each other
+   !> Function verifying the dictionaries are equal to each other
    !! this function is not checking whether the dictionary are deep copy of each other or not
    function dicts_are_equal(dict1,dict2) result(equal)
      use yaml_strings, only: is_atoi,is_atof,is_atol
@@ -818,22 +884,22 @@ contains
         nullify(dict_ptr)
         return
      end if
-     !TEST 
+
      if (.not. associated(dict%parent)) then
         dict_ptr => find_key(dict%child,key)
-        !print *,'parent'
         return
      end if
 
-     !print *,'here ',trim(key),', key ',trim(dict%data%key)
-     !follow the chain, stop at the first occurence
-     if (trim(dict%data%key) == trim(key)) then
-        dict_ptr => dict
-     else if (associated(dict%next)) then
-        dict_ptr => find_key(dict%next,key)
-     else 
-        nullify(dict_ptr)
-     end if
+     dict_ptr => get_dict_from_key(dict,key)
+!!$     !print *,'here ',trim(key),', key ',trim(dict%data%key)
+!!$     !follow the chain, stop at the first occurence
+!!$     if (trim(dict%data%key) == trim(key)) then
+!!$        dict_ptr => dict
+!!$     else if (associated(dict%next)) then
+!!$        dict_ptr => find_key(dict%next,key)
+!!$     else 
+!!$        nullify(dict_ptr)
+!!$     end if
 
    end function find_key
 
@@ -863,7 +929,12 @@ contains
      character(len=*), intent(in) :: key
      logical :: key_in_dictionary
      
-     key_in_dictionary=has_key(dict,key)
+     !if it is a list check the value
+     if (dict_len(dict) > 0) then
+        key_in_dictionary = (dict .index. key) >= 0
+     else
+        key_in_dictionary=has_key(dict,key)
+     end if
    end function key_in_dictionary
 
    function key_notin_dictionary(key,dict)
@@ -872,7 +943,7 @@ contains
      character(len=*), intent(in) :: key
      logical :: key_notin_dictionary
 
-     key_notin_dictionary=.not. has_key(dict,key)
+     key_notin_dictionary=.not. key_in_dictionary(key,dict)
    end function key_notin_dictionary
 
 
@@ -892,32 +963,33 @@ contains
         has_key=.false.
         return
      end if
+     has_key=associated(dict%child)
+     !has_key_(dict%child,key)
+     if (has_key) has_key=associated(get_dict_from_key(dict%child,key))
 
-     has_key=has_key_(dict%child,key)
-
-   contains
-
-     recursive function has_key_(dict,key) result(has)
-       implicit none
-       type(dictionary), intent(in), pointer :: dict 
-       character(len=*), intent(in) :: key
-       logical :: has
-       if (.not. associated(dict)) then
-          has=.false.
-          return
-       end if
-
-       !print *,'here ',trim(key),', key ',trim(dict%data%key)
-       !follow the chain, stop at the first occurence
-       if (trim(dict%data%key) == trim(key)) then
-          has=.true.
-       else if (associated(dict%next)) then
-          has=has_key_(dict%next,key)
-       else 
-          has=.false.
-       end if
-
-     end function has_key_
+!!$   contains
+!!$
+!!$     recursive function has_key_(dict,key) result(has)
+!!$       implicit none
+!!$       type(dictionary), intent(in), pointer :: dict 
+!!$       character(len=*), intent(in) :: key
+!!$       logical :: has
+!!$       if (.not. associated(dict)) then
+!!$          has=.false.
+!!$          return
+!!$       end if
+!!$
+!!$       !print *,'here ',trim(key),', key ',trim(dict%data%key)
+!!$       !follow the chain, stop at the first occurence
+!!$       if (trim(dict%data%key) == trim(key)) then
+!!$          has=.true.
+!!$       else if (associated(dict%next)) then
+!!$          has=has_key_(dict%next,key)
+!!$       else 
+!!$          has=.false.
+!!$       end if
+!!$
+!!$     end function has_key_
    end function has_key
 
 
@@ -947,8 +1019,9 @@ contains
 !!$     end if
 
      if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
-
-     call set_field(repeat(' ',max_field_length),dict%data%value)
+     
+     call f_strcpy(src=' ',dest=dict%data%value)
+     !call set_field(repeat(' ',max_field_length),dict%data%value)
      if ( .not. associated(dict%child,target=subd) .and. &
           associated(dict%child)) then
         call dict_free(dict%child)
@@ -1050,26 +1123,30 @@ contains
      end if
      if (associated(dict%child)) call dict_free(dict%child)
 
-     call set_field(val,dict%data%value)
+     call f_strcpy(src=val,dest=dict%data%value)
+     !call set_field(val,dict%data%value)
 
    end subroutine put_value
 
 
-   !> Assign the value to the dictionary (to be rewritten)
-   subroutine put_list(dict,list)!,nitems)
+   !> Assign the value to the dictionary 
+   subroutine put_list(dict,list)
      implicit none
-     type(dictionary), pointer :: dict
-!     integer, intent(in) :: nitems
      character(len=*), dimension(:), intent(in) :: list
-     !local variables
-     integer :: item,nitems
-
-     nitems=size(list)
-     do item=1,nitems
-        call set(dict//(item-1),list(item))
-     end do
-
+     include 'set_arr-inc.f90'
    end subroutine put_list
+
+   subroutine put_listd(dict,list)
+     implicit none
+     double precision, dimension(:), intent(in) :: list
+     include 'set_arr-inc.f90'
+   end subroutine put_listd
+
+   subroutine put_listi(dict,list)
+     implicit none
+     integer, dimension(:), intent(in) :: list
+     include 'set_arr-inc.f90'
+   end subroutine put_listi
 
 
    elemental function item_char(val) result(elem)
@@ -1081,6 +1158,25 @@ contains
 
    end function item_char
 
+   elemental function item_dbl(val) result(elem)
+     implicit none
+     double precision, intent(in) :: val
+     type(list_container) :: elem
+
+     elem%val(1:max_field_length)=yaml_toa(val)
+
+   end function item_dbl
+
+   elemental function item_int(val) result(elem)
+     implicit none
+     integer, intent(in) :: val
+     type(list_container) :: elem
+
+     elem%val(1:max_field_length)=yaml_toa(val)
+
+   end function item_int
+
+
 
    function item_dict(val) result(elem)
      implicit none
@@ -1089,7 +1185,19 @@ contains
 
      elem%dict=>val
    end function item_dict
+   
+   !> Internal procedure for .get. operator interface
+   function list_container_if_key_exists(dict,key) result(list)
+     implicit none
+     type(dictionary), pointer, intent(in) :: dict
+     character(len=*), intent(in) :: key
+     type(list_container) :: list
+     
+     !if the dictionary is not associated, the list container is empty
+     if (trim(key) .in. dict) list%dict=>dict//trim(key)
+     !one might add a functionalty which implements the scalar value in list%val
 
+   end function list_container_if_key_exists
 
    !> Creates a list from a table of dictionaries
    function list_new(dicts)
@@ -1162,7 +1270,8 @@ contains
      val(1:len(val))=' '
      if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
      if (f_err_raise(no_value(dict),'The key is "'//trim(dict%data%key)//'"',err_id=DICT_VALUE_ABSENT)) return
-     call get_field(dict%data%value,val)
+     call f_strcpy(src=dict%data%value,dest=val)
+     !call get_field(dict%data%value,val)
 
    end subroutine get_value
 
@@ -1170,14 +1279,14 @@ contains
    !> Get the value from the dictionary
    !! This routine only works if the dictionary is associated
    !! the problem is solved if any of the routines have the dict variable as a pointer
-   subroutine get_dict(dictval,dict)
-     implicit none
-     type(dictionary), pointer, intent(out) :: dictval
-     type(dictionary), pointer, intent(in) :: dict
+   !subroutine get_dict(dictval,dict)
+   !  implicit none
+   !  type(dictionary), pointer, intent(out) :: dictval
+   !  type(dictionary), pointer, intent(in) :: dict
 
-     dictval=>dict
+   !  dictval=>dict
 
-   end subroutine get_dict
+   !end subroutine get_dict
 
 
    !> Set and get routines for different types (this routine can be called from error_check also)
@@ -1203,7 +1312,6 @@ contains
      end if
      if (f_err_raise(ierror/=0 .or. .not. is_atoi(val),'Value '//val,err_id=DICT_CONVERSION_ERROR)) return    
    end subroutine get_integer
-
 
    !> Set and get routines for different types
    subroutine get_long(ival,dict)
@@ -1278,6 +1386,18 @@ contains
      include 'dict_getvec-inc.f90'
    end subroutine get_lvec
 
+   !> Routine to retrieve an array from a dictionary
+   subroutine get_c1vec(arr,dict)
+     use yaml_strings, only: yaml_toa
+     implicit none
+     character(len=1), dimension(:), intent(out) :: arr
+     type(dictionary), intent(in) :: dict 
+     !local variables
+     character(len=1) :: tmp
+     include 'dict_getvec-inc.f90'
+   end subroutine get_c1vec
+
+
    !> Set and get routines for different types
    subroutine get_real(rval,dict)
      implicit none
@@ -1336,6 +1456,46 @@ contains
      if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return
 
    end subroutine get_double
+
+   !> Safe getter, uses list_container as generated from the .get. operator
+   subroutine safe_get_dict(dict,el)
+     implicit none
+     type(dictionary), pointer, intent(inout) :: dict
+     type(list_container), intent(in) :: el
+     if (associated(el%dict)) then
+        dict=>el%dict
+     else
+        nullify(dict)
+     end if
+   end subroutine safe_get_dict
+
+   subroutine safe_get_integer(val,el)
+     implicit none
+     integer, intent(inout) :: val
+     type(list_container), intent(in) :: el
+     if (associated(el%dict)) val=el%dict
+   end subroutine safe_get_integer
+
+   subroutine safe_get_double(val,el)
+     implicit none
+     double precision, intent(inout) :: val
+     type(list_container), intent(in) :: el
+     if (associated(el%dict)) val=el%dict
+   end subroutine safe_get_double
+
+   subroutine safe_get_real(val,el)
+     implicit none
+     real, intent(inout) :: val
+     type(list_container), intent(in) :: el
+     if (associated(el%dict)) val=el%dict
+   end subroutine safe_get_real
+
+   subroutine safe_get_char(val,el)
+     implicit none
+     character(len=*), intent(inout) :: val
+     type(list_container), intent(in) :: el
+     if (associated(el%dict)) val=el%dict
+   end subroutine safe_get_char
 
 
    !> Assign the value to the dictionary
@@ -1480,12 +1640,12 @@ contains
    end subroutine dict_update
 
 
-   subroutine dict_copy(dict, ref)
+   subroutine dict_copy(dest, src)
      implicit none
-     type(dictionary), pointer :: dict, ref
+     type(dictionary), pointer :: src, dest
 
-     if (.not. associated(dict)) call dict_init(dict)
-     call copy(dict, ref)
+     if (.not. associated(dest)) call dict_init(dest)
+     call copy(dest, src)
 
      contains
        recursive subroutine copy(dict, ref)

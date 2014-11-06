@@ -266,7 +266,7 @@ END SUBROUTINE read_density_cube_old
 !> Write a (sum of two) field in the ISF basis in the cube format
 subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s,n3s,hxh,hyh,hzh,&
      a,x,nexpo,b,y)
-  !n(c) use module_base
+  use module_defs, only: gp,wp,dp
   use module_types
   implicit none
   character(len=*), intent(in) :: filename,message
@@ -650,7 +650,7 @@ subroutine plot_wf(orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi)
   n2i=lr%d%n2i
   n3i=lr%d%n3i
 
-  call initialize_work_arrays_sumrho(lr,w)
+  call initialize_work_arrays_sumrho(1,lr,.true.,w)
 
   psir = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='psir')
   !initialisation
@@ -726,7 +726,7 @@ end subroutine read_potential_from_disk
 !> Read density or potential in cube format
 subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz, iatypes, znucl)
-  !n(c) use module_base
+  use module_defs, only: gp,dp
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
@@ -790,7 +790,6 @@ contains
   subroutine read_cube_header(filename,geocode,nspin,n1i,n2i,n3i,hxh,hyh,hzh,rho,&
        nat,rxyz, iatypes, znucl)
     use module_base
-    use module_types
     implicit none
     character(len=*), intent(in) :: filename
     character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -888,7 +887,7 @@ END SUBROUTINE read_cube
 
 !>   Read a cube field which have been plotted previously by write_cube_fields
 subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
-  !n(c) use module_base
+  use module_base, only: dp,gp,to_zero
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
@@ -1020,6 +1019,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
 !!$       call memocc(i_stat,rho_buf,'rho_buf',subname)
 !!$       rho_buf = rho
 !!$     endif  
+
 
      do ispin=1,nspin
         call MPI_ALLGATHERV(rho(1,1,1,ispin),n1i*n2i*n3p,&
@@ -1228,6 +1228,8 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
   if(box%mpi_env%iproc + box%mpi_env%igroup==0) then
      !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
+     !write(*,*) 'dipole_cores', dipole_cores
+     !write(*,*) 'dipole_el', dipole_el
      tmpdip=dipole_cores+dipole_el
      call yaml_mapping_open('Electric Dipole Moment (AU)')
        call yaml_map('P vector',tmpdip(1:3),fmt='(1pe13.4)')

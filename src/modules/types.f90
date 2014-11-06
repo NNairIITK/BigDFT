@@ -18,39 +18,45 @@ module module_types
   use module_xc, only : xc_info
   use gaussians, only: gaussian_basis
   use Poisson_Solver, only: coulomb_operator
-  use dictionaries, only: dictionary, max_field_length
   use locregs
   use psp_projectors
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
   use communications_base, only: comms_linear, comms_cubic, p2pComms
   use sparsematrix_base, only: matrices, sparse_matrix
   use foe_base, only: foe_data
+  use m_pawcprj, only: pawcprj_type
+  use m_paw_an, only: paw_an_type
+  use m_paw_ij, only: paw_ij_type
+  use m_pawfgrtab, only: pawfgrtab_type
+  use m_pawrhoij, only: pawrhoij_type
 
   implicit none
 
+  private
+
   !> Constants to determine between cubic version and linear version
-  integer, parameter :: CUBIC_VERSION =  0
-  integer, parameter :: LINEAR_VERSION = 100
+  integer, parameter, public :: CUBIC_VERSION =  0
+  integer, parameter, public :: LINEAR_VERSION = 100
 
   !> Error codes, to be documented little by little
-  integer, parameter :: BIGDFT_SUCCESS        = 0   !< No errors
-  integer, parameter :: BIGDFT_UNINITIALIZED  = -10 !< The quantities we want to access seem not yet defined
-  integer, parameter :: BIGDFT_INCONSISTENCY  = -11 !< Some of the quantities is not correct
-  integer, parameter :: BIGDFT_INVALID        = -12 !< Invalid entry
+  integer, parameter, public :: BIGDFT_SUCCESS        = 0   !< No errors
+  integer, parameter, public :: BIGDFT_UNINITIALIZED  = -10 !< The quantities we want to access seem not yet defined
+  integer, parameter, public :: BIGDFT_INCONSISTENCY  = -11 !< Some of the quantities is not correct
+  integer, parameter, public :: BIGDFT_INVALID        = -12 !< Invalid entry
 
   !> Input wf parameters. @relates module_types::input_variables::inputpsiid @relates inputpsiid
-  integer, parameter :: INPUT_PSI_EMPTY        = -1000  !< Input PSI to 0
-  integer, parameter :: INPUT_PSI_RANDOM       = -2     !< Input Random PSI
-  integer, parameter :: INPUT_PSI_CP2K         = -1     !< Input PSI coming from cp2k
-  integer, parameter :: INPUT_PSI_LCAO         = 0      !< Input PSI coming from Localised ATomic Orbtials
-  integer, parameter :: INPUT_PSI_MEMORY_WVL   = 1      !< Input PSI from memory
-  integer, parameter :: INPUT_PSI_DISK_WVL     = 2      !< Input PSI from disk (wavelet coefficients)
-  integer, parameter :: INPUT_PSI_LCAO_GAUSS   = 10
-  integer, parameter :: INPUT_PSI_MEMORY_GAUSS = 11
-  integer, parameter :: INPUT_PSI_DISK_GAUSS   = 12
-  integer, parameter :: INPUT_PSI_LINEAR_AO    = 100    !< Input PSI for linear from Atomic Orbital
-  integer, parameter :: INPUT_PSI_MEMORY_LINEAR= 101    !< Input PSI for linear in memory
-  integer, parameter :: INPUT_PSI_DISK_LINEAR  = 102    !< Input PSI for linear from disk
+  integer, parameter, public :: INPUT_PSI_EMPTY        = -1000  !< Input PSI to 0
+  integer, parameter, public :: INPUT_PSI_RANDOM       = -2     !< Input Random PSI
+  integer, parameter, public :: INPUT_PSI_CP2K         = -1     !< Input PSI coming from cp2k
+  integer, parameter, public :: INPUT_PSI_LCAO         = 0      !< Input PSI coming from Localised ATomic Orbtials
+  integer, parameter, public :: INPUT_PSI_MEMORY_WVL   = 1      !< Input PSI from memory
+  integer, parameter, public :: INPUT_PSI_DISK_WVL     = 2      !< Input PSI from disk (wavelet coefficients)
+  integer, parameter, public :: INPUT_PSI_LCAO_GAUSS   = 10
+  integer, parameter, public :: INPUT_PSI_MEMORY_GAUSS = 11
+  integer, parameter, public :: INPUT_PSI_DISK_GAUSS   = 12
+  integer, parameter, public :: INPUT_PSI_LINEAR_AO    = 100    !< Input PSI for linear from Atomic Orbital
+  integer, parameter, public :: INPUT_PSI_MEMORY_LINEAR= 101    !< Input PSI for linear in memory
+  integer, parameter, public :: INPUT_PSI_DISK_LINEAR  = 102    !< Input PSI for linear from disk
 
   !> All possible values of input psi (determination of the input guess)
   integer, dimension(12), parameter :: input_psi_values = &
@@ -60,11 +66,11 @@ module module_types
        INPUT_PSI_LINEAR_AO, INPUT_PSI_DISK_LINEAR, INPUT_PSI_MEMORY_LINEAR /)
 
   !> Output wf parameters.
-  integer, parameter :: WF_FORMAT_NONE   = 0
-  integer, parameter :: WF_FORMAT_PLAIN  = 1
-  integer, parameter :: WF_FORMAT_BINARY = 2
-  integer, parameter :: WF_FORMAT_ETSF   = 3
-  integer, parameter :: WF_N_FORMAT      = 4
+  integer, parameter, public :: WF_FORMAT_NONE   = 0
+  integer, parameter, public :: WF_FORMAT_PLAIN  = 1
+  integer, parameter, public :: WF_FORMAT_BINARY = 2
+  integer, parameter, public :: WF_FORMAT_ETSF   = 3
+  integer, parameter, public :: WF_N_FORMAT      = 4
   character(len = 12), dimension(0:WF_N_FORMAT-1), parameter :: wf_format_names = &
        (/ "none        ", &
           "plain text  ", &
@@ -72,32 +78,32 @@ module module_types
           "ETSF        " /)
 
   !> Output grid parameters.
-  integer, parameter :: OUTPUT_DENSPOT_NONE    = 0
-  integer, parameter :: OUTPUT_DENSPOT_DENSITY = 1
-  integer, parameter :: OUTPUT_DENSPOT_DENSPOT = 2
-  character(len = 12), dimension(0:2), parameter :: OUTPUT_DENSPOT_names = &
+  integer, parameter, public :: OUTPUT_DENSPOT_NONE    = 0
+  integer, parameter, public :: OUTPUT_DENSPOT_DENSITY = 1
+  integer, parameter, public :: OUTPUT_DENSPOT_DENSPOT = 2
+  character(len = 12), dimension(0:2), parameter, public :: OUTPUT_DENSPOT_names = &
        (/ "none        ", &
           "density     ", &
           "dens. + pot." /)
-  integer, parameter :: OUTPUT_DENSPOT_FORMAT_TEXT = 0
-  integer, parameter :: OUTPUT_DENSPOT_FORMAT_ETSF = 1
-  integer, parameter :: OUTPUT_DENSPOT_FORMAT_CUBE = 2
-  character(len = 4), dimension(0:2), parameter :: OUTPUT_DENSPOT_format_names = &
+  integer, parameter, public :: OUTPUT_DENSPOT_FORMAT_TEXT = 0
+  integer, parameter, public :: OUTPUT_DENSPOT_FORMAT_ETSF = 1
+  integer, parameter, public :: OUTPUT_DENSPOT_FORMAT_CUBE = 2
+  character(len = 4), dimension(0:2), parameter, public :: OUTPUT_DENSPOT_format_names = &
        (/ "text", &
           "ETSF", &
           "cube" /)
 
   !> SCF mixing parameters (@todo mixing parameters to be added).
-  integer, parameter :: SCF_KIND_GENERALIZED_DIRMIN = -1
-  integer, parameter :: SCF_KIND_DIRECT_MINIMIZATION = 0
+  integer, parameter, public :: SCF_KIND_GENERALIZED_DIRMIN = -1
+  integer, parameter, public :: SCF_KIND_DIRECT_MINIMIZATION = 0
 
   !> Function to determine the occupation numbers
-  integer, parameter :: SMEARING_DIST_ERF   = 1  !< Tends to 0 and 1 faster \f$1/2\left[1-erf\left(\frac{E-\mu}{\delta E}\right)\right]\f$
-  integer, parameter :: SMEARING_DIST_FERMI = 2  !< Normal Fermi distribution i.e.\f$\frac{1}{1+e^{E-\mu}/k_BT}\f$
-  integer, parameter :: SMEARING_DIST_COLD1 = 3  !< Marzari's cold smearing with a=-.5634 (bumb minimization)
-  integer, parameter :: SMEARING_DIST_COLD2 = 4  !< Marzari's cold smearing with a=-.8165 (monotonic tail)
-  integer, parameter :: SMEARING_DIST_METPX = 5  !< Methfessel and Paxton (same as COLD with a=0)
-  character(len = 11), dimension(5), parameter :: smearing_names = &
+  integer, parameter, public :: SMEARING_DIST_ERF   = 1  !< Tends to 0 and 1 faster \f$1/2\left[1-erf\left(\frac{E-\mu}{\delta E}\right)\right]\f$
+  integer, parameter, public :: SMEARING_DIST_FERMI = 2  !< Normal Fermi distribution i.e.\f$\frac{1}{1+e^{E-\mu}/k_BT}\f$
+  integer, parameter, public :: SMEARING_DIST_COLD1 = 3  !< Marzari's cold smearing with a=-.5634 (bumb minimization)
+  integer, parameter, public :: SMEARING_DIST_COLD2 = 4  !< Marzari's cold smearing with a=-.8165 (monotonic tail)
+  integer, parameter, public :: SMEARING_DIST_METPX = 5  !< Methfessel and Paxton (same as COLD with a=0)
+  character(len = 11), dimension(5), parameter, public :: smearing_names = &
        (/ "Error func.", &
           "Fermi      ", &
           "Cold (bumb)", &
@@ -105,29 +111,29 @@ module module_types
           "Meth.-Pax. " /) !< Name of the smearing methods 
 
   !> Target function for the optimization of the basis functions (linear scaling version)
-  integer, parameter :: TARGET_FUNCTION_IS_TRACE=0
-  integer, parameter :: TARGET_FUNCTION_IS_ENERGY=1
-  integer, parameter :: TARGET_FUNCTION_IS_HYBRID=2
-  !!integer, parameter :: DECREASE_LINEAR=0
-  !!integer, parameter :: DECREASE_ABRUPT=1
-  !!integer, parameter :: COMMUNICATION_COLLECTIVE=0
-  !!integer, parameter :: COMMUNICATION_P2P=1
-  integer, parameter :: LINEAR_DIRECT_MINIMIZATION=100
-  integer, parameter :: LINEAR_MIXDENS_SIMPLE=101
-  integer, parameter :: LINEAR_MIXPOT_SIMPLE=102
-  integer, parameter :: LINEAR_FOE=103
-  integer, parameter :: KERNELMODE_DIRMIN = 10
-  integer, parameter :: KERNELMODE_DIAG = 11
-  integer, parameter :: KERNELMODE_FOE = 12
-  integer, parameter :: MIXINGMODE_DENS = 20
-  integer, parameter :: MIXINGMODE_POT = 21
-  integer,parameter :: FOE_ACCURATE = 30
-  integer,parameter :: FOE_FAST = 31
+  integer, parameter, public :: TARGET_FUNCTION_IS_TRACE=0
+  integer, parameter, public :: TARGET_FUNCTION_IS_ENERGY=1
+  integer, parameter, public :: TARGET_FUNCTION_IS_HYBRID=2
+  !!integer, parameter, public :: DECREASE_LINEAR=0
+  !!integer, parameter, public :: DECREASE_ABRUPT=1
+  !!integer, parameter, public :: COMMUNICATION_COLLECTIVE=0
+  !!integer, parameter, public :: COMMUNICATION_P2P=1
+  integer, parameter, public :: LINEAR_DIRECT_MINIMIZATION=100
+  integer, parameter, public :: LINEAR_MIXDENS_SIMPLE=101
+  integer, parameter, public :: LINEAR_MIXPOT_SIMPLE=102
+  integer, parameter, public :: LINEAR_FOE=103
+  integer, parameter, public :: KERNELMODE_DIRMIN = 10
+  integer, parameter, public :: KERNELMODE_DIAG = 11
+  integer, parameter, public :: KERNELMODE_FOE = 12
+  integer, parameter, public :: MIXINGMODE_DENS = 20
+  integer, parameter, public :: MIXINGMODE_POT = 21
+  integer,parameter, public :: FOE_ACCURATE = 30
+  integer,parameter, public :: FOE_FAST = 31
 
   !> How to update the density kernel during teh support function optimization
-  integer, parameter :: UPDATE_BY_PURIFICATION = 0
-  integer, parameter :: UPDATE_BY_FOE = 1
-  integer, parameter :: UPDATE_BY_RENORMALIZATION = 2
+  integer, parameter, public :: UPDATE_BY_PURIFICATION = 0
+  integer, parameter, public :: UPDATE_BY_FOE = 1
+  integer, parameter, public :: UPDATE_BY_RENORMALIZATION = 2
   
   !> Type used for the orthogonalisation parameters
   type, public :: orthon_data
@@ -207,9 +213,9 @@ module module_types
     integer, dimension(:), pointer :: norbsPerType
     integer :: kernel_mode, mixing_mode
     integer :: scf_mode, nlevel_accuracy
-    logical :: calc_dipole, pulay_correction, mixing_after_inputguess, iterative_orthogonalization, new_pulay_correction
+    logical :: calc_dipole, pulay_correction, iterative_orthogonalization, new_pulay_correction
     logical :: fragment_calculation, calc_transfer_integrals, constrained_dft, curvefit_dmin, diag_end, diag_start
-    integer :: extra_states, order_taylor
+    integer :: extra_states, order_taylor, mixing_after_inputguess
     !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
     real(kind=8) :: max_inversion_error
   end type linearInputParameters
@@ -251,6 +257,8 @@ module module_types
   !> Structure of the variables read by input.* files (*.dft, *.geopt...)
   type, public :: input_variables
 
+     !>reference counter
+     type(f_reference_counter) :: refcnt
      !> Strings of the input files
      character(len=100) :: file_occnum !< Occupation number (input)
      character(len=100) :: file_igpop
@@ -280,6 +288,7 @@ module module_types
      integer :: ixc         !< XC functional Id
      integer :: ncharge     !< Total charge of the system
      integer :: itermax     !< Maximal number of SCF iterations
+     integer :: itermin     !< Minimum number of SCF iterations !Bastian
      integer :: nrepmax
      integer :: ncong       !< Number of conjugate gradient iterations for the preconditioner
      integer :: idsx        !< DIIS history
@@ -361,6 +370,8 @@ module module_types
      type(SIC_data) :: SIC               !< Parameters for the SIC methods
      !variables for SBFGS
      integer  :: nhistx
+     logical  :: biomode
+     real(gp) :: beta_stretchx
      real(gp) :: maxrise
      real(gp) :: cutoffratio
      real(gp) :: steepthresh
@@ -407,6 +418,7 @@ module module_types
      type(fragmentInputParameters) :: frag !< Fragment data
      logical :: store_index                !< (LS) Store indices of the sparse matrices or recalculate them 
      integer :: check_sumrho               !< (LS) Perform a check of sumrho (no check, light check or full check)
+     integer :: check_overlap              !< (LS) Perform a check of the overlap calculation
      logical :: experimental_mode          !< (LS) Activate the experimental mode
      logical :: write_orbitals             !< (LS) Write KS orbitals for cubic restart
      logical :: explicit_locregcenters     !< (LS) Explicitely specify localization centers
@@ -449,34 +461,43 @@ module module_types
      !> linear scaling: upper bound for the error function decay length
      real(kind=8) :: fscale_upperbound
 
+     !> linear scaling: Restart method to be used for the FOE method
+     integer :: FOE_restart
+
+     !> linear scaling: method to calculate the overlap matrices (1=old, 2=new)
+     integer :: imethod_overlap
+
+     !> linear scaling: enable the matrix taskgroups
+     logical :: enable_matrix_taskgroups
+
   end type input_variables
 
 
   !> Contains all energy terms
   type, public :: energy_terms
-     real(gp) :: eh      =0.0_gp !< Hartree energy
-     real(gp) :: exc     =0.0_gp !< Exchange-correlation energy
-     real(gp) :: evxc    =0.0_gp !< Energy from the exchange-correlation potential
-     real(gp) :: eion    =0.0_gp !< Ion-Ion interaction
-     real(gp) :: edisp   =0.0_gp !< Dispersion force
-     real(gp) :: ekin    =0.0_gp !< Kinetic term
-     real(gp) :: epot    =0.0_gp
-     real(gp) :: eproj   =0.0_gp
-     real(gp) :: eexctX  =0.0_gp
-     real(gp) :: ebs     =0.0_gp
-     real(gp) :: eKS     =0.0_gp
-     real(gp) :: trH     =0.0_gp
-     real(gp) :: evsum   =0.0_gp
-     real(gp) :: evsic   =0.0_gp 
-     real(gp) :: excrhoc =0.0_gp 
-     real(gp) :: eTS     =0.0_gp
-     real(gp) :: ePV     =0.0_gp !< pressure term
-     real(gp) :: energy  =0.0_gp !< the functional which is minimized
-     real(gp) :: e_prev  =0.0_gp !< the previous value, to show the delta
-     real(gp) :: trH_prev=0.0_gp !< the previous value, to show the delta
+     real(gp) :: eh      !< Hartree energy
+     real(gp) :: exc     !< Exchange-correlation energy
+     real(gp) :: evxc    !< Energy from the exchange-correlation potential
+     real(gp) :: eion    !< Ion-Ion interaction
+     real(gp) :: edisp   !< Dispersion force
+     real(gp) :: ekin    !< Kinetic term
+     real(gp) :: epot    
+     real(gp) :: eproj   
+     real(gp) :: eexctX  
+     real(gp) :: ebs     
+     real(gp) :: eKS     
+     real(gp) :: trH     
+     real(gp) :: evsum   
+     real(gp) :: evsic   
+     real(gp) :: excrhoc 
+     real(gp) :: eTS     
+     real(gp) :: ePV     !< pressure term
+     real(gp) :: energy  !< the functional which is minimized
+     real(gp) :: e_prev  !< the previous value, to show the delta
+     real(gp) :: trH_prev!< the previous value, to show the delta
      !real(gp), dimension(:,:), pointer :: fion,f
 
-     integer(kind = 8) :: c_obj = 0  !< Storage of the C wrapper object.
+     integer(kind = 8) :: c_obj !< Storage of the C wrapper object.
   end type energy_terms
 
 
@@ -507,15 +528,6 @@ module module_types
 
 
 
-  !> Contains arguments needed for rho_local for WVL+PAW
-  type, public :: rholoc_objects
-    integer , pointer, dimension(:)    :: msz ! mesh size for local rho
-    real(gp), pointer, dimension(:,:,:) :: d! local rho and derivatives
-    real(gp), pointer, dimension(:,:)  :: rad!radial mesh for local rho
-    real(gp), pointer, dimension(:) :: radius !after this radius, rholoc is zero
-  end type rholoc_objects
-
-  
   !> Define the structure used for the atomic positions
   !> Structure to store the density / potential distribution among processors.
   type, public :: denspot_distribution
@@ -547,12 +559,14 @@ module module_types
   type, public :: orbitals_data 
      integer :: norb          !< Total number of orbitals per k point
      integer :: norbp         !< Total number of orbitals for the given processors
-     integer :: norbu,norbd,nspin,nspinor,isorb
+     integer :: norbup        !< Total number of orbitals if there were only up orbitals
+     integer :: norbdp        !< probably to be deleted...
+     integer :: norbu,norbd,nspin,nspinor,isorb,isorbu,isorbd
      integer :: nkpts,nkptsp,iskpts
      real(gp) :: efermi,HLgap,eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
      integer, dimension(:), pointer :: inwhichlocreg,onwhichatom
-     integer, dimension(:,:), pointer :: norb_par
+     integer, dimension(:,:), pointer :: norb_par, norbu_par, norbd_par
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
@@ -658,9 +672,10 @@ module module_types
       type(sparse_matrix) :: s !< small: sparsity pattern given by support function cutoff
       type(sparse_matrix) :: m !< medium: sparsity pattern given by SHAMOP cutoff
       type(sparse_matrix) :: l !< medium: sparsity pattern given by kernel cutoff
-      type(sparse_matrix) :: ks !< sparsity pattern for the KS orbitals (i.e. dense)
-      type(sparse_matrix) :: ks_e !< sparsity pattern for the KS orbitals including extra stated (i.e. dense)
+      type(sparse_matrix),dimension(:),pointer :: ks !< sparsity pattern for the KS orbitals (i.e. dense); spin up and down
+      type(sparse_matrix),dimension(:),pointer :: ks_e !< sparsity pattern for the KS orbitals including extra stated (i.e. dense); spin up and down
       type(matrices) :: ham_, ovrlp_, kernel_
+      type(matrices),dimension(3) :: ovrlppowers_
   end type linear_matrices
 
 
@@ -796,12 +811,26 @@ module module_types
      logical :: can_use_transposed
   end type hamiltonian_descriptors
 
+  !> Contains the arguments needed for the PAW implementation:
+  !> to be better integrated into the other structures.
+  type, public :: paw_objects
+     logical :: usepaw
+     integer :: lmnmax
+     integer :: ntypes
+     integer :: natom
+     type(paw_an_type), dimension(:), pointer :: paw_an
+     type(paw_ij_type), dimension(:), pointer :: paw_ij
+     type(pawcprj_type), dimension(:,:), pointer :: cprj
+     type(pawfgrtab_type), dimension(:), pointer :: pawfgrtab
+     type(pawrhoij_type), dimension(:), pointer :: pawrhoij
+
+     real(wp), dimension(:), pointer :: spsi !< Metric operator applied to psi (To be used for PAW)
+  end type paw_objects
 
   !> The wavefunction which have to be considered at the DFT level
   type, public :: DFT_wavefunction
      !coefficients
      real(wp), dimension(:), pointer :: psi,hpsi,psit,psit_c,psit_f !< orbitals, or support functions, in wavelet basis
-     real(wp), dimension(:), pointer :: spsi !< Metric operator applied to psi (To be used for PAW)
      real(wp), dimension(:,:), pointer :: gaucoeffs !orbitals in gbd basis
      !basis sets
      type(gaussian_basis) :: gbd !<gaussian basis description, if associated
@@ -816,6 +845,7 @@ module module_types
      type(diis_objects) :: diis
      type(confpot_data), dimension(:), pointer :: confdatarr !<data for the confinement potential
      type(SIC_data) :: SIC !<control the activation of SIC scheme in the wavefunction
+     type(paw_objects) :: paw !< PAW objects
      type(orthon_data) :: orthpar !< control the application of the orthogonality scheme for cubic DFT wavefunction
      character(len=4) :: exctxpar !< Method for exact exchange parallelisation for the wavefunctions, in case
      type(p2pComms) :: comgp !<describing p2p communications for distributing the potential
@@ -845,6 +875,7 @@ module module_types
      integer :: itrpmax !< specify the maximum number of mixing cycle on potential or density
      integer :: nrepmax !< specify the maximum number of restart after re-diagonalization
      integer :: itermax !< specify the maximum number of minimization iterations, self-consistent or not
+     integer :: itermin !< specify the minimum number of minimization iterations, self-consistent or not !Bastian
 
      integer :: itrp    !< actual number of mixing cycle.
      integer :: itrep   !< actual number of re-diagonalisation runs.
@@ -863,214 +894,6 @@ module module_types
   end type DFT_optimization_loop
 
 
-  !>  Used to restart a new DFT calculation or to save information 
-  !!  for post-treatment
-  type, public :: restart_objects
-     integer :: version !< 0=cubic, 100=linear
-     integer :: n1,n2,n3,nat
-     real(gp) :: hx_old,hy_old,hz_old
-     real(gp), dimension(:,:), pointer :: rxyz_old,rxyz_new
-     type(DFT_wavefunction) :: KSwfn !< Kohn-Sham wavefunctions
-     type(DFT_wavefunction) :: tmb !<support functions for linear scaling
-     type(GPU_pointers) :: GPU 
-  end type restart_objects
-
-
-  !> Public container to be used with call_bigdft().
-  type, public :: run_objects
-     type(dictionary), pointer :: user_inputs
-
-     type(input_variables), pointer    :: inputs
-     type(atoms_data), pointer         :: atoms
-     type(restart_objects), pointer    :: rst
-     real(gp), dimension(:,:), pointer :: radii_cf
-  end type run_objects
-
-
-  !> Used to store results of a DFT calculation.
-  type, public :: DFT_global_output
-     real(gp) :: energy, fnoise, pressure      !< Total energy, noise over forces and pressure
-     type(energy_terms) :: energs              !< All energy terms
-     integer :: fdim                           !< Dimension of allocated forces (second dimension)
-     real(gp), dimension(:,:), pointer :: fxyz !< Atomic forces
-     real(gp), dimension(6) :: strten          !< Stress Tensor
-  end type DFT_global_output
-
-
-  !> type paw_ij_objects
-  type paw_ij_objects
-     !Integer scalars
-     !> cplex=1 if all on-site PAW quantities are real, 2 if they are complex
-     !! cplex=2 is useful for RF calculations
-     integer :: cplex
-     !> cplex=1 if dij are real, 2 if they are complex
-     integer :: cplex_dij
-     !!!!$integer :: has_dijexxcore !> does this makes sense?
-     ! 1 if dijexxcore is allocated
-     ! 2 if dijexxcore is already computed
-     !> 1 if dij is allocated
-     !! 2 if dij is already computed
-     integer :: has_dij
-   
-    integer :: has_dijfr
-     ! 1 if dijfr is allocated
-     ! 2 if dijfr is already computed
-   
-    integer :: has_dijhartree
-     ! 1 if dijhartree is allocated
-     ! 2 if dijhartree is already computed
-   
-    integer :: has_dijhat
-     ! 1 if dijhat is allocated
-     ! 2 if dijhat is already computed
-   
-    integer :: has_dijso
-     ! 1 if dijso is associated and used, 0 otherwise
-     ! 2 if dijso is already computed
-   
-    integer :: has_dijU
-     ! 1 if dijU is associated and used, 0 otherwise
-     ! 2 if dijU is already computed
-   
-    integer :: has_dijxc
-     ! 1 if dijxc is associated and used, 0 otherwise
-     ! 2 if dijxc is already computed
-   
-    integer :: has_dijxc_val
-     ! 1 if dijxc_val is associated and used, 0 otherwise
-     ! 2 if dijxc_val is already computed
-   
-    integer :: has_exexch_pot
-     ! 1 if PAW+(local exact exchange) potential is allocated
-   
-    integer :: has_pawu_occ
-     ! 1 if PAW+U occupations are allocated
-   
-    integer :: lmn_size
-     ! Number of (l,m,n) elements for the paw basis
-   
-    integer :: lmn2_size
-     ! lmn2_size=lmn_size*(lmn_size+1)/2
-     ! where lmn_size is the number of (l,m,n) elements for the paw basis
-   
-    integer :: ndij
-     ! Number of components of dij
-     ! Usually ndij=nspden, except for nspinor==2 (where ndij=nspinor**2)
-   
-    integer :: nspden
-     ! Number of spin-density components (may be different from dtset%nspden if spin-orbit)
-   
-    integer :: nsppol
-     ! Number of independant spin-components
-
-!Real (real(dp)) arrays
-
-    real(dp), pointer :: dij(:,:)
-     ! dij(cplex_dij*lmn2_size,ndij)
-     ! Dij term (non-local operator)
-     ! May be complex if cplex_dij=2
-     !  dij(:,:,1) contains Dij^up-up
-     !  dij(:,:,2) contains Dij^dn-dn
-     !  dij(:,:,3) contains Dij^up-dn (only if nspinor=2)
-     !  dij(:,:,4) contains Dij^dn-up (only if nspinor=2)
-
-    !real(dp), pointer :: dijexxcore(:,:)
-    ! dijexxcore(cplex_dij*lmn2_size,ndij)
-    ! Onsite matrix elements of the Fock operator generated by core electrons
-
-    !  real(dp), pointer :: dijfr(:,:)
-    !   ! dijhat(cplex_dij*lmn2_size,ndij)
-    !   ! For response function calculation only
-    !   ! RF Frozen part of Dij (depends on q vector but not on 1st-order wave function)
-    !   ! Same storage as Dij (see above)
-    !
-    !  real(dp), pointer :: dijhartree(:)
-    !   ! dijhartree(cplex*lmn2_size)
-    !   ! Dij_hartree term
-    !   ! Contains all contributions to Dij from hartree
-    !   ! Warning: Dimensioned by cplex, not cplex_dij
-    !   ! Same storage as Dij (see above)
-    !
-    !  real(dp), pointer :: dijhat(:,:)
-    !   ! dijhat(cplex_dij*lmn2_size,ndij)
-    !   ! Dij_hat term (non-local operator) i.e \sum_LM \int_FFT Q_{ij}^{LM} vtrial
-    !   ! Same storage as Dij (see above)
-    !
-    !  real(dp), pointer :: dijU(:,:)
-    !   ! dijU(cplex_dij*lmn2_size,ndij)
-    !   ! Onsite matrix elements of the U part of the PAW Hamiltonian.
-    !   ! Same storage as Dij (see above)
-    !
-    !  real(dp), pointer :: dijso(:,:)
-    !   ! dijso(cplex_dij*lmn2_size,ndij)
-    !   ! Onsite matrix elements of L.S i.e <phi_i|L.S|phi_j>
-    !   ! Same storage as Dij (see above)
-    !
-    !  real(dp), pointer :: dijxc(:,:)
-    !   ! dijxc(cplex_dij*lmn2_size,ndij)
-    !   ! Onsite matrix elements of vxc i.e
-    !   ! <phi_i|vxc[n1+nc]|phi_j> - <tphi_i|vxc(tn1+nhat+tnc]|tphi_j>
-    !   ! Same storage as Dij (see above)
-    !
-    !  real(dp), pointer :: dijxc_val(:,:)
-    !   ! dijxc_val(cplex_dij*lmn2_size,ndij)
-    !   ! Onsite matrix elements of valence-only vxc i.e
-    !   ! <phi_i|vxc[n1]|phi_j> - <tphi_i|vxc(tn1+nhat]|tphi_j>
-    !   ! Same storage as Dij (see above)
-    !
-    !  real(dp), pointer :: noccmmp(:,:,:,:)
-    !   ! noccmmp(cplex_dij,2*lpawu+1,2*lpawu+1,nocc_nspden)
-    !   ! cplex_dij=1 if collinear
-    !   ! cplex_dij=2 if spin orbit is used
-    !   ! cplex_dij=2 is used if non-collinear (for coherence, it is not necessary in this case, however)
-    !   ! gives occupation matrix for lda+u (computed in setnoccmmp)
-    !   ! Stored as: noccmmp(:,:,1)=   n^{up,up}_{m,mp}
-    !   !            noccmmp(:,:,2)=   n^{dn,dn}_{m,mp}
-    !   !            noccmmp(:,:,3)=   n^{up,dn}_{m,mp}
-    !   !            noccmmp(:,:,4)=   n^{dn,up}_{m,mp}
-    !   ! noccmmp(m,mp,:) is computed from rhoij(klmn) with  m=klmntomn(2)>mp=klmntomn(1)
-    !
-    !  real(dp), pointer :: nocctot(:)
-    !   ! nocctot(nspden)
-    !   ! gives trace of occupation matrix for lda+u (computed in pawdenpot)
-    !   ! for each value of ispden (1 or 2)
-    !
-    !  real(dp), pointer :: vpawx(:,:,:)
-    !   ! vpawx(2*lexexch+1,2*lexexch+1,nspden)
-    !   ! exact exchange potential
-
-  end type paw_ij_objects
-
-
-  !> This is cprj_type in ABINIT,
-  !! this will be obsolete with the PAW Library
-  type cprj_objects
-    !Integer scalars
-    integer :: ncpgr !< Number of gradients of cp=<p_lmn|Cnk>
-    integer :: nlmn  !< Number of (l,m,n) non-local projectors
-    !Real (real(dp)) arrays
-    real(wp), pointer :: cp (:,:) !< cp(2,nlmn): <p_lmn|Cnk> projected scalars for a given atom and wave function
-    real(wp), pointer :: dcp (:,:,:)
-    ! dcp(2,ncpgr,nlmn)
-    ! derivatives of <p_lmn|Cnk> projected scalars for a given atom and wave function
-
- end type cprj_objects
-
-
- !> Contains the arguments needed for the PAW implementation:
- type, public :: paw_objects
-   integer :: lmnmax
-   integer :: ntypes
-   integer :: natom
-   integer :: usepaw
-   integer, dimension(:,:,:), pointer :: indlmn
-   type(paw_ij_objects), dimension(:), allocatable :: paw_ij
-   type(cprj_objects), dimension(:,:), allocatable :: cprj
-   real(wp), dimension(:), pointer :: spsi
-   real(wp), dimension(:,:), pointer :: sij
-   real(gp),dimension(:),pointer :: rpaw
- end type paw_objects
-
  interface input_set
     module procedure input_set_char, input_set_int, input_set_dbl, input_set_bool, &
          & input_set_int_array, input_set_dbl_array, input_set_bool_array, &
@@ -1080,7 +903,7 @@ module module_types
  !>timing categories
  character(len=*), parameter, private :: tgrp_pot='Potential'
  integer, save, public :: TCAT_EXCHANGECORR=TIMING_UNINITIALIZED
- integer, parameter, private :: ncls_max=6,ncat_bigdft=140   ! define timimg categories and classes
+ integer, parameter, private :: ncls_max=6,ncat_bigdft=146   ! define timimg categories and classes
  character(len=14), dimension(ncls_max), parameter, private :: clss = (/ &
       'Communications'    ,  &
       'Convolutions  '    ,  &
@@ -1177,7 +1000,8 @@ module module_types
       'updatelocreg1 ','Other         ' ,'Miscellaneous ' ,  &
       'linscalinit   ','Other         ' ,'Miscellaneous ' ,  &
       'commbasis4dens','Communications' ,'Miscellaneous ' ,  &
-      'eglincomms    ','Communications' ,'Miscellaneous ' ,  &
+      'buildgrad_mcpy','Other         ' ,'Miscellaneous ' ,  &
+      'buildgrad_comm','Communications' ,'Allgatherv    ' ,  &
       'allocommsumrho','Communications' ,'Miscellaneous ' ,  &
       'ovrlptransComp','Other         ' ,'Miscellaneous ' ,  &
       'ovrlptransComm','Communications' ,'mpi_allreduce ' ,  &
@@ -1210,7 +1034,10 @@ module module_types
       'chebyshev_coef','Other         ' ,'Miscellaneous ' ,  &
       'FOE_auxiliary ','Other         ' ,'Miscellaneous ' ,  &
       'FOE_init      ','Other         ' ,'Miscellaneous ' ,  &
-      'compress_uncom','Other         ' ,'Miscellaneous ' ,  &
+      'compressd_mcpy','Other         ' ,'Miscellaneous ' ,  &
+      'compressd_comm','Communications' ,'Allgatherv    ' ,  &
+      'foe_aux_mcpy  ','Other         ' ,'Miscellaneous ' ,  &
+      'foe_aux_comm  ','Communications' ,'Allgatherv    ' ,  &
       'norm_trans    ','Other         ' ,'Miscellaneous ' ,  &
       'misc          ','Other         ' ,'Miscellaneous ' ,  &
       'sparse_copy   ','Other         ' ,'Miscellaneous ' ,  &
@@ -1236,12 +1063,68 @@ module module_types
       'potential_dims','Other         ' ,'auxiliary     ' ,  &
       'sparse_matmul ','Linear Algebra' ,'self-made     ' ,  &
       'transform_matr','Other         ' ,'small to large' ,  &
+      'calctrace_comp','Other         ' ,'Miscellaneous ' ,  &
+      'calctrace_comm','Communications' ,'allreduce     ' ,  &
       'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat_bigdft/))
  integer, dimension(ncat_bigdft), private, save :: cat_ids !< id of the categories to be converted
 
 
+ public :: gaussian_basis
+ public :: nullify_local_zone_descriptors,locreg_descriptors
+ public :: wavefunctions_descriptors,atoms_data,DFT_PSP_projectors
+ public :: grid_dimensions,p2pComms,comms_linear,sparse_matrix,matrices
+ public :: coulomb_operator,symmetry_data,atomic_structure,comms_cubic
+ public :: nonlocal_psp_descriptors,dpbox_null
+ public :: default_lzd,find_category,old_wavefunction_null,old_wavefunction_free
+ public :: material_acceleration_null,input_psi_names
+ public :: wf_format_names,bigdft_init_errors,bigdft_init_timing_categories
+ public :: deallocate_orbs,deallocate_locreg_descriptors,nullify_wfd
+ public :: deallocate_wfd,deallocate_bounds,update_nlpsp,deallocate_paw_objects
+ public :: old_wavefunction_set,allocate_wfd,basis_params_set_dict
+ public :: input_set,copy_locreg_descriptors,nullify_locreg_descriptors
+ public :: input_psi_help,deallocate_rho_descriptors
+ public :: nullify_paw_objects,frag_from_dict,copy_grid_dimensions
+ public :: cprj_to_array,deallocate_gwf_c
+ public :: SIC_data_null,local_zone_descriptors_null,output_wf_format_help
+ public :: energy_terms_null
+
 contains
 
+  pure function energy_terms_null() result(en)
+    implicit none
+    type(energy_terms) :: en
+    en%eh      =0.0_gp 
+    en%exc     =0.0_gp 
+    en%evxc    =0.0_gp 
+    en%eion    =0.0_gp 
+    en%edisp   =0.0_gp 
+    en%ekin    =0.0_gp 
+    en%epot    =0.0_gp
+    en%eproj   =0.0_gp
+    en%eexctX  =0.0_gp
+    en%ebs     =0.0_gp
+    en%eKS     =0.0_gp
+    en%trH     =0.0_gp
+    en%evsum   =0.0_gp
+    en%evsic   =0.0_gp 
+    en%excrhoc =0.0_gp 
+    en%eTS     =0.0_gp
+    en%ePV     =0.0_gp 
+    en%energy  =0.0_gp 
+    en%e_prev  =0.0_gp 
+    en%trH_prev=0.0_gp 
+    en%c_obj   =int(0,kind=8) 
+  end function energy_terms_null
+
+  pure function SIC_data_null() result(SIC)
+    implicit none
+    type(SIC_data) :: SIC
+
+    SIC%approach=repeat(' ',len(SIC%approach))
+    SIC%ixc=0
+    SIC%alpha=0.0_gp
+    SIC%fref=0.0_gp 
+  end function SIC_data_null
 
   function old_wavefunction_null() result(wfn)
     implicit none
@@ -1293,21 +1176,6 @@ contains
     nullify(lzd%Llr)
   end function default_lzd
  
-
-  function bigdft_run_id_toa()
-    use yaml_output
-    implicit none
-    character(len=20) :: bigdft_run_id_toa
-
-    bigdft_run_id_toa=repeat(' ',len(bigdft_run_id_toa))
-
-    if (bigdft_mpi%ngroup>1) then
-       bigdft_run_id_toa=adjustl(trim(yaml_toa(bigdft_mpi%igroup,fmt='(i15)')))
-    end if
-
-  end function bigdft_run_id_toa
-
-
   !> Fills the old_wavefunction structure with corresponding data
   !! Deallocate previous workspaces if already existing
   subroutine old_wavefunction_set(wfn,nat,norbp,Lzd,rxyz,psi)
@@ -1324,7 +1192,7 @@ contains
     !first, free the workspace if not already done
     call old_wavefunction_free(wfn)
     !then allocate the workspaces and fill them
-    wfn%psi = f_malloc_ptr((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norbp+ndebug,id='wfn%psi')
+    wfn%psi = f_malloc_ptr((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norbp,id='wfn%psi')
     
     if (norbp>0) call vcopy((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*norbp,&
          psi(1),1,wfn%psi(1),1)
@@ -1370,14 +1238,14 @@ contains
   END SUBROUTINE 
 
 
-  subroutine deallocate_abscalc_input(in)
-    use module_base
-    implicit none
-    type(input_variables) :: in
-
-    call f_free_ptr(in%Gabs_coeffs)
-
-  END SUBROUTINE deallocate_abscalc_input
+!!$  subroutine deallocate_abscalc_input(in)
+!!$    use module_base
+!!$    implicit none
+!!$    type(input_variables) :: in
+!!$
+!!$    call f_free_ptr(in%Gabs_coeffs)
+!!$
+!!$  END SUBROUTINE deallocate_abscalc_input
 
 
   !> De-Allocate orbitals data structure, except eval pointer
@@ -1389,6 +1257,8 @@ contains
     type(orbitals_data), intent(inout) :: orbs !< Orbital to de-allocate
 
     call f_free_ptr(orbs%norb_par)
+    call f_free_ptr(orbs%norbu_par)
+    call f_free_ptr(orbs%norbd_par)
 
     call f_free_ptr(orbs%occup)
     call f_free_ptr(orbs%spinsgn)
@@ -1410,173 +1280,6 @@ contains
 
   END SUBROUTINE deallocate_orbs
 
-
-  !> All in one routine to initialise and set-up restart objects.
-  subroutine init_restart_objects(iproc,inputs,atoms,rst)
-    use module_base
-    implicit none
-    !Arguments
-    integer, intent(in) :: iproc
-    type(input_variables), intent(in) :: inputs
-    type(atoms_data), intent(in) :: atoms
-    type(restart_objects), intent(out) :: rst
-
-    call restart_objects_new(rst)
-    call restart_objects_set_mode(rst, inputs%inputpsiid)
-    call restart_objects_set_nat(rst, atoms%astruct%nat)
-    call restart_objects_set_mat_acc(rst, iproc, inputs%matacc)
-  END SUBROUTINE init_restart_objects
-
-
-  !> Allocate and nullify restart objects
-  subroutine restart_objects_new(rst)
-    use module_base
-    implicit none
-    !Arguments
-    type(restart_objects), intent(out) :: rst
-
-    ! Decide whether we use the cubic or the linear version
-    rst%version = UNINITIALIZED(CUBIC_VERSION)
-
-    !allocate pointers
-    rst%nat = 0
-    nullify(rst%rxyz_new)
-    nullify(rst%rxyz_old)
-
-    !nullify unallocated pointers
-    rst%KSwfn%c_obj = 0
-    nullify(rst%KSwfn%psi)
-    nullify(rst%KSwfn%orbs%eval)
-
-    nullify(rst%KSwfn%gaucoeffs)
-    nullify(rst%KSwfn%oldpsis)
-
-    rst%KSwfn%Lzd%Glr = locreg_null()
-    nullify(rst%KSwfn%Lzd%Glr%wfd%keyglob)
-    nullify(rst%KSwfn%Lzd%Glr%wfd%keygloc)
-    nullify(rst%KSwfn%Lzd%Glr%wfd%keyvloc)
-    nullify(rst%KSwfn%Lzd%Glr%wfd%keyvglob)
-                
-    nullify(rst%KSwfn%gbd%nshell)
-    nullify(rst%KSwfn%gbd%ndoc)
-    nullify(rst%KSwfn%gbd%nam)
-    nullify(rst%KSwfn%gbd%xp)
-    nullify(rst%KSwfn%gbd%psiat)
-    nullify(rst%KSwfn%gbd%rxyz)
-
-    !Nullify LZD for cubic version (new input guess)
-    call nullify_local_zone_descriptors(rst%tmb%lzd)
-
-    !Nullify GPU data
-    rst%GPU%OCLconv=.false.
-  END SUBROUTINE restart_objects_new
-
-
-  subroutine restart_objects_set_mode(rst, inputpsiid)
-    implicit none
-    type(restart_objects), intent(inout) :: rst
-    integer, intent(in) :: inputpsiid
-
-    select case (inputpsiid)
-    case (INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, &
-         INPUT_PSI_DISK_WVL, INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS)
-       rst%version = CUBIC_VERSION
-    case (INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_DISK_LINEAR)
-       rst%version = LINEAR_VERSION
-    end select
-  END SUBROUTINE restart_objects_set_mode
-
-
-  subroutine restart_objects_set_nat(rst, nat)
-    use module_base
-    implicit none
-    !Arguments
-    integer, intent(in) :: nat
-    type(restart_objects), intent(inout) :: rst
-
-    if (associated(rst%rxyz_old)) then
-       call f_free_ptr(rst%rxyz_old)
-    end if
-    if (associated(rst%rxyz_new)) then
-       call f_free_ptr(rst%rxyz_new)
-    end if
-
-    rst%nat = nat
-    rst%rxyz_new = f_malloc_ptr((/ 3, nat /),id='rst%rxyz_new')
-    rst%rxyz_old = f_malloc_ptr((/ 3, nat /),id='rst%rxyz_old')
-  END SUBROUTINE restart_objects_set_nat
-
-
-  subroutine restart_objects_set_mat_acc(rst, iproc, matacc)
-    implicit none
-    !Arguments
-    type(restart_objects), intent(inout) :: rst
-    integer, intent(in) :: iproc
-    type(material_acceleration), intent(in) :: matacc
-    !initialise the acceleration strategy if required
-    call init_material_acceleration(iproc,matacc,rst%GPU)
-  END SUBROUTINE restart_objects_set_mat_acc
-
-  
-  !> De-Allocate restart_objects
-  subroutine free_restart_objects(rst)
-    use module_base
-    use locregs
-    use gaussians, only: deallocate_gwf
-    implicit none
-    type(restart_objects) :: rst
-    !local variables
-    integer :: istep
-
-    if (rst%version == LINEAR_VERSION) then
-       call destroy_DFT_wavefunction(rst%tmb)
-    end if
-    !always deallocate lzd for new input guess
-    !call deallocate_lzd(rst%tmb%lzd)
-    ! Modified by SM
-    call deallocate_local_zone_descriptors(rst%tmb%lzd)
-
-    call deallocate_locreg_descriptors(rst%KSwfn%Lzd%Glr)
-
-    if (associated(rst%KSwfn%psi)) then
-       call f_free_ptr(rst%KSwfn%psi)
-    end if
-
-    if (associated(rst%KSwfn%orbs%eval)) then
-       call f_free_ptr(rst%KSwfn%orbs%eval)
-    end if
-
-    if (associated(rst%KSwfn%oldpsis)) then
-       do istep=0,product(shape(rst%KSwfn%oldpsis))-1
-          call old_wavefunction_free(rst%KSwfn%oldpsis(istep))
-       end do
-       deallocate(rst%KSwfn%oldpsis)
-    end if
-
-    if (associated(rst%rxyz_old)) then
-       call f_free_ptr(rst%rxyz_old)
-    end if
-    if (associated(rst%rxyz_new)) then
-       call f_free_ptr(rst%rxyz_new)
-    end if
-
-    !The gaussian basis descriptors are always allocated together
-    !with the gaussian coefficients
-    if (associated(rst%KSwfn%gbd%rxyz)) then
-       nullify(rst%KSwfn%gbd%rxyz)
-       call deallocate_gwf(rst%KSwfn%gbd)
-    end if
-
-    if (associated(rst%KSwfn%gaucoeffs)) then
-       call f_free_ptr(rst%KSwfn%gaucoeffs)
-    end if
-
-    !finalise the material accelearion usage
-    call release_material_acceleration(rst%GPU)
-
-  END SUBROUTINE free_restart_objects
-
-
   !> Deallocate rho descriptors
   subroutine deallocate_rho_descriptors(rhodsc)
     use module_base
@@ -1597,23 +1300,6 @@ contains
     end if
 
   end subroutine deallocate_rho_descriptors
-
-
-
-  !> Deallocate lr (obsolete)
-  !! @todo Remove this function.
-  subroutine deallocate_lr(lr)
-    use module_base
-    type(locreg_descriptors) :: lr
-!    integer :: i_all,i_stat
-
-    write(0,*) "deallocate_lr : TODO, remove me"
-    
-    call deallocate_wfd(lr%wfd)
-
-    call deallocate_bounds(lr%geocode,lr%hybrid_on,lr%bounds)
-
-  END SUBROUTINE deallocate_lr
 
 
   subroutine deallocate_Lzd(Lzd)
@@ -1664,8 +1350,9 @@ contains
 !!$   nullify(Lzd%Gnlpspd%nboxp_f)
  
 !Now destroy the Llr
-    do ilr = 1, Lzd%nlr 
-       call deallocate_lr(Lzd%Llr(ilr))
+    do ilr = 1, Lzd%nlr
+       call deallocate_locreg_descriptors(Lzd%Llr(ilr))
+       !call deallocate_lr(Lzd%Llr(ilr))
 !       call deallocate_Lnlpspd(Lzd%Lnlpspd(ilr),subname)
     end do
      nullify(Lzd%Llr)
@@ -1922,198 +1609,58 @@ contains
 
   end subroutine nullify_diis_objects
 
-
-  subroutine nullify_rholoc_objects(rholoc)
-    implicit none
-    type(rholoc_objects),intent(inout) :: rholoc
-    
-    nullify(rholoc%msz)
-    nullify(rholoc%d)
-    nullify(rholoc%rad)
-    nullify(rholoc%radius) 
-  end subroutine nullify_rholoc_objects
-
-
-  subroutine nullify_paw_objects(paw,rholoc)
+  pure subroutine nullify_paw_objects(paw)
     implicit none
     type(paw_objects),intent(inout) :: paw
-    type(rholoc_objects),optional :: rholoc
     
-    nullify(paw%indlmn) 
-    nullify(paw%spsi) 
-    nullify(paw%sij) 
-    nullify(paw%rpaw)
+    paw%usepaw = .false.
+    nullify(paw%spsi)
 
-    if(present(rholoc)) then
-     nullify(rholoc%msz)
-     nullify(rholoc%d)
-     nullify(rholoc%rad)
-     nullify(rholoc%radius) 
-    end if
+    nullify(paw%paw_an)
+    nullify(paw%paw_ij)
+    nullify(paw%cprj)
+    nullify(paw%pawfgrtab)
+    nullify(paw%pawrhoij)
   end subroutine nullify_paw_objects
 
-
-  subroutine nullify_paw_ij_objects(paw_ij)
+  subroutine deallocate_paw_objects(paw)
+    use m_paw_an, only: paw_an_destroy
+    use m_paw_ij, only: paw_ij_destroy
+    use m_pawcprj, only: pawcprj_destroy
+    use m_pawfgrtab, only: pawfgrtab_destroy
+    use m_pawrhoij, only: pawrhoij_destroy
     implicit none
-    !Arguments
-    type(paw_ij_objects), intent(inout) :: paw_ij
+    type(paw_objects),intent(inout) :: paw
+    
+    call f_free_ptr(paw%spsi)
 
-    nullify(paw_ij%dij) 
-  end subroutine nullify_paw_ij_objects
-
-
-  subroutine nullify_cprj_objects(cprj)
-    implicit none
-    type(cprj_objects),intent(inout) :: cprj
-
-    nullify(cprj%cp)
-    nullify(cprj%dcp)
-  end subroutine nullify_cprj_objects
-
-
-  !> Initialize the structure DFT_global_output
-  subroutine nullify_global_output(outs)
-    implicit none
-    type(DFT_global_output), intent(out) :: outs
-
-    outs%fdim      = 0
-    nullify(outs%fxyz)
-    outs%energy    = UNINITIALIZED(1.0_gp)
-    outs%fnoise    = UNINITIALIZED(1.0_gp)
-    outs%pressure  = UNINITIALIZED(1.0_gp)
-    outs%strten(:) = UNINITIALIZED(1.0_gp)
-  END SUBROUTINE nullify_global_output
-
-
-  subroutine init_global_output(outs, nat)
-    use module_base
-    use dynamic_memory
-    implicit none
-    type(DFT_global_output), intent(out) :: outs
-    integer, intent(in) :: nat
-
-    call nullify_global_output(outs)
-    outs%fdim = nat
-    outs%fxyz = f_malloc_ptr((/ 3, outs%fdim /),id='outs%fxyz')
-    outs%fxyz(:,:) = UNINITIALIZED(1.0_gp)
-  END SUBROUTINE init_global_output
-
-
-  subroutine deallocate_global_output(outs, fxyz)
-    use module_base
-    use dynamic_memory
-    implicit none
-    type(DFT_global_output), intent(inout) :: outs
-    real(gp), intent(out), optional :: fxyz
-
-    if (associated(outs%fxyz)) then
-       if (present(fxyz)) then
-          call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz, 1)
-       end if
-       call f_free_ptr(outs%fxyz)
+    if (associated(paw%paw_an)) then
+       call paw_an_destroy(paw%paw_an)
+       deallocate(paw%paw_an)
     end if
-  END SUBROUTINE deallocate_global_output
-
-
-  !> Copies outsA to outsB
-  subroutine copy_global_output(outsA,outsB)
-     use module_base
-    implicit none
-    type(DFT_global_output), intent(in) :: outsA
-    type(DFT_global_output), intent(inout) :: outsB
-    integer :: i
-
-    if(outsA%fdim /= outsB%fdim)then
-     write(*,*)"Error in copy_global_output: outsA and outsB have different sizes",outsA%fdim,outsB%fdim
-     stop
-    endif
-    !outsA%fdim == outsB%fdim so it does not have to be copied
-
-     outsB%energy = outsA%energy
-     outsB%fnoise = outsA%fnoise
-     outsB%pressure = outsA%pressure
-     !8.5.2014: outs%energs does not contain any pointers,
-     !so we use intrinisc copy:
-     outsB%energs = outsA%energs
-     call vcopy(3 * outsB%fdim, outsA%fxyz(1,1), 1, outsB%fxyz(1,1), 1)
-     do i=1,6
-        outsB%strten(i) = outsA%strten(i)
-     enddo
-  end subroutine
-
-
-  !> cprj_clean will be obsolete with the PAW library
-  !! this is cprj_free in abinit.
-  subroutine cprj_clean(cprj)
-
-    implicit none
-    !Arguments
-    type(cprj_objects),intent(inout) :: cprj(:,:)
-    !Local variables
-    integer :: ii,jj,n1dim,n2dim
-
-    n1dim=size(cprj,dim=1);n2dim=size(cprj,dim=2)
-    !write(std_out,*) "cprj_free ndim = ", n1dim, n2dim
-    do jj=1,n2dim
-      do ii=1,n1dim
-        if (associated(cprj(ii,jj)%cp))  then
-          call f_free_ptr(cprj(ii, jj)%cp)
-        end if
-        if (associated(cprj(ii,jj)%dcp))  then
-          call f_free_ptr(cprj(ii, jj)%dcp)
-        end if
-      end do
-    end do
-  end subroutine cprj_clean
-
-
-  !> This routine is cprj_alloc in abinit
-  !! with the PAW library this will be obsolet.
-  subroutine cprj_paw_alloc(cprj,ncpgr,nlmn)
-
-    implicit none
-    !Arguments
-    !scalars
-    integer,intent(in) :: ncpgr
-    !arrays
-    integer,intent(in) :: nlmn(:)
-    type(cprj_objects),intent(inout) :: cprj(:,:)
-    !Local variables
-    integer :: ii,jj,n1dim,n2dim,nn
-
-    n1dim=size(cprj,dim=1);n2dim=size(cprj,dim=2);nn=size(nlmn,dim=1)
-    if (nn/=n1dim) then
-      write(*,*)"Error in cprj_alloc: wrong sizes !",nn,n1dim
-      stop
+    if (associated(paw%paw_ij)) then
+       call paw_ij_destroy(paw%paw_ij)
+       deallocate(paw%paw_ij)
     end if
-   !write(std_out,*) "cprj_alloc ndim = ", n1dim, n2dim
-    do jj=1,n2dim
-      do ii=1,n1dim
-        nullify (cprj(ii,jj)%cp)
-        nullify (cprj(ii,jj)%dcp)
- 
-        nn=nlmn(ii)
-        cprj(ii,jj)%nlmn=nn
-        cprj(ii,jj)%cp = f_malloc_ptr((/ 2 , nn /),id='cprj(ii,jj)%cp')
-   !    XG 080820 Was needed to get rid of problems with test paral#R with four procs
-        cprj(ii,jj)%cp=0.0_dp
-   !    END XG 080820
- 
-        cprj(ii,jj)%ncpgr=ncpgr
-        if (ncpgr>0) then
-          cprj(ii,jj)%dcp = f_malloc_ptr((/ 2 , ncpgr,  nn /),id='cprj(ii,jj)%cp')
-          cprj(ii,jj)%dcp=0.0_dp
-        end if
-      end do
-    end do
-  end subroutine cprj_paw_alloc
-
+    if (associated(paw%cprj)) then
+       call pawcprj_destroy(paw%cprj)
+       deallocate(paw%cprj)
+    end if
+    if (associated(paw%pawfgrtab)) then
+       call pawfgrtab_destroy(paw%pawfgrtab)
+       deallocate(paw%pawfgrtab)
+    end if
+    if (associated(paw%pawrhoij)) then
+       call pawrhoij_destroy(paw%pawrhoij)
+       deallocate(paw%pawrhoij)
+    end if
+  end subroutine deallocate_paw_objects
 
   subroutine cprj_to_array(cprj,array,norb,nspinor,shift,option)
     implicit none
     integer,intent(in) :: option,norb,nspinor,shift
     real(kind=8),intent(inout) :: array(:,:)
-    type(cprj_objects),intent(inout) :: cprj(:)
+    type(pawcprj_type),intent(inout) :: cprj(:)
     !
     integer :: ii,jj,ilmn,iorb
     !
@@ -2486,7 +2033,8 @@ contains
     use dictionaries, only: dictionary, operator(//), assignment(=)
     use dictionaries, only: dict_key, max_field_length, dict_value, dict_len
     use module_defs, only: DistProjApply, GPUblas, gp
-    use module_input_keys
+    use module_input_keys, only: input_keys_equal
+    use public_keys
     use dynamic_memory
     use yaml_output, only: yaml_warning
     implicit none
@@ -2531,6 +2079,8 @@ contains
           in%gnrm_cv = val !convergence parameters
        case (ITERMAX)
           in%itermax = val
+       case (ITERMIN)
+          in%itermin = val
        case (NREPMAX)
           in%nrepmax = val
        case (NCONG)
@@ -2683,6 +2233,9 @@ contains
        case (CHECK_SUMRHO)
           in%check_sumrho = val
           !  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
+       case (CHECK_OVERLAP)
+          ! perform a check of the overlap calculation
+          in%check_overlap = val
        case (EXPERIMENTAL_MODE)
           in%experimental_mode = val
        case (WRITE_ORBITALS)
@@ -2733,6 +2286,15 @@ contains
        case (FSCALE_UPPERBOUND)
            ! linear scaling: upper bound for the error function decay length
            in%fscale_upperbound = val
+       case (FOE_RESTART)
+           ! linear scaling: Restart method to be used for the FOE method
+           in%FOE_restart = val
+       case (IMETHOD_OVERLAP)
+           ! linear scaling: method to calculate the overlap matrices (1=old, 2=new)
+           in%imethod_overlap = val
+       case (ENABLE_MATRIX_TASKGROUPS) 
+           ! linear scaling: enable the matrix taskgroups
+           in%enable_matrix_taskgroups = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
@@ -2791,6 +2353,10 @@ contains
           in%cutoffratio = val
        case (STEEPTHRESH)
           in%steepthresh = val
+       case (BIOMODE)
+          in%biomode = val
+       case (BETA_STRETCHX)
+          in%beta_stretchx = val
        case (TRUSTR)
           in%trustr = val
        case DEFAULT
@@ -2981,7 +2547,8 @@ contains
 
 
   subroutine basis_params_set_dict(dict_basis,lin,jtype)
-    use module_input_keys
+    !use module_input_keys
+    use public_keys
     use dictionaries
     implicit none
     integer, intent(in) :: jtype !< local type of which we are filling the values
@@ -3021,7 +2588,8 @@ contains
   subroutine frag_from_dict(dict,frag)
     use module_base
     use yaml_output, only: yaml_map,is_atoi
-    use module_input_keys
+    !use module_input_keys
+    use public_keys
     implicit none
     type(dictionary), pointer :: dict
     type(fragmentInputParameters), intent(out) :: frag

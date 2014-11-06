@@ -188,6 +188,7 @@ subroutine test_dictionaries1()
    type(dictionary), pointer :: dict,dictA
    type(dictionary), pointer :: dictA2,dict_tmp,zero1,zero2
    double precision, dimension(3) :: tmp_arr
+   character(len=20) :: name
 
    !testing add
    call dict_init(dict)
@@ -236,7 +237,9 @@ subroutine test_dictionaries1()
    !try with these examples
    call yaml_map('Size before removing',dict_size(dict2))
    call dict_remove(dict2,'One')
+   call yaml_map('First removal',dict2)
    call dict_remove(dict2,'Two')
+   call yaml_map('Second removal',dict2)
 !   call pop(dict2,'Three')
    !a further element can be added
    call set(dict//'First'//'Four',4)
@@ -513,7 +516,70 @@ subroutine test_dictionaries1()
 !!$   call dict_free(dictA)
 !!$   call dict_free(dict_tmp)
 
+   name(1:len(name)) = 'atom'
+   call dict_init(dict_tmp)
+   dictA => dict_tmp // 'Test'
+   call dict_init(dictA2)
+   call set(dictA2 // name // 0, tmp_arr(1))
+   call set(dictA2 // name // 1, tmp_arr(2))
+   call set(dictA2 // name // 2, tmp_arr(3))
+   call add(dictA, dictA2)
 
+            !to be verified if one of these works
+!!$            call set(fxyz // astruct%atomnames(astruct%iatype(iat)),outs%fxyz(:,iat))
+!!$            call set(fxyz // astruct%atomnames(astruct%iatype(iat)), list_new( .elem. outs%fxyz(:,iat)))
+!!$            fxyz => dict_new( trim(astruct%atomnames(astruct%iatype(iat))) .is. outs%fxyz(:,iat))
+!!$
+!!$            call f_strcpy(src=astruct%atomnames(astruct%iatype(iat)),dest=name)
+!!$            call add(pos, dict_new( trim(name) .is. &
+!!$                 list_new( .elem. outs%fxyz(:,iat))))
+   call yaml_map('Dictionary now',dictA)
+   call dict_free(dict_tmp)
+
+   !now do it again with another mechanism
+   tmp_arr = tmp_arr + 1.d0
+   call dict_init(dict_tmp)
+   dictA => dict_tmp // 'Test'
+   call dict_init(dictA2)
+   call set(dictA2 // name,[ '5', '6', '7', '8' ])
+   call set(dictA2 // name,[ '3', '4' ])
+   call set(dictA2 // name,[ '2', '9', '1' ])
+   call set(dictA2 // name,tmp_arr)
+   call add(dictA, dictA2)
+   call yaml_map('Dictionary now2',dictA)
+   call dict_free(dict_tmp)
+
+   !now do it again2 with another mechanism
+   tmp_arr = tmp_arr + 1.d0
+   call dict_init(dict_tmp)
+   dictA => dict_tmp // 'Test'
+   call add(dictA, dict_new(name .is. list_new( .item. tmp_arr)))
+   call yaml_map('Dictionary now3',dictA)
+   call dict_free(dict_tmp)
+
+   !now do it again3 with another mechanism (the one of choice)
+   tmp_arr = tmp_arr + 1.d0
+   call dict_init(dict_tmp)
+   dictA => dict_tmp // 'Test'
+   call add(dictA, dict_new(name .is. tmp_arr))
+   call yaml_map('Dictionary now3',dictA)
+
+   !now iterate on the list in two ways
+   dictA2=> dictA // 0 // name
+   call yaml_map('Dictionary',dictA2)
+   do i=1,dict_len(dictA2)
+      call yaml_map('i='//trim(adjustl(yaml_toa(i))),dictA2//(i-1))
+   end do
+
+   dictA2=> dict_iter(dictA // 0 .get. name)
+   i=0
+   do while(associated(dictA2))
+      i=i+1
+      call yaml_map('i2='//trim(adjustl(yaml_toa(i))),dictA2)
+      dictA2 => dict_next(dictA2)
+   end do
+   
+   call dict_free(dict_tmp)
 
  end subroutine test_dictionaries1
 
@@ -561,6 +627,7 @@ subroutine test_dictionaries1()
 
 subroutine test_dictionary_for_atoms()
   use yaml_output
+  use yaml_strings, only: f_strcpy
   implicit none
 
 !!$  character(len = 50) :: gu
@@ -604,7 +671,6 @@ subroutine test_dictionary_for_atoms()
 
   !now print some double precision values to understand which is the best format
   tt=real(0.5e0,kind=8) !use a conversion from float
-
   call yaml_map('Real without format',clean_zeroes(yaml_toa('0.2000000000000000000')))
   fmts(1:len(fmts))='(1pe25.17)'
   call yaml_map('Real with format '//trim(fmts),clean_zeroes(yaml_toa(tt,fmt=fmts)))
@@ -676,7 +742,8 @@ subroutine test_dictionary_for_atoms()
          !then copy the exponent
          if (str(iexpo:) /= 'E+00' .and. str(iexpo:) /= 'e+00' .and. str(iexpo:) /= 'E+000' .and. &
               str(iexpo:) /= 'e+000') then
-            clean_zeroes(i+1:max_value_length)=str(iexpo:)
+            call f_strcpy(src=str(iexpo:),dest=clean_zeroes(i+1:))
+            !clean_zeroes(i+1:max_value_length)=str(iexpo:)
          else
             clean_zeroes(i+1:max_value_length)=' '
          end if

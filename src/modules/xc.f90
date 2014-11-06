@@ -33,8 +33,8 @@ module module_xc
 
 
   !> Structure containing the information to call the routines for the calculation of the xc functionals
-  type libxc_functional
-     private
+  type, public :: libxc_functional
+     !private
      type(xc_f90_pointer_t) :: conf !< the pointer used to call the library
      type(xc_f90_pointer_t) :: info !< Information about the functional
   end type libxc_functional
@@ -69,6 +69,8 @@ module module_xc
        &    xc_exctXfac, &
        &    xc_end, &
        &    xc_get_name
+
+
 
 contains
 
@@ -332,7 +334,9 @@ contains
     if (any(xcObj%family == XC_FAMILY_HYB_GGA)) then
        !factors for the exact exchange contribution of different hybrid functionals
        if (any(xcObj%id == XC_HYB_GGA_XC_PBEH)) then
-          xc_exctXfac = 0.25d0 
+          xc_exctXfac = 0.25d0 !PBE0
+       else if (any(xcObj%id == XC_HYB_GGA_XC_B3LYP)) then
+          xc_exctXfac = 0.2d0 !B3LYP
        end if
     end if
 
@@ -535,6 +539,7 @@ contains
                            & vxcgr(ipts + 2 * npts:ipte + 2 * npts) + &
                            & vsigma(1, 1:nb)*real(2,dp)
                 else
+                   !here a FPE has been found in XC test
                    vxcgr(ipts:ipte) = &
                         & vxcgr(ipts:ipte) + real(2,dp)*vsigma(1, 1:nb) - vsigma(2, 1:nb)
                    vxcgr(ipts + npts:ipte + npts) = &

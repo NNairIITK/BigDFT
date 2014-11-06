@@ -269,7 +269,7 @@ program PS_Check
    end if
 
    call timing(MPI_COMM_WORLD,'Parallel','PR')
-   call pkernel_free(pkernel,subname)
+   call pkernel_free(pkernel)
 
    if (pkernel%mpi_env%nproc == 1 .and.pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0 )&
         call yaml_map('Monoprocess run','*MPIrun')
@@ -309,7 +309,7 @@ program PS_Check
          offset,ehartree,eexcu,vexcu,&
          density,potential,pot_ion,xc_pot,pkernelseq)
 
-       call pkernel_free(pkernelseq,subname)
+       call pkernel_free(pkernelseq)
        call yaml_mapping_close() !comparison
        if (ixc == 0) exit
        call xc_end(xc)    

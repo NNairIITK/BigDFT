@@ -1,6 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
-EXTRA_DIST = test-coordinatetransform.ref.yaml
+EXTRA_DIST = test-coordinatetransform.ref.yaml test-bigdft-tool.ref.yaml \
+	posinp1.xyz posinp2.xyz posinp3.xyz posinp4.xyz posinp5.xyz posinp5.fix
 
 check_PROGRAMS = driver
 
@@ -33,13 +34,13 @@ test-coordinatetransform.report.yaml: $(srcdir)/test-coordinatetransform.ref.yam
 		-r $< -d test-coordinatetransform.out.yaml -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=test-coordinatetransform -o $@ 
 
 test-coordinatetransform.out.yaml: driver
-	cp $(srcdir)/posinp1.xyz $(PWD)/posinp.xyz
+	cp -f $(srcdir)/posinp1.xyz $(PWD)/posinp.xyz
 	$(run_parallel) ./driver > test-coordinatetransform.out.yaml
-	cp $(srcdir)/posinp2.xyz $(PWD)/posinp.xyz
+	cp -f $(srcdir)/posinp2.xyz $(PWD)/posinp.xyz
 	$(run_parallel) ./driver >> test-coordinatetransform.out.yaml
-	cp $(srcdir)/posinp3.xyz $(PWD)/posinp.xyz
+	cp -f $(srcdir)/posinp3.xyz $(PWD)/posinp.xyz
 	$(run_parallel) ./driver >> test-coordinatetransform.out.yaml
-	cp $(srcdir)/posinp4.xyz $(PWD)/posinp.xyz
+	cp -f $(srcdir)/posinp4.xyz $(PWD)/posinp.xyz
 	$(run_parallel) ./driver >> test-coordinatetransform.out.yaml
 
 test-bigdft-tool.report.yaml: $(srcdir)/test-bigdft-tool.ref.yaml test-bigdft-tool.out.yaml
@@ -49,32 +50,32 @@ test-bigdft-tool.report.yaml: $(srcdir)/test-bigdft-tool.ref.yaml test-bigdft-to
 		-r $< -d test-bigdft-tool.out.yaml -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=test-bigdft-tool -o $@ 
 
 test-bigdft-tool.out.yaml: $(abs_top_builddir)/src/bigdft-tool
-	cp $(srcdir)/posinp1.xyz $(PWD)/posinp.xyz
+	cp -f $(srcdir)/posinp1.xyz $(PWD)/posinp.xyz
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posinp.xyz --outfile=posout.int
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posout.int --outfile=posout.xyz
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posout.xyz --outfile=posout.yaml
 	cat posout.yaml > test-bigdft-tool.out.yaml
 	rm -f posout.*
-	cp $(srcdir)/posinp2.xyz $(PWD)/posinp.xyz
+	cp -f $(srcdir)/posinp2.xyz $(PWD)/posinp.xyz
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posinp.xyz --outfile=posout.int
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posout.int --outfile=posout.xyz
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posout.xyz --outfile=posout.yaml
 	cat posout.yaml >> test-bigdft-tool.out.yaml
 	rm -f posout.*
-	cp $(srcdir)/posinp3.xyz $(PWD)/posinp.xyz
+	cp -f $(srcdir)/posinp3.xyz $(PWD)/posinp.xyz
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posinp.xyz --outfile=posout.int
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posout.int --outfile=posout.xyz
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posout.xyz --outfile=posout.yaml
 	cat posout.yaml >> test-bigdft-tool.out.yaml
 	rm -f posout.*
-	cp $(srcdir)/posinp4.xyz $(PWD)/posinp.xyz
+	cp -f $(srcdir)/posinp4.xyz $(PWD)/posinp.xyz
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posinp.xyz --outfile=posout.int
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posout.int --outfile=posout.xyz
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posout.xyz --outfile=posout.yaml
 	cat posout.yaml >> test-bigdft-tool.out.yaml
 	rm -f posout.*
-	cp $(srcdir)/posinp5.xyz $(PWD)/posinp.xyz
-	cp $(srcdir)/posinp5.fix $(PWD)/posinp.fix
+	cp -f $(srcdir)/posinp5.xyz $(PWD)/posinp.xyz
+	cp -f $(srcdir)/posinp5.fix $(PWD)/posinp.fix
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posinp.xyz --outfile=posout.int
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posout.int --outfile=posout.xyz
 	$(abs_top_builddir)/src/bigdft-tool -a transform-coordinates --infile=posout.xyz --outfile=posout.yaml
