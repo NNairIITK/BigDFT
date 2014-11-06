@@ -88,21 +88,21 @@ use module_atoms, only: astruct_dump_to_file
         fxyz(1:3,1:nat)=fxyz(1:3,1:nat)*0.01944690466683907_gp
         fnoise=0.0_gp
         return
-!    else if(trim(adjustl(efmethod))=='AMBER')then
-!        icc=1
-!        !convert from bohr to ansgtroem
-!        rxyzint=0.52917721092_gp*rxyz
-!        call call_nab_gradient(rxyzint(1,1),fxyz(1,1),epot,icc)
-!        epot=epot*0.001593601437458137_gp !from kcal_th/mol to hartree
-!                                          !(thermochemical calorie
-!                                          !used: 1cal_th=4.184J)
-!                                          !also see:
-!                          !http://archive.ambermd.org/201009/0039.html
-!        !convert from gradient in kcal_th/mol/angstrom to
-!        !force in hartree/bohr
-!        fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)*0.0008432975639921999_gp
-!        fnoise=0.0_gp
-!        return
+    else if(trim(adjustl(efmethod))=='AMBER')then
+        icc=1
+        !convert from bohr to ansgtroem
+        rxyzint=0.52917721092_gp*rxyz
+        call call_nab_gradient(rxyzint(1,1),fxyz(1,1),epot,icc)
+        epot=epot*0.001593601437458137_gp !from kcal_th/mol to hartree
+                                          !(thermochemical calorie
+                                          !used: 1cal_th=4.184J)
+                                          !also see:
+                          !http://archive.ambermd.org/201009/0039.html
+        !convert from gradient in kcal_th/mol/angstrom to
+        !force in hartree/bohr
+        fxyz(1:3,1:nat)=-fxyz(1:3,1:nat)*0.0008432975639921999_gp
+        fnoise=0.0_gp
+        return
 !    else if(trim(adjustl(efmethod))=='AMBEROF')then
 !        !convert from bohr to ansgtroem
 !        rxyzint=0.52917721092_gp*rxyz
@@ -130,7 +130,10 @@ use module_atoms, only: astruct_dump_to_file
 !        call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1),1,&
 !             runObj%atoms%astruct%rxyz(1,1), 1)
         call bigdft_set_rxyz(runObj,rxyz=rxyz)
+if(iproc==0)write(*,*)'(MHGPS) debug, ----------------------------------------'
+write(*,*)'(MHGPS) debug, inputPsiIs global variable ',inputPsiID, iproc
         runObj%inputs%inputPsiId=inputPsiId
+write(*,*)'(MHGPS) debug,runObj%inputs%inputPsiId',runObj%inputs%inputPsiId,iproc
         runObj%inputs%itermin=itermin
         call call_bigdft(runObj,outs,infocode)
         call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1), 1)

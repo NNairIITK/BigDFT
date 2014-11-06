@@ -77,8 +77,8 @@ program mhgps
     !alanine stuff ......................END!>
 
     ifolder=1
-!!    ifile=1
-    ifile=0
+    ifile=1
+!!    ifile=0
     ef_counter=0.d0 !from module_global_variables
     isad=0  !from module_global_variables
     isadprob=0
@@ -166,33 +166,33 @@ program mhgps
         astruct_ptr=>atom_struct
         fdim=astruct_ptr%nat
         call print_logo_mhgps()
-!    elseif(efmethod=='AMBER')then
-!        iproc=0
-!        isForceField=.true.
-!        write(currDir,'(a,i3.3)')'input',ifolder
-!        write(filename,'(a,i3.3)')'pos',ifile
-!        call deallocate_atomic_structure(atom_struct)
-!        call read_atomic_file(currDir//'/'//filename,iproc,&
-!                              atom_struct)
-!        astruct_ptr=>atom_struct
-!        fdim=astruct_ptr%nat
-!        !alanine stuff ......................START!>
-!          l_sat=5
-!          allocate(atomnamesdmy(1000))
-!          rxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct_ptr%nat/),&
-!                            id='rxyzdmy')
-!          fxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct_ptr%nat/),&
-!                            id='fxyzdmy')
-!          fnpdb='ald_new.pdb'
-!          nfnpdb=len(trim(fnpdb));
-!          call nab_init(astruct_ptr%nat,rxyzdmy,fxyzdmy,&
-!                        trim(fnpdb),nfnpdb,l_sat,atomnamesdmy)
-!          call f_free(rxyzdmy)
-!          call f_free(fxyzdmy)
-!          deallocate(atomnamesdmy)
-!        !alanine stuff ......................END!>
-!
-!        call print_logo_mhgps()
+    elseif(efmethod=='AMBER')then
+        iproc=0
+        isForceField=.true.
+        write(currDir,'(a,i3.3)')'input',ifolder
+        write(filename,'(a,i3.3)')'pos',ifile
+        call deallocate_atomic_structure(atom_struct)
+        call read_atomic_file(currDir//'/'//filename,iproc,&
+                              atom_struct)
+        astruct_ptr=>atom_struct
+        fdim=astruct_ptr%nat
+        !alanine stuff ......................START!>
+          l_sat=5
+          allocate(atomnamesdmy(1000))
+          rxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct_ptr%nat/),&
+                            id='rxyzdmy')
+          fxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct_ptr%nat/),&
+                            id='fxyzdmy')
+          fnpdb='ald_new.pdb'
+          nfnpdb=len(trim(fnpdb));
+          call nab_init(astruct_ptr%nat,rxyzdmy,fxyzdmy,&
+                        trim(fnpdb),nfnpdb,l_sat,atomnamesdmy)
+          call f_free(rxyzdmy)
+          call f_free(fxyzdmy)
+          deallocate(atomnamesdmy)
+        !alanine stuff ......................END!>
+
+        call print_logo_mhgps()
 !    elseif(efmethod=='AMBEROF')then
 !        iproc=0
 !        isForceField=.true.
@@ -336,8 +336,8 @@ allocate(fat(3,nat))
             stop '(MHGPS) operation mode unknown STOP'
         endif
 
-!        do ifile = 1,nend
-        do ifile = 0,nend
+        do ifile = 1,nend
+!        do ifile = 0,nend
 
             !read (first) file
             write(filename,'(a,i3.3)')'pos',ifile
