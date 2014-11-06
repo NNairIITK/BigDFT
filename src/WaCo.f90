@@ -18,7 +18,7 @@ program WaCo
    use yaml_output
    use module_input_dicts
    use module_atoms, only: deallocate_atoms_data
-   use communications_base, only: comms_cubic,deallocate_comms
+   use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
    use bigdft_run
    implicit none
@@ -37,7 +37,7 @@ program WaCo
    real(gp) :: tel
    real(gp), dimension(3) :: shift,CM
    real(gp) :: dist,rad,sprdfact,sprddiff,enediff,sprdmult
-   integer :: iproc, nproc, i_stat, ierr, npsidim
+   integer :: iproc, nproc, ierr, npsidim
    integer :: nvirtu,nvirtd,nrpts
    integer :: NeglectPoint, CNeglectPoint
    integer :: ncount0,ncount1,ncount_rate,ncount_max,iat,iformat
@@ -59,15 +59,15 @@ program WaCo
    integer, allocatable :: nfacets(:),facets(:,:,:),vertex(:,:,:), l(:), mr(:)
    real(gp), dimension(3) :: refpos, normal, box
    real(kind=8),dimension(:,:),allocatable :: umn, umnt, rho, rhoprime, amn, tmatrix
-   integer :: i, j, k, i_all, ilr
+   integer :: i, j, k, ilr
    character(len=16) :: seedname
    integer :: n_occ, n_virt, n_virt_tot, nproj,nband_old,nkpt_old,iwann_out 
    logical :: w_unk, w_sph, w_ang, w_rad, pre_check,residentity,write_resid
    integer, allocatable, dimension (:) :: virt_list
-   integer :: nbandCon,nconfig
+   integer :: nbandCon!,nconfig
    integer, dimension(:),allocatable :: bandlist
    logical :: idemp
-   integer, dimension(4) :: mpi_info
+   !integer, dimension(4) :: mpi_info
    type(dictionary), pointer :: user_inputs,options
    external :: gather_timings
    ! ONLY FOR DEBUG
@@ -176,7 +176,7 @@ program WaCo
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
-        atoms,atoms%astruct%rxyz,input%crmult,input%frmult,Glr)
+        atoms,atoms%astruct%rxyz,input%crmult,input%frmult,.true.,Glr)
    if (iproc == 0) call print_wfd(Glr%wfd)
 
    !#################################################################
@@ -411,8 +411,9 @@ program WaCo
       &        amn(1,1),max(1,nband),0.0d0,tmatrix(1,1),max(1,nwann))
 
       if(iproc == 0) then
-         call character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr) 
+         call character_list(nwann,nproj,tmatrix,plotwann,wann_list,l,mr) 
       end if
+
       call f_free(l)
       call f_free(mr)
       call f_free(amn)
@@ -652,7 +653,7 @@ program WaCo
 
      eigen = f_malloc((/ 1, nband /),id='eigen')
      call read_eigenvalues(trim(seedname)//'.eig',nband,1,eigen)
-     call wannier_projected_dos('Wannier_projected_dos.dat',nrpts,nwann,nband,umn,nsprd+1,wtypes,eigen)
+     call wannier_projected_dos('Wannier_projected_dos.dat',nrpts,nwann,nband,umn,eigen)
      call wannier_dos('Wannier_dos.dat',nrpts,nwann,nsprd+1,wtypes,diag)
      call f_free(eigen)
 
@@ -871,7 +872,7 @@ program WaCo
 
      wann = f_malloc(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,id='wann')
      wannr = f_malloc(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,id='wannr')
-     call initialize_work_arrays_sumrho(Glr,w)
+     call initialize_work_arrays_sumrho(1,Glr,.true.,w)
 
 
      ! Separate plotwann
@@ -1118,10 +1119,6 @@ program WaCo
         call deallocate_local_zone_descriptors(Lzd)
         call f_free(locrad)
         call f_free_ptr(cxyz)
-        if(iproc == 0) then
-           i_all = -product(shape(umnt))*kind(umnt)
-           i_all = -product(shape(umnt))*kind(umnt)
-        end if
         call f_free(calcbounds)
      end if
      call deallocate_work_arrays_sumrho(w)
@@ -1768,7 +1765,7 @@ subroutine scalar_kmeans_diffIG(iproc,nIG,crit,nel,vect,string,nbuf,buf)
   integer, dimension(:), pointer :: buf
   ! local variables
   character(len=*), parameter :: subname='scalar_kmeans_diffIG'
-  integer :: i_stat, i_all, i, iel, iiel, iter
+  integer :: i, iel, iiel, iter
   real :: r
   real(kind=8) :: minold, maxold
   logical :: same
@@ -1914,7 +1911,7 @@ subroutine stereographic_projection(mode,natom, rxyz, refpos, CM, rad, proj, nor
    real(gp), dimension(natom,3), intent(out) :: proj ! atom positions in the projection
    real(gp), dimension(3), intent(out) :: normal   ! normal to the plane of projection
    !Local variables
-   integer :: iat,j,i_stat,i_all
+   integer :: iat,j
    real(kind=8) :: norm, norm2, theta, dotprod, distsph
    real(kind=8), dimension(:,:), allocatable :: pos
    real(kind=8), dimension(3) :: r,W,NQ,Q,vect,check
@@ -2392,16 +2389,17 @@ close(unit=22)
 
 end subroutine wannier_dos
 
-subroutine wannier_projected_dos(filename,nrpts,nwann,norb,umn,ntypes,wtypes,eigen)
+
+subroutine wannier_projected_dos(filename,nrpts,nwann,norb,umn,eigen)
   use module_defs, only: gp,dp
 use module_types
 implicit none
 character(len=*), intent(in) :: filename
 integer, intent(in) :: nrpts                           !< Number of unit cells (r-points)
 integer, intent(in) :: nwann                           !< Number of Wannier functions 
-integer, intent(in) :: ntypes                          !< Number of types of Wannier functions
+!integer, intent(in) :: ntypes                          !< Number of types of Wannier functions
 integer, intent(in) :: norb                            !< Number of orbitals
-integer, dimension(nrpts,nwann), intent(in) :: wtypes  !< Types of the Wannier functions
+!integer, dimension(nrpts,nwann), intent(in) :: wtypes  !< Types of the Wannier functions
 real(gp), dimension(nwann,norb), intent(in) :: umn     !< Wannier transformation matrix
 real(gp), dimension(norb),intent(in) :: eigen          !< Diagonal elements of the Hamiltonian in Wannier basis
 !Local variables
@@ -2475,6 +2473,7 @@ close(unit=22)
 
 
 end subroutine wannier_projected_dos
+
 
 subroutine read_eigenvalues(filename,norb,nkpt,eigen)
   use module_defs, only :gp
@@ -2632,7 +2631,8 @@ subroutine read_proj(seedname, n_kpts, n_proj, l, mr)
 
 END SUBROUTINE read_proj
 
-subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
+
+subroutine character_list(nwann,nproj,tmatrix,plotwann,wann_list,l,mr)
    use BigDFT_API
    use module_types
    use module_interfaces
@@ -2641,14 +2641,14 @@ subroutine character_list(nwann,nproj,tmatrix,plotwann,ncenters,wann_list,l,mr)
    integer, intent(in) :: nwann, nproj,plotwann
    integer, dimension(nproj), intent(in) :: l, mr
    real(gp), dimension(nwann,nproj), intent(in) :: tmatrix
-   integer, dimension(plotwann), intent(in) :: ncenters
+   !integer, dimension(plotwann), intent(in) :: ncenters
    integer, dimension(nwann),intent(in) :: wann_list
    !Local variables
    character(len=*),parameter :: subname='character_list'
    character(len=2) :: num
    character(len=27):: forma
    character(len=10), dimension(nproj) :: label
-   integer :: np, np2, iwann,iiwann, ntype, ii, i_stat, i_all
+   integer :: np, np2, iwann,iiwann, ntype, ii
    real(gp), dimension(:,:), allocatable :: Wpweight
    real(gp), dimension(:), allocatable :: norm 
    character(len=10),dimension(:), allocatable :: Wplabel

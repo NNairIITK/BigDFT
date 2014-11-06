@@ -27,20 +27,23 @@ program mhgps
     use module_connect, only: connect_recursively, connect, connect_object,&
                               deallocate_connect_object,&
                               allocate_connect_object
-    use module_fingerprints, only: fingerprint
+    use module_fingerprints, only: fingerprint_interface
     use module_hessian, only: cal_hessian_fd 
+    use module_minimizers
     implicit none
     integer :: nend
     character(len=6) :: filename,filename2
     integer :: ifolder, ifile
     logical :: xyzexists,asciiexists
     character(len=60) :: run_id
+    type(dictionary), pointer :: run
     integer :: ierr, nconfig
     real(gp), allocatable :: rcov(:)
     character(len=300)  :: comment
     logical :: converged=.false.
     type(connect_object) :: cobj
     type(dictionary), pointer :: options
+    type(atomic_structure), target :: atom_struct
     integer :: nsad
     logical :: connected
 
@@ -49,6 +52,7 @@ program mhgps
     integer :: nid
     real(gp) :: alat(3)
     real(gp), allocatable :: rxyz(:,:),fxyz(:,:)
+    real(gp), allocatable :: fat(:,:)
     real(gp), allocatable :: rxyz2(:,:),fxyz2(:,:)
     real(gp), allocatable :: tsguess(:,:),minmodeguess(:,:)
     real(gp), allocatable :: tsgforces(:,:)
@@ -72,11 +76,6 @@ program mhgps
     character(len=11) :: fnpdb
     !alanine stuff ......................END!>
 
-!for debugging
-real(gp) :: etest
-real(gp), allocatable :: fat(:,:)
-!debugging end
-
     ifolder=1
     ifile=1
     ef_counter=0.d0 !from module_global_variables
@@ -95,36 +94,58 @@ real(gp), allocatable :: fat(:,:)
         isForceField=.false.
         call bigdft_command_line_options(options)
         call bigdft_init(options)!mpi_info,nconfig,run_id,ierr)
-        iproc=bigdft_mpi%iproc!mpi_info(1)
-        nproc=bigdft_mpi%nproc!mpi_info(2)
-        igroup=bigdft_mpi%igroup!mpi_info(3)
-        !number of groups
-         ngroups=bigdft_mpi%ngroup!mpi_info(4)
-        !actual value of iproc
-        iproc=iproc+igroup*ngroups
         if (bigdft_nruns(options) > 1) then
             call f_err_throw('runs-file not supported for MHGPS '//&
                               'executable')
         endif
-        run_id = options // 0 // 'name'
+        run => options // 'BigDFT' // 0
+!        run = options // 0 // 'name'
+        iproc=bigdft_mpi%iproc!mpi_info(1)
+        nproc=bigdft_mpi%nproc!mpi_info(2)
+        igroup=bigdft_mpi%igroup!mpi_info(3)
+        !number of groups
+        ngroups=bigdft_mpi%ngroup!mpi_info(4)
+        !actual value of iproc
+        iproc=iproc+igroup*ngroups
         if(iproc==0) call print_logo_mhgps()
-        call dict_init(user_inputs)
+
+        !reset input and output positions of run
+        call bigdft_get_run_properties(run,run_id=run_id)
         write(currDir,'(a,i3.3)')'input',ifolder
         write(filename,'(a,i3.3)')'pos',ifile
-        !LG: why not initialize only run_objects?
-        call user_dict_from_files(user_inputs, trim(run_id)//&
-             trim(bigdft_run_id_toa()),currDir//'/'//filename//&
-             trim(bigdft_run_id_toa()), bigdft_mpi)
-        call inputs_from_dict(inputs_opt, atoms, user_inputs)
-        call dict_free(user_inputs)
-        call init_global_output(outs, atoms%astruct%nat)
-        fdim=outs%fdim
-        call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,&
-                                 rst)
-        call nullify_run_objects(runObj)
-        call run_objects_associate(runObj, inputs_opt, atoms, rst)
+        call bigdft_set_run_properties(run,run_id=trim(run_id)//&
+             trim(bigdft_run_id_toa()),posinp=currDir//'/'//filename&
+             //trim(bigdft_run_id_toa()))
+
+        call run_objects_init(runObj,run)
+
+        !options and run are not needed
         call dict_free(options)
+        nullify(run)
+
+        call init_global_output(outs, bigdft_nat(runObj))
+        fdim=outs%fdim
+
+        astruct_ptr => bigdft_get_astruct_ptr(runObj)
+
+!        call dict_init(user_inputs)
+!        write(currDir,'(a,i3.3)')'input',ifolder
+!        write(filename,'(a,i3.3)')'pos',ifile
+!        !LG: why not initialize only run_objects?
+!        call user_dict_from_files(user_inputs, trim(run_id)//&
+!             trim(bigdft_run_id_toa()),currDir//'/'//filename//&
+!             trim(bigdft_run_id_toa()), bigdft_mpi)
+!        call inputs_from_dict(inputs_opt, atoms, user_inputs)
+!        call dict_free(user_inputs)
+!        call init_global_output(outs, atoms%astruct%nat)
+!        fdim=outs%fdim
+!        call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,&
+!                                 rst)
+!        call nullify_run_objects(runObj)
+!        call run_objects_associate(runObj, inputs_opt, atoms, rst)
+!        call dict_free(options)
         !LG : to be wrapped again
+
         !set minimum number of wave function optimizations
 !        if(runObj%inputs%itermin<5)then
 !            itermin=5
@@ -138,30 +159,32 @@ real(gp), allocatable :: fat(:,:)
         isForceField=.true.
         write(currDir,'(a,i3.3)')'input',ifolder
         write(filename,'(a,i3.3)')'pos',ifile
-        call deallocate_atomic_structure(atoms%astruct)
+        call deallocate_atomic_structure(atom_struct)
         call read_atomic_file(currDir//'/'//filename,iproc,&
-                              atoms%astruct)
-        fdim=atoms%astruct%nat
+                              atom_struct)
+        astruct_ptr=>atom_struct
+        fdim=astruct_ptr%nat
         call print_logo_mhgps()
 !    elseif(efmethod=='AMBER')then
 !        iproc=0
 !        isForceField=.true.
 !        write(currDir,'(a,i3.3)')'input',ifolder
 !        write(filename,'(a,i3.3)')'pos',ifile
-!        call deallocate_atomic_structure(atoms%astruct)
+!        call deallocate_atomic_structure(atom_struct)
 !        call read_atomic_file(currDir//'/'//filename,iproc,&
-!                              atoms%astruct)
-!        fdim=atoms%astruct%nat
+!                              atom_struct)
+!        astruct=>atom_struct
+!        fdim=astruct%nat
 !        !alanine stuff ......................START!>
 !          l_sat=5
 !          allocate(atomnamesdmy(1000))
-!          rxyzdmy = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+!          rxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct%nat/),&
 !                            id='rxyzdmy')
-!          fxyzdmy = f_malloc((/ 1.to.3, 1.to.atoms%astruct%nat/),&
+!          fxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct%nat/),&
 !                            id='fxyzdmy')
 !          fnpdb='ald_new.pdb'
 !          nfnpdb=len(trim(fnpdb));
-!          call nab_init(atoms%astruct%nat,rxyzdmy,fxyzdmy,&
+!          call nab_init(astruct%nat,rxyzdmy,fxyzdmy,&
 !                        trim(fnpdb),nfnpdb,l_sat,atomnamesdmy)
 !          call f_free(rxyzdmy)
 !          call f_free(fxyzdmy)
@@ -176,9 +199,9 @@ real(gp), allocatable :: fat(:,:)
     endif
     if(iproc==0) call print_input()
 
-    nat = atoms%astruct%nat
+    nat = bigdft_nat(runObj)
     nid = nat !s-overlap fingerprints
-    alat = atoms%astruct%cell_dim
+    alat =bigdft_get_cell(runObj)!astruct_ptr%cell_dim
     
     !allocate more arrays
     lwork=1000+10*nat**2
@@ -271,13 +294,13 @@ allocate(fat(3,nat))
     
     iconnect = 0
     ixyz_int = 0
-    call give_rcov(atoms,nat,rcov)
+    call give_rcov(astruct_ptr,nat,rcov)
     !if in biomode, determine bonds betweens atoms once and for all
     !(it isassuemed that all conifugrations over which will be
     !iterated have the same bonds)
     if(saddle_biomode)then
         call findbonds('(MHGPS)',iproc,mhgps_verbosity,nat,rcov,&
-        atoms%astruct%rxyz,nbond,iconnect)
+        astruct_ptr%rxyz,nbond,iconnect)
     endif
     wold_trans = f_malloc((/ 1.to.nbond/),id='wold_trans')
     wold_rot = f_malloc((/ 1.to.nbond/),id='wold_rot')
@@ -285,13 +308,15 @@ allocate(fat(3,nat))
     do ifolder = 1,999
         write(currDir,'(a,i3.3)')'input',ifolder
         if(trim(adjustl(operation_mode))=='simple'.or.&
-                       trim(adjustl(operation_mode))=='hessian')then
+           trim(adjustl(operation_mode))=='hessian'.or.&
+           trim(adjustl(operation_mode))=='minimize')then
             nend=999
         elseif(trim(adjustl(operation_mode))=='connect'.or.&
                        trim(adjustl(operation_mode))=='guessonly')then
             nend=999-1
         else
-            call yaml_warning('(MHGPS) operation mode unknown STOP')
+            call yaml_warning('(MHGPS) operation mode '//&
+            trim(adjustl(operation_mode))//' unknown STOP')
             stop '(MHGPS) operation mode unknown STOP'
         endif
 
@@ -304,10 +329,13 @@ allocate(fat(3,nat))
             inquire(file=currDir//'/'//filename//'.ascii',&
                     exist=asciiexists)
             if(.not.(xyzexists.or.asciiexists))exit
-            call deallocate_atomic_structure(atoms%astruct)
-            call read_atomic_file(currDir//'/'//filename,iproc,&
-                    atoms%astruct)
-            call vcopy(3 * nat,atoms%astruct%rxyz(1,1),1,rxyz(1,1), 1)
+            !reallocating astruct is dangerous as it is a pointer to 
+            !a internal object of bigdft, therefore it should only be used for reading
+!!$            call deallocate_atomic_structure(astruct)
+!!$            call read_atomic_file(currDir//'/'//filename,iproc,&
+!!$                    astruct)
+!!$            call vcopy(3 * nat,astruct%rxyz(1,1),1,rxyz(1,1), 1)
+            call bigdft_get_rxyz(filename=currDir//'/'//filename,rxyz=rxyz)
 
             if(trim(adjustl(operation_mode))=='guessonly')then
                 !read second file
@@ -317,11 +345,12 @@ allocate(fat(3,nat))
                 inquire(file=currDir//'/'//filename2//'.ascii',&
                             exist=asciiexists)
                 if(.not.(xyzexists.or.asciiexists))exit
-                call deallocate_atomic_structure(atoms%astruct)
-                call read_atomic_file(currDir//'/'//filename2,iproc,&
-                            atoms%astruct)
-                call vcopy(3*nat,atoms%astruct%rxyz(1,1),1,&
-                           rxyz2(1,1),1)
+!!$                call deallocate_atomic_structure(astruct)
+!!$                call read_atomic_file(currDir//'/'//filename2,iproc,&
+!!$                            astruct)
+!!$                call vcopy(3*nat,astruct%rxyz(1,1),1,&
+!!$                           rxyz2(1,1),1)
+                call bigdft_get_rxyz(filename=currDir//'/'//filename2,rxyz=rxyz2)
 
                 isad=isad+1
                 write(isadc,'(i5.5)')isad
@@ -333,23 +362,15 @@ allocate(fat(3,nat))
                 write(comment,'(a)')&
                      'TS guess; forces below give guessed '//&
                      'minimummode.'
-                call astruct_dump_to_file(atoms%astruct,&
+                call astruct_dump_to_file(astruct_ptr,&
                      currDir//'/sad'//trim(adjustl(isadc))//'_ig_finalM',&
                      comment,&
                      tsgenergy,rxyz=tsguess,forces=minmodeguess)
-!!$                call write_atomic_file(currDir//'/sad'//&
-!!$                     trim(adjustl(isadc))//'_ig_finalM',&
-!!$                     tsgenergy,tsguess(1,1),ixyz_int,atoms,&
-!!$                     comment,forces=minmodeguess(1,1))
 
-                call astruct_dump_to_file(atoms%astruct,&
+                call astruct_dump_to_file(astruct_ptr,&
                      currDir//'/sad'//trim(adjustl(isadc))//'_ig_finalF',&
                      comment,&
                      tsgenergy,rxyz=tsguess,forces=tsgforces)
-!!$                call write_atomic_file(currDir//'/sad'//&
-!!$                     trim(adjustl(isadc))//'_ig_finalF',&
-!!$                     tsgenergy,tsguess(1,1),ixyz_int,atoms,&
-!!$                     comment,forces=tsgforces(1,1))
             else if(trim(adjustl(operation_mode))=='connect')&
                                                                  then
                 !read second file
@@ -359,20 +380,21 @@ allocate(fat(3,nat))
                 inquire(file=currDir//'/'//filename2//'.ascii',&
                             exist=asciiexists)
                 if(.not.(xyzexists.or.asciiexists))exit
-                call deallocate_atomic_structure(atoms%astruct)
-                call read_atomic_file(currDir//'/'//filename2,iproc,&
-                            atoms%astruct)
-                call vcopy(3*nat,atoms%astruct%rxyz(1,1),1,&
-                           rxyz2(1,1),1)
+!!$                call deallocate_atomic_structure(astruct)
+!!$                call read_atomic_file(currDir//'/'//filename2,iproc,&
+!!$                            astruct)
+!!$                call vcopy(3*nat,astruct%rxyz(1,1),1,&
+!!$                           rxyz2(1,1),1)
+                call bigdft_get_rxyz(filename=currDir//'/'//filename2,rxyz=rxyz2)
 
                 !Evalute energyies. They are needed in connect
                 !for identification
                 call energyandforces(nat,alat,rxyz,fat,fnoise,energy)
                 call energyandforces(nat,alat,rxyz2,fat,fnoise,&
                          energy2)
-                call fingerprint(nat,nid,alat,atoms%astruct%geocode,&
+                call fingerprint(nat,nid,alat,astruct_ptr%geocode,&
                          rcov,rxyz(1,1),fp(1))
-                call fingerprint(nat,nid,alat,atoms%astruct%geocode,&
+                call fingerprint(nat,nid,alat,astruct_ptr%geocode,&
                          rcov,rxyz2(1,1),fp2(1))
                 if(iproc==0)then
                     call yaml_comment('(MHGPS) Connect '//filename//&
@@ -436,33 +458,54 @@ allocate(fat(3,nat))
                        'but the final minmode| '//&
                        'fnrm, fmax = ',fnrm,fmax
 
-                        call astruct_dump_to_file(atoms%astruct,&
+                        call astruct_dump_to_file(astruct_ptr,&
                              currDir//'/sad'//trim(adjustl(isadc))//&
                              '_finalM',&
                              comment,&
                              energy,rxyz=rxyz,forces=minmode)
-!!$                        call write_atomic_file(currDir//'/sad'//&
-!!$                        trim(adjustl(isadc))//'_finalM',energy,&
-!!$                        rxyz(1,1),ixyz_int,atoms,comment,&
-!!$                        forces=minmode(1,1))
-                        !atoms,comment,forces=fxyz(1,1))
 
                         write(comment,'(a,1pe10.3,5x1pe10.3)')&
-                       'fnrm, fmax = ',fnrm,fmax
-                        call astruct_dump_to_file(atoms%astruct,&
+                             'fnrm, fmax = ',fnrm,fmax
+                        call astruct_dump_to_file(astruct_ptr,&
                              currDir//'/sad'//trim(adjustl(isadc))//&
                              '_finalF',&
                              comment,&
                              energy,rxyz=rxyz,forces=fxyz)
-!!$                        call write_atomic_file(currDir//'/sad'//&
-!!$                        trim(adjustl(isadc))//'_finalF',energy,&
-!!$                        rxyz(1,1),ixyz_int,atoms,comment,&
-!!$                        forces=fxyz(1,1))
                         
                         call write_mode(nat,currDir//'/sad'//&
                         trim(adjustl(isadc))//'_mode_final',&
                         minmode(1,1),rotforce(1,1))
                     endif
+            else if(trim(adjustl(operation_mode))=='minimize')then
+                isad=isad+1
+                write(isadc,'(i3.3)')isad
+                ec=0.0_gp
+                call energyandforces(nat,alat,rxyz,fxyz,fnoise,energy)
+                call minimize(imode,nat,alat,nbond,iconnect,&
+                rxyz(1,1),fxyz(1,1),fnoise,energy,ec,converged,'')
+                if(.not.converged)then
+                    call yaml_warning('Minimization '//yaml_toa(isad)&
+                         //' not converged')
+                endif
+                call fnrmandforcemax(fxyz(1,1),fnrm,fmax,nat)
+                if (iproc == 0) then
+                    write(comment,'(a,1pe10.3,5x1pe10.3)')&
+                         'fnrm, fmax = ',fnrm,fmax
+
+                    call astruct_dump_to_file(astruct_ptr,&
+                         currDir//'/min'//trim(adjustl(isadc))//&
+                         '_final',&
+                         comment,&
+                         energy,rxyz=rxyz,forces=fxyz)
+
+                    write(comment,'(a,1pe10.3,5x1pe10.3)')&
+                   'fnrm, fmax = ',fnrm,fmax
+                    call astruct_dump_to_file(astruct_ptr,&
+                         currDir//'/sad'//trim(adjustl(isadc))//&
+                         '_finalF',&
+                         comment,&
+                         energy,rxyz=rxyz,forces=fxyz)
+                endif
             else if(trim(adjustl(operation_mode))=='hessian')then
                 call cal_hessian_fd(iproc,nat,alat,rxyz,hess)
                 if(iproc==0)then
@@ -483,8 +526,8 @@ allocate(fat(3,nat))
                         enddo
                     endif
             else
-                call yaml_warning('(MHGPS) operation mode unknown '//&
-                                 'STOP')
+                call yaml_warning('(MHGPS) operation mode '//&
+                trim(adjustl(operation_mode))//' unknown STOP')
                 stop '(MHGPS) operation mode unknown STOP'
             endif
         enddo
@@ -492,15 +535,19 @@ allocate(fat(3,nat))
 
     !finalize (dealloctaion etc...)
     if(efmethod=='BIGDFT')then
-        call free_restart_objects(rst)
-        call deallocate_atoms_data(atoms)
-        call deallocate_global_output(outs)
+!        call free_restart_objects(rst)
+!        call deallocate_atoms_data(atoms)
+        nullify(astruct_ptr)
         !call run_objects_free_container(runObj)
-        call release_run_objects(runObj)
-        call free_input_variables(inputs_opt)
+!        call release_run_objects(runObj)
+        call free_run_objects(runObj)
+!        call free_input_variables(inputs_opt)
+        call deallocate_global_output(outs)
         call bigdft_finalize(ierr)
-    elseif(efmethod=='LJ'.or.efmethod=='AMBER')then
-        call deallocate_atoms_data(atoms)
+    elseif(efmethod=='LJ'.or.efmethod=='AMBER'.or.&
+           efmethod=='LENSIc' .or. efmethod=='LENSIb')then
+        call deallocate_atomic_structure(atom_struct)
+        nullify(astruct_ptr)
     endif
 
     call f_free(work)

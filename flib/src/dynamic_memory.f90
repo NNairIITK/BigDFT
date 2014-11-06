@@ -20,7 +20,7 @@ module dynamic_memory
 
   private 
 
-  logical, parameter :: track_origins=.false.!.true.      !< When true keeps track of all the allocation statuses using dictionaries
+  logical, parameter :: track_origins=.true.      !< When true keeps track of all the allocation statuses using dictionaries
   integer, parameter :: namelen=f_malloc_namelen  !< Length of the character variables
   integer, parameter :: error_string_len=80       !< Length of error string
   integer, parameter :: ndebug=0                  !< Size of debug parameters
@@ -42,7 +42,7 @@ module dynamic_memory
   character(len=*), parameter :: t0_time='Time of last opening'
   character(len=*), parameter :: tot_time='Total time (s)'
   character(len=*), parameter :: prof_enabled='Profiling Enabled'
-  character(len=*), parameter :: main='Main program'
+  character(len=*), parameter :: main='Main_program'
 
   !> Error codes
   integer, save :: ERR_ALLOCATE
@@ -159,7 +159,7 @@ module dynamic_memory
   public :: f_time,to_zero,f_memcpy
   !reference counters
   public :: f_ref_new,f_ref_null,f_unref,f_ref_free,f_ref_associate
-  public :: nullify_f_ref,f_ref,f_ref_count
+  public :: nullify_f_ref,f_ref,f_ref_count,f_update_database,f_purge_database
   public :: assignment(=),operator(.to.)
 
   !for internal f_lib usage
@@ -553,8 +553,8 @@ contains
   subroutine f_routine(id,profile)
     use yaml_output, only: yaml_map !debug
     implicit none
-    logical, intent(in), optional :: profile
-    character(len=*), intent(in), optional :: id
+    logical, intent(in), optional :: profile     !< ???
+    character(len=*), intent(in), optional :: id !< name of the subprogram
     
     !local variables
     integer :: lgt,ncalls
@@ -719,6 +719,161 @@ contains
 
     call f_timer_resume()
   end subroutine f_release_routine
+
+  !> Update the memory database with the data provided
+  !! Use when allocating Fortran structures
+  subroutine f_update_database(size,kind,rank,address,id,routine)
+    use metadata_interfaces, only: long_toa
+    use yaml_output, only: yaml_flush_document
+    implicit none
+    !> Number of elements of the buffer
+    integer(kind=8), intent(in) :: size
+    !> Size in bytes of one buffer element
+    integer, intent(in) :: kind
+    !> Rank of the array
+    integer, intent(in) :: rank
+    !> Address of the first buffer element.
+    !! Used to store the address in the dictionary.
+    !! If this argument is zero, only the memory is updated
+    !! Otherwise the dictionary is created and stored
+    integer(kind=8), intent(in) :: address
+    !> Id of the array
+    character(len=*), intent(in) :: id
+    !> Id of the allocating routine
+    character(len=*), intent(in) :: routine
+    !local variables
+    integer(kind=8) :: ilsize,jproc
+    !$ include 'remove_omp-inc.f90' 
+
+    ilsize=max(int(kind,kind=8)*size,int(0,kind=8))
+    !store information only for array of size /=0
+    if (track_origins .and. address /= int(0,kind=8) .and. ilsize /= int(0,kind=8)) then
+       !create the dictionary array
+       if (.not. associated(mems(ictrl)%dict_routine)) then
+          call dict_init(mems(ictrl)%dict_routine)
+       end if
+       call set(mems(ictrl)%dict_routine//long_toa(address),&
+            '[ '//trim(id)//', '//trim(routine)//', '//&
+            trim(yaml_toa(ilsize))//', '//trim(yaml_toa(rank))//']')
+    end if
+    call memstate_update(memstate,ilsize,id,routine)
+    if (mems(ictrl)%output_level==2) then
+       jproc = mems(ictrl)%dict_global//processid
+       if (jproc ==0) then
+          call dump_status_line(memstate,mems(ictrl)%logfile_unit,trim(routine),trim(id))
+          call yaml_flush_document(unit=mems(ictrl)%logfile_unit)
+       end if
+    end if
+  end subroutine f_update_database
+
+
+  !> Clean the database with the information of the array
+  !! Use when allocating Fortran structures
+  subroutine f_purge_database(size,kind,address,id,routine)
+    use metadata_interfaces, only: long_toa
+    use yaml_output, only: yaml_flush_document
+    use yaml_strings, only: f_strcpy
+    implicit none
+    !> Number of elements of the buffer
+    integer(kind=8), intent(in) :: size
+    !> Size in bytes of one buffer element
+    integer, intent(in) :: kind
+    !> Address of the first buffer element.
+    !! Used to store the address in the dictionary.
+    !! If this argument is zero, only the memory is updated
+    !! Otherwise the dictionary is created and stored
+    integer(kind=8), intent(in), optional :: address
+    !> Id of the array
+    character(len=*), intent(in), optional :: id
+    !> Id of the allocating routine
+    character(len=*), intent(in), optional :: routine
+    !local variables
+    logical :: use_global
+    integer :: jproc
+    integer(kind=8) :: ilsize,jlsize,iadd
+    character(len=namelen) :: array_id,routine_id
+    character(len=info_length) :: array_info
+    type(dictionary), pointer :: dict_add
+    !$ include 'remove_omp-inc.f90' 
+
+    iadd=int(0,kind=8)
+    if (present(address)) iadd=address
+    ilsize=max(int(kind,kind=8)*size,int(0,kind=8))
+    !address of first element (not needed for deallocation)
+    if (track_origins .and. iadd/=int(0,kind=8)) then
+       !hopefully only address is necessary for the deallocation
+
+       !search in the dictionaries the address
+       dict_add=>find_key(mems(ictrl)%dict_routine,long_toa(iadd))
+       if (.not. associated(dict_add)) then
+          dict_add=>find_key(mems(ictrl)%dict_global,long_toa(iadd))
+          if (.not. associated(dict_add)) then
+             call f_err_throw('Address '//trim(long_toa(iadd))//&
+                  ' not present in dictionary',ERR_INVALID_MALLOC)
+             return
+          else
+             use_global=.true.
+          end if
+       else
+          use_global=.false.
+       end if
+
+       !transform the dict_add in a list
+       !retrieve the string associated to the database
+       array_info=dict_add
+       dict_add => yaml_a_todict(array_info)
+       !then retrieve the array information
+       array_id=dict_add//0
+       routine_id=dict_add//1
+       jlsize=dict_add//2
+
+       call dict_free(dict_add)
+
+       if (ilsize /= jlsize) then
+          call f_err_throw('Size of array '//trim(array_id)//&
+               ' ('//trim(yaml_toa(ilsize))//') not coherent with dictionary, found='//&
+               trim(yaml_toa(jlsize)),ERR_MALLOC_INTERNAL)
+          return
+       end if
+       if (use_global) then
+          call dict_remove(mems(ictrl)%dict_global,long_toa(iadd))
+       else
+          call dict_remove(mems(ictrl)%dict_routine,long_toa(iadd))
+       end if
+    else
+       if (present(id)) then
+          call f_strcpy(dest=array_id,src=id)
+       else
+          call f_strcpy(dest=array_id,src='Unknown')
+       end if
+       if (present(routine)) then
+          call f_strcpy(dest=routine_id,src=routine)
+       else
+          call f_strcpy(dest=routine_id,src='Unknown')
+       end if
+    end if
+
+    call memstate_update(memstate,-ilsize,trim(array_id),trim(routine_id))
+    !here in the case of output_level == 2 the data can be extracted  
+    if (mems(ictrl)%output_level==2) then
+       jproc = mems(ictrl)%dict_global//processid
+       if (jproc ==0) then
+          if (len_trim(array_id) == 0) then
+             if (len_trim(routine_id) == 0) then
+                call dump_status_line(memstate,mems(ictrl)%logfile_unit,&
+                     'Unknown','Unknown')
+             else
+                call dump_status_line(memstate,mems(ictrl)%logfile_unit,trim(routine_id),'Unknown')
+             end if
+          else if (len_trim(routine_id) == 0) then
+             call dump_status_line(memstate,mems(ictrl)%logfile_unit,'Unknown',trim(array_id))
+          else
+             call dump_status_line(memstate,mems(ictrl)%logfile_unit,trim(routine_id),trim(array_id))
+          end if
+          call yaml_flush_document(unit=mems(ictrl)%logfile_unit)
+       end if
+    end if
+  end subroutine f_purge_database
 
 
   !> Create the id of a new routine in the codepoint and points to it.
@@ -1052,8 +1207,8 @@ contains
     use metadata_interfaces, only: address_toi
      use yaml_output
      implicit none
-     type(dictionary), pointer, intent(in) :: dict
-     integer, intent(in), optional :: unit
+     type(dictionary), pointer, intent(in) :: dict  !< dictionary containing the memory status???
+     integer, intent(in), optional :: unit          !< unit to which the status should be dumped
      !Local variables
      type(dictionary), pointer :: dict_ptr
 !!$     type(dictionary), pointer :: dict_list
@@ -1093,7 +1248,7 @@ contains
   subroutine f_malloc_dump_status(filename,dict_summary)
     use yaml_output
     implicit none
-    character(len=*), intent(in), optional :: filename
+    character(len=*), intent(in), optional :: filename  !< file to which the memory should be dumped
     !> If present, this dictionary is filled with the summary of the 
     !! dumped dictionary. Its presence disables the normal dumping
     type(dictionary), pointer, optional, intent(out) :: dict_summary 
@@ -1158,13 +1313,14 @@ contains
   end subroutine f_malloc_dump_status
 
 
-  !> This routine identify for each of the routines the most time consuming parts and print it in the logfile
+  !> This routine identifies for each of the routines the most time consuming parts and print it in the logfile
   recursive subroutine postreatment_of_calling_sequence(base_time,&
        dict_cs,dict_pt)
     implicit none
     !> Time on which percentages has to be given
-    double precision, intent(in) :: base_time 
-    type(dictionary), pointer :: dict_cs,dict_pt
+    double precision, intent(in) :: base_time !< needs to be explained
+    type(dictionary), pointer :: dict_pt      !< needs to be explained
+    type(dictionary), pointer :: dict_cs      !< needs to be explained
     !local variables
     logical :: found
     integer :: ikey,jkey,nkey,icalls,ikeystar

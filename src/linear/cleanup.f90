@@ -65,6 +65,8 @@ subroutine deallocate_orbitals_data(orbs)
   type(orbitals_data),intent(inout):: orbs
   
   call f_free_ptr(orbs%norb_par)
+  call f_free_ptr(orbs%norbu_par)
+  call f_free_ptr(orbs%norbd_par)
   call f_free_ptr(orbs%iokpt)
   call f_free_ptr(orbs%ikptproc)
   call f_free_ptr(orbs%inwhichlocreg)

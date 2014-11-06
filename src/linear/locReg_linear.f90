@@ -33,6 +33,8 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
   integer :: nseg_c,nseg_f,nvctr_c,nvctr_f      ! total number of sgements and elements
   character(len=*), parameter :: subname='determine_wfd_periodicity'
 
+  call f_routine(id='determine_wfd_periodicity')
+
    !starting point of locreg (always inside locreg)
    isdir(1) = Llr(ilr)%ns1
    isdir(2) = Llr(ilr)%ns2
@@ -133,6 +135,8 @@ subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)!,outofzone)
         Llr(ilr)%wfd%keyvglob(Llr(ilr)%wfd%nseg_c+min(1,Llr(ilr)%wfd%nseg_f)),&
         Llr(ilr)%outofzone(:))
 
+   call f_release_routine()
+
 END SUBROUTINE determine_wfd_periodicity
 
 
@@ -195,6 +199,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
      xperiodic = .false.
      yperiodic = .false.
      zperiodic = .false. 
+
 
      if(calculateBounds(ilr)) then 
          ! This makes sure that each locreg is only handled once by one specific processor.
@@ -390,6 +395,10 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
      ! Communicate those parts of the locregs that all processes need.
      call communicate_locreg_descriptors_basics(iproc, nlr, rootarr, orbs, llr)
 
+     !do ilr=1,nlr
+     !    write(*,*) 'iproc, nseg_c', iproc, llr(ilr)%wfd%nseg_c
+     !end do
+
      ! Now communicate those parts of the locreg that only some processes need (the keys).
      ! For this we first need to create orbsder that describes the derivatives.
      !call create_orbsder()
@@ -428,7 +437,6 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
   call f_free(onwhichmpi)
   call f_release_routine()
 
-!!contains 
 
 !!$  subroutine create_orbsder()
 !!$    call nullify_orbitals_data(orbsder)
@@ -494,6 +502,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
   integer,dimension(3) :: Gife,Gifs,iedir,isdir,Lifs,Life,period
   character(len=*), parameter :: subname='determine_wfdSphere'
 !!  integer :: nseg_c,nseg_f,nvctr_c,nvctr_f      ! total number of sgements and elements
+  integer, allocatable :: keygloc_tmp(:,:)
 
    call f_routine(id=subname)
 
@@ -576,6 +585,14 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
    call allocate_wfd(Llr(ilr)%wfd)
 
    !Now, fill the descriptors:
+
+   keygloc_tmp = f_malloc((/ 2, (llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f) /),id='keygloc_tmp')
+
+   !$omp parallel default(private) &
+   !$omp shared(Glr,llr,hx,hy,hz,ilr,keygloc_tmp)  
+   !$omp sections
+   !$omp section
+
    !coarse part
    call segkeys_Sphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
         glr%ns1, glr%ns2, glr%ns3, &
@@ -586,8 +603,10 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         Glr%wfd%nseg_c, Glr%wfd%keygloc(1,1), &
         Glr%wfd%keyvloc(1), &
         llr(ilr)%wfd%keygloc(1,1),llr(ilr)%wfd%keyglob(1,1), &
-        llr(ilr)%wfd%keyvloc(1), llr(ilr)%wfd%keyvglob(1))
+        llr(ilr)%wfd%keyvloc(1), llr(ilr)%wfd%keyvglob(1), &
+        keygloc_tmp(1,1))
 
+   !$omp section
    !fine part
    call segkeys_Sphere(Glr%d%n1, Glr%d%n2, Glr%d%n3, &
         glr%ns1, glr%ns2, glr%ns3, &
@@ -600,9 +619,14 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         llr(ilr)%wfd%keygloc(1,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
         llr(ilr)%wfd%keyglob(1,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
         llr(ilr)%wfd%keyvloc(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
-        llr(ilr)%wfd%keyvglob(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)))
+        llr(ilr)%wfd%keyvglob(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
+        keygloc_tmp(1,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)))  
+   !$omp end sections
+   !$omp end parallel
 
-    call f_release_routine()
+   call f_free(keygloc_tmp)
+
+   call f_release_routine()
 
 
 END SUBROUTINE determine_wfdSphere
@@ -699,19 +723,24 @@ subroutine num_segkeys_sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, hx, hy, hz,
   integer,intent(out) :: nseg, nvctr
   !local variables
   logical :: segment
-  integer :: i, i1, i2, i3, nstart, nend, i2old, iseg, jj, j0, j1, ii, i0, ii1, ii2, ii3, n1p1, np
+  integer :: i, i1, i2, i3, nstart, nend, iseg, jj, j0, j1, ii, i0, ii1, ii2, ii3, n1p1, np
   real(kind=8) :: cut, dx,dy, dz
 
 
   nvctr=0
   nstart=0
   nend=0
-  segment=.false.
 
   cut=locrad**2
-  i2old=-1
   n1p1=n1+1
   np=n1p1*(n2+1)
+
+  !$omp parallel default(none) &
+  !$omp shared(nsegglob,keygglob,nl1glob,nl2glob,nl3glob,locregCenter) &
+  !$omp shared(hx,hy,hz,cut,n1p1,np,nstart,nvctr,nend) &
+  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i0,i1,ii2,ii3,ii1,i,dx,dy,dz,segment)
+  segment=.false.
+  !$omp do reduction(+:nstart,nvctr,nend)
   do iseg=1,nsegglob
       j0=keygglob(1,iseg)
       j1=keygglob(2,iseg)
@@ -743,15 +772,14 @@ subroutine num_segkeys_sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, hx, hy, hz,
               end if
           end if
       end do
-      !if(segment .and. i2/=i2old) then
       if(segment) then
           ! Always start a new segment if we come to a new line in y direction.
           nend=nend+1
           segment=.false.
       end if
-      i2old=i2
   end do
-
+  !$omp enddo
+  !$omp end parallel
 
   nseg=nstart
 
@@ -766,6 +794,7 @@ END SUBROUTINE num_segkeys_sphere
 
 subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, nl3glob, hx, hy, hz, locrad, locregCenter, &
            nsegglob, keygglob, keyvglob, ixmin, iymin, izmin, ixmax, iymax, izmax)
+  use dynamic_memory
   implicit none
   integer, intent(in) :: n1glob, n2glob, n3glob, nl1glob, nl2glob, nl3glob, nsegglob
   real(kind=8),intent(in) :: hx, hy, hz, locrad
@@ -778,6 +807,9 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
   real(kind=8) :: cut, dx,dy, dz
   !debug
   integer :: iiimin, isegmin
+
+  call f_routine(id='determine_boxbounds_sphere')
+
   iiimin=0
   isegmin=0
 
@@ -792,6 +824,11 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
   cut=locrad**2
   n1p1=n1glob+1
   np=n1p1*(n2glob+1)
+  !$omp parallel default(none) &
+  !$omp shared(nsegglob,keygglob,n1glob,n2glob,n3glob,nl1glob,nl2glob,nl3glob,locregCenter) &
+  !$omp shared(ixmin,iymin,izmin,ixmax,iymax,izmax,hx,hy,hz,cut,n1p1,np) &
+  !$omp private(iseg,jj,j0,j1,ii,i3,i2,i0,i1,ii2,ii3,ii1,i,dx,dy,dz,iiimin,isegmin)
+  !$omp do reduction(max:ixmax,iymax,izmax) reduction(min:ixmin,iymin,izmin)
   do iseg=1,nsegglob
       j0=keygglob(1,iseg)
       j1=keygglob(2,iseg)
@@ -811,15 +848,20 @@ subroutine determine_boxbounds_sphere(n1glob, n2glob, n3glob, nl1glob, nl2glob, 
           ii1=i+nl1glob
           dx=((ii1*hx)-locregCenter(1))**2
           if(dx+dy+dz<=cut) then
-              if(ii1>ixmax) ixmax=ii1
-              if(ii2>iymax) iymax=ii2
-              if(ii3>izmax) izmax=ii3
-              if(ii1<ixmin) ixmin=ii1 ; iiimin=j0-1 ; isegmin=iseg
-              if(ii2<iymin) iymin=ii2
-              if(ii3<izmin) izmin=ii3
+              ixmax=max(ii1,ixmax)
+              iymax=max(ii2,iymax)
+              izmax=max(ii3,izmax)
+              ixmin=min(ii1,ixmin)
+              !if(ii1<ixmin) iiimin=j0-1 ; isegmin=iseg
+              iymin=min(ii2,iymin)
+              izmin=min(ii3,izmin)
           end if
       end do
   end do
+  !$omp enddo
+  !$omp end parallel
+
+  call f_release_routine()
 
 END SUBROUTINE determine_boxbounds_sphere
 
@@ -958,7 +1000,7 @@ END SUBROUTINE segkeys_periodic
 
 subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, hx, hy, hz, &
      locrad, locregCenter, &
-     nsegglob, keygglob, keyvglob, keyg_loc, keyg_glob, keyv_loc, keyv_glob)
+     nsegglob, keygglob, keyvglob, keyg_loc, keyg_glob, keyv_loc, keyv_glob, keygloc)
   use module_base
   implicit none
   integer,intent(in) :: n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, nsegglob
@@ -968,17 +1010,18 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
   integer,dimension(nsegglob),intent(in) :: keyvglob
   integer,dimension(2,nseg),intent(out) :: keyg_loc, keyg_glob
   integer,dimension(nseg),intent(out) :: keyv_loc, keyv_glob
+  integer,dimension(2,nseg),intent(out) :: keygloc !tmp
   !local variables
   character(len=*),parameter :: subname = 'segkeys_Sphere'
   integer :: i, i1, i2, i3, nstart, nend, nvctr, igridpoint, igridglob, iseg, jj, j0, j1, ii, i0, n1l, n2l, n3l
   integer :: i1l, i2l, i3l, ii1, ii2, ii3, istat, iall, loc, n1p1, np, n1lp1, nlp, igridpointa, igridgloba
   real(kind=8) :: cut, dx, dy, dz
   logical :: segment
-  integer, allocatable :: keygloc(:,:)
+  !integer, allocatable :: keygloc(:,:)
 
-  call f_routine('segkeys_Sphere')
+  !call f_routine('segkeys_Sphere')
 
-  keygloc = f_malloc((/ 2, nseg /),id='keygloc')
+  !keygloc = f_malloc((/ 2, nseg /),id='keygloc')
 
   !dimensions of the localisation region (O:nIl)
   ! must be smaller or equal to simulation box dimensions
@@ -994,6 +1037,9 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
   nend=0
   segment=.false.
 
+  !can add openmp here too as segment always ends at end of y direction? 
+  !problem is need nend value - can do a pre-scan to find seg value only as with init_collcom.
+  !for now just do omp section
   cut=locrad**2
   n1p1=n1+1
   np=n1p1*(n2+1)
@@ -1082,9 +1128,9 @@ subroutine segkeys_Sphere(n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, 
      keyv_loc(iseg) = keyv_glob(loc)
 !    print *,'iseg,keyglob,keyvglob,keygloc,keyvloc',iseg,keyglob(1,iseg),keyvglob(iseg),keygloc(1,iseg),keyvloc(iseg)
   end do
-  call f_free(keygloc)
+  !call f_free(keygloc)
 
-  call f_release_routine()
+  !call f_release_routine()
 
 END SUBROUTINE segkeys_Sphere
 
@@ -1632,6 +1678,8 @@ subroutine transform_keyglob_to_keygloc(Glr,Llr,nseg,keyglob,keygloc)
   !local variables
   integer :: i, j, j0, ii, iz, iy, ix, n1p1, np
 
+  call f_routine(id='transform_keyglob_to_keygloc')
+
   n1p1=Glr%d%n1+1
   np=n1p1*(Glr%d%n2+1)
   do i = 1 , 2
@@ -1653,6 +1701,8 @@ subroutine transform_keyglob_to_keygloc(Glr,Llr,nseg,keyglob,keygloc)
         keygloc(i,j) = (iz-Llr%ns3)*(Llr%d%n1+1)*(Llr%d%n2+1) + (iy-Llr%ns2)*(Llr%d%n1+1) + (ix-Llr%ns1) + 1
      end do
   end do
+
+  call f_release_routine()
 
 end subroutine transform_keyglob_to_keygloc
 

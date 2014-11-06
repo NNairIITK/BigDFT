@@ -6,6 +6,9 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
+
+!> Module handling the object for the runs of bigDFT (restart, output, ...)
 module bigdft_run
   use module_defs, only: gp
   use dictionaries
@@ -21,7 +24,6 @@ module bigdft_run
      type(f_reference_counter) :: refcnt
      integer :: version !< 0=cubic, 100=linear
      integer :: n1,n2,n3,nat
-     real(gp) :: hx_old,hy_old,hz_old
      real(gp), dimension(:,:), pointer :: rxyz_old,rxyz_new
      type(DFT_wavefunction) :: KSwfn !< Kohn-Sham wavefunctions
      type(DFT_wavefunction) :: tmb !<support functions for linear scaling
@@ -289,7 +291,6 @@ module bigdft_run
       implicit none
       type(DFT_global_output), intent(in) :: outsA
       type(DFT_global_output), intent(inout) :: outsB
-      integer :: i
 
       if(outsA%fdim /= outsB%fdim)then
          call f_err_throw("Error in copy_global_output: outsA and outsB have different sizes"//&
@@ -487,7 +488,7 @@ module bigdft_run
       if (associated(runObj%atoms)) astruct => runObj%atoms%astruct
     end function bigdft_get_astruct_ptr
 
-    !> routine to dump the atomic file in normal BigDFT mode
+    !> Routine to dump the atomic file in normal BigDFT mode
     subroutine bigdft_write_atomic_file(runObj,outs,filename,comment,&
          cwd_path)
       use module_base, only: bigdft_mpi
@@ -521,7 +522,7 @@ module bigdft_run
       
     end subroutine bigdft_write_atomic_file
 
-    !>import positions for the run object from a given array
+    !> Import positions for the run object from a given array
     subroutine bigdft_set_rxyz(runObj,rxyz_add,rxyz)
       use dynamic_memory, only: f_memcpy
       use yaml_strings, only: yaml_toa
@@ -1088,9 +1089,9 @@ module bigdft_run
       integer, intent(inout) :: infocode
       !local variables
       character(len=*), parameter :: subname='call_bigdft'
-      character(len=40) :: comment
       logical :: exists
-      integer :: ierr,inputPsiId_orig,iat,iorb,istep
+      integer :: inputPsiId_orig,istep
+      !integer :: iat
       real(gp) :: maxdiff
       external :: cluster,forces_via_finite_differences
       !put a barrier for all the processes
@@ -1188,8 +1189,7 @@ module bigdft_run
          call cluster(bigdft_mpi%nproc,bigdft_mpi%iproc,runObj%atoms,runObj%rst%rxyz_new, &
               outs%energy, outs%energs, outs%fxyz, outs%strten, outs%fnoise, outs%pressure,&
               runObj%rst%KSwfn,runObj%rst%tmb,&
-              runObj%rst%rxyz_old,runObj%rst%hx_old,runObj%rst%hy_old,runObj%rst%hz_old,&
-              runObj%inputs,runObj%rst%GPU,infocode)
+              runObj%rst%rxyz_old,runObj%inputs,runObj%rst%GPU,infocode)
 
          !save the new atomic positions in the rxyz_old array
          call f_memcpy(src=runObj%rst%rxyz_new,dest=runObj%rst%rxyz_old)
@@ -1246,10 +1246,11 @@ module bigdft_run
 
     END SUBROUTINE call_bigdft
 
+
     !> Parse the input dictionary and create all run_objects
     !! in particular this routine identifies the input and the atoms structure
     subroutine set_run_objects(runObj)
-      use module_base, only: bigdft_mpi,f_err_throw
+      use module_base, only: f_err_throw
       use module_interfaces, only: atoms_new, inputs_new, inputs_from_dict, create_log_file
       use module_atoms, only: deallocate_atoms_data
       implicit none

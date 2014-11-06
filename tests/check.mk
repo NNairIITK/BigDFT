@@ -93,11 +93,11 @@ report:
 	@if test $(MAKELEVEL) = 0 ; then	export PYTHONPATH=${PYTHONPATH}; export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ;python $(top_srcdir)/tests/report.py ; fi
 
 #Binary dependencies
-$(abs_top_builddir)/src/BigDFT2Wannier:
+$(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90 $(abs_top_srcdir)/src/WaCo.f90
 	cd $(abs_top_builddir)/src && $(MAKE) BigDFT2Wannier WaCo;
 
 %.memguess.out: $(abs_top_builddir)/src/memguess $(abs_top_builddir)/src/bigdft-tool
-	@name=`basename $@ .memguess.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	@name=`basename $@ .memguess.out | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	echo "$(run_serial) $(abs_top_builddir)/src/bigdft-tool -n 1 > $@"; \
 	$(run_serial) $(abs_top_builddir)/src/bigdft-tool -n 1 > $@ ; \
@@ -105,18 +105,18 @@ $(abs_top_builddir)/src/BigDFT2Wannier:
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.out.out: $(abs_top_builddir)/src/bigdft
-	@name=`basename $@ .out.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	@name=`basename $@ .out.out | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	if test -f list_posinp; then \
 	   name=`echo '--runs-file=list_posinp --taskgroup-size=1'`; \
 	fi; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	echo "Running $(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@" ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@ ; \
-	if test -f list_posinp; then cat `awk '{print $$2}' list_posinp | sed "s/^\(.*\)$$/log-\1.yaml/g"` > log.yaml ; fi ; \
+	if test -f list_posinp; then cat `awk '{print $$2}' list_posinp | $(SED) "s/^\(.*\)$$/log-\1.yaml/g"` > log.yaml ; fi ; \
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.geopt.mon.out: $(abs_top_builddir)/src/bigdft
-	name=`basename $@ .geopt.mon.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	name=`basename $@ .geopt.mon.out | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	if test -n "$$name" ; then datadir="data-"$$name ; else datadir="data" ; fi ; \
 	$(MAKE) -f ../Makefile $*.out.out && cp $$datadir/geopt.mon $@
 	name=`basename $@ .out` ; \
@@ -127,7 +127,7 @@ $(abs_top_builddir)/src/BigDFT2Wannier:
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.freq.out: $(abs_top_builddir)/src/frequencies
-	@name=`basename $@ .freq.out | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	@name=`basename $@ .freq.out | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	echo "Running $(run_parallel) $(abs_top_builddir)/src/frequencies > $@" ; \
 	$(run_parallel) $(abs_top_builddir)/src/frequencies > $@
@@ -208,11 +208,11 @@ $(INS): in_message
 	for i in $(srcdir)/$$name/* ; do cp -f $$i $$dir ; done ; \
 	if test -n "$(accel_in_message)" -a -n "$(run_ocl)" ; then \
 		if test "$(run_ocl)" = "CPU" ; then \
-				echo "ACCEL OCLCPU" > $$dir/check.perf ; \
+				echo "accel OCLCPU" > $$dir/check.perf ; \
 		elif test "$(run_ocl)" = "ACC" ; then \
-				echo "ACCEL OCLACC" > $$dir/check.perf ; \
+				echo "accel OCLACC" > $$dir/check.perf ; \
 		else \
-				echo "ACCEL OCLGPU" > $$dir/check.perf ; \
+				echo "accel OCLGPU" > $$dir/check.perf ; \
 		fi ; \
 		if test -n "$(ocl_platform)" ; then \
 				echo "OCL_PLATFORM $(ocl_platform)" >> $$dir/check.perf ; \
@@ -224,7 +224,7 @@ $(INS): in_message
 	echo "outdir ./" >> $$dir/check.perf ; \
 	chmod u+w $$dir/* ; \
 	for i in $$dir/*.out.ref.yaml ; do \
-	    base=`basename $$i .out.ref.yaml | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	    base=`basename $$i .out.ref.yaml | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	    if test -n "$$base" ; then cat $$dir/check.perf >> $$dir/$$base.perf ; fi ; \
 	done ; \
 	cat $$dir/check.perf >> $$dir/input.perf ; \
@@ -273,7 +273,7 @@ run_message:
 				$$DIFF $$c $$dir/$$(basename $$c .ref)".out"; \
 			done ; \
 				ychks="$(srcdir)/$$name/*.ref.yaml" ; \
-			for c in $$ychks ; do base=`basename $$c .out.ref.yaml | sed s/.out// | sed s/.xabs// | sed "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+			for c in $$ychks ; do base=`basename $$c .out.ref.yaml | $(SED) s/.out// | $(SED) s/.xabs// | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 			if test -n "$$base" ; then \
 			echo "$$DIFF $$c $$dir/log-$$base.yaml" ; \
 			$$DIFF $$c $$dir/log-$$base.yaml; \
@@ -292,7 +292,7 @@ run_message:
 	                     cp -vi $$dir/$$(basename $$c .ref)".out"  $$c;\
 	done ; \
         ychks="$(srcdir)/$$name/*.ref.yaml" ; \
-	for c in $$ychks ; do base=`basename $$c .out.ref.yaml | sed s/.out// | sed s/.xabs// | sed "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
+	for c in $$ychks ; do base=`basename $$c .out.ref.yaml | $(SED) s/.out// | $(SED) s/.xabs// | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"`  ;\
 	if test -n "$$base" ; then \
 	echo "Update reference with " $$dir/log-$$base.yaml; \
 	                     cp -vi $$dir/log-$$base.yaml $$c;\
@@ -318,21 +318,21 @@ run_message:
 
 # Avoid copying in dist the builddir files.
 distdir: $(DISTFILES)
-	@srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
-	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
+	@srcdirstrip=`echo "$(srcdir)" | $(SED) 's/[].[^$$\\*]/\\\\&/g'`; \
+	topsrcdirstrip=`echo "$(top_srcdir)" | $(SED) 's/[].[^$$\\*]/\\\\&/g'`; \
 	list='$(DISTFILES)'; \
 	  dist_files=`for file in $$list; do echo $$file; done | \
-	  sed -e "s|^$$srcdirstrip/||;t" \
+	  $(SED) -e "s|^$$srcdirstrip/||;t" \
 	      -e "s|^$$topsrcdirstrip/|$(top_builddir)/|;t"`; \
 	case $$dist_files in \
 	  */*) $(MKDIR_P) `echo "$$dist_files" | \
-			   sed '/\//!d;s|^|$(distdir)/|;s,/[^/]*$$,,' | \
+			   $(SED) '/\//!d;s|^|$(distdir)/|;s,/[^/]*$$,,' | \
 			   sort -u` ;; \
 	esac; \
 	for file in $$dist_files; do \
 	  d=$(srcdir); \
 	  if test -d $$d/$$file; then \
-	    dir=`echo "/$$file" | sed -e 's,/[^/]*$$,,'`; \
+	    dir=`echo "/$$file" | $(SED) -e 's,/[^/]*$$,,'`; \
 	    if test -d "$(distdir)/$$file"; then \
 	      find "$(distdir)/$$file" -type d ! -perm -700 -exec chmod u+rwx {} \;; \
 	    fi; \

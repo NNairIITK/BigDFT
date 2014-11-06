@@ -11,205 +11,10 @@
 !> Define all static strings to store input variables
 module module_input_keys
   use dictionaries, only: dictionary
-
+  use public_keys
   implicit none
   
   private
-
-
-  character(len = *), parameter, public :: RADICAL_NAME = "radical"
-  character(len = *), parameter, public :: POSINP = "posinp"
-  character(len = *), parameter, public :: OCCUPATION = "occupation"
-  character(len = *), parameter, public :: IG_OCCUPATION = "ig_occupation"
-  character(len = *), parameter, public :: DFT_VARIABLES = "dft"
-  character(len = *), parameter, public :: HGRIDS = "hgrids"
-  character(len = *), parameter, public :: RMULT = "rmult"
-  character(len = *), parameter, public :: IXC = "ixc"
-  character(len = *), parameter, public :: NCHARGE = "ncharge"
-  character(len = *), parameter, public :: ELECFIELD = "elecfield"
-  character(len = *), parameter, public :: NSPIN = "nspin", MPOL = "mpol"
-  character(len = *), parameter, public :: GNRM_CV = "gnrm_cv"
-  character(len = *), parameter, public :: ITERMAX = "itermax",ITERMIN = "itermin", NREPMAX = "nrepmax"
-  character(len = *), parameter, public :: NCONG = "ncong", IDSX = "idsx"
-  character(len = *), parameter, public :: DISPERSION = "dispersion"
-  character(len = *), parameter, public :: INPUTPSIID = "inputpsiid"
-  character(len = *), parameter, public :: OUTPUT_WF = "output_wf"
-  character(len = *), parameter, public :: OUTPUT_DENSPOT = "output_denspot"
-  character(len = *), parameter, public :: RBUF = "rbuf"
-  character(len = *), parameter, public :: NCONGT = "ncongt"
-  character(len = *), parameter, public :: NORBV = "norbv", NVIRT = "nvirt"
-  character(len = *), parameter, public :: NPLOT = "nplot"
-  character(len = *), parameter, public :: DISABLE_SYM = "disablesym"
-
-  character(len = *), parameter, public :: KPT_VARIABLES = "kpt"
-  character(len = *), parameter, public :: KPT_METHOD = "method"
-  character(len = *), parameter, public :: KPTRLEN = "kptrlen"
-  character(len = *), parameter, public :: NGKPT = "ngkpt"
-  character(len = *), parameter, public :: SHIFTK = "shiftk"
-  character(len = *), parameter, public :: KPT = "kpt"
-  character(len = *), parameter, public :: WKPT = "wkpt"
-  character(len = *), parameter, public :: BANDS = "bands"
-  character(len = *), parameter, public :: ISEG = "iseg"
-  character(len = *), parameter, public :: KPTV = "kptv"
-  character(len = *), parameter, public :: NGRANULARITY = "ngranularity"
-  character(len = *), parameter, public :: BAND_STRUCTURE_FILENAME = "band_structure_filename"
-
-  character(len = *), parameter, public :: GEOPT_VARIABLES = "geopt"
-  character(len = *), parameter, public :: GEOPT_METHOD = "method"
-  character(len = *), parameter, public :: NCOUNT_CLUSTER_X = "ncount_cluster_x"
-  character(len = *), parameter, public :: FRAC_FLUCT = "frac_fluct"
-  character(len = *), parameter, public :: FORCEMAX = "forcemax"
-  character(len = *), parameter, public :: RANDDIS = "randdis"
-  character(len = *), parameter, public :: IONMOV = "ionmov"
-  character(len = *), parameter, public :: DTION = "dtion"
-  character(len = *), parameter, public :: MDITEMP = "mditemp"
-  character(len = *), parameter, public :: MDFTEMP = "mdftemp"
-  character(len = *), parameter, public :: NOSEINERT = "noseinert"
-  character(len = *), parameter, public :: FRICTION = "friction"
-  character(len = *), parameter, public :: MDWALL = "mdwall"
-  character(len = *), parameter, public :: NNOS = "nnos"
-  character(len = *), parameter, public :: QMASS = "qmass"
-  character(len = *), parameter, public :: BMASS = "bmass"
-  character(len = *), parameter, public :: VMASS = "vmass"
-  character(len = *), parameter, public :: BETAX = "betax"
-  character(len = *), parameter, public :: HISTORY = "history"
-  character(len = *), parameter, public :: DTINIT = "dtinit"
-  character(len = *), parameter, public :: DTMAX = "dtmax"
-  character(len = *), parameter, public :: NEB_RESTART = "restart"
-  character(len = *), parameter, public :: NEB_CLIMBING = "climbing"
-  character(len = *), parameter, public :: EXTREMA_OPT = "extrema_opt"
-  character(len = *), parameter, public :: NEB_METHOD = "neb_method"
-  character(len = *), parameter, public :: TEMP = "temp"
-  character(len = *), parameter, public :: NEB_DAMP = "damp"
-  character(len = *), parameter, public :: SPRINGS_K = "springs_k"
-  character(len = *), parameter, public :: FIX_TOL = "fix_tol"
-  character(len = *), parameter, public :: NIMG = "nimg"
-  !SBFGS parameters:
-  character(len = *), parameter, public :: NHISTX = "nhistx"
-  character(len = *), parameter, public :: BIOMODE = "biomode"
-  character(len = *), parameter, public :: BETA_STRETCHX = "beta_stretchx"
-  character(len = *), parameter, public :: MAXRISE = "maxrise"
-  character(len = *), parameter, public :: CUTOFFRATIO = "cutoffratio"
-  character(len = *), parameter, public :: STEEPTHRESH = "steepthresh"
-  character(len = *), parameter, public :: TRUSTR = "trustr"
-
-
-  character(len = *), parameter, public :: MIX_VARIABLES = "mix"
-  character(len = *), parameter, public :: ISCF = "iscf"
-  character(len = *), parameter, public :: ITRPMAX = "itrpmax"
-  character(len = *), parameter, public :: RPNRM_CV = "rpnrm_cv"
-  character(len = *), parameter, public :: NORBSEMPTY = "norbsempty"
-  character(len = *), parameter, public :: TEL = "tel"
-  character(len = *), parameter, public :: OCCOPT = "occopt"
-  character(len = *), parameter, public :: ALPHAMIX = "alphamix"
-  character(len = *), parameter, public :: ALPHADIIS = "alphadiis"
-
-  character(len = *), parameter, public :: SIC_VARIABLES = "sic"
-  character(len = *), parameter, public :: SIC_APPROACH = "sic_approach"
-  character(len = *), parameter, public :: SIC_ALPHA = "sic_alpha"
-  character(len = *), parameter, public :: SIC_FREF = "sic_fref"
-
-  character(len = *), parameter, public :: TDDFT_VARIABLES = "tddft"
-  character(len = *), parameter, public :: TDDFT_APPROACH = "tddft_approach"
-
-  character(len = *), parameter, public :: PERF_VARIABLES = "perf"
-  character(len = *), parameter, public :: DEBUG = "debug"
-  character(len = *), parameter, public :: FFTCACHE = "fftcache"
-  character(len = *), parameter, public :: ACCEL = "accel"
-  character(len = *), parameter, public :: OCL_PLATFORM = "ocl_platform"
-  character(len = *), parameter, public :: OCL_DEVICES = "ocl_devices"
-  character(len = *), parameter, public :: BLAS = "blas"
-  character(len = *), parameter, public :: PROJRAD = "projrad"
-  character(len = *), parameter, public :: EXCTXPAR = "exctxpar"
-  character(len = *), parameter, public :: IG_DIAG = "ig_diag"
-  character(len = *), parameter, public :: IG_NORBP = "ig_norbp"
-  character(len = *), parameter, public :: IG_BLOCKS = "ig_blocks"
-  character(len = *), parameter, public :: IG_TOL = "ig_tol"
-  character(len = *), parameter, public :: METHORTHO = "methortho"
-  character(len = *), parameter, public :: RHO_COMMUN = "rho_commun"
-  character(len = *), parameter, public :: PSOLVER_GROUPSIZE = "psolver_groupsize"
-  character(len = *), parameter, public :: PSOLVER_ACCEL = "psolver_accel"
-  character(len = *), parameter, public :: UNBLOCK_COMMS = "unblock_comms"
-  character(len = *), parameter, public :: LINEAR = "linear"
-  character(len = *), parameter, public :: TOLSYM = "tolsym"
-  character(len = *), parameter, public :: SIGNALING = "signaling"
-  character(len = *), parameter, public :: SIGNALTIMEOUT = "signaltimeout"
-  character(len = *), parameter, public :: DOMAIN = "domain"
-  character(len = *), parameter, public :: INGUESS_GEOPT = "inguess_geopt"
-  character(len = *), parameter, public :: STORE_INDEX = "store_index"
-  character(len = *), parameter, public :: VERBOSITY = "verbosity"
-  character(len = *), parameter, public :: OUTDIR = "outdir"
-  character(len = *), parameter, public :: PSP_ONFLY = "psp_onfly"
-  character(len = *), parameter, public :: PDSYEV_BLOCKSIZE = "pdsyev_blocksize"
-  character(len = *), parameter, public :: PDGEMM_BLOCKSIZE = "pdgemm_blocksize"
-  character(len = *), parameter, public :: MAXPROC_PDSYEV = "maxproc_pdsyev"
-  character(len = *), parameter, public :: MAXPROC_PDGEMM = "maxproc_pdgemm"
-  character(len = *), parameter, public :: EF_INTERPOL_DET = "ef_interpol_det"
-  character(len = *), parameter, public :: EF_INTERPOL_CHARGEDIFF = "ef_interpol_chargediff"
-  character(len = *), parameter, public :: MIXING_AFTER_INPUTGUESS = "mixing_after_inputguess"
-  character(len = *), parameter, public :: ITERATIVE_ORTHOGONALIZATION = "iterative_orthogonalization"
-  character(len = *), parameter, public :: MULTIPOLE_PRESERVING = "multipole_preserving"
-  character(len = *), parameter, public :: CHECK_SUMRHO = "check_sumrho"
-  character(len = *), parameter, public :: EXPERIMENTAL_MODE = "experimental_mode"
-  character(len = *), parameter, public :: WRITE_ORBITALS = "write_orbitals"
-  character(len = *), parameter, public :: EXPLICIT_LOCREGCENTERS = "explicit_locregcenters"
-  character(len = *), parameter, public :: CALCULATE_KS_RESIDUE = "calculate_KS_residue"
-  character(len = *), parameter, public :: INTERMEDIATE_FORCES = "intermediate_forces"
-  character(len = *), parameter, public :: KAPPA_CONV = "kappa_conv"
-  character(len = *), parameter, public :: EVBOUNDS_NSATUR = "evbounds_nsatur"
-  character(len = *), parameter, public :: EVBOUNDSSHRINK_NSATUR = "evboundsshrink_nsatur"
-  character(len = *), parameter, public :: METHOD_UPDATEKERNEL = "method_updatekernel"
-  character(len = *), parameter, public :: PURIFICATION_QUICKRETURN = "purification_quickreturn"
-  character(len = *), parameter, public :: ADJUST_FOE_TEMPERATURE = "adjust_FOE_temperature"
-  character(len = *), parameter, public :: CALCULATE_GAP = "calculate_gap"
-  character(len = *), parameter, public :: LOEWDIN_CHARGE_ANALYSIS = "loewdin_charge_analysis"
-  character(len = *), parameter, public :: CHECK_MATRIX_COMPRESSION = "check_matrix_compression"
-  character(len = *), parameter, public :: CORRECTION_CO_CONTRA = "correction_co_contra"
-
-  !keys for linear input variables
-  !level keys
-  character(len=*), parameter, public :: LIN_GENERAL     ='lin_general'
-  character(len=*), parameter, public :: LIN_BASIS       ='lin_basis'
-  character(len=*), parameter, public :: LIN_KERNEL      ='lin_kernel'
-  character(len=*), parameter, public :: LIN_BASIS_PARAMS='lin_basis_params'
-  character(len=*), parameter, public :: FRAG_VARIABLES  ='frag'
-  character(len=*), parameter, public :: HYBRID          ='hybrid'
-  character(len=*), parameter, public :: LINEAR_METHOD   ='linear_method'
-  character(len=*), parameter, public :: MIXING_METHOD   ='mixing_method'
-  character(len=*), parameter, public :: NIT             ='nit'
-  character(len=*), parameter, public :: NSTEP           ='nstep'
-  character(len=*), parameter, public :: IDSX_COEFF      ='idsx_coeff'
-  character(len=*), parameter, public :: GNRM_CV_COEFF   ='gnrm_cv_coeff'
-  character(len=*), parameter, public :: DELTAE_CV       ='deltae_cv'
-  character(len=*), parameter, public :: GNRM_DYN        ='gnrm_dyn'
-  character(len=*), parameter, public :: MIN_GNRM_FOR_DYNAMIC = 'min_gnrm_for_dynamic'
-  character(len=*), parameter, public :: CONF_DAMPING    ='conf_damping'
-  character(len=*), parameter, public :: TAYLOR_ORDER    ='taylor_order'
-  character(len=*), parameter, public :: CALC_DIPOLE     ='calc_dipole'
-  character(len=*), parameter, public :: CALC_PULAY      ='calc_pulay'
-  character(len=*), parameter, public :: SUBSPACE_DIAG   ='subspace_diag'
-  character(len=*), parameter, public :: ALPHA_DIIS      ='alpha_diis'
-  character(len=*), parameter, public :: ALPHA_SD        ='alpha_sd'
-  character(len=*), parameter, public :: ALPHA_SD_COEFF  ='alpha_sd_coeff'
-  character(len=*), parameter, public :: ALPHA_FIT_COEFF ='alpha_fit_coeff'
-  character(len=*), parameter, public :: NSTEP_PREC      ='nstep_prec'
-  character(len=*), parameter, public :: EVAL_RANGE_FOE  ='eval_range_foe'
-  character(len=*), parameter, public :: FSCALE_FOE      ='fscale_foe'
-  character(len=*), parameter, public :: AO_CONFINEMENT  ='ao_confinement'
-  character(len=*), parameter, public :: CONFINEMENT     ='confinement'
-  character(len=*), parameter, public :: RLOC            ='rloc'
-  character(len=*), parameter, public :: RLOC_KERNEL     ='rloc_kernel'
-  character(len=*), parameter, public :: RLOC_KERNEL_FOE ='rloc_kernel_foe'
-  character(len=*), parameter, public :: NBASIS          ='nbasis'
-  character(len=*), parameter, public :: TRANSFER_INTEGRALS='transfer_integrals'
-  character(len=*), parameter, public :: CONSTRAINED_DFT  ='constrained_dft'
-  character(len=*), parameter, public :: FIX_BASIS       ='fix_basis' 
-  character(len=*), parameter, public :: CORRECTION_ORTHOCONSTRAINT='correction_orthoconstraint'
-  character(len=*), parameter, public :: FSCALE_LOWERBOUND="fscale_lowerbound"
-  character(len=*), parameter, public :: FSCALE_UPPERBOUND="fscale_upperbound"
-  character(len=*), parameter, public :: EXTRA_STATES="extra_states"
-  character(len=*), parameter, public :: FRAGMENT_NO="Fragment No. "
-  character(len=*), parameter, public :: MAX_INVERSION_ERROR = "max_inversion_error"
 
   !> Error ids for this module.
   integer, parameter :: ERR_UNDEF=1
@@ -388,7 +193,7 @@ contains
     type(dictionary), pointer :: input_keys_get_profiles
 
     type(dictionary), pointer :: p
-    integer :: i
+    integer :: i, skeys
     character(max_field_length), dimension(:), allocatable :: keys
 
     call input_keys_init()
@@ -400,7 +205,8 @@ contains
     else
        allocate(keys(dict_size(parameters)))
        keys = dict_keys(parameters)
-       do i = 1, size(keys), 1
+       skeys = size(keys)
+       do i = 1, skeys, 1
           call vars(p // keys(i), parameters // keys(i))
        end do
        deallocate(keys)
@@ -417,12 +223,14 @@ contains
       implicit none
       type(dictionary), pointer :: dict, ref
 
-      integer :: i
+      integer :: i, svar
       character(max_field_length), dimension(:), allocatable :: var
 
       allocate(var(dict_size(ref)))
       var = dict_keys(ref)
-      do i = 1, size(var), 1
+      !to avoid problems on BG/Q
+      svar = size(var)
+      do i = 1, svar, 1
          call generate(dict, var(i), ref // var(i))
       end do
       deallocate(var)
@@ -437,12 +245,14 @@ contains
       type(dictionary), pointer :: dict, ref
       character(max_field_length), intent(in) :: key
 
-      integer :: i
+      integer :: i, skeys
       character(max_field_length), dimension(:), allocatable :: keys
 
       allocate(keys(dict_size(ref)))
       keys = dict_keys(ref)
-      do i = 1, size(keys), 1
+      !to avoid problems on BG/Q
+      skeys = size(keys)
+      do i = 1, skeys, 1
          if (trim(keys(i)) /= COMMENT .and. &
               & trim(keys(i)) /= COND .and. &
               & trim(keys(i)) /= RANGE .and. &
@@ -928,7 +738,7 @@ contains
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: file, key
 
-    integer :: i
+    integer :: i, skeys
     type(dictionary), pointer :: ref
     character(len = max_field_length) :: val, profile_
     character(len = max_field_length), dimension(:), allocatable :: keys
@@ -972,7 +782,8 @@ contains
              allocate(keys(dict_size(failed_exclusive)))
              keys = dict_keys(failed_exclusive)
              found = .false.
-             do i = 1, size(keys), 1
+             skeys = size(keys)
+             do i = 1, skeys, 1
                 found = input_keys_equal(trim(val), trim(keys(i)))
                 if (found) exit
              end do
@@ -1018,7 +829,7 @@ contains
       type(dictionary), pointer :: dict, ref
       logical :: set_
 
-      integer :: j
+      integer :: j, dlen
       type(dictionary), pointer :: tmp
       character(max_field_length) :: mkey, val_master, val_when
 
@@ -1049,18 +860,21 @@ contains
       character(len = max_field_length) :: val
       character(max_field_length), dimension(:), allocatable :: keys
       double precision :: var
+      integer :: dlen, skeys
 
       if (associated(dict%child)) then
          if (dict_len(dict) >= 1) then
             ! List case.
-            do i = 0, dict_len(dict) - 1, 1
+            dlen = dict_len(dict)
+            do i = 0, dlen - 1, 1
                call validate(dict // i, key, rg)
             end do            
          else
             ! Dictionary case
             allocate(keys(dict_size(dict)))
             keys = dict_keys(dict)
-            do i = 1, size(keys), 1
+            skeys = size(keys)
+            do i = 1, skeys, 1
                call validate(dict // keys(i), key, rg)
             end do
             deallocate(keys)
@@ -1078,21 +892,45 @@ contains
     end subroutine validate
   END SUBROUTINE input_keys_set
 
+  !> takes the posinp filename from the dictionary. Starting point is dict//POSINP
+  subroutine astruct_dict_get_source(dict, source)
+    use dictionaries, only: max_field_length, dictionary, has_key, operator(//), dict_value
+    use public_keys, only: POSINP_SOURCE
+    implicit none
+    type(dictionary), pointer :: dict
+    character(len = *), intent(inout) :: source !<preserve provious value if present
+
+    write(source, "(A)") ""
+    if (has_key(dict, ASTRUCT_PROPERTIES)) then
+       if (has_key(dict // ASTRUCT_PROPERTIES, POSINP_SOURCE)) &
+            & source = dict_value(dict // ASTRUCT_PROPERTIES // POSINP_SOURCE)
+    end if
+  end subroutine astruct_dict_get_source
+
 
   !> Dump the dictionary of the input variables.
   !! Should dump only the keys relative to the iunput variables and
   !! print out warnings for the ignored keys
   subroutine input_keys_dump(dict, userOnly)
+    use yaml_strings, only: f_strcpy
     use yaml_output
     use dictionaries
+    use dynamic_memory
+    use public_keys, only: POSINP,ASTRUCT_PROPERTIES,ASTRUCT_POSITIONS
+    
     implicit none
     type(dictionary), pointer :: dict   !< Dictionary to dump
     logical, intent(in), optional :: userOnly
 
     !local variables
-    integer :: i
+    integer, parameter :: natoms_dump=500
+    integer :: i, dlen, skeys,natoms
     character(max_field_length), dimension(:), allocatable :: keys
+    character(max_field_length) ::  sourcefile
     logical :: userOnly_
+    type(dictionary), pointer :: tmp
+
+    call f_routine(id='input_keys_dump')
 
     userOnly_ = .false.
     if (present(userOnly)) userOnly_ = userOnly
@@ -1103,21 +941,39 @@ contains
     if (associated(dict%child)) then
        if (dict_len(dict) >= 1) then
           ! List case.
-          do i = 0, dict_len(dict) - 1, 1
+          dlen = dict_len(dict)
+          do i = 0,  dlen- 1, 1
              call dict_dump_(dict // i)
           end do
        else
           ! Dictionary case
           allocate(keys(dict_size(dict)))
           keys = dict_keys(dict)
-          do i = 1, size(keys), 1
-             call dict_dump_(dict // keys(i))
+          skeys = size(keys)
+          do i = 1, skeys
+             if (POSINP == trim(keys(i))) then
+                call f_strcpy(src='not provided',dest=sourcefile)
+                tmp=>dict//POSINP
+                !check the number of atoms
+                natoms=-1
+                if (ASTRUCT_POSITIONS .in. tmp) natoms=dict_len(tmp // ASTRUCT_POSITIONS)
+                if (natoms > natoms_dump) then
+                   call astruct_dict_get_source(tmp, sourcefile)
+                   call yaml_map(POSINP,sourcefile)
+                else
+                   call dict_dump_(dict // keys(i))
+                end if
+             else
+                call dict_dump_(dict // keys(i))
+             end if
           end do
           deallocate(keys)
        end if
     else
        call yaml_scalar(dict%data%value)
     end if
+
+    call f_release_routine()
 
   contains
 
@@ -1128,7 +984,7 @@ contains
       type(dictionary), pointer :: dict
 
       logical :: flow, userDef
-      integer :: i
+      integer :: i, dlen, skeys
       type(dictionary), pointer :: parent, attr, iter
       character(max_field_length) :: descr, tag, prof, output
       character(max_field_length), dimension(:), allocatable :: keys
@@ -1161,7 +1017,8 @@ contains
          else
             call yaml_sequence_open(trim(dict%data%key), tag = tag, flow=flow)
          end if
-         do i = 0, dict_len(dict) - 1, 1
+         dlen = dict_len(dict)
+         do i = 0, dlen - 1, 1
             call yaml_sequence("", advance = "no")
             call dict_dump_(dict // i)
          end do
@@ -1180,7 +1037,8 @@ contains
          iter => dict_next(dict)
          allocate(keys(dict_size(dict)))
          keys = dict_keys(dict)
-         do i = 1, size(keys), 1
+         skeys = size(keys)
+         do i = 1, skeys, 1
             call dict_dump_(dict // keys(i))
          end do
          deallocate(keys)

@@ -46,6 +46,7 @@ libmodules_a_SOURCES = base.f90 \
 	constrained_dft.f90 \
 	diis_module.f90 \
 	ao_inguess.f90 \
+	reformatting.f90 \
 	atoms_data.f90 \
 	communications_base.f90 \
 	communications_init.f90 \
@@ -56,6 +57,7 @@ libmodules_a_SOURCES = base.f90 \
 	foe_base.f90 \
 	internal_coordinates.f90 \
 	fermi_level.f90 \
+	copy_utils.f90 \
 	module_sbfgs.f90 \
 	bigdft_run.f90 \
 	$(bindings_headers) \
@@ -87,6 +89,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	PSP_PROJECTORS.@MODULE_EXT@ \
 	LOCREGS.@MODULE_EXT@ \
 	AO_INGUESS.@MODULE_EXT@ \
+	REFORMATTING.@MODULE_EXT@ \
 	MODULE_ATOMS.@MODULE_EXT@ \
 	COMMUNICATIONS_BASE.@MODULE_EXT@ \
 	COMMUNICATIONS_INIT.@MODULE_EXT@ \
@@ -97,6 +100,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	FOE_BASE.@MODULE_EXT@ \
 	INTERNAL_COORDINATES.@MODULE_EXT@ \
 	FERMI_LEVEL.@MODULE_EXT@ \
+	COPY_UTILS.@MODULE_EXT@ \
 	MODULE_SBFGS.@MODULE_EXT@ \
 	BIGDFT_RUN.@MODULE_EXT@
 else
@@ -122,6 +126,7 @@ modules = module_base.@MODULE_EXT@ \
 	psp_projectors.@MODULE_EXT@ \
 	locregs.@MODULE_EXT@ \
 	ao_inguess.@MODULE_EXT@ \
+	reformatting.@MODULE_EXT@ \
 	module_atoms.@MODULE_EXT@ \
 	communications_base.@MODULE_EXT@ \
 	communications_init.@MODULE_EXT@ \
@@ -132,6 +137,7 @@ modules = module_base.@MODULE_EXT@ \
 	foe_base.@MODULE_EXT@ \
 	internal_coordinates.@MODULE_EXT@ \
 	fermi_level.@MODULE_EXT@ \
+	copy_utils.@MODULE_EXT@ \
 	module_sbfgs.@MODULE_EXT@ \
 	bigdft_run.@MODULE_EXT@
 else
@@ -139,7 +145,7 @@ else
 
 endif
 
-AO_INCLUDES = eleconf-inc.f90
+AO_INCLUDES = eleconf-inc.f90 
 ATOMS_INCLUDES = astruct-inc.f90
 COMMS_INCLUDES = check_array-inc.f90
 
@@ -170,13 +176,13 @@ base.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o public_keys.o
 types.o: base.o gaussians.o locregs.o psp_projectors.o ao_inguess.o atoms_data.o communications_base.o \
 	sparsematrix_base.o xc.o foe_base.o ab7_mixing.o
 input.o: base.o types.o input_keys.o
-interfaces.o: base.o types.o xc.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o foe_base.o
+interfaces.o: base.o types.o xc.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o foe_base.o communications.o
 gaussians.o: base.o
 op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o atoms_data.o input_dicts.o ao_inguess.o psp_projectors.o communications_base.o communications_init.o
 vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
-diis_module.o: base.o types.o communications.o sparsematrix_base.o sparsematrix.o
+diis_module.o: base.o types.o
 fragments.o: base.o types.o
 constrained_dft.o: base.o types.o sparsematrix_base.o
 input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o types.o defs.o ao_inguess.o interfaces.o atoms_data.o input_keys.o public_keys.o
@@ -184,6 +190,7 @@ psp_projectors.o: locregs.o gaussians.o defs.o
 locregs.o: base.o
 ao_inguess.o: $(AO_INCLUDES) base.o psp_projectors.o
 atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o internal_coordinates.o
+reformatting.o: base.o
 communications_base.o: base.o
 communications_init.o: base.o types.o communications_base.o
 communications.o: base.o types.o communications_base.o
@@ -192,6 +199,7 @@ sparsematrix_init.o: base.o types.o interfaces.o sparsematrix_base.o
 sparsematrix.o: base.o types.o sparsematrix_base.o
 foe_base.o: base.o defs.o
 fermi_level.o: base.o
+copy_utils.o: base.o
 module_sbfgs.o: base.o
 bigdft_run.o: types.o input_dicts.o interfaces.o
 ab7_mixing.o: defs.o

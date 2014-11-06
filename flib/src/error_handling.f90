@@ -170,7 +170,7 @@
     character(len=*), intent(in), optional :: err_name     !< error name
     character(len=*), intent(in), optional :: err_msg      !< error message
     integer(kind=8), intent(in), optional :: callback_data !< ??? not really sure
-    external :: callback
+    external :: callback                                   !< action to be performed ???
     optional :: callback
     logical :: f_err_raise
     !local variables
@@ -416,7 +416,7 @@
     implicit none
     integer, intent(in), optional :: err_id            !< The code of the error to be checked for
     character(len=*), intent(in), optional :: err_name !< Name of the error to search
-    character(len=*), intent(out), optional :: add_msg
+    character(len=*), intent(out), optional :: add_msg !< additional message
     integer :: f_err_pop
     !local variables
     include 'get_err-inc.f90'

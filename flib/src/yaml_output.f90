@@ -167,7 +167,7 @@ module yaml_output
   public :: yaml_sequence,yaml_sequence_open,yaml_sequence_close
   public :: yaml_comment,yaml_warning,yaml_scalar,yaml_newline
   public :: yaml_toa,yaml_date_and_time_toa,yaml_date_toa,yaml_time_toa
-  public :: yaml_set_stream,yaml_flush_document
+  public :: yaml_set_stream,yaml_flush_document,yaml_stream_connected
   public :: yaml_set_default_stream,yaml_close_stream,yaml_swap_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
   public :: yaml_dict_dump,yaml_dict_dump_all
@@ -293,6 +293,28 @@ contains
   end subroutine yaml_get_default_stream
 
 
+  !> Get the unit associated to filename, if it is currently connected.
+  subroutine yaml_stream_connected(filename, unit, istat)
+    implicit none
+    character(len=*), intent(in) :: filename !< Filename of the stream to inquire
+    integer, intent(out)         :: unit     !< File unit specified by the user.(by default 6) Returns a error code if the unit
+    integer, optional, intent(out) :: istat  !< Status, zero if suceeded. When istat is present this routine is non-blocking, i.e. it does not raise exceptions.
+
+    integer, parameter :: NO_ERRORS           = 0
+
+    !check that the module has been initialized
+    call assure_initialization()
+
+    if (present(istat)) istat = NO_ERRORS !so far
+
+    unit = 0
+    if (has_key(stream_files, trim(filename))) then
+       unit = stream_files // trim(filename)
+    else
+       if (present(istat)) istat = YAML_STREAM_NOT_FOUND
+    end if
+  end subroutine yaml_stream_connected
+
   !> Set all the output from now on to the file indicated by stdout
   !! therefore the default stream is now the one indicated by unit
   subroutine yaml_set_stream(unit,filename,istat,tabbing,record_length,position,setdefault)
@@ -369,12 +391,12 @@ contains
              end if
           end if
           open(unit=unt,file=trim(filename),status='unknown',position=trim(pos),iostat=ierr)
-       end if
-       if (present(istat)) then
-          istat=ierr
-       else
-          if (f_err_raise(ierr /=0,'error in file opening, ierr='//trim(yaml_toa(ierr)),&
-               YAML_INVALID)) return
+          if (present(istat)) then
+             istat = ierr
+          else
+             if (f_err_raise(ierr /=0,'error in file opening, ierr='//trim(yaml_toa(ierr)),&
+                  YAML_INVALID)) return
+          end if
        end if
        if (ierr == 0 .and. .not. unit_is_open) then
           !inquire the record length for the unit
@@ -1051,7 +1073,7 @@ contains
     character(len=*), optional, intent(in) :: advance   !<@copydoc doc::advance
     integer, intent(in), optional :: padding            !<pad the seqvalue with blanks to have more readable output
     !local variables
-    integer :: msg_lgt,unt,strm,tb,ipos
+    integer :: msg_lgt,unt,strm,tb
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 

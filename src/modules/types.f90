@@ -213,9 +213,9 @@ module module_types
     integer, dimension(:), pointer :: norbsPerType
     integer :: kernel_mode, mixing_mode
     integer :: scf_mode, nlevel_accuracy
-    logical :: calc_dipole, pulay_correction, mixing_after_inputguess, iterative_orthogonalization, new_pulay_correction
+    logical :: calc_dipole, pulay_correction, iterative_orthogonalization, new_pulay_correction
     logical :: fragment_calculation, calc_transfer_integrals, constrained_dft, curvefit_dmin, diag_end, diag_start
-    integer :: extra_states, order_taylor
+    integer :: extra_states, order_taylor, mixing_after_inputguess
     !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
     real(kind=8) :: max_inversion_error
   end type linearInputParameters
@@ -418,6 +418,7 @@ module module_types
      type(fragmentInputParameters) :: frag !< Fragment data
      logical :: store_index                !< (LS) Store indices of the sparse matrices or recalculate them 
      integer :: check_sumrho               !< (LS) Perform a check of sumrho (no check, light check or full check)
+     integer :: check_overlap              !< (LS) Perform a check of the overlap calculation
      logical :: experimental_mode          !< (LS) Activate the experimental mode
      logical :: write_orbitals             !< (LS) Write KS orbitals for cubic restart
      logical :: explicit_locregcenters     !< (LS) Explicitely specify localization centers
@@ -459,6 +460,15 @@ module module_types
 
      !> linear scaling: upper bound for the error function decay length
      real(kind=8) :: fscale_upperbound
+
+     !> linear scaling: Restart method to be used for the FOE method
+     integer :: FOE_restart
+
+     !> linear scaling: method to calculate the overlap matrices (1=old, 2=new)
+     integer :: imethod_overlap
+
+     !> linear scaling: enable the matrix taskgroups
+     logical :: enable_matrix_taskgroups
 
   end type input_variables
 
@@ -549,12 +559,14 @@ module module_types
   type, public :: orbitals_data 
      integer :: norb          !< Total number of orbitals per k point
      integer :: norbp         !< Total number of orbitals for the given processors
-     integer :: norbu,norbd,nspin,nspinor,isorb
+     integer :: norbup        !< Total number of orbitals if there were only up orbitals
+     integer :: norbdp        !< probably to be deleted...
+     integer :: norbu,norbd,nspin,nspinor,isorb,isorbu,isorbd
      integer :: nkpts,nkptsp,iskpts
      real(gp) :: efermi,HLgap,eTS
      integer, dimension(:), pointer :: iokpt,ikptproc,isorb_par,ispot
      integer, dimension(:), pointer :: inwhichlocreg,onwhichatom
-     integer, dimension(:,:), pointer :: norb_par
+     integer, dimension(:,:), pointer :: norb_par, norbu_par, norbd_par
      real(wp), dimension(:), pointer :: eval
      real(gp), dimension(:), pointer :: occup,spinsgn,kwgts
      real(gp), dimension(:,:), pointer :: kpts
@@ -660,9 +672,10 @@ module module_types
       type(sparse_matrix) :: s !< small: sparsity pattern given by support function cutoff
       type(sparse_matrix) :: m !< medium: sparsity pattern given by SHAMOP cutoff
       type(sparse_matrix) :: l !< medium: sparsity pattern given by kernel cutoff
-      type(sparse_matrix) :: ks !< sparsity pattern for the KS orbitals (i.e. dense)
-      type(sparse_matrix) :: ks_e !< sparsity pattern for the KS orbitals including extra stated (i.e. dense)
+      type(sparse_matrix),dimension(:),pointer :: ks !< sparsity pattern for the KS orbitals (i.e. dense); spin up and down
+      type(sparse_matrix),dimension(:),pointer :: ks_e !< sparsity pattern for the KS orbitals including extra stated (i.e. dense); spin up and down
       type(matrices) :: ham_, ovrlp_, kernel_
+      type(matrices),dimension(3) :: ovrlppowers_
   end type linear_matrices
 
 
@@ -890,7 +903,7 @@ module module_types
  !>timing categories
  character(len=*), parameter, private :: tgrp_pot='Potential'
  integer, save, public :: TCAT_EXCHANGECORR=TIMING_UNINITIALIZED
- integer, parameter, private :: ncls_max=6,ncat_bigdft=140   ! define timimg categories and classes
+ integer, parameter, private :: ncls_max=6,ncat_bigdft=146   ! define timimg categories and classes
  character(len=14), dimension(ncls_max), parameter, private :: clss = (/ &
       'Communications'    ,  &
       'Convolutions  '    ,  &
@@ -987,7 +1000,8 @@ module module_types
       'updatelocreg1 ','Other         ' ,'Miscellaneous ' ,  &
       'linscalinit   ','Other         ' ,'Miscellaneous ' ,  &
       'commbasis4dens','Communications' ,'Miscellaneous ' ,  &
-      'eglincomms    ','Communications' ,'Miscellaneous ' ,  &
+      'buildgrad_mcpy','Other         ' ,'Miscellaneous ' ,  &
+      'buildgrad_comm','Communications' ,'Allgatherv    ' ,  &
       'allocommsumrho','Communications' ,'Miscellaneous ' ,  &
       'ovrlptransComp','Other         ' ,'Miscellaneous ' ,  &
       'ovrlptransComm','Communications' ,'mpi_allreduce ' ,  &
@@ -1020,7 +1034,10 @@ module module_types
       'chebyshev_coef','Other         ' ,'Miscellaneous ' ,  &
       'FOE_auxiliary ','Other         ' ,'Miscellaneous ' ,  &
       'FOE_init      ','Other         ' ,'Miscellaneous ' ,  &
-      'compress_uncom','Other         ' ,'Miscellaneous ' ,  &
+      'compressd_mcpy','Other         ' ,'Miscellaneous ' ,  &
+      'compressd_comm','Communications' ,'Allgatherv    ' ,  &
+      'foe_aux_mcpy  ','Other         ' ,'Miscellaneous ' ,  &
+      'foe_aux_comm  ','Communications' ,'Allgatherv    ' ,  &
       'norm_trans    ','Other         ' ,'Miscellaneous ' ,  &
       'misc          ','Other         ' ,'Miscellaneous ' ,  &
       'sparse_copy   ','Other         ' ,'Miscellaneous ' ,  &
@@ -1046,6 +1063,8 @@ module module_types
       'potential_dims','Other         ' ,'auxiliary     ' ,  &
       'sparse_matmul ','Linear Algebra' ,'self-made     ' ,  &
       'transform_matr','Other         ' ,'small to large' ,  &
+      'calctrace_comp','Other         ' ,'Miscellaneous ' ,  &
+      'calctrace_comm','Communications' ,'allreduce     ' ,  &
       'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat_bigdft/))
  integer, dimension(ncat_bigdft), private, save :: cat_ids !< id of the categories to be converted
 
@@ -1066,7 +1085,7 @@ module module_types
  public :: input_psi_help,deallocate_rho_descriptors
  public :: nullify_paw_objects,frag_from_dict,copy_grid_dimensions
  public :: cprj_to_array,deallocate_gwf_c
- public :: SIC_data_null,output_wf_format_help
+ public :: SIC_data_null,local_zone_descriptors_null,output_wf_format_help
  public :: energy_terms_null
 
 contains
@@ -1238,6 +1257,8 @@ contains
     type(orbitals_data), intent(inout) :: orbs !< Orbital to de-allocate
 
     call f_free_ptr(orbs%norb_par)
+    call f_free_ptr(orbs%norbu_par)
+    call f_free_ptr(orbs%norbd_par)
 
     call f_free_ptr(orbs%occup)
     call f_free_ptr(orbs%spinsgn)
@@ -2012,7 +2033,8 @@ contains
     use dictionaries, only: dictionary, operator(//), assignment(=)
     use dictionaries, only: dict_key, max_field_length, dict_value, dict_len
     use module_defs, only: DistProjApply, GPUblas, gp
-    use module_input_keys
+    use module_input_keys, only: input_keys_equal
+    use public_keys
     use dynamic_memory
     use yaml_output, only: yaml_warning
     implicit none
@@ -2211,6 +2233,9 @@ contains
        case (CHECK_SUMRHO)
           in%check_sumrho = val
           !  call input_var("mpi_groupsize",0, "number of MPI processes for BigDFT run (0=nproc)", in%mpi_groupsize)
+       case (CHECK_OVERLAP)
+          ! perform a check of the overlap calculation
+          in%check_overlap = val
        case (EXPERIMENTAL_MODE)
           in%experimental_mode = val
        case (WRITE_ORBITALS)
@@ -2261,6 +2286,15 @@ contains
        case (FSCALE_UPPERBOUND)
            ! linear scaling: upper bound for the error function decay length
            in%fscale_upperbound = val
+       case (FOE_RESTART)
+           ! linear scaling: Restart method to be used for the FOE method
+           in%FOE_restart = val
+       case (IMETHOD_OVERLAP)
+           ! linear scaling: method to calculate the overlap matrices (1=old, 2=new)
+           in%imethod_overlap = val
+       case (ENABLE_MATRIX_TASKGROUPS) 
+           ! linear scaling: enable the matrix taskgroups
+           in%enable_matrix_taskgroups = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
@@ -2513,7 +2547,8 @@ contains
 
 
   subroutine basis_params_set_dict(dict_basis,lin,jtype)
-    use module_input_keys
+    !use module_input_keys
+    use public_keys
     use dictionaries
     implicit none
     integer, intent(in) :: jtype !< local type of which we are filling the values
@@ -2553,7 +2588,8 @@ contains
   subroutine frag_from_dict(dict,frag)
     use module_base
     use yaml_output, only: yaml_map,is_atoi
-    use module_input_keys
+    !use module_input_keys
+    use public_keys
     implicit none
     type(dictionary), pointer :: dict
     type(fragmentInputParameters), intent(out) :: frag

@@ -298,8 +298,8 @@ ntimes=1
    call compare_time(CPUtime,GPUtime,n1*n2*n3,2*5 * (log(real(n1,kind=8))+&
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
 
-   call pkernel_free(pkernel,subname)
-   call pkernel_free(pkernel2,subname)
+   call pkernel_free(pkernel)
+   call pkernel_free(pkernel2)
 
    !Poisson Solver - Free boundary
 
@@ -350,8 +350,8 @@ print *,'ehartree',ehartree
    call compare_time(CPUtime,GPUtime,n1*n2*n3,2*5 * (log(real(n1,kind=8))+&
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
 
-   call pkernel_free(pkernel,subname)
-   call pkernel_free(pkernel2,subname)
+   call pkernel_free(pkernel)
+   call pkernel_free(pkernel2)
 
    !Poisson Solver - Surface boundary
 
@@ -399,8 +399,8 @@ print *,'ehartree',ehartree
    call compare_time(CPUtime,GPUtime,n1*n2*n3,2*5 * (log(real(n1,kind=8))+&
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
 
-   call pkernel_free(pkernel,subname)
-   call pkernel_free(pkernel2,subname)
+   call pkernel_free(pkernel)
+   call pkernel_free(pkernel2)
 
 
    !Poisson Solver - Wire boundary
@@ -448,8 +448,8 @@ print *,'ehartree',ehartree
    call compare_time(CPUtime,GPUtime,n1*n2*n3,2*5 * (log(real(n1,kind=8))+&
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes,maxdiff,3.d-7)
 
-   call pkernel_free(pkernel,subname)
-   call pkernel_free(pkernel2,subname)
+   call pkernel_free(pkernel)
+   call pkernel_free(pkernel2)
 
   call f_free(rhopot)
   call f_free(rhopot2)

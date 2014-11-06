@@ -304,6 +304,7 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
   ! Store the file.
   character(len = 150), dimension(5000) :: lines
 
+  energy = UNINITIALIZED(energy)
   ! First pass to store the file in a string buffer.
   nlines = 1
   do
@@ -785,7 +786,7 @@ contains
 END SUBROUTINE read_int_positions
 
 
-!> Local routines with explicit interface 
+!> Local routines with explicit interface (used as arguments)
 subroutine directGetLine(line, ifile, eof)
   !Arguments
   integer, intent(in) :: ifile
@@ -800,6 +801,7 @@ subroutine directGetLine(line, ifile, eof)
 END SUBROUTINE directGetLine
 
 
+!> Used as arguments
 subroutine archiveGetLine(line, ifile, eof)
   !Arguments
   integer, intent(in) :: ifile
@@ -814,6 +816,7 @@ subroutine archiveGetLine(line, ifile, eof)
   call extractNextLine(line, i_stat)
   if (i_stat /= 0) eof = .true.
 END SUBROUTINE archiveGetLine
+
 
 !> put the atomic positions inside the box
 !! accoding to geocode value and cell if present
@@ -1152,8 +1155,7 @@ END SUBROUTINE frozen_itof
 
 !> The function which controls all the moving positions
 !! This function is related to frozen_ftoi
-function move_this_coordinate(ifrztyp,ixyz)
-  use module_base
+pure function move_this_coordinate(ifrztyp,ixyz)
   implicit none
   integer, intent(in) :: ifrztyp !< Type of frozen atom
   integer, intent(in) :: ixyz    !w coordinates (x=1, y=2; z=3)

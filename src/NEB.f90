@@ -97,8 +97,8 @@ MODULE NEB_routines
       use yaml_output
       use dictionaries
       use module_interfaces
-      use module_input_keys, only: input_keys_fill_all, PERF_VARIABLES, OUTDIR, &
-           & GEOPT_VARIABLES
+      use module_input_keys, only: input_keys_fill_all
+      use public_keys, only: PERF_VARIABLES, OUTDIR,GEOPT_VARIABLES
       use module_input_dicts
       use module_atoms, only: atomic_structure, &
            deallocate_atomic_structure, &
@@ -112,7 +112,7 @@ MODULE NEB_routines
       INTEGER, PARAMETER :: unit = 10
       REAL (gp), DIMENSION(:,:), ALLOCATABLE :: d_R
       real(gp), dimension(3) :: acell1, acell2
-      integer :: ierr, nconfig, algorithm, unit_log
+      integer :: ierr, algorithm, unit_log
       type(mpi_environment) :: bigdft_mpi_svg
       character(len=60) :: run_id
       type(dictionary), pointer :: dict, dict_min,options

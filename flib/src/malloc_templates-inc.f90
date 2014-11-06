@@ -7,267 +7,119 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-
-
-!> Update the memory database with the data provided
-!! Use when allocating Fortran structures
-subroutine f_update_database(size,kind,rank,address,id,routine)
-  use metadata_interfaces, only: long_toa
-  use yaml_output, only: yaml_flush_document
-  implicit none
-  !> Number of elements of the buffer
-  integer(kind=8), intent(in) :: size
-  !> Size in bytes of one buffer element
-  integer, intent(in) :: kind
-  !> Rank of the array
-  integer, intent(in) :: rank
-  !> Address of the first buffer element.
-  !! Used to store the address in the dictionary.
-  !! If this argument is zero, only the memory is updated
-  !! Otherwise the dictionary is created and stored
-  integer(kind=8), intent(in) :: address
-  !> Id of the array
-  character(len=*), intent(in) :: id
-  !> Id of the allocating routine
-  character(len=*), intent(in) :: routine
-  !local variables
-  integer(kind=8) :: ilsize,jproc
-  !$ include 'remove_omp-inc.f90' 
-
-  ilsize=max(int(kind,kind=8)*size,int(0,kind=8))
-  !store information only for array of size /=0
-  if (track_origins .and. address /= int(0,kind=8) .and. ilsize /= int(0,kind=8)) then
-     !create the dictionary array
-     if (.not. associated(mems(ictrl)%dict_routine)) then
-        call dict_init(mems(ictrl)%dict_routine)
-     end if
-     call set(mems(ictrl)%dict_routine//long_toa(address),&
-          '[ '//trim(id)//', '//trim(routine)//', '//&
-             trim(yaml_toa(ilsize))//', '//trim(yaml_toa(rank))//']')
-  end if
-  call memstate_update(memstate,ilsize,id,routine)
-  if (mems(ictrl)%output_level==2) then
-     jproc = mems(ictrl)%dict_global//processid
-     if (jproc ==0) then
-        call dump_status_line(memstate,mems(ictrl)%logfile_unit,trim(routine),trim(id))
-        call yaml_flush_document(unit=mems(ictrl)%logfile_unit)
-     end if
-  end if
-end subroutine f_update_database
-
-
-!> Clean the database with the information of the array
-!! Use when allocating Fortran structures
-subroutine f_purge_database(size,kind,address,id,routine)
-  use metadata_interfaces, only: long_toa
-  use yaml_output, only: yaml_flush_document
-  implicit none
-  !> Number of elements of the buffer
-  integer(kind=8), intent(in) :: size
-  !> Size in bytes of one buffer element
-  integer, intent(in) :: kind
-  !> Address of the first buffer element.
-  !! Used to store the address in the dictionary.
-  !! If this argument is zero, only the memory is updated
-  !! Otherwise the dictionary is created and stored
-  integer(kind=8), intent(in), optional :: address
-  !> Id of the array
-  character(len=*), intent(in), optional :: id
-  !> Id of the allocating routine
-  character(len=*), intent(in), optional :: routine
-  !local variables
-  logical :: use_global
-  integer :: jproc
-  integer(kind=8) :: ilsize,jlsize,iadd
-  character(len=namelen) :: array_id,routine_id
-  character(len=info_length) :: array_info
-  type(dictionary), pointer :: dict_add
-  !$ include 'remove_omp-inc.f90' 
-
-  iadd=int(0,kind=8)
-  if (present(address)) iadd=address
-  ilsize=max(int(kind,kind=8)*size,int(0,kind=8))
-  !address of first element (not needed for deallocation)
-  if (track_origins .and. iadd/=int(0,kind=8)) then
-     !hopefully only address is necessary for the deallocation
-
-     !search in the dictionaries the address
-     dict_add=>find_key(mems(ictrl)%dict_routine,long_toa(iadd))
-     if (.not. associated(dict_add)) then
-        dict_add=>find_key(mems(ictrl)%dict_global,long_toa(iadd))
-        if (.not. associated(dict_add)) then
-           call f_err_throw('Address '//trim(long_toa(iadd))//&
-                ' not present in dictionary',ERR_INVALID_MALLOC)
-           return
-        else
-           use_global=.true.
-        end if
-     else
-        use_global=.false.
-     end if
-
-     !transform the dict_add in a list
-     !retrieve the string associated to the database
-     array_info=dict_add
-     dict_add => yaml_a_todict(array_info)
-     !then retrieve the array information
-     array_id=dict_add//0
-     routine_id=dict_add//1
-     jlsize=dict_add//2
-
-     call dict_free(dict_add)
-
-     if (ilsize /= jlsize) then
-        call f_err_throw('Size of array '//trim(array_id)//&
-             ' ('//trim(yaml_toa(ilsize))//') not coherent with dictionary, found='//&
-             trim(yaml_toa(jlsize)),ERR_MALLOC_INTERNAL)
-        return
-     end if
-     if (use_global) then
-        call dict_remove(mems(ictrl)%dict_global,long_toa(iadd))
-     else
-        call dict_remove(mems(ictrl)%dict_routine,long_toa(iadd))
-     end if
-  else
-     array_id(1:len(array_id))=id
-     routine_id(1:len(routine_id))=routine
-  end if
-
-  call memstate_update(memstate,-ilsize,trim(array_id),trim(routine_id))
-  !here in the case of output_level == 2 the data can be extracted  
-  if (mems(ictrl)%output_level==2) then
-     jproc = mems(ictrl)%dict_global//processid
-     if (jproc ==0) then
-        if (len_trim(array_id) == 0) then
-           if (len_trim(routine_id) == 0) then
-              call dump_status_line(memstate,mems(ictrl)%logfile_unit,&
-                   'Unknown','Unknown')
-           else
-              call dump_status_line(memstate,mems(ictrl)%logfile_unit,trim(routine_id),'Unknown')
-           end if
-        else if (len_trim(routine_id) == 0) then
-           call dump_status_line(memstate,mems(ictrl)%logfile_unit,'Unknown',trim(array_id))
-        else
-           call dump_status_line(memstate,mems(ictrl)%logfile_unit,trim(routine_id),trim(array_id))
-        end if
-        call yaml_flush_document(unit=mems(ictrl)%logfile_unit)
-     end if
-  end if
-end subroutine f_purge_database
-
-
-subroutine xx_all(array,m)
-  use metadata_interfaces
-  implicit none
-  type(malloc_information_all), intent(in) :: m
-  integer, dimension(:), allocatable, intent(inout) :: array
-  !--- allocate_profile-inc.f90
-  integer :: ierror
-  integer(kind=8) :: iadd
-  !$ logical :: not_omp
-  !$ logical, external :: omp_in_parallel,omp_get_nested
-
-  if (f_err_raise(ictrl == 0,&
-       'ERROR (f_malloc): the routine f_malloc_initialize has not been called',&
-       ERR_MALLOC_INTERNAL)) return
-
-  !$ not_omp=.not. (omp_in_parallel() .or. omp_get_nested())
-
-  !here we should add a control of the OMP behaviour of allocation
-  !in particular for what concerns the OMP nesting procedure
-  !the following action is the allocation
-  !$ if(not_omp) then
-  call f_timer_interrupt(TCAT_ARRAY_ALLOCATIONS)
-  !$ end if
-  !END--- allocate_profile-inc.f90
-  !allocate the array
-  allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
-  !--- allocate-inc.f90
-  if (ierror/=0) then
-     !$ if(not_omp) then
-     call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
-     !$ end if
-     call f_err_throw('Allocation problem, error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)
-     return
-  end if
-  if (size(shape(array))==m%rank) then
-     call pad_array(array,m%put_to_zero,m%shape,ndebug)
-     !also fill the array with the values of the source if the address is identified in the source
-     if (m%srcdata_add /= 0) call c_memcopy(array,m%srcdata_add,product(shape(array))*kind(array))
-     !profile the array allocation
-     iadd=int(0,kind=8)
-        !write the address of the first element in the address string
-     if (m%profile .and. track_origins) call getlongaddress(array,iadd)
-  
-     call f_update_database(product(int(m%shape(1:m%rank),kind=8)),kind(array),m%rank,&
-          iadd,m%array_id,m%routine_id)
-
-  else
-     !$ if(not_omp) then
-     call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
-     !$ end if
-     call f_err_throw('Rank specified by f_malloc ('//trim(yaml_toa(m%rank))//&
-          ') is not coherent with the one of the array ('//trim(yaml_toa(size(shape(array))))//')',&
-          ERR_INVALID_MALLOC)
-     return
-  end if
-  !$ if(not_omp) then
-  call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
-  !$ end if
-  !END--- allocate-inc.f90
-end subroutine xx_all
-
-
-subroutine xx_all_free(array)
-  use metadata_interfaces
-  implicit none
-  integer, dimension(:), allocatable, intent(inout) :: array
-  !--'deallocate-profile-inc.f90' 
-  !local variables
-  integer :: ierror
-  !$ logical :: not_omp
-  !$ logical, external :: omp_in_parallel,omp_get_nested
-  integer(kind=8) :: ilsize,iadd
-
-  if (f_err_raise(ictrl == 0,&
-       'ERROR (f_free): the routine f_malloc_initialize has not been called',&
-       ERR_MALLOC_INTERNAL)) return
-
-  !$ not_omp=.not. (omp_in_parallel() .or. omp_get_nested())
-
-  !here we should add a control of the OMP behaviour of allocation
-  !in particular for what concerns the OMP nesting procedure
-
-  !END--'deallocate-profile-inc.f90'
-  !-- 'deallocate-inc.f90' 
-  !$ if (not_omp) then
-  call f_timer_interrupt(TCAT_ARRAY_ALLOCATIONS)
-  !$ end if
-
-  !here the size should be corrected with ndebug (or maybe not)
-  ilsize=product(int(shape(array),kind=8))
-  !retrieve the address of the first element if the size is not zero
-  iadd=int(0,kind=8)
-  if (ilsize /= int(0,kind=8)) call getlongaddress(array,iadd)
-  !fortran deallocation
-  deallocate(array,stat=ierror)
-
-  if (ierror/=0) then
-     !$ if (not_omp) then
-     call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
-     !$ end if
-     call f_err_throw('Deallocation problem, error code '//trim(yaml_toa(ierror)),&
-          ERR_DEALLOCATE)
-     return
-  end if
-
-  call f_purge_database(ilsize,kind(array),iadd)
-
-  !$ if (not_omp) then
-  call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
-  !$ end if
-  !END-- 'deallocate-inc.f90' 
-end subroutine xx_all_free
+!subroutine xx_all(array,m)
+!  use metadata_interfaces
+!  implicit none
+!  type(malloc_information_all), intent(in) :: m
+!  integer, dimension(:), allocatable, intent(inout) :: array
+!  !--- allocate_profile-inc.f90
+!  integer :: ierror
+!  integer(kind=8) :: iadd
+!  !$ logical :: not_omp
+!  !$ logical, external :: omp_in_parallel,omp_get_nested
+!
+!  if (f_err_raise(ictrl == 0,&
+!       'ERROR (f_malloc): the routine f_malloc_initialize has not been called',&
+!       ERR_MALLOC_INTERNAL)) return
+!
+!  !$ not_omp=.not. (omp_in_parallel() .or. omp_get_nested())
+!
+!  !here we should add a control of the OMP behaviour of allocation
+!  !in particular for what concerns the OMP nesting procedure
+!  !the following action is the allocation
+!  !$ if(not_omp) then
+!  call f_timer_interrupt(TCAT_ARRAY_ALLOCATIONS)
+!  !$ end if
+!  !END--- allocate_profile-inc.f90
+!  !allocate the array
+!  allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
+!  !--- allocate-inc.f90
+!  if (ierror/=0) then
+!     !$ if(not_omp) then
+!     call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+!     !$ end if
+!     call f_err_throw('Allocation problem, error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)
+!     return
+!  end if
+!  if (size(shape(array))==m%rank) then
+!     call pad_array(array,m%put_to_zero,m%shape,ndebug)
+!     !also fill the array with the values of the source if the address is identified in the source
+!     if (m%srcdata_add /= 0) call c_memcopy(array,m%srcdata_add,product(shape(array))*kind(array))
+!     !profile the array allocation
+!     iadd=int(0,kind=8)
+!        !write the address of the first element in the address string
+!     if (m%profile .and. track_origins) iadd=loc_arr(array)!call getlongaddress(array,iadd)
+!  
+!     call f_update_database(product(int(m%shape(1:m%rank),kind=8)),kind(array),m%rank,&
+!          iadd,m%array_id,m%routine_id)
+!
+!  else
+!     !$ if(not_omp) then
+!     call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+!     !$ end if
+!     call f_err_throw('Rank specified by f_malloc ('//trim(yaml_toa(m%rank))//&
+!          ') is not coherent with the one of the array ('//trim(yaml_toa(size(shape(array))))//')',&
+!          ERR_INVALID_MALLOC)
+!     return
+!  end if
+!  !$ if(not_omp) then
+!  call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+!  !$ end if
+!  !END--- allocate-inc.f90
+!end subroutine xx_all
+!
+!
+!subroutine xx_all_free(array)
+!  use metadata_interfaces
+!  implicit none
+!  integer, dimension(:), allocatable, intent(inout) :: array
+!  !--'deallocate-profile-inc.f90' 
+!  !local variables
+!  integer :: ierror
+!  !$ logical :: not_omp
+!  !$ logical, external :: omp_in_parallel,omp_get_nested
+!  integer(kind=8) :: ilsize,iadd
+!
+!  if (f_err_raise(ictrl == 0,&
+!       'ERROR (f_free): the routine f_malloc_initialize has not been called',&
+!       ERR_MALLOC_INTERNAL)) return
+!
+!  !$ not_omp=.not. (omp_in_parallel() .or. omp_get_nested())
+!
+!  !here we should add a control of the OMP behaviour of allocation
+!  !in particular for what concerns the OMP nesting procedure
+!
+!  !END--'deallocate-profile-inc.f90'
+!  !-- 'deallocate-inc.f90' 
+!  !$ if (not_omp) then
+!  call f_timer_interrupt(TCAT_ARRAY_ALLOCATIONS)
+!  !$ end if
+!
+!  !here the size should be corrected with ndebug (or maybe not)
+!  ilsize=product(int(shape(array),kind=8))
+!  !retrieve the address of the first element if the size is not zero
+!  !iadd=int(0,kind=8)
+!  !if (ilsize /= int(0,kind=8)) 
+!  iadd=loc_arr(array)!call getlongaddress(array,iadd)
+!  !fortran deallocation
+!  deallocate(array,stat=ierror)
+!
+!  if (ierror/=0) then
+!     !$ if (not_omp) then
+!     call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+!     !$ end if
+!     call f_err_throw('Deallocation problem, error code '//trim(yaml_toa(ierror)),&
+!          ERR_DEALLOCATE)
+!     return
+!  end if
+!
+!  call f_purge_database(ilsize,kind(array),iadd)
+!
+!  !$ if (not_omp) then
+!  call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+!  !$ end if
+!  !END-- 'deallocate-inc.f90' 
+!end subroutine xx_all_free
 
 
 subroutine i1_all(array,m)

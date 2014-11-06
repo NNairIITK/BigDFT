@@ -2536,18 +2536,16 @@ type(memory_estimation), intent(in) :: mem
 void FC_FUNC_(print_memory_estimation, PRINT_MEMORY_ESTIMATION)(const f90_memory_estimation *mem);
 /* proj_free src/bindings/bindingsf.f90:789 */
 /* Fortran header:
-subroutine proj_free(nlpspd, proj)
+subroutine proj_free(nlpspd)
 use psp_projectors
 use module_types
 use memory_profiling
 implicit none
 type(DFT_PSP_projectors), pointer :: nlpspd
-real(kind=8), dimension(:), pointer :: proj
 
 integer :: i_stat, i_all
 */
-void FC_FUNC_(proj_free, PROJ_FREE)(f90_DFT_PSP_projectors_pointer *nlpspd, 
-                                    f90_pointer_double *proj);
+void FC_FUNC_(proj_free, PROJ_FREE)(f90_DFT_PSP_projectors_pointer *nlpspd);
 /* proj_get_dimensions src/bindings/bindingsf.f90:804 */
 /* Fortran header:
 subroutine proj_get_dimensions(nlpspd, nproj, nprojel)
@@ -2662,25 +2660,23 @@ type(run_objects), pointer :: runObj
 void FC_FUNC_(run_objects_destroy, RUN_OBJECTS_DESTROY)(f90_run_objects_pointer *runObj);
 /* run_objects_dump_to_file src/bindings/bindingsf.f90:1402 */
 /* Fortran header:
-subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly)
+subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly,ln)
 use dictionaries, only: dictionary
 use module_input_keys, only: input_keys_dump
 use module_defs, only: UNINITIALIZED, gp
 use yaml_output
 implicit none
+integer, intent(in) :: ln
 integer, intent(out) :: iostat
 type(dictionary), pointer :: dict
-character(len = *), intent(in) :: fname
+character(len = ln), intent(in) :: fname
 logical, intent(in) :: userOnly
-
-integer, parameter :: iunit = 145214 
-integer :: iunit_def
-real(gp), dimension(3), parameter :: dummy = (/ 0._gp, 0._gp, 0._gp /)
 */
 void FC_FUNC_(run_objects_dump_to_file, RUN_OBJECTS_DUMP_TO_FILE)(int *iostat, 
                                                                   f90_dictionary_pointer *dict, 
                                                                   const char *fname, 
                                                                   const int *userOnly, 
+                                                                  const int *ln,
                                                                   int str_ln_1);
 /* run_objects_get src/bindings/bindingsf.f90:1389 */
 /* Fortran header:

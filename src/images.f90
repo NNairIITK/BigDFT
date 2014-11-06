@@ -992,7 +992,6 @@ contains
 
   subroutine free_me()
     implicit none
-    integer :: i_all, i_stat
     character(len = *), parameter :: subname = "image_update_pos_from_file"
 
     !if should work now as the dictionary
@@ -1030,6 +1029,9 @@ subroutine image_calculate(img, iteration, id)
   character(len = 4) :: fn4
 
   !Why (TD) ??
+  !Because (tm) (DC)
+  ! in details, because the worker may run several images, so it should
+  ! restart from scratch since positions may be very different.
   img%run%inputs%inputpsiid = 0
   if (iteration > 0 .and. abs(img%id - id) < 2) img%run%inputs%inputpsiid = 1
 

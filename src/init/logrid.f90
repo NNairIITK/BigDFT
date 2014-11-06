@@ -138,11 +138,15 @@ subroutine ib_to_logrid_inv(ib,logrid,nfl,nfu,ndat)
 
   logrid=.false.
 
+  !$omp parallel default(shared) private(i,l)
+  !$omp do
   do l=1,ndat
      do i = 2*ib(1,l)-14 , 2*ib(2,l)+16
         logrid(i,l)=.true.
      enddo
   enddo
+  !$omp end do
+  !$omp end parallel
 
 END SUBROUTINE ib_to_logrid_inv
 
@@ -156,6 +160,8 @@ subroutine ib_from_logrid_inv(ib,logrid,ml1,mu1,ndat)
 
   integer :: i,i1
 
+  !$omp parallel default(shared) private(i,i1)
+  !$omp do
   do i=1,ndat
      ib(1,i)= 1000
      ib(2,i)=-1000
@@ -174,6 +180,8 @@ subroutine ib_from_logrid_inv(ib,logrid,ml1,mu1,ndat)
         endif
      enddo inner2
   enddo
+  !$omp end do
+  !$omp end parallel
 
 END SUBROUTINE ib_from_logrid_inv
 
@@ -243,11 +251,15 @@ subroutine ib_to_logrid_rot(ib,logrid,nfl,nfu,ndat)
 
   logrid=.false.
 
+  !$omp parallel default(shared) private(l,i)
+  !$omp do
   do l=1,ndat
      do i = 2*ib(1,l)-14 , 2*ib(2,l)+16
         logrid(l,i)=.true.
      enddo
   enddo
+  !$omp end do
+  !$omp end parallel
 
 END SUBROUTINE ib_to_logrid_rot
 
@@ -260,6 +272,8 @@ subroutine ib_from_logrid(ib,logrid,ml1,mu1,ndat)
   integer ib(2,ndat)
   logical logrid(ml1:mu1,ndat)
 
+  !$omp parallel default(shared) private(i,i1)
+  !$omp do
   do i=1,ndat
      ib(1,i)= 1000
      ib(2,i)=-1000
@@ -278,6 +292,8 @@ subroutine ib_from_logrid(ib,logrid,ml1,mu1,ndat)
         endif
      enddo inner2
   enddo
+  !$omp end do
+  !$omp end parallel
 
 END SUBROUTINE ib_from_logrid
 
@@ -326,8 +342,8 @@ subroutine squares(ib,n2,n3)
   if (n2 == 0 .or. n3 == 0) return
 
   do i3=0,(n3-1)/2
+     ii3=2*i3
      do i2=0,(n2-1)/2
-        ii3=2*i3
         ii2=2*i2
         ibmin=min(ib(1,ii2,ii3),ib(1,ii2+1,ii3),&
              ib(1,ii2,ii3+1),ib(1,ii2+1,ii3+1))

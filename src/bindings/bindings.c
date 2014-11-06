@@ -54,7 +54,7 @@ static void bigdft_proj_finalize(GObject *obj)
 {
   BigDFT_Proj *proj = BIGDFT_PROJ(obj);
 
-  FC_FUNC_(proj_free, PROJ_FREE)(&proj->nlpspd, &proj->proj);
+  FC_FUNC_(proj_free, PROJ_FREE)(&proj->nlpspd);
 
 #ifdef HAVE_GLIB
   G_OBJECT_CLASS(bigdft_proj_parent_class)->finalize(obj);

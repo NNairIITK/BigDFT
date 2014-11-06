@@ -98,6 +98,10 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
         epot=outs%energy
         fnoise=outs%fnoise
         return
+    else
+        call yaml_warning('Following method for evaluation of '//&
+        'energies and forces is unknown: '//trim(adjustl(efmethod)))
+        stop
     endif
 end subroutine
 end module

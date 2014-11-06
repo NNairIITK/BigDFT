@@ -84,6 +84,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    integer, dimension(:,:), allocatable :: gather_arr
    integer, dimension(3) :: n
    integer :: size1,size2,switch_alg
+
+   call f_routine(id='H_potential')
    
    cudasolver=.false.
    
@@ -417,6 +419,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    end if
 
    call f_timing(TCAT_PSOLV_COMPUT,'OF')
+   call f_release_routine()
 
 END SUBROUTINE H_potential
 

@@ -20,16 +20,17 @@ program abscalc_main
    character(len=*), parameter :: subname='abscalc_main'
    integer :: iproc,nproc,ierr,infocode
    real(gp) :: etot
-!!$   logical :: exist_list
    !input variables
    type(run_objects) :: runObj
-   character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
    character(len=60) :: run_id
+!!$   logical :: exist_list
+!!$   character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
 !!$   character(len=60) :: filename
+!!$   integer, dimension(4) :: mpi_info
    ! atomic coordinates, forces
    real(gp), dimension(:,:), allocatable :: fxyz
-   integer :: iconfig,nconfig,igroup,ngroups
-   integer, dimension(4) :: mpi_info
+!!$ integer :: nconfig
+   integer :: iconfig,igroup,ngroups
    type(dictionary), pointer :: options,run
    logical :: exists
 
@@ -121,6 +122,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
    character(len=*), parameter :: subname='call_abscalc'
    character(len=40) :: comment
    integer :: ierr,inputPsiId_orig,icycle
+   real(gp) :: hx_old, hy_old, hz_old
 
 !!$   !temporary interface
 !!$   interface
@@ -169,7 +171,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
          stop 'ERROR'
       else
          call abscalc(nproc,iproc,atoms,rxyz,&
-             rst%KSwfn,rst%hx_old,rst%hy_old,rst%hz_old,in,rst%GPU,infocode)
+             rst%KSwfn,hx_old,hy_old,hz_old,in,rst%GPU,infocode)
          fxyz(:,:) = 0.d0
       endif
 
@@ -444,7 +446,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,&
-        atoms,rxyz,crmult,frmult,KSwfn%Lzd%Glr)
+       atoms,rxyz,crmult,frmult,.true.,KSwfn%Lzd%Glr)
    if (iproc == 0) call print_wfd(KSwfn%Lzd%Glr%wfd)
 
    KSwfn%Lzd%hgrids(1)=hx
@@ -754,7 +756,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    call f_free(pot_ion)
 
-   call pkernel_free(pkernel,subname)
+   call pkernel_free(pkernel)
 !!$   i_all=-product(shape(pkernel))*kind(pkernel)
 !!$   deallocate(pkernel,stat=i_stat)
 !!$   call memocc(i_stat,i_all,'kernel',subname)
@@ -1693,7 +1695,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   call timing(iproc,'wavefunction  ','ON')   
   !use only the part of the arrays for building the hamiltonian matrix
   call gaussians_to_wavelets_new(iproc,nproc,Lzde,orbse,G,&
-       psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
+       psigau(1,1,1),psi)
   call timing(iproc,'wavefunction  ','OF')
   call f_free(locrad)
 

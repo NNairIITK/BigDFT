@@ -33,6 +33,9 @@ subroutine test_dynamic_memory()
 
    integer,dimension(:,:,:),allocatable :: weight
    integer,dimension(:,:,:,:),allocatable :: orbital_id
+   character(len=20), dimension(:), allocatable :: str_arr
+   character(len=20), dimension(:), pointer :: str_ptr
+
    type(dummy_type) :: dummy_test
    external :: abort2
    real(kind=8) :: total
@@ -183,6 +186,32 @@ call f_free(weight)
 
      call f_free_ptr(i1_ptr,ptr1)
      call f_release_routine()
+
+     !allocate and test string array
+     str_arr=f_malloc0_str(len(str_arr),4,id='str_arr')
+
+     do i=1,size(str_arr)
+        str_arr(i)='hello, arr'//trim(yaml_toa(i))
+     end do
+
+     call yaml_map('String array values',str_arr)
+     call yaml_map('loc of address and metadata',[f_loc(str_arr),f_loc(str_arr(1)),get_add_str(str_arr)])
+     !then free array
+     call f_free_str(len(str_arr),str_arr)
+
+     !allocate and test string pointer
+     str_ptr=f_malloc0_str_ptr(len(str_arr),4,id='str_ptr')
+
+     do i=1,size(str_ptr)
+        str_ptr(i)='hello, ptr'//trim(yaml_toa(i))
+     end do
+
+     call yaml_map('String pointer values',str_ptr)
+     call yaml_map('loc of address and metadata',[f_loc(str_ptr),f_loc(str_ptr(1)),get_add_str(str_ptr)])
+     !then free array
+     call f_free_str_ptr(len(str_ptr),str_ptr)
+
+     
     call f_release_routine()
     call f_routine(id='SubCase 3')
       weight    =f_malloc((/1.to.1,1.to.1,-1.to.-1/),id='weight')
@@ -342,6 +371,14 @@ call f_free(weight)
 
    contains
 
+     function get_add_str(array)
+       implicit none
+       character(len=*), dimension(:), intent(in) :: array
+       integer(kind=8) :: get_add_str
+
+       get_add_str=f_loc(array(1))
+     end function get_add_str
+
      !>routine to retrieve the list element from a string which is 
      !! compliant with yaml standard
      subroutine retrieve_list_element(string)
@@ -420,6 +457,116 @@ call f_free(weight)
        dummy%i=0
      end subroutine free_dummy
 end subroutine test_dynamic_memory
+
+!> this subroutine performs random allocations and operations on different arrays 
+!! in order to verify if the memory statis is in agreement with the process usage
+subroutine verify_heap_allocation_status()
+  use yaml_output
+  use dynamic_memory
+  use dictionaries, only: f_loc
+  implicit none
+  !local variables
+  logical, parameter :: traditional=.true.
+  character(len=*), parameter :: subname='verify_heap_allocation_status' 
+  logical :: all
+  integer :: maxnum,maxmem,i,nall,ndeall,nsize,ibuf
+  real :: tt,total_time,t0,t1,tel
+  double precision :: checksum,chk
+  type :: to_alloc
+     double precision, dimension(:), pointer :: buffer
+  end type to_alloc
+  type(to_alloc), dimension(:), allocatable :: pool
+  call f_routine(id=subname)
+
+  !decide total cpu time of the run (seconds)
+  total_time=30.e0
+
+  !maximum simultaenously allocated arrays
+  maxnum=1000
+  
+  !maximum value of memory to be used, in MB
+  maxmem=100
+
+  !size of each chunk 
+  nsize=int((int(maxmem,kind=8)*1024*1024/8)/maxnum)
+  !start timer
+  call cpu_time(t0)
+  !elapsed time
+  tel=0.e0
+  !prepare the pool for allocations
+  allocate(pool(maxnum))
+  do i=1,maxnum
+     nullify(pool(i)%buffer)
+  end do
+
+  checksum=0.d0
+  nall=0
+  ndeall=0
+  do while (tel < total_time)
+
+     !extract the allocation action
+     call random_number(tt)
+     all= (tt < 0.5e0) 
+     ibuf=-1 !failsafe
+     !find the first unallocated
+     if (all) then
+        do i=1,maxnum
+           if (.not. associated(pool(i)%buffer)) then
+              ibuf=i
+              exit
+           end if
+        end do
+        if (ibuf==-1) cycle !try again
+        !allocate
+        if (traditional) then
+           allocate(pool(ibuf)%buffer(nsize))
+           call f_update_database(int(nsize,kind=8),kind(1.d0),1,f_loc(pool(ibuf)%buffer),&
+                'buf'//trim(adjustl(yaml_toa(ibuf))),subname)
+        else
+           pool(ibuf)%buffer=f_malloc_ptr(nsize,id='buf'//trim(adjustl(yaml_toa(ibuf))))
+        end if
+        do i=1,nsize
+           call random_number(tt)
+           pool(ibuf)%buffer(i)=dble(tt)
+        end do
+        chk=sum(pool(ibuf)%buffer)
+        nall=nall+1
+     else !find the first allocated
+        do i=1,maxnum
+           if (associated(pool(i)%buffer)) then
+              ibuf=i
+              exit
+           end if
+        end do
+        if (ibuf==-1) cycle !try again
+        chk=-sum(pool(ibuf)%buffer)
+        if (traditional) then
+           call f_purge_database(int(nsize,kind=8),kind(1.d0),f_loc(pool(ibuf)%buffer),&
+                'buf'//trim(adjustl(yaml_toa(ibuf))),subname)
+           deallocate(pool(ibuf)%buffer)
+        else
+           call f_free_ptr(pool(ibuf)%buffer)
+        end if
+        ndeall=ndeall+1
+     end if
+     checksum=checksum+chk
+     call cpu_time(t1)
+     tel=t1-t0
+  end do
+
+  !deallocate all the residual
+  do i=1,maxnum
+     call f_free_ptr(pool(i)%buffer)
+  end do
+
+  deallocate(pool)
+
+  call yaml_map('Total elapsed time',tel)
+  call yaml_map('Allocations, deallocations',[nall,ndeall])
+  call yaml_map('Checksum value',checksum)
+
+  call f_release_routine()
+end subroutine verify_heap_allocation_status
 
 subroutine dynmem_sandbox()
   use yaml_output
@@ -541,3 +688,5 @@ subroutine dynmem_sandbox()
    end subroutine add_routine
 
 end subroutine dynmem_sandbox
+
+

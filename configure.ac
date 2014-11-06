@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7.5.12],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7.6],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -283,6 +283,9 @@ include "mpif.h"
 
 call MPI_ALLREDUCE(MPI_IN_PLACE,rho,3,&
               MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)
+
+call MPI_ACCUMULATE()
+
 end
 ]], ac_with_mpi2="yes", ac_with_mpi2="no")
       AC_MSG_RESULT([$ac_with_mpi2])
@@ -290,6 +293,47 @@ end
 
     if test x"$ac_with_mpi2" = x"yes" ; then
       AC_DEFINE([HAVE_MPI2], [1], [use MPI2 capabilities.])
+    fi
+
+    dnl Test for MPI3.
+    AC_ARG_WITH(mpi3, AS_HELP_STRING([--with-mpi3],
+                [Use MPI3 capabilities like MPI_IALLREDUCE.]),
+                ac_with_mpi3=$withval, ac_with_mpi3="auto")
+    if test x"$ac_with_mpi3" == x"yes" -o x"$ac_with_mpi3" == x"auto" ; then
+      AC_MSG_CHECKING([for MPI 3 capabilities])
+      AC_LINK_IFELSE([[
+program main
+implicit none
+
+integer :: ierr,request,nproc,iproc,jproc
+real :: rho(3),rho2(3)
+real,dimension(:),allocatable :: sendbuf,recvbuf
+integer,dimension(:),allocatable :: sendcounts,sdispls,recvcounts,rdispls
+
+include "mpif.h"
+
+call mpi_comm_rank(MPI_COMM_WORLD,iproc,ierr)
+call mpi_comm_size(MPI_COMM_WORLD,nproc,ierr)
+allocate(sendbuf(nproc),recvbuf(nproc))
+allocate(sendcounts(0:nproc-1),sdispls(0:nproc-1),recvcounts(0:nproc-1),rdispls(0:nproc-1))
+do jproc=0,nproc-1
+	sendcounts(jproc)=1
+	sdispls(jproc)=jproc
+	recvcounts(jproc)=1
+	rdispls(jproc)=jproc
+end do
+
+call MPI_IALLREDUCE(rho2,rho,3,&
+              MPI_REAL,MPI_SUM,MPI_COMM_WORLD,request,ierr)
+call MPI_IALLTOALLV(sendbuf,sendcounts,sdispls,MPI_REAL,&
+					recvbuf,recvcounts,rdispls,MPI_REAL,MPI_COMM_WORLD,request,ierr)
+end
+]], ac_with_mpi3="yes", ac_with_mpi3="no")
+      AC_MSG_RESULT([$ac_with_mpi3])
+    fi
+
+    if test x"$ac_with_mpi3" = x"yes" ; then
+      AC_DEFINE([HAVE_MPI3], [1], [use MPI3 capabilities (like MPI_IALLREDUCE and MPI_IALLTOALLV).])
     fi
 
   else
@@ -1031,6 +1075,7 @@ fi
 AM_CONDITIONAL(BUILD_LIBSGPU, test x"$ac_build_libsgpu" = x"yes")
 
 dnl Test the availability of clock_gettime() and rt library.
+dnl This will be added in libs, on top, therefore care should be taken for a linker which require ordering
 AC_LANG_PUSH(C)
 AC_CHECK_HEADERS([time.h])
 AC_CHECK_LIB([rt], [clock_gettime])

@@ -95,16 +95,106 @@ module module_atoms
      integer :: iat_absorber 
   end type atoms_data
 
+  !> iterator on atoms object
+  type, public :: atoms_iterator
+     integer :: iat !< atom number
+     integer :: ityp !<atom type
+     character(len=20) :: name !< atom name
+     logical, dimension(3) :: frz !< array of frozen coordinate of the atom
+     real(gp), dimension(3) :: rxyz !< atom positions
+     !> private pointer to the atomic structure from which it derives
+     type(atomic_structure), pointer :: astruct_ptr
+  end type atoms_iterator
+
   public :: atoms_data_null,nullify_atoms_data,deallocate_atoms_data
   public :: atomic_structure_null,nullify_atomic_structure,deallocate_atomic_structure,astruct_merge_to_dict
   public :: deallocate_symmetry_data,set_symmetry_data
   public :: set_astruct_from_file,astruct_dump_to_file
   public :: allocate_atoms_data,move_this_coordinate,frozen_itof,frozen_ftoi
   public :: rxyz_inside_box,check_atoms_positions
+  public :: atomic_data_set_from_dict
 
 
 contains
 
+  !> iterate on atomic positions
+  function atoms_iter(astruct) result(it)
+    implicit none
+    type(atomic_structure), intent(in), target :: astruct
+    type(atoms_iterator) :: it
+
+    it=atoms_iterator_null()
+    !start counting
+    it%astruct_ptr => astruct
+    it%iat=0
+    it%ityp=0
+  end function atoms_iter
+  pure function atoms_iterator_null() result(it)
+    implicit none
+    type(atoms_iterator) :: it
+    
+    call nullify_atoms_iterator(it)
+  end function atoms_iterator_null
+  pure subroutine nullify_atoms_iterator(it)
+    implicit none
+    type(atoms_iterator), intent(out) :: it
+    it%iat=-1
+    it%ityp=-1
+    it%name=repeat(' ',len(it%name))
+    it%frz=.false.
+    it%rxyz=0.0_gp
+    nullify(it%astruct_ptr)
+  end subroutine nullify_atoms_iterator
+
+  !> increment a valid iterator
+  !! the control for validity has to be done outside
+  pure subroutine refresh_iterator(it)
+    use yaml_strings, only: f_strcpy
+    implicit none
+    type(atoms_iterator), intent(inout) :: it
+    it%ityp=it%astruct_ptr%iatype(it%iat)
+    call f_strcpy(src=it%astruct_ptr%atomnames(it%ityp),dest=it%name)
+    it%frz(1)=move_this_coordinate(it%astruct_ptr%ifrztyp(it%iat),1)
+    it%frz(2)=move_this_coordinate(it%astruct_ptr%ifrztyp(it%iat),2)
+    it%frz(3)=move_this_coordinate(it%astruct_ptr%ifrztyp(it%iat),3)    
+    it%rxyz=it%astruct_ptr%rxyz(:,it%iat)
+  end subroutine refresh_iterator
+
+  !increment, and nullify if ended
+  !if the iterator is nullified, it does nothing
+  pure subroutine increment_atoms_iter(it)
+    implicit none
+    type(atoms_iterator), intent(inout) :: it
+    
+    if (associated(it%astruct_ptr)) then
+       if (it%iat < it%astruct_ptr%nat) then
+          it%iat=it%iat+1
+          call refresh_iterator(it)
+       else
+          !end iteration, the iterator is destroyed
+          call nullify_atoms_iterator(it)
+       end if
+    end if
+  end subroutine increment_atoms_iter
+
+  !>logical function, returns .true. if the iterator is still valid
+  pure function atoms_iter_is_valid(it)
+    implicit none
+    type(atoms_iterator), intent(in) :: it
+    logical :: atoms_iter_is_valid
+    
+    atoms_iter_is_valid=associated(it%astruct_ptr)
+  end function atoms_iter_is_valid
+
+  !>logical function for iterating above atoms
+  function atoms_iter_next(it)
+    implicit none
+    type(atoms_iterator), intent(inout) :: it
+    logical :: atoms_iter_next
+
+    call increment_atoms_iter(it)
+    atoms_iter_next=atoms_iter_is_valid(it)
+  end function atoms_iter_next
 
   !> Creators and destructors
   pure function symmetry_data_null() result(sym)
@@ -154,8 +244,6 @@ contains
     type(atoms_data) :: at
     call nullify_atoms_data(at)
   end function atoms_data_null
-
-
   pure subroutine nullify_atoms_data(at)
     use m_pawang, only: pawang_nullify
     implicit none
@@ -222,7 +310,7 @@ contains
     type(atomic_structure), intent(inout) :: astruct
     !local variables
     character(len=*), parameter :: subname='deallocate_atomic_structure' !remove
-    integer :: i_stat, i_all
+    !   integer :: i_stat, i_all
 
 
     ! Deallocations for the geometry part.
@@ -313,6 +401,119 @@ contains
     call pawang_destroy(atoms%pawang)
     END SUBROUTINE deallocate_atoms_data
 
+    subroutine atomic_data_set_from_dict(dict, key, atoms, nspin)
+      use module_defs, only: gp
+      use ao_inguess, only: ao_ig_charge,atomic_info,aoig_set_from_dict,&
+           print_eleconf,aoig_set
+      use dictionaries
+      use yaml_output, only: yaml_warning, yaml_toa
+      use yaml_strings, only: f_strcpy
+      use dynamic_memory
+      implicit none
+      type(dictionary), pointer :: dict
+      type(atoms_data), intent(inout) :: atoms
+      character(len = *), intent(in) :: key
+      integer, intent(in) :: nspin
+
+      !integer :: iat, ityp
+      real(gp) :: elec
+      character(len = max_field_length) :: at
+      type(dictionary), pointer :: dict_tmp
+      type(atoms_iterator) :: it
+
+      call f_routine(id='atomic_data_set_from_dict')
+
+      !number of atoms with semicore channels
+      atoms%natsc = 0
+
+      !iterate above atoms
+      it=atoms_iter(atoms%astruct)
+      !python metod
+      do while(atoms_iter_next(it))
+!!$      !fortran metod
+!!$      call increment_atoms_iter(it)
+!!$      do while(atoms_iter_is_valid(it))
+
+         !only amu is extracted here
+         call atomic_info(atoms%nzatom(it%ityp),atoms%nelpsp(it%ityp),&
+              amu=atoms%amu(it%ityp))
+
+         !fill the atomic IG configuration from the input_polarization
+         !standard form
+         atoms%aoig(it%iat)=aoig_set(atoms%nzatom(it%ityp),atoms%nelpsp(it%ityp),&
+              atoms%astruct%input_polarization(it%iat),nspin)
+
+         ! Possible overwrite, if the dictionary has the item
+         if (key .in. dict) then
+            !get the particular species
+            !override by particular atom if present
+            call f_strcpy(src="Atom "//trim(adjustl(yaml_toa(it%iat))),dest=at)
+            dict_tmp = dict // key .get. at
+            if (.not. associated(dict_tmp)) dict_tmp = dict // key .get. it%name
+            !therefore the aiog structure has to be rebuilt
+            !according to the dictionary
+            if (associated(dict_tmp)) then
+               atoms%aoig(it%iat)=aoig_set_from_dict(dict_tmp,nspin,atoms%aoig(it%iat))
+               !check the total number of electrons
+               elec=ao_ig_charge(nspin,atoms%aoig(it%iat)%aocc)
+               if (nint(elec) /= atoms%nelpsp(it%ityp)) then
+                  call print_eleconf(nspin,atoms%aoig(it%iat)%aocc,atoms%aoig(it%iat)%nl_sc)
+                  call yaml_warning('The total atomic charge '//trim(yaml_toa(elec))//&
+                       ' is different from the PSP charge '//trim(yaml_toa(atoms%nelpsp(it%ityp))))
+               end if
+            end if
+         end if
+         if (atoms%aoig(it%iat)%nao_sc /= 0) atoms%natsc=atoms%natsc+1
+!!$         !fortran method
+!!$         call increment_atoms_iter(it)
+      end do
+
+!!$      !old loop
+!!$      do ityp = 1, atoms%astruct%ntypes, 1
+!!$         !only amu and rcov are extracted here
+!!$         call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),&
+!!$              amu=atoms%amu(ityp))
+!!$
+!!$         do iat = 1, atoms%astruct%nat, 1
+!!$            if (atoms%astruct%iatype(iat) /= ityp) cycle
+!!$
+!!$            !fill the atomic IG configuration from the input_polarization
+!!$            atoms%aoig(iat)=aoig_set(atoms%nzatom(ityp),atoms%nelpsp(ityp),&
+!!$                 atoms%astruct%input_polarization(iat),nspin)
+!!$  
+!!$            ! Possible overwrite, if the dictionary has the item
+!!$            if (has_key(dict, key)) then
+!!$               nullify(dict_tmp)
+!!$               at(1:len(at))="Atom "//trim(adjustl(yaml_toa(iat)))
+!!$               if (has_key(dict // key,trim(at))) &
+!!$                    dict_tmp=>dict//key//trim(at)
+!!$               if (has_key(dict // key, trim(atoms%astruct%atomnames(ityp)))) &
+!!$                    dict_tmp=>dict // key // trim(atoms%astruct%atomnames(ityp))
+!!$               if (associated(dict_tmp)) then
+!!$                  atoms%aoig(iat)=aoig_set_from_dict(dict_tmp,nspin)
+!!$                  !check the total number of electrons
+!!$                  elec=ao_ig_charge(nspin,atoms%aoig(iat)%aocc)
+!!$                  if (nint(elec) /= atoms%nelpsp(ityp)) then
+!!$                     call print_eleconf(nspin,atoms%aoig(iat)%aocc,atoms%aoig(iat)%nl_sc)
+!!$                     call yaml_warning('The total atomic charge '//trim(yaml_toa(elec))//&
+!!$                          ' is different from the PSP charge '//trim(yaml_toa(atoms%nelpsp(ityp))))
+!!$                  end if
+!!$               end if
+!!$            end if
+!!$         end do
+!!$
+!!$      end do
+
+!!$      !number of atoms with semicore channels
+!!$      atoms%natsc = 0
+!!$      do iat=1,atoms%astruct%nat
+!!$         if (atoms%aoig(iat)%nao_sc /= 0) atoms%natsc=atoms%natsc+1
+!!$         !if (atoms%aoig(iat)%iasctype /= 0) atoms%natsc=atoms%natsc+1
+!!$      enddo
+
+      call f_release_routine()
+
+    end subroutine atomic_data_set_from_dict
 
     !> set irreductible Brillouin zone
     subroutine set_symmetry_data(sym, geocode, n1i, n2i, n3i, nspin)
@@ -761,7 +962,6 @@ contains
          ! Default, store nothing and erase key if already exist.
          if (has_key(dict, ASTRUCT_CELL)) call dict_remove(dict, ASTRUCT_CELL)
       end select BC
-
       if (has_key(dict, ASTRUCT_POSITIONS)) call dict_remove(dict, ASTRUCT_POSITIONS)
       if (astruct%nat > 0) pos => dict // ASTRUCT_POSITIONS
       do iat=1,astruct%nat
@@ -853,7 +1053,8 @@ subroutine astruct_set_n_types(astruct, ntypes)
   !character(len = *), intent(in) :: subname
   !local variables
   character(len=*), parameter :: subname='astruct_set_n_types' !<remove
-  integer :: i, i_stat
+  ! integer :: i
+  ! integer :: i_stat
 
   astruct%ntypes = ntypes
 
