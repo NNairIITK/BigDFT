@@ -1299,6 +1299,7 @@ contains
        call yaml_map('CPU time (s)',tcpu1-tcpu0,fmt='(f12.2)')
        call yaml_map('Elapsed time (s)',tel,fmt='(f12.2)')
        call yaml_mapping_close()
+       call yaml_flush_document()
     end if
 
   END SUBROUTINE deallocate_before_exiting
