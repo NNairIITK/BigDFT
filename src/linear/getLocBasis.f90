@@ -809,7 +809,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                            check_accur=.true., max_error=max_error, mean_error=mean_error)
                       call check_taylor_order(mean_error, max_inversion_error, order_taylor)
                   end if
+                  call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
                   call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
+                  call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
                   call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
               else if (method_updatekernel==UPDATE_BY_FOE) then
                   call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
@@ -3143,7 +3145,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
           call f_routine(id='retransform_local')
 
-          call sequential_acces_matrix_fast(tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, kernel_compr_seq)
+          call sequential_acces_matrix_fast2(tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, kernel_compr_seq)
           call sequential_acces_matrix_fast2(tmb%linmat%l, &
                mat%matrix_compr, inv_ovrlp_compr_seq)
           call uncompress_matrix_distributed2(iproc, tmb%linmat%l, DENSE_MATMUL, &
@@ -3161,7 +3163,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
           !call to_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
           call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
-               inv_ovrlpp, tmb%linmat%kernel_%matrix_compr(tmb%linmat%l%isvctrp_tg+1:))
+               inv_ovrlpp, tmb%linmat%kernel_%matrix_compr)
 
           call f_release_routine()
 
