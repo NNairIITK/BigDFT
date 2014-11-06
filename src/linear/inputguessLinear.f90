@@ -24,7 +24,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                sparsematrix_malloc, assignment(=), SPARSE_FULL
   use sparsematrix_init, only: matrixindex_in_compressed, matrixindex_in_compressed2
-  use sparsematrix, only: gather_matrix_from_taskgroups_inplace
+  use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc
@@ -756,6 +756,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
                                            'it_supfun'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
      end if
      order_taylor=input%lin%order_taylor ! since this is intent(inout)
+     call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
      call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
          info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
          input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
@@ -764,6 +765,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
          can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
          input%purification_quickreturn, input%correction_co_contra)
+     call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
      reduce_conf=.true.
      call yaml_sequence_close()
      call yaml_mapping_close()

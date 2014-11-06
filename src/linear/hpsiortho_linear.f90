@@ -802,7 +802,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   real(kind=8), dimension(tmb%npsidim_orbs), optional,intent(out) :: psidiff
   logical, intent(in) :: ortho, experimental_mode
   real(kind=8),intent(out) :: trH_ref
-  real(kind=8),dimension(tmb%linmat%l%nvctr),intent(out) :: kernel_best
+  real(kind=8),dimension(tmb%linmat%l%nvctrp_tg*tmb%linmat%l%nspin),intent(inout) :: kernel_best
   logical,intent(out) :: complete_reset
 
   ! Local variables
