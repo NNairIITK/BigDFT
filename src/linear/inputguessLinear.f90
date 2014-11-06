@@ -21,8 +21,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use gaussians, only: gaussian_basis, deallocate_gwf, nullify_gaussian_basis
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
-  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
-  use sparsematrix_init, only: matrixindex_in_compressed
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
+                               sparsematrix_malloc, assignment(=), SPARSE_FULL
+  use sparsematrix_init, only: matrixindex_in_compressed, matrixindex_in_compressed2
+  use sparsematrix, only: gather_matrix_from_taskgroups_inplace
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc
@@ -68,6 +70,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   logical :: ortho_on, reduce_conf, rho_negative
   type(localizedDIISParameters) :: ldiis
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
+  real(kind=8),dimension(:),allocatable :: tmparr
 
   call f_routine(id=subname)
 
@@ -472,10 +475,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   call to_zero(tmb%linmat%l%nvctr*input%nspin, tmb%linmat%kernel_%matrix_compr(1))
   do iorb=1,tmb%orbs%norb
      !ii=matrixindex_in_compressed(tmb%linmat%denskern,iorb,iorb)
-     ii=matrixindex_in_compressed(tmb%linmat%l,iorb,iorb)
+     ii=matrixindex_in_compressed2(tmb%linmat%l,iorb,iorb)
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(inversemapping(iorb))
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
-     tmb%linmat%kernel_%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
+     tmb%linmat%kernel_%matrix_compr(ii-tmb%linmat%l%isvctrp_tg)=1.d0*tmb%orbs%occup(iorb)
   end do
 
   !Calculate the density in the new scheme
@@ -840,9 +843,15 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
     call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
   end if
 
+  tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
+  call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
+  call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
        denspot%rhov, rho_negative)
+  call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+  call f_free(tmparr)
+
   if (rho_negative) then
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
       !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')

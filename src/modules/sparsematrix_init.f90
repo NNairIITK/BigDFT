@@ -19,7 +19,7 @@ module sparsematrix_init
   !> Public routines
   public :: init_sparse_matrix
   !!public :: compressed_index
-  public :: matrixindex_in_compressed
+  public :: matrixindex_in_compressed, matrixindex_in_compressed2
   public :: check_kernel_cutoff
   public :: init_matrix_taskgroups
 
@@ -129,6 +129,114 @@ contains
       
       end function compressed_index_fn
     end function matrixindex_in_compressed
+
+
+
+
+    integer function matrixindex_in_compressed2(sparsemat, iorb, jorb, init_, n_)
+      use sparsematrix_base, only: sparse_matrix
+      implicit none
+    
+      ! Calling arguments
+      type(sparse_matrix),intent(in) :: sparsemat
+      integer,intent(in) :: iorb, jorb
+      !> The optional arguments should only be used for initialization purposes
+      !! if one is sure what one is doing. Might be removed later.
+      logical,intent(in),optional :: init_
+      integer,intent(in),optional :: n_
+    
+      ! Local variables
+      integer :: ii, ispin, iiorb, jjorb
+      logical :: lispin, ljspin, init
+
+      if (present(init_)) then
+          init = init_
+      else
+          init = .false.
+      end if
+
+      ! Use the built-in function and return, without any check. Can be used for initialization purposes.
+      if (init) then
+          if (.not.present(n_)) stop 'matrixindex_in_compressed2: n_ must be present if init_ is true'
+          matrixindex_in_compressed2 = compressed_index_fn(iorb, jorb, n_, sparsemat)
+          return
+      end if
+
+      !ii=(jorb-1)*sparsemat%nfvctr+iorb
+      !ispin=(ii-1)/sparsemat%nfvctr**2+1 !integer division to get the spin (1 for spin up (or non polarized), 2 for spin down)
+
+      ! Determine in which "spin matrix" this entry is located
+      lispin = (iorb>sparsemat%nfvctr)
+      ljspin = (jorb>sparsemat%nfvctr)
+      if (any((/lispin,ljspin/))) then
+          if (all((/lispin,ljspin/))) then
+              ! both indices belong to the second spin matrix
+              ispin=2
+          else
+              ! there seems to be a mix up the spin matrices
+              stop 'matrixindex_in_compressed2: problem in determining spin'
+          end if
+      else
+          ! both indices belong to the first spin matrix
+          ispin=1
+      end if
+      iiorb=mod(iorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
+      jjorb=mod(jorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
+    
+      if (sparsemat%store_index) then
+          ! Take the value from the array
+          matrixindex_in_compressed2 = sparsemat%matrixindex_in_compressed_arr(iiorb,jjorb)
+      else
+          ! Recalculate the value
+          matrixindex_in_compressed2 = compressed_index_fn(iiorb, jjorb, sparsemat%nfvctr, sparsemat)
+      end if
+
+      ! Add the spin shift (i.e. the index is in the spin polarized matrix which is at the end)
+      if (ispin==2) then
+          matrixindex_in_compressed2 = matrixindex_in_compressed2 + sparsemat%nvctrp_tg
+      end if
+    
+    contains
+
+      ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
+      integer function compressed_index_fn(irow, jcol, norb, sparsemat)
+        implicit none
+      
+        ! Calling arguments
+        integer,intent(in) :: irow, jcol, norb
+        type(sparse_matrix),intent(in) :: sparsemat
+      
+        ! Local variables
+        integer(kind=8) :: ii, istart, iend
+        integer :: iseg
+      
+        ii = int((jcol-1),kind=8)*int(norb,kind=8)+int(irow,kind=8)
+      
+        iseg=sparsemat%istsegline(jcol)
+        do
+            istart = int((sparsemat%keyg(1,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+                     int(sparsemat%keyg(1,1,iseg),kind=8)
+            iend = int((sparsemat%keyg(2,2,iseg)-1),kind=8)*int(norb,kind=8) + &
+                   int(sparsemat%keyg(2,1,iseg),kind=8)
+            if (ii>=istart .and. ii<=iend) then
+                ! The matrix element is in sparsemat segment
+                 compressed_index_fn = sparsemat%keyv(iseg) + int(ii-istart,kind=4)
+                return
+            end if
+            iseg=iseg+1
+            if (iseg>sparsemat%nseg) exit
+            if (ii<istart) then
+                compressed_index_fn=0
+                return
+            end if
+        end do
+      
+        ! Not found
+        compressed_index_fn=0
+      
+      end function compressed_index_fn
+    end function matrixindex_in_compressed2
+
 
 
 
