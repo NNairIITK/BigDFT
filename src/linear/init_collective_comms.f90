@@ -1637,13 +1637,13 @@ subroutine synchronize_matrix_taskgroups(iproc, nproc, smat, mat)
       end do
       recvbuf = f_malloc(ncount,id='recvbuf')
       do ispin=1,smat%nspin
-          ishift = (ispin-1)*smat%nvctr
+          ishift = (ispin-1)*smat%nvctrp_tg
 
           ncount = 0
           do itg=1,smat%ntaskgroupp
               iitg = smat%taskgroupid(itg)
-              ist_send = smat%taskgroup_startend(1,1,iitg)
-              ist_recv = ncount + 1
+              ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
+              ist_recv = ncount + 1 - smat%isvctrp_tg
               ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
               !!call mpi_iallreduce(mat%matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
               !!     mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
@@ -1660,10 +1660,11 @@ subroutine synchronize_matrix_taskgroups(iproc, nproc, smat, mat)
           ncount = 0
           do itg=1,smat%ntaskgroupp
               iitg = smat%taskgroupid(itg)
-              ist_send = smat%taskgroup_startend(1,1,iitg)
-              ist_recv = ncount + 1
+              ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
+              ist_recv = ncount + 1 - smat%isvctrp_tg
               ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
-              call vcopy(ncount, recvbuf(ist_recv), 1, mat%matrix_compr(ishift+ist_send), 1)
+              !call vcopy(ncount, recvbuf(ist_recv), 1, mat%matrix_compr(ishift+ist_send), 1)
+              call dcopy(ncount, recvbuf(ist_recv), 1, mat%matrix_compr(ishift+ist_send), 1)
           end do
       end do
       call f_free(request)

@@ -749,9 +749,11 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use communications, only: transpose_localized, untranspose_localized
   use constrained_dft
   use sparsematrix_base, only: sparsematrix_malloc, sparsematrix_malloc_ptr, DENSE_PARALLEL, SPARSE_FULL, &
-                               assignment(=), deallocate_sparse_matrix, deallocate_matrices, DENSE_FULL
+                               assignment(=), deallocate_sparse_matrix, deallocate_matrices, DENSE_FULL, &
+                               SPARSE_TASKGROUP
   use sparsematrix, only: compress_matrix_distributed, uncompress_matrix_distributed, uncompress_matrix, &
-                          gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
+                          gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, &
+                          uncompress_matrix_distributed2, uncompress_matrix2
   implicit none
 
   ! Calling arguments
@@ -770,7 +772,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(cdft_data), intent(inout) :: cdft
 
   ! Local variables
-  integer :: ndim_old, ndim, iorb, iiorb, ilr, ilr_old, iiat, methTransformOverlap, infoCoeff, ispin, ishift, it
+  integer :: ndim_old, ndim, iorb, iiorb, ilr, ilr_old, iiat, methTransformOverlap, infoCoeff, ispin, ishift, it, ii
   logical:: overlap_calculated
   real(wp), allocatable, dimension(:) :: norm
   type(fragment_transformation), dimension(:), pointer :: frag_trans
@@ -784,7 +786,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(localizedDIISParameters) :: ldiis
   logical :: ortho_on, reduce_conf, can_use_ham
   real(kind=8) :: trace, trace_old, fnrm_tmb, ratio_deltas, ddot, max_error, mean_error
-  integer :: order_taylor, info_basis_functions, iortho, iat, jj, itype, inl, FOE_restart
+  integer :: order_taylor, info_basis_functions, iortho, iat, jj, itype, inl, FOE_restart, i
   integer,dimension(:),allocatable :: maxorbs_type, minorbs_type
   integer,dimension(:,:),allocatable :: nl_copy
   logical,dimension(:),allocatable :: type_covered
@@ -951,14 +953,14 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
                    TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_c, &
                    tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
-              call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
+              !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
                ovrlp_fullp = sparsematrix_malloc(tmb%linmat%l,iaction=DENSE_PARALLEL,id='ovrlp_fullp')
                max_deviation=0.d0
                mean_deviation=0.d0
                do ispin=1,tmb%linmat%s%nspin
-                   ishift=(ispin-1)*tmb%linmat%s%nvctr
-                   call uncompress_matrix_distributed(iproc, tmb%linmat%s, DENSE_PARALLEL, &
-                        tmb%linmat%ovrlp_%matrix_compr(ishift+1:ishift+tmb%linmat%s%nvctr), ovrlp_fullp)
+                   ishift=(ispin-1)*tmb%linmat%s%nvctrp_tg
+                   call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_PARALLEL, &
+                        tmb%linmat%ovrlp_%matrix_compr(ishift+1:), ovrlp_fullp)
                    call deviation_from_unity_parallel(iproc, nproc, tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
                         tmb%linmat%s%isfvctr, ovrlp_fullp, &
                         tmb%linmat%s, max_deviation_p, mean_deviation_p)
@@ -1141,41 +1143,43 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
             TRANSPOSE_FULL, tmb_old%psi, tmb_old%psit_c, tmb_old%psit_f, tmb_old%lzd)
        call calculate_overlap_transposed(iproc, nproc, tmb_old%orbs, tmb_old%collcom, tmb_old%psit_c, tmb_old%psit_c, &
             tmb_old%psit_f, tmb_old%psit_f, tmb_old%linmat%s, tmb_old%linmat%ovrlp_)
-       call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb_old%linmat%s, tmb_old%linmat%ovrlp_)
+       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb_old%linmat%s, tmb_old%linmat%ovrlp_)
        call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
             TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
        call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_c, &
             tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
 
-       ! ### TEMP #######################################
-       ! diagonalize the old overlap matrix
-       ovrlp_full = sparsematrix_malloc(tmb_old%linmat%s, iaction=DENSE_FULL,id='ovrlp_full')
-       eval = f_malloc(tmb_old%linmat%s%nfvctr,id='eval')
-       if (lwork<4*tmb_old%linmat%s%nfvctr) stop 'lwork<4*tmb_old%linmat%s%nfvctr'
-       call uncompress_matrix(iproc,tmb_old%linmat%s,tmb_old%linmat%ovrlp_%matrix_compr,ovrlp_full)
-       call dsyev('n', 'l', tmb_old%linmat%s%nfvctr, ovrlp_full, tmb_old%linmat%s%nfvctr, eval, work, lwork, info)
-       if (iproc==0) write(*,'(a,2es13.4)') 'min/max eval', eval(1), eval(tmb_old%linmat%s%nfvctr)
-       call f_free(ovrlp_full)
-       call f_free(eval)
-       ! ### TEMP #######################################
+
+       !! ### TEMP #######################################
+       !! diagonalize the old overlap matrix
+       !ovrlp_full = sparsematrix_malloc(tmb_old%linmat%s, iaction=DENSE_FULL,id='ovrlp_full')
+       !eval = f_malloc(tmb_old%linmat%s%nfvctr,id='eval')
+       !if (lwork<4*tmb_old%linmat%s%nfvctr) stop 'lwork<4*tmb_old%linmat%s%nfvctr'
+       !call uncompress_matrix2(iproc, nproc, tmb_old%linmat%s, tmb_old%linmat%ovrlp_%matrix_compr, ovrlp_full)
+       !if (iproc==0) call yaml_map('ovrlp_old',ovrlp_full(:,:,1))
+       !call dsyev('n', 'l', tmb_old%linmat%s%nfvctr, ovrlp_full, tmb_old%linmat%s%nfvctr, eval, work, lwork, info)
+       !if (iproc==0) write(*,'(a,2es13.4)') 'min/max eval', eval(1), eval(tmb_old%linmat%s%nfvctr)
+       !call f_free(ovrlp_full)
+       !call f_free(eval)
+       !! ### TEMP #######################################
 
        call f_free_ptr(tmb_old%psit_c)
        call f_free_ptr(tmb_old%psit_f)
 
        ! Transform the old overlap matrix to the new sparsity format, by going via the full format.
        ovrlpp = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_PARALLEL, id='ovrlpp')
-       call uncompress_matrix_distributed(iproc, tmb_old%linmat%s, DENSE_PARALLEL, tmb_old%linmat%ovrlp_%matrix_compr, ovrlpp)
+       call uncompress_matrix_distributed2(iproc, tmb_old%linmat%s, DENSE_PARALLEL, tmb_old%linmat%ovrlp_%matrix_compr, ovrlpp)
 
        ! Allocate the matrix with the new sparsity pattern
        call f_free_ptr(tmb_old%linmat%ovrlp_%matrix_compr)
        !tmb_old%linmat%ovrlp_%matrix_compr = f_malloc_ptr(tmb%linmat%s%nvctr,id='tmb_old%linmat%ovrlp_%matrix_compr')
-       tmb_old%linmat%ovrlp_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s,iaction=SPARSE_FULL, &
-                                                                    id='tmb_old%linmat%ovrlp_%matrix_compr')
+       !!tmb_old%linmat%ovrlp_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s,iaction=SPARSE_TASKGROUP, &
+       !!                                                             id='tmb_old%linmat%ovrlp_%matrix_compr')
 
        !call compress_matrix_distributed(iproc, nproc, tmb%linmat%s, DENSE_PARALLEL, &
        !     ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr(tmb%linmat%s%isvctrp_tg+1:))
        ovrlp_old%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
-                                 iaction=SPARSE_FULL, id='ovrlp_old%matrix_compr')
+                                 iaction=SPARSE_TASKGROUP, id='ovrlp_old%matrix_compr')
        call compress_matrix_distributed(iproc, nproc, tmb%linmat%s, DENSE_PARALLEL, &
             ovrlpp, ovrlp_old%matrix_compr)
 
@@ -1239,6 +1243,9 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   call deallocate_matrices(tmb_old%linmat%ham_)
   call deallocate_matrices(tmb_old%linmat%ovrlp_)
   call deallocate_matrices(tmb_old%linmat%kernel_)
+  do i=1,3
+      call deallocate_matrices(tmb_old%linmat%ovrlppowers_(i))
+  end do
   call deallocate_comms_linear(tmb_old%collcom)
   call deallocate_local_zone_descriptors(tmb_old%lzd)
   

@@ -1085,6 +1085,12 @@ subroutine copy_sparse_matrix(smat_in, smat_out)
   smat_out%ntaskgroupp = smat_in%ntaskgroupp
   smat_out%istartendseg_t(1:2) = smat_in%istartendseg_t(1:2)
   smat_out%istartend_t(1:2) = smat_in%istartend_t(1:2)
+  smat_out%nvctrp_tg = smat_in%nvctrp_tg
+  smat_out%isvctrp_tg = smat_in%isvctrp_tg
+  smat_out%iseseg_tg(1:2) = smat_in%iseseg_tg(1:2)
+  smat_out%istartend_local(1:2) = smat_in%istartend_local(1:2)
+  smat_out%istartendseg_local(1:2) = smat_in%istartendseg_local(1:2)
+
 
   call allocate_and_copy(smat_in%keyv, smat_out%keyv, id='smat_out%')
   call allocate_and_copy(smat_in%nsegline, smat_out%nsegline, id='smat_out%nsegline')
