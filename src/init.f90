@@ -2065,7 +2065,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use communications, only: transpose_localized, untranspose_localized
   use m_paw_ij, only: paw_ij_init
   use psp_projectors, only: PSPCODE_PAW, PSPCODE_HGH, free_DFT_PSP_projectors
-  use sparsematrix, only: gather_matrix_from_taskgroups_inplace
+  use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   implicit none
 
   integer, intent(in) :: iproc, nproc, inputpsi, input_wf_format
@@ -2596,10 +2596,12 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !end do
         !end if
         order_taylor=in%lin%order_taylor ! since this is intent(inout)
+        call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
         call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
              infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.true.,.false.,&
              .true.,0,0,0,0,order_taylor,in%lin%max_inversion_error,&
              in%purification_quickreturn,in%calculate_KS_residue,in%calculate_gap) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+        call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
         !if (iproc==0) then
         !print*,'coeffs after extra diag:'

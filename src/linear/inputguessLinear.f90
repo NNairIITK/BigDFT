@@ -810,13 +810,13 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!end do
 
   order_taylor=input%lin%order_taylor ! since this is intent(inout)
+  call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
   if (input%lin%scf_mode==LINEAR_FOE) then
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
   else
-
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
@@ -830,8 +830,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       if (bigdft_mpi%iproc ==0) then
          call write_eigenvalues_data(0.1d0,kswfn%orbs,mom_vec_fake)
       end if
-
   end if
+  call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
 
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
