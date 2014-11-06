@@ -23,8 +23,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, start_onesided_communication
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, sparsematrix_malloc, &
-                               DENSE_FULL, DENSE_PARALLEL, DENSE_MATMUL, assignment(=)
-  use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed, gather_matrix_from_taskgroups_inplace
+                               DENSE_FULL, DENSE_PARALLEL, DENSE_MATMUL, assignment(=), SPARSE_FULL
+  use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed, gather_matrix_from_taskgroups_inplace, &
+                          extract_taskgroup_inplace
   implicit none
 
   ! Calling arguments
@@ -56,7 +57,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   ! Local variables 
   integer :: iorb, info, ishift, ispin, ii, jorb, i, ishifts, ishiftm
-  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, eval
+  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, eval, tmparr1, tmparr2
   real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp, tempmat
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -458,9 +459,20 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       if (iproc==0) call yaml_map('method','FOE')
       tmprtr=0.d0
+      tmparr1 = sparsematrix_malloc(tmb%linmat%s,iaction=SPARSE_FULL,id='tmparr1')
+      call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmb%linmat%ovrlp_%matrix_compr(1), 1, tmparr1(1), 1)
+      call extract_taskgroup_inplace(tmb%linmat%s, tmb%linmat%ovrlp_)
+      tmparr2 = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr2')
+      call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmb%linmat%ham_%matrix_compr(1), 1, tmparr2(1), 1)
+      call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
       call foe(iproc, nproc, tmprtr, &
            energs%ebs, itout,it_scc, order_taylor, max_inversion_error, purification_quickreturn, &
            invert_overlap_matrix, 1, FOE_ACCURATE, tmb, tmb%foe_obj)
+      call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmparr1(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
+      call f_free(tmparr1)
+      call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmparr2(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
+      call f_free(tmparr2)
+
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
 
@@ -512,7 +524,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use sparsematrix_base, only: assignment(=), sparsematrix_malloc, sparsematrix_malloc_ptr, SPARSE_FULL
   use constrained_dft, only: cdft_data
   use module_fragments, only: system_fragment
-  use sparsematrix,only: gather_matrix_from_taskgroups_inplace
+  use sparsematrix,only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   !  use Poisson_Solver
   !use allocModule
   implicit none
@@ -555,7 +567,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   !integer :: jorb, nspin
   !real(kind=8),dimension(:),allocatable :: occup_tmp
   real(kind=8) :: fnrmMax, meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
-  real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_tmp, psidiff
+  real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS
+  real(kind=8),dimension(:),allocatable :: hpsit_c_tmp, hpsit_f_tmp, hpsi_tmp, psidiff, tmparr1, tmparr2
   real(kind=8),dimension(:),allocatable :: delta_energy_arr, hpsi_noprecond, kernel_compr_tmp, kernel_best, hphi_nococontra
   logical :: energy_increased, overlap_calculated, energy_diff, energy_increased_previous, complete_reset, even
   logical :: calculate_inverse
@@ -800,10 +813,20 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                   call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
               else if (method_updatekernel==UPDATE_BY_FOE) then
                   call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
+                  tmparr1 = sparsematrix_malloc(tmb%linmat%s,iaction=SPARSE_FULL,id='tmparr1')
+                  call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmb%linmat%ovrlp_%matrix_compr(1), 1, tmparr1(1), 1)
+                  call extract_taskgroup_inplace(tmb%linmat%s, tmb%linmat%ovrlp_)
+                  tmparr2 = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr2')
+                  call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmb%linmat%ham_%matrix_compr(1), 1, tmparr2(1), 1)
+                  call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
                   call foe(iproc, nproc, 0.d0, &
                        energs%ebs, -1, -10, order_taylor, max_inversion_error, purification_quickreturn, &
                        .true., 0, &
                        FOE_FAST, tmb, tmb%foe_obj)
+                  call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmparr1(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
+                  call f_free(tmparr1)
+                  call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmparr2(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
+                  call f_free(tmparr2)
               end if
               if (iproc==0) call yaml_sequence_close()
           end if
