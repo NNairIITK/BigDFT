@@ -112,16 +112,16 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
            tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
-      call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
+      !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
   end if
 
   ovrlp_fullp = sparsematrix_malloc(tmb%linmat%l,iaction=DENSE_PARALLEL,id='ovrlp_fullp')
   max_deviation=0.d0
   mean_deviation=0.d0
   do ispin=1,tmb%linmat%s%nspin
-      ishift=(ispin-1)*tmb%linmat%s%nvctr
-      call uncompress_matrix_distributed(iproc, tmb%linmat%s, DENSE_PARALLEL, &
-           tmb%linmat%ovrlp_%matrix_compr(ishift+1:ishift+tmb%linmat%s%nvctr), ovrlp_fullp)
+      ishift=(ispin-1)*tmb%linmat%s%nvctrp_tg
+      call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_PARALLEL, &
+           tmb%linmat%ovrlp_%matrix_compr(ishift+1:), ovrlp_fullp)
       call deviation_from_unity_parallel(iproc, nproc, tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
            tmb%linmat%s%isfvctr, ovrlp_fullp, &
            tmb%linmat%s, max_deviation_p, mean_deviation_p)
@@ -252,7 +252,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       !call uncompress_matrix(iproc, tmb%linmat%s, &
       !     inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
       do ispin=1,tmb%linmat%m%nspin
-          ishifts = (ispin-1)*tmb%linmat%s%nvctr
+          ishifts = (ispin-1)*tmb%linmat%s%nvctrp_tg
           ishiftm = (ispin-1)*tmb%linmat%m%nvctrp_tg
           call to_zero(tmb%linmat%m%nfvctr**2, tmb%linmat%ham_%matrix(1,1,ispin))
           tempmat = sparsematrix_malloc(tmb%linmat%m, iaction=DENSE_MATMUL, id='tempmat')
@@ -270,8 +270,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
           call to_zero(tmb%linmat%s%nfvctr**2, tmb%linmat%ovrlp_%matrix(1,1,ispin))
           tempmat = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_MATMUL, id='tempmat')
-          call uncompress_matrix_distributed(iproc, tmb%linmat%s, DENSE_MATMUL, &
-               tmb%linmat%ovrlp_%matrix_compr(ishifts+1:ishifts+tmb%linmat%s%nvctr), tempmat)
+          call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_MATMUL, &
+               tmb%linmat%ovrlp_%matrix_compr(ishifts+1:), tempmat)
           if (tmb%linmat%m%smmm%nfvctrp>0) then
               call vcopy(tmb%linmat%s%nfvctr*tmb%linmat%s%smmm%nfvctrp, tempmat(1,1), 1, &
                    tmb%linmat%ovrlp_%matrix(1,tmb%linmat%s%smmm%isfvctr+1,ispin), 1)
@@ -455,8 +455,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call uncompress_matrix2(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_%matrix_compr, tmb%linmat%ham_%matrix)
           !!call f_free(tmparr)
           tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-          call uncompress_matrix(iproc, tmb%linmat%s, &
-               inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
+          call uncompress_matrix2(iproc, nproc, tmb%linmat%s, &
+               tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
           ! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
           matrixElements=f_malloc((/tmb%orbs%norb,tmb%orbs%norb,2/),id='matrixElements')
           !SM: need to fix the spin here
@@ -474,17 +474,17 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       if (iproc==0) call yaml_map('method','FOE')
       tmprtr=0.d0
-      tmparr1 = sparsematrix_malloc(tmb%linmat%s,iaction=SPARSE_FULL,id='tmparr1')
-      call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmb%linmat%ovrlp_%matrix_compr(1), 1, tmparr1(1), 1)
-      call extract_taskgroup_inplace(tmb%linmat%s, tmb%linmat%ovrlp_)
+      !!tmparr1 = sparsematrix_malloc(tmb%linmat%s,iaction=SPARSE_FULL,id='tmparr1')
+      !!call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmb%linmat%ovrlp_%matrix_compr(1), 1, tmparr1(1), 1)
+      !!call extract_taskgroup_inplace(tmb%linmat%s, tmb%linmat%ovrlp_)
       !!tmparr2 = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr2')
       !!call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmb%linmat%ham_%matrix_compr(1), 1, tmparr2(1), 1)
       !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
       call foe(iproc, nproc, tmprtr, &
            energs%ebs, itout,it_scc, order_taylor, max_inversion_error, purification_quickreturn, &
            invert_overlap_matrix, 1, FOE_ACCURATE, tmb, tmb%foe_obj)
-      call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmparr1(1), 1, tmb%linmat%ovrlp_%matrix_compr(1), 1)
-      call f_free(tmparr1)
+      !!call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmparr1(1), 1, tmb%linmat%ovrlp_%matrix_compr(1), 1)
+      !!call f_free(tmparr1)
       !!call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmparr2(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
       !!call f_free(tmparr2)
 
