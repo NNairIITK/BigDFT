@@ -279,16 +279,18 @@ import yaml_hl
 
 class Pouet:
     """Class used to define options in order to hightlight the YAML output by mean of yaml_hl"""
-    def __init__(self, input="report"):
+    def __init__(self, config="yaml_hl.cfg", input="report"):
         # Define a temporary file
         self.input = input
         self.output = None
         self.style = "ascii"
-        self.config = os.path.join(path, 'yaml_hl.cfg')
+        self.config = os.path.join(path, config)
 
 
-# Color options
+# Color options: one for the general text
 options = Pouet()
+#The second one for the remarks.
+options_remarks = Pouet(input="report_remarks",config="yaml_hl_remarks.cfg")
 # Create style (need to be in __main__)
 Style = yaml_hl.Style
 
@@ -324,7 +326,7 @@ def fatal_error(reports, message='Error in reading datas, Yaml Standard violated
     final_results = document_report('None', -1., 0., 1, 0, 0, 0, 0,message=message,final=True)
     reports.write(
         yaml.dump(final_results, default_flow_style=False, explicit_start=True))
-    newreport = open("report", "w")
+    newreport = open(options.input, "w")
     newreport.write(
         yaml.dump(final_results, default_flow_style=False, explicit_start=True))
     newreport.close()
@@ -480,20 +482,24 @@ for i in range(len(references)):
     leak_memory += docleaks
     total_misses += docmiss
     total_missed_items.append(docmiss_it)
-    newreport = open("report", "w")
+    newreport = open(options.input, "w")
     if failed_checks > 0 or docleaks > 0:
         failed_documents += 1
-    remarks += "Document: %2d, failed_checks: %d, Max. Diff.: %10.2e, missed_items: %d memory_leaks (B): %d, Elapsed Time (s): %7.2f\n" % \
+    remarks += "Document: %2d, Failed_checks: %d, Max_Diff: %10.2e, Missed_items: %d, Memory_leaks (B): %d, Elapsed Time (s): %7.2f\n" % \
                      (i, failed_checks, discrepancy, docmiss, docleaks, doctime)
     newreport.write(yaml.dump(document_report(hostname, biggest_tol, discrepancy, failed_checks,
                                               docleaks, docmiss, docmiss_it, doctime),
                           default_flow_style=False, explicit_start=True))
-    if remarks:
-        newreport.write(yaml.dump({"Remarks": remarks}, default_style="|"))
     newreport.close()
-    reports.write(open("report", "rb").read())
-    #highlight report file if possible
+    reports.write(open(options.input, "rb").read())
     highlight_iftty(options)
+    if remarks:
+        newreport = open(options_remarks.input, "w")
+        newreport.write(yaml.dump({"Remarks": remarks}, default_style="|", explicit_start=False))
+        newreport.close()
+        reports.write(open(options_remarks.input, "rb").read())
+        highlight_iftty(options_remarks)
+    #highlight report file if possible
     #sys.stdout.write("#Document: %2d, failed_checks: %d, Max. Diff.: %10.2e, missed_items: %d memory_leaks (B): %d, Elapsed Time (s): %7.2f\n" %
     #                 (i, failed_checks, discrepancy, docmiss, docleaks, doctime))
 
@@ -504,11 +510,11 @@ if len(references) > 1:
                              failed_documents, leak_memory, total_misses, total_missed_items, time,
                                    final=True)
     final_results['Documents'] = len(references)
-    newreport = open("report", "w")
+    newreport = open(options.input, "w")
     newreport.write(
         yaml.dump(final_results, default_flow_style=False, explicit_start=True))
     newreport.close()
-    reports.write(open("report", "rb").read())
+    reports.write(open(options.input, "rb").read())
     highlight_iftty(options)
 
 # Then remove the file "report" (temporary file)
