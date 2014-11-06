@@ -97,7 +97,8 @@ def compare_seq(seq, ref, tols, always_fails=False,keyword=""):
         if len(ref) == len(seq):
             for i in range(len(ref)):
                 # print 'here',ref[i],seq[i],tols[0]
-                (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails, keyword)
+                (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails, 
+                                            "%s[%d]" %(keyword,i))
                 # Add to the tolerance dictionary a failed result
                 if failed:
                     # and type(tols) == type({}):
@@ -124,13 +125,13 @@ def compare_seq(seq, ref, tols, always_fails=False,keyword=""):
             for i in range(len(ref)):
                 if len(tols) == 0:
                     (failed, newtols) = compare(seq[i], ref[i], always_fails=always_fails,
-                                                keyword=keyword)
+                                                keyword="%s[%d]" % (keyword,i))
                     #  add to the tolerance dictionary a failed result
                     if failed:
                         tols.append(newtols)
                 else:
                     (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails=always_fails,
-                                               keyword=keyword)
+                                                keyword="%s[%d]" % (keyword,i))
                     if failed:
                         tols[0] = newtols
         else:
@@ -230,7 +231,7 @@ def compare_scl(scl, ref, tols, always_fails=False, keyword=""):
     if failed:
         if failed_checks < 20:
             #print 'fldiff_failure: val, ref, tol, diff, bigtol', scl, ref, tols, discrepancy, biggest_tol
-            remarks += '%s fldiff_failure (val, ref, tol, diff, bigtol): %s\n' % (keyword,str((scl, ref, tols,
+            remarks += 'FAILURE %s (val, ref, tol, diff, bigtol): %s\n' % (keyword,str((scl, ref, tols,
                                                                             discrepancy, biggest_tol)))
             failed_checks += 1
     return ret
@@ -457,7 +458,7 @@ for i in range(len(references)):
     try:
         data = datas[i]
         if data is not None:
-            compare(data, reference, tols, keyword=str(i))
+            compare(data, reference, tols)
         else:
             fatal_error(reports, message='Empty document!')
     except Exception, e:
