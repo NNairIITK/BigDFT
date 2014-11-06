@@ -866,10 +866,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       ! optimize the tmbs for a few extra states
       if (target_function==TARGET_FUNCTION_IS_ENERGY.and.extra_states>0) then
-          if (tmb%linmat%l%nspin>1) stop 'THIS IS NOT TESTED FOR SPIN POLARIZED SYSTEMS!'
-          kernel_compr_tmp = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='kernel_compr_tmp')
-          call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
-          call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
+          kernel_compr_tmp = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='kernel_compr_tmp')
+          !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+          call vcopy(tmb%linmat%l%nvctrp_tg*tmb%linmat%l%nspin, &
+               tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
           !allocate(occup_tmp(tmb%orbs%norb), stat=istat)
           !call memocc(istat, occup_tmp, 'occup_tmp', subname)
           !call vcopy(tmb%orbs%norb, tmb%orbs%occup(1), 1, occup_tmp(1), 1)
@@ -888,7 +888,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !end do
           call calculate_density_kernel(iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, &
                tmb%linmat%l, tmb%linmat%kernel_)
-          call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+          !call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
           !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
       end if
 
@@ -924,7 +924,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       if (target_function==TARGET_FUNCTION_IS_ENERGY.and.extra_states>0) then
           if (tmb%linmat%l%nspin>1) stop 'THIS IS NOT TESTED FOR SPIN POLARIZED SYSTEMS!'
-          call vcopy(tmb%linmat%l%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+          call vcopy(tmb%linmat%l%nvctrp_tg*tmb%linmat%l%nspin, kernel_compr_tmp(1), 1, &
+               tmb%linmat%kernel_%matrix_compr(1), 1)
           call f_free(kernel_compr_tmp)
       end if
 

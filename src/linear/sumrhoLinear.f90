@@ -174,8 +174,9 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
   use module_base
   use module_types
   use yaml_output
-  use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
-  use sparsematrix, only: compress_matrix
+  use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
+                               sparsematrix_malloc, SPARSE_FULL
+  use sparsematrix, only: compress_matrix, extract_taskgroup
   implicit none
 
   ! Calling arguments
@@ -190,6 +191,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
   ! Local variables
   integer :: ierr, sendcount, jproc, iorb, itmb, iiorb, ispin, jorb
   real(kind=8),dimension(:,:),allocatable :: density_kernel_partial, fcoeff
+  real(kind=8),dimension(:),allocatable :: tmparr
 ! real(kind=8), dimension(:,:,), allocatable :: ks,ksk,ksksk
   character(len=*),parameter :: subname='calculate_density_kernel'
   integer,dimension(:),allocatable :: recvcounts, dspls
@@ -280,7 +282,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       !!if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       !denskern_%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern_%matrix_compr')
       if (.not.keep_uncompressed) then
-          denskern_%matrix=sparsematrix_malloc_ptr(denskern,iaction=DENSE_FULL,id='denskern_%matrix_compr')
+          denskern_%matrix=sparsematrix_malloc_ptr(denskern,iaction=DENSE_FULL,id='denskern_%matrix')
       end if
       if(orbs%norbp>0) then
           fcoeff=f_malloc((/denskern%nfvctr,orbs%norbp/), id='fcoeff')
@@ -338,7 +340,8 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
       call timing(iproc,'waitAllgatKern','OF')
 
-      call compress_matrix(iproc,denskern,inmat=denskern_%matrix,outmat=denskern_%matrix_compr)
+      tmparr = sparsematrix_malloc(denskern,iaction=SPARSE_FULL,id='tmparr')
+      call compress_matrix(iproc,denskern,inmat=denskern_%matrix,outmat=tmparr)
       if (keep_uncompressed) then
           if (nproc > 1) then
               call timing(iproc,'commun_kernel','ON') !lr408t
@@ -351,9 +354,11 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       end if
       if (nproc > 1) then
           call timing(iproc,'commun_kernel','ON') !lr408t
-          call mpiallred(denskern_%matrix_compr(1), denskern%nspin*denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(tmparr(1), denskern%nspin*denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
           call timing(iproc,'commun_kernel','OF') !lr408t
       end if
+      call extract_taskgroup(denskern, tmparr, denskern_%matrix_compr)
+      call f_free(tmparr)
 
       !call compress_matrix(iproc,denskern)
       !call f_free_ptr(denskern%matrix)

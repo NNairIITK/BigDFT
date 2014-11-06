@@ -30,7 +30,7 @@ module sparsematrix
   public :: sparsemm
   public :: orb_from_index
   public :: gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace
-  public :: extract_taskgroup_inplace
+  public :: extract_taskgroup_inplace, extract_taskgroup
 
   contains
 
@@ -1240,5 +1240,27 @@ module sparsematrix
      end do
 
    end subroutine extract_taskgroup_inplace
+
+
+   subroutine extract_taskgroup(smat, mat_glob, mat_tg)
+     implicit none
+   
+     ! Calling arguments
+     type(sparse_matrix),intent(in) :: smat
+     real(kind=8),dimension(smat%nvctr*smat%nspin),intent(in) :: mat_glob
+     real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(out) :: mat_tg
+
+     ! Local variables
+     integer :: i, ispin, ishift_tg, ishift_glob
+
+     do ispin=1,smat%nspin
+         ishift_tg = (ispin-1)*smat%nvctrp_tg
+         ishift_glob = (ispin-1)*smat%nvctr
+         do i=1,smat%nvctrp_tg
+             mat_tg(i+ishift_tg) = mat_glob(i+smat%isvctrp_tg+ishift_glob)
+         end do
+     end do
+
+   end subroutine extract_taskgroup
 
 end module sparsematrix
