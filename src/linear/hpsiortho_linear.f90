@@ -663,7 +663,8 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   use module_interfaces, except_this_one => calculate_residue_ks
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                matrices_null, allocate_matrices, deallocate_matrices
-  use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace
+  use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
+                          extract_taskgroup_inplace
   implicit none
 
   ! Calling arguments

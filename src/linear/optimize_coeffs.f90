@@ -18,6 +18,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
   use module_interfaces, fake_name => optimize_coeffs
   use diis_sd_optimization
   use yaml_output
+  use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   implicit none
 
   ! Calling arguments
@@ -980,6 +981,7 @@ subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pre
   use module_base
   use module_types
   use module_interfaces
+  use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   implicit none
   integer, intent(in) :: iproc, nproc, taylor_order
   real(kind=gp), intent(inout) :: alpha

@@ -188,7 +188,8 @@ subroutine calculate_weight_matrix_lowdin_gradient_fd(weight_matrix,weight_matri
   use sparsematrix_base, only: matrices, sparse_matrix, sparsematrix_malloc_ptr, &
                                DENSE_FULL, assignment(=), &
                                allocate_matrices, deallocate_matrices
-  use sparsematrix, only: compress_matrix, uncompress_matrix
+  use sparsematrix, only: compress_matrix, uncompress_matrix, &
+                          gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   implicit none
   type(sparse_matrix), intent(inout) :: weight_matrix
   type(matrices), intent(inout) :: weight_matrix_
