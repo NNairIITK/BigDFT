@@ -36,14 +36,14 @@ if version <= [2, 5, 0]:
 
 
 import yaml
-#from yaml_hl import *
 
+# from yaml_hl import *
 # start_fail = "<fail>" #"\033[0;31m"
-#start_fail_esc = "\033[0;31m "
-#start_success = "\033[0;32m "
-#start_pass = "<pass>"
+# start_fail_esc = "\033[0;31m "
+# start_success = "\033[0;32m "
+# start_pass = "<pass>"
 # end = "</end>" #"\033[m"
-#end_esc = "\033[m "
+# end_esc = "\033[m "
 
 
 def ignore_key(key):
@@ -231,8 +231,8 @@ def compare_scl(scl, ref, tols, always_fails=False, keyword=""):
     if failed:
         if failed_checks < 20:
             #print 'fldiff_failure: val, ref, tol, diff, bigtol', scl, ref, tols, discrepancy, biggest_tol
-            remarks += 'FAILURE %s (val, ref, tol, diff, bigtol): %s\n' % (keyword,str((scl, ref, tols,
-                                                                            discrepancy, biggest_tol)))
+            remarks += 'FAILURE %s: val=%s, ref=%s, tol=%s, diff=%s, bigtol=%s\n' % \
+                    (keyword,str(scl), str(ref), str(tols), str(diff), str(biggest_tol))
             failed_checks += 1
     return ret
 
@@ -240,7 +240,7 @@ def compare_scl(scl, ref, tols, always_fails=False, keyword=""):
 def document_report(hostname, tol, biggest_disc, nchecks, leaks, nmiss, miss_it, timet,
                     message="",final = False):
     "Report about the document"
-    global remarks
+    global tols,remarks
     results = {}
     if (nchecks > 0 or leaks > 0) and not final:
         results["All tolerances"] = tols
@@ -485,7 +485,7 @@ for i in range(len(references)):
     newreport = open(options.input, "w")
     if failed_checks > 0 or docleaks > 0:
         failed_documents += 1
-    remarks += "Document: %2d, Failed_checks: %d, Max_Diff: %10.2e, Missed_items: %d, Memory_leaks (B): %d, Elapsed Time (s): %7.2f\n" % \
+    remarks += "Document: %d, Failed_checks: %d, Max_Diff: %.2e, Missed_items: %d, Memory_leaks (B): %d, Elapsed Time (s): %.2f\n" % \
                      (i, failed_checks, discrepancy, docmiss, docleaks, doctime)
     newreport.write(yaml.dump(document_report(hostname, biggest_tol, discrepancy, failed_checks,
                                               docleaks, docmiss, docmiss_it, doctime),
@@ -509,7 +509,7 @@ if len(references) > 1:
     final_results = document_report(hostname, biggest_tol, max_discrepancy,
                              failed_documents, leak_memory, total_misses, total_missed_items, time,
                                    final=True)
-    final_results['Documents'] = len(references)
+    final_results['Document number'] = len(references)
     newreport = open(options.input, "w")
     newreport.write(
         yaml.dump(final_results, default_flow_style=False, explicit_start=True))
