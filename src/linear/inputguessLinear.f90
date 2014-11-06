@@ -472,10 +472,14 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   !Put the Density kernel to identity for now
   !call to_zero(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1))
-  call to_zero(tmb%linmat%l%nvctr*input%nspin, tmb%linmat%kernel_%matrix_compr(1))
+  call to_zero(tmb%linmat%l%nvctrp_tg*input%nspin, tmb%linmat%kernel_%matrix_compr(1))
+
+
   do iorb=1,tmb%orbs%norb
      !ii=matrixindex_in_compressed(tmb%linmat%denskern,iorb,iorb)
      ii=matrixindex_in_compressed2(tmb%linmat%l,iorb,iorb)
+     if (ii<tmb%linmat%l%istartend_local(1)) cycle
+     if (ii>tmb%linmat%l%istartend_local(2)) exit
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(inversemapping(iorb))
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
      tmb%linmat%kernel_%matrix_compr(ii-tmb%linmat%l%isvctrp_tg)=1.d0*tmb%orbs%occup(iorb)
@@ -756,7 +760,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
                                            'it_supfun'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
      end if
      order_taylor=input%lin%order_taylor ! since this is intent(inout)
-     call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+     !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
      call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
          info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
          input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
@@ -765,7 +769,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
          can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
          input%purification_quickreturn, input%correction_co_contra)
-     call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+     !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
      reduce_conf=.true.
      call yaml_sequence_close()
      call yaml_mapping_close()
@@ -810,7 +814,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!end do
 
   order_taylor=input%lin%order_taylor ! since this is intent(inout)
-  call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+  !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
   if (input%lin%scf_mode==LINEAR_FOE) then
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
@@ -831,7 +835,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          call write_eigenvalues_data(0.1d0,kswfn%orbs,mom_vec_fake)
       end if
   end if
-  call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
 
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
@@ -845,14 +849,14 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
     call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
   end if
 
-  tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
-  call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
-  call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+  !!tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
+  !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
        denspot%rhov, rho_negative)
-  call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
-  call f_free(tmparr)
+  !!call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+  !!call f_free(tmparr)
 
   if (rho_negative) then
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
