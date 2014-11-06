@@ -15,8 +15,9 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   use yaml_output
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
-  use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
-  use sparsematrix, only: compress_matrix, uncompress_matrix
+  use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
+                               sparsematrix_malloc, SPARSE_FULL
+  use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace
   implicit none
 
   ! Calling arguments
@@ -29,7 +30,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   ! Local variables
   integer :: iat, isize, iorb, jorb, korb, idir, iiorb, ierr, num_points, num_points_tot
   real(kind=8),dimension(:,:),allocatable :: phi_delta, energykernel, tempmat, phi_delta_large
-  real(kind=8),dimension(:),allocatable :: hphit_c, hphit_f, denskern_tmp, delta_phit_c, delta_phit_f
+  real(kind=8),dimension(:),allocatable :: hphit_c, hphit_f, denskern_tmp, delta_phit_c, delta_phit_f, tmparr
   real(kind=8) :: tt
 
   call timing(iproc,'new_pulay_corr','ON') 
@@ -70,6 +71,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
        TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
        tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+  call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
   ! This can then be deleted if the transition to the new type has been completed.
   !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
 
@@ -106,6 +108,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
            TRANSPOSE_FULL, phi_delta_large(1,idir), delta_phit_c, delta_phit_f, tmb%ham_descr%lzd)
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
            hphit_c, delta_phit_c, hphit_f, delta_phit_f, tmb%linmat%m, tmb%linmat%ham_)
+      call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
       ! This can then be deleted if the transition to the new type has been completed.
       !tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
 
@@ -181,8 +184,16 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       tmb%linmat%kernel_%matrix(:,:,1)=tempmat
       call compress_matrix(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
       call f_free_ptr(tmb%linmat%kernel_%matrix)
+
+      tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
+      call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
+      call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-           tmb%linmat%l, tmb%linmat%kernel_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, .false., hphit_c, hphit_f, iproc, 0)
+           tmb%linmat%l, tmb%linmat%kernel_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
+           .false., hphit_c, hphit_f, iproc)
+      call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+      call f_free(tmparr)
+
       tmb%linmat%kernel_%matrix_compr=denskern_tmp
     
       call f_free(tempmat)
@@ -454,6 +465,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                matrices_null, allocate_matrices, deallocate_matrices, &
                                sparsematrix_malloc_ptr, SPARSE_FULL, assignment(=)
+  use sparsematrix, only: gather_matrix_from_taskgroups_inplace
   implicit none
 
   ! Calling arguments
@@ -571,11 +583,13 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
 
     call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom,&
          psit_c, lpsit_c, psit_f, lpsit_f, tmb%linmat%m, ham_)
+    call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
     ! This can then be deleted if the transition to the new type has been completed.
     dovrlp_(jdir)%matrix_compr=ham_%matrix_compr
 
     call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom,&
          psit_c, hpsit_c, psit_f, hpsit_f, tmb%linmat%m, ham_)
+    call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
     ! This can then be deleted if the transition to the new type has been completed.
     dham_(jdir)%matrix_compr=ham_%matrix_compr
   end do

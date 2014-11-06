@@ -521,7 +521,7 @@ subroutine foe(iproc, nproc, tmprtr, &
     
          call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
               tmb%linmat%kernel_%matrixp(:,1:tmb%linmat%l%smmm%nfvctrp,1), &
-              tmb%linmat%kernel_%matrix_compr(ilshift+1+tmb%linmat%l%isvctrp_tg:))
+              tmb%linmat%kernel_%matrix_compr(ilshift+1:))
     
          call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
               fermip_check, fermi_check_compr(1))
@@ -531,7 +531,7 @@ subroutine foe(iproc, nproc, tmprtr, &
         
           ! Calculate S^-1/2 * K * S^-1/2^T
           ! Since S^-1/2 is symmetric, don't use the transpose
-          call retransform(tmb%linmat%kernel_%matrix_compr(ilshift+tmb%linmat%l%isvctrp_tg+1:))
+          call retransform(tmb%linmat%kernel_%matrix_compr(ilshift+1:))
 
           !!do i=ilshift+1,ilshift+tmb%linmat%l%nvctr
           !!    write(3000+iproc,'(a,2i8,es16.6)') 'ispin, i, val', ispin, i, tmb%linmat%kernel_%matrix_compr(i)
@@ -543,10 +543,10 @@ subroutine foe(iproc, nproc, tmprtr, &
 
           !@NEW ##########################
           sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-                 tmb%linmat%ovrlp_%matrix_compr(isshift+tmb%linmat%s%isvctrp_tg+1:), &
-                 tmb%linmat%kernel_%matrix_compr(ilshift+tmb%linmat%l%isvctrp_tg+1:), ispin)
+                 tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
+                 tmb%linmat%kernel_%matrix_compr(ilshift+1:), ispin)
           sumn_check = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-                       tmb%linmat%ovrlp_%matrix_compr(isshift+tmb%linmat%s%isvctrp_tg+1:), &
+                       tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
                        fermi_check_compr, ispin)
           !@ENDNEW #######################
         
@@ -554,8 +554,8 @@ subroutine foe(iproc, nproc, tmprtr, &
           ! Calculate trace(KH). Since they have the same sparsity pattern and K is
           ! symmetric, this is a simple ddot.
           ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
-          istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
-          ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl-tmb%linmat%l%isvctrp_tg), 1)
+          istl = tmb%linmat%l%smmm%istartend_mm_dj(1)-tmb%linmat%l%isvctrp_tg
+          ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
 
           ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
           istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
@@ -652,8 +652,8 @@ subroutine foe(iproc, nproc, tmprtr, &
         
           ! Calculate trace(KS).
           sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-                 tmb%linmat%ovrlp_%matrix_compr(isshift+tmb%linmat%s%isvctrp_tg+1:), &
-                 tmb%linmat%kernel_%matrix_compr(ilshift+tmb%linmat%l%isvctrp_tg+1:), ispin)
+                 tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
+                 tmb%linmat%kernel_%matrix_compr(ilshift+1:), ispin)
 
 
           ! Recalculate trace(KH) (needed since the kernel was modified in the above purification). 
@@ -661,8 +661,8 @@ subroutine foe(iproc, nproc, tmprtr, &
           ! Since K and H have the same sparsity pattern and K is
           ! symmetric, the trace is a simple ddot.
           ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
-          istl = tmb%linmat%l%smmm%istartend_mm_dj(1)
-          ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl-tmb%linmat%l%isvctrp_tg), 1)
+          istl = tmb%linmat%l%smmm%istartend_mm_dj(1) - tmb%linmat%l%isvctrp_tg
+          ebsp = ddot(ncount, tmb%linmat%kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
           if (nproc>1) then
               call mpiallred(ebsp, 1, mpi_sum, bigdft_mpi%mpi_comm)
           end if
@@ -716,9 +716,12 @@ subroutine foe(iproc, nproc, tmprtr, &
       contains
 
         subroutine overlap_minus_onehalf()
+          use sparsematrix_base, only: sparsematrix_malloc, SPARSE_FULL
+          use sparsematrix, only: extract_taskgroup_inplace
           implicit none
           real(kind=8) :: max_error, mean_error
           integer :: i, j, ii
+          real(kind=8),dimension(:),allocatable :: tmparr
 
           call f_routine(id='overlap_minus_onehalf')
 
@@ -739,10 +742,15 @@ subroutine foe(iproc, nproc, tmprtr, &
               !!call compress_matrix(iproc, tmb%linmat%l, inmat=inv_ovrlp%matrix, outmat=inv_ovrlp%matrix_compr)
           end if
           if (imode==SPARSE) then
+              !tmparr = sparsematrix_malloc(tmb%linmat%s,iaction=SPARSE_FULL,id='tmparr')
+              !call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmb%linmat%ovrlp_%matrix_compr(1), 1, tmparr(1), 1)
+              !call extract_taskgroup_inplace(tmb%linmat%s, tmb%linmat%ovrlp_)
               call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/-2/), -1, &
                    imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                    ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(2), &
                    check_accur=.true., max_error=max_error, mean_error=mean_error)
+              !call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmparr(1), 1, tmb%linmat%ovrlp_%matrix_compr(1), 1)
+              !call f_free(tmparr)
           end if
           call check_taylor_order(mean_error, max_inversion_error, order_taylor)
 
@@ -1981,7 +1989,7 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
                   if (iismall>0) then
                       if (trace_with_overlap) then
                           ! Take the trace of the product matrix times overlap
-                          tt=mat%matrix_compr(isshift+iismall)
+                          tt=mat%matrix_compr(isshift+iismall-smat_l%isvctrp_tg)
                       else
                           ! Take the trace of the matrix alone, i.e. set the second matrix to the identity
                           if (irow==icol) then
@@ -2215,14 +2223,14 @@ subroutine scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
           do i=smatl%keyg(1,1,iseg),smatl%keyg(2,1,iseg) !this is too much, but for the moment ok 
               ii1 = matrixindex_in_compressed(smat1, i, j)
               if (ii1>0) then
-                  tt1=mat1%matrix_compr(i1shift+ii1)
+                  tt1=mat1%matrix_compr(i1shift+ii1-smat1%isvctrp_tg)
               else
                   tt1=0.d0
               end if
               if (with_overlap) then
                   ii2 = matrixindex_in_compressed(smat2, i, j)
                   if (ii2>0) then
-                      tt2=mat2%matrix_compr(i2shift+ii2)
+                      tt2=mat2%matrix_compr(i2shift+ii2-smat2%isvctrp_tg)
                   else
                       tt2=0.d0
                   end if

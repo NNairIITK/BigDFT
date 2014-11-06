@@ -174,8 +174,9 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
   use module_base
   use module_types
   use yaml_output
-  use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
-  use sparsematrix, only: compress_matrix
+  use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
+                               sparsematrix_malloc, SPARSE_FULL
+  use sparsematrix, only: compress_matrix, extract_taskgroup
   implicit none
 
   ! Calling arguments
@@ -190,6 +191,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
   ! Local variables
   integer :: ierr, sendcount, jproc, iorb, itmb, iiorb, ispin, jorb
   real(kind=8),dimension(:,:),allocatable :: density_kernel_partial, fcoeff
+  real(kind=8),dimension(:),allocatable :: tmparr
 ! real(kind=8), dimension(:,:,), allocatable :: ks,ksk,ksksk
   character(len=*),parameter :: subname='calculate_density_kernel'
   integer,dimension(:),allocatable :: recvcounts, dspls
@@ -280,7 +282,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       !!if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
       !denskern_%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern_%matrix_compr')
       if (.not.keep_uncompressed) then
-          denskern_%matrix=sparsematrix_malloc_ptr(denskern,iaction=DENSE_FULL,id='denskern_%matrix_compr')
+          denskern_%matrix=sparsematrix_malloc_ptr(denskern,iaction=DENSE_FULL,id='denskern_%matrix')
       end if
       if(orbs%norbp>0) then
           fcoeff=f_malloc((/denskern%nfvctr,orbs%norbp/), id='fcoeff')
@@ -338,7 +340,8 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
       call timing(iproc,'waitAllgatKern','OF')
 
-      call compress_matrix(iproc,denskern,inmat=denskern_%matrix,outmat=denskern_%matrix_compr)
+      tmparr = sparsematrix_malloc(denskern,iaction=SPARSE_FULL,id='tmparr')
+      call compress_matrix(iproc,denskern,inmat=denskern_%matrix,outmat=tmparr)
       if (keep_uncompressed) then
           if (nproc > 1) then
               call timing(iproc,'commun_kernel','ON') !lr408t
@@ -351,9 +354,11 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       end if
       if (nproc > 1) then
           call timing(iproc,'commun_kernel','ON') !lr408t
-          call mpiallred(denskern_%matrix_compr(1), denskern%nspin*denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(tmparr(1), denskern%nspin*denskern%nvctr, mpi_sum, bigdft_mpi%mpi_comm)
           call timing(iproc,'commun_kernel','OF') !lr408t
       end if
+      call extract_taskgroup(denskern, tmparr, denskern_%matrix_compr)
+      call f_free(tmparr)
 
       !call compress_matrix(iproc,denskern)
       !call f_free_ptr(denskern%matrix)
@@ -654,15 +659,15 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
     !ispin=spinsgn(iiorb) 
               tt1=collcom_sr%psit_c(i0+i)
               ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
-              ind=ind+ishift_mat
+              ind=ind+ishift_mat-denskern%isvctrp_tg
               tt=tt+denskern_%matrix_compr(ind)*tt1*tt1
     !tt(ispin)=tt(ispin)+denskern_%matrix_compr(ind)*tt1*tt1
               do j=i+1,ii
                   jjorb=collcom_sr%indexrecvorbital_c(i0+j) - iorb_shift
                   !jjorb=mod(jjorb-1,denskern%nfvctr)+1
                   ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                  ind=ind+ishift_mat
                   if (ind==0) cycle
+                  ind=ind+ishift_mat-denskern%isvctrp_tg
                   tt=tt+2.0_dp*denskern_%matrix_compr(ind)*tt1*collcom_sr%psit_c(i0+j)
               end do
           end do
@@ -1277,8 +1282,8 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ! value of each gridpoint is given by the special pattern and therefore always known.
     
       ! First fill the kernel with some numbers.
-      do i=1,denskern%nvctr*denskern%nspin
-          denskern_%matrix_compr(i)=sine_taylor(real(denskern%nvctr*denskern%nspin-i+1,kind=8))
+      do i=1,denskern%nvctrp_tg*denskern%nspin
+          denskern_%matrix_compr(i)=sine_taylor(real(denskern%nvctr*denskern%nspin-i+denskern%isvctrp_tg+1,kind=8))
           !denskern_%matrix_compr(i)=sine_taylor(real(mod(denskern%nspin*denskern%nvctr-i+1-1,denskern%nvctr)+1,kind=8))
           !write(660+iproc,'(a,2i8,2es13.5)') 'i, mod(denskern%nspin*denskern%nvctr-i+1-1,denskern%nvctr)+1, arg, val', &
           !     i, mod(denskern%nspin*denskern%nvctr-i+1-1,denskern%nvctr)+1, real(mod(denskern%nspin*denskern%nvctr-i+1-1,denskern%nvctr)+1,kind=8), denskern_%matrix_compr(i)
@@ -1328,12 +1333,12 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
                           !!ispin=(ii-1)/orbs%norbu+1 !integer division to get the spin (1 for spin up (or non polarized), 2 for spin down)
                           tti=test_value_sumrho(ii,iixyz,nxyz)
                           !ikernel=matrixindex_in_compressed_auxilliary(ii,ii)
-                          ikernel=matrixindex_in_compressed(denskern,ii,ii)
+                          ikernel=matrixindex_in_compressed(denskern,ii,ii)-denskern%isvctrp_tg
                           tt=tt+denskern_%matrix_compr(ikernel)*tti*tti
                           do j=i+1,weight(i1,i2,i3)
                               jj=orbital_id(j,i1,i2,i3)+(ispin-1)*orbs%norbu
                               !ikernel=matrixindex_in_compressed_auxilliary(jj,ii)
-                              ikernel=matrixindex_in_compressed(denskern,jj,ii)
+                              ikernel=matrixindex_in_compressed(denskern,jj,ii)-denskern%isvctrp_tg
                               if (ikernel==0) cycle
                               ttj=test_value_sumrho(jj,iixyz,nxyz)
                               tt=tt+2.d0*denskern_%matrix_compr(ikernel)*tti*ttj
