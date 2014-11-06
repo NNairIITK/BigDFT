@@ -1,8 +1,14 @@
 /*! @file
 @brief README of the non-regression tests for the internal libraries
 
-@dir ./tests/libs
+@dir
 @brief Directory of the tests for internal libraries
+
+@dir ./tests/libs/dsygv
+@brief Tests for the routine dsygv (symmetric matrices)
+
+@dir ./tests/libs/psp
+@brief Tests the pseudoptentials inside BigDFT (pspconf.f90)
 
 @page TESTS_LIBS Non-regression tests of the internal parts of BigDFT
 @brief Non-regression tests (internal libraries)

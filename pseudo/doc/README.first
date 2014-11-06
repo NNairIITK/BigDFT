@@ -1,10 +1,12 @@
-/*! 
+/*! @file
+@brief Explain the use of the pseudo and atom programs for the egneration of pseudopotentials
+
 @defgroup PSEUDO The pseudo program
 @brief The pseudopotential generation program: The atom and pseudo programs are used to generate the pseudopotentials used by the BigDFT code.
 
 @details
 
-@section Intro     What is pseudo2.5?
+@section PSEUDO_INTRO     What is pseudo2.5?
 
 Pseudo is a program to generate accurate, soft and transferable Goedecker-type pseudopotentials. 
 The analytic form of the potentials is optimized using a downhill simplex method for least square
@@ -24,7 +26,7 @@ More information is given in the doc and Tutorial subdirectories.
 
 
 
-@section Install    How to Install
+@section PSEUDO_INSTALL    How to Install
 
 To compile pseudo from its sources, you need to specify your preffered fortran MPI compiler, flags,
 libraries and include paths in the corresponding Makefiles. For this, you may want to follow the
@@ -39,7 +41,7 @@ uses simple placeholder routines for MPI, libXC, BLAS and LAPACK.
 
 
 
-@section Run        How to run
+@section PSEUDO_RUN        How to run
 
 First, you will need to setup an input file for the all electron DFT calculation that will provide
 the reference data for the empirical penalty function of the fit. A short description of the
@@ -53,7 +55,7 @@ wavelet transformation.
 
 
 
-@section Details     More README files
+@section PSEUDO_DETAILS     More README files
 
 - README.pseudo.inputs
                          Gives an overview of the inpput files and methodology of pseudo. It also

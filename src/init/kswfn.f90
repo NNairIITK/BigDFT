@@ -1,5 +1,5 @@
 !> @file
-!!  Routines related to the initialization of the Kohn-Sham wavefunctions
+!!  Routines which handles the structure DFT_wavefunction related to the Kohn-Sham wavefunctions
 !! @author
 !!    Copyright (C) 2013-2013 BigDFT group
 !!    This file is distributed under the terms of the
@@ -24,21 +24,17 @@ subroutine kswfn_free_scf_data(KSwfn, freePsit)
   use module_types
   use memory_profiling
   implicit none
+  !Arguments
   type(DFT_wavefunction), intent(inout) :: KSwfn
   logical, intent(in) :: freePsit
-  
+  !Local variables
   character(len = *), parameter :: subname = "kswfn_free_scf_data"
-  integer :: i_all, i_stat
 
   ! Clean KSwfn parts only needed in the SCF loop.
-  call deallocate_diis_objects(KSwfn%diis,subname)
-  i_all=-product(shape(KSwfn%hpsi))*kind(KSwfn%hpsi)
-  deallocate(KSwfn%hpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsi',subname)
+  call deallocate_diis_objects(KSwfn%diis)
+  call f_free_ptr(KSwfn%hpsi)
   if (freePsit) then
-     i_all=-product(shape(KSwfn%psit))*kind(KSwfn%psit)
-     deallocate(KSwfn%psit,stat=i_stat)
-     call memocc(i_stat,i_all,'psit',subname)
+     call f_free_ptr(KSwfn%psit)
   else
      nullify(KSwfn%psit)
   end if
@@ -117,14 +113,15 @@ subroutine kswfn_mpi_copy(psic, jproc, psiStart, psiSize)
 END SUBROUTINE kswfn_mpi_copy
 
 
-subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
+subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc)
   use module_types
   use module_interfaces, except_this_one => kswfn_init_comm
+  use communications_base, only: comms_linear_null
+  use communications_init, only: init_comms_linear, init_comms_linear_sumrho, &
+                                 initialize_communication_potential
   implicit none
   integer, intent(in) :: iproc, nproc
   type(DFT_wavefunction), intent(inout) :: wfn
-  type(input_variables), intent(in) :: in
-  type(atoms_data),intent(in) :: atoms
   type(denspot_distribution), intent(in) :: dpbox
 
   ! Nullify all pointers
@@ -139,11 +136,13 @@ subroutine kswfn_init_comm(wfn, in, atoms, dpbox, iproc, nproc)
   call initialize_communication_potential(iproc, nproc, dpbox%nscatterarr, &
        & wfn%orbs, wfn%lzd, wfn%comgp)
 
-  call nullify_collective_comms(wfn%collcom)
-  call nullify_collective_comms(wfn%collcom_sr)
+  !call nullify_comms_linear(wfn%collcom)
+  !call nullify_comms_linear(wfn%collcom_sr)
+  wfn%collcom=comms_linear_null()
+  wfn%collcom_sr=comms_linear_null()
 
-  call init_collective_comms(iproc, nproc, wfn%npsidim_orbs, wfn%orbs, wfn%lzd, wfn%collcom)
-  call init_collective_comms_sumrho(iproc, nproc, wfn%lzd, wfn%orbs, dpbox%nscatterarr, wfn%collcom_sr)
+  call init_comms_linear(iproc, nproc, wfn%npsidim_orbs, wfn%orbs, wfn%lzd, wfn%collcom)
+  call init_comms_linear_sumrho(iproc, nproc, wfn%lzd, wfn%orbs, dpbox%nscatterarr, wfn%collcom_sr)
 
 END SUBROUTINE kswfn_init_comm
 

@@ -7,21 +7,35 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
-!> Module defining datatypes of the projectors as well as constructirs and destructors
+
+!> Module defining datatypes of the projectors as well as constructors and destructors
 module psp_projectors
-  use module_base, only: wp,gp
+  use module_base
   use locregs
   implicit none
 
-  !parameters identifying the different strategy for the application of a projector 
-  !in a localisation region
-  integer, parameter :: PSP_APPLY_SKIP=0 !<the projector is not applied. This might happend when ilr and iat does not interact
-  integer, parameter :: PSP_APPLY_MASK=1 !<use mask arrays. The mask array has to be created before.
-  integer, parameter :: PSP_APPLY_KEYS=2 !<use keys. No mask nor packing. Equivalend to traditional application
-  integer, parameter :: PSP_APPLY_MASK_PACK=3 !<use masking and creates a pack arrays from them. 
-  !!Most likely this is the common usage for atoms with lots of projectors and localization regions "close" to them
-  integer, parameter :: PSP_APPLY_KEYS_PACK=4 !<use keys and pack arrays. Useful especially when there is no memory to create a lot of packing arrays, 
-  !!for example when lots of lrs interacts with lots of atoms
+  private
+
+  !> Type of pseudopotential
+  integer, parameter, public :: PSPCODE_UNINITIALIZED = 1
+  integer, parameter, public :: PSPCODE_GTH = 2
+  integer, parameter, public :: PSPCODE_HGH = 3
+  integer, parameter, public :: PSPCODE_PAW = 7
+  integer, parameter, public :: PSPCODE_HGH_K = 10
+  integer, parameter, public :: PSPCODE_HGH_K_NLCC = 12
+
+
+  !> Parameters identifying the different strategy for the application of a projector 
+  !! in a localisation region
+  integer, parameter, public :: PSP_APPLY_SKIP=0 !< The projector is not applied. This might happend when ilr and iat does not interact
+  integer, parameter :: PSP_APPLY_MASK=1         !< Use mask arrays. The mask array has to be created before.
+  integer, parameter :: PSP_APPLY_KEYS=2         !< Use keys. No mask nor packing. Equivalend to traditional application
+  integer, parameter :: PSP_APPLY_MASK_PACK=3    !< Use masking and creates a pack arrays from them. 
+                                                 !! Most likely this is the common usage for atoms
+                                                 !! with lots of projectors and localization regions "close" to them
+  integer, parameter :: PSP_APPLY_KEYS_PACK=4    !< Use keys and pack arrays. Useful especially when there is no memory to create a lot of packing arrays, 
+                                                 !! for example when lots of lrs interacts with lots of atoms
+
 
   !> arrays defining how a given projector and a given wavefunction descriptor should interact
   type, public :: nlpsp_to_wfd
@@ -31,6 +45,7 @@ module psp_projectors
      integer, dimension(:,:), pointer :: mask !<mask array of dimesion 3,nmseg_c+nmseg_f for psp applilcation
   end type nlpsp_to_wfd
 
+
   !> Non local pseudopotential descriptors
   type, public :: nonlocal_psp_descriptors
      integer :: mproj !< number of projectors for this descriptor
@@ -38,6 +53,7 @@ module psp_projectors
      type(locreg_descriptors) :: plr !< localization region descriptor of a given projector (null if nlp=0)
      type(nlpsp_to_wfd), dimension(:), pointer :: tolr !<maskings for the locregs, dimension nlr
   end type nonlocal_psp_descriptors
+
 
   !> describe the information associated to the non-local part of Pseudopotentials
   type, public :: DFT_PSP_projectors 
@@ -56,7 +72,14 @@ module psp_projectors
      real(wp), dimension(:), pointer :: hcproj
   end type DFT_PSP_projectors
 
+
+  public :: free_DFT_PSP_projectors,update_nlpsp,hgh_psp_application,DFT_PSP_projectors_null
+  public :: nonlocal_psp_descriptors_null,bounds_to_plr_limits,set_nlpsp_to_wfd,pregion_size
+  public :: deallocate_nonlocal_psp_descriptors
+
+
 contains
+
 
   !creators
   pure function nlpsp_to_wfd_null() result(tolr)
@@ -78,6 +101,7 @@ contains
     type(nonlocal_psp_descriptors) :: pspd
     call nullify_nonlocal_psp_descriptors(pspd)
   end function nonlocal_psp_descriptors_null
+
   pure subroutine nullify_nonlocal_psp_descriptors(pspd)
     implicit none
     type(nonlocal_psp_descriptors), intent(out) :: pspd
@@ -92,6 +116,7 @@ contains
     type(DFT_PSP_projectors) :: nl
     call nullify_DFT_PSP_projectors(nl)
   end function DFT_PSP_projectors_null
+
   pure subroutine nullify_DFT_PSP_projectors(nl)
     implicit none
     type(DFT_PSP_projectors), intent(out) :: nl
@@ -117,6 +142,7 @@ contains
     call f_free_ptr(tolr%mask)
   end subroutine deallocate_nlpsp_to_wfd
 
+
   subroutine deallocate_nonlocal_psp_descriptors(pspd)
     implicit none
     type(nonlocal_psp_descriptors), intent(inout) :: pspd
@@ -132,6 +158,7 @@ contains
     end if
     call deallocate_locreg_descriptors(pspd%plr)
   end subroutine deallocate_nonlocal_psp_descriptors
+
 
   subroutine deallocate_DFT_PSP_projectors(nl)
     implicit none
@@ -153,12 +180,14 @@ contains
     call f_free_ptr(nl%hcproj)
   END SUBROUTINE deallocate_DFT_PSP_projectors
 
+
   subroutine free_DFT_PSP_projectors(nl)
     implicit none
     type(DFT_PSP_projectors), intent(inout) :: nl
     call deallocate_DFT_PSP_projectors(nl)
     call nullify_DFT_PSP_projectors(nl)
   end subroutine free_DFT_PSP_projectors
+
 
   !then routines which are typical of the projector application or creation follow
 
@@ -216,6 +245,7 @@ contains
        end if
     end if
   end subroutine bounds_to_plr_limits
+
 
   !> Finds the size of the smallest subbox that contains a localization region made 
   !! out of atom centered spheres
@@ -775,9 +805,11 @@ contains
 
 end module psp_projectors
 
-!> external routine as the psppar parameters are often passed by address
+
+!> External routine as the psppar parameters are often passed by address
 subroutine hgh_hij_matrix(npspcode,psppar,hij)
   use module_defs, only: gp
+  use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
   implicit none
   !Arguments
   integer, intent(in) :: npspcode
@@ -787,7 +819,7 @@ subroutine hgh_hij_matrix(npspcode,psppar,hij)
   integer :: l,i,j
   real(gp), dimension(2,2,3) :: offdiagarr
 
-  !enter the coefficients for the off-diagonal terms (HGH case, npspcode=3)
+  !enter the coefficients for the off-diagonal terms (HGH case, npspcode=PSPCODE_HGH)
   offdiagarr(1,1,1)=-0.5_gp*sqrt(3._gp/5._gp)
   offdiagarr(2,1,1)=-0.5_gp*sqrt(100._gp/63._gp)
   offdiagarr(1,2,1)=0.5_gp*sqrt(5._gp/21._gp)
@@ -808,12 +840,12 @@ subroutine hgh_hij_matrix(npspcode,psppar,hij)
      !term for all npspcodes
      loop_diag: do i=1,3
         hij(i,i,l)=psppar(l,i) !diagonal term
-        if ((npspcode == 3 .and. l/=4 .and. i/=3) .or. &
-             ((npspcode == 10 .or. npspcode == 12) .and. i/=3)) then !HGH(-K) case, offdiagonal terms
+        if ((npspcode == PSPCODE_HGH .and. l/=4 .and. i/=3) .or. &
+             ((npspcode == PSPCODE_HGH_K .or. npspcode == PSPCODE_HGH_K_NLCC) .and. i/=3)) then !HGH(-K) case, offdiagonal terms
            loop_offdiag: do j=i+1,3
               if (psppar(l,j) == 0.0_gp) exit loop_offdiag
               !offdiagonal HGH term
-              if (npspcode == 3) then !traditional HGH convention
+              if (npspcode == PSPCODE_HGH) then !traditional HGH convention
                  hij(i,j,l)=offdiagarr(i,j-i,l)*psppar(l,j)
               else !HGH-K convention
                  hij(i,j,l)=psppar(l,i+j+1)

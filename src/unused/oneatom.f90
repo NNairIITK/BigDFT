@@ -31,7 +31,7 @@ program oneatom
   type(locreg_descriptors) :: Glr
   type(local_zone_descriptors) :: Lzd
   type(nonlocal_psp_descriptors) :: nlpspd
-  type(communications_arrays) :: comms
+  type(comms_cubic) :: comms
   type(denspot_distribution) :: denspotd
   type(GPU_pointers) :: GPU
   type(diis_objects) :: diis
@@ -162,7 +162,7 @@ program oneatom
   !the allocation with npsidim is not necessary here since DIIS arrays
   !are always calculated in the transposed form
   call allocate_diis_objects(in%idsx,in%alphadiis,sum(comms%ncntt(0:nproc-1)),&
-       orbs%nkptsp,orbs%nspinor,diis,subname)  
+       orbs%nkptsp,orbs%nspinor,diis)  
 
   !write the local potential in pot_ion array
   call createPotential(atoms%geocode,iproc,nproc,atoms,rxyz,hxh,hyh,hzh,&
@@ -296,7 +296,7 @@ program oneatom
   !call last_orthon(iproc,nproc,orbs,Glr%wfd,in%nspin,&
   !     comms,psi,hpsi,psit,evsum)
   
-  call deallocate_diis_objects(diis,subname)
+  call deallocate_diis_objects(diis)
 
   !i_all=-product(shape(proj_G))*kind(proj_G)
   deallocate(proj_G,stat=i_stat)
@@ -333,9 +333,9 @@ program oneatom
   call memocc(i_stat,i_all,'radii_cf',subname)
 
 
-  call deallocate_lr(Glr,subname)
-  call deallocate_comms(comms,subname)
-  call deallocate_orbs(orbs,subname)
+  call deallocate_lr(Glr)
+  call deallocate_comms(comms)
+  call deallocate_orbs(orbs)
   call deallocate_proj_descr(nlpspd,subname)
 
   if (dokernel) then
@@ -357,7 +357,7 @@ program oneatom
   call memocc(i_stat,i_all,'rxyz',subname)
   call free_input_variables(in)
 
-  call deallocate_rho_descriptors(rhodsc,subname)
+  call deallocate_rho_descriptors(rhodsc)
   deallocate(confdatarr)
   !finalize memory counting
   call memocc(0,0,'count','stop')

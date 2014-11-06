@@ -62,7 +62,7 @@ else
 lib_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies $(minima_hopping_sources) abscalc
+binaries_sources = bigdft memguess splsad NEB frequencies global abscalc
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
@@ -90,19 +90,6 @@ else
 etsf_files = wavelib/etsf_fake.f90
 endif
 
-# Specific treatment for global (not distributed).
-if USE_MINIMA_HOPPING
-minima_hopping_sources = global
-else
-minima_hopping_sources =
-endif
-global_SOURCES = # Should be global.f90, but see below.
-global_LDADD = $(bigdft_library) @LINALG_LIBS@
-# Hack to avoid global.f90 inclusion into make dist.
-am_global_OBJECTS = global.$(OBJEXT)
-global_LINK = $(FCLD) $(FCFLAGS) $(AM_CFLAGS) $(CFLAGS) $(global_LDFLAGS) \
-	$(LDFLAGS) -o $@
-
 AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
@@ -129,6 +116,7 @@ high_level = cluster.f90 \
 	pdos.f90 \
 	sdcg.f90 \
 	bfgs.f90 \
+   sbfgs.f90 \
 	scfloop_API.f90 \
 	tddft.f90 \
 	output.f90 \
@@ -180,7 +168,6 @@ low_level = \
 	linear/cleanup.f90 \
 	linear/nullify.f90 \
 	linear/filterModule.f90 \
-	linear/communicatetypes.f90 \
 	linear/misc.f90 \
 	linear/getLocBasis.f90 \
 	linear/convolutions_aux.f90 \
@@ -201,16 +188,15 @@ low_level = \
 	linear/derivativeBasis.f90 \
 	linear/parallelLinAlg.f90 \
 	linear/locReg_linear.f90 \
-	linear/communicatePotential.f90 \
 	linear/hpsiortho_linear.f90 \
 	linear/init_collective_comms.f90 \
 	linear/optimize_coeffs.f90 \
 	linear/foe.f90 \
 	linear/chebyshev.f90 \
-	linear/communications_onesided.f90 \
 	linear/pulay.f90 \
 	linear/transferintegrals.f90 \
-	linear/sparse_matrices.f90
+	linear/cdft.f90 \
+	linear/frags.f90
 
 # C objects
 c_level = posfiles.c \
@@ -323,6 +309,10 @@ bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
 
+
+global_SOURCES = global.f90
+global_LDADD = $(bigdft_library) @LINALG_LIBS@
+
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.* input_variables_definition-inc.h
 clean-local:
 	rm -rf tmp-libbigdft
@@ -350,7 +340,11 @@ geometry.o bfgs.o sdcg.o: lbfgs.o
 
 initAndUtils.o linear/initAndUtils.o: linear/initAndUtils.f90 cleanup.o
 
+linearScaling.o transferintegrals.o: i-o.o
+
 NEB.o: images.o
+
+restart.o: i-o.o
 
 # Introspection for Python bindings
 # ---------------------------------

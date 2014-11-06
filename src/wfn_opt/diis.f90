@@ -24,7 +24,7 @@
 !!    integer, intent(in) :: iproc,nproc,ncong,iscf,iter,nspin,ixc
 !!    real(gp), intent(in) :: hx,hy,hz
 !!    type(orbitals_data), intent(inout) :: orbs
-!!    type(communications_arrays), intent(in) :: comms
+!!    type(comms_cubic), intent(in) :: comms
 !!    type(locreg_descriptors), intent(in) :: lr
 !!    type(GPU_pointers), intent(inout) :: GPU
 !!    type(orthon_data), intent(in) :: orthpar
@@ -382,16 +382,15 @@
 
 
 !> Allocate diis objects
-subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis,subname) !n(m)
+subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis)
   use module_base
   use module_types
   implicit none
-  character(len=*), intent(in) :: subname
   integer, intent(in) :: idsx,npsidim,nkptsp,nspinor !n(m)
   real(gp), intent(in) :: alphadiis
   type(diis_objects), intent(inout) :: diis
   !local variables
-  integer :: i_stat,ncplx,ngroup
+  integer :: ncplx,ngroup
 
   !calculate the number of complex components
   if (nspinor > 1) then
@@ -406,12 +405,9 @@ subroutine allocate_diis_objects(idsx,alphadiis,npsidim,nkptsp,nspinor,diis,subn
   !add the possibility of more than one diis group
   ngroup=1
 
-  allocate(diis%psidst(npsidim*idsx+ndebug),stat=i_stat)
-  call memocc(i_stat,diis%psidst,'psidst',subname)
-  allocate(diis%hpsidst(npsidim*idsx+ndebug),stat=i_stat)
-  call memocc(i_stat,diis%hpsidst,'hpsidst',subname)
-  allocate(diis%ads(ncplx,idsx+1,idsx+1,ngroup,nkptsp,1+ndebug),stat=i_stat)
-  call memocc(i_stat,diis%ads,'ads',subname)
+  diis%psidst = f_malloc_ptr(npsidim*idsx+ndebug,id='diis%psidst')
+  diis%hpsidst = f_malloc_ptr(npsidim*idsx,id='diis%hpsidst')
+  diis%ads = f_malloc_ptr((/ ncplx, idsx+1, idsx+1, ngroup, nkptsp, 1 /),id='diis%ads')
   call to_zero(nkptsp*ncplx*ngroup*(idsx+1)**2,diis%ads(1,1,1,1,1,1))
 
   !initialize scalar variables
@@ -433,24 +429,16 @@ END SUBROUTINE allocate_diis_objects
 
 
 !> De-Allocate diis objects
-subroutine deallocate_diis_objects(diis,subname)
+subroutine deallocate_diis_objects(diis)
   use module_base
   use module_types
   implicit none
-  character(len=*), intent(in) :: subname
   type(diis_objects), intent(inout) :: diis
   !local variables
-  integer :: i_all,i_stat
 
-  i_all=-product(shape(diis%psidst))*kind(diis%psidst)
-  deallocate(diis%psidst,stat=i_stat)
-  call memocc(i_stat,i_all,'psidst',subname)
-  i_all=-product(shape(diis%hpsidst))*kind(diis%hpsidst)
-  deallocate(diis%hpsidst,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsidst',subname)
-  i_all=-product(shape(diis%ads))*kind(diis%ads)
-  deallocate(diis%ads,stat=i_stat)
-  call memocc(i_stat,i_all,'ads',subname)
+  call f_free_ptr(diis%psidst)
+  call f_free_ptr(diis%hpsidst)
+  call f_free_ptr(diis%ads)
 
 END SUBROUTINE deallocate_diis_objects
 
@@ -460,7 +448,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
      & n1,n2,n3,ucvol,rpnrm,nscatterarr)
   use module_base
   use module_types
-  use defs_basis, only: AB6_NO_ERROR
+  use defs_basis, only: AB7_NO_ERROR
   use m_ab7_mixing
   implicit none
   integer, intent(in) :: npoints, istep, n1, n2, n3, nproc, iproc
@@ -470,7 +458,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   real(dp), dimension(npoints), intent(inout) :: rhopot
   real(gp), intent(out) :: rpnrm
   !local variables
-  integer :: ierr,ie,ii,i_stat,i_all
+  integer :: ierr,ie,ii
   character(len = *), parameter :: subname = "mix_rhopot"
   character(len = 500) :: errmess
   integer, allocatable :: user_data(:)
@@ -490,8 +478,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
        & rhopot(1), 1)
 
   ! Store the scattering of rho in user_data
-  allocate(user_data(2 * nproc), stat = i_stat)
-  call memocc(i_stat,user_data,'user_data',subname)
+  user_data = f_malloc(2 * nproc,id='user_data')
   do ii = 1, nproc, 1
      user_data(1 + (ii - 1 ) * 2:ii * 2) = &
           & n1 * n2 * (/ nscatterarr(iproc, 2), nscatterarr(iproc, 4) /)
@@ -501,16 +488,14 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   call ab7_mixing_eval(mix, rhopot, istep, n1 * n2 * n3, ucvol, &
        & bigdft_mpi%mpi_comm, (nproc > 1), ierr, errmess, resnrm = rpnrm, &
        & fnrm = fnrm_denpot, fdot = fdot_denpot, user_data = user_data)
-  if (ierr /= AB6_NO_ERROR) then
+  if (ierr /= AB7_NO_ERROR) then
      if (iproc == 0) write(0,*) errmess
      call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
   end if
   rpnrm = sqrt(rpnrm) / real(n1 * n2 * n3, gp)
   rpnrm = rpnrm / (1.d0 - alphamix)
 
-  i_all=-product(shape(user_data))*kind(user_data)
-  deallocate(user_data,stat=i_stat)
-  call memocc(i_stat,i_all,'user_data',subname)
+  call f_free(user_data)
   ! Copy new in vrespc
   call vcopy(npoints, rhopot(1), 1, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1)
 
@@ -523,10 +508,11 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
   use module_interfaces, except_this_one => psimix
   use yaml_output
   use diis_sd_optimization
+  use communications_base, only: comms_cubic
   implicit none
   integer, intent(in) :: iproc,nproc,ndim_psi
   type(orbitals_data), intent(in) :: orbs
-  type(communications_arrays), intent(in) :: comms
+  type(comms_cubic), intent(in) :: comms
   type(diis_objects), intent(inout) :: diis
   real(wp), dimension(ndim_psi), intent(inout) :: psit,hpsit
   !real(wp), dimension(:), pointer :: psit,hpsit
@@ -673,14 +659,6 @@ subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
      diis%ids=0
      diis%idiistol=0
 
-     !no need to reallocate
-     !allocate(psidst(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
-     !call memocc(i_stat,psidst,'psidst',subname)
-     !allocate(hpsidst_sp(sum(comms%ncntt(0:nproc-1))*idsx+ndebug),stat=i_stat)
-     !call memocc(i_stat,hpsidst_sp,'hpsidst_sp',subname)
-     !allocate(ads(idsx+1,idsx+1,orbs%nkptsp*3+ndebug),stat=i_stat)
-     !call memocc(i_stat,ads,'ads',subname)
-
      !ncplx and ngroup have to be added
      call to_zero(nkptsp*(idsx+1)**2,diis%ads(1,1,1,1,1,1))
   end if
@@ -694,15 +672,16 @@ END SUBROUTINE diis_or_sd
 subroutine diisstp(iproc,nproc,orbs,comms,diis)
   use module_base
   use module_types
+  use communications_base, only: comms_cubic
   implicit none
 ! Arguments
   integer, intent(in) :: nproc,iproc
   type(orbitals_data), intent(in) :: orbs
-  type(communications_arrays), intent(in) :: comms
+  type(comms_cubic), intent(in) :: comms
   type(diis_objects), intent(inout) :: diis
 ! Local variables
   character(len=*), parameter :: subname='diisstp'
-  integer :: i,j,ist,jst,mi,info,jj,mj,i_all,i_stat,ierr,ipsi_spin_sh,iorb_group_sh
+  integer :: i,j,ist,jst,mi,info,jj,mj,ipsi_spin_sh,iorb_group_sh
   integer :: ikptp,ikpt,ispsi,ispsidst,nvctrp,icplx,ncplx,norbi,ngroup,igroup,iacc_add
   complex(tp) :: zdres,zdotc
   real(tp), dimension(2) :: psicoeff
@@ -722,14 +701,11 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
   !all the wavefunctions for a given k-point go only in one group
   ngroup=1
 
-  allocate(ipiv(diis%idsx+1+ndebug),stat=i_stat)
-  call memocc(i_stat,ipiv,'ipiv',subname)
-  allocate(rds(ncplx,diis%idsx+1,ngroup,orbs%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,rds,'rds',subname)
+  ipiv = f_malloc(diis%idsx+1,id='ipiv')
+  rds = f_malloc((/ ncplx, diis%idsx+1, ngroup, orbs%nkpts /),id='rds')
   call to_zero(ncplx*ngroup*(diis%idsx+1)*orbs%nkpts,rds(1,1,1,1))
 
-  allocate(adsw(ncplx,diis%idsx+1,diis%idsx+1+ndebug),stat=i_stat)
-  call memocc(i_stat,adsw,'adsw',subname)
+  adsw = f_malloc((/ ncplx, diis%idsx+1, diis%idsx+1 /),id='adsw')
   call to_zero(ncplx*(diis%idsx+1)**2,adsw(1,1,1))
 
   ispsidst=1
@@ -788,7 +764,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
      ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
   end do
   if (nproc > 1) then
-     call mpiallred(rds(1,1,1,1),ncplx*ngroup*(diis%idsx+1)*orbs%nkpts,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+     call mpiallred(rds(1,1,1,1),ncplx*ngroup*(diis%idsx+1)*orbs%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
   endif
 
   ispsi=1
@@ -978,15 +954,9 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
      call write_diis_weights(ncplx,diis%idsx,ngroup,orbs%nkpts,min(diis%idsx,diis%ids),rds)
   endif
   
-  i_all=-product(shape(ipiv))*kind(ipiv)
-  deallocate(ipiv,stat=i_stat)
-  call memocc(i_stat,i_all,'ipiv',subname)
-  i_all=-product(shape(rds))*kind(rds)
-  deallocate(rds,stat=i_stat)
-  call memocc(i_stat,i_all,'rds',subname)
-  i_all=-product(shape(adsw))*kind(adsw)
-  deallocate(adsw,stat=i_stat)
-  call memocc(i_stat,i_all,'adsw',subname)
+  call f_free(ipiv)
+  call f_free(rds)
+  call f_free(adsw)
 
 END SUBROUTINE diisstp
 
@@ -1063,7 +1033,7 @@ end function s2d_dot
 !!  implicit none
 !!  integer, intent(in) :: iproc,nproc
 !!  type(orbitals_data), intent(in) :: orbs
-!!  type(communications_arrays), intent(in) :: comms
+!!  type(comms_cubic), intent(in) :: comms
 !!  type(diis_objects), intent(inout) :: diis
 !!  type(diis_objects),dimension(orbs%norb),intent(in out):: diisArr
 !!  real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(inout) :: psit,hpsit
@@ -1143,7 +1113,7 @@ end function s2d_dot
 !!! Arguments
 !!  integer, intent(in) :: nproc,iproc
 !!  type(orbitals_data), intent(in) :: orbs
-!!  type(communications_arrays), intent(in) :: comms
+!!  type(comms_cubic), intent(in) :: comms
 !!  type(diis_objects), intent(inout) :: diis
 !!  type(diis_objects),dimension(orbs%norb),intent(in out):: diisArr
 !!  real(wp), dimension(sum(comms%ncntt(0:nproc-1))), intent(out) :: psit

@@ -9,7 +9,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!>print error information about last error
+!> Print error information about last error
 subroutine f_dump_last_error()
   use dictionaries, only: f_get_error_dict,f_get_last_error,max_field_length
   use yaml_output, only: yaml_dict_dump,yaml_map
@@ -26,6 +26,8 @@ subroutine f_dump_last_error()
   end if
 end subroutine f_dump_last_error
 
+
+!> Dump all errors which were handled
 subroutine f_dump_all_errors()
   use dictionaries, only: f_get_error_dict,f_get_past_error,&
        max_field_length,f_get_no_of_errors
@@ -41,7 +43,8 @@ subroutine f_dump_all_errors()
   end do
 end subroutine f_dump_all_errors
 
-!> dump the list of possible errors as they are defined at present
+
+!> Dump the list of possible errors as they are defined at present
 subroutine f_dump_possible_errors(extra_msg)
   use yaml_output
   use dictionaries, only: f_get_error_definitions
@@ -50,10 +53,10 @@ subroutine f_dump_possible_errors(extra_msg)
   
   call yaml_newline()
   call yaml_comment('Error list',hfill='~')
-  call yaml_open_map('List of errors defined so far')
+  call yaml_mapping_open('List of errors defined so far')
 !  call yaml_dict_dump(f_get_error_definitions(),verbatim=.true.)
   call yaml_dict_dump(f_get_error_definitions())
-  call yaml_close_map()
+  call yaml_mapping_close()
   call yaml_comment('End of error list',hfill='~')
   if (len_trim(extra_msg) > 0) then
      call yaml_map('Additional Info',trim(extra_msg))
@@ -62,6 +65,8 @@ subroutine f_dump_possible_errors(extra_msg)
   end if
 end subroutine f_dump_possible_errors
 
+
+!> Initialize all arrays and dictionaries for handling the errors
 subroutine initialize_flib_errors()
   use dictionaries, only: dictionaries_errors
   use yaml_output, only: yaml_output_errors
@@ -72,11 +77,13 @@ subroutine initialize_flib_errors()
 
   call dictionaries_errors()
   call yaml_output_errors()
+  !Intilialize the error to parse yaml documents
   call yaml_parse_errors()
   call dynamic_memory_errors()
   call timing_errors()
   
 end subroutine initialize_flib_errors
+
 
 subroutine initialize_flib_timing_categories()
   use time_profiling, only: f_timing_category,f_timing_category_group
@@ -100,7 +107,8 @@ subroutine initialize_flib_timing_categories()
 
 end subroutine initialize_flib_timing_categories
 
-!>routine which initializes f_lib global pointers, to be called before any action 
+
+!> Routine which initializes f_lib global pointers, to be called before any action 
 !! is taken
 subroutine f_lib_initialize()
   use dictionaries, only: f_err_initialize
@@ -121,6 +129,7 @@ subroutine f_lib_initialize()
 
 end subroutine f_lib_initialize
 
+
 !> calls f_err_severe from outside the module
 subroutine f_lib_err_severe_external(message)
   use dictionaries, only: f_err_severe
@@ -130,11 +139,14 @@ subroutine f_lib_err_severe_external(message)
   call f_err_severe()
 end subroutine f_lib_err_severe_external
 
-!>routine which finalize f_lib 
+
+!> Routine which finalize f_lib 
 subroutine f_lib_finalize()
+  use dictionaries_base, only: dictionary_check_leak
   use dictionaries, only: f_err_finalize,dict_get_num
   use dynamic_memory, only: f_malloc_finalize
   use yaml_output, only: yaml_close_all_streams,yaml_map,yaml_comment,yaml_toa
+  use yaml_parse, only: yaml_parse_errors_finalize
   use time_profiling, only: f_timing_finalize
   implicit none
   !local variables
@@ -144,13 +156,14 @@ subroutine f_lib_finalize()
   if (iproc == 0) then
      call dict_get_num(ndict,ndict_max,nlibs,nlibs_max)
      call yaml_map('Max No. of dictionaries used',ndict_max, advance='no')
-     call yaml_comment('( '//trim(yaml_toa(ndict))//' still in use)')
+     call yaml_comment('('//trim(yaml_toa(ndict))//' still in use)')
      !general finalization, the f_lib should come back to uninitialized status
      call yaml_map('Number of dictionary folders allocated',nlibs_max)
   end if
   call yaml_close_all_streams()
+  call yaml_parse_errors_finalize()
   call f_err_finalize()
   call f_timing_finalize()
-
+  !debug, once again
+  call dictionary_check_leak()
 end subroutine f_lib_finalize
-

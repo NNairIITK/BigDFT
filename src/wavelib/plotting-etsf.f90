@@ -135,16 +135,13 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,&
   rprim = reshape((/ (hxh * nc1),0.0_gp,0.0_gp, &
        & 0.0_gp,(hyh *nc2),0.0_gp, &
        & 0.0_gp,0.0_gp,(hzh *nc3) /), (/ 3, 3 /))
-  allocate(xred(3, at%astruct%nat),stat=i_stat)
-  call memocc(i_stat,xred,'xred',subname)
+  xred = f_malloc((/ 3, at%astruct%nat /),id='xred')
   do iat = 1, at%astruct%nat, 1
      xred(:, iat) = rxyz(:, iat) / (/ hxh * nc1, hyh * nc2, hzh * nc3 /)
   end do
-  allocate(znucl(at%astruct%ntypes),stat=i_stat)
-  call memocc(i_stat,znucl,'znucl',subname)
+  znucl = f_malloc(at%astruct%ntypes,id='znucl')
   znucl = real(at%nzatom)
-  allocate(spnames(at%astruct%ntypes),stat=i_stat)
-  call memocc(i_stat,spnames,'spnames',subname)
+  spnames = f_malloc(at%astruct%ntypes,id='spnames')
   do iat = 1, at%astruct%ntypes, 1
      !call nzsymbol(at%nzatom(iat), spnames(iat))
      call atomic_info(at%nzatom(iat),at%nelpsp(iat),symbol=spnames(iat))
@@ -160,15 +157,9 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,&
      write(0, "(A)") trim(error_string)
      stop
   end if
-  i_all=-product(shape(xred))*kind(xred)
-  deallocate(xred)
-  call memocc(i_stat,i_all,'xred',subname)
-  i_all=-product(shape(znucl))*kind(znucl)
-  deallocate(znucl)
-  call memocc(i_stat,i_all,'znucl',subname)
-  i_all=-product(shape(spnames))*kind(spnames)
-  deallocate(spnames)
-  call memocc(i_stat,i_all,'spnames',subname)
+  call f_free(xred)
+  call f_free(znucl)
+  call f_free(spnames)
 
   ! We switch to write mode.
   call etsf_io_low_set_write_mode(ncid, lstat, error_data = error)
@@ -179,8 +170,7 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,&
   end if
   
   ! We fill up the density.
-  allocate(buffer(nc1, dims%number_of_components),stat=i_stat)
-  call memocc(i_stat,buffer,'buffer',subname)
+  buffer = f_malloc((/ nc1, dims%number_of_components /),id='buffer')
   do i3=0,nc3 - 1
      do i2=0,nc2 - 1
         buffer(:, 1) = x(nl1:nl1+nc1-1,i2+nl2,i3+nl3, 1)
@@ -199,9 +189,7 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,&
         end if
      end do
   end do
-  i_all=-product(shape(buffer))*kind(buffer)
-  deallocate(buffer)
-  call memocc(i_stat,i_all,'buffer',subname)
+  call f_free(buffer)
 
   call etsf_io_low_close(ncid, lstat, error_data = error)
   if (.not. lstat) then
@@ -256,14 +244,11 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   groups%geometry => geometry
   geometry%primitive_vectors => rprim
   nat = dims%number_of_atoms
-  allocate(rxyz(3, nat),stat=i_stat)
-  call memocc(i_stat,rxyz,'rxyz',subname)
+  rxyz = f_malloc_ptr((/ 3, nat /),id='rxyz')
   geometry%reduced_atom_positions => rxyz
-  allocate(iatypes(nat),stat=i_stat)
-  call memocc(i_stat,iatypes,'iatypes',subname)
+  iatypes = f_malloc_ptr(nat,id='iatypes')
   geometry%atom_species => iatypes
-  allocate(znucl_(dims%number_of_atom_species),stat=i_stat)
-  call memocc(i_stat,znucl_,'znucl_',subname)
+  znucl_ = f_malloc(dims%number_of_atom_species,id='znucl_')
   geometry%atomic_numbers => znucl_
   call etsf_io_data_read(trim(filename) // ".etsf.nc", groups, lstat, error)
   if (.not. lstat) then
@@ -276,12 +261,9 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      rxyz(2, iat) = rxyz(2, iat) * rprim(2, 2)
      rxyz(3, iat) = rxyz(3, iat) * rprim(3, 3)
   end do
-  allocate(znucl(dims%number_of_atom_species),stat=i_stat)
-  call memocc(i_stat,znucl,'znucl',subname)
+  znucl = f_malloc_ptr(dims%number_of_atom_species,id='znucl')
   znucl = int(znucl_)
-  i_all=-product(shape(znucl_))*kind(znucl_)
-  deallocate(znucl_,stat=i_stat)
-  call memocc(i_stat,i_all,'znucl_',subname)
+  call f_free(znucl_)
 
   if (dims%number_of_components == 4) then
      nspin = 2
@@ -323,12 +305,9 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   n3=n3t/2-nbz
   n3i=2*n3+(1-nbz)+2*nl3
   if(associated(rho)) then
-     i_all=-product(shape(rho))*kind(rho)
-     deallocate(rho,stat=i_stat)
-     call memocc(i_stat,i_all,'rho',subname)
+     call f_free_ptr(rho)
   end if
-  allocate(rho(n1i,n2i,n3i,nspin+ndebug) ,stat=i_stat)
-  call memocc(i_stat,rho,'rho',subname)
+  rho = f_malloc_ptr((/ n1i, n2i, n3i, nspin /),id='rho')
   
   call etsf_io_low_open_read(ncid, trim(filename) // ".etsf.nc", lstat, error_data = error)
   if (.not. lstat) then

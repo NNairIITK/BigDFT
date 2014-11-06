@@ -129,7 +129,7 @@
    itrpmax                             : 1 #      maximum number of diagonalisation iterations
    rpnrm_cv                            : 1e-4 #   stop criterion on the residue of potential or density
    norbsempty                          : 0 #      No. of additional bands
-   Tel                                 : 0. #     electronic temperature
+   tel                                 : 0. #     electronic temperature
    occopt                              : 1 #      smearing method
    alphamix                            : 0. #     Multiplying factors for the mixing
    alphadiis                           : 2. #     Multiplying factors for the electronic DIIS
@@ -407,6 +407,7 @@
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - symmetries have been disabled, k points are not irreductible.
+ - No convergence within the allowed number of minimization steps
  - Wavefunctions not converged after cycle  1
  Status of the memory at finalization:
    Timestamp of Profile initialization:

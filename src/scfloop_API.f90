@@ -80,7 +80,11 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   ! need to transform xred into xcart
   do i = 1, scfloop_obj%atoms%astruct%nat, 1
      do j=1,3
-        scfloop_obj%atoms%astruct%rxyz(j,i)=modulo(xred(j,i),1._gp)*acell(j)
+        if (scfloop_obj%atoms%astruct%geocode=='F') then
+           scfloop_obj%atoms%astruct%rxyz(j,i)=xred(j,i)*acell(j)
+        else
+           scfloop_obj%atoms%astruct%rxyz(j,i)=modulo(xred(j,i),1._gp)*acell(j)
+        end if
      end do
   end do
 
@@ -117,25 +121,23 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
   !Arguments
   integer, intent(in) :: natom, itime, me
   real(dp), intent(in) :: epot, ekin
-  real(dp), intent(in) :: acell(3)
-  real(dp), intent(in) :: xred(3,natom)
-  real(dp), intent(in) :: fred(3, natom), vel(3, natom),rprimd(3,3)
+  real(dp), dimension(3), intent(in) :: acell
+  real(dp), dimension(3,natom), intent(in) :: xred
+  real(dp), dimension(3,natom), intent(in) :: fred, vel, rprimd
   !Local variables
   character(len=*), parameter :: subname='scfloop_output'
   character(len = 5) :: fn5
   character(len = 40) :: comment
-  integer :: i, i_stat, i_all
   real :: fnrm
   real(dp), dimension(:,:), allocatable :: xcart,fcart
+  integer :: i
 
   if (me /= 0) return
 
   fnrm = real(0, dp)
   ! need to transform xred into xcart
-  allocate(xcart(3, natom+ndebug),stat=i_stat)
-  call memocc(i_stat,xcart,'xcart',subname)
-  allocate(fcart(3, natom+ndebug),stat=i_stat)
-  call memocc(i_stat,fcart,'fcart',subname)
+  xcart = f_malloc((/ 3, natom /),id='xcart')
+  fcart = f_malloc((/ 3, natom /),id='fcart')
 
   do i = 1, natom
      xcart(:, i) = xred(:, i) * acell(:)
@@ -148,18 +150,14 @@ subroutine scfloop_output(acell, epot, ekin, fred, itime, me, natom, rprimd, vel
   write(fn5,'(i5.5)') itime+itime_shift_for_restart
   write(comment,'(a,1pe10.3)')'AB6MD:fnrm= ', sqrt(fnrm)
   call write_atomic_file(trim(scfloop_obj%inputs%dir_output)//'posmd_'//fn5, &
-       & epot + ekin, xcart, scfloop_obj%atoms, trim(comment),forces=fcart)
+       & epot + ekin, xcart, scfloop_obj%atoms%astruct%ixyz_int, scfloop_obj%atoms, trim(comment),forces=fcart)
 
   !write velocities
   write(comment,'(a,i6.6)')'Timestep= ',itime+itime_shift_for_restart
   call wtvel('velocities.xyz',vel,scfloop_obj%atoms,comment)
 
-  i_all=-product(shape(xcart))*kind(xcart)
-  deallocate(xcart,stat=i_stat)
-  call memocc(i_stat,i_all,'xcart',subname)
-  i_all=-product(shape(fcart))*kind(fcart)
-  deallocate(fcart,stat=i_stat)
-  call memocc(i_stat,i_all,'fcart',subname)
+  call f_free(xcart)
+  call f_free(fcart)
 
   
   !To avoid warning from compiler

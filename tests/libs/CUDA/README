@@ -1,7 +1,7 @@
 /*! @file
 @brief README for the test of the CUDA implementation.
 
-@dir ./tests/libs/CUDA
+@dir
 @brief Tests the convolutions with CUDA
 
 */

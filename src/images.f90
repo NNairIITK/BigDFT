@@ -199,10 +199,12 @@ MODULE Minimization_routines
         vel(:) = vel_component * force_versor
       ELSE
         vel(:) = 0.D0
-      END IF    
-      
-    END SUBROUTINE quick_min_second_step    
+      END IF
+
+    END SUBROUTINE quick_min_second_step
+
 END MODULE Minimization_routines
+
 
 module module_images
   use module_defs
@@ -257,7 +259,9 @@ module module_images
      real(gp), dimension(:), pointer :: old_grad, delta_pos, vel
   end type run_image
 
+
 contains
+
 
   FUNCTION norm(vect)
     IMPLICIT NONE
@@ -267,6 +271,7 @@ contains
 
     norm = SQRT( DOT_PRODUCT( vect , vect ) )
   END FUNCTION norm
+
 
   FUNCTION cubic_pbc( vect, Lx, Ly, Lz )
     IMPLICIT NONE    
@@ -295,6 +300,8 @@ contains
     END DO
   END FUNCTION cubic_pbc
 
+
+  !> Initialize the images (replica) of the atomic coordinates along the NEB
   subroutine image_init(img, inputs, atoms, rst, algorithm)
     use module_interfaces, only: run_objects_associate
     use dynamic_memory, only: to_zero
@@ -336,6 +343,7 @@ contains
     end if
   end subroutine image_init
 
+
   subroutine image_set_init_vel(img, ndim, vel0)
     implicit none
     integer, intent(in) :: ndim
@@ -344,6 +352,7 @@ contains
 
     call vcopy(ndim, vel0(1), 1, img%vel(1), 1)
   end subroutine image_set_init_vel
+
 
   subroutine image_deallocate(img, free_subs)
     implicit none
@@ -360,6 +369,7 @@ contains
     if (associated(img%vel)) deallocate(img%vel)
   end subroutine image_deallocate
 
+
   function images_get_energies(imgs)
     implicit none
     type(run_image), dimension(:), intent(in) :: imgs
@@ -371,6 +381,7 @@ contains
        images_get_energies(i) = imgs(i)%outs%energy
     end do
   end function images_get_energies
+
 
   function images_get_activation(imgs)
     implicit none
@@ -385,6 +396,7 @@ contains
     end do
   end function images_get_activation
 
+
   function images_get_errors(imgs)
     implicit none
     type(run_image), dimension(:), intent(in) :: imgs
@@ -396,6 +408,7 @@ contains
        images_get_errors(i) = imgs(i)%error
     end do
   end function images_get_errors
+
 
   subroutine compute_local_tangent(tgt, ndim, V, posm1, pos0, posp1, Lx, Ly, Lz)
     implicit none
@@ -447,6 +460,7 @@ contains
     tgt = tgt / norm( tgt )
   END SUBROUTINE compute_local_tangent
 
+
   SUBROUTINE compute_local_gradient(ndim, grad, posm1, pos0, posp1, tgt, PES_forces, Lx, Ly, Lz, &
        & k, full, climbing)
     IMPLICIT NONE
@@ -487,6 +501,7 @@ contains
     end if
   END SUBROUTINE compute_local_gradient
 
+
   subroutine compute_k(nimages, k, V, k_min, k_max)
     implicit none
     integer, intent(in) :: nimages
@@ -514,6 +529,7 @@ contains
        END IF
     end do elastic_const_loop
   END SUBROUTINE compute_k
+
 
   subroutine compute_neb_pos(imgs, iteration, neb)
     implicit none
@@ -555,6 +571,7 @@ contains
     ! Global line treatment.
     IF ( imgs(1)%algorithm == 6 ) CALL termalization(imgs, neb%temp_req)
   END SUBROUTINE compute_neb_pos
+
   
   SUBROUTINE termalization(imgs, temp_req)
     IMPLICIT NONE
@@ -578,6 +595,7 @@ contains
        imgs(i)%vel = imgs(i)%vel * fact
     end do
   END SUBROUTINE termalization
+
 
   SUBROUTINE write_restart(restart_file, imgs, fix_atom)
     IMPLICIT NONE
@@ -609,6 +627,7 @@ contains
     END DO
     CLOSE( UNIT = unit )
   END SUBROUTINE write_restart
+  
 
   SUBROUTINE write_restart_vel(velocity_file, imgs)
     IMPLICIT NONE
@@ -629,6 +648,7 @@ contains
     END DO
     CLOSE( UNIT = unit )
   END SUBROUTINE write_restart_vel
+
 
   SUBROUTINE write_dat_files(job_name, imgs, iter)
     IMPLICIT NONE
@@ -713,6 +733,7 @@ contains
 
   END SUBROUTINE write_dat_files
 
+
   subroutine images_output_step(imgs, full, iteration, tol)
     use yaml_output
     implicit none
@@ -730,22 +751,22 @@ contains
     if (present(full)) full_ = full
 
     if (full_) then
-       call yaml_open_sequence("Energy and error per image")
+       call yaml_sequence_open("Energy and error per image")
        DO i = 1, size(imgs)
           call yaml_sequence(advance='no')
-          call yaml_open_map(flow=.true.)
+          call yaml_mapping_open(flow=.true.)
           call yaml_map("Energy (eV)", imgs(i)%outs%energy * Ha_eV,fmt='(F16.8)')
           call yaml_map("error (eV/ang)", imgs(i)%error * ( Ha_eV / Bohr_Ang ),fmt='(F8.5)')
-          call yaml_close_map(advance='no')
+          call yaml_mapping_close(advance='no')
 !!$          call yaml_sequence( &
 !!$               dict((/ "Energy (eV)"      .is. yaml_toa(V(i) * Ha_eV,fmt='(F16.8)') ,&
 !!$                       "error (eV / ang)" .is. yaml_toa(error(i) * ( Ha_eV / Bohr_Ang ),fmt='(F8.5)') /), &
 !!$                       advance = "no")
           call yaml_comment(trim(yaml_toa(i,fmt='(i2.2)')))
        END DO
-       call yaml_close_sequence()
+       call yaml_sequence_close()
     else
-       call yaml_open_map(flow=.true.)
+       call yaml_mapping_open(flow=.true.)
        call yaml_map("Ea (eV)", images_get_activation(imgs) * Ha_eV,fmt='(F10.6)')
        if (present(tol)) then
           ! Print the update scheme.
@@ -762,13 +783,14 @@ contains
        end if
        call yaml_map("max err (eV/ang)", maxval(images_get_errors(imgs)) * ( Ha_eV / Bohr_Ang ),fmt='(F10.6)')
        if (present(iteration)) then
-          call yaml_close_map(advance="no")
+          call yaml_mapping_close(advance="no")
           call yaml_comment(trim(yaml_toa(iteration, fmt='(i3.3)')))
        else
-          call yaml_close_map()
+          call yaml_mapping_close()
        end if
     end if
   END SUBROUTINE images_output_step
+
 
   subroutine images_collect_results(imgs, igroup, nimages, mpi_env)
     implicit none
@@ -806,7 +828,8 @@ contains
 
 END MODULE module_images
 
-! Public routines.
+
+!> Public routines.
 subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
      & km1, kp1, optimization, climbing, neb)
   use Minimization_routines
@@ -902,6 +925,7 @@ subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
   deallocate(grad)
 END SUBROUTINE image_update_pos
 
+
 subroutine image_update_pos_from_file(img, iteration, filem1, filep1, km1, kp1, climbing, neb)
   use Minimization_routines
   use module_types
@@ -919,7 +943,6 @@ subroutine image_update_pos_from_file(img, iteration, filem1, filep1, km1, kp1, 
   real(gp), dimension(:,:), pointer :: rxyzm1, rxyzp1
   type(atomic_structure) :: astruct
   real(gp) :: Vm1, Vp1
-  integer :: stat
   call f_routine(id=subname)
 
   img%error = UNINITIALIZED(real(1, gp))
@@ -928,9 +951,11 @@ subroutine image_update_pos_from_file(img, iteration, filem1, filep1, km1, kp1, 
   call nullify_atomic_structure(astruct)
 
   if (trim(filem1) /= "") then
+     call f_err_open_try()
      call set_astruct_from_file(trim(filem1), bigdft_mpi%iproc, astruct, &
-          & status = stat, energy = Vm1)
-     if (stat /= 0 .or. astruct%nat /= img%run%atoms%astruct%nat) then
+          & energy = Vm1)
+     call f_err_close_try()
+     if (f_err_pop() /= 0 .or. astruct%nat /= img%run%atoms%astruct%nat) then
         call free_me()
         return
      end if
@@ -941,9 +966,11 @@ subroutine image_update_pos_from_file(img, iteration, filem1, filep1, km1, kp1, 
   end if
 
   if (trim(filep1) /= "") then
+     call f_err_open_try()
      call set_astruct_from_file(trim(filep1), bigdft_mpi%iproc, astruct, &
-          & status = stat, energy = Vp1)
-     if (stat /= 0 .or. astruct%nat /= img%run%atoms%astruct%nat) then
+          & energy = Vp1)
+       call f_err_close_try()
+     if (f_err_pop() /= 0 .or. astruct%nat /= img%run%atoms%astruct%nat) then
         call free_me()
         return
      end if
@@ -956,7 +983,9 @@ subroutine image_update_pos_from_file(img, iteration, filem1, filep1, km1, kp1, 
   call image_update_pos(img, iteration, rxyzm1, rxyzp1, Vm1, Vp1, km1, kp1, &
        & .not. associated(rxyzm1) .or. .not. associated(rxyzp1), climbing, neb)
   call free_me()
+
 contains
+
   subroutine free_me()
     implicit none
     integer :: i_all, i_stat
@@ -977,6 +1006,7 @@ contains
   end subroutine free_me
 END SUBROUTINE image_update_pos_from_file
 
+
 subroutine image_calculate(img, iteration, id)
   use yaml_output
   use module_types
@@ -987,27 +1017,32 @@ subroutine image_calculate(img, iteration, id)
   integer :: iteration
   integer, intent(in) :: id
 
-  integer :: ierr, infocode
+  integer :: ierr, infocode, unit_log
   character(len = 4) :: fn4
 
+  !Why (TD) ??
   img%run%inputs%inputpsiid = 0
   if (iteration > 0 .and. abs(img%id - id) < 2) img%run%inputs%inputpsiid = 1
 
+  unit_log = 0
   img%id = id
   if (trim(img%log_file) /= "" .and. bigdft_mpi%iproc == 0) then
-     call yaml_set_stream(unit = 9169 + id, filename = trim(img%log_file), istat = ierr)
+     call yaml_set_stream(filename = trim(img%log_file), istat = ierr)
+     if (ierr == 0) call yaml_get_default_stream(unit_log)
      call yaml_comment("NEB iteration #" // trim(yaml_toa(iteration, fmt = "(I3.3)")), hfill="-")
   end if
   call call_bigdft(img%run, img%outs, bigdft_mpi%nproc, bigdft_mpi%iproc, infocode)
-  if (trim(img%log_file) /= "" .and. bigdft_mpi%iproc == 0) call yaml_close_all_streams()
+  if (unit_log /= 0) call yaml_close_stream(unit_log)
 
   ! Output the corresponding file.
   if (bigdft_mpi%iproc == 0) then
      write(fn4, "(I4.4)") iteration
      call write_atomic_file(trim(img%run%inputs%dir_output)//'posout_'//fn4, &
-          & img%outs%energy, img%run%atoms%astruct%rxyz, img%run%atoms, "", forces = img%outs%fxyz)
+          & img%outs%energy, img%run%atoms%astruct%rxyz,  img%run%atoms%astruct%ixyz_int, &
+          img%run%atoms, "", forces = img%outs%fxyz)
   end if
 end subroutine image_calculate
+
 
 subroutine images_distribute_tasks(igroup, update, nimages, ngroup)
   implicit none
@@ -1041,7 +1076,9 @@ subroutine images_distribute_tasks(igroup, update, nimages, ngroup)
   do i = m + 1, ngroup * min(1, l)
      call span_group(alpha, l, +1, i)
   end do
+
 contains
+
   subroutine span_group(it, n, dir, ig)
     integer, intent(inout) :: it
     integer, intent(in) :: n, dir, ig
@@ -1057,9 +1094,11 @@ contains
        end if
     end do
   end subroutine span_group
+
 END SUBROUTINE images_distribute_tasks
 
-! Routines for bindings.
+
+!> Routines for bindings.
 subroutine image_new(img, run, outs, atoms, inputs, rst, algorithm)
   use module_types
   use module_images
@@ -1078,6 +1117,7 @@ subroutine image_new(img, run, outs, atoms, inputs, rst, algorithm)
   run => img%run
   outs => img%outs
 END SUBROUTINE image_new
+
 
 subroutine image_free(img, run, outs)
   use module_types
@@ -1098,6 +1138,7 @@ subroutine image_free(img, run, outs)
   deallocate(img)
 END SUBROUTINE image_free
 
+
 subroutine image_get_attributes(img, error, F, id)
   use module_images
   use module_types
@@ -1112,6 +1153,7 @@ subroutine image_get_attributes(img, error, F, id)
   F = img%F
 END SUBROUTINE image_get_attributes
 
+
 subroutine neb_new(neb)
   use module_images
   implicit none
@@ -1125,6 +1167,7 @@ subroutine neb_new(neb)
   neb%max_iterations = 2
   neb%convergence = 0.5d0
 end subroutine neb_new
+
 
 subroutine neb_free(neb)
   use module_images

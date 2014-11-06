@@ -1,3 +1,14 @@
+/** @file
+ * Bindings for the BigDFT package
+ * @author
+ * Copyright (C) 2013-2013 BigDFT group
+ * This file is distributed under the terms of the
+ * GNU General Public License, see ~/COPYING file
+ * or http://www.gnu.org/copyleft/gpl.txt .
+ * For the list of contributors, see ~/AUTHORS
+**/
+
+
 #include <config.h>
 
 #include "bigdft.h"
@@ -7,31 +18,22 @@
 #include <string.h>
 #include <stdio.h>
 
-static void _free_names(BigDFT_Inputs *in)
-{
-  g_free(in->run_name);
 
-  g_free(in->file_occnum);
-  g_free(in->file_igpop);
-  g_free(in->file_lin);
-}
+
+
 static void _free_output(BigDFT_Inputs *in)
 {
+  g_free(in->run_name);
   g_free(in->dir_output);
   g_free(in->writing_directory);
 }
-static void _sync_output(BigDFT_Inputs *in)
-{
-  gchar dir_output[100], writing_directory[500];
 
-  FC_FUNC_(inputs_get_output, INPUTS_GET_OUTPUT)(F_TYPE(in->data),
-                                                 dir_output, writing_directory, 100, 500);
-  in->dir_output = _get_c_string(dir_output, 100);
-  in->writing_directory = _get_c_string(writing_directory, 500);
-}
+
 void _inputs_sync(BigDFT_Inputs *in)
+
 {
-  FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(F_TYPE(in->data), &in->files);
+  gchar run_name[100], dir_output[100], writing_directory[500];
+
   FC_FUNC_(inputs_get_dft, INPUTS_GET_DFT)(F_TYPE(in->data), in->h, in->h + 1, in->h + 2,
                                            &in->crmult, &in->frmult, &in->ixc,
                                            &in->ncharge, in->elecfield, &in->nspin,
@@ -40,7 +42,7 @@ void _inputs_sync(BigDFT_Inputs *in)
                                            &in->dispersion, &in->inputPsiId,
                                            &in->output_wf_format, &in->output_grid,
                                            &in->rbuf, &in->ncongt, &in->norbv, &in->nvirt,
-                                           &in->nplot, &in->disableSym);
+                                           &in->nplot, &in->disableSym, &in->last_run);
   FC_FUNC_(inputs_get_mix, INPUTS_GET_MIX)(F_TYPE(in->data), (int*)&in->iscf, (int*)&in->itrpmax,
                                            (int*)&in->norbsempty, (int*)(&in->occopt),
                                            &in->alphamix,
@@ -54,13 +56,15 @@ void _inputs_sync(BigDFT_Inputs *in)
   /* FC_FUNC_(inputs_get_sic, INPUTS_GET_SIC)(); */
   /* FC_FUNC_(inputs_get_tddft, INPUTS_GET_TDDFT)(); */
   FC_FUNC_(inputs_get_perf, INPUTS_GET_PERF)(F_TYPE(in->data), (int*)&in->linear);
+
+  FC_FUNC_(inputs_get_output, INPUTS_GET_OUTPUT)(F_TYPE(in->data),
+                                                 run_name, dir_output, writing_directory,
+                                                 100, 100, 500);
+  in->run_name = _get_c_string(run_name, 100);
+  in->dir_output = _get_c_string(dir_output, 100);
+  in->writing_directory = _get_c_string(writing_directory, 500);
 }
-void _inputs_sync_add(BigDFT_Inputs *in)
-{
-  FC_FUNC_(inputs_get_files, INPUTS_GET_FILES)(F_TYPE(in->data), &in->files);
-  /* FC_FUNC_(inputs_get_kpt, INPUTS_GET_KPT)(); */
-  _sync_output(in);
-}
+
 
 static BigDFT_Inputs* bigdft_inputs_init()
 {
@@ -70,81 +74,27 @@ static BigDFT_Inputs* bigdft_inputs_init()
   memset(in, 0, sizeof(BigDFT_Inputs));
   in->refCount = 1;
   F90_1D_POINTER_INIT(&in->qmass);
-  in->files = BIGDFT_INPUTS_UNPARSED;
 
   return in;
 }
+
+
 static void bigdft_inputs_dispose(BigDFT_Inputs *in)
 {
   if (F_TYPE(in->data))
     FC_FUNC_(inputs_free, INPUTS_FREE)(&in->data);
-  if (F_TYPE(in->input_values))
-    FC_FUNC_(dict_free, DICT_FREE)(&in->input_values);
 
-  _free_names(in);
   _free_output(in);
 
   g_free(in);
 }
-/**
- * bigdft_inputs_new:
- * @naming: (allow-none): a naming scheme, or none.
- *
- * Create a new #BigDFT_Inputs structure, empty.
- * 
- * Returns: (transfer full): a new structure.
- */
-BigDFT_Inputs* bigdft_inputs_new(const gchar *naming)
-{
-  BigDFT_Inputs *in;
-  gchar file_occnum[100], file_igpop[100], file_lin[100], run_name[100];
+BigDFT_Inputs* bigdft_inputs_new_from_fortran(f90_input_variables_pointer inputs)
 
-  in = bigdft_inputs_init();
-  FC_FUNC_(inputs_new, INPUTS_NEW)(&in->data);
-  FC_FUNC_(dict_new, DICT_NEW)(&in->input_values);
-  
-  if (naming && naming[0])
-    FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(F_TYPE(in->data), naming, strlen(naming));
-  else
-    FC_FUNC_(standard_inputfile_names, STANDARD_INPUTFILE_NAMES)(F_TYPE(in->data), " ", 1);
-  /* Get naming schemes. */
-  _free_names(in);
-  FC_FUNC_(inputs_get_naming, INPUTS_GET_NAMING)(F_TYPE(in->data), run_name, file_occnum, file_igpop,
-                                                 file_lin, 100, 100, 100, 100);
-  in->run_name = _get_c_string(run_name, 100);
-  in->file_occnum = _get_c_string(file_occnum, 100);
-  in->file_igpop = _get_c_string(file_igpop, 100);
-  in->file_lin = _get_c_string(file_lin, 100);
 
-  return in;
-}
-/**
- * bigdft_inputs_new_from_files:
- * @naming: (allow-none): a naming scheme, or none.
- * @iproc:
- *
- * Create a new #BigDFT_Inputs structure, parsing files with the given
- * naming scheme. Use bigdft_inputs_analyse() to actually analyse the
- * values and transfer them into variables.
- * 
- * Returns: (transfer full): a new structure.
- */
-BigDFT_Inputs* bigdft_inputs_new_from_files(const gchar *naming, guint iproc)
-{
-  BigDFT_Inputs *in;
 
-  in = bigdft_inputs_new(naming);
 
-  if (naming && naming[0])
-    FC_FUNC_(inputs_set_from_file, INPUTS_SET_FROM_FILE)
-      (&in->input_values, naming, strlen(naming));
-  else
-    FC_FUNC_(inputs_set_from_file, INPUTS_SET_FROM_FILE)
-      (&in->input_values, " ", 1);
-  
-  return in;
-}
-BigDFT_Inputs* bigdft_inputs_new_from_fortran(_input_variables_pointer inputs)
+
+
 {
   BigDFT_Inputs *in;
 
@@ -152,7 +102,6 @@ BigDFT_Inputs* bigdft_inputs_new_from_fortran(_input_variables_pointer inputs)
   in->data = inputs;
 
   _inputs_sync(in);
-  _inputs_sync_add(in);
 
   return in;
 }
@@ -184,11 +133,7 @@ GType bigdft_inputs_get_type(void)
   return g_define_type_id;
 }
 #endif
-void bigdft_inputs_create_dir_output(BigDFT_Inputs *in, guint iproc)
-{
-  FC_FUNC_(create_dir_output, CREATE_DIR_OUTPUT)((int*)&iproc, F_TYPE(in->data));
-  _sync_output(in);
-}
+
 
 /* Wrappers on dictionaries, for the input variables. */
 void bigdft_inputs_set(BigDFT_Inputs *in, const gchar *level,
@@ -199,6 +144,7 @@ void bigdft_inputs_set(BigDFT_Inputs *in, const gchar *level,
   dict = bigdft_dict_new(NULL);
   bigdft_dict_set(dict, id, value);  
   FC_FUNC_(inputs_set_dict, INPUTS_SET_DICT)(F_TYPE(in->data), level, &dict->root, strlen(level));
+  bigdft_dict_unref(dict); //added to free the dictionary created by fortran
   g_object_unref(G_OBJECT(dict));
 
   _inputs_sync(in);

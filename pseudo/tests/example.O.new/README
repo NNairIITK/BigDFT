@@ -1,6 +1,9 @@
-/*! @dir pseudo/tests/example.O.new
+/*! @file
+@brief README of teh directory containing th generation of NLCC pseudopotential
+
+@dir
 @brief
-Some Instructions for fitting of pseudo potentials with Nonlinear Core Corrections
+Some Instructions for fitting of pseudo potentials with Nonlinear Core Corrections (NLCC)
 
 @details
 - Take a brief look at the input files "FITPAR", "weights.par" and "psppar".

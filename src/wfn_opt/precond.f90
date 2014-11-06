@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
  
 
-!>    Calls the preconditioner for each orbital treated by the processor
+!> Calls the preconditioner for each orbital treated by the processor
 subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   use module_base
   use module_types
@@ -122,10 +122,12 @@ subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
 END SUBROUTINE preconditionall
 
 
-! Generalized for the Linearscaling code
-subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,confdatarr,gnrm,gnrm_zero)
+!> Generalized for the Linearscaling code
+subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,confdatarr,gnrm,gnrm_zero,&
+                            linear_precond_convol_workarrays, linear_precond_workarrays)
   use module_base
   use module_types
+  use module_interfaces, except_this_one => preconditionall2
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   implicit none
@@ -136,9 +138,11 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
   real(dp), intent(out) :: gnrm,gnrm_zero
   real(wp), dimension(npsidim), intent(inout) :: hpsi
   type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr !< used in the linear scaling but also for the cubic case
+  type(workarrays_quartic_convolutions),dimension(orbs%norbp),intent(inout),optional :: linear_precond_convol_workarrays !< convolution workarrays for the linear case
+  type(workarr_precond),dimension(orbs%norbp),intent(inout),optional :: linear_precond_workarrays !< workarrays for the linear case
   !local variables
   character(len=*), parameter :: subname='preconditionall2'
-  integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr,i_all,i_stat,ierr,jproc
+  integer :: iorb,inds,ncplx,ikpt,jorb,ist,ilr,ierr,jproc
   real(wp) :: cprecr,scpr,evalmax,eval_zero,gnrm_orb
   real(gp) :: kx,ky,kz
 !!$  integer :: i_stat,i_all,ispinor,nbox
@@ -155,6 +159,8 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
 !!$  integer :: iter=0
 !!$  iter=iter+1
 
+  call f_routine(id=subname)
+
   ! Preconditions all orbitals belonging to iproc
   !and calculate the norm of the residue
   ! norm of gradient
@@ -163,9 +169,8 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
   gnrm_zero=0.0_dp
 
   !prepare the arrays for the 
-  if (verbose >=3) then
-     allocate(gnrmp(max(orbs%norbp,1)+ndebug),stat=i_stat)
-     call memocc(i_stat,gnrmp,'gnrmp',subname)
+  if (verbose >= 3) then
+     gnrmp = f_malloc(max(orbs%norbp, 1),id='gnrmp')
   end if
 
 !!$  if (newp) then
@@ -284,12 +289,21 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
               !!write(1000+orbs%isorb+iorb,'(a,2i4,3x,2i8)') 'id, ilr, centery, starty', orbs%isorb+iorb, ilr, nint(Lzd%Llr(ilr)%locregCenter(2)/hy), lzd%llr(ilr)%ns2
               !!write(1000+orbs%isorb+iorb,'(a,2i4,3x,2i8)') 'id, ilr, centerz, startz', orbs%isorb+iorb, ilr, nint(Lzd%Llr(ilr)%locregCenter(3)/hz), lzd%llr(ilr)%ns3
 
+              if (.not.present(linear_precond_convol_workarrays)) then
+                  call f_err_throw("linear_precond_convol_workarrays must be present when calling the linear preconditioner", &
+                                   err_name='BIGDFT_RUNTIME_ERROR')
+              end if
+              if (.not.present(linear_precond_workarrays)) then
+                  call f_err_throw("linear_precond_workarrays must be present when calling the linear preconditioner", &
+                                   err_name='BIGDFT_RUNTIME_ERROR')
+              end if
                  call solvePrecondEquation(iproc,nproc,Lzd%Llr(ilr),ncplx,ncong,&
                       cprecr,&
                       hx,hy,hz,kx,ky,kz,hpsi(1+ist),&
                       Lzd%Llr(ilr)%locregCenter, orbs,&
                       confdatarr(iorb)%prefac,&
-                      confdatarr(iorb)%potorder)
+                      confdatarr(iorb)%potorder,&
+                      linear_precond_convol_workarrays(iorb),linear_precond_workarrays(iorb))
 
 !                 call solvePrecondEquation(Lzd%Llr(ilr),ncplx,ncong,cprecr,&
 !                   hx,hy,hz,kx,ky,kz,hpsi(1+ist), rxyz(1,ilr), orbs,&                         !here should change rxyz to be center of Locreg
@@ -321,11 +335,9 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
 !!$ end if
   !gather the results of the gnrm per orbital in the case of high verbosity
   if (verbose >= 3) then
-     allocate(gnrms(orbs%norb*orbs%nkpts+ndebug),stat=i_stat)
-     call memocc(i_stat,gnrms,'gnrms',subname)
+     gnrms = f_malloc(orbs%norb*orbs%nkpts,id='gnrms')
      !prepare displacements arrays
-     allocate(ncntdsp(nproc,2+ndebug),stat=i_stat)
-     call memocc(i_stat,ncntdsp,'ncntdsp',subname)
+     ncntdsp = f_malloc((/ nproc, 2 /),id='ncntdsp')
      ncntdsp(1,2)=0
      ncntdsp(1,1)=orbs%norb_par(0,0)
      do jproc=1,nproc-1
@@ -347,16 +359,12 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
      if (iproc ==0) call write_gnrms(orbs%nkpts,orbs%norb,gnrms)
 
 
-     i_all=-product(shape(ncntdsp))*kind(ncntdsp)
-     deallocate(ncntdsp,stat=i_stat)
-     call memocc(i_stat,i_all,'ncntdsp',subname)
-     i_all=-product(shape(gnrms))*kind(gnrms)
-     deallocate(gnrms,stat=i_stat)
-     call memocc(i_stat,i_all,'gnrms',subname)
-     i_all=-product(shape(gnrmp))*kind(gnrmp)
-     deallocate(gnrmp,stat=i_stat)
-     call memocc(i_stat,i_all,'gnrmp',subname)
+     call f_free(ncntdsp)
+     call f_free(gnrms)
+     call f_free(gnrmp)
   end if
+
+  call f_release_routine()
 
 END SUBROUTINE preconditionall2
 
@@ -397,17 +405,14 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
   character(len=*), parameter :: subname='precondition_residue'
   real(gp), dimension(0:7) :: scal
   real(wp) :: rmr_old,rmr_new,alpha,beta
-  integer :: i_stat,i_all,icong
+  integer :: icong
   type(workarr_precond) :: w
   real(wp), dimension(:), allocatable :: b,r,d
 
   !arrays for the CG procedure
-  allocate(b(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
-  call memocc(i_stat,b,'b',subname)
-  allocate(r(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
-  call memocc(i_stat,r,'r',subname)
-  allocate(d(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)+ndebug),stat=i_stat)
-  call memocc(i_stat,d,'d',subname)
+  b = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),id='b')
+  r = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),id='r')
+  d = f_malloc(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),id='d')
 
   call allocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,lr%d,w)
 
@@ -455,15 +460,9 @@ subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
   !write(*,*)'debug2',dot(ncplx*(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),x(1),1,x(1),1)
 
 
-  i_all=-product(shape(b))*kind(b)
-  deallocate(b,stat=i_stat)
-  call memocc(i_stat,i_all,'b',subname)
-  i_all=-product(shape(r))*kind(r)
-  deallocate(r,stat=i_stat)
-  call memocc(i_stat,i_all,'r',subname)
-  i_all=-product(shape(d))*kind(d)
-  deallocate(d,stat=i_stat)
-  call memocc(i_stat,i_all,'d',subname)
+  call f_free(b)
+  call f_free(r)
+  call f_free(d)
 
   call deallocate_work_arrays(lr%geocode,lr%hybrid_on,ncplx,w)
 
@@ -716,31 +715,22 @@ subroutine allocate_work_arrays(geocode,hybrid_on,ncplx,d,w)
   !local variables
   character(len=*), parameter :: subname='allocate_work_arrays'
   integer, parameter :: lowfil=-14,lupfil=14
-  integer :: i_stat
   integer :: nd1,nd2,nd3
   integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
   integer :: nf
-
 
   if (geocode == 'F') then
 
      nf=(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)
      !allocate work arrays
-     allocate(w%xpsig_c(0:d%n1,0:d%n2,0:d%n3+ndebug),stat=i_stat)
-     call memocc(i_stat,w%xpsig_c,'xpsig_c',subname)
-     allocate(w%xpsig_f(7,d%nfl1:d%nfu1,d%nfl2:d%nfu2,d%nfl3:d%nfu3+ndebug),stat=i_stat)
-     call memocc(i_stat,w%xpsig_f,'xpsig_f',subname)
-     allocate(w%ypsig_c(0:d%n1,0:d%n2,0:d%n3+ndebug),stat=i_stat)
-     call memocc(i_stat,w%ypsig_c,'ypsig_c',subname)
-     allocate(w%ypsig_f(7,d%nfl1:d%nfu1,d%nfl2:d%nfu2,d%nfl3:d%nfu3+ndebug),stat=i_stat)
-     call memocc(i_stat,w%ypsig_f,'ypsig_f',subname)
+     w%xpsig_c = f_malloc_ptr((/ 0.to.d%n1, 0.to.d%n2, 0.to.d%n3 /),id='w%xpsig_c')
+     w%xpsig_f = f_malloc_ptr((/ 1.to.7, d%nfl1.to.d%nfu1, d%nfl2.to.d%nfu2, d%nfl3.to.d%nfu3 /),id='w%xpsig_f')
+     w%ypsig_c = f_malloc_ptr((/ 0.to.d%n1, 0.to.d%n2, 0.to.d%n3 /),id='w%ypsig_c')
+     w%ypsig_f = f_malloc_ptr((/ 1.to.7, d%nfl1.to.d%nfu1, d%nfl2.to.d%nfu2, d%nfl3.to.d%nfu3 /),id='w%ypsig_f')
 
-     allocate(w%x_f1(nf+ndebug),stat=i_stat)
-     call memocc(i_stat,w%x_f1,'x_f1',subname)
-     allocate(w%x_f2(nf+ndebug),stat=i_stat)
-     call memocc(i_stat,w%x_f2,'x_f2',subname)
-     allocate(w%x_f3(nf+ndebug),stat=i_stat)
-     call memocc(i_stat,w%x_f3,'x_f3',subname)
+     w%x_f1 = f_malloc_ptr(nf,id='w%x_f1')
+     w%x_f2 = f_malloc_ptr(nf,id='w%x_f2')
+     w%x_f3 = f_malloc_ptr(nf,id='w%x_f3')
     
   else if (geocode == 'P') then
      
@@ -751,81 +741,52 @@ subroutine allocate_work_arrays(geocode,hybrid_on,ncplx,d,w)
 
         nf=(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)
 
-        allocate(w%kern_k1(0:d%n1+ndebug),stat=i_stat)
-        call memocc(i_stat,w%kern_k1,'kern_k1',subname)
-        allocate(w%kern_k2(0:d%n2+ndebug),stat=i_stat)
-        call memocc(i_stat,w%kern_k2,'kern_k2',subname)
-        allocate(w%kern_k3(0:d%n3+ndebug),stat=i_stat)
-        call memocc(i_stat,w%kern_k3,'kern_k3',subname)
-        allocate(w%z1(2,nd1b,nd2,nd3,2+ndebug),stat=i_stat) ! work array for fft
-        call memocc(i_stat,w%z1,'z1',subname)
-        allocate(w%z3(2,nd1,nd2,nd3f,2+ndebug),stat=i_stat) ! work array for fft
-        call memocc(i_stat,w%z3,'z3',subname)
-        allocate(w%x_c(0:d%n1,0:d%n2,0:d%n3+ndebug),stat=i_stat)
-        call memocc(i_stat,w%x_c,'x_c',subname)
+        w%kern_k1 = f_malloc_ptr(0.to.d%n1,id='w%kern_k1')
+        w%kern_k2 = f_malloc_ptr(0.to.d%n2,id='w%kern_k2')
+        w%kern_k3 = f_malloc_ptr(0.to.d%n3,id='w%kern_k3')
+        w%z1 = f_malloc_ptr((/ 2, nd1b, nd2, nd3, 2 /),id='w%z1')
+        w%z3 = f_malloc_ptr((/ 2, nd1, nd2, nd3f, 2 /),id='w%z3')
+        w%x_c = f_malloc_ptr((/ 0.to.d%n1, 0.to.d%n2, 0.to.d%n3 /),id='w%x_c')
 
-        allocate(w%x_f(7,d%nfl1:d%nfu1,d%nfl2:d%nfu2,d%nfl3:d%nfu3+ndebug),stat=i_stat)
-        call memocc(i_stat,w%x_f,'x_f',subname)
-        allocate(w%x_f1(nf+ndebug),stat=i_stat)
-        call memocc(i_stat,w%x_f1,'x_f1',subname)
-        allocate(w%x_f2(nf+ndebug),stat=i_stat)
-        call memocc(i_stat,w%x_f2,'x_f2',subname)
-        allocate(w%x_f3(nf+ndebug),stat=i_stat)
-        call memocc(i_stat,w%x_f3,'x_f3',subname)
-        allocate(w%y_f(7,d%nfl1:d%nfu1,d%nfl2:d%nfu2,d%nfl3:d%nfu3+ndebug),stat=i_stat)
-        call memocc(i_stat,w%y_f,'y_f',subname)
-        allocate(w%ypsig_c(0:d%n1,0:d%n2,0:d%n3+ndebug),stat=i_stat)
-        call memocc(i_stat,w%ypsig_c,'ypsig_c',subname)
+        w%x_f = f_malloc_ptr((/ 1.to.7, d%nfl1.to.d%nfu1, d%nfl2.to.d%nfu2, d%nfl3.to.d%nfu3 /),id='w%x_f')
+        w%x_f1 = f_malloc_ptr(nf,id='w%x_f1')
+        w%x_f2 = f_malloc_ptr(nf,id='w%x_f2')
+        w%x_f3 = f_malloc_ptr(nf,id='w%x_f3')
+        w%y_f = f_malloc_ptr((/ 1.to.7, d%nfl1.to.d%nfu1, d%nfl2.to.d%nfu2, d%nfl3.to.d%nfu3 /),id='w%y_f')
+        w%ypsig_c = f_malloc_ptr((/ 0.to.d%n1, 0.to.d%n2, 0.to.d%n3 /),id='w%ypsig_c')
 
 
      else 
 
         if (ncplx == 1) then
            !periodic, not k-points
-           allocate(w%modul1(lowfil:d%n1+lupfil+ndebug),stat=i_stat)
-           call memocc(i_stat,w%modul1,'modul1',subname)
-           allocate(w%modul2(lowfil:d%n2+lupfil+ndebug),stat=i_stat)
-           call memocc(i_stat,w%modul2,'modul2',subname)
-           allocate(w%modul3(lowfil:d%n3+lupfil+ndebug),stat=i_stat)
-           call memocc(i_stat,w%modul3,'modul3',subname)
-           allocate(w%af(lowfil:lupfil,3+ndebug),stat=i_stat)
-           call memocc(i_stat,w%af,'af',subname)
-           allocate(w%bf(lowfil:lupfil,3+ndebug),stat=i_stat)
-           call memocc(i_stat,w%bf,'bf',subname)
-           allocate(w%cf(lowfil:lupfil,3+ndebug),stat=i_stat)
-           call memocc(i_stat,w%cf,'cf',subname)
-           allocate(w%ef(lowfil:lupfil,3+ndebug),stat=i_stat)
-           call memocc(i_stat,w%ef,'ef',subname)
+           w%modul1 = f_malloc_ptr(lowfil.to.d%n1+lupfil,id='w%modul1')
+           w%modul2 = f_malloc_ptr(lowfil.to.d%n2+lupfil,id='w%modul2')
+           w%modul3 = f_malloc_ptr(lowfil.to.d%n3+lupfil,id='w%modul3')
+           w%af = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%af')
+           w%bf = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%bf')
+           w%cf = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%cf')
+           w%ef = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%ef')
         end if
 
-        allocate(w%psifscf(ncplx*(2*d%n1+2)*(2*d%n2+2)*(2*d%n3+2)+ndebug),stat=i_stat )
-        call memocc(i_stat,w%psifscf,'psifscf',subname)
-        allocate(w%ww(ncplx*(2*d%n1+2)*(2*d%n2+2)*(2*d%n3+2)+ndebug),stat=i_stat)
-        call memocc(i_stat,w%ww,'ww',subname)
+        w%psifscf = f_malloc_ptr(ncplx*(2*d%n1+2)*(2*d%n2+2)*(2*d%n3+2),id='w%psifscf')
+        w%ww = f_malloc_ptr(ncplx*(2*d%n1+2)*(2*d%n2+2)*(2*d%n3+2),id='w%ww')
 
      end if
 
   else if (geocode == 'S') then
 
      if (ncplx == 1) then
-        allocate(w%modul1(lowfil:d%n1+lupfil+ndebug),stat=i_stat)
-        call memocc(i_stat,w%modul1,'modul1',subname)
-        allocate(w%modul3(lowfil:d%n3+lupfil+ndebug),stat=i_stat)
-        call memocc(i_stat,w%modul3,'modul3',subname)
-        allocate(w%af(lowfil:lupfil,3+ndebug),stat=i_stat)
-        call memocc(i_stat,w%af,'af',subname)
-        allocate(w%bf(lowfil:lupfil,3+ndebug),stat=i_stat)
-        call memocc(i_stat,w%bf,'bf',subname)
-        allocate(w%cf(lowfil:lupfil,3+ndebug),stat=i_stat)
-        call memocc(i_stat,w%cf,'cf',subname)
-        allocate(w%ef(lowfil:lupfil,3+ndebug),stat=i_stat)
-        call memocc(i_stat,w%ef,'ef',subname)
+        w%modul1 = f_malloc_ptr(lowfil.to.d%n1+lupfil,id='w%modul1')
+        w%modul3 = f_malloc_ptr(lowfil.to.d%n3+lupfil,id='w%modul3')
+        w%af = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%af')
+        w%bf = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%bf')
+        w%cf = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%cf')
+        w%ef = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%ef')
      end if
         
-     allocate(w%psifscf(ncplx*(2*d%n1+2)*(2*d%n2+16)*(2*d%n3+2)+ndebug),stat=i_stat )
-     call memocc(i_stat,w%psifscf,'psifscf',subname)
-     allocate(w%ww(ncplx*(2*d%n1+2)*(2*d%n2+16)*(2*d%n3+2)+ndebug) ,stat=i_stat)
-     call memocc(i_stat,w%ww,'ww',subname)
+     w%psifscf = f_malloc_ptr(ncplx*(2*d%n1+2)*(2*d%n2+16)*(2*d%n3+2),id='w%psifscf')
+     w%ww = f_malloc_ptr(ncplx*(2*d%n1+2)*(2*d%n2+16)*(2*d%n3+2),id='w%ww')
 
   end if
 
@@ -899,105 +860,48 @@ subroutine deallocate_work_arrays(geocode,hybrid_on,ncplx,w)
   type(workarr_precond), intent(inout) :: w
   !local variables
   character(len=*), parameter :: subname='deallocate_work_arrays'
-  integer :: i_stat,i_all
 
   if (geocode == 'F') then
 
-     i_all=-product(shape(w%xpsig_c))*kind(w%xpsig_c)
-     deallocate(w%xpsig_c,stat=i_stat)
-     call memocc(i_stat,i_all,'xpsig_c',subname)
-     i_all=-product(shape(w%ypsig_c))*kind(w%ypsig_c)
-     deallocate(w%ypsig_c,stat=i_stat)
-     call memocc(i_stat,i_all,'ypsig_c',subname)
-     i_all=-product(shape(w%xpsig_f))*kind(w%xpsig_f)
-     deallocate(w%xpsig_f,stat=i_stat)
-     call memocc(i_stat,i_all,'xpsig_f',subname)
-     i_all=-product(shape(w%ypsig_f))*kind(w%ypsig_f)
-     deallocate(w%ypsig_f,stat=i_stat)
-     call memocc(i_stat,i_all,'ypsig_f',subname)
-     i_all=-product(shape(w%x_f1))*kind(w%x_f1)
-     deallocate(w%x_f1,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f1',subname)
-     i_all=-product(shape(w%x_f2))*kind(w%x_f2)
-     deallocate(w%x_f2,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f2',subname)
-     i_all=-product(shape(w%x_f3))*kind(w%x_f3)
-     deallocate(w%x_f3,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f3',subname)
+     call f_free_ptr(w%xpsig_c)
+     call f_free_ptr(w%ypsig_c)
+     call f_free_ptr(w%xpsig_f)
+     call f_free_ptr(w%ypsig_f)
+     call f_free_ptr(w%x_f1)
+     call f_free_ptr(w%x_f2)
+     call f_free_ptr(w%x_f3)
 
   else if ((geocode == 'P' .and. .not. hybrid_on) .or. geocode == 'S') then
 
      if (ncplx == 1) then
-        i_all=-product(shape(w%modul1))*kind(w%modul1)
-        deallocate(w%modul1,stat=i_stat)
-        call memocc(i_stat,i_all,'modul1',subname)
+        call f_free_ptr(w%modul1)
         if (geocode /= 'S') then
-           i_all=-product(shape(w%modul2))*kind(w%modul2)
-           deallocate(w%modul2,stat=i_stat)
-           call memocc(i_stat,i_all,'modul2',subname)
+           call f_free_ptr(w%modul2)
         end if
-        i_all=-product(shape(w%modul3))*kind(w%modul3)
-        deallocate(w%modul3,stat=i_stat)
-        call memocc(i_stat,i_all,'modul3',subname)
-        i_all=-product(shape(w%af))*kind(w%af)
-        deallocate(w%af,stat=i_stat)
-        call memocc(i_stat,i_all,'af',subname)
-        i_all=-product(shape(w%bf))*kind(w%bf)
-        deallocate(w%bf,stat=i_stat)
-        call memocc(i_stat,i_all,'bf',subname)
-        i_all=-product(shape(w%cf))*kind(w%cf)
-        deallocate(w%cf,stat=i_stat)
-        call memocc(i_stat,i_all,'cf',subname)
-        i_all=-product(shape(w%ef))*kind(w%ef)
-        deallocate(w%ef,stat=i_stat)
-        call memocc(i_stat,i_all,'ef',subname)
+        call f_free_ptr(w%modul3)
+        call f_free_ptr(w%af)
+        call f_free_ptr(w%bf)
+        call f_free_ptr(w%cf)
+        call f_free_ptr(w%ef)
      end if
 
-     i_all=-product(shape(w%psifscf))*kind(w%psifscf)
-     deallocate(w%psifscf,stat=i_stat)
-     call memocc(i_stat,i_all,'psifscf',subname)
-     i_all=-product(shape(w%ww))*kind(w%ww)
-     deallocate(w%ww,stat=i_stat)
-     call memocc(i_stat,i_all,'ww',subname)
+     call f_free_ptr(w%psifscf)
+     call f_free_ptr(w%ww)
 
   else if (geocode == 'P' .and. hybrid_on) then
 
-     i_all=-product(shape(w%z1))*kind(w%z1)
-     deallocate(w%z1,stat=i_stat)
-     call memocc(i_stat,i_all,'z1',subname)
-     i_all=-product(shape(w%z3))*kind(w%z3)
-     deallocate(w%z3,stat=i_stat)
-     call memocc(i_stat,i_all,'z3',subname)
-     i_all=-product(shape(w%kern_k1))*kind(w%kern_k1)
-     deallocate(w%kern_k1,stat=i_stat)
-     call memocc(i_stat,i_all,'kern_k1',subname)
-     i_all=-product(shape(w%kern_k2))*kind(w%kern_k2)
-     deallocate(w%kern_k2,stat=i_stat)
-     call memocc(i_stat,i_all,'kern_k2',subname)
-     i_all=-product(shape(w%kern_k3))*kind(w%kern_k3)
-     deallocate(w%kern_k3,stat=i_stat)
-     call memocc(i_stat,i_all,'kern_k3',subname)
-     i_all=-product(shape(w%x_c))*kind(w%x_c)
-     deallocate(w%x_c,stat=i_stat)
-     call memocc(i_stat,i_all,'x_c',subname)
-     i_all=-product(shape(w%x_f))*kind(w%x_f)
-     deallocate(w%x_f,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f',subname)
-     i_all=-product(shape(w%x_f1))*kind(w%x_f1)
-     deallocate(w%x_f1,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f1',subname)
-     i_all=-product(shape(w%x_f2))*kind(w%x_f2)
-     deallocate(w%x_f2,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f2',subname)
-     i_all=-product(shape(w%x_f3))*kind(w%x_f3)
-     deallocate(w%x_f3,stat=i_stat)
-     call memocc(i_stat,i_all,'x_f3',subname)
-     i_all=-product(shape(w%y_f))*kind(w%y_f)
-     deallocate(w%y_f,stat=i_stat)
-     call memocc(i_stat,i_all,'y_f',subname)
-     i_all=-product(shape(w%ypsig_c))*kind(w%ypsig_c)
-     deallocate(w%ypsig_c,stat=i_stat)
-     call memocc(i_stat,i_all,'ypsig_c',subname)
+     call f_free_ptr(w%z1)
+     call f_free_ptr(w%z3)
+     call f_free_ptr(w%kern_k1)
+     call f_free_ptr(w%kern_k2)
+     call f_free_ptr(w%kern_k3)
+     call f_free_ptr(w%x_c)
+     call f_free_ptr(w%x_f)
+     call f_free_ptr(w%x_f1)
+     call f_free_ptr(w%x_f2)
+     call f_free_ptr(w%x_f3)
+     call f_free_ptr(w%y_f)
+     call f_free_ptr(w%ypsig_c)
 
 
   end if
@@ -1175,7 +1079,7 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
   character(len=*), parameter :: subname='prec_diag'
   real(gp), parameter ::atomic_length=2.0_gp,fac_len=2.0_gp
   integer :: num_trans,n2_nt,nd1,nd2,nd3,iseg,jj,j0,ii,i3,i2,i
-  integer :: nn1,nn2,nn3,nnn1,nnn2,nnn3,i0,i_all,i_stat,i1,j1
+  integer :: nn1,nn2,nn3,nnn1,nnn2,nnn3,i0,i1,j1
   real(wp) :: h0,h1,h2,h3,fac_h
   real(wp), dimension(:,:,:), allocatable :: hpsip
 
@@ -1197,8 +1101,7 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
 
   !write(*,'(3(1x,a,i0))')'nd1=',nd1,'nd2=',nd2,'nd3=',nd3
 
-  allocate(hpsip(0:nd1,0:nd2,0:nd3+ndebug),stat=i_stat)
-  call memocc(i_stat,hpsip,'hpsip',subname)
+  hpsip = f_malloc((/ 0.to.nd1, 0.to.nd2, 0.to.nd3 /),id='hpsip')
 
   hpsip=0.0_wp
 
@@ -1284,9 +1187,7 @@ subroutine prec_diag(n1,n2,n3,hgrid,nseg_c,nvctr_c,nvctr_f,&
   !$omp enddo
   !$omp end parallel
 
-  i_all=-product(shape(hpsip))*kind(hpsip)
-  deallocate(hpsip,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsip',subname)
+  call f_free(hpsip)
 
 END SUBROUTINE prec_diag
 
@@ -1430,19 +1331,16 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   logical, parameter :: inguess_on=.true.
   !       wavelet and scaling function second derivative filters
   real(wp), parameter :: b2=24.8758460293923314_wp, a2=3.55369228991319019_wp
-  integer :: i,icong,i_stat,i_all
+  integer :: i,icong
   real(wp) :: fac_h,h0,h1,h2,h3,tt,alpha1,alpha2,alpha,beta1,beta2,beta,aa1,aa2
   real(wp), dimension(0:3) :: scal
   real(wp), dimension(:), allocatable :: rpsi,ppsi,wpsi
   real(wp), dimension(:,:,:,:), allocatable :: xpsig_f,ypsig_f
   real(wp), dimension(:,:,:), allocatable :: xpsig_c,ypsig_c,x_f1,x_f2,x_f3
 
-  allocate(rpsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
-  call memocc(i_stat,rpsi,'rpsi',subname)
-  allocate(ppsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
-  call memocc(i_stat,ppsi,'ppsi',subname)
-  allocate(wpsi(nvctr_c+7*nvctr_f+ndebug),stat=i_stat)
-  call memocc(i_stat,wpsi,'wpsi',subname)
+  rpsi = f_malloc(nvctr_c+7*nvctr_f,id='rpsi')
+  ppsi = f_malloc(nvctr_c+7*nvctr_f,id='ppsi')
+  wpsi = f_malloc(nvctr_c+7*nvctr_f,id='wpsi')
 
 !!  !array of initial wavefunction
 !!  allocate(spsi(nvctr_c+7*nvctr_f),stat=i_stat)
@@ -1481,21 +1379,14 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
   endif
 
   !allocate work arrays
-  allocate(xpsig_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,xpsig_c,'xpsig_c',subname)
-  allocate(xpsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
-  call memocc(i_stat,xpsig_f,'xpsig_f',subname)
-  allocate(ypsig_c(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,ypsig_c,'ypsig_c',subname)
-  allocate(ypsig_f(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
-  call memocc(i_stat,ypsig_f,'ypsig_f',subname)
+  xpsig_c = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='xpsig_c')
+  xpsig_f = f_malloc((/ 1.to.7, nfl1.to.nfu1, nfl2.to.nfu2, nfl3.to.nfu3 /),id='xpsig_f')
+  ypsig_c = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='ypsig_c')
+  ypsig_f = f_malloc((/ 1.to.7, nfl1.to.nfu1, nfl2.to.nfu2, nfl3.to.nfu3 /),id='ypsig_f')
 
-  allocate(x_f1(nfl1:nfu1,nfl2:nfu2,nfl3:nfu3+ndebug),stat=i_stat)
-  call memocc(i_stat,x_f1,'x_f1',subname)
-  allocate(x_f2(nfl2:nfu2,nfl1:nfu1,nfl3:nfu3+ndebug),stat=i_stat)
-  call memocc(i_stat,x_f2,'x_f2',subname)
-  allocate(x_f3(nfl3:nfu3,nfl1:nfu1,nfl2:nfu2+ndebug),stat=i_stat)
-  call memocc(i_stat,x_f3,'x_f3',subname)
+  x_f1 = f_malloc((/ nfl1.to.nfu1, nfl2.to.nfu2, nfl3.to.nfu3 /),id='x_f1')
+  x_f2 = f_malloc((/ nfl2.to.nfu2, nfl1.to.nfu1, nfl3.to.nfu3 /),id='x_f2')
+  x_f3 = f_malloc((/ nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='x_f3')
   
   !initalize to zero the work arrays, probably not needed
   call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),x_f1(nfl1,nfl2,nfl3))
@@ -1652,43 +1543,23 @@ subroutine precong(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, &
 !!  call memocc(i_stat,i_all,'spsi',subname)
 !!  ! checkend
 
-  i_all=-product(shape(rpsi))*kind(rpsi)
-  deallocate(rpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'rpsi',subname)
-  i_all=-product(shape(ppsi))*kind(ppsi)
-  deallocate(ppsi,stat=i_stat)
-  call memocc(i_stat,i_all,'ppsi',subname)
-  i_all=-product(shape(wpsi))*kind(wpsi)
-  deallocate(wpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'wpsi',subname)
+  call f_free(rpsi)
+  call f_free(ppsi)
+  call f_free(wpsi)
 
 
-  i_all=-product(shape(xpsig_c))*kind(xpsig_c)
-  deallocate(xpsig_c,stat=i_stat)
-  call memocc(i_stat,i_all,'xpsig_c',subname)
+  call f_free(xpsig_c)
 
-  i_all=-product(shape(ypsig_c))*kind(ypsig_c)
-  deallocate(ypsig_c,stat=i_stat)
-  call memocc(i_stat,i_all,'ypsig_c',subname)
+  call f_free(ypsig_c)
 
-  i_all=-product(shape(xpsig_f))*kind(xpsig_f)
-  deallocate(xpsig_f,stat=i_stat)
-  call memocc(i_stat,i_all,'xpsig_f',subname)
+  call f_free(xpsig_f)
 
-  i_all=-product(shape(ypsig_f))*kind(ypsig_f)
-  deallocate(ypsig_f,stat=i_stat)
-  call memocc(i_stat,i_all,'ypsig_f',subname)
+  call f_free(ypsig_f)
 
-  i_all=-product(shape(x_f1))*kind(x_f1)
-  deallocate(x_f1,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f1',subname)
+  call f_free(x_f1)
 
-  i_all=-product(shape(x_f2))*kind(x_f2)
-  deallocate(x_f2,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f2',subname)
+  call f_free(x_f2)
 
-  i_all=-product(shape(x_f3))*kind(x_f3)
-  deallocate(x_f3,stat=i_stat)
-  call memocc(i_stat,i_all,'x_f3',subname)
+  call f_free(x_f3)
      
 END SUBROUTINE precong

@@ -138,9 +138,9 @@ program rism
   call memocc(i_stat,i_all,'radii_cf',subname)
 
 
-  call deallocate_lr(Glr,subname)
+  call deallocate_lr(Glr)
   
-  call deallocate_orbs(orbs,subname)
+  call deallocate_orbs(orbs)
 
   i_all=-product(shape(rho))*kind(rho)
   deallocate(rho,stat=i_stat)
@@ -168,7 +168,7 @@ program rism
   call memocc(i_stat,i_all,'rxyz',subname)
   call free_input_variables(in)
 
-  call deallocate_rho_descriptors(rhodsc,subname)
+  call deallocate_rho_descriptors(rhodsc)
 
   !finalize memory counting
   call memocc(0,0,'count','stop')
@@ -912,7 +912,7 @@ subroutine calculate_rho_shortrange(iproc,nproc,at,lr,Gpswf,hxh,hyh,hzh,rxyz,nga
   call gaussians_to_wavelets_new_h(0,1,lr,orbspswf,2.0_gp*hxh,2.0_gp*hyh,2.0_gp*hzh,Gpswf,&
        psigaup,psi)
 
-  call deallocate_orbs(orbspswf,subname)
+  call deallocate_orbs(orbspswf)
 
   !initalize work arrays for decompressing the wavefunction
   call initialize_work_arrays_sumrho(lr,w)

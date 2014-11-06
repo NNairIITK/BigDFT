@@ -42,14 +42,21 @@ MODULE NEB_variables
   use module_types
 
   IMPLICIT NONE
- 
+
+  !> NEB algorithms
+  integer, parameter :: NEB_STEEPEST_DESCENT = 1
+  integer, parameter :: NEB_FLETCHER_REEVES = 2
+  integer, parameter :: NEB_POLAK_RIBIERE = 3
+  integer, parameter :: NEB_QUICK_MIN = 4
+  integer, parameter :: NEB_DAMPED_VERLET = 5
+  integer, parameter :: NEB_SIM_ANNEALING = 6
+
   CHARACTER (LEN=80)                     :: scratch_dir
   CHARACTER (LEN=80)                     :: data_file, interpolation_file
   CHARACTER (LEN=80)                     :: restart_file
   CHARACTER (LEN=80)                     :: job_name
-  LOGICAL                                :: restart, external_call
+  LOGICAL                                :: external_call
   real (gp), DIMENSION(:,:), ALLOCATABLE :: fix_atom
-  REAL (gp)                              :: tolerance
 
   integer, dimension(4) :: mpi_info
   character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
@@ -58,6 +65,7 @@ MODULE NEB_variables
   type(restart_objects) :: rst
 
 END MODULE NEB_variables
+
 
 !> Module for NEB calculations
 MODULE NEB_routines
@@ -82,10 +90,13 @@ MODULE NEB_routines
 
   CONTAINS
 
-    SUBROUTINE read_input
+    SUBROUTINE read_input()
+       use module_defs, only: BIGDFT_INPUT_VARIABLES_ERROR
       use yaml_output
       use dictionaries
       use module_interfaces
+      use module_input_keys, only: input_keys_fill_all, PERF_VARIABLES, OUTDIR, &
+           & GEOPT_VARIABLES
       use module_input_dicts
       use module_atoms, only: atomic_structure, &
            deallocate_atomic_structure, &
@@ -95,37 +106,16 @@ MODULE NEB_routines
       IMPLICIT NONE
 
       INTEGER :: i, j, num_of_images, istart, istop
-      CHARACTER (LEN=20) :: minimization_scheme
+      CHARACTER (LEN=max_field_length) :: minimization_scheme
       INTEGER, PARAMETER :: unit = 10
       REAL (gp), DIMENSION(:,:), ALLOCATABLE :: d_R
       real(gp), dimension(3) :: acell1, acell2
-      logical :: climbing, optimization
-      logical, dimension(:), allocatable :: read_posinp
-      integer :: max_iterations, ierr, nconfig, algorithm
-      real(gp) :: convergence, damp, k_min, k_max, ds, temp_req
+      integer :: ierr, nconfig, algorithm, unit_log
       type(mpi_environment) :: bigdft_mpi_svg
       character(len=60) :: run_id
-      CHARACTER (LEN=80) :: first_config, last_config
-      type(dictionary), pointer :: dict
-      type(atomic_structure) :: astruct
+      type(dictionary), pointer :: dict, dict_min
+      REAL (gp) :: tolerance
 
-      NAMELIST /NEB/ first_config,        &
-                     last_config,         &
-         scratch_dir,         &
-         job_name,            &
-         restart,             &
-         climbing,            &
-         optimization,        &
-         minimization_scheme, &
-         damp,                &
-         temp_req,            &
-         k_max, k_min,        &
-         ds,                  &
-         max_iterations,      &
-         tolerance,           &
-         convergence,         &
-         num_of_images
-      
       call f_lib_initialize()
       nullify(dict)
       call bigdft_init(mpi_info, nconfig, run_id, ierr)
@@ -142,54 +132,55 @@ MODULE NEB_routines
 !! default values are assigned
       external_call     = (mpi_info(4) == 1) .and. (mpi_info(2) == 1)
 
+      call dict_init(dict)
+      call read_input_dict_from_files(trim(run_id), bigdft_mpi, dict)
+      !if (mpi_info(1) == 0 .and. mpi_info(3) == 0) call yaml_dict_dump(dict)
+      call input_keys_fill_all(dict, dict_min)
+      call neb_set_from_dict(dict, neb_%optimization, neb_%climbing, &
+           & neb_%max_iterations, num_of_images, neb_%convergence, tolerance, &
+           & neb_%ds, neb_%k_min, neb_%k_max, neb_%temp_req, neb_%damp, &
+           & minimization_scheme)
+      ! NEB is using cv criterion in ev per ang.
+      neb_%convergence = neb_%convergence * Ha_eV / Bohr_Ang
+      call dict_free(dict)
+      call dict_free(dict_min)
+
+      select case(minimization_scheme)
+      case("steepest_descent")
+         algorithm = NEB_STEEPEST_DESCENT
+      case("fletcher-reeves")
+         algorithm = NEB_FLETCHER_REEVES
+      case("polak-ribiere")
+         algorithm = NEB_POLAK_RIBIERE
+      case("quick-min")
+         algorithm = NEB_QUICK_MIN
+      case("damped-verlet")
+         algorithm = NEB_DAMPED_VERLET
+      case("sim-annealing")
+         algorithm = NEB_SIM_ANNEALING
+      case default
+         call f_err_throw("minimization_scheme " // trim(minimization_scheme) // " does not exist", &
+              & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+         !WRITE(*,'(T2,"read_input: minimization_scheme ", A20)') &
+         !     trim(minimization_scheme)
+         !WRITE(*,'(T2,"            does not exist")') 
+         !STOP 
+      end select
+
       scratch_dir       = "./"
-
-      restart           = .FALSE.
-      neb_%climbing     = .FALSE.
-      neb_%optimization = .FALSE.
-      
-      minimization_scheme = "quick-min"
-      neb_%damp           = 1.D0
-      neb_%temp_req       = 0.D0
-      
-      neb_%k_max = 0.1D0
-      neb_%k_min = 0.1D0
-      
-      neb_%ds = 0.5D0
-      
-      neb_%max_iterations = 1
-      
-      tolerance   = 1.0D-4
-      neb_%convergence = 5.0D-2
-
-      open(unit = 123, file = trim(run_id)//".neb", action = "read")
-      READ(123 , NML=NEB )
-      close(123)
-      IF ( num_of_images <= 2 ) THEN
-        WRITE(*,'(T1,"read_input: neb_%nimages must be larger than 2")')
-        STOP
-      END IF
-
       job_name          = "neb"
       if (trim(run_id) /= "input") write(job_name, "(A)") trim(run_id)
-      neb_%climbing = climbing
-      neb_%optimization = optimization
-      neb_%convergence = convergence
-      neb_%damp = damp
-      neb_%k_min = k_min
-      neb_%k_max = k_max
-      neb_%ds = ds
-      neb_%temp_req = temp_req
-      neb_%max_iterations = max_iterations
 
       allocate(arr_radical(abs(num_of_images)))
       allocate(arr_posinp(abs(num_of_images)))
       call bigdft_get_run_ids(num_of_images,trim(run_id),arr_radical,arr_posinp,ierr)
 
       allocate( ins(num_of_images), atoms(num_of_images) )
-      allocate( read_posinp(num_of_images) )
-      istart = 1
+      allocate( imgs(num_of_images) )
 
+      call dict_init(dict)
+      ! trick to output the image logs where it should, on disk.
+      call set(dict // PERF_VARIABLES // OUTDIR, "./")
       ! Trick here, only super master will read the input files...
       bigdft_mpi_svg = bigdft_mpi
       bigdft_mpi%mpi_comm = MPI_COMM_WORLD
@@ -197,31 +188,43 @@ MODULE NEB_routines
       call mpi_comm_size(MPI_COMM_WORLD, bigdft_mpi%nproc, ierr)
       bigdft_mpi%igroup = 0
       bigdft_mpi%ngroup = num_of_images
+      
+      !Loop over the images (replica)
       do i = 1, num_of_images
-         call astruct_nullify(astruct)
-         call read_atomic_file(trim(arr_posinp(i)), bigdft_mpi%iproc, astruct, status = ierr)
-!!!!print *,'i,num_of_images',i,num_of_images,ierr
-         if (ierr /= 0) then
-            if (i == 1 .or. i == num_of_images) stop "Missing images"
-            ! we read the last valid image instead.
-            call read_atomic_file(trim(arr_posinp(istart)), bigdft_mpi%iproc, astruct)
-            read_posinp(i) = .false.
-         else
-            istart = i
-            read_posinp(i) = .true.
+         call user_dict_from_files(dict, trim(arr_radical(i)), &
+              & trim(arr_posinp(i)), bigdft_mpi)
+         ! Force no geometry relaxation
+         call dict_remove(dict, GEOPT_VARIABLES)
+         call inputs_from_dict(ins(i), atoms(i), dict)
+
+         if (.not. external_call .and. i == 1) then
+            call restart_objects_new(rst)
+            call restart_objects_set_mode(rst, ins(1)%inputpsiid)
+            call restart_objects_set_nat(rst, atoms(1)%astruct%nat)
+            call restart_objects_set_mat_acc(rst, bigdft_mpi%iproc, ins(1)%matacc)
          end if
 
-         nullify(dict)
-         call read_input_dict_from_files(trim(arr_radical(i)), bigdft_mpi, dict)
-         call astruct_merge_to_dict(dict // "posinp", astruct, astruct%rxyz)
-         call atoms_file_merge_to_dict(dict)
+         ! Some consistency checks.
+         !IF ( atoms(1)%astruct%nat /= atoms(i)%astruct%nat ) THEN
+         !   WRITE(*,'(T2,"read_input: number of atoms is not constant")')
+         !   WRITE(*,'(T2,"            N = ", I8, I8 )') atoms(1)%astruct%nat, atoms(i)%astruct%nat
+         !   STOP  
+         !END IF
+         if (f_err_raise(atoms(1)%astruct%nat /= atoms(i)%astruct%nat, &
+           &  err_msg="The number of atoms is not constant, N=" // trim(yaml_toa(atoms(1)%astruct%nat)) // &
+           &  " and " // trim(yaml_toa(atoms(i)%astruct%nat)),err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
 
-         call inputs_from_dict(ins(i), atoms(i), dict, .true.)
+         if (bigdft_mpi%iproc == 0) then
+            ! Need to close streams here to avoid running out of available streams.
+            call yaml_get_default_stream(unit_log)
+            call yaml_close_stream(unit_log)
+         end if
 
-         call dict_free(dict)
-         call deallocate_atomic_structure(astruct)
+         call image_init(imgs(i), ins(i), atoms(i), rst, algorithm)
+         ! Store forces if present (for restart).
+         call global_output_set_from_dict(imgs(i)%outs, dict // "posinp")
       end do
-      bigdft_mpi = bigdft_mpi_svg
+      call dict_free(dict)
 
       data_file          = trim(job_name) // ".NEB.dat"
       interpolation_file = trim(job_name) // ".NEB.int"
@@ -230,35 +233,11 @@ MODULE NEB_routines
 !! initial and final configuration are read only if a new simulation
 !! is started ( restart = .FALSE. ) 
       
-      IF ( minimization_scheme == "steepest_descent" ) THEN
-         algorithm = 1
-      ELSE IF ( minimization_scheme == "fletcher-reeves" ) THEN
-         algorithm = 2
-      ELSE IF ( minimization_scheme == "polak-ribiere" ) THEN
-         algorithm = 3
-      ELSE IF ( minimization_scheme == "quick-min" ) THEN
-         algorithm = 4
-      ELSE IF ( minimization_scheme == "damped-verlet" ) THEN
-         algorithm = 5
-      ELSE IF ( minimization_scheme == "sim-annealing" ) THEN
-         algorithm = 6
-      ELSE
-         WRITE(*,'(T2,"read_input: minimization_scheme ", A20)') &
-              minimization_scheme
-         WRITE(*,'(T2,"            does not exist")') 
-         STOP 
-      END IF
-
       acell1 = atoms(1)%astruct%cell_dim
       if (acell1(1) == 0.) acell1(1) = maxval(atoms(1)%astruct%rxyz(1,:)) - minval(atoms(1)%astruct%rxyz(1,:))
       if (acell1(2) == 0.) acell1(2) = maxval(atoms(1)%astruct%rxyz(2,:)) - minval(atoms(1)%astruct%rxyz(2,:))
       if (acell1(3) == 0.) acell1(3) = maxval(atoms(1)%astruct%rxyz(3,:)) - minval(atoms(1)%astruct%rxyz(3,:))
 
-      IF ( atoms(1)%astruct%nat /= atoms(num_of_images)%astruct%nat ) THEN
-         WRITE(*,'(T2,"read_input: number of atoms is not constant")')
-         WRITE(*,'(T2,"            N = ", I8, I8 )') atoms(1)%astruct%nat, atoms(num_of_images)%astruct%nat
-         STOP  
-      END IF
       acell2 = atoms(num_of_images)%astruct%cell_dim
       if (acell2(1) == 0.) acell2(1) = maxval(atoms(num_of_images)%astruct%rxyz(1,:)) - &
            & minval(atoms(num_of_images)%astruct%rxyz(1,:))
@@ -273,13 +252,17 @@ MODULE NEB_routines
       end if
 
 !! some consistency checks are done
-      IF ( maxval(abs(acell2 - acell1)) > 1.d-6 ) THEN
-         WRITE(*,'(T2,"read_input: box size is not constant")')
-         WRITE(*,'(T2,"           dLx = ", F10.6 )') acell1(1) - acell2(1)
-         WRITE(*,'(T2,"           dLy = ", F10.6 )') acell1(2) - acell2(2)
-         WRITE(*,'(T2,"           dLz = ", F10.6 )') acell1(3) - acell2(3)
-         STOP  
-      END IF
+      if (f_err_raise(maxval(abs(acell2 - acell1)) > 1.d-6, &
+         & err_msg="The box size is not constant, dLx = " // trim(yaml_toa(acell1(1) - acell2(1))) // &
+         & " dLy = " // trim(yaml_toa(acell1(2) - acell2(2))) // &
+         & " dLz = " // trim(yaml_toa(acell1(3) - acell2(3))) )) return
+      !IF ( maxval(abs(acell2 - acell1)) > 1.d-6 ) THEN
+      !   WRITE(*,'(T2,"read_input: box size is not constant")')
+      !   WRITE(*,'(T2,"           dLx = ", F10.6 )') acell1(1) - acell2(1)
+      !   WRITE(*,'(T2,"           dLy = ", F10.6 )') acell1(2) - acell2(2)
+      !   WRITE(*,'(T2,"           dLz = ", F10.6 )') acell1(3) - acell2(3)
+      !   STOP  
+      !END IF
 
 !!$      IF ( restart ) THEN
 !!$        vel_file = TRIM( scratch_dir )//"/velocities_file"
@@ -308,40 +291,35 @@ MODULE NEB_routines
       istart = 1
       ! We set the coordinates for all empty images.
       DO i = 2, num_of_images
-         if (read_posinp(i)) then
+         if (maxval(abs(atoms(i)%astruct%rxyz-atoms(i-1)%astruct%rxyz)) > 1d-6) then
             istop = i
             d_R = ( atoms(istop)%astruct%rxyz - atoms(istart)%astruct%rxyz ) / &
                  DBLE( istop - istart )
             do j = istart + 1, istop - 1, 1
                atoms(j)%astruct%rxyz = atoms(j - 1)%astruct%rxyz + d_R
+               ! Dump generated image positions on disk.
+               if (bigdft_mpi%iproc == 0) then
+                  call write_atomic_file(trim(arr_posinp(j)) // ".in", UNINITIALIZED(1.d0), &
+                       & atoms(j)%astruct%rxyz, atoms(j)%astruct%ixyz_int, atoms(j), "NEB generated")
+               end if
+               ! Erase forces.
+               imgs(j)%outs%fxyz(:,:) = UNINITIALIZED(1.d0)
             end do
             istart = i
-         end if
+         end if         
       END DO
-
-      ALLOCATE( fix_atom(3, atoms(1)%astruct%nat) )
+      
+      d_R = ( atoms(num_of_images)%astruct%rxyz - atoms(1)%astruct%rxyz )
+      ALLOCATE( fix_atom(3, atoms(1)%astruct%nat) )      
       fix_atom = 1
       WHERE ( ABS( d_R ) <=  tolerance ) fix_atom = 0
 
       DEALLOCATE( d_R )
 
+      ! End of trick.
+      bigdft_mpi = bigdft_mpi_svg
+
 !!$     END IF
-
-      if (.not. external_call) then
-         call restart_objects_new(rst)
-         call restart_objects_set_mode(rst, ins(1)%inputpsiid)
-         call restart_objects_set_nat(rst, atoms(1)%astruct%nat, "read_input")
-         call restart_objects_set_mat_acc(rst, mpi_info(1), ins(1)%matacc)
-         call yaml_close_all_streams()
-      end if
-
-      allocate(imgs(num_of_images))
-      do i = 1, num_of_images
-         call image_init(imgs(i), ins(i), atoms(i), rst, algorithm)
-      end do
-
-      deallocate( read_posinp )
-
     END SUBROUTINE read_input
 
     
@@ -352,7 +330,7 @@ MODULE NEB_routines
 
       INTEGER :: iteration, unt, ierr, i
       real(gp) :: err
-      LOGICAL :: stat
+      LOGICAL :: stat, restart
       CHARACTER (LEN=4), PARAMETER :: exit_file = "EXIT"  
       character(len = 256) :: filename
 
@@ -360,22 +338,37 @@ MODULE NEB_routines
 !!$         CALL write_restart(restart_file, neb_%ndim, neb_%nimages, V, pos, fix_atom, PES_gradient)
 !!$      END IF
 
+      ! Test for restart
+      restart = .false.
+      if (external_call) then
+         inquire(file = trim(restart_file), exist = restart)
+         call yaml_map("NEB restart", restart, unit = 6)
+      else if (mpi_info(1) == 0 .and. mpi_info(3) == 0) then
+         call yaml_sequence_open("Restarting images", unit = 6)
+         do i = 1, size(imgs), 1
+            call yaml_sequence(trim(yaml_toa(all(imgs(i)%outs%fxyz /= UNINITIALIZED(1.d0)))), unit = 6, advance = "no")
+            call yaml_comment(yaml_toa(i, fmt = "(I2.2)"), unit = 6)
+            call yaml_newline(unit = 6)
+         end do
+         call yaml_sequence_close(unit = 6)
+      end if
+
       if (mpi_info(1) == 0 .and. mpi_info(3) == 0) &
-           & call yaml_open_sequence("NEB minimization loop", unit = 6)
+           & call yaml_sequence_open("NEB minimization loop", unit = 6)
       iteration = 0
       minimization: do
          if (external_call) then
             CALL PES_IO(imgs, (neb_%optimization .or. (.not. restart .and. iteration == 0)),stat)
             if (.not. stat) exit minimization
          else
-            call PES_internal(imgs, (neb_%optimization .or. (.not. restart .and. iteration == 0)), iteration)
+            call PES_internal(imgs, neb_%optimization,  (iteration == 0), iteration)
          end if
 
          call compute_neb_pos(imgs, iteration, neb_)
 
          if (mpi_info(1) == 0 .and. mpi_info(3) == 0) then
 !!$            CALL write_restart(restart_file, neb_%ndim, neb_%nimages, V, pos, fix_atom, PES_gradient)
-            if (imgs(1)%algorithm >= 4) then
+            if (imgs(1)%algorithm >= NEB_QUICK_MIN) then
                CALL write_restart_vel(trim(scratch_dir) // "velocities_file", imgs)
             end if
 
@@ -405,15 +398,14 @@ MODULE NEB_routines
          inquire(FILE = exit_file, EXIST = stat)
          IF ( stat ) THEN
             call delete(trim(exit_file),len(trim(exit_file)), stat)
-
-            WRITE(*,*) " WARNING :  soft exit required"
-            WRITE(*,*) " STOPPING ...                 "
-
+            call yaml_warning("Soft exit required, stopping")
+            !WRITE(*,*) " WARNING :  soft exit required"
+            !WRITE(*,*) " STOPPING ...                 "
             exit minimization
          END IF
       end do minimization
       if (mpi_info(1) == 0 .and. mpi_info(3) == 0) &
-           & call yaml_close_sequence(unit = 6)
+           & call yaml_sequence_close(unit = 6)
 
       if (mpi_info(1) == 0 .and. mpi_info(3) == 0) then
          call yaml_swap_stream(6, unt, ierr)
@@ -424,29 +416,38 @@ MODULE NEB_routines
          do i = 1, size(imgs), 1
             filename=trim('final_'//trim(arr_posinp(i)))
             call write_atomic_file(filename, imgs(i)%outs%energy,imgs(i)%run%atoms%astruct%rxyz, &
+                 imgs(i)%run%atoms%astruct%ixyz_int, &
                  & imgs(i)%run%atoms,'FINAL CONFIGURATION',forces=imgs(i)%outs%fxyz)
          end do
       end if
     END SUBROUTINE search_MEP
 
-    subroutine PES_internal( imgs, flag, iteration )
+    subroutine PES_internal( imgs, flag_optim, flag_restart, iteration )
       use yaml_output
       implicit none
       type(run_image), dimension(:), intent(inout) :: imgs
       integer, intent(in) :: iteration
-      logical, intent(in) :: flag
+      logical, intent(in) :: flag_optim, flag_restart
 
       integer :: i
       logical, dimension(size(imgs)) :: update
       integer, dimension(size(imgs)) :: igroup
+      real(gp), dimension(size(imgs)) :: errors
+
+      if (.not. flag_restart) then
+         errors = images_get_errors(imgs) * Ha_eV / Bohr_Ang
+         do i = 1, size(imgs)
+            if (errors(i) > neb_%convergence .and. &
+                 & (flag_optim .or. (i > 1 .and. i < size(imgs)))) &
+                 & imgs(i)%outs%fxyz(1,1) = UNINITIALIZED(1.d0)
+         end do
+      end if
 
       ! update() is a mask of images to compute.
       update = .true.
-      where ( images_get_errors(imgs) * Ha_eV / Bohr_Ang <= neb_%convergence ) update = .false.
-      if (.not. flag) then
-         update(1) = .false.
-         update(size(imgs)) = .false.
-      end if
+      do i = 1, size(imgs)
+         if (all(imgs(i)%outs%fxyz /= UNINITIALIZED(1.d0))) update(i) = .false.
+      end do
 
       ! Do the calculations, distributing among taskgroups.
       call images_distribute_tasks(igroup, update, size(imgs), neb_mpi%nproc)
@@ -562,7 +563,7 @@ MODULE NEB_routines
       deallocate(arr_posinp,arr_radical)
 
       if (.not. external_call) then
-         call free_restart_objects(rst, "deallocation")
+         call free_restart_objects(rst)
          call f_lib_finalize()
       end if
 
@@ -573,16 +574,17 @@ MODULE NEB_routines
 
 END MODULE NEB_routines
 
+
 PROGRAM NEB
 
   USE NEB_routines
 
   IMPLICIT NONE
 
-  CALL read_input
+  CALL read_input()
 
-  CALL search_MEP
+  CALL search_MEP()
 
-  CALL deallocation
+  CALL deallocation()
 
 END PROGRAM NEB

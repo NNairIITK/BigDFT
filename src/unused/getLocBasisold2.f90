@@ -98,7 +98,7 @@ character(len=*),parameter:: subname='get_coeff'
   if(iproc==0) write(*,'(1x,a)') 'done.'
 
   ! Deallocate the buffers needed for the communication of the potential.
-  call deallocateCommunicationsBuffersPotential(tmbmix%comgp, subname)
+  call deallocate_p2pComms_buffer(tmbmix%comgp, subname)
 
 
 
@@ -409,7 +409,7 @@ logical,parameter:: secondLocreg=.false.
       call destroy_new_locregs(tmblarge%lzd, tmblarge%orbs, tmblarge%op, tmblarge%comon, tmblarge%mad, tmblarge%comgp, &
            tmblarge%psi, lhphilarge, lhphilargeold, lphilargeold)
 
-      if(.not.variable_locregs) call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+      if(.not.variable_locregs) call allocate_p2pComms_buffer(tmb%comgp, subname)
 
 
       locrad_tmp=factor*locrad
@@ -505,7 +505,7 @@ logical,parameter:: secondLocreg=.false.
                   call memocc(istat, tmb%orbs%onwhichatom, 'tmb%orbs%onwhichatom', subname)
                   call vcopy(tmb%orbs%norb, onwhichatom_reference(1), 1, tmb%orbs%onwhichatom(1), 1)
                   tmb%wfnmd%nphi=tmb%orbs%npsidim_orbs
-                  call allocateCommunicationsBuffersPotential(tmb%comgp, subname)
+                  call allocate_p2pComms_buffer(tmb%comgp, subname)
               end if
 
 
@@ -1419,7 +1419,7 @@ implicit none
 ! Calling arguments
 integer,intent(in):: iproc, nproc
 type(orbitals_data), intent(in) :: orbs
-type(communications_arrays), intent(in) :: comms
+type(comms_cubic), intent(in) :: comms
 real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb), intent(in) :: phi, hphi
 real(8),dimension(orbs%norb,orbs%norb),intent(out):: HamSmall
 
@@ -1732,8 +1732,8 @@ implicit none
 integer:: iproc, nproc
 type(orbitals_data), intent(in) :: orbs
 type(orbitals_data), intent(in) :: orbsLIN
-type(communications_arrays), intent(in) :: comms
-type(communications_arrays), intent(in) :: commsLIN
+type(comms_cubic), intent(in) :: comms
+type(comms_cubic), intent(in) :: commsLIN
 real(8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor,orbsLIN%norb) :: phi
 real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb) :: psi
 real(8),dimension(orbsLIN%norb,orbsLIN%norb):: HamSmall
@@ -1786,8 +1786,8 @@ implicit none
 integer:: iproc, nproc
 type(orbitals_data), intent(in) :: orbs
 type(orbitals_data), intent(in) :: orbsLIN
-type(communications_arrays), intent(in) :: comms
-type(communications_arrays), intent(in) :: commsLIN
+type(comms_cubic), intent(in) :: comms
+type(comms_cubic), intent(in) :: commsLIN
 real(8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor,orbsLIN%norb) :: phi
 real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb) :: psi
 real(8),dimension(orbsLIN%norb,orbs%norb):: coeff

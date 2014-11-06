@@ -926,7 +926,7 @@ subroutine discretize_gaussian(nrange,fac,pgauss,x0,hgrid,filename)
   end do
   !use the elemental property of the scfdotf function
   f_phi_i2=scfdotf((/(j,j=-nrange,nrange)/),hgrid,pgauss,x0,0)
-  call finalize_real_space_conversion('discretize_gaussian')
+  call finalize_real_space_conversion()
 
   !then print the results
   moments=0.0_dp

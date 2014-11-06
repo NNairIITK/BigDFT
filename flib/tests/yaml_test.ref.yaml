@@ -50,12 +50,15 @@
  Vector of characters                  :  []
  Vector of integers                    :  []
  Is it OK?: {Maybe:  Yes, Maybe:  No}
- Vector of double: [ 3.0,  3.0,  3.0,  3.0,  3.0,  3.0,  3.0,  3.0,  3.0,  3.0,  3.0]
+ Vector of double: [ 3.00000E+00,  3.00000E+00,  3.00000E+00,  3.00000E+00,  3.00000E+00, 
+                     3.00000E+00,  3.00000E+00,  3.00000E+00,  3.00000E+00,  3.00000E+00, 
+                     3.00000E+00]
  Vector of real(kind=8): [ 3.,  3.,  3.,  3.,  3.,  3.,  3.,  3.,  3.,  3.,  3.]
 ---
   #This document checks the call yaml_comment().
-  # [  1.0,  1.0,  1.0,  1.0,  1.0 ]
-  #See if this very long comment is correctly treated: [  1.0,  1.0,  1.0,  1.0,  1.0 ]
+  # [  1.0000000000,  1.0000000000,  1.0000000000,  1.0000000000,  1.0000000000 ]
+  #See if this very long comment is correctly treated: [  1.0000000000,  1.0000000000,  
+  #1.0000000000,  1.0000000000,  1.0000000000 ]
  Map:
    One                                 :  1
     #No blank 
@@ -75,7 +78,7 @@
 ---
   #----------------------------------------------------------------------- Yaml Invoice Example
  invoice                               :  34843
- date                                  :  2014-02-02
+ date                                  :  2014-07-01
  bill-to: &id001
    given                               : Chris
    address:
@@ -87,20 +90,20 @@
  - sku                                 : BL394D
    quantity                            :  4
    description                         : Basketball
-   price                               :  450.0
+   price                               :  450.00
  - sku                                 : BL4438H
    quantity                            :  1
    description                         : Super Hoop
-   price                               :  2392.0
+   price                               :  2392.00
  tax                                   :  251.42
- total                                 :  4443.5200000000004
+ total                                 :  4443.520000000000
  comments:
    Late afternoon is best. Backup contact is Nancy Billsmer @ 338-4338.
 ---
   #--------------------------------------------------- Yaml Invoice Example, using dictionaries
  Retrieve the price value              :  2392.0
  invoice                               : 34843
- date                                  :  2014-02-02
+ date                                  :  2014-07-01
  bill-to:
    given                               : Chris
    family                              : Dumars
@@ -124,30 +127,30 @@
    Late afternoon is best. Backup contact is Nancy Billsmer @ 338-4338
 ---
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Error Handling Module Test
- Raising the TOTO error, errcode       :  20
+ Raising the TOTO error, errcode       :  22
  ERR_TOTO:
-   Id                                  : 20
+   Id                                  : 22
    Message:
      This is the error message for the error of kind 1 and it is written extensively on 
      purpose to see whether yaml module prints it
    Action:
      For this error, contact the routine developer at mail at univ dot gov
-   Callback Procedure Address          : 4237472
+   Callback Procedure Address          : 4204414
  Additional Info                       : Extra message added
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TOTO
- Print the error ID                    :  20
+ Print the error ID                    :  22
  Raising the TOTO error, by name, without condition: ERR_TOTO
  ERR_TOTO:
-   Id                                  : 20
+   Id                                  : 22
    Message:
      This is the error message for the error of kind 1 and it is written extensively on 
      purpose to see whether yaml module prints it
    Action:
      For this error, contact the routine developer at mail at univ dot gov
-   Callback Procedure Address          : 4237472
+   Callback Procedure Address          : 4204414
  Additional Info                       : Extra message added again
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TOTO
- Callback done, errcode                :  20
+ Callback done, errcode                :  22
  GENERIC_ERROR:
    Id                                  : 1
    Message                             : UNSPECIFIED
@@ -207,7 +210,7 @@
  - YAML_PARSE_ERROR:
      Id                                : 13
      Message                           : YAML parse error.
-     Action                            : modify your inputs.
+     Action                            : Modify your inputs.
  - YAML_PARSE_UNSUPPORTED:
      Id                                : 14
      Message                           : YAML standard not supported.
@@ -216,61 +219,91 @@
      Id                                : 15
      Message                           : Allocation error
      Action:
-       Control the order of the allocation of if the memory limit has been reached
-     Callback Procedure Address        : 4528416
+       Control the order of the allocation or if the memory limit has been reached
+     Callback Procedure Address        : 4963437
  - ERR_DEALLOCATE:
      Id                                : 16
-     Message                           : Dellocation error
+     Message                           : Deallocation error
      Action:
-       Control the order of the allocation of if the memory limit has been reached
-     Callback Procedure Address        : 4528416
+       Control the order of the allocation or if the memory limit has been reached
+     Callback Procedure Address        : 4963437
  - ERR_MEMLIMIT:
      Id                                : 17
      Message                           : Memory limit reached
      Action:
        Control the size of the arrays needed for this run with bigdft-tool program
-     Callback Procedure Address        : 4528416
- - ERR_INVALID_MALLOC:
+     Callback Procedure Address        : 4963437
+ - ERR_INVALID_COPY:
      Id                                : 18
+     Message                           : Copy not allowed
+     Action:
+       A f_memcpy command failed, probably invalid sizes: check sizes of arrays at runtime
+     Callback Procedure Address        : 4963437
+ - ERR_INVALID_MALLOC:
+     Id                                : 19
      Message                           : Invalid specification of f_malloc
      Action                            : Put coherent data for the memory space allocation
-     Callback Procedure Address        : 4528416
+     Callback Procedure Address        : 4963437
  - ERR_MALLOC_INTERNAL:
-     Id                                : 19
+     Id                                : 20
      Message                           : Internal error of memory profiler
      Action:
        An invalid operation occurs, submit bug report to developers
-     Callback Procedure Address        : 4528416
+     Callback Procedure Address        : 4963437
+ - TIMING_INVALID:
+     Id                                : 21
+     Message                           : Error in timing routines
+
+     Action                            : Control the running conditions of f_timing routines called
+     Callback Procedure Address        : 5065618
  - ERR_TOTO:
-     Id                                : 20
+     Id                                : 22
      Message:
        This is the error message for the error of kind 1 and it is written extensively on 
        purpose to see whether yaml module prints it
      Action:
        For this error, contact the routine developer at mail at univ dot gov
-     Callback Procedure Address        : 4237472
+     Callback Procedure Address        : 4204414
  - ERR_TITI:
-     Id                                : 21
+     Id                                : 23
      Message                           : test2
-     Callback Procedure Address        : 4237408
-     Callback Procedure Data Address   : 140736614962228
+     Callback Procedure Address        : 4204538
+     Callback Procedure Data Address   : 140735714712384
  - ERR_GRAVE:
-     Id                                : 22
+     Id                                : 24
      Message                           : test2
-     Callback Procedure Address        : 4331792
+     Callback Procedure Address        : 4389491
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ End of error list
  Additional Info                       : This is the list of the errors
  ERR_TITI:
-   Id                                  : 21
+   Id                                  : 23
    Message                             : test2
-   Callback Procedure Address          : 4237408
-   Callback Procedure Data Address     : 140736614962228
+   Callback Procedure Address          : 4204538
+   Callback Procedure Data Address     : 140735714712384
  Additional Info                       : Now TITI error has been raised
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TITI
  Callback done                         :  Yes
  Error check value                     :  Yes
  Error check code                      :  No
  Error check code2                     :  Yes
+ Error check code, name                :  No
+ Error check code, name                :  Yes
+  #Test open try
+ Error check value before try          :  No
+ Number of errors(1)                   :  1
+ Number of errors(2)                   :  0
+ ID                                    :  22
+ MSG                                   : two
+ ERR_TOTO:
+   Id                                  : 22
+   Message:
+     This is the error message for the error of kind 1 and it is written extensively on 
+     purpose to see whether yaml module prints it
+   Action:
+     For this error, contact the routine developer at mail at univ dot gov
+   Callback Procedure Address          : 4204883
+ Number of errors(3)                   :  1
+ Error check value after try           :  No
 ---
   #Now we test dictionaries inside yaml.
  ival not existing, fake value         :  0
@@ -319,22 +352,36 @@
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Fortran Dictionary Test
  Number of Groups                      : 1
  First: {One: 1, Two: 2, Three: 3, Threeb: 3b}
- Size before popping                   :  4
+ Size before removing                  :  4
  After pop:
    Number of Groups                    : 1
    First:
      Three                             : 3
      Threeb                            : 3b
      Four                              : 4
- Complete pop:
-   Size after popping                  :  1
-   Number of Groups                    : 1
  Key found                             :  No
  Second try, Key found                 :  Yes
  Value found                           :  1
  Alternative way                       :  2
- Dictionary associated before last pop :  Yes
- Last pop done, still associated       :  No
+ Search for "First" key:
+   Three                               : 3
+   Threeb                              : 3b
+   Four                                : 4
+ Extracted value                       :  2
+ Size after popping                    :  1
+ Size after popping again              : -1
+ Complete pop:
+   Status of association               :  No
+   Size after popping                  : -1
+   Present status                      : <nullified dictionary>
+ DictA is associated                   :  Yes
+ DictA is now of size                  :  3
+ DictA is now:
+   Three                               : 3
+   Threeb                              : 3b
+   Four                                : 4
+ DictA key                             : First
+ Dictionary associated before last pop :  No
  Stack:
  - 5
  - 4
@@ -345,13 +392,13 @@
  Stack2: [1, 2, 3]
  Stack3: [4, AQ, 3g]
  Stack4                                : 12
- Values retrieved from the dict        :  [  1.0,  2.0,  3.0 ]
+ Values retrieved from the dict        :  [  1.0000,  2.0000,  3.0000 ]
  Stack: [5, 4]
  Stack2: [1, 2, 3]
  Stack3: [4, AQ, 3g]
  Stack4                                : 12
- Two values from Stack key             :  [  5.0,  4.0,  3.0 ]
- Array filled with a scalar            :  [  5.0,  5.0,  5.0 ]
+ Two values from Stack key             :  [  5.0000,  4.0000,  3.0000 ]
+ Array filled with a scalar            :  [  5.0000,  5.0000,  5.0000 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Prepend dictionary example
  Size of dict A                        :  4
  Dict A:
@@ -380,7 +427,7 @@
    Test1:
      Toto                              : 4
      Titi                              : 2
-     Tutu                              : 4.0
+     Tutu                              : 4.00000E+00
    Test2:
      Toto                              : 4
      Titi                              : 2
@@ -398,7 +445,7 @@
    Test1:
      Toto                              : 4
      Titi                              : 2
-     Tutu                              : 4.0
+     Tutu                              : 4.00000E+00
    Test2:
      Toto                              : 4
      Titi                              : 2
@@ -408,9 +455,6 @@
    Stack3: [4, AQ, 3g]
    Stack4                              : 12
  Keys of prepended dict                :  [ Test1, Test2, Stack, Stack2, Stack3, Stack4 ]
- Iterating in dictA                    :  Yes
- Key of dictA                          : ~
- Value of dictA                        : __dict__
  Iterating in dictA                    :  Yes
  Key of dictA                          : Test1
  Value of dictA                        : __dict__
@@ -453,10 +497,10 @@
     #call yaml_sequence("5,unit=0")
     #call yaml_sequence("6,unit=0")
     #call yaml_sequence(advance="no,unit=0")
-    #call yaml_open_sequence("",flow=.true.,unit=0)
+    #call yaml_sequence_open("",flow=.true.,unit=0)
     #call yaml_sequence("55,unit=0")
     #call yaml_sequence("66,unit=0")
-    #call yaml_close_sequence(,unit=0)
+    #call yaml_sequence_close(,unit=0)
  - 5
  - 6
  - - 55
@@ -464,10 +508,10 @@
     #call yaml_sequence("5,unit=0")
     #call yaml_sequence("6,unit=0")
     #call yaml_sequence(advance="no,unit=0")
-    #call yaml_open_sequence("",flow=.true.,unit=0)
+    #call yaml_sequence_open("",flow=.true.,unit=0)
     #call yaml_sequence("55,unit=0")
     #call yaml_sequence("66,unit=0")
-    #call yaml_close_sequence(,unit=0)
+    #call yaml_sequence_close(,unit=0)
  - 5
  - 6
  -  [55, 66]
@@ -482,6 +526,13 @@
  Value of dictA                        : __list__
 ---
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Routine-Tree creation example
+ Address of first element              :  26509872
+ Associated                            :  [  No,  No ]
+ Associated                            :  [  Yes,  Yes ]
+ Address of first element              :  26510080
+ Address of first element, explicit (1):  26510080
+ Address of first element, explicit (2):  26510080
+ Associated                            :  [  Yes,  No,  Yes ]
   #debug 1
   #debug 2
  Source vector: [ 25,  26,  27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39, 
@@ -502,234 +553,151 @@
  Its rank                              :  1
  Pointer difference: [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
                        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]
- Calling sequence of Main program:
-   Main program:
-     No. of calls                      :  1
-     Time of last opening              :  1391379084578124975
-     Total time (s)                    :  0.0
-     Profiling Enabled                 :  Yes
+ Pointer difference again (should be -1): [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+                                           -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 
+                                           -1, -1, -1, -1, -1, -1, -1, -1]
+ Pointer difference again (should be 0): [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
+                                           0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 
+                                           0,  0,  0,  0,  0,  0,  0,  0]
+ Calling sequence of Main program (routines with * are not closed yet):
+ - Main program: [ 1.596E-02,  1, ~*]
+   Subroutines:
+   - PS_Check: [ 9.191E-03,  1,  57.59%*]
      Subroutines:
-       PS_Check:
-         No. of calls                  :  1
-         Time of last opening          :  1391379084590895533
-         Total time (s)                :  0.0
-         Profiling Enabled             :  Yes
+     - Routine D: [ 5.099E-03,  1,  55.48%*]
+       Subroutines:
+       - Subcase 2: [ 2.048E-03,  1,  40.16%]
          Subroutines:
-           Routine 0:
-             No. of calls              :  1
-             Total time (s)            : 3.8030633E-02
-             Profiling Enabled         :  Yes
-           Routine A:
-             No. of calls              :  1
-             Total time (s)            : 1.7905958E-02
-             Profiling Enabled         :  Yes
-           Routine D:
-             No. of calls              :  1
-             Time of last opening      :  1391379084646935342
-             Total time (s)            :  0.0
-             Profiling Enabled         :  Yes
-             Subroutines:
-               SubCase 1:
-                 No. of calls          :  1
-                 Total time (s)        : 1.289549E-03
-                 Profiling Enabled     :  Yes
-               Subcase 2:
-                 No. of calls          :  1
-                 Total time (s)        : 8.4951E-04
-                 Profiling Enabled     :  Yes
-                 Subroutines:
-                   SubSubcase1:
-                     No. of calls      :  1
-                     Total time (s)    : 7.89929E-04
-                     Profiling Enabled :  Yes
-               SubCase 3:
-                 No. of calls          :  1
-                 Time of last opening  :  1391379084649167905
-                 Total time (s)        :  0.0
-                 Profiling Enabled     :  Yes
+         - SubSubcase1: [ 1.924E-03,  1,  93.92%]
+       - SubCase 3: [ 1.824E-03,  1,  35.76%*]
+       - SubCase 1: [ 1.706E-03,  1,  33.46%]
+     - Routine A: [ 2.484E-04,  1,  2.70%]
+     - Routine 0: [ 1.238E-04,  1,  1.35%]
  Routine dictionary:
-   weight:
-     Array Id                          : weight
-     Size (Bytes)                      : 4
-     Allocating Routine Id             : SubCase 3
-     Address of first element          : 0xfd2e10
-     Address of metadata               : 140736614961360
-   orbital_id:
-     Array Id                          : orbital_id
-     Size (Bytes)                      : 28
-     Allocating Routine Id             : SubCase 3
-     Address of first element          : 0xfd3280
-     Address of metadata               : 140736614961232
+   26510112:
+     [ weight, SubCase 3,  4,  3]
+   26508880:
+     [ orbital_id, SubCase 3,  28,  4]
  Global dictionary (size 4):
-   density:
-     Array Id                          : density
-     Size (Bytes)                      : 48
-     Allocating Routine Id             : Routine 0
-     Address of first element          : 0xfd2d70
-     Address of metadata               : 140736614961456
-   potential:
-     Array Id                          : potential
-     Size (Bytes)                      : 24
-     Allocating Routine Id             : Routine 0
-     Address of first element          : 0xfd2df0
-     Address of metadata               : 140736614961744
+   26510144:
+     [ density, Routine 0,  48,  1]
+   26509872:
+     [ potential, Routine 0,  24,  1]
    Timestamp of Profile initialization:
-     2014-02-02 23:11:24.577
+     2014-07-01 12:51:45.715
    Process Id:
      0
   #Test for debug
   #End test for debug
   #End test for debug2
- Calling sequence of Main program:
-   Main program:
-     No. of calls                      :  1
-     Time of last opening              :  1391379084578124975
-     Total time (s)                    :  0.0
-     Profiling Enabled                 :  Yes
+ Calling sequence of Main program (routines with * are not closed yet):
+ - Main program: [ 2.000E-02,  1, ~*]
+   Subroutines:
+   - PS_Check: [ 1.325E-02,  1,  66.26%*]
      Subroutines:
-       PS_Check:
-         No. of calls                  :  1
-         Time of last opening          :  1391379084590895533
-         Total time (s)                :  0.0
-         Profiling Enabled             :  Yes
+     - Routine D: [ 7.450E-03,  1,  56.22%]
+       Subroutines:
+       - SubCase 3: [ 3.474E-03,  1,  46.63%]
+       - Subcase 2: [ 2.048E-03,  1,  27.49%]
          Subroutines:
-           Routine 0:
-             No. of calls              :  1
-             Total time (s)            : 3.8030633E-02
-             Profiling Enabled         :  Yes
-           Routine A:
-             No. of calls              :  1
-             Total time (s)            : 1.7905958E-02
-             Profiling Enabled         :  Yes
-           Routine D:
-             No. of calls              :  1
-             Total time (s)            : 2.724007E-03
-             Profiling Enabled         :  Yes
-             Subroutines:
-               SubCase 1:
-                 No. of calls          :  1
-                 Total time (s)        : 1.289549E-03
-                 Profiling Enabled     :  Yes
-               Subcase 2:
-                 No. of calls          :  1
-                 Total time (s)        : 8.4951E-04
-                 Profiling Enabled     :  Yes
-                 Subroutines:
-                   SubSubcase1:
-                     No. of calls      :  1
-                     Total time (s)    : 7.89929E-04
-                     Profiling Enabled :  Yes
-               SubCase 3:
-                 No. of calls          :  1
-                 Total time (s)        : 4.58379E-04
-                 Profiling Enabled     :  Yes
-           PS_Check:
-             No. of calls              : 2
-             Total time (s)            : 6.8965E-05
-             Profiling Enabled         : Yes
-           Routine E:
-             No. of calls              :  1
-             Total time (s)            : 6.4135E-05
-             Profiling Enabled         :  Yes
-           Routine F:
-             No. of calls              :  1
-             Total time (s)            : 2.8403E-05
-             Profiling Enabled         :  Yes
+         - SubSubcase1: [ 1.924E-03,  1,  93.92%]
+       - SubCase 1: [ 1.706E-03,  1,  22.90%]
+     - Routine F: [ 1.234E-03,  1,  9.31%*]
+     - Routine A: [ 2.484E-04,  1,  1.87%]
+     - Routine E: [ 1.585E-04,  1,  1.20%]
+     - PS_Check: [ 1.453E-04,  2,  1.10%]
+     - Routine 0: [ 1.238E-04,  1,  0.93%]
  Routine dictionary:
-   pot_ion:
-     Array Id                          : pot_ion
-     Size (Bytes)                      : 0
-     Allocating Routine Id             : PS_Check
-     Address of first element          : 0xfd2e10
-     Address of metadata               : 140736614961696
-   xc_pot:
-     Array Id                          : xc_pot
-     Size (Bytes)                      : 48
-     Allocating Routine Id             : PS_Check
-     Address of first element          : 0xfd3240
-     Address of metadata               : 140736614961888
-   extra_ref:
-     Array Id                          : extra_ref
-     Size (Bytes)                      : 0
-     Allocating Routine Id             : PS_Check
-     Address of first element          : 0xfd8e90
-     Address of metadata               : 140736614961504
-   rhopot:
-     Array Id                          : rhopot
-     Size (Bytes)                      : 48
-     Allocating Routine Id             : PS_Check
-     Address of first element          : 0xfd3280
-     Address of metadata               : 140736614961840
+   26508880:
+     [ xc_pot, Routine F,  48,  1]
+   26508944:
+     [ rhopot, Routine F,  48,  1]
  Global dictionary (size 3):
-   potential:
-     Array Id                          : potential
-     Size (Bytes)                      : 24
-     Allocating Routine Id             : Routine 0
-     Address of first element          : 0xfd2df0
-     Address of metadata               : 140736614961744
+   26509872:
+     [ potential, Routine 0,  24,  1]
    Timestamp of Profile initialization:
-     2014-02-02 23:11:24.577
+     2014-07-01 12:51:45.715
    Process Id:
      0
- Calling sequence of Main program:
-   Main program:
-     No. of calls                      :  1
-     Time of last opening              :  1391379084578124975
-     Total time (s)                    :  0.0
-     Profiling Enabled                 :  Yes
+ Parsed string:
+ -  [elem1, 1.d0, elem2, 3.d0]
+ Associated after pop                  :  No
+ Loaded string:
+ - elem1
+ - 1.d0
+ - elem2
+ - 3.d0
+ Calling sequence of Main program (routines with * are not closed yet):
+ - Main program: [ 2.402E-02,  1, ~*]
+   Subroutines:
+   - PS_Check: [ 1.729E-02,  1,  71.96%*]
      Subroutines:
-       PS_Check:
-         No. of calls                  :  1
-         Total time (s)                : 5.9904933E-02
-         Profiling Enabled             :  Yes
+     - Routine D: [ 7.450E-03,  1,  43.09%]
+       Subroutines:
+       - SubCase 3: [ 3.474E-03,  1,  46.63%]
+       - Subcase 2: [ 2.048E-03,  1,  27.49%]
          Subroutines:
-           Routine 0:
-             No. of calls              :  1
-             Total time (s)            : 3.8030633E-02
-             Profiling Enabled         :  Yes
-           Routine A:
-             No. of calls              : 4
-             Total time (s)            : 1.8018503E-02
-             Profiling Enabled         : Yes
-           Routine D:
-             No. of calls              :  1
-             Total time (s)            : 2.724007E-03
-             Profiling Enabled         :  Yes
-             Subroutines:
-               SubCase 1:
-                 No. of calls          :  1
-                 Total time (s)        : 1.289549E-03
-                 Profiling Enabled     :  Yes
-               Subcase 2:
-                 No. of calls          :  1
-                 Total time (s)        : 8.4951E-04
-                 Profiling Enabled     :  Yes
-                 Subroutines:
-                   SubSubcase1:
-                     No. of calls      :  1
-                     Total time (s)    : 7.89929E-04
-                     Profiling Enabled :  Yes
-               SubCase 3:
-                 No. of calls          :  1
-                 Total time (s)        : 4.58379E-04
-                 Profiling Enabled     :  Yes
-           PS_Check:
-             No. of calls              : 2
-             Total time (s)            : 6.8965E-05
-             Profiling Enabled         : Yes
-           Routine E:
-             No. of calls              :  1
-             Total time (s)            : 6.4135E-05
-             Profiling Enabled         :  Yes
-           Routine F:
-             No. of calls              :  1
-             Total time (s)            : 2.8403E-05
-             Profiling Enabled         :  Yes
+         - SubSubcase1: [ 1.924E-03,  1,  93.92%]
+       - SubCase 1: [ 1.706E-03,  1,  22.90%]
+     - Routine F: [ 5.281E-03,  1,  30.54%*]
+     - Routine A: [ 2.484E-04,  1,  1.44%]
+     - Routine E: [ 1.585E-04,  1,  0.92%]
+     - PS_Check: [ 1.453E-04,  2,  0.84%]
+     - Routine 0: [ 1.238E-04,  1,  0.72%]
+ Routine dictionary:
+   26508880:
+     [ xc_pot, Routine F,  48,  1]
+ Global dictionary (size 3):
+   26509872:
+     [ potential, Routine 0,  24,  1]
+   Timestamp of Profile initialization:
+     2014-07-01 12:51:45.715
+   Process Id:
+     0
+  #---------------------------------------------------- Entering in OpenMP section if available
+ Entering Thread No.                   :  0
+ Address of metadata                   :  5446368
+ Something to use ab                   :  100.0
+ Something to use b                    :  200.0
+ Calling sequence of Main program (routines with * are not closed yet):
+ - Main program: [ 2.883E-02,  1, ~*]
+   Subroutines:
+   - PS_Check: [ 2.146E-02,  1,  74.42%]
+     Subroutines:
+     - Routine F: [ 8.531E-03,  1,  39.76%]
+     - Routine D: [ 7.450E-03,  1,  34.71%]
+       Subroutines:
+       - SubCase 3: [ 3.474E-03,  1,  46.63%]
+       - Subcase 2: [ 2.048E-03,  1,  27.49%]
+         Subroutines:
+         - SubSubcase1: [ 1.924E-03,  1,  93.92%]
+       - SubCase 1: [ 1.706E-03,  1,  22.90%]
+     - Routine A: [ 4.254E-04,  4,  1.98%]
+     - Routine E: [ 1.585E-04,  1,  0.74%]
+     - PS_Check: [ 1.453E-04,  2,  0.68%]
+     - Routine 0: [ 1.238E-04,  1,  0.58%]
  Global dictionary (size 2):
    Timestamp of Profile initialization:
-     2014-02-02 23:11:24.577
+     2014-07-01 12:51:45.715
    Process Id:
      0
+ Summary:
+ - Main program: [ 3.267E-02,  1, ~*]
+   Subroutines:
+   - PS_Check: [ 2.146E-02,  1,  65.68%]
+     Subroutines:
+     - Routine F: [ 8.531E-03,  1,  39.76%]
+     - Routine D: [ 7.450E-03,  1,  34.71%]
+       Subroutines:
+       - SubCase 3: [ 3.474E-03,  1,  46.63%]
+       - Subcase 2: [ 2.048E-03,  1,  27.49%]
+         Subroutines:
+         - SubSubcase1: [ 1.924E-03,  1,  93.92%]
+       - SubCase 1: [ 1.706E-03,  1,  22.90%]
+     - Routine A: [ 4.254E-04,  4,  1.98%]
+     - Routine E: [ 1.585E-04,  1,  0.74%]
+     - PS_Check: [ 1.453E-04,  2,  0.68%]
+     - Routine 0: [ 1.238E-04,  1,  0.58%]
 ---
  test dict_copy:
    original:
@@ -785,27 +753,46 @@
    profile2                            : value2
 ---
  Atomic structure:
-   Cell: [ 20.345752716064453,  20.345752716064453,  20.345752716064453]
+   Cell: [ 20.34575271606445,  20.34575271606445,  20.34575271606445]
    Positions:
-   - Si: [ 0.2516085125E-05,  0.5826606155E-05,  20.34574212] # [  0.0,  0.0,  40.0 ] 1
+   - Si: [ 0.2516085125E-05,  0.5826606155E-05,  20.34574212] # [  0.00,  0.00,  40.00 ] 1
    - Si: [ 5.094032326,  5.153107111,  0.3047989908E-01] # [  13.52,  10.13,  0.06 ] 2
-   - Si: [ 0.3049344014E-01,  5.153107972,  5.0940186] # [  0.08,  10.13,  10.01 ] 3
+   - Si: [ 0.3049344014E-01,  5.153107972,  5.094018600] # [  0.08,  10.13,  10.01 ] 3
  Real without format                   : 0.2
  Real with format (1pe25.17)           :  5.0E-01
- Real with format (1pe24.16)           :  5.0E-01
- Real with format (es23.16)            :  5.0E-01
- Real with format (es24.17)            :  5.0E-01
- Real with format (es25.18)            :  5.0E-01
+ Real with format (1pe24.16)           :  5.0000000000000000E-01
+ Real with format (es23.16)            :  5.0000000000000000E-01
+ Real with format (es24.17)            :  5.00000000000000000E-01
+ Real with format (es25.18)            :  5.000000000000000000E-01
  Real with format (es26.19)            :  5.0000000000000022204E-01
  Real with format (es27.20)            :  4.99999999999999777955E-01
  Real with format (es26.19)            :  2.2204460492503130808E-16
  Real with format (es27.20)            : -2.22044604925031308085E-16
+ Timings for search: {No. of items:  1, Elapsed time (ns):  8.93}
+ Timings for search: {No. of items:  10001, Elapsed time (ns):  9.53}
+ Timings for search: {No. of items:  20001, Elapsed time (ns):  8.95}
+ Timings for search: {No. of items:  30001, Elapsed time (ns):  9.42}
+ Timings for search: {No. of items:  40001, Elapsed time (ns):  8.66}
+ Timings for search: {No. of items:  50001, Elapsed time (ns):  9.04}
+ Timings for search: {No. of items:  60001, Elapsed time (ns):  8.73}
+ Timings for search: {No. of items:  70001, Elapsed time (ns):  8.91}
+ Timings for search: {No. of items:  80001, Elapsed time (ns):  8.66}
+ Timings for search: {No. of items:  90001, Elapsed time (ns):  8.82}
+ Timings for search: {No. of items:  100001, Elapsed time (ns):  7.75}
+ Some value                            :  1111033000
+ Timings for search: {No. of items:  1, Elapsed time (mus):  10.53}
+ Timings for search: {No. of items:  5001, Elapsed time (mus):  60.20}
+ Timings for search: {No. of items:  10001, Elapsed time (mus):  115.30}
+ Timings for search: {No. of items:  15001, Elapsed time (mus):  203.38}
+ Timings for search: {No. of items:  20001, Elapsed time (mus):  968.51}
+ Other value                           :  2000000.0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  11
-   Tot. No. of Deallocations           :  11
+   Tot. No. of Allocations             :  44
+   Tot. No. of Deallocations           :  44
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  0
      for the array                     : weight
      in the routine                    : Routine A
- Max No. of dictionaries used          :  208 #(  118 still in use)
+ Max No. of dictionaries used          :  25217 #( 158 still in use)
+ Number of dictionary folders allocated:  3

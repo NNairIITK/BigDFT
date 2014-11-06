@@ -1,7 +1,7 @@
 !> @file
 !! Test the error handling part of flib
 !! @author
-!!    Copyright (C) 2013-2013 BigDFT group
+!!    Copyright (C) 2013-2014 BigDFT group
 !!    This file is distributed oneder the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -14,8 +14,10 @@ subroutine test_error_handling()
   use dictionaries!error_handling
   implicit none
   !local variables
-  integer :: ival,ERR_TOTO,ERR_TITI,ERR_GRAVE
+  integer :: ival,ierr,ERR_TOTO,ERR_TITI,ERR_GRAVE
+  character(len=128) :: msg
   external :: abort_toto,abort_titi,abort1,abort2
+  type(dictionary), pointer :: dict
 
   call yaml_comment('Error Handling Module Test',hfill='~')
    
@@ -60,11 +62,40 @@ subroutine test_error_handling()
   call yaml_map("Error check value",f_err_check())
   call yaml_map("Error check code",f_err_check(err_id=ERR_TOTO))
   call yaml_map("Error check code2",f_err_check(err_id=ERR_TITI))
+  call yaml_map("Error check code, name",f_err_check(err_name='ERR_TOTO'))
+  call yaml_map("Error check code, name",f_err_check(err_name='ERR_TITI'))
+
+  call f_err_clean()
+
+ !Test the nested try
+  call yaml_comment("Test open try")
+  call yaml_map('Error check value before try',f_err_check())
+  call f_err_open_try()
+     call f_err_throw('one',err_name='ERR_TOTO')
+     call yaml_map("Number of errors(1)",f_get_no_of_errors())
+     call f_err_open_try()
+        call yaml_map("Number of errors(2)",f_get_no_of_errors())
+        call f_err_throw('two',err_name='ERR_TOTO')
+        if (f_err_check()) then
+           ierr=f_get_last_error(msg)
+           call yaml_map("ID",ierr)
+           call yaml_map("MSG",msg)
+           dict=>f_get_error_dict()
+           call yaml_dict_dump(dict)
+        end if
+        call f_err_open_try()
+           call f_err_throw('three',err_name='ERR_TOTO')
+           call yaml_map("Number of errors(3)",f_get_no_of_errors())
+        call f_err_close_try()
+     call f_err_close_try()
+  call f_err_close_try()
+  call yaml_map('Error check value after try',f_err_check())
 
   call f_err_unset_callback()
   call f_err_severe_restore()
 
 end subroutine test_error_handling
+
 
 subroutine abort1()
   use yaml_output
@@ -73,6 +104,7 @@ subroutine abort1()
   call yaml_comment('Ouille',hfill='!')
 end subroutine abort1
 
+
 subroutine abort2()
   use yaml_output
   implicit none
@@ -80,12 +112,14 @@ subroutine abort2()
   call yaml_comment('Aie',hfill='!')
 end subroutine abort2
 
+
 subroutine abort_toto()
   use yaml_output
   implicit none
   call f_dump_last_error()
   call yaml_comment('TOTO',hfill='!')
 end subroutine abort_toto
+
 
 subroutine abort_titi()
   use yaml_output

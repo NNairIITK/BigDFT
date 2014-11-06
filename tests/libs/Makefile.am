@@ -3,7 +3,9 @@ SUBDIRS = fft \
 	OP2P \
 	psp \
 	IO-wf \
-	wrappers
+	wrappers \
+    overlapgeneral \
+	coordinatetransform
 
 if USE_BLACS
 SUBDIRS += dsygv
@@ -21,7 +23,7 @@ if USE_LIBXC
 SUBDIRS += xc
 endif
 
-if HAVE_GLIB
+if BUILD_BINDINGS
 SUBDIRS += ftypes
 endif
 

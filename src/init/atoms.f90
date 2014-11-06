@@ -1,7 +1,7 @@
 !> @file
 !! Routines for handling the structure atoms_data 
 !! @author
-!!    Copyright (C) 2011-2013 BigDFT group
+!!    Copyright (C) 2011-2014 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -86,38 +86,63 @@ subroutine astruct_set_displacement(astruct, randdis)
   end if
 
   !atoms inside the box.
-  do iat=1,astruct%nat
-     if (astruct%geocode == 'P') then
+  select case(astruct%geocode)
+  case('P')
+     do iat=1,astruct%nat
         astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
         astruct%rxyz(2,iat)=modulo(astruct%rxyz(2,iat),astruct%cell_dim(2))
         astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
-     else if (astruct%geocode == 'S') then
+     end do
+  case('S')
+     do iat=1,astruct%nat
         astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
         astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
-     end if
-  end do
+     end do
+  case('W')
+     do iat=1,astruct%nat
+        astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
+     end do
+  case('F')
+     !Do nothing!
+  end select
 END SUBROUTINE astruct_set_displacement
 
+
+!> For bindings only, use input_dicts module for Fortran usage.
+subroutine astruct_merge_to_dict_binding(dict, astruct)
+  use module_input_dicts, only: wrapper => astruct_merge_to_dict
+  use module_types, only: atomic_structure
+  use dictionaries, only: dictionary
+  implicit none
+  type(dictionary), pointer :: dict
+  type(atomic_structure), intent(in) :: astruct
+
+  call wrapper(dict, astruct,astruct%rxyz)
+END SUBROUTINE astruct_merge_to_dict_binding
+
+
 !> Find extra information
-subroutine find_extra_info(line,extra)
+subroutine find_extra_info(line,extra,nspace)
   implicit none
   character(len=150), intent(in) :: line
   character(len=50), intent(out) :: extra
+  integer,intent(in) :: nspace
   !local variables
   logical :: space
-  integer :: i,nspace
+  integer :: i,ispace
+
   i=1
   space=.true.
-  nspace=-1
+  ispace=-1
   !print *,'line',line
   find_space : do
      !toggle the space value for each time
      if ((line(i:i) == ' ' .or. line(i:i) == char(9)) .neqv. space) then
-        nspace=nspace+1
+        ispace=ispace+1
         space=.not. space
      end if
-     !print *,line(i:i),nspace
-     if (nspace==8) then
+     !print *,line(i:i),ispace
+     if (ispace==nspace) then
         extra=line(i:min(150,i+49))
         exit find_space
      end if
@@ -145,39 +170,39 @@ subroutine parse_extra_info(iat,extra,astruct)
   integer :: ierr,ierr1,ierr2,nspol,nchrg,nsgn
   !case with all the information
   !print *,iat,'ex'//trim(extra)//'ex'
-  read(extra,*,iostat=ierr)nspol,nchrg,suffix
+  read(extra,*,iostat=ierr) nspol,nchrg,suffix
   if (extra == 'nothing') then !case with empty information
      nspol=0
      nchrg=0
      suffix='    '
   else if (ierr /= 0) then !case with partial information
-     read(extra,*,iostat=ierr1)nspol,suffix
-     if (ierr1 /=0) then
+     read(extra,*,iostat=ierr1) nspol,suffix
+     if (ierr1 == 0) then
+        !Format nspol frzchain
+        nchrg=0
+        call valid_frzchain(trim(suffix),go)
+        if (.not. go) then
+           read(suffix,*,iostat=ierr2) nchrg
+           if (ierr2 /= 0) then
+              call error
+           else
+              suffix='    '
+           end if
+        end if
+     else
+        !Format frzchain
         call valid_frzchain(trim(extra),go)
         if (go) then
            suffix=trim(extra)
            nspol=0
            nchrg=0
         else
-           read(extra,*,iostat=ierr2)nspol
+           read(extra,*,iostat=ierr2) nspol
            if (ierr2 /=0) then
               call error
            end if
            suffix='    '
            nchrg=0
-        end if
-     else
-        nchrg=0
-        call valid_frzchain(trim(suffix),go)
-        if (.not. go) then
-           read(suffix,*,iostat=ierr2)nchrg
-           if (ierr2 /= 0) then
-              call error
-           else
-              suffix='    '
-           end if
-        else
-
         end if
      end if
   end if
@@ -193,7 +218,8 @@ subroutine parse_extra_info(iat,extra,astruct)
   !print *,'natpol atomic',iat,astruct%input_polarization(iat),suffix
 
   !convert the suffix into ifrztyp
-  call frozen_ftoi(suffix,astruct%ifrztyp(iat))
+  call frozen_ftoi(suffix,astruct%ifrztyp(iat),ierr)
+  if (ierr /= 0) call error
 
 !!!  if (trim(suffix) == 'f') then
 !!!     !the atom is considered as blocked
@@ -202,51 +228,199 @@ subroutine parse_extra_info(iat,extra,astruct)
 
 contains
 
- subroutine error
-   !if (iproc == 0) then
-      print *,extra
-      write(*,'(1x,a,i0,a)')&
-           'ERROR in input file for atom number ',iat,&
-           ': after 4th column you can put the input polarisation(s) or the frzchain: f,fxz,fy'
-   !end if
-   stop
- END SUBROUTINE error
+  subroutine error
+    implicit none
+    print *,extra
+    write(*,'(1x,a,i0,a)')&
+         'ERROR in input file for atom number ',iat,&
+         ': after 4th column you can put the input polarisation(s) or the frozen chain (f,fxz,fy or f111, fb1, ...)'
+    stop
+  END SUBROUTINE error
   
 END SUBROUTINE parse_extra_info
 
 
+!> Check the validity of the chain for frozen atom option
 subroutine valid_frzchain(frzchain,go)
   implicit none
   character(len=*), intent(in) :: frzchain
   logical, intent(out) :: go
 
-  go= trim(frzchain) == 'f' .or. &
-       trim(frzchain) == 'fy' .or. &
-       trim(frzchain) == 'fxz'
+  ! x: fix x direction
+  ! y: fix z direction
+  ! z: fix z direction
+  ! b: fix bond length (internal coordinates)
+  ! p: fix angle phi (internal coordinates)
+  ! t: fix angle theta (internal coordinates)
+
+  go = frzchain == 'f'    .or. &
+       frzchain == 'fx'   .or. &
+       frzchain == 'fy'   .or. &
+       frzchain == 'fz'   .or. &
+       frzchain == 'fxy'  .or. &
+       frzchain == 'fxz'  .or. &
+       frzchain == 'fyz'  .or. &
+       frzchain == 'fxyz' .or. &
+       frzchain == 'f'    .or. &
+       frzchain == 'fb'   .or. &
+       frzchain == 'fp'   .or. &
+       frzchain == 'ft'   .or. &
+       frzchain == 'fbp'  .or. &
+       frzchain == 'fbt'  .or. &
+       frzchain == 'fyt'  .or. &
+       frzchain == 'fbpt'
+  if (.not.go .and. len_trim(frzchain) >= 3) then
+    go = (frzchain(1:1) == 'f' .and. verify(frzchain(2:), '0123456789') == 0) .or. &
+         (frzchain(1:2) == 'fb' .and. verify(frzchain(3:), '12') == 0)
+  end if
   
 END SUBROUTINE valid_frzchain
 
 
-subroutine frozen_ftoi(frzchain,ifrztyp)
+!> Define the frozen type for the given atom
+!! f: all atoms are frozen
+!! fx: x direction frozen
+!! fy: y direction frozen
+!! fz: z direction frozen
+!! fxz, fxy, fyz,fxyz
+!! Move the atom also in a plane given by f111 (Miller indices)
+!! Frozen also atoms per block given by fb#if_of_the_block (modified by FL)
+!! This function is related to move_this_coordinate
+subroutine frozen_ftoi(frzchain,ifrztyp,ierr)
   implicit none
-  character(len=4), intent(in) :: frzchain
-  integer, intent(out) :: ifrztyp
+  character(len=4), intent(in) :: frzchain !< Chain to be read
+  integer, intent(out) :: ifrztyp          !< Integer coding the frozen type
+  integer, intent(out) :: ierr             !< Error code
 
-  if (trim(adjustl(frzchain))=='') then
+  ierr = 0
+  select case(frzchain)
+  case('')
      ifrztyp = 0
-  else if (trim(adjustl(frzchain))=='f') then
-     ifrztyp = 1
-  else if (trim(adjustl(frzchain))=='fy') then
-     ifrztyp = 2
-  else if (trim(adjustl(frzchain))=='fxz') then
-     ifrztyp = 3
-  else if (verify(frzchain, 'f0123456789') == 0) then
-     read(frzchain(2:4), *) ifrztyp
-     ! f001 will give 9001 value.
-     ifrztyp = 9000 + ifrztyp
-  end if
+  case('f','fxyz')
+     ifrztyp = 111
+  case('fx')
+     ifrztyp = 100
+  case('fy')
+     ifrztyp = 010
+  case('fz')
+     ifrztyp = 001
+  case('fxz')
+     ifrztyp = 101
+  case('fxy')
+     ifrztyp = 110
+  case('fyz')
+     ifrztyp = 011
+  case('fbpt')
+     ifrztyp = 222
+  case('fb')
+     ifrztyp = 200
+  case('fp')
+     ifrztyp = 020
+  case('ft')
+     ifrztyp = 002
+  case('fbt')
+     ifrztyp = 202
+  case('fbp')
+     ifrztyp = 220
+  case('fpt')
+     ifrztyp = 022
+  case default
+     !Check if we freeze the displacement of the atom only in a plane given by the Miller indices
+     if (frzchain(1:1) == 'f' .and. verify(frzchain(2:), '0123456789') == 0) then
+        read(frzchain(2:4), *) ifrztyp
+        ! Check if 1 <= ifrztyp <= 999
+        if (ifrztyp < 1 .or. ifrztyp > 999) ierr = 2
+        ! f001 will give 9001 value.
+        ifrztyp = 9000 + ifrztyp
+     else if (frzchain(1:2) == 'fb' .and. verify(frzchain(3:), '12 ') == 0) then !space nedded since frzchain is a 4 character string
+        ! (FL) atom possibly frozen in moving blocks
+        read(frzchain(3:), *) ifrztyp
+        ! Two blocks are possible
+        if (ifrztyp < 1 .or. ifrztyp > 2) ierr = 2
+        ! fb1 will give 1001 value.
+        ifrztyp = 1000 + ifrztyp
+     else
+        !The frozen type is not correct!
+        ierr = 1
+     end if
+  end select
         
 END SUBROUTINE frozen_ftoi
+
+
+!> Convert ifrztyp into the chain format
+subroutine frozen_itof(ifrztyp,frzchain)
+  use yaml_output, only: yaml_toa
+  implicit none
+  integer, intent(in) :: ifrztyp
+  character(len=4), intent(out) :: frzchain
+
+  select case(ifrztyp)
+  case(0)
+     frzchain = '    '
+  case(111)
+     frzchain = 'fxyz'
+  case(100)
+     frzchain = 'fx  '
+  case(010)
+     frzchain = 'fy  '
+  case(001)
+     frzchain = 'fz  '
+  case(101)
+     frzchain = 'fxz '
+  case(110)
+     frzchain = 'fxy '
+  case(011)
+     frzchain = 'fyz '
+  case(222)
+     frzchain = 'fbpt'
+  case(200)
+     frzchain = 'fb  '
+  case(020)
+     frzchain = 'fp  '
+  case(002)
+     frzchain = 'ft  '
+  case(202)
+     frzchain = 'fbt '
+  case(220)
+     frzchain = 'fbp '
+  case(022)
+     frzchain = 'fpt '
+  case(1001)
+     frzchain = 'fb1 '
+  case(1002)
+     frzchain = 'fb2 '
+  case(9000:9999)
+     frzchain ='f'//adjustl(yaml_toa(ifrztyp))
+  case default
+     print *,'Bug in frozen_itof'
+     stop
+  end select
+        
+END SUBROUTINE frozen_itof
+
+
+!> The function which controls all the moving positions
+!! This function is related to frozen_ftoi
+function move_this_coordinate(ifrztyp,ixyz)
+  use module_base
+  implicit none
+  integer, intent(in) :: ifrztyp !< Type of frozen atom
+  integer, intent(in) :: ixyz    !w coordinates (x=1, y=2; z=3)
+  logical :: move_this_coordinate
+  
+  move_this_coordinate = &
+       ifrztyp == 0 .or.                     & !Not frozen at all!
+       (ifrztyp == 100 .and. ixyz /= 1) .or. & !fx
+       (ifrztyp == 010 .and. ixyz /= 2) .or. & !fy
+       (ifrztyp == 001 .and. ixyz /= 3) .or. & !fz
+       (ifrztyp == 110 .and. ixyz == 3) .or. & !fxy
+       (ifrztyp == 101 .and. ixyz == 2) .or. & !fxz
+       (ifrztyp == 011 .and. ixyz == 1)        !fyz
+       !print *,"MOVE",ifrztyp,ixyz,move_this_coordinate
+       
+END FUNCTION move_this_coordinate
+
 
 !> Write xyz atomic file.
 subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
@@ -258,6 +432,7 @@ subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+
   !local variables
   character(len=20) :: symbol
   character(len=10) :: name
@@ -265,6 +440,7 @@ subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
   character(len=50) :: extra
   integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor
+
 
   xmax=0.0_gp
   ymax=0.0_gp
@@ -289,15 +465,20 @@ subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
      write(iunit,'(i6,2x,a,2x,a)') atoms%astruct%nat,trim(units),trim(comment)
   end if
 
-  if (atoms%astruct%geocode == 'P') then
+  select case(atoms%astruct%geocode)
+  case('P')
      write(iunit,'(a,3(1x,1pe24.17))')'periodic',&
           atoms%astruct%cell_dim(1)*factor,atoms%astruct%cell_dim(2)*factor,atoms%astruct%cell_dim(3)*factor
-  else if (atoms%astruct%geocode == 'S') then
+  case('S')
      write(iunit,'(a,3(1x,1pe24.17))')'surface',&
           atoms%astruct%cell_dim(1)*factor,atoms%astruct%cell_dim(2)*factor,atoms%astruct%cell_dim(3)*factor
-  else
+  case('W')
+     write(iunit,'(a,3(1x,1pe24.17))')'wire',&
+          atoms%astruct%cell_dim(1)*factor,atoms%astruct%cell_dim(2)*factor,atoms%astruct%cell_dim(3)*factor
+  case('F')
      write(iunit,*)'free'
-  end if
+  end select
+
   do iat=1,atoms%astruct%nat
      name=trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))
      if (name(3:3)=='_') then
@@ -314,6 +495,7 @@ subroutine wtxyz(iunit,energy,rxyz,atoms,comment)
   enddo
 
 END SUBROUTINE wtxyz
+
 
 !> Add the forces in the position file for the xyz system
 subroutine wtxyz_forces(iunit,fxyz,at)
@@ -344,6 +526,7 @@ subroutine wtxyz_forces(iunit,fxyz,at)
   end do
   
 end subroutine wtxyz_forces
+
 
 !> Write ascii file (atomic position). 
 subroutine wtascii(iunit,energy,rxyz,atoms,comment)
@@ -379,21 +562,37 @@ subroutine wtascii(iunit,energy,rxyz,atoms,comment)
 
   write(iunit, "(A,A)") "# BigDFT file - ", trim(comment)
   write(iunit, "(3e24.17)") atoms%astruct%cell_dim(1)*factor(1), 0.d0, atoms%astruct%cell_dim(2)*factor(2)
-  write(iunit, "(3e24.17)") 0.d0,                  0.d0, atoms%astruct%cell_dim(3)*factor(3)
+  write(iunit, "(3e24.17)") 0.d0,                                0.d0, atoms%astruct%cell_dim(3)*factor(3)
 
   write(iunit, "(A,A)") "#keyword: ", trim(atoms%astruct%units)
   if (trim(atoms%astruct%units) == "reduced") write(iunit, "(A,A)") "#keyword: bohr"
-  if (atoms%astruct%geocode == 'P') write(iunit, "(A)") "#keyword: periodic"
-  if (atoms%astruct%geocode == 'S') write(iunit, "(A)") "#keyword: surface"
-  if (atoms%astruct%geocode == 'F') write(iunit, "(A)") "#keyword: freeBC"
+  select case(atoms%astruct%geocode)
+  case('P')
+     write(iunit, "(A)") "#keyword: periodic"
+  case('S')
+     write(iunit, "(A)") "#keyword: surface"
+  case('W')
+     write(iunit, "(A)") "#keyword: wire"
+  case('F')
+     write(iunit, "(A)") "#keyword: freeBC"
+  end select
+
   if (energy /= 0.d0 .and. energy /= UNINITIALIZED(energy)) then
      write(iunit, "(A,e24.17,A)") "#metaData: totalEnergy= ", energy, " Ht"
   end if
 
   if (trim(atoms%astruct%units) == "reduced") then
-     if (atoms%astruct%geocode == 'P' .or. atoms%astruct%geocode == 'S') factor(1) = 1._gp / atoms%astruct%cell_dim(1)
-     if (atoms%astruct%geocode == 'P') factor(2) = 1._gp / atoms%astruct%cell_dim(2)
-     if (atoms%astruct%geocode == 'P' .or. atoms%astruct%geocode == 'S') factor(3) = 1._gp / atoms%astruct%cell_dim(3)
+     select case(atoms%astruct%geocode)
+     case('P')
+        factor(1) = 1._gp / atoms%astruct%cell_dim(1)
+        factor(2) = 1._gp / atoms%astruct%cell_dim(2)
+        factor(3) = 1._gp / atoms%astruct%cell_dim(3)
+     case('S')
+        factor(1) = 1._gp / atoms%astruct%cell_dim(1)
+        factor(3) = 1._gp / atoms%astruct%cell_dim(3)
+     case('W')
+        factor(3) = 1._gp / atoms%astruct%cell_dim(3)
+     end select
   end if
 
   do iat=1,atoms%astruct%nat
@@ -447,6 +646,96 @@ subroutine wtascii_forces(iunit,fxyz,at)
 end subroutine wtascii_forces
 
 
+
+!> Write int atomic file.
+subroutine wtint(iunit,energy,rxyz,atoms,comment,na,nb,nc)
+  use module_base
+  use module_types
+  implicit none
+  integer, intent(in) :: iunit
+  character(len=*), intent(in) :: comment
+  type(atoms_data), intent(in) :: atoms
+  real(gp), intent(in) :: energy
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+  integer,dimension(atoms%astruct%nat),intent(in) :: na, nb, nc
+
+  !local variables
+  character(len=20) :: symbol
+  character(len=10) :: name
+  character(len=11) :: units, angle
+  character(len=50) :: extra
+  integer :: iat
+  real(gp) :: xmax,ymax,zmax,factor,factor_angle
+
+
+  xmax=0.0_gp
+  ymax=0.0_gp
+  zmax=0.0_gp
+
+  do iat=1,atoms%astruct%nat
+     xmax=max(rxyz(1,iat),xmax)
+     ymax=max(rxyz(2,iat),ymax)
+     zmax=max(rxyz(3,iat),zmax)
+  enddo
+  if (trim(atoms%astruct%units) == 'angstroem' .or. trim(atoms%astruct%units) == 'angstroemd0') then
+     factor=Bohr_Ang
+     units='angstroemd0'
+  else
+     factor=1.0_gp
+     units='atomicd0'
+  end if
+  if (trim(atoms%astruct%angle) == 'degree') then
+     factor_angle=Radian_Degree
+     angle='degree'
+  else
+     factor_angle=1.0_gp
+     angle='radian'
+  end if
+  write(*,*) '(trim(atoms%astruct%angle)), angle',(trim(atoms%astruct%angle)), angle
+
+  if (energy /= 0. .and. energy /= UNINITIALIZED(energy)) then
+     write(iunit,'(i6,2x,a,2x,a,2x,1pe24.17,2x,a)') atoms%astruct%nat,trim(units),&
+          trim(angle),energy,trim(comment)
+  else
+     write(iunit,'(i6,2x,a,2x,a,2x,a)') atoms%astruct%nat,trim(units),trim(angle),trim(comment)
+  end if
+
+  select case(atoms%astruct%geocode)
+  case('P')
+     call f_err_throw("Internal coordinates not implemented for periodic BC", err_name='BIGDFT_RUNTIME_ERROR')
+     write(iunit,'(a,3(1x,1pe24.17))')'periodic',&
+          atoms%astruct%cell_dim(1)*factor,atoms%astruct%cell_dim(2)*factor,atoms%astruct%cell_dim(3)*factor
+  case('S')
+     call f_err_throw("Internal coordinates not implemented for surface BC", err_name='BIGDFT_RUNTIME_ERROR')
+     write(iunit,'(a,3(1x,1pe24.17))')'surface',&
+          atoms%astruct%cell_dim(1)*factor,atoms%astruct%cell_dim(2)*factor,atoms%astruct%cell_dim(3)*factor
+  case('W')
+     call f_err_throw("Internal coordinates not implemented for wire BC", err_name='BIGDFT_RUNTIME_ERROR')
+     write(iunit,'(a,3(1x,1pe24.17))')'wire',&
+          atoms%astruct%cell_dim(1)*factor,atoms%astruct%cell_dim(2)*factor,atoms%astruct%cell_dim(3)*factor
+  case('F')
+     write(iunit,*)'free'
+  end select
+
+  do iat=1,atoms%astruct%nat
+     name=trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))
+     if (name(3:3)=='_') then
+        symbol=name(1:2)
+     else if (name(2:2)=='_') then
+        symbol=name(1:1)
+     else
+        symbol=name(1:min(len(name),5))
+     end if
+
+     call write_extra_info(extra,atoms%astruct%input_polarization(iat),atoms%astruct%ifrztyp(iat))
+
+     write(iunit,'(a5,1x,3(1x,i6,2x,1pe24.17),2x,a50)')symbol,na(iat),rxyz(1,iat)*factor,nb(iat),rxyz(2,iat)*factor_angle,&
+                                                     nc(iat),rxyz(3,iat)*factor_angle,extra
+  enddo
+
+END SUBROUTINE wtint
+
+
 !>Write the extra info necessary for the output file
 subroutine write_extra_info(extra,natpol,ifrztyp)
   use module_base
@@ -475,52 +764,18 @@ subroutine write_extra_info(extra,natpol,ifrztyp)
 END SUBROUTINE write_extra_info
 
 
-subroutine frozen_itof(ifrztyp,frzchain)
-  implicit none
-  integer, intent(in) :: ifrztyp
-  character(len=4), intent(out) :: frzchain
 
-  if (ifrztyp == 0) then
-     frzchain='    '
-  else if (ifrztyp == 1) then
-     frzchain='   f'
-  else if (ifrztyp == 2) then
-     frzchain='  fy'
-  else if (ifrztyp == 3) then
-     frzchain=' fxz'
-  end if
-        
-END SUBROUTINE frozen_itof
-
-subroutine astruct_dict_get_types(dict, types)
-  use dictionaries
-  implicit none
-  type(dictionary), pointer :: dict, types
-  
-  type(dictionary), pointer :: atoms, at
-  character(len = max_field_length) :: str
-  integer :: iat
-
-  call dict_init(types)
-  atoms => dict // "Positions"
-  do iat = 1, dict_len(atoms), 1
-     at => dict_iter(atoms // iat)
-     do while(associated(at))
-        str = dict_key(at)
-        if (dict_len(at) == 3 .and. .not. has_key(types, str)) call add(types, str)
-        at => dict_next(at)
-     end do
-  end do
-end subroutine astruct_dict_get_types
-
-!> Write yaml atomic file.
+!> Write atomic file in yaml format
 subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
      & wrtlog, shift, hgrids)
+  use module_base, only: f_err_throw
   use module_defs, only: Bohr_Ang, gp, UNINITIALIZED
   use module_types, only: atoms_data
   use yaml_output
   implicit none
-  logical, intent(in) :: wrtforces, wrtlog
+  !Arguments
+  logical, intent(in) :: wrtforces !< True if write the atomic forces
+  logical, intent(in) :: wrtlog
   integer, intent(in) :: iunit
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: energy
@@ -528,12 +783,12 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
   real(gp), dimension(3), intent(in) :: shift, hgrids
   !local variables
   logical :: reduced, perx, pery, perz
-  integer :: iat,ichg,ispol
+  character(len=4) :: frzchain
+  real(gp), dimension(3) :: xred
   real(gp) :: factor
-  real(gp) :: xred(3)
+  integer :: iat,ichg,ispol
   
   reduced=.false.
-  factor=1.0_gp
   Units: select case(trim(atoms%astruct%units))
   case('angstroem','angstroemd0')
      call yaml_map('Units','angstroem', unit = iunit)
@@ -543,33 +798,37 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
         call yaml_map('Units','reduced', unit = iunit)
         reduced=.true.
      end if
+     factor = 1.0_gp
   case('atomic','atomicd0','bohr','bohrd0')
      ! Default
+     factor=1.0_gp
      !call yaml_map('Units','bohr')
+  case default
+     call f_err_throw('Writing the atomic file. Error, unknown units ("'// trim(atoms%astruct%units)//'")', & 
+          & err_name='BIGDFT_RUNTIME_ERROR')
   end select Units
 
   !cell information
   perx = .false.
   pery = .false.
   perz = .false.
-  factor=1.0_gp
   BC :select case(atoms%astruct%geocode)
   case('S')
-     call yaml_open_sequence('Cell', flow=.true., unit = iunit)
+     call yaml_sequence_open('Cell', flow=.true., unit = iunit)
        call yaml_sequence(yaml_toa(atoms%astruct%cell_dim(1)*factor), unit = iunit) !x
        call yaml_sequence('.inf', unit = iunit)             !y
        call yaml_sequence(yaml_toa(atoms%astruct%cell_dim(3)*factor), unit = iunit) !z
-     call yaml_close_sequence(unit = iunit)
+     call yaml_sequence_close(unit = iunit)
      !angdeg to be added
      perx = .true.
      pery = .false.
      perz = .true.
   case('W')
-     call yaml_open_sequence('Cell', flow=.true., unit = iunit)
+     call yaml_sequence_open('Cell', flow=.true., unit = iunit)
        call yaml_sequence('.inf', unit = iunit)             !x
        call yaml_sequence('.inf', unit = iunit)             !y
        call yaml_sequence(yaml_toa(atoms%astruct%cell_dim(3)*factor), unit = iunit) !z
-     call yaml_close_sequence(unit = iunit)
+     call yaml_sequence_close(unit = iunit)
      perx = .false.
      pery = .false.
      perz = .true.
@@ -585,16 +844,22 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
      !call yaml_map('BC','free')
   end select BC
 
-  call yaml_open_sequence('Positions', unit = iunit)
+  !Write atomic positions
+  call yaml_sequence_open('Positions', unit = iunit)
   do iat=1,atoms%astruct%nat
      call yaml_sequence(advance='no', unit = iunit)
      if (extra_info(iat)) then
-        call yaml_open_map(flow=.true., unit = iunit)
+        call yaml_mapping_open(flow=.true., unit = iunit)
      end if
-     xred(1:3)=rxyz(1:3,iat)
-     if (reduced .and. perx) xred(1)=rxyz(1,iat)/atoms%astruct%cell_dim(1)
-     if (reduced .and. pery) xred(2)=rxyz(2,iat)/atoms%astruct%cell_dim(2)
-     if (reduced .and. perz) xred(3)=rxyz(3,iat)/atoms%astruct%cell_dim(3)
+     xred=rxyz(:,iat)
+     if (reduced) then
+        if (perx) xred(1)=rxyz(1,iat)/atoms%astruct%cell_dim(1)
+        if (pery) xred(2)=rxyz(2,iat)/atoms%astruct%cell_dim(2)
+        if (perz) xred(3)=rxyz(3,iat)/atoms%astruct%cell_dim(3)
+     else
+        !Multiply by the factor to have the right units
+        xred = xred*factor
+     end if
      if (wrtlog) then
         call print_one_atom(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),&
              xred,hgrids,iat)
@@ -605,43 +870,39 @@ subroutine wtyaml(iunit,energy,rxyz,atoms,wrtforces,forces, &
 !!$        call yaml_comment(gu, unit = iunit)
      else
         call yaml_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),&
-             & xred,fmt="(g25.17)", unit = iunit)
+             & xred,fmt="(1pg25.17)", unit = iunit)
      end if
      if (extra_info(iat)) then
         call charge_and_spol(atoms%astruct%input_polarization(iat),ichg,ispol)
         if (ispol /=0) call yaml_map('IGSpin',ispol, unit = iunit)
         if (ichg /=0) call yaml_map('IGChg',ichg, unit = iunit)
-        select case(atoms%astruct%ifrztyp(iat))
-        case(1)
-           call yaml_map('Frozen',.true., unit = iunit)
-        case(2)
-           call yaml_map('Frozen','fy', unit = iunit)
-        case(3)
-           call yaml_map('Frozen','fxz', unit = iunit)
-        end select
-        call yaml_close_map(unit = iunit)
+        if (atoms%astruct%ifrztyp(iat) /= 0) then
+           call frozen_itof(atoms%astruct%ifrztyp(iat),frzchain)
+           call yaml_map('Frozen',frzchain, unit = iunit)
+        end if
+        call yaml_mapping_close(unit = iunit)
      end if
   end do
-  call yaml_close_sequence(unit = iunit) !positions
+  call yaml_sequence_close(unit = iunit) !positions
+
+  !Write atomic forces
   if (wrtforces) then
-     call yaml_open_map('Forces (Ha/Bohr)', unit = iunit)
-     call yaml_open_sequence(unit = iunit)
+     call yaml_sequence_open('Forces (Ha/Bohr)', unit = iunit)
      do iat=1,atoms%astruct%nat
         call yaml_sequence(advance='no', unit = iunit)
-        call yaml_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),forces(:,iat),fmt='(g25.17)', unit = iunit)
+        call yaml_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),forces(:,iat),fmt='(1pg25.17)', unit = iunit)
      end do
-     call yaml_close_sequence(unit = iunit) !values
-     call yaml_close_map(unit = iunit) !forces
+     call yaml_sequence_close(unit = iunit) !values
   end if
   if (wrtlog) then
      call yaml_map('Rigid Shift Applied (AU)',(/-shift(1),-shift(2),-shift(3)/),fmt='(1pg12.5)')
   else
-     call yaml_open_map('Properties', unit = iunit)
+     call yaml_mapping_open('Properties', unit = iunit)
      call yaml_map('Timestamp',yaml_date_and_time_toa(), unit = iunit)
      if (energy /= 0. .and. energy /= UNINITIALIZED(energy)) then
         call yaml_map("Energy (Ha)", energy, unit = iunit)
      end if
-     call yaml_close_map(unit = iunit) !properties
+     call yaml_mapping_close(unit = iunit) !properties
   end if
 
 contains
@@ -659,19 +920,19 @@ contains
     character(len=*), intent(in) :: atomname
     double precision, dimension(3), intent(in) :: rxyz,hgrids
     !local variables
-    character(len=*), parameter :: fmtat='(g18.10)',fmtg='(F6.2)',fmti='(i4.4)'
+    character(len=*), parameter :: fmtat='(1pg18.10)',fmtg='(F6.2)',fmti='(i4.4)'
     integer :: i
 
-    call yaml_open_sequence(atomname,flow=.true.)
+    call yaml_sequence_open(atomname,flow=.true.)
     do i=1,3
        call yaml_sequence(yaml_toa(rxyz(i),fmt=fmtat))
     end do
-    call yaml_close_sequence(advance='no')
-    call yaml_comment(trim(yaml_toa(rxyz/hgrids,fmt=fmtg))//trim(yaml_toa(id,fmt=fmti))) !we can also put tabbing=
+    call yaml_sequence_close(advance='no')
+    call yaml_comment(trim(yaml_toa(rxyz/hgrids/factor,fmt=fmtg))//trim(yaml_toa(id,fmt=fmti))) !we can also put tabbing=
 
   end subroutine print_one_atom
 
-end subroutine wtyaml
+END SUBROUTINE wtyaml
 
 
 !> Calculate the charge and the spin polarisation to be placed on a given atom
@@ -706,9 +967,9 @@ subroutine atoms_write(atoms, filename, forces, energy, comment)
   real(gp), dimension(:,:), pointer :: forces
 
   if (associated(forces)) then
-     call write_atomic_file(filename,energy,atoms%astruct%rxyz,atoms,comment,forces)
+     call write_atomic_file(filename,energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,comment,forces=forces)
   else
-     call write_atomic_file(filename,energy,atoms%astruct%rxyz,atoms,comment)
+     call write_atomic_file(filename,energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,comment)
   end if
 END SUBROUTINE atoms_write
 
@@ -1015,6 +1276,7 @@ subroutine astruct_copy_alat(astruct, alat)
   alat(3) = astruct%cell_dim(3)
 END SUBROUTINE astruct_copy_alat
 
+
 !!$!> Module used for the input positions lines variables
 !!$module position_files
 !!$   implicit none
@@ -1047,23 +1309,31 @@ END SUBROUTINE astruct_copy_alat
 !!$   END SUBROUTINE archiveGetLine
 !!$end module position_files
 
+
 !> Write an atomic file
-!Yaml output included
-subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
+!! Yaml output included
+subroutine write_atomic_file(filename,energy,rxyz,ixyz,atoms,comment,forces)
   use module_base
   use module_types
+  use module_input_dicts
   use yaml_output
+  use internal_coordinates, only : xyzint
   implicit none
   character(len=*), intent(in) :: filename,comment
   type(atoms_data), intent(in) :: atoms
   real(gp), intent(in) :: energy
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+  integer,dimension(3,atoms%astruct%nat),intent(in) :: ixyz
   real(gp), dimension(3,atoms%astruct%nat), intent(in), optional :: forces
   !local variables
   character(len = 15) :: arFile
   integer :: iunit
   character(len = 1024) :: fname
   real(gp), dimension(3), parameter :: dummy = (/ 0._gp, 0._gp, 0._gp /)
+  type(dictionary), pointer :: dict
+  real(gp),dimension(:,:),allocatable :: rxyz_int
+  real(kind=8),parameter :: degree=1.d0
+
 
   if (trim(filename) == "stdout") then
      iunit = 6
@@ -1078,24 +1348,42 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
      end if
   end if
 
-  if (atoms%astruct%inputfile_format == "xyz") then
-     call wtxyz(iunit,energy,rxyz,atoms,comment)
-     if (present(forces)) call wtxyz_forces(9,forces,atoms)
-  else if (atoms%astruct%inputfile_format == "ascii") then
-     call wtascii(iunit,energy,rxyz,atoms,comment)
-     if (present(forces)) call wtascii_forces(9,forces,atoms)
-  else if (atoms%astruct%inputfile_format == 'yaml') then
-     call yaml_new_document(unit = iunit)
-     if (len_trim(comment) > 0) call yaml_comment(comment, unit = iunit)
-     if (present(forces)) then
-        call wtyaml(iunit,energy,rxyz,atoms,.true.,forces, .false., dummy, dummy)
-     else
-        call wtyaml(iunit,energy,rxyz,atoms,.false.,rxyz, .false., dummy, dummy)
-     end if
-  else
-     write(*,*) "Error, unknown file format."
-     stop
-  end if
+  select case(atoms%astruct%inputfile_format)
+     case('xyz')
+        call wtxyz(iunit,energy,rxyz,atoms,comment)
+        if (present(forces)) call wtxyz_forces(9,forces,atoms)
+     case('ascii')
+        call wtascii(iunit,energy,rxyz,atoms,comment)
+        if (present(forces)) call wtascii_forces(9,forces,atoms)
+     case ('int')
+       !if (.not.present(na) .or. .not.present(nb) .or. .not.present(nc)) then
+       !    call f_err_throw('na, nb, nc must be present to write a file in internal coordinates', &
+       !         err_name='BIGDFT_RUNTIME_ERROR')
+       !end if
+        rxyz_int = f_malloc((/3,atoms%astruct%nat/),id='rxyz_int')
+        !call wtint(iunit,energy,rxyz,atoms,comment,ixyz(1,:),ixyz(2,:),ixyz(3,:))
+        call xyzint(atoms%astruct%rxyz, atoms%astruct%nat, &
+             atoms%astruct%ixyz_int(1,:), atoms%astruct%ixyz_int(2,:),atoms%astruct%ixyz_int(3,:), &
+             degree, rxyz_int)
+        call wtint(iunit,energy,rxyz_int,atoms,comment,ixyz(1,:),ixyz(2,:),ixyz(3,:))
+        call f_free(rxyz_int)
+     case('yaml')
+        call yaml_new_document(unit = iunit)
+        call dict_init(dict)
+        call astruct_merge_to_dict(dict, atoms%astruct, rxyz, comment)
+        call yaml_dict_dump(dict, unit = iunit)
+        call dict_free(dict)
+!!$     if (len_trim(comment) > 0) call yaml_comment(comment, unit = iunit)
+!!$     if (present(forces)) then
+!!$        call wtyaml(iunit,energy,rxyz,atoms,.true.,forces, .false., dummy, dummy)
+!!$     else
+!!$        call wtyaml(iunit,energy,rxyz,atoms,.false.,rxyz, .false., dummy, dummy)
+!!$     end if
+     case default
+        call f_err_throw('Writing the atomic file. Error, unknown file format ("'//&
+             trim(atoms%astruct%inputfile_format)//'")', &
+             err_name='BIGDFT_RUNTIME_ERROR')
+   end select
 
   if (iunit /= 6) then
      if (atoms%astruct%inputfile_format == 'yaml') then
@@ -1112,14 +1400,16 @@ subroutine write_atomic_file(filename,energy,rxyz,atoms,comment,forces)
   end if
 END SUBROUTINE write_atomic_file
 
-!>Calculate the coefficient for moving atoms following the ifrztyp
+
+!> Calculate the coefficient for moving atoms following the ifrztyp
 subroutine frozen_alpha(ifrztyp,ixyz,alpha,alphai)
   use module_base
   implicit none
-  integer, intent(in) :: ifrztyp,ixyz
+  integer, intent(in) :: ifrztyp !< Frozen code of the iat atom 
+  integer, intent(in) :: ixyz    !< Direction (1=x,y=2,z=3)
   real(gp), intent(in) :: alpha
   real(gp), intent(out) :: alphai
-  !local variables
+  !Local variables
   logical :: move_this_coordinate
 
   if (move_this_coordinate(ifrztyp,ixyz)) then
@@ -1261,21 +1551,6 @@ subroutine atomic_gemv(atoms,m,alpha,A,x,beta,y,z)
 END SUBROUTINE atomic_gemv
 
 
-!>  The function which controls all the moving positions
-function move_this_coordinate(ifrztyp,ixyz)
-  use module_base
-  implicit none
-  integer, intent(in) :: ixyz,ifrztyp
-  logical :: move_this_coordinate
-  
-  move_this_coordinate= &
-       ifrztyp == 0 .or. &
-       (ifrztyp == 2 .and. ixyz /=2) .or. &
-       (ifrztyp == 3 .and. ixyz ==2)
-       
-END FUNCTION move_this_coordinate
-
-
 !> rxyz=txyz+alpha*sxyz
 subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
   use module_base
@@ -1314,8 +1589,8 @@ subroutine atomic_coordinate_axpy(atoms,ixyz,iat,t,alphas,r)
 
 END SUBROUTINE atomic_coordinate_axpy
 
-!> this routine does the same operations as
-!! read_atomic_file but uses inputs from memory
+
+!> This routine does the same operations as read_atomic_file but uses inputs from memory
 !! as input positions instead of inputs from file
 !! Useful for QM/MM implementation of BigDFT-ART
 !! @author Written by Laurent K Beland 2011 UdeM
@@ -1331,11 +1606,9 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
   real(gp), dimension(:,:), pointer :: rxyz
   !local variables
   character(len=*), parameter :: subname='initialize_atomic_file'
-  integer :: i_stat
   integer :: iat,i,ierr
 
-  allocate(atoms%amu(atoms%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,atoms%amu,'atoms%amu',subname)
+  atoms%amu = f_malloc_ptr(atoms%astruct%nat+ndebug)
 
   if (atoms%astruct%geocode=='S') then 
         atoms%astruct%cell_dim(2)=0.0_gp
@@ -1410,6 +1683,7 @@ subroutine initialize_atomic_file(iproc,atoms,rxyz)
 
 END SUBROUTINE initialize_atomic_file
 
+
 !> Check the position of atoms, verify no atoms have the same coordinates
 subroutine check_atoms_positions(astruct, simplify)
   use module_defs, only: gp
@@ -1438,12 +1712,11 @@ subroutine check_atoms_positions(astruct, simplify)
         end if
      end do
   end do
+
   if (nateq /= 0) then
      if (simplify) then
         call yaml_warning('Control your posinp file, cannot proceed')
         write(*,'(1x,a)',advance='no') 'Writing tentative alternative positions in the file posinp_alt...'
-        !write(*,'(1x,a)')'Control your posinp file, cannot proceed'
-        !write(*,'(1x,a)',advance='no') 'Writing tentative alternative positions in the file posinp_alt...'
         open(unit=iunit,file='posinp_alt')
         write(iunit,'(1x,a)')' ??? atomicd0'
         write(iunit,*)
@@ -1462,10 +1735,7 @@ subroutine check_atoms_positions(astruct, simplify)
         close(unit=iunit)
         call yaml_map('Writing tentative alternative positions in the file posinp_alt',.true.)
         call yaml_warning('Replace ??? in the file heading with the actual atoms number')               
-        !write(*,'(1x,a)')' done.'
-        !write(*,'(1x,a)')' Replace ??? in the file heading with the actual atoms number'               
      end if
      stop 'check_atoms_positions'
   end if
 END SUBROUTINE check_atoms_positions
-

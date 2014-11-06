@@ -7,7 +7,7 @@
 !!  This module contains low-level procedures to check assertions and handle errors.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2008-2013 ABINIT group (MG,YP,NCJ,MT)
+!! Copyright (C) 2008-2014 ABINIT group (MG,YP,NCJ,MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -19,56 +19,69 @@
 !! SOURCE
 
 #if defined HAVE_CONFIG_H
-#include "config.inc"
+#include "config.h"
 #endif
 
-!#include "abi_common.h"
-
+#include "abi_common.h"
 
 MODULE m_errors
 
  use defs_basis
  use m_xmpi
-!#ifdef HAVE_TRIO_NETCDF
-! use netcdf
-!#endif
-!#ifdef HAVE_TRIO_ETSF_IO
-! use etsf_io_low_level
-! use etsf_io
-!#endif
+ use m_xomp
+ use m_xieee
+
+#ifdef HAVE_TRIO_NETCDF
+ use netcdf
+#endif
+#ifdef HAVE_TRIO_ETSF_IO
+ use etsf_io_low_level
+ use etsf_io
+#endif
 #ifdef HAVE_MPI2
  use mpi
 #endif
-!#ifdef FC_NAG
-! use f90_unix
-!#endif
+#ifdef FC_NAG
+ use f90_unix_proc
+#endif
+#ifdef FC_INTEL
+ use ifcore
+#endif
 
- use m_build_info,      only : dump_config
  use m_io_tools,        only : flush_unit
- use m_fstrings,        only : toupper, basename
+ use m_fstrings,        only : toupper, basename, indent, lstrip, atoi
+ !use m_build_info,      only : dump_config, abinit_version
+ !use m_cppopts_dumper,  only : dump_cpp_options
+ !use m_optim_dumper,    only : dump_optim
 
  implicit none
 
 #if defined HAVE_MPI1
- include 'mpif.h'
+include 'mpif.h'
+#endif
+
+#ifdef FC_IBM
+include "fexcp.h"
 #endif
 
  private
+!!***
 
  public :: assert_eq        ! Report and die gracefully if integers not all equal (used for size checking).
  public :: assert           ! Report and die if any logical is false (used for argument range checking).
  public :: sentinel         ! Announce the entering or the exiting from a procedure.
  public :: die              ! Stop execution in case of unexpected events.
- public :: memerr           ! Stop execution when memory allocation failed.
  public :: msg_hndl         ! Basic Error handlers.
  public :: netcdf_check     ! Stop execution after a NetCDF I/O error
  public :: check_mpi_ierr   ! Erro handler for MPI routines.
- public :: io_hndl          ! Error handler for IO operations on external files.
+ public :: show_backtrace   ! Shows a backtrace at an arbitrary place in user code. (Gfortran extension)
  public :: unused_var       ! Helper function used to silence compiler warnings due to unused variables.
-!#if defined HAVE_TRIO_ETSF_IO
-! public :: abietsf_msg_hndl ! Error handler for ETSF-IO routines.
-! public :: abietsf_warn     ! Write warnings reported by ETSF-IO routines.
-!#endif
+#if defined HAVE_TRIO_ETSF_IO
+ public :: abietsf_msg_hndl ! Error handler for ETSF-IO routines.
+ public :: abietsf_warn     ! Write warnings reported by ETSF-IO routines.
+#endif
+ public :: bigdft_lib_error
+ public :: xlf_set_sighandler
 
  interface assert_eq  
    module procedure assert_eq2
@@ -98,6 +111,22 @@ MODULE m_errors
    module procedure unused_logical_d0
    module procedure unused_ch_d0
  end interface unused_var
+
+ type,public :: args_t
+! Stores the command line options
+
+   integer :: exit=0        
+     ! /=0 to exit after having parsed the command line options.
+
+   integer :: dry_run=0  
+     ! /= 0 to exit after the validation of the input file.
+
+ end type args_t
+
+!----------------------------------------------------------------------
+
+ public :: args_parser      ! Basic parser, supports --version, --build, --dry-run, --help.
+
 
 CONTAINS  !===========================================================
 !!***
@@ -150,7 +179,7 @@ function assert_eq2(l1,l2,message,file,line)
  else
   if (PRESENT(line)) f90line=line
   if (PRESENT(file)) f90name= basename(file)
-  call msg_hndl(message,'ERROR','COLL',f90name,line)
+  call msg_hndl(message,'ERROR','PERS',f90name,line)
  end if
 
 end function assert_eq2
@@ -203,7 +232,7 @@ function assert_eq3(l1,l2,l3,message,file,line)
  else
   if (PRESENT(line)) f90line=line
   if (PRESENT(file)) f90name= basename(file)
-  call msg_hndl(message,'ERROR','COLL',f90name,line)
+  call msg_hndl(message,'ERROR','PERS',f90name,line)
  end if
 
 end function assert_eq3
@@ -257,7 +286,7 @@ function assert_eq4(l1,l2,l3,l4,message,file,line)
  else
   if (PRESENT(line)) f90line=line
   if (PRESENT(file)) f90name= basename(file)
-  call msg_hndl(message,'ERROR','COLL',f90name,line)
+  call msg_hndl(message,'ERROR','PERS',f90name,line)
  end if
 
 end function assert_eq4
@@ -310,7 +339,7 @@ function assert_eqn(nn,message,file,line)
  else
   if (PRESENT(line)) f90line=line
   if (PRESENT(file)) f90name= basename(file)
-  call msg_hndl(message,'ERROR','COLL',f90name,line)
+  call msg_hndl(message,'ERROR','PERS',f90name,line)
  end if
 
 end function assert_eqn
@@ -335,7 +364,7 @@ end function assert_eqn
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -362,7 +391,7 @@ subroutine assert1(l1,message,file,line)
  if (.not.l1) then
    if (PRESENT(line)) f90line=line
    if (PRESENT(file)) f90name= basename(file)
-   call msg_hndl(message,'ERROR','COLL',f90name,f90line)
+   call msg_hndl(message,'ERROR','PERS',f90name,f90line)
  end if
 
 end subroutine assert1
@@ -387,7 +416,7 @@ end subroutine assert1
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 subroutine assert2(l1,l2,message,file,line)
@@ -413,7 +442,7 @@ subroutine assert2(l1,l2,message,file,line)
  if (.not.(l1.and.l2)) then
   if (PRESENT(line)) f90line=line
   if (PRESENT(file)) f90name= basename(file)
-  call msg_hndl(message,'ERROR','COLL',f90name,f90line)
+  call msg_hndl(message,'ERROR','PERS',f90name,f90line)
  end if
 
 end subroutine assert2
@@ -438,7 +467,7 @@ end subroutine assert2
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 subroutine assert3(l1,l2,l3,message,file,line)
@@ -464,7 +493,7 @@ subroutine assert3(l1,l2,l3,message,file,line)
  if (.not.(l1.and.l2.and.l3)) then
   if (PRESENT(line)) f90line=line
   if (PRESENT(file)) f90name= basename(file)
-  call msg_hndl(message,'ERROR','COLL',f90name,f90line)
+  call msg_hndl(message,'ERROR','PERS',f90name,f90line)
  end if
 
 end subroutine assert3
@@ -489,7 +518,7 @@ end subroutine assert3
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 subroutine assert4(l1,l2,l3,l4,message,file,line)
@@ -515,7 +544,7 @@ subroutine assert4(l1,l2,l3,l4,message,file,line)
  if (.not.(l1.and.l2.and.l3.and.l4)) then
   if (PRESENT(line)) f90line=line
   if (PRESENT(file)) f90name= basename(file)
-  call msg_hndl(message,'ERROR','COLL',f90name,f90line)
+  call msg_hndl(message,'ERROR','PERS',f90name,f90line)
  end if
 
 end subroutine assert4
@@ -538,7 +567,7 @@ end subroutine assert4
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 subroutine assert_v(n,message,file,line)
@@ -564,63 +593,10 @@ subroutine assert_v(n,message,file,line)
  if (.not.ALL(n)) then
   if (PRESENT(line)) f90line=line
   if (PRESENT(file)) f90name= basename(file)
-  call msg_hndl(message,'ERROR','COLL',f90name,f90line)
+  call msg_hndl(message,'ERROR','PERS',f90name,f90line)
  end if
 
 end subroutine assert_v
-!!***
-
-!----------------------------------------------------------------------
-
-!!****f* m_errors/memerr
-!! NAME
-!!  memerr
-!!
-!! FUNCTION
-!!  Reports errors occurring when allocating memory.
-!!
-!! INPUTS 
-!!  array_name= name of the array not properly allocated.
-!!  array_size= size of the array.
-!!  file_name= name of the file where the allocation was performed.
-!!  file_line= line number in the file where the allocation was performed.
-!!
-!! NOTES
-!!  This routine is usually interfaced with the macros defined in abi_common.h
-!!  and uses this information to define a line offset.
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
-!!
-!! SOURCE
-
-subroutine memerr(array_name,array_size,file_name,file_line)
-
- use defs_basis
-
-!Arguments ------------------------------------
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-#undef ABI_FUNC
-#define ABI_FUNC 'memerr'
-!End of the abilint section
-
- character(len=*),intent(in) :: array_name,file_name
- integer(i8b),intent(in) :: array_size
- integer,intent(in) :: file_line
-
-!Local variables-------------------------------
- character(len=500) :: msg
-
- write(msg,'(a,a,a,a,a,i10)') &
-&  '  Memory allocation failed',ch10, &
-&  '  for array ',trim(array_name),' of size ',array_size
- call die(msg,file_name,file_line)
-
-end subroutine memerr
 !!***
 
 !----------------------------------------------------------------------
@@ -644,7 +620,7 @@ end subroutine memerr
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -672,27 +648,27 @@ subroutine netcdf_check(ncerr,msg,file,line)
 
 ! *************************************************************************
 
-!#ifdef HAVE_TRIO_NETCDF
-! if (ncerr /= NF90_NOERR) then
-!   if (PRESENT(line)) then
-!     f90line=line
-!   else 
-!     f90line=0
-!   end if
-!   if (PRESENT(file)) then 
-!     f90name = basename(file)
-!   else
-!     f90name='Subroutine Unknown'
-!   end if
-!   !
-!   ! Append Netcdf string to user-defined message.
-!   write(nc_msg,'(a,3x,a)')'NetCDF library returned:',TRIM(nf90_strerror(ncerr))
-!   my_msg = TRIM(msg) // TRIM(nc_msg)
-!
-!   call msg_hndl(my_msg,"ERROR","COLL",f90name,f90line)
-! end if
-!#endif
-!
+#ifdef HAVE_TRIO_NETCDF
+ if (ncerr /= NF90_NOERR) then
+   if (PRESENT(line)) then
+     f90line=line
+   else 
+     f90line=0
+   end if
+   if (PRESENT(file)) then 
+     f90name = basename(file)
+   else
+     f90name='Subroutine Unknown'
+   end if
+   !
+   ! Append Netcdf string to user-defined message.
+   write(nc_msg,'(a,3x,a)')'NetCDF library returned:',TRIM(nf90_strerror(ncerr))
+   my_msg = TRIM(msg) // TRIM(nc_msg)
+
+   call msg_hndl(my_msg,"ERROR","PERS",f90name,f90line)
+ end if
+#endif
+
 end subroutine netcdf_check
 !!***
 
@@ -720,11 +696,11 @@ end subroutine netcdf_check
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 
-subroutine sentinel(level,mode_paral,funcname,lineno)
+subroutine sentinel(level,mode_paral,filename,funcname,lineno)
 
 !Arguments ------------------------------------
 
@@ -739,6 +715,7 @@ subroutine sentinel(level,mode_paral,funcname,lineno)
  integer,optional,intent(in) :: lineno
  character(len=*),intent(in) :: mode_paral
  character(len=*),optional,intent(in) :: funcname
+ character(len=*),optional,intent(in) :: filename
 
 !Local variables-------------------------------
  integer,save :: level_save=0 
@@ -747,37 +724,40 @@ subroutine sentinel(level,mode_paral,funcname,lineno)
  character(len=500),save :: funcname_save
  character(len=4) :: my_mode
  character(len=10) :: lnum
- character(len=500) :: my_funcname='Function Unknown'
+ character(len=500) :: my_funcname='Function Unknown',my_filename="File Unknown"
  character(len=500) :: msg
 
 ! *********************************************************************
 
  if (toupper(mode_paral)=='COLL_SILENT'.or.toupper(mode_paral)=='PERS_SILENT') then
-   ! * Silent mode, check if we are inside a loop.
-   if (level==level_save .and. funcname==funcname_save) RETURN
-   ii = index( toupper(mode_paral), '_SILENT')
-   my_mode=toupper(mode_paral(1:ii-1))
+    ! * Silent mode, check if we are inside a loop.
+    if (level==level_save .and. funcname==funcname_save) RETURN
+    ii = index( toupper(mode_paral), '_SILENT')
+    my_mode=toupper(mode_paral(1:ii-1))
  else ! * Normal mode.
-   my_mode=mode_paral
+    my_mode=mode_paral
  end if
 
- level_save   =level
+ level_save=level
  funcname_save=funcname
 
  if (my_mode/='COLL'.or.my_mode/='PERS') my_mode='COLL'
  if (PRESENT(funcname)) my_funcname = basename(funcname)
+ if (PRESENT(filename)) my_filename = basename(filename)
 
  f90line=0; if (PRESENT(lineno)) f90line=lineno
  write(lnum,"(i0)")f90line
 
- my_funcname= TRIM(my_funcname)//":"//TRIM(lnum)
+ my_funcname= TRIM(my_funcname)//"@"//TRIM(filename)//":"//TRIM(lnum)
 
  if (level==1) then 
-  msg = ' '//TRIM(my_funcname)//' : enter'//ch10
+    msg = ' '//TRIM(my_funcname)//' >>>>> ENTER'//ch10
  else if (level==2) then
-  msg = ' '//TRIM(my_funcname)//' : exit '//ch10
+    msg = ' '//TRIM(my_funcname)//' >>>>> EXIT '//ch10
  else 
-  call die('Wrong level',__FILE__,__LINE__)
+    call die('Wrong level',&
+     __FILE__,&
+     __LINE__)
  end if
 
  call wrtout(std_out,msg,my_mode) 
@@ -804,10 +784,10 @@ end subroutine sentinel
 !!  f90name=Name of the f90 file containing the caller
 !!
 !! PARENTS
-!!      m_errors,m_xc_vdw
+!!      arw,m_errors,m_pspsiesta_io,m_xc_vdw,pspsiesta_xc
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -850,8 +830,8 @@ subroutine die(message,file,line)
 & TRIM(msg),ch10,&
 & TRIM(message)
 
- call wrtout(std_out,msg,'COLL') 
- call leave_new('COLL')
+ call wrtout(std_out,msg,'PERS') 
+ call leave_new('PERS')
 
 end subroutine die
 !!***
@@ -884,7 +864,7 @@ end subroutine die
 !!      m_errors
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -910,7 +890,8 @@ subroutine msg_hndl(message,level,mode_paral,file,line,NODUMP,NOSTOP)
  integer :: f90line
  character(len=10) :: lnum
  character(len=500) :: f90name
- character(len=500) :: my_msg,sbuf
+ character(len=LEN(message)) :: my_msg 
+ character(len=MAX(4*LEN(message),2000)) :: sbuf ! Increase size and keep fingers crossed! 
 
 ! *********************************************************************
 
@@ -927,14 +908,18 @@ subroutine msg_hndl(message,level,mode_paral,file,line,NODUMP,NOSTOP)
    f90name='Subroutine Unknown'
  end if
 
- my_msg=TRIM(f90name)//":"//TRIM(lnum)//":"
+ my_msg = lstrip(message)
 
  select case (toupper(level))
 
  case ('COMMENT','WARNING')
-   write(sbuf,'(a,1x,3a,1x,a)')ch10,&
-&    TRIM(my_msg),toupper(level),ch10,&
-&    TRIM(message)
+
+   write(sbuf,'(12a,i0,3a)')ch10,&
+     "--- !",TRIM(toupper(level)),ch10,&
+     "message: |",ch10,TRIM(indent(my_msg)),ch10,&
+     "src_file: ",TRIM(f90name),ch10,&
+     "src_line: ",f90line,ch10,&
+     "...",ch10
    call wrtout(std_out,sbuf,mode_paral) 
 
  case ('ERROR','BUG')
@@ -942,18 +927,22 @@ subroutine msg_hndl(message,level,mode_paral,file,line,NODUMP,NOSTOP)
    if ((.not.present(NOSTOP)).and.(.not.present(NODUMP))) then
      call print_kinds()
      call xmpi_show_info()
-     call dump_config()
+     !call dump_config(std_out)
    end if
 
-   write(sbuf,'(a,1x,3a,1x,a)')ch10,&
-&    TRIM(my_msg),toupper(level),ch10,&
-&    TRIM(message)
+   write(sbuf,'(12a,i0,3a)')ch10,&
+     "--- !",TRIM(toupper(level)),ch10,&
+     "message: |",ch10,TRIM(indent(my_msg)),ch10,&
+     "src_file: ",TRIM(f90name),ch10,&
+     "src_line: ",f90line,ch10,&
+     "...",ch10
    call wrtout(std_out,sbuf,mode_paral) 
 
    if (.not.present(NOSTOP)) then
-     call leave_new(mode_paral)
-     !call leave_new(mode_paral,print_config=.FALSE.)
-     !call leave_new(mode_paral,print_config=.TRUE.)
+     ! Dump the backtrace if compiler supports it
+     call show_backtrace()
+     ! And now we die!
+     call leave_new(mode_paral,print_config=.FALSE.)
    end if
 
  case default 
@@ -963,80 +952,45 @@ subroutine msg_hndl(message,level,mode_paral,file,line,NODUMP,NOSTOP)
 &  __FILE__,__LINE__)
  end select
 
-end subroutine  msg_hndl
+end subroutine msg_hndl
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* m_errors/io_hndl
+!!****f* m_errors/show_backtrace
 !! NAME
-!!  io_hndl
 !!
 !! FUNCTION
-!!  Basic error handler for I/O operations on external files. This routine is usually interfaced 
-!!  through some macro defined in abi_common.h
-!!
-!! INPUTS 
-!!  unit=Fortran unit number
-!!  ios=IO status
-!!  f90name=name of the subroutine where error occurs
-!!  line=line number in the f90name file
-!!
-!! OUTPUT
-!!
+!!  shows a backtrace at an arbitrary place in user code. 
+!!  Program execution continues normally afterwards. 
+!!  The backtrace information is printed to the unit corresponding to ERROR_UNIT in ISO_FORTRAN_ENV. 
+!!  This is a (Gfortran extension| Ifort Extension)
+!!  
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
 !!
 !! SOURCE
 
-subroutine io_hndl(ios,unit,f90name,line)
+subroutine show_backtrace()
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'io_hndl'
- use interfaces_14_hidewrite
- use interfaces_16_hideleave
+#define ABI_FUNC 'show_backtrace'
 !End of the abilint section
 
- integer,intent(in) :: unit,ios,line
- character(len=*),intent(in) :: f90name
 
-!Local variables-------------------------------
- character(len=fnlen) :: fname
- character(len=10) :: lnum,s_ios,s_unt
- character(len=500) :: msg
- logical :: lexist,lopened,lnamed
-! *********************************************************************
+#ifdef HAVE_FC_BACKTRACE
+  call backtrace()  ! Gfortran extension
+#endif
 
- write(lnum,"(i0)")line
- msg=TRIM(f90name)//':'//TRIM(lnum)
+#ifdef FC_INTEL
+  call TRACEBACKQQ(USER_EXIT_CODE=-1)  ! Ifort extension
+#endif
 
- write(s_ios,"(i0)")ios
- write(s_unt,"(i0)")unit
-
- write(msg,'(8a)')ch10,&
-& TRIM(msg),' I/O ERROR- ',ch10,&
-& ' while operating on unit ',TRIM(s_unt),', iostat = ',TRIM(s_ios)
- call wrtout(std_out,msg,'COLL') 
-
- inquire(unit=unit,exist=lexist,named=lnamed,opened=lopened)
- fname='None' ; if (lnamed) inquire(unit=unit,name=fname)
-
- write(msg,'(2a,2(a,l7,a),2a)')&
-& ' Inquire reports : ',ch10,&
-& '  exist  = ',lexist,ch10,&
-& '  opened = ',lopened,ch10,&
-& '  name   = ',TRIM(fname)
- call wrtout(std_out,msg,'COLL') 
- 
- call leave_new('COLL')
-
-end subroutine io_hndl
+end subroutine show_backtrace
 !!***
 
 !----------------------------------------------------------------------
@@ -1060,7 +1014,7 @@ end subroutine io_hndl
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1095,7 +1049,7 @@ subroutine check_mpi_ierr(ierr,msg,mode_paral,file,line)
 ! *********************************************************************
 
 #ifdef HAVE_MPI
-! if (ierr==MPI_SUCCESS) RETURN
+ if (ierr==MPI_SUCCESS) RETURN
  call MPI_ERROR_STRING(ierr, mpi_msg_error, ilen, ierr2)
 #else
  ilen=0; ierr2=0
@@ -1114,13 +1068,12 @@ subroutine check_mpi_ierr(ierr,msg,mode_paral,file,line)
 
  call print_kinds()
  call xmpi_show_info()
- call dump_config()
+ !call dump_config(std_out)
 
  call wrtout(std_out,my_msg,mode_paral) 
  call wrtout(std_out,mpi_msg_error,mode_paral) 
 
- !call leave_new('PERS',print_config=.FALSE.)
- call leave_new('PERS')
+ call leave_new('PERS',print_config=.FALSE.)
 
 end subroutine check_mpi_ierr
 !!***
@@ -1144,7 +1097,7 @@ end subroutine check_mpi_ierr
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1188,7 +1141,7 @@ end subroutine unused_int
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1232,7 +1185,7 @@ end subroutine unused_int_d1
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1276,7 +1229,7 @@ end subroutine unused_real_dp
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1320,7 +1273,7 @@ end subroutine unused_real_sp_d1
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1364,7 +1317,7 @@ end subroutine unused_real_dp_d1
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1408,7 +1361,7 @@ end subroutine unused_cplx_spc
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1452,7 +1405,7 @@ end subroutine unused_cplx_spc_d1
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1496,7 +1449,7 @@ end subroutine unused_cplx_dpc
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1540,7 +1493,7 @@ end subroutine unused_cplx_dpc_d1
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1584,7 +1537,7 @@ end subroutine unused_logical_d0
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 
@@ -1611,7 +1564,7 @@ end subroutine unused_ch_d0
 
 !----------------------------------------------------------------------
 
-!!****f* m_abi_etsf/abietsf_msg_hndl
+!!****f* m_errors/abietsf_msg_hndl
 !! NAME
 !!  abietsf_msg_hndl
 !!
@@ -1632,113 +1585,317 @@ end subroutine unused_ch_d0
 !! PARENTS
 !!
 !! CHILDREN
-!!      etsf_io_low_error_to_str,msg_hndl
+!!      signal
 !!
 !! SOURCE
 
-!#if defined HAVE_TRIO_ETSF_IO
-!
-!subroutine abietsf_msg_hndl(lstat,Error_data,mode_paral,file,line)
-!
-!
-!!This section has been created automatically by the script Abilint (TD).
-!!Do not modify the following lines by hand.
-!#undef ABI_FUNC
-!#define ABI_FUNC 'abietsf_msg_hndl'
-!!End of the abilint section
-!
-! implicit none
-!
-!!Arguments ------------------------------------
-! integer,optional,intent(in) :: line
-! character(len=*),optional,intent(in) :: file
-! character(len=*),intent(in) :: mode_paral
-! logical,intent(in) :: lstat
-! type(ETSF_io_low_error),intent(in) :: Error_data
-!
-!!Local variables-------------------------------
-! integer :: f90line=0
-! character(len=500) :: f90name='Subroutine Unknown'
-! character(len=etsf_io_low_error_len) :: errmess
-!! *********************************************************************
-!
-! if (lstat) RETURN
-!
-! if (PRESENT(line)) f90line=line
-! if (PRESENT(file)) f90name = file
-! call etsf_io_low_error_to_str(errmess,Error_data)
-!
-! call msg_hndl(errmess,"ERROR",mode_paral,f90name,f90line)
-!
-!end subroutine abietsf_msg_hndl
-!!!***
-!
-!!----------------------------------------------------------------------
-!
-!!!****f* m_abi_etsf/abietsf_warn
-!!! NAME
-!!!  abietsf_warn
-!!!
-!!! FUNCTION
-!!!  Wrapper to write warning messages, only used for ETSF_IO routines 
-!!!  It is usually interfaced via the macro ETSF_WARN defined in abi_common.h
-!!!
-!!! INPUTS 
-!!!  lstat=status error.
-!!!  Error_data<ETSF_io_low_error>=Structure storing the error returned by etsf-io calls.
-!!!  [line]=line number of the file where the problem occurred
-!!!  [file]=name of the f90 file containing the caller
-!!!  mode_paral=Either "COLL" or "PERS".
-!!!
-!!! OUTPUT
-!!!  Only writing.
-!!!
-!!! PARENTS
-!!!
-!!! CHILDREN
-!!!      etsf_io_low_error_to_str,msg_hndl
-!!!
-!!! SOURCE
-!
-!
-!subroutine abietsf_warn(lstat,Error_data,mode_paral,file,line)
-!
-!
-!!This section has been created automatically by the script Abilint (TD).
-!!Do not modify the following lines by hand.
-!#undef ABI_FUNC
-!#define ABI_FUNC 'abietsf_warn'
-!!End of the abilint section
-!
-! implicit none
-!
-!!Arguments ------------------------------------
-! integer,optional,intent(in) :: line
-! logical,intent(in) :: lstat
-! character(len=*),optional,intent(in) :: file
-! character(len=*),intent(in) :: mode_paral
-! type(ETSF_io_low_error),intent(in) :: Error_data
-!
-!!Local variables-------------------------------
-! integer :: f90line=0
-! character(len=500) :: f90name='Subroutine Unknown'
-! character(len=etsf_io_low_error_len) :: errmess
-!! *********************************************************************
-!
-! if (lstat) RETURN 
-!
-! if (PRESENT(line)) f90line=line
-! if (PRESENT(file)) f90name = file
-! call etsf_io_low_error_to_str(errmess,Error_data)
-!
-! call msg_hndl(errmess,"WARNING",mode_paral,f90name,f90line)
-!
-!end subroutine abietsf_warn
-!!!***
-!
-!#endif
+#if defined HAVE_TRIO_ETSF_IO
+
+subroutine abietsf_msg_hndl(lstat,Error_data,mode_paral,file,line)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'abietsf_msg_hndl'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+ integer,optional,intent(in) :: line
+ character(len=*),optional,intent(in) :: file
+ character(len=*),intent(in) :: mode_paral
+ logical,intent(in) :: lstat
+ type(ETSF_io_low_error),intent(in) :: Error_data
+
+!Local variables-------------------------------
+ integer :: f90line=0
+ character(len=500) :: f90name='Subroutine Unknown'
+ character(len=etsf_io_low_error_len) :: errmess
+! *********************************************************************
+
+ if (lstat) RETURN
+
+ if (PRESENT(line)) f90line=line
+ if (PRESENT(file)) f90name = file
+ call etsf_io_low_error_to_str(errmess,Error_data)
+
+ call msg_hndl(errmess,"ERROR",mode_paral,f90name,f90line)
+
+end subroutine abietsf_msg_hndl
+!!***
 
 !----------------------------------------------------------------------
+
+!!****f* m_errors/abietsf_warn
+!! NAME
+!!  abietsf_warn
+!!
+!! FUNCTION
+!!  Wrapper to write warning messages, only used for ETSF_IO routines 
+!!  It is usually interfaced via the macro ETSF_WARN defined in abi_common.h
+!!
+!! INPUTS 
+!!  lstat=status error.
+!!  Error_data<ETSF_io_low_error>=Structure storing the error returned by etsf-io calls.
+!!  [line]=line number of the file where the problem occurred
+!!  [file]=name of the f90 file containing the caller
+!!  mode_paral=Either "COLL" or "PERS".
+!!
+!! OUTPUT
+!!  Only writing.
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!      signal
+!!
+!! SOURCE
+
+
+subroutine abietsf_warn(lstat,Error_data,mode_paral,file,line)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'abietsf_warn'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+ integer,optional,intent(in) :: line
+ logical,intent(in) :: lstat
+ character(len=*),optional,intent(in) :: file
+ character(len=*),intent(in) :: mode_paral
+ type(ETSF_io_low_error),intent(in) :: Error_data
+
+!Local variables-------------------------------
+ integer :: f90line=0
+ character(len=500) :: f90name='Subroutine Unknown'
+ character(len=etsf_io_low_error_len) :: errmess
+! *********************************************************************
+
+ if (lstat) RETURN 
+
+ if (PRESENT(line)) f90line=line
+ if (PRESENT(file)) f90name = file
+ call etsf_io_low_error_to_str(errmess,Error_data)
+
+ call msg_hndl(errmess,"WARNING",mode_paral,f90name,f90line)
+
+end subroutine abietsf_warn
+!!***
+
+#endif
+
+!----------------------------------------------------------------------
+
+!!****f* m_errors/bigdft_lib_error
+!! NAME
+!!  bigdft_lib_error
+!!
+!! FUNCTION
+!!  Stop the code if bigdft library has not been enabled.
+!!  Interfaced with the CPP macro BIGDFT_NOTENABLED_ERROR
+!!
+!! INPUTS 
+!!  line=line number of the file where problem occurred
+!!  file=name of the f90 file containing the caller
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!      signal
+!!
+!! SOURCE
+
+subroutine bigdft_lib_error(file,line)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'bigdft_lib_error'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+ integer,optional,intent(in) :: line
+ character(len=*),optional,intent(in) :: file
+
+!Local variables-------------------------------
+ character(len=500) :: message
+
+! *********************************************************************
+
+  write(message,'(4a)') ch10,&
+&  ' BigDFT support has not been enabled.', ch10, &
+&  ' Action, used the flag --enable-bigdft when configuring.'
+
+ if (PRESENT(file) .and. PRESENT(line)) then
+   call msg_hndl(message,"ERROR","PERS",file=file,line=line)
+ else
+   call msg_hndl(message,"ERROR", "PERS")
+ end if
+
+end subroutine bigdft_lib_error
+!!***
+
+!!****f* m_errors/args_parser
+!! NAME
+!!  args_parser
+!!
+!! FUNCTION
+!!  Simple command line argument parser (supports --version, --build, --help)
+!!
+!! PARENTS
+!!      abinit,anaddb,fftprof,mrgddb,mrggkk,mrgscr,optic
+!!
+!! CHILDREN
+!!      signal
+!!
+!! SOURCE
+
+subroutine args_parser(args) 
+
+ use defs_basis
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'args_parser'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+ type(args_t),intent(inout) :: args
+
+!Local variables-------------------------------
+ integer :: ii,ierr
+ character(len=500) :: arg
+
+! *************************************************************************
+
+ args%exit = 0; ierr=0
+
+#ifdef HAVE_FC_COMMAND_ARGUMENT
+  do ii=1,command_argument_count()
+    call get_command_argument(ii, arg)
+    !write(std_out,*)"arg", TRIM(arg)
+
+    if (arg == "-v" .or. arg == "--version") then
+      write(std_out,*)TRIM(abinit_version)
+      args%exit = args%exit + 1
+
+    else if (arg == "-b" .or. arg == "--build") then
+      !call dump_cpp_options(std_out)
+      !call dump_config(std_out)
+      !call dump_optim(std_out)
+
+      args%exit = args%exit + 1
+
+    else if (arg == "-d" .or. arg == "--dry-run") then
+      args%dry_run = 1
+
+    else if (arg == "-j" .or. arg == "--omp-num-threads") then
+      call get_command_argument(ii+1, arg)
+      call xomp_set_num_threads(atoi(arg))
+
+    else if (arg == "--ieee-halt") then
+      call xieee_halt_ifexc(.True.)
+
+    else if (arg == "--ieee-signal") then
+      call xieee_signal_ifexc(.True.)
+
+    else if (arg == "--gnu-mtrace") then
+#ifdef HAVE_CLIB
+      call clib_mtrace(ierr)
+      if (ierr/=0) write(std_out,"(a,i0)")"clib_mtrace returned ierr: ",ierr 
+#else
+      write(std_out,*)"mtrace is not available. Ignoring --gnu-mtrace option"
+#endif
+
+    else if (arg == "-h" .or. arg == "--help") then
+      ! Document the options.
+      write(std_out,*)"-v, --version          --> Show version number and exit."
+      write(std_out,*)"-b, --build            --> Show build parameters and exit."
+      write(std_out,*)"-d, --dry-run          --> Validate input file and exit."
+      write(std_out,*)"-j, --omp-num-threads  --> Set the number of OpenMp threads."
+      write(std_out,*)"--ieee-halt            --> Halt the code if one of the *usual* IEEE exceptions is raised."
+      write(std_out,*)"--ieee-signal          --> Signal the occurrence of the *usual* IEEE exceptions."
+      write(std_out,*)"--gnu-mtrace           --> Enable mtrace (requires GNU and clib)."
+      write(std_out,*)"-h, --help             --> Show this help and exit."
+      args%exit = args%exit + 1
+
+    else
+      continue
+      !MSG_WARNING("Wrong argument: "//TRIM(arg))
+      !args%exit = args%exit + 1
+    end if
+  end do 
+
+#else
+  write(std_out,*)"get_command_argument is not supported by FC. Ignoring command lines options!"
+#endif
+
+end subroutine args_parser
+!!***
+
+!!****f* m_errors/xlf_set_sighandler
+!! NAME
+!!  xlf_set_sighandler
+!!
+!! FUNCTION
+!!   Set the signal handler for IBM XLF
+!!
+!! NOTES
+!!   See http://publib.boulder.ibm.com/infocenter/compbgpl/v9v111/index.jsp?topic=/com.ibm.xlf111.bg.doc/xlfopg/fptrap.htm
+!!   The XL Fortran exception handlers and related routines are:
+!!   xl__ieee
+!!   Produces a traceback and an explanation of the signal and continues execution by supplying the default IEEE result 
+!!   for the failed computation. This handler allows the program to produce the same results as if exception detection was not turned on.
+!!   xl__trce
+!!   Produces a traceback and stops the program.
+!!   xl__trcedump
+!!   Produces a traceback and a core file and stops the program.
+!!   xl__sigdump
+!!   Provides a traceback that starts from the point at which it is called and provides information about the signal. 
+!!   You can only call it from inside a user-written signal handler. 
+!!   It does not stop the program. To successfully continue, the signal handler must perform some cleanup after calling this subprogram.
+!!   xl__trbk
+!!   Provides a traceback that starts from the point at which it is called. 
+!!   You call it as a subroutine from your code, rather than specifying it with the -qsigtrap option. It requires no parameters. It does not stop the program.
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!      signal
+!!
+!! SOURCE
+
+subroutine xlf_set_sighandler()
+
+! *************************************************************************
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xlf_set_sighandler'
+!End of the abilint section
+
+
+#ifdef FC_IBM
+ call SIGNAL(SIGTRAP, xl__trcedump)
+ call SIGNAL(SIGFPE, xl__trcedump)
+#endif
+
+end subroutine xlf_set_sighandler
+!!***
 
 END MODULE m_errors
 !!***

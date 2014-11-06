@@ -2,7 +2,7 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # Build the final report (read *.report from fldiff.py)
-# Date: 11/09/2012
+# Date: 28/01/2014
 #----------------------------------------------------------------------------
 
 import fnmatch
@@ -60,11 +60,12 @@ totime=0
 
 print "Final report for writings in stdout ('passed' means all significant floats are correct):"
 for file in files:
-    dir = os.path.normpath(os.path.dirname(file))
+    dirc = os.path.normpath(os.path.dirname(file))
     fic = "(%s)" % os.path.basename(file)
+    dirfic = ("%-35s %-30s" % (dirc.replace('-test',''),fic.replace('.report',''))).strip()
     #Max value
     try:
-        max_discrepancy = float(open(file).readline())
+        max_discrepancy = float(open(file).readline()[16:24])
         line = open(file).read()
         discrepancy = re_discrepancy.findall(line)
     except:
@@ -108,20 +109,18 @@ for file in files:
             time = "%8ss" % time[0]
         else:
             time = ""
-        name = "%s%-27s %-38s" % (start,dir,fic)
-        print "%-74s%s%s%s" % (name.strip(),state,time,end)
+        print "%s%-74s%s%s%s" % (start,dirfic,state,time,end)
     else:
         if not empty_file:
             start = start_fail
             state = "can not parse file.    failed"
-            name = "%s%-27s %-38s" % (start,dir,fic)
-            print "%-74s%s%s" % (name.strip(),state,end)
+            print "%s%-74s%s%s" % (start,dirfic,state,end)
 
 print "Final report for yaml outputs: if succeeded %53s" % "max diff (significant epsilon)"
 for file in yaml_files:
     dirc = os.path.normpath(os.path.dirname(file))
     fic = "(%s)" % os.path.basename(file)
-    dirfic = ("%-27s %-38s" % (dirc,fic)).strip()
+    dirfic = ("%-35s %-30s" % (dirc.replace('-test',''),fic.replace('.report.yaml',''))).strip()
     documents=[a for a in yaml.load_all(open(file, "r").read(), Loader = yaml.CLoader)]
     #find whether all the tests have passed (look at last part)
     try:

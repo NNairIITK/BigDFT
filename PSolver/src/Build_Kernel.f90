@@ -16,6 +16,7 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
            beta,gamma,n3pr2,n3pr1)
   use Poisson_Solver, only: dp
   use memory_profiling
+  use dynamic_memory
   implicit none
   !Arguments
   integer, intent(in) :: n1,n2,n3          !< Dimensions for the FFT
@@ -30,7 +31,7 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   !Local variables 
   character(len=*), parameter :: subname='Periodic_Kernel'
   real(dp), parameter :: pi=3.14159265358979323846_dp
-  integer :: i1,i2,i3,j3,i_all,i_stat,iproc1
+  integer :: i1,i2,i3,j3,iproc1
   real(dp) :: p1,p2,mu3,ker
   real(dp), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
   !metric for triclinic lattices
@@ -151,12 +152,9 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   !acerioni
 
   !calculate the FFT of the ISF for the three dimensions
-  allocate(fourISFx(0:nker1-1+ndebug),stat=i_stat)
-  call memocc(i_stat,fourISFx,'fourISFx',subname)
-  allocate(fourISFy(0:nker2-1+ndebug),stat=i_stat)
-  call memocc(i_stat,fourISFy,'fourISFy',subname)
-  allocate(fourISFz(0:nker3-1+ndebug),stat=i_stat)
-  call memocc(i_stat,fourISFz,'fourISFz',subname)
+  fourISFx = f_malloc(0.to.nker1-1,id='fourISFx')
+  fourISFy = f_malloc(0.to.nker2-1,id='fourISFy')
+  fourISFz = f_malloc(0.to.nker3-1,id='fourISFz')
 
   call fourtrans_isf(n1/2,fourISFx)
   call fourtrans_isf(n2/2,fourISFy)
@@ -257,15 +255,9 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   !    end do
   ! end do
 
-  i_all=-product(shape(fourISFx))*kind(fourISFx)
-  deallocate(fourISFx,stat=i_stat)
-  call memocc(i_stat,i_all,'fourISFx',subname)
-  i_all=-product(shape(fourISFy))*kind(fourISFy)
-  deallocate(fourISFy,stat=i_stat)
-  call memocc(i_stat,i_all,'fourISFy',subname)
-  i_all=-product(shape(fourISFz))*kind(fourISFz)
-  deallocate(fourISFz,stat=i_stat)
-  call memocc(i_stat,i_all,'fourISFz',subname)
+  call f_free(fourISFx)
+  call f_free(fourISFy)
+  call f_free(fourISFz)
 
 END SUBROUTINE Periodic_Kernel
 
@@ -353,7 +345,7 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
      h1,h2,h3,itype_scf,karray,mu0_screening,alpha,beta,gamma)!,n3pr2,n3pr1)
   use Poisson_Solver, only: dp
   use wrapper_mpi
-  use memory_profiling, only: ndebug,memocc
+  use dynamic_memory
   implicit none
   include 'perfdata.inc'
   
@@ -388,7 +380,7 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
   real(dp) :: a,b,c,d,feR,foR,foI,fR,cp,sp,pion,x,value !n(c) ,diff, feI
   integer :: n_scf,ncache,imu,ierr,ntrig
   integer :: n_range,n_cell,num_of_mus,shift,istart,iend,ireim,jreim,j2st,j2nd,nact2
-  integer :: i,i1,i2,i3,i_stat,i_all
+  integer :: i,i1,i2,i3
   integer :: j2,ind1,ind2,jnd1,ic,inzee,nfft,ipolyord,jp2
 
   !metric for monoclinic lattices
@@ -469,10 +461,8 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
   !Number of integration points : 2*itype_scf*n_points
   n_scf=2*itype_scf*n_points
   !Allocations
-  allocate(x_scf(0:n_scf+ndebug),stat=i_stat)
-  call memocc(i_stat,x_scf,'x_scf',subname)
-  allocate(y_scf(0:n_scf+ndebug),stat=i_stat)
-  call memocc(i_stat,y_scf,'y_scf',subname)
+  x_scf = f_malloc(0.to.n_scf,id='x_scf')
+  y_scf = f_malloc(0.to.n_scf,id='y_scf')
   !Build the scaling function
   call scaling_function(itype_scf,n_scf,n_range,x_scf,y_scf)
   !Step grid for the integration
@@ -501,24 +491,15 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
   end do enlarge_ydim
 
   !array for the MPI procedure
-  allocate(kernel(nker1,nact2/nproc,nker3+ndebug),stat=i_stat)
-  call memocc(i_stat,kernel,'kernel',subname)
-  allocate(kernel_mpi(nker1,nact2/nproc,nker3/nproc,nproc+ndebug),stat=i_stat)
-  call memocc(i_stat,kernel_mpi,'kernel_mpi',subname)
-  allocate(kernel_scf(n_range+ndebug),stat=i_stat)
-  call memocc(i_stat,kernel_scf,'kernel_scf',subname)
-  allocate(halfft_cache(2,ncache/4,2+ndebug),stat=i_stat)
-  call memocc(i_stat,halfft_cache,'halfft_cache',subname)
-  allocate(cossinarr(2,n3/2-1+ndebug),stat=i_stat)
-  call memocc(i_stat,cossinarr,'cossinarr',subname)
-  allocate(btrig(2,ntrig+ndebug),stat=i_stat)
-  call memocc(i_stat,btrig,'btrig',subname)
-  allocate(after(7+ndebug),stat=i_stat)
-  call memocc(i_stat,after,'after',subname)
-  allocate(now(7+ndebug),stat=i_stat)
-  call memocc(i_stat,now,'now',subname)
-  allocate(before(7+ndebug),stat=i_stat)
-  call memocc(i_stat,before,'before',subname)
+  kernel = f_malloc((/ nker1, nact2/nproc, nker3 /),id='kernel')
+  kernel_mpi = f_malloc((/ nker1, nact2/nproc, nker3/nproc, nproc /),id='kernel_mpi')
+  kernel_scf = f_malloc(n_range,id='kernel_scf')
+  halfft_cache = f_malloc((/ 2, ncache/4, 2 /),id='halfft_cache')
+  cossinarr = f_malloc((/ 2, n3/2-1 /),id='cossinarr')
+  btrig = f_malloc((/ 2, ntrig /),id='btrig')
+  after = f_malloc(7,id='after')
+  now = f_malloc(7,id='now')
+  before = f_malloc(7,id='before')
 
   !constants
   pi=4._dp*datan(1._dp)
@@ -742,9 +723,7 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
 
   end do
 
-  i_all=-product(shape(cossinarr))*kind(cossinarr)
-  deallocate(cossinarr,stat=i_stat)
-  call memocc(i_stat,i_all,'cossinarr',subname)
+  call f_free(cossinarr)
 
 
   !give to each processor a slice of the third dimension
@@ -811,36 +790,16 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
 
 
   !De-allocations
-  i_all=-product(shape(kernel))*kind(kernel)
-  deallocate(kernel,stat=i_stat)
-  call memocc(i_stat,i_all,'kernel',subname)
-  i_all=-product(shape(kernel_mpi))*kind(kernel_mpi)
-  deallocate(kernel_mpi,stat=i_stat)
-  call memocc(i_stat,i_all,'kernel_mpi',subname)
-  i_all=-product(shape(btrig))*kind(btrig)
-  deallocate(btrig,stat=i_stat)
-  call memocc(i_stat,i_all,'btrig',subname)
-  i_all=-product(shape(after))*kind(after)
-  deallocate(after,stat=i_stat)
-  call memocc(i_stat,i_all,'after',subname)
-  i_all=-product(shape(now))*kind(now)
-  deallocate(now,stat=i_stat)
-  call memocc(i_stat,i_all,'now',subname)
-  i_all=-product(shape(before))*kind(before)
-  deallocate(before,stat=i_stat)
-  call memocc(i_stat,i_all,'before',subname)
-  i_all=-product(shape(halfft_cache))*kind(halfft_cache)
-  deallocate(halfft_cache,stat=i_stat)
-  call memocc(i_stat,i_all,'halfft_cache',subname)
-  i_all=-product(shape(kernel_scf))*kind(kernel_scf)
-  deallocate(kernel_scf,stat=i_stat)
-  call memocc(i_stat,i_all,'kernel_scf',subname)
-  i_all=-product(shape(x_scf))*kind(x_scf)
-  deallocate(x_scf,stat=i_stat)
-  call memocc(i_stat,i_all,'x_scf',subname)
-  i_all=-product(shape(y_scf))*kind(y_scf)
-  deallocate(y_scf,stat=i_stat)
-  call memocc(i_stat,i_all,'y_scf',subname)
+  call f_free(kernel)
+  call f_free(kernel_mpi)
+  call f_free(btrig)
+  call f_free(after)
+  call f_free(now)
+  call f_free(before)
+  call f_free(halfft_cache)
+  call f_free(kernel_scf)
+  call f_free(x_scf)
+  call f_free(y_scf)
 
 END SUBROUTINE Surfaces_Kernel
 
@@ -848,6 +807,7 @@ END SUBROUTINE Surfaces_Kernel
 subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g_mu)
   use Poisson_Solver, only: dp
   use memory_profiling
+  use dynamic_memory
   implicit none
   real(dp), parameter :: mu_max=0.2_dp
   integer, intent(in) :: n,n_scf,intorder,itype_scf
@@ -857,7 +817,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   real(dp), dimension(n), intent(out) :: g_mu
   !local variables
   character(len=*), parameter :: subname='calculates_green_opt'
-  integer :: izero,ivalue,i,iend,ikern,n_iter,nrec,i_all,i_stat
+  integer :: izero,ivalue,i,iend,ikern,n_iter,nrec
   real(dp) :: f,x,filter,gleft,gright,gltmp,grtmp,fl,fr,ratio,mu0 !n(c) x0, x1
   real(dp), dimension(:), allocatable :: green,green1
 
@@ -880,8 +840,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
   !dimension needed for the correct calculation of the recursion
   nrec=2**n_iter*n
 
-  allocate(green(-nrec:nrec+ndebug),stat=i_stat)
-  call memocc(i_stat,green,'green',subname)
+  green = f_malloc(-nrec.to.nrec,id='green')
 
 
   !initialization of the branching value
@@ -961,8 +920,7 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
      !print *,ikern,izero,n_scf,gltmp,grtmp,gleft,gright,x0,x1,green(ikern)
   end do
   !now we must calculate the recursion
-  allocate(green1(-nrec:nrec+ndebug),stat=i_stat)
-  call memocc(i_stat,green1,'green1',subname)
+  green1 = f_malloc(-nrec.to.nrec,id='green1')
   !Start the iteration to go from mu0 to mu
   call scf_recursion(itype_scf,n_iter,nrec,green(-nrec),green1(-nrec))
 
@@ -973,12 +931,8 @@ subroutine calculates_green_opt(n,n_scf,itype_scf,intorder,xval,yval,c,mu,hres,g
      g_mu(i)=0._dp
   end do
 
-  i_all=-product(shape(green))*kind(green)
-  deallocate(green,stat=i_stat)
-  call memocc(i_stat,i_all,'green',subname)
-  i_all=-product(shape(green1))*kind(green1)
-  deallocate(green1,stat=i_stat)
-  call memocc(i_stat,i_all,'green1',subname)
+  call f_free(green)
+  call f_free(green1)
 
 END SUBROUTINE calculates_green_opt
 
@@ -1113,6 +1067,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
      hx,hy,hz,itype_scf,iproc,nproc,karray,mu0_screening,n3pr2,n3pr1)
   use Poisson_Solver, only: dp, gp
   use memory_profiling
+  use dynamic_memory
  implicit none
  !Arguments
  integer, intent(in) :: n01, n02, n03, nfft1, nfft2, nfft3, n1k, n2k, n3k, itype_scf, iproc, nproc
@@ -1137,7 +1092,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  real(dp) :: a1,a2,a3,wg,k2,k3
  integer :: n_scf, nker2, nker3 !n(c) nker1
  integer :: i_gauss, n_range, n_cell
- integer :: i1, i2, i3, i_stat, i_all,iproc1
+ integer :: i1, i2, i3, iproc1
  integer :: i03, iMin, iMax
 
  !!! PSolver n1-n2 plane mpi partitioning !!!
@@ -1206,10 +1161,8 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 
    
     n_gauss = 89
-    allocate(p_gauss(1:n_gauss), stat = i_stat)
-    call memocc(i_stat,p_gauss,'p_gauss',subname)
-    allocate(w_gauss(1:n_gauss), stat = i_stat)
-    call memocc(i_stat,w_gauss,'w_gauss',subname)
+    p_gauss = f_malloc(1.to.n_gauss,id='p_gauss')
+    w_gauss = f_malloc(1.to.n_gauss,id='w_gauss')
 
     !Initialization of the gaussian (Beylkin)
     call gequad(p_gauss,w_gauss,ur_gauss,dr_gauss,acc_gauss)
@@ -1225,10 +1178,8 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  else
 
     n_gauss = 90
-    allocate(p_gauss(1:n_gauss), stat = i_stat)
-    call memocc(i_stat,p_gauss,'p_gauss',subname)
-    allocate(w_gauss(1:n_gauss), stat = i_stat)
-    call memocc(i_stat,w_gauss,'w_gauss',subname)
+    p_gauss = f_malloc(1.to.n_gauss,id='p_gauss')
+    w_gauss = f_malloc(1.to.n_gauss,id='w_gauss')
     
     !Initialization of the gaussian (Mirone)
     call Yukawa_gequad(p_gauss,w_gauss,ur_gauss,dr_gauss,acc_gauss)
@@ -1259,17 +1210,14 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
   end do
 
 
-  allocate(fwork(0:n_range+ndebug), stat=i_stat)
-  call memocc(i_stat, fwork, 'fwork', subname)
-  allocate(fftwork(2, max(nfft1,nfft2,nfft3)*2+ndebug), stat=i_stat)
-  call memocc(i_stat, fftwork, 'fftwork', subname)
+  fwork = f_malloc(0.to.n_range,id='fwork')
+  fftwork = f_malloc((/ 2, max(nfft1, nfft2, nfft3)*2 /),id='fftwork')
 
 !!$ allocate(kern_1_scf(-n_range:n_range+ndebug),stat=i_stat)
 !!$ call memocc(i_stat,kern_1_scf,'kern_1_scf',subname)
 
 
- allocate(kernel_scf(max(n1k,n2k,n3k),3+ndebug),stat=i_stat)
- call memocc(i_stat,kernel_scf,'kernel_scf',subname)
+ kernel_scf = f_malloc((/ max(n1k, n2k, n3k), 3 /),id='kernel_scf')
 !!$ allocate(kernel_scf(-n_range:n_range,3+ndebug),stat=i_stat)
 !!$ call memocc(i_stat,kernel_scf,'kernel_scf',subname)
   iMin = iproc1 * (nker3/nproc) + 1
@@ -1358,21 +1306,11 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
 !!$
  
 !!$ !De-allocations
- i_all=-product(shape(kernel_scf))*kind(kernel_scf)
- deallocate(kernel_scf,stat=i_stat)
- call memocc(i_stat,i_all,'kernel_scf',subname)
- i_all=-product(shape(fwork))*kind(fwork)
- deallocate(fwork,stat=i_stat)
- call memocc(i_stat,i_all,'fwork',subname)
- i_all=-product(shape(fftwork))*kind(fftwork)
- deallocate(fftwork,stat=i_stat)
- call memocc(i_stat,i_all,'fftwork',subname)
- i_all=-product(shape(p_gauss))*kind(p_gauss)
- deallocate(p_gauss, stat=i_stat)
- call memocc(i_stat,i_all,'p_gauss',subname)
- i_all=-product(shape(w_gauss))*kind(w_gauss)
- deallocate(w_gauss, stat=i_stat)
- call memocc(i_stat,i_all,'w_gauss',subname)
+ call f_free(kernel_scf)
+ call f_free(fwork)
+ call f_free(fftwork)
+ call f_free(p_gauss)
+ call f_free(w_gauss)
 !!$ i_all=-product(shape(x_scf))*kind(x_scf)
 !!$ deallocate(x_scf,stat=i_stat)
 !!$ call memocc(i_stat,i_all,'x_scf',subname)
@@ -1385,6 +1323,7 @@ END SUBROUTINE Free_Kernel
 
 subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,fwork,fftwork,kffts)
   use Poisson_Solver, only: dp
+  use dynamic_memory
   !n(c) use module_fft_sg
   implicit none
   integer, intent(in) :: itype_scf,n1,n2,n3,nk1,nk2,nk3,n_range
@@ -1400,7 +1339,7 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
   !!acerioni
   real(dp), dimension(:), allocatable :: x_scf, y_scf
   real(dp), dimension(-n_range:n_range) :: fwork_tmp
-  integer :: n_points, i_stat, n_scf, nrange
+  integer :: n_points, n_scf, nrange
   real(dp) :: dx
   real(dp), dimension(-n_range:n_range) :: work
   !real(dp), dimension(-n_range:n_range) :: kernel_scf
@@ -1432,8 +1371,8 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
      n_scf=2*itype_scf*n_points
 
      !Other allocations
-     allocate(x_scf(0:n_scf),stat=i_stat)
-     allocate(y_scf(0:n_scf),stat=i_stat)
+     x_scf = f_malloc(0.to.n_scf,id='x_scf')
+     y_scf = f_malloc(0.to.n_scf,id='y_scf')
      !allocate(gaussian(0:n_scf),stat=i_stat)
 
      !Build the scaling function
@@ -1529,8 +1468,8 @@ subroutine gauconv_ffts(itype_scf,pgauss,hx,hy,hz,n1,n2,n3,nk1,nk2,nk3,n_range,f
   end if
   
   if(.not. an_int) then
-     deallocate(x_scf, stat = i_stat)
-     deallocate(y_scf, stat = i_stat)
+     call f_free(x_scf)
+     call f_free(y_scf)
   else
   end if
   !deallocate(work, stat = i_stat)
@@ -2020,28 +1959,26 @@ END SUBROUTINE gequad
 !>  Build the kernel of the Poisson operator with wires Boundary conditions
 !!  in an interpolating scaling functions basis.
 !!  The periodic direction is z
-!! SYNOPSIS
-!!   @param iproc,nproc        Number of process, number of processes
-!!   @param n1,n2,n3           Dimensions for the FFT
-!!   @param nker1,nker2,nker3  Dimensions of the kernel nker(1,2,3)=n(1,2,3)/2+1
-!!   @param h1,h2,h3           Mesh steps in the three dimensions
-!!   @param itype_scf          Order of the scaling function
-!!   @param karray             output array
 subroutine Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray, &
                         mu0_screening)
   use Poisson_Solver, only: dp
   use memory_profiling
+  use dynamic_memory
   implicit none
   !Arguments
-  integer, intent(in) :: n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,itype_scf,iproc,nproc
-  real(dp), intent(in) :: h1,h2,h3
-  real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray
+  integer, intent(in) :: iproc,nproc        !< Number of process, number of processes
+  integer, intent(in) :: n01,n02,n03
+  integer, intent(in) :: n1,n2,n3           !< Dimensions for the FFT
+  integer, intent(in) :: nker1,nker2,nker3  !< Dimensions of the kernel nker(1,2,3)=n(1,2,3)/2+1
+  integer, intent(in) :: itype_scf          !< Order of the scaling function
+  real(dp), intent(in) :: h1,h2,h3          !< Mesh steps in the three dimensions
+  real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray !< Output array
   real(dp), intent(in) :: mu0_screening
   !Local variables 
   character(len=*), parameter :: subname='Wires_Kernel'
   real(dp), parameter :: pi=3.14159265358979323846_dp
   integer, parameter :: n_gauss = 144
-  integer :: i1, i2, i3, i_all, i_stat, n_range, n_cell, k
+  integer :: i1, i2, i3, n_range, n_cell, k
   real(dp) :: mu, t0, t1
   !real(dp), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
   real(dp), dimension(:), allocatable :: fwork
@@ -2062,12 +1999,9 @@ subroutine Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2
   n_cell = max(n01,n02)
   n_range = max(n_cell,n_range)
 
-  allocate(kernel_scf(max(nker1,nker2,nker3),3+ndebug),stat=i_stat)
-  call memocc(i_stat,kernel_scf,'kernel_scf',subname)
-  allocate(fwork(0:n_range+ndebug),stat=i_stat)
-  call memocc(i_stat,fwork,'fwork',subname)
-  allocate(fftwork(2,max(n1,n2,n3)*2+ndebug),stat=i_stat)
-  call memocc(i_stat,fftwork,'fftwork',subname)
+  kernel_scf = f_malloc((/ max(nker1, nker2, nker3), 3 /),id='kernel_scf')
+  fwork = f_malloc(0.to.n_range,id='fwork')
+  fftwork = f_malloc((/ 2, max(n1, n2, n3)*2 /),id='fftwork')
 
   ! initialization
   karray = 0.0_dp
@@ -2136,15 +2070,9 @@ subroutine Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2
   !write(*,*) "Elapsed time = ", t1-t0
 
 
-  i_all=-product(shape(kernel_scf))*kind(kernel_scf)
-  deallocate(kernel_scf,stat=i_stat)
-  call memocc(i_stat,i_all,'kernel_scf',subname)
-  i_all=-product(shape(fwork))*kind(fwork)
-  deallocate(fwork,stat=i_stat)
-  call memocc(i_stat,i_all,'fwork',subname)
-  i_all=-product(shape(fftwork))*kind(fftwork)
-  deallocate(fftwork,stat=i_stat)
-  call memocc(i_stat,i_all,'fftwork',subname)
+  call f_free(kernel_scf)
+  call f_free(fwork)
+  call f_free(fftwork)
 
 
 END SUBROUTINE Wires_Kernel

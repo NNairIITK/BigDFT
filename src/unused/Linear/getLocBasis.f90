@@ -468,8 +468,8 @@
 !!!integer:: iproc, nproc
 !!!type(orbitals_data), intent(in) :: orbs
 !!!type(orbitals_data), intent(in) :: orbsLIN
-!!!type(communications_arrays), intent(in) :: comms
-!!!type(communications_arrays), intent(in) :: commsLIN
+!!!type(comms_cubic), intent(in) :: comms
+!!!type(comms_cubic), intent(in) :: commsLIN
 !!!real(8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor,orbsLIN%norb) :: phi
 !!!real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb) :: psi
 !!!real(8),dimension(orbsLIN%norb,orbsLIN%norb):: HamSmall
@@ -522,8 +522,8 @@
 !!!integer:: iproc, nproc
 !!!type(orbitals_data), intent(in) :: orbs
 !!!type(orbitals_data), intent(in) :: orbsLIN
-!!!type(communications_arrays), intent(in) :: comms
-!!!type(communications_arrays), intent(in) :: commsLIN
+!!!type(comms_cubic), intent(in) :: comms
+!!!type(comms_cubic), intent(in) :: commsLIN
 !!!real(8),dimension(sum(commsLIN%nvctr_par(iproc,1:orbsLIN%nkptsp))*orbsLIN%nspinor,orbsLIN%norb) :: phi
 !!!real(8),dimension(sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor,orbs%norb) :: psi
 !!!real(8),dimension(orbsLIN%norb,orbs%norb):: coeff
@@ -3239,3 +3239,862 @@ end subroutine build_new_linear_combinations
 !!  call timing(iproc,'commbasis4dens','OF') !lr408t
 !!
 !!end subroutine communicate_basis_for_density
+
+
+
+
+subroutine check_idempotency(iproc, nproc, tmb, diff)
+  use module_base
+  use module_types
+  use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
+  use sparsematrix, only: uncompress_matrix
+  implicit none
+
+  ! Calling variables
+  integer,intent(in) :: iproc, nproc
+  type(DFT_wavefunction),intent(inout) :: tmb
+  real(kind=8),intent(out) :: diff
+
+  ! Local variables
+  integer :: iorb, iiorb, jsegstart, jsegend, jseg, jorb, jjorb, ierr
+  real(kind=8),dimension(:,:),allocatable :: ks, ksk, ksksk
+
+
+  tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
+  tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
+  call uncompress_matrix(iproc,tmb%linmat%ovrlp)
+  call uncompress_matrix(iproc,tmb%linmat%denskern_large)
+
+
+  call dscal(tmb%orbs%norb**2, 0.5d0, tmb%linmat%kernel_%matrix, 1)
+
+  ks=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
+  ksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/))
+  ksksk=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/))
+
+  call to_zero(tmb%orbs%norb**2, ks(1,1))
+  if (tmb%orbs%norbp>0) then
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
+                 1.d0, tmb%linmat%kernel_%matrix(1,1), tmb%orbs%norb, &
+                 tmb%linmat%ovrlp%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
+                 0.d0, ks(1,tmb%orbs%isorb+1), tmb%orbs%norb) 
+  end if
+  call mpiallred(ks(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (tmb%orbs%norbp>0) then
+      call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, &
+                 1.d0, ks(1,1), tmb%orbs%norb, &
+                 tmb%linmat%kernel_%matrix(1,tmb%orbs%isorb+1), tmb%orbs%norb, &
+                 0.d0, ksk(1,1), tmb%orbs%norb)
+  end if
+  !!if (tmb%orbs%norbp>0) then
+  !!    call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%norb, 1.d0, ks(1,1), tmb%orbs%norb, &
+  !!               ksk(1,1), tmb%orbs%norb, 0.d0, ksksk(1,1), tmb%orbs%norb)
+  !!end if
+
+
+  diff=0.d0
+  do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
+      iiorb=iorb-tmb%orbs%isorb
+      jsegstart=tmb%linmat%denskern_large%istsegline(iorb)
+      if (iorb<tmb%orbs%norb) then
+          jsegend=tmb%linmat%denskern_large%istsegline(iorb+1)-1
+      else
+          jsegend=tmb%linmat%denskern_large%nseg
+      end if
+      do jseg=jsegstart,jsegend
+          do jorb=tmb%linmat%denskern_large%keyg(1,jseg),tmb%linmat%denskern_large%keyg(2,jseg)
+              jjorb=jorb-(iorb-1)*tmb%orbs%norb
+              diff = diff + (ksk(jjorb,iiorb)-tmb%linmat%kernel_%matrix(jjorb,iorb))**2
+          end do
+      end do
+  end do
+  call mpiallred(diff, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  diff=sqrt(diff)
+
+
+  call f_free(ks)
+  call f_free(ksk)
+  call f_free(ksksk)
+  call f_free_ptr(tmb%linmat%ovrlp%matrix)
+  call f_free_ptr(tmb%linmat%kernel_%matrix)
+
+end subroutine check_idempotency
+
+
+
+subroutine my_geocode_buffers(geocode,nl1,nl2,nl3)
+  implicit none
+  integer, intent(out) :: nl1,nl2,nl3
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+  !local variables
+  logical :: perx,pery,perz
+  integer :: nr1,nr2,nr3
+
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 'F')
+  pery=(geocode == 'P')
+  perz=(geocode /= 'F')
+
+  call ext_buffers(perx,nl1,nr1)
+  call ext_buffers(pery,nl2,nr2)
+  call ext_buffers(perz,nl3,nr3)
+
+end subroutine my_geocode_buffers
+
+subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
+    fnrm,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
+    nit_precond,target_function,&
+    correction_orthoconstraint,nit_basis,&
+    ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
+    gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, kappa_conv, method_updatekernel,&
+    purification_quickreturn, correction_co_contra)
+  !
+  ! Purpose:
+  ! ========
+  !   Calculates the localized basis functions phi. These basis functions are obtained by adding a
+  !   quartic potential centered on the atoms to the ordinary Hamiltonian. The eigenfunctions are then
+  !   determined by minimizing the trace until the gradient norm is below the convergence criterion.
+  use module_base
+  use module_types
+  use yaml_output
+  use module_interfaces, except_this_one => getLocalizedBasis, except_this_one_A => writeonewave
+  use communications, only: transpose_localized, start_onesided_communication
+  use sparsematrix_base, only: assignment(=), sparsematrix_malloc, SPARSE_FULL
+  !  use Poisson_Solver
+  !use allocModule
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, order_taylor
+  integer,intent(out) :: infoBasisFunctions
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data) :: orbs
+  real(kind=8),dimension(3,at%astruct%nat) :: rxyz
+  type(DFT_local_fields), intent(inout) :: denspot
+  type(GPU_pointers), intent(inout) :: GPU
+  real(kind=8),intent(out) :: trH, fnrm
+  real(kind=8),intent(inout) :: trH_old
+  type(DFT_PSP_projectors),intent(inout) :: nlpsp
+  integer,intent(in) :: scf_mode
+  type(localizedDIISParameters),intent(inout) :: ldiis
+  type(DFT_wavefunction),target,intent(inout) :: tmb
+  type(SIC_data) :: SIC !<parameters for the SIC methods
+  type(energy_terms),intent(in) :: energs_base
+  integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint, nit_basis
+  real(kind=8),intent(out) :: ratio_deltas
+  logical, intent(inout) :: ortho_on
+  integer, intent(in) :: extra_states
+  integer,intent(in) :: itout
+  real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic, min_gnrm_for_dynamic, kappa_conv
+  logical,intent(in) :: experimental_mode, purification_quickreturn
+  logical,intent(out) :: can_use_ham
+  integer,intent(in) :: method_updatekernel
+  logical,intent(in) :: correction_co_contra
+ 
+  ! Local variables
+  real(kind=8) :: fnrmMax, meanAlpha, ediff_best, alpha_max, delta_energy, delta_energy_prev, ediff
+  integer :: iorb, it, it_tot, ncount, jorb, ncharge
+  real(kind=8),dimension(:),allocatable :: alpha,fnrmOldArr,alphaDIIS, hpsit_c_tmp, hpsit_f_tmp, hpsi_noconf, psidiff
+  real(kind=8),dimension(:),allocatable :: delta_energy_arr
+  real(kind=8),dimension(:),allocatable :: hpsi_noprecond, occup_tmp, kernel_compr_tmp, philarge
+  logical :: energy_increased, overlap_calculated
+  real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
+  type(energy_terms) :: energs
+  real(kind=8), dimension(2):: reducearr
+  real(gp) :: econf, dynamic_convcrit, kappa_mean
+  integer :: i, ist, iiorb, ilr, ii, kappa_satur
+  real(kind=8) :: energy_first, hxh, hyh, hzh, trH_ref, charge
+  real(kind=8),dimension(:),allocatable :: kernel_best
+  integer ::  correction_orthoconstraint_local, npsidim_large, ists, istl, sdim, ldim, nspin, nit_exit
+  logical :: energy_diff, energy_increased_previous, complete_reset, even
+  real(kind=8),dimension(3),save :: kappa_history
+  integer,save :: nkappa_history
+  logical,save :: has_already_converged
+  logical,dimension(7) :: exit_loop
+
+  call f_routine(id='getLocalizedBasis')
+
+  delta_energy_arr=f_malloc(nit_basis+6,id='delta_energy_arr')
+  kernel_best=f_malloc(tmb%linmat%l%nvctr,id='kernel_best')
+  energy_diff=.false.
+
+
+  ! Allocate all local arrays.
+  call allocateLocalArrays()
+
+
+  call timing(iproc,'getlocbasinit','ON')
+  tmb%can_use_transposed=.false.
+  !!if(iproc==0) write(*,'(1x,a)') '======================== Creation of the basis functions... ========================'
+
+  alpha=ldiis%alphaSD
+  alphaDIIS=ldiis%alphaDIIS
+  ldiis%resetDIIS=.false.
+  ldiis%immediateSwitchToSD=.false.
+ 
+  call timing(iproc,'getlocbasinit','OF')
+
+  overlap_calculated=.false.
+  it=0
+  it_tot=0
+  !ortho=.true.
+  call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
+  call start_onesided_communication(iproc, nproc, max(denspot%dpbox%ndimpot,1), denspot%rhov, &
+       tmb%ham_descr%comgp%nrecvbuf, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, tmb%ham_descr%lzd)
+
+  delta_energy_prev=1.d100
+
+  energy_increased_previous=.false.
+  ratio_deltas=1.d0
+  ediff_best=1.d0
+  ediff=1.d0
+  delta_energy_prev=1.d0
+  delta_energy_arr=1.d0
+  trH_ref=trH_old
+  dynamic_convcrit=1.d-100
+  kappa_satur=0
+
+
+  ! Count whether there is an even or an odd number of electrons
+  charge=0.d0
+  do iorb=1,orbs%norb
+      charge=charge+orbs%occup(iorb)
+  end do
+  ncharge=nint(charge)
+  even=(mod(ncharge,2)==0)
+
+  ! Purify the initial kernel (only when necessary and if there is an even number of electrons)
+  if (target_function/=TARGET_FUNCTION_IS_TRACE .and. even .and. scf_mode==LINEAR_FOE) then
+      if (iproc==0) then
+          call yaml_sequence(advance='no')
+          call yaml_mapping_open(flow=.true.)
+          call yaml_map('Initial kernel purification',.true.)
+      end if
+      overlap_calculated=.true.
+      call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor, purification_quickreturn)
+      if (iproc==0) call yaml_mapping_close()
+  end if
+
+  if (itout==0) then
+      nkappa_history=0
+      kappa_history=0.d0
+      has_already_converged=.false.
+  end if
+
+  iterLoop: do
+      it=it+1
+      it=max(it,1) !since it could become negative (2 is subtracted if the loop cycles)
+      it_tot=it_tot+1
+
+      fnrmMax=0.d0
+      fnrm=0.d0
+  
+      if (iproc==0) then
+          call yaml_sequence(advance='no')
+          call yaml_mapping_open(flow=.true.)
+          call yaml_comment('iter:'//yaml_toa(it,fmt='(i6)'),hfill='-')
+          if (target_function==TARGET_FUNCTION_IS_TRACE) then
+              call yaml_map('target function','TRACE')
+          else if (target_function==TARGET_FUNCTION_IS_ENERGY) then
+              call yaml_map('target function','ENERGY')
+          else if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+              call yaml_map('target function','HYBRID')
+          end if
+      end if
+
+
+      ! Calculate the unconstrained gradient by applying the Hamiltonian.
+      !!if (iproc==0) write(*,*) 'tmb%psi(1)',tmb%psi(1)
+      if (tmb%ham_descr%npsidim_orbs > 0)  call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
+      call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+           tmb%orbs, tmb%psi, tmb%ham_descr%psi)
+
+      call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,rxyz,&
+           tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,tmb%hpsi,energs%eproj)
+      ! only kinetic because waiting for communications
+      call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+           tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,&
+           & tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,3,denspot%xc,&
+           & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
+           & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
+      call full_local_potential(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,2,denspot%dpbox,&
+           & denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
+      ! only potential
+      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+          call vcopy(tmb%ham_descr%npsidim_orbs, tmb%hpsi(1), 1, hpsi_noconf(1), 1)
+          call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+               tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,&
+               & tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,2,denspot%xc,&
+               & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
+               & potential=denspot%rhov,comgp=tmb%ham_descr%comgp,&
+               hpsi_noconf=hpsi_noconf,econf=econf)
+
+          if (nproc>1) then
+              call mpiallred(econf, 1, mpi_sum, bigdft_mpi%mpi_comm)
+          end if
+
+      else
+          call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+               tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,&
+               & denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,2,denspot%xc,&
+               & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
+               & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
+      end if
+
+
+      !!if (target_function==TARGET_FUNCTION_IS_HYBRID .and. iproc==0) then
+      !!    write(*,*) 'econf, econf/tmb%orbs%norb',econf, econf/tmb%orbs%norb
+      !!end if
+
+      call timing(iproc,'glsynchham2','ON')
+      call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,denspot%xc,tmb%hpsi,&
+           energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+      call timing(iproc,'glsynchham2','OF')
+
+      if (iproc==0) then
+          call yaml_map('Hamiltonian Applied',.true.)
+      end if
+
+      ! Use this subroutine to write the energies, with some fake number
+      ! to prevent it from writing too much
+      if (iproc==0) then
+          call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+      end if
+
+      !if (iproc==0) write(*,'(a,5es16.6)') 'ekin, eh, epot, eproj, eex', &
+      !              energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
+
+      if (iproc==0) then
+          call yaml_map('Orthoconstraint',.true.)
+      end if
+
+
+      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+          call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+               hpsi_noconf, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+          if (method_updatekernel==UPDATE_BY_FOE) then
+              !@NEW
+              !!if(associated(tmb%ham_descr%psit_c)) then
+              !!    call f_free_ptr(tmb%ham_descr%psit_c)
+              !!    associated_psitlarge_c=.true.
+              !!else
+              !!    associated_psitlarge_c=.false.
+              !!end if
+              !!if(associated(tmb%ham_descr%psit_f)) then
+              !!    call f_free_ptr(tmb%ham_descr%psit_f)
+              !!    associated_psitlarge_f=.true.
+              !!else
+              !!    associated_psitlarge_f=.false.
+              !!end if
+
+              !!tmb%ham_descr%psit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='tmb%ham_descr%psit_c')
+              !!tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
+              call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+                   tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
+              call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
+                   tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
+
+              !!if (.not.associated(tmb%psit_c)) then
+              !!    tmb%psit_c = f_malloc_ptr(tmb%collcom%ndimind_c,id='tmb%psit_c')
+              !!end if
+              !!if (.not.associated(tmb%psit_f)) then
+              !!    tmb%psit_f = f_malloc_ptr(7*tmb%collcom%ndimind_f,id='tmb%psit_f')
+              !!end if
+              call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+                   tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+              call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
+                   tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+              if (iproc==0) call yaml_newline()
+              if (iproc==0) call yaml_sequence_open('kernel update by FOE')
+              call foe(iproc, nproc, 0.d0, &
+                   energs%ebs, -1, -10, order_taylor, purification_quickreturn, 0, &
+                   FOE_FAST, tmb, tmb%foe_obj)
+              if (iproc==0) call yaml_sequence_close()
+              !if (.not.associated_psitlarge_c) then
+              !    call f_free_ptr(tmb%ham_descr%psit_c)
+              !end if
+              !if (.not.associated_psitlarge_f) then
+              !    call f_free_ptr(tmb%ham_descr%psit_f)
+              !end if
+              !if (associated_psitlarge_c .and. associated_psitlarge_f) then
+                  tmb%ham_descr%can_use_transposed=.true.
+              !end if
+              !@ENDNEW
+          end if
+      else
+          call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+               tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+      end if
+
+      ncount=sum(tmb%ham_descr%collcom%nrecvcounts_c)
+      if(ncount>0) call vcopy(ncount, hpsit_c(1), 1, hpsit_c_tmp(1), 1)
+      ncount=7*sum(tmb%ham_descr%collcom%nrecvcounts_f)
+      if(ncount>0) call vcopy(ncount, hpsit_f(1), 1, hpsit_f_tmp(1), 1)
+
+      ! optimize the tmbs for a few extra states
+      if (target_function==TARGET_FUNCTION_IS_ENERGY.and.extra_states>0) then
+          kernel_compr_tmp = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='kernel_compr_tmp')
+          call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
+          !allocate(occup_tmp(tmb%orbs%norb), stat=istat)
+          !call memocc(istat, occup_tmp, 'occup_tmp', subname)
+          !call vcopy(tmb%orbs%norb, tmb%orbs%occup(1), 1, occup_tmp(1), 1)
+          !call to_zero(tmb%orbs%norb,tmb%orbs%occup(1))
+          !call vcopy(orbs%norb, orbs%occup(1), 1, tmb%orbs%occup(1), 1)
+          !! occupy the next few states - don't need to preserve the charge as only using for support function optimization
+          !do iorb=1,tmb%orbs%norb
+          !   if (tmb%orbs%occup(iorb)==1.0_gp) then
+          !      tmb%orbs%occup(iorb)=2.0_gp
+          !   else if (tmb%orbs%occup(iorb)==0.0_gp) then
+          !      do jorb=iorb,min(iorb+extra_states-1,tmb%orbs%norb)
+          !         tmb%orbs%occup(jorb)=2.0_gp
+          !      end do
+          !      exit
+          !   end if
+          !end do
+          call calculate_density_kernel(iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, &
+               tmb%linmat%l, tmb%linmat%kernel_)
+          !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+          !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
+      end if
+
+      correction_orthoconstraint_local=correction_orthoconstraint
+      !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !    correction_orthoconstraint_local=2
+      !end if
+      !if(.not.ortho_on) then
+      !    correction_orthoconstraint_local=2
+      !end if
+      !write(*,*) 'correction_orthoconstraint, correction_orthoconstraint_local',correction_orthoconstraint, correction_orthoconstraint_local
+
+
+      !!! PLOT ###########################################################################
+      !!hxh=0.5d0*tmb%lzd%hgrids(1)      
+      !!hyh=0.5d0*tmb%lzd%hgrids(2)      
+      !!hzh=0.5d0*tmb%lzd%hgrids(3)      
+      !!npsidim_large=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+      !!allocate(philarge((tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%norbp))
+      !!philarge=0.d0
+      !!ists=1
+      !!istl=1
+      !!do iorb=1,tmb%orbs%norbp
+      !!    ilr = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)
+      !!    sdim=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      !!    ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+      !!    nspin=1 !this must be modified later
+      !!    call Lpsi_to_global2(iproc, sdim, ldim, tmb%orbs%norb, tmb%orbs%nspinor, nspin, tmb%lzd%glr, &
+      !!         tmb%lzd%llr(ilr), tmb%psi(ists), philarge(istl))
+      !!    ists=ists+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      !!    istl=istl+tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+      !!end do
+      !!call plotOrbitals(iproc, tmb, philarge, at%astruct%nat, rxyz, hxh, hyh, hzh, 100*itout+it, 'orbs')
+      !!deallocate(philarge)
+      !!! END PLOT #######################################################################
+
+
+      !if (iproc==0) write(*,*) 'tmb%linmat%denskern%matrix_compr(1)',tmb%linmat%denskern%matrix_compr(1)
+      call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, alpha, trH, trH_old, fnrm, fnrmMax, &
+           meanAlpha, alpha_max, energy_increased, tmb, lhphiold, overlap_calculated, energs_base, &
+           hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint_local, hpsi_small, &
+           experimental_mode, correction_co_contra, hpsi_noprecond, order_taylor, method_updatekernel)
+
+
+      !!! PLOT ###########################################################################
+      !!hxh=0.5d0*tmb%lzd%hgrids(1)      
+      !!hyh=0.5d0*tmb%lzd%hgrids(2)      
+      !!hzh=0.5d0*tmb%lzd%hgrids(3)      
+      !!npsidim_large=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+      !!allocate(philarge((tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)*tmb%orbs%norbp))
+      !!philarge=0.d0
+      !!ists=1
+      !!istl=1
+      !!do iorb=1,tmb%orbs%norbp
+      !!    ilr = tmb%orbs%inWhichLocreg(tmb%orbs%isorb+iorb)
+      !!    sdim=tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      !!    ldim=tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+      !!    nspin=1 !this must be modified later
+      !!    !call Lpsi_to_global2(iproc, sdim, ldim, tmb%orbs%norb, tmb%orbs%nspinor, nspin, tmb%lzd%glr, &
+      !!    !      tmb%lzd%llr(ilr), hpsi_small(ists), philarge(istl))
+      !!    call Lpsi_to_global2(iproc, sdim, ldim, tmb%orbs%norb, tmb%orbs%nspinor, nspin, tmb%lzd%glr, &
+      !!          tmb%lzd%llr(ilr), tmb%psi(ists), philarge(istl))
+      !!    ists=ists+tmb%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%lzd%llr(ilr)%wfd%nvctr_f
+      !!    istl=istl+tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f
+      !!end do
+      !!!call plotOrbitals(iproc, tmb, philarge, at%astruct%nat, rxyz, hxh, hyh, hzh, 100*itout+it, 'grad')
+      !!call plotOrbitals(iproc, tmb, philarge, at%astruct%nat, rxyz, hxh, hyh, hzh, 100*itout+it, 'tmbs')
+      !!deallocate(philarge)
+      !!! END PLOT #######################################################################
+
+
+
+      if (experimental_mode) then
+          if (it_tot==1) then
+              energy_first=trH
+          end if
+          !!if (iproc==0) write(*,'(a,3es16.7)') 'trH, energy_first, (trH-energy_first)/energy_first', &
+          !!                                      trH, energy_first, (trH-energy_first)/energy_first
+          if (iproc==0) call yaml_map('rel D',(trH-energy_first)/energy_first,fmt='(es9.2)')
+          if ((trH-energy_first)/energy_first>early_stop .and. itout>0) then
+              energy_diff=.true.
+              !!if (iproc==0) write(*,'(a,3es16.7)') 'new stopping crit: trH, energy_first, (trH-energy_first)/energy_first', &
+              !!                                      trH, energy_first, (trH-energy_first)/energy_first
+          end if
+      end if
+
+      if (target_function==TARGET_FUNCTION_IS_ENERGY.and.extra_states>0) then
+          call vcopy(tmb%linmat%l%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+          call f_free(kernel_compr_tmp)
+      end if
+
+      ediff=trH-trH_old
+      ediff_best=trH-trH_ref
+      !!if (iproc==0) write(*,*) 'trH, trH_ref', trH, trH_ref
+
+      if (it>1 .and. (target_function==TARGET_FUNCTION_IS_HYBRID .or. experimental_mode)) then
+          if (.not.energy_increased .and. .not.energy_increased_previous) then
+              if (.not.ldiis%switchSD) then
+                  ratio_deltas=ediff_best/delta_energy_prev
+              else
+                  ratio_deltas=ediff_best/delta_energy_arr(ldiis%itBest)
+              end if
+          else
+              ! use a default value
+              if (iproc==0) then
+                  call yaml_warning('use a fake value for kappa')
+                  call yaml_newline()
+              end if
+              ratio_deltas=0.5d0
+          end if
+          if (ldiis%switchSD) then
+              !!ratio_deltas=0.5d0
+              !!if (iproc==0) write(*,*) 'WARNING: TEMPORARY FIX for ratio_deltas!'
+          end if
+          if (iproc==0) call yaml_map('kappa',ratio_deltas,fmt='(es10.3)')
+          if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+              !if (ratio_deltas>0.d0) then
+              if (ratio_deltas>1.d-12) then
+                  if (iproc==0) call yaml_map('kappa to history',.true.)
+                  nkappa_history=nkappa_history+1
+                  ii=mod(nkappa_history-1,3)+1
+                  kappa_history(ii)=ratio_deltas
+              end if
+              !!if (nkappa_history>=3) then
+              !!    kappa_mean=sum(kappa_history)/3.d0
+              !!    if (iproc==0) call yaml_map('mean kappa',kappa_mean,fmt='(es10.3)')
+              !!    dynamic_convcrit=conv_crit/kappa_mean
+              !!    if (iproc==0) call yaml_map('dynamic conv crit',dynamic_convcrit,fmt='(es9.2)')
+              !!end if
+          end if
+      end if
+      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+          if (nkappa_history>=3) then
+              kappa_mean=sum(kappa_history)/3.d0
+              if (iproc==0) call yaml_map('mean kappa',kappa_mean,fmt='(es10.3)')
+              !dynamic_convcrit=conv_crit/kappa_mean
+              dynamic_convcrit=gnrm_dynamic/kappa_mean
+              if (iproc==0) call yaml_map('dynamic conv crit',dynamic_convcrit,fmt='(es9.2)')
+          end if
+      end if
+
+      if (energy_increased) then
+          energy_increased_previous=.true.
+      else
+          energy_increased_previous=.false.
+      end if
+
+
+
+      !!delta_energy_prev=delta_energy
+
+      if (energy_increased) then
+          !if (iproc==0) write(*,*) 'WARNING: ENERGY INCREASED'
+          !if (iproc==0) call yaml_warning('The target function increased, D='&
+          !              //trim(adjustl(yaml_toa(trH-ldiis%trmin,fmt='(es10.3)'))))
+          if (iproc==0) then
+              call yaml_newline()
+              call yaml_map('iter',it,fmt='(i5)')
+              call yaml_map('fnrm',fnrm,fmt='(es9.2)')
+              call yaml_map('Omega',trH,fmt='(es22.15)')
+              call yaml_map('D',ediff,fmt='(es9.2)')
+              call yaml_map('D best',ediff_best,fmt='(es9.2)')
+          end if
+          tmb%ham_descr%can_use_transposed=.false.
+          call vcopy(tmb%npsidim_orbs, lphiold(1), 1, tmb%psi(1), 1)
+          can_use_ham=.false.
+          call vcopy(tmb%linmat%l%nvctr, kernel_best(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+          trH_old=0.d0
+          it=it-2 !go back one iteration (minus 2 since the counter was increased)
+          !if(associated(tmb%ham_descr%psit_c)) then
+          !    call f_free_ptr(tmb%ham_descr%psit_c)
+          !end if
+          !if(associated(tmb%ham_descr%psit_f)) then
+          !    call f_free_ptr(tmb%ham_descr%psit_f)
+          !end if
+          !!if(iproc==0) write(*,*) 'it_tot',it_tot
+          overlap_calculated=.false.
+          ! print info here anyway for debugging
+          if (it_tot<2*nit_basis) then ! just in case the step size is the problem
+              call yaml_mapping_close()
+              call bigdft_utils_flush(unit=6)
+             cycle
+          else if(it_tot<3*nit_basis) then ! stop orthonormalizing the tmbs
+             if (iproc==0) call yaml_newline()
+             if (iproc==0) call yaml_warning('Energy increasing, switching off orthonormalization of tmbs')
+             ortho_on=.false.
+             alpha=alpha*5.0d0/3.0d0 ! increase alpha to make up for decrease from previous iteration
+          end if
+      else
+          can_use_ham=.true.
+      end if 
+
+
+      ! information on the progress of the optimization
+      if (iproc==0) then
+          call yaml_newline()
+          call yaml_map('iter',it,fmt='(i5)')
+          call yaml_map('fnrm',fnrm,fmt='(es9.2)')
+          call yaml_map('Omega',trH,fmt='(es22.15)')
+          call yaml_map('D',ediff,fmt='(es9.2)')
+          call yaml_map('D best',ediff_best,fmt='(es9.2)')
+      end if
+
+      ! Add some extra iterations if DIIS failed (max 6 failures are allowed before switching to SD)
+      nit_exit=min(nit_basis+ldiis%icountDIISFailureTot,nit_basis+6)
+
+      ! Determine whether the loop should be exited
+      exit_loop(1) = (it>=nit_exit)
+      exit_loop(2) = (it_tot>=3*nit_basis)
+      exit_loop(3) = energy_diff
+      exit_loop(4) = (fnrm<conv_crit .and. experimental_mode)
+      exit_loop(5) = (experimental_mode .and. fnrm<dynamic_convcrit .and. fnrm<min_gnrm_for_dynamic &
+                     .and. (it>1 .or. has_already_converged)) ! first overall convergence not allowed in a first iteration
+      exit_loop(6) = (itout==0 .and. it>1 .and. ratio_deltas<kappa_conv .and.  ratio_deltas>0.d0)
+      if (ratio_deltas>0.d0 .and. ratio_deltas<1.d-1) then
+          kappa_satur=kappa_satur+1
+      else
+          kappa_satur=0
+      end if
+      exit_loop(7) = (.false. .and. itout>0 .and. kappa_satur>=2)
+
+      if(any(exit_loop)) then
+          if(exit_loop(1)) then
+              infoBasisFunctions=-1
+              if(iproc==0) call yaml_map('exit criterion','net number of iterations')
+          end if
+          if (exit_loop(2)) then
+              infoBasisFunctions=-2
+              if (iproc==0) call yaml_map('exit criterion','total number of iterations')
+          end if
+          if (exit_loop(3)) then
+              infoBasisFunctions=it
+              if (iproc==0) call yaml_map('exit criterion','energy difference')
+          end if
+          if (exit_loop(4)) then
+              if (iproc==0) call yaml_map('exit criterion','gradient')
+              infoBasisFunctions=it
+          end if
+          if (exit_loop(5)) then
+              if (iproc==0) call yaml_map('exit criterion','dynamic gradient')
+              infoBasisFunctions=it
+              has_already_converged=.true.
+          end if
+          if (exit_loop(6)) then
+              infoBasisFunctions=it
+              if (iproc==0) call yaml_map('exit criterion','extended input guess')
+          end if
+          if (exit_loop(7)) then
+              infoBasisFunctions=it
+              if (iproc==0) call yaml_map('exit criterion','kappa')
+          end if
+          if (can_use_ham) then
+              ! Calculate the Hamiltonian matrix, since we have all quantities ready. This matrix can then be used in the first
+              ! iteration of get_coeff.
+              call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
+                   tmb%ham_descr%psit_c, hpsit_c_tmp, tmb%ham_descr%psit_f, hpsit_f_tmp, tmb%linmat%m, tmb%linmat%ham_)
+              ! This can then be deleted if the transition to the new type has been completed.
+              !tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
+          end if
+
+          if (iproc==0) then
+              !yaml output
+              call yaml_mapping_close() !iteration
+              call bigdft_utils_flush(unit=6)
+          end if
+
+          exit iterLoop
+      end if
+      trH_old=trH
+
+      if (ldiis%isx>0) then
+          ldiis%mis=mod(ldiis%is,ldiis%isx)+1 !to store the energy at the correct location in the history
+      end if
+      call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
+           lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on, psidiff, &
+           experimental_mode, order_taylor, trH_ref, kernel_best, complete_reset)
+      !if (iproc==0) write(*,*) 'kernel_best(1)',kernel_best(1)
+      !if (iproc==0) write(*,*) 'tmb%linmat%denskern%matrix_compr(1)',tmb%linmat%denskern%matrix_compr(1)
+
+
+      overlap_calculated=.false.
+      ! It is now not possible to use the transposed quantities, since they have changed.
+      if(tmb%ham_descr%can_use_transposed) then
+          !call f_free_ptr(tmb%ham_descr%psit_c)
+          !call f_free_ptr(tmb%ham_descr%psit_f)
+          tmb%ham_descr%can_use_transposed=.false.
+      end if
+
+      ! Estimate the energy change, that is to be expected in the next optimization
+      ! step, given by the product of the force and the "displacement" .
+      if (target_function==TARGET_FUNCTION_IS_HYBRID .or. experimental_mode) then
+          call estimate_energy_change(tmb%npsidim_orbs, tmb%orbs, tmb%lzd, psidiff, hpsi_noprecond, delta_energy)
+          ! This is a hack...
+          if (energy_increased) then
+              delta_energy=1.d100
+              !ratio_deltas=1.d100
+          end if
+          !if (iproc==0) write(*,*) 'delta_energy', delta_energy
+          delta_energy_prev=delta_energy
+          delta_energy_arr(max(it,1))=delta_energy !max since the counter was decreased if there are problems, might lead to wrong results otherwise
+      end if
+
+
+      ! Only need to reconstruct the kernel if it is actually used.
+      if ((target_function/=TARGET_FUNCTION_IS_TRACE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) &
+           .and. .not.complete_reset ) then
+          if(scf_mode/=LINEAR_FOE) then
+              call reconstruct_kernel(iproc, nproc, order_taylor, tmb%orthpar%blocksize_pdsyev, &
+                   tmb%orthpar%blocksize_pdgemm, orbs, tmb, overlap_calculated)
+              if (iproc==0) call yaml_map('reconstruct kernel',.true.)
+          else if (experimental_mode .and. .not.complete_reset) then
+              if (method_updatekernel==UPDATE_BY_PURIFICATION) then
+                  if (iproc==0) then
+                      call yaml_map('purify kernel',.true.)
+                      call yaml_newline()
+                  end if
+                  call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor, purification_quickreturn)
+                  !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
+              else if (method_updatekernel==UPDATE_BY_FOE) then
+                  if (iproc==0) then
+                      call yaml_map('purify kernel',.false.)
+                  end if
+              end if
+          end if
+      end if
+
+      if (iproc==0) then
+          !yaml output
+          call yaml_mapping_close() !iteration
+          call bigdft_utils_flush(unit=6)
+      end if
+
+
+  end do iterLoop
+
+  ! Write the final results
+  if (iproc==0) then
+      call yaml_sequence(label='final_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))),advance='no')
+      call yaml_mapping_open(flow=.true.)
+      call yaml_comment('iter:'//yaml_toa(it,fmt='(i6)'),hfill='-')
+      if (target_function==TARGET_FUNCTION_IS_TRACE) then
+          call yaml_map('target function','TRACE')
+      else if (target_function==TARGET_FUNCTION_IS_ENERGY) then
+          call yaml_map('target function','ENERGY')
+      else if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+          call yaml_map('target function','HYBRID')
+      end if
+      call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
+      call yaml_newline()
+      call yaml_map('iter',it,fmt='(i5)')
+      call yaml_map('fnrm',fnrm,fmt='(es9.2)')
+      call yaml_map('Omega',trH,fmt='(es22.15)')
+      call yaml_map('D',ediff,fmt='(es9.2)')
+      call yaml_map('D best',ediff_best,fmt='(es9.2)')
+      call yaml_mapping_close() !iteration
+      call bigdft_utils_flush(unit=6)
+  end if
+
+
+  if (iproc==0) then
+      call yaml_comment('Support functions created')
+  end if
+
+
+  ! Deallocate potential
+  call f_free_ptr(denspot%pot_work)
+
+
+  ! Keep the values for the next iteration
+  reducearr(1)=0.d0
+  reducearr(2)=0.d0
+  do iorb=1,tmb%orbs%norbp
+      reducearr(1)=reducearr(1)+alpha(iorb)
+      reducearr(2)=reducearr(2)+alphaDIIS(iorb)
+  end do
+
+  if (nproc > 1) then
+      call mpiallred(reducearr(1), 2, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
+
+  reducearr(1)=reducearr(1)/dble(tmb%orbs%norb)
+  reducearr(2)=reducearr(2)/dble(tmb%orbs%norb)
+
+  ldiis%alphaSD=reducearr(1)
+  ldiis%alphaDIIS=reducearr(2)
+
+
+  ! Deallocate all local arrays.
+  call deallocateLocalArrays()
+  call f_free(delta_energy_arr)
+  call f_free(kernel_best)
+
+  call f_release_routine()
+
+contains
+
+
+    subroutine allocateLocalArrays()
+    !
+    ! Purpose:
+    ! ========
+    !   This subroutine allocates all local arrays.
+    !
+      alpha = f_malloc(tmb%orbs%norbp,id='alpha')
+      alphaDIIS = f_malloc(tmb%orbs%norbp,id='alphaDIIS')
+      fnrmOldArr = f_malloc(tmb%orbs%norb,id='fnrmOldArr')
+      hpsi_small = f_malloc_ptr(max(tmb%npsidim_orbs, tmb%npsidim_comp),id='hpsi_small')
+      lhphiold = f_malloc_ptr(max(tmb%npsidim_orbs, tmb%npsidim_comp),id='lhphiold')
+      lphiold = f_malloc_ptr(size(tmb%psi),id='lphiold')
+      hpsit_c = f_malloc_ptr(sum(tmb%ham_descr%collcom%nrecvcounts_c),id='hpsit_c')
+      hpsit_f = f_malloc_ptr(7*sum(tmb%ham_descr%collcom%nrecvcounts_f),id='hpsit_f')
+      hpsit_c_tmp = f_malloc(sum(tmb%ham_descr%collcom%nrecvcounts_c),id='hpsit_c_tmp')
+      hpsit_f_tmp = f_malloc(7*sum(tmb%ham_descr%collcom%nrecvcounts_f),id='hpsit_f_tmp')
+      hpsi_noconf = f_malloc(tmb%ham_descr%npsidim_orbs,id='hpsi_noconf')
+      psidiff = f_malloc(tmb%npsidim_orbs,id='psidiff')
+      hpsi_noprecond = f_malloc(tmb%npsidim_orbs,id='hpsi_noprecond')
+
+    end subroutine allocateLocalArrays
+
+
+    subroutine deallocateLocalArrays()
+    !
+    ! Purpose:
+    ! ========
+    !   This subroutine deallocates all local arrays.
+    !
+    call f_free(alpha)
+    call f_free(alphaDIIS)
+    call f_free(fnrmOldArr)
+    call f_free_ptr(hpsi_small)
+    call f_free_ptr(lhphiold)
+    call f_free_ptr(lphiold)
+    call f_free_ptr(hpsit_c)
+    call f_free_ptr(hpsit_f)
+    call f_free(hpsit_c_tmp)
+    call f_free(hpsit_f_tmp)
+    call f_free(hpsi_noconf)
+    call f_free(psidiff)
+    call f_free(hpsi_noprecond)
+
+    end subroutine deallocateLocalArrays
+
+
+end subroutine getLocalizedBasis

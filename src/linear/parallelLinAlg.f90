@@ -91,12 +91,9 @@ subroutine dgemm_parallel(iproc, nproc, blocksize, comm, transa, transb, m, n, k
       call descinit(desc_lc, m, n, mbrow, mbcol, 0, 0, context, lnrow_c, info)
   
       ! Allocate the local arrays
-      allocate(la(lnrow_a,lncol_a), stat=istat)
-      call memocc(istat, la, 'la', subname)
-      allocate(lb(lnrow_b,lncol_b), stat=istat)
-      call memocc(istat, lb, 'lb', subname)
-      allocate(lc(lnrow_c,lncol_c), stat=istat)
-      call memocc(istat, lc, 'lc', subname)
+      la = f_malloc((/ lnrow_a, lncol_a /),id='la')
+      lb = f_malloc((/ lnrow_b, lncol_b /),id='lb')
+      lc = f_malloc((/ lnrow_c, lncol_c /),id='lc')
   
       ! Copy the global array a to the local array la.
       ! The same for b and lb, cpectively.
@@ -125,17 +122,9 @@ subroutine dgemm_parallel(iproc, nproc, blocksize, comm, transa, transb, m, n, k
       end do
   
       ! Deallocate the local arrays.
-      iall=-product(shape(la))*kind(la)
-      deallocate(la, stat=istat)
-      call memocc(istat, iall, 'la', subname)
-  
-      iall=-product(shape(lb))*kind(lb)
-      deallocate(lb, stat=istat)
-      call memocc(istat, iall, 'lb', subname)
-  
-      iall=-product(shape(lc))*kind(lc)
-      deallocate(lc, stat=istat)
-      call memocc(istat, iall, 'lc', subname)
+      call f_free(la)
+      call f_free(lb)
+      call f_free(lc)
 
       call blacs_gridexit(context)
   
@@ -143,17 +132,16 @@ subroutine dgemm_parallel(iproc, nproc, blocksize, comm, transa, transb, m, n, k
   
   
   ! Gather the result on all processes.
-  call mpiallred(c(1,1), m*n, mpi_sum, comm, ierr)
+  if (nproc > 1) then
+     call mpiallred(c(1,1), m*n, mpi_sum, comm)
+  end if
 
   !call blacs_exit(0)
 
 end subroutine dgemm_parallel
 
 
-
-
-
-!! ATTENTION: This works only if the matrices have the same sizes for all processes!!
+!> ATTENTION: This works only if the matrices have the same sizes for all processes!!
 subroutine dsymm_parallel(iproc, nproc, blocksize, comm, side, uplo, m, n, alpha, a, lda, b, ldb, beta, c, ldc)
 use module_base
 implicit none
@@ -236,12 +224,9 @@ character(len=*),parameter :: subname='dgemm_parallel'
       call descinit(desc_lc, m, n, mbrow, mbcol, 0, 0, context, lnrow_c, info)
   
       ! Allocate the local arrays
-      allocate(la(lnrow_a,lncol_a), stat=istat)
-      call memocc(istat, la, 'la', subname)
-      allocate(lb(lnrow_b,lncol_b), stat=istat)
-      call memocc(istat, lb, 'lb', subname)
-      allocate(lc(lnrow_c,lncol_c), stat=istat)
-      call memocc(istat, lc, 'lc', subname)
+      la = f_malloc((/ lnrow_a, lncol_a /),id='la')
+      lb = f_malloc((/ lnrow_b, lncol_b /),id='lb')
+      lc = f_malloc((/ lnrow_c, lncol_c /),id='lc')
   
       ! Copy the global array a to the local array la.
       ! The same for b and lb, cpectively.
@@ -270,17 +255,9 @@ character(len=*),parameter :: subname='dgemm_parallel'
       end do
   
       ! Deallocate the local arrays.
-      iall=-product(shape(la))*kind(la)
-      deallocate(la, stat=istat)
-      call memocc(istat, iall, 'la', subname)
-  
-      iall=-product(shape(lb))*kind(lb)
-      deallocate(lb, stat=istat)
-      call memocc(istat, iall, 'lb', subname)
-  
-      iall=-product(shape(lc))*kind(lc)
-      deallocate(lc, stat=istat)
-      call memocc(istat, iall, 'lc', subname)
+      call f_free(la)
+      call f_free(lb)
+      call f_free(lc)
 
       call blacs_gridexit(context)
   
@@ -288,8 +265,9 @@ character(len=*),parameter :: subname='dgemm_parallel'
   
   
   ! Gather the result on all processes.
-  call mpiallred(c(1,1), m*n, mpi_sum, comm, ierr)
-
+  if (nproc > 1) then
+     call mpiallred(c(1,1), m*n, mpi_sum, comm)
+  end if
 
   !call blacs_exit(0)
 
@@ -370,8 +348,7 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
       call descinit(desc_lz, n, n, mbrow, mbcol, 0, 0, context, lnrow, info)
   
       ! Allocate the local array lmat
-      allocate(la(lnrow,lncol), stat=istat)
-      call memocc(istat, la, 'la', subname)
+      la = f_malloc((/ lnrow, lncol /),id='la')
   
       ! Copy the global array mat to the local array lmat.
       ! The same for loverlap and overlap, respectively.
@@ -385,22 +362,16 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
   
   
       ! Solve the generalized eigenvalue problem.
-      allocate(lz(lnrow,lncol), stat=istat)
-      call memocc(istat, lz, 'lz', subname)
-      allocate(ifail(n), stat=istat)
-      call memocc(istat, ifail, 'ifail', subname)
-      allocate(icluster(2*nprocrow*nproccol), stat=istat)
-      call memocc(istat, icluster, 'icluster', subname)
-      allocate(gap(nprocrow*nproccol), stat=istat)
-      call memocc(istat, gap, 'gap', subname)
+      lz = f_malloc((/ lnrow, lncol /),id='lz')
+      ifail = f_malloc(n,id='ifail')
+      icluster = f_malloc(2*nprocrow*nproccol,id='icluster')
+      gap = f_malloc(nprocrow*nproccol,id='gap')
   
       ! workspace query
       lwork=-1
       liwork=-1
-      allocate(work(100), stat=istat)
-      call memocc(istat, work, 'work', subname)
-      allocate(iwork(100), stat=istat)
-      call memocc(istat, iwork, 'iwork', subname)
+      work = f_malloc(100,id='work')
+      iwork = f_malloc(100,id='iwork')
       call pdsyevx(jobz, 'a', 'l', n, la(1,1), 1, 1, desc_la, &
                     0.d0, 1.d0, 0, 1, -1.d0, neval_found, neval_computed, w(1), &
                    -1.d0, lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, &
@@ -410,17 +381,10 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
       liwork=iwork(1)
       liwork=liwork+n**2 !to be sure to have enough workspace, to be optimized later.
       !write(*,*) 'iproc, lwork, liwork', iproc, lwork, liwork
-      iall=-product(shape(work))*kind(work)
-      deallocate(work, stat=istat)
-      call memocc(istat, iall, 'work', subname)
-      iall=-product(shape(iwork))*kind(iwork)
-      deallocate(iwork, stat=istat)
-      call memocc(istat, iall, 'iwork', subname)
-  
-      allocate(work(lwork), stat=istat)
-      call memocc(istat, work, 'work', subname)
-      allocate(iwork(liwork), stat=istat)
-      call memocc(istat, iwork, 'iwork', subname)
+      call f_free(work)
+      call f_free(iwork)
+      work = f_malloc(lwork,id='work')
+      iwork = f_malloc(liwork,id='iwork')
   
       call pdsyevx(jobz, 'a', 'l', n, la(1,1), 1, 1, desc_la, &
                    0.d0, 1.d0, 0, 1, -1.d0, neval_found, neval_computed, w(1), &
@@ -440,40 +404,22 @@ subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, 
       end do
   
   
-      iall=-product(shape(la))*kind(la)
-      deallocate(la, stat=istat)
-      call memocc(istat, iall, 'la', subname)
-  
-      iall=-product(shape(lz))*kind(lz)
-      deallocate(lz, stat=istat)
-      call memocc(istat, iall, 'lz', subname)
-  
-      iall=-product(shape(work))*kind(work)
-      deallocate(work, stat=istat)
-      call memocc(istat, iall, 'work', subname)
-  
-      iall=-product(shape(iwork))*kind(iwork)
-      deallocate(iwork, stat=istat)
-      call memocc(istat, iall, 'iwork', subname)
-  
-      iall=-product(shape(ifail))*kind(ifail)
-      deallocate(ifail, stat=istat)
-      call memocc(istat, iall, 'ifail', subname)
-  
-      iall=-product(shape(icluster))*kind(icluster)
-      deallocate(icluster, stat=istat)
-      call memocc(istat, iall, 'icluster', subname)
-  
-      iall=-product(shape(gap))*kind(gap)
-      deallocate(gap, stat=istat)
-      call memocc(istat, iall, 'gap', subname)
+      call f_free(la)
+      call f_free(lz)
+      call f_free(work)
+      call f_free(iwork)
+      call f_free(ifail)
+      call f_free(icluster)
+      call f_free(gap)
 
       call blacs_gridexit(context)
   
   end if processIF
   
   ! Gather the eigenvectors on all processes.
-  call mpiallred(a(1,1), n**2, mpi_sum, comm, ierr)
+  if (nproc > 1) then
+     call mpiallred(a(1,1), n**2, mpi_sum, comm)
+  end if
   
   ! Broadcast the eigenvalues if required. If nproc_scalapack==nproc, then all processes
   ! diagonalized the matrix and therefore have the eigenvalues.
@@ -568,10 +514,8 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
       call descinit(desc_lz, n, n, mbrow, mbcol, 0, 0, context, lnrow, info)
   
       ! Allocate the local array la
-      allocate(la(lnrow,lncol), stat=istat)
-      call memocc(istat, la, 'la', subname)
-      allocate(lb(lnrow,lncol), stat=istat)
-      call memocc(istat, lb, 'lb', subname)
+      la = f_malloc((/ lnrow, lncol /),id='la')
+      lb = f_malloc((/ lnrow, lncol /),id='lb')
   
       ! Copy the global array mat to the local array la.
       ! The same for lb and b, respectively.
@@ -586,22 +530,16 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
   
   
       ! Solve the generalized eigenvalue problem.
-      allocate(lz(lnrow,lncol), stat=istat)
-      call memocc(istat, lz, 'lz', subname)
-      allocate(ifail(n), stat=istat)
-      call memocc(istat, ifail, 'ifail', subname)
-      allocate(icluster(2*nprocrow*nproccol), stat=istat)
-      call memocc(istat, icluster, 'icluster', subname)
-      allocate(gap(nprocrow*nproccol), stat=istat)
-      call memocc(istat, gap, 'gap', subname)
+      lz = f_malloc((/ lnrow, lncol /),id='lz')
+      ifail = f_malloc(n,id='ifail')
+      icluster = f_malloc(2*nprocrow*nproccol,id='icluster')
+      gap = f_malloc(nprocrow*nproccol,id='gap')
   
       ! workspace query
       lwork=-1
       liwork=-1
-      allocate(work(100), stat=istat)
-      call memocc(istat, work, 'work', subname)
-      allocate(iwork(100), stat=istat)
-      call memocc(istat, iwork, 'iwork', subname)
+      work = f_malloc(100,id='work')
+      iwork = f_malloc(100,id='iwork')
       call pdsygvx(itype, jobz, 'a', uplo, n, la(1,1), 1, 1, desc_la, lb(1,1), 1, 1, &
                    desc_lb, 0.d0, 1.d0, 0, 1, -1.d0, nw_found, nw_computed, w(1), &
                    -1.d0, lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, &
@@ -611,17 +549,11 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
       liwork=iwork(1)
       liwork=liwork+n**2 !to be sure to have enough workspace, to be optimized later.
       !write(*,*) 'iproc, lwork, liwork', iproc, lwork, liwork
-      iall=-product(shape(work))*kind(work)
-      deallocate(work, stat=istat)
-      call memocc(istat, iall, 'work', subname)
-      iall=-product(shape(iwork))*kind(iwork)
-      deallocate(iwork, stat=istat)
-      call memocc(istat, iall, 'iwork', subname)
+      call f_free(work)
+      call f_free(iwork)
   
-      allocate(work(lwork), stat=istat)
-      call memocc(istat, work, 'work', subname)
-      allocate(iwork(liwork), stat=istat)
-      call memocc(istat, iwork, 'iwork', subname)
+      work = f_malloc(lwork,id='work')
+      iwork = f_malloc(liwork,id='iwork')
   
       call pdsygvx(1, 'v', 'a', 'l', n, la(1,1), 1, 1, desc_la, lb(1,1), 1, 1, &
                    desc_lb, 0.d0, 1.d0, 0, 1, -1.d0, nw_found, nw_computed, w(1), &
@@ -639,44 +571,23 @@ subroutine dsygv_parallel(iproc, nproc, blocksize, nprocMax, comm, itype, jobz, 
       end do
   
   
-      iall=-product(shape(la))*kind(la)
-      deallocate(la, stat=istat)
-      call memocc(istat, iall, 'la', subname)
-  
-      iall=-product(shape(lz))*kind(lz)
-      deallocate(lz, stat=istat)
-      call memocc(istat, iall, 'lz', subname)
-  
-      iall=-product(shape(lb))*kind(lb)
-      deallocate(lb, stat=istat)
-      call memocc(istat, iall, 'lb', subname)
-  
-      iall=-product(shape(work))*kind(work)
-      deallocate(work, stat=istat)
-      call memocc(istat, iall, 'work', subname)
-  
-      iall=-product(shape(iwork))*kind(iwork)
-      deallocate(iwork, stat=istat)
-      call memocc(istat, iall, 'iwork', subname)
-  
-      iall=-product(shape(ifail))*kind(ifail)
-      deallocate(ifail, stat=istat)
-      call memocc(istat, iall, 'ifail', subname)
-  
-      iall=-product(shape(icluster))*kind(icluster)
-      deallocate(icluster, stat=istat)
-      call memocc(istat, iall, 'icluster', subname)
-  
-      iall=-product(shape(gap))*kind(gap)
-      deallocate(gap, stat=istat)
-      call memocc(istat, iall, 'gap', subname)
+      call f_free(la)
+      call f_free(lz)
+      call f_free(lb)
+      call f_free(work)
+      call f_free(iwork)
+      call f_free(ifail)
+      call f_free(icluster)
+      call f_free(gap)
 
       call blacs_gridexit(context)
   
   end if processIF
   
   ! Gather the eigenvectors on all processes.
-  call mpiallred(a(1,1), n**2, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+  if (nproc > 1) then
+     call mpiallred(a(1,1), n**2, mpi_sum, bigdft_mpi%mpi_comm)
+  end if
   
   ! Broadcast the eigenvalues if required. If nproc_scalapack==nproc, then all processes
   ! diagonalized the matrix and therefore have the eigenvalues.
@@ -770,10 +681,8 @@ subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb
       call descinit(desc_lb, n, nrhs, mbrow, mbcol, 0, 0, context, lnrow_b, info)
   
       ! Allocate the local arrays
-      allocate(la(lnrow_a,lncol_a), stat=istat)
-      call memocc(istat, la, 'la', subname)
-      allocate(lb(lnrow_b,lncol_b), stat=istat)
-      call memocc(istat, lb, 'lb', subname)
+      la = f_malloc((/ lnrow_a, lncol_a /),id='la')
+      lb = f_malloc((/ lnrow_b, lncol_b /),id='lb')
   
       ! Copy the global array mat to the local array lmat.
       ! The same for loverlap and overlap, respectively.
@@ -790,12 +699,9 @@ subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb
   
   
       ! Solve the linear system of equations.
-      allocate(ipiv(lnrow_b+n), stat=istat)
-      call memocc(istat, ipiv, 'ipiv', subname)
+      ipiv = f_malloc(lnrow_b+n,id='ipiv')
       call pdgesv(n, nrhs, la(1,1), 1, 1, desc_la, ipiv(1), lb(1,1), 1, 1, desc_lb, info)
-      iall=-product(shape(ipiv))*kind(ipiv)
-      deallocate(ipiv, stat=istat)
-      call memocc(istat, iall, 'ipiv', subname)
+      call f_free(ipiv)
 
   
       ! Gather together the result
@@ -808,13 +714,8 @@ subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb
       end do
   
   
-      iall=-product(shape(la))*kind(la)
-      deallocate(la, stat=istat)
-      call memocc(istat, iall, 'la', subname)
-  
-      iall=-product(shape(lb))*kind(lb)
-      deallocate(lb, stat=istat)
-      call memocc(istat, iall, 'lb', subname)
+      call f_free(la)
+      call f_free(lb)
 
       call blacs_gridexit(context)
   
@@ -822,7 +723,9 @@ subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb
 
   
   ! Gather the result on all processes
-  call mpiallred(b(1,1), n*nrhs, mpi_sum, comm, ierr)
+  if (nproc > 1) then
+     call mpiallred(b(1,1), n*nrhs, mpi_sum, comm)
+  end if
   
   !call blacs_exit(0)
 
@@ -899,8 +802,7 @@ subroutine dpotrf_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
       call descinit(desc_la, n, n, mbrow, mbcol, 0, 0, context, lnrow_a, info)
   
       ! Allocate the local arrays
-      allocate(la(lnrow_a,lncol_a), stat=istat)
-      call memocc(istat, la, 'la', subname)
+      la = f_malloc((/ lnrow_a, lncol_a /),id='la')
   
       ! Copy the global array a to the local array la.
       ! The same for b and lb, cpectively.
@@ -923,9 +825,7 @@ subroutine dpotrf_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
       end do
   
       ! Deallocate the local arrays.
-      iall=-product(shape(la))*kind(la)
-      deallocate(la, stat=istat)
-      call memocc(istat, iall, 'la', subname)
+      call f_free(la)
 
       call blacs_gridexit(context)
   
@@ -933,7 +833,9 @@ subroutine dpotrf_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
   
   
   ! Gather the result on all processes.
-  call mpiallred(a(1,1), n*n, mpi_sum, comm, ierr)
+  if (nproc > 1) then
+     call mpiallred(a(1,1), n*n, mpi_sum, comm)
+  end if
 
   !call blacs_exit(0)
 
@@ -1007,8 +909,7 @@ subroutine dpotri_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
       call descinit(desc_la, n, n, mbrow, mbcol, 0, 0, context, lnrow_a, info)
   
       ! Allocate the local arrays
-      allocate(la(lnrow_a,lncol_a), stat=istat)
-      call memocc(istat, la, 'la', subname)
+      la = f_malloc((/ lnrow_a, lncol_a /),id='la')
   
       ! Copy the global array a to the local array la.
       ! The same for b and lb, cpectively.
@@ -1031,9 +932,7 @@ subroutine dpotri_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
       end do
   
       ! Deallocate the local arrays.
-      iall=-product(shape(la))*kind(la)
-      deallocate(la, stat=istat)
-      call memocc(istat, iall, 'la', subname)
+      call f_free(la)
 
       call blacs_gridexit(context)
   
@@ -1041,7 +940,9 @@ subroutine dpotri_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
   
   
   ! Gather the result on all processes.
-  call mpiallred(a(1,1), n*n, mpi_sum, comm, ierr)
+  if (nproc > 1) then
+     call mpiallred(a(1,1), n*n, mpi_sum, comm)
+  end if
 
   !call blacs_exit(0)
 

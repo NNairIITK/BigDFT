@@ -1,7 +1,7 @@
 !> @file
 !! Test the dictionaries of flib
 !! @author
-!!    Copyright (C) 2013-2013 BigDFT group
+!!    Copyright (C) 2013-2014 BigDFT group
 !!    This file is distributed oneder the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -121,9 +121,9 @@ subroutine test_dictionaries0()
   !call add(dict1//'hgrid','new')
   call set(dict1//'hgrid'//0,'new')
 
-  call yaml_open_map('There was a hidden problem here')
+  call yaml_mapping_open('There was a hidden problem here')
   call yaml_dict_dump(dict1)
-  call yaml_close_map()
+  call yaml_mapping_close()
 
   call yaml_map('Value of dict1//hgrid',trim(dict_value(dict1//'hgrid')))
 
@@ -146,9 +146,9 @@ subroutine test_dictionaries0()
   call yaml_map('Length and size before',(/dict_len(dict1//'hgrid'),dict_size(dict1//'hgrid')/))
   call set(dict1//'hgrid'//0,'new')
 
-  call yaml_open_map('Hidden problem here')
+  call yaml_mapping_open('Hidden problem here')
   call yaml_dict_dump(dict1)
-  call yaml_close_map()
+  call yaml_mapping_close()
 
   call yaml_map('Value of dict1//hgrid',trim(dict_value(dict1//'hgrid')))
 
@@ -176,12 +176,14 @@ subroutine test_dictionaries0()
   
 end subroutine test_dictionaries0
 
+
 subroutine test_dictionaries1()
   use yaml_output
   use dictionaries
   implicit none
   !local variables
-   integer :: ival,i,j
+   integer :: ival,i
+!   integer :: j
    type(dictionary), pointer :: dict2
    type(dictionary), pointer :: dict,dictA
    type(dictionary), pointer :: dictA2,dict_tmp,zero1,zero2
@@ -195,9 +197,9 @@ subroutine test_dictionaries1()
    call add(dict,'1')
    call add(dict,'2')
    call add(dict,'3')
-   call yaml_open_map('List')
+   call yaml_mapping_open('List')
    call yaml_dict_dump(dict,flow=.true.)
-   call yaml_close_map()
+   call yaml_mapping_close()
 !after this call the document has to finish
    call yaml_release_document()
 
@@ -229,29 +231,18 @@ subroutine test_dictionaries1()
    !print dictionary status
    call yaml_dict_dump(dict,flow=.true.)
 
-
    !popping a term from the dictionary
    !only a normal pointer can be used
    !try with these examples
-   call yaml_map('Size before popping',dict_size(dict2))
-   call pop(dict2,'One')
-   call pop(dict2,'Two')
+   call yaml_map('Size before removing',dict_size(dict2))
+   call dict_remove(dict2,'One')
+   call dict_remove(dict2,'Two')
 !   call pop(dict2,'Three')
    !a further element can be added
    call set(dict//'First'//'Four',4)
-   call yaml_open_map('After pop')
+   call yaml_mapping_open('After pop')
    call yaml_dict_dump(dict)
-   call yaml_close_map()
-
-   call pop(dict,'First')
-   call yaml_open_map('Complete pop')
-   call yaml_map('Size after popping',dict_size(dict))
-   call yaml_dict_dump(dict)
-   call yaml_close_map()
-
-   !note that we do not have a garbage collector!
-   !a call to this will produce a crash due to association above
-   !call set(dict2//'Five',5)
+   call yaml_mapping_close()
 
    !search for a key and point to it without modifying
    dict2=>find_key(dict,'Number of Gruops')
@@ -267,10 +258,49 @@ subroutine test_dictionaries1()
    ival=dict//'Number of Groups'
    call yaml_map('Alternative way',ival)
 
+   call yaml_map('Search for "First" key',find_key(dict,'First'))
+
+   !use now pop instead of remove
+   !call dict_remove(dict,'First')
+   !note that we do not have a garbage collector!
+   ! imagine we use the dict_remove above
+   !a call to this will produce a crash due to association above
+   !indeed, dict2 points to dict//First, which has been removed
+   !therefore dict2 is now pointing to a unallocated region
+   !call set(dict2//'Five',5)
+   
+   !for the same reason, extracting the value in this way
+   !ival = dict .pop. 'Number of Groups' 
+   !will lead to a memory leak, as the function in the right hand size
+   !will not be freed
+   
+   !in fortran, the correct way to free the memory is the following
+   dictA2 => dict .pop. 'Number of Groups' 
+   !extract value
+   ival=dictA2
+   call dict_free(dictA2)
+   call yaml_map('Extracted value',ival)
+
+
+   call yaml_map('Size after popping',dict_size(dict))
+   dictA => dict .pop. 'First'
+   call yaml_map('Size after popping again',dict_size(dict))
+   call yaml_mapping_open('Complete pop')
+   call yaml_map('Status of association',associated(dict))
+   call yaml_map('Size after popping',dict_size(dict))
+   call yaml_map('Present status',dict)
+   call yaml_mapping_close()
+
+   call yaml_map('DictA is associated',associated(dictA))
+   call yaml_map('DictA is now of size',dict_size(dictA))
+   call yaml_map('DictA is now',dictA)
+   call yaml_map('DictA key',dict_key(dictA))
+   call dict_free(dictA)
+
   !test if a complete pop will disassociate the dictionry
   call yaml_map('Dictionary associated before last pop',associated(dict))
-  call pop(dict,'Number of Groups')
-  call yaml_map('Last pop done, still associated',associated(dict))
+!  call dict_remove(dict,'Number of Groups')
+!  call yaml_map('Last pop done, still associated',associated(dict))
 
    call dict_init(dictA)
 
@@ -296,10 +326,10 @@ subroutine test_dictionaries1()
    call yaml_map('Values retrieved from the dict',tmp_arr,fmt='(1pg12.5)')
 
    dict2=>find_key(dictA,'Stack')
-   call pop(dict2)
+   call dict_remove_last(dict2)
 
 
-   call pop(dict2)
+   call dict_remove_last(dict2)
 
    !  call push(dict2,'Element')
    !  call append(dictA,dictA2)
@@ -329,9 +359,9 @@ subroutine test_dictionaries1()
    call yaml_comment('Prepend dictionary example',hfill='~')
 
    call yaml_map('Size of dict A',dict_size(dictA))
-   call yaml_open_map('Dict A')
+   call yaml_mapping_open('Dict A')
    call yaml_dict_dump(dictA)
-   call yaml_close_map()
+   call yaml_mapping_close()
 
 
    call dict_init(dict2)
@@ -342,9 +372,9 @@ subroutine test_dictionaries1()
 
 
    call yaml_map('Size of dict 2',dict_size(dict2))
-   call yaml_open_map('Dict 2')
+   call yaml_mapping_open('Dict 2')
    call yaml_dict_dump(dict2)
-   call yaml_close_map()
+   call yaml_mapping_close()
 
    !verify the euqlity between dictionaries
    call yaml_map('Test1 and and Test2 are equal',dict2//'Test1' == dict2//'Test2')
@@ -387,10 +417,10 @@ subroutine test_dictionaries1()
 
    call prepend(dictA,dict2)
    call yaml_map('Size of prepended',dict_size(dictA))
-   call yaml_open_map('Prepended')
+   call yaml_mapping_open('Prepended')
    !call yaml_dict_dump2(dictA,verbatim=.true.)
    call yaml_dict_dump(dictA)
-   call yaml_close_map()
+   call yaml_mapping_close()
    
    call yaml_map('Keys of prepended dict',dict_keys(dictA))
 
@@ -423,36 +453,36 @@ subroutine test_dictionaries1()
    !example which has a bug
    dict_tmp => list_new((/.item.'55',.item. '66'/))
    dictA=>list_new((/.item. '5',.item. '6',.item. dict_tmp/))
-!!$!call yaml_open_sequence("",flow=.false.)
+!!$!call yaml_sequence_open("",flow=.false.)
 !!$call yaml_sequence(advance="no")
-!!$call yaml_open_map("SUCCESS",flow=.false.)
+!!$call yaml_mapping_open("SUCCESS",flow=.false.)
 !!$call yaml_map("Id","0")
 !!$call yaml_map("Message","Operation has succeeded")
 !!$call yaml_map("Action","No action")
-!!$call yaml_close_map()
+!!$call yaml_mapping_close()
 !!$call yaml_sequence(advance="no")
-!!$call yaml_open_map("GENERIC_ERROR",flow=.false.)
+!!$call yaml_mapping_open("GENERIC_ERROR",flow=.false.)
 !!$call yaml_map("Id","1")
 !!$call yaml_map("Message","UNSPECIFIED")
 !!$call yaml_map("Action","UNKNOWN")
-!!$call yaml_close_map()
-!!$!call yaml_close_sequence()
+!!$call yaml_mapping_close()
+!!$!call yaml_sequence_close()
 
    !what should be, also this writing has problem in the indentation
 !!$    call yaml_sequence('5')
 !!$    call yaml_sequence('6')
 !!$    call yaml_sequence(advance='no')
-!!$    call yaml_open_sequence()
+!!$    call yaml_sequence_open()
 !!$      call yaml_sequence('55')
 !!$      call yaml_sequence('66')
-!!$    call yaml_close_sequence()
+!!$    call yaml_sequence_close()
 !!$
-   call yaml_open_sequence('List in a list')
+   call yaml_sequence_open('List in a list')
    call yaml_dict_dump(dictA,verbatim=.true.)
    call yaml_dict_dump(dictA,flow=.false.)
    call yaml_dict_dump(dictA,flow=.true.,verbatim=.true.)
    call yaml_dict_dump(dictA,flow=.true.)
-   call yaml_close_sequence()
+   call yaml_sequence_close()
 
    !perform an iterator on dict
    dict_tmp=>dict_next(dictA)
@@ -499,31 +529,31 @@ subroutine test_dictionaries1()
          & "__cond__"    .is. dict_new("__master_key__" .is. "kpt_method", "__when__" .is. list_new( .item. "MPGrid")), &
          & "__default__" .is. list_new( .item."0.", .item."0.", .item."0.") )
 
-   call yaml_open_map("test dict_copy")
-   call yaml_open_map("original")
+   call yaml_mapping_open("test dict_copy")
+   call yaml_mapping_open("original")
    call yaml_dict_dump(dict)
-   call yaml_close_map()
+   call yaml_mapping_close()
    nullify(cpy)
    call dict_copy(cpy, dict)
-   call yaml_open_map("copy")
+   call yaml_mapping_open("copy")
    call yaml_dict_dump(cpy)
-   call yaml_close_map()
+   call yaml_mapping_close()
    call dict_free(cpy)
-   call yaml_close_map()
+   call yaml_mapping_close()
 
    subd => dict_new(  &
          & "__exclusive__" .is. dict_new( "123" .is. "operation 123", &
          &                                  "456" .is. "operation 456" ), &
          & "__default__"   .is. list_new(.item."1.", .item."2.", .item."3." ) )
-   call yaml_open_map("test dict_update")
+   call yaml_mapping_open("test dict_update")
    call dict_update(dict, subd)
-   call yaml_open_map("additional")
+   call yaml_mapping_open("additional")
    call yaml_dict_dump(subd)
-   call yaml_close_map()
-   call yaml_open_map("after merge")
+   call yaml_mapping_close()
+   call yaml_mapping_open("after merge")
    call yaml_dict_dump(dict)
-   call yaml_close_map()
-   call yaml_close_map()
+   call yaml_mapping_close()
+   call yaml_mapping_close()
    call dict_free(subd)
 
    call dict_free(dict)
@@ -533,19 +563,20 @@ subroutine test_dictionary_for_atoms()
   use yaml_output
   implicit none
 
-  character(len = 50) :: gu,fmts
+!!$  character(len = 50) :: gu
+  character(len = 50) :: fmts
   double precision, dimension(3) :: cell, xred, hgrids
   double precision :: tt
 
 
-  call yaml_open_map("Atomic structure")
+  call yaml_mapping_open("Atomic structure")
 
   cell = 20.345752999999998
   call yaml_map('Cell', cell)
 
   hgrids = cell / (/ 54, 40, 40 /)
 
-  call yaml_open_sequence('Positions')
+  call yaml_sequence_open('Positions')
 
   call yaml_sequence(advance='no')
   xred = (/ 0.2516085125D-05,  0.5826606155D-05,  20.34574212d0 /)
@@ -567,9 +598,9 @@ subroutine test_dictionary_for_atoms()
 !!$  write(gu, "('[ 'F6.2', 'F6.2', 'F6.2'] 'I4.4)") xred, 3
 !!$  call yaml_comment(gu)
 
-  call yaml_close_sequence()
+  call yaml_sequence_close()
 
-  call yaml_close_map()
+  call yaml_mapping_close()
 
   !now print some double precision values to understand which is the best format
   tt=real(0.5e0,kind=8) !use a conversion from float
@@ -606,11 +637,11 @@ subroutine test_dictionary_for_atoms()
       character(len=*), parameter :: fmtat='(g18.10)',fmtg='(F6.2)'
       integer :: i
 
-      call yaml_open_sequence(atomname,flow=.true.)
+      call yaml_sequence_open(atomname,flow=.true.)
       do i=1,3
          call yaml_sequence(yaml_toa(rxyz(i),fmt=fmtat))
       end do
-      call yaml_close_sequence(advance='no')
+      call yaml_sequence_close(advance='no')
       call yaml_comment(trim(yaml_toa(rxyz/hgrids,fmt=fmtg))//trim(yaml_toa(id))) !we can also put tabbing=
 
     end subroutine print_one_atom
@@ -664,14 +695,14 @@ subroutine profile_dictionary_usage()
   !local variables
   integer :: nprof,ntry,nstep,iprof,jprof,itry,ival
   integer(kind=8) :: t0,t1
-  double precision :: tel
+  double precision :: tel,tot
   type(dictionary), pointer :: dict
   integer, dimension(:), allocatable :: itest !< used to simulate search with an array
   
 
 !!$!$  !profiling
   nprof=100001
-  ntry=100
+  ntry=1000
   nstep=10000
   allocate(itest(nprof))
   itest=0
@@ -687,11 +718,12 @@ subroutine profile_dictionary_usage()
      t1=f_time()
      !call system_clock(ncount1,ncount_rate,ncount_max)
      !tel=dble(ncount1-ncount0)/dble(ncount_rate)*(1d6/dble(ntry))
-     tel = dble(t1-t0)/dble(ntry)*1.d-3
-     call yaml_open_map('Timings for search',flow=.true.)
+     tot=dble(ntry)*dble(nprof)
+     tel = dble(t1-t0)/tot
+     call yaml_mapping_open('Timings for search',flow=.true.)
      call yaml_map('No. of items',iprof)
-     call yaml_map('Elapsed time (mus)',tel,fmt='(f12.2)')
-     call yaml_close_map() 
+     call yaml_map('Elapsed time (ns)',tel,fmt='(f12.2)')
+     call yaml_mapping_close() 
   end do
   call yaml_map('Some value',itest(1)+itest(ntry))
   deallocate(itest)
@@ -707,19 +739,22 @@ subroutine profile_dictionary_usage()
      end do
 
      !call system_clock(ncount0,ncount_rate,ncount_max)
+     tot=0.d0
      t0=f_time()
      do itry=1,ntry
         ival=dict//'Test'//(iprof-1)
+        tot=tot+dble(ival)
      end do
      t1=f_time()
      !call system_clock(ncount1,ncount_rate,ncount_max)
      !tel=dble(ncount1-ncount0)/dble(ncount_rate)*(1d6/dble(ntry))
      tel=dble(t1-t0)/dble(ntry)*1.d-3
-     call yaml_open_map('Timings for search',flow=.true.)
+     call yaml_mapping_open('Timings for search',flow=.true.)
      call yaml_map('No. of items',iprof)
      call yaml_map('Elapsed time (mus)',tel,fmt='(f12.2)')
-     call yaml_close_map() 
+     call yaml_mapping_close() 
   end do
+  call yaml_map('Other value',tot)
   call dict_free(dict)
 
 

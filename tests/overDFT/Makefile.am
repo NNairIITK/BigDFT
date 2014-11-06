@@ -1,9 +1,11 @@
 # Give here the list of existing tests
 TESTDIRS = \
+	   C6H6-freq \
 	   GEOPT-all \
 	   GEOPT-BFGS \
 	   GEOPT-LBFGS \
 	   GEOPT-newIG \
+	   MINHOP \
 	   NH3 \
 	   H2O-slab \
 	   H2-freq \
@@ -13,7 +15,7 @@ TESTDIRS = \
 	   XabsLanc \
 	   Xabsb2B \
 	   BigDFT2Wannier \
-           testforces \
+       testforces \
 	   IO-wf
 
 EXTRA_DIST = MH_taskgroups
@@ -22,11 +24,6 @@ if HAVE_ETSF_IO
 TESTDIRS += IO-wf-ETSF
 endif
 
-
-#This will run the automatic tests also for minima hopping
-if USE_MINIMA_HOPPING
-TESTDIRS += MINHOP
-endif
 
 # Give here the pseudo-potentials used by each test.
 H2-freq.psp: psppar.H
@@ -51,8 +48,10 @@ IO-wf-ETSF_read.out.out: IO-wf-ETSF_write.out.out
 # Additional freq in.
 H2-freq.post-in: $(abs_top_builddir)/src/frequencies
 	rm -f frequencies.res
+C6H6-freq.post-in: $(abs_top_builddir)/src/frequencies
+	rm -f frequencies.res
 
-#additional outs
+# Additional outs
 H2-freq.post-out:
 	cp -f log.yaml log-freq.yaml
 
@@ -76,43 +75,47 @@ NH3.out.post-out:
 	mv -f data/geopt.mon NH3.geopt.mon.out
 
 # Additional NEB in.
-NEB.post-in:
+NEB-test.post-in:
 	if ! test -f NEB_include.sh ; then sed "s;%%abs_top_builddir%%;$(abs_top_builddir);g" NEB_include.sh.in > NEB_include.sh ; fi
 	if ! test -L NEB_driver.sh ; then ln -fs $(abs_top_srcdir)/src/NEB_driver.sh ; fi
-NEB.post-clean:
+NEB-test.post-clean:
 	rm -f NEB_include.sh NEB_driver.sh
 
 # Additional H2O-slab in.
-H2O-slab.post-in:
+H2O-slab-test.post-in:
 	cp -f velocities.in velocities.xyz
 	chmod a+w velocities.xyz
 
 # Additional reference for geopt.mon test
 global.mon.out : test.minhop.out
 	cp -f data/global.mon $@
-#	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy="5e-9" global.mon global.mon.ref | tee global.mon.report
+
 
 # Additional run rules.
 InputGenPot.xabs.post-out:
 	mv -f local_potentialb2B.cube b2B_xanes.cube
 	cp InputGenPot.xyz b2B_xanes.xyz
 
-#introduce specific targets for export-wavefunctions
+# Introduce specific targets for export-wavefunctions
 IO-wf_plain.cube: 
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	$(abs_top_builddir)/src/bigdft-tool --name plain-read -a export-wf data-plain-read/wavefunction-k002-DI.b0003 >> log-plain.yaml
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
+    rm plain-read.perf ;\
+	$(run_serial) $(abs_top_builddir)/src/bigdft-tool --name plain-read -a export-wf data-plain-read/wavefunction-k002-DI.b0003 >> log-plain.yaml
+	cp check.perf plain-read.perf
 	mv wavefunction-k002-DI.b0003.cube wf_plain.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 
 IO-wf_binary.cube: 
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	$(abs_top_builddir)/src/bigdft-tool --name binary-read -a export-wf data-binary-read/wavefunction-k002-DI.bin.b0003 >> log-binary.yaml
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
+    rm binary-read.perf ;\
+	$(run_serial) $(abs_top_builddir)/src/bigdft-tool --name binary-read -a export-wf data-binary-read/wavefunction-k002-DI.bin.b0003 >> log-binary.yaml
+	cp check.perf binary-read.perf
 	mv wavefunction-k002-DI.b0003.cube wf_binary.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 
 IO-wf_ETSF.cube: 
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	$(abs_top_builddir)/src/bigdft-tool --name read -a export-wf data-read/wavefunction.etsf --i-band 3 --i-spin 2 --i-kpt 2 --i-complex 2 >> IO-wf-ETSF_write.out.out
+	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
+	$(run_serial) $(abs_top_builddir)/src/bigdft-tool --name read -a export-wf data-read/wavefunction.etsf --i-band 3 --i-spin 2 --i-kpt 2 --i-complex 2 >> IO-wf-ETSF_write.out.out
 	mv wavefunction-k002-DI.b0003.cube wf_etsf.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 
@@ -126,7 +129,6 @@ IO-wf_ETSF.cube:
         case $* in \
           GEOPT-BFGS.out*)  prec="1.e-9" ;; \
           GEOPT-LBFGS.out*) prec="1.e-9" ;; \
-          H2-freq*)         prec="1.e-8" ;; \
 	  NEB*)             prec="5e-5" ;; \
 	  SPLSAD*)          prec="2e-8" ;; \
 	  MINHOP*)          prec="5e-9" ;; \

@@ -6,20 +6,21 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-
-!variable declaration, to be included in dynamic_memory.f90
-  !local variables
+ !local variables
   integer :: ierror
-  character(len=info_length) :: address
   logical :: use_global
+  !$ logical :: not_omp
+  !$ logical, external :: omp_in_parallel,omp_get_nested
   integer(kind=8) :: ilsize,jlsize,iadd
   character(len=namelen) :: array_id,routine_id
+  character(len=info_length) :: array_info
   type(dictionary), pointer :: dict_add
 
   if (f_err_raise(ictrl == 0,&
        'ERROR (f_free): the routine f_malloc_initialize has not been called',&
        ERR_MALLOC_INTERNAL)) return
 
+  !$ not_omp=.not. (omp_in_parallel() .or. omp_get_nested())
+
   !here we should add a control of the OMP behaviour of allocation
   !in particular for what concerns the OMP nesting procedure
-

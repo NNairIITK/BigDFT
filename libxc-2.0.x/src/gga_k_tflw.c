@@ -27,14 +27,15 @@ Celebration of the Contributions of Robert G. Parr, edited by KD Sen
 (World Scientific, Singapore, 2002), p. 612.
  */
 
+#define XC_GGA_K_TFVW          52  /* Thomas-Fermi plus von Weiszaecker correction */
 #define XC_GGA_K_VW            500 /* von Weiszaecker functional */
 #define XC_GGA_K_GE2           501 /* Second-order gradient expansion (l = 1/9) */
 #define XC_GGA_K_GOLDEN        502 /* TF-lambda-vW form by Golden (l = 13/45) */
 #define XC_GGA_K_YT65          503 /* TF-lambda-vW form by Yonei and Tomishima (l = 1/5) */
 #define XC_GGA_K_BALTIN        504 /* TF-lambda-vW form by Baltin (l = 5/9) */
 #define XC_GGA_K_LIEB          505 /* TF-lambda-vW form by Lieb (l = 0.185909191) */
-#define XC_GGA_K_ABSR1         506 /* gamma-TFvW form by Acharya et al [g = 1 - 1.412/N^(1/3)] */
-#define XC_GGA_K_ABSR2         507 /* gamma-TFvW form by Acharya et al [g = 1 - 1.332/N^(1/3)] */
+#define XC_GGA_K_ABSP1         506 /* gamma-TFvW form by Acharya et al [g = 1 - 1.412/N^(1/3)] */
+#define XC_GGA_K_ABSP2         507 /* gamma-TFvW form by Acharya et al [g = 1 - 1.332/N^(1/3)] */
 #define XC_GGA_K_GR            508 /* gamma-TFvW form by Gázquez and Robles */
 #define XC_GGA_K_LUDENA        509 /* gamma-TFvW form by Ludeña */
 #define XC_GGA_K_GP85          510 /* gamma-TFvW form by Ghosh and Parr */
@@ -70,13 +71,16 @@ XC(gga_k_tflw_set_params)(XC(func_type) *p, FLOAT gamma, FLOAT lambda, FLOAT N)
     params->gamma = gamma;
   }else if(N > 0.0){
     switch(p->info->number){
+    case XC_GGA_K_TFVW:
+      params->gamma = 1.0;
+      break;
     case XC_GGA_K_VW:
       params->gamma = 0.0;
       break;
-    case XC_GGA_K_ABSR1:      /* Ref. 79 */
+    case XC_GGA_K_ABSP1:      /* Ref. 79 */
       params->gamma = 1.0 - 1.412/CBRT(N);
       break;
-    case XC_GGA_K_ABSR2:      /* Ref. 79 */
+    case XC_GGA_K_ABSP2:      /* Ref. 79 */
       params->gamma = 1.0 - 1.332/CBRT(N);
       break;
     case XC_GGA_K_GR:         /* Ref. 80 */
@@ -97,6 +101,9 @@ XC(gga_k_tflw_set_params)(XC(func_type) *p, FLOAT gamma, FLOAT lambda, FLOAT N)
     params->lambda  = lambda;
   }else{
     switch(p->info->number){
+    case XC_GGA_K_TFVW:
+      params->lambda = 1.0;
+      break;
     case XC_GGA_K_GE2:
       params->lambda = 1.0/9.0;
       break;
@@ -119,7 +126,7 @@ XC(gga_k_tflw_set_params)(XC(func_type) *p, FLOAT gamma, FLOAT lambda, FLOAT N)
 
 static inline void 
 func(const XC(func_type) *p, int order, FLOAT x, 
-     FLOAT *f, FLOAT *dfdx, FLOAT *d2fdx2)
+     FLOAT *f, FLOAT *dfdx, FLOAT *d2fdx2, FLOAT *d3fdx3)
 {
   FLOAT lambda, gamma;
 
@@ -143,6 +150,20 @@ func(const XC(func_type) *p, int order, FLOAT x,
 #define XC_KINETIC_FUNCTIONAL
 #include "work_gga_x.c"
 
+const XC(func_info_type) XC(func_info_gga_k_tfvw) = {
+  XC_GGA_K_TFVW,
+  XC_KINETIC,
+  "Thomas-Fermi plus von Weiszaecker correction",
+  XC_FAMILY_GGA,
+  "CF von Weiszaecker, Z. Phys. 96, 431 (1935)",
+  XC_FLAGS_3D | XC_FLAGS_HAVE_EXC | XC_FLAGS_HAVE_VXC | XC_FLAGS_HAVE_FXC,
+  1e-32, 1e-32, 0.0, 1e-32,
+  gga_k_tflw_init, 
+  NULL, NULL,
+  work_gga_k,
+  NULL
+};
+
 const XC(func_info_type) XC(func_info_gga_k_vw) = {
   XC_GGA_K_VW,
   XC_KINETIC,
@@ -153,7 +174,8 @@ const XC(func_info_type) XC(func_info_gga_k_vw) = {
   1e-32, 1e-32, 0.0, 1e-32,
   gga_k_tflw_init, 
   NULL, NULL,
-  work_gga_k
+  work_gga_k,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_gga_k_ge2) = {
@@ -167,7 +189,8 @@ const XC(func_info_type) XC(func_info_gga_k_ge2) = {
   1e-32, 1e-32, 0.0, 1e-32,
   gga_k_tflw_init,
   NULL, NULL,
-  work_gga_k
+  work_gga_k,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_gga_k_golden) = {
@@ -180,7 +203,8 @@ const XC(func_info_type) XC(func_info_gga_k_golden) = {
   1e-32, 1e-32, 0.0, 1e-32,
   gga_k_tflw_init,
   NULL, NULL,
-  work_gga_k
+  work_gga_k,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_gga_k_yt65) = {
@@ -193,7 +217,8 @@ const XC(func_info_type) XC(func_info_gga_k_yt65) = {
   1e-32, 1e-32, 0.0, 1e-32,
   gga_k_tflw_init,
   NULL, NULL,
-  work_gga_k
+  work_gga_k,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_gga_k_baltin) = {
@@ -201,12 +226,13 @@ const XC(func_info_type) XC(func_info_gga_k_baltin) = {
   XC_KINETIC,
   "TF-lambda-vW form by Baltin (l = 5/9)",
   XC_FAMILY_GGA,
-  "R Baltin, Z. Naturforsch. 27, 1176 (1972)",
+  "R Baltin, Z. Naturforsch. A 27, 1176 (1972)",
   XC_FLAGS_3D | XC_FLAGS_HAVE_EXC | XC_FLAGS_HAVE_VXC | XC_FLAGS_HAVE_FXC,
   1e-32, 1e-32, 0.0, 1e-32,
   gga_k_tflw_init,
   NULL, NULL,
-  work_gga_k
+  work_gga_k,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_gga_k_lieb) = {
@@ -219,11 +245,12 @@ const XC(func_info_type) XC(func_info_gga_k_lieb) = {
   1e-32, 1e-32, 0.0, 1e-32,
   gga_k_tflw_init,
   NULL, NULL,
-  work_gga_k
+  work_gga_k,
+  NULL
 };
 
-const XC(func_info_type) XC(func_info_gga_k_absr1) = {
-  XC_GGA_K_ABSR1,
+const XC(func_info_type) XC(func_info_gga_k_absp1) = {
+  XC_GGA_K_ABSP1,
   XC_KINETIC,
   "gamma-TFvW form by Acharya et al [g = 1 - 1.412/N^(1/3)]",
   XC_FAMILY_GGA,
@@ -232,11 +259,12 @@ const XC(func_info_type) XC(func_info_gga_k_absr1) = {
   1e-32, 1e-32, 0.0, 1e-32,
   gga_k_tflw_init,
   NULL, NULL,
-  work_gga_k
+  work_gga_k,
+  NULL
 };
 
-const XC(func_info_type) XC(func_info_gga_k_absr2) = {
-  XC_GGA_K_ABSR2,
+const XC(func_info_type) XC(func_info_gga_k_absp2) = {
+  XC_GGA_K_ABSP2,
   XC_KINETIC,
   "gamma-TFvW form by Acharya et al [g = 1 - 1.332/N^(1/3)]",
   XC_FAMILY_GGA,
@@ -245,7 +273,8 @@ const XC(func_info_type) XC(func_info_gga_k_absr2) = {
   1e-32, 1e-32, 0.0, 1e-32,
   gga_k_tflw_init,
   NULL, NULL,
-  work_gga_k
+  work_gga_k,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_gga_k_gr) = {
@@ -258,7 +287,8 @@ const XC(func_info_type) XC(func_info_gga_k_gr) = {
   1e-32, 1e-32, 0.0, 1e-32,
   gga_k_tflw_init,
   NULL, NULL,
-  work_gga_k
+  work_gga_k,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_gga_k_ludena) = {
@@ -271,7 +301,8 @@ const XC(func_info_type) XC(func_info_gga_k_ludena) = {
   1e-32, 1e-32, 0.0, 1e-32,
   gga_k_tflw_init,
   NULL, NULL,
-  work_gga_k
+  work_gga_k,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_gga_k_gp85) = {
@@ -284,5 +315,6 @@ const XC(func_info_type) XC(func_info_gga_k_gp85) = {
   1e-32, 1e-32, 0.0, 1e-32,
   gga_k_tflw_init,
   NULL, NULL,
-  work_gga_k
+  work_gga_k,
+  NULL
 };

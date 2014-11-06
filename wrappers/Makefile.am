@@ -2,13 +2,19 @@
 noinst_LIBRARIES = libwrappers.a
 module_DATA = $(modules)
 
+MPI_INCLUDES = allreduce-inc.f90 allreduce-arr-inc.f90 gather-inc.f90 \
+	gather-inner-inc.f90 maxdiff-arr-inc.f90 maxdiff-inc.f90 \
+	bcast-inc.f90 bcast-decl-inc.f90 bcast-decl-arr-inc.f90
+
 if USE_MPI
 #mpi_source =
-mpi_include =
+mpi_include = $(MPI_INCLUDES)
 else
 #mpi_source = MPIfake.f90
-mpi_include = mpif.h
+mpi_include = $(MPI_INCLUDES) mpif.h
 endif
+
+EXTRA_DIST = $(MPI_INCLUDES)
 
 #Fake mpif.h for serial compilation
 mpif.h:
@@ -60,7 +66,7 @@ interface_dgemmsy_fake.o: linalg.o
 mpi.o: $(mpi_include)
 
 
-AM_FCFLAGS = -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @MPI_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/includes @MPI_INCLUDE@
 AM_CPPFLAGS = @DGEMMSY_CPPFLAGS@
 if USE_CUDA_GPU
 AM_CPPFLAGS += -I@CUDA_PATH@/include @LIBSGPU_INCLUDE@
@@ -76,10 +82,11 @@ modules = module_fft_sg.@MODULE_EXT@ \
 	wrapper_linalg.@MODULE_EXT@ \
 	wrapper_mpi.@MODULE_EXT@
 endif
-CLEANFILES = $(modules) $(mpi_include)
+CLEANFILES = $(modules) mpif.h
 
 # Copy modules in a common include directory.
 all: all-am insmod
+check: check-am insmod
 insmod: $(modules)
 	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
 	for mod in "$(modules)" ; do \

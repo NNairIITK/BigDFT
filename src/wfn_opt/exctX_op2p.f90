@@ -51,7 +51,7 @@ contains
     !local variables
     character(len=*), parameter :: subname='OP2P_exctx_clear'
     !print *,'iproc,icount2',iproc,icount
-    call free_OP2P_descriptors(OP2P,subname)
+    call free_OP2P_descriptors(OP2P)
     
     nullify(pkernel,orbs)
 
@@ -80,15 +80,14 @@ contains
     real(wp), dimension(nvctrj_results), intent(inout) :: dpsir_j
     !local variables
     character(len=*), parameter :: subname='internal_exctx_operation'
-    integer :: iorb,jorb,i_all,i_stat,iorb_glob,jorb_glob,ierr,ndim,i
+    integer :: iorb,jorb,iorb_glob,jorb_glob,ierr,ndim,i
     real(gp) :: hfaci,hfacj,hfac2,ehart
     real(wp), dimension(:), allocatable :: rp_ij
 
     !it is assumed that all the products are done on the same dimension
     ndim=product(pkernel%ndims)
 
-    allocate(rp_ij(ndim+ndebug),stat=i_stat)
-    call memocc(i_stat,rp_ij,'rp_ij',subname)
+    rp_ij = f_malloc(ndim,id='rp_ij')
     !print *,'norbi,norbj,jorbs,iorbs,isorb,jsorb',norbi,norbj,jorbs,iorbs,isorb,jsorb
     !for the first step do only the upper triangular part
     do iorb=1,norbi
@@ -173,9 +172,7 @@ contains
        end do
     end do
 
-    i_all=-product(shape(rp_ij))*kind(rp_ij)
-    deallocate(rp_ij,stat=i_stat)
-    call memocc(i_stat,i_all,'rp_ij',subname)
+    call f_free(rp_ij)
 
   end subroutine internal_exctx_operation
 
@@ -207,15 +204,14 @@ contains
     type(OP2P_descriptors), intent(out) :: OP2P
     !local variables
     character(len=*), parameter :: subname='orbs_to_attributes'
-    integer :: i_stat,i_all,igroup,iorb
+    integer :: igroup,iorb
     integer, dimension(:,:), allocatable :: orbs_attributes
     
 
     if (orbs%nkpts /=1) stop 'OP2P not allowed with K-points so far' 
 
     !build the array of the groups needed for OP2P module
-    allocate(orbs_attributes(orbs%norb,3+ndebug),stat=i_stat)
-    call memocc(i_stat,orbs_attributes,'orbs_attributes',subname)
+    orbs_attributes = f_malloc((/ orbs%norb, 3 /),id='orbs_attributes')
     !the rule for the objects are listed here
     !objects_attributes(:,1) <= group to which the object belongs
     !objects_attributes(:,2) <= size in number of elements of the object
@@ -246,9 +242,7 @@ contains
 
     !call the module for executing the exctX routine
 
-    i_all=-product(shape(orbs_attributes))*kind(orbs_attributes)
-    deallocate(orbs_attributes,stat=i_stat)
-    call memocc(i_stat,i_all,'orbs_attributes',subname)
+    call f_free(orbs_attributes)
 
     if (orbs%nspin==2) then
        sfac=1.0_gp
@@ -265,13 +259,14 @@ end module module_exctx_op2p
 
 !> Routine which applies the op2p module to calculate the exact exchange
 !! Defines the interface module in the same file
-subroutine exact_exchange_potential_op2p(iproc,nproc,lr,orbs,pkernel,psi,dpsir,eexctX)
+subroutine exact_exchange_potential_op2p(iproc,nproc,xc,lr,orbs,pkernel,psi,dpsir,eexctX)
   use module_base
   use module_types
   use module_xc
   use module_exctx_op2p
   implicit none
   integer, intent(in) :: iproc,nproc
+  type(xc_info), intent(in) :: xc
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi !> wavefunctions in wavelet form
@@ -280,15 +275,14 @@ subroutine exact_exchange_potential_op2p(iproc,nproc,lr,orbs,pkernel,psi,dpsir,e
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp), intent(out) :: dpsir !>Fock operator applied on the real-space wavefunctions
   !local variables
   character(len=*), parameter :: subname='exact_exchange_potential_op2p'
-  integer :: i_stat,i_all,iorb,ierr
+  integer :: iorb
   real(gp) :: exctXfac
   type(workarr_sumrho) :: w
   type(OP2P_descriptors) :: OP2P
   real(wp), dimension(:,:), allocatable :: psir
 
   call initialize_work_arrays_sumrho(lr,w)
-  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp+ndebug),stat=i_stat)
-  call memocc(i_stat,psir,'psir',subname)
+  psir = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%norbp /),id='psir')
 
   call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,dpsir(1,1))
 
@@ -312,14 +306,12 @@ subroutine exact_exchange_potential_op2p(iproc,nproc,lr,orbs,pkernel,psi,dpsir,e
   !recuperate the exctX energy and purge allocated variables
   call OP2P_exctx_clear(OP2P,eexctX)
 
-  if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+  if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,bigdft_mpi%mpi_comm)
 
-  exctXfac = xc_exctXfac()
+  exctXfac = xc_exctXfac(xc)
   eexctX=-exctXfac*eexctX
 
-  i_all=-product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
+  call f_free(psir)
 
 end subroutine exact_exchange_potential_op2p
 

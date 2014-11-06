@@ -22,16 +22,16 @@ fft_cache.o: fft3d.o
 fft_check.o: fft3d.o
 
 fft_check.out: fft_check
-	./fft_check > fft_check.out
+	$(run_serial) ./fft_check > fft_check.out
 
 fft_cache.dat: fft_cache
-	./fft_cache 0   >  fft_cache.out 2>&1
-	./fft_cache 6   >> fft_cache.out 2>&1
-	./fft_cache 12  >> fft_cache.out 2>&1
-	./fft_cache 24  >> fft_cache.out 2>&1
-	./fft_cache 50  >> fft_cache.out 2>&1
-	./fft_cache 75  >> fft_cache.out 2>&1
-	./fft_cache 100 >> fft_cache.out 2>&1
+	$(run_serial) ./fft_cache 0   >  fft_cache.out 2>&1
+	$(run_serial) ./fft_cache 6   >> fft_cache.out 2>&1
+	$(run_serial) ./fft_cache 12  >> fft_cache.out 2>&1
+	$(run_serial) ./fft_cache 24  >> fft_cache.out 2>&1
+	$(run_serial) ./fft_cache 50  >> fft_cache.out 2>&1
+	$(run_serial) ./fft_cache 75  >> fft_cache.out 2>&1
+	$(run_serial) ./fft_cache 100 >> fft_cache.out 2>&1
 	python $(srcdir)/fft_cache.py
 
 fft_check.report: fft_check.out

@@ -1,3 +1,11 @@
+!> @file
+!! Initialization for XANES calcul
+!! @author Copyright (C) 2013-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
 
 !> Fill the preconditioning projectors for a given atom 
 subroutine fillPcProjOnTheFly(PPD, Glr, iat, at, hx,hy,hz,startjorb,ecut_pc,   initial_istart_c ) 
@@ -182,7 +190,7 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,kx,ky,kz,startjorb,   i
 END SUBROUTINE fillPawProjOnTheFly
 
 
-!>   Determine localization region for all preconditioning projectors, but do not yet fill the descriptor arrays
+!> Determine localization region for all preconditioning projectors, but do not yet fill the descriptor arrays
 subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
      &   radii_cf,cpmult,fpmult,hx,hy,hz, ecut_pc, &
      &   PPD, Glr)
@@ -190,6 +198,8 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   use module_types
   use module_abscalc
   use module_interfaces
+  use gaussians, only: deallocate_gwf
+  use psp_projectors, only: deallocate_nonlocal_psp_descriptors
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
@@ -200,7 +210,7 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   real(gp), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
   real(gp), intent(in):: ecut_pc
 
-  type(pcproj_data_type) ::PPD
+  type(pcproj_data_type) :: PPD
 
   type(locreg_descriptors),  intent(in):: Glr
 
@@ -208,7 +218,7 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   !local variables
   character(len=*), parameter :: subname='createPcProjectorsArrays'
   integer :: nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj, mvctr
-  integer :: iat,i_stat,i_all,iseg, istart_c
+  integer :: iat,iseg, istart_c
   logical, dimension(:,:,:), allocatable :: logrid
 
 
@@ -234,7 +244,6 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   enlargerprb = .false.
   nspin=1
 
-
   nullify(PPD%G%rxyz)
   call gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,PPD%G,Gocc, PPD%gaenes, &
        &   PPD%iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg  )  
@@ -248,10 +257,9 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 
 
   PPD%pc_nl%natoms=at%astruct%nat
-  allocate(PPD%pc_nl%pspd(at%astruct%nat),stat=i_stat)
+  allocate(PPD%pc_nl%pspd(at%astruct%nat))
 
-  allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,logrid,'logrid',subname)
+  logrid = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid')
 
 
   call localize_projectors(iproc,n1,n2,n3,hx,hy,hz,Pcpmult,fpmult,rxyz,radii_cf,&
@@ -287,7 +295,7 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 
      mproj=0
 
-     do while( jorb<=PPD%G%ncoeff         .and. PPD%iorbtolr(jorb)== iat)
+     do while(jorb<=PPD%G%ncoeff .and. PPD%iorbtolr(jorb)== iat)
 
         if( PPD%gaenes(jorb)<ecut_pc) then
            mproj=mproj+1
@@ -346,7 +354,6 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
            PPD%pc_nl%nprojel= PPD%pc_nl%nprojel+nprojel_tmp 
         endif
 
-
      endif
 
   enddo
@@ -356,18 +363,9 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 !  allocate(PPD%pc_nl%proj(PPD%pc_nl%nprojel+ndebug),stat=i_stat)
 !  call memocc(i_stat,PPD%pc_proj,'pc_proj',subname)
 
-  allocate(PPD%ilr_to_mproj(at%astruct%nat  +ndebug ) , stat=i_stat)
-  call memocc(i_stat,PPD%ilr_to_mproj,'ilr_to_mproj',subname)
-
-  allocate(PPD%iproj_to_ene(mprojtot +ndebug ) , stat=i_stat)
-  call memocc(i_stat ,PPD%iproj_to_ene,'iproj_to_ene',subname)
-
-  allocate(PPD%iproj_to_factor(mprojtot +ndebug ) , stat=i_stat)
-  call memocc(i_stat ,PPD%iproj_to_factor,'iproj_to_factor',subname)
-
-  allocate(PPD%iproj_to_l(mprojtot +ndebug ) , stat=i_stat)
-  call memocc(i_stat ,PPD%iproj_to_l,'iproj_to_l',subname)
-
+  PPD%iproj_to_ene = f_malloc_ptr(mprojtot ,id='PPD%iproj_to_ene')
+  PPD%iproj_to_factor = f_malloc_ptr(mprojtot ,id='PPD%iproj_to_factor')
+  PPD%iproj_to_l = f_malloc_ptr(mprojtot ,id='PPD%iproj_to_l')
   PPD%mprojtot=mprojtot
 
 
@@ -375,7 +373,6 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   jorb=1
   istart_c=1
   Gocc(:)=0.0_wp
-
 
   iproj=0
   do iat=1,at%astruct%nat
@@ -446,37 +443,26 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   enddo
 
   if( .not. PPD%DistProjApply) then
-     call deallocate_gwf(PPD%G,subname)
+     call deallocate_gwf(PPD%G)
   endif
 
-  i_all=-product(shape(logrid))*kind(logrid)
-  deallocate(logrid,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid',subname)
+  do iat=1,at%astruct%nat
+     call deallocate_nonlocal_psp_descriptors(PPD%pc_nl%pspd(iat))
+  end do
 
-  i_all=-product(shape(Gocc))*kind(Gocc)
-  deallocate(Gocc,stat=i_stat)
-  call memocc(i_stat,i_all,'Gocc',subname)
+  call f_free_ptr(PPD%pc_nl%proj)
+
+  call f_free(logrid)
+  call f_free_ptr(Gocc)
 
 !!$  i_all=-product(shape(iorbtolr))*kind(iorbtolr)
 !!$  deallocate(iorbtolr,stat=i_stat)
 !!$  call memocc(i_stat,i_all,'iorbtolr',subname)
 
-  i_all=-product(shape(iorbto_l))*kind(iorbto_l)
-  deallocate(iorbto_l,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbto_l',subname)
-
-  i_all=-product(shape(iorbto_m))*kind(iorbto_m)
-  deallocate(iorbto_m,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbto_m',subname)
-
-  i_all=-product(shape(iorbto_ishell))*kind(iorbto_ishell)
-  deallocate(iorbto_ishell,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbto_ishell',subname)
-
-
-  i_all=-product(shape(iorbto_iexpobeg))*kind(iorbto_iexpobeg)
-  deallocate(iorbto_iexpobeg,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbto_iexpobeg',subname)
+  call f_free_ptr(iorbto_l)
+  call f_free_ptr(iorbto_m)
+  call f_free_ptr(iorbto_ishell)
+  call f_free_ptr(iorbto_iexpobeg)
 
 END SUBROUTINE createPcProjectorsArrays
 
@@ -506,7 +492,7 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   character(len=*), parameter :: subname='createPawProjectorsArrays'
 
   integer :: nl1,nl2,nl3,nu1,nu2,nu3,mseg,mproj, mvctr
-  integer :: iat,i_stat,i_all,iseg, istart_c
+  integer :: iat,iseg, istart_c
   logical, dimension(:,:,:), allocatable :: logrid
 
   real(wp), dimension(:), pointer :: Gocc
@@ -537,8 +523,7 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
        &   iorbto_paw_nchannels, PAWD%iprojto_imatrixbeg )  
 
 
-  allocate(Gocc(PAWD%G%ncoeff+ndebug),stat=i_stat)
-  call memocc(i_stat,Gocc,'Gocc',subname)
+  Gocc = f_malloc_ptr(PAWD%G%ncoeff,id='Gocc')
   call to_zero(PAWD%G%ncoeff,Gocc)
 
   ! allocated  : gaenes, Gocc , PAWD%iorbtolr,iorbto_l, iorbto_m,  iorbto_ishell,iorbto_iexpobeg, iorbto_paw_nchannels
@@ -548,8 +533,7 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   !start from a null structure
   PAWD%paw_nl=DFT_PSP_projectors_null()
 
-  allocate(logrid(0:n1,0:n2,0:n3+ndebug),stat=i_stat)
-  call memocc(i_stat,logrid,'logrid',subname)
+  logrid = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid')
 
   call localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,Pcpmult,1*fpmult,rxyz,radii_cf,&
        &   logrid,at,orbs,PAWD)
@@ -568,14 +552,9 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
 !!$  allocate(PAWD%paw_proj(PAWD%paw_nlpspd%nprojel+ndebug),stat=i_stat)
 !!$  call memocc(i_stat,PAWD%paw_proj,'paw_proj',subname)
 
-  allocate(PAWD%ilr_to_mproj(PAWD%G%nat  +ndebug ) , stat=i_stat)
-  call memocc(i_stat,PAWD%ilr_to_mproj,'ilr_to_mproj',subname)
-
-  allocate(PAWD%iproj_to_l(PAWD%paw_nl%nproj +ndebug ) , stat=i_stat)
-  call memocc(i_stat ,PAWD%iproj_to_l,'iproj_to_l',subname)
-
-  allocate(PAWD%iproj_to_paw_nchannels( PAWD%paw_nl%nproj+ndebug ) , stat=i_stat)
-  call memocc(i_stat ,PAWD%iproj_to_paw_nchannels,'iproj_to_paw_nchannels',subname)
+  PAWD%ilr_to_mproj = f_malloc_ptr(PAWD%G%nat  ,id='PAWD%ilr_to_mproj')
+  PAWD%iproj_to_l = f_malloc_ptr(PAWD%paw_nl%nproj ,id='PAWD%iproj_to_l')
+  PAWD%iproj_to_paw_nchannels = f_malloc_ptr(PAWD%paw_nl%nproj,id='PAWD%iproj_to_paw_nchannels')
 
 !!$ =========================================================================================  
 
@@ -695,56 +674,34 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   enddo
   if (istart_c-1 /= PAWD%paw_nl%nprojel) stop 'incorrect once-and-for-all psp generation'
 
-
   if( .not. PAWD%DistProjApply) then
-     call deallocate_gwf_c(PAWD%G,subname)
+     call deallocate_gwf_c(PAWD%G)
   endif
 
-  i_all=-product(shape(logrid))*kind(logrid)
-  deallocate(logrid,stat=i_stat)
-  call memocc(i_stat,i_all,'logrid',subname)
-
-  i_all=-product(shape(Gocc))*kind(Gocc)
-  deallocate(Gocc,stat=i_stat)
-  call memocc(i_stat,i_all,'Gocc',subname)
+  call f_free(logrid)
+  call f_free_ptr(Gocc)
 
 !!$  i_all=-product(shape(iorbtolr))*kind(iorbtolr)
 !!$  deallocate(iorbtolr,stat=i_stat)
 !!$  call memocc(i_stat,i_all,'iorbtolr',subname)
 
-  i_all=-product(shape(iorbto_l))*kind(iorbto_l)
-  deallocate(iorbto_l,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbto_l',subname)
+  call f_free_ptr(iorbto_l)
+  call f_free_ptr(iorbto_paw_nchannels)
 
-  i_all=-product(shape(iorbto_paw_nchannels))*kind(iorbto_paw_nchannels)
-  deallocate(iorbto_paw_nchannels,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbto_paw_nchannels',subname)
-
-
-
-
-
-  i_all=-product(shape(iorbto_m))*kind(iorbto_m)
-  deallocate(iorbto_m,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbto_m',subname)
-
-  i_all=-product(shape(iorbto_ishell))*kind(iorbto_ishell)
-  deallocate(iorbto_ishell,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbto_ishell',subname)
-
-
-  i_all=-product(shape(iorbto_iexpobeg))*kind(iorbto_iexpobeg)
-  deallocate(iorbto_iexpobeg,stat=i_stat)
-  call memocc(i_stat,i_all,'iorbto_iexpobeg',subname)
+  call f_free_ptr(iorbto_m)
+  call f_free_ptr(iorbto_ishell)
+  call f_free_ptr(iorbto_iexpobeg)
 
 
 END SUBROUTINE createPawProjectorsArrays
+
 
 subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,radii_cf,&
      logrid,at,orbs,PAWD)
   use module_base
   use module_types
   use module_abscalc
+  use psp_projectors, only: deallocate_nonlocal_psp_descriptors
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
@@ -758,7 +715,7 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
 
   !Local variables
   integer :: istart,ityp,natyp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat,i,l
-  integer :: ikpt,nkptsproj,ikptp,i_stat
+  integer :: ikpt,nkptsproj,ikptp
   real(gp) :: maxfullvol,totfullvol,totzerovol,zerovol,fullvol,maxrad,maxzerovol,rad
   integer :: natpaw
 
@@ -804,7 +761,9 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
      end if
   end do
   PAWD%paw_nl%natoms=natpaw
+
   allocate(PAWD%paw_nl%pspd(PAWD%paw_nl%natoms))
+  
   do iat=1,PAWD%paw_nl%natoms
      PAWD%paw_nl%pspd(iat)=nonlocal_psp_descriptors_null()
   end do
@@ -1030,6 +989,11 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,ra
      write(*,'(1x,a,i21)') 'Total number of components =',PAWD%paw_nl%nprojel
      write(*,'(1x,a,i21)') 'Percent of zero components =',nint(100.0_gp*zerovol)
   end if
+
+  do iat=1,PAWD%paw_nl%natoms
+     call deallocate_nonlocal_psp_descriptors(PAWD%paw_nl%pspd(iat))
+  end do
+
 contains
   
 subroutine numb_proj_paw(ityp,mproj)

@@ -8,13 +8,14 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
   character(len=*), intent(in) :: mapname
   character(len=*), optional, intent(in) :: label,advance,fmt
   integer, optional, intent(in) :: unit
-  !local variables
+  !Local variables
   integer :: strm,unt,irow
   character(len=3) :: adv
-  character(len=tot_max_record_length) :: towrite
+  !character(len=tot_max_record_length) :: towrite
 
   unt=0
   if (present(unit)) unt=unit
@@ -25,9 +26,9 @@
 
   !open the sequence associated to the matrix
   if (present(label)) then
-     call yaml_open_sequence(mapname,label=label,advance=adv,unit=unt)
+     call yaml_sequence_open(mapname,label=label,advance=adv,unit=unt)
   else
-     call yaml_open_sequence(mapname,advance=adv,unit=unt)
+     call yaml_sequence_open(mapname,advance=adv,unit=unt)
   end if
   do irow=lbound(mapvalue,1),ubound(mapvalue,2)
      if (present(fmt)) then
@@ -39,4 +40,4 @@
      end if
   end do
 
-  call yaml_close_sequence(advance=adv,unit=unt)
+  call yaml_sequence_close(advance=adv,unit=unt)

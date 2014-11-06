@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7.1.14],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7.1.20],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -65,6 +65,7 @@ AC_FC_WRAPPERS()
 AX_FC_FLUSH()
 AX_FC_DEFS()
 AX_FC_F2003()
+AX_FC_OPENMP()
 
 dnl Set if the module name are capitalized or not with the FC compiler. 
 AX_FC_MOD()
@@ -167,6 +168,8 @@ if test x"$ac_build_dynamic" = x"yes" ; then
     done
     ac_configure_args="$ac_configure_args 'CFLAGS=$CFLAGS' 'CXXFLAGS=$CXXFLAGS' 'FCFLAGS=$FCFLAGS'"
   fi
+else
+  ax_flag_pic=""
 fi
 AM_CONDITIONAL([BUILD_DYNAMIC_LIBS], [test "x$ac_build_dynamic" = "xyes"])
 AM_CONDITIONAL([WITH_GOBJECT_INTROSPECTION], [test "x$enable_introspection" = "xyes"])
@@ -343,22 +346,6 @@ AM_CONDITIONAL(USE_OPTI_CONVOLUT, test "$ac_use_opti_convolut" = "yes")
 AC_MSG_RESULT([$ac_use_opti_convolut])
 
 
-dnl Use the minima hopping method (build the executable global)
-AC_MSG_CHECKING([for minima hopping])
-ac_build_bin_minima_hopping="no"
-AC_ARG_ENABLE(minima-hopping, AS_HELP_STRING([--enable-minima-hopping], [Compile the minima hopping code (need the file src/global.f90, not compiled by default).]),
-                         ac_build_bin_minima_hopping=$enableval, ac_build_bin_minima_hopping="no")
-AC_MSG_RESULT([$ac_build_bin_minima_hopping])
-if test x"$ac_build_bin_minima_hopping" = "xyes" ; then
-  dnl Check if src/global.f90 does exist.
-  AC_CHECK_FILE(${srcdir}/src/global.f90, ac_have_global="yes", ac_have_global="no")
-  if test x"$ac_have_global" = x"no" ; then
-     AC_MSG_WARN(["No src/global.f90. This file is not freely available, minima hopping is disabled."])
-     ac_build_bin_minima_hopping="no"
-  fi
-fi
-AM_CONDITIONAL(USE_MINIMA_HOPPING, test "$ac_build_bin_minima_hopping" = "yes")
-
 dnl Use the dgemmsy
 ac_use_dgemmsy="no"
 DGEMMSY_CPPFLAGS=
@@ -405,6 +392,9 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   dnl Optional Cuda installation dir.
   AC_ARG_WITH(cuda-path, AS_HELP_STRING([--with-cuda-path], [give the path to the NVidia Cuda tools (default is /usr/local/cuda).]),
                          [ac_with_cuda_path=$withval], [ac_with_cuda_path="/usr/local/cuda"])
+  if test x"$ac_with_cuda_path" = x"no" ; then
+    ac_with_cuda_path="/usr"
+  fi
   CUDA_PATH=$ac_with_cuda_path
   AC_SUBST(CUDA_PATH)
   dnl Test the existence of things.
@@ -452,17 +442,12 @@ if test x"$ac_use_cuda_gpu" = "xyes" ; then
   AC_LANG_POP(C)
 
   dnl Add the flags.
-  AC_ARG_WITH(cuda-cflags, AS_HELP_STRING([--with-nvcc-flags], [specify the flags for the NVidia Cuda Compiler (default is '-O3 --compiler-options -fno-strict-aliasing').]),
-                         [ac_with_nvcc_flags=$withval],
-                         [ac_with_nvcc_flags="no"])
-  if test x"$ac_with_nvcc_flags" != x"no" ; then
-    NVCC_FLAGS="$ac_with_nvcc_flags"
-  else
-    if test -z "NVCC_FLAGS" ; then
-      NVCC_FLAGS="-O3 --compiler-options -fno-strict-aliasing"
-    fi
+  AC_MSG_CHECKING([for NVCC flags])
+  if test -z "$NVCC_FLAGS" ; then
+    NVCC_FLAGS="-O3 --compiler-options '-fno-strict-aliasing $ax_flag_pic'"
   fi
   AC_SUBST(NVCC_FLAGS)
+  AC_MSG_RESULT([$NVCC_FLAGS])
   LIBCUDA_LIBS="-lcudart -lcublas -lcufft"
   LDFLAGS="$LDFLAGS -L$ac_cuda_lib_path"
 fi
@@ -902,10 +887,10 @@ end program]], withlibxcmod=yes, withlibxcmod=no)
       FCFLAGS=$FCFLAGS_SVG
         
       dnl Test the library of libXC.
-      LDFLAGS_SVG=$LDFLAGS
-      LDFLAGS="$LDFLAGS $ac_libxc_libdir"
+      LIBS_SVG=$LIBS
+      LIBS="$LIBS $ac_libxc_libdir"
       AC_CHECK_LIB(xc, xc_f90_lda_vxc, ac_use_libxc=yes, ac_use_libxc=no)
-      LDFLAGS=$LDFLAGS_SVG
+      LIBS=$LIBS_SVG
   
       if test "$ac_use_libxc" = "yes" -a "$withlibxcmod" = "yes" ; then
         AC_SUBST(LIBXC_INCLUDE, $ac_libxc_incdir)
@@ -930,7 +915,7 @@ end program]], withlibxcmod=yes, withlibxcmod=no)
     ac_use_libxc="yes"
     AC_SUBST(LIBXC_INCLUDE, "-I\$(top_builddir)"/libxc-2.0.x/src)
     LDFLAGS="$LDFLAGS -L\$(top_builddir)/libxc-2.0.x/src/.libs"
-    LIBXC_LIBS="-lxc"
+    LIBXC_LIBS="-lxcf90 -lxc"
   fi
 else
   ac_use_libxc="no"
@@ -1108,6 +1093,8 @@ tests/libs/dsygv/Makefile
 tests/libs/ftypes/Makefile
 tests/libs/wrappers/Makefile
 tests/libs/psp/Makefile
+tests/libs/overlapgeneral/Makefile
+tests/libs/coordinatetransform/Makefile
 tests/DFT/Makefile
 tests/DFT/cubic/Makefile
 tests/DFT/linear/Makefile
@@ -1146,7 +1133,6 @@ Basics:
 Build:
   Library BigDFT:            $ac_build_lib_BigDFT
   Main binaries (bigdft,...):$ac_build_bin_cluster
-  Minima hopping binary:     $ac_build_bin_minima_hopping
   atom and pseudo binaries:  $ac_build_bin_pseudo
   Bindings:                  $ac_build_bindings
   User documentation:        $ac_have_pdflatex
@@ -1155,6 +1141,7 @@ Build:
 Options:
   Debug version:             $ac_use_debug
   Max. Memory per task (GB): $MEMORY_LIMIT
+  With OpenMP:               $ax_fc_openmp_msg
   With MPI:                  $ac_use_mpi
    | include dir.:           $MPI_INCLUDE
    | linker flags:           $MPI_LDFLAGS

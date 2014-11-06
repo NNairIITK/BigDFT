@@ -59,6 +59,28 @@ void FC_FUNC_(call_external_c_fromadd, CALL_EXTERNAL_C_FROMADD)(long long int * 
   return;
 }
 
+//unused for the moment. Should provide a mechanism to call a fortran function by passing in the stack the address of the 
+//data
+void FC_FUNC_(call_external_c_fromadd_data, CALL_EXTERNAL_C_FROMADD_DATA)(long long int * add,long long int * dataadd)
+{
+  void * ext;
+  //  long long int *ext_data;
+
+  ext=(void*) *add;
+  //*ext_data=0;
+
+  //  *address=0;
+  //callback1= (void*) *add;
+  //  printf("\n test NEW address = %p; \n", (void*) *add);
+  //callback1();
+  //*addredss();
+  FC_FUNC_(call_external_f,CALL_EXTERNAL_F)(ext);//,ext_data);
+
+  // printf("\n test NEW address = %lld; \n", *add);
+  //  printf("\n test NEW address3 = %p , %lld; \n", (void*)callback,*address);
+  return;
+}
+
 
 //Symbol duplications for fortran interfaces
 
@@ -181,6 +203,20 @@ void FC_FUNC(getdp6, GETDP6)(void *ptr,long long int *address)
   return;
 }
 
+void FC_FUNC(getdp7, GETDP7)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
+void FC_FUNC(getz2, GETZ2)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
 
 void FC_FUNC(getdp1ptr, GETDP1PTR)(void *ptr,long long int *address)
 {
@@ -217,6 +253,13 @@ void FC_FUNC(getdp5ptr, GETDP5PTR)(void *ptr,long long int *address)
   return;
 }
 
+void FC_FUNC(getdp6ptr, GETDP6PTR)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
 void FC_FUNC(geti1ptr, GETI1PTR)(void *ptr,long long int *address)
 {
   *address=0;
@@ -238,7 +281,35 @@ void FC_FUNC(geti3ptr, GETI3PTR)(void *ptr,long long int *address)
   return;
 }
 
+void FC_FUNC(geti4ptr, GETI4PTR)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
+void FC_FUNC(getl2ptr, GETL2PTR)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
+void FC_FUNC(getl3ptr, GETL3PTR)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
 void FC_FUNC(getc1ptr, GETC1ptr)(int *len,void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
+void FC_FUNC(getz1ptr, GETZ1PTR)(void *ptr,long long int *address)
 {
   *address=0;
   *address = (long long int)ptr;

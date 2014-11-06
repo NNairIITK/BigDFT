@@ -4,4 +4,4 @@ F  F   1             #  Use resolution of the identity (ROI), write ROI states, 
 T    2    1          # Pre-check, n_virt_tot, n_virt
 T    F    F    F     # Write_UNKp.s, write_spherical_harmonics, write_angular_parts,  write_radial_parts
   68   68   74       # Number of points for each axis in the cubic  BigDFT representation (information needed by Wannier90)
-   1 
+ data

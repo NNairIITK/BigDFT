@@ -25,7 +25,7 @@ subroutine plot_density_cube_old(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,n
   character(len=3) :: advancestring
   character(len=5) :: suffix
   character(len=15) :: message
-  integer :: nl1,nl2,nl3,i_all,i_stat,i1,i2,i3,ind,ierr,icount,j,iat,ia,ib,nbxz,nby
+  integer :: nl1,nl2,nl3,i1,i2,i3,ind,ierr,icount,j,iat,ia,ib,nbxz,nby
   real(dp) :: a,b
   real(dp), dimension(:,:), pointer :: pot_ion
 
@@ -51,8 +51,7 @@ subroutine plot_density_cube_old(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,n
 
   if (nproc > 1) then
      !allocate full density in pot_ion array
-     allocate(pot_ion(n1i*n2i*n3i,nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,pot_ion,'pot_ion',subname)
+     pot_ion = f_malloc_ptr((/ n1i*n2i*n3i, nspin /),id='pot_ion')
 
      call MPI_ALLGATHERV(rho(1,1),n1i*n2i*n3p,&
           mpidtypd,pot_ion(1,1),ngatherarr(0,1),&
@@ -115,9 +114,7 @@ subroutine plot_density_cube_old(filename,iproc,nproc,n1,n2,n3,n1i,n2i,n3i,n3p,n
   end if
 
   if (nproc > 1) then
-     i_all=-product(shape(pot_ion))*kind(pot_ion)
-     deallocate(pot_ion,stat=i_stat)
-     call memocc(i_stat,i_all,'pot_ion',subname)
+     call f_free_ptr(pot_ion)
   end if
 
 contains
@@ -186,7 +183,7 @@ subroutine read_density_cube_old(filename, n1i,n2i,n3i, nspin, hxh,hyh,hzh, nat,
   character(len=5) :: suffix
   character(len=15) :: message
   character(len=3) :: advancestring
-  integer :: i_all,i_stat,i1,i2,i3,ind,icount,j,iat,ia
+  integer :: i1,i2,i3,ind,icount,j,iat,ia
 
   if (nspin /=2) then
      suffix=''
@@ -224,23 +221,17 @@ contains
         !atomic number and positions
 
         if( associated(rxyz) ) then
-           i_all=-product(shape(rxyz))*kind(rxyz)
-           deallocate(rxyz,stat=i_stat)
-           call memocc(i_stat,i_all,'rxyz',subname)
+           call f_free_ptr(rxyz)
         end if
         
-        allocate(rxyz(3,nat+ndebug),stat=i_stat)
-        call memocc(i_stat,rxyz,'rxyz',subname)
+        rxyz = f_malloc_ptr((/ 3, nat /),id='rxyz')
         
 
         if( associated(rho ).and. ia==1 ) then
-           i_all=-product(shape(rho))*kind(rho)
-           deallocate(rho,stat=i_stat)
-           call memocc(i_stat,i_all,'rho',subname)
+           call f_free_ptr(rho)
         end if
         if(ia==1) then
-           allocate(rho(n1i*n2i*n3i+ndebug) ,stat=i_stat)
-           call memocc(i_stat,rho,'rho',subname)
+           rho = f_malloc_ptr(n1i*n2i*n3i,id='rho')
         endif
 
         do iat=1,nat
@@ -433,7 +424,7 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
   character(len=*), parameter :: subname='plot_density'
   character(len=5) :: suffix
   character(len=65) :: message
-  integer :: i_all,i_stat,ierr,ia,ib,isuffix,fformat,n1i,n2i,n3i
+  integer :: ierr,ia,ib,isuffix,fformat,n1i,n2i,n3i
   real(dp) :: a,b
   real(gp) :: hxh,hyh,hzh
   real(dp), dimension(:,:), pointer :: pot_ion
@@ -448,8 +439,7 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
 
   if (nproc > 1) then
      !allocate full density in pot_ion array
-     allocate(pot_ion(box%ndimgrid,nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,pot_ion,'pot_ion',subname)
+     pot_ion = f_malloc_ptr((/ box%ndimgrid, nspin /),id='pot_ion')
 
      call MPI_ALLGATHERV(rho(1,1),box%ndimpot,&
           mpidtypd,pot_ion(1,1),box%ngatherarr(0,1),&
@@ -556,9 +546,7 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
 
 
   if (nproc > 1) then
-     i_all=-product(shape(pot_ion))*kind(pot_ion)
-     deallocate(pot_ion,stat=i_stat)
-     call memocc(i_stat,i_all,'pot_ion',subname)
+     call f_free_ptr(pot_ion)
   end if
 
 END SUBROUTINE plot_density
@@ -582,7 +570,7 @@ subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   integer, dimension(:), pointer, optional :: iatypes, znucl
 
   character(len = *), parameter :: subname = "read_density"
-  integer :: isuffix,fformat,nat_read, i_stat, i_all
+  integer :: isuffix,fformat,nat_read
   real(gp), dimension(:,:), pointer :: rxyz_read
   integer, dimension(:), pointer :: iatypes_read, znucl_read
 
@@ -625,15 +613,9 @@ subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      znucl => znucl_read
      nat=nat_read
   else
-     i_all=-product(shape(rxyz_read))*kind(rxyz_read)
-     deallocate(rxyz_read,stat=i_stat)
-     call memocc(i_stat,i_all,'rxyz_read',subname)
-     i_all=-product(shape(iatypes_read))*kind(iatypes_read)
-     deallocate(iatypes_read,stat=i_stat)
-     call memocc(i_stat,i_all,'iatypes_read',subname)
-     i_all=-product(shape(znucl_read))*kind(znucl_read)
-     deallocate(znucl_read,stat=i_stat)
-     call memocc(i_stat,i_all,'znucl_read',subname)
+     call f_free_ptr(rxyz_read)
+     call f_free_ptr(iatypes_read)
+     call f_free_ptr(znucl_read)
   end if
 END SUBROUTINE read_density
 
@@ -654,7 +636,6 @@ subroutine plot_wf(orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi)
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
   !Local variables
   character(len=*), parameter :: subname='plot_wf'
-  integer :: i_stat,i_all
   integer :: n1i,n2i,n3i,n1,n2,n3,n1s,n2s,n3s
   type(workarr_sumrho) :: w
   real(wp), dimension(:), allocatable :: psir
@@ -671,8 +652,7 @@ subroutine plot_wf(orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi)
 
   call initialize_work_arrays_sumrho(lr,w)
 
-  allocate(psir(lr%d%n1i*lr%d%n2i*lr%d%n3i+ndebug),stat=i_stat)
-  call memocc(i_stat,psir,'psir',subname)
+  psir = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='psir')
   !initialisation
   if (lr%geocode == 'F') then
      call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
@@ -684,9 +664,7 @@ subroutine plot_wf(orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi)
        at,factor,rxyz,n1i,n2i,n3i,n1s,n2s,n3s,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
        1.0_gp,psir,nexpo,0.0_gp,psir)
 
-  i_all=-product(shape(psir))*kind(psir)
-  deallocate(psir,stat=i_stat)
-  call memocc(i_stat,i_all,'psir',subname)
+  call f_free(psir)
 
   call deallocate_work_arrays_sumrho(w)
 
@@ -708,7 +686,7 @@ subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,
   real(dp), dimension(n1i,n2i,max(n3p,1),nspin), intent(out) :: pot
   !local variables
   character(len=*), parameter :: subname='read_potential_from_disk'
-  integer :: n1t,n2t,n3t,nspint,ierror,ierr,i_all,i_stat,ispin
+  integer :: n1t,n2t,n3t,nspint,ierror,ierr,ispin
   real(gp) :: hxt,hyt,hzt
   real(dp), dimension(:,:,:,:), pointer :: pot_from_disk
 
@@ -726,8 +704,7 @@ subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,
         call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
      end if
   else
-     allocate(pot_from_disk(1,1,1,nspin+ndebug),stat=i_stat)
-     call memocc(i_stat,pot_from_disk,'pot_from_disk',subname)
+     pot_from_disk = f_malloc_ptr((/ 1, 1, 1, nspin /),id='pot_from_disk')
   end if
 
   if (nproc > 1) then
@@ -741,9 +718,7 @@ subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,
      call vcopy(n1i*n2i*n3i*nspin,pot_from_disk(1,1,1,1),1,pot(1,1,1,1),1)
   end if
 
-  i_all=-product(shape(pot_from_disk))*kind(pot_from_disk)
-  deallocate(pot_from_disk,stat=i_stat)
-  call memocc(i_stat,i_all,'pot_from_disk',subname)
+  call f_free_ptr(pot_from_disk)
 
 end subroutine read_potential_from_disk
 
@@ -828,7 +803,7 @@ contains
     integer, dimension(:), pointer :: iatypes, znucl
     !local variables
     character(len=*), parameter :: subname='read_cube_header'
-    integer :: n1t,n2t,n3t,n1,n2,n3,idum,iat,i_stat,i_all,j
+    integer :: n1t,n2t,n3t,n1,n2,n3,idum,iat,j
     integer :: nl1,nl2,nl3,nbx,nby,nbz
     real(gp) :: dum1,dum2,dum3
     integer, dimension(:), allocatable :: znucl_
@@ -871,22 +846,16 @@ contains
     n3i=2*n3+(1-nbz)+2*nl3
 
     !atomic positions
-    allocate(rxyz(3,nat+ndebug),stat=i_stat)
-    call memocc(i_stat,rxyz,'rxyz',subname)
-    allocate(iatypes(nat+ndebug),stat=i_stat)
-    call memocc(i_stat,iatypes,'iatypes',subname)
-    allocate(znucl_(nat+ndebug),stat=i_stat)
-    call memocc(i_stat,znucl_,'znucl_',subname)
+    rxyz = f_malloc_ptr((/ 3, nat /),id='rxyz')
+    iatypes = f_malloc_ptr(nat,id='iatypes')
+    znucl_ = f_malloc(nat,id='znucl_')
     znucl_(:) = -1
 
     if(associated(rho)) then
-       i_all=-product(shape(rho))*kind(rho)
-       deallocate(rho,stat=i_stat)
-       call memocc(i_stat,i_all,'rho',subname)
+       call f_free_ptr(rho)
     end if
 
-    allocate(rho(n1i,n2i,n3i,nspin+ndebug) ,stat=i_stat)
-    call memocc(i_stat,rho,'rho',subname)
+    rho = f_malloc_ptr((/ n1i, n2i, n3i, nspin /),id='rho')
 
     do iat=1,nat
        read(22,'(i5,4(f12.6))') idum , dum1 , (rxyz(j,iat),j=1,3)
@@ -905,13 +874,10 @@ contains
           exit
        end if
     end do
-    allocate(znucl(j-1+ndebug),stat=i_stat)
-    call memocc(i_stat,znucl,'znucl',subname)
+    znucl = f_malloc_ptr(j-1,id='znucl')
     znucl(1:j-1) = znucl_(1:j-1)
 
-    i_all=-product(shape(znucl_))*kind(znucl_)
-    deallocate(znucl_,stat=i_stat)
-    call memocc(i_stat,i_all,'znucl_',subname)
+    call f_free(znucl_)
 
     close(22)
      
@@ -1011,7 +977,7 @@ END SUBROUTINE read_cube_field
 
 !> Calculate the dipole of a Field given in the rho array.
 !! The parallel distribution used is the one of the potential
-subroutine calc_dipole(box,nspin,at,rxyz,rho)
+subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
   use module_base
   use module_types
   use yaml_output
@@ -1021,11 +987,15 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(dp), dimension(box%ndims(1),box%ndims(2),max(box%n3p, 1),nspin), target, intent(in) :: rho
+  logical,intent(in) :: calculate_quadropole
+
   character(len=*), parameter :: subname='calc_dipole'
-  integer :: i_all,i_stat,ierr,n3p,nc1,nc2,nc3
-  real(gp) :: q,qtot
-  integer  :: iat,i1,i2,i3, nl1,nl2,nl3, ispin,n1i,n2i,n3i
-  real(gp), dimension(3) :: dipole_el,dipole_cores,tmpdip
+  integer :: ierr,n3p,nc1,nc2,nc3
+  real(gp) :: q,qtot, delta_term,x,y,z,ri,rj
+  integer  :: iat,i1,i2,i3, nl1,nl2,nl3, ispin,n1i,n2i,n3i, i, j
+  real(gp), dimension(3) :: dipole_el,dipole_cores,tmpdip,charge_center_cores
+  real(gp),dimension(3,nspin) :: charge_center_elec
+  real(gp), dimension(3,3) :: quadropole_el,quadropole_cores,tmpquadrop
   real(dp), dimension(:,:,:,:), pointer :: ele_rho
 !!$  real(dp), dimension(:,:,:,:), pointer :: rho_buf
   
@@ -1036,8 +1006,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
 
   if (box%mpi_env%nproc > 1) then
      !allocate full density in pot_ion array
-     allocate(ele_rho(n1i,n2i,n3i,nspin),stat=i_stat)
-     call memocc(i_stat,ele_rho,'ele_rho',subname)
+     ele_rho = f_malloc_ptr((/ n1i, n2i, n3i, nspin /),id='ele_rho')
 
 !Commented out, it is enough to allocate the rho at 1
 !!$     ! rho_buf is used instead of rho for avoiding the case n3p=0 in 
@@ -1106,19 +1075,169 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
 
   end do
 
+
+  if (calculate_quadropole) then
+
+      ! charge center
+      charge_center_cores(1:3)=0.d0
+      qtot=0.d0
+      do iat=1,at%astruct%nat
+          q=at%nelpsp(at%astruct%iatype(iat))
+          charge_center_cores(1:3) = charge_center_cores(1:3) + q*at%astruct%rxyz(1:3,iat)
+          qtot=qtot+q
+      end do
+      charge_center_cores=charge_center_cores/qtot
+
+
+      quadropole_cores(1:3,1:3)=0._gp
+      do iat=1,at%astruct%nat
+          do i=1,3
+              select case (i)
+              case (1)
+                  !ri=at%astruct%rxyz(1,iat)-charge_center_cores(1)
+                  ri=at%astruct%rxyz(1,iat)
+              case (2)
+                  !ri=at%astruct%rxyz(2,iat)-charge_center_cores(2)
+                  ri=at%astruct%rxyz(2,iat)
+              case (3)
+                  !ri=at%astruct%rxyz(3,iat)-charge_center_cores(3)
+                  ri=at%astruct%rxyz(3,iat)
+              case default
+                  stop 'wrong value of i'
+              end select
+              do j=1,3
+                  select case (j)
+                  case (1)
+                      !rj=at%astruct%rxyz(1,iat)-charge_center_cores(1)
+                      rj=at%astruct%rxyz(1,iat)
+                  case (2)
+                      !rj=at%astruct%rxyz(2,iat)-charge_center_cores(2)
+                      rj=at%astruct%rxyz(2,iat)
+                  case (3)
+                      !rj=at%astruct%rxyz(3,iat)-charge_center_cores(3)
+                      rj=at%astruct%rxyz(3,iat)
+                  case default
+                      stop 'wrong value of j'
+                  end select
+                  if (i==j) then
+                      !delta_term = (at%astruct%rxyz(1,iat)-charge_center_cores(1))**2 + &
+                      !             (at%astruct%rxyz(2,iat)-charge_center_cores(2))**2 + &
+                      !             (at%astruct%rxyz(3,iat)-charge_center_cores(3))**2
+                      delta_term = at%astruct%rxyz(1,iat)**2 + &
+                                   at%astruct%rxyz(2,iat)**2 + &
+                                   at%astruct%rxyz(3,iat)**2
+                  else
+                      delta_term=0.d0
+                  end if
+                  q=at%nelpsp(at%astruct%iatype(iat))
+                  quadropole_cores(j,i) = quadropole_cores(j,i) + q*(3.d0*rj*ri-delta_term)
+              end do
+          end do
+      end do
+
+      !!ele_rho=0.d0
+      !!do iat=1,at%astruct%nat
+      !!    i1=nint((at%astruct%rxyz(1,iat)/at%astruct%cell_dim(1))*real(nc1,dp))+nl1
+      !!    i2=nint((at%astruct%rxyz(2,iat)/at%astruct%cell_dim(2))*real(nc2,dp))+nl2
+      !!    i3=nint((at%astruct%rxyz(3,iat)/at%astruct%cell_dim(3))*real(nc3,dp))+nl3
+      !!    if (bigdft_mpi%iproc==0) write(*,*) 'iat,i1,i2,i3',iat,i1,i2,i3
+      !!    ele_rho(i1,i2,i3,1)=real(at%nelpsp(at%astruct%iatype(iat)))/product(box%hgrids)
+      !!end do
+
+
+      ! charge center
+      charge_center_elec(1:3,1:nspin)=0.d0
+      do ispin=1,nspin
+          qtot=0.d0
+          do i3=0,nc3 - 1
+              do i2=0,nc2 - 1
+                  do i1=0,nc1 - 1
+                      q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(box%hgrids)
+                      x=at%astruct%cell_dim(1)/real(nc1,dp)*i1
+                      y=at%astruct%cell_dim(2)/real(nc2,dp)*i2
+                      z=at%astruct%cell_dim(3)/real(nc3,dp)*i3
+                      charge_center_elec(1,ispin) = charge_center_elec(1,ispin) + q*x
+                      charge_center_elec(2,ispin) = charge_center_elec(2,ispin) + q*y
+                      charge_center_elec(3,ispin) = charge_center_elec(3,ispin) + q*z
+                      qtot=qtot+q
+                  end do
+              end do
+          end do
+          charge_center_elec(1:3,ispin)=charge_center_elec(1:3,ispin)/qtot
+      end do
+
+      quadropole_el(1:3,1:3)=0._gp
+      do ispin=1,nspin
+          do i3=0,nc3 - 1
+              do i2=0,nc2 - 1
+                  do i1=0,nc1 - 1
+                      q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(box%hgrids)
+                      x=at%astruct%cell_dim(1)/real(nc1,dp)*i1
+                      y=at%astruct%cell_dim(2)/real(nc2,dp)*i2
+                      z=at%astruct%cell_dim(3)/real(nc3,dp)*i3
+                      do i=1,3
+                          select case (i)
+                          case (1)
+                              !ri=x-charge_center_cores(1)
+                              ri=x+(charge_center_cores(1)-charge_center_elec(1,ispin))
+                          case (2)
+                              !ri=y-charge_center_cores(2)
+                              ri=y+(charge_center_cores(2)-charge_center_elec(2,ispin))
+                          case (3)
+                              !ri=z-charge_center_cores(3)
+                              ri=z+(charge_center_cores(3)-charge_center_elec(3,ispin))
+                          case default
+                              stop 'wrong value of i'
+                          end select
+                          do j=1,3
+                              select case (j)
+                              case (1)
+                                  !rj=x-charge_center_cores(1)
+                                  rj=x+(charge_center_cores(1)-charge_center_elec(1,ispin))
+                              case (2)
+                                  !rj=y-charge_center_cores(2)
+                                  rj=y+(charge_center_cores(2)-charge_center_elec(2,ispin))
+                              case (3)
+                                  !rj=z-charge_center_cores(3)
+                                  rj=z+(charge_center_cores(3)-charge_center_elec(3,ispin))
+                              case default
+                                  stop 'wrong value of j'
+                              end select
+                              if (i==j) then
+                                  !delta_term = (x-charge_center_cores(1))**2 + &
+                                  !             (y-charge_center_cores(2))**2 + &
+                                  !             (z-charge_center_cores(3))**2
+                                  delta_term = (x+(charge_center_cores(1)-charge_center_elec(1,ispin)))**2 + &
+                                               (y+(charge_center_cores(2)-charge_center_elec(2,ispin)))**2 + &
+                                               (z+(charge_center_cores(3)-charge_center_elec(3,ispin)))**2
+                              else
+                                  delta_term=0.d0
+                              end if
+                              quadropole_el(j,i) = quadropole_el(j,i) + q*(3.d0*rj*ri-delta_term)
+                          end do
+                      end do
+                  end do
+              end do
+          end do
+      end do
+
+      tmpquadrop=quadropole_cores+quadropole_el
+
+  end if
+
   if(box%mpi_env%iproc + box%mpi_env%igroup==0) then
      !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      tmpdip=dipole_cores+dipole_el
-     call yaml_open_map('Electric Dipole Moment (AU)')
+     call yaml_mapping_open('Electric Dipole Moment (AU)')
        call yaml_map('P vector',tmpdip(1:3),fmt='(1pe13.4)')
        call yaml_map('norm(P)',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')
-     call yaml_close_map()
+     call yaml_mapping_close()
      tmpdip=tmpdip/0.393430307_gp  ! au2debye              
-     call yaml_open_map('Electric Dipole Moment (Debye)')
+     call yaml_mapping_open('Electric Dipole Moment (Debye)')
        call yaml_map('P vector',tmpdip(1:3),fmt='(1pe13.4)')
        call yaml_map('norm(P)',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')
-     call yaml_close_map()
+     call yaml_mapping_close()
 
 !!$     write(*,'(1x,a)')repeat('-',61)//' Electric Dipole Moment'
 
@@ -1134,12 +1253,34 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho)
      !97 format (20x,3a15  ,"    ==> ",a15)
      !98 format (a20,3f15.7,"    ==> ",f15.5)
 
+
+      if (calculate_quadropole) then
+          !call yaml_sequence_open('core quadropole')
+          !do i=1,3
+          !   call yaml_sequence(trim(yaml_toa(quadropole_cores(i,1:3),fmt='(es15.8)')))
+          !end do
+          !call yaml_sequence_close()
+
+          !call yaml_sequence_open('electronic quadropole')
+          !do i=1,3
+          !   call yaml_sequence(trim(yaml_toa(quadropole_el(i,1:3),fmt='(es15.8)')))
+          !end do
+          !call yaml_sequence_close()
+
+          call yaml_sequence_open('Quadropole Moment (AU)')
+          do i=1,3
+             call yaml_sequence(trim(yaml_toa(tmpquadrop(i,1:3),fmt='(es15.8)')))
+          end do
+          call yaml_map('trace',tmpquadrop(1,1)+tmpquadrop(2,2)+tmpquadrop(3,3),fmt='(es12.2)')
+          call yaml_sequence_close()
+      end if
+
+
+
   endif
 
   if (box%mpi_env%nproc > 1) then
-     i_all=-product(shape(ele_rho))*kind(ele_rho)
-     deallocate(ele_rho,stat=i_stat)
-     call memocc(i_stat,i_all,'ele_rho',subname)
+     call f_free_ptr(ele_rho)
 !!$     i_all=-product(shape(rho_buf))*kind(rho_buf)
 !!$     deallocate(rho_buf,stat=i_stat)
 !!$     call memocc(i_stat,i_all,'rho_buf',subname)

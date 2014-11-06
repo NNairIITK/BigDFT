@@ -40,8 +40,7 @@ module module_defs
   !> Flag for GPU computing, if OpenCL libraries are present
   !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
   !! this value can be changed in the read_input_variables routine
-  logical :: OCLconv=.false.
-  logical :: ASYNCconv=.true.
+  logical, parameter :: ASYNCconv=.true.
 
   !> Logical parameter for the projectors application strategy (true for distributed way)
   !! if the projector allocation passes the memorylimit this is switched to true
@@ -64,16 +63,24 @@ module module_defs
   real(gp), parameter :: kb_HaK=8.617343d-5/Ha_eV                       !< Boltzmann constant in Ha/K
   real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp !< 1 atomic mass unit, in electronic mass
   real(gp), parameter :: AU_GPa=29421.010901602753_gp                   !< 1 Ha/Bohr^3 in GPa
+  real(gp), parameter :: Radian_Degree = 57.29577951308232087679_gp     !< 1 radian in degrees
 
   !> Evergreens
   real(dp), parameter :: pi_param=3.141592653589793238462643383279502884197_dp
+
+  !> Error codes, to be documented little by little
+  integer :: BIGDFT_RUNTIME_ERROR                   !< Error during runtime
+  integer :: BIGDFT_MPI_ERROR                       !< See error definitions below
+  integer :: BIGDFT_LINALG_ERROR                    !< To be moved to linalg wrappers
+  integer :: BIGDFT_INPUT_VARIABLES_ERROR           !< Problems in parsing or in consistency of input variables
+  integer :: BIGDFT_INPUT_FILE_ERROR                !< The file does not exist!
 
   !> Code constants.
   !real(gp), parameter :: UNINITIALISED = -123456789._gp
 
   !interface for uninitialized variable
   interface UNINITIALIZED
-     module procedure uninitialized_dbl,uninitialized_int,uninitialized_real,uninitialized_long
+     module procedure uninitialized_dbl,uninitialized_int,uninitialized_real,uninitialized_long, uninitialized_logical
   end interface
 
   interface
@@ -120,6 +127,15 @@ module module_defs
       uninitialized_dbl=-123456789.d0
     end function uninitialized_dbl
 
+    function uninitialized_logical(one) 
+      implicit none
+      logical, intent(in) :: one
+      logical :: uninitialized_logical
+      integer :: foo
+      foo = kind(one)
+      uninitialized_logical=.false.
+    end function uninitialized_logical
+
     function fnrm_denpot(x,cplex,nfft,nspden,opt_denpot,user_data)
       use m_ab7_mixing, only: AB7_MIXING_DENSITY
       implicit none
@@ -164,9 +180,14 @@ module module_defs
       end if
       
       ! Summarize on processors
-      fnrm_denpot = nrm_local
-      call MPI_ALLREDUCE(nrm_local, fnrm_denpot, 1, &
-           & MPI_DOUBLE_PRECISION, MPI_SUM, bigdft_mpi%mpi_comm, ierr)
+      !fnrm_denpot = nrm_local
+      if (bigdft_mpi%nproc>1) then
+          call MPI_ALLREDUCE(nrm_local, fnrm_denpot, 1, &
+               & MPI_DOUBLE_PRECISION, MPI_SUM, bigdft_mpi%mpi_comm, ierr)
+      else
+          fnrm_denpot = nrm_local
+          ierr = 0
+      end if
       if (ierr /= 0) then
          call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
       end if
@@ -239,8 +260,13 @@ module module_defs
       
       ! Summarize on processors
       fdot_denpot = dot_local
-      call MPI_ALLREDUCE(dot_local, fdot_denpot, 1, &
-           & MPI_DOUBLE_PRECISION, MPI_SUM, bigdft_mpi%mpi_comm, ierr)
+      if (bigdft_mpi%nproc>1) then
+          call MPI_ALLREDUCE(dot_local, fdot_denpot, 1, &
+               & MPI_DOUBLE_PRECISION, MPI_SUM, bigdft_mpi%mpi_comm, ierr)
+      else
+          fdot_denpot = dot_local
+          ierr = 0
+      end if
       if (ierr /= 0) then
          call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
       end if

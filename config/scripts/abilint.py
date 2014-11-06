@@ -92,9 +92,6 @@
 # Declaration  declaration statements of all variables
 # Execution    execution statements
 #
-# The class Include is a special class to handle the include statement.
-# abilint gives an ersatz of 'mpif.f' file for commodity.
-#
 # Two special classes are not added as children because they duplicate the code:
 # Fortran_Type      inherited of the class Declaration to handle fortran types.
 # Fortran_Interface inherited of the class Fortran_Type to handle declaration of interfaces.
@@ -2974,7 +2971,7 @@ class Declaration(Code):
                         for unfound_module in unfound_modules:
                             texte += " %s" % unfound_module
                         message("%s\n   " % texte \
-                                + " This modules are not found and"  \
+                                + " These modules are not found and"  \
                                 + " the argument '%s' depends on '%s' which could be in these modules." \
                                 % (arg.name,name))
                     else:
@@ -3232,7 +3229,8 @@ class Variable:
                 self.optional = True
             elif head == "parameter":
                 self.parameter = True
-            elif head == "pointer":
+            elif head[-7:] == "pointer":
+                #For this stupid ABI_CONTIGUOUS pointer!
                 self.pointer = True
             elif head == "private":
                 self.private = True
@@ -3648,7 +3646,7 @@ class Include(Code):
                 if not self.struct:
                     if self.includefile in project.given_include:
                         #We use own version of these include files as 'mpif.h'
-                        self.message.error("Use own version of '%s'" % self.includefile)
+                        self.message.warning("Use own version of '%s'" % self.includefile)
                         file = project.add_file('.',self.includefile,create=True,read_only=True,File_Class=File_F90)
                         file.add_code(project.given_include[self.includefile])
                         self.struct = file

@@ -1941,11 +1941,11 @@ program conv_check_ocl
 !         write(*,'(a,f9.4,f10.2)')'Finished. Time(ms), GFlops',&
 !            &   time*1.d3/real(ntimes,kind=8),&
 !         real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(time*1.d9)
-         call yaml_open_map(trim(field))
+         call yaml_mapping_open(trim(field))
          call yaml_map('ms',time*1.d3/real(ntimes,kind=8),fmt='(f10.2)')
          call yaml_map('Gflop/s',real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(time*1.d9),fmt='(f10.2)')
          call yaml_map('Dims',dims,fmt='(i8)')
-         call yaml_close_map()
+         call yaml_mapping_close()
 
       end if
 
@@ -1977,22 +1977,22 @@ program conv_check_ocl
 
       !yaml output
       call yaml_comment(trim(field),hfill='-')
-      call yaml_open_map(trim(field),flow=.true.)
+      call yaml_mapping_open(trim(field),flow=.true.)
 !      call yaml_newline()
-      call yaml_open_map('CPU')
+      call yaml_mapping_open('CPU')
        call yaml_map('ms',REFtime*1.d3/real(ntimes,kind=8),fmt='(f10.2)')
        call yaml_map('Gflop/s',real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(REFtime*1.d9),fmt='(f10.2)')
-      call yaml_close_map()
-      call yaml_open_map('GPU')
+      call yaml_mapping_close()
+      call yaml_mapping_open('GPU')
        call yaml_map('ms',TESTtime*1.d3/real(ntimes,kind=8),fmt='(f10.2)')
        call yaml_map('Gflop/s',real(ntimes,kind=8)*real(nbelem,kind=8)*real(nop,kind=8)/(TESTtime*1.d9),fmt='(f10.2)')
-      call yaml_close_map()
+      call yaml_mapping_close()
       call yaml_newline()
       call yaml_map('Ratio',REFtime/TESTtime,fmt='(f8.3)')
       call yaml_map('Dims',dims,fmt='(i8)')
       call yaml_map('No. Elems',nbelem,fmt='(i14)')
       call yaml_map('Max. Diff.',maxdiff,fmt='(1pe12.4)')
-      call yaml_close_map(advance='no')
+      call yaml_mapping_close(advance='no')
       if (maxdiff <= threshold) then
          call yaml_newline()   
       else

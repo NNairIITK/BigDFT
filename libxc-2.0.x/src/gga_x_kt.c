@@ -34,7 +34,6 @@ typedef struct{
 static void 
 gga_x_kt_init(XC(func_type) *p)
 {
-  gga_x_kt_params *params;
 
   assert(p!=NULL && p->params == NULL);
   p->params = malloc(sizeof(gga_x_kt_params));
@@ -105,7 +104,8 @@ const XC(func_info_type) XC(func_info_gga_x_kt1) = {
   1e-32, 1e-32, 0.0, 1e-32,
   gga_x_kt_init, 
   NULL, NULL,
-  work_gga_x
+  work_gga_x,
+  NULL
 };
 
 
@@ -118,7 +118,8 @@ const XC(func_info_type) XC(func_info_gga_xc_kt2) = {
   XC_FLAGS_3D | XC_FLAGS_HAVE_EXC | XC_FLAGS_HAVE_VXC,
   1e-32, 1e-32, 0.0, 1e-32,
   gga_xc_kt2_init, 
-  NULL, NULL, NULL
+  NULL, NULL, NULL,
+  NULL
 };
 
 

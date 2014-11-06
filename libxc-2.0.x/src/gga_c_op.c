@@ -29,8 +29,7 @@
 
 typedef struct{
   FLOAT qOPab;
-  void (*enhancement_factor)
-    (const XC(func_type) *p, int order, FLOAT x, FLOAT *f, FLOAT *dfdx, FLOAT *d2fdx2);
+  xc_gga_enhancement_t enhancement_factor;
 } gga_c_op_params;
 
 
@@ -93,8 +92,8 @@ func(const XC(func_type) *p, XC(gga_work_c_t) *r)
   }else{
     /* call enhancement factor */
     if(p->info->number != XC_GGA_C_OP_XALPHA){
-      params->enhancement_factor(p->func_aux[0], r->order, r->xs[0], &eu_f, &eu_dfdx, &eu_d2fdx2);
-      params->enhancement_factor(p->func_aux[0], r->order, r->xs[1], &ed_f, &ed_dfdx, &ed_d2fdx2);
+      params->enhancement_factor(p->func_aux[0], r->order, r->xs[0], &eu_f, &eu_dfdx, &eu_d2fdx2, NULL);
+      params->enhancement_factor(p->func_aux[0], r->order, r->xs[1], &ed_f, &ed_dfdx, &ed_d2fdx2, NULL);
     }else{
       eu_f = ed_f = 1.0;
       eu_dfdx = ed_dfdx = 0.0;
@@ -172,6 +171,7 @@ const XC(func_info_type) XC(func_info_gga_c_op_b88) = {
   gga_c_op_init,
   NULL, NULL,
   work_gga_c,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_gga_c_op_pbe) = {
@@ -185,6 +185,7 @@ const XC(func_info_type) XC(func_info_gga_c_op_pbe) = {
   gga_c_op_init,
   NULL, NULL,
   work_gga_c,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_gga_c_op_g96) = {
@@ -198,6 +199,7 @@ const XC(func_info_type) XC(func_info_gga_c_op_g96) = {
   gga_c_op_init,
   NULL, NULL,
   work_gga_c,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_gga_c_op_xalpha) = {
@@ -211,4 +213,5 @@ const XC(func_info_type) XC(func_info_gga_c_op_xalpha) = {
   gga_c_op_init,
   NULL, NULL,
   work_gga_c,
+  NULL
 };

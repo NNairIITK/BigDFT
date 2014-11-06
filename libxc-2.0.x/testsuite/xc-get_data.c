@@ -22,6 +22,9 @@
 
 #include <xc.h>
 
+/* xc_config.h needs to be included to use FLOAT and related macros*/
+#include "xc_config.h"
+
 typedef struct {
   int functional;
   int nspin;
@@ -115,7 +118,7 @@ void init_values(xc_values_type *xc_values, char *argv[])
 /*----------------------------------------------------------*/
 void print_values(xc_values_type *xc)
 {
-  //int family = xc_family_from_id(xc->functional, NULL, NULL);
+  /*int family = xc_family_from_id(xc->functional, NULL, NULL);*/
 
   printf(" rhoa= %#0.2E rhob= %#0.2E sigmaaa= %#0.2E sigmaab= %#0.2E sigmabb= %#0.2E lapla= %#0.2E laplb= %#0.2E taua= %#0.2E taub= %#0.2E\n\n",
 	 xc->rho[0], xc->rho[1],
@@ -246,7 +249,7 @@ int main(int argc, char *argv[])
     case XC_FAMILY_GGA:
     case XC_FAMILY_HYB_GGA:
       xc_gga(&func, 1, xc.rho, xc.sigma,
-	     pzk, pvrho, pvsigma, pv2rho2, pv2rhosigma, pv2sigma2);
+	     pzk, pvrho, pvsigma, pv2rho2, pv2rhosigma, pv2sigma2, NULL, NULL, NULL, NULL);
       break;
     case XC_FAMILY_MGGA:
       xc_mgga(&func, 1, xc.rho, xc.sigma, xc.lapl, xc.tau,

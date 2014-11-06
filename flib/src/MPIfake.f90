@@ -17,7 +17,7 @@ END SUBROUTINE MPI_INIT
 subroutine MPI_INITIALIZED(init,ierr)
   implicit none
   integer, intent(out) :: init,ierr
-  init=1
+  init=0
   ierr=0
 END SUBROUTINE  MPI_INITIALIZED
 
@@ -158,7 +158,7 @@ END SUBROUTINE  MPI_REDUCE_SCATTER
 
 subroutine  MPI_ABORT()
   implicit none
-  stop 'MPIFAKE: MPI_ABORT'
+  stop ' MPIFAKE: MPI_ABORT'
 END SUBROUTINE  MPI_ABORT
 
 subroutine  MPI_IRECV()
@@ -323,3 +323,61 @@ real(kind=8) function mpi_wtime()
   mpi_wtime=real(itns,kind=8)*1.d-9
 end function mpi_wtime
 
+real(kind=8) function mpi_wtick()
+  implicit none
+  mpi_wtick=1.d-9
+end function mpi_wtick
+
+subroutine mpi_errhandler_get(comm,errhandler,ierr)
+  implicit none
+  integer, intent(in) :: comm
+  integer, intent(out) :: errhandler,ierr
+  errhandler = comm
+  ierr = 0
+end subroutine mpi_errhandler_get
+
+subroutine mpi_errhandler_set(comm,errhandler,ierr)
+  implicit none
+  integer, intent(in) :: comm,errhandler
+  integer, intent(out) :: ierr
+  ierr = comm*errhandler
+end subroutine mpi_errhandler_set
+
+subroutine mpi_request_free(request,ierr)
+  implicit none
+  integer, intent(inout) :: request
+  integer, intent(out) :: ierr
+  ierr = request
+end subroutine mpi_request_free
+
+subroutine mpi_iprobe()
+  implicit none
+end subroutine mpi_iprobe
+
+subroutine mpi_group_translate_ranks()
+  implicit none
+end subroutine mpi_group_translate_ranks
+
+subroutine mpi_comm_split()
+  implicit none
+end subroutine mpi_comm_split
+
+subroutine mpi_group_rank()
+  implicit none
+end subroutine mpi_group_rank
+
+subroutine mpi_pack_size()
+  implicit none
+end subroutine mpi_pack_size
+
+subroutine mpi_pack()
+  implicit none
+end subroutine mpi_pack
+
+subroutine mpi_unpack()
+  implicit none
+end subroutine mpi_unpack
+
+subroutine mpi_error_class()
+  implicit none
+end subroutine mpi_error_class

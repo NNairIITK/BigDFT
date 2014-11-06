@@ -53,7 +53,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
    implicit none
    integer, intent(in) :: iproc,nproc,natsc,nspin
    type(wavefunctions_descriptors), intent(in) :: wfd
-   type(communications_arrays), target, intent(in) :: comms
+   type(comms_cubic), target, intent(in) :: comms
    type(orbitals_data), target, intent(inout) :: orbs
    type(orthon_data), intent(inout) :: orthpar
    real(wp), dimension(*), intent(out) :: passmat !< passage matrix for building the eigenvectors (the size depends of the optional arguments)
@@ -62,7 +62,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
    real(gp), optional, intent(in) :: etol
    type(orbitals_data), optional, intent(in) :: orbsv
    type(orbitals_data), optional, target, intent(in) :: orbse
-   type(communications_arrays), optional, target, intent(in) :: commse
+   type(comms_cubic), optional, target, intent(in) :: commse
    integer, optional, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
    real(wp), dimension(:), pointer, optional :: psivirt
    !local variables
@@ -74,7 +74,7 @@ subroutine DiagHam(iproc,nproc,natsc,nspin,orbs,wfd,comms,&
    integer :: norbtot,natsceff,norbsc,ndh1,ispin,npsidim,nspinor,ispsi,ispsie,ispsiv !n(c) nvctr
    real(gp) :: tolerance
    type(orbitals_data), pointer :: orbsu
-   type(communications_arrays), pointer :: commu
+   type(comms_cubic), pointer :: commu
    integer, dimension(:,:), allocatable :: norbgrp
    real(wp), dimension(:,:,:), allocatable :: hamovr
    real(wp), dimension(:), pointer :: psiw

@@ -6,10 +6,13 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
 !> Datatypes for localization regions descriptors
 module locregs
   use module_base
   implicit none
+  private 
 
   !> Bounds for coarse and fine grids for kinetic operations
   !! Useful only for isolated systems AND in CPU
@@ -54,8 +57,7 @@ module locregs
      integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i
   end type grid_dimensions
 
-  !> Contains the information needed for describing completely a
-  !! wavefunction localisation region
+  !> Contains the information needed for describing completely a wavefunction localisation region
   type, public :: locreg_descriptors
      character(len=1) :: geocode                !< @copydoc poisson_solver::doc::geocode
      logical :: hybrid_on                       !< Interesting for global, periodic, localisation regions
@@ -66,10 +68,15 @@ module locregs
      real(gp), dimension(3) :: locregCenter !< Center of the locreg 
      real(gp) :: locrad                     !< Cutoff radius of the localization region
      real(gp) :: locrad_kernel              !< Cutoff radius of the localization region (kernel)
+     real(gp) :: locrad_mult                !< Cutoff radius of the localization region for the sparse matrix multiplications
      type(grid_dimensions) :: d
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
   end type locreg_descriptors
+
+  public :: nullify_locreg_descriptors,locreg_null
+  public :: deallocate_locreg_descriptors,deallocate_bounds,deallocate_wfd
+  public :: allocate_wfd,copy_locreg_descriptors,copy_grid_dimensions,nullify_wfd
 
 contains
   
@@ -206,16 +213,6 @@ contains
     wfd%keyvglob=f_malloc_ptr(nsegs,id='wfd%keyvglob')
     wfd%keyglob=f_malloc_ptr((/2,nsegs/),id='wfd%keyglob')
     wfd%keygloc=f_malloc_ptr((/2,nsegs/),id='wfd%keygloc')
-    
-!!$    allocate(wfd%keyglob(2,max(1,wfd%nseg_c+wfd%nseg_f+ndebug)),stat=i_stat)
-!!$    call memocc(i_stat,wfd%keyglob,'keyglob',subname)
-!!$    allocate(wfd%keygloc(2,max(1,wfd%nseg_c+wfd%nseg_f+ndebug)),stat=i_stat)
-!!$    call memocc(i_stat,wfd%keygloc,'keygloc',subname)
-!!$    allocate(wfd%keyvloc(max(1,wfd%nseg_c+wfd%nseg_f+ndebug)),stat=i_stat)
-!!$    call memocc(i_stat,wfd%keyvloc,'keyvloc',subname)
-!!$    allocate(wfd%keyvglob(max(1,wfd%nseg_c+wfd%nseg_f+ndebug)),stat=i_stat)
-!!$    call memocc(i_stat,wfd%keyvglob,'keyvglob',subname)
-
   END SUBROUTINE allocate_wfd
 
   !> De-Allocate wavefunctions_descriptors
@@ -225,111 +222,59 @@ contains
     type(wavefunctions_descriptors) :: wfd
 
     !in case the two objects points to the same target
-    !pay attention that in this case odd behaviour of f_mallo may occur as the
-    !pointers have not been associated by the f_associate routine (to be implemented to date)
     if (associated(wfd%keyglob, target = wfd%keygloc)) then
        !assuming that globals has been created afterwards
-       call f_free_ptr(wfd%keyglob)
        nullify(wfd%keygloc)
-!!$       i_all=-product(shape(wfd%keyglob))*kind(wfd%keyglob)
-!!$       deallocate(wfd%keyglob,stat=i_stat)
-!!$       call memocc(i_stat,i_all,'wfd%keyglob',subname)
-!!$       nullify(wfd%keyglob)
+       call f_free_ptr(wfd%keyglob)
     else
        call f_free_ptr(wfd%keygloc)
        call f_free_ptr(wfd%keyglob)
-!!$       if(associated(wfd%keyglob)) then
-!!$          i_all=-product(shape(wfd%keyglob))*kind(wfd%keyglob)
-!!$          deallocate(wfd%keyglob,stat=i_stat)
-!!$          call memocc(i_stat,i_all,'wfd%keyglob',subname)
-!!$          nullify(wfd%keyglob)
-!!$       end if
-!!$       if(associated(wfd%keygloc)) then 
-!!$          i_all=-product(shape(wfd%keygloc))*kind(wfd%keygloc)
-!!$          deallocate(wfd%keygloc,stat=i_stat)
-!!$          call memocc(i_stat,i_all,'wfd%keygloc',subname)
-!!$          nullify(wfd%keygloc)
-!!$       end if
     end if
     if (associated(wfd%keyvloc, target= wfd%keyvglob)) then
-!!$       i_all=-product(shape(wfd%keyvloc))*kind(wfd%keyvloc)
-!!$       deallocate(wfd%keyvloc,stat=i_stat)
-!!$       call memocc(i_stat,i_all,'wfd%keyvloc',subname)
-!!$       nullify(wfd%keyvloc)
-       call f_free_ptr(wfd%keyvglob)
        nullify(wfd%keyvloc)
+       call f_free_ptr(wfd%keyvglob)
     else
        call f_free_ptr(wfd%keyvloc)
        call f_free_ptr(wfd%keyvglob)
-!!$       if (associated(wfd%keyvloc)) then
-!!$          i_all=-product(shape(wfd%keyvloc))*kind(wfd%keyvloc)
-!!$          deallocate(wfd%keyvloc,stat=i_stat)
-!!$          call memocc(i_stat,i_all,'wfd%keyvloc',subname)
-!!$          nullify(wfd%keyvloc)
-!!$       end if
-!!$       if (associated(wfd%keyvglob)) then
-!!$          i_all=-product(shape(wfd%keyvglob))*kind(wfd%keyvglob)
-!!$          deallocate(wfd%keyvglob,stat=i_stat)
-!!$          call memocc(i_stat,i_all,'wfd%keyvglob',subname)
-!!$          nullify(wfd%keyvglob)
-!!$       end if
     end if
   END SUBROUTINE deallocate_wfd
 
-  !>desctructors
+
+  !> Destructors
   subroutine deallocate_locreg_descriptors(lr)
     implicit none
     ! Calling arguments
     type(locreg_descriptors),intent(inout):: lr
 
     call deallocate_wfd(lr%wfd)
-    call deallocate_convolutions_bounds(lr%bounds,'deallocate_locreg_descriptors')
+    call deallocate_convolutions_bounds(lr%bounds)
 
   end subroutine deallocate_locreg_descriptors
 
+
   !> De-Allocate convolutions_bounds type, depending of the geocode and the hybrid_on
-  subroutine deallocate_bounds(geocode,hybrid_on,bounds,subname)
+  subroutine deallocate_bounds(geocode,hybrid_on,bounds)
     use module_base
     implicit none
     character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
     logical, intent(in) :: hybrid_on 
     type(convolutions_bounds) :: bounds
-    character(len=*), intent(in) :: subname
-    !local variables
-    integer :: i_all,i_stat
 
     if ((geocode == 'P' .and. hybrid_on) .or. geocode == 'F') then
        ! Just test the first one...
        if (associated(bounds%kb%ibyz_f)) then
-          i_all=-product(shape(bounds%kb%ibyz_f))*kind(bounds%kb%ibyz_f)
-          deallocate(bounds%kb%ibyz_f,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%kb%ibyz_f',subname)
-          i_all=-product(shape(bounds%kb%ibxz_f))*kind(bounds%kb%ibxz_f)
-          deallocate(bounds%kb%ibxz_f,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%kb%ibxz_f',subname)
-          i_all=-product(shape(bounds%kb%ibxy_f))*kind(bounds%kb%ibxy_f)
-          deallocate(bounds%kb%ibxy_f,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%kb%ibxy_f',subname)
+          call f_free_ptr(bounds%kb%ibyz_f)
+          call f_free_ptr(bounds%kb%ibxz_f)
+          call f_free_ptr(bounds%kb%ibxy_f)
 
-          i_all=-product(shape(bounds%sb%ibxy_ff))*kind(bounds%sb%ibxy_ff)
-          deallocate(bounds%sb%ibxy_ff,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%sb%ibxy_ff',subname)
-          i_all=-product(shape(bounds%sb%ibzzx_f))*kind(bounds%sb%ibzzx_f)
-          deallocate(bounds%sb%ibzzx_f,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%sb%ibzzx_f',subname)
-          i_all=-product(shape(bounds%sb%ibyyzz_f))*kind(bounds%sb%ibyyzz_f)
-          deallocate(bounds%sb%ibyyzz_f,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%sb%ibyyzz_f',subname)
-          i_all=-product(shape(bounds%gb%ibyz_ff))*kind(bounds%gb%ibyz_ff)
-          deallocate(bounds%gb%ibyz_ff,stat=i_stat)
+          call f_free_ptr(bounds%sb%ibxy_ff)
+          call f_free_ptr(bounds%sb%ibzzx_f)
+          call f_free_ptr(bounds%sb%ibyyzz_f)
 
-          call memocc(i_stat,i_all,'bounds%gb%ibyz_ff',subname)
-          i_all=-product(shape(bounds%gb%ibzxx_f))*kind(bounds%gb%ibzxx_f)
-          deallocate(bounds%gb%ibzxx_f,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%gb%ibzxx_f',subname)
-          i_all=-product(shape(bounds%gb%ibxxyy_f))*kind(bounds%gb%ibxxyy_f)
-          deallocate(bounds%gb%ibxxyy_f,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%gb%ibxxyy_f',subname)
+          call f_free_ptr(bounds%gb%ibyz_ff)
+
+          call f_free_ptr(bounds%gb%ibzxx_f)
+          call f_free_ptr(bounds%gb%ibxxyy_f)
 
           nullify(bounds%kb%ibyz_f)
           nullify(bounds%kb%ibxz_f)
@@ -347,32 +292,18 @@ contains
     if (geocode == 'F') then
        ! Just test the first one...
        if (associated(bounds%kb%ibyz_c)) then
-          i_all=-product(shape(bounds%kb%ibyz_c))*kind(bounds%kb%ibyz_c)
-          deallocate(bounds%kb%ibyz_c,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%kb%ibyz_c',subname)
-          i_all=-product(shape(bounds%kb%ibxz_c))*kind(bounds%kb%ibxz_c)
-          deallocate(bounds%kb%ibxz_c,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%kb%ibxz_c',subname)
-          i_all=-product(shape(bounds%kb%ibxy_c))*kind(bounds%kb%ibxy_c)
-          deallocate(bounds%kb%ibxy_c,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%kb%ibxy_c',subname)
-          i_all=-product(shape(bounds%sb%ibzzx_c))*kind(bounds%sb%ibzzx_c)
-          deallocate(bounds%sb%ibzzx_c,stat=i_stat)
+          call f_free_ptr(bounds%kb%ibyz_c)
+          call f_free_ptr(bounds%kb%ibxz_c)
+          call f_free_ptr(bounds%kb%ibxy_c)
 
-          call memocc(i_stat,i_all,'bounds%sb%ibzzx_c',subname)
-          i_all=-product(shape(bounds%sb%ibyyzz_c))*kind(bounds%sb%ibyyzz_c)
-          deallocate(bounds%sb%ibyyzz_c,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%sb%ibyyzz_c',subname)
-          i_all=-product(shape(bounds%gb%ibzxx_c))*kind(bounds%gb%ibzxx_c)
-          deallocate(bounds%gb%ibzxx_c,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%gb%ibzxx_c',subname)
-          i_all=-product(shape(bounds%gb%ibxxyy_c))*kind(bounds%gb%ibxxyy_c)
-          deallocate(bounds%gb%ibxxyy_c,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%gb%ibxxyy_c',subname)
 
-          i_all=-product(shape(bounds%ibyyzz_r))*kind(bounds%ibyyzz_r)
-          deallocate(bounds%ibyyzz_r,stat=i_stat)
-          call memocc(i_stat,i_all,'bounds%ibyyzz_r',subname)
+          call f_free_ptr(bounds%sb%ibzzx_c)
+          call f_free_ptr(bounds%sb%ibyyzz_c)
+
+          call f_free_ptr(bounds%gb%ibzxx_c)
+          call f_free_ptr(bounds%gb%ibxxyy_c)
+
+          call f_free_ptr(bounds%ibyyzz_r)
 
           nullify(bounds%kb%ibyz_c)
           nullify(bounds%kb%ibxz_c)
@@ -387,9 +318,10 @@ contains
 
   END SUBROUTINE deallocate_bounds
 
-  !methods for copying the structures, can be needed to avoid recalculating them
-  !should be better by defining a f_malloc inheriting the shapes and the structure from other array
-  !of the type dest=f_malloc(src=source,id='dest')
+
+  !> Methods for copying the structures, can be needed to avoid recalculating them
+  !! should be better by defining a f_malloc inheriting the shapes and the structure from other array
+  !! of the type dest=f_malloc(src=source,id='dest')
   subroutine copy_locreg_descriptors(glrin, glrout)
     implicit none
     ! Calling arguments
@@ -407,6 +339,7 @@ contains
     glrout%Localnorb = glrin%Localnorb
     glrout%locrad=glrin%locrad
     glrout%locrad_kernel=glrin%locrad_kernel
+    glrout%locrad_mult=glrin%locrad_mult
     glrout%locregCenter=glrin%locregCenter
     glrout%outofzone= glrin%outofzone
 
@@ -449,7 +382,7 @@ contains
     type(wavefunctions_descriptors), intent(out) :: wfdout
 
     ! Local variables
-!    integer:: i1, i2, iis1, iie1, iis2, iie2, istat, iall
+    !integer:: istat,iis1, iie1, iis2, iie2,i1, i2, iall
 
     !nullify all pointers first
     call nullify_wfd(wfdout)
@@ -459,79 +392,11 @@ contains
     wfdout%nseg_c = wfdin%nseg_c
     wfdout%nseg_f = wfdin%nseg_f
 
+    !no need to insert lbounds as the allocation start from 1
     if (associated(wfdin%keygloc)) wfdout%keygloc=f_malloc_ptr(src=wfdin%keygloc,id='wfdout%keygloc')
     if (associated(wfdin%keyglob)) wfdout%keyglob=f_malloc_ptr(src=wfdin%keyglob,id='wfdout%keyglob')
     if (associated(wfdin%keyvloc)) wfdout%keyvloc=f_malloc_ptr(src=wfdin%keyvloc,id='wfdout%keyvloc')
     if (associated(wfdin%keyvglob))wfdout%keyvglob=f_malloc_ptr(src=wfdin%keyvglob,id='wfdout%keyvglob')
-
-!!$    if(associated(wfdout%keygloc)) then
-!!$       iall=-product(shape(wfdout%keygloc))*kind(wfdout%keygloc)
-!!$       deallocate(wfdout%keygloc, stat=istat)
-!!$       call memocc(istat, iall, 'wfdout%keygloc', subname)
-!!$    end if
-!!$    if(associated(wfdin%keygloc)) then
-!!$       iis1=lbound(wfdin%keygloc,1)
-!!$       iie1=ubound(wfdin%keygloc,1)
-!!$       iis2=lbound(wfdin%keygloc,2)
-!!$       iie2=ubound(wfdin%keygloc,2)
-!!$
-!!$       allocate(wfdout%keygloc(iis1:iie1,iis2:iie2), stat=istat)
-!!$       call memocc(istat, wfdout%keygloc, 'wfdout%keygloc', subname)
-!!$       do i2=iis2,iie2
-!!$          do i1=iis1,iie1
-!!$             wfdout%keygloc(i1,i2) = wfdin%keygloc(i1,i2)
-!!$          end do
-!!$       end do
-!!$    end if
-!!$
-!!$    if(associated(wfdout%keyglob)) then
-!!$       iall=-product(shape(wfdout%keyglob))*kind(wfdout%keygloc)
-!!$       deallocate(wfdout%keyglob, stat=istat)
-!!$       call memocc(istat, iall, 'wfdout%keyglob', subname)
-!!$    end if
-!!$    if(associated(wfdin%keyglob)) then
-!!$       iis1=lbound(wfdin%keyglob,1)
-!!$       iie1=ubound(wfdin%keyglob,1)
-!!$       iis2=lbound(wfdin%keyglob,2)
-!!$       iie2=ubound(wfdin%keyglob,2)
-!!$       allocate(wfdout%keyglob(iis1:iie1,iis2:iie2), stat=istat)
-!!$       call memocc(istat, wfdout%keyglob, 'wfdout%keyglob', subname)
-!!$       do i2=iis2,iie2
-!!$          do i1=iis1,iie1
-!!$             wfdout%keyglob(i1,i2) = wfdin%keyglob(i1,i2)
-!!$          end do
-!!$       end do
-!!$    end if
-!!$
-!!$    if(associated(wfdout%keyvloc)) then
-!!$       iall=-product(shape(wfdout%keyvloc))*kind(wfdout%keyvloc)
-!!$       deallocate(wfdout%keyvloc, stat=istat)
-!!$       call memocc(istat, iall, 'wfdout%keyvloc', subname)
-!!$    end if
-!!$    if(associated(wfdin%keyvloc)) then
-!!$       iis1=lbound(wfdin%keyvloc,1)
-!!$       iie1=ubound(wfdin%keyvloc,1)
-!!$       allocate(wfdout%keyvloc(iis1:iie1), stat=istat)
-!!$       call memocc(istat, wfdout%keyvloc, 'wfdout%keyvloc', subname)
-!!$       do i1=iis1,iie1
-!!$          wfdout%keyvloc(i1) = wfdin%keyvloc(i1)
-!!$       end do
-!!$    end if
-!!$
-!!$    if(associated(wfdout%keyvglob)) then
-!!$       iall=-product(shape(wfdout%keyvglob))*kind(wfdout%keyvglob)
-!!$       deallocate(wfdout%keyvglob, stat=istat)
-!!$       call memocc(istat, iall, 'wfdout%keyvglob', subname)
-!!$    end if
-!!$    if(associated(wfdin%keyvglob)) then
-!!$       iis1=lbound(wfdin%keyvglob,1)
-!!$       iie1=ubound(wfdin%keyvglob,1)
-!!$       allocate(wfdout%keyvglob(iis1:iie1), stat=istat)
-!!$       call memocc(istat, wfdout%keyvglob, 'wfdout%keyvglob', subname)
-!!$       do i1=iis1,iie1
-!!$          wfdout%keyvglob(i1) = wfdin%keyvglob(i1)
-!!$       end do
-!!$    end if
 
   end subroutine copy_wavefunctions_descriptors
 

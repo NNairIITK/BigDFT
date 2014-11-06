@@ -1,5 +1,5 @@
 !>  @file
-!!  File where most relavant screen output are collected
+!!  File where most relevant screen output are collected
 !!  Routines which are present in this file should have *all* arguments as intent(in)
 !!  Also, the master process only should acces these routines
 !! @author
@@ -24,7 +24,7 @@ subroutine print_logo()
 !  call yaml_comment('Daubechies Wavelets for DFT Pseudopotential Calculations',hfill='=')
 
 
-  call yaml_open_map('Code logo')
+  call yaml_mapping_open('Code logo')
 !logo of BigDFT, new version
   call yaml_scalar('"__________________________________ A fast and precise DFT wavelet code')
   call yaml_scalar('|     |     |     |     |     |                                        ')
@@ -77,7 +77,7 @@ subroutine print_logo()
 !!$  call yaml_scalar('          g     i        B     B    ')     
 !!$  call yaml_scalar('         g               B    B     ')     
 !!$  call yaml_scalar('    ggggg       i         BBBB      ') 
-  call yaml_close_map()
+  call yaml_mapping_close()
 
   call yaml_map('Reference Paper','The Journal of Chemical Physics 129, 014109 (2008)')
   call yaml_map('Version Number',package_version)
@@ -104,27 +104,27 @@ subroutine print_configure_options()
   character(len = ln), dimension(4) :: buf
 
   call yaml_comment('Code compiling options',hfill='-')
-  call yaml_open_map("Compilation options")
+  call yaml_mapping_open("Compilation options")
   call bigdft_config_get_user_args(buf(1), ln)
   call yaml_map("Configure arguments", '"'//trim(buf(1))//'"')
   call bigdft_config_get_compilers(buf(1), buf(2), buf(3), ln)
   call yaml_map("Compilers (CC, FC, CXX)", buf(1:3))
   call bigdft_config_get_compiler_flags(buf(1), buf(2), buf(3), buf(4), ln)
-  call yaml_open_map("Compiler flags")
+  call yaml_mapping_open("Compiler flags")
   if (len_trim(buf(1))>0) call yaml_map("CFLAGS",   trim(buf(1)))
   if (len_trim(buf(2))>0) call yaml_map("FCFLAGS",  trim(buf(2)))
   if (len_trim(buf(3))>0) call yaml_map("CXXFLAGS", trim(buf(3)))
   if (len_trim(buf(4))>0) call yaml_map("CPPFLAGS", trim(buf(4)))
-  call yaml_close_map()
+  call yaml_mapping_close()
 !!$  call bigdft_config_get_linker(buf(1), buf(2), buf(3), buf(4), ln)
-!!$  call yaml_open_map("Linker")
+!!$  call yaml_mapping_open("Linker")
 !!$   call yaml_map("LD",      trim(buf(1)))
 !!$   call yaml_map("LDFLAGS", trim(buf(2)))
 !!$   call yaml_map("LIBS",    trim(buf(3)))
 !!$   call yaml_map("Full linking options", trim(buf(4)))
-!!$  call yaml_close_map()
+!!$  call yaml_mapping_close()
 
- call yaml_close_map()
+ call yaml_mapping_close()
 
 end subroutine print_configure_options
 
@@ -134,7 +134,6 @@ subroutine print_general_parameters(in,atoms)
   use module_base
   use module_types
   use defs_basis
-  use m_ab6_symmetry
   use yaml_output
   use module_input_keys, only: input_keys_equal
   implicit none
@@ -142,17 +141,8 @@ subroutine print_general_parameters(in,atoms)
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: atoms
 
-  integer :: nSym, ierr, iat, i
-  integer :: sym(3, 3, AB6_MAX_SYMMETRIES)
-  integer :: symAfm(AB6_MAX_SYMMETRIES)
-  real(gp) :: transNon(3, AB6_MAX_SYMMETRIES)
-  real(gp) :: genAfm(3)
-  character(len=15) :: spaceGroup
+  integer :: iat, i
   character(len=len(in%run_name)) :: prefix
-  integer :: spaceGroupId, pointGroupMagn
-  !integer, parameter :: maxLen = 50, width = 24
-  !character(len = width), dimension(maxLen) :: at, fixed, add
-  !integer :: ityp,lg
   character(len = 11) :: potden
   character(len = 12) :: dos
 
@@ -166,18 +156,14 @@ subroutine print_general_parameters(in,atoms)
   end if
 
   ! Atomic systems
-  call yaml_open_map('Atomic System Properties')
+  call yaml_mapping_open('Atomic System Properties')
      call yaml_map('Number of atomic types', atoms%astruct%ntypes, fmt='(i0)')
      call yaml_map('Number of atoms', atoms%astruct%nat, fmt='(i0)')
      if (atoms%astruct%nat > 0) then
         call yaml_map('Types of atoms',atoms%astruct%atomnames)
-        !call yaml_map('Types of atoms',flow=.true.)
-        !do ityp=1,atoms%astruct%ntypes
-        !   call yaml_sequence(trim(atoms%astruct%atomnames(ityp)))
-        !end do
         ! Fixed positions
         if (maxval(atoms%astruct%ifrztyp) /= 0) then
-           call yaml_open_sequence('Fixed atoms',flow=.true.)
+           call yaml_sequence_open('Fixed atoms',flow=.true.)
            ! The fixed atom column
            do iat=1,atoms%astruct%nat
               if (atoms%astruct%ifrztyp(iat) /= 0) then
@@ -186,133 +172,40 @@ subroutine print_general_parameters(in,atoms)
                       & // trim(yaml_toa(atoms%astruct%ifrztyp(iat),fmt='(i0)')))
               end if
            end do
-           call yaml_close_sequence()
+           call yaml_sequence_close()
         end if
      end if
      !Boundary Conditions
-     !call yaml_map('Geometry Code',trim(atoms%astruct%geocode))
-     if (atoms%astruct%geocode == 'P') then
+     select case(atoms%astruct%geocode)
+     case('P')
         call yaml_map('Boundary Conditions','Periodic',advance='no')
         call yaml_comment('Code: '//atoms%astruct%geocode)
         call yaml_map('Box Sizes (AU)',(/atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),&
              atoms%astruct%cell_dim(3)/),fmt='(1pe12.5)')
-     else if (atoms%astruct%geocode ==  'S') then
+     case('S')
         call yaml_map('Boundary Conditions','Surface',advance='no')
         call yaml_comment('Code: '//atoms%astruct%geocode)
         call yaml_map('Box Sizes (AU)',(/atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),&
              atoms%astruct%cell_dim(3)/),fmt='(1pe12.5)')
-     else if (atoms%astruct%geocode == 'F') then
+     case('W')
+        call yaml_map('Boundary Conditions','Wire',advance='no')
+        call yaml_comment('Code: '//atoms%astruct%geocode)
+        call yaml_map('Box Sizes (AU)',(/atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),&
+             atoms%astruct%cell_dim(3)/),fmt='(1pe12.5)')
+     case('F')
         call yaml_map('Boundary Conditions','Free',advance='no')
         call yaml_comment('Code: '//atoms%astruct%geocode)
-     end if
+     end select
+
      !Symmetries
-     if (atoms%astruct%geocode /= 'F' .and. .not. in%disableSym) then
-        call symmetry_get_matrices(atoms%astruct%sym%symObj, nSym, sym, transNon, symAfm, ierr)
-        call symmetry_get_group(atoms%astruct%sym%symObj, spaceGroup, &
-             & spaceGroupId, pointGroupMagn, genAfm, ierr)
-        if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
-     else 
-        nSym = 0
-        spaceGroup = 'disabled'
-     end if
-     call yaml_map('Number of Symmetries',nSym)
-     call yaml_map('Space group',trim(spaceGroup))
-  call yaml_close_map()
-
-  !write(*,'(1x,a,a,a)') '--- (file: posinp.', &
-  !     & atoms%astruct%inputfile_format, ') --------------------------------------- in atomic system'
-  !write(*, "(A)")   "   Atomic system                  Fixed positions           Additional data"
-  !do i = 1, maxLen
-  !   write(at(i), "(a)") " "
-  !   write(fixed(i), "(a)") " "
-  !   write(add(i), "(a)") " "
-  !end do
-  !write(fixed(1), '(a)') "No fixed atom"
-  !write(add(1), '(a)') "No symmetry for open BC"
-  
-  ! The atoms column
-  !write(at(1), '(a,a)')  "Bound. C.= ", atoms%astruct%geocode
-  !write(at(2), '(a,i5)') "N. types = ", atoms%astruct%ntypes
-  !write(at(3), '(a,i5)') "N. atoms = ", atoms%astruct%nat
-  !lg = 12
-  !i = 4
-  !write(at(i),'(a)' )    "Types    = "
-  !do ityp=1,atoms%astruct%ntypes - 1
-  !   if (lg + 4 + len(trim(atoms%astruct%atomnames(ityp))) >= width) then
-  !      i = i + 1
-  !      lg = 12
-  !      write(at(i),'(a)') "           "
-  !   end if
-  !   write(at(i)(lg:),'(3a)') "'", trim(atoms%astruct%atomnames(ityp)), "', "
-  !   lg = lg + 4 + len(trim(atoms%astruct%atomnames(ityp)))
-  !end do
-  !!Case no atom
-  !if (atoms%astruct%ntypes > 0) then
-  !   if (lg + 2 + len(trim(atoms%astruct%atomnames(ityp))) >= width) then
-  !      i = i + 1
-  !      lg = 12
-  !      write(at(i),'(a)') "           "
-  !   end if
-  !   write(at(i)(lg:),'(3a)') "'", trim(atoms%astruct%atomnames(ityp)), "'"
-  !end if
-
-  ! The fixed atom column
-  !i = 1
-  !do iat=1,atoms%astruct%nat
-  !   if (atoms%astruct%ifrztyp(iat)/=0) then
-  !      if (i > maxLen) exit
-  !      write(fixed(i),'(a,i4,a,a,a,i3)') &
-  !           "at.", iat,' (', &
-  !           & trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),&
-  !           ') ',atoms%astruct%ifrztyp(iat)
-  !      i = i + 1
-  !   end if
-  !end do
-  !if (i > maxLen) write(fixed(maxLen), '(a)') " (...)"
-
-  ! The additional data column
-  !if (atoms%astruct%geocode /= 'F' .and. .not. in%disableSym) then
-  !   call symmetry_get_matrices(atoms%astruct%sym%symObj, nSym, sym, transNon, symAfm, ierr)
-  !   call symmetry_get_group(atoms%astruct%sym%symObj, spaceGroup, &
-  !        & spaceGroupId, pointGroupMagn, genAfm, ierr)
-  !   if (ierr == AB6_ERROR_SYM_NOT_PRIMITIVE) write(spaceGroup, "(A)") "not prim."
-  !   write(add(1), '(a,i0)')       "N. sym.   = ", nSym
-  !   write(add(2), '(a,a,a)')      "Sp. group = ", trim(spaceGroup)
-  !else if (atoms%astruct%geocode /= 'F' .and. in%disableSym) then
-  !   write(add(1), '(a)')          "N. sym.   = disabled"
-  !   write(add(2), '(a)')          "Sp. group = disabled"
-  !else
-  !   write(add(1), '(a)')          "N. sym.   = free BC"
-  !   write(add(2), '(a)')          "Sp. group = free BC"
-  !end if
-  !i = 3
-  !if (in%nvirt > 0) then
-  !   write(add(i), '(a,i5,a)')     "Virt. orb.= ", in%nvirt, " orb."
-  !   write(add(i + 1), '(a,i5,a)') "Plot dens.= ", abs(in%nplot), " orb."
-  !else
-  !   write(add(i), '(a)')          "Virt. orb.= none"
-  !   write(add(i + 1), '(a)')      "Plot dens.= none"
-  !end if
-  !i = i + 2
-  !if (in%nspin==4) then
-  !   write(add(i),'(a)')           "Spin pol. = non-coll."
-  !else if (in%nspin==2) then
-  !   write(add(i),'(a)')           "Spin pol. = collinear"
-  !else if (in%nspin==1) then
-  !   write(add(i),'(a)')           "Spin pol. = no"
-  !end if
-
-  ! Printing
-  !do i = 1, maxLen
-  !   if (len(trim(at(i))) > 0 .or. len(trim(fixed(i))) > 0 .or. len(trim(add(i))) > 0) then
-  !      write(*,"(1x,a,1x,a,1x,a,1x,a,1x,a)") at(i), "|", fixed(i), "|", add(i)
-  !   end if
-  !end do
+     call yaml_map('Number of Symmetries',atoms%astruct%sym%nSym)
+     call yaml_map('Space group',trim(atoms%astruct%sym%spaceGroup))
+  call yaml_mapping_close()
 
   !Geometry imput Parameters
   if (in%ncount_cluster_x > 0) then
      call yaml_comment('Geometry optimization Input Parameters (file: '//trim(prefix)//'.geopt)',hfill='-')
-     call yaml_open_map('Geometry Optimization Parameters')
+     call yaml_mapping_open('Geometry Optimization Parameters')
         call yaml_map('Maximum steps',in%ncount_cluster_x)
         call yaml_map('Algorithm', in%geopt_approach)
         call yaml_map('Random atomic displacement', in%randdis, fmt='(1pe7.1)')
@@ -322,9 +215,9 @@ subroutine print_general_parameters(in,atoms)
         if (trim(in%geopt_approach) == "DIIS") then
            call yaml_map('DIIS history', in%history)
         end if
-     call yaml_close_map()
+     call yaml_mapping_close()
      if (input_keys_equal(trim(in%geopt_approach),"AB6MD")) then
-        call yaml_open_map('Molecular Dynamics Parameters')
+        call yaml_mapping_open('Molecular Dynamics Parameters')
            call yaml_map('ionmov',in%ionmov)
            call yaml_map('dtion', in%dtion,fmt='(0pf7.0)')
            if (in%ionmov > 7) then
@@ -342,7 +235,7 @@ subroutine print_general_parameters(in,atoms)
               call yaml_map('bmass',in%bmass,fmt='(f15.5)')
               call yaml_map('vmass',in%vmass,fmt='(f15.5)')
            end if
-        call yaml_close_map()
+        call yaml_mapping_close()
      end if
      !write(*,'(1x,a)') '--- (file: input.geopt) ------------------------------------- Geopt Input Parameters'
      !write(*, "(A)")   "       Generic param.              Geo. optim.                MD param."
@@ -390,12 +283,12 @@ subroutine print_general_parameters(in,atoms)
         call yaml_warning('symmetries have been disabled, k points are not irreductible.')
         !write(*, "(1x,A)") "WARNING: symmetries have been disabled, k points are not irreductible."
      end if
-     call yaml_open_sequence('K points')!,advance='no')
+     call yaml_sequence_open('K points')!,advance='no')
      !call yaml_comment('Reduced coordinates  BZ coordinates  weight',hfill=' ')
      !write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
      do i = 1, in%gen_nkpt, 1
         call yaml_sequence(advance='no')
-        call yaml_open_map(flow=.true.)
+        call yaml_mapping_open(flow=.true.)
           call yaml_map( 'Rc', &
              & in%gen_kpt(:, i) * atoms%astruct%cell_dim / two_pi,&
              & fmt='(f7.4)')
@@ -403,21 +296,21 @@ subroutine print_general_parameters(in,atoms)
              & in%gen_kpt(:, i), &
              & fmt='(f7.4)')
           call yaml_map('Wgt',in%gen_wkpt(i),fmt='(f6.4)')
-        call yaml_close_map(advance='no')
+        call yaml_mapping_close(advance='no')
         call yaml_comment(trim(yaml_toa(i,fmt='(i4.4)')))
         !write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
         !     & in%kpt(:, i) * (/ atoms%astruct%cell_dim(1), atoms%astruct%cell_dim(2), atoms%astruct%cell_dim(3) /) / two_pi, &
         !     & in%wkpt(i), i, in%kpt(:, i)
      end do
-     call yaml_close_sequence()
+     call yaml_sequence_close()
 
      if (in%nkptv > 0) then
-        call yaml_open_sequence('K points for band structure calculation')
+        call yaml_sequence_open('K points for band structure calculation')
         !write(*, "(1x,a)")    " K points for band structure calculation"
         !write(*, "(1x,a)")    "       red. coordinates         weight       id        BZ coordinates"
         do i = 1, in%nkptv, 1
           call yaml_sequence(advance='no')
-          call yaml_open_map(trim(yaml_toa(i,fmt='(i0)')),flow=.true.)
+          call yaml_mapping_open(trim(yaml_toa(i,fmt='(i0)')),flow=.true.)
           call yaml_map( 'Red C.', &
              & in%kptv(:, i) * (/ atoms%astruct%cell_dim(1), atoms%astruct%cell_dim(2), &
              & atoms%astruct%cell_dim(3) /) / two_pi,&
@@ -426,12 +319,12 @@ subroutine print_general_parameters(in,atoms)
              & in%kptv(:, i), &
              & fmt='(f9.5)')
           call yaml_map('Weight',1.0d0 / real(size(in%kptv, 2), gp),fmt='(f9.5)')
-          call yaml_close_map()
+          call yaml_mapping_close()
         !   write(*, "(1x,3f9.5,2x,f9.5,5x,I4,1x,3f9.5)") &
         !        & in%kptv(:, i) * (/ atoms%astruct%cell_dim(1), atoms%astruct%cell_dim(2), atoms%astruct%cell_dim(3) /) / two_pi, &
         !        & 1.0d0 / real(size(in%kptv, 2), gp), i, in%kptv(:, i)
         end do
-        call yaml_close_sequence()
+        call yaml_sequence_close()
      end if
   end if
 
@@ -443,7 +336,7 @@ subroutine print_general_parameters(in,atoms)
         write(potden, "(A)") "density"
      end if
      call yaml_comment('Mixing (file: '//trim(prefix)//'.mix)',hfill='-')
-     call yaml_open_map('Mixing parameters')
+     call yaml_mapping_open('Mixing parameters')
         call yaml_map('Target',trim(potden))
         call yaml_map('Additional bands', in%norbsempty)
         call yaml_map('Mixing Coefficients', in%alphamix,fmt='(0pe10.2)')
@@ -459,7 +352,7 @@ subroutine print_general_parameters(in,atoms)
            write(dos, "(A)") "no verb. < 3"
         end if
         call yaml_map('output DOS',trim(dos))
-     call yaml_close_map()
+     call yaml_mapping_close()
      !write(*,'(1x,a)') '--- (file: input.mix) ------------------------------------------------------- Mixing'
      !write(*,"(1x,A12,A12,1x,A1,1x,A12,I12,1x,A1,1x,A11,F10.2)") &
      !     & "     Target=", potden,        "|", &
@@ -496,10 +389,14 @@ subroutine print_dft_parameters(in,atoms)
 
   call yaml_comment('Input parameters',hfill='-')
 
-  call yaml_open_map('DFT parameters')
-    call yaml_open_map('eXchange Correlation')
+  call yaml_mapping_open('DFT parameters')
+    call yaml_mapping_open('eXchange Correlation')
       call yaml_map('XC ID',in%ixc,fmt='(i8)',label='ixc')
-      call xc_dump()
+      if (in%ixc < 0) then
+         call xc_dump(in%ixc, XC_MIXED, in%nspin)
+      else
+         call xc_dump(in%ixc, XC_ABINIT, in%nspin)
+      end if
       if (in%nspin>=2) then
          call yaml_map('Polarisation',in%mpol)
          !write(*,'(1x,a,i7,1x,a)')&
@@ -512,21 +409,21 @@ subroutine print_dft_parameters(in,atoms)
       else if (in%nspin==1) then
          call yaml_map('Spin polarization',.false.)
       end if
-    call yaml_close_map()
+    call yaml_mapping_close()
 
     if (in%ncharge > 0) call yaml_map('Net Charge (Ions-Electrons)',in%ncharge,fmt='(i8)')
     if (sqrt(sum(in%elecfield(:)**2)) > 0.0_gp) &
       call yaml_map('External Electric Field (Ha/a0)',in%elecfield(:),fmt='(1pe8.1)')
-  call yaml_close_map()
+  call yaml_mapping_close()
 
-  call yaml_open_map('Basis set definition')
+  call yaml_mapping_open('Basis set definition')
     call yaml_map('Suggested Grid Spacings (a0)', (/in%hx,in%hy,in%hz/),fmt='(f5.2)')
     call yaml_map('Coarse and Fine Radii Multipliers', (/in%crmult,in%frmult/),fmt='(f4.1)')
-  call yaml_close_map()
+  call yaml_mapping_close()
 
 
-  call yaml_open_map('Self-Consistent Cycle Parameters')
-    call yaml_open_map('Wavefunction')
+  call yaml_mapping_open('Self-Consistent Cycle Parameters')
+    call yaml_mapping_open('Wavefunction')
       call yaml_map('Gradient Norm Threshold',in%gnrm_cv,fmt='(1pe8.1)',label='gnrm_cv')
       call yaml_map('CG Steps for Preconditioner',in%ncong,fmt='(i5)')
       call yaml_map('DIIS History length',in%idsx)
@@ -543,24 +440,24 @@ subroutine print_dft_parameters(in,atoms)
       call yaml_map('Virtual orbitals',in%nvirt,fmt='(i0)')
       call yaml_map('Number of plotted density orbitals',abs(in%nplot),fmt='(i0)')
   
-    call yaml_close_map()
+    call yaml_mapping_close()
 
-    call yaml_open_map('Density/Potential')
+    call yaml_mapping_open('Density/Potential')
        call yaml_map('Max. Iterations',in%itrpmax)
-    call yaml_close_map()
-  call yaml_close_map()
+    call yaml_mapping_close()
+  call yaml_mapping_close()
 
   if (atoms%astruct%geocode == 'F') then
-     call yaml_open_map('Post Optimization Parameters')
+     call yaml_mapping_open('Post Optimization Parameters')
 
-     call yaml_open_map('Finite-Size Effect estimation')
+     call yaml_mapping_open('Finite-Size Effect estimation')
      call yaml_map('Scheduled',(in%rbuf > 0.0_gp))
      if (in%rbuf > 0.0_gp) then
         call yaml_map('Extension',in%rbuf,fmt='(f4.1)')
         call yaml_map('No. of CG steps',in%ncongt)
      end if
-     call yaml_close_map()
-     call yaml_close_map()
+     call yaml_mapping_close()
+     call yaml_mapping_close()
   end if
 
 !!$  write(*,'(1x,a)')&
@@ -652,12 +549,15 @@ subroutine write_input_parameters(in)!,atoms)
 end subroutine write_input_parameters
 
 
+!> Write the energies for a given iteration
 subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment,only_energies)
   use module_base
   use module_types
   use yaml_output
   implicit none
-  integer, intent(in) :: iter,iscf
+  !Arguments
+  integer, intent(in) :: iter !< Iteration Id
+  integer, intent(in) :: iscf
   type(energy_terms), intent(in) :: energs
   real(gp), intent(in) :: gnrm,gnrm_zero
   character(len=*), intent(in) :: comment
@@ -679,7 +579,7 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment,only_energies)
 
   if (iscf < 1 .and. verbose > 0) then
      call yaml_newline()
-     call yaml_open_map('Energies',flow=.true.)
+     call yaml_mapping_open('Energies',flow=.true.)
   !call yaml_flow_map()
   !call yaml_indent_map('Energies')
      if (energs%ekin /= 0.0_gp)&
@@ -709,7 +609,7 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment,only_energies)
              call yaml_map('TS',energs%eTS,fmt='(1pe18.11)')
 
      end if
-     call yaml_close_map()
+     call yaml_mapping_close()
   end if
 
   if (.not.write_only_energies) then
@@ -776,33 +676,26 @@ subroutine write_eigenvalues_data(etol,orbs,mom_vec)
   else
      tolerance=etol
   end if
+  
+  ! Calculate and print the magnetisation, no matter the verbosity
+  if (orbs%nspin == 2) then
+     mpol = 0._gp
+     do ikpt=1,orbs%nkpts
+        isorb = (ikpt - 1) * orbs%norb
+        do iorb = 1, orbs%norbu
+           mpol = mpol + orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
+        end do
+        do iorb = orbs%norbu + 1, orbs%norb, 1
+           mpol = mpol - orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
+        end do
+     end do
+     call yaml_map("Total magnetization",mpol,fmt='(f9.6)')
+  end if
 
   if (verbose > 1) then
      call yaml_comment('Eigenvalues and New Occupation Numbers')
-     !call yaml_open_map('Eigenvalues and New Occupation Numbers')
-     !write(*,'(1x,a)')&
-     !     &   '--------------------------------------- Kohn-Sham Eigenvalues and Occupation Numbers'
-     ! Calculate and print the magnetisation
-     if (orbs%nspin == 2) then
-        mpol = 0._gp
-        do ikpt=1,orbs%nkpts
-           isorb = (ikpt - 1) * orbs%norb
-           do iorb = 1, orbs%norbu
-              mpol = mpol + orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
-           end do
-           do iorb = orbs%norbu + 1, orbs%norb, 1
-              mpol = mpol - orbs%occup(isorb + iorb) * orbs%kwgts(ikpt)
-           end do
-        end do
-        !write(*,"(1x,A,f9.6)")"Total magnetisation: ", mpol
-        call yaml_map("Total magnetization",mpol,fmt='(f9.6)')
-     end if
-     !if (orbs%nspinor ==4) then
-     !   write(*,'(1x,a)')&
-     !        &   '           Eigenvalue                                      m_x       m_y       m_z'
-     !end if
 
-     call yaml_open_sequence('Orbitals',flow=.true.)
+     call yaml_sequence_open('Orbitals',flow=.true.)
      call yaml_newline()
 
      do ikpt=1,orbs%nkpts
@@ -837,7 +730,7 @@ subroutine write_eigenvalues_data(etol,orbs,mom_vec)
                    spinsignw,ikptw,mx,my,mz)
               !yaml output (carriage return)
               if (iorb == orbs%norb .and. ikpt == orbs%nkpts) then
-                 call yaml_close_sequence(advance='no')
+                 call yaml_sequence_close(advance='no')
                  !print *,'there',nwrtmsg,message
               end if
               call yaml_comment(trim(yaml_toa(iorb,fmt='(i5.5)')),advance='no')
@@ -868,7 +761,7 @@ subroutine write_eigenvalues_data(etol,orbs,mom_vec)
               if (degup .or. degdw) nwrtmsg=1
               if (degup .and. degdw) message='  <-deg->  '
               if (iorb == orbs%norbu .and. orbs%norbu==orbs%norbd .and. ikpt == orbs%nkpts) then
-                 call yaml_close_sequence(advance='no')
+                 call yaml_sequence_close(advance='no')
               end if
               call yaml_comment(trim(yaml_toa(iorb,fmt='(i5.5)')),advance='no')
               if (nwrtmsg==1) then
@@ -887,7 +780,7 @@ subroutine write_eigenvalues_data(etol,orbs,mom_vec)
                  !yaml output (carriage return)
                  degup = find_degeneracy_up(iorb+isorb)
                  if (iorb == orbs%norbu .and. ikpt == orbs%nkpts) then
-                    call yaml_close_sequence(advance='no')
+                    call yaml_sequence_close(advance='no')
                  end if
                  call yaml_comment(trim(yaml_toa(iorb,fmt='(i5.5)')),advance='no')
                  if (nwrtmsg==1) then
@@ -904,7 +797,7 @@ subroutine write_eigenvalues_data(etol,orbs,mom_vec)
                  !yaml output (carriage return)
                  degdw = find_degeneracy_down(iorb+isorb)
                  if (iorb == orbs%norbd .and. ikpt == orbs%nkpts) then
-                    call yaml_close_sequence(advance='no')
+                    call yaml_sequence_close(advance='no')
                  end if
                  call yaml_comment(trim(yaml_toa(iorb,fmt='(i5.5)')),advance='no')
                  if (nwrtmsg==1) then
@@ -917,7 +810,7 @@ subroutine write_eigenvalues_data(etol,orbs,mom_vec)
         end if
      end do
      ! Close the map of Eigenvalues and New Occupations Numbers
-     !call yaml_close_map()
+     !call yaml_mapping_close()
   end if
   !find fermi level
   if (orbs%efermi /= uninitialized(orbs%efermi)) then
@@ -1017,7 +910,7 @@ subroutine write_ig_eigenvectors(etol,orbse,nspin,norb,norbu,norbd)
       stop
    end if
 
-  call yaml_open_sequence('Input Guess Orbitals',flow=.true.)!,advance='no')
+  call yaml_sequence_open('Input Guess Orbitals',flow=.true.)!,advance='no')
   call yaml_newline()
 
   !always without spinors in the IG
@@ -1138,7 +1031,7 @@ subroutine write_ig_eigenvectors(etol,orbse,nspin,norb,norbu,norbd)
          end if
       end if
       if (iorb == orbse%norbu .and. ikpt == orbse%nkpts) then
-         call yaml_close_sequence(advance='no')
+         call yaml_sequence_close(advance='no')
       end if
       if (nwrtmsg==1) then
          call yaml_comment(adjustl(message))
@@ -1173,7 +1066,7 @@ subroutine write_orbital_data(eval,occup,spinsign,ikpt,mx,my,mz)
   logical :: smallfmt
 
 
-  call yaml_open_map(flow=.true.)
+  call yaml_mapping_open(flow=.true.)
   !change the format if the spin and the k-point are initialized at the same way
   smallfmt=ikpt /= UNINITIALIZED(ikpt) .and. spinsign /= UNINITIALIZED(spinsign)
 
@@ -1199,7 +1092,7 @@ subroutine write_orbital_data(eval,occup,spinsign,ikpt,mx,my,mz)
   end if
   if (mx /= UNINITIALIZED(mx) .and. my /= UNINITIALIZED(my) .and. mz /= UNINITIALIZED(mz)) &
      call yaml_map('M',(/mx,my,mz/),fmt='(f8.5)')
-  call yaml_close_map(advance='no')
+  call yaml_mapping_close(advance='no')
  
 END SUBROUTINE write_orbital_data
 
@@ -1223,11 +1116,11 @@ subroutine write_diis_weights(ncplx,idsx,ngroup,nkpts,itdiis,rds)
 !!$             (/ncplx*(itdiis+1)/))!,&
            !yaml output
            call yaml_newline()
-           call yaml_open_sequence('DIIS weights',flow=.true.)
+           call yaml_sequence_open('DIIS weights',flow=.true.)
            do j=1,itdiis+1
               call yaml_sequence(yaml_toa(rds(1,j,1,1),fmt='(1pe9.2)'))
            end do
-           call yaml_close_sequence()
+           call yaml_sequence_close()
            !call yaml_map('DIIS weights',&
            !     (/(rds(1:ncplx,j,1,1),j=1,itdiis+1)/),fmt='(1pe9.2)')
         end if
@@ -1273,14 +1166,14 @@ subroutine write_gnrms(nkpts,norb,gnrms)
   integer :: ikpt,iorb
 
   call yaml_newline()
-  call yaml_open_sequence('Residues per orbital',flow=.true.)
+  call yaml_sequence_open('Residues per orbital',flow=.true.)
   call yaml_newline()
 
   do ikpt=1,nkpts
      if (nkpts > 1) call yaml_comment('Kpt #'//adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)'))))
      do iorb=1,norb
         call yaml_sequence(trim(yaml_toa(gnrms(iorb,ikpt),fmt='(1pe19.12)')),advance='no')
-        if (ikpt == nkpts .and. iorb == norb)   call yaml_close_sequence(advance='no')
+        if (ikpt == nkpts .and. iorb == norb)   call yaml_sequence_close(advance='no')
         call yaml_comment(trim(yaml_toa(iorb,fmt='(i5.5)')))
      end do
   end do
@@ -1305,14 +1198,14 @@ subroutine write_forces(atoms,fxyz)
    sumy=0.d0
    sumz=0.d0
    call yaml_comment('Atomic Forces',hfill='-')
-   call yaml_open_sequence('Atomic Forces (Ha/Bohr)')
+   call yaml_sequence_open('Atomic Forces (Ha/Bohr)')
    do iat=1,atoms%astruct%nat
       call yaml_sequence(advance='no')
-      call yaml_open_map(flow=.true.)
+      call yaml_mapping_open(flow=.true.)
       call yaml_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),fxyz(1:3,iat),fmt='(1pe20.12)')
       !call yaml_map('AU',fxyz(1:3,iat),fmt='(1pe20.12)')
       !call yaml_map('eV/A',fxyz(1:3,iat)*Ha_eV/Bohr_Ang,fmt='(1pe9.2)')
-      call yaml_close_map(advance='no')
+      call yaml_mapping_close(advance='no')
       call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
 !      write(*,'(1x,i5,1x,a6,3(1x,1pe12.5))') &
 !      iat,trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),(fxyz(j,iat),j=1,3)
@@ -1320,7 +1213,7 @@ subroutine write_forces(atoms,fxyz)
       sumy=sumy+fxyz(2,iat)
       sumz=sumz+fxyz(3,iat)
    end do
-   call yaml_close_sequence()
+   call yaml_sequence_close()
    !$$        if (.not. inputs%gaussian_help .or. .true.) then !zero of the forces calculated
    !$$           write(*,'(1x,a)')'the sum of the forces is'
    !$$           write(*,'(1x,a16,3x,1pe16.8)')'x direction',sumx
@@ -1328,6 +1221,7 @@ subroutine write_forces(atoms,fxyz)
    !$$           write(*,'(1x,a16,3x,1pe16.8)')'z direction',sumz
    !$$        end if
 END SUBROUTINE write_forces
+
 
 !> Write stress tensor matrix
 subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
@@ -1340,11 +1234,11 @@ subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
   real(gp), dimension(6), intent(in) :: strten
   !local variables
   
-  call yaml_open_sequence(trim(message)//' stress tensor matrix (Ha/Bohr^3)')
+  call yaml_sequence_open(trim(message)//' stress tensor matrix (Ha/Bohr^3)')
   call yaml_sequence(yaml_toa((/strten(1),strten(6),strten(5)/),fmt='(1pg20.12)'))
   call yaml_sequence(yaml_toa((/strten(6),strten(2),strten(4)/),fmt='(1pg20.12)'))
   call yaml_sequence(yaml_toa((/strten(5),strten(4),strten(3)/),fmt='(1pg20.12)'))
-  call yaml_close_sequence()
+  call yaml_sequence_close()
   !write(*,'(1x,a)')'Stress Tensor, '//trim(message)//' contribution (Ha/Bohr^3):'
   !write(*,'(1x,t10,10x,a,t30,10x,a,t50,10x,a)')'x','y','z'
   !write(*,'(1x,a,t10,1pe20.12,t30,1pe20.12,t50,1pe20.12)')'x',strten(1),strten(6),strten(5)
@@ -1352,23 +1246,25 @@ subroutine write_strten_info(fullinfo,strten,volume,pressure,message)
   !write(*,'(1x,a,t50,1pe20.12)')'z',strten(3)
 
   if (fullinfo) then
-     call yaml_open_map('Pressure')
+     call yaml_mapping_open('Pressure')
      call yaml_map('Ha/Bohr^3',pressure,fmt='(1pg22.14)')
      call yaml_map('GPa',pressure*AU_GPa,fmt='(1pg14.6)')
      call yaml_map('PV (Ha)',pressure*volume,fmt='(1pg22.14)')
-     call yaml_close_map()
+     call yaml_mapping_close()
      !write(*,'(1x,a,1pe22.14,a,1pe14.6,a,1pe22.14)')'Pressure:',pressure,&
      !     ' (',pressure*AU_GPa,' GPa), P V:',pressure*volume
   end if
 
 END SUBROUTINE write_strten_info
 
+
 !> Assign some of the physical system variables
 !! Performs also some cross-checks with other variables
-!! The pointer in atoms structure have to be associated or nullified.
+!! The pointers in atoms structure have to be associated or nullified.
 subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
   use module_base
   use module_types
+  use module_atoms, only: RADII_SOURCE
   use module_xc
   use vdwcorrection
   use yaml_output
@@ -1377,9 +1273,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
   real(gp), intent(in) :: hmax
   integer, intent(in) :: ixc, dispersion
   real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
-  !local variables
-  !character(len=*), parameter :: subname='print_atomic_variables'
-  !integer, parameter :: nelecmax=32,nmax=6,lmax=4,noccmax=2
+  !Local variables
   logical :: nonloc
   integer :: i,j,l,ityp,iat,natyp,mproj,inlcc
   real(gp) :: minrad
@@ -1425,7 +1319,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
   !       '------------------------------------ Pseudopotential coefficients (Upper Triangular)'
   inlcc=0
   call yaml_comment('System Properties',hfill='-')
-  call yaml_open_sequence('Properties of atoms in the system')
+  call yaml_sequence_open('Properties of atoms in the system')
   do ityp=1,atoms%astruct%ntypes
      call yaml_sequence(advance='no')
      call yaml_map('Symbol',trim(atoms%astruct%atomnames(ityp)),advance='no')
@@ -1437,16 +1331,17 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
      end do
      call yaml_map('No. of Atoms',natyp)
 
-     call yaml_open_map('Radii of active regions (AU)')!,flow=.true.)
+     call yaml_mapping_open('Radii of active regions (AU)')!,flow=.true.)
        call yaml_map('Coarse',radii_cf(ityp,1),fmt='(f8.5)')
        call yaml_map('Fine',radii_cf(ityp,2),fmt='(f8.5)')
        call yaml_map('Coarse PSP',radii_cf(ityp,3),fmt='(f8.5)')
-       if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
-          call yaml_map('Source','Hard-Coded')
-       else
-          call yaml_map('Source','PSP File')
-       end if
-     call yaml_close_map()
+       call yaml_map('Source',RADII_SOURCE(atoms%iradii_source(ityp)))
+       !if (atoms%radii_cf(ityp, 1) == UNINITIALIZED(1.0_gp)) then
+       !   call yaml_map('Source','Hard-Coded')
+       !else
+       !   call yaml_map('Source','PSP File')
+       !end if
+     call yaml_mapping_close()
 
      minrad=1.e10_gp
      do i=0,4
@@ -1465,28 +1360,28 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
      end if
 
      select case(atoms%npspcode(ityp))
-     case(2)
+     case(PSPCODE_GTH)
         call yaml_map('Pseudopotential type','GTH')
-     case(3)
+     case(PSPCODE_HGH)
         call yaml_map('Pseudopotential type','HGH')
-     case(10)
+     case(PSPCODE_HGH_K)
         call yaml_map('Pseudopotential type','HGH-K')
-     case(12)
+     case(PSPCODE_HGH_K_NLCC)
         call yaml_map('Pseudopotential type','HGH-K + NLCC')
      end select
      if (atoms%psppar(0,0,ityp)/=0) then
-        call yaml_open_map('Local Pseudo Potential (HGH convention)')
+        call yaml_mapping_open('Local Pseudo Potential (HGH convention)')
           call yaml_map('Rloc',atoms%psppar(0,0,ityp),fmt='(f9.5)')
           call yaml_map('Coefficients (c1 .. c4)',atoms%psppar(0,1:4,ityp),fmt='(f9.5)')
-        call yaml_close_map()
+        call yaml_mapping_close()
      end if
      !nlcc term
-     if (atoms%npspcode(ityp) == 12) then
+     if (atoms%npspcode(ityp) == PSPCODE_HGH_K_NLCC) then
         inlcc=inlcc+1
-        call yaml_open_map('Non Linear Core Correction term')
+        call yaml_mapping_open('Non Linear Core Correction term')
             call yaml_map('Rcore',atoms%nlccpar(0,inlcc),fmt='(f9.5)')
             call yaml_map('Core charge',atoms%nlccpar(1,inlcc),fmt='(f9.5)')
-        call yaml_close_map()
+        call yaml_mapping_close()
      end if
      !see if nonlocal terms are present
      nonloc=.false.
@@ -1501,7 +1396,7 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
         end if
      end do verify_nl
      if (nonloc) then
-        call yaml_open_sequence('NonLocal PSP Parameters')
+        call yaml_sequence_open('NonLocal PSP Parameters')
         do l=1,3
            do i=3,0,-1
               j=i
@@ -1515,24 +1410,24 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
               do i=1,j
                  hij(i,i)=atoms%psppar(l,i,ityp)
               end do
-              if (atoms%npspcode(ityp) == 3) then !traditional HGH convention
+              if (atoms%npspcode(ityp) == PSPCODE_HGH) then !traditional HGH convention
                  hij(1,2)=offdiagarr(1,1,l)*atoms%psppar(l,2,ityp)
                  hij(1,3)=offdiagarr(1,2,l)*atoms%psppar(l,3,ityp)
                  hij(2,3)=offdiagarr(2,1,l)*atoms%psppar(l,3,ityp)
-              else if (atoms%npspcode(ityp) == 10 &
-                  .or. atoms%npspcode(ityp) == 12) then !HGH-K convention
+              else if (atoms%npspcode(ityp) == PSPCODE_HGH_K &
+                  .or. atoms%npspcode(ityp) == PSPCODE_HGH_K_NLCC) then !HGH-K convention
                  hij(1,2)=atoms%psppar(l,4,ityp)
                  hij(1,3)=atoms%psppar(l,5,ityp)
                  hij(2,3)=atoms%psppar(l,6,ityp)
               end if
-              call yaml_open_sequence('h_ij matrix')
+              call yaml_sequence_open('h_ij matrix')
                 call yaml_sequence(trim(yaml_toa(hij(1,1:3),fmt='(f9.5)')))
                 call yaml_sequence(trim(yaml_toa((/hij(1,2),hij(2,2),hij(2,3)/),fmt='(f9.5)')))
                 call yaml_sequence(trim(yaml_toa((/hij(1,3),hij(2,3),hij(3,3)/),fmt='(f9.5)')))
-              call yaml_close_sequence()
+              call yaml_sequence_close()
            end if
         end do
-        call yaml_close_sequence()
+        call yaml_sequence_close()
      end if
      call numb_proj(ityp,atoms%astruct%ntypes,atoms%psppar,atoms%npspcode,mproj)
      call yaml_map('No. of projectors',mproj)
@@ -1550,10 +1445,10 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
      end if
      call yaml_map('PSP XC','"'//trim(name_xc1)//'"')
      if (trim(name_xc1) /= trim(name_xc2)) then
-        call yaml_warning('Input XC is "'//trim(name_xc2) // '"')
+        call yaml_warning('PSP generated with a different XC. Input XC is "'//trim(name_xc2) // '"')
      end if
   end do
-  call yaml_close_sequence()
+  call yaml_sequence_close()
 !!!  tt=dble(norb)/dble(nproc)
 !!!  norbp=int((1.d0-eps_mach*tt) + tt)
 !!!  !if (verb.eq.0) write(*,'(1x,a,1x,i0)') 'norbp=',norbp
@@ -1568,6 +1463,8 @@ subroutine print_atomic_variables(atoms, radii_cf, hmax, ixc, dispersion)
   !  end if
 END SUBROUTINE print_atomic_variables
 
+
+!> Display an estimation of the occupied memory
 subroutine print_memory_estimation(mem)
   use module_types
   use yaml_output
@@ -1575,7 +1472,7 @@ subroutine print_memory_estimation(mem)
   type(memory_estimation), intent(in) :: mem
 
   call yaml_comment('Estimation of Memory Consumption',hfill='-')
-  call yaml_open_map('Memory requirements for principal quantities (MiB.KiB)')
+  call yaml_mapping_open('Memory requirements for principal quantities (MiB.KiB)')
     call yaml_map('Subspace Matrix',trim(MibdotKib(mem%submat)),advance='no')
       call yaml_comment('(Number of Orbitals:'//trim(yaml_toa(mem%norb))//')',tabbing=50)
     call yaml_map('Single orbital',trim(MibdotKib(mem%oneorb)),advance='no')
@@ -1587,16 +1484,16 @@ subroutine print_memory_estimation(mem)
     call yaml_map('Nonlocal Pseudopotential Arrays',trim(MibdotKib(mem%projarr)))
     call yaml_map('Full Uncompressed (ISF) grid',trim(MibdotKib(mem%grid)))
     call yaml_map('Workspaces storage size',trim(MibdotKib(mem%workarr)))
-  call yaml_close_map()
+  call yaml_mapping_close()
 
-  call yaml_open_map('Accumulated memory requirements during principal run stages (MiB.KiB)')
+  call yaml_mapping_open('Accumulated memory requirements during principal run stages (MiB.KiB)')
      call yaml_map('Kernel calculation',trim(MibdotKib(mem%kernel)))
      call yaml_map('Density Construction',trim(MibdotKib(mem%density)))
      call yaml_map('Poisson Solver',trim(MibdotKib(mem%psolver)))
      call yaml_map('Hamiltonian application',trim(MibdotKib(mem%ham)))
      call yaml_map('Orbitals Orthonormalization',trim(MibdotKib(mem%ham+mem%submat)))
 !           call yaml_comment('Wfn, Work, Den, Ker ',tabbing=50)
-  call yaml_close_map()
+  call yaml_mapping_close()
   call yaml_map('Estimated Memory Peak (MB)',yaml_toa(mega(mem%peak)))
 
 contains
@@ -1629,51 +1526,54 @@ contains
 
 END SUBROUTINE print_memory_estimation
 
+
+!> Display information about the box and the grid
 subroutine print_atoms_and_grid(Glr, atoms, rxyz, shift, hx, hy, hz)
   use module_defs
   use module_types
   use yaml_output
   implicit none
+  !Arguments
   type(atoms_data), intent(in) :: atoms
   type(locreg_descriptors), intent(in) :: Glr
   real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
   real(gp), dimension(3), intent(in) :: shift
   real(gp), intent(in) :: hx, hy, hz
-
+  !Local variables
   integer :: iat, iunit
 
   if (atoms%astruct%ntypes > 0) then
      call yaml_comment('Atom Positions',hfill='-')
-     call yaml_open_sequence('Atomic positions within the cell (Atomic and Grid Units)')
+     call yaml_sequence_open('Atomic positions within the cell (Atomic and Grid Units)')
      do iat=1,atoms%astruct%nat
         call yaml_sequence(advance='no')
-        call yaml_open_map(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),flow=.true.)
+        call yaml_mapping_open(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),flow=.true.)
         call yaml_map('AU',rxyz(1:3,iat),fmt='(1pg12.5)')
         call yaml_map('GU',(/rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz/),fmt='(1pg12.5)')
-        call yaml_close_map(advance='no')
+        call yaml_mapping_close(advance='no')
         call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
      enddo
-     call yaml_close_sequence()
+     call yaml_sequence_close()
      call yaml_map('Rigid Shift Applied (AU)',(/-shift(1),-shift(2),-shift(3)/),fmt='(1pg12.5)')
      ! New version
-     call yaml_open_map('Atomic structure')
+     call yaml_mapping_open('Atomic structure')
      call yaml_get_default_stream(unit = iunit)
      call wtyaml(iunit, UNINITIALIZED(1.d0), rxyz, atoms, .false., rxyz, &
           & .true., shift, (/ hx, hy, hz /))
-     call yaml_close_map()
+     call yaml_mapping_close()
   end if
   call yaml_comment('Grid properties',hfill='-')
   call yaml_map('Box Grid spacings',(/hx,hy,hz/),fmt='(f7.4)')
-  call yaml_open_map('Sizes of the simulation domain')
+  call yaml_mapping_open('Sizes of the simulation domain')
   call yaml_map('AU',(/atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),atoms%astruct%cell_dim(3)/),fmt='(1pg12.5)')
   call yaml_map('Angstroem',(/atoms%astruct%cell_dim(1)*Bohr_Ang,&
        atoms%astruct%cell_dim(2)*Bohr_Ang,atoms%astruct%cell_dim(3)*Bohr_Ang/),fmt='(1pg12.5)')
   call yaml_map('Grid Spacing Units',(/Glr%d%n1,Glr%d%n2,Glr%d%n3/),fmt='(i4)')
-  call yaml_open_map('High resolution region boundaries (GU)',flow=.false.)
+  call yaml_mapping_open('High resolution region boundaries (GU)',flow=.false.)
   call yaml_map('From',(/Glr%d%nfl1,Glr%d%nfl2,Glr%d%nfl3/),fmt='(i4)')
   call yaml_map('To',(/Glr%d%nfu1,Glr%d%nfu2,Glr%d%nfu3/),fmt='(i4)')
-  call yaml_close_map()
-  call yaml_close_map()
+  call yaml_mapping_close()
+  call yaml_mapping_close()
 !!$      write(*,'(1x,a,19x,a)') 'Shifted atomic positions, Atomic Units:','grid spacing units:'
 !!$      do iat=1,atoms%astruct%nat
 !!$         write(*,'(1x,i5,1x,a6,3(1x,1pe12.5),3x,3(1x,0pf9.3))') &
@@ -1702,24 +1602,24 @@ subroutine print_wfd(wfd)
   implicit none
   type(wavefunctions_descriptors), intent(in) :: wfd
 
-  call yaml_open_map('Wavefunctions Descriptors, full simulation domain')
+  call yaml_mapping_open('Wavefunctions Descriptors, full simulation domain')
   !write(*,'(1x,a)')&
   !   &   '------------------------------------------------- Wavefunctions Descriptors Creation'
 
   !write(*,'(2(1x,a,i10))') &
   !     &   'Coarse resolution grid: Number of segments= ',Glr%wfd%nseg_c,'points=',Glr%wfd%nvctr_c
-  call yaml_open_map('Coarse resolution grid')!,flow=.true.)
+  call yaml_mapping_open('Coarse resolution grid')!,flow=.true.)
   call yaml_map('No. of segments',wfd%nseg_c)
   call yaml_map('No. of points',wfd%nvctr_c)
-  call yaml_close_map()
+  call yaml_mapping_close()
 
   !write(*,'(2(1x,a,i10))')
   !'  Fine resolution grid: Number of segments= ',Glr%wfd%nseg_f,'points=',Glr%wfd%nvctr_f
-  call yaml_open_map('Fine resolution grid')!,flow=.true.)
+  call yaml_mapping_open('Fine resolution grid')!,flow=.true.)
   call yaml_map('No. of segments',wfd%nseg_f)
   call yaml_map('No. of points',wfd%nvctr_f)
-  call yaml_close_map()
-  call yaml_close_map()
+  call yaml_mapping_close()
+  call yaml_mapping_close()
   
 END SUBROUTINE print_wfd
 
@@ -1732,7 +1632,7 @@ subroutine print_nlpsp(nlpsp)
   !local variables
   integer :: iat,ilr,sizemask,maxmask,totmask,totpack
 
-  call yaml_open_map('NonLocal PSP Projectors Descriptors')
+  call yaml_mapping_open('NonLocal PSP Projectors Descriptors')
   if (nlpsp%on_the_fly) then
      call yaml_map('Creation strategy','On-the-fly')
   else
@@ -1770,9 +1670,11 @@ subroutine print_nlpsp(nlpsp)
   if (totmask /=0) &
        call yaml_map('Cumulative size of masking arrays',3*totmask)
 
-  call yaml_close_map()
+  call yaml_mapping_close()
 END SUBROUTINE print_nlpsp
 
+
+!> Display information about the electronic orbitals
 subroutine print_orbitals(orbs, geocode)
   use module_types, only: orbitals_data
   use module_defs, only: gp
@@ -1805,7 +1707,7 @@ subroutine print_orbitals(orbs, geocode)
 
   !distribution of wavefunction arrays between processors
   !tuned for the moment only on the cubic distribution
-  call yaml_open_map('Orbitals Repartition')
+  call yaml_mapping_open('Orbitals Repartition')
   jpst=0
   nproc = size(orbs%norb_par, 1)
   do jproc=0,nproc-1
@@ -1820,25 +1722,21 @@ subroutine print_orbitals(orbs, geocode)
   end do
   !write(*,'(3(a,i0),a)')&
   !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' orbitals '
-  call yaml_close_map()
+  call yaml_mapping_close()
   
   call yaml_map('Total Number of Orbitals',orbs%norb,fmt='(i8)')
-!!$     if (verb) then
-!!$        if (iunit /= 0) then
-!!$           call yaml_map('Occupation numbers coming from', trim(radical) // '.occ')
-!!$        else
-!!$           call yaml_map('Occupation numbers coming from','System properties')
-!!$        end if
-!!$     end if
 
-  call yaml_open_sequence('Input Occupation Numbers')
+  !No orbs finished
+  if (orbs%norb == 0) return
+
+  call yaml_sequence_open('Input Occupation Numbers')
   do ikpts=1,orbs%nkpts
      if (geocode /= 'F') then
         call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpts,fmt='(i4.4)'))) // ' BZ coord. = ' // &
         & trim(yaml_toa(orbs%kpts(:, ikpts),fmt='(f12.6)')))
      end if
      call yaml_sequence(advance='no')
-     call yaml_open_map('Occupation Numbers',flow=.true.)
+     call yaml_mapping_open('Occupation Numbers',flow=.true.)
      !write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
      iorb1=1
      rocc=orbs%occup(1+(ikpts-1)*orbs%norb)
@@ -1864,7 +1762,7 @@ subroutine print_orbitals(orbs, geocode)
              adjustl(trim(yaml_toa(orbs%norb))),orbs%occup(ikpts*orbs%norb),fmt='(f6.4)')
         !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
      end if
-     call yaml_close_map()
+     call yaml_mapping_close()
   end do
-  call yaml_close_sequence()
+  call yaml_sequence_close()
 END SUBROUTINE print_orbitals

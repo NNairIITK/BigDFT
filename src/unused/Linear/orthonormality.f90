@@ -1754,7 +1754,7 @@
 !!timecommuncoll=timecommuncoll+t2-t1     
 !!
 !!t1=mpi_wtime()
-!!call uncompressMatrix(orbs%norb, mad, ovrlpCompressed2, ovrlp)
+!!call uncompress_matrix(orbs%norb, mad, ovrlpCompressed2, ovrlp)
 !!t2=mpi_wtime()
 !!timecompress=timecompress+t2-t1     
 !!
@@ -2051,7 +2051,7 @@
 !!timecommuncoll=timecommuncoll+t2-t1     
 !!
 !!t1=mpi_wtime()
-!!call uncompressMatrix(orbs%norb, mad, ovrlpCompressed2, ovrlp)
+!!call uncompress_matrix(orbs%norb, mad, ovrlpCompressed2, ovrlp)
 !!t2=mpi_wtime()
 !!timecompress=timecompress+t2-t1     
 !!
@@ -2166,7 +2166,7 @@
 !! Calling arguments
 !integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_dsyev, blocksize_pdgemm
 !type(orbitals_data),intent(in):: orbs, gorbs
-!type(communications_arrays),intent(in):: comms
+!type(comms_cubic),intent(in):: comms
 !type(local_zone_descriptors),intent(in):: lzd
 !type(input_variables),intent(in):: input
 !type(matrixDescriptors),intent(in):: mad
@@ -2199,7 +2199,7 @@
 !      ind1=ind1+lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
 !      ind2=ind2+lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
 !  end do
-!  call transpose_v(iproc, nproc, orbs, lzd%Glr%wfd, comms, phi, work=phiWork)
+!  call transpose_v(iproc, nproc, orbs, lzd%glr%wfd%Glr%wfd, comms, phi, work=phiWork)
 !
 !
 !  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
@@ -2270,7 +2270,7 @@
 !!! Calling arguments
 !!integer,intent(in):: iproc, nproc, methTransformOverlap, blocksize_pdgemm
 !!type(orbitals_data),intent(in):: orbs, gorbs
-!!type(communications_arrays),intent(in):: comms
+!!type(comms_cubic),intent(in):: comms
 !!type(local_zone_descriptors),intent(in):: lzd
 !!type(input_variables),intent(in):: input
 !!type(overlapParameters),intent(in):: op
@@ -2315,7 +2315,7 @@
 !!      ind1=ind1+lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
 !!      ind2=ind2+lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
 !!  end do
-!!  call transpose_v(iproc, nproc, orbs, lzd%Glr%wfd, comms, phi, work=phiWork)
+!!  call transpose_v(iproc, nproc, orbs, lzd%glr%wfd%Glr%wfd, comms, phi, work=phiWork)
 !!
 !!
 !!  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
@@ -2339,7 +2339,7 @@
 !!      ind1=ind1+lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
 !!      ind2=ind2+lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
 !!  end do
-!!  call transpose_v(iproc, nproc, orbs, lzd%Glr%wfd, comms, hphi, work=phiWork)
+!!  call transpose_v(iproc, nproc, orbs, lzd%glr%wfd%Glr%wfd, comms, hphi, work=phiWork)
 !!
 !!  nvctrp=sum(comms%nvctr_par(iproc,1:orbs%nkptsp))*orbs%nspinor
 !!  call dgemm('t', 'n', orbs%norb, orbs%norb, nvctrp, 1.d0, phi, nvctrp, hphi, nvctrp, 0.d0, lagmat, orbs%norb)
@@ -3085,7 +3085,7 @@
 !!!!!!timecommuncoll=timecommuncoll+t2-t1     
 !!!!!!
 !!!!!!t1=mpi_wtime()
-!!!!!!call uncompressMatrix(orbs%norb, mad, ovrlpCompressed2, ovrlp)
+!!!!!!call uncompress_matrix(orbs%norb, mad, ovrlpCompressed2, ovrlp)
 !!!!!!t2=mpi_wtime()
 !!!!!!timecompress=timecompress+t2-t1     
 !!!!!!
@@ -4254,7 +4254,7 @@ subroutine calculateOverlapMatrix3(iproc, nproc, orbs, op, nsendBuf, sendBuf, nr
   call timing(iproc,'lovrlp_comm   ','OF')
 
   call timing(iproc,'lovrlp_uncompr','ON')
-  call uncompressMatrix(orbs%norb, mad, ovrlpCompressed_receive, ovrlp)
+  call uncompress_matrix(orbs%norb, mad, ovrlpCompressed_receive, ovrlp)
   call timing(iproc,'lovrlp_uncompr','OF')
 
   iall=-product(shape(ovrlpCompressed_send))*kind(ovrlpCompressed_send)
@@ -4541,8 +4541,8 @@ subroutine overlapPowerPlusMinusOneHalf(iproc, nproc, comm, methTransformOrder, 
   
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, comm, methTransformOrder, blocksize_dsyev, blocksize_pdgemm, norb
-  type(sparseMatrix),intent(inout) :: ovrlp
-  type(sparseMatrix),intent(inout) :: inv_ovrlp_half
+  type(sparse_matrix),intent(inout) :: ovrlp
+  type(sparse_matrix),intent(inout) :: inv_ovrlp_half
   logical, intent(in) :: plusminus ! if true S^1/2, if false S^-1/2
 
   ! Local variables
@@ -4569,7 +4569,7 @@ subroutine overlapPowerPlusMinusOneHalf(iproc, nproc, comm, methTransformOrder, 
       allocate(ovrlp%matrix(norb,norb), stat=istat)
       call memocc(istat, ovrlp%matrix, 'ovrlp%matrix', subname)
 
-      call uncompressMatrix(iproc,ovrlp)
+      call uncompress_matrix(iproc,ovrlp)
   
       allocate(inv_ovrlp_half%matrix(norb,norb), stat=istat)
       call memocc(istat, inv_ovrlp_half%matrix, 'inv_ovrlp_half%matrix', subname)
@@ -4665,7 +4665,7 @@ subroutine overlapPowerPlusMinusOneHalf(iproc, nproc, comm, methTransformOrder, 
       end if
       call dcopy(norb**2, tempArr(1,1,2), 1, inv_ovrlp_half%matrix(1,1), 1)
 
-      call compress_matrix_for_allreduce(iproc,inv_ovrlp_half)
+      call compress_matrix(iproc,inv_ovrlp_half)
 
       iall=-product(shape(eval))*kind(eval)
       deallocate(eval, stat=istat)
@@ -4946,7 +4946,3 @@ subroutine overlapPowerPlusMinusOneHalf_old(iproc, nproc, comm, methTransformOrd
   call timing(iproc,'lovrlp^-1/2old','OF')
 
 end subroutine overlapPowerPlusMinusOneHalf_old
-
-
-
-

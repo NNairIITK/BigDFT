@@ -121,6 +121,7 @@
      XC functional implementation      : libXC
      Reference Papers:
      - "Comput. Phys. Commun. 183, 2272 (2012)"
+     - "C Adamo and V Barone, J. Chem. Phys. 110, 6158 (1999)"
      - "M. Ernzerhof, G. E. Scuseria, J. Chem. Phys. 110, 5029 (1999)"
      Polarisation                      :  4
      Spin polarization                 : collinear
@@ -530,7 +531,8 @@
   #WARNING: Self-consistent cycle did not meet convergence criteria
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - Input ixc parameter corresponds to XC: PBEH (PBE0) XC functional
+ - PSP generated with a different XC. Input XC is "XC: PBEH (PBE0)"
+ - No convergence within the allowed number of minimization steps
  - Wavefunctions not converged after cycle  1
  - Self-consistent cycle did not meet convergence criteria
  Memory Consumption Report:

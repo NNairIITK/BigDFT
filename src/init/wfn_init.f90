@@ -33,7 +33,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
    character(len=*), parameter :: subname='Gaussian_DiagHam'
    !n(c) real(kind=8), parameter :: eps_mach=1.d-12
    logical :: semicore,minimal
-   integer :: i,ndim_hamovr,i_all,i_stat,norbi_max,j
+   integer :: i,ndim_hamovr,norbi_max,j
    integer :: natsceff,ndh1,ispin,nspinor !n(c) norbtot,norbsc,npsidim
    real(gp) :: tolerance
    integer, dimension(:,:), allocatable :: norbgrp
@@ -81,8 +81,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
       end if
 
       natsceff=natsc
-      allocate(norbgrp(natsceff+1,nspin+ndebug),stat=i_stat)
-      call memocc(i_stat,norbgrp,'norbgrp',subname)
+      norbgrp = f_malloc((/ natsceff+1, nspin /),id='norbgrp')
 
       !assign the grouping of the orbitals
       do j=1,nspin
@@ -96,8 +95,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
       ndim_hamovr=norbi_max**2
 
       natsceff=0
-      allocate(norbgrp(1,nspin+ndebug),stat=i_stat)
-      call memocc(i_stat,norbgrp,'norbgrp',subname)
+      norbgrp = f_malloc((/ 1, nspin /),id='norbgrp')
 
       !n(c) norbsc=0
       norbgrp(1,1)=orbs%norbu
@@ -117,8 +115,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
       nspinor=orbs%nspinor
    end if
 
-   allocate(hamovr(nspin*ndim_hamovr,2+ndebug),stat=i_stat)
-   call memocc(i_stat,hamovr,'hamovr',subname)
+   hamovr = f_malloc((/ nspin*ndim_hamovr, 2 /),id='hamovr')
 
    if (iproc.eq.0) call yaml_comment('Overlap Matrix...')
    !if (iproc.eq.0) write(*,'(1x,a)',advance='no') 'Overlap Matrix...'
@@ -147,12 +144,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
    !!!  
    !!!  !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
    !!!     
-   i_all=-product(shape(hamovr))*kind(hamovr)
-   deallocate(hamovr,stat=i_stat)
-   call memocc(i_stat,i_all,'hamovr',subname)
-   !!!  i_all=-product(shape(norbgrp))*kind(norbgrp)
-   !!!  deallocate(norbgrp,stat=i_stat)
-   !!!  call memocc(i_stat,i_all,'norbgrp',subname)
+   call f_free(hamovr)
    !!!
    !!!  if (minimal) then
    !!!     !deallocate the old psi
@@ -208,6 +200,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
 
 END SUBROUTINE Gaussian_DiagHam
 
+
 subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      psi,hpsi,psit,orthpar,passmat,iscf,Tel,occopt,& !mandatory
      orbse,commse,etol,norbsc_arr) !optional
@@ -215,25 +208,27 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   use module_types
   use module_interfaces, except_this_one => LDiagHam
   use yaml_output
+  use communications_base, only: comms_cubic
+  use communications, only: transpose_v, untranspose_v
   implicit none
   integer, intent(in) :: iproc,nproc,natsc,nspin,occopt,iscf
   real(gp), intent(in) :: Tel
   type(local_zone_descriptors) :: Lzd        !< Information about the locregs after LIG
   type(local_zone_descriptors) :: Lzde       !< Information about the locregs for LIG
-  type(communications_arrays), intent(in) :: comms
+  type(comms_cubic), intent(in) :: comms
   type(orbitals_data), intent(inout) :: orbs
   type(orthon_data), intent(in):: orthpar 
   real(wp), dimension(*), intent(out) :: passmat !< passage matrix for building the eigenvectors (the size depends of the optional arguments)
   real(wp), dimension(:), pointer :: psi,hpsi,psit
   real(gp), intent(in) :: etol
   type(orbitals_data), intent(inout) :: orbse
-  type(communications_arrays), intent(in) :: commse
+  type(comms_cubic), intent(in) :: commse
   integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
   !local variables
   character(len=*), parameter :: subname='LDiagHam'
   !real(kind=8), parameter :: eps_mach=1.d-12
   integer :: ikptp,ikpt,nvctrp,iorb,Gdim!,jproc
-  integer :: i,ndim_hamovr,i_all,i_stat,ierr,norbi_max,j,noncoll,ispm,ncplx,idum=0
+  integer :: i,ndim_hamovr,ierr,norbi_max,j,noncoll,ispm,ncplx,idum=0
   integer :: norbtot,natsceff,norbsc,ndh1,ispin,nvctr,npsidim,nspinor,ispsi,ispsie,ispsiv
   real(kind=4) :: tt,builtin_rand
   real(gp) :: tolerance
@@ -241,6 +236,8 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   real(wp), dimension(:,:,:), allocatable :: hamovr
   real(wp), dimension(:), pointer :: psiw
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
+
+  call f_routine(id='LDiagHam')
      
   tolerance=etol
 
@@ -251,20 +248,17 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
 
   if (nproc > 1 .or. Lzde%linear) then
      Gdim = (Lzde%Glr%wfd%nvctr_c+7*Lzde%Glr%wfd%nvctr_f)*orbse%norb_par(iproc,0)*orbse%nspinor
-     allocate(psiw(max(npsidim,Gdim)+ndebug),stat=i_stat)
-     call memocc(i_stat,psiw,'psiw',subname)
+     psiw = f_malloc_ptr(max(npsidim, Gdim),id='psiw')
   else
      nullify(psiw)
   end if
 
   !transpose all the wavefunctions for having a piece of all the orbitals
-  call transpose_v2(iproc,nproc,orbse,Lzde,commse,psi,work=psiw)
-  call transpose_v2(iproc,nproc,orbse,Lzde,commse,hpsi,work=psiw)
+  call toglobal_and_transpose(iproc,nproc,orbse,Lzde,commse,psi,psiw)
+  call toglobal_and_transpose(iproc,nproc,orbse,Lzde,commse,hpsi,psiw)
 
   if(nproc > 1.or. Lzde%linear) then
-     i_all=-product(shape(psiw))*kind(psiw)
-     deallocate(psiw,stat=i_stat)
-     call memocc(i_stat,i_all,'psiw',subname)
+     call f_free_ptr(psiw)
   else
      nullify(psiw)
   end if
@@ -305,8 +299,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   end if
   natsceff=natsc
   
-  allocate(norbgrp(natsceff+1,nspin+ndebug),stat=i_stat)
-  call memocc(i_stat,norbgrp,'norbgrp',subname)
+  norbgrp = f_malloc((/ natsceff+1, nspin /),id='norbgrp')
 
   !assign the grouping of the orbitals
   do j=1,nspin
@@ -320,13 +313,12 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      ndim_hamovr=2*ndim_hamovr
   end if
 
-  allocate(hamovr(nspin*ndim_hamovr,2,orbse%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,hamovr,'hamovr',subname)
+  hamovr = f_malloc((/ nspin*ndim_hamovr, 2, orbse%nkpts /),id='hamovr')
 
   !initialise hamovr
   call to_zero(nspin*ndim_hamovr*2*orbse%nkpts,hamovr(1,1,1))
 
-  if (iproc == 0 .and. verbose > 1) call yaml_open_map('Input Guess Overlap Matrices',flow=.true.)
+  if (iproc == 0 .and. verbose > 1) call yaml_mapping_open('Input Guess Overlap Matrices',flow=.true.)
   !     'Overlap Matrix...'
 
   !after having applied the hamiltonian to all the atomic orbitals
@@ -353,14 +345,12 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
 !  if(iproc==0 .and. verbose>1) write(*,'(a)') ' done.'
   !if (iproc == 0) print *,'hamovr,iproc:',iproc,hamovr
   !deallocate hpsi in the case of a minimal basis
-  i_all=-product(shape(hpsi))*kind(hpsi)
-  deallocate(hpsi,stat=i_stat)
-  call memocc(i_stat,i_all,'hpsi',subname)
+  call f_free_ptr(hpsi)
 
   if (nproc > 1) then
      !reduce the overlap matrix between all the processors
      call mpiallred(hamovr(1,1,1),2*nspin*ndim_hamovr*orbse%nkpts,&
-          MPI_SUM,bigdft_mpi%mpi_comm,ierr)
+          MPI_SUM,bigdft_mpi%mpi_comm)
   end if
 
 ! DEBUG
@@ -375,14 +365,13 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   !in the case of minimal basis allocate now the transposed wavefunction
   !otherwise do it only in parallel
   if(.not. associated(psit)) then
-     allocate(psit(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
-     call memocc(i_stat,psit,'psit',subname)
+     psit = f_malloc_ptr(max(orbs%npsidim_orbs, orbs%npsidim_comp),id='psit')
   end if
 
   ! There are two possibilities to generate the input guess
   differentInputGuess: if(.not. orthpar%directDiag) then
      if (iproc == 0 .and. verbose > 1) then
-        call yaml_close_map()
+        call yaml_mapping_close()
         call yaml_newline()
      end if
      if(iproc==0) write(*,'(1x,a)') 'Iterative diagonalization...'
@@ -406,14 +395,14 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
 
         !assign the value for the orbital
         call vcopy(orbs%norbu,orbse%eval((ikpt-1)*orbse%norb+1),1,orbs%eval((ikpt-1)*orbs%norb+1),1)
-        if (orbs%norbd >0) then
+        if (orbs%norbd > 0) then
            call vcopy(orbs%norbd,orbse%eval((ikpt-1)*orbse%norb+orbse%norbu+1),1,orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+1),1)
         end if
      end do
 
      if (iproc == 0 .and. verbose > 1) then
         call yaml_map('Diagonalized',.true.)
-        call yaml_close_map()
+        call yaml_mapping_close()
         call yaml_newline()
      end if
 
@@ -425,11 +414,9 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      call to_zero(orbse%norb*orbse%nkpts,orbse%occup(1))
         !put the actual values on it
      do ikpt=1,orbs%nkpts
-        call vcopy(orbs%norbu,orbs%occup((ikpt-1)*orbs%norb+1),1,&
-             orbse%occup((ikpt-1)*orbse%norb+1),1)
+        call vcopy(orbs%norbu,orbs%occup((ikpt-1)*orbs%norb+1),1, orbse%occup((ikpt-1)*orbse%norb+1),1)
         if (orbs%norbd > 0) then
-           call vcopy(orbs%norbd,orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+1),1,&
-                orbse%occup((ikpt-1)*orbse%norb+orbse%norbu+1),1)
+           call vcopy(orbs%norbd,orbs%occup((ikpt-1)*orbs%norb+orbs%norbu+1),1, orbse%occup((ikpt-1)*orbse%norb+orbse%norbu+1),1)
         end if
      end do
 
@@ -473,6 +460,14 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
         !reduce the overlap matrix between all the processors
         call mpi_bcast(hamovr(1,1,1), 2*nspin*ndim_hamovr*orbse%nkpts, mpidtypw, &
              & 0, bigdft_mpi%mpi_comm, ierr)
+     else if (nproc > 1) then
+        do ikpt=1,orbse%nkpts
+           if (iproc /= orbse%ikptproc(ikpt)) then
+              hamovr(:,:,ikpt) = 0._gp
+           end if
+        end do
+        call mpiallred(hamovr(1,1,1),2*nspin*ndim_hamovr*orbse%nkpts,&
+             MPI_SUM,bigdft_mpi%mpi_comm)
      end if
 
      do ikptp=1,orbse%nkptsp
@@ -497,38 +492,29 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
 
   end if differentInputGuess
      
-  i_all=-product(shape(hamovr))*kind(hamovr)
-  deallocate(hamovr,stat=i_stat)
-  call memocc(i_stat,i_all,'hamovr',subname)
-  i_all=-product(shape(norbgrp))*kind(norbgrp)
-  deallocate(norbgrp,stat=i_stat)
-  call memocc(i_stat,i_all,'norbgrp',subname)
+  call f_free(hamovr)
+  call f_free(norbgrp)
 
   !print * ,'debug2,iproc',iproc,orbsv%norb,orbsv%norbp,orbsv%norbu,orbsv%norbd,orbsv%npsidim
   !deallocate the old psi
-  i_all=-product(shape(psi))*kind(psi)
-  deallocate(psi,stat=i_stat)
-  call memocc(i_stat,i_all,'psi',subname)
+  call f_free_ptr(psi)
 
   !orthogonalise the orbitals in the case of semi-core atoms
   if (norbsc > 0) then
      call orthogonalize(iproc,nproc,orbs,comms,psit,orthpar)
   end if
 
-  allocate(hpsi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
-  call memocc(i_stat,hpsi,'hpsi',subname)
+  hpsi = f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug,id='hpsi')
   !     hpsi=0.0d0
   if (nproc > 1) then
      !allocate the direct wavefunction
-     allocate(psi(max(orbs%npsidim_orbs,orbs%npsidim_comp)+ndebug),stat=i_stat)
-     call memocc(i_stat,psi,'psi',subname)
+     psi = f_malloc_ptr(max(orbs%npsidim_orbs, orbs%npsidim_comp),id='psi')
   else
      psi => psit
   end if
 
   !this untranspose also the wavefunctions 
-  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,&
-       psit,work=hpsi,outadd=psi(1))
+  call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms, psit(1),hpsi(1),out_add=psi(1))
 
 !!$!here the checksum of the wavefunction can be extracted
 !!$do jproc=0,bigdft_mpi%nproc-1
@@ -547,6 +533,8 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
 
   ! reput the good wavefunction dimensions:  
   if(.not. Lzd%linear) call wavefunction_dimension(Lzd,orbs)     
+
+  call f_release_routine()
 
 END SUBROUTINE LDiagHam
 
@@ -648,7 +636,7 @@ subroutine solve_eigensystem(norbi_max,ndim_hamovr,ndim_eval,&
    character(len=*), parameter :: subname='solve_eigensystem'
    !n(c) character(len=25) :: gapstring
    !n(c) character(len=64) :: message
-   integer :: iorbst,imatrst,norbi,n_lp,info,i_all,i_stat,i,ncplx !n(c) iorb, ncomp, ndegen
+   integer :: iorbst,imatrst,norbi,n_lp,info,i,ncplx !n(c) iorb, ncomp, ndegen
    integer :: norbj,jiorb,jjorb,ihs,ispin,norbij,norbu_ig !,jproc n(c) nwrtmsg
    !n(c) real(wp), dimension(2) :: preval
    real(wp), dimension(:), allocatable :: work_lp,evale,work_rp
@@ -668,25 +656,22 @@ subroutine solve_eigensystem(norbi_max,ndim_hamovr,ndim_eval,&
    !WARNING: here nspin=1 for nspinor=4
    if(nspinor == 1) then
       ncplx=1
-      !n(c) ncomp=1
+      !ncomp=1
       elseif(nspinor == 2) then
       ncplx=2
-      !n(c) ncomp=1
+      !ncomp=1
    else if (nspinor == 4) then
       ncplx=2
-      !n(c) ncomp=2
+      !ncomp=2
    end if
 
    !find the eigenfunctions for each group
    n_lp=max(10,4*norbi_max)
-   allocate(work_lp(ncplx*n_lp+ndebug),stat=i_stat)
-   call memocc(i_stat,work_lp,'work_lp',subname)
-   allocate(evale(nspin*norbi_max+ndebug),stat=i_stat)
-   call memocc(i_stat,evale,'evale',subname)
+   work_lp = f_malloc(ncplx*n_lp,id='work_lp')
+   evale = f_malloc(nspin*norbi_max,id='evale')
 
    if (nspinor /= 1) then
-      allocate(work_rp(3*norbi_max+1+ndebug),stat=i_stat)
-      call memocc(i_stat,work_rp,'work_rp',subname)
+      work_rp = f_malloc(3*norbi_max+1,id='work_rp')
    end if
 
    !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)')'Linear Algebra...'
@@ -759,6 +744,7 @@ subroutine solve_eigensystem(norbi_max,ndim_hamovr,ndim_eval,&
 !!$call MPI_BARRIER(bigdft_mpi%mpi_comm,i_stat)
 !!$if (jproc==bigdft_mpi%iproc) then
 !!$  print *,'PASSAGE MATRIX',jproc
+!!$        open(33+2*(i-1)+100*bigdft_mpi%iproc)
 !!$     do jjorb=1,norbi
         !   do jiorb=1,norbi
         !      write(12,'(1x,2(i0,1x),200(1pe24.17,1x))')jjorb,jiorb,&
@@ -766,16 +752,15 @@ subroutine solve_eigensystem(norbi_max,ndim_hamovr,ndim_eval,&
         !   end do
         !end do
         !close(12)
-        !open(33+2*(i-1)+100*iproc)
-        !write(33+2*(i-1)+100*iproc,'(2000(1pe10.2))')&
-        !        (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,8*ncomp*ncplx)
-        !                (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,norbi*ncomp*ncplx)
+!!$        write(33+2*(i-1)+100*bigdft_mpi%iproc,'(2000(1pe10.2))')&
+             !(hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,8*ncomp*ncplx)
+!!$             (hamovr(imatrst-1+jiorb+(jjorb-1)*norbi*ncomp*ncplx,1),jiorb=1,norbi*ncomp*ncplx)
 !!$        write(*,'(1x,2(i6),2000(1pe10.2))')jjorb,jiorb,(hamovr(jjorb+norbi*(jiorb-1),1),jiorb=1,norbi)
 !!$
 !!$     end do
 !!$  end if
 !!$end do
-!!$     close(33+2*(i-1)+100*iproc)
+!!$     close(33+2*(i-1)+100*bigdft_mpi%iproc)
 !!$     open(34+2*(i-1)+100*iproc)
 !!$     do jjorb=1,8!norbi
 !!$        write(34+2*(i-1)+100*iproc,'(2000(1pe10.2))')&
@@ -814,19 +799,14 @@ subroutine solve_eigensystem(norbi_max,ndim_hamovr,ndim_eval,&
    end do
 
    if (nspinor /= 1) then
-      i_all=-product(shape(work_rp))*kind(work_rp)
-      deallocate(work_rp,stat=i_stat)
-      call memocc(i_stat,i_all,'work_rp',subname)
+      call f_free(work_rp)
    end if
 
-   i_all=-product(shape(work_lp))*kind(work_lp)
-   deallocate(work_lp,stat=i_stat)
-   call memocc(i_stat,i_all,'work_lp',subname)
-   i_all=-product(shape(evale))*kind(evale)
-   deallocate(evale,stat=i_stat)
-   call memocc(i_stat,i_all,'evale',subname)
+   call f_free(work_lp)
+   call f_free(evale)
 
 END SUBROUTINE solve_eigensystem
+
 
 subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore,nspinor,&
       &   ndim_hamovr,norbsc_arr,hamovr,psi,ppsit,passmat)
@@ -926,7 +906,7 @@ END SUBROUTINE build_eigenvectors
 
 !> Reads magnetic moments from file ('moments') and transforms the
 !! atomic orbitals to spinors 
-!! warning: Does currently not work for mx<0
+!! @warning Does currently not work for mx<0
 subroutine psitospi(iproc,nproc,norbe,norbep, &
       &   nvctr_c,nvctr_f,nat,nspin,spinsgne,otoa,psi)
    use module_base
@@ -941,7 +921,7 @@ subroutine psitospi(iproc,nproc,norbe,norbep, &
    !local variables
    character(len=*), parameter :: subname='psitospi'
    logical :: myorbital
-   integer :: i_all,i_stat,nvctr
+   integer :: nvctr
    integer :: iorb,jorb,iat,i
    real(kind=8) :: mx,my,mz,mnorm,fac
    real(kind=8), dimension(:,:), allocatable :: mom
@@ -959,8 +939,7 @@ subroutine psitospi(iproc,nproc,norbe,norbep, &
 
    nvctr=nvctr_c+7*nvctr_f
 
-   allocate(mom(3,nat+ndebug),stat=i_stat)
-   call memocc(i_stat,mom,'mom',subname)
+   mom = f_malloc((/ 3, nat /),id='mom')
 
    open(unit=1978,file='moments')
    do iat=1,nat
@@ -998,64 +977,47 @@ subroutine psitospi(iproc,nproc,norbe,norbep, &
       !     print *,'OtoA',(otoa(iorb),iorb=1,norbe)
 
    end do
-   i_all=-product(shape(mom))*kind(mom)
-   deallocate(mom,stat=i_stat)
-   call memocc(i_stat,i_all,'mom',subname)
+   call f_free(mom)
 
    !if (iproc ==0) write(*,'(1x,a)')'done.'
 
 END SUBROUTINE psitospi
 
 
-!>  Generates an input guess for the wavefunctions. 
+!> Generates an input guess for the wavefunctions. 
 !! To do this, the eigenvectors of the Hamiltonian are found by an iterative procedure.
-!!  This gives a guess for the orbitals in the basis of atomic orbitals. These eigenfunctions are then transformed to the
-!!  wavelet basis.
-!!
-!! Calling arguments
-!! ==================
-!!  Input arguments
-!!    @param iproc            process ID
-!!    @param nproc            number of processes
-!!    @param orbs             type containing orbitals data
-!!    @param norbtot          total number of atomic orbitals
-!!    @param psi              contains the atomic orbitals
-!!    @param input            data type that contains many parameters
-!!    @param nspin            nspin==1 -> no spin polarization
-!!    @param                  nspin==2 -> spin polarization
-!!    @param nspinor          nspinor==1 -> real wavefunction
-!!    @param                  nspinor==2 -> complex wavefunction
-!!    @param sizePsi          length of the vector psi
-!!    @param comms            type containing parameters for communicating the wavefunstion between processors
-!!    @param natsc            number of semicore atoms
-!!    @param ndim_hamovr      first dimension of hamovr
-!!    @param norbsc           number of semicore orbitals
-!!  Input/Output arguments
-!!    @param hamovr           array containing both Hamiltonian and overlap matrix:
-!!                            hamovr(:,:,1,:) is the Hamiltonian, hamovr(:,:,2,:) is the overlap matrix
-!!  Output arguments
-!!    @param psiGuessWavelet  contains the input guess vectors in wavelet basis
+!! This gives a guess for the orbitals in the basis of atomic orbitals. These eigenfunctions are then transformed to the
+!! wavelet basis.
 subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       &   psiGuessWavelet, orthpar, nspin, nspinor, sizePsi, comms, natsc, ndim_hamovr, norbsc)
    use module_base
    use module_types
-  use yaml_output
+   use yaml_output
+   use communications_base, only: comms_cubic
    implicit none
 
    ! Calling arguments
-   integer,intent(in):: iproc, nproc, nspin, nspinor, sizePsi, natsc, ndim_hamovr, norbsc
+   integer, intent(in) ::  iproc           !< Process ID
+   integer, intent(in) ::  nproc           !< Number of processes
+   integer, intent(in) ::  nspin           !< Nspin==1 -> no spin polarization, Nspin==2 -> spin polarization
+   integer, intent(in) ::  nspinor         !< Nspinor==1 -> real wavefunction,  Nspinor==2 -> complex wavefunction
+   integer, intent(in) ::  sizePsi         !< Length of the vector psi
+   integer, intent(in) ::  natsc           !< Number of semicore atoms
+   integer, intent(in) ::  ndim_hamovr     !< First dimension of hamovr
+   integer, intent(in) ::  norbsc          !< Number of semicore orbitals
    integer, dimension(natsc+1,nspin), intent(in) :: norbscArr
    type(orbitals_data), intent(inout) :: orbs
-   !real(kind=8),dimension(norbtot*norbtot*nspinor,nspin,2,orbs%nkpts),intent(in):: hamovr
-   real(kind=8),dimension(ndim_hamovr,nspin,2,orbs%nkpts),intent(inout):: hamovr
-   real(kind=8),dimension(sizePsi),intent(in):: psi
-   real(kind=8),dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)),intent(out):: psiGuessWavelet
-   type(orthon_data),intent(in):: orthpar
-   type(communications_arrays), intent(in):: comms
+   !> Array containing both Hamiltonian and overlap matrix:
+   !! hamovr(:,:,1,:) is the Hamiltonian, hamovr(:,:,2,:) is the overlap matrix
+   real(kind=8), dimension(ndim_hamovr,nspin,2,orbs%nkpts), intent(inout):: hamovr
+   real(kind=8), dimension(sizePsi),intent(in):: psi !< Contains the atomic orbitals
+   real(kind=8), dimension(max(orbs%npsidim_orbs,orbs%npsidim_comp)), intent(out):: psiGuessWavelet !< Contains the input guess vectors in wavelet basis
+   type(orthon_data),intent(in) :: orthpar
+   type(comms_cubic), intent(in):: comms
 
    ! Local variables
    integer :: i, j, iorb, jorb, ispin, ii, jj, kk, norbtot, norbtotPad, iter, ierr, itermax
-   integer :: ist, i_stat, i_all, nprocSub, ishift, jjorb
+   integer :: ist, nprocSub, ishift, jjorb
    integer :: jspin, ist2, ishift2, norb, blocksize, lwork
    integer :: norbi, norbj, iat, imatrst, imatrst2, ihs, jiorb, norbij, ncplx, ncomp
    integer :: istpsi, istpsit, nvctrp, kkSave, iiSave, jproc, ist3, ikptp2, ikpt2
@@ -1077,7 +1039,6 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
    complex(kind=8):: zdotc, zz
   integer :: stat(mpi_status_size)
   character(len=*),parameter :: subname='inputguessParallel'
-
 
    ! Start the timing for the input guess.
    call timing(iproc, 'Input_comput', 'ON')
@@ -1109,8 +1070,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
    end if
 
 
-   allocate(norbArr(nspin), stat=i_stat)
-   call memocc(i_stat, norbArr, 'norbArr', subname)
+   norbArr = f_malloc(nspin,id='norbArr')
    do ispin=1,nspin
       if(ispin==1) norbArr(ispin)=(orbs%norbu-norbsc)*orbs%nkpts
       if(ispin==2) norbArr(ispin)=(orbs%norbd-norbsc)*orbs%nkpts
@@ -1170,8 +1130,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       ! Determine how the orbitals shall be distributed to these processes:
       !   norbpArr(i) (i=0,nproc-1) is the number of orbitals treated by process i if the wavefunction is not transposed.
       if(ispin==1 .or. simul) then
-         allocate(norbpArr(0:nproc-1), stat=i_stat)
-         call memocc(i_stat, norbpArr, 'norbpArr', subname)
+         norbpArr = f_malloc(0.to.nproc-1,id='norbpArr')
       end if
       norbpArr=0
       tt=dble(norb)/dble(nprocSub)
@@ -1199,30 +1158,23 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       ! processes. This is achieved by merging the two versions of norbpArr in norbpArrSimul and distributing it
       ! to all processes.
       if(simul) then
-         allocate(norbpArrSimul(0:nproc-1), stat=i_stat)
-         call memocc(i_stat, norbpArrSimul, 'norbpArrSimul', subname)
-         allocate(norbpArrSimulLoc(0:nproc-1), stat=i_stat)
-         call memocc(i_stat, norbpArrSimulLoc, 'norbpArrSimulLoc', subname)
+         norbpArrSimul = f_malloc(0.to.nproc-1,id='norbpArrSimul')
+         norbpArrSimulLoc = f_malloc(0.to.nproc-1,id='norbpArrSimulLoc')
          norbpArrSimul=0
          norbpArrSimulLoc=0
          if(iproc<nprocSubu+nprocSubd) norbpArrSimulLoc(iproc)=norbpArr(iproc)
          call mpi_allreduce(norbpArrSimulLoc(0), norbpArrSimul(0), nprocSubu+nprocSubd,&
               mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-         i_all=-product(shape(norbpArrSimulLoc))*kind(norbpArrSimulLoc)
-         deallocate(norbpArrSimulLoc, stat=i_stat)
-         call memocc(i_stat, i_all, 'norbpArrSimulLoc', subname)
+         call f_free(norbpArrSimulLoc)
       end if
 
       ! Determine which orbitals belong to which k-point. kArr(i)=j means that orbital i belongs to k-point j.
       ! Since the k-points are distributed among several processes, the values of kArr are of course distinct for
       ! each process.
       if(.not. simul .and. ispin==2) then
-         i_all=-product(shape(kArr))*kind(kArr)
-         deallocate(kArr, stat=i_stat)
-         call memocc(i_stat, i_all, 'kArr', subname)
+         call f_free(kArr)
       end if
-      allocate(kArr(1:norbpArr(iproc)), stat=i_stat)
-      call memocc(i_stat, kArr, 'kArr', subname)
+      kArr = f_malloc(norbpArr(iproc),id='kArr')
       ii=0
       if(.not.simul) then
          jj=nprocSub-1
@@ -1253,19 +1205,13 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       !   nkArr(i)=j means that this process handels j orbitals belonging to the i-th k-point handled
       !     by this process.
       if(.not. simul .and. ispin==2) then
-         i_all=-product(shape(kstArr))*kind(kstArr)
-         deallocate(kstArr, stat=i_stat)
-         call memocc(i_stat, i_all, 'kstArr', subname)
+         call f_free(kstArr)
       end if
-      allocate(kstArr(kp), stat=i_stat)
-      call memocc(i_stat, kstArr, 'kstArr', subname)
+      kstArr = f_malloc(kp,id='kstArr')
       if(.not. simul .and. ispin==2) then
-         i_all=-product(shape(nkArr))*kind(nkArr)
-         deallocate(nkArr, stat=i_stat)
-         call memocc(i_stat, i_all, 'nkArr', subname)
+         call f_free(nkArr)
       end if
-      allocate(nkArr(kp), stat=i_stat)
-      call memocc(i_stat, nkArr, 'nkArr', subname)
+      nkArr = f_malloc(kp,id='nkArr')
       ! The first starting index is of course one.
       kstArr(1)=1
       if(kp>1) then
@@ -1350,13 +1296,10 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       ! involving only the active processes. For the case where simul is true, we even need two new MPI communicators
       ! handling up and down orbitals, respectively.
       if(ispin==2 .and. .not.simul) then
-         i_all=-product(shape(newID))*kind(newID)
-         deallocate(newID, stat=i_stat)
-         call memocc(i_stat, i_all, 'newID', subname)
+         call f_free(newID)
       end if
       if(.not.simul) then
-         allocate(newID(0:nprocSub-1), stat=i_stat)
-         call memocc(i_stat, newID, 'newID', subname)
+         newID = f_malloc(0.to.nprocSub-1,id='newID')
          ! Assign the IDs of the active processes to newID.
          do iorb=0,nprocSub-1
             newID(iorb)=iorb
@@ -1366,10 +1309,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
          call mpi_group_incl(wholeGroup, nprocSub, newID, newGroup, ierr)
          call mpi_comm_create(bigdft_mpi%mpi_comm, newGroup, newComm, ierr)
       else
-         allocate(newIDu(0:nprocSubu-1), stat=i_stat)
-         call memocc(i_stat, newIDu, 'newIDu', subname)
-         allocate(newIDd(0:nprocSubd-1), stat=i_stat)
-         call memocc(i_stat, newIDd, 'newIDd', subname)
+         newIDu = f_malloc(0.to.nprocSubu-1,id='newIDu')
+         newIDd = f_malloc(0.to.nprocSubd-1,id='newIDd')
          ! Assign the IDs of the processes handling the up orbitals to newIDu
          do iorb=0,nprocSubu-1
             newIDu(iorb)=iorb
@@ -1426,90 +1367,39 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       ! them with (norbtotPad,1).
       if(ispin==2 .and. .not.simul) then
          ! Deallocate all arrays to reallocate them with different size
-         i_all=-product(shape(gradient))*kind(gradient)
-         deallocate(gradient, stat=i_stat)
-         call memocc(i_stat, i_all, 'gradient', subname)
-
-         i_all=-product(shape(gradientOld))*kind(gradientOld)
-         deallocate(gradientOld, stat=i_stat)
-         call memocc(i_stat, i_all, 'gradientOld', subname)
-
-         i_all=-product(shape(overlapPsiGuessP))*kind(overlapPsiGuessP)
-         deallocate(overlapPsiGuessP, stat=i_stat)
-         call memocc(i_stat, i_all, 'overlapPsiGuessP', subname)
-
-         i_all=-product(shape(overlapPad))*kind(overlapPad)
-         deallocate(overlapPad, stat=i_stat)
-         call memocc(i_stat, i_all, 'overlapPad', subname)
-
-         i_all=-product(shape(HamPad))*kind(HamPad)
-         deallocate(HamPad, stat=i_stat)
-         call memocc(i_stat, i_all, 'HamPad', subname)
-
-         i_all=-product(shape(psiGuessP))*kind(psiGuessP)
-         deallocate(psiGuessP, stat=i_stat)
-         call memocc(i_stat, i_all, 'psiGuessP', subname)
-
-         i_all=-product(shape(norbtotpArr))*kind(norbtotpArr)
-         deallocate(norbtotpArr, stat=i_stat)
-         call memocc(i_stat, i_all, 'norbtotpArr', subname)
-
-         i_all=-product(shape(alphaArr))*kind(alphaArr)
-         deallocate(alphaArr, stat=i_stat)
-         call memocc(i_stat, i_all, 'alphaArr', subname)
-
-         i_all=-product(shape(rayleigh))*kind(rayleigh)
-         deallocate(rayleigh, stat=i_stat)
-         call memocc(i_stat, i_all, 'rayleigh', subname)
-
-         i_all=-product(shape(psiGuess))*kind(psiGuess)
-         deallocate(psiGuess, stat=i_stat)
-         call memocc(i_stat, i_all, 'psiGuess', subname)
+         call f_free(gradient)
+         call f_free(gradientOld)
+         call f_free(overlapPsiGuessP)
+         call f_free(overlapPad)
+         call f_free(HamPad)
+         call f_free(psiGuessP)
+         call f_free(norbtotpArr)
+         call f_free(alphaArr)
+         call f_free(rayleigh)
+         call f_free(psiGuess)
       end if
 
-      allocate(psiGuessP(norbtotPad*nspinor,max(norbpArr(iproc),1),nspin), stat=i_stat)
-      call memocc(i_stat, psiGuessP, 'psiGuessP', subname)
-
-      allocate(overlapPad(norbtotPad*nspinor,norbtotPad,nspin,kp), stat=i_stat)
-      call memocc(i_stat, overlapPad, 'overlapPad', subname)
-
-      allocate(HamPad(norbtotPad*nspinor,norbtotPad,nspin,kp), stat=i_stat)
-      call memocc(i_stat, HamPad, 'HamPad', subname)
-
-      allocate(overlapPsiGuessP(norbtotPad*nspinor,max(norbpArr(iproc),1),nspin), stat=i_stat)
-      call memocc(i_stat, overlapPsiGuessP, 'overlapPsiGuessP', subname)
-
-      allocate(gradient(norbtotPad*nspinor,max(norbpArr(iproc),1)), stat=i_stat)
-      call memocc(i_stat, gradient, 'gradient', subname)
-
-      allocate(gradientOld(norbtotPad*nspinor,max(norbpArr(iproc),1)), stat=i_stat)
-      call memocc(i_stat, gradientOld, 'gradientOldPaddded', subname)
-
-      allocate(psiGuess(norbtot*nspinor,(max(orbs%norbu,orbs%norbd)-norbsc)*orbs%nkpts,nspin), stat=i_stat)
-      call memocc(i_stat, psiGuess, 'psiGuess', subname)
-
-      allocate(alphaArr(max(norbpArr(iproc),1)), stat=i_stat)
-      call memocc(i_stat, alphaArr, 'alphaArr', subname)
-
-      allocate(rayleigh(max(norbpArr(iproc),1)), stat=i_stat)
-      call memocc(i_stat, rayleigh, 'rayleigh', subname)
-
+      psiGuessP = f_malloc((/ norbtotPad*nspinor , max(norbpArr(iproc),1) , nspin /),id='psiGuessP')
+      overlapPad = f_malloc((/ norbtotPad*nspinor , norbtotPad , nspin , kp /),id='overlapPad')
+      HamPad = f_malloc((/ norbtotPad*nspinor , norbtotPad , nspin , kp /),id='HamPad')
+      overlapPsiGuessP = f_malloc((/ norbtotPad*nspinor , max(norbpArr(iproc),1) , nspin /),id='overlapPsiGuessP')
+      gradient = f_malloc((/ norbtotPad*nspinor , max(norbpArr(iproc),1) /),id='gradient')
+      gradientOld = f_malloc((/ norbtotPad*nspinor , max(norbpArr(iproc),1) /),id='gradientOld')
+      psiGuess = f_malloc((/ norbtot*nspinor , (max(orbs%norbu,orbs%norbd)-norbsc)*orbs%nkpts , nspin /),id='psiGuess')
+      alphaArr = f_malloc(max(norbpArr(iproc),1),id='alphaArr')
+      rayleigh = f_malloc(max(norbpArr(iproc),1),id='rayleigh')
       if(.not.simul) then
-         allocate(norbtotpArr(0:nprocSub-1), stat=i_stat)
-         call memocc(i_stat, norbtotpArr, 'norbtotpArr', subname)
+         norbtotpArr = f_malloc(0.to.nprocSub-1,id='norbtotpArr')
       else
          if(0<=iproc .and. iproc<nprocSubu) then
-            allocate(norbtotpArr(0:nprocSubu-1), stat=i_stat)
-            call memocc(i_stat, norbtotpArr, 'norbtotpArr', subname)
+            norbtotpArr = f_malloc(0.to.nprocSubu-1,id='norbtotpArr')
          else 
-            allocate(norbtotpArr(nprocSubu:nprocSubu+nprocSubd-1), stat=i_stat)
-            call memocc(i_stat, norbtotpArr, 'norbtotpArr', subname)
+            norbtotpArr = f_malloc(nprocSubu.to.nprocSubu+nprocSubd-1,id='norbtotpArr')
          end if
       end if
 
       if(ispin==1 .or. simul) then
-         allocate(sortArr(1:max(orbs%norbu,orbs%norbd)-norbsc,orbs%nkpts,nspin), stat=i_stat)
-         call memocc(i_stat, sortArr, 'sortArr', subname)
+         sortArr = f_malloc((/ 1.to.max(orbs%norbu,orbs%norbd)-norbsc , 1.to.orbs%nkpts , 1.to.nspin /),id='sortArr')
          sortArr=0.d0
       end if
 
@@ -1799,17 +1689,10 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 
       ! Allocate the arrays needed for distributing the eigenvectors and eigenvalues to all processes.
       if(ispin==1 .or. simul) then
-         allocate(sendcounts(0:nproc-1), stat=i_stat)
-         call memocc(i_stat, sendcounts, 'sendcounts', subname)
-
-         allocate(recvcounts(0:nproc-1), stat=i_stat)
-         call memocc(i_stat, recvcounts, 'recvcounts', subname)
-
-         allocate(sdispls(0:nproc-1), stat=i_stat)
-         call memocc(i_stat, sdispls, 'sdispls', subname)
-
-         allocate(rdispls(0:nproc-1), stat=i_stat)
-         call memocc(i_stat, rdispls, 'rdispls', subname)
+         sendcounts = f_malloc(0.to.nproc-1,id='sendcounts')
+         recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
+         sdispls = f_malloc(0.to.nproc-1,id='sdispls')
+         rdispls = f_malloc(0.to.nproc-1,id='rdispls')
       end if
 
 
@@ -1862,8 +1745,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 
       ! Send all eigenvectors to all processes. Since these eigenvectors contain some padded zeros, we can first
       ! cut off these zeros.
-      allocate(psiGuessPTrunc(norbtot*nspinor,max(norbpArr(iproc),1),nspin), stat=i_stat)
-      call memocc(i_stat, psiGuessPTrunc, 'psiGuessPTrunc', subname)
+      psiGuessPTrunc = f_malloc((/ norbtot*nspinor , max(norbpArr(iproc),1) , nspin /),id='psiGuessPTrunc')
       do iorb=1,norbpArr(iproc)
          call vcopy(norbtot*nspinor, psiGuessP(1,iorb,ispin), 1, psiGuessPTrunc(1,iorb,ispin), 1)
       end do
@@ -1910,9 +1792,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
          if(simul) stop 'should not happen...'
          call vcopy(norbtot*nspinor*norb, psiGuessP(1,1,ispin), 1, psiGuess(1,1,ispin), 1)
       end if
-      i_all=-product(shape(psiGuessPTrunc))*kind(psiGuessPTrunc)
-      deallocate(psiGuessPTrunc, stat=i_stat)
-      call memocc(i_stat, i_all, 'psiGuessPTrunc', subname)
+      call f_free(psiGuessPTrunc)
 
       ! Transform the eigenvectors to the wavelet basis.
       ! These are the starting indices of the vectors: istpsi is the starting vector for psi
@@ -2013,12 +1893,9 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
    ! For further processing they have to be rearranged:
    ! (e11)(e12)(e21)(e22)(e31)(e32). 
    ! Use alphaArr as temporary array
-   i_all=-product(shape(alphaArr))*kind(alphaArr)
-   deallocate(alphaArr, stat=i_stat)
-   call memocc(i_stat, i_all, 'alphaArr', subname)
+   call f_free(alphaArr)
 
-   allocate(alphaArr((orbs%norb-norbsc)*orbs%nkpts*nspin), stat=i_stat)
-   call memocc(i_stat, alphaArr, 'alphaArr', subname)
+   alphaArr = f_malloc((orbs%norb-norbsc)*orbs%nkpts*nspin,id='alphaArr')
 
    call vcopy((orbs%norb-norbsc)*orbs%nkpts*nspin, orbs%eval(1), 1, alphaArr(1), 1)
    ist=1
@@ -2055,9 +1932,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       if(nspin==2) jj=sum(norbscArr(1:natsc,2))
 
       ! Allocate the arrays which will contain the eigenvalues.
-      if(nspin==1) allocate(evale(2*ii*nspin*orbs%nkpts), stat=i_stat)
-      if(nspin==2) allocate(evale(2*max(ii,jj)*nspin*orbs%nkpts), stat=i_stat)
-      call memocc(i_stat, evale, 'evale', subname)
+      if(nspin==1) evale = f_malloc(2*ii*nspin*orbs%nkpts,id='evale')
+      if(nspin==2) evale = f_malloc(2*max(ii,jj)*nspin*orbs%nkpts,id='evale')
 
 
 
@@ -2076,25 +1952,19 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
             if(nspinor==1) then
 
                ! Get the optimal work array size
-               allocate(work(1), stat=i_stat)
-               call memocc(i_stat, work, 'work', subname)
+               work = f_malloc(1,id='work')
                call dsygv(1, 'v', 'u', norbi, hamovr(imatrst,1,1,ikpt), norbi, hamovr(imatrst,1,2,ikpt), &
                   &   norbi, evale(ist), work(1), -1, info)
                lwork = int(work(1))
-               i_all=-product(shape(work))*kind(work)
-               deallocate(work, stat=i_stat)
-               call memocc(i_stat, i_all, 'work', subname)
-               allocate(work(lwork), stat=i_stat)
-               call memocc(i_stat, work, 'work', subname)
+               call f_free(work)
+               work = f_malloc(lwork,id='work')
 
                call dsygv(1, 'v', 'u', norbi, hamovr(imatrst,1,1,ikpt), norbi, hamovr(imatrst,1,2,ikpt), &
                   &   norbi, evale(ist), work(1), lwork, info)
                if(info/=0) write(*,'(a,i0)') 'ERROR in dsygv, info=',info
                ist=ist+norbi
                if(nspin==1) then
-                  i_all=-product(shape(work))*kind(work)
-                  deallocate(work, stat=i_stat)
-                  call memocc(i_stat, i_all, 'work', subname)
+                  call f_free(work)
                end if
 
                ! Diagonalize the Hamiltonian for the down orbitals if we have spin polarization.
@@ -2108,43 +1978,29 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 
                   if(info/=0) write(*,'(a,i0)') 'ERROR in dsygv, info=',info
                   ist=ist+norbj
-                  i_all=-product(shape(work))*kind(work)
-                  deallocate(work, stat=i_stat)
-                  call memocc(i_stat, i_all, 'work', subname)
+                  call f_free(work)
                end if
 
             else
 
                ! Get the optimal work array size
-               allocate(work(1), stat=i_stat)
-               call memocc(i_stat, work, 'work', subname)
-               allocate(rwork(1), stat=i_stat)
-               call memocc(i_stat, rwork, 'rwork', subname)
+               work = f_malloc(1,id='work')
+               rwork = f_malloc(1,id='rwork')
                call zhegv(1, 'v', 'u', norbi, hamovr(imatrst,1,1,ikpt), norbi, hamovr(imatrst,1,2,ikpt), &
                   &   norbi, evale(ist), work(1), -1, work(1), info)
                lwork = int(work(1))
-               i_all=-product(shape(work))*kind(work)
-               deallocate(work, stat=i_stat)
-               call memocc(i_stat, i_all, 'work', subname)
-               i_all=-product(shape(rwork))*kind(rwork)
-               deallocate(rwork, stat=i_stat)
-               call memocc(i_stat, i_all, 'rwork', subname)
-               allocate(work(lwork), stat=i_stat)
-               call memocc(i_stat, work, 'work', subname)
-               allocate(rwork(lwork), stat=i_stat)
-               call memocc(i_stat, rwork, 'rwork', subname)
+               call f_free(work)
+               call f_free(rwork)
+               work = f_malloc(lwork,id='work')
+               rwork = f_malloc(lwork,id='rwork')
 
                call zhegv(1, 'v', 'u', norbi, hamovr(imatrst,1,1,ikpt), norbi, hamovr(imatrst,1,2,ikpt), &
                   &   norbi, evale(ist), work(1), lwork, rwork(1), info)
                if(info/=0) write(*,'(a,i0)') 'ERROR in zhegv, info=',info
                ist=ist+norbi
                if(nspin==1) then
-                  i_all=-product(shape(work))*kind(work)
-                  deallocate(work, stat=i_stat)
-                  call memocc(i_stat, i_all, 'work', subname)
-                  i_all=-product(shape(rwork))*kind(rwork)
-                  deallocate(rwork, stat=i_stat)
-                  call memocc(i_stat, i_all, 'rwork', subname)
+                  call f_free(work)
+                  call f_free(rwork)
                end if
 
                ! Diagonalize the Hamiltonian for the down orbitals if we have spin polarization.
@@ -2155,12 +2011,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
                      &   work(ist), lwork, rwork(1), info)
                   if(info/=0) write(*,'(a,i0)') 'ERROR in zhegv, info=',info
                   ist=ist+norbj
-                  i_all=-product(shape(work))*kind(work)
-                  deallocate(work, stat=i_stat)
-                  call memocc(i_stat, i_all, 'work', subname)
-                  i_all=-product(shape(rwork))*kind(rwork)
-                  deallocate(rwork, stat=i_stat)
-                  call memocc(i_stat, i_all, 'rwork', subname)
+                  call f_free(work)
+                  call f_free(rwork)
                end if
 
             end if
@@ -2229,10 +2081,8 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 
       ! Now send all eigenvalues of all k-points to all processes.
       ! First find out which process handles which k-points.
-      allocate(kpArr(orbs%nkpts,0:nproc-1,2), stat=i_stat)
-      call memocc(i_stat, kpArr, 'kpArr', subname)
-      allocate(sceval(norbsc*nspin*orbs%nkpts), stat=i_stat)
-      call memocc(i_stat, sceval, 'sceval', subname)
+      kpArr = f_malloc((/ 1.to.orbs%nkpts , 0.to.nproc-1 , 1.to.2 /),id='kpArr')
+      sceval = f_malloc(norbsc*nspin*orbs%nkpts,id='sceval')
 
       ! If process i handles k-point j, set kpArr(j,i) to 1. Then make a mpi_allreduce
       ! to collect this informations from all processes.
@@ -2407,12 +2257,9 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
    ! Use sortArr as temporary array.
    if(norbsc>0) then
 
-      i_all=-product(shape(sortArr))*kind(sortArr)
-      deallocate(sortArr, stat=i_stat)
-      call memocc(i_stat, i_all, 'sortArr', subname)
+      call f_free(sortArr)
 
-      allocate(sortArr((orbs%norb-nspin*norbsc)*nspin*orbs%nkpts,1,1), stat=i_stat)
-      call memocc(i_stat, sortArr, 'sortArr', subname)
+      sortArr = f_malloc((/ (orbs%norb-nspin*norbsc)*nspin*orbs%nkpts , 1 , 1 /),id='sortArr')
 
       ! The starting indices:
       !   ist is the starting index of the merged eigenvalues
@@ -2448,120 +2295,44 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 
 
    ! Deallocate all arrays.
-   i_all=-product(shape(gradient))*kind(gradient)
-   deallocate(gradient, stat=i_stat)
-   call memocc(i_stat, i_all, 'gradient', subname)
-
-   i_all=-product(shape(gradientOld))*kind(gradientOld)
-   deallocate(gradientOld, stat=i_stat)
-   call memocc(i_stat, i_all, 'gradientOld', subname)
-
-   i_all=-product(shape(overlapPsiGuessP))*kind(overlapPsiGuessP)
-   deallocate(overlapPsiGuessP, stat=i_stat)
-   call memocc(i_stat, i_all, 'overlapPsiGuessP', subname)
-
-   i_all=-product(shape(overlapPad))*kind(overlapPad)
-   deallocate(overlapPad, stat=i_stat)
-   call memocc(i_stat, i_all, 'overlapPad', subname)
-
-   i_all=-product(shape(HamPad))*kind(HamPad)
-   deallocate(HamPad, stat=i_stat)
-   call memocc(i_stat, i_all, 'HamPad', subname)
-
-   i_all=-product(shape(psiGuessP))*kind(psiGuessP)
-   deallocate(psiGuessP, stat=i_stat)
-   call memocc(i_stat, i_all, 'psiGuessP', subname)
-
-   i_all=-product(shape(norbpArr))*kind(norbpArr)
-   deallocate(norbpArr, stat=i_stat)
-   call memocc(i_stat, i_all, 'norbpArr', subname)
-
+   call f_free(gradient)
+   call f_free(gradientOld)
+   call f_free(overlapPsiGuessP)
+   call f_free(overlapPad)
+   call f_free(HamPad)
+   call f_free(psiGuessP)
+   call f_free(norbpArr)
    if(simul) then
-      i_all=-product(shape(norbpArrSimul))*kind(norbpArrSimul)
-      deallocate(norbpArrSimul, stat=i_stat)
-      call memocc(i_stat, i_all, 'norbpArrSimul', subname)
+      call f_free(norbpArrSimul)
    end if
-
-   i_all=-product(shape(norbtotpArr))*kind(norbtotpArr)
-   deallocate(norbtotpArr, stat=i_stat)
-   call memocc(i_stat, i_all, 'norbtotpArr', subname)
-
-   i_all=-product(shape(sendcounts))*kind(sendcounts)
-   deallocate(sendcounts, stat=i_stat)
-   call memocc(i_stat, i_all, 'sendcounts', subname)
-
-   i_all=-product(shape(recvcounts))*kind(recvcounts)
-   deallocate(recvcounts, stat=i_stat)
-   call memocc(i_stat, i_all, 'recvcounts', subname)
-
-   i_all=-product(shape(sdispls))*kind(sdispls)
-   deallocate(sdispls, stat=i_stat)
-   call memocc(i_stat, i_all, 'sdidpls', subname)
-
-   i_all=-product(shape(rdispls))*kind(rdispls)
-   deallocate(rdispls, stat=i_stat)
-   call memocc(i_stat, i_all, 'rdidpls', subname)
-
-   i_all=-product(shape(alphaArr))*kind(alphaArr)
-   deallocate(alphaArr, stat=i_stat)
-   call memocc(i_stat, i_all, 'alphaArr', subname)
-
-   i_all=-product(shape(rayleigh))*kind(rayleigh)
-   deallocate(rayleigh, stat=i_stat)
-   call memocc(i_stat, i_all, 'rayleigh', subname)
-
-   i_all=-product(shape(psiGuess))*kind(psiGuess)
-   deallocate(psiGuess, stat=i_stat)
-   call memocc(i_stat, i_all, 'psiGuess', subname)
-
-   i_all=-product(shape(sortArr))*kind(sortArr)
-   deallocate(sortArr, stat=i_stat)
-   call memocc(i_stat, i_all, 'sortArr', subname)
-
-   i_all=-product(shape(kstArr))*kind(kstArr)
-   deallocate(kstArr, stat=i_stat)
-   call memocc(i_stat, i_all, 'kstArr', subname)
-
-   i_all=-product(shape(nkArr))*kind(nkArr)
-   deallocate(nkArr, stat=i_stat)
-   call memocc(i_stat, i_all, 'nkArr', subname)
-
-   i_all=-product(shape(kArr))*kind(kArr)
-   deallocate(kArr, stat=i_stat)
-   call memocc(i_stat, i_all, 'kArr', subname)
+   call f_free(norbtotpArr)
+   call f_free(sendcounts)
+   call f_free(recvcounts)
+   call f_free(sdispls)
+   call f_free(rdispls)
+   call f_free(alphaArr)
+   call f_free(rayleigh)
+   call f_free(psiGuess)
+   call f_free(sortArr)
+   call f_free(kstArr)
+   call f_free(nkArr)
+   call f_free(kArr)
 
    if(.not.simul) then
-      i_all=-product(shape(newID))*kind(newID)
-      deallocate(newID, stat=i_stat)
-      call memocc(i_stat, i_all, 'newID', subname)
+      call f_free(newID)
    end if
 
    if(simul) then
-      i_all=-product(shape(newIDu))*kind(newIDu)
-      deallocate(newIDu, stat=i_stat)
-      call memocc(i_stat, i_all, 'newIDu', subname)
-
-      i_all=-product(shape(newIDd))*kind(newIDd)
-      deallocate(newIDd, stat=i_stat)
-      call memocc(i_stat, i_all, 'newIDd', subname)
+      call f_free(newIDu)
+      call f_free(newIDd)
    end if
 
-   i_all=-product(shape(norbArr))*kind(norbArr)
-   deallocate(norbArr, stat=i_stat)
-   call memocc(i_stat, i_all, 'norbArr', subname)
+   call f_free(norbArr)
 
    if(natsc>0) then
-      i_all=-product(shape(kpArr))*kind(kpArr)
-      deallocate(kpArr, stat=i_stat)
-      call memocc(i_stat, i_all, 'kpArr', subname)
-
-      i_all=-product(shape(sceval))*kind(sceval)
-      deallocate(sceval, stat=i_stat)
-      call memocc(i_stat, i_all, 'sceval', subname)
-
-      i_all=-product(shape(evale))*kind(evale)
-      deallocate(evale, stat=i_stat)
-      call memocc(i_stat, i_all, 'evale', subname)
+      call f_free(kpArr)
+      call f_free(sceval)
+      call f_free(evale)
    end if
 
    if(iproc==0) write(*,'(1x,a)') 'Input guess successfully generated.'
@@ -2572,11 +2343,9 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
 END SUBROUTINE inputguessParallel
 
 
-
-
-!>  This subroutine orthonormalizes the orbitals psi in a parallel way. To do so, it first transposes the orbitals to all
-!!  processors using mpi_alltoallv. The orthonomalization is then done in this data layout using a combination of blockwise Gram-Schmidt
-!!  and Cholesky orthonomalization. At the end the vectors are again untransposed.
+!> This subroutine orthonormalizes the orbitals psi in a parallel way. To do so, it first transposes the orbitals to all
+!! processors using mpi_alltoallv. The orthonomalization is then done in this data layout using a combination of blockwise Gram-Schmidt
+!! and Cholesky orthonomalization. At the end the vectors are again untransposed.
 !!
 !! Calling arguments:
 !! =================
@@ -2620,40 +2389,23 @@ subroutine orthonormalizePsi(iproc, nproc, norbtot, norb, norbp, norbpArr,&
 
    ! Local variables
    integer:: i, j, iorb, iblock, jblock, ii, jj, ist, jst, iter, iter2, gcd,&
-      &   blocksizeSmall, norbtotp, ierr, i_stat, i_all, getBlocksize
+      &   blocksizeSmall, norbtotp, ierr, getBlocksize
    real(kind=8),dimension(:),allocatable:: psiW, overlapPsiW, psiWTrans, overlapPsiWTrans
    integer,dimension(:),allocatable:: sendcounts, recvcounts, sdispls, rdispls
    character(len=*),parameter:: subname='orthonormalizePsi'
-
-
 
    !< This variable is the part of each orbital that will be distributed to each processor and will be used throughout the subroutine.
    norbtotp=norbtot/nproc
 
    ! Allocate all arrays
-   allocate(psiW(norbtot*norbp*nspinor), stat=i_stat)
-   call memocc(i_stat, psiW, 'psiW', subname)
-
-   allocate(overlapPsiW(norbtot*norbp*nspinor), stat=i_stat)
-   call memocc(i_stat, overlapPsiW, 'overlapPsiW', subname)
-
-   allocate(psiWTrans(norbtotp*norb*nspinor), stat=i_stat)
-   call memocc(i_stat, psiWTrans, 'psiWTrans', subname)
-
-   allocate(overlapPsiWTrans(norbtotp*norb*nspinor), stat=i_stat)
-   call memocc(i_stat, overlapPsiWTrans, 'overlapPsiWTrans', subname)
-
-   allocate(sendcounts(nprocSt:nprocSt+nproc-1), stat=i_stat)
-   call memocc(i_stat, sendcounts, 'sendcounts', subname)
-
-   allocate(recvcounts(nprocSt:nprocSt+nproc-1), stat=i_stat)
-   call memocc(i_stat, recvcounts, 'recvcounts', subname)
-
-   allocate(sdispls(nprocSt:nprocSt+nproc-1), stat=i_stat)
-   call memocc(i_stat, sdispls, 'sdispls', subname)
-
-   allocate(rdispls(nprocSt:nprocSt+nproc-1), stat=i_stat)
-   call memocc(i_stat, rdispls, 'rdispls', subname)
+   psiW = f_malloc(norbtot*norbp*nspinor,id='psiW')
+   overlapPsiW = f_malloc(norbtot*norbp*nspinor,id='overlapPsiW')
+   psiWTrans = f_malloc(norbtotp*norb*nspinor,id='psiWTrans')
+   overlapPsiWTrans = f_malloc(norbtotp*norb*nspinor,id='overlapPsiWTrans')
+   sendcounts = f_malloc(nprocSt.to.nprocSt+nproc-1,id='sendcounts')
+   recvcounts = f_malloc(nprocSt.to.nprocSt+nproc-1,id='recvcounts')
+   sdispls = f_malloc(nprocSt.to.nprocSt+nproc-1,id='sdispls')
+   rdispls = f_malloc(nprocSt.to.nprocSt+nproc-1,id='rdispls')
 
 
    if(nproc>1) then
@@ -2822,37 +2574,14 @@ subroutine orthonormalizePsi(iproc, nproc, norbtot, norb, norbp, norbpArr,&
 
 
    ! Deallocate all arrays
-   i_all=-product(shape(psiW))*kind(psiW)
-   deallocate(psiW, stat=i_stat)
-   call memocc(i_stat, i_all, 'psiW', subname)
-
-   i_all=-product(shape(overlapPsiW))*kind(overlapPsiW)
-   deallocate(overlapPsiW, stat=i_stat)
-   call memocc(i_stat, i_all, 'overlapPsiW', subname)
-
-   i_all=-product(shape(psiWTrans))*kind(psiWTrans)
-   deallocate(psiWTrans, stat=i_stat)
-   call memocc(i_stat, i_all, 'psiWTrans', subname)
-
-   i_all=-product(shape(overlapPsiWTrans))*kind(overlapPsiWTrans)
-   deallocate(overlapPsiWTrans, stat=i_stat)
-   call memocc(i_stat, i_all, 'overlapPsiWTrans', subname)
-
-   i_all=-product(shape(sendcounts))*kind(sendcounts)
-   deallocate(sendcounts, stat=i_stat)
-   call memocc(i_stat, i_all, 'sendcounts', subname)
-
-   i_all=-product(shape(recvcounts))*kind(recvcounts)
-   deallocate(recvcounts, stat=i_stat)
-   call memocc(i_stat, i_all, 'recvcounts', subname)
-
-   i_all=-product(shape(sdispls))*kind(sdispls)
-   deallocate(sdispls, stat=i_stat)
-   call memocc(i_stat, i_all, 'sdidpls', subname)
-
-   i_all=-product(shape(rdispls))*kind(rdispls)
-   deallocate(rdispls, stat=i_stat)
-   call memocc(i_stat, i_all, 'rdidpls', subname)
+   call f_free(psiW)
+   call f_free(overlapPsiW)
+   call f_free(psiWTrans)
+   call f_free(overlapPsiWTrans)
+   call f_free(sendcounts)
+   call f_free(recvcounts)
+   call f_free(sdispls)
+   call f_free(rdispls)
 
 END SUBROUTINE orthonormalizePsi
 
@@ -2887,14 +2616,13 @@ subroutine gramschmidtOverlap(iproc, nproc, norbtot, blocksize, psi, overlapPsi,
    real(kind=8),dimension(1:norbtot*nspinor,1:norb,nkpts),intent(in out):: psi
 
    ! Local arguments
-   integer:: ikpt, ist, ierr, i_stat, i_all
+   integer:: ikpt, ist, ierr
    real(kind=8),dimension(:,:),allocatable:: A
    real(kind=8),dimension(:,:,:),allocatable:: ovrlp
    character(len=*),parameter:: subname='gramschmidtOverlap'
 
    ! Allocate the matrix A which will hold some partial results.
-   allocate(A(1:norbtot*nspinor,1:blocksize), stat=i_stat)
-   call memocc(i_stat, A, 'A', subname)
+   A = f_malloc((/ 1.to.norbtot*nspinor, 1.to.blocksize /),id='A')
 
    ! Allocate the matrix ovrlp which will save the overlap between the orbitals in psi and psi. For the parallel case we add another
    ! dimension: Each process writes its values to ovrlp(:,:,2) and then an mpi_allreduce will sum the contributions from all processes to ovrlp(:,:,1).
@@ -2903,8 +2631,7 @@ subroutine gramschmidtOverlap(iproc, nproc, norbtot, blocksize, psi, overlapPsi,
    else
       ist=1
    end if
-   allocate(ovrlp(1:blocksize*blocksize*nspinor,nkpts,ist), stat=i_stat)
-   call memocc(i_stat, ovrlp, 'ovrlp', subname)
+   ovrlp = f_malloc((/ 1.to.blocksize*blocksize*nspinor, 1.to.nkpts, 1.to.ist /),id='ovrlp')
 
    ! Now calculate this overlap matrix: ovrlp=<psi|overlap|psi>.
    do ikpt=1,nkpts
@@ -2945,13 +2672,8 @@ subroutine gramschmidtOverlap(iproc, nproc, norbtot, blocksize, psi, overlapPsi,
    end do
 
    ! Deallocate all arrays
-   i_all=-product(shape(A))*kind(A)
-   deallocate(A, stat=i_stat)
-   call memocc(i_stat, i_all, 'A', subname)
-
-   i_all=-product(shape(ovrlp))*kind(ovrlp)
-   deallocate(ovrlp, stat=i_stat)
-   call memocc(i_stat, i_all, 'ovrlp', subname)
+   call f_free(A)
+   call f_free(ovrlp)
 
 
 END SUBROUTINE gramschmidtOverlap
@@ -2987,7 +2709,7 @@ subroutine choleskyOverlap(iproc, nproc, norbtot, blocksize, psi, overlapPsi, &
    real(kind=8),dimension(1:norbtot*nspinor,1:norb,nkpts),intent(in out):: psi
 
    ! Local variables
-   integer:: ikpt, ist, info, ierr, i_stat, i_all
+   integer:: ikpt, ist, info, ierr
    real(kind=8),allocatable,dimension(:,:,:):: ovrlp
    character(len=*),parameter:: subname='choleskyOverlap'
 
@@ -2999,9 +2721,7 @@ subroutine choleskyOverlap(iproc, nproc, norbtot, blocksize, psi, overlapPsi, &
    else
       ist=1 
    end if
-   allocate(ovrlp(1:blocksize*blocksize*nspinor,nkpts,ist), stat=i_stat)
-   call memocc(i_stat, ovrlp, 'ovrlp', subname)
-   ovrlp=0.d0
+   ovrlp = f_malloc0((/ 1.to.blocksize*blocksize*nspinor, 1.to.nkpts, 1.to.ist /),id='ovrlp')
 
    ! Now calculate the overlap matrix ovrlp=<psi|overlap|psi>
    do ikpt=1,nkpts
@@ -3050,9 +2770,7 @@ subroutine choleskyOverlap(iproc, nproc, norbtot, blocksize, psi, overlapPsi, &
    end do
 
    ! Deallocate the arrays.
-   i_all=-product(shape(ovrlp))*kind(ovrlp)
-   deallocate(ovrlp, stat=i_stat)
-   call memocc(i_stat, i_all, 'ovrlp', subname)
+   call f_free(ovrlp)
 
 END SUBROUTINE choleskyOverlap
 
@@ -3178,6 +2896,7 @@ END FUNCTION getBlocksize
 !!    @param iproc   process ID. For this subroutine it is just a number without meaning.
 !!    @param ispin   spin up/down. For this subroutine it is just a number without meaning.
 subroutine initRandomSeed(iproc, ispin)
+   use module_base
    implicit none
 
    ! Calling arguments
@@ -3188,10 +2907,10 @@ subroutine initRandomSeed(iproc, ispin)
    integer,dimension(:),allocatable:: seed
 
    call random_seed(size=n)
-   allocate(seed(n))
+   seed = f_malloc(n,id='seed')
    i=0
    seed=37*(10*iproc+ispin)*(/(i-1, i=1,n)/)
    call random_seed(put=seed)
 
-   deallocate(seed)
+   call f_free(seed)
 END SUBROUTINE initRandomSeed

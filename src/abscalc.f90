@@ -18,7 +18,7 @@ program abscalc_main
 
    implicit none
    character(len=*), parameter :: subname='abscalc_main'
-   integer :: iproc,nproc,i_stat,i_all,ierr,infocode
+   integer :: iproc,nproc,ierr,infocode
    real(gp) :: etot
 !!$   logical :: exist_list
    !input variables
@@ -89,8 +89,7 @@ program abscalc_main
 
 
       !Allocations
-      allocate(fxyz(3,runObj%atoms%astruct%nat+ndebug),stat=i_stat)
-      call memocc(i_stat,fxyz,'fxyz',subname)
+      fxyz = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='fxyz')
 
       call call_abscalc(nproc,iproc,runObj%atoms,runObj%atoms%astruct%rxyz, &
            & runObj%inputs,etot,fxyz,runObj%rst,infocode)
@@ -98,15 +97,13 @@ program abscalc_main
       ! if (iproc == 0) call write_forces(atoms,fxyz)
 
       !De-allocations
-      call deallocate_abscalc_input(runObj%inputs, subname)
+      call deallocate_abscalc_input(runObj%inputs)
 !      call deallocate_local_zone_descriptors(rst%Lzd, subname)
 
 
-      i_all=-product(shape(fxyz))*kind(fxyz)
-      deallocate(fxyz,stat=i_stat)
-      call memocc(i_stat,i_all,'fxyz',subname)
+      call f_free(fxyz)
 
-      call run_objects_free(runObj, "abscalc")
+      call run_objects_free(runObj, subname)
 !!$      call free_input_variables(inputs)
 !!$
 !!$      !finalize memory counting
@@ -148,7 +145,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
    !local variables
    character(len=*), parameter :: subname='call_abscalc'
    character(len=40) :: comment
-   integer :: i_stat,i_all,ierr,inputPsiId_orig,icycle
+   integer :: ierr,inputPsiId_orig,icycle
 
 !!$   !temporary interface
 !!$   interface
@@ -185,12 +182,8 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
    loop_cluster: do icycle=1,in%nrepmax
 
       if (in%inputPsiId == 0 .and. associated(rst%KSwfn%psi)) then
-         i_all=-product(shape(rst%KSwfn%psi))*kind(rst%KSwfn%psi)
-         deallocate(rst%KSwfn%psi,stat=i_stat)
-         call memocc(i_stat,i_all,'psi',subname)
-         i_all=-product(shape(rst%KSwfn%orbs%eval))*kind(rst%KSwfn%orbs%eval)
-         deallocate(rst%KSwfn%orbs%eval,stat=i_stat)
-         call memocc(i_stat,i_all,'eval',subname)
+         call f_free_ptr(rst%KSwfn%psi)
+         call f_free_ptr(rst%KSwfn%orbs%eval)
          nullify(rst%KSwfn%orbs%eval)
 
         call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd)
@@ -228,16 +221,12 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
             write(comment,'(a)')'UNCONVERGED WF '
             !call wtxyz('posfail',energy,rxyz,atoms,trim(comment))
 
-            call write_atomic_file("posfail",energy,rxyz,atoms,trim(comment))
+            call write_atomic_file("posfail",energy,rxyz,atoms%astruct%ixyz_int,atoms,trim(comment))
 
          end if 
 
-         i_all=-product(shape(rst%KSwfn%psi))*kind(rst%KSwfn%psi)
-         deallocate(rst%KSwfn%psi,stat=i_stat)
-         call memocc(i_stat,i_all,'psi',subname)
-         i_all=-product(shape(rst%KSwfn%orbs%eval))*kind(rst%KSwfn%orbs%eval)
-         deallocate(rst%KSwfn%orbs%eval,stat=i_stat)
-         call memocc(i_stat,i_all,'eval',subname)
+         call f_free_ptr(rst%KSwfn%psi)
+         call f_free_ptr(rst%KSwfn%orbs%eval)
          nullify(rst%KSwfn%orbs%eval)
 
         call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd)
@@ -262,8 +251,8 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
 END SUBROUTINE call_abscalc
 
 
-!>   Absorption (XANES) calculation
-!!   @warning psi should be freed after use outside of the routine.
+!> Absorption (XANES) calculation
+!! @warning psi should be freed after use outside of the routine.
 subroutine abscalc(nproc,iproc,atoms,rxyz,&
      KSwfn,hx_old,hy_old,hz_old,in,GPU,infocode)
    use module_base
@@ -277,6 +266,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use lanczos_interface, only: xabs_lanczos,xabs_cg,xabs_chebychev
    use esatto, only: binary_search
    use module_atoms, only: set_symmetry_data,atoms_data
+   use communications_base, only: comms_cubic
+   use communications_init, only: orbitals_communicators
+   use ao_inguess, only: set_aocc_from_string
+   use gaussians, only: gaussian_basis, nullify_gaussian_basis
+   use yaml_output, only: yaml_warning,yaml_toa
    implicit none
    integer, intent(in) :: nproc,iproc
    real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -288,14 +282,14 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    type(GPU_pointers), intent(inout) :: GPU
    real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
 !   real(wp), dimension(:), pointer :: psi
-   integer, intent(out) :: infocode        !< encloses some information about the status of the run
-!!                         - 0 run successfully succeded
-!!                         - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
-!!                             forces may be meaningless   
-!!                         - 2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
-!!                             the second iteration OR grnm 1st >2.
-!!                             Input wavefunctions need to be recalculated. Routine exits.
-!!                         - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
+   integer, intent(out) :: infocode !< encloses some information about the status of the run
+                                    !! - 0 run successfully succeded
+                                    !! - 1 the run ended after the allowed number of minimization steps. gnrm_cv not reached
+                                    !!     forces may be meaningless   
+                                    !! - 2 (present only for inputPsiId=1) gnrm of the first iteration > 1 AND growing in
+                                    !!     the second iteration OR grnm 1st >2.
+                                    !!     Input wavefunctions need to be recalculated. Routine exits.
+                                    !! - 3 (present only for inputPsiId=0) gnrm > 4. SCF error. Routine exits.
    !local variables
    type(orbitals_data) :: orbs
    character(len=*), parameter :: subname='abscalc'
@@ -305,7 +299,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    integer :: ndegree_ip,j,n1,n2,n3
 !   integer :: n3d,n3p,n3pi,i3xcsh,i3s
    integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
-   integer :: iat,i_all,i_stat,ierr,inputpsi
+   integer :: iat,ierr,inputpsi
    real :: tcpu0,tcpu1
    real(gp), dimension(3) :: shift
    real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
@@ -314,7 +308,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    real(kind=8) :: tel,psoffset
    !real(gp) :: edisp ! Dispersion energy
    type(DFT_PSP_projectors) :: nlpsp
-   type(communications_arrays) :: comms
+   type(comms_cubic) :: comms
    type(gaussian_basis) :: Gvirt
    type(rho_descriptors)  :: rhodsc
    type(energy_terms) :: energs
@@ -345,6 +339,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    ! Arrays for the symmetrisation, not used here...
    type(symmetry_data) :: symObj
    type(denspot_distribution) :: dpcom
+   type(xc_info) :: xc
    character(len=5) :: gridformat
 
    !for xabsorber
@@ -377,7 +372,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    real(gp) :: potmodified_maxr, potmodified_shift
 
    type(atoms_data) :: atoms_clone
-   integer :: nsp, nspinor !n(c) noncoll
+   integer :: ndeg,nsp, nspinor !n(c) noncoll
    integer, parameter :: nelecmax=32,lmax=4 !n(c) nmax=6
    integer, parameter :: noccmax=2
 
@@ -442,8 +437,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    !these routines can be regrouped in one
 
-   allocate(radii_cf(atoms%astruct%ntypes,3+ndebug),stat=i_stat)
-   call memocc(i_stat,radii_cf,'radii_cf',subname)
+   radii_cf = f_malloc((/ atoms%astruct%ntypes, 3 /),id='radii_cf')
 
 
    if (iproc==0) then
@@ -452,9 +446,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    end if
 
    if (ixc < 0) then
-      call xc_init(ixc, XC_MIXED, nspin)
+      call xc_init(xc, ixc, XC_MIXED, nspin)
    else
-      call xc_init(ixc, XC_ABINIT, nspin)
+      call xc_init(xc, ixc, XC_ABINIT, nspin)
    end if
 
    !character string for quieting the Poisson solver
@@ -471,7 +465,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
 
-   call system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,KSwfn%Lzd%Glr,shift)
+   call system_size(atoms,rxyz,radii_cf,crmult,frmult,hx,hy,hz,.false.,KSwfn%Lzd%Glr,shift)
    if (iproc == 0) call print_atoms_and_grid(KSwfn%Lzd%Glr, atoms, rxyz, shift, hx, hy, hz)
 
    if ( KSwfn%orbs%nspinor.gt.1) then
@@ -530,9 +524,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    if (iproc==0 .and. verbose > 0) call print_memory_estimation(mem)
 
    !complete dpbox initialization
-   call dpbox_set(dpcom,KSwfn%Lzd,iproc,nproc,MPI_COMM_WORLD,in,atoms%astruct%geocode)
+   call dpbox_set(dpcom,KSwfn%Lzd,xc,iproc,nproc,MPI_COMM_WORLD,in%PSolver_groupsize, &
+        & in%SIC%approach,atoms%astruct%geocode,nspin)
 
-  call density_descriptors(iproc,nproc,in%nspin,in%crmult,in%frmult,atoms,&
+  call density_descriptors(iproc,nproc,xc,in%nspin,in%crmult,in%frmult,atoms,&
        dpcom,in%rho_commun,rxyz,radii_cf,rhodsc)
 
 !!$
@@ -557,11 +552,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !allocate ionic potential
    if (iproc == 0) write(*,*) " allocate ionic potential " 
    if (dpcom%n3pi > 0) then
-      allocate(pot_ion(n1i*n2i*dpcom%n3pi+ndebug),stat=i_stat)
-      call memocc(i_stat,pot_ion,'pot_ion',subname)
+      pot_ion = f_malloc(n1i*n2i*dpcom%n3pi,id='pot_ion')
    else
-      allocate(pot_ion(1+ndebug),stat=i_stat)
-      call memocc(i_stat,pot_ion,'pot_ion',subname)
+      pot_ion = f_malloc(1,id='pot_ion')
    end if
 
    !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
@@ -634,25 +627,20 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    !Allocate Charge density, Potential in real space
    if (dpcom%n3d >0) then
-      allocate(rhopot(n1i,n2i,dpcom%n3d,in%nspin+ndebug),stat=i_stat)
-      call memocc(i_stat,rhopot,'rhopot',subname)
+      rhopot = f_malloc((/ n1i, n2i, dpcom%n3d, in%nspin /),id='rhopot')
    else
-      allocate(rhopot(1,1,1,in%nspin+ndebug),stat=i_stat)
-      call memocc(i_stat,rhopot,'rhopot',subname)
+      rhopot = f_malloc((/ 1, 1, 1, in%nspin /),id='rhopot')
    end if
 
    if( iand( in%potshortcut,16)>0) then
-      allocate(rhoXanes(n1i,n2i,n3i,in%nspin+ndebug),stat=i_stat)
-      call memocc(i_stat,rhoXanes,'rhoXanes',subname)
+      rhoXanes = f_malloc((/ n1i, n2i, n3i, in%nspin /),id='rhoXanes')
    else
-      allocate(rhoXanes(1,1,1,1+ndebug),stat=i_stat)
-      call memocc(i_stat,rhoXanes,'rhoXanes',subname)     
+      rhoXanes = f_malloc((/ 1, 1, 1, 1 /),id='rhoXanes')
    endif
 
 
    if(  iand( in%potshortcut, 2)  > 0 ) then
-      allocate(rhopotTOTO(n1i,n2i,n3i,  in%nspin+ndebug),  stat=i_stat  )
-      call memocc(i_stat,rhopotTOTO,'rhopotTOTO',subname)
+      rhopotTOTO = f_malloc((/ n1i, n2i, n3i, in%nspin /),id='rhopotTOTO')
    endif
 
 
@@ -663,11 +651,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    if( iand( in%potshortcut,4)  .gt. 0 ) then
       if (dpcom%n3d >0) then
-         allocate(rhopotExtra(n1i,n2i,dpcom%n3d,in%nspin+ndebug),stat=i_stat)
-         call memocc(i_stat,rhopotExtra,'rhopotExtra',subname)
+         rhopotExtra = f_malloc_ptr((/ n1i, n2i, dpcom%n3d, in%nspin /),id='rhopotExtra')
       else
-         allocate(rhopotExtra(1,1,1,in%nspin+ndebug),stat=i_stat)
-         call memocc(i_stat,rhopotExtra,'rhopotExtra',subname)
+         rhopotExtra = f_malloc_ptr((/ 1, 1, 1, in%nspin /),id='rhopotExtra')
       end if
 
       atoms_clone = atoms
@@ -703,13 +689,16 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          stop
       end select
 
-      print *, " Going to create extra potential for orbital "
-      print *, in%extraOrbital
-      print *, "using hard-coded parameters "
-      print *, "noccmax, nelecmax,lmax ", noccmax, nelecmax,lmax
+      !print *, " Going to create extra potential for orbital "
+      !print *, in%extraOrbital
+      !print *, "using hard-coded parameters "
+      !print *, "noccmax, nelecmax,lmax ", noccmax, nelecmax,lmax
+      call yaml_warning('Going to create extra potential for orbital' // yaml_toa(in%extraOrbital))
+      call yaml_warning('using hard-coded parameters (noccmax, nelecmax,lmax)' // &
+           yaml_toa((/ noccmax, nelecmax,lmax /)))
 
-      call read_eleconf(in%extraOrbital ,nsp,nspinor,noccmax, nelecmax,lmax, &
-         &   atoms_clone%aoig(iat)%aocc, atoms_clone%aoig(iat)%iasctype)
+      call set_aocc_from_string(in%extraOrbital,&
+           atoms_clone%aoig(iat)%aocc, atoms_clone%aoig(iat)%nl_sc,ndeg)
 
       nspin=in%nspin
       symObj%symObj = -1
@@ -728,16 +717,16 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
       call extract_potential_for_spectra(iproc,nproc,atoms_clone,rhodsc,dpcom,&
           KSwfn%orbs,nvirt,comms,KSwfn%Lzd,hx,hy,hz,rxyz,rhopotExtra,rhocore,pot_ion,&
-          nlpsp,pkernel,pkernel,ixc,KSwfn%psi,hpsi,psit,Gvirt,&
+          nlpsp,pkernel,ixc,KSwfn%psi,Gvirt,&
           nspin, in%potshortcut, symObj, GPU,in)
       
       if( iand( in%potshortcut,32)  .gt. 0 .and. in%iabscalc_type==3 ) then
          print *, " ============== TESTING PC_PROJECTORS =========== "
-         allocate(hpsi(max(KSwfn%orbs%npsidim_orbs,KSwfn%orbs%npsidim_comp)+ndebug),stat=i_stat)
+         hpsi = f_malloc_ptr(max(KSwfn%orbs%npsidim_orbs, KSwfn%orbs%npsidim_comp),id='hpsi')
          hpsi=0.0_wp
          PPD%iproj_to_factor(1:PPD%mprojtot) = 2.0_gp
         call applyPCprojectors(KSwfn%orbs,atoms,hx,hy,hz,KSwfn%Lzd%Glr,PPD,KSwfn%psi,hpsi, .true.)
-         deallocate(hpsi)
+         call f_free_ptr(hpsi)
       end if
 
       if( iand( in%potshortcut,16)>0) then
@@ -755,22 +744,15 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
             enddo
          enddo
 
-         i_all=-product(shape(pot_bB))*kind(pot_bB)
-         deallocate(pot_bB,stat=i_stat)
-         call memocc(i_stat,i_all,'pot_bB',subname)
-
-         i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
-         deallocate(rxyz_b2B,stat=i_stat)
-         call memocc(i_stat,i_all,'rxyz',subname)
+         call f_free_ptr(pot_bB)
+         call f_free_ptr(rxyz_b2B)
 
 
       endif
 
 
 
-      i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
-      deallocate(KSwfn%psi,stat=i_stat)
-      call memocc(i_stat,i_all,'psi',subname)
+      call f_free_ptr(KSwfn%psi)
 
       deallocate(atoms_clone%aoig)
       nullify(atoms_clone%aoig)
@@ -798,20 +780,17 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       !calculate input guess from diagonalisation of LCAO basis (written in wavelets)
       call extract_potential_for_spectra(iproc,nproc,atoms,rhodsc,dpcom,&
           KSwfn%orbs,nvirt,comms,KSwfn%Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-          nlpsp,pkernel,pkernel,ixc,KSwfn%psi,hpsi,psit,Gvirt,&
+          nlpsp,pkernel,ixc,KSwfn%psi,Gvirt,&
           nspin, in%potshortcut, symObj, GPU, in)
 
-      i_all=-product(shape(KSwfn%psi))*kind(KSwfn%psi)
-      deallocate(KSwfn%psi,stat=i_stat)
-      call memocc(i_stat,i_all,'psi',subname)
+      !call f_free_ptr(KSwfn%psi)
+      call f_free_ptr(KSwfn%psi)
 
    end if
 
    nullify(psit)
 
-   i_all=-product(shape(pot_ion))*kind(pot_ion)
-   deallocate(pot_ion,stat=i_stat)
-   call memocc(i_stat,i_all,'pot_ion',subname)
+   call f_free(pot_ion)
 
    call pkernel_free(pkernel,subname)
 !!$   i_all=-product(shape(pkernel))*kind(pkernel)
@@ -819,11 +798,9 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 !!$   call memocc(i_stat,i_all,'kernel',subname)
 
    ! needs something to let to  bigdft to deallocate
-   allocate(KSwfn%psi(2+ndebug),stat=i_stat)
-   call memocc(i_stat,KSwfn%psi,'psi',subname)
+   KSwfn%psi = f_malloc_ptr(2,id='KSwfn%psi')
 
-   allocate(KSwfn%orbs%eval(2+ndebug),stat=i_stat)
-   call memocc(i_stat, KSwfn%orbs%eval,'eval',subname)
+   KSwfn%orbs%eval = f_malloc_ptr(2,id='KSwfn%orbs%eval')
 
 
    if ( in%c_absorbtion ) then
@@ -899,9 +876,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
             endif
 
 
-            allocate(rhopottmp( max(n1i_bB,n1i),max(n2i_bB,n2i),max(n3i_bB,n3i),in%nspin+ndebug),stat=i_stat)
-            !! allocate(rhopottmp( max(n1i_bB,n1i),max(n2i_bB,n2i),max(n3i_bB,n3d),in%nspin+ndebug),stat=i_stat)
-            call memocc(i_stat,rhopottmp,'rhopottmp',subname)
+            rhopottmp = f_malloc_ptr((/ max(n1i_bB, n1i), max(n2i_bB, n2i), max(n3i_bB, n3i), in%nspin /),id='rhopottmp')
 
 
             rhotarget=0.0_gp
@@ -910,10 +885,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
             itype=16
             nd=2**20
 
-            allocate(  intfunc_x(0:nd+ndebug),stat=i_stat )
-            call memocc(i_stat,intfunc_x,'intfunc_x',subname)
-            allocate( intfunc_y(0:nd+ndebug) ,stat=i_stat )
-            call memocc(i_stat,intfunc_y,'intfunc_y',subname)
+            intfunc_x = f_malloc_ptr(0.to.nd,id='intfunc_x')
+            intfunc_y = f_malloc_ptr(0.to.nd,id='intfunc_y')
 
             print *, " scaling function for interpolation "
 
@@ -922,12 +895,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
                stop " wrong scaling function 4b2B: not a centered one "
             endif
 
-            i_all=-product(shape(intfunc_x))*kind(intfunc_x)
-            deallocate(intfunc_x,stat=i_stat)
-            call memocc(i_stat,i_all,'intfunc_x',subname)
-
-            allocate(auxint(n1i+n2i+n3i+ndebug),stat=i_stat)
-            call memocc(i_stat,auxint,'auxint',subname)
+            call f_free_ptr(intfunc_x)
+            auxint = f_malloc_ptr(n1i+n2i+n3i,id='auxint')
 
             Nreplicas = atoms%astruct%nat / nat_b2B
             dumvect3d(1)=atoms%astruct%cell_dim(1)
@@ -969,9 +938,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
                enddo
 
                if (ireplica==Nreplicas-1) then
-                  i_all=-product(shape(pot_bB))*kind(pot_bB)
-                  deallocate(pot_bB,stat=i_stat)
-                  call memocc(i_stat,i_all,'pot_bB',subname)
+                  call f_free_ptr(pot_bB)
                endif
 
 
@@ -1074,24 +1041,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
             enddo !End of loop over ireplica
 
             !De-allocations
-            i_all=-product(shape(rxyz_b2B))*kind(rxyz_b2B)
-            deallocate(rxyz_b2B,stat=i_stat)
-            call memocc(i_stat,i_all,'rxyz',subname)
-            i_all=-product(shape(iatype_b2B))*kind(iatype_b2B)
-            deallocate(iatype_b2B,stat=i_stat)
-            call memocc(i_stat,i_all,'iatype',subname)
-            i_all=-product(shape(znucl_b2B))*kind(znucl_b2B)
-            deallocate(znucl_b2B,stat=i_stat)
-            call memocc(i_stat,i_all,'znucl',subname)
-            i_all=-product(shape(rhopottmp))*kind(rhopottmp)
-            deallocate(rhopottmp,stat=i_stat)
-            call memocc(i_stat,i_all,'rhopottmp',subname)
-            i_all=-product(shape(auxint))*kind(auxint)
-            deallocate(auxint,stat=i_stat)
-            call memocc(i_stat,i_all,'auxint',subname)
-            i_all=-product(shape(intfunc_y))*kind(intfunc_y)
-            deallocate(intfunc_y,stat=i_stat)
-            call memocc(i_stat,i_all,'intfunc_y',subname)
+            call f_free_ptr(rxyz_b2B)
+            call f_free_ptr(iatype_b2B)
+            call f_free_ptr(znucl_b2B)
+            call f_free_ptr(rhopottmp)
+            call f_free_ptr(auxint)
+            call f_free_ptr(intfunc_y)
          enddo  !End of loop of B2counter
 
 
@@ -1127,9 +1082,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
                enddo
             enddo
          enddo
-         i_all=-product(shape(rhopotExtra))*kind(rhopotExtra)
-         deallocate(rhopotExtra,stat=i_stat)
-         call memocc(i_stat,i_all,'rhopotExtra',subname)
+         call f_free_ptr(rhopotExtra)
       endif
 
       alteration: if(  in%abscalc_alterpot) then
@@ -1227,18 +1180,18 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       if (in%iabscalc_type==2) then
          call xabs_lanczos(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
-             rhopot(1,1,1,1),energs,in%nspin,GPU,&
+             rhopot(1,1,1,1),energs,xc,in%nspin,GPU,&
              in%iat_absorber,in,PAWD,orbs)
 
       else if (in%iabscalc_type==1) then
          call xabs_chebychev(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
-            &   rhopot(1,1,1,1) ,energs,in%nspin,GPU &
+            &   rhopot(1,1,1,1) ,energs,xc,in%nspin,GPU &
             &   , in%iat_absorber, in, PAWD, orbs)
       else if (in%iabscalc_type==3) then
          call xabs_cg(iproc,nproc,atoms,hx,hy,hz,rxyz,&
              radii_cf,nlpsp,KSwfn%Lzd,dpcom,&
-            &   rhopot(1,1,1,1) ,energs,in%nspin,GPU &
+            &   rhopot(1,1,1,1) ,energs,xc,in%nspin,GPU &
             &   , in%iat_absorber, in, rhoXanes(1,1,1,1), PAWD, PPD, orbs)
       else
          if (iproc == 0) write(*,*)' iabscalc_type not known, does not perform calculation'
@@ -1250,14 +1203,15 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    if (nproc > 1) call MPI_BARRIER(MPI_COMM_WORLD,ierr)
 
    call deallocate_before_exiting
-!   call deallocate_local_zone_descriptors(lzd, subname)
+!   call deallocate_local_zone_descriptors(lzd)
 
    contains
 
-
    !routine which deallocate the pointers and the arrays before exiting 
    subroutine deallocate_before_exiting
-
+     use communications_base, only: deallocate_comms
+     implicit none
+     external :: gather_timings
       !when this condition is verified we are in the middle of the SCF cycle
 
       !! if (infocode /=0 .and. infocode /=1) then
@@ -1304,19 +1258,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          !!$       end if
 
          ! calc_tail false
-         i_all=-product(shape(rhopot))*kind(rhopot)
-         deallocate(rhopot,stat=i_stat)
-         call memocc(i_stat,i_all,'rhopot',subname)
+         call f_free(rhopot)
 
          if(  iand( in%potshortcut, 2)  > 0 ) then
-            i_all=-product(shape(rhopotTOTO))*kind(rhopotTOTO)
-            deallocate(rhopotTOTO,stat=i_stat)
-            call memocc(i_stat,i_all,'rhopotTOTO',subname)
+            call f_free(rhopotTOTO)
          endif
 
-         i_all=-product(shape(rhoXanes))*kind(rhoXanes)
-         deallocate(rhoXanes,stat=i_stat)
-         call memocc(i_stat,i_all,'rhoXanes',subname)
+         call f_free(rhoXanes)
 
          !!$       if (in%read_ref_den) then
          !!$          i_all=-product(shape(rhoref))*kind(rhoref)
@@ -1324,21 +1272,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
          !!$          call memocc(i_stat,i_all,'rhoref',subname)
          !!$       end if
 
-         i_all=-product(shape(dpcom%nscatterarr))*kind(dpcom%nscatterarr)
-         deallocate(dpcom%nscatterarr,stat=i_stat)
-         call memocc(i_stat,i_all,'dpcom%nscatterarr',subname)
+         call f_free_ptr(dpcom%nscatterarr)
 
-         i_all=-product(shape(dpcom%ngatherarr))*kind(dpcom%ngatherarr)
-         deallocate(dpcom%ngatherarr,stat=i_stat)
-         call memocc(i_stat,i_all,'dpcom%ngatherarr',subname)
+         call f_free_ptr(dpcom%ngatherarr)
 
-         i_all=-product(shape(fion))*kind(fion)
-         deallocate(fion,stat=i_stat)
-         call memocc(i_stat,i_all,'fion',subname)
+         call f_free_ptr(fion)
 
-         i_all=-product(shape(fdisp))*kind(fdisp)
-         deallocate(fdisp,stat=i_stat)
-         call memocc(i_stat,i_all,'fdisp',subname)
+         call f_free_ptr(fdisp)
 
 
       end if
@@ -1346,50 +1286,46 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       !deallocate wavefunction for virtual orbitals
       !if it is the case
       if (in%nvirt > 0) then
-         !call deallocate_gwf(Gvirt,subname)
-         i_all=-product(shape(psivirt))*kind(psivirt)
-         deallocate(psivirt,stat=i_stat)
-         call memocc(i_stat,i_all,'psivirt',subname)
+         !call deallocate_gwf(Gvirt)
+         call f_free_ptr(psivirt)
       end if
 
       !De-allocations
       call deallocate_bounds(atoms%astruct%geocode,KSwfn%Lzd%Glr%hybrid_on,&
-           KSwfn%Lzd%Glr%bounds,subname)
-      call deallocate_Lzd_except_Glr(KSwfn%Lzd, subname)
+           KSwfn%Lzd%Glr%bounds)
+      call deallocate_Lzd_except_Glr(KSwfn%Lzd)
 !      i_all=-product(shape(Lzd%Glr%projflg))*kind(Lzd%Glr%projflg)
 !      deallocate(Lzd%Glr%projflg,stat=i_stat)
 !      call memocc(i_stat,i_all,'Lzd%Glr%projflg',subname)  
 
-      call deallocate_comms(comms,subname)
+      call deallocate_comms(comms)
 
-      call deallocate_orbs(orbs,subname)
-      call deallocate_orbs(KSwfn%orbs,subname)
+      call deallocate_orbs(orbs)
+      call deallocate_orbs(KSwfn%orbs)
 
       call free_DFT_PSP_projectors(nlpsp)
       !call deallocate_proj_descr(nlpspd,subname)
 
 
-      i_all=-product(shape(radii_cf))*kind(radii_cf)
-      deallocate(radii_cf,stat=i_stat)
-      call memocc(i_stat,i_all,'radii_cf',subname)
+      call f_free(radii_cf)
 
-      call deallocate_rho_descriptors(rhodsc,subname)
+      call deallocate_rho_descriptors(rhodsc)
 
       if( in%iabscalc_type==3) then
-         call deallocate_pcproj_data(PPD,subname)
+         call deallocate_pcproj_data(PPD)
       endif
-      if(sum(atoms%paw_NofL).gt.0) then
-         call deallocate_pawproj_data(PAWD,subname)       
+      if(sum(atoms%paw_NofL) > 0) then
+         call deallocate_pawproj_data(PAWD)       
       endif
       !! this is included in deallocate_atomdatapaw
       !! call deallocate_atomdatapaw(atoms,subname)
      
       ! Free the libXC stuff if necessary.
-      call xc_end()
+      call xc_end(xc)
 
       !end of wavefunction minimisation
       call timing(bigdft_mpi%mpi_comm,'LAST','PR')
-      call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm)
+      call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm,nproc=bigdft_mpi%nproc,gather_routine=gather_timings)
       call cpu_time(tcpu1)
       call system_clock(ncount1,ncount_rate,ncount_max)
       tel=dble(ncount1-ncount0)/dble(ncount_rate)
@@ -1415,7 +1351,6 @@ subroutine abscalc_input_variables(iproc,filename,in)
   integer :: ierror,iline, i
 
   character(len=*), parameter :: subname='abscalc_input_variables'
-  integer :: i_stat
 
   ! Read the input variables.
   open(unit=iunit,file=filename,status='old')
@@ -1434,8 +1369,7 @@ subroutine abscalc_input_variables(iproc,filename,in)
   read(iunit,*,iostat=ierror)  in%L_absorber
   call check()
 
-  allocate(in%Gabs_coeffs(2*in%L_absorber +1+ndebug),stat=i_stat)
-  call memocc(i_stat,in%Gabs_coeffs,'Gabs_coeffs',subname)
+  in%Gabs_coeffs = f_malloc_ptr(2*in%L_absorber +1+ndebug,id='in%Gabs_coeffs')
 
   read(iunit,*,iostat=ierror)  (in%Gabs_coeffs(i), i=1,2*in%L_absorber +1 )
   call check()
@@ -1561,7 +1495,7 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
    !Local variables
    character(len=*), parameter :: subname='scaling_function4b2B'
    real(kind=8), dimension(:), allocatable :: y
-   integer :: i,nt,ni,i_all,i_stat  
+   integer :: i,nt,ni
 
    !Only itype=8,14,16,20,24,30,40,50,60,100
    select case(itype)
@@ -1578,8 +1512,7 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
    !from -itype to itype
    ni=2*itype
    nrange = ni
-   allocate(y(0:nd+ndebug),stat=i_stat)
-   call memocc(i_stat,y,'y',subname)
+   y = f_malloc(0.to.nd,id='y')
 
    ! plot scaling function
    call zero4b2B(nd+1,x)
@@ -1628,9 +1561,7 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
    end do
    !close(1)
 
-   i_all=-product(shape(y))*kind(y)
-   deallocate(y,stat=i_stat)
-   call memocc(i_stat,i_all,'y',subname)
+   call f_free(y)
 END SUBROUTINE scaling_function4b2B
 
 
@@ -1643,7 +1574,7 @@ subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
    ! real(dp), dimension(n1i*n2i*n3d), intent(out) :: rho
    real(gp), pointer :: rho(:)
    !local variables
-   integer :: nl1,nl2,nl3,i_stat,i1,i2,i3,ind
+   integer :: nl1,nl2,nl3,i1,i2,i3,ind
    real(gp) :: value
    character(len=*), parameter :: subname='read_potfile4b2B'
 
@@ -1662,8 +1593,7 @@ subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
 
    print *, " allocation for rho for  n1i,n2i,n3i ",  n1i,n2i,n3i
 
-   allocate( rho( n1i*n2i*n3i+ndebug) , stat=i_stat )
-   call memocc(i_stat,rho,'rho',subname)
+   rho = f_malloc_ptr(n1i*n2i*n3i,id='rho')
 
    print *, " going to read all pot points " 
    do i3=0,n3i-1
@@ -1683,12 +1613,16 @@ END SUBROUTINE read_potfile4b2B
 
 subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
-     nlpsp,pkernel,pkernelseq,ixc,psi,hpsi,psit,G,&
+     nlpsp,pkernel,ixc,psi,G,&
      nspin,potshortcut,symObj,GPU,input)
    use module_base
    use module_interfaces, except_this_one => extract_potential_for_spectra
    use module_types
+   use module_xc
+   use gaussians, only: gaussian_basis, deallocate_gwf
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use communications_base, only: comms_cubic, deallocate_comms
+   use communications_init, only: orbitals_communicators
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc,ixc
@@ -1700,7 +1634,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    type(orbitals_data), intent(inout) :: orbs
    type(DFT_PSP_projectors), intent(inout) :: nlpsp
    type(local_zone_descriptors), intent(inout) :: Lzd
-   type(communications_arrays), intent(in) :: comms
+   type(comms_cubic), intent(in) :: comms
    type(GPU_pointers), intent(inout) :: GPU
    type(input_variables):: input
    type(symmetry_data), intent(in) :: symObj
@@ -1709,18 +1643,19 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
    real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
    type(gaussian_basis), intent(out) :: G !basis for davidson IG
-   real(wp), dimension(:), pointer :: psi,hpsi,psit
+   real(wp), dimension(:), pointer :: psi
    real(wp), dimension(:,:,:,:), pointer :: rhocore
-   type(coulomb_operator), intent(in) :: pkernel,pkernelseq
+   type(coulomb_operator), intent(in) :: pkernel
+   type(xc_info) :: xc
    integer, intent(in) ::potshortcut
 
   !local variables
   character(len=*), parameter :: subname='extract_potential_for_spectra'
   logical :: switchGPUconv,switchOCLconv
-  integer :: i_stat,i_all,nspin_ig
+  integer :: nspin_ig
   real(gp) :: hxh,hyh,hzh,eks,ehart,eexcu,vexcu
   type(orbitals_data) :: orbse
-  type(communications_arrays) :: commse
+  type(comms_cubic) :: commse
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(wp), dimension(:), allocatable :: potxc
   !real(wp), dimension(:,:,:), allocatable :: mom_vec
@@ -1732,10 +1667,8 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   real(gp), dimension(6) :: xcstr
   type(local_zone_descriptors) :: Lzde
 
-  allocate(norbsc_arr(at%natsc+1,nspin+ndebug),stat=i_stat)
-  call memocc(i_stat,norbsc_arr,'norbsc_arr',subname)
-  allocate(locrad(at%astruct%nat+ndebug),stat=i_stat)
-  call memocc(i_stat,locrad,'locrad',subname)
+  norbsc_arr = f_malloc((/ at%natsc+1, nspin /),id='norbsc_arr')
+  locrad = f_malloc(at%astruct%nat,id='locrad')
 
   if (iproc == 0) then
      write(*,'(1x,a)')&
@@ -1759,8 +1692,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbse,commse,basedist=comms%nvctr_par(0:,1:))  
 
   !use the eval array of orbse structure to save the original values
-  allocate(orbse%eval(orbse%norb*orbse%nkpts+ndebug),stat=i_stat)
-  call memocc(i_stat,orbse%eval,'orbse%eval',subname)
+  orbse%eval = f_malloc_ptr(orbse%norb*orbse%nkpts,id='orbse%eval')
 
   hxh=.5_gp*hx
   hyh=.5_gp*hy
@@ -1778,8 +1710,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   call wavefunction_dimension(Lzde,orbse)
 
   !allocate the wavefunction in the transposed way to avoid allocations/deallocations
-  allocate(psi(max(orbse%npsidim_orbs,orbse%npsidim_comp)+ndebug),stat=i_stat)
-  call memocc(i_stat,psi,'psi',subname)
+  psi = f_malloc_ptr(max(orbse%npsidim_orbs, orbse%npsidim_comp),id='psi')
 
   !allocate arrays for the GPU if a card is present
   switchGPUconv=.false.
@@ -1787,7 +1718,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   if (GPUconv .and. potshortcut ==0 ) then
      call prepare_gpu_for_locham(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,nspin_ig,&
           hx,hy,hz,Lzd%Glr%wfd,orbse,GPU)
-  else if (OCLconv .and. potshortcut ==0) then
+  else if (GPU%OCLconv .and. potshortcut ==0) then
      call allocate_data_OCL(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,at%astruct%geocode,&
           nspin_ig,Lzde%Glr%wfd,orbse,GPU)
      if (iproc == 0) write(*,*)&
@@ -1795,9 +1726,9 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   else if (GPUconv .and. potshortcut >0 ) then
      switchGPUconv=.true.
      GPUconv=.false.
-  else if (OCLconv .and. potshortcut >0 ) then
+  else if (GPU%OCLconv .and. potshortcut >0 ) then
      switchOCLconv=.true.
-     OCLconv=.false.
+     GPU%OCLconv=.false.
   end if
 
   call timing(iproc,'wavefunction  ','ON')   
@@ -1805,14 +1736,12 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   call gaussians_to_wavelets_new(iproc,nproc,Lzde,orbse,G,&
        psigau(1,1,min(orbse%isorb+1,orbse%norb)),psi)
   call timing(iproc,'wavefunction  ','OF')
-  i_all=-product(shape(locrad))*kind(locrad)
-  deallocate(locrad,stat=i_stat)
-  call memocc(i_stat,i_all,'locrad',subname)
+  call f_free(locrad)
 
   !spin adaptation for the IG in the spinorial case
   nullify(rho_p)
   orbse%nspin=nspin
-  call sumrho(dpcom,orbse,Lzde,GPU,symObj,rhod,psi,rho_p)
+  call sumrho(dpcom,orbse,Lzde,GPU,symObj,rhod,xc,psi,rho_p)
   call communicate_density(dpcom,orbse%nspin,rhod,rho_p,rhopot,.false.)
   orbse%nspin=nspin_ig
 
@@ -1829,28 +1758,33 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   endif
   !---
 
+  if (ixc < 0) then
+     call xc_init(xc, ixc, XC_MIXED, nspin)
+  else
+     call xc_init(xc, ixc, XC_ABINIT, nspin)
+  end if
   if(orbs%nspinor==4) then
      !this wrapper can be inserted inside the poisson solver 
      call PSolverNC(at%astruct%geocode,'D',iproc,nproc,Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,&
           dpcom%nscatterarr(iproc,1),& !this is n3d
-          ixc,hxh,hyh,hzh,&
+          xc,hxh,hyh,hzh,&
           rhopot,pkernel%kernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
   else
      !Allocate XC potential
      if (dpcom%nscatterarr(iproc,2) >0) then
-        allocate(potxc(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*dpcom%nscatterarr(iproc,2)*nspin+ndebug),stat=i_stat)
-        call memocc(i_stat,potxc,'potxc',subname)
+        potxc = f_malloc(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*dpcom%nscatterarr(iproc, 2)*nspin,id='potxc')
      else
-        allocate(potxc(1+ndebug),stat=i_stat)
-        call memocc(i_stat,potxc,'potxc',subname)
+        potxc = f_malloc(1,id='potxc')
      end if
 
      call XC_potential(at%astruct%geocode,'D',iproc,nproc,MPI_COMM_WORLD,&
-          Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,ixc,hxh,hyh,hzh,&
+          Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,xc,hxh,hyh,hzh,&
           rhopot,eexcu,vexcu,nspin,rhocore,potxc,xcstr)
      if( iand(potshortcut,4)==0) then
         call H_potential('D',pkernel,rhopot,pot_ion,ehart,0.0_dp,.true.)
      endif
+
+     call xc_end(xc)
 
      !sum the two potentials in rhopot array
      !fill the other part, for spin, polarised
@@ -1863,9 +1797,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
           rhopot(1),1)
 
 
-     i_all=-product(shape(potxc))*kind(potxc)
-     deallocate(potxc,stat=i_stat)
-     call memocc(i_stat,i_all,'potxc',subname)
+     call f_free(potxc)
 
   end if
 
@@ -1873,13 +1805,11 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      GPUconv=.true.
   end if
   if (switchOCLconv) then
-     OCLconv=.true.
+     GPU%OCLconv=.true.
   end if
 
-  call deallocate_orbs(orbse,subname)
-  i_all=-product(shape(orbse%eval))*kind(orbse%eval)
-  deallocate(orbse%eval,stat=i_stat)
-  call memocc(i_stat,i_all,'orbse%eval',subname)
+  call deallocate_orbs(orbse)
+  call f_free_ptr(orbse%eval)
 
 
   !in the case of multiple nlr restore the nl projectors
@@ -1895,18 +1825,14 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   
 
   !deallocate the gaussian basis descriptors
-  call deallocate_gwf(G,subname)
-  if(potshortcut<=0) call deallocate_local_zone_descriptors(Lzde, subname)  
+  call deallocate_gwf(G)
+  if(potshortcut<=0) call deallocate_local_zone_descriptors(Lzde)  
 
 
 
-  i_all=-product(shape(psigau))*kind(psigau)
-  deallocate(psigau,stat=i_stat)
-  call memocc(i_stat,i_all,'psigau',subname)
-  call deallocate_comms(commse,subname)
-  i_all=-product(shape(norbsc_arr))*kind(norbsc_arr)
-  deallocate(norbsc_arr,stat=i_stat)
-  call memocc(i_stat,i_all,'norbsc_arr',subname)
+  call f_free_ptr(psigau)
+  call deallocate_comms(commse)
+  call f_free(norbsc_arr)
 
 
 end subroutine extract_potential_for_spectra

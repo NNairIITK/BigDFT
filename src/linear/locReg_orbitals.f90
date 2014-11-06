@@ -8,13 +8,12 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-
 !> assignToLocreg does not take into account the Kpts yet !!
 !! @warning assignToLocreg does not take into account the Kpts yet !!
 subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
   use module_base
   use module_types
-  use ao_inguess, only: count_atomic_shells, ao_nspin_ig
+  !use ao_inguess, only: count_atomic_shells, ao_nspin_ig
   implicit none
 
   integer,intent(in):: iproc,nproc,nspin,nspinor
@@ -23,12 +22,12 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
   type(local_zone_descriptors) :: Lzd
   ! Local variables
   integer :: jproc,iiOrb,iorb,jorb,jat,i_stat,orbsc!,ispin
-  integer :: ind,i_all,noncoll,Lnorb,ilr,ierr!,dimtot,iat,npsidim
+  integer :: ind,i_all,noncoll,ilr,ierr!,dimtot,iat,npsidim,Lnorb
   character(len=*), parameter :: subname='assignToLocreg'
   integer, dimension(:), allocatable :: Localnorb
-  integer, parameter :: lmax=3,noccmax=2,nelecmax=32
-  integer, dimension(lmax+1) :: nmoments
-  real(gp), dimension(noccmax,lmax+1) :: occup              !dummy variable
+  !integer, parameter :: lmax=3,noccmax=2,nelecmax=32
+  !integer, dimension(lmax+1) :: nmoments
+  !real(gp), dimension(noccmax,lmax+1) :: occup              !dummy variable
 
 
 ! in the non-collinear case the number of orbitals double
@@ -39,17 +38,16 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
      noncoll=1
   end if
 
-  allocate(Localnorb(Lzd%nlr+ndebug),stat=i_stat)
-  call memocc(i_stat,Localnorb,'Localnorb',subname)
+  Localnorb = f_malloc(Lzd%nlr,id='Localnorb')
 
 ! NOTES: WORKS ONLY BECAUSE Llr coincides with the atoms !!
 ! NOTES: K-Points??
-  nmoments = 0
+  !nmoments = 0
   do ilr = 1, Lzd%nlr
-     call count_atomic_shells(ao_nspin_ig(nspin,nspinor=nspinor),&
-          atoms%aoig(ilr)%aocc,occup,nmoments)
-     Lnorb=(nmoments(1)+3*nmoments(2)+5*nmoments(3)+7*nmoments(4))
-     Localnorb(ilr) = Lnorb
+     !call count_atomic_shells(ao_nspin_ig(nspin,nspinor=nspinor),&
+     !     atoms%aoig(ilr)%aocc,occup,nmoments)
+     !Lnorb=(nmoments(1)+3*nmoments(2)+5*nmoments(3)+7*nmoments(4))
+     Localnorb(ilr) =atoms%aoig(ilr)%nao! Lnorb
   end do
 
 !!  already associated = 1 by default
@@ -89,8 +87,10 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
          orbs%inWhichLocreg(jorb+orbs%isorb)=jat
       end if
   end do
-  call mpiallred(orbs%inWhichLocreg(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
 
+  if (nproc > 1) then
+     call mpiallred(orbs%inWhichLocreg(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm)
+  end if
 
 ! Calculate the dimension of the total wavefunction
 !!  dimtot = 0
@@ -105,11 +105,10 @@ subroutine assignToLocreg(iproc,nproc,nspinor,nspin,atoms,orbs,Lzd)
 !!  end if
 !!  Lzd%Lpsidimtot = dimtot
 
-  i_all=-product(shape(Localnorb))*kind(Localnorb)
-  deallocate(Localnorb,stat=i_stat)
-  call memocc(i_stat,i_all,'Localnorb',subname)
+  call f_free(Localnorb)
 
 end subroutine assignToLocreg
+
 
 subroutine wavefunction_dimension(Lzd,orbs)
   use module_types
@@ -156,13 +155,11 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
 
 !!!! NEW VERSION #################################################################
   !allocate(orbse%inWhichLocreg(orbse%norbp),stat=i_stat)
-  allocate(inWhichLocreg(norb),stat=i_stat)
-  call memocc(i_stat,inWhichLocreg,'inWhichLocreg',subname)
+  inWhichLocreg = f_malloc_ptr(norb,id='inWhichLocreg')
   inWhichLocreg=-1
   !allocate(orbse%inWhichLocregp(orbse%norbp),stat=i_stat)
   !call memocc(i_stat,orbse%inWhichLocregp,'orbse%inWhichLocregp',subname)
-  allocate(covered(nlr), stat=i_stat)
-  call memocc(i_stat, covered, 'covered', subname)
+  covered = f_malloc(nlr,id='covered')
 
 
   ! Determine in which direction the system has its largest extent
@@ -304,8 +301,6 @@ subroutine assignToLocreg2(iproc, nproc, norb, norb_par, natom, nlr, nspin, Loca
       inWhichLocreg(iorb)=iiat
   end do
 
-  i_all=-product(shape(covered))*kind(covered)
-  deallocate(covered,stat=i_stat)
-  call memocc(i_stat,i_all,'covered',subname)
+  call f_free(covered)
 
 end subroutine assignToLocreg2

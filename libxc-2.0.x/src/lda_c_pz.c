@@ -112,7 +112,7 @@ static void
 ec_pot_high(pz_consts_type *X, int order, int i, FLOAT *rs, 
 	    FLOAT *zk, FLOAT *dedrs, FLOAT *d2edrs2, FLOAT *d3edrs3)
 {
-  FLOAT lrs = log(rs[1]);
+  FLOAT lrs = LOG(rs[1]);
 
   /* Eq. [1].C5 */
   *zk  = X->a[i]*lrs + X->b[i] + X->c[i]*rs[1]*lrs + X->d[i]*rs[1];
@@ -213,6 +213,8 @@ const XC(func_info_type) XC(func_info_lda_c_pz) = {
   NULL,     /* init */
   NULL,     /* end  */
   work_lda, /* lda  */
+  NULL,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_lda_c_pz_mod) = {
@@ -227,6 +229,8 @@ const XC(func_info_type) XC(func_info_lda_c_pz_mod) = {
   NULL,     /* init */
   NULL,     /* end  */
   work_lda, /* lda  */
+  NULL,
+  NULL
 };
 
 const XC(func_info_type) XC(func_info_lda_c_ob_pz) = {
@@ -242,4 +246,6 @@ const XC(func_info_type) XC(func_info_lda_c_ob_pz) = {
   NULL,     /* init */
   NULL,     /* end  */
   work_lda, /* lda  */
+  NULL,
+  NULL
 };
