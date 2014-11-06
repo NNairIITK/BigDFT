@@ -25,7 +25,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, sparsematrix_malloc, &
                                DENSE_FULL, DENSE_PARALLEL, DENSE_MATMUL, assignment(=), SPARSE_FULL
   use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed, gather_matrix_from_taskgroups_inplace, &
-                          extract_taskgroup_inplace
+                          extract_taskgroup_inplace, uncompress_matrix_distributed2, gather_matrix_from_taskgroups, &
+                          extract_taskgroup, uncompress_matrix2
   implicit none
 
   ! Calling arguments
@@ -57,7 +58,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   ! Local variables 
   integer :: iorb, info, ishift, ispin, ii, jorb, i, ishifts, ishiftm
-  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, eval, tmparr1, tmparr2
+  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, eval, tmparr1, tmparr2, tmparr
   real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp, tempmat
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -209,7 +210,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
            tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
-      call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
+      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
 
 
 !!  call diagonalize_subset(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%ovrlp_, tmb%linmat%m, tmb%linmat%ham_)
@@ -252,11 +253,11 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       !     inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
       do ispin=1,tmb%linmat%m%nspin
           ishifts = (ispin-1)*tmb%linmat%s%nvctr
-          ishiftm = (ispin-1)*tmb%linmat%m%nvctr
+          ishiftm = (ispin-1)*tmb%linmat%m%nvctrp_tg
           call to_zero(tmb%linmat%m%nfvctr**2, tmb%linmat%ham_%matrix(1,1,ispin))
           tempmat = sparsematrix_malloc(tmb%linmat%m, iaction=DENSE_MATMUL, id='tempmat')
-          call uncompress_matrix_distributed(iproc, tmb%linmat%m, DENSE_MATMUL, &
-               tmb%linmat%ham_%matrix_compr(ishiftm+1:ishiftm+tmb%linmat%m%nvctr), tempmat)
+          call uncompress_matrix_distributed2(iproc, tmb%linmat%m, DENSE_MATMUL, &
+               tmb%linmat%ham_%matrix_compr(ishiftm+1:ishiftm+tmb%linmat%m%nvctrp_tg), tempmat)
           if (tmb%linmat%m%smmm%nfvctrp>0) then
               call vcopy(tmb%linmat%m%nfvctr*tmb%linmat%m%smmm%nfvctrp, tempmat(1,1), 1, &
                    tmb%linmat%ham_%matrix(1,tmb%linmat%m%smmm%isfvctr+1,ispin), 1)
@@ -398,7 +399,11 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   ! CDFT: subtract V*w_ab from Hamiltonian so that we are calculating the correct energy
   if (present(cdft)) then
      call timing(iproc,'constraineddft','ON')
-     call daxpy(tmb%linmat%m%nvctr,-cdft%lag_mult,cdft%weight_matrix_%matrix_compr,1,tmb%linmat%ham_%matrix_compr,1)
+     tmparr = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr')
+     call gather_matrix_from_taskgroups(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_%matrix_compr, tmparr)
+     call daxpy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin,-cdft%lag_mult,cdft%weight_matrix_%matrix_compr,1,tmparr,1)
+     call extract_taskgroup(tmb%linmat%m, tmparr, tmb%linmat%ham_%matrix_compr)
+     call f_free(tmparr)
      call timing(iproc,'constraineddft','OF') 
   end if
 
@@ -406,21 +411,21 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       ! Calculate the band structure energy and update kernel
       if (scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
          !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
-         call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
+         !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
          call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
               tmb%linmat%kernel_, tmb%linmat%ham_, energs%ebs,&
               tmb%coeff,orbs,tmb%orbs,update_kernel)
          call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
-         call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
+         !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
       else if (present(cdft)) then
          ! for directmin we have the kernel already, but only the CDFT function not actual energy for CDFT
          !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
-         call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
+         !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
          call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
               tmb%linmat%kernel_, tmb%linmat%ham_, energs%ebs,&
               tmb%coeff,orbs,tmb%orbs,.false.)
          call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
-         call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
+         !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
       end if
       call f_free_ptr(tmb%linmat%ham_%matrix)
       call f_free_ptr(tmb%linmat%ovrlp_%matrix)
@@ -445,8 +450,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       ! TEMPORARY #################################################
       if (calculate_gap) then
           tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
-          call uncompress_matrix(iproc, tmb%linmat%m, &
-               inmat=tmb%linmat%ham_%matrix_compr, outmat=tmb%linmat%ham_%matrix)
+          !!tmparr = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr')
+          !!call gather_matrix_from_taskgroups(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_%matrix_compr, tmparr)
+          call uncompress_matrix2(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_%matrix_compr, tmb%linmat%ham_%matrix)
+          !!call f_free(tmparr)
           tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
           call uncompress_matrix(iproc, tmb%linmat%s, &
                inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
@@ -470,16 +477,16 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       tmparr1 = sparsematrix_malloc(tmb%linmat%s,iaction=SPARSE_FULL,id='tmparr1')
       call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmb%linmat%ovrlp_%matrix_compr(1), 1, tmparr1(1), 1)
       call extract_taskgroup_inplace(tmb%linmat%s, tmb%linmat%ovrlp_)
-      tmparr2 = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr2')
-      call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmb%linmat%ham_%matrix_compr(1), 1, tmparr2(1), 1)
-      call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
+      !!tmparr2 = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr2')
+      !!call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmb%linmat%ham_%matrix_compr(1), 1, tmparr2(1), 1)
+      !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
       call foe(iproc, nproc, tmprtr, &
            energs%ebs, itout,it_scc, order_taylor, max_inversion_error, purification_quickreturn, &
            invert_overlap_matrix, 1, FOE_ACCURATE, tmb, tmb%foe_obj)
       call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmparr1(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
       call f_free(tmparr1)
-      call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmparr2(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
-      call f_free(tmparr2)
+      !!call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmparr2(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
+      !!call f_free(tmparr2)
 
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
@@ -2893,7 +2900,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                matrices_null, allocate_matrices, deallocate_matrices, &
                                sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
-  use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace
+  use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, uncompress_matrix2
   implicit none
 
   ! Calling arguments
@@ -2927,8 +2934,8 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
   tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
   call uncompress_matrix(iproc, tmb%linmat%m, inmat=gradmat%matrix_compr, outmat=gradmat%matrix)
-  call uncompress_matrix(iproc, tmb%linmat%m, &
-       inmat=tmb%linmat%ham_%matrix_compr, outmat=tmb%linmat%ham_%matrix)
+  call uncompress_matrix2(iproc, nproc, tmb%linmat%m, &
+       tmb%linmat%ham_%matrix_compr, tmb%linmat%ham_%matrix)
   call uncompress_matrix(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix_compr, outmat=tmb%linmat%kernel_%matrix)
   KH=f_malloc0((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr,tmb%linmat%l%nspin/),id='KH')
   KHKH=f_malloc0((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr,tmb%linmat%l%nspin/),id='KHKH')

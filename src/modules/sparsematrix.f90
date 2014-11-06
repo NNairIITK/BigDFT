@@ -21,7 +21,7 @@ module sparsematrix
 
   !> Public routines
   public :: compress_matrix
-  public :: uncompress_matrix
+  public :: uncompress_matrix, uncompress_matrix2
   public :: check_matrix_compression
   public :: transform_sparse_matrix, transform_sparse_matrix2
   public :: compress_matrix_distributed
@@ -225,6 +225,24 @@ module sparsematrix
     
     end subroutine uncompress_matrix
 
+
+    subroutine uncompress_matrix2(iproc, nproc, smat, matrix_compr, matrix)
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc
+      type(sparse_matrix),intent(inout) :: smat
+      real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: matrix_compr
+      real(kind=8),dimension(smat%nfvctr,smat%nfvctr,smat%nspin),intent(out) :: matrix
+
+      ! Local variables
+      real(kind=8),dimension(:),allocatable :: tmparr
+
+      tmparr = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='tmparr')
+      call gather_matrix_from_taskgroups(iproc, nproc, smat, matrix_compr, tmparr)
+      call uncompress_matrix(iproc, smat, inmat=tmparr, outmat=matrix)
+      call f_free(tmparr)
+    end subroutine uncompress_matrix2
 
 
     subroutine check_matrix_compression(iproc, sparsemat, mat)
