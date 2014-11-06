@@ -32,7 +32,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use yaml_output
   use psp_projectors
   use sparsematrix_base, only: sparse_matrix_null, matrices_null, allocate_matrices, &
-                               SPARSE_TASKGROUP, sparsematrix_malloc_ptr, assignment(=)
+                               SPARSE_TASKGROUP, sparsematrix_malloc_ptr, assignment(=), &
+                               DENSE_PARALLEL, DENSE_MATMUL
   use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff, init_matrix_taskgroups
   use sparsematrix, only: check_matrix_compression
   use communications_base, only: comms_linear_null
@@ -332,14 +333,27 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
           tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
 
      tmb%linmat%kernel_ = matrices_null()
-     call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
-          matname='tmb%linmat%kernel_', mat=tmb%linmat%kernel_)
      tmb%linmat%ham_ = matrices_null()
-     call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
-          matname='tmb%linmat%ham_', mat=tmb%linmat%ham_)
      tmb%linmat%ovrlp_ = matrices_null()
-     call allocate_matrices(tmb%linmat%s, allocate_full=.false., &
-          matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
+     !!call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
+     !!     matname='tmb%linmat%kernel_', mat=tmb%linmat%kernel_)
+     !!call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
+     !!     matname='tmb%linmat%ham_', mat=tmb%linmat%ham_)
+     !!call allocate_matrices(tmb%linmat%s, allocate_full=.false., &
+     !!     matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
+     tmb%linmat%kernel_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
+         iaction=SPARSE_TASKGROUP,id='tmb%linmat%kernel_%matrix_compr')
+     if (tmb%linmat%l%smmm%nfvctrp>tmb%linmat%l%nfvctrp) then
+         tmb%linmat%kernel_%matrixp = sparsematrix_malloc_ptr(tmb%linmat%l, &
+             iaction=DENSE_MATMUL,id='tmb%linmat%kernel_%matrixp')
+     else
+         tmb%linmat%kernel_%matrixp = sparsematrix_malloc_ptr(tmb%linmat%l, &
+             iaction=DENSE_PARALLEL,id='tmb%linmat%kernel_%matrixp')
+     end if
+     tmb%linmat%ham_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%m, &
+         iaction=SPARSE_TASKGROUP,id='tmb%linmat%ham_%matrix_compr')
+     tmb%linmat%ovrlp_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, &
+         iaction=SPARSE_TASKGROUP,id='tmb%linmat%ovrlp_%matrix_compr')
 
      if (in%check_matrix_compression) then
          if (iproc==0) call yaml_mapping_open('Checking Compression/Uncompression of small sparse matrices')

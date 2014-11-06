@@ -258,6 +258,9 @@ module sparsematrix
       real(kind=8) :: maxdiff
     
       call f_routine('check_matrix_compression')
+
+      call f_free_ptr(mat%matrix_compr)
+      mat%matrix_compr = sparsematrix_malloc_ptr(sparsemat,iaction=SPARSE_FULL,id='mat%matrix_compr')
     
       mat%matrix = sparsematrix_malloc_ptr(sparsemat, iaction=DENSE_FULL, id='mat%matrix')
     
@@ -326,6 +329,9 @@ module sparsematrix
     
       call f_free_ptr(mat%matrix)
       !!call f_free_ptr(sparsemat%matrix_compr)
+
+      call f_free_ptr(mat%matrix_compr)
+      mat%matrix_compr = sparsematrix_malloc_ptr(sparsemat,iaction=SPARSE_TASKGROUP,id='mat%matrix_compr')
 
       call f_release_routine()
     
