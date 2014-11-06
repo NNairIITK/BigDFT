@@ -1242,6 +1242,7 @@ end subroutine copy_comms_linear
 
 
 subroutine copy_mpi_environment(mpi_in, mpi_out)
+  use module_base
   use wrapper_MPI, only: mpi_environment
   implicit none
   ! Calling arguments
@@ -1250,9 +1251,11 @@ subroutine copy_mpi_environment(mpi_in, mpi_out)
   ! Local variables
   integer :: ierr
 
-  call mpi_comm_dup(mpi_in%mpi_comm, mpi_out%mpi_comm, ierr)
-  call mpi_comm_size(mpi_out%mpi_comm, mpi_out%nproc, ierr)
-  call mpi_comm_rank(mpi_out%mpi_comm, mpi_out%nproc, ierr)
+  if (mpi_in%mpi_comm/=MPI_COMM_NULL) then
+      call mpi_comm_dup(mpi_in%mpi_comm, mpi_out%mpi_comm, ierr)
+      call mpi_comm_size(mpi_out%mpi_comm, mpi_out%nproc, ierr)
+      call mpi_comm_rank(mpi_out%mpi_comm, mpi_out%nproc, ierr)
+  end if
   mpi_out%igroup = mpi_in%igroup
   mpi_out%ngroup = mpi_in%ngroup
 
