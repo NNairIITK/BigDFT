@@ -112,10 +112,10 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   if (methTransformOverlap==-1) then
       ! this is only because overlap_power_minus_one_half_parallel still needs the entire array without taskgroups... to be improved
   call build_linear_combination_transposed(collcom, inv_ovrlp_half, inv_ovrlp_half_(1), &
-       psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc, 0)
+       psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
   else
   call build_linear_combination_transposed(collcom, inv_ovrlp_half, inv_ovrlp_half_(1), &
-       psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc, inv_ovrlp_half%isvctrp_tg)
+       psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
   end if
 
 
@@ -258,7 +258,14 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   call f_free(inv_ovrlp_seq)
   call f_free(lagmatp)
   call f_free(inv_lagmatp)
-  call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc, 0)
+
+  tmparr = sparsematrix_malloc(lagmat,iaction=SPARSE_FULL,id='tmparr')
+  call vcopy(lagmat%nvctr, lagmat_%matrix_compr(1), 1, tmparr(1), 1)
+  call gather_matrix_from_taskgroups_inplace(iproc, nproc, lagmat, lagmat_)
+  call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
+  call vcopy(lagmat%nvctr, tmparr(1), 1, lagmat_%matrix_compr(1), 1)
+  call f_free(tmparr)
+
 
   ! Start the untranspose process (will be gathered together in
   ! calculate_energy_and_gradient_linear)
@@ -278,7 +285,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   hpsit_tmp_f = f_malloc(7*collcom%ndimind_f,id='psit_tmp_f')
   hphi_nococontra = f_malloc(npsidim_orbs,id='hphi_nococontra')
   call build_linear_combination_transposed(collcom, linmat%l, linmat%ovrlppowers_(3), &
-       hpsit_c, hpsit_f, .true., hpsit_tmp_c, hpsit_tmp_f, iproc, linmat%l%isvctrp_tg)
+       hpsit_c, hpsit_f, .true., hpsit_tmp_c, hpsit_tmp_f, iproc)
 
   ! Start the untranspose process (will be gathered together in
   ! getLocalizedBasis)
@@ -2194,7 +2201,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
 
   !inv_ovrlp_half_ = matrices_null()
   !call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_)
-  call to_zero(inv_ovrlp_half%nvctr*inv_ovrlp_half%nspin, inv_ovrlp_half_%matrix_compr(1))
+  call to_zero(inv_ovrlp_half%nvctrp_tg*inv_ovrlp_half%nspin, inv_ovrlp_half_%matrix_compr(1))
 
   !DEBUG
   !if (iproc==0) then
@@ -2269,7 +2276,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
                   !!    stop 'ind>imax'
                   !!end if
                   ind=ind+ishift
-                  ovrlp_tmp(kkorb,jjorb)=ovrlp_mat%matrix_compr(ind)
+                  ovrlp_tmp(kkorb,jjorb)=ovrlp_mat%matrix_compr(ind-ovrlp%isvctrp_tg)
                else
                   ovrlp_tmp(kkorb,jjorb)=0.d0
                end if
@@ -2324,7 +2331,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
                   ind = matrixindex_in_compressed(inv_ovrlp_half,korb,jorb)
                   if (ind>0) then
                      ind=ind+ishift
-                     inv_ovrlp_half_%matrix_compr(ind)=ovrlp_tmp_inv_half(kkorb,jjorb)
+                     inv_ovrlp_half_%matrix_compr(ind-inv_ovrlp_half%isvctrp_tg)=ovrlp_tmp_inv_half(kkorb,jjorb)
                      !if (iiorb==orbs%norb) print*,'problem here?!',iiorb,kkorb,jjorb,korb,jorb,ind,ovrlp_tmp_inv_half(kkorb,jjorb)
                   end if
                   !write(1300+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
@@ -2339,9 +2346,10 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
 
       end do
 
-      if (nproc>1)then
-          call mpiallred(inv_ovrlp_half_%matrix_compr(1), inv_ovrlp_half%nvctr*inv_ovrlp_half%nspin, mpi_sum, bigdft_mpi%mpi_comm)
-      end if
+      !!if (nproc>1)then
+      !!    call mpiallred(inv_ovrlp_half_%matrix_compr(1), inv_ovrlp_half%nvctr*inv_ovrlp_half%nspin, mpi_sum, bigdft_mpi%mpi_comm)
+      !!end if
+      call synchronize_matrix_taskgroups(iproc, nproc, inv_ovrlp_half, inv_ovrlp_half_)
 
   end do spin_loop
 
@@ -2556,7 +2564,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
 
   !inv_ovrlp_half_%matrix_compr = inv_ovrlp_half%matrix_compr
   call build_linear_combination_transposed(collcom, inv_ovrlp_half, inv_ovrlp_half_(1), &
-       psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc, 0)
+       psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
 
 
 
@@ -2757,13 +2765,13 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
 
 
 
-  ovrlp_ = matrices_null()
-  call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
+  !inv_ovrlp_ = matrices_null()
+  !call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
   !@WARNING CHECK THIS
   !!ovrlp_%matrix_compr = inv_ovrlp_half%matrix_compr
   call build_linear_combination_transposed(collcom, ovrlp, ovrlp_, &
-       psittemp_c, psittemp_f, .false., psit_c, psit_f, iproc, 0)
-  call deallocate_matrices(ovrlp_)
+       psittemp_c, psittemp_f, .false., psit_c, psit_f, iproc)
+  !call deallocate_matrices(ovrlp_)
 
 
   call deallocate_matrices(ovrlp_)

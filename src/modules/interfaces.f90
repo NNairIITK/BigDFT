@@ -3264,7 +3264,7 @@ module module_interfaces
         end subroutine calculate_overlap_transposed
 
         subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork_c, psitwork_f, &
-             reset, psit_c, psit_f, iproc, ishift)
+             reset, psit_c, psit_f, iproc)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
@@ -3279,7 +3279,7 @@ module module_interfaces
           logical,intent(in) :: reset
           real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: psit_c
           real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: psit_f
-          integer, intent(in) :: iproc, ishift
+          integer, intent(in) :: iproc
         end subroutine build_linear_combination_transposed
 
         subroutine axpy_kernel_vectors(norbp, norb, nout, onedimindices, a, x, y)

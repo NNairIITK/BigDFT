@@ -23,7 +23,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use communications_base, only: work_transpose, TRANSPOSE_FULL, TRANSPOSE_GATHER
   use communications, only: transpose_localized, untranspose_localized
   use sparsematrix_base, only: matrices, matrices_null, deallocate_matrices, &
-                               sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL
+                               sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL, &
+                               sparsematrix_malloc
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: transform_sparse_matrix, orb_from_index, gather_matrix_from_taskgroups_inplace
   use constrained_dft, only: cdft_data
@@ -69,7 +70,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(:), pointer :: hpsittmp_c, hpsittmp_f
   real(kind=8), dimension(:), allocatable :: hpsi_conf
   real(kind=8), dimension(:), pointer :: kernel_compr_tmp
-  real(kind=8), dimension(:), allocatable :: prefac
+  real(kind=8), dimension(:), allocatable :: prefac, tmparr
   real(kind=8),dimension(2) :: reducearr
   integer,dimension(2) :: irowcol
   real(wp), dimension(2) :: garray
@@ -222,8 +223,15 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       ! To this end use ham_.
       call transform_sparse_matrix(tmb%linmat%s, tmb%linmat%m, &
            tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ham_%matrix_compr, 'small_to_large')
+
+      tmparr = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr')
+      call vcopy(tmb%linmat%m%nvctr, tmb%linmat%ham_%matrix_compr(1), 1, tmparr(1), 1)
+      call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-           tmb%linmat%m, tmb%linmat%ham_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc, 0)
+           tmb%linmat%m, tmb%linmat%ham_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+      call vcopy(tmb%linmat%m%nvctr, tmparr(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
+      call f_free(tmparr)
+
 
       !@END NEW correction for contra / covariant gradient
   end if
@@ -966,8 +974,8 @@ end subroutine hpsitopsi_linear
 subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparsematrix_malloc_ptr, SPARSE_FULL, assignment(=)
-  use sparsematrix, only: orb_from_index
+  use sparsematrix_base, only: sparsematrix_malloc_ptr, SPARSE_FULL, assignment(=), sparsematrix_malloc
+  use sparsematrix, only: orb_from_index, gather_matrix_from_taskgroups_inplace
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   implicit none
@@ -985,6 +993,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
   integer,dimension(2) :: irowcol
   real(kind=8),dimension(:),pointer :: kernel_compr_tmp
   real(kind=8),dimension(:),pointer :: matrix_local
+  real(kind=8),dimension(:),allocatable :: tmparr
   integer,parameter :: ALLGATHERV=51, GET=52, GLOBAL_MATRIX=101, SUBMATRIX=102
   integer,parameter :: comm_strategy=GET
   integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
@@ -1117,8 +1126,10 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
           end do
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                TRANSPOSE_FULL, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
+
+          call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-               tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc, 0)
+               tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           ! copy correct kernel back
           do ispin=1,tmb%linmat%l%nspin
               !call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
@@ -1127,8 +1138,13 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
           end do
           call f_free_ptr(kernel_compr_tmp)
       else
+          tmparr = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr')
+          call vcopy(tmb%linmat%m%nvctr, tmb%linmat%ham_%matrix_compr(1), 1, tmparr(1), 1)
+          call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-               tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc, 0)
+               tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+          call vcopy(tmb%linmat%m%nvctr, tmparr(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
+          call f_free(tmparr)
       end if
 
       call timing(iproc,'buildgrad_mcpy','OF')

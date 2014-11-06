@@ -386,7 +386,8 @@ subroutine calculate_weight_matrix_lowdin_gradient(weight_matrix,weight_matrix_,
   use sparsematrix_base, only: matrices, sparse_matrix, sparsematrix_malloc_ptr, &
                                DENSE_FULL, assignment(=), &
                                allocate_matrices, deallocate_matrices
-  use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace
+  use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
+                          gather_matrix_from_taskgroups_inplace
   implicit none
   type(sparse_matrix), intent(inout) :: weight_matrix
   type(matrices), intent(inout) :: weight_matrix_
@@ -606,8 +607,9 @@ call f_free_ptr(tmb%linmat%ovrlp_%matrix)
       if(tmb%ham_descr%collcom%ndimind_f>0) &
           call vcopy(7*tmb%ham_descr%collcom%ndimind_f, psitlarge_f(1), 1, hpsittmp_f(1), 1)
 
+  call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%m, weight_matrix_)
   call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-       tmb%linmat%m, weight_matrix_, hpsittmp_c, hpsittmp_f, .true., psitlarge_c, psitlarge_f, bigdft_mpi%iproc, 0)
+       tmb%linmat%m, weight_matrix_, hpsittmp_c, hpsittmp_f, .true., psitlarge_c, psitlarge_f, bigdft_mpi%iproc)
 !print*,'2',ddot(tmb%ham_descr%collcom%ndimind_c, psitlarge_c(1), 1, psitlarge_c(1), 1),ddot(7*tmb%ham_descr%collcom%ndimind_f, psitlarge_f(1), 1, psitlarge_f(1), 1)
   call f_free_ptr(hpsittmp_c)
   call f_free_ptr(hpsittmp_f)
