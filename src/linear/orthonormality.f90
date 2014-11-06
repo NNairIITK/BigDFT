@@ -211,13 +211,13 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       ! Invert the overlap matrix
       if (iproc==0) call yaml_map('calculation of S^-1','direct calculation')
       tmparr = sparsematrix_malloc(linmat%s,iaction=SPARSE_FULL,id='tmparr')
-      call vcopy(linmat%s%nvctr, linmat%ovrlp_%matrix_compr(1), 1, tmparr(1), 1)
+      call vcopy(linmat%s%nvctr*linmat%s%nspin, linmat%ovrlp_%matrix_compr(1), 1, tmparr(1), 1)
       call extract_taskgroup_inplace(linmat%s, linmat%ovrlp_)
       call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, (/1/), -1, &
            imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
            ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=linmat%ovrlppowers_(3), &
            check_accur=.true., max_error=max_error, mean_error=mean_error)
-      call vcopy(linmat%s%nvctr, tmparr(1), 1, linmat%ovrlp_%matrix_compr(1), 1)
+      call vcopy(linmat%s%nvctr*linmat%s%nspin, tmparr(1), 1, linmat%ovrlp_%matrix_compr(1), 1)
       call f_free(tmparr)
       call check_taylor_order(mean_error, max_inversion_error, norder_taylor)
   else
@@ -2499,7 +2499,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
       ! do sparse.. check later
       !ovrlp%matrix_compr=ovrlp_%matrix_compr
       tmparr = sparsematrix_malloc(ovrlp,iaction=SPARSE_FULL,id='tmparr')
-      call vcopy(ovrlp%nvctr, ovrlp_%matrix_compr(1), 1, tmparr(1), 1)
+      call vcopy(ovrlp%nvctr*ovrlp%nspin, ovrlp_%matrix_compr(1), 1, tmparr(1), 1)
       call extract_taskgroup_inplace(ovrlp, ovrlp_)
       call overlapPowerGeneral(iproc, nproc, methTransformOverlap, 1, (/-2/), &
            orthpar%blocksize_pdsyev, &
@@ -2507,7 +2507,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
            ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
            ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
            max_error=max_error, mean_error=mean_error)
-      call vcopy(ovrlp%nvctr, tmparr(1), 1, ovrlp_%matrix_compr(1), 1)
+      call vcopy(ovrlp%nvctr*ovrlp%nspin, tmparr(1), 1, ovrlp_%matrix_compr(1), 1)
       call f_free(tmparr)
   end if
 

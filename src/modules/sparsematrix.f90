@@ -1137,12 +1137,12 @@ module sparsematrix
      ! Calling arguments
      integer,intent(in) :: iproc, nproc
      type(sparse_matrix),intent(in) :: smat
-     real(kind=8),dimension(smat%nvctrp_tg),intent(in) :: mat_tg !< matrix distributed over the taskgroups
-     real(kind=8),dimension(smat%nvctr),intent(out) :: mat_global !< global matrix gathered together
+     real(kind=8),dimension(smat%nvctr*smat%nspin),intent(in) :: mat_tg !< matrix distributed over the taskgroups
+     real(kind=8),dimension(smat%nvctr*smat%nspin),intent(out) :: mat_global !< global matrix gathered together
    
      ! Local variables
      integer,dimension(:),allocatable :: recvcounts, recvdspls
-     integer :: ncount, ist_send, jproc
+     integer :: ncount, ist_send, jproc, ispin, ishift
    
      if (nproc>1) then
          recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
@@ -1156,23 +1156,26 @@ module sparsematrix
          do jproc=1,nproc-1
              recvdspls(jproc) = recvdspls(jproc-1) + recvcounts(jproc-1)
          end do
-         ist_send = smat%smmm%istartend_mm_dj(1) - smat%isvctrp_tg
-         call mpi_get_to_allgatherv_double(mat_tg(ist_send), ncount, &
-              mat_global(1), recvcounts, recvdspls, bigdft_mpi%mpi_comm)
-         !!call mpi_allgatherv(mat_tg(ist_send), ncount, mpi_double_precision, &
-         !!                    mat_global(1), recvcounts, recvdspls, mpi_double_precision, &
-         !!                    bigdft_mpi%mpi_comm, ierr)
+         do ispin=1,smat%nspin
+             ishift = (ispin-1)*smat%nvctr
+             ist_send = smat%smmm%istartend_mm_dj(1) - smat%isvctrp_tg + ishift
+             call mpi_get_to_allgatherv_double(mat_tg(ist_send), ncount, &
+                  mat_global(ishift+1), recvcounts, recvdspls, bigdft_mpi%mpi_comm)
+             !!call mpi_allgatherv(mat_tg(ist_send), ncount, mpi_double_precision, &
+             !!                    mat_global(1), recvcounts, recvdspls, mpi_double_precision, &
+             !!                    bigdft_mpi%mpi_comm, ierr)
+         end do
          call f_free(recvcounts)
          call f_free(recvdspls)
      else
-         call vcopy(smat%nvctrp_tg, mat_tg(1), 1, mat_global(1), 1)
+         call vcopy(smat%nvctrp*smat%nspin, mat_tg(1), 1, mat_global(1), 1)
      end if
    end subroutine gather_matrix_from_taskgroups
 
 
    subroutine gather_matrix_from_taskgroups_inplace(iproc, nproc, smat, mat)
      use module_base
-     use sparsematrix_base, only: sparse_matrix
+     use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), SPARSE_FULL
      implicit none
    
      ! Calling arguments
@@ -1182,9 +1185,10 @@ module sparsematrix
    
      ! Local variables
      integer,dimension(:),allocatable :: recvcounts, recvdspls
-     integer :: ncount, ist_send, jproc
+     integer :: ncount, ist_send, jproc, ispin, ishift
      real(kind=8),dimension(:),allocatable :: mat_global
    
+      mat_global = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='mat_global')
      if (nproc>1) then
          recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
          recvdspls = f_malloc(0.to.nproc-1,id='recvdspls')
@@ -1197,19 +1201,21 @@ module sparsematrix
          do jproc=1,nproc-1
              recvdspls(jproc) = recvdspls(jproc-1) + recvcounts(jproc-1)
          end do
-         ist_send = smat%smmm%istartend_mm_dj(1) - smat%isvctrp_tg
-         mat_global = f_malloc(smat%nvctr, id='mat_global')
-         call mpi_get_to_allgatherv_double(mat%matrix_compr(ist_send), ncount, &
-              mat_global(1), recvcounts, recvdspls, bigdft_mpi%mpi_comm)
-         !!call mpi_allgatherv(mat%matrix_compr(ist_send), ncount, mpi_double_precision, &
-         !!                    mat_global(1), recvcounts, recvdspls, mpi_double_precision, &
-         !!                    bigdft_mpi%mpi_comm, ierr)
+         do ispin=1,smat%nspin
+             ishift = (ispin-1)*smat%nvctr
+             ist_send = smat%smmm%istartend_mm_dj(1) - smat%isvctrp_tg + ishift
+             call mpi_get_to_allgatherv_double(mat%matrix_compr(ist_send), ncount, &
+                  mat_global(ishift+1), recvcounts, recvdspls, bigdft_mpi%mpi_comm)
+             !!call mpi_allgatherv(mat%matrix_compr(ist_send), ncount, mpi_double_precision, &
+             !!                    mat_global(1), recvcounts, recvdspls, mpi_double_precision, &
+             !!                    bigdft_mpi%mpi_comm, ierr)
+         end do
          call f_free(recvcounts)
          call f_free(recvdspls)
      else
-         call vcopy(smat%nvctrp_tg, mat%matrix_compr(1), 1, mat_global(1), 1)
+         call vcopy(smat%nvctrp_tg*smat%nspin, mat%matrix_compr(1), 1, mat_global(1), 1)
      end if
-     call vcopy(smat%nvctrp, mat_global(1), 1, mat%matrix_compr(1), 1)
+     call vcopy(smat%nvctrp*smat%nspin, mat_global(1), 1, mat%matrix_compr(1), 1)
      call f_free(mat_global)
 
    end subroutine gather_matrix_from_taskgroups_inplace
@@ -1223,10 +1229,14 @@ module sparsematrix
      type(matrices),intent(inout) :: mat
 
      ! Local variables
-     integer :: i
+     integer :: i, ispin, ishift_tg, ishift_glob
 
-     do i=1,smat%nvctrp_tg
-         mat%matrix_compr(i) = mat%matrix_compr(i+smat%isvctrp_tg)
+     do ispin=1,smat%nspin
+         ishift_tg = (ispin-1)*smat%nvctrp_tg
+         ishift_glob = (ispin-1)*smat%nvctr
+         do i=1,smat%nvctrp_tg
+             mat%matrix_compr(i+ishift_tg) = mat%matrix_compr(i+smat%isvctrp_tg+ishift_glob)
+         end do
      end do
 
    end subroutine extract_taskgroup_inplace
