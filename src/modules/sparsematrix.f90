@@ -546,8 +546,8 @@ module sparsematrix
       icheck=0
       do ispin=1,smat%nspin
 
-          isshift=(ispin-1)*smat%nvctr
-          ilshift=(ispin-1)*lmat%nvctr
+          isshift=(ispin-1)*smat%nvctrp_tg
+          ilshift=(ispin-1)*lmat%nvctrp_tg
     
           ilsegstart=1
           !$omp parallel default(private) &
@@ -555,10 +555,12 @@ module sparsematrix
           !$omp firstprivate(ilsegstart)
           !$omp do reduction(+:icheck)
           sloop: do isseg=smat%iseseg_tg(1),smat%iseseg_tg(2)!1,smat%nseg
+          !sloop: do isseg=1,smat%nseg
               isstart = int((smat%keyg(1,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) + int(smat%keyg(1,1,isseg),kind=8)
               isend = int((smat%keyg(2,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) + int(smat%keyg(2,1,isseg),kind=8)
               ! A segment is always on one line, therefore no double loop
-              lloop: do ilseg=ilsegstart,lmat%iseseg_tg(2)!lmat%nseg
+              !lloop: do ilseg=ilsegstart,lmat%iseseg_tg(2)!lmat%nseg
+              lloop: do ilseg=ilsegstart,lmat%nseg
                   ilstart = int((lmat%keyg(1,2,ilseg)-1),kind=8)*int(lmat%nfvctr,kind=8) + int(lmat%keyg(1,1,ilseg),kind=8)
                   ilend = int((lmat%keyg(2,2,ilseg)-1),kind=8)*int(lmat%nfvctr,kind=8) + int(lmat%keyg(2,1,ilseg),kind=8)
     
@@ -593,11 +595,13 @@ module sparsematrix
                   select case (imode)
                   case (SMALL_TO_LARGE) 
                       do i=0,ilength-1
-                          lmatrix_compr(ilcostart+i+ilshift-lmat%isvctrp_tg)=smatrix_compr(iscostart+i+isshift-smat%isvctrp_tg)
+                          !lmatrix_compr(ilcostart+i+ilshift-lmat%isvctrp_tg)=smatrix_compr(iscostart+i+isshift-smat%isvctrp_tg)
+                          lmatrix_compr(ilcostart+i+ilshift-smat%isvctrp_tg)=smatrix_compr(iscostart+i+isshift-smat%isvctrp_tg)
                       end do
                   case (LARGE_TO_SMALL) 
                       do i=0,ilength-1
-                          smatrix_compr(iscostart+i+isshift-smat%isvctrp_tg)=lmatrix_compr(ilcostart+i+ilshift-lmat%isvctrp_tg)
+                          !smatrix_compr(iscostart+i+isshift-smat%isvctrp_tg)=lmatrix_compr(ilcostart+i+ilshift-lmat%isvctrp_tg)
+                          smatrix_compr(iscostart+i+isshift-lmat%isvctrp_tg)=lmatrix_compr(ilcostart+i+ilshift-lmat%isvctrp_tg)
                       end do
                   case default
                       stop 'wrong imode'
