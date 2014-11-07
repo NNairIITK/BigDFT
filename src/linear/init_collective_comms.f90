@@ -274,7 +274,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
            call f_free(psijg)
            call f_free(matp)
            do i=1,smat%nvctrp_tg
-               maxdiff=max(abs(mat_compr(i+smat%isvctrp_tg)-mat%matrix_compr(i+smat%isvctrp_tg)),maxdiff)
+               maxdiff=max(abs(mat_compr(i+smat%isvctrp_tg)-mat%matrix_compr(i)),maxdiff)
                !write(8000+iproc,'(a,i7,2es15.5)') 'i, mat_compr(i), mat%matrix_compr(i)', &
                !    i, mat_compr(i), mat%matrix_compr(i)
            end do
@@ -1643,7 +1643,7 @@ subroutine synchronize_matrix_taskgroups(iproc, nproc, smat, mat)
           do itg=1,smat%ntaskgroupp
               iitg = smat%taskgroupid(itg)
               ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
-              ist_recv = ncount + 1 - smat%isvctrp_tg
+              ist_recv = ncount + 1
               ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
               !!call mpi_iallreduce(mat%matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
               !!     mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
@@ -1661,7 +1661,7 @@ subroutine synchronize_matrix_taskgroups(iproc, nproc, smat, mat)
           do itg=1,smat%ntaskgroupp
               iitg = smat%taskgroupid(itg)
               ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
-              ist_recv = ncount + 1 - smat%isvctrp_tg
+              ist_recv = ncount + 1
               ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
               !call vcopy(ncount, recvbuf(ist_recv), 1, mat%matrix_compr(ishift+ist_send), 1)
               call dcopy(ncount, recvbuf(ist_recv), 1, mat%matrix_compr(ishift+ist_send), 1)
