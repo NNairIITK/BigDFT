@@ -8,7 +8,8 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
-  use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace
+  use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
+                          uncompress_matrix2
   implicit none
   type(DFT_wavefunction), intent(inout) :: tmb
   type(input_variables), intent(in) :: input
@@ -214,8 +215,8 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
      tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, &
                                 iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
      call timing(iproc,'kernel_init','OF')
-     call uncompress_matrix(iproc, tmb%linmat%s, &
-          inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
+     call uncompress_matrix2(iproc, bigdft_mpi%nproc, tmb%linmat%s, &
+          tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
      call reorthonormalize_coeff(bigdft_mpi%iproc, bigdft_mpi%nproc, &
           ceiling((ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag))/2.0_gp), &
           tmb%orthpar%blocksize_pdsyev, tmb%orthpar%blocksize_pdgemm, input%lin%order_taylor, &

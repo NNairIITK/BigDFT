@@ -453,7 +453,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   use sparsematrix_base, only: sparse_matrix, matrices, sparse_matrix_null, deallocate_sparse_matrix, &
                                sparsematrix_malloc_ptr, DENSE_FULL, SPARSE_FULL, assignment(=), &
                                matrices_null, allocate_matrices, deallocate_matrices
-  use sparsematrix, only: uncompress_matrix
+  use sparsematrix, only: uncompress_matrix, uncompress_matrix2
   implicit none
 
   ! Calling arguments
@@ -493,8 +493,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   weight_coeff_diag=f_malloc((/ksorbs%norb,input%frag%nfrag/), id='weight_coeff')
   !ovrlp_half=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp_half')
   tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-  call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%s, &
-       inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
+  call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, &
+       tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
   call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, input%lin%order_taylor, 1, (/2/), &
        tmb%orthpar%blocksize_pdsyev, imode=2, &
        ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &

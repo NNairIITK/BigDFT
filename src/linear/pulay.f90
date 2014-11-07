@@ -17,7 +17,8 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   use communications, only: transpose_localized
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
                                sparsematrix_malloc, SPARSE_FULL
-  use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace
+  use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
+                          uncompress_matrix2
   implicit none
 
   ! Calling arguments
@@ -100,7 +101,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   delta_phit_f=f_malloc(isize,id='delta_phit_f')
   !fpulay=f_malloc((/3,at%astruct%nat/),id='fpulay')
   tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
-  call uncompress_matrix(iproc,tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix_compr, outmat=tmb%linmat%kernel_%matrix)
+  call uncompress_matrix2(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
   call to_zero(3*at%astruct%nat, fpulay(1,1))
   do idir=1,3
       ! calculate the overlap matrix among hphi and phi_delta_large
@@ -113,8 +114,8 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       !tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
 
       tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
-      call uncompress_matrix(iproc, tmb%linmat%m, &
-           inmat=tmb%linmat%ham_%matrix_compr, outmat=tmb%linmat%ham_%matrix)
+      call uncompress_matrix2(iproc, nproc, tmb%linmat%m, &
+           tmb%linmat%ham_%matrix_compr, tmb%linmat%ham_%matrix)
 
       do iorb=1,tmb%orbs%norbp
           iiorb=tmb%orbs%isorb+iorb
@@ -167,7 +168,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
 
       tempmat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='tempmat')
       tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-      call uncompress_matrix(iproc, tmb%linmat%s, inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
+      call uncompress_matrix2(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
       call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, &
                  tmb%linmat%ovrlp_%matrix, tmb%orbs%norb, energykernel, tmb%orbs%norb, &
                  0.d0, tempmat, tmb%orbs%norb)

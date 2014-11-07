@@ -65,7 +65,7 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
                                DENSE_FULL, assignment(=), &
                                allocate_matrices, deallocate_matrices
   use sparsematrix, only: compress_matrix, uncompress_matrix, &
-                          gather_matrix_from_taskgroups_inplace
+                          gather_matrix_from_taskgroups_inplace, uncompress_matrix2
   implicit none
   type(sparse_matrix), intent(inout) :: weight_matrix
   type(matrices), intent(inout) :: weight_matrix_
@@ -106,8 +106,8 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
 
   if (calculate_ovrlp_half) then
      tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-     call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%s, &
-          inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
+     call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, &
+          tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
      ! Maybe not clean here to use twice tmb%linmat%s, but it should not
      ! matter as dense is used
      call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, (/2/), &
@@ -189,7 +189,8 @@ subroutine calculate_weight_matrix_lowdin_gradient_fd(weight_matrix,weight_matri
                                DENSE_FULL, assignment(=), &
                                allocate_matrices, deallocate_matrices
   use sparsematrix, only: compress_matrix, uncompress_matrix, &
-                          gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
+                          gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, &
+                          uncompress_matrix2
   implicit none
   type(sparse_matrix), intent(inout) :: weight_matrix
   type(matrices), intent(inout) :: weight_matrix_
@@ -303,8 +304,8 @@ if (.false.) then
           tmb%lzd%llr(tmb%orbs%inwhichlocreg(2))%wfd%nvctr_c+7*tmb%lzd%llr(tmb%orbs%inwhichlocreg(2))%wfd%nvctr_f
 
      tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-     call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%s, &
-          inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
+     call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, &
+          tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
 
 
      !S^-1/2 for calc grad
@@ -400,7 +401,7 @@ subroutine calculate_weight_matrix_lowdin_gradient(weight_matrix,weight_matrix_,
                                DENSE_FULL, assignment(=), &
                                allocate_matrices, deallocate_matrices
   use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
-                          gather_matrix_from_taskgroups_inplace
+                          gather_matrix_from_taskgroups_inplace, uncompress_matrix2
   implicit none
   type(sparse_matrix), intent(inout) :: weight_matrix
   type(matrices), intent(inout) :: weight_matrix_
@@ -456,8 +457,8 @@ real(kind=8) :: ddot
   !calculate s^-1/2 and generate s^1/2 from it
   if (calculate_ovrlp_half) then !always do so as not sure how this would make sense otherwise?  for that matter how does it make sense anyway?  presumably always true?
      tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-     call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%s, &
-          inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
+     call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, &
+          tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
 !print*,'g',ddot(tmb%orbs%norb*tmb%orbs%norb, tmb%linmat%ovrlp_%matrix(1,1,1), 1, tmb%linmat%ovrlp_%matrix(1,1,1), 1)
      ! Maybe not clean here to use twice tmb%linmat%s, but it should not
      ! matter as dense is used
@@ -514,8 +515,8 @@ real(kind=8) :: ddot
   !call f_free(ovrlp_half)
 
   tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-  call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%l, &
-       inmat=tmb%linmat%kernel_%matrix_compr, outmat=tmb%linmat%kernel_%matrix)
+  call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, &
+       tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
 
   weight_matrix_tmp = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norbp/),id='weight_matrix_tmp')
   weight_matrixp = f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='weight_matrixp')
