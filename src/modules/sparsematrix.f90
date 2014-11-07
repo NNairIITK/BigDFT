@@ -23,7 +23,7 @@ module sparsematrix
   public :: compress_matrix, compress_matrix2
   public :: uncompress_matrix, uncompress_matrix2
   public :: check_matrix_compression
-  public :: transform_sparse_matrix, transform_sparse_matrix2, transform_sparse_matrix_local
+  public :: transform_sparse_matrix, transform_sparse_matrix_local
   public :: compress_matrix_distributed
   public :: uncompress_matrix_distributed, uncompress_matrix_distributed2
   public :: sequential_acces_matrix_fast, sequential_acces_matrix_fast2
@@ -500,131 +500,131 @@ module sparsematrix
     end subroutine transform_sparse_matrix
 
 
-    subroutine transform_sparse_matrix2(smat, lmat, smatrix_compr, lmatrix_compr, cmode)
-      use module_base
-      implicit none
-    
-      ! Calling arguments
-      type(sparse_matrix),intent(inout) :: smat, lmat
-      real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(inout) :: smatrix_compr
-      real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(inout) :: lmatrix_compr
-      character(len=14),intent(in) :: cmode
-    
-      ! Local variables
-      integer(kind=8) :: isstart, isend, ilstart, ilend, iostart, ioend
-      integer :: imode, icheck, isseg, ilseg
-      integer :: ilength, iscostart, ilcostart, i
-      integer :: ilsegstart, ispin, isshift, ilshift, isoffset, iloffset
-      integer,parameter :: SMALL_TO_LARGE=1
-      integer,parameter :: LARGE_TO_SMALL=2
-    
-      call f_routine(id='transform_sparse_matrix')
-    
-      ! determine the case:
-      ! SMALL_TO_LARGE -> transform from large sparsity pattern to small one
-      ! LARGE_TO_SMALL -> transform from small sparsity pattern to large one
-      if (cmode=='small_to_large' .or. cmode=='SMALL_TO_LARGE') then
-          imode=SMALL_TO_LARGE
-      else if (cmode=='large_to_small' .or. cmode=='LARGE_TO_SMALL') then
-          imode=LARGE_TO_SMALL
-      else
-          stop 'wrong cmode'
-      end if
-    
-      select case (imode)
-      case (SMALL_TO_LARGE)
-          call to_zero(lmat%nvctrp_tg*lmat%nspin,lmatrix_compr(1))
-      case (LARGE_TO_SMALL)
-          call to_zero(smat%nvctrp_tg*lmat%nspin,smatrix_compr(1))
-      case default
-          stop 'wrong imode'
-      end select
-    
-      call timing(bigdft_mpi%iproc,'transform_matr','IR')
+    !!subroutine transform_sparse_matrix2(smat, lmat, smatrix_compr, lmatrix_compr, cmode)
+    !!  use module_base
+    !!  implicit none
+    !!
+    !!  ! Calling arguments
+    !!  type(sparse_matrix),intent(inout) :: smat, lmat
+    !!  real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(inout) :: smatrix_compr
+    !!  real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(inout) :: lmatrix_compr
+    !!  character(len=14),intent(in) :: cmode
+    !!
+    !!  ! Local variables
+    !!  integer(kind=8) :: isstart, isend, ilstart, ilend, iostart, ioend
+    !!  integer :: imode, icheck, isseg, ilseg
+    !!  integer :: ilength, iscostart, ilcostart, i
+    !!  integer :: ilsegstart, ispin, isshift, ilshift, isoffset, iloffset
+    !!  integer,parameter :: SMALL_TO_LARGE=1
+    !!  integer,parameter :: LARGE_TO_SMALL=2
+    !!
+    !!  call f_routine(id='transform_sparse_matrix')
+    !!
+    !!  ! determine the case:
+    !!  ! SMALL_TO_LARGE -> transform from large sparsity pattern to small one
+    !!  ! LARGE_TO_SMALL -> transform from small sparsity pattern to large one
+    !!  if (cmode=='small_to_large' .or. cmode=='SMALL_TO_LARGE') then
+    !!      imode=SMALL_TO_LARGE
+    !!  else if (cmode=='large_to_small' .or. cmode=='LARGE_TO_SMALL') then
+    !!      imode=LARGE_TO_SMALL
+    !!  else
+    !!      stop 'wrong cmode'
+    !!  end if
+    !!
+    !!  select case (imode)
+    !!  case (SMALL_TO_LARGE)
+    !!      call to_zero(lmat%nvctrp_tg*lmat%nspin,lmatrix_compr(1))
+    !!  case (LARGE_TO_SMALL)
+    !!      call to_zero(smat%nvctrp_tg*lmat%nspin,smatrix_compr(1))
+    !!  case default
+    !!      stop 'wrong imode'
+    !!  end select
+    !!
+    !!  call timing(bigdft_mpi%iproc,'transform_matr','IR')
 
 
-      icheck=0
-      do ispin=1,smat%nspin
+    !!  icheck=0
+    !!  do ispin=1,smat%nspin
 
-          isshift=(ispin-1)*smat%nvctrp_tg
-          ilshift=(ispin-1)*lmat%nvctrp_tg
-    
-          ilsegstart=1
-          !$omp parallel default(private) &
-          !$omp shared(smat, lmat, imode, lmatrix_compr, smatrix_compr, icheck, isshift, ilshift) &
-          !$omp firstprivate(ilsegstart)
-          !$omp do reduction(+:icheck)
-          sloop: do isseg=smat%iseseg_tg(1),smat%iseseg_tg(2)!1,smat%nseg
-          !sloop: do isseg=1,smat%nseg
-              isstart = int((smat%keyg(1,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) + int(smat%keyg(1,1,isseg),kind=8)
-              isend = int((smat%keyg(2,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) + int(smat%keyg(2,1,isseg),kind=8)
-              ! A segment is always on one line, therefore no double loop
-              !lloop: do ilseg=ilsegstart,lmat%iseseg_tg(2)!lmat%nseg
-              lloop: do ilseg=ilsegstart,lmat%nseg
-                  ilstart = int((lmat%keyg(1,2,ilseg)-1),kind=8)*int(lmat%nfvctr,kind=8) + int(lmat%keyg(1,1,ilseg),kind=8)
-                  ilend = int((lmat%keyg(2,2,ilseg)-1),kind=8)*int(lmat%nfvctr,kind=8) + int(lmat%keyg(2,1,ilseg),kind=8)
-    
-                  ! check whether there is an overlap:
-                  ! if not, increase loop counters
-                  if (ilstart>isend) then
-                      !ilsegstart=ilseg
-                      exit lloop
-                  end if
-                  if (isstart>ilend) then
-                      ilsegstart=ilseg
-                      cycle lloop
-                  end if
-                  ! if yes, determine start end end of overlapping segment (in uncompressed form)
-                  iostart=max(isstart,ilstart)
-                  ioend=min(isend,ilend)
-                  ilength=ioend-iostart+1
-    
-                  ! offset with respect to the starting point of the segment
-                  isoffset = int(iostart - &
-                             (int((smat%keyg(1,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) &
-                               + int(smat%keyg(1,1,isseg),kind=8)),kind=4)
-                  iloffset = int(iostart - &
-                             (int((lmat%keyg(1,2,ilseg)-1),kind=8)*int(lmat%nfvctr,kind=8) &
-                               + int(lmat%keyg(1,1,ilseg),kind=8)),kind=4)
-    
-                  ! determine start end and of the overlapping segment in compressed form
-                  iscostart=smat%keyv(isseg)+isoffset
-                  ilcostart=lmat%keyv(ilseg)+iloffset
-    
-                  ! copy the elements
-                  select case (imode)
-                  case (SMALL_TO_LARGE) 
-                      do i=0,ilength-1
-                          !lmatrix_compr(ilcostart+i+ilshift-lmat%isvctrp_tg)=smatrix_compr(iscostart+i+isshift-smat%isvctrp_tg)
-                          lmatrix_compr(ilcostart+i+ilshift-smat%isvctrp_tg)=smatrix_compr(iscostart+i+isshift-smat%isvctrp_tg)
-                      end do
-                  case (LARGE_TO_SMALL) 
-                      do i=0,ilength-1
-                          !smatrix_compr(iscostart+i+isshift-smat%isvctrp_tg)=lmatrix_compr(ilcostart+i+ilshift-lmat%isvctrp_tg)
-                          smatrix_compr(iscostart+i+isshift-lmat%isvctrp_tg)=lmatrix_compr(ilcostart+i+ilshift-lmat%isvctrp_tg)
-                      end do
-                  case default
-                      stop 'wrong imode'
-                  end select
-                  icheck=icheck+ilength
-              end do lloop
-          end do sloop
-          !$omp end do 
-          !$omp end parallel
+    !!      isshift=(ispin-1)*smat%nvctrp_tg
+    !!      ilshift=(ispin-1)*lmat%nvctrp_tg
+    !!
+    !!      ilsegstart=1
+    !!      !$omp parallel default(private) &
+    !!      !$omp shared(smat, lmat, imode, lmatrix_compr, smatrix_compr, icheck, isshift, ilshift) &
+    !!      !$omp firstprivate(ilsegstart)
+    !!      !$omp do reduction(+:icheck)
+    !!      sloop: do isseg=smat%iseseg_tg(1),smat%iseseg_tg(2)!1,smat%nseg
+    !!      !sloop: do isseg=1,smat%nseg
+    !!          isstart = int((smat%keyg(1,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) + int(smat%keyg(1,1,isseg),kind=8)
+    !!          isend = int((smat%keyg(2,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) + int(smat%keyg(2,1,isseg),kind=8)
+    !!          ! A segment is always on one line, therefore no double loop
+    !!          !lloop: do ilseg=ilsegstart,lmat%iseseg_tg(2)!lmat%nseg
+    !!          lloop: do ilseg=ilsegstart,lmat%nseg
+    !!              ilstart = int((lmat%keyg(1,2,ilseg)-1),kind=8)*int(lmat%nfvctr,kind=8) + int(lmat%keyg(1,1,ilseg),kind=8)
+    !!              ilend = int((lmat%keyg(2,2,ilseg)-1),kind=8)*int(lmat%nfvctr,kind=8) + int(lmat%keyg(2,1,ilseg),kind=8)
+    !!
+    !!              ! check whether there is an overlap:
+    !!              ! if not, increase loop counters
+    !!              if (ilstart>isend) then
+    !!                  !ilsegstart=ilseg
+    !!                  exit lloop
+    !!              end if
+    !!              if (isstart>ilend) then
+    !!                  ilsegstart=ilseg
+    !!                  cycle lloop
+    !!              end if
+    !!              ! if yes, determine start end end of overlapping segment (in uncompressed form)
+    !!              iostart=max(isstart,ilstart)
+    !!              ioend=min(isend,ilend)
+    !!              ilength=ioend-iostart+1
+    !!
+    !!              ! offset with respect to the starting point of the segment
+    !!              isoffset = int(iostart - &
+    !!                         (int((smat%keyg(1,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) &
+    !!                           + int(smat%keyg(1,1,isseg),kind=8)),kind=4)
+    !!              iloffset = int(iostart - &
+    !!                         (int((lmat%keyg(1,2,ilseg)-1),kind=8)*int(lmat%nfvctr,kind=8) &
+    !!                           + int(lmat%keyg(1,1,ilseg),kind=8)),kind=4)
+    !!
+    !!              ! determine start end and of the overlapping segment in compressed form
+    !!              iscostart=smat%keyv(isseg)+isoffset
+    !!              ilcostart=lmat%keyv(ilseg)+iloffset
+    !!
+    !!              ! copy the elements
+    !!              select case (imode)
+    !!              case (SMALL_TO_LARGE) 
+    !!                  do i=0,ilength-1
+    !!                      !lmatrix_compr(ilcostart+i+ilshift-lmat%isvctrp_tg)=smatrix_compr(iscostart+i+isshift-smat%isvctrp_tg)
+    !!                      lmatrix_compr(ilcostart+i+ilshift-smat%isvctrp_tg)=smatrix_compr(iscostart+i+isshift-smat%isvctrp_tg)
+    !!                  end do
+    !!              case (LARGE_TO_SMALL) 
+    !!                  do i=0,ilength-1
+    !!                      !smatrix_compr(iscostart+i+isshift-smat%isvctrp_tg)=lmatrix_compr(ilcostart+i+ilshift-lmat%isvctrp_tg)
+    !!                      smatrix_compr(iscostart+i+isshift-lmat%isvctrp_tg)=lmatrix_compr(ilcostart+i+ilshift-lmat%isvctrp_tg)
+    !!                  end do
+    !!              case default
+    !!                  stop 'wrong imode'
+    !!              end select
+    !!              icheck=icheck+ilength
+    !!          end do lloop
+    !!      end do sloop
+    !!      !$omp end do 
+    !!      !$omp end parallel
 
-      end do
-    
-      ! all elements of the small matrix must have been processed, no matter in
-      ! which direction the transformation has been executed
-      if (icheck/=smat%nvctrp_tg*smat%nspin) then
-          write(*,'(a,2i8)') 'ERROR: icheck/=smat%nvctrp_tg*smat%nspin', icheck, smat%nvctrp_tg*smat%nspin
-          stop
-      end if
+    !!  end do
+    !!
+    !!  ! all elements of the small matrix must have been processed, no matter in
+    !!  ! which direction the transformation has been executed
+    !!  if (icheck/=smat%nvctrp_tg*smat%nspin) then
+    !!      write(*,'(a,2i8)') 'ERROR: icheck/=smat%nvctrp_tg*smat%nspin', icheck, smat%nvctrp_tg*smat%nspin
+    !!      stop
+    !!  end if
 
-      call timing(bigdft_mpi%iproc,'transform_matr','RS')
-      call f_release_routine()
+    !!  call timing(bigdft_mpi%iproc,'transform_matr','RS')
+    !!  call f_release_routine()
     
-  end subroutine transform_sparse_matrix2
+    !!end subroutine transform_sparse_matrix2
 
 
     subroutine transform_sparse_matrix_local(smat, lmat, smatrix_compr, lmatrix_compr, cmode)
