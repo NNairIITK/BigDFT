@@ -158,7 +158,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed, compress_matrix_distributed, &
                           sequential_acces_matrix_fast2, sparsemm, transform_sparse_matrix, orb_from_index, &
                           gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, &
-                          transform_sparse_matrix2, uncompress_matrix_distributed2
+                          transform_sparse_matrix_local, uncompress_matrix_distributed2
   implicit none
 
   ! Calling arguments
@@ -254,7 +254,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
            inv_lagmatp, lagmat_large)
   end if
   if (data_strategy_main==SUBMATRIX) then
-      call transform_sparse_matrix2(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'large_to_small')
+      call transform_sparse_matrix_local(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'large_to_small')
   end if
   call f_free(lagmat_large)
   call f_free(inv_ovrlp_seq)
@@ -385,7 +385,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
           ! Directly use the large sparsity pattern as this one is used later
           ! for the matrix vector multiplication
           tmp_mat_compr = sparsematrix_malloc(linmat%l,iaction=SPARSE_TASKGROUP,id='tmp_mat_compr')
-          call transform_sparse_matrix2(linmat%m, linmat%l, lagmat_%matrix_compr, tmp_mat_compr, 'small_to_large')
+          call transform_sparse_matrix_local(linmat%m, linmat%l, lagmat_%matrix_compr, tmp_mat_compr, 'small_to_large')
           do ispin=1,lagmat%nspin
               ishift=(ispin-1)*linmat%l%nvctrp_tg
               !!!!$omp parallel default(none) &
@@ -504,7 +504,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                           assignment(=), &
                           SPARSE_FULL, DENSE_PARALLEL, DENSE_MATMUL, DENSE_FULL, SPARSEMM_SEQ
   use sparsematrix, only: compress_matrix, uncompress_matrix, &
-                          transform_sparse_matrix, transform_sparse_matrix2, &
+                          transform_sparse_matrix, transform_sparse_matrix_local, &
                           compress_matrix_distributed, &
                           uncompress_matrix_distributed, uncompress_matrix_distributed2, &
                           sequential_acces_matrix_fast2, sequential_acces_matrix_fast, &
@@ -975,7 +975,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
           Amat22p=>Amat11p
           Amat12_compr=>inv_ovrlp_mat(1)%matrix_compr(1:)
 
-          call transform_sparse_matrix2(ovrlp_smat, inv_ovrlp_smat, &
+          call transform_sparse_matrix_local(ovrlp_smat, inv_ovrlp_smat, &
                ovrlp_mat%matrix_compr, Amat12_compr, 'small_to_large')
           Amat12_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='Amat12_seq')
 
@@ -1201,7 +1201,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
           invovrlpp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_MATMUL, id='invovrlpp')
           if (iorder<1 .or. iorder>=1000) then
               ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlp_large_compr')
-              call transform_sparse_matrix2(ovrlp_smat, inv_ovrlp_smat, &
+              call transform_sparse_matrix_local(ovrlp_smat, inv_ovrlp_smat, &
                    ovrlp_mat%matrix_compr, ovrlp_large_compr, 'small_to_large')
           end if
           invovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlp_large_compr_seq')

@@ -1315,8 +1315,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
   use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
-  use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff, init_matrix_taskgroups, &
-                               determine_extent_matrix_taskgroups
+  use sparsematrix_init, only: init_sparse_matrix, check_kernel_cutoff, init_matrix_taskgroups
   use foe_base, only: foe_data_deallocate
   implicit none
   
@@ -1340,7 +1339,6 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   real(kind=8),dimension(:), allocatable :: lphilarge, locrad_kernel, locrad_mult
   type(local_zone_descriptors) :: lzd_tmp
   character(len=*), parameter :: subname='adjust_locregs_and_confinement'
-  integer,dimension(2,2) :: ind_minmax_ref
 
   call f_routine(id='adjust_locregs_and_confinement')
 
@@ -1516,21 +1514,12 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      !tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
      !call sparse_copy_pattern(tmb%linmat%l, tmb%linmat%inv_ovrlp_large, iproc, subname)
 
-     ind_minmax_ref(1:2,1)=tmb%orbs%norb
-     ind_minmax_ref(1:2,2)=1
-     call determine_extent_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
-          tmb%collcom, tmb%collcom_sr, tmb%linmat%s, ind_minmax_ref)
-     call determine_extent_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, ind_minmax_ref)
-     call determine_extent_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, ind_minmax_ref)
-
      call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
-          tmb%collcom, tmb%collcom_sr, tmb%linmat%s, ind_minmax_ref)
+          tmb%collcom, tmb%collcom_sr, tmb%linmat%s)
      call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, ind_minmax_ref)
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
      call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, ind_minmax_ref)
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
 
 
      nullify(tmb%linmat%ks)

@@ -22,7 +22,6 @@ module sparsematrix_init
   public :: matrixindex_in_compressed, matrixindex_in_compressed2
   public :: check_kernel_cutoff
   public :: init_matrix_taskgroups
-  public :: determine_extent_matrix_taskgroups
 
 contains
 
@@ -1204,7 +1203,7 @@ contains
     end subroutine init_matrix_parallelization
 
 
-    subroutine init_matrix_taskgroups(iproc, nproc, parallel_layout, collcom, collcom_sr, smat, ind_minmax_ref)
+    subroutine init_matrix_taskgroups(iproc, nproc, parallel_layout, collcom, collcom_sr, smat)
       use module_base
       use module_types
       use communications_base, only: comms_linear
@@ -1216,7 +1215,6 @@ contains
       logical,intent(in) :: parallel_layout
       type(comms_linear),intent(in) :: collcom, collcom_sr
       type(sparse_matrix),intent(inout) :: smat
-      integer,dimension(2,2),intent(in) :: ind_minmax_ref
 
       ! Local variables
       integer :: ipt, ii, i0, i0i, iiorb, j, i0j, jjorb, ind, ind_min, ind_max, iseq
@@ -1227,7 +1225,7 @@ contains
       integer :: ntaskgrp_calc, ntaskgrp_use, i, ncount, iitaskgroup, group, ierr, iitaskgroups, newgroup, iseg
       logical :: go_on
       integer,dimension(:,:),allocatable :: in_taskgroup
-      integer :: iproc_start, iproc_end, imin, imax, iout, ii_ref, ind_max_ref, ind_min_ref, iorb
+      integer :: iproc_start, iproc_end, imin, imax
       logical :: found, found_start, found_end
       integer :: iprocstart_current, iprocend_current, iprocend_prev, iprocstart_next
 
@@ -1242,69 +1240,27 @@ contains
       ind_min = smat%nvctr
       ind_max = 0
 
-     !! ! The operations done in the transposed wavefunction layout
-     !! call check_transposed_layout()
+      ! The operations done in the transposed wavefunction layout
+      call check_transposed_layout()
 
-     !! ! Now check the compress_distributed layout
-     !! call check_compress_distributed_layout()
+      ! Now check the compress_distributed layout
+      call check_compress_distributed_layout()
 
-     !! ! Now check the matrix matrix multiplications layout
-     !! call check_matmul_layout()
+      ! Now check the matrix matrix multiplications layout
+      call check_matmul_layout()
 
-     !! ! Now check the sumrho operations
-     !! call check_sumrho_layout()
+      ! Now check the sumrho operations
+      call check_sumrho_layout()
 
-     !! ! Now check the pseudo-exact orthonormalization during the input guess
-     !! call check_ortho_inguess()
-
-
-
-      ! Make sure that the values are in agreement with a reference.
-      ! This is necessary since the sparsity pattern must always be "contained
-      ! within each other", i.e. the sparsity pattern of a matrix with a small
-      ! cutoff radius must be contained with the pattern of a matrix with a
-      ! larger radius. There it is a good strategy to first call this routine
-      ! for the smallest sparsity pattern and then for the larger ones.
-
-      ! Seach the compressed index which corresponds to the references
-      ind_min_ref = matrixindex_in_compressed(smat, ind_minmax_ref(1,1), ind_minmax_ref(2,1))
-      !write(*,*) 'MIN: iproc, before',iproc, ind_min
-      ind_min = min(ind_min,ind_min_ref)
-      !write(*,*) 'MIN: iproc, after',iproc, ind_min
-      ind_max_ref = matrixindex_in_compressed(smat, ind_minmax_ref(1,2), ind_minmax_ref(2,2))
-      !write(*,*) 'MAX: iproc, before',iproc, ind_max
-      write(*,*) 'iproc, ind_minmax_ref(1,2), ind_minmax_ref(2,2)',iproc, ind_minmax_ref(1,2), ind_minmax_ref(2,2)
-      write(*,*) 'iproc, ind_max, ind_max_ref', iproc, ind_max, ind_max_ref
-      ind_max = max(ind_max,ind_max_ref)
-      !write(*,*) 'MAX: iproc, after',iproc, ind_max
+      ! Now check the pseudo-exact orthonormalization during the input guess
+      call check_ortho_inguess()
 
 
-      !!! Get the global indices of the new minimal and maximal values
-      !!do iout=1,2
-      !!    if (iout==1) then
-      !!        ii_ref = ind_min
-      !!    else
-      !!        ii_ref = ind_max
-      !!    end if
-      !!    seg_loop: do iseg=1,smat%nseg
-      !!        ii = smat%keyv(iseg)
-      !!        jorb = smat%keyg(1,2,iseg)
-      !!        do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-      !!            iorb = i
-      !!            if (ii==ii_ref) then
-      !!                exit seg_loop
-      !!            end if
-      !!            ii = ii + 1
-      !!        end do
-      !!    end do seg_loop
-      !!    if (iout==1) then
-      !!        ind_minmax_ref(1,1) = jorb
-      !!        ind_minmax_ref(2,1) = iorb
-      !!    else                      
-      !!        ind_minmax_ref(1,2) = jorb
-      !!        ind_minmax_ref(2,2) = iorb
-      !!    end if
-      !!end do
+      if (.not.parallel_layout) then
+          ! The matrices can not be parallelized
+          ind_min = 1
+          ind_max = smat%nvctr
+      end if
 
       ! Enlarge the values if necessary such that they always start and end with a complete segment
       do iseg=1,smat%nseg
@@ -1318,17 +1274,8 @@ contains
           end if
       end do
 
-
-      if (.not.parallel_layout) then
-          ! The matrices can not be parallelized
-          ind_min = 1
-          ind_max = smat%nvctr
-      end if
-
-
       smat%istartend_local(1) = ind_min
       smat%istartend_local(2) = ind_max
-      write(*,*) 'iproc, ind_min, ind_max', iproc, ind_min, ind_max
 
       ! Check to which segments these values belong
       found_start = .false.
@@ -2169,270 +2116,6 @@ contains
     end subroutine init_matrix_taskgroups
 
 
-    subroutine determine_extent_matrix_taskgroups(iproc, nproc, parallel_layout, collcom, collcom_sr, smat, ind_minmax_ref)
-      use module_base
-      use module_types
-      use communications_base, only: comms_linear
-      use yaml_output
-      implicit none
-
-      ! Caling arguments
-      integer,intent(in) :: iproc, nproc
-      logical,intent(in) :: parallel_layout
-      type(comms_linear),intent(in) :: collcom, collcom_sr
-      type(sparse_matrix),intent(inout) :: smat
-      integer,dimension(2,2),intent(inout) :: ind_minmax_ref
-
-      ! Local variables
-      integer :: ipt, ii, i0, i0i, iiorb, j, i0j, jjorb, ind, ind_min, ind_max, iseq
-      integer :: ntaskgroups, jproc, jstart, jend, kkproc, kproc, itaskgroups, lproc, llproc
-      integer :: nfvctrp, isfvctr, isegstart, isegend, jorb, istart, iend, iistg, iietg, itg
-      integer,dimension(:,:),allocatable :: iuse_startend, itaskgroups_startend, ranks
-      integer,dimension(:),allocatable :: tasks_per_taskgroup
-      integer :: ntaskgrp_calc, ntaskgrp_use, i, ncount, iitaskgroup, group, ierr, iitaskgroups, newgroup, iseg
-      logical :: go_on
-      integer,dimension(:,:),allocatable :: in_taskgroup
-      integer :: iproc_start, iproc_end, imin, imax, iout, ii_ref, ind_max_ref, ind_min_ref, iorb
-      logical :: found, found_start, found_end
-      integer :: iprocstart_current, iprocend_current, iprocend_prev, iprocstart_next
-
-      call f_routine(id='init_matrix_taskgroups')
-
-      ! First determine the minimal and maximal value oft the matrix which is used by each process
-      iuse_startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='iuse_startend')
-
-
-      ! The matrices can be parallelized
-
-      ind_min = smat%nvctr
-      ind_max = 0
-
-      ! The operations done in the transposed wavefunction layout
-      call check_transposed_layout()
-
-      ! Now check the compress_distributed layout
-      call check_compress_distributed_layout()
-
-      ! Now check the matrix matrix multiplications layout
-      call check_matmul_layout()
-
-      ! Now check the sumrho operations
-      call check_sumrho_layout()
-
-      ! Now check the pseudo-exact orthonormalization during the input guess
-      call check_ortho_inguess()
-
-
-      !!! Enlarge the values if necessary such that they always start and end with a complete segment
-      !!do iseg=1,smat%nseg
-      !!    istart = smat%keyv(iseg)
-      !!    iend = smat%keyv(iseg) + smat%keyg(2,1,iseg)-smat%keyg(1,1,iseg)
-      !!    if (istart<=ind_min .and. ind_min<=iend) then
-      !!        ind_min = istart
-      !!    end if
-      !!    if (istart<=ind_max .and. ind_max<=iend) then
-      !!        ind_max = iend
-      !!    end if
-      !!end do
-
-
-      ! Get the global indices of the new minimal and maximal values
-      do iout=1,2
-          if (iout==1) then
-              ii_ref = ind_min
-          else
-              ii_ref = ind_max
-          end if
-          seg_loop: do iseg=1,smat%nseg
-              ii = smat%keyv(iseg)
-              jorb = smat%keyg(1,2,iseg)
-              do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-                  iorb = i
-                  if (ii==ii_ref) then
-                      exit seg_loop
-                  end if
-                  ii = ii + 1
-              end do
-          end do seg_loop
-          if (iout==1) then
-              ind_minmax_ref(1,1) = min(jorb,ind_minmax_ref(1,1))
-              ind_minmax_ref(2,1) = min(iorb,ind_minmax_ref(2,1))
-          else                      
-              ind_minmax_ref(1,2) = max(jorb,ind_minmax_ref(1,2))
-              ind_minmax_ref(2,2) = max(iorb,ind_minmax_ref(2,2))
-          end if
-      end do
-
-
-
-      contains
-
-        subroutine check_transposed_layout()
-          do ipt=1,collcom%nptsp_c
-              ii=collcom%norb_per_gridpoint_c(ipt)
-              i0 = collcom%isptsp_c(ipt)
-              do i=1,ii
-                  i0i=i0+i
-                  iiorb=collcom%indexrecvorbital_c(i0i)
-                  do j=1,ii
-                      i0j=i0+j
-                      jjorb=collcom%indexrecvorbital_c(i0j)
-                      ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                      ind_min = min(ind_min,ind)
-                      ind_max = max(ind_max,ind)
-                  end do
-              end do
-          end do
-          do ipt=1,collcom%nptsp_f
-              ii=collcom%norb_per_gridpoint_f(ipt)
-              i0 = collcom%isptsp_f(ipt)
-              do i=1,ii
-                  i0i=i0+i
-                  iiorb=collcom%indexrecvorbital_f(i0i)
-                  do j=1,ii
-                      i0j=i0+j
-                      jjorb=collcom%indexrecvorbital_f(i0j)
-                      ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                      ind_min = min(ind_min,ind)
-                      ind_max = max(ind_max,ind)
-                  end do
-              end do
-          end do
-
-          ! Store these values
-          smat%istartend_t(1) = ind_min
-          smat%istartend_t(2) = ind_max
-          ! Determine to which segments this corresponds
-          do iseg=1,smat%nseg
-              ! A segment is always on one line
-              if (smat%keyv(iseg)+smat%keyg(2,1,iseg)-smat%keyg(1,1,iseg)>=smat%istartend_t(1)) then
-                  smat%istartendseg_t(1)=iseg
-                  exit
-              end if
-          end do
-          do iseg=smat%nseg,1,-1
-              if (smat%keyv(iseg)<=smat%istartend_t(2)) then
-                  smat%istartendseg_t(2)=iseg
-                  exit
-              end if
-          end do
-        end subroutine check_transposed_layout
-
-
-        subroutine check_compress_distributed_layout()
-          do i=1,2
-              if (i==1) then
-                  nfvctrp = smat%nfvctrp
-                  isfvctr = smat%isfvctr
-              else if (i==2) then
-                  nfvctrp = smat%smmm%nfvctrp
-                  isfvctr = smat%smmm%isfvctr
-              end if
-              if (nfvctrp>0) then
-                  isegstart=smat%istsegline(isfvctr+1)
-                  isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
-                  do iseg=isegstart,isegend
-                      ii=smat%keyv(iseg)-1
-                      ! A segment is always on one line, therefore no double loop
-                      do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-                          ii=ii+1
-                          ind_min = min(ii,ind_min)
-                          ind_max = min(ii,ind_max)
-                      end do
-                  end do
-              end if
-          end do
-        end subroutine check_compress_distributed_layout
-
-
-        subroutine check_matmul_layout()
-          do iseq=1,smat%smmm%nseq
-              ind=smat%smmm%indices_extract_sequential(iseq)
-              ind_min = min(ind_min,ind)
-              ind_max = max(ind_max,ind)
-          end do
-        end subroutine check_matmul_layout
-
-        subroutine check_sumrho_layout()
-          do ipt=1,collcom_sr%nptsp_c
-              ii=collcom_sr%norb_per_gridpoint_c(ipt)
-              i0=collcom_sr%isptsp_c(ipt)
-              do i=1,ii
-                  iiorb=collcom_sr%indexrecvorbital_c(i0+i)
-                  ind=smat%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
-                  ind_min = min(ind_min,ind)
-                  ind_max = max(ind_max,ind)
-              end do
-          end do
-        end subroutine check_sumrho_layout
-
-
-      !!  function get_start_of_segment(smat, iiseg) result(ist)
-
-      !!      do iseg=smat%nseg,1,-1
-      !!          if (iiseg>=smat%keyv(iseg)) then
-      !!              it = smat%keyv(iseg)
-      !!              exit
-      !!          end if
-      !!      end do
-
-      !!  end function get_start_of_segment
-
-
-      subroutine check_ortho_inguess()
-        integer :: iorb, iiorb, isegstart, isegsend, iseg, j, i, jorb, korb, ind
-        logical,dimension(:),allocatable :: in_neighborhood
-
-        in_neighborhood = f_malloc(smat%nfvctr,id='in_neighborhood')
-        
-        do iorb=1,smat%nfvctrp
-
-            iiorb = smat%isfvctr + iorb
-            isegstart = smat%istsegline(iiorb)
-            isegend = smat%istsegline(iiorb) + smat%nsegline(iiorb) -1
-            in_neighborhood = .false.
-            do iseg=isegstart,isegend
-                ! A segment is always on one line, therefore no double loop
-                j = smat%keyg(1,2,iseg)
-                do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-                    in_neighborhood(i) = .true.
-                end do
-            end do
-
-            do jorb=1,smat%nfvctr
-                if (.not.in_neighborhood(jorb)) cycle
-                do korb=1,smat%nfvctr
-                    if (.not.in_neighborhood(korb)) cycle
-                    ind = matrixindex_in_compressed(smat,korb,jorb)
-                    if (ind>0) then
-                        ind_min = min(ind_min,ind)
-                        ind_max = max(ind_max,ind)
-                    end if
-                end do
-            end do
-
-        end do
-
-        call f_free(in_neighborhood)
-
-        !!do iorb=1,smat%nfvctrp
-        !!    iiorb = smat%isfvctr + iorb
-        !!    isegstart = smat%istsegline(iiorb)
-        !!    isegend = smat%istsegline(iiorb) + smat%nsegline(iiorb) -1
-        !!    do iseg=isegstart,isegend
-        !!        ! A segment is always on one line, therefore no double loop
-        !!        j = smat%keyg(1,2,iseg)
-        !!        do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-        !!            ind = matrixindex_in_compressed(smat,i,j)
-        !!            ind_min = min(ind_min,ind)
-        !!            ind_max = max(ind_max,ind)
-        !!        end do
-        !!    end do
-        !!end do
-
-      end subroutine check_ortho_inguess
-
-    end subroutine determine_extent_matrix_taskgroups
 
 
 end module sparsematrix_init
