@@ -1437,6 +1437,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
       real(kind=8) :: energyDiff, mean_conf
       logical, intent(in) :: final
+      integer :: ii
 
       energyDiff = energy - energyoldout
 
@@ -1572,6 +1573,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
     end if
     if (nit_energyoscillation>1) then
         nit_scc = nit_scc + 1
+        ii = 3*max(input%lin%nitSCCWhenFixed_lowaccuracy,input%lin%nitSCCWhenFixed_highaccuracy)
+        if (nit_scc>ii) then
+            if (iproc==0) call yaml_map('nit_scc reached maximum, reset to',ii)
+            nit_scc = ii
+        end if
         nit_energyoscillation = 0
         if (iproc==0) call yaml_map('new nit_scc',nit_scc)
     end if
