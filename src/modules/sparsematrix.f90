@@ -596,12 +596,12 @@ module sparsematrix
                   case (SMALL_TO_LARGE) 
                       do i=0,ilength-1
                           !lmatrix_compr(ilcostart+i+ilshift-lmat%isvctrp_tg)=smatrix_compr(iscostart+i+isshift-smat%isvctrp_tg)
-                          lmatrix_compr(ilcostart+i+ilshift-smat%isvctrp_tg)=smatrix_compr(iscostart+i+isshift-smat%isvctrp_tg)
+                          lmatrix_compr(ilcostart+i+ilshift-lmat%isvctrp_tg)=smatrix_compr(iscostart+i+isshift-smat%isvctrp_tg)
                       end do
                   case (LARGE_TO_SMALL) 
                       do i=0,ilength-1
                           !smatrix_compr(iscostart+i+isshift-smat%isvctrp_tg)=lmatrix_compr(ilcostart+i+ilshift-lmat%isvctrp_tg)
-                          smatrix_compr(iscostart+i+isshift-lmat%isvctrp_tg)=lmatrix_compr(ilcostart+i+ilshift-lmat%isvctrp_tg)
+                          smatrix_compr(iscostart+i+isshift-smat%isvctrp_tg)=lmatrix_compr(ilcostart+i+ilshift-lmat%isvctrp_tg)
                       end do
                   case default
                       stop 'wrong imode'
