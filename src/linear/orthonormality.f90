@@ -504,7 +504,8 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                           compress_matrix_distributed, &
                           uncompress_matrix_distributed, uncompress_matrix_distributed2, &
                           sequential_acces_matrix_fast2, sequential_acces_matrix_fast, &
-                          sparsemm, gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace
+                          sparsemm, gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace, &
+                          uncompress_matrix2
   use yaml_output
   implicit none
   
@@ -913,10 +914,10 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
           inv_ovrlp_local = sparsematrix_malloc_ptr(inv_ovrlp_smat, iaction=DENSE_FULL, id='inv_ovrlp_local')
           do icalc=1,ncalc
               call timing(iproc,'lovrlp^-1     ','OF')
-              tmpmat = sparsematrix_malloc(ovrlp_smat,iaction=SPARSE_FULL,id='tmpmat')
-              call gather_matrix_from_taskgroups(iproc, nproc, ovrlp_smat, ovrlp_mat%matrix_compr, tmpmat)
-              call uncompress_matrix(iproc, ovrlp_smat, inmat=tmpmat, outmat=ovrlp_local)
-              call f_free(tmpmat)
+              !!tmpmat = sparsematrix_malloc(ovrlp_smat,iaction=SPARSE_FULL,id='tmpmat')
+              !!call gather_matrix_from_taskgroups(iproc, nproc, ovrlp_smat, ovrlp_mat%matrix_compr, tmpmat)
+              call uncompress_matrix2(iproc, nproc, ovrlp_smat, ovrlp_mat%matrix_compr, ovrlp_local)
+              !!call f_free(tmpmat)
               call timing(iproc,'lovrlp^-1     ','ON')
               do ispin=1,nspin
                   !!write(*,*) 'sum(ovrlp_local(:,:,ispin))',sum(ovrlp_local(:,:,ispin))
