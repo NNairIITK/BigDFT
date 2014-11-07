@@ -51,13 +51,13 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
 
   if (ldiis_coeff%idsx == 0 .and. sd_fit_curve) then
      ! calculate initial energy for SD line fitting and printing (maybe don't need to (re)calculate kernel here?)
-     call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
-     call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
+     !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+     !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
           tmb%linmat%kernel_, tmb%linmat%ham_, energy0,&
           tmb%coeff,orbs,tmb%orbs,.true.)
-     call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
-     call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
+     !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+     !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
      !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
   else
      energy0=energy
@@ -334,13 +334,13 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      !!    end do
      !!end do
 
-     call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
-     call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
+     !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+     !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m,&
           tmb%linmat%kernel_, tmb%linmat%ham_, energy,&
           tmb%coeff,orbs,tmb%orbs,.true.)
-     call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
-     call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
+     !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+     !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
 
      !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
      !write(127,*) ldiis_coeff%alpha_coeff,energy
@@ -1020,13 +1020,13 @@ subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pre
        tmb%linmat%s, tmb%linmat%ks, tmb%linmat%ovrlp_, coeff_tmp, orbs)
   !call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, &
   !     tmb%linmat%s, tmb%linmat%ks, tmb%linmat%ovrlp_, coeff_tmp, orbs)
-  call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
-  call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
+  !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+  !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
   call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m,&
        tmb%linmat%kernel_, tmb%linmat%ham_, energy1,&
        coeff_tmp,orbs,tmb%orbs,.true.)
-  call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
-  call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
   !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
   call f_free(coeff_tmp)
 
@@ -1073,7 +1073,7 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham
   integer :: iorb, jorb, ind_ham, ind_denskern, ierr, iorbp, is, ie, ispin
 
   if (calculate_kernel) then 
-     call extract_taskgroup_inplace(denskern, denskern_mat)
+     !!call extract_taskgroup_inplace(denskern, denskern_mat)
      call calculate_density_kernel(iproc, nproc, .true., orbs, tmb_orbs, coeff, denskern, denskern_mat)
      !call gather_matrix_from_taskgroups_inplace(iproc, nproc, denskern, denskern_mat)
      !denskern%matrix_compr = denskern_mat%matrix_compr
@@ -1101,7 +1101,8 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham
         ind_ham = matrixindex_in_compressed(ham,iorb,jorb)
         ind_denskern = matrixindex_in_compressed(denskern,jorb,iorb)
         if (ind_ham==0.or.ind_denskern==0) cycle
-        energy = energy + denskern_mat%matrix_compr(ind_denskern)*ham_mat%matrix_compr(ind_ham)
+        energy = energy + &
+            denskern_mat%matrix_compr(ind_denskern-denskern%isvctrp_tg)*ham_mat%matrix_compr(ind_ham-ham%isvctrp_tg)
      end do
      !$omp end do
      !$omp end parallel
@@ -1181,10 +1182,10 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
   !!end do
 
  !call uncompress_matrix(iproc,tmb%linmat%denskern)
-  call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+  !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
   call calculate_density_kernel(iproc, nproc, .false., KSorbs, tmb%orbs, &
        tmb%coeff, tmb%linmat%l, tmb%linmat%kernel_, .true.)
-  call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
   sk=f_malloc0((/tmb%linmat%m%nfvctrp,tmb%linmat%m%nfvctr,tmb%linmat%m%nspin/), id='sk')
 
@@ -1553,10 +1554,10 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
   !call uncompress_matrix(iproc,tmb%linmat%denskern)
   !!call calculate_density_kernel_uncompressed (iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, tmb%linmat%kernel_%matrix)
-  call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+  !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
   call calculate_density_kernel(iproc, nproc, .true., tmb%orbs, tmb%orbs, &
        tmb%coeff, tmb%linmat%l, tmb%linmat%kernel_, .true.)
-  call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
 
   call vcopy(tmb%orbs%norb,occup_tmp(1),1,tmb%orbs%occup(1),1)

@@ -599,7 +599,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       do iorb=1,tmb%orbs%norbp
          iiorb=tmb%orbs%isorb+iorb
          ii=matrixindex_in_compressed(tmb%linmat%m,iiorb,iiorb)
-         trH = trH + tmb%linmat%ham_%matrix_compr(ii)
+         trH = trH + tmb%linmat%ham_%matrix_compr(ii-tmb%linmat%m%isvctrp_tg)
       end do
       call timing(iproc,'calctrace_comp','OF')
       call timing(iproc,'calctrace_comm','ON')
@@ -766,12 +766,12 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   grad_ovrlp_ = matrices_null()
   call allocate_matrices(tmb%linmat%m, allocate_full=.false., matname='grad_ovrlp_', mat=grad_ovrlp_)
   !grad_ovrlp_%matrix_compr=grad_ovrlp%matrix_compr
-  call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+  !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
   call extract_taskgroup_inplace(grad_ovrlp, grad_ovrlp_)
   call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,grad_ovrlp,&
        tmb%linmat%kernel_, grad_ovrlp_, &
        ksres_sum,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
-  call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
   call gather_matrix_from_taskgroups_inplace(iproc, nproc, grad_ovrlp, grad_ovrlp_)
   call deallocate_matrices(grad_ovrlp_)
   if (iproc==0) write(*,*) 'KS residue from trace',dsqrt(ksres_sum)/real(tmb%orbs%norb,gp) ! should update normalization as would only be occ here not extra?
