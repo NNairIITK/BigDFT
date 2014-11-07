@@ -243,11 +243,11 @@ print*,iorb,ilr,ncount
   call calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_charged,ifrag_charged,tmb,input_frag,&
        ref_frags,calculate_overlap_matrix,.true.,meth_overlap)
  
-  call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+  !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
   call extract_taskgroup_inplace(weight_matrix, weight_matrix_)
   call calculate_kernel_and_energy(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%linmat%l,weight_matrix, &
            tmb%linmat%kernel_,weight_matrix_,trkw,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
-  call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, tmb%linmat%kernel_)
+  !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, tmb%linmat%kernel_)
   call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, weight_matrix, weight_matrix_)
 
   weight_matrix_tmp = f_malloc_ptr(weight_matrix%nvctr,id='weight_matrix_tmp')
@@ -262,11 +262,11 @@ print*,iorb,ilr,ncount
      tmb%can_use_transposed=.false.
      call calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_charged,ifrag_charged,tmb,input_frag,&
           ref_frags,.true.,.true.,meth_overlap)
-     call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+     !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
      call extract_taskgroup_inplace(weight_matrix, weight_matrix_)
      call calculate_kernel_and_energy(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%linmat%l,weight_matrix, &
            tmb%linmat%kernel_,weight_matrix_,trkw_new,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
-     call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, tmb%linmat%kernel_)
+     !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, tmb%linmat%kernel_)
      call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, weight_matrix, weight_matrix_)
 
      if (forward) then
@@ -277,11 +277,11 @@ print*,iorb,ilr,ncount
         tmb%can_use_transposed=.false.
         call calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_charged,ifrag_charged,tmb,input_frag,&
              ref_frags,.true.,.true.,meth_overlap)
-        call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+        !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
         call extract_taskgroup_inplace(weight_matrix, weight_matrix_)
         call calculate_kernel_and_energy(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%linmat%l,weight_matrix, &
               tmb%linmat%kernel_,weight_matrix_,trkw_old,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
-        call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, tmb%linmat%kernel_)
+        !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, tmb%linmat%kernel_)
         call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, weight_matrix, weight_matrix_)
         cdft_grad(i)=(trkw_new-trkw_old)/h
      end if

@@ -110,6 +110,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           tmb%can_use_transposed=.true.
       end if
 
+      if (iproc==0) call yaml_map('calculate overlap matrix',.true.)
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
            tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
       !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
@@ -833,18 +834,18 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                   call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
                   tmparr1 = sparsematrix_malloc(tmb%linmat%s,iaction=SPARSE_FULL,id='tmparr1')
                   call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmb%linmat%ovrlp_%matrix_compr(1), 1, tmparr1(1), 1)
-                  call extract_taskgroup_inplace(tmb%linmat%s, tmb%linmat%ovrlp_)
-                  tmparr2 = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr2')
-                  call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmb%linmat%ham_%matrix_compr(1), 1, tmparr2(1), 1)
-                  call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
+                  !!call extract_taskgroup_inplace(tmb%linmat%s, tmb%linmat%ovrlp_)
+                  !!tmparr2 = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr2')
+                  !!call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmb%linmat%ham_%matrix_compr(1), 1, tmparr2(1), 1)
+                  !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
                   call foe(iproc, nproc, 0.d0, &
                        energs%ebs, -1, -10, order_taylor, max_inversion_error, purification_quickreturn, &
                        .true., 0, &
                        FOE_FAST, tmb, tmb%foe_obj)
-                  call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmparr1(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
-                  call f_free(tmparr1)
-                  call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmparr2(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
-                  call f_free(tmparr2)
+                  !!call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmparr1(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
+                  !!call f_free(tmparr1)
+                  !!call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmparr2(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
+                  !!call f_free(tmparr2)
               end if
               if (iproc==0) call yaml_sequence_close()
           end if
@@ -2503,8 +2504,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   use communications, only: transpose_localized
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), matrices, &
                                matrices_null, allocate_matrices, deallocate_matrices
-  use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
-                          uncompress_matrix2
+  use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
+                          uncompress_matrix2, compress_matrix2
   use foe_base, only: foe_data_get_real
   implicit none
 
@@ -2543,8 +2544,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
   call f_routine(id='purify_kernel')
 
-  isshift=(ispin-1)*tmb%linmat%s%nvctr
-  ilshift=(ispin-1)*tmb%linmat%l%nvctr
+  isshift=(ispin-1)*tmb%linmat%s%nvctrp_tg
+  ilshift=(ispin-1)*tmb%linmat%l%nvctrp_tg
 
   ovrlp_onehalf_(1) = matrices_null()
   call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='ovrlp_onehalf_', mat=ovrlp_onehalf_(1))
@@ -2608,8 +2609,8 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
   !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
   tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-        tmb%linmat%ovrlp_%matrix_compr(isshift+tmb%linmat%s%isvctrp_tg+1:), &
-        tmb%linmat%kernel_%matrix_compr(ilshift+tmb%linmat%l%isvctrp_tg+1:), ispin)
+        tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
+        tmb%linmat%kernel_%matrix_compr(ilshift+1:), ispin)
   if (iproc==0) then
       call yaml_map('tr(KS) before purification',tr_KS)
       call yaml_newline
@@ -2653,6 +2654,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   shift=0.d0
   bisec_bounds=0.d0
   bisec_bounds_ok=.false.
+
 
   shift_loop: do ishift=1,it_shift
 
@@ -2739,12 +2741,12 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
               end do
           end do
 
-          call compress_matrix(iproc,tmb%linmat%l, &
+          call compress_matrix2(iproc,tmb%linmat%l, &
                inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
           !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
           tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-                tmb%linmat%ovrlp_%matrix_compr(isshift+tmb%linmat%s%isvctrp_tg+1:), &
-                tmb%linmat%kernel_%matrix_compr(ilshift+tmb%linmat%l%isvctrp_tg+1:), ispin)
+                tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
+                tmb%linmat%kernel_%matrix_compr(ilshift+1:), ispin)
           if (tmb%linmat%l%nspin==2) then
               chargediff=tr_KS-foe_data_get_real(tmb%foe_obj,"charge",ispin)
           else if (tmb%linmat%l%nspin==1) then
@@ -2783,12 +2785,12 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
       end do
 
-      call compress_matrix(iproc,tmb%linmat%l, &
+      call compress_matrix2(iproc,tmb%linmat%l, &
            inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
       !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
       tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-            tmb%linmat%ovrlp_%matrix_compr(isshift+tmb%linmat%s%isvctrp_tg+1:), &
-            tmb%linmat%kernel_%matrix_compr(ilshift+tmb%linmat%l%isvctrp_tg+1:), ispin)
+            tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
+            tmb%linmat%kernel_%matrix_compr(ilshift+1:), ispin)
       if (tmb%linmat%l%nspin==2) then
           chargediff=tr_KS-foe_data_get_real(tmb%foe_obj,"charge",ispin)
       else if (tmb%linmat%l%nspin==1) then
@@ -2826,6 +2828,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
   end do shift_loop
 
+
   !if (iproc==0) call yaml_sequence_close
 
   if (tmb%linmat%l%nspin==1) then
@@ -2847,12 +2850,12 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   !end if
 
 
-  call compress_matrix(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
+  call compress_matrix2(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
 
   !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
   tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
-        tmb%linmat%ovrlp_%matrix_compr(isshift+tmb%linmat%s%isvctrp_tg+1:), &
-        tmb%linmat%kernel_%matrix_compr(ilshift+tmb%linmat%l%isvctrp_tg+1:), ispin)
+        tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
+        tmb%linmat%kernel_%matrix_compr(ilshift+1:), ispin)
   if (iproc==0) then
       call yaml_newline()
       call yaml_map('tr(KS) after purification',tr_KS)
@@ -2928,13 +2931,13 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
 
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
        hpsit_c, hpsit_c, hpsit_f, hpsit_f, tmb%linmat%m, gradmat)
-  call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, gradmat)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, gradmat)
 
 
   !gradmat%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='gradmat%matrix')
   tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
   tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
-  call uncompress_matrix(iproc, tmb%linmat%m, inmat=gradmat%matrix_compr, outmat=gradmat%matrix)
+  call uncompress_matrix2(iproc, nproc, tmb%linmat%m, gradmat%matrix_compr, gradmat%matrix)
   call uncompress_matrix2(iproc, nproc, tmb%linmat%m, &
        tmb%linmat%ham_%matrix_compr, tmb%linmat%ham_%matrix)
   call uncompress_matrix2(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
@@ -3090,7 +3093,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
                                SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, &
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed, &
+  use sparsematrix, only: uncompress_matrix, compress_matrix_distributed, &
                           uncompress_matrix_distributed
 
   implicit none

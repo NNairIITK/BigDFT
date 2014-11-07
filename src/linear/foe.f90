@@ -172,9 +172,9 @@ subroutine foe(iproc, nproc, tmprtr, &
 
   spin_loop: do ispin=1,tmb%linmat%l%nspin
 
-      isshift=(ispin-1)*tmb%linmat%s%nvctr
-      imshift=(ispin-1)*tmb%linmat%m%nvctr
-      ilshift=(ispin-1)*tmb%linmat%l%nvctr
+      isshift=(ispin-1)*tmb%linmat%s%nvctrp_tg
+      imshift=(ispin-1)*tmb%linmat%m%nvctrp_tg
+      ilshift=(ispin-1)*tmb%linmat%l%nvctrp_tg
       ilshift2=(ispin-1)*tmb%linmat%l%nvctrp_tg
 
       degree_sufficient=.true.
@@ -1989,7 +1989,7 @@ subroutine check_eigenvalue_spectrum(nproc, smat_l, smat_s, mat, ispin, isshift,
                   if (iismall>0) then
                       if (trace_with_overlap) then
                           ! Take the trace of the product matrix times overlap
-                          tt=mat%matrix_compr(isshift+iismall-smat_l%isvctrp_tg)
+                          tt=mat%matrix_compr(isshift+iismall-smat_s%isvctrp_tg)
                       else
                           ! Take the trace of the matrix alone, i.e. set the second matrix to the identity
                           if (irow==icol) then
