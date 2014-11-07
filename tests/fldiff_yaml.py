@@ -98,7 +98,7 @@ def compare_seq(seq, ref, tols, always_fails=False,keyword=""):
             for i in range(len(ref)):
                 # print 'here',ref[i],seq[i],tols[0]
                 (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails, 
-                                            "%s[%d]" %(keyword,i))
+                                            "%s[%d]" % (keyword,i))
                 # Add to the tolerance dictionary a failed result
                 if failed:
                     # and type(tols) == type({}):
@@ -195,10 +195,11 @@ def compare_scl(scl, ref, tols, always_fails=False, keyword=""):
     ret = (failed, None)
     #  print scl,ref,tols, type(ref), type(scl)
     # eliminate the character variables
+    diff = None
     if isinstance(ref,str):
         if not(scl == ref):
             ret = (True, scl)
-    elif not(always_fails):
+    elif not always_fails:
         # infinity case
         if scl == ref:
             failed = False
@@ -228,11 +229,18 @@ def compare_scl(scl, ref, tols, always_fails=False, keyword=""):
             ret = (True, ret_diff)
             if tols is not None:
                 biggest_tol = max(biggest_tol, math.fabs(tols))
+    else:
+        # So already failed: In this case we calculate only diff
+        # To avoid infinity case
+        if scl == ref:
+            diff = 0.
+        else:
+            diff = math.fabs(scl - ref)
     if failed:
         if failed_checks < 20:
             #print 'fldiff_failure: val, ref, tol, diff, bigtol', scl, ref, tols, discrepancy, biggest_tol
-            remarks += 'FAILURE %s: val=%s, ref=%s, tol=%s, diff=%s, bigtol=%s\n' % \
-                    (keyword,str(scl), str(ref), str(tols), str(diff), str(biggest_tol))
+            remarks += 'FAILURE %s:\n  [ val: %s, ref: %s, diff: %s, tol: %s, bigtol: %s]\n' % \
+                    (keyword,str(scl), str(ref), str(diff), str(tols), str(biggest_tol))
             failed_checks += 1
     return ret
 
@@ -481,11 +489,13 @@ for i in range(len(references)):
     # print remaining memory
     leak_memory += docleaks
     total_misses += docmiss
-    total_missed_items.append(docmiss_it)
+    if len(docmiss_it) > 0:
+        #Add missed items for all documents
+        total_missed_items.extend(docmiss_it)
     newreport = open(options.input, "w")
     if failed_checks > 0 or docleaks > 0:
         failed_documents += 1
-    remarks += "Document: %d, Failed_checks: %d, Max_Diff: %.2e, Missed_items: %d, Memory_leaks (B): %d, Elapsed Time (s): %.2f\n" % \
+    remarks += "{Document: %d, Failed_checks: %d, Max_Diff: %.2e, Missed_items: %d, Memory_leaks (B): %d, Elapsed Time (s): %.2f}\n" % \
                      (i, failed_checks, discrepancy, docmiss, docleaks, doctime)
     newreport.write(yaml.dump(document_report(hostname, biggest_tol, discrepancy, failed_checks,
                                               docleaks, docmiss, docmiss_it, doctime),

@@ -393,7 +393,7 @@ program frequencies
       total_energy=energies(1,0)+vibrational_energy
       call yaml_map('(F) Zero-point energy (cm-1 and Hartree)', (/ zpenergy*Ha_cmm1, zpenergy /),fmt='(1pe20.10)')
       call yaml_map('(F) Considered Temperature (Kelvin)',      Temperature,fmt='(f5.1)')
-      call yaml_map('(F) Vibrational entropy =',                vibrational_entropy,fmt='(1pe22.10)')
+      call yaml_map('(F) Vibrational entropy',                  vibrational_entropy,fmt='(1pe22.10)')
       call yaml_map('(F) Vibrational Energy (cm-1 and Hartree)', &
            &                     (/ vibrational_energy*Ha_cmm1, vibrational_energy/),fmt='(1pe20.10)')
       call yaml_map('(F) Total Energy (Hartree)',               total_energy,fmt='(1pe22.10)')

@@ -34,7 +34,7 @@ program PSolver_Program
   type(coulomb_operator) :: karray
   real(kind=8) :: hx,hy,hz,max_diff,eh,exc,vxc,hgrid,diff_parser,offset,mu0
   real(kind=8) :: ehartree,eexcu,vexcu,diff_par,diff_ser,e1
-  integer :: n01,n02,n03,itype_scf,i_all,i_stat
+  integer :: n01,n02,n03,itype_scf
   integer :: i1,i2,i3,j1,j2,j3,i1_max,i2_max,i3_max,iproc,nproc,ierr,i3sd,ncomp
   integer :: n_cell,ixc,n3d,n3p,n3pi,i3xcsh,i3s
   logical :: alsoserial,onlykernel
