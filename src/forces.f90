@@ -4284,6 +4284,11 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                      (/nat_per_iteration,nat_out/))
   end if
 
+  ! Gather together the entire density kernel
+  denskern_gathered = sparsematrix_malloc(denskern,iaction=SPARSE_FULL,id='denskern_gathered')
+  call gather_matrix_from_taskgroups(iproc, nproc, denskern, denskern_mat%matrix_compr, denskern_gathered)
+  !!call vcopy(denskern%nvctr*denskern%nspin, denskern_gathered(1), 1, denskern_mat%matrix_compr(1), 1)
+
   isat = 1
   outer_atoms_loop: do iat_out=1,nat_out
 
@@ -4714,10 +4719,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       !!    call vcopy(denskern%nvctr, denskern_gathered(1), 1, denskern_mat%matrix_compr(1), 1)
       !!    call f_free(denskern_gathered)
       !!end if
-      denskern_gathered = sparsematrix_malloc(denskern,iaction=SPARSE_FULL,id='denskern_gathered')
-      call gather_matrix_from_taskgroups(iproc, nproc, denskern, denskern_mat%matrix_compr, denskern_gathered)
-      call vcopy(denskern%nvctr*denskern%nspin, denskern_gathered(1), 1, denskern_mat%matrix_compr(1), 1)
-      call f_free(denskern_gathered)
     
       call f_free(sendcounts)
       call f_free(recvcounts)
@@ -4777,7 +4778,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                             ind=ii
                             !write(100+iproc,'(a,3i8,es20.10)') 'iorbout, jorb, ind, denskern%matrix_compr(ind)', iorbout, jorb, ind, denskern%matrix_compr(ind)
                             !if (kernel(jorb,iorbout)==0.d0) cycle
-                            if (denskern_mat%matrix_compr(ind)==0.d0) cycle
+                            if (denskern_gathered(ind)==0.d0) cycle
                             !do iat=1,natp
                                do l=1,4
                                   do i=1,3
@@ -4800,7 +4801,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                                  !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
                                                  !     kernel(jorb,iorbout)*at%psppar(l,i,ityp)*sp0*spi
                                                  fxyz_orb(idir,iiiat)=fxyz_orb(idir,iiiat)+&
-                                                      denskern_mat%matrix_compr(ind)*at%psppar(l,i,ityp)*sp0*spi
+                                                      denskern_gathered(ind)*at%psppar(l,i,ityp)*sp0*spi
                                                  !if (kernel(jorb,iorbout)/=0.d0) then
                                                      !!write(110+iproc,'(a,10i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
                                                      !!                                    &idir,fxyz_orb(idir,iat)', &
@@ -4853,7 +4854,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                                        !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
                                                        !     kernel(jorb,iorbout)*hij*(sp0j*spi+spj*sp0i)
                                                        fxyz_orb(idir,iiiat)=fxyz_orb(idir,iiiat)+&
-                                                            denskern_mat%matrix_compr(ind)*hij*(sp0j*spi+spj*sp0i)
+                                                            denskern_gathered(ind)*hij*(sp0j*spi+spj*sp0i)
                                                     end do
                                                     !!sp0i=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
                                                     !!Enl=Enl+2.0_gp*sp0i*sp0j*hij&
@@ -4929,6 +4930,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   end do outer_atoms_loop
 
   call f_free(fxyz_orb)
+   call f_free(denskern_gathered)
 
   call f_release_routine()
 
