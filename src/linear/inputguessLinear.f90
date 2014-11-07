@@ -54,7 +54,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !real(kind=8), dimension(:,:), allocatable :: aocc
   integer, dimension(:,:), allocatable :: nl_copy 
   integer :: ist,jorb,iadd,ii,jj,ityp,itype,iortho
-  integer :: jlr,iiorb,ispin
+  integer :: jlr,iiorb,ispin,ispinshift
   integer :: infoCoeff, jproc
   type(orbitals_data) :: orbs_gauss
   type(GPU_pointers) :: GPUe
@@ -117,7 +117,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       jj=at%aoig(iat)%nao
       if (jj < ii) then
          call f_err_throw('The number of basis functions asked per type'//&
+              ' ('//trim(adjustl(yaml_toa(ii,fmt='(i0)')))//')'//&
               ' is exceeding the number of IG atomic orbitals'//&
+              ' ('//trim(adjustl(yaml_toa(jj,fmt='(i0)')))//')'//&
               ', modify the electronic configuration of input atom '//&
               trim(at%astruct%atomnames(at%astruct%iatype(iat))),&
               err_name='BIGDFT_INPUT_VARIABLES_ERROR')
@@ -477,15 +479,17 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   do iorb=1,tmb%orbs%norb
      !ii=matrixindex_in_compressed(tmb%linmat%denskern,iorb,iorb)
-     ii=matrixindex_in_compressed2(tmb%linmat%l,iorb,iorb)
-     ind=mod(ii-1,tmb%linmat%l%nvctrp_tg)+1 !spin-independent index
+     ii=matrixindex_in_compressed(tmb%linmat%l,iorb,iorb)
+     ind=mod(ii-1,tmb%linmat%l%nvctr)+1 !spin-independent index
      !!if (ii<tmb%linmat%l%istartend_local(1)) cycle
      !!if (ii>tmb%linmat%l%istartend_local(2)) exit
      if (ind<=tmb%linmat%l%isvctrp_tg) cycle
      if (ind>tmb%linmat%l%isvctrp_tg+tmb%linmat%l%nvctrp_tg) cycle
+     ispin = (ii-1)/tmb%linmat%l%nvctr
+     ispinshift = ispin*tmb%linmat%l%nvctrp_tg
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(inversemapping(iorb))
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
-     tmb%linmat%kernel_%matrix_compr(ii-tmb%linmat%l%isvctrp_tg)=1.d0*tmb%orbs%occup(iorb)
+     tmb%linmat%kernel_%matrix_compr(ind+ispinshift-tmb%linmat%l%isvctrp_tg)=1.d0*tmb%orbs%occup(iorb)
   end do
 
   !Calculate the density in the new scheme
