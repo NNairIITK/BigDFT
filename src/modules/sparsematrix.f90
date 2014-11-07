@@ -23,7 +23,7 @@ module sparsematrix
   public :: compress_matrix, compress_matrix2
   public :: uncompress_matrix, uncompress_matrix2
   public :: check_matrix_compression
-  public :: transform_sparse_matrix, transform_sparse_matrix2
+  public :: transform_sparse_matrix, transform_sparse_matrix2, transform_sparse_matrix_local
   public :: compress_matrix_distributed
   public :: uncompress_matrix_distributed, uncompress_matrix_distributed2
   public :: sequential_acces_matrix_fast, sequential_acces_matrix_fast2
@@ -625,6 +625,72 @@ module sparsematrix
       call f_release_routine()
     
   end subroutine transform_sparse_matrix2
+
+
+    subroutine transform_sparse_matrix_local(smat, lmat, smatrix_compr, lmatrix_compr, cmode)
+      use module_base
+      implicit none
+    
+      ! Calling arguments
+      type(sparse_matrix),intent(inout) :: smat, lmat
+      real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(inout) :: smatrix_compr
+      real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(inout) :: lmatrix_compr
+      character(len=14),intent(in) :: cmode
+    
+      ! Local variables
+      real(kind=8),dimension(:),allocatable :: tmparrs, tmparrl
+      integer :: ishift_src, ishift_dst, imode, ispin
+      integer,parameter :: SMALL_TO_LARGE=1
+      integer,parameter :: LARGE_TO_SMALL=2
+    
+      call f_routine(id='transform_sparse_matrix_local')
+
+
+      ! determine the case:
+      ! SMALL_TO_LARGE -> transform from large sparsity pattern to small one
+      ! LARGE_TO_SMALL -> transform from small sparsity pattern to large one
+      if (cmode=='small_to_large' .or. cmode=='SMALL_TO_LARGE') then
+          imode=SMALL_TO_LARGE
+      else if (cmode=='large_to_small' .or. cmode=='LARGE_TO_SMALL') then
+          imode=LARGE_TO_SMALL
+      else
+          stop 'wrong cmode'
+      end if
+
+    
+      select case (imode)
+      case (SMALL_TO_LARGE)
+          tmparrs = sparsematrix_malloc0(smat,iaction=SPARSE_FULL,id='tmparrs')
+          tmparrl = sparsematrix_malloc(lmat,iaction=SPARSE_FULL,id='tmparrl')
+          do ispin=1,smat%nspin
+              ishift_src = (ispin-1)*smat%nvctrp_tg
+              ishift_dst = (ispin-1)*smat%nvctr
+              call vcopy(smat%nvctrp_tg, smatrix_compr(ishift_src+1), 1, &
+                   tmparrs(ishift_dst+smat%isvctrp_tg+1), 1)
+              call transform_sparse_matrix(smat, lmat, tmparrs, tmparrl, cmode)
+              call extract_taskgroup(lmat, tmparrl, lmatrix_compr)
+          end do
+      case (LARGE_TO_SMALL)
+          tmparrs = sparsematrix_malloc0(smat,iaction=SPARSE_FULL,id='tmparrs')
+          tmparrl = sparsematrix_malloc0(lmat,iaction=SPARSE_FULL,id='tmparrl')
+          do ispin=1,smat%nspin
+              ishift_src = (ispin-1)*lmat%nvctrp_tg
+              ishift_dst = (ispin-1)*lmat%nvctr
+              call vcopy(lmat%nvctrp_tg, lmatrix_compr(ishift_src+1), 1, &
+                   tmparrl(ishift_dst+lmat%isvctrp_tg+1), 1)
+              call transform_sparse_matrix(smat, lmat, tmparrs, tmparrl, cmode)
+              call extract_taskgroup(smat, tmparrs, smatrix_compr)
+          end do
+      case default
+          stop 'wrong imode'
+      end select
+
+      call f_free(tmparrs)
+      call f_free(tmparrl)
+
+      call f_release_routine()
+    
+  end subroutine transform_sparse_matrix_local
 
 
    subroutine compress_matrix_distributed(iproc, nproc, smat, layout, matrixp, matrix_compr)

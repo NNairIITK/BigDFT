@@ -27,7 +27,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                                sparsematrix_malloc
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: transform_sparse_matrix, orb_from_index, gather_matrix_from_taskgroups_inplace, &
-                          transform_sparse_matrix2
+                          transform_sparse_matrix_local
   use constrained_dft, only: cdft_data
   use module_fragments, only: system_fragment
   implicit none
@@ -149,7 +149,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
       ! Transform to the larger sparse region in order to be compatible with tmb%ham_descr%collcom.
       ! To this end use ham_.
-      call transform_sparse_matrix2(tmb%linmat%s, tmb%linmat%m, &
+      call transform_sparse_matrix_local(tmb%linmat%s, tmb%linmat%m, &
            tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ham_%matrix_compr, 'small_to_large')
 
       !tmparr = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr')
