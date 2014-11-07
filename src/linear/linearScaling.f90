@@ -75,6 +75,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   logical :: reorder, rho_negative
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
   type(matrices) :: weight_matrix_
+  real(kind=8) :: sign_of_energy_change
+  integer :: nit_energyoscillation
 
   real(8),dimension(:),allocatable :: rho_tmp, tmparr
   real(8) :: tt, ddot
@@ -114,6 +116,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   reorder=.false.
   nullify(mom_vec_fake)
   norder_taylor=input%lin%order_taylor
+  sign_of_energy_change = -1.d0
+  nit_energyoscillation = 0
 
 
 
@@ -1421,6 +1425,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           call yaml_sequence_close()
       end if
 
+
+
+
     end subroutine printSummary
 
     !> Print a short summary of some values calculated during the last iteration in the self
@@ -1430,6 +1437,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
       real(kind=8) :: energyDiff, mean_conf
       logical, intent(in) :: final
+      integer :: ii
 
       energyDiff = energy - energyoldout
 
@@ -1550,6 +1558,32 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        call yaml_flush_document()
        !call bigdft_utils_flush(unit=6)
     call yaml_sequence_close()
+
+    ! Determine whether the sign of the energy change is teh same as in the previous iteration
+    ! (i.e. whether the energy continues to increase or decrease)
+    tt = sign(energyDiff,sign_of_energy_change)
+    if (tt/energyDiff>0.d0) then
+        ! same sign, everything ok
+    else if (abs(energyDiff/energy)>1.d-7) then
+        nit_energyoscillation = nit_energyoscillation + 1
+        if (iproc==0) then
+            call yaml_warning('oscillation of the energy, increase counter')
+            call yaml_map('energy_scillation_counter',nit_energyoscillation)
+        end if
+    end if
+    if (nit_energyoscillation>1) then
+        nit_scc = nit_scc + 1
+        ii = 3*max(input%lin%nitSCCWhenFixed_lowaccuracy,input%lin%nitSCCWhenFixed_highaccuracy)
+        if (nit_scc>ii) then
+            if (iproc==0) call yaml_map('nit_scc reached maximum, reset to',ii)
+            nit_scc = ii
+        end if
+        nit_energyoscillation = 0
+        if (iproc==0) call yaml_map('new nit_scc',nit_scc)
+    end if
+
+    ! Determine the sign of the energy change
+    sign_of_energy_change = sign(1.d0,energyDiff)
 
 
     end subroutine print_info
