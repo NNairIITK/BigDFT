@@ -831,9 +831,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                   !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
                   call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
               else if (method_updatekernel==UPDATE_BY_FOE) then
-                  call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
-                  tmparr1 = sparsematrix_malloc(tmb%linmat%s,iaction=SPARSE_FULL,id='tmparr1')
-                  call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmb%linmat%ovrlp_%matrix_compr(1), 1, tmparr1(1), 1)
+                  !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
+                  !tmparr1 = sparsematrix_malloc(tmb%linmat%s,iaction=SPARSE_FULL,id='tmparr1')
+                  !call vcopy(tmb%linmat%s%nvctr*tmb%linmat%s%nspin, tmb%linmat%ovrlp_%matrix_compr(1), 1, tmparr1(1), 1)
                   !!call extract_taskgroup_inplace(tmb%linmat%s, tmb%linmat%ovrlp_)
                   !!tmparr2 = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr2')
                   !!call vcopy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin, tmb%linmat%ham_%matrix_compr(1), 1, tmparr2(1), 1)
