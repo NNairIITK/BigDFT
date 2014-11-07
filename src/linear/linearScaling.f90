@@ -62,11 +62,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy
   integer :: ldiis_coeff_hist, nitdmin
   logical :: ldiis_coeff_changed
-  integer :: mix_hist, info_basis_functions, nit_scc, cur_it_highaccuracy
+  integer :: mix_hist, info_basis_functions, nit_scc, cur_it_highaccuracy, nit_scc_changed
   real(kind=8) :: pnrm_out, alpha_mix, ratio_deltas, convcrit_dmin, tt1, tt2
   logical :: lowaccur_converged, exit_outer_loop, calculate_overlap, invert_overlap_matrix
   real(kind=8),dimension(:),allocatable :: locrad
   integer:: target_function, nit_basis
+  logical :: keep_value
   
   real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB, best_charge_diff, cdft_charge_thresh
   real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
@@ -118,6 +119,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   norder_taylor=input%lin%order_taylor
   sign_of_energy_change = -1.d0
   nit_energyoscillation = 0
+  keep_value = .false.
 
 
 
@@ -285,6 +287,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
                convCritMix_init, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
                convcrit_dmin, nitdmin, conv_crit_TMB)
+          if (keep_value) then
+              nit_scc = nit_scc_changed
+          end if
       else if (input%lin%nlevel_accuracy==1 .and. itout==1) then
           call set_variables_for_hybrid(iproc, tmb%lzd%nlr, input, at, tmb%orbs, &
                lowaccur_converged, tmb%damping_factor_confinement, tmb%confdatarr, &
@@ -304,6 +309,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       if(cur_it_highaccuracy==1) then
           if (iproc==0) then
               call yaml_comment('Adjustments for high accuracy',hfill='=')
+          end if
+          ! nit_scc might have been overwritten, so recalculate it and set the ! flag to false
+          if (input%lin%nlevel_accuracy==2) then
+              ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
+              call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
+                   convCritMix_init, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
+                   convcrit_dmin, nitdmin, conv_crit_TMB)
+              keep_value = .false.
           end if
           ! Adjust the confining potential if required.
           call adjust_locregs_and_confinement(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
@@ -1559,7 +1572,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        !call bigdft_utils_flush(unit=6)
     call yaml_sequence_close()
 
-    ! Determine whether the sign of the energy change is teh same as in the previous iteration
+    ! Determine whether the sign of the energy change is the same as in the previous iteration
     ! (i.e. whether the energy continues to increase or decrease)
     tt = sign(energyDiff,sign_of_energy_change)
     if (tt/energyDiff>0.d0) then
@@ -1580,7 +1593,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
         end if
         nit_energyoscillation = 0
         if (iproc==0) call yaml_map('new nit_scc',nit_scc)
+        ! Needed for low/high accuracy... maybe to be cleaned
+        nit_scc_changed = nit_scc
+        keep_value = .true.
     end if
+
 
     ! Determine the sign of the energy change
     sign_of_energy_change = sign(1.d0,energyDiff)
