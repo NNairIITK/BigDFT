@@ -44,7 +44,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! Local variables
   type(gaussian_basis) :: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
-  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,methTransformOverlap
+  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,methTransformOverlap,ind
   real(gp) :: hxh,hyh,hzh,eks,fnrm,V3prb,x0,tt
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
@@ -478,8 +478,11 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   do iorb=1,tmb%orbs%norb
      !ii=matrixindex_in_compressed(tmb%linmat%denskern,iorb,iorb)
      ii=matrixindex_in_compressed2(tmb%linmat%l,iorb,iorb)
-     if (ii<tmb%linmat%l%istartend_local(1)) cycle
-     if (ii>tmb%linmat%l%istartend_local(2)) exit
+     ind=mod(ii-1,tmb%linmat%l%nvctrp_tg)+1 !spin-independent index
+     !!if (ii<tmb%linmat%l%istartend_local(1)) cycle
+     !!if (ii>tmb%linmat%l%istartend_local(2)) exit
+     if (ind<=tmb%linmat%l%isvctrp_tg) cycle
+     if (ind>tmb%linmat%l%isvctrp_tg+tmb%linmat%l%nvctrp_tg) cycle
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(inversemapping(iorb))
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
      tmb%linmat%kernel_%matrix_compr(ii-tmb%linmat%l%isvctrp_tg)=1.d0*tmb%orbs%occup(iorb)
