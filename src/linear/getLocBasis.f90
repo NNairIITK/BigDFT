@@ -808,7 +808,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               end if
               do ispin=1,tmb%linmat%s%nspin
                   call vcopy(tmb%linmat%s%nvctrp_tg, &
-                       tmb%linmat%ovrlp_%matrix_compr((ispin-1)*tmb%linmat%s%nvctr+tmb%linmat%s%isvctrp_tg+1), 1, &
+                       tmb%linmat%ovrlp_%matrix_compr((ispin-1)*tmb%linmat%s%isvctrp_tg+1), 1, &
                        ovrlp_old%matrix_compr((ispin-1)*tmb%linmat%s%nvctrp_tg+1), 1)
               end do
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
