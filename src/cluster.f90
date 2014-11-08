@@ -1187,6 +1187,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
   call deallocate_before_exiting
 
+!START debug code added by bastian
+!write(*,*)"BIGDFTbastian debug exit sub. cluster, iproc",iproc
+!call f_utils_flush(6)
+!END debug code added by bastian
 contains
 
   !> Routine which deallocate the pointers and the arrays before exiting 

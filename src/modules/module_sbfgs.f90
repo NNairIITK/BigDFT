@@ -72,8 +72,9 @@ subroutine modify_gradient(nat,ndim,rrr,eval,res,fxyz,alpha,dd)
     enddo
 end subroutine
 
-subroutine getSubSpaceEvecEval(label,iproc,verbosity,nat,nhist,nhistx,ndim,cutoffratio,lwork,work,rxyz,&
-                              &fxyz,aa,rr,ff,rrr,fff,eval,res,success)
+subroutine getSubSpaceEvecEval(label,iproc,verbosity,nat,nhist,nhistx&
+                              ,ndim,cutoffratio,lwork,work,rxyz,&
+                              fxyz,aa,rr,ff,rrr,fff,eval,res,success)
     use module_base
     use yaml_output
     !hard-coded parameters:
@@ -85,7 +86,8 @@ subroutine getSubSpaceEvecEval(label,iproc,verbosity,nat,nhist,nhistx,ndim,cutof
     character(len=*), intent(in) :: label
     integer, intent(out) :: ndim
     real(gp), intent(in) :: rxyz(3,nat,0:nhistx),fxyz(3,nat,0:nhistx)
-    real(gp), intent(out) :: aa(nhistx,nhistx),eval(nhistx),work(lwork)
+    real(gp), intent(out) :: aa(nhistx,nhistx),eval(nhistx)
+    real(gp), intent(out) :: work(lwork)
     real(gp), intent(out) :: rr(3,nat,0:nhistx), ff(3,nat,0:nhistx)
     real(gp), intent(out) :: rrr(3,nat,0:nhistx), fff(3,nat,0:nhistx)
     real(gp), intent(out) :: res(nhistx)
@@ -126,14 +128,17 @@ subroutine getSubSpaceEvecEval(label,iproc,verbosity,nat,nhist,nhistx,ndim,cutof
 
     call dsyev('V',"L",nhist,aa,nhistx,eval,work,lwork,info)
     if (info.ne.0) then
-        call yaml_warning(trim(adjustl(label))//' 1st DSYEV (Overlapmatrix) in getSupSpaceEvecEval failed with info: '&
-                          // trim(yaml_toa(info))//', iproc: '//trim(yaml_toa(iproc)))
+        call yaml_warning(trim(adjustl(label))//' 1st DSYEV '//&
+        '(Overlapmatrix) in getSupSpaceEvecEval failed with info: '//&
+        trim(yaml_toa(info))//', iproc: '//trim(yaml_toa(iproc)))
         return
 !        stop 'info'
     endif
     if(iproc==0 .and. verbosity>=3)then
         do i=1,nhist
-            call yaml_scalar(trim(adjustl(label))//' Overlap eigenvalues: '//trim(yaml_toa(i))//' '//trim(yaml_toa(eval(i))))
+            call yaml_scalar(trim(adjustl(label))//' Overlap '//&
+            'eigenvalues: '//trim(yaml_toa(i))//' '//&
+            trim(yaml_toa(eval(i))))
         enddo
     endif
 
@@ -148,7 +153,8 @@ subroutine getSubSpaceEvecEval(label,iproc,verbosity,nat,nhist,nhistx,ndim,cutof
 
     ndim=0
     do idim=1,nhist
-        !remove linear dependencies by using the overlap-matrix eigenvalues:
+        !remove linear dependencies by using
+        !the overlap-matrix eigenvalues:
         if (eval(idim)/eval(nhist).gt.cutoffratio) then    ! HERE
             ndim=ndim+1
 
@@ -156,9 +162,11 @@ subroutine getSubSpaceEvecEval(label,iproc,verbosity,nat,nhist,nhistx,ndim,cutof
                 do iat=1,nat
                     do l=1,3
                          rr(l,iat,ndim)=rr(l,iat,ndim)+&
-                                       &aa(jdim,idim)*rnorm(jdim)*(rxyz(l,iat,jdim)-rxyz(l,iat,jdim-1))
+                                 aa(jdim,idim)*rnorm(jdim)*&
+                                 (rxyz(l,iat,jdim)-rxyz(l,iat,jdim-1))
                          ff(l,iat,ndim)=ff(l,iat,ndim)-&
-                                       &aa(jdim,idim)*rnorm(jdim)*(fxyz(l,iat,jdim)-fxyz(l,iat,jdim-1))
+                                 aa(jdim,idim)*rnorm(jdim)*&
+                                 (fxyz(l,iat,jdim)-fxyz(l,iat,jdim-1))
 
                     enddo
                 enddo
@@ -166,8 +174,10 @@ subroutine getSubSpaceEvecEval(label,iproc,verbosity,nat,nhist,nhistx,ndim,cutof
 
             do iat=1,nat
                 do l=1,3
-                    rr(l,iat,ndim)=rr(l,iat,ndim)/sqrt(abs(eval(idim)))
-                    ff(l,iat,ndim)=ff(l,iat,ndim)/sqrt(abs(eval(idim)))
+                    rr(l,iat,ndim)=rr(l,iat,ndim)/&
+                                    sqrt(abs(eval(idim)))
+                    ff(l,iat,ndim)=ff(l,iat,ndim)/&
+                                    sqrt(abs(eval(idim)))
                 enddo
             enddo
         endif
@@ -188,8 +198,9 @@ subroutine getSubSpaceEvecEval(label,iproc,verbosity,nat,nhist,nhistx,ndim,cutof
 
     call dsyev('V',"L",ndim,aa,nhistx,eval,work,lwork,info)
     if (info.ne.0) then
-        call yaml_warning(trim(adjustl(label))//' 2nd DSYEV (subpsace hessian) in getSupSpaceEvecEval failed with info: '&
-                          // trim(yaml_toa(info))//', iproc:'//trim(yaml_toa(iproc)))
+        call yaml_warning(trim(adjustl(label))//' 2nd DSYEV '//&
+        '(subpsace hessian) in getSupSpaceEvecEval failed with info: '&
+         //trim(yaml_toa(info))//', iproc:'//trim(yaml_toa(iproc)))
         return
 !        stop 'info'
     endif
@@ -222,14 +233,15 @@ subroutine getSubSpaceEvecEval(label,iproc,verbosity,nat,nhist,nhistx,ndim,cutof
         !residuue according to Weinstein criterion
         res(i)=sqrt(tt)
         if(iproc==0 .and. verbosity>=3)&
-            call yaml_scalar(trim(adjustl(label))//' i, eigenvalue, residue: '&
-            //trim(yaml_toa(i))//' '//trim(yaml_toa(eval(i)))//&
-            ' '//trim(yaml_toa(res(i))))
+            call yaml_scalar(trim(adjustl(label))//' i, '//&
+            'eigenvalue, residue: '//trim(yaml_toa(i))//' '//&
+            trim(yaml_toa(eval(i)))//' '//trim(yaml_toa(res(i))))
     enddo
     success=.true.
 end subroutine
 
-subroutine findbonds(label,iproc,verbosity,nat,rcov,pos,nbond,iconnect)
+subroutine findbonds(label,iproc,verbosity,nat,rcov,pos,nbond,&
+                    iconnect)
 !has to be called before findsad (if operating in biomolecule mode)
     use module_base
     use yaml_output
@@ -253,17 +265,20 @@ subroutine findbonds(label,iproc,verbosity,nat,rcov,pos,nbond,iconnect)
             if (dist2.le.(1.2_gp*(rcov(iat)+rcov(jat)))**2) then
                 nbond=nbond+1
                 if (nbond.gt.1000) stop &
-                     'nbond>1000, increase size of iconnect in routine which calls subroutine findbonds'
+                     'nbond>1000, increase size of iconnect in '//&
+                     'routine which calls subroutine findbonds'
                 iconnect(1,nbond)=iat
                 iconnect(2,nbond)=jat
             endif
         enddo
     enddo
-    if(iproc==0.and.verbosity>=2)call yaml_scalar(trim(adjustl(label))//&
-                                 ' Found'//trim(yaml_toa(nbond))//' bonds.')
+    if(iproc==0.and.verbosity>=2)&
+        call yaml_scalar(trim(adjustl(label))//&
+        ' Found'//trim(yaml_toa(nbond))//' bonds.')
 end subroutine
 
-subroutine projectbond(nat,nbond,rat,fat,fstretch,iconnect,wold,alpha_stretch0,alpha_stretch)
+subroutine projectbond(nat,nbond,rat,fat,fstretch,iconnect,wold,&
+                        alpha_stretch0,alpha_stretch)
     use module_base, only: gp
     implicit none
     integer, intent(in) :: nat
@@ -312,13 +327,11 @@ subroutine projectbond(nat,nbond,rat,fat,fstretch,iconnect,wold,alpha_stretch0,a
      enddo
      per=real(nsame,gp)/nbond
      if (per.gt. .66_gp) then
-         !alpha_stretch=min(1.e1_gp*alpha_stretch0,alpha_stretch*1.10_gp)
          alpha_stretch=alpha_stretch*1.10_gp
      else
-         alpha_stretch=max(1.e-2_gp*alpha_stretch0,alpha_stretch/1.10_gp)
+         alpha_stretch=max(1.e-2_gp*alpha_stretch0,&
+                            alpha_stretch/1.10_gp)
      endif
-!     write(555,'(f5.1,a,1x,es10.3)') 100*per,' percent of bond directions did
-!     not switch sign',alpha_stretch
 
      call DPOSV('L', nbond, 1, ss, nbond, w, nbond, info )
      if (info.ne.0) then

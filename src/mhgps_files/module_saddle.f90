@@ -388,7 +388,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
  
         call fnrmandforcemax(fxyzraw(1,1,nhist),fnrm,fmax,nat)
         fnrm=sqrt(fnrm)
- 
+!write(*,*)'debug position 1, iproc: ',iproc 
         if (iproc == 0 .and. mhgps_verbosity >=4) then
            fc=fc+1
            write(fn9,'(i9.9)') fc
@@ -405,13 +405,18 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
                 etotp,rxyz(:,:,nhist),forces=minmode)
                 !atoms,trim(comment),forces=fxyzraw(1,1,nhist))
         endif
+!write(*,*)'debug position 2, iproc: ',iproc 
 
         tmp=-ddot(3*nat,fxyz(1,1,nhist),1,minmode(1,1),1)
+!write(*,*)'debug position 3, iproc: ',iproc 
         call vcopy(3*nat,fxyz(1,1,nhist),1,ftmp(1,1),1) 
+!write(*,*)'debug position 4, iproc: ',iproc 
         call daxpy(3*nat,tmp, minmode(1,1), 1, ftmp(1,1), 1 )
+!write(*,*)'debug position 5, iproc: ',iproc 
         cosangle=-dot_double(3*nat,ftmp(1,1),1,dd0(1,1),1)/&
                  sqrt(dot_double(3*nat,ftmp(1,1),1,ftmp(1,1),1)*&
                  dot_double(3*nat,dd0(1,1),1,dd0(1,1),1))
+!write(*,*)'debug position 6, iproc: ',iproc 
 
         if(iproc==0.and.mhgps_verbosity>=2)&
             write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es12.5,1x,es9.2)')&
