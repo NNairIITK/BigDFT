@@ -296,66 +296,66 @@ subroutine projectbond(nat,nbond,rat,fat,fstretch,iconnect,wold,&
     real(gp) :: per
     !functions
     real(gp) :: ddot
-
-
+    
+    
     fstretch=0.0_gp
 
-! set up positional overlap matrix
-     vv=0.0_gp
-     do ibond=1,nbond
-     iat=iconnect(1,ibond)
-     jat=iconnect(2,ibond)
-     do l=1,3
-     vv(l,iat,ibond)=rat(l,jat)-rat(l,iat)
-     vv(l,jat,ibond)=rat(l,iat)-rat(l,jat)
-     enddo
-     enddo
+    ! set up positional overlap matrix
+    vv=0.0_gp
+    do ibond=1,nbond
+        iat=iconnect(1,ibond)
+        jat=iconnect(2,ibond)
+        do l=1,3
+            vv(l,iat,ibond)=rat(l,jat)-rat(l,iat)
+            vv(l,jat,ibond)=rat(l,iat)-rat(l,jat)
+        enddo
+    enddo
+    
+    ss=0.0_gp
+    w=0.0_gp
+    do ibond=1,nbond
+        do jbond=1,nbond
+            ss(ibond,jbond)=&
+                       ddot(3*nat,vv(1,1,ibond),1,vv(1,1,jbond),1)
+        enddo
+        w(ibond)=ddot(3*nat,vv(1,1,ibond),1,fat(1,1),1)
+    enddo
+    
+    nsame=0
+    do ibond=1,nbond
+        if ( wold(ibond)*w(ibond).gt.0.0_gp) nsame=nsame+1
+        wold(ibond)=w(ibond)
+    enddo
+    per=real(nsame,gp)/nbond
+    if (per.gt. .66_gp) then
+        alpha_stretch=alpha_stretch*1.10_gp
+    else
+        alpha_stretch=max(1.e-2_gp*alpha_stretch0,&
+                           alpha_stretch/1.10_gp)
+    endif
 
-     ss=0.0_gp
-     w=0.0_gp
-     do ibond=1,nbond
-     do jbond=1,nbond
-     ss(ibond,jbond)=ddot(3*nat,vv(1,1,ibond),1,vv(1,1,jbond),1)
-     enddo
-     w(ibond)=ddot(3*nat,vv(1,1,ibond),1,fat(1,1),1)
-     enddo
-
-     nsame=0
-     do ibond=1,nbond
-      if ( wold(ibond)*w(ibond).gt.0.0_gp) nsame=nsame+1
-         wold(ibond)=w(ibond)
-     enddo
-     per=real(nsame,gp)/nbond
-     if (per.gt. .66_gp) then
-         alpha_stretch=alpha_stretch*1.10_gp
-     else
-         alpha_stretch=max(1.e-2_gp*alpha_stretch0,&
-                            alpha_stretch/1.10_gp)
-     endif
-
-     call DPOSV('L', nbond, 1, ss, nbond, w, nbond, info )
-     if (info.ne.0) then
+    call DPOSV('L', nbond, 1, ss, nbond, w, nbond, info )
+    if (info.ne.0) then
         write(*,*)'info',info
         stop 'info DPOSV in minenergyforces'
-     endif
+    endif
 
 ! calculate projected force
-     fstretch=0.0_gp
-     do ibond=1,nbond
-     do iat=1,nat
-     do l=1,3
-     fstretch(l,iat)=fstretch(l,iat)+w(ibond)*vv(l,iat,ibond)
-     enddo
-     enddo
-     enddo
+    fstretch=0.0_gp
+    do ibond=1,nbond
+        do iat=1,nat
+            do l=1,3
+                fstretch(l,iat)=fstretch(l,iat)+w(ibond)*&
+                                vv(l,iat,ibond)
+            enddo
+        enddo
+    enddo
 !     fnrmst=dnrm2(3*nat,fstretch,1)
-     do iat=1,nat
-     do l=1,3
-     fat(l,iat)=fat(l,iat)-fstretch(l,iat)
-     enddo
-     enddo
-
-
+    do iat=1,nat
+        do l=1,3
+            fat(l,iat)=fat(l,iat)-fstretch(l,iat)
+        enddo
+    enddo
 end subroutine
 
 end module
