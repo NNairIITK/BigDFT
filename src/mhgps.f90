@@ -160,7 +160,6 @@ program mhgps
         isForceField=.true.
         write(currDir,'(a,i3.3)')'input',ifolder
         write(filename,'(a,i3.3)')'pos',ifile
-        call deallocate_atomic_structure(atom_struct)
         call read_atomic_file(currDir//'/'//filename,iproc,&
                               atom_struct)
         astruct_ptr=>atom_struct
@@ -171,7 +170,6 @@ program mhgps
         isForceField=.true.
         write(currDir,'(a,i3.3)')'input',ifolder
         write(filename,'(a,i3.3)')'pos',ifile
-        call deallocate_atomic_structure(atom_struct)
         call read_atomic_file(currDir//'/'//filename,iproc,&
                               atom_struct)
         astruct_ptr=>atom_struct
@@ -198,7 +196,6 @@ program mhgps
 !        isForceField=.true.
 !        write(currDir,'(a,i3.3)')'input',ifolder
 !        write(filename,'(a,i3.3)')'pos',ifile
-!        call deallocate_atomic_structure(atom_struct)
 !        call read_atomic_file(currDir//'/'//filename,iproc,&
 !                              atom_struct)
 !        astruct_ptr=>atom_struct

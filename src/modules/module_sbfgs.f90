@@ -205,7 +205,7 @@ subroutine getSubSpaceEvecEval(label,iproc,verbosity,nat,nhist,nhistx&
 !        stop 'info'
     endif
 
-    ! calculate eigenvectors
+    ! calculate eigenvectors in full 3*nat-dim space
     do i=1,ndim
         do iat=1,nat
             do l=1,3
