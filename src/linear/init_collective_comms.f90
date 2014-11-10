@@ -199,7 +199,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
        if (check_overlap > 1) then
            call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, &
                 psit_c, psit_f, psit_f, smat, mat)
-           call gather_matrix_from_taskgroups_inplace(iproc, nproc, smat, mat)
+           !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, smat, mat)
            !!do i=1,smat%nvctr*nspin
            !!    write(6000+iproc,'(a,2i8,es16.7)') 'i, mod(i-1,nvctr)+1, val', i, mod(i-1,smat%nvctr)+1, mat%matrix_compr(i)
            !!end do
