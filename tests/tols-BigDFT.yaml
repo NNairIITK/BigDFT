@@ -386,7 +386,8 @@ directmin:
  Epsilon: 3.5e-10
  mean alpha: 1.1e-04
  max alpha: 1.1e-04
- Ekin: 5.1e-10
+ Ekin: 6.1e-10
+ eBS: 6.1e-10
  norm(P): 1.1e-7
 
 experimentalmode:
@@ -734,6 +735,7 @@ foe:
  diff: 7.1e-8
  ebs_check: 1.1e-10
  guess for new ef: 4.2e-8
+ D: 1.1e-10
 
 onlyhigh:
  Energies: 2.1e-9

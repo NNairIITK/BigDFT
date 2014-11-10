@@ -4895,30 +4895,38 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
         !@NEW ###########################################
         nat_on_task = iat_startend(2,iproc)-iat_startend(1,iproc)+1
-        window = mpiwindow(2*(ndir+1)*7*3*4*(iat_startend(2,iproc)-iat_startend(1,iproc)+1)*max(1,orbs%norbp*orbs%nspinor), &
-                 scalprod_sendbuf(1,0,1,1,1,iat_startend(1,iproc),1), bigdft_mpi%mpi_comm)
+        if (nproc>1) then
+            window = mpiwindow(2*(ndir+1)*7*3*4*(iat_startend(2,iproc)-iat_startend(1,iproc)+1)*max(1,orbs%norbp*orbs%nspinor), &
+                     scalprod_sendbuf(1,0,1,1,1,iat_startend(1,iproc),1), bigdft_mpi%mpi_comm)
+        end if
 
-        do jproc=0,nproc-1
-            isorb = orbs%isorb_par(jproc) + 1
-            ieorb = orbs%isorb_par(jproc) + orbs%norb_par(jproc,0)
-            is = max(isorb,iorbmin)
-            ie = min(ieorb,iorbmax)
-            if (ie>=is) then
-                do iorb=is,ie
-                    iatmin = max(isat_par(iproc)+1,iatminmax(iorb,1))
-                    iatmax = min(isat_par(iproc)+nat_par(iproc),iatminmax(iorb,2))
-                    ncount = 2*(ndir+1)*7*3*4*(iatmax-iatmin+1)
-                    nat_on_task = iat_startend(2,jproc)-iat_startend(1,jproc)+1
-                    ist = 2*(ndir+1)*7*3*4*(nat_on_task*(iorb-orbs%isorb_par(jproc)-1)+iatmin-iat_startend(1,jproc))!orbs%norb_par(jproc,0)
-                    !!write(*,'(a,7i9)') 'iproc, jproc, iorb, ist, iorb, orbs%isorb_par(jproc), iatmin', iproc, jproc, iorb, ist, iorb, orbs%isorb_par(jproc), iatmin
-                    !!if (ist<0) write(*,*) 'ist<0',ist
-                    !!if (ist+ncount>2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norb_par(jproc,0)*orbs%nspinor)) &
-                    !!    write(*,*) 'ist>',ist,ncount,2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norb_par(jproc,0)*orbs%nspinor)
-                    call mpiget(scalprod(1,0,1,1,1,iatmin-isat_par(iproc),iorb), ncount, jproc, &
-                         int(ist,kind=mpi_address_kind), window)
-                end do
-            end if
-        end do
+        if (nproc>1) then
+            do jproc=0,nproc-1
+                isorb = orbs%isorb_par(jproc) + 1
+                ieorb = orbs%isorb_par(jproc) + orbs%norb_par(jproc,0)
+                is = max(isorb,iorbmin)
+                ie = min(ieorb,iorbmax)
+                if (ie>=is) then
+                    do iorb=is,ie
+                        iatmin = max(isat_par(iproc)+1,iatminmax(iorb,1))
+                        iatmax = min(isat_par(iproc)+nat_par(iproc),iatminmax(iorb,2))
+                        ncount = 2*(ndir+1)*7*3*4*(iatmax-iatmin+1)
+                        nat_on_task = iat_startend(2,jproc)-iat_startend(1,jproc)+1
+                        ist = 2*(ndir+1)*7*3*4*(nat_on_task*(iorb-orbs%isorb_par(jproc)-1)+iatmin-iat_startend(1,jproc))!orbs%norb_par(jproc,0)
+                        !!write(*,'(a,7i9)') 'iproc, jproc, iorb, ist, iorb, orbs%isorb_par(jproc), iatmin', iproc, jproc, iorb, ist, iorb, orbs%isorb_par(jproc), iatmin
+                        !!if (ist<0) write(*,*) 'ist<0',ist
+                        !!if (ist+ncount>2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norb_par(jproc,0)*orbs%nspinor)) &
+                        !!    write(*,*) 'ist>',ist,ncount,2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norb_par(jproc,0)*orbs%nspinor)
+                        call mpiget(scalprod(1,0,1,1,1,iatmin-isat_par(iproc),iorb), ncount, jproc, &
+                             int(ist,kind=mpi_address_kind), window)
+                    end do
+                end if
+            end do
+        else
+            call vcopy(2*(ndir+1)*7*3*4*(iat_startend(2,iproc)-iat_startend(1,iproc)+1)*(iorbmax-iorbmin+1), &
+                       scalprod_sendbuf(1,0,1,1,1,iat_startend(1,iproc),1), 1, &
+                       scalprod(1,0,1,1,1,1,iorbmin), 1)
+        end if
         call mpi_fenceandfree(window)
         !@END NEW #######################################
     
