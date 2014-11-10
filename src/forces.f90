@@ -4257,7 +4257,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   integer,dimension(:,:),allocatable :: iorbminmax
   integer :: iorbmin, jorbmin, iorbmax, jorbmax
   integer :: nat_per_iteration, isat, natp, iat_out, nat_out, norbp_max
-  integer,parameter :: MAX_SIZE=268435456 !max size of the array scalprod, in bytes
+  integer,parameter :: MAX_SIZE=268435456 !max size of the array scalprod, in elements
 
   !integer :: ldim, gdim
   !real(8),dimension(:),allocatable :: phiglobal
@@ -4512,6 +4512,17 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                         do iorb=isorb,ieorb
                            iiorb=orbs%isorb+iorb
                            ilr=orbs%inwhichlocreg(iiorb)
+                           ! Quick check
+                           if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
+                               nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
+                               lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
+                               nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
+                               lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
+                               nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
+                               jorb=jorb+1
+                               ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
+                               cycle 
+                           end if
                            do ispinor=1,nspinor,ncplx
                               jorb=jorb+1
                               istart_c=1
@@ -4519,74 +4530,19 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                  do i=1,3
                                     if (at%psppar(l,i,ityp) /= 0.0_gp) then
                                        do m=1,2*l-1
-                                          !!do i_stat=ispsi,ispsi+lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f-1
-                                          !!    write(200+iproc,*) phi(i_stat)
-                                          !!end do
-                                          !!do i_stat=istart_c,istart_c+mbvctr_c+7*mbvctr_f-1
-                                          !!    write(250+iproc,*) proj(i_stat)
-                                          !!end do
-                                          !!ldim=lzd%Llr(ilr)%wfd%nvctr_c+7*lzd%Llr(ilr)%wfd%nvctr_f
-                                          !!gdim=lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f
-                                          !!phiglobal=0.d0
-                                          !!call Lpsi_to_global2(iproc,ldim,gdim,orbs%norb,orbs%nspinor,1,lzd%Glr,&
-                                          !!     lzd%Llr(ilr),phi(ispsi),phiglobal(1))
-                                          !!if (jorb==37 .and. iiat==4 .and. l==1 .and. i==1 .and. m==1 .and. idir==1) then
-                                          !!    call wpdot_wrap_debug1(ncplx,&
-                                          !!         lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_f,&
-                                          !!         lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
-                                          !!         lzd%llr(ilr)%wfd%keyvglob,lzd%llr(ilr)%wfd%keyglob,phi(ispsi),&
-                                          !!         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-          !!$                             !!            nlpspd%keyv_p(jseg_c),&
-          !!$                             !!            nlpspd%keyg_p(1,jseg_c),&
-                                          !!         nlpsp%pspd(iiat)%plr%wfd%keyvglob(jseg_c),&
-                                          !!         nlpsp%pspd(iiat)%plr%wfd%keyglob(1,jseg_c),&
-                                          !!         proj(istart_c),&
-                                          !!         scalprod(1,idir,m,i,l,iiat,jorb))
-                                          !!    write(800+iproc,'(a,7i6,es20.10)') 'jorb,iiat,l,i,m,idir,1,value',jorb,iiat,l,i,m,idir,1,scalprod(1,idir,m,i,l,iiat,jorb)
-                                          !!    call wpdot_wrap_debug2(ncplx,&
-                                          !!         lzd%glr%wfd%nvctr_c,lzd%glr%wfd%nvctr_f,&
-                                          !!         lzd%glr%wfd%nseg_c,lzd%glr%wfd%nseg_f,&
-                                          !!         lzd%glr%wfd%keyvglob,lzd%glr%wfd%keyglob,phiglobal(1),&
-                                          !!         mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-          !!$                             !!            nlpspd%keyv_p(jseg_c),&
-          !!$                             !!            nlpspd%keyg_p(1,jseg_c),&
-                                          !!         nlpsp%pspd(iiat)%plr%wfd%keyvglob(jseg_c),&
-                                          !!         nlpsp%pspd(iiat)%plr%wfd%keyglob(1,jseg_c),&
-                                          !!         proj(istart_c),&
-                                          !!         scalprod(1,idir,m,i,l,iiat,jorb))
-                                          !!    write(900+iproc,'(a,7i6,es20.10)') 'jorb,iiat,l,i,m,idir,1,value',jorb,iiat,l,i,m,idir,1,scalprod(1,idir,m,i,l,iiat,jorb)
-                                          !!else
-                                              call wpdot_wrap(ncplx,&
-                                                   lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_f,&
-                                                   lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
-                                                   lzd%llr(ilr)%wfd%keyvglob,lzd%llr(ilr)%wfd%keyglob,phi(ispsi),&
-                                                   mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                                                   nlpsp%pspd(iiat)%plr%wfd%keyvglob(jseg_c),&
-                                                   nlpsp%pspd(iiat)%plr%wfd%keyglob(1,jseg_c),&
-                                                   nlpsp%proj(istart_c),&
-                                                   scalprod(1,idir,m,i,l,iat,jorb))
-                                              if (scalprod(1,idir,m,i,l,iat,jorb)/=0.d0) then
-                                                  iorbminmax(iat,1) = min(iorbminmax(iat,1),iiorb)
-                                                  iorbminmax(iat,2) = max(iorbminmax(iat,2),iiorb)
-                                              end if
-                                              !!write(800+iproc,'(a,7i6,es20.10)') 'jorb,iiat,l,i,m,idir,1,value',jorb,iiat,l,i,m,idir,1,scalprod(1,idir,m,i,l,iat,jorb)
-                                              !!call wpdot_wrap(ncplx,&
-                                              !!     lzd%glr%wfd%nvctr_c,lzd%glr%wfd%nvctr_f,&
-                                              !!     lzd%glr%wfd%nseg_c,lzd%glr%wfd%nseg_f,&
-                                              !!     lzd%glr%wfd%keyvglob,lzd%glr%wfd%keyglob,phiglobal(1),&
-                                              !!     mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-          !!$                                 !!        nlpspd%keyv_p(jseg_c),&
-          !!$                                 !!        nlpspd%keyg_p(1,jseg_c),&
-                                              !!     nlpsp%pspd(iat)%plr%wfd%keyvglob(jseg_c),&
-                                              !!     nlpsp%pspd(iat)%plr%wfd%keyglob(1,jseg_c),&
-                                              !!     proj(istart_c),&
-                                              !!     scalprod(1,idir,m,i,l,iat,jorb))
-                                              !!write(900+iproc,'(a,7i6,es20.10)') 'jorb,iat,l,i,m,idir,1,value',jorb,iat,l,i,m,idir,1,scalprod(1,idir,m,i,l,iat,jorb)
-                                          !!end if
-                                          !!do i_stat=1,orbsglobal%norb
-                                          !!  scalprodglobal(1,idir,m,i,l,iat,i_stat) = scalprodglobal(1,idir,m,i,l,iat,i_stat) + &
-                                          !!      coeff(iiorb,i_stat)*scalprod(1,idir,m,i,l,iat,jorb)
-                                          !!end do
+                                          call wpdot_wrap(ncplx,&
+                                               lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_f,&
+                                               lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
+                                               lzd%llr(ilr)%wfd%keyvglob,lzd%llr(ilr)%wfd%keyglob,phi(ispsi),&
+                                               mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                                               nlpsp%pspd(iiat)%plr%wfd%keyvglob(jseg_c),&
+                                               nlpsp%pspd(iiat)%plr%wfd%keyglob(1,jseg_c),&
+                                               nlpsp%proj(istart_c),&
+                                               scalprod(1,idir,m,i,l,iat,jorb))
+                                          if (scalprod(1,idir,m,i,l,iat,jorb)/=0.d0) then
+                                              iorbminmax(iat,1) = min(iorbminmax(iat,1),iiorb)
+                                              iorbminmax(iat,2) = max(iorbminmax(iat,2),iiorb)
+                                          end if
                                           istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
                                        end do
                                     end if
