@@ -888,6 +888,9 @@
      COMMENT: radius enlargement for the Hamiltonian application (in grid points)
      default: 8
      RANGE: [0,8]
+   adjust_kernel_iterations:
+     COMMENT: enable the addaptive ajustment of the number of kernel iterations
+     default: True
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant

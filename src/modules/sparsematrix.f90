@@ -1255,6 +1255,8 @@ module sparsematrix
      ! Local variables
      integer,dimension(:),allocatable :: recvcounts, recvdspls
      integer :: ncount, ist_send, jproc, ispin, ishift
+
+     call f_routine(id='gather_matrix_from_taskgroups')
    
      if (nproc>1) then
          recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
@@ -1282,6 +1284,9 @@ module sparsematrix
      else
          call vcopy(smat%nvctrp*smat%nspin, mat_tg(1), 1, mat_global(1), 1)
      end if
+
+     call f_release_routine()
+
    end subroutine gather_matrix_from_taskgroups
 
 

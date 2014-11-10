@@ -1822,6 +1822,9 @@ contains
     call input_var("hamapp_radius_incr", 8, "radius enlargement for Ham application", dummy_int)
     call set(dict // HAMAPP_RADIUS_INCR, dummy_int)
 
+    call input_var("adjust_kernel_iterations", .true., "addaptive ajustment of the number of kernel iterations", dummy_bool)
+    call set(dict // ADJUST_KERNEL_ITERATIONS, dummy_bool)
+
     call input_free(.false.)
 
   END SUBROUTINE read_perf_from_text_format

@@ -1572,7 +1572,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        !call bigdft_utils_flush(unit=6)
     call yaml_sequence_close()
 
-    if (.not.final) then
+    if (.not.final .and. input%adjust_kernel_iterations) then
         ! Determine whether the sign of the energy change is the same as in the previous iteration
         ! (i.e. whether the energy continues to increase or decrease)
         tt = sign(energyDiff,sign_of_energy_change)
