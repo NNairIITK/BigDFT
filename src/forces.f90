@@ -4704,7 +4704,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                                nlpsp%proj(istart_c),&
                                                scalprod_sendbuf(1,idir,m,i,l,iat,jorb))
                                           !!scalprod_sendbuf(1,idir,m,i,l,iat,jorb) = scalprod(1,idir,m,i,l,iat,jorb)
-                                          if (scalprod(1,idir,m,i,l,iat,jorb)/=0.d0) then
+                                          if (scalprod_sendbuf(1,idir,m,i,l,iat,jorb)/=0.d0) then
                                               iorbminmax(iat,1) = min(iorbminmax(iat,1),iiorb)
                                               iorbminmax(iat,2) = max(iorbminmax(iat,2),iiorb)
                                               iatminmax(iiorb,1) = min(iatminmax(iiorb,1),iat)
@@ -4790,7 +4790,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                                                nlpsp%pspd(iiat)%plr%wfd%keyglob(1,jseg_c),&
                                                nlpsp%proj(istart_c),scalprod_sendbuf(1,idir,m,i,l,iat,jorb))
                                           !!scalprod_sendbuf(1,idir,m,i,l,iat,jorb) = scalprod(1,idir,m,i,l,iat,jorb)
-                                          if (scalprod(1,idir,m,i,l,iat,jorb)/=0.d0) then
+                                          if (scalprod_sendbuf(1,idir,m,i,l,iat,jorb)/=0.d0) then
                                               iorbminmax(iat,1) = min(iorbminmax(iat,1),iiorb)
                                               iorbminmax(iat,2) = max(iorbminmax(iat,2),iiorb)
                                               iatminmax(iiorb,1) = min(iatminmax(iiorb,1),iat)
