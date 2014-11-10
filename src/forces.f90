@@ -4911,14 +4911,18 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                         iatmin = max(isat_par(iproc)+1,iatminmax(iorb,1))
                         iatmax = min(isat_par(iproc)+nat_par(iproc),iatminmax(iorb,2))
                         ncount = 2*(ndir+1)*7*3*4*(iatmax-iatmin+1)
-                        nat_on_task = iat_startend(2,jproc)-iat_startend(1,jproc)+1
-                        ist = 2*(ndir+1)*7*3*4*(nat_on_task*(iorb-orbs%isorb_par(jproc)-1)+iatmin-iat_startend(1,jproc))!orbs%norb_par(jproc,0)
-                        !!write(*,'(a,7i9)') 'iproc, jproc, iorb, ist, iorb, orbs%isorb_par(jproc), iatmin', iproc, jproc, iorb, ist, iorb, orbs%isorb_par(jproc), iatmin
-                        !!if (ist<0) write(*,*) 'ist<0',ist
-                        !!if (ist+ncount>2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norb_par(jproc,0)*orbs%nspinor)) &
-                        !!    write(*,*) 'ist>',ist,ncount,2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norb_par(jproc,0)*orbs%nspinor)
-                        call mpiget(scalprod(1,0,1,1,1,iatmin-isat_par(iproc),iorb), ncount, jproc, &
-                             int(ist,kind=mpi_address_kind), window)
+                        if (ncount>0) then
+                            nat_on_task = iat_startend(2,jproc)-iat_startend(1,jproc)+1
+                            ist = 2*(ndir+1)*7*3*4*(nat_on_task*(iorb-orbs%isorb_par(jproc)-1)+iatmin-iat_startend(1,jproc))!orbs%norb_par(jproc,0)
+                            !!write(*,'(a,8i9)') 'iproc, jproc, iorb, ist, iorb, orbs%isorb_par(jproc), iatmin, ncount', &
+                            !!    iproc, jproc, iorb, ist, iorb, orbs%isorb_par(jproc), iatmin, ncount
+                            !!if (ist<0) write(*,*) 'ist<0',ist
+                            !!if (ist+ncount>2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norb_par(jproc,0)*orbs%nspinor)) &
+                            !!    write(*,*) 'ist>', &
+                            !!        ist,ncount,2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norb_par(jproc,0)*orbs%nspinor)
+                            call mpiget(scalprod(1,0,1,1,1,iatmin-isat_par(iproc),iorb), ncount, jproc, &
+                                 int(ist,kind=mpi_address_kind), window)
+                        end if
                     end do
                 end if
             end do
