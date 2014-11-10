@@ -81,7 +81,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
 
 
   if (methTransformOverlap==-1) then
-      call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)
+      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)
       call overlap_power_minus_one_half_parallel(iproc, nproc, 0, orbs, ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_(1))
   else
       call overlapPowerGeneral(iproc, nproc, methTransformOverlap, 1, (/-2/), &
@@ -388,38 +388,6 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
           call transform_sparse_matrix_local(linmat%m, linmat%l, lagmat_%matrix_compr, tmp_mat_compr, 'small_to_large')
           do ispin=1,lagmat%nspin
               ishift=(ispin-1)*linmat%l%nvctrp_tg
-              !!!!$omp parallel default(none) &
-              !!!!$omp shared(linmat,lagmat_large,tmp_mat_compr,ishift) &
-              !!!!$omp private(iseg,ii,i,ii_trans)
-              !!!!$omp do
-              !!!do iseg=linmat%l%istartendseg_t(1),linmat%l%istartendseg_t(2)
-              !!!    ii=linmat%l%keyv(iseg)
-              !!!    ! A segment is always on one line, therefore no double loop
-              !!!    do i=linmat%l%keyg(1,1,iseg),linmat%l%keyg(2,1,iseg) !this is too much, but for the moment ok
-              !!!        ii_trans = matrixindex_in_compressed(linmat%l,linmat%l%keyg(1,2,iseg),i)
-              !!!        lagmat_large(ii+ishift) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
-              !!!        ii=ii+1
-              !!!    end do
-              !!!end do
-              !!!!$omp end do
-              !!!!$omp end parallel
-              !!do itg=1,linmat%l%ntaskgroupp
-              !!    iitg = linmat%l%taskgroupid(itg)
-              !!    do iseg=1,linmat%l%nseg
-              !!        ii=linmat%l%keyv(iseg)
-              !!        if (ii+linmat%l%keyg(2,1,iseg)-linmat%l%keyg(1,1,iseg)<linmat%l%taskgroup_startend(1,1,iitg)) cycle
-              !!        if (ii>linmat%l%taskgroup_startend(2,1,iitg)) exit
-              !!        ! A segment is always on one line, therefore no double loop
-              !!        do i=linmat%l%keyg(1,1,iseg),linmat%l%keyg(2,1,iseg) !this is too much, but for the moment ok
-              !!            if (ii>=linmat%l%taskgroup_startend(1,1,iitg) .and.  ii<=linmat%l%taskgroup_startend(2,1,iitg)) then
-              !!                ii_trans = matrixindex_in_compressed(linmat%l,linmat%l%keyg(1,2,iseg),i)
-              !!                lagmat_large(ii+ishift) = -0.5d0*tmp_mat_compr(ii+ishift)-0.5d0*tmp_mat_compr(ii_trans+ishift)
-              !!            end if
-              !!            ii=ii+1
-              !!        end do
-              !!    end do
-              !!end do
-
               !$omp parallel default(none) &
               !$omp shared(linmat,lagmat_large,tmp_mat_compr,ishift) &
               !$omp private(iseg,ii,i,ii_trans)
@@ -502,7 +470,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
   use sparsematrix_base, only: sparse_matrix, &
                           sparsematrix_malloc_ptr, sparsematrix_malloc, sparsematrix_malloc0, sparsematrix_malloc0_ptr, &
                           assignment(=), &
-                          SPARSE_FULL, DENSE_PARALLEL, DENSE_MATMUL, DENSE_FULL, SPARSEMM_SEQ
+                          SPARSE_FULL, DENSE_PARALLEL, DENSE_MATMUL, DENSE_FULL, SPARSEMM_SEQ, SPARSE_TASKGROUP
   use sparsematrix, only: compress_matrix, uncompress_matrix, &
                           transform_sparse_matrix, transform_sparse_matrix_local, &
                           compress_matrix_distributed, &
@@ -1200,7 +1168,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
           ! HERE STARTS LINEAR CHECK ##########################
           invovrlpp = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_MATMUL, id='invovrlpp')
           if (iorder<1 .or. iorder>=1000) then
-              ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_FULL, id='ovrlp_large_compr')
+              ovrlp_large_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_TASKGROUP, id='ovrlp_large_compr')
               call transform_sparse_matrix_local(ovrlp_smat, inv_ovrlp_smat, &
                    ovrlp_mat%matrix_compr, ovrlp_large_compr, 'small_to_large')
           end if
@@ -1214,10 +1182,10 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
           do icalc=1,ncalc
               do ispin=1,nspin
                   isshift=(ispin-1)*ovrlp_smat%nvctr
-                  ilshift=(ispin-1)*inv_ovrlp_smat%nvctr
+                  ilshift=(ispin-1)*inv_ovrlp_smat%nvctrp_tg
                   ilshift2=(ispin-1)*inv_ovrlp_smat%nvctrp_tg
                   call timing(iproc,'lovrlp^-1     ','OF')
-                  call uncompress_matrix_distributed(iproc, inv_ovrlp_smat, &
+                  call uncompress_matrix_distributed2(iproc, inv_ovrlp_smat, &
                        DENSE_MATMUL, ovrlp_large_compr(ilshift+1), ovrlp_largep)
                   call timing(iproc,'lovrlp^-1     ','ON')
                   call sequential_acces_matrix_fast2(inv_ovrlp_smat, &
@@ -1244,7 +1212,7 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                            max_error, mean_error, cmatp=ovrlp_largep)
                   else if (power(icalc)==-2) then
                       ovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlp_compr_seq') 
-                      call sequential_acces_matrix_fast(inv_ovrlp_smat, ovrlp_large_compr(ilshift+1), ovrlp_compr_seq)
+                      call sequential_acces_matrix_fast2(inv_ovrlp_smat, ovrlp_large_compr(ilshift+1), ovrlp_compr_seq)
                       call timing(iproc,'lovrlp^-1     ','OF')
                       call uncompress_matrix_distributed2(iproc, inv_ovrlp_smat, DENSE_MATMUL, &
                            inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1:), invovrlpp)
@@ -2461,7 +2429,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   ovrlp_ = matrices_null()
   call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
-  call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)
   ! This can then be deleted if the transition to the new type has been completed.
 
   ! For the "higher" TMBs: delete off-diagonal elements and
@@ -2664,7 +2632,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   ovrlp_ = matrices_null()
   call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
   call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
-  call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)
   ! This can then be deleted if the transition to the new type has been completed.
   !ovrlp%matrix_compr=ovrlp_%matrix_compr
 

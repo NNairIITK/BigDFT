@@ -1572,30 +1572,32 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        !call bigdft_utils_flush(unit=6)
     call yaml_sequence_close()
 
-    ! Determine whether the sign of the energy change is the same as in the previous iteration
-    ! (i.e. whether the energy continues to increase or decrease)
-    tt = sign(energyDiff,sign_of_energy_change)
-    if (tt/energyDiff>0.d0) then
-        ! same sign, everything ok
-    else if (abs(energyDiff/energy)>1.d-7) then
-        nit_energyoscillation = nit_energyoscillation + 1
-        if (iproc==0) then
-            call yaml_warning('oscillation of the energy, increase counter')
-            call yaml_map('energy_scillation_counter',nit_energyoscillation)
+    if (.not.final .and. input%adjust_kernel_iterations) then
+        ! Determine whether the sign of the energy change is the same as in the previous iteration
+        ! (i.e. whether the energy continues to increase or decrease)
+        tt = sign(energyDiff,sign_of_energy_change)
+        if (tt/energyDiff>0.d0) then
+            ! same sign, everything ok
+        else if (abs(energyDiff/energy)>1.d-7) then
+            nit_energyoscillation = nit_energyoscillation + 1
+            if (iproc==0) then
+                call yaml_warning('oscillation of the energy, increase counter')
+                call yaml_map('energy_scillation_counter',nit_energyoscillation)
+            end if
         end if
-    end if
-    if (nit_energyoscillation>1) then
-        nit_scc = nit_scc + 1
-        ii = 3*max(input%lin%nitSCCWhenFixed_lowaccuracy,input%lin%nitSCCWhenFixed_highaccuracy)
-        if (nit_scc>ii) then
-            if (iproc==0) call yaml_map('nit_scc reached maximum, reset to',ii)
-            nit_scc = ii
+        if (nit_energyoscillation>1) then
+            nit_scc = nit_scc + 1
+            ii = 3*max(input%lin%nitSCCWhenFixed_lowaccuracy,input%lin%nitSCCWhenFixed_highaccuracy)
+            if (nit_scc>ii) then
+                if (iproc==0) call yaml_map('nit_scc reached maximum, reset to',ii)
+                nit_scc = ii
+            end if
+            nit_energyoscillation = 0
+            if (iproc==0) call yaml_map('new nit_scc',nit_scc)
+            ! Needed for low/high accuracy... maybe to be cleaned
+            nit_scc_changed = nit_scc
+            keep_value = .true.
         end if
-        nit_energyoscillation = 0
-        if (iproc==0) call yaml_map('new nit_scc',nit_scc)
-        ! Needed for low/high accuracy... maybe to be cleaned
-        nit_scc_changed = nit_scc
-        keep_value = .true.
     end if
 
 
