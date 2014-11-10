@@ -4393,7 +4393,9 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       iat_startend(1,iproc) = at%astruct%nat
       iat_startend(2,iproc) = 1
       call determine_dimension_scalprod()
-      call mpiallred(iat_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      if (nproc>1) then
+          call mpiallred(iat_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      end if
       scalprod_sendbuf = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
                                      iat_startend(1,iproc).to.iat_startend(2,iproc), &
                                      1.to.max(1,orbs%norbp*orbs%nspinor) /),id='scalprod_sendbuf')
