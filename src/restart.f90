@@ -886,7 +886,7 @@ subroutine writeLinearCoefficients(unitwf,useFormattedOutput,nat,rxyz,&
            exit
         end if
      end do
-     if (j==ntmb+1) stop 'Error finding significant coefficient!'
+     if (j==ntmb+1)print*,'Error finding significant coefficient, coefficients not scaled to have +ve first element'
 
      do j = 1, ntmb
           tt = coeff(j,i)
@@ -1657,6 +1657,159 @@ subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,
 
 END SUBROUTINE writemywaves_linear
 
+
+
+!> Write all my wavefunctions in files by calling writeonewave
+subroutine writemywaves_linear_fragments(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,rxyz,psi,coeff,&
+     dir_output,input_frag,ref_frags)
+  use module_types
+  use module_base
+  use module_fragments
+  use yaml_output
+  use module_interfaces
+  implicit none
+  integer, intent(in) :: iproc,iformat,npsidim,nelec
+  !integer, intent(in) :: norb   !< number of orbitals, not basis functions
+  type(atoms_data), intent(in) :: at
+  type(orbitals_data), intent(in) :: orbs         !< orbs describing the basis functions
+  type(local_zone_descriptors), intent(in) :: Lzd
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  real(wp), dimension(npsidim), intent(in) :: psi  ! Should be the real linear dimension and not the global
+  real(wp), dimension(orbs%norb,orbs%norb), intent(in) :: coeff
+  character(len=*), intent(in) :: dir_output, filename
+  type(fragmentInputParameters), intent(in) :: input_frag
+  type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
+  !Local variables
+  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr,shift,ii,iat
+  integer :: jorb,jlr,isforb,isfat,ifrag,ifrag_ref,iforb,iiorb,iorbp,iiat,unitwf
+  real(kind=4) :: tr0,tr1
+  real(kind=8) :: tel
+  character(len=256) :: full_filename
+  logical, allocatable, dimension(:) :: fragment_written
+
+  if (iproc == 0) call yaml_map('Write wavefunctions to file', trim(filename)//'.*')
+  !if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
+
+  if (iformat == WF_FORMAT_ETSF) then
+      stop 'Linear scaling with ETSF writing not implemented yet'
+!     call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
+  else
+     call cpu_time(tr0)
+     call system_clock(ncount1,ncount_rate,ncount_max)
+
+     ! Write the TMBs in the Plain BigDFT files.
+     ! For now only output one (first) set per reference fragment
+    
+     ! array to check if we already outputted tmbs for this fragment type
+     fragment_written=f_malloc((/input_frag%nfrag_ref/),id='fragment_written')
+     fragment_written=.false.
+
+     unitwf=99
+     isforb=0
+     isfat=0
+     loop_ifrag: do ifrag=1,input_frag%nfrag
+        ! find reference fragment this corresponds to and check if we already outputted tmbs for this reference fragment
+        ifrag_ref=input_frag%frag_index(ifrag)
+        if (fragment_written(ifrag_ref)) then
+           isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
+           isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat   
+           cycle
+        end if
+        fragment_written(ifrag_ref)=.true.
+
+        ! loop over orbitals of this fragment
+        loop_iforb: do iforb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+           loop_iorb: do iorbp=1,orbs%norbp
+              iiorb=iorbp+orbs%isorb
+
+              ! check if this ref frag orbital corresponds to the orbital we want
+              if (iiorb/=iforb+isforb) cycle
+
+              ilr=orbs%inwhichlocreg(iiorb)
+              iiat=orbs%onwhichatom(iiorb)
+
+              shift = 1
+              do jorb = 1, iorbp-1 
+                 jlr = orbs%inwhichlocreg(jorb+orbs%isorb)
+                 shift = shift + Lzd%Llr(jlr)%wfd%nvctr_c+7*Lzd%Llr(jlr)%wfd%nvctr_f
+              end do
+
+              loop_ispinor: do ispinor=1,orbs%nspinor
+                 ! as this is a fragment calculation frag%dirname should contain fragment directory (otherwise it would be empty - should add check)
+                 ! bit of a hack to use orbs here not forbs, but different structures so this is necessary - to clean somehow
+                 full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)
+
+                 call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),full_filename, &
+                      & orbs,iorbp,ispinor,iorb_out,iforb)
+
+                 !also what to do with eval? - at the moment completely arbitrary
+                 call writeonewave_linear(99,(iformat == WF_FORMAT_PLAIN),iorb_out,&
+                    & Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3,&
+                    & Lzd%Llr(ilr)%ns1,Lzd%Llr(ilr)%ns2,Lzd%Llr(ilr)%ns3,& 
+                    & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3), &
+                    & Lzd%Llr(ilr)%locregCenter,Lzd%Llr(ilr)%locrad, 4, 0.0d0, &  !put here the real potentialPrefac and Order
+                    & ref_frags(ifrag_ref)%astruct_frg%nat,rxyz(:,isfat+1:isfat+ref_frags(ifrag_ref)%astruct_frg%nat),&
+                    & Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,&
+                    & Lzd%Llr(ilr)%wfd%keygloc,Lzd%Llr(ilr)%wfd%keyvloc, &
+                    & Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
+                    & Lzd%Llr(ilr)%wfd%keygloc(1,Lzd%Llr(ilr)%wfd%nseg_c+1), &
+                    & Lzd%Llr(ilr)%wfd%keyvloc(Lzd%Llr(ilr)%wfd%nseg_c+1), &
+                    & psi(shift),psi(Lzd%Llr(ilr)%wfd%nvctr_c+shift),-0.5d0, & !orbs%eval(iiorb),&
+                    & orbs%onwhichatom(iiorb)-isfat)
+
+                 close(unitwf)
+
+              end do loop_ispinor
+           end do loop_iorb
+        end do loop_iforb
+
+
+        ! NEED to think about this - just make it diagonal for now? or random?  or truncate so they're not normalized?  or normalize after truncating?
+        ! Or maybe don't write coeffs at all but assume we're always doing frag to frag and can use isolated frag coeffs?
+
+        ! Now write the coefficients to file
+        ! Must be careful, the orbs%norb is the number of basis functions
+        ! while the norb is the number of orbitals.
+        if(iproc == 0) then
+           full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)
+ 
+           if(iformat == WF_FORMAT_PLAIN) then
+              open(unitwf, file=trim(full_filename)//'_coeff.bin', status='unknown',form='formatted')
+           else
+              open(unitwf, file=trim(full_filename)//'_coeff.bin', status='unknown',form='unformatted')
+           end if
+           call writeLinearCoefficients(unitwf,(iformat == WF_FORMAT_PLAIN),ref_frags(ifrag_ref)%astruct_frg%nat,&
+                rxyz(:,isfat+1:isfat+ref_frags(ifrag_ref)%astruct_frg%nat),ref_frags(ifrag_ref)%fbasis%forbs%norb,&
+                ref_frags(ifrag_ref)%nelec,&
+                coeff(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb,isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb),&
+                orbs%eval(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb)) !-0.5d0
+           close(unitwf)
+        end if
+        call cpu_time(tr1)
+        call system_clock(ncount2,ncount_rate,ncount_max)
+        tel=dble(ncount2-ncount1)/dble(ncount_rate)
+        if (iproc == 0) then
+           call yaml_sequence_open('Write Waves Time')
+           call yaml_sequence(advance='no')
+           call yaml_mapping_open(flow=.true.)
+           call yaml_map('Process',iproc)
+           call yaml_map('Timing',(/ real(tr1-tr0,kind=8),tel /),fmt='(1pe10.3)')
+           call yaml_mapping_close()
+           call yaml_sequence_close()
+        end if
+
+        isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
+        isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat    
+     end do loop_ifrag
+  end if
+
+  call f_free(fragment_written)
+
+
+END SUBROUTINE writemywaves_linear_fragments
+
+
+
 !possibly broken
 subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
      & hgrids,at,llr,rxyz_old,rxyz,locrad,locregCenter,confPotOrder,&
@@ -2038,7 +2191,7 @@ subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coef
            exit
         end if
      end do
-     if (j==ntmb+1) stop 'Error finding significant coefficient!'
+     if (j==ntmb+1) print*,'Error finding significant coefficient, coefficients not scaled to have +ve first element'
   end do
 
 END SUBROUTINE read_coeff_minbasis

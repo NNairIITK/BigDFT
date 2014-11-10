@@ -79,6 +79,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(8),dimension(:),allocatable :: rho_tmp
   real(8) :: tt, ddot
 
+  !better names/input variables
+  logical, parameter :: write_fragments=.true.
+  logical, parameter :: write_full_system=.true.
+
+
   !integer :: ind, ilr, iorbp, iiorb, indg, npsidim_global
   !real(kind=gp), allocatable, dimension(:) :: gpsi, psit_large_c, psit_large_f, kpsit_c, kpsit_f, kpsi, kpsi_small
   !real(kind=gp), pointer, dimension(:) :: gpsi_all, gpsi_virt
@@ -1204,10 +1209,18 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
         ityp=at%astruct%iatype(iat)
         nelec=nelec+at%nelpsp(ityp)
      enddo
-     call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
-          max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff)
-     call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
-          input%lin%plotBasisFunctions,tmb,at,rxyz)
+     if (write_full_system) then
+        call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',input%lin%plotBasisFunctions,&
+             max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff)
+        call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
+             input%lin%plotBasisFunctions,tmb,at,rxyz)
+     end if
+     !write as fragments - for now don't write matrices, think later if this is useful/worth the effort
+     if (write_fragments .and. input%lin%fragment_calculation) then
+        call writemywaves_linear_fragments(iproc,'minBasis',input%lin%plotBasisFunctions,&
+             max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff, &
+             trim(input%dir_output),input%frag,ref_frags)
+     end if
   end if
 
 
