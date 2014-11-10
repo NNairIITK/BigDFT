@@ -348,6 +348,13 @@ subroutine foe(iproc, nproc, tmprtr, &
                   !!end if
                 
                 
+                  !!write(1000+iproc,*) 'foe_data_get_real(foe_obj,"evlow",ispin)',foe_data_get_real(foe_obj,"evlow",ispin)
+                  !!write(1000+iproc,*) 'foe_data_get_real(foe_obj,"evhigh",ispin)', foe_data_get_real(foe_obj,"evhigh",ispin)
+                  !!write(1000+iproc,*) 'npl_check', npl_check
+                  !!write(1000+iproc,*) 'foe_data_get_real(foe_obj,"ef",ispin)',foe_data_get_real(foe_obj,"ef",ispin)
+                  !!write(1000+iproc,*) 'fscale_check',fscale_check
+                  !!write(1000+iproc,*) 'tmprtr',tmprtr
+
                   if (tmb%linmat%l%nspin==1) then
                       do ipl=1,npl
                           cc(ipl,1,1)=2.d0*cc(ipl,1,1)
