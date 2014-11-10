@@ -7,7 +7,7 @@
 
 
 !> MINHOP
-!!  Main program for the minima hopping
+!! Main program for the minima hopping
 program MINHOP
   use module_base
   use bigdft_run
@@ -20,7 +20,8 @@ program MINHOP
   !implicit real(kind=8) (a-h,o-z) !!!dangerous when using modules!!!
   implicit none
   logical :: newmin,CPUcheck,occured,exist_poslocm,exist_posacc
-  character(len=20) :: unitsp,atmn
+  ! character(len=20) :: unitsp
+  ! character(len=20) :: atmn
   character(len=60) :: run_id
 !  type(atoms_data) :: atoms,md_atoms
 !  type(input_variables), target :: inputs_opt, inputs_md
@@ -36,9 +37,10 @@ program MINHOP
   real(kind=8),allocatable, dimension(:,:) :: fp_arr
   real(kind=8),allocatable, dimension(:) :: fp,wfp,fphop
   real(kind=8),allocatable, dimension(:,:,:) :: pl_arr
-  integer :: iproc,nproc,iat,ierr,infocode,nksevals,i,natoms,nrandoff,nsoften
-  integer :: n_unique,n_nonuni,nputback,i_stat,ncount_bigdft,ngeopt,nid,nlmin,nlminx
-  integer :: ilmin,ierror,natp,k,nvisit,kid,k_e,nlmin_old,ndfree,ndfroz,ixyz,nummax,nummin
+  integer :: iproc,iat,ierr,infocode,nksevals,i,natoms,nrandoff,nsoften
+  integer :: n_unique,n_nonuni,nputback,ncount_bigdft,ngeopt,nid,nlmin,nlminx
+  integer :: ilmin,k,nvisit,kid,k_e,nlmin_old,ndfree,ndfroz,nummax,nummin
+  ! integer :: natp,ierror,ixyz
   integer :: istepnext,istep
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
@@ -49,19 +51,20 @@ program MINHOP
   character(len=50) :: comment
   character(len=128) :: msg
 !  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
-  integer :: nconfig
   !integer, dimension(4) :: mpi_info
   real(kind=4) :: tcpu1,ts,tcpu2,cpulimit
   real(kind=8) :: accepted,ediff,ekinetic,dt,av_ekinetic,av_ediff,escape,escape_sam
   real(kind=8) :: escape_old,escape_new,rejected,fp_sep,e_hop,count_sdcg,count_soft
   real(kind=8) :: count_md,count_bfgs,energyold,e_pos,tt,en_delta,fp_delta
-  real(kind=8) :: t1,t2,t3,ebest_l,dmin,tleft,d,ss
+  real(kind=8) :: ebest_l,dmin,tleft,d,ss
+  ! real(kind=8) :: t1,t2,t3
   real(kind=8), external :: dnrm2
   real(kind=8), dimension(:,:), pointer :: rxyz_opt,rxyz_md
   
   type(run_objects) :: run_opt,run_md !< the two runs parameters
   type(DFT_global_output) :: outs
-  type(dictionary), pointer :: user_inputs,options,run
+  !!$ type(dictionary), pointer :: user_inputs
+  type(dictionary), pointer :: options,run
   integer:: nposacc=0
   logical:: disable_hatrans
 
@@ -506,10 +509,13 @@ program MINHOP
      call yaml_mapping_close(advance='yes')
      tleft=cpulimit-(tcpu2-tcpu1)
   end if
+
 555 continue
+
   close(55)
+
   !maybe broadcast on comm_world?
-  call mpibcast(tleft,1,comm=bigdft_mpi%mpi_comm)
+  if (bigdft_mpi%nproc>1) call mpibcast(tleft,1,comm=bigdft_mpi%mpi_comm)
   !call MPI_BCAST(tleft,1,MPI_DOUBLE_PRECISION,0,bigdft_mpi%mpi_comm,ierr)
   if (tleft < 0.d0) then
      call yaml_map('(MH) Process'//trim(yaml_toa(bigdft_mpi%iproc))//' has exceeded CPU time. Tleft',tleft)
@@ -520,8 +526,7 @@ program MINHOP
   !call run_objects_associate(runObj, inputs_md, atoms, rst, pos(1,1))
   call bigdft_set_rxyz(run_md,rxyz=pos) !one could write here also rxyz=bigdft_get_rxyz_ptr(run_opt)
   escape=escape+1.d0
-  call mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, run_md, outs, &
-                ngeopt,bigdft_mpi%nproc,bigdft_mpi%iproc)
+  call mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, run_md, outs, ngeopt)
   if (bigdft_mpi%iproc == 0) then 
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
      write(fn4,'(i4.4)') nint(escape)
@@ -847,13 +852,13 @@ contains
 
   !> Does a MD run with the atomic positions rxyz
   subroutine mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, &
-       runObj,outs,ngeopt,nproc,iproc)!  &
+       runObj,outs,ngeopt)
     use module_base
     use module_types
     use module_interfaces
     use m_ab6_symmetry
     implicit none !real*8 (a-h,o-z)
-    integer :: nsoften,mdmin,ngeopt,iproc,nproc
+    integer :: nsoften,mdmin,ngeopt
     real(kind=8) :: ekinetic,dt,count_md
     type(run_objects), intent(inout) :: runObj
     type(DFT_global_output), intent(inout) :: outs
@@ -865,7 +870,7 @@ contains
     !type(wavefunctions_descriptors), intent(inout) :: wfd
     !real(kind=8), pointer :: psi(:), eval(:)
 
-    if(iproc==0) call yaml_map('(MH) MINHOP start soften ',nsoften)
+    if(bigdft_mpi%iproc==0) call yaml_map('(MH) MINHOP start soften ',nsoften)
 
     !C initialize positions,velocities, forces
     e0 = outs%energy
@@ -884,7 +889,7 @@ contains
     !!! Put to zero the velocities for all boron atoms
     !!do iat=1,natoms
     !!    if (atoms%astruct%atomnames(atoms%astruct%iatype(iat))=='B') then
-    !!        if (iproc==0) then
+    !!        if (bigdft_mpi%iproc==0) then
     !!            write(*,'(a,i0)') 'set velocities to zero for atom ',iat
     !!        end if
     !!        vxyz(:,iat)=0.d0
@@ -892,16 +897,16 @@ contains
     !!end do
 
   ! Soften previous velocity distribution
-    call soften(nsoften,vxyz, runObj,outs,nproc,iproc)
+    call soften(nsoften,vxyz, runObj,outs)
 
     call frozen_dof(bigdft_get_astruct_ptr(runObj),vxyz,ndfree,ndfroz)
   ! normalize velocities to target ekinetic
     call velnorm(natoms,(ekinetic*ndfree)/(ndfree+ndfroz),vxyz)
     call to_zero(3*natoms,gg)
 
-    if(iproc==0) call torque(natoms,rxyz_run,vxyz)
+    if(bigdft_mpi%iproc==0) call torque(natoms,rxyz_run,vxyz)
 
-    if(iproc==0) call yaml_map('(MH) MINHOP start MD',(/ndfree,ndfroz/))
+    if(bigdft_mpi%iproc==0) call yaml_map('(MH) MINHOP start MD',(/ndfree,ndfroz/))
     !C inner (escape) loop
     nummax=0
     nummin=0
@@ -921,11 +926,11 @@ contains
 
        enmin2=enmin1
        enmin1=en0000
-       !    if (iproc == 0) write(*,*) 'CLUSTER FOR  MD'
+       !    if (bigdft_mpi%iproc == 0) write(*,*) 'CLUSTER FOR  MD'
        runObj%inputs%inputPsiId=1
        call call_bigdft(runObj, outs,infocode)
 
-       if (iproc == 0) then
+       if (bigdft_mpi%iproc == 0) then
           write(fn4,'(i4.4)') istep
           call bigdft_write_atomic_file(runObj,outs,'posmd_'//fn4,'')
 !!$          call write_atomic_file(trim(inputs_md%dir_output)//'posmd_'//fn4,outs%energy,&
@@ -949,9 +954,9 @@ contains
        econs_max=max(econs_max,rkin+outs%energy)
        econs_min=min(econs_min,rkin+outs%energy)
        devcon=econs_max-econs_min
-       !if (iproc == 0) writei17,'(a,i5,1x,1pe17.10,2(1x,i2))') 'MD ',&
+       !if (bigdft_mpi%iproc == 0) writei17,'(a,i5,1x,1pe17.10,2(1x,i2))') 'MD ',&
        !     istep,e_rxyz,nummax,nummin
-       if (iproc == 0) then
+       if (bigdft_mpi%iproc == 0) then
 !          write(*,'(a,i5,1x,1pe17.10,2(1x,i2))') '# (MH) MD ',istep,e_rxyz,nummax,nummin
           call yaml_mapping_open('(MH) MD',flow=.true.)
             call yaml_map('Step',istep)
@@ -960,7 +965,7 @@ contains
           call yaml_mapping_close(advance='yes') 
        endif
          if (nummin.ge.mdmin) then
-          if (nummax.ne.nummin .and. iproc == 0) &
+          if (nummax.ne.nummin .and. bigdft_mpi%iproc == 0) &
                call yaml_warning('nummin,nummax'//trim(yaml_toa((/nummax,nummin/))))
           exit md_loop
          endif
@@ -981,10 +986,10 @@ contains
        end do
 
    if (bigdft_get_geocode(runObj) == 'S') then 
-      call fixfrag_posvel_slab(iproc,bigdft_nat(runObj),rcov,rxyz_run,vxyz,2)
+      call fixfrag_posvel_slab(bigdft_mpi%iproc,bigdft_nat(runObj),rcov,rxyz_run,vxyz,2)
    else if (bigdft_get_geocode(runObj) == 'F') then
      if (istep == istepnext) then 
-           call fixfrag_posvel(iproc,bigdft_nat(runObj),rcov,rxyz_run,vxyz,2,occured)
+        call fixfrag_posvel(bigdft_mpi%iproc,bigdft_nat(runObj),rcov,rxyz_run,vxyz,2,occured)
         if (occured) then 
           istepnext=istep+4
         else
@@ -995,7 +1000,7 @@ contains
 
     end do md_loop
     if (istep >=200) then
-       if (iproc == 0) call yaml_scalar('(MH) TOO MANY MD STEPS')
+       if (bigdft_mpi%iproc == 0) call yaml_scalar('(MH) TOO MANY MD STEPS')
        dt=2.d0*dt
     end if
     !save the value of count_md for the moment
@@ -1003,25 +1008,26 @@ contains
 
     !C MD stopped, now do relaxation
 
-    !  if (iproc == 0) write(67,*) 'EXIT MD',istep
+    !  if (bigdft_mpi%iproc == 0) write(67,*) 'EXIT MD',istep
     
     ! adjust time step to meet precision criterion
     devcon=devcon/(3*bigdft_nat(runObj)-3)
-    !if (iproc == 0) &
+    !if (bigdft_mpi%iproc == 0) &
     !     write(66,'(a,2(1x,1pe11.4),1x,i5)')&
     !     'MD devcon ',devcon,devcon/ekinetic,istep
     if (devcon/ekinetic.lt.10.d-2) then
-       !if (iproc == 0) write(66,*) 'MD:old,new dt',dt,dt*1.05d0
+       !if (bigdft_mpi%iproc == 0) write(66,*) 'MD:old,new dt',dt,dt*1.05d0
        dt=dt*1.05d0
     else
-       !if (iproc == 0) write(66,*) 'MD:old,new dt',dt,dt/1.05d0
+       !if (bigdft_mpi%iproc == 0) write(66,*) 'MD:old,new dt',dt,dt/1.05d0
        dt=dt*(1.d0/1.05d0)
     endif
     
   END SUBROUTINE mdescape
   
 
-  subroutine soften(nsoften,vxyz,runObj,outs,nproc,iproc)
+  !> Soften previous velocity distribution
+  subroutine soften(nsoften,vxyz,runObj,outs)
     use module_base
     use bigdft_run
     use module_atoms, only: astruct_dump_to_file
@@ -1030,7 +1036,7 @@ contains
 !    use m_ab6_symmetry
     implicit none
     !Arguments
-    integer, intent(in) :: nsoften,nproc,iproc
+    integer, intent(in) :: nsoften
     type(run_objects), intent(inout) :: runObj
     type(DFT_global_output), intent(inout) :: outs
     real(kind=8), dimension(3*natoms) :: vxyz
@@ -1051,7 +1057,7 @@ contains
     !call vcopy(3*natoms, atoms%astruct%rxyz(1,1), 1, pos0(1), 1)
 
     runObj%inputs%inputPsiId=1
-    if(iproc==0) call yaml_comment('(MH) soften initial step ',hfill='~')
+    if(bigdft_mpi%iproc==0) call yaml_comment('(MH) soften initial step ',hfill='~')
     call call_bigdft(runObj,outs,infocode)
     etot0 = outs%energy
 
@@ -1067,8 +1073,8 @@ contains
 !!$       end if
 !!$    enddo
     eps_vxyz=sqrt(svxyz)
-    if(iproc == 0) call yaml_map('(MH)  eps_vxyz=',eps_vxyz)
-    !if(iproc == 0) call yaml_map('(MH)  vxyz_test=',vxyz)
+    if(bigdft_mpi%iproc == 0) call yaml_map('(MH)  eps_vxyz=',eps_vxyz)
+    !if(bigdft_mpi%iproc == 0) call yaml_map('(MH)  vxyz_test=',vxyz)
     !stop
     do it=1,nsoften
        
@@ -1112,13 +1118,13 @@ contains
 
        write(fn4,'(i4.4)') it
        write(comment,'(a,1pe10.3)')'res= ',res
-       if (iproc == 0) &
+       if (bigdft_mpi%iproc == 0) &
             call bigdft_write_atomic_file(runObj,outs,'possoft_'//fn4,trim(comment))
        
 !!$            call write_atomic_file(trim(inputs_md%dir_output)//'possoft_'//fn4,&
 !!$            outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
       
-       if(iproc==0) then
+       if(bigdft_mpi%iproc==0) then
           call yaml_mapping_open('(MH) soften',flow=.true.)
             call yaml_map('it',it)
             call yaml_map('curv',curv,fmt='(f12.5)')
@@ -1129,7 +1135,7 @@ contains
           call yaml_mapping_close(advance='yes')
        end if
        if (curv.lt.0.d0 .or. fd2.lt.0.d0) then
-          if(iproc==0) call yaml_comment('(MH) NEGATIVE CURVATURE')
+          if(bigdft_mpi%iproc==0) call yaml_comment('(MH) NEGATIVE CURVATURE')
           exit
        end if
        if (outs%energy-etot0.lt.1.d-2) eps_vxyz=eps_vxyz*1.2d0
@@ -1160,7 +1166,7 @@ contains
         call axpy(3*natoms, -1.d0, pos0(1), 1, vxyz(1), 1)
        write(comment,'(a,1pe10.3)')'curv= ',curv
        !is this writing really needed?
-       if (iproc == 0) &
+       if (bigdft_mpi%iproc == 0) &
             call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
             trim(runObj%inputs%dir_output)//'posvxyz',&
             trim(comment),rxyz=vxyz,forces=outs%fxyz)

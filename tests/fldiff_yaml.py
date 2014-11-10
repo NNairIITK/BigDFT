@@ -489,9 +489,8 @@ for i in range(len(references)):
     # print remaining memory
     leak_memory += docleaks
     total_misses += docmiss
-    if len(docmiss_it) > 0:
-        #Add missed items for all documents
-        total_missed_items.extend(docmiss_it)
+    #Add missed items for all documents
+    total_missed_items.extend(docmiss_it)
     newreport = open(options.input, "w")
     if failed_checks > 0 or docleaks > 0:
         failed_documents += 1

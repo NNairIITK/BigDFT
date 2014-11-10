@@ -836,7 +836,7 @@ experimentalfoe_medium:
  eF: 8.3e-8
  guess for new ef: 8.3e-8
  D Tr: 1.1e-6
- D eF: 5.5e-8 
+ D eF: 6.6e-8 
  Tr(K): 2.5e-7
  ebs: 2.5e-7
  ebs_check: 4.4e-8
@@ -1105,7 +1105,7 @@ O2spin_foe:
  decay length of error function: 1.1e-5
  diff: 4.8e-9
  D Tr: 2.1e-7
- relative diff: 2.6e-11
+ relative diff: 2.7e-11
 
 O2spin_dirmin:
  Atomic Forces (Ha/Bohr): 9.1e-6
