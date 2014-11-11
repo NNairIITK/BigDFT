@@ -708,7 +708,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. it_scc>1 .and.&
                   ldiis_coeff%idsx == 0 .and. (.not. input%lin%curvefit_dmin)) then
                 ! apply a cap so that alpha_coeff never goes below around 1.d-2 or above 2
-                if (energyDiff<0.d0 .and. ldiis_coeff%alpha_coeff < 1.8d0) then
+                !SM <= due to the tests...
+                if (energyDiff<=0.d0 .and. ldiis_coeff%alpha_coeff < 1.8d0) then
                    ldiis_coeff%alpha_coeff=1.1d0*ldiis_coeff%alpha_coeff
                 else if (ldiis_coeff%alpha_coeff > 1.7d-3) then
                    ldiis_coeff%alpha_coeff=0.5d0*ldiis_coeff%alpha_coeff
@@ -1572,7 +1573,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        !call bigdft_utils_flush(unit=6)
     call yaml_sequence_close()
 
-    if (.not.final) then
+    if (.not.final .and. input%adjust_kernel_iterations) then
         ! Determine whether the sign of the energy change is the same as in the previous iteration
         ! (i.e. whether the energy continues to increase or decrease)
         tt = sign(energyDiff,sign_of_energy_change)

@@ -664,7 +664,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
-                          extract_taskgroup_inplace
+                          extract_taskgroup_inplace, uncompress_matrix2
   implicit none
 
   ! Calling arguments
@@ -718,7 +718,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
 
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, hpsit_c, hpsit_c, &
        hpsit_f, hpsit_f, tmb%linmat%m, grad_ovrlp_)
-  call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, grad_ovrlp_)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, grad_ovrlp_)
   !! This can then be deleted if the transition to the new type has been completed.
   !grad_ovrlp%matrix_compr=grad_ovrlp_%matrix_compr
 
@@ -727,7 +727,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   coeff_tmp = f_malloc((/ tmb%orbs%norbp, max(tmb%orbs%norb, 1) /),id='coeff_tmp')
 
   !grad_ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='grad_ovrlp%matrix')
-  call uncompress_matrix(iproc,grad_ovrlp,grad_ovrlp_%matrix_compr,grad_ovrlp_%matrix)
+  call uncompress_matrix2(iproc,nproc,grad_ovrlp,grad_ovrlp_%matrix_compr,grad_ovrlp_%matrix)
 
   ! can change this so only go up to ksorbs%norb...
   if (tmb%orbs%norbp>0) then
@@ -772,7 +772,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
        tmb%linmat%kernel_, grad_ovrlp_, &
        ksres_sum,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
   !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
-  call gather_matrix_from_taskgroups_inplace(iproc, nproc, grad_ovrlp, grad_ovrlp_)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, grad_ovrlp, grad_ovrlp_)
   call deallocate_matrices(grad_ovrlp_)
   if (iproc==0) write(*,*) 'KS residue from trace',dsqrt(ksres_sum)/real(tmb%orbs%norb,gp) ! should update normalization as would only be occ here not extra?
 
@@ -1063,7 +1063,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
           call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                TRANSPOSE_FULL, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
 
-          call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
+          !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
                tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           ! copy correct kernel back
