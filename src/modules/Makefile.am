@@ -146,7 +146,7 @@ else
 
 endif
 
-AO_INCLUDES = eleconf-inc.f90
+AO_INCLUDES = eleconf-inc.f90 
 ATOMS_INCLUDES = astruct-inc.f90
 COMMS_INCLUDES = check_array-inc.f90
 
