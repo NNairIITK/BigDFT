@@ -33,6 +33,7 @@ libmodules_a_SOURCES = base.f90 \
 	locregs.f90 \
 	psp_projectors.f90 \
 	input_keys.f90 \
+	gaussdaub.f90 \
 	input_dicts.f90 \
 	types.f90 \
 	input.f90 \
@@ -200,6 +201,7 @@ sparsematrix.o: base.o types.o sparsematrix_base.o
 foe_base.o: base.o defs.o
 fermi_level.o: base.o
 copy_utils.o: base.o
+gaussdaub.o: base.o
 module_sbfgs.o: base.o
 bigdft_run.o: types.o input_dicts.o interfaces.o
 ab7_mixing.o: defs.o

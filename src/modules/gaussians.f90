@@ -13,7 +13,7 @@
 module gaussians
 
   use module_base
-
+  implicit none
   private
 
   integer, parameter :: NSD_=2,EXPO_=1,COEFF_=2    !< Positions of exponents and coefficients in the storage space
