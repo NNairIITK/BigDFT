@@ -37,6 +37,9 @@ program conv_check_cuda
   real(kind=8), dimension(lowfilK:lupfilK) :: fil
   integer(kind=8) :: tsc0, tsc1
 
+  !Initiliaze the f_lib library (f_malloc, yaml, ...)
+  call f_lib_initialize()
+
 !!!  !Use arguments
 !!!  call getarg(1,chain)
 !!!  read(unit=chain,fmt=*) n1
@@ -766,6 +769,9 @@ program conv_check_cuda
   else 
      print *,'wrong ndim',ndim
   end if
+   
+  !Finalize the f_lib (report and so on.)
+  call f_lib_finalize()
 
 contains
 
