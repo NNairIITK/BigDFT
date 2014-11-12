@@ -218,7 +218,7 @@ contains
    end subroutine dictionaries_errors
 
    !> Pop a subdictionary from a mother one. Returns the subdictionary.
-   !! raise an error if the subdictionary does not exists.
+   !! raise an error if the subdictionary does not exist.
    function pop_key(dict,key) result(subd)
      implicit none
      !> As Fortran norm says, here the intent is refererred to the 
@@ -241,7 +241,7 @@ contains
      end if
      
      !if something has been found, pop
-     !!WARNING: here the usage of dict_remove is abused,
+     !!@warning here the usage of dict_remove is abused,
      !!as this routine frees dict if it is the last object
      !!therefore it changes the pointer association status of dict
      if (associated(subd)) then
@@ -257,7 +257,7 @@ contains
    end function pop_key
 
    !> Pop a subdictionary from a mother one. Returns the subdictionary.
-   !! raise an error if the subdictionary does not exists.
+   !! raise an error if the subdictionary does not exist.
    function pop_item(dict,item) result(subd)
      use yaml_strings, only: yaml_toa
      implicit none
@@ -873,7 +873,7 @@ contains
 
 
    !> Retrieve the pointer to the dictionary which has this key.
-   !! If the key does not exists, search for it in the next chain 
+   !! If the key does not exist, search for it in the next chain 
    !! Key Must be already present, otherwise result is nullified
    recursive function find_key(dict,key) result (dict_ptr)
      implicit none
@@ -948,7 +948,7 @@ contains
 
 
    !> Search in the dictionary if some of the child has the given
-   !! If the key does not exists, search for it in the next chain 
+   !! If the key does not exist, search for it in the next chain 
    !! Key Must be already present 
    !! the search in the linked list can be performed
    !! by using the new scheme under implementation

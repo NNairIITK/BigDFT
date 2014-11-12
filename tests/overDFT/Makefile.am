@@ -5,7 +5,6 @@ TESTDIRS = \
 	   GEOPT-BFGS \
 	   GEOPT-LBFGS \
 	   GEOPT-newIG \
-	   MINHOP \
 	   NH3 \
 	   H2O-slab \
 	   H2-freq \
@@ -24,6 +23,11 @@ if HAVE_ETSF_IO
 TESTDIRS += IO-wf-ETSF
 endif
 
+if USE_OCL
+else
+#Add MINHOP (box too small)
+  TESTDIRS += MINHOP
+endif
 
 # Give here the pseudo-potentials used by each test.
 H2-freq.psp: psppar.H
