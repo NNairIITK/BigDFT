@@ -247,8 +247,6 @@ subroutine minimizer_sbfgs(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,
    call minenergyandforces(.false.,imode,nat,alat,rxyz(1,1,0),&
        rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),fnoise,&
        etot,iconnect,nbond,wold,beta_stretchx,beta_stretch)
-   if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+beta_stretch*fstretch(:,:,0)
-
    call fnrmandforcemax(fxyzraw(1,1,0),fnrm,fmax,nat)
    fnrm=sqrt(fnrm)
    if (fmax < 3.e-1_gp) call updatefluctsum(fnoise,fluct)
@@ -257,10 +255,12 @@ if (iproc == 0 .and. mhgps_verbosity >=4) then
    write(comment,'(a,1pe10.3)')'SBFGS:fnrm= ',fnrm
    call astruct_dump_to_file(astruct_ptr,&
         currDir//'/sad'//trim(adjustl(isadc))&
-        //'_posminiP'//trim(adjustl(writePostfix))//'_'//fn4, &
+        //'_posmini'//trim(adjustl(writePostfix))//'_'//fn4, &
         trim(comment),energy=etotp,rxyz=rxyz(:,:,nhist),&
         forces=fxyz(:,:,nhist))
 endif
+   if(imode==2)rxyz(:,:,0)=rxyz(:,:,0)+beta_stretch*fstretch(:,:,0)
+
 
    etotold=etot
    etotp=etot
@@ -435,6 +435,7 @@ endif
          beta=.50_gp*beta
          if (debug.and.iproc==0) write(100,'(a,1x,e9.2)') 'WARNING GEOPT_SBFGS: beta reset ',beta
          ndim=0
+         wold=0.0_gp
          if(.not.steep)then
             do iat=1,nat
                rxyz(1,iat,0)=rxyz(1,iat,nhist-1)
