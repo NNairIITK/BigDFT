@@ -455,8 +455,9 @@ contains
     end if
 
     token%data%withSpin = 2
-    allocate(token%data%spinAt(1, nAtoms))
-    token%data%spinAt = real(reshape(spinAt, (/ 1, nAtoms /)), dp)
+    allocate(token%data%spinAt(3, nAtoms))
+    token%data%spinAt = 0._dp
+    token%data%spinAt(3, :) = real(spinAt)
 
     ! We unset only the symmetries
     if (token%data%auto) then
