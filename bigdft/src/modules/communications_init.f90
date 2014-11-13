@@ -2561,7 +2561,6 @@ module communications_init
          end do
       end if
     
-    
       !balance the components between processors
       !in the most symmetric way
       !here the components are taken into account for all the k-points

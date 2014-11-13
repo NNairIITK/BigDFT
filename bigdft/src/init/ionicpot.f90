@@ -1177,10 +1177,10 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   use module_interfaces, except_this_one => CounterIonPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_input_dicts
-  use module_input_keys, only: IG_OCCUPATION
+  use public_keys, only: IG_OCCUPATION
   use dictionaries
   use yaml_output
-  use module_atoms, only: deallocate_atoms_data,nullify_atoms_data
+  use module_atoms, only: deallocate_atoms_data,nullify_atoms_data,atomic_data_set_from_dict
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode

@@ -14,7 +14,8 @@
 subroutine read_input_dict_from_files(radical,mpi_env,dict)
   use dictionaries
   use wrapper_MPI
-  use module_input_keys
+  !use module_input_keys
+  use public_keys
   use module_input_dicts, only: merge_input_file_to_dict
   use input_old_text_format
   use yaml_output
@@ -110,11 +111,12 @@ subroutine inputs_from_dict(in, atoms, dict)
   use module_interfaces, except => inputs_from_dict
   use dictionaries
   use module_input_keys
+  use public_keys
   use module_input_dicts
   use dynamic_memory
   use module_xc
   use input_old_text_format, only: dict_from_frag
-  use module_atoms, only: atoms_data,atoms_data_null
+  use module_atoms, only: atoms_data,atoms_data_null,atomic_data_set_from_dict
   use yaml_strings, only: f_strcpy
   use psp_projectors, only: PSPCODE_PAW
   use m_ab6_symmetry, only: symmetry_get_n_sym
@@ -263,7 +265,7 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   ! Shake atoms, if required.
   call astruct_set_displacement(atoms%astruct, in%randdis)
-  if (bigdft_mpi%nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
+  if (bigdft_mpi%nproc > 1) call mpibarrier(bigdft_mpi%mpi_comm)
   ! Update atoms with symmetry information
   call astruct_set_symmetries(atoms%astruct, in%disableSym, in%symTol, in%elecfield, in%nspin)
 
@@ -968,7 +970,8 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   use defs_basis
   use m_ab6_kpoints
   use yaml_output
-  use module_input_keys
+  use module_input_keys, only: input_keys_equal
+  use public_keys
   use dictionaries
   implicit none
   !Arguments

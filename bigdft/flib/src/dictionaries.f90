@@ -85,7 +85,7 @@ module dictionaries
 
    interface assignment(=)
       module procedure get_value,get_integer,get_real,get_double,get_long,get_lg
-      module procedure get_rvec,get_dvec,get_ilvec,get_ivec,get_lvec
+      module procedure get_rvec,get_dvec,get_ilvec,get_ivec,get_lvec,get_c1vec
       !safe getter from list_container
       module procedure safe_get_dict,safe_get_integer,safe_get_double,safe_get_real,safe_get_char
    end interface
@@ -113,7 +113,6 @@ module dictionaries
    interface dict_iter
       module procedure dict_iter, dict_iter_lc
    end interface
-
 
    interface list_new
       module procedure list_new,list_new_elems
@@ -646,6 +645,15 @@ contains
 
    end function dict_iter_lc
 
+   function dict_next_build_list(dict)
+     implicit none
+     type(dictionary), pointer, intent(in) :: dict
+     type(dictionary), pointer :: dict_next_build_list
+
+     dict_next_build_list => dict
+     call init_next(dict_next_build_list)
+     call set_item(dict_next_build_list, dict%data%item + 1)
+   end function dict_next_build_list
 
    function dict_next(dict)
      implicit none
@@ -1033,7 +1041,6 @@ contains
         dict%data%nitems=subd%parent%data%nitems
      end if
      call define_parent(dict,dict%child)
-
    end subroutine put_child
 
 
@@ -1124,7 +1131,6 @@ contains
 
      call f_strcpy(src=val,dest=dict%data%value)
      !call set_field(val,dict%data%value)
-
    end subroutine put_value
 
 
@@ -1384,6 +1390,18 @@ contains
      logical :: tmp
      include 'dict_getvec-inc.f90'
    end subroutine get_lvec
+
+   !> Routine to retrieve an array from a dictionary
+   subroutine get_c1vec(arr,dict)
+     use yaml_strings, only: yaml_toa
+     implicit none
+     character(len=1), dimension(:), intent(out) :: arr
+     type(dictionary), intent(in) :: dict 
+     !local variables
+     character(len=1) :: tmp
+     include 'dict_getvec-inc.f90'
+   end subroutine get_c1vec
+
 
    !> Set and get routines for different types
    subroutine get_real(rval,dict)

@@ -368,7 +368,7 @@ subroutine create_log_file(dict, writing_directory, dir_output, run_name)
            ! Move possible existing log file.
            call ensure_log_file(trim(writing_directory), trim(logfile), ierr)
            if (ierr /= 0) call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
-           ! Close active stream and logfile if any.
+           ! Close active stream and logfile if any. (TO BE MOVED IN RUN_UPDATE TO AVOID CLOSURE OF UPLEVEL INSTANCE)
            call yaml_get_default_stream(unit_log)
            if (unit_log /= 6) call yaml_close_stream(unit_log, ierr)
            !Create stream and logfile

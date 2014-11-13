@@ -30,7 +30,6 @@ module module_input_dicts
   ! Types from dictionaries
   public :: astruct_set_from_dict
   public :: psp_set_from_dict, nlcc_set_from_dict
-  public :: atomic_data_set_from_dict
   public :: occupation_set_from_dict
   public :: neb_set_from_dict
 
@@ -133,7 +132,7 @@ contains
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
     use module_defs, only: mpi_environment
     use module_interfaces, only: read_input_dict_from_files
-    use module_input_keys, only: POSINP,IG_OCCUPATION
+    use public_keys, only: POSINP,IG_OCCUPATION
     use yaml_output
     implicit none
     !Arguments
@@ -679,7 +678,7 @@ contains
     use dictionaries
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
     use yaml_output, only: yaml_warning
-    use module_input_keys, only: POSINP
+    use public_keys, only: POSINP
     implicit none
     type(dictionary), pointer :: dict
 
@@ -807,17 +806,17 @@ contains
 
     type(dictionary), pointer :: atoms, at
     character(len = max_field_length) :: str
-    integer :: iat, ityp
+    integer :: ityp
 
     if (ASTRUCT_POSITIONS .notin. dict) then
        nullify(types)
        return
     end if
     call dict_init(types)
-    atoms => dict // ASTRUCT_POSITIONS
     ityp = 0
-    do iat = 1, dict_len(atoms), 1
-       at => dict_iter(atoms // (iat - 1))
+    atoms => dict_iter(dict // ASTRUCT_POSITIONS)
+    do while(associated(atoms))
+       at => dict_iter(atoms)
        do while(associated(at))
           str = dict_key(at)
           if (dict_len(at) == 3 .and. .not. has_key(types, str)) then
@@ -828,6 +827,7 @@ contains
              at => dict_next(at)
           end if
        end do
+       atoms => dict_next(atoms)
     end do
   end subroutine astruct_dict_get_types
 
@@ -852,7 +852,7 @@ contains
         & BIGDFT_INPUT_FILE_ERROR, BIGDFT_INPUT_VARIABLES_ERROR,f_free_ptr
     use module_atoms, only: set_astruct_from_file,atomic_structure,&
          nullify_atomic_structure,deallocate_atomic_structure,astruct_merge_to_dict
-    use module_input_keys, only: POSINP,RADICAL_NAME
+    use public_keys, only: POSINP,RADICAL_NAME
     use dictionaries
     use yaml_strings
     implicit none
@@ -943,7 +943,7 @@ contains
     character(len = 1024), intent(out), optional :: comment !< Extra comment retrieved from the file if present
     !local variables
     character(len=*), parameter :: subname='astruct_set_from_dict'
-    type(dictionary), pointer :: pos, at, types
+    type(dictionary), pointer :: pos, at, atData, types
     character(len = max_field_length) :: str
     integer :: iat, ityp, units, igspin, igchrg, nsgn, ntyp, ierr
 
@@ -1005,37 +1005,41 @@ contains
     if (ASTRUCT_POSITIONS .in. dict) then
        pos => dict // ASTRUCT_POSITIONS
        call astruct_set_n_atoms(astruct, dict_len(pos))
-       do iat = 1, astruct%nat
+       at => dict_iter(pos)
+       iat = 0
+       do while(associated(at))
+          iat = iat + 1
+
           igspin = 0
           igchrg = 0
           nsgn   = 1
           !at => pos // (iat - 1)
-          at => dict_iter(pos//(iat-1))!at%child
-          do while(associated(at))
-             str = dict_key(at)
+          atData => dict_iter(at)!at%child
+          do while(associated(atData))
+             str = dict_key(atData)
              if (trim(str) == "Frozen") then
-                str = dict_value(at)
+                str = dict_value(atData)
                 call frozen_ftoi(str(1:4), astruct%ifrztyp(iat),ierr)
              else if (trim(str) == "IGSpin") then
-                igspin = at
+                igspin = atData
              else if (trim(str) == "IGChg") then
-                igchrg = at
+                igchrg = atData
                 if (igchrg >= 0) then
                    nsgn = 1
                 else
                    nsgn = -1
                 end if
              else if (trim(str) == "int_ref_atoms_1") then
-                astruct%ixyz_int(1,iat) = at
+                astruct%ixyz_int(1,iat) = atData
              else if (trim(str) == "int_ref_atoms_2") then
-                astruct%ixyz_int(2,iat) = at
+                astruct%ixyz_int(2,iat) = atData
              else if (trim(str) == "int_ref_atoms_3") then
-                astruct%ixyz_int(3,iat) = at
+                astruct%ixyz_int(3,iat) = atData
              else if (dict_len(at) == 3) then
-                astruct%iatype(iat) = types // dict_key(at)
-                astruct%rxyz(:, iat) = at
+                astruct%iatype(iat) = types // dict_key(atData)
+                astruct%rxyz(:, iat) = atData
              end if
-             at => dict_next(at)
+             atData => dict_next(atData)
           end do
           astruct%input_polarization(iat) = 1000 * igchrg + nsgn * 100 + igspin
           if (units == 1) then
@@ -1060,6 +1064,7 @@ contains
           else if (astruct%geocode == 'W') then
              astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
           end if
+          at => dict_next(at)
        end do
     else
        call astruct_set_n_atoms(astruct,0)
@@ -1117,71 +1122,6 @@ contains
     end do
   end subroutine aocc_to_dict
 
-
-  subroutine atomic_data_set_from_dict(dict, key, atoms, nspin)
-    use module_defs, only: gp
-    use ao_inguess, only: ao_ig_charge,atomic_info,aoig_set_from_dict,&
-         print_eleconf,aoig_set
-    use module_types, only: atoms_data
-    use dictionaries
-!    use dynamic_memory
-    use yaml_output, only: yaml_warning, yaml_toa
-    implicit none
-    type(dictionary), pointer :: dict
-    type(atoms_data), intent(inout) :: atoms
-    character(len = *), intent(in) :: key
-    integer, intent(in) :: nspin
-
-    integer :: iat, ityp
-    real(gp) :: rcov,elec!,rprb,ehomo,elec
-    character(len = max_field_length) :: at
-    type(dictionary), pointer :: dict_tmp
-
-    do ityp = 1, atoms%astruct%ntypes, 1
-       !only amu and rcov are extracted here
-       call atomic_info(atoms%nzatom(ityp),atoms%nelpsp(ityp),&
-            amu=atoms%amu(ityp),rcov=rcov)
-!       atoms%rloc(ityp,:) = rcov * 10.0
-
-       do iat = 1, atoms%astruct%nat, 1
-          if (atoms%astruct%iatype(iat) /= ityp) cycle
-
-          !fill the atomic IG configuration from the input_polarization
-          atoms%aoig(iat)=aoig_set(atoms%nzatom(ityp),atoms%nelpsp(ityp),&
-               atoms%astruct%input_polarization(iat),nspin)
-
-          ! Possible overwrite, if the dictionary has the item
-          if (has_key(dict, key)) then
-             nullify(dict_tmp)
-             at(1:len(at))="Atom "//trim(adjustl(yaml_toa(iat)))
-             if (has_key(dict // key,trim(at))) &
-                  dict_tmp=>dict//key//trim(at)
-             if (has_key(dict // key, trim(atoms%astruct%atomnames(ityp)))) &
-                  dict_tmp=>dict // key // trim(atoms%astruct%atomnames(ityp))
-             if (associated(dict_tmp)) then
-                atoms%aoig(iat)=aoig_set_from_dict(dict_tmp,nspin)
-                !check the total number of electrons
-                elec=ao_ig_charge(nspin,atoms%aoig(iat)%aocc)
-                if (nint(elec) /= atoms%nelpsp(ityp)) then
-                   call print_eleconf(nspin,atoms%aoig(iat)%aocc,atoms%aoig(iat)%nl_sc)
-                   call yaml_warning('The total atomic charge '//trim(yaml_toa(elec))//&
-                        ' is different from the PSP charge '//trim(yaml_toa(atoms%nelpsp(ityp))))
-                end if
-             end if
-          end if
-       end do
-
-    end do
-
-    !number of atoms with semicore channels
-    atoms%natsc = 0
-    do iat=1,atoms%astruct%nat
-       if (atoms%aoig(iat)%nao_sc /= 0) atoms%natsc=atoms%natsc+1
-       !if (atoms%aoig(iat)%iasctype /= 0) atoms%natsc=atoms%natsc+1
-    enddo
-  end subroutine atomic_data_set_from_dict
-  
-!!$
 
   subroutine occupation_set_from_dict(dict, key, norbu, norbd, occup, &
        & nkpts, nspin, norbsempty, nelec_up, nelec_down, norb_max)
@@ -1453,7 +1393,8 @@ contains
        & cv, tol, ds_, kmin, kmax, temp_, damp_, meth)
     use module_defs, only: gp
     use dictionaries
-    use module_input_keys
+    !use module_input_keys
+    use public_keys
     use yaml_output
     implicit none
     type(dictionary), pointer :: dict

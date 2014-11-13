@@ -109,6 +109,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   end if
   call orbitals_descriptors(iproc, nproc,in%gen_norb,in%gen_norbu,in%gen_norbd,in%nspin,nspinor,&
        in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
+  
   orbs%occup(1:orbs%norb*orbs%nkpts) = in%gen_occup
   if (dump .and. iproc==0) call print_orbitals(orbs, atoms%astruct%geocode)
   ! Create linear orbs data structure.
@@ -302,7 +303,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   !check the communication distribution
   if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
      .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
-      call check_communications(iproc,nproc,orbs,Lzd,comms)
+     call check_communications(iproc,nproc,orbs,Lzd,comms)
   else
       ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
       if(iproc==0) call yaml_warning('Do not call check_communications in the linear scaling version!')

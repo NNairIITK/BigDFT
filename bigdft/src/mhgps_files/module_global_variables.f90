@@ -41,7 +41,8 @@ module module_global_variables
     real(gp)         :: saddle_trustr              = 0.2_gp
     real(gp)         :: saddle_tolc                = 7.0_gp
     real(gp)         :: saddle_tolf                = 7.0_gp
-    real(gp)         :: saddle_tightenfac          = -1.0_gp
+    logical          :: saddle_tighten             = .true.
+!    real(gp)         :: saddle_tightenfac          = -1.0_gp
     real(gp)         :: saddle_maxcurvrise         = 1.e-6_gp
     real(gp)         :: saddle_cutoffratio         = 1.e-4_gp
     real(gp)         :: saddle_minoverlap0         = 0.95_gp
@@ -97,7 +98,7 @@ module module_global_variables
     logical               :: isForceField=.false.
     real(gp)              :: ef_counter=0.d0
     character(len=8)      :: currDir
-    character(len=3),parameter      :: prefix='pos'
+    character(len=3), parameter :: prefix='pos'
     character(len=5)      :: isadc
     integer               :: isad
     character(len=5)      :: isadprobc
@@ -108,14 +109,12 @@ module module_global_variables
     !bigdft data types and variables 
     !(these objects must preserve their status in the module)
     type(run_objects), save :: runObj
-    type(dictionary), pointer, save :: user_inputs
     type(DFT_global_output), save :: outs
     integer, save :: fdim
-    type(atoms_data), save :: atoms
+    !type(atoms_data), save :: atoms
+    type(atomic_structure), pointer, save :: astruct_ptr
     !integer, dimension(4) :: mpi_info
     integer :: infocode
-    type(input_variables), target :: inputs_opt
-    type(restart_objects), save :: rst
     integer :: inputPsiId=0
     integer :: iproc=0,nproc=1,igroup=0,ngroups=1
     integer :: itermin=0
