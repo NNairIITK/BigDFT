@@ -2069,7 +2069,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
 
    ! Send all eigenvalues to all procs (presumably not necessary)
    call broadcast_kpt_objects(nproc, orbs%nkpts, orbs%norb, &
-      &   orbs%eval, orbs%ikptproc)
+        &   orbs%eval, orbs%ikptproc)
    
    if (wf0 > 0.0_gp) then
       ii=0
@@ -2138,15 +2138,16 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
          !if (dlectrons == 0.d0) dlectrons=1.d-100  !line to be added
          if (dlectrons == 0.d0) then
             !always enter into first case below
+            corr=0.d0
             if (diff > 0.d0) corr=1.d0*wf
             if (diff < 0.d0) corr=-1.d0*wf
-            if (ii <= 10) wf=2.d0*wf  ! speed up search of approximate Fermi level by using higher Temperature 
+            if (ii <= 50 .and. wf < 0.1d0) wf=2.d0*wf  ! speed up search of approximate Fermi level by using higher Temperature 
          else
             corr=diff/abs(dlectrons) ! for case of no-monotonic func. abs is needed
             if (abs(corr).gt.wf) then   !for such a large correction the linear approximation is not any more valid
                if (corr > 0.d0) corr=1.d0*wf
                if (corr < 0.d0*wf) corr=-1.d0*wf
-               if (ii <= 10) wf=2.d0*wf  ! speed up search of approximate Fermi level by using higher Temperature 
+               if (ii <= 50 .and. wf < 0.1d0) wf=2.d0*wf  ! speed up search of approximate Fermi level by using higher Temperature 
             else
                wf=max(wf0,.5d0*wf)
             endif
@@ -2432,7 +2433,9 @@ subroutine check_communications(iproc,nproc,orbs,lzd,comms)
    character(len = 25) :: filename
    logical :: abort
 
-   !allocate the "wavefunction" amd fill it, and also the workspace
+   if(bigdft_mpi%iproc==0) call yaml_mapping_open('Communication checks')
+
+   !allocate the "wavefunction" and fill it, and also the workspace
    psi = f_malloc(max(orbs%npsidim_orbs, orbs%npsidim_comp),id='psi')
    pwork = f_malloc_ptr(max(orbs%npsidim_orbs, orbs%npsidim_comp),id='pwork')
 
@@ -2544,6 +2547,7 @@ subroutine check_communications(iproc,nproc,orbs,lzd,comms)
       !close(unit=22)
    end if
 
+   if(bigdft_mpi%iproc==0) call yaml_map('Transpositions', .not. abort)
    call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
    if (abort) then
       if (iproc == 0) call print_distribution_schemes(nproc,orbs%nkpts,orbs%norb_par(0,1),comms%nvctr_par(0,1))
@@ -2606,11 +2610,14 @@ subroutine check_communications(iproc,nproc,orbs,lzd,comms)
       abort = .true.
    end if
 
-   if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
+   if(bigdft_mpi%iproc==0) call yaml_map('Reverse transpositions', .not. abort)
    call MPI_BARRIER(bigdft_mpi%mpi_comm, ierr)
+   if (abort) call MPI_ABORT(bigdft_mpi%mpi_comm,ierr)
 
    call f_free(psi)
    call f_free_ptr(pwork)
+
+   if(bigdft_mpi%iproc==0) call yaml_mapping_close()
 
 END SUBROUTINE check_communications
 
@@ -2763,9 +2770,10 @@ subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)
    integer, dimension(nkpts), intent(in) :: ikptproc
    real(gp), dimension(ndata,nkpts), intent(inout) :: data
 
-   integer :: ikpt, ierr
-   call mpibarrier(comm=bigdft_mpi%mpi_comm)
+   integer :: ikpt
+
    if (nproc > 1) then
+      call mpibarrier(comm=bigdft_mpi%mpi_comm)
       do ikpt = 1, nkpts
          !print *,'data(:),ikpt',data(:,ikpt),ikpt,bigdft_mpi%iproc,ikptproc(ikpt)
          call mpibcast(data(:,ikpt),root=ikptproc(ikpt),&
