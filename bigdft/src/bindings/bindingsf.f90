@@ -1783,21 +1783,19 @@ END SUBROUTINE dict_dump_to_file
 
 
 subroutine dict_parse(dict, buf)
-  use dictionaries, only: dictionary, operator(//), dict_len,operator(.pop.),dict_free,r_cnt, p_cnt
+  use dictionaries, only: dictionary, operator(//), dict_len,operator(.pop.),dict_free
   use yaml_parse, only: yaml_parse_from_string
   implicit none
   type(dictionary), pointer :: dict
   character(len = *), intent(in) :: buf
   type(dictionary), pointer :: dict_load
 
-  call r_cnt()
   nullify(dict_load)
   call yaml_parse_from_string(dict_load, buf)
   if (dict_len(dict_load) == 1) then
      dict => dict_load .pop. 0
   end if
   call dict_free(dict_load)
-  call p_cnt()
 END SUBROUTINE dict_parse
 
 

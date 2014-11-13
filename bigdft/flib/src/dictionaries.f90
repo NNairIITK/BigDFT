@@ -129,7 +129,7 @@ module dictionaries
    public :: set,dict_init,dict_free,append,prepend,add
    public :: dict_copy, dict_update,dict_remove,dict_remove_last
    !> Handle exceptions
-   public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next
+   public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next,dict_next_build
    public :: dict_new,list_new,dict_iter,has_key,dict_keys
    !> Public elements of dictionary_base
    public :: operator(.is.),operator(.item.)
@@ -137,6 +137,9 @@ module dictionaries
    public :: operator(==),operator(/=),operator(.in.),operator(.get.)
    public :: dictionary,max_field_length,dict_get_num
 
+   interface dict_next_build
+      module procedure dict_next_build_list
+   end interface dict_next_build
 
    !> Header of error handling part
    !! Some parameters
@@ -620,6 +623,21 @@ contains
      include 'dict_cont_arr-inc.f90'
    end function dict_cont_new_with_int_v
 
+   function dict_next_build_list(dict)
+     implicit none
+     type(dictionary), pointer, intent(in) :: dict
+     type(dictionary), pointer :: dict_next_build_list
+
+     if (associated(dict%parent)) then
+        dict_next_build_list => dict
+        call init_next(dict_next_build_list)
+        call set_item(dict_next_build_list, dict_len(dict%parent))
+!        write(*,*) "adding sibling", dict_next_build_list%data%item, associated(dict_next_build_list%parent)
+     else
+        dict_next_build_list => dict // 0
+!        write(*,*) "adding first", dict_next_build_list%data%item, associated(dict_next_build_list%parent)
+     end if
+   end function dict_next_build_list
 
    !>initialize the iterator to be used with next
    function dict_iter(dict)
@@ -644,16 +662,6 @@ contains
      dict_iter_lc => dict_iter(list%dict)
 
    end function dict_iter_lc
-
-   function dict_next_build_list(dict)
-     implicit none
-     type(dictionary), pointer, intent(in) :: dict
-     type(dictionary), pointer :: dict_next_build_list
-
-     dict_next_build_list => dict
-     call init_next(dict_next_build_list)
-     call set_item(dict_next_build_list, dict%data%item + 1)
-   end function dict_next_build_list
 
    function dict_next(dict)
      implicit none

@@ -57,7 +57,6 @@ module yaml_parse
   public :: yaml_parse_errors_finalize
   public :: yaml_a_todict,yaml_cl_parse_cmd_line
 
-
 contains
 
 
@@ -757,17 +756,21 @@ contains
           exit
        else if (event == MAPPING_START) then
           sub => build_map(parser)
-          call add(s, sub)
+          s => dict_next_build(s)
+          call set(s, sub)
        else if (event == SEQUENCE_START) then
           sub => build_seq(parser)
-          call add(s, sub)
+          s => dict_next_build(s)
+          call set(s, sub)
        else if (event == SCALAR) then
-          call add(s, val)
+          s => dict_next_build(s)
+          call set(s, val)
        else if (event == ALIAS) then
           call f_err_throw(err_id = YAML_PARSE_UNSUPPORTED, &
                & err_msg = "unsupported alias to " // trim(val))
           ! Fallback to stringified alias.
-          call add(s, "*" // trim(val))
+          s => dict_next_build(s)
+          call set(s, "*" // trim(val))
        end if
        
        if (f_err_check(YAML_PARSE_ERROR)) return
