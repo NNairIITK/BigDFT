@@ -752,9 +752,6 @@ contains
               &  "In the file '"//trim(filename)//"' the number of atoms ("// &
               &  trim(yaml_toa(astruct%nat))//") should be >= 0.",err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
 
-      !control atom positions
-      call check_atoms_positions(astruct,(iproc == 0))
-
       ! We delay the calculation of the symmetries.
       !this should be already in the atoms_null routine
       astruct%sym=symmetry_data_null()
@@ -1078,7 +1075,7 @@ subroutine astruct_set_from_file(lstat, astruct, filename)
   call f_err_open_try()
   call read_atomic_file(filename, 0, astruct)
   call f_err_close_try()
-  lstat = (f_err_pop(BIGDFT_INPUT_VARIABLES_ERROR) /= 0)
+  lstat = (f_err_pop(BIGDFT_INPUT_VARIABLES_ERROR) == 0)
 
 END SUBROUTINE astruct_set_from_file
 
