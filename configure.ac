@@ -19,9 +19,9 @@ AC_CONFIG_HEADERS(config.h)
 AC_CONFIG_MACRO_DIR([config/m4])
 
 dnl Init something, don't know exactly what...
-dnl AM_INIT_AUTOMAKE([-Wno-portability])
-dnl To keep the object files in the same structure as the source files
-AM_INIT_AUTOMAKE([--warnings=no-portability, subdir-objects])
+AM_INIT_AUTOMAKE([-Wno-portability])
+dnl To keep the object files in the same structure as the source files (pb does not work with libABINIT)
+dnl AM_INIT_AUTOMAKE([--warnings=no-portability, subdir-objects])
 
 dnl Versioning
 BIGDFT_MAJOR_VERSION=$(echo $PACKAGE_VERSION | cut -d'.' -f1)
