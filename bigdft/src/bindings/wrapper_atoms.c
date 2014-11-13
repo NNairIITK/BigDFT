@@ -439,3 +439,12 @@ void bigdft_atoms_merge_to_dict(const BigDFT_Atoms *atoms, BigDFT_DictIter *iter
   FC_FUNC_(astruct_merge_to_dict_binding, ASTRUCT_MERGE_TO_DICT_BINDING)(&iter->pointer,
                                                          F_TYPE(atoms->astruct));
 }
+void bigdft_atoms_set_structure_from_dict(BigDFT_Atoms *atoms, const BigDFT_DictIter *iter)
+{
+  FC_FUNC_(atoms_empty, ATOMS_EMPTY)(F_TYPE(atoms->data));
+  bigdft_atoms_free_additional(atoms);
+
+  FC_FUNC_(astruct_set_from_dict_binding, ASTRUCT_SET_FROM_DICT_BINDING)(F_TYPE(atoms->astruct),
+                                                                         &iter->pointer);
+  bigdft_atoms_copy_from_fortran(atoms);
+}

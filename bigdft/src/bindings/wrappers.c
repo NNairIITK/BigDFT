@@ -113,6 +113,18 @@ int bigdft_lib_finalize()
   FC_FUNC_(f_lib_finalize, F_LIB_FINALIZE)();
   return ierr;
 }
+/**
+ * bigdft_lib_err_severe_override:
+ * @func: (allow-none) (scope call): a routine.
+ *
+ * Change the default callback for severe errors.
+ **/
+void bigdft_lib_err_severe_override(BigdftErrorCallback func)
+{
+  FC_FUNC_(call_external_c_fromadd, CALL_EXTERNAL_C_FROMADD)(&func);
+  /*FC_FUNC_(err_severe_override, ERR_SEVERE_OVERRIDE)(func);*/
+  fprintf(stderr, "%ld\n", (long long int)func);
+}
 
 guint bigdft_get_count(GObject *obj)
 {

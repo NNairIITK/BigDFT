@@ -911,13 +911,12 @@ subroutine proj_new(nlpspd)
 END SUBROUTINE proj_new
 
 
-subroutine proj_free(nlpspd, proj)
+subroutine proj_free(nlpspd)
   use psp_projectors
   use module_types
   use memory_profiling
   implicit none
   type(DFT_PSP_projectors), pointer :: nlpspd
-  real(kind=8), dimension(:), pointer :: proj
 
   call free_DFT_PSP_projectors(nlpspd)
 END SUBROUTINE proj_free
@@ -1451,7 +1450,7 @@ subroutine optloop_emit_iter(optloop, id, energs, iproc, nproc)
 
   integer, parameter :: SIGNAL_DONE = -1
   integer, parameter :: SIGNAL_WAIT = -2
-  integer :: message, ierr
+  integer :: message
 
   call timing(iproc,'energs_signals','ON')
   if (iproc == 0) then
@@ -1490,7 +1489,7 @@ subroutine optloop_bcast(optloop, iproc)
   type(DFT_optimization_loop), intent(inout) :: optloop
   integer, intent(in) :: iproc
 
-  integer :: iData(4), ierr
+  integer :: iData(4)
   real(gp) :: rData(3)
 
   if (iproc == 0) then
@@ -1504,7 +1503,8 @@ subroutine optloop_bcast(optloop, iproc)
      rData(3) = optloop%gnrm_startmix
 
      !what is this?
-     !call MPI_BCAST(0, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+     !zero=0
+     !call MPI_BCAST(zero, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
   end if
   call mpibcast(iData,comm=bigdft_mpi%mpi_comm)
   call mpibcast(rData,comm=bigdft_mpi%mpi_comm)
@@ -1566,42 +1566,44 @@ subroutine run_objects_get(runObj, dict, inputs, atoms)
 END SUBROUTINE run_objects_get
 
 
-subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly)
+subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly,ln)
   use dictionaries, only: dictionary
   use module_input_keys, only: input_keys_dump
   use module_defs, only: UNINITIALIZED, gp
   use yaml_output
+  use f_utils, only: f_get_free_unit
+  use yaml_strings, only: f_strcpy
   implicit none
+  integer, intent(in) :: ln
   integer, intent(out) :: iostat
   type(dictionary), pointer :: dict
-  character(len = *), intent(in) :: fname
+  character(len = ln), intent(in) :: fname
   logical, intent(in) :: userOnly
 
-  integer, parameter :: iunit = 145214 !< Hopefully being unique...
-  integer :: iunit_def
+  integer, parameter :: iunit_true = 145214 !< Hopefully being unique...
+  integer :: iunit_def,iunit
   real(gp), dimension(3), parameter :: dummy = (/ 0._gp, 0._gp, 0._gp /)
+  character(len=256) :: filetmp
+
+  !check free unit
+  iunit=f_get_free_unit(iunit_true)
 
   call yaml_get_default_stream(iunit_def)
   if (iunit_def == iunit) then
      iostat = 1
      return
   end if
-  
-  open(unit = iunit, file = fname(1:len(fname)), iostat = iostat)
+  call f_strcpy(src=fname,dest=filetmp)
+  open(unit = iunit, file =trim(filetmp), iostat = iostat)
   if (iostat /= 0) return
-
   call yaml_set_stream(unit = iunit, tabbing = 40, record_length = 100, istat = iostat)
   if (iostat /= 0) return
-
   call yaml_new_document(unit = iunit)
   call input_keys_dump(dict, userOnly)
-
   call yaml_close_stream(iunit, iostat)
   if (iostat /= 0) return
   close(unit = iunit)
-
   call yaml_set_default_stream(iunit_def, iostat)
-
 END SUBROUTINE run_objects_dump_to_file
 
 !wrapper to call_bigdft in bigdft run
@@ -1781,21 +1783,21 @@ END SUBROUTINE dict_dump_to_file
 
 
 subroutine dict_parse(dict, buf)
-  use dictionaries, only: dictionary, operator(//), dict_len
-  use dictionaries_base, only: dict_destroy
+  use dictionaries, only: dictionary, operator(//), dict_len,operator(.pop.),dict_free,r_cnt, p_cnt
   use yaml_parse, only: yaml_parse_from_string
   implicit none
   type(dictionary), pointer :: dict
   character(len = *), intent(in) :: buf
+  type(dictionary), pointer :: dict_load
 
-  type(dictionary), pointer :: tmp
-
-  call yaml_parse_from_string(dict, buf)
-  if (dict_len(dict) == 1) then
-     tmp => dict
-     dict => dict // 0
-     call dict_destroy(tmp)
+  call r_cnt()
+  nullify(dict_load)
+  call yaml_parse_from_string(dict_load, buf)
+  if (dict_len(dict_load) == 1) then
+     dict => dict_load .pop. 0
   end if
+  call dict_free(dict_load)
+  call p_cnt()
 END SUBROUTINE dict_parse
 
 
@@ -1907,3 +1909,25 @@ subroutine dict_init_binding(dict)
 
   call wrapper(dict)
 END SUBROUTINE dict_init_binding
+
+
+subroutine err_severe_override(callback)
+  use dictionaries, only: f_err_severe_override, f_loc
+  implicit none
+  external :: callback
+  
+  write(*,*) f_loc(callback)
+  call f_err_severe_override(callback)
+end subroutine err_severe_override
+
+subroutine astruct_set_from_dict_binding(astruct, dict)
+  use module_input_dicts, only: astruct_set_from_dict
+  use dictionaries, only: dictionary
+  use module_atoms
+  implicit none
+  type(dictionary), pointer :: dict !< dictionary of the input variables
+  !! the keys have to be declared like input_dicts module
+  type(atomic_structure), intent(out) :: astruct          !< Structure created from the file
+
+  call astruct_set_from_dict(dict, astruct)
+end subroutine astruct_set_from_dict_binding
