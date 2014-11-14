@@ -1084,10 +1084,10 @@ O2spin_diag:
 O2spin_foe:
  Atomic Forces (Ha/Bohr): 1.3e-8
  EH: 5.1e-8
- EXC: 5.5e-9
+ EXC: 6.55e-9
  Ekin: 4.8e-9
  Epot: 1.4e-7
- EvXC: 7.3e-9
+ EvXC: 8.69e-9
  Enl: 2.6e-9
  Tr(K): 1.4e-7
  charge diff: 1.4e-7
@@ -1106,23 +1106,24 @@ O2spin_foe:
  diff: 4.8e-9
  D Tr: 2.1e-7
  relative diff: 2.7e-11
+ fnrm2: 4.19e-8
 
 O2spin_dirmin:
- Atomic Forces (Ha/Bohr): 9.1e-6
+ Atomic Forces (Ha/Bohr): 1.1e-5
  Average noise forces: 2.4e-5
- Clean forces norm (Ha/Bohr): 5.6e-5
+ Clean forces norm (Ha/Bohr): 6.4e-5
  Electric Dipole Moment (AU): 2.4e-5
  Electric Dipole Moment (Debye): 2.4e-5
  eBS: 6.1e-6
  fnrm: 1.1e-5
- EH: 7.9e-6
+ EH: 8.9e-6
  EXC: 5.6e-6
- Ekin: 6.6e-6
+ Ekin: 6.8e-6
  Enl: 1.9e-7
  Epot: 1.2e-5
  EvXC: 6.0e-6
  energydiff: 6.0e-6
- energy: 9.2e-7
+ energy: 1.1e-6
  Omega: 6.1e-6
  Raw forces norm (Ha/Bohr): 4.8e-5
  D: 2.1e-6

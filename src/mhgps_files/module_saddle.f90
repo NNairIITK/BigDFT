@@ -142,8 +142,11 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     real(gp) :: ddot,dnrm2
 
 
-    if(astruct_ptr%geocode/='F'.and. .not. (trim(adjustl(efmethod))=='LENSIc'))&
-    stop 'STOP: saddle search only implemented for free BC'
+!    if(astruct_ptr%geocode/='F'.and. .not. (trim(adjustl(efmethod))=='LENSIc'))&
+!    stop 'STOP: saddle search only implemented for free BC'
+
+    if((minoverlap0>=-1.0_gp).and.saddle_tighten)&
+    stop 'STOP: Do not use minoverlap and no tightening in combination'
 
     if(iproc==0)then
         call yaml_comment('(MHGPS) Start Saddle Search ....',&
@@ -166,7 +169,9 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     detot=0.0_gp
     curv=1000.0_gp
     icheck=0
-    icheckmax=5
+!    icheckmax=5
+    icheckmax=0
+    if(icheckmax==0 .and. saddle_tighten) icheckmax=1
     tighten=.false.
     alpha_stretch=alpha_stretch0
 
@@ -184,9 +189,11 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     fstretch=0.0_gp
     rxyz(:,:,0)=wpos
 
+    if (astruct_ptr%geocode == 'F') then
     call fixfrag_posvel(nat,rcov,rxyz(1,1,0),tnatdmy,1,fixfragmented)
     if(fixfragmented .and. mhgps_verbosity >=0.and. iproc==0)&
        call yaml_comment('fragmentation fixed')
+    endif
 
     inputPsiId=0
     call minenergyandforces(.true.,imode,nat,alat,rxyz(1,1,0),rxyzraw(1,1,0),&
@@ -358,8 +365,9 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
         maxd=sqrt(maxd)
  
         !trust radius approach
-        if(maxd>trustr)then
-            if(iproc==0)call yaml_map('  (MHGPS) step too large',maxd)
+        if(maxd>trustr .or. (curv>=0.0_gp .and. fnrm<fnrmtol))then
+!        if(maxd>trustr)then
+            if(iproc==0)call yaml_map('  (MHGPS) resize step ',maxd)
             scl=0.5_gp*trustr/maxd
             dd=dd*scl
             tt=tt*scl
@@ -367,9 +375,11 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
         endif
         !do the move
         rxyz(:,:,nhist)=rxyz(:,:,nhist-1)-dd(:,:)
+        if (astruct_ptr%geocode == 'F') then
         call fixfrag_posvel(nat,rcov,rxyz(1,1,nhist),tnatdmy,1,fixfragmented)
         if(fixfragmented .and. mhgps_verbosity >=2.and. iproc==0)&
            call yaml_comment('fragmentation fixed')
+        endif
         !displ=displ+tt
  
         delta=rxyz(:,:,nhist)-rxyzold
@@ -385,7 +395,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
  
         call fnrmandforcemax(fxyzraw(1,1,nhist),fnrm,fmax,nat)
         fnrm=sqrt(fnrm)
- 
+!write(*,*)'debug position 1, iproc: ',iproc 
         if (iproc == 0 .and. mhgps_verbosity >=4) then
            fc=fc+1
            write(fn9,'(i9.9)') fc
@@ -402,13 +412,18 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
                 etotp,rxyz(:,:,nhist),forces=minmode)
                 !atoms,trim(comment),forces=fxyzraw(1,1,nhist))
         endif
+!write(*,*)'debug position 2, iproc: ',iproc 
 
         tmp=-ddot(3*nat,fxyz(1,1,nhist),1,minmode(1,1),1)
+!write(*,*)'debug position 3, iproc: ',iproc 
         call vcopy(3*nat,fxyz(1,1,nhist),1,ftmp(1,1),1) 
+!write(*,*)'debug position 4, iproc: ',iproc 
         call daxpy(3*nat,tmp, minmode(1,1), 1, ftmp(1,1), 1 )
+!write(*,*)'debug position 5, iproc: ',iproc 
         cosangle=-dot_double(3*nat,ftmp(1,1),1,dd0(1,1),1)/&
                  sqrt(dot_double(3*nat,ftmp(1,1),1,ftmp(1,1),1)*&
                  dot_double(3*nat,dd0(1,1),1,dd0(1,1),1))
+!write(*,*)'debug position 6, iproc: ',iproc 
 
         if(iproc==0.and.mhgps_verbosity>=2)&
             write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es12.5,1x,es9.2)')&
@@ -468,9 +483,11 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
             endif
             !rxyz(:,:,nhist)=rxyz(:,:,nhist)+alpha_stretch*fstretch(:,:,nhist)
             rxyz(:,:,nhist)=rxyz(:,:,nhist)+dds
+            if (astruct_ptr%geocode == 'F') then
             call fixfrag_posvel(nat,rcov,rxyz(1,1,nhist),tnatdmy,1,fixfragmented)
             if(fixfragmented .and. mhgps_verbosity >=2.and. iproc==0)&
               call yaml_comment('fragmentation fixed')
+            endif
         endif
 
         if (cosangle.gt..20_gp) then
@@ -816,7 +833,7 @@ if(iproc==0.and.mhgps_verbosity>=2)&
                 call yaml_comment('INFO: (MHGPS) alpha reset (opt. curv): '//&
                      trim(yaml_toa(alpha)))
             ndim=0
-        if(.not. isForceField)then
+        if((.not. isForceField) .and. (inputPsiId/=0))then
             if(iproc==0 .and. mhgps_verbosity>=3)&
                 call yaml_comment('INFO: (MHGPS) Will use LCAO input guess from now on '//&
                 '(until end of current minmode optimization).')
@@ -934,7 +951,8 @@ subroutine curvforce(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_co
     dfxyz = f_malloc((/ 1.to.3, 1.to.nat/),id='dfxyz')
     call elim_moment_fs(nat,vec(1,1))
 !    call elim_torque_fs(nat,rxyz1(1,1),vec(1,1))
-    call elim_torque_reza(nat,rxyz1(1,1),vec(1,1))
+!    call elim_torque_reza(nat,rxyz1(1,1),vec(1,1))
+    call elim_torque_bastian(nat,rxyz1(1,1),vec(1,1))
 
     vec = vec / dnrm2(3*nat,vec(1,1),1)
     rxyz2 = rxyz1 + diff * vec
@@ -952,7 +970,8 @@ subroutine curvforce(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_co
         call elim_moment_fs(nat,rotforce(1,1))
 !!        call elim_torque_fs(nat,rxyz1(1,1),rotforce(1,1))
 !call torque(nat,rxyz1(1,1),rotforce(1,1))
-        call elim_torque_reza(nat,rxyz1(1,1),rotforce(1,1))
+!        call elim_torque_reza(nat,rxyz1(1,1),rotforce(1,1))
+        call elim_torque_bastian(nat,rxyz1(1,1),rotforce(1,1))
 
 
 
@@ -1369,7 +1388,8 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
 
       call elim_moment_fs(nat,vel)
 !      call elim_torque_fs(nat,pos,vel)
-      call elim_torque_reza(nat,pos,vel)
+!      call elim_torque_reza(nat,pos,vel)
+      call elim_torque_bastian(nat,pos,vel)
 
       ! scale velocities to regain initial ekin0
       ekin=0.0_gp
@@ -1912,6 +1932,109 @@ subroutine convcheck_sad(fmax,curv,fluctfrac_fluct,forcemax,check)
     check=0
   endif
 end subroutine convcheck_sad
+subroutine elim_torque_bastian(nat,ratin,vat)
+use module_base
+!theory:
+!(in the following: x mean cross product)
+!L = sum(r_i x p_i) = I w
+!w = I^-1 L
+!v_ortho = w x r
+!v_tot = v_ortho + v_radial
+!=> vradial = v_tot - w x r
+!note: routine must be modified before using in cases
+!where masses /= 1
+    implicit none
+    integer, intent(in) :: nat
+    real(gp), intent(in) :: ratin(3,nat)
+    real(gp), intent(inout) :: vat(3,nat)
+    !internal
+    integer :: iat
+    real(gp) :: rat(3,nat),cmx,cmy,cmz
+    real(gp) :: tt,tinv(3,3),dettinI,w(3),vo(3),angmom(3)
+    real(gp) :: tin11,tin22,tin33,tin12,tin13
+    real(gp) :: tin23,tin21,tin31,tin32
+    real(gp), dimension(:), allocatable :: amass
+
+    amass = f_malloc((/1.to.nat/),id='amass')
+    amass(1:nat)=1.0_gp
+
+    !shift cm to origin
+    cmx=0.0_gp; cmy=0.0_gp; cmz=0.0_gp
+    do iat=1,nat
+        cmx = cmx + ratin(1,iat)
+        cmy = cmy + ratin(2,iat)
+        cmz = cmz + ratin(3,iat)
+    enddo
+    cmx=cmx/nat; cmy=cmy/nat; cmz=cmz/nat
+    do iat=1,nat
+        rat(1,iat) = ratin(1,iat)-cmx
+        rat(2,iat) = ratin(2,iat)-cmy
+        rat(3,iat) = ratin(3,iat)-cmz
+    enddo
+    
+    
+    !calculate inertia tensor
+    tin11=0.0_gp; tin22=0.0_gp; tin33=0.0_gp
+    tin12=0.0_gp; tin13=0.0_gp; tin23=0.0_gp
+    tin21=0.0_gp; tin31=0.0_gp; tin32=0.0_gp
+    do iat=1,nat
+        tt=amass(iat)
+        tin11=tin11+tt*(rat(2,iat)*rat(2,iat)+rat(3,iat)*rat(3,iat))
+        tin22=tin22+tt*(rat(1,iat)*rat(1,iat)+rat(3,iat)*rat(3,iat))
+        tin33=tin33+tt*(rat(1,iat)*rat(1,iat)+rat(2,iat)*rat(2,iat))
+        tin12=tin12-tt*(rat(1,iat)*rat(2,iat))
+        tin13=tin13-tt*(rat(1,iat)*rat(3,iat))
+        tin23=tin23-tt*(rat(2,iat)*rat(3,iat))
+        tin21=tin12
+        tin31=tin13
+        tin32=tin23
+    enddo
+
+    !invert inertia tensor
+    dettinI = 1.0_gp/(tin11*tin22*tin33+tin12*tin23*tin31&
+              +tin13*tin21*tin32-tin13*tin22*tin31-&
+              tin12*tin21*tin33-tin11*tin23*tin32)
+    tinv(1,1)=dettinI*(tin22*tin33-tin23*tin32)
+    tinv(2,2)=dettinI*(tin11*tin33-tin13*tin31)
+    tinv(3,3)=dettinI*(tin11*tin22-tin12*tin21)
+    tinv(1,2)=dettinI*(tin13*tin32-tin12*tin33)
+    tinv(1,3)=dettinI*(tin12*tin23-tin13*tin22)
+    tinv(2,3)=dettinI*(tin13*tin21-tin11*tin23)
+    tinv(2,1)=dettinI*(tin23*tin31-tin21*tin33)
+    tinv(3,1)=dettinI*(tin21*tin32-tin22*tin31)
+    tinv(3,2)=dettinI*(tin12*tin31-tin11*tin32)
+
+    !Compute angular momentum
+    angmom=0.0_gp
+    vo=0.0_gp
+    do iat=1,nat
+        vo(1)=rat(2,iat)*vat(3,iat)-rat(3,iat)*vat(2,iat)
+        vo(2)=rat(3,iat)*vat(1,iat)-rat(1,iat)*vat(3,iat)
+        vo(3)=rat(1,iat)*vat(2,iat)-rat(2,iat)*vat(1,iat)
+        angmom(1)=angmom(1)+vo(1)
+        angmom(2)=angmom(2)+vo(2)
+        angmom(3)=angmom(3)+vo(3)
+    enddo
+
+    !matrix product w= I^-1 L
+    w(1)=tinv(1,1)*angmom(1)+tinv(1,2)*angmom(2)+tinv(1,3)*angmom(3)
+    w(2)=tinv(2,1)*angmom(1)+tinv(2,2)*angmom(2)+tinv(2,3)*angmom(3)
+    w(3)=tinv(3,1)*angmom(1)+tinv(3,2)*angmom(2)+tinv(3,3)*angmom(3)
+
+    vo=0.0_gp
+    do iat=1,nat
+        !tangential velocity v_ortho = w x r_i
+        vo(1)=w(2)*rat(3,iat)-w(3)*rat(2,iat)
+        vo(2)=w(3)*rat(1,iat)-w(1)*rat(3,iat)
+        vo(3)=w(1)*rat(2,iat)-w(2)*rat(1,iat)
+        !remove tangential velocity from velocity of atom iat
+        vat(1,iat) = vat(1,iat) - vo(1)
+        vat(2,iat) = vat(2,iat) - vo(2)
+        vat(3,iat) = vat(3,iat) - vo(3)
+    enddo
+    call f_free(amass)
+end subroutine
+
 !!!!subroutine cal_hessian_fd_m(iproc,nat,alat,pos,hess)
 !!!!use module_base
 !!!!use module_energyandforces

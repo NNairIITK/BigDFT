@@ -27,7 +27,7 @@ program mhgps
     use module_connect, only: connect_recursively, connect, connect_object,&
                               deallocate_connect_object,&
                               allocate_connect_object
-    use module_fingerprints, only: fingerprint
+    use module_fingerprints, only: fingerprint_interface
     use module_hessian, only: cal_hessian_fd 
     use module_minimizers
     implicit none
@@ -78,6 +78,7 @@ program mhgps
 
     ifolder=1
     ifile=1
+!!    ifile=0
     ef_counter=0.d0 !from module_global_variables
     isad=0  !from module_global_variables
     isadprob=0
@@ -159,38 +160,46 @@ program mhgps
         isForceField=.true.
         write(currDir,'(a,i3.3)')'input',ifolder
         write(filename,'(a,i3.3)')'pos',ifile
-        call deallocate_atomic_structure(atom_struct)
         call read_atomic_file(currDir//'/'//filename,iproc,&
                               atom_struct)
         astruct_ptr=>atom_struct
         fdim=astruct_ptr%nat
         call print_logo_mhgps()
-!    elseif(efmethod=='AMBER')then
+    elseif(efmethod=='AMBER')then
+        iproc=0
+        isForceField=.true.
+        write(currDir,'(a,i3.3)')'input',ifolder
+        write(filename,'(a,i3.3)')'pos',ifile
+        call read_atomic_file(currDir//'/'//filename,iproc,&
+                              atom_struct)
+        astruct_ptr=>atom_struct
+        fdim=astruct_ptr%nat
+        !alanine stuff ......................START!>
+          l_sat=5
+          allocate(atomnamesdmy(1000))
+          rxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct_ptr%nat/),&
+                            id='rxyzdmy')
+          fxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct_ptr%nat/),&
+                            id='fxyzdmy')
+          fnpdb='ald_new.pdb'
+          nfnpdb=len(trim(fnpdb));
+          call nab_init(astruct_ptr%nat,rxyzdmy,fxyzdmy,&
+                        trim(fnpdb),nfnpdb,l_sat,atomnamesdmy)
+          call f_free(rxyzdmy)
+          call f_free(fxyzdmy)
+          deallocate(atomnamesdmy)
+        !alanine stuff ......................END!>
+
+        call print_logo_mhgps()
+!    elseif(efmethod=='AMBEROF')then
 !        iproc=0
 !        isForceField=.true.
 !        write(currDir,'(a,i3.3)')'input',ifolder
 !        write(filename,'(a,i3.3)')'pos',ifile
-!        call deallocate_atomic_structure(atom_struct)
 !        call read_atomic_file(currDir//'/'//filename,iproc,&
 !                              atom_struct)
-!        astruct=>atom_struct
-!        fdim=astruct%nat
-!        !alanine stuff ......................START!>
-!          l_sat=5
-!          allocate(atomnamesdmy(1000))
-!          rxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct%nat/),&
-!                            id='rxyzdmy')
-!          fxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct%nat/),&
-!                            id='fxyzdmy')
-!          fnpdb='ald_new.pdb'
-!          nfnpdb=len(trim(fnpdb));
-!          call nab_init(astruct%nat,rxyzdmy,fxyzdmy,&
-!                        trim(fnpdb),nfnpdb,l_sat,atomnamesdmy)
-!          call f_free(rxyzdmy)
-!          call f_free(fxyzdmy)
-!          deallocate(atomnamesdmy)
-!        !alanine stuff ......................END!>
-!
+!        astruct_ptr=>atom_struct
+!        fdim=astruct_ptr%nat
 !        call print_logo_mhgps()
     else
         call yaml_warning('Following method for evaluation of '//&
@@ -199,9 +208,13 @@ program mhgps
     endif
     if(iproc==0) call print_input()
 
-    nat = bigdft_nat(runObj)
+    !don't use bigdft_nat here since if not using BigDFT, runObj is not present!
+!    nat = bigdft_nat(runObj)
+    nat = astruct_ptr%nat
     nid = nat !s-overlap fingerprints
-    alat =bigdft_get_cell(runObj)!astruct_ptr%cell_dim
+    !don't use bigdft_get_cell here since if not using BigDFT, runObj is not present!
+!    alat =bigdft_get_cell(runObj)!astruct_ptr%cell_dim
+    alat =astruct_ptr%cell_dim
     
     !allocate more arrays
     lwork=1000+10*nat**2
@@ -321,6 +334,7 @@ allocate(fat(3,nat))
         endif
 
         do ifile = 1,nend
+!        do ifile = 0,nend
 
             !read (first) file
             write(filename,'(a,i3.3)')'pos',ifile
@@ -452,6 +466,7 @@ allocate(fat(3,nat))
                     endif
                     call fnrmandforcemax(fxyz(1,1),fnrm,&
                                         fmax,nat)
+                    fnrm = sqrt(fnrm)
                     if (iproc == 0) then
                         write(comment,'(a,1pe10.3,5x1pe10.3)')&
                        'ATTENTION! Forces below give no forces, '//&
@@ -497,16 +512,9 @@ allocate(fat(3,nat))
                          '_final',&
                          comment,&
                          energy,rxyz=rxyz,forces=fxyz)
-
-                    write(comment,'(a,1pe10.3,5x1pe10.3)')&
-                   'fnrm, fmax = ',fnrm,fmax
-                    call astruct_dump_to_file(astruct_ptr,&
-                         currDir//'/sad'//trim(adjustl(isadc))//&
-                         '_finalF',&
-                         comment,&
-                         energy,rxyz=rxyz,forces=fxyz)
                 endif
             else if(trim(adjustl(operation_mode))=='hessian')then
+                call energyandforces(nat,alat,rxyz,fxyz,fnoise,energy)
                 call cal_hessian_fd(iproc,nat,alat,rxyz,hess)
                 if(iproc==0)then
                     write(*,*)'(hess) HESSIAN:'
@@ -544,7 +552,7 @@ allocate(fat(3,nat))
 !        call free_input_variables(inputs_opt)
         call deallocate_global_output(outs)
         call bigdft_finalize(ierr)
-    elseif(efmethod=='LJ'.or.efmethod=='AMBER'.or.&
+    elseif(efmethod=='LJ'.or.efmethod=='AMBER'.or.efmethod=='AMBEROF'.or.&
            efmethod=='LENSIc' .or. efmethod=='LENSIb')then
         call deallocate_atomic_structure(atom_struct)
         nullify(astruct_ptr)

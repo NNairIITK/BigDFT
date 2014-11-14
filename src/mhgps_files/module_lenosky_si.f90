@@ -50,7 +50,6 @@ subroutine lenosky_si_shift(nat,alat,rat,fat,epot)
     pos(1,:)=pos(1,:)-cmx+0.5d0*alat(1)
     pos(2,:)=pos(2,:)-cmy+0.5d0*alat(2)
     pos(3,:)=pos(3,:)-cmz+0.5d0*alat(3)
-
     call lenosky(nat,alat,pos,fat,epot,coord,ener_var,coord_var,count)
 end subroutine lenosky_si_shift
 

@@ -1094,8 +1094,11 @@ module bigdft_run
       !integer :: iat
       real(gp) :: maxdiff
       external :: cluster,forces_via_finite_differences
+!if(bigdft_mpi%iproc==0)write(*,*)'(BIGDFTbastian) ######################################'
+!write(*,*)'(BIGDFTbastian) debug befor barrier,runObj%inputs%inputPsiId',runObj%inputs%inputPsiId,bigdft_mpi%iproc
       !put a barrier for all the processes
       call mpibarrier(bigdft_mpi%mpi_comm)
+!write(*,*)'(BIGDFTbastian) debug after barrier,runObj%inputs%inputPsiId',runObj%inputs%inputPsiId,bigdft_mpi%iproc
       call f_routine(id=subname)
       !Check the consistency between MPI processes of the atomic coordinates
       maxdiff=mpimaxdiff(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,bcast=.true.)
@@ -1176,6 +1179,7 @@ module bigdft_run
             call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
             call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
          end if
+!write(*,*)'(BIGDFTbastian) debug after free memory,runObj%inputs%inputPsiId',runObj%inputs%inputPsiId,bigdft_mpi%iproc
 
          !backdoor for hacking, finite difference method for calculating forces on particular quantities
          call f_file_exists('input.finite_difference_forces',exists)

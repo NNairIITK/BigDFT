@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7.6],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7.6.1],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -426,6 +426,24 @@ AC_ARG_ENABLE(pseudo, AS_HELP_STRING([--enable-pseudo], [Compile the pseudo code
                          ac_build_bin_pseudo=$enableval, ac_build_bin_pseudo="no")
 AM_CONDITIONAL(BUILD_BINARIES_PSEUDO, test "$ac_build_bin_pseudo" = "yes")
 AC_MSG_RESULT([$ac_build_bin_pseudo])
+
+dnl test for the present of ambertools compiler (experimental)
+AC_PATH_PROG([NAB], [nab])
+AC_SUBST(NAB)
+AC_ARG_WITH(ambertools, AS_HELP_STRING([--with-ambertools],
+            [Give the path of the ambertools libraries (example = /home/<username>/lib/). Don't use the -L before the path(es), just give the plain path.]),
+            ac_ambertools_dir=$withval, ac_ambertools_dir=)
+ac_use_amber="no"
+AM_CONDITIONAL(HAVE_AMBERTOOLS, test x"$ac_ambertools_dir" != "x")
+if test -n "$ac_ambertools_dir" ; then
+  LIB_AMBERTOOLS="-L$ac_ambertools_dir"
+  AC_SUBST(LIB_AMBERTOOLS, $LIB_AMBERTOOLS)
+  if test x"$NAB" = "x" ; then
+      AC_MSG_ERROR(["Path to ambertools library is given by user, but nab compiler was not found on the machine."])
+  fi
+  ac_use_amber="yes"
+fi
+
 
 
 dnl Use the GPU computing (only NVIDIA cards with CUDA libraries)
@@ -1240,6 +1258,8 @@ Options:
    | Cuda flags:             $CUDA_FLAGS
   With OpenCL support:       $ac_use_ocl
   With Intel MIC support:    $ac_use_mic
+  With AMBERTOOLS compiler:  $ac_use_amber
+   | nab Compiler:           $NAB
   With dgemmsy support:      $ac_use_dgemmsy
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc

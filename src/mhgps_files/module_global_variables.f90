@@ -16,7 +16,7 @@ module module_global_variables
 
     !input parameters for mhgps
     integer          :: mhgps_verbosity     = 3
-    character(len=6) :: efmethod            = "LJ" !method/force-field
+    character(len=10) :: efmethod            = "LJ" !method/force-field
                                                    !for energies,
                                                    !stresses and
                                                    !forces
