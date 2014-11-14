@@ -740,6 +740,7 @@ contains
 
     call dict_init(s)
     seq => s
+    nullify(s)
 
     event = 0
     do while (event /= STREAM_END)
@@ -756,21 +757,17 @@ contains
           exit
        else if (event == MAPPING_START) then
           sub => build_map(parser)
-          s => dict_next_build(s)
-          call set(s, sub)
+          call add(seq, sub, s)
        else if (event == SEQUENCE_START) then
           sub => build_seq(parser)
-          s => dict_next_build(s)
-          call set(s, sub)
+          call add(seq, sub, s)
        else if (event == SCALAR) then
-          s => dict_next_build(s)
-          call set(s, val)
+          call add(seq, val, s)
        else if (event == ALIAS) then
           call f_err_throw(err_id = YAML_PARSE_UNSUPPORTED, &
                & err_msg = "unsupported alias to " // trim(val))
           ! Fallback to stringified alias.
-          s => dict_next_build(s)
-          call set(s, "*" // trim(val))
+          call add(seq, "*" // trim(val), s)
        end if
        
        if (f_err_check(YAML_PARSE_ERROR)) return

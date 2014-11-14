@@ -901,7 +901,7 @@ contains
       real(gp), dimension(3, astruct%nat), intent(in) :: rxyz
       character(len=*), intent(in), optional :: comment
       !local variables
-      type(dictionary), pointer :: pos, at
+      type(dictionary), pointer :: pos, at, last
       integer :: iat,ichg,ispol
       real(gp) :: factor(3)
       logical :: reduced
@@ -957,6 +957,7 @@ contains
 
       if (has_key(dict, ASTRUCT_POSITIONS)) call dict_remove(dict, ASTRUCT_POSITIONS)
       if (astruct%nat > 0) pos => dict // ASTRUCT_POSITIONS
+      nullify(last)
       do iat=1,astruct%nat
          call dict_init(at)
          call add(at // astruct%atomnames(astruct%iatype(iat)), rxyz(1,iat) * factor(1))
@@ -975,7 +976,7 @@ contains
             call set(at // "int_ref_atoms_2", astruct%ixyz_int(2,iat))
             call set(at // "int_ref_atoms_3", astruct%ixyz_int(3,iat))
          end if
-         call add(pos, at)
+         call add(pos, at, last)
       end do
 
       if (present(comment)) then

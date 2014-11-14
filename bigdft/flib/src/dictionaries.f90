@@ -459,46 +459,53 @@ contains
    
 
    !> Add to a list
-   subroutine add_char(dict,val)
+   subroutine add_char(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
      character(len=*), intent(in) :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_char
-   subroutine add_dict(dict,val)
+   subroutine add_dict(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
      type(dictionary), pointer :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_dict
-   subroutine add_integer(dict,val)
+   subroutine add_integer(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
      integer, intent(in) :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_integer
-   subroutine add_real(dict,val)
+   subroutine add_real(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
      real, intent(in) :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_real
-   subroutine add_double(dict,val)
+   subroutine add_double(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
      double precision, intent(in) :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_double
-   subroutine add_long(dict,val)
+   subroutine add_long(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
      integer(kind=8), intent(in) :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_long
-   subroutine add_log(dict,val)
+   subroutine add_log(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
      logical, intent(in) :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_log
 
