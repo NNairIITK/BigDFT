@@ -140,7 +140,7 @@ ATOMS_INCLUDES = astruct-inc.f90
 COMMS_INCLUDES = check_array-inc.f90
 
 EXTRA_DIST = configure.inc.in bigdft_cst.h.in \
-	$(AO_INCLUDES) $(ATOMS_INCLUDES) $(COMMS_INCLUDES)
+	$(AO_INCLUDES) $(ATOMS_INCLUDES) $(COMMS_INCLUDES) $(overrides_DATA)
 CLEANFILES = $(modules)
 
 AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@

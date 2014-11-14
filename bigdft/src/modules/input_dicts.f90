@@ -809,18 +809,17 @@ contains
 
     type(dictionary), pointer :: atoms, at
     character(len = max_field_length) :: str
-    integer :: iat, ityp, dlen
+    integer :: ityp
 
     if (ASTRUCT_POSITIONS .notin. dict) then
        nullify(types)
        return
     end if
     call dict_init(types)
-    atoms => dict // ASTRUCT_POSITIONS
     ityp = 0
-    dlen = dict_len(atoms)
-    do iat = 1, dlen, 1
-       at => dict_iter(atoms // (iat - 1))
+    atoms => dict_iter(dict // ASTRUCT_POSITIONS)
+    do while(associated(atoms))
+       at => dict_iter(atoms)
        do while(associated(at))
           str = dict_key(at)
           if (dict_len(at) == 3 .and. .not. has_key(types, str)) then
@@ -831,6 +830,7 @@ contains
              at => dict_next(at)
           end if
        end do
+       atoms => dict_next(atoms)
     end do
   end subroutine astruct_dict_get_types
 
@@ -932,7 +932,7 @@ contains
     character(len = 1024), intent(out), optional :: comment !< Extra comment retrieved from the file if present
     !local variables
     character(len=*), parameter :: subname='astruct_set_from_dict'
-    type(dictionary), pointer :: pos, at, types
+    type(dictionary), pointer :: pos, at, atData, types
     character(len = max_field_length) :: str
     integer :: iat, ityp, units, igspin, igchrg, nsgn, ntyp, ierr
 
@@ -996,37 +996,41 @@ contains
     if (ASTRUCT_POSITIONS .in. dict) then
        pos => dict // ASTRUCT_POSITIONS
        call astruct_set_n_atoms(astruct, dict_len(pos))
-       do iat = 1, astruct%nat
+       at => dict_iter(pos)
+       iat = 0
+       do while(associated(at))
+          iat = iat + 1
+
           igspin = 0
           igchrg = 0
           nsgn   = 1
           !at => pos // (iat - 1)
-          at => dict_iter(pos//(iat-1))!at%child
-          do while(associated(at))
-             str = dict_key(at)
+          atData => dict_iter(at)!at%child
+          do while(associated(atData))
+             str = dict_key(atData)
              if (trim(str) == "Frozen") then
-                str = dict_value(at)
+                str = dict_value(atData)
                 call frozen_ftoi(str(1:4), astruct%ifrztyp(iat),ierr)
              else if (trim(str) == "IGSpin") then
-                igspin = at
+                igspin = atData
              else if (trim(str) == "IGChg") then
-                igchrg = at
+                igchrg = atData
                 if (igchrg >= 0) then
                    nsgn = 1
                 else
                    nsgn = -1
                 end if
              else if (trim(str) == "int_ref_atoms_1") then
-                astruct%ixyz_int(1,iat) = at
+                astruct%ixyz_int(1,iat) = atData
              else if (trim(str) == "int_ref_atoms_2") then
-                astruct%ixyz_int(2,iat) = at
+                astruct%ixyz_int(2,iat) = atData
              else if (trim(str) == "int_ref_atoms_3") then
-                astruct%ixyz_int(3,iat) = at
+                astruct%ixyz_int(3,iat) = atData
              else if (dict_len(at) == 3) then
-                astruct%iatype(iat) = types // dict_key(at)
-                astruct%rxyz(:, iat) = at
+                astruct%iatype(iat) = types // dict_key(atData)
+                astruct%rxyz(:, iat) = atData
              end if
-             at => dict_next(at)
+             atData => dict_next(atData)
           end do
           astruct%input_polarization(iat) = 1000 * igchrg + nsgn * 100 + igspin
           if (units == 1) then
@@ -1051,6 +1055,7 @@ contains
           else if (astruct%geocode == 'W') then
              astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
           end if
+          at => dict_next(at)
        end do
     else
        call astruct_set_n_atoms(astruct,0)

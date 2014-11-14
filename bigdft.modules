@@ -53,7 +53,7 @@
 
   <autotools id="bigdft">
     <!--<branch repo="bigdft" module="bigdft" version="1.7.5"/>-->
-    <branch repo="local" module="bigdft-1.7.5.tar.gz" version="1.7.5" checkoutdir="bigdft"/>
+    <branch repo="local" module="bigdft-1.7.5.12.tar.gz" version="1.7.5.12" checkoutdir="bigdft"/>
     <dependencies>
       <!--<dep package="flib"/>
       <dep package="psolver"/>-->

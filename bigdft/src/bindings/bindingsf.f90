@@ -917,7 +917,6 @@ subroutine proj_free(nlpspd)
   use memory_profiling
   implicit none
   type(DFT_PSP_projectors), pointer :: nlpspd
-  !real(kind=8), dimension(:), pointer :: proj
 
   call free_DFT_PSP_projectors(nlpspd)
 END SUBROUTINE proj_free
@@ -1785,7 +1784,6 @@ END SUBROUTINE dict_dump_to_file
 
 subroutine dict_parse(dict, buf)
   use dictionaries, only: dictionary, operator(//), dict_len,operator(.pop.),dict_free
-  use dictionaries_base, only: dict_destroy
   use yaml_parse, only: yaml_parse_from_string
   implicit none
   type(dictionary), pointer :: dict
@@ -1796,7 +1794,6 @@ subroutine dict_parse(dict, buf)
   call yaml_parse_from_string(dict_load, buf)
   if (dict_len(dict_load) == 1) then
      dict => dict_load .pop. 0
-
   end if
   call dict_free(dict_load)
 END SUBROUTINE dict_parse
@@ -1910,3 +1907,25 @@ subroutine dict_init_binding(dict)
 
   call wrapper(dict)
 END SUBROUTINE dict_init_binding
+
+
+subroutine err_severe_override(callback)
+  use dictionaries, only: f_err_severe_override, f_loc
+  implicit none
+  external :: callback
+  
+  write(*,*) f_loc(callback)
+  call f_err_severe_override(callback)
+end subroutine err_severe_override
+
+subroutine astruct_set_from_dict_binding(astruct, dict)
+  use module_input_dicts, only: astruct_set_from_dict
+  use dictionaries, only: dictionary
+  use module_atoms
+  implicit none
+  type(dictionary), pointer :: dict !< dictionary of the input variables
+  !! the keys have to be declared like input_dicts module
+  type(atomic_structure), intent(out) :: astruct          !< Structure created from the file
+
+  call astruct_set_from_dict(dict, astruct)
+end subroutine astruct_set_from_dict_binding

@@ -116,7 +116,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   use dynamic_memory
   use module_xc
   use input_old_text_format, only: dict_from_frag
-  use module_atoms, only: atoms_data,nullify_atoms_data,atomic_data_set_from_dict
+  use module_atoms, only: atoms_data,nullify_atoms_data,atomic_data_set_from_dict,check_atoms_positions
   use yaml_strings, only: f_strcpy
   use psp_projectors, only: PSPCODE_PAW
   use m_ab6_symmetry, only: symmetry_get_n_sym
@@ -329,6 +329,9 @@ subroutine inputs_from_dict(in, atoms, dict)
      if (bigdft_mpi%iproc==0) call yaml_warning('GPU calculation not implemented with non-collinear spin')
      call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
+
+  !control atom positions
+  call check_atoms_positions(atoms%astruct, (bigdft_mpi%iproc == 0))
 
 !!$  ! Stop code for unproper input variables combination.
 !!$  if (in%ncount_cluster_x > 0 .and. .not. in%disableSym .and. atoms%geocode == 'S') then

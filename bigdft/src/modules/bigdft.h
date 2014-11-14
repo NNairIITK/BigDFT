@@ -20,6 +20,13 @@ G_BEGIN_DECLS
 /*****************************************************/
 /* Basics definitions with possibly no GLib support. */
 /*****************************************************/
+/**
+ * BigDFT_ErrorCallback:
+ *
+ * Interface to a routine to be called on severe errors.
+ */
+typedef void (*BigdftErrorCallback)(void);
+
 int bigdft_lib_init(guint *mpi_iproc, guint *mpi_nproc, guint *mpi_igroup, guint *mpi_ngroup,
                 guint mpi_groupsize);
 int bigdft_mpi_set_distribution(guint *mpi_iproc, guint *mpi_nproc,
@@ -27,6 +34,7 @@ int bigdft_mpi_set_distribution(guint *mpi_iproc, guint *mpi_nproc,
                                 guint mpi_groupsize);
 void bigdft_mpi_force_group(guint igroup, guint ngroup);
 int bigdft_lib_finalize();
+void bigdft_lib_err_severe_override(BigdftErrorCallback func);
 guint bigdft_get_count(GObject *obj);
 
 /******************************/
@@ -163,6 +171,8 @@ void          bigdft_atoms_set_n_atoms       (BigDFT_Atoms *atoms, guint nat);
 void          bigdft_atoms_set_geometry      (BigDFT_Atoms *atoms, gchar geocode,
                                               double alat[3], const gchar *units);
 gboolean      bigdft_atoms_set_structure_from_file(BigDFT_Atoms *atoms, const gchar *filename);
+void          bigdft_atoms_set_structure_from_dict(BigDFT_Atoms *atoms,
+                                                   const BigDFT_DictIter *iter);
 void          bigdft_atoms_set_psp           (BigDFT_Atoms *atoms, int ixc,
                                               guint nspin, const gchar *occup);
 void          bigdft_atoms_set_symmetries    (BigDFT_Atoms *atoms, gboolean active,
