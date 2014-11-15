@@ -1203,7 +1203,7 @@ contains
     end subroutine init_matrix_parallelization
 
 
-    subroutine init_matrix_taskgroups(iproc, nproc, parallel_layout, collcom, collcom_sr, smat)
+    subroutine init_matrix_taskgroups(iproc, nproc, parallel_layout, collcom, collcom_sr, smat, smat_ref)
       use module_base
       use module_types
       use communications_base, only: comms_linear
@@ -1215,6 +1215,7 @@ contains
       logical,intent(in) :: parallel_layout
       type(comms_linear),intent(in) :: collcom, collcom_sr
       type(sparse_matrix),intent(inout) :: smat
+      type(sparse_matrix),intent(in),optional :: smat_ref
 
       ! Local variables
       integer :: ipt, ii, i0, i0i, iiorb, j, i0j, jjorb, ind, ind_min, ind_max, iseq
@@ -1225,7 +1226,7 @@ contains
       integer :: ntaskgrp_calc, ntaskgrp_use, i, ncount, iitaskgroup, group, ierr, iitaskgroups, newgroup, iseg
       logical :: go_on
       integer,dimension(:,:),allocatable :: in_taskgroup
-      integer :: iproc_start, iproc_end, imin, imax
+      integer :: iproc_start, iproc_end, imin, imax, ii_ref, iorb
       logical :: found, found_start, found_end
       integer :: iprocstart_current, iprocend_current, iprocend_prev, iprocstart_next
 
@@ -1254,6 +1255,36 @@ contains
 
       ! Now check the pseudo-exact orthonormalization during the input guess
       call check_ortho_inguess()
+
+
+      !@ NEW #####################################################################
+      !@ Make sure that the min and max are at least as large as the reference
+      if (present(smat_ref)) then
+          do i=1,2
+              if (ii==1) then
+                  ii_ref = smat_ref%istartend_local(1)
+              else
+                  ii_ref = smat_ref%istartend_local(2)
+              end if
+              ! Search the indices iorb,jorb corresponding to ii_ref
+              outloop: do iseg=1,smat%nseg
+                  iorb = smat_ref%keyg(1,2,iseg)
+                  do jorb=smat_ref%keyg(1,1,iseg),smat_ref%keyg(2,1,iseg)
+                      ii = matrixindex_in_compressed(smat_ref, iorb, jorb)
+                      if (ii==ii_ref) exit outloop
+                  end do
+              end do outloop
+
+              ! Get the inddex ii corresponding to ii_ref
+              ii = matrixindex_in_compressed(smat, iorb, jorb)
+              if (i==1) then
+                  ind_min = min(ind_min,ii)
+              else
+                  ind_max = max(ind_max,ii)
+              end if
+          end do
+      end if
+      !@ END NEW #################################################################
 
 
       if (.not.parallel_layout) then

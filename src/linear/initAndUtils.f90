@@ -1517,9 +1517,9 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
           tmb%collcom, tmb%collcom_sr, tmb%linmat%s)
      call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, tmb%linmat%s)
      call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
-          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, tmb%linmat%m)
 
 
      nullify(tmb%linmat%ks)
