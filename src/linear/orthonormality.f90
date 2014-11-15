@@ -1112,8 +1112,10 @@ subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, im
                       call timing(iproc,'lovrlp^-1     ','ON')
                       do icalc=1,ncalc
                           factor_arr(icalc)=newfactor(power(icalc),i,factor_arr(icalc))
-                          call daxpy(inv_ovrlp_smat%nfvctr*inv_ovrlp_smat%smmm%nfvctrp,factor_arr(icalc), &
-                               ovrlpminonep,1,invovrlpp_arr(1,1,icalc),1)
+                          if (inv_ovrlp_smat%smmm%nfvctrp>0) then
+                              call daxpy(inv_ovrlp_smat%nfvctr*inv_ovrlp_smat%smmm%nfvctrp,factor_arr(icalc), &
+                                   ovrlpminonep,1,invovrlpp_arr(1,1,icalc),1)
+                          end if
                       end do
                       if (i/=iorder.and.inv_ovrlp_smat%smmm%nfvctrp>0) then
                           call vcopy(inv_ovrlp_smat%nfvctr*inv_ovrlp_smat%smmm%nfvctrp,&

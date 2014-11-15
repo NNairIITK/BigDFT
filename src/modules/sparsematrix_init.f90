@@ -1281,7 +1281,7 @@ contains
                   ist = istart
               end if
               do icol=ist,iend,inc
-                  ii = matrixindex_in_compressed(smat, irow, icol)
+                  ii = matrixindex_in_compressed(smat, icol, irow)
                   if (ii>0) then
                       if (i==1) then
                           ind_min = ii
