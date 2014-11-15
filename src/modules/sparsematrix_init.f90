@@ -1267,7 +1267,7 @@ contains
                   ii_ref = smat_ref%istartend_local(2)
               end if
               ! Search the indices iorb,jorb corresponding to ii_ref
-              outloop: do iseg=1,smat%nseg
+              outloop: do iseg=1,smat_ref%nseg
                   iorb = smat_ref%keyg(1,2,iseg)
                   do jorb=smat_ref%keyg(1,1,iseg),smat_ref%keyg(2,1,iseg)
                       ii = matrixindex_in_compressed(smat_ref, iorb, jorb)
