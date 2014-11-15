@@ -4825,7 +4825,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                 end do
                 ncount = 2*(ndir+1)*7*3*4*(iatmax-iatmin+1)
                 nat_on_task = iat_startend(2,jproc)-iat_startend(1,jproc)+1
-                if (ie>=is) then
+                if (ie>=is .and. ncount>0) then
                     call mpi_type_vector(ie-is+1, ncount, 2*(ndir+1)*7*3*4*nat_on_task, mpi_double_precision, datatypes(jproc), ierr)
                     call mpi_type_commit(datatypes(jproc), ierr)
                     !!do iorb=is,ie
@@ -4872,12 +4872,10 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                 end do
                 ncount = 2*(ndir+1)*7*3*4*(iatmax-iatmin+1)
                 nat_on_task = iat_startend(2,jproc)-iat_startend(1,jproc)+1
-                if (ie>=is) then
+                if (ie>=is .and. ncount>0) then
                     do iorb=is,ie
-                        if (ncount>0) then
-                            call vcopy(ncount, scalprod_recvbuf(ist_recv), 1, scalprod(1,0,1,1,1,iatmin-isat_par(iproc),iorb), 1)
-                            ist_recv = ist_recv + ncount
-                        end if
+                       call vcopy(ncount, scalprod_recvbuf(ist_recv), 1, scalprod(1,0,1,1,1,iatmin-isat_par(iproc),iorb), 1)
+                       ist_recv = ist_recv + ncount
                     end do
                     call mpi_type_free(datatypes(jproc), ierr)
                 end if
