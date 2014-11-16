@@ -743,7 +743,7 @@ module sparsematrix
          stop 'compress_matrix_distributed: option GLOBAL_MATRIX is deprecated'
          !call to_zero(smat%nvctr, matrix_compr(1))
          if (nproc>1) then
-             matrix_local = f_malloc0_ptr(nvctrp,id='matrix_local')
+             matrix_local = f_malloc0_ptr(max(1,nvctrp),id='matrix_local')
          else
              matrix_local => matrix_compr
          end if
@@ -856,7 +856,7 @@ module sparsematrix
              call f_free(request)
              call f_free(recvbuf)
          else if (layout==DENSE_MATMUL) then
-             matrix_local = f_malloc_ptr(smat%smmm%nvctrp,id='matrix_local')
+             matrix_local = f_malloc_ptr(max(1,smat%smmm%nvctrp),id='matrix_local')
              if (nfvctrp>0) then
                  ii = 0
                  isegstart=smat%istsegline(isfvctr+1)
@@ -1011,7 +1011,7 @@ module sparsematrix
          isfvctr=smat%smmm%isfvctr
      end if
 
-       if (smat%nfvctrp>0) then
+       if (nfvctrp>0) then
 
            call to_zero(smat%nfvctr*nfvctrp,matrixp(1,1))
 
@@ -1070,7 +1070,7 @@ module sparsematrix
          isfvctr=smat%smmm%isfvctr
      end if
 
-       if (smat%nfvctrp>0) then
+       if (nfvctrp>0) then
 
            call to_zero(smat%nfvctr*nfvctrp,matrixp(1,1))
 
