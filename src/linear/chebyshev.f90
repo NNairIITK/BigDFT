@@ -272,12 +272,13 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, kernel, ham_compr, &
 
  
     
-      call f_free(vectors)
-    
-      if (calculate_SHS) then
+      if (calculate_SHS .and. kernel%smmm%nfvctrp>0) then
           call f_free(matrix)
       end if
-      call f_free(mat_seq)
+      if (kernel%smmm%nfvctrp>0) then
+          call f_free(mat_seq)
+          call f_free(vectors)
+      end if
       call f_free(mat_compr)
 
   end if
