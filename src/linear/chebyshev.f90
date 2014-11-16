@@ -51,6 +51,9 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, kernel, ham_compr, &
 
   mat_compr = f_malloc(kernel%nvctrp_tg,id='mat_compr')
 
+  if (calculate_SHS) then
+      matrix = sparsematrix_malloc(kernel, iaction=DENSE_MATMUL, id='matrix')
+  end if
   if (kernel%nfvctrp>0) then
 
     
@@ -58,7 +61,7 @@ subroutine chebyshev_clean(iproc, nproc, npl, cc, kernel, ham_compr, &
       mat_seq = sparsematrix_malloc(kernel, iaction=SPARSEMM_SEQ, id='mat_seq')
     
       if (calculate_SHS) then
-          matrix = sparsematrix_malloc(kernel, iaction=DENSE_MATMUL, id='matrix')
+          !!matrix = sparsematrix_malloc(kernel, iaction=DENSE_MATMUL, id='matrix')
     
           if (kernel%smmm%nfvctrp>0) then
               call to_zero(kernel%nfvctr*kernel%smmm%nfvctrp, matrix(1,1))
