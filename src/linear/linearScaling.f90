@@ -818,7 +818,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                    end if
                    !pnrm_out = pnrm_out/dble(input%nspin)
 
-                   nsize = int(KSwfn%Lzd%Glr%d%n1i,kind=8)*int(KSwfn%Lzd%Glr%d%n2i,kidn=8)*int(KSwfn%Lzd%Glr%d%n3i,kind=8)
+                   nsize = int(KSwfn%Lzd%Glr%d%n1i,kind=8)*int(KSwfn%Lzd%Glr%d%n2i,kind=8)*int(KSwfn%Lzd%Glr%d%n3i,kind=8)
                    pnrm_out=sqrt(pnrm_out)/real(nsize,kind=8)
                    !only want to copy across when CDFT loop has also converged
                    if (.not. input%lin%constrained_dft .or. (ebs-cdft%charge < cdft_charge_thresh)) then
