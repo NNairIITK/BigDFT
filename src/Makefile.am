@@ -136,6 +136,7 @@ low_level = \
 	init/logrid.f90 \
 	init/logrid_per.f90 \
 	init/inputguess.f90 \
+	init/rcov.f90 \
 	init/gautowav.f90 \
 	init/pspconf.f90 \
 	init/locreg_init.f90 \
@@ -317,7 +318,7 @@ amber_ld= @LIB_AMBERTOOLS@  -lsff -lnab -lpbsa -lcifparse -lrism -lfftw3 -larpac
 else
 amber_ld =
 endif
-mhgps_SOURCES = mhgps.f90
+mhgps_SOURCES = mhgps.f90 fingerprint.f90
 
 ##mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
 ##mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ mhgps_files/wrap.o
@@ -325,7 +326,7 @@ mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@
 ##mhgps_LDADD = mhgps_files/libmhgps.a $(bigdft_library) @LINALG_LIBS@
 mhgps_LDADD = mhgps_files/libmhgps.a $(amber_ld) $(bigdft_library) @LINALG_LIBS@
 
-global_SOURCES = global.f90
+global_SOURCES = global.f90 fingerprint.f90
 global_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.* input_variables_definition-inc.h

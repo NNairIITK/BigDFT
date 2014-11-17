@@ -27,7 +27,7 @@ program mhgps
     use module_connect, only: connect_recursively, connect, connect_object,&
                               deallocate_connect_object,&
                               allocate_connect_object
-    use module_fingerprints, only: fingerprint
+    use module_fingerprints, only: fingerprint_interface
     use module_hessian, only: cal_hessian_fd 
     use module_minimizers
     implicit none
