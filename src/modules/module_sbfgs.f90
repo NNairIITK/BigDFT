@@ -300,6 +300,10 @@ subroutine projectbond(nat,nbond,rat,fat,fstretch,iconnect,wold,&
     
     fstretch=0.0_gp
 
+    !|v_i> := |rat_k>-|rat_l>
+    !|F>=sum_i c_i* |v_i>
+    !<v_j|F> = sum_i c_i <v_j|v_i>
+
     ! set up positional overlap matrix
     vv=0.0_gp
     do ibond=1,nbond
@@ -326,6 +330,7 @@ subroutine projectbond(nat,nbond,rat,fat,fstretch,iconnect,wold,&
         if ( wold(ibond)*w(ibond).gt.0.0_gp) nsame=nsame+1
         wold(ibond)=w(ibond)
     enddo
+    !determine feedback on streching components of force
     per=real(nsame,gp)/nbond
     if (per.gt. .66_gp) then
         alpha_stretch=alpha_stretch*1.10_gp
@@ -340,7 +345,7 @@ subroutine projectbond(nat,nbond,rat,fat,fstretch,iconnect,wold,&
         stop 'info DPOSV in minenergyforces'
     endif
 
-! calculate projected force
+    ! calculate projected force
     fstretch=0.0_gp
     do ibond=1,nbond
         do iat=1,nat
@@ -350,7 +355,8 @@ subroutine projectbond(nat,nbond,rat,fat,fstretch,iconnect,wold,&
             enddo
         enddo
     enddo
-!     fnrmst=dnrm2(3*nat,fstretch,1)
+
+    !
     do iat=1,nat
         do l=1,3
             fat(l,iat)=fat(l,iat)-fstretch(l,iat)

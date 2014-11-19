@@ -1925,7 +1925,7 @@ end subroutine convcheck_sad
 subroutine elim_torque_bastian(nat,ratin,vat)
 use module_base
 !theory:
-!(in the following: x mean cross product)
+!(in the following: x represents cross product)
 !L = sum(r_i x p_i) = I w
 !w = I^-1 L
 !v_ortho = w x r
