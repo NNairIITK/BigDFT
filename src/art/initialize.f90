@@ -175,9 +175,13 @@ subroutine initialize()
         close(FLOG)
      end if
      mincounter = mincounter + 1
+
                                       ! if dual_search we dont do this check at the
                                       ! beginning. It is not well defined.
-     if ( LANCZOS_MIN .and. success .and. ( .not. dual_search ) ) call check_min( 'M' ) 
+     if ( success .and. .not. dual_search ) then
+        if ( LANCZOS_MIN .or. setup_initial ) call check_min( 'M' ) 
+     end if 
+
   else if ( (.not. new_event) .and. (.not. restart) ) then
 
                                       ! once we have the total energy we copy as reference values

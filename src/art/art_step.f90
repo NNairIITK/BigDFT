@@ -594,7 +594,7 @@ subroutine lanczos_step ( current_energy, a1, liter, get_proj )
   real(kind=8) :: fperp_b                    ! ...& for evaluation.
   real(kind=8) :: current_fperp              ! fperp as a criteria of minimization.
 
-  logical      :: new_projection 
+  logical      :: new_projection,minimized 
   !_______________________
   boxl = box * scala                  ! We compute at constant volume.
 
@@ -604,11 +604,11 @@ subroutine lanczos_step ( current_energy, a1, liter, get_proj )
   ! away from minimum. 
 
   fpar = dot_product( force, projection )
-  if ( abs(fpar) > EXITTHRESH*0.5 ) then 
-     pos = pos - sign(1.0d0,fpar) * 2.0d0 * INCREMENT * projection / sqrt(1.0d0*liter) 
-  else
-     pos = pos - sign(1.0d0,fpar) * 1.0d0 * INCREMENT * projection / sqrt(1.0d0*liter) 
-  end if
+!  if ( abs(fpar) > EXITTHRESH*0.5 ) then 
+     pos = pos - sign(1.0d0,fpar) *projection* min(2.0d0*INCREMENT,abs(fpar)/max(abs(eigenvalue) , 0.5d0)) 
+!  else
+!     pos = pos - sign(1.0d0,fpar) * 1.0d0 * INCREMENT * projection / sqrt(1.0d0*liter) 
+!  end if
                                       ! Current energy and force.
   call calcforce( NATOMS, pos, boxl, force, current_energy, evalf_number, .false. )
                                       ! New force's components.
@@ -620,7 +620,9 @@ subroutine lanczos_step ( current_energy, a1, liter, get_proj )
   m_perp = 0
   step_rejected = 0
 
+  call perp_fire(minimized)
   ! We relax perpendicularly using a simple variable-step steepest descent
+  if (.not. minimized) then
   While_perpi: do                     
 
     pos_b = pos + step * perp_force
@@ -649,11 +651,11 @@ subroutine lanczos_step ( current_energy, a1, liter, get_proj )
     end if
     try = try + 1 
                                       ! exit criteria 
-    if ( fperp < FTHRESHOLD .or. m_perp > MAXIPERP .or. &
+    if ( fperp < FTHRESHOLD .or. m_perp >= MAXIPERP .or. &
        & (try > 12 .or. (liter < 2 .and. try > 2 ) ) ) exit While_perpi
     
   end do  While_perpi 
-
+  endif !not minimized
   delta_e = current_energy - ref_energy
                                       ! Magnitude of the displacement (utils.f90).
   call displacement( posref, pos, delr, npart )
