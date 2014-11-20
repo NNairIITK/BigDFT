@@ -671,7 +671,7 @@ module sparsematrix
               call extract_taskgroup(lmat, tmparrl, lmatrix_compr)
           end do
       case (LARGE_TO_SMALL)
-          tmparrs = sparsematrix_malloc0(smat,iaction=SPARSE_FULL,id='tmparrs')
+          tmparrs = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='tmparrs')
           tmparrl = sparsematrix_malloc0(lmat,iaction=SPARSE_FULL,id='tmparrl')
           do ispin=1,smat%nspin
               ishift_src = (ispin-1)*lmat%nvctrp_tg
