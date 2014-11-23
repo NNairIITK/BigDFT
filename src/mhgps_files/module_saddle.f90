@@ -119,7 +119,6 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     real(gp) :: tnatdmy(3,nat)
     real(gp) :: tmp
     logical  :: optCurvConv
-!    logical  :: flag
     logical  :: tooFar
     logical  :: fixfragmented
     logical  :: subspaceSucc
@@ -127,8 +126,6 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     character(len=9)   :: fn9
     character(len=300)  :: comment
     character(len=100) :: filename
-!!real(gp) :: pos(3,nat),hess(3*nat,3*nat),evalh(3*nat)
-!!integer :: info
     !functions
     real(gp) :: ddot,dnrm2
 
@@ -246,39 +243,20 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
         !Walked too far? Then recompute direction of lowest mode!
         tooFar = abs(displ-displold)>rmsdispl*sqrt(dble(3*nat))
  
-        !reset flag if fnrm gets too big. (otherwise tightening
-        !might be only done in a flat region, but not at the end
-        !close to the transition state (may happen sometimes
-        !for biomolecules)
-!        if(fnrm > 2.0_gp*tightenfac*fnrmtol)then
-!             flag=.true.
-!        endif
         !determine if final tightening should be done:
         if(tighten.and.saddle_tighten)then
-!        if(fnrm<=tightenfac*fnrmtol .and. curv<0.d0 .and. (flag .or. tooFar))then
-!!       if(fnrm<=tightenfac*fnrmtol .and. flag)then
             if(iproc==0.and.mhgps_verbosity>=2)then
-!                if(flag)then
-                    call yaml_comment('(MHGPS) tightening')
-!                else
-!                    call yaml_warning('(MHGPS) redo tightening '//&
-!                         'since walked too far at small forces. '//&
-!                         'Is tightenfac chosen too large?')
-!                endif
+                call yaml_comment('(MHGPS) tightening')
             endif
             tol=tolf
             recompute=it
             minoverlap=-2._gp !disable overlap control in opt_curv
-!            flag=.false.
- !       else if(it==1)then
- !           tol=tolc
         else
             tol=tolc
             minoverlap=minoverlap0
         endif
         if(tooFar& !recompute lowest mode if walked too far
           .or. it==1& !compute lowest mode at first step
-         ! .or. (curv>=0.0_gp .and. (mod(it,recompIfCurvPos)==0))& !For LJ
           .or. (curv>=0.0_gp .and. ((mod(it,recompIfCurvPos)==0).or. fnrm<fnrmtol))& !For LJ
                                                                 !systems
                                                                 !recomputation
@@ -300,12 +278,6 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
                           minmode(1,1),curv,rotforce(1,1),tol,ener_count,&
                           optCurvConv,iconnect,nbond,alpha_rot_stretch0,&
                           maxcurvrise,cutoffratio,minoverlap)
-!pos=rxyzraw(:,:,nhist-1)
-!call cal_hessian_fd_m(iproc,nat,alat,pos,hess)
-!call tbhess(nat,pos,hess,evalh)
-!call DSYEV('V','L',3*nat,hess,3*nat,evalh,WORK,LWORK,INFO)
-!write(*,*) '(MHGPS) overlap with exact:',abs(ddot(3*nat,hess(:,1),1,minmode(1,1),1))
-!write(*,'(a,2(1x,es24.17))') '(MHGPS) rel err eval approx, eval finit:',curv,evalh(1)!,abs((curv-evalh(1))/evalh(1))
 
             inputPsiId=1
             minmode = minmode / dnrm2(3*nat,minmode(1,1),1)
@@ -388,35 +360,24 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
  
         call fnrmandforcemax(fxyzraw(1,1,nhist),fnrm,fmax,nat)
         fnrm=sqrt(fnrm)
-!write(*,*)'debug position 1, iproc: ',iproc 
         if (iproc == 0 .and. mhgps_verbosity >=4) then
            fc=fc+1
            write(fn9,'(i9.9)') fc
            write(comment,'(a,1pe10.3,5x,1pe10.3)')&
            'ATTENTION! Forces below are no forces but tangents to '//&
            'the guessed reaction path| fnrm, fmax = ',fnrm,fmax
-!!$           call write_atomic_file(currDir//'/sad'//trim(adjustl(isadc))//'_posout_'//fn9,&
-!!$                etotp,rxyz(1,1,nhist),ixyz_int,&
-!!$                atoms,trim(comment),forces=minmode)
-           
            call astruct_dump_to_file(astruct_ptr,&
                 currDir//'/sad'//trim(adjustl(isadc))//'_posout_'//fn9,&
                 trim(comment),&
                 etotp,rxyz(:,:,nhist),forces=minmode)
-                !atoms,trim(comment),forces=fxyzraw(1,1,nhist))
         endif
-!write(*,*)'debug position 2, iproc: ',iproc 
 
         tmp=-ddot(3*nat,fxyz(1,1,nhist),1,minmode(1,1),1)
-!write(*,*)'debug position 3, iproc: ',iproc 
         call vcopy(3*nat,fxyz(1,1,nhist),1,ftmp(1,1),1) 
-!write(*,*)'debug position 4, iproc: ',iproc 
         call daxpy(3*nat,tmp, minmode(1,1), 1, ftmp(1,1), 1 )
-!write(*,*)'debug position 5, iproc: ',iproc 
         cosangle=-dot_double(3*nat,ftmp(1,1),1,dd0(1,1),1)/&
                  sqrt(dot_double(3*nat,ftmp(1,1),1,ftmp(1,1),1)*&
                  dot_double(3*nat,dd0(1,1),1,dd0(1,1),1))
-!write(*,*)'debug position 6, iproc: ',iproc 
 
         if(iproc==0.and.mhgps_verbosity>=2)&
             write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es12.5,1x,es9.2)')&
@@ -447,8 +408,6 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
         else if(icheck == 0)then
             tighten=.false.
         endif
-!        if (fnrm.le.fnrmtol .and. curv<0.0_gp) goto 1000
-!       if (fnrm.le.fnrmtol) goto 1000
 
         !now do step in hard directions
         if(imode==2)then
@@ -476,11 +435,11 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
             endif
             !rxyz(:,:,nhist)=rxyz(:,:,nhist)+alpha_stretch*fstretch(:,:,nhist)
             rxyz(:,:,nhist)=rxyz(:,:,nhist)+dds
-            if (astruct_ptr%geocode == 'F') then
-            call fixfrag_posvel(nat,rcov,rxyz(1,1,nhist),tnatdmy,1,fixfragmented)
-            if(fixfragmented .and. mhgps_verbosity >=2.and. iproc==0)&
-              call yaml_comment('fragmentation fixed')
-            endif
+!            if (astruct_ptr%geocode == 'F') then
+!            call fixfrag_posvel(nat,rcov,rxyz(1,1,nhist),tnatdmy,1,fixfragmented)
+!                if(fixfragmented .and. mhgps_verbosity >=2.and. iproc==0)&
+!                  call yaml_comment('fragmentation fixed')
+!            endif
         endif
 
         if (cosangle.gt..20_gp) then
@@ -525,104 +484,6 @@ stop 'no convergence in findsad'
   end subroutine
 
 
-subroutine elim_moment_fs(nat,vxyz)
-    use module_base
-    implicit none
-    !parameters
-    integer :: nat
-    !internal
-    integer :: iat
-    real(gp) :: vxyz(3,nat),sx,sy,sz
-    sx=0.0_gp ; sy=0.0_gp ; sz=0.0_gp
-    do iat=1,nat
-        sx=sx+vxyz(1,iat)
-        sy=sy+vxyz(2,iat)
-        sz=sz+vxyz(3,iat)
-    enddo
-    sx=sx/nat ; sy=sy/nat ; sz=sz/nat
-    do iat=1,nat
-        vxyz(1,iat)=vxyz(1,iat)-sx
-        vxyz(2,iat)=vxyz(2,iat)-sy
-        vxyz(3,iat)=vxyz(3,iat)-sz
-    enddo
-end subroutine
-
-subroutine elim_torque_fs(nat,rxyz,vxyz)
-    use module_base
-    !paramters
-    integer, intent(in) :: nat
-    real(gp), intent(inout) :: rxyz(3,nat), vxyz(3,nat)
-    !internal
-    integer :: iat,it,ii,i
-    real(gp) :: t(3)
-    real(gp) :: cmx,cmy,cmz
-    real(gp) :: sx,sy,sz
-    real(gp) :: tmax
-    real(gp) :: cx,cy,cz
-
-    ! center of mass
-    cmx=0.0_gp ; cmy=0.0_gp ; cmz=0.0_gp
-    do iat=1,nat
-        cmx=cmx+rxyz(1,iat)
-        cmy=cmy+rxyz(2,iat)
-        cmz=cmz+rxyz(3,iat)
-    enddo
-    cmx=cmx/nat ; cmy=cmy/nat ; cmz=cmz/nat
-    
-    do it=1,100
-
-        ! torque and radii in planes
-        t(1)=0.0_gp ; t(2)=0.0_gp ; t(3)=0.0_gp
-        sx=0.0_gp ; sy=0.0_gp ; sz=0.0_gp
-        do iat=1,nat
-            t(1)=t(1)+(rxyz(2,iat)-cmy)*vxyz(3,iat)-&
-                &(rxyz(3,iat)-cmz)*vxyz(2,iat)
-            t(2)=t(2)+(rxyz(3,iat)-cmz)*vxyz(1,iat)-&
-                &(rxyz(1,iat)-cmx)*vxyz(3,iat)
-            t(3)=t(3)+(rxyz(1,iat)-cmx)*vxyz(2,iat)-&
-                &(rxyz(2,iat)-cmy)*vxyz(1,iat)
-            sx=sx+(rxyz(1,iat)-cmx)**2
-            sy=sy+(rxyz(2,iat)-cmy)**2
-            sz=sz+(rxyz(3,iat)-cmz)**2
-        enddo
-
-        if (t(1)**2+t(2)**2+t(3)**2.lt.1.e-22_gp) return
-
-        ii=0
-        tmax=0.0_gp
-        do i=1,3
-            if (t(i)**2.gt.tmax**2) then
-                ii=i
-                tmax=t(i)
-            endif
-        enddo
-
-        ! modify velocities
-        if (ii.eq.1) then
-            cx=t(1)/(sz+sy)
-            do iat=1,nat
-                vxyz(2,iat)=vxyz(2,iat)+cx*(rxyz(3,iat)-cmz)
-                vxyz(3,iat)=vxyz(3,iat)-cx*(rxyz(2,iat)-cmy)
-            enddo
-        else if(ii.eq.2) then
-            cy=t(2)/(sz+sx)
-            do iat=1,nat
-                vxyz(1,iat)=vxyz(1,iat)-cy*(rxyz(3,iat)-cmz)
-                vxyz(3,iat)=vxyz(3,iat)+cy*(rxyz(1,iat)-cmx)
-            enddo
-        else if(ii.eq.3) then
-            cz=t(3)/(sy+sx)
-            do iat=1,nat
-                vxyz(1,iat)=vxyz(1,iat)+cz*(rxyz(2,iat)-cmy)
-                vxyz(2,iat)=vxyz(2,iat)-cz*(rxyz(1,iat)-cmx)
-            enddo
-        else
-            stop 'wrong ii'
-        endif
-
-    enddo
-    write(100,'(a,3(e11.3))') 'WARNING REMAINING TORQUE',t
-end subroutine
 
 subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_fix,&
                     fxyz_fix,dxyzin,curv,fout,fnrmtol,ener_count,&
@@ -682,7 +543,8 @@ subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_
     !functions
     real(gp)                   :: ddot
     real(gp)                   :: dnrm2
-if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT minoverlap',minoverlap
+
+    if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT minoverlap',minoverlap
 
     if(.not.share)then
         alpha_stretch=alpha_stretch0
@@ -707,39 +569,28 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT mino
         enddo
     endif
 
-!    call minenergyandforces(nat,rxyz(1,1,0),rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),&
-!    fxyzraw(1,1,0),etot,iconnect,nbond,atomnames,wold,alpha_stretch)
-!    rxyz(:,:,0)=rxyz(:,:,0)+alpha_stretch*fstretch(:,:,0)
-!    ec=ec+1.0_gp
      call mincurvforce(imode,nat,alat,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
           rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),curv,1,ener_count,&
           iconnect,nbond,wold,alpha_stretch0,alpha_stretch)
     if(imode==2)rxyz(:,:,nhist)=rxyz(:,:,nhist)+alpha_stretch*fstretch(:,:,nhist)
-!    t1=0.0_gp ; t2=0.0_gp ; t3=0.0_gp
-!    t1raw=0.0_gp ; t2raw=0.0_gp ; t3raw=0.0_gp
-!    do iat=1,nat
-!       t1raw=t1raw+fxyzraw(1,iat,0)**2 ; t2raw=t2raw+fxyzraw(2,iat,0)**2;t3raw=t3raw+fxyzraw(3,iat,0)**2
-!    enddo
-!    fnrm=sqrt(t1raw+t2raw+t3raw)
+
     call fnrmandforcemax(fxyzraw(1,1,nhist),fnrm,fmax,nat)
     fnrm=sqrt(fnrm)
     curvold=curv
     curvp=curv
     overlap=ddot(3*nat,dxyzin0(1,1),1,rxyz(1,1,nhist),1)
  
-if(iproc==0.and.mhgps_verbosity>=2)&
+    if(iproc==0.and.mhgps_verbosity>=2)&
      write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5))')&
      '   (MHGPS) CUOPT ',nint(ener_count),0,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap,displr,displp
-!    itswitch=2
-   itswitch=-2
+    itswitch=-2
     do it=1,nit
         nhist=nhist+1
  
-!        if (fnrm.gt.50.0_gp .or. it.le.itswitch ) then
         if ((.not. subspaceSucc) .or. fnrm.gt.saddle_steepthresh_rot  .or. it.le.itswitch ) then
             ndim=0
             steep=.true.
-!            if (it.gt.itswitch) itswitch=it+nhistx
+            if (it.gt.itswitch) itswitch=it+nhistx
         else
             steep=.false.
         endif
@@ -772,14 +623,12 @@ if(iproc==0.and.mhgps_verbosity>=2)&
             enddo
         enddo
 !        displ=displ+sqrt(tt)
-!write(444,*)'dd',nhist
 
         do iat=1,nat
             rxyz(1,iat,nhist)=rxyz(1,iat,nhist-1)-dd(1,iat)
             rxyz(2,iat,nhist)=rxyz(2,iat,nhist-1)-dd(2,iat)
             rxyz(3,iat,nhist)=rxyz(3,iat,nhist-1)-dd(3,iat)
         enddo
-!write(444,*)1,rxyz(1,1,nhist)
 
      delta=rxyz(:,:,nhist)-rxyzOld
      displr=displr+dnrm2(3*nat,delta(1,1),1)
@@ -789,26 +638,11 @@ if(iproc==0.and.mhgps_verbosity>=2)&
      dcurv=curvp-curvold
 
 
-!        s=0.0_gp ; st=0.0_gp
-!        t1=0.0_gp ; t2=0.0_gp ; t3=0.0_gp
-!        t1raw=0.0_gp ; t2raw=0.0_gp ; t3raw=0.0_gp
-!        do iat=1,nat
-!            t1raw=t1raw+fxyzraw(1,iat,nhist)**2 ; t2raw=t2raw+fxyzraw(2,iat,nhist)**2 ;t3raw=t3raw+fxyzraw(3,iat,nhist)**2
-!            t1=t1+fxyz(1,iat,nhist)**2 ; t2=t2+fxyz(2,iat,nhist)**2 ;t3=t3+fxyz(3,iat,nhist)**2
-!            s=s+dd(1,iat)**2+dd(2,iat)**2+dd(3,iat)**2
-!            st=st+fxyz(1,iat,nhist)*dd(1,iat)+fxyz(2,iat,nhist)*dd(2,iat)+fxyz(3,iat,nhist)*dd(3,iat)
-!        enddo
-!        fnrm=sqrt(t1raw+t2raw+t3raw)
         call fnrmandforcemax(fxyzraw(1,1,nhist),fnrm,fmax,nat)
         fnrm=sqrt(fnrm)
         cosangle=-dot_double(3*nat,fxyz(1,1,nhist),1,dd(1,1),1)/&
                 sqrt(dot_double(3*nat,fxyz(1,1,nhist),1,fxyz(1,1,nhist),1)*&
                 dot_double(3*nat,dd(1,1),1,dd(1,1),1))
-
-
-!         write(*,'(a,i6,2(1x,es21.14),1x,4(1x,es10.3),xi6)')&
-!        &'CURV  it,curv,curvold,Dcurv,fnrm,alpha,alpha_stretch,ndim',&
-!        &it-1,curvp,curvold,dcurv,fnrm,alpha,alpha_stretch,ndim
 
 
         if (dcurv.gt.maxcurvrise .and. alpha>1.e-1_gp*alpha0) then 
@@ -865,7 +699,7 @@ if(iproc==0.and.mhgps_verbosity>=2)&
      displp=displp+dnrm2(3*nat,delta(1,1),1)
      rxyzOld=rxyz(:,:,nhist)
         overlap=ddot(3*nat,dxyzin0(1,1),1,rxyz(1,1,nhist),1)
-if(iproc==0.and.mhgps_verbosity>=2)&
+    if(iproc==0.and.mhgps_verbosity>=2)&
      write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5))')&
      '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap,displr,displp
 !        if (fnrm.le.fnrmtol) goto 1000
@@ -942,8 +776,6 @@ subroutine curvforce(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_co
     drxyz = f_malloc((/ 1.to.3, 1.to.nat/),id='drxyz')
     dfxyz = f_malloc((/ 1.to.3, 1.to.nat/),id='dfxyz')
     call elim_moment_fs(nat,vec(1,1))
-!    call elim_torque_fs(nat,rxyz1(1,1),vec(1,1))
-!    call elim_torque_reza(nat,rxyz1(1,1),vec(1,1))
     call elim_torque_bastian(nat,rxyz1(1,1),vec(1,1))
 
     vec = vec / dnrm2(3*nat,vec(1,1),1)
@@ -960,156 +792,17 @@ subroutine curvforce(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_co
 
         rotforce = 2.0_gp*dfxyz*diffinv + 2.0_gp * curv * drxyz
         call elim_moment_fs(nat,rotforce(1,1))
-!!        call elim_torque_fs(nat,rxyz1(1,1),rotforce(1,1))
-!call torque(nat,rxyz1(1,1),rotforce(1,1))
-!        call elim_torque_reza(nat,rxyz1(1,1),rotforce(1,1))
         call elim_torque_bastian(nat,rxyz1(1,1),rotforce(1,1))
-
-
-
-        rotforce = rotforce - ddot(3*nat,rotforce(1,1),1,vec(1,1),1)*vec
     else
         stop 'unknown method for curvature computation'
     endif
+        rotforce = rotforce - ddot(3*nat,rotforce(1,1),1,vec(1,1),1)*vec
     call f_free(rxyz2)
     call f_free(fxyz2)
     call f_free(drxyz)
     call f_free(dfxyz)
     
 end subroutine
-
-subroutine moment(nat,vxyz)
-use module_base
-    implicit none
-    !parameters
-    integer, intent(in) :: nat
-    real(gp), intent(in) :: vxyz(3,nat)
-    !internal
-    integer :: iat
-    real(gp) :: sx,sy,sz
-
-  sx=0.0_gp ; sy=0.0_gp ; sz=0.0_gp
-  do iat=1,nat
-     sx=sx+vxyz(1,iat)
-     sy=sy+vxyz(2,iat)
-     sz=sz+vxyz(3,iat)
-  enddo
-  write(*,'(a,3(1pe11.3))') 'momentum',sx,sy,sz
-END SUBROUTINE moment
-
-subroutine torque(nat,rxyz,vxyz)
-use module_base
-  implicit none
-  !parameters
-    integer, intent(in) :: nat
-    real(gp), intent(in) :: rxyz(3,nat), vxyz(3,nat)
-    !internal
-    integer :: iat
-    real(gp) :: cmx,cmy,cmz,tx,ty,tz
-
-  ! center of mass
-  cmx=0.0_gp ; cmy=0.0_gp ; cmz=0.0_gp
-  do iat=1,nat
-     cmx=cmx+rxyz(1,iat)
-     cmy=cmy+rxyz(2,iat)
-     cmz=cmz+rxyz(3,iat)
-  enddo
-  cmy=cmy/real(nat,8)
-  cmz=cmz/real(nat,8)
-
-  ! torque
-  tx=0.0_gp ; ty=0.0_gp ; tz=0.0_gp
-  do iat=1,nat
-     tx=tx+(rxyz(2,iat)-cmy)*vxyz(3,iat)-(rxyz(3,iat)-cmz)*vxyz(2,iat)
-     ty=ty+(rxyz(3,iat)-cmz)*vxyz(1,iat)-(rxyz(1,iat)-cmx)*vxyz(3,iat)
-     tz=tz+(rxyz(1,iat)-cmx)*vxyz(2,iat)-(rxyz(2,iat)-cmy)*vxyz(1,iat)
-  enddo
-  write(*,'(a,3(1x,es9.2))')'torque',tx,ty,tz
-
-END SUBROUTINE torque
-
-
-
-!!subroutine precondition(nat,pos,force)
-!!use module_base
-!!    implicit real(gp) (a-h,o-z)
-!!    dimension pos(3,nat),force(3,nat),dis(3,nat),d(3,nat),spring(nat,nat)
-!!
-!!    fnrmout=0.0_gp
-!!    do iat=1,nat
-!!        fnrmout=fnrmout+force(1,iat)**2+force(2,iat)**2+force(3,iat)**2
-!!    enddo
-!!    fnrmout=sqrt(fnrmout)
-!!
-!!    nprec=1000
-!!    !beta=.5e-4_gp
-!!    beta=.3e-4_gp
-!!    do iat=1,nat
-!!        dis(1,iat)=0.0_gp
-!!        dis(2,iat)=0.0_gp
-!!        dis(3,iat)=0.0_gp
-!!    enddo
-!!
-!!    ! calculate spring constants
-!!    bondlength=1.0_gp
-!!    cspring0=1000.0_gp
-!!    do iat=1,nat
-!!        do jat=1,iat-1
-!!            dd2=((pos(1,iat)-pos(1,jat))**2+(pos(2,iat)-pos(2,jat))**2&
-!!               &+(pos(3,iat)-pos(3,jat))**2)/bondlength**2
-!!            spring(iat,jat)=cspring0*exp(.5_gp-.5_gp*dd2)
-!!        enddo
-!!    enddo
-!!
-!!    do iprec=1,nprec
-!!        do iat=1,nat
-!!            d(1,iat)=beta*force(1,iat)
-!!            d(2,iat)=beta*force(2,iat)
-!!            d(3,iat)=beta*force(3,iat)
-!!            dis(1,iat)=dis(1,iat)+d(1,iat)
-!!            dis(2,iat)=dis(2,iat)+d(2,iat)
-!!            dis(3,iat)=dis(3,iat)+d(3,iat)
-!!        enddo
-!!
-!!        do iat=1,nat
-!!            do jat=1,iat-1
-!!                stretchx=d(1,iat)-d(1,jat)
-!!                stretchy=d(2,iat)-d(2,jat)
-!!                stretchz=d(3,iat)-d(3,jat)
-!!                cspring=spring(iat,jat)
-!!                force(1,iat)=force(1,iat)-cspring*stretchx
-!!                force(2,iat)=force(2,iat)-cspring*stretchy
-!!                force(3,iat)=force(3,iat)-cspring*stretchz
-!!                force(1,jat)=force(1,jat)+cspring*stretchx
-!!                force(2,jat)=force(2,jat)+cspring*stretchy
-!!                force(3,jat)=force(3,jat)+cspring*stretchz
-!!            enddo
-!!        enddo
-!!        ! write(24,'(i6,100(1x,e9.2))') iprec,force
-!!        fnrm=0.0_gp
-!!        do iat=1,nat
-!!            fnrm=fnrm+force(1,iat)**2+force(2,iat)**2+force(3,iat)**2
-!!        enddo
-!!        fnrm=sqrt(fnrm)
-!!        !write(*,*) 'iprec ',iprec,fnrm
-!!
-!!        if (fnrm.lt.1.e-2_gp*fnrmout) then
-!!!            if(check) write(100,*) 'iprec=',iprec,fnrm,fnrmout
-!!            goto 100
-!!        endif
-!!
-!!    enddo
-!!!    if(check) write(100,*) 'FAIL iprec=',iprec,fnrm,fnrmout
-!!
-!!    100 continue
-!!    do iat=1,nat
-!!        force(1,iat)=dis(1,iat)
-!!        force(2,iat)=dis(2,iat)
-!!        force(3,iat)=dis(3,iat)
-!!    enddo
-!!
-!!    return
-!!end subroutine
 
 subroutine fixfrag_posvel(nat,rcov,pos,vel,option,occured)
 !UNTERSCHIED ZUR MH ROUTINE:
@@ -1366,7 +1059,6 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
 !          call yaml_map('(MH) EKIN CM before invert',(/ekin0,vcm1,vcm2,vcm3/),fmt='(e10.3)')
 !!          call yaml_mapping_close(advance='yes')
 !      endif
-!      if (iproc==0) call torque(nat,pos,vel)
       !Checkend kinetic energy before inversion
 
       do iat=1,nat
@@ -1379,8 +1071,6 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
       enddo
 
       call elim_moment_fs(nat,vel)
-!      call elim_torque_fs(nat,pos,vel)
-!      call elim_torque_reza(nat,pos,vel)
       call elim_torque_bastian(nat,pos,vel)
 
       ! scale velocities to regain initial ekin0
@@ -1412,7 +1102,6 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
 !          call yaml_map('(MH) EKIN CM after invert',(/ekin0,vcm1,vcm2,vcm3/),fmt='(e10.3)')
 !          !call yaml_mapping_close(advance='yes')
 !      endif
-!      if (iproc==0) call torque(nat,pos,vel)
       !Checkend kinetic energy after inversion
 
       !Check angle  after inversion
@@ -1448,236 +1137,6 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
    endif
 endif
 end subroutine fixfrag_posvel
-
-!!!*****************************************************************************************
-!!!BELOW HERE ONLY REZAS PRECOND. ROUTINES
-!!subroutine preconditioner_reza(iproc,nr,nat,rat,atomnames,fat)
-!!use module_base
-!!   implicit none
-!!   integer :: iproc,nr,nat,nsb,nrsqtwo,i,j,k,info
-!!   real(gp) :: rat(3,nat),fat(nr),soft,hard
-!!   character(20):: atomnames(nat)
-!!   real(gp), allocatable::evec(:,:),eval(:),wa(:),hess(:,:)
-!!   real(gp) :: dx,dy,dz,r,tt, DDOT
-!!
-!!   allocate(hess(nr,nr))
-!!   call make_hessian(iproc,nr,nat,rat,atomnames,hess,nsb)
-!!
-!!   nrsqtwo=2*nr**2
-!!   allocate(evec(nr,nr),eval(nr),wa(nrsqtwo))
-!!   evec(1:nr,1:nr)=hess(1:nr,1:nr)
-!!   !if(iproc==0) write(*,*) 'HESS ',hess(:,:)
-!!
-!!   call DSYEV('V','L',nr,evec,nr,eval,wa,nrsqtwo,info)
-!!   if(info/=0) stop 'ERROR: DSYEV in inithess failed.'
-!!
-!!   if (iproc==0) then
-!!       do i=1,nr
-!!           write(*,'(i5,es20.10)') i,eval(i)
-!!       enddo
-!!   endif
-!!
-!!   hard=eval(nr)
-!!   soft=eval(nr-nsb+1)
-!!   write(*,*) 'SOFT in preconditioner_reza',soft,nr,nr-nsb+1
-!!   do k=1,nr
-!!       wa(k)=DDOT(nr,fat,1,evec(1,k),1)
-!!       !write(*,'(i5,2es20.10)') k,eval(k),wa(k)
-!!   enddo
-!!   do i=1,nr
-!!      tt=0.0_gp
-!!      do j=1,nr
-!!           tt=tt+(wa(j)/sqrt(eval(j)**2+ 66.0_gp**2))*evec(i,j)
-!!           !tt=tt+(wa(j)/sqrt(eval(j)**2+soft**2))*evec(i,j)
-!!      enddo
-!!      fat(i)=tt
-!!   enddo
-!!   deallocate(evec,eval,wa,hess)
-!!end subroutine preconditioner_reza
-!!subroutine make_hessian(iproc,nr,nat,rat,atomnames,hess,nsb)
-!!use module_base
-!!   implicit none
-!!   integer :: iproc,nr,nat,iat,jat,nsb,i,j,k,info
-!!   real(gp) :: rat(3,nat),hess(nr,nr),r0types(4,4),fctypes(4,4)
-!!   character(20):: atomnames(nat)
-!!   integer, allocatable::ita(:),isb(:,:)
-!!   real(gp), allocatable::r0bonds(:),fcbonds(:)
-!!   real(gp) :: dx,dy,dz,r,tt
-!!
-!!   if(nr/=3*nat) then
-!!       write(*,'(a)') 'This subroutine works only for systems without fixed atoms.'
-!!       stop
-!!   endif
-!!   allocate(ita(nat),isb(10*nat,2),r0bonds(10*nat),fcbonds(10*nat))
-!!   do iat=1,nat
-!!   !write(*,*) trim(atomnames(iat))
-!!   !stop
-!!       if(trim(atomnames(iat))=='H') then
-!!           ita(iat)=1
-!!       elseif(trim(atomnames(iat))=='C') then
-!!           ita(iat)=2
-!!       elseif(trim(atomnames(iat))=='N') then
-!!           ita(iat)=3
-!!       elseif(trim(atomnames(iat))=='O') then
-!!           ita(iat)=4
-!!       else
-!!           if(iproc==0) then
-!!             write(*,'(a)') 'ERROR: This PBFGS is only implemented for systems which '
-!!             write(*,'(a)') '       contain only organic elements, namely H,C,N,O.'
-!!             write(*,'(a)') '       so use BFGS instead.'
-!!           endif
-!!           stop
-!!       endif
-!!   enddo
-!!   call init_parameters(r0types,fctypes)
-!!   !r0types(1:4,1:4)=2.0_gp ; fctypes(1:4,1:4)=5.e2_gp
-!!   nsb=0
-!!   do iat=1,nat
-!!       do jat=iat+1,nat
-!!           dx=rat(1,jat)-rat(1,iat)
-!!           dy=rat(2,jat)-rat(2,iat)
-!!           dz=rat(3,jat)-rat(3,iat)
-!!           r=sqrt(dx**2+dy**2+dz**2)
-!!           !if(iat==21 .and. jat==27 .and. iproc==0) then
-!!           !    write(*,*) 'REZA ',r,1.35_gp*r0types(ita(iat),ita(jat))
-!!           !endif
-!!           if(r<1.35_gp*r0types(ita(iat),ita(jat))) then
-!!               nsb=nsb+1
-!!               if(nsb>10*nat) stop 'ERROR: too many stretching bonds, is everything OK?'
-!!               isb(nsb,1)=iat
-!!               isb(nsb,2)=jat
-!!               r0bonds(nsb)=r0types(ita(iat),ita(jat)) !CAUTION: equil. bond le >  from amber
-!!               !r0bonds(nsb)=r !CAUTION: current bond le >  assumed as equil. 
-!!               fcbonds(nsb)=fctypes(ita(iat),ita(jat))
-!!           endif
-!!       enddo
-!!   enddo
-!!   if(iproc==0) write(*,*) 'NSB ',nsb
-!!   !if(iproc==0) then
-!!   !    do i=1,nsb
-!!   !        write(*,'(a,i5,2f20.10,2i4,2(x,a))') 'PAR ', &
-!!   !            i,r0bonds(i),fcbonds(i),isb(i,1),isb(i,2), &
-!!   !            trim(atoms%astruct%atomnames(atoms%astruct%iatype(isb(i,1)))),trim(atoms%astruct%atomnames(atoms%astruct%iatype(isb(i,2))))
-!!   !    enddo
-!!   !endif
-!!   call pseudohess(nat,rat,nsb,isb(1,1),isb(1,2),fcbonds,r0bonds,hess)
-!!   deallocate(ita,isb,r0bonds,fcbonds)
-!!end subroutine make_hessian
-!!!*****************************************************************************************
-!!subroutine init_parameters(r0,fc)
-!!use module_base
-!!    implicit none
-!!    integer :: i,j
-!!    real(gp) :: r0(4,4),fc(4,4)
-!!    !real(gp):: units_r=1.0_gp/0.529_gp
-!!    real(gp):: units_r=1.0_gp
-!!    !real(gp):: units_k=4.48e-4_gp
-!!    real(gp):: units_k=1.0_gp
-!!    !((0.0104 / 0.239) / 27.2114) * (0.529177^2) = 0.000447802457
-!!    r0(1,1)=0.80_gp*units_r
-!!    r0(2,1)=1.09_gp*units_r ; r0(2,2)=1.51_gp*units_r
-!!    r0(3,1)=1.01_gp*units_r ; r0(3,2)=1.39_gp*units_r ; r0(3,3)=1.10_gp*units_r
-!!    r0(4,1)=0.96_gp*units_r ; r0(4,2)=1.26_gp*units_r ; r0(4,3)=1.10_gp*units_r ; r0(4,4)=1.10*units_r
-!!    do i=1,4
-!!        do j=i+1,4
-!!            r0(i,j)=r0(j,i)
-!!        enddo
-!!    enddo
-!!    fc(1,1)=1.00e3_gp*units_k
-!!    fc(2,1)=3.40e2_gp*units_k ; fc(2,2)=3.31e2_gp*units_k
-!!    fc(3,1)=4.34e2_gp*units_k ; fc(3,2)=4.13e2_gp*units_k ; fc(3,3)=4.56e3_gp*units_k
-!!    fc(4,1)=5.53e2_gp*units_k ; fc(4,2)=5.43e2_gp*units_k ; fc(4,3)=4.56e3_gp*units_k ; fc(4,4)=4.56e3_gp*units_k
-!!    do i=1,4
-!!        do j=i+1,4
-!!            fc(i,j)=fc(j,i)
-!!        enddo
-!!    enddo
-!!end subroutine init_parameters
-!!!*****************************************************************************************
-!!subroutine pseudohess(nat,rat,nbond,indbond1,indbond2,sprcons,xl0,hess)
-!!use module_base
-!!    implicit none
-!!    integer :: nat,nbond,indbond1(nbond),indbond2(nbond)
-!!    real(gp) :: rat(3,nat),sprcons(nbond),xl0(nbond),hess(3*nat,3*nat)
-!!    integer :: iat,jat,i,j,ibond
-!!    real(gp) :: dx,dy,dz,r2,r,rinv! n(c) r3inv
-!!!,rinv2,rinv4,rinv8,rinv10,rinv14,rinv16
-!!    real(gp) :: dxsq,dysq,dzsq,dxdy,dxdz,dydz,tt1,tt2,tt3
-!!    real(gp) :: h11,h22,h33,h12,h13,h23
-!!    do j=1,3*nat
-!!        do i=1,3*nat
-!!            hess(i,j)=0.0_gp
-!!        enddo
-!!    enddo
-!!    do ibond=1,nbond
-!!        iat=indbond1(ibond)
-!!        jat=indbond2(ibond)
-!!        dx=rat(1,iat)-rat(1,jat)
-!!        dy=rat(2,iat)-rat(2,jat)
-!!        dz=rat(3,iat)-rat(3,jat)
-!!        r2=dx**2+dy**2+dz**2
-!!        r=sqrt(r2) ; rinv=1.0_gp/r !n(c) ; r3inv=rinv**3
-!!        !rinv2=1.0_gp/r2
-!!        !rinv4=rinv2*rinv2
-!!        !rinv8=rinv4*rinv4
-!!        !rinv10=rinv8*rinv2
-!!        !rinv14=rinv10*rinv4
-!!        !rinv16=rinv8*rinv8
-!!        dxsq=dx*dx ; dysq=dy*dy ; dzsq=dz*dz
-!!        dxdy=dx*dy ; dxdz=dx*dz ; dydz=dy*dz
-!!        !tt1=672.0_gp*rinv16
-!!        !tt2=48.0_gp*rinv14
-!!        !tt3=192.0_gp*rinv10
-!!        !tt4=24.0_gp*rinv8
-!!        tt1=sprcons(ibond)
-!!        tt2=xl0(ibond)*rinv
-!!        tt3=tt2*rinv**2
-!!        !calculating the six distinct elements of 6 by 6 block
-!!        !h11=dxsq*tt1-tt2-dxsq*tt3+tt4
-!!        !h22=dysq*tt1-tt2-dysq*tt3+tt4
-!!        !h33=dzsq*tt1-tt2-dzsq*tt3+tt4
-!!        !h12=dxdy*tt1-dxdy*tt3
-!!        !h13=dxdz*tt1-dxdz*tt3
-!!        !h23=dydz*tt1-dydz*tt3
-!!
-!!        !k_b*(1-l0/l+l0*(x_i-x_j)^2/l^3)
-!!        h11=tt1*(1.0_gp-tt2+dxsq*tt3)
-!!        h22=tt1*(1.0_gp-tt2+dysq*tt3)
-!!        h33=tt1*(1.0_gp-tt2+dzsq*tt3)
-!!        h12=tt1*dxdy*tt3
-!!        h13=tt1*dxdz*tt3
-!!        h23=tt1*dydz*tt3
-!!        i=3*(iat-1)+1 ; j=3*(jat-1)+1
-!!        !filling upper-left traingle (summing-up is necessary)
-!!        hess(i+0,i+0)=hess(i+0,i+0)+h11
-!!        hess(i+0,i+1)=hess(i+0,i+1)+h12
-!!        hess(i+1,i+1)=hess(i+1,i+1)+h22
-!!        hess(i+0,i+2)=hess(i+0,i+2)+h13
-!!        hess(i+1,i+2)=hess(i+1,i+2)+h23
-!!        hess(i+2,i+2)=hess(i+2,i+2)+h33
-!!        !filling lower-right traingle (summing-up is necessary)
-!!        hess(j+0,j+0)=hess(j+0,j+0)+h11
-!!        hess(j+0,j+1)=hess(j+0,j+1)+h12
-!!        hess(j+1,j+1)=hess(j+1,j+1)+h22
-!!        hess(j+0,j+2)=hess(j+0,j+2)+h13
-!!        hess(j+1,j+2)=hess(j+1,j+2)+h23
-!!        hess(j+2,j+2)=hess(j+2,j+2)+h33
-!!        !filling 3 by 3 block
-!!        !summing-up is not needed but it may be necessary for PBC
-!!        hess(i+0,j+0)=-h11 ; hess(i+1,j+0)=-h12 ; hess(i+2,j+0)=-h13
-!!        hess(i+0,j+1)=-h12 ; hess(i+1,j+1)=-h22 ; hess(i+2,j+1)=-h23
-!!        hess(i+0,j+2)=-h13 ; hess(i+1,j+2)=-h23 ; hess(i+2,j+2)=-h33
-!!        !write(*,'(i3,5es20.10)') ibond,hess(i+0,i+0),tt1,tt2,tt3,xl0(ibond)
-!!    enddo
-!!    !filling the lower triangle of 3Nx3N Hessian matrix
-!!    do i=1,3*nat-1
-!!        do j =i+1,3*nat
-!!            hess(j,i)=hess(i,j)
-!!        enddo
-!!    enddo
-!!    
-!!end subroutine pseudohess
-!!!*****************************************************************************************
 
 subroutine mincurvforce(imode,nat,alat,diff,rxyz1,fxyz1,vec,vecraw,&
            rotforce,rotfstretch,rotforceraw,curv,imethod,ec,&
@@ -1758,158 +1217,7 @@ subroutine minenergyandforces(eeval,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
 
 end subroutine minenergyandforces
 
-subroutine elim_torque_reza(nat,rat0,fat)
-use module_base
-!  use module_base
-  implicit none
-  integer, intent(in) :: nat
-  real(gp), dimension(3*nat), intent(in) :: rat0
-  real(gp), dimension(3*nat), intent(inout) :: fat
-  !local variables
-  character(len=*), parameter :: subname='elim_torque_reza'
-  integer :: i,iat,i_all,i_stat
-  real(gp) :: vrotnrm,cmx,cmy,cmz,alpha,totmass
-  !this is an automatic array but it should be allocatable
-  real(gp), dimension(3) :: evaleria
-  real(gp), dimension(3,3) :: teneria
-  real(gp), dimension(3*nat) :: rat
-  real(gp), dimension(3*nat,3) :: vrot
-  real(gp), dimension(:), allocatable :: amass
-real(gp) :: dnrm2
 
-  amass = f_malloc((/1.to.nat/),id='amass')
-
-  rat=rat0
-  amass(1:nat)=1.0_gp
-  !project out rotations
-  totmass=0.0_gp
-  cmx=0.0_gp
-  cmy=0.0_gp
-  cmz=0.0_gp
-  do i=1,3*nat-2,3
-     iat=(i+2)/3
-     cmx=cmx+amass(iat)*rat(i+0)
-     cmy=cmy+amass(iat)*rat(i+1)
-     cmz=cmz+amass(iat)*rat(i+2)
-     totmass=totmass+amass(iat)
-  enddo
-  cmx=cmx/totmass
-  cmy=cmy/totmass
-  cmz=cmz/totmass
-  do i=1,3*nat-2,3
-     rat(i+0)=rat(i+0)-cmx
-     rat(i+1)=rat(i+1)-cmy
-     rat(i+2)=rat(i+2)-cmz
-  enddo
-
-  call moment_of_inertia(nat,rat,teneria,evaleria)
-  do iat=1,nat
-     i=iat*3-2
-     call cross(teneria(1,1),rat(i),vrot(i,1))
-     call cross(teneria(1,2),rat(i),vrot(i,2))
-     call cross(teneria(1,3),rat(i),vrot(i,3))
-  enddo
-  call normalizevector(3*nat,vrot(1,1))
-  call normalizevector(3*nat,vrot(1,2))
-  call normalizevector(3*nat,vrot(1,3))
-
-  do i=1,3*nat-2,3
-     rat(i+0)=rat(i+0)+cmx
-     rat(i+1)=rat(i+1)+cmy
-     rat(i+2)=rat(i+2)+cmz
-  enddo
-
-  vrotnrm=dnrm2(3*nat,vrot(1,1),1)
-  if (vrotnrm /= 0.0_gp) vrot(1:3*nat,1)=vrot(1:3*nat,1)/vrotnrm
-  vrotnrm=dnrm2(3*nat,vrot(1,2),1)
-  if (vrotnrm /= 0.0_gp) vrot(1:3*nat,2)=vrot(1:3*nat,2)/vrotnrm
-  vrotnrm=dnrm2(3*nat,vrot(1,3),1)
-  if (vrotnrm /= 0.0_gp) vrot(1:3*nat,3)=vrot(1:3*nat,3)/vrotnrm
-
-  do i=1,3
-     alpha=0.0_gp
-     if(abs(evaleria(i)).gt.1.e-10_gp) then
-        alpha=dot_product(vrot(:,i),fat(:))
-        fat(:)=fat(:)-alpha*vrot(:,i)
-     endif
-  enddo
-
-  call f_free(amass)
-!  call memocc(i_stat,i_all,'amass',subname)
-
-END SUBROUTINE elim_torque_reza
-subroutine cross(a,b,c)
-use module_base
-!  use module_base
-  implicit none
-  real(gp), dimension(3), intent(in) :: a,b
-  real(gp), dimension(3), intent(out) :: c
-
-  c(1)=a(2)*b(3)-b(2)*a(3)
-  c(2)=a(3)*b(1)-b(3)*a(1)
-  c(3)=a(1)*b(2)-b(1)*a(2)
-END SUBROUTINE cross
-
-
-subroutine moment_of_inertia(nat,rat,teneria,evaleria)
-use module_base
-!  use module_base
-  implicit none
-  integer, intent(in) :: nat
-  real(gp), dimension(3,nat), intent(in) :: rat
-  real(gp), dimension(3), intent(out) :: evaleria
-  real(gp), dimension(3,3), intent(out) :: teneria
-  !local variables
-  character(len=*), parameter :: subname='moment_of_inertia'
-  integer, parameter::lwork=100
-  integer :: iat,info,i_all,i_stat
-  real(gp) :: tt
-  real(gp), dimension(lwork) :: work
-  real(gp), dimension(:), allocatable :: amass
-
-  amass = f_malloc((/1.to.nat/),id='amass')
-
-  !positions relative to center of geometry
-  amass(1:nat)=1.0_gp
-  !calculate inertia tensor
-  teneria(1:3,1:3)=0.0_gp
-  do iat=1,nat
-     tt=amass(iat)
-     teneria(1,1)=teneria(1,1)+tt*(rat(2,iat)*rat(2,iat)+rat(3,iat)*rat(3,iat))
-     teneria(2,2)=teneria(2,2)+tt*(rat(1,iat)*rat(1,iat)+rat(3,iat)*rat(3,iat))
-     teneria(3,3)=teneria(3,3)+tt*(rat(1,iat)*rat(1,iat)+rat(2,iat)*rat(2,iat))
-     teneria(1,2)=teneria(1,2)-tt*(rat(1,iat)*rat(2,iat))
-     teneria(1,3)=teneria(1,3)-tt*(rat(1,iat)*rat(3,iat))
-     teneria(2,3)=teneria(2,3)-tt*(rat(2,iat)*rat(3,iat))
-     teneria(2,1)=teneria(1,2)
-     teneria(3,1)=teneria(1,3)
-     teneria(3,2)=teneria(2,3)
-  enddo
-  !diagonalize inertia tensor
-  call DSYEV('V','L',3,teneria,3,evaleria,work,lwork,info)
-  call f_free(amass)
-
-END SUBROUTINE moment_of_inertia
-
-
-subroutine normalizevector(n,v)
-use module_base
-!  use module_base
-  implicit none
-  integer, intent(in) :: n
-  real(gp), dimension(n), intent(inout) :: v
-  !local variables
-  integer :: i
-  real(gp) :: vnrm
-
-  vnrm=0.0_gp
-  do i=1,n
-     vnrm=vnrm+v(i)**2
-  enddo
-  vnrm=sqrt(vnrm)
-  if (vnrm /= 0.0_gp) v(1:n)=v(1:n)/vnrm
-
-END SUBROUTINE normalizevector
 subroutine convcheck_sad(fmax,curv,fluctfrac_fluct,forcemax,check)
   use module_base
   implicit none
@@ -1931,7 +1239,7 @@ use module_base
 !v_ortho = w x r
 !v_tot = v_ortho + v_radial
 !=> vradial = v_tot - w x r
-!note: routine must be modified before using in cases
+!note: routine must be modified before using for cases
 !where masses /= 1
     implicit none
     integer, intent(in) :: nat
@@ -2024,309 +1332,26 @@ use module_base
     enddo
     call f_free(amass)
 end subroutine
-
-!!!!subroutine cal_hessian_fd_m(iproc,nat,alat,pos,hess)
-!!!!use module_base
-!!!!use module_energyandforces
-!!!!    implicit none
-!!!!    integer, intent(in):: iproc, nat
-!!!!    real(8), intent(in) :: pos(3*nat),alat(3)
-!!!!    real(8), intent(inout) :: hess(3*nat,3*nat)
-!!!!    !local variables
-!!!!    integer :: iat
-!!!!    real(8) :: t1,t2,t3
-!!!!    !real(8), allocatable, dimension(:,:) :: hess
-!!!!    real(8), allocatable, dimension(:) :: tpos,grad,eval,work
-!!!!    real(8) :: h,rlarge,twelfth,twothird,etot,cmx,cmy,cmz,shift,dm,tt,s,fnoise
-!!!!    integer :: i,j,k,lwork,info
-!!!!
-!!!!    !allocate(hess(3*nat,3*nat))
-!!!!    tpos = f_malloc((/1.to.3*nat/),id='tpos')
-!!!!    grad = f_malloc((/1.to.3*nat/),id='grad')
-!!!!    eval = f_malloc((/1.to.3*nat/),id='eval')
-!!!!
-!!!!    lwork=1000*nat
-!!!!    work = f_malloc((/1.to.lwork/),id='work')
-!!!!
-!!!!    !h=1.d-1
-!!!!    !h=7.5d-2
-!!!!    !h=5.d-2
-!!!!!    h=1.d-3
-!!!!!    h=1.d-2
-!!!!    h=5.d-3
-!!!!    !h=2.d-2
-!!!!    rlarge=1.d0*1.d4
-!!!!    twelfth=-1.d0/(12.d0*h)
-!!!!    twothird=-2.d0/(3.d0*h)
-!!!!    if(iproc==0) write(*,*) '(hess) HESSIAN: h',h
-!!!!    !-------------------------------------------------------
-!!!!    do i=1,3*nat
-!!!!        iat=(i-1)/3+1
-!!!!        do k=1,3*nat
-!!!!            tpos(k)=pos(k)
-!!!!            grad(k)=0.d0
-!!!!        enddo
-!!!!        !-----------------------------------------
-!!!!        tpos(i)=tpos(i)-2*h
-!!!!        call energyandforces(nat,alat,tpos,grad,fnoise,etot)
-!!!!        do j=1,3*nat
-!!!!            hess(j,i)=twelfth*grad(j)
-!!!!        enddo
-!!!!        !if(iproc==0) write(*,*) 'ALIREZA-6',i,iat
-!!!!        !-----------------------------------------
-!!!!        tpos(i)=tpos(i)+h
-!!!!        call energyandforces(nat,alat,tpos,grad,fnoise,etot)
-!!!!        do j=1,3*nat
-!!!!        hess(j,i)=hess(j,i)-twothird*grad(j)
-!!!!        enddo
-!!!!        !-----------------------------------------
-!!!!        tpos(i)=tpos(i)+2*h
-!!!!        call energyandforces(nat,alat,tpos,grad,fnoise,etot)
-!!!!        do j=1,3*nat
-!!!!        hess(j,i)=hess(j,i)+twothird*grad(j)
-!!!!        enddo
-!!!!        !-----------------------------------------
-!!!!        tpos(i)=tpos(i)+h
-!!!!        call energyandforces(nat,alat,tpos,grad,fnoise,etot)
-!!!!        do j=1,3*nat
-!!!!        hess(j,i)=hess(j,i)-twelfth*grad(j)
-!!!!        !write(*,*) 'HESS ',j,i,hess(j,i)
-!!!!        enddo
-!!!!        !-----------------------------------------
-!!!!    enddo
-!!!!    !-------------------------------------------------------
-!!!!
-!!!!    !check symmetry
-!!!!    dm=0.d0
-!!!!    do i=1,3*nat
-!!!!    do j=1,i-1
-!!!!    s=.5d0*(hess(i,j)+hess(j,i))
-!!!!    tt=abs(hess(i,j)-hess(j,i))/(1.d0+abs(s))
-!!!!    dm=max(dm,tt)
-!!!!    hess(i,j)=s
-!!!!    hess(j,i)=s
-!!!!    enddo
-!!!!    enddo
-!!!!    if (dm.gt.1.d-1) write(*,*) '(hess) max dev from sym',dm
-!!!!
-!!!!!    do j=1,3*nat
-!!!!!    do i=1,3*nat
-!!!!!    write(*,*) '(hess) hier',nat,hess(i,j)
-!!!!!    write(499,*) hess(i,j)
-!!!!!    enddo
-!!!!!    enddo
-!!!!
-!!!!    !-------------------------------------------------------
-!!!!    !project out rotations
-!!!!    cmx=0.d0 ; cmy=0.d0 ; cmz=0.d0
-!!!!    do i=1,3*nat-2,3
-!!!!    cmx=cmx+pos(i+0)
-!!!!    cmy=cmy+pos(i+1)
-!!!!    cmz=cmz+pos(i+2)
-!!!!    enddo
-!!!!    cmx=cmx/nat ; cmy=cmy/nat ; cmz=cmz/nat
-!!!!  
-!!!!    !x-y plane
-!!!!    do i=1,3*nat-2,3
-!!!!    work(i+1)= (pos(i+0)-cmx)
-!!!!    work(i+0)=-(pos(i+1)-cmy)
-!!!!    enddo
-!!!!    call f_free(tpos)
-!!!!    call f_free(grad)
-!!!!    call f_free(eval)
-!!!!    call f_free(work)
-!!!!end subroutine cal_hessian_fd_m
-!!!!
-!!!!!++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-!!!!        subroutine tbhess(nat,rxyz,hess,eval)
-!!!!        implicit real*8 (a-h,o-z)
-!!!!        dimension rxyz(3*nat),hess(3*nat,3*nat),eval(3*nat),alat(3)
-!!!!        real*8, allocatable, dimension(:) :: grad,pos,tpos,work
-!!!!
-!!!!
-!!!!        allocate(pos(3*nat),tpos(3*nat),grad(3*nat))
-!!!!        lwork=100*nat
-!!!!        allocate(work(lwork))
-!!!!!        h=1.d-2
-!!!!        rlarge=1.d0*1.d3
-!!!!!        twelfth=-1.d0/(12.d0*h)
-!!!!!        twothird=-2.d0/(3.d0*h)
-!!!!!        count=0.d0
-!!!!!        alat(1)=20.d0 ; alat(2)=20.d0 ; alat(3)=20.d0
-!!!!!
-!!!!!!  convert from atomic units to angstroem
-!!!!!           write(16,*) alat(1),0.,alat(2)
-!!!!!           write(16,*)      0.,0.,alat(3)
-!!!!!        do i=1,nat 
-!!!!!           pos(3*i-2)=rxyz(3*i-2)*.529177d0  
-!!!!!           pos(3*i-1)=rxyz(3*i-1)*.529177d0  
-!!!!!           pos(3*i-0)=rxyz(3*i-0)*.529177d0  
-!!!!!           write(16,'(3(1x,e14.7),a)') pos(3*i-2),pos(3*i-1),pos(3*i-0),'
-!!!!!           Si_lda'
-!!!!!         enddo
-!!!!!
-!!!!!
-!!!!!        do i=1,3*nat
-!!!!!
-!!!!!        do k=1,3*nat
-!!!!!        tpos(k)=pos(k)
-!!!!!        grad(k)=0.d0
-!!!!!        enddo
-!!!!!
-!!!!!        tpos(i)=tpos(i)-2*h
-!!!!!        call energyandforces(nat,alat,tpos,grad,etot,count)
-!!!!!        do j=1,3*nat
-!!!!!        hess(j,i)=twelfth*grad(j)
-!!!!!        enddo
-!!!!!
-!!!!!        tpos(i)=tpos(i)+h
-!!!!!        call energyandforces(nat,alat,tpos,grad,etot,count)
-!!!!!        do j=1,3*nat
-!!!!!        hess(j,i)=hess(j,i)-twothird*grad(j)
-!!!!!        enddo
-!!!!!
-!!!!!        tpos(i)=tpos(i)+2*h
-!!!!!        call energyandforces(nat,alat,tpos,grad,etot,count)
-!!!!!        do j=1,3*nat
-!!!!!        hess(j,i)=hess(j,i)+twothird*grad(j)
-!!!!!        enddo
-!!!!!
-!!!!!        tpos(i)=tpos(i)+h
-!!!!!        call energyandforces(nat,alat,tpos,grad,etot,count)
-!!!!!        do j=1,3*nat
-!!!!!        hess(j,i)=hess(j,i)-twelfth*grad(j)
-!!!!!        enddo
-!!!!!
-!!!!!        enddo
-!!!!!
-!!!!!!check symmetry
-!!!!!        dm=0.d0
-!!!!!        do i=1,3*nat
-!!!!!        do j=1,i-1
-!!!!!        s=.5d0*(hess(i,j)+hess(j,i))
-!!!!!        tt=abs(hess(i,j)-hess(j,i))/(1.d0+abs(s))
-!!!!!        dm=max(dm,tt)
-!!!!!        hess(i,j)=s
-!!!!!        hess(j,i)=s
-!!!!!        enddo
-!!!!!        enddo
-!!!!!        if (dm.gt.1.d-1) write(16,*) 'max dev from sym',dm
-!!!!
-!!!!    pos=rxyz
-!!!!
-!!!!
-!!!!! project out rotations 
-!!!!        cmx=0.d0 ; cmy=0.d0 ; cmz=0.d0
-!!!!        do i=1,3*nat-2,3
-!!!!        cmx=cmx+pos(i+0)
-!!!!        cmy=cmy+pos(i+1)
-!!!!        cmz=cmz+pos(i+2)
-!!!!        enddo
-!!!!        cmx=cmx/nat ; cmy=cmy/nat ; cmz=cmz/nat
-!!!!
-!!!!! x-y plane
-!!!!        do i=1,3*nat-2,3
-!!!!        work(i+1)= (pos(i+0)-cmx)
-!!!!        work(i+0)=-(pos(i+1)-cmy)
-!!!!        enddo
-!!!!
-!!!!        t1=0.d0  ; t2=0.d0
-!!!!        do i=1,3*nat-2,3
-!!!!        t1=t1+work(i+0)**2
-!!!!        t2=t2+work(i+1)**2
-!!!!        enddo
-!!!!        t1=sqrt(.5d0*rlarge/t1) ; t2=sqrt(.5d0*rlarge/t2)
-!!!!        do i=1,3*nat-2,3
-!!!!        work(i+0)=work(i+0)*t1
-!!!!        work(i+1)=work(i+1)*t2
-!!!!        enddo
-!!!!
-!!!!        do j=1,3*nat-2,3
-!!!!        do i=1,3*nat-2,3
-!!!!        hess(i+0,j+0)=hess(i+0,j+0)+work(i+0)*work(j+0)
-!!!!        hess(i+1,j+0)=hess(i+1,j+0)+work(i+1)*work(j+0)
-!!!!        hess(i+0,j+1)=hess(i+0,j+1)+work(i+0)*work(j+1)
-!!!!        hess(i+1,j+1)=hess(i+1,j+1)+work(i+1)*work(j+1)
-!!!!        enddo
-!!!!        enddo
-!!!!
-!!!!! x-z plane
-!!!!        do i=1,3*nat-2,3
-!!!!        work(i+2)= (pos(i+0)-cmx)
-!!!!        work(i+0)=-(pos(i+2)-cmz)
-!!!!        enddo
-!!!!
-!!!!        t1=0.d0  ; t3=0.d0
-!!!!        do i=1,3*nat-2,3
-!!!!        t1=t1+work(i+0)**2
-!!!!        t3=t3+work(i+2)**2
-!!!!        enddo
-!!!!        t1=sqrt(.5d0*rlarge/t1) ;  t3=sqrt(.5d0*rlarge/t3)
-!!!!        do i=1,3*nat-2,3
-!!!!        work(i+0)=work(i+0)*t1
-!!!!        work(i+2)=work(i+2)*t3
-!!!!        enddo
-!!!!
-!!!!        do j=1,3*nat-2,3
-!!!!        do i=1,3*nat-2,3
-!!!!        hess(i+0,j+0)=hess(i+0,j+0)+work(i+0)*work(j+0)
-!!!!        hess(i+2,j+0)=hess(i+2,j+0)+work(i+2)*work(j+0)
-!!!!        hess(i+0,j+2)=hess(i+0,j+2)+work(i+0)*work(j+2)
-!!!!        hess(i+2,j+2)=hess(i+2,j+2)+work(i+2)*work(j+2)
-!!!!        enddo
-!!!!        enddo
-!!!!
-!!!!! y-z plane
-!!!!        do i=1,3*nat-2,3
-!!!!        work(i+2)= (pos(i+1)-cmy)
-!!!!        work(i+1)=-(pos(i+2)-cmz)
-!!!!        enddo
-!!!!
-!!!!        t2=0.d0 ; t3=0.d0
-!!!!        do i=1,3*nat-2,3
-!!!!        t2=t2+work(i+1)**2
-!!!!        t3=t3+work(i+2)**2
-!!!!        enddo
-!!!!        t2=sqrt(.5d0*rlarge/t2) ; t3=sqrt(.5d0*rlarge/t3)
-!!!!        do i=1,3*nat-2,3
-!!!!        work(i+1)=work(i+1)*t2
-!!!!        work(i+2)=work(i+2)*t3
-!!!!        enddo
-!!!!
-!!!!        do j=1,3*nat-2,3
-!!!!        do i=1,3*nat-2,3
-!!!!        hess(i+1,j+1)=hess(i+1,j+1)+work(i+1)*work(j+1)
-!!!!        hess(i+2,j+1)=hess(i+2,j+1)+work(i+2)*work(j+1)
-!!!!        hess(i+1,j+2)=hess(i+1,j+2)+work(i+1)*work(j+2)
-!!!!        hess(i+2,j+2)=hess(i+2,j+2)+work(i+2)*work(j+2)
-!!!!        enddo
-!!!!        enddo
-!!!!
-!!!!! Project out translations
-!!!!        shift=rlarge/nat
-!!!!        do j=1,3*nat-2,3
-!!!!        do i=1,3*nat-2,3
-!!!!        hess(i+0,j+0)=hess(i+0,j+0)+shift
-!!!!        hess(i+1,j+1)=hess(i+1,j+1)+shift
-!!!!        hess(i+2,j+2)=hess(i+2,j+2)+shift
-!!!!        enddo
-!!!!        enddo
-!!!!
-!!!!!check
-!!!!        !call DSYEV('V','L',3*nat,hess,3*nat,eval,WORK,LWORK,INFO)
-!!!!        !if (info.ne.0) stop 'DSYEV'
-!!!!        !write(16,*) '---  TB eigenvalues in a.u. -------------'
-!!!!        !do i=1,3*nat
-!!!!        !  tt=eval(i)*(.529d0**2/27.2d0)
-!!!!        !write(16,*) 'eval (eV/A), a.u.',i,eval(i),tt
-!!!!        !  eval(i)=tt
-!!!!        !enddo
-!!!!
-!!!!
-!!!!        deallocate(grad,pos,tpos)
-!!!!        deallocate(work)
-!!!!        return
-!!!!        end subroutine tbhess
-!!!!
+subroutine elim_moment_fs(nat,vxyz)
+    use module_base
+    implicit none
+    !parameters
+    integer :: nat
+    !internal
+    integer :: iat
+    real(gp) :: vxyz(3,nat),sx,sy,sz
+    sx=0.0_gp ; sy=0.0_gp ; sz=0.0_gp
+    do iat=1,nat
+        sx=sx+vxyz(1,iat)
+        sy=sy+vxyz(2,iat)
+        sz=sz+vxyz(3,iat)
+    enddo
+    sx=sx/nat ; sy=sy/nat ; sz=sz/nat
+    do iat=1,nat
+        vxyz(1,iat)=vxyz(1,iat)-sx
+        vxyz(2,iat)=vxyz(2,iat)-sy
+        vxyz(3,iat)=vxyz(3,iat)-sz
+    enddo
+end subroutine
 
 end module
