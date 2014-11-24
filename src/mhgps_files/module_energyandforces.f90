@@ -130,10 +130,7 @@ use module_atoms, only: astruct_dump_to_file
 !        call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1),1,&
 !             runObj%atoms%astruct%rxyz(1,1), 1)
         call bigdft_set_rxyz(runObj,rxyz=rxyz)
-if(iproc==0)write(*,*)'(MHGPS) debug, ----------------------------------------'
-write(*,*)'(MHGPS) debug, inputPsiIs global variable ',inputPsiID, iproc
         runObj%inputs%inputPsiId=inputPsiId
-write(*,*)'(MHGPS) debug,runObj%inputs%inputPsiId',runObj%inputs%inputPsiId,iproc
         runObj%inputs%itermin=itermin
         call call_bigdft(runObj,outs,infocode)
         call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1), 1)
