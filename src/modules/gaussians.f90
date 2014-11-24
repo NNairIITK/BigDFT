@@ -528,6 +528,7 @@ contains
 
   end function scfdotf
 
+
   !> Overlap matrix between two different basis structures
   subroutine gaussian_overlap(A,B,ovrlp)
     implicit none

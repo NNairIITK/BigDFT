@@ -29,7 +29,7 @@ program MP_gaussian
 
   call f_lib_initialize()
 
-  pow=1
+  pow=0
 
   !pgauss=0.5_gp/((0.1_gp*hgrid)**2)!8.0e-3_dp*1.25_dp**(6*(8-1))
   !array where we have to write the value of the discretization
@@ -78,9 +78,10 @@ program MP_gaussian
         do j=1,2
            do imoms=0,nmoms
               reference=gauint0(pgauss,imoms+pow)
+              print *,j,imoms,reference,moments(imoms,j),abs((moments(imoms,j)-reference))
               if (reference /= 0.0_gp) then
                  !x^even
-                 moments(imoms,j) = abs((moments(imoms,j)-reference)/reference)
+                 moments(imoms,j) = abs((moments(imoms,j)-reference))!/reference)
               else
                  !x^odd
                  moments(imoms,j) = abs(moments(imoms,j))
@@ -116,8 +117,10 @@ subroutine evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,moment
   real(gp), intent(in) :: hgrid,pgauss,x0
   real(gp), dimension(0:nmoms,2), intent(out) :: moments
   real(gp), dimension(-npts:npts), intent(out) :: fj_phi,fj_coll
+  integer, parameter :: iunit = 100
   !local variables
   integer :: j
+  integer :: istep = 0
 
   !use the elemental property of the mp_exp function
   fj_phi=mp_exp(hgrid,x0,pgauss,(/(j,j=-npts,npts)/),pow,.true.)
@@ -132,6 +135,11 @@ subroutine evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,moment
   !   fj_coll=(/(exp(-pgauss*(j*hgrid-x0)**2),j=-npts,npts)/)
   !end if
   call moments_1d(2*npts+1,fj_coll,x0+hgrid*(npts+1),hgrid,nmoms,moments(0,2))
+
+  do j=-npts,npts
+     write(iunit+istep,*) j,fj_phi(j),fj_coll(j)
+  end do
+  istep = istep + 1
 
 end subroutine evaluate_moments
 
