@@ -21,7 +21,7 @@ program mhgps
     use module_init
     use module_energyandforces, only: energyandforces
     use module_ls_rmsd, only: superimpose
-    use module_sbfgs, only: findbonds !for finding binds
+    use module_sqn, only: findbonds !for finding binds
     use module_freezingstring, only: get_ts_guess 
     use module_saddle, only: findsad
     use module_connect, only: connect_recursively, connect, connect_object,&

@@ -117,7 +117,7 @@ high_level = cluster.f90 \
 	pdos.f90 \
 	sdcg.f90 \
 	bfgs.f90 \
-	sbfgs.f90 \
+	sqnm.f90 \
 	scfloop_API.f90 \
 	tddft.f90 \
 	output.f90 \
@@ -352,7 +352,7 @@ lanczos.o : lanczos_interface.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90
 
-geometry.o bfgs.o sdcg.o sbfgs.o: lbfgs.o
+geometry.o bfgs.o sdcg.o sqnm.o: lbfgs.o
 
 initAndUtils.o linear/initAndUtils.o: linear/initAndUtils.f90 cleanup.o
 

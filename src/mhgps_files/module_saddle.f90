@@ -22,7 +22,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
   use module_atoms, only: astruct_dump_to_file
     use yaml_output
     use module_interfaces
-    use module_sbfgs
+    use module_sqn
     use module_global_variables, only: inputPsiId, iproc, ixyz_int, astruct_ptr, mhgps_verbosity,&
                                        currDir, isadc, ndim_rot, nhist_rot, alpha_rot,&
                                        alpha_stretch_rot,saddle_alpha_stretch0,work,lwork,&
@@ -158,8 +158,8 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     detot=0.0_gp
     curv=1000.0_gp
     icheck=0
-!    icheckmax=5
-    icheckmax=0
+    icheckmax=5
+!    icheckmax=0
     if(icheckmax==0 .and. saddle_tighten) icheckmax=1
     tighten=.false.
     alpha_stretch=alpha_stretch0
@@ -491,7 +491,7 @@ subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_
                     maxcurvrise,cutoffratio,minoverlap)!,mode)
     use module_base
     use yaml_output
-    use module_sbfgs
+    use module_sqn
     use module_global_variables, only: inputPsiId, isForceField, iproc,&
                                        mhgps_verbosity,work,lwork,&
                                        saddle_steepthresh_rot,&
@@ -1142,7 +1142,7 @@ subroutine mincurvforce(imode,nat,alat,diff,rxyz1,fxyz1,vec,vecraw,&
            rotforce,rotfstretch,rotforceraw,curv,imethod,ec,&
            iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
     use module_base, only: gp
-    use module_sbfgs
+    use module_sqn
     implicit none
     !parameters
     integer,  intent(in)     :: imode
@@ -1184,7 +1184,7 @@ subroutine minenergyandforces(eeval,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
            fxyzraw,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
     use module_base, only: gp
     use module_energyandforces
-    use module_sbfgs
+    use module_sqn
     implicit none
     !parameter
     integer, intent(in)           :: imode

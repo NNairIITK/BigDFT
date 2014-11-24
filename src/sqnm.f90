@@ -8,13 +8,13 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 !subroutine geopt(nat,wpos,etot,fout,fnrmtol,count,count_sd,displr)
-subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
+subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 !call_bigdft has to be run once on runObj and outs !before calling this routine
-!sbfgs will return to caller the energies and coordinates used/obtained from the last accepted iteration step
+!sqnm will return to caller the energies and coordinates used/obtained from the last accepted iteration step
    use module_base
    use bigdft_run!module_types
    use yaml_output
-   use module_sbfgs, only: modify_gradient, getSubSpaceEvecEval, findbonds
+   use module_sqn, only: modify_gradient, getSubSpaceEvecEval, findbonds
    implicit none
    !parameter
    integer, intent(in)                    :: nproc
@@ -25,7 +25,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    integer, intent(inout)                 :: ncount_bigdft
    logical, intent(out)                   :: fail
    !local variables
-   character(len=*), parameter :: subname='sbfgs'
+   character(len=*), parameter :: subname='sqnm'
    integer :: infocode,info !< variables containing state codes
    integer :: nhistx !< maximum history length
    integer :: nhist  !< actual history length
@@ -117,7 +117,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
    if (iproc==0.and.verbosity > 0) then
       call yaml_mapping_open('Geometry parameters')
-         call yaml_map('Geometry Method','GEOPT_SBFGS')
+         call yaml_map('Geometry Method','GEOPT_SQNM')
          call yaml_map('nhistx',nhistx)
          call yaml_map('biomode',runObj%inputs%biomode)
          call yaml_map('betax', betax,fmt='(1pe21.14)')
@@ -167,8 +167,8 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    rcov     = f_malloc((/ 1.to.nat/),id='rcov')
    iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
    if(runObj%inputs%biomode)then
-        call give_rcov_sbfgs(iproc,runObj%atoms,runObj%atoms%astruct%nat,rcov)
-        call findbonds('(SBFGS)',iproc,10,runObj%atoms%astruct%nat,&
+        call give_rcov_sqnm(iproc,runObj%atoms,runObj%atoms%astruct%nat,rcov)
+        call findbonds('(SQNM)',iproc,10,runObj%atoms%astruct%nat,&
              rcov,runObj%atoms%astruct%rxyz,nbond,iconnect)
    endif 
    wold = f_malloc((/ 1.to.nbond/),id='wold')
@@ -214,7 +214,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
 
        write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a11))') &
-       ncount_bigdft,0,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
+       ncount_bigdft,0,'GEOPT_SQNM',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
        'beta=',trim(adjustl(cdmy9)),'dim=',ndim,'maxd=',&
        trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy12_1)),&
        'dsplp=',trim(adjustl(cdmy12_2))
@@ -269,7 +269,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       !only used when in steepest decent mode
       if(maxd>trustr .and. steep)then
          if(debug.and.iproc==0)write(100,'(a,1x,es24.17,1x,i0)')'step too large',maxd,it
-         if(iproc==0)write(16,'(a,2(1x,es9.2))')'WARNING GEOPT_SBFGS: step too large: maxd, trustradius ',maxd,trustr
+         if(iproc==0)write(16,'(a,2(1x,es9.2))')'WARNING GEOPT_SQNM: step too large: maxd, trustradius ',maxd,trustr
          scl=0.50_gp*trustr/maxd
          dd=dd*scl
          tt=tt*scl
@@ -308,7 +308,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
       if (iproc == 0) then
          write(fn4,'(i4.4)') ncount_bigdft
-         write(comment,'(a,1pe10.3)')'SBFGS:fnrm= ',fnrm
+         write(comment,'(a,1pe10.3)')'SQNM:fnrm= ',fnrm
          call bigdft_write_atomic_file(runObj,outs,'posout_'//fn4,&
               trim(comment))
 !!$
@@ -325,7 +325,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       if (detot.gt.maxrise .and. beta > 1.e-1_gp*betax) then !
          if (debug.and.iproc==0) write(100,'(a,i0,1x,e9.2)') "WARN: it,detot", it,detot
          if (debug.and.iproc==0) write(16,'(a,i0,4(1x,e9.2))') &
-             "WARNING GEOPT_SBFGS: Prevent energy to rise by more than maxrise: it,maxrise,detot,beta,1.e-1*betax ",&
+             "WARNING GEOPT_SQNM: Prevent energy to rise by more than maxrise: it,maxrise,detot,beta,1.e-1*betax ",&
              it,maxrise,detot,beta,1.e-1_gp*betax
          if (iproc==0.and.verbosity > 0) then
             !avoid space for leading sign (numbers are positive, anyway)
@@ -336,14 +336,14 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
    
             write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a11))') &
-             ncount_bigdft,it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
+             ncount_bigdft,it,'GEOPT_SQNM',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
              'beta=',trim(adjustl(cdmy9)),'dim=',ndim,&
              'maxd=',trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy12_1)),&
              'dsplp=',trim(adjustl(cdmy12_2))
             call yaml_mapping_open('Geometry')
                call yaml_map('Ncount_BigDFT',ncount_bigdft)
                call yaml_map('Geometry step',it)
-               call yaml_map('Geometry Method','GEOPT_SBFGS')
+               call yaml_map('Geometry Method','GEOPT_SQNM')
                call yaml_map('ndim',ndim)
                call yaml_map('etot', etotp,fmt='(1pe21.14)')
                call yaml_map('detot',detot,fmt='(1pe21.14)')
@@ -360,12 +360,12 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
             !the energies and coordinates used/obtained from/in the last ACCEPTED iteration step
             !(otherwise coordinates of last call to call_bigdft would be returned)
             call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1,nhist-1), 1,runObj%atoms%astruct%rxyz(1,1), 1)
-            goto 900  !sbfgs will return to caller the energies and coordinates used/obtained from the last ACCEPTED iteration step
+            goto 900  !sqnm will return to caller the energies and coordinates used/obtained from the last ACCEPTED iteration step
          endif
 
          !beta=min(.50_gp*beta,betax)
          beta=.50_gp*beta
-         if (debug.and.iproc==0) write(100,'(a,1x,e9.2)') 'WARNING GEOPT_SBFGS: beta reset ',beta
+         if (debug.and.iproc==0) write(100,'(a,1x,e9.2)') 'WARNING GEOPT_SQNM: beta reset ',beta
          ndim=0
          wold=0.0_gp
          if(.not.steep)then
@@ -391,7 +391,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
       if (iproc == 0) then
          write(fn4,'(i4.4)') it
-         write(comment,'(a,1pe10.3)')'SBFGS:fnrm= ',fnrm
+         write(comment,'(a,1pe10.3)')'SQNM:fnrm= ',fnrm
          call bigdft_write_atomic_file(runObj,outs,'posoutP_'//fn4,&
               trim(comment))
       endif
@@ -409,14 +409,14 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
 
          write(16,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a11))') &
-          ncount_bigdft,it,'GEOPT_SBFGS',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
+          ncount_bigdft,it,'GEOPT_SQNM',etotp,detot,fmax,fnrm,fluct*runObj%inputs%frac_fluct,fluct, &
           'beta=',trim(adjustl(cdmy9)),'dim=',ndim,'maxd=',&
           trim(adjustl(cdmy8)),'dsplr=',trim(adjustl(cdmy12_1)),&
           'dsplp=',trim(adjustl(cdmy12_2))
          call yaml_mapping_open('Geometry')
             call yaml_map('Ncount_BigDFT',ncount_bigdft)
             call yaml_map('Geometry step',it)
-            call yaml_map('Geometry Method','GEOPT_SBFGS')
+            call yaml_map('Geometry Method','GEOPT_SQNM')
             call yaml_map('ndim',ndim)
             call yaml_map('etot', etotp,fmt='(1pe21.14)')
             call yaml_map('detot',detot,fmt='(1pe21.14)')
@@ -435,7 +435,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
       if(detot .gt. maxrise)then
          if (iproc==0) write(16,'(a,i0,4(1x,e9.2))') &
-             "WARNING GEOPT_SBFGS: Allowed energy to rise by more than maxrise: it,maxrise,detot,beta,1.d-1*betax ",&
+             "WARNING GEOPT_SQNM: Allowed energy to rise by more than maxrise: it,maxrise,detot,beta,1.d-1*betax ",&
              it,maxrise,detot,beta,1.e-1_gp*betax
       endif
 
@@ -450,7 +450,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
                                                                        !the true energy of rxyz(:,:,nhist)
 
       if(ncount_bigdft >= nit)then!no convergence within ncount_cluster_x energy evaluations
-            goto 900  !sbfgs will return to caller the energies and coordinates used/obtained from the last accepted iteration step
+            goto 900  !sqnm will return to caller the energies and coordinates used/obtained from the last accepted iteration step
       endif
    
       if (cosangle.gt..200_gp) then
@@ -461,9 +461,9 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    
       if (debug.and.iproc==0) write(100,*) 'cosangle ',cosangle,beta
 
-      call getSubSpaceEvecEval('(SBFGS)',iproc,verbosity,nat,nhist,nhistx,ndim,cutoffratio,lwork,work,rxyz,&
+      call getSubSpaceEvecEval('(SQNM)',iproc,verbosity,nat,nhist,nhistx,ndim,cutoffratio,lwork,work,rxyz,&
                    &fxyz,aa,rr,ff,rrr,fff,eval,res,success)
-      if(.not.success)stop 'subroutine minimizer_sbfgs: no success in getSubSpaceEvecEval.'
+      if(.not.success)stop 'subroutine minimizer_sqnm: no success in getSubSpaceEvecEval.'
 
    enddo!end main loop
 
@@ -472,7 +472,7 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    !if code gets here, it failed
    if(debug.and.iproc==0) write(100,*) it,etot,fnrm
    if(iproc==0) write(16,'(a,3(1x,i0))') &
-       "WARNING GEOPT_SBFGS: SBFGS not converged: it,ncount_bigdft,ncount_cluster_x: ", &
+       "WARNING GEOPT_SQNM: SQNM not converged: it,ncount_bigdft,ncount_cluster_x: ", &
        it,ncount_bigdft,runObj%inputs%ncount_cluster_x
 !   stop "No convergence "
    fail=.true.
@@ -480,8 +480,8 @@ subroutine sbfgs(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
 1000 continue!converged successfully
    
-   if(iproc==0) write(16,'(2(a,1x,i0))') "SBFGS converged at iteration ",it,". Needed bigdft calls: ",ncount_bigdft
-   if(iproc==0)  call yaml_map('Iterations when SBFGS converged',it)
+   if(iproc==0) write(16,'(2(a,1x,i0))') "SQNM converged at iteration ",it,". Needed bigdft calls: ",ncount_bigdft
+   if(iproc==0)  call yaml_map('Iterations when SQNM converged',it)
    fail=.false.
    
 !   etot=etotp
@@ -520,7 +520,7 @@ subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzra
            fxyzraw,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
     use module_base
     use bigdft_run!module_types
-    use module_sbfgs
+    use module_sqn
     use module_interfaces
     implicit none
     !parameter
@@ -564,7 +564,7 @@ subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzra
     endif
 
 end subroutine minenergyandforces
-subroutine give_rcov_sbfgs(iproc,atoms,nat,rcov)
+subroutine give_rcov_sqnm(iproc,atoms,nat,rcov)
   use module_base, only: gp
   use module_types
   use yaml_output
@@ -756,13 +756,13 @@ subroutine give_rcov_sbfgs(iproc,atoms,nat,rcov)
      else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Rn')then
         rcov(iat)=2.60d0
      else
-        call yaml_comment('(SBFGS) no covalent radius stored for this atomtype '&
+        call yaml_comment('(SQNM) no covalent radius stored for this atomtype '&
              //trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))))
         stop
      endif
      if (iproc == 0) then
-        call yaml_map('(SBFGS) RCOV:'//trim(atoms%astruct%atomnames&
+        call yaml_map('(SQNM) RCOV:'//trim(atoms%astruct%atomnames&
                  (atoms%astruct%iatype(iat))),rcov(iat))
      endif
   enddo
-end subroutine give_rcov_sbfgs
+end subroutine give_rcov_sqnm

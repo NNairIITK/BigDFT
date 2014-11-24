@@ -5,7 +5,7 @@
 !!    This file is not freely distributed.
 !!    A licence is necessary from UNIBAS
 
-module module_sbfgs
+module module_sqn
     implicit none
     private
 
