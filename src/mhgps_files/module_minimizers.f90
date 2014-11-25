@@ -398,7 +398,7 @@ endif
             write(cdmy9,'(es9.2)')abs(beta)
 
 
-            write(*,'(i5,1x,i5,2x,a10,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a11))') &
+            write(*,'(i5,1x,i5,2x,a18,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a11))') &
              int(energycounter),it,'(MHGPS) GEOPT_SQNM',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
              'beta=',trim(adjustl(cdmy9)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),&
              'dsplr=',trim(adjustl(cdmy12_1)),'dsplp=',trim(adjustl(cdmy12_2))
