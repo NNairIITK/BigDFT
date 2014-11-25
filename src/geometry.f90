@@ -149,7 +149,7 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   case('SQNM','SBFGS')
    if(trim(adjustl(parmin%approach))=='SBFGS')then
      if (iproc==0) &
-          call yaml_warning('Keyword SBFGS deprecated and will be removed in a futre release. Use SQNM instead.')
+          call yaml_warning('Keyword SBFGS is deprecated and will be removed in a future release. Use SQNM instead.')
    endif 
    if (iproc ==0) call yaml_map('ENTERING SQNM',ncount_bigdft)
    call sqnm(runObj,outs,nproc,iproc,parmin%verbosity,ncount_bigdft,fail)
