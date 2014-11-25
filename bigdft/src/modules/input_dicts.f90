@@ -1026,7 +1026,7 @@ contains
                 astruct%ixyz_int(2,iat) = atData
              else if (trim(str) == "int_ref_atoms_3") then
                 astruct%ixyz_int(3,iat) = atData
-             else if (dict_len(at) == 3) then
+             else if (dict_len(atData) == 3) then
                 astruct%iatype(iat) = types // dict_key(atData)
                 astruct%rxyz(:, iat) = atData
              end if
