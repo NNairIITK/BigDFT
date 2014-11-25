@@ -233,14 +233,24 @@ contains
 
     exists = has_key(dict_psp, LPSP_KEY)
     if (.not. exists) then
-       ixc = run_ixc
-       ixc = dict_psp .get. PSPXC_KEY
-       call psp_from_data(atomname, nzatom, &
-            & nelpsp, npspcode, ixc, psppar(:,:), exists)
-       radii_cf(:) = UNINITIALIZED(1._gp)
-       call psp_data_merge_to_dict(dict_psp, nzatom, nelpsp, npspcode, ixc, &
-            & psppar(0:4,0:6), radii_cf, UNINITIALIZED(1._gp), UNINITIALIZED(1._gp))
-       call set(dict_psp // SOURCE_KEY, "Hard-Coded")
+       if (dict_len(dict_psp) > 0) then
+          ! Long string case, we parse it.
+          call psp_file_merge_to_dict(dict, filename, lstring = dict_psp)
+          ! Since it has been overrided.
+          dict_psp => dict // filename
+          exists = has_key(dict_psp, LPSP_KEY)
+          nzatom = dict_psp .get. ATOMIC_NUMBER
+          nelpsp = dict_psp .get. ELECTRON_NUMBER
+       else
+          ixc = run_ixc
+          ixc = dict_psp .get. PSPXC_KEY
+          call psp_from_data(atomname, nzatom, &
+               & nelpsp, npspcode, ixc, psppar(:,:), exists)
+          radii_cf(:) = UNINITIALIZED(1._gp)
+          call psp_data_merge_to_dict(dict_psp, nzatom, nelpsp, npspcode, ixc, &
+               & psppar(0:4,0:6), radii_cf, UNINITIALIZED(1._gp), UNINITIALIZED(1._gp))
+          call set(dict_psp // SOURCE_KEY, "Hard-Coded")
+       end if
     else
        nzatom = dict_psp // ATOMIC_NUMBER
        nelpsp = dict_psp // ELECTRON_NUMBER
@@ -707,9 +717,13 @@ contains
           else
              str = dict_value(dict // key)
           end if
-          if (trim(str) /= "" .and. trim(str) /= TYPE_LIST .and. trim(str) /= TYPE_DICT) then
+          if (trim(str) /= "" .and. trim(str) /= TYPE_DICT) then
              !Read the PSP file and merge to dict
-             call psp_file_merge_to_dict(dict, key, trim(str))
+             if (trim(str) /= TYPE_LIST) then
+                call psp_file_merge_to_dict(dict, key, filename = trim(str))
+             else
+                call psp_file_merge_to_dict(dict, key, lstring = dict // key)
+             end if
              if (.not. has_key(dict // key, 'Pseudopotential XC')) then
                 call yaml_warning("Pseudopotential file '" // trim(str) // &
                      & "' not found. Fallback to file '" // trim(key) // &
@@ -730,30 +744,49 @@ contains
 
 
   !> Read psp file and merge to dict
-  subroutine psp_file_merge_to_dict(dict, key, filename)
+  subroutine psp_file_merge_to_dict(dict, key, filename, lstring)
     use module_defs, only: gp, UNINITIALIZED
     use dictionaries
     use yaml_strings
+    use f_utils
+    use yaml_output
     implicit none
     !Arguments
     type(dictionary), pointer :: dict
-    character(len = *), intent(in) :: filename, key
+    character(len = *), intent(in) :: key
+    character(len = *), optional, intent(in) :: filename
+    type(dictionary), pointer, optional :: lstring
     !Local variables
     integer :: nzatom, nelpsp, npspcode, ixcpsp
     real(gp) :: psppar(0:4,0:6), radii_cf(3), rcore, qcore
     logical :: exists, donlcc, pawpatch
+    type(io_stream) :: ios
 
+    if (present(filename)) then
+       inquire(file=trim(filename),exist=exists)
+       if (.not. exists) return
+       call f_iostream_from_file(ios, filename)
+    else if (present(lstring)) then
+       call f_iostream_from_lstring(ios, lstring)
+    else
+       call f_err_throw("Error in psp_file_merge_to_dict, either 'filename' or 'lstring' should be present.", &
+            & err_name='BIGDFT_RUNTIME_ERROR')
+    end if
     !ALEX: if npspcode==PSPCODE_HGH_K_NLCC, nlccpar are read from psppar.Xy via rcore and qcore 
-    call psp_from_file(filename, nzatom, nelpsp, npspcode, ixcpsp, &
-         & psppar, donlcc, rcore, qcore, radii_cf, exists, pawpatch)
-    if (.not.exists) return
+    call psp_from_stream(ios, nzatom, nelpsp, npspcode, ixcpsp, &
+         & psppar, donlcc, rcore, qcore, radii_cf, pawpatch)
+    call f_iostream_release(ios)
 
+    if (has_key(dict, key)) call dict_remove(dict, key)
     call psp_data_merge_to_dict(dict // key, nzatom, nelpsp, npspcode, ixcpsp, &
          & psppar, radii_cf, rcore, qcore)
     call set(dict // key // "PAW patch", pawpatch)
-    call set(dict // key // SOURCE_KEY, filename)
+    if (present(filename)) then
+       call set(dict // key // SOURCE_KEY, filename)
+    else
+       call set(dict // key // SOURCE_KEY, "In-line")
+    end if
   end subroutine psp_file_merge_to_dict
-
 
   subroutine nlcc_file_merge_to_dict(dict, key, filename)
     use module_defs, only: gp, UNINITIALIZED

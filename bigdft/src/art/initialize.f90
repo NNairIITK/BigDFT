@@ -176,6 +176,7 @@ subroutine initialize()
         close(FLOG)
      end if
      mincounter = mincounter + 1
+
                                       ! if dual_search we dont do this check at the
                                       ! beginning. It is not well defined.
      if ( success .and. .not. dual_search ) then

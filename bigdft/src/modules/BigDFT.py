@@ -3,7 +3,8 @@ from ..overrides import override
 
 BigDFT = modules['BigDFT']
 
-import numpy, ctypes, struct
+import numpy
+import ctypes, struct
 
 __all__ = []
 
@@ -180,7 +181,11 @@ class Dict(BigDFT.Dict):
   def update(self, add, it):
     if __is_dict_scalar__(add):
       # scalar case
-      self.set(None, str(add))
+      vals = str(add).splitlines()
+      if len(vals) == 1:
+        self.set(None, vals[0])
+      else:
+        self.__list_add__(vals, it)
     elif isinstance(add, dict):
       # dictionary case
       self.__dict_add__(add, it)
