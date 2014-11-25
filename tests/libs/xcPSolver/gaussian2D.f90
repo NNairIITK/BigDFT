@@ -35,8 +35,8 @@ program MP_gaussian
 
   !pgauss=0.5_gp/((0.1_gp*hgrid)**2)!8.0e-3_dp*1.25_dp**(6*(8-1))
   !array where we have to write the value of the discretization
-  fj_phi=f_malloc( (/ -npts .to. npts, -npts .to. npts/), id='fj_phi')
-  fj_coll=f_malloc((/ -npts .to. npts, -npts .to. npts/), id='fj_coll')
+  fj_phi=f_malloc( (/ 0 .to. 2*npts, 0 .to. 2*npts/), id='fj_phi')
+  fj_coll=f_malloc((/ 0 .to. 2*npts, 0 .to. 2*npts/), id='fj_coll')
   call initialize_real_space_conversion() !initialize the work arrays needed to integrate with isf
 
   ! Calculate for different nsigma sigma
@@ -44,7 +44,7 @@ program MP_gaussian
      pgauss=0.5_gp/((sigma+0.01_gp*(isigma-1)*hgrid)**2)
      call yaml_map('sigma/h',sqrt(0.5_gp/pgauss)/hgrid)
      !plot raw function (fort.iunit)
-     do j=-npts,npts
+     do j=-npts,2*npts
         if (pow /= 0) then
            write(iunit,*) j,exp(-pgauss*(j*hgrid)**2)*((j*hgrid)**pow)
         else
@@ -56,8 +56,8 @@ program MP_gaussian
      avgmaxmin(3,:,:)=1.d100
      max_fj=0.0_gp
      do istep=1,nstep
-        x0=(-0.5_gp+real(istep-1,gp)/real(nstep,gp))*hgrid
-        y0=(-0.5_gp+real(istep-1,gp)/real(nstep,gp))*hgrid
+        x0=(-0.5_gp+real(istep-1,gp)/real(nstep,gp)+real(npts,gp))*hgrid
+        y0=(-0.5_gp+real(istep-1,gp)/real(nstep,gp)+real(npts,gp))*hgrid
         !call yaml_map('x0',x0,advance='no')
         !call yaml_comment('Step No.'//trim(yaml_toa(istep)),tabbing=70)
         call evaluate_moments2D(nmoms,npts,hgrid,pgauss,pow,x0,y0,fj_phi,fj_coll,moments)
@@ -122,27 +122,27 @@ subroutine evaluate_moments2D(nmoms,npts,hgrid,pgauss,pow,x0,y0,fj_phi,fj_coll,m
   integer, intent(in) :: npts,pow,nmoms
   real(gp), intent(in) :: hgrid,pgauss,x0,y0
   real(gp), dimension(0:nmoms,2), intent(out) :: moments
-  real(gp), dimension(-npts:npts,-npts:npts), intent(out) :: fj_phi,fj_coll
+  real(gp), dimension(0:2*npts,0:2*npts), intent(out) :: fj_phi,fj_coll
   !local variables
   integer :: j,jy
 
   !use the elemental property of the mp_exp function
-  do jy=-npts,npts
-     fj_phi(:,jy)=mp_exp(hgrid,x0,pgauss,(/(j,j=-npts,npts)/),pow,.true.)*mp_exp(hgrid,y0,pgauss,jy,pow,.true.)
+  do jy=0,2*npts
+     fj_phi(:,jy)=mp_exp(hgrid,x0,pgauss,(/(j,j=0,2*npts)/),pow,.true.)*mp_exp(hgrid,y0,pgauss,jy,pow,.true.)
   end do
   !scfdotf((/(j,j=-npts,npts)/),hgrid,pgauss,x0,pow)
-  call moments_2d(2*npts+1,2*npts+1,fj_phi,x0+hgrid*(npts+1),y0+hgrid*(npts+1),hgrid,nmoms,moments(0,1))
+  call moments_2d(2*npts+1,2*npts+1,fj_phi,x0,y0,hgrid,nmoms,moments(0,1))
 
   !collocation array
-  do jy=-npts,npts
-     fj_coll(:,jy)=mp_exp(hgrid,x0,pgauss,(/(j,j=-npts,npts)/),pow,.false.)*mp_exp(hgrid,y0,pgauss,jy,pow,.false.)
+  do jy=0,2*npts
+     fj_coll(:,jy)=mp_exp(hgrid,x0,pgauss,(/(j,j=0,2*npts)/),pow,.false.)*mp_exp(hgrid,y0,pgauss,jy,pow,.false.)
   end do
   !if (pow /=0) then
   !   fj_coll=(/(exp(-pgauss*(j*hgrid-x0)**2)*(j*hgrid-x0)**pow,j=-npts,npts)/)
   !else
   !   fj_coll=(/(exp(-pgauss*(j*hgrid-x0)**2),j=-npts,npts)/)
   !end if
-  call moments_2d(2*npts+1,2*npts+1,fj_coll,x0+hgrid*(npts+1),y0+hgrid*(npts+1),hgrid,nmoms,moments(0,2))
+  call moments_2d(2*npts+1,2*npts+1,fj_coll,x0,y0,hgrid,nmoms,moments(0,2))
 
 end subroutine evaluate_moments2D
 
@@ -163,9 +163,9 @@ subroutine moments_2d(nx,ny,array,x0,y0,h,nmoms,moments)
   do j=0,nmoms
      moments(j)=0.0_gp
      do kx=1,nx
-        x=real(kx,gp)*h-x0
+        x=real(kx-1,gp)*h-x0
         do ky =1,ny
-           y=real(ky,gp)*h-y0
+           y=real(ky-1,gp)*h-y0
            moments(j)=moments(j)+(x**j*y**j)*array(kx,ky)
         end do
      end do

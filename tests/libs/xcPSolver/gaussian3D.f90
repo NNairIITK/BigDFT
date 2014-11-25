@@ -15,12 +15,12 @@ program MP_gaussian
   use yaml_output
   implicit none
   integer, parameter :: iunit=16        !< File unit for the plot
-  integer, parameter :: nmoms=1        !< Number of calculated moments
-  integer, parameter :: nstep=3        !> Number of resolution to calculate the moments
+  integer, parameter :: nmoms=1         !< Number of calculated moments
+  integer, parameter :: nstep=3         !< Number of resolution to calculate the moments
   integer, parameter :: nsigma=1        !< Number of different gaussian functions
-  integer, parameter :: npts=50        !< Arrays from -npts to npts
-  real(gp), parameter :: hgrid = 1.0_gp !< Step grid
-  real(gp), parameter :: sigma = 0.25_gp !< Sigma gaussian
+  integer, parameter :: npts=50         !< Arrays from -npts to npts
+  real(gp), parameter :: hgrid = 0.8_gp !< Step grid
+  real(gp), parameter :: sigma = 0.2_gp !< Sigma gaussian
   integer :: j
   integer :: imoms,pow,istep,isigma
   real(gp) :: pgauss,x0,y0,z0,reference,max_fj
@@ -52,7 +52,7 @@ program MP_gaussian
         end if
      end do
 
-     avgmaxmin=0.d0
+     avgmaxmin=0.0_gp
      avgmaxmin(3,:,:)=1.d100
      max_fj=0.0_gp
      do istep=1,nstep
@@ -135,7 +135,8 @@ subroutine evaluate_moments3D(nmoms,npts,hgrid,pgauss,pow,x0,y0,z0,fj_phi,fj_col
      end do
   end do
   !scfdotf((/(j,j=-npts,npts)/),hgrid,pgauss,x0,pow)
-  call moments_3d(2*npts+1,2*npts+1,2*npts+1,fj_phi,x0+hgrid*(npts+1),y0+hgrid*(npts+1),z0+hgrid*(npts+1),hgrid,nmoms,moments(0,1))
+  call moments_3d(2*npts+1,2*npts+1,2*npts+1,fj_phi, &
+  & x0+hgrid*(npts+1),y0+hgrid*(npts+1),z0+hgrid*(npts+1),hgrid,nmoms,moments(0,1))
 
   !collocation array
   do jz=-npts,npts
@@ -149,7 +150,8 @@ subroutine evaluate_moments3D(nmoms,npts,hgrid,pgauss,pow,x0,y0,z0,fj_phi,fj_col
   !else
   !   fj_coll=(/(exp(-pgauss*(j*hgrid-x0)**2),j=-npts,npts)/)
   !end if
-  call moments_3d(2*npts+1,2*npts+1,2*npts+1,fj_coll,x0+hgrid*(npts+1),y0+hgrid*(npts+1),z0+hgrid*(npts+1),hgrid,nmoms,moments(0,2))
+  call moments_3d(2*npts+1,2*npts+1,2*npts+1,fj_coll,&
+       & x0+hgrid*(npts+1),y0+hgrid*(npts+1),z0+hgrid*(npts+1),hgrid,nmoms,moments(0,2))
 
 end subroutine evaluate_moments3D
 
