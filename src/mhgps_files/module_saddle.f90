@@ -403,8 +403,8 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
         call convcheck_sad(fnrm,curv,0.0_gp,fnrmtol,icheck)
         if(icheck>icheckmax)then
             goto 1000
-        else if(icheck == 1)then
-!        else if(icheck == icheckmax)then
+!        else if(icheck == 1)then
+        else if(icheck == icheckmax)then
             tighten=.true.
         else if(icheck == 0)then
             tighten=.false.
