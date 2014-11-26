@@ -408,10 +408,11 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(fxyz,atoms)
 
   ! Check forces consistency.
-  maxdiff=mpimaxdiff(fxyz,comm=bigdft_mpi%mpi_comm)
+  call mpibcast(fxyz,comm=bigdft_mpi%mpi_comm,maxdiff=maxdiff)
+  !maxdiff=mpimaxdiff(fxyz,comm=bigdft_mpi%mpi_comm)
   !call check_array_consistency(maxdiff, nproc, fxyz, bigdft_mpi%mpi_comm)
   if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
-       call yaml_warning('Output forces not identical! '//&
+       call yaml_warning('Output forces were not identical! (broadcasted) '//&
        '(difference:'//trim(yaml_toa(maxdiff))//' )')
 
   if (iproc == 0) call write_forces(atoms,fxyz)

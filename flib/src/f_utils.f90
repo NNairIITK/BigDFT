@@ -9,7 +9,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 module f_utils
   use dictionaries, only: f_err_throw,f_err_define
-  use yaml_strings, only: yaml_toa
+  use yaml_strings, only: yaml_toa,operator(.eqv.)
   implicit none
 
   public 
@@ -18,6 +18,16 @@ module f_utils
 
   !preprocessed include file with processor-specific values
   include 'f_utils.inc' !defines recl_kind
+
+  !> enumerator type, useful to define different modes
+  type, public :: f_enumerator
+     character(len=256) :: name
+     integer :: id
+  end type f_enumerator
+  integer, parameter, private :: NULL_INT=-1024
+  character(len=*), parameter, private :: null_name='nullified enumerator'
+  type(f_enumerator), parameter, private :: &
+       f_enum_null=f_enumerator(null_name,NULL_INT)
 
   !>interface for difference between two intrinsic types
   interface f_diff
@@ -28,11 +38,45 @@ module f_utils
      module procedure f_diff_c1i1,f_diff_li0li1
   end interface f_diff
 
+  interface operator(==)
+     module procedure enum_is_int,enum_is_char,enum_is_enum
+  end interface operator(==)
+
   private :: f_diff_i,f_diff_r,f_diff_d,f_diff_li,f_diff_l,f_diff_li0li1
   private :: f_diff_d2d3,f_diff_d2d1,f_diff_d1d2,f_diff_d2,f_diff_d1
   private :: f_diff_i2i1,f_diff_i1,f_diff_i2,f_diff_i1i2,f_diff_d0d1,f_diff_c1i1
 contains
 
+  pure function f_enumerator_null() result(en)
+    implicit none
+    type(f_enumerator) :: en
+    en=f_enum_null
+  end function f_enumerator_null
+
+  elemental pure function enum_is_enum(en,en1) result(ok)
+    implicit none
+    type(f_enumerator), intent(in) :: en
+    type(f_enumerator), intent(in) :: en1
+    logical :: ok
+    ok = en == en1%id .and. en == en1%name
+  end function enum_is_enum
+
+  elemental pure function enum_is_int(en,int) result(ok)
+    implicit none
+    type(f_enumerator), intent(in) :: en
+    integer, intent(in) :: int
+    logical :: ok
+    ok = en%id == int
+  end function enum_is_int
+
+  elemental pure function enum_is_char(en,char) result(ok)
+    implicit none
+    type(f_enumerator), intent(in) :: en
+    character(len=*), intent(in) :: char
+    logical :: ok
+    ok = trim(en%name) .eqv. trim(char)
+  end function enum_is_char
+  
   subroutine f_utils_errors()
 
     call f_err_define('INPUT_OUTPUT_ERROR',&

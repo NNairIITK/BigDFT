@@ -16,6 +16,7 @@ module bigdft_run
   use module_atoms, only: atoms_data
   use dynamic_memory, only: f_reference_counter,f_ref_new,f_ref,f_unref,&
        nullify_f_ref
+  use f_utils
   private
 
   !>  Used to restart a new DFT calculation or to save information 
@@ -32,6 +33,7 @@ module bigdft_run
 
   !> Public container to be used with call_bigdft().
   type, public :: run_objects
+     type(f_enumerator) :: run_mode
      !> user input specifications
      type(dictionary), pointer :: user_inputs
      !> structure of BigDFT input variables
@@ -609,9 +611,10 @@ module bigdft_run
     !> Routines to handle the argument objects of call_bigdft().
     pure subroutine nullify_run_objects(runObj)
       use module_types
+      use f_utils, only: f_enumerator_null
       implicit none
       type(run_objects), intent(out) :: runObj
-
+      runObj%run_mode=f_enumerator_null()
       nullify(runObj%user_inputs)
       nullify(runObj%inputs)
       nullify(runObj%atoms)
