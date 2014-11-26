@@ -363,7 +363,13 @@ module bigdft_run
       character(len=*), intent(in), optional :: outdir_id
       logical, intent(in), optional :: log_to_disk
 
-      if (present(run_id)) call set(run // RADICAL_NAME, trim(run_id))
+      if (present(run_id)) then
+         if (trim(run_id) /= "input") then
+            call set(run // RADICAL_NAME, trim(run_id))
+         else
+            call set(run // RADICAL_NAME, " ")
+         end if
+      end if
       if (present(posinp_id)) call set(run // POSINP, trim(posinp_id))
       if (present(outdir_id)) call set(run // OUTDIR, trim(outdir_id))
       if (present(log_to_disk)) call set(run // LOGFILE, log_to_disk)
@@ -371,14 +377,18 @@ module bigdft_run
     end subroutine bigdft_set_run_properties
 
     !> get the parameters of the run 
-    subroutine bigdft_get_run_properties(run,run_id,posinp_id)
+    subroutine bigdft_get_run_properties(run,run_id,radical_id,posinp_id)
       use public_keys, only: RADICAL_NAME, POSINP
       implicit none
       type(dictionary), pointer :: run
-      character(len=*), intent(out), optional :: run_id
+      character(len=*), intent(out), optional :: run_id, radical_id
       character(len=*), intent(out), optional :: posinp_id
 
-      if (present(run_id)) run_id = run // RADICAL_NAME
+      if (present(run_id)) then
+         run_id = run // RADICAL_NAME
+         if (len_trim(run_id) == 0) run_id = "input"
+      end if
+      if (present(radical_id)) radical_id = run // RADICAL_NAME
       if (present(posinp_id)) posinp_id = run // POSINP
       
     end subroutine bigdft_get_run_properties

@@ -314,7 +314,7 @@ subroutine create_log_file(dict)
   type(dictionary), pointer :: dict
   !local variables
   integer :: ierr,ierror,lgt,unit_log
-  character(len = max_field_length) :: writing_directory, dir_output, run_name, dir_name
+  character(len = max_field_length) :: writing_directory, dir_output, run_name
   character(len=500) :: logfilename,path
   integer :: iproc_node, nproc_node
   logical :: log_to_disk
@@ -345,14 +345,12 @@ subroutine create_log_file(dict)
        & writing_directory(min(lgt+1, len(writing_directory)):min(lgt+1, len(writing_directory))) = "/"
 
   ! Get user defined datadir and update it.
-  dir_name = "data"
-  if (has_key(dict, DATADIR)) dir_name = dict // DATADIR
   run_name   = ""
-  dir_output = trim(dir_name) // trim(bigdft_run_id_toa())
+  dir_output = "data" // trim(bigdft_run_id_toa())
   if (has_key(dict, RADICAL_NAME)) then
      run_name   = dict // RADICAL_NAME
      if (len_trim(run_name) > 0) then
-        dir_output = trim(dir_name) // "-"//trim(run_name)
+        dir_output = "data-"//trim(run_name)
      end if
   end if
   lgt=0

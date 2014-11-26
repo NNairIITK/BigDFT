@@ -149,7 +149,7 @@ $(abs_top_builddir)/src/BigDFT2Wannier:
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.minhop.out: $(abs_top_builddir)/src/global
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	$(run_parallel) $(abs_top_builddir)/src/global > $@
+	$(run_parallel) $(abs_top_builddir)/src/global -l yes > $@
 #	mv log-mdinput.yaml log.yaml
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
