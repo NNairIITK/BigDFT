@@ -300,7 +300,7 @@ subroutine ensure_log_file(writing_directory, logfile, ierr)
 
 end subroutine ensure_log_file
 
-subroutine create_log_file(dict, writing_directory, dir_output, run_name)
+subroutine create_log_file(dict)
 
   use module_base
   use module_types
@@ -309,95 +309,113 @@ subroutine create_log_file(dict, writing_directory, dir_output, run_name)
   use yaml_output
   use dictionaries
   use bigdft_run, only: bigdft_run_id_toa
+  use public_keys, only: OUTDIR, DATADIR, RADICAL_NAME, LOGFILE
   implicit none
   type(dictionary), pointer :: dict
-  character(len = max_field_length), intent(out) :: writing_directory, dir_output, run_name
   !local variables
   integer :: ierr,ierror,lgt,unit_log
-  character(len=500) :: logfile,logfile_old,logfile_dir,filepath
+  character(len = max_field_length) :: writing_directory, dir_output, run_name, dir_name
+  character(len=500) :: logfilename,path
   integer :: iproc_node, nproc_node
+  logical :: log_to_disk
 
+  ! Get user input writing_directory.
   writing_directory = "."
-  if (has_key(dict, "perf")) then
-     if (has_key(dict // "perf", "outdir")) then
-        writing_directory = dict_value(dict // "perf" // "outdir")
-     end if
-  end if
-  run_name   = ""
-  dir_output = "data" // trim(bigdft_run_id_toa())
-  if (has_key(dict, "radical")) then
-     run_name   = dict // "radical"
-     dir_output = "data-"//trim(run_name)
-  end if
-
-  logfile=repeat(' ',len(logfile))
-  logfile_old=repeat(' ',len(logfile_old))
-  logfile_dir=repeat(' ',len(logfile_dir))
-  !open the logfile if needed, and set stdout
+  if (has_key(dict, OUTDIR)) writing_directory = dict // OUTDIR
+  ! Create writing_directory and parents if needed and broadcast everything.
   if (trim(writing_directory) /= '.' .or. bigdft_mpi%ngroup > 1) then
+     path=repeat(' ',len(path))
      !add the output directory in the directory name
      if (bigdft_mpi%iproc == 0 .and. trim(writing_directory) /= '.') then
         call getdir(writing_directory,&
-             len_trim(writing_directory),logfile,len(logfile),ierr)
+             len_trim(writing_directory),path,len(path),ierr)
         if (ierr /= 0) then
            write(*,*) "ERROR: cannot create writing directory '"&
                 //trim(writing_directory) // "'."
            call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
         end if
      end if
-     call MPI_BCAST(logfile,len(logfile),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
-     lgt=min(len(writing_directory),len(logfile))
-     writing_directory(1:lgt)=logfile(1:lgt)
-     lgt=0
-     if (dir_output(1:1) /= '/') &
-          & call buffer_string(dir_output,len(dir_output),&
-          & trim(logfile),lgt,back=.true.)
-     if (bigdft_mpi%iproc == 0) then
-        logfile=repeat(' ',len(logfile))
+     call MPI_BCAST(path,len(path),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
+     lgt=min(len(writing_directory),len(path))
+     writing_directory(1:lgt)=path(1:lgt)
+  end if
+  ! Add trailing slash if missing.
+  lgt = len_trim(writing_directory)
+  if (writing_directory(lgt:lgt) /= "/") &
+       & writing_directory(min(lgt+1, len(writing_directory)):min(lgt+1, len(writing_directory))) = "/"
+
+  ! Get user defined datadir and update it.
+  dir_name = "data"
+  if (has_key(dict, DATADIR)) dir_name = dict // DATADIR
+  run_name   = ""
+  dir_output = trim(dir_name) // trim(bigdft_run_id_toa())
+  if (has_key(dict, RADICAL_NAME)) then
+     run_name   = dict // RADICAL_NAME
+     if (len_trim(run_name) > 0) then
+        dir_output = trim(dir_name) // "-"//trim(run_name)
+     end if
+  end if
+  lgt=0
+  if (dir_output(1:1) /= '/') &
+       & call buffer_string(dir_output,len(dir_output),&
+       & trim(writing_directory),lgt,back=.true.)
+
+  ! Save modified writing_directory and dir_output values in dict.
+  call set(dict // OUTDIR, writing_directory)
+  call set(dict // DATADIR, dir_output)
+
+  ! Test if logging on disk is required.
+  log_to_disk = .false.
+  if (has_key(dict, LOGFILE)) log_to_disk = dict // LOGFILE
+  log_to_disk = log_to_disk .or. bigdft_mpi%ngroup > 1
+  call set(dict // LOGFILE, log_to_disk)
+
+  ! Now, create the logfile if needed.
+  if (bigdft_mpi%iproc == 0) then
+     if (log_to_disk) then
+        logfilename=repeat(' ',len(logfilename))
         if (len_trim(run_name) > 0) then
 !           logfile='log-'//trim(run_name)//trim(bigdft_run_id_toa())//'.yaml'
-           logfile='log-'//trim(run_name)//'.yaml'
+           logfilename='log-'//trim(run_name)//'.yaml'
         else
-           logfile='log'//trim(bigdft_run_id_toa())//'.yaml'
+           logfilename='log'//trim(bigdft_run_id_toa())//'.yaml'
         end if
-        filepath = trim(writing_directory)//trim(logfile)
-        call yaml_map('<BigDFT> log of the run will be written in logfile',filepath,unit=6)
+        path = trim(writing_directory)//trim(logfilename)
+        call yaml_map('<BigDFT> log of the run will be written in logfile',path,unit=6)
         ! Check if logfile is already connected.
-        call yaml_stream_connected(trim(filepath), unit_log, ierr)
+        call yaml_stream_connected(trim(path), unit_log, ierr)
         if (ierr /= 0) then
            ! Move possible existing log file.
-           call ensure_log_file(trim(writing_directory), trim(logfile), ierr)
+           call ensure_log_file(trim(writing_directory), trim(logfilename), ierr)
            if (ierr /= 0) call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
            ! Close active stream and logfile if any. (TO BE MOVED IN RUN_UPDATE TO AVOID CLOSURE OF UPLEVEL INSTANCE)
            call yaml_get_default_stream(unit_log)
            if (unit_log /= 6) call yaml_close_stream(unit_log, ierr)
            !Create stream and logfile
-           call yaml_set_stream(filename=trim(filepath),record_length=92,istat=ierr)
+           call yaml_set_stream(filename=trim(path),record_length=92,istat=ierr)
            !create that only if the stream is not already present, otherwise print a warning
            if (ierr == 0) then
               call yaml_get_default_stream(unit_log)
               call input_set_stdout(unit=unit_log)
               !call memocc_set_stdout(unit=70)
            else
-              call yaml_warning('Logfile '//trim(filepath)//' cannot be created, stream already present. Ignoring...')
+              call yaml_warning('Logfile '//trim(path)//' cannot be created, stream already present. Ignoring...')
            end if
         else
            call yaml_release_document(unit_log)
            call yaml_set_default_stream(unit_log, ierr)
         end if ! Logfile already connected
-     end if ! Logfile is created by master proc only
-  else
-     !use stdout, do not crash if unit is present
-     if (bigdft_mpi%iproc==0) call yaml_set_stream(record_length=92,istat=ierr)
-  end if ! Need to create a named logfile.
-    
-  if (bigdft_mpi%iproc==0) then
+     else
+        !use stdout, do not crash if unit is present
+        call yaml_set_stream(record_length=92,istat=ierr)
+     end if ! Need to create a named logfile.
+
      !start writing on logfile
      call yaml_new_document()
      !welcome screen
      call print_logo()
-  end if
-
+  end if ! Logfile is created by master proc only
+    
   if (bigdft_mpi%nproc >1) call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
 
   if (bigdft_mpi%iproc==0) then

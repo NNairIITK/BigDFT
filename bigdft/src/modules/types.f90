@@ -2090,9 +2090,6 @@ contains
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
-       ! the KPT variables ------------------------------------------------------
-    case (KPT_VARIABLES)
-       stop "kpt set_input not implemented"
     case (PERF_VARIABLES)
        ! the PERF variables -----------------------------------------------------
        select case (trim(dict_key(val)))       
@@ -2102,8 +2099,6 @@ contains
           in%ncache_fft = val
        case (VERBOSITY)
           in%verbosity = val
-       case (OUTDIR)
-          in%writing_directory = val
        case (TOLSYM)
           in%symTol = val
        case (PROJRAD)
@@ -2507,8 +2502,23 @@ contains
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
+    case (OUTDIR)
+       in%writing_directory = val
+    case (DATADIR)
+       in%dir_output = val
+    case (RADICAL_NAME)
+       in%run_name = val
+       ! Currently ignored.
+    case (POSINP)
+    case (LOGFILE)
+       ! the KPT variables ------------------------------------------------------
+    case (KPT_VARIABLES)
+    case (LIN_BASIS_PARAMS)
+    case (OCCUPATION)
     case DEFAULT
-       call yaml_warning("unknown level '" // trim(level) //"'")
+       if (index(level, "psppar") /= 1) then
+          call yaml_warning("unknown level '" // trim(level) //"'")
+       end if
     end select
   END SUBROUTINE input_set_dict
 

@@ -39,7 +39,7 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
 
 !!$  call dict_init(dict)
   if (trim(radical) /= "" .and. trim(radical) /= "input") &
-       & call set(dict // "radical", radical)
+       & call set(dict // RADICAL_NAME, radical)
 
   ! Handle error with master proc only.
   !LG: modified, better to handle errors with all the 
@@ -131,9 +131,9 @@ subroutine inputs_from_dict(in, atoms, dict)
   !type(dictionary), pointer :: profs, dict_frag
   logical :: found
   integer :: ierr, ityp, nelec_up, nelec_down, norb_max, jtype
-  character(len = max_field_length) :: writing_dir, output_dir, run_name, msg,filename
+  character(len = max_field_length) :: msg,filename
 !  type(f_dict) :: dict
-  type(dictionary), pointer :: dict_minimal, var
+  type(dictionary), pointer :: dict_minimal, var, lvl
 
   integer, parameter :: pawlcutd = 10, pawlmix = 10, pawnphi = 13, pawntheta = 12, pawxcdev = 1
   integer, parameter :: xclevel = 1, usepotzero = 0
@@ -145,9 +145,6 @@ subroutine inputs_from_dict(in, atoms, dict)
 !  dict = dict//key
 
   call f_routine(id='inputs_from_dict')
-
-  ! Open log as soon as possible.
-  call create_log_file(dict, writing_dir, output_dir, run_name)
 
   ! Atoms case.
   atoms = atoms_data_null()
@@ -166,61 +163,30 @@ subroutine inputs_from_dict(in, atoms, dict)
   call input_keys_fill_all(dict,dict_minimal)
 
   ! Transfer dict values into input_variables structure.
-  var => dict_iter(dict // PERF_VARIABLES)
-  do while(associated(var))
-     call input_set(in, PERF_VARIABLES, var)
-     var => dict_next(var)
-  end do
-  var => dict_iter(dict // DFT_VARIABLES)
-  do while(associated(var))
-     call input_set(in, DFT_VARIABLES, var)
-     var => dict_next(var)
-  end do
-  var => dict_iter(dict // GEOPT_VARIABLES)
-  do while(associated(var))
-     call input_set(in, GEOPT_VARIABLES, var)
-     var => dict_next(var)
-  end do
-  var => dict_iter(dict // MIX_VARIABLES)
-  do while(associated(var))
-     call input_set(in, MIX_VARIABLES, var)
-     var => dict_next(var)
-  end do
-  var => dict_iter(dict // SIC_VARIABLES)
-  do while(associated(var))
-     call input_set(in, SIC_VARIABLES, var)
-     var => dict_next(var)
-  end do
-  var => dict_iter(dict // TDDFT_VARIABLES)
-  do while(associated(var))
-     call input_set(in, TDDFT_VARIABLES, var)
-     var => dict_next(var)
-  end do
-  var => dict_iter(dict // LIN_GENERAL)
-  do while(associated(var))
-     call input_set(in, LIN_GENERAL, var)
-     var => dict_next(var)
-  end do
-  var => dict_iter(dict // LIN_BASIS)
-  do while(associated(var))
-     call input_set(in, LIN_BASIS, var)
-     var => dict_next(var)
-  end do
-  var => dict_iter(dict // LIN_KERNEL)
-  do while(associated(var))
-     call input_set(in, LIN_KERNEL, var)
-     var => dict_next(var)
+  lvl => dict_iter(dict)
+  do while(associated(lvl))
+     var => dict_iter(lvl)
+     if (.not. associated(var)) then
+        ! Scalar case.
+        call input_set(in, trim(dict_key(lvl)), lvl)
+     else
+        do while(associated(var))
+           call input_set(in, trim(dict_key(lvl)), var)
+           var => dict_next(var)
+        end do
+     end if
+     lvl => dict_next(lvl)
   end do
 
   call set_cache_size(in%ncache_fft)
 
   !status of the allocation verbosity and profiling
   !filename of the memory allocation status, if needed
-  if (len_trim(run_name) == 0) then
-     call f_strcpy(src=trim(writing_dir)//'/memstatus' // trim(bigdft_run_id_toa()) // '.yaml',&
+  if (len_trim(in%run_name) == 0) then
+     call f_strcpy(src=trim(in%writing_directory)//'/memstatus' // trim(bigdft_run_id_toa()) // '.yaml',&
           dest=filename)
   else
-     call f_strcpy(src=trim(writing_dir)//'/memstatus-' // trim(run_name) // '.yaml',&
+     call f_strcpy(src=trim(in%writing_directory)//'/memstatus-' // trim(in%run_name) // '.yaml',&
           dest=filename)
   end if
 
@@ -360,9 +326,6 @@ subroutine inputs_from_dict(in, atoms, dict)
           err_name='BIGDFT_INPUT_VARIABLES_ERROR')
   end if
 
-  in%run_name          = run_name
-  in%writing_directory = writing_dir
-  in%dir_output        = output_dir
   ! not sure whether to actually make this an input variable or not so just set to false for now
   in%lin%diag_start=.false.
 
@@ -394,15 +357,13 @@ subroutine inputs_from_dict(in, atoms, dict)
   if (bigdft_mpi%iproc == 0)  call print_general_parameters(in,atoms)
 
   if (associated(dict_minimal) .and. bigdft_mpi%iproc == 0) then
-     !use run_name variable as it is not needed
-     if (RADICAL_NAME .notin. dict) then
-        call f_strcpy(src='input_minimal.yaml',dest=run_name)
+     if (len_trim(in%run_name) == 0) then
+        call f_strcpy(src='input_minimal.yaml',dest=filename)
      else
-        msg=dict//RADICAL_NAME
-        call f_strcpy(src=trim(msg)//'_minimal.yaml',dest=run_name)
+        call f_strcpy(src=trim(in%run_name)//'_minimal.yaml',dest=filename)
      end if
 
-     call yaml_set_stream(unit=99971,filename=trim(writing_dir)//'/'//trim(run_name),&
+     call yaml_set_stream(unit=99971,filename=trim(in%writing_directory)//'/'//trim(filename),&
           record_length=92,istat=ierr,setdefault=.false.,tabbing=0,position='rewind')
      if (ierr==0) then
         call yaml_comment('Minimal input file',hfill='-',unit=99971)
@@ -502,6 +463,9 @@ subroutine default_input_variables(in)
   in%matacc=material_acceleration_null()
 
   ! Default values.
+  in%run_name = " "
+  in%writing_directory = "."
+  in%dir_output = "data"
   in%output_wf_format = WF_FORMAT_NONE
   in%output_denspot_format = output_denspot_FORMAT_CUBE
   nullify(in%gen_kpt)

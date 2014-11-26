@@ -134,6 +134,7 @@ contains
     use module_interfaces, only: read_input_dict_from_files
     use public_keys, only: POSINP,IG_OCCUPATION
     use yaml_output
+    use yaml_strings, only: f_strcpy
     implicit none
     !Arguments
     type(dictionary), pointer :: dict                  !< Contains (out) all the information
@@ -142,7 +143,7 @@ contains
     type(mpi_environment), intent(in) :: mpi_env       !< MPI Environment
     !Local variables
     type(dictionary), pointer :: at
-    character(len = max_field_length) :: str
+    character(len = max_field_length) :: str, rad
 
     !read the input file(s) and transform them into a dictionary
     call read_input_dict_from_files(trim(radical), mpi_env, dict)
@@ -172,12 +173,15 @@ contains
     ! Add old psppar
     call atoms_file_merge_to_dict(dict)
 
+    call f_strcpy(src = radical, dest = rad)
+    if (len_trim(radical) == 0) rad = "input"
+
     !when the user has not specified the occupation in the input file
     if (.not. has_key(dict,IG_OCCUPATION)) then
        !yaml format should be used even for old method
-       if (file_exists(trim(radical)//".occup")) &
+       if (file_exists(trim(rad)//".occup")) &
             call merge_input_file_to_dict(dict//IG_OCCUPATION,&
-            trim(radical)//".occup",mpi_env)
+            trim(rad)//".occup",mpi_env)
     else !otherwise the input file always supersedes
        str = dict_value(dict //IG_OCCUPATION)
        if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
@@ -189,7 +193,7 @@ contains
 
     if (OCCUPATION .notin. dict) then
        ! Add old input.occ
-       call occupation_data_file_merge_to_dict(dict,OCCUPATION,trim(radical) // ".occ")
+       call occupation_data_file_merge_to_dict(dict,OCCUPATION,trim(rad) // ".occ")
     else
        str = dict_value(dict //OCCUPATION)
        if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then

@@ -331,8 +331,11 @@ contains
 
     !> fill the list of valid entries
     valid_entries=>list_new([&
-         .item. RADICAL_NAME, &
-         .item. POSINP,&  
+         .item. OUTDIR,&
+         .item. DATADIR,&
+         .item. RADICAL_NAME,&
+         .item. POSINP,&
+         .item. LOGFILE,&
          .item. PERF_VARIABLES,&  
          .item. DFT_VARIABLES,&   
          .item. KPT_VARIABLES,&   
