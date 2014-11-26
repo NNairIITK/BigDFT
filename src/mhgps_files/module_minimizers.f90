@@ -457,16 +457,6 @@ endif
          goto  500
       endif
 
-      if (iproc == 0 .and. mhgps_verbosity >=4) then
-         write(fn4,'(i4.4)') it
-         write(comment,'(a,1pe10.3)')'SQNM:fnrm= ',fnrm
-         call astruct_dump_to_file(astruct_ptr,&
-              currDir//'/sad'//trim(adjustl(isadc))&
-              //'_posminiP'//trim(adjustl(writePostfix))//'_'//fn4, &
-              trim(comment),energy=etotp,rxyz=rxyz(:,:,nhist),&
-              forces=fxyz(:,:,nhist))
-      endif
-
       delta=rxyz(:,:,nhist)-rxyzOld
       displp=displp+dnrm2(3*nat,delta(1,1),1)
       rxyzOld=rxyz(:,:,nhist)

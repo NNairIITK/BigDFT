@@ -363,7 +363,6 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
             goto 900  !sqnm will return to caller the energies and coordinates used/obtained from the last ACCEPTED iteration step
          endif
 
-         !beta=min(.50_gp*beta,betax)
          beta=.50_gp*beta
          if (debug.and.iproc==0) write(100,'(a,1x,e9.2)') 'WARNING GEOPT_SQNM: beta reset ',beta
          ndim=0
@@ -387,13 +386,6 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
             nhist=1
          endif
          goto  500
-      endif
-
-      if (iproc == 0) then
-         write(fn4,'(i4.4)') it
-         write(comment,'(a,1pe10.3)')'SQNM:fnrm= ',fnrm
-         call bigdft_write_atomic_file(runObj,outs,'posoutP_'//fn4,&
-              trim(comment))
       endif
 
       delta=rxyz(:,:,nhist)-rxyzOld
