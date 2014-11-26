@@ -31,6 +31,28 @@ subroutine f_memcpy_i1(dest,src)
   include 'f_memcpy-base-inc.f90'
 end subroutine f_memcpy_i1
 
+subroutine f_memcpy_i1i2(dest,src)
+  implicit none
+  integer, dimension(:), intent(inout) :: dest !<destination buffer
+  integer, dimension(:,:), intent(in) :: src !<source buffer 
+  !local variables
+  integer :: ns,nd
+  nd=size(dest)
+  ns=size(src)
+  include 'f_memcpy-base-inc.f90'
+end subroutine f_memcpy_i1i2
+
+subroutine f_memcpy_i2i1(dest,src)
+  implicit none
+  integer, dimension(:,:), intent(inout) :: dest !<destination buffer
+  integer, dimension(:), intent(in) :: src !<source buffer 
+  !local variables
+  integer :: ns,nd
+  nd=size(dest)
+  ns=size(src)
+  include 'f_memcpy-base-inc.f90'
+end subroutine f_memcpy_i2i1
+
 subroutine f_memcpy_d0(dest,src,n)
   implicit none
   integer, intent(in) :: n !<nelems

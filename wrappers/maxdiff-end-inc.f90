@@ -6,12 +6,20 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-  if ( mpirank(mpi_comm) == iroot) then
-     do jproc=2,nproc
-        do i=1,ndims
-           maxdiff=max(maxdiff,&
-                abs(array_glob(i,jproc)-array_glob(i,1)))
+
+  if (srce == -1) then
+     if ( irank == iroot) then
+        do jproc=2,nproc
+           do i=1,ndims
+              maxdiff=max(maxdiff,&
+                   abs(array_glob(i,jproc)-array_glob(i,1)))
+           end do
         end do
+     end if
+  else
+     do i=1,ndims
+        maxdiff=max(maxdiff,&
+             abs(array_glob(i,2)-array_glob(i,1)))
      end do
   end if
 
@@ -20,7 +28,11 @@
   !in case of broadcasting the difference should be known by everyone
   !and it should be (roughly) the same
   if (bcst) then
-     !never put check =.true. here, otherwise stack overflow
-     call mpibcast(maxdiff,1,root=iroot,comm=mpi_comm,check=.false.)
-     call mpibarrier(mpi_comm) !redundant?
+     if (srce == -1) then
+        !never put check =.true. here, otherwise stack overflow
+        call mpibcast(maxdiff,1,root=iroot,comm=mpi_comm,check=.false.)
+        call mpibarrier(mpi_comm) !redundant?
+     else
+        call mpiallred(maxdiff,1,MPI_MAX,comm=mpi_comm)
+     end if
   end if

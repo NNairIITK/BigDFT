@@ -911,9 +911,8 @@ contains
     include 'bcast-inc.f90'
   end subroutine mpibcast_d2
 
-
   !> Detect the maximum difference between arrays all over a given communicator
-  function mpimaxdiff_i0(n,array,root,comm,bcast) result(maxdiff)
+  function mpimaxdiff_i0(n,array,root,source,comm,bcast) result(maxdiff)
     use dynamic_memory
     implicit none
     integer, intent(in) :: n !<number of elements to be controlled
@@ -928,7 +927,7 @@ contains
     include 'maxdiff-inc.f90'
   end function mpimaxdiff_i0
 
-  function mpimaxdiff_d0(n,array,root,comm,bcast) result(maxdiff)
+  function mpimaxdiff_d0(n,array,root,source,comm,bcast) result(maxdiff)
     use dynamic_memory
     implicit none
     integer, intent(in) :: n !<number of elements to be controlled
@@ -943,7 +942,7 @@ contains
     include 'maxdiff-inc.f90'
   end function mpimaxdiff_d0
 
-  function mpimaxdiff_d1(array,root,comm,bcast) result(maxdiff)
+  function mpimaxdiff_d1(array,root,source,comm,bcast) result(maxdiff)
     use dynamic_memory
     implicit none
     !> array to be checked
@@ -959,7 +958,7 @@ contains
     include 'maxdiff-arr-inc.f90'
   end function mpimaxdiff_d1
 
-  function mpimaxdiff_i1(array,root,comm,bcast) result(maxdiff)
+  function mpimaxdiff_i1(array,root,source,comm,bcast) result(maxdiff)
     use dynamic_memory
     implicit none
     !> array to be checked
@@ -975,7 +974,7 @@ contains
     include 'maxdiff-arr-inc.f90'
   end function mpimaxdiff_i1
 
-  function mpimaxdiff_i2(array,root,comm,bcast) result(maxdiff)
+  function mpimaxdiff_i2(array,root,source,comm,bcast) result(maxdiff)
 
     use dynamic_memory
     implicit none
@@ -993,7 +992,7 @@ contains
   end function mpimaxdiff_i2
 
 
-  function mpimaxdiff_d2(array,root,comm,bcast) result(maxdiff)
+  function mpimaxdiff_d2(array,root,source,comm,bcast) result(maxdiff)
     use dynamic_memory
     implicit none
     !> array to be checked
@@ -1005,7 +1004,7 @@ contains
     ndims = size(array)
 
     maxdiff=0.d0
-    
+
    include 'maxdiff-arr-inc.f90'
   end function mpimaxdiff_d2
 
@@ -1162,7 +1161,7 @@ contains
     integer,intent(out),pointer,optional :: window_
     !local variables
     integer :: nproc,jproc,nrecvbuf,ierr
-    external :: getall
+    !external :: getall
     logical :: check
     integer,target:: window
 

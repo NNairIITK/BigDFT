@@ -11,6 +11,9 @@ module public_keys
 
   public ! guess why?
 
+  character(len = *), parameter :: MODE_VARIABLES = "mode"
+  character(len = *), parameter :: METHOD_KEY = "method"
+
   character(len = *), parameter :: RADICAL_NAME = "radical"
   character(len = *), parameter :: POSINP = "posinp"
   character(len = *), parameter :: OCCUPATION = "occupation"

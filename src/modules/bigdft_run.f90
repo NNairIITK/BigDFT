@@ -1075,6 +1075,11 @@ module bigdft_run
       end if
     end function bigdft_get_cell
 
+!TODO: 1) define f_enumerator types
+!!     2) regroup this routine in a QM_something routine
+!!     3) Insert the if statements of mhgps in the call_bigdft objects
+!!     4) Make everything compilable.
+
     !> Routine to use BigDFT as a blackbox
     subroutine call_bigdft(runObj,outs,infocode)
       use module_base
@@ -1119,32 +1124,6 @@ module bigdft_run
       !fill the rxyz array with the positions
       !wrap the atoms in the periodic directions when needed
       call rxyz_inside_box(runObj%atoms%astruct,rxyz=runObj%rst%rxyz_new)
-!!$      select case(runObj%atoms%astruct%geocode)
-!!$      case('P')
-!!$         do iat=1,runObj%atoms%astruct%nat
-!!$            runObj%rst%rxyz_new(1,iat)=modulo(runObj%atoms%astruct%rxyz(1,iat),runObj%atoms%astruct%cell_dim(1))
-!!$            runObj%rst%rxyz_new(2,iat)=modulo(runObj%atoms%astruct%rxyz(2,iat),runObj%atoms%astruct%cell_dim(2))
-!!$            runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
-!!$         end do
-!!$      case('S')
-!!$         do iat=1,runObj%atoms%astruct%nat
-!!$            runObj%rst%rxyz_new(1,iat)=modulo(runObj%atoms%astruct%rxyz(1,iat),runObj%atoms%astruct%cell_dim(1))
-!!$            runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
-!!$            runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
-!!$         end do
-!!$      case('W')
-!!$         do iat=1,runObj%atoms%astruct%nat
-!!$            runObj%rst%rxyz_new(1,iat)=runObj%atoms%astruct%rxyz(1,iat)
-!!$            runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
-!!$            runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
-!!$         end do
-!!$      case('F')
-!!$         do iat=1,runObj%atoms%astruct%nat
-!!$            runObj%rst%rxyz_new(1,iat)=runObj%atoms%astruct%rxyz(1,iat)
-!!$            runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
-!!$            runObj%rst%rxyz_new(3,iat)=runObj%atoms%astruct%rxyz(3,iat)
-!!$         end do
-!!$      end select
 
       !assign the verbosity of the output
       !the verbose variables is defined in module_base
@@ -1390,11 +1369,23 @@ END SUBROUTINE run_objects_init_from_run_name
 subroutine run_objects_update(runObj, dict)
   use module_base, only: bigdft_mpi
   use bigdft_run, only: run_objects,init_restart_objects,set_run_objects
-  use dictionaries, only: dictionary, dict_update,dict_free
+  use dictionaries!, only: dictionary, dict_update,dict_copy,dict_free,dict_iter,dict_next
   use yaml_output
   implicit none
   type(run_objects), intent(inout) :: runObj
   type(dictionary), pointer :: dict
+  !local variables
+  type(dictionary), pointer :: item
+
+  if (associated(runObj%user_inputs)) then
+     item => dict_iter(dict)
+     do while (associated(item))
+        if (index(dict_key(item),'psppar') == 1) then
+           call dict_copy(runObj%user_inputs//trim(dict_key(item)),item)
+        end if
+        item => dict_next(item)
+     end do
+  end if
 
   ! We merge the previous dictionary with new entries.
   call dict_update(runObj%user_inputs, dict)

@@ -630,21 +630,11 @@ subroutine allocateInputFragArrays(input_frag)
   input_frag%frag_index = f_malloc_ptr(input_frag%nfrag,id='input_frag%frag_index')
   input_frag%charge = f_malloc_ptr(input_frag%nfrag,id='input_frag%charge')
 
-  !allocate(input_frag%frag_info(input_frag%nfrag_ref,2), stat=i_stat)
-  !call memocc(i_stat, input_frag%frag_info, 'input_frag%frag_info', subname)
-
   input_frag%label=f_malloc_str_ptr(len(input_frag%label),&
        input_frag%nfrag_ref,id='input_frag%label')
-!!$  allocate(input_frag%label(input_frag%nfrag_ref), stat=i_stat)
-!!$  call memocc(i_stat, input_frag%label, 'input_frag%label', subname)
-
-
   !f_malloc0_str_ptr should be used here
   input_frag%dirname=f_malloc_str_ptr(len(input_frag%dirname),&
        input_frag%nfrag_ref,id='input_frag%label')
-
-!!$  allocate(input_frag%dirname(input_frag%nfrag_ref), stat=i_stat)
-!!$  call memocc(i_stat, input_frag%dirname, 'input_frag%dirname', subname)
 
   !set the variables to their default value
 
@@ -663,34 +653,11 @@ subroutine deallocateInputFragArrays(input_frag)
   ! Local variables
   character(len=*),parameter :: subname='deallocateInputFragArrays'
 
-  !if(associated(input_frag%frag_info)) then
-  !  i_all = -product(shape(input_frag%frag_info))*kind(input_frag%frag_info)
-  !  deallocate(input_frag%frag_info,stat=i_stat)
-  !  call memocc(i_stat,i_all,'input_frag%frag_info',subname)
-  !  nullify(input_frag%frag_info)
-  !end if 
-
   call f_free_ptr(input_frag%frag_index)
-  
-  
   call f_free_ptr(input_frag%charge)
   
   call f_free_str_ptr(len(input_frag%label),input_frag%label)
   call f_free_str_ptr(len(input_frag%dirname),input_frag%dirname)
-
-!!$  if(associated(input_frag%label)) then
-!!$     i_all = -product(shape(input_frag%label))*kind(input_frag%label)
-!!$     deallocate(input_frag%label,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'input_frag%label',subname)
-!!$     nullify(input_frag%label)
-!!$  end if
-!!$
-!!$  if(associated(input_frag%dirname)) then
-!!$     i_all = -product(shape(input_frag%dirname))*kind(input_frag%dirname)
-!!$     deallocate(input_frag%dirname,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'input_frag%dirname',subname)
-!!$     nullify(input_frag%dirname)
-!!$  end if
 
 end subroutine deallocateInputFragArrays
 
@@ -742,21 +709,11 @@ subroutine free_kpt_variables(in)
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_kpt_variables'
 
-!!$  if (associated(in%gen_kpt)) then
-!!$     i_all=-product(shape(in%gen_kpt))*kind(in%gen_kpt)
-!!$     deallocate(in%gen_kpt,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'in%gen_kpt',subname)
-!!$  end if
-!!$  if (associated(in%gen_wkpt)) then
-!!$     i_all=-product(shape(in%gen_wkpt))*kind(in%gen_wkpt)
-!!$     deallocate(in%gen_wkpt,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'in%gen_wkpt',subname)
-!!$  end if
   call f_free_ptr(in%gen_kpt)
   call f_free_ptr(in%gen_wkpt)
   call f_free_ptr(in%kptv)
   call f_free_ptr(in%nkptsv_group)
-    nullify(in%gen_kpt)
+  nullify(in%gen_kpt)
   nullify(in%gen_wkpt)
   nullify(in%kptv)
   nullify(in%nkptsv_group)

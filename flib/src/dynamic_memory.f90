@@ -137,6 +137,7 @@ module dynamic_memory
 
   interface f_memcpy
      module procedure f_memcpy_i0,f_memcpy_i1
+     module procedure f_memcpy_i1i2,f_memcpy_i2i1
      module procedure f_memcpy_r0
      module procedure f_memcpy_d0,f_memcpy_d1,f_memcpy_d2
      module procedure f_memcpy_d1d2,f_memcpy_d2d1,f_memcpy_d2d3
@@ -1279,9 +1280,12 @@ contains
           call yaml_newline()
           call yaml_warning('Memory allocation status filename '//trim(filename)//&
                ' not created, dumping in default stream')
+          !in the case of a filename, we might investigate if an error is produced
        else
           iunt=iunit
+          call f_dump_all_errors(iunit)
        end if
+
     end if
 
     call yaml_newline(unit=iunt)

@@ -642,6 +642,15 @@
        none: no tddft post-processing
        TDA: ???
      default: none
+#overall run setup
+ mode:
+   method:
+     COMMENT: Run method of BigDFT call
+     EXCLUSIVE:
+       dft: Density Functional Theory
+       lj: Lennard-Jones force field
+     default: dft
+     
 #Performance parameters
  perf:
    debug:

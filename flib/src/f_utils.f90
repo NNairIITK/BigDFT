@@ -194,4 +194,18 @@ contains
     
   end subroutine f_rewind
 
+  !>enter in a infinite loop for sec seconds. Use cpu_time as granularitu is enough
+  subroutine f_pause(sec)
+    implicit none
+    integer, intent(in) :: sec !< seconds to be waited
+    !local variables
+    real :: t0,t1
+
+    call cpu_time(t0)
+    t1=t0
+    do while(nint(t1-t0) < sec)
+       call cpu_time(t1)
+    end do
+  end subroutine f_pause
+
 end module f_utils
