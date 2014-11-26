@@ -1105,21 +1105,30 @@ module bigdft_run
       call mpibarrier(bigdft_mpi%mpi_comm)
 !write(*,*)'(BIGDFTbastian) debug after barrier,runObj%inputs%inputPsiId',runObj%inputs%inputPsiId,bigdft_mpi%iproc
       call f_routine(id=subname)
-      !Check the consistency between MPI processes of the atomic coordinates
-      maxdiff=mpimaxdiff(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,bcast=.true.)
+      !Check the consistency between MPI processes of the atomic coordinates and broadcast them
+      call mpibcast(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,maxdiff=maxdiff)
       if (maxdiff > epsilon(1.0_gp)) then
          if (bigdft_mpi%iproc==0) then
             call yaml_warning('Input positions not identical! '//&
-                 '(difference:'//trim(yaml_toa(maxdiff))//' ), broadcasting from master node.')
-            call yaml_comment('If the code hangs here, this means that not all the tasks met the threshold')
-            call yaml_comment('This might be related to arithmetics in performing the comparison')
+                 '(difference:'//trim(yaml_toa(maxdiff))//' ), however broadcasting from master node.')
             call yaml_flush_document()
          end if
-         !the check=.true. is important here: it controls that each process
-         !will participate in the broadcasting
-         call mpibcast(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,&
-              check=.true.)
       end if
+
+!!$      maxdiff=mpimaxdiff(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,bcast=.true.)
+!!$      if (maxdiff > epsilon(1.0_gp)) then
+!!$         if (bigdft_mpi%iproc==0) then
+!!$            call yaml_warning('Input positions not identical! '//&
+!!$                 '(difference:'//trim(yaml_toa(maxdiff))//' ), broadcasting from master node.')
+!!$            call yaml_comment('If the code hangs here, this means that not all the tasks met the threshold')
+!!$            call yaml_comment('This might be related to arithmetics in performing the comparison')
+!!$            call yaml_flush_document()
+!!$         end if
+!!$         !the check=.true. is important here: it controls that each process
+!!$         !will participate in the broadcasting
+!!$         call mpibcast(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,&
+!!$              check=.true.)
+!!$      end if
 
       !fill the rxyz array with the positions
       !wrap the atoms in the periodic directions when needed

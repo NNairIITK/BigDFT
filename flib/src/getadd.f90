@@ -230,6 +230,7 @@ interface pad_array
   module procedure pad_r1,pad_r2,pad_r3
   module procedure pad_dp1,pad_dp2,pad_dp3,pad_dp4,pad_dp5,pad_dp6,pad_dp7
   module procedure pad_z1, pad_z2
+  module procedure pad_li1,pad_li2
 end interface
 
 !>procedure to retrieve the value of the address of the first element of an array
@@ -242,6 +243,7 @@ interface loc_arr
    module procedure la_l1,la_l2,la_l3
    module procedure la_z1,la_z2
    module procedure la_c1
+   module procedure la_li1,la_li2
 end interface
 
 public :: pad_array,geti1,geti2,geti3,geti4
@@ -481,6 +483,29 @@ contains
 
   end subroutine pad_z2
 
+  subroutine pad_li1(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(1), intent(in) :: shp
+    integer(kind=8), dimension(shp(1)+ndebug), intent(out) :: array
+
+    call pad_longinteger(array,init_to_zero,shp(1),shp(1)+ndebug)
+
+  end subroutine pad_li1
+
+  subroutine pad_li2(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(2), intent(in) :: shp
+    integer(kind=8), dimension(shp(1),shp(2)+ndebug), intent(out) :: array
+
+    call pad_longinteger(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
+
+  end subroutine pad_li2
+
+
   subroutine pad_double(array,init,ndim_tot,ndim_extra)
     implicit none
     logical, intent(in) :: init
@@ -503,7 +528,7 @@ contains
     !local variables
     integer :: i
 
-    if (init) call razero(ndim_tot,array)
+    if (init) call razero(2*ndim_tot,array)
     do i=ndim_tot+1,ndim_extra
        array(i)=(1.d0,1.d0)*d_nan()
     end do
@@ -557,6 +582,21 @@ contains
     end do
   end subroutine pad_integer
 
+  subroutine pad_longinteger(array,init,ndim_tot,ndim_extra)
+    implicit none
+    logical, intent(in) :: init
+    integer, intent(in) :: ndim_tot, ndim_extra
+    integer(kind=8), dimension(ndim_extra), intent(out) :: array
+    !local variables
+    integer :: i
+
+    if (init) call razero(ndim_tot,array)
+    do i=ndim_tot+1,ndim_extra
+       array(i)=li_nan()
+    end do
+  end subroutine pad_longinteger
+
+
   subroutine pad_character(array,init,ndim_tot,ndim_extra)
     implicit none
     logical, intent(in) :: init
@@ -589,6 +629,21 @@ contains
    inan(2) = 2147483647
    d_nan = dnan
   end function d_nan
+
+  function li_nan()
+    implicit none
+    integer(kind=8):: li_nan
+    !local variables
+    integer(kind=8):: linan
+    integer, dimension(2) :: inan
+    equivalence (linan, inan)
+    ! This first assignment is for big-endian machines
+    inan(1) = 2147483647
+    ! The second assignment is for little-endian machines
+    inan(2) = 2147483647
+    li_nan = linan
+  end function li_nan
+
 
   !> Function which specify NaN according to IEEE specifications
   function r_nan()
@@ -802,6 +857,18 @@ contains
     include 'getadd-c-inc.f90' 
     la=f_loc(array(1))
   end function la_c1
+  function la_li1(array) result(la)
+    implicit none
+    integer(kind=8), dimension(:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1))
+  end function la_li1
+  function la_li2(array) result(la)
+    implicit none
+    integer(kind=8), dimension(:,:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1,1))
+  end function la_li2
 
 
 end module metadata_interfaces

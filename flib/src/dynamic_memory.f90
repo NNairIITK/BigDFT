@@ -100,6 +100,7 @@ module dynamic_memory
      module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all,d7_all
      module procedure r1_all,r2_all,r3_all
      module procedure z2_all
+     module procedure li1_all,li2_all
      module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr,d6_ptr
      module procedure i1_ptr,i2_ptr,i3_ptr,i4_ptr
      module procedure l2_ptr, l3_ptr
@@ -116,6 +117,7 @@ module dynamic_memory
      module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free,d7_all_free
      module procedure r1_all_free,r2_all_free,r3_all_free
      module procedure z2_all_free
+     module procedure li1_all_free,li2_all_free
   end interface
 
   interface f_free_ptr
@@ -139,10 +141,21 @@ module dynamic_memory
      module procedure f_memcpy_i0,f_memcpy_i1
      module procedure f_memcpy_i1i2,f_memcpy_i2i1
      module procedure f_memcpy_r0
-     module procedure f_memcpy_d0,f_memcpy_d1,f_memcpy_d2
+     module procedure f_memcpy_d0,f_memcpy_d1,f_memcpy_d2,f_memcpy_d0d1
      module procedure f_memcpy_d1d2,f_memcpy_d2d1,f_memcpy_d2d3
-     module procedure f_memcpy_l0
+     module procedure f_memcpy_l0,f_memcpy_c1i1,f_memcpy_i1c1
+     module procedure f_memcpy_li0,f_memcpy_li0li1,f_memcpy_i0i1
   end interface f_memcpy
+
+  interface f_maxdiff
+     module procedure f_maxdiff_i0,f_maxdiff_i1
+     module procedure f_maxdiff_i1i2,f_maxdiff_i2i1
+     module procedure f_maxdiff_r0
+     module procedure f_maxdiff_d0,f_maxdiff_d1,f_maxdiff_d2
+     module procedure f_maxdiff_d0d1,f_maxdiff_d1d2,f_maxdiff_d2d1,f_maxdiff_d2d3
+     module procedure f_maxdiff_l0,f_maxdiff_i0i1
+     module procedure f_maxdiff_c1i1,f_maxdiff_li0li1
+  end interface f_maxdiff
 
   !to be verified if clock_gettime is without side-effect, otherwise the routine cannot be pure
   interface
@@ -157,7 +170,7 @@ module dynamic_memory
   public :: f_malloc_str,f_malloc0_str,f_malloc_str_ptr,f_malloc0_str_ptr
   public :: f_free,f_free_ptr,f_free_str,f_free_str_ptr
   public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_initialize,f_malloc_finalize
-  public :: f_time,to_zero,f_memcpy
+  public :: f_time,to_zero,f_memcpy,f_maxdiff
   !reference counters
   public :: f_ref_new,f_ref_null,f_unref,f_ref_free,f_ref_associate
   public :: nullify_f_ref,f_ref,f_ref_count,f_update_database,f_purge_database

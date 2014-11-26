@@ -26,13 +26,10 @@
   call f_free(array_glob)
 
   !in case of broadcasting the difference should be known by everyone
-  !and it should be (roughly) the same
-  if (bcst) then
-     if (srce == -1) then
-        !never put check =.true. here, otherwise stack overflow
-        call mpibcast(maxdiff,1,root=iroot,comm=mpi_comm,check=.false.)
-        call mpibarrier(mpi_comm) !redundant?
-     else
-        call mpiallred(maxdiff,1,MPI_MAX,comm=mpi_comm)
-     end if
+  if (bcst .and. srce==-1) then
+     !never put check =.true. here, otherwise stack overflow
+     call mpibcast(maxdiff,1,root=iroot,comm=mpi_comm,check=.false.)
+     call mpibarrier(mpi_comm) !redundant?
+  else if(srce >=0) then
+     call mpiallred(maxdiff,1,MPI_MAX,comm=mpi_comm)
   end if

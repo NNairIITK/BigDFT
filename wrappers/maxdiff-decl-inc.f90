@@ -8,7 +8,8 @@
 !!    For the list of contributors, see ~/AUTHORS
 
   !> if .true. all the proc will have the same maxdiff (default .false.)
-  !! ignored if source argument is present
+  !! if source is present, the array is overwritten with the value coming
+  !! from rank source
   logical, intent(in), optional :: bcast 
   !> determine the rank of the processor whose data are used for comparison.
   !! Implies bcast=.true. as at the end all the differences are broadcasted
@@ -24,7 +25,6 @@
   srce=-1
   if (present(source)) then
      srce=source
-     bcst=.true.
   end if
   if (present(comm)) then
      mpi_comm=comm
