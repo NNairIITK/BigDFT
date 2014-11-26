@@ -126,7 +126,7 @@ $(abs_top_builddir)/src/BigDFT2Wannier:
 	@name=`basename $@ .freq.out | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	echo "Running $(run_parallel) $(abs_top_builddir)/src/frequencies > $@" ; \
-	$(run_parallel) $(abs_top_builddir)/src/frequencies > $@
+	$(run_parallel) $(abs_top_builddir)/src/frequencies -l yes > $@
 	name=`basename $@ .freq.out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.NEB.out: $(abs_top_builddir)/src/NEB NEB_include.sh NEB_driver.sh
@@ -144,7 +144,7 @@ $(abs_top_builddir)/src/BigDFT2Wannier:
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.splsad.out: $(abs_top_builddir)/src/splsad
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	$(run_parallel) $(abs_top_builddir)/src/splsad > $@
+	$(run_parallel) $(abs_top_builddir)/src/splsad -l yes > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.minhop.out: $(abs_top_builddir)/src/global
