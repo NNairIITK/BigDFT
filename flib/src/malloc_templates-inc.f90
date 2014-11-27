@@ -485,6 +485,44 @@ subroutine d7_all_free(array)
   include 'deallocate-inc.f90' 
 end subroutine d7_all_free
 
+subroutine li1_all(array,m)
+  use metadata_interfaces, metadata_address => geti1
+  implicit none
+  type(malloc_information_all), intent(in) :: m
+  integer(kind=8), dimension(:), allocatable, intent(inout) :: array
+  include 'allocate-profile-inc.f90' 
+  !allocate the array
+  allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
+  include 'allocate-inc.f90'
+end subroutine li1_all
+
+subroutine li1_all_free(array)
+  use metadata_interfaces, metadata_address => geti1
+  implicit none
+  integer(kind=8), dimension(:), allocatable, intent(inout) :: array
+  include 'deallocate-profile-inc.f90' 
+  include 'deallocate-inc.f90' 
+end subroutine li1_all_free
+
+subroutine li2_all(array,m)
+  use metadata_interfaces, metadata_address => geti1
+  implicit none
+  type(malloc_information_all), intent(in) :: m
+  integer(kind=8), dimension(:,:), allocatable, intent(inout) :: array
+  include 'allocate-profile-inc.f90' 
+  !allocate the array
+  allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
+  include 'allocate-inc.f90'
+end subroutine li2_all
+
+subroutine li2_all_free(array)
+  use metadata_interfaces, metadata_address => geti1
+  implicit none
+  integer(kind=8), dimension(:,:), allocatable, intent(inout) :: array
+  include 'deallocate-profile-inc.f90' 
+  include 'deallocate-inc.f90' 
+end subroutine li2_all_free
+
 !test to see if this is convenient
 subroutine d1_all_free_multi(arrayA,arrayB,arrayC,arrayD,arrayE,arrayF,arrayG,arrayH)
   implicit none
