@@ -377,19 +377,30 @@ module bigdft_run
     end subroutine bigdft_set_run_properties
 
     !> get the parameters of the run 
-    subroutine bigdft_get_run_properties(run,run_id,radical_id,posinp_id)
-      use public_keys, only: RADICAL_NAME, POSINP
+    subroutine bigdft_get_run_properties(run,run_id,radical_id,posinp_id,outdir_id,log_to_disk)
+      use public_keys, only: RADICAL_NAME, POSINP, OUTDIR, LOGFILE
       implicit none
       type(dictionary), pointer :: run
       character(len=*), intent(out), optional :: run_id, radical_id
       character(len=*), intent(out), optional :: posinp_id
+      character(len=*), intent(inout), optional :: outdir_id
+      logical, intent(inout), optional :: log_to_disk
 
       if (present(run_id)) then
          run_id = run // RADICAL_NAME
-         if (len_trim(run_id) == 0) run_id = "input"
+         if (len_trim(run_id) == 0) run_id = "input" // trim(bigdft_run_id_toa())
       end if
-      if (present(radical_id)) radical_id = run // RADICAL_NAME
+      if (present(radical_id)) then
+         radical_id = run // RADICAL_NAME
+         if (len_trim(radical_id) == 0) then
+            radical_id = trim(bigdft_run_id_toa())
+         else
+            radical_id = "-" // trim(radical_id)
+         end if
+      end if
       if (present(posinp_id)) posinp_id = run // POSINP
+      if (present(outdir_id) .and. has_key(run, OUTDIR)) outdir_id = run // OUTDIR
+      if (present(log_to_disk) .and. has_key(run, LOGFILE)) log_to_disk = run // LOGFILE
       
     end subroutine bigdft_get_run_properties
 
@@ -752,7 +763,8 @@ module bigdft_run
          ! not anymore by user_inputs
          call create_log_file(run_dict)
 
-         dict_from_files = (has_key(run_dict, RADICAL_NAME) .and. has_key(run_dict, POSINP))
+         dict_from_files = has_key(run_dict, POSINP)
+         if (dict_from_files) dict_from_files = (trim(dict_value(run_dict // POSINP)) /= TYPE_DICT)
          if (dict_from_files) then
             radical = run_dict // RADICAL_NAME
             posinp_id = run_dict // POSINP
@@ -899,14 +911,9 @@ module bigdft_run
          !here the run of the dicts has to be evaluated according to the taskgroups    
       else if (.not. associated(dict_run)) then
          call dict_init(dict_run)
-         if (bigdft_mpi%ngroup == 1) then
+         do iconfig=1,bigdft_mpi%ngroup
             call add(dict_run,trim(run_id))
-         else
-            do iconfig=1,bigdft_mpi%ngroup
-               call add(dict_run,trim(run_id)//&
-                    trim(adjustl(yaml_toa(iconfig,fmt='(i3)'))))
-            end do
-         end if
+         end do
       end if
 
       !call yaml_map('Dict of runs',dict_run)

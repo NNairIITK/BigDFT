@@ -308,8 +308,8 @@ subroutine create_log_file(dict)
   use yaml_strings
   use yaml_output
   use dictionaries
-  use bigdft_run, only: bigdft_run_id_toa
-  use public_keys, only: OUTDIR, DATADIR, RADICAL_NAME, LOGFILE
+  use bigdft_run, only: bigdft_get_run_properties, bigdft_set_run_properties
+  use public_keys, only: DATADIR
   implicit none
   type(dictionary), pointer :: dict
   !local variables
@@ -321,9 +321,9 @@ subroutine create_log_file(dict)
 
   ! Get user input writing_directory.
   writing_directory = "."
-  if (has_key(dict, OUTDIR)) writing_directory = dict // OUTDIR
+  call bigdft_get_run_properties(dict, outdir_id = writing_directory)
   ! Create writing_directory and parents if needed and broadcast everything.
-  if (trim(writing_directory) /= '.' .or. bigdft_mpi%ngroup > 1) then
+  if (trim(writing_directory) /= '.') then
      path=repeat(' ',len(path))
      !add the output directory in the directory name
      if (bigdft_mpi%iproc == 0 .and. trim(writing_directory) /= '.') then
@@ -345,39 +345,23 @@ subroutine create_log_file(dict)
        & writing_directory(min(lgt+1, len(writing_directory)):min(lgt+1, len(writing_directory))) = "/"
 
   ! Get user defined datadir and update it.
-  run_name   = ""
-  dir_output = "data" // trim(bigdft_run_id_toa())
-  if (has_key(dict, RADICAL_NAME)) then
-     run_name   = dict // RADICAL_NAME
-     if (len_trim(run_name) > 0) then
-        dir_output = "data-"//trim(run_name)
-     end if
-  end if
+  call bigdft_get_run_properties(dict, radical_id = run_name)
+  dir_output = "data" // trim(run_name)
   lgt=0
-  if (dir_output(1:1) /= '/') &
-       & call buffer_string(dir_output,len(dir_output),&
-       & trim(writing_directory),lgt,back=.true.)
-
-  ! Save modified writing_directory and dir_output values in dict.
-  call set(dict // OUTDIR, writing_directory)
-  call set(dict // DATADIR, dir_output)
+  call buffer_string(dir_output,len(dir_output),trim(writing_directory),lgt,back=.true.)
 
   ! Test if logging on disk is required.
-  log_to_disk = .false.
-  if (has_key(dict, LOGFILE)) log_to_disk = dict // LOGFILE
-  log_to_disk = log_to_disk .or. bigdft_mpi%ngroup > 1
-  call set(dict // LOGFILE, log_to_disk)
+  log_to_disk = (bigdft_mpi%ngroup > 1)
+  call bigdft_get_run_properties(dict, log_to_disk = log_to_disk) !< May overwrite with user choice
+
+  ! Save modified infos in dict.
+  call set(dict // DATADIR, dir_output)
+  call bigdft_set_run_properties(dict, outdir_id = writing_directory, log_to_disk = log_to_disk)
 
   ! Now, create the logfile if needed.
   if (bigdft_mpi%iproc == 0) then
      if (log_to_disk) then
-        logfilename=repeat(' ',len(logfilename))
-        if (len_trim(run_name) > 0) then
-!           logfile='log-'//trim(run_name)//trim(bigdft_run_id_toa())//'.yaml'
-           logfilename='log-'//trim(run_name)//'.yaml'
-        else
-           logfilename='log'//trim(bigdft_run_id_toa())//'.yaml'
-        end if
+        logfilename = "log" // trim(run_name) // ".yaml"
         path = trim(writing_directory)//trim(logfilename)
         call yaml_map('<BigDFT> log of the run will be written in logfile',path,unit=6)
         ! Check if logfile is already connected.
