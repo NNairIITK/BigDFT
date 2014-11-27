@@ -309,12 +309,11 @@ subroutine create_log_file(dict)
   use yaml_output
   use dictionaries
   use bigdft_run, only: bigdft_get_run_properties, bigdft_set_run_properties
-  use public_keys, only: DATADIR
   implicit none
   type(dictionary), pointer :: dict
   !local variables
   integer :: ierr,ierror,lgt,unit_log
-  character(len = max_field_length) :: writing_directory, dir_output, run_name
+  character(len = max_field_length) :: writing_directory, run_name
   character(len=500) :: logfilename,path
   integer :: iproc_node, nproc_node
   logical :: log_to_disk
@@ -344,23 +343,18 @@ subroutine create_log_file(dict)
   if (writing_directory(lgt:lgt) /= "/") &
        & writing_directory(min(lgt+1, len(writing_directory)):min(lgt+1, len(writing_directory))) = "/"
 
-  ! Get user defined datadir and update it.
-  call bigdft_get_run_properties(dict, radical_id = run_name)
-  dir_output = "data" // trim(run_name)
-  lgt=0
-  call buffer_string(dir_output,len(dir_output),trim(writing_directory),lgt,back=.true.)
-
   ! Test if logging on disk is required.
   log_to_disk = (bigdft_mpi%ngroup > 1)
   call bigdft_get_run_properties(dict, log_to_disk = log_to_disk) !< May overwrite with user choice
 
   ! Save modified infos in dict.
-  call set(dict // DATADIR, dir_output)
   call bigdft_set_run_properties(dict, outdir_id = writing_directory, log_to_disk = log_to_disk)
 
   ! Now, create the logfile if needed.
   if (bigdft_mpi%iproc == 0) then
      if (log_to_disk) then
+        ! Get Create log file name.
+        call bigdft_get_run_properties(dict, run_id = run_name)
         logfilename = "log" // trim(run_name) // ".yaml"
         path = trim(writing_directory)//trim(logfilename)
         call yaml_map('<BigDFT> log of the run will be written in logfile',path,unit=6)

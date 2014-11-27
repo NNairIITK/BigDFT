@@ -88,7 +88,7 @@ program MINHOP
   call cpu_time(tcpu1)
 
   !reset input and output positions of run
-  call bigdft_get_run_properties(run,run_id=run_id)
+  call bigdft_get_run_properties(run,input_id=run_id)
   call bigdft_set_run_properties(run,posinp_id='poscur'//trim(bigdft_run_id_toa()))
 
   call run_objects_init(run_opt,run)

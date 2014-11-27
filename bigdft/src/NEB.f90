@@ -96,7 +96,7 @@ MODULE NEB_routines
       !no options fof BigDFT
       call bigdft_command_line_options(options)
       call bigdft_init(options)
-      call bigdft_get_run_properties(options // 'BigDFT' // 0, run_id = run_id)
+      call bigdft_get_run_properties(options // 'BigDFT' // 0, input_id = run_id)
       neb_mpi = bigdft_mpi!mpi_environment_null()
       neb_mpi%mpi_comm = MPI_COMM_NULL
       !this is redundant
