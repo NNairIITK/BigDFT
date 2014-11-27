@@ -6,6 +6,7 @@ subroutine covalent_radius(symbol,rcov)
     double precision, intent(out) :: rcov   !< Covalent radius in AU
 
     select case(trim(adjustl(symbol)))
+     case( "LJ") ; rcov=0.56d0
      case( "H") ; rcov=0.75d0
      case( "He"); rcov=0.75d0
      case( "Li"); rcov=3.40d0

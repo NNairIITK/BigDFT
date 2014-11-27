@@ -403,7 +403,8 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
            ff(2,iat) = at2
            ff(3,iat) = at3
         end do
-        call fnrmandforcemax(fxyz,fnrm,fmax,nat) 
+        call fnrmandforcemax(fxyz,fnrm,fmax,nat)
+        fnrm=sqrt(fnrm) 
         call convcheck(fmax,fmax_tol,check)
         if(check > 5)then
 !!<-DEBUG START------------------------------------------------------>

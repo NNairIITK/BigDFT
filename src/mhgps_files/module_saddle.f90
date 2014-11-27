@@ -729,7 +729,6 @@ subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_
 !        if (fnrm.le.fnrmtol) goto 1000 !has to be in this line for shared history case
         if (fnrm.le.fnrmtol.or.(overlap<minoverlap.and.itgeopt>1)) goto 1000 !has to be in this line for shared history case
     enddo
-
     write(*,*) "No convergence in optcurv"
 stop 'no convergence in optcurv'
     return

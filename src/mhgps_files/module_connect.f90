@@ -167,7 +167,7 @@ use module_energyandforces
 
 
     !check if input structures are distinct 
-    if(equal(nid,en_delta_min,fp_delta_min,ener1,ener2,fp1,fp2))then
+    if(equal('MM',nid,en_delta_min,fp_delta_min,ener1,ener2,fp1,fp2))then
         if(iproc==0)call yaml_warning('(MHGPS) connect: input '//&
                     'minima are identical. Will NOT attempt to '//&
                     'find an intermediate TS. recursion depth: '//&
@@ -207,6 +207,7 @@ use module_energyandforces
     endif
 
     call fnrmandforcemax(cobj%fsad(1,1,nsad),fnrm,fmax,nat)
+    fnrm=sqrt(fnrm)
     if (iproc == 0) then
         write(comment,'(a,1pe10.3,5x,1pe10.3)')'ATTENTION! Forces '//&
         'below give no forces, but the final minmode| fnrm, fmax = ',&
@@ -253,6 +254,7 @@ use module_energyandforces
                             cobj%enerleft(nsad),ener_count,converged,&
                             'L')
         call fnrmandforcemax(cobj%fleft(1,1,nsad),fnrm,fmax,nat)
+        fnrm=sqrt(fnrm)
         write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,&
                                               fmax
         if(iproc==0)&
@@ -264,7 +266,7 @@ use module_energyandforces
 
         call fingerprint(nat,nid,alat,astruct_ptr%geocode,rcov,&
                         cobj%leftmin(1,1,nsad),cobj%fpleft(1,nsad))
-        if(.not.equal(nid,en_delta_sad,fp_delta_sad,&
+        if(.not.equal('MS',nid,en_delta_sad,fp_delta_sad,&
            cobj%enersad(nsad),cobj%enerleft(nsad),cobj%fpsad(1,nsad),&
            cobj%fpleft(1,nsad)))then
            exit loopL 
@@ -329,6 +331,7 @@ use module_energyandforces
                             cobj%enerright(nsad),ener_count,&
                             converged,'R')
         call fnrmandforcemax(cobj%fright(1,1,nsad),fnrm,fmax,nat)
+        fnrm=sqrt(fnrm)
         write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,&
                                               fmax
         if(iproc==0)&
@@ -339,7 +342,7 @@ use module_energyandforces
              cobj%fright(1,1,nsad))
         call fingerprint(nat,nid,alat,astruct_ptr%geocode,rcov,&
                         cobj%rightmin(1,1,nsad),cobj%fpright(1,nsad))
-        if(.not.equal(nid,en_delta_sad,fp_delta_sad,&
+        if(.not.equal('MS',nid,en_delta_sad,fp_delta_sad,&
            cobj%enersad(nsad),cobj%enerright(nsad),&
            cobj%fpsad(1,nsad),cobj%fpright(1,nsad)))then
            exit loopR 
@@ -390,22 +393,22 @@ use module_energyandforces
 
     !is minimum, obtained by relaxation from left bar end identical to
     !left input minimum?
-    lnl=equal(nid,en_delta_min,fp_delta_min,ener1,&
+    lnl=equal('MM',nid,en_delta_min,fp_delta_min,ener1,&
         cobj%enerleft(nsad),fp1,cobj%fpleft(1,nsad))
 
     !is minimum obtained by relaxation from right bar end identical to
     !right input minimum?
-    rnr=equal(nid,en_delta_min,fp_delta_min,ener2,&
+    rnr=equal('MM',nid,en_delta_min,fp_delta_min,ener2,&
         cobj%enerright(nsad),fp2,cobj%fpright(1,nsad))
 
     !is minimum obtained by relaxation from left bar end identical to 
     !right input minimum?
-    lnr=equal(nid,en_delta_min,fp_delta_min,ener2,&
+    lnr=equal('MM',nid,en_delta_min,fp_delta_min,ener2,&
         cobj%enerleft(nsad),fp2,cobj%fpleft(1,nsad))
 
     !is minimum obtained by relaxation from right bar end identical to
     !left input minimum?
-    rnl=equal(nid,en_delta_min,fp_delta_min,ener1,&
+    rnl=equal('MM',nid,en_delta_min,fp_delta_min,ener1,&
         cobj%enerright(nsad),fp1,cobj%fpright(1,nsad))
 
     if((lnl .and. rnr) .or. (lnr .and. rnl))then!connection done
@@ -590,7 +593,7 @@ connectloop: do while(ntodo>=1)
 
 
     !check if input structures are distinct 
-    if(equal(nid,en_delta_min,fp_delta_min,todoenergy(1,ntodo),todoenergy(2,ntodo),todofp(1,1,ntodo),todofp(1,2,ntodo)))then
+    if(equal('MM',nid,en_delta_min,fp_delta_min,todoenergy(1,ntodo),todoenergy(2,ntodo),todofp(1,1,ntodo),todofp(1,2,ntodo)))then
         if(iproc==0)call yaml_warning('(MHGPS) connect: input '//&
                     'minima are identical. Will NOT attempt to find '//&
                     'an intermediate TS. recursion depth: '//&
@@ -629,6 +632,7 @@ connectloop: do while(ntodo>=1)
     ntodo=ntodo-1
 
     call fnrmandforcemax(cobj%fsad(1,1,nsad),fnrm,fmax,nat)
+    fnrm=sqrt(fnrm)
     if (iproc == 0) then
         write(comment,'(a,1pe10.3,5x,1pe10.3)')'ATTENTION! Forces '//&
         'below give no forces, but the final minmode| fnrm, fmax = ',&
@@ -670,6 +674,7 @@ connectloop: do while(ntodo>=1)
                         fnoise,cobj%enerleft(nsad),&
                         ener_count,converged,'L')
     call fnrmandforcemax(cobj%fleft(1,1,nsad),fnrm,fmax,nat)
+    fnrm=sqrt(fnrm)
     write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,fmax
     if(iproc==0)&
          call astruct_dump_to_file(astruct_ptr,&
@@ -688,6 +693,7 @@ connectloop: do while(ntodo>=1)
                        ,fnoise,cobj%enerright(nsad),&
                         ener_count,converged,'R')
     call fnrmandforcemax(cobj%fright(1,1,nsad),fnrm,fmax,nat)
+    fnrm=sqrt(fnrm)
     write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,fmax
     if(iproc==0)&
          call astruct_dump_to_file(astruct_ptr,&
@@ -701,9 +707,9 @@ connectloop: do while(ntodo>=1)
     call fingerprint(nat,nid,alat,astruct_ptr%geocode,rcov,&
                     cobj%rightmin(1,1,nsad),cobj%fpright(1,nsad))
     !check if relaxed structures are identical to saddle itself
-    if(equal(nid,en_delta_sad,fp_delta_sad,cobj%enersad(nsad),&
+    if(equal('MS',nid,en_delta_sad,fp_delta_sad,cobj%enersad(nsad),&
     cobj%enerright(nsad),cobj%fpsad(1,nsad),cobj%fpright(1,nsad)).or.&
-    equal(nid,en_delta_sad,fp_delta_sad,cobj%enersad(nsad),&
+    equal('MS',nid,en_delta_sad,fp_delta_sad,cobj%enersad(nsad),&
     cobj%enerleft(nsad),cobj%fpsad(1,nsad),cobj%fpleft(1,nsad)))then
 
         isadprob=isadprob+1
@@ -734,22 +740,22 @@ connectloop: do while(ntodo>=1)
 
     !is minimum, obtained by relaxation from left bar end identical to
     !left input minimum?
-    lnl=equal(nid,en_delta_min,fp_delta_min,ener1cur,&
+    lnl=equal('MM',nid,en_delta_min,fp_delta_min,ener1cur,&
         cobj%enerleft(nsad),fp1cur,cobj%fpleft(1,nsad))
 
     !is minimum obtained by relaxation from right bar end identical to
     !right input minimum?
-    rnr=equal(nid,en_delta_min,fp_delta_min,ener2cur,&
+    rnr=equal('MM',nid,en_delta_min,fp_delta_min,ener2cur,&
         cobj%enerright(nsad),fp2cur,cobj%fpright(1,nsad))
 
     !is minimum obtained by relaxation from left bar end identical to 
     !right input minimum?
-    lnr=equal(nid,en_delta_min,fp_delta_min,ener2cur,&
+    lnr=equal('MM',nid,en_delta_min,fp_delta_min,ener2cur,&
         cobj%enerleft(nsad),fp2cur,cobj%fpleft(1,nsad))
 
     !is minimum obtained by relaxation from right bar end identical to
     !left input minimum?
-    rnl=equal(nid,en_delta_min,fp_delta_min,ener1cur,&
+    rnl=equal('MM',nid,en_delta_min,fp_delta_min,ener1cur,&
         cobj%enerright(nsad),fp1cur,cobj%fpright(1,nsad))
 
     if((lnl .and. rnr) .or. (lnr .and. rnl))then!connection done
