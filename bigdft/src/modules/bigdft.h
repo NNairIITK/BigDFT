@@ -218,8 +218,7 @@ typedef struct _BigDFT_Inputs BigDFT_Inputs;
 struct _BigDFT_Inputs
 {
   /* TODO: bindings to values... */
-  gchar *dir_output, *writing_directory;
-  gchar *run_name;
+  gchar *dir_output;
   
   /* DFT file variables. */
   int ixc, ncharge, nspin, mpol, ncong,

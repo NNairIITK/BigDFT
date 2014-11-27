@@ -106,7 +106,8 @@ subroutine inputs_from_dict(in, atoms, dict)
   use module_interfaces, except => inputs_from_dict
   use dictionaries
   use module_input_keys
-  use public_keys
+  use public_keys, only: POSINP, IG_OCCUPATION, CONSTRAINED_DFT, FRAG_VARIABLES, &
+       & KPT_VARIABLES, LIN_BASIS_PARAMS, OCCUPATION, TRANSFER_INTEGRALS
   use module_input_dicts
   use dynamic_memory
   use module_xc
@@ -116,7 +117,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   use psp_projectors, only: PSPCODE_PAW
   use m_ab6_symmetry, only: symmetry_get_n_sym
   use interfaces_42_libpaw
-  use bigdft_run, only: bigdft_run_id_toa
+  use bigdft_run, only: bigdft_get_run_properties
   implicit none
   !Arguments
   type(input_variables), intent(out) :: in
@@ -126,7 +127,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   !type(dictionary), pointer :: profs, dict_frag
   logical :: found
   integer :: ierr, ityp, nelec_up, nelec_down, norb_max, jtype
-  character(len = max_field_length) :: msg,filename
+  character(len = max_field_length) :: msg,filename,run_id,input_id,posinp_id,outdir
 !  type(f_dict) :: dict
   type(dictionary), pointer :: dict_minimal, var, lvl
 
@@ -174,18 +175,16 @@ subroutine inputs_from_dict(in, atoms, dict)
      lvl => dict_next(lvl)
   end do
 
+  ! Generate the dir_output
+  call bigdft_get_run_properties(dict, run_id = run_id, posinp_id = posinp_id, input_id = input_id, outdir_id = outdir)
+  call f_strcpy(dest = in%dir_output, src = trim(outdir) // "data" // trim(run_id))
+
   call set_cache_size(in%ncache_fft)
 
   !status of the allocation verbosity and profiling
   !filename of the memory allocation status, if needed
-  if (len_trim(in%run_name) == 0) then
-     call f_strcpy(src=trim(in%writing_directory)//'/memstatus' // trim(bigdft_run_id_toa()) // '.yaml',&
+  call f_strcpy(src=trim(outdir) // 'memstatus' // trim(run_id) // '.yaml',&
           dest=filename)
-  else
-     call f_strcpy(src=trim(in%writing_directory)//'/memstatus-' // trim(in%run_name) // '.yaml',&
-          dest=filename)
-  end if
-
   if (.not. in%debug) then
      if (in%verbosity==3) then
         call f_malloc_set_status(output_level=1,&
@@ -350,16 +349,13 @@ subroutine inputs_from_dict(in, atoms, dict)
   !check whether a directory name should be associated for the data storage
   call check_for_data_writing_directory(bigdft_mpi%iproc,in)
 
-  if (bigdft_mpi%iproc == 0)  call print_general_parameters(in,atoms)
+  if (bigdft_mpi%iproc == 0)  call print_general_parameters(in,atoms,input_id,posinp_id)
 
   if (associated(dict_minimal) .and. bigdft_mpi%iproc == 0) then
-     if (len_trim(in%run_name) == 0) then
-        call f_strcpy(src='input_minimal.yaml',dest=filename)
-     else
-        call f_strcpy(src=trim(in%run_name)//'_minimal.yaml',dest=filename)
-     end if
+     call bigdft_get_run_properties(dict, input_id = run_id)
+     call f_strcpy(src=trim(run_id)//'_minimal.yaml',dest=filename)
 
-     call yaml_set_stream(unit=99971,filename=trim(in%writing_directory)//'/'//trim(filename),&
+     call yaml_set_stream(unit=99971,filename=trim(outdir)//trim(filename),&
           record_length=92,istat=ierr,setdefault=.false.,tabbing=0,position='rewind')
      if (ierr==0) then
         call yaml_comment('Minimal input file',hfill='-',unit=99971)
@@ -401,7 +397,6 @@ subroutine check_for_data_writing_directory(iproc,in)
        in%inputPsiId == 2 .or. &                       !have wavefunctions to read
        in%inputPsiId == 12 .or.  &                     !read in gaussian basis
        in%gaussian_help .or. &                         !Mulliken and local density of states
-       in%writing_directory /= '.' .or. &              !have an explicit local output directory
        bigdft_mpi%ngroup > 1   .or. &                  !taskgroups have been inserted
        in%lin%plotBasisFunctions > 0 .or. &            !dumping of basis functions for locreg runs
        in%inputPsiId == 102                            !reading of basis functions
@@ -459,8 +454,6 @@ subroutine default_input_variables(in)
   in%matacc=material_acceleration_null()
 
   ! Default values.
-  in%run_name = " "
-  in%writing_directory = "."
   in%dir_output = "data"
   in%output_wf_format = WF_FORMAT_NONE
   in%output_denspot_format = output_denspot_FORMAT_CUBE

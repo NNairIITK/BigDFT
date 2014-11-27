@@ -337,8 +337,8 @@ contains
     !> fill the list of valid entries
     valid_entries=>list_new([&
          .item. OUTDIR,&
-         .item. DATADIR,&
          .item. RADICAL_NAME,&
+         .item. RUN_FROM_FILES,&
          .item. POSINP,&
          .item. LOGFILE,&
          .item. PERF_VARIABLES,&  

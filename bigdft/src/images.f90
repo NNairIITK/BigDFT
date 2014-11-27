@@ -357,6 +357,7 @@ contains
     character(len = *), intent(in) :: algorithm
 
     integer :: ndim, unit_log
+    character(len = max_field_length) :: run_id, outdir
 
     img%id = -1
 
@@ -382,8 +383,8 @@ contains
     end if
     call init_global_output(img%outs, img%run%atoms%astruct%nat)
 
-    write(img%log_file, "(A,A)") trim(img%run%inputs%writing_directory), &
-         & 'log-'//trim(img%run%inputs%run_name)//'.yaml'           
+    call bigdft_get_run_properties(dict, run_id = run_id, outdir_id = outdir)
+    write(img%log_file, "(A,A)") trim(outdir), 'log'//trim(run_id)//'.yaml'           
 
     call minimization_get_id(img%algorithm, algorithm)
     ndim = 3 * img%run%atoms%astruct%nat

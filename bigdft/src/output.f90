@@ -130,7 +130,7 @@ end subroutine print_configure_options
 
 
 !> Print all general parameters
-subroutine print_general_parameters(in,atoms)
+subroutine print_general_parameters(in,atoms,input_id,posinp_id)
   use module_base
   use module_types
   use defs_basis
@@ -140,20 +140,14 @@ subroutine print_general_parameters(in,atoms)
   !Arguments
   type(input_variables), intent(in) :: in
   type(atoms_data), intent(in) :: atoms
+  character(len = *), intent(in) :: input_id, posinp_id
 
   integer :: iat, i
-  character(len=len(in%run_name)) :: prefix
   character(len = 11) :: potden
   character(len = 12) :: dos
 
   ! Output for atoms
-  if (trim(in%run_name) == '') then
-     call yaml_comment('Input Atomic System (file: posinp.'//trim(atoms%astruct%inputfile_format)//')',hfill='-')
-     prefix = 'input'
-  else
-     prefix = in%run_name
-     call yaml_comment('Input Atomic System (file: '//trim(prefix)//'.'//trim(atoms%astruct%inputfile_format)//')',hfill='-')
-  end if
+  call yaml_comment('Input Atomic System (file: '//trim(posinp_id)//'.'//trim(atoms%astruct%inputfile_format)//')',hfill='-')
 
   ! Atomic systems
   call yaml_mapping_open('Atomic System Properties')
@@ -204,7 +198,7 @@ subroutine print_general_parameters(in,atoms)
 
   !Geometry imput Parameters
   if (in%ncount_cluster_x > 0) then
-     call yaml_comment('Geometry optimization Input Parameters (file: '//trim(prefix)//'.geopt)',hfill='-')
+     call yaml_comment('Geometry optimization Input Parameters (file: '//trim(input_id)//'.geopt)',hfill='-')
      call yaml_mapping_open('Geometry Optimization Parameters')
         call yaml_map('Maximum steps',in%ncount_cluster_x)
         call yaml_map('Algorithm', in%geopt_approach)
@@ -335,7 +329,7 @@ subroutine print_general_parameters(in,atoms)
      else
         write(potden, "(A)") "density"
      end if
-     call yaml_comment('Mixing (file: '//trim(prefix)//'.mix)',hfill='-')
+     call yaml_comment('Mixing (file: '//trim(input_id)//'.mix)',hfill='-')
      call yaml_mapping_open('Mixing parameters')
         call yaml_map('Target',trim(potden))
         call yaml_map('Additional bands', in%norbsempty)
