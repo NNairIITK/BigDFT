@@ -72,7 +72,6 @@ MODULE NEB_routines
       use dictionaries
       use module_interfaces
       use module_input_keys, only: input_keys_fill_all
-      use public_keys, only: PERF_VARIABLES, OUTDIR,GEOPT_VARIABLES
       use module_input_dicts
       use module_atoms, only: atomic_structure, &
            deallocate_atomic_structure, &
@@ -97,7 +96,7 @@ MODULE NEB_routines
       !no options fof BigDFT
       call bigdft_command_line_options(options)
       call bigdft_init(options)
-      run_id=options // 'BigDFT' // 0 // 'name'
+      call bigdft_get_run_properties(options // 'BigDFT' // 0, run_id = run_id)
       neb_mpi = bigdft_mpi!mpi_environment_null()
       neb_mpi%mpi_comm = MPI_COMM_NULL
       !this is redundant
@@ -115,7 +114,7 @@ MODULE NEB_routines
            & minimization_scheme)
       ! NEB is using cv criterion in ev per ang.
       neb_%convergence = neb_%convergence * Ha_eV / Bohr_Ang
-      call dict_free(dict,dict_min,options)
+      call dict_free(dict,dict_min)
       !call dict_free(dict_min)
 
       allocate(arr_radical(abs(num_of_images)))
@@ -124,7 +123,9 @@ MODULE NEB_routines
 
       allocate( imgs(num_of_images) )
 
-      call dict_init(dict)
+      
+      call dict_copy(dict, options // 'BigDFT' // 0)
+      call dict_free(options)
       ! Trick here, only super master will read the input files...
       bigdft_mpi_svg = bigdft_mpi
       bigdft_mpi%mpi_comm = MPI_COMM_WORLD
@@ -137,9 +138,9 @@ MODULE NEB_routines
 
       !Loop over the images (replica)
       do i = 1, num_of_images
+         bigdft_mpi%igroup = i
          !!!!<<<to substitute
          ! trick to output the image logs where it should, on disk.
-         call set(dict // PERF_VARIABLES // OUTDIR, "./")
          call user_dict_from_files(dict, trim(arr_radical(i)), &
               & trim(arr_posinp(i)), bigdft_mpi)
          !!!!!>>>>>end to substitute
@@ -195,6 +196,11 @@ MODULE NEB_routines
 !!$      if (pes_algo == PES_PAIR_POTENTIAL) then
 !!$         call search_MEP
 !!$      end if
+      if (external_call) then
+         pes_algo = PES_EXTERNAL_SHELL
+      else
+         pes_algo = PES_INTERNAL_DFT
+      end if
 
       ! End of trick.
       bigdft_mpi = bigdft_mpi_svg

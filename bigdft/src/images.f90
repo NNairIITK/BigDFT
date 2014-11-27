@@ -347,7 +347,7 @@ contains
   subroutine image_init(img, dict, algorithm, img0)
     use bigdft_run
     use dictionaries
-    use public_keys, only: GEOPT_VARIABLES
+    use public_keys, only: GEOPT_VARIABLES, LOGFILE
     use dynamic_memory, only: to_zero
     use yaml_output
     implicit none
@@ -368,7 +368,8 @@ contains
     nullify(img%vel)
 
     ! Create atoms and input from user dict.
-    call dict_remove(dict, GEOPT_VARIABLES) !< Force no geometry relaxation
+    call dict_remove(dict, GEOPT_VARIABLES) !< Force no geometry relaxation.
+    call set(dict // LOGFILE, .true.) !< Force image logging to disk.
     if (.not. present(img0)) then
        call run_objects_init(img%run, dict)
     else
