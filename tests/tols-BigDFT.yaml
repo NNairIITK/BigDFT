@@ -40,6 +40,7 @@ Keys to ignore:
  - sparse matmul load balancing naive / optimized
  - number of taskgroups
  - taskgroups overview
+ - outdir
  #- number of tasks
  #- IDs
  #- start / end

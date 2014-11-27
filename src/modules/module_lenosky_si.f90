@@ -16,7 +16,6 @@ public lenosky_si_shift,lenosky_si
 contains
 
 subroutine lenosky_si(nat,alat,rat,fat,epot)
-    use module_base
     implicit none
     integer::nat
     real(8) :: alat(3)
@@ -28,7 +27,7 @@ subroutine lenosky_si(nat,alat,rat,fat,epot)
 end subroutine lenosky_si
 
 subroutine lenosky_si_shift(nat,alat,rat,fat,epot)
-    use module_base
+    use module_defs, only:gp
     implicit none
     integer::nat,iat
     real(8) :: alat(3)
@@ -55,7 +54,7 @@ end subroutine lenosky_si_shift
 
 
     subroutine lenosky(nat,alat,rxyz0,fxyz,ener,coord,ener_var,coord_var,count)
-    use module_base
+    use module_defs, only:gp
 !     Evaluates the LENOSKY silicon potential with linear scaling
 !     If publishable results are obtained with this program, citing the
 !     following 2 references is very much appreciated:

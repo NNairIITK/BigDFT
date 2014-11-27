@@ -2049,6 +2049,12 @@ contains
     if (index(dict_key(val), "_attributes") > 0) return
 
     select case(trim(level))
+    case(MODE_VARIABLES)
+       select case (trim(dict_key(val)))
+       case(METHOD_KEY)
+       case DEFAULT
+          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
     case (DFT_VARIABLES)
        ! the DFT variables ------------------------------------------------------
        select case (trim(dict_key(val)))

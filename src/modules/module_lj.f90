@@ -7,7 +7,7 @@ module module_lj
 contains
 !=====================================================================
 subroutine lenjon(nat,rxyz,fxyz,etot)
-    use module_base
+    use module_defs, only: gp
     !energy and forces for Lennard Jones potential
     !input: nat: number of atoms
     !       rxyz: positions of atoms
