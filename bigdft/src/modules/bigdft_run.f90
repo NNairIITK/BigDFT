@@ -736,7 +736,7 @@ module bigdft_run
       use module_types
       use module_input_dicts, only: user_dict_from_files
       use module_interfaces, only: create_log_file
-      use public_keys, only: RADICAL_NAME, POSINP
+      use public_keys, only: POSINP
       implicit none
       !> Object for BigDFT run. Has to be initialized by this routine in order to
       !! call bigdft main routine.
@@ -769,10 +769,9 @@ module bigdft_run
          dict_from_files = has_key(run_dict, POSINP)
          if (dict_from_files) dict_from_files = (trim(dict_value(run_dict // POSINP)) /= TYPE_DICT)
          if (dict_from_files) then
-            radical = run_dict // RADICAL_NAME
-            posinp_id = run_dict // POSINP
             ! Generate input dictionary.
             call dict_copy(runObj%user_inputs, run_dict)
+            call bigdft_get_run_properties(run_dict, run_id = radical, posinp_id = posinp_id)
             call user_dict_from_files(runObj%user_inputs, radical, posinp_id, bigdft_mpi)
          else
             runObj%user_inputs => run_dict

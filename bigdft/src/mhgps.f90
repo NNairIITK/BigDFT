@@ -36,7 +36,6 @@ program mhgps
     character(len=6) :: filename,filename2
     integer :: ifolder, ifile
     logical :: xyzexists,asciiexists
-    character(len=60) :: run_id
     type(dictionary), pointer :: run
     integer :: ierr, nconfig
     real(gp), allocatable :: rcov(:)
@@ -111,7 +110,6 @@ program mhgps
         if(iproc==0) call print_logo_mhgps()
 
         !reset input and output positions of run
-        call bigdft_get_run_properties(run,run_id=run_id)
         write(currDir,'(a,i3.3)')'input',ifolder
         write(filename,'(a,i3.3)')'pos',ifile
         call bigdft_set_run_properties(run,&
