@@ -33,7 +33,7 @@ program test_forces
    !logical :: exist_list
    !input variables
    type(run_objects) :: runObj
-   type(DFT_global_output) :: outs
+   type(state_properties) :: outs
    !character(len=60), parameter :: filename="list_posinp"
    character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
    character(len=60) :: run_id
@@ -119,7 +119,7 @@ program test_forces
 
 
       !initialize memory counting
-         call init_global_output(outs, runObj%atoms%astruct%nat)
+         call init_state_properties(outs, runObj%atoms%astruct%nat)
 
       !     if (iproc == 0) then
       !       call print_general_parameters(inputs,atoms)
@@ -162,7 +162,7 @@ program test_forces
             call print_general_parameters(runObj%inputs,runObj%atoms) ! to know the new positions
          end if
 
-         call call_bigdft(runObj, outs,infocode)
+         call bigdft_state(runObj, outs,infocode)
          !        inputs%inputPsiId=0   ! change PsiId to 0 if you want to  generate a new Psi and not use the found one
 
          if (bigdft_mpi%iproc == 0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
@@ -196,7 +196,7 @@ program test_forces
          write(*,*) 
       endif
 
-      call deallocate_global_output(outs)
+      call deallocate_state_properties(outs)
       call free_run_objects(runObj)
 
 !!$   end if

@@ -109,7 +109,7 @@ module module_global_variables
     !bigdft data types and variables 
     !(these objects must preserve their status in the module)
     type(run_objects), save :: runObj
-    type(DFT_global_output), save :: outs
+    type(state_properties), save :: outs
     integer, save :: fdim
     !type(atoms_data), save :: atoms
     type(atomic_structure), pointer, save :: astruct_ptr

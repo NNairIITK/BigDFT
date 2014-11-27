@@ -31,7 +31,7 @@ module bigdft_run
      type(GPU_pointers) :: GPU 
   end type restart_objects
 
-  !> Public container to be used with call_bigdft().
+  !> Public container to be used with bigdft_state().
   type, public :: run_objects
      type(f_enumerator) :: run_mode
      !> user input specifications
@@ -46,21 +46,21 @@ module bigdft_run
 
 
   !> Used to store results of a DFT calculation.
-  type, public :: DFT_global_output
+  type, public :: state_properties
      real(gp) :: energy, fnoise, pressure      !< Total energy, noise over forces and pressure
      type(energy_terms) :: energs              !< All energy terms
      integer :: fdim                           !< Dimension of allocated forces (second dimension)
      real(gp), dimension(:,:), pointer :: fxyz !< Atomic forces
      real(gp), dimension(6) :: strten          !< Stress Tensor
-  end type DFT_global_output
+  end type state_properties
 
-  public :: init_global_output,deallocate_global_output,restart_objects_set_mat_acc
-  public :: run_objects_free,copy_global_output,restart_objects_set_mode
+  public :: init_state_properties,deallocate_state_properties,restart_objects_set_mat_acc
+  public :: run_objects_free,copy_state_properties,restart_objects_set_mode
   public :: nullify_run_objects,restart_objects_set_nat,nullify_restart_objects
   public :: run_objects_associate,init_restart_objects,bigdft_set_rxyz
-  public :: global_output_set_from_dict,free_restart_objects,bigdft_get_rxyz_ptr
+  public :: state_properties_set_from_dict,free_restart_objects,bigdft_get_rxyz_ptr
   public :: run_objects_init,bigdft_init,bigdft_command_line_options,bigdft_nruns
-  public :: bigdft_nat,call_bigdft,free_run_objects,set_run_objects,bigdft_run_new
+  public :: bigdft_nat,bigdft_state,free_run_objects,set_run_objects,bigdft_run_new
   public :: release_run_objects,bigdft_get_cell,bigdft_get_geocode,bigdft_get_run_properties
   public :: bigdft_get_astruct_ptr,bigdft_write_atomic_file,bigdft_set_run_properties
   public :: bigdft_norb,bigdft_get_eval,bigdft_run_id_toa,bigdft_get_rxyz
@@ -73,7 +73,7 @@ module bigdft_run
 !!$       use module_types
 !!$       implicit none
 !!$       type(run_objects), intent(inout) :: runObj
-!!$       type(DFT_global_output), intent(inout) :: outs
+!!$       type(state_properties), intent(inout) :: outs
 !!$       integer, intent(in) :: nproc,iproc
 !!$       integer, intent(inout) :: ncount_bigdft
 !!$     END SUBROUTINE geopt
@@ -240,12 +240,12 @@ module bigdft_run
     END SUBROUTINE free_restart_objects
 
 
-    !> Initialize the structure DFT_global_output
-    subroutine nullify_global_output(outs)
+    !> Initialize the structure state_properties
+    subroutine nullify_state_properties(outs)
       use module_defs, only: UNINITIALIZED
       use module_types, only: energy_terms_null
       implicit none
-      type(DFT_global_output), intent(out) :: outs
+      type(state_properties), intent(out) :: outs
 
       outs%energs=energy_terms_null()
       outs%fdim      = 0
@@ -254,26 +254,26 @@ module bigdft_run
       outs%fnoise    = UNINITIALIZED(1.0_gp)
       outs%pressure  = UNINITIALIZED(1.0_gp)
       outs%strten(:) = UNINITIALIZED(1.0_gp)
-    END SUBROUTINE nullify_global_output
+    END SUBROUTINE nullify_state_properties
 
 
-    subroutine init_global_output(outs, nat)
+    subroutine init_state_properties(outs, nat)
       use module_base
       use dynamic_memory
       implicit none
-      type(DFT_global_output), intent(out) :: outs
+      type(state_properties), intent(out) :: outs
       integer, intent(in) :: nat
 
-      call nullify_global_output(outs)
+      call nullify_state_properties(outs)
       outs%fdim = nat
       outs%fxyz = f_malloc_ptr((/ 3, outs%fdim /),id='outs%fxyz')
       outs%fxyz(:,:) = UNINITIALIZED(1.0_gp)
-    END SUBROUTINE init_global_output
+    END SUBROUTINE init_state_properties
 
-    subroutine deallocate_global_output(outs, fxyz)
+    subroutine deallocate_state_properties(outs, fxyz)
       use module_base
       implicit none
-      type(DFT_global_output), intent(inout) :: outs
+      type(state_properties), intent(inout) :: outs
       real(gp), intent(out), optional :: fxyz
 
       if (associated(outs%fxyz)) then
@@ -283,19 +283,19 @@ module bigdft_run
          !end if
          call f_free_ptr(outs%fxyz)
       end if
-    END SUBROUTINE deallocate_global_output
+    END SUBROUTINE deallocate_state_properties
 
     !> Copies outsA to outsB
     !! outsB has to be allocated before
-    subroutine copy_global_output(outsA,outsB)
+    subroutine copy_state_properties(outsA,outsB)
       use module_base, only: f_err_throw,f_memcpy
       use yaml_strings, only: yaml_toa
       implicit none
-      type(DFT_global_output), intent(in) :: outsA
-      type(DFT_global_output), intent(inout) :: outsB
+      type(state_properties), intent(in) :: outsA
+      type(state_properties), intent(inout) :: outsB
 
       if(outsA%fdim /= outsB%fdim)then
-         call f_err_throw("Error in copy_global_output: outsA and outsB have different sizes"//&
+         call f_err_throw("Error in copy_state_properties: outsA and outsB have different sizes"//&
               trim(yaml_toa(outsA%fdim))//trim(yaml_toa(outsB%fdim)),&
               err_name='BIGDFT_RUNTIME_ERROR')
       endif
@@ -309,7 +309,7 @@ module bigdft_run
       outsB%energs = outsA%energs
       call f_memcpy(src=outsA%fxyz,dest=outsB%fxyz)
       call f_memcpy(src=outsA%strten,dest=outsB%strten)
-    end subroutine copy_global_output
+    end subroutine copy_state_properties
 
     !> Associate to the structure run_objects, the input_variable structure and the atomic positions (atoms_data)
     subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
@@ -497,7 +497,7 @@ module bigdft_run
       use module_atoms, only: astruct_dump_to_file
       implicit none
       type(run_objects), intent(in) :: runObj
-      type(DFT_global_output), intent(in) :: outs
+      type(state_properties), intent(in) :: outs
       character(len=*), intent(in) :: filename,comment
       !> when present and true, output the file in the main 
       !! working directory (where input files are present)
@@ -559,12 +559,12 @@ module bigdft_run
 
     end subroutine bigdft_set_rxyz
 
-    subroutine global_output_set_from_dict(outs, dict)
+    subroutine state_properties_set_from_dict(outs, dict)
       use dictionaries
       use public_keys, only: GOUT_ENERGY,GOUT_FORCES
       implicit none
       type(dictionary), pointer :: dict
-      type(DFT_global_output), intent(inout) :: outs
+      type(state_properties), intent(inout) :: outs
 
       integer :: i
       type(dictionary), pointer :: it,it0
@@ -574,7 +574,7 @@ module bigdft_run
       do while(associated(it0))
          !this will be done only once if the key exists
          if (.not. associated(outs%fxyz)) &
-              call init_global_output(outs, dict_len(dict // GOUT_FORCES))
+              call init_state_properties(outs, dict_len(dict // GOUT_FORCES))
 
          i=i+1
          it => dict_iter(it0)
@@ -592,7 +592,7 @@ module bigdft_run
 
 !!$      if (has_key(dict, GOUT_FORCES)) then
 !!$         if (.not. associated(outs%fxyz)) &
-!!$              & call init_global_output(outs, dict_len(dict // GOUT_FORCES))
+!!$              & call init_state_properties(outs, dict_len(dict // GOUT_FORCES))
 !!$         do i = 1, outs%fdim, 1
 !!$            it => dict_iter(dict // GOUT_FORCES // (i - 1))
 !!$            find_forces: do while (associated(it))
@@ -606,9 +606,9 @@ module bigdft_run
 !!$      end if
 !!$
 !!$      if (has_key(dict, GOUT_ENERGY)) outs%energy = dict // GOUT_ENERGY
-    end subroutine global_output_set_from_dict
+    end subroutine state_properties_set_from_dict
 
-    !> Routines to handle the argument objects of call_bigdft().
+    !> Routines to handle the argument objects of bigdft_state().
     pure subroutine nullify_run_objects(runObj)
       use module_types
       use f_utils, only: f_enumerator_null
@@ -1065,11 +1065,11 @@ module bigdft_run
 
 !TODO: 1) define f_enumerator types
 !!     2) regroup this routine in a QM_something routine
-!!     3) Insert the if statements of mhgps in the call_bigdft objects
+!!     3) Insert the if statements of mhgps in the bigdft_state objects
 !!     4) Make everything compilable.
 
     !> Routine to use BigDFT as a blackbox
-    subroutine call_bigdft(runObj,outs,infocode)
+    subroutine bigdft_state(runObj,outs,infocode)
       use module_base
       use yaml_output
       use module_atoms, only: astruct_dump_to_file,rxyz_inside_box
@@ -1078,10 +1078,10 @@ module bigdft_run
       !use communications_base
       implicit none
       type(run_objects), intent(inout) :: runObj
-      type(DFT_global_output), intent(inout) :: outs
+      type(state_properties), intent(inout) :: outs
       integer, intent(inout) :: infocode
       !local variables
-      character(len=*), parameter :: subname='call_bigdft'
+      character(len=*), parameter :: subname='bigdft_state'
       logical :: exists
       integer :: inputPsiId_orig,istep
       !integer :: iat
@@ -1225,7 +1225,7 @@ module bigdft_run
       call f_release_routine()
       call mpibarrier(bigdft_mpi%mpi_comm)
 
-    END SUBROUTINE call_bigdft
+    END SUBROUTINE bigdft_state
 
 
     !> Parse the input dictionary and create all run_objects

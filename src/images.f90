@@ -244,11 +244,11 @@ module module_images
   end type NEB_data
 
   type, public :: run_image
-     ! Objects to deals with call_bigdft.
+     ! Objects to deals with bigdft_state.
      ! Contains the atomic structure definition,
      !  the total energy and the forces (modified to be gradients).
      type(run_objects) :: run
-     type(DFT_global_output) :: outs
+     type(state_properties) :: outs
      character(len = 128) :: log_file
      ! Local convergence quantities
      real(gp) :: error, F
@@ -327,7 +327,7 @@ contains
 
     call nullify_run_objects(img%run)
     call run_objects_associate(img%run, inputs, atoms, rst)
-    call init_global_output(img%outs, atoms%astruct%nat)
+    call init_state_properties(img%outs, atoms%astruct%nat)
 
     write(img%log_file, "(A,A)") trim(inputs%writing_directory), &
          & 'log-'//trim(inputs%run_name)//'.yaml'           
@@ -364,7 +364,7 @@ contains
     if (free_subs) then
        call release_run_objects(img%run)
        !call run_objects_free_container(img%run)
-       call deallocate_global_output(img%outs)
+       call deallocate_state_properties(img%outs)
     end if
 
     if (associated(img%old_grad)) deallocate(img%old_grad)
@@ -1019,7 +1019,7 @@ subroutine image_calculate(img, iteration, id)
   use module_base, only: bigdft_mpi
   use module_types
   use module_images
-  use bigdft_run, only: call_bigdft,bigdft_write_atomic_file
+  use bigdft_run, only: bigdft_state,bigdft_write_atomic_file
   implicit none
   type(run_image), intent(inout) :: img
   integer :: iteration
@@ -1042,7 +1042,7 @@ subroutine image_calculate(img, iteration, id)
      if (ierr == 0) call yaml_get_default_stream(unit_log)
      call yaml_comment("NEB iteration #" // trim(yaml_toa(iteration, fmt = "(I3.3)")), hfill="-")
   end if
-  call call_bigdft(img%run, img%outs, infocode)
+  call bigdft_state(img%run, img%outs, infocode)
   if (unit_log /= 0) call yaml_close_stream(unit_log)
 
   ! Output the corresponding file.
@@ -1121,7 +1121,7 @@ subroutine image_new(img, run, outs, atoms, inputs, rst, algorithm)
 
   type(run_image), pointer :: img
   type(run_objects), pointer :: run
-  type(DFT_global_output), pointer :: outs
+  type(state_properties), pointer :: outs
   type(input_variables), intent(in) :: inputs
   type(atoms_data), intent(in) :: atoms
   type(restart_objects), intent(in) :: rst
@@ -1141,7 +1141,7 @@ subroutine image_free(img, run, outs)
 
   type(run_image), pointer :: img
   type(run_objects), pointer :: run
-  type(DFT_global_output), pointer :: outs
+  type(state_properties), pointer :: outs
 
   allocate(run)
   run = img%run

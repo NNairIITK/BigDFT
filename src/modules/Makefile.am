@@ -40,6 +40,8 @@ libmodules_a_SOURCES = base.f90 \
 	interfaces.f90 \
 	private_api.f90 \
 	xc.f90 \
+	module_lj.f90 \
+	module_lenosky_si.f90 \
 	op2p_module.f90 \
 	BigDFT_API.f90 \
 	vdwcorrection.f90 \
@@ -203,7 +205,7 @@ fermi_level.o: base.o
 copy_utils.o: base.o
 gaussdaub.o: base.o
 module_sqn.o: base.o
-bigdft_run.o: types.o input_dicts.o interfaces.o
+bigdft_run.o: types.o input_dicts.o interfaces.o module_lenosky_si.o module_lj.o
 ab7_mixing.o: defs.o
 
 # Copy modules in a common include directory.

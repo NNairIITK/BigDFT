@@ -50,7 +50,7 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   implicit none
   !Arguments
   type(run_objects), intent(inout) :: runObj
-  type(DFT_global_output), intent(inout) :: outs
+  type(state_properties), intent(inout) :: outs
   integer, intent(in) :: nproc,iproc
   integer, intent(out) :: ncount_bigdft
   !local variables
@@ -186,7 +186,7 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
   type(run_objects), intent(inout) :: runObj
-  type(DFT_global_output), intent(inout) :: outs
+  type(state_properties), intent(inout) :: outs
   logical, intent(out) :: fail
   !Local variables
   character(len=*), parameter :: subname='ab6md'
@@ -392,7 +392,7 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
   type(run_objects), intent(inout) :: runObj
-  type(DFT_global_output), intent(inout) :: outs
+  type(state_properties), intent(inout) :: outs
   logical, intent(out) :: fail
   !local variables
   integer, parameter :: ugeopt=16
@@ -504,7 +504,7 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      runObj%inputs%inputPsiId=1
      etotprev=outs%energy
 
-     call call_bigdft(runObj,outs,infocode)
+     call bigdft_state(runObj,outs,infocode)
 
 !!$     if (iproc == 0) then
 !!$        call transforce(at,f,sumx,sumy,sumz)
@@ -578,7 +578,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
   type(run_objects), intent(inout) :: runObj
-  type(DFT_global_output), intent(inout) :: outs
+  type(state_properties), intent(inout) :: outs
   logical, intent(inout) :: fail
   !Local variables
   integer, parameter :: ugeopt=16
@@ -632,7 +632,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      runObj%inputs%inputPsiId=1
      call bigdft_set_rxyz(runObj,rxyz_add=pospred(1))
 !!$     call vcopy(3 * runObj%atoms%astruct%nat, pospred(1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
-     call call_bigdft(runObj,outs,infocode)
+     call bigdft_state(runObj,outs,infocode)
      call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fpred(1), 1)
      ncount_bigdft=ncount_bigdft+1
      call fnrmandforcemax(fpred,fnrm,fmax,outs%fdim)

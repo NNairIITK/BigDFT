@@ -132,7 +132,7 @@ use module_atoms, only: astruct_dump_to_file
         call bigdft_set_rxyz(runObj,rxyz=rxyz)
         runObj%inputs%inputPsiId=inputPsiId
         runObj%inputs%itermin=itermin
-        call call_bigdft(runObj,outs,infocode)
+        call bigdft_state(runObj,outs,infocode)
         call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1), 1)
         call vcopy(3 * nat,runObj%atoms%astruct%ixyz_int(1,1),1,&
              ixyz_int(1,1), 1)

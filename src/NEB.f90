@@ -242,7 +242,7 @@ MODULE NEB_routines
 
          call image_init(imgs(i), ins(i), atoms(i), rst, algorithm)
          ! Store forces if present (for restart).
-         call global_output_set_from_dict(imgs(i)%outs, dict // "posinp")
+         call state_properties_set_from_dict(imgs(i)%outs, dict // "posinp")
       end do
       call dict_free(dict)
 

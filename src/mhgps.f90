@@ -124,7 +124,7 @@ program mhgps
         call dict_free(options)
         nullify(run)
 
-        call init_global_output(outs, bigdft_nat(runObj))
+        call init_state_properties(outs, bigdft_nat(runObj))
         fdim=outs%fdim
 
         astruct_ptr => bigdft_get_astruct_ptr(runObj)
@@ -138,7 +138,7 @@ program mhgps
 !             trim(bigdft_run_id_toa()), bigdft_mpi)
 !        call inputs_from_dict(inputs_opt, atoms, user_inputs)
 !        call dict_free(user_inputs)
-!        call init_global_output(outs, atoms%astruct%nat)
+!        call init_state_properties(outs, atoms%astruct%nat)
 !        fdim=outs%fdim
 !        call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,&
 !                                 rst)
@@ -550,7 +550,7 @@ allocate(fat(3,nat))
 !        call release_run_objects(runObj)
         call free_run_objects(runObj)
 !        call free_input_variables(inputs_opt)
-        call deallocate_global_output(outs)
+        call deallocate_state_properties(outs)
         call bigdft_finalize(ierr)
     elseif(efmethod=='LJ'.or.efmethod=='AMBER'.or.efmethod=='AMBEROF'.or.&
            efmethod=='LENSIc' .or. efmethod=='LENSIb')then
