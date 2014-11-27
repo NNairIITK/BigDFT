@@ -383,7 +383,7 @@ endif
 $(gir_DATA): $(G_IR_SCANNER) $(bigdft_library)
 	$(G_IR_SCANNER) -v --warn-all \
 		--namespace BigDFT \
-		--symbol-prefix=bigdft --identifier-prefix=BigDFT_ \
+		--symbol-prefix=bigdft --identifier-prefix=BigDFT_ --identifier-prefix=Bigdft \
 		--symbol-prefix=f90 --identifier-prefix=f90_ \
 		--nsversion "1.7" \
 		--add-include-path=$(girdir) \

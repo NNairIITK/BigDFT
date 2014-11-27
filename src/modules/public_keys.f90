@@ -16,6 +16,10 @@ module public_keys
 
   character(len = *), parameter :: RADICAL_NAME = "radical"
   character(len = *), parameter :: POSINP = "posinp"
+  character(len = *), parameter :: OUTDIR = "outdir"
+  character(len = *), parameter :: LOGFILE = "logfile"
+  character(len = *), parameter :: RUN_FROM_FILES = "run_from_files"
+
   character(len = *), parameter :: OCCUPATION = "occupation"
   character(len = *), parameter :: IG_OCCUPATION = "ig_occupation"
   character(len = *), parameter :: DFT_VARIABLES = "dft"
@@ -135,7 +139,6 @@ module public_keys
   character(len = *), parameter :: INGUESS_GEOPT = "inguess_geopt"
   character(len = *), parameter :: STORE_INDEX = "store_index"
   character(len = *), parameter :: VERBOSITY = "verbosity"
-  character(len = *), parameter :: OUTDIR = "outdir"
   character(len = *), parameter :: PSP_ONFLY = "psp_onfly"
   character(len = *), parameter :: PDSYEV_BLOCKSIZE = "pdsyev_blocksize"
   character(len = *), parameter :: PDGEMM_BLOCKSIZE = "pdgemm_blocksize"

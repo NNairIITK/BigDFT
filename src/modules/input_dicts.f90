@@ -134,6 +134,7 @@ contains
     use module_interfaces, only: read_input_dict_from_files
     use public_keys, only: POSINP,IG_OCCUPATION
     use yaml_output
+    use yaml_strings, only: f_strcpy
     implicit none
     !Arguments
     type(dictionary), pointer :: dict                  !< Contains (out) all the information
@@ -142,7 +143,7 @@ contains
     type(mpi_environment), intent(in) :: mpi_env       !< MPI Environment
     !Local variables
     type(dictionary), pointer :: at
-    character(len = max_field_length) :: str
+    character(len = max_field_length) :: str, rad
 
     !read the input file(s) and transform them into a dictionary
     call read_input_dict_from_files(trim(radical), mpi_env, dict)
@@ -172,12 +173,15 @@ contains
     ! Add old psppar
     call atoms_file_merge_to_dict(dict)
 
+    call f_strcpy(src = radical, dest = rad)
+    if (len_trim(radical) == 0) rad = "input"
+
     !when the user has not specified the occupation in the input file
     if (.not. has_key(dict,IG_OCCUPATION)) then
        !yaml format should be used even for old method
-       if (file_exists(trim(radical)//".occup")) &
+       if (file_exists(trim(rad)//".occup")) &
             call merge_input_file_to_dict(dict//IG_OCCUPATION,&
-            trim(radical)//".occup",mpi_env)
+            trim(rad)//".occup",mpi_env)
     else !otherwise the input file always supersedes
        str = dict_value(dict //IG_OCCUPATION)
        if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
@@ -189,7 +193,7 @@ contains
 
     if (OCCUPATION .notin. dict) then
        ! Add old input.occ
-       call occupation_data_file_merge_to_dict(dict,OCCUPATION,trim(radical) // ".occ")
+       call occupation_data_file_merge_to_dict(dict,OCCUPATION,trim(rad) // ".occ")
     else
        str = dict_value(dict //OCCUPATION)
        if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
@@ -233,14 +237,24 @@ contains
 
     exists = has_key(dict_psp, LPSP_KEY)
     if (.not. exists) then
-       ixc = run_ixc
-       ixc = dict_psp .get. PSPXC_KEY
-       call psp_from_data(atomname, nzatom, &
-            & nelpsp, npspcode, ixc, psppar(:,:), exists)
-       radii_cf(:) = UNINITIALIZED(1._gp)
-       call psp_data_merge_to_dict(dict_psp, nzatom, nelpsp, npspcode, ixc, &
-            & psppar(0:4,0:6), radii_cf, UNINITIALIZED(1._gp), UNINITIALIZED(1._gp))
-       call set(dict_psp // SOURCE_KEY, "Hard-Coded")
+       if (dict_len(dict_psp) > 0) then
+          ! Long string case, we parse it.
+          call psp_file_merge_to_dict(dict, filename, lstring = dict_psp)
+          ! Since it has been overrided.
+          dict_psp => dict // filename
+          exists = has_key(dict_psp, LPSP_KEY)
+          nzatom = dict_psp .get. ATOMIC_NUMBER
+          nelpsp = dict_psp .get. ELECTRON_NUMBER
+       else
+          ixc = run_ixc
+          ixc = dict_psp .get. PSPXC_KEY
+          call psp_from_data(atomname, nzatom, &
+               & nelpsp, npspcode, ixc, psppar(:,:), exists)
+          radii_cf(:) = UNINITIALIZED(1._gp)
+          call psp_data_merge_to_dict(dict_psp, nzatom, nelpsp, npspcode, ixc, &
+               & psppar(0:4,0:6), radii_cf, UNINITIALIZED(1._gp), UNINITIALIZED(1._gp))
+          call set(dict_psp // SOURCE_KEY, "Hard-Coded")
+       end if
     else
        nzatom = dict_psp // ATOMIC_NUMBER
        nelpsp = dict_psp // ELECTRON_NUMBER
@@ -707,9 +721,13 @@ contains
           else
              str = dict_value(dict // key)
           end if
-          if (trim(str) /= "" .and. trim(str) /= TYPE_LIST .and. trim(str) /= TYPE_DICT) then
+          if (trim(str) /= "" .and. trim(str) /= TYPE_DICT) then
              !Read the PSP file and merge to dict
-             call psp_file_merge_to_dict(dict, key, trim(str))
+             if (trim(str) /= TYPE_LIST) then
+                call psp_file_merge_to_dict(dict, key, filename = trim(str))
+             else
+                call psp_file_merge_to_dict(dict, key, lstring = dict // key)
+             end if
              if (.not. has_key(dict // key, 'Pseudopotential XC')) then
                 call yaml_warning("Pseudopotential file '" // trim(str) // &
                      & "' not found. Fallback to file '" // trim(key) // &
@@ -730,30 +748,49 @@ contains
 
 
   !> Read psp file and merge to dict
-  subroutine psp_file_merge_to_dict(dict, key, filename)
+  subroutine psp_file_merge_to_dict(dict, key, filename, lstring)
     use module_defs, only: gp, UNINITIALIZED
     use dictionaries
     use yaml_strings
+    use f_utils
+    use yaml_output
     implicit none
     !Arguments
     type(dictionary), pointer :: dict
-    character(len = *), intent(in) :: filename, key
+    character(len = *), intent(in) :: key
+    character(len = *), optional, intent(in) :: filename
+    type(dictionary), pointer, optional :: lstring
     !Local variables
     integer :: nzatom, nelpsp, npspcode, ixcpsp
     real(gp) :: psppar(0:4,0:6), radii_cf(3), rcore, qcore
     logical :: exists, donlcc, pawpatch
+    type(io_stream) :: ios
 
+    if (present(filename)) then
+       inquire(file=trim(filename),exist=exists)
+       if (.not. exists) return
+       call f_iostream_from_file(ios, filename)
+    else if (present(lstring)) then
+       call f_iostream_from_lstring(ios, lstring)
+    else
+       call f_err_throw("Error in psp_file_merge_to_dict, either 'filename' or 'lstring' should be present.", &
+            & err_name='BIGDFT_RUNTIME_ERROR')
+    end if
     !ALEX: if npspcode==PSPCODE_HGH_K_NLCC, nlccpar are read from psppar.Xy via rcore and qcore 
-    call psp_from_file(filename, nzatom, nelpsp, npspcode, ixcpsp, &
-         & psppar, donlcc, rcore, qcore, radii_cf, exists, pawpatch)
-    if (.not.exists) return
+    call psp_from_stream(ios, nzatom, nelpsp, npspcode, ixcpsp, &
+         & psppar, donlcc, rcore, qcore, radii_cf, pawpatch)
+    call f_iostream_release(ios)
 
+    if (has_key(dict, key)) call dict_remove(dict, key)
     call psp_data_merge_to_dict(dict // key, nzatom, nelpsp, npspcode, ixcpsp, &
          & psppar, radii_cf, rcore, qcore)
     call set(dict // key // "PAW patch", pawpatch)
-    call set(dict // key // SOURCE_KEY, filename)
+    if (present(filename)) then
+       call set(dict // key // SOURCE_KEY, filename)
+    else
+       call set(dict // key // SOURCE_KEY, "In-line")
+    end if
   end subroutine psp_file_merge_to_dict
-
 
   subroutine nlcc_file_merge_to_dict(dict, key, filename)
     use module_defs, only: gp, UNINITIALIZED
@@ -809,18 +846,17 @@ contains
 
     type(dictionary), pointer :: atoms, at
     character(len = max_field_length) :: str
-    integer :: iat, ityp, dlen
+    integer :: ityp
 
     if (ASTRUCT_POSITIONS .notin. dict) then
        nullify(types)
        return
     end if
     call dict_init(types)
-    atoms => dict // ASTRUCT_POSITIONS
     ityp = 0
-    dlen = dict_len(atoms)
-    do iat = 1, dlen, 1
-       at => dict_iter(atoms // (iat - 1))
+    atoms => dict_iter(dict // ASTRUCT_POSITIONS)
+    do while(associated(atoms))
+       at => dict_iter(atoms)
        do while(associated(at))
           str = dict_key(at)
           if (dict_len(at) == 3 .and. .not. has_key(types, str)) then
@@ -831,6 +867,7 @@ contains
              at => dict_next(at)
           end if
        end do
+       atoms => dict_next(atoms)
     end do
   end subroutine astruct_dict_get_types
 
@@ -932,7 +969,7 @@ contains
     character(len = 1024), intent(out), optional :: comment !< Extra comment retrieved from the file if present
     !local variables
     character(len=*), parameter :: subname='astruct_set_from_dict'
-    type(dictionary), pointer :: pos, at, types
+    type(dictionary), pointer :: pos, at, atData, types
     character(len = max_field_length) :: str
     integer :: iat, ityp, units, igspin, igchrg, nsgn, ntyp, ierr
 
@@ -996,37 +1033,41 @@ contains
     if (ASTRUCT_POSITIONS .in. dict) then
        pos => dict // ASTRUCT_POSITIONS
        call astruct_set_n_atoms(astruct, dict_len(pos))
-       do iat = 1, astruct%nat
+       at => dict_iter(pos)
+       iat = 0
+       do while(associated(at))
+          iat = iat + 1
+
           igspin = 0
           igchrg = 0
           nsgn   = 1
           !at => pos // (iat - 1)
-          at => dict_iter(pos//(iat-1))!at%child
-          do while(associated(at))
-             str = dict_key(at)
+          atData => dict_iter(at)!at%child
+          do while(associated(atData))
+             str = dict_key(atData)
              if (trim(str) == "Frozen") then
-                str = dict_value(at)
+                str = dict_value(atData)
                 call frozen_ftoi(str(1:4), astruct%ifrztyp(iat),ierr)
              else if (trim(str) == "IGSpin") then
-                igspin = at
+                igspin = atData
              else if (trim(str) == "IGChg") then
-                igchrg = at
+                igchrg = atData
                 if (igchrg >= 0) then
                    nsgn = 1
                 else
                    nsgn = -1
                 end if
              else if (trim(str) == "int_ref_atoms_1") then
-                astruct%ixyz_int(1,iat) = at
+                astruct%ixyz_int(1,iat) = atData
              else if (trim(str) == "int_ref_atoms_2") then
-                astruct%ixyz_int(2,iat) = at
+                astruct%ixyz_int(2,iat) = atData
              else if (trim(str) == "int_ref_atoms_3") then
-                astruct%ixyz_int(3,iat) = at
-             else if (dict_len(at) == 3) then
-                astruct%iatype(iat) = types // dict_key(at)
-                astruct%rxyz(:, iat) = at
+                astruct%ixyz_int(3,iat) = atData
+             else if (dict_len(atData) == 3) then
+                astruct%iatype(iat) = types // dict_key(atData)
+                astruct%rxyz(:, iat) = atData
              end if
-             at => dict_next(at)
+             atData => dict_next(atData)
           end do
           astruct%input_polarization(iat) = 1000 * igchrg + nsgn * 100 + igspin
           if (units == 1) then
@@ -1051,6 +1092,7 @@ contains
           else if (astruct%geocode == 'W') then
              astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
           end if
+          at => dict_next(at)
        end do
     else
        call astruct_set_n_atoms(astruct,0)

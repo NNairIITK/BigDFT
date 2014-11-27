@@ -8,7 +8,8 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 module f_utils
-  use dictionaries, only: f_err_throw,f_err_define
+  use dictionaries, only: f_err_throw,f_err_define, &
+       & dictionary, dict_len, dict_iter, dict_next, dict_value, max_field_length
   use yaml_strings, only: yaml_toa,operator(.eqv.)
   implicit none
 
@@ -19,6 +20,11 @@ module f_utils
   !preprocessed include file with processor-specific values
   include 'f_utils.inc' !defines recl_kind
 
+  !> This type can be used to get strings from a file or a dictionary long string.
+  type, public :: io_stream
+     integer :: iunit = 0
+     type(dictionary), pointer :: lstring => null()
+  end type io_stream
   !> enumerator type, useful to define different modes
   type, public :: f_enumerator
      character(len=256) :: name
@@ -248,6 +254,75 @@ contains
          err_id=INPUT_OUTPUT_ERROR)
     
   end subroutine f_rewind
+
+  subroutine f_iostream_from_file(ios, filename)
+    implicit none
+    type(io_stream), intent(out) :: ios
+    character(len = *), intent(in) :: filename
+    !Local variables
+    integer :: ierror
+
+    ios%iunit = 742
+    open(unit=ios%iunit,file=trim(filename),status='old',iostat=ierror)
+    !Check the open statement
+    if (ierror /= 0) call f_err_throw('Error in opening file='//&
+         trim(filename)//' iostat='//trim(yaml_toa(ierror)),&
+         err_id=INPUT_OUTPUT_ERROR)
+    nullify(ios%lstring)
+  end subroutine f_iostream_from_file
+
+  subroutine f_iostream_from_lstring(ios, dict)
+    implicit none
+    type(io_stream), intent(out) :: ios
+    type(dictionary), pointer :: dict
+
+    ios%iunit = 0
+    if (dict_len(dict) < 0) call f_err_throw('Error dict is not a long string',&
+         err_id=INPUT_OUTPUT_ERROR)
+    ios%lstring => dict
+  end subroutine f_iostream_from_lstring
+
+  subroutine f_iostream_get_line(ios, line, eof)
+    implicit none
+    !Arguments
+    type(io_stream), intent(inout) :: ios
+    character(len=max_field_length), intent(out) :: line
+    logical, optional, intent(out) :: eof
+    !Local variables
+    integer :: i_stat
+    character(len=8) :: fmt
+
+    if (ios%iunit > 0) then
+       write(fmt, "(A,I0,A)") "(A", max_field_length, ")"
+       if (present(eof)) then
+          read(ios%iunit, trim(fmt), iostat = i_stat) line
+       else
+          read(ios%iunit, trim(fmt)) line
+          i_stat = 0
+       end if
+       if (i_stat /= 0) then
+          close(ios%iunit)
+          ios%iunit = 0
+       end if
+       if (present(eof)) eof = (i_stat /= 0)
+    else if (associated(ios%lstring)) then
+       if (dict_len(ios%lstring) > 0) ios%lstring => dict_iter(ios%lstring)
+       line = dict_value(ios%lstring)
+       ios%lstring => dict_next(ios%lstring)
+       if (present(eof)) eof = .not. associated(ios%lstring)
+    else if (present(eof)) then
+       eof = .true.
+    end if
+  end subroutine f_iostream_get_line
+
+  subroutine f_iostream_release(ios)
+    implicit none
+    type(io_stream), intent(inout) :: ios
+
+    if (ios%iunit > 0) close(ios%iunit)
+    ios%iunit = 0
+    nullify(ios%lstring)
+  end subroutine f_iostream_release
 
   !>enter in a infinite loop for sec seconds. Use cpu_time as granularitu is enough
   subroutine f_pause(sec)

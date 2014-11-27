@@ -57,7 +57,7 @@ program frequencies
 
    !Function used to determine if the coordinate of the given atom is frozen
 
-   character(len=len(runObj%inputs%run_name)) :: prefix
+   character(len=max_field_length) :: prefix
    integer, dimension(:), allocatable :: ifrztyp0 !< To avoid to freeze the atoms for bigdft_state
    real(gp), dimension(3) :: freq_step
    real(gp) :: zpenergy,freq_exp,freq2_exp,vibrational_entropy,vibrational_energy,total_energy,tij,tji,dsym
@@ -100,8 +100,7 @@ program frequencies
    call run_objects_init(runObj,options//'BigDFT'//0)! trim(run_id), 'posinp')
 
    ! Read all input files.
-   prefix = runObj%inputs%run_name
-   if (trim(prefix) == '') prefix = 'input'
+   call bigdft_get_run_properties(options//'BigDFT'//0, input_id = prefix)
    inquire(file=trim(prefix)//'.freq',exist=exists)
    if (.not. exists) call f_err_throw('(F) The input file "'//trim(prefix)//'.freq does not exist',&
                           err_name='FREQUENCIES_INPUT_ERROR')
@@ -183,7 +182,7 @@ program frequencies
       call yaml_comment('(F) Start Frequencies calculation',hfill='=')
 
       !This file contains the Hessian for post-processing: it is regenerated each time.
-      call yaml_set_stream(unit=u_hessian,filename=trim(runObj%inputs%writing_directory)//'/hessian.yaml',&
+      call yaml_set_stream(unit=u_hessian,filename=trim(runObj%inputs%dir_output)//'hessian.yaml',&
              position='rewind',record_length=92,istat=ierr,setdefault=.false.,tabbing=0)
       call yaml_map('Step',freq_step,unit=u_hessian)
       call yaml_map('nat',runObj%atoms%astruct%nat,unit=u_hessian)
@@ -191,7 +190,7 @@ program frequencies
       call yaml_map('Forces',outs%fxyz,unit=u_hessian)
 
       !This file contains the dynamical matrix for post-processing: it is regenerated each time.
-      call yaml_set_stream(unit=u_dynamical,filename=trim(runObj%inputs%writing_directory)//'/dynamical.yaml',&
+      call yaml_set_stream(unit=u_dynamical,filename=trim(runObj%inputs%dir_output)//'dynamical.yaml',&
              position='rewind',record_length=92,istat=ierr,setdefault=.false.,tabbing=0)
       call yaml_map('Step',freq_step,unit=u_dynamical)
       call yaml_map('nat',runObj%atoms%astruct%nat,unit=u_dynamical)

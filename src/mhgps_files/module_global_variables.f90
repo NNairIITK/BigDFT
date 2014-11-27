@@ -6,9 +6,10 @@
 !!    A licence is necessary from UNIBAS
 
 module module_global_variables
-    use module_base !bigdft base module
-    use module_types
-    use bigdft_run
+    use module_base, only: gp !bigdft base module
+    !use module_types
+    use module_atoms, only: atomic_structure
+    use bigdft_run, only: run_objects, DFT_global_output
     implicit none
     character(len = *), public, parameter :: mhgps_version   = '0.01'
     character(len = *), public, parameter :: inputdir   = 'input'

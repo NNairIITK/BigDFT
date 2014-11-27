@@ -30,12 +30,12 @@ program mhgps
     use module_fingerprints, only: fingerprint_interface
     use module_hessian, only: cal_hessian_fd 
     use module_minimizers
+    use bigdft_run
     implicit none
     integer :: nend
     character(len=6) :: filename,filename2
     integer :: ifolder, ifile
     logical :: xyzexists,asciiexists
-    character(len=60) :: run_id
     type(dictionary), pointer :: run
     integer :: ierr, nconfig
     real(gp), allocatable :: rcov(:)
@@ -111,12 +111,10 @@ program mhgps
         if(iproc==0) call print_logo_mhgps()
 
         !reset input and output positions of run
-        call bigdft_get_run_properties(run,run_id=run_id)
         write(currDir,'(a,i3.3)')'input',ifolder
         write(filename,'(a,i3.3)')'pos',ifile
-        call bigdft_set_run_properties(run,run_id=trim(run_id)//&
-             trim(bigdft_run_id_toa()),posinp=currDir//'/'//filename&
-             //trim(bigdft_run_id_toa()))
+        call bigdft_set_run_properties(run,&
+             & posinp_id=currDir//'/'//filename//trim(bigdft_run_id_toa()))
 
         call run_objects_init(runObj,run)
 

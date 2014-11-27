@@ -48,6 +48,7 @@ program test_forces
    !character(len=60) :: radical
    !integer, dimension(4) :: mpi_info
    type(dictionary), pointer :: run,options
+   character(len = max_field_length) :: input_id, posinp_id
       
 
    call f_lib_initialize()
@@ -159,7 +160,8 @@ program test_forces
          end if
 
          if (bigdft_mpi%iproc == 0) then
-            call print_general_parameters(runObj%inputs,runObj%atoms) ! to know the new positions
+            call bigdft_get_run_properties(run, input_id = input_id, posinp_id = posinp_id)
+            call print_general_parameters(runObj%inputs,runObj%atoms,input_id,posinp_id) ! to know the new positions
          end if
 
          call bigdft_state(runObj, outs,infocode)

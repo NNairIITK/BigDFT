@@ -543,17 +543,14 @@ subroutine inputs_set_dict(in, level, val)
 END SUBROUTINE inputs_set_dict
 
 
-subroutine inputs_get_output(in, run_name, dir_output, writing_directory)
+subroutine inputs_get_output(in, dir_output)
 
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
-  character(len = 100), intent(out) :: dir_output, run_name
-  character(len = 500), intent(out) :: writing_directory
+  character(len = 100), intent(out) :: dir_output
 
-  run_name = trim(in%run_name)
   dir_output = trim(in%dir_output)
-  writing_directory = in%writing_directory
 END SUBROUTINE inputs_get_output
 
 
@@ -917,7 +914,6 @@ subroutine proj_free(nlpspd)
   use memory_profiling
   implicit none
   type(DFT_PSP_projectors), pointer :: nlpspd
-  !real(kind=8), dimension(:), pointer :: proj
 
   call free_DFT_PSP_projectors(nlpspd)
 END SUBROUTINE proj_free
@@ -1909,3 +1905,25 @@ subroutine dict_init_binding(dict)
 
   call wrapper(dict)
 END SUBROUTINE dict_init_binding
+
+
+subroutine err_severe_override(callback)
+  use dictionaries, only: f_err_severe_override, f_loc
+  implicit none
+  external :: callback
+  
+  write(*,*) f_loc(callback)
+  call f_err_severe_override(callback)
+end subroutine err_severe_override
+
+subroutine astruct_set_from_dict_binding(astruct, dict)
+  use module_input_dicts, only: astruct_set_from_dict
+  use dictionaries, only: dictionary
+  use module_atoms
+  implicit none
+  type(dictionary), pointer :: dict !< dictionary of the input variables
+  !! the keys have to be declared like input_dicts module
+  type(atomic_structure), intent(out) :: astruct          !< Structure created from the file
+
+  call astruct_set_from_dict(dict, astruct)
+end subroutine astruct_set_from_dict_binding

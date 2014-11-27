@@ -153,7 +153,7 @@ ATOMS_INCLUDES = astruct-inc.f90
 COMMS_INCLUDES = check_array-inc.f90
 
 EXTRA_DIST = configure.inc.in bigdft_cst.h.in BigDFT.py \
-	$(AO_INCLUDES) $(ATOMS_INCLUDES) $(COMMS_INCLUDES)
+	$(AO_INCLUDES) $(ATOMS_INCLUDES) $(COMMS_INCLUDES) $(overrides_DATA)
 CLEANFILES = $(modules)
 
 AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
@@ -210,6 +210,7 @@ ab7_mixing.o: defs.o
 
 # Copy modules in a common include directory.
 all: all-am insmod
+install: install-am insmod
 check: check-am insmod
 insmod: $(modules) 
 	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes

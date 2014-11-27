@@ -141,33 +141,31 @@ module bigdft_forces
       integer :: natoms_calcul
       type(dictionary), pointer :: dict
       !_______________________
-
-      call dict_init(dict)
-      call read_input_dict_from_files("input", bigdft_mpi,dict)
+      type(atoms_data) :: atoms
 
       me = me_
       nproc = nproc_
 
-      allocate(runObj%atoms)
-      runObj%atoms = atoms_data_null()
-      allocate(runObj%inputs)
+      call dict_init(dict)
+      call read_input_dict_from_files("input", bigdft_mpi,dict)
+
+      atoms = atoms_data_null()
       if (nat .eq. total_nb_atoms .and. .not. passivate) then 
          ! we just reread all atoms
-         call read_atomic_file("posinp",me_,runObj%atoms%astruct)
+         call read_atomic_file("posinp",me_,atoms%astruct)
       else 
          !uses the big object to prepare. everything should
          ! be alright in the object exept the length
          call prepare_quantum_atoms_Si(atoms_all,posquant,natoms_calcul)
          !we just copy it in a smaller vect
-         call copy_atoms_object(atoms_all,runObj%atoms,runObj%atoms%astruct%rxyz,natoms_calcul,total_nb_atoms,posquant)
-         call initialize_atomic_file(me_,runObj%atoms%astruct,runObj%atoms%astruct%rxyz)
+         call copy_atoms_object(atoms_all,atoms,atoms%astruct%rxyz,natoms_calcul,total_nb_atoms,posquant)
+         call initialize_atomic_file(me_,atoms%astruct,atoms%astruct%rxyz)
       endif
-      call astruct_merge_to_dict(dict // "posinp", runObj%atoms%astruct, runObj%atoms%astruct%rxyz)
-
+      call astruct_merge_to_dict(dict // "posinp", atoms%astruct, atoms%astruct%rxyz)
       call atoms_file_merge_to_dict(dict)
+      call deallocate_atoms_data(atoms)
 
-      call standard_inputfile_names(runObj%inputs,'input')
-      call inputs_from_dict(runObj%inputs, runObj%atoms, dict)
+      call run_objects_init(runObj, dict)
 
       call dict_free(dict)
       
@@ -178,12 +176,6 @@ module bigdft_forces
       else
          gnrm_h = my_gnrm
       end if
-      ! The BigDFT restart structure.
-      allocate(runObj%rst)
-      call init_restart_objects(me, runObj%inputs, runObj%atoms, runObj%rst)
-
-!!$      runObj%radii_cf = f_malloc_ptr((/ runObj%atoms%astruct%ntypes, 3 /),id='runObj%radii_cf')
-!!$      runObj%radii_cf = runObj%atoms%radii_cf
 
    END SUBROUTINE bigdft_init_art
 

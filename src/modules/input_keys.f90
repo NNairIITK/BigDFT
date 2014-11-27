@@ -335,9 +335,12 @@ contains
 
     !> fill the list of valid entries
     valid_entries=>list_new([&
-         .item. RADICAL_NAME, &
-         .item. POSINP,&  
+         .item. OUTDIR,&
+         .item. RADICAL_NAME,&
+         .item. RUN_FROM_FILES,&
+         .item. POSINP,&
          .item. MODE_VARIABLES,&
+         .item. LOGFILE,&
          .item. PERF_VARIABLES,&  
          .item. DFT_VARIABLES,&   
          .item. KPT_VARIABLES,&   

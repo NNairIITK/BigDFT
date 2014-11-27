@@ -28,6 +28,7 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     use yaml_output
     use module_global_variables
 use module_atoms, only: astruct_dump_to_file
+    use bigdft_run
     implicit none
     !parameters
     integer, intent(in) :: nat
