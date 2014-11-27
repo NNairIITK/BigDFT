@@ -690,21 +690,6 @@ module bigdft_run
       call nullify_run_objects(runObj)
     END SUBROUTINE free_run_objects
 
-!!$    !> Deallocate run_objects, this routine should disappear
-!!$    subroutine run_objects_free_container(runObj)
-!!$      use module_types
-!!$      use module_base
-!!$      use dynamic_memory
-!!$      use yaml_output
-!!$      implicit none
-!!$      type(run_objects), intent(inout) :: runObj
-!!$
-!!$      ! User inputs are always owned by run objects.
-!!$      call dict_free(runObj%user_inputs)
-!!$      ! Currently do nothing except nullifying everything.
-!!$      call run_objects_nullify(runObj)
-!!$    END SUBROUTINE run_objects_free_container
-
     !> Read all input files and create the objects to run BigDFT
     subroutine run_objects_init(runObj,run_dict,source)
       use module_base, only: bigdft_mpi,dict_init
@@ -1102,22 +1087,23 @@ module bigdft_run
       !integer :: iat
       real(gp) :: maxdiff
       external :: cluster,forces_via_finite_differences
-!if(bigdft_mpi%iproc==0)write(*,*)'(BIGDFTbastian) ######################################'
-!write(*,*)'(BIGDFTbastian) debug befor barrier,runObj%inputs%inputPsiId',runObj%inputs%inputPsiId,bigdft_mpi%iproc
       !put a barrier for all the processes
       call mpibarrier(bigdft_mpi%mpi_comm)
-!write(*,*)'(BIGDFTbastian) debug after barrier,runObj%inputs%inputPsiId',runObj%inputs%inputPsiId,bigdft_mpi%iproc
+
       call f_routine(id=subname)
       !Check the consistency between MPI processes of the atomic coordinates and broadcast them
-      call mpibcast(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,maxdiff=maxdiff)
-      if (maxdiff > epsilon(1.0_gp)) then
-         if (bigdft_mpi%iproc==0) then
-            call yaml_warning('Input positions not identical! '//&
-                 '(difference:'//trim(yaml_toa(maxdiff))//' ), however broadcasting from master node.')
-            call yaml_flush_document()
+      if (bigdft_mpi%nproc >1) then
+         call mpibcast(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,&
+              maxdiff=maxdiff)
+         if (maxdiff > epsilon(1.0_gp)) then
+            if (bigdft_mpi%iproc==0) then
+               call yaml_warning('Input positions not identical! '//&
+                    '(difference:'//trim(yaml_toa(maxdiff))//&
+                    ' ), however broadcasting from master node.')
+               call yaml_flush_document()
+            end if
          end if
       end if
-
 !!$      maxdiff=mpimaxdiff(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,bcast=.true.)
 !!$      if (maxdiff > epsilon(1.0_gp)) then
 !!$         if (bigdft_mpi%iproc==0) then
