@@ -30,6 +30,7 @@ program mhgps
     use module_fingerprints, only: fingerprint
     use module_hessian, only: cal_hessian_fd 
     use module_minimizers
+    use bigdft_run
     implicit none
     integer :: nend
     character(len=6) :: filename,filename2
@@ -113,9 +114,8 @@ program mhgps
         call bigdft_get_run_properties(run,run_id=run_id)
         write(currDir,'(a,i3.3)')'input',ifolder
         write(filename,'(a,i3.3)')'pos',ifile
-        call bigdft_set_run_properties(run,run_id=trim(run_id)//&
-             trim(bigdft_run_id_toa()),posinp=currDir//'/'//filename&
-             //trim(bigdft_run_id_toa()))
+        call bigdft_set_run_properties(run,&
+             & posinp=currDir//'/'//filename//trim(bigdft_run_id_toa()))
 
         call run_objects_init(runObj,run)
 

@@ -25,6 +25,7 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     use module_interfaces
     use yaml_output
     use module_global_variables
+    use bigdft_run
     implicit none
     !parameters
     integer, intent(in) :: nat
