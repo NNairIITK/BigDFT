@@ -17,14 +17,14 @@ module module_global_variables
 
     !input parameters for mhgps
     integer          :: mhgps_verbosity     = 3
-    character(len=6) :: efmethod            = "LJ" !method/force-field
+    character(len=10) :: efmethod            = "LJ" !method/force-field
                                                    !for energies,
                                                    !stresses and
                                                    !forces
     logical          :: external_mini       = .false.
     character(len=5) :: input_dir           = "input"
 
-    !input parameters for sbfgs saddle_search
+    !input parameters for sqnm saddle_search
     character(len=20):: operation_mode             = 'connect'
     logical          :: saddle_biomode             = .false.
     logical          :: random_minmode_guess       = .true.
@@ -64,7 +64,7 @@ module module_global_variables
 
     !parameters for minimizers implemented in mhgps
     logical :: internal=.true. !use internal or external optimizers?
-        !SBFGS
+        !SQNM
         integer  :: mini_nhistx = 15
         integer  :: mini_ncluster_x = 5000
         real(gp) :: mini_frac_fluct = 0.0_gp
@@ -110,7 +110,7 @@ module module_global_variables
     !bigdft data types and variables 
     !(these objects must preserve their status in the module)
     type(run_objects), save :: runObj
-    type(DFT_global_output), save :: outs
+    type(state_properties), save :: outs
     integer, save :: fdim
     !type(atoms_data), save :: atoms
     type(atomic_structure), pointer, save :: astruct_ptr

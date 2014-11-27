@@ -23,10 +23,6 @@ module module_input_keys
   integer, public :: INPUT_VAR_ILLEGAL = ERR_UNDEF
   type(dictionary), pointer :: failed_exclusive
 
-!!$  character(len = *), parameter :: RANGE = "__range__", EXCLUSIVE = "__exclusive__"
-!!$  character(len = *), parameter :: DEFAULT = "default", COMMENT = "__comment__"
-!!$  character(len = *), parameter :: COND = "__condition__", WHEN = "__when__"
-!!$  character(len = *), parameter :: MASTER_KEY = "__master_key__"
   character(len = *), parameter :: ATTRS = "_attributes"
   character(len = *), parameter :: PROF_KEY = "PROFILE_FROM"
   character(len = *), parameter :: USER_KEY = "USER_DEFINED"
@@ -57,12 +53,15 @@ contains
   subroutine abort_excl()
     use yaml_output
     use dictionaries
+    use module_base, only: bigdft_mpi
     implicit none
 
-    call f_dump_last_error()
-    call yaml_mapping_open("allowed values")
-    call yaml_dict_dump(failed_exclusive)
-    call yaml_mapping_close()
+    !call f_dump_last_error()
+    if (bigdft_mpi%iproc==0) then
+       call yaml_mapping_open("allowed values")
+       call yaml_dict_dump(failed_exclusive)
+       call yaml_mapping_close()
+    end if
     call f_err_severe()
   end subroutine abort_excl
 
@@ -340,6 +339,7 @@ contains
          .item. RADICAL_NAME,&
          .item. RUN_FROM_FILES,&
          .item. POSINP,&
+         .item. MODE_VARIABLES,&
          .item. LOGFILE,&
          .item. PERF_VARIABLES,&  
          .item. DFT_VARIABLES,&   
@@ -432,6 +432,7 @@ contains
     !call input_keys_control(dict,DFT_VARIABLES)
 
     call input_keys_fill(dict, PERF_VARIABLES)
+    call input_keys_fill(dict, MODE_VARIABLES)
     call input_keys_fill(dict, DFT_VARIABLES)
     call input_keys_fill(dict, KPT_VARIABLES)
     call input_keys_fill(dict, GEOPT_VARIABLES)
@@ -699,9 +700,6 @@ contains
        if (.not. (dict_key(dict_tmp) .in. ref) .and. &
             & index(dict_key(dict_tmp), ATTRS) == 0) then
     !      call yaml_map('Allowed keys',dict_keys(ref))
-          !even in a f_err_open_try section this error is assumed to be fatal
-          !for the moment. A mechanism to downgrade its gravity should be
-          !provided; -> LG 30/06/14: should work in try environment at present
           dict_it=>dict_iter(ref)
           call dict_init(dict_err)
           do while(associated(dict_it))
@@ -792,7 +790,8 @@ contains
              end do
              deallocate(keys)
              if (f_err_raise(.not. found, err_id = INPUT_VAR_NOT_IN_LIST, &
-                  & err_msg = trim(key) // " = '" // trim(val) // "' is not allowed.")) return
+                  & err_msg = trim(key) // " = '" // trim(val) //&
+                  "' is not allowed, see above the allowed values.")) return
              nullify(failed_exclusive)
           end if
        end if

@@ -21,7 +21,7 @@ program splined_saddle
 !!$ logical :: exist_list
   !input/output variables
   type(run_objects) :: runObj
-  type(DFT_global_output) :: outs
+  type(state_properties) :: outs
   !character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
   !character(len=60) :: run_id
   !character(len=60) :: filename
@@ -62,7 +62,7 @@ program splined_saddle
 
      ! Read all input files. This should be the sole routine which is called to initialize the run.
      call run_objects_init(runObj,run)
-     call init_global_output(outs, runObj%atoms%astruct%nat)
+     call init_state_properties(outs, runObj%atoms%astruct%nat)
 
 
      open(unit=16,file=trim(runObj%inputs%dir_output)//'geopt.mon',status='unknown',position='append')
@@ -75,7 +75,7 @@ program splined_saddle
         runObj%inputs%last_run = 1
      end if
 
-     call call_bigdft(runObj, outs,infocode)
+     call bigdft_state(runObj, outs,infocode)
 
      if (runObj%inputs%ncount_cluster_x > -1) then
         if (bigdft_mpi%iproc ==0 ) write(*,"(1x,a,2i5)") 'Wavefunction Optimization Finished, exit signal=',infocode
@@ -99,12 +99,12 @@ program splined_saddle
      !if there is a last run to be performed do it now before stopping
      if (runObj%inputs%last_run == -1) then
         runObj%inputs%last_run = 1
-        call call_bigdft(runObj, outs,infocode)
+        call bigdft_state(runObj, outs,infocode)
      end if
 
      if (bigdft_mpi%iproc == 0) call write_forces(runObj%atoms,outs%fxyz)
 
-     call deallocate_global_output(outs)
+     call deallocate_state_properties(outs)
      call free_run_objects(runObj)
      run => dict_next(run)
   end do
@@ -260,7 +260,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,run_opt,ncount_big
     integer, intent(inout) :: ncount_bigdft
     real(gp), dimension(:,:), allocatable :: rxyz_2
     real(gp), dimension(:,:), allocatable :: x,f,xneb,rxyz_tmp,x_t
-    !type(DFT_global_output), dimension(:), allocatable :: outs
+    !type(state_properties), dimension(:), allocatable :: outs
     integer :: np,np_neb,np_t,iat,ifile
     type(parameterminimization_sp)::parmin_neb,parmin
     real(gp) :: epot_sp,ratsp(3,run_opt%atoms%astruct%nat)
@@ -273,7 +273,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,run_opt,ncount_big
     !type(input_variables), target :: ll_inputs
     !type(atoms_data) :: ll_atoms
     type(run_objects) :: ll_runObj
-    type(DFT_global_output), dimension(2) :: outends
+    type(state_properties), dimension(2) :: outends
     !character(50)::ssm
     character(len=20)::filename
     character(40)::comment
@@ -338,8 +338,8 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,run_opt,ncount_big
     f = f_malloc((/ 1.to.n, 0.to.np+ndeb2 /),id='f')
     x = f_malloc((/ 1.to.n, 0.to.np+ndeb2 /),id='x')
     xneb = f_malloc((/ 1.to.n, 0.to.np_neb+ndeb2 /),id='xneb')
-    call init_global_output(outends(1), natoms)
-    call init_global_output(outends(2), natoms)
+    call init_state_properties(outends(1), natoms)
+    call init_state_properties(outends(2), natoms)
     !if(iproc==0) write(*,*) 'ALIREZA-01'
     !---------------------------------------------------------------------------
     if(trim(pnow%runstat)=='restart') then
@@ -404,7 +404,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,run_opt,ncount_big
     call bigdft_set_rxyz(run_opt,rxyz_add=x(1,np))
     !if(iproc==0) write(*,*) 'ALIREZA-03'
     call cpu_time(time1)
-    call call_bigdft(run_opt,outends(2),infocode)
+    call bigdft_state(run_opt,outends(2),infocode)
     call cpu_time(time2)
     !call release_run_objects(runObj)
     !call run_objects_free_container(runObj)
@@ -429,7 +429,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,run_opt,ncount_big
 !!$       call run_objects_associate(ll_runObj, ll_inputs, atoms, rst, x(1,0))
        call bigdft_set_rxyz(ll_runObj,rxyz_add=x(1,0))
        call cpu_time(time1)
-       call call_bigdft(ll_runObj,outends(1),infocode)
+       call bigdft_state(ll_runObj,outends(1),infocode)
        pnow%exends(1) = outends(1)%energy
        call cpu_time(time2)
        ncount_bigdft=ncount_bigdft+1
@@ -438,7 +438,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,run_opt,ncount_big
        !call vcopy(n, x(1,np), 1, ll_runObj%atoms%astruct%rxyz(1,1), 1)
        call bigdft_set_rxyz(ll_runObj,rxyz_add=x(1,np))
        call cpu_time(time1)
-       call call_bigdft(ll_runObj,outends(2),infocode)
+       call bigdft_state(ll_runObj,outends(2),infocode)
        call cpu_time(time2)
        !call release_run_objects(ll_runObj)
        !call run_objects_free_container(ll_runObj)
@@ -528,8 +528,8 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,run_opt,ncount_big
     call f_free(xneb)
     call f_free(rxyz_2)
     call f_free(rxyz_tmp)
-    call deallocate_global_output(outends(1))
-    call deallocate_global_output(outends(2))
+    call deallocate_state_properties(outends(1))
+    call deallocate_state_properties(outends(2))
 end subroutine givemesaddle
 
 
@@ -589,7 +589,7 @@ subroutine improvepeak(n,nr,np,x,outends,pnow,nproc,iproc,ll_runObj,ncount_bigdf
     !use energyandforces, only:calenergyforces
     implicit none
     integer :: n,nr,np,i,ip,npv,nproc,iproc,mp,lp,iat,ixyz,iter,ncount_bigdft,infocode
-    type(DFT_global_output), dimension(2), intent(in) :: outends
+    type(state_properties), dimension(2), intent(in) :: outends
     real(kind=8)::x(n,0:np),time1,time2 !,f(n,0:np),calnorm
     real(kind=8)::ed_tt,edd_tt,tarr(100),diff,proj,fnrm !n(c) dt
     real(kind=8), allocatable::xt(:)
@@ -600,7 +600,7 @@ subroutine improvepeak(n,nr,np,x,outends,pnow,nproc,iproc,ll_runObj,ncount_bigdf
     type(parametersplinedsaddle)::pnow,pold
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
 
-    type(DFT_global_output) :: outs
+    type(state_properties) :: outs
 
     if(mod(np+pnow%ns2,2)==0) then
         npv=np+pnow%ns2+4
@@ -609,7 +609,7 @@ subroutine improvepeak(n,nr,np,x,outends,pnow,nproc,iproc,ll_runObj,ncount_bigdf
     endif
     xt = f_malloc(n+ndeb1,id='xt')
     !call dmemocc(n,n+ndeb1,xt,'xt')
-    call init_global_output(outs, n / 3)
+    call init_state_properties(outs, n / 3)
     call equalarclengthparametrization(bigdft_get_astruct_ptr(ll_runObj),&
          n,np,x,pnow%s,pnow%h)
     call factor_cubic(np,pnow%h,pnow%e1,pnow%e2)
@@ -651,7 +651,7 @@ subroutine improvepeak(n,nr,np,x,outends,pnow,nproc,iproc,ll_runObj,ncount_bigdf
         call cpu_time(time1)
         !call vcopy(n, x(1,lp), 1, runObj%atoms%astruct%rxyz(1,1), 1)
         call bigdft_set_rxyz(ll_runObj,rxyz_add=x(1,lp))
-        call call_bigdft(ll_runObj,outs,infocode)
+        call bigdft_state(ll_runObj,outs,infocode)
         call cpu_time(time2)
         ncount_bigdft=ncount_bigdft+1
         pnow%ncount_ll=pnow%ncount_ll+1
@@ -682,7 +682,7 @@ subroutine improvepeak(n,nr,np,x,outends,pnow,nproc,iproc,ll_runObj,ncount_bigdf
     !call release_run_objects(runObj)
     !call run_objects_free_container(runObj)
     call f_free(xt)
-    call deallocate_global_output(outs)
+    call deallocate_state_properties(outs)
 end subroutine improvepeak
 
 
@@ -696,7 +696,7 @@ subroutine pickbestanchors2(n,np,x,outends,pnow,nproc,iproc,ll_runObj,ncount_big
     !use energyandforces, only:calenergyforces
     implicit none
     integer :: n,np,i,ip,npv,nproc,iproc,mp,ncount_bigdft,ixyz,iat,icycle,ncycle
-    type(DFT_global_output), dimension(2), intent(in) :: outends
+    type(state_properties), dimension(2), intent(in) :: outends
     real(kind=8)::x(n,0:np) !,f(n,0:np),calnorm
 !!$    type(atoms_data), intent(inout) :: atoms
 !!$    type(input_variables), intent(inout) :: ll_inputs
@@ -842,7 +842,7 @@ subroutine pickbestanchors(n,np,x,outends,pnow,nproc,iproc,ll_runObj,&
     !use energyandforces, only:calenergyforces
     implicit none
     integer :: n,np,i,ip,npv,nproc,iproc,mp,ncount_bigdft,ixyz,iat
-    type(DFT_global_output), dimension(2), intent(in) :: outends
+    type(state_properties), dimension(2), intent(in) :: outends
     real(kind=8)::x(n,0:np) !,f(n,0:np),calnorm
 !!$    type(atoms_data), intent(inout) :: atoms
 !!$    type(input_variables), intent(inout) :: ll_inputs
@@ -1072,7 +1072,7 @@ subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,ll_runObj,ncount_bigdft)
     real(kind=8), allocatable::xa(:,:),fa(:,:)
     type(parameterminimization_sp)::parmin
     type(parametersplinedsaddle)::pnow !n(c) pold
-    type(DFT_global_output), dimension(1:np - 1) :: outs
+    type(state_properties), dimension(1:np - 1) :: outs
     
     integer, parameter::ndeb1=0,ndeb2=0
 
@@ -1094,7 +1094,7 @@ subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,ll_runObj,ncount_bigdft)
     !call dmemocc(nr*(np-1),nr*(np-1+ndeb2),xa,'xa')
     !call dmemocc(nr*(np-1),nr*(np-1+ndeb2),fa,'fa')
     do ip=1,np-1
-       call init_global_output(outs(ip),bigdft_nat(ll_runObj))
+       call init_state_properties(outs(ip),bigdft_nat(ll_runObj))
         call atomic_copymoving_forward(bigdft_get_astruct_ptr(ll_runObj),&
              n,x(1,ip),nr,xa(1,ip))
     enddo
@@ -1318,7 +1318,7 @@ subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,ll_runObj,ncount_bigdft)
     call f_free(xa)
     call f_free(fa)
     do ip=1,np-1
-       call deallocate_global_output(outs(ip))
+       call deallocate_state_properties(outs(ip))
     enddo
     if(iproc==0) then
     write(pnow%ifile,'(a,1x,a)') 'end of minimization_sp using ',parmin%approach
@@ -1349,13 +1349,13 @@ end subroutine calmaxforcecomponentsub
 
 subroutine calmaxforcecomponentanchors(astruct,np,outs,fnrm,fspmax)
     use module_atoms, only: atomic_structure,move_this_coordinate
-    use bigdft_run, only: DFT_global_output
+    use bigdft_run, only: state_properties
     implicit none
     type(atomic_structure), intent(in) :: astruct
     !type(atoms_data), intent(inout) :: atoms
     integer::np,i,ip,iat,ixyz
     real(kind=8)::fnrm,fspmax
-    type(DFT_global_output), dimension(1:np-1), intent(in) :: outs
+    type(state_properties), dimension(1:np-1), intent(in) :: outs
 
     fspmax=0.d0
     fnrm=0.d0
@@ -1403,7 +1403,7 @@ subroutine nebforce(n,np,x,outs,fnrmtot,pnow,nproc,iproc,ll_runObj,ncount_bigdft
     type(run_objects), intent(inout)  :: ll_runObj
     integer, intent(inout) :: ncount_bigdft
     integer :: n,np,i,ip,infocode
-    type(DFT_global_output), dimension(1:np-1), intent(inout) :: outs
+    type(state_properties), dimension(1:np-1), intent(inout) :: outs
     real(kind=8)::x(n,0:np)
     real(kind=8)::tt,t1,t2,springcons,fnrmtot,time1,time2,fnrmarr(99),fspmaxarr(99)!,DNRM2
     real(kind=8), allocatable::tang(:,:)
@@ -1420,7 +1420,7 @@ subroutine nebforce(n,np,x,outs,fnrmtot,pnow,nproc,iproc,ll_runObj,ncount_bigdft
        call bigdft_set_rxyz(ll_runObj,rxyz_add=x(1,ip))
        !call vcopy(n, x(1,ip), 1, runObj%atoms%astruct%rxyz(1,1), 1)
         call cpu_time(time1)
-        call call_bigdft(ll_runObj,outs(ip),infocode)
+        call bigdft_state(ll_runObj,outs(ip),infocode)
         pnow%ex(ip) = outs(ip)%energy
         call cpu_time(time2)
         ncount_bigdft=ncount_bigdft+1
@@ -1505,7 +1505,7 @@ subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,outends,pnow,nproc, &
 !!$    type(restart_objects), intent(inout) :: rst
     type(run_objects), intent(inout) :: runObj,ll_runObj
     integer, intent(inout) :: ncount_bigdft
-    type(DFT_global_output), dimension(2), intent(in) :: outends
+    type(state_properties), dimension(2), intent(in) :: outends
     integer::n,nr,np,i,ip,icall,it,nwork,nra
     real(kind=8)::x(n,0:np),f(n,0:np),etmax,xtmax(n),fatsp(n)
     real(kind=8)::fspmax,fspnrm,barrier1,barrier2
@@ -2163,7 +2163,7 @@ subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,ll_runObj,ncount_bigdft)
     real(kind=8), allocatable::tang(:,:)
     integer::iat,ixyz
     integer, parameter::ndeb1=0,ndeb2=0
-    type(DFT_global_output), dimension(0:np) :: outs
+    type(state_properties), dimension(0:np) :: outs
 
     tang = f_malloc((/ 1.to.n, 0.to.np+ndeb2 /),id='tang')
     !call dmemocc(n*(np+1),n*(np+1+ndeb2),tang,'tang')
@@ -2182,11 +2182,11 @@ subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,ll_runObj,ncount_bigdft)
     if(mp==-1) stop 'ERROR: in perpendicularforce mp==-1'
     !do ip=1,np-1
     do ip=mp,mp
-       call init_global_output(outs(ip),bigdft_nat(ll_runObj))
+       call init_state_properties(outs(ip),bigdft_nat(ll_runObj))
        !!call vcopy(n, x(1,ip), 1, runObj%atoms%astruct%rxyz(1,1), 1)
        call bigdft_set_rxyz(ll_runObj,rxyz_add=x(1,ip))
         call cpu_time(time1)
-        call call_bigdft(ll_runObj,outs(ip),infocode)
+        call bigdft_state(ll_runObj,outs(ip),infocode)
         epotarr(ip) = outs(ip)%energy
         call cpu_time(time2)
         ncount_bigdft=ncount_bigdft+1
@@ -2209,7 +2209,7 @@ subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,ll_runObj,ncount_bigdft)
                 f(i,ip)=f(i,ip)+1.d-1*(outs(ip)%fxyz(ixyz,iat)+tt*tang(i,ip))
             endif
         enddo
-        call deallocate_global_output(outs(ip))
+        call deallocate_state_properties(outs(ip))
     enddo
     call f_free(tang)
 end subroutine perpendicularforce
@@ -2230,7 +2230,7 @@ subroutine calvmaxanchorforces(istep,n,np,x,xold,outends,etmax,f,xtmax,pnow,pold
 !!$    type(restart_objects), intent(inout) :: rst
     type(run_objects), intent(inout) :: runObj,ll_runObj
     integer, intent(inout) :: ncount_bigdft
-    type(DFT_global_output), dimension(2), intent(in) :: outends
+    type(state_properties), dimension(2), intent(in) :: outends
     integer::n,np,mp,i,ip,j,infocode
     real(kind=8)::x(n,0:np),xold(n,0:np),f(n,0:np),xtmax(n),ftmax(n)
     integer :: istep
@@ -2240,7 +2240,7 @@ subroutine calvmaxanchorforces(istep,n,np,x,xold,outends,etmax,f,xtmax,pnow,pold
     real(kind=8), allocatable::dd(:,:,:)
     integer, parameter::ndeb2=0 !n(c) ndeb1
     !type(run_objects) :: runObj
-    type(DFT_global_output) :: outs
+    type(state_properties) :: outs
     !----------------------------------------
     dd = f_malloc((/ n, n, np-1+ndeb2 /),id='dd')
     if(istep==0) xold(1:n,0:np)=x(1:n,0:np)
@@ -2254,15 +2254,15 @@ subroutine calvmaxanchorforces(istep,n,np,x,xold,outends,etmax,f,xtmax,pnow,pold
        !call nullify_run_objects(runObj)
        !call run_objects_associate(runObj, inputs, atoms, rst, xtmax(1))
        call bigdft_set_rxyz(runObj,rxyz_add=xtmax(1))
-       call init_global_output(outs, bigdft_nat(ll_runObj))!atoms%astruct%nat)
+       call init_state_properties(outs, bigdft_nat(ll_runObj))!atoms%astruct%nat)
        runObj%inputs%inputPsiId=0
        call cpu_time(time1)
-       call call_bigdft(runObj,outs,infocode)
+       call bigdft_state(runObj,outs,infocode)
        call cpu_time(time2)
        !call release_run_objects(runObj)
        !call run_objects_free_container(runObj)
        etmax = outs%energy
-       call deallocate_global_output(outs, ftmax(1))
+       call deallocate_state_properties(outs, ftmax(1))
        ncount_bigdft=ncount_bigdft+1
        pnow%ncount=pnow%ncount+1
        pnow%time=pnow%time+(time2-time1)
@@ -2419,7 +2419,7 @@ subroutine caltmax2(istep,n,np,x,xold,outends,epot,xt,ft,pnow,pold,nproc,iproc,l
 !!$    type(restart_objects), intent(inout) :: rst
     type(run_objects), intent(inout) :: ll_runObj
     integer, intent(inout) :: ncount_bigdft
-    type(DFT_global_output), dimension(2), intent(in) :: outends
+    type(state_properties), dimension(2), intent(in) :: outends
     integer::istep,n,np,ip,mp,mpv,iter,npv,ipv,ibad,ibadold
     character(len=20)::filename
     character(len=3)::fn
@@ -2914,7 +2914,7 @@ subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,ll_r
 !!$    type(restart_objects), intent(inout) :: rst
     type(run_objects), intent(inout) :: ll_runObj
     integer, intent(inout) :: ncount_bigdft
-    type(DFT_global_output), dimension(2), intent(in) :: outends
+    type(state_properties), dimension(2), intent(in) :: outends
     integer::istep,n,np,ip,mp,i,npv,infocode
     real(kind=8)::x(n,0:np),xt(n),ft(n) !n(c) dt
     type(parametersplinedsaddle)::pnow,pold
@@ -2924,13 +2924,13 @@ subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,ll_r
     integer::iat,ixyz
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
     !type(run_objects) :: runObj
-    type(DFT_global_output) :: outs
+    type(state_properties) :: outs
 
     tang = f_malloc(n+ndeb1,id='tang')
     !call dmemocc(n,n+ndeb1,tang,'tang')
 !!$    call nullify_run_objects(runObj)
 !!$    call run_objects_associate(runObj, ll_inputs, atoms, rst)
-    call init_global_output(outs,bigdft_nat(ll_runObj))
+    call init_state_properties(outs,bigdft_nat(ll_runObj))
     pnow%ex(0)=pnow%exends(1)
     pnow%ex(npv)=pnow%exends(2)
     !test points along path will be distributed uniformly except one which is 
@@ -3045,7 +3045,7 @@ subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,ll_r
            call bigdft_set_rxyz(ll_runObj,rxyz_add=xt(1))
            !call vcopy(n, xt(1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
             call cpu_time(time1)
-            call call_bigdft(ll_runObj,outs,infocode)
+            call bigdft_state(ll_runObj,outs,infocode)
             pnow%ex(ip) = outs%energy
             call cpu_time(time2)
             call vcopy(n, outs%fxyz(1,1), 1, ft(1), 1)
@@ -3062,7 +3062,7 @@ subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,ll_r
     !call release_run_objects(runObj)
     !call run_objects_free_container(runObj)
     call f_free(tang)
-    call deallocate_global_output(outs)
+    call deallocate_state_properties(outs)
 end subroutine fill_ex_exd
 
 subroutine estimate_sv(iproc,istep,np,npv,pnow,pold)
@@ -3374,7 +3374,7 @@ end subroutine estimate_sv
 !        !enddo
 !        !call calenergyforces(n,xt,epot,ft)
 !        x_bigdft(1:n)=xt(1:n)
-!        call call_bigdft(nproc,iproc,atoms,x_bigdft,inputs,epot,ft,fnoise,rst,infocode)
+!        call bigdft_state(nproc,iproc,atoms,x_bigdft,inputs,epot,ft,fnoise,rst,infocode)
 !        ncount_bigdft=ncount_bigdft+1
 !        if(iproc==0) then
 !            write(1358,'(4e20.10)') t/pnow%sv(npv),vc,vq,epot
@@ -4025,7 +4025,7 @@ subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,ll_runObj,ncount_bi
     real(kind=8), allocatable::tang(:)
     integer::ixyz,iat
     integer, parameter::ndeb1=0 !n(c) ndeb2=0
-    type(DFT_global_output) :: outs
+    type(state_properties) :: outs
     tang = f_malloc(n,id='tang')
     !call dmemocc(n,n,tang,'tang')
     do i=1,n
@@ -4048,14 +4048,14 @@ subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,ll_runObj,ncount_bi
 !!$    call nullify_run_objects(runObj)
 !!$    call run_objects_associate(runObj, ll_inputs, atoms, rst, xt(1))
     call bigdft_set_rxyz(ll_runObj,rxyz_add=xt(1))
-    call init_global_output(outs,bigdft_nat(ll_runObj))
+    call init_state_properties(outs,bigdft_nat(ll_runObj))
     call cpu_time(time1)
-    call call_bigdft(ll_runObj,outs,infocode)
+    call bigdft_state(ll_runObj,outs,infocode)
     call cpu_time(time2)
     !call release_run_objects(runObj)
     !call run_objects_free_container(runObj)
     epot = outs%energy
-    call deallocate_global_output(outs, ft(1))
+    call deallocate_state_properties(outs, ft(1))
     ncount_bigdft=ncount_bigdft+1
     pnow%ncount_ll=pnow%ncount_ll+1
     pnow%time_ll=pnow%time_ll+(time2-time1)

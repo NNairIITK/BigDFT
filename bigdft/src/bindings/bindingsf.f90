@@ -1271,44 +1271,44 @@ subroutine orbs_get_iorbp(orbs, iorbp, isorb, iproc, ikpt, iorb, ispin, ispinor)
 END SUBROUTINE orbs_get_iorbp
 
 
-subroutine global_output_new(self, outs, energs, fxyz, nat)
+subroutine state_properties_new(self, outs, energs, fxyz, nat)
   use module_defs, only: gp
   use module_types,only: energy_terms
   use bigdft_run
   implicit none
   integer(kind = 8), intent(in) :: self
-  type(DFT_global_output), pointer :: outs
+  type(state_properties), pointer :: outs
   type(energy_terms), pointer :: energs
   real(gp), dimension(:,:), pointer :: fxyz
   integer, intent(in) :: nat
 
-  type(DFT_global_output), pointer :: intern
+  type(state_properties), pointer :: intern
 
   allocate(intern)
-  call init_global_output(intern, nat)
+  call init_state_properties(intern, nat)
   energs => intern%energs
   fxyz => intern%fxyz
   intern%energs%c_obj = self
   outs => intern
-END SUBROUTINE global_output_new
+END SUBROUTINE state_properties_new
 
 
-subroutine global_output_free(outs)
+subroutine state_properties_free(outs)
   use bigdft_run
   implicit none
-  type(DFT_global_output), pointer :: outs
+  type(state_properties), pointer :: outs
 
-  call deallocate_global_output(outs)
+  call deallocate_state_properties(outs)
   deallocate(outs)
-END SUBROUTINE global_output_free
+END SUBROUTINE state_properties_free
 
 
-subroutine global_output_get(outs, energs, fxyz, fdim, fnoise, pressure, strten, etot)
+subroutine state_properties_get(outs, energs, fxyz, fdim, fnoise, pressure, strten, etot)
   use module_defs, only: gp
   use module_types, only: energy_terms
   use bigdft_run
   implicit none
-  type(DFT_global_output), intent(in), target :: outs
+  type(state_properties), intent(in), target :: outs
   type(energy_terms), pointer :: energs
   real(gp), dimension(:,:), pointer :: fxyz
   integer, intent(out) :: fdim
@@ -1325,7 +1325,7 @@ subroutine global_output_get(outs, energs, fxyz, fdim, fnoise, pressure, strten,
   strten = outs%strten
 
   etot = outs%energy
-END SUBROUTINE global_output_get
+END SUBROUTINE state_properties_get
 
 
 subroutine energs_copy_data(energs, eh, exc, evxc, eion, edisp, ekin, epot, &
@@ -1603,14 +1603,14 @@ subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly,ln)
   call yaml_set_default_stream(iunit_def, iostat)
 END SUBROUTINE run_objects_dump_to_file
 
-!wrapper to call_bigdft in bigdft run
+!wrapper to bigdft_state in bigdft run
 subroutine bigdft_exec(runObj,outs,infocode)
-  use bigdft_run, only: run_objects,DFT_global_output,call_bigdft
+  use bigdft_run, only: run_objects,state_properties,bigdft_state
   implicit none
   type(run_objects), intent(inout) :: runObj
-  type(DFT_global_output), intent(inout) :: outs
+  type(state_properties), intent(inout) :: outs
   integer, intent(inout) :: infocode
-  call call_bigdft(runObj,outs,infocode)
+  call bigdft_state(runObj,outs,infocode)
 
 end subroutine bigdft_exec
 

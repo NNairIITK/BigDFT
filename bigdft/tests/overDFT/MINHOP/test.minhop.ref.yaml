@@ -277,9 +277,9 @@
  (MH) beta_S, beta_O, beta_N           :  [  1.1000E+00,  1.1000E+00,  9.0909E-01 ]
  (MH) alpha_A, alpha_R                 :  [  9.0909E-01,  1.1000E+00 ]
  (MH) mdmin=                           :  2
- (MH) RCOV                             :Si:  2.0899999999999999
- (MH) RCOV                             :Si:  2.0899999999999999
- (MH) RCOV                             :Si:  2.0899999999999999
+ (MH) RCOV Si:  2.0899999999999999
+ (MH) RCOV Si:  2.0899999999999999
+ (MH) RCOV Si:  2.0899999999999999
  (MH) Input ediff, ekinetic, dt        :  [  1.384E-04,  8.140E-03,  8.400E-02 ]
  (MH) Input nsoften                    :  20
  Material acceleration                 :  No #iproc=0

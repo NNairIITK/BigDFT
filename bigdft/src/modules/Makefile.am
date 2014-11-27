@@ -27,12 +27,15 @@ libmodules_a_SOURCES = base.f90 \
 	locregs.f90 \
 	psp_projectors.f90 \
 	input_keys.f90 \
+	gaussdaub.f90 \
 	input_dicts.f90 \
 	types.f90 \
 	input.f90 \
 	interfaces.f90 \
 	private_api.f90 \
 	xc.f90 \
+	module_lj.f90 \
+	module_lenosky_si.f90 \
 	op2p_module.f90 \
 	BigDFT_API.f90 \
 	vdwcorrection.f90 \
@@ -52,7 +55,7 @@ libmodules_a_SOURCES = base.f90 \
 	internal_coordinates.f90 \
 	fermi_level.f90 \
 	copy_utils.f90 \
-	module_sbfgs.f90 \
+	module_sqn.f90 \
 	bigdft_run.f90 \
 	$(bindings_headers) \
 	$(BLACS) \
@@ -94,7 +97,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	INTERNAL_COORDINATES.@MODULE_EXT@ \
 	FERMI_LEVEL.@MODULE_EXT@ \
 	COPY_UTILS.@MODULE_EXT@ \
-	MODULE_SBFGS.@MODULE_EXT@ \
+	MODULE_SQN.@MODULE_EXT@ \
 	BIGDFT_RUN.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
@@ -131,11 +134,11 @@ modules = module_base.@MODULE_EXT@ \
 	internal_coordinates.@MODULE_EXT@ \
 	fermi_level.@MODULE_EXT@ \
 	copy_utils.@MODULE_EXT@ \
-	module_sbfgs.@MODULE_EXT@ \
+	module_sqn.@MODULE_EXT@ \
 	bigdft_run.@MODULE_EXT@
 endif
 
-AO_INCLUDES = eleconf-inc.f90
+AO_INCLUDES = eleconf-inc.f90 
 ATOMS_INCLUDES = astruct-inc.f90
 COMMS_INCLUDES = check_array-inc.f90
 
@@ -190,9 +193,10 @@ sparsematrix.o: base.o types.o sparsematrix_base.o
 foe_base.o: base.o defs.o
 fermi_level.o: base.o
 copy_utils.o: base.o
-module_sbfgs.o: base.o
+gaussdaub.o: base.o
 xc.o: base.o
-bigdft_run.o: types.o input_dicts.o interfaces.o
+module_sqn.o: base.o
+bigdft_run.o: types.o input_dicts.o interfaces.o module_lenosky_si.o module_lj.o
 ab7_mixing.o: defs.o
 
 # Copy modules in a common include directory.

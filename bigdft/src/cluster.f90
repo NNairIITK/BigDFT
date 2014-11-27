@@ -1187,6 +1187,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
   call deallocate_before_exiting
 
+!START debug code added by bastian
+!write(*,*)"BIGDFTbastian debug exit sub. cluster, iproc",iproc
+!call f_utils_flush(6)
+!END debug code added by bastian
 contains
 
   !> Routine which deallocate the pointers and the arrays before exiting 
@@ -1299,6 +1303,7 @@ contains
        call yaml_map('CPU time (s)',tcpu1-tcpu0,fmt='(f12.2)')
        call yaml_map('Elapsed time (s)',tel,fmt='(f12.2)')
        call yaml_mapping_close()
+       call yaml_flush_document()
     end if
 
   END SUBROUTINE deallocate_before_exiting

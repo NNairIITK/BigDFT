@@ -117,7 +117,7 @@ high_level = cluster.f90 \
 	pdos.f90 \
 	sdcg.f90 \
 	bfgs.f90 \
-	sbfgs.f90 \
+	sqnm.f90 \
 	scfloop_API.f90 \
 	tddft.f90 \
 	output.f90 \
@@ -136,6 +136,7 @@ low_level = \
 	init/logrid.f90 \
 	init/logrid_per.f90 \
 	init/inputguess.f90 \
+	init/rcov.f90 \
 	init/gautowav.f90 \
 	pspconf.f90 \
 	init/locreg_init.f90 \
@@ -311,14 +312,22 @@ bart_SOURCES = art.f90
 bart_FCFLAGS = -Iart
 bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
 
-mhgps_SOURCES = mhgps.f90
+if HAVE_AMBERTOOLS
 ##LIB_AMBERTOOLS=/kernph/schaba00/amber_lib
-mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@
-##mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ mhgps_files/wrap.o
-mhgps_LDADD = mhgps_files/libmhgps.a $(bigdft_library) @LINALG_LIBS@
-##mhgps_LDADD = -L$(LIB_AMBERTOOLS)  -lsff -lnab -lpbsa -lcifparse -lrism -lfftw3 -larpack mhgps_files/libmhgps.a $(bigdft_library) @LINALG_LIBS@
+##LIB_AMBERTOOLS=/kernph/schaba00/amber/build/amber14_intel/lib/
+amber_ld= @LIB_AMBERTOOLS@  -lsff -lnab -lpbsa -lcifparse -lrism -lfftw3 -larpack
+else
+amber_ld =
+endif
+mhgps_SOURCES = mhgps.f90 fingerprint.f90
 
-global_SOURCES = global.f90
+##mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@
+##mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ mhgps_files/wrap.o
+mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@
+##mhgps_LDADD = mhgps_files/libmhgps.a $(bigdft_library) @LINALG_LIBS@
+mhgps_LDADD = mhgps_files/libmhgps.a $(amber_ld) $(bigdft_library) @LINALG_LIBS@
+
+global_SOURCES = global.f90 fingerprint.f90
 global_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.* input_variables_definition-inc.h
@@ -344,7 +353,7 @@ lanczos.o : lanczos_interface.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90
 
-geometry.o bfgs.o sdcg.o sbfgs.o: lbfgs.o
+geometry.o bfgs.o sdcg.o sqnm.o: lbfgs.o
 
 initAndUtils.o linear/initAndUtils.o: linear/initAndUtils.f90 cleanup.o
 

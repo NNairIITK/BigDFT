@@ -15,12 +15,72 @@ contains
 
     subroutine read_input()
         use yaml_output
+        use yaml_parse
+        use dictionaries
         implicit none
         !parameter
         !internal
         integer, parameter :: u=237
         character(9), parameter :: filename='mhgps.inp'
         logical :: exists
+!!! EXAMPLES BY LUIGI FOR READING YAML FILE
+!!!        integer :: i
+!!!        character(len=32) :: key
+!!!        type(dictionary), pointer :: dinp !< the input file
+!!!        type(dictionary), pointer :: dtmp !< the parsed input file
+!!!        type(dictionary), pointer :: parameters,it !< the needed variables
+!!!
+!!!
+!!!
+!!!        call f_file_exists(trim(filename),exists)
+!!!        if (exists) then
+!!!           call yaml_parse_from_file(dtmp,trim(filename))
+!!!           dinp => dtmp .pop. 0
+!!!           call dict_free(dtmp)
+!!!        else
+!!!           call f_err_throw('Input file name "'//trim(filename)//&
+!!!                '" does not exists, exiting...')
+!!!           return
+!!!        end if
+!!!        
+!!!        !first, dump the values which have been parsed as a dictionary
+!!!        call yaml_map('Parsed input file',dinp)
+!!!
+!!!        !set the wanted parameters
+!!!        parameters=>list_new( .item. 'value1',.item. 'value2',.item. 'value3')
+!!!
+!!!        !check that all the keys of parameters exist (example of sanity check of input file)
+!!!        it => dict_iter(parameters)
+!!!        do while(associated(it))
+!!!           print *,'iterator value',trim(dict_value(it))
+!!!           !check for the existence
+!!!           print *, trim(dict_value(it)) .in. dinp
+!!!           !increase iterator
+!!!           it => dict_next(it)
+!!!        end do
+!!!
+!!!        !fortran approach
+!!!        do i=0,dict_len(parameters)-1
+!!!           key=parameters//i
+!!!           call yaml_map('Searching for'//trim(key),trim(key) .in. dinp)
+!!!        end do
+!!!
+!!!        !example of reading of variables
+!!!        !retrieve the value of key "value1" and "value2"
+!!!        !an put them in fortran variables
+!!!        !for example, mhgps_verbosity and operation_mode
+!!!        mhgps_verbosity=dinp//'value1'
+!!!        operation_mode=dinp//'value2'
+!!!        mhgps_verbosity=dinp//'value2'
+!!!        !test
+!!!        print *,'first case',mhgps_verbosity,operation_mode
+!!!        !however, they might be not present in the input file.
+!!!        !let us check for the existence of the key
+!!!        print *,'value1' .in. dinp,'value2' .in. dinp
+!!!        
+!!!        stop
+
+
 
         inquire(file=filename,exist=exists)
         if(.not. exists)then
@@ -28,7 +88,7 @@ contains
             call yaml_warning('mhgps.inp does not exist.  Wrote '//&
                               'default input parameters to '//&
                               'mhgps.inp_default.')
-            stop
+             stop
         endif
         open(u,file=filename)
             read(u,*)mhgps_verbosity
