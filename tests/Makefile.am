@@ -62,7 +62,6 @@ all: head_message foot_message
 check:
 	@if test $(MAKELEVEL) = 0 ; then $(MAKE) report ; fi
 
-		-e s!\@abs_srcdir\@!$(abs_srcdir)!	\
 report: 
 	export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
