@@ -38,8 +38,8 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
 !!$  nullify(dict) !this is however put in the case the dictionary comes undefined
 
 !!$  call dict_init(dict)
-  if (trim(radical) /= "" .and. trim(radical) /= "input") &
-       & call set(dict // RADICAL_NAME, radical)
+!!$  if (trim(radical) /= "" .and. trim(radical) /= "input") &
+!!$       & call set(dict // RADICAL_NAME, radical)
 
   ! Handle error with master proc only.
   !LG: modified, better to handle errors with all the 
