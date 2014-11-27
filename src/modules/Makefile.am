@@ -59,7 +59,7 @@ libmodules_a_SOURCES = base.f90 \
 	internal_coordinates.f90 \
 	fermi_level.f90 \
 	copy_utils.f90 \
-	module_sbfgs.f90 \
+	module_sqn.f90 \
 	bigdft_run.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
@@ -102,7 +102,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	INTERNAL_COORDINATES.@MODULE_EXT@ \
 	FERMI_LEVEL.@MODULE_EXT@ \
 	COPY_UTILS.@MODULE_EXT@ \
-	MODULE_SBFGS.@MODULE_EXT@ \
+	MODULE_SQN.@MODULE_EXT@ \
 	BIGDFT_RUN.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
@@ -139,7 +139,7 @@ modules = module_base.@MODULE_EXT@ \
 	internal_coordinates.@MODULE_EXT@ \
 	fermi_level.@MODULE_EXT@ \
 	copy_utils.@MODULE_EXT@ \
-	module_sbfgs.@MODULE_EXT@ \
+	module_sqn.@MODULE_EXT@ \
 	bigdft_run.@MODULE_EXT@
 else
 
@@ -202,7 +202,7 @@ foe_base.o: base.o defs.o
 fermi_level.o: base.o
 copy_utils.o: base.o
 gaussdaub.o: base.o
-module_sbfgs.o: base.o
+module_sqn.o: base.o
 bigdft_run.o: types.o input_dicts.o interfaces.o
 ab7_mixing.o: defs.o
 

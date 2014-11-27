@@ -146,9 +146,13 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   case('FIRE')
      if (iproc ==0) call yaml_map('ENTERING FIRE',ncount_bigdft)
      call fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
-  case('SBFGS')                                                  
-   if (iproc ==0) call yaml_map('ENTERING SBFGS',ncount_bigdft)
-   call sbfgs(runObj,outs,nproc,iproc,parmin%verbosity,ncount_bigdft,fail)
+  case('SQNM','SBFGS')
+   if(trim(adjustl(parmin%approach))=='SBFGS')then
+     if (iproc==0) &
+          call yaml_warning('Keyword SBFGS is deprecated and will be removed in a future release. Use SQNM instead.')
+   endif 
+   if (iproc ==0) call yaml_map('ENTERING SQNM',ncount_bigdft)
+   call sqnm(runObj,outs,nproc,iproc,parmin%verbosity,ncount_bigdft,fail)
   case('DIIS')   
      if (iproc ==0) call yaml_map('ENTERING DIIS',ncount_bigdft)
      call rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)

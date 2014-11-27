@@ -23,7 +23,7 @@ module module_global_variables
     logical          :: external_mini       = .false.
     character(len=5) :: input_dir           = "input"
 
-    !input parameters for sbfgs saddle_search
+    !input parameters for sqnm saddle_search
     character(len=20):: operation_mode             = 'connect'
     logical          :: saddle_biomode             = .false.
     logical          :: random_minmode_guess       = .true.
@@ -63,7 +63,7 @@ module module_global_variables
 
     !parameters for minimizers implemented in mhgps
     logical :: internal=.true. !use internal or external optimizers?
-        !SBFGS
+        !SQNM
         integer  :: mini_nhistx = 15
         integer  :: mini_ncluster_x = 5000
         real(gp) :: mini_frac_fluct = 0.0_gp

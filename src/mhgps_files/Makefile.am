@@ -58,11 +58,11 @@ module_energyandforces.o : module_lenosky_si.o \
 ##                           ../modules/BigDFT_API.o wrap.o
 module_init.o : module_global_variables.o ../modules/BigDFT_API.o 
 module_saddle.o : module_global_variables.o module_io.o\
-                  module_energyandforces.o ../modules/module_sbfgs.o\
+                  module_energyandforces.o ../modules/module_sqn.o\
                   ../modules/BigDFT_API.o
 module_minimizers.o : module_global_variables.o\
                       module_energyandforces.o\
-                      ../modules/module_sbfgs.o\
+                      ../modules/module_sqn.o\
                       ../modules/BigDFT_API.o
 module_io.o : module_global_variables.o ../modules/BigDFT_API.o
 module_freezingstring.o : module_energyandforces.o module_interpol.o \

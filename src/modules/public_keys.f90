@@ -81,7 +81,7 @@ module public_keys
   character(len = *), parameter :: SPRINGS_K = "springs_k"
   character(len = *), parameter :: FIX_TOL = "fix_tol"
   character(len = *), parameter :: NIMG = "nimg"
-  !SBFGS parameters:
+  !SQNM parameters:
   character(len = *), parameter :: NHISTX = "nhistx"
   character(len = *), parameter :: BIOMODE = "biomode"
   character(len = *), parameter :: BETA_STRETCHX = "beta_stretchx"
