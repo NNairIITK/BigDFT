@@ -23,16 +23,14 @@
 
 static void _free_output(BigDFT_Inputs *in)
 {
-  g_free(in->run_name);
   g_free(in->dir_output);
-  g_free(in->writing_directory);
 }
 
 
 void _inputs_sync(BigDFT_Inputs *in)
 
 {
-  gchar run_name[100], dir_output[100], writing_directory[500];
+  gchar dir_output[100];
 
   FC_FUNC_(inputs_get_dft, INPUTS_GET_DFT)(F_TYPE(in->data), in->h, in->h + 1, in->h + 2,
                                            &in->crmult, &in->frmult, &in->ixc,
@@ -57,12 +55,8 @@ void _inputs_sync(BigDFT_Inputs *in)
   /* FC_FUNC_(inputs_get_tddft, INPUTS_GET_TDDFT)(); */
   FC_FUNC_(inputs_get_perf, INPUTS_GET_PERF)(F_TYPE(in->data), (int*)&in->linear);
 
-  FC_FUNC_(inputs_get_output, INPUTS_GET_OUTPUT)(F_TYPE(in->data),
-                                                 run_name, dir_output, writing_directory,
-                                                 100, 100, 500);
-  in->run_name = _get_c_string(run_name, 100);
+  FC_FUNC_(inputs_get_output, INPUTS_GET_OUTPUT)(F_TYPE(in->data), dir_output, 100);
   in->dir_output = _get_c_string(dir_output, 100);
-  in->writing_directory = _get_c_string(writing_directory, 500);
 }
 
 

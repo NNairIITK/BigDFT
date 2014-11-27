@@ -88,13 +88,12 @@ program MINHOP
   call cpu_time(tcpu1)
 
   !reset input and output positions of run
-  call bigdft_get_run_properties(run,run_id=run_id)
-  call bigdft_set_run_properties(run,run_id=trim(run_id)//trim(bigdft_run_id_toa()),&
-       posinp='poscur'//trim(bigdft_run_id_toa()))
+  call bigdft_get_run_properties(run,input_id=run_id)
+  call bigdft_set_run_properties(run,posinp_id='poscur'//trim(bigdft_run_id_toa()))
 
   call run_objects_init(run_opt,run)
   !then the unoptimized parameters
-  call bigdft_set_run_properties(run,run_id='md'//trim(run_id)//trim(bigdft_run_id_toa()))
+  call bigdft_set_run_properties(run,run_id='md'//trim(run_id), log_to_disk=.false.)
 
   call run_objects_init(run_md,run,source=run_opt)
   
@@ -137,10 +136,12 @@ program MINHOP
 
   !associate the same output directory 
   if (run_opt%inputs%dir_output /= run_md%inputs%dir_output) then
-     call deldir(trim(run_md%inputs%dir_output),len_trim(run_md%inputs%dir_output),ierr)
-     if (ierr /=0) then
-        call yaml_warning('Error found while deleting '//&
-             trim(run_md%inputs%dir_output))
+     if (bigdft_mpi%iproc == 0) then
+        call deldir(trim(run_md%inputs%dir_output),len_trim(run_md%inputs%dir_output),ierr)
+        if (ierr /=0) then
+           call yaml_warning('Error found while deleting '//&
+                trim(run_md%inputs%dir_output))
+        end if
      end if
      run_md%inputs%dir_output=run_opt%inputs%dir_output
   end if

@@ -106,7 +106,7 @@ module module_atoms
      type(atomic_structure), pointer :: astruct_ptr
   end type atoms_iterator
 
-  public :: atoms_data_null,nullify_atoms_data,deallocate_atoms_data
+  public :: atoms_data_null,deallocate_atoms_data
   public :: atomic_structure_null,nullify_atomic_structure,deallocate_atomic_structure,astruct_merge_to_dict
   public :: deallocate_symmetry_data,set_symmetry_data
   public :: set_astruct_from_file,astruct_dump_to_file
@@ -1183,7 +1183,6 @@ subroutine allocate_atoms_nat(atoms)
   type(atoms_data), intent(inout) :: atoms
   integer :: iat
 
-  !create the reference counter
   atoms%refcnt=f_ref_new('atoms')
 
   allocate(atoms%aoig(atoms%astruct%nat))
@@ -1223,7 +1222,7 @@ END SUBROUTINE allocate_atoms_ntypes
 
 !> Allocate a new atoms_data type, for bindings.
 subroutine atoms_new(atoms)
-  use module_atoms, only: atoms_data,nullify_atoms_data
+  use module_atoms, only: atoms_data,atoms_data_null
   use dynamic_memory
   implicit none
   type(atoms_data), pointer :: atoms
@@ -1231,18 +1230,23 @@ subroutine atoms_new(atoms)
   type(atoms_data), pointer :: intern
   
   allocate(intern)
-  call nullify_atoms_data(intern)
+  intern = atoms_data_null()
   atoms => intern
-  atoms%refcnt=f_ref_new('atoms')
 END SUBROUTINE atoms_new
 
 
 !> Free an allocated atoms_data type.
 subroutine atoms_free(atoms)
   use module_atoms, only: atoms_data,deallocate_atoms_data
+  use dynamic_memory, only: f_ref_count, f_ref_new
   implicit none
   type(atoms_data), pointer :: atoms
   
+  if (f_ref_count(atoms%refcnt) < 0) then
+     ! Trick here to be sure that the deallocate won't complain in case of not
+     ! fully initialised atoms.
+     atoms%refcnt=f_ref_new('atoms')
+  end if
   call deallocate_atoms_data(atoms)
   deallocate(atoms)
 END SUBROUTINE atoms_free

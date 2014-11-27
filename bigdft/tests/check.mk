@@ -101,12 +101,13 @@ $(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.out.out: $(abs_top_builddir)/src/bigdft
 	@name=`basename $@ .out.out | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	if test -n "$$name"; then name="-n "$$name; fi; \
 	if test -f list_posinp; then \
 	   name=`echo '--runs-file=list_posinp --taskgroup-size=1'`; \
 	fi; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	echo "Running $(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@" ; \
-	$(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@ ; \
+	$(run_parallel) $(abs_top_builddir)/src/bigdft -l yes $$name > $@ ; \
 	if test -f list_posinp; then cat `awk '{print $$2}' list_posinp | $(SED) "s/^\(.*\)$$/log-\1.yaml/g"` > log.yaml ; fi ; \
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
@@ -125,7 +126,7 @@ $(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90
 	@name=`basename $@ .freq.out | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	echo "Running $(run_parallel) $(abs_top_builddir)/src/frequencies > $@" ; \
-	$(run_parallel) $(abs_top_builddir)/src/frequencies > $@
+	$(run_parallel) $(abs_top_builddir)/src/frequencies -l yes > $@
 	name=`basename $@ .freq.out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.NEB.out: $(abs_top_builddir)/src/NEB NEB_include.sh NEB_driver.sh
@@ -143,12 +144,12 @@ $(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.splsad.out: $(abs_top_builddir)/src/splsad
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	$(run_parallel) $(abs_top_builddir)/src/splsad > $@
+	$(run_parallel) $(abs_top_builddir)/src/splsad -l yes > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.minhop.out: $(abs_top_builddir)/src/global
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	$(run_parallel) $(abs_top_builddir)/src/global > $@
+	$(run_parallel) $(abs_top_builddir)/src/global -l yes > $@
 #	mv log-mdinput.yaml log.yaml
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
@@ -201,6 +202,7 @@ $(INS): in_message
 	@name=`basename $@ .in` ; dir=$$name-test ; \
 	if test ! -d $$dir ; then mkdir $$dir ; fi ; \
 	for i in $(srcdir)/$$name/* ; do cp -f $$i $$dir ; done ; \
+	chmod u+w $$dir/* ; \
 	if test -n "$(accel_in_message)" -a -n "$(run_ocl)" ; then \
 		if test "$(run_ocl)" = "CPU" ; then \
 				echo "accel OCLCPU" > $$dir/check.perf ; \
@@ -215,17 +217,16 @@ $(INS): in_message
 		if test -n "$(ocl_devices)" ; then \
 				echo "OCL_DEVICES $(ocl_devices)" >> $$dir/check.perf ; \
 		fi ; \
-	else echo -n "" > $$dir/check.perf ; fi ; \
-	echo "outdir ./" >> $$dir/check.perf ; \
-	chmod u+w $$dir/* ; \
-	for i in $$dir/*.out.ref.yaml ; do \
-	    base=`basename $$i .out.ref.yaml | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
-	    if test -n "$$base" ; then cat $$dir/check.perf >> $$dir/$$base.perf ; fi ; \
-	done ; \
-	cat $$dir/check.perf >> $$dir/input.perf ; \
-    cd $$dir && $(MAKE) -f ../Makefile $$name".psp"; \
-    $(MAKE) -f ../Makefile $$dir".post-in"; \
-    echo "Input prepared in \"$$dir\" directory, make $$name.run available"
+		for i in $$dir/*.out.ref.yaml ; do \
+			base=`basename $$i .out.ref.yaml | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	    	 	if test -n "$$base" ; then cat $$dir/check.perf >> $$dir/$$base.perf ; \
+			else cat $$dir/check.perf >> $$dir/input.perf ; \
+			fi ; \
+		done ; \
+	fi ; \
+	cd $$dir && $(MAKE) -f ../Makefile $$name".psp"; \
+	$(MAKE) -f ../Makefile $$dir".post-in"; \
+	echo "Input prepared in \"$$dir\" directory, make $$name.run available"
 	touch $@
 
 

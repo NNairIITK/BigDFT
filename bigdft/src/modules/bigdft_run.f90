@@ -349,33 +349,61 @@ module bigdft_run
 
     !> default run properties
     subroutine bigdft_run_new(run)
+      use public_keys, only: RADICAL_NAME, POSINP
       implicit none
       type(dictionary), pointer :: run
       
-      run => dict_new('name' .is. 'input','posinp' .is. 'posinp')
+      run => dict_new(RADICAL_NAME .is. ' ', POSINP .is. 'posinp')
     end subroutine bigdft_run_new
 
     !> set the parameters of the run 
-    subroutine bigdft_set_run_properties(run,run_id,posinp)
+    subroutine bigdft_set_run_properties(run,run_id,posinp_id,outdir_id,log_to_disk)
+      use public_keys, only: RADICAL_NAME, POSINP, OUTDIR, LOGFILE
       implicit none
       type(dictionary), pointer :: run
       character(len=*), intent(in), optional :: run_id
-      character(len=*), intent(in), optional :: posinp
+      character(len=*), intent(in), optional :: posinp_id
+      character(len=*), intent(in), optional :: outdir_id
+      logical, intent(in), optional :: log_to_disk
 
-      if (present(run_id)) call set(run // 'name',trim(run_id))
-      if (present(posinp)) call set(run // 'posinp',trim(posinp))
+      if (present(run_id)) then
+         if (trim(run_id) /= "input") then
+            call set(run // RADICAL_NAME, trim(run_id))
+         else
+            call set(run // RADICAL_NAME, " ")
+         end if
+      end if
+      if (present(posinp_id)) call set(run // POSINP, trim(posinp_id))
+      if (present(outdir_id)) call set(run // OUTDIR, trim(outdir_id))
+      if (present(log_to_disk)) call set(run // LOGFILE, log_to_disk)
 
     end subroutine bigdft_set_run_properties
 
     !> get the parameters of the run 
-    subroutine bigdft_get_run_properties(run,run_id,posinp)
+    subroutine bigdft_get_run_properties(run,run_id,input_id,posinp_id,outdir_id,log_to_disk)
+      use public_keys, only: RADICAL_NAME, POSINP, OUTDIR, LOGFILE
       implicit none
       type(dictionary), pointer :: run
-      character(len=*), intent(out), optional :: run_id
-      character(len=*), intent(out), optional :: posinp
+      character(len=*), intent(out), optional :: input_id, run_id
+      character(len=*), intent(out), optional :: posinp_id
+      character(len=*), intent(inout), optional :: outdir_id
+      logical, intent(inout), optional :: log_to_disk
 
-      if (present(run_id)) run_id = run // 'name'
-      if (present(posinp)) posinp = run // 'posinp'
+      if (present(input_id)) then
+         input_id = run // RADICAL_NAME
+         if (len_trim(input_id) == 0) input_id = "input" // trim(bigdft_run_id_toa())
+      end if
+      if (present(run_id)) then
+         run_id = run // RADICAL_NAME
+         if (len_trim(run_id) == 0) then
+            run_id = trim(bigdft_run_id_toa())
+         else
+            run_id = "-" // trim(run_id)
+         end if
+      end if
+      if (present(posinp_id)) posinp_id = run // POSINP
+      if (present(outdir_id) .and. has_key(run, OUTDIR)) outdir_id = run // OUTDIR
+      if (present(log_to_disk) .and. has_key(run, LOGFILE)) log_to_disk = run // LOGFILE
       
     end subroutine bigdft_get_run_properties
 
@@ -707,6 +735,8 @@ module bigdft_run
       use module_base, only: bigdft_mpi,dict_init
       use module_types
       use module_input_dicts, only: user_dict_from_files
+      use module_interfaces, only: create_log_file
+      use public_keys, only: RUN_FROM_FILES
       implicit none
       !> Object for BigDFT run. Has to be initialized by this routine in order to
       !! call bigdft main routine.
@@ -726,26 +756,32 @@ module bigdft_run
       !! which are provided by the informations given by run_dict
       type(run_objects), intent(in), optional :: source
       !local variables
-      character(len=max_field_length) :: radical, posinp
+      logical :: dict_from_files
+      character(len=max_field_length) :: radical, posinp_id
 
       call nullify_run_objects(runObj)
 
       if (present(run_dict)) then
-         radical = run_dict // 'name'
-         posinp = run_dict // 'posinp'
-         
-         !here the control of the logfile can be inserted, driven by run_dict and not anymore by 
-         ! user_inputs
- 
-         ! Generate input dictionary and parse it.
-         call dict_init(runObj%user_inputs)
-         call user_dict_from_files(runObj%user_inputs, radical, posinp, bigdft_mpi)
+         !here the control of the logfile can be inserted, driven by run_dict and
+         ! not anymore by user_inputs
+         call create_log_file(run_dict)
 
-         !this will fill atoms and inputs
+         dict_from_files = .false.
+         if (RUN_FROM_FILES .in. run_dict) dict_from_files = run_dict // RUN_FROM_FILES
+         if (dict_from_files) then
+            ! Generate input dictionary.
+            call dict_copy(runObj%user_inputs, run_dict)
+            call bigdft_get_run_properties(run_dict, input_id = radical, posinp_id = posinp_id)
+            call user_dict_from_files(runObj%user_inputs, radical, posinp_id, bigdft_mpi)
+         else
+            runObj%user_inputs => run_dict
+         end if
+          
+         !this will fill atoms and inputs by parsing the input dictionary.
          call set_run_objects(runObj)
 
          !the user input is not needed anymore
-         call dict_free(runObj%user_inputs)
+         if (dict_from_files) call dict_free(runObj%user_inputs)
 
          !decide what to do with restart
          if (present(source)) then
@@ -789,6 +825,7 @@ module bigdft_run
       use module_defs, only: bigdft_mpi
       use module_input_dicts, only: merge_input_file_to_dict
       use f_utils, only: f_file_exists
+      use public_keys, only: RUN_FROM_FILES, OUTDIR, LOGFILE
       implicit none
       !> dictionary of the options of the run
       !! on entry, it contains the options for initializing
@@ -801,9 +838,10 @@ module bigdft_run
       !local variables
       logical :: exist_list,posinp_name
       integer :: ierr,mpi_groupsize,iconfig
-      character(len=max_field_length) :: posinp_id,run_id,err_msg
+      character(len=max_field_length) :: posinp_id,run_id,err_msg,val
       integer, dimension(4) :: mpi_info
-      type(dictionary), pointer :: dict_run,opts
+      type(dictionary), pointer :: dict_run,opts, drun
+      logical :: lval
 
       !coherence checks among the options (no disk access)
 
@@ -875,14 +913,9 @@ module bigdft_run
          !here the run of the dicts has to be evaluated according to the taskgroups    
       else if (.not. associated(dict_run)) then
          call dict_init(dict_run)
-         if (bigdft_mpi%ngroup == 1) then
+         do iconfig=1,bigdft_mpi%ngroup
             call add(dict_run,trim(run_id))
-         else
-            do iconfig=1,bigdft_mpi%ngroup
-               call add(dict_run,trim(run_id)//&
-                    trim(adjustl(yaml_toa(iconfig,fmt='(i3)'))))
-            end do
-         end if
+         end do
       end if
 
       !call yaml_map('Dict of runs',dict_run)
@@ -894,6 +927,18 @@ module bigdft_run
          do iconfig=0,dict_len(dict_run)-1
             if (modulo(iconfig,bigdft_mpi%ngroup)==bigdft_mpi%igroup) then
                run_id=dict_run//iconfig
+               call bigdft_run_new(drun)
+               if (trim(run_id) /= "input" ) then
+                  call bigdft_set_run_properties(drun, run_id = trim(run_id))
+               end if
+               if (OUTDIR .in. options) then
+                  val = options // OUTDIR
+                  call bigdft_set_run_properties(drun, outdir_id = trim(val))
+               end if
+               if (LOGFILE .in. options) then
+                  lval = options // LOGFILE
+                  call bigdft_set_run_properties(drun, log_to_disk = lval)
+               end if
                if (posinp_name) then
                   if (dict_len(dict_run) == 1) then
                      call f_strcpy(src='posinp',dest=posinp_id)
@@ -902,11 +947,12 @@ module bigdft_run
                           trim(adjustl(yaml_toa(iconfig,fmt='(i3)'))),&
                           dest=posinp_id)
                   end if
+                  call bigdft_set_run_properties(drun, posinp_id = trim(posinp_id))
                else
-                  posinp_id=run_id
+                  call bigdft_set_run_properties(drun, posinp_id = trim(run_id))
                end if
-               call add(options//'BigDFT',&
-                    dict_new('name' .is. run_id,'posinp' .is. posinp_id))
+               call set(drun // RUN_FROM_FILES, .true.)
+               call add(options//'BigDFT', drun)
             end if
          end do
       end if
@@ -944,6 +990,7 @@ module bigdft_run
 
     subroutine bigdft_options(parser)
       use yaml_parse
+      use public_keys, only: OUTDIR, LOGFILE
       use dictionaries, only: dict_new,operator(.is.)
       implicit none
       type(yaml_cl_parse), intent(inout) :: parser
@@ -957,14 +1004,14 @@ module bigdft_run
            'Allowed values' .is. &
            'String value.'),first_option=.true.)
 
-      call yaml_cl_parse_option(parser,'outdir','.',&
+      call yaml_cl_parse_option(parser,OUTDIR,'.',&
            'output directory','d',&
            dict_new('Usage' .is. &
            'Set the directory where all the output files have to be written.',&
            'Allowed values' .is. &
            'String value, indicating the path of the directory. If the last subdirectory is not existing, it will be created'))
 
-      call yaml_cl_parse_option(parser,'logfile','No',&
+      call yaml_cl_parse_option(parser,LOGFILE,'No',&
            'create logfile','l',&
            dict_new('Usage' .is. &
            'When "Yes", write the result of the run in file "log.yaml" or "log-<name>.yaml" if the run has a specified name.',&

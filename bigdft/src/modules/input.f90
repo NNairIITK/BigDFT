@@ -1718,8 +1718,6 @@ contains
     !verbosity of the output
     call input_var("verbosity", 2, "Verbosity of the output 0=low, 2=high",dummy_int)
     call set(dict // VERBOSITY, dummy_int)
-    call input_var("outdir", ".","Writing directory", dummy_path)
-    call set(dict // OUTDIR, dummy_path)
 
     !If false, apply the projectors in the once-and-for-all scheme, otherwise on-the-fly
     call input_var("psp_onfly", .true., "Calculate the PSP projectors on the fly (less memory)",dummy_bool)

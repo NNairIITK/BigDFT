@@ -265,7 +265,6 @@ module module_types
      character(len=100) :: file_lin   
      character(len=100) :: file_frag   !< Fragments
      character(len=max_field_length) :: dir_output  !< Strings of the directory which contains all data output files
-     character(len=max_field_length) :: run_name    !< Contains the prefix (by default input) used for input files as input.dft
      !integer :: files                  !< Existing files.
 
      !> Miscellaneous variables
@@ -386,7 +385,6 @@ module module_types
      logical :: signaling                    !< Expose results on DBus or Inet.
      integer :: signalTimeout                !< Timeout for inet connection.
      character(len = 64) :: domain           !< Domain to get the IP from hostname.
-     character(len=500) :: writing_directory !< Absolute path of the local directory to write the data on
      double precision :: gmainloop           !< Internal C pointer on the signaling structure.
      integer :: inguess_geopt                !< 0= Wavelet input guess, 1 = real space input guess 
 
@@ -2111,9 +2109,6 @@ contains
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
-       ! the KPT variables ------------------------------------------------------
-    case (KPT_VARIABLES)
-       stop "kpt set_input not implemented"
     case (PERF_VARIABLES)
        ! the PERF variables -----------------------------------------------------
        select case (trim(dict_key(val)))       
@@ -2123,8 +2118,6 @@ contains
           in%ncache_fft = val
        case (VERBOSITY)
           in%verbosity = val
-       case (OUTDIR)
-          in%writing_directory = val
        case (TOLSYM)
           in%symTol = val
        case (PROJRAD)
@@ -2540,8 +2533,20 @@ contains
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
+       ! Currently ignored.
+    case (RUN_FROM_FILES)
+    case (RADICAL_NAME)
+    case (OUTDIR)
+    case (POSINP)
+    case (LOGFILE)
+       ! the KPT variables ------------------------------------------------------
+    case (KPT_VARIABLES)
+    case (LIN_BASIS_PARAMS)
+    case (OCCUPATION)
     case DEFAULT
-       call yaml_warning("unknown level '" // trim(level) //"'")
+       if (index(level, "psppar") /= 1) then
+          call yaml_warning("unknown level '" // trim(level) //"'")
+       end if
     end select
   END SUBROUTINE input_set_dict
 

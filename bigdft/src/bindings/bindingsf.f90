@@ -543,17 +543,14 @@ subroutine inputs_set_dict(in, level, val)
 END SUBROUTINE inputs_set_dict
 
 
-subroutine inputs_get_output(in, run_name, dir_output, writing_directory)
+subroutine inputs_get_output(in, dir_output)
 
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
-  character(len = 100), intent(out) :: dir_output, run_name
-  character(len = 500), intent(out) :: writing_directory
+  character(len = 100), intent(out) :: dir_output
 
-  run_name = trim(in%run_name)
   dir_output = trim(in%dir_output)
-  writing_directory = in%writing_directory
 END SUBROUTINE inputs_get_output
 
 

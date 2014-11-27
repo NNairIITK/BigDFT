@@ -759,9 +759,6 @@
        2: ???
        3: ???
      default: 2
-   outdir:
-     COMMENT: Writing directory
-     default: .
    psp_onfly:
      COMMENT: Calculate pseudopotential projectors on the fly
      default: Yes

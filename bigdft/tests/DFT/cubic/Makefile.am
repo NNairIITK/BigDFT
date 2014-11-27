@@ -42,7 +42,6 @@ endif
 
 # Give here the pseudo-potentials used by each test.
 H.psp: psppar.H
-C.psp: psppar.C
 Li+.psp: psppar.Li
 H2-spin.psp: HGH/psppar.H
 SiH4.psp: HGH-K/psppar.H HGH-K/psppar.Si
