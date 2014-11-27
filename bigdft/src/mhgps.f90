@@ -115,7 +115,7 @@ program mhgps
         write(currDir,'(a,i3.3)')'input',ifolder
         write(filename,'(a,i3.3)')'pos',ifile
         call bigdft_set_run_properties(run,&
-             & posinp=currDir//'/'//filename//trim(bigdft_run_id_toa()))
+             & posinp_id=currDir//'/'//filename//trim(bigdft_run_id_toa()))
 
         call run_objects_init(runObj,run)
 
