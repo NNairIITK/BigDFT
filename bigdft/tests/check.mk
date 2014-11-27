@@ -88,7 +88,7 @@ report:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_builddir)/tests/report.py ; fi
 
 #Binary dependencies
-$(abs_top_builddir)/src/BigDFT2Wannier:
+$(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90 $(abs_top_srcdir)/src/WaCo.f90
 	cd $(abs_top_builddir)/src && $(MAKE) BigDFT2Wannier WaCo;
 
 %.memguess.out: $(abs_top_builddir)/src/memguess $(abs_top_builddir)/src/bigdft-tool

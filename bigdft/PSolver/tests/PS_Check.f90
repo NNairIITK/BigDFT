@@ -229,7 +229,7 @@ program PS_Check
       call f_timing_checkpoint('Parallel',mpi_comm=MPI_COMM_WORLD,nproc=nproc,gather_routine=gather_timings)
       !call timing(MPI_COMM_WORLD,'Parallel','PR')
 
-   call pkernel_free(pkernel,subname)
+   call pkernel_free(pkernel)
 
    if (pkernel%mpi_env%nproc == 1 .and.pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0 )&
         call yaml_map('Monoprocess run','*MPIrun')
@@ -261,7 +261,7 @@ program PS_Check
        call compare_with_reference(1,geocode,'D',n01,n02,n03,ispden,offset,ehartree,&
          density,potential,pot_ion,pkernelseq)
 
-       call pkernel_free(pkernelseq,subname)
+       call pkernel_free(pkernelseq)
        call yaml_mapping_close() !comparison
 
      call f_free(rhopot)

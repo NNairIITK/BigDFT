@@ -297,7 +297,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovr
   if (orbs%norbp>0) then
      do istate=1,nstates
         call dgemm('n', 'n', orbs%norbp, 1, orbs%norb, 1.d0, &
-             ham_mat%matrix(orbs%isorb+1,1),orbs%norb, &
+             ham_mat%matrix(orbs%isorb+1,1,1),orbs%norb, &
              homo_coeffs1(1,istate), orbs%norb, 0.d0, &
              coeff_tmp(1,istate), orbs%norbp)
         call dgemm('t', 'n', 1, 1, orbs%norbp, 1.d0, homo_coeffs2(orbs%isorb+1,istate), &
@@ -318,7 +318,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovr
 
   if (orbs%norbp>0) then
      do istate=1,nstates
-        call dgemm('n', 'n', orbs%norbp, 1, orbs%norb, 1.d0, ovrlp_mat%matrix(orbs%isorb+1,1), &
+        call dgemm('n', 'n', orbs%norbp, 1, orbs%norb, 1.d0, ovrlp_mat%matrix(orbs%isorb+1,1,1), &
              orbs%norb, homo_coeffs1(1,istate), orbs%norb, 0.d0, coeff_tmp(1,istate), orbs%norbp)
         call dgemm('t', 'n', 1, 1, orbs%norbp, 1.d0, homo_coeffs2(orbs%isorb+1,istate), &
              orbs%norb, coeff_tmp(1,istate), orbs%norbp, 0.d0, homo_ovrlp(istate), 1)
@@ -358,7 +358,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   type(fragmentInputParameters), intent(in) :: input_frag
   type(orbitals_data), intent(in) :: orbs
   type(sparse_matrix), intent(inout) :: ham, ovrlp
-  type(sparse_matrix),intent(inout) :: KS_overlap
+  type(sparse_matrix),dimension(ham%nspin),intent(inout) :: KS_overlap
   type(matrices), intent(inout) :: ovrlp_mat, ham_mat
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
   !Local variables

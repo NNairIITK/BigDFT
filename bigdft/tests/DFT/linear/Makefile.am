@@ -20,7 +20,9 @@ TESTDIRS = Locreg \
 	   explicit_locregcenters \
 	   DIIShistory \
 	   PBE \
-	   geoptconstrained
+	   geoptconstrained \
+	   O2spin \
+       verysparse
 
 EXTRA_TESTDIRS = reformatcomplete \
     water \

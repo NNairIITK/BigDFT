@@ -17,7 +17,7 @@ program BigDFT2Wannier
    use module_interfaces
    use yaml_output
    use module_input_dicts
-   use communications_base, only: comms_cubic
+   use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
    use communications, only: transpose_v, untranspose_v
    implicit none
@@ -34,7 +34,7 @@ program BigDFT2Wannier
    type(workarr_sumrho) :: w
    type(comms_cubic), target :: comms, commsp,commsv,commsb
    integer, parameter :: WF_FORMAT_CUBE = 4
-   integer :: i_stat, ind, ierr, npsidim, npsidim2,iproc, nproc
+   integer :: ind, ierr, npsidim, npsidim2,iproc, nproc
    integer :: n_proj,nvctrp,npp,nvirtu,nvirtd,pshft,nbl1,nbl2,nbl3,iformat,info
    integer :: ncount0,ncount1,ncount_rate,ncount_max,nbr1,nbr2,nbr3,shft,wshft,lwork
    real :: tcpu0,tcpu1
@@ -51,16 +51,16 @@ program BigDFT2Wannier
    logical :: perx, pery,perz, residentity,write_resid
    integer :: nx, ny, nz, nb, nb1, nk, inn
    real(kind=8) :: b1, b2, b3, r0x, r0y, r0z
-   real(kind=8) :: xx, yy, zz
+   real(kind=8) :: xx, yy, zz,tt
    real(kind=8), allocatable :: ylm(:,:,:), func_r(:,:,:)
    real(kind=8), allocatable :: amnk(:,:), amnk_tot(:), amnk_guess(:), amnk_guess_sorted(:),overlap_proj(:,:)
    real(kind=8), allocatable :: mmnk_re(:,:,:), mmnk_im(:,:,:), mmnk_tot(:,:)
-   integer :: i, j, k, np,i_all
+   integer :: i, j, k, np
    character :: seedname*16, dir*16
    logical :: calc_only_A 
    real, dimension(3,3) :: real_latt, recip_latt
    integer :: n_kpts, n_nnkpts, n_excb, n_at, s
-   integer :: n_occ, n_virt, n_virt_tot,nconfig
+   integer :: n_occ, n_virt, n_virt_tot!,nconfig
    logical :: w_unk, w_sph, w_ang, w_rad, pre_check
    real, allocatable, dimension (:,:) :: kpts
    real(kind=8), allocatable, dimension (:,:) :: ctr_proj, x_proj, y_proj, z_proj
@@ -190,7 +190,7 @@ program BigDFT2Wannier
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
-      & atoms,atoms%astruct%rxyz,input%crmult,input%frmult,lzd%Glr)
+      & atoms,atoms%astruct%rxyz,input%crmult,input%frmult,.true.,lzd%Glr)
    if (iproc == 0) call print_wfd(lzd%Glr%wfd)
 
 
@@ -266,7 +266,7 @@ program BigDFT2Wannier
    ny=lzd%Glr%d%n2i
    nz=lzd%Glr%d%n3i
    n_at=atoms%astruct%nat
-   call initialize_work_arrays_sumrho(lzd%Glr,w)
+   call initialize_work_arrays_sumrho(1,lzd%Glr,.true.,w)
 
    ! Allocations for Amnk calculation
    npsidim2=max((lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f)*orbsp%norbp,sum(commsp%ncntt(0:nproc-1)))
@@ -300,7 +300,6 @@ program BigDFT2Wannier
          if(nproc > 1) then
             pwork = f_malloc_ptr(npsidim,id='pwork')
             call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,psi_etsfv(1),pwork(1))
-            i_all = -product(shape(pwork))*kind(pwork)
             call f_free_ptr(pwork)
          end if
 
@@ -414,17 +413,20 @@ program BigDFT2Wannier
          ! For each unoccupied orbitals, check how they project on spherical harmonics.
          ! The greater amnk_guess(nb) is, the more they project on spherical harmonics.
          do nb=1,orbsv%norb
-            amnk_guess(nb)=0.0d0
+            !amnk_guess(nb)=0.0d0
+            tt=0.d0
             do np=1,orbsp%norb
                do j=1,orbsp%norb
-                  amnk_guess(nb)= amnk_guess(nb) +&
+                  tt=tt+&
+                  !amnk_guess(nb)= amnk_guess(nb) +&
                        amnk(nb,np)*amnk(nb,j)*overlap_proj(np,j)
                end do
             end do
+            amnk_guess(nb)=tt
             !print *,'debugiproc',amnk_guess(nb),iproc,dsqrt(amnk_guess(nb))
             if (iproc==0) then
                call yaml_map('Virtual band',nb)
-               call yaml_map('amnk_guess(nb)',sqrt(amnk_guess(nb)))
+               call yaml_map('amnk_guess(nb)',sqrt(tt))
             end if
             !if (iproc==0) write(*,'(I4,11x,F12.6)') nb, sqrt(amnk_guess(nb))
          end do
@@ -2134,7 +2136,7 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
    ! Local variables
    logical :: perx,pery,perz
    integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3
-   integer :: nb, i, j, k, n_bands, i_stat, ind, i_all
+   integer :: nb, i, j, k, n_bands, ind
    character :: s_c*1, nk_c*3, seedname*10,filename*60
    character(len=*), parameter :: subname='write_unk_bin'
    real(wp), dimension(nx*ny*nz) :: psir
@@ -2173,7 +2175,7 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
    call split_vectors_for_parallel(0,1,n_virt+n_occ,orbsb)
    call split_vectors_for_parallel(0,1,n_virt,orbsv)
 
-   call initialize_work_arrays_sumrho(Glr,w)
+   call initialize_work_arrays_sumrho(1,Glr,.true.,w)
 
    ! Read occupied orbitals
    if(n_occ > 0) then
@@ -2243,7 +2245,7 @@ subroutine split_vectors_for_parallel(iproc,nproc,nvctr,orbs)
    integer, intent(in) :: nvctr
    type(orbitals_data), intent(inout) :: orbs
    !local variables
-   integer :: ntot,jproc,i_stat,i_all
+   integer :: ntot,jproc
    character(len=*), parameter :: subname='split_vectors_for_parallel'
    integer, dimension(:), allocatable :: nvctr_par,isvctr_par
 

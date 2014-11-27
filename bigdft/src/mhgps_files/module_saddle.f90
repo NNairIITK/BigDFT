@@ -711,7 +711,7 @@ if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a,1x,es9.2)')'   (MHGPS) CUOPT mino
     overlap=ddot(3*nat,dxyzin0(1,1),1,rxyz(1,1,nhist),1)
  
 if(iproc==0.and.mhgps_verbosity>=2)&
-     write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5)))')&
+     write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5))')&
      '   (MHGPS) CUOPT ',nint(ener_count),0,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap,displr,displp
 !    itswitch=2
    itswitch=-2
@@ -800,7 +800,7 @@ if(iproc==0.and.mhgps_verbosity>=2)&
                      trim(yaml_toa(it))//''//trim(yaml_toa(dcurv)))
             overlap=ddot(3*nat,dxyzin0(1,1),1,rxyz(1,1,nhist),1)
             if(iproc==0.and.mhgps_verbosity>=2)&
-                write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5)))')&
+                write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5))')&
                 '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap,displr,displp
             !alpha=min(.5_gp*alpha,alpha0)
             alpha=.5_gp*alpha
@@ -817,7 +817,7 @@ if(iproc==0.and.mhgps_verbosity>=2)&
                 rxyzraw(1,1,nhist-1),fxyz(1,1,nhist-1),fstretch(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
                 curvold,1,ener_count,iconnect,nbond,wold,alpha_stretch0,alpha_stretch)
             if(iproc==0.and.mhgps_verbosity>=2)&
-                 write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es9.2,2(1x,es12.5)))')&
+                 write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es9.2,2(1x,es12.5))')&
                  '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,displr,displp
         endif
 

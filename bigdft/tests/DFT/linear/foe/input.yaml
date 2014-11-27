@@ -14,7 +14,6 @@
    store_index: No
    outdir: ./
    ef_interpol_det: 0.10E-11
-   mixing_after_inputguess: No
    evbounds_nsatur: 100
  lin_general:
    nit: [2, 3]

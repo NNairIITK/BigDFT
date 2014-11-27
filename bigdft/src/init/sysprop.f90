@@ -47,10 +47,11 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   character(len = *), parameter :: subname = "system_initialization"
   integer :: nB,nKB,nMB,ii,iat,iorb,nspin_ig,norbe,norbsc,ifrag,nspinor
   real(gp), dimension(3) :: h_input
-  logical:: present_inwhichlocreg_old, present_onwhichatom_old, output_grid_
+  logical:: present_inwhichlocreg_old, present_onwhichatom_old, output_grid_, frag_allocated, calculate_bounds
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(kind=8), dimension(:), allocatable :: locrad
-
+  integer :: ilr, iilr
+  logical :: init_projectors_completely
   call f_routine(id=subname)
 
   output_grid_ = .false.
@@ -97,8 +98,11 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   end if
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
+  calculate_bounds = (inputpsi /= INPUT_PSI_LINEAR_AO .and. &
+                      inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
+                      inputpsi /= INPUT_PSI_MEMORY_LINEAR)
   call createWavefunctionsDescriptors(iproc,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),atoms,&
-       rxyz,in%crmult,in%frmult,Lzd%Glr, output_grid_)
+       rxyz,in%crmult,in%frmult,calculate_bounds,Lzd%Glr, output_grid_)
   if (iproc == 0 .and. dump) call print_wfd(Lzd%Glr%wfd)
 
   ! Create global orbs data structure.
@@ -109,7 +113,12 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   end if
   call orbitals_descriptors(iproc, nproc,in%gen_norb,in%gen_norbu,in%gen_norbd,in%nspin,nspinor,&
        in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
-  
+  !!write(*,*) 'orbs%norbu', orbs%norbu
+  !!write(*,*) 'orbs%norbd', orbs%norbd
+  !!write(*,*) 'orbs%norb', orbs%norb
+  !!write(*,*) 'orbs%norbup', orbs%norbup
+  !!write(*,*) 'orbs%norbdp', orbs%norbdp
+  !!write(*,*) 'orbs%norbp', orbs%norbp
   orbs%occup(1:orbs%norb*orbs%nkpts) = in%gen_occup
   if (dump .and. iproc==0) call print_orbitals(orbs, atoms%astruct%geocode)
   ! Create linear orbs data structure.
@@ -224,20 +233,32 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   end if
   ! Done orbs
 
-
   ! fragment initializations - if not a fragment calculation, set to appropriate dummy values
-  if (inputpsi == INPUT_PSI_DISK_LINEAR) then
+  frag_allocated=.false.
+  if (inputpsi == INPUT_PSI_DISK_LINEAR .or. in%lin%fragment_calculation) then
      allocate(ref_frags(in%frag%nfrag_ref))
      do ifrag=1,in%frag%nfrag_ref
         ref_frags(ifrag)=fragment_null()
      end do
      call init_fragments(in,lorbs,atoms%astruct,ref_frags)
+    frag_allocated=.true.
   else
      nullify(ref_frags)
   end if
 
   call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, &
        orbs, lorbs, iproc, nproc, in%frag%nfrag_ref, in%frag%dirname, ref_frags)
+
+  ! we need to deallocate the fragment arrays we just allocated as not a restart calculation so this is no longer needed
+  if (frag_allocated .and. (.not. in%lin%fragment_calculation) .and. inputpsi /= INPUT_PSI_DISK_LINEAR) then
+      do ifrag=1,in%frag%nfrag_ref
+         ref_frags(ifrag)%astruct_frg%nat=-1
+         ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
+         call fragment_free(ref_frags(ifrag))
+         !ref_frags(ifrag)=fragment_null()
+      end do
+     deallocate(ref_frags)
+  end if
 
   ! See if linear scaling should be activated and build the correct Lzd 
   call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
@@ -263,6 +284,12 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
         call initialize_linear_from_file(iproc,nproc,in%frag,atoms%astruct,rxyz,lorbs,lzd_lin,&
              input_wf_format,in%dir_output,'minBasis',ref_frags)
         !what to do with derivatives?
+        ! These values are not read from file, not very nice this way
+        do ilr=1,lzd_lin%nlr
+            iilr=mod(ilr-1,lorbs%norbu)+1 !correct value for a spin polarized system
+            lzd_lin%llr(ilr)%locrad_kernel=in%lin%locrad_kernel(iilr)
+            lzd_lin%llr(ilr)%locrad_mult=in%lin%locrad_mult(iilr)
+        end do
      end if
 
      call initLocregs(iproc, nproc, lzd_lin, Lzd_lin%hgrids(1), Lzd_lin%hgrids(2),Lzd_lin%hgrids(3), &
@@ -272,9 +299,14 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   end if
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
+  ! SM: For a linear scaling calculation, some parts can be done later.
+  ! SM: The following flag is false for linear scaling and true otherwise.
+  init_projectors_completely = (inputpsi /= INPUT_PSI_LINEAR_AO .and. &
+                                inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
+                                inputpsi /= INPUT_PSI_MEMORY_LINEAR)
   call createProjectorsArrays(Lzd%Glr,rxyz,atoms,orbs,&
        in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
-       Lzd%hgrids(3),dry_run,nlpsp)
+       Lzd%hgrids(3),dry_run,nlpsp,init_projectors_completely)
   if (iproc == 0 .and. dump) call print_nlpsp(nlpsp)
   !the complicated part of the descriptors has not been filled
   if (dry_run) then
@@ -767,6 +799,7 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
   use ao_inguess, only: charge_and_spol
   use module_base, only: gp, f_err_throw
   use yaml_output, only: yaml_toa , yaml_warning, yaml_comment
+  use dynamic_memory
   !use ao_inguess, only : count_atomic_shells
   implicit none
   !Arguments
@@ -778,6 +811,8 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
   !integer, parameter :: nelecmax=32,lmax=4,noccmax=2
   !integer, dimension(lmax) :: nl
   !real(gp), dimension(noccmax,lmax) :: occup
+
+  call f_routine(id='read_n_orbitals')
 
   !calculate number of electrons and orbitals
   ! Number of electrons and number of semicore atoms
@@ -879,6 +914,9 @@ subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
      !call count_atomic_shells(nspin,atoms%aoig(iat)%aocc,occup,nl)
      norbe=norbe+atoms%aoig(iat)%nao!nl(1)+3*nl(2)+5*nl(3)+7*nl(4)
   end do
+
+  call f_release_routine()
+
 end subroutine read_n_orbitals
 
 
@@ -1272,6 +1310,7 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
 
   !for any of the k-points find the processors which have such k-point associated
   call to_zero(nproc*nkpts,nvctr_par(0,1))
+
 
   !Loop over each k point
   do ikpt=1,nkpts

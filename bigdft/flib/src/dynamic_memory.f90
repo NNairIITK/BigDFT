@@ -553,8 +553,8 @@ contains
   subroutine f_routine(id,profile)
     use yaml_output, only: yaml_map !debug
     implicit none
-    logical, intent(in), optional :: profile
-    character(len=*), intent(in), optional :: id
+    logical, intent(in), optional :: profile     !< ???
+    character(len=*), intent(in), optional :: id !< name of the subprogram
     
     !local variables
     integer :: lgt,ncalls
@@ -772,6 +772,7 @@ contains
   subroutine f_purge_database(size,kind,address,id,routine)
     use metadata_interfaces, only: long_toa
     use yaml_output, only: yaml_flush_document
+    use yaml_strings, only: f_strcpy
     implicit none
     !> Number of elements of the buffer
     integer(kind=8), intent(in) :: size
@@ -840,8 +841,16 @@ contains
           call dict_remove(mems(ictrl)%dict_routine,long_toa(iadd))
        end if
     else
-       array_id(1:len(array_id))=id
-       routine_id(1:len(routine_id))=routine
+       if (present(id)) then
+          call f_strcpy(dest=array_id,src=id)
+       else
+          call f_strcpy(dest=array_id,src='Unknown')
+       end if
+       if (present(routine)) then
+          call f_strcpy(dest=routine_id,src=routine)
+       else
+          call f_strcpy(dest=routine_id,src='Unknown')
+       end if
     end if
 
     call memstate_update(memstate,-ilsize,trim(array_id),trim(routine_id))
@@ -1198,8 +1207,8 @@ contains
     use metadata_interfaces, only: address_toi
      use yaml_output
      implicit none
-     type(dictionary), pointer, intent(in) :: dict
-     integer, intent(in), optional :: unit
+     type(dictionary), pointer, intent(in) :: dict  !< dictionary containing the memory status???
+     integer, intent(in), optional :: unit          !< unit to which the status should be dumped
      !Local variables
      type(dictionary), pointer :: dict_ptr
 !!$     type(dictionary), pointer :: dict_list
@@ -1239,7 +1248,7 @@ contains
   subroutine f_malloc_dump_status(filename,dict_summary)
     use yaml_output
     implicit none
-    character(len=*), intent(in), optional :: filename
+    character(len=*), intent(in), optional :: filename  !< file to which the memory should be dumped
     !> If present, this dictionary is filled with the summary of the 
     !! dumped dictionary. Its presence disables the normal dumping
     type(dictionary), pointer, optional, intent(out) :: dict_summary 
@@ -1304,13 +1313,14 @@ contains
   end subroutine f_malloc_dump_status
 
 
-  !> This routine identify for each of the routines the most time consuming parts and print it in the logfile
+  !> This routine identifies for each of the routines the most time consuming parts and print it in the logfile
   recursive subroutine postreatment_of_calling_sequence(base_time,&
        dict_cs,dict_pt)
     implicit none
     !> Time on which percentages has to be given
-    double precision, intent(in) :: base_time 
-    type(dictionary), pointer :: dict_cs,dict_pt
+    double precision, intent(in) :: base_time !< needs to be explained
+    type(dictionary), pointer :: dict_pt      !< needs to be explained
+    type(dictionary), pointer :: dict_cs      !< needs to be explained
     !local variables
     logical :: found
     integer :: ikey,jkey,nkey,icalls,ikeystar

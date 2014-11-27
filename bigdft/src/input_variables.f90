@@ -111,7 +111,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   use dynamic_memory
   use module_xc
   use input_old_text_format, only: dict_from_frag
-  use module_atoms, only: atoms_data,atoms_data_null,atomic_data_set_from_dict,check_atoms_positions
+  use module_atoms, only: atoms_data,nullify_atoms_data,atomic_data_set_from_dict,check_atoms_positions
   use yaml_strings, only: f_strcpy
   use psp_projectors, only: PSPCODE_PAW
   use m_ab6_symmetry, only: symmetry_get_n_sym
@@ -142,7 +142,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   call f_routine(id='inputs_from_dict')
 
   ! Atoms case.
-  atoms = atoms_data_null()
+  call nullify_atoms_data(atoms)
   if (.not. has_key(dict, "posinp")) stop "missing posinp"
   call astruct_set_from_dict(dict // "posinp", atoms%astruct)
 
@@ -219,7 +219,7 @@ subroutine inputs_from_dict(in, atoms, dict)
      end do
   end do
 
-  call allocate_extra_lin_arrays(in%lin,atoms%astruct)
+  call allocate_extra_lin_arrays(in%lin,in%nspin,atoms%astruct)
 
   ! Cross check values of input_variables.
   call input_analyze(in,atoms%astruct)

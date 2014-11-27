@@ -530,7 +530,7 @@ contains
     integer, parameter :: max_size=20
     character(len = max_field_length) :: key
     !character(max_field_length), dimension(:), allocatable :: keys
-    integer :: ln,nempty,ierr
+    integer :: ln,nempty
     integer :: m,n,iocc,icoll,inl,noncoll,l,ispin,is,nspin,iocc_old
 !!$ integer :: lsc
     real(gp) :: tt,sh_chg

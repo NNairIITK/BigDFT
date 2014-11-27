@@ -150,7 +150,12 @@ program test_forces
          if(ipath>1) then
             runObj%atoms%astruct%rxyz(:,:)=runObj%atoms%astruct%rxyz(:,:)+drxyz(:,:)
             runObj%inputs%inputPsiId=1
-            if(runObj%rst%version == LINEAR_VERSION) runObj%inputs%inputPsiId=101
+            if(runObj%rst%version == LINEAR_VERSION) then
+               runObj%inputs%inputPsiId=101
+               !switch off fragment calculation after this point
+               !runObj%inputs%lin%fragment_calculation=.false.
+               !runObj%inputs%frag%nfrag=1
+            end if
          end if
 
          if (bigdft_mpi%iproc == 0) then

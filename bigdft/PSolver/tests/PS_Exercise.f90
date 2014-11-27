@@ -135,7 +135,7 @@ program exercise
 
    call cpu_time(t3)
 
-   call pkernel_free(kernel,'main')
+   call pkernel_free(kernel)
    !deallocate(kernel)
 
 

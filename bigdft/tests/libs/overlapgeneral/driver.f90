@@ -29,21 +29,22 @@ program driver
   real(kind=8),dimension(:,:),allocatable :: ovrlp, ovrlp2
   integer :: norb, nseg, nvctr, iorb, jorb, iorder, power, blocksize, icheck, imode
 
-  logical :: file_exists, symmetric, check_symmetry, perform_check
+  logical :: file_exists, symmetric, check_symmetry, perform_check, optional_parameters
   type(orbitals_data) :: orbs
   type(sparse_matrix) :: smat_A, smat_B
-  type(matrices) :: mat_A, inv_mat_B
+  type(matrices) :: mat_A
+  type(matrices),dimension(1) :: inv_mat_B
   character(len=*),parameter :: filename='inputdata.fake'
   integer :: nconfig, ierr, iseg, iiorb
 !!  integer :: lwork
   integer, dimension(4) :: mpi_info
   character(len=60) :: run_id
-  integer,parameter :: ncheck=30
-  integer,dimension(:,:),allocatable :: keyg_tmp
+  integer,parameter :: ncheck=33
+  !!integer,dimension(:,:),allocatable :: keyg_tmp
   integer,parameter :: SPARSE=1
   integer,parameter :: DENSE=2
 
-  integer :: ncount1, ncount_rate, ncount_max, ncount2
+  integer :: ncount1, ncount_rate, ncount_max, ncount2, nn, ios
 !! integer :: i, j, start
   real(kind=4) :: tr0, tr1
   real(kind=8) :: time, time2, tt
@@ -72,10 +73,21 @@ program driver
   inquire(file=filename, exist=file_exists)
   if_file_exists: if (file_exists) then
       ! Read the basis quantities
+      optional_parameters=.true.
       open(unit=1, file=filename)
       read(1,*) norb
       read(1,*) nseg
       read(1,*) nvctr
+      ! the following lines are optional
+      read(1,*,iostat=ios) imode
+      if (ios/=0) optional_parameters=.false.
+      read(1,*,iostat=ios) iorder
+      if (ios/=0) optional_parameters=.false.
+      read(1,*,iostat=ios) power
+      if (ios/=0) optional_parameters=.false.
+      read(1,*,iostat=ios) blocksize
+      if (ios/=0) optional_parameters=.false.
+      close(unit=1)
   else
       stop 'file does not exist!'
   end if if_file_exists
@@ -169,12 +181,12 @@ program driver
   !!end do
 
   mat_A = matrices_null()
-  inv_mat_B = matrices_null()
+  inv_mat_B(1) = matrices_null()
 
-  call vcopy(orbs%norb**2, ovrlp(1,1), 1, smat_A%matrix(1,1), 1)
   call allocate_matrices(smat_A, allocate_full=.true., matname='mat_A', mat=mat_A)
-  call compress_matrix(iproc, smat_A, inmat=smat_A%matrix, outmat=mat_A%matrix_compr)
-  call allocate_matrices(smat_B, allocate_full=.true., matname='inv_mat_B', mat=inv_mat_B)
+  call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1,1), 1)
+  call compress_matrix(iproc, smat_A, inmat=mat_A%matrix, outmat=mat_A%matrix_compr)
+  call allocate_matrices(smat_B, allocate_full=.true., matname='inv_mat_B', mat=inv_mat_B(1))
   ! uncomment for sparse and dense modes to be testing the same matrix
   !call uncompress_matrix(iproc, smat_A)
 
@@ -186,26 +198,36 @@ program driver
 
   call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
 
-  keyg_tmp=f_malloc((/2,smat_A%nseg/))
-  do iseg=1,smat_A%nseg
-      iorb=smat_A%keyg(1,iseg)
-      iiorb=mod(iorb-1,norb)+1
-      !!write(*,*) 'iorb, iiorb', iorb, iiorb
-      keyg_tmp(1,iseg)=iiorb
-      iorb=smat_A%keyg(2,iseg)
-      iiorb=mod(iorb-1,norb)+1
-      !!write(*,*) 'iorb, iiorb', iorb, iiorb
-      keyg_tmp(2,iseg)=iiorb
-  end do
+  !!keyg_tmp=f_malloc((/2,smat_A%nseg/))
+  !!do iseg=1,smat_A%nseg
+  !!    iorb=smat_A%keyg(1,iseg)
+  !!    iiorb=mod(iorb-1,norb)+1
+  !!    !!write(*,*) 'iorb, iiorb', iorb, iiorb
+  !!    keyg_tmp(1,iseg)=iiorb
+  !!    iorb=smat_A%keyg(2,iseg)
+  !!    iiorb=mod(iorb-1,norb)+1
+  !!    !!write(*,*) 'iorb, iiorb', iorb, iiorb
+  !!    keyg_tmp(2,iseg)=iiorb
+  !!end do
 
   if (ortho_check) call deviation_from_unity_parallel(iproc, nproc, orbs%norb, orbs%norb, 0, ovrlp, smat_A, max_error, mean_error)
   if (ortho_check.and.iproc==0) call yaml_map('max deviation from unity',max_error)
   if (ortho_check.and.iproc==0) call yaml_map('mean deviation from unity',mean_error)
   if (iproc==0) call yaml_comment('starting the checks',hfill='=')
 
-  do icheck=1,ncheck
-      !if (icheck==1 .or. icheck==4 .or. icheck==10 .or. icheck==11 .or.  icheck==13 .or. icheck==14 .or. icheck==16 .or. icheck==17) cycle
-      call get_parameters()
+  if (.not.optional_parameters) then
+      ! do all checks
+      nn=ncheck
+  else
+      ! do only the check which was specified
+      nn=1
+  end if
+
+  do icheck=1,nn
+      if (.not.optional_parameters) then
+          ! get the default parameters
+          call get_parameters()
+      end if
       if (iproc==0) then
           call yaml_comment('check:'//yaml_toa(icheck,fmt='(i5)'),hfill='-')
           call yaml_map('check number',icheck)
@@ -222,23 +244,23 @@ program driver
       if (iproc==0) call yaml_map('Can perform this test',perform_check)
       if (.not.perform_check) cycle
       if (imode==DENSE) then
-          call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1), 1)
+          call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1,1), 1)
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
-          call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, &
+          call overlapPowerGeneral(iproc, nproc, iorder, 1, (/power/), blocksize, &
                imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, ovrlp_mat=mat_A, inv_ovrlp_mat=inv_mat_B, &
                check_accur=.true., max_error=max_error, mean_error=mean_error)
           if (timer_on) call cpu_time(tr1)
           if (timer_on) call system_clock(ncount2,ncount_rate,ncount_max)
           if (timer_on) time=real(tr1-tr0,kind=8)
           if (timer_on) time2=dble(ncount2-ncount1)/dble(ncount_rate)
-          call compress_matrix(iproc, smat_B, inmat=inv_mat_B%matrix, outmat=inv_mat_B%matrix_compr)
+          call compress_matrix(iproc, smat_B, inmat=inv_mat_B(1)%matrix, outmat=inv_mat_B(1)%matrix_compr)
       else if (imode==SPARSE) then
-          call vcopy(orbs%norb**2, ovrlp(1,1), 1, smat_A%matrix(1,1), 1)
-          call compress_matrix(iproc, smat_A)
+          call vcopy(orbs%norb**2, ovrlp(1,1), 1, mat_A%matrix(1,1,1), 1)
+          call compress_matrix(iproc, smat_A, inmat=mat_A%matrix, outmat=mat_A%matrix_compr)
           if (timer_on) call cpu_time(tr0)
           if (timer_on) call system_clock(ncount1,ncount_rate,ncount_max)
-          call overlapPowerGeneral(iproc, nproc, iorder, power, blocksize, &
+          call overlapPowerGeneral(iproc, nproc, iorder, 1, (/power/), blocksize, &
                imode, ovrlp_smat=smat_A, inv_ovrlp_smat=smat_B, ovrlp_mat=mat_A, inv_ovrlp_mat=inv_mat_B, &
                check_accur=.true., max_error=max_error, mean_error=mean_error)
                !!foe_nseg=smat_A%nseg, foe_kernel_nsegline=smat_A%nsegline, &
@@ -249,7 +271,7 @@ program driver
           if (timer_on) time=real(tr1-tr0,kind=8)
           if (timer_on) time2=dble(ncount2-ncount1)/dble(ncount_rate)
       end if
-      if (print_matrices.and.iproc==0) call write_matrix_compressed('final result', smat_B, inv_mat_B)
+      if (print_matrices.and.iproc==0) call write_matrix_compressed('final result', smat_B, inv_mat_B(1))
       if (iproc==0) call yaml_map('Max error of the result',max_error)
       if (iproc==0) call yaml_map('Mean error of the result',mean_error)
       if (timer_on.and.iproc==0) call yaml_map('time taken (cpu)',time)
@@ -258,13 +280,13 @@ program driver
 
   if (iproc==0) call yaml_comment('checks finished',hfill='=')
 
-  call f_free(keyg_tmp)
+  !!call f_free(keyg_tmp)
 
   call deallocate_orbitals_data(orbs)
   call deallocate_sparse_matrix(smat_A)
   call deallocate_sparse_matrix(smat_B)
   call deallocate_matrices(mat_A)
-  call deallocate_matrices(inv_mat_B)
+  call deallocate_matrices(inv_mat_B(1))
 
   deallocate(ovrlp)
 
@@ -340,6 +362,12 @@ program driver
           imode = 1 ; iorder=-1 ; power= 2 ; blocksize=-1
       case (30)
           imode = 1 ; iorder=-6 ; power= 2 ; blocksize=-1
+      case (31)
+          imode = 1 ; iorder=1025 ; power= -2 ; blocksize=-1
+      case (32)
+          imode = 1 ; iorder=1025 ; power= 2 ; blocksize=-1
+      case (33)
+          imode = 1 ; iorder=1025 ; power= 2 ; blocksize=-1
       case default
           stop 'wrong icheck'
       end select
@@ -419,7 +447,8 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
-  use sparsematrix_init, only: init_sparse_matrix
+  use sparsematrix_init, only: init_sparse_matrix, init_matrix_taskgroups, init_matrix_taskgroups
+  use communications_base, only: comms_linear_null
   implicit none
 
   ! Calling arguments
@@ -427,9 +456,10 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   type(sparse_matrix) :: smat
 
   ! Local variables
-  integer :: nnonzero
+  integer :: nnonzero, nspin, norbu, norbup, isorbu
   integer,dimension(:),allocatable :: nvctr_per_segment
-  integer ,dimension(:),pointer :: nonzero
+  integer,dimension(:,:),pointer :: nonzero
+  type(comms_linear) :: collcom_dummy
 
   ! Some checks whether the arguments are reasonable
   if (nseg > nvctr) stop 'sparse matrix would have more segments than elements'
@@ -459,17 +489,25 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   smat%istsegline = istsegline_init ()
   smat%keyv = keyv_init()
   smat%keyg = keyg_init()
-  call init_orbs_from_index(smat)
+  !!call init_orbs_from_index(smat)
 
   call init_nonzero_arrays(norbp, isorb, smat, nnonzero, nonzero)
 
   call deallocate_sparse_matrix(smat)
-  call init_sparse_matrix(iproc, nproc, norb, norbp, isorb, .false., &
+
+  ! for the moment no spin polarization
+  nspin=1
+  norbu=norb
+  norbup=norbp
+  isorbu=isorb
+  call init_sparse_matrix(iproc, nproc, nspin, norb, norbp, isorb, norbu, norbup, isorbu, .false., &
              nnonzero, nonzero, nnonzero, nonzero, smat, allocate_full_=.true.)
   call f_free_ptr(nonzero)
 
-
   call f_free(nvctr_per_segment)
+
+  collcom_dummy = comms_linear_null()
+  call init_matrix_taskgroups(iproc, nproc, .false., collcom_dummy, collcom_dummy, smat)
 
   !!! Initialize the parameters for the spare matrix matrix multiplication
   !!call init_sparse_matrix_matrix_multiplication(norb, norbp, isorb, smat%nseg, &
@@ -492,9 +530,9 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
       smat%istsegline=f_malloc_ptr(norb,id='smat%istsegline')
       nvctr_per_segment=f_malloc(nseg,id='nvctr_per_segment')
       smat%keyv=f_malloc_ptr(nseg,id='smat%keyv')
-      smat%keyg=f_malloc_ptr((/2,nseg/),id='smat%keyg')
-      smat%matrix_compr=f_malloc_ptr(smat%nvctr,id='smat%matrix_compr')
-      smat%matrix=f_malloc_ptr((/norb,norb/),id='smat%matrix')
+      smat%keyg=f_malloc_ptr((/2,2,nseg/),id='smat%keyg')
+      !!smat%matrix_compr=f_malloc_ptr(smat%nvctr,id='smat%matrix_compr')
+      !!smat%matrix=f_malloc_ptr((/norb,norb/),id='smat%matrix')
     end subroutine allocate_arrays
 
     function nsegline_init() result(nsegline)
@@ -552,7 +590,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
 
 
     function keyg_init() result(keyg)
-      integer,dimension(2,smat%nseg) :: keyg
+      integer,dimension(2,2,smat%nseg) :: keyg
       integer :: jorb, nempty, jseg, jjseg, ii, j, ist, itot, istart, iend, idiag
       integer :: idist_start, idist_end, ilen
       integer,dimension(:),allocatable :: nempty_arr
@@ -639,8 +677,10 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
               jjseg=smat%istsegline(jorb)+jseg-1
               istart=itot+ist
               iend=istart+nvctr_per_segment(jjseg)-1
-              keyg(1,jjseg)=istart
-              keyg(2,jjseg)=iend
+              keyg(1,1,jjseg)=mod(istart-1,smat%nfvctr)+1
+              keyg(2,1,jjseg)=mod(iend-1,smat%nfvctr)+1
+              keyg(1,2,jjseg)=(istart-1)/smat%nfvctr+1
+              keyg(2,2,jjseg)=(iend-1)/smat%nfvctr+1
               ist=ist+nvctr_per_segment(jjseg)
               ist=ist+nempty_arr(jseg)
           end do
@@ -651,7 +691,8 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
       ! Check that the total number is correct
       itot=0
       do jseg=1,smat%nseg
-          ilen=keyg(2,jseg)-keyg(1,jseg)+1
+          ! A segment is always on one line, therefore no double loop
+          ilen=keyg(2,1,jseg)-keyg(1,1,jseg)+1
           if (ilen/=nvctr_per_segment(jseg)) stop 'ilen/=nvctr_per_segment(jseg)'
           if (jseg/=smat%nseg) then
               if (ilen/=(smat%keyv(jseg+1)-smat%keyv(jseg))) stop 'ilen/=(smat%keyv(jseg+1)-smat%keyv(jseg))'
@@ -664,33 +705,33 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
     end function keyg_init
 
 
-    subroutine init_orbs_from_index(sparsemat)
-      use module_base
-      use module_types
-      use sparsematrix_base, only: sparse_matrix
-      implicit none
+    !!subroutine init_orbs_from_index(sparsemat)
+    !!  use module_base
+    !!  use module_types
+    !!  use sparsematrix_base, only: sparse_matrix
+    !!  implicit none
 
-      ! Calling arguments
-      type(sparse_matrix),intent(inout) :: sparsemat
+    !!  ! Calling arguments
+    !!  type(sparse_matrix),intent(inout) :: sparsemat
 
-      ! local variables
-      integer :: ind, iseg, segn, iorb, jorb
-      character(len=*),parameter :: subname='init_orbs_from_index'
+    !!  ! local variables
+    !!  integer :: ind, iseg, segn, iorb, jorb
+    !!  character(len=*),parameter :: subname='init_orbs_from_index'
 
-      sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
+    !!  sparsemat%orb_from_index=f_malloc_ptr((/2,sparsemat%nvctr/),id='sparsemat%orb_from_index')
 
-      ind = 0
-      do iseg = 1, sparsemat%nseg
-         do segn = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
-            ind=ind+1
-            iorb = (segn - 1) / sparsemat%nfvctr + 1
-            jorb = segn - (iorb-1)*sparsemat%nfvctr
-            sparsemat%orb_from_index(1,ind) = jorb
-            sparsemat%orb_from_index(2,ind) = iorb
-         end do
-      end do
+    !!  ind = 0
+    !!  do iseg = 1, sparsemat%nseg
+    !!     do segn = sparsemat%keyg(1,iseg), sparsemat%keyg(2,iseg)
+    !!        ind=ind+1
+    !!        iorb = (segn - 1) / sparsemat%nfvctr + 1
+    !!        jorb = segn - (iorb-1)*sparsemat%nfvctr
+    !!        sparsemat%orb_from_index(1,ind) = jorb
+    !!        sparsemat%orb_from_index(2,ind) = iorb
+    !!     end do
+    !!  end do
 
-    end subroutine init_orbs_from_index
+    !!end subroutine init_orbs_from_index
 
     subroutine init_nonzero_arrays(norbp, isorb, sparsemat, nnonzero, nonzero)
       use sparsematrix_base, only : sparse_matrix
@@ -700,7 +741,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
       integer,intent(in) :: norbp, isorb
       type(sparse_matrix),intent(in) :: sparsemat
       integer,intent(out) :: nnonzero
-      integer,dimension(:),pointer :: nonzero
+      integer,dimension(:,:),pointer :: nonzero
 
       ! Local variables
       integer :: iorb, iiorb, iseg, iiseg, ilen, i, ii
@@ -709,22 +750,25 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
       do iorb=1,norbp
           iiorb=isorb+iorb
           do iseg=1,sparsemat%nsegline(iiorb)
+              ! A segment is always on one line, therefore no double loop
               iiseg=sparsemat%istsegline(iiorb)+iseg-1
-              ilen=sparsemat%keyg(2,iiseg)-sparsemat%keyg(1,iiseg)+1
+              ilen=sparsemat%keyg(2,1,iiseg)-sparsemat%keyg(1,1,iiseg)+1
               nnonzero=nnonzero+ilen
           end do
       end do
 
 
-      nonzero = f_malloc_ptr(nnonzero,id='nonzero')
+      nonzero = f_malloc_ptr((/2,nnonzero/),id='nonzero')
       ii=0
       do iorb=1,norbp
           iiorb=isorb+iorb
           do iseg=1,sparsemat%nsegline(iiorb)
+              ! A segment is always on one line, therefore no double loop
               iiseg=sparsemat%istsegline(iiorb)+iseg-1
-              do i=sparsemat%keyg(1,iiseg),sparsemat%keyg(2,iiseg)
+              do i=sparsemat%keyg(1,1,iiseg),sparsemat%keyg(2,1,iiseg)
                   ii=ii+1
-                  nonzero(ii)=i
+                  nonzero(1,ii)=i
+                  nonzero(2,ii)=sparsemat%keyg(1,2,iiseg)
               end do
           end do
       end do
@@ -738,6 +782,7 @@ end subroutine sparse_matrix_init_fake
 subroutine write_matrix_compressed(message, smat, mat)
   use yaml_output
   use sparsematrix_base, only: sparse_matrix, matrices
+  use sparsematrix, only: orb_from_index
   implicit none
 
   ! Calling arguments
@@ -746,7 +791,8 @@ subroutine write_matrix_compressed(message, smat, mat)
   type(matrices),intent(in) :: mat
 
   ! Local variables
-  integer :: iseg, ilen, istart, iend, i, iorb, jorb
+  integer :: iseg, i, ii, iorb, jorb
+  integer,dimension(2) :: irowcol
 
   !!call yaml_sequence_open(trim(message))
   !!do iseg=1,smat%nseg
@@ -764,22 +810,27 @@ subroutine write_matrix_compressed(message, smat, mat)
 
   call yaml_sequence_open(trim(message))
   do iseg=1,smat%nseg
+      ! A segment is always on one line, therefore no double loop
       call yaml_sequence(advance='no')
-      ilen=smat%keyg(2,iseg)-smat%keyg(1,iseg)+1
+      !ilen=smat%keyg(2,iseg)-smat%keyg(1,iseg)+1
       call yaml_mapping_open(flow=.true.)
       call yaml_map('segment',iseg)
       call yaml_sequence_open('elements')
-      istart=smat%keyv(iseg)
-      iend=smat%keyv(iseg)+ilen-1
-      do i=istart,iend
+      !istart=smat%keyv(iseg)
+      !iend=smat%keyv(iseg)+ilen-1
+      !do i=istart,iend
+      ii=smat%keyv(iseg)
+      do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
           call yaml_newline()
           call yaml_sequence(advance='no')
           call yaml_mapping_open(flow=.true.)
-          iorb=smat%orb_from_index(1,i)
-          jorb=smat%orb_from_index(2,i)
-          call yaml_map('coordinates',(/jorb,iorb/))
-          call yaml_map('value',mat%matrix_compr(i))
+          !irowcol=orb_from_index(smat,i)
+          !iorb=orb_from_index(1,i)
+          !jorb=orb_from_index(2,i)
+          call yaml_map('coordinates',(/smat%keyg(1,2,iseg),i/))
+          call yaml_map('value',mat%matrix_compr(ii))
           call yaml_mapping_close()
+          ii=ii+1
       end do
       call yaml_sequence_close()
       !call yaml_map('values',smat%matrix_compr(istart:iend))
@@ -794,6 +845,7 @@ end subroutine write_matrix_compressed
 function check_symmetry(norb, smat)
   use module_base
   use sparsematrix_base, only: sparse_matrix
+  use sparsematrix, only: orb_from_index
   implicit none
 
   ! Calling arguments
@@ -802,16 +854,23 @@ function check_symmetry(norb, smat)
   logical :: check_symmetry
 
   ! Local variables
-  integer :: i, iorb, jorb
+  integer :: i, iseg, ii, jorb, iorb
   logical,dimension(:,:),allocatable :: lgrid
+  integer,dimension(2) :: irowcol
 
   lgrid=f_malloc((/norb,norb/),id='lgrid')
   lgrid=.false.
 
-  do i=1,smat%nvctr
-      iorb=smat%orb_from_index(1,i)
-      jorb=smat%orb_from_index(2,i)
-      lgrid(jorb,iorb)=.true.
+  do iseg=1,smat%nseg
+      ii=smat%keyv(iseg)
+      ! A segment is always on one line, therefore no double loop
+      do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+          !irowcol=orb_from_index(smat,i)
+          !!iorb=smat%orb_from_index(1,i)
+          !!jorb=smat%orb_from_index(2,i)
+          lgrid(smat%keyg(1,2,iseg),i)=.true.
+          ii=ii+1
+      end do
   end do
 
   check_symmetry=.true.

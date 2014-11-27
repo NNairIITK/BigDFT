@@ -40,20 +40,28 @@ module communications_base
     integer,dimension(:),pointer :: nsenddspls_repartitionrho, nrecvdspls_repartitionrho
     integer :: ncomms_repartitionrho, window
     integer,dimension(:,:),pointer :: commarr_repartitionrho
+    integer :: imethod_overlap !< method to calculate the overlap
   end type comms_linear
 
 
   !> Contains all parameters needed for the point to point communication of the potential
   type, public :: p2pComms
-    integer, dimension(:), pointer :: noverlaps
+    integer :: noverlaps
     real(kind=8), dimension(:), pointer :: recvBuf
-    integer, dimension(:,:,:), pointer :: comarr
+    integer, dimension(:,:), pointer :: comarr
     integer :: nrecvBuf
     integer :: window
-    integer, dimension(:,:), pointer :: ise !< Starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
-    integer, dimension(:,:), pointer :: mpi_datatypes
+    integer, dimension(6) :: ise !< Starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
+    integer, dimension(:), pointer :: mpi_datatypes
     logical :: communication_complete
+    integer :: nspin !< spin polarization (this information is redundant, just for handyness)
   end type p2pComms
+
+  type, public :: work_transpose
+    real(kind=8),dimension(:),pointer :: psiwork, psitwork
+    integer,dimension(:),pointer :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
+    integer :: request
+  end type work_transpose
 
   !substituted by function mpimaxdiff in wrappers/mpi.f90
 !!$  interface check_array_consistency
@@ -78,9 +86,17 @@ module communications_base
   public :: deallocate_p2pComms
   public :: allocate_p2pComms_buffer
   public :: deallocate_p2pComms_buffer
+  public :: work_transpose_null
 
   !public :: check_array_consistency
 
+  !> Public constants
+  integer,parameter,public :: TRANSPOSE_FULL   = 201
+  integer,parameter,public :: TRANSPOSE_POST   = 202
+  integer,parameter,public :: TRANSPOSE_GATHER = 203
+
+  ! Error codes
+  integer,public,save :: ERR_LINEAR_TRANSPOSITION
 
 contains
 
@@ -139,6 +155,15 @@ contains
     nullify(comms%nsenddspls_repartitionrho)
     nullify(comms%nrecvdspls_repartitionrho)
     nullify(comms%commarr_repartitionrho)
+    comms%nptsp_c = 0
+    comms%ndimpsi_c = 0
+    comms%ndimind_c = 0
+    comms%ndimind_f = 0
+    comms%nptsp_f = 0
+    comms%ndimpsi_f = 0
+    comms%ncomms_repartitionrho = 0
+    comms%window = 0
+    comms%imethod_overlap = 0
   end subroutine nullify_comms_linear
 
 
@@ -151,12 +176,29 @@ contains
   pure subroutine nullify_p2pComms(comms)
     implicit none
     type(p2pComms),intent(inout) :: comms
-    nullify(comms%noverlaps)
     nullify(comms%recvBuf)
     nullify(comms%comarr)
-    nullify(comms%ise)
     nullify(comms%mpi_datatypes)
   end subroutine nullify_p2pComms
+
+  pure function work_transpose_null() result(wt)
+    implicit none
+    type(work_transpose) :: wt
+    call nullify_work_transpose(wt)
+    wt%request = UNINITIALIZED(1)
+  end function work_transpose_null
+
+
+  pure subroutine nullify_work_transpose(wt)
+    implicit none
+    type(work_transpose),intent(out):: wt
+    nullify(wt%psiwork)
+    nullify(wt%psitwork)
+    nullify(wt%nsendcounts)
+    nullify(wt%nsenddspls)
+    nullify(wt%nrecvcounts)
+    nullify(wt%nrecvdspls)
+  end subroutine nullify_work_transpose
 
   subroutine allocate_MPI_communication_arrays(nproc, comms, only_coarse)
     implicit none
@@ -295,10 +337,8 @@ contains
     ! Calling arguments
     type(p2pComms),intent(inout):: p2pcomm
     ! Local variables
-    call f_free_ptr(p2pcomm%noverlaps)
     call f_free_ptr(p2pcomm%recvBuf)
     call f_free_ptr(p2pcomm%comarr)
-    call f_free_ptr(p2pcomm%ise)
     if (.not.p2pcomm%communication_complete) then
         stop 'cannot deallocate mpi data types if communication has not completed'
     end if
@@ -310,7 +350,7 @@ contains
     implicit none
     ! Calling arguments
     type(p2pComms),intent(inout):: comgp
-    comgp%recvBuf = f_malloc_ptr(comgp%nrecvBuf,id='comgp%recvBuf')
+    comgp%recvBuf = f_malloc_ptr(comgp%nrecvBuf*comgp%nspin,id='comgp%recvBuf')
   end subroutine allocate_p2pComms_buffer
   
   

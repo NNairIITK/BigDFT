@@ -1747,8 +1747,8 @@ contains
     call set(dict // EF_INTERPOL_CHARGEDIFF, dummy_real, fmt = "(E9.2)")
 
     !determines whether a mixing step shall be preformed after the input guess !(linear version)
-    call input_var("mixing_after_inputguess",.true.,"mixing  (T/F)",dummy_bool)
-    call set(dict // MIXING_AFTER_INPUTGUESS, dummy_bool)
+    call input_var("mixing_after_inputguess",1,"mixing after inguess (0/1/2)",dummy_int)
+    call set(dict // MIXING_AFTER_INPUTGUESS, dummy_int)
 
     !determines whether the input guess support functions are orthogonalized iteratively (T) or in the standard way (F)
     call input_var("iterative_orthogonalization",.false.," orbitals",dummy_bool)
@@ -1756,6 +1756,9 @@ contains
 
     call input_var("check_sumrho", 2, (/0,1,2/), "linear sumrho: 0=no check, 1=light check, 2=full check", dummy_int)
     call set(dict // CHECK_SUMRHO, dummy_int)
+
+    call input_var("check_overlap", 2, (/0,1,2/), "linear overlap: 0=no check, 1=light check, 2=full check", dummy_int)
+    call set(dict // CHECK_OVERLAP, dummy_int)
 
     call input_var("experimental_mode", .false., "linear scaling: activate the experimental mode", dummy_bool)
     call set(dict // EXPERIMENTAL_MODE, dummy_bool)
@@ -1808,6 +1811,11 @@ contains
     call input_var("fscale_upperbound", 5.d-2, "upper bound for the error function decay length", dummy_real)
     call set(dict // FSCALE_UPPERBOUND, dummy_real)
 
+    call input_var("imethod_overlap", 1, (/1,2/), "lin scaling method to calculate overlap matrix (1:old, 2:new)", dummy_int)
+    call set(dict // IMETHOD_OVERLAP, dummy_int)
+
+    call input_var("enable_matrix_taskgroups", .true., "enable matrix taskgroups", dummy_bool)
+    call set(dict // IMETHOD_OVERLAP, dummy_int)
 
     call input_free(.false.)
 
@@ -1951,7 +1959,7 @@ contains
 
     comments = '0-> exact Loewdin, 1-> taylor expansion; &
                &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
-    call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-100,100/))
+    call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-100,10000/))
     call input_var(dummy_int,'1',dict//LIN_BASIS//CORRECTION_ORTHOCONSTRAINT,comment=comments)
     !call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
 

@@ -297,14 +297,14 @@ contains
    end function pop_item
 
    !> Pop last item from a list
-   function pop_last_item(dict) result(subd)
-     !> As Fortran norm says, here the intent is refererred to the 
-     !! pointer association status
-     type(dictionary), pointer, intent(in) :: dict 
-     type(dictionary), pointer :: subd
+   !function pop_last_item(dict) result(subd)
+   !  !> As Fortran norm says, here the intent is refererred to the 
+   !  !! pointer association status
+   !  type(dictionary), pointer, intent(in) :: dict 
+   !  type(dictionary), pointer :: subd
 
-     subd => pop_item(dict,dict_len(dict)-1)
-   end function pop_last_item
+   !  subd => pop_item(dict,dict_len(dict)-1)
+   !end function pop_last_item
 
 
 
@@ -339,10 +339,10 @@ contains
        character(len=*), intent(in) :: key
        logical, intent(in) :: dst
        !local variables
-       !$ logical :: key_found
        type(dictionary), pointer :: dict_first !<in case of first occurrence
-       !$ type(dictionary), pointer :: iter       !< iterator to avoid stack overflow
 
+!!$       !$ logical :: key_found
+!!$       !$ type(dictionary), pointer :: iter       !< iterator to avoid stack overflow
 !!$       iter => dict
 !!$       key_found=.false.
 !!$       find_key: do while(associated(iter))
@@ -907,22 +907,22 @@ contains
         nullify(dict_ptr)
         return
      end if
-     !TEST 
+
      if (.not. associated(dict%parent)) then
         dict_ptr => find_key(dict%child,key)
-        !print *,'parent'
         return
      end if
 
-     !print *,'here ',trim(key),', key ',trim(dict%data%key)
-     !follow the chain, stop at the first occurence
-     if (trim(dict%data%key) == trim(key)) then
-        dict_ptr => dict
-     else if (associated(dict%next)) then
-        dict_ptr => find_key(dict%next,key)
-     else 
-        nullify(dict_ptr)
-     end if
+     dict_ptr => get_dict_from_key(dict,key)
+!!$     !print *,'here ',trim(key),', key ',trim(dict%data%key)
+!!$     !follow the chain, stop at the first occurence
+!!$     if (trim(dict%data%key) == trim(key)) then
+!!$        dict_ptr => dict
+!!$     else if (associated(dict%next)) then
+!!$        dict_ptr => find_key(dict%next,key)
+!!$     else 
+!!$        nullify(dict_ptr)
+!!$     end if
 
    end function find_key
 
@@ -986,32 +986,33 @@ contains
         has_key=.false.
         return
      end if
+     has_key=associated(dict%child)
+     !has_key_(dict%child,key)
+     if (has_key) has_key=associated(get_dict_from_key(dict%child,key))
 
-     has_key=has_key_(dict%child,key)
-
-   contains
-
-     recursive function has_key_(dict,key) result(has)
-       implicit none
-       type(dictionary), intent(in), pointer :: dict 
-       character(len=*), intent(in) :: key
-       logical :: has
-       if (.not. associated(dict)) then
-          has=.false.
-          return
-       end if
-
-       !print *,'here ',trim(key),', key ',trim(dict%data%key)
-       !follow the chain, stop at the first occurence
-       if (trim(dict%data%key) == trim(key)) then
-          has=.true.
-       else if (associated(dict%next)) then
-          has=has_key_(dict%next,key)
-       else 
-          has=.false.
-       end if
-
-     end function has_key_
+!!$   contains
+!!$
+!!$     recursive function has_key_(dict,key) result(has)
+!!$       implicit none
+!!$       type(dictionary), intent(in), pointer :: dict 
+!!$       character(len=*), intent(in) :: key
+!!$       logical :: has
+!!$       if (.not. associated(dict)) then
+!!$          has=.false.
+!!$          return
+!!$       end if
+!!$
+!!$       !print *,'here ',trim(key),', key ',trim(dict%data%key)
+!!$       !follow the chain, stop at the first occurence
+!!$       if (trim(dict%data%key) == trim(key)) then
+!!$          has=.true.
+!!$       else if (associated(dict%next)) then
+!!$          has=has_key_(dict%next,key)
+!!$       else 
+!!$          has=.false.
+!!$       end if
+!!$
+!!$     end function has_key_
    end function has_key
 
 
@@ -1299,14 +1300,14 @@ contains
    !> Get the value from the dictionary
    !! This routine only works if the dictionary is associated
    !! the problem is solved if any of the routines have the dict variable as a pointer
-   subroutine get_dict(dictval,dict)
-     implicit none
-     type(dictionary), pointer, intent(out) :: dictval
-     type(dictionary), pointer, intent(in) :: dict
+   !subroutine get_dict(dictval,dict)
+   !  implicit none
+   !  type(dictionary), pointer, intent(out) :: dictval
+   !  type(dictionary), pointer, intent(in) :: dict
 
-     dictval=>dict
+   !  dictval=>dict
 
-   end subroutine get_dict
+   !end subroutine get_dict
 
 
    !> Set and get routines for different types (this routine can be called from error_check also)

@@ -361,7 +361,7 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,&
    type(locreg_descriptors), intent(inout) :: Glr
 
    call createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,&
-        crmult,frmult,Glr)
+        crmult,frmult,.true.,Glr)
 end subroutine glr_set_wave_descriptors
 
 
@@ -993,9 +993,9 @@ subroutine localfields_free(denspotd, fion, fdisp)
   if (associated(denspotd%pkernelseq%kernel,target=denspotd%pkernel%kernel)) then
      nullify(denspotd%pkernelseq%kernel)
   else if (associated(denspotd%pkernelseq%kernel)) then
-     call pkernel_free(denspotd%pkernelseq,subname)
+     call pkernel_free(denspotd%pkernelseq)
   end if
-  call pkernel_free(denspotd%pkernel,subname)
+  call pkernel_free(denspotd%pkernel)
 
   call f_free_ptr(denspotd%rhov)
   call f_free_ptr(denspotd%V_XC)
@@ -1232,7 +1232,7 @@ subroutine wf_iorbp_to_psi(psir, psi, lr)
   character(len=*), parameter :: subname='wf_orb_to_psi'
   type(workarr_sumrho) :: w
 
-  call initialize_work_arrays_sumrho(lr,w)
+  call initialize_work_arrays_sumrho(1,lr,.true.,w)
 
   !initialisation
   if (lr%geocode == 'F') then
@@ -1489,8 +1489,8 @@ subroutine optloop_bcast(optloop, iproc)
   type(DFT_optimization_loop), intent(inout) :: optloop
   integer, intent(in) :: iproc
 
-  integer :: iData(4)
-  real(gp) :: rData(3)
+  integer, dimension(4) :: iData
+  real(gp), dimension(3) :: rData
 
   if (iproc == 0) then
      iData(1) = optloop%iscf

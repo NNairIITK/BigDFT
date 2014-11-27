@@ -500,6 +500,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,xc,hx,hy,hz,&
   use module_xc
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use dictionaries, only: f_err_raise
+  use dynamic_memory
   implicit none
   !Arguments
   character(len=1), intent(in) :: geocode  !< @copydoc poisson_solver::doc::geocode
@@ -574,6 +575,8 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,xc,hx,hy,hz,&
 !!$     end subroutine PSolver
 !!$  end interface
 
+  call f_routine(id='PSolverNC')
+
   !only for nspin==4
   !if(nspin==4) then
   if (f_err_raise(nspin/=4,'Noncollinear Poisson Solver can only be called with nspin=4')) then
@@ -646,5 +649,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,xc,hx,hy,hz,&
 !!$     call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 !!$          rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
   end if
+
+  call f_release_routine()
 
 END SUBROUTINE PSolverNC
