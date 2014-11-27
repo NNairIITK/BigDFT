@@ -1,3 +1,16 @@
+!! module forinterpolation between structures
+!! techniques implemented:
+!! linear synchronous transit:
+!!     subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
+!!     
+!! @author Bastian Schaefer
+!! @section LICENCE
+!!    Copyright (C) 2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
 !> @file
 !> minor module for wrapping the lst_penalty routine
 !! intended as a temporary patch to conceptual problem in using transforce
@@ -186,16 +199,6 @@ subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
   end subroutine lst_penalty
 
 end module lst_penalty_wrapper
-!! module forinterpolation between structures
-!! techniques implemented:
-!! linear synchronous transit:
-!!     subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
-!!     
-!! @author Bastian Schaefer
-!! @section LICENCE
-!!    Copyright (C) 2014 UNIBAS
-!!    This file is not freely distributed.
-!!    A licence is necessary from UNIBAS
 module module_interpol
     implicit none
 
