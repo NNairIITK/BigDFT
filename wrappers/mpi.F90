@@ -52,7 +52,6 @@ module wrapper_MPI
      module procedure mpitype_i1,mpitype_i2
      module procedure mpitype_d1,mpitype_d2
      module procedure mpitype_c1
-     module procedure mpitype_li1,mpitype_li2
   end interface mpitype
 
   interface mpimaxdiff
@@ -66,15 +65,12 @@ module wrapper_MPI
      module procedure mpiallred_int,mpiallred_real, &
           & mpiallred_double,&!,mpiallred_double_1,mpiallred_double_2,&
           & mpiallred_log
-     module procedure mpiallred_long
      module procedure mpiallred_d1,mpiallred_d2
   end interface mpiallred
 
   interface mpigather
      module procedure mpigather_d1d1,mpigather_d2d1,mpigather_d1d2,mpigather_d2
      module procedure mpigather_i0i2,mpigather_d0d2,mpigather_i1i2,mpigather_i2
-     module procedure mpigather_i1,mpigather_li1,mpigather_c1i2
-     module procedure mpigather_li0li2
   end interface mpigather
 
   interface mpibcast
@@ -546,19 +542,7 @@ contains
     integer :: mt
     mt=MPI_INTEGER8
   end function mpitype_li
-  pure function mpitype_li1(data) result(mt)
-    implicit none
-    integer(kind=8), dimension(:), intent(in) :: data
-    integer :: mt
-    mt=MPI_INTEGER8
-  end function mpitype_li1
-  pure function mpitype_li2(data) result(mt)
-    implicit none
-    integer(kind=8), dimension(:,:), intent(in) :: data
-    integer :: mt
-    mt=MPI_INTEGER8
-  end function mpitype_li2
-  
+
 
   pure function mpitype_r(data) result(mt)
     implicit none
@@ -702,24 +686,6 @@ contains
     include 'gather-inc.f90'   
   end subroutine mpigather_i2
 
-  subroutine mpigather_i1(sendbuf,recvbuf,root,comm)
-    use dictionaries, only: f_err_throw,f_err_define
-    use yaml_output, only: yaml_toa
-    implicit none
-    integer, dimension(:), intent(in) :: sendbuf
-    integer, dimension(:), intent(inout) :: recvbuf
-    include 'gather-inc.f90'   
-  end subroutine mpigather_i1
-
-  subroutine mpigather_li1(sendbuf,recvbuf,root,comm)
-    use dictionaries, only: f_err_throw,f_err_define
-    use yaml_output, only: yaml_toa
-    implicit none
-    integer(kind=8), dimension(:), intent(in) :: sendbuf
-    integer(kind=8), dimension(:), intent(inout) :: recvbuf
-    include 'gather-inc.f90'   
-  end subroutine mpigather_li1
-
 
   subroutine mpigather_d2d1(sendbuf,recvbuf,root,comm)
     use dictionaries, only: f_err_throw,f_err_define
@@ -761,55 +727,7 @@ contains
     !-end gather-inc
   end subroutine mpigather_i0i2
 
-  !> Gather the results of a given array into the root proc, version 
-  !! working with adresses
-  subroutine mpigather_c1i2(sendbuf_c,recvbuf,root,comm)
-    use dynamic_memory
-    use dictionaries, only: f_err_throw,f_err_define
-    use yaml_output, only: yaml_toa
-    implicit none
-    character, dimension(:), intent(inout) :: sendbuf_c
-    integer, dimension(:,:), intent(inout) :: recvbuf
-    !---like gather-inc
-    integer, intent(in), optional :: root !< 0 if absent
-    integer, intent(in), optional :: comm !< MPI_COMM_WORLD if absent
-    !local variables
-    integer :: iroot,mpi_comm,ntot,ntotrecv,ntasks,ierr
-    integer, dimension(:), allocatable :: sendbuf
-    ntot=size(sendbuf_c)
-    ntotrecv=size(recvbuf)
-    sendbuf=f_malloc(ntot,id='sendbuf')
-    call f_memcpy(src=sendbuf_c,dest=sendbuf)
-    include 'gather-inner-inc.f90'
-    !-end gather-inc
-  end subroutine mpigather_c1i2
-
-  !> Gather the results of a given array into the root proc, version 
-  !! working with adresses
-  subroutine mpigather_li0li2(sendbuf,sendcount,recvbuf,root,comm)
-    use dynamic_memory
-    use dictionaries, only: f_err_throw,f_err_define
-    use yaml_output, only: yaml_toa
-    implicit none
-    integer(kind=8), intent(inout) :: sendbuf
-    integer, intent(in) :: sendcount
-    integer(kind=8), dimension(:,:), intent(inout) :: recvbuf
-    !---like gather-inc
-    integer, intent(in), optional :: root !< 0 if absent
-    integer, intent(in), optional :: comm !< MPI_COMM_WORLD if absent
-    !local variables
-    integer :: iroot,mpi_comm,ntot,ntotrecv,ntasks,ierr
-
-    ntot=sendcount
-    ntotrecv=size(recvbuf)
-
-    include 'gather-inner-inc.f90'
-    !-end gather-inc
-  end subroutine mpigather_li0li2
-
-
   subroutine mpigather_d0d2(sendbuf,sendcount,recvbuf,root,comm)
-    use dynamic_memory
     use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
@@ -828,6 +746,7 @@ contains
     include 'gather-inner-inc.f90'
     !-end gather-inc
   end subroutine mpigather_d0d2
+  
 
 
   !> Interface for MPI_ALLGATHERV operations
@@ -875,16 +794,6 @@ contains
     integer, dimension(:), allocatable :: copybuf
     include 'allreduce-inc.f90'
   end subroutine mpiallred_int
-
-  subroutine mpiallred_long(sendbuf,count,op,comm,recvbuf)
-    use dictionaries, only: f_err_throw,f_err_define
-    use dynamic_memory
-    implicit none
-    integer(kind=8), intent(inout) :: sendbuf
-    integer(kind=8), intent(inout), optional :: recvbuf
-    integer(kind=8), dimension(:), allocatable :: copybuf
-    include 'allreduce-inc.f90'
-  end subroutine mpiallred_long
 
   !> Interface for MPI_ALLREDUCE operations
   subroutine mpiallred_real(sendbuf,count,op,comm,recvbuf)
@@ -939,92 +848,72 @@ contains
     include 'allreduce-arr-inc.f90'
   end subroutine mpiallred_d2
 
-  recursive subroutine mpibcast_i0(buffer,count,root,comm,check,maxdiff)
-    use dynamic_memory
+  recursive subroutine mpibcast_i0(buffer,count,root,comm,check)
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
     implicit none
     integer, intent(inout) ::  buffer 
-    integer, intent(out), optional :: maxdiff
-    integer, dimension(:), allocatable :: array_diff
     include 'bcast-decl-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_i0
 
-  subroutine mpibcast_li0(buffer,count,root,comm,check,maxdiff)
-    use dynamic_memory
+  subroutine mpibcast_li0(buffer,count,root,comm,check)
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
     implicit none
-    integer(kind=8), intent(inout) ::  buffer
-    integer(kind=8), intent(out), optional :: maxdiff
-    integer(kind=8), dimension(:), allocatable :: array_diff      
+    integer(kind=8), intent(inout) ::  buffer      
     include 'bcast-decl-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_li0
 
-  recursive subroutine mpibcast_d0(buffer,count,root,comm,check,maxdiff)
-    use dynamic_memory
+  recursive subroutine mpibcast_d0(buffer,count,root,comm,check)
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
     implicit none
-    double precision, intent(inout) ::  buffer
-    double precision, intent(out), optional :: maxdiff
-    double precision, dimension(:), allocatable :: array_diff
+    double precision, intent(inout) ::  buffer 
     include 'bcast-decl-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_d0
 
-  subroutine mpibcast_c1(buffer,root,comm,check,maxdiff)
-    use dynamic_memory
+  subroutine mpibcast_c1(buffer,root,comm,check)
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
     implicit none
-    character, dimension(:), intent(inout) ::  buffer 
-    integer, intent(out), optional :: maxdiff
-    integer, dimension(:), allocatable :: array_diff !<the difference is performed with ascii value
+    character, dimension(:), intent(inout) ::  buffer      
     include 'bcast-decl-arr-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_c1
 
-  subroutine mpibcast_i1(buffer,root,comm,check,maxdiff)
-    use dynamic_memory
+  subroutine mpibcast_i1(buffer,root,comm,check)
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
     implicit none
-    integer, dimension(:), intent(inout) ::  buffer
-    integer, intent(out), optional :: maxdiff      
-    integer, dimension(:), allocatable :: array_diff
+    integer, dimension(:), intent(inout) ::  buffer      
     include 'bcast-decl-arr-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_i1
 
-  subroutine mpibcast_d1(buffer,root,comm,check,maxdiff)
-    use dynamic_memory
+  subroutine mpibcast_d1(buffer,root,comm,check)
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
     implicit none
     double precision, dimension(:), intent(inout) ::  buffer      
-    double precision, intent(out), optional :: maxdiff
-    double precision, dimension(:), allocatable :: array_diff
     include 'bcast-decl-arr-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_d1
 
-  subroutine mpibcast_d2(buffer,root,comm,check,maxdiff)
-    use dynamic_memory
+  subroutine mpibcast_d2(buffer,root,comm,check)
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
     implicit none
-    double precision, dimension(:,:), intent(inout) ::  buffer
-    double precision, intent(out), optional :: maxdiff
-    double precision, dimension(:), allocatable :: array_diff
+    double precision, dimension(:,:), intent(inout) ::  buffer      
     include 'bcast-decl-arr-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_d2
 
+
   !> Detect the maximum difference between arrays all over a given communicator
-  function mpimaxdiff_i0(n,array,root,source,comm,bcast) result(maxdiff)
+  function mpimaxdiff_i0(n,array,root,comm,bcast) result(maxdiff)
     use dynamic_memory
     implicit none
     integer, intent(in) :: n !<number of elements to be controlled
@@ -1039,34 +928,7 @@ contains
     include 'maxdiff-inc.f90'
   end function mpimaxdiff_i0
 
-  !> Detect the maximum difference between arrays all over a given communicator
-  function mpimaxdiff_li0(n,array,root,source,comm,bcast) result(maxdiff)
-    use dynamic_memory
-    implicit none
-    integer(kind=8), intent(in) :: n !<number of elements to be controlled
-    integer(kind=8), intent(inout) :: array !< starting point of the array
-    integer(kind=8), dimension(:,:), allocatable :: array_glob
-    integer(kind=8) :: maxdiff 
-    include 'maxdiff-decl-inc.f90'
-    ndims = n
-    maxdiff=int(0,kind=8)
-    include 'maxdiff-inc.f90'
-  end function mpimaxdiff_li0
-
-  function mpimaxdiff_c1(array,root,source,comm,bcast) result(maxdiff)
-    use dynamic_memory
-    implicit none
-    !> array to be checked
-    character, dimension(:), intent(inout) :: array 
-    integer, dimension(:,:), allocatable :: array_glob
-    integer :: maxdiff
-    include 'maxdiff-decl-inc.f90'
-    ndims = size(array)
-    maxdiff=0
-    include 'maxdiff-arr-inc.f90'
-  end function mpimaxdiff_c1
-
-  function mpimaxdiff_d0(n,array,root,source,comm,bcast) result(maxdiff)
+  function mpimaxdiff_d0(n,array,root,comm,bcast) result(maxdiff)
     use dynamic_memory
     implicit none
     integer, intent(in) :: n !<number of elements to be controlled
@@ -1081,11 +943,11 @@ contains
     include 'maxdiff-inc.f90'
   end function mpimaxdiff_d0
 
-  function mpimaxdiff_d1(array,root,source,comm,bcast) result(maxdiff)
+  function mpimaxdiff_d1(array,root,comm,bcast) result(maxdiff)
     use dynamic_memory
     implicit none
     !> array to be checked
-    double precision, dimension(:), intent(inout) :: array 
+    double precision, dimension(:), intent(in) :: array 
     double precision, dimension(:,:), allocatable :: array_glob
     double precision :: maxdiff
     include 'maxdiff-decl-inc.f90'
@@ -1097,11 +959,11 @@ contains
     include 'maxdiff-arr-inc.f90'
   end function mpimaxdiff_d1
 
-  function mpimaxdiff_i1(array,root,source,comm,bcast) result(maxdiff)
+  function mpimaxdiff_i1(array,root,comm,bcast) result(maxdiff)
     use dynamic_memory
     implicit none
     !> array to be checked
-    integer, dimension(:), intent(inout) :: array 
+    integer, dimension(:), intent(in) :: array 
     integer, dimension(:,:), allocatable :: array_glob
     integer :: maxdiff
     include 'maxdiff-decl-inc.f90'
@@ -1113,12 +975,12 @@ contains
     include 'maxdiff-arr-inc.f90'
   end function mpimaxdiff_i1
 
-  function mpimaxdiff_i2(array,root,source,comm,bcast) result(maxdiff)
+  function mpimaxdiff_i2(array,root,comm,bcast) result(maxdiff)
 
     use dynamic_memory
     implicit none
     !> array to be checked
-    integer, dimension(:,:), intent(inout) :: array 
+    integer, dimension(:,:), intent(in) :: array 
     integer, dimension(:,:), allocatable :: array_glob
     integer :: maxdiff
     include 'maxdiff-decl-inc.f90'
@@ -1131,11 +993,11 @@ contains
   end function mpimaxdiff_i2
 
 
-  function mpimaxdiff_d2(array,root,source,comm,bcast) result(maxdiff)
+  function mpimaxdiff_d2(array,root,comm,bcast) result(maxdiff)
     use dynamic_memory
     implicit none
     !> array to be checked
-    double precision, dimension(:,:), intent(inout) :: array 
+    double precision, dimension(:,:), intent(in) :: array 
     double precision, dimension(:,:), allocatable :: array_glob
     double precision :: maxdiff
     include 'maxdiff-decl-inc.f90'
@@ -1143,7 +1005,7 @@ contains
     ndims = size(array)
 
     maxdiff=0.d0
-
+    
    include 'maxdiff-arr-inc.f90'
   end function mpimaxdiff_d2
 
@@ -1300,7 +1162,7 @@ contains
     integer,intent(out),pointer,optional :: window_
     !local variables
     integer :: nproc,jproc,nrecvbuf,ierr
-    !external :: getall
+    external :: getall
     logical :: check
     integer,target:: window
 

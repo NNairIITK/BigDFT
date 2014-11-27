@@ -344,7 +344,7 @@ call f_free(weight)
    if (f_err_check()) then
       if (ithread == 0) then
          call yaml_map('Errors found while (de)allocating ab and b',f_get_no_of_errors())
-         call f_dump_all_errors(-1) !<no dump in the file
+         call f_dump_all_errors()
       end if
    else
       call yaml_map('Something to use b',total)

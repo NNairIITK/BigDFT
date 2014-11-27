@@ -16,7 +16,6 @@ module bigdft_run
   use module_atoms, only: atoms_data
   use dynamic_memory, only: f_reference_counter,f_ref_new,f_ref,f_unref,&
        nullify_f_ref
-  use f_utils
   private
 
   !>  Used to restart a new DFT calculation or to save information 
@@ -33,7 +32,6 @@ module bigdft_run
 
   !> Public container to be used with call_bigdft().
   type, public :: run_objects
-     type(f_enumerator) :: run_mode
      !> user input specifications
      type(dictionary), pointer :: user_inputs
      !> structure of BigDFT input variables
@@ -611,10 +609,9 @@ module bigdft_run
     !> Routines to handle the argument objects of call_bigdft().
     pure subroutine nullify_run_objects(runObj)
       use module_types
-      use f_utils, only: f_enumerator_null
       implicit none
       type(run_objects), intent(out) :: runObj
-      runObj%run_mode=f_enumerator_null()
+
       nullify(runObj%user_inputs)
       nullify(runObj%inputs)
       nullify(runObj%atoms)
@@ -1078,11 +1075,6 @@ module bigdft_run
       end if
     end function bigdft_get_cell
 
-!TODO: 1) define f_enumerator types
-!!     2) regroup this routine in a QM_something routine
-!!     3) Insert the if statements of mhgps in the call_bigdft objects
-!!     4) Make everything compilable.
-
     !> Routine to use BigDFT as a blackbox
     subroutine call_bigdft(runObj,outs,infocode)
       use module_base
@@ -1108,34 +1100,51 @@ module bigdft_run
       call mpibarrier(bigdft_mpi%mpi_comm)
 !write(*,*)'(BIGDFTbastian) debug after barrier,runObj%inputs%inputPsiId',runObj%inputs%inputPsiId,bigdft_mpi%iproc
       call f_routine(id=subname)
-      !Check the consistency between MPI processes of the atomic coordinates and broadcast them
-      call mpibcast(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,maxdiff=maxdiff)
+      !Check the consistency between MPI processes of the atomic coordinates
+      maxdiff=mpimaxdiff(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,bcast=.true.)
       if (maxdiff > epsilon(1.0_gp)) then
          if (bigdft_mpi%iproc==0) then
             call yaml_warning('Input positions not identical! '//&
-                 '(difference:'//trim(yaml_toa(maxdiff))//' ), however broadcasting from master node.')
+                 '(difference:'//trim(yaml_toa(maxdiff))//' ), broadcasting from master node.')
+            call yaml_comment('If the code hangs here, this means that not all the tasks met the threshold')
+            call yaml_comment('This might be related to arithmetics in performing the comparison')
             call yaml_flush_document()
          end if
+         !the check=.true. is important here: it controls that each process
+         !will participate in the broadcasting
+         call mpibcast(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,&
+              check=.true.)
       end if
-
-!!$      maxdiff=mpimaxdiff(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,bcast=.true.)
-!!$      if (maxdiff > epsilon(1.0_gp)) then
-!!$         if (bigdft_mpi%iproc==0) then
-!!$            call yaml_warning('Input positions not identical! '//&
-!!$                 '(difference:'//trim(yaml_toa(maxdiff))//' ), broadcasting from master node.')
-!!$            call yaml_comment('If the code hangs here, this means that not all the tasks met the threshold')
-!!$            call yaml_comment('This might be related to arithmetics in performing the comparison')
-!!$            call yaml_flush_document()
-!!$         end if
-!!$         !the check=.true. is important here: it controls that each process
-!!$         !will participate in the broadcasting
-!!$         call mpibcast(runObj%atoms%astruct%rxyz,comm=bigdft_mpi%mpi_comm,&
-!!$              check=.true.)
-!!$      end if
 
       !fill the rxyz array with the positions
       !wrap the atoms in the periodic directions when needed
       call rxyz_inside_box(runObj%atoms%astruct,rxyz=runObj%rst%rxyz_new)
+!!$      select case(runObj%atoms%astruct%geocode)
+!!$      case('P')
+!!$         do iat=1,runObj%atoms%astruct%nat
+!!$            runObj%rst%rxyz_new(1,iat)=modulo(runObj%atoms%astruct%rxyz(1,iat),runObj%atoms%astruct%cell_dim(1))
+!!$            runObj%rst%rxyz_new(2,iat)=modulo(runObj%atoms%astruct%rxyz(2,iat),runObj%atoms%astruct%cell_dim(2))
+!!$            runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
+!!$         end do
+!!$      case('S')
+!!$         do iat=1,runObj%atoms%astruct%nat
+!!$            runObj%rst%rxyz_new(1,iat)=modulo(runObj%atoms%astruct%rxyz(1,iat),runObj%atoms%astruct%cell_dim(1))
+!!$            runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
+!!$            runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
+!!$         end do
+!!$      case('W')
+!!$         do iat=1,runObj%atoms%astruct%nat
+!!$            runObj%rst%rxyz_new(1,iat)=runObj%atoms%astruct%rxyz(1,iat)
+!!$            runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
+!!$            runObj%rst%rxyz_new(3,iat)=modulo(runObj%atoms%astruct%rxyz(3,iat),runObj%atoms%astruct%cell_dim(3))
+!!$         end do
+!!$      case('F')
+!!$         do iat=1,runObj%atoms%astruct%nat
+!!$            runObj%rst%rxyz_new(1,iat)=runObj%atoms%astruct%rxyz(1,iat)
+!!$            runObj%rst%rxyz_new(2,iat)=runObj%atoms%astruct%rxyz(2,iat)
+!!$            runObj%rst%rxyz_new(3,iat)=runObj%atoms%astruct%rxyz(3,iat)
+!!$         end do
+!!$      end select
 
       !assign the verbosity of the output
       !the verbose variables is defined in module_base
@@ -1381,23 +1390,11 @@ END SUBROUTINE run_objects_init_from_run_name
 subroutine run_objects_update(runObj, dict)
   use module_base, only: bigdft_mpi
   use bigdft_run, only: run_objects,init_restart_objects,set_run_objects
-  use dictionaries!, only: dictionary, dict_update,dict_copy,dict_free,dict_iter,dict_next
+  use dictionaries, only: dictionary, dict_update,dict_free
   use yaml_output
   implicit none
   type(run_objects), intent(inout) :: runObj
   type(dictionary), pointer :: dict
-  !local variables
-  type(dictionary), pointer :: item
-
-  if (associated(runObj%user_inputs)) then
-     item => dict_iter(dict)
-     do while (associated(item))
-        if (index(dict_key(item),'psppar') == 1) then
-           call dict_copy(runObj%user_inputs//trim(dict_key(item)),item)
-        end if
-        item => dict_next(item)
-     end do
-  end if
 
   ! We merge the previous dictionary with new entries.
   call dict_update(runObj%user_inputs, dict)

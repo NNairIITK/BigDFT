@@ -607,10 +607,6 @@ contains
     character(len=*), intent(in) :: key
     type(dictionary), pointer :: subd_ptr
 
-    if (.not. associated(dict)) then
-       nullify(subd_ptr)
-       return
-    end if
     !!commented out, the key is checked only when retrieving
     !call check_key(dict)
     if (associated(dict%child)) then
@@ -772,10 +768,6 @@ contains
 
     !commented out for the moment
     !call check_key(dict)
-    if (.not. associated(dict)) then
-       nullify(subd_ptr)
-       return
-    end if
     
     !print *,'nelems',dict%data%nelems,dict%data%nitems
     !free previously existing dictionaries
