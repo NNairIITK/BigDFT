@@ -847,17 +847,17 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
 
         !first left...
         tau = step
-        do i=1,nat
-            !potentially performance issues since lstpath
-            !is not transversed in column-major order in
-            !splint_wrapper
-            call splint_wrapper(arc,lstpathRM(1,1,i),y2vec(1,1,i),&
-                 nimages,tau,interleft(1,i),tangentleft(1,i))
-            call splint_wrapper(arc,lstpathRM(1,2,i),y2vec(1,2,i),&
-                 nimages,tau,interleft(2,i),tangentleft(2,i))
-            call splint_wrapper(arc,lstpathRM(1,3,i),y2vec(1,3,i),&
-                 nimages,tau,interleft(3,i),tangentleft(3,i))
-        enddo
+!        do i=1,nat
+!            !potentially performance issues since lstpath
+!            !is not transversed in column-major order in
+!            !splint_wrapper
+!            call splint_wrapper(arc,lstpathRM(1,1,i),y2vec(1,1,i),&
+!                 nimages,tau,interleft(1,i),tangentleft(1,i))
+!            call splint_wrapper(arc,lstpathRM(1,2,i),y2vec(1,2,i),&
+!                 nimages,tau,interleft(2,i),tangentleft(2,i))
+!            call splint_wrapper(arc,lstpathRM(1,3,i),y2vec(1,3,i),&
+!                 nimages,tau,interleft(3,i),tangentleft(3,i))
+!        enddo
         !generate coordinates for left node
         do i=1,nat
             call splint_wrapper(arc,lstpathRM(1,1,i),y2vec(1,1,i),&

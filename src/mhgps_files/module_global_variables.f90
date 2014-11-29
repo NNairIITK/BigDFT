@@ -116,11 +116,11 @@ module module_global_variables
     !type(atoms_data), save :: atoms
     type(atomic_structure), pointer, save :: astruct_ptr
     !integer, dimension(4) :: mpi_info
-    integer :: infocode
-    integer :: inputPsiId=0
-    integer :: iproc=0,nproc=1,igroup=0,ngroups=1
-    integer :: itermin=0
-    real(gp) :: frac_fluct=0.d0
+    integer, save :: infocode
+    integer, save :: inputPsiId=0
+    integer, save :: iproc=0,nproc=1,igroup=0,ngroups=1
+    integer, save :: itermin=0
+    real(gp), save :: frac_fluct=0.d0
 
 
     !following variables might be packed in an own module...

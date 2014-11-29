@@ -33,7 +33,7 @@ program mhgps
     use module_hessian, only: cal_hessian_fd 
     use module_minimizers
     implicit none
-    integer :: nend
+    integer :: nend,isame
     character(len=6) :: filename,filename2
     integer :: ifolder, ifile
     logical :: xyzexists,asciiexists
@@ -416,12 +416,13 @@ allocate(fat(3,nat))
                     call yaml_comment('(MHGPS) Connect '//filename//&
                                ' and '//filename2//' ....',hfill='-')
                 endif
+                isame=0
                 nsad=0
                 connected=.true.
 !                call connect(nat,nid,alat,rcov,nbond,&
 !                     iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
 !                     nsad,cobj,connected)
-               call connect_recursively(nat,nid,alat,rcov,nbond,&
+               call connect_recursively(nat,nid,alat,rcov,nbond,isame,&
                      iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
                      nsad,cobj,connected)
                 if(connected)then
