@@ -428,7 +428,7 @@ allocate(fat(3,nat))
                 if(connected)then
                     if(iproc==0)call yaml_map('(MHGPS) '//&
                               'succesfully connected, intermediate'//&
-                              ' transition states:',nsad)
+                              ' transition states',nsad)
                 else
                     if(iproc==0)call yaml_comment('(MHGPS) '//&
                                'Connection not established within '//&

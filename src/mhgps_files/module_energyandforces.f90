@@ -141,6 +141,7 @@ use module_atoms, only: astruct_dump_to_file
              ixyz_int(1,1), 1)
         epot=outs%energy
         fnoise=outs%fnoise
+        call f_utils_flush(6)
         return
     else
         call yaml_warning('Following method for evaluation of '//&
