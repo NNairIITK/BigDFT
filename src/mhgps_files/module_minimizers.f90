@@ -56,7 +56,6 @@ subroutine minimizer_sqnm(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,e
    use module_global_variables, only: iproc,&
                                       inputPsiId,&
                                       mhgps_verbosity,&
-                                      ixyz_int,&
                                       astruct_ptr,&
                                       mini_frac_fluct,&
                                       mini_ncluster_x,&

@@ -196,7 +196,7 @@ subroutine write_path(nat,npath,path,energies,tangent)
     use module_base
     use module_interfaces
     use module_atoms, only: astruct_dump_to_file
-    use module_global_variables, only: isadc, astruct_ptr,ixyz_int,&
+    use module_global_variables, only: isadc, astruct_ptr,&
                                        currDir
     implicit none
     !parameters
