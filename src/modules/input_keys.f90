@@ -331,7 +331,6 @@ contains
     logical :: found
     type(dictionary), pointer :: valid_entries,valid_patterns
     type(dictionary), pointer :: iter,invalid_entries,iter2
-    
 
     !> fill the list of valid entries
     valid_entries=>list_new([&
@@ -354,6 +353,7 @@ contains
          .item. LIN_BASIS_PARAMS,&
          .item. OCCUPATION,&
          .item. IG_OCCUPATION,&
+         !.item. RUN_NAME_KEY,&
          .item. FRAG_VARIABLES])
     
     !then the list of vaid patterns

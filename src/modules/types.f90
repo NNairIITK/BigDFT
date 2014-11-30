@@ -2566,6 +2566,7 @@ contains
     case (LIN_BASIS_PARAMS)
     case (OCCUPATION)
     case (IG_OCCUPATION)
+    !case (RUN_NAME_KEY)
     case DEFAULT
        if (index(level, "psppar") /= 1) then
           call yaml_warning("unknown level '" // trim(level) //"'")

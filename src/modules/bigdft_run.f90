@@ -1563,7 +1563,7 @@ module bigdft_run
       real(gp), dimension(6) :: strten
       integer, dimension(:), allocatable :: kmoves
       real(gp), dimension(:), allocatable :: functional,dfunctional
-      real(gp), dimension(:,:), allocatable :: radii_cf, rxyz_ref, fxyz_fake
+      real(gp), dimension(:,:), allocatable :: rxyz_ref, fxyz_fake
       type(energy_terms) :: energs
 
       if (iproc == 0) then
@@ -1610,8 +1610,6 @@ module bigdft_run
       dfunctional = f_malloc0(3*atoms%astruct%nat,id='dfunctional')
       rxyz_ref = f_malloc(src=rst%rxyz_new,id='rxyz_ref')
       fxyz_fake = f_malloc((/ 3, atoms%astruct%nat /),id='fxyz_fake')
-      radii_cf = f_malloc(src=atoms%radii_cf,id='radii_cf')
-
 
       do iat=1,atoms%astruct%nat
 
@@ -1658,7 +1656,7 @@ module bigdft_run
                end if
                inputs%inputPsiId=1
                !here we should call cluster
-               call cluster(nproc,iproc,atoms,rst%rxyz_new,radii_cf,energy,energs,fxyz_fake,strten,fnoise,pressure,&
+               call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,energs,fxyz_fake,strten,fnoise,pressure,&
                     rst%KSwfn,rst%tmb,&!psi,rst%Lzd,rst%gaucoeffs,rst%gbd,rst%orbs,&
                     rst%rxyz_old,inputs,rst%GPU,infocode)
 
@@ -1716,7 +1714,6 @@ module bigdft_run
       call f_free(dfunctional)
       call f_free(rxyz_ref)
       call f_free(fxyz_fake)
-      call f_free(radii_cf)
 
     contains
 
@@ -1775,11 +1772,13 @@ subroutine run_objects_init_from_run_name(runObj, radical, posinp)
   type(dictionary), pointer :: run_dict
 
   !create the ad-hoc dictionary run to wrap the module routine
-  run_dict => dict_new('name' .is. radical, 'posinp' .is. posinp)
-  
-  call run_objects_init(runObj,run_dict)
+  !run_dict => dict_new('name' .is. radical, 'posinp' .is. posinp)
 
-  call dict_free(run_dict)
+  call dict_init(run_dict)
+  call bigdft_set_run_properties(run_dict,run_id=radical,posinp_id=posinp)
+
+  call run_objects_init(runObj,run_dict)
+  !call dict_free(run_dict) In this case the run_dict has not to be freed
 END SUBROUTINE run_objects_init_from_run_name
 
 subroutine run_objects_update(runObj, dict)

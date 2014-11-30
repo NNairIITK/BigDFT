@@ -41,6 +41,7 @@ Keys to ignore:
  - number of taskgroups
  - taskgroups overview
  - outdir
+ - Atomic positions within the cell (Atomic and Grid Units)
  #- number of tasks
  #- IDs
  #- start / end

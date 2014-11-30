@@ -13,6 +13,7 @@ module public_keys
 
   character(len = *), parameter :: MODE_VARIABLES = "mode"
   character(len = *), parameter :: METHOD_KEY = "method"
+  character(len = *), parameter :: RUN_NAME_KEY = "name"
 
   character(len = *), parameter :: RADICAL_NAME = "radical"
   character(len = *), parameter :: POSINP = "posinp"

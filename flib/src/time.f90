@@ -234,6 +234,7 @@ module time_profiling
 
     !finalize the timing by putting to zero all the chronometers
     subroutine f_timing_finalize()
+      use yaml_output
       implicit none
       !create the general category for unspecified timings
       call dict_free(times(ictrl)%dict_timing_categories)
