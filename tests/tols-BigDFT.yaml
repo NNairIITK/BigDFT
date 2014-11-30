@@ -42,6 +42,7 @@ Keys to ignore:
  - taskgroups overview
  - outdir
  - Atomic positions within the cell (Atomic and Grid Units)
+ - Rigid Shift Applied (AU)
  #- number of tasks
  #- IDs
  #- start / end
