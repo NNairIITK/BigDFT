@@ -57,8 +57,8 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, nspin, lzd, hphi, phi, ldii
 
 
   ! Allocate the local arrays.
-  mat = f_malloc((/ ldiis%isx+1, ldiis%isx+1 /),id='mat')
-  rhs = f_malloc(ldiis%isx+1,id='rhs')
+  mat = f_malloc0((/ ldiis%isx+1, ldiis%isx+1 /),id='mat')
+  rhs = f_malloc0(ldiis%isx+1,id='rhs')
   !lwork=100*ldiis%isx
   !allocate(work(lwork), stat=istat)
   !call memocc(istat, work, 'work', subname)
@@ -66,8 +66,8 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, nspin, lzd, hphi, phi, ldii
 
   !!mat=0.d0
   !!rhs=0.d0
-  call to_zero((ldiis%isx+1)**2, mat(1,1))
-  call to_zero(ldiis%isx+1, rhs(1))
+  !call f_zero((ldiis%isx+1)**2, mat(1,1))
+  !call f_zero(ldiis%isx+1, rhs(1))
 
   ! Copy phi and hphi to history.
   ist=1
@@ -240,7 +240,10 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, nspin, lzd, hphi, phi, ldii
         ilr=orbs%inwhichlocreg(orbs%isorb+iorb)
         ncount=lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
         if (iispin==ispin) then
-            call to_zero(ncount, phi(ist))
+           if (f_err_raise(ist+ncount > npsidim,&
+                'The number of components in psi is insufficient!',&
+                err_name='BIGDFT_RUNTIME_ERROR')) return
+           call f_zero(ncount, phi(ist))
         end if
         isthist=max(1,ldiis%is-ldiis%isx+1)
         jj=0
@@ -332,9 +335,9 @@ ldiis%icountSwitch=0
 ldiis%icountDIISFailureTot=0
 ldiis%icountDIISFailureCons=0
 
-ldiis%mat = f_malloc_ptr((/ldiis%isx,ldiis%isx,orbs%norbp/),id='ldiis%mat')
+ldiis%mat = f_malloc0_ptr((/ldiis%isx,ldiis%isx,orbs%norbp/),id='ldiis%mat')
 
-if (ldiis%isx**2*orbs%norbp>0) call to_zero(ldiis%isx**2*orbs%norbp,ldiis%mat(1,1,1))
+!if (ldiis%isx**2*orbs%norbp>0) call to_zero(ldiis%isx**2*orbs%norbp,ldiis%mat(1,1,1))
 
 ii=0
 do iorb=1,orbs%norbp

@@ -216,7 +216,7 @@ subroutine foe(iproc, nproc, tmprtr, &
               calculate_SHS=.true.
         
               if (tmb%linmat%l%smmm%nfvctrp>0) then
-                  call to_zero(tmb%linmat%l%nfvctr*tmb%linmat%l%smmm%nfvctrp*tmb%linmat%l%nspin,tmb%linmat%kernel_%matrixp(1,1,1))
+                  call f_zero(tmb%linmat%l%nfvctr*tmb%linmat%l%smmm%nfvctrp*tmb%linmat%l%nspin,tmb%linmat%kernel_%matrixp(1,1,1))
               end if
         
               if (iproc==0) then
@@ -782,7 +782,7 @@ subroutine foe(iproc, nproc, tmprtr, &
           inv_ovrlpp=0.d0
           call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
-          call to_zero(tmb%linmat%l%nvctrp_tg, matrix_compr(1))
+          call f_zero(matrix_compr)
           call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
                inv_ovrlpp, matrix_compr)
 
@@ -1388,7 +1388,7 @@ subroutine uncompress_polynomial_vector(iproc, nproc, nsize_polynomial, &
 
 
   if (fermi%smmm%nfvctrp>0) then
-      call to_zero(fermi%nfvctr*fermi%smmm%nfvctrp, vector(1,1))
+      call f_zero(vector)
       isegstart = fermi%istsegline(fermi%smmm%isfvctr+1)
       isegend = fermi%istsegline(fermi%smmm%isfvctr+fermi%smmm%nfvctrp) + &
                 fermi%nsegline(fermi%smmm%isfvctr+fermi%smmm%nfvctrp)-1
@@ -1669,10 +1669,11 @@ subroutine ice(iproc, nproc, norder_polynomial, ovrlp_smat, inv_ovrlp_smat, ncal
         
               !!calculate_SHS=.true.
         
-              if (inv_ovrlp_smat%smmm%nfvctrp>0) then
-                  call to_zero(inv_ovrlp_smat%nfvctr*inv_ovrlp_smat%smmm%nfvctrp*ncalc, inv_ovrlp_matrixp(1,1,1))
-              end if
-        
+          !if (inv_ovrlp_smat%smmm%nfvctrp>0) then !LG: this conditional seems decorrelated
+          !call f_zero(inv_ovrlp_smat%nfvctr*inv_ovrlp_smat%smmm%nfvctrp*ncalc, inv_ovrlp_matrixp(1,1,1))
+          !end if
+              call f_zero(inv_ovrlp_matrixp)
+              
         
               it=0
               eval_bounds_ok=.false.

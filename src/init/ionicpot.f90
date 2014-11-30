@@ -281,7 +281,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
      !if (nproc==1) 
      !print *,'iproc,eself',iproc,eself
-     call to_zero(n1i*n2i*n3pi,pot_ion(1))
+     call f_zero(n1i*n2i*n3pi,pot_ion(1))
 
      if (n3pi >0 ) then
         !then calculate the hartree energy and forces of the charge distributions
@@ -560,7 +560,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   ! Ionic energy (can be calculated for all the processors)
 
   !Creates charge density arising from the ionic PSP cores
-  call to_zero(n1i*n2i*n3pi,pot_ion(1))
+  call f_zero(n1i*n2i*n3pi,pot_ion(1))
 
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')
@@ -751,9 +751,9 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      if (check_potion) then
         !if (iproc == 0) write(*,'(1x,a)',advance='no') 'Check the ionic potential...'
           
-        potion_corr = f_malloc(n1i*n2i*n3pi,id='potion_corr')
+        potion_corr = f_malloc0(n1i*n2i*n3pi,id='potion_corr')
 
-        call to_zero(n1i*n2i*n3pi,potion_corr)
+        !call to_zero(n1i*n2i*n3pi,potion_corr)
 
         !calculate pot_ion with an explicit error function to correct in the case of big grid spacings
         !for the moment works only in the isolated BC case
@@ -1264,7 +1264,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   ! Ionic energy (can be calculated for all the processors)
 
   !Creates charge density arising from the ionic PSP cores
-  call to_zero(grid%n1i*grid%n2i*n3pi,pot_ion(1))
+  call f_zero(grid%n1i*grid%n2i*n3pi,pot_ion(1))
 
 
   !conditions for periodicity in the three directions
@@ -1381,9 +1381,9 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
      if (check_potion) then
         !if (iproc == 0) write(*,'(1x,a)',advance='no') 'Check the ionic potential...'
           
-        potion_corr = f_malloc(grid%n1i*grid%n2i*n3pi,id='potion_corr')
+        potion_corr = f_malloc0(grid%n1i*grid%n2i*n3pi,id='potion_corr')
 
-        call to_zero(grid%n1i*grid%n2i*n3pi,potion_corr)
+        !call to_zero(grid%n1i*grid%n2i*n3pi,potion_corr)
 
         !calculate pot_ion with an explicit error function to correct in the case of big grid spacings
         !for the moment works only in the isolated BC case

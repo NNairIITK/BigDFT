@@ -979,8 +979,6 @@ contains
     astruct%nat = -1
     if (present(comment)) write(comment, "(A)") " "
 
-    !if (.not. has_key(dict, ASTRUCT_POSITIONS)) return
-
     ! The units
     units = 0
     write(astruct%units, "(A)") "bohr"

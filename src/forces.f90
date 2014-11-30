@@ -6,270 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-
-
-!> Calculate atomic forces via finite differences (test purpose)
-subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fnoise,rst,infocode)
-  use module_base
-  use module_types
-  use module_atoms, only: move_this_coordinate
-  use bigdft_run
-  implicit none
-  integer, intent(in) :: iproc,nproc
-  integer, intent(inout) :: infocode
-  real(gp), intent(inout) :: energy,fnoise
-  type(input_variables), intent(inout) :: inputs
-  type(atoms_data), intent(inout) :: atoms
-  type(restart_objects), intent(inout) :: rst
-  real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: fxyz
-  !local variables
-  character(len=*), parameter :: subname='forces_via_finite_differences'
-  character(len=4) :: cc
-  integer :: ik,km,n_order,i_all,i_stat,iat,ii,i,k,order,iorb_ref
-  real(gp) :: dd,alat,functional_ref,fd_alpha,energy_ref,pressure
-  real(gp), dimension(3) :: fd_step
-  real(gp), dimension(6) :: strten
-  integer, dimension(:), allocatable :: kmoves
-  real(gp), dimension(:), allocatable :: functional,dfunctional
-  real(gp), dimension(:,:), allocatable :: radii_cf, rxyz_ref, fxyz_fake
-  type(energy_terms) :: energs
-
-!!$  interface !not needed anymore
-!!$     subroutine cluster(nproc,iproc,atoms,rxyz,energy,fxyz,strten,fnoise,&
-!!$          KSwfn,tmb,&!psi,Lzd,gaucoeffs,gbd,orbs,
-!!$          rxyz_old,hx_old,hy_old,hz_old,in,GPU,infocode)
-!!$       use module_base
-!!$       use module_types
-!!$       implicit none
-!!$       integer, intent(in) :: nproc,iproc
-!!$       integer, intent(out) :: infocode
-!!$       real(gp), intent(inout) :: hx_old,hy_old,hz_old
-!!$       type(input_variables), intent(in) :: in
-!!$       !type(local_zone_descriptors), intent(inout) :: Lzd
-!!$       type(atoms_data), intent(inout) :: atoms
-!!$       !type(gaussian_basis), intent(inout) :: gbd
-!!$       !type(orbitals_data), intent(inout) :: orbs
-!!$       type(GPU_pointers), intent(inout) :: GPU
-!!$       type(DFT_wavefunction), intent(inout) :: KSwfn,tmb
-!!$       real(gp), intent(out) :: energy,fnoise
-!!$       real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz_old
-!!$       real(gp), dimension(3,atoms%astruct%nat), target, intent(inout) :: rxyz
-!!$       real(gp), dimension(6), intent(out) :: strten
-!!$       real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
-!!$       !real(wp), dimension(:), pointer :: psi
-!!$       !real(wp), dimension(:,:), pointer :: gaucoeffs
-!!$     END SUBROUTINE cluster
-!!$  end interface
-
-  if (iproc == 0) then
-     write(*,*)
-     write(*,'(1x,a,59("="))') '=Forces via finite Difference '
-  end if
-
-  !read the file (experimental version)
-  open(unit=79,file='input.finite_difference_forces',status='unknown')
-  read(79,*) order,fd_alpha
-  read(79,*) iorb_ref
-  close(unit=79)
-
-  !read the step size
-  ! Initialize freq_step (step to move atoms)
-  fd_step(1) = fd_alpha*inputs%hx
-  fd_step(2) = fd_alpha*inputs%hy
-  fd_step(3) = fd_alpha*inputs%hz
-
-  !first, mark the reference energy
-  energy_ref=energy
-
-  !assign the reference
-  functional_ref=functional_definition(iorb_ref,energy)
-
-  if (order == -1) then
-     n_order = 1
-     kmoves = f_malloc(src=(/ -1 /),id='kmoves')
-  else if (order == 1) then
-     n_order = 1
-     kmoves = f_malloc(src=(/ 1 /),id='kmoves')
-  else if (order == 2) then
-     n_order = 2
-     kmoves = f_malloc(src=(/ -1, 1 /),id='kmoves')
-  else if (order == 3) then
-     n_order = 4
-     kmoves = f_malloc(src=(/ -2, -1, 1, 2 /),id='kmoves')
-  else
-     print *, "Finite Differences: This order",order," is not implemented!"
-     stop
-  end if
-
-  functional = f_malloc(n_order,id='functional')
-  dfunctional = f_malloc(3*atoms%astruct%nat,id='dfunctional')
-  rxyz_ref = f_malloc((/ 3, atoms%astruct%nat /),id='rxyz_ref')
-  fxyz_fake = f_malloc((/ 3, atoms%astruct%nat /),id='fxyz_fake')
-  radii_cf = f_malloc((/ atoms%astruct%ntypes, 3 /),id='radii_cf')
-
-  call to_zero(3*atoms%astruct%nat,dfunctional)
-
-  !write reference in the array
-  call vcopy(3*atoms%astruct%nat,rst%rxyz_new(1,1),1,rxyz_ref(1,1),1)
-  radii_cf = atoms%radii_cf
-
-  do iat=1,atoms%astruct%nat
-
-     do i=1,3 !a step in each of the three directions
-
-        if (.not.move_this_coordinate(atoms%astruct%ifrztyp(iat),i)) then
-           if (iproc == 0) write(*,"(1x,a,i0,a,i0,a)") '=F:The direction ',i,' of the atom ',iat,' is frozen.'
-           cycle
-        end if
-
-        ii = i+3*(iat-1)
-        if (i==1) then
-           alat=atoms%astruct%cell_dim(1)
-           cc(3:4)='*x'
-        else if (i==2) then
-           alat=atoms%astruct%cell_dim(2)
-           cc(3:4)='*y'
-        else
-           alat=atoms%astruct%cell_dim(3)
-           cc(3:4)='*z'
-        end if
-        km = 0
-        functional=0.0_gp
-        do ik=1,n_order
-           k = kmoves(ik)
-           !-1-> 1, 1 -> 2, y = ( x + 3 ) / 2
-           km = km + 1
-           write(cc(1:2),"(i2)") k
-           !Displacement
-           dd=real(k,gp)*fd_step(i)
-           !We copy atomic positions (not necessary)
-           call vcopy(3*atoms%astruct%nat,rxyz_ref(1,1),1,rst%rxyz_new(1,1),1)
-           if (iproc == 0) then
-              write(*,"(1x,a,i0,a,a,a,1pe20.10,a)") &
-                   '=FD Move the atom ',iat,' in the direction ',cc,' by ',dd,' bohr'
-           end if
-           if (atoms%astruct%geocode == 'P') then
-              rst%rxyz_new(i,iat)=modulo(rxyz_ref(i,iat)+dd,alat)
-           else if (atoms%astruct%geocode == 'S') then
-              rst%rxyz_new(i,iat)=modulo(rxyz_ref(i,iat)+dd,alat)
-           else
-              rst%rxyz_new(i,iat)=rxyz_ref(i,iat)+dd
-           end if
-           inputs%inputPsiId=1
-           !here we should call cluster
-           call cluster(nproc,iproc,atoms,rst%rxyz_new,radii_cf,energy,energs,fxyz_fake,strten,fnoise,pressure,&
-                rst%KSwfn,rst%tmb,&!psi,rst%Lzd,rst%gaucoeffs,rst%gbd,rst%orbs,&
-                rst%rxyz_old,inputs,rst%GPU,infocode)
-
-           !assign the quantity which should be differentiated
-           functional(km)=functional_definition(iorb_ref,energy)
-!!$           if (iorb_ref==0) then
-!!$              functional(km)=energy
-!!$           else if (iorb_ref==-1) then
-!!$              functional(km)=rst%orbs%HLgap
-!!$           else if(iorb_ref < -1) then      !definition which brings to the neutral fukui function (chemical potential)
-!!$              !definition which brings Chemical potential
-!!$              functional(km)=-abs(rst%orbs%eval(-iorb_ref)+ 0.5_gp*rst%orbs%HLgap)
-!!$           else
-!!$              functional(km)=rst%orbs%eval(iorb_ref)
-!!$           end if
-           
-        end do
-        ! Build the finite-difference quantity if the calculation has converged properly
-        if (infocode ==0) then
-           !Force is -dE/dR
-           if (order == -1) then
-              dd = - (functional_ref - functional(1))/fd_step(i)
-           else if (order == 1) then
-              dd = - (functional(1) - functional_ref)/fd_step(i)
-           else if (order == 2) then
-              dd = - (functional(2) - functional(1))/(2.0_gp*fd_step(i))
-           else if (order == 3) then
-              dd = - (functional(4) + functional(3) - functional(2) - functional(1))/(6.d0*fd_step(i))
-           else
-              stop "BUG (FD_forces): this order is not defined"
-           end if
-           !if (abs(dd).gt.1.d-10) then
-           dfunctional(ii) = dd
-           !end if
-        else
-           if (iproc==0)&
-                write(*,*)'ERROR: the wavefunctions have not converged properly, meaningless result. Exiting. Infocode:',infocode
-           stop
-        end if
-        
-     end do
-  end do
-
-  !copy the final value of the energy and of the dfunctional
-  if (.not. experimental_modulebase_var_onlyfion) then !normal case
-     call vcopy(3*atoms%astruct%nat,dfunctional(1),1,fxyz(1,1),1)
-  else
-     call axpy(3*atoms%astruct%nat,2.0_gp*rst%KSwfn%orbs%norb,dfunctional(1),1,fxyz(1,1),1)
-  end if
-  !clean the center mass shift and the torque in isolated directions
-  call clean_forces(iproc,atoms,rxyz_ref,fxyz,fnoise)
-  if (iproc == 0) call write_forces(atoms,fxyz)
-
-  energy=functional_ref
-
-  if (iproc == 0) then
-     write(*,"(1x,2(a,1pe20.10))") &
-          '=FD Step done, Internal Energy:',energy_ref,' functional value:', functional_ref
-  end if
-
-
-  call f_free(kmoves)
-  call f_free(functional)
-  call f_free(dfunctional)
-  call f_free(rxyz_ref)
-  call f_free(fxyz_fake)
-  call f_free(radii_cf)
-
-contains
-  
-  function functional_definition(iorb_ref,energy)
-    use module_base
-    use module_types
-    implicit none
-    integer, intent(in) :: iorb_ref
-    real(gp), intent(in) :: energy
-    real(gp) :: functional_definition
-    !local variables
-    real(gp) :: mu
-
-    !chemical potential =1/2(e_HOMO+e_LUMO)= e_HOMO + 1/2 GAP (the sign is to be decided - electronegativity?)
-    !definition which brings to Chemical Potential
-    if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap) .and. iorb_ref< -1) then
-       mu=-abs(rst%KSwfn%orbs%eval(-iorb_ref)+ 0.5_gp*rst%KSwfn%orbs%HLgap) 
-    else
-       mu=UNINITIALIZED(1.0_gp)
-    end if
-
-    !assign the reference
-    if (iorb_ref==0) then
-       functional_definition=energy
-    else if (iorb_ref == -1) then
-       if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap)) then
-          functional_definition=rst%KSwfn%orbs%HLgap !here we should add the definition which brings to Fukui function
-       else
-          stop ' ERROR (FDforces): gap not defined' 
-       end if
-    else if(iorb_ref < -1) then      !definition which brings to the neutral fukui function (chemical potential)
-       if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap)) then
-          functional_definition=mu!-mu*real(2*orbs%norb,gp)+energy
-       else
-          stop ' ERROR (FDforces): gap not defined, chemical potential cannot be calculated' 
-       end if
-    else
-       functional_definition=rst%KSwfn%orbs%eval(iorb_ref)
-    end if
-    
-  end function functional_definition
-
-end subroutine forces_via_finite_differences
-
-
 subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,rxyz,hx,hy,hz,i3s,n3p,nspin,&
      refill_proj,ngatherarr,rho,pot,potxc,nsize_psi,psi,fion,fdisp,fxyz,&
      ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
@@ -302,9 +38,8 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   character(len=16), dimension(4) :: messages
 
 
-  call to_zero(6,strten(1))
-
-  call to_zero(6*4,strtens(1,1))
+  call f_zero(strten)
+  call f_zero(strtens)
 
   call local_forces(iproc,atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
        Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s,Glr%d%n1i,Glr%d%n2i,rho,pot,fxyz,strtens(1,1),charge)
@@ -344,7 +79,6 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   end if
 
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
-  
   !if (iproc == 0 .and. verbose > 1) call yaml_map('Non Local forces calculated',.true.)
    if (iproc == 0 .and. verbose > 1) call yaml_map('Calculate Non Local forces',(nlpsp%nprojel > 0))
 
@@ -355,7 +89,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
           iproc,nproc,ngatherarr,rho,strtens(1,4)) !shouud not be reduced for the moment
   end if
 
-  !add to the forces the ionic and dispersion contribution 
+  !add to the forces the ionic and dispersion contribution
   if (.not. experimental_modulebase_var_onlyfion) then !normal case
      if (iproc==0) then
         do iat=1,atoms%astruct%nat
@@ -371,16 +105,16 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      if (iproc==0) then
         call vcopy(3*atoms%astruct%nat,fion(1,1),1,fxyz(1,1),1)
      else
-        call to_zero(3*atoms%astruct%nat,fxyz)
+        call f_zero(fxyz)
      end if
   end if
 
   ! Add up all the force contributions
   if (nproc > 1) then
      !TD: fxyz(1,1) not used in case of no atoms
-     if (atoms%astruct%nat>0) then
-         call mpiallred(fxyz(1,1),3*atoms%astruct%nat,MPI_SUM,bigdft_mpi%mpi_comm)
-     end if
+     !if (atoms%astruct%nat>0) then
+     call mpiallred(fxyz,MPI_SUM,bigdft_mpi%mpi_comm)
+     !end if
      if (atoms%astruct%geocode == 'P') &
          call mpiallred(strtens(1,1),6*3,MPI_SUM,bigdft_mpi%mpi_comm) !do not reduce erfstr
      call mpiallred(charge,1,MPI_SUM,bigdft_mpi%mpi_comm)
@@ -854,7 +588,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(6) :: sab
 
   call f_routine(id=subname)
-  call to_zero(6,strten(1)) 
+  call f_zero(strten) 
   
   !quick return if no orbitals on this processor
   if (orbs%norbp == 0) return
@@ -864,10 +598,11 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
 
   !  allocate(scalprod(2,0:3,7,3,4,at%astruct%nat,orbs%norbp*orbs%nspinor),stat=i_stat)
   ! need more components in scalprod to calculate terms like dp/dx*psi*x
-  scalprod = f_malloc((/ 1.to.2, 0.to.9, 1.to.7, 1.to.3, 1.to.4, 1.to.at%astruct%nat, 1.to.orbs%norbp*orbs%nspinor /),id='scalprod')
-  if (2*10*7*3*4*at%astruct%nat*orbs%norbp*orbs%nspinor>0) then
-      call to_zero(2*10*7*3*4*at%astruct%nat*orbs%norbp*orbs%nspinor,scalprod(1,0,1,1,1,1,1))
-  end if
+  scalprod = &
+       f_malloc0([1.to.2,0.to.9,1.to.7,1.to.3,1.to.4,1.to.at%astruct%nat,1.to.orbs%norbp*orbs%nspinor],id='scalprod')
+  !if (2*10*7*3*4*at%astruct%nat*orbs%norbp*orbs%nspinor>0) then
+  !    call to_zero(2*10*7*3*4*at%astruct%nat*orbs%norbp*orbs%nspinor,scalprod(1,0,1,1,1,1,1))
+  !end if
 
 
   Enl=0._gp
@@ -1073,7 +808,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
      do iorb=isorb,ieorb
         sab=0.0_gp
         ! loop over all projectors
-        call to_zero(3*at%astruct%nat,fxyz_orb)
+        call f_zero(fxyz_orb)
         do ispinor=1,nspinor,ncplx
            jorb=jorb+1
            do iat=1,at%astruct%nat
@@ -4029,8 +3764,8 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   hpsi = f_malloc((/ lr%wfd%nvctr_c+7*lr%wfd%nvctr_f , orbs%nspinor*orbs%norbp /),id='hpsi')
   hpsi=0.0_wp
   ! Wavefunction in real space
-  psir = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%nspinor /),id='psir')
-  call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
+  psir = f_malloc0((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%nspinor /),id='psir')
+  !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
 
 
 
@@ -4296,7 +4031,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       recvdspls(jproc)=recvdspls(jproc-1)+recvcounts(jproc-1)
   end do
 
-  call to_zero(6,strten(1)) 
+  call f_zero(strten) 
 
      
   !always put complex scalprod
@@ -4667,11 +4402,11 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
       ! The density kernel is distributed over the taskgroups, but here the entire
       ! array is needed. Therefore gather it together from the taskgroups. If one
       ! wants to avoid this, the parallelization scheme of the subroutine must be changed.
-      call to_zero(nproc, recvcounts(0))
-      call to_zero(nproc, recvdspls(0))
+     call f_zero(recvcounts)
+      call f_zero(recvdspls)
       ncount = denskern%smmm%istartend_mm_dj(2) - denskern%smmm%istartend_mm_dj(1) + 1
       recvcounts(iproc) = ncount
-      call mpiallred(recvcounts(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(recvcounts, mpi_sum, bigdft_mpi%mpi_comm)
       recvdspls(0) = 0
       do jproc=1,nproc-1
           recvdspls(jproc) = recvdspls(jproc-1) + recvcounts(jproc-1)
@@ -4707,7 +4442,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
          call ncplx_kpt(ikpt,orbs,ncplx)
 
-         call to_zero(3*at%astruct%nat,fxyz_orb(1,1))
+         call f_zero(fxyz_orb)
 
          ! loop over all my orbitals for calculating forces
          !do iorbout=isorb,ieorb

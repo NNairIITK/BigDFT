@@ -472,9 +472,7 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
 
   if (at%donlcc) then
      !allocate pointer rhocore
-     rhocore = f_malloc_ptr((/ d%n1i , d%n2i , n3d , 10 /),id='rhocore')
-     !initalise it 
-     if (n3d > 0) call to_zero(d%n1i*d%n2i*n3d*10,rhocore(1,1,1,1))
+     rhocore = f_malloc0_ptr((/ d%n1i , d%n2i , n3d , 10 /),id='rhocore')
      !perform the loop on any of the atoms which have this feature
      do iat=1,at%astruct%nat
         ityp=at%astruct%iatype(iat)
@@ -1297,7 +1295,7 @@ END SUBROUTINE kpts_to_procs_via_obj
 
 
 subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par)
-  use module_base, only: gp, f_err_throw, to_zero,BIGDFT_RUNTIME_ERROR,&
+  use module_base, only: gp, f_err_throw, f_zero,BIGDFT_RUNTIME_ERROR,&
        UNINITIALIZED
   implicit none
   !Arguments
@@ -1309,7 +1307,7 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
   real(gp) :: strprc,endprc
 
   !for any of the k-points find the processors which have such k-point associated
-  call to_zero(nproc*nkpts,nvctr_par(0,1))
+  call f_zero(nvctr_par)
 
 
   !Loop over each k point
@@ -1871,8 +1869,7 @@ subroutine paw_init(paw, at, nspinor, nspin, npsidim, norb)
 
   allocate(paw%cprj(at%astruct%nat, nspinor * nspin * norb))
   nlmn = f_malloc(at%astruct%nat, id = "nlmn")
-  nattyp = f_malloc(at%astruct%ntypes, id = "nattyp")
-  call to_zero(at%astruct%ntypes, nattyp(1))
+  nattyp = f_malloc0(at%astruct%ntypes, id = "nattyp")
   do i = 1, at%astruct%nat
      nattyp(at%astruct%iatype(i)) = nattyp(at%astruct%iatype(i)) + 1
   end do
@@ -1892,8 +1889,8 @@ subroutine paw_init(paw, at, nspinor, nspin, npsidim, norb)
   call f_free(l_size_atm)
 
   allocate(paw%pawrhoij(at%astruct%nat))
-  spinat = f_malloc((/3, at%astruct%nat/), id = "spinat")
-  call to_zero(3 * at%astruct%nat, spinat(1,1))
+  spinat = f_malloc0((/3, at%astruct%nat/), id = "spinat")
+
   lexexch = f_malloc(at%astruct%ntypes, id = "lexexch")
   lexexch = -1
   lpawu = f_malloc(at%astruct%ntypes, id = "lpawu")

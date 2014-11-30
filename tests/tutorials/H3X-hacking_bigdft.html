@@ -168,7 +168,7 @@ end program wvl
 
   ! Read wavefunctions from disk and store them in psi.
   allocate(orbs%eval(orbs%norb*orbs%nkpts))
-  call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
+  call f_zero(orbs%eval)
   allocate(psi(orbs%npsidim))
   allocate(rxyz_old(3, atoms%nat))
   call readmywaves(iproc,"data/wavefunction", orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3, &

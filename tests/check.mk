@@ -111,7 +111,7 @@ $(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90
 	   name=`echo '--runs-file=list_posinp --taskgroup-size=1'`; \
 	fi; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	echo "Running $(run_parallel) $(abs_top_builddir)/src/bigdft $$name > $@" ; \
+	echo "Running $(run_parallel) $(abs_top_builddir)/src/bigdft -l yes $$name > $@" ; \
 	$(run_parallel) $(abs_top_builddir)/src/bigdft -l yes $$name > $@ ; \
 	if test -f list_posinp; then cat `awk '{print $$2}' list_posinp | $(SED) "s/^\(.*\)$$/log-\1.yaml/g"` > log.yaml ; fi ; \
 	name=`basename $@ .out` ; \
@@ -130,7 +130,7 @@ $(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90
 %.freq.out: $(abs_top_builddir)/src/frequencies
 	@name=`basename $@ .freq.out | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	echo "Running $(run_parallel) $(abs_top_builddir)/src/frequencies > $@" ; \
+	echo "Running $(run_parallel) $(abs_top_builddir)/src/frequencies -l yes > $@" ; \
 	$(run_parallel) $(abs_top_builddir)/src/frequencies -l yes > $@
 	name=`basename $@ .freq.out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"

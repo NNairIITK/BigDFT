@@ -415,15 +415,13 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   fluct=0.0_gp
 
   ! We save pointers on data used to call bigdft() routine.
-  previous_forces = f_malloc((/ 3, outs%fdim, runObj%inputs%history /),id='previous_forces')
-  previous_pos = f_malloc((/ 3, RUNOBJ%ATOMS%astruct%NAT, runObj%inputs%history /),id='previous_pos')
-  product_matrix = f_malloc((/ runObj%inputs%history, runObj%inputs%history /),id='product_matrix')
-
-
   ! Set to zero the arrays
-  call to_zero(runObj%inputs%history**2,product_matrix)
-  call to_zero(runObj%inputs%history*outs%fdim*3,previous_forces)
-  call to_zero(runObj%inputs%history*runObj%atoms%astruct%nat*3,previous_pos)
+  previous_forces = f_malloc0((/ 3, outs%fdim, runObj%inputs%history /),id='previous_forces')
+  previous_pos = f_malloc0((/ 3, RUNOBJ%ATOMS%astruct%NAT, runObj%inputs%history /),id='previous_pos')
+  product_matrix = f_malloc0((/ runObj%inputs%history, runObj%inputs%history /),id='product_matrix')
+
+
+
 
   ! We set the first step and move to the second
   call vcopy(3 * outs%fdim, outs%fxyz (1,1), 1, previous_forces(1,1,1), 1)
@@ -492,7 +490,7 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
 
      ! The solution that interests us is made of two parts
-     call to_zero(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz)
+     call f_zero(runObj%atoms%astruct%rxyz)
      do i = 1, maxter
         call axpy(3 * runObj%atoms%astruct%nat, solution(i), previous_pos(1,1,i), 1, runObj%atoms%astruct%rxyz(1,1), 1)
      end do

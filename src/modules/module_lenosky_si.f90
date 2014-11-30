@@ -733,7 +733,7 @@ end subroutine lenosky_si_shift
 
         subroutine subfeniat_l(iat1,iat2,nat,lsta,lstb,rel,tener,tener2, &
                tcoord,tcoord2,nnbrx,txyz,f2ij,npjx,f3ij,npjkx,f3ik,istop)
-        use module_base
+        use module_defs, only: gp
 ! for a subset of atoms iat1 to iat2 the routine calculates the (partial) forces
 ! txyz acting on these atoms as well as on the atoms (jat, kat) interacting
 ! with them and their contribution to the energy (tener).
@@ -1145,7 +1145,7 @@ end subroutine lenosky_si_shift
 
         subroutine sublstiat_l(iat,nn,ncx,ll1,ll2,ll3,l1,l2,l3,myspace, &
                    rxyz,icell,lstb,lay,rel,cut2,indlst)
-        use module_base
+        use module_defs, only: gp
 ! finds the neighbours of atom iat (specified by lsta and lstb) and and
 ! the relative position rel of iat with respect to these neighbours
         implicit real(gp) (a-h,o-z)
@@ -1181,7 +1181,7 @@ end subroutine lenosky_si_shift
         end subroutine
 
         subroutine splint(ya,y2a,tmin,tmax,hsixth,h2sixth,hi,n,x,y,yp)
-        use module_base
+        use module_defs, only: gp
         implicit real(gp) (a-h,o-z)
         dimension y2a(0:n-1),ya(0:n-1)
 

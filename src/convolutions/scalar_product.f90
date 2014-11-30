@@ -180,7 +180,7 @@ end subroutine proj_dot_psi
 !! of the projector to ease its successive application
 subroutine scpr_proj_p_hpsi(n_p,wfd_p,proj,n_w,wfd_w,&
      nmseg_c,nmseg_f,psi_mask,hpsi_pack,scpr,hpsi)
-  use module_base, only: wp,gemm,to_zero
+  use module_base, only: wp,gemm,f_zero
   use module_types, only: wavefunctions_descriptors
   implicit none
   integer, intent(in) :: n_p !< number of projectors (real and imaginary part included)
@@ -221,7 +221,7 @@ subroutine scpr_proj_p_hpsi(n_p,wfd_p,proj,n_w,wfd_w,&
              scpr(1,1),n_w,0.0_wp,&
              hpsi_pack(1,1),wfd_p%nvctr_c+7*wfd_p%nvctr_f)
      else
-        call to_zero(n_w*(wfd_p%nvctr_c+7*wfd_p%nvctr_f),hpsi_pack(1,1))
+        call f_zero(hpsi_pack)
      end if
 
      !then last projector

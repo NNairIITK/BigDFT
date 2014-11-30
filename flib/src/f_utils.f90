@@ -13,9 +13,11 @@ module f_utils
   use yaml_strings, only: yaml_toa,operator(.eqv.)
   implicit none
 
-  public 
+  private
 
   integer, save, private :: INPUT_OUTPUT_ERROR
+
+  integer, public, save :: TCAT_INIT_TO_ZERO
 
   !preprocessed include file with processor-specific values
   include 'f_utils.inc' !defines recl_kind
@@ -27,11 +29,12 @@ module f_utils
   end type io_stream
   !> enumerator type, useful to define different modes
   type, public :: f_enumerator
-     character(len=256) :: name
+     character(len=64) :: name
      integer :: id
   end type f_enumerator
   integer, parameter, private :: NULL_INT=-1024
   character(len=*), parameter, private :: null_name='nullified enumerator'
+
   type(f_enumerator), parameter, private :: &
        f_enum_null=f_enumerator(null_name,NULL_INT)
 
@@ -44,13 +47,35 @@ module f_utils
      module procedure f_diff_c1i1,f_diff_li0li1
   end interface f_diff
 
+  !> Initialize to zero an array (should be called f_memset)
+  interface f_zero
+     module procedure put_to_zero_simple
+     module procedure put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2
+     module procedure put_to_zero_double_3, put_to_zero_double_4, put_to_zero_double_5
+     module procedure put_to_zero_double_6, put_to_zero_double_7
+     module procedure put_to_zero_integer,put_to_zero_integer1,put_to_zero_integer2
+     module procedure put_to_zero_integer3
+  end interface f_zero
+
+
   interface operator(==)
-     module procedure enum_is_int,enum_is_char,enum_is_enum
+     module procedure enum_is_int,enum_is_enum
   end interface operator(==)
 
-  private :: f_diff_i,f_diff_r,f_diff_d,f_diff_li,f_diff_l,f_diff_li0li1
-  private :: f_diff_d2d3,f_diff_d2d1,f_diff_d1d2,f_diff_d2,f_diff_d1
-  private :: f_diff_i2i1,f_diff_i1,f_diff_i2,f_diff_i1i2,f_diff_d0d1,f_diff_c1i1
+  interface int
+     module procedure int_enum
+  end interface int
+
+  interface char
+     module procedure char_enum
+  end interface char
+
+  public :: f_diff,int,char,f_enumerator_null,operator(==),f_file_unit
+  public :: f_utils_errors,f_utils_recl,f_file_exists,f_close,f_zero
+  public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind
+  public :: f_iostream_from_file,f_iostream_from_lstring
+  public :: f_iostream_get_line,f_iostream_release,f_pause
+
 contains
 
   pure function f_enumerator_null() result(en)
@@ -64,7 +89,7 @@ contains
     type(f_enumerator), intent(in) :: en
     type(f_enumerator), intent(in) :: en1
     logical :: ok
-    ok = en == en1%id .and. en == en1%name
+    ok = en == en1%id
   end function enum_is_enum
 
   elemental pure function enum_is_int(en,int) result(ok)
@@ -82,6 +107,20 @@ contains
     logical :: ok
     ok = trim(en%name) .eqv. trim(char)
   end function enum_is_char
+
+  !>integer of f_enumerator type.
+  elemental pure function int_enum(en)
+    type(f_enumerator), intent(in) :: en
+    integer :: int_enum
+    int_enum=en%id
+  end function int_enum
+
+  !>char of f_enumerator type.
+  elemental pure function char_enum(en)
+    type(f_enumerator), intent(in) :: en
+    character(len=len(en%name)) :: char_enum
+    char_enum=en%name
+  end function char_enum
   
   subroutine f_utils_errors()
 
@@ -262,7 +301,7 @@ contains
     !Local variables
     integer :: ierror
 
-    ios%iunit = 742
+    ios%iunit=f_get_free_unit(742)
     open(unit=ios%iunit,file=trim(filename),status='old',iostat=ierror)
     !Check the open statement
     if (ierror /= 0) call f_err_throw('Error in opening file='//&
@@ -324,7 +363,7 @@ contains
     nullify(ios%lstring)
   end subroutine f_iostream_release
 
-  !>enter in a infinite loop for sec seconds. Use cpu_time as granularitu is enough
+  !>enter in a infinite loop for sec seconds. Use cpu_time as granularity is enough
   subroutine f_pause(sec)
     implicit none
     integer, intent(in) :: sec !< seconds to be waited
@@ -333,6 +372,7 @@ contains
 
     call cpu_time(t0)
     t1=t0
+    if (t0 < 0.e0) return ! no-clock case, according to specification
     do while(nint(t1-t0) < sec)
        call cpu_time(t1)
     end do
@@ -511,6 +551,113 @@ contains
     external :: diff_i
     call diff_i(n,a,b(1),diff)
   end subroutine f_diff_i0i1
+
+  subroutine put_to_zero_simple(n,da)
+    implicit none
+    integer, intent(in) :: n
+    real, intent(out) :: da
+
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero_simple(n,da)
+    call f_timer_resume()
+  end subroutine put_to_zero_simple
+
+  subroutine put_to_zero_double(n,da)
+    implicit none
+    integer, intent(in) :: n
+    double precision, intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero(n,da)
+    call f_timer_resume()
+  end subroutine put_to_zero_double
+
+  subroutine put_to_zero_double_1(da)
+    implicit none
+    double precision, dimension(:), intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero(size(da),da)
+    call f_timer_resume()
+  end subroutine put_to_zero_double_1
+
+  subroutine put_to_zero_double_2(da)
+    implicit none
+    double precision, dimension(:,:), intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero(size(da),da)
+    call f_timer_resume()
+  end subroutine put_to_zero_double_2
+
+  subroutine put_to_zero_double_3(da)
+    implicit none
+    double precision, dimension(:,:,:), intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
+    call razero(size(da),da)
+    call f_timer_resume() 
+  end subroutine put_to_zero_double_3
+
+  subroutine put_to_zero_double_4(da)
+    implicit none
+    double precision, dimension(:,:,:,:), intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
+    call razero(size(da),da)
+    call f_timer_resume() 
+  end subroutine put_to_zero_double_4
+
+  subroutine put_to_zero_double_5(da)
+    implicit none
+    double precision, dimension(:,:,:,:,:), intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
+    call razero(size(da),da)
+    call f_timer_resume() 
+  end subroutine put_to_zero_double_5
+
+  subroutine put_to_zero_double_6(da)
+    implicit none
+    double precision, dimension(:,:,:,:,:,:), intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
+    call razero(size(da),da)
+    call f_timer_resume() 
+  end subroutine put_to_zero_double_6
+
+  subroutine put_to_zero_double_7(da)
+    implicit none
+    double precision, dimension(:,:,:,:,:,:,:), intent(out) :: da
+    logical :: within_openmp
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
+    call razero(size(da),da)
+    call f_timer_resume() 
+  end subroutine put_to_zero_double_7
+
+  subroutine put_to_zero_integer(n,da)
+    implicit none
+    integer, intent(in) :: n
+    integer, intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero_integer(n,da)
+    call f_timer_resume()
+  end subroutine put_to_zero_integer
+
+  subroutine put_to_zero_integer1(da)
+    implicit none
+    integer, dimension(:), intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero_integer(size(da),da)
+    call f_timer_resume()
+  end subroutine put_to_zero_integer1
+  subroutine put_to_zero_integer2(da)
+    implicit none
+    integer, dimension(:,:), intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero_integer(size(da),da)
+    call f_timer_resume()
+  end subroutine put_to_zero_integer2
+  subroutine put_to_zero_integer3(da)
+    implicit none
+    integer, dimension(:,:,:), intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero_integer(size(da),da)
+    call f_timer_resume()
+  end subroutine put_to_zero_integer3
 
   
 end module f_utils

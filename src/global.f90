@@ -908,7 +908,7 @@ contains
     call frozen_dof(bigdft_get_astruct_ptr(runObj),vxyz,ndfree,ndfroz)
   ! normalize velocities to target ekinetic
     call velnorm(natoms,(ekinetic*ndfree)/(ndfree+ndfroz),vxyz)
-    call to_zero(3*natoms,gg)
+    call f_zero(gg)
 
     if(iproc==0) call torque(natoms,rxyz_run,vxyz)
 

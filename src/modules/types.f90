@@ -259,6 +259,8 @@ module module_types
 
      !>reference counter
      type(f_reference_counter) :: refcnt
+     !> enumerator for the mode of the run
+     type(f_enumerator) :: run_mode
      !> Strings of the input files
      character(len=100) :: file_occnum !< Occupation number (input)
      character(len=100) :: file_igpop
@@ -2033,6 +2035,7 @@ contains
     use module_defs, only: DistProjApply, GPUblas, gp
     use module_input_keys, only: input_keys_equal
     use public_keys
+    use public_enums
     use dynamic_memory
     use yaml_output, only: yaml_warning
     implicit none
@@ -2052,6 +2055,19 @@ contains
     case(MODE_VARIABLES)
        select case (trim(dict_key(val)))
        case(METHOD_KEY)
+          str=val
+          select case(trim(str))
+          case('lj')
+             in%run_mode=LENNARD_JONES_RUN_MODE
+          case('dft')
+             in%run_mode=QM_RUN_MODE
+          case('lensic')
+             in%run_mode=LENOSKY_SI_CLUSTERS_RUN_MODE
+          case('lensib')
+             in%run_mode=LENOSKY_SI_BULK_RUN_MODE
+          case('amber')
+             in%run_mode=AMBER_RUN_MODE
+          end select
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
@@ -2549,6 +2565,7 @@ contains
     case (KPT_VARIABLES)
     case (LIN_BASIS_PARAMS)
     case (OCCUPATION)
+    case (IG_OCCUPATION)
     case DEFAULT
        if (index(level, "psppar") /= 1) then
           call yaml_warning("unknown level '" // trim(level) //"'")

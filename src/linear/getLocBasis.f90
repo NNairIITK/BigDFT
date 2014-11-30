@@ -150,7 +150,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
            tmb%orbs, tmb%psi, tmb%ham_descr%psi)
 
-      if (tmb%ham_descr%npsidim_orbs > 0) call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
+      if (tmb%ham_descr%npsidim_orbs > 0) call f_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
 
       call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
            tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,tmb%hpsi,energs%eproj,tmb%paw)
@@ -250,7 +250,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       do ispin=1,tmb%linmat%m%nspin
           ishifts = (ispin-1)*tmb%linmat%s%nvctr
           ishiftm = (ispin-1)*tmb%linmat%m%nvctr
-          call to_zero(tmb%linmat%m%nfvctr**2, tmb%linmat%ham_%matrix(1,1,ispin))
+          call f_zero(tmb%linmat%m%nfvctr**2, tmb%linmat%ham_%matrix(1,1,ispin))
           tempmat = sparsematrix_malloc(tmb%linmat%m, iaction=DENSE_MATMUL, id='tempmat')
           call uncompress_matrix_distributed(iproc, tmb%linmat%m, DENSE_MATMUL, &
                tmb%linmat%ham_%matrix_compr(ishiftm+1:ishiftm+tmb%linmat%m%nvctr), tempmat)
@@ -264,7 +264,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
                    mpi_sum, bigdft_mpi%mpi_comm)
           end if
 
-          call to_zero(tmb%linmat%s%nfvctr**2, tmb%linmat%ovrlp_%matrix(1,1,ispin))
+          call f_zero(tmb%linmat%s%nfvctr**2, tmb%linmat%ovrlp_%matrix(1,1,ispin))
           tempmat = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_MATMUL, id='tempmat')
           call uncompress_matrix_distributed(iproc, tmb%linmat%s, DENSE_MATMUL, &
                tmb%linmat%ovrlp_%matrix_compr(ishifts+1:ishifts+tmb%linmat%s%nvctr), tempmat)
@@ -677,7 +677,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            TRANSPOSE_POST, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd, wt_phi)
 
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
-      if (tmb%ham_descr%npsidim_orbs > 0)  call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
+      if (tmb%ham_descr%npsidim_orbs > 0)  call f_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
       call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
            tmb%orbs, tmb%psi, tmb%ham_descr%psi)
 
@@ -835,7 +835,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !allocate(occup_tmp(tmb%orbs%norb), stat=istat)
           !call memocc(istat, occup_tmp, 'occup_tmp', subname)
           !call vcopy(tmb%orbs%norb, tmb%orbs%occup(1), 1, occup_tmp(1), 1)
-          !call to_zero(tmb%orbs%norb,tmb%orbs%occup(1))
+          !call f_zero(tmb%orbs%norb,tmb%orbs%occup(1))
           !call vcopy(orbs%norb, orbs%occup(1), 1, tmb%orbs%occup(1), 1)
           !! occupy the next few states - don't need to preserve the charge as only using for support function optimization
           !do iorb=1,tmb%orbs%norb
@@ -1539,7 +1539,7 @@ subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, 
 
   call timing(iproc,'small2large','ON') ! lr408t 
   ! No need to put arrays to zero, Lpsi_to_global2 will handle this.
-  call to_zero(npsidim_orbs_large, philarge(1))
+  call f_zero(philarge)
   ists=1
   istl=1
   do iorb=1,orbs%norbp
@@ -1592,7 +1592,7 @@ subroutine large_to_small_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, 
        call timing(iproc,'large2small','ON') ! lr408t   
   ! Transform back to small locreg
   ! No need to this array to zero, since all values will be filled with a value during the copy.
-  !!call to_zero(npsidim_orbs_small, phismall(1))
+  !!call f_zero(npsidim_orbs_small, phismall(1))
   ists=1
   istl=1
   do iorb=1,orbs%norbp
@@ -2057,7 +2057,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
              !!    end do
              !!end do
           else
-             call to_zero(norbx**2,ovrlp_coeff(1,1))
+             call f_zero(ovrlp_coeff)
           end if
 
           call f_free(coeff_tmp)
@@ -2067,7 +2067,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
          !also a problem with sparse at the moment - result not stored in correct arrays/allreduce etc
 
          !SM: need to fix the spin here
-         call to_zero(norb**2, KS_ovrlp_%matrix(1,1,1))
+         call f_zero(KS_ovrlp_%matrix)
          npts_per_proc = nint(real(basis_overlap%nvctr + basis_overlap%nfvctr,dp) / real(nproc*2,dp))
          ind_start = 1+iproc*npts_per_proc
          ind_end = (iproc+1)*npts_per_proc
@@ -2244,11 +2244,11 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
                          inv_ovrlp_matrix(1,orbs%isorb+1), orbs%norb, 0.d0, coeff_tmp(1,1), basis_orbs%norb)
                 end if
             else
-               call to_zero(basis_overlap%nfvctr*norbx, coeff_tmp(1,1))
+               call f_zero(coeff_tmp)
             end if
 
             if (nproc > 1) then
-               call mpiallred(coeff_tmp(1,1), basis_overlap%nfvctr*norbx, mpi_sum, bigdft_mpi%mpi_comm)
+               call mpiallred(coeff_tmp, mpi_sum, bigdft_mpi%mpi_comm)
             end if
             call vcopy(basis_overlap%nfvctr*norbx,coeff_tmp(1,1),1,coeff(1,1),1)
          else
@@ -2333,13 +2333,13 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
             call dgemm('t', 'n', norbx, norbx, basis_overlap%nfvctrp, 1.d0, coeff(basis_overlap%isfvctr+1,1), &
                  basis_overlap%nfvctr, coeff_tmp, basis_overlap%nfvctrp, 0.d0, ovrlp_coeff, norbx)
          else
-            call to_zero(norbx**2,ovrlp_coeff(1,1))
+            call f_zero(ovrlp_coeff)
          end if
 
          call f_free(coeff_tmp)
 
          if (nproc>1) then
-            call mpiallred(ovrlp_coeff(1,1), norbx**2, mpi_sum, bigdft_mpi%mpi_comm)
+            call mpiallred(ovrlp_coeff, MPI_SUM, bigdft_mpi%mpi_comm)
          end if
 
          if (norb==orbs%norb) then
@@ -2566,7 +2566,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
   if (it_shift>1) then
       call calculate_overlap_onehalf()
-      call to_zero(tmb%linmat%l%nfvctr**2, kernel_prime(1,1))
+      call f_zero(kernel_prime)
       if (tmb%linmat%l%nfvctrp>0) then
           !SM: need to fix the spin here
           call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
@@ -2580,7 +2580,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
       end if
 
       if (nproc > 1) then
-          call mpiallred(kernel_prime(1,1), tmb%linmat%l%nfvctr**2, mpi_sum, bigdft_mpi%mpi_comm)
+          call mpiallred(kernel_prime, mpi_sum, bigdft_mpi%mpi_comm)
       end if
   end if
 
@@ -2609,7 +2609,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
               end do
           end do
           !SM: need to fix the spin here
-          call to_zero(tmb%linmat%l%nfvctr**2, tmb%linmat%kernel_%matrix(1,1,1))
+          call f_zero(tmb%linmat%l%nfvctr**2, tmb%linmat%kernel_%matrix(1,1,1))
           if (tmb%linmat%l%nfvctrp>0) then
               call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
                          1.d0, ks, tmb%linmat%l%nfvctr, &
@@ -2631,7 +2631,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
       do it=1,it_opt
 
-          call to_zero(tmb%linmat%l%nfvctr**2, ks(1,1))
+          call f_zero(tmb%linmat%l%nfvctr**2, ks(1,1))
           if (tmb%linmat%l%nfvctrp>0) then
               call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
                          1.d0, tmb%linmat%kernel_%matrix(1,1,1), tmb%linmat%l%nfvctr, &
@@ -2702,7 +2702,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
               call yaml_mapping_close()
           end if
 
-          call to_zero(tmb%linmat%l%nfvctr**2, tmb%linmat%kernel_%matrix(1,1,1))
+          call f_zero(tmb%linmat%l%nfvctr**2, tmb%linmat%kernel_%matrix(1,1,1))
           do iorb=1,tmb%linmat%l%nfvctrp
               iiorb=iorb+tmb%linmat%l%isfvctr
               do jorb=1,tmb%linmat%l%nfvctr
@@ -3113,15 +3113,15 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
 
           ncount=tmb%linmat%l%nfvctr*tmb%linmat%l%smmm%nfvctrp
           if (ncount>0) then
-              call to_zero(ncount, tempp(1,1))
+              call f_zero(ncount, tempp(1,1))
           end if
           call sparsemm(tmb%linmat%l, kernel_compr_seq, inv_ovrlpp, tempp)
           if (ncount>0) then
-              call to_zero(ncount, inv_ovrlpp(1,1))
+              call f_zero(ncount, inv_ovrlpp(1,1))
           end if
           call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
 
-          !call to_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
+          !call f_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
           call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
                inv_ovrlpp, tmb%linmat%kernel_%matrix_compr(tmb%linmat%l%isvctrp_tg+1:))
 
