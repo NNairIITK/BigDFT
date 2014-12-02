@@ -1092,7 +1092,7 @@
                     Indicates the number of iterations in the (self-consistent) optimization of the density kernel.
                     The first entry is used for the low accuracy part, the second one for the high accuracy part.
                     When the hybrid mode is used, only the first entry is taken into account.
-       RANGE: [0,100]
+       RANGE: [0,1000]
        default: [5,5]
 # check whether there are different DIIS histories...
      idsx_coeff:

@@ -1781,7 +1781,8 @@ subroutine writemywaves_linear_fragments(iproc,filename,iformat,npsidim,Lzd,orbs
            call writeLinearCoefficients(unitwf,(iformat == WF_FORMAT_PLAIN),ref_frags(ifrag_ref)%astruct_frg%nat,&
                 rxyz(:,isfat+1:isfat+ref_frags(ifrag_ref)%astruct_frg%nat),ref_frags(ifrag_ref)%fbasis%forbs%norb,&
                 ref_frags(ifrag_ref)%nelec,&
-                coeff(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb,isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb),&
+                coeff(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb,&
+                isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb),&
                 orbs%eval(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb)) !-0.5d0
            close(unitwf)
         end if

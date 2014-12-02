@@ -53,8 +53,8 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   end if
 
   ! adding random noise to starting to help with local minima problem
-  random=.true. ! add a bit of noise
-  completely_random=.true. ! completely random start for coeffs
+  random=.false. ! add a bit of noise
+  completely_random=.false. ! completely random start for coeffs
 
   rmax=0.2d0
   random_noise=0.0d0
