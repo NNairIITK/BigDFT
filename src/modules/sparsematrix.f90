@@ -20,15 +20,17 @@ module sparsematrix
 
 
   !> Public routines
-  public :: compress_matrix
-  public :: uncompress_matrix
+  public :: compress_matrix, compress_matrix2
+  public :: uncompress_matrix, uncompress_matrix2
   public :: check_matrix_compression
-  public :: transform_sparse_matrix
+  public :: transform_sparse_matrix, transform_sparse_matrix_local
   public :: compress_matrix_distributed
-  public :: uncompress_matrix_distributed
+  public :: uncompress_matrix_distributed, uncompress_matrix_distributed2
   public :: sequential_acces_matrix_fast, sequential_acces_matrix_fast2
   public :: sparsemm
   public :: orb_from_index
+  public :: gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace
+  public :: extract_taskgroup_inplace, extract_taskgroup
 
   contains
 
@@ -127,6 +129,24 @@ module sparsematrix
     end subroutine compress_matrix
 
 
+    subroutine compress_matrix2(iproc,sparsemat,inmat,outmat)
+      implicit none
+      
+      ! Calling arguments
+      integer, intent(in) :: iproc
+      type(sparse_matrix),intent(inout) :: sparsemat
+      real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),intent(in) :: inmat
+      real(kind=8),dimension(sparsemat%nvctrp_tg*sparsemat%nspin),intent(out) :: outmat
+
+      ! Local variables
+      real(kind=8),dimension(:),allocatable :: tmparr
+
+      tmparr = sparsematrix_malloc(sparsemat,iaction=SPARSE_FULL,id='tmparr')
+      call compress_matrix(iproc,sparsemat,inmat,tmparr)
+      call extract_taskgroup(sparsemat, tmparr, outmat)
+      call f_free(tmparr)
+    end subroutine compress_matrix2
+
 
     !> subroutine to uncompress the matrix from sparse form
     subroutine uncompress_matrix(iproc,sparsemat,inmat,outmat)
@@ -224,6 +244,24 @@ module sparsematrix
     end subroutine uncompress_matrix
 
 
+    subroutine uncompress_matrix2(iproc, nproc, smat, matrix_compr, matrix)
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc
+      type(sparse_matrix),intent(inout) :: smat
+      real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: matrix_compr
+      real(kind=8),dimension(smat%nfvctr,smat%nfvctr,smat%nspin),intent(out) :: matrix
+
+      ! Local variables
+      real(kind=8),dimension(:),allocatable :: tmparr
+
+      tmparr = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='tmparr')
+      call gather_matrix_from_taskgroups(iproc, nproc, smat, matrix_compr, tmparr)
+      call uncompress_matrix(iproc, smat, inmat=tmparr, outmat=matrix)
+      call f_free(tmparr)
+    end subroutine uncompress_matrix2
+
 
     subroutine check_matrix_compression(iproc, sparsemat, mat)
       use yaml_output
@@ -238,6 +276,9 @@ module sparsematrix
       real(kind=8) :: maxdiff
     
       call f_routine('check_matrix_compression')
+
+      call f_free_ptr(mat%matrix_compr)
+      mat%matrix_compr = sparsematrix_malloc_ptr(sparsemat,iaction=SPARSE_FULL,id='mat%matrix_compr')
     
       mat%matrix = sparsematrix_malloc_ptr(sparsemat, iaction=DENSE_FULL, id='mat%matrix')
     
@@ -306,6 +347,9 @@ module sparsematrix
     
       call f_free_ptr(mat%matrix)
       !!call f_free_ptr(sparsemat%matrix_compr)
+
+      call f_free_ptr(mat%matrix_compr)
+      mat%matrix_compr = sparsematrix_malloc_ptr(sparsemat,iaction=SPARSE_TASKGROUP,id='mat%matrix_compr')
 
       call f_release_routine()
     
@@ -456,6 +500,199 @@ module sparsematrix
     end subroutine transform_sparse_matrix
 
 
+    !!subroutine transform_sparse_matrix2(smat, lmat, smatrix_compr, lmatrix_compr, cmode)
+    !!  use module_base
+    !!  implicit none
+    !!
+    !!  ! Calling arguments
+    !!  type(sparse_matrix),intent(inout) :: smat, lmat
+    !!  real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(inout) :: smatrix_compr
+    !!  real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(inout) :: lmatrix_compr
+    !!  character(len=14),intent(in) :: cmode
+    !!
+    !!  ! Local variables
+    !!  integer(kind=8) :: isstart, isend, ilstart, ilend, iostart, ioend
+    !!  integer :: imode, icheck, isseg, ilseg
+    !!  integer :: ilength, iscostart, ilcostart, i
+    !!  integer :: ilsegstart, ispin, isshift, ilshift, isoffset, iloffset
+    !!  integer,parameter :: SMALL_TO_LARGE=1
+    !!  integer,parameter :: LARGE_TO_SMALL=2
+    !!
+    !!  call f_routine(id='transform_sparse_matrix')
+    !!
+    !!  ! determine the case:
+    !!  ! SMALL_TO_LARGE -> transform from large sparsity pattern to small one
+    !!  ! LARGE_TO_SMALL -> transform from small sparsity pattern to large one
+    !!  if (cmode=='small_to_large' .or. cmode=='SMALL_TO_LARGE') then
+    !!      imode=SMALL_TO_LARGE
+    !!  else if (cmode=='large_to_small' .or. cmode=='LARGE_TO_SMALL') then
+    !!      imode=LARGE_TO_SMALL
+    !!  else
+    !!      stop 'wrong cmode'
+    !!  end if
+    !!
+    !!  select case (imode)
+    !!  case (SMALL_TO_LARGE)
+    !!      call to_zero(lmat%nvctrp_tg*lmat%nspin,lmatrix_compr(1))
+    !!  case (LARGE_TO_SMALL)
+    !!      call to_zero(smat%nvctrp_tg*lmat%nspin,smatrix_compr(1))
+    !!  case default
+    !!      stop 'wrong imode'
+    !!  end select
+    !!
+    !!  call timing(bigdft_mpi%iproc,'transform_matr','IR')
+
+
+    !!  icheck=0
+    !!  do ispin=1,smat%nspin
+
+    !!      isshift=(ispin-1)*smat%nvctrp_tg
+    !!      ilshift=(ispin-1)*lmat%nvctrp_tg
+    !!
+    !!      ilsegstart=1
+    !!      !$omp parallel default(private) &
+    !!      !$omp shared(smat, lmat, imode, lmatrix_compr, smatrix_compr, icheck, isshift, ilshift) &
+    !!      !$omp firstprivate(ilsegstart)
+    !!      !$omp do reduction(+:icheck)
+    !!      sloop: do isseg=smat%iseseg_tg(1),smat%iseseg_tg(2)!1,smat%nseg
+    !!      !sloop: do isseg=1,smat%nseg
+    !!          isstart = int((smat%keyg(1,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) + int(smat%keyg(1,1,isseg),kind=8)
+    !!          isend = int((smat%keyg(2,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) + int(smat%keyg(2,1,isseg),kind=8)
+    !!          ! A segment is always on one line, therefore no double loop
+    !!          !lloop: do ilseg=ilsegstart,lmat%iseseg_tg(2)!lmat%nseg
+    !!          lloop: do ilseg=ilsegstart,lmat%nseg
+    !!              ilstart = int((lmat%keyg(1,2,ilseg)-1),kind=8)*int(lmat%nfvctr,kind=8) + int(lmat%keyg(1,1,ilseg),kind=8)
+    !!              ilend = int((lmat%keyg(2,2,ilseg)-1),kind=8)*int(lmat%nfvctr,kind=8) + int(lmat%keyg(2,1,ilseg),kind=8)
+    !!
+    !!              ! check whether there is an overlap:
+    !!              ! if not, increase loop counters
+    !!              if (ilstart>isend) then
+    !!                  !ilsegstart=ilseg
+    !!                  exit lloop
+    !!              end if
+    !!              if (isstart>ilend) then
+    !!                  ilsegstart=ilseg
+    !!                  cycle lloop
+    !!              end if
+    !!              ! if yes, determine start end end of overlapping segment (in uncompressed form)
+    !!              iostart=max(isstart,ilstart)
+    !!              ioend=min(isend,ilend)
+    !!              ilength=ioend-iostart+1
+    !!
+    !!              ! offset with respect to the starting point of the segment
+    !!              isoffset = int(iostart - &
+    !!                         (int((smat%keyg(1,2,isseg)-1),kind=8)*int(smat%nfvctr,kind=8) &
+    !!                           + int(smat%keyg(1,1,isseg),kind=8)),kind=4)
+    !!              iloffset = int(iostart - &
+    !!                         (int((lmat%keyg(1,2,ilseg)-1),kind=8)*int(lmat%nfvctr,kind=8) &
+    !!                           + int(lmat%keyg(1,1,ilseg),kind=8)),kind=4)
+    !!
+    !!              ! determine start end and of the overlapping segment in compressed form
+    !!              iscostart=smat%keyv(isseg)+isoffset
+    !!              ilcostart=lmat%keyv(ilseg)+iloffset
+    !!
+    !!              ! copy the elements
+    !!              select case (imode)
+    !!              case (SMALL_TO_LARGE) 
+    !!                  do i=0,ilength-1
+    !!                      !lmatrix_compr(ilcostart+i+ilshift-lmat%isvctrp_tg)=smatrix_compr(iscostart+i+isshift-smat%isvctrp_tg)
+    !!                      lmatrix_compr(ilcostart+i+ilshift-smat%isvctrp_tg)=smatrix_compr(iscostart+i+isshift-smat%isvctrp_tg)
+    !!                  end do
+    !!              case (LARGE_TO_SMALL) 
+    !!                  do i=0,ilength-1
+    !!                      !smatrix_compr(iscostart+i+isshift-smat%isvctrp_tg)=lmatrix_compr(ilcostart+i+ilshift-lmat%isvctrp_tg)
+    !!                      smatrix_compr(iscostart+i+isshift-lmat%isvctrp_tg)=lmatrix_compr(ilcostart+i+ilshift-lmat%isvctrp_tg)
+    !!                  end do
+    !!              case default
+    !!                  stop 'wrong imode'
+    !!              end select
+    !!              icheck=icheck+ilength
+    !!          end do lloop
+    !!      end do sloop
+    !!      !$omp end do 
+    !!      !$omp end parallel
+
+    !!  end do
+    !!
+    !!  ! all elements of the small matrix must have been processed, no matter in
+    !!  ! which direction the transformation has been executed
+    !!  if (icheck/=smat%nvctrp_tg*smat%nspin) then
+    !!      write(*,'(a,2i8)') 'ERROR: icheck/=smat%nvctrp_tg*smat%nspin', icheck, smat%nvctrp_tg*smat%nspin
+    !!      stop
+    !!  end if
+
+    !!  call timing(bigdft_mpi%iproc,'transform_matr','RS')
+    !!  call f_release_routine()
+    
+    !!end subroutine transform_sparse_matrix2
+
+
+    subroutine transform_sparse_matrix_local(smat, lmat, smatrix_compr, lmatrix_compr, cmode)
+      use module_base
+      implicit none
+    
+      ! Calling arguments
+      type(sparse_matrix),intent(inout) :: smat, lmat
+      real(kind=8),dimension(smat%nspin*smat%nvctrp_tg),intent(inout) :: smatrix_compr
+      real(kind=8),dimension(lmat%nspin*lmat%nvctrp_tg),intent(inout) :: lmatrix_compr
+      character(len=14),intent(in) :: cmode
+    
+      ! Local variables
+      real(kind=8),dimension(:),allocatable :: tmparrs, tmparrl
+      integer :: ishift_src, ishift_dst, imode, ispin
+      integer,parameter :: SMALL_TO_LARGE=1
+      integer,parameter :: LARGE_TO_SMALL=2
+    
+      call f_routine(id='transform_sparse_matrix_local')
+
+
+      ! determine the case:
+      ! SMALL_TO_LARGE -> transform from large sparsity pattern to small one
+      ! LARGE_TO_SMALL -> transform from small sparsity pattern to large one
+      if (cmode=='small_to_large' .or. cmode=='SMALL_TO_LARGE') then
+          imode=SMALL_TO_LARGE
+      else if (cmode=='large_to_small' .or. cmode=='LARGE_TO_SMALL') then
+          imode=LARGE_TO_SMALL
+      else
+          stop 'wrong cmode'
+      end if
+
+    
+      select case (imode)
+      case (SMALL_TO_LARGE)
+          tmparrs = sparsematrix_malloc0(smat,iaction=SPARSE_FULL,id='tmparrs')
+          tmparrl = sparsematrix_malloc(lmat,iaction=SPARSE_FULL,id='tmparrl')
+          do ispin=1,smat%nspin
+              ishift_src = (ispin-1)*smat%nvctrp_tg
+              ishift_dst = (ispin-1)*smat%nvctr
+              call vcopy(smat%nvctrp_tg, smatrix_compr(ishift_src+1), 1, &
+                   tmparrs(ishift_dst+smat%isvctrp_tg+1), 1)
+              call transform_sparse_matrix(smat, lmat, tmparrs, tmparrl, cmode)
+              call extract_taskgroup(lmat, tmparrl, lmatrix_compr)
+          end do
+      case (LARGE_TO_SMALL)
+          tmparrs = sparsematrix_malloc0(smat,iaction=SPARSE_FULL,id='tmparrs')
+          tmparrl = sparsematrix_malloc0(lmat,iaction=SPARSE_FULL,id='tmparrl')
+          do ispin=1,smat%nspin
+              ishift_src = (ispin-1)*lmat%nvctrp_tg
+              ishift_dst = (ispin-1)*lmat%nvctr
+              call vcopy(lmat%nvctrp_tg, lmatrix_compr(ishift_src+1), 1, &
+                   tmparrl(ishift_dst+lmat%isvctrp_tg+1), 1)
+              call transform_sparse_matrix(smat, lmat, tmparrs, tmparrl, cmode)
+              call extract_taskgroup(smat, tmparrs, smatrix_compr)
+          end do
+      case default
+          stop 'wrong imode'
+      end select
+
+      call f_free(tmparrs)
+      call f_free(tmparrl)
+
+      call f_release_routine()
+    
+  end subroutine transform_sparse_matrix_local
+
+
    subroutine compress_matrix_distributed(iproc, nproc, smat, layout, matrixp, matrix_compr)
      use module_base
      implicit none
@@ -558,8 +795,8 @@ module sparsematrix
          end if
      else if (data_strategy==SUBMATRIX) then
          if (layout==DENSE_PARALLEL) then
+             call to_zero(smat%nvctrp_tg, matrix_compr(1))
              if (nfvctrp>0) then
-                 call to_zero(smat%nvctrp_tg, matrix_compr(1))
                  isegstart=smat%istsegline(isfvctr+1)
                  isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
                  !$omp parallel default(none) &
@@ -805,6 +1042,65 @@ module sparsematrix
 
    end subroutine uncompress_matrix_distributed
 
+
+  subroutine uncompress_matrix_distributed2(iproc, smat, layout, matrix_compr, matrixp)
+    use module_base
+    implicit none
+
+    ! Calling arguments
+    integer,intent(in) :: iproc, layout
+    type(sparse_matrix),intent(in) :: smat
+    real(kind=8),dimension(smat%nvctrp_tg),intent(in) :: matrix_compr
+    real(kind=8),dimension(:,:),intent(out) :: matrixp
+
+    ! Local variables
+    integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr
+
+      call timing(iproc,'compressd_mcpy','ON')
+
+     ! Check the dimensions of the output array and assign some values
+     if (size(matrixp,1)/=smat%nfvctr) stop 'size(matrixp,1)/=smat%nfvctr'
+     if (layout==DENSE_PARALLEL) then
+         if (size(matrixp,2)/=smat%nfvctrp) stop '(ubound(matrixp,2)/=smat%nfvctrp'
+         nfvctrp=smat%nfvctrp
+         isfvctr=smat%isfvctr
+     else if (layout==DENSE_MATMUL) then
+         if (size(matrixp,2)/=smat%smmm%nfvctrp) stop '(ubound(matrixp,2)/=smat%smmm%nfvctrp'
+         nfvctrp=smat%smmm%nfvctrp
+         isfvctr=smat%smmm%isfvctr
+     end if
+
+       if (smat%nfvctrp>0) then
+
+           call to_zero(smat%nfvctr*nfvctrp,matrixp(1,1))
+
+           isegstart=smat%istsegline(isfvctr+1)
+           isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
+           !!isegstart=smat%istsegline(smat%isfvctr_par(iproc)+1)
+           !!if (smat%isfvctr_par(iproc)+smat%nfvctrp<smat%nfvctr) then
+           !!    isegend=smat%istsegline(smat%isfvctr_par(iproc+1)+1)-1
+           !!else
+           !!    isegend=smat%nseg
+           !!end if
+           !$omp parallel do default(private) &
+           !$omp shared(isegstart, isegend, smat, matrixp, matrix_compr, isfvctr)
+           do iseg=isegstart,isegend
+               ii=smat%keyv(iseg)-1
+               ! A segment is always on one line, therefore no double loop
+               do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+                   ii=ii+1
+                   iiorb = smat%keyg(1,2,iseg)
+                   jjorb = jorb
+                   matrixp(jjorb,iiorb-isfvctr) = matrix_compr(ii-smat%isvctrp_tg)
+               end do
+           end do
+           !$omp end parallel do
+       end if
+
+      call timing(iproc,'compressd_mcpy','OF')
+
+   end subroutine uncompress_matrix_distributed2
+
    subroutine sequential_acces_matrix_fast(smat, a, a_seq)
      use module_base
      implicit none
@@ -944,5 +1240,144 @@ module sparsematrix
 
    end function orb_from_index
 
+
+   subroutine gather_matrix_from_taskgroups(iproc, nproc, smat, mat_tg, mat_global)
+     use module_base
+     use sparsematrix_base, only: sparse_matrix
+     implicit none
+   
+     ! Calling arguments
+     integer,intent(in) :: iproc, nproc
+     type(sparse_matrix),intent(in) :: smat
+     real(kind=8),dimension(smat%nvctr*smat%nspin),intent(in) :: mat_tg !< matrix distributed over the taskgroups
+     real(kind=8),dimension(smat%nvctr*smat%nspin),intent(out) :: mat_global !< global matrix gathered together
+   
+     ! Local variables
+     integer,dimension(:),allocatable :: recvcounts, recvdspls
+     integer :: ncount, ist_send, jproc, ispin, ishift
+
+     call f_routine(id='gather_matrix_from_taskgroups')
+   
+     if (nproc>1) then
+         recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
+         recvdspls = f_malloc(0.to.nproc-1,id='recvdspls')
+         call to_zero(nproc, recvcounts(0))
+         call to_zero(nproc, recvdspls(0))
+         ncount = smat%smmm%istartend_mm_dj(2) - smat%smmm%istartend_mm_dj(1) + 1
+         recvcounts(iproc) = ncount
+         call mpiallred(recvcounts(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+         recvdspls(0) = 0
+         do jproc=1,nproc-1
+             recvdspls(jproc) = recvdspls(jproc-1) + recvcounts(jproc-1)
+         end do
+         do ispin=1,smat%nspin
+             ishift = (ispin-1)*smat%nvctr
+             ist_send = smat%smmm%istartend_mm_dj(1) - smat%isvctrp_tg + ishift
+             call mpi_get_to_allgatherv_double(mat_tg(ist_send), ncount, &
+                  mat_global(ishift+1), recvcounts, recvdspls, bigdft_mpi%mpi_comm)
+             !!call mpi_allgatherv(mat_tg(ist_send), ncount, mpi_double_precision, &
+             !!                    mat_global(1), recvcounts, recvdspls, mpi_double_precision, &
+             !!                    bigdft_mpi%mpi_comm, ierr)
+         end do
+         call f_free(recvcounts)
+         call f_free(recvdspls)
+     else
+         call vcopy(smat%nvctrp*smat%nspin, mat_tg(1), 1, mat_global(1), 1)
+     end if
+
+     call f_release_routine()
+
+   end subroutine gather_matrix_from_taskgroups
+
+
+   subroutine gather_matrix_from_taskgroups_inplace(iproc, nproc, smat, mat)
+     use module_base
+     use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), SPARSE_FULL
+     implicit none
+   
+     ! Calling arguments
+     integer,intent(in) :: iproc, nproc
+     type(sparse_matrix),intent(in) :: smat
+     type(matrices),intent(inout) :: mat
+   
+     ! Local variables
+     integer,dimension(:),allocatable :: recvcounts, recvdspls
+     integer :: ncount, ist_send, jproc, ispin, ishift
+     real(kind=8),dimension(:),allocatable :: mat_global
+   
+      mat_global = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='mat_global')
+     if (nproc>1) then
+         recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
+         recvdspls = f_malloc(0.to.nproc-1,id='recvdspls')
+         call to_zero(nproc, recvcounts(0))
+         call to_zero(nproc, recvdspls(0))
+         ncount = smat%smmm%istartend_mm_dj(2) - smat%smmm%istartend_mm_dj(1) + 1
+         recvcounts(iproc) = ncount
+         call mpiallred(recvcounts(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+         recvdspls(0) = 0
+         do jproc=1,nproc-1
+             recvdspls(jproc) = recvdspls(jproc-1) + recvcounts(jproc-1)
+         end do
+         do ispin=1,smat%nspin
+             ishift = (ispin-1)*smat%nvctr
+             ist_send = smat%smmm%istartend_mm_dj(1) - smat%isvctrp_tg + ishift
+             call mpi_get_to_allgatherv_double(mat%matrix_compr(ist_send), ncount, &
+                  mat_global(ishift+1), recvcounts, recvdspls, bigdft_mpi%mpi_comm)
+             !!call mpi_allgatherv(mat%matrix_compr(ist_send), ncount, mpi_double_precision, &
+             !!                    mat_global(1), recvcounts, recvdspls, mpi_double_precision, &
+             !!                    bigdft_mpi%mpi_comm, ierr)
+         end do
+         call f_free(recvcounts)
+         call f_free(recvdspls)
+     else
+         call vcopy(smat%nvctrp_tg*smat%nspin, mat%matrix_compr(1), 1, mat_global(1), 1)
+     end if
+     call vcopy(smat%nvctrp*smat%nspin, mat_global(1), 1, mat%matrix_compr(1), 1)
+     call f_free(mat_global)
+
+   end subroutine gather_matrix_from_taskgroups_inplace
+
+
+   subroutine extract_taskgroup_inplace(smat, mat)
+     implicit none
+   
+     ! Calling arguments
+     type(sparse_matrix),intent(in) :: smat
+     type(matrices),intent(inout) :: mat
+
+     ! Local variables
+     integer :: i, ispin, ishift_tg, ishift_glob
+
+     do ispin=1,smat%nspin
+         ishift_tg = (ispin-1)*smat%nvctrp_tg
+         ishift_glob = (ispin-1)*smat%nvctr
+         do i=1,smat%nvctrp_tg
+             mat%matrix_compr(i+ishift_tg) = mat%matrix_compr(i+smat%isvctrp_tg+ishift_glob)
+         end do
+     end do
+
+   end subroutine extract_taskgroup_inplace
+
+
+   subroutine extract_taskgroup(smat, mat_glob, mat_tg)
+     implicit none
+   
+     ! Calling arguments
+     type(sparse_matrix),intent(in) :: smat
+     real(kind=8),dimension(smat%nvctr*smat%nspin),intent(in) :: mat_glob
+     real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(out) :: mat_tg
+
+     ! Local variables
+     integer :: i, ispin, ishift_tg, ishift_glob
+
+     do ispin=1,smat%nspin
+         ishift_tg = (ispin-1)*smat%nvctrp_tg
+         ishift_glob = (ispin-1)*smat%nvctr
+         do i=1,smat%nvctrp_tg
+             mat_tg(i+ishift_tg) = mat_glob(i+smat%isvctrp_tg+ishift_glob)
+         end do
+     end do
+
+   end subroutine extract_taskgroup
 
 end module sparsematrix

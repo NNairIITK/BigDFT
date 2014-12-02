@@ -2499,7 +2499,7 @@ module module_interfaces
          real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: psidiff
          logical, intent(in) :: ortho, experimental_mode
          real(kind=8),intent(out) :: trH_ref
-         real(kind=8),dimension(tmb%linmat%l%nvctr),intent(out) :: kernel_best
+         real(kind=8),dimension(tmb%linmat%l%nvctrp_tg*tmb%linmat%l%nspin),intent(inout) :: kernel_best
          logical,intent(out) :: complete_reset
        end subroutine hpsitopsi_linear
 
@@ -2514,7 +2514,7 @@ module module_interfaces
          real(kind=8),dimension(tmbopt%orbs%norbp),intent(inout):: alpha, alphaDIIS
          real(kind=8),dimension(max(tmbopt%npsidim_orbs,tmbopt%npsidim_comp)),intent(out):: lphioldopt
          real(kind=8),intent(out) :: trH_ref
-         real(kind=8),dimension(tmbopt%linmat%l%nvctr),intent(out) :: kernel_best
+         real(kind=8),dimension(tmbopt%linmat%l%nvctrp_tg*tmbopt%linmat%l%nspin),intent(inout) :: kernel_best
          logical,intent(out) :: complete_reset
        end subroutine DIISorSD
 
@@ -3325,7 +3325,7 @@ module module_interfaces
           real(8),dimension(npl,3,ncalc),intent(in) :: cc
           type(sparse_matrix), intent(in) :: kernel
           real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: ham_compr
-          real(kind=8),dimension(kernel%nvctr),intent(in) :: invovrlp_compr
+          real(kind=8),dimension(kernel%nvctrp_tg),intent(in) :: invovrlp_compr
           logical,intent(in) :: calculate_SHS
           real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,ncalc),intent(out) :: fermi
           real(kind=8),dimension(kernel%nfvctr,kernel%smmm%nfvctrp,2),intent(out) :: penalty_ev

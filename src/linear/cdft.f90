@@ -64,7 +64,8 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
   use sparsematrix_base, only: matrices, sparse_matrix, sparsematrix_malloc_ptr, &
                                DENSE_FULL, assignment(=), &
                                allocate_matrices, deallocate_matrices
-  use sparsematrix, only: compress_matrix, uncompress_matrix
+  use sparsematrix, only: compress_matrix, uncompress_matrix, &
+                          gather_matrix_from_taskgroups_inplace, uncompress_matrix2
   implicit none
   type(sparse_matrix), intent(inout) :: weight_matrix
   type(matrices), intent(inout) :: weight_matrix_
@@ -100,12 +101,13 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
 
      call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+     !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
   end if   
 
   if (calculate_ovrlp_half) then
      tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-     call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%s, &
-          inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
+     call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, &
+          tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
      ! Maybe not clean here to use twice tmb%linmat%s, but it should not
      ! matter as dense is used
      call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, (/2/), &
@@ -186,7 +188,9 @@ subroutine calculate_weight_matrix_lowdin_gradient_fd(weight_matrix,weight_matri
   use sparsematrix_base, only: matrices, sparse_matrix, sparsematrix_malloc_ptr, &
                                DENSE_FULL, assignment(=), &
                                allocate_matrices, deallocate_matrices
-  use sparsematrix, only: compress_matrix, uncompress_matrix
+  use sparsematrix, only: compress_matrix, uncompress_matrix, &
+                          gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, &
+                          uncompress_matrix2
   implicit none
   type(sparse_matrix), intent(inout) :: weight_matrix
   type(matrices), intent(inout) :: weight_matrix_
@@ -238,9 +242,13 @@ print*,iorb,ilr,ncount
   !ovrlp_half=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp_half')
   call calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_charged,ifrag_charged,tmb,input_frag,&
        ref_frags,calculate_overlap_matrix,.true.,meth_overlap)
-
+ 
+  !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+  call extract_taskgroup_inplace(weight_matrix, weight_matrix_)
   call calculate_kernel_and_energy(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%linmat%l,weight_matrix, &
            tmb%linmat%kernel_,weight_matrix_,trkw,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
+  !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, tmb%linmat%kernel_)
+  call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, weight_matrix, weight_matrix_)
 
   weight_matrix_tmp = f_malloc_ptr(weight_matrix%nvctr,id='weight_matrix_tmp')
   call vcopy(weight_matrix%nvctr,weight_matrix_%matrix_compr(1),1,weight_matrix_tmp(1),1)
@@ -254,8 +262,12 @@ print*,iorb,ilr,ncount
      tmb%can_use_transposed=.false.
      call calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_charged,ifrag_charged,tmb,input_frag,&
           ref_frags,.true.,.true.,meth_overlap)
+     !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+     call extract_taskgroup_inplace(weight_matrix, weight_matrix_)
      call calculate_kernel_and_energy(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%linmat%l,weight_matrix, &
            tmb%linmat%kernel_,weight_matrix_,trkw_new,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
+     !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, tmb%linmat%kernel_)
+     call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, weight_matrix, weight_matrix_)
 
      if (forward) then
         cdft_grad(i)=(trkw_new-trkw)/h
@@ -265,8 +277,12 @@ print*,iorb,ilr,ncount
         tmb%can_use_transposed=.false.
         call calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_charged,ifrag_charged,tmb,input_frag,&
              ref_frags,.true.,.true.,meth_overlap)
+        !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+        call extract_taskgroup_inplace(weight_matrix, weight_matrix_)
         call calculate_kernel_and_energy(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%linmat%l,weight_matrix, &
               tmb%linmat%kernel_,weight_matrix_,trkw_old,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
+        !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, tmb%linmat%kernel_)
+        call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, weight_matrix, weight_matrix_)
         cdft_grad(i)=(trkw_new-trkw_old)/h
      end if
 
@@ -288,8 +304,8 @@ if (.false.) then
           tmb%lzd%llr(tmb%orbs%inwhichlocreg(2))%wfd%nvctr_c+7*tmb%lzd%llr(tmb%orbs%inwhichlocreg(2))%wfd%nvctr_f
 
      tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-     call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%s, &
-          inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
+     call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, &
+          tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
 
 
      !S^-1/2 for calc grad
@@ -384,7 +400,8 @@ subroutine calculate_weight_matrix_lowdin_gradient(weight_matrix,weight_matrix_,
   use sparsematrix_base, only: matrices, sparse_matrix, sparsematrix_malloc_ptr, &
                                DENSE_FULL, assignment(=), &
                                allocate_matrices, deallocate_matrices
-  use sparsematrix, only: compress_matrix, uncompress_matrix
+  use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
+                          gather_matrix_from_taskgroups_inplace, uncompress_matrix2
   implicit none
   type(sparse_matrix), intent(inout) :: weight_matrix
   type(matrices), intent(inout) :: weight_matrix_
@@ -434,13 +451,14 @@ real(kind=8) :: ddot
 
      call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+     !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
   end if   
 
   !calculate s^-1/2 and generate s^1/2 from it
   if (calculate_ovrlp_half) then !always do so as not sure how this would make sense otherwise?  for that matter how does it make sense anyway?  presumably always true?
      tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-     call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%s, &
-          inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
+     call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, &
+          tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
 !print*,'g',ddot(tmb%orbs%norb*tmb%orbs%norb, tmb%linmat%ovrlp_%matrix(1,1,1), 1, tmb%linmat%ovrlp_%matrix(1,1,1), 1)
      ! Maybe not clean here to use twice tmb%linmat%s, but it should not
      ! matter as dense is used
@@ -497,8 +515,8 @@ real(kind=8) :: ddot
   !call f_free(ovrlp_half)
 
   tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-  call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%l, &
-       inmat=tmb%linmat%kernel_%matrix_compr, outmat=tmb%linmat%kernel_%matrix)
+  call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, &
+       tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
 
   weight_matrix_tmp = f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norbp/),id='weight_matrix_tmp')
   weight_matrixp = f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='weight_matrixp')
@@ -603,6 +621,7 @@ call f_free_ptr(tmb%linmat%ovrlp_%matrix)
       if(tmb%ham_descr%collcom%ndimind_f>0) &
           call vcopy(7*tmb%ham_descr%collcom%ndimind_f, psitlarge_f(1), 1, hpsittmp_f(1), 1)
 
+  call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%m, weight_matrix_)
   call build_linear_combination_transposed(tmb%ham_descr%collcom, &
        tmb%linmat%m, weight_matrix_, hpsittmp_c, hpsittmp_f, .true., psitlarge_c, psitlarge_f, bigdft_mpi%iproc)
 !print*,'2',ddot(tmb%ham_descr%collcom%ndimind_c, psitlarge_c(1), 1, psitlarge_c(1), 1),ddot(7*tmb%ham_descr%collcom%ndimind_f, psitlarge_f(1), 1, psitlarge_f(1), 1)
@@ -633,6 +652,7 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, start_onesided_communication
   use sparsematrix_base, only : matrices_null, allocate_matrices, deallocate_matrices
+  use sparsematrix, only: gather_matrix_from_taskgroups_inplace
   implicit none
   integer,intent(in) :: iproc
   type(cdft_data), intent(inout) :: cdft
@@ -705,6 +725,7 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
 
   call calculate_overlap_transposed(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%orbs,tmb%ham_descr%collcom, &
        tmb%ham_descr%psit_c,hpsit_c,tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, weight_)
+  call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc,bigdft_mpi%nproc, tmb%linmat%m, weight_)
   ! This can then be deleted if the transition to the new type has been completed.
   cdft%weight_matrix_%matrix_compr=weight_%matrix_compr
   call deallocate_matrices(weight_)

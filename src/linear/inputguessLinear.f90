@@ -21,8 +21,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use gaussians, only: gaussian_basis, deallocate_gwf, nullify_gaussian_basis
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
-  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
-  use sparsematrix_init, only: matrixindex_in_compressed
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
+                               sparsematrix_malloc, assignment(=), SPARSE_FULL
+  use sparsematrix_init, only: matrixindex_in_compressed, matrixindex_in_compressed2
+  use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc
@@ -42,7 +44,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! Local variables
   type(gaussian_basis) :: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
-  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,methTransformOverlap
+  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,methTransformOverlap,ind
   real(gp) :: hxh,hyh,hzh,eks,fnrm,V3prb,x0,tt
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
@@ -52,7 +54,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !real(kind=8), dimension(:,:), allocatable :: aocc
   integer, dimension(:,:), allocatable :: nl_copy 
   integer :: ist,jorb,iadd,ii,jj,ityp,itype,iortho
-  integer :: jlr,iiorb,ispin
+  integer :: jlr,iiorb,ispin,ispinshift
   integer :: infoCoeff, jproc
   type(orbitals_data) :: orbs_gauss
   type(GPU_pointers) :: GPUe
@@ -68,6 +70,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   logical :: ortho_on, reduce_conf, rho_negative
   type(localizedDIISParameters) :: ldiis
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
+  real(kind=8),dimension(:),allocatable :: tmparr
 
   call f_routine(id=subname)
 
@@ -114,7 +117,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       jj=at%aoig(iat)%nao
       if (jj < ii) then
          call f_err_throw('The number of basis functions asked per type'//&
+              ' ('//trim(adjustl(yaml_toa(ii,fmt='(i0)')))//')'//&
               ' is exceeding the number of IG atomic orbitals'//&
+              ' ('//trim(adjustl(yaml_toa(jj,fmt='(i0)')))//')'//&
               ', modify the electronic configuration of input atom '//&
               trim(at%astruct%atomnames(at%astruct%iatype(iat))),&
               err_name='BIGDFT_INPUT_VARIABLES_ERROR')
@@ -469,13 +474,22 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   !Put the Density kernel to identity for now
   !call to_zero(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1))
-  call to_zero(tmb%linmat%l%nvctr*input%nspin, tmb%linmat%kernel_%matrix_compr(1))
+  call to_zero(tmb%linmat%l%nvctrp_tg*input%nspin, tmb%linmat%kernel_%matrix_compr(1))
+
+
   do iorb=1,tmb%orbs%norb
      !ii=matrixindex_in_compressed(tmb%linmat%denskern,iorb,iorb)
      ii=matrixindex_in_compressed(tmb%linmat%l,iorb,iorb)
+     ind=mod(ii-1,tmb%linmat%l%nvctr)+1 !spin-independent index
+     !!if (ii<tmb%linmat%l%istartend_local(1)) cycle
+     !!if (ii>tmb%linmat%l%istartend_local(2)) exit
+     if (ind<=tmb%linmat%l%isvctrp_tg) cycle
+     if (ind>tmb%linmat%l%isvctrp_tg+tmb%linmat%l%nvctrp_tg) cycle
+     ispin = (ii-1)/tmb%linmat%l%nvctr
+     ispinshift = ispin*tmb%linmat%l%nvctrp_tg
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(inversemapping(iorb))
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
-     tmb%linmat%kernel_%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
+     tmb%linmat%kernel_%matrix_compr(ind+ispinshift-tmb%linmat%l%isvctrp_tg)=1.d0*tmb%orbs%occup(iorb)
   end do
 
   !Calculate the density in the new scheme
@@ -753,6 +767,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
                                            'it_supfun'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
      end if
      order_taylor=input%lin%order_taylor ! since this is intent(inout)
+     !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
      call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
          info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
          input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
@@ -761,6 +776,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
          input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
          can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
          input%purification_quickreturn, input%correction_co_contra)
+     !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
      reduce_conf=.true.
      call yaml_sequence_close()
      call yaml_mapping_close()
@@ -805,13 +821,13 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!end do
 
   order_taylor=input%lin%order_taylor ! since this is intent(inout)
+  !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
   if (input%lin%scf_mode==LINEAR_FOE) then
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
   else
-
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
@@ -825,8 +841,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       if (bigdft_mpi%iproc ==0) then
          call write_eigenvalues_data(0.1d0,kswfn%orbs,mom_vec_fake)
       end if
-
   end if
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
 
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
@@ -840,9 +856,15 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
     call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
   end if
 
+  !!tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
+  !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
        denspot%rhov, rho_negative)
+  !!call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+  !!call f_free(tmparr)
+
   if (rho_negative) then
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
       !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')

@@ -478,6 +478,9 @@ module module_types
      !> linear scaling: radius enlargement for the Hamiltonian application (in grid points)
      integer :: hamapp_radius_incr
 
+     !> linear scaling: enable the addaptive ajustment of the number of kernel iterations
+     logical :: adjust_kernel_iterations
+
   end type input_variables
 
 
@@ -2307,6 +2310,9 @@ contains
        case (HAMAPP_RADIUS_INCR)
            ! linear scaling: radius enlargement for the Hamiltonian application (in grid points)
            in%hamapp_radius_incr = val
+       case (ADJUST_KERNEL_ITERATIONS) 
+           ! linear scaling: enable the addaptive ajustment of the number of kernel iterations
+           in%adjust_kernel_iterations = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

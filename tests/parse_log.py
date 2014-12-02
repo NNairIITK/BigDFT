@@ -294,9 +294,16 @@ class BigDFTiming:
     #here a try-catch section should be added for multiple documents
     self.log=yaml.load(open(filename, "r").read(), Loader = yaml.CLoader)
 
+    #cat=self.log["Dictionary of active categories"]
+    #print 'categories',cat
+    #icat=1
+    #for i in cat:
+    #  print icat,i["Category"]
+    #  icat +=1
+    #dssad
     #shallow copies of important parts
     self.routines=self.log["Routines timing and number of calls"]
-    self.hostnames=self.log["Hostnames"]
+    self.hostnames=self.log.get("Hostnames")
     self.scf=self.log["WFN_OPT"]
     self.classes=["Communications","Convolutions","BLAS-LAPACK","Linear Algebra",
                   "Other","PS Computation","Potential",
@@ -326,7 +333,7 @@ class BigDFTiming:
         icol+=1.0
       except Exception,e:
         #print 'EXCEPTION FOUND',e
-	print "category",cat,"not present"
+        print "category",cat,"not present"
   
     pylab.ylabel('Percent')
     pylab.title('Time bar chart')
@@ -363,7 +370,8 @@ class BigDFTiming:
         print 'unbalancing',unb
         unb2=self.find_unbalanced(unb)
         print 'unbalanced objects',cat
-        print 'vals',[ [i,unb[i],self.hostnames[i]] for i in unb2]
+        if self.hostnames is not None:
+          print 'vals',[ [i,unb[i],self.hostnames[i]] for i in unb2]
         ind=pylab.np.arange(len(unb))
         plt=pylab.bar(ind,unb,width,color=pylab.cm.jet(icol/len(self.classes)))
         plts.append(plt)

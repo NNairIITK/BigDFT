@@ -909,7 +909,7 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
   use yaml_output
   use module_interfaces, except_this_one => writeonewave
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
-  use sparsematrix, only: uncompress_matrix
+  use sparsematrix, only: uncompress_matrix, uncompress_matrix2
   implicit none
   integer, intent(in) :: iproc,nproc,imethod_overlap,iformat
   character(len=*), intent(in) :: filename 
@@ -921,18 +921,21 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
   !!integer :: i_stat, i_all
   character(len=*),parameter :: subname='write_linear_matrices'
 
+
+
+  tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, &
+                           iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
+
+  call uncompress_matrix2(iproc, nproc, tmb%linmat%m, &
+       tmb%linmat%ham_%matrix_compr, tmb%linmat%ham_%matrix)
+
   if (iproc==0) then
+
      if(iformat == WF_FORMAT_PLAIN) then
         open(99, file=filename//'hamiltonian.bin', status='unknown',form='formatted')
      else
         open(99, file=filename//'hamiltonian.bin', status='unknown',form='unformatted')
      end if
-
-     tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, &
-                              iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
-
-     call uncompress_matrix(iproc, tmb%linmat%m, &
-          inmat=tmb%linmat%ham_%matrix_compr, outmat=tmb%linmat%ham_%matrix)
 
      do ispin=1,tmb%linmat%m%nspin
         do iorb=1,tmb%linmat%m%nfvctr
@@ -948,23 +951,26 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
         end do
      end do
 
-     call f_free_ptr(tmb%linmat%ham_%matrix)
-
      close(99)
+
+  end if
+
+  call f_free_ptr(tmb%linmat%ham_%matrix)
+
+
+  tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, &
+                             id='tmb%linmat%ovrlp_%matrix')
+
+  call uncompress_matrix2(iproc, nproc, tmb%linmat%s, &
+          tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
+
+  if (iproc==0) then
 
      if(iformat == WF_FORMAT_PLAIN) then
         open(99, file=filename//'overlap.bin', status='unknown',form='formatted')
      else
         open(99, file=filename//'overlap.bin', status='unknown',form='unformatted')
      end if
-
-     !!allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr), stat=i_stat)
-     !!call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
-     tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, &
-                                id='tmb%linmat%ovrlp_%matrix')
-
-     call uncompress_matrix(iproc, tmb%linmat%s, &
-          inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
 
      do ispin=1,tmb%linmat%s%nspin
         do iorb=1,tmb%linmat%s%nfvctr
@@ -980,25 +986,24 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
         end do
      end do
 
-     !!i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
-     !!deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
-     !!call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
-     call f_free_ptr(tmb%linmat%ovrlp_%matrix)
-
-
      close(99)
 
+  end if
+
+  call f_free_ptr(tmb%linmat%ovrlp_%matrix)
+
+
+  tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=DENSE_FULL,id='tmb%linmat%kernel_%matrix')
+
+  call uncompress_matrix2(iproc, nproc, tmb%linmat%l, &
+       tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
+
+  if (iproc==0) then
      if(iformat == WF_FORMAT_PLAIN) then
         open(99, file=filename//'density_kernel.bin', status='unknown',form='formatted')
      else
         open(99, file=filename//'density_kernel.bin', status='unknown',form='unformatted')
      end if
-
-     tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=DENSE_FULL,id='tmb%linmat%kernel_%matrix')
-
-
-     call uncompress_matrix(iproc,tmb%linmat%l, &
-          inmat=tmb%linmat%kernel_%matrix_compr, outmat=tmb%linmat%kernel_%matrix)
 
      do ispin=1,tmb%linmat%l%nspin
         do iorb=1,tmb%linmat%l%nfvctr
@@ -1014,11 +1019,11 @@ subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tm
         end do
      end do
 
-     call f_free_ptr(tmb%linmat%kernel_%matrix)
-
      close(99)
 
-  end if
+ end if
+
+  call f_free_ptr(tmb%linmat%kernel_%matrix)
 
   ! calculate 'onsite' overlap matrix as well - needs double checking
 

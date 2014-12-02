@@ -27,6 +27,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                matrices_null, allocate_matrices, deallocate_matrices, &
                                sparsematrix_malloc, sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL
+  use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   implicit none
 
   ! Calling arguments
@@ -62,11 +63,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy
   integer :: ldiis_coeff_hist, nitdmin
   logical :: ldiis_coeff_changed
-  integer :: mix_hist, info_basis_functions, nit_scc, cur_it_highaccuracy
+  integer :: mix_hist, info_basis_functions, nit_scc, cur_it_highaccuracy, nit_scc_changed
   real(kind=8) :: pnrm_out, alpha_mix, ratio_deltas, convcrit_dmin, tt1, tt2
   logical :: lowaccur_converged, exit_outer_loop, calculate_overlap, invert_overlap_matrix
   real(kind=8),dimension(:),allocatable :: locrad
   integer:: target_function, nit_basis
+  logical :: keep_value
   
   real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB, best_charge_diff, cdft_charge_thresh
   real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
@@ -75,8 +77,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   logical :: reorder, rho_negative
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
   type(matrices) :: weight_matrix_
+  real(kind=8) :: sign_of_energy_change
+  integer :: nit_energyoscillation
 
-  real(8),dimension(:),allocatable :: rho_tmp
+  real(8),dimension(:),allocatable :: rho_tmp, tmparr
   real(8) :: tt, ddot
 
   !better names/input variables
@@ -126,6 +130,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   reorder=.false.
   nullify(mom_vec_fake)
   norder_taylor=input%lin%order_taylor
+  sign_of_energy_change = -1.d0
+  nit_energyoscillation = 0
+  keep_value = .false.
 
 
 
@@ -192,9 +199,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      weight_matrix_ = matrices_null()
      call allocate_matrices(tmb%linmat%m, allocate_full=.false., matname='weight_matrix_', mat=weight_matrix_)
      weight_matrix_%matrix_compr=cdft%weight_matrix_%matrix_compr
+
+     !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+     !!call extract_taskgroup_inplace(tmb%linmat%m, weight_matrix_)
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
           tmb%linmat%kernel_,weight_matrix_,&
           ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+     !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+     !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, weight_matrix_)
+
      !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
      call deallocate_matrices(weight_matrix_)
 
@@ -243,9 +256,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   ! if we want to ignore read in coeffs and diag at start - EXPERIMENTAL
   if (input%lin%diag_start .and. input%inputPsiId==INPUT_PSI_DISK_LINEAR) then
      ! Calculate the charge density.
+     !!tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
+     !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
+     !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
           denspot%rhov, rho_negative)
+     !!call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+     !!call f_free(tmparr)
+
      if (rho_negative) then
          call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
          !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
@@ -281,6 +300,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
                convCritMix_init, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
                convcrit_dmin, nitdmin, conv_crit_TMB)
+          if (keep_value) then
+              nit_scc = nit_scc_changed
+          end if
       else if (input%lin%nlevel_accuracy==1 .and. itout==1) then
           call set_variables_for_hybrid(iproc, tmb%lzd%nlr, input, at, tmb%orbs, &
                lowaccur_converged, tmb%damping_factor_confinement, tmb%confdatarr, &
@@ -300,6 +322,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       if(cur_it_highaccuracy==1) then
           if (iproc==0) then
               call yaml_comment('Adjustments for high accuracy',hfill='=')
+          end if
+          ! nit_scc might have been overwritten, so recalculate it and set the ! flag to false
+          if (input%lin%nlevel_accuracy==2) then
+              ! Set all remaining variables that we need for the optimizations of the basis functions and the mixing.
+              call set_optimization_variables(input, at, tmb%orbs, tmb%lzd%nlr, tmb%orbs%onwhichatom, tmb%confdatarr, &
+                   convCritMix_init, lowaccur_converged, nit_scc, mix_hist, alpha_mix, locrad, target_function, nit_basis, &
+                   convcrit_dmin, nitdmin, conv_crit_TMB)
+              keep_value = .false.
           end if
           ! Adjust the confining potential if required.
           call adjust_locregs_and_confinement(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
@@ -328,12 +358,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 !invert_overlap_matrix = (.not.(target_function==TARGET_FUNCTION_IS_HYBRID .and. &
                 !                          (input%method_updatekernel==UPDATE_BY_FOE .or. &
                 !                         input%method_updatekernel==UPDATE_BY_RENORMALIZATION)))
+                !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
                 call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                      infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                      .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
                      input%purification_quickreturn,&
                      input%calculate_KS_residue,input%calculate_gap,&
                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
+                !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
              end if
           end if
 
@@ -464,6 +496,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                call yaml_sequence_open('support function optimization',label=&
                               'it_supfun'//trim(adjustl(yaml_toa(itout,fmt='(i3.3)'))))
            end if
+           !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
            if (input%lin%constrained_dft) then
               call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                   info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
@@ -485,6 +518,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                   input%method_updatekernel,input%purification_quickreturn, &
                   input%correction_co_contra)
            end if
+           !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
            reduce_conf=.true.
            if (iproc==0) then
                call yaml_sequence_close()
@@ -615,6 +649,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                                       input%method_updatekernel==UPDATE_BY_RENORMALIZATION)) .and. &
                                       it_scc==1)
                                       !cur_it_highaccuracy==1)
+             !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
              if(update_phi .and. can_use_ham) then! .and. info_basis_functions>=0) then
                 if (input%lin%constrained_dft) then
                    call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
@@ -648,6 +683,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
                 end if
              end if
+             !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
 
 
@@ -685,7 +721,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              if(input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION .and. it_scc>1 .and.&
                   ldiis_coeff%idsx == 0 .and. (.not. input%lin%curvefit_dmin)) then
                 ! apply a cap so that alpha_coeff never goes below around 1.d-2 or above 2
-                if (energyDiff<0.d0 .and. ldiis_coeff%alpha_coeff < 1.8d0) then
+                !SM <= due to the tests...
+                if (energyDiff<=0.d0 .and. ldiis_coeff%alpha_coeff < 1.8d0) then
                    ldiis_coeff%alpha_coeff=1.1d0*ldiis_coeff%alpha_coeff
                 else if (ldiis_coeff%alpha_coeff > 1.7d-3) then
                    ldiis_coeff%alpha_coeff=0.5d0*ldiis_coeff%alpha_coeff
@@ -706,10 +743,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                  ! to prevent it from writing too much
                  call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
              end if
+             !!tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
+             !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
+             !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
              call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
                   tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, &
                   denspot%dpbox%ndimrhopot, &
                   denspot%rhov, rho_negative)
+             !!call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+             !!call f_free(tmparr)
              if (rho_negative) then
                  call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
                  !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
@@ -724,9 +766,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 weight_matrix_ = matrices_null()
                 call allocate_matrices(tmb%linmat%m, allocate_full=.false., matname='weight_matrix_', mat=weight_matrix_)
                 weight_matrix_%matrix_compr=cdft%weight_matrix_%matrix_compr
+
+                !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+                call extract_taskgroup_inplace(tmb%linmat%m, weight_matrix_)
                 call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
                      tmb%linmat%kernel_,weight_matrix_,&
                      ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+                !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+                call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, weight_matrix_)
+
                 !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
                 call deallocate_matrices(weight_matrix_)
                 !call timing(iproc,'constraineddft','OF')
@@ -1101,11 +1149,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        !!    tmb%coeff=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%coeff')
        !!end if
 
+       !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.true.,.false.,&
            .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
+       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
        !!if (input%lin%scf_mode==LINEAR_FOE) then
        !!    call f_free_ptr(tmb%coeff)
@@ -1129,11 +1179,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       !!if (input%lin%scf_mode==LINEAR_FOE .and. ) then
       !!    tmb%coeff=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%coeff')
       !!end if
+      !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
            infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.true.,.false.,&
            .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap)
+      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       !!call scalprod_on_boundary(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
       call pulay_correction_new(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
       !!if (input%lin%scf_mode==LINEAR_FOE) then
@@ -1292,9 +1344,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
 
   ! check why this is here!
+  !!tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
+  !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
        denspot%rhov, rho_negative)
+  !!call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+  !!call f_free(tmparr)
   if (rho_negative) then
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
       !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
@@ -1488,6 +1545,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           call yaml_sequence_close()
       end if
 
+
+
+
     end subroutine printSummary
 
     !> Print a short summary of some values calculated during the last iteration in the self
@@ -1497,6 +1557,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
       real(kind=8) :: energyDiff, mean_conf
       logical, intent(in) :: final
+      integer :: ii
 
       energyDiff = energy - energyoldout
 
@@ -1618,6 +1679,38 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
        !call bigdft_utils_flush(unit=6)
     call yaml_sequence_close()
 
+    if (.not.final .and. input%adjust_kernel_iterations) then
+        ! Determine whether the sign of the energy change is the same as in the previous iteration
+        ! (i.e. whether the energy continues to increase or decrease)
+        tt = sign(energyDiff,sign_of_energy_change)
+        if (tt/energyDiff>0.d0) then
+            ! same sign, everything ok
+        else if (abs(energyDiff/energy)>1.d-7) then
+            nit_energyoscillation = nit_energyoscillation + 1
+            if (iproc==0) then
+                call yaml_warning('oscillation of the energy, increase counter')
+                call yaml_map('energy_scillation_counter',nit_energyoscillation)
+            end if
+        end if
+        if (nit_energyoscillation>1) then
+            nit_scc = nit_scc + 1
+            ii = 3*max(input%lin%nitSCCWhenFixed_lowaccuracy,input%lin%nitSCCWhenFixed_highaccuracy)
+            if (nit_scc>ii) then
+                if (iproc==0) call yaml_map('nit_scc reached maximum, reset to',ii)
+                nit_scc = ii
+            end if
+            nit_energyoscillation = 0
+            if (iproc==0) call yaml_map('new nit_scc',nit_scc)
+            ! Needed for low/high accuracy... maybe to be cleaned
+            nit_scc_changed = nit_scc
+            keep_value = .true.
+        end if
+    end if
+
+
+    ! Determine the sign of the energy change
+    sign_of_energy_change = sign(1.d0,energyDiff)
+
 
     end subroutine print_info
 
@@ -1657,9 +1750,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       call vcopy(denspot%dpbox%ndimrhopot,denspot%rhov(1),1,rhopot_work(1),1)
 
 
+      !!tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
+      !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
+      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
            tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
            denspot%rhov, rho_negative)
+      !!call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+      !!call f_free(tmparr)
       if (rho_negative) then
           call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
           !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
