@@ -33,15 +33,16 @@ program mhgps
     use module_hessian, only: cal_hessian_fd 
     use module_minimizers
     implicit none
-    integer :: nend,isame
-    character(len=6) :: filename,filename2
-    integer :: ifolder, ifile
+    integer :: isame,njobs
+    character(len=200) :: filename
+    integer :: ifolder,ijob
     logical :: xyzexists,asciiexists
     character(len=60) :: run_id
     type(dictionary), pointer :: run
     integer :: ierr, nconfig
     real(gp), allocatable :: rcov(:)
     character(len=300)  :: comment
+    character(len=100), allocatable :: joblist(:,:)
     logical :: converged=.false.
     type(connect_object) :: cobj
     type(dictionary), pointer :: options
@@ -79,8 +80,6 @@ program mhgps
     !alanine stuff ......................END!>
 
     ifolder=1
-    ifile=1
-!!    ifile=0
     ef_counter=0.d0 !from module_global_variables
     isad=0  !from module_global_variables
     isadprob=0
@@ -93,6 +92,8 @@ program mhgps
 
     !initialize the energy and forces method
     isForceField=.false.
+    write(currDir,'(a,i3.3)')'input',ifolder
+    call get_first_struct_file(filename)
     if(efmethod=='BIGDFT')then
         isForceField=.false.
         call bigdft_command_line_options(options)
@@ -114,10 +115,8 @@ program mhgps
 
         !reset input and output positions of run
         call bigdft_get_run_properties(run,run_id=run_id)
-        write(currDir,'(a,i3.3)')'input',ifolder
-        write(filename,'(a,i3.3)')'pos',ifile
         call bigdft_set_run_properties(run,run_id=trim(run_id)//&
-             trim(bigdft_run_id_toa()),posinp=currDir//'/'//filename&
+             trim(bigdft_run_id_toa()),posinp=trim(adjustl(filename))&
              //trim(bigdft_run_id_toa()))
 
         call run_objects_init(runObj,run)
@@ -160,20 +159,16 @@ program mhgps
            efmethod=='LENSIb')then
         iproc=0
         isForceField=.true.
-        write(currDir,'(a,i3.3)')'input',ifolder
-        write(filename,'(a,i3.3)')'pos',ifile
-        call read_atomic_file(currDir//'/'//filename,iproc,&
-                              atom_struct)
+        call read_atomic_file(trim(adjustl(filename))&
+             ,iproc,atom_struct)
         astruct_ptr=>atom_struct
         fdim=astruct_ptr%nat
         call print_logo_mhgps()
     elseif(efmethod=='AMBER')then
         iproc=0
         isForceField=.true.
-        write(currDir,'(a,i3.3)')'input',ifolder
-        write(filename,'(a,i3.3)')'pos',ifile
-        call read_atomic_file(currDir//'/'//filename,iproc,&
-                              atom_struct)
+        call read_atomic_file(trim(adjustl(filename)),&
+             iproc,atom_struct)
         astruct_ptr=>atom_struct
         fdim=astruct_ptr%nat
         !alanine stuff ......................START!>
@@ -240,6 +235,8 @@ program mhgps
                 id='fxyz')
     rxyz2     = f_malloc((/ 1.to.3, 1.to.nat/),&
                 id='rxyz2')
+    fat       = f_malloc((/ 1.to.3, 1.to.nat/),&
+                id='fat')
     fxyz2     = f_malloc((/ 1.to.3, 1.to.nat/),&
                 id='fxyz2')
     rcov     = f_malloc((/ 1.to.nat/),id='rcov')
@@ -302,10 +299,11 @@ program mhgps
     scpr_trans = f_malloc((/ 1.to.saddle_nhistx_trans/),&
                  id='scpr_trans')
 
+!    joblist = f_malloc_str((/1.to.2, 1.to.999/),id='joblist') !how??
+   allocate(joblist(2,999))
+
     call allocate_connect_object(nat,nid,nsadmax,cobj)
 
-!for debugging:
-allocate(fat(3,nat))
     
     iconnect = 0
     ixyz_int = 0
@@ -322,51 +320,55 @@ allocate(fat(3,nat))
 
     do ifolder = 1,999
         write(currDir,'(a,i3.3)')'input',ifolder
-        if(trim(adjustl(operation_mode))=='simple'.or.&
-           trim(adjustl(operation_mode))=='hessian'.or.&
-           trim(adjustl(operation_mode))=='minimize')then
-            nend=999
-        elseif(trim(adjustl(operation_mode))=='connect'.or.&
-                       trim(adjustl(operation_mode))=='guessonly')then
-            nend=999-1
-        else
-            call yaml_warning('(MHGPS) operation mode '//&
-            trim(adjustl(operation_mode))//' unknown STOP')
-            stop '(MHGPS) operation mode unknown STOP'
-        endif
+        call read_jobs(njobs,joblist)
+!        if(trim(adjustl(operation_mode))=='simple'.or.&
+!           trim(adjustl(operation_mode))=='hessian'.or.&
+!           trim(adjustl(operation_mode))=='minimize')then
+!            nend=999
+!        elseif(trim(adjustl(operation_mode))=='connect'.or.&
+!                       trim(adjustl(operation_mode))=='guessonly')then
+!            nend=999-1
+!        else
+!            call yaml_warning('(MHGPS) operation mode '//&
+!            trim(adjustl(operation_mode))//' unknown STOP')
+!            stop '(MHGPS) operation mode unknown STOP'
+!        endif
 
-        do ifile = 1,nend
+        do ijob = 1,njobs
+!        do ifile = 1,nend
 !        do ifile = 0,nend
 
             !read (first) file
-            write(filename,'(a,i3.3)')'pos',ifile
-            inquire(file=currDir//'/'//filename//'.xyz',&
-                    exist=xyzexists)
-            inquire(file=currDir//'/'//filename//'.ascii',&
-                    exist=asciiexists)
-            if(.not.(xyzexists.or.asciiexists))exit
+!            write(filename,'(a,i3.3)')'pos',ifile
+!            inquire(file=currDir//'/'//filename//'.xyz',&
+!                    exist=xyzexists)
+!            inquire(file=currDir//'/'//filename//'.ascii',&
+!                    exist=asciiexists)
+!            if(.not.(xyzexists.or.asciiexists))exit
             !reallocating astruct is dangerous as it is a pointer to 
             !a internal object of bigdft, therefore it should only be used for reading
 !!$            call deallocate_atomic_structure(astruct)
 !!$            call read_atomic_file(currDir//'/'//filename,iproc,&
 !!$                    astruct)
 !!$            call vcopy(3 * nat,astruct%rxyz(1,1),1,rxyz(1,1), 1)
-            call bigdft_get_rxyz(filename=currDir//'/'//filename,rxyz=rxyz)
+!            call bigdft_get_rxyz(filename=currDir//'/'//filename,rxyz=rxyz)
+            call bigdft_get_rxyz(filename=trim(adjustl(joblist(1,ijob))),rxyz=rxyz)
 
             if(trim(adjustl(operation_mode))=='guessonly')then
                 !read second file
-                write(filename2,'(a,i3.3)')'pos',ifile+1
-                inquire(file=currDir//'/'//filename2//'.xyz',&
-                            exist=xyzexists)
-                inquire(file=currDir//'/'//filename2//'.ascii',&
-                            exist=asciiexists)
-                if(.not.(xyzexists.or.asciiexists))exit
+!                write(filename2,'(a,i3.3)')'pos',ifile+1
+!                inquire(file=currDir//'/'//filename2//'.xyz',&
+!                            exist=xyzexists)
+!                inquire(file=currDir//'/'//filename2//'.ascii',&
+!                            exist=asciiexists)
+!                if(.not.(xyzexists.or.asciiexists))exit
 !!$                call deallocate_atomic_structure(astruct)
 !!$                call read_atomic_file(currDir//'/'//filename2,iproc,&
 !!$                            astruct)
 !!$                call vcopy(3*nat,astruct%rxyz(1,1),1,&
 !!$                           rxyz2(1,1),1)
-                call bigdft_get_rxyz(filename=currDir//'/'//filename2,rxyz=rxyz2)
+!                call bigdft_get_rxyz(filename=currDir//'/'//filename2,rxyz=rxyz2)
+                call bigdft_get_rxyz(filename=joblist(2,ijob),rxyz=rxyz2)
 
                 isad=isad+1
                 write(isadc,'(i5.5)')isad
@@ -390,20 +392,21 @@ allocate(fat(3,nat))
             else if(trim(adjustl(operation_mode))=='connect')&
                                                                  then
                 !read second file
-                write(filename2,'(a,i3.3)')'pos',ifile+1
-                inquire(file=currDir//'/'//filename2//'.xyz',&
-                            exist=xyzexists)
-                inquire(file=currDir//'/'//filename2//'.ascii',&
-                            exist=asciiexists)
-                if(.not.(xyzexists.or.asciiexists))exit
+!                write(filename2,'(a,i3.3)')'pos',ifile+1
+!                inquire(file=currDir//'/'//filename2//'.xyz',&
+!                            exist=xyzexists)
+!                inquire(file=currDir//'/'//filename2//'.ascii',&
+!                            exist=asciiexists)
+!                if(.not.(xyzexists.or.asciiexists))exit
 !!$                call deallocate_atomic_structure(astruct)
 !!$                call read_atomic_file(currDir//'/'//filename2,iproc,&
 !!$                            astruct)
 !!$                call vcopy(3*nat,astruct%rxyz(1,1),1,&
 !!$                           rxyz2(1,1),1)
-                call bigdft_get_rxyz(filename=currDir//'/'//filename2,rxyz=rxyz2)
+!                call bigdft_get_rxyz(filename=currDir//'/'//filename2,rxyz=rxyz2)
+                call bigdft_get_rxyz(filename=joblist(2,ijob),rxyz=rxyz2)
 
-                !Evalute energyies. They are needed in connect
+                !Evalute energies. They are needed in connect
                 !for identification
                 call energyandforces(nat,alat,rxyz,fat,fnoise,energy)
                 call energyandforces(nat,alat,rxyz2,fat,fnoise,&
@@ -413,8 +416,8 @@ allocate(fat(3,nat))
                 call fingerprint(nat,nid,alat,astruct_ptr%geocode,&
                          rcov,rxyz2(1,1),fp2(1))
                 if(iproc==0)then
-                    call yaml_comment('(MHGPS) Connect '//filename//&
-                               ' and '//filename2//' ....',hfill='-')
+                    call yaml_comment('(MHGPS) Connect '//trim(adjustl(joblist(1,ijob)))//&
+                               ' and '//trim(adjustl(joblist(2,ijob)))//' ....',hfill='-')
                 endif
                 isame=0
                 nsad=0
@@ -570,6 +573,7 @@ allocate(fat(3,nat))
     call f_free(fp)
     call f_free(fp2)
     call f_free(rxyz)
+    call f_free(fat)
     call f_free(fxyz) 
     call f_free(rxyz2)
     call f_free(fxyz2) 
