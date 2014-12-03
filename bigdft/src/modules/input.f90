@@ -1322,6 +1322,8 @@ contains
        return
     end if
 
+    if (.not. associated(dict)) call dict_init(dict)
+
     call input_var(dummy_str,"BFGS",dict // GEOPT_METHOD, comment = "")
     !call set(dict // GEOPT_METHOD, dummy_str)
     call input_var(dummy_int,'1',dict // NCOUNT_CLUSTER_X,comment="")
@@ -1468,6 +1470,8 @@ contains
        call input_free(.false.)
        return
     end if
+
+    if (.not. associated(dict)) call dict_init(dict)
 
     call input_var(dummy_str,'NONE',dict // SIC_APPROACH,comment='')
     !call set(dict // SIC_APPROACH, dummy_str)
@@ -2076,6 +2080,8 @@ contains
     open(unit = 123, file = trim(filename), action = "read")
     READ(123 , NML=NEB )
     close(123)
+
+    if (.not. associated(dict)) call dict_init(dict)
 
     call set(dict // GEOPT_METHOD, "NEB")
     call set(dict // NEB_CLIMBING, climbing)
