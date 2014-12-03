@@ -128,43 +128,10 @@ program mhgps
 
         if(trim(adjustl(char(runObj%run_mode)))=='QM_RUN_MODE')then
             isForceField=.false.
+            itermin=runObj%inputs%itermin
         endif
 
 
-!!        call dict_init(user_inputs)
-!!        write(currDir,'(a,i3.3)')'input',ifolder
-!!        write(filename,'(a,i3.3)')'pos',ifile
-!!        !LG: why not initialize only run_objects?
-!!        call user_dict_from_files(user_inputs, trim(run_id)//&
-!!             trim(bigdft_run_id_toa()),currDir//'/'//filename//&
-!!             trim(bigdft_run_id_toa()), bigdft_mpi)
-!!        call inputs_from_dict(inputs_opt, atoms, user_inputs)
-!!        call dict_free(user_inputs)
-!!        call init_state_properties(outs, atoms%astruct%nat)
-!!        fdim=outs%fdim
-!!        call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,&
-!!                                 rst)
-!!        call nullify_run_objects(runObj)
-!!        call run_objects_associate(runObj, inputs_opt, atoms, rst)
-!!        call dict_free(options)
-!        !LG : to be wrapped again
-!
-!        !set minimum number of wave function optimizations
-!!        if(runObj%inputs%itermin<5)then
-!!            itermin=5
-!!        else
-!            itermin=runObj%inputs%itermin
-!!        endif
-!
-!    elseif(efmethod=='LJ' .or. efmethod=='LENSIc' .or. &
-!           efmethod=='LENSIb')then
-!        iproc=0
-!        isForceField=.true.
-!        call read_atomic_file(trim(adjustl(filename))&
-!             ,iproc,atom_struct)
-!        astruct_ptr=>atom_struct
-!        fdim=astruct_ptr%nat
-!        call print_logo_mhgps()
 !    elseif(efmethod=='AMBER')then
 !        iproc=0
 !        isForceField=.true.
@@ -189,16 +156,6 @@ program mhgps
 !        !alanine stuff ......................END!>
 !
 !        call print_logo_mhgps()
-!!    elseif(efmethod=='AMBEROF')then
-!!        iproc=0
-!!        isForceField=.true.
-!!        write(currDir,'(a,i3.3)')'input',ifolder
-!!        write(filename,'(a,i3.3)')'pos',ifile
-!!        call read_atomic_file(currDir//'/'//filename,iproc,&
-!!                              atom_struct)
-!!        astruct_ptr=>atom_struct
-!!        fdim=astruct_ptr%nat
-!!        call print_logo_mhgps()
 !    else
 !        call yaml_warning('Following method for evaluation of '//&
 !        'energies and forces is unknown: '//trim(adjustl(efmethod)))
@@ -206,10 +163,8 @@ program mhgps
 !    endif
     if(iproc==0) call print_input()
 
-    !don't use bigdft_nat here since if not using BigDFT, runObj is not present!
     nat = bigdft_nat(runObj)
     nid = nat !s-overlap fingerprints
-    !don't use bigdft_get_cell here since if not using BigDFT, runObj is not present!
     alat =bigdft_get_cell(runObj)!astruct_ptr%cell_dim
     
     !allocate more arrays

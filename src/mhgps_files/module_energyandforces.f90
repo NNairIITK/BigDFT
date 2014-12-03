@@ -68,7 +68,7 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
        stop
     endif
     call bigdft_set_rxyz(runObj,rxyz=rxyz)
-    if(trim(adjustl(efmethod))=='BIGDFT')then
+    if(trim(adjustl(char(runObj%run_mode)))=='QM_RUN_MODE')then
        runObj%inputs%inputPsiId=inputPsiId !useful only in the DFT case
        runObj%inputs%itermin=itermin
     end if
