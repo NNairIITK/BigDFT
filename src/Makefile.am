@@ -91,6 +91,17 @@ else
 etsf_files = wavelib/etsf_fake.f90
 endif
 
+if HAVE_AMBERTOOLS
+ambertools_wrap= wrap.c
+###for amber supp.:
+wrap.o:     wrap.c
+	$(NAB) -c  -g $<
+else
+ambertools_wrap= wrap_fake.f90
+endif
+
+
+
 AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
@@ -198,7 +209,8 @@ low_level = \
 	linear/pulay.f90 \
 	linear/transferintegrals.f90 \
 	linear/cdft.f90 \
-	linear/frags.f90
+	linear/frags.f90\
+	$(ambertools_wrap)
 
 # C objects
 c_level = posfiles.c \
@@ -383,7 +395,7 @@ endif
 $(gir_DATA): $(G_IR_SCANNER) $(bigdft_library)
 	$(G_IR_SCANNER) -v --warn-all \
 		--namespace BigDFT \
-		--symbol-prefix=bigdft --identifier-prefix=BigDFT_ \
+		--symbol-prefix=bigdft --identifier-prefix=BigDFT_ --identifier-prefix=Bigdft \
 		--symbol-prefix=f90 --identifier-prefix=f90_ \
 		--nsversion "1.7" \
 		--add-include-path=$(girdir) \

@@ -59,7 +59,7 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   character(len=*), parameter :: subname='scfloop_main'
   integer :: infocode, i, j
   real(dp) :: favg(3)
-  type(DFT_global_output) :: outs
+  type(state_properties) :: outs
 
   if (.not. scfloop_initialised) then
      write(0,*) "No previous call to scfloop_init(). On strike, refuse to work."
@@ -93,10 +93,10 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
 !!$  close(100+me)
   outs%fxyz => fcart
   scfloop_obj%inputs%inputPsiId = 1
-  call call_bigdft(scfloop_obj,outs,infocode)
+  call bigdft_state(scfloop_obj,outs,infocode)
   epot = outs%energy
   nullify(outs%fxyz)
-  call deallocate_global_output(outs)
+  call deallocate_state_properties(outs)
 
   ! need to transform the forces into reduced ones.
   favg(:) = real(0, dp)
@@ -195,7 +195,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
   !inquire whether the input file is present, otherwise put velocities to zero
   inquire(file=filename,exist=exists)
   if (.not. exists) then  
-     call to_zero(3*atoms%astruct%nat,vxyz)
+     call f_zero(vxyz)
      return
   end if
 

@@ -488,7 +488,7 @@ END SUBROUTINE input_wf_empty
 !> Random initialisation of the wavefunctions
 !! The initialization of only the scaling function coefficients should be considered
 subroutine input_wf_random(psi, orbs)
-  use module_base, only: wp,to_zero
+  use module_base, only: wp,f_zero
   use module_types
   implicit none
 
@@ -499,8 +499,9 @@ subroutine input_wf_random(psi, orbs)
   integer :: idum=0
   real(kind=4) :: tt,builtin_rand
 
-  if (max(orbs%npsidim_comp,orbs%npsidim_orbs)>1) &
-       call to_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1))
+  !if (max(orbs%npsidim_comp,orbs%npsidim_orbs)>1) &
+  !     call to_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1))
+  call f_zero(psi)
 
   !Fill randomly the wavefunctions coefficients for the orbitals considered
   if (orbs%norbp > 0) then
@@ -650,7 +651,8 @@ subroutine input_wf_memory_history(iproc,orbs,atoms,wfn_history,istep_history,ol
   end if
 if (iproc==0)call yaml_map('Previous SCF wfn copied',.true.)   
   !put to zero the wavefunction
-  if (nvctr>0) call to_zero(nvctr,psi(1,1))
+  !if (nvctr>0) call to_zero(nvctr,psi(1,1))
+  call f_zero(psi)
 
   !calculate the reformat with history
   psi_tmp = f_malloc((/ Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f, orbs%nspinor*orbs%norbp /),id='psi_tmp')
@@ -1310,7 +1312,8 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
 
   !restart from previously calculated wavefunctions, on disk
   !since each processor read only few eigenvalues, initialise them to zero for all
-  call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
+  !call to_zero(orbs%norb*orbs%nkpts,orbs%eval(1))
+  call f_zero(orbs%eval)
 
   call readmywaves(iproc,trim(in%dir_output) // "wavefunction", input_wf_format, &
        & orbs,d%n1,d%n2,d%n3,hx,hy,hz,atoms,rxyz_old,rxyz,wfd,psi)
@@ -2323,8 +2326,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      else
         call vcopy(tmb%orbs%norb**2,ref_frags(1)%coeff(1,1),1,tmb%coeff(1,1),1)
         call vcopy(tmb%orbs%norb,ref_frags(1)%eval(1),1,tmb%orbs%eval(1),1)
-        if (associated(ref_frags(1)%coeff)) call f_free_ptr(ref_frags(1)%coeff)
-        if (associated(ref_frags(1)%eval)) call f_free_ptr(ref_frags(1)%eval)
+        call f_free_ptr(ref_frags(1)%coeff)
+        call f_free_ptr(ref_frags(1)%eval)
      end if
 
      ! hack occup to make density neutral with full occupations, then unhack after extra diagonalization (using nstates max)
@@ -2472,7 +2475,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !end if
 
         !reset occ
-        call to_zero(tmb%orbs%norb,tmb%orbs%occup(1))
+        !call to_zero(tmb%orbs%norb,tmb%orbs%occup(1))
+        call f_zero(tmb%orbs%occup)
         do iorb=1,kswfn%orbs%norb
           tmb%orbs%occup(iorb)=Kswfn%orbs%occup(iorb)
         end do
@@ -2691,9 +2695,9 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   psir = f_malloc0((/ lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i, npsir, orbs%norbp /),id='psir')
   shift = f_malloc0((/ lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, 5 /),id='shift')
   
-  call to_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1)) 
+  call f_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1)) 
   !call to_zero(lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*npsir*orbs%norbp,psir(1,1,1)) 
-  call to_zero(nbox*npsir*orbs%norbp,psir_old(1,1,1)) 
+  call f_zero(nbox*npsir*orbs%norbp,psir_old(1,1,1)) 
 
   !call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*5, shift(1,1))
 

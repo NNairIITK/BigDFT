@@ -9,7 +9,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 !subroutine geopt(nat,wpos,etot,fout,fnrmtol,count,count_sd,displr)
 subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
-!call_bigdft has to be run once on runObj and outs !before calling this routine
+!bigdft_state has to be run once on runObj and outs !before calling this routine
 !sqnm will return to caller the energies and coordinates used/obtained from the last accepted iteration step
    use module_base
    use bigdft_run!module_types
@@ -21,7 +21,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    integer, intent(in)                    :: iproc
    integer, intent(in)                    :: verbosity
    type(run_objects), intent(inout)       :: runObj
-   type(DFT_global_output), intent(inout) :: outsIO
+   type(state_properties), intent(inout) :: outsIO
    integer, intent(inout)                 :: ncount_bigdft
    logical, intent(out)                   :: fail
    !local variables
@@ -38,7 +38,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    integer :: itswitch
    integer :: imode=1
    integer :: nbond=1
-   type(DFT_global_output) :: outs
+   type(state_properties) :: outs
    logical :: success=.false.
    logical :: debug !< set .true. for debug output to fort.100
    logical :: steep !< steepest descent flag
@@ -175,16 +175,16 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    wold =0.0_gp
 
 
-   call init_global_output(outs, runObj%atoms%astruct%nat)
+   call init_state_properties(outs, runObj%atoms%astruct%nat)
 
    !copy outs_datatype
-   call copy_global_output(outsIO,outs)
+   call copy_state_properties(outsIO,outs)
 
 
 
 !!!!!!   call energyandforces(nat,rxyz(1,1,0),fxyz(1,1,0),etot)
-!!  not necessary, call_bigdft allready called outside
-!   call call_bigdft(runObj,outs,nproc,iproc,infocode)
+!!  not necessary, bigdft_state allready called outside
+!   call bigdft_state(runObj,outs,nproc,iproc,infocode)
 !   ncount_bigdft=ncount_bigdft+1
 
 !! copy to internal variables
@@ -287,7 +287,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 !      call energyandforces(nat,rxyz(1,1,nhist),fxyz(1,1,nhist),etotp)
 !      call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1,nhist), 1,runObj%atoms%astruct%rxyz(1,1), 1)
 !      runObj%inputs%inputPsiId=1
-!      call call_bigdft(runObj,outs,nproc,iproc,infocode)
+!      call bigdft_state(runObj,outs,nproc,iproc,infocode)
 !      ncount_bigdft=ncount_bigdft+1
 !      call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz(1,1,nhist), 1)
 !      etotp=outs%energy
@@ -358,7 +358,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
          if(ncount_bigdft >= nit)then!no convergence within ncount_cluster_x energy evaluations
             !following copy of rxyz(1,1,nhist-1) to runObj is necessary for returning to the caller
             !the energies and coordinates used/obtained from/in the last ACCEPTED iteration step
-            !(otherwise coordinates of last call to call_bigdft would be returned)
+            !(otherwise coordinates of last call to bigdft_state would be returned)
             call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1,nhist-1), 1,runObj%atoms%astruct%rxyz(1,1), 1)
             goto 900  !sqnm will return to caller the energies and coordinates used/obtained from the last ACCEPTED iteration step
          endif
@@ -423,7 +423,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
       etot    = etotp
       etotold = etot
       !copy outs_datatype
-      call copy_global_output(outs,outsIO)
+      call copy_state_properties(outs,outsIO)
 
       if(detot .gt. maxrise)then
          if (iproc==0) write(16,'(a,i0,4(1x,e9.2))') &
@@ -506,7 +506,7 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    call f_free(wold)
    call f_free(rcov )   
    call f_free(iconnect)
-   call deallocate_global_output(outs)
+   call deallocate_state_properties(outs)
 end subroutine
 subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzraw,fat,fstretch,&
            fxyzraw,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
@@ -519,7 +519,7 @@ subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzra
     integer, intent(in)           :: iproc,nproc,imode
     integer, intent(in)           :: nat
     type(run_objects), intent(inout)       :: runObj
-    type(DFT_global_output), intent(inout) :: outs
+    type(state_properties), intent(inout) :: outs
     integer, intent(in)           :: nbond_
     integer, intent(in)           :: iconnect(2,nbond_)
     real(gp),intent(inout)        :: rat(3,nat)
@@ -544,7 +544,7 @@ subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,rxyzra
     if(eeval)then
         call vcopy(3 * runObj%atoms%astruct%nat, rat(1,1), 1,runObj%atoms%astruct%rxyz(1,1), 1)
         runObj%inputs%inputPsiId=1
-        call call_bigdft(runObj,outs,infocode)
+        call bigdft_state(runObj,outs,infocode)
     endif
     call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fat(1,1), 1)
     call vcopy(3 * outs%fdim, fat(1,1), 1,fxyzraw(1,1), 1)

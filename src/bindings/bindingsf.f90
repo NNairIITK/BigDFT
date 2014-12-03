@@ -543,17 +543,14 @@ subroutine inputs_set_dict(in, level, val)
 END SUBROUTINE inputs_set_dict
 
 
-subroutine inputs_get_output(in, run_name, dir_output, writing_directory)
+subroutine inputs_get_output(in, dir_output)
 
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
-  character(len = 100), intent(out) :: dir_output, run_name
-  character(len = 500), intent(out) :: writing_directory
+  character(len = 100), intent(out) :: dir_output
 
-  run_name = trim(in%run_name)
   dir_output = trim(in%dir_output)
-  writing_directory = in%writing_directory
 END SUBROUTINE inputs_get_output
 
 
@@ -917,7 +914,6 @@ subroutine proj_free(nlpspd)
   use memory_profiling
   implicit none
   type(DFT_PSP_projectors), pointer :: nlpspd
-  !real(kind=8), dimension(:), pointer :: proj
 
   call free_DFT_PSP_projectors(nlpspd)
 END SUBROUTINE proj_free
@@ -1223,7 +1219,7 @@ end subroutine wf_get_psi_size
 
 
 subroutine wf_iorbp_to_psi(psir, psi, lr)
-  use module_base, only: wp,to_zero
+  use module_base, only: wp,f_zero
   use module_types
   implicit none
   type(locreg_descriptors), intent(in) :: lr
@@ -1237,7 +1233,7 @@ subroutine wf_iorbp_to_psi(psir, psi, lr)
 
   !initialisation
   if (lr%geocode == 'F') then
-     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
+     call f_zero(psir)
   end if
 
   call daub_to_isf(lr,w,psi,psir)
@@ -1275,45 +1271,45 @@ subroutine orbs_get_iorbp(orbs, iorbp, isorb, iproc, ikpt, iorb, ispin, ispinor)
 END SUBROUTINE orbs_get_iorbp
 
 
-subroutine global_output_new(self, outs, energs, fxyz, nat)
+subroutine state_properties_new(self, outs, energs, fxyz, nat)
   use module_defs, only: gp
   use module_types,only: energy_terms
   use bigdft_run
   implicit none
   integer(kind = 8), intent(in) :: self
-  type(DFT_global_output), pointer :: outs
+  type(state_properties), pointer :: outs
   type(energy_terms), pointer :: energs
   real(gp), dimension(:,:), pointer :: fxyz
   integer, intent(in) :: nat
 
-  type(DFT_global_output), pointer :: intern
+  type(state_properties), pointer :: intern
 
   allocate(intern)
-  call init_global_output(intern, nat)
+  call init_state_properties(intern, nat)
   energs => intern%energs
   fxyz => intern%fxyz
   intern%energs%c_obj = self
   outs => intern
-END SUBROUTINE global_output_new
+END SUBROUTINE state_properties_new
 
 
-subroutine global_output_free(outs)
+subroutine state_properties_free(outs)
   use module_types
   use bigdft_run
   implicit none
-  type(DFT_global_output), pointer :: outs
+  type(state_properties), pointer :: outs
 
-  call deallocate_global_output(outs)
+  call deallocate_state_properties(outs)
   deallocate(outs)
-END SUBROUTINE global_output_free
+END SUBROUTINE state_properties_free
 
 
-subroutine global_output_get(outs, energs, fxyz, fdim, fnoise, pressure, strten, etot)
+subroutine state_properties_get(outs, energs, fxyz, fdim, fnoise, pressure, strten, etot)
   use module_defs, only: gp
   use module_types, only: energy_terms
   use bigdft_run
   implicit none
-  type(DFT_global_output), intent(in), target :: outs
+  type(state_properties), intent(in), target :: outs
   type(energy_terms), pointer :: energs
   real(gp), dimension(:,:), pointer :: fxyz
   integer, intent(out) :: fdim
@@ -1330,7 +1326,7 @@ subroutine global_output_get(outs, energs, fxyz, fdim, fnoise, pressure, strten,
   strten = outs%strten
 
   etot = outs%energy
-END SUBROUTINE global_output_get
+END SUBROUTINE state_properties_get
 
 
 subroutine energs_copy_data(energs, eh, exc, evxc, eion, edisp, ekin, epot, &
@@ -1536,7 +1532,7 @@ subroutine run_objects_new(runObj)
 
   ! Allocate persistent structures.
   allocate(runObj%rst)
-  call nullify_restart_objects(runObj%rst)
+  call nullify_QM_restart_objects(runObj%rst)
 END SUBROUTINE run_objects_new
 
 
@@ -1608,14 +1604,14 @@ subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly,ln)
   call yaml_set_default_stream(iunit_def, iostat)
 END SUBROUTINE run_objects_dump_to_file
 
-!wrapper to call_bigdft in bigdft run
+!wrapper to bigdft_state in bigdft run
 subroutine bigdft_exec(runObj,outs,infocode)
-  use bigdft_run, only: run_objects,DFT_global_output,call_bigdft
+  use bigdft_run, only: run_objects,state_properties,bigdft_state
   implicit none
   type(run_objects), intent(inout) :: runObj
-  type(DFT_global_output), intent(inout) :: outs
+  type(state_properties), intent(inout) :: outs
   integer, intent(inout) :: infocode
-  call call_bigdft(runObj,outs,infocode)
+  call bigdft_state(runObj,outs,infocode)
 
 end subroutine bigdft_exec
 
@@ -1909,3 +1905,25 @@ subroutine dict_init_binding(dict)
 
   call wrapper(dict)
 END SUBROUTINE dict_init_binding
+
+
+subroutine err_severe_override(callback)
+  use dictionaries, only: f_err_severe_override, f_loc
+  implicit none
+  external :: callback
+  
+  write(*,*) f_loc(callback)
+  call f_err_severe_override(callback)
+end subroutine err_severe_override
+
+subroutine astruct_set_from_dict_binding(astruct, dict)
+  use module_input_dicts, only: astruct_set_from_dict
+  use dictionaries, only: dictionary
+  use module_atoms
+  implicit none
+  type(dictionary), pointer :: dict !< dictionary of the input variables
+  !! the keys have to be declared like input_dicts module
+  type(atomic_structure), intent(out) :: astruct          !< Structure created from the file
+
+  call astruct_set_from_dict(dict, astruct)
+end subroutine astruct_set_from_dict_binding

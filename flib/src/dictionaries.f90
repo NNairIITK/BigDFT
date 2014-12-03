@@ -114,7 +114,6 @@ module dictionaries
       module procedure dict_iter, dict_iter_lc
    end interface
 
-
    interface list_new
       module procedure list_new,list_new_elems
    end interface
@@ -130,7 +129,7 @@ module dictionaries
    public :: set,dict_init,dict_free,append,prepend,add
    public :: dict_copy, dict_update,dict_remove,dict_remove_last
    !> Handle exceptions
-   public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next
+   public :: find_key,dict_len,dict_size,dict_key,dict_item,dict_value,dict_next,dict_next_build
    public :: dict_new,list_new,dict_iter,has_key,dict_keys
    !> Public elements of dictionary_base
    public :: operator(.is.),operator(.item.)
@@ -138,6 +137,9 @@ module dictionaries
    public :: operator(==),operator(/=),operator(.in.),operator(.get.)
    public :: dictionary,max_field_length,dict_get_num
 
+   interface dict_next_build
+      module procedure dict_next_build_list
+   end interface dict_next_build
 
    !> Header of error handling part
    !! Some parameters
@@ -457,46 +459,53 @@ contains
    
 
    !> Add to a list
-   subroutine add_char(dict,val)
+   subroutine add_char(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
      character(len=*), intent(in) :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_char
-   subroutine add_dict(dict,val)
+   subroutine add_dict(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
      type(dictionary), pointer :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_dict
-   subroutine add_integer(dict,val)
+   subroutine add_integer(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
      integer, intent(in) :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_integer
-   subroutine add_real(dict,val)
+   subroutine add_real(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
      real, intent(in) :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_real
-   subroutine add_double(dict,val)
+   subroutine add_double(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
      double precision, intent(in) :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_double
-   subroutine add_long(dict,val)
+   subroutine add_long(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
      integer(kind=8), intent(in) :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_long
-   subroutine add_log(dict,val)
+   subroutine add_log(dict,val, last_item_ptr)
      implicit none
      type(dictionary), pointer :: dict
      logical, intent(in) :: val
+     type(dictionary), pointer, optional :: last_item_ptr
      include 'dict_add-inc.f90'
    end subroutine add_log
 
@@ -621,6 +630,21 @@ contains
      include 'dict_cont_arr-inc.f90'
    end function dict_cont_new_with_int_v
 
+   function dict_next_build_list(dict)
+     implicit none
+     type(dictionary), pointer, intent(in) :: dict
+     type(dictionary), pointer :: dict_next_build_list
+
+     if (associated(dict%parent)) then
+        dict_next_build_list => dict
+        call init_next(dict_next_build_list)
+        call set_item(dict_next_build_list, dict_len(dict%parent))
+!        write(*,*) "adding sibling", dict_next_build_list%data%item, associated(dict_next_build_list%parent)
+     else
+        dict_next_build_list => dict // 0
+!        write(*,*) "adding first", dict_next_build_list%data%item, associated(dict_next_build_list%parent)
+     end if
+   end function dict_next_build_list
 
    !>initialize the iterator to be used with next
    function dict_iter(dict)
@@ -645,7 +669,6 @@ contains
      dict_iter_lc => dict_iter(list%dict)
 
    end function dict_iter_lc
-
 
    function dict_next(dict)
      implicit none
@@ -1034,7 +1057,6 @@ contains
         dict%data%nitems=subd%parent%data%nitems
      end if
      call define_parent(dict,dict%child)
-
    end subroutine put_child
 
 
@@ -1125,7 +1147,6 @@ contains
 
      call f_strcpy(src=val,dest=dict%data%value)
      !call set_field(val,dict%data%value)
-
    end subroutine put_value
 
 
@@ -1606,7 +1627,8 @@ contains
             ! List case
             if (dict_size(dict) > 0) then
                ! Incompatible dict and subd.
-               call f_err_throw()
+               call f_err_throw('Incompatibility in updating, putting a list in a dictionary',&
+                    err_id=DICT_INVALID_LIST)
                return
             end if
             ! Replace elements.
@@ -1619,8 +1641,8 @@ contains
             end do
          else if (dict_size(subd) > 0) then
             if (dict_len(dict) > 0) then
-               ! Incompatible dict and subd.
-               call f_err_throw()
+               call f_err_throw('Incompatibility in updating, putting a dictionary in a list',&
+                    err_id=DICT_INVALID_LIST)
                return
             end if
             ! Dict case

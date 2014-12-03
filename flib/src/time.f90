@@ -234,6 +234,7 @@ module time_profiling
 
     !finalize the timing by putting to zero all the chronometers
     subroutine f_timing_finalize()
+      use yaml_output
       implicit none
       !create the general category for unspecified timings
       call dict_free(times(ictrl)%dict_timing_categories)
@@ -540,13 +541,6 @@ module time_profiling
       real(kind=8) :: t1
       !$ include 'remove_omp-inc.f90'
       
-      !!$ logical :: in_omp
-      !!$ logical, external :: omp_in_parallel,omp_get_nested
-      !!$ in_omp=omp_in_parallel() .or. omp_get_nested()
-      !!!disable everything if we are into a OMP section
-      !!!timing routines are not thread-safe
-      !!$ if(in_omp) return
-
       !first of all, read the time
       itns=f_time()
 

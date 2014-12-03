@@ -335,8 +335,8 @@ subroutine min_converge_fire(success)
    falpha=0.99d0
    nstep=1
 
-   dtmax=2*pi*dsqrt(alpha)*1.2d-1
-   dt = dtmax*0.5d0
+   dtmax=0.15d0
+   dt = dtmax*0.2d0
 
    success=.false.
    fnrm=1.d10
@@ -445,3 +445,151 @@ subroutine fnrmmax_fire(force,fnrm,fmax,natoms)
    fmax = dsqrt(fmax)
 
 END SUBROUTINE fnrmmax_fire
+
+
+!> Implementation of the damped MD based geometry optimizer FIRE, PRL 97, 170201
+!(2006)
+!! The MD-Integrator is the common velocity verlet, all masses are equal to 1.d0
+!! Implemented in August 2010, Maximilian Amsler, Basel University 
+!! Suggestion for maximal timestep as tmax=2*pi*sqrt(alphaVSSD)*1.2d-1
+!! Choose the initial timestep as tinit=tmax*0.5d0
+subroutine perp_fire(success)
+   use defs
+   use saddles
+   use lanczos_defs
+
+   implicit none
+
+   !Arguments
+   logical :: success
+   !Local variables
+   real(kind=8) :: fnrm
+   real(kind=8) :: fmax,vmax
+   real(kind=8), parameter :: pi = 3.14159265d0
+   integer :: check
+   integer :: iat
+
+   logical :: conv
+
+   !Fire parameters:
+   real(kind=8) :: alpha,P,finc,fdec,falpha,alphastart,dt,dtmax,vnrm
+   real(kind=8) :: velcur(3*natoms),velpred(3*natoms),poscur(3*natoms),pospred(3*natoms)
+   real(kind=8) :: fcur(3*natoms),fpred(3*natoms),mass(3*natoms)
+   real(kind=8) :: ecur,epred,anoise
+   real(kind=8), dimension(VECSIZE) :: perp_force   ! Perpendicular force...
+   integer:: Nmin,nstep,it
+   integer,parameter :: max_iter=15
+   real(kind=8),parameter :: norm_criterium = 0.008d0
+   real(kind=8),parameter :: fmax_criterium = 0.020d0
+   integer :: miter
+
+   miter = 0
+   conv = .false.
+
+
+   check=0
+   !Set FIRE parameters
+   Nmin=5
+   finc=1.1d0
+   fdec=0.5d0
+   !  alphastart=0.25d0
+   alphastart =0.1d0
+
+   anoise=1.0d-8
+
+
+   alpha=alphastart
+   falpha=0.99d0
+   nstep=1
+
+   dtmax=0.15d0
+   dt = dtmax*0.2d0
+
+   success=.false.
+   fnrm=1.d10
+   velcur=0.0d0
+   poscur=pos
+
+   call calcforce(natoms,pos,box,force,total_energy,evalf_number,conv)
+
+   call force_projection( fpar, perp_force, fperp, ftot, force, projection )
+   fpred = perp_force
+   fcur=fpred
+   mass=1.0d0
+   ecur=total_energy
+   epred=total_energy
+
+
+   do it=1,max_iter
+      miter = miter + 1
+      pas = pas + 1
+      do iat=1,3*natoms
+         pospred(iat)=poscur(iat)+dt*velcur(iat)+dt*dt*0.5d0*fcur(iat)/mass(iat)
+      enddo
+
+   call calcforce(natoms,pospred,box,force,total_energy,evalf_number,conv)
+   call force_projection( fpar, perp_force, fperp, ftot, force, projection )
+   fpred = perp_force
+   
+
+!      force=fpred
+      call fnrmmax_fire(fpred,fnrm,fmax,natoms)
+      !  call convcheck(fnrm,fmax,fluct*in%frac_fluct,in%forcemax,check)
+
+      do iat=1,3*natoms
+         velpred(iat)=velcur(iat)+0.5d0*dt*(fpred(iat))/mass(iat)+0.5d0*dt*fcur(iat)/mass(iat)
+      enddo
+      P=dot_product(fpred,velpred)
+      call fnrmmax_fire(velpred,vnrm,vmax,natoms)
+
+!      force = fpred
+      ftot = dsqrt(fnrm)
+      delta_e = total_energy - ref_energy
+      fpar = fmax
+      fperp = 0.0d0
+      eigenvalue = 0.0d0
+      ! Magnitude of the displacement (utils.f90).
+      call displacement( posref, poscur, delr, npart )
+      pos = pospred
+
+      if( fnrm < norm_criterium .or. fmax < fmax_criterium) then
+         pos = pospred
+         success = .true.
+         exit
+      endif
+
+      !Update variables
+      fcur=fpred
+      poscur=pospred
+      !Normal verlet velocity update
+      !  velcur=velpred
+
+      !!FIRE Update
+      call fnrmmax_fire(fpred,fnrm,fmax,natoms)
+      fnrm=sqrt(fnrm)
+      call fnrmmax_fire(velpred,vnrm,vmax,natoms)
+      vnrm=sqrt(vnrm)
+      !Modified velocity update, suggested by Alireza
+      !velcur(:)=(1.0d0-alpha)*velpred(:)+fpred(:)*min(alpha*vnrm/fnrm,2.0d0*in%betax)!alpha*fpred(:)/fnrm*vnrm
+      !Original FIRE velocitiy update
+      velcur(:)=(1.0d0-alpha)*velpred(:)+alpha*fpred(:)/fnrm*vnrm
+      if(P.gt.-anoise*vnrm .and. nstep.gt.Nmin) then
+         dt=min(dt*finc,dtmax)
+         !         alpha=max(alpha*falpha,0.1d0) !Limit the decrease of alpha
+         alpha=alpha*falpha
+         elseif(P.le.-anoise*vnrm) then
+         nstep=0
+         dt=dt*fdec
+         velcur=0.d0
+         alpha=alphastart
+      endif
+      nstep=nstep+1
+   enddo
+
+   success = .true. !we always accept the result
+
+   return
+END SUBROUTINE perp_fire
+
+
+

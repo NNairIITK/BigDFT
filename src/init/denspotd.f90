@@ -175,11 +175,9 @@ subroutine denspot_set_history(denspot, iscf, nspin, &
   if (iscf < 10) then
      potden = AB7_MIXING_POTENTIAL
      npoints = n1i*n2i*denspot%dpbox%n3p
-     if (denspot%dpbox%n3p==0) npoints=1
   else
      potden = AB7_MIXING_DENSITY
      npoints = n1i*n2i*denspot%dpbox%n3d
-     if (denspot%dpbox%n3d==0) npoints=1
   end if
   if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
      allocate(denspot%mix)

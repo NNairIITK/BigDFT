@@ -93,11 +93,10 @@ module module_interfaces
         type(dictionary), pointer :: dict
       end subroutine read_input_dict_from_files
 
-      subroutine create_log_file(dict, writing_directory, dir_output, run_name)
+      subroutine create_log_file(dict)
         use dictionaries
         implicit none
         type(dictionary), pointer :: dict
-        character(len = max_field_length), intent(out) :: writing_directory, dir_output, run_name
       end subroutine create_log_file
 
       subroutine inputs_from_dict(in, atoms, dict)

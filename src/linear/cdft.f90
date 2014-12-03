@@ -117,9 +117,9 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
      call f_free_ptr(tmb%linmat%ovrlp_%matrix)
   end if
 
-  proj_mat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_mat')
+  proj_mat=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_mat')
+  !call f_zero(tmb%orbs%norb**2,proj_mat(1,1))
 
-  call to_zero(tmb%orbs%norb**2,proj_mat(1,1))
   isforb=0
   do ifrag=1,input_frag%nfrag
      ifrag_ref=input_frag%frag_index(ifrag)
@@ -232,7 +232,8 @@ print*,iorb,ilr,ncount
 
   psi_orig=f_malloc_ptr(tmb%npsidim_orbs,id='psi_orig')
   call vcopy(tmb%npsidim_orbs,tmb%psi(1),1,psi_orig(1),1)
-  call to_zero(tmb%npsidim_orbs,cdft_grad)
+  !call f_zero(tmb%npsidim_orbs,cdft_grad)
+  call f_zero(cdft_grad)
 
   !calculate Tr(KW)
   !ovrlp_half=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp_half')
@@ -462,9 +463,9 @@ real(kind=8) :: ddot
 
   end if
 
-  proj_mat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_mat')
+  proj_mat=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='proj_mat')
 
-  call to_zero(tmb%orbs%norb**2,proj_mat(1,1))
+  !call f_zero(tmb%orbs%norb**2,proj_mat(1,1))
   isforb=0
   do ifrag=1,input_frag%nfrag
      ifrag_ref=input_frag%frag_index(ifrag)
@@ -586,7 +587,7 @@ call f_free_ptr(tmb%linmat%ovrlp_%matrix)
 
   !psitlarge_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='psitlarge_c')
   !psitlarge_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='psitlarge_f')
-     !if (tmb%ham_descr%npsidim_orbs > 0)  call to_zero(tmb%ham_descr%npsidim_orbs,tmb%ham_descr%psi(1))
+     !if (tmb%ham_descr%npsidim_orbs > 0)  call f_zero(tmb%ham_descr%npsidim_orbs,tmb%ham_descr%psi(1))
      !call small_to_large_locreg(bigdft_mpi%iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
      !     tmb%orbs, tmb%psi, tmb%ham_descr%psi)
 !assuming we still have tmb%ham_descr%psi
@@ -661,7 +662,7 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
   call small_to_large_locreg(bigdft_mpi%iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
        tmb%orbs, tmb%psi, tmb%ham_descr%psi)
 
-  if (tmb%ham_descr%npsidim_orbs > 0) call to_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
+  if (tmb%ham_descr%npsidim_orbs > 0) call f_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
 
   call full_local_potential(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%orbs,tmb%ham_descr%lzd,2, &
        denspot%dpbox,denspot%xc,cdft%weight_function,denspot%pot_work,tmb%ham_descr%comgp)

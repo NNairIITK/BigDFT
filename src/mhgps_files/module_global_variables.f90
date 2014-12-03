@@ -8,9 +8,10 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 module module_global_variables
-    use module_base !bigdft base module
-    use module_types
-    use bigdft_run
+    use module_base, only: gp !bigdft base module
+    !use module_types
+    use module_atoms, only: atomic_structure
+    use bigdft_run, only: run_objects, state_properties
     implicit none
     character(len = *), public, parameter :: mhgps_version   = '0.01'
     character(len = *), public, parameter :: inputdir   = 'input'
@@ -93,7 +94,7 @@ module module_global_variables
     !others
     integer               :: nbond = 1
     integer, allocatable  :: iconnect(:,:) 
-    integer, allocatable  :: ixyz_int(:,:)
+    !integer, allocatable  :: ixyz_int(:,:)
     real(gp), allocatable :: minmode(:,:)
     integer,parameter     :: usaddle=173
     character(len=60)     :: saddle_filename='saddle.mon'
@@ -111,7 +112,7 @@ module module_global_variables
     !bigdft data types and variables 
     !(these objects must preserve their status in the module)
     type(run_objects), save :: runObj
-    type(DFT_global_output), save :: outs
+    type(state_properties), save :: outs
     integer, save :: fdim
     !type(atoms_data), save :: atoms
     type(atomic_structure), pointer, save :: astruct_ptr

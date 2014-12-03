@@ -18,7 +18,7 @@
 module module_input
 
    use module_base
-   use yaml_strings, only: read_fraction_string
+   use yaml_strings, only: read_fraction_string,operator(.eqv.)
    implicit none
    private
 
@@ -405,31 +405,6 @@ contains
 
    END SUBROUTINE find
 
-
-   !> Compare two strings (case-insensitive). Blanks are relevant!
-   function case_insensitive_equiv(stra,strb)
-      implicit none
-      character(len=*), intent(in) :: stra,strb
-      logical :: case_insensitive_equiv
-      !Local variables
-      integer :: i,ica,icb,ila,ilb,ilength
-      ila=len(stra)
-      ilb=len(strb)
-      ilength=min(ila,ilb)
-      ica=ichar(stra(1:1))
-      icb=ichar(strb(1:1))
-      case_insensitive_equiv=(modulo(ica-icb,32) == 0) .and. (ila==ilb)
-      do i=2,ilength
-         ica=ichar(stra(i:i))
-         icb=ichar(strb(i:i))
-         case_insensitive_equiv=case_insensitive_equiv .and. &
-            &   (modulo(ica-icb,32) == 0)
-         if (.not. case_insensitive_equiv) exit
-      end do
-
-   END FUNCTION case_insensitive_equiv
-
-
    !> Routines for compulsory file
    subroutine var_double_compulsory(var,default,dict,ranges,exclusive,comment,input_iostat)
       implicit none
@@ -810,7 +785,7 @@ contains
          if (present(exclusive)) then
             found=.false.
             found_loop: do ilist=1,size(exclusive)
-               if (case_insensitive_equiv(trim(var),trim(exclusive(ilist)))) then
+               if (trim(var) .eqv. trim(exclusive(ilist))) then
                   found=.true.
                   exit found_loop
                end if
@@ -1718,8 +1693,6 @@ contains
     !verbosity of the output
     call input_var("verbosity", 2, "Verbosity of the output 0=low, 2=high",dummy_int)
     call set(dict // VERBOSITY, dummy_int)
-    call input_var("outdir", ".","Writing directory", dummy_path)
-    call set(dict // OUTDIR, dummy_path)
 
     !If false, apply the projectors in the once-and-for-all scheme, otherwise on-the-fly
     call input_var("psp_onfly", .true., "Calculate the PSP projectors on the fly (less memory)",dummy_bool)

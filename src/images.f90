@@ -11,16 +11,52 @@
 !> Modules which contains minimizaton routines for NEB calculation
 MODULE Minimization_routines
   use module_defs
-    
+  use dynamic_memory
   IMPLICIT NONE
   
   REAL (gp), PARAMETER, private :: epsi = 1.0D-16
+
+  !> Minimization algorithm ids
+  integer, parameter :: STEEPEST_DESCENT_ID = 1
+  integer, parameter :: FLETCHER_REEVES_ID = 2
+  integer, parameter :: POLAK_RIBIERE_ID = 3
+  integer, parameter :: QUICK_MIN_ID = 4
+  integer, parameter :: DAMPED_VERLET_ID = 5
+  integer, parameter :: SIM_ANNEALING_ID = 6
 
   CONTAINS
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!  
 !! minimization algorithms !!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
+    subroutine minimization_get_id(algorithm, minimization_scheme)
+      use dictionaries, only : f_err_throw
+      implicit none
+      character(len = *), intent(in) :: minimization_scheme
+      integer, intent(out) :: algorithm
+
+      select case(minimization_scheme)
+      case("steepest_descent")
+         algorithm = STEEPEST_DESCENT_ID
+      case("fletcher-reeves")
+         algorithm = FLETCHER_REEVES_ID
+      case("polak-ribiere")
+         algorithm = POLAK_RIBIERE_ID
+      case("quick-min")
+         algorithm = QUICK_MIN_ID
+      case("damped-verlet")
+         algorithm = DAMPED_VERLET_ID
+      case("sim-annealing")
+         algorithm = SIM_ANNEALING_ID
+      case default
+         call f_err_throw("minimization_scheme '" // trim(minimization_scheme) // "' does not exist", &
+              & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+         !WRITE(*,'(T2,"read_input: minimization_scheme ", A20)') &
+         !     trim(minimization_scheme)
+         !WRITE(*,'(T2,"            does not exist")') 
+         !STOP 
+      end select
+    end subroutine minimization_get_id
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !! steepest descent with line minimization !!
@@ -66,6 +102,7 @@ MODULE Minimization_routines
          gamma = 0.D0
       END IF
 
+      
       allocate(conj_dir_i(ndim))
 
       norm_grad = nrm2(ndim,grad(1),1)
@@ -209,6 +246,9 @@ END MODULE Minimization_routines
 module module_images
   use module_defs
   use bigdft_run!module_types
+  use module_types, only: input_variables
+  use module_atoms, only: atoms_data
+  use Minimization_routines
 
   implicit none
 
@@ -226,10 +266,12 @@ module module_images
   public :: image_init, image_deallocate, image_set_init_vel
 
   ! Routines for a list of images.
+  public :: images_init_path
   public :: images_collect_results
   public :: compute_neb_pos
   public :: images_get_activation, images_get_energies, images_get_errors
   public :: images_output_step
+  public :: images_PES_from_file
 
   ! Misc.
   public :: write_restart, write_restart_vel, write_dat_files
@@ -244,11 +286,11 @@ module module_images
   end type NEB_data
 
   type, public :: run_image
-     ! Objects to deals with call_bigdft.
+     ! Objects to deals with bigdft_state.
      ! Contains the atomic structure definition,
      !  the total energy and the forces (modified to be gradients).
      type(run_objects) :: run
-     type(DFT_global_output) :: outs
+     type(state_properties) :: outs
      character(len = 128) :: log_file
      ! Local convergence quantities
      real(gp) :: error, F
@@ -257,6 +299,7 @@ module module_images
      ! Private work arrays.
      integer :: algorithm
      real(gp), dimension(:), pointer :: old_grad, delta_pos, vel
+     real(gp), dimension(:,:), pointer :: fix_atoms
   end type run_image
 
 
@@ -302,19 +345,20 @@ contains
 
 
   !> Initialize the images (replica) of the atomic coordinates along the NEB
-  subroutine image_init(img, inputs, atoms, rst, algorithm)
+  subroutine image_init(img, dict, algorithm, img0)
     use bigdft_run
-    use module_types, only: input_variables
-    use module_atoms, only: atoms_data
-    use dynamic_memory, only: to_zero
+    use dictionaries
+    use public_keys, only: GEOPT_VARIABLES, LOGFILE
+    use f_utils, only: f_zero
+    use yaml_output
     implicit none
     type(run_image), intent(out) :: img
-    type(input_variables), intent(in) :: inputs
-    type(atoms_data), intent(in) :: atoms
-    type(restart_objects), intent(in) :: rst
-    integer, intent(in) :: algorithm
+    type(dictionary), pointer :: dict
+    type(run_image), intent(in), optional :: img0
+    character(len = *), intent(in) :: algorithm
 
-    integer :: ndim
+    integer :: ndim, unit_log
+    character(len = max_field_length) :: run_id, outdir
 
     img%id = -1
 
@@ -325,26 +369,39 @@ contains
     nullify(img%delta_pos)
     nullify(img%vel)
 
-    call nullify_run_objects(img%run)
-    call run_objects_associate(img%run, inputs, atoms, rst)
-    call init_global_output(img%outs, atoms%astruct%nat)
-
-    write(img%log_file, "(A,A)") trim(inputs%writing_directory), &
-         & 'log-'//trim(inputs%run_name)//'.yaml'           
-
-    img%algorithm = algorithm
-    ndim = 3 * atoms%astruct%nat
-    if (algorithm <= 3) then
-       allocate(img%old_grad(ndim))
-       call to_zero(ndim, img%old_grad(1))
-       allocate(img%delta_pos(ndim))
-       call to_zero(ndim, img%delta_pos(1))
+    ! Create atoms and input from user dict.
+    call dict_remove(dict, GEOPT_VARIABLES) !< Force no geometry relaxation.
+    call set(dict // LOGFILE, .true.) !< Force image logging to disk.
+    if (.not. present(img0)) then
+       call run_objects_init(img%run, dict)
     else
-       allocate(img%vel(ndim))
-       call to_zero(ndim, img%vel(1))
+       call run_objects_init(img%run, dict, source = img0%run)
+    end if
+    if (bigdft_mpi%iproc == 0) then
+       ! Need to close streams here to avoid running out of available streams.
+       call yaml_get_default_stream(unit_log)
+       call yaml_close_stream(unit_log)
+    end if
+    call init_state_properties(img%outs, img%run%atoms%astruct%nat)
+
+    call bigdft_get_run_properties(dict, run_id = run_id, outdir_id = outdir)
+    write(img%log_file, "(A,A)") trim(outdir), 'log'//trim(run_id)//'.yaml'           
+
+    call minimization_get_id(img%algorithm, algorithm)
+    ndim = 3 * img%run%atoms%astruct%nat
+    if (img%algorithm <= POLAK_RIBIERE_ID) then
+       img%old_grad=f_malloc0_ptr(ndim,id='old_grad')
+       !allocate(img%old_grad(ndim))
+       !call to_zero(ndim, img%old_grad(1))
+       img%delta_pos=f_malloc0_ptr(ndim,id='delta_pos')
+       !allocate(img%delta_pos(ndim))
+       !call to_zero(ndim, img%delta_pos(1))
+    else
+       img%vel=f_malloc0_ptr(ndim,id='vel')
+       !allocate(img%vel(ndim))
+       !call to_zero(ndim, img%vel(1))
     end if
   end subroutine image_init
-
 
   subroutine image_set_init_vel(img, ndim, vel0)
     implicit none
@@ -364,12 +421,17 @@ contains
     if (free_subs) then
        call release_run_objects(img%run)
        !call run_objects_free_container(img%run)
-       call deallocate_global_output(img%outs)
+       call deallocate_state_properties(img%outs)
     end if
 
-    if (associated(img%old_grad)) deallocate(img%old_grad)
-    if (associated(img%delta_pos)) deallocate(img%delta_pos)
-    if (associated(img%vel)) deallocate(img%vel)
+    call f_free_ptr(img%old_grad)
+    call f_free_ptr(img%delta_pos)
+    call f_free_ptr(img%vel)
+    call f_free_ptr(img%fix_atoms)
+    !if (associated(img%old_grad)) deallocate(img%old_grad)
+    !if (associated(img%delta_pos)) deallocate(img%delta_pos)
+    !if (associated(img%vel)) deallocate(img%vel)
+    !if (associated(img%fix_atoms)) deallocate(img%fix_atoms)
   end subroutine image_deallocate
 
 
@@ -411,6 +473,53 @@ contains
        images_get_errors(i) = imgs(i)%error
     end do
   end function images_get_errors
+
+
+  subroutine images_init_path(imgs, tolerance, arr_posinp)
+    use dictionaries, only: max_field_length
+    use module_atoms, only: astruct_dump_to_file
+    implicit none
+    type(run_image), dimension(:), intent(inout) :: imgs
+    real(gp), intent(in) :: tolerance !< tolerance for fix atoms.
+    character(len = max_field_length), dimension(:), intent(in), optional :: arr_posinp
+
+    real(gp), dimension(:,:), allocatable :: d_R
+    integer :: i, istart, istop, j, nat
+    
+    nat = imgs(1)%run%atoms%astruct%nat
+    ALLOCATE( d_R(3, nat) )
+
+    istart = 1
+    ! We set the coordinates for all empty images.
+    DO i = 2, size(imgs)
+       if (maxval(abs(imgs(i)%run%atoms%astruct%rxyz - imgs(i-1)%run%atoms%astruct%rxyz)) > 1d-6) then
+          istop = i
+          d_R = ( imgs(istop)%run%atoms%astruct%rxyz - imgs(istart)%run%atoms%astruct%rxyz ) / &
+               DBLE( istop - istart )
+          do j = istart + 1, istop - 1, 1
+             imgs(j)%run%atoms%astruct%rxyz = imgs(j - 1)%run%atoms%astruct%rxyz + d_R
+             ! Dump generated image positions on disk.
+             if (present(arr_posinp)) then
+                call astruct_dump_to_file(imgs(j)%run%atoms%astruct,&
+                     trim(arr_posinp(j)) // ".in", "NEB generated")
+             end if
+             ! Erase forces.
+             imgs(j)%outs%fxyz(:,:) = UNINITIALIZED(1.d0)
+          end do
+          istart = i
+       end if
+    END DO
+
+    d_R = ( imgs(size(imgs))%run%atoms%astruct%rxyz - imgs(1)%run%atoms%astruct%rxyz )
+    do i = 1, size(imgs)
+       imgs(i)%fix_atoms=f_malloc_ptr([3,nat],id='fix_atoms')
+       !ALLOCATE( imgs(i)%fix_atoms(3, nat) )      
+       imgs(i)%fix_atoms = 1
+       WHERE ( ABS( d_R ) <=  tolerance ) imgs(i)%fix_atoms = 0
+    end do
+
+    DEALLOCATE( d_R )
+  end subroutine images_init_path
 
 
   subroutine compute_local_tangent(tgt, ndim, V, posm1, pos0, posp1, Lx, Ly, Lz)
@@ -572,7 +681,7 @@ contains
     end do
 
     ! Global line treatment.
-    IF ( imgs(1)%algorithm == 6 ) CALL termalization(imgs, neb%temp_req)
+    IF ( imgs(1)%algorithm == SIM_ANNEALING_ID ) CALL termalization(imgs, neb%temp_req)
   END SUBROUTINE compute_neb_pos
 
   
@@ -600,12 +709,11 @@ contains
   END SUBROUTINE termalization
 
 
-  SUBROUTINE write_restart(restart_file, imgs, fix_atom)
+  SUBROUTINE write_restart(restart_file, imgs)
     IMPLICIT NONE
 
     character(len = *), intent(in) :: restart_file
     type(run_image), dimension(:), intent(in) :: imgs
-    real(gp), dimension(:,:), intent(in) :: fix_atom
 
     INTEGER             :: i, j
     INTEGER, PARAMETER  :: unit = 10
@@ -620,9 +728,9 @@ contains
           WRITE(unit,fmt1) imgs(i)%run%atoms%astruct%rxyz(1,j),     & 
                imgs(i)%run%atoms%astruct%rxyz(2,j), &
                imgs(i)%run%atoms%astruct%rxyz(3,j), &
-               int(fix_atom(1,j)),     &
-               int(fix_atom(2,j)), &
-               int(fix_atom(3,j)), &
+               int(imgs(i)%fix_atoms(1,j)),     &
+               int(imgs(i)%fix_atoms(2,j)), &
+               int(imgs(i)%fix_atoms(3,j)), &
                imgs(i)%outs%fxyz(1,j), &
                imgs(i)%outs%fxyz(2,j), &
                imgs(i)%outs%fxyz(3,j)
@@ -640,6 +748,8 @@ contains
 
     INTEGER             :: i, j
     INTEGER, PARAMETER  :: unit = 10
+
+    if (.not. associated(imgs(1)%vel)) return
 
     OPEN( UNIT = unit, FILE = trim(velocity_file), STATUS = "UNKNOWN", ACTION = "WRITE" )
     DO i = 1, size(imgs)
@@ -829,15 +939,60 @@ contains
     end if
   END SUBROUTINE images_collect_results
 
-END MODULE module_images
+  subroutine images_PES_from_file(stat, imgs, filename, istart, istop)
+    implicit none
+    logical, intent(out) :: stat
+    type(run_image), dimension(:), intent(inout) :: imgs
+    character(len = *), intent(in) :: filename
+    integer, intent(in), optional :: istart, istop
 
+    integer :: N_in, N_fin, replica, i
+    real(gp) :: temp_V
+    REAL (gp), PARAMETER :: corruption_flag = 9999999.99999999
+    INTEGER, PARAMETER         :: unit = 10     
+    REAL (gp), PARAMETER :: epsi = 1.0D-8
+    
+    N_in = 1
+    if (present(istart)) N_in = max(N_in, istart)
+    N_fin = size(imgs)
+    if (present(istop)) N_fin = min(N_fin, istop)
+
+    stat = .TRUE.
+
+    OPEN( UNIT = unit, FILE = trim(filename), STATUS = "OLD", ACTION = "READ" )
+
+    DO replica = N_in, N_fin
+
+       READ(unit,*) temp_V
+
+       IF ( ABS( temp_V - corruption_flag ) <= epsi ) THEN
+          stat = .FALSE. 
+          RETURN
+       END IF
+
+       imgs(replica)%outs%energy = temp_V
+
+       DO i = 1, imgs(replica)%outs%fdim, 1
+          READ(unit,*) imgs(replica)%outs%fxyz(1,i), &
+               imgs(replica)%outs%fxyz(2,i), &
+               imgs(replica)%outs%fxyz(3,i)
+       END DO
+
+       imgs(replica)%outs%fxyz = imgs(replica)%outs%fxyz * imgs(replica)%fix_atoms
+
+    END DO
+
+    CLOSE( UNIT = unit )   
+  end subroutine images_PES_from_file
+
+END MODULE module_images
 
 !> Public routines.
 subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
      & km1, kp1, optimization, climbing, neb)
   use Minimization_routines
   use module_images
-  use dynamic_memory, only: to_zero
+  use f_utils, only: f_zero
   implicit none
   type(run_image), intent(inout) :: img
   integer, intent(in) :: iteration
@@ -857,28 +1012,30 @@ subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
   Ly = img%run%atoms%astruct%cell_dim(2)
   Lz = img%run%atoms%astruct%cell_dim(3)
 
-  allocate(grad(ndim))
-  call to_zero(ndim, grad(1))
+  !allocate(grad(ndim))
+  !call to_zero(ndim, grad(1))
+  grad=f_malloc0(ndim,id='grad')
 
   if (.not. optimization) then
-     allocate(tangent(ndim))
+     tangent=f_malloc(ndim,id='tangent')
      call compute_local_tangent(tangent, ndim, (/ Vm1, img%outs%energy, Vp1 /), &
           & posm1, img%run%atoms%astruct%rxyz, posp1, Lx, Ly, Lz)
   end if
 
-  if (iteration > 0 .and. img%algorithm >= 4 ) then
+  if (iteration > 0 .and. img%algorithm >= QUICK_MIN_ID ) then
      if (optimization) then
-        call to_zero(ndim, grad(1))
+        !call to_zero(ndim, grad(1))
+        call f_zero(grad)
         call axpy(ndim, -1.d0, img%outs%fxyz(1,1), 1, grad(1), 1)
      else
         call compute_local_gradient(ndim, grad, posm1, img%run%atoms%astruct%rxyz, posp1, tangent, &
              & img%outs%fxyz, Lx,Ly,Lz, (/ km1, kp1 /), (img%algorithm == 6), climbing)
      end if
-     IF ( img%algorithm == 4 ) THEN
+     IF ( img%algorithm == QUICK_MIN_ID ) THEN
         CALL quick_min_second_step( ndim, img%vel, grad, neb%ds)
-     ELSE IF ( img%algorithm == 5 ) THEN
+     ELSE IF ( img%algorithm == DAMPED_VERLET_ID ) THEN
         CALL velocity_Verlet_second_step( ndim, img%vel, grad, neb%ds, neb%damp )
-     ELSE IF ( img%algorithm == 6 ) THEN
+     ELSE IF ( img%algorithm == SIM_ANNEALING_ID ) THEN
         CALL velocity_Verlet_second_step( ndim, img%vel, grad, neb%ds )
      END IF
 
@@ -903,29 +1060,29 @@ subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
 
   ! Calculate new positions for next step.
   if (optimization) then
-     call to_zero(ndim, grad(1))
+     call f_zero(grad)
      call axpy(ndim, -1.d0, img%outs%fxyz(1,1), 1, grad(1), 1)
   else
      call compute_local_gradient(ndim, grad, posm1, img%run%atoms%astruct%rxyz, posp1, tangent, &
-          & img%outs%fxyz, Lx,Ly,Lz, (/ km1, kp1 /), (img%algorithm == 6), climbing)
+          & img%outs%fxyz, Lx,Ly,Lz, (/ km1, kp1 /), (img%algorithm == SIM_ANNEALING_ID), climbing)
   end if
-  IF ( img%algorithm == 1 ) THEN
+  IF ( img%algorithm == STEEPEST_DESCENT_ID ) THEN
      CALL steepest_descent( ndim, img%run%atoms%astruct%rxyz, grad, neb%ds)
-  ELSE IF ( img%algorithm == 2 ) THEN
+  ELSE IF ( img%algorithm == FLETCHER_REEVES_ID ) THEN
      CALL fletcher_reeves( ndim, img%run%atoms%astruct%rxyz, grad, img%old_grad, img%delta_pos, neb%ds)
-  ELSE IF ( img%algorithm == 3 ) THEN
+  ELSE IF ( img%algorithm == POLAK_RIBIERE_ID ) THEN
      CALL polak_ribiere( ndim, img%run%atoms%astruct%rxyz, grad, img%old_grad, img%delta_pos, neb%ds)
-  ELSE IF ( img%algorithm >= 4 ) THEN
+  ELSE IF ( img%algorithm >= QUICK_MIN_ID ) THEN
      CALL velocity_Verlet_first_step( ndim, img%run%atoms%astruct%rxyz, img%vel, grad, neb%ds)
   END IF
 
-  IF ( img%algorithm <= 3 ) call vcopy(ndim, grad(1), 1, img%old_grad(1), 1)
+  IF ( img%algorithm <= POLAK_RIBIERE_ID ) call vcopy(ndim, grad(1), 1, img%old_grad(1), 1)
 
   if (.not. optimization) then
-     deallocate(tangent)
+     call f_free(tangent)!deallocate(tangent)
   end if
 
-  deallocate(grad)
+  call f_free(grad)!deallocate(grad)
 END SUBROUTINE image_update_pos
 
 
@@ -1019,7 +1176,7 @@ subroutine image_calculate(img, iteration, id)
   use module_base, only: bigdft_mpi
   use module_types
   use module_images
-  use bigdft_run, only: call_bigdft,bigdft_write_atomic_file
+  use bigdft_run, only: bigdft_state,bigdft_write_atomic_file
   implicit none
   type(run_image), intent(inout) :: img
   integer :: iteration
@@ -1042,8 +1199,11 @@ subroutine image_calculate(img, iteration, id)
      if (ierr == 0) call yaml_get_default_stream(unit_log)
      call yaml_comment("NEB iteration #" // trim(yaml_toa(iteration, fmt = "(I3.3)")), hfill="-")
   end if
-  call call_bigdft(img%run, img%outs, infocode)
+  call bigdft_state(img%run, img%outs, infocode)
   if (unit_log /= 0) call yaml_close_stream(unit_log)
+
+  ! Correct forces with fix_atoms
+  img%outs%fxyz = img%outs%fxyz * img%fix_atoms
 
   ! Output the corresponding file.
   if (bigdft_mpi%iproc == 0) then
@@ -1112,23 +1272,20 @@ END SUBROUTINE images_distribute_tasks
 
 
 !> Routines for bindings.
-subroutine image_new(img, run, outs, atoms, inputs, rst, algorithm)
-  use module_types, only: input_variables
-  use module_atoms, only: atoms_data
+subroutine image_new(img, run, outs, dict, algorithm)
+  use dictionaries
   use bigdft_run
   use module_images
   implicit none
 
   type(run_image), pointer :: img
   type(run_objects), pointer :: run
-  type(DFT_global_output), pointer :: outs
-  type(input_variables), intent(in) :: inputs
-  type(atoms_data), intent(in) :: atoms
-  type(restart_objects), intent(in) :: rst
-  integer, intent(in) :: algorithm
+  type(state_properties), pointer :: outs
+  type(dictionary), pointer :: dict
+  character(len = *), intent(in) :: algorithm
 
   allocate(img)
-  call image_init(img, inputs, atoms, rst, algorithm)
+  call image_init(img, dict, algorithm)
   run => img%run
   outs => img%outs
 END SUBROUTINE image_new
@@ -1141,7 +1298,7 @@ subroutine image_free(img, run, outs)
 
   type(run_image), pointer :: img
   type(run_objects), pointer :: run
-  type(DFT_global_output), pointer :: outs
+  type(state_properties), pointer :: outs
 
   allocate(run)
   run = img%run

@@ -32,12 +32,12 @@ program mhgps
     use module_fingerprints, only: fingerprint_interface
     use module_hessian, only: cal_hessian_fd 
     use module_minimizers
+    use bigdft_run
     implicit none
     integer :: isame,njobs
     character(len=200) :: filename
     integer :: ifolder,ijob
     logical :: xyzexists,asciiexists
-    character(len=60) :: run_id
     type(dictionary), pointer :: run
     integer :: ierr, nconfig
     real(gp), allocatable :: rcov(:)
@@ -114,10 +114,8 @@ program mhgps
         if(iproc==0) call print_logo_mhgps()
 
         !reset input and output positions of run
-        call bigdft_get_run_properties(run,run_id=run_id)
-        call bigdft_set_run_properties(run,run_id=trim(run_id)//&
-             trim(bigdft_run_id_toa()),posinp=trim(adjustl(filename))&
-             //trim(bigdft_run_id_toa()))
+        call bigdft_set_run_properties(run,&
+             & posinp_id=trim(adjustl(filename))//trim(bigdft_run_id_toa()))
 
         call run_objects_init(runObj,run)
 
@@ -125,7 +123,7 @@ program mhgps
         call dict_free(options)
         nullify(run)
 
-        call init_global_output(outs, bigdft_nat(runObj))
+        call init_state_properties(outs, bigdft_nat(runObj))
         fdim=outs%fdim
 
         astruct_ptr => bigdft_get_astruct_ptr(runObj)
@@ -139,7 +137,7 @@ program mhgps
 !             trim(bigdft_run_id_toa()), bigdft_mpi)
 !        call inputs_from_dict(inputs_opt, atoms, user_inputs)
 !        call dict_free(user_inputs)
-!        call init_global_output(outs, atoms%astruct%nat)
+!        call init_state_properties(outs, atoms%astruct%nat)
 !        fdim=outs%fdim
 !        call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,&
 !                                 rst)
@@ -241,8 +239,8 @@ program mhgps
                 id='fxyz2')
     rcov     = f_malloc((/ 1.to.nat/),id='rcov')
     iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
-    ixyz_int = f_malloc((/ 1.to.3,1.to.nat/),&
-                id='nat')
+!    ixyz_int = f_malloc((/ 1.to.3,1.to.nat/),&
+!                id='nat')
     rotforce = f_malloc((/ 1.to.3, 1.to.nat/),&
                 id='rotforce')
     hess     = f_malloc((/ 1.to.3*nat,&
@@ -306,7 +304,7 @@ program mhgps
 
     
     iconnect = 0
-    ixyz_int = 0
+    !ixyz_int = 0
     call give_rcov(astruct_ptr,nat,rcov)
     !if in biomode, determine bonds betweens atoms once and for all
     !(it isassuemed that all conifugrations over which will be
@@ -556,7 +554,7 @@ program mhgps
 !        call release_run_objects(runObj)
         call free_run_objects(runObj)
 !        call free_input_variables(inputs_opt)
-        call deallocate_global_output(outs)
+        call deallocate_state_properties(outs)
         call bigdft_finalize(ierr)
     elseif(efmethod=='LJ'.or.efmethod=='AMBER'.or.efmethod=='AMBEROF'.or.&
            efmethod=='LENSIc' .or. efmethod=='LENSIb')then
@@ -579,7 +577,7 @@ program mhgps
     call f_free(fxyz2) 
     call f_free(rcov)
     call f_free(iconnect)
-    call f_free(ixyz_int)
+    !call f_free(ixyz_int)
     call f_free(rotforce)
     call f_free(hess)
     call f_free(rxyz_rot)

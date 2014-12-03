@@ -8,20 +8,20 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Module to manipulate the internal coordinates (atomic positions)
-module vector_operations
-  implicit none
-
-  contains
-    function cross_product(a, b)
-      implicit none
-      real(kind=8),dimension(3) :: cross_product
-      real(kind=8),dimension(3),intent(in) :: a, b
-      cross_product(1) = a(2) * b(3) - a(3) * b(2)
-      cross_product(2) = a(3) * b(1) - a(1) * b(3)
-      cross_product(3) = a(1) * b(2) - a(2) * b(1)
-    end function cross_product
-end module vector_operations
+!!$!> Module to manipulate the internal coordinates (atomic positions)
+!!$module vector_operations
+!!$  implicit none
+!!$
+!!$  contains
+!!$    function cross_product(a, b)
+!!$      implicit none
+!!$      real(kind=8),dimension(3) :: cross_product
+!!$      real(kind=8),dimension(3),intent(in) :: a, b
+!!$      cross_product(1) = a(2) * b(3) - a(3) * b(2)
+!!$      cross_product(2) = a(3) * b(1) - a(1) * b(3)
+!!$      cross_product(3) = a(1) * b(2) - a(2) * b(1)
+!!$    end function cross_product
+!!$end module vector_operations
 
 
 module internal_coordinates
@@ -438,7 +438,7 @@ module internal_coordinates
     
     
     subroutine internal_to_cartesian(nat, na, nb, nc, xyz_int, xyz_cart)
-      use vector_operations
+      !use vector_operations
       implicit none
     
       ! Calling arguments
@@ -551,5 +551,15 @@ module internal_coordinates
       end do
     
     end subroutine internal_to_cartesian
+
+    function cross_product(a, b)
+      implicit none
+      real(kind=8),dimension(3) :: cross_product
+      real(kind=8),dimension(3),intent(in) :: a, b
+      cross_product(1) = a(2) * b(3) - a(3) * b(2)
+      cross_product(2) = a(3) * b(1) - a(1) * b(3)
+      cross_product(3) = a(1) * b(2) - a(2) * b(1)
+    end function cross_product
+
 
   end module internal_coordinates

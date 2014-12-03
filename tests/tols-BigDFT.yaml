@@ -40,6 +40,9 @@ Keys to ignore:
  - sparse matmul load balancing naive / optimized
  - number of taskgroups
  - taskgroups overview
+ - outdir
+ - Atomic positions within the cell (Atomic and Grid Units)
+ - Rigid Shift Applied (AU)
  #- number of tasks
  #- IDs
  #- start / end
@@ -1083,7 +1086,7 @@ O2spin_foe:
  EvXC: 8.69e-9
  Enl: 2.6e-9
  Tr(K): 1.4e-7
- charge diff: 1.3e-7
+ charge diff: 1.34e-7
  eF: 1.1-10
  D eF: 4.4e-8
  guess for new ef: 4.1e-9
@@ -1098,7 +1101,7 @@ O2spin_foe:
  decay length of error function: 1.1e-5
  diff: 4.8e-9
  D Tr: 2.1e-7
- relative diff: 2.6e-11
+ relative diff: 2.73e-11
  fnrm2: 4.19e-8
 
 O2spin_dirmin:

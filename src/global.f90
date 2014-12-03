@@ -60,7 +60,7 @@ program MINHOP
   real(kind=8), dimension(:,:), pointer :: rxyz_opt,rxyz_md
   
   type(run_objects) :: run_opt,run_md !< the two runs parameters
-  type(DFT_global_output) :: outs
+  type(state_properties) :: outs
   type(dictionary), pointer :: user_inputs,options,run
   integer:: nposacc=0
   logical:: disable_hatrans
@@ -88,13 +88,12 @@ program MINHOP
   call cpu_time(tcpu1)
 
   !reset input and output positions of run
-  call bigdft_get_run_properties(run,run_id=run_id)
-  call bigdft_set_run_properties(run,run_id=trim(run_id)//trim(bigdft_run_id_toa()),&
-       posinp='poscur'//trim(bigdft_run_id_toa()))
+  call bigdft_get_run_properties(run,input_id=run_id)
+  call bigdft_set_run_properties(run,posinp_id='poscur'//trim(bigdft_run_id_toa()))
 
   call run_objects_init(run_opt,run)
   !then the unoptimized parameters
-  call bigdft_set_run_properties(run,run_id='md'//trim(run_id)//trim(bigdft_run_id_toa()))
+  call bigdft_set_run_properties(run,run_id='md'//trim(run_id), log_to_disk=.false.)
 
   call run_objects_init(run_md,run,source=run_opt)
   
@@ -126,8 +125,8 @@ program MINHOP
 !!$  call deallocate_atoms_data(md_atoms) 
 
 !   write(*,*) 'nat=',atoms%astruct%nat
-  ! Create the DFT_global_output container.
-  call init_global_output(outs, bigdft_nat(run_opt))
+  ! Create the state_properties container.
+  call init_state_properties(outs, bigdft_nat(run_opt))
 
   !performs few checks
   if (run_opt%inputs%inguess_geopt .ne. run_md%inputs%inguess_geopt) then 
@@ -137,10 +136,12 @@ program MINHOP
 
   !associate the same output directory 
   if (run_opt%inputs%dir_output /= run_md%inputs%dir_output) then
-     call deldir(trim(run_md%inputs%dir_output),len_trim(run_md%inputs%dir_output),ierr)
-     if (ierr /=0) then
-        call yaml_warning('Error found while deleting '//&
-             trim(run_md%inputs%dir_output))
+     if (bigdft_mpi%iproc == 0) then
+        call deldir(trim(run_md%inputs%dir_output),len_trim(run_md%inputs%dir_output),ierr)
+        if (ierr /=0) then
+           call yaml_warning('Error found while deleting '//&
+                trim(run_md%inputs%dir_output))
+        end if
      end if
      run_md%inputs%dir_output=run_opt%inputs%dir_output
   end if
@@ -218,7 +219,7 @@ program MINHOP
 !!$  call nullify_run_objects(runObj)
 !!$  call run_objects_associate(runObj, inputs_md, atoms, rst)
   !we start with md
-  call call_bigdft(run_md,outs,infocode)
+  call bigdft_state(run_md,outs,infocode)
 
 
   energyold=1.d100
@@ -281,7 +282,7 @@ program MINHOP
 !         write(*,*) 'Generating new input guess'
 !          inputs_opt%inputPsiId=0
 !          call run_objects_associate(runObj, inputs_opt, atoms, rst)
-!          call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+!          call bigdft_state(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 !          inputs_opt%inputPsiId=1
 !  endif   
   !call run_objects_associate(runObj, inputs_opt, atoms, rst)
@@ -572,7 +573,7 @@ program MINHOP
 !         write(*,*) 'Generating new input guess'
 !          inputs_opt%inputPsiId=0
 !          call run_objects_associate(runObj, inputs_opt, atoms, rst)
-!          call call_bigdft(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
+!          call bigdft_state(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 !          inputs_opt%inputPsiId=1
 !  endif   
   !call run_objects_associate(runObj, inputs_opt, atoms, rst)
@@ -841,7 +842,7 @@ end do hopping_loop
   call f_free(ksevals)
 !  if (iproc==0) write(*,*) 'quit 4'
 
-  call deallocate_global_output(outs)
+  call deallocate_state_properties(outs)
 !!$  call free_input_variables(inputs_md)
 !!$  call free_input_variables(inputs_opt)
 
@@ -866,7 +867,7 @@ contains
     integer :: nsoften,mdmin,ngeopt,iproc,nproc
     real(kind=8) :: ekinetic,dt,count_md
     type(run_objects), intent(inout) :: runObj
-    type(DFT_global_output), intent(inout) :: outs
+    type(state_properties), intent(inout) :: outs
     real(kind=8), dimension(3,natoms) :: gg,vxyz
     character(len=4) :: fn4
     real(gp) :: e0,enmin1,en0000,econs_max,econs_min,rkin,enmin2
@@ -907,7 +908,7 @@ contains
     call frozen_dof(bigdft_get_astruct_ptr(runObj),vxyz,ndfree,ndfroz)
   ! normalize velocities to target ekinetic
     call velnorm(natoms,(ekinetic*ndfree)/(ndfree+ndfroz),vxyz)
-    call to_zero(3*natoms,gg)
+    call f_zero(gg)
 
     if(iproc==0) call torque(natoms,rxyz_run,vxyz)
 
@@ -933,7 +934,7 @@ contains
        enmin1=en0000
        !    if (iproc == 0) write(*,*) 'CLUSTER FOR  MD'
        runObj%inputs%inputPsiId=1
-       call call_bigdft(runObj, outs,infocode)
+       call bigdft_state(runObj, outs,infocode)
 
        if (iproc == 0) then
           write(fn4,'(i4.4)') istep
@@ -1042,7 +1043,7 @@ contains
     !Arguments
     integer, intent(in) :: nsoften,nproc,iproc
     type(run_objects), intent(inout) :: runObj
-    type(DFT_global_output), intent(inout) :: outs
+    type(state_properties), intent(inout) :: outs
     real(kind=8), dimension(3*natoms) :: vxyz
     !Local variables
     real(kind=8), dimension(3*natoms) :: pos0
@@ -1062,7 +1063,7 @@ contains
 
     runObj%inputs%inputPsiId=1
     if(iproc==0) call yaml_comment('(MH) soften initial step ',hfill='~')
-    call call_bigdft(runObj,outs,infocode)
+    call bigdft_state(runObj,outs,infocode)
     etot0 = outs%energy
 
     ! scale velocity to generate dimer 
@@ -1085,7 +1086,7 @@ contains
        !call vcopy(3*natoms, pos0(1), 1, bigdft_get_rxyz_ptr(runObj), 1)
        call bigdft_set_rxyz(runObj,rxyz_add=pos0(1))
        call daxpy(3*natoms, 1.d0, vxyz(1), 1,rxyz_run, 1)
-       call call_bigdft(runObj,outs,infocode)
+       call bigdft_state(runObj,outs,infocode)
        fd2=2.d0*(outs%energy-etot0)/eps_vxyz**2
 
        call atomic_dot(bigdft_get_astruct_ptr(runObj),vxyz,vxyz,svxyz)
@@ -1629,7 +1630,7 @@ subroutine winter(nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
 
   ! write enarr file
   open(unit=12,file='enarr'//trim(bigdft_run_id_toa()),status='unknown')
-  write(12,'(2(i10),l,a)') nlmin,nlmin+5,singlestep, & 
+  write(12,'(2(i10),l1,a)') nlmin,nlmin+5,singlestep, & 
       ' # of minima already found, # of minima to be found in consecutive run, singlestep mode'
   write(12,'(2(e24.17,1x),a)') en_delta,fp_delta,' en_delta,fp_delta'
   do k=1,nlmin
