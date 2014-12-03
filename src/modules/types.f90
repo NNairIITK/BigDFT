@@ -283,6 +283,7 @@ module module_types
      real(gp) :: gnrm_startmix
      integer :: verbosity            !< Verbosity of the output file
      logical :: multipole_preserving !< Preserve multipole for ionic charge (integrated isf)
+     integer :: mp_isf               !< Interpolating scaling function order for multipole preserving
 
      !> DFT basic parameters.
      integer :: ixc         !< XC functional Id
@@ -2182,6 +2183,8 @@ contains
           DistProjApply = val
        case (MULTIPOLE_PRESERVING)
           in%multipole_preserving = val
+       case (MP_ISF)
+          in%mp_isf = val
        case (IG_DIAG)
           in%orthpar%directDiag = val
        case (IG_NORBP)

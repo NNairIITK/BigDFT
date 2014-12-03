@@ -768,6 +768,20 @@
    multipole_preserving:
      COMMENT: (EXPERIMENTAL) Preserve the multipole moment of the ionic density
      default: No
+   mp_isf:
+     COMMENT: (EXPERIMENTAL) Interpolating scalig function order for the multipole preserving
+     EXCLUSIVE:
+       8: isf 8
+       14: isf 14
+       16: isf 16
+       20: isf 20
+       24: isf 24
+       30: isf 30
+       40: isf 40
+       50: isf 50
+       60: isf 60
+       100: isf 100
+     default: 16
    pdsyev_blocksize:
      COMMENT: SCALAPACK linear scaling blocksize
      default: -8

@@ -81,7 +81,7 @@ program MP_gaussian
               print *,j,imoms,reference,moments(imoms,j),abs((moments(imoms,j)-reference))
               if (reference /= 0.0_gp) then
                  !x^even
-                 moments(imoms,j) = abs((moments(imoms,j)-reference))!/reference)
+                 moments(imoms,j) = abs((moments(imoms,j)-reference)/reference)
               else
                  !x^odd
                  moments(imoms,j) = abs(moments(imoms,j))
@@ -110,7 +110,7 @@ end program MP_gaussian
 !> Classify the quality of a multipole extraction in both cases
 subroutine evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,moments)
   use module_base, only: gp
-  use gaussians, only: mp_exp
+  use gaussians, only: mp_exp, scfdotf
   implicit none
   !Arguments
   integer, intent(in) :: npts,pow,nmoms
@@ -123,7 +123,8 @@ subroutine evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,moment
   integer :: istep = 0
 
   !use the elemental property of the mp_exp function
-  fj_phi=mp_exp(hgrid,x0,pgauss,(/(j,j=-npts,npts)/),pow,.true.)
+  !fj_phi=mp_exp(hgrid,x0,pgauss,(/(j,j=-npts,npts)/),pow,.true.)
+  fj_phi=scfdotf((/(j,j=-npts,npts)/),hgrid,pgauss,x0,pow)
   !scfdotf((/(j,j=-npts,npts)/),hgrid,pgauss,x0,pow)
   call moments_1d(2*npts+1,fj_phi,x0+hgrid*(npts+1),hgrid,nmoms,moments(0,1))
 

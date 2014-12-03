@@ -16,9 +16,9 @@ program MP_gaussian
   implicit none
   integer, parameter :: iunit=16        !< File unit for the plot
   integer, parameter :: nmoms=16        !< Number of calculated moments
-  integer, parameter :: nstep=10        !> Number of resolution to calculate the moments
+  integer, parameter :: nstep=10        !< Number of resolution to calculate the moments
   integer, parameter :: nsigma=1        !< Number of different gaussian functions
-  integer, parameter :: npts=50        !< Arrays from -npts to npts
+  integer, parameter :: npts=50         !< Arrays from -npts to npts
   real(gp), parameter :: hgrid = 1.0_gp !< Step grid
   real(gp), parameter :: sigma = 0.25_gp !< Sigma gaussian
   integer :: j

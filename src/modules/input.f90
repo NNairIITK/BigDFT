@@ -1728,6 +1728,8 @@ contains
     !If true, preserve the multipole of the ionic part (local potential) projecting on delta instead of ISF
     call input_var("multipole_preserving", .false., "Preserve multipole moment of the ionic charge",dummy_bool)
     call set(dict // MULTIPOLE_PRESERVING, dummy_bool)
+    call input_var("mp_isf", 16, "Interpolating scaling function for the multipole preserving option",dummy_int)
+    call set(dict // MP_ISF, dummy_int)
 
     !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
     call input_var("pdsyev_blocksize",-8,"SCALAPACK linear scaling blocksize",dummy_int) !ranges=(/-100,1000/)

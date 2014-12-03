@@ -829,7 +829,7 @@ contains
       type(dictionary), pointer :: dict, ref
       logical :: set_
 
-      integer :: j, dlen
+      integer :: j
       type(dictionary), pointer :: tmp
       character(max_field_length) :: mkey, val_master, val_when
 
