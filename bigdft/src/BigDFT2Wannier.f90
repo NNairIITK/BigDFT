@@ -47,7 +47,7 @@ program BigDFT2Wannier
    real(wp), allocatable :: psi_daub_im(:),psi_daub_re(:),psi_etsf2(:) !!,pvirt(:)
    real(wp), allocatable :: mmnk_v_re(:), mmnk_v_im(:)
    real(wp), pointer :: pwork(:)!,sph_daub(:)
-   character(len=60) :: filename, run_id
+   character(len=max_field_length) :: filename, run_id
    logical :: perx, pery,perz, residentity,write_resid
    integer :: nx, ny, nz, nb, nb1, nk, inn
    real(kind=8) :: b1, b2, b3, r0x, r0y, r0z
@@ -99,10 +99,9 @@ program BigDFT2Wannier
 !!$   call memocc_set_memory_limit(memorylimit)
 
    if (bigdft_nruns(options) > 1) stop 'runs-file not supported for BigDFT2Wannier executable'
-   run_id = options // 'BigDFT' // 0 // 'name'
-   call dict_init(user_inputs)
-   call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
-        & 'posinp'//trim(bigdft_run_id_toa()), bigdft_mpi)
+   call dict_copy(user_inputs, options // 'BigDFT' // 0)
+   call bigdft_get_run_properties(user_inputs, input_id = run_id, posinp_id = filename)
+   call user_dict_from_files(user_inputs, trim(run_id), trim(filename), bigdft_mpi)
    call inputs_from_dict(input, atoms, user_inputs)
    call dict_free(user_inputs)
    call dict_free(options)

@@ -50,7 +50,7 @@ program BigDFT
       call run_objects_init(runObj,run)
       call init_global_output(outs,bigdft_nat(runObj))
 
-      posinp_id = run // 'posinp' 
+      call bigdft_get_run_properties(run, posinp_id = posinp_id)
       call call_bigdft(runObj,outs,infocode)
 
          if (runObj%inputs%ncount_cluster_x > 1) then

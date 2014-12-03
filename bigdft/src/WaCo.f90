@@ -53,7 +53,7 @@ program WaCo
    real(wp), allocatable :: ham(:,:,:),hamr(:,:,:)
    real(wp), allocatable :: diag(:,:),diagT(:)
    integer, dimension(:), pointer :: buf
-   character(len=60) :: radical, filename, run_id
+   character(len=max_field_length) :: radical, filename, run_id
    logical :: notocc, bondAna,Stereo,hamilAna,WannCon,linear,outformat
    integer, dimension(:), allocatable :: ConstList
    integer, allocatable :: nfacets(:),facets(:,:,:),vertex(:,:,:), l(:), mr(:)
@@ -109,9 +109,6 @@ program WaCo
    call bigdft_init(options)!mpi_info,nconfig,run_id,ierr)
    iproc=bigdft_mpi%iproc!mpi_info(1)
    nproc=bigdft_mpi%nproc!mpi_info(2)
-   if (bigdft_nruns(options) > 1) stop 'runs-file not supported for BigDFT2Wannier executable'
-   run_id = options // 0 // 'name'
-   call dict_free(options)
 
 
 !!$   !-finds the number of taskgroup size
@@ -125,11 +122,13 @@ program WaCo
 !!$
 !!$   if (nconfig < 0) stop 'runs-file not supported for WaCo executable'
 
-   call dict_init(user_inputs)
-   call user_dict_from_files(user_inputs, trim(run_id)//trim(bigdft_run_id_toa()), &
-        & 'posinp'//trim(bigdft_run_id_toa()), bigdft_mpi)
+   if (bigdft_nruns(options) > 1) stop 'runs-file not supported for BigDFT2Wannier executable'
+   call dict_copy(user_inputs, options // 'BigDFT' // 0)
+   call bigdft_get_run_properties(user_inputs, input_id = run_id, posinp_id = filename)
+   call user_dict_from_files(user_inputs, trim(run_id), trim(filename), bigdft_mpi)
    call inputs_from_dict(input, atoms, user_inputs)
    call dict_free(user_inputs)
+   call dict_free(options)
 
 !!$   if (input%verbosity > 2) then
 !!$      nproctiming=-nproc !timing in debug mode
