@@ -234,8 +234,9 @@ subroutine write_path_a(nat,npath,path,energies,tangent)
     use module_base
     use module_interfaces
     use module_atoms, only: astruct_dump_to_file
-    use module_global_variables, only: isadc, astruct_ptr,&
+    use module_global_variables, only: isadc, runObj,&
                                        currDir
+    use bigdft_run
     implicit none
     !parameters
     integer, intent(in) :: nat, npath
@@ -261,7 +262,7 @@ subroutine write_path_a(nat,npath,path,energies,tangent)
         write(comment,'(a)')&
            'ATTENTION! Forces below are no forces but tangents to '//&
            'the guessed reaction path'
-        call astruct_dump_to_file(astruct_ptr,&
+        call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
              currDir//'/sad'//isadc//'_igpath_'//fn4,&
              trim(comment),&
              energies(ipath),rxyz=pathint(:,:,ipath),&
@@ -273,8 +274,9 @@ subroutine write_path_b(nat,npath,path,energies,tangent)
     use module_base
     use module_interfaces
     use module_atoms, only: astruct_dump_to_file
-    use module_global_variables, only: isadc, astruct_ptr,ixyz_int,&
+    use module_global_variables, only: isadc, runObj,&
                                        currDir
+    use bigdft_run
     implicit none
     !parameters
     integer, intent(in) :: nat, npath
@@ -291,7 +293,7 @@ subroutine write_path_b(nat,npath,path,energies,tangent)
         write(comment,'(a)')&
            'ATTENTION! Forces below are no forces but tangents to '//&
            'the guessed reaction path'
-        call astruct_dump_to_file(astruct_ptr,&
+        call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
              currDir//'/sad'//isadc//'_igpath_'//fn4,&
              trim(comment),&
              energies(ipath),rxyz=path(:,:,ipath),&

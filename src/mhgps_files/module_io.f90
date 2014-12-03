@@ -194,7 +194,8 @@ subroutine write_mode(nat,filename,minmode,rotforce)
     use module_types
     use module_interfaces
     use module_atoms, only: astruct_dump_to_file
-    use module_global_variables, only: iproc, astruct=>astruct_ptr
+    use module_global_variables, only: iproc, runObj
+    use bigdft_run
     implicit none
     !parameters
     integer, intent(in) :: nat
@@ -205,24 +206,24 @@ subroutine write_mode(nat,filename,minmode,rotforce)
     character(len=7) :: comment='minmode'
     character(len=11) :: units
 
-    units=astruct%units
-    astruct%units='atomicd0'
+    units=bigdft_get_units(runObj)
+    call bigdft_set_units(runObj,'atomicd0')
     if(present(rotforce))then
-       call astruct_dump_to_file(astruct,filename,trim(comment),&
+       call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),filename,trim(comment),&
             rxyz=minmode,forces=rotforce)
 !!$
 !!$        call write_atomic_file(filename,&
 !!$              0.0_gp,minmode(1,1),ixyz_int,&
 !!$              atoms,trim(comment),forces=rotforce(1,1))
     else
-       call astruct_dump_to_file(astruct,filename,trim(comment),&
+       call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),filename,trim(comment),&
             rxyz=minmode)
 !!$
 !!$        call write_atomic_file(filename,&
 !!$              0.0_gp,minmode(1,1),ixyz_int,&
 !!$              atoms,trim(comment))
     endif
-    astruct%units=units
+    call bigdft_set_units(runObj,units)
 end subroutine
 
 end module

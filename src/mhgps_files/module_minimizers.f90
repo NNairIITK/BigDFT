@@ -58,7 +58,7 @@ subroutine minimizer_sqnm(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,e
    use module_global_variables, only: iproc,&
                                       inputPsiId,&
                                       mhgps_verbosity,&
-                                      astruct_ptr,&
+                                      runObj,&
                                       mini_frac_fluct,&
                                       mini_ncluster_x,&
                                       mini_betax,&
@@ -73,6 +73,7 @@ subroutine minimizer_sqnm(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,e
                                       isadc,&
                                       currDir
    use module_atoms, only: astruct_dump_to_file
+   use bigdft_run
    implicit none
    !parameter
    integer, intent(in)                    :: nat, nbond,imode
@@ -254,7 +255,7 @@ subroutine minimizer_sqnm(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,e
 if (iproc == 0 .and. mhgps_verbosity >=4) then
    write(fn4,'(i4.4)') 0
    write(comment,'(a,1pe10.3)')'SQNM:fnrm= ',fnrm
-   call astruct_dump_to_file(astruct_ptr,&
+   call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
         currDir//'/sad'//trim(adjustl(isadc))&
         //'_posmini'//trim(adjustl(writePostfix))//'_'//fn4, &
         trim(comment),energy=etotp,rxyz=rxyz(:,:,nhist),&
@@ -369,7 +370,7 @@ endif
       if (iproc == 0 .and. mhgps_verbosity >=4) then
          write(fn4,'(i4.4)') int(energycounter)
          write(comment,'(a,1pe10.3)')'SQNM:fnrm= ',fnrm
-         call astruct_dump_to_file(astruct_ptr,&
+         call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
               currDir//'/sad'//trim(adjustl(isadc))&
               //'_posmini'//trim(adjustl(writePostfix))//'_'//fn4, &
               trim(comment),energy=etotp,rxyz=rxyz(:,:,nhist),&

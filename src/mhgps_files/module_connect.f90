@@ -112,7 +112,7 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,isame,&
   use module_base
   use module_atoms, only: astruct_dump_to_file
     use module_global_variables,&
-       only: astruct_ptr,&
+       only: runObj,&
              imode,&
              nsadmax,&
              iproc,&
@@ -129,7 +129,8 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,isame,&
     use yaml_output
     use module_saddle
     use module_freezingstring
-use module_energyandforces
+    use module_energyandforces
+    use bigdft_run
     implicit none
     !parameters
     integer, intent(in)     :: nat
@@ -215,7 +216,7 @@ use module_energyandforces
         'below give no forces, but the final minmode| fnrm, fmax = ',&
         fnrm,fmax
 
-        call astruct_dump_to_file(astruct_ptr,&
+        call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
              currDir//'/sad'//trim(adjustl(isadc))//'_finalM',&
              comment,&
              cobj%enersad(nsad),rxyz=cobj%saddle(:,:,nsad),&
@@ -224,7 +225,7 @@ use module_energyandforces
         write(comment,'(a,1pe10.3,5x,1pe10.3)')&
                                             'fnrm, fmax = ',fnrm,fmax
 
-        call astruct_dump_to_file(astruct_ptr,&
+        call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
              currDir//'/sad'//trim(adjustl(isadc))//'_finalF',&
              comment,&
              cobj%enersad(nsad),rxyz=cobj%saddle(:,:,nsad),&
@@ -235,7 +236,7 @@ use module_energyandforces
     endif
 
 
-    call fingerprint(nat,nid,alat,astruct_ptr%geocode,rcov,&
+    call fingerprint(nat,nid,alat,bigdft_get_geocode(runObj),rcov,&
                     cobj%saddle(1,1,nsad),cobj%fpsad(1,nsad))
 
     if(nsad>1)then
@@ -276,7 +277,7 @@ use module_energyandforces
         cobj%fleft(1,1,nsad),fnoise,cobj%enerleft(nsad))
 
         if(iproc==0 .and. mhgps_verbosity >= 3)&
-             call astruct_dump_to_file(astruct_ptr,&
+             call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
              currDir//'/sad'//trim(adjustl(isadc))//'_pushL',&
              comment,&
              cobj%enerleft(nsad),cobj%leftmin(:,:,nsad),&
@@ -292,13 +293,13 @@ use module_energyandforces
         write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,&
                                               fmax
         if(iproc==0)&
-             call astruct_dump_to_file(astruct_ptr,&
+             call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
              currDir//'/sad'//trim(adjustl(isadc))//'_minFinalL',&
              comment,&
              cobj%enerleft(nsad),cobj%leftmin(:,:,nsad),&
              cobj%fleft(:,:,nsad))
 
-        call fingerprint(nat,nid,alat,astruct_ptr%geocode,rcov,&
+        call fingerprint(nat,nid,alat,bigdft_get_geocode(runObj),rcov,&
                         cobj%leftmin(1,1,nsad),cobj%fpleft(1,nsad))
         if(.not.equal('MS',nid,en_delta_sad,fp_delta_sad,&
            cobj%enersad(nsad),cobj%enerleft(nsad),cobj%fpsad(1,nsad),&
@@ -310,16 +311,16 @@ use module_energyandforces
             if(iproc==0)then
                 write(comment,'(a)')'Prob: Neighbors '//&
                 'unknown (stepoff converged back to saddle)'
-                call astruct_dump_to_file(astruct_ptr,&
+                call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                      currDir//'/sadProb'//trim(adjustl(isadprobc))//'_finalM',&
                      comment,&
                 cobj%enersad(nsad),rxyz=cobj%saddle(:,:,nsad),&
                 forces=cobj%minmode(:,:,nsad))
-                call astruct_dump_to_file(astruct_ptr,&
+                call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                      currDir//'/sadProb'//trim(adjustl(isadprobc))//'_Reactant',&
                      comment,&
                 0.0_gp,rxyz=cobj%rxyz1)
-                call astruct_dump_to_file(astruct_ptr,&
+                call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                      currDir//'/sadProb'//trim(adjustl(isadprobc))//'_Product',&
                      comment,&
                 0.0_gp,rxyz=cobj%rxyz2)
@@ -361,7 +362,7 @@ use module_energyandforces
         cobj%fright(1,1,nsad),fnoise,cobj%enerright(nsad))
 
         if(iproc==0 .and. mhgps_verbosity >= 3)&
-             call astruct_dump_to_file(astruct_ptr,&
+             call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
              currDir//'/sad'//trim(adjustl(isadc))//'_pushR',&
              comment,&
              cobj%enerright(nsad),cobj%rightmin(1,1,nsad),&
@@ -377,12 +378,12 @@ use module_energyandforces
         write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,&
                                               fmax
         if(iproc==0)&
-             call astruct_dump_to_file(astruct_ptr,&
+             call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
              currDir//'/sad'//trim(adjustl(isadc))//'_minFinalR',&
              comment,&
              cobj%enerright(nsad),cobj%rightmin(1,1,nsad),&
              cobj%fright(1,1,nsad))
-        call fingerprint(nat,nid,alat,astruct_ptr%geocode,rcov,&
+        call fingerprint(nat,nid,alat,bigdft_get_geocode(runObj),rcov,&
                         cobj%rightmin(1,1,nsad),cobj%fpright(1,nsad))
         if(.not.equal('MS',nid,en_delta_sad,fp_delta_sad,&
            cobj%enersad(nsad),cobj%enerright(nsad),&
@@ -395,16 +396,16 @@ use module_energyandforces
                 write(comment,'(a)')'Prob: Neighbors '//&
                      'unknown (stepoff converged back to saddle)'
                         
-                call astruct_dump_to_file(astruct_ptr,&
+                call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                      currDir//'/sadProb'//trim(adjustl(isadprobc))//'_finalM',&
                      comment,&
                      cobj%enersad(nsad),cobj%saddle(:,:,nsad),&
                      forces=cobj%minmode(:,:,nsad))
-                call astruct_dump_to_file(astruct_ptr,&
+                call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                      currDir//'/sadProb'//trim(adjustl(isadprobc))//'_Reactant',&
                      comment,&
                 0.0_gp,rxyz=cobj%rxyz1)
-                call astruct_dump_to_file(astruct_ptr,&
+                call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                      currDir//'/sadProb'//trim(adjustl(isadprobc))//'_Product',&
                      comment,&
                 0.0_gp,rxyz=cobj%rxyz2)
@@ -558,7 +559,7 @@ subroutine connect(nat,nid,alat,rcov,nbond,&
     use module_base
     use module_atoms, only: astruct_dump_to_file
     use module_global_variables,&
-       only: astruct_ptr,&
+       only: runObj,&
              imode,&
              nsadmax,&
              iproc,&
@@ -573,7 +574,8 @@ subroutine connect(nat,nid,alat,rcov,nbond,&
     use yaml_output
     use module_saddle
     use module_freezingstring
-use module_energyandforces
+    use module_energyandforces
+    use bigdft_run
     implicit none
     !parameters
     integer, intent(in)     :: nat
@@ -679,7 +681,7 @@ connectloop: do while(ntodo>=1)
         'below give no forces, but the final minmode| fnrm, fmax = ',&
         fnrm,fmax
 
-        call astruct_dump_to_file(astruct_ptr,&
+        call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
              currDir//'/sad'//trim(adjustl(isadc))//'_finalM',&
              comment,&
              cobj%enersad(nsad),cobj%saddle(:,:,nsad),&
@@ -687,7 +689,7 @@ connectloop: do while(ntodo>=1)
 
         write(comment,'(a,1pe10.3,5x,1pe10.3)')&
                                             'fnrm, fmax = ',fnrm,fmax
-        call astruct_dump_to_file(astruct_ptr,&
+        call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
              currDir//'/sad'//trim(adjustl(isadc))//'_finalF',&
              comment,&
              cobj%enersad(nsad),cobj%saddle(:,:,nsad),&
@@ -698,7 +700,7 @@ connectloop: do while(ntodo>=1)
     endif
 
 
-    call fingerprint(nat,nid,alat,astruct_ptr%geocode,rcov,&
+    call fingerprint(nat,nid,alat,bigdft_get_geocode(runObj),rcov,&
                     cobj%saddle(1,1,nsad),cobj%fpsad(1,nsad))
 
     !pushoff and minimize left and right
@@ -718,7 +720,7 @@ connectloop: do while(ntodo>=1)
     fnrm=sqrt(fnrm)
     write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,fmax
     if(iproc==0)&
-         call astruct_dump_to_file(astruct_ptr,&
+         call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
          currDir//'/sad'//trim(adjustl(isadc))//'_minFinalL',&
          comment,&
          cobj%enerleft(nsad),cobj%leftmin(:,:,nsad),&
@@ -737,15 +739,15 @@ connectloop: do while(ntodo>=1)
     fnrm=sqrt(fnrm)
     write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,fmax
     if(iproc==0)&
-         call astruct_dump_to_file(astruct_ptr,&
+         call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
          currDir//'/sad'//trim(adjustl(isadc))//'_minFinalR',&
          comment,&
          cobj%enerright(nsad),cobj%rightmin(:,:,nsad),&
          cobj%fright(:,:,nsad))
 
-    call fingerprint(nat,nid,alat,astruct_ptr%geocode,rcov,&
+    call fingerprint(nat,nid,alat,bigdft_get_geocode(runObj),rcov,&
                     cobj%leftmin(1,1,nsad),cobj%fpleft(1,nsad))
-    call fingerprint(nat,nid,alat,astruct_ptr%geocode,rcov,&
+    call fingerprint(nat,nid,alat,bigdft_get_geocode(runObj),rcov,&
                     cobj%rightmin(1,1,nsad),cobj%fpright(1,nsad))
     !check if relaxed structures are identical to saddle itself
     if(equal('MS',nid,en_delta_sad,fp_delta_sad,cobj%enersad(nsad),&
@@ -758,7 +760,7 @@ connectloop: do while(ntodo>=1)
         if(iproc==0)then
             write(comment,'(a)')'Prob: Neighbors '//&
             'unknown (converged back to saddle after stepoff)'
-            call astruct_dump_to_file(astruct_ptr,&
+            call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                  currDir//'/sadProb'//trim(adjustl(isadprobc))//'_finalM',&
                  comment,&
                  cobj%enersad(nsad),cobj%saddle(:,:,nsad),&

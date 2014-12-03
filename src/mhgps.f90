@@ -36,6 +36,7 @@ program mhgps
     implicit none
     integer :: isame,njobs
     character(len=200) :: filename
+    character(len=60) :: run_id
     integer :: ifolder,ijob
     logical :: xyzexists,asciiexists
     type(dictionary), pointer :: run
@@ -46,7 +47,6 @@ program mhgps
     logical :: converged=.false.
     type(connect_object) :: cobj
     type(dictionary), pointer :: options
-    type(atomic_structure), target :: atom_struct
     integer :: nsad
     logical :: connected
 
@@ -91,11 +91,10 @@ program mhgps
     call read_input()
 
     !initialize the energy and forces method
-    isForceField=.false.
+    isForceField=.true.
     write(currDir,'(a,i3.3)')'input',ifolder
     call get_first_struct_file(filename)
-    if(efmethod=='BIGDFT')then
-        isForceField=.false.
+!    if(efmethod=='BIGDFT')then
         call bigdft_command_line_options(options)
         call bigdft_init(options)!mpi_info,nconfig,run_id,ierr)
         if (bigdft_nruns(options) > 1) then
@@ -114,6 +113,7 @@ program mhgps
         if(iproc==0) call print_logo_mhgps()
 
         !reset input and output positions of run
+        call bigdft_get_run_properties(run,input_id=run_id)
         call bigdft_set_run_properties(run,&
              & posinp_id=trim(adjustl(filename))//trim(bigdft_run_id_toa()))
 
@@ -126,90 +126,91 @@ program mhgps
         call init_state_properties(outs, bigdft_nat(runObj))
         fdim=outs%fdim
 
-        astruct_ptr => bigdft_get_astruct_ptr(runObj)
+        if(trim(adjustl(char(runObj%run_mode)))=='QM_RUN_MODE')then
+            isForceField=.false.
+        endif
 
-!        call dict_init(user_inputs)
-!        write(currDir,'(a,i3.3)')'input',ifolder
-!        write(filename,'(a,i3.3)')'pos',ifile
-!        !LG: why not initialize only run_objects?
-!        call user_dict_from_files(user_inputs, trim(run_id)//&
-!             trim(bigdft_run_id_toa()),currDir//'/'//filename//&
-!             trim(bigdft_run_id_toa()), bigdft_mpi)
-!        call inputs_from_dict(inputs_opt, atoms, user_inputs)
-!        call dict_free(user_inputs)
-!        call init_state_properties(outs, atoms%astruct%nat)
-!        fdim=outs%fdim
-!        call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,&
-!                                 rst)
-!        call nullify_run_objects(runObj)
-!        call run_objects_associate(runObj, inputs_opt, atoms, rst)
-!        call dict_free(options)
-        !LG : to be wrapped again
 
-        !set minimum number of wave function optimizations
-!        if(runObj%inputs%itermin<5)then
-!            itermin=5
-!        else
-            itermin=runObj%inputs%itermin
-!        endif
-
-    elseif(efmethod=='LJ' .or. efmethod=='LENSIc' .or. &
-           efmethod=='LENSIb')then
-        iproc=0
-        isForceField=.true.
-        call read_atomic_file(trim(adjustl(filename))&
-             ,iproc,atom_struct)
-        astruct_ptr=>atom_struct
-        fdim=astruct_ptr%nat
-        call print_logo_mhgps()
-    elseif(efmethod=='AMBER')then
-        iproc=0
-        isForceField=.true.
-        call read_atomic_file(trim(adjustl(filename)),&
-             iproc,atom_struct)
-        astruct_ptr=>atom_struct
-        fdim=astruct_ptr%nat
-        !alanine stuff ......................START!>
-          l_sat=5
-          allocate(atomnamesdmy(1000))
-          rxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct_ptr%nat/),&
-                            id='rxyzdmy')
-          fxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct_ptr%nat/),&
-                            id='fxyzdmy')
-          fnpdb='ald_new.pdb'
-          nfnpdb=len(trim(fnpdb));
-          call nab_init(astruct_ptr%nat,rxyzdmy,fxyzdmy,&
-                        trim(fnpdb),nfnpdb,l_sat,atomnamesdmy)
-          call f_free(rxyzdmy)
-          call f_free(fxyzdmy)
-          deallocate(atomnamesdmy)
-        !alanine stuff ......................END!>
-
-        call print_logo_mhgps()
-!    elseif(efmethod=='AMBEROF')then
+!!        call dict_init(user_inputs)
+!!        write(currDir,'(a,i3.3)')'input',ifolder
+!!        write(filename,'(a,i3.3)')'pos',ifile
+!!        !LG: why not initialize only run_objects?
+!!        call user_dict_from_files(user_inputs, trim(run_id)//&
+!!             trim(bigdft_run_id_toa()),currDir//'/'//filename//&
+!!             trim(bigdft_run_id_toa()), bigdft_mpi)
+!!        call inputs_from_dict(inputs_opt, atoms, user_inputs)
+!!        call dict_free(user_inputs)
+!!        call init_state_properties(outs, atoms%astruct%nat)
+!!        fdim=outs%fdim
+!!        call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,&
+!!                                 rst)
+!!        call nullify_run_objects(runObj)
+!!        call run_objects_associate(runObj, inputs_opt, atoms, rst)
+!!        call dict_free(options)
+!        !LG : to be wrapped again
+!
+!        !set minimum number of wave function optimizations
+!!        if(runObj%inputs%itermin<5)then
+!!            itermin=5
+!!        else
+!            itermin=runObj%inputs%itermin
+!!        endif
+!
+!    elseif(efmethod=='LJ' .or. efmethod=='LENSIc' .or. &
+!           efmethod=='LENSIb')then
 !        iproc=0
 !        isForceField=.true.
-!        write(currDir,'(a,i3.3)')'input',ifolder
-!        write(filename,'(a,i3.3)')'pos',ifile
-!        call read_atomic_file(currDir//'/'//filename,iproc,&
-!                              atom_struct)
+!        call read_atomic_file(trim(adjustl(filename))&
+!             ,iproc,atom_struct)
 !        astruct_ptr=>atom_struct
 !        fdim=astruct_ptr%nat
 !        call print_logo_mhgps()
-    else
-        call yaml_warning('Following method for evaluation of '//&
-        'energies and forces is unknown: '//trim(adjustl(efmethod)))
-        stop
-    endif
+!    elseif(efmethod=='AMBER')then
+!        iproc=0
+!        isForceField=.true.
+!        call read_atomic_file(trim(adjustl(filename)),&
+!             iproc,atom_struct)
+!        astruct_ptr=>atom_struct
+!        fdim=astruct_ptr%nat
+!        !alanine stuff ......................START!>
+!          l_sat=5
+!          allocate(atomnamesdmy(1000))
+!          rxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct_ptr%nat/),&
+!                            id='rxyzdmy')
+!          fxyzdmy = f_malloc((/ 1.to.3, 1.to.astruct_ptr%nat/),&
+!                            id='fxyzdmy')
+!          fnpdb='ald_new.pdb'
+!          nfnpdb=len(trim(fnpdb));
+!          call nab_init(astruct_ptr%nat,rxyzdmy,fxyzdmy,&
+!                        trim(fnpdb),nfnpdb,l_sat,atomnamesdmy)
+!          call f_free(rxyzdmy)
+!          call f_free(fxyzdmy)
+!          deallocate(atomnamesdmy)
+!        !alanine stuff ......................END!>
+!
+!        call print_logo_mhgps()
+!!    elseif(efmethod=='AMBEROF')then
+!!        iproc=0
+!!        isForceField=.true.
+!!        write(currDir,'(a,i3.3)')'input',ifolder
+!!        write(filename,'(a,i3.3)')'pos',ifile
+!!        call read_atomic_file(currDir//'/'//filename,iproc,&
+!!                              atom_struct)
+!!        astruct_ptr=>atom_struct
+!!        fdim=astruct_ptr%nat
+!!        call print_logo_mhgps()
+!    else
+!        call yaml_warning('Following method for evaluation of '//&
+!        'energies and forces is unknown: '//trim(adjustl(efmethod)))
+!        stop
+!    endif
     if(iproc==0) call print_input()
 
     !don't use bigdft_nat here since if not using BigDFT, runObj is not present!
-!    nat = bigdft_nat(runObj)
-    nat = astruct_ptr%nat
+    nat = bigdft_nat(runObj)
     nid = nat !s-overlap fingerprints
     !don't use bigdft_get_cell here since if not using BigDFT, runObj is not present!
-!    alat =bigdft_get_cell(runObj)!astruct_ptr%cell_dim
-    alat =astruct_ptr%cell_dim
+    alat =bigdft_get_cell(runObj)!astruct_ptr%cell_dim
     
     !allocate more arrays
     lwork=1000+10*nat**2
@@ -305,13 +306,13 @@ program mhgps
     
     iconnect = 0
     !ixyz_int = 0
-    call give_rcov(astruct_ptr,nat,rcov)
+    call give_rcov(bigdft_get_astruct_ptr(runObj),nat,rcov)
     !if in biomode, determine bonds betweens atoms once and for all
     !(it isassuemed that all conifugrations over which will be
     !iterated have the same bonds)
     if(saddle_biomode)then
         call findbonds('(MHGPS)',iproc,mhgps_verbosity,nat,rcov,&
-        astruct_ptr%rxyz,nbond,iconnect)
+        bigdft_get_rxyz_ptr(runObj),nbond,iconnect)
     endif
     wold_trans = f_malloc((/ 1.to.nbond/),id='wold_trans')
     wold_rot = f_malloc((/ 1.to.nbond/),id='wold_rot')
@@ -378,12 +379,12 @@ program mhgps
                 write(comment,'(a)')&
                      'TS guess; forces below give guessed '//&
                      'minimummode.'
-                call astruct_dump_to_file(astruct_ptr,&
+                call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                      currDir//'/sad'//trim(adjustl(isadc))//'_ig_finalM',&
                      comment,&
                      tsgenergy,rxyz=tsguess,forces=minmodeguess)
 
-                call astruct_dump_to_file(astruct_ptr,&
+                call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                      currDir//'/sad'//trim(adjustl(isadc))//'_ig_finalF',&
                      comment,&
                      tsgenergy,rxyz=tsguess,forces=tsgforces)
@@ -409,9 +410,9 @@ program mhgps
                 call energyandforces(nat,alat,rxyz,fat,fnoise,energy)
                 call energyandforces(nat,alat,rxyz2,fat,fnoise,&
                          energy2)
-                call fingerprint(nat,nid,alat,astruct_ptr%geocode,&
+                call fingerprint(nat,nid,alat,bigdft_get_geocode(runObj),&
                          rcov,rxyz(1,1),fp(1))
-                call fingerprint(nat,nid,alat,astruct_ptr%geocode,&
+                call fingerprint(nat,nid,alat,bigdft_get_geocode(runObj),&
                          rcov,rxyz2(1,1),fp2(1))
                 if(iproc==0)then
                     call yaml_comment('(MHGPS) Connect '//trim(adjustl(joblist(1,ijob)))//&
@@ -477,7 +478,7 @@ program mhgps
                        'but the final minmode| '//&
                        'fnrm, fmax = ',fnrm,fmax
 
-                        call astruct_dump_to_file(astruct_ptr,&
+                        call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                              currDir//'/sad'//trim(adjustl(isadc))//&
                              '_finalM',&
                              comment,&
@@ -485,7 +486,7 @@ program mhgps
 
                         write(comment,'(a,1pe10.3,5x1pe10.3)')&
                              'fnrm, fmax = ',fnrm,fmax
-                        call astruct_dump_to_file(astruct_ptr,&
+                        call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                              currDir//'/sad'//trim(adjustl(isadc))//&
                              '_finalF',&
                              comment,&
@@ -511,7 +512,7 @@ program mhgps
                     write(comment,'(a,1pe10.3,5x1pe10.3)')&
                          'fnrm, fmax = ',fnrm,fmax
 
-                    call astruct_dump_to_file(astruct_ptr,&
+                    call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                          currDir//'/min'//trim(adjustl(isadc))//&
                          '_final',&
                          comment,&
@@ -546,21 +547,9 @@ program mhgps
     enddo
 
     !finalize (dealloctaion etc...)
-    if(efmethod=='BIGDFT')then
-!        call free_restart_objects(rst)
-!        call deallocate_atoms_data(atoms)
-        nullify(astruct_ptr)
-        !call run_objects_free_container(runObj)
-!        call release_run_objects(runObj)
-        call free_run_objects(runObj)
-!        call free_input_variables(inputs_opt)
-        call deallocate_state_properties(outs)
-        call bigdft_finalize(ierr)
-    elseif(efmethod=='LJ'.or.efmethod=='AMBER'.or.efmethod=='AMBEROF'.or.&
-           efmethod=='LENSIc' .or. efmethod=='LENSIb')then
-        call deallocate_atomic_structure(atom_struct)
-        nullify(astruct_ptr)
-    endif
+    call free_run_objects(runObj)
+    call deallocate_state_properties(outs)
+    call bigdft_finalize(ierr)
 
     call f_free(work)
     call f_free(eval)

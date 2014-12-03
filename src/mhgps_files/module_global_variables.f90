@@ -115,7 +115,7 @@ module module_global_variables
     type(state_properties), save :: outs
     integer, save :: fdim
     !type(atoms_data), save :: atoms
-    type(atomic_structure), pointer, save :: astruct_ptr
+!    type(atomic_structure), pointer, save :: astruct_ptr
     !integer, dimension(4) :: mpi_info
     integer, save :: infocode
     integer, save :: inputPsiId=0
