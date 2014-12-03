@@ -195,8 +195,6 @@ program mhgps
                 id='fxyz2')
     rcov     = f_malloc((/ 1.to.nat/),id='rcov')
     iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
-!    ixyz_int = f_malloc((/ 1.to.3,1.to.nat/),&
-!                id='nat')
     rotforce = f_malloc((/ 1.to.3, 1.to.nat/),&
                 id='rotforce')
     hess     = f_malloc((/ 1.to.3*nat,&
@@ -260,7 +258,6 @@ program mhgps
 
     
     iconnect = 0
-    !ixyz_int = 0
     call give_rcov(bigdft_get_astruct_ptr(runObj),nat,rcov)
     !if in biomode, determine bonds betweens atoms once and for all
     !(it isassuemed that all conifugrations over which will be
@@ -275,53 +272,11 @@ program mhgps
     do ifolder = 1,999
         write(currDir,'(a,i3.3)')'input',ifolder
         call read_jobs(njobs,joblist)
-!        if(trim(adjustl(operation_mode))=='simple'.or.&
-!           trim(adjustl(operation_mode))=='hessian'.or.&
-!           trim(adjustl(operation_mode))=='minimize')then
-!            nend=999
-!        elseif(trim(adjustl(operation_mode))=='connect'.or.&
-!                       trim(adjustl(operation_mode))=='guessonly')then
-!            nend=999-1
-!        else
-!            call yaml_warning('(MHGPS) operation mode '//&
-!            trim(adjustl(operation_mode))//' unknown STOP')
-!            stop '(MHGPS) operation mode unknown STOP'
-!        endif
 
         do ijob = 1,njobs
-!        do ifile = 1,nend
-!        do ifile = 0,nend
-
-            !read (first) file
-!            write(filename,'(a,i3.3)')'pos',ifile
-!            inquire(file=currDir//'/'//filename//'.xyz',&
-!                    exist=xyzexists)
-!            inquire(file=currDir//'/'//filename//'.ascii',&
-!                    exist=asciiexists)
-!            if(.not.(xyzexists.or.asciiexists))exit
-            !reallocating astruct is dangerous as it is a pointer to 
-            !a internal object of bigdft, therefore it should only be used for reading
-!!$            call deallocate_atomic_structure(astruct)
-!!$            call read_atomic_file(currDir//'/'//filename,iproc,&
-!!$                    astruct)
-!!$            call vcopy(3 * nat,astruct%rxyz(1,1),1,rxyz(1,1), 1)
-!            call bigdft_get_rxyz(filename=currDir//'/'//filename,rxyz=rxyz)
             call bigdft_get_rxyz(filename=trim(adjustl(joblist(1,ijob))),rxyz=rxyz)
 
             if(trim(adjustl(operation_mode))=='guessonly')then
-                !read second file
-!                write(filename2,'(a,i3.3)')'pos',ifile+1
-!                inquire(file=currDir//'/'//filename2//'.xyz',&
-!                            exist=xyzexists)
-!                inquire(file=currDir//'/'//filename2//'.ascii',&
-!                            exist=asciiexists)
-!                if(.not.(xyzexists.or.asciiexists))exit
-!!$                call deallocate_atomic_structure(astruct)
-!!$                call read_atomic_file(currDir//'/'//filename2,iproc,&
-!!$                            astruct)
-!!$                call vcopy(3*nat,astruct%rxyz(1,1),1,&
-!!$                           rxyz2(1,1),1)
-!                call bigdft_get_rxyz(filename=currDir//'/'//filename2,rxyz=rxyz2)
                 call bigdft_get_rxyz(filename=joblist(2,ijob),rxyz=rxyz2)
 
                 isad=isad+1
@@ -344,20 +299,6 @@ program mhgps
                      comment,&
                      tsgenergy,rxyz=tsguess,forces=tsgforces)
             else if(trim(adjustl(operation_mode))=='connect')&
-                                                                 then
-                !read second file
-!                write(filename2,'(a,i3.3)')'pos',ifile+1
-!                inquire(file=currDir//'/'//filename2//'.xyz',&
-!                            exist=xyzexists)
-!                inquire(file=currDir//'/'//filename2//'.ascii',&
-!                            exist=asciiexists)
-!                if(.not.(xyzexists.or.asciiexists))exit
-!!$                call deallocate_atomic_structure(astruct)
-!!$                call read_atomic_file(currDir//'/'//filename2,iproc,&
-!!$                            astruct)
-!!$                call vcopy(3*nat,astruct%rxyz(1,1),1,&
-!!$                           rxyz2(1,1),1)
-!                call bigdft_get_rxyz(filename=currDir//'/'//filename2,rxyz=rxyz2)
                 call bigdft_get_rxyz(filename=joblist(2,ijob),rxyz=rxyz2)
 
                 !Evalute energies. They are needed in connect
@@ -521,7 +462,6 @@ program mhgps
     call f_free(fxyz2) 
     call f_free(rcov)
     call f_free(iconnect)
-    !call f_free(ixyz_int)
     call f_free(rotforce)
     call f_free(hess)
     call f_free(rxyz_rot)
