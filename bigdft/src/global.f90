@@ -93,7 +93,7 @@ program MINHOP
 
   call run_objects_init(run_opt,run)
   !then the unoptimized parameters
-  call bigdft_set_run_properties(run,run_id='md'//trim(run_id), log_to_disk=.false.)
+  call bigdft_set_run_properties(run,input_id='md'//trim(run_id), log_to_disk=.false.)
 
   call run_objects_init(run_md,run,source=run_opt)
   

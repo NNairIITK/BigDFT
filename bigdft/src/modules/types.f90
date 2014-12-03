@@ -2533,20 +2533,11 @@ contains
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
-       ! Currently ignored.
-    case (RUN_FROM_FILES)
-    case (RADICAL_NAME)
-    case (OUTDIR)
-    case (POSINP)
-    case (LOGFILE)
        ! the KPT variables ------------------------------------------------------
     case (KPT_VARIABLES)
     case (LIN_BASIS_PARAMS)
     case (OCCUPATION)
     case DEFAULT
-       if (index(level, "psppar") /= 1) then
-          call yaml_warning("unknown level '" // trim(level) //"'")
-       end if
     end select
   END SUBROUTINE input_set_dict
 

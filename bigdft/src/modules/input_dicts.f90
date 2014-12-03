@@ -878,7 +878,8 @@ contains
         & BIGDFT_INPUT_FILE_ERROR,f_free_ptr
     use module_atoms, only: set_astruct_from_file,atomic_structure,&
          nullify_atomic_structure,deallocate_atomic_structure,astruct_merge_to_dict
-    use public_keys, only: POSINP,RADICAL_NAME
+    use public_keys, only: POSINP
+    use bigdft_run, only: bigdft_get_run_properties
     use dictionaries
     use yaml_strings
     implicit none
@@ -937,7 +938,7 @@ contains
           ! Raise an error
           call f_strcpy(src='input',dest=radical)
           !modify the radical name if it exists
-          radical = dict .get. RADICAL_NAME
+          call bigdft_get_run_properties(dict, input_id = radical)
           msg = "No section 'posinp' for the atomic positions in the file '"//&
                trim(radical) // ".yaml'. " // trim(msg)
           call f_err_throw(err_msg=msg,err_id=ierr)

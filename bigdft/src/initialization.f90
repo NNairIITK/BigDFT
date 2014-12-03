@@ -354,7 +354,7 @@ subroutine create_log_file(dict)
   if (bigdft_mpi%iproc == 0) then
      if (log_to_disk) then
         ! Get Create log file name.
-        call bigdft_get_run_properties(dict, run_id = run_name)
+        call bigdft_get_run_properties(dict, naming_id = run_name)
         logfilename = "log" // trim(run_name) // ".yaml"
         path = trim(writing_directory)//trim(logfilename)
         call yaml_map('<BigDFT> log of the run will be written in logfile',path,unit=6)
