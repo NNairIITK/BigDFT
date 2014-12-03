@@ -133,6 +133,7 @@ subroutine get_ts_guess_freeze(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
         !parametrize spline such that the i-th node
         !is at parameter value i:
         arc(npath)=real(npath,gp)
+        if(istring>1)then
         !due to column major order,
         !pass string() to energy and forces, not path():
         call energyandforces(nat,alat,string(1,1,istring),&
@@ -142,6 +143,7 @@ subroutine get_ts_guess_freeze(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
             istringmax = istring
             isidemax   = 1
             ipathmax   = npath
+        endif
         endif
     enddo
     do istring=nstring-ncorr,1,-1
@@ -154,6 +156,7 @@ subroutine get_ts_guess_freeze(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
         !parametrize spline such that the i-th node
         !is at parameter value i:
         arc(npath)=real(npath,gp)
+        if(istring>1)then
         !due to column major order,
         !pass string() to energy and forces, not path():
         call energyandforces(nat,alat,string(1,2,istring),&
@@ -164,7 +167,12 @@ subroutine get_ts_guess_freeze(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
             isidemax   = 2
             ipathmax   = npath
         endif
+        endif
     enddo
+    energies(1)=1234.0_gp
+    energies(npath)=1234.0_gp
+    forces(:,:,1)=1234.0_gp
+    forces(:,:,npath)=1234.0_gp
 
 !!DEBUGGING start:
 !if(npath/=nnodes)stop'npat/=nnodes'
@@ -618,7 +626,7 @@ subroutine get_ts_guess_linsyn(nat,alat,left,right,tsguess,minmodeguess,&
     real(gp), intent(out)    :: tsgenergy
     real(gp), intent(out)    :: tsgforces(3,nat)
     !constants
-    integer, parameter  :: nimages=1000 
+    integer, parameter  :: nimages=200
     !internal
     integer  :: i
     integer  :: j
@@ -662,7 +670,7 @@ subroutine get_ts_guess_linsyn(nat,alat,left,right,tsguess,minmodeguess,&
     arcl=arc(nimages)
 
     !rewrite lstpath to row major ordering
-    !(for faster access in spline routines)
+    !(for access in spline routines)
     do iat=1,nat
         do i=1,nimages
             lstpathRM(i,1,iat)=lstpath(1,iat,i)
@@ -856,7 +864,7 @@ subroutine lst_interpol_freez(nat,left,right,step,interleft,interright,&
 !write(*,*)'lstinterpol 1'
 
     !rewrite lstpath to row major ordering
-    !(for faster access in spline routines)
+    !(for access in spline routines)
     do iat=1,nat
         do i=1,nimages
             lstpathRM(i,1,iat)=lstpath(1,iat,i)
