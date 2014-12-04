@@ -1309,7 +1309,6 @@ subroutine components_kpt_distribution(nproc,nkpts,norb,nvctr,norb_par,nvctr_par
   !for any of the k-points find the processors which have such k-point associated
   call f_zero(nvctr_par)
 
-
   !Loop over each k point
   do ikpt=1,nkpts
      jsproc=UNINITIALIZED(1)
