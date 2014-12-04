@@ -699,7 +699,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   else
 
      if (iproc == 0 .and. iorb == 1) then
-        call yaml_map('Need to reformat wavefunctions',.false.)
+        call yaml_map('Need to reformat wavefunctions',.true.)
         if (hx_old /= hx .or. hy_old /= hy .or. hz_old /= hz) &
            & call yaml_comment('because hgrid_old /= hgrid' // &
              & trim(yaml_toa((/ hx_old,hy_old,hz_old,hx,hy,hz /), fmt='(f14.10)')))

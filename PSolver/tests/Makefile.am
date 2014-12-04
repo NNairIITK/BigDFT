@@ -21,7 +21,7 @@ EXERCISE = Exercise/plot.gnuplot \
 
 EXTRA_DIST = PS_Check.ref.yaml tols.yaml $(OTHERS)
 
-check_PROGRAMS = PS_Check PS_Program PS_Exercise
+check_PROGRAMS = PS_Check PS_Program PS_Exercise Generalized_PSolver
 
 if BUILD_LIBYAML
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
@@ -55,12 +55,16 @@ PS_Program_LDADD = $(psolver_libraries)
 PS_Exercise_SOURCES = PS_Exercise.f90
 PS_Exercise_LDADD = $(psolver_libraries)
 
+Generalized_PSolver_SOURCES = Generalized_PSolver.f90
+Generalized_PSolver_LDADD = $(psolver_libraries)
+
+
 CLEANFILES = malloc.prc time.prc PS_Check.out.yaml PSolver.report.yaml
 
 PS_Check.out.yaml: PS_Check PS_Program PS_Exercise 
-	-$(run_parallel) ./PS_Check 57 48 63  F  > PS_Check.out.yaml
-	-$(run_parallel) ./PS_Check 64 64 64  P >> PS_Check.out.yaml
-	-$(run_parallel) ./PS_Check 32 64 48  S >> PS_Check.out.yaml
+	-$(run_parallel) ./PS_Check -n [57,48,63] -g F > PS_Check.out.yaml
+	-$(run_parallel) ./PS_Check -n [64,64,64] -g P >> PS_Check.out.yaml
+	-$(run_parallel) ./PS_Check -n [32,64,48] -g S >> PS_Check.out.yaml
 	cp PS_Check.out.yaml tmp
 	cat tmp | grep -v 'Unable to read mpd.hosts' > PS_Check.out.yaml
 	rm tmp

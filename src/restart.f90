@@ -345,18 +345,6 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
 
      do iorb=1,orbs%norbp!*orbs%nspinor
 
-!!$        write(f4,'(i4.4)') iorb+orbs%isorb*orbs%nspinor
-!!$        if (exists) then
-!!$           filename_ = filename//".bin."//f4
-!!$           open(unit=99,file=filename_,status='unknown',form="unformatted")
-!!$        else
-!!$           filename_ = trim(filename)//"."//f4
-!!$           open(unit=99,file=trim(filename_),status='unknown')
-!!$        end if
-!!$           call readonewave(99, .not.exists,iorb+orbs%isorb*orbs%nspinor,iproc,n1,n2,n3, &
-!!$                & hx,hy,hz,at,wfd,rxyz_old,rxyz,&
-!!$                psi(1,iorb),orbs%eval((iorb-1)/orbs%nspinor+1+orbs%isorb),psifscf)
-        !print *,"filename = ", filename
         do ispinor=1,orbs%nspinor
            if(present(orblist)) then
               call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &

@@ -769,8 +769,9 @@ contains
 !!$       end if
        if (.not. associated(streams(strm)%dict_warning)) &
             call dict_init(streams(strm)%dict_warning)
-       !add the warning as a list
-       call add(streams(strm)%dict_warning//'WARNINGS',trim(message))
+       !add the warning as a list, if the warning does not exists
+       if (streams(strm)%dict_warning//'WARNINGS' .index. trim(message) < 0) &
+            call add(streams(strm)%dict_warning//'WARNINGS',trim(message))
 
     end if
     if (present(level)) then
