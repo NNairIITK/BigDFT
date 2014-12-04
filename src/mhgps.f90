@@ -72,13 +72,6 @@ program mhgps
     !functions
     real(gp) :: dnrm2
 
-    !alanine stuff ......................START!>
-    real(gp), allocatable :: rxyzdmy(:,:), fxyzdmy(:,:)
-    character(len=5), allocatable :: atomnamesdmy(:)
-    integer :: l_sat, nfnpdb
-    character(len=11) :: fnpdb
-    !alanine stuff ......................END!>
-
     ifolder=1
     ef_counter=0.d0 !from module_global_variables
     isad=0  !from module_global_variables
@@ -90,47 +83,45 @@ program mhgps
 
     !read mhgps.inp
     call read_input()
+    if(iproc==0) call print_logo_mhgps()
 
-    !initialize the energy and forces method
     isForceField=.true.
     write(currDir,'(a,i3.3)')'input',ifolder
     call get_first_struct_file(filename)
-!    if(efmethod=='BIGDFT')then
-        call bigdft_command_line_options(options)
-        call bigdft_init(options)!mpi_info,nconfig,run_id,ierr)
-        if (bigdft_nruns(options) > 1) then
-            call f_err_throw('runs-file not supported for MHGPS '//&
-                              'executable')
-        endif
-        run => options // 'BigDFT' // 0
-!        run = options // 0 // 'name'
-        iproc=bigdft_mpi%iproc!mpi_info(1)
-        nproc=bigdft_mpi%nproc!mpi_info(2)
-        igroup=bigdft_mpi%igroup!mpi_info(3)
-        !number of groups
-        ngroups=bigdft_mpi%ngroup!mpi_info(4)
-        !actual value of iproc
-        iproc=iproc+igroup*ngroups
-        if(iproc==0) call print_logo_mhgps()
 
-        !reset input and output positions of run
-        call bigdft_get_run_properties(run,input_id=run_id)
-        call bigdft_set_run_properties(run,&
-             & posinp_id=trim(adjustl(filename))//trim(bigdft_run_id_toa()))
+    call bigdft_command_line_options(options)
+    call bigdft_init(options)!mpi_info,nconfig,run_id,ierr)
+    if (bigdft_nruns(options) > 1) then
+        call f_err_throw('runs-file not supported for MHGPS '//&
+                         'executable')
+    endif
+    run => options // 'BigDFT' // 0
+    iproc=bigdft_mpi%iproc!mpi_info(1)
+    nproc=bigdft_mpi%nproc!mpi_info(2)
+    igroup=bigdft_mpi%igroup!mpi_info(3)
+    !number of groups
+    ngroups=bigdft_mpi%ngroup!mpi_info(4)
+    !actual value of iproc
+    iproc=iproc+igroup*ngroups
 
-        call run_objects_init(runObj,run)
+    !reset input and output positions of run
+    call bigdft_get_run_properties(run,input_id=run_id)
+    call bigdft_set_run_properties(run,&
+         & posinp_id=trim(adjustl(filename))//trim(bigdft_run_id_toa()))
 
-        !options and run are not needed
-        call dict_free(options)
-        nullify(run)
+    call run_objects_init(runObj,run)
 
-        call init_state_properties(outs, bigdft_nat(runObj))
-        fdim=outs%fdim
+    !options and run are not needed
+    call dict_free(options)
+    nullify(run)
 
-        if(trim(adjustl(char(runObj%run_mode)))=='QM_RUN_MODE')then
-            isForceField=.false.
-            itermin=runObj%inputs%itermin
-        endif
+    call init_state_properties(outs, bigdft_nat(runObj))
+    fdim=outs%fdim
+
+    if(trim(adjustl(char(runObj%run_mode)))=='QM_RUN_MODE')then
+        isForceField=.false.
+        itermin=runObj%inputs%itermin
+    endif
 
 
 !    elseif(efmethod=='AMBER')then
@@ -168,7 +159,7 @@ program mhgps
     nid = nat !s-overlap fingerprints
     alat =bigdft_get_cell(runObj)!astruct_ptr%cell_dim
     
-    !allocate more arrays
+    !allocate arrays
     lwork=1000+10*nat**2
     work = f_malloc((/1.to.lwork/),id='work')
     eval  = f_malloc((/ 1.to.3*nat/),id='eval')

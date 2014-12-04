@@ -140,7 +140,7 @@ module bigdft_run
 
       !then check if extra workspaces have to be allocated
       select case(trim(char(run_mode)))
-      case('LENOSKY_SI_CLUSTERS_RUN_MODE','LENOSKY_SI_BULK_RUN_MODE','AMBER_RUN_MODE')
+      case('LENOSKY_SI_CLUSTERS_RUN_MODE','LENOSKY_SI_BULK_RUN_MODE')
          if (associated(mm_rst%rf_extra)) then
             if (size(mm_rst%rf_extra) == nat) then
                call f_zero(mm_rst%rf_extra)
@@ -154,6 +154,21 @@ module bigdft_run
             mm_rst%refcnt=f_ref_new('mm_rst')
             mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
          end if
+      case('AMBER_RUN_MODE')
+         if (associated(mm_rst%rf_extra)) then
+            if (size(mm_rst%rf_extra) == nat) then
+               call f_zero(mm_rst%rf_extra)
+            else
+               call f_free_ptr(mm_rst%rf_extra)
+               mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
+            end if
+         else
+            call nullify_MM_restart_objects(mm_rst)
+            !create reference counter
+            mm_rst%refcnt=f_ref_new('mm_rst')
+            mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
+         endif
+         call nab_init()
       case default
          call nullify_MM_restart_objects(mm_rst)
          !create reference counter
