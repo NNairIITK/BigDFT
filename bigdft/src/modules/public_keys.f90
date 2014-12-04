@@ -213,6 +213,13 @@ module public_keys
   character(len=*), parameter :: ASTRUCT_CELL = 'cell' 
   character(len=*), parameter :: ASTRUCT_POSITIONS = 'positions' 
   character(len=*), parameter :: ASTRUCT_PROPERTIES = 'properties' 
+  character(len=*), parameter :: ASTRUCT_ATT_FROZEN = 'Frozen' 
+  character(len=*), parameter :: ASTRUCT_ATT_IGSPIN = 'IGSpin' 
+  character(len=*), parameter :: ASTRUCT_ATT_IGCHRG = 'IGChg' 
+  character(len=*), parameter :: ASTRUCT_ATT_IXYZ_1 = 'int_ref_atoms_1' 
+  character(len=*), parameter :: ASTRUCT_ATT_IXYZ_2 = 'int_ref_atoms_2' 
+  character(len=*), parameter :: ASTRUCT_ATT_IXYZ_3 = 'int_ref_atoms_3' 
+
   character(len=*), parameter :: GOUT_ENERGY = 'energy (Ha)' 
   character(len=*), parameter :: GOUT_FORCES = 'forces (Ha/Bohr)' 
   character(len=*), parameter :: FORMAT_KEY = 'format' 
