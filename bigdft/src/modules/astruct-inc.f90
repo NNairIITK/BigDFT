@@ -937,6 +937,7 @@ subroutine parse_extra_info(iat,extra,astruct)
         nspol = 0
         nchrg = 0
      end if
+     call dict_free(dict)
   else
      ! Old case.
      read(extra,*,iostat=ierr) nspol,nchrg,suffix
