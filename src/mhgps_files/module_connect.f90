@@ -1053,7 +1053,8 @@ end subroutine
 subroutine write_todo(ntodo,nat,left,right,eleft,eright)
     use module_base
     use module_atoms, only: astruct_dump_to_file
-    use module_global_variables, only: currDir, iproc, astruct_ptr
+    use module_global_variables, only: currDir, iproc, runObj
+    use bigdft_run
     implicit none
     !parameters
     integer, intent(inout)           :: ntodo
@@ -1070,20 +1071,20 @@ subroutine write_todo(ntodo,nat,left,right,eleft,eright)
     write(ntodoc,'(i5.5)')ntodo
     if(iproc==0)then
     if(present(eleft))then
-        call astruct_dump_to_file(astruct_ptr,&
+        call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
              currDir//'/todo'//trim(adjustl(ntodoc))//'_L','',&
              energy=eleft,rxyz=left)
     else
-        call astruct_dump_to_file(astruct_ptr,&
+        call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
              currDir//'/todo'//trim(adjustl(ntodoc))//'_L','',&
              rxyz=left)
     endif
     if(present(eright))then
-        call astruct_dump_to_file(astruct_ptr,&
+        call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
              currDir//'/todo'//trim(adjustl(ntodoc))//'_R','',&
              energy=eright,rxyz=right)
     else
-        call astruct_dump_to_file(astruct_ptr,&
+        call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
              currDir//'/todo'//trim(adjustl(ntodoc))//'_R','',&
              rxyz=right)
     endif
