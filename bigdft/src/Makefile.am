@@ -327,6 +327,8 @@ clean-local:
 
 all: all-recursive
 	chmod ug+x bigdft-tool
+install: install-am
+	chmod ug+x bigdft-tool
 
 check:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_builddir)/tests/report.py ; fi
