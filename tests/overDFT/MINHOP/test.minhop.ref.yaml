@@ -274,7 +274,7 @@
    Maximum in forces                   :  1.0E-04
    Steepest descent step               :  1.0E+00
   #WARNING: Error found while deleting data-mdinput/
- (MH) beta_S, beta_O, beta_N           :  [  1.1000E+00,  1.1000E+00,  9.0909E-01 ]
+ (MH) beta_S, beta_O, beta_N           :  [  1.0500E+00,  1.1000E+00,  9.0909E-01 ]
  (MH) alpha_A, alpha_R                 :  [  9.0909E-01,  1.1000E+00 ]
  (MH) mdmin=                           :  2
  (MH) RCOV Si:  2.0899999999999999
