@@ -92,14 +92,15 @@ etsf_files = wavelib/etsf_fake.f90
 endif
 
 if HAVE_AMBERTOOLS
+amber_ld= @LIB_AMBERTOOLS@  -lsff -lnab -lpbsa -lcifparse -lrism -lfftw3 -larpack
 ambertools_wrap= wrap.c
 ###for amber supp.:
 wrap.o:     wrap.c
 	$(NAB) -c  -g $<
 else
 ambertools_wrap= wrap_fake.f90
+amber_ld =
 endif
-
 
 
 AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib \
@@ -273,7 +274,7 @@ install-data-hook:
 #abscalc_additional= 
 
 bigdft_SOURCES = BigDFT.f90
-bigdft_LDADD = $(bigdft_library)
+bigdft_LDADD = $(amber_ld) $(bigdft_library)
 
 NEB_images_SOURCES = BigDFT.f90
 NEB_images_LDADD = $(bigdft_library)
@@ -294,42 +295,35 @@ BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90
 BigDFT2Wannier_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 WaCo_SOURCES = WaCo.f90
-WaCo_LDADD = $(bigdft_library) @LINALG_LIBS@
+WaCo_LDADD = $(amber_ld) $(bigdft_library) @LINALG_LIBS@
 
 MDanalysis_SOURCES = distances.f90
-MDanalysis_LDADD = $(bigdft_library)
+MDanalysis_LDADD = $(amber_ld) $(bigdft_library)
 
 abscalc_SOURCES = abscalc.f90 
 abscalc_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib -I$(top_srcdir)/PSolver/src \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
 	@MPI_INCLUDE@
-abscalc_LDADD = libabscalc.a $(bigdft_library) @LINALG_LIBS@
+abscalc_LDADD = $(amber_ld) libabscalc.a $(bigdft_library) @LINALG_LIBS@
 
 test_forces_SOURCES = test_forces.f90
-test_forces_LDADD = $(bigdft_library)
+test_forces_LDADD = $(amber_ld) $(bigdft_library)
 
 NEB_SOURCES = NEB.f90
-NEB_LDADD = $(bigdft_library) @LINALG_LIBS@
+NEB_LDADD = $(amber_ld) $(bigdft_library) @LINALG_LIBS@
 
 #to be adjusted: when the compiler has MPI built-in libraries the linker finds multiple definitions
 memguess_SOURCES = memguess.f90 $(top_srcdir)/flib/src/MPIfake.f90
-memguess_LDADD = $(bigdft_library) @LINALG_LIBS@
+memguess_LDADD = $(amber_ld) $(bigdft_library) @LINALG_LIBS@
 
 frequencies_SOURCES = frequencies.f90
-frequencies_LDADD = $(bigdft_library) @LINALG_LIBS@
+frequencies_LDADD = $(amber_ld) $(bigdft_library) @LINALG_LIBS@
 
 bart_SOURCES = art.f90
 bart_FCFLAGS = -I. -Iart -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
+bart_LDADD = $(amber_ld) art/libart.a $(bigdft_library) @LINALG_LIBS@
 
-if HAVE_AMBERTOOLS
-##LIB_AMBERTOOLS=/kernph/schaba00/amber_lib
-##LIB_AMBERTOOLS=/kernph/schaba00/amber/build/amber14_intel/lib/
-amber_ld= @LIB_AMBERTOOLS@  -lsff -lnab -lpbsa -lcifparse -lrism -lfftw3 -larpack
-else
-amber_ld =
-endif
 mhgps_SOURCES = mhgps.f90 fingerprint.f90
 
 ##mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
@@ -339,7 +333,7 @@ mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@
 mhgps_LDADD = mhgps_files/libmhgps.a $(amber_ld) $(bigdft_library) @LINALG_LIBS@
 
 global_SOURCES = global.f90 fingerprint.f90
-global_LDADD = $(bigdft_library) @LINALG_LIBS@
+global_LDADD = $(amber_ld) $(bigdft_library) @LINALG_LIBS@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.* input_variables_definition-inc.h
 clean-local:

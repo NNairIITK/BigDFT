@@ -3,9 +3,11 @@
 !!     
 !! @author Bastian Schaefer
 !! @section LICENCE
-!!    Copyright (C) 2014 UNIBAS
-!!    This file is not freely distributed.
-!!    A licence is necessary from UNIBAS
+!!    Copyright (C) 2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 
 module module_fingerprints
     implicit none
@@ -243,7 +245,7 @@ subroutine fpdistance(nid,fp1,fp2,d)
     d=sqrt(d/nid)
 end subroutine fpdistance
 !=====================================================================
-logical function equal(nid,en_delta,fp_delta,epot1,epot2,fp1,fp2)
+logical function equal(txt,nid,en_delta,fp_delta,epot1,epot2,fp1,fp2)
     use module_base
     use module_global_variables, only: iproc
     implicit none
@@ -252,12 +254,13 @@ logical function equal(nid,en_delta,fp_delta,epot1,epot2,fp1,fp2)
     real(gp), intent(in) :: epot1,epot2
     real(gp), intent(in) :: en_delta, fp_delta
     real(gp), intent(in) :: fp1(nid), fp2(nid)
+    character(len=2), intent(in) :: txt
     !internal
     real(gp) :: d=1.d100
 
     equal=.false.
     call fpdistance(nid,fp1,fp2,d)
-    if(iproc==0)write(*,*)'(MHGPS) ediff, fpdist',abs(epot1-epot2),d
+    if(iproc==0)write(*,'(a,1x,a,1x,es14.7,1x,es14.7)')'(MHGPS) ediff, fpdist ',txt,abs(epot1-epot2),d
     if (abs(epot1-epot2).lt.en_delta) then
         call fpdistance(nid,fp1,fp2,d)
         if (d.lt.fp_delta) then ! identical

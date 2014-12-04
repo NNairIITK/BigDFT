@@ -71,6 +71,7 @@ module bigdft_run
   public :: init_QM_restart_objects,init_MM_restart_objects,set_run_objects,nullify_QM_restart_objects
   public :: bigdft_nat,bigdft_state,free_run_objects,bigdft_run_new
   public :: release_run_objects,bigdft_get_cell,bigdft_get_geocode,bigdft_get_run_properties
+  public :: bigdft_get_units, bigdft_set_units
   public :: bigdft_get_astruct_ptr,bigdft_write_atomic_file,bigdft_set_run_properties
   public :: bigdft_norb,bigdft_get_eval,bigdft_run_id_toa,bigdft_get_rxyz
   public :: bigdft_dot,bigdft_nrm2
@@ -1202,6 +1203,34 @@ module bigdft_run
       call f_memcpy(n=norb,src=runObj%rst%KSwfn%orbs%eval(1),dest=eval(1))
     end subroutine bigdft_get_eval
 
+    !BS
+    function bigdft_get_units(runObj) result(units)
+      implicit none
+      type(run_objects), intent(in) :: runObj
+      character(len=20) :: units
+
+      units='                    '
+      if (associated(runObj%atoms)) then
+         units=runObj%atoms%astruct%units
+      else
+         call f_err_throw('Units uninitialized',&
+              err_name='BIGDFT_RUNTIME_ERROR')
+      endif
+    end function bigdft_get_units
+    subroutine bigdft_set_units(runObj,units)
+      implicit none
+      type(run_objects), intent(inout) :: runObj
+      character(len=*), intent(in) :: units
+
+      if (associated(runObj%atoms)) then
+         runObj%atoms%astruct%units=units
+      else
+         call f_err_throw('Units uninitialized',&
+              err_name='BIGDFT_RUNTIME_ERROR')
+      endif
+
+    end subroutine bigdft_set_units
+
     function bigdft_get_geocode(runObj) result(geocode)
       implicit none
       type(run_objects), intent(in) :: runObj
@@ -1265,9 +1294,9 @@ module bigdft_run
       case('LENNARD_JONES_RUN_MODE')
          !if(trim(adjustl(efmethod))=='LJ')then
          call lenjon(nat,rxyz_ptr,outs%fxyz,outs%energy)
-         if (bigdft_mpi%iproc == 0) then
-            call yaml_map('LJ state, energy',outs%energy,fmt='(1pe24.17)')
-         end if
+!         if (bigdft_mpi%iproc == 0) then
+!            call yaml_map('LJ state, energy',outs%energy,fmt='(1pe24.17)')
+!         end if
       case('LENOSKY_SI_CLUSTERS_RUN_MODE')
       !else if(trim(adjustl(efmethod))=='LENSIc')then!for clusters
          call f_memcpy(src=rxyz_ptr,dest=runObj%mm_rst%rf_extra)
@@ -1297,11 +1326,12 @@ module bigdft_run
          call f_memcpy(src=rxyz_ptr,dest=runObj%mm_rst%rf_extra)
          !convert from bohr to angstroem
          call vscal(3*nat,Bohr_Ang,runObj%mm_rst%rf_extra(1,1),1)
+         !ATTENTION: call_nab_gradient returns gradient, not forces
          call call_nab_gradient(runObj%mm_rst%rf_extra,outs%fxyz,outs%energy,icc)
          outs%energy=kcalMol_Ha*outs%energy
          !convert from gradient in kcal_th/mol/angstrom to
-         !force in hartree/bohr
-         call vscal(3*nat,kcalMolAng_HaBohr,outs%fxyz(1,1),1)
+         !force in hartree/bohr (minus before kcalMolAng_HaBohr)
+         call vscal(3*nat,-kcalMolAng_HaBohr,outs%fxyz(1,1),1)
       case('QM_RUN_MODE') ! traditional BigDFT run
       !else if(trim(adjustl(efmethod))=='BIGDFT')then
          call quantum_mechanical_state(runObj,outs,infocode)
