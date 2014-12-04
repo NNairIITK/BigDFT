@@ -82,6 +82,7 @@ program mhgps
     ifolder=1
     ef_counter=0.d0 !from module_global_variables
     isad=0  !from module_global_variables
+    ntodo=0  !from module_global_variables
     isadprob=0
 
 

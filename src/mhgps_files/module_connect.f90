@@ -23,6 +23,8 @@ module module_connect
     public :: connect_recursively
     public :: connect
 
+    !connect_object is used to reduce stack size required by
+    !connect subroutine
     type connect_object
         real(gp), allocatable :: saddle(:,:,:)
         real(gp), allocatable :: enersad(:)
@@ -43,6 +45,8 @@ module module_connect
 
         real(gp), allocatable :: rxyz1(:,:)
         real(gp), allocatable :: rxyz2(:,:)
+        real(gp), allocatable :: tsgforces(:,:)
+        real(gp) :: tsgenergy
     end type
 
 contains
@@ -78,6 +82,7 @@ subroutine allocate_connect_object(nat,nid,nsadmax,cobj)
     cobj%fpright   = f_malloc((/1.to.nid,1.to.nsadmax/),id='fpright')
     cobj%rxyz1 = f_malloc((/1.to.3,1.to.nat/),id='rxyz1')
     cobj%rxyz2 = f_malloc((/1.to.3,1.to.nat/),id='rxyz2')
+    cobj%tsgforces = f_malloc((/1.to.3,1.to.nat/),id='tsgforces')
 end subroutine
 !=====================================================================
 subroutine deallocate_connect_object(cobj)
@@ -102,6 +107,7 @@ subroutine deallocate_connect_object(cobj)
     call f_free(cobj%fpright)
     call f_free(cobj%rxyz1)
     call f_free(cobj%rxyz2)
+    call f_free(cobj%tsgforces)
 end subroutine
 !=====================================================================
 recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,isame,&
@@ -118,6 +124,7 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,isame,&
              iproc,&
              isad,isadprob,&
              isadc,isadprobc,&
+             ntodo,&
              currDir,&
              ixyz_int,&
              en_delta_min, fp_delta_min,&
@@ -145,18 +152,22 @@ use module_energyandforces
     integer, intent(inout)  :: nsad,isame
     type(connect_object), intent(inout) :: cobj
     logical, intent(inout)    :: connected
-    !internal
+    !local
     integer  :: nsad_loc,ipush
     real(gp) :: displ=0._gp,ener_count=0._gp
     real(gp) :: fnoise,fnrm,fmax
     logical  :: converged =.false.
     logical  :: lnl, rnr, lnr, rnl 
     character(len=200) :: comment
-    real(gp) :: tsgforces(3,nat), tsgenergy,scl
+    real(gp) :: scl
 
-    if(.not.connected)return
+    if(.not.connected)then
+        call write_todo(ntodo,nat,rxyz1,rxyz2,ener1,ener2)
+        return
+    endif
     if(nsad>=nsadmax)then
         connected=.false.
+        call write_todo(ntodo,nat,rxyz1,rxyz2,ener1,ener2)
         return
     endif
     if(iproc==0)then
@@ -190,8 +201,8 @@ use module_energyandforces
     write(isadc,'(i5.5)')isad
 
     call get_ts_guess(nat,alat,cobj%rxyz1,cobj%rxyz2,&
-          cobj%saddle(1,1,nsad),cobj%minmode(1,1,nsad),tsgenergy,&
-          tsgforces(1,1))
+          cobj%saddle(1,1,nsad),cobj%minmode(1,1,nsad),cobj%tsgenergy,&
+          cobj%tsgforces(1,1))
 
 
     !compute saddle
@@ -256,6 +267,7 @@ use module_energyandforces
                 call yaml_warning('(MHGPS) found same saddle '//&
                                    'point again. Aborting connection'//&
                                    ' attempt.')
+                call write_todo(ntodo,nat,cobj%rxyz1,cobj%rxyz2,ener1,ener2)
                 return
             endif
         else
@@ -551,6 +563,10 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected
 end subroutine
 !=====================================================================
 !same as connect_recursively, but in an iterative fashion
+!This non-recursive function was never really used. It is missing
+!some features of the recursive function.
+!Before being used, must be updated to same functionality as recursive
+!function and must be well tested!
 subroutine connect(nat,nid,alat,rcov,nbond,&
                      iconnect,rxyz1,rxyz2,ener1,ener2,fp1,fp2,&
                      nsad,cobj,connected)
@@ -590,7 +606,7 @@ use module_energyandforces
     integer, intent(inout)  :: nsad
     type(connect_object), intent(inout) :: cobj
     logical, intent(inout)    :: connected
-    !internal
+    !local
     integer  :: nsad_loc
     real(gp) :: displ=0._gp,ener_count=0._gp
     real(gp) :: fnoise,fnrm,fmax
@@ -951,7 +967,7 @@ subroutine pushoff(nat,saddle,minmode,left,right)
     real(gp), intent(in) :: minmode(3,nat)
     real(gp), intent(out) :: left(3,nat)
     real(gp), intent(out) :: right(3,nat)
-    !internal
+    !local
     real(gp)  :: step(3,nat)
 
     !functions
@@ -974,7 +990,7 @@ subroutine pushoffsingle(nat,saddle,minmode,scl,pushed)
     real(gp), intent(in) :: minmode(3,nat)
     real(gp), intent(in) :: scl
     real(gp), intent(out) :: pushed(3,nat)
-    !internal
+    !local
     integer  :: iat 
     real(gp) :: step(3,nat)
     real(gp) :: maxd, tt, dp
@@ -1026,17 +1042,53 @@ subroutine pushoff_assym(nat,saddle,minmode,scll,sclr,left,right)
     real(gp), intent(in) :: scll,sclr
     real(gp), intent(out) :: left(3,nat)
     real(gp), intent(out) :: right(3,nat)
-    !internal
+    !local
     real(gp)  :: step(3,nat)
-
-    !functions
-    real(gp) :: dnrm2
 
     step = saddle_stepoff*minmode
     left = saddle - scll*step
     right = saddle + sclr*step
 end subroutine
 !=====================================================================
+subroutine write_todo(ntodo,nat,left,right,eleft,eright)
+    use module_base
+    use module_atoms, only: astruct_dump_to_file
+    use module_global_variables, only: currDir, iproc, astruct_ptr
+    implicit none
+    !parameters
+    integer, intent(inout)           :: ntodo
+    integer, intent(in)              :: nat
+    real(gp), intent(in)             :: left(3,nat)
+    real(gp), intent(in)             :: right(3,nat)
+    real(gp), optional, intent(in)   :: eleft
+    real(gp), optional, intent(in)   :: eright
+    !local
+    character(len=5) :: ntodoc
+    
+    ntodo=ntodo+1
+
+    write(ntodoc,'(i5.5)')ntodo
+    if(iproc==0)then
+    if(present(eleft))then
+        call astruct_dump_to_file(astruct_ptr,&
+             currDir//'/todo'//trim(adjustl(ntodoc))//'_L','',&
+             energy=eleft,rxyz=left)
+    else
+        call astruct_dump_to_file(astruct_ptr,&
+             currDir//'/todo'//trim(adjustl(ntodoc))//'_L','',&
+             rxyz=left)
+    endif
+    if(present(eright))then
+        call astruct_dump_to_file(astruct_ptr,&
+             currDir//'/todo'//trim(adjustl(ntodoc))//'_R','',&
+             energy=eright,rxyz=right)
+    else
+        call astruct_dump_to_file(astruct_ptr,&
+             currDir//'/todo'//trim(adjustl(ntodoc))//'_R','',&
+             rxyz=right)
+    endif
+    endif
+end subroutine
 
 
 end module
