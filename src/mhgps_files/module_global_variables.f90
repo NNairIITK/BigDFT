@@ -104,6 +104,7 @@ module module_global_variables
     character(len=3), parameter :: prefix='pos'
     character(len=5)      :: isadc
     integer               :: isad
+    integer               :: ntodo
     character(len=5)      :: isadprobc
     integer               :: isadprob=0
     real(gp)              :: en_delta_min, fp_delta_min
