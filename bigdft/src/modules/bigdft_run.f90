@@ -1617,8 +1617,6 @@ module bigdft_run
     END SUBROUTINE quantum_mechanical_state
 
 
-      ! Analyse the input dictionary and transfer it to in.
-      call bigdft_run_validate(runObj%user_inputs)
     !> performs the scalar product between two
     !! set of atomic positions 
     !! The results is considered only in non-frozen directions
@@ -1711,7 +1709,7 @@ module bigdft_run
       !local variables
       character(len=*), parameter :: subname='forces_via_finite_differences'
       character(len=4) :: cc
-      integer :: ik,km,n_order,i_all,i_stat,iat,ii,i,k,order,iorb_ref
+      integer :: ik,km,n_order,iat,ii,i,k,order,iorb_ref
       real(gp) :: dd,alat,functional_ref,fd_alpha,energy_ref,pressure
       real(gp), dimension(3) :: fd_step
       real(gp), dimension(6) :: strten
