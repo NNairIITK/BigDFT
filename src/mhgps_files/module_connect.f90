@@ -1011,18 +1011,18 @@ subroutine pushoffsingle(nat,saddle,minmode,scl,pushed)
     step = minmode*saddle_stepoff/maxd
     pushed = saddle + scl*step
 
-    !control:
-    tt=0.0_gp
-    dp=0.0_gp
-    maxd=-huge(1.0_gp)
-    do iat=1,nat
-        dp=step(1,iat)**2+step(2,iat)**2+step(3,iat)**2
-        tt=tt+dp
-        maxd=max(maxd,dp)
-    enddo
-    tt=sqrt(tt)
-    maxd=sqrt(maxd)
-    write(133,*)scl, maxd
+!    !control:
+!    tt=0.0_gp
+!    dp=0.0_gp
+!    maxd=-huge(1.0_gp)
+!    do iat=1,nat
+!        dp=step(1,iat)**2+step(2,iat)**2+step(3,iat)**2
+!        tt=tt+dp
+!        maxd=max(maxd,dp)
+!    enddo
+!    tt=sqrt(tt)
+!    maxd=sqrt(maxd)
+!    write(133,*)scl, maxd
 
 ! old:
 !    step = saddle_stepoff*minmode

@@ -341,11 +341,11 @@ program mhgps
                     minmode(3,i)=2.0_gp*&
                          (real(builtin_rand(idum),gp)-0.5_gp)
                  enddo
-                 call write_mode(nat,currDir//'/pos'//&
-                      trim(adjustl(isadc))//'_mode',minmode)
+                 call write_mode(nat,trim(adjustl(joblist(1,ijob)))&
+                      //'_mode',minmode)
               else
-                 call read_mode(nat,currDir//'/pos'//&
-                      trim(adjustl(isadc))//'_mode',minmode)
+                 call read_mode(nat,trim(adjustl(joblist(1,ijob)))&
+                      //'_mode',minmode)
               endif
               !!call random_seed
               !!call random_number(minmode)
