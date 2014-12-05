@@ -98,7 +98,9 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	FERMI_LEVEL.@MODULE_EXT@ \
 	COPY_UTILS.@MODULE_EXT@ \
 	MODULE_SQN.@MODULE_EXT@ \
-	BIGDFT_RUN.@MODULE_EXT@
+	BIGDFT_RUN.@MODULE_EXT@ \
+	MODULE_LJ.@MODULE_EXT@ \
+	MODULE_LENOSKY_SI.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
@@ -135,7 +137,9 @@ modules = module_base.@MODULE_EXT@ \
 	fermi_level.@MODULE_EXT@ \
 	copy_utils.@MODULE_EXT@ \
 	module_sqn.@MODULE_EXT@ \
-	bigdft_run.@MODULE_EXT@
+	bigdft_run.@MODULE_EXT@ \
+	module_lj.@MODULE_EXT@ \
+	module_lenosky_si.@MODULE_EXT@
 endif
 
 AO_INCLUDES = eleconf-inc.f90 

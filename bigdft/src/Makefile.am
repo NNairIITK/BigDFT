@@ -336,7 +336,7 @@ clean-local:
 
 all: all-recursive
 	chmod ug+x bigdft-tool
-install: install-am
+install: install-recursive
 	chmod ug+x bigdft-tool
 
 check:

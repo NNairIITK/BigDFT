@@ -287,7 +287,7 @@ module bigdft_forces
 
       !Local variables
       integer  :: infocode, i, ierror 
-      type(DFT_global_output) :: outs
+      type(state_properties) :: outs
       !_______________________
 
       if ( conv ) then                    ! Convergence criterion for the wavefunction optimization
@@ -381,7 +381,7 @@ module bigdft_forces
 
       !Local variables
       integer :: i, ierror, ncount_bigdft
-      type(DFT_global_output) :: outs
+      type(state_properties) :: outs
 
       if ( .not. initialised ) then
          write(0,*) "No previous call to bigdft_init_art(). On strike, refuse to work."
@@ -689,7 +689,7 @@ module bigdft_forces
 
       !Local variables
       integer      :: infocode, i, ierror, ncount_bigdft 
-      type(DFT_global_output) :: outs
+      type(state_properties) :: outs
       real(gp)     ::  fmax, fnrm
       !_______________________
 
