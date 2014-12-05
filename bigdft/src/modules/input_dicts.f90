@@ -1038,8 +1038,9 @@ contains
        do while(associated(at))
           iat = dict_item(at) + 1
 
-          call astruct_at_from_dict(at, str, astruct%rxyz(:, iat), &
-               & astruct%ifrztyp(iat), igspin, igchrg, astruct%ixyz_int(:,iat))
+          call astruct_at_from_dict(at, str, rxyz_add = astruct%rxyz(1, iat), &
+               & ifrztyp = astruct%ifrztyp(iat), igspin = igspin, igchrg = igchrg, &
+               & ixyz_add = astruct%ixyz_int(1,iat))
           astruct%iatype(iat) = types // str
           astruct%input_polarization(iat) = 1000 * igchrg + sign(1, igchrg) * 100 + igspin
 

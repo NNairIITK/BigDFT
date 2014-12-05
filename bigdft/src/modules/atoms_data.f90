@@ -994,9 +994,10 @@ contains
            & call set(dict // ASTRUCT_PROPERTIES // "format", astruct%inputfile_format)
     end subroutine astruct_merge_to_dict
 
-    subroutine astruct_at_from_dict(dict, symbol, rxyz, ifrztyp, igspin, igchrg, ixyz)
+    subroutine astruct_at_from_dict(dict, symbol, rxyz, rxyz_add, ifrztyp, igspin, igchrg, ixyz, ixyz_add)
       use dictionaries
       use module_defs, only: UNINITIALIZED
+      use dynamic_memory
       implicit none
       type(dictionary), pointer :: dict
       character(len = max_field_length), intent(out), optional :: symbol !< Symbol
@@ -1004,11 +1005,15 @@ contains
       integer, intent(out), optional :: igspin  !< Spin for input guess
       integer, intent(out), optional :: igchrg  !< Charge for input guess
       integer, dimension(3), intent(out), optional :: ixyz !< Reference atom for internal coordinates
+      integer, intent(out), optional :: ixyz_add !< Reference atom for internal coordinates address
       real(gp), dimension(3), intent(out), optional :: rxyz !< Coordinates.
+      real(gp), intent(out), optional :: rxyz_add !< Coordinates address.
 
       type(dictionary), pointer :: atData
       character(len = max_field_length) :: str
       integer :: ierr
+      integer, dimension(3) :: icoord
+      real(gp), dimension(3) :: rcoord
 
       ! Default values.
       if (present(symbol)) symbol = 'X'
@@ -1030,13 +1035,32 @@ contains
             if (present(igchrg)) igchrg = atData
          else if (trim(str) == ASTRUCT_ATT_IXYZ_1) then
             if (present(ixyz)) ixyz(1) = atData
+            if (present(ixyz_add)) then
+               call f_memcpy(icoord(1), ixyz_add, 3)
+               icoord(1) = atData
+               call f_memcpy(ixyz_add, icoord(1), 3)
+            end if
          else if (trim(str) == ASTRUCT_ATT_IXYZ_2) then
             if (present(ixyz)) ixyz(2) = atData
+            if (present(ixyz_add)) then
+               call f_memcpy(icoord(1), ixyz_add, 3)
+               icoord(2) = atData
+               call f_memcpy(ixyz_add, icoord(1), 3)
+            end if
          else if (trim(str) == ASTRUCT_ATT_IXYZ_3) then
             if (present(ixyz)) ixyz(3) = atData
+            if (present(ixyz_add)) then
+               call f_memcpy(icoord(1), ixyz_add, 3)
+               icoord(3) = atData
+               call f_memcpy(ixyz_add, icoord(1), 3)
+            end if
          else if (dict_len(atData) == 3) then
             if (present(symbol)) symbol = str
             if (present(rxyz)) rxyz = atData
+            if (present(rxyz_add)) then
+               rcoord = atData
+               call f_memcpy(rxyz_add, rcoord(1), 3)
+            end if
          end if
          atData => dict_next(atData)
       end do
