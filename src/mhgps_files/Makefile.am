@@ -59,4 +59,3 @@ module_misc.o: ../modules/BigDFT_API.o
 module_fingerprints.o: module_global_variables.o\
                       ../modules/BigDFT_API.o
 module_hessian.o: ../modules/BigDFT_API.o module_energyandforces.o
-mhgps-too
