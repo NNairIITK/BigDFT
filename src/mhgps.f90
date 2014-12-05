@@ -83,7 +83,6 @@ program mhgps
 
     !read mhgps.inp
     call read_input()
-    if(iproc==0) call print_logo_mhgps()
 
     isForceField=.true.
     write(currDir,'(a,i3.3)')'input',ifolder
@@ -103,6 +102,7 @@ program mhgps
     ngroups=bigdft_mpi%ngroup!mpi_info(4)
     !actual value of iproc
     iproc=iproc+igroup*ngroups
+    if(iproc==0) call print_logo_mhgps()
 
     !reset input and output positions of run
     call bigdft_get_run_properties(run,input_id=run_id)
