@@ -424,8 +424,21 @@ subroutine test_dictionaries1()
    !call yaml_dict_dump2(dictA,verbatim=.true.)
    call yaml_dict_dump(dictA)
    call yaml_mapping_close()
-   
+   !test for scratching a dict
+   !zero1=>dict_new('Test1' .is. 'scratchToto')
+   !call set(dictA//'Test1','scratchToto')
+   !test of the copy
+   !zero1=>dict_new('Test1' .is. list_new(.item. 'scratchToto',.item. 'scratchTiti'))
+   !call yaml_map('To update dict',zero1)
+   !zero2 => dict_iter(zero1)
+   !call yaml_map('Key found',zero2)
+   !call dict_copy(dictA//'Test1',zero2)
+   !zero2 => dict_next(zero2)
+   !call yaml_map('Key found next',zero2)
+   !!call dict_update(dictA,zero1)
+   !call yaml_map('Scratched dict',dictA)
    call yaml_map('Keys of prepended dict',dict_keys(dictA))
+
 
    !perform an iterator on dictA
    dict_tmp=>dict_iter(dictA)

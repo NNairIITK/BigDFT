@@ -1659,6 +1659,10 @@ neleconf(7,0)=1.d-18
           err_name='BIGDFT_RUNTIME_ERROR')
   end select
 
+  !as now the symbol has been found overridde the psp rcov with the physical
+  !covalent radius
+  call covalent_radius(symbol,rcov)
+  
   ! Test than nvalelec is coherent with neleconf
   nsum = 0
   do l=0,lmax_ao

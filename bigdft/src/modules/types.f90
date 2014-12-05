@@ -367,7 +367,7 @@ module module_types
      real(gp) :: dtinit, dtmax           !< For FIRE
      character(len=10) :: tddft_approach !< TD-DFT variables from *.tddft
      type(SIC_data) :: SIC               !< Parameters for the SIC methods
-     !variables for SBFGS
+     !variables for SQNM
      integer  :: nhistx
      logical  :: biomode
      real(gp) :: beta_stretchx

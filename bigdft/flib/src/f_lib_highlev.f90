@@ -29,19 +29,40 @@ end subroutine f_dump_last_error
 
 
 !> Dump all errors which were handled
-subroutine f_dump_all_errors()
+subroutine f_dump_all_errors(unit)
   use dictionaries, only: f_get_error_dict,f_get_past_error,&
        max_field_length,f_get_no_of_errors
-  use yaml_output, only: yaml_dict_dump,yaml_map
+  use yaml_output, only: yaml_dict_dump,yaml_map,yaml_get_default_stream
   implicit none
+  !> if positive, write also the errors in the corresponding stream
+  integer, intent(in) :: unit 
   !local variables
-  integer :: ierr
+  integer :: ierr,iunit_def
   character(len=max_field_length) :: add_msg
+
+  !retrieve current unit
+  call yaml_get_default_stream(iunit_def)
+
+  if (unit > 0) iunit_def=unit
+
+
+!!$  !write in default stream
+!!$  do ierr=0,f_get_no_of_errors()-1
+!!$     call yaml_dict_dump(f_get_error_dict(f_get_past_error(ierr,add_msg)))
+!!$     if (trim(add_msg)/= 'UNKNOWN') &
+!!$          call yaml_map('Additional Info',add_msg)
+!!$  end do
+!!$
+!!$  if (unit > 0 .and. unit /= iunit_def) then
+     do ierr=0,f_get_no_of_errors()-1
+        call yaml_dict_dump(&
+             f_get_error_dict(f_get_past_error(ierr,add_msg)),&
+             unit=iunit_def)
+        if (trim(add_msg)/= 'UNKNOWN') &
+             call yaml_map('Additional Info',add_msg,unit=iunit_def)
+     end do
+!!$  end if
   
-  do ierr=0,f_get_no_of_errors()-1
-     call yaml_dict_dump(f_get_error_dict(f_get_past_error(ierr,add_msg)))
-     if (trim(add_msg)/= 'UNKNOWN') call yaml_map('Additional Info',add_msg)
-  end do
 end subroutine f_dump_all_errors
 
 

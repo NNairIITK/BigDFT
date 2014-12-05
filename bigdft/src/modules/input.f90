@@ -18,7 +18,7 @@
 module module_input
 
    use module_base
-   use yaml_strings, only: read_fraction_string
+   use yaml_strings, only: read_fraction_string,operator(.eqv.)
    implicit none
    private
 
@@ -405,31 +405,6 @@ contains
 
    END SUBROUTINE find
 
-
-   !> Compare two strings (case-insensitive). Blanks are relevant!
-   function case_insensitive_equiv(stra,strb)
-      implicit none
-      character(len=*), intent(in) :: stra,strb
-      logical :: case_insensitive_equiv
-      !Local variables
-      integer :: i,ica,icb,ila,ilb,ilength
-      ila=len(stra)
-      ilb=len(strb)
-      ilength=min(ila,ilb)
-      ica=ichar(stra(1:1))
-      icb=ichar(strb(1:1))
-      case_insensitive_equiv=(modulo(ica-icb,32) == 0) .and. (ila==ilb)
-      do i=2,ilength
-         ica=ichar(stra(i:i))
-         icb=ichar(strb(i:i))
-         case_insensitive_equiv=case_insensitive_equiv .and. &
-            &   (modulo(ica-icb,32) == 0)
-         if (.not. case_insensitive_equiv) exit
-      end do
-
-   END FUNCTION case_insensitive_equiv
-
-
    !> Routines for compulsory file
    subroutine var_double_compulsory(var,default,dict,ranges,exclusive,comment,input_iostat)
       implicit none
@@ -810,7 +785,7 @@ contains
          if (present(exclusive)) then
             found=.false.
             found_loop: do ilist=1,size(exclusive)
-               if (case_insensitive_equiv(trim(var),trim(exclusive(ilist)))) then
+               if (trim(var) .eqv. trim(exclusive(ilist))) then
                   found=.true.
                   exit found_loop
                end if

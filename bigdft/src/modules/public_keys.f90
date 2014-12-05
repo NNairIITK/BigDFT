@@ -11,6 +11,9 @@ module public_keys
 
   public ! guess why?
 
+  character(len = *), parameter :: MODE_VARIABLES = "mode"
+  character(len = *), parameter :: METHOD_KEY = "method"
+
   character(len = *), parameter :: POSINP = "posinp"
   character(len = *), parameter :: OCCUPATION = "occupation"
   character(len = *), parameter :: IG_OCCUPATION = "ig_occupation"
@@ -77,7 +80,7 @@ module public_keys
   character(len = *), parameter :: SPRINGS_K = "springs_k"
   character(len = *), parameter :: FIX_TOL = "fix_tol"
   character(len = *), parameter :: NIMG = "nimg"
-  !SBFGS parameters:
+  !SQNM parameters:
   character(len = *), parameter :: NHISTX = "nhistx"
   character(len = *), parameter :: BIOMODE = "biomode"
   character(len = *), parameter :: BETA_STRETCHX = "beta_stretchx"

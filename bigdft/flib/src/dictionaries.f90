@@ -1627,7 +1627,8 @@ contains
             ! List case
             if (dict_size(dict) > 0) then
                ! Incompatible dict and subd.
-               call f_err_throw()
+               call f_err_throw('Incompatibility in updating, putting a list in a dictionary',&
+                    err_id=DICT_INVALID_LIST)
                return
             end if
             ! Replace elements.
@@ -1640,8 +1641,8 @@ contains
             end do
          else if (dict_size(subd) > 0) then
             if (dict_len(dict) > 0) then
-               ! Incompatible dict and subd.
-               call f_err_throw()
+               call f_err_throw('Incompatibility in updating, putting a dictionary in a list',&
+                    err_id=DICT_INVALID_LIST)
                return
             end if
             ! Dict case

@@ -174,7 +174,7 @@ MODULE NEB_routines
             call image_init(imgs(i), dict, trim(minimization_scheme))
          end if
          ! Store forces if present (for restart).
-         call global_output_set_from_dict(imgs(i)%outs, dict // POSINP)
+         call state_properties_set_from_dict(imgs(i)%outs, dict // POSINP)
 
          call dict_free(dict)
       end do

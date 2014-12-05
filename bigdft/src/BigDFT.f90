@@ -24,7 +24,7 @@ program BigDFT
    !input variables
    type(run_objects) :: runObj
    !output variables
-   type(DFT_global_output) :: outs
+   type(state_properties) :: outs
    character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
    character(len=60) :: filename,posinp_id!, run_id
    integer :: iconfig,nconfig!,ngroups,igroup
@@ -48,10 +48,10 @@ program BigDFT
    run => dict_iter(options .get. 'BigDFT')
    do while(associated(run))
       call run_objects_init(runObj,run)
-      call init_global_output(outs,bigdft_nat(runObj))
+      call init_state_properties(outs,bigdft_nat(runObj))
 
       call bigdft_get_run_properties(run, posinp_id = posinp_id)
-      call call_bigdft(runObj,outs,infocode)
+      call bigdft_state(runObj,outs,infocode)
 
          if (runObj%inputs%ncount_cluster_x > 1) then
             if (bigdft_mpi%iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
@@ -62,7 +62,7 @@ program BigDFT
          !if there is a last run to be performed do it now before stopping
          if (runObj%inputs%last_run == -1) then
             runObj%inputs%last_run = 1
-            call call_bigdft(runObj, outs,infocode)
+            call bigdft_state(runObj, outs,infocode)
          end if
 
          if (runObj%inputs%ncount_cluster_x > 1) then
@@ -84,7 +84,7 @@ program BigDFT
          end if
 
          ! Deallocations.
-         call deallocate_global_output(outs)
+         call deallocate_state_properties(outs)
          call free_run_objects(runObj)
          run => dict_next(run)
    end do !loop over iconfig

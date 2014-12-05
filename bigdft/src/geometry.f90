@@ -50,7 +50,7 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   implicit none
   !Arguments
   type(run_objects), intent(inout) :: runObj
-  type(DFT_global_output), intent(inout) :: outs
+  type(state_properties), intent(inout) :: outs
   integer, intent(in) :: nproc,iproc
   integer, intent(out) :: ncount_bigdft
   !local variables
@@ -146,9 +146,13 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   case('FIRE')
      if (iproc ==0) call yaml_map('ENTERING FIRE',ncount_bigdft)
      call fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
-  case('SBFGS')                                                  
-   if (iproc ==0) call yaml_map('ENTERING SBFGS',ncount_bigdft)
-   call sbfgs(runObj,outs,nproc,iproc,parmin%verbosity,ncount_bigdft,fail)
+  case('SQNM','SBFGS')
+   if(trim(adjustl(parmin%approach))=='SBFGS')then
+     if (iproc==0) &
+          call yaml_warning('Keyword SBFGS is deprecated and will be removed in a future release. Use SQNM instead.')
+   endif 
+   if (iproc ==0) call yaml_map('ENTERING SQNM',ncount_bigdft)
+   call sqnm(runObj,outs,nproc,iproc,parmin%verbosity,ncount_bigdft,fail)
   case('DIIS')   
      if (iproc ==0) call yaml_map('ENTERING DIIS',ncount_bigdft)
      call rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
@@ -182,7 +186,7 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
   type(run_objects), intent(inout) :: runObj
-  type(DFT_global_output), intent(inout) :: outs
+  type(state_properties), intent(inout) :: outs
   logical, intent(out) :: fail
   !Local variables
   character(len=*), parameter :: subname='ab6md'
@@ -388,7 +392,7 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
   type(run_objects), intent(inout) :: runObj
-  type(DFT_global_output), intent(inout) :: outs
+  type(state_properties), intent(inout) :: outs
   logical, intent(out) :: fail
   !local variables
   integer, parameter :: ugeopt=16
@@ -500,7 +504,7 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      runObj%inputs%inputPsiId=1
      etotprev=outs%energy
 
-     call call_bigdft(runObj,outs,infocode)
+     call bigdft_state(runObj,outs,infocode)
 
 !!$     if (iproc == 0) then
 !!$        call transforce(at,f,sumx,sumy,sumz)
@@ -574,7 +578,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   integer, intent(in) :: nproc,iproc
   integer, intent(inout) :: ncount_bigdft
   type(run_objects), intent(inout) :: runObj
-  type(DFT_global_output), intent(inout) :: outs
+  type(state_properties), intent(inout) :: outs
   logical, intent(inout) :: fail
   !Local variables
   integer, parameter :: ugeopt=16
@@ -628,7 +632,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      runObj%inputs%inputPsiId=1
      call bigdft_set_rxyz(runObj,rxyz_add=pospred(1))
 !!$     call vcopy(3 * runObj%atoms%astruct%nat, pospred(1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
-     call call_bigdft(runObj,outs,infocode)
+     call bigdft_state(runObj,outs,infocode)
      call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fpred(1), 1)
      ncount_bigdft=ncount_bigdft+1
      call fnrmandforcemax(fpred,fnrm,fmax,outs%fdim)
@@ -717,12 +721,12 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      endif
      nstep=nstep+1
 
-     ! Check velcur consistency.
-     maxdiff=mpimaxdiff(velcur,root=0,comm=bigdft_mpi%mpi_comm)
-     !call check_array_consistency(maxdiff, nproc, velcur, bigdft_mpi%mpi_comm)
-     if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
-          call yaml_warning('Fire velocities not identical! '//&
-          '(difference:'//trim(yaml_toa(maxdiff))//' )')
+!!$     ! Check velcur consistency (debug).
+!!$     maxdiff=mpimaxdiff(velcur,root=0,comm=bigdft_mpi%mpi_comm)
+!!$     !call check_array_consistency(maxdiff, nproc, velcur, bigdft_mpi%mpi_comm)
+!!$     if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
+!!$          call yaml_warning('Fire velocities were not identical (broadcasting)! '//&
+!!$          '(difference:'//trim(yaml_toa(maxdiff))//' )')
 
      !if (iproc==0) write(10,*) epred, vnrm*0.5d0
    end do Big_loop

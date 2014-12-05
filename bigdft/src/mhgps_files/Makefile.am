@@ -1,9 +1,17 @@
 vpath %.h ../modules
 ###bin_PROGRAMS = mhgps
 
+
+if HAVE_AMBERTOOLS
+ambertools_wrap= wrap.c
+###for amber supp.:
+wrap.o:     wrap.c
+	$(NAB) -c  -g $<
+else
+ambertools_wrap= wrap_fake.f90
+endif
+
 mhgps_objects = \
-	       module_lj.f90 \
-	       module_lenosky_si.f90 \
                module_global_variables.f90 \
                module_init.f90 \
                module_hessian.f90 \
@@ -16,7 +24,8 @@ mhgps_objects = \
                module_connect.f90 \
                module_misc.f90 \
                module_fingerprints.f90 \
-               module_freezingstring.f90
+               module_freezingstring.f90 \
+	       $(ambertools_wrap)
 
 mhgps_SOURCES = $(mhgps_objects)
 
@@ -33,30 +42,23 @@ CLEANFILES = *.@MODULE_EXT@
 noinst_LIBRARIES = libmhgps.a
 
 libmhgps_a_SOURCES = $(mhgps_SOURCES)
-
-####for amber supp.:
-##%.o:     %.c
-##	        nab -c  -g $<
-
 #dependencies
 ##mhgps.o : $(mhgps_objects:.f90=.o) ../modules/BigDFT_API.o
 ##for amber support:
-mhgps.o : $(mhgps_objects:.f90=.o) ../modules/BigDFT_API.o wrap.o
+##mhgps.o : $(mhgps_objects:.f90=.o) ../modules/BigDFT_API.o wrap.o
 
-module_energyandforces.o : module_lenosky_si.o \
-                           module_lj.o \
-                           module_global_variables.o \
+module_energyandforces.o : module_global_variables.o \
                            module_init.o \
                            ../modules/BigDFT_API.o
 ##amber
 ##                           ../modules/BigDFT_API.o wrap.o
 module_init.o : module_global_variables.o ../modules/BigDFT_API.o 
 module_saddle.o : module_global_variables.o module_io.o\
-                  module_energyandforces.o ../modules/module_sbfgs.o\
+                  module_energyandforces.o ../modules/module_sqn.o\
                   ../modules/BigDFT_API.o
 module_minimizers.o : module_global_variables.o\
                       module_energyandforces.o\
-                      ../modules/module_sbfgs.o\
+                      ../modules/module_sqn.o\
                       ../modules/BigDFT_API.o
 module_io.o : module_global_variables.o ../modules/BigDFT_API.o
 module_freezingstring.o : module_energyandforces.o module_interpol.o \
