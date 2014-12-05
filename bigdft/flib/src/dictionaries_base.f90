@@ -25,7 +25,7 @@ module dictionaries_base
   integer, private :: nfolders=0       !< Number of libraries
   integer, private :: nfolders_max=0   !< Maximum number of libraries allocated
   
-  integer, private :: nfolder_size=10000 !< Size of the folder of pre-allocated dictionaries. Should be about 7 MB.
+  integer, parameter, private :: nfolder_size=10000 !< Size of the folder of pre-allocated dictionaries. Should be about 7 MB.
   
   
   type, public :: storage
@@ -87,7 +87,7 @@ module dictionaries_base
   type, private :: database_book
      !> this is the registry of the dictionary. It keeps track of the address of the associated dictionaries
      !It is a stack of free ifolder
-     integer, dimension(:), pointer :: registry => null()
+     integer, dimension(:), pointer :: free_folders => null()
      integer :: nfree
      !>this is the place occupied by a dictionary, which is pre-allocated by
      !! the allocation in database_book. The routine dict_init associates the dictionary to a database item
@@ -202,13 +202,13 @@ contains
     !local variables
     integer :: ifolder
 
-    allocate(library%registry(nfolder_size))
+    allocate(library%free_folders(nfolder_size))
     allocate(library%files(nfolder_size))
     nullify(library%next)
     !all free places in the library
     library%nfree = nfolder_size
     do ifolder=1,nfolder_size
-       library%registry(ifolder)=ifolder
+       library%free_folders(ifolder)=ifolder
     end do
   end subroutine allocate_library
 
@@ -223,17 +223,19 @@ contains
     type(database_book), pointer :: lib_tmp
         
     !first create the place for a folder if there is none
-    if (.not. associated(library%registry)) then
+    if (.not. associated(library%free_folders)) then
        call allocate_library(library)
        nfolders=nfolders+1
        nfolders_max=max(nfolders_max,nfolders)
     end if
 
     ! We use the saved free place.
-    ifolder = library%registry(nfolder_size - library%nfree + 1)
+    ifolder = library%free_folders(nfolder_size - library%nfree + 1)
     call dictionary_nullify(library%files(ifolder))
     dict=>library%files(ifolder)
+    !and immediately put it unavailable
     library%nfree = library%nfree - 1
+    library%free_folders(nfolder_size - library%nfree)=0
 
     do while (library%nfree == 0)
        !then the library which is used is the following one
@@ -266,7 +268,6 @@ contains
             & file <= f_loc(lib_tmp%files(nfolder_size))) exit
        lib_tmp => lib_tmp%previous
     end do
-
     if (associated(lib_tmp)) then
        call deallocate_file_(file, lib_tmp)
     else
@@ -292,15 +293,17 @@ contains
       integer(kind=8), intent(in) :: file !< the target is already inside
       type(database_book), pointer :: lib
       !local variables
-      integer :: ifolder
+      integer(kind=8) :: ifolder
+
       !find the file in the registry
       !then search in the present library the first free place
 
-      ifolder = (file - f_loc(lib%files(1))) / (f_loc(lib%files(2)) - f_loc(lib%files(1))) + 1
+      ifolder = (file - f_loc(lib%files(1))) /&
+           (f_loc(lib%files(2)) - f_loc(lib%files(1))) + 1
 
       !if the place has been found the dictionary can be identified
       !the registry is freed and the dictionary nullified
-      lib%registry(nfolder_size - lib%nfree) = ifolder
+      lib%free_folders(nfolder_size - lib%nfree) = int(ifolder)
       call dictionary_nullify(lib%files(ifolder))
       lib%nfree = lib%nfree + 1
     end subroutine deallocate_file_
@@ -317,8 +320,8 @@ contains
        call destroy_library()
     else
        !once we are at the last tree free memory spaces
-       deallocate(library%registry)
-       nullify(library%registry)
+       deallocate(library%free_folders)
+       nullify(library%free_folders)
        deallocate(library%files)
        nullify(library%files)
     end if
@@ -337,6 +340,8 @@ contains
   subroutine dict_init(dict)
     implicit none
     type(dictionary), pointer :: dict
+    !local variables
+    integer :: nres
 
     if (nfolder_size == 0) then
        !this is normal allocation, let the system do the allocation
@@ -350,25 +355,35 @@ contains
     !global variables counting the number of dictionaries simultaneously used
     ndicts=ndicts+1
     ndicts_max=max(ndicts_max,ndicts)
+    !!debug, to check that the allocation has been done properly
+    !call find_residual_dicts(nres)
+    !if (nres /= ndicts) then
+    !   print *,'internal error',nres,ndicts,nfolder_size-library%nfree
+    !   call dictionary_check_leak()
+    !   stop
+    !end if
   end subroutine dict_init
 
 
   !> Destroy only one level
   subroutine dict_destroy(dict)
     implicit none
-    type(dictionary), pointer :: dict
+    type(dictionary), intent(in) :: dict !to copy the target
     !local variables
+    integer :: nres
     integer(kind=8), external :: f_loc
-    !strategy which uses systems' allocation
-    if (nfolder_size==0) then
-       deallocate(dict)
-    else
-       !free a space in the library and let the allocation live
-       call deallocate_file(f_loc(dict))
-    end if
-
+    !free a space in the library and let the allocation live
+    call deallocate_file(f_loc(dict))
     ndicts=ndicts-1
-    nullify(dict)
+    !!debug, to check that the allocation has been done properly
+    !call find_residual_dicts(nres)
+    !if (nres /= ndicts) then
+      !print *,'internal error in free',nres,ndicts,nfolder_size-library%nfree
+    !print *,'deall',trim(dict%data%key),'key',trim(dict%data%value),'val'
+    !   print *,'floc',f_loc(dict)
+    !   call dictionary_check_leak()
+    !   stop
+    !end if
     !if there are no dictionaries anymore the library can be destroyed
     if (ndicts==0 .and. associated(library)) then
        call destroy_library()
@@ -400,7 +415,6 @@ contains
     type(dictionary), pointer :: dict
     if (associated(dict)) then
        call dict_free_(dict)
-!!$       call dict_destroy(dict)
        nullify(dict)
     end if
 
@@ -418,7 +432,12 @@ contains
          current=>dict_iter
          dict_iter=>dict_iter%next
          !destroy current
-         call dict_destroy(current)
+         if (nfolder_size==0) then
+            deallocate(current)
+         else
+            call dict_destroy(current)
+         end if
+         nullify(current)
          !destroy the children
          if (associated(child)) then
             call dict_free_(child)
@@ -427,7 +446,6 @@ contains
     end subroutine dict_free_
 
   end subroutine dict_free
-
 
   !> Return the length of the list
   pure function dict_len(dict)
@@ -873,7 +891,9 @@ contains
 
     call dict_get_num(ndict,ndict_max,nlibs,nlibs_max)
     if (ndict /= 0 ) then
-       write(*,'(a,i0)') '#Error, found unfreed dictionaries after finalization: ',ndict
+       write(*,'(a,i0)')&
+            '#Error, found unfreed dictionaries after finalization: ',&
+            ndict
        call find_residual_dicts()
     end if
 
@@ -881,10 +901,13 @@ contains
 
 
   !> Debug subroutine
-  subroutine find_residual_dicts()
+  subroutine find_residual_dicts(nres)
     implicit none
+    !>if present, counts the number of dictionaries
+    !! and not dump the output
+    integer, intent(out), optional :: nres
     !local variables
-    integer :: i
+    integer :: i,j
     type(database_book), pointer :: lib
     logical, dimension(:), allocatable :: freed
 
@@ -898,14 +921,30 @@ contains
     !then start by printing the residual keys
     allocate(freed(nfolder_size))
     freed(:) = .false.
+    if (present(nres)) nres=0
     do while(associated(lib))
+       !print *,'nowcheck',lib%nfree
        do i=1,lib%nfree
-          freed(lib%registry(nfolder_size - i + 1)) = .true.
+          j=lib%free_folders(nfolder_size - i + 1)
+          if (j/=0) then
+             if (.not. freed(j)) then
+                freed(j) = .true.
+             else
+                print *,'internal, same place freed twice',j
+                !stop
+             end if
+          end if
        end do
        do i = 1, nfolder_size
-          if (.not. freed(i))  write(*,'(a,a,a,a,a)') &
-             & '#Unfreed key: "',trim(lib%files(i)%data%key),&
-             & '" value: "',trim(lib%files(i)%data%value),'"'
+          if (.not. freed(i)) then
+             if (present(nres)) then
+                nres=nres+1
+             else
+                write(*,'(a,a,a,a,a)') &
+                     & '#Unfreed key: "',trim(lib%files(i)%data%key),&
+                     & '" value: "',trim(lib%files(i)%data%value),'"'
+             end if
+          end if
        end do
        lib=>lib%previous
     end do

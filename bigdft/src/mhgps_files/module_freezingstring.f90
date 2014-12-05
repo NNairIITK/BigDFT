@@ -3,9 +3,11 @@
 !!     
 !! @author Bastian Schaefer
 !! @section LICENCE
-!!    Copyright (C) 2014 UNIBAS
-!!    This file is not freely distributed.
-!!    A licence is necessary from UNIBAS
+!!    Copyright (C) 2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 module module_freezingstring
     implicit none
 
@@ -16,6 +18,42 @@ module module_freezingstring
     contains
 !=====================================================================
 subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
+                        tsgenergy,tsgforces)
+    use module_base
+    use yaml_output
+    use module_global_variables,&
+            only: iproc, mhgps_verbosity,&
+                  gammainv => ts_guess_gammainv,&
+                  perpnrmtol => ts_guess_perpnrmtol,&
+                  trust => ts_guess_trust,&
+                  nstepsmax => ts_guess_nstepsmax,&
+                  ef_counter
+    implicit none
+    !parameters
+    integer, intent(in) :: nat
+    real(gp), intent(in) :: alat(3)
+    real(gp), intent(in) :: rxyz1(3,nat),rxyz2(3,nat)
+    real(gp), intent(out) :: tsguess(3,nat),minmodeguess(3,nat)
+    real(gp), intent(out) :: tsgenergy, tsgforces(3,nat)
+    !internal
+    real(gp) :: efcounter_start
+
+    efcounter_start=ef_counter
+    if(iproc==0)then
+        call yaml_comment('(MHGPS) Generating TS input guess ....',&
+                          hfill='-')
+    endif
+    if(perpnrmtol<=0.0_gp .or. nstepsmax <= 0)then
+        call get_ts_guess_linsyn(nat,alat,rxyz1,rxyz2,tsguess,&
+             minmodeguess,tsgenergy,tsgforces)
+    else
+        call get_ts_guess_freeze(nat,alat,rxyz1,rxyz2,tsguess,&
+             minmodeguess,tsgenergy,tsgforces)
+    endif
+    if(iproc==0)call yaml_map('(MHGPS) # Energy evaluations for '//&
+                              'TS guess:',ef_counter-efcounter_start)
+end subroutine
+subroutine get_ts_guess_freeze(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
                         tsgenergy,tsgforces)
     use module_base
     use yaml_output
@@ -51,15 +89,9 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
     real(gp) :: emax
     real(gp) :: tau,rdmy
     real(gp) :: yp1=huge(1._gp), ypn=huge(1._gp)!natural splines
-    real(gp) :: efcounter_start
     !functions
     real(gp) :: dnrm2
 
-    efcounter_start=ef_counter
-    if(iproc==0)then
-        call yaml_comment('(MHGPS) Generating TS input guess ....',&
-                          hfill='-')
-    endif
 
     string = f_malloc((/ 1.to.3*nat, 1.to.2, 1.to.nstringmax/),&
                      id='string')
@@ -101,6 +133,7 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
         !parametrize spline such that the i-th node
         !is at parameter value i:
         arc(npath)=real(npath,gp)
+        if(istring>1)then
         !due to column major order,
         !pass string() to energy and forces, not path():
         call energyandforces(nat,alat,string(1,1,istring),&
@@ -110,6 +143,7 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
             istringmax = istring
             isidemax   = 1
             ipathmax   = npath
+        endif
         endif
     enddo
     do istring=nstring-ncorr,1,-1
@@ -122,6 +156,7 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
         !parametrize spline such that the i-th node
         !is at parameter value i:
         arc(npath)=real(npath,gp)
+        if(istring>1)then
         !due to column major order,
         !pass string() to energy and forces, not path():
         call energyandforces(nat,alat,string(1,2,istring),&
@@ -132,7 +167,12 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
             isidemax   = 2
             ipathmax   = npath
         endif
+        endif
     enddo
+    energies(1)=1234.0_gp
+    energies(npath)=1234.0_gp
+    forces(:,:,1)=1234.0_gp
+    forces(:,:,npath)=1234.0_gp
 
 !!DEBUGGING start:
 !if(npath/=nnodes)stop'npat/=nnodes'
@@ -178,10 +218,8 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
     minmodeguess=tangent(:,:,ipathmax)
 
     if(iproc==0 .and. mhgps_verbosity>=5)then
-        call write_path(nat,npath,path,energies,tangent)
+        call write_path_a(nat,npath,path,energies,tangent)
     endif     
-    if(iproc==0)call yaml_map('(MHGPS) # Energy evaluations for '//&
-                              'TS guess:',ef_counter-efcounter_start)
 
     call f_free(string) 
     call f_free(path) 
@@ -192,12 +230,13 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
     call f_free(arc) 
 end subroutine
 !=====================================================================
-subroutine write_path(nat,npath,path,energies,tangent)
+subroutine write_path_a(nat,npath,path,energies,tangent)
     use module_base
     use module_interfaces
     use module_atoms, only: astruct_dump_to_file
-    use module_global_variables, only: isadc, astruct_ptr,ixyz_int,&
+    use module_global_variables, only: isadc, runObj,&
                                        currDir
+    use bigdft_run
     implicit none
     !parameters
     integer, intent(in) :: nat, npath
@@ -223,7 +262,7 @@ subroutine write_path(nat,npath,path,energies,tangent)
         write(comment,'(a)')&
            'ATTENTION! Forces below are no forces but tangents to '//&
            'the guessed reaction path'
-        call astruct_dump_to_file(astruct_ptr,&
+        call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
              currDir//'/sad'//isadc//'_igpath_'//fn4,&
              trim(comment),&
              energies(ipath),rxyz=pathint(:,:,ipath),&
@@ -231,54 +270,36 @@ subroutine write_path(nat,npath,path,energies,tangent)
     enddo
 end subroutine
 !=====================================================================
-!subroutine grow_linsyn(nat,alat,nstring,string,finished)
-!    use module_base
-!    use yaml_output
-!    use module_global_variables, only: iproc
-!    !parameters
-!    integer, intent(inout) :: nstring
-!    real(gp), allocatable, intent(inout) :: string(:,:,:)
-!    integer, intent(out) :: finished
-!                          !if finished ==2: not finished
-!                          !if finished ==0: finished
-!                          !if finished ==1: one more node
-!                          !                 in the middle
-!    !constants
-!    integer, parameter  :: nimages=200 
-!    !internal
-!    integer :: nimo
-!
-!    !create high density lst path
-!    nimo=1._gp/real(nimages-1,gp)
-!    do i=1,nimages
-!        lambda  = real(i-1,gp)*nimo
-!        call lstpthpnt(nat,left,right,lambda,lstpath(1,1,i))
-!    enddo
-!
-!    !rewrite lstpath to row major ordering
-!    !(for faster access in spline routines)
-!    do iat=1,nat
-!        do i=1,nimages
-!            lstpathRM(i,1,iat)=lstpath(1,iat,i)
-!            lstpathRM(i,2,iat)=lstpath(2,iat,i)
-!            lstpathRM(i,3,iat)=lstpath(3,iat,i)
-!        enddo
-!    enddo
-!
-!    !compute the spline parameters (y2vec)
-!    !parametrize curve as a function of the
-!    !integrated arc length
-!    do i=1,nat
-!        call spline_wrapper(arc,lstpathRM(1,1,i),nimages,&
-!                           yp1,ypn,y2vec(1,1,i))
-!        call spline_wrapper(arc,lstpathRM(1,2,i),nimages,&
-!                           yp1,ypn,y2vec(1,2,i))
-!        call spline_wrapper(arc,lstpathRM(1,3,i),nimages,&
-!                           yp1,ypn,y2vec(1,3,i))
-!    enddo
-!
-!
-!end subroutine
+subroutine write_path_b(nat,npath,path,energies,tangent)
+    use module_base
+    use module_interfaces
+    use module_atoms, only: astruct_dump_to_file
+    use module_global_variables, only: isadc, runObj,&
+                                       currDir
+    use bigdft_run
+    implicit none
+    !parameters
+    integer, intent(in) :: nat, npath
+    real(gp), intent(in) :: path(3,nat,npath)
+    real(gp), intent(in) :: energies(npath)
+    real(gp), intent(in) :: tangent(3,nat,npath)
+    !internal
+    integer :: ipath,iat
+    character(len=4) :: fn4
+    character(len=150) :: comment
+
+    do ipath=1,npath
+        write(fn4,'(i4.4)') ipath
+        write(comment,'(a)')&
+           'ATTENTION! Forces below are no forces but tangents to '//&
+           'the guessed reaction path'
+        call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
+             currDir//'/sad'//isadc//'_igpath_'//fn4,&
+             trim(comment),&
+             energies(ipath),rxyz=path(:,:,ipath),&
+             forces=tangent(:,:,ipath))
+    enddo
+end subroutine
 !=====================================================================
 subroutine grow_freezstring(nat,alat,gammainv,perpnrmtol,trust,&
                        nstepsmax,nstringmax,nstring,string,finished)
@@ -562,7 +583,7 @@ subroutine lin_interpol(nat,left, right, step,interleft,interright,&
     real(gp) :: arcl
     !functions
     real(gp) :: dnrm2
-stop 'lin_interpol not debugged yet'
+stop 'lin_interpol not tested, yet'
     !tangent points from left to right:    
     tangent = right-left
     arcl = dnrm2(3*nat,tangent(1),1)
@@ -582,7 +603,147 @@ stop 'lin_interpol not debugged yet'
     endif
 end subroutine
 !=====================================================================
-subroutine lst_interpol(nat,left,right,step,interleft,interright,&
+subroutine get_ts_guess_linsyn(nat,alat,left,right,tsguess,minmodeguess,&
+                             tsgenergy,tsgforces)
+    !Given two distinct structures, get_ts_guess_linsyn interpolates
+    !inwards (that is in a direction connecting both strucutres)
+    !using the linear synchronous transit (LST) technique.
+    !A high density path made from 'nimages' nodes using LST
+    !is generated. Then this path is parametrized as a function
+    !of its integrated path length using natural cubic splines.
+    use module_base
+    use module_interpol
+    use module_global_variables, only:stepfrct=>lst_interpol_stepfrct,&
+                                      mhgps_verbosity,&
+                                      iproc
+    use module_energyandforces
+    implicit none
+    !parameters
+    integer, intent(in)      :: nat
+    real(gp), intent(in)     :: alat(3)
+    real(gp), intent(in)     :: left(3,nat)
+    real(gp), intent(in)     :: right(3,nat)
+    real(gp), intent(out)    :: tsguess(3,nat)
+    real(gp), intent(out)    :: minmodeguess(3,nat)
+    real(gp), intent(out)    :: tsgenergy
+    real(gp), intent(out)    :: tsgforces(3,nat)
+    !constants
+    integer, parameter  :: nimages=200
+    !internal
+    integer  :: i
+    integer  :: j
+    integer  :: iat
+    integer  :: ipathmax
+    integer  :: nimagespath
+    real(gp) :: lstpath(3,nat,nimages)
+    real(gp) :: lstpathRM(nimages,3,nat)
+    real(gp), allocatable :: lstpathC(:,:,:)
+    real(gp), allocatable :: forces(:,:,:)
+    real(gp), allocatable :: energies(:)
+    real(gp), allocatable :: tangent(:,:,:)
+    real(gp) :: arc(nimages)
+    real(gp) :: arcl
+    real(gp) :: diff(3,nat)
+    real(gp) :: nimo
+    real(gp) :: yp1=huge(1._gp), ypn=huge(1._gp)!natural splines
+    real(gp) :: y2vec(nimages,3,nat)
+    real(gp) :: tau
+    real(gp) :: lambda
+    real(gp) :: emax
+    real(gp) :: fnoise
+    real(gp) :: step
+    !functions
+    real(gp) :: dnrm2
+
+
+    !create high density lst path
+    nimo=1._gp/real(nimages-1,gp)
+    do i=1,nimages
+        lambda  = real(i-1,gp)*nimo
+        call lstpthpnt(nat,left,right,lambda,lstpath(1,1,i))
+    enddo
+
+    !measure arc length 
+    arc(1)=0._gp
+    do i=2,nimages
+        diff = lstpath(:,:,i) - lstpath(:,:,i-1)
+        arc(i)  = arc(i-1) + dnrm2(3*nat,diff(1,1),1)
+    enddo
+    arcl=arc(nimages)
+
+    !rewrite lstpath to row major ordering
+    !(for access in spline routines)
+    do iat=1,nat
+        do i=1,nimages
+            lstpathRM(i,1,iat)=lstpath(1,iat,i)
+            lstpathRM(i,2,iat)=lstpath(2,iat,i)
+            lstpathRM(i,3,iat)=lstpath(3,iat,i)
+        enddo
+    enddo
+
+    !compute the spline parameters (y2vec)
+    !parametrize curve as a function of the
+    !integrated arc length
+    do i=1,nat
+        call spline_wrapper(arc,lstpathRM(1,1,i),nimages,&
+                           yp1,ypn,y2vec(1,1,i))
+        call spline_wrapper(arc,lstpathRM(1,2,i),nimages,&
+                           yp1,ypn,y2vec(1,2,i))
+        call spline_wrapper(arc,lstpathRM(1,3,i),nimages,&
+                           yp1,ypn,y2vec(1,3,i))
+    enddo
+
+    !generate nodes at which energies, forces and tangents are computed
+    !ceiling(1.0_gp/stepfrct)-1+2=ceiling(1.0_gp/stepfrct)+1
+    nimagespath=max(ceiling(1.0_gp/stepfrct)+1,3)
+    lstpathC = f_malloc((/1.to.3,1.to.nat,1.to.nimagespath/),&
+                 id='nimagespath')
+    forces    = f_malloc((/1.to.3,1.to.nat,1.to.nimagespath/),&
+                 id='forces')
+    energies  = f_malloc((/1.to.nimagespath/),&
+                 id='energies')
+    tangent   = f_malloc((/1.to.3,1.to.nat,1.to.nimagespath/),&
+                 id='tangent')
+    nimo = 1._gp/real(nimagespath-1,gp)
+    do j=1,nimagespath
+        tau = arcl*(j-1)*nimo
+        do i=1,nat
+            call splint_wrapper(arc,lstpathRM(1,1,i),y2vec(1,1,i),&
+                 nimages,tau,lstpathC(1,i,j),tangent(1,i,j))
+            call splint_wrapper(arc,lstpathRM(1,2,i),y2vec(1,2,i),&
+                 nimages,tau,lstpathC(2,i,j),tangent(2,i,j))
+            call splint_wrapper(arc,lstpathRM(1,3,i),y2vec(1,3,i),&
+                 nimages,tau,lstpathC(3,i,j),tangent(3,i,j))
+        enddo
+    enddo
+
+    !determine highest energy node, don't compute energies for
+    !left and right minima (at path ends)
+    emax=-huge(1._gp)
+    do j=2,nimagespath-1
+        call energyandforces(nat,alat,lstpathC(1,1,j),&
+             forces(1,1,j),fnoise,energies(j))
+        if(energies(j)>emax)then
+            emax       = energies(j)
+            ipathmax   = j
+        endif
+    enddo
+    call vcopy(3*nat, lstpathC(1,1,ipathmax), 1, tsguess(1,1), 1)
+    call vcopy(3*nat, tangent(1,1,ipathmax), 1, minmodeguess(1,1), 1)
+    call vcopy(3*nat, forces(1,1,ipathmax), 1, tsgforces(1,1), 1)
+    tsgenergy = energies(ipathmax)
+    if(iproc==0 .and. mhgps_verbosity>=5)then
+        call write_path_b(nat,nimagespath,lstpathC,energies,tangent)
+    endif     
+
+
+    call f_free(lstpathC) 
+    call f_free(forces) 
+    call f_free(energies) 
+    call f_free(tangent) 
+end subroutine
+!=====================================================================
+subroutine lst_interpol_freez(nat,left,right,step,interleft,interright,&
                         tangentleft,tangentright,finished)
     !Given two distinct structures, lst_interpol interpolates
     !inwards (that is in a direction connecting both strucutres)
@@ -705,7 +866,7 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
 !write(*,*)'lstinterpol 1'
 
     !rewrite lstpath to row major ordering
-    !(for faster access in spline routines)
+    !(for access in spline routines)
     do iat=1,nat
         do i=1,nimages
             lstpathRM(i,1,iat)=lstpath(1,iat,i)
@@ -845,17 +1006,17 @@ subroutine lst_interpol(nat,left,right,step,interleft,interright,&
 
         !first left...
         tau = step
-        do i=1,nat
-            !potentially performance issues since lstpath
-            !is not transversed in column-major order in
-            !splint_wrapper
-            call splint_wrapper(arc,lstpathRM(1,1,i),y2vec(1,1,i),&
-                 nimages,tau,interleft(1,i),tangentleft(1,i))
-            call splint_wrapper(arc,lstpathRM(1,2,i),y2vec(1,2,i),&
-                 nimages,tau,interleft(2,i),tangentleft(2,i))
-            call splint_wrapper(arc,lstpathRM(1,3,i),y2vec(1,3,i),&
-                 nimages,tau,interleft(3,i),tangentleft(3,i))
-        enddo
+!        do i=1,nat
+!            !potentially performance issues since lstpath
+!            !is not transversed in column-major order in
+!            !splint_wrapper
+!            call splint_wrapper(arc,lstpathRM(1,1,i),y2vec(1,1,i),&
+!                 nimages,tau,interleft(1,i),tangentleft(1,i))
+!            call splint_wrapper(arc,lstpathRM(1,2,i),y2vec(1,2,i),&
+!                 nimages,tau,interleft(2,i),tangentleft(2,i))
+!            call splint_wrapper(arc,lstpathRM(1,3,i),y2vec(1,3,i),&
+!                 nimages,tau,interleft(3,i),tangentleft(3,i))
+!        enddo
         !generate coordinates for left node
         do i=1,nat
             call splint_wrapper(arc,lstpathRM(1,1,i),y2vec(1,1,i),&
@@ -926,7 +1087,7 @@ subroutine interpol(method,nat,left,right,step,interleft,interright,&
                        tangentleft,finished)
         tangentright=tangentleft
     else if(trim(adjustl(method))=='linlst')then
-        call lst_interpol(nat,left, right, step,interleft,interright,&
+        call lst_interpol_freez(nat,left, right, step,interleft,interright,&
                        tangentleft,tangentright,finished)
     endif
 end subroutine
@@ -968,7 +1129,7 @@ subroutine splint_wrapper(xvec,yvec,y2vec,ndim,tau,yval,dy)
     !y2vec: second derivatives of the interpolating function at the
     !tabulated points
     !tau: spline's parameter
-    !yval: cubic spline interpolation value at tay
+    !yval: cubic spline interpolation value at tau
     !dy: derivative of spline at tau (with respect to 
     !    the parametrization
     use module_base

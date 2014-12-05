@@ -304,14 +304,14 @@ module bigdft_forces
               & posa(2 * runObj%atoms%astruct%nat + i) /) / Bohr_Ang
       end do
 
-      call init_global_output(outs, runObj%atoms%astruct%nat)
+      call init_state_properties(outs, runObj%atoms%astruct%nat)
 
       if ( first_time ) then              ! This is done by default at the beginning.
 
 
          runObj%inputs%inputPsiId = 0
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft(runObj, outs, infocode )
+         call bigdft_state(runObj, outs, infocode )
          evalf_number = evalf_number + 1
 
          runObj%inputs%inputPsiId = 1
@@ -336,7 +336,7 @@ module bigdft_forces
 
          ! Get into BigDFT
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft(runObj, outs, infocode )
+         call bigdft_state(runObj, outs, infocode )
          evalf_number = evalf_number + 1
 
       end if
@@ -361,7 +361,7 @@ module bigdft_forces
          forca( 2 * runObj%atoms%astruct%nat + i ) = outs%fxyz(3, i) * ht2ev / Bohr_Ang
       end do
 
-      call deallocate_global_output(outs)
+      call deallocate_state_properties(outs)
 
    END SUBROUTINE calcforce_bigdft
 
@@ -402,7 +402,7 @@ module bigdft_forces
               & posa(2 * runObj%atoms%astruct%nat + i) /) / Bohr_Ang
       end do
 
-      call init_global_output(outs, runObj%atoms%astruct%nat)
+      call init_state_properties(outs, runObj%atoms%astruct%nat)
       do i = 1, runObj%atoms%astruct%nat, 1
          outs%fxyz(:, i) = (/ forca(i), forca(runObj%atoms%astruct%nat + i), &
               & forca(2 * runObj%atoms%astruct%nat + i) /) * Bohr_Ang / ht2ev
@@ -423,7 +423,7 @@ module bigdft_forces
          posa(2 * runObj%atoms%astruct%nat + i) = runObj%atoms%astruct%rxyz(3, i) * Bohr_Ang
       end do
 
-      call deallocate_global_output(outs)
+      call deallocate_state_properties(outs)
 
    END SUBROUTINE mingeo
 
@@ -704,7 +704,7 @@ module bigdft_forces
       end do
 
       call MPI_Barrier(MPI_COMM_WORLD,ierror)
-      call call_bigdft(runObj, outs, infocode )
+      call bigdft_state(runObj, outs, infocode )
       evalf_number = evalf_number + 1
       runObj%inputs%inputPsiId = 1
 
@@ -725,7 +725,7 @@ module bigdft_forces
          ! and we clean again here
          runObj%inputs%inputPsiId = 0 
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
-         call call_bigdft(runObj, outs, infocode )
+         call bigdft_state(runObj, outs, infocode )
          evalf_number = evalf_number + 1
          runObj%inputs%inputPsiId = 1
 
@@ -741,7 +741,7 @@ module bigdft_forces
 
       end if 
 
-      call deallocate_global_output(outs)
+      call deallocate_state_properties(outs)
 
    END SUBROUTINE check_force_clean_wf
 

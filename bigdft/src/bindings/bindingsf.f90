@@ -1219,7 +1219,7 @@ end subroutine wf_get_psi_size
 
 
 subroutine wf_iorbp_to_psi(psir, psi, lr)
-  use module_base, only: wp,to_zero
+  use module_base, only: wp,f_zero
   use module_types
   implicit none
   type(locreg_descriptors), intent(in) :: lr
@@ -1233,7 +1233,7 @@ subroutine wf_iorbp_to_psi(psir, psi, lr)
 
   !initialisation
   if (lr%geocode == 'F') then
-     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
+     call f_zero(psir)
   end if
 
   call daub_to_isf(lr,w,psi,psir)
@@ -1531,7 +1531,7 @@ subroutine run_objects_new(runObj)
 
   ! Allocate persistent structures.
   allocate(runObj%rst)
-  call nullify_restart_objects(runObj%rst)
+  call nullify_QM_restart_objects(runObj%rst)
 END SUBROUTINE run_objects_new
 
 

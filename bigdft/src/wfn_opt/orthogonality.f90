@@ -235,7 +235,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
 
   call dimension_ovrlp(nspin,orbs,ndim_ovrlp)
 
-          alag = f_malloc(ndim_ovrlp(nspin, orbs%nkpts),id='alag')
+          alag = f_malloc0(ndim_ovrlp(nspin, orbs%nkpts),id='alag')
   
   !Allocate ovrlp for PAW: 
   if(present(spsi)) then
@@ -244,7 +244,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
   end if
 
   !put to zero all the k-points which are not needed
-  call to_zero(ndim_ovrlp(nspin,orbs%nkpts),alag)
+  !call to_zero(ndim_ovrlp(nspin,orbs%nkpts),alag)
 
   !do it for each of the k-points and separate also between up and down orbitals in the non-collinear case
   ispsi=1
@@ -479,10 +479,10 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
 
   call dimension_ovrlp(nspin,orbs,ndim_ovrlp)
 
-  hamks = f_malloc(ndim_ovrlp(nspin, orbs%nkpts),id='hamks')
+  hamks = f_malloc0(ndim_ovrlp(nspin, orbs%nkpts),id='hamks')
 
   !put to zero all the k-points which are not needed
-  call to_zero(ndim_ovrlp(nspin,orbs%nkpts),hamks)
+  !call to_zero(ndim_ovrlp(nspin,orbs%nkpts),hamks)
 
   !dimension of the work arrays
   n_lp=0
@@ -784,10 +784,10 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
 
   call dimension_ovrlp_virt(nspin,orbs,orbsv,ndim_ovrlp)
 
-  alag = f_malloc(ndim_ovrlp(nspin, orbs%nkpts),id='alag')
+  alag = f_malloc0(ndim_ovrlp(nspin, orbs%nkpts),id='alag')
 
   !put to zero all the k-points which are not needed
-  call to_zero(ndim_ovrlp(nspin,orbs%nkpts),alag)
+  !call to_zero(ndim_ovrlp(nspin,orbs%nkpts),alag)
 
   !differentiate between real and complex wavefunctions
   !Lower triangle of overlap matrix using BLAS
@@ -1077,12 +1077,12 @@ subroutine orthoconstraint_p(iproc,nproc,norb,occup,nvctrp,psit,hpsit,scprsum,ns
      ncomp=2
   end if
 
-  alag = f_malloc((/ norbs, norb, istart /),id='alag')
+  alag = f_malloc0((/ norbs, norb, istart /),id='alag')
 
   !initialise if nvctrp=0
-  if (nvctrp == 0) then
-     call to_zero(norbs*norb*istart,alag(1,1,1))
-  end if
+  !if (nvctrp == 0) then
+  !   call to_zero(norbs*norb*istart,alag(1,1,1))
+  !end if
 
   !     alag(jorb,iorb,istart)=+psit(k,jorb)*hpsit(k,iorb)
   if(nspinor==1) then
@@ -1215,9 +1215,9 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,psit,nspinor)
         ncomp=2
      end if
 
-     ovrlp = f_malloc((/ norbs, norb, istart /),id='ovrlp')
+     ovrlp = f_malloc0((/ norbs, norb, istart /),id='ovrlp')
 
-     call to_zero(norbs*norb*istart,ovrlp(1,1,1))
+     !call to_zero(norbs*norb*istart,ovrlp(1,1,1))
 
      ! Upper triangle of overlap matrix using BLAS
      !     ovrlp(iorb,jorb)=psit(k,iorb)*psit(k,jorb) ; upper triangle
@@ -1726,7 +1726,7 @@ subroutine KStrans_p(nproc,norb,nvctrp,occup,  &
   ! dgemm can be used instead of daxpy
   if(nspinor==1) then
      do iorb=1,norb
-        call to_zero(nvctrp,psitt(1,iorb))
+        call f_zero(nvctrp,psitt(1,iorb))
         do jorb=1,norb
            alpha=hamks(jorb,iorb,1)
            call axpy(nvctrp,alpha,psit(1,jorb),1,psitt(1,iorb),1)
@@ -1734,7 +1734,7 @@ subroutine KStrans_p(nproc,norb,nvctrp,occup,  &
      enddo
   else
      do iorb=1,norb
-        call to_zero(nvctrp*nspinor,psitt(1,iorb))
+        call f_zero(nvctrp*nspinor,psitt(1,iorb))
         do jorb=1,norb
            call c_axpy(ncomp*nvctrp,hamks(2*jorb-1,iorb,1),psit(1,jorb),1,psitt(1,iorb),1)
         enddo
@@ -2425,7 +2425,7 @@ subroutine getOverlap(iproc,nproc,nspin,norbIn,orbs,comms,&
 
   ! Set the whole overlap matrix to zero. This is necessary since each process treats only a part
   ! of the matrix.
-  call to_zero(ndim_ovrlp(nspin,orbs%nkpts),ovrlp)
+  call f_zero(ovrlp)
 
 
   ispsi=1
@@ -2528,8 +2528,8 @@ subroutine getOverlap_paw(iproc,nproc,nspin,norbIn,orbs,comms,&
 
   ! Set the whole overlap matrix to zero. This is necessary since each process treats only a part
   ! of the matrix.
-  call to_zero(ndim_ovrlp(nspin,orbs%nkpts),ovrlp)
-  call to_zero(ndim_ovrlp(nspin,orbs%nkpts),ovrlp_pw)
+  call f_zero(ovrlp)
+  call f_zero(ovrlp_pw)
 
 
   ispsi=1
@@ -2632,7 +2632,7 @@ subroutine getOverlapDifferentPsi(iproc, nproc, nspin, norbIn, orbs, comms,&
   
   ! Set the whole overlap matrix to zero. This is necessary since each process treats only a part
   ! of the matrix.
-  call to_zero(ndim_ovrlp(nspin,orbs%nkpts),ovrlp)
+  call f_zero(ovrlp)
 
   ispsi1=1
   ispsi2=1
@@ -2742,8 +2742,8 @@ subroutine getOverlapDifferentPsi_paw(iproc, nproc, nspin, norbIn, orbs, comms,&
   
   ! Set the whole overlap matrix to zero. This is necessary since each process treats only a part
   ! of the matrix.
-  call to_zero(ndim_ovrlp(nspin,orbs%nkpts),ovrlp)
-  call to_zero(ndim_ovrlp(nspin,orbs%nkpts),ovrlp_pw)
+  call f_zero(ovrlp)
+  call f_zero(ovrlp_pw)
 
   ispsi1=1
   ispsi2=1

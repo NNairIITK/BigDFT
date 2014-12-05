@@ -68,6 +68,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_TYPES.@MODULE_EXT@ \
 	M_AB7_MIXING.@MODULE_EXT@ \
 	PUBLIC_KEYS.@MODULE_EXT@ \
+	PUBLIC_ENUMS.@MODULE_EXT@ \
 	MODULE_INTERFACES.@MODULE_EXT@ \
 	MODULE_PRIVATE_API.@MODULE_EXT@ \
 	MODULE_XC.@MODULE_EXT@ \
@@ -107,6 +108,7 @@ modules = module_base.@MODULE_EXT@ \
 	module_types.@MODULE_EXT@ \
 	m_ab7_mixing.@MODULE_EXT@ \
 	public_keys.@MODULE_EXT@ \
+	public_enums.@MODULE_EXT@ \
 	module_interfaces.@MODULE_EXT@ \
 	module_private_api.@MODULE_EXT@ \
 	module_xc.@MODULE_EXT@ \
@@ -202,6 +204,8 @@ xc.o: base.o
 module_sqn.o: base.o
 bigdft_run.o: types.o input_dicts.o interfaces.o module_lenosky_si.o module_lj.o
 ab7_mixing.o: defs.o
+module_lj.o: defs.o
+module_lenosky_si.o: defs.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

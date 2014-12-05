@@ -654,9 +654,7 @@ subroutine plot_wf(orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi)
 
   psir = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='psir')
   !initialisation
-  if (lr%geocode == 'F') then
-     call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i,psir)
-  end if
+  if (lr%geocode == 'F') call f_zero(psir)
 
   call daub_to_isf(lr,w,psi,psir)
 
@@ -887,7 +885,7 @@ END SUBROUTINE read_cube
 
 !>   Read a cube field which have been plotted previously by write_cube_fields
 subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
-  use module_base, only: dp,gp,to_zero
+  use module_base, only: dp,gp,f_zero
   use module_types
   implicit none
   character(len=*), intent(in) :: filename
@@ -938,8 +936,8 @@ subroutine read_cube_field(filename,geocode,n1i,n2i,n3i,rho)
   n3=n3t/2-nbz
   if (n3i /= 2*n3+(1-nbz)+2*nl3) stop 'n3i not valid'
 
-  !zero the pointer
-  call to_zero(n1i*n2i*n3i,rho)
+  !zero the buffer
+  call f_zero(rho)
 
   do iat=1,nat
      !read(22,'(i5,4(f12.6))')! idum , dum1 , (rxyz(j,iat),j=1,3)

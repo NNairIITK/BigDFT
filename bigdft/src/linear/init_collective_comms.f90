@@ -7,8 +7,6 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
-
-
 subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,mat,npsidim_orbs,npsidim_comp,check_overlap)
    use module_base!, only: wp, bigdft_mpi, mpi_sum, mpi_max, mpiallred
    use module_types, only: orbitals_data, local_zone_descriptors, linear_matrices
@@ -230,7 +228,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
                       call test_value_locreg(1,iiorb,1,i,psival)
                       psii(i)=psival
                    end do
-                   call to_zero(gdim, psiig(1))
+                   call f_zero(psiig)
                    call Lpsi_to_global2(iproc, ldim, gdim, orbs%norb, orbs%nspinor, 1, lzd%glr, &
                                         lzd%llr(ilr), psii, psiig)
                    do jjorb=1,orbs%norb
@@ -255,7 +253,7 @@ subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,m
                           call test_value_locreg(1,jjorb,1,i,psival)
                           psij(i)=psival
                        end do
-                       call to_zero(gdim, psijg(1))
+                       call f_zero(psijg)
                        !!write(4200+iproc,'(a,2i8,l4)') 'iproc, jlr, associated(lzd%llr(jlr)%wfd%keygloc)', iproc, jlr, associated(lzd%llr(jlr)%wfd%keygloc)
                        call Lpsi_to_global2(iproc, ldim, gdim, orbs%norb, orbs%nspinor, 1, lzd%glr, &
                                             lzd%llr(jlr), psij, psijg)
@@ -460,7 +458,7 @@ subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
 
   call f_routine(id='calculate_overlap_transposed')
 
-  call to_zero(smat%nvctr*smat%nspin, ovrlp%matrix_compr(1))
+  call f_zero(smat%nvctr*smat%nspin, ovrlp%matrix_compr(1))
 
   ! WARNING: METHOD 2 NOT EXTENSIVELY TESTED
   method_if: if (collcom%imethod_overlap==2) then
@@ -1024,7 +1022,7 @@ subroutine calculate_pulay_overlap(iproc, nproc, orbs1, orbs2, collcom1, collcom
   integer :: i0, j0, ipt, ii, iiorb, j, jj, jjorb, i, ierr  
 
   call timing(iproc,'ovrlptransComp','ON') !lr408t
-  call to_zero(orbs1%norb*orbs2%norb, ovrlp(1,1))
+  call f_zero(ovrlp)
   if(collcom1%nptsp_c/=collcom2%nptsp_c) then
       write(*,'(a,i0,a)') 'ERROR on process ',iproc,': collcom1%nptsp_c/=collcom2%nptsp_c'
       stop
@@ -1114,8 +1112,8 @@ subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork
   call f_routine(id='build_linear_combination_transposed')
   call timing(iproc,'lincombtrans  ','ON') !lr408t
   if(reset) then
-      if(collcom%ndimind_c>0) call to_zero(collcom%ndimind_c, psit_c(1))
-      if(collcom%ndimind_f>0) call to_zero(7*collcom%ndimind_f, psit_f(1))
+     call f_zero(psit_c)
+     call f_zero(psit_f)
   end if
 
 
@@ -1367,7 +1365,6 @@ subroutine check_grid_point_from_boxes(i1, i2, i3, lr, overlap_possible)
 
 end subroutine check_grid_point_from_boxes
 
-
 !!subroutine get_reverse_indices(n, indices, reverse_indices)
 !!  use module_base
 !!  implicit none
@@ -1432,7 +1429,7 @@ subroutine normalize_transposed(iproc, nproc, orbs, nspin, collcom, psit_c, psit
 
   call timing(iproc,'norm_trans','ON')
 
-  call to_zero(orbs%norb, norm(1))
+  call f_zero(norm)
 
 
   spin_loop: do ispin=1,nspin

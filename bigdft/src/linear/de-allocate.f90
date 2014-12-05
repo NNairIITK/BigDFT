@@ -163,15 +163,15 @@ subroutine init_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
   work%xya_c = f_malloc_ptr((/ 0.to.n2, 0.to.n1, 0.to.n3 /),id='work%xya_c')
   work%xyc_c = f_malloc_ptr((/ 0.to.n2, 0.to.n1, 0.to.n3 /),id='work%xyc_c')
   if(with_confpot) then
-     call to_zero((n1+1)*(n2+1)*(n3+1), work%xya_c(0,0,0))
-     call to_zero((n1+1)*(n2+1)*(n3+1), work%xyc_c(0,0,0))
+     call f_zero(work%xya_c)
+     call f_zero(work%xyc_c)
   end if
   
   work%xza_c = f_malloc_ptr((/ 0.to.n3, 0.to.n1, 0.to.n2 /),id='work%xza_c')
   work%xzc_c = f_malloc_ptr((/ 0.to.n3, 0.to.n1, 0.to.n2 /),id='work%xzc_c')
   if(with_confpot) then
-     call to_zero((n1+1)*(n2+1)*(n3+1), work%xza_c(0,0,0))
-     call to_zero((n1+1)*(n2+1)*(n3+1), work%xzc_c(0,0,0))
+     call f_zero(work%xza_c)
+     call f_zero(work%xzc_c)
   end if
   
   work%yza_c = f_malloc_ptr((/ 0.to.n3, 0.to.n1, 0.to.n2 /),id='work%yza_c')
@@ -179,10 +179,10 @@ subroutine init_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
   work%yzc_c = f_malloc_ptr((/ 0.to.n3, 0.to.n1, 0.to.n2 /),id='work%yzc_c')
   work%yze_c = f_malloc_ptr((/ 0.to.n3, 0.to.n1, 0.to.n2 /),id='work%yze_c')
   if(with_confpot) then
-     call to_zero((n1+1)*(n2+1)*(n3+1), work%yza_c(0,0,0))
-     call to_zero((n1+1)*(n2+1)*(n3+1), work%yzb_c(0,0,0))
-     call to_zero((n1+1)*(n2+1)*(n3+1), work%yzc_c(0,0,0))
-     call to_zero((n1+1)*(n2+1)*(n3+1), work%yze_c(0,0,0))
+     call f_zero(work%yza_c)
+     call f_zero(work%yzb_c)
+     call f_zero(work%yzc_c)
+     call f_zero(work%yze_c)
   end if
   
   work%xya_f = f_malloc_ptr((/ 1.to.3, nfl2.to.nfu2, nfl1.to.nfu1, nfl3.to.nfu3 /),id='work%xya_f')
@@ -190,10 +190,10 @@ subroutine init_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
   work%xyc_f = f_malloc_ptr((/ 1.to.3, nfl2.to.nfu2, nfl1.to.nfu1, nfl3.to.nfu3 /),id='work%xyc_f')
   work%xye_f = f_malloc_ptr((/ 1.to.4, nfl2.to.nfu2, nfl1.to.nfu1, nfl3.to.nfu3 /),id='work%xye_f')
   if(with_confpot) then
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, work%xya_f(1,nfl2,nfl1,nfl3))
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, work%xyb_f(1,nfl2,nfl1,nfl3))
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, work%xyc_f(1,nfl2,nfl1,nfl3))
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, work%xye_f(1,nfl2,nfl1,nfl3))
+     call f_zero(work%xya_f)
+     call f_zero(work%xyb_f)
+     call f_zero(work%xyc_f)
+     call f_zero(work%xye_f)
   end if
   
   work%xza_f = f_malloc_ptr((/ 1.to.3, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%xza_f')
@@ -201,10 +201,10 @@ subroutine init_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
   work%xzc_f = f_malloc_ptr((/ 1.to.3, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%xzc_f')
   work%xze_f = f_malloc_ptr((/ 1.to.4, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%xze_f')
   if(with_confpot) then
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, work%xza_f(1,nfl3,nfl1,nfl2))
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, work%xzb_f(1,nfl3,nfl1,nfl2))
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, work%xzc_f(1,nfl3,nfl1,nfl2))
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, work%xze_f(1,nfl3,nfl1,nfl2))
+     call f_zero(work%xza_f)
+     call f_zero(work%xzb_f)
+     call f_zero(work%xzc_f)
+     call f_zero(work%xze_f)
   end if
   
   work%yza_f = f_malloc_ptr((/ 1.to.3, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%yza_f')
@@ -212,10 +212,10 @@ subroutine init_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
   work%yzc_f = f_malloc_ptr((/ 1.to.3, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%yzc_f')
   work%yze_f = f_malloc_ptr((/ 1.to.4, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%yze_f')
   if(with_confpot) then
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, work%yza_f(1,nfl3,nfl1,nfl2))
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, work%yzb_f(1,nfl3,nfl1,nfl2))
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, work%yzc_f(1,nfl3,nfl1,nfl2))
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, work%yze_f(1,nfl3,nfl1,nfl2))
+     call f_zero(work%yza_f)
+     call f_zero(work%yzb_f)
+     call f_zero(work%yzc_f)
+     call f_zero(work%yze_f)
   end if
   
 
@@ -237,98 +237,78 @@ subroutine zero_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
   integer:: i, istat
   integer,parameter :: lowfil=-14,lupfil=14
 
-  call to_zero((n1+1)*(n2+1)*(n3+1),work%xx_c(0,0,0))!! = f_malloc0_ptr((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='work%xx_c')
-  call to_zero((n2+1)*(n1+1)*(n3+1),work%xy_c(0,0,0))!! = f_malloc0_ptr((/ 0.to.n2, 0.to.n1, 0.to.n3 /),id='work%xy_c')
-  call to_zero((n3+1)*(n1+1)*(n2+1),work%xz_c(0,0,0))!! = f_malloc0_ptr((/ 0.to.n3, 0.to.n1, 0.to.n2 /),id='work%xz_c')
+  call f_zero(work%xx_c)
+  call f_zero(work%xy_c)
+  call f_zero(work%xz_c)
   
-  call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),work%xx_f1(nfl1,nfl2,nfl3))!! = f_malloc0_ptr((/ nfl1.to.nfu1, nfl2.to.nfu2, nfl3.to.nfu3 /),id='work%xx_f1')
-  call to_zero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),work%xx_f(1,nfl1,nfl2,nfl3))!! = f_malloc0_ptr((/ 1.to.7, nfl1.to.nfu1, nfl2.to.nfu2, nfl3.to.nfu3 /),id='work%xx_f')
-  
-  
-  call to_zero((nfu2-nfl2+1)*(nfu1-nfl1+1)*(nfu3-nfl3+1),work%xy_f2(nfl2,nfl1,nfl3))!! = f_malloc0_ptr((/ nfl2.to.nfu2, nfl1.to.nfu1, nfl3.to.nfu3 /),id='work%xy_f2')
-  call to_zero(7*(nfu2-nfl2+1)*(nfu1-nfl1+1)*(nfu3-nfl3+1),work%xy_f(1,nfl2,nfl1,nfl3))!! = f_malloc0_ptr((/ 1.to.7, nfl2.to.nfu2, nfl1.to.nfu1, nfl3.to.nfu3 /),id='work%xy_f')
+  call f_zero(work%xx_f1)
+  call f_zero(work%xx_f)
   
   
-  call to_zero((nfu3-nfl3+1)*(nfu1-nfl1+1)*(nfu2-nfl2+1),work%xz_f4(nfl3,nfl1,nfl2))!! = f_malloc0_ptr((/ nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%xz_f4')
-  call to_zero(7*(nfu3-nfl3+1)*(nfu1-nfl1+1)*(nfu2-nfl2+1),work%xz_f(1,nfl3,nfl1,nfl2))!! = f_malloc0_ptr((/ 1.to.7, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%xz_f')
+  call f_zero(work%xy_f2)
+  call f_zero(work%xy_f)
   
   
-  call to_zero((n1+1)*(n2+1)*(n3+1),work%y_c(0,0,0))!! = f_malloc0_ptr((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='work%y_c')
+  call f_zero(work%xz_f4)
+  call f_zero(work%xz_f)
   
-  call to_zero(7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1),work%y_f(1,nfl1,nfl2,nfl3))!! = f_malloc0_ptr((/ 1.to.7, nfl1.to.nfu1, nfl2.to.nfu2, nfl3.to.nfu3 /),id='work%y_f')
+  
+  call f_zero(work%y_c)
+  
+  call f_zero(work%y_f)
 
   i=max(n1,n2,n3)
-  call to_zero((lupfil-lowfil+7)*(i+1),work%aeff0array(-3+lowfil,0))!! = f_malloc0_ptr((/ -3+lowfil.to.lupfil+3, 0.to.i /),id='work%aeff0array')
-  call to_zero((lupfil-lowfil+7)*(i+1),work%beff0array(-3+lowfil,0))!! = f_malloc0_ptr((/ -3+lowfil.to.lupfil+3, 0.to.i /),id='work%beff0array')
-  call to_zero((lupfil-lowfil+7)*(i+1),work%ceff0array(-3+lowfil,0))!! = f_malloc0_ptr((/ -3+lowfil.to.lupfil+3, 0.to.i /),id='work%ceff0array')
-  call to_zero((lupfil-lowfil+1)*(i+1),work%eeff0array(lowfil,0))!! = f_malloc0_ptr((/ lowfil.to.lupfil, 0.to.i /),id='work%eeff0array')
+  call f_zero(work%aeff0array)
+  call f_zero(work%beff0array)
+  call f_zero(work%ceff0array)
+  call f_zero(work%eeff0array)
   
-  call to_zero((lupfil-lowfil+7)*(i+1),work%aeff0_2array(-3+lowfil,0))!! = f_malloc0_ptr((/ -3+lowfil.to.lupfil+3, 0.to.i /),id='work%aeff0_2array')
-  call to_zero((lupfil-lowfil+7)*(i+1),work%beff0_2array(-3+lowfil,0))!! = f_malloc0_ptr((/ -3+lowfil.to.lupfil+3, 0.to.i /),id='work%beff0_2array')
-  call to_zero((lupfil-lowfil+7)*(i+1),work%ceff0_2array(-3+lowfil,0))!! = f_malloc0_ptr((/ -3+lowfil.to.lupfil+3, 0.to.i /),id='work%ceff0_2array')
-  call to_zero((lupfil-lowfil+1)*(i+1),work%eeff0_2array(lowfil,0))!! = f_malloc0_ptr((/ lowfil.to.lupfil, 0.to.i /),id='work%eeff0_2array')
+  call f_zero(work%aeff0_2array)
+  call f_zero(work%beff0_2array)
+  call f_zero(work%ceff0_2array)
+  call f_zero(work%eeff0_2array)
   
-  call to_zero((lupfil-lowfil+7)*(i+1),work%aeff0_2auxarray(-3+lowfil,0))!! = f_malloc0_ptr((/ -3+lowfil.to.lupfil+3, 0.to.i /),id='work%aeff0_2auxarray')
-  call to_zero((lupfil-lowfil+7)*(i+1),work%beff0_2auxarray(-3+lowfil,0))!! = f_malloc0_ptr((/ -3+lowfil.to.lupfil+3, 0.to.i /),id='work%beff0_2auxarray')
-  call to_zero((lupfil-lowfil+7)*(i+1),work%ceff0_2auxarray(-3+lowfil,0))!! = f_malloc0_ptr((/ -3+lowfil.to.lupfil+3, 0.to.i /),id='work%ceff0_2auxarray')
-  call to_zero((lupfil-lowfil+7)*(i+1),work%eeff0_2auxarray(-3+lowfil,0))!! = f_malloc0_ptr((/ -3+lowfil.to.lupfil+3, 0.to.i /),id='work%eeff0_2auxarray')
-  
-  !!work%xya_c = f_malloc_ptr((/ 0.to.n2, 0.to.n1, 0.to.n3 /),id='work%xya_c')
-  !!work%xyc_c = f_malloc_ptr((/ 0.to.n2, 0.to.n1, 0.to.n3 /),id='work%xyc_c')
+  call f_zero(work%aeff0_2auxarray)
+  call f_zero(work%beff0_2auxarray)
+  call f_zero(work%ceff0_2auxarray)
+  call f_zero(work%eeff0_2auxarray)
+
   if(with_confpot) then
-     call to_zero((n1+1)*(n2+1)*(n3+1), work%xya_c(0,0,0))
-     call to_zero((n1+1)*(n2+1)*(n3+1), work%xyc_c(0,0,0))
+     call f_zero(work%xya_c)
+     call f_zero(work%xyc_c)
+  end if
+
+  if(with_confpot) then
+     call f_zero(work%xza_c)
+     call f_zero(work%xzc_c)
+  end if
+
+  if(with_confpot) then
+     call f_zero(work%yza_c)
+     call f_zero(work%yzb_c)
+     call f_zero(work%yzc_c)
+     call f_zero(work%yze_c)
+  end if
+
+  if(with_confpot) then
+     call f_zero(work%xya_f)
+     call f_zero(work%xyb_f)
+     call f_zero(work%xyc_f)
+     call f_zero(work%xye_f)
+  end if
+
+  if(with_confpot) then
+     call f_zero(work%xza_f)
+     call f_zero(work%xzb_f)
+     call f_zero(work%xzc_f)
+     call f_zero(work%xze_f)
   end if
   
-  !!work%xza_c = f_malloc_ptr((/ 0.to.n3, 0.to.n1, 0.to.n2 /),id='work%xza_c')
-  !!work%xzc_c = f_malloc_ptr((/ 0.to.n3, 0.to.n1, 0.to.n2 /),id='work%xzc_c')
   if(with_confpot) then
-     call to_zero((n1+1)*(n2+1)*(n3+1), work%xza_c(0,0,0))
-     call to_zero((n1+1)*(n2+1)*(n3+1), work%xzc_c(0,0,0))
-  end if
-  
-  !!work%yza_c = f_malloc_ptr((/ 0.to.n3, 0.to.n1, 0.to.n2 /),id='work%yza_c')
-  !!work%yzb_c = f_malloc_ptr((/ 0.to.n3, 0.to.n1, 0.to.n2 /),id='work%yzb_c')
-  !!work%yzc_c = f_malloc_ptr((/ 0.to.n3, 0.to.n1, 0.to.n2 /),id='work%yzc_c')
-  !!work%yze_c = f_malloc_ptr((/ 0.to.n3, 0.to.n1, 0.to.n2 /),id='work%yze_c')
-  if(with_confpot) then
-     call to_zero((n1+1)*(n2+1)*(n3+1), work%yza_c(0,0,0))
-     call to_zero((n1+1)*(n2+1)*(n3+1), work%yzb_c(0,0,0))
-     call to_zero((n1+1)*(n2+1)*(n3+1), work%yzc_c(0,0,0))
-     call to_zero((n1+1)*(n2+1)*(n3+1), work%yze_c(0,0,0))
-  end if
-  
-  !!work%xya_f = f_malloc_ptr((/ 1.to.3, nfl2.to.nfu2, nfl1.to.nfu1, nfl3.to.nfu3 /),id='work%xya_f')
-  !!work%xyb_f = f_malloc_ptr((/ 1.to.4, nfl2.to.nfu2, nfl1.to.nfu1, nfl3.to.nfu3 /),id='work%xyb_f')
-  !!work%xyc_f = f_malloc_ptr((/ 1.to.3, nfl2.to.nfu2, nfl1.to.nfu1, nfl3.to.nfu3 /),id='work%xyc_f')
-  !!work%xye_f = f_malloc_ptr((/ 1.to.4, nfl2.to.nfu2, nfl1.to.nfu1, nfl3.to.nfu3 /),id='work%xye_f')
-  if(with_confpot) then
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, work%xya_f(1,nfl2,nfl1,nfl3))
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, work%xyb_f(1,nfl2,nfl1,nfl3))
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, work%xyc_f(1,nfl2,nfl1,nfl3))
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, work%xye_f(1,nfl2,nfl1,nfl3))
-  end if
-  
-  !!work%xza_f = f_malloc_ptr((/ 1.to.3, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%xza_f')
-  !!work%xzb_f = f_malloc_ptr((/ 1.to.4, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%xzb_f')
-  !!work%xzc_f = f_malloc_ptr((/ 1.to.3, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%xzc_f')
-  !!work%xze_f = f_malloc_ptr((/ 1.to.4, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%xze_f')
-  if(with_confpot) then
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, work%xza_f(1,nfl3,nfl1,nfl2))
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, work%xzb_f(1,nfl3,nfl1,nfl2))
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, work%xzc_f(1,nfl3,nfl1,nfl2))
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, work%xze_f(1,nfl3,nfl1,nfl2))
-  end if
-  
-  !!work%yza_f = f_malloc_ptr((/ 1.to.3, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%yza_f')
-  !!work%yzb_f = f_malloc_ptr((/ 1.to.4, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%yzb_f')
-  !!work%yzc_f = f_malloc_ptr((/ 1.to.3, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%yzc_f')
-  !!work%yze_f = f_malloc_ptr((/ 1.to.4, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%yze_f')
-  if(with_confpot) then
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, work%yza_f(1,nfl3,nfl1,nfl2))
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, work%yzb_f(1,nfl3,nfl1,nfl2))
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*3, work%yzc_f(1,nfl3,nfl1,nfl2))
-     call to_zero((nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)*4, work%yze_f(1,nfl3,nfl1,nfl2))
+     call f_zero(work%yza_f)
+     call f_zero(work%yzb_f)
+     call f_zero(work%yzc_f)
+     call f_zero(work%yze_f)
   end if
   
 

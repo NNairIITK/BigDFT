@@ -1,9 +1,11 @@
 !! @file
 !! @author
 !! @section LICENCE
-!!    Copyright (C) 2014 UNIBAS
-!!    This file is not freely distributed.
-!!    A licence is necessary from UNIBAS
+!!    Copyright (C) 2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 !  Copyright (C) 2001-2002 Stefan Goedecker, CEA Grenoble
 !  This file is distributed under the terms of the
 !  GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
@@ -16,7 +18,6 @@ public lenosky_si_shift,lenosky_si
 contains
 
 subroutine lenosky_si(nat,alat,rat,fat,epot)
-    use module_base
     implicit none
     integer::nat
     real(8) :: alat(3)
@@ -28,7 +29,7 @@ subroutine lenosky_si(nat,alat,rat,fat,epot)
 end subroutine lenosky_si
 
 subroutine lenosky_si_shift(nat,alat,rat,fat,epot)
-    use module_base
+    use module_defs, only:gp
     implicit none
     integer::nat,iat
     real(8) :: alat(3)
@@ -55,7 +56,7 @@ end subroutine lenosky_si_shift
 
 
     subroutine lenosky(nat,alat,rxyz0,fxyz,ener,coord,ener_var,coord_var,count)
-    use module_base
+    use module_defs, only:gp
 !     Evaluates the LENOSKY silicon potential with linear scaling
 !     If publishable results are obtained with this program, citing the
 !     following 2 references is very much appreciated:
@@ -734,7 +735,7 @@ end subroutine lenosky_si_shift
 
         subroutine subfeniat_l(iat1,iat2,nat,lsta,lstb,rel,tener,tener2, &
                tcoord,tcoord2,nnbrx,txyz,f2ij,npjx,f3ij,npjkx,f3ik,istop)
-        use module_base
+        use module_defs, only: gp
 ! for a subset of atoms iat1 to iat2 the routine calculates the (partial) forces
 ! txyz acting on these atoms as well as on the atoms (jat, kat) interacting
 ! with them and their contribution to the energy (tener).
@@ -1146,7 +1147,7 @@ end subroutine lenosky_si_shift
 
         subroutine sublstiat_l(iat,nn,ncx,ll1,ll2,ll3,l1,l2,l3,myspace, &
                    rxyz,icell,lstb,lay,rel,cut2,indlst)
-        use module_base
+        use module_defs, only: gp
 ! finds the neighbours of atom iat (specified by lsta and lstb) and and
 ! the relative position rel of iat with respect to these neighbours
         implicit real(gp) (a-h,o-z)
@@ -1182,7 +1183,7 @@ end subroutine lenosky_si_shift
         end subroutine
 
         subroutine splint(ya,y2a,tmin,tmax,hsixth,h2sixth,hi,n,x,y,yp)
-        use module_base
+        use module_defs, only: gp
         implicit real(gp) (a-h,o-z)
         dimension y2a(0:n-1),ya(0:n-1)
 

@@ -71,7 +71,6 @@ fldiff_yaml.py: fldiff_yaml.py.in
 		-e s!\@exec_prefix\@!$(exec_prefix)!		\
 		-e s!\@pyexecdir\@!$(pyexecdir)!		\
 		-e s!\@AX_PYYAML_PATH\@!$(AX_PYYAML_PATH)!	\
-		-e s!\@abs_srcdir\@!$(abs_srcdir)!	\
 		< $< > $@
 
 report:

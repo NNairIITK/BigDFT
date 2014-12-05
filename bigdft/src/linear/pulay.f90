@@ -99,7 +99,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   !fpulay=f_malloc((/3,at%astruct%nat/),id='fpulay')
   tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
   call uncompress_matrix(iproc,tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix_compr, outmat=tmb%linmat%kernel_%matrix)
-  call to_zero(3*at%astruct%nat, fpulay(1,1))
+  call f_zero(fpulay)
   do idir=1,3
       ! calculate the overlap matrix among hphi and phi_delta_large
       call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
@@ -217,7 +217,7 @@ subroutine extract_boundary(tmb, phi_delta, numpoints, numpoints_tot)
   numpoints=0
   ! First copy the boundary elements of the first array to a temporary array,
   ! filling the remaining part with zeros.
-  call to_zero(3*tmb%npsidim_orbs,phi_delta(1,1))
+  call f_zero(phi_delta)
   ishift=0
   do iorb=1,tmb%orbs%norbp
       iiorb=tmb%orbs%isorb+iorb
@@ -604,7 +604,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   !END DEBUG
 
    ! needs generalizing if dovrlp and dham are to have different structures
-   call to_zero(3*at%astruct%nat, fpulay(1,1))
+   call f_zero(fpulay)
    do jdir=1,3
      !do ialpha=1,tmb%orbs%norb
      do ispin=1,tmb%linmat%m%nspin

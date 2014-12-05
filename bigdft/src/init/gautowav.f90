@@ -429,7 +429,7 @@ subroutine gaussians_to_wavelets(iproc,nproc,geocode,orbs,grid,hx,hy,hz,wfd,G,wf
   tpsi = f_malloc(wfd%nvctr_c+7*wfd%nvctr_f,id='tpsi')
 
   !initialize the wavefunction
-  call to_zero((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor,psi(1,1,1))
+  call f_zero(psi)
   !this can be changed to be passed only once to all the gaussian basis
   !eks=0.d0
   !loop over the atoms
@@ -673,7 +673,7 @@ subroutine gaussians_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi)
   perz=(lr%geocode /= 'F')
 
   !initialize the wavefunction
-  call to_zero((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx,psi(1))
+  call f_zero(psi)
 
   gau_cut=1.0_gp !only meaningful for PAW
   !calculate the number of terms for this orbital
@@ -811,7 +811,7 @@ subroutine gaussians_c_to_wavelets_orb(ncplx,lr,hx,hy,hz,kx,ky,kz,G,wfn_gau,psi,
   perz=(lr%geocode /= 'F')
 
   !initialize the wavefunction
-  call to_zero((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx,psi)
+  call f_zero(psi)
 
   !calculate the number of terms for this orbital
   nterms=0
@@ -2055,7 +2055,7 @@ subroutine gautowav(geocode,iproc,nproc,nat,ntypes,norb,norbp,n1,n2,n3,&
   tpsi = f_malloc(nvctr_c+7*nvctr_f,id='tpsi')
 
   !initialize the wavefunction
-  call to_zero((nvctr_c+7*nvctr_f)*norbp,psi)
+  call f_zero(psi)
   !this can be changed to be passed only once to all the gaussian basis
   !eks=0.d0
   !loop over the atoms

@@ -54,7 +54,6 @@ module dynamic_memory
 
   !> Timing categories
   integer, public, save :: TCAT_ARRAY_ALLOCATIONS
-  integer, public, save :: TCAT_INIT_TO_ZERO
   integer, public, save :: TCAT_ROUTINE_PROFILING
 
   !> Control structure of flib library. 
@@ -128,15 +127,6 @@ module dynamic_memory
      module procedure z1_ptr_free
   end interface
 
-  !> Initialize to zero an array (should be called f_memset)
-  interface to_zero
-     module procedure put_to_zero_simple, &
-           put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2, &
-           put_to_zero_double_3, put_to_zero_double_4, put_to_zero_double_5, &
-           put_to_zero_double_6, put_to_zero_double_7, &
-           put_to_zero_integer
-  end interface
-
   interface f_memcpy
      module procedure f_memcpy_i0,f_memcpy_i1
      module procedure f_memcpy_i1i2,f_memcpy_i2i1
@@ -170,7 +160,7 @@ module dynamic_memory
   public :: f_malloc_str,f_malloc0_str,f_malloc_str_ptr,f_malloc0_str_ptr
   public :: f_free,f_free_ptr,f_free_str,f_free_str_ptr
   public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_initialize,f_malloc_finalize
-  public :: f_time,to_zero,f_memcpy,f_maxdiff
+  public :: f_time,f_memcpy,f_maxdiff
   !reference counters
   public :: f_ref_new,f_ref_null,f_unref,f_ref_free,f_ref_associate
   public :: nullify_f_ref,f_ref,f_ref_count,f_update_database,f_purge_database
@@ -406,157 +396,6 @@ contains
     f_malloc_routine_name(1:len(f_malloc_routine_name))=name
     f_malloc_default_profiling=profile
   end subroutine set_routine_info
-
-
-  subroutine put_to_zero_simple(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=4), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel, omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO)
-    call razero_simple(n,da)
-    if (.not. within_openmp) call f_timer_resume()
-  end subroutine put_to_zero_simple
-
-  subroutine put_to_zero_double(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel, omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO)
-    call razero(n,da)
-    if (.not. within_openmp) call f_timer_resume()
-  end subroutine put_to_zero_double
-
-  subroutine put_to_zero_double_1(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO)
-    call razero(n,da)
-    if (.not. within_openmp) call f_timer_resume()
-  end subroutine put_to_zero_double_1
-
-  subroutine put_to_zero_double_2(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:,:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO)
-    call razero(n,da)
-    if (.not. within_openmp) call f_timer_resume()
-  end subroutine put_to_zero_double_2
-
- subroutine put_to_zero_double_3(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:,:,:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
-    call razero(n,da)
-    if (.not. within_openmp) call f_timer_resume() 
-  end subroutine put_to_zero_double_3
-
-  subroutine put_to_zero_double_4(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:,:,:,:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
-    call razero(n,da)
-    if (.not. within_openmp) call f_timer_resume() 
-  end subroutine put_to_zero_double_4
-
-  subroutine put_to_zero_double_5(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:,:,:,:,:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
-    call razero(n,da)
-    if (.not. within_openmp) call f_timer_resume() 
-  end subroutine put_to_zero_double_5
-
-  subroutine put_to_zero_double_6(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:,:,:,:,:,:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
-    call razero(n,da)
-    if (.not. within_openmp) call f_timer_resume() 
-  end subroutine put_to_zero_double_6
-
-  subroutine put_to_zero_double_7(n,da)
-    implicit none
-    integer, intent(in) :: n
-    real(kind=8), dimension(:,:,:,:,:,:,:), intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel,omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
-    call razero(n,da)
-    if (.not. within_openmp) call f_timer_resume() 
-  end subroutine put_to_zero_double_7
-
-  subroutine put_to_zero_integer(n,da)
-    implicit none
-    integer, intent(in) :: n
-    integer, intent(out) :: da
-    logical :: within_openmp
-    !$ logical :: omp_in_parallel, omp_get_nested
-    within_openmp=.false.
-    !$    within_openmp=omp_in_parallel() .or. omp_get_nested()
-
-    !call to custom routine
-    if (.not. within_openmp) call f_timer_interrupt(TCAT_INIT_TO_ZERO)
-    call razero_integer(n,da)
-    if (.not. within_openmp) call f_timer_resume()
-  end subroutine put_to_zero_integer
 
   !> Copy the contents of an array into another one
   include 'f_memcpy-inc.f90'

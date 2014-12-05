@@ -1099,7 +1099,7 @@ subroutine astruct_set_n_atoms(astruct, nat)
   astruct%iatype = f_malloc_ptr(astruct%nat,id='astruct%iatype')
   astruct%ifrztyp = f_malloc_ptr(astruct%nat,id='astruct%ifrztyp')
   astruct%input_polarization = f_malloc_ptr(astruct%nat,id='astruct%input_polarization')
-  astruct%rxyz = f_malloc_ptr((/ 3,astruct%nat /),id='astruct%rxyz')
+  astruct%rxyz = f_malloc0_ptr((/ 3,astruct%nat /),id='astruct%rxyz')
   astruct%rxyz_int = f_malloc_ptr((/ 3,astruct%nat /),id='astruct%rxyz_int')
   astruct%ixyz_int = f_malloc_ptr((/ 3,astruct%nat /),id='astruct%ixyz_int')
 
@@ -1110,7 +1110,7 @@ subroutine astruct_set_n_atoms(astruct, nat)
   !RULE natpol=charge*1000 + 100 + spinpol
   astruct%input_polarization(:)=100
 
-  if (astruct%nat > 0) call to_zero(3 * astruct%nat, astruct%rxyz(1,1))
+  !if (astruct%nat > 0) call to_zero(3 * astruct%nat, astruct%rxyz(1,1))
 END SUBROUTINE astruct_set_n_atoms
 
 

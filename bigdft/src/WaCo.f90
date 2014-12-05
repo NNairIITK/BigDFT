@@ -226,8 +226,8 @@ program WaCo
       !write(*,*)
    end if
 
-   rho = f_malloc((/ nwann, nwann /),id='rho')
-   call to_zero(nwann*nwann, rho(1,1))
+   rho = f_malloc0((/ nwann, nwann /),id='rho')
+   !call to_zero(nwann*nwann, rho(1,1))
 
    do i=1,nwann
       do j=1,nwann
@@ -256,8 +256,8 @@ program WaCo
    !##################################################################
    ! Check idempotence of density matrix
    !##################################################################
-   rhoprime = f_malloc((/ nwann, nwann /),id='rhoprime')
-   call to_zero(nwann*nwann, rhoprime(1,1))
+   rhoprime = f_malloc0((/ nwann, nwann /),id='rhoprime')
+   !call to_zero(nwann*nwann, rhoprime(1,1))
    
    idemp = .true.
    do i = 1, nwann
@@ -904,7 +904,7 @@ program WaCo
            call yaml_warning('this should not happen')
            stop
         end if
-        call to_zero(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, wann(1))
+        call f_zero(wann)
         do iband = 1, orbsw%norbp
            do i = 1, Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f
               wann(i) = wann(i) + umn(iwann,iband+orbsw%isorb) * psi(i,iband)
@@ -912,7 +912,7 @@ program WaCo
         end do
 
         ! Construction of the Wannier function.
-        call mpiallred(wann(1),Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,MPI_SUM)
+        call mpiallred(wann,MPI_SUM)
 
         if(iproc == 0) then
            write(num,'(i4.4)') iwann

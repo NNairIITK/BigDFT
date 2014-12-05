@@ -1,9 +1,11 @@
 !! @file
 !! @author Bastian Schaefer
 !! @section LICENCE
-!!    Copyright (C) 2014 UNIBAS
-!!    This file is not freely distributed.
-!!    A licence is necessary from UNIBAS
+!!    Copyright (C) 2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
 module module_saddle
 implicit none
 
@@ -18,12 +20,13 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
                   rotforce,converged)
     !imode=1 for clusters
     !imode=2 for biomolecules
-  use module_base
-  use module_atoms, only: astruct_dump_to_file
+    use module_base
+    use module_atoms, only: astruct_dump_to_file
+    use bigdft_run
     use yaml_output
     use module_interfaces
     use module_sqn
-    use module_global_variables, only: inputPsiId, iproc, ixyz_int, astruct_ptr, mhgps_verbosity,&
+    use module_global_variables, only: inputPsiId, iproc, runObj, mhgps_verbosity,&
                                        currDir, isadc, ndim_rot, nhist_rot, alpha_rot,&
                                        alpha_stretch_rot,saddle_alpha_stretch0,work,lwork,&
                                        saddle_steepthresh_trans,imode,saddle_tighten,&
@@ -131,8 +134,8 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
 
 
 
-!    if(astruct_ptr%geocode/='F'.and. .not. (trim(adjustl(efmethod))=='LENSIc'))&
-!    stop 'STOP: saddle search only implemented for free BC'
+    if(bigdft_get_geocode(runObj)/='F'.and. .not. (trim(adjustl(efmethod))=='LENSIc'))&
+    stop 'STOP: saddle search only implemented for free BC'
 
     if((minoverlap0>=-1.0_gp).and.saddle_tighten)&
     stop 'STOP: Do not use minoverlap and no tightening in combination'
@@ -178,7 +181,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     fstretch=0.0_gp
     rxyz(:,:,0)=wpos
 
-    if (astruct_ptr%geocode == 'F') then
+    if (bigdft_get_geocode(runObj) == 'F') then
     call fixfrag_posvel(nat,rcov,rxyz(1,1,0),tnatdmy,1,fixfragmented)
     if(fixfragmented .and. mhgps_verbosity >=0.and. iproc==0)&
        call yaml_comment('fragmentation fixed')
@@ -340,7 +343,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
         endif
         !do the move
         rxyz(:,:,nhist)=rxyz(:,:,nhist-1)-dd(:,:)
-        if (astruct_ptr%geocode == 'F') then
+        if (bigdft_get_geocode(runObj) == 'F') then
         call fixfrag_posvel(nat,rcov,rxyz(1,1,nhist),tnatdmy,1,fixfragmented)
         if(fixfragmented .and. mhgps_verbosity >=2.and. iproc==0)&
            call yaml_comment('fragmentation fixed')
@@ -366,7 +369,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
            write(comment,'(a,1pe10.3,5x,1pe10.3)')&
            'ATTENTION! Forces below are no forces but tangents to '//&
            'the guessed reaction path| fnrm, fmax = ',fnrm,fmax
-           call astruct_dump_to_file(astruct_ptr,&
+           call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                 currDir//'/sad'//trim(adjustl(isadc))//'_posout_'//fn9,&
                 trim(comment),&
                 etotp,rxyz(:,:,nhist),forces=minmode)
@@ -436,7 +439,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
             endif
             !rxyz(:,:,nhist)=rxyz(:,:,nhist)+alpha_stretch*fstretch(:,:,nhist)
             rxyz(:,:,nhist)=rxyz(:,:,nhist)+dds
-!            if (astruct_ptr%geocode == 'F') then
+!            if (bigdft_get_geocode(runObj) == 'F') then
 !            call fixfrag_posvel(nat,rcov,rxyz(1,1,nhist),tnatdmy,1,fixfragmented)
 !                if(fixfragmented .and. mhgps_verbosity >=2.and. iproc==0)&
 !                  call yaml_comment('fragmentation fixed')
@@ -670,7 +673,7 @@ subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_
                 curvold,1,ener_count,iconnect,nbond,wold,alpha_stretch0,alpha_stretch)
             if(iproc==0.and.mhgps_verbosity>=2)&
                  write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es9.2,2(1x,es12.5))')&
-                 '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,displr,displp
+                 '   (MHGPS)1 CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,displr,displp
         endif
 
 !            if(.not.steep)then
@@ -729,7 +732,6 @@ subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_
 !        if (fnrm.le.fnrmtol) goto 1000 !has to be in this line for shared history case
         if (fnrm.le.fnrmtol.or.(overlap<minoverlap.and.itgeopt>1)) goto 1000 !has to be in this line for shared history case
     enddo
-
     write(*,*) "No convergence in optcurv"
 stop 'no convergence in optcurv'
     return

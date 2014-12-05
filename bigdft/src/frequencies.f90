@@ -517,7 +517,7 @@ contains
       inquire(file='frequencies.res', exist=exists)
       if (.not.exists) then
          !There is no restart file.
-         call to_zero(n_order*(3*nat+1),energies(1,0))
+         call f_zero(energies)
          if (bigdft_mpi%iproc == 0) call yaml_map('(F) File "frequencies.res" present',.false.)
          !Code error non zero
          ierror = -1

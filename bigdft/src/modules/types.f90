@@ -259,6 +259,8 @@ module module_types
 
      !>reference counter
      type(f_reference_counter) :: refcnt
+     !> enumerator for the mode of the run
+     type(f_enumerator) :: run_mode
      !> Strings of the input files
      character(len=100) :: file_occnum !< Occupation number (input)
      character(len=100) :: file_igpop
@@ -2033,6 +2035,7 @@ contains
     use module_defs, only: DistProjApply, GPUblas, gp
     use module_input_keys, only: input_keys_equal
     use public_keys
+    use public_enums
     use dynamic_memory
     use yaml_output, only: yaml_warning
     implicit none
@@ -2049,6 +2052,26 @@ contains
     if (index(dict_key(val), "_attributes") > 0) return
 
     select case(trim(level))
+    case(MODE_VARIABLES)
+       select case (trim(dict_key(val)))
+       case(METHOD_KEY)
+          str=val
+          select case(trim(str))
+          case('lj')
+             in%run_mode=LENNARD_JONES_RUN_MODE
+          case('dft')
+             in%run_mode=QM_RUN_MODE
+          case('lensic')
+             in%run_mode=LENOSKY_SI_CLUSTERS_RUN_MODE
+          case('lensib')
+             in%run_mode=LENOSKY_SI_BULK_RUN_MODE
+          case('amber')
+             in%run_mode=AMBER_RUN_MODE
+          end select
+       case DEFAULT
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
     case (DFT_VARIABLES)
        ! the DFT variables ------------------------------------------------------
        select case (trim(dict_key(val)))
@@ -2107,7 +2130,8 @@ contains
        case (DISABLE_SYM)
           in%disableSym = val ! Line to disable symmetries.
        case DEFAULT
-          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
     case (PERF_VARIABLES)
        ! the PERF variables -----------------------------------------------------
@@ -2289,7 +2313,8 @@ contains
            ! linear scaling: enable the matrix taskgroups
            in%enable_matrix_taskgroups = val
        case DEFAULT
-          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
     case ("geopt")
 
@@ -2353,7 +2378,8 @@ contains
        case (TRUSTR)
           in%trustr = val
        case DEFAULT
-          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
     case (MIX_VARIABLES)
        ! the MIX variables ------------------------------------------------------
@@ -2377,7 +2403,8 @@ contains
        case (ALPHADIIS)
           in%alphadiis = val
        case DEFAULT
-          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
     case (SIC_VARIABLES)
        ! the SIC variables ------------------------------------------------------
@@ -2389,7 +2416,8 @@ contains
        case (SIC_FREF)
           in%SIC%fref = val
        case DEFAULT
-          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
     case (TDDFT_VARIABLES)
        ! the TDDFT variables ----------------------------------------------------
@@ -2397,7 +2425,8 @@ contains
        case (TDDFT_APPROACH)
           in%tddft_approach = val
        case DEFAULT
-          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select      
     case (LIN_GENERAL)
        ! the variables for the linear version, general section
@@ -2437,7 +2466,8 @@ contains
            ! maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
            in%lin%max_inversion_error = val
        case DEFAULT
-          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
     case (LIN_BASIS)
        select case (trim(dict_key(val)))
@@ -2470,7 +2500,8 @@ contains
       case (correction_orthoconstraint)
           in%lin%correctionOrthoconstraint = val
        case DEFAULT
-          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
     case (LIN_KERNEL)
        select case (trim(dict_key(val)))
@@ -2537,6 +2568,9 @@ contains
     case (KPT_VARIABLES)
     case (LIN_BASIS_PARAMS)
     case (OCCUPATION)
+    case (IG_OCCUPATION)
+    case (FRAG_VARIABLES)
+    !case (RUN_NAME_KEY)
     case DEFAULT
     end select
   END SUBROUTINE input_set_dict

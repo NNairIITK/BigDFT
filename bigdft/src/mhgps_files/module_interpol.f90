@@ -1,3 +1,16 @@
+!! module forinterpolation between structures
+!! techniques implemented:
+!! linear synchronous transit:
+!!     subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
+!!     
+!! @author Bastian Schaefer
+!! @section LICENCE
+!!    Copyright (C) 2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
 !> @file
 !> minor module for wrapping the lst_penalty routine
 !! intended as a temporary patch to conceptual problem in using transforce
@@ -186,16 +199,6 @@ subroutine lst_penalty(nat,rxyzR,rxyzP,rxyz,lambda,val,force)
   end subroutine lst_penalty
 
 end module lst_penalty_wrapper
-!! module forinterpolation between structures
-!! techniques implemented:
-!! linear synchronous transit:
-!!     subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
-!!     
-!! @author Bastian Schaefer
-!! @section LICENCE
-!!    Copyright (C) 2014 UNIBAS
-!!    This file is not freely distributed.
-!!    A licence is necessary from UNIBAS
 module module_interpol
     implicit none
 
@@ -348,6 +351,7 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
     real(gp), parameter :: alpha_start=0.1_gp,f_alpha=0.99_gp
     real(gp) :: dt
     real(gp) :: ddot,dnrm2
+    real(gp) :: epotold
 !!<-DEBUG START------------------------------------------------------>
 !character(len=5), allocatable :: xat(:)
 !character(len=5) :: fc5
@@ -368,6 +372,7 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
     check=0
     cut=1
     call valforce(nat,rxyz,ff,epot)
+    epotold=epot
     count_fr=count_fr+1.0_gp
     do iter=1,maxit
 !!!! 1000   continue !!!to be avoided 
@@ -403,7 +408,8 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
            ff(2,iat) = at2
            ff(3,iat) = at3
         end do
-        call fnrmandforcemax(fxyz,fnrm,fmax,nat) 
+        call fnrmandforcemax(fxyz,fnrm,fmax,nat)
+        fnrm=sqrt(fnrm) 
         call convcheck(fmax,fmax_tol,check)
         if(check > 5)then
 !!<-DEBUG START------------------------------------------------------>
@@ -427,7 +433,7 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
         fxyz_norm = dnrm2(3*nat,fxyz,1)
         vxyz = (1.0_gp-alpha)*vxyz + &
                alpha * fxyz * vxyz_norm / fxyz_norm
-        if(power<=0)then
+        if(power<=0 .or. epot>epotold)then
             vxyz=0.0_gp
             cut=iter
             dt=dt*f_dec
@@ -436,6 +442,7 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
             dt= min(dt*f_inc,dt_max)
             alpha = alpha*f_alpha
         endif
+        epotold=epot
     enddo
     if(fmax > fmax_tol .and. iproc==0)then
         call yaml_warning('(MHGPS) Minimization of Linear '//&

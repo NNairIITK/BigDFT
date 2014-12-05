@@ -74,15 +74,15 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
 
 
      call initialize_work_arrays_sumrho(1,Lzd%Llr(ilr),.true.,w)
-     rho_p = f_malloc(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn,id='rho_p')
+     rho_p = f_malloc0(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn,id='rho_p')
      psir = f_malloc((/ Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i, npsir /),id='psir')
   
      if (Lzd%Llr(ilr)%geocode == 'F') then
-        call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*npsir,psir)
+        call f_zero(psir)
      end if
  
      !Need to zero rho_p
-     call to_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn, rho_p)
+     !call f_zero(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn, rho_p)
 
      !print *,'norbp',orbs%norbp,orbs%norb,orbs%nkpts,orbs%kwgts,orbs%iokpt,orbs%occup
      !hfac=orbs%kwgts(orbs%iokpt(ii))*(orbs%occup(iorb)/(hxh*hyh*hzh))
@@ -287,7 +287,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
           !decide wether we calculate the density kernel or just transformation matrix
           if(isKernel)then
              do iorb=1,orbs%norbp
-                !call to_zero(orbs_tmb%norb,f_coeff(1,iorb))
+                !call f_zero(orbs_tmb%norb,f_coeff(1,iorb))
                 !call daxpy(orbs_tmb%norb,orbs%occup(orbs%isorb+iorb),coeff(1,orbs%isorb+iorb),1,fcoeff(1,iorb),1)
                 do itmb=1,denskern%nfvctr
                     fcoeff(itmb,iorb) = orbs%occup(orbs%isorb+iorb)*coeff(itmb,orbs%isorb+iorb)
@@ -307,7 +307,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       !!end if
           !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), orbs_tmb%norb, &
           !     fcoeff(1,1), orbs_tmb%norb, 0.d0, denskern_%matrix(1,1,1), orbs_tmb%norb)
-          call to_zero(denskern%nspin*denskern%nfvctr**2, denskern_%matrix(1,1,1))
+          call f_zero(denskern%nspin*denskern%nfvctr**2, denskern_%matrix(1,1,1))
           do iorb=1,orbs%norbp
               iiorb=orbs%isorb+iorb
               if (orbs%spinsgn(iiorb)>0.d0) then
@@ -320,7 +320,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
           end do
           call f_free(fcoeff)
       else
-          call to_zero(denskern%nspin*denskern%nfvctr**2, denskern_%matrix(1,1,1))
+          call f_zero(denskern%nspin*denskern%nfvctr**2, denskern_%matrix(1,1,1))
       end if
       call timing(iproc,'calc_kernel','OF') !lr408t
 
@@ -504,7 +504,7 @@ end subroutine calculate_density_kernel
 !!               fcoeff(1,orbs%isorb+1), orbs_tmb%norb, 0.d0, kernel(1,1), orbs_tmb%norb)
 !!          call f_free(fcoeff)
 !!      else
-!!          call to_zero(orbs_tmb%norb**2, kernel(1,1))
+!!          call f_zero(orbs_tmb%norb**2, kernel(1,1))
 !!      end if
 !!      call timing(iproc,'calc_kernel','OF') !lr408t
 !!
@@ -616,7 +616,7 @@ subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, densk
   
   ! Initialize rho. (not necessary for the moment)
   !if (xc_isgga()) then
-  !    call to_zero(collcom_sr%nptsp_c, rho_local)
+  !    call f_zero(collcom_sr%nptsp_c, rho_local)
   !else
    !   ! There is no mpi_allreduce, therefore directly initialize to
    !   ! 10^-20 and not 10^-20/nproc.
@@ -1196,11 +1196,11 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
       ! First determine how many orbitals one has for each grid point in the current slice
       ii3s=denspot%dpbox%nscatterarr(iproc,3)-denspot%dpbox%nscatterarr(iproc,4)+1
       ii3e=denspot%dpbox%nscatterarr(iproc,3)-denspot%dpbox%nscatterarr(iproc,4)+denspot%dpbox%nscatterarr(iproc,1)
-      weight=f_malloc0((/lzd%glr%d%n1i,lzd%glr%d%n2i,ii3e-ii3s+1/),lbounds=(/1,1,ii3s/),id='weight')
+      weight=f_malloc0((/1.to.lzd%glr%d%n1i,1.to.lzd%glr%d%n2i,ii3s.to.ii3e/),id='weight')
 
-      if (denspot%dpbox%nscatterarr(iproc,1)>0) then
-          call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
-      end if
+      !if (denspot%dpbox%nscatterarr(iproc,1)>0) then
+      !    call f_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
+      !end if
 
       do i3=ii3s,ii3e
           do iorb=1,orbs%norbu
@@ -1231,9 +1231,10 @@ subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, densp
 
       orbital_id=f_malloc((/nmax,lzd%glr%d%n1i,lzd%glr%d%n2i,ii3e-ii3s+1/),lbounds=(/1,1,1,ii3s/),id='orbital_id')
 
-      if (denspot%dpbox%nscatterarr(iproc,1)>0) then
-          call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
-      end if
+      !if (denspot%dpbox%nscatterarr(iproc,1)>0) then
+      !    call f_zero(lzd%glr%d%n1i*lzd%glr%d%n2i*denspot%dpbox%nscatterarr(iproc,1), weight(1,1,ii3s))
+      !end if
+      call f_zero(weight)
       iorbmin=1000000000
       iorbmax=-1000000000
       do i3=ii3s,ii3e

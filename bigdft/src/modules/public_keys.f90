@@ -13,6 +13,7 @@ module public_keys
 
   character(len = *), parameter :: MODE_VARIABLES = "mode"
   character(len = *), parameter :: METHOD_KEY = "method"
+  character(len = *), parameter :: RUN_NAME_KEY = "name"
 
   character(len = *), parameter :: POSINP = "posinp"
   character(len = *), parameter :: OCCUPATION = "occupation"
@@ -239,7 +240,26 @@ module public_keys
   character(len=*), parameter :: ATOMIC_NUMBER = 'Atomic number'
   character(len=*), parameter :: ELECTRON_NUMBER = 'No. of Electrons'
   character(len=*), parameter :: POSINP_SOURCE = 'source'
-  
-
 
 end module public_keys
+
+!>module identifying constants that have to be used as enumerators
+!! they can be used to define f_enumerator types or directly as integers
+module public_enums
+  use f_utils
+  implicit none
+  
+  public
+  
+  type(f_enumerator), parameter :: LENNARD_JONES_RUN_MODE      =f_enumerator('LENNARD_JONES_RUN_MODE',-1000)
+  type(f_enumerator), parameter :: LENOSKY_SI_CLUSTERS_RUN_MODE=f_enumerator('LENOSKY_SI_CLUSTERS_RUN_MODE',-999)
+  type(f_enumerator), parameter :: LENOSKY_SI_BULK_RUN_MODE    =f_enumerator('LENOSKY_SI_BULK_RUN_MODE',-998)
+  type(f_enumerator), parameter :: AMBER_RUN_MODE              =f_enumerator('AMBER_RUN_MODE',-997)
+  type(f_enumerator), parameter :: QM_RUN_MODE                 =f_enumerator('QM_RUN_MODE',-996)
+  
+end module public_enums
+
+
+
+
+

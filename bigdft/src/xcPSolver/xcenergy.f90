@@ -273,9 +273,9 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   call f_routine(id='XC_potential')
   call f_timing(TCAT_EXCHANGECORR,'ON')
 
-  call to_zero(6,xcstr(1))
-  call to_zero(6,wbstr(1))
-  call to_zero(6,rhocstr(1))
+  call f_zero(xcstr)
+  call f_zero(wbstr)
+  call f_zero(rhocstr)
 
   wrtmsg=.false.
   !calculate the dimensions wrt the geocode
@@ -329,10 +329,10 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   !quick return if no Semilocal XC potential is required (Hartree or Hartree-Fock)
   if (xcObj%ixc == XC_HARTREE .or. xcObj%ixc == XC_HARTREE_FOCK .or. xcObj%ixc == XC_NO_HARTREE) then
      if (datacode == 'G') then
-        call to_zero(n01*n02*n03*nspin,potxc(1))
+        call f_zero(n01*n02*n03*nspin,potxc(1))
         !call dscal(n01*n02*n03,0.0_dp,potxc,1)
      else
-        call to_zero(n01*n02*nxc*nspin,potxc(1))
+        call f_zero(n01*n02*nxc*nspin,potxc(1))
         !call dscal(n01*n02*nxc,0.0_dp,potxc,1)
      end if
      if (nspin == 2) call axpy(n01*n02*nxc,1.d0,rho(n01*n02*nxc+1),1,rho(1),1)

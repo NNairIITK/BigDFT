@@ -436,7 +436,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       !stop 
    end if
 
-   call to_zero(orbse%norbp*orbse%nspinor*G%ncoeff,gaucoeff)
+   call f_zero(gaucoeff)
 
    !allocate and assign the exponents and the coefficients
    G%psiat = f_malloc_ptr((/ G%ncplx, G%nexpo /),id='G%psiat')
@@ -1889,7 +1889,7 @@ subroutine psitospi0(iproc,nproc,norbe,norbep,&
       end do
    end do
 
-   call to_zero(nvctr*nspin*norbep,psi)
+   call f_zero(psi)
 
    do iorb=1,norbe
       jorb=iorb-iproc*norbep

@@ -11,7 +11,7 @@
 !> Modules which contains minimizaton routines for NEB calculation
 MODULE Minimization_routines
   use module_defs
-    
+  use dynamic_memory
   IMPLICIT NONE
   
   REAL (gp), PARAMETER, private :: epsi = 1.0D-16
@@ -102,6 +102,7 @@ MODULE Minimization_routines
          gamma = 0.D0
       END IF
 
+      
       allocate(conj_dir_i(ndim))
 
       norm_grad = nrm2(ndim,grad(1),1)
@@ -298,7 +299,7 @@ module module_images
      ! Private work arrays.
      integer :: algorithm
      real(gp), dimension(:), pointer :: old_grad, delta_pos, vel
-     real (gp), dimension(:,:), pointer :: fix_atoms
+     real(gp), dimension(:,:), pointer :: fix_atoms
   end type run_image
 
 
@@ -348,7 +349,7 @@ contains
     use bigdft_run
     use dictionaries
     use public_keys, only: GEOPT_VARIABLES
-    use dynamic_memory, only: to_zero
+    use f_utils, only: f_zero
     use yaml_output
     implicit none
     type(run_image), intent(out) :: img
@@ -389,13 +390,16 @@ contains
     call minimization_get_id(img%algorithm, algorithm)
     ndim = 3 * img%run%atoms%astruct%nat
     if (img%algorithm <= POLAK_RIBIERE_ID) then
-       allocate(img%old_grad(ndim))
-       call to_zero(ndim, img%old_grad(1))
-       allocate(img%delta_pos(ndim))
-       call to_zero(ndim, img%delta_pos(1))
+       img%old_grad=f_malloc0_ptr(ndim,id='old_grad')
+       !allocate(img%old_grad(ndim))
+       !call to_zero(ndim, img%old_grad(1))
+       img%delta_pos=f_malloc0_ptr(ndim,id='delta_pos')
+       !allocate(img%delta_pos(ndim))
+       !call to_zero(ndim, img%delta_pos(1))
     else
-       allocate(img%vel(ndim))
-       call to_zero(ndim, img%vel(1))
+       img%vel=f_malloc0_ptr(ndim,id='vel')
+       !allocate(img%vel(ndim))
+       !call to_zero(ndim, img%vel(1))
     end if
   end subroutine image_init
 
@@ -420,10 +424,14 @@ contains
        call deallocate_state_properties(img%outs)
     end if
 
-    if (associated(img%old_grad)) deallocate(img%old_grad)
-    if (associated(img%delta_pos)) deallocate(img%delta_pos)
-    if (associated(img%vel)) deallocate(img%vel)
-    if (associated(img%fix_atoms)) deallocate(img%fix_atoms)
+    call f_free_ptr(img%old_grad)
+    call f_free_ptr(img%delta_pos)
+    call f_free_ptr(img%vel)
+    call f_free_ptr(img%fix_atoms)
+    !if (associated(img%old_grad)) deallocate(img%old_grad)
+    !if (associated(img%delta_pos)) deallocate(img%delta_pos)
+    !if (associated(img%vel)) deallocate(img%vel)
+    !if (associated(img%fix_atoms)) deallocate(img%fix_atoms)
   end subroutine image_deallocate
 
 
@@ -498,7 +506,8 @@ contains
 
     d_R = ( imgs(size(imgs))%run%atoms%astruct%rxyz - imgs(1)%run%atoms%astruct%rxyz )
     do i = 1, size(imgs)
-       ALLOCATE( imgs(i)%fix_atoms(3, nat) )      
+       imgs(i)%fix_atoms=f_malloc_ptr([3,nat],id='fix_atoms')
+       !ALLOCATE( imgs(i)%fix_atoms(3, nat) )      
        imgs(i)%fix_atoms = 1
        WHERE ( ABS( d_R ) <=  tolerance ) imgs(i)%fix_atoms = 0
     end do
@@ -977,7 +986,7 @@ subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
      & km1, kp1, optimization, climbing, neb)
   use Minimization_routines
   use module_images
-  use dynamic_memory, only: to_zero
+  use f_utils, only: f_zero
   implicit none
   type(run_image), intent(inout) :: img
   integer, intent(in) :: iteration
@@ -997,18 +1006,20 @@ subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
   Ly = img%run%atoms%astruct%cell_dim(2)
   Lz = img%run%atoms%astruct%cell_dim(3)
 
-  allocate(grad(ndim))
-  call to_zero(ndim, grad(1))
+  !allocate(grad(ndim))
+  !call to_zero(ndim, grad(1))
+  grad=f_malloc0(ndim,id='grad')
 
   if (.not. optimization) then
-     allocate(tangent(ndim))
+     tangent=f_malloc(ndim,id='tangent')
      call compute_local_tangent(tangent, ndim, (/ Vm1, img%outs%energy, Vp1 /), &
           & posm1, img%run%atoms%astruct%rxyz, posp1, Lx, Ly, Lz)
   end if
 
   if (iteration > 0 .and. img%algorithm >= QUICK_MIN_ID ) then
      if (optimization) then
-        call to_zero(ndim, grad(1))
+        !call to_zero(ndim, grad(1))
+        call f_zero(grad)
         call axpy(ndim, -1.d0, img%outs%fxyz(1,1), 1, grad(1), 1)
      else
         call compute_local_gradient(ndim, grad, posm1, img%run%atoms%astruct%rxyz, posp1, tangent, &
@@ -1043,7 +1054,7 @@ subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
 
   ! Calculate new positions for next step.
   if (optimization) then
-     call to_zero(ndim, grad(1))
+     call f_zero(grad)
      call axpy(ndim, -1.d0, img%outs%fxyz(1,1), 1, grad(1), 1)
   else
      call compute_local_gradient(ndim, grad, posm1, img%run%atoms%astruct%rxyz, posp1, tangent, &
@@ -1062,10 +1073,10 @@ subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
   IF ( img%algorithm <= POLAK_RIBIERE_ID ) call vcopy(ndim, grad(1), 1, img%old_grad(1), 1)
 
   if (.not. optimization) then
-     deallocate(tangent)
+     call f_free(tangent)!deallocate(tangent)
   end if
 
-  deallocate(grad)
+  call f_free(grad)!deallocate(grad)
 END SUBROUTINE image_update_pos
 
 

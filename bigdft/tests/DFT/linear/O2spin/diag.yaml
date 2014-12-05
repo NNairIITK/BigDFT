@@ -21,7 +21,6 @@
    purification_quickreturn: Yes
    check_matrix_compression: No
    correction_co_contra: Yes
-   outdir: ./
  lin_general:
    hybrid: Yes
    nit: 100
