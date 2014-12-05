@@ -2,7 +2,7 @@
 
 
 file=$1_tmp
-grep "(MHGPS)" $1 > $file
+grep "(MHGPS)" $1 | grep -v genv > $file
 
 
 echo "Average number of energy/force calls per minimization:"
