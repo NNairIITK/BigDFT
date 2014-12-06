@@ -29,6 +29,7 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   logical :: exists_default, exists_user
   character(len = max_field_length) :: fname
   character(len = 100) :: f0
+  type(dictionary), pointer :: vals
 
   call f_routine(id='read_input_dict_from_files')
 
@@ -64,24 +65,47 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   if (.not.exists_default .and. .not. exists_user) then
      ! Parse all files.
      call set_inputfile(f0, radical, PERF_VARIABLES)
-     call read_perf_from_text_format(mpi_env%iproc,dict//PERF_VARIABLES, trim(f0))
+     nullify(vals)
+     call read_perf_from_text_format(mpi_env%iproc,vals, trim(f0))
+     if (associated(vals)) call set(dict//PERF_VARIABLES, vals)
+
      call set_inputfile(f0, radical, DFT_VARIABLES)
-     call read_dft_from_text_format(mpi_env%iproc,dict//DFT_VARIABLES, trim(f0))
+     nullify(vals)
+     call read_dft_from_text_format(mpi_env%iproc,vals, trim(f0))
+     if (associated(vals)) call set(dict//DFT_VARIABLES, vals)
+
      call set_inputfile(f0, radical, KPT_VARIABLES)
-     call read_kpt_from_text_format(mpi_env%iproc,dict//KPT_VARIABLES, trim(f0))
+     nullify(vals)
+     call read_kpt_from_text_format(mpi_env%iproc,vals, trim(f0))
+     if (associated(vals)) call set(dict//KPT_VARIABLES, vals)
+
      call set_inputfile(f0, radical, GEOPT_VARIABLES)
-     call read_geopt_from_text_format(mpi_env%iproc,dict//GEOPT_VARIABLES, trim(f0))
+     nullify(vals)
+     call read_geopt_from_text_format(mpi_env%iproc,vals, trim(f0))
+     if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
+
      call set_inputfile(f0, radical, MIX_VARIABLES)
-     call read_mix_from_text_format(mpi_env%iproc,dict//MIX_VARIABLES, trim(f0))
+     nullify(vals)
+     call read_mix_from_text_format(mpi_env%iproc,vals, trim(f0))
+     if (associated(vals)) call set(dict//MIX_VARIABLES, vals)
+
      call set_inputfile(f0, radical, SIC_VARIABLES)
-     call read_sic_from_text_format(mpi_env%iproc,dict//SIC_VARIABLES, trim(f0))
+     nullify(vals)
+     call read_sic_from_text_format(mpi_env%iproc,vals, trim(f0))
+     if (associated(vals)) call set(dict//SIC_VARIABLES, vals)
+
      call set_inputfile(f0, radical, TDDFT_VARIABLES)
-     call read_tddft_from_text_format(mpi_env%iproc,dict//TDDFT_VARIABLES, trim(f0))
+     nullify(vals)
+     call read_tddft_from_text_format(mpi_env%iproc,vals, trim(f0))
+     if (associated(vals)) call set(dict//TDDFT_VARIABLES, vals)
+
      !call set_inputfile(f0, radical, 'lin')
      call read_lin_and_frag_from_text_format(mpi_env%iproc,dict,trim(radical)) !as it also reads fragment
 
      call set_inputfile(f0, radical, 'neb')
-     call read_neb_from_text_format(mpi_env%iproc,dict//GEOPT_VARIABLES, trim(f0))
+     nullify(vals)
+     call read_neb_from_text_format(mpi_env%iproc,vals, trim(f0))
+     if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
   end if
 
   !LG modfication of errors (see above)
@@ -153,9 +177,6 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   !call yaml_map('Dictionary parsed',dict)
 
-  ! Analyse the input dictionary and transfer it to in.
-  call input_keys_validate(dict)
-
   ! extract also the minimal dictionary which is necessary to do this run
   call input_keys_fill_all(dict,dict_minimal)
 
@@ -176,7 +197,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   end do
 
   ! Generate the dir_output
-  call bigdft_get_run_properties(dict, run_id = run_id, posinp_id = posinp_id, input_id = input_id, outdir_id = outdir)
+  call bigdft_get_run_properties(dict, naming_id = run_id, posinp_id = posinp_id, input_id = input_id, outdir_id = outdir)
   call f_strcpy(dest = in%dir_output, src = trim(outdir) // "data" // trim(run_id))
 
   call set_cache_size(in%ncache_fft)

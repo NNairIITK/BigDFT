@@ -25,35 +25,59 @@
    |     |     |     |     |     |         D               T    T
    |     |     |     |     |     |   DDDDDD       F         TTTT
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
- 
+
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.7.5.12
- Timestamp of this run                 : 2014-10-09 13:54:24.735
- Root process Hostname                 : phys-comp-03
- Number of MPI tasks                   :  4
+ Version Number                        : 1.7.6.1
+ Timestamp of this run                 : 2014-12-02 21:47:00.149
+ Root process Hostname                 : athelas
+ Number of MPI tasks                   :  2
  OpenMP parallelization                :  Yes
  Maximal OpenMP threads per MPI task   :  2
- MPI tasks of root process node        :  4
+ MPI tasks of root process node        :  2
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FC=/opt/openmpi-1.6.4/bin/mpif90' 'CC=icc' 'FCFLAGS=-O2 -i_dynamic -msse4.2 
-     -heap-arrays 1024 -openmp' 
-     '--with-ext-linalg=/opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_scalapa
-     ck_lp64.a  -Wl,--start-group  
-     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_cdft_core.a 
-     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_lp64.a 
-     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_intel_thread.a 
-     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_core.a 
-     /opt/intel/composer_xe_2011_sp1.11.339/mkl/lib/intel64/libmkl_blacs_openmpi_lp64.a 
-     -Wl,--end-group -openmp -lpthread -lm'"
-   Compilers (CC, FC, CXX)             :  [ icc, /opt/openmpi-1.6.4/bin/mpif90, g++ ]
+     " 'FCFLAGS=-O2 -fopenmp' 
+     '--with-ext-linalg=-L/opt/intel/composer_xe_2013.1.117/mkl/lib/intel64 -lmkl_rt 
+     -liomp5 -lm' 'CFLAGS=-O2 -fopenmp' 'CC=mpicc.openmpi' 'CXX=mpicxx.openmpi' 
+     'FC=mpif90.openmpi' 'F77=mpif77.openmpi'"
+
+   Compilers (CC, FC, CXX)             :  [ mpicc.openmpi, mpif90.openmpi, mpicxx.openmpi ]
    Compiler flags:
-     CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -i_dynamic -msse4.2 -heap-arrays 1024 -openmp
+     CFLAGS                            : -O2 -fopenmp
+     FCFLAGS                           : -O2 -fopenmp
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : potmixlin
+ posinp:
+   units                               : angstroem
+   positions:
+   - N: [0.0, 0.0, 0.0]
+   - C: [-0.1400000005960464, -0.9800000190734863, -1.059999942779541]
+   - C: [1.080000042915344, -1.840000033378601, -1.139999985694885]
+   - O: [1.120000004768372, -2.799999952316284, -1.860000014305115]
+   - O: [2.099999904632568, -1.440000057220459, -0.3799999952316284]
+   - C: [-0.4600000083446503, -0.2800000011920929, -2.380000114440918]
+   - C: [-1.440000057220459, -1.059999942779541, -3.259999990463257]
+   - S: [-0.6800000071525574, -2.599999904632568, -3.859999895095825]
+   - C: [-1.720000028610229, -3.779999971389771, -2.960000038146973]
+   - H: [0.209199994802475, -0.4663000106811523, 0.8596000075340271]
+   - H: [-0.8543999791145325, 0.5105000138282776, 9.7000002861022949E-002]
+   - H: [-0.9603999853134155, -1.631500005722046, -0.8424000144004822]
+   - H: [2.926100015640259, -1.929000020027161, -0.3892000019550323]
+   - H: [0.457399994134903, -0.198400005698204, -2.924700021743774]
+   - H: [-0.8873999714851379, 0.6764000058174133, -2.161799907684326]
+   - H: [-1.702299952507019, -0.4548999965190887, -4.10260009765625]
+   - H: [-2.312400102615356, -1.298400044441223, -2.688199996948242]
+   - H: [-1.619899988174438, -3.613500118255615, -1.907799959182739]
+   - H: [-2.74210000038147, -3.645600080490112, -3.246700048446655]
+   - H: [-1.412099957466125, -4.777699947357178, -3.194099903106689]
+   properties:
+     format                            : xyz
+     source                            : potmixlin
+ outdir                                : ./
+ logfile                               : Yes
+ run_from_files                        : Yes
  perf:
    debug                               : No #     Debug option
    fftcache                            : 8192 #   Cache size for the FFT
@@ -80,7 +104,6 @@
    inguess_geopt                       : 0 #      Input guess to be used during the optimization
    store_index                         : Yes #    Store indices or recalculate them for linear scaling
    verbosity                           : 2 #      Verbosity of the output
-   outdir                              : ./ #     Writing directory
    psp_onfly                           : Yes #    Calculate pseudopotential projectors on the fly
    multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
    pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
@@ -113,6 +136,7 @@
    fscale_upperbound                   : 5.0000000000000003E-002 # linear scaling upper bound for the error function decay length
    imethod_overlap                     : 1 #      method to calculate the overlap matrices (1=old, 2=new)
    FOE_restart                         : 0 #      Restart method to be used for the FOE method
+   enable_matrix_taskgroups            : True #   enable the matrix taskgroups
  dft:
    hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
    rmult: [3.5, 4.5] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
@@ -255,32 +279,8 @@
    rloc: [7.0, 7.0] #                             localization radius for the support functions
    rloc_kernel                         : 9.0 #    localization radius for the density kernel
    rloc_kernel_foe                     : 14.0 #   cutoff radius for the FOE matrix vector multiplications
- posinp:
-   units                               : angstroem
-   positions:
-   - N: [0.0, 0.0, 0.0]
-   - C: [-0.1400000005960464, -0.9800000190734863, -1.059999942779541]
-   - C: [1.080000042915344, -1.840000033378601, -1.139999985694885]
-   - O: [1.120000004768372, -2.799999952316285, -1.860000014305115]
-   - O: [2.099999904632568, -1.440000057220459, -0.3799999952316284]
-   - C: [-0.4600000083446502, -0.2800000011920929, -2.380000114440918]
-   - C: [-1.440000057220459, -1.059999942779541, -3.259999990463257]
-   - S: [-0.6800000071525574, -2.599999904632568, -3.859999895095825]
-   - C: [-1.720000028610229, -3.779999971389771, -2.960000038146973]
-   - H: [0.209199994802475, -0.4663000106811523, 0.8596000075340272]
-   - H: [-0.8543999791145325, 0.5105000138282776, 9.7000002861022949E-002]
-   - H: [-0.9603999853134155, -1.631500005722046, -0.8424000144004822]
-   - H: [2.926100015640259, -1.929000020027161, -0.3892000019550323]
-   - H: [0.457399994134903, -0.198400005698204, -2.924700021743774]
-   - H: [-0.8873999714851379, 0.6764000058174133, -2.161799907684326]
-   - H: [-1.702299952507019, -0.4548999965190887, -4.10260009765625]
-   - H: [-2.312400102615356, -1.298400044441223, -2.688199996948242]
-   - H: [-1.619899988174438, -3.613500118255615, -1.907799959182739]
-   - H: [-2.74210000038147, -3.645600080490112, -3.246700048446655]
-   - H: [-1.412099957466125, -4.777699947357178, -3.194099903106689]
-   properties:
-     format                            : xyz
-     source                            : potmixlin
+ mode:
+   method                              : dft #    Run method of BigDFT call
  psppar.N:
    Pseudopotential type                : HGH-K
    Atomic number                       : 7
@@ -380,7 +380,7 @@
      Coarse PSP                        : 0.0
      Source                            : Hard-Coded
   #--------------------------------------------------------------------------------------- |
- Data Writing directory                : ./data-potmixlin/
+ Data Writing directory                : ./
   #----------------------------------------------- Input Atomic System (file: potmixlin.xyz)
  Atomic System Properties:
    Number of atomic types              :  5
@@ -538,51 +538,29 @@
    No. of projectors                   :  0
    PSP XC                              : "XC: Perdew, Burke & Ernzerhof"
   #-------------------------------------------------------------------------- Atom Positions
- Atomic positions within the cell (Atomic and Grid Units):
- - N: {AU:  [  10.176,  14.000,  12.739 ], GU:  [  22.614,  31.111,  28.309 ]} # 0001
- - C: {AU:  [  9.9116,  12.148,  10.736 ], GU:  [  22.026,  26.996,  23.858 ]} # 0002
- - C: {AU:  [  12.217,  10.523,  10.585 ], GU:  [  27.149,  23.385,  23.522 ]} # 0003
- - O: {AU:  [  12.293,  8.7089,  9.2243 ], GU:  [  27.317,  19.353,  20.498 ]} # 0004
- - O: {AU:  [  14.145,  11.279,  12.021 ], GU:  [  31.432,  25.064,  26.714 ]} # 0005
- - C: {AU:  [  9.3069,  13.471,  8.2416 ], GU:  [  20.682,  29.936,  18.315 ]} # 0006
- - C: {AU:  [  7.4549,  11.997,  6.5787 ], GU:  [  16.567,  26.660,  14.619 ]} # 0007
- - S: {AU:  [  8.8911,  9.0869,  5.4448 ], GU:  [  19.758,  20.193,  12.100 ]} # 0008
- - C: {AU:  [  6.9258,  6.8570,  7.1456 ], GU:  [  15.391,  15.238,  15.879 ]} # 0009
- - H: {AU:  [  10.571,  13.119,  14.364 ], GU:  [  23.492,  29.153,  31.919 ]} # 0010
- - H: {AU:  [  8.5616,  14.965,  12.922 ], GU:  [  19.026,  33.255,  28.717 ]} # 0011
- - H: {AU:  [  8.3613,  10.917,  11.147 ], GU:  [  18.581,  24.260,  24.772 ]} # 0012
- - H: {AU:  [  15.706,  10.355,  12.004 ], GU:  [  34.901,  23.011,  26.675 ]} # 0013
- - H: {AU:  [  11.041,  13.625,  7.2123 ], GU:  [  24.534,  30.278,  16.027 ]} # 0014
- - H: {AU:  [  8.4992,  15.278,  8.6540 ], GU:  [  18.887,  33.952,  19.231 ]} # 0015
- - H: {AU:  [  6.9593,  13.141,  4.9864 ], GU:  [  15.465,  29.201,  11.081 ]} # 0016
- - H: {AU:  [  5.8063,  11.547,  7.6592 ], GU:  [  12.903,  25.659,  17.021 ]} # 0017
- - H: {AU:  [  7.1150,  7.1716,  9.1340 ], GU:  [  15.811,  15.937,  20.298 ]} # 0018
- - H: {AU:  [  4.9943,  7.1110,  6.6038 ], GU:  [  11.099,  15.802,  14.675 ]} # 0019
- - H: {AU:  [  7.5077,  4.9716,  6.7032 ], GU:  [  16.684,  11.048,  14.896 ]} # 0020
- Rigid Shift Applied (AU)              :  [  10.176,  14.000,  12.739 ]
  Atomic structure:
    Units                               : angstroem
    Positions:
-   - N: [ 5.384984124,  7.408569230,  6.741289560] # [  22.61,  31.11,  28.31 ] 0001
-   - C: [ 5.244984124,  6.428569211,  5.681289617] # [  22.03,  27.00,  23.86 ] 0002
-   - C: [ 6.464984167,  5.568569197,  5.601289574] # [  27.15,  23.38,  23.52 ] 0003
-   - O: [ 6.504984129,  4.608569278,  4.881289545] # [  27.32,  19.35,  20.50 ] 0004
-   - O: [ 7.484984029,  5.968569173,  6.361289564] # [  31.43,  25.06,  26.71 ] 0005
-   - C: [ 4.924984116,  7.128569229,  4.361289445] # [  20.68,  29.94,  18.31 ] 0006
-   - C: [ 3.944984067,  6.348569287,  3.481289569] # [  16.57,  26.66,  14.62 ] 0007
-   - S: [ 4.704984117,  4.808569325,  2.881289664] # [  19.76,  20.19,  12.10 ] 0008
-   - C: [ 3.664984096,  3.628569259,  3.781289521] # [  15.39,  15.24,  15.88 ] 0009
-   - H: [ 5.594184119,  6.942269219,  7.600889567] # [  23.49,  29.15,  31.92 ] 0010
-   - H: [ 4.530584145,  7.919069244,  6.838289562] # [  19.03,  33.26,  28.72 ] 0011
-   - H: [ 4.424584139,  5.777069224,  5.898889545] # [  18.58,  24.26,  24.77 ] 0012
-   - H: [ 8.311084140,  5.479569210,  6.352089558] # [  34.90,  23.01,  26.67 ] 0013
-   - H: [ 5.842384118,  7.210169224,  3.816589538] # [  24.53,  30.28,  16.03 ] 0014
-   - H: [ 4.497584153,  8.084969236,  4.579489652] # [  18.89,  33.95,  19.23 ] 0015
-   - H: [ 3.682684172,  6.953669234,  2.638689462] # [  15.47,  29.20,  11.08 ] 0016
-   - H: [ 3.072584022,  6.110169186,  4.053089563] # [  12.90,  25.66,  17.02 ] 0017
-   - H: [ 3.765084136,  3.795069112,  4.833489600] # [  15.81,  15.94,  20.30 ] 0018
-   - H: [ 2.642884124,  3.762969150,  3.494589511] # [  11.10,  15.80,  14.68 ] 0019
-   - H: [ 3.972884167,  2.630869283,  3.547189656] # [  16.68,  11.05,  14.90 ] 0020
+   - N: [ 5.384984125,  7.408569231,  6.741289561] # [  22.61,  31.11,  28.31 ] 0001
+   - C: [ 5.244984125,  6.428569212,  5.681289618] # [  22.03,  27.00,  23.86 ] 0002
+   - C: [ 6.464984168,  5.568569198,  5.601289575] # [  27.15,  23.38,  23.52 ] 0003
+   - O: [ 6.504984130,  4.608569279,  4.881289546] # [  27.32,  19.35,  20.50 ] 0004
+   - O: [ 7.484984030,  5.968569174,  6.361289565] # [  31.43,  25.06,  26.71 ] 0005
+   - C: [ 4.924984117,  7.128569230,  4.361289446] # [  20.68,  29.94,  18.31 ] 0006
+   - C: [ 3.944984068,  6.348569289,  3.481289570] # [  16.57,  26.66,  14.62 ] 0007
+   - S: [ 4.704984118,  4.808569327,  2.881289666] # [  19.76,  20.19,  12.10 ] 0008
+   - C: [ 3.664984097,  3.628569260,  3.781289523] # [  15.39,  15.24,  15.88 ] 0009
+   - H: [ 5.594184120,  6.942269221,  7.600889568] # [  23.49,  29.15,  31.92 ] 0010
+   - H: [ 4.530584146,  7.919069245,  6.838289564] # [  19.03,  33.26,  28.72 ] 0011
+   - H: [ 4.424584140,  5.777069226,  5.898889546] # [  18.58,  24.26,  24.77 ] 0012
+   - H: [ 8.311084141,  5.479569211,  6.352089559] # [  34.90,  23.01,  26.67 ] 0013
+   - H: [ 5.842384120,  7.210169226,  3.816589539] # [  24.53,  30.28,  16.03 ] 0014
+   - H: [ 4.497584154,  8.084969237,  4.579489653] # [  18.89,  33.95,  19.23 ] 0015
+   - H: [ 3.682684173,  6.953669235,  2.638689463] # [  15.47,  29.20,  11.08 ] 0016
+   - H: [ 3.072584023,  6.110169187,  4.053089564] # [  12.90,  25.66,  17.02 ] 0017
+   - H: [ 3.765084137,  3.795069113,  4.833489602] # [  15.81,  15.94,  20.30 ] 0018
+   - H: [ 2.642884125,  3.762969151,  3.494589512] # [  11.10,  15.80,  14.68 ] 0019
+   - H: [ 3.972884168,  2.630869284,  3.547189658] # [  16.68,  11.05,  14.90 ] 0020
    Rigid Shift Applied (AU)            :  [  10.176,  14.000,  12.739 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.4500,  0.4500,  0.4500 ]
@@ -596,20 +574,20 @@
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  4
+   MPI tasks                           :  2
    OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
    Memory Requirements per MPI task:
-     Density (MB)                      :  3.63
-     Kernel (MB)                       :  3.72
+     Density (MB)                      :  7.27
+     Kernel (MB)                       :  7.44
      Full Grid Arrays (MB)             :  13.29
      Load Balancing of calculations:
        Density:
-         MPI tasks 0- 3                : 100%
+         MPI tasks 0- 1                : 100%
        Kernel:
-         MPI tasks 0- 2                : 100%
-         MPI task 3                    :  97%
+         MPI tasks 0- 0                : 100%
+         MPI task 1                    :  98%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
@@ -622,15 +600,15 @@
  Total Number of Electrons             :  54
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 2                     :  7
-   MPI tasks  3- 3                     :  6
+   MPI tasks  0- 0                     :  14
+   MPI tasks  1- 1                     :  13
  Total Number of Orbitals              :  27
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-27:  2.0000}
  Support function repartition:
-   MPI tasks  0- 2                     :  12
-   MPI tasks  3- 3                     :  11
- Wavefunctions memory occupation for root MPI process:  2 MB 301 KB 832 B
+   MPI tasks  0- 0                     :  24
+   MPI tasks  1- 1                     :  23
+ Wavefunctions memory occupation for root MPI process:  4 MB 603 KB 640 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  13
@@ -642,34 +620,34 @@
  Memory requirements for principal quantities (MiB.KiB):
    Subspace Matrix                     : 0.1 #    (Number of Orbitals: 27)
    Single orbital                      : 0.336 #  (Number of Components: 42968)
-   All (distributed) orbitals          : 6.906 #  (Number of Orbitals per MPI task: 7)
-   Wavefunction storage size           : 52.798 # (DIIS/SD workspaces included)
+   All (distributed) orbitals          : 13.787 # (Number of Orbitals per MPI task: 14)
+   Wavefunction storage size           : 105.572 # (DIIS/SD workspaces included)
    Nonlocal Pseudopotential Arrays     : 0.260
    Full Uncompressed (ISF) grid        : 13.292
    Workspaces storage size             : 1.350
  Accumulated memory requirements during principal run stages (MiB.KiB):
-   Kernel calculation                  : 71.290
-   Density Construction                : 102.948
-   Poisson Solver                      : 100.399
-   Hamiltonian application             : 104.1014
-   Orbitals Orthonormalization         : 104.1015
- Estimated Memory Peak (MB)            :  104
+   Kernel calculation                  : 142.579
+   Density Construction                : 170.366
+   Poisson Solver                      : 200.538
+   Hamiltonian application             : 172.432
+   Orbitals Orthonormalization         : 172.433
+ Estimated Memory Peak (MB)            :  200
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  13
    Total number of components          :  33245
    Percent of zero components          :  0
    Size of workspaces                  :  26676
-   Maximum size of masking arrays for a projector:  13851
-   Cumulative size of masking arrays   :  75039
+   Maximum size of masking arrays for a projector:  24810
+   Cumulative size of masking arrays   :  152958
  total elements                        :  2209
  non-zero elements                     :  2209
  sparsity in %                         :  0.00
- sparse matmul load balancing naive / optimized:  [  1.09,  1.09 ]
+ sparse matmul load balancing naive / optimized:  [  1.04,  1.04 ]
  total elements                        :  2209
  non-zero elements                     :  1737
  sparsity in %                         :  21.37
- sparse matmul load balancing naive / optimized:  [  1.09,  1.09 ]
+ sparse matmul load balancing naive / optimized:  [  1.04,  1.04 ]
  Checking Compression/Uncompression of small sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -686,21 +664,21 @@
  total elements                        :  2209
  non-zero elements                     :  2209
  sparsity in %                         :  0.00
- sparse matmul load balancing naive / optimized:  [  1.09,  1.09 ]
+ sparse matmul load balancing naive / optimized:  [  1.04,  1.04 ]
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  4, IDs:  [  0,  1,  2,  3 ], 
+   -  {number of tasks:  2, IDs:  [  0,  1 ], 
  start / end:  [  1,  1737 ], start / end disjoint:  [  1,  1737 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  4, IDs:  [  0,  1,  2,  3 ], 
+   -  {number of tasks:  2, IDs:  [  0,  1 ], 
  start / end:  [  1,  2209 ], start / end disjoint:  [  1,  2209 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  4, IDs:  [  0,  1,  2,  3 ], 
+   -  {number of tasks:  2, IDs:  [  0,  1 ], 
  start / end:  [  1,  2209 ], start / end disjoint:  [  1,  2209 ]}
  sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
  sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
@@ -718,34 +696,34 @@
    transposition check, mean error     :  0.000000000000000000E+00
    transposition check, max error      :  0.000000000000000000E+00
    Tolerance for the following test    :  9.999999999999999799E-13
-   calculation check, error sum        :  2.367047929838010937E-14
+   calculation check, error sum        :  0.000000000000000000E+00
    Tolerance for the following test    :  1.000000000000000036E-10
-   calculation check, error max        :  6.821210263296961784E-13
+   calculation check, error max        :  0.000000000000000000E+00
  Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  12155,  416 ]
-   Tolerances for this check: [ 4.89150006530852943E-07,  1.04360964314764715E-14]
+   Number of coarse and fine DoF (MasterMPI task):  [  17419,  729 ]
+   Tolerances for this check: [ 5.24037506996651026E-07,  1.04360964314764715E-14]
    Maxdiff for transpose (checksum)    :  8.73114913702011108E-11
-   Maxdiff for overlap calculation     :  1.49011611938476562E-08
+   Maxdiff for overlap calculation     :  4.47034835815429688E-08
    Maxdiff for untranspose             :  0.00000000000000000E+00
  Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  11152,  371 ]
-   Tolerances for this check: [ 2.17340002901800222E-06,  1.04360964314764715E-14]
+   Number of coarse and fine DoF (MasterMPI task):  [  17749,  654 ]
+   Tolerances for this check: [ 2.23630419652452945E-06,  1.04360964314764715E-14]
    Maxdiff for transpose (checksum)    :  3.49245965480804443E-10
-   Maxdiff for overlap calculation     :  7.45058059692382812E-08
+   Maxdiff for overlap calculation     :  3.27825546264648438E-07
    Maxdiff for untranspose             :  0.00000000000000000E+00
- Ion-Ion interaction energy            :  2.70638291045411E+02
+ Ion-Ion interaction energy            :  2.70638291106782E+02
   #---------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -54.000000154078
+ Total ionic charge                    : -54.000000154077
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  123,  121,  117 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
   #------------------------------------------------------------ Input Wavefunctions Creation
  Input Hamiltonian:
    Total No. of Atomic Input Orbitals  :  47
    Inputguess Orbitals Repartition:
-     MPI tasks  0- 2                   :  12
-     MPI tasks  3- 3                   :  11
+     MPI tasks  0- 0                   :  24
+     MPI tasks  1- 1                   :  23
    Atomic Input Orbital Generation:
    -  {Atom Type: N, Electronic configuration: {s: [ 2.00], p: [ 1.00,  1.00,  1.00]}}
    -  {Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}}
@@ -758,13 +736,13 @@
    Poisson Solver:
      BC                                : Free
      Box                               :  [  123,  121,  117 ]
-     MPI tasks                         :  4
+     MPI tasks                         :  2
    orthonormalization of input guess   : standard
    Kernel update:
      max dev from unity                :  2.74E-02
      mean dev from unity               :  4.51E-03
      Hamiltonian application required  :  Yes
-     Calculating wavelets expansion of projectors, found warnings:  12
+     Calculating wavelets expansion of projectors, found warnings:  24
       #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
      method                            : diagonalization
      mode                              : sequential
@@ -773,38 +751,38 @@
      Coefficients available            :  Yes
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
- {e: -7.799519663033E-01, f:  2.0000},  # 00001
- {e: -7.214827614485E-01, f:  2.0000},  # 00002
- {e: -6.026801504195E-01, f:  2.0000},  # 00003
- {e: -5.008417199132E-01, f:  2.0000},  # 00004
- {e: -4.581656935208E-01, f:  2.0000},  # 00005
- {e: -4.080554028667E-01, f:  2.0000},  # 00006
- {e: -3.677891828187E-01, f:  2.0000},  # 00007
- {e: -3.271342574862E-01, f:  2.0000},  # 00008
- {e: -3.065468985277E-01, f:  2.0000},  # 00009
- {e: -2.518567175537E-01, f:  2.0000},  # 00010
- {e: -2.472461750268E-01, f:  2.0000},  # 00011
- {e: -1.981391188611E-01, f:  2.0000},  # 00012
- {e: -1.940040727569E-01, f:  2.0000},  # 00013
- {e: -1.808433487702E-01, f:  2.0000},  # 00014
- {e: -1.718901898281E-01, f:  2.0000},  # 00015
- {e: -1.679816825797E-01, f:  2.0000},  # 00016
- {e: -1.647013009131E-01, f:  2.0000},  # 00017
- {e: -1.468066839851E-01, f:  2.0000},  # 00018
- {e: -1.096503185469E-01, f:  2.0000},  # 00019
- {e: -9.776348342763E-02, f:  2.0000},  # 00020
- {e: -7.893528478767E-02, f:  2.0000},  # 00021
- {e: -6.964633434058E-02, f:  2.0000},  # 00022
- {e: -6.711967627886E-02, f:  2.0000},  # 00023
- {e: -3.529168288547E-02, f:  2.0000},  # 00024
- {e: -2.673617349952E-02, f:  2.0000},  # 00025
- {e:  4.805641504575E-03, f:  2.0000},  # 00026
- {e:  6.417472243955E-02, f:  2.0000}] # 00027
+ {e: -7.799519664322E-01, f:  2.0000},  # 00001
+ {e: -7.214827615241E-01, f:  2.0000},  # 00002
+ {e: -6.026801505526E-01, f:  2.0000},  # 00003
+ {e: -5.008417200541E-01, f:  2.0000},  # 00004
+ {e: -4.581656936328E-01, f:  2.0000},  # 00005
+ {e: -4.080554029611E-01, f:  2.0000},  # 00006
+ {e: -3.677891829013E-01, f:  2.0000},  # 00007
+ {e: -3.271342575497E-01, f:  2.0000},  # 00008
+ {e: -3.065468985943E-01, f:  2.0000},  # 00009
+ {e: -2.518567176193E-01, f:  2.0000},  # 00010
+ {e: -2.472461751203E-01, f:  2.0000},  # 00011
+ {e: -1.981391189500E-01, f:  2.0000},  # 00012
+ {e: -1.940040728487E-01, f:  2.0000},  # 00013
+ {e: -1.808433488654E-01, f:  2.0000},  # 00014
+ {e: -1.718901898992E-01, f:  2.0000},  # 00015
+ {e: -1.679816826502E-01, f:  2.0000},  # 00016
+ {e: -1.647013009884E-01, f:  2.0000},  # 00017
+ {e: -1.468066840447E-01, f:  2.0000},  # 00018
+ {e: -1.096503185733E-01, f:  2.0000},  # 00019
+ {e: -9.776348344244E-02, f:  2.0000},  # 00020
+ {e: -7.893528483382E-02, f:  2.0000},  # 00021
+ {e: -6.964633437069E-02, f:  2.0000},  # 00022
+ {e: -6.711967628442E-02, f:  2.0000},  # 00023
+ {e: -3.529168289189E-02, f:  2.0000},  # 00024
+ {e: -2.673617347703E-02, f:  2.0000},  # 00025
+ {e:  4.805641515920E-03, f:  2.0000},  # 00026
+ {e:  6.417472248114E-02, f:  2.0000}] # 00027
    Hamiltonian update: {
- Energies: {Ekin:  9.51151904124E+01, Epot: -1.04266060097E+02, Enl:  1.16381717009E+01, 
-              EH:  3.50477715933E+02,  EXC: -2.66354434924E+01, EvXC: -3.45640443854E+01}, 
+ Energies: {Ekin:  9.51151904287E+01, Epot: -1.04266060108E+02, Enl:  1.16381717010E+01, 
+              EH:  3.50477715992E+02,  EXC: -2.66354434937E+01, EvXC: -3.45640443872E+01}, 
     Total charge:  5.399997922002E+01, 
- Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  2}}
     #================================================================= Input guess generated
   #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
@@ -812,16 +790,16 @@
  - support function optimization: &it_supfun001
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
- Calculating wavelets expansion of projectors, found warnings:  12, 
+ Calculating wavelets expansion of projectors, found warnings:  24, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  8.82768237552E+01, Epot: -8.24273195872E+01, Enl:  6.26630439883E+00}, 
+ Energies: {Ekin:  8.82768237687E+01, Epot: -8.24273195967E+01, Enl:  6.26630439900E+00}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
  error estimation: [
  max / mean error:  [  1.14E-09,  1.28E-10 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  6.91E-01, Omega: -7.504380269231768E+01, D: -7.50E+01, D best: -7.50E+01, 
+ iter:  1, fnrm:  6.91E-01, Omega: -7.504380269254415E+01, D: -7.50E+01, D best: -7.50E+01, 
  Optimization: {algorithm: SD, mean alpha:  2.000E-01, max alpha:  2.000E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  6, 
@@ -834,21 +812,21 @@
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: HYBRID, 
- Calculating wavelets expansion of projectors, found warnings:  12, 
+ Calculating wavelets expansion of projectors, found warnings:  24, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  8.96348403025E+01, Epot: -8.40507525699E+01, Enl:  6.24600464664E+00}, 
+ Energies: {Ekin:  8.96348403170E+01, Epot: -8.40507525802E+01, Enl:  6.24600464662E+00}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
  error estimation: [
  max / mean error:  [  9.61E-12,  7.77E-13 ]]}, 
  Preconditioning:  Yes, kappa:  3.418E-01, kappa to history:  Yes, 
- iter:  2, fnrm:  4.89E-01, Omega: -7.583169043323528E+01, D: -7.88E-01, D best: -7.88E-01, 
+ iter:  2, fnrm:  4.89E-01, Omega: -7.583169043387443E+01, D: -7.88E-01, D best: -7.88E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
- Energies: {Ekin:  8.96348403025E+01, Epot: -8.40507525699E+01, Enl:  6.24600464664E+00}, 
- iter:  2, fnrm:  4.89E-01, Omega: -7.583169043323528E+01, D: -7.88E-01, D best: -7.88E-01}
+ Energies: {Ekin:  8.96348403170E+01, Epot: -8.40507525802E+01, Enl:  6.24600464662E+00}, 
+ iter:  2, fnrm:  4.89E-01, Omega: -7.583169043387443E+01, D: -7.88E-01, D best: -7.88E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -862,47 +840,47 @@
        communication strategy kernel   : ALLREDUCE
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  9.51151904124E+01, Epot: -1.04266060097E+02, Enl:  1.16381717009E+01, 
-              EH:  3.49250735036E+02,  EXC: -2.66923778988E+01, EvXC: -3.46471435290E+01}, 
+ Energies: {Ekin:  9.51151904287E+01, Epot: -1.04266060108E+02, Enl:  1.16381717010E+01, 
+              EH:  3.49250735094E+02,  EXC: -2.66923779002E+01, EvXC: -3.46471435309E+01}, 
     Total charge:  5.399998244908E+01, 
- Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  2}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -8.262866019671E-01, f:  2.0000},  # 00001
- {e: -6.992446448480E-01, f:  2.0000},  # 00002
- {e: -6.408988318832E-01, f:  2.0000},  # 00003
- {e: -5.485646338528E-01, f:  2.0000},  # 00004
- {e: -4.969286727596E-01, f:  2.0000},  # 00005
- {e: -4.694857639650E-01, f:  2.0000},  # 00006
- {e: -4.191370217763E-01, f:  2.0000},  # 00007
- {e: -3.765298519147E-01, f:  2.0000},  # 00008
- {e: -3.265398460916E-01, f:  2.0000},  # 00009
- {e: -2.839263530586E-01, f:  2.0000},  # 00010
- {e: -2.447828950740E-01, f:  2.0000},  # 00011
- {e: -2.333963680917E-01, f:  2.0000},  # 00012
- {e: -2.201033682282E-01, f:  2.0000},  # 00013
- {e: -2.001320649520E-01, f:  2.0000},  # 00014
- {e: -1.905165156572E-01, f:  2.0000},  # 00015
- {e: -1.883527424691E-01, f:  2.0000},  # 00016
- {e: -1.731280715480E-01, f:  2.0000},  # 00017
- {e: -1.625087247017E-01, f:  2.0000},  # 00018
- {e: -1.403759680386E-01, f:  2.0000},  # 00019
- {e: -1.308647201551E-01, f:  2.0000},  # 00020
- {e: -9.828105202232E-02, f:  2.0000},  # 00021
- {e: -7.391475165066E-02, f:  2.0000},  # 00022
- {e: -1.903649009452E-02, f:  2.0000},  # 00023
- {e: -1.286572440500E-02, f:  2.0000},  # 00024
- {e:  3.144941915758E-02, f:  2.0000},  # 00025
- {e:  6.626229886129E-02, f:  2.0000},  # 00026
- {e:  1.096517906129E-01, f:  2.0000}] # 00027
+ {e: -8.262866021436E-01, f:  2.0000},  # 00001
+ {e: -6.992446449855E-01, f:  2.0000},  # 00002
+ {e: -6.408988320333E-01, f:  2.0000},  # 00003
+ {e: -5.485646339793E-01, f:  2.0000},  # 00004
+ {e: -4.969286728613E-01, f:  2.0000},  # 00005
+ {e: -4.694857640512E-01, f:  2.0000},  # 00006
+ {e: -4.191370218650E-01, f:  2.0000},  # 00007
+ {e: -3.765298519971E-01, f:  2.0000},  # 00008
+ {e: -3.265398461393E-01, f:  2.0000},  # 00009
+ {e: -2.839263531615E-01, f:  2.0000},  # 00010
+ {e: -2.447828951587E-01, f:  2.0000},  # 00011
+ {e: -2.333963681765E-01, f:  2.0000},  # 00012
+ {e: -2.201033683038E-01, f:  2.0000},  # 00013
+ {e: -2.001320650093E-01, f:  2.0000},  # 00014
+ {e: -1.905165157151E-01, f:  2.0000},  # 00015
+ {e: -1.883527425345E-01, f:  2.0000},  # 00016
+ {e: -1.731280716009E-01, f:  2.0000},  # 00017
+ {e: -1.625087247215E-01, f:  2.0000},  # 00018
+ {e: -1.403759680555E-01, f:  2.0000},  # 00019
+ {e: -1.308647201848E-01, f:  2.0000},  # 00020
+ {e: -9.828105205040E-02, f:  2.0000},  # 00021
+ {e: -7.391475166864E-02, f:  2.0000},  # 00022
+ {e: -1.903649011585E-02, f:  2.0000},  # 00023
+ {e: -1.286572441692E-02, f:  2.0000},  # 00024
+ {e:  3.144941915348E-02, f:  2.0000},  # 00025
+ {e:  6.626229883348E-02, f:  2.0000},  # 00026
+ {e:  1.096517906527E-01, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  1, delta:  1.41E-05, energy: -8.45945547013170085E+01, D: -8.459E+01}]
+ iter:  1, delta:  1.41E-05, energy: -8.45945547011090753E+01, D: -8.459E+01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  1.19E-02
        mean dev from unity             :  1.95E-03
        Hamiltonian application required:  Yes
-       Calculating wavelets expansion of projectors, found warnings:  12
+       Calculating wavelets expansion of projectors, found warnings:  24
         #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
        method                          : diagonalization
        mode                            : sequential
@@ -910,64 +888,64 @@
        Kohn-Sham residue               :  3.185E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  8.96348403025E+01, Epot: -9.12062915237E+01, Enl:  6.24600464664E+00, 
-              EH:  3.50516499101E+02,  EXC: -2.65726779327E+01, EvXC: -3.44882142563E+01}, 
+ Energies: {Ekin:  8.96348403170E+01, Epot: -9.12062915343E+01, Enl:  6.24600464662E+00, 
+              EH:  3.50516499159E+02,  EXC: -2.65726779343E+01, EvXC: -3.44882142586E+01}, 
     Total charge:  5.399998185593E+01, 
- Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  2}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -8.090181466422E-01, f:  2.0000},  # 00001
- {e: -7.252345516460E-01, f:  2.0000},  # 00002
- {e: -6.163807360212E-01, f:  2.0000},  # 00003
- {e: -5.354820480080E-01, f:  2.0000},  # 00004
- {e: -4.881940382325E-01, f:  2.0000},  # 00005
- {e: -4.389628686343E-01, f:  2.0000},  # 00006
- {e: -3.906055859644E-01, f:  2.0000},  # 00007
- {e: -3.445393033094E-01, f:  2.0000},  # 00008
- {e: -3.219608983482E-01, f:  2.0000},  # 00009
- {e: -2.551238342350E-01, f:  2.0000},  # 00010
- {e: -2.315051159337E-01, f:  2.0000},  # 00011
- {e: -2.134137565735E-01, f:  2.0000},  # 00012
- {e: -2.034306282542E-01, f:  2.0000},  # 00013
- {e: -1.995984478279E-01, f:  2.0000},  # 00014
- {e: -1.868217726118E-01, f:  2.0000},  # 00015
- {e: -1.828785113195E-01, f:  2.0000},  # 00016
- {e: -1.725411945320E-01, f:  2.0000},  # 00017
- {e: -1.579727089072E-01, f:  2.0000},  # 00018
- {e: -1.236946043683E-01, f:  2.0000},  # 00019
- {e: -1.065310953383E-01, f:  2.0000},  # 00020
- {e: -9.527642448445E-02, f:  2.0000},  # 00021
- {e: -6.407672307619E-02, f:  2.0000},  # 00022
- {e: -2.742975968849E-02, f:  2.0000},  # 00023
- {e: -2.465717207785E-02, f:  2.0000},  # 00024
- {e: -1.331087495960E-02, f:  2.0000},  # 00025
- {e:  6.445715417068E-02, f:  2.0000},  # 00026
- {e:  8.248590057894E-02, f:  2.0000}] # 00027
+ {e: -8.090181467787E-01, f:  2.0000},  # 00001
+ {e: -7.252345517780E-01, f:  2.0000},  # 00002
+ {e: -6.163807361999E-01, f:  2.0000},  # 00003
+ {e: -5.354820481654E-01, f:  2.0000},  # 00004
+ {e: -4.881940383541E-01, f:  2.0000},  # 00005
+ {e: -4.389628687546E-01, f:  2.0000},  # 00006
+ {e: -3.906055860845E-01, f:  2.0000},  # 00007
+ {e: -3.445393034270E-01, f:  2.0000},  # 00008
+ {e: -3.219608984122E-01, f:  2.0000},  # 00009
+ {e: -2.551238343749E-01, f:  2.0000},  # 00010
+ {e: -2.315051159317E-01, f:  2.0000},  # 00011
+ {e: -2.134137566863E-01, f:  2.0000},  # 00012
+ {e: -2.034306283520E-01, f:  2.0000},  # 00013
+ {e: -1.995984478917E-01, f:  2.0000},  # 00014
+ {e: -1.868217726889E-01, f:  2.0000},  # 00015
+ {e: -1.828785113804E-01, f:  2.0000},  # 00016
+ {e: -1.725411946049E-01, f:  2.0000},  # 00017
+ {e: -1.579727089524E-01, f:  2.0000},  # 00018
+ {e: -1.236946044165E-01, f:  2.0000},  # 00019
+ {e: -1.065310953889E-01, f:  2.0000},  # 00020
+ {e: -9.527642451611E-02, f:  2.0000},  # 00021
+ {e: -6.407672309323E-02, f:  2.0000},  # 00022
+ {e: -2.742975968716E-02, f:  2.0000},  # 00023
+ {e: -2.465717208524E-02, f:  2.0000},  # 00024
+ {e: -1.331087487078E-02, f:  2.0000},  # 00025
+ {e:  6.445715415769E-02, f:  2.0000},  # 00026
+ {e:  8.248590064603E-02, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  2, delta:  1.27E-05, energy: -8.55260672239613768E+01, D: -9.315E-01}]
+ iter:  2, delta:  1.27E-05, energy: -8.55260672232653292E+01, D: -9.315E-01}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  3, delta:  1.27E-05, energy: -8.55260672239613768E+01, D: -9.315E-01}]}
+ iter:  3, delta:  1.27E-05, energy: -8.55260672232653292E+01, D: -9.315E-01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, target function: HYBRID, mean conf prefac:  4.13E-02,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  1, delta out:  5.037E-06, energy: -8.55260672239613768E+01, D: -8.553E+01}
+ iter low:  1, delta out:  5.037E-06, energy: -8.55260672232653292E+01, D: -8.553E+01}
    multiplicator for the confinement   :  0.5
     #========================================================= support function optimization
  - support function optimization: &it_supfun002
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
- Calculating wavelets expansion of projectors, found warnings:  12, 
+ Calculating wavelets expansion of projectors, found warnings:  24, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  8.96348403025E+01, Epot: -8.76000348313E+01, Enl:  6.24600464664E+00}, 
+ Energies: {Ekin:  8.96348403170E+01, Epot: -8.76000348414E+01, Enl:  6.24600464662E+00}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
  error estimation: [
  max / mean error:  [  9.61E-12,  7.77E-13 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  4.04E-01, Omega: -8.068714542011799E+01, D: -5.64E+00, D best: -5.64E+00, 
+ iter:  1, fnrm:  4.04E-01, Omega: -8.068714542063839E+01, D: -5.64E+00, D best: -5.64E+00, 
  Optimization: {algorithm: SD, mean alpha:  2.200E-01, max alpha:  2.200E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  6, 
@@ -980,21 +958,21 @@
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: HYBRID, 
- Calculating wavelets expansion of projectors, found warnings:  12, 
+ Calculating wavelets expansion of projectors, found warnings:  24, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  8.91856692358E+01, Epot: -8.70986386154E+01, Enl:  6.12876221655E+00}, 
+ Energies: {Ekin:  8.91856692512E+01, Epot: -8.70986386263E+01, Enl:  6.12876221650E+00}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
  error estimation: [
  max / mean error:  [  1.32E-12,  9.86E-14 ]]}, 
  Preconditioning:  Yes, kappa:  3.654E-01, kappa to history:  Yes, 
- iter:  2, fnrm:  2.77E-01, Omega: -8.109192574977521E+01, D: -4.05E-01, D best: -4.05E-01, 
+ iter:  2, fnrm:  2.77E-01, Omega: -8.109192575035246E+01, D: -4.05E-01, D best: -4.05E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
- Energies: {Ekin:  8.91856692358E+01, Epot: -8.70986386154E+01, Enl:  6.12876221655E+00}, 
- iter:  2, fnrm:  2.77E-01, Omega: -8.109192574977521E+01, D: -4.05E-01, D best: -4.05E-01}
+ Energies: {Ekin:  8.91856692512E+01, Epot: -8.70986386263E+01, Enl:  6.12876221650E+00}, 
+ iter:  2, fnrm:  2.77E-01, Omega: -8.109192575035246E+01, D: -4.05E-01, D best: -4.05E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
@@ -1008,47 +986,47 @@
        communication strategy kernel   : ALLREDUCE
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  8.96348403025E+01, Epot: -9.12062915237E+01, Enl:  6.24600464664E+00, 
-              EH:  3.50029120867E+02,  EXC: -2.66717509075E+01, EvXC: -3.46169743097E+01}, 
+ Energies: {Ekin:  8.96348403170E+01, Epot: -9.12062915343E+01, Enl:  6.24600464662E+00, 
+              EH:  3.50029120925E+02,  EXC: -2.66717509089E+01, EvXC: -3.46169743116E+01}, 
     Total charge:  5.399998359754E+01, 
- Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  2}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -8.517816265290E-01, f:  2.0000},  # 00001
- {e: -7.089167195086E-01, f:  2.0000},  # 00002
- {e: -6.492028647926E-01, f:  2.0000},  # 00003
- {e: -5.496600352852E-01, f:  2.0000},  # 00004
- {e: -4.983730019916E-01, f:  2.0000},  # 00005
- {e: -4.696624283462E-01, f:  2.0000},  # 00006
- {e: -4.252807699502E-01, f:  2.0000},  # 00007
- {e: -3.798415298208E-01, f:  2.0000},  # 00008
- {e: -3.271423386992E-01, f:  2.0000},  # 00009
- {e: -2.866740098318E-01, f:  2.0000},  # 00010
- {e: -2.449780563713E-01, f:  2.0000},  # 00011
- {e: -2.351945744890E-01, f:  2.0000},  # 00012
- {e: -2.188083208694E-01, f:  2.0000},  # 00013
- {e: -1.995022164211E-01, f:  2.0000},  # 00014
- {e: -1.890153146310E-01, f:  2.0000},  # 00015
- {e: -1.858467551655E-01, f:  2.0000},  # 00016
- {e: -1.748468089541E-01, f:  2.0000},  # 00017
- {e: -1.718923902540E-01, f:  2.0000},  # 00018
- {e: -1.334176047463E-01, f:  2.0000},  # 00019
- {e: -1.283071007699E-01, f:  2.0000},  # 00020
- {e: -9.865317625441E-02, f:  2.0000},  # 00021
- {e: -7.993993845925E-02, f:  2.0000},  # 00022
- {e: -3.644095943320E-02, f:  2.0000},  # 00023
- {e: -1.792380554965E-02, f:  2.0000},  # 00024
- {e:  3.172816076158E-02, f:  2.0000},  # 00025
- {e:  5.305153445352E-02, f:  2.0000},  # 00026
- {e:  1.024030944366E-01, f:  2.0000}] # 00027
+ {e: -8.517816266447E-01, f:  2.0000},  # 00001
+ {e: -7.089167196744E-01, f:  2.0000},  # 00002
+ {e: -6.492028649316E-01, f:  2.0000},  # 00003
+ {e: -5.496600354250E-01, f:  2.0000},  # 00004
+ {e: -4.983730021018E-01, f:  2.0000},  # 00005
+ {e: -4.696624284347E-01, f:  2.0000},  # 00006
+ {e: -4.252807700282E-01, f:  2.0000},  # 00007
+ {e: -3.798415298865E-01, f:  2.0000},  # 00008
+ {e: -3.271423387542E-01, f:  2.0000},  # 00009
+ {e: -2.866740099288E-01, f:  2.0000},  # 00010
+ {e: -2.449780564442E-01, f:  2.0000},  # 00011
+ {e: -2.351945745726E-01, f:  2.0000},  # 00012
+ {e: -2.188083209551E-01, f:  2.0000},  # 00013
+ {e: -1.995022164792E-01, f:  2.0000},  # 00014
+ {e: -1.890153147052E-01, f:  2.0000},  # 00015
+ {e: -1.858467552379E-01, f:  2.0000},  # 00016
+ {e: -1.748468089898E-01, f:  2.0000},  # 00017
+ {e: -1.718923902417E-01, f:  2.0000},  # 00018
+ {e: -1.334176047754E-01, f:  2.0000},  # 00019
+ {e: -1.283071007931E-01, f:  2.0000},  # 00020
+ {e: -9.865317629579E-02, f:  2.0000},  # 00021
+ {e: -7.993993849870E-02, f:  2.0000},  # 00022
+ {e: -3.644095947021E-02, f:  2.0000},  # 00023
+ {e: -1.792380554721E-02, f:  2.0000},  # 00024
+ {e:  3.172816077166E-02, f:  2.0000},  # 00025
+ {e:  5.305153440208E-02, f:  2.0000},  # 00026
+ {e:  1.024030944605E-01, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  1, delta:  1.19E-05, energy: -8.55938455338090307E+01, D: -6.778E-02}]
+ iter:  1, delta:  1.19E-05, energy: -8.55938455336483344E+01, D: -6.778E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  9.88E-03
        mean dev from unity             :  1.38E-03
        Hamiltonian application required:  Yes
-       Calculating wavelets expansion of projectors, found warnings:  12
+       Calculating wavelets expansion of projectors, found warnings:  24
         #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
        method                          : diagonalization
        mode                            : sequential
@@ -1056,64 +1034,64 @@
        Kohn-Sham residue               :  2.482E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  8.91856692358E+01, Epot: -9.15070813998E+01, Enl:  6.12876221655E+00, 
-              EH:  3.48526653455E+02,  EXC: -2.62706508877E+01, EvXC: -3.40943873493E+01}, 
+ Energies: {Ekin:  8.91856692512E+01, Epot: -9.15070814110E+01, Enl:  6.12876221650E+00, 
+              EH:  3.48526653512E+02,  EXC: -2.62706508895E+01, EvXC: -3.40943873516E+01}, 
     Total charge:  5.399998328602E+01, 
- Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  2}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -8.340715353711E-01, f:  2.0000},  # 00001
- {e: -7.535168582539E-01, f:  2.0000},  # 00002
- {e: -6.474150463587E-01, f:  2.0000},  # 00003
- {e: -5.614981952172E-01, f:  2.0000},  # 00004
- {e: -5.108332383566E-01, f:  2.0000},  # 00005
- {e: -4.640786153591E-01, f:  2.0000},  # 00006
- {e: -4.165032936651E-01, f:  2.0000},  # 00007
- {e: -3.715627188069E-01, f:  2.0000},  # 00008
- {e: -3.423382174452E-01, f:  2.0000},  # 00009
- {e: -2.824934963315E-01, f:  2.0000},  # 00010
- {e: -2.511917846268E-01, f:  2.0000},  # 00011
- {e: -2.400011734854E-01, f:  2.0000},  # 00012
- {e: -2.256669182566E-01, f:  2.0000},  # 00013
- {e: -2.195484272951E-01, f:  2.0000},  # 00014
- {e: -2.042354296782E-01, f:  2.0000},  # 00015
- {e: -1.984362759356E-01, f:  2.0000},  # 00016
- {e: -1.965730321498E-01, f:  2.0000},  # 00017
- {e: -1.798491889932E-01, f:  2.0000},  # 00018
- {e: -1.440797767699E-01, f:  2.0000},  # 00019
- {e: -1.302765448788E-01, f:  2.0000},  # 00020
- {e: -1.147155658260E-01, f:  2.0000},  # 00021
- {e: -9.622062845471E-02, f:  2.0000},  # 00022
- {e: -6.083741236641E-02, f:  2.0000},  # 00023
- {e: -4.473247413636E-02, f:  2.0000},  # 00024
- {e: -3.295445308754E-02, f:  2.0000},  # 00025
- {e:  3.159273106235E-02, f:  2.0000},  # 00026
- {e:  6.369642091094E-02, f:  2.0000}] # 00027
+ {e: -8.340715355360E-01, f:  2.0000},  # 00001
+ {e: -7.535168583734E-01, f:  2.0000},  # 00002
+ {e: -6.474150465433E-01, f:  2.0000},  # 00003
+ {e: -5.614981953697E-01, f:  2.0000},  # 00004
+ {e: -5.108332384734E-01, f:  2.0000},  # 00005
+ {e: -4.640786154840E-01, f:  2.0000},  # 00006
+ {e: -4.165032937966E-01, f:  2.0000},  # 00007
+ {e: -3.715627189387E-01, f:  2.0000},  # 00008
+ {e: -3.423382175000E-01, f:  2.0000},  # 00009
+ {e: -2.824934964783E-01, f:  2.0000},  # 00010
+ {e: -2.511917846461E-01, f:  2.0000},  # 00011
+ {e: -2.400011736064E-01, f:  2.0000},  # 00012
+ {e: -2.256669183450E-01, f:  2.0000},  # 00013
+ {e: -2.195484273252E-01, f:  2.0000},  # 00014
+ {e: -2.042354297496E-01, f:  2.0000},  # 00015
+ {e: -1.984362760037E-01, f:  2.0000},  # 00016
+ {e: -1.965730322090E-01, f:  2.0000},  # 00017
+ {e: -1.798491890398E-01, f:  2.0000},  # 00018
+ {e: -1.440797768187E-01, f:  2.0000},  # 00019
+ {e: -1.302765449329E-01, f:  2.0000},  # 00020
+ {e: -1.147155658565E-01, f:  2.0000},  # 00021
+ {e: -9.622062850036E-02, f:  2.0000},  # 00022
+ {e: -6.083741241217E-02, f:  2.0000},  # 00023
+ {e: -4.473247410224E-02, f:  2.0000},  # 00024
+ {e: -3.295445297295E-02, f:  2.0000},  # 00025
+ {e:  3.159273103842E-02, f:  2.0000},  # 00026
+ {e:  6.369642098156E-02, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  2, delta:  9.67E-06, energy: -8.49213082456109873E+01, D:  6.725E-01}]
+ iter:  2, delta:  9.67E-06, energy: -8.49213082448490582E+01, D:  6.725E-01}]
    -  &final_kernel002  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  3, delta:  9.67E-06, energy: -8.49213082456109873E+01, D:  6.725E-01}]}
+ iter:  3, delta:  9.67E-06, energy: -8.49213082448490582E+01, D:  6.725E-01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
    -  {iter:  2, target function: HYBRID, mean conf prefac:  2.07E-02,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  2, delta out:  4.893E-06, energy: -8.49213082456109873E+01, D:  6.048E-01}
+ iter low:  2, delta out:  4.893E-06, energy: -8.49213082448490582E+01, D:  6.048E-01}
    multiplicator for the confinement   :  0.5
     #========================================================= support function optimization
  - support function optimization: &it_supfun003
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
- Calculating wavelets expansion of projectors, found warnings:  12, 
+ Calculating wavelets expansion of projectors, found warnings:  24, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  8.91856692358E+01, Epot: -8.99232255443E+01, Enl:  6.12876221655E+00}, 
+ Energies: {Ekin:  8.91856692512E+01, Epot: -8.99232255551E+01, Enl:  6.12876221650E+00}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
  error estimation: [
  max / mean error:  [  1.32E-12,  9.86E-14 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  2.72E-01, Omega: -8.304606243112136E+01, D: -2.36E+00, D best: -2.36E+00, 
+ iter:  1, fnrm:  2.72E-01, Omega: -8.304606243142615E+01, D: -2.36E+00, D best: -2.36E+00, 
  Optimization: {algorithm: SD, mean alpha:  2.420E-01, max alpha:  2.420E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  6, 
@@ -1126,22 +1104,22 @@
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: HYBRID, 
- Calculating wavelets expansion of projectors, found warnings:  12, 
+ Calculating wavelets expansion of projectors, found warnings:  24, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  8.82895144672E+01, Epot: -8.89981935876E+01, Enl:  6.01201104008E+00}, 
+ Energies: {Ekin:  8.82895144832E+01, Epot: -8.89981935990E+01, Enl:  6.01201104006E+00}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
  error estimation: [
  max / mean error:  [  9.24E-12,  7.35E-13 ]]}, 
  Preconditioning:  Yes, kappa:  3.557E-01, kappa to history:  Yes, mean kappa:  3.543E-01, 
             dynamic conv crit:  2.82E-03, 
- iter:  2, fnrm:  1.97E-01, Omega: -8.333080505861034E+01, D: -2.85E-01, D best: -2.85E-01, 
+ iter:  2, fnrm:  1.97E-01, Omega: -8.333080505886289E+01, D: -2.85E-01, D best: -2.85E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
- Energies: {Ekin:  8.82895144672E+01, Epot: -8.89981935876E+01, Enl:  6.01201104008E+00}, 
- iter:  2, fnrm:  1.97E-01, Omega: -8.333080505861034E+01, D: -2.85E-01, D best: -2.85E-01}
+ Energies: {Ekin:  8.82895144832E+01, Epot: -8.89981935990E+01, Enl:  6.01201104006E+00}, 
+ iter:  2, fnrm:  1.97E-01, Omega: -8.333080505886289E+01, D: -2.85E-01, D best: -2.85E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
@@ -1155,47 +1133,47 @@
        communication strategy kernel   : ALLREDUCE
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  8.91856692358E+01, Epot: -9.15070813998E+01, Enl:  6.12876221655E+00, 
-              EH:  3.48632677475E+02,  EXC: -2.63571150614E+01, EvXC: -3.42077776760E+01}, 
-    Total charge:  5.399998450480E+01, 
- Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  4}}
+ Energies: {Ekin:  8.91856692512E+01, Epot: -9.15070814110E+01, Enl:  6.12876221650E+00, 
+              EH:  3.48632677533E+02,  EXC: -2.63571150630E+01, EvXC: -3.42077776781E+01}, 
+    Total charge:  5.399998450479E+01, 
+ Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  2}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -8.728782550808E-01, f:  2.0000},  # 00001
- {e: -7.419081349317E-01, f:  2.0000},  # 00002
- {e: -6.728097672725E-01, f:  2.0000},  # 00003
- {e: -5.735819978709E-01, f:  2.0000},  # 00004
- {e: -5.213053854055E-01, f:  2.0000},  # 00005
- {e: -4.912626919312E-01, f:  2.0000},  # 00006
- {e: -4.457039142127E-01, f:  2.0000},  # 00007
- {e: -4.014043872160E-01, f:  2.0000},  # 00008
- {e: -3.507423663618E-01, f:  2.0000},  # 00009
- {e: -3.109722725526E-01, f:  2.0000},  # 00010
- {e: -2.694207186378E-01, f:  2.0000},  # 00011
- {e: -2.606595688036E-01, f:  2.0000},  # 00012
- {e: -2.422645789870E-01, f:  2.0000},  # 00013
- {e: -2.244869144663E-01, f:  2.0000},  # 00014
- {e: -2.133238987841E-01, f:  2.0000},  # 00015
- {e: -2.102913325105E-01, f:  2.0000},  # 00016
- {e: -1.990399032837E-01, f:  2.0000},  # 00017
- {e: -1.959426140648E-01, f:  2.0000},  # 00018
- {e: -1.557447533572E-01, f:  2.0000},  # 00019
- {e: -1.512587017322E-01, f:  2.0000},  # 00020
- {e: -1.252526975649E-01, f:  2.0000},  # 00021
- {e: -1.177587254793E-01, f:  2.0000},  # 00022
- {e: -7.571453206402E-02, f:  2.0000},  # 00023
- {e: -4.822052452965E-02, f:  2.0000},  # 00024
- {e: -4.062935444836E-03, f:  2.0000},  # 00025
- {e:  7.053099641903E-03, f:  2.0000},  # 00026
- {e:  6.777637593153E-02, f:  2.0000}] # 00027
+ {e: -8.728782551829E-01, f:  2.0000},  # 00001
+ {e: -7.419081351021E-01, f:  2.0000},  # 00002
+ {e: -6.728097674085E-01, f:  2.0000},  # 00003
+ {e: -5.735819980165E-01, f:  2.0000},  # 00004
+ {e: -5.213053855180E-01, f:  2.0000},  # 00005
+ {e: -4.912626920170E-01, f:  2.0000},  # 00006
+ {e: -4.457039142879E-01, f:  2.0000},  # 00007
+ {e: -4.014043872814E-01, f:  2.0000},  # 00008
+ {e: -3.507423664227E-01, f:  2.0000},  # 00009
+ {e: -3.109722726467E-01, f:  2.0000},  # 00010
+ {e: -2.694207187116E-01, f:  2.0000},  # 00011
+ {e: -2.606595688876E-01, f:  2.0000},  # 00012
+ {e: -2.422645790711E-01, f:  2.0000},  # 00013
+ {e: -2.244869145216E-01, f:  2.0000},  # 00014
+ {e: -2.133238988445E-01, f:  2.0000},  # 00015
+ {e: -2.102913325657E-01, f:  2.0000},  # 00016
+ {e: -1.990399033201E-01, f:  2.0000},  # 00017
+ {e: -1.959426141094E-01, f:  2.0000},  # 00018
+ {e: -1.557447533963E-01, f:  2.0000},  # 00019
+ {e: -1.512587017597E-01, f:  2.0000},  # 00020
+ {e: -1.252526976070E-01, f:  2.0000},  # 00021
+ {e: -1.177587255197E-01, f:  2.0000},  # 00022
+ {e: -7.571453210711E-02, f:  2.0000},  # 00023
+ {e: -4.822052453662E-02, f:  2.0000},  # 00024
+ {e: -4.062935452211E-03, f:  2.0000},  # 00025
+ {e:  7.053099601050E-03, f:  2.0000},  # 00026
+ {e:  6.777637595255E-02, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  1, delta:  9.97E-06, energy: -8.57460880086428574E+01, D: -8.248E-01}]
+ iter:  1, delta:  9.97E-06, energy: -8.57460880083576171E+01, D: -8.248E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  1.35E-02
        mean dev from unity             :  1.58E-03
        Hamiltonian application required:  Yes
-       Calculating wavelets expansion of projectors, found warnings:  12
+       Calculating wavelets expansion of projectors, found warnings:  24
         #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
        method                          : diagonalization
        mode                            : sequential
@@ -1203,64 +1181,64 @@
        Kohn-Sham residue               :  2.100E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  8.82895144672E+01, Epot: -9.18768194764E+01, Enl:  6.01201104008E+00, 
-              EH:  3.46743392933E+02,  EXC: -2.59241262963E+01, EvXC: -3.36460243676E+01}, 
-    Total charge:  5.399998426651E+01, 
- Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  4}}
+ Energies: {Ekin:  8.82895144832E+01, Epot: -9.18768194881E+01, Enl:  6.01201104006E+00, 
+              EH:  3.46743392991E+02,  EXC: -2.59241262982E+01, EvXC: -3.36460243701E+01}, 
+    Total charge:  5.399998426650E+01, 
+ Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  2}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -8.680032022137E-01, f:  2.0000},  # 00001
- {e: -7.862451414349E-01, f:  2.0000},  # 00002
- {e: -6.806823169295E-01, f:  2.0000},  # 00003
- {e: -5.911869835006E-01, f:  2.0000},  # 00004
- {e: -5.386067303649E-01, f:  2.0000},  # 00005
- {e: -4.959622224550E-01, f:  2.0000},  # 00006
- {e: -4.490205365335E-01, f:  2.0000},  # 00007
- {e: -4.056119793434E-01, f:  2.0000},  # 00008
- {e: -3.704927983952E-01, f:  2.0000},  # 00009
- {e: -3.168836642678E-01, f:  2.0000},  # 00010
- {e: -2.816597120834E-01, f:  2.0000},  # 00011
- {e: -2.749165047732E-01, f:  2.0000},  # 00012
- {e: -2.565735008803E-01, f:  2.0000},  # 00013
- {e: -2.477543327980E-01, f:  2.0000},  # 00014
- {e: -2.344416983407E-01, f:  2.0000},  # 00015
- {e: -2.284715800624E-01, f:  2.0000},  # 00016
- {e: -2.196780430836E-01, f:  2.0000},  # 00017
- {e: -2.089781199505E-01, f:  2.0000},  # 00018
- {e: -1.733970396755E-01, f:  2.0000},  # 00019
- {e: -1.623251946282E-01, f:  2.0000},  # 00020
- {e: -1.458081871904E-01, f:  2.0000},  # 00021
- {e: -1.403446863098E-01, f:  2.0000},  # 00022
- {e: -1.081233622282E-01, f:  2.0000},  # 00023
- {e: -7.731719527642E-02, f:  2.0000},  # 00024
- {e: -6.577680114161E-02, f:  2.0000},  # 00025
- {e: -1.402092545627E-02, f:  2.0000},  # 00026
- {e:  3.152837475681E-02, f:  2.0000}] # 00027
+ {e: -8.680032024098E-01, f:  2.0000},  # 00001
+ {e: -7.862451415293E-01, f:  2.0000},  # 00002
+ {e: -6.806823171089E-01, f:  2.0000},  # 00003
+ {e: -5.911869836504E-01, f:  2.0000},  # 00004
+ {e: -5.386067304806E-01, f:  2.0000},  # 00005
+ {e: -4.959622225829E-01, f:  2.0000},  # 00006
+ {e: -4.490205366636E-01, f:  2.0000},  # 00007
+ {e: -4.056119794665E-01, f:  2.0000},  # 00008
+ {e: -3.704927984473E-01, f:  2.0000},  # 00009
+ {e: -3.168836644100E-01, f:  2.0000},  # 00010
+ {e: -2.816597121243E-01, f:  2.0000},  # 00011
+ {e: -2.749165048939E-01, f:  2.0000},  # 00012
+ {e: -2.565735009600E-01, f:  2.0000},  # 00013
+ {e: -2.477543328260E-01, f:  2.0000},  # 00014
+ {e: -2.344416984270E-01, f:  2.0000},  # 00015
+ {e: -2.284715801408E-01, f:  2.0000},  # 00016
+ {e: -2.196780431358E-01, f:  2.0000},  # 00017
+ {e: -2.089781200045E-01, f:  2.0000},  # 00018
+ {e: -1.733970397257E-01, f:  2.0000},  # 00019
+ {e: -1.623251946863E-01, f:  2.0000},  # 00020
+ {e: -1.458081872304E-01, f:  2.0000},  # 00021
+ {e: -1.403446863422E-01, f:  2.0000},  # 00022
+ {e: -1.081233622568E-01, f:  2.0000},  # 00023
+ {e: -7.731719524964E-02, f:  2.0000},  # 00024
+ {e: -6.577680103586E-02, f:  2.0000},  # 00025
+ {e: -1.402092547587E-02, f:  2.0000},  # 00026
+ {e:  3.152837482560E-02, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  2, delta:  6.83E-06, energy: -8.50047119850675017E+01, D:  7.414E-01}]
+ iter:  2, delta:  6.83E-06, energy: -8.50047119844820145E+01, D:  7.414E-01}]
    -  &final_kernel003  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  3, delta:  6.83E-06, energy: -8.50047119850675017E+01, D:  7.414E-01}]}
+ iter:  3, delta:  6.83E-06, energy: -8.50047119844820145E+01, D:  7.414E-01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc003
    -  {iter:  3, target function: HYBRID, mean conf prefac:  1.03E-02,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  3, delta out:  5.429E-06, energy: -8.50047119850675017E+01, D: -8.340E-02}
+ iter low:  3, delta out:  5.429E-06, energy: -8.50047119844820145E+01, D: -8.340E-02}
    multiplicator for the confinement   :  0.5
     #========================================================= support function optimization
  - support function optimization: &it_supfun004
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
- Calculating wavelets expansion of projectors, found warnings:  12, 
+ Calculating wavelets expansion of projectors, found warnings:  24, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  8.82895144672E+01, Epot: -9.12476494140E+01, Enl:  6.01201104008E+00}, 
+ Energies: {Ekin:  8.82895144832E+01, Epot: -9.12476494254E+01, Enl:  6.01201104006E+00}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
  error estimation: [
  max / mean error:  [  9.24E-12,  7.35E-13 ]]}, 
  Preconditioning:  Yes, mean kappa:  3.543E-01, dynamic conv crit:  2.82E-03, 
- iter:  1, fnrm:  2.05E-01, Omega: -8.441303628359111E+01, D: -1.37E+00, D best: -1.37E+00, 
+ iter:  1, fnrm:  2.05E-01, Omega: -8.441303628374573E+01, D: -1.37E+00, D best: -1.37E+00, 
  Optimization: {algorithm: SD, mean alpha:  2.662E-01, max alpha:  2.662E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  6, 
@@ -1273,22 +1251,22 @@
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: HYBRID, 
- Calculating wavelets expansion of projectors, found warnings:  12, 
+ Calculating wavelets expansion of projectors, found warnings:  24, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  8.73959697615E+01, Epot: -9.03722471130E+01, Enl:  5.92856256035E+00}, 
+ Energies: {Ekin:  8.73959697780E+01, Epot: -9.03722471248E+01, Enl:  5.92856256039E+00}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
  error estimation: [
  max / mean error:  [  4.32E-11,  3.71E-12 ]]}, 
  Preconditioning:  Yes, kappa:  3.385E-01, kappa to history:  Yes, mean kappa:  3.532E-01, 
             dynamic conv crit:  2.83E-03, 
- iter:  2, fnrm:  1.66E-01, Omega: -8.460466635471334E+01, D: -1.92E-01, D best: -1.92E-01, 
+ iter:  2, fnrm:  1.66E-01, Omega: -8.460466635481390E+01, D: -1.92E-01, D best: -1.92E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun004  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
- Energies: {Ekin:  8.73959697615E+01, Epot: -9.03722471130E+01, Enl:  5.92856256035E+00}, 
- iter:  2, fnrm:  1.66E-01, Omega: -8.460466635471334E+01, D: -1.92E-01, D best: -1.92E-01}
+ Energies: {Ekin:  8.73959697780E+01, Epot: -9.03722471248E+01, Enl:  5.92856256039E+00}, 
+ iter:  2, fnrm:  1.66E-01, Omega: -8.460466635481390E+01, D: -1.92E-01, D best: -1.92E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel004
@@ -1302,47 +1280,47 @@
        communication strategy kernel   : ALLREDUCE
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  8.82895144672E+01, Epot: -9.18768194764E+01, Enl:  6.01201104008E+00, 
-              EH:  3.46986122341E+02,  EXC: -2.59942467425E+01, EvXC: -3.37381975303E+01}, 
-    Total charge:  5.399998510555E+01, 
- Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  4}}
+ Energies: {Ekin:  8.82895144832E+01, Epot: -9.18768194881E+01, Enl:  6.01201104006E+00, 
+              EH:  3.46986122399E+02,  EXC: -2.59942467442E+01, EvXC: -3.37381975325E+01}, 
+    Total charge:  5.399998510554E+01, 
+ Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  2}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -8.975642747782E-01, f:  2.0000},  # 00001
- {e: -7.812918525314E-01, f:  2.0000},  # 00002
- {e: -6.988378216516E-01, f:  2.0000},  # 00003
- {e: -6.009872880135E-01, f:  2.0000},  # 00004
- {e: -5.483495630539E-01, f:  2.0000},  # 00005
- {e: -5.171938823537E-01, f:  2.0000},  # 00006
- {e: -4.703939662728E-01, f:  2.0000},  # 00007
- {e: -4.272314408910E-01, f:  2.0000},  # 00008
- {e: -3.793063920017E-01, f:  2.0000},  # 00009
- {e: -3.386823070449E-01, f:  2.0000},  # 00010
- {e: -2.978827386997E-01, f:  2.0000},  # 00011
- {e: -2.908209236283E-01, f:  2.0000},  # 00012
- {e: -2.702870274350E-01, f:  2.0000},  # 00013
- {e: -2.546461333657E-01, f:  2.0000},  # 00014
- {e: -2.474657070909E-01, f:  2.0000},  # 00015
- {e: -2.400417166878E-01, f:  2.0000},  # 00016
- {e: -2.253261369137E-01, f:  2.0000},  # 00017
- {e: -2.221279068425E-01, f:  2.0000},  # 00018
- {e: -1.843698965948E-01, f:  2.0000},  # 00019
- {e: -1.796761116349E-01, f:  2.0000},  # 00020
- {e: -1.658627169264E-01, f:  2.0000},  # 00021
- {e: -1.500570717084E-01, f:  2.0000},  # 00022
- {e: -1.193321043212E-01, f:  2.0000},  # 00023
- {e: -8.468603808553E-02, f:  2.0000},  # 00024
- {e: -4.967155441886E-02, f:  2.0000},  # 00025
- {e: -3.680219218845E-02, f:  2.0000},  # 00026
- {e:  2.956716227324E-02, f:  2.0000}] # 00027
+ {e: -8.975642748953E-01, f:  2.0000},  # 00001
+ {e: -7.812918526880E-01, f:  2.0000},  # 00002
+ {e: -6.988378217874E-01, f:  2.0000},  # 00003
+ {e: -6.009872881604E-01, f:  2.0000},  # 00004
+ {e: -5.483495631654E-01, f:  2.0000},  # 00005
+ {e: -5.171938824420E-01, f:  2.0000},  # 00006
+ {e: -4.703939663518E-01, f:  2.0000},  # 00007
+ {e: -4.272314409590E-01, f:  2.0000},  # 00008
+ {e: -3.793063920627E-01, f:  2.0000},  # 00009
+ {e: -3.386823071395E-01, f:  2.0000},  # 00010
+ {e: -2.978827387772E-01, f:  2.0000},  # 00011
+ {e: -2.908209237108E-01, f:  2.0000},  # 00012
+ {e: -2.702870275164E-01, f:  2.0000},  # 00013
+ {e: -2.546461334161E-01, f:  2.0000},  # 00014
+ {e: -2.474657071342E-01, f:  2.0000},  # 00015
+ {e: -2.400417167633E-01, f:  2.0000},  # 00016
+ {e: -2.253261369774E-01, f:  2.0000},  # 00017
+ {e: -2.221279068950E-01, f:  2.0000},  # 00018
+ {e: -1.843698966419E-01, f:  2.0000},  # 00019
+ {e: -1.796761116659E-01, f:  2.0000},  # 00020
+ {e: -1.658627169439E-01, f:  2.0000},  # 00021
+ {e: -1.500570717519E-01, f:  2.0000},  # 00022
+ {e: -1.193321043649E-01, f:  2.0000},  # 00023
+ {e: -8.468603809720E-02, f:  2.0000},  # 00024
+ {e: -4.967155446373E-02, f:  2.0000},  # 00025
+ {e: -3.680219217655E-02, f:  2.0000},  # 00026
+ {e:  2.956716229692E-02, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  1, delta:  7.96E-06, energy: -8.59025357131262695E+01, D: -8.978E-01}]
+ iter:  1, delta:  7.96E-06, energy: -8.59025357129156077E+01, D: -8.978E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  1.68E-02
        mean dev from unity             :  1.95E-03
        Hamiltonian application required:  Yes
-       Calculating wavelets expansion of projectors, found warnings:  12
+       Calculating wavelets expansion of projectors, found warnings:  24
         #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
        method                          : diagonalization
        mode                            : sequential
@@ -1350,64 +1328,64 @@
        Kohn-Sham residue               :  1.967E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  8.73959697615E+01, Epot: -9.22797661798E+01, Enl:  5.92856256035E+00, 
-              EH:  3.45294796298E+02,  EXC: -2.56293083099E+01, EvXC: -3.32660309421E+01}, 
-    Total charge:  5.399998492820E+01, 
- Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  4}}
+ Energies: {Ekin:  8.73959697780E+01, Epot: -9.22797661920E+01, Enl:  5.92856256039E+00, 
+              EH:  3.45294796355E+02,  EXC: -2.56293083119E+01, EvXC: -3.32660309448E+01}, 
+    Total charge:  5.399998492819E+01, 
+ Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  2}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -9.020565977881E-01, f:  2.0000},  # 00001
- {e: -8.159662076286E-01, f:  2.0000},  # 00002
- {e: -7.101222842574E-01, f:  2.0000},  # 00003
- {e: -6.180576136901E-01, f:  2.0000},  # 00004
- {e: -5.649401405625E-01, f:  2.0000},  # 00005
- {e: -5.260891749078E-01, f:  2.0000},  # 00006
- {e: -4.790738331635E-01, f:  2.0000},  # 00007
- {e: -4.365144179386E-01, f:  2.0000},  # 00008
- {e: -3.975833716063E-01, f:  2.0000},  # 00009
- {e: -3.483732874784E-01, f:  2.0000},  # 00010
- {e: -3.112017569177E-01, f:  2.0000},  # 00011
- {e: -3.070327622852E-01, f:  2.0000},  # 00012
- {e: -2.862811976966E-01, f:  2.0000},  # 00013
- {e: -2.758316460827E-01, f:  2.0000},  # 00014
- {e: -2.664392865853E-01, f:  2.0000},  # 00015
- {e: -2.557940544385E-01, f:  2.0000},  # 00016
- {e: -2.424560725797E-01, f:  2.0000},  # 00017
- {e: -2.360176636893E-01, f:  2.0000},  # 00018
- {e: -2.030902513741E-01, f:  2.0000},  # 00019
- {e: -1.930214129716E-01, f:  2.0000},  # 00020
- {e: -1.847794244032E-01, f:  2.0000},  # 00021
- {e: -1.692638169824E-01, f:  2.0000},  # 00022
- {e: -1.487513011708E-01, f:  2.0000},  # 00023
- {e: -1.099959124830E-01, f:  2.0000},  # 00024
- {e: -9.734263515923E-02, f:  2.0000},  # 00025
- {e: -5.384955238687E-02, f:  2.0000},  # 00026
- {e:  5.859837999380E-04, f:  2.0000}] # 00027
+ {e: -9.020565979916E-01, f:  2.0000},  # 00001
+ {e: -8.159662077185E-01, f:  2.0000},  # 00002
+ {e: -7.101222844290E-01, f:  2.0000},  # 00003
+ {e: -6.180576138394E-01, f:  2.0000},  # 00004
+ {e: -5.649401406784E-01, f:  2.0000},  # 00005
+ {e: -5.260891750344E-01, f:  2.0000},  # 00006
+ {e: -4.790738332864E-01, f:  2.0000},  # 00007
+ {e: -4.365144180477E-01, f:  2.0000},  # 00008
+ {e: -3.975833716595E-01, f:  2.0000},  # 00009
+ {e: -3.483732876122E-01, f:  2.0000},  # 00010
+ {e: -3.112017569741E-01, f:  2.0000},  # 00011
+ {e: -3.070327624003E-01, f:  2.0000},  # 00012
+ {e: -2.862811977718E-01, f:  2.0000},  # 00013
+ {e: -2.758316461235E-01, f:  2.0000},  # 00014
+ {e: -2.664392866745E-01, f:  2.0000},  # 00015
+ {e: -2.557940545218E-01, f:  2.0000},  # 00016
+ {e: -2.424560726375E-01, f:  2.0000},  # 00017
+ {e: -2.360176637470E-01, f:  2.0000},  # 00018
+ {e: -2.030902514232E-01, f:  2.0000},  # 00019
+ {e: -1.930214130284E-01, f:  2.0000},  # 00020
+ {e: -1.847794244311E-01, f:  2.0000},  # 00021
+ {e: -1.692638170152E-01, f:  2.0000},  # 00022
+ {e: -1.487513011890E-01, f:  2.0000},  # 00023
+ {e: -1.099959124691E-01, f:  2.0000},  # 00024
+ {e: -9.734263507878E-02, f:  2.0000},  # 00025
+ {e: -5.384955239863E-02, f:  2.0000},  # 00026
+ {e:  5.859838602716E-04, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  2, delta:  4.62E-06, energy: -8.52984620043113750E+01, D:  6.041E-01}]
+ iter:  2, delta:  4.62E-06, energy: -8.52984620038199637E+01, D:  6.041E-01}]
    -  &final_kernel004  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  3, delta:  4.62E-06, energy: -8.52984620043113750E+01, D:  6.041E-01}]}
+ iter:  3, delta:  4.62E-06, energy: -8.52984620038199637E+01, D:  6.041E-01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc004
    -  {iter:  4, target function: HYBRID, mean conf prefac:  5.16E-03,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  4, delta out:  5.057E-06, energy: -8.52984620043113750E+01, D: -2.938E-01}
+ iter low:  4, delta out:  5.057E-06, energy: -8.52984620038199637E+01, D: -2.938E-01}
    multiplicator for the confinement   :  0.5
     #========================================================= support function optimization
  - support function optimization: &it_supfun005
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
- Calculating wavelets expansion of projectors, found warnings:  12, 
+ Calculating wavelets expansion of projectors, found warnings:  24, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  8.73959697615E+01, Epot: -9.20837191589E+01, Enl:  5.92856256035E+00}, 
+ Energies: {Ekin:  8.73959697780E+01, Epot: -9.20837191708E+01, Enl:  5.92856256039E+00}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
  error estimation: [
  max / mean error:  [  4.32E-11,  3.71E-12 ]]}, 
  Preconditioning:  Yes, mean kappa:  3.532E-01, dynamic conv crit:  2.83E-03, 
- iter:  1, fnrm:  1.72E-01, Omega: -8.525839777147877E+01, D: -8.45E-01, D best: -8.45E-01, 
+ iter:  1, fnrm:  1.72E-01, Omega: -8.525839777147138E+01, D: -8.45E-01, D best: -8.45E-01, 
  Optimization: {algorithm: SD, mean alpha:  2.928E-01, max alpha:  2.928E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  6, 
@@ -1420,22 +1398,22 @@
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: HYBRID, 
- Calculating wavelets expansion of projectors, found warnings:  12, 
+ Calculating wavelets expansion of projectors, found warnings:  24, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  8.66701610946E+01, Epot: -9.14012733238E+01, Enl:  5.88308626918E+00}, 
+ Energies: {Ekin:  8.66701611115E+01, Epot: -9.14012733360E+01, Enl:  5.88308626925E+00}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
  error estimation: [
  max / mean error:  [  1.24E-10,  1.12E-11 ]]}, 
  Preconditioning:  Yes, kappa:  3.011E-01, kappa to history:  Yes, mean kappa:  3.318E-01, 
             dynamic conv crit:  3.01E-03, 
- iter:  2, fnrm:  1.56E-01, Omega: -8.537319882172170E+01, D: -1.15E-01, D best: -1.15E-01, 
+ iter:  2, fnrm:  1.56E-01, Omega: -8.537319882168237E+01, D: -1.15E-01, D best: -1.15E-01, 
  exit criterion: net number of iterations}
    -  &final_supfun005  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
- Energies: {Ekin:  8.66701610946E+01, Epot: -9.14012733238E+01, Enl:  5.88308626918E+00}, 
- iter:  2, fnrm:  1.56E-01, Omega: -8.537319882172170E+01, D: -1.15E-01, D best: -1.15E-01}
+ Energies: {Ekin:  8.66701611115E+01, Epot: -9.14012733360E+01, Enl:  5.88308626925E+00}, 
+ iter:  2, fnrm:  1.56E-01, Omega: -8.537319882168237E+01, D: -1.15E-01, D best: -1.15E-01}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel005
@@ -1449,47 +1427,47 @@
        communication strategy kernel   : ALLREDUCE
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  8.73959697615E+01, Epot: -9.22797661798E+01, Enl:  5.92856256035E+00, 
-              EH:  3.45548548451E+02,  EXC: -2.56810874084E+01, EvXC: -3.33341679640E+01}, 
+ Energies: {Ekin:  8.73959697780E+01, Epot: -9.22797661920E+01, Enl:  5.92856256039E+00, 
+              EH:  3.45548548509E+02,  EXC: -2.56810874102E+01, EvXC: -3.33341679665E+01}, 
     Total charge:  5.399998547751E+01, 
- Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  2}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -9.216516406626E-01, f:  2.0000},  # 00001
- {e: -8.160180757234E-01, f:  2.0000},  # 00002
- {e: -7.221638783689E-01, f:  2.0000},  # 00003
- {e: -6.255546755975E-01, f:  2.0000},  # 00004
- {e: -5.729471420052E-01, f:  2.0000},  # 00005
- {e: -5.408707707877E-01, f:  2.0000},  # 00006
- {e: -4.933573288208E-01, f:  2.0000},  # 00007
- {e: -4.506824814548E-01, f:  2.0000},  # 00008
- {e: -4.052981932076E-01, f:  2.0000},  # 00009
- {e: -3.632430737013E-01, f:  2.0000},  # 00010
- {e: -3.229916670142E-01, f:  2.0000},  # 00011
- {e: -3.182871151920E-01, f:  2.0000},  # 00012
- {e: -2.959052582868E-01, f:  2.0000},  # 00013
- {e: -2.837229889154E-01, f:  2.0000},  # 00014
- {e: -2.770939660062E-01, f:  2.0000},  # 00015
- {e: -2.657599493831E-01, f:  2.0000},  # 00016
- {e: -2.488120524945E-01, f:  2.0000},  # 00017
- {e: -2.459495867404E-01, f:  2.0000},  # 00018
- {e: -2.126692219727E-01, f:  2.0000},  # 00019
- {e: -2.055783476526E-01, f:  2.0000},  # 00020
- {e: -1.986579309174E-01, f:  2.0000},  # 00021
- {e: -1.777433339582E-01, f:  2.0000},  # 00022
- {e: -1.563902559941E-01, f:  2.0000},  # 00023
- {e: -1.178284651529E-01, f:  2.0000},  # 00024
- {e: -9.146113524528E-02, f:  2.0000},  # 00025
- {e: -6.904994478395E-02, f:  2.0000},  # 00026
- {e: -3.192308711686E-03, f:  2.0000}] # 00027
+ {e: -9.216516408022E-01, f:  2.0000},  # 00001
+ {e: -8.160180758644E-01, f:  2.0000},  # 00002
+ {e: -7.221638785099E-01, f:  2.0000},  # 00003
+ {e: -6.255546757463E-01, f:  2.0000},  # 00004
+ {e: -5.729471421172E-01, f:  2.0000},  # 00005
+ {e: -5.408707708829E-01, f:  2.0000},  # 00006
+ {e: -4.933573289076E-01, f:  2.0000},  # 00007
+ {e: -4.506824815285E-01, f:  2.0000},  # 00008
+ {e: -4.052981932673E-01, f:  2.0000},  # 00009
+ {e: -3.632430738010E-01, f:  2.0000},  # 00010
+ {e: -3.229916670983E-01, f:  2.0000},  # 00011
+ {e: -3.182871152738E-01, f:  2.0000},  # 00012
+ {e: -2.959052583684E-01, f:  2.0000},  # 00013
+ {e: -2.837229889563E-01, f:  2.0000},  # 00014
+ {e: -2.770939660723E-01, f:  2.0000},  # 00015
+ {e: -2.657599494631E-01, f:  2.0000},  # 00016
+ {e: -2.488120525634E-01, f:  2.0000},  # 00017
+ {e: -2.459495867962E-01, f:  2.0000},  # 00018
+ {e: -2.126692220199E-01, f:  2.0000},  # 00019
+ {e: -2.055783476885E-01, f:  2.0000},  # 00020
+ {e: -1.986579309280E-01, f:  2.0000},  # 00021
+ {e: -1.777433339999E-01, f:  2.0000},  # 00022
+ {e: -1.563902560361E-01, f:  2.0000},  # 00023
+ {e: -1.178284651661E-01, f:  2.0000},  # 00024
+ {e: -9.146113527399E-02, f:  2.0000},  # 00025
+ {e: -6.904994477026E-02, f:  2.0000},  # 00026
+ {e: -3.192308685017E-03, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  1, delta:  6.01E-06, energy: -8.60629384268501667E+01, D: -7.645E-01}]
+ iter:  1, delta:  6.01E-06, energy: -8.60629384266572401E+01, D: -7.645E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  1.96E-02
        mean dev from unity             :  2.27E-03
        Hamiltonian application required:  Yes
-       Calculating wavelets expansion of projectors, found warnings:  12
+       Calculating wavelets expansion of projectors, found warnings:  24
         #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
        method                          : diagonalization
        mode                            : sequential
@@ -1497,64 +1475,64 @@
        Kohn-Sham residue               :  1.980E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  8.66701610946E+01, Epot: -9.26451015503E+01, Enl:  5.88308626918E+00, 
-              EH:  3.44250618442E+02,  EXC: -2.54128690735E+01, EvXC: -3.29877556170E+01}, 
+ Energies: {Ekin:  8.66701611115E+01, Epot: -9.26451015628E+01, Enl:  5.88308626925E+00, 
+              EH:  3.44250618500E+02,  EXC: -2.54128690755E+01, EvXC: -3.29877556197E+01}, 
     Total charge:  5.399998535702E+01, 
- Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  2}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -9.291438265154E-01, f:  2.0000},  # 00001
- {e: -8.393606366855E-01, f:  2.0000},  # 00002
- {e: -7.330193883261E-01, f:  2.0000},  # 00003
- {e: -6.397475928901E-01, f:  2.0000},  # 00004
- {e: -5.867064817453E-01, f:  2.0000},  # 00005
- {e: -5.500494928974E-01, f:  2.0000},  # 00006
- {e: -5.027949446991E-01, f:  2.0000},  # 00007
- {e: -4.603711289671E-01, f:  2.0000},  # 00008
- {e: -4.200593893446E-01, f:  2.0000},  # 00009
- {e: -3.727925686159E-01, f:  2.0000},  # 00010
- {e: -3.349298636403E-01, f:  2.0000},  # 00011
- {e: -3.319394625517E-01, f:  2.0000},  # 00012
- {e: -3.102147836601E-01, f:  2.0000},  # 00013
- {e: -2.995994779374E-01, f:  2.0000},  # 00014
- {e: -2.907532154297E-01, f:  2.0000},  # 00015
- {e: -2.786803445424E-01, f:  2.0000},  # 00016
- {e: -2.623311846352E-01, f:  2.0000},  # 00017
- {e: -2.578489124536E-01, f:  2.0000},  # 00018
- {e: -2.290965939458E-01, f:  2.0000},  # 00019
- {e: -2.177956917254E-01, f:  2.0000},  # 00020
- {e: -2.120306214822E-01, f:  2.0000},  # 00021
- {e: -1.929649312928E-01, f:  2.0000},  # 00022
- {e: -1.779521190098E-01, f:  2.0000},  # 00023
- {e: -1.375632287606E-01, f:  2.0000},  # 00024
- {e: -1.222383189237E-01, f:  2.0000},  # 00025
- {e: -8.329447038411E-02, f:  2.0000},  # 00026
- {e: -2.460541355383E-02, f:  2.0000}] # 00027
+ {e: -9.291438267138E-01, f:  2.0000},  # 00001
+ {e: -8.393606367849E-01, f:  2.0000},  # 00002
+ {e: -7.330193884923E-01, f:  2.0000},  # 00003
+ {e: -6.397475930408E-01, f:  2.0000},  # 00004
+ {e: -5.867064818620E-01, f:  2.0000},  # 00005
+ {e: -5.500494930207E-01, f:  2.0000},  # 00006
+ {e: -5.027949448151E-01, f:  2.0000},  # 00007
+ {e: -4.603711290666E-01, f:  2.0000},  # 00008
+ {e: -4.200593893999E-01, f:  2.0000},  # 00009
+ {e: -3.727925687431E-01, f:  2.0000},  # 00010
+ {e: -3.349298637050E-01, f:  2.0000},  # 00011
+ {e: -3.319394626638E-01, f:  2.0000},  # 00012
+ {e: -3.102147837344E-01, f:  2.0000},  # 00013
+ {e: -2.995994779938E-01, f:  2.0000},  # 00014
+ {e: -2.907532155131E-01, f:  2.0000},  # 00015
+ {e: -2.786803446291E-01, f:  2.0000},  # 00016
+ {e: -2.623311846980E-01, f:  2.0000},  # 00017
+ {e: -2.578489125131E-01, f:  2.0000},  # 00018
+ {e: -2.290965939900E-01, f:  2.0000},  # 00019
+ {e: -2.177956917780E-01, f:  2.0000},  # 00020
+ {e: -2.120306215087E-01, f:  2.0000},  # 00021
+ {e: -1.929649313282E-01, f:  2.0000},  # 00022
+ {e: -1.779521190314E-01, f:  2.0000},  # 00023
+ {e: -1.375632287583E-01, f:  2.0000},  # 00024
+ {e: -1.222383188713E-01, f:  2.0000},  # 00025
+ {e: -8.329447039056E-02, f:  2.0000},  # 00026
+ {e: -2.460541350381E-02, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  2, delta:  3.08E-06, energy: -8.56332090220861346E+01, D:  4.297E-01}]
+ iter:  2, delta:  3.08E-06, energy: -8.56332090216380379E+01, D:  4.297E-01}]
    -  &final_kernel005  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  3, delta:  3.08E-06, energy: -8.56332090220861346E+01, D:  4.297E-01}]}
+ iter:  3, delta:  3.08E-06, energy: -8.56332090216380379E+01, D:  4.297E-01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc005
    -  {iter:  5, target function: HYBRID, mean conf prefac:  2.58E-03,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  5, delta out:  4.084E-06, energy: -8.56332090220861346E+01, D: -3.347E-01}
+ iter low:  5, delta out:  4.084E-06, energy: -8.56332090216380379E+01, D: -3.347E-01}
    multiplicator for the confinement   :  0.5
     #========================================================= support function optimization
  - support function optimization: &it_supfun006
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
- Calculating wavelets expansion of projectors, found warnings:  12, 
+ Calculating wavelets expansion of projectors, found warnings:  24, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  8.66701610946E+01, Epot: -9.26255990675E+01, Enl:  5.88308626918E+00}, 
+ Energies: {Ekin:  8.66701611115E+01, Epot: -9.26255990799E+01, Enl:  5.88308626925E+00}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
  error estimation: [
  max / mean error:  [  1.24E-10,  1.12E-11 ]]}, 
  Preconditioning:  Yes, mean kappa:  3.318E-01, dynamic conv crit:  3.01E-03, 
- iter:  1, fnrm:  1.58E-01, Omega: -8.578512754627383E+01, D: -5.27E-01, D best: -5.27E-01, 
+ iter:  1, fnrm:  1.58E-01, Omega: -8.578512754613024E+01, D: -5.27E-01, D best: -5.27E-01, 
  Optimization: {algorithm: SD, mean alpha:  3.221E-01, max alpha:  3.221E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  6, 
@@ -1567,22 +1545,22 @@
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: HYBRID, 
- Calculating wavelets expansion of projectors, found warnings:  12, 
+ Calculating wavelets expansion of projectors, found warnings:  24, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  8.61403034967E+01, Epot: -9.21462577856E+01, Enl:  5.86510409434E+00}, 
+ Energies: {Ekin:  8.61403035138E+01, Epot: -9.21462577981E+01, Enl:  5.86510409443E+00}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
  error estimation: [
  max / mean error:  [  2.66E-10,  2.39E-11 ]]}, 
  Preconditioning:  Yes, kappa:  2.432E-01, kappa to history:  Yes, mean kappa:  2.943E-01, 
             dynamic conv crit:  3.40E-03, 
- iter:  2, fnrm:  1.52E-01, Omega: -8.584946981833951E+01, D: -6.43E-02, D best: -6.43E-02, 
+ iter:  2, fnrm:  1.52E-01, Omega: -8.584946981818183E+01, D: -6.43E-02, D best: -6.43E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun006  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
- Energies: {Ekin:  8.61403034967E+01, Epot: -9.21462577856E+01, Enl:  5.86510409434E+00}, 
- iter:  2, fnrm:  1.52E-01, Omega: -8.584946981833951E+01, D: -6.43E-02, D best: -6.43E-02}
+ Energies: {Ekin:  8.61403035138E+01, Epot: -9.21462577981E+01, Enl:  5.86510409443E+00}, 
+ iter:  2, fnrm:  1.52E-01, Omega: -8.584946981818183E+01, D: -6.43E-02, D best: -6.43E-02}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel006
@@ -1596,47 +1574,47 @@
        communication strategy kernel   : ALLREDUCE
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  8.66701610946E+01, Epot: -9.26451015503E+01, Enl:  5.88308626918E+00, 
-              EH:  3.44464519738E+02,  EXC: -2.54482776914E+01, EvXC: -3.30343983037E+01}, 
+ Energies: {Ekin:  8.66701611115E+01, Epot: -9.26451015628E+01, Enl:  5.88308626925E+00, 
+              EH:  3.44464519796E+02,  EXC: -2.54482776933E+01, EvXC: -3.30343983063E+01}, 
     Total charge:  5.399998569858E+01, 
- Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  2}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -9.410219116345E-01, f:  2.0000},  # 00001
- {e: -8.414350644845E-01, f:  2.0000},  # 00002
- {e: -7.406190139901E-01, f:  2.0000},  # 00003
- {e: -6.452669342922E-01, f:  2.0000},  # 00004
- {e: -5.926886612353E-01, f:  2.0000},  # 00005
- {e: -5.595679083794E-01, f:  2.0000},  # 00006
- {e: -5.118431843140E-01, f:  2.0000},  # 00007
- {e: -4.692803092320E-01, f:  2.0000},  # 00008
- {e: -4.261673110543E-01, f:  2.0000},  # 00009
- {e: -3.822115188542E-01, f:  2.0000},  # 00010
- {e: -3.422768715343E-01, f:  2.0000},  # 00011
- {e: -3.398972283183E-01, f:  2.0000},  # 00012
- {e: -3.166325298142E-01, f:  2.0000},  # 00013
- {e: -3.064751451134E-01, f:  2.0000},  # 00014
- {e: -2.981106989337E-01, f:  2.0000},  # 00015
- {e: -2.860690366520E-01, f:  2.0000},  # 00016
- {e: -2.679736133030E-01, f:  2.0000},  # 00017
- {e: -2.650379841214E-01, f:  2.0000},  # 00018
- {e: -2.364964119633E-01, f:  2.0000},  # 00019
- {e: -2.261418082538E-01, f:  2.0000},  # 00020
- {e: -2.206364899051E-01, f:  2.0000},  # 00021
- {e: -1.999449980442E-01, f:  2.0000},  # 00022
- {e: -1.830995271968E-01, f:  2.0000},  # 00023
- {e: -1.443870398856E-01, f:  2.0000},  # 00024
- {e: -1.212519037720E-01, f:  2.0000},  # 00025
- {e: -9.247869560179E-02, f:  2.0000},  # 00026
- {e: -2.845687336401E-02, f:  2.0000}] # 00027
+ {e: -9.410219117937E-01, f:  2.0000},  # 00001
+ {e: -8.414350646171E-01, f:  2.0000},  # 00002
+ {e: -7.406190141388E-01, f:  2.0000},  # 00003
+ {e: -6.452669344437E-01, f:  2.0000},  # 00004
+ {e: -5.926886613496E-01, f:  2.0000},  # 00005
+ {e: -5.595679084829E-01, f:  2.0000},  # 00006
+ {e: -5.118431844091E-01, f:  2.0000},  # 00007
+ {e: -4.692803093123E-01, f:  2.0000},  # 00008
+ {e: -4.261673111134E-01, f:  2.0000},  # 00009
+ {e: -3.822115189614E-01, f:  2.0000},  # 00010
+ {e: -3.422768716237E-01, f:  2.0000},  # 00011
+ {e: -3.398972284022E-01, f:  2.0000},  # 00012
+ {e: -3.166325298950E-01, f:  2.0000},  # 00013
+ {e: -3.064751451621E-01, f:  2.0000},  # 00014
+ {e: -2.981106990082E-01, f:  2.0000},  # 00015
+ {e: -2.860690367364E-01, f:  2.0000},  # 00016
+ {e: -2.679736133727E-01, f:  2.0000},  # 00017
+ {e: -2.650379841794E-01, f:  2.0000},  # 00018
+ {e: -2.364964120059E-01, f:  2.0000},  # 00019
+ {e: -2.261418082949E-01, f:  2.0000},  # 00020
+ {e: -2.206364899239E-01, f:  2.0000},  # 00021
+ {e: -1.999449980843E-01, f:  2.0000},  # 00022
+ {e: -1.830995272387E-01, f:  2.0000},  # 00023
+ {e: -1.443870398990E-01, f:  2.0000},  # 00024
+ {e: -1.212519037857E-01, f:  2.0000},  # 00025
+ {e: -9.247869559403E-02, f:  2.0000},  # 00026
+ {e: -2.845687333537E-02, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  1, delta:  4.55E-06, energy: -8.62110454264825421E+01, D: -5.778E-01}]
+ iter:  1, delta:  4.55E-06, energy: -8.62110454262538610E+01, D: -5.778E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  2.18E-02
        mean dev from unity             :  2.52E-03
        Hamiltonian application required:  Yes
-       Calculating wavelets expansion of projectors, found warnings:  12
+       Calculating wavelets expansion of projectors, found warnings:  24
         #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
        method                          : diagonalization
        mode                            : sequential
@@ -1644,64 +1622,64 @@
        Kohn-Sham residue               :  2.040E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  8.61403034967E+01, Epot: -9.29308166938E+01, Enl:  5.86510409434E+00, 
-              EH:  3.43567755343E+02,  EXC: -2.52687737743E+01, EvXC: -3.28027789584E+01}, 
+ Energies: {Ekin:  8.61403035138E+01, Epot: -9.29308167066E+01, Enl:  5.86510409443E+00, 
+              EH:  3.43567755401E+02,  EXC: -2.52687737763E+01, EvXC: -3.28027789611E+01}, 
     Total charge:  5.399998562376E+01, 
- Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  2}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -9.474763035209E-01, f:  2.0000},  # 00001
- {e: -8.555498484409E-01, f:  2.0000},  # 00002
- {e: -7.491630824541E-01, f:  2.0000},  # 00003
- {e: -6.559629655297E-01, f:  2.0000},  # 00004
- {e: -6.030253280307E-01, f:  2.0000},  # 00005
- {e: -5.669787821219E-01, f:  2.0000},  # 00006
- {e: -5.196728186675E-01, f:  2.0000},  # 00007
- {e: -4.771578910761E-01, f:  2.0000},  # 00008
- {e: -4.371039449212E-01, f:  2.0000},  # 00009
- {e: -3.897380252928E-01, f:  2.0000},  # 00010
- {e: -3.517363944059E-01, f:  2.0000},  # 00011
- {e: -3.492115086422E-01, f:  2.0000},  # 00012
- {e: -3.273233391236E-01, f:  2.0000},  # 00013
- {e: -3.166227741733E-01, f:  2.0000},  # 00014
- {e: -3.078052534674E-01, f:  2.0000},  # 00015
- {e: -2.957249779249E-01, f:  2.0000},  # 00016
- {e: -2.780419335664E-01, f:  2.0000},  # 00017
- {e: -2.740497208936E-01, f:  2.0000},  # 00018
- {e: -2.482017859080E-01, f:  2.0000},  # 00019
- {e: -2.356359198444E-01, f:  2.0000},  # 00020
- {e: -2.299917154512E-01, f:  2.0000},  # 00021
- {e: -2.110837937934E-01, f:  2.0000},  # 00022
- {e: -1.968887576431E-01, f:  2.0000},  # 00023
- {e: -1.587454503558E-01, f:  2.0000},  # 00024
- {e: -1.395388596462E-01, f:  2.0000},  # 00025
- {e: -1.030356782620E-01, f:  2.0000},  # 00026
- {e: -4.346195694366E-02, f:  2.0000}] # 00027
+ {e: -9.474763037144E-01, f:  2.0000},  # 00001
+ {e: -8.555498485530E-01, f:  2.0000},  # 00002
+ {e: -7.491630826187E-01, f:  2.0000},  # 00003
+ {e: -6.559629656828E-01, f:  2.0000},  # 00004
+ {e: -6.030253281486E-01, f:  2.0000},  # 00005
+ {e: -5.669787822429E-01, f:  2.0000},  # 00006
+ {e: -5.196728187797E-01, f:  2.0000},  # 00007
+ {e: -4.771578911711E-01, f:  2.0000},  # 00008
+ {e: -4.371039449787E-01, f:  2.0000},  # 00009
+ {e: -3.897380254172E-01, f:  2.0000},  # 00010
+ {e: -3.517363944752E-01, f:  2.0000},  # 00011
+ {e: -3.492115087548E-01, f:  2.0000},  # 00012
+ {e: -3.273233391998E-01, f:  2.0000},  # 00013
+ {e: -3.166227742376E-01, f:  2.0000},  # 00014
+ {e: -3.078052535498E-01, f:  2.0000},  # 00015
+ {e: -2.957249780139E-01, f:  2.0000},  # 00016
+ {e: -2.780419336323E-01, f:  2.0000},  # 00017
+ {e: -2.740497209547E-01, f:  2.0000},  # 00018
+ {e: -2.482017859512E-01, f:  2.0000},  # 00019
+ {e: -2.356359198956E-01, f:  2.0000},  # 00020
+ {e: -2.299917154799E-01, f:  2.0000},  # 00021
+ {e: -2.110837938307E-01, f:  2.0000},  # 00022
+ {e: -1.968887576741E-01, f:  2.0000},  # 00023
+ {e: -1.587454503612E-01, f:  2.0000},  # 00024
+ {e: -1.395388596175E-01, f:  2.0000},  # 00025
+ {e: -1.030356782669E-01, f:  2.0000},  # 00026
+ {e: -4.346195690208E-02, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  2, delta:  2.19E-06, energy: -8.59333167333738288E+01, D:  2.777E-01}]
+ iter:  2, delta:  2.19E-06, energy: -8.59333167329567686E+01, D:  2.777E-01}]
    -  &final_kernel006  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  3, delta:  2.19E-06, energy: -8.59333167333738288E+01, D:  2.777E-01}]}
+ iter:  3, delta:  2.19E-06, energy: -8.59333167329567686E+01, D:  2.777E-01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc006
    -  {iter:  6, target function: HYBRID, mean conf prefac:  1.29E-03,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  6, delta out:  3.208E-06, energy: -8.59333167333738288E+01, D: -3.001E-01}
+ iter low:  6, delta out:  3.208E-06, energy: -8.59333167329567686E+01, D: -3.001E-01}
    multiplicator for the confinement   :  0.5
     #========================================================= support function optimization
  - support function optimization: &it_supfun007
    -  { #-------------------------------------------------------------------------- iter: 1
  target function: HYBRID, 
- Calculating wavelets expansion of projectors, found warnings:  12, 
+ Calculating wavelets expansion of projectors, found warnings:  24, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  8.61403034967E+01, Epot: -9.29680368966E+01, Enl:  5.86510409434E+00}, 
+ Energies: {Ekin:  8.61403035138E+01, Epot: -9.29680369093E+01, Enl:  5.86510409443E+00}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
  error estimation: [
  max / mean error:  [  2.66E-10,  2.39E-11 ]]}, 
  Preconditioning:  Yes, mean kappa:  2.943E-01, dynamic conv crit:  3.40E-03, 
- iter:  1, fnrm:  1.53E-01, Omega: -8.611126501349969E+01, D: -3.26E-01, D best: -3.26E-01, 
+ iter:  1, fnrm:  1.53E-01, Omega: -8.611126501327317E+01, D: -3.26E-01, D best: -3.26E-01, 
  Optimization: {algorithm: SD, mean alpha:  3.543E-01, max alpha:  3.543E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  6, 
@@ -1714,22 +1692,22 @@
  communication strategy kernel: ALLREDUCE, reconstruct kernel:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: HYBRID, 
- Calculating wavelets expansion of projectors, found warnings:  12, 
+ Calculating wavelets expansion of projectors, found warnings:  24, 
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  8.57765188015E+01, Epot: -9.26508631472E+01, Enl:  5.86175897125E+00}, 
+ Energies: {Ekin:  8.57765188186E+01, Epot: -9.26508631600E+01, Enl:  5.86175897136E+00}, 
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  6, 
  error estimation: [
  max / mean error:  [  4.61E-10,  4.11E-11 ]]}, 
  Preconditioning:  Yes, kappa:  1.790E-01, kappa to history:  Yes, mean kappa:  2.411E-01, 
             dynamic conv crit:  4.15E-03, 
- iter:  2, fnrm:  1.49E-01, Omega: -8.614735328691944E+01, D: -3.61E-02, D best: -3.61E-02, 
+ iter:  2, fnrm:  1.49E-01, Omega: -8.614735328668974E+01, D: -3.61E-02, D best: -3.61E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun007  { #-------------------------------------------------------- iter: 2
  target function: HYBRID, 
- Energies: {Ekin:  8.57765188015E+01, Epot: -9.26508631472E+01, Enl:  5.86175897125E+00}, 
- iter:  2, fnrm:  1.49E-01, Omega: -8.614735328691944E+01, D: -3.61E-02, D best: -3.61E-02}
+ Energies: {Ekin:  8.57765188186E+01, Epot: -9.26508631600E+01, Enl:  5.86175897136E+00}, 
+ iter:  2, fnrm:  1.49E-01, Omega: -8.614735328668974E+01, D: -3.61E-02, D best: -3.61E-02}
       #Support functions created
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel007
@@ -1743,47 +1721,47 @@
        communication strategy kernel   : ALLREDUCE
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  8.61403034967E+01, Epot: -9.29308166938E+01, Enl:  5.86510409434E+00, 
-              EH:  3.43725070474E+02,  EXC: -2.52914529591E+01, EvXC: -3.28326875898E+01}, 
+ Energies: {Ekin:  8.61403035138E+01, Epot: -9.29308167066E+01, Enl:  5.86510409443E+00, 
+              EH:  3.43725070531E+02,  EXC: -2.52914529611E+01, EvXC: -3.28326875924E+01}, 
     Total charge:  5.399998582739E+01, 
- Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  2}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -9.542779419252E-01, f:  2.0000},  # 00001
- {e: -8.576655374001E-01, f:  2.0000},  # 00002
- {e: -7.537815515464E-01, f:  2.0000},  # 00003
- {e: -6.598655689979E-01, f:  2.0000},  # 00004
- {e: -6.071879168841E-01, f:  2.0000},  # 00005
- {e: -5.728179163873E-01, f:  2.0000},  # 00006
- {e: -5.252345335527E-01, f:  2.0000},  # 00007
- {e: -4.826536842348E-01, f:  2.0000},  # 00008
- {e: -4.415957112096E-01, f:  2.0000},  # 00009
- {e: -3.954383855876E-01, f:  2.0000},  # 00010
- {e: -3.558987398897E-01, f:  2.0000},  # 00011
- {e: -3.547395074328E-01, f:  2.0000},  # 00012
- {e: -3.315982059689E-01, f:  2.0000},  # 00013
- {e: -3.212867320112E-01, f:  2.0000},  # 00014
- {e: -3.127758354969E-01, f:  2.0000},  # 00015
- {e: -3.007908234898E-01, f:  2.0000},  # 00016
- {e: -2.824779362742E-01, f:  2.0000},  # 00017
- {e: -2.789996074766E-01, f:  2.0000},  # 00018
- {e: -2.531319887762E-01, f:  2.0000},  # 00019
- {e: -2.410098123316E-01, f:  2.0000},  # 00020
- {e: -2.353685725554E-01, f:  2.0000},  # 00021
- {e: -2.162504262637E-01, f:  2.0000},  # 00022
- {e: -2.002538084060E-01, f:  2.0000},  # 00023
- {e: -1.640292253041E-01, f:  2.0000},  # 00024
- {e: -1.402162724485E-01, f:  2.0000},  # 00025
- {e: -1.083796379544E-01, f:  2.0000},  # 00026
- {e: -4.676679432466E-02, f:  2.0000}] # 00027
+ {e: -9.542779420986E-01, f:  2.0000},  # 00001
+ {e: -8.576655375316E-01, f:  2.0000},  # 00002
+ {e: -7.537815517025E-01, f:  2.0000},  # 00003
+ {e: -6.598655691522E-01, f:  2.0000},  # 00004
+ {e: -6.071879170011E-01, f:  2.0000},  # 00005
+ {e: -5.728179164977E-01, f:  2.0000},  # 00006
+ {e: -5.252345336545E-01, f:  2.0000},  # 00007
+ {e: -4.826536843206E-01, f:  2.0000},  # 00008
+ {e: -4.415957112690E-01, f:  2.0000},  # 00009
+ {e: -3.954383857019E-01, f:  2.0000},  # 00010
+ {e: -3.558987399731E-01, f:  2.0000},  # 00011
+ {e: -3.547395075305E-01, f:  2.0000},  # 00012
+ {e: -3.315982060494E-01, f:  2.0000},  # 00013
+ {e: -3.212867320703E-01, f:  2.0000},  # 00014
+ {e: -3.127758355762E-01, f:  2.0000},  # 00015
+ {e: -3.007908235782E-01, f:  2.0000},  # 00016
+ {e: -2.824779363439E-01, f:  2.0000},  # 00017
+ {e: -2.789996075368E-01, f:  2.0000},  # 00018
+ {e: -2.531319888201E-01, f:  2.0000},  # 00019
+ {e: -2.410098123775E-01, f:  2.0000},  # 00020
+ {e: -2.353685725808E-01, f:  2.0000},  # 00021
+ {e: -2.162504263033E-01, f:  2.0000},  # 00022
+ {e: -2.002538084506E-01, f:  2.0000},  # 00023
+ {e: -1.640292253178E-01, f:  2.0000},  # 00024
+ {e: -1.402162724560E-01, f:  2.0000},  # 00025
+ {e: -1.083796379529E-01, f:  2.0000},  # 00026
+ {e: -4.676679429528E-02, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  1, delta:  3.43E-06, energy: -8.63345301455692038E+01, D: -4.012E-01}]
+ iter:  1, delta:  3.43E-06, energy: -8.63345301453066440E+01, D: -4.012E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        max dev from unity              :  2.36E-02
        mean dev from unity             :  2.72E-03
        Hamiltonian application required:  Yes
-       Calculating wavelets expansion of projectors, found warnings:  12
+       Calculating wavelets expansion of projectors, found warnings:  24
         #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
        method                          : diagonalization
        mode                            : sequential
@@ -1791,140 +1769,140 @@
        Kohn-Sham residue               :  2.094E-01
        Coefficients available          :  Yes
      Hamiltonian update: {
- Energies: {Ekin:  8.57765188015E+01, Epot: -9.31290778971E+01, Enl:  5.86175897125E+00, 
-              EH:  3.43147329163E+02,  EXC: -2.51784802466E+01, EvXC: -3.26869517734E+01}, 
+ Energies: {Ekin:  8.57765188186E+01, Epot: -9.31290779101E+01, Enl:  5.86175897136E+00, 
+              EH:  3.43147329220E+02,  EXC: -2.51784802487E+01, EvXC: -3.26869517761E+01}, 
     Total charge:  5.399998578396E+01, 
- Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  4}}
+ Poisson Solver: {BC: Free, Box:  [  123,  121,  117 ], MPI tasks:  2}}
       #Eigenvalues and New Occupation Numbers
      Orbitals: [
- {e: -9.585718512741E-01, f:  2.0000},  # 00001
- {e: -8.655893484361E-01, f:  2.0000},  # 00002
- {e: -7.597052830364E-01, f:  2.0000},  # 00003
- {e: -6.673694319640E-01, f:  2.0000},  # 00004
- {e: -6.144000395177E-01, f:  2.0000},  # 00005
- {e: -5.780004850927E-01, f:  2.0000},  # 00006
- {e: -5.308597192546E-01, f:  2.0000},  # 00007
- {e: -4.882579886140E-01, f:  2.0000},  # 00008
- {e: -4.491993722576E-01, f:  2.0000},  # 00009
- {e: -4.006418160738E-01, f:  2.0000},  # 00010
- {e: -3.626912729014E-01, f:  2.0000},  # 00011
- {e: -3.602823911142E-01, f:  2.0000},  # 00012
- {e: -3.386014388051E-01, f:  2.0000},  # 00013
- {e: -3.275197809634E-01, f:  2.0000},  # 00014
- {e: -3.193011267635E-01, f:  2.0000},  # 00015
- {e: -3.074904555724E-01, f:  2.0000},  # 00016
- {e: -2.896104789149E-01, f:  2.0000},  # 00017
- {e: -2.852707828599E-01, f:  2.0000},  # 00018
- {e: -2.605835303534E-01, f:  2.0000},  # 00019
- {e: -2.476851817688E-01, f:  2.0000},  # 00020
- {e: -2.416877204082E-01, f:  2.0000},  # 00021
- {e: -2.238906276317E-01, f:  2.0000},  # 00022
- {e: -2.083678070316E-01, f:  2.0000},  # 00023
- {e: -1.739667941389E-01, f:  2.0000},  # 00024
- {e: -1.505883364866E-01, f:  2.0000},  # 00025
- {e: -1.154530464908E-01, f:  2.0000},  # 00026
- {e: -5.683401951550E-02, f:  2.0000}] # 00027
+ {e: -9.585718514660E-01, f:  2.0000},  # 00001
+ {e: -8.655893485592E-01, f:  2.0000},  # 00002
+ {e: -7.597052832016E-01, f:  2.0000},  # 00003
+ {e: -6.673694321194E-01, f:  2.0000},  # 00004
+ {e: -6.144000396370E-01, f:  2.0000},  # 00005
+ {e: -5.780004852129E-01, f:  2.0000},  # 00006
+ {e: -5.308597193655E-01, f:  2.0000},  # 00007
+ {e: -4.882579887076E-01, f:  2.0000},  # 00008
+ {e: -4.491993723169E-01, f:  2.0000},  # 00009
+ {e: -4.006418161981E-01, f:  2.0000},  # 00010
+ {e: -3.626912729755E-01, f:  2.0000},  # 00011
+ {e: -3.602823912280E-01, f:  2.0000},  # 00012
+ {e: -3.386014388845E-01, f:  2.0000},  # 00013
+ {e: -3.275197810313E-01, f:  2.0000},  # 00014
+ {e: -3.193011268476E-01, f:  2.0000},  # 00015
+ {e: -3.074904556636E-01, f:  2.0000},  # 00016
+ {e: -2.896104789825E-01, f:  2.0000},  # 00017
+ {e: -2.852707829226E-01, f:  2.0000},  # 00018
+ {e: -2.605835303994E-01, f:  2.0000},  # 00019
+ {e: -2.476851818206E-01, f:  2.0000},  # 00020
+ {e: -2.416877204386E-01, f:  2.0000},  # 00021
+ {e: -2.238906276700E-01, f:  2.0000},  # 00022
+ {e: -2.083678070720E-01, f:  2.0000},  # 00023
+ {e: -1.739667941488E-01, f:  2.0000},  # 00024
+ {e: -1.505883364750E-01, f:  2.0000},  # 00025
+ {e: -1.154530464965E-01, f:  2.0000},  # 00026
+ {e: -5.683401947957E-02, f:  2.0000}] # 00027
      summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  2, delta:  1.61E-06, energy: -8.61654068445585040E+01, D:  1.691E-01}]
+ iter:  2, delta:  1.61E-06, energy: -8.61654068441854974E+01, D:  1.691E-01}]
    -  &final_kernel007  { #-------------------------------------------------------- iter: 3
  summary: [ {kernel optimization: DIAG, mixing quantity: POT, mix hist:  0, 
- iter:  3, delta:  1.61E-06, energy: -8.61654068445585040E+01, D:  1.691E-01}]}
+ iter:  3, delta:  1.61E-06, energy: -8.61654068441854974E+01, D:  1.691E-01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc007
    -  {iter:  7, target function: HYBRID, mean conf prefac:  6.46E-04,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  7, delta out:  2.465E-06, energy: -8.61654068445585040E+01, D: -2.321E-01}
+ iter low:  7, delta out:  2.465E-06, energy: -8.61654068441854974E+01, D: -2.321E-01}
     #Eigenvalues and New Occupation Numbers
    Orbitals: [
- {e: -9.585718512741E-01, f:  1.0000},  # 00001
- {e: -8.655893484361E-01, f:  1.0000},  # 00002
- {e: -7.597052830364E-01, f:  1.0000},  # 00003
- {e: -6.673694319640E-01, f:  1.0000},  # 00004
- {e: -6.144000395177E-01, f:  1.0000},  # 00005
- {e: -5.780004850927E-01, f:  1.0000},  # 00006
- {e: -5.308597192546E-01, f:  1.0000},  # 00007
- {e: -4.882579886140E-01, f:  1.0000},  # 00008
- {e: -4.491993722576E-01, f:  1.0000},  # 00009
- {e: -4.006418160738E-01, f:  1.0000},  # 00010
- {e: -3.626912729014E-01, f:  1.0000},  # 00011
- {e: -3.602823911142E-01, f:  1.0000},  # 00012
- {e: -3.386014388051E-01, f:  1.0000},  # 00013
- {e: -3.275197809634E-01, f:  1.0000},  # 00014
- {e: -3.193011267635E-01, f:  1.0000},  # 00015
- {e: -3.074904555724E-01, f:  1.0000},  # 00016
- {e: -2.896104789149E-01, f:  1.0000},  # 00017
- {e: -2.852707828599E-01, f:  1.0000},  # 00018
- {e: -2.605835303534E-01, f:  1.0000},  # 00019
- {e: -2.476851817688E-01, f:  1.0000},  # 00020
- {e: -2.416877204082E-01, f:  1.0000},  # 00021
- {e: -2.238906276317E-01, f:  1.0000},  # 00022
- {e: -2.083678070316E-01, f:  1.0000},  # 00023
- {e: -1.739667941389E-01, f:  1.0000},  # 00024
- {e: -1.505883364866E-01, f:  1.0000},  # 00025
- {e: -1.154530464908E-01, f:  1.0000},  # 00026
- {e: -5.683401951550E-02, f:  1.0000},  # 00027
- {e:  9.027062320429E-02, f:  1.0000},  # 00028
- {e:  2.648679043122E-01, f:  1.0000},  # 00029
- {e:  2.785505595675E-01, f:  1.0000},  # 00030
- {e:  3.263457879316E-01, f:  1.0000},  # 00031
- {e:  3.728288744301E-01, f:  1.0000},  # 00032
- {e:  4.017327992562E-01, f:  1.0000},  # 00033
- {e:  4.221526420179E-01, f:  1.0000},  # 00034
- {e:  4.499234551926E-01, f:  1.0000},  # 00035
- {e:  4.560333252340E-01, f:  1.0000},  # 00036
- {e:  4.886406713558E-01, f:  1.0000},  # 00037
- {e:  4.993696979284E-01, f:  1.0000},  # 00038
- {e:  5.046953623659E-01, f:  1.0000},  # 00039
- {e:  5.143738261325E-01, f:  1.0000},  # 00040
- {e:  5.214049937687E-01, f:  1.0000},  # 00041
- {e:  5.372310506838E-01, f:  1.0000},  # 00042
- {e:  5.467391125496E-01, f:  1.0000},  # 00043
- {e:  5.634294364902E-01, f:  1.0000},  # 00044
- {e:  5.675024930210E-01, f:  1.0000},  # 00045
- {e:  5.778169172289E-01, f:  1.0000},  # 00046
- {e:  7.216515667986E-01, f:  1.0000}] # 00047
+ {e: -9.585718514660E-01, f:  1.0000},  # 00001
+ {e: -8.655893485592E-01, f:  1.0000},  # 00002
+ {e: -7.597052832016E-01, f:  1.0000},  # 00003
+ {e: -6.673694321194E-01, f:  1.0000},  # 00004
+ {e: -6.144000396370E-01, f:  1.0000},  # 00005
+ {e: -5.780004852129E-01, f:  1.0000},  # 00006
+ {e: -5.308597193655E-01, f:  1.0000},  # 00007
+ {e: -4.882579887076E-01, f:  1.0000},  # 00008
+ {e: -4.491993723169E-01, f:  1.0000},  # 00009
+ {e: -4.006418161981E-01, f:  1.0000},  # 00010
+ {e: -3.626912729755E-01, f:  1.0000},  # 00011
+ {e: -3.602823912280E-01, f:  1.0000},  # 00012
+ {e: -3.386014388845E-01, f:  1.0000},  # 00013
+ {e: -3.275197810313E-01, f:  1.0000},  # 00014
+ {e: -3.193011268476E-01, f:  1.0000},  # 00015
+ {e: -3.074904556636E-01, f:  1.0000},  # 00016
+ {e: -2.896104789825E-01, f:  1.0000},  # 00017
+ {e: -2.852707829226E-01, f:  1.0000},  # 00018
+ {e: -2.605835303994E-01, f:  1.0000},  # 00019
+ {e: -2.476851818206E-01, f:  1.0000},  # 00020
+ {e: -2.416877204386E-01, f:  1.0000},  # 00021
+ {e: -2.238906276700E-01, f:  1.0000},  # 00022
+ {e: -2.083678070720E-01, f:  1.0000},  # 00023
+ {e: -1.739667941488E-01, f:  1.0000},  # 00024
+ {e: -1.505883364750E-01, f:  1.0000},  # 00025
+ {e: -1.154530464965E-01, f:  1.0000},  # 00026
+ {e: -5.683401947957E-02, f:  1.0000},  # 00027
+ {e:  9.027062331915E-02, f:  1.0000},  # 00028
+ {e:  2.648679045506E-01, f:  1.0000},  # 00029
+ {e:  2.785505598080E-01, f:  1.0000},  # 00030
+ {e:  3.263457882631E-01, f:  1.0000},  # 00031
+ {e:  3.728288747301E-01, f:  1.0000},  # 00032
+ {e:  4.017327995214E-01, f:  1.0000},  # 00033
+ {e:  4.221526423106E-01, f:  1.0000},  # 00034
+ {e:  4.499234555775E-01, f:  1.0000},  # 00035
+ {e:  4.560333255703E-01, f:  1.0000},  # 00036
+ {e:  4.886406716494E-01, f:  1.0000},  # 00037
+ {e:  4.993696981922E-01, f:  1.0000},  # 00038
+ {e:  5.046953625924E-01, f:  1.0000},  # 00039
+ {e:  5.143738264621E-01, f:  1.0000},  # 00040
+ {e:  5.214049940871E-01, f:  1.0000},  # 00041
+ {e:  5.372310511058E-01, f:  1.0000},  # 00042
+ {e:  5.467391129218E-01, f:  1.0000},  # 00043
+ {e:  5.634294368555E-01, f:  1.0000},  # 00044
+ {e:  5.675024933851E-01, f:  1.0000},  # 00045
+ {e:  5.778169175851E-01, f:  1.0000},  # 00046
+ {e:  7.216515674047E-01, f:  1.0000}] # 00047
     #========================================================================= final results
    self consistency summary:
    -  {iter:  7, 
- Energies: {Ekin:  8.57765188015E+01, Epot: -9.31290778971E+01, Enl:  5.86175897125E+00, 
-              EH:  3.43252564666E+02,  EXC: -2.51923224861E+01, EvXC: -3.27052279151E+01}, 
+ Energies: {Ekin:  8.57765188186E+01, Epot: -9.31290779101E+01, Enl:  5.86175897136E+00, 
+              EH:  3.43252564724E+02,  EXC: -2.51923224882E+01, EvXC: -3.27052279178E+01}, 
         iter low:  7,            delta out:  2.465E-06, 
-          energy: -8.61654068445585040E+01,                       D:  0.000E+00,  #FINAL
+          energy: -8.61654068441854974E+01,                       D:  0.000E+00,  #FINAL
  }
  Total charge                          :  5.399998578396E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  123,  121,  117 ]
-   MPI tasks                           :  4
+   MPI tasks                           :  2
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
- Average noise forces: {x:  3.91098826E-02, y:  4.25633737E-02, z:  5.84247221E-03, 
-                    total:  5.80978328E-02}
- Clean forces norm (Ha/Bohr): {maxval:  2.257225365899E-01, fnrm2:  7.293458649192E-02}
- Raw forces norm (Ha/Bohr): {maxval:  2.526753127518E-01, fnrm2:  7.989331346299E-02}
+ Average noise forces: {x:  3.91098827E-02, y:  4.25633737E-02, z:  5.84247236E-03, 
+                    total:  5.80978329E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  2.257225369883E-01, fnrm2:  7.293458687093E-02}
+ Raw forces norm (Ha/Bohr): {maxval:  2.526753131603E-01, fnrm2:  7.989331385925E-02}
   #--------------------------------------------------------------------------- Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {N: [ 2.629758276357E-02,  1.492559916248E-02,  6.316624436147E-03]} # 0001
- -  {C: [-2.844112858913E-02,  8.491108040340E-03,  1.669168000278E-02]} # 0002
- -  {C: [-4.634334367981E-03, -4.462842693873E-02, -2.435745732155E-02]} # 0003
- -  {O: [ 5.854861565631E-02, -6.537143368542E-02, -2.125957996523E-02]} # 0004
- -  {O: [ 5.039035477536E-02,  2.082780772637E-01,  7.093460510609E-02]} # 0005
- -  {C: [-1.510567075486E-03, -2.128945368987E-02, -1.154050018627E-02]} # 0006
- -  {C: [-6.537951911513E-03,  1.616209593749E-02,  1.748376326368E-02]} # 0007
- -  {S: [ 1.146083385232E-02, -1.620388106369E-02, -2.332699503091E-02]} # 0008
- -  {C: [-3.727189518714E-02, -4.671564247252E-03,  7.897484450950E-03]} # 0009
- -  {H: [-5.194102008478E-03, -1.946123111150E-02,  2.813529378347E-03]} # 0010
- -  {H: [ 1.926349809171E-03, -1.675028294047E-02,  6.320852367866E-03]} # 0011
- -  {H: [-1.212284455383E-02, -1.456536387177E-02,  1.882209762127E-03]} # 0012
- -  {H: [-1.715809072489E-02, -4.844680159038E-02, -1.172181157506E-02]} # 0013
- -  {H: [-3.445016683133E-03, -3.771437401529E-03,  1.180172095182E-03]} # 0014
- -  {H: [ 1.077630452642E-02, -5.577050946771E-03,  6.809209811134E-04]} # 0015
- -  {H: [ 1.289878502602E-03, -4.241089485200E-03,  5.486604102387E-04]} # 0016
- -  {H: [ 1.987796024071E-03,  3.045468128023E-03, -1.049791418866E-02]} # 0017
- -  {H: [-1.465471721888E-02, -2.216563791691E-03, -1.352537241625E-02]} # 0018
- -  {H: [-7.910454898253E-03,  8.940735109113E-03, -7.718938178314E-03]} # 0019
- -  {H: [-2.379661269111E-02,  7.351497123159E-03, -8.801933392285E-03]} # 0020
+ -  {N: [ 2.629758291058E-02,  1.492559942843E-02,  6.316624496255E-03]} # 0001
+ -  {C: [-2.844112860938E-02,  8.491108069335E-03,  1.669167995510E-02]} # 0002
+ -  {C: [-4.634334455285E-03, -4.462842671761E-02, -2.435745723305E-02]} # 0003
+ -  {O: [ 5.854861640268E-02, -6.537143432490E-02, -2.125958026662E-02]} # 0004
+ -  {O: [ 5.039035486040E-02,  2.082780774342E-01,  7.093460581257E-02]} # 0005
+ -  {C: [-1.510567115217E-03, -2.128945364935E-02, -1.154050022616E-02]} # 0006
+ -  {C: [-6.537951991710E-03,  1.616209596975E-02,  1.748376321885E-02]} # 0007
+ -  {S: [ 1.146083390290E-02, -1.620388110683E-02, -2.332699526716E-02]} # 0008
+ -  {C: [-3.727189526076E-02, -4.671564240202E-03,  7.897484427153E-03]} # 0009
+ -  {H: [-5.194101924904E-03, -1.946123119845E-02,  2.813529555617E-03]} # 0010
+ -  {H: [ 1.926349633931E-03, -1.675028284183E-02,  6.320852360686E-03]} # 0011
+ -  {H: [-1.212284471254E-02, -1.456536398246E-02,  1.882209773753E-03]} # 0012
+ -  {H: [-1.715809050567E-02, -4.844680170351E-02, -1.172181167245E-02]} # 0013
+ -  {H: [-3.445016570929E-03, -3.771437395235E-03,  1.180171916718E-03]} # 0014
+ -  {H: [ 1.077630442219E-02, -5.577050722119E-03,  6.809209971080E-04]} # 0015
+ -  {H: [ 1.289878362076E-03, -4.241089377721E-03,  5.486602244124E-04]} # 0016
+ -  {H: [ 1.987795777971E-03,  3.045468104776E-03, -1.049791412964E-02]} # 0017
+ -  {H: [-1.465471724775E-02, -2.216563802809E-03, -1.352537225217E-02]} # 0018
+ -  {H: [-7.910455171032E-03,  8.940735150848E-03, -7.718938210424E-03]} # 0019
+ -  {H: [-2.379661270755E-02,  7.351496905648E-03, -8.801933480542E-03]} # 0020
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
@@ -1966,16 +1944,16 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  58.92
-   Elapsed time (s)                    :  31.29
+   CPU time (s)                        :  100.16
+   Elapsed time (s)                    :  55.32
  Memory Consumption Report:
-   Tot. No. of Allocations             :  37194
-   Tot. No. of Deallocations           :  37194
+   Tot. No. of Allocations             :  69858
+   Tot. No. of Deallocations           :  69858
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  303
+     Peak Value (MB)                   :  569.989
      for the array                     : psir_noconf
      in the routine                    : LocalHamiltonianApplication
-     Memory Peak of process            : 342332 kB
- Max No. of dictionaries used          :  3629 #( 838 still in use)
+     Memory Peak of process            : 613.296 MB
+ Max No. of dictionaries used          :  4821 #( 838 still in use)
  Number of dictionary folders allocated:  1

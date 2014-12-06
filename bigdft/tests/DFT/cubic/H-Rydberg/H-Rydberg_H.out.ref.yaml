@@ -656,7 +656,7 @@
  Complete list of energy eigenvalues:
     #Kpt #0001  BZ coord. =  [  0.000000,  0.000000,  0.000000 ]
  - e_occupied                          : -4.99988399940255E-01 # 0001
- - HOMO LUMO gap (AU, eV)              :  [  3.74806300945743E-01,  1.01989981281813E+01 ]
+ - HOMO LUMO gap (AU, eV)              :  [  3.74806300945743E-01,  1.01989985742002E+01 ]
  - e_virtual                           : -1.25182098994512E-01 # 0001
  - e_virtual                           : -1.25181649277500E-01 # 0002
  - e_virtual                           : -1.25181649146826E-01 # 0003

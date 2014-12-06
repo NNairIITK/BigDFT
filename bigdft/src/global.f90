@@ -27,7 +27,7 @@ program MINHOP
 !  type(restart_objects) :: rst
   !C parameters for minima hopping
   integer, parameter :: mdmin=2
-  real(kind=8), parameter :: beta_S=1.10d0,beta_O=1.10d0,beta_N=1.d0/1.10d0
+  real(kind=8), parameter :: beta_S=1.05d0,beta_O=1.10d0,beta_N=1.d0/1.10d0
   real(kind=8), parameter :: alpha_A=1.d0/1.10d0,alpha_R=1.10d0
   real(kind=8), allocatable, dimension(:,:) ::vxyz,gg,poshop
   real(kind=8), allocatable, dimension(:) :: rcov,ksevals
@@ -93,7 +93,7 @@ program MINHOP
 
   call run_objects_init(run_opt,run)
   !then the unoptimized parameters
-  call bigdft_set_run_properties(run,run_id='md'//trim(run_id), log_to_disk=.false.)
+  call bigdft_set_run_properties(run,input_id='md'//trim(run_id), log_to_disk=.false.)
 
   call run_objects_init(run_md,run,source=run_opt)
   
@@ -2696,6 +2696,7 @@ END SUBROUTINE print_logo_MH
 
 
 subroutine identical(iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp_delta,newmin,kid,dmin,k_e_wpos,n_unique,n_nonuni)
+  use yaml_output
   implicit real*8 (a-h,o-z)
   dimension fp_arr(nid,nlminx),wfp(nid),en_arr(nlminx)
   logical newmin
@@ -2729,6 +2730,7 @@ subroutine identical(iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp
   dmin=1.d100
   do k=max(1,klow),min(nlmin,khigh)
      call fpdistance(nid,wfp,fp_arr(1,k),d)
+     if (iproc == 0) call yaml_map('(MH) Checking fpdistance',(/e_wpos-en_arr(k),d/),fmt='(e11.4)')
 !     if (iproc.eq.0) write(*,*) '(MH)  k,d',k,d
 !     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH)    wfp', (wfp(i),i=1,nid)
 !     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH) fp_arr', (fp_arr(i,k),i=1,nid)

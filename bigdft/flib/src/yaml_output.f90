@@ -747,8 +747,8 @@ contains
     integer, optional, intent(in) :: unit   !< @copydoc doc::unit
     !local variables
     integer :: unt,strm
-!!$    integer :: item
-!!$    type(dictionary), pointer :: dict_tmp
+    integer :: idx
+    type(dictionary), pointer :: dict_tmp
 
     unt=0
     if (present(unit)) unt=unit
@@ -769,8 +769,10 @@ contains
 !!$       end if
        if (.not. associated(streams(strm)%dict_warning)) &
             call dict_init(streams(strm)%dict_warning)
-       !add the warning as a list
-       call add(streams(strm)%dict_warning//'WARNINGS',trim(message))
+       !add the warning as a list, if the warning does not exists
+       dict_tmp = streams(strm)%dict_warning .get. 'WARNINGS'
+       idx=dict_tmp .index. trim(message)
+       if (idx < 0) call add(streams(strm)%dict_warning//'WARNINGS',trim(message))
 
     end if
     if (present(level)) then

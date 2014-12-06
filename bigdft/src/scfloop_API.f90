@@ -12,7 +12,7 @@
 !> Module determining the Self-Consistent Loop API
 module scfloop_API
 
-  use bigdft_run
+  use bigdft_run, only: run_objects
 !!$  use module_base
 !!$  use module_types
 

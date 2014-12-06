@@ -1,9 +1,12 @@
 !! @file
 !! @author Bastian Schaefer
 !! @section LICENCE
-!!    Copyright (C) 2014 UNIBAS
-!!    This file is not freely distributed.
-!!    A licence is necessary from UNIBAS
+!!    Copyright (C) 2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
 
 module module_energyandforces
     implicit none
@@ -65,7 +68,7 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
        stop
     endif
     call bigdft_set_rxyz(runObj,rxyz=rxyz)
-    if(trim(adjustl(efmethod))=='BIGDFT')then
+    if(trim(adjustl(char(runObj%run_mode)))=='QM_RUN_MODE')then
        runObj%inputs%inputPsiId=inputPsiId !useful only in the DFT case
        runObj%inputs%itermin=itermin
     end if

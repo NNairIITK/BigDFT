@@ -94,8 +94,8 @@ $(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90
 %.memguess.out: $(abs_top_builddir)/src/memguess $(abs_top_builddir)/src/bigdft-tool
 	@name=`basename $@ .memguess.out | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	echo "$(run_serial) $(abs_top_builddir)/src/bigdft-tool -n 1 > $@"; \
-	$(run_serial) $(abs_top_builddir)/src/bigdft-tool -n 1 > $@ ; \
+	echo "$(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1 > $@"; \
+	$(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1 > $@ ; \
 	mv log.yaml log-memguess.yaml ; \
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"

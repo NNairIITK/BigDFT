@@ -67,9 +67,9 @@ module module_defs
   real(gp), parameter :: Radian_Degree = 57.29577951308232087679_gp     !< 1 radian in degrees
   real(gp), parameter :: eVAng_HaBohr = Bohr_Ang*eV_Ha                  !< convert forces from eV/Angstroem to hartree/bohr
   real(gp), parameter :: kcalMol_Ha = 0.001593601437458137_gp        !< from kcal_th/mol to hartree
-                                                                     !!(thermochemical calorie used: 1cal_th=4.184J)
+                                                                     !!(thermochemical calorie used in amber: 1cal_th=4.184J)
                                                                      !!also see: http://archive.ambermd.org/201009/0039.html
-  real(gp), parameter :: kcalMolAng_HaBohr =0.0008432975639921999_gp !<convert from gradient in kcal_th/mol/angstrom to hartree/bohr
+  real(gp), parameter :: kcalMolAng_HaBohr =0.0008432975639921999_gp !<convert forces from kcal_th/mol/angstrom to hartree/bohr
 
 
   !> Evergreen

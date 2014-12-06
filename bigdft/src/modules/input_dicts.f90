@@ -879,7 +879,8 @@ contains
         & BIGDFT_INPUT_FILE_ERROR,f_free_ptr
     use module_atoms, only: set_astruct_from_file,atomic_structure,&
          nullify_atomic_structure,deallocate_atomic_structure,astruct_merge_to_dict
-    use public_keys, only: POSINP,RADICAL_NAME
+    use public_keys, only: POSINP
+    use bigdft_run, only: bigdft_get_run_properties
     use dictionaries
     use yaml_strings
     implicit none
@@ -938,7 +939,7 @@ contains
           ! Raise an error
           call f_strcpy(src='input',dest=radical)
           !modify the radical name if it exists
-          radical = dict .get. RADICAL_NAME
+          call bigdft_get_run_properties(dict, input_id = radical)
           msg = "No section 'posinp' for the atomic positions in the file '"//&
                trim(radical) // ".yaml'. " // trim(msg)
           call f_err_throw(err_msg=msg,err_id=ierr)
@@ -959,7 +960,7 @@ contains
   !! and presend in the dictionary
   subroutine astruct_set_from_dict(dict, astruct, comment)
     use module_defs, only: gp, Bohr_Ang, UNINITIALIZED
-    use module_atoms, only: atomic_structure, nullify_atomic_structure,frozen_ftoi
+    use module_atoms, only: atomic_structure, nullify_atomic_structure,astruct_at_from_dict
     use dictionaries
     use dynamic_memory
     implicit none
@@ -970,9 +971,9 @@ contains
     character(len = 1024), intent(out), optional :: comment !< Extra comment retrieved from the file if present
     !local variables
     character(len=*), parameter :: subname='astruct_set_from_dict'
-    type(dictionary), pointer :: pos, at, atData, types
+    type(dictionary), pointer :: pos, at, types
     character(len = max_field_length) :: str
-    integer :: iat, ityp, units, igspin, igchrg, nsgn, ntyp, ierr
+    integer :: iat, ityp, units, igspin, igchrg, ntyp
 
     call f_routine(id='astruct_set_from_dict')
 
@@ -1033,42 +1034,15 @@ contains
        pos => dict // ASTRUCT_POSITIONS
        call astruct_set_n_atoms(astruct, dict_len(pos))
        at => dict_iter(pos)
-       iat = 0
        do while(associated(at))
-          iat = iat + 1
+          iat = dict_item(at) + 1
 
-          igspin = 0
-          igchrg = 0
-          nsgn   = 1
-          !at => pos // (iat - 1)
-          atData => dict_iter(at)!at%child
-          do while(associated(atData))
-             str = dict_key(atData)
-             if (trim(str) == "Frozen") then
-                str = dict_value(atData)
-                call frozen_ftoi(str(1:4), astruct%ifrztyp(iat),ierr)
-             else if (trim(str) == "IGSpin") then
-                igspin = atData
-             else if (trim(str) == "IGChg") then
-                igchrg = atData
-                if (igchrg >= 0) then
-                   nsgn = 1
-                else
-                   nsgn = -1
-                end if
-             else if (trim(str) == "int_ref_atoms_1") then
-                astruct%ixyz_int(1,iat) = atData
-             else if (trim(str) == "int_ref_atoms_2") then
-                astruct%ixyz_int(2,iat) = atData
-             else if (trim(str) == "int_ref_atoms_3") then
-                astruct%ixyz_int(3,iat) = atData
-             else if (dict_len(atData) == 3) then
-                astruct%iatype(iat) = types // dict_key(atData)
-                astruct%rxyz(:, iat) = atData
-             end if
-             atData => dict_next(atData)
-          end do
-          astruct%input_polarization(iat) = 1000 * igchrg + nsgn * 100 + igspin
+          call astruct_at_from_dict(at, str, rxyz_add = astruct%rxyz(1, iat), &
+               & ifrztyp = astruct%ifrztyp(iat), igspin = igspin, igchrg = igchrg, &
+               & ixyz_add = astruct%ixyz_int(1,iat))
+          astruct%iatype(iat) = types // str
+          astruct%input_polarization(iat) = 1000 * igchrg + sign(1, igchrg) * 100 + igspin
+
           if (units == 1) then
              astruct%rxyz(1,iat) = astruct%rxyz(1,iat) / Bohr_Ang
              astruct%rxyz(2,iat) = astruct%rxyz(2,iat) / Bohr_Ang

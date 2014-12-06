@@ -2149,11 +2149,11 @@
 #NEB: job done
 ---
  NEB minimization loop:
- -  {Ea (eV):  0.252790, cv: ".***.", max err (eV/ang):  11.648517} # 001
- -  {Ea (eV): -0.650422, cv: ".***.", max err (eV/ang):   3.029205} # 002
+ -  {Ea (eV):  0.252790, cv: "..*..", max err (eV/ang):  11.648518} # 001
+ -  {Ea (eV): -0.650422, cv: "..*..", max err (eV/ang):   3.029206} # 002
  Energy and error per image:
- -  {Energy (eV): -54.74433737, error (eV/ang):  0.00000} # 01
- -  {Energy (eV): -56.01094780, error (eV/ang):  0.41427} # 02
- -  {Energy (eV): -55.39475904, error (eV/ang):  3.02921} # 03
- -  {Energy (eV): -56.00290541, error (eV/ang):  0.95781} # 04
- -  {Energy (eV): -55.25796539, error (eV/ang):  0.00000} # 05
+ -  {Energy (eV): -54.74433976, error (eV/ang):  0.00000} # 01
+ -  {Energy (eV): -56.01095025, error (eV/ang):  0.41427} # 02
+ -  {Energy (eV): -55.39476146, error (eV/ang):  3.02921} # 03
+ -  {Energy (eV): -56.00290786, error (eV/ang):  0.95781} # 04
+ -  {Energy (eV): -55.25796781, error (eV/ang):  0.00000} # 05

@@ -31,8 +31,7 @@ program memguess
    character(len=40) :: comment
    character(len=1024) :: fcomment
    character(len=128) :: fileFrom, fileTo,filename_wfn
-   character(len=50) :: posinp
-   logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.
+   logical :: optimise,GPUtest,atwf,convert=.false.,exportwf=.false.,logfile=.false.
    logical :: disable_deprecation = .false.,convertpos=.false.,transform_coordinates=.false.
    integer :: ntimes,nproc,output_grid, i_arg,istat
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out
@@ -55,6 +54,7 @@ program memguess
    character(len=3) :: in_name !lr408
    integer :: i, inputpsi, input_wf_format
    integer,parameter :: nconfig=1
+   type(dictionary), pointer :: run
    !character(len=60),dimension(nconfig) :: arr_radical,arr_posinp
    !character(len=60) :: run_id, infile, outfile
    !integer, dimension(4) :: mpi_info
@@ -246,6 +246,9 @@ program memguess
          else if (trim(tatonam) == 'dd') then
             ! dd: disable deprecation message
             disable_deprecation = .true.
+         else if (trim(tatonam) == 'l') then
+            ! l: log to disk
+            logfile = .true.
          else
             ! Use value as radical for input files.
             write(radical, "(A)") trim(tatonam)
@@ -428,14 +431,11 @@ program memguess
        stop
    end if
 
-   if (trim(radical) == "input") then
-      posinp='posinp'
-   else
-      posinp=trim(radical)
-   end if
+   call bigdft_run_new(run)
+   call bigdft_set_run_properties(run, run_id = trim(radical), run_from_files = .true., log_to_disk = logfile)
 
-   !this part has to be mergd with the one coming from bigdft_run module
-   call run_objects_init_from_run_name(runObj, radical, posinp)
+   call run_objects_init(runObj, run)
+   call dict_free(run)
 
    if (optimise) then
       if (runObj%atoms%astruct%geocode =='F') then
