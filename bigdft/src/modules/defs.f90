@@ -53,9 +53,10 @@ module module_defs
   type(mpi_environment) :: bigdft_mpi !< Contains all data needed for MPI processes
 
   !> Physical constants.
-  real(gp), parameter :: Bohr_Ang = 0.5291772108_gp                     !< 1 AU in angstroem
+  real(gp), parameter :: Bohr_Ang = 0.52917721092_gp                    !< 1 AU in angstroem
   real(gp), parameter :: Ha_cmm1=219474.6313705_gp                      !< 1 Hartree, in cm^-1 (from abinit 5.7.x)
-  real(gp), parameter :: Ha_eV=27.21138386_gp                           !< 1 Hartree, in eV
+  real(gp), parameter :: Ha_eV=27.21138505_gp                           !< 1 Hartree, in eV
+  real(gp), parameter :: eV_Ha=3.674932379e-2_gp                        !< 1 ev, in Hartree
   real(gp), parameter :: Ha_K=315774.65_gp                              !< 1 Hartree, in Kelvin
   real(gp), parameter :: Ha_THz=6579.683920722_gp                       !< 1 Hartree, in THz
   real(gp), parameter :: Ha_J=4.35974394d-18                            !< 1 Hartree, in J
@@ -64,16 +65,22 @@ module module_defs
   real(gp), parameter :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp !< 1 atomic mass unit, in electronic mass
   real(gp), parameter :: AU_GPa=29421.010901602753_gp                   !< 1 Ha/Bohr^3 in GPa
   real(gp), parameter :: Radian_Degree = 57.29577951308232087679_gp     !< 1 radian in degrees
+  real(gp), parameter :: eVAng_HaBohr = Bohr_Ang*eV_Ha                  !< convert forces from eV/Angstroem to hartree/bohr
+  real(gp), parameter :: kcalMol_Ha = 0.001593601437458137_gp        !< from kcal_th/mol to hartree
+                                                                     !!(thermochemical calorie used: 1cal_th=4.184J)
+                                                                     !!also see: http://archive.ambermd.org/201009/0039.html
+  real(gp), parameter :: kcalMolAng_HaBohr =0.0008432975639921999_gp !<convert from gradient in kcal_th/mol/angstrom to hartree/bohr
+
 
   !> Evergreen
   real(dp), parameter :: pi_param=3.141592653589793238462643383279502884197_dp
 
   !> Error codes, to be documented little by little
-  integer :: BIGDFT_RUNTIME_ERROR                   !< Error during runtime
-  integer :: BIGDFT_MPI_ERROR                       !< See error definitions below
-  integer :: BIGDFT_LINALG_ERROR                    !< To be moved to linalg wrappers
-  integer :: BIGDFT_INPUT_VARIABLES_ERROR           !< Problems in parsing or in consistency of input variables
-  integer :: BIGDFT_INPUT_FILE_ERROR                !< The file does not exist!
+  integer, save :: BIGDFT_RUNTIME_ERROR                   !< Error during runtime
+  integer, save :: BIGDFT_MPI_ERROR                       !< See error definitions below
+  integer, save :: BIGDFT_LINALG_ERROR                    !< To be moved to linalg wrappers
+  integer, save :: BIGDFT_INPUT_VARIABLES_ERROR           !< Problems in parsing or in consistency of input variables
+  integer, save :: BIGDFT_INPUT_FILE_ERROR                !< The file does not exist!
 
   !> Code constants.
   !real(gp), parameter :: UNINITIALISED = -123456789._gp

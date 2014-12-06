@@ -412,9 +412,7 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
    psir = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, npsir /),id='psir')
    !initialisation
    !print *,iproc,'there'
-   if (lr%geocode == 'F') then
-      call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*npsir,psir)
-   end if
+   if (lr%geocode == 'F') call f_zero(psir)
 
    do iorb=1,orbs%norbp
       !print *,'norbp',orbs%norbp,orbs%norb,orbs%nkpts,orbs%kwgts,orbs%iokpt,orbs%occup

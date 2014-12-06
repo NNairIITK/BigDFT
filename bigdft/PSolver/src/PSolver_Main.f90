@@ -164,9 +164,9 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !here the case ncplx/= 1 should be added
    
    !array allocations
-   zf = f_malloc((/ md1, md3, 2*md2/kernel%mpi_env%nproc /),id='zf')
+   zf = f_malloc0((/ md1, md3, 2*md2/kernel%mpi_env%nproc /),id='zf')
    !initalise to zero the zf array
-   call to_zero(md1*md3*(md2/kernel%mpi_env%nproc),zf(1,1,1))
+   !call to_zero(md1*md3*(md2/kernel%mpi_env%nproc),zf(1,1,1))
    
    istart=kernel%mpi_env%iproc*(md2/kernel%mpi_env%nproc)
    iend=min((kernel%mpi_env%iproc+1)*md2/kernel%mpi_env%nproc,m2)

@@ -908,7 +908,7 @@ contains
     call frozen_dof(bigdft_get_astruct_ptr(runObj),vxyz,ndfree,ndfroz)
   ! normalize velocities to target ekinetic
     call velnorm(natoms,(ekinetic*ndfree)/(ndfree+ndfroz),vxyz)
-    call to_zero(3*natoms,gg)
+    call f_zero(gg)
 
     if(iproc==0) call torque(natoms,rxyz_run,vxyz)
 
@@ -1630,7 +1630,7 @@ subroutine winter(nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
 
   ! write enarr file
   open(unit=12,file='enarr'//trim(bigdft_run_id_toa()),status='unknown')
-  write(12,'(2(i10),l,a)') nlmin,nlmin+5,singlestep, & 
+  write(12,'(2(i10),l1,a)') nlmin,nlmin+5,singlestep, & 
       ' # of minima already found, # of minima to be found in consecutive run, singlestep mode'
   write(12,'(2(e24.17,1x),a)') en_delta,fp_delta,' en_delta,fp_delta'
   do k=1,nlmin

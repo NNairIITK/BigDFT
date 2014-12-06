@@ -425,6 +425,7 @@ contains
     type(dictionary), pointer :: nloc, coeffs
     integer :: ityp, nlcc_dim, n, i
     character(len=27) :: filename
+    intrinsic :: int
 
     nlcc_dim = 0
     do ityp = 1, atoms%astruct%ntypes, 1
@@ -978,8 +979,6 @@ contains
     call nullify_atomic_structure(astruct)
     astruct%nat = -1
     if (present(comment)) write(comment, "(A)") " "
-
-    !if (.not. has_key(dict, ASTRUCT_POSITIONS)) return
 
     ! The units
     units = 0

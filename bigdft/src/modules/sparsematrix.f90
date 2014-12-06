@@ -165,7 +165,8 @@ module sparsematrix
       call timing(iproc,'compressd_mcpy','ON')
     
       if (sparsemat%parallel_compression==0.or.bigdft_mpi%nproc==1) then
-         call to_zero(sparsemat%nfvctr**2*sparsemat%nspin, outm(1,1,1))
+         !call to_zero(sparsemat%nfvctr**2*sparsemat%nspin, outm(1,1,1))
+         call f_zero(outm)
          do ispin=1,sparsemat%nspin
              ishift=(ispin-1)*sparsemat%nvctr
              !OpenMP broken on Vesta
@@ -241,7 +242,8 @@ module sparsematrix
     
       mat%matrix = sparsematrix_malloc_ptr(sparsemat, iaction=DENSE_FULL, id='mat%matrix')
     
-      call to_zero(sparsemat%nfvctr**2*sparsemat%nspin,mat%matrix(1,1,1))
+      !call to_zero(sparsemat%nfvctr**2*sparsemat%nspin,mat%matrix(1,1,1))
+      call f_zero(mat%matrix)
       do iseg = 1, sparsemat%nseg
          ! A segment is always on one line, therefore no double loop
          do jorb = sparsemat%keyg(1,1,iseg), sparsemat%keyg(2,1,iseg)
@@ -365,9 +367,11 @@ module sparsematrix
     
       select case (imode)
       case (SMALL_TO_LARGE)
-          call to_zero(lmat%nvctr*lmat%nspin,lmatrix_compr(1))
+         !call to_zero(lmat%nvctr*lmat%nspin,lmatrix_compr(1))
+         call f_zero(lmatrix_compr)
       case (LARGE_TO_SMALL)
-          call to_zero(smat%nvctr*lmat%nspin,smatrix_compr(1))
+         !call to_zero(smat%nvctr*lmat%nspin,smatrix_compr(1))
+         call f_zero(smatrix_compr)
       case default
           stop 'wrong imode'
       end select
@@ -557,7 +561,8 @@ module sparsematrix
      else if (data_strategy==SUBMATRIX) then
          if (layout==DENSE_PARALLEL) then
              if (nfvctrp>0) then
-                 call to_zero(smat%nvctrp_tg, matrix_compr(1))
+                 !call to_zero(smat%nvctrp_tg, matrix_compr(1))
+                 call f_zero(matrix_compr)
                  isegstart=smat%istsegline(isfvctr+1)
                  isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
                  !$omp parallel default(none) &
@@ -637,7 +642,8 @@ module sparsematrix
              call timing(iproc,'compressd_comm','ON')
 
              if (nproc>1) then
-                 call to_zero(smat%nvctrp_tg, matrix_compr(1))
+                !call to_zero(smat%nvctrp_tg, matrix_compr(1))
+                call f_zero(matrix_compr)
                  !window = mpiwindow(smat%smmm%nvctrp, matrix_local(1), bigdft_mpi%mpi_comm)
 
                  ! Create a window for all taskgroups to which iproc belongs (max 2)
@@ -774,7 +780,8 @@ module sparsematrix
 
        if (smat%nfvctrp>0) then
 
-           call to_zero(smat%nfvctr*nfvctrp,matrixp(1,1))
+          !call to_zero(smat%nfvctr*nfvctrp,matrixp(1,1))
+          call f_zero(matrixp) !is this safer?
 
            isegstart=smat%istsegline(isfvctr+1)
            isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1

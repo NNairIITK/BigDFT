@@ -357,7 +357,7 @@ contains
     if (xcObj%kind == XC_ABINIT) then
        call tenminustwenty(n,rho,nproc)
     else
-       call to_zero(n,rho)
+       call f_zero(rho)
     end if
   end subroutine xc_init_rho
 
@@ -449,7 +449,7 @@ contains
        ! Inititalize all relevant arrays to zero
        vxc=real(0,dp)
        exc=real(0,dp)
-       if (xc_isgga(xcObj)) call to_zero(npts * 3, vxcgr(1))
+       if (xc_isgga(xcObj)) call f_zero(npts * 3, vxcgr(1))
        if (present(dvxci)) dvxci=real(0,dp)
 
        !Loop over points

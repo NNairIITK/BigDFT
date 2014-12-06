@@ -21,7 +21,7 @@ module bigdft_run
 
   !>  Used to restart a new DFT calculation or to save information 
   !!  for post-treatment
-  type, public :: restart_objects
+  type, public :: QM_restart_objects
      type(f_reference_counter) :: refcnt
      integer :: version !< 0=cubic, 100=linear
      integer :: n1,n2,n3,nat
@@ -29,11 +29,18 @@ module bigdft_run
      type(DFT_wavefunction) :: KSwfn !< Kohn-Sham wavefunctions
      type(DFT_wavefunction) :: tmb !<support functions for linear scaling
      type(GPU_pointers) :: GPU 
-  end type restart_objects
+  end type QM_restart_objects
+
+  !>supplementary type in run_objects
+  type, public :: MM_restart_objects
+     type(f_reference_counter) :: refcnt
+     !> array for temporary copy of atomic positions and forces
+     real(gp), dimension(:,:), pointer :: rf_extra 
+  end type MM_restart_objects
 
   !> Public container to be used with bigdft_state().
   type, public :: run_objects
-     type(f_enumerator) :: run_mode
+     type(f_enumerator), pointer :: run_mode
      !> user input specifications
      type(dictionary), pointer :: user_inputs
      !> structure of BigDFT input variables
@@ -41,9 +48,10 @@ module bigdft_run
      !> datatype describing the atomic system.
      type(atoms_data), pointer         :: atoms
      !> datatype describing the wavefunctions objects
-     type(restart_objects), pointer    :: rst
+     type(QM_restart_objects), pointer    :: rst
+     !> datatype describing extra MM information
+     type(MM_restart_objects), pointer :: mm_rst
   end type run_objects
-
 
   !> Used to store results of a DFT calculation.
   type, public :: state_properties
@@ -54,13 +62,14 @@ module bigdft_run
      real(gp), dimension(6) :: strten          !< Stress Tensor
   end type state_properties
 
-  public :: init_state_properties,deallocate_state_properties,restart_objects_set_mat_acc
-  public :: run_objects_free,copy_state_properties,restart_objects_set_mode
-  public :: nullify_run_objects,restart_objects_set_nat,nullify_restart_objects
-  public :: run_objects_associate,init_restart_objects,bigdft_set_rxyz
-  public :: state_properties_set_from_dict,free_restart_objects,bigdft_get_rxyz_ptr
+  public :: init_state_properties,deallocate_state_properties
+  public :: run_objects_free,copy_state_properties
+  public :: nullify_run_objects
+  public :: run_objects_associate,bigdft_set_rxyz
+  public :: state_properties_set_from_dict,bigdft_get_rxyz_ptr
   public :: run_objects_init,bigdft_init,bigdft_command_line_options,bigdft_nruns
-  public :: bigdft_nat,bigdft_state,free_run_objects,set_run_objects,bigdft_run_new
+  public :: init_QM_restart_objects,init_MM_restart_objects,set_run_objects,nullify_QM_restart_objects
+  public :: bigdft_nat,bigdft_state,free_run_objects,bigdft_run_new
   public :: release_run_objects,bigdft_get_cell,bigdft_get_geocode,bigdft_get_run_properties
   public :: bigdft_get_astruct_ptr,bigdft_write_atomic_file,bigdft_set_run_properties
   public :: bigdft_norb,bigdft_get_eval,bigdft_run_id_toa,bigdft_get_rxyz
@@ -85,38 +94,90 @@ module bigdft_run
     
     !> All in one routine to initialise and set-up restart objects.
     !! in case of previously initialized structure
-    subroutine init_restart_objects(iproc,inputs,atoms,rst)
+    subroutine init_QM_restart_objects(iproc,inputs,atoms,rst)
       implicit none
       !Arguments
       integer, intent(in) :: iproc
       type(input_variables), intent(in) :: inputs
       type(atoms_data), intent(in) :: atoms
-      type(restart_objects), intent(inout) :: rst
+      type(QM_restart_objects), intent(inout) :: rst
 
-      !call restart_objects_new(rst)
-      ! Number of atoms should not change durung the calculation 
+      !call QM_restart_objects_new(rst)
+      ! Number of atoms should not change during the calculation 
       if (rst%nat > 0 .and. rst%nat /= atoms%astruct%nat) then
          call f_err_throw("The number of atoms changed!",&
               err_name='BIGDFT_RUNTIME_ERROR')
       else if (rst%nat == 0) then
          !create reference counter
          rst%refcnt=f_ref_new('rst')
-         call restart_objects_set_nat(rst, atoms%astruct%nat)
+         call QM_restart_objects_set_nat(rst, atoms%astruct%nat)
       end if
-      call restart_objects_set_mode(rst, inputs%inputpsiid)
+      call QM_restart_objects_set_mode(rst, inputs%inputpsiid)
       call release_material_acceleration(rst%GPU)
-      call restart_objects_set_mat_acc(rst,iproc, inputs%matacc)
-    END SUBROUTINE init_restart_objects
+      call QM_restart_objects_set_mat_acc(rst,iproc, inputs%matacc)
+    END SUBROUTINE init_QM_restart_objects
+
+    pure subroutine nullify_MM_restart_objects(mm_rst)
+      implicit none
+      type(MM_restart_objects), intent(out) :: mm_rst
+      call nullify_f_ref(mm_rst%refcnt)
+      nullify(mm_rst%rf_extra)
+    end subroutine nullify_MM_restart_objects
+
+    !> fill the run_mode with the input enumerator
+    !! if the treatment requires some extra allocations, control
+    !! that the arrays are present and with the good shape
+    !! otherwise allocate them
+    subroutine init_MM_restart_objects(mm_rst,nat,run_mode)
+      use f_utils
+      use dynamic_memory
+      use public_enums
+      implicit none
+      type(f_enumerator), intent(in) :: run_mode
+      integer, intent(in) :: nat
+      type(MM_restart_objects), intent(inout) :: mm_rst
+
+      !then check if extra workspaces have to be allocated
+      select case(trim(char(run_mode)))
+      case('LENOSKY_SI_CLUSTERS_RUN_MODE','LENOSKY_SI_BULK_RUN_MODE','AMBER_RUN_MODE')
+         if (associated(mm_rst%rf_extra)) then
+            if (size(mm_rst%rf_extra) == nat) then
+               call f_zero(mm_rst%rf_extra)
+            else
+               call f_free_ptr(mm_rst%rf_extra)
+               mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
+            end if
+         else
+            call nullify_MM_restart_objects(mm_rst)
+            !create reference counter
+            mm_rst%refcnt=f_ref_new('mm_rst')
+            mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
+         end if
+      case default
+         call nullify_MM_restart_objects(mm_rst)
+         !create reference counter
+         mm_rst%refcnt=f_ref_new('mm_rst')
+      end select
+    end subroutine init_MM_restart_objects
+
+    subroutine free_MM_restart_objects(mm_rst)
+      use dynamic_memory
+      implicit none
+      type(MM_restart_objects), intent(inout) :: mm_rst
+      !check if the object can be freed
+      call f_ref_free(mm_rst%refcnt)
+      call f_free_ptr(mm_rst%rf_extra)
+    end subroutine free_MM_restart_objects
 
     !> Allocate and nullify restart objects
-    pure subroutine nullify_restart_objects(rst)
+    pure subroutine nullify_QM_restart_objects(rst)
       use module_defs, only: UNINITIALIZED
       use module_types, only: nullify_local_zone_descriptors,CUBIC_VERSION,nullify_paw_objects
       use locregs, only: nullify_locreg_descriptors
       use gaussians, only: nullify_gaussian_basis
       implicit none
       !Arguments
-      type(restart_objects), intent(out) :: rst
+      type(QM_restart_objects), intent(out) :: rst
 
       call nullify_f_ref(rst%refcnt)
       ! Decide whether we use the cubic or the linear version
@@ -147,13 +208,12 @@ module bigdft_run
 
       !Nullify GPU data
       rst%GPU%OCLconv=.false.
-    END SUBROUTINE nullify_restart_objects
+    END SUBROUTINE nullify_QM_restart_objects
 
-
-    pure subroutine restart_objects_set_mode(rst, inputpsiid)
+    pure subroutine QM_restart_objects_set_mode(rst, inputpsiid)
       use module_types
       implicit none
-      type(restart_objects), intent(inout) :: rst
+      type(QM_restart_objects), intent(inout) :: rst
       integer, intent(in) :: inputpsiid
 
       select case (inputpsiid)
@@ -163,14 +223,14 @@ module bigdft_run
       case (INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_DISK_LINEAR)
          rst%version = LINEAR_VERSION
       end select
-    END SUBROUTINE restart_objects_set_mode
+    END SUBROUTINE QM_restart_objects_set_mode
 
-    subroutine restart_objects_set_nat(rst, nat)
+    subroutine QM_restart_objects_set_nat(rst, nat)
       use module_base
       implicit none
       !Arguments
       integer, intent(in) :: nat
-      type(restart_objects), intent(inout) :: rst
+      type(QM_restart_objects), intent(inout) :: rst
 
       call f_free_ptr(rst%rxyz_old)
       call f_free_ptr(rst%rxyz_new)
@@ -178,27 +238,27 @@ module bigdft_run
       rst%nat = nat
       rst%rxyz_new = f_malloc_ptr((/ 3, nat /),id='rst%rxyz_new')
       rst%rxyz_old = f_malloc_ptr((/ 3, nat /),id='rst%rxyz_old')
-    END SUBROUTINE restart_objects_set_nat
+    END SUBROUTINE QM_restart_objects_set_nat
 
-    subroutine restart_objects_set_mat_acc(rst, iproc, matacc)
+    subroutine QM_restart_objects_set_mat_acc(rst, iproc, matacc)
       use module_types, only: material_acceleration
       implicit none
       !Arguments
-      type(restart_objects), intent(inout) :: rst
+      type(QM_restart_objects), intent(inout) :: rst
       integer, intent(in) :: iproc
       type(material_acceleration), intent(in) :: matacc
       !initialise the acceleration strategy if required
       call init_material_acceleration(iproc,matacc,rst%GPU)
-    END SUBROUTINE restart_objects_set_mat_acc
+    END SUBROUTINE QM_restart_objects_set_mat_acc
 
-    !> De-Allocate restart_objects
-    subroutine free_restart_objects(rst)
+    !> De-Allocate QM_restart_objects
+    subroutine free_QM_restart_objects(rst)
       use module_base
       use locregs
       use gaussians, only: deallocate_gwf
       use module_types
       implicit none
-      type(restart_objects) :: rst
+      type(QM_restart_objects) :: rst
       !local variables
       integer :: istep
 
@@ -237,7 +297,7 @@ module bigdft_run
       !finalise the material accelearion usage
       call release_material_acceleration(rst%GPU)
 
-    END SUBROUTINE free_restart_objects
+    END SUBROUTINE free_QM_restart_objects
 
 
     !> Initialize the structure state_properties
@@ -269,6 +329,22 @@ module bigdft_run
       outs%fxyz = f_malloc_ptr((/ 3, outs%fdim /),id='outs%fxyz')
       outs%fxyz(:,:) = UNINITIALIZED(1.0_gp)
     END SUBROUTINE init_state_properties
+
+    !>clean the outs object with empty (but meaningful)
+    !! values so that the structure can be used for optimization
+    subroutine clean_state_properties(outs)
+      use module_types, only: energy_terms_null
+      implicit none
+      type(state_properties), intent(inout) :: outs
+
+      outs%energs=energy_terms_null()
+      call f_zero(outs%fxyz)
+      outs%energy    = 0.0_gp
+      outs%fnoise    = 0.0_gp
+      outs%pressure  = 0.0_gp
+      call f_zero(outs%strten)
+
+    end subroutine clean_state_properties
 
     subroutine deallocate_state_properties(outs, fxyz)
       use module_base
@@ -311,23 +387,30 @@ module bigdft_run
       call f_memcpy(src=outsA%strten,dest=outsB%strten)
     end subroutine copy_state_properties
 
+
     !> Associate to the structure run_objects, the input_variable structure and the atomic positions (atoms_data)
-    subroutine run_objects_associate(runObj, inputs, atoms, rst, rxyz0)
+    subroutine run_objects_associate(runObj, inputs, atoms, rst, mm_rst, rxyz0)
       use module_base
       use module_types
       implicit none
       type(run_objects), intent(inout) :: runObj
       type(input_variables), intent(in), target :: inputs
       type(atoms_data), intent(in), target :: atoms
-      type(restart_objects), intent(in), target :: rst
+      type(QM_restart_objects), intent(in), target :: rst
+      type(MM_restart_objects), intent(in), target :: mm_rst
       real(gp), intent(inout), optional :: rxyz0 !<fake intent(in)
 
-      !call run_objects_free_container(runObj)
       !associate only meaningful objects
       if (f_ref_count(rst%refcnt) >= 0) then
          if (associated(runObj%rst)) call f_unref(runObj%rst%refcnt)
          runObj%rst    => rst
          call f_ref(runObj%rst%refcnt)
+      end if
+
+      if (f_ref_count(mm_rst%refcnt) >= 0) then
+         if (associated(runObj%mm_rst)) call f_unref(runObj%mm_rst%refcnt)
+         runObj%mm_rst    => mm_rst
+         call f_ref(runObj%mm_rst%refcnt)
       end if
 
       if (f_ref_count(atoms%refcnt) >= 0) then
@@ -340,11 +423,11 @@ module bigdft_run
          if (associated(runObj%inputs)) call f_unref(runObj%inputs%refcnt)
          runObj%inputs => inputs
          call f_ref(runObj%inputs%refcnt)
+         runObj%run_mode => runObj%inputs%run_mode
       end if
 
       if (present(rxyz0)) then
          call bigdft_set_rxyz(runObj,rxyz_add=rxyz0)
-         !call vcopy(3 * atoms%astruct%nat, rxyz0, 1, runObj%atoms%astruct%rxyz(1,1), 1)
       end if
 
     END SUBROUTINE run_objects_associate
@@ -618,22 +701,6 @@ module bigdft_run
       end do
       outs%energy = dict .get. GOUT_ENERGY
 
-!!$      if (has_key(dict, GOUT_FORCES)) then
-!!$         if (.not. associated(outs%fxyz)) &
-!!$              & call init_state_properties(outs, dict_len(dict // GOUT_FORCES))
-!!$         do i = 1, outs%fdim, 1
-!!$            it => dict_iter(dict // GOUT_FORCES // (i - 1))
-!!$            find_forces: do while (associated(it))
-!!$               if (dict_len(it) == 3) then
-!!$                  outs%fxyz(1:3, i) = it 
-!!$                  exit find_forces
-!!$               end if
-!!$               it => dict_next(it)
-!!$            end do find_forces
-!!$         end do
-!!$      end if
-!!$
-!!$      if (has_key(dict, GOUT_ENERGY)) outs%energy = dict // GOUT_ENERGY
     end subroutine state_properties_set_from_dict
 
     !> Routines to handle the argument objects of bigdft_state().
@@ -642,11 +709,12 @@ module bigdft_run
       use f_utils, only: f_enumerator_null
       implicit none
       type(run_objects), intent(out) :: runObj
-      runObj%run_mode=f_enumerator_null()
+      nullify(runObj%run_mode)
       nullify(runObj%user_inputs)
       nullify(runObj%inputs)
       nullify(runObj%atoms)
       nullify(runObj%rst)
+      nullify(runObj%mm_rst)
     END SUBROUTINE nullify_run_objects
     
     !>release run_objects structure as a whole
@@ -668,9 +736,17 @@ module bigdft_run
       if (associated(runObj%rst)) then
          call f_unref(runObj%rst%refcnt,count=count)
          if (count==0) then
-            call free_restart_objects(runObj%rst)
+            call free_QM_restart_objects(runObj%rst)
          else
             nullify(runObj%rst)
+         end if
+      end if
+      if (associated(runObj%mm_rst)) then
+         call f_unref(runObj%mm_rst%refcnt,count=count)
+         if (count==0) then
+            call free_MM_restart_objects(runObj%mm_rst)
+         else
+            nullify(runObj%mm_rst)
          end if
       end if
       if (associated(runObj%atoms)) then
@@ -688,8 +764,8 @@ module bigdft_run
          else
             nullify(runObj%inputs)
          end if
-            
       end if
+      
       call nullify_run_objects(runObj)
     end subroutine release_run_objects
 
@@ -704,8 +780,12 @@ module bigdft_run
 
       call dict_free(runObj%user_inputs)
       if (associated(runObj%rst)) then
-         call free_restart_objects(runObj%rst)
+         call free_QM_restart_objects(runObj%rst)
          deallocate(runObj%rst)
+      end if
+      if (associated(runObj%mm_rst)) then
+         call free_MM_restart_objects(runObj%mm_rst)
+         deallocate(runObj%mm_rst)
       end if
       if (associated(runObj%atoms)) then
          call deallocate_atoms_data(runObj%atoms) 
@@ -717,6 +797,38 @@ module bigdft_run
       end if
       call nullify_run_objects(runObj)
     END SUBROUTINE free_run_objects
+
+    !> Parse the input dictionary and create all run_objects
+    !! in particular this routine identifies the input and the atoms structure
+    subroutine set_run_objects(runObj)
+      use module_base, only: f_err_throw
+      use module_interfaces, only: atoms_new, inputs_new, inputs_from_dict, create_log_file
+      use module_atoms, only: deallocate_atoms_data
+      implicit none
+      type(run_objects), intent(inout) :: runObj
+      character(len=*), parameter :: subname = "run_objects_parse"
+
+      ! Free potential previous inputs and atoms.
+      if (associated(runObj%atoms)) then
+         call deallocate_atoms_data(runObj%atoms) 
+         deallocate(runObj%atoms)
+      end if
+      ! Allocate atoms_data structure
+      call atoms_new(runObj%atoms)
+
+      if (associated(runObj%inputs)) then
+         call free_input_variables(runObj%inputs)
+         deallocate(runObj%inputs)
+      end if
+      !Allocation input_variables structure and initialize it with default values
+      call inputs_new(runObj%inputs)
+
+      ! Regenerate inputs and atoms.
+      call inputs_from_dict(runObj%inputs, runObj%atoms, runObj%user_inputs)
+
+      !associate the run_mode
+      runObj%run_mode => runObj%inputs%run_mode
+    END SUBROUTINE set_run_objects
 
     !> Read all input files and create the objects to run BigDFT
     subroutine run_objects_init(runObj,run_dict,source)
@@ -783,13 +895,21 @@ module bigdft_run
                call f_err_throw("The number of atoms changed!",&
                     err_name='BIGDFT_RUNTIME_ERROR')
             end if
+            if (associated(runObj%mm_rst)) call f_unref(runObj%mm_rst%refcnt)
+            runObj%mm_rst => source%mm_rst
+            call f_ref(runObj%mm_rst%refcnt)
+
          else
             ! Allocate persistent structures.
             allocate(runObj%rst)
-            call nullify_restart_objects(runObj%rst)
+            call nullify_QM_restart_objects(runObj%rst)
             !init and update the restart objects
-            call init_restart_objects(bigdft_mpi%iproc,&
+            call init_QM_restart_objects(bigdft_mpi%iproc,&
                  runObj%inputs,runObj%atoms,runObj%rst)
+
+            allocate(runObj%mm_rst)
+            call nullify_MM_restart_objects(runObj%mm_rst)
+            call init_MM_restart_objects(runObj%mm_rst,bigdft_nat(runObj),runObj%run_mode)
          end if
          ! Start the signaling loop in a thread if necessary.
          if (runObj%inputs%signaling .and. bigdft_mpi%iproc == 0) then
@@ -800,7 +920,7 @@ module bigdft_run
          
       else if (present(source)) then
          call run_objects_associate(runObj,&
-              source%inputs,source%atoms,source%rst)
+              source%inputs,source%atoms,source%rst,source%mm_rst)
       end if
 
     END SUBROUTINE run_objects_init
@@ -1072,7 +1192,7 @@ module bigdft_run
       implicit none
       type(run_objects), intent(in) :: runObj !< BigDFT run structure
       !> Buffer for eigenvectors. Should have at least dimension equal to 
-      !! bigdft_norb(runObj)
+      !! max(bigdft_norb(runObj),1)
       real(gp), dimension(*), intent(out) :: eval 
       !local variables
       integer :: norb
@@ -1081,7 +1201,6 @@ module bigdft_run
 
       call f_memcpy(n=norb,src=runObj%rst%KSwfn%orbs%eval(1),dest=eval(1))
     end subroutine bigdft_get_eval
-
 
     function bigdft_get_geocode(runObj) result(geocode)
       implicit none
@@ -1110,13 +1229,90 @@ module bigdft_run
       end if
     end function bigdft_get_cell
 
-!TODO: 1) define f_enumerator types
-!!     2) regroup this routine in a QM_something routine
-!!     3) Insert the if statements of mhgps in the bigdft_state objects
-!!     4) Make everything compilable.
+    !=====================================================================
+    subroutine bigdft_state(runObj,outs,infocode)
+      !IMPORTANT:
+      !returns energies in hartree and
+      !forces in hartree/bohr
+      !(except for LJ)
+      !receives distances in Bohr
+      use module_lj
+      use module_lenosky_si
+      use public_enums
+      use module_defs
+      use dynamic_memory, only: f_memcpy
+      use yaml_strings, only: yaml_toa
+      use yaml_output
+      implicit none
+      !parameters
+      type(run_objects), intent(inout) :: runObj
+      type(state_properties), intent(inout) :: outs
+      integer, intent(inout) :: infocode
+      !local variables
+      integer :: nat
+      integer :: icc !for amber
+      real(gp) :: alatint(3)
+      real(gp), dimension(:,:), pointer :: rxyz_ptr
+
+
+      rxyz_ptr => bigdft_get_rxyz_ptr(runObj)
+      nat=bigdft_nat(runObj)
+
+      call clean_state_properties(outs) !zero the state first
+      infocode = 0
+      !choose what to do by following the mode prescription
+      select case(trim(char(runObj%run_mode)))
+      case('LENNARD_JONES_RUN_MODE')
+         !if(trim(adjustl(efmethod))=='LJ')then
+         call lenjon(nat,rxyz_ptr,outs%fxyz,outs%energy)
+         if (bigdft_mpi%iproc == 0) then
+            call yaml_map('LJ state, energy',outs%energy,fmt='(1pe24.17)')
+         end if
+      case('LENOSKY_SI_CLUSTERS_RUN_MODE')
+      !else if(trim(adjustl(efmethod))=='LENSIc')then!for clusters
+         call f_memcpy(src=rxyz_ptr,dest=runObj%mm_rst%rf_extra)
+         !convert from bohr to angstroem
+         call vscal(3*nat,Bohr_Ang,runObj%mm_rst%rf_extra(1,1),1)
+         alatint=Bohr_Ang*bigdft_get_cell(runObj)
+         call lenosky_si_shift(nat,alatint,&
+              runObj%mm_rst%rf_extra,outs%fxyz,outs%energy)
+         !convert energy from eV to Hartree
+         outs%energy=ev_Ha*outs%energy
+         !convert forces from eV/Angstroem to hartree/bohr
+         call vscal(3*nat,eVAng_HaBohr,outs%fxyz(1,1),1)
+      case('LENOSKY_SI_BULK_RUN_MODE')
+      !else if(trim(adjustl(efmethod))=='LENSIb')then!for bulk
+         call f_memcpy(src=rxyz_ptr,dest=runObj%mm_rst%rf_extra)
+         !convert from bohr to angstroem
+         call vscal(3*nat,Bohr_Ang,runObj%mm_rst%rf_extra(1,1),1)
+         alatint=Bohr_Ang*bigdft_get_cell(runObj)
+         call lenosky_si(nat,alatint,runObj%mm_rst%rf_extra,outs%fxyz,outs%energy)
+         !convert energy from eV to Hartree
+         outs%energy=ev_Ha*outs%energy
+         !convert forces from eV/Angstroem to hartree/bohr
+         call vscal(3*nat,eVAng_HaBohr,outs%fxyz(1,1),1)
+      case('AMBER_RUN_MODE')
+      !else if(trim(adjustl(efmethod))=='AMBER')then
+         icc=1
+         call f_memcpy(src=rxyz_ptr,dest=runObj%mm_rst%rf_extra)
+         !convert from bohr to angstroem
+         call vscal(3*nat,Bohr_Ang,runObj%mm_rst%rf_extra(1,1),1)
+         call call_nab_gradient(runObj%mm_rst%rf_extra,outs%fxyz,outs%energy,icc)
+         outs%energy=kcalMol_Ha*outs%energy
+         !convert from gradient in kcal_th/mol/angstrom to
+         !force in hartree/bohr
+         call vscal(3*nat,kcalMolAng_HaBohr,outs%fxyz(1,1),1)
+      case('QM_RUN_MODE') ! traditional BigDFT run
+      !else if(trim(adjustl(efmethod))=='BIGDFT')then
+         call quantum_mechanical_state(runObj,outs,infocode)
+      case default
+         call f_err_throw('Following method for evaluation of '//&
+              'energies and forces is unknown: '//trim(yaml_toa(int(runObj%run_mode))))
+      end select
+    end subroutine bigdft_state
 
     !> Routine to use BigDFT as a blackbox
-    subroutine bigdft_state(runObj,outs,infocode)
+    subroutine quantum_mechanical_state(runObj,outs,infocode)
       use module_base
       use yaml_output
       use module_atoms, only: astruct_dump_to_file,rxyz_inside_box
@@ -1133,7 +1329,7 @@ module bigdft_run
       integer :: inputPsiId_orig,istep
       !integer :: iat
       real(gp) :: maxdiff
-      external :: cluster,forces_via_finite_differences
+      external :: cluster
       !put a barrier for all the processes
       call mpibarrier(bigdft_mpi%mpi_comm)
 
@@ -1203,7 +1399,6 @@ module bigdft_run
             call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
             call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
          end if
-!write(*,*)'(BIGDFTbastian) debug after free memory,runObj%inputs%inputPsiId',runObj%inputs%inputPsiId,bigdft_mpi%iproc
 
          !backdoor for hacking, finite difference method for calculating forces on particular quantities
          call f_file_exists('input.finite_difference_forces',exists)
@@ -1272,48 +1467,7 @@ module bigdft_run
       call f_release_routine()
       call mpibarrier(bigdft_mpi%mpi_comm)
 
-    END SUBROUTINE bigdft_state
-
-
-    !> Parse the input dictionary and create all run_objects
-    !! in particular this routine identifies the input and the atoms structure
-    subroutine set_run_objects(runObj)
-      use module_base, only: f_err_throw
-      use module_interfaces, only: atoms_new, inputs_new, inputs_from_dict, create_log_file
-      use module_atoms, only: deallocate_atoms_data
-      implicit none
-      type(run_objects), intent(inout) :: runObj
-      character(len=*), parameter :: subname = "run_objects_parse"
-
-      ! Free potential previous inputs and atoms.
-      if (associated(runObj%atoms)) then
-         call deallocate_atoms_data(runObj%atoms) 
-         deallocate(runObj%atoms)
-      end if
-      ! Allocate atoms_data structure
-      call atoms_new(runObj%atoms)
-
-      if (associated(runObj%inputs)) then
-         call free_input_variables(runObj%inputs)
-         deallocate(runObj%inputs)
-      end if
-      !Allocation input_variables structure and initialize it with default values
-      call inputs_new(runObj%inputs)
-
-      ! Regenerate inputs and atoms.
-      call inputs_from_dict(runObj%inputs, runObj%atoms, runObj%user_inputs)
-
-!!$  ! Number of atoms should not change durung the calculation 
-!!$  if (runObj%rst%nat > 0 .and. runObj%rst%nat /= runObj%atoms%astruct%nat) then
-!!$     call f_err_throw("The number of atoms changed!",err_name='BIGDFT_RUNTIME_ERROR')
-!!$  else if (runObj%rst%nat == 0) then
-!!$     call restart_objects_set_nat(runObj%rst, runObj%atoms%astruct%nat)
-!!$  end if
-!!$  call restart_objects_set_mode(runObj%rst, runObj%inputs%inputpsiid)
-!!$  call release_material_acceleration(runObj%rst%GPU)
-!!$  call restart_objects_set_mat_acc(runObj%rst, bigdft_mpi%iproc, runObj%inputs%matacc)
-
-    END SUBROUTINE set_run_objects
+    END SUBROUTINE quantum_mechanical_state
 
     !> performs the scalar product between two
     !! set of atomic positions 
@@ -1391,6 +1545,224 @@ module bigdft_run
       scpr=sqrt(scpr)
     end function bigdft_nrm2
 
+    !> Calculate atomic forces via finite differences (test purpose)
+    subroutine forces_via_finite_differences(iproc,nproc,atoms,inputs,energy,fxyz,fnoise,rst,infocode)
+      use module_base
+      use module_types
+      use module_atoms, only: move_this_coordinate
+      implicit none
+      integer, intent(in) :: iproc,nproc
+      integer, intent(inout) :: infocode
+      real(gp), intent(inout) :: energy,fnoise
+      type(input_variables), intent(inout) :: inputs
+      type(atoms_data), intent(inout) :: atoms
+      type(QM_restart_objects), intent(inout) :: rst
+      real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: fxyz
+      !local variables
+      character(len=*), parameter :: subname='forces_via_finite_differences'
+      character(len=4) :: cc
+      integer :: ik,km,n_order,i_all,i_stat,iat,ii,i,k,order,iorb_ref
+      real(gp) :: dd,alat,functional_ref,fd_alpha,energy_ref,pressure
+      real(gp), dimension(3) :: fd_step
+      real(gp), dimension(6) :: strten
+      integer, dimension(:), allocatable :: kmoves
+      real(gp), dimension(:), allocatable :: functional,dfunctional
+      real(gp), dimension(:,:), allocatable :: rxyz_ref, fxyz_fake
+      type(energy_terms) :: energs
+
+      if (iproc == 0) then
+         write(*,*)
+         write(*,'(1x,a,59("="))') '=Forces via finite Difference '
+      end if
+
+      !read the file (experimental version)
+      open(unit=79,file='input.finite_difference_forces',status='unknown')
+      read(79,*) order,fd_alpha
+      read(79,*) iorb_ref
+      close(unit=79)
+
+      !read the step size
+      ! Initialize freq_step (step to move atoms)
+      fd_step(1) = fd_alpha*inputs%hx
+      fd_step(2) = fd_alpha*inputs%hy
+      fd_step(3) = fd_alpha*inputs%hz
+
+      !first, mark the reference energy
+      energy_ref=energy
+
+      !assign the reference
+      functional_ref=functional_definition(iorb_ref,energy)
+
+      if (order == -1) then
+         n_order = 1
+         kmoves = f_malloc(src=(/ -1 /),id='kmoves')
+      else if (order == 1) then
+         n_order = 1
+         kmoves = f_malloc(src=(/ 1 /),id='kmoves')
+      else if (order == 2) then
+         n_order = 2
+         kmoves = f_malloc(src=(/ -1, 1 /),id='kmoves')
+      else if (order == 3) then
+         n_order = 4
+         kmoves = f_malloc(src=(/ -2, -1, 1, 2 /),id='kmoves')
+      else
+         print *, "Finite Differences: This order",order," is not implemented!"
+         stop
+      end if
+
+      functional = f_malloc(n_order,id='functional')
+      dfunctional = f_malloc0(3*atoms%astruct%nat,id='dfunctional')
+      rxyz_ref = f_malloc(src=rst%rxyz_new,id='rxyz_ref')
+      fxyz_fake = f_malloc((/ 3, atoms%astruct%nat /),id='fxyz_fake')
+
+      do iat=1,atoms%astruct%nat
+
+         do i=1,3 !a step in each of the three directions
+
+            if (.not.move_this_coordinate(atoms%astruct%ifrztyp(iat),i)) then
+               if (iproc == 0) write(*,"(1x,a,i0,a,i0,a)") '=F:The direction ',i,' of the atom ',iat,' is frozen.'
+               cycle
+            end if
+
+            ii = i+3*(iat-1)
+            if (i==1) then
+               alat=atoms%astruct%cell_dim(1)
+               cc(3:4)='*x'
+            else if (i==2) then
+               alat=atoms%astruct%cell_dim(2)
+               cc(3:4)='*y'
+            else
+               alat=atoms%astruct%cell_dim(3)
+               cc(3:4)='*z'
+            end if
+            km = 0
+            functional=0.0_gp
+            do ik=1,n_order
+               k = kmoves(ik)
+               !-1-> 1, 1 -> 2, y = ( x + 3 ) / 2
+               km = km + 1
+               write(cc(1:2),"(i2)") k
+               !Displacement
+               dd=real(k,gp)*fd_step(i)
+               !We copy atomic positions (necessary?)
+               !call vcopy(3*atoms%astruct%nat,rxyz_ref(1,1),1,rst%rxyz_new(1,1),1)
+               call f_memcpy(src=rxyz_ref,dest=rst%rxyz_new)
+               if (iproc == 0) then
+                  write(*,"(1x,a,i0,a,a,a,1pe20.10,a)") &
+                       '=FD Move the atom ',iat,' in the direction ',cc,' by ',dd,' bohr'
+               end if
+               if (atoms%astruct%geocode == 'P') then
+                  rst%rxyz_new(i,iat)=modulo(rxyz_ref(i,iat)+dd,alat)
+               else if (atoms%astruct%geocode == 'S') then
+                  rst%rxyz_new(i,iat)=modulo(rxyz_ref(i,iat)+dd,alat)
+               else
+                  rst%rxyz_new(i,iat)=rxyz_ref(i,iat)+dd
+               end if
+               inputs%inputPsiId=1
+               !here we should call cluster
+               call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,energs,fxyz_fake,strten,fnoise,pressure,&
+                    rst%KSwfn,rst%tmb,&!psi,rst%Lzd,rst%gaucoeffs,rst%gbd,rst%orbs,&
+                    rst%rxyz_old,inputs,rst%GPU,infocode)
+
+               !assign the quantity which should be differentiated
+               functional(km)=functional_definition(iorb_ref,energy)
+
+            end do
+            ! Build the finite-difference quantity if the calculation has converged properly
+            if (infocode ==0) then
+               !Force is -dE/dR
+               if (order == -1) then
+                  dd = - (functional_ref - functional(1))/fd_step(i)
+               else if (order == 1) then
+                  dd = - (functional(1) - functional_ref)/fd_step(i)
+               else if (order == 2) then
+                  dd = - (functional(2) - functional(1))/(2.0_gp*fd_step(i))
+               else if (order == 3) then
+                  dd = - (functional(4) + functional(3) - functional(2) - functional(1))/(6.d0*fd_step(i))
+               else
+                  stop "BUG (FD_forces): this order is not defined"
+               end if
+               !if (abs(dd).gt.1.d-10) then
+               dfunctional(ii) = dd
+               !end if
+            else
+               if (iproc==0)&
+                    write(*,*)&
+                    'ERROR: the wavefunctions have not converged properly, meaningless result. Exiting. Infocode:',&
+                    infocode
+               stop
+            end if
+
+         end do
+      end do
+
+      !copy the final value of the energy and of the dfunctional
+      if (.not. experimental_modulebase_var_onlyfion) then !normal case
+         call vcopy(3*atoms%astruct%nat,dfunctional(1),1,fxyz(1,1),1)
+      else
+         call axpy(3*atoms%astruct%nat,2.0_gp*rst%KSwfn%orbs%norb,dfunctional(1),1,fxyz(1,1),1)
+      end if
+      !clean the center mass shift and the torque in isolated directions
+      call clean_forces(iproc,atoms,rxyz_ref,fxyz,fnoise)
+      if (iproc == 0) call write_forces(atoms,fxyz)
+
+      energy=functional_ref
+
+      if (iproc == 0) then
+         write(*,"(1x,2(a,1pe20.10))") &
+              '=FD Step done, Internal Energy:',energy_ref,' functional value:', functional_ref
+      end if
+
+      call f_free(kmoves)
+      call f_free(functional)
+      call f_free(dfunctional)
+      call f_free(rxyz_ref)
+      call f_free(fxyz_fake)
+
+    contains
+
+      function functional_definition(iorb_ref,energy)
+        use module_base
+        use module_types
+        implicit none
+        integer, intent(in) :: iorb_ref
+        real(gp), intent(in) :: energy
+        real(gp) :: functional_definition
+        !local variables
+        real(gp) :: mu
+
+        !chemical potential =1/2(e_HOMO+e_LUMO)= e_HOMO + 1/2 GAP (the sign is to be decided - electronegativity?)
+        !definition which brings to Chemical Potential
+        if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap) .and. iorb_ref< -1) then
+           mu=-abs(rst%KSwfn%orbs%eval(-iorb_ref)+ 0.5_gp*rst%KSwfn%orbs%HLgap) 
+        else
+           mu=UNINITIALIZED(1.0_gp)
+        end if
+
+        !assign the reference
+        if (iorb_ref==0) then
+           functional_definition=energy
+        else if (iorb_ref == -1) then
+           if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap)) then
+              functional_definition=rst%KSwfn%orbs%HLgap !here we should add the definition which brings to Fukui function
+           else
+              stop ' ERROR (FDforces): gap not defined' 
+           end if
+        else if(iorb_ref < -1) then      !definition which brings to the neutral fukui function (chemical potential)
+           if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap)) then
+              functional_definition=mu!-mu*real(2*orbs%norb,gp)+energy
+           else
+              stop ' ERROR (FDforces): gap not defined, chemical potential cannot be calculated' 
+           end if
+        else
+           functional_definition=rst%KSwfn%orbs%eval(iorb_ref)
+        end if
+
+      end function functional_definition
+
+    end subroutine forces_via_finite_differences
+
+
 end module bigdft_run
 
 !external wrapper temporary to make the code compiling with wrappers
@@ -1404,16 +1776,18 @@ subroutine run_objects_init_from_run_name(runObj, radical, posinp)
   type(dictionary), pointer :: run_dict
 
   !create the ad-hoc dictionary run to wrap the module routine
-  run_dict => dict_new('name' .is. radical, 'posinp' .is. posinp)
-  
-  call run_objects_init(runObj,run_dict)
+  !run_dict => dict_new('name' .is. radical, 'posinp' .is. posinp)
 
-  call dict_free(run_dict)
+  call dict_init(run_dict)
+  call bigdft_set_run_properties(run_dict,run_id=radical,posinp_id=posinp)
+
+  call run_objects_init(runObj,run_dict)
+  !call dict_free(run_dict) In this case the run_dict has not to be freed
 END SUBROUTINE run_objects_init_from_run_name
 
 subroutine run_objects_update(runObj, dict)
-  use module_base, only: bigdft_mpi
-  use bigdft_run, only: run_objects,init_restart_objects,set_run_objects
+  use module_base, only: bigdft_mpi,int
+  use bigdft_run, only: run_objects,init_QM_restart_objects,init_MM_restart_objects,set_run_objects,bigdft_nat
   use dictionaries!, only: dictionary, dict_update,dict_copy,dict_free,dict_iter,dict_next
   use yaml_output
   implicit none
@@ -1439,10 +1813,10 @@ subroutine run_objects_update(runObj, dict)
   call set_run_objects(runObj)
 
   !init and update the restart objects
-  call init_restart_objects(bigdft_mpi%iproc,runObj%inputs,runObj%atoms,&
+  call init_QM_restart_objects(bigdft_mpi%iproc,runObj%inputs,runObj%atoms,&
        runObj%rst)
+  call init_MM_restart_objects(runObj%mm_rst,bigdft_nat(runObj),runObj%run_mode)
 END SUBROUTINE run_objects_update
-
 
 !> this routine should be used in memguess executable also
 subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)

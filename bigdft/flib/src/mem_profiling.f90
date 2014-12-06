@@ -195,7 +195,7 @@ contains
   subroutine get_proc_status_dict(dict)
     use yaml_parse
     use f_utils
-    use yaml_strings, only: f_strcpy
+    use yaml_strings, only: f_strcpy,yaml_toa
     use dictionaries
     implicit none
     type(dictionary), pointer :: dict

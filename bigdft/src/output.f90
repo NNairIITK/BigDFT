@@ -1553,17 +1553,17 @@ subroutine print_atoms_and_grid(Glr, atoms, rxyz, shift, hx, hy, hz)
 
   if (atoms%astruct%ntypes > 0) then
      call yaml_comment('Atom Positions',hfill='-')
-     call yaml_sequence_open('Atomic positions within the cell (Atomic and Grid Units)')
-     do iat=1,atoms%astruct%nat
-        call yaml_sequence(advance='no')
-        call yaml_mapping_open(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),flow=.true.)
-        call yaml_map('AU',rxyz(1:3,iat),fmt='(1pg12.5)')
-        call yaml_map('GU',(/rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz/),fmt='(1pg12.5)')
-        call yaml_mapping_close(advance='no')
-        call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
-     enddo
-     call yaml_sequence_close()
-     call yaml_map('Rigid Shift Applied (AU)',(/-shift(1),-shift(2),-shift(3)/),fmt='(1pg12.5)')
+!!$     call yaml_sequence_open('Atomic positions within the cell (Atomic and Grid Units)')
+!!$     do iat=1,atoms%astruct%nat
+!!$        call yaml_sequence(advance='no')
+!!$        call yaml_mapping_open(trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),flow=.true.)
+!!$        call yaml_map('AU',rxyz(1:3,iat),fmt='(1pg12.5)')
+!!$        call yaml_map('GU',(/rxyz(1,iat)/hx,rxyz(2,iat)/hy,rxyz(3,iat)/hz/),fmt='(1pg12.5)')
+!!$        call yaml_mapping_close(advance='no')
+!!$        call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
+!!$     enddo
+!!$     call yaml_sequence_close()
+!!$     call yaml_map('Rigid Shift Applied (AU)',(/-shift(1),-shift(2),-shift(3)/),fmt='(1pg12.5)')
      ! New version
      call yaml_mapping_open('Atomic structure')
      call yaml_get_default_stream(unit = iunit)

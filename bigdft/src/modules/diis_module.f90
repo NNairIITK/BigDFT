@@ -259,7 +259,7 @@ contains
           !use the array which will be erased in the next step as the work array
           iacc_add=ispsidst+(mod(diis%ids,diis%idsx))*ncomp
           if (diis%ids < diis%idsx) then
-             call to_zero(ncomp,diis%psidst(iacc_add))
+             call f_zero(ncomp,diis%psidst(iacc_add))
           end if
 
           jj=0

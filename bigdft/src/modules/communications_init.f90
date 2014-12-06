@@ -333,7 +333,7 @@ module communications_init
           if (i3start+1<=i3 .and. i3<=i3end+1) then
               call vcopy(ncount, weightloc(0,0,i3-i3start), 1, reducearr(1), 1)
           else
-              call to_zero(ncount, reducearr(1))
+              call f_zero(reducearr)
           end if
 
           ! Communicate the slice and the zeros (a bit wasteful...)
@@ -390,9 +390,10 @@ module communications_init
 
 
       ! fine part
-      if (i3end-i3start>=0) then
-          call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(i3end-i3start+1), weightloc(0,0,1))
-      end if
+      !if (i3end-i3start>=0) then
+      !    call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(i3end-i3start+1), weightloc(0,0,1))
+      !end if
+      call f_zero(weightloc)
       !call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*n3p,weightppp_f(0,0,1))
       i3e=i3s+n3p-1
       do iorb=1,orbs%norbp
@@ -443,7 +444,7 @@ module communications_init
           if (i3start+1<=i3 .and. i3<=i3end+1) then
               call vcopy(ncount, weightloc(0,0,i3-i3start), 1, reducearr(1), 1)
           else
-              call to_zero(ncount, reducearr(1))
+              call f_zero(reducearr)
           end if
 
           ! Communicate the slice and the zeros (a bit wasteful...)
@@ -537,7 +538,8 @@ module communications_init
 
 
           !@NEW #################################
-          call to_zero(2*nproc, istartend_c(1,0))
+          !call to_zero(2*nproc, istartend_c(1,0))
+          call f_zero(istartend_c)
           weight_per_process_c = f_malloc0(0.to.nproc,id='weight_per_process_c')
           points_per_process = f_malloc0(0.to.nproc-1,id='points_per_process')
           istartendseg_c = f_malloc0((/1.to.2,0.to.nproc-1/),id='istartendseg_c')
@@ -720,7 +722,8 @@ module communications_init
 
 
           !@NEW #################################
-          call to_zero(2*nproc, istartend_f(1,0))
+      !call to_zero(2*nproc, istartend_f(1,0))
+          call f_zero(istartend_f)
           weight_per_process_f = f_malloc0(0.to.nproc,id='weight_per_process_f')
           points_per_process = f_malloc0(0.to.nproc-1,id='points_per_process')
           istartendseg_f = f_malloc0((/1.to.2,0.to.nproc-1/),id='istartendseg_f')
@@ -2232,9 +2235,11 @@ module communications_init
     
     
       !weight_c=0.d0
-      call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(i3max_c-i3min_c+1), weight_c(0,0,i3min_c))
-      call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(i3max_f-i3min_f+1), weight_f(0,0,i3min_f))
-    
+      !call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(i3max_c-i3min_c+1), weight_c(0,0,i3min_c))
+      !call to_zero((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(i3max_f-i3min_f+1), weight_f(0,0,i3min_f))
+      call f_zero(weight_c)
+      call f_zero(weight_f)
+
       n1p1=lzd%glr%d%n1+1
       np=n1p1*(lzd%glr%d%n2+1)
 
@@ -2422,7 +2427,8 @@ module communications_init
     
       call f_routine(id='get_weights_sumrho')
     
-      call to_zero(lzd%glr%d%n3i, weights_per_zpoint(1))
+      !call to_zero(lzd%glr%d%n3i, weights_per_zpoint(1))
+      call f_zero(weights_per_zpoint)
     
       weight_xy=f_malloc((/lzd%glr%d%n1i,lzd%glr%d%n2i/),id='weight_xy')
     
@@ -2431,7 +2437,8 @@ module communications_init
       tt=0.d0
       weights_per_slice(:) = 0.0d0
       do i3=nscatterarr(iproc,3)+1,nscatterarr(iproc,3)+nscatterarr(iproc,2)
-          call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i, weight_xy(1,1))
+         !call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i, weight_xy(1,1))
+          call f_zero(weight_xy)
           do iorb=1,orbs%norb
               if (orbs%spinsgn(iorb)<0.d0) cycle !consider only up orbitals
               ilr=orbs%inwhichlocreg(iorb)
@@ -2539,7 +2546,8 @@ module communications_init
                   cycle outer_loop
               end if
               i3_loop: do i3=nscatterarr(jproc_out,3)+1,nscatterarr(jproc_out,3)+nscatterarr(jproc_out,2)
-                  call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i, slicearr(1,1))
+                 !call to_zero(lzd%glr%d%n1i*lzd%glr%d%n2i, slicearr(1,1))
+                  call f_zero(slicearr)
                   do iorb=1,orbs%norb
                       if (orbs%spinsgn(iorb)<0.d0) cycle !consider only up orbitals
                       ilr=orbs%inwhichlocreg(iorb)
@@ -2632,7 +2640,8 @@ module communications_init
     
     
       if (nptsp>0) then
-          call to_zero(nptsp, norb_per_gridpoint(1))
+         !call to_zero(nptsp, norb_per_gridpoint(1))
+          call f_zero(norb_per_gridpoint)
       end if
       do i3=1,lzd%glr%d%n3i
           if (i3*lzd%glr%d%n1i*lzd%glr%d%n2i<istartend(1,iproc) .or. &
@@ -2718,7 +2727,8 @@ module communications_init
       character(len=*),parameter :: subname='determine_communication_arrays_sumrho'
     
     
-      call to_zero(nproc,nsendcounts(0))
+      call f_zero(nsendcounts)
+     
     
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb

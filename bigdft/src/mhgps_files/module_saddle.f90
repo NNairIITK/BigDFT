@@ -23,7 +23,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     use yaml_output
     use module_interfaces
     use module_sqn
-    use module_global_variables, only: inputPsiId, iproc, ixyz_int, astruct_ptr, mhgps_verbosity,&
+    use module_global_variables, only: inputPsiId, iproc, astruct_ptr, mhgps_verbosity,&
                                        currDir, isadc, ndim_rot, nhist_rot, alpha_rot,&
                                        alpha_stretch_rot,saddle_alpha_stretch0,work,lwork,&
                                        saddle_steepthresh_trans,imode,saddle_tighten,&

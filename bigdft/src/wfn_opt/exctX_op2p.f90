@@ -284,7 +284,7 @@ subroutine exact_exchange_potential_op2p(iproc,nproc,xc,lr,orbs,pkernel,psi,dpsi
   call initialize_work_arrays_sumrho(1,lr,.true.,w)
   psir = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%norbp /),id='psir')
 
-  call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,dpsir(1,1))
+  call f_zero(dpsir)
 
   !uncompress the wavefunction in the real grid
   do iorb=1,orbs%norbp

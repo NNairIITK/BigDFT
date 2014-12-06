@@ -815,8 +815,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      if (inputpsi /= INPUT_PSI_LINEAR_AO .and. &
           & inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
           & inputpsi /= INPUT_PSI_DISK_LINEAR) then
-        fpulay = f_malloc_ptr((/ 3, atoms%astruct%nat /),id='fpulay')
-        if (atoms%astruct%nat > 0) call to_zero(3 * atoms%astruct%nat,fpulay(1, 1))
+        fpulay = f_malloc0_ptr((/ 3, atoms%astruct%nat /),id='fpulay')
      end if
 
      if (DoLastRunThings) then

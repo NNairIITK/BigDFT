@@ -66,7 +66,7 @@ subroutine plotOrbitals(iproc, tmb, phi, nat, rxyz, hxh, hyh, hzh, it, basename)
    !write(*,*) 'write, tmb%orbs%nbasisp', tmb%orbs%norbp
     orbLoop: do iorb=1,tmb%orbs%norbp
         !!phir=0.d0
-        call to_zero(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i, phir(1))
+        call f_zero(phir)
         call daub_to_isf(tmb%lzd%glr,w,phi(istart+1),phir(1))
         ilr=tmb%orbs%inwhichlocreg(tmb%orbs%isorb+iorb)
         iiAt=tmb%orbs%onwhichatom(tmb%orbs%isorb+iorb)
@@ -581,10 +581,10 @@ subroutine plotGrid(iproc, norb, nspinor, nspin, orbitalNumber, llr, glr, atoms,
     ldim=llr%wfd%nvctr_c+7*llr%wfd%nvctr_f
     gdim=glr%wfd%nvctr_c+7*glr%wfd%nvctr_f
     lphi = f_malloc(ldim,id='lphi')
-    phi = f_malloc(gdim,id='phi')
+    phi = f_malloc0(gdim,id='phi')
     lphi=1.d0
     !!phi=0.d0
-    call to_zero(gdim, phi(1))
+    !call to_zero(gdim,phi(1))
     call Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, glr, llr, lphi, phi)
   
     write(num,'(i0)') orbitalNumber
@@ -1697,11 +1697,11 @@ subroutine support_function_multipoles(iproc, tmb, atoms, denspot)
   call f_routine(id='support_function_multipoles')
 
   phir = f_malloc(tmb%collcom_sr%ndimpsi_c,id='phir')
-  dipole_net = f_malloc((/3,tmb%orbs%norb/),id='dipole_net')
-  quadropole_net = f_malloc((/3,3,tmb%orbs%norb/),id='quadropole_net')
+  dipole_net = f_malloc0((/3,tmb%orbs%norb/),id='dipole_net')
+  quadropole_net = f_malloc0((/3,3,tmb%orbs%norb/),id='quadropole_net')
 
-  call to_zero(3*tmb%orbs%norb, dipole_net(1,1))
-  call to_zero(9*tmb%orbs%norb, quadropole_net(1,1,1))
+  !call to_zero(3*tmb%orbs%norb, dipole_net(1,1))
+  !call to_zero(9*tmb%orbs%norb, quadropole_net(1,1,1))
 
   ist=1
   istr=1

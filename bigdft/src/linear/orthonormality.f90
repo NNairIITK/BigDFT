@@ -2154,7 +2154,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
 
   !inv_ovrlp_half_ = matrices_null()
   !call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_)
-  call to_zero(inv_ovrlp_half%nvctr*inv_ovrlp_half%nspin, inv_ovrlp_half_%matrix_compr(1))
+  call f_zero(inv_ovrlp_half%nvctr*inv_ovrlp_half%nspin, inv_ovrlp_half_%matrix_compr(1))
 
   !DEBUG
   !if (iproc==0) then
@@ -2614,7 +2614,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
       else
           iout=.false.
       end if
-      call to_zero(at%astruct%nat,jcount_norb(1))
+      call f_zero(jcount_norb)
       do jorb=1,orbs%norb
           jat=orbs%onwhichatom(jorb)
           jcount_norb(jat)=jcount_norb(jat)+1
@@ -2778,11 +2778,11 @@ subroutine gramschmidt_coeff(iproc,nproc,norb,basis_orbs,basis_overlap,basis_ove
              coeff(basis_orbs%isorb+1,corb), basis_orbs%norb, 0.d0, &
              ovrlp_coeff(1,1), corb)
      else
-        call to_zero(corb,ovrlp_coeff(1,1))
+        call f_zero(ovrlp_coeff)
      end if
 
      if (nproc>1) then
-        call mpiallred(ovrlp_coeff(1,1), corb, mpi_sum, bigdft_mpi%mpi_comm)
+        call mpiallred(ovrlp_coeff, mpi_sum, bigdft_mpi%mpi_comm)
      end if
 
      call cpu_time(tr1)
@@ -2902,11 +2902,12 @@ subroutine gramschmidt_coeff_trans(iproc,nproc,norb,basis_orbs,basis_overlap,bas
              coeff_transp(corb,1), norb, 0.d0, &
              coeff_tmp(1,1), basis_orbs%norb)
      else
-        call to_zero(corb,coeff_tmp(1,1))
+        !!call to_zero(corb,coeff_tmp(1,1)) !!!LG: is this a typo?
+        call f_zero(coeff_tmp)
      end if
 
      if (nproc>1) then
-        call mpiallred(coeff_tmp(1,1), basis_orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+        call mpiallred(coeff_tmp, mpi_sum, bigdft_mpi%mpi_comm)
      end if
 
      call cpu_time(tr1)
@@ -2919,11 +2920,11 @@ subroutine gramschmidt_coeff_trans(iproc,nproc,norb,basis_orbs,basis_overlap,bas
              coeff_tmp(1+basis_orbs%isorb,1), basis_orbs%norb, 0.d0, &
              ovrlp_coeff(1,1), corb)
      else
-        call to_zero(corb,ovrlp_coeff(1,1))
+        call f_zero(ovrlp_coeff)
      end if
 
      if (nproc>1) then
-        call mpiallred(ovrlp_coeff(1,1), corb, mpi_sum, bigdft_mpi%mpi_comm)
+        call mpiallred(ovrlp_coeff, mpi_sum, bigdft_mpi%mpi_comm)
      end if
      call f_free(coeff_tmp)
 
@@ -3252,7 +3253,7 @@ end subroutine overlap_minus_one_half_serial
 !!
 !!  in_neighborhood = f_malloc(orbs%norb,id='in_neighborhood')
 !!
-!!  call to_zero(orbs%norb, orbs%eval(1))
+!!  call f_zero(orbs%norb, orbs%eval(1))
 !!
 !!  do iorb=1,orbs%norbp
 !!     iiorb=orbs%isorb+iorb

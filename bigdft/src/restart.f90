@@ -195,9 +195,9 @@ subroutine reformatmywaves(iproc,orbs,at,&
 
      else
 
-        psigold = f_malloc((/ 0.to.n1_old, 1.to.2, 0.to.n2_old, 1.to.2, 0.to.n3_old, 1.to.2 /),id='psigold')
+        psigold = f_malloc0((/ 0.to.n1_old, 1.to.2, 0.to.n2_old, 1.to.2, 0.to.n3_old, 1.to.2 /),id='psigold')
 
-        call to_zero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
+        !call f_zero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
 
         n1p1=n1_old+1
         np=n1p1*(n2_old+1)
@@ -1076,7 +1076,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
 
   ! Calling arguments
   integer,intent(in) :: iproc, nproc, imethod_overlap
-  type(atoms_data), intent(inout) :: at
+  type(atoms_data), intent(in) :: at
   type(DFT_wavefunction),intent(inout):: tmb
   real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz
 
@@ -1728,9 +1728,9 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
      if (.not. lstat) call io_error(trim(error))
   else
      ! add derivative functions at a later date? (needs orbs and lzd)
-     psigold = f_malloc((/ 0.to.n_old(1), 1.to.2, 0.to.n_old(2), 1.to.2, 0.to.n_old(3), 1.to.2 /),id='psigold')
+     psigold = f_malloc0((/ 0.to.n_old(1), 1.to.2, 0.to.n_old(2), 1.to.2, 0.to.n_old(3), 1.to.2 /),id='psigold')
 
-     call to_zero(8*(n_old(1)+1)*(n_old(2)+1)*(n_old(3)+1),psigold)
+     !call f_zero(8*(n_old(1)+1)*(n_old(2)+1)*(n_old(3)+1),psigold)
      do iel=1,nvctr_c_old
         if (useFormattedInput) then
            read(unitwf,*) i1,i2,i3,tt
@@ -1766,7 +1766,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   !allocate (gpsi(glr%wfd%nvctr_c+7*glr%wfd%nvctr_f),stat=i_stat)
   !call memocc(i_stat,gpsi,'gpsi',subname)
   !
-  !call to_zero(glr%wfd%nvctr_c+7*glr%wfd%nvctr_f,gpsi)
+  !call f_zero(glr%wfd%nvctr_c+7*glr%wfd%nvctr_f,gpsi)
   !call Lpsi_to_global2(iproc, llr%%wfd%nvctr_c+7*lr%wfd%nvctr_f, glr%wfd%nvctr_c+7*glr%wfd%nvctr_f, &
   !     1, 1, 1, glr, lr, psi, gpsi)
   !
@@ -2438,7 +2438,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
 !!$     iiorb=iorbp+tmb%orbs%isorb
 !!$     ilr = tmb%orbs%inwhichlocreg(iiorb)
 !!$  
-!!$     call to_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
+!!$     call f_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
 !!$     call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
 !!$          tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
 !!$          1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
@@ -2553,8 +2553,8 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   ! This can be done from the input.lin since the number of basis functions should be fixed.
   ! Fragment structure must also be fully initialized, even if this is not a fragment calculation
 
-  call to_zero(orbs%norb,locrad(1))
-  call to_zero(orbs%norb,orbs%onwhichatom(1))
+  call f_zero(locrad)
+  call f_zero(orbs%norb,orbs%onwhichatom(1))
 
   if (iformat == WF_FORMAT_ETSF) then
      stop 'Linear scaling with ETSF writing not implemented yet'
@@ -3043,9 +3043,9 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
 
           psirold_ok=.true.
           workarraytmp=f_malloc((2*n_old+31),id='workarraytmp')
-          psirold=f_malloc((2*n_old+31),id='psirold')
+          psirold=f_malloc0((2*n_old+31),id='psirold')
 
-          call to_zero((2*n_old(1)+31)*(2*n_old(2)+31)*(2*n_old(3)+31),psirold(1,1,1))
+          !call f_zero((2*n_old(1)+31)*(2*n_old(2)+31)*(2*n_old(3)+31),psirold(1,1,1))
           call vcopy((2*n_old(1)+2)*(2*n_old(2)+2)*(2*n_old(3)+2),phigold(0,1,0,1,0,1),1,psirold(1,1,1),1)
           call psig_to_psir_free(n_old(1),n_old(2),n_old(3),workarraytmp,psirold)
           call f_free(workarraytmp)
@@ -3246,7 +3246,7 @@ subroutine psi_to_psig(n,nvctr_c,nvctr_f,nseg_c,nseg_f,keyvloc,keygloc,jstart,ps
   ! local variables
   integer :: iseg, j0, j1, i, ii, i0, i1, i2, i3, n1p1, np
 
-  call to_zero(8*(n(1)+1)*(n(2)+1)*(n(3)+1),psig(0,1,0,1,0,1))
+  call f_zero(psig)
 
   n1p1=n(1)+1
   np=n1p1*(n(2)+1)

@@ -313,10 +313,10 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      ndim_hamovr=2*ndim_hamovr
   end if
 
-  hamovr = f_malloc((/ nspin*ndim_hamovr, 2, orbse%nkpts /),id='hamovr')
+  hamovr = f_malloc0((/ nspin*ndim_hamovr, 2, orbse%nkpts /),id='hamovr')
 
   !initialise hamovr
-  call to_zero(nspin*ndim_hamovr*2*orbse%nkpts,hamovr(1,1,1))
+  !call to_zero(nspin*ndim_hamovr*2*orbse%nkpts,hamovr(1,1,1))
 
   if (iproc == 0 .and. verbose > 1) call yaml_mapping_open('Input Guess Overlap Matrices',flow=.true.)
   !     'Overlap Matrix...'
@@ -411,7 +411,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
           & orbse%eval(1), orbse%ikptproc)
 
      !clean the array of the IG occupation
-     call to_zero(orbse%norb*orbse%nkpts,orbse%occup(1))
+     call f_zero(orbse%norb*orbse%nkpts,orbse%occup(1))
         !put the actual values on it
      do ikpt=1,orbs%nkpts
         call vcopy(orbs%norbu,orbs%occup((ikpt-1)*orbs%norb+1),1, orbse%occup((ikpt-1)*orbse%norb+1),1)

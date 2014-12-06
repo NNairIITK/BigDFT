@@ -46,13 +46,6 @@ program abscalc_main
    igroup=bigdft_mpi%igroup!mpi_info(3)
    !number of groups
    ngroups=bigdft_mpi%ngroup!mpi_info(4)
-!!$   !allocate arrays of run ids
-!!$   allocate(arr_radical(abs(nconfig)))
-!!$   allocate(arr_posinp(abs(nconfig)))
-!!$
-!!$   !here we call  a routine which
-!!$   ! Read a possible radical format argument.
-!!$   call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierr)
 
    !alternative way of looping over runs
    do iconfig=0,bigdft_nruns(options)-1!abs(nconfig)
@@ -78,8 +71,7 @@ program abscalc_main
       !Allocations
       fxyz = f_malloc((/ 3, runObj%atoms%astruct%nat /),id='fxyz')
 
-      call call_abscalc(nproc,iproc,runObj%atoms,runObj%atoms%astruct%rxyz, &
-           runObj%inputs,etot,fxyz,runObj%rst,infocode)
+      call call_abscalc(nproc,iproc,runObj,etot,fxyz,infocode)
 
       ! if (iproc == 0) call write_forces(atoms,fxyz)
 
@@ -101,7 +93,7 @@ END PROGRAM abscalc_main
 
 
 !> Routines to use abscalc as a blackbox
-subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
+subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
    use module_base
    use module_types, only: input_variables,deallocate_wfd,atoms_data
    use module_interfaces
@@ -110,104 +102,79 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc
-   type(input_variables),intent(inout) :: in
-   type(atoms_data), intent(inout) :: atoms
-   type(restart_objects), intent(inout) :: rst
+   type(run_objects), intent(inout) :: runObj
    integer, intent(inout) :: infocode
    real(gp), intent(out) :: energy !< only iproc has the right value
    !Local variables
-   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
-   real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
+   real(gp), dimension(3,runObj%atoms%astruct%nat), intent(out) :: fxyz
    !local variables
    character(len=*), parameter :: subname='call_abscalc'
    character(len=40) :: comment
    integer :: ierr,inputPsiId_orig,icycle
    real(gp) :: hx_old, hy_old, hz_old
 
-!!$   !temporary interface
-!!$   interface
-!!$      subroutine abscalc(nproc,iproc,atoms,rxyz,&
-!!$          psi,Lzd,orbs,hx_old,hy_old,hz_old,in,GPU,infocode)
-!!$         use module_base
-!!$         use module_types
-!!$         implicit none
-!!$         integer, intent(in) :: nproc,iproc
-!!$         integer, intent(out) :: infocode
-!!$         real(gp), intent(inout) :: hx_old,hy_old,hz_old
-!!$         type(input_variables), intent(in) :: in
-!!$       type(local_zone_descriptors), intent(inout) :: Lzd
-!!$         type(atoms_data), intent(inout) :: atoms
-!!$         type(orbitals_data), intent(inout) :: orbs
-!!$         type(GPU_pointers), intent(inout) :: GPU
-!!$         real(gp), dimension(3,atoms%astruct%nat), target, intent(inout) :: rxyz
-!!$         real(wp), dimension(:), pointer :: psi
-!!$      END SUBROUTINE abscalc 
-!!$   end interface
-
    !put a barrier for all the processes
    call mpibarrier()
 
    !assign the verbosity of the output
    !the verbose variables is defined in module_base
-   verbose=in%verbosity
+   verbose=runObj%inputs%verbosity
 
    !Assign a value for energy to avoid compiler warning and to check the calculation
    energy = huge(1.d0)
 
-   inputPsiId_orig=in%inputPsiId
+   inputPsiId_orig=runObj%inputs%inputPsiId
 
-   loop_cluster: do icycle=1,in%nrepmax
+   loop_cluster: do icycle=1,runObj%inputs%nrepmax
 
-      if (in%inputPsiId == 0 .and. associated(rst%KSwfn%psi)) then
-         call f_free_ptr(rst%KSwfn%psi)
-         call f_free_ptr(rst%KSwfn%orbs%eval)
-         nullify(rst%KSwfn%orbs%eval)
+      if (runObj%inputs%inputPsiId == 0 .and. associated(runObj%rst%KSwfn%psi)) then
+         call f_free_ptr(runObj%rst%KSwfn%psi)
+         call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
+         nullify(runObj%rst%KSwfn%orbs%eval)
 
-        call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd)
+        call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
       end if
 
-      if(.not. in%c_absorbtion) then 
-
+      if(.not. runObj%inputs%c_absorbtion) then 
          stop 'ERROR'
       else
-         call abscalc(nproc,iproc,atoms,rxyz,&
-             rst%KSwfn,hx_old,hy_old,hz_old,in,rst%GPU,infocode)
+         call abscalc(nproc,iproc,runObj%atoms,runObj%atoms%astruct%rxyz,&
+             runObj%rst%KSwfn,hx_old,hy_old,hz_old,runObj%inputs,runObj%rst%GPU,infocode)
          fxyz(:,:) = 0.d0
       endif
 
-      if (in%inputPsiId==1 .and. infocode==2) then
-         if (in%gaussian_help) then
-            in%inputPsiId=11
+      if (runObj%inputs%inputPsiId==1 .and. infocode==2) then
+         if (runObj%inputs%gaussian_help) then
+            runObj%inputs%inputPsiId=11
          else
-            in%inputPsiId=0
+            runObj%inputs%inputPsiId=0
          end if
-      else if ((in%inputPsiId==1 .or. in%inputPsiId==0) .and. infocode==1) then
+      else if ((runObj%inputs%inputPsiId==1 .or. runObj%inputs%inputPsiId==0) .and. infocode==1) then
          !in%inputPsiId=0 !better to diagonalise that to restart an input guess
-         in%inputPsiId=1
+         runObj%inputs%inputPsiId=1
          if(iproc==0) then
             write(*,*)&
                &   ' WARNING: Wavefunctions not converged after cycle',icycle
             write(*,*)' restart after diagonalisation'
          end if
 
-      else if (in%inputPsiId == 0 .and. infocode==3) then
+      else if (runObj%inputs%inputPsiId == 0 .and. infocode==3) then
          if (iproc == 0) then
             write( *,'(1x,a)')'Convergence error, cannot proceed.'
             write( *,'(1x,a)')' writing positions in file posfail.xyz then exiting'
             write(comment,'(a)')'UNCONVERGED WF '
-            !call wtxyz('posfail',energy,rxyz,atoms,trim(comment))
+            !call wtxyz('posfail',energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment))
 
-            call astruct_dump_to_file(atoms%astruct,"posfail",&
+            call astruct_dump_to_file(runObj%atoms%astruct,"posfail",&
                  'UNCONVERGED WF ')
-!!$            call write_atomic_file("posfail",energy,rxyz,atoms%astruct%ixyz_int,atoms,trim(comment))
 
          end if 
 
-         call f_free_ptr(rst%KSwfn%psi)
-         call f_free_ptr(rst%KSwfn%orbs%eval)
-         nullify(rst%KSwfn%orbs%eval)
+         call f_free_ptr(runObj%rst%KSwfn%psi)
+         call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
+         nullify(runObj%rst%KSwfn%orbs%eval)
 
-        call deallocate_wfd(rst%KSwfn%Lzd%Glr%wfd)
+        call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
 
         !test if stderr works
         write(0,*)'unnormal end'
@@ -221,7 +188,7 @@ subroutine call_abscalc(nproc,iproc,atoms,rxyz,in,energy,fxyz,rst,infocode)
    end do loop_cluster
 
    !preserve the previous value
-   in%inputPsiId=inputPsiId_orig
+   runObj%inputs%inputPsiId=inputPsiId_orig
 
    !put a barrier for all the processes
    call MPI_BARRIER(MPI_COMM_WORLD,ierr)
@@ -534,27 +501,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    call set_symmetry_data(atoms%astruct%sym,atoms%astruct%geocode,&
         KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i, in%nspin)
 
-!!$   !calculate the irreductible zone for this region, if necessary.
-!!$   if (atoms%astruct%sym%symObj >= 0) then
-!!$      call symmetry_get_n_sym(atoms%astruct%sym%symObj, nsym, i_stat)
-!!$      if (nsym > 1) then
-!!$         ! Current third dimension is set to 1 always
-!!$         ! since nspin == nsppol always in BigDFT
-!!$         allocate(atoms%astruct%sym%irrzon(n1i*n2i*n3i,2,1+ndebug),stat=i_stat)
-!!$         call memocc(i_stat,atoms%astruct%sym%irrzon,'irrzon',subname)
-!!$         allocate(atoms%astruct%sym%phnons(2,n1i*n2i*n3i,1+ndebug),stat=i_stat)
-!!$         call memocc(i_stat,atoms%astruct%sym%phnons,'phnons',subname)
-!!$         call kpoints_get_irreductible_zone(atoms%astruct%sym%irrzon, atoms%astruct%sym%phnons, &
-!!$              &   n1i, n2i, n3i, in%nspin, in%nspin, atoms%astruct%sym%symObj, i_stat)
-!!$      end if
-!!$   end if
-!!$   if (.not. associated(atoms%astruct%sym%irrzon)) then
-!!$      ! Allocate anyway to small size otherwise the bounds check does not pass.
-!!$      allocate(atoms%astruct%sym%irrzon(1,2,1+ndebug),stat=i_stat)
-!!$      call memocc(i_stat,atoms%astruct%sym%irrzon,'irrzon',subname)
-!!$      allocate(atoms%astruct%sym%phnons(2,1,1+ndebug),stat=i_stat)
-!!$      call memocc(i_stat,atoms%astruct%sym%phnons,'phnons',subname)
-!!$   end if
 
    if(sum(atoms%paw_NofL) > 0) then
       ! Calculate all paw_projectors, or allocate array for on-the-fly calculation
@@ -624,14 +570,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       nullify(atoms_clone%aoig)
       call allocate_atoms_nat(atoms_clone)
 
-!!$      allocate(atoms_clone%aocc(lbound(atoms%aocc,1 ):ubound(atoms%aocc,1),&
-!!$         &   lbound(atoms%aocc,2):ubound(atoms%aocc,2)),stat=i_stat)
-!!$      call memocc(i_stat,atoms%aocc,'atoms_clone%aocc',subname)
-!!$
-!!$      allocate(atoms_clone%iasctype(lbound(atoms%iasctype,1 ):ubound(atoms%iasctype,1)),stat=i_stat)
-!!$      call memocc(i_stat,atoms%iasctype,'atoms_clone%iasctype',subname)
-!!$         atoms_clone%aoig%aocc=0.0_gp
-!!$         atoms_clone%aiasctype=0
 
       read(in%extraOrbital,*,iostat=ierr)iat
       !control the spin

@@ -240,8 +240,8 @@ program mhgps
                 id='fxyz2')
     rcov     = f_malloc((/ 1.to.nat/),id='rcov')
     iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
-    ixyz_int = f_malloc((/ 1.to.3,1.to.nat/),&
-                id='nat')
+!    ixyz_int = f_malloc((/ 1.to.3,1.to.nat/),&
+!                id='nat')
     rotforce = f_malloc((/ 1.to.3, 1.to.nat/),&
                 id='rotforce')
     hess     = f_malloc((/ 1.to.3*nat,&
@@ -304,7 +304,7 @@ program mhgps
 allocate(fat(3,nat))
     
     iconnect = 0
-    ixyz_int = 0
+    !ixyz_int = 0
     call give_rcov(astruct_ptr,nat,rcov)
     !if in biomode, determine bonds betweens atoms once and for all
     !(it isassuemed that all conifugrations over which will be
@@ -570,7 +570,7 @@ allocate(fat(3,nat))
     call f_free(fxyz2) 
     call f_free(rcov)
     call f_free(iconnect)
-    call f_free(ixyz_int)
+    !call f_free(ixyz_int)
     call f_free(rotforce)
     call f_free(hess)
     call f_free(rxyz_rot)

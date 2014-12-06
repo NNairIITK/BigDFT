@@ -450,7 +450,7 @@ subroutine default_input_variables(in)
   type(input_variables), intent(inout) :: in
   
   in%refcnt=f_ref_new('inputs')
-
+  in%run_mode=f_enumerator_null()
   in%matacc=material_acceleration_null()
 
   ! Default values.

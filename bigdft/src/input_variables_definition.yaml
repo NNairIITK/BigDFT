@@ -657,6 +657,9 @@
      EXCLUSIVE:
        dft: Density Functional Theory
        lj: Lennard-Jones force field
+       lensic: Lenosky Tight-Binding for Si clusters
+       lensib: Lenosky Tight-Binding for Si bulk
+       amber: AMBER Force Fields Package (requires AMBERtools)
      default: dft
      
 #Performance parameters
@@ -709,7 +712,7 @@
    ig_tol:
      COMMENT: Input guess Tolerance criterion
      RANGE: [0., 1.]
-     default: 1e-4
+     default: 1.0e-4
    methortho:
      COMMENT: Orthogonalisation
      EXCLUSIVE:
@@ -748,7 +751,7 @@
    tolsym:
      COMMENT: Tolerance for symmetry detection
      RANGE: [0., 1.]
-     default: 1e-8
+     default: 1.0e-8
    signaling:
      COMMENT: Expose calculation results on Network
      default: No

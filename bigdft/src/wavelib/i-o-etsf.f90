@@ -487,8 +487,8 @@ subroutine read_waves_from_list_etsf(iproc,filename,n1,n2,n3,hx,hy,hz,at,rxyz_ol
 
       psifscf = f_malloc((/ -nb1.to.2*n1+1+nb1, -nb2.to.2*n2+1+nb2, -nb3.to.2*n3+1+nb3 /),id='psifscf')
 
-      psigold = f_malloc((/ 0.to.n1_old, 1.to.2, 0.to.n2_old, 1.to.2, 0.to.n3_old, 1.to.2 /),id='psigold')
-      call to_zero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
+      psigold = f_malloc0((/ 0.to.n1_old, 1.to.2, 0.to.n2_old, 1.to.2, 0.to.n3_old, 1.to.2 /),id='psigold')
+      !call to_zero(8*(n1_old+1)*(n2_old+1)*(n3_old+1),psigold)
 
       do iorb = 1, norb, 1
          do ispinor = 1, nspinor, 1

@@ -117,7 +117,6 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,&
              isad,isadprob,&
              isadc,isadprobc,&
              currDir,&
-             ixyz_int,&
              en_delta_min, fp_delta_min,&
              en_delta_sad, fp_delta_sad,&
              saddle_scale_stepoff
@@ -520,7 +519,6 @@ subroutine connect(nat,nid,alat,rcov,nbond,&
              isad,isadprob,&
              isadc,isadprobc,&
              currDir,&
-             ixyz_int,&
              en_delta_min, fp_delta_min,&
              en_delta_sad, fp_delta_sad
     use module_ls_rmsd

@@ -2,15 +2,6 @@ vpath %.h ../modules
 ###bin_PROGRAMS = mhgps
 
 
-if HAVE_AMBERTOOLS
-ambertools_wrap= wrap.c
-###for amber supp.:
-wrap.o:     wrap.c
-	$(NAB) -c  -g $<
-else
-ambertools_wrap= wrap_fake.f90
-endif
-
 mhgps_objects = \
                module_global_variables.f90 \
                module_init.f90 \
@@ -24,8 +15,7 @@ mhgps_objects = \
                module_connect.f90 \
                module_misc.f90 \
                module_fingerprints.f90 \
-               module_freezingstring.f90 \
-	       $(ambertools_wrap)
+               module_freezingstring.f90
 
 mhgps_SOURCES = $(mhgps_objects)
 
