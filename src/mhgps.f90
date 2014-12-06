@@ -89,6 +89,7 @@ program mhgps
     write(currDir,'(a,i3.3)')'input',ifolder
     call get_first_struct_file(filename)
 
+!    if(efmethod=='BIGDFT')then
     call bigdft_command_line_options(options)
     call bigdft_init(options)!mpi_info,nconfig,run_id,ierr)
     if (bigdft_nruns(options) > 1) then

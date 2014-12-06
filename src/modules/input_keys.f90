@@ -39,7 +39,7 @@ module module_input_keys
   public :: input_keys_init, input_keys_finalize
   public :: input_keys_fill_all, input_keys_dump
   public :: input_keys_equal, input_keys_get_source, input_keys_dump_def
-  public :: input_keys_get_profiles,input_keys_validate
+  public :: input_keys_get_profiles
   public :: input_keys_errors
 
   type(dictionary), pointer :: parameters=>null()
@@ -317,85 +317,6 @@ contains
             & input_keys_get_source = dict // (trim(key) // ATTRS) // PROF_KEY
     end if
   end function input_keys_get_source
-
-  !> this routine controls that the keys which are defined in the 
-  !! input dictionary are all valid.
-  !! in case there are some keys which are different, raise an error
-  subroutine input_keys_validate(dict)
-    use dictionaries
-    use yaml_output
-    use module_base, only: bigdft_mpi
-    implicit none
-    type(dictionary), pointer :: dict
-    !local variables
-    logical :: found
-    type(dictionary), pointer :: valid_entries,valid_patterns
-    type(dictionary), pointer :: iter,invalid_entries,iter2
-
-    !> fill the list of valid entries
-    valid_entries=>list_new([&
-         .item. OUTDIR,&
-         .item. RADICAL_NAME,&
-         .item. RUN_FROM_FILES,&
-         .item. POSINP,&
-         .item. MODE_VARIABLES,&
-         .item. LOGFILE,&
-         .item. PERF_VARIABLES,&  
-         .item. DFT_VARIABLES,&   
-         .item. KPT_VARIABLES,&   
-         .item. GEOPT_VARIABLES,& 
-         .item. MIX_VARIABLES,&   
-         .item. SIC_VARIABLES,&   
-         .item. TDDFT_VARIABLES,& 
-         .item. LIN_GENERAL,&     
-         .item. LIN_BASIS,&       
-         .item. LIN_KERNEL,&      
-         .item. LIN_BASIS_PARAMS,&
-         .item. OCCUPATION,&
-         .item. IG_OCCUPATION,&
-         !.item. RUN_NAME_KEY,&
-         .item. FRAG_VARIABLES])
-    
-    !then the list of vaid patterns
-    valid_patterns=>list_new(&
-         .item. 'psppar' &
-         )
-
-    call dict_init(invalid_entries)
-    !for any of the keys of the dictionary iterate to find if it is allowed
-    iter=>dict_iter(dict)
-    do while(associated(iter))
-       if ((valid_entries .index. dict_key(iter)) < 0) then
-          found=.false.
-          iter2=>dict_iter(valid_patterns)
-          !check also if the key contains the allowed patterns
-          find_patterns: do while(associated(iter2))
-             if (index(dict_key(iter),trim(dict_value(iter2))) > 0) then
-                found=.true.
-                exit find_patterns
-             end if
-             iter2=>dict_next(iter2)
-          end do find_patterns
-          if (.not. found) call add(invalid_entries,dict_key(iter))
-       end if
-       iter=>dict_next(iter)
-    end do
-
-    if (dict_len(invalid_entries) > 0) then
-       if (bigdft_mpi%iproc==0) then
-          call yaml_map('Allowed keys',valid_entries)
-          call yaml_map('Allowed key patterns',valid_patterns)
-          call yaml_map('Invalid entries of the input dictionary',invalid_entries)
-       end if
-       call f_err_throw('The input dictionary contains invalid entries,'//&
-            ' check above the valid entries',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-    end if
-
-    call dict_free(invalid_entries)
-    call dict_free(valid_entries)
-    call dict_free(valid_patterns)
-
-  end subroutine input_keys_validate
 
   !> Fill all the input keys into dict
   subroutine input_keys_fill_all(dict,dict_minimal)
@@ -831,7 +752,7 @@ contains
       type(dictionary), pointer :: dict, ref
       logical :: set_
 
-      integer :: j, dlen
+      integer :: j
       type(dictionary), pointer :: tmp
       character(max_field_length) :: mkey, val_master, val_when
 
