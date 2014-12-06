@@ -13,12 +13,15 @@ integer, intent(in) :: icc
 stop "Ambertools not present"
 end subroutine
 
-subroutine nab_init(nat,rxyz,fxyz,fnpdb,nfnpdb,l_sat,atomnamesdmy)
-implicit none
-integer, intent(in) :: nat, nfnpdb, l_sat
-real(8), intent(in) :: rxyz(3,nat)
-real(8), intent(in) :: fxyz(3,nat)
-character(len=*), intent(in) :: fnpdb
-character(len=*), intent(in) :: atomnamesdmy(nat)
+subroutine nab_init()
 stop "Ambertools not present"
 end subroutine
+!!subroutine nab_init(nat,rxyz,fxyz,fnpdb,nfnpdb,l_sat,atomnamesdmy)
+!!implicit none
+!!integer, intent(in) :: nat, nfnpdb, l_sat
+!!real(8), intent(in) :: rxyz(3,nat)
+!!real(8), intent(in) :: fxyz(3,nat)
+!!character(len=*), intent(in) :: fnpdb
+!!character(len=*), intent(in) :: atomnamesdmy(nat)
+!!stop "Ambertools not present"
+!!end subroutine

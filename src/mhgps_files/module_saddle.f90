@@ -63,8 +63,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
                                        dd            => dd_trans,&
                                        fff           => fff_trans,&
                                        scpr          => scpr_trans,&
-                                       wold          => wold_trans,&
-                                       efmethod
+                                       wold          => wold_trans
  
     implicit none
     !parameters    
@@ -134,8 +133,11 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
 
 
 
-    if(bigdft_get_geocode(runObj)/='F'.and. .not. (trim(adjustl(efmethod))=='LENSIc'))&
-    stop 'STOP: saddle search only implemented for free BC'
+    if(bigdft_get_geocode(runObj)/='F'.and. .not.&
+            (trim(adjustl(char(runObj%run_mode)))==&
+                        'LENOSKY_SI_CLUSTERS_RUN_MODE'))then
+        stop 'STOP: saddle search only implemented for free BC'
+    endif
 
     if((minoverlap0>=-1.0_gp).and.saddle_tighten)&
     stop 'STOP: Do not use minoverlap and no tightening in combination'
