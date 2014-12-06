@@ -4452,7 +4452,7 @@
                           -18.38, -24.46, -26.58, -34.83]
  (F) Zero-point energy (cm-1 and Hartree):  [  6.5345307072E+03,  2.9773512621E-02 ]
  (F) Considered Temperature (Kelvin)   :  300.0
- (F) Vibrational entropy =             :  7.3855249270E+02
+ (F) Vibrational entropy               :  7.3855249270E+02
  (F) Vibrational Energy (cm-1 and Hartree):  [  1.5561601652E+05,  7.0903874196E-01 ]
  (F) Total Energy (Hartree)            :  7.0903874196E-01
  Memory Consumption Report:

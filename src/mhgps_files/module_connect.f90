@@ -1,14 +1,18 @@
 !> @file
-!! module implementing the connection algorithm(s)
-!!     
-!! @author Bastian Schaefer
-!! @section LICENCE
+!! Module implementing the connection algorithm(s)
+!!
+!! @author 
+!!    Copyright (C) 2014 UNIBAS, Bastian Schaefer 
 !!    Copyright (C) 2014 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS
+!!    For the list of contributors, see ~/AUTHORS 
 
+
+!> Module implementing the connection algorithm(s)
 module module_connect
     use module_base
     use module_interfaces
@@ -561,8 +565,8 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected
          'successful! STOP')
 
 end subroutine
-!=====================================================================
-!same as connect_recursively, but in an iterative fashion
+
+
 !This non-recursive function was never really used. It is missing
 !some features of the recursive function.
 !Before being used, must be updated to same functionality as recursive
@@ -955,7 +959,8 @@ enddo
 enddo connectloop
 
 end subroutine
-!=====================================================================
+
+
 subroutine pushoff(nat,saddle,minmode,left,right)
     use module_base
     use module_misc
@@ -970,15 +975,14 @@ subroutine pushoff(nat,saddle,minmode,left,right)
     !local
     real(gp)  :: step(3,nat)
 
-    !functions
-    real(gp) :: dnrm2
 
     step = saddle_stepoff*minmode
     left = saddle - step
     right = saddle + step
 
 end subroutine
-!=====================================================================
+
+
 subroutine pushoffsingle(nat,saddle,minmode,scl,pushed)
     use module_base, only: gp
     use module_misc
@@ -994,8 +998,6 @@ subroutine pushoffsingle(nat,saddle,minmode,scl,pushed)
     integer  :: iat 
     real(gp) :: step(3,nat)
     real(gp) :: maxd, tt, dp
-    !functions
-    real(gp) :: dnrm2
 
     tt=0.0_gp
     dp=0.0_gp
@@ -1029,7 +1031,8 @@ subroutine pushoffsingle(nat,saddle,minmode,scl,pushed)
 !    pushed = saddle + scl*step
 
 end subroutine
-!=====================================================================
+
+
 subroutine pushoff_assym(nat,saddle,minmode,scll,sclr,left,right)
     use module_base
     use module_misc
@@ -1043,13 +1046,12 @@ subroutine pushoff_assym(nat,saddle,minmode,scll,sclr,left,right)
     real(gp), intent(out) :: left(3,nat)
     real(gp), intent(out) :: right(3,nat)
     !local
-    real(gp)  :: step(3,nat)
+    real(gp), dimension(3,nat) :: step
 
     step = saddle_stepoff*minmode
     left = saddle - scll*step
     right = saddle + sclr*step
 end subroutine
-!=====================================================================
 subroutine write_todo(ntodo,nat,left,right,eleft,eright)
     use module_base
     use module_atoms, only: astruct_dump_to_file

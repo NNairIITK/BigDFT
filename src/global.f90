@@ -20,7 +20,7 @@ program MINHOP
   !implicit real(kind=8) (a-h,o-z) !!!dangerous when using modules!!!
   implicit none
   logical :: newmin,CPUcheck,occured,exist_poslocm,exist_posacc,singlestep
-  character(len=20) :: unitsp,atmn
+  ! character(len=20) :: unitsp,atmn
   character(len=60) :: run_id
 !  type(atoms_data) :: atoms,md_atoms
 !  type(input_variables), target :: inputs_opt, inputs_md
@@ -36,9 +36,10 @@ program MINHOP
   real(kind=8),allocatable, dimension(:,:) :: fp_arr
   real(kind=8),allocatable, dimension(:) :: fp,wfp,fphop
   real(kind=8),allocatable, dimension(:,:,:) :: pl_arr
-  integer :: iproc,nproc,iat,ierr,infocode,nksevals,i,natoms,nrandoff,nsoften
-  integer :: n_unique,n_nonuni,nputback,i_stat,ncount_bigdft,ngeopt,nid,nlmin,nlminx
-  integer :: ilmin,ierror,natp,k,nvisit,kid,k_e,nlmin_old,ndfree,ndfroz,ixyz,nummax,nummin
+  integer :: iproc,iat,ierr,infocode,nksevals,i,natoms,nrandoff,nsoften
+  integer :: n_unique,n_nonuni,nputback,ncount_bigdft,ngeopt,nid,nlmin,nlminx
+  integer :: ilmin,k,nvisit,kid,k_e,nlmin_old,ndfree,ndfroz,nummax,nummin
+  ! integer :: ierror,ixyz, nproc,natp
   integer :: istepnext,istep
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
@@ -49,19 +50,21 @@ program MINHOP
   character(len=50) :: comment
   character(len=128) :: msg
 !  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
-  integer :: nconfig
+  ! integer :: nconfig
   !integer, dimension(4) :: mpi_info
   real(kind=4) :: tcpu1,ts,tcpu2,cpulimit
   real(kind=8) :: accepted,ediff,ekinetic,dt,av_ekinetic,av_ediff,escape,escape_sam
   real(kind=8) :: escape_old,escape_new,rejected,fp_sep,e_hop,count_sdcg,count_soft
   real(kind=8) :: count_md,count_bfgs,energyold,e_pos,tt,en_delta,fp_delta
-  real(kind=8) :: t1,t2,t3,ebest_l,dmin,tleft,d,ss
+  real(kind=8) :: ebest_l,dmin,tleft,d,ss
+  !real(kind=8) :: t1,t2,t3
   real(kind=8), external :: dnrm2
   real(kind=8), dimension(:,:), pointer :: rxyz_opt,rxyz_md
   
   type(run_objects) :: run_opt,run_md !< the two runs parameters
   type(state_properties) :: outs
-  type(dictionary), pointer :: user_inputs,options,run
+  !type(dictionary), pointer :: user_inputs
+  type(dictionary), pointer :: options,run
   integer:: nposacc=0
   logical:: disable_hatrans
 
@@ -513,7 +516,7 @@ program MINHOP
 555 continue
   close(55)
   !maybe broadcast on comm_world?
-  call mpibcast(tleft,1,comm=bigdft_mpi%mpi_comm)
+  if (bigdft_mpi%nproc > 1) call mpibcast(tleft,1,comm=bigdft_mpi%mpi_comm)
   !call MPI_BCAST(tleft,1,MPI_DOUBLE_PRECISION,0,bigdft_mpi%mpi_comm,ierr)
   if (tleft < 0.d0) then
      call yaml_map('(MH) Process'//trim(yaml_toa(bigdft_mpi%iproc))//' has exceeded CPU time. Tleft',tleft)
@@ -525,7 +528,7 @@ program MINHOP
   call bigdft_set_rxyz(run_md,rxyz=pos) !one could write here also rxyz=bigdft_get_rxyz_ptr(run_opt)
   escape=escape+1.d0
   call mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, run_md, outs, &
-                ngeopt,bigdft_mpi%nproc,bigdft_mpi%iproc)
+                ngeopt,bigdft_mpi%iproc)
   if (bigdft_mpi%iproc == 0) then 
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
      write(fn4,'(i4.4)') nint(escape)
@@ -858,13 +861,13 @@ contains
 
   !> Does a MD run with the atomic positions rxyz
   subroutine mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, &
-       runObj,outs,ngeopt,nproc,iproc)!  &
+       runObj,outs,ngeopt,iproc)!  &
     use module_base
     use module_types
     use module_interfaces
     use m_ab6_symmetry
     implicit none !real*8 (a-h,o-z)
-    integer :: nsoften,mdmin,ngeopt,iproc,nproc
+    integer :: nsoften,mdmin,ngeopt,iproc
     real(kind=8) :: ekinetic,dt,count_md
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
@@ -903,7 +906,7 @@ contains
     !!end do
 
   ! Soften previous velocity distribution
-    call soften(nsoften,vxyz, runObj,outs,nproc,iproc)
+    call soften(nsoften,vxyz, runObj,outs,iproc)
 
     call frozen_dof(bigdft_get_astruct_ptr(runObj),vxyz,ndfree,ndfroz)
   ! normalize velocities to target ekinetic
@@ -1032,7 +1035,7 @@ contains
   END SUBROUTINE mdescape
   
 
-  subroutine soften(nsoften,vxyz,runObj,outs,nproc,iproc)
+  subroutine soften(nsoften,vxyz,runObj,outs,iproc)
     use module_base
     use bigdft_run
     use module_atoms, only: astruct_dump_to_file
@@ -1041,7 +1044,7 @@ contains
 !    use m_ab6_symmetry
     implicit none
     !Arguments
-    integer, intent(in) :: nsoften,nproc,iproc
+    integer, intent(in) :: nsoften,iproc
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
     real(kind=8), dimension(3*natoms) :: vxyz

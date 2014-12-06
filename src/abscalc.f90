@@ -1401,8 +1401,10 @@ subroutine scaling_function4b2B(itype,nd,nrange,a,x)
    case(8,14,16,20,24,30,40,50,60,100)
       !O.K.
    case default
-      print *,"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100"
-      stop
+      !print *,"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100"
+      !stop
+      call f_err_throw('"Only interpolating functions 8, 14, 16, 20, 24, 30, 40, 50, 60, 100, used:' &
+          & // trim(yaml_toa(itype))//'"', err_name='BIGDFT_RUNTIME_ERROR')
    end select
    !!$  write(unit=*,fmt="(1x,a,i0,a)") &
    !!$       "Use interpolating scaling functions of ",itype," order"

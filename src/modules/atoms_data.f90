@@ -82,6 +82,7 @@ module module_atoms
      real(gp), dimension(:,:,:), pointer :: psppar       !< Pseudopotential parameters (HGH SR section)
      logical :: donlcc                                   !< Activate non-linear core correction treatment
      logical :: multipole_preserving                     !< Activate preservation of the multipole moment for the ionic charge
+     integer :: mp_isf                                   !< Interpolating scaling function order for the multipole preserving
      integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc !< Number of valence and core gaussians describing NLCC 
      real(gp), dimension(:,:), pointer :: nlccpar        !< Parameters for the non-linear core correction, if present
      !     real(gp), dimension(:,:), pointer :: ig_nlccpar    !< Parameters for the input NLCC
@@ -242,11 +243,14 @@ contains
   end subroutine nullify_atomic_structure
 
 
-  !> Nullify atoms_data structure
+  !> Nullify atoms_data structure (function)
   pure function atoms_data_null() result(at)
     type(atoms_data) :: at
     call nullify_atoms_data(at)
   end function atoms_data_null
+
+
+  !> Nullify atoms_data structure (routine)
   pure subroutine nullify_atoms_data(at)
     use m_pawang, only: pawang_nullify
     implicit none
@@ -257,6 +261,7 @@ contains
     at%natsc=0
     at%donlcc=.false.
     at%multipole_preserving=.false.
+    at%mp_isf=0
     at%iat_absorber=-1
     !     nullify(at%iasctype)
     nullify(at%nelpsp)
