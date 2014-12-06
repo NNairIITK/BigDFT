@@ -26,6 +26,7 @@ program mhgpstool
     write(*,*) 'hello world'
 !    call set_astruct_from_file(trim(fileFrom),0,at%astruct,fcomment,energy,fxyz)
 
+    call f_free_str(500,folders)
     call f_lib_finalize()
 end program mhgpstool
 subroutine read_folders(nfolder,folders)
@@ -37,7 +38,6 @@ subroutine read_folders(nfolder,folders)
     !internal
     integer :: u, istat
     character(len=600) :: line
-real(8), allocatable :: dmy(:)
     u=f_get_free_unit()
     open(u,file='mhgpstool.inp')
     nfolder=0
@@ -47,6 +47,7 @@ real(8), allocatable :: dmy(:)
         nfolder=nfolder+1
     enddo
     folders = f_malloc_str(500,(/1.to.nfolder/),id='folders')
+    rewind(u)
     close(u)
 end subroutine read_folders
 subroutine count_saddle_points(nsad)

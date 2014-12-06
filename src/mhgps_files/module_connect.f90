@@ -263,11 +263,12 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,isame,&
                 isad=isad-1
                 write(isadc,'(i5.5)')isad
     
-                if(iproc==0)&
+                if(iproc==0)then
                 call yaml_warning('(MHGPS) found same saddle '//&
                                    'point again. Aborting connection'//&
                                    ' attempt.')
-                call write_todo(ntodo,nat,cobj%rxyz1,cobj%rxyz2,ener1,ener2)
+                endif
+                call write_todo(ntodo,nat,rxyz1,rxyz2,ener1,ener2)
                 return
             endif
         else
@@ -1057,12 +1058,12 @@ subroutine write_todo(ntodo,nat,left,right,eleft,eright)
     use bigdft_run
     implicit none
     !parameters
-    integer, intent(inout)           :: ntodo
-    integer, intent(in)              :: nat
-    real(gp), intent(in)             :: left(3,nat)
-    real(gp), intent(in)             :: right(3,nat)
-    real(gp), optional, intent(in)   :: eleft
-    real(gp), optional, intent(in)   :: eright
+    integer, intent(inout) :: ntodo
+    integer, intent(in)    :: nat
+    real(gp), intent(in)   :: left(3,nat)
+    real(gp), intent(in)   :: right(3,nat)
+    real(gp), intent(in)   :: eleft
+    real(gp), intent(in)   :: eright
     !local
     character(len=5) :: ntodoc
     
@@ -1070,24 +1071,12 @@ subroutine write_todo(ntodo,nat,left,right,eleft,eright)
 
     write(ntodoc,'(i5.5)')ntodo
     if(iproc==0)then
-    if(present(eleft))then
         call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
              currDir//'/todo'//trim(adjustl(ntodoc))//'_L','',&
              energy=eleft,rxyz=left)
-    else
-        call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-             currDir//'/todo'//trim(adjustl(ntodoc))//'_L','',&
-             rxyz=left)
-    endif
-    if(present(eright))then
         call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
              currDir//'/todo'//trim(adjustl(ntodoc))//'_R','',&
              energy=eright,rxyz=right)
-    else
-        call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-             currDir//'/todo'//trim(adjustl(ntodoc))//'_R','',&
-             rxyz=right)
-    endif
     endif
 end subroutine
 
