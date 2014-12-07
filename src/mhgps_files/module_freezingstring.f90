@@ -440,9 +440,13 @@ subroutine optim_cg(nat,alat,finished,step,gammainv,&
     !functionals
     real(gp) :: dnrm2, ddot
 
-    dir=rxyz2-rxyz1
-    d0=dnrm2(3*nat,dir(1),1)
-    dmax=d0+0.5_gp*step
+    if(finished==2)then
+        dir=rxyz2-rxyz1
+        d0=dnrm2(3*nat,dir(1),1)
+        dmax=d0+0.5_gp*step
+    else
+        dmax=0.5_gp*step
+    endif 
 
     !first steps: steepest descent
     !left

@@ -268,6 +268,14 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,isame,&
                                    'point again. Aborting connection'//&
                                    ' attempt.')
                 endif
+write(*,*)'bastian, iproc',iproc
+write(*,*)'bastian, iproc, isame',iproc,isame
+write(*,*)'bastian, iproc, ener1',iproc,ener1
+write(*,*)'bastian, iproc, ener2',iproc,ener2
+write(*,*)'bastian, iproc, rxyz1:',iproc
+write(*,*)'bastian',rxyz1
+write(*,*)'bastian, iproc, rxyz2:',iproc
+write(*,*)'bastian',rxyz2
                 call write_todo(ntodo,nat,rxyz1,rxyz2,ener1,ener2)
                 return
             endif
