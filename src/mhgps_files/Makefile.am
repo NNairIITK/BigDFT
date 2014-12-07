@@ -40,6 +40,8 @@ noinst_LIBRARIES = libmhgps.a
 libmhgps_a_SOURCES = $(mhgps_SOURCES)
 #dependencies
 
+module_global_variables.o : ../modules/BigDFT_API.o
+
 module_energyandforces.o : module_global_variables.o \
                            module_init.o \
                            ../modules/BigDFT_API.o
