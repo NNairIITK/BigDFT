@@ -277,6 +277,7 @@ program mhgps
               write(isadc,'(i5.5)')isad
               !rmsd alignment (optional in mhgps approach)
               call superimpose(nat,rxyz(1,1),rxyz2(1,1))
+              inputPsiId=0
               call get_ts_guess(nat,alat,rxyz(1,1),rxyz2(1,1),&
                    tsguess(1,1),minmodeguess(1,1),tsgenergy,&
                    tsgforces(1,1))
@@ -298,7 +299,9 @@ program mhgps
 
               !Evalute energies. They are needed in connect
               !for identification
+              inputPsiId=0
               call energyandforces(nat,alat,rxyz,fat,fnoise,energy)
+              inputPsiId=0
               call energyandforces(nat,alat,rxyz2,fat,fnoise,&
                    energy2)
               call fingerprint(nat,nid,alat,bigdft_get_geocode(runObj),&
@@ -393,6 +396,7 @@ program mhgps
               isad=isad+1
               write(isadc,'(i3.3)')isad
               ec=0.0_gp
+              inputPsiId=0
               call energyandforces(nat,alat,rxyz,fxyz,fnoise,energy)
               call minimize(imode,nat,alat,nbond,iconnect,&
                    rxyz(1,1),fxyz(1,1),fnoise,energy,ec,converged,'')
@@ -413,7 +417,9 @@ program mhgps
               endif
               !else if(trim(adjustl(operation_mode))=='hessian')then
            case('hessian')
+              inputPsiId=0
               call energyandforces(nat,alat,rxyz,fxyz,fnoise,energy)
+              inputPsiId=0
               call cal_hessian_fd(iproc,nat,alat,rxyz,hess)
               if(iproc==0)then
                  write(*,*)'(hess) HESSIAN:'

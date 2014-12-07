@@ -129,7 +129,8 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,isame,&
              en_delta_min, fp_delta_min,&
              en_delta_sad, fp_delta_sad,&
              saddle_scale_stepoff,&
-             mhgps_verbosity
+             mhgps_verbosity,&
+             inputPsiId
     use module_ls_rmsd
     use module_fingerprints
     use module_minimizers
@@ -200,6 +201,7 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,isame,&
     isad=isad+1
     write(isadc,'(i5.5)')isad
 
+    inputPsiId=0
     call get_ts_guess(nat,alat,cobj%rxyz1,cobj%rxyz2,&
           cobj%saddle(1,1,nsad),cobj%minmode(1,1,nsad),cobj%tsgenergy,&
           cobj%tsgforces(1,1))
@@ -269,6 +271,7 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,isame,&
                                    ' attempt.')
                 endif
                 call write_todo(ntodo,nat,rxyz1,rxyz2,ener1,ener2)
+                isame=0
                 return
             endif
         else
@@ -1052,10 +1055,10 @@ subroutine pushoff_assym(nat,saddle,minmode,scll,sclr,left,right)
 end subroutine
 !=====================================================================
 subroutine write_todo(ntodo,nat,left,right,eleft,eright)
-    use module_base
+    use module_base, only: gp
     use module_atoms, only: astruct_dump_to_file
     use module_global_variables, only: currDir, iproc, runObj
-    use bigdft_run
+    use bigdft_run, only: bigdft_get_astruct_ptr
     implicit none
     !parameters
     integer, intent(inout) :: ntodo
@@ -1068,8 +1071,8 @@ subroutine write_todo(ntodo,nat,left,right,eleft,eright)
     character(len=5) :: ntodoc
     
     ntodo=ntodo+1
-
     write(ntodoc,'(i5.5)')ntodo
+
     if(iproc==0)then
         call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
              currDir//'/todo'//trim(adjustl(ntodoc))//'_L','',&

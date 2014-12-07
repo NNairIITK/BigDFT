@@ -375,7 +375,7 @@ subroutine grow_freezstring(nat,alat,gammainv,perpnrmtol,trust,&
         !if needed.
         nresizes=nresizes+1
         if(nresizes>100)then
-            if(iproc==0)call yaml_warning('(MHGPS) STOP, too many '//&
+            call yaml_warning('(MHGPS) STOP, too many '//&
                         'resizes in grow_freezstring')
             stop
         endif

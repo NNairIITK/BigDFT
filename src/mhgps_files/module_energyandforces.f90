@@ -70,6 +70,8 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     call bigdft_set_rxyz(runObj,rxyz=rxyz)
     if(trim(adjustl(char(runObj%run_mode)))=='QM_RUN_MODE')then
        runObj%inputs%inputPsiId=inputPsiId !useful only in the DFT case
+!bastian: for debug purposes always use LCAO input guess
+!!       runObj%inputs%inputPsiId=0
        runObj%inputs%itermin=itermin
     end if
     call bigdft_state(runObj,outs,infocode)
