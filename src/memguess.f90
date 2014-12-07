@@ -431,7 +431,7 @@ program memguess
        stop
    end if
 
-   call bigdft_run_new(run)
+   nullify(run)
    call bigdft_set_run_properties(run, run_id = trim(radical), run_from_files = .true., log_to_disk = logfile)
 
    call run_objects_init(runObj, run)

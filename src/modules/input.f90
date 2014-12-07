@@ -960,7 +960,7 @@ contains
       character(len = *), intent(in) :: description
       integer, intent(out) :: var
 
-      integer :: i, j, ierror, ierr
+      integer :: i, j, ierror, ierr,ilg
       var = default
       call find(name, i, j)
 
@@ -973,7 +973,8 @@ contains
          end if
       end if
       if (output) then
-         write(inout_lines(parsed_lines(iline_parsed-1)),"(a,1x,I0,t30,a)") name, var, description
+         ilg=min(max(len(inout_lines)-31,0),len(trim(description)))
+         write(inout_lines(parsed_lines(iline_parsed-1)),"(a,1x,I0,t30,a)") name, var,description(1:ilg)
          iline_written=iline_written+1
       end if
    END SUBROUTINE var_integer

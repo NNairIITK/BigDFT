@@ -93,12 +93,6 @@ module module_interfaces
         type(dictionary), pointer :: dict
       end subroutine read_input_dict_from_files
 
-      subroutine create_log_file(dict)
-        use dictionaries
-        implicit none
-        type(dictionary), pointer :: dict
-      end subroutine create_log_file
-
       subroutine inputs_from_dict(in, atoms, dict)
         use module_types
         use module_defs

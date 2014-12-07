@@ -338,7 +338,7 @@ taskgroups:
   Energies: 1.1e-10
   EKS: 1.1e-10
   P vector: 1.1e-10
-  Total electronic charge: 1.21e-11
+  Total electronic charge: 1.41e-11
 
 base:
   norm(P): 1.1e-9
