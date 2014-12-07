@@ -15,12 +15,7 @@ module public_keys
   character(len = *), parameter :: METHOD_KEY = "method"
   character(len = *), parameter :: RUN_NAME_KEY = "name"
 
-  character(len = *), parameter :: RADICAL_NAME = "radical"
   character(len = *), parameter :: POSINP = "posinp"
-  character(len = *), parameter :: OUTDIR = "outdir"
-  character(len = *), parameter :: LOGFILE = "logfile"
-  character(len = *), parameter :: RUN_FROM_FILES = "run_from_files"
-
   character(len = *), parameter :: OCCUPATION = "occupation"
   character(len = *), parameter :: IG_OCCUPATION = "ig_occupation"
   character(len = *), parameter :: DFT_VARIABLES = "dft"
@@ -150,6 +145,7 @@ module public_keys
   character(len = *), parameter :: MIXING_AFTER_INPUTGUESS = "mixing_after_inputguess"
   character(len = *), parameter :: ITERATIVE_ORTHOGONALIZATION = "iterative_orthogonalization"
   character(len = *), parameter :: MULTIPOLE_PRESERVING = "multipole_preserving"
+  character(len = *), parameter :: MP_ISF = "mp_isf"
   character(len = *), parameter :: CHECK_SUMRHO = "check_sumrho"
   character(len = *), parameter :: CHECK_OVERLAP = "check_overlap"
   character(len = *), parameter :: EXPERIMENTAL_MODE = "experimental_mode"
@@ -222,6 +218,13 @@ module public_keys
   character(len=*), parameter :: ASTRUCT_CELL = 'cell' 
   character(len=*), parameter :: ASTRUCT_POSITIONS = 'positions' 
   character(len=*), parameter :: ASTRUCT_PROPERTIES = 'properties' 
+  character(len=*), parameter :: ASTRUCT_ATT_FROZEN = 'Frozen' 
+  character(len=*), parameter :: ASTRUCT_ATT_IGSPIN = 'IGSpin' 
+  character(len=*), parameter :: ASTRUCT_ATT_IGCHRG = 'IGChg' 
+  character(len=*), parameter :: ASTRUCT_ATT_IXYZ_1 = 'int_ref_atoms_1' 
+  character(len=*), parameter :: ASTRUCT_ATT_IXYZ_2 = 'int_ref_atoms_2' 
+  character(len=*), parameter :: ASTRUCT_ATT_IXYZ_3 = 'int_ref_atoms_3' 
+
   character(len=*), parameter :: GOUT_ENERGY = 'energy (Ha)' 
   character(len=*), parameter :: GOUT_FORCES = 'forces (Ha/Bohr)' 
   character(len=*), parameter :: FORMAT_KEY = 'format' 

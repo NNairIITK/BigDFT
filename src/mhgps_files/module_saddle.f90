@@ -1,11 +1,18 @@
-!! @file
-!! @author Bastian Schaefer
-!! @section LICENCE
+!> @file
+!!    Saddle for Minima hopping
+!!
 !!    Copyright (C) 2014 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS
+!!    Copyright (C) 2015-2015 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
+!> Module saddle for minima hopping
 module module_saddle
 implicit none
 
@@ -30,6 +37,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
                                        currDir, isadc, ndim_rot, nhist_rot, alpha_rot,&
                                        alpha_stretch_rot,saddle_alpha_stretch0,work,lwork,&
                                        saddle_steepthresh_trans,imode,saddle_tighten,&
+                                       ! ixyz_int, &
                                        recompIfCurvPos => saddle_recompIfCurvPos,&
                                        minoverlap0   => saddle_minoverlap0,&
 !                                       tightenfac    => saddle_tightenfac,&
@@ -62,7 +70,6 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
                                        rr            => rr_trans,&
                                        dd            => dd_trans,&
                                        fff           => fff_trans,&
-                                       scpr          => scpr_trans,&
                                        wold          => wold_trans
  
     implicit none
@@ -127,10 +134,8 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     logical  :: tighten
     character(len=9)   :: fn9
     character(len=300)  :: comment
-    character(len=100) :: filename
     !functions
     real(gp) :: ddot,dnrm2
-
 
 
     if(bigdft_get_geocode(runObj)/='F'.and. .not.&
@@ -307,7 +312,6 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
         endif
         !END FINDING LOWEST MODE
         
-        600 continue
         call modify_gradient(nat,ndim,rrr(1,1,1),eval(1),&
              res(1),fxyz(1,1,nhist-1),alpha,dd(1,1))
  
@@ -491,6 +495,7 @@ stop 'no convergence in findsad'
 
 
 
+
 subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_fix,&
                     fxyz_fix,dxyzin,curv,fout,fnrmtol,ener_count,&
                     converged,iconnect,nbond,alpha_stretch0,&
@@ -519,7 +524,6 @@ subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_
                                        rr            => rr_rot,&
                                        dd            => dd_rot,&
                                        fff           => fff_rot,&
-                                       scpr          => scpr_rot,&
                                        wold          => wold_rot
     implicit none
     !parameters
@@ -535,11 +539,12 @@ subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_
     real(gp), dimension(3,nat) :: dxyzin,fout,rxyz_fix,fxyz_fix!,mode
     logical, intent(out)       :: converged
     logical                    :: steep
-    integer                    :: i,iat,l,itswitch
+    integer                    :: iat,l,itswitch
     integer                    :: ihist,it,nat
     real(gp)                   :: ener_count,curv
     real(gp)                   :: fnrmtol,curvold,fnrm,curvp,fmax
-    real(gp)                   :: dcurv,st,tt,cosangle
+    real(gp)                   :: dcurv,tt,cosangle
+    !real(gp) :: st
     real(gp)                   :: overlap
     logical                    :: subspaceSucc
     real(gp), dimension(3,nat) :: dxyzin0
@@ -748,12 +753,12 @@ stop 'no convergence in optcurv'
     curv=curvp
 end subroutine
 
+
+!> Computes the (curvature along vec) = vec^t H vec / (vec^t*vec)
+!! vec mus be normalized
 subroutine curvforce(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_count)
-    !computes the (curvature along vec) = vec^t H vec / (vec^t*vec)
-    !vec mus be normalized
     use module_base
     use yaml_output
-    use module_global_variables, only: iproc, mhgps_verbosity
     use module_energyandforces
     implicit none
     !parameters
@@ -1221,6 +1226,9 @@ subroutine minenergyandforces(eeval,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
     endif
 
 end subroutine minenergyandforces
+
+
+
 
 
 subroutine convcheck_sad(fmax,curv,fluctfrac_fluct,forcemax,check)

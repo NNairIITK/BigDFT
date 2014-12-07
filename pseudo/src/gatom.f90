@@ -58,7 +58,7 @@ subroutine gatom(energ, verbose)
    real(kind=8) :: enexc,evsum,evsumold,gml,gml1,gml2,gml3,hhij
    real(kind=8) :: pw1,pw2,pw3,pw4,r,r2,ra,rmix,rnode,rnrm1,rnrm2,rnrm3,rrdnode,rrnode,sd
    real(kind=8) :: sum1,sum2,sum3,sxp,terf,texp,tol,tt,tt0,tt1,tt2,tt3,ttmax,ttpsi,ttrmax
-   real(kind=8) :: ttt,ttt2,tttt,x1,x2
+   real(kind=8) :: ttt,ttt2,tttt,x1,x2,ts
    integer :: l,iocc,ispin,i,k,ij,info,isp,it,j,kout,ll,lq,nddnode,ndnode,nnode,nocc
 
    real(kind=8), external :: gamma, wave, dwave, ddwave, wave2,zbrent,wwav

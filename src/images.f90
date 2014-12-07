@@ -348,7 +348,7 @@ contains
   subroutine image_init(img, dict, algorithm, img0)
     use bigdft_run
     use dictionaries
-    use public_keys, only: GEOPT_VARIABLES, LOGFILE
+    use public_keys, only: GEOPT_VARIABLES
     use f_utils, only: f_zero
     use yaml_output
     implicit none
@@ -370,8 +370,8 @@ contains
     nullify(img%vel)
 
     ! Create atoms and input from user dict.
-    call dict_remove(dict, GEOPT_VARIABLES) !< Force no geometry relaxation.
-    call set(dict // LOGFILE, .true.) !< Force image logging to disk.
+    if (has_key(dict, GEOPT_VARIABLES)) call dict_remove(dict, GEOPT_VARIABLES) !< Force single point.
+    call bigdft_set_run_properties(dict, log_to_disk = .true.) !< Force image logging to disk.
     if (.not. present(img0)) then
        call run_objects_init(img%run, dict)
     else
@@ -384,7 +384,7 @@ contains
     end if
     call init_state_properties(img%outs, img%run%atoms%astruct%nat)
 
-    call bigdft_get_run_properties(dict, run_id = run_id, outdir_id = outdir)
+    call bigdft_get_run_properties(dict, naming_id = run_id, outdir_id = outdir)
     write(img%log_file, "(A,A)") trim(outdir), 'log'//trim(run_id)//'.yaml'           
 
     call minimization_get_id(img%algorithm, algorithm)
@@ -475,13 +475,12 @@ contains
   end function images_get_errors
 
 
-  subroutine images_init_path(imgs, tolerance, arr_posinp)
+  subroutine images_init_path(imgs, tolerance)
     use dictionaries, only: max_field_length
     use module_atoms, only: astruct_dump_to_file
     implicit none
     type(run_image), dimension(:), intent(inout) :: imgs
     real(gp), intent(in) :: tolerance !< tolerance for fix atoms.
-    character(len = max_field_length), dimension(:), intent(in), optional :: arr_posinp
 
     real(gp), dimension(:,:), allocatable :: d_R
     integer :: i, istart, istop, j, nat
@@ -498,11 +497,6 @@ contains
                DBLE( istop - istart )
           do j = istart + 1, istop - 1, 1
              imgs(j)%run%atoms%astruct%rxyz = imgs(j - 1)%run%atoms%astruct%rxyz + d_R
-             ! Dump generated image positions on disk.
-             if (present(arr_posinp)) then
-                call astruct_dump_to_file(imgs(j)%run%atoms%astruct,&
-                     trim(arr_posinp(j)) // ".in", "NEB generated")
-             end if
              ! Erase forces.
              imgs(j)%outs%fxyz(:,:) = UNINITIALIZED(1.d0)
           end do

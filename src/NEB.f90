@@ -57,16 +57,14 @@ MODULE NEB_routines
   type(run_image), dimension(:), allocatable :: imgs
   integer :: pes_algo
   ! Additional variables for external call
-  character (len=80) :: scratch_dir
+  character (len=max_field_length) :: scratch_dir, job_name, posinp1
   character (len=80) :: restart_file, velocity_file
-  character (len=80) :: job_name
 
-  character(len=max_field_length), dimension(:), allocatable :: arr_posinp
   type(mpi_environment), private :: neb_mpi
 
   CONTAINS
 
-    SUBROUTINE read_input()
+    SUBROUTINE read_input(options)
        use module_defs, only: BIGDFT_INPUT_VARIABLES_ERROR
       use yaml_output
       use dictionaries
@@ -78,31 +76,41 @@ MODULE NEB_routines
            read_atomic_file => set_astruct_from_file, &
            astruct_nullify => nullify_atomic_structure
       use bigdft_run
+      use public_keys, only: POSINP
 
       IMPLICIT NONE
+
+      type(dictionary), pointer :: options
 
       INTEGER :: i, num_of_images
       CHARACTER (LEN=max_field_length) :: minimization_scheme
       INTEGER, PARAMETER :: unit = 10
       integer :: ierr
       type(mpi_environment) :: bigdft_mpi_svg
-      character(len=60) :: run_id
-      type(dictionary), pointer :: dict, dict_min,options
+      character(len=max_field_length) :: run_id, input_id, posinp_id
+      type(dictionary), pointer :: dict, dict_min, dict_pos
       REAL (gp) :: tolerance
-      character(len=60), dimension(:), allocatable :: arr_radical
 
-      call f_lib_initialize()
-      nullify(dict,options)
-      !no options fof BigDFT
-      call bigdft_command_line_options(options)
-      call bigdft_init(options)
-      call bigdft_get_run_properties(options // 'BigDFT' // 0, input_id = run_id)
-      neb_mpi = bigdft_mpi!mpi_environment_null()
+      call mpi_barrier(MPI_COMM_WORLD, ierr)
+
+      nullify(dict)
+      neb_mpi = mpi_environment_null()
+      neb_mpi%igroup = bigdft_mpi%iproc
+      neb_mpi%ngroup = bigdft_mpi%nproc
+      neb_mpi%iproc  = bigdft_mpi%igroup
+      neb_mpi%nproc  = bigdft_mpi%ngroup
       neb_mpi%mpi_comm = MPI_COMM_NULL
       !this is redundant
       if (neb_mpi%nproc > 1) then
          call create_rank_comm(bigdft_mpi%mpi_comm, neb_mpi%mpi_comm)
       end if
+
+      !Big hack here
+      bigdft_mpi%ngroup = 1
+      call bigdft_get_run_properties(options // 'BigDFT' // 0, &
+           & input_id = run_id, posinp_id = posinp1, run_id = job_name)
+      call bigdft_get_run_properties(options, outdir_id = scratch_dir)
+      bigdft_mpi%ngroup = neb_mpi%nproc
 
 !! default values are assigned
       call dict_init(dict)
@@ -117,15 +125,8 @@ MODULE NEB_routines
       call dict_free(dict,dict_min)
       !call dict_free(dict_min)
 
-      allocate(arr_radical(abs(num_of_images)))
-      allocate(arr_posinp(abs(num_of_images)))
-      call bigdft_get_run_ids(num_of_images,trim(run_id),arr_radical,arr_posinp,ierr)
-
       allocate( imgs(num_of_images) )
-
       
-      call dict_copy(dict, options // 'BigDFT' // 0)
-      call dict_free(options)
       ! Trick here, only super master will read the input files...
       bigdft_mpi_svg = bigdft_mpi
       bigdft_mpi%mpi_comm = MPI_COMM_WORLD
@@ -136,14 +137,36 @@ MODULE NEB_routines
       
       external_call = (bigdft_mpi%nproc == 1)
 
+      if (len_trim(job_name) == 0) job_name = "neb"
+      if (external_call) then
+         restart_file  = trim(job_name) // ".NEB.restart"
+         velocity_file = trim(job_name) // ".NEB.velocity"
+      end if
+
       !Loop over the images (replica)
+      call dict_init(dict_pos)
       do i = 1, num_of_images
-         bigdft_mpi%igroup = i
-         !!!!<<<to substitute
-         ! trick to output the image logs where it should, on disk.
-         call user_dict_from_files(dict, trim(arr_radical(i)), &
-              & trim(arr_posinp(i)), bigdft_mpi)
-         !!!!!>>>>>end to substitute
+         ! Set-up naming scheme for image i
+         nullify(dict_min)
+         call bigdft_set_run_properties(dict_min, &
+              & run_id    = trim(job_name) // trim(adjustl(yaml_toa(i,fmt='(i3)'))), &
+              & input_id  = trim(run_id)   // trim(adjustl(yaml_toa(i,fmt='(i3)'))), &
+              & posinp_id = trim(posinp1)  // trim(adjustl(yaml_toa(i,fmt='(i3)'))), &
+              & run_from_files = .true.)
+         call dict_copy(dict, dict_min)
+         call add(options // 'BigDFT', dict_min)
+
+         call bigdft_get_run_properties(dict, input_id = input_id, posinp_id = posinp_id)
+
+         call user_dict_from_files(dict, trim(input_id), trim(posinp_id), bigdft_mpi)
+
+         ! Take the astruct from source if not provided.
+         if (trim(dict_value(dict // POSINP)) /= TYPE_DICT) then
+            call dict_copy(dict // POSINP, dict_pos)
+         else
+            call dict_free(dict_pos)
+            call dict_copy(dict_pos, dict // POSINP)
+         end if
 
          if (.not. external_call .and. i > 1) then
             call image_init(imgs(i), dict, trim(minimization_scheme), img0 = imgs(1))
@@ -151,18 +174,12 @@ MODULE NEB_routines
             call image_init(imgs(i), dict, trim(minimization_scheme))
          end if
          ! Store forces if present (for restart).
-         call state_properties_set_from_dict(imgs(i)%outs, dict // "posinp")
-      end do
-      call dict_free(dict)
-      deallocate(arr_radical)
+         call state_properties_set_from_dict(imgs(i)%outs, dict // POSINP)
 
-      job_name      = "neb"
-      if (trim(run_id) /= "input") write(job_name, "(A)") trim(run_id)
-      if (external_call) then
-         restart_file  = trim(job_name) // ".NEB.restart"
-         velocity_file = trim(job_name) // ".NEB.velocity"
-         scratch_dir   = "./"
-      end if
+         call dict_free(dict)
+      end do
+      call dict_free(dict_pos)
+
 !!$      IF ( restart ) THEN
 !!$        vel_file = TRIM( scratch_dir )//"/velocities_file"
 !!$        inquire(FILE = vel_file, EXIST = file_exists)
@@ -185,10 +202,17 @@ MODULE NEB_routines
 !!$      
 !!$      ELSE
 
+      call images_init_path(imgs, tolerance)
       if (bigdft_mpi%iproc == 0) then
-         call images_init_path(imgs, tolerance, arr_posinp)
-      else
-         call images_init_path(imgs, tolerance)
+         dict => dict_iter(options // 'BigDFT')
+         dict => dict_next(dict)
+         do while (associated(dict))
+            call bigdft_get_run_properties(dict, posinp_id = posinp_id)
+            ! Dump generated image positions on disk.
+            call astruct_dump_to_file(imgs(dict_item(dict))%run%atoms%astruct,&
+                 trim(posinp_id) // ".in", "NEB generated")
+            dict => dict_next(dict)
+         end do
       end if
 
 !!$      ! Optionally pre-optimize the path
@@ -209,17 +233,19 @@ MODULE NEB_routines
     END SUBROUTINE read_input
 
     
-    SUBROUTINE search_MEP
+    SUBROUTINE search_MEP(options)
       use yaml_output
       use bigdft_run
 
       IMPLICIT NONE
 
+      type(dictionary), pointer :: options
+
       INTEGER :: iteration, unt, ierr, i
       real(gp) :: err
       LOGICAL :: stat, restart
       CHARACTER (LEN=4), PARAMETER :: exit_file = "EXIT"  
-      character(len = 256) :: filename
+      character(len = max_field_length) :: filename
 
 !!$      IF ( .NOT. restart) THEN
 !!$         CALL write_restart(restart_file, neb_%ndim, neb_%nimages, V, pos, fix_atom, PES_gradient)
@@ -298,9 +324,10 @@ MODULE NEB_routines
          call yaml_set_default_stream(unt, ierr)
 
          do i = 1, size(imgs), 1
-            filename=trim('final_'//trim(arr_posinp(i)))
+            call bigdft_get_run_properties(options // 'BigDFT' // i, posinp_id = filename)
+            filename='final_'//trim(filename)
             call bigdft_write_atomic_file(imgs(i)%run,imgs(i)%outs,&
-                 filename,'FINAL CONFIGURATION',cwd_path=.true.)
+                 trim(filename),'FINAL CONFIGURATION',cwd_path=.true.)
          end do
       end if
     END SUBROUTINE search_MEP
@@ -356,7 +383,7 @@ MODULE NEB_routines
       IF ( flag ) THEN
 
          CALL SYSTEM( "./NEB_driver.sh all " // trim(job_name) // &
-              & " " // trim(scratch_dir) // " " // trim(arr_posinp(1)))
+              & " " // trim(scratch_dir) // " " // trim(posinp1) // "1")
 
         N_in  = 1
         N_fin = size(imgs)
@@ -364,7 +391,7 @@ MODULE NEB_routines
       ELSE
          
          CALL SYSTEM( "./NEB_driver.sh free_only " // trim(job_name) // &
-              & " " // trim(scratch_dir) // " " // trim(arr_posinp(1)))
+              & " " // trim(scratch_dir) // " " // trim(posinp1) // "1")
 
         N_in  = 2
         N_fin = ( size(imgs) - 1 )
@@ -398,17 +425,27 @@ END MODULE NEB_routines
 PROGRAM NEB
 
   USE NEB_routines
+  use dictionaries
+  use bigdft_run
 
   IMPLICIT NONE
 
   integer :: ierr
+  type(dictionary), pointer :: options
 
-  CALL read_input()
+  call f_lib_initialize()
 
-  CALL search_MEP()
+  nullify(options)
+  call bigdft_command_line_options(options)
+  call bigdft_init(options, with_taskgroups = .false.)
 
+  CALL read_input(options)
+  CALL search_MEP(options)
   CALL deallocation()
 
+  call dict_free(options)
+
   call bigdft_finalize(ierr)
-  call f_lib_finalize()  !call f_lib_initialize() <LG: most likely it was an error?
+  call f_lib_finalize()
+
 END PROGRAM NEB

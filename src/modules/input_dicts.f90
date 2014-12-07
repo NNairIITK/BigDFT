@@ -11,6 +11,7 @@
 !> Modules which contains all interfaces to parse input dictionary.
 module module_input_dicts
   use public_keys
+  use dictionaries
   implicit none
 
   private
@@ -28,6 +29,7 @@ module module_input_dicts
   public :: astruct_dict_get_types
 
   ! Types from dictionaries
+
   public :: astruct_set_from_dict
   public :: psp_set_from_dict, nlcc_set_from_dict
   public :: occupation_set_from_dict
@@ -41,34 +43,307 @@ module module_input_dicts
   public :: atoms_file_merge_to_dict
   public :: astruct_file_merge_to_dict
   public :: occupation_data_file_merge_to_dict
+  public :: dict_set_run_properties,dict_get_run_properties,dict_run_new,bigdft_options
+  public :: set_dict_run_file,create_log_file
+
+  !> Keys of a run dict. All private, use get_run_prop() and set_run_prop() to change them.
+  character(len = *), parameter :: RADICAL_NAME = "radical"
+  character(len = *), parameter :: INPUT_NAME   = "input_file"
+  character(len = *), parameter :: OUTDIR       = "outdir"
+  character(len = *), parameter :: LOGFILE      = "logfile"
+  character(len = *), parameter :: USE_FILES    = "run_from_files"
+
 
 contains
 
-  !> logical function, true if file is existing (basically a fortran inquire)
-  function file_exists(filename) result(exists)
-    use module_base, only: f_err_raise
-    use yaml_output, only: yaml_toa
+  subroutine bigdft_options(parser)
+    use yaml_parse
+    use dictionaries, only: dict_new,operator(.is.)
     implicit none
-    !Arguments
-    character(len=*), intent(in) :: filename !< Filename
-    logical :: exists                        !< Result
+    type(yaml_cl_parse), intent(inout) :: parser
+
+    call yaml_cl_parse_option(parser,'name','None',&
+         'name of the run','n',&
+         dict_new('Usage' .is. &
+         'Name of the run. When <name> is given, input files like <name>.* are used. '//&
+         'The file "default.yaml" set the default values. If name is given as a list in yaml format, '//&
+         'this is interpreted as a list of runs as if a runs-file has been given.',&
+         'Allowed values' .is. &
+         'String value.'),first_option=.true.)
+
+    call yaml_cl_parse_option(parser,OUTDIR,'.',&
+         'output directory','d',&
+         dict_new('Usage' .is. &
+         'Set the directory where all the output files have to be written.',&
+         'Allowed values' .is. &
+         'String value, indicating the path of the directory. If the last subdirectory is not existing, it will be created'))
+
+    call yaml_cl_parse_option(parser,LOGFILE,'No',&
+         'create logfile','l',&
+         dict_new('Usage' .is. &
+         'When "Yes", write the result of the run in file "log.yaml" or "log-<name>.yaml" if the run has a specified name.',&
+         'Allowed values' .is. &
+         'Boolean (yaml syntax). Automatically set to true when using runs-file or output directory different from "."'))
+
+    call yaml_cl_parse_option(parser,'runs-file','None',&
+         'list_posinp filename','r',&
+         dict_new('Usage' .is. &
+         'File containing the list of the run ids which have to be launched independently (list in yaml format). '//&
+         'The option runs-file is not compatible with the --name option.',&
+         'Allowed values' .is. &
+         'String value. Should be associated to a existing filename'),&
+         conflicts='[name]')
+
+    call yaml_cl_parse_option(parser,'taskgroup-size','None',&
+         'mpi_groupsize (number of MPI runs for a single instance of BigDFT)','t',&
+         dict_new('Usage' .is. &
+         'Indicates the number of mpi tasks associated to a single instance of BigDFT run',&
+         'Allowed values' .is. &
+         'Integer value. Disabled if not a divisor of the total No. of MPI tasks.'))
+
+  end subroutine bigdft_options
+
+
+  !> default run properties
+  subroutine dict_run_new(run)
+    implicit none
+    type(dictionary), pointer :: run
+
+    run => dict_new(RADICAL_NAME .is. ' ')
+  end subroutine dict_run_new
+
+  subroutine set_dict_run_file(run_id,options)
+    implicit none
+    character(len=*), intent(in) :: run_id
+    type(dictionary), pointer, intent(inout) :: options
     !local variables
-    integer :: ierr
-    inquire(file = filename, exist = exists,iostat=ierr)
-    if (f_err_raise(ierr /=0,'Error in unit inquiring for filename '//&
-         trim(filename)//', ierr='//trim(yaml_toa(ierr)),&
-         err_name='BIGDFT_RUNTIME_ERROR')) then
-       exists=.false.
-       return
+    logical :: lval
+    character(len=max_field_length) :: val
+    type(dictionary), pointer :: drun
+
+    call dict_run_new(drun)
+    if (trim(run_id) /= "input" ) then
+       call dict_set_run_properties(drun, run_id = trim(run_id))
     end if
-  end function file_exists
+    if (OUTDIR .in. options) then
+       val = options // OUTDIR
+       call dict_set_run_properties(drun, outdir_id = trim(val))
+    end if
+    if (LOGFILE .in. options) then
+       lval = options // LOGFILE
+       call dict_set_run_properties(drun, log_to_disk = lval)
+    end if
+    call set(drun // USE_FILES, .true.)
+    call add(options//'BigDFT', drun)
+  end subroutine set_dict_run_file
+
+
+  !> set the parameters of the run 
+  subroutine dict_set_run_properties(run,run_id,input_id,posinp_id, &
+       & outdir_id,log_to_disk,run_from_files)
+    use public_keys, only: POSINP
+    implicit none
+    type(dictionary), pointer :: run !< nullified if not initialized
+    character(len=*), intent(in), optional :: run_id !< Radical of the run
+    character(len=*), intent(in), optional :: input_id, posinp_id !< Input file name and posinp file name.
+    character(len=*), intent(in), optional :: outdir_id !< Output directory (automatically add a trailing "/" if not any
+    logical, intent(in), optional :: log_to_disk !< Write logfile to disk instead of screen.
+    logical, intent(in), optional :: run_from_files !< Run_objects should be initialised from files.
+
+    integer :: lgt
+
+    if (.not. associated(run)) call dict_run_new(run)
+
+    if (present(run_id)) then
+       if (trim(run_id) /= "input") then
+          call set(run // RADICAL_NAME, trim(run_id))
+       else
+          call set(run // RADICAL_NAME, " ")
+       end if
+    end if
+    if (present(input_id)) call set(run // INPUT_NAME, trim(input_id))
+    if (present(posinp_id)) call set(run // POSINP, trim(posinp_id))
+    if (present(outdir_id)) then
+       lgt = len_trim(outdir_id)
+       if (outdir_id(lgt:lgt) == "/") then
+          call set(run // OUTDIR, trim(outdir_id))
+       else
+          call set(run // OUTDIR, trim(outdir_id) // "/")
+       end if
+    end if
+    if (present(log_to_disk)) call set(run // LOGFILE, log_to_disk)
+    if (present(run_from_files)) call set(run // USE_FILES, run_from_files)
+
+  end subroutine dict_set_run_properties
+
+  !> get the parameters of the run 
+  subroutine dict_get_run_properties(run,run_id,input_id,posinp_id,naming_id, &
+       & outdir_id,log_to_disk,run_from_files)
+    use public_keys, only: POSINP
+    implicit none
+    type(dictionary), pointer :: run
+    character(len=*), intent(out), optional :: run_id, naming_id
+    character(len=*), intent(out), optional :: input_id, posinp_id
+    character(len=*), intent(inout), optional :: outdir_id
+    logical, intent(inout), optional :: log_to_disk
+    logical, intent(inout), optional :: run_from_files
+
+    if (present(input_id)) then
+       if (INPUT_NAME .in. run) then
+          input_id = run // INPUT_NAME
+       else
+          input_id = run // RADICAL_NAME
+       end if
+       if (len_trim(input_id) == 0) &
+            & input_id = "input" // trim(run_id_toa())
+    end if
+    if (present(posinp_id)) then   
+       if (POSINP .in. run) then
+          posinp_id = run // POSINP
+       else
+          posinp_id = run // RADICAL_NAME
+       end if
+       if (len_trim(posinp_id) == 0) &
+            & posinp_id = "posinp" // trim(run_id_toa())
+    end if
+    if (present(naming_id)) then
+       naming_id = run // RADICAL_NAME
+       if (len_trim(naming_id) == 0) then
+          naming_id = trim(run_id_toa())
+       else
+          naming_id = "-" // trim(naming_id)
+       end if
+    end if
+    if (present(run_id)) run_id = run // RADICAL_NAME
+    if (present(outdir_id) .and. has_key(run, OUTDIR)) outdir_id = run // OUTDIR
+    if (present(log_to_disk) .and. has_key(run, LOGFILE)) log_to_disk = run // LOGFILE
+    if (present(run_from_files) .and. has_key(run, USE_FILES)) run_from_files = run // USE_FILES
+
+  end subroutine dict_get_run_properties
+
+  function run_id_toa()
+    use yaml_output, only: yaml_toa
+    use module_base, only: bigdft_mpi
+    implicit none
+    character(len=20) :: run_id_toa
+
+    run_id_toa=repeat(' ',len(run_id_toa))
+
+    if (bigdft_mpi%ngroup>1) then
+       run_id_toa=adjustl(trim(yaml_toa(bigdft_mpi%igroup,fmt='(i15)')))
+    end if
+
+  end function run_id_toa
+
+  subroutine create_log_file(dict,dict_from_files)
+    use module_base
+    use module_types
+    use module_input
+    use yaml_strings
+    use yaml_output
+    use dictionaries
+    implicit none
+    type(dictionary), pointer :: dict
+    logical, intent(out) :: dict_from_files !<identifies if the dictionary comes from files
+    !local variables
+    integer :: ierr,ierror,lgt,unit_log
+    character(len = max_field_length) :: writing_directory, run_name
+    character(len=500) :: logfilename,path
+    integer :: iproc_node, nproc_node
+    logical :: log_to_disk
+
+    ! Get user input writing_directory.
+    writing_directory = "."
+    call dict_get_run_properties(dict, outdir_id = writing_directory)
+    ! Create writing_directory and parents if needed and broadcast everything.
+    if (trim(writing_directory) /= '.') then
+       path=repeat(' ',len(path))
+       !add the output directory in the directory name
+       if (bigdft_mpi%iproc == 0 .and. trim(writing_directory) /= '.') then
+          call getdir(writing_directory,&
+               len_trim(writing_directory),path,len(path),ierr)
+          if (ierr /= 0) then
+             write(*,*) "ERROR: cannot create writing directory '"&
+                  //trim(writing_directory) // "'."
+             call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
+          end if
+       end if
+       call MPI_BCAST(path,len(path),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
+       lgt=min(len(writing_directory),len(path))
+       writing_directory(1:lgt)=path(1:lgt)
+    end if
+    ! Add trailing slash if missing.
+    lgt = len_trim(writing_directory)
+    if (writing_directory(lgt:lgt) /= "/") &
+         & writing_directory(min(lgt+1, len(writing_directory)):min(lgt+1, len(writing_directory))) = "/"
+
+    ! Test if logging on disk is required.
+    log_to_disk = (bigdft_mpi%ngroup > 1)
+    call dict_get_run_properties(dict, log_to_disk = log_to_disk) !< May overwrite with user choice
+
+    ! Save modified infos in dict.
+    call dict_set_run_properties(dict, outdir_id = writing_directory, log_to_disk = log_to_disk)
+
+    ! Now, create the logfile if needed.
+    if (bigdft_mpi%iproc == 0) then
+       if (log_to_disk) then
+          ! Get Create log file name.
+          call dict_get_run_properties(dict, naming_id = run_name)
+          logfilename = "log" // trim(run_name) // ".yaml"
+          path = trim(writing_directory)//trim(logfilename)
+          call yaml_map('<BigDFT> log of the run will be written in logfile',path,unit=6)
+          ! Check if logfile is already connected.
+          call yaml_stream_connected(trim(path), unit_log, ierr)
+          if (ierr /= 0) then
+             ! Move possible existing log file.
+             call ensure_log_file(trim(writing_directory), trim(logfilename), ierr)
+             if (ierr /= 0) call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
+             ! Close active stream and logfile if any. (TO BE MOVED IN RUN_UPDATE TO AVOID CLOSURE OF UPLEVEL INSTANCE)
+             call yaml_get_default_stream(unit_log)
+             if (unit_log /= 6) call yaml_close_stream(unit_log, ierr)
+             !Create stream and logfile
+             call yaml_set_stream(filename=trim(path),record_length=92,istat=ierr)
+             !create that only if the stream is not already present, otherwise print a warning
+             if (ierr == 0) then
+                call yaml_get_default_stream(unit_log)
+                call input_set_stdout(unit=unit_log)
+             else
+                call yaml_warning('Logfile '//trim(path)//' cannot be created, stream already present. Ignoring...')
+             end if
+          else
+             call yaml_release_document(unit_log)
+             call yaml_set_default_stream(unit_log, ierr)
+          end if ! Logfile already connected
+       else
+          !use stdout, do not crash if unit is present
+          call yaml_set_stream(record_length=92,istat=ierr)
+       end if ! Need to create a named logfile.
+
+       !start writing on logfile
+       call yaml_new_document()
+       !welcome screen
+       call print_logo()
+    end if ! Logfile is created by master proc only
+
+    if (bigdft_mpi%nproc >1) call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
+
+    if (bigdft_mpi%iproc==0) then
+       if (bigdft_mpi%nproc >1) call yaml_map('MPI tasks of root process node',nproc_node)
+       call print_configure_options()
+    end if
+
+    dict_from_files = .false.
+    if (USE_FILES .in. dict) dict_from_files = dict // USE_FILES
+
+  END SUBROUTINE create_log_file
+
+
 
   !> Routine to read YAML input files and create input dictionary.
   !! Update the input dictionary with the result of yaml_parse
   subroutine merge_input_file_to_dict(dict, fname, mpi_env)
     use module_base
     !use yaml_output, only :yaml_map
-    use dictionaries
     use yaml_parse, only: yaml_parse_from_char_array
     use yaml_output
     implicit none
@@ -128,13 +403,13 @@ contains
 
   !> Read from all input files and build a dictionary
   subroutine user_dict_from_files(dict,radical,posinp_name, mpi_env)
-    use dictionaries
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
     use module_defs, only: mpi_environment
     use module_interfaces, only: read_input_dict_from_files
     use public_keys, only: POSINP,IG_OCCUPATION
     use yaml_output
     use yaml_strings, only: f_strcpy
+    use f_utils, only: f_file_exists
     implicit none
     !Arguments
     type(dictionary), pointer :: dict                  !< Contains (out) all the information
@@ -142,6 +417,7 @@ contains
     character(len = *), intent(in) :: posinp_name           !< If the dict has no posinp key, use it
     type(mpi_environment), intent(in) :: mpi_env       !< MPI Environment
     !Local variables
+    logical :: exists
     type(dictionary), pointer :: at
     character(len = max_field_length) :: str, rad
 
@@ -179,14 +455,16 @@ contains
     !when the user has not specified the occupation in the input file
     if (.not. has_key(dict,IG_OCCUPATION)) then
        !yaml format should be used even for old method
-       if (file_exists(trim(rad)//".occup")) &
+       call f_file_exists(trim(rad)//".occup",exists)
+       if (exists) &
             call merge_input_file_to_dict(dict//IG_OCCUPATION,&
             trim(rad)//".occup",mpi_env)
     else !otherwise the input file always supersedes
        str = dict_value(dict //IG_OCCUPATION)
        if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
           !call atomic_data_file_merge_to_dict(dict, ATOMIC_OCC, trim(str))
-          if (file_exists(trim(str))) &
+          call f_file_exists(trim(str),exists)
+          if (exists) &
                call merge_input_file_to_dict(dict//IG_OCCUPATION,trim(str),mpi_env)
        end if
     end if
@@ -209,7 +487,6 @@ contains
     use module_defs, only: gp, UNINITIALIZED
     use ao_inguess, only: atomic_info
     use module_atoms, only : RADII_SOURCE, RADII_SOURCE_HARD_CODED, RADII_SOURCE_FILE
-    use dictionaries
     use dynamic_memory
     implicit none
     !Arguments
@@ -334,7 +611,6 @@ contains
     use module_defs, only: gp
     use module_types, only: atoms_data
     use module_atoms, only: allocate_atoms_data
-    use dictionaries
     use m_pawrad, only: pawrad_type, pawrad_nullify
     use m_pawtab, only: pawtab_type, pawtab_nullify
     use psp_projectors, only: PSPCODE_PAW
@@ -416,7 +692,6 @@ contains
   subroutine nlcc_set_from_dict(dict, atoms)
     use module_defs, only: gp
     use module_types, only: atoms_data
-    use dictionaries
     use dynamic_memory
     implicit none
     type(dictionary), pointer :: dict
@@ -499,7 +774,6 @@ contains
        & nzatom, nelpsp, npspcode, ixcpsp, iradii_source, psppar, radii_cf)
     use module_defs, only: gp, UNINITIALIZED
     use module_atoms
-    use dictionaries
     use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
     implicit none
     !Arguments
@@ -616,7 +890,6 @@ contains
     use module_defs, only: gp, UNINITIALIZED
     use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
     use module_atoms, only: RADII_SOURCE_FILE
-    use dictionaries
     use yaml_strings
     implicit none
     !Arguments
@@ -692,7 +965,6 @@ contains
 
   !> Read old psppar file (check if not already in the dictionary) and merge to dict
   subroutine atoms_file_merge_to_dict(dict)
-    use dictionaries
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
     use yaml_output, only: yaml_warning
     use public_keys, only: POSINP,SOURCE_KEY
@@ -751,7 +1023,6 @@ contains
   !> Read psp file and merge to dict
   subroutine psp_file_merge_to_dict(dict, key, filename, lstring)
     use module_defs, only: gp, UNINITIALIZED
-    use dictionaries
     use yaml_strings
     use f_utils
     use yaml_output
@@ -795,7 +1066,6 @@ contains
 
   subroutine nlcc_file_merge_to_dict(dict, key, filename)
     use module_defs, only: gp, UNINITIALIZED
-    use dictionaries
     use yaml_strings
     implicit none
     type(dictionary), pointer :: dict
@@ -841,7 +1111,6 @@ contains
   end subroutine nlcc_file_merge_to_dict
   
   subroutine astruct_dict_get_types(dict, types)
-    use dictionaries
     implicit none
     type(dictionary), pointer :: dict, types
 
@@ -879,8 +1148,7 @@ contains
         & BIGDFT_INPUT_FILE_ERROR,f_free_ptr
     use module_atoms, only: set_astruct_from_file,atomic_structure,&
          nullify_atomic_structure,deallocate_atomic_structure,astruct_merge_to_dict
-    use public_keys, only: POSINP,RADICAL_NAME
-    use dictionaries
+    use public_keys, only: POSINP
     use yaml_strings
     implicit none
     !Arguments
@@ -938,7 +1206,7 @@ contains
           ! Raise an error
           call f_strcpy(src='input',dest=radical)
           !modify the radical name if it exists
-          radical = dict .get. RADICAL_NAME
+          call dict_get_run_properties(dict, input_id = radical)
           msg = "No section 'posinp' for the atomic positions in the file '"//&
                trim(radical) // ".yaml'. " // trim(msg)
           call f_err_throw(err_msg=msg,err_id=ierr)
@@ -959,8 +1227,7 @@ contains
   !! and presend in the dictionary
   subroutine astruct_set_from_dict(dict, astruct, comment)
     use module_defs, only: gp, Bohr_Ang, UNINITIALIZED
-    use module_atoms, only: atomic_structure, nullify_atomic_structure,frozen_ftoi
-    use dictionaries
+    use module_atoms, only: atomic_structure, nullify_atomic_structure,astruct_at_from_dict
     use dynamic_memory
     implicit none
     !Arguments
@@ -970,9 +1237,9 @@ contains
     character(len = 1024), intent(out), optional :: comment !< Extra comment retrieved from the file if present
     !local variables
     character(len=*), parameter :: subname='astruct_set_from_dict'
-    type(dictionary), pointer :: pos, at, atData, types
+    type(dictionary), pointer :: pos, at, types
     character(len = max_field_length) :: str
-    integer :: iat, ityp, units, igspin, igchrg, nsgn, ntyp, ierr
+    integer :: iat, ityp, units, igspin, igchrg, ntyp
 
     call f_routine(id='astruct_set_from_dict')
 
@@ -1033,42 +1300,15 @@ contains
        pos => dict // ASTRUCT_POSITIONS
        call astruct_set_n_atoms(astruct, dict_len(pos))
        at => dict_iter(pos)
-       iat = 0
        do while(associated(at))
-          iat = iat + 1
+          iat = dict_item(at) + 1
 
-          igspin = 0
-          igchrg = 0
-          nsgn   = 1
-          !at => pos // (iat - 1)
-          atData => dict_iter(at)!at%child
-          do while(associated(atData))
-             str = dict_key(atData)
-             if (trim(str) == "Frozen") then
-                str = dict_value(atData)
-                call frozen_ftoi(str(1:4), astruct%ifrztyp(iat),ierr)
-             else if (trim(str) == "IGSpin") then
-                igspin = atData
-             else if (trim(str) == "IGChg") then
-                igchrg = atData
-                if (igchrg >= 0) then
-                   nsgn = 1
-                else
-                   nsgn = -1
-                end if
-             else if (trim(str) == "int_ref_atoms_1") then
-                astruct%ixyz_int(1,iat) = atData
-             else if (trim(str) == "int_ref_atoms_2") then
-                astruct%ixyz_int(2,iat) = atData
-             else if (trim(str) == "int_ref_atoms_3") then
-                astruct%ixyz_int(3,iat) = atData
-             else if (dict_len(atData) == 3) then
-                astruct%iatype(iat) = types // dict_key(atData)
-                astruct%rxyz(:, iat) = atData
-             end if
-             atData => dict_next(atData)
-          end do
-          astruct%input_polarization(iat) = 1000 * igchrg + nsgn * 100 + igspin
+          call astruct_at_from_dict(at, str, rxyz_add = astruct%rxyz(1, iat), &
+               & ifrztyp = astruct%ifrztyp(iat), igspin = igspin, igchrg = igchrg, &
+               & ixyz_add = astruct%ixyz_int(1,iat))
+          astruct%iatype(iat) = types // str
+          astruct%input_polarization(iat) = 1000 * igchrg + sign(1, igchrg) * 100 + igspin
+
           if (units == 1) then
              astruct%rxyz(1,iat) = astruct%rxyz(1,iat) / Bohr_Ang
              astruct%rxyz(2,iat) = astruct%rxyz(2,iat) / Bohr_Ang
@@ -1156,7 +1396,6 @@ contains
   subroutine occupation_set_from_dict(dict, key, norbu, norbd, occup, &
        & nkpts, nspin, norbsempty, nelec_up, nelec_down, norb_max)
     use module_defs, only: gp
-    use dictionaries
     use dynamic_memory
     use yaml_output
     implicit none
@@ -1336,7 +1575,6 @@ contains
 
   subroutine occupation_data_file_merge_to_dict(dict, key, filename)
     use module_defs, only: gp, UNINITIALIZED
-    use dictionaries
     use yaml_output
     implicit none
     type(dictionary), pointer :: dict
@@ -1428,7 +1666,6 @@ contains
   subroutine neb_set_from_dict(dict, opt, climbing_, imax, nimg_, &
        & cv, tol, ds_, kmin, kmax, temp_, damp_, meth)
     use module_defs, only: gp
-    use dictionaries
     !use module_input_keys
     use public_keys
     use yaml_output

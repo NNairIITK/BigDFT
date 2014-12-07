@@ -5,13 +5,16 @@
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module to project gaussian functions to Daubechies wavelets
 module gaussdaub
   use module_defs, only: wp,gp
   implicit none
   private
   
-  !these parameters has to be modified to avoid naming confusions
+  !!@todo These parameters has to be modified to avoid naming confusions
   integer, parameter :: m=8,mm=m+2
   integer, parameter :: N=m
   integer :: iw !< index for initialization
@@ -27,14 +30,14 @@ module gaussdaub
        -0.014952258337062199118_wp,-0.00030292051472413308126_wp, &
        0.0018899503327676891843_wp,0.0_wp,0.0_wp &
        /)
-  ! Coefficients for wavelet transform (orthonormal wavelet)
+  !> Coefficients for wavelet transform (orthonormal wavelet)
   real(wp), dimension(-mm:mm), parameter :: cht=ch
 
-  ! g coefficients from h coefficients
+  !> g coefficients from h coefficients
   real(wp), dimension(-mm:mm), parameter :: cg=[0.0_wp,((-1)**(iw+1)*cht(-iw),iw=-mm,mm-1)]
   real(wp), dimension(-mm:mm), parameter :: cgt=[0.0_wp,((-1)**(iw+1)*ch(-iw),iw=-mm,mm-1)]
 
-  !magic filter coefficients for daubechies family
+  !> Magic filter coefficients for daubechies family
   real(wp), dimension(-n:n), parameter :: W = (/0.0_wp,&
        2.72734492911979659657715313017228e-6_wp,&
        -0.00005185986881173432922848639136911487_wp,&
@@ -61,7 +64,7 @@ module gaussdaub
 
   contains
     
-    !convert a gaussian to one-dimensional functions
+    !> Convert a gaussian to one-dimensional functions
     subroutine gau_daub_1d(ncplx,ng,gau_cen,gau_a,n_gau,nmax,hgrid,factor,periodic,nres,&
          c,nwork,ww)
       implicit none
@@ -124,42 +127,31 @@ module gaussdaub
 
     end subroutine gau_daub_1d
 
-    !>   Project gaussian functions in a mesh of Daubechies scaling functions
-    !!   Gives the expansion coefficients of :
-    !!     factor*x**n_gau*exp(-(1/2)*(x/gau_a)**2)
-    !! INPUT
-    !!   @param hgrid    step size
-    !!   @param factor   normalisation factor
-    !!   @param gau_cen  center of gaussian function
-    !!   @param gau_a    parameter of gaussian
-    !!   @param n_gau    x**n_gau (polynomial degree)
-    !!   @param nmax     size of the grid
-    !!   @param nwork    size of the work array (ww) >= (nmax+1)*17
-    !!   @param periodic the flag for periodic boundary conditions
-    !!
-    !! OUTPUT
-    !!   @param n_left,n_right  interval where the gaussian is larger than the machine precision
-    !!   @param C(:,1)          array of scaling function coefficients:
-    !!   @param C(:,2)          array of wavelet coefficients:
-    !!   @param WW(:,1),WW(:,2) work arrays that have to be 17 times larger than C
-    !!   @param err_norm        normalisation error
+    !> Project gaussian functions in a mesh of Daubechies scaling functions
+    !! Gives the expansion coefficients of :
+    !!    factor*x**n_gau*exp(-(1/2)*(x/gau_a)**2)
     subroutine gauss_to_daub(hgrid,factor,gau_cen,gau_a,n_gau,&!no err, errsuc
          nmax,n_left,n_right,c,err_norm,&                      !no err_wav. nmax instead of n_intvx
          ww,nwork,periodic)                         !added work arrays ww with dimension nwork
       use module_base
       implicit none
-      logical, intent(in) :: periodic
-      integer, intent(in) :: n_gau,nmax,nwork
-      real(gp), intent(in) :: hgrid,factor,gau_cen,gau_a
-      real(wp), dimension(0:nwork,2), intent(inout) :: ww 
-      integer, intent(out) :: n_left,n_right
-      real(gp), intent(out) :: err_norm
-      real(wp), dimension(0:nmax,2), intent(out) :: c
+      logical, intent(in) :: periodic !< the flag for periodic boundary conditions
+      integer, intent(in) :: n_gau    !< x**n_gau (polynomial degree)
+      integer, intent(in) :: nmax     !< size of the grid
+      integer, intent(in) :: nwork    !< size of the work array (ww) >= (nmax+1)*17
+      real(gp), intent(in) :: hgrid   !< step size
+      real(gp), intent(in) :: factor  !< normalisation factor
+      real(gp), intent(in) :: gau_cen !< center of gaussian function
+      real(gp), intent(in) :: gau_a   !< parameter of gaussian      
+      real(wp), dimension(0:nwork,2), intent(inout) :: ww !< work arrays that have to be 17 times larger than C
+      integer, intent(out) :: n_left,n_right !< interval where the gaussian is larger than the machine precision
+      real(gp), intent(out) :: err_norm      !< normalisation error
+      real(wp), dimension(0:nmax,2), intent(out) :: c !< c(:,1) array of scaling function coefficients
+                                                      !! c(:,2) array of wavelet coefficients:
       !local variables
-      integer :: rightx,leftx,right_t,i0,i,k,length,j
-      real(gp) :: a,z0,h,theor_norm2,x,r,coff,r2,error,fac
+      integer :: right_t,i0,i,length
+      real(gp) :: a,z0,h,theor_norm2,error,fac
       real(dp) :: cn2,tt
-      real(wp) :: func
       integer, dimension(0:4) :: lefts,rights
       !include the convolutions filters
       !include 'recs16.inc' !< MAGIC FILTER  
@@ -191,16 +183,16 @@ module gaussdaub
          rights(0)=i0+right_t
 
 
-         call gauss_to_scf()
+!!$         call gauss_to_scf()
 
          ! special for periodic case:
-         call fold_tail
+!!$         call fold_tail
       else
          ! non-periodic: the Gaussian is bounded by the cell borders
          lefts( 0)=max(i0-right_t,   0)
          rights(0)=min(i0+right_t,nmax)
 
-         call gauss_to_scf
+!!$         call gauss_to_scf
 
          ! non-periodic: no tails to fold
          do i=0,length-1
@@ -226,14 +218,143 @@ module gaussdaub
       fac= hgrid**n_gau*sqrt(hgrid)*factor
       c=real(fac,wp)*c
       err_norm=error*fac
+      
+!!$    contains
+!!$
+!!$      !> Once the bounds LEFTS(0) and RIGHTS(0) of the expansion coefficient array
+!!$      !! are fixed, we get the expansion coefficients in the usual way:
+!!$      !! get them on the finest grid by quadrature
+!!$      !! then forward transform to get the coeffs on the coarser grid.
+!!$      !! All this is done assuming nonperiodic boundary conditions
+!!$      !! but will also work in the periodic case if the tails are folded
+!!$      subroutine gauss_to_scf
+!!$        n_left=lefts(0)
+!!$        n_right=rights(0)
+!!$        length=n_right-n_left+1
+!!$
+!!$        !print *,'nleft,nright',n_left,n_right
+!!$
+!!$        do k=1,4
+!!$           rights(k)=2*rights(k-1)+m
+!!$           lefts( k)=2*lefts( k-1)-m
+!!$        enddo
+!!$
+!!$        leftx = lefts(4)-n
+!!$        rightx=rights(4)+n  
+!!$
+!!$        !do not do anything if the gaussian is too extended
+!!$        if (rightx-leftx > nwork) then
+!!$           !STOP 'gaustodaub'
+!!$           return
+!!$        end if
+!!$
+!!$        !calculate the expansion coefficients at level 4, positions shifted by 16*i0 
+!!$
+!!$        !corrected for avoiding 0**0 problem
+!!$        if (n_gau == 0) then
+!!$           do i=leftx,rightx
+!!$              x=real(i-i0*16,gp)*h
+!!$              r=x-z0
+!!$              r2=r/a
+!!$              r2=r2*r2
+!!$              r2=0.5_gp*r2
+!!$              func=safe_exp(-r2)
+!!$              ww(i-leftx,1)=func
+!!$           enddo
+!!$        else
+!!$           do i=leftx,rightx
+!!$              x=real(i-i0*16,gp)*h
+!!$              r=x-z0
+!!$              coeff=r**n_gau
+!!$              r2=r/a
+!!$              r2=r2*r2
+!!$              r2=0.5_gp*r2
+!!$              func=safe_exp(-r2)
+!!$              func=real(coeff,wp)*func
+!!$              ww(i-leftx,1)=func
+!!$           enddo
+!!$        end if
+!!$
+!!$        call apply_w(1,ww(:,1),ww(:,2),&
+!!$             leftx   ,rightx   ,lefts(4),rights(4),h)
+!!$
+!!$        call forward_c(1,ww(0,2),ww(0,1),&
+!!$             lefts(4),rights(4),lefts(3),rights(3)) 
+!!$        call forward_c(1,ww(0,1),ww(0,2),&
+!!$             lefts(3),rights(3),lefts(2),rights(2)) 
+!!$        call forward_c(1,ww(0,2),ww(0,1),&
+!!$             lefts(2),rights(2),lefts(1),rights(1)) 
+!!$
+!!$        call forward(1,  ww(0,1),ww(0,2),&
+!!$             lefts(1),rights(1),lefts(0),rights(0)) 
+!!$
+!!$
+!!$      END SUBROUTINE gauss_to_scf
+!!$
+!!$
+!!$      !> One of the tails of the Gaussian is folded periodically
+!!$      !! We assume that the situation when we need to fold both tails
+!!$      !! will never arise
+!!$      subroutine fold_tail
+!!$
+!!$        !modification of the calculation.
+!!$        !at this stage the values of c are fixed to zero
+!!$
+!!$        do i=n_left,n_right
+!!$           j=modulo(i,nmax+1)
+!!$           c(j,1)=c(j,1)+ww(i-n_left       ,2)
+!!$           c(j,2)=c(j,2)+ww(i-n_left+length,2)
+!!$        end do
+!!$
+!!$        !!
+!!$        !!    !write(*,*) 'I fold the tail'
+!!$        !!    ! shift the resulting array and fold its periodic tails:
+!!$        !!    if (n_left.ge.0) then
+!!$        !!       if (n_right.le.nmax) then
+!!$        !!          ! normal situation: the gaussian is inside the box
+!!$        !!          do i=n_left,n_right
+!!$        !!             c(i,1)=ww(i-n_left       ,2)
+!!$        !!             c(i,2)=ww(i-n_left+length,2)
+!!$        !!          enddo
+!!$        !!       else
+!!$        !!          ! the gaussian extends beyond the right border
+!!$        !!
+!!$        !!          ! the normal part:
+!!$        !!          do i=n_left,nmax
+!!$        !!             c(i,1)=ww(i-n_left       ,2)
+!!$        !!             c(i,2)=ww(i-n_left+length,2)
+!!$        !!          enddo
+!!$        !!          ! the part of ww that goes beyond nmax 
+!!$        !!          ! is shifted by nmax+1 to the left
+!!$        !!          do i=nmax+1,n_right
+!!$        !!             c(i-nmax-1,1)=ww(i-n_left       ,2)
+!!$        !!             c(i-nmax-1,2)=ww(i-n_left+length,2)
+!!$        !!          enddo
+!!$        !!       endif
+!!$        !!    else
+!!$        !!       ! the gaussian extends beyond the left border
+!!$        !!       ! the part of ww to the left of 0
+!!$        !!       ! is shifted by nmax+1 to the right
+!!$        !!       do i=n_left,-1
+!!$        !!          c(i+nmax+1,1)=ww(i-n_left       ,2)
+!!$        !!          c(i+nmax+1,2)=ww(i-n_left+length,2)
+!!$        !!       enddo
+!!$        !!       ! the normal part:
+!!$        !!       do i=0,n_right
+!!$        !!          c(i,1)=ww(i-n_left       ,2)
+!!$        !!          c(i,2)=ww(i-n_left+length,2)
+!!$        !!       enddo
+!!$        !!    endif
+!!$      END SUBROUTINE fold_tail
 
     END SUBROUTINE gauss_to_daub
 
-    !>   Project gaussian functions in a mesh of Daubechies scaling functions
-    !!   Gives the expansion coefficients of :
-    !!     factor*x**n_gau*exp(-(1/2)*(x/gau_a)**2)
-    !!   Multiply it for the k-point factor exp(Ikx)
-    !!   For this reason, a real (cos(kx)) and an imaginary (sin(kx)) part are provided 
+
+    !> Project gaussian functions in a mesh of Daubechies scaling functions
+    !! Gives the expansion coefficients of :
+    !!   factor*x**n_gau*exp(-(1/2)*(x/gau_a)**2)
+    !! Multiply it for the k-point factor exp(Ikx)
+    !! For this reason, a real (cos(kx)) and an imaginary (sin(kx)) part are provided 
     !! INPUT
     !!   @param hgrid    step size
     !!   @param factor   normalisation factor
@@ -264,9 +385,9 @@ module gaussdaub
       implicit none
       logical, intent(in) :: periodic
       integer, intent(in) :: n_gau,nmax,nwork,nstart
-      integer, intent(in) :: ncplx_w !size of the ww matrix
-      integer, intent(in) :: ncplx_g !1 or 2 for simple or complex gaussians, respectively.
-      integer, intent(in) :: ncplx_k !use 2 for k-points.
+      integer, intent(in) :: ncplx_w !< size of the ww matrix
+      integer, intent(in) :: ncplx_g !< 1 or 2 for simple or complex gaussians, respectively.
+      integer, intent(in) :: ncplx_k !< use 2 for k-points.
       real(gp), intent(in) :: hgrid,gau_cen,kval
       real(gp),dimension(ncplx_g),intent(in)::factor,gau_a
       real(wp), dimension(0:nwork,2,ncplx_w), intent(inout) :: ww 
@@ -1276,7 +1397,7 @@ module gaussdaub
       real(wp), dimension(0:nmax,2), intent(out) :: c !< final results
       !local variables
       integer :: i,j
-      real(wp) :: cn2,tt
+      real(wp) :: cn2
 
       if (periodic) then
          c=0.0_wp

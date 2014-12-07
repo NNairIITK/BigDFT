@@ -960,7 +960,7 @@ contains
       character(len = *), intent(in) :: description
       integer, intent(out) :: var
 
-      integer :: i, j, ierror, ierr
+      integer :: i, j, ierror, ierr,ilg
       var = default
       call find(name, i, j)
 
@@ -973,7 +973,8 @@ contains
          end if
       end if
       if (output) then
-         write(inout_lines(parsed_lines(iline_parsed-1)),"(a,1x,I0,t30,a)") name, var, description
+         ilg=min(max(len(inout_lines)-31,0),len(trim(description)))
+         write(inout_lines(parsed_lines(iline_parsed-1)),"(a,1x,I0,t30,a)") name, var,description(1:ilg)
          iline_written=iline_written+1
       end if
    END SUBROUTINE var_integer
@@ -1297,6 +1298,8 @@ contains
        return
     end if
 
+    if (.not. associated(dict)) call dict_init(dict)
+
     call input_var(dummy_str,"BFGS",dict // GEOPT_METHOD, comment = "")
     !call set(dict // GEOPT_METHOD, dummy_str)
     call input_var(dummy_int,'1',dict // NCOUNT_CLUSTER_X,comment="")
@@ -1443,6 +1446,8 @@ contains
        call input_free(.false.)
        return
     end if
+
+    if (.not. associated(dict)) call dict_init(dict)
 
     call input_var(dummy_str,'NONE',dict // SIC_APPROACH,comment='')
     !call set(dict // SIC_APPROACH, dummy_str)
@@ -1701,6 +1706,8 @@ contains
     !If true, preserve the multipole of the ionic part (local potential) projecting on delta instead of ISF
     call input_var("multipole_preserving", .false., "Preserve multipole moment of the ionic charge",dummy_bool)
     call set(dict // MULTIPOLE_PRESERVING, dummy_bool)
+    call input_var("mp_isf", 16, "Interpolating scaling function for the multipole preserving option",dummy_int)
+    call set(dict // MP_ISF, dummy_int)
 
     !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
     call input_var("pdsyev_blocksize",-8,"SCALAPACK linear scaling blocksize",dummy_int) !ranges=(/-100,1000/)
@@ -2051,6 +2058,8 @@ contains
     open(unit = 123, file = trim(filename), action = "read")
     READ(123 , NML=NEB )
     close(123)
+
+    if (.not. associated(dict)) call dict_init(dict)
 
     call set(dict // GEOPT_METHOD, "NEB")
     call set(dict // NEB_CLIMBING, climbing)

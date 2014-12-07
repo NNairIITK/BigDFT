@@ -36,7 +36,7 @@ program mhgps
     implicit none
     integer :: isame,njobs
     character(len=200) :: filename
-    character(len=60) :: run_id
+    character(len=60) :: run_id,naming_id
     integer :: ifolder,ijob
     logical :: xyzexists,asciiexists
     type(dictionary), pointer :: run
@@ -88,6 +88,7 @@ program mhgps
     write(currDir,'(a,i3.3)')'input',ifolder
     call get_first_struct_file(filename)
 
+!    if(efmethod=='BIGDFT')then
     call bigdft_command_line_options(options)
     call bigdft_init(options)!mpi_info,nconfig,run_id,ierr)
     if (bigdft_nruns(options) > 1) then
@@ -105,9 +106,9 @@ program mhgps
     if(iproc==0) call print_logo_mhgps()
 
     !reset input and output positions of run
-    call bigdft_get_run_properties(run,input_id=run_id)
+    call bigdft_get_run_properties(run,input_id=run_id,naming_id=naming_id)
     call bigdft_set_run_properties(run,&
-         posinp_id=trim(adjustl(filename))//trim(bigdft_run_id_toa()))
+         & posinp_id=trim(adjustl(filename))//trim(naming_id))
 
     call run_objects_init(runObj,run)
 

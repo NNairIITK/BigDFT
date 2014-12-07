@@ -1,13 +1,15 @@
-!! @file
-!! @author Bastian Schaefer
-!! @section LICENCE
+!> @file
+!!    Energy and Forces for minima hopping guided path sampling
+!! @author 
 !!    Copyright (C) 2014 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
+!!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS
+!!    For the list of contributors, see ~/AUTHORS 
 
 
+!> Module returning energy and froces from minima hopping
 module module_energyandforces
     implicit none
 
@@ -16,12 +18,13 @@ module module_energyandforces
     public :: energyandforces
 
 contains
-!=====================================================================
+
+
+!> Returns energies in hartree and
+!! forces in hartree/bohr
+!! (except for LJ)
 subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     !IMPORTANT:
-    !returns energies in hartree and
-    !forces in hartree/bohr
-    !(except for LJ)
     !receives distances in Bohr
     use module_base
     !use module_lj
@@ -41,7 +44,7 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     real(gp), intent(out) :: fnoise
     real(gp), intent(out) :: epot
     !internal
-    integer :: iat
+    ! integer :: iat
     integer :: icc !for amber
     real(gp) :: rxyzint(3,nat)
     real(gp) :: alatint(3)
@@ -170,4 +173,5 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
 !!$        stop
 !!$    endif
 end subroutine
+
 end module

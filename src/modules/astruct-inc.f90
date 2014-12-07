@@ -33,7 +33,7 @@ subroutine read_xyz_positions(ifile,filename,astruct,comment,energy,fxyz,getLine
   character(len=*), parameter :: subname='read_atomic_positions'
   character(len=20) :: symbol
   character(len=20) :: tatonam
-  character(len=50) :: extra
+  character(len=120) :: extra
   character(len=150) :: line
   logical :: lpsdbl, eof
   integer :: iat,ityp,ntyp,i,ierrsfx
@@ -292,7 +292,7 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
   character(len=*), parameter :: subname='read_ascii_positions'
   character(len=20) :: symbol
   character(len=20) :: tatonam
-  character(len=50) :: extra
+  character(len=120) :: extra
   character(len=150) :: line
   logical :: lpsdbl, reduced, eof, forces
   integer :: iat,ntyp,ityp,i,i_stat,nlines,istart,istop,count
@@ -542,7 +542,7 @@ subroutine read_int_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine)
   character(len=*), parameter :: subname='read_atomic_positions'
   character(len=20) :: symbol
   character(len=20) :: tatonam
-  character(len=50) :: extra
+  character(len=120) :: extra
   character(len=150) :: line
   logical :: lpsdbl, eof
   integer :: iat,ityp,ntyp,i,ierrsfx
@@ -879,8 +879,8 @@ end subroutine rxyz_inside_box
 !> Find extra information
 subroutine find_extra_info(line,extra,nspace)
   implicit none
-  character(len=150), intent(in) :: line
-  character(len=50), intent(out) :: extra
+  character(len=*), intent(in) :: line
+  character(len=120), intent(out) :: extra
   integer,intent(in) :: nspace
   !local variables
   logical :: space
@@ -898,10 +898,10 @@ subroutine find_extra_info(line,extra,nspace)
      end if
      !print *,line(i:i),ispace
      if (ispace==nspace) then
-        extra=line(i:min(150,i+49))
+        extra=line(i:min(len(line),i+len(extra)-1))
         exit find_space
      end if
-     if (i==150) then
+     if (i==len(line)) then
         !print *,'AAA',extra
         extra='nothing'
         exit find_space
@@ -913,67 +913,79 @@ END SUBROUTINE find_extra_info
 
 !> Parse extra information
 subroutine parse_extra_info(iat,extra,astruct)
+  use yaml_parse
+  use dictionaries
   implicit none
   !Arguments
   integer, intent(in) :: iat
-  character(len=50), intent(in) :: extra
+  character(len=*), intent(in) :: extra
   type(atomic_structure), intent(inout) :: astruct
   !Local variables
   character(len=4) :: suffix
   logical :: go
-  integer :: ierr,ierr1,ierr2,nspol,nchrg,nsgn
+  integer :: ierr,ierr1,ierr2,nspol,nchrg
+  type(dictionary), pointer :: dict
   !case with all the information
   !print *,iat,'ex'//trim(extra)//'ex'
-  read(extra,*,iostat=ierr) nspol,nchrg,suffix
-  if (extra == 'nothing') then !case with empty information
-     nspol=0
-     nchrg=0
-     suffix='    '
-  else if (ierr /= 0) then !case with partial information
-     read(extra,*,iostat=ierr1) nspol,suffix
-     if (ierr1 == 0) then
-        !Format nspol frzchain
-        nchrg=0
-        call valid_frzchain(trim(suffix),go)
-        if (.not. go) then
-           read(suffix,*,iostat=ierr2) nchrg
-           if (ierr2 /= 0) then
-              call error
-           else
-              suffix='    '
-           end if
-        end if
+
+  if (index(extra, ":") > 0) then
+     ! YAML case.
+     call yaml_parse_from_string(dict, extra)
+     if (dict_len(dict) > 0) then
+        call astruct_at_from_dict(dict // 0, ifrztyp = astruct%ifrztyp(iat), igspin = nspol, igchrg = nchrg)
      else
-        !Format frzchain
-        call valid_frzchain(trim(extra),go)
-        if (go) then
-           suffix=trim(extra)
-           nspol=0
+        nspol = 0
+        nchrg = 0
+     end if
+     call dict_free(dict)
+  else
+     ! Old case.
+     read(extra,*,iostat=ierr) nspol,nchrg,suffix
+     if (extra == 'nothing') then !case with empty information
+        nspol=0
+        nchrg=0
+        suffix='    '
+     else if (ierr /= 0) then !case with partial information
+        read(extra,*,iostat=ierr1) nspol,suffix
+        if (ierr1 == 0) then
+           !Format nspol frzchain
            nchrg=0
-        else
-           read(extra,*,iostat=ierr2) nspol
-           if (ierr2 /=0) then
-              call error
+           call valid_frzchain(trim(suffix),go)
+           if (.not. go) then
+              read(suffix,*,iostat=ierr2) nchrg
+              if (ierr2 /= 0) then
+                 call error
+              else
+                 suffix='    '
+              end if
            end if
-           suffix='    '
-           nchrg=0
+        else
+           !Format frzchain
+           call valid_frzchain(trim(extra),go)
+           if (go) then
+              suffix=trim(extra)
+              nspol=0
+              nchrg=0
+           else
+              read(extra,*,iostat=ierr2) nspol
+              if (ierr2 /=0) then
+                 call error
+              end if
+              suffix='    '
+              nchrg=0
+           end if
         end if
      end if
+
+     !convert the suffix into ifrztyp
+     call frozen_ftoi(suffix,astruct%ifrztyp(iat),ierr)
+     if (ierr /= 0) call error
   end if
 
   !now assign the array, following the rule
-  if(nchrg>=0) then
-     nsgn=1
-  else
-     nsgn=-1
-  end if
-  astruct%input_polarization(iat)=1000*nchrg+nsgn*100+nspol
+  astruct%input_polarization(iat)=1000*nchrg+sign(1, nchrg)*100+nspol
 
   !print *,'natpol atomic',iat,astruct%input_polarization(iat),suffix
-
-  !convert the suffix into ifrztyp
-  call frozen_ftoi(suffix,astruct%ifrztyp(iat),ierr)
-  if (ierr /= 0) call error
 
 !!!  if (trim(suffix) == 'f') then
 !!!     !the atom is considered as blocked
@@ -1188,7 +1200,7 @@ subroutine wtxyz(iunit,energy,rxyz,astruct,comment)
   character(len=20) :: symbol
   character(len=10) :: name
   character(len=11) :: units
-  character(len=50) :: extra
+  character(len=120) :: extra
   integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor
 
@@ -1242,7 +1254,7 @@ subroutine wtxyz(iunit,energy,rxyz,astruct,comment)
 
      call write_extra_info(extra,astruct%input_polarization(iat),astruct%ifrztyp(iat))
 
-     write(iunit,'(a5,1x,3(1x,1pe24.17),2x,a50)')symbol,(rxyz(j,iat)*factor,j=1,3),extra
+     write(iunit,'(a5,1x,3(1x,1pe24.17),2x,a)')symbol,(rxyz(j,iat)*factor,j=1,3),trim(extra)
   enddo
 
 END SUBROUTINE wtxyz
@@ -1288,7 +1300,7 @@ subroutine wtascii(iunit,energy,rxyz,astruct,comment)
   real(gp), dimension(3,astruct%nat), intent(in) :: rxyz
   !local variables
   character(len=2) :: symbol
-  character(len=50) :: extra
+  character(len=120) :: extra
   character(len=10) :: name
   integer :: iat,j
   real(gp) :: xmax,ymax,zmax,factor(3)
@@ -1355,7 +1367,7 @@ subroutine wtascii(iunit,energy,rxyz,astruct,comment)
 
      call write_extra_info(extra,astruct%input_polarization(iat),astruct%ifrztyp(iat))     
 
-     write(iunit,'(3(1x,1pe24.17),2x,a2,2x,a50)') (rxyz(j,iat)*factor(j),j=1,3),symbol,extra
+     write(iunit,'(3(1x,1pe24.17),2x,a2,2x,a)') (rxyz(j,iat)*factor(j),j=1,3),symbol,trim(extra)
   end do
 
 END SUBROUTINE wtascii
@@ -1407,7 +1419,7 @@ subroutine wtint(iunit,energy,rxyz,astruct,comment,na,nb,nc)
   character(len=20) :: symbol
   character(len=10) :: name
   character(len=11) :: units, angle
-  character(len=50) :: extra
+  character(len=120) :: extra
   integer :: iat
   real(gp) :: xmax,ymax,zmax,factor,factor_angle
 
@@ -1473,8 +1485,8 @@ subroutine wtint(iunit,energy,rxyz,astruct,comment,na,nb,nc)
 
      call write_extra_info(extra,astruct%input_polarization(iat),astruct%ifrztyp(iat))
 
-     write(iunit,'(a5,1x,3(1x,i6,2x,1pe24.17),2x,a50)')symbol,na(iat),rxyz(1,iat)*factor,nb(iat),rxyz(2,iat)*factor_angle,&
-          nc(iat),rxyz(3,iat)*factor_angle,extra
+     write(iunit,'(a5,1x,3(1x,i6,2x,1pe24.17),2x,a)')symbol,na(iat),rxyz(1,iat)*factor,nb(iat),rxyz(2,iat)*factor_angle,&
+          nc(iat),rxyz(3,iat)*factor_angle,trim(extra)
   enddo
 
 END SUBROUTINE wtint
