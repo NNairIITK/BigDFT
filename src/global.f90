@@ -672,8 +672,9 @@ program MINHOP
            rxyz_opt,en_arr,ct_arr,fp_arr,pl_arr)
 ! write intermediate results
       if (bigdft_mpi%iproc == 0) call yaml_comment('(MH) WINTER')
-      if (bigdft_mpi%iproc == 0) call winter(naming_id,natoms,bigdft_get_astruct_ptr(run_opt),nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
-           en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nsoften)
+      if (bigdft_mpi%iproc == 0) call winter(naming_id,natoms,bigdft_get_astruct_ptr(run_opt),&
+                                 nid,nlminx,nlmin,singlestep,en_delta,fp_delta,en_arr,ct_arr,&
+                                 fp_arr,pl_arr,ediff,ekinetic,dt,nsoften)
       if (bigdft_mpi%iproc == 0) then
          !call yaml_stream_attributes()
         call yaml_mapping_open('(MH) New minimum',flow=.true.)
