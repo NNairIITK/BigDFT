@@ -62,26 +62,26 @@ contains
          enddo
          !-----------------------------------------
          tpos(i)=tpos(i)-2*h
-         call energyandforces(nat,alat,tpos,grad,fnoise,etot)
+         call mhgpsenergyandforces(nat,alat,tpos,grad,fnoise,etot)
          do j=1,3*nat
              hess(j,i)=twelfth*grad(j)
          enddo
          !if(iproc==0) write(*,*) 'ALIREZA-6',i,iat
          !-----------------------------------------
          tpos(i)=tpos(i)+h
-         call energyandforces(nat,alat,tpos,grad,fnoise,etot)
+         call mhgpsenergyandforces(nat,alat,tpos,grad,fnoise,etot)
          do j=1,3*nat
          hess(j,i)=hess(j,i)-twothird*grad(j)
          enddo
          !-----------------------------------------
          tpos(i)=tpos(i)+2*h
-         call energyandforces(nat,alat,tpos,grad,fnoise,etot)
+         call mhgpsenergyandforces(nat,alat,tpos,grad,fnoise,etot)
          do j=1,3*nat
          hess(j,i)=hess(j,i)+twothird*grad(j)
          enddo
          !-----------------------------------------
          tpos(i)=tpos(i)+h
-         call energyandforces(nat,alat,tpos,grad,fnoise,etot)
+         call mhgpsenergyandforces(nat,alat,tpos,grad,fnoise,etot)
          do j=1,3*nat
          hess(j,i)=hess(j,i)-twelfth*grad(j)
          !write(*,*) 'HESS ',j,i,hess(j,i)

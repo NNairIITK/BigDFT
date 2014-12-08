@@ -239,7 +239,7 @@ subroutine minimizer_sqnm(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,e
 
 
 
-!!!!!!   call energyandforces(nat,rxyz(1,1,0),fxyz(1,1,0),etot)
+!!!!!!   call mhgpsenergyandforces(nat,rxyz(1,1,0),fxyz(1,1,0),etot)
 !!  not necessary, call_bigdft allready called outside
 !   call call_bigdft(runObj,outs,nproc,iproc,infocode)
 !   energycounter=energycounter+1
@@ -350,7 +350,7 @@ endif
          rxyz(3,iat,nhist)=rxyz(3,iat,nhist-1)-dd(3,iat)
       enddo
    
-!      call energyandforces(nat,rxyz(1,1,nhist),fxyz(1,1,nhist),etotp)
+!      call mhgpsenergyandforces(nat,rxyz(1,1,nhist),fxyz(1,1,nhist),etotp)
 !      call vcopy(3 * runObj%atoms%astruct%nat, rxyz(1,1,nhist), 1,runObj%atoms%astruct%rxyz(1,1), 1)
 !      runObj%inputs%inputPsiId=1
 !      call call_bigdft(runObj,outs,nproc,iproc,infocode)
@@ -612,7 +612,7 @@ subroutine minenergyandforces(eeval,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
     !internal
 
     rxyzraw=rat
-    if(eeval)call energyandforces(nat,alat,rat,fat,fnoise,epot)
+    if(eeval)call mhgpsenergyandforces(nat,alat,rat,fat,fnoise,epot)
     fxyzraw=fat
     fstretch=0.0_gp
 

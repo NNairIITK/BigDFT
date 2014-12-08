@@ -142,7 +142,7 @@ subroutine get_ts_guess_freeze(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
         if(istring>1)then
         !due to column major order,
         !pass string() to energy and forces, not path():
-        call energyandforces(nat,alat,string(1,1,istring),&
+        call mhgpsenergyandforces(nat,alat,string(1,1,istring),&
              forces(1,1,npath),fnoise,energies(npath))
         if(energies(npath)>emax)then
             emax       = energies(npath)
@@ -165,7 +165,7 @@ subroutine get_ts_guess_freeze(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
         if(istring>1)then
         !due to column major order,
         !pass string() to energy and forces, not path():
-        call energyandforces(nat,alat,string(1,2,istring),&
+        call mhgpsenergyandforces(nat,alat,string(1,2,istring),&
              forces(1,1,npath),fnoise,energies(npath))
         if(energies(npath)>emax)then
             emax       = energies(npath)
@@ -458,7 +458,7 @@ subroutine optim_cg(nat,alat,finished,step,gammainv,&
 
     !first steps: steepest descent
     !left
-    call energyandforces(nat,alat,rxyz1,fxyz1,fnoise,epot1)
+    call mhgpsenergyandforces(nat,alat,rxyz1,fxyz1,fnoise,epot1)
     call perpend(nat,tangent1,fxyz1,perp1)
     perpnrmPrev1_squared = ddot(3*nat,perp1(1),1,perp1(1),1)
     perpnrm1_squared=perpnrmPrev1_squared
@@ -470,7 +470,7 @@ subroutine optim_cg(nat,alat,finished,step,gammainv,&
     rxyz1=rxyz1+dispPrev1
     !right
     if(finished==2)then
-        call energyandforces(nat,alat,rxyz2,fxyz2,fnoise,epot2)
+        call mhgpsenergyandforces(nat,alat,rxyz2,fxyz2,fnoise,epot2)
         call perpend(nat,tangent2,fxyz2,perp2)
         perpnrmPrev2_squared = ddot(3*nat,perp2(1),1,perp2(1),1)
         perpnrm2_squared=perpnrmPrev2_squared
@@ -495,7 +495,7 @@ subroutine optim_cg(nat,alat,finished,step,gammainv,&
     do istep=2,nstepsmax
 
         !move left node
-        call energyandforces(nat,alat,rxyz1,fxyz1,fnoise,epot1)
+        call mhgpsenergyandforces(nat,alat,rxyz1,fxyz1,fnoise,epot1)
         call perpend(nat,tangent1,fxyz1,perp1)
         perpnrm1_squared = ddot(3*nat,perp1(1),1,perp1(1),1)
         if(perpnrm1_squared>perpnrmPrev1_squared)then
@@ -514,7 +514,7 @@ subroutine optim_cg(nat,alat,finished,step,gammainv,&
         
         if(finished==2)then 
             !move right node
-            call energyandforces(nat,alat,rxyz2,fxyz2,fnoise,epot2)
+            call mhgpsenergyandforces(nat,alat,rxyz2,fxyz2,fnoise,epot2)
             call perpend(nat,tangent2,fxyz2,perp2)
             perpnrm2_squared = ddot(3*nat,perp2(1),1,perp2(1),1)
             if(iproc==0)write(*,'(a,i3.3,4(1x,es10.3))')&
@@ -733,7 +733,7 @@ subroutine get_ts_guess_linsyn(nat,alat,left,right,tsguess,minmodeguess,&
     !left and right minima (at path ends)
     emax=-huge(1._gp)
     do j=2,nimagespath-1
-        call energyandforces(nat,alat,lstpathC(1,1,j),&
+        call mhgpsenergyandforces(nat,alat,lstpathC(1,1,j),&
              forces(1,1,j),fnoise,energies(j))
         if(energies(j)>emax)then
             emax       = energies(j)

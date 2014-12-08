@@ -790,8 +790,8 @@ subroutine curvforce(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_co
 
     vec = vec / dnrm2(3*nat,vec(1,1),1)
     rxyz2 = rxyz1 + diff * vec
-    call energyandforces(nat,alat,rxyz2(1,1),fxyz2(1,1),fnoise,etot2)
-!    call energyandforces(nat, alat, rxyz2(1,1),fxyz2(1,1),etot2,'cnt_enf_forcebar_decomp')
+    call mhgpsenergyandforces(nat,alat,rxyz2(1,1),fxyz2(1,1),fnoise,etot2)
+!    call mhgpsenergyandforces(nat, alat, rxyz2(1,1),fxyz2(1,1),etot2,'cnt_enf_forcebar_decomp')
     ener_count=ener_count+1.0_gp
 
     if(imethod==1)then
@@ -1178,7 +1178,7 @@ subroutine mincurvforce(imode,nat,alat,diff,rxyz1,fxyz1,vec,vecraw,&
     real(gp) :: rxyz2(3,nat)
 
      vecraw=vec
-!    call energyandforces(nat,rat,fat,epot)
+!    call mhgpsenergyandforces(nat,rat,fat,epot)
      call curvforce(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ec)
      rxyz2 =rxyz1+diff*vec
      rotforceraw=rotforce
@@ -1216,7 +1216,7 @@ subroutine minenergyandforces(eeval,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
     real(gp) :: fnoise
 
     rxyzraw=rat
-    if(eeval)call energyandforces(nat,alat,rat,fat,fnoise,epot)
+    if(eeval)call mhgpsenergyandforces(nat,alat,rat,fat,fnoise,epot)
     fxyzraw=fat
     fstretch=0.0_gp
 

@@ -293,7 +293,7 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,isame,&
         cobj%minmode(1,1,nsad),scl,cobj%leftmin(1,1,nsad))
 
         ener_count=0.0_gp
-        call energyandforces(nat,alat,cobj%leftmin(1,1,nsad),&
+        call mhgpsenergyandforces(nat,alat,cobj%leftmin(1,1,nsad),&
         cobj%fleft(1,1,nsad),fnoise,cobj%enerleft(nsad))
 
         if(iproc==0 .and. mhgps_verbosity >= 3)&
@@ -378,7 +378,7 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,isame,&
         cobj%minmode(1,1,nsad),scl,cobj%rightmin(1,1,nsad))
 
         ener_count=0.0_gp
-        call energyandforces(nat,alat,cobj%rightmin(1,1,nsad),&
+        call mhgpsenergyandforces(nat,alat,cobj%rightmin(1,1,nsad),&
         cobj%fright(1,1,nsad),fnoise,cobj%enerright(nsad))
 
         if(iproc==0 .and. mhgps_verbosity >= 3)&
@@ -734,7 +734,7 @@ connectloop: do while(ntodo>=1)
     if(iproc==0)&
     call yaml_comment('(MHGPS) Relax from left side ',hfill='.')
     ener_count=0.0_gp
-    call energyandforces(nat,alat,cobj%leftmin(1,1,nsad),&
+    call mhgpsenergyandforces(nat,alat,cobj%leftmin(1,1,nsad),&
     cobj%fleft(1,1,nsad),fnoise,cobj%enerleft(nsad))
     call minimize(imode,nat,alat,nbond,iconnect,&
                         cobj%leftmin(1,1,nsad),cobj%fleft(1,1,nsad),&
@@ -753,7 +753,7 @@ connectloop: do while(ntodo>=1)
     if(iproc==0)&
     call yaml_comment('(MHGPS) Relax from right side ',hfill='.')
     ener_count=0.0_gp
-    call energyandforces(nat,alat,cobj%rightmin(1,1,nsad),&
+    call mhgpsenergyandforces(nat,alat,cobj%rightmin(1,1,nsad),&
     cobj%fright(1,1,nsad),fnoise,cobj%enerright(nsad))
     call minimize(imode,nat,alat,nbond,iconnect,&
                         cobj%rightmin(1,1,nsad),cobj%fright(1,1,nsad)&

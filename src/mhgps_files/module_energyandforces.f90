@@ -15,7 +15,7 @@ module module_energyandforces
 
     private
 
-    public :: energyandforces
+    public :: mhgpsenergyandforces
 
 contains
 
@@ -23,7 +23,7 @@ contains
 !> Returns energies in hartree and
 !! forces in hartree/bohr
 !! (except for LJ)
-subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
+subroutine mhgpsenergyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     !IMPORTANT:
     !receives distances in Bohr
     use module_base
