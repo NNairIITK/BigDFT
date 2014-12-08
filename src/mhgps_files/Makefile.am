@@ -23,7 +23,7 @@ mhgps_objects = \
 ##	       mhgpstool.f90
 
 mhgps_SOURCES = $(mhgps_objects)
-##mhgpstool_SOURCES = $(mhgpstool_objects)
+#mhgpstool_SOURCES = $(mhgpstool_objects)
 
 ##mhgpstool_LDADD = $(bigdft_library) $(top_builddir)/flib/src/libflib-1.a\
 ##                  @LIB_YAML_LIBS@ @LINALG_LIBS@
