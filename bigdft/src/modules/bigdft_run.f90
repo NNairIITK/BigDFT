@@ -582,8 +582,10 @@ module bigdft_run
       if (present(input_id)) then
          if (INPUT_NAME .in. run) then
             input_id = run // INPUT_NAME
-         else
+         else if (RADICAL_NAME .in. run) then
             input_id = run // RADICAL_NAME
+         else
+            input_id = " "
          end if
          if (len_trim(input_id) == 0) &
               & input_id = "input" // trim(bigdft_run_id_toa())
@@ -591,21 +593,33 @@ module bigdft_run
       if (present(posinp_id)) then   
          if (POSINP .in. run) then
             posinp_id = run // POSINP
-         else
+         else if (RADICAL_NAME .in. run) then
             posinp_id = run // RADICAL_NAME
+         else
+            posinp_id = " "
          end if
          if (len_trim(posinp_id) == 0) &
               & posinp_id = "posinp" // trim(bigdft_run_id_toa())
       end if
       if (present(naming_id)) then
-         naming_id = run // RADICAL_NAME
+         if (RADICAL_NAME .in. run) then
+            naming_id = run // RADICAL_NAME
+         else
+            naming_id = " "
+         end if
          if (len_trim(naming_id) == 0) then
             naming_id = trim(bigdft_run_id_toa())
          else
             naming_id = "-" // trim(naming_id)
          end if
       end if
-      if (present(run_id)) run_id = run // RADICAL_NAME
+      if (present(run_id)) then
+         if (RADICAL_NAME .in. run) then
+            run_id = run // RADICAL_NAME
+         else
+            run_id = " "
+         end if
+      end if
       if (present(outdir_id) .and. has_key(run, OUTDIR)) outdir_id = run // OUTDIR
       if (present(log_to_disk) .and. has_key(run, LOGFILE)) log_to_disk = run // LOGFILE
       if (present(run_from_files) .and. has_key(run, USE_FILES)) run_from_files = run // USE_FILES
@@ -1926,7 +1940,7 @@ subroutine run_objects_init_from_run_name(runObj, radical, posinp)
   !create the ad-hoc dictionary run to wrap the module routine
   !run_dict => dict_new('name' .is. radical, 'posinp' .is. posinp)
 
-  call dict_init(run_dict)
+  call bigdft_run_new(run_dict)
   call bigdft_set_run_properties(run_dict,run_id=radical,posinp_id=posinp)
 
   call run_objects_init(runObj,run_dict)
@@ -1938,6 +1952,7 @@ subroutine run_objects_update(runObj, dict)
   use bigdft_run, only: run_objects,init_QM_restart_objects,init_MM_restart_objects,set_run_objects,bigdft_nat
   use dictionaries!, only: dictionary, dict_update,dict_copy,dict_free,dict_iter,dict_next
   use yaml_output
+  use module_interfaces, only: create_log_file
   implicit none
   type(run_objects), intent(inout) :: runObj
   type(dictionary), pointer :: dict
@@ -1956,6 +1971,8 @@ subroutine run_objects_update(runObj, dict)
 
   ! We merge the previous dictionary with new entries.
   call dict_update(runObj%user_inputs, dict)
+
+  call create_log_file(runObj%user_inputs)
 
   ! Parse new dictionary.
   call set_run_objects(runObj)
