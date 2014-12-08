@@ -19,7 +19,7 @@ contains
    !> Reza's routine for finite difference hessian
    subroutine cal_hessian_fd(iproc,nat,alat,pos,hess)
       use module_base, only: gp, f_malloc, f_free, assignment(=)
-      use module_energyandforces, only: energyandforces
+      use module_energyandforces, only: mhgpsenergyandforces
       implicit none
       integer, intent(in):: iproc, nat
       real(gp), dimension(3*nat), intent(in) :: pos

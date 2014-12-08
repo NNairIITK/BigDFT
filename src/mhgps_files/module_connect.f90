@@ -114,8 +114,8 @@ subroutine deallocate_connect_object(cobj)
     call f_free(cobj%tsgforces)
 end subroutine
 !=====================================================================
-recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,isame,&
-                     iconnect,rxyz1,rxyz2,ener1,ener2,fp1,fp2,&
+recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,&
+                     isame,iconnect,rxyz1,rxyz2,ener1,ener2,fp1,fp2,&
                      nsad,cobj,connected)
     !if called from outside recursion, connected has to be set 
     !to .true. and nsad=0
@@ -261,21 +261,24 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,isame,&
                cobj%enersad(nsad-1),cobj%enersad(nsad),&
                cobj%fpsad(1,nsad-1),cobj%fpsad(1,nsad)))then
             isame=isame+1
-            !if we find the same saddle point there times (cosecutively)
-            !we are stuck
+            !if we find the same saddle point there times
+            !(cosecutively) we are stuck
             if(isame==3)then
+                call write_todo(ntodo,nat,rxyz1,rxyz2,ener1,ener2)
+
                 connected=.false.
                 nsad=nsad-1
                 isad=isad-1
                 write(isadc,'(i5.5)')isad
     
                 if(iproc==0)then
-                call yaml_warning('(MHGPS) found same saddle '//&
-                                   'point again. Aborting connection'//&
-                                   ' attempt.')
+                    call yaml_warning('(MHGPS) found same saddle '//&
+                                'point again. Aborting connection'//&
+                                ' attempt.')
                 endif
-                call write_todo(ntodo,nat,rxyz1,rxyz2,ener1,ener2)
+call f_utils_flush(6)
                 isame=0
+
                 return
             endif
         else
@@ -1071,16 +1074,17 @@ subroutine write_todo(ntodo,nat,left,right,eleft,eright)
     real(gp), intent(in)   :: eright
     !local
     character(len=5) :: ntodoc
+    character(len=1) :: comment=''
     
     ntodo=ntodo+1
     write(ntodoc,'(i5.5)')ntodo
 
     if(iproc==0)then
         call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-             currDir//'/todo'//trim(adjustl(ntodoc))//'_L','',&
+             currDir//'/todo'//trim(adjustl(ntodoc))//'_L',comment,&
              energy=eleft,rxyz=left)
         call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-             currDir//'/todo'//trim(adjustl(ntodoc))//'_R','',&
+             currDir//'/todo'//trim(adjustl(ntodoc))//'_R',comment,&
              energy=eright,rxyz=right)
     endif
 end subroutine
