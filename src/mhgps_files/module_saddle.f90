@@ -33,44 +33,48 @@ subroutine findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,&
     use yaml_output
     use module_interfaces
     use module_sqn
-    use module_global_variables, only: inputPsiId, iproc, mhgps_verbosity,&
-                                       currDir, isadc, ndim_rot, nhist_rot, alpha_rot,&
-                                       alpha_stretch_rot,saddle_alpha_stretch0,work,lwork,&
-                                       saddle_steepthresh_trans,imode,saddle_tighten,&
-                                       ! ixyz_int, &
-                                       recompIfCurvPos => saddle_recompIfCurvPos,&
-                                       minoverlap0   => saddle_minoverlap0,&
-!                                       tightenfac    => saddle_tightenfac,&
-                                       maxcurvrise   => saddle_maxcurvrise,&
-                                       cutoffratio   => saddle_cutoffratio,&
-                                       fnrmtol       => saddle_fnrmtol,&
-                                       rmsdispl0     => saddle_rmsdispl0,&
-                                       trustr        => saddle_trustr,&
-                                       tolc          => saddle_tolc,&
-                                       tolf          => saddle_tolf,&
-                                       nit_trans     => saddle_nit_trans,&
-                                       nit_rot       => saddle_nit_rot,&
-                                       nhistx_trans  => saddle_nhistx_trans,&
-                                       nhistx_rot    => saddle_nhistx_rot,&
-                                       alpha0_trans  => saddle_alpha0_trans,&
-                                       alpha0_rot    => saddle_alpha0_rot,&
-                                       alpha_rot_stretch0    => saddle_alpha_rot_stretch0,&
-                                       alpha_stretch0    => saddle_alpha_stretch0,&
-                                       curvforcediff => saddle_curvgraddiff,&
-                                       rxyz          => rxyz_trans,&
-                                       rxyzraw       => rxyzraw_trans,&
-                                       fxyz          => fxyz_trans,&
-                                       fxyzraw       => fxyzraw_trans,&
-                                       fstretch      => fstretch_trans,&
-                                       eval          => eval_trans,&
-                                       res           => res_trans,&
-                                       rrr           => rrr_trans,&
-                                       aa            => aa_trans,&
-                                       ff            => ff_trans,&
-                                       rr            => rr_trans,&
-                                       dd            => dd_trans,&
-                                       fff           => fff_trans,&
-                                       wold          => wold_trans
+    use module_global_variables, &
+        only: inputPsiId, iproc,&
+              mhgps_verbosity,&
+              currDir, isadc, ndim_rot,&
+              nhist_rot, alpha_rot,&
+              alpha_stretch_rot,&
+              saddle_alpha_stretch0,work,&
+              lwork,&
+              saddle_steepthresh_trans,&
+              imode,saddle_tighten,&
+              recompIfCurvPos => saddle_recompIfCurvPos,&
+              minoverlap0   => saddle_minoverlap0,&
+              maxcurvrise   => saddle_maxcurvrise,&
+              cutoffratio   => saddle_cutoffratio,&
+              fnrmtol       => saddle_fnrmtol,&
+              rmsdispl0     => saddle_rmsdispl0,&
+              trustr        => saddle_trustr,&
+              tolc          => saddle_tolc,&
+              tolf          => saddle_tolf,&
+              nit_trans     => saddle_nit_trans,&
+              nit_rot       => saddle_nit_rot,&
+              nhistx_trans  => saddle_nhistx_trans,&
+              nhistx_rot    => saddle_nhistx_rot,&
+              alpha0_trans  => saddle_alpha0_trans,&
+              alpha0_rot    => saddle_alpha0_rot,&
+              alpha_rot_stretch0    => saddle_alpha_rot_stretch0,&
+              alpha_stretch0    => saddle_alpha_stretch0,&
+              curvforcediff => saddle_curvgraddiff,&
+              rxyz          => rxyz_trans,&
+              rxyzraw       => rxyzraw_trans,&
+              fxyz          => fxyz_trans,&
+              fxyzraw       => fxyzraw_trans,&
+              fstretch      => fstretch_trans,&
+              eval          => eval_trans,&
+              res           => res_trans,&
+              rrr           => rrr_trans,&
+              aa            => aa_trans,&
+              ff            => ff_trans,&
+              rr            => rr_trans,&
+              dd            => dd_trans,&
+              fff           => fff_trans,&
+              wold          => wold_trans
  
     implicit none
     !parameters    
@@ -197,7 +201,8 @@ subroutine findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,&
     endif
 
     inputPsiId=0
-    call minenergyandforces(.true.,imode,nat,alat,runObj,outs,rxyz(1,1,0),rxyzraw(1,1,0),&
+    call minenergyandforces(.true.,imode,nat,alat,runObj,outs,&
+         rxyz(1,1,0),rxyzraw(1,1,0),&
     fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,&
     wold,alpha_stretch0,alpha_stretch)
     rxyzold=rxyz(:,:,0)
