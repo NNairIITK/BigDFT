@@ -114,7 +114,7 @@ subroutine deallocate_connect_object(cobj)
     call f_free(cobj%tsgforces)
 end subroutine
 !=====================================================================
-recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,&
+recursive subroutine connect_recursively(nat,nid,alat,runObj,outs,rcov,nbond,&
                      isame,iconnect,rxyz1,rxyz2,ener1,ener2,fp1,fp2,&
                      nsad,cobj,connected)
     !if called from outside recursion, connected has to be set 
@@ -122,8 +122,7 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,&
   use module_base
   use module_atoms, only: astruct_dump_to_file
     use module_global_variables,&
-       only: runObj,&
-             imode,&
+       only: imode,&
              nsadmax,&
              iproc,&
              isad,isadprob,&
@@ -147,9 +146,11 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,&
     !parameters
     integer, intent(in)     :: nat
     integer, intent(in)     :: nid
+    real(gp), intent(inout) :: alat(3)
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
     integer, intent(in)     :: nbond
     real(gp), intent(in)    :: rcov(nat)
-    real(gp), intent(inout) :: alat(3)
     integer, intent(in)     :: iconnect(2,nbond)
     real(gp), intent(in)    :: rxyz1(3,nat), rxyz2(3,nat)
     real(gp), intent(in)    :: fp1(nid), fp2(nid)
@@ -167,12 +168,12 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,&
     real(gp) :: scl
 
     if(.not.connected)then
-        call write_todo(ntodo,nat,rxyz1,rxyz2,ener1,ener2)
+        call write_todo(ntodo,nat,runObj,outs,rxyz1,rxyz2,ener1,ener2)
         return
     endif
     if(nsad>=nsadmax)then
         connected=.false.
-        call write_todo(ntodo,nat,rxyz1,rxyz2,ener1,ener2)
+        call write_todo(ntodo,nat,runObj,outs,rxyz1,rxyz2,ener1,ener2)
         return
     endif
     if(iproc==0)then
@@ -206,14 +207,14 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,&
     write(isadc,'(i5.5)')isad
 
     inputPsiId=0
-    call get_ts_guess(nat,alat,cobj%rxyz1,cobj%rxyz2,&
+    call get_ts_guess(nat,alat,runObj,outs,cobj%rxyz1,cobj%rxyz2,&
           cobj%saddle(1,1,nsad),cobj%minmode(1,1,nsad),cobj%tsgenergy,&
           cobj%tsgforces(1,1))
 
 
     !compute saddle
     ener_count=0.0_gp
-    call findsad(nat,alat,rcov,nbond,iconnect,cobj%saddle(1,1,nsad),&
+    call findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,cobj%saddle(1,1,nsad),&
                 cobj%enersad(nsad),cobj%fsad(1,1,nsad),&
                 cobj%minmode(1,1,nsad),displ,ener_count,&
                 cobj%rotforce(1,1,nsad),converged)
@@ -248,7 +249,7 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,&
              cobj%enersad(nsad),rxyz=cobj%saddle(:,:,nsad),&
              forces=cobj%fsad(:,:,nsad))
 
-        call write_mode(nat,currDir//'/sad'//trim(adjustl(isadc))//&
+        call write_mode(nat,runObj,outs,currDir//'/sad'//trim(adjustl(isadc))//&
         '_mode_final',cobj%minmode(1,1,nsad),cobj%rotforce(1,1,nsad))
     endif
 
@@ -264,8 +265,11 @@ recursive subroutine connect_recursively(nat,nid,alat,rcov,nbond,&
             !if we find the same saddle point there times
             !(cosecutively) we are stuck
             if(isame==3)then
-                call write_todo(ntodo,nat,rxyz1,rxyz2,ener1,ener2)
-
+write(*,*)'bastian before write_todo, iproc, ntodo',iproc,ntodo
+call f_utils_flush(6)
+                call write_todo(ntodo,nat,runObj,outs,rxyz1,rxyz2,ener1,ener2)
+write(*,*)'bastian after write_todo, iproc, ntodo',iproc,ntodo
+call f_utils_flush(6)
                 connected=.false.
                 nsad=nsad-1
                 isad=isad-1
@@ -296,7 +300,7 @@ call f_utils_flush(6)
         cobj%minmode(1,1,nsad),scl,cobj%leftmin(1,1,nsad))
 
         ener_count=0.0_gp
-        call mhgpsenergyandforces(nat,alat,cobj%leftmin(1,1,nsad),&
+        call mhgpsenergyandforces(nat,alat,runObj,outs,cobj%leftmin(1,1,nsad),&
         cobj%fleft(1,1,nsad),fnoise,cobj%enerleft(nsad))
 
         if(iproc==0 .and. mhgps_verbosity >= 3)&
@@ -306,7 +310,7 @@ call f_utils_flush(6)
              cobj%enerleft(nsad),cobj%leftmin(:,:,nsad),&
              cobj%fleft(:,:,nsad))
 
-        call minimize(imode,nat,alat,nbond,iconnect,&
+        call minimize(imode,nat,alat,runObj,outs,nbond,iconnect,&
                             cobj%leftmin(1,1,nsad),&
                             cobj%fleft(1,1,nsad),fnoise,&
                             cobj%enerleft(nsad),ener_count,converged,&
@@ -381,7 +385,7 @@ call f_utils_flush(6)
         cobj%minmode(1,1,nsad),scl,cobj%rightmin(1,1,nsad))
 
         ener_count=0.0_gp
-        call mhgpsenergyandforces(nat,alat,cobj%rightmin(1,1,nsad),&
+        call mhgpsenergyandforces(nat,alat,runObj,outs,cobj%rightmin(1,1,nsad),&
         cobj%fright(1,1,nsad),fnoise,cobj%enerright(nsad))
 
         if(iproc==0 .and. mhgps_verbosity >= 3)&
@@ -391,7 +395,7 @@ call f_utils_flush(6)
              cobj%enerright(nsad),cobj%rightmin(1,1,nsad),&
              cobj%fright(1,1,nsad))
 
-        call minimize(imode,nat,alat,nbond,iconnect,&
+        call minimize(imode,nat,alat,runObj,outs,nbond,iconnect,&
                             cobj%rightmin(1,1,nsad),&
                             cobj%fright(1,1,nsad),fnoise,&
                             cobj%enerright(nsad),ener_count,&
@@ -487,7 +491,7 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected
         !connect right input min with right relaxed bar-end
 if(iproc==0)write(*,*)'(MHGPS) connection check lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
 if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
-        call connect_recursively(nat,nid,alat,rcov,nbond,isame,&
+        call connect_recursively(nat,nid,alat,runObj,outs,rcov,nbond,isame,&
                      iconnect,cobj%rightmin(1,1,nsad_loc),rxyz2,&
                      cobj%enerright(nsad_loc),ener2,&
                      cobj%fpright(1,nsad_loc),fp2,nsad,cobj,connected)
@@ -516,7 +520,7 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected
 !    stop
 !endif
         !connect left relaxed bar end with left input min
-        call connect_recursively(nat,nid,alat,rcov,nbond,isame,&
+        call connect_recursively(nat,nid,alat,runObj,outs,rcov,nbond,isame,&
                      iconnect,rxyz1,cobj%leftmin(1,1,nsad_loc),&
                      ener1,cobj%enerleft(nsad_loc),&
                      fp1,cobj%fpleft(1,nsad_loc),nsad,cobj,connected)
@@ -527,7 +531,7 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected
 if(iproc==0)write(*,*)'(MHGPS)connection check lnr and not rnl',sqrt(sum((rxyz1-cobj%rightmin(:,:,nsad_loc))**2))
 if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         !connect right relaxed bar end with left input min
-        call connect_recursively(nat,nid,alat,rcov,nbond,isame,&
+        call connect_recursively(nat,nid,alat,runObj,outs,rcov,nbond,isame,&
                      iconnect,rxyz1,cobj%rightmin(1,1,nsad_loc),&
                      ener1,cobj%enerright(nsad_loc),&
                      fp1,cobj%fpright(1,nsad_loc),nsad,cobj,connected)
@@ -538,7 +542,7 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected
 if(iproc==0)write(*,*)'(MHGPS)connection check not lnr and rnl',sqrt(sum((rxyz2-cobj%leftmin(:,:,nsad_loc))**2))
 if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         !connect left relaxed bar end with right input min
-        call connect_recursively(nat,nid,alat,rcov,nbond,isame,&
+        call connect_recursively(nat,nid,alat,runObj,outs,rcov,nbond,isame,&
                      iconnect,rxyz2,cobj%leftmin(1,1,nsad_loc),&
                      ener2,cobj%enerleft(nsad_loc),&
                      fp2,cobj%fpleft(1,nsad_loc),nsad,cobj,connected)
@@ -551,11 +555,11 @@ if(iproc==0)write(*,*)'(MHGPS)connection check not lnl and not rnr',sqrt(sum((rx
 if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         !connect left input min with left relaxed bar end  and right
         !input min with right relaxed bar end
-        call connect_recursively(nat,nid,alat,rcov,nbond,isame,&
+        call connect_recursively(nat,nid,alat,runObj,outs,rcov,nbond,isame,&
                      iconnect,rxyz1,cobj%leftmin(1,1,nsad_loc),&
                      ener1,cobj%enerleft(nsad_loc),&
                      fp1,cobj%fpleft(1,nsad_loc),nsad,cobj,connected)
-        call connect_recursively(nat,nid,alat,rcov,nbond,isame,&
+        call connect_recursively(nat,nid,alat,runObj,outs,rcov,nbond,isame,&
                      iconnect,cobj%rightmin(1,1,nsad_loc),rxyz2,&
                      cobj%enerright(nsad_loc),ener2,&
                      cobj%fpright(1,nsad_loc),fp2,nsad,cobj,connected)
@@ -578,7 +582,7 @@ end subroutine
 !some features of the recursive function.
 !Before being used, must be updated to same functionality as recursive
 !function and must be well tested!
-subroutine connect(nat,nid,alat,rcov,nbond,&
+subroutine connect(nat,nid,alat,runObj,outs,rcov,nbond,&
                      iconnect,rxyz1,rxyz2,ener1,ener2,fp1,fp2,&
                      nsad,cobj,connected)
     !if called from outside recursion, connected has to be set 
@@ -586,8 +590,7 @@ subroutine connect(nat,nid,alat,rcov,nbond,&
     use module_base
     use module_atoms, only: astruct_dump_to_file
     use module_global_variables,&
-       only: runObj,&
-             imode,&
+       only: imode,&
              nsadmax,&
              iproc,&
              isad,isadprob,&
@@ -607,6 +610,8 @@ subroutine connect(nat,nid,alat,rcov,nbond,&
     !parameters
     integer, intent(in)     :: nat
     integer, intent(in)     :: nid
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
     integer, intent(in)     :: nbond
     real(gp), intent(in)    :: rcov(nat)
     real(gp), intent(inout) :: alat(3)
@@ -679,14 +684,14 @@ connectloop: do while(ntodo>=1)
     isad=isad+1
     write(isadc,'(i5.5)')isad
 
-    call get_ts_guess(nat,alat,rxyz1cur,rxyz2cur,&
+    call get_ts_guess(nat,alat,runObj,outs,rxyz1cur,rxyz2cur,&
           cobj%saddle(1,1,nsad),cobj%minmode(1,1,nsad),tsgenergy,&
           tsgforces(1,1))
 
 
     !compute saddle
     ener_count=0.0_gp
-    call findsad(nat,alat,rcov,nbond,iconnect,cobj%saddle(1,1,nsad),&
+    call findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,cobj%saddle(1,1,nsad),&
                 cobj%enersad(nsad),cobj%fsad(1,1,nsad),&
                 cobj%minmode(1,1,nsad),displ,ener_count,&
                 cobj%rotforce(1,1,nsad),converged)
@@ -722,7 +727,7 @@ connectloop: do while(ntodo>=1)
              cobj%enersad(nsad),cobj%saddle(:,:,nsad),&
              forces=cobj%minmode(:,:,nsad))
 
-        call write_mode(nat,currDir//'/sad'//trim(adjustl(isadc))//&
+        call write_mode(nat,runObj,outs,currDir//'/sad'//trim(adjustl(isadc))//&
         '_mode_final',cobj%minmode(1,1,nsad),cobj%rotforce(1,1,nsad))
     endif
 
@@ -737,9 +742,9 @@ connectloop: do while(ntodo>=1)
     if(iproc==0)&
     call yaml_comment('(MHGPS) Relax from left side ',hfill='.')
     ener_count=0.0_gp
-    call mhgpsenergyandforces(nat,alat,cobj%leftmin(1,1,nsad),&
+    call mhgpsenergyandforces(nat,alat,runObj,outs,cobj%leftmin(1,1,nsad),&
     cobj%fleft(1,1,nsad),fnoise,cobj%enerleft(nsad))
-    call minimize(imode,nat,alat,nbond,iconnect,&
+    call minimize(imode,nat,alat,runObj,outs,nbond,iconnect,&
                         cobj%leftmin(1,1,nsad),cobj%fleft(1,1,nsad),&
                         fnoise,cobj%enerleft(nsad),&
                         ener_count,converged,'L')
@@ -756,9 +761,9 @@ connectloop: do while(ntodo>=1)
     if(iproc==0)&
     call yaml_comment('(MHGPS) Relax from right side ',hfill='.')
     ener_count=0.0_gp
-    call mhgpsenergyandforces(nat,alat,cobj%rightmin(1,1,nsad),&
+    call mhgpsenergyandforces(nat,alat,runObj,outs,cobj%rightmin(1,1,nsad),&
     cobj%fright(1,1,nsad),fnoise,cobj%enerright(nsad))
-    call minimize(imode,nat,alat,nbond,iconnect,&
+    call minimize(imode,nat,alat,runObj,outs,nbond,iconnect,&
                         cobj%rightmin(1,1,nsad),cobj%fright(1,1,nsad)&
                        ,fnoise,cobj%enerright(nsad),&
                         ener_count,converged,'R')
@@ -1059,14 +1064,17 @@ subroutine pushoff_assym(nat,saddle,minmode,scll,sclr,left,right)
     left = saddle - scll*step
     right = saddle + sclr*step
 end subroutine
-subroutine write_todo(ntodo,nat,left,right,eleft,eright)
+subroutine write_todo(ntodo,nat,runObj,outs,left,right,eleft,eright)
     use module_base, only: gp
     use module_atoms, only: astruct_dump_to_file
-    use module_global_variables, only: currDir, iproc, runObj
-    use bigdft_run, only: bigdft_get_astruct_ptr
+    use module_global_variables, only: currDir, iproc
+    use bigdft_run, only: bigdft_get_astruct_ptr, run_objects,&
+                          state_properties
     implicit none
     !parameters
     integer, intent(inout) :: ntodo
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
     integer, intent(in)    :: nat
     real(gp), intent(in)   :: left(3,nat)
     real(gp), intent(in)   :: right(3,nat)
@@ -1074,7 +1082,7 @@ subroutine write_todo(ntodo,nat,left,right,eleft,eright)
     real(gp), intent(in)   :: eright
     !local
     character(len=5) :: ntodoc
-    character(len=1) :: comment=''
+    character(len=1) :: comment=' '
     
     ntodo=ntodo+1
     write(ntodoc,'(i5.5)')ntodo

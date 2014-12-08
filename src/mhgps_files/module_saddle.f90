@@ -22,7 +22,7 @@ public :: findsad
 
 contains
 
-subroutine findsad(nat,alat,rcov,nbond,iconnect,&
+subroutine findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,&
                   wpos,etot,fout,minmode,displ,ener_count,&
                   rotforce,converged)
     !imode=1 for clusters
@@ -33,7 +33,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     use yaml_output
     use module_interfaces
     use module_sqn
-    use module_global_variables, only: inputPsiId, iproc, runObj, mhgps_verbosity,&
+    use module_global_variables, only: inputPsiId, iproc, mhgps_verbosity,&
                                        currDir, isadc, ndim_rot, nhist_rot, alpha_rot,&
                                        alpha_stretch_rot,saddle_alpha_stretch0,work,lwork,&
                                        saddle_steepthresh_trans,imode,saddle_tighten,&
@@ -76,6 +76,8 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     !parameters    
     integer, intent(in)       :: nat
     real(gp), intent(in)      :: alat(3)
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
     real(gp), intent(in)      :: rcov(nat)
     real(gp), intent(inout)   :: wpos(3,nat)
     real(gp), intent(out)     :: etot
@@ -195,7 +197,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
     endif
 
     inputPsiId=0
-    call minenergyandforces(.true.,imode,nat,alat,rxyz(1,1,0),rxyzraw(1,1,0),&
+    call minenergyandforces(.true.,imode,nat,alat,runObj,outs,rxyz(1,1,0),rxyzraw(1,1,0),&
     fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),etot,iconnect,nbond,&
     wold,alpha_stretch0,alpha_stretch)
     rxyzold=rxyz(:,:,0)
@@ -283,7 +285,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
             'DIFF      FMAX      FNRM      alpha    ndim alpha_strtch overl. displr       displp'
             inputPsiId=1
              !inputPsiId=0
-            call opt_curv(it,imode,nat,alat,alpha0_rot,curvforcediff,nit_rot,&
+            call opt_curv(it,imode,nat,alat,runObj,outs,alpha0_rot,curvforcediff,nit_rot,&
                           nhistx_rot,rxyzraw(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
                           minmode(1,1),curv,rotforce(1,1),tol,ener_count,&
                           optCurvConv,iconnect,nbond,alpha_rot_stretch0,&
@@ -359,7 +361,7 @@ subroutine findsad(nat,alat,rcov,nbond,iconnect,&
         delta=rxyz(:,:,nhist)-rxyzold
         displ=displ+dnrm2(3*nat,delta(1,1),1)
         inputPsiId=1
-        call minenergyandforces(.true.,imode,nat,alat,rxyz(1,1,nhist),&
+        call minenergyandforces(.true.,imode,nat,alat,runObj,outs,rxyz(1,1,nhist),&
                 rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),&
                 fxyzraw(1,1,nhist),etotp,iconnect,nbond,wold,&
                 alpha_stretch0,alpha_stretch)
@@ -496,13 +498,14 @@ stop 'no convergence in findsad'
 
 
 
-subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_fix,&
+subroutine opt_curv(itgeopt,imode,nat,alat,runObj,outs,alpha0,curvforcediff,nit,nhistx,rxyz_fix,&
                     fxyz_fix,dxyzin,curv,fout,fnrmtol,ener_count,&
                     converged,iconnect,nbond,alpha_stretch0,&
                     maxcurvrise,cutoffratio,minoverlap)!,mode)
     use module_base
     use yaml_output
     use module_sqn
+    use bigdft_run, only: run_objects, state_properties
     use module_global_variables, only: inputPsiId, isForceField, iproc,&
                                        mhgps_verbosity,work,lwork,&
                                        saddle_steepthresh_rot,&
@@ -533,6 +536,8 @@ subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_
     integer, intent(in)        :: iconnect(2,nbond)
     real(gp),intent(in)        :: alpha_stretch0
     real(gp), intent(in)       :: alat(3)
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
     real(gp), intent(in)       :: maxcurvrise,cutoffratio,minoverlap
     integer, intent(in)        :: nit,nhistx
     real(gp), intent(in)       :: alpha0,curvforcediff
@@ -580,7 +585,7 @@ subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_
         enddo
     endif
 
-     call mincurvforce(imode,nat,alat,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
+     call mincurvforce(imode,nat,alat,runObj,outs,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
           rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),curv,1,ener_count,&
           iconnect,nbond,wold,alpha_stretch0,alpha_stretch)
     if(imode==2)rxyz(:,:,nhist)=rxyz(:,:,nhist)+alpha_stretch*fstretch(:,:,nhist)
@@ -643,7 +648,7 @@ subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_
 
      delta=rxyz(:,:,nhist)-rxyzOld
      displr=displr+dnrm2(3*nat,delta(1,1),1)
-     call mincurvforce(imode,nat,alat,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
+     call mincurvforce(imode,nat,alat,runObj,outs,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
           rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
           curvp,1,ener_count,iconnect,nbond,wold,alpha_stretch0,alpha_stretch)
      dcurv=curvp-curvold
@@ -675,7 +680,7 @@ subroutine opt_curv(itgeopt,imode,nat,alat,alpha0,curvforcediff,nit,nhistx,rxyz_
                 call yaml_comment('INFO: (MHGPS) Will use LCAO input guess from now on '//&
                 '(until end of current minmode optimization).')
             inputPsiId=0
-            call mincurvforce(imode,nat,alat,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist-1),&
+            call mincurvforce(imode,nat,alat,runObj,outs,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist-1),&
                 rxyzraw(1,1,nhist-1),fxyz(1,1,nhist-1),fstretch(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
                 curvold,1,ener_count,iconnect,nbond,wold,alpha_stretch0,alpha_stretch)
             if(iproc==0.and.mhgps_verbosity>=2)&
@@ -756,13 +761,16 @@ end subroutine
 
 !> Computes the (curvature along vec) = vec^t H vec / (vec^t*vec)
 !! vec mus be normalized
-subroutine curvforce(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_count)
+subroutine curvforce(nat,alat,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_count)
     use module_base
     use yaml_output
     use module_energyandforces
+    use bigdft_run, only: run_objects, state_properties
     implicit none
     !parameters
     integer, intent(in) :: nat,imethod
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
     real(gp), intent(in) :: rxyz1(3,nat),fxyz1(3,nat),diff
     real(gp), intent(inout) :: vec(3,nat)
     real(gp), intent(out) :: curv
@@ -790,7 +798,7 @@ subroutine curvforce(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_co
 
     vec = vec / dnrm2(3*nat,vec(1,1),1)
     rxyz2 = rxyz1 + diff * vec
-    call mhgpsenergyandforces(nat,alat,rxyz2(1,1),fxyz2(1,1),fnoise,etot2)
+    call mhgpsenergyandforces(nat,alat,runobj,outs,rxyz2(1,1),fxyz2(1,1),fnoise,etot2)
 !    call mhgpsenergyandforces(nat, alat, rxyz2(1,1),fxyz2(1,1),etot2,'cnt_enf_forcebar_decomp')
     ener_count=ener_count+1.0_gp
 
@@ -1148,15 +1156,18 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
 endif
 end subroutine fixfrag_posvel
 
-subroutine mincurvforce(imode,nat,alat,diff,rxyz1,fxyz1,vec,vecraw,&
+subroutine mincurvforce(imode,nat,alat,runObj,outs,diff,rxyz1,fxyz1,vec,vecraw,&
            rotforce,rotfstretch,rotforceraw,curv,imethod,ec,&
            iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
     use module_base, only: gp
     use module_sqn
+    use bigdft_run, only: run_objects, state_properties
     implicit none
     !parameters
     integer,  intent(in)     :: imode
     integer,  intent(in)     :: nat
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
     integer,  intent(in)     :: imethod
     integer,  intent(in)     :: nbond_
     real(gp), intent(in)     :: alat(3)
@@ -1179,7 +1190,7 @@ subroutine mincurvforce(imode,nat,alat,diff,rxyz1,fxyz1,vec,vecraw,&
 
      vecraw=vec
 !    call mhgpsenergyandforces(nat,rat,fat,epot)
-     call curvforce(nat,alat,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ec)
+     call curvforce(nat,alat,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ec)
      rxyz2 =rxyz1+diff*vec
      rotforceraw=rotforce
      rotfstretch=0.0_gp
@@ -1190,15 +1201,18 @@ subroutine mincurvforce(imode,nat,alat,diff,rxyz1,fxyz1,vec,vecraw,&
 
 end subroutine mincurvforce
 
-subroutine minenergyandforces(eeval,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
+subroutine minenergyandforces(eeval,imode,nat,alat,runObj,outs,rat,rxyzraw,fat,fstretch,&
            fxyzraw,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
     use module_base, only: gp
     use module_energyandforces
     use module_sqn
+    use bigdft_run, only: run_objects, state_properties
     implicit none
     !parameter
     integer, intent(in)           :: imode
     integer, intent(in)           :: nat
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
     integer, intent(in)           :: nbond_
     integer, intent(in)           :: iconnect(2,nbond_)
     real(gp), intent(in)          :: alat(3)
@@ -1216,7 +1230,7 @@ subroutine minenergyandforces(eeval,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
     real(gp) :: fnoise
 
     rxyzraw=rat
-    if(eeval)call mhgpsenergyandforces(nat,alat,rat,fat,fnoise,epot)
+    if(eeval)call mhgpsenergyandforces(nat,alat,runObj,outs,rat,fat,fnoise,epot)
     fxyzraw=fat
     fstretch=0.0_gp
 

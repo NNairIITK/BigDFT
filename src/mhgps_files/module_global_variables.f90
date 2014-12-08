@@ -10,8 +10,8 @@
 module module_global_variables
     use module_base, only: gp !bigdft base module
     !use module_types
-    use module_atoms, only: atomic_structure
-    use bigdft_run, only: run_objects, state_properties
+!    use module_atoms, only: atomic_structure
+!    use bigdft_run, only: run_objects, state_properties
     implicit none
     character(len = *), public, parameter :: mhgps_version   = '0.01'
     character(len = *), public, parameter :: inputdir   = 'input'
@@ -110,8 +110,8 @@ module module_global_variables
 
     !bigdft data types and variables 
     !(these objects must preserve their status in the module)
-    type(run_objects), save :: runObj
-    type(state_properties), save :: outs
+!    type(run_objects), save :: runObj
+!    type(state_properties), save :: outs
     integer, save :: fdim
     !type(atoms_data), save :: atoms
 !    type(atomic_structure), pointer, save :: astruct_ptr

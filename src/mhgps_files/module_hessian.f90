@@ -17,11 +17,14 @@ module module_hessian
 contains
 
    !> Reza's routine for finite difference hessian
-   subroutine cal_hessian_fd(iproc,nat,alat,pos,hess)
+   subroutine cal_hessian_fd(iproc,nat,alat,runObj,outs,pos,hess)
       use module_base, only: gp, f_malloc, f_free, assignment(=)
       use module_energyandforces, only: mhgpsenergyandforces
+      use bigdft_run, only: run_objects, state_properties
       implicit none
       integer, intent(in):: iproc, nat
+      type(run_objects), intent(inout) :: runObj
+      type(state_properties), intent(inout) :: outs
       real(gp), dimension(3*nat), intent(in) :: pos
       real(gp), dimension(3), intent(in) :: alat
       real(gp), dimension(3*nat,3*nat), intent(inout) :: hess
@@ -46,7 +49,7 @@ contains
       !h=7.5e-2_gp
       !h=5.e-2_gp
          h=1.e-3_gp
-     ! h=1.e-2_gp
+      !h=1.e-2_gp
       !h=5.e-3_gp
       !h=2.e-2_gp
       rlarge=1._gp*1.e4_gp
@@ -62,26 +65,26 @@ contains
          enddo
          !-----------------------------------------
          tpos(i)=tpos(i)-2*h
-         call mhgpsenergyandforces(nat,alat,tpos,grad,fnoise,etot)
+         call mhgpsenergyandforces(nat,alat,runObj,outs,tpos,grad,fnoise,etot)
          do j=1,3*nat
              hess(j,i)=twelfth*grad(j)
          enddo
          !if(iproc==0) write(*,*) 'ALIREZA-6',i,iat
          !-----------------------------------------
          tpos(i)=tpos(i)+h
-         call mhgpsenergyandforces(nat,alat,tpos,grad,fnoise,etot)
+         call mhgpsenergyandforces(nat,alat,runObj,outs,tpos,grad,fnoise,etot)
          do j=1,3*nat
          hess(j,i)=hess(j,i)-twothird*grad(j)
          enddo
          !-----------------------------------------
          tpos(i)=tpos(i)+2*h
-         call mhgpsenergyandforces(nat,alat,tpos,grad,fnoise,etot)
+         call mhgpsenergyandforces(nat,alat,runObj,outs,tpos,grad,fnoise,etot)
          do j=1,3*nat
          hess(j,i)=hess(j,i)+twothird*grad(j)
          enddo
          !-----------------------------------------
          tpos(i)=tpos(i)+h
-         call mhgpsenergyandforces(nat,alat,tpos,grad,fnoise,etot)
+         call mhgpsenergyandforces(nat,alat,runObj,outs,tpos,grad,fnoise,etot)
          do j=1,3*nat
          hess(j,i)=hess(j,i)-twelfth*grad(j)
          !write(*,*) 'HESS ',j,i,hess(j,i)

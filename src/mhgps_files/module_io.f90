@@ -204,16 +204,18 @@ subroutine read_mode(nat,filename,minmode)
 end subroutine
 
 
-subroutine write_mode(nat,filename,minmode,rotforce)
+subroutine write_mode(nat,runObj,outs,filename,minmode,rotforce)
     use module_base, only: gp
     use module_types
     use module_interfaces
     use module_atoms, only: astruct_dump_to_file
-    use module_global_variables, only: iproc, runObj
+    use module_global_variables, only: iproc
     use bigdft_run
     implicit none
     !parameters
     integer, intent(in) :: nat
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
     character(len=*), intent(in) :: filename
     real(gp), intent(in) :: minmode(3,nat)
     real(gp), intent(in), optional :: rotforce(3,nat)

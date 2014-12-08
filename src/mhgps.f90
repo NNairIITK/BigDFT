@@ -49,6 +49,8 @@ program mhgps
     type(dictionary), pointer :: options
     integer :: nsad
     logical :: connected
+    type(run_objects) :: runObj
+    type(state_properties) :: outs
 
     !simple atomic datastructre
     integer :: nat
@@ -279,7 +281,7 @@ program mhgps
               !rmsd alignment (optional in mhgps approach)
               call superimpose(nat,rxyz(1,1),rxyz2(1,1))
               inputPsiId=0
-              call get_ts_guess(nat,alat,rxyz(1,1),rxyz2(1,1),&
+              call get_ts_guess(nat,alat,runObj,outs,rxyz(1,1),rxyz2(1,1),&
                    tsguess(1,1),minmodeguess(1,1),tsgenergy,&
                    tsgforces(1,1))
               write(comment,'(a)')&
@@ -301,9 +303,9 @@ program mhgps
               !Evalute energies. They are needed in connect
               !for identification
               inputPsiId=0
-              call mhgpsenergyandforces(nat,alat,rxyz,fat,fnoise,energy)
+              call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz,fat,fnoise,energy)
               inputPsiId=0
-              call mhgpsenergyandforces(nat,alat,rxyz2,fat,fnoise,&
+              call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz2,fat,fnoise,&
                    energy2)
               call fingerprint(nat,nid,alat,bigdft_get_geocode(runObj),&
                    rcov,rxyz(1,1),fp(1))
@@ -319,7 +321,7 @@ program mhgps
               !                call connect(nat,nid,alat,rcov,nbond,&
               !                     iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
               !                     nsad,cobj,connected)
-              call connect_recursively(nat,nid,alat,rcov,nbond,isame,&
+              call connect_recursively(nat,nid,alat,runObj,outs,rcov,nbond,isame,&
                    iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
                    nsad,cobj,connected)
               if(connected)then
@@ -345,7 +347,7 @@ program mhgps
                     minmode(3,i)=2.0_gp*&
                          (real(builtin_rand(idum),gp)-0.5_gp)
                  enddo
-                 call write_mode(nat,trim(adjustl(joblist(1,ijob)))&
+                 call write_mode(nat,runObj,outs,trim(adjustl(joblist(1,ijob)))&
                       //'_mode',minmode)
               else
                  call read_mode(nat,trim(adjustl(joblist(1,ijob)))&
@@ -358,7 +360,7 @@ program mhgps
               minmode = minmode/dnrm2(3*nat,minmode(1,1),1)
               ec=0.0_gp
               displ=0.0_gp
-              call findsad(nat,alat,rcov,nbond,iconnect,&
+              call findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,&
                    rxyz(1,1),energy,fxyz(1,1),minmode(1,1),displ,ec,&
                    rotforce(1,1),converged)
               if(.not.converged)then
@@ -388,7 +390,7 @@ program mhgps
                       comment,&
                       energy,rxyz=rxyz,forces=fxyz)
 
-                 call write_mode(nat,currDir//'/sad'//&
+                 call write_mode(nat,runObj,outs,currDir//'/sad'//&
                       trim(adjustl(isadc))//'_mode_final',&
                       minmode(1,1),rotforce(1,1))
               endif
@@ -398,8 +400,8 @@ program mhgps
               write(isadc,'(i3.3)')isad
               ec=0.0_gp
               inputPsiId=0
-              call mhgpsenergyandforces(nat,alat,rxyz,fxyz,fnoise,energy)
-              call minimize(imode,nat,alat,nbond,iconnect,&
+              call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz,fxyz,fnoise,energy)
+              call minimize(imode,nat,alat,runObj,outs,nbond,iconnect,&
                    rxyz(1,1),fxyz(1,1),fnoise,energy,ec,converged,'')
               if(.not.converged)then
                  call yaml_warning('Minimization '//yaml_toa(isad)&
@@ -419,9 +421,9 @@ program mhgps
               !else if(trim(adjustl(operation_mode))=='hessian')then
            case('hessian')
               inputPsiId=0
-              call mhgpsenergyandforces(nat,alat,rxyz,fxyz,fnoise,energy)
+              call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz,fxyz,fnoise,energy)
               inputPsiId=0
-              call cal_hessian_fd(iproc,nat,alat,rxyz,hess)
+              call cal_hessian_fd(iproc,nat,alat,runObj,outs,rxyz,hess)
               if(iproc==0)then
                  write(*,*)'(hess) HESSIAN:'
                  write(*,*)hess

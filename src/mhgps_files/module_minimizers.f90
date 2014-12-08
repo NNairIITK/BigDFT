@@ -22,13 +22,17 @@ module module_minimizers
 
 contains
 
-subroutine minimize(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,&
-           fnoiseio,energyio,energycounter,converged,writePostfix)
+subroutine minimize(imode,nat,alat,runObj,outs,nbond,iconnect,&
+           rxyzio,fxyzio,fnoiseio,energyio,energycounter,converged,&
+           writePostfix)
     use module_base
     use module_global_variables, only: external_mini
+    use bigdft_run, only: run_objects, state_properties
     implicit none
     !parameter
     integer, intent(in)                    :: nat, nbond,imode
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
     real(gp), intent(inout)                :: energycounter
     logical, intent(out)                   :: converged
     real(gp), intent(inout)                :: rxyzio(3,nat)
@@ -40,9 +44,9 @@ subroutine minimize(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,&
     !internal
 
     if(.not.  external_mini)then
-        call minimizer_sqnm(imode,nat,alat,nbond,iconnect,rxyzio,&
-             fxyzio,fnoiseio,energyio,energycounter,converged,&
-             writePostfix)
+        call minimizer_sqnm(imode,nat,alat,runObj,outs,nbond,&
+             iconnect,rxyzio,fxyzio,fnoiseio,energyio,energycounter,&
+             converged,writePostfix)
     else
         stop 'interface to external minimizers not implemented yet'
     endif
@@ -50,10 +54,13 @@ subroutine minimize(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,&
 end subroutine
 
 
-!> call_bigdft has to be run once on runObj and outs !before calling this routine
-!! sqnm will return to caller the energies and coordinates used/obtained from the last accepted iteration step
-!subroutine geopt(nat,wpos,etot,fout,fnrmtol,count,count_sd,displr)
-subroutine minimizer_sqnm(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,energyio,energycounter,converged,writePostfix)
+!> call_bigdft has to be run once on runObj and outs
+!before calling this routine.
+! minimizer+sqnm will return to caller the energies and coordinates
+!used/obtained from the last accepted iteration step
+subroutine minimizer_sqnm(imode,nat,alat,runObj,outs,nbond,iconnect,&
+           rxyzio,fxyzio,fnoiseio,energyio,energycounter,converged,&
+           writePostfix)
 
    use module_base
    use module_types
@@ -64,7 +71,6 @@ subroutine minimizer_sqnm(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,e
    use module_global_variables, only: iproc,&
                                       inputPsiId,&
                                       mhgps_verbosity,&
-                                      runObj,&
                                       mini_frac_fluct,&
                                       mini_ncluster_x,&
                                       mini_betax,&
@@ -83,9 +89,13 @@ subroutine minimizer_sqnm(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,e
    implicit none
    !parameter
    integer, intent(in)                    :: nat, nbond,imode
+   type(run_objects), intent(inout) :: runObj
+   type(state_properties), intent(inout) :: outs
    real(gp), intent(inout)                :: energycounter
    logical, intent(out)                   :: converged
-   real(gp), intent(inout)                :: rxyzio(3,nat),fxyzio(3,nat),alat(3,nat)
+   real(gp), intent(inout)                :: rxyzio(3,nat)
+   real(gp), intent(inout)                :: fxyzio(3,nat)
+   real(gp), intent(inout)                :: alat(3,nat)
    real(gp), intent(inout)                :: energyio,fnoiseio
    integer, intent(in)                    :: iconnect(2,nbond)
    character(len=*), intent(in)           :: writePostfix
@@ -116,7 +126,8 @@ subroutine minimizer_sqnm(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,e
    real(gp) :: betax !< initial step size (gets not changed)
    real(gp) :: beta_stretchx
    real(gp) :: beta  !< current step size
-   real(gp) :: beta_stretch  !< current step size in bond-stretching directions
+   real(gp) :: beta_stretch  !< current step size in bond-stretching
+                             !directions
    real(gp) :: cosangle
    real(gp) :: tt
    real(gp) :: maxd !< maximum displacement of single atom
@@ -251,7 +262,7 @@ subroutine minimizer_sqnm(imode,nat,alat,nbond,iconnect,rxyzio,fxyzio,fnoiseio,e
 
    etot=energyio
    fnoise=fnoiseio
-   call minenergyandforces(.false.,imode,nat,alat,rxyz(1,1,0),&
+   call minenergyandforces(.false.,imode,nat,alat,runObj,outs,rxyz(1,1,0),&
        rxyzraw(1,1,0),fxyz(1,1,0),fstretch(1,1,0),fxyzraw(1,1,0),fnoise,&
        etot,iconnect,nbond,wold,beta_stretchx,beta_stretch)
    call fnrmandforcemax(fxyzraw(1,1,0),fnrm,fmax,nat)
@@ -362,7 +373,7 @@ endif
       delta=rxyz(:,:,nhist)-rxyzOld
       displr=displr+dnrm2(3*nat,delta(1,1),1)
       inputPsiId=1
-      call minenergyandforces(.true.,imode,nat,alat,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
+      call minenergyandforces(.true.,imode,nat,alat,runObj,outs,rxyz(1,1,nhist),rxyzraw(1,1,nhist),&
                              fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),fnoise,&
                              etotp,iconnect,nbond,wold,beta_stretchx,beta_stretch)
       detot=etotp-etotold
@@ -586,15 +597,18 @@ endif
 end subroutine
 
 
-subroutine minenergyandforces(eeval,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
+subroutine minenergyandforces(eeval,imode,nat,alat,runObj,outs,rat,rxyzraw,fat,fstretch,&
            fxyzraw,fnoise,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
     use module_base, only: gp
     use module_energyandforces
     use module_sqn
+    use bigdft_run, only: run_objects, state_properties
     implicit none
     !parameter
     integer, intent(in)           :: imode
     integer, intent(in)           :: nat
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
     integer, intent(in)           :: nbond_
     integer,  dimension(2,nbond_), intent(in)  :: iconnect
     real(gp), dimension(3), intent(in)         :: alat
@@ -612,7 +626,7 @@ subroutine minenergyandforces(eeval,imode,nat,alat,rat,rxyzraw,fat,fstretch,&
     !internal
 
     rxyzraw=rat
-    if(eeval)call mhgpsenergyandforces(nat,alat,rat,fat,fnoise,epot)
+    if(eeval)call mhgpsenergyandforces(nat,alat,runObj,outs,rat,fat,fnoise,epot)
     fxyzraw=fat
     fstretch=0.0_gp
 

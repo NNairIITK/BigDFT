@@ -23,7 +23,7 @@ contains
 !> Returns energies in hartree and
 !! forces in hartree/bohr
 !! (except for LJ)
-subroutine mhgpsenergyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
+subroutine mhgpsenergyandforces(nat,alat,runObj,outs,rxyz,fxyz,fnoise,epot)
     !IMPORTANT:
     !receives distances in Bohr
     use module_base
@@ -39,6 +39,8 @@ subroutine mhgpsenergyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     !parameters
     integer, intent(in) :: nat
     real(gp), intent(in) :: alat(3)
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
     real(gp), intent(in) :: rxyz(3,nat)
     real(gp), intent(out) :: fxyz(3,nat)
     real(gp), intent(out) :: fnoise
