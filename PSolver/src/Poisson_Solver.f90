@@ -82,6 +82,18 @@ module Poisson_Solver
    
    include 'configure.inc'
    
+   !>Defines the internal information for application of the FFT between the kernel and the 
+   !!density
+   type, public :: FFT_metadata
+      integer :: m1,m2,m3 !<original real dimension, with m2 in z direction and and m3 in y direction
+      integer :: n1,n2,n3 !<dimension of the FFT operation, taking into account the zero padding if needed
+      integer :: md1,md2,md3 !< Dimension of the real unpadded space, 
+                             !!md2 is further enlarged to be a multiple of number of processes
+      integer :: nd1,nd2,nd3 !<fourier dimensions for which the kernel is injective,
+      !!                formally 1/8 of the fourier grid. Here the dimension nd3 is
+      !!                enlarged to be a multiple of nproc
+   end type FFT_metadata
+
    !> Defines the fundamental structure for the kernel
    type, public :: coulomb_operator
       !variables with physical meaning
@@ -108,12 +120,13 @@ module Poisson_Solver
       real(gp), dimension(3) :: hgrids !<grid spacings in each direction
       real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
       real(dp), dimension(:), pointer :: kernel !< kernel of the Poisson Solver
-      real(dp) :: work1_GPU,work2_GPU,k_GPU
+      real(dp) :: work1_GPU,work2_GPU,k_GPU !<addresses for the GPU memory 
       integer, dimension(5) :: plan
       integer, dimension(3) :: geo
       !variables with computational meaning
       type(mpi_environment) :: mpi_env !< complete environment for the POisson Solver
       type(mpi_environment) :: inplane_mpi,part_mpi !<mpi_environment for internal ini-plane parallelization
+      type(FFT_metadata) :: grid !<dimensions of the FFT grid associated to this kernel
       integer :: igpu !< control the usage of the GPU
       integer :: initCufftPlan
       integer :: keepGPUmemory
@@ -150,7 +163,25 @@ module Poisson_Solver
 
 contains
 
+  pure function FFT_metadata_null() result(d)
+    implicit none
+    type(FFT_metadata) :: d
+    d%m1=0
+    d%m2=0
+    d%m3=0
+    d%n1=0
+    d%n2=0
+    d%n3=0
+    d%md1=0
+    d%md2=0
+    d%md3=0
+    d%nd1=0
+    d%nd2=0
+    d%nd3=0
+  end function FFT_metadata_null
+
   pure function pkernel_null() result(k)
+    implicit none
     type(coulomb_operator) :: k
     k%itype_scf=0
     k%geocode='F'
@@ -167,6 +198,7 @@ contains
     k%mpi_env=mpi_environment_null()
     k%inplane_mpi=mpi_environment_null()
     k%part_mpi=mpi_environment_null()
+    k%grid=FFT_metadata_null()
     k%igpu=0
     k%initCufftPlan=0
     k%keepGPUmemory=1

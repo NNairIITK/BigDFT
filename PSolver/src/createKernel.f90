@@ -107,7 +107,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
 end function pkernel_init
 
 
-!> Free memory used by the kernerl operation
+!> Free memory used by the kernel operation
 !! @ingroup PSOLVER
 subroutine pkernel_free(kernel)
   use dynamic_memory
@@ -168,6 +168,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
   use yaml_output
   use dynamic_memory
   use time_profiling, only: f_timing
+  use dictionaries, only: f_err_throw
   implicit none
   !Arguments
   logical, intent(in) :: wrtmsg
@@ -205,7 +206,9 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
   kernelnproc=kernel%mpi_env%nproc
   if (kernel%igpu == 1) kernelnproc=1
 
-  if (kernel%geocode == 'P') then
+  select case(kernel%geocode)
+     !if (kernel%geocode == 'P') then
+  case('P')
      
      if (dump) then
         call yaml_map('Boundary Conditions','Periodic')
@@ -258,8 +261,8 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      nlimd=n2
      nlimk=n3/2+1
 
-  else if (kernel%geocode == 'S') then
-     
+  !else if (kernel%geocode == 'S') then
+  case('S')     
      if (dump) then
         call yaml_map('Boundary Conditions','Surface')
      end if
@@ -323,8 +326,8 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      nlimd=n2
      nlimk=n3/2+1
 
-  else if (kernel%geocode == 'F') then
-
+  !else if (kernel%geocode == 'F') then
+  case('F')
      if (dump) then
         call yaml_map('Boundary Conditions','Free')
      end if
@@ -382,7 +385,8 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      nlimd=n2/2
      nlimk=n3/2+1
      
-  else if (kernel%geocode == 'W') then
+  !else if (kernel%geocode == 'W') then
+  case('W')
 
      if (dump) then
         call yaml_map('Boundary Conditions','Wire')
@@ -438,14 +442,13 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      nlimd=n2
      nlimk=n3/2+1
 
-  else
-
+  case default
      !if (iproc==0)
-     write(*,'(1x,a,3a)')'createKernel, geocode not admitted',kernel%geocode
-
-     stop
-  end if
-!print *,'thereAAA',iproc,nproc,kernel%mpi_env%iproc,kernel%nproc,kernel%mpi_env%mpi_comm
+     !write(*,'(1x,a,3a)')'createKernel, geocode not admitted',kernel%geocode
+     call f_err_throw('createKernel, geocode '//trim(kernel%geocode)//&
+          'not admitted')
+  end select
+  !print *,'thereAAA',iproc,nproc,kernel%mpi_env%iproc,kernel%nproc,kernel%mpi_env%mpi_comm
 !call MPI_BARRIER(kernel%mpi_env%mpi_comm,ierr)
 
   if (dump) then
@@ -552,23 +555,28 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
     if (kernel%igpu == 2) kernel%kernel=pkernel2
    endif
 
-    if(kernel%geocode == 'P') then
-     kernel%geo(1)=1
-     kernel%geo(2)=1
-     kernel%geo(3)=1
-    else if (kernel%geocode == 'S') then
-     kernel%geo(1)=1
-     kernel%geo(2)=0
-     kernel%geo(3)=1
-    else if (kernel%geocode == 'F') then
-     kernel%geo(1)=0
-     kernel%geo(2)=0
-     kernel%geo(3)=0
-    else if (kernel%geocode == 'W') then
-     kernel%geo(1)=0
-     kernel%geo(2)=0
-     kernel%geo(3)=1
-    end if
+   select case(kernel%geocode)
+   case('P')
+      !if(kernel%geocode == 'P') then
+      kernel%geo(1)=1
+      kernel%geo(2)=1
+      kernel%geo(3)=1
+      !else if (kernel%geocode == 'S') then
+   case('S')
+      kernel%geo(1)=1
+      kernel%geo(2)=0
+      kernel%geo(3)=1
+      !else if (kernel%geocode == 'F') then
+   case('F')
+      kernel%geo(1)=0
+      kernel%geo(2)=0
+      kernel%geo(3)=0
+      !else if (kernel%geocode == 'W') then
+   case('W')
+      kernel%geo(1)=0
+      kernel%geo(2)=0
+      kernel%geo(3)=1
+   end select
 
    if (kernel%mpi_env%iproc == 0) then
     if (kernel%igpu == 1) then 
@@ -588,7 +596,7 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
     call f_free(pkernel2)
   endif
 
- endif
+endif
   
 !print *,'there',iproc,nproc,kernel%iproc,kernel%mpi_env%nproc,kernel%mpi_env%mpi_comm
 !call MPI_BARRIER(kernel%mpi_comm,ierr)

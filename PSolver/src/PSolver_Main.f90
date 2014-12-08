@@ -202,7 +202,9 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       end do
       !$omp end parallel do
    end do
-   
+  
+   !regrop the psolver from here -------------
+
    if (.not. cudasolver) then !CPU case
       call f_timing(TCAT_PSOLV_COMPUT,'OF')
       call G_PoissonSolver(kernel%mpi_env%iproc,kernel%mpi_env%nproc,&
@@ -295,8 +297,10 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       call cudafree(kernel%work2_GPU)
     endif
    
-   endif
-   
+ endif
+ 
+ !-----------until here
+  
    !the value of the shift depends on the distributed i/o or not
    if (datacode=='G') then
       i3xcsh=istart !beware on the fact that this is not what represents its name!!!
