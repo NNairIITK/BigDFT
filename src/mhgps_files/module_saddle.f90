@@ -1,5 +1,5 @@
 !> @file
-!!    Saddle for Minima hopping
+!!    SQNS Saddle Search Method
 !!
 !!    Copyright (C) 2014 BigDFT group
 !!    This file is distributed under the terms of the
@@ -12,7 +12,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!> Module saddle for minima hopping
+!> Module saddle for SQNS
 module module_saddle
 implicit none
 
@@ -21,7 +21,7 @@ private
 public :: findsad
 
 contains
-
+!=====================================================================
 subroutine findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,&
                   wpos,etot,fout,minmode,displ,ener_count,&
                   rotforce,converged)
@@ -222,15 +222,19 @@ subroutine findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,&
     if(iproc==0.and.mhgps_verbosity>=2)then
         write(*,'(a)')&
         '  #(MHGPS) METHOD COUNT  IT  Energy                '//&
-        'DIFF      FMAX      FNRM      alpha    ndim dspl         alpha_strtch'
-        write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es12.5,1x,es9.2)')&
+        'DIFF      FMAX      FNRM      alpha    ndim dspl         '//&
+        'alpha_strtch'
+        write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,'//&
+                 'i3.3,1x,es12.5,1x,es9.2)')&
         '   (MHGPS) GEOPT ',nint(ener_count),0,etotp,detot,fmax,&
         fnrm, alpha,ndim,displ,alpha_stretch
     endif
     do it=1,nit_trans
         nhist=nhist+1
 
-        if ((.not. subspaceSucc) .or. fnrm.gt.saddle_steepthresh_trans  .or. it.le.itswitch) then
+        if ((.not. subspaceSucc) .or. &
+             fnrm .gt. saddle_steepthresh_trans  .or. &
+             it.le.itswitch) then
             ndim=0
             steep=.true.
             !if (it.gt.itswitch) itswitch=it+nhistx_trans
@@ -274,32 +278,38 @@ subroutine findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,&
         endif
         if(tooFar& !recompute lowest mode if walked too far
           .or. it==1& !compute lowest mode at first step
-          .or. (curv>=0.0_gp .and. ((mod(it,recompIfCurvPos)==0).or. fnrm<fnrmtol))& !For LJ
-                                                                !systems
-                                                                !recomputation
-                                                                !every
-                                                                !nth=recompIfCurvPos
-                                                                !step raises
-                                                                !stability
+          .or. (curv>=0.0_gp .and. &
+               ((mod(it,recompIfCurvPos)==0).or. fnrm<fnrmtol))&
+                                                  !For LJ
+                                                  !systems
+                                                  !recomputation
+                                                  !every
+                                                  !nth=recompIfCurvPos
+                                                  !step raises
+                                                  !stability
           .or.recompute==it)then
             !if(iproc==0.and.mhgps_verbosity>=2)call yaml_comment(&
             !'(MHGPS) METHOD COUNT  IT  CURVATURE             &
             !DIFF      FMAX      FNRM      alpha    ndim')
             if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a)')&
             '  #(MHGPS) METHOD COUNT  IT  CURVATURE             '//&
-            'DIFF      FMAX      FNRM      alpha    ndim alpha_strtch overl. displr       displp'
+            'DIFF      FMAX      FNRM      alpha    ndim '//&
+            'alpha_strtch overl. displr       displp'
             inputPsiId=1
              !inputPsiId=0
-            call opt_curv(it,imode,nat,alat,runObj,outs,alpha0_rot,curvforcediff,nit_rot,&
-                          nhistx_rot,rxyzraw(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
-                          minmode(1,1),curv,rotforce(1,1),tol,ener_count,&
-                          optCurvConv,iconnect,nbond,alpha_rot_stretch0,&
-                          maxcurvrise,cutoffratio,minoverlap)
+            call opt_curv(it,imode,nat,alat,runObj,outs,alpha0_rot,&
+                          curvforcediff,nit_rot,nhistx_rot,&
+                          rxyzraw(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
+                          minmode(1,1),curv,rotforce(1,1),tol,&
+                          ener_count,optCurvConv,iconnect,nbond,&
+                          alpha_rot_stretch0,maxcurvrise,cutoffratio,&
+                          minoverlap)
 
             inputPsiId=1
             minmode = minmode / dnrm2(3*nat,minmode(1,1),1)
             if(.not.optCurvConv)then
-                if(iproc==0)call yaml_warning('(MHGPS) opt_curv failed')
+                if(iproc==0)call yaml_warning('(MHGPS) opt_curv '//&
+                                              'failed')
                 converged=.false.
  stop 'opt_curv failed'
                 return
@@ -315,7 +325,8 @@ subroutine findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,&
             !DIFF      FMAX      FNRM      alpha    ndim')
             if(iproc==0.and.mhgps_verbosity>=2)write(*,'(a)')&
             '  #(MHGPS) METHOD COUNT  IT  Energy                '//&
-            'DIFF      FMAX      FNRM      alpha    ndim dspl         alpha_strtch'
+            'DIFF      FMAX      FNRM      alpha    ndim dspl   '//&
+            '      alpha_strtch'
         endif
         !END FINDING LOWEST MODE
         
@@ -357,7 +368,8 @@ subroutine findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,&
         !do the move
         rxyz(:,:,nhist)=rxyz(:,:,nhist-1)-dd(:,:)
         if (bigdft_get_geocode(runObj) == 'F') then
-        call fixfrag_posvel(nat,rcov,rxyz(1,1,nhist),tnatdmy,1,fixfragmented)
+        call fixfrag_posvel(nat,rcov,rxyz(1,1,nhist),tnatdmy,1,&
+             fixfragmented)
         if(fixfragmented .and. mhgps_verbosity >=2.and. iproc==0)&
            call yaml_comment('fragmentation fixed')
         endif
@@ -366,10 +378,10 @@ subroutine findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,&
         delta=rxyz(:,:,nhist)-rxyzold
         displ=displ+dnrm2(3*nat,delta(1,1),1)
         inputPsiId=1
-        call minenergyandforces(.true.,imode,nat,alat,runObj,outs,rxyz(1,1,nhist),&
-                rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),&
-                fxyzraw(1,1,nhist),etotp,iconnect,nbond,wold,&
-                alpha_stretch0,alpha_stretch)
+        call minenergyandforces(.true.,imode,nat,alat,runObj,outs,&
+             rxyz(1,1,nhist),rxyzraw(1,1,nhist),fxyz(1,1,nhist),&
+             fstretch(1,1,nhist),fxyzraw(1,1,nhist),etotp,iconnect,&
+             nbond,wold,alpha_stretch0,alpha_stretch)
         ener_count=ener_count+1.0_gp
         rxyzold=rxyz(:,:,nhist)
         detot=etotp-etotold
@@ -383,9 +395,9 @@ subroutine findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,&
            'ATTENTION! Forces below are no forces but tangents to '//&
            'the guessed reaction path| fnrm, fmax = ',fnrm,fmax
            call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                currDir//'/sad'//trim(adjustl(isadc))//'_posout_'//fn9,&
-                trim(comment),&
-                etotp,rxyz(:,:,nhist),forces=minmode)
+                currDir//'/sad'//trim(adjustl(isadc))//'_posout_'//&
+                fn9,trim(comment),etotp,rxyz(:,:,nhist),&
+                forces=minmode)
         endif
 
         tmp=-ddot(3*nat,fxyz(1,1,nhist),1,minmode(1,1),1)
@@ -396,23 +408,10 @@ subroutine findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,&
                  dot_double(3*nat,dd0(1,1),1,dd0(1,1),1))
 
         if(iproc==0.and.mhgps_verbosity>=2)&
-            write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es12.5,1x,es9.2)')&
+            write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),'//&
+                    '1x,i3.3,1x,es12.5,1x,es9.2)')&
             '   (MHGPS) GEOPT ',nint(ener_count),it,etotp,detot,fmax,&
             fnrm, alpha,ndim,displ,alpha_stretch
-!        write(cdmy8,'(es8.1)')abs(maxd)
-!        write(cdmy9_1,'(es9.2)')abs(displr)
-!        write(cdmy9_2,'(es9.2)')abs(displp)
-!        write(cdmy9_3,'(es9.2)')abs(beta)
-!        if(iproc==0.and.mhgps_verbosity>=2)&
-!            write(16,'(a,1x,i5.5,1x,i5.5,1x,1es21.14,1x,es9.2,es11.3'//&
-!            ',3es10.2,1x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a8))')&
-!            '   (MHGPS) GEOPT ',nint(ener_count),it,etotp,detot,fmax,fnrm,&
-!            fluct*runObj%inputs%frac_fluct,fluct,&
-!            'beta=',trim(adjustl(cdmy9_3)),'dim=',ndim,&
-!            'maxd=',trim(adjustl(cdmy8)),&
-!            'dsplr=',trim(adjustl(cdmy9_1)),&
-!            'dsplp=',trim(adjustl(cdmy9_2))
-
 
         etot=etotp
         etotold=etot
@@ -431,7 +430,8 @@ subroutine findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,&
 !           fstretch(:,:,nhist)=fstretch(:,:,nhist)-2.0_gp*&
 !            ddot(3*nat,fstretch(1,1,nhist),1,minmode(1,1),1)*minmode
             dds=alpha_stretch*(fstretch(:,:,nhist)-&
-                2.0_gp*ddot(3*nat,fstretch(1,1,nhist),1,minmode(1,1),1)*minmode)
+                2.0_gp*ddot(3*nat,fstretch(1,1,nhist),1,&
+                minmode(1,1),1)*minmode)
             dt=0.0_gp
             maxd=-huge(1.0_gp)
             do iat=1,nat
@@ -498,11 +498,8 @@ stop 'no convergence in findsad'
     call f_free(minmodeold)
     call f_free(minmode0)
 
-  end subroutine
-
-
-
-
+end subroutine
+!=====================================================================
 subroutine opt_curv(itgeopt,imode,nat,alat,runObj,outs,alpha0,curvforcediff,nit,nhistx,rxyz_fix,&
                     fxyz_fix,dxyzin,curv,fout,fnrmtol,ener_count,&
                     converged,iconnect,nbond,alpha_stretch0,&
@@ -762,8 +759,7 @@ stop 'no convergence in optcurv'
     enddo
     curv=curvp
 end subroutine
-
-
+!=====================================================================
 !> Computes the (curvature along vec) = vec^t H vec / (vec^t*vec)
 !! vec mus be normalized
 subroutine curvforce(nat,alat,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ener_count)
@@ -803,8 +799,8 @@ subroutine curvforce(nat,alat,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,ime
 
     vec = vec / dnrm2(3*nat,vec(1,1),1)
     rxyz2 = rxyz1 + diff * vec
-    call mhgpsenergyandforces(nat,alat,runobj,outs,rxyz2(1,1),fxyz2(1,1),fnoise,etot2)
-!    call mhgpsenergyandforces(nat, alat, rxyz2(1,1),fxyz2(1,1),etot2,'cnt_enf_forcebar_decomp')
+    call mhgpsenergyandforces(nat,alat,runobj,outs,rxyz2(1,1),&
+         fxyz2(1,1),fnoise,etot2)
     ener_count=ener_count+1.0_gp
 
     if(imethod==1)then
@@ -826,7 +822,7 @@ subroutine curvforce(nat,alat,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,ime
     call f_free(dfxyz)
     
 end subroutine
-
+!=====================================================================
 subroutine fixfrag_posvel(nat,rcov,pos,vel,option,occured)
 !UNTERSCHIED ZUR MH ROUTINE:
 !pos(:,iat)=pos(:,iat)+vec(:)*((mindist-1.0_gp*bondlength)/mindist)
@@ -1137,33 +1133,20 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
          angle=cm_frags(1,ifrag)*vel_frags(1,ifrag)+cm_frags(2,ifrag)*vel_frags(2,ifrag)+cm_frags(3,ifrag)*vel_frags(3,ifrag)
          rnrmi=1.0_gp/sqrt(vel_frags(1,ifrag)**2+vel_frags(2,ifrag)**2+vel_frags(3,ifrag)**2)
          angle=angle*rnrmi
-!         if (iproc==0) then
-!           call yaml_mapping_open('(MH) Frag',flow=.true.)
-!            call yaml_map('ifrag',ifrag)
-!            call yaml_map('angle a invert',angle)
-!           call yaml_mapping_close(advance='yes')
-!         endif
-        
       enddo
       !Checkend kinetic energy after inversion
-
 
       call f_free(cm_frags)
       call f_free(vel_frags)
       call f_free(nat_frags)
       call f_free(invert)
-      !   endif
-      !else
-      !   stop "Wrong option within ff-rv"
-!      if(iproc==0) write(*,*) "(MH) FIX: Velocity component towards the center of mass inverted! Keep on hopping..."
-!      if(iproc==0) call yaml_scalar('(MH) FIX: Velocity component towards the center of mass inverted! Keep on hopping...')
    endif
 endif
 end subroutine fixfrag_posvel
-
-subroutine mincurvforce(imode,nat,alat,runObj,outs,diff,rxyz1,fxyz1,vec,vecraw,&
-           rotforce,rotfstretch,rotforceraw,curv,imethod,ec,&
-           iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
+!=====================================================================
+subroutine mincurvforce(imode,nat,alat,runObj,outs,diff,rxyz1,fxyz1,&
+           vec,vecraw,rotforce,rotfstretch,rotforceraw,curv,imethod,&
+           ec,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
     use module_base, only: gp
     use module_sqn
     use bigdft_run, only: run_objects, state_properties
@@ -1195,19 +1178,22 @@ subroutine mincurvforce(imode,nat,alat,runObj,outs,diff,rxyz1,fxyz1,vec,vecraw,&
 
      vecraw=vec
 !    call mhgpsenergyandforces(nat,rat,fat,epot)
-     call curvforce(nat,alat,runObj,outs,diff,rxyz1,fxyz1,vec,curv,rotforce,imethod,ec)
+     call curvforce(nat,alat,runObj,outs,diff,rxyz1,fxyz1,vec,curv,&
+          rotforce,imethod,ec)
      rxyz2 =rxyz1+diff*vec
      rotforceraw=rotforce
      rotfstretch=0.0_gp
 
      if(imode==2)then
-         call projectbond(nat,nbond_,rxyz2,rotforce,rotfstretch,iconnect,wold,alpha_stretch0,alpha_stretch)
+         call projectbond(nat,nbond_,rxyz2,rotforce,rotfstretch,&
+              iconnect,wold,alpha_stretch0,alpha_stretch)
      endif
 
 end subroutine mincurvforce
-
-subroutine minenergyandforces(eeval,imode,nat,alat,runObj,outs,rat,rxyzraw,fat,fstretch,&
-           fxyzraw,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch)
+!=====================================================================
+subroutine minenergyandforces(eeval,imode,nat,alat,runObj,outs,rat,&
+           rxyzraw,fat,fstretch,fxyzraw,epot,iconnect,nbond_,wold,&
+           alpha_stretch0,alpha_stretch)
     use module_base, only: gp
     use module_energyandforces
     use module_sqn
@@ -1235,7 +1221,8 @@ subroutine minenergyandforces(eeval,imode,nat,alat,runObj,outs,rat,rxyzraw,fat,f
     real(gp) :: fnoise
 
     rxyzraw=rat
-    if(eeval)call mhgpsenergyandforces(nat,alat,runObj,outs,rat,fat,fnoise,epot)
+    if(eeval)call mhgpsenergyandforces(nat,alat,runObj,outs,rat,fat,&
+                  fnoise,epot)
     fxyzraw=fat
     fstretch=0.0_gp
 
@@ -1245,11 +1232,7 @@ subroutine minenergyandforces(eeval,imode,nat,alat,runObj,outs,rat,rxyzraw,fat,f
     endif
 
 end subroutine minenergyandforces
-
-
-
-
-
+!=====================================================================
 subroutine convcheck_sad(fmax,curv,fluctfrac_fluct,forcemax,check)
   use module_base
   implicit none
@@ -1262,6 +1245,7 @@ subroutine convcheck_sad(fmax,curv,fluctfrac_fluct,forcemax,check)
     check=0
   endif
 end subroutine convcheck_sad
+!=====================================================================
 subroutine elim_torque_bastian(nat,ratin,vat)
 use module_base
 !theory:
@@ -1364,6 +1348,7 @@ use module_base
     enddo
     call f_free(amass)
 end subroutine
+!=====================================================================
 subroutine elim_moment_fs(nat,vxyz)
     use module_base
     implicit none
@@ -1385,5 +1370,5 @@ subroutine elim_moment_fs(nat,vxyz)
         vxyz(3,iat)=vxyz(3,iat)-sz
     enddo
 end subroutine
-
+!=====================================================================
 end module
