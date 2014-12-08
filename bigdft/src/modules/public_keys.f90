@@ -145,6 +145,7 @@ module public_keys
   character(len = *), parameter :: MIXING_AFTER_INPUTGUESS = "mixing_after_inputguess"
   character(len = *), parameter :: ITERATIVE_ORTHOGONALIZATION = "iterative_orthogonalization"
   character(len = *), parameter :: MULTIPOLE_PRESERVING = "multipole_preserving"
+  character(len = *), parameter :: MP_ISF = "mp_isf"
   character(len = *), parameter :: CHECK_SUMRHO = "check_sumrho"
   character(len = *), parameter :: CHECK_OVERLAP = "check_overlap"
   character(len = *), parameter :: EXPERIMENTAL_MODE = "experimental_mode"

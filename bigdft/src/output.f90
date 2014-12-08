@@ -1351,7 +1351,8 @@ subroutine print_atomic_variables(atoms, hmax, ixc, dispersion)
      end if
      !control whether the grid spacing is too high
      if (hmax > 2.5_gp*minrad) then
-        call yaml_warning('Chosen Grid spacings seem too high for this atom. At you own risk!')
+        call yaml_warning('Chosen Grid spacings seem too high for the '// &
+           & trim(atoms%astruct%atomnames(ityp))//' atom type. At you own risk!')
      end if
 
      select case(atoms%npspcode(ityp))
@@ -1742,7 +1743,7 @@ contains
     character(len=*), intent(in) :: atomname
     double precision, dimension(3), intent(in) :: rxyz,hgrids
     !local variables
-    character(len=*), parameter :: fmtat='(1pg18.10)',fmtg='(F6.2)',fmti='(i4.4)'
+    character(len=*), parameter :: fmtat='(1pg18.10)',fmtg='(F7.2)',fmti='(i4.4)'
     integer :: i
 
     call yaml_sequence_open(atomname,flow=.true.)

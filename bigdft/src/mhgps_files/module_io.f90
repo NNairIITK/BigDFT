@@ -1,4 +1,17 @@
+!> @file
+!!  Input/Output for minima hopping
+!!
+!! @author
+!!    Copyright (C) 2013-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
+!> Module handling input/output for minima hopping method
 module module_io
+
     implicit none
 
     private
@@ -189,6 +202,8 @@ subroutine read_mode(nat,filename,minmode)
     call vcopy(3 * astruct%nat,astruct%rxyz(1,1),1,minmode(1,1), 1)
     call deallocate_atomic_structure(astruct)
 end subroutine
+
+
 subroutine write_mode(nat,filename,minmode,rotforce)
     use module_base, only: gp
     use module_types
@@ -204,7 +219,7 @@ subroutine write_mode(nat,filename,minmode,rotforce)
     real(gp), intent(in), optional :: rotforce(3,nat)
     !internal
     character(len=7) :: comment='minmode'
-    character(len=11) :: units
+    character(len=20) :: units
 
     units=bigdft_get_units(runObj)
     call bigdft_set_units(runObj,'atomicd0')

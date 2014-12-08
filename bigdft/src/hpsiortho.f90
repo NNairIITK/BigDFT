@@ -1108,7 +1108,8 @@ subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,po
    !local variables
    character(len=*), parameter :: subname='full_local_potential'
    logical :: odp,newvalue !orbital dependent potential
-   integer :: npot,ispot,ispotential,ispin,ierr,ii,ilr,iorb,iorb2,nilr,ni1,ni2,iiorb,i
+   integer :: npot,ispot,ispotential,ispin,ierr,ii,ilr,iorb,iorb2,nilr,ni1,ni2,iiorb
+   !integer :: i
    integer:: istl, ist, size_Lpot, i3s, i3e, i2s, i2e, i1s, i1e, iispin, ishift
    integer,dimension(:),allocatable:: ilrtable
    real(wp), dimension(:), pointer :: pot1
@@ -2869,6 +2870,7 @@ subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)
 
    integer :: ikpt
 
+
    if (nproc > 1) then
       call mpibarrier(comm=bigdft_mpi%mpi_comm)
       do ikpt = 1, nkpts
@@ -2883,7 +2885,6 @@ subroutine broadcast_kpt_objects(nproc, nkpts, ndata, data, ikptproc)
       end do
    end if
 END SUBROUTINE broadcast_kpt_objects
-
 
 
 !!subroutine minimize_by_orthogonal_transformation(iproc, nproc, orbs, wfd, comms, orthpar, E0, El, stepsize, hpsi, psi, derivative)

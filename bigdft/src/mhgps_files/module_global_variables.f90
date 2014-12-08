@@ -19,9 +19,9 @@ module module_global_variables
 
     !input parameters for mhgps
     integer          :: mhgps_verbosity     = 3
-    character(len=10) :: efmethod            = "LJ" !method/force-field
-                                                   !for energies,
-                                                   !stresses and
+!    character(len=10) :: efmethod            = "LJ" !method/force-field
+!                                                   !for energies,
+!                                                   !stresses and
                                                    !forces
     logical          :: external_mini       = .false.
     character(len=5) :: input_dir           = "input"
@@ -104,6 +104,7 @@ module module_global_variables
     character(len=3), parameter :: prefix='pos'
     character(len=5)      :: isadc
     integer               :: isad
+    integer               :: ntodo
     character(len=5)      :: isadprobc
     integer               :: isadprob=0
     real(gp)              :: en_delta_min, fp_delta_min

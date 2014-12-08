@@ -266,6 +266,7 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   ! Add multipole preserving information
   atoms%multipole_preserving = in%multipole_preserving
+  atoms%mp_isf = in%mp_isf
 
   ! Generate orbital occupation
   call read_n_orbitals(bigdft_mpi%iproc, nelec_up, nelec_down, norb_max, atoms, &

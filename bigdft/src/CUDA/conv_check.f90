@@ -1,7 +1,7 @@
 !> @file
 !!  Test of convolutions
 !! @author
-!!    Copyright (C) 2008-2012 BigDFT group 
+!!    Copyright (C) 2008-2014 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -36,6 +36,9 @@ program conv_check_cuda
   integer, parameter :: lowfilK=-14,lupfilK=14 ! kinetic term
   real(kind=8), dimension(lowfilK:lupfilK) :: fil
   integer(kind=8) :: tsc0, tsc1
+
+  !Initiliaze the f_lib library (f_malloc, yaml, ...)
+  call f_lib_initialize()
 
 !!!  !Use arguments
 !!!  call getarg(1,chain)
@@ -766,6 +769,9 @@ program conv_check_cuda
   else 
      print *,'wrong ndim',ndim
   end if
+   
+  !Finalize the f_lib (report and so on.)
+  call f_lib_finalize()
 
 contains
 
