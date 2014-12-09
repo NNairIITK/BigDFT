@@ -76,7 +76,7 @@ module bigdft_run
   public :: bigdft_get_units, bigdft_set_units
   public :: bigdft_get_astruct_ptr,bigdft_write_atomic_file,bigdft_set_run_properties
   public :: bigdft_norb,bigdft_get_eval,bigdft_run_id_toa,bigdft_get_rxyz
-  public :: bigdft_dot,bigdft_nrm2!,bigdft_run_validate
+  public :: bigdft_dot,bigdft_nrm2
 
 !!$  ! interfaces of external routines 
 !!$  interface
@@ -454,92 +454,6 @@ contains
     end if
 
   END SUBROUTINE run_objects_associate
-
-
-
-!!$  !> this routine controls that the keys which are defined in the 
-!!$  !! input dictionary are all valid.
-!!$  !! in case there are some keys which are different, raise an error
-!!$  subroutine bigdft_run_validate(dict)
-!!$    use dictionaries
-!!$    use yaml_output
-!!$    use module_base, only: bigdft_mpi
-!!$    use public_keys, only: POSINP, PERF_VARIABLES, DFT_VARIABLES, KPT_VARIABLES, &
-!!$         & GEOPT_VARIABLES, MIX_VARIABLES, SIC_VARIABLES, TDDFT_VARIABLES, LIN_GENERAL, &
-!!$         & LIN_BASIS, LIN_KERNEL, LIN_BASIS_PARAMS, OCCUPATION, IG_OCCUPATION, FRAG_VARIABLES, &
-!!$         & MODE_VARIABLES
-!!$    implicit none
-!!$    type(dictionary), pointer :: dict
-!!$    !local variables
-!!$    logical :: found
-!!$    type(dictionary), pointer :: valid_entries,valid_patterns
-!!$    type(dictionary), pointer :: iter,invalid_entries,iter2
-!!$
-!!$
-!!$    !> fill the list of valid entries
-!!$    valid_entries=>list_new([&
-!!$         .item. OUTDIR,&
-!!$         .item. RADICAL_NAME,&
-!!$         .item. USE_FILES,&
-!!$         .item. INPUT_NAME,&
-!!$         .item. LOGFILE,&
-!!$         .item. POSINP,&
-!!$         .item. MODE_VARIABLES,&
-!!$         .item. PERF_VARIABLES,&  
-!!$         .item. DFT_VARIABLES,&   
-!!$         .item. KPT_VARIABLES,&   
-!!$         .item. GEOPT_VARIABLES,& 
-!!$         .item. MIX_VARIABLES,&   
-!!$         .item. SIC_VARIABLES,&   
-!!$         .item. TDDFT_VARIABLES,& 
-!!$         .item. LIN_GENERAL,&     
-!!$         .item. LIN_BASIS,&       
-!!$         .item. LIN_KERNEL,&      
-!!$         .item. LIN_BASIS_PARAMS,&
-!!$         .item. OCCUPATION,&
-!!$         .item. IG_OCCUPATION,&
-!!$         .item. FRAG_VARIABLES])
-!!$
-!!$    !then the list of vaid patterns
-!!$    valid_patterns=>list_new(&
-!!$         .item. 'psppar' &
-!!$         )
-!!$
-!!$    call dict_init(invalid_entries)
-!!$    !for any of the keys of the dictionary iterate to find if it is allowed
-!!$    iter=>dict_iter(dict)
-!!$    do while(associated(iter))
-!!$       if ((valid_entries .index. dict_key(iter)) < 0) then
-!!$          found=.false.
-!!$          iter2=>dict_iter(valid_patterns)
-!!$          !check also if the key contains the allowed patterns
-!!$          find_patterns: do while(associated(iter2))
-!!$             if (index(dict_key(iter),trim(dict_value(iter2))) > 0) then
-!!$                found=.true.
-!!$                exit find_patterns
-!!$             end if
-!!$             iter2=>dict_next(iter2)
-!!$          end do find_patterns
-!!$          if (.not. found) call add(invalid_entries,dict_key(iter))
-!!$       end if
-!!$       iter=>dict_next(iter)
-!!$    end do
-!!$
-!!$    if (dict_len(invalid_entries) > 0) then
-!!$       if (bigdft_mpi%iproc==0) then
-!!$          call yaml_map('Allowed keys',valid_entries)
-!!$          call yaml_map('Allowed key patterns',valid_patterns)
-!!$          call yaml_map('Invalid entries of the input dictionary',invalid_entries)
-!!$       end if
-!!$       call f_err_throw('The input dictionary contains invalid entries,'//&
-!!$            ' check above the valid entries',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-!!$    end if
-!!$
-!!$    call dict_free(invalid_entries)
-!!$    call dict_free(valid_entries)
-!!$    call dict_free(valid_patterns)
-!!$
-!!$  end subroutine bigdft_run_validate
 
   !> copy the atom position in runObject into a workspace
   !! or retrieve the positions from a file

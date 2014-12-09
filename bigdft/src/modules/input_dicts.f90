@@ -1149,7 +1149,6 @@ contains
     use module_atoms, only: set_astruct_from_file,atomic_structure,&
          nullify_atomic_structure,deallocate_atomic_structure,astruct_merge_to_dict
     use public_keys, only: POSINP
-    use bigdft_run, only: bigdft_get_run_properties
     use yaml_strings
     implicit none
     !Arguments
