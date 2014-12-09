@@ -99,7 +99,9 @@ program BigDFT2Wannier
 !!$   call memocc_set_memory_limit(memorylimit)
 
    if (bigdft_nruns(options) > 1) stop 'runs-file not supported for BigDFT2Wannier executable'
+   nullify(user_inputs)
    call dict_copy(user_inputs, options // 'BigDFT' // 0)
+   call create_log_file(user_inputs)
    call bigdft_get_run_properties(user_inputs, input_id = run_id, posinp_id = filename)
    call user_dict_from_files(user_inputs, trim(run_id), trim(filename), bigdft_mpi)
    call inputs_from_dict(input, atoms, user_inputs)
