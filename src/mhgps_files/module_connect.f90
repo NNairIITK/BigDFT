@@ -114,9 +114,9 @@ subroutine deallocate_connect_object(cobj)
     call f_free(cobj%tsgforces)
 end subroutine
 !=====================================================================
-recursive subroutine connect_recursively(nat,nid,alat,runObj,outs,rcov,nbond,&
-                     isame,iconnect,rxyz1,rxyz2,ener1,ener2,fp1,fp2,&
-                     nsad,cobj,connected)
+recursive subroutine connect_recursively(nat,nid,alat,runObj,outs,&
+                     rcov,nbond,isame,iconnect,rxyz1,rxyz2,ener1,&
+                     ener2,fp1,fp2,nsad,cobj,connected)
     !if called from outside recursion, connected has to be set 
     !to .true. and nsad=0
   use module_base
@@ -576,8 +576,7 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected
          'successful! STOP')
 
 end subroutine
-
-
+!=====================================================================
 !This non-recursive function was never really used. It is missing
 !some features of the recursive function.
 !Before being used, must be updated to same functionality as recursive
@@ -971,8 +970,7 @@ enddo
 enddo connectloop
 
 end subroutine
-
-
+!=====================================================================
 subroutine pushoff(nat,saddle,minmode,left,right)
     use module_base
     use module_misc
@@ -993,8 +991,7 @@ subroutine pushoff(nat,saddle,minmode,left,right)
     right = saddle + step
 
 end subroutine
-
-
+!=====================================================================
 subroutine pushoffsingle(nat,saddle,minmode,scl,pushed)
     use module_base, only: gp
     use module_misc
@@ -1043,8 +1040,7 @@ subroutine pushoffsingle(nat,saddle,minmode,scl,pushed)
 !    pushed = saddle + scl*step
 
 end subroutine
-
-
+!=====================================================================
 subroutine pushoff_assym(nat,saddle,minmode,scll,sclr,left,right)
     use module_base
     use module_misc
@@ -1064,6 +1060,7 @@ subroutine pushoff_assym(nat,saddle,minmode,scll,sclr,left,right)
     left = saddle - scll*step
     right = saddle + sclr*step
 end subroutine
+!=====================================================================
 subroutine write_todo(ntodo,nat,runObj,outs,left,right,eleft,eright)
     use module_base, only: gp
     use module_atoms, only: astruct_dump_to_file
@@ -1096,6 +1093,5 @@ subroutine write_todo(ntodo,nat,runObj,outs,left,right,eleft,eright)
              energy=eright,rxyz=right)
     endif
 end subroutine
-
-
+!=====================================================================
 end module
