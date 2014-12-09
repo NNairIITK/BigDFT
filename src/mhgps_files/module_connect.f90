@@ -224,7 +224,10 @@ recursive subroutine connect_recursively(nat,nid,alat,runObj,outs,&
         isad=isad-1
         write(isadc,'(i5.5)')isad
         connected=.false.
-        stop 'STOP saddle not converged'
+        call write_todo(ntodo,nat,runObj,outs,rxyz1,rxyz2,ener1,ener2)
+        call yaml_warning('(MHGPS) Saddle search not converged. '//&
+             'Aborting connecting attempt.')
+!        stop 'STOP saddle not converged'
     endif
 
     call fnrmandforcemax(cobj%fsad(1,1,nsad),fnrm,fmax,nat)

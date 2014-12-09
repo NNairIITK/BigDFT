@@ -168,6 +168,7 @@ subroutine findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,&
     fixfragmented=.false.
     converged=.false.
     subspaceSucc=.true.
+    optCurvConv=.true.
     tol=tolc
     displ=0.0_gp
     displold=0.0_gp
@@ -278,6 +279,7 @@ subroutine findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,&
         endif
         if(tooFar& !recompute lowest mode if walked too far
           .or. it==1& !compute lowest mode at first step
+!          .or. (.not. optCurvConv)&
           .or. (curv>=0.0_gp .and. &
                ((mod(it,recompIfCurvPos)==0).or. fnrm<fnrmtol))&
                                                   !For LJ
@@ -307,16 +309,19 @@ subroutine findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,&
 
             inputPsiId=1
             minmode = minmode / dnrm2(3*nat,minmode(1,1),1)
-            if(.not.optCurvConv)then
-                if(iproc==0)call yaml_warning('(MHGPS) opt_curv '//&
-                                              'failed')
-                converged=.false.
- stop 'opt_curv failed'
-                return
-            endif
+!            if(.not.optCurvConv)then
+!                if(iproc==0)call yaml_warning('(MHGPS) opt_curv '//&
+!                                              'failed')
+!                converged=.false.
+! stop 'opt_curv failed'
+!                return
+!            endif
             overlap=ddot(3*nat,minmodeold(1,1),1,minmode(1,1),1)
             if(iproc==0.and.mhgps_verbosity>=2)&
                 call yaml_map('  (MHGPS) minmode overlap',overlap)
+            if((.not.optCurvConv).and. (overlap <0.85d0))then
+                minmode=minmodeold
+            endif
             minmodeold=minmode
             displold=displ
             recompute=huge(1)
@@ -475,7 +480,7 @@ subroutine findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,&
   enddo
 
   if(iproc==0)call yaml_warning('(MHGPS) No convergence in findsad')
-stop 'no convergence in findsad'
+!stop 'no convergence in findsad'
     goto 2000
 
 1000 continue
@@ -551,11 +556,12 @@ subroutine opt_curv(itgeopt,imode,nat,alat,runObj,outs,alpha0,curvforcediff,nit,
     real(gp)                   :: ener_count,curv
     real(gp)                   :: fnrmtol,curvold,fnrm,curvp,fmax
     real(gp)                   :: dcurv,tt,cosangle
-    !real(gp) :: st
     real(gp)                   :: overlap
     logical                    :: subspaceSucc
     real(gp), dimension(3,nat) :: dxyzin0
     !internal
+    integer, parameter         :: nmaxrise=10
+    integer                    :: nrise, itup
     real(gp), dimension(3,nat) :: rxyzOld,delta
     real(gp)                   :: displr,displp
     !functions
@@ -571,6 +577,8 @@ subroutine opt_curv(itgeopt,imode,nat,alat,runObj,outs,alpha0,curvforcediff,nit,
         alpha=alpha0
     endif
 
+    nrise=0
+    itup=nint(ener_count)
     converged =.false.
     subspaceSucc=.true.
     displr=0.0_gp
@@ -587,10 +595,15 @@ subroutine opt_curv(itgeopt,imode,nat,alat,runObj,outs,alpha0,curvforcediff,nit,
         enddo
     endif
 
-     call mincurvforce(imode,nat,alat,runObj,outs,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
-          rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),curv,1,ener_count,&
-          iconnect,nbond,wold,alpha_stretch0,alpha_stretch)
-    if(imode==2)rxyz(:,:,nhist)=rxyz(:,:,nhist)+alpha_stretch*fstretch(:,:,nhist)
+    call mincurvforce(imode,nat,alat,runObj,outs,curvforcediff,&
+         rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
+         rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),&
+         fxyzraw(1,1,nhist),curv,1,ener_count,iconnect,nbond,wold,&
+         alpha_stretch0,alpha_stretch)
+    if(imode==2)then
+        rxyz(:,:,nhist)=rxyz(:,:,nhist)+&
+                        alpha_stretch*fstretch(:,:,nhist)
+    endif
 
     call fnrmandforcemax(fxyzraw(1,1,nhist),fnrm,fmax,nat)
     fnrm=sqrt(fnrm)
@@ -602,7 +615,7 @@ subroutine opt_curv(itgeopt,imode,nat,alat,runObj,outs,alpha0,curvforcediff,nit,
      write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5))')&
      '   (MHGPS) CUOPT ',nint(ener_count),0,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap,displr,displp
     itswitch=-2
-    do it=1,nit
+    minloop: do it=1,nit
         nhist=nhist+1
  
         if ((.not. subspaceSucc) .or. fnrm.gt.saddle_steepthresh_rot  .or. it.le.itswitch ) then
@@ -615,24 +628,23 @@ subroutine opt_curv(itgeopt,imode,nat,alat,runObj,outs,alpha0,curvforcediff,nit,
 
         ! make space in the history list
         if (nhist.gt.nhistx) then
-         nhist=nhistx
-         do ihist=0,nhist-1
-            do iat=1,nat
-               do l=1,3
-                  rxyz(l,iat,ihist)=rxyz(l,iat,ihist+1)
-                  fxyz(l,iat,ihist)=fxyz(l,iat,ihist+1)
-                  rxyzraw(l,iat,ihist)=rxyzraw(l,iat,ihist+1)
-                  fxyzraw(l,iat,ihist)=fxyzraw(l,iat,ihist+1)
-                  fstretch(l,iat,ihist)=fstretch(l,iat,ihist+1)
+            nhist=nhistx
+            do ihist=0,nhist-1
+                do iat=1,nat
+                    do l=1,3
+                        rxyz(l,iat,ihist)=rxyz(l,iat,ihist+1)
+                        fxyz(l,iat,ihist)=fxyz(l,iat,ihist+1)
+                        rxyzraw(l,iat,ihist)=rxyzraw(l,iat,ihist+1)
+                        fxyzraw(l,iat,ihist)=fxyzraw(l,iat,ihist+1)
+                        fstretch(l,iat,ihist)=fstretch(l,iat,ihist+1)
+                    enddo
                 enddo
-             enddo
-          enddo
-      endif
-
+            enddo
+        endif
 
         500 continue
-        call modify_gradient(nat,ndim,rrr(1,1,1),eval(1),res(1),fxyz(1,1,nhist-1),alpha,dd(1,1))
-
+        call modify_gradient(nat,ndim,rrr(1,1,1),eval(1),res(1),&
+             fxyz(1,1,nhist-1),alpha,dd(1,1))
 
         tt=0.0_gp
         do iat=1,nat
@@ -648,90 +660,96 @@ subroutine opt_curv(itgeopt,imode,nat,alat,runObj,outs,alpha0,curvforcediff,nit,
             rxyz(3,iat,nhist)=rxyz(3,iat,nhist-1)-dd(3,iat)
         enddo
 
-     delta=rxyz(:,:,nhist)-rxyzOld
-     displr=displr+dnrm2(3*nat,delta(1,1),1)
-     call mincurvforce(imode,nat,alat,runObj,outs,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
-          rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),fxyzraw(1,1,nhist),&
-          curvp,1,ener_count,iconnect,nbond,wold,alpha_stretch0,alpha_stretch)
-     dcurv=curvp-curvold
-
+        delta=rxyz(:,:,nhist)-rxyzOld
+        displr=displr+dnrm2(3*nat,delta(1,1),1)
+        call mincurvforce(imode,nat,alat,runObj,outs,curvforcediff,&
+             rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist),&
+             rxyzraw(1,1,nhist),fxyz(1,1,nhist),fstretch(1,1,nhist),&
+             fxyzraw(1,1,nhist),curvp,1,ener_count,iconnect,nbond,&
+             wold,alpha_stretch0,alpha_stretch)
+        dcurv=curvp-curvold
 
         call fnrmandforcemax(fxyzraw(1,1,nhist),fnrm,fmax,nat)
         fnrm=sqrt(fnrm)
         cosangle=-dot_double(3*nat,fxyz(1,1,nhist),1,dd(1,1),1)/&
-                sqrt(dot_double(3*nat,fxyz(1,1,nhist),1,fxyz(1,1,nhist),1)*&
-                dot_double(3*nat,dd(1,1),1,dd(1,1),1))
-
+                  sqrt(dot_double(3*nat,fxyz(1,1,nhist),1,&
+                  fxyz(1,1,nhist),1)*&
+                  dot_double(3*nat,dd(1,1),1,dd(1,1),1))
 
         if (dcurv.gt.maxcurvrise .and. alpha>1.e-1_gp*alpha0) then 
+            itup=nint(ener_count)
+            nrise=nrise+1
             if(iproc==0 .and. mhgps_verbosity>=3)&
-                call yaml_comment('INFO: (MHGPS) Curv. raised by more than maxcurvrise '//&
-                     trim(yaml_toa(it))//''//trim(yaml_toa(dcurv)))
+                call yaml_comment('INFO: (MHGPS) Curv. raised by'//&
+                     ' more than maxcurvrise '//trim(yaml_toa(it))//&
+                     ''//trim(yaml_toa(dcurv)))
             overlap=ddot(3*nat,dxyzin0(1,1),1,rxyz(1,1,nhist),1)
             if(iproc==0.and.mhgps_verbosity>=2)&
                 write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5))')&
                 '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap,displr,displp
-            !alpha=min(.5_gp*alpha,alpha0)
             alpha=.5_gp*alpha
             if(iproc==0 .and. mhgps_verbosity>=3)&
                 call yaml_comment('INFO: (MHGPS) alpha reset (opt. curv): '//&
                      trim(yaml_toa(alpha)))
             ndim=0
-        if((.not. isForceField) .and. (inputPsiId/=0))then
-            if(iproc==0 .and. mhgps_verbosity>=3)&
-                call yaml_comment('INFO: (MHGPS) Will use LCAO input guess from now on '//&
-                '(until end of current minmode optimization).')
-            inputPsiId=0
-            call mincurvforce(imode,nat,alat,runObj,outs,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist-1),&
-                rxyzraw(1,1,nhist-1),fxyz(1,1,nhist-1),fstretch(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
-                curvold,1,ener_count,iconnect,nbond,wold,alpha_stretch0,alpha_stretch)
-            if(iproc==0.and.mhgps_verbosity>=2)&
+            if((.not. isForceField) .and. (inputPsiId/=0))then
+                if(iproc==0 .and. mhgps_verbosity>=3)&
+                    call yaml_comment('INFO: (MHGPS) Will use LCAO input guess from now on '//&
+                    '(until end of current minmode optimization).')
+                inputPsiId=0
+                call mincurvforce(imode,nat,alat,runObj,outs,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),rxyz(1,1,nhist-1),&
+                    rxyzraw(1,1,nhist-1),fxyz(1,1,nhist-1),fstretch(1,1,nhist-1),fxyzraw(1,1,nhist-1),&
+                    curvold,1,ener_count,iconnect,nbond,wold,alpha_stretch0,alpha_stretch)
+                if(iproc==0.and.mhgps_verbosity>=2)&
                  write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es9.2,2(1x,es12.5))')&
                  '   (MHGPS)1 CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,displr,displp
-        endif
+            endif
 
-!            if(.not.steep)then
-                do iat=1,nat
-                    rxyz(1,iat,0)=rxyzraw(1,iat,nhist-1)
-                    rxyz(2,iat,0)=rxyzraw(2,iat,nhist-1)
-                    rxyz(3,iat,0)=rxyzraw(3,iat,nhist-1)
-                    rxyzraw(1,iat,0)=rxyzraw(1,iat,nhist-1)
-                    rxyzraw(2,iat,0)=rxyzraw(2,iat,nhist-1)
-                    rxyzraw(3,iat,0)=rxyzraw(3,iat,nhist-1)
-
-                    fxyz(1,iat,0)=fxyzraw(1,iat,nhist-1)
-                    fxyz(2,iat,0)=fxyzraw(2,iat,nhist-1)
-                    fxyz(3,iat,0)=fxyzraw(3,iat,nhist-1)
-                    fxyzraw(1,iat,0)=fxyzraw(1,iat,nhist-1)
-                    fxyzraw(2,iat,0)=fxyzraw(2,iat,nhist-1)
-                    fxyzraw(3,iat,0)=fxyzraw(3,iat,nhist-1)
-                enddo
-                nhist=1
-!            endif
+            do iat=1,nat
+                rxyz(1,iat,0)=rxyzraw(1,iat,nhist-1)
+                rxyz(2,iat,0)=rxyzraw(2,iat,nhist-1)
+                rxyz(3,iat,0)=rxyzraw(3,iat,nhist-1)
+                rxyzraw(1,iat,0)=rxyzraw(1,iat,nhist-1)
+                rxyzraw(2,iat,0)=rxyzraw(2,iat,nhist-1)
+                rxyzraw(3,iat,0)=rxyzraw(3,iat,nhist-1)
+ 
+                fxyz(1,iat,0)=fxyzraw(1,iat,nhist-1)
+                fxyz(2,iat,0)=fxyzraw(2,iat,nhist-1)
+                fxyz(3,iat,0)=fxyzraw(3,iat,nhist-1)
+                fxyzraw(1,iat,0)=fxyzraw(1,iat,nhist-1)
+                fxyzraw(2,iat,0)=fxyzraw(2,iat,nhist-1)
+                fxyzraw(3,iat,0)=fxyzraw(3,iat,nhist-1)
+            enddo
+            nhist=1
             goto  500
         endif
-     curv=curvp
-     curvold=curv
-
-     delta=rxyz(:,:,nhist)-rxyzOld
-     displp=displp+dnrm2(3*nat,delta(1,1),1)
-     rxyzOld=rxyz(:,:,nhist)
+        if (dcurv.gt.maxcurvrise) then 
+            itup=nint(ener_count)
+            nrise=nrise+1
+        else if(nint(ener_count)-itup>5)then
+            nrise=0
+        endif
+        curv=curvp
+        curvold=curv
+    
+        delta=rxyz(:,:,nhist)-rxyzOld
+        displp=displp+dnrm2(3*nat,delta(1,1),1)
+        rxyzOld=rxyz(:,:,nhist)
         overlap=ddot(3*nat,dxyzin0(1,1),1,rxyz(1,1,nhist),1)
-    if(iproc==0.and.mhgps_verbosity>=2)&
-     write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5))')&
-     '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap,displr,displp
-!        if (fnrm.le.fnrmtol) goto 1000
-    do iat=1,nat
-        do l=1,3
-            dxyzin(l,iat)= rxyz(l,iat,nhist) !to be done before stretch modification
+        if(iproc==0.and.mhgps_verbosity>=2)&
+            write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5))')&
+           '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, alpha,ndim,alpha_stretch,overlap,displr,displp
+
+        do iat=1,nat
+            do l=1,3
+                dxyzin(l,iat)= rxyz(l,iat,nhist) !to be done before stretch modification
+            enddo
         enddo
-    enddo
+
         if(imode==2)then
             rxyz(:,:,nhist)=rxyz(:,:,nhist)+alpha_stretch*fstretch(:,:,nhist)
         endif
 
-!        cosangle=-st/sqrt((t1+t2+t3)*s)
-!write(*,*)'cosangle',cosangle
         if (cosangle.gt..20_gp) then
             alpha=alpha*1.10_gp
         else
@@ -739,15 +757,24 @@ subroutine opt_curv(itgeopt,imode,nat,alat,runObj,outs,alpha0,curvforcediff,nit,
         endif
 
 
-       call getSubSpaceEvecEval('(MHGPS)',iproc,mhgps_verbosity,nat,nhist,&
-                              nhistx,ndim,cutoffratio,lwork,work,rxyz,&
-                              fxyz,aa,rr,ff,rrr,fff,eval,res,subspaceSucc)
-       if(.not.subspaceSucc)stop 'subroutine findsad: no success in getSubSpaceEvecEval.'
+        call getSubSpaceEvecEval('(MHGPS)',iproc,mhgps_verbosity,nat,nhist,&
+                               nhistx,ndim,cutoffratio,lwork,work,rxyz,&
+                               fxyz,aa,rr,ff,rrr,fff,eval,res,subspaceSucc)
+        if(.not.subspaceSucc)stop 'subroutine findsad: no success in getSubSpaceEvecEval.'
 !        if (fnrm.le.fnrmtol) goto 1000 !has to be in this line for shared history case
         if (fnrm.le.fnrmtol.or.(overlap<minoverlap.and.itgeopt>1)) goto 1000 !has to be in this line for shared history case
-    enddo
+        if(nrise>nmaxrise)then
+            if(iproc==0)then
+                call yaml_warning('(MHGPS) opt_curv failed because nrise > nmaxrise. Wrong finite difference or errors in energies and forces.')
+                if(.not. isForceField)then
+                    call yaml_warning('(MHGPS) Did QM method converge?')
+                endif
+            endif
+            exit minloop
+        endif
+    enddo minloop
     write(*,*) "No convergence in optcurv"
-stop 'no convergence in optcurv'
+!stop 'no convergence in optcurv'
     return
     1000 continue
     converged=.true.

@@ -46,6 +46,7 @@ subroutine get_ts_guess(nat,alat,runObj,outs,rxyz1,rxyz2,tsguess,minmodeguess,&
     real(gp), intent(out) :: tsgenergy, tsgforces(3,nat)
     !internal
     real(gp) :: efcounter_start
+    logical :: success
 
     efcounter_start=ef_counter
     if(iproc==0)then
@@ -53,17 +54,21 @@ subroutine get_ts_guess(nat,alat,runObj,outs,rxyz1,rxyz2,tsguess,minmodeguess,&
                           hfill='-')
     endif
     if(perpnrmtol<=0.0_gp .or. nstepsmax <= 0)then
-        call get_ts_guess_linsyn(nat,alat,runObj,outs,rxyz1,rxyz2,tsguess,&
-             minmodeguess,tsgenergy,tsgforces)
+        call get_ts_guess_linsyn(nat,alat,runObj,outs,rxyz1,rxyz2,&
+             tsguess,minmodeguess,tsgenergy,tsgforces)
     else
-        call get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,tsguess,&
-             minmodeguess,tsgenergy,tsgforces)
+        call get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,&
+             tsguess,minmodeguess,tsgenergy,tsgforces,success)
+        if(.not.success)then
+            call get_ts_guess_linsyn(nat,alat,runObj,outs,rxyz1,&
+                 rxyz2,tsguess, minmodeguess,tsgenergy,tsgforces)
+        endif
     endif
     if(iproc==0)call yaml_map('(MHGPS) # Energy evaluations for '//&
                               'TS guess:',ef_counter-efcounter_start)
 end subroutine
-subroutine get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,tsguess,minmodeguess,&
-                        tsgenergy,tsgforces)
+subroutine get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,&
+           tsguess,minmodeguess,tsgenergy,tsgforces,success)
     use module_base
     use yaml_output
     use module_global_variables,&
@@ -84,6 +89,7 @@ subroutine get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,tsguess,minmodeg
     real(gp), intent(in) :: rxyz1(3,nat),rxyz2(3,nat)
     real(gp), intent(out) :: tsguess(3,nat),minmodeguess(3,nat)
     real(gp), intent(out) :: tsgenergy, tsgforces(3,nat)
+    logical, intent(out) :: success
     !internal
     integer :: finished
     integer :: i,j,iat
@@ -110,8 +116,9 @@ subroutine get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,tsguess,minmodeg
     call vcopy(3*nat, rxyz1(1,1), 1, string(1,1,1), 1)
     call vcopy(3*nat, rxyz2(1,1), 1, string(1,2,1), 1)
     
-    call grow_freezstring(nat,alat,runObj,outs,gammainv,perpnrmtol,trust,&
-        nstepsmax,nstringmax,nstring,string,finished)
+    call grow_freezstring(nat,alat,runObj,outs,gammainv,perpnrmtol,&
+         trust,nstepsmax,nstringmax,nstring,string,finished,success)
+    if(.not. success)return
 
     nnodes=2*nstring
     ncorr =0
@@ -320,7 +327,7 @@ end subroutine
 
 
 subroutine grow_freezstring(nat,alat,runObj,outs,gammainv,perpnrmtol,trust,&
-                       nstepsmax,nstringmax,nstring,string,finished)
+                       nstepsmax,nstringmax,nstring,string,finished,success)
     use module_base
     use yaml_output
     use module_global_variables, only: iproc
@@ -343,6 +350,7 @@ subroutine grow_freezstring(nat,alat,runObj,outs,gammainv,perpnrmtol,trust,&
     real(gp) , intent(in) :: trust
     real(gp) , intent(in) :: alat(3)
     real(gp), allocatable, intent(inout) :: string(:,:,:)
+    logical, intent(out) :: success
     !constants
     character(len=10), parameter :: method = 'linlst'
     !internal
@@ -354,7 +362,10 @@ subroutine grow_freezstring(nat,alat,runObj,outs,gammainv,perpnrmtol,trust,&
     real(gp) :: step
     real(gp) :: perpnrmtol_squared
     real(gp) :: trust_squared
+    integer,parameter :: nresizemax=1
     integer :: nresizes
+
+    success=.true.
     
     finished=2
 
@@ -371,7 +382,7 @@ subroutine grow_freezstring(nat,alat,runObj,outs,gammainv,perpnrmtol,trust,&
     nstring=1
     step=-1._gp
     nresizes=0
-    do!maximum 100 resizes of string array
+    do!maximum nresizemax resizes of string array
         istart=nstring
         !actual string growing is done 
         !in the following loop
@@ -395,10 +406,11 @@ subroutine grow_freezstring(nat,alat,runObj,outs,gammainv,perpnrmtol,trust,&
         !What follows is just resizing of string array, 
         !if needed.
         nresizes=nresizes+1
-        if(nresizes>100)then
-            call yaml_warning('(MHGPS) STOP, too many '//&
-                        'resizes in grow_freezstring')
-            stop
+        if(nresizes>nresizemax)then
+            call yaml_warning('(MHGPS) Too many '//&
+                        'resizes in grow_freezstring. Wrong forces?.')
+            success=.false.
+            return
         endif
         if(allocated(stringTmp))then
 !            deallocate(stringTmp)
