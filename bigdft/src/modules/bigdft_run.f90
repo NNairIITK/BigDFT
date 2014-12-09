@@ -18,7 +18,7 @@ module bigdft_run
        nullify_f_ref
   use f_utils
   use module_input_dicts, only: bigdft_set_run_properties => dict_set_run_properties,&
-       bigdft_get_run_properties => dict_get_run_properties,dict_run_new
+       bigdft_get_run_properties => dict_get_run_properties
   private
 
   !>  Used to restart a new DFT calculation or to save information 
@@ -71,7 +71,8 @@ module bigdft_run
   public :: state_properties_set_from_dict,bigdft_get_rxyz_ptr
   public :: run_objects_init,bigdft_init,bigdft_command_line_options,bigdft_nruns
   public :: init_QM_restart_objects,init_MM_restart_objects,set_run_objects,nullify_QM_restart_objects
-  public :: bigdft_nat,bigdft_state,free_run_objects,bigdft_run_new
+  public :: nullify_MM_restart_objects
+  public :: bigdft_nat,bigdft_state,free_run_objects
   public :: release_run_objects,bigdft_get_cell,bigdft_get_geocode,bigdft_get_run_properties
   public :: bigdft_get_units, bigdft_set_units
   public :: bigdft_get_astruct_ptr,bigdft_write_atomic_file,bigdft_set_run_properties
@@ -454,6 +455,7 @@ contains
     end if
 
   END SUBROUTINE run_objects_associate
+
 
   !> copy the atom position in runObject into a workspace
   !! or retrieve the positions from a file
@@ -1699,7 +1701,8 @@ subroutine run_objects_init_from_run_name(runObj, radical, posinp)
   !create the ad-hoc dictionary run to wrap the module routine
   !run_dict => dict_new('name' .is. radical, 'posinp' .is. posinp)
 
-  call dict_init(run_dict)
+  !call bigdft_run_new(run_dict)
+  nullify(run_dict)
   call bigdft_set_run_properties(run_dict,run_id=radical,posinp_id=posinp)
 
   call run_objects_init(runObj,run_dict)
@@ -1711,6 +1714,7 @@ subroutine run_objects_update(runObj, dict)
   use bigdft_run, only: run_objects,init_QM_restart_objects,init_MM_restart_objects,set_run_objects,bigdft_nat
   use dictionaries!, only: dictionary, dict_update,dict_copy,dict_free,dict_iter,dict_next
   use yaml_output
+  use module_input_dicts, only: create_log_file
   implicit none
   type(run_objects), intent(inout) :: runObj
   type(dictionary), pointer :: dict
@@ -1729,6 +1733,8 @@ subroutine run_objects_update(runObj, dict)
 
   ! We merge the previous dictionary with new entries.
   call dict_update(runObj%user_inputs, dict)
+
+  call create_log_file(runObj%user_inputs)
 
   ! Parse new dictionary.
   call set_run_objects(runObj)
