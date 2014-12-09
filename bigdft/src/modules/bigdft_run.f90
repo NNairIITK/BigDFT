@@ -69,6 +69,7 @@ module bigdft_run
   public :: state_properties_set_from_dict,bigdft_get_rxyz_ptr
   public :: run_objects_init,bigdft_init,bigdft_command_line_options,bigdft_nruns
   public :: init_QM_restart_objects,init_MM_restart_objects,set_run_objects,nullify_QM_restart_objects
+  public :: nullify_MM_restart_objects
   public :: bigdft_nat,bigdft_state,free_run_objects,bigdft_run_new
   public :: release_run_objects,bigdft_get_cell,bigdft_get_geocode,bigdft_get_run_properties
   public :: bigdft_get_units, bigdft_set_units

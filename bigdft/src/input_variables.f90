@@ -131,7 +131,8 @@ subroutine inputs_from_dict(in, atoms, dict)
   use dictionaries
   use module_input_keys
   use public_keys, only: POSINP, IG_OCCUPATION, CONSTRAINED_DFT, FRAG_VARIABLES, &
-       & KPT_VARIABLES, LIN_BASIS_PARAMS, OCCUPATION, TRANSFER_INTEGRALS
+       & KPT_VARIABLES, LIN_BASIS_PARAMS, OCCUPATION, TRANSFER_INTEGRALS, DFT_VARIABLES, &
+       & HGRIDS, RMULT, PROJRAD, IXC, PERF_VARIABLES
   use module_input_dicts
   use dynamic_memory
   use module_xc
@@ -149,16 +150,17 @@ subroutine inputs_from_dict(in, atoms, dict)
   type(dictionary), pointer :: dict
   !Local variables
   !type(dictionary), pointer :: profs, dict_frag
-  logical :: found
-  integer :: ierr, ityp, nelec_up, nelec_down, norb_max, jtype
+  logical :: found, userdef
+  integer :: ierr, nelec_up, nelec_down, norb_max, jtype, jxc
   character(len = max_field_length) :: msg,filename,run_id,input_id,posinp_id,outdir
 !  type(f_dict) :: dict
-  type(dictionary), pointer :: dict_minimal, var, lvl
+  type(dictionary), pointer :: dict_minimal, var, lvl, types
 
   integer, parameter :: pawlcutd = 10, pawlmix = 10, pawnphi = 13, pawntheta = 12, pawxcdev = 1
   integer, parameter :: xclevel = 1, usepotzero = 0
   integer :: nsym
-  real(gp) :: gsqcut_shp
+  real(gp) :: gsqcut_shp, rloc, projr, rlocmin
+  real(gp), dimension(2) :: cfrmults
 
 !  dict => dict//key
 
@@ -171,6 +173,8 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   if (.not. has_key(dict, POSINP)) stop "missing posinp"
   call astruct_set_from_dict(dict // POSINP, atoms%astruct)
+  ! Generate the dict of types for later use.
+  call astruct_dict_get_types(dict // POSINP, types)
 
   ! Input variables case.
   call default_input_variables(in)
@@ -179,6 +183,33 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   ! extract also the minimal dictionary which is necessary to do this run
   call input_keys_fill_all(dict,dict_minimal)
+
+  ! Add missing pseudo information.
+  projr = dict // PERF_VARIABLES // PROJRAD
+  cfrmults = dict // DFT_VARIABLES // RMULT
+  jxc = dict // DFT_VARIABLES // IXC
+  var => dict_iter(types)
+  do while(associated(var))
+     call psp_dict_fill_all(dict, trim(dict_key(var)), jxc, projr, cfrmults(1), cfrmults(2))
+     var => dict_next(var)
+  end do
+
+  ! Update interdependant values.
+  rlocmin = 999._gp
+  var => dict_iter(types)
+  do while(associated(var))
+     call psp_set_from_dict(dict // ("psppar." // trim(dict_key(var))), rloc = rloc)
+     rlocmin = min(rloc, rlocmin)
+     var => dict_next(var)
+  end do
+  select case (trim(input_keys_get_source(dict // DFT_VARIABLES, HGRIDS, userdef)))
+     case ("accurate")
+        call set(dict // DFT_VARIABLES // HGRIDS, (/ rlocmin, rlocmin, rlocmin /) * 1.25_gp)
+     case ("normal")
+        call set(dict // DFT_VARIABLES // HGRIDS, (/ rlocmin, rlocmin, rlocmin /) * 1.75_gp)
+     case ("fast")
+        call set(dict // DFT_VARIABLES // HGRIDS, (/ rlocmin, rlocmin, rlocmin /) * 2.5_gp)
+  end select
 
   ! Transfer dict values into input_variables structure.
   lvl => dict_iter(dict)
@@ -208,36 +239,36 @@ subroutine inputs_from_dict(in, atoms, dict)
           dest=filename)
   if (.not. in%debug) then
      if (in%verbosity==3) then
-        call f_malloc_set_status(output_level=1,&
-             iproc=bigdft_mpi%iproc,logfile_name=filename)
+        call f_malloc_set_status(output_level=1, iproc=bigdft_mpi%iproc,logfile_name=filename)
      else
-        call f_malloc_set_status(output_level=0,&
-             iproc=bigdft_mpi%iproc)
+        call f_malloc_set_status(output_level=0, iproc=bigdft_mpi%iproc)
      end if
   else
-     call f_malloc_set_status(output_level=2,&
-          iproc=bigdft_mpi%iproc,logfile_name=filename)
+     call f_malloc_set_status(output_level=2, iproc=bigdft_mpi%iproc,logfile_name=filename)
   end if
 
   call nullifyInputLinparameters(in%lin)
   call allocateBasicArraysInputLin(in%lin, atoms%astruct%ntypes)
 
   !First fill all the types by the default, then override by per-type values
-  do jtype=1,atoms%astruct%ntypes
+  lvl => dict_iter(types)
+  do while(associated(lvl))
+     jtype = lvl
      var => dict_iter(dict//LIN_BASIS_PARAMS)
      do while(associated(var))
         call basis_params_set_dict(var,in%lin,jtype)
         var => dict_next(var)
      end do
      !then check if the objects exists in separate specifications
-     if (has_key(dict//LIN_BASIS_PARAMS,trim(atoms%astruct%atomnames(jtype)))) then
+     if (has_key(dict//LIN_BASIS_PARAMS,trim(dict_key(lvl)))) then
         var => &
-             dict_iter(dict//LIN_BASIS_PARAMS//trim(atoms%astruct%atomnames(jtype)))
+             dict_iter(dict//LIN_BASIS_PARAMS//trim(dict_key(lvl)))
      end if
      do while(associated(var))
         call basis_params_set_dict(var,in%lin,jtype)
         var => dict_next(var)
      end do
+     lvl => dict_next(lvl)
   end do
 
   call allocate_extra_lin_arrays(in%lin,in%nspin,atoms%astruct)
@@ -253,12 +284,6 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   call kpt_input_analyse(bigdft_mpi%iproc, in, dict//KPT_VARIABLES, &
        & atoms%astruct%sym, atoms%astruct%geocode, atoms%astruct%cell_dim)
-
-  ! Add missing pseudo information.
-  do ityp = 1, atoms%astruct%ntypes, 1
-     call psp_dict_fill_all(dict, atoms%astruct%atomnames(ityp), in%ixc, &
-          & in%projrad, in%crmult, in%frmult)
-  end do
 
   ! Update atoms with pseudo information.
   call psp_dict_analyse(dict, atoms)
@@ -363,6 +388,10 @@ subroutine inputs_from_dict(in, atoms, dict)
   else
      call default_fragmentInputParameters(in%frag)
   end if
+
+  ! No use anymore of the types.
+  call dict_free(types)
+
   if (bigdft_mpi%iproc==0) then
      call input_keys_dump(dict)
   end if
