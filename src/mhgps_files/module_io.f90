@@ -9,7 +9,8 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!> Module handling input/output for minima hopping method
+!> Module handling input/output for minima hopping guided
+!! path sampling
 module module_io
 
     implicit none
@@ -19,10 +20,13 @@ module module_io
     public :: read_mode
     public :: write_mode
     public :: read_jobs
+    public :: write_jobs
+    public :: read_restart
+    public :: write_restart
     public :: get_first_struct_file
 
 contains
-
+!=====================================================================
 subroutine get_first_struct_file(filename)
     use module_base
     use module_global_variables, only: operation_mode,&
@@ -30,7 +34,7 @@ subroutine get_first_struct_file(filename)
     implicit none
     !parameter
     character(len=200), intent(out) :: filename
-    !internal
+    !local
     integer :: istat,u
     character(len=33) :: line
     logical :: exists
@@ -54,6 +58,62 @@ subroutine get_first_struct_file(filename)
         call check_struct_file_exists(filename)
     endif
 end subroutine
+!=====================================================================
+subroutine write_jobs(njobs,joblist,idone)
+    use module_base
+    use module_global_variables, only: currdir
+    implicit none
+    !parameters
+    integer, intent(in) :: njobs
+    character(len=100)   :: joblist(2,999)
+    integer, intent(in)  :: idone
+    !local
+    integer :: ijob, u
+
+    u=f_get_free_unit()
+    open(unit=u,file=trim(adjustl(currdir))//'/job_list_restart')
+    do ijob=idone+1,njobs
+        write(u,'(a,1x,a)')trim(adjustl(joblist(1,ijob)(10:))),&
+                           trim(adjustl(joblist(2,ijob)(10:)))
+    enddo
+    close(u)
+     
+end subroutine write_jobs
+!=====================================================================
+subroutine read_restart(isad,isadprob,ntodo)
+    use module_base
+    implicit none
+    !parameters
+    integer, intent(out) :: isad, isadprob, ntodo
+    !local
+    integer :: u
+    logical :: exists
+    u=f_get_free_unit()
+    inquire(file='restart',exist=exists)
+    if(exists)then
+        open(unit=u,file='restart')
+        read(u,*)isad,isadprob
+        read(u,*)ntodo
+        close(u)
+    else
+        isad=0
+        ntodo=0
+    endif
+end subroutine read_restart
+!=====================================================================
+subroutine write_restart(isad,isadprob,ntodo)
+    use module_base
+    implicit none
+    integer, intent(in) :: isad, isadprob, ntodo
+    !local
+    integer :: u
+    u=f_get_free_unit()
+    open(unit=u,file='restart')
+    write(u,*)isad,isadprob
+    write(u,*)ntodo
+    close(u)
+end subroutine write_restart
+!=====================================================================
 subroutine read_jobs(njobs,joblist)
     !reads jobs from file or from available xyz/ascii files.
     !job file is limited to 999 lines
@@ -64,35 +124,45 @@ subroutine read_jobs(njobs,joblist)
     !parameters
     integer, intent(out) :: njobs
     character(len=100) :: joblist(2,999)
-    !internal
-    logical :: exists,fexists
+    !local
+    logical :: exists,fexists,exists_restart
     character(len=300) :: line
     character(len=6) :: filename
     integer :: ifile,iline,u,istat
+    character(len=50) :: jobfile
     inquire(file=trim(adjustl(currdir))//'/job_list',exist=exists)
+    if(exists)jobfile=trim(adjustl(currdir))//'/'//'job_list'
+    inquire(file=trim(adjustl(currdir))//'/job_list_restart',&
+                 exist=exists_restart)
+    if(exists_restart)jobfile=trim(adjustl(currdir))//'/'//&
+                      'job_list_restart'
     njobs=0
-    if(exists)then
+    if(exists .or. exists_restart)then
         u=f_get_free_unit()
-        open(unit=u,file=trim(adjustl(currdir))//'/job_list')
+        open(unit=u,file=trim(adjustl(jobfile)))
         if(trim(adjustl(operation_mode))=='connect'.or.&
                        trim(adjustl(operation_mode))=='guessonly')then
             do iline=1,999
                 read(u,'(a)',iostat=istat)line
                 if(istat/=0)exit
-                read(line,*,iostat=istat)joblist(1,iline),joblist(2,iline)
+                read(line,*,iostat=istat)joblist(1,iline),&
+                                         joblist(2,iline)
                 if(istat/=0)then
-                    call f_err_throw(trim(adjustl(currdir))//&
-                                 '/job_file wrong format for connect run')
+                    call f_err_throw(trim(adjustl(jobfile))//&
+                         ' wrong format for connect run')
                 endif
-                joblist(1,iline)=trim(adjustl(currdir))//'/'//joblist(1,iline)
-                joblist(2,iline)=trim(adjustl(currdir))//'/'//joblist(2,iline)
-                call check_struct_file_exists(trim(adjustl(joblist(1,iline))))
-                call check_struct_file_exists(trim(adjustl(joblist(2,iline))))
+                joblist(1,iline)=trim(adjustl(currdir))//'/'//&
+                                 joblist(1,iline)
+                joblist(2,iline)=trim(adjustl(currdir))//'/'//&
+                                 joblist(2,iline)
+                call check_struct_file_exists(&
+                     trim(adjustl(joblist(1,iline))))
+                call check_struct_file_exists(&
+                     trim(adjustl(joblist(2,iline))))
                 njobs=njobs+1
             enddo
             if(iline==1)then
-                call f_err_throw(trim(adjustl(currdir))//&
-                                '/job_file empty')
+                call f_err_throw(trim(adjustl(jobfile))//' empty')
             endif
         else if(trim(adjustl(operation_mode))=='simple'.or.&
                 trim(adjustl(operation_mode))=='hessian'.or.&
@@ -101,8 +171,11 @@ subroutine read_jobs(njobs,joblist)
                 read(u,'(a)',iostat=istat)line
                 if(istat/=0)exit
                 read(line,*)joblist(1,iline)
-                joblist(1,iline)=trim(adjustl(currdir))//'/'//joblist(1,iline)
-                call check_struct_file_exists(trim(adjustl(joblist(1,iline))))
+                joblist(1,iline)=trim(adjustl(currdir))//'/'//&
+                                 joblist(1,iline)
+                joblist(2,iline)=''
+                call check_struct_file_exists(&
+                     trim(adjustl(joblist(1,iline))))
                 njobs=njobs+1
             enddo
         endif
@@ -113,11 +186,13 @@ subroutine read_jobs(njobs,joblist)
             do ifile=1,998
                 write(filename,'(a,i3.3)')'pos',ifile
                 joblist(1,ifile)=trim(adjustl(currdir))//'/'//filename
-                call check_struct_file_exists(trim(adjustl(joblist(1,ifile))),fexists)
+                call check_struct_file_exists(&
+                     trim(adjustl(joblist(1,ifile))),fexists)
                 if(.not.fexists)exit
                 write(filename,'(a,i3.3)')'pos',ifile+1
                 joblist(2,ifile)=trim(adjustl(currdir))//'/'//filename
-                call check_struct_file_exists(trim(adjustl(joblist(2,ifile))),fexists)
+                call check_struct_file_exists(&
+                     trim(adjustl(joblist(2,ifile))),fexists)
                 if(.not.fexists)exit
                 njobs=njobs+1
             enddo
@@ -127,7 +202,9 @@ subroutine read_jobs(njobs,joblist)
             do ifile=1,999
                 write(filename,'(a,i3.3)')'pos',ifile
                 joblist(1,ifile)=trim(adjustl(currdir))//'/'//filename
-                call check_struct_file_exists(trim(adjustl(joblist(1,ifile))),fexists)
+                joblist(2,iline)=''
+                call check_struct_file_exists(&
+                     trim(adjustl(joblist(1,ifile))),fexists)
                 if(.not.fexists)exit
                 njobs=njobs+1
             enddo
@@ -135,14 +212,14 @@ subroutine read_jobs(njobs,joblist)
     endif
 
 end subroutine
-
+!=====================================================================
 subroutine check_struct_file_exists(filename,exists)
     use module_base
     implicit none
     !parameter
     character(len=*), intent(in) :: filename
     logical, optional, intent(out) :: exists
-    !internal
+    !local
     logical :: xyzexists=.false.,asciiexists=.false.
     integer :: indx,inda
 
@@ -158,7 +235,8 @@ subroutine check_struct_file_exists(filename,exists)
         inquire(file=trim(adjustl(filename)),exist=xyzexists)
     endif
     if(inda==0)then
-        inquire(file=trim(adjustl(filename))//'.ascii',exist=asciiexists)
+        inquire(file=trim(adjustl(filename))//'.ascii',&
+                exist=asciiexists)
     else
         inquire(file=trim(adjustl(filename)),exist=asciiexists)
     endif
@@ -171,7 +249,7 @@ subroutine check_struct_file_exists(filename,exists)
         endif
     endif
 end subroutine
-
+!=====================================================================
 subroutine read_mode(nat,filename,minmode)
     use module_base
     use module_types
@@ -184,7 +262,7 @@ subroutine read_mode(nat,filename,minmode)
     integer, intent(in) :: nat
     character(len=*), intent(in) :: filename
     real(gp), intent(inout) :: minmode(3,nat)
-    !internal
+    !local
     type(atomic_structure):: astruct !< Contains all info
 
 
@@ -202,8 +280,7 @@ subroutine read_mode(nat,filename,minmode)
     call vcopy(3 * astruct%nat,astruct%rxyz(1,1),1,minmode(1,1), 1)
     call deallocate_atomic_structure(astruct)
 end subroutine
-
-
+!=====================================================================
 subroutine write_mode(nat,runObj,outs,filename,minmode,rotforce)
     use module_base, only: gp
     use module_types
@@ -219,26 +296,18 @@ subroutine write_mode(nat,runObj,outs,filename,minmode,rotforce)
     character(len=*), intent(in) :: filename
     real(gp), intent(in) :: minmode(3,nat)
     real(gp), intent(in), optional :: rotforce(3,nat)
-    !internal
+    !local
     character(len=7) :: comment='minmode'
     character(len=20) :: units
 
     units=bigdft_get_units(runObj)
     call bigdft_set_units(runObj,'atomicd0')
     if(present(rotforce))then
-       call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),filename,trim(comment),&
-            rxyz=minmode,forces=rotforce)
-!!$
-!!$        call write_atomic_file(filename,&
-!!$              0.0_gp,minmode(1,1),ixyz_int,&
-!!$              atoms,trim(comment),forces=rotforce(1,1))
+       call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
+            filename,trim(comment),rxyz=minmode,forces=rotforce)
     else
-       call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),filename,trim(comment),&
-            rxyz=minmode)
-!!$
-!!$        call write_atomic_file(filename,&
-!!$              0.0_gp,minmode(1,1),ixyz_int,&
-!!$              atoms,trim(comment))
+       call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
+            filename,trim(comment),rxyz=minmode)
     endif
     call bigdft_set_units(runObj,units)
 end subroutine

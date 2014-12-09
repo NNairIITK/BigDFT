@@ -774,7 +774,7 @@ subroutine opt_curv(itgeopt,imode,nat,alat,runObj,outs,alpha0,curvforcediff,nit,
         endif
     enddo minloop
 !    write(*,*) "No convergence in optcurv"
-    call yaml_warning('(MHGPS) No convergence in optcurv.')
+    if(iproc==0)call yaml_warning('(MHGPS) No convergence in optcurv.')
 !stop 'no convergence in optcurv'
     return
     1000 continue

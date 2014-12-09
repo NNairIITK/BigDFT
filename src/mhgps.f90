@@ -77,9 +77,10 @@ program mhgps
 
     ifolder=1
     ef_counter=0.d0 !from module_global_variables
-    isad=0  !from module_global_variables
-    ntodo=0  !from module_global_variables
-    isadprob=0
+!    isad=0  !from module_global_variables
+!    ntodo=0  !from module_global_variables
+    !isadprob=0
+    call read_restart(isad,isadprob,ntodo)
 
 
     call f_lib_initialize()
@@ -275,7 +276,6 @@ program mhgps
                 trim(adjustl(joblist(1,ijob))),rxyz=rxyz)
 
            select case(trim(adjustl(operation_mode)))
-              !if(trim(adjustl(operation_mode))=='guessonly')then
            case('guessonly')
               call bigdft_get_rxyz(filename=joblist(2,ijob),&
                    rxyz=rxyz2)
@@ -300,7 +300,6 @@ program mhgps
                    bigdft_get_astruct_ptr(runObj),currDir//'/sad'//&
                    trim(adjustl(isadc))//'_ig_finalF',comment,&
                    tsgenergy,rxyz=tsguess,forces=tsgforces)
-              !else if(trim(adjustl(operation_mode))=='connect') then
            case('connect')
               call bigdft_get_rxyz(filename=joblist(2,ijob),&
                    rxyz=rxyz2)
@@ -342,7 +341,6 @@ program mhgps
                       trim(adjustl(yaml_toa(nsad)))//&
                       ' transition state computations')
               endif
-              !else if(trim(adjustl(operation_mode))=='simple')then
            case('simple')
               isad=isad+1
               write(isadc,'(i3.3)')isad
@@ -400,7 +398,6 @@ program mhgps
                       trim(adjustl(isadc))//'_mode_final',&
                       minmode(1,1),rotforce(1,1))
               endif
-              !else if(trim(adjustl(operation_mode))=='minimize')then
            case('minimize')
               isad=isad+1
               write(isadc,'(i3.3)')isad
@@ -425,7 +422,6 @@ program mhgps
                       //trim(adjustl(isadc))//'_final',comment,&
                       energy,rxyz=rxyz,forces=fxyz)
               endif
-              !else if(trim(adjustl(operation_mode))=='hessian')then
            case('hessian')
               inputPsiId=0
               call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz,&
@@ -451,14 +447,18 @@ program mhgps
                  enddo
               endif
            case default
-              !else
               call yaml_warning('(MHGPS) operation mode '//&
                    trim(adjustl(operation_mode))//' unknown STOP')
               stop '(MHGPS) operation mode unknown STOP'
            end select
-           !endif
+           call write_jobs(njobs,joblist,ijob)
+           call write_restart(isad,isadprob,ntodo)
         enddo
+        call f_delete_file('restart')
+        call f_delete_file(trim(adjustl(currdir))//'/job_list_restart')
      enddo
+
+    call f_delete_file('restart')
 
     !finalize (dealloctaion etc...)
     call free_run_objects(runObj)
