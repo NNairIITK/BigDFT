@@ -24,13 +24,13 @@ module module_io
     public :: read_restart
     public :: write_restart
     public :: get_first_struct_file
+    public :: print_logo_mhgps
 
 contains
 !=====================================================================
 subroutine get_first_struct_file(filename)
     use module_base
-    use module_global_variables, only: operation_mode,&
-                                       currdir
+    use module_global_variables, only: currdir
     implicit none
     !parameter
     character(len=200), intent(out) :: filename
@@ -114,14 +114,15 @@ subroutine write_restart(isad,isadprob,ntodo)
     close(u)
 end subroutine write_restart
 !=====================================================================
-subroutine read_jobs(njobs,joblist)
+subroutine read_jobs(uinp,njobs,joblist)
     !reads jobs from file or from available xyz/ascii files.
     !job file is limited to 999 lines
     use module_base
-    use module_global_variables, only: operation_mode,&
-                                       currdir
+    use module_userinput, only: userinput
+    use module_global_variables, only: currdir
     implicit none
     !parameters
+    type(userinput), intent(in) :: uinp
     integer, intent(out) :: njobs
     character(len=100) :: joblist(2,999)
     !local
@@ -140,8 +141,8 @@ subroutine read_jobs(njobs,joblist)
     if(exists .or. exists_restart)then
         u=f_get_free_unit()
         open(unit=u,file=trim(adjustl(jobfile)))
-        if(trim(adjustl(operation_mode))=='connect'.or.&
-                       trim(adjustl(operation_mode))=='guessonly')then
+        if(trim(adjustl(uinp%operation_mode))=='connect'.or.&
+                       trim(adjustl(uinp%operation_mode))=='guessonly')then
             do iline=1,999
                 read(u,'(a)',iostat=istat)line
                 if(istat/=0)exit
@@ -164,9 +165,9 @@ subroutine read_jobs(njobs,joblist)
             if(iline==1)then
                 call f_err_throw(trim(adjustl(jobfile))//' empty')
             endif
-        else if(trim(adjustl(operation_mode))=='simple'.or.&
-                trim(adjustl(operation_mode))=='hessian'.or.&
-                trim(adjustl(operation_mode))=='minimize')then
+        else if(trim(adjustl(uinp%operation_mode))=='simple'.or.&
+                trim(adjustl(uinp%operation_mode))=='hessian'.or.&
+                trim(adjustl(uinp%operation_mode))=='minimize')then
             do iline=1,999
                 read(u,'(a)',iostat=istat)line
                 if(istat/=0)exit
@@ -181,8 +182,8 @@ subroutine read_jobs(njobs,joblist)
         endif
         close(u)
     else
-        if(trim(adjustl(operation_mode))=='connect'.or.&
-                       trim(adjustl(operation_mode))=='guessonly')then
+        if(trim(adjustl(uinp%operation_mode))=='connect'.or.&
+                       trim(adjustl(uinp%operation_mode))=='guessonly')then
             do ifile=1,998
                 write(filename,'(a,i3.3)')'pos',ifile
                 joblist(1,ifile)=trim(adjustl(currdir))//'/'//filename
@@ -196,9 +197,9 @@ subroutine read_jobs(njobs,joblist)
                 if(.not.fexists)exit
                 njobs=njobs+1
             enddo
-        else if(trim(adjustl(operation_mode))=='simple'.or.&
-                trim(adjustl(operation_mode))=='hessian'.or.&
-                trim(adjustl(operation_mode))=='minimize')then
+        else if(trim(adjustl(uinp%operation_mode))=='simple'.or.&
+                trim(adjustl(uinp%operation_mode))=='hessian'.or.&
+                trim(adjustl(uinp%operation_mode))=='minimize')then
             do ifile=1,999
                 write(filename,'(a,i3.3)')'pos',ifile
                 joblist(1,ifile)=trim(adjustl(currdir))//'/'//filename
@@ -311,5 +312,37 @@ subroutine write_mode(nat,runObj,outs,filename,minmode,rotforce)
     endif
     call bigdft_set_units(runObj,units)
 end subroutine
+!=====================================================================
+subroutine print_logo_mhgps()
+    use module_global_variables, only: mhgps_version
+    use yaml_output
+    implicit none
+
+    call yaml_comment('(MHGPS) Minima Hopping Guided Path Sampling',hfill='=')
+    
+    call yaml_mapping_open('(MHGPS) logo')
+    call yaml_scalar('(MHGPS)      ___           ___           ___           ___           ___      ') 
+    call yaml_scalar('(MHGPS)     /\__\         /\__\         /\  \         /\  \         /\  \     ')
+    call yaml_scalar('(MHGPS)    /::|  |       /:/  /        /::\  \       /::\  \       /::\  \    ')
+    call yaml_scalar('(MHGPS)   /:|:|  |      /:/__/        /:/\:\  \     /:/\:\  \     /:/\ \  \   ')
+    call yaml_scalar('(MHGPS)  /:/|:|__|__   /::\  \ ___   /:/  \:\  \   /::\~\:\  \   _\:\~\ \  \  ')
+    call yaml_scalar('(MHGPS) /:/ |::::\__\ /:/\:\  /\__\ /:/__/_\:\__\ /:/\:\ \:\__\ /\ \:\ \ \__\ ')
+    call yaml_scalar('(MHGPS) \/__/~~/:/  / \/__\:\/:/  / \:\  /\ \/__/ \/__\:\/:/  / \:\ \:\ \/__/ ')
+    call yaml_scalar('(MHGPS)       /:/  /       \::/  /   \:\ \:\__\        \::/  /   \:\ \:\__\   ')
+    call yaml_scalar('(MHGPS)      /:/  /        /:/  /     \:\/:/  /         \/__/     \:\/:/  /   ')
+    call yaml_scalar('(MHGPS)     /:/  /        /:/  /       \::/  /                     \::/  /    ')
+    call yaml_scalar('(MHGPS)     \/__/         \/__/         \/__/                       \/__/     ')
+    call yaml_scalar('(MHGPS)                                                   as post-processing  ')
+    call yaml_scalar('(MHGPS)')
+    call yaml_scalar('(MHGPS)')
+    !call print_logo()
+    call yaml_mapping_close()
+    call yaml_mapping_open('(MHGPS) Reference Paper')
+    call yaml_scalar('(MHGPS) The Journal of Chemical Physics 140 (21):214102 (2014)')
+    call yaml_mapping_close()
+    call yaml_map('(MHGPS) Version Number',mhgps_version)
+    call yaml_map('(MHGPS) Timestamp of this run',yaml_date_and_time_toa())
+end subroutine print_logo_mhgps
+
 
 end module

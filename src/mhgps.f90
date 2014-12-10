@@ -20,12 +20,14 @@ program mhgps
                             astruct_dump_to_file
     
     use module_global_variables
-    use module_init
+    use module_userinput
     use module_energyandforces, only: mhgpsenergyandforces
     use module_ls_rmsd, only: superimpose
     use module_sqn, only: findbonds !for finding binds
     use module_freezingstring, only: get_ts_guess 
-    use module_saddle, only: findsad
+    use module_saddle, only: findsad_work, findsad,&
+                             allocate_finsad_workarrays,&
+                             deallocate_finsad_workarrays
     use module_connect, only: connect_recursively, connect,&
                               connect_object,&
                               deallocate_connect_object,&
@@ -35,7 +37,8 @@ program mhgps
     use module_minimizers
     use bigdft_run
     implicit none
-    integer :: isame,njobs
+    integer :: isame,njobs,nbond
+    integer :: infocode
     character(len=200) :: filename
     character(len=60) :: run_id,naming_id
     integer :: ifolder,ijob
@@ -52,6 +55,11 @@ program mhgps
     logical :: connected
     type(run_objects) :: runObj
     type(state_properties) :: outs
+    type(findsad_work) :: fsw
+    type(userinput) :: uinp
+    integer :: lwork
+    real(8), allocatable :: work(:)
+    real(8) :: wd(1)
 
     !simple atomic datastructre
     integer :: nat
@@ -75,6 +83,7 @@ program mhgps
     !functions
     real(gp) :: dnrm2
 
+    nbond=1
     ifolder=1
     ef_counter=0.d0 !from module_global_variables
 !    isad=0  !from module_global_variables
@@ -86,7 +95,7 @@ program mhgps
     call f_lib_initialize()
 
     !read mhgps.inp
-    call read_input()
+    call read_input(uinp)
 
     isForceField=.true.
     write(currDir,'(a,i3.3)')'input',ifolder
@@ -122,7 +131,6 @@ program mhgps
     nullify(run)
 
     call init_state_properties(outs, bigdft_nat(runObj))
-    fdim=outs%fdim
 
     if(trim(adjustl(char(runObj%run_mode)))=='QM_RUN_MODE')then
         isForceField=.false.
@@ -159,16 +167,20 @@ program mhgps
 !        'energies and forces is unknown: '//trim(adjustl(efmethod)))
 !        stop
 !    endif
-    if(iproc==0) call print_input()
+    if(iproc==0) call print_input(uinp)
 
     nat = bigdft_nat(runObj)
     nid = nat !s-overlap fingerprints
     alat =bigdft_get_cell(runObj)!astruct_ptr%cell_dim
     
     !allocate arrays
-    lwork=1000+10*nat**2
-    work = f_malloc((/1.to.lwork/),id='work')
+    hess     = f_malloc((/ 1.to.3*nat,&
+                1.to.3*nat/),id='hess')
     eval  = f_malloc((/ 1.to.3*nat/),id='eval')
+    call DSYEV('N','L',3*nat,hess,3*nat,eval,wd,-1,info)
+    if (info.ne.0) stop 'info query'
+    lwork=nint(wd(1))
+    work = f_malloc((/ 1.to.lwork/),id='work')
     tsgforces     = f_malloc((/ 1.to.3, 1.to.nat/),&
                 id='tsgforces')
     tsguess     = f_malloc((/ 1.to.3, 1.to.nat/),&
@@ -195,87 +207,33 @@ program mhgps
     iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')
     rotforce = f_malloc((/ 1.to.3, 1.to.nat/),&
                 id='rotforce')
-    hess     = f_malloc((/ 1.to.3*nat,&
-                1.to.3*nat/),id='hess')
-    rxyz_rot = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.saddle_nhistx_rot/),id='rxyz_rot')
-    fxyz_rot = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.saddle_nhistx_rot/),id='fxyz_rot') 
-    fxyzraw_rot = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.saddle_nhistx_rot/),id='fxyzraw_rot')
-    rxyzraw_rot = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.saddle_nhistx_rot/),id='rxyzraw_rot')
-    fstretch_rot = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.saddle_nhistx_rot/),id='fstretch_rot')
-    eval_rot = f_malloc((/1.to.saddle_nhistx_rot/),id='eval_rot')
-    res_rot = f_malloc((/1.to.saddle_nhistx_rot/),id='res_rot')
-    rrr_rot = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.saddle_nhistx_rot/),id='rrr_rot')
-    aa_rot = f_malloc((/1.to.saddle_nhistx_rot,&
-             1.to.saddle_nhistx_rot/),id='aa_rot')
-    ff_rot = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.saddle_nhistx_rot/),id='ff_rot')
-    rr_rot = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.saddle_nhistx_rot/),id='rr_rot')
-    dd_rot = f_malloc((/ 1.to.3, 1.to.nat/),&
-                id='dd_rot')
-    fff_rot = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.saddle_nhistx_rot/),id='fff_rot')
-    scpr_rot = f_malloc((/ 1.to.saddle_nhistx_rot/),id='scpr_rot')
-    rxyz_trans = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.saddle_nhistx_trans/),id='rxyz_trans')
-    fxyz_trans = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.saddle_nhistx_trans/),id='fxyz_trans') 
-    fxyzraw_trans = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.saddle_nhistx_trans/),id='fxyzraw_trans')
-    rxyzraw_trans = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.saddle_nhistx_trans/),id='rxyzraw_trans')
-    fstretch_trans = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.saddle_nhistx_trans/),id='fstretch_trans')
-    eval_trans = f_malloc((/1.to.saddle_nhistx_trans/),&
-                 id='eval_trans')
-    res_trans = f_malloc((/1.to.saddle_nhistx_trans/),id='res_trans')
-    rrr_trans = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.saddle_nhistx_trans/),id='rrr_trans')
-    aa_trans = f_malloc((/1.to.saddle_nhistx_trans,&
-                1.to.saddle_nhistx_trans/),id='aa_trans')
-    ff_trans = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.saddle_nhistx_trans/),id='ff_trans')
-    rr_trans = f_malloc((/ 1.to.3, 1.to.nat,&
-                0.to.saddle_nhistx_trans/),id='rr_trans')
-    dd_trans = f_malloc((/ 1.to.3, 1.to.nat/),id='dd_trans')
-    fff_trans = f_malloc((/ 1.to.3, 1.to.nat,&
-                -1.to.saddle_nhistx_trans/),id='fff_trans')
-    scpr_trans = f_malloc((/ 1.to.saddle_nhistx_trans/),&
-                 id='scpr_trans')
+
 
 !    joblist = f_malloc_str((/1.to.2, 1.to.999/),id='joblist') !how??
    allocate(joblist(2,999))
 
-    call allocate_connect_object(nat,nid,nsadmax,cobj)
+    call allocate_connect_object(nat,nid,uinp%nsadmax,cobj)
 
-    
     iconnect = 0
     call give_rcov(bigdft_get_astruct_ptr(runObj),nat,rcov)
     !if in biomode, determine bonds betweens atoms once and for all
     !(it isassuemed that all conifugrations over which will be
     !iterated have the same bonds)
-    if(saddle_biomode)then
-        call findbonds('(MHGPS)',iproc,mhgps_verbosity,nat,rcov,&
+    if(uinp%saddle_biomode)then
+        call findbonds('(MHGPS)',iproc,uinp%mhgps_verbosity,nat,rcov,&
         bigdft_get_rxyz_ptr(runObj),nbond,iconnect)
     endif
-    wold_trans = f_malloc((/ 1.to.nbond/),id='wold_trans')
-    wold_rot = f_malloc((/ 1.to.nbond/),id='wold_rot')
+    call allocate_finsad_workarrays(runObj,uinp,nbond,fsw)
 
     do ifolder = 1,999
         write(currDir,'(a,i3.3)')'input',ifolder
-        call read_jobs(njobs,joblist)
+        call read_jobs(uinp,njobs,joblist)
 
         do ijob = 1,njobs
            call bigdft_get_rxyz(filename=&
                 trim(adjustl(joblist(1,ijob))),rxyz=rxyz)
 
-           select case(trim(adjustl(operation_mode)))
+           select case(trim(adjustl(uinp%operation_mode)))
            case('guessonly')
               call bigdft_get_rxyz(filename=joblist(2,ijob),&
                    rxyz=rxyz2)
@@ -285,7 +243,7 @@ program mhgps
               !rmsd alignment (optional in mhgps approach)
               call superimpose(nat,rxyz(1,1),rxyz2(1,1))
               inputPsiId=0
-              call get_ts_guess(nat,alat,runObj,outs,rxyz(1,1),&
+              call get_ts_guess(nat,alat,uinp,runObj,outs,rxyz(1,1),&
                    rxyz2(1,1),tsguess(1,1),minmodeguess(1,1),&
                    tsgenergy,tsgforces(1,1))
               write(comment,'(a)')&
@@ -308,10 +266,10 @@ program mhgps
               !for identification
               inputPsiId=0
               call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz,&
-                                        fat,fnoise,energy)
+                                        fat,fnoise,energy,infocode)
               inputPsiId=0
               call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz2,&
-                                        fat,fnoise,energy2)
+                                        fat,fnoise,energy2,infocode)
               call fingerprint(nat,nid,alat,&
                    bigdft_get_geocode(runObj),rcov,rxyz(1,1),fp(1))
               call fingerprint(nat,nid,alat,&
@@ -328,7 +286,7 @@ program mhgps
               !call connect(nat,nid,alat,rcov,nbond,&
               !     iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
               !     nsad,cobj,connected)
-              call connect_recursively(nat,nid,alat,runObj,outs,rcov,&
+              call connect_recursively(nat,nid,alat,fsw,uinp,runObj,outs,rcov,&
                    nbond,isame,iconnect,rxyz,rxyz2,energy,energy2,fp,&
                    fp2,nsad,cobj,connected)
               if(connected)then
@@ -344,7 +302,7 @@ program mhgps
            case('simple')
               isad=isad+1
               write(isadc,'(i3.3)')isad
-              if(random_minmode_guess)then
+              if(uinp%random_minmode_guess)then
                  do i=1,nat
                     minmode(1,i)=2.0_gp*&
                          (real(builtin_rand(idum),gp)-0.5_gp)
@@ -366,7 +324,7 @@ program mhgps
               minmode = minmode/dnrm2(3*nat,minmode(1,1),1)
               ec=0.0_gp
               displ=0.0_gp
-              call findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,&
+              call findsad(nat,alat,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
                    rxyz(1,1),energy,fxyz(1,1),minmode(1,1),displ,ec,&
                    rotforce(1,1),converged)
               if(.not.converged)then
@@ -404,8 +362,8 @@ program mhgps
               ec=0.0_gp
               inputPsiId=0
               call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz,&
-                   fxyz,fnoise,energy)
-              call minimize(imode,nat,alat,runObj,outs,nbond,&
+                   fxyz,fnoise,energy,infocode)
+              call minimize(uinp%imode,nat,alat,uinp,runObj,outs,nbond,&
                    iconnect,rxyz(1,1),fxyz(1,1),fnoise,energy,ec,&
                    converged,'')
               if(.not.converged)then
@@ -425,7 +383,7 @@ program mhgps
            case('hessian')
               inputPsiId=0
               call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz,&
-                   fxyz,fnoise,energy)
+                   fxyz,fnoise,energy,infocode)
               inputPsiId=0
               call cal_hessian_fd(iproc,nat,alat,runObj,outs,rxyz,&
                    hess)
@@ -448,7 +406,7 @@ program mhgps
               endif
            case default
               call yaml_warning('(MHGPS) operation mode '//&
-                   trim(adjustl(operation_mode))//' unknown STOP')
+                   trim(adjustl(uinp%operation_mode))//' unknown STOP')
               stop '(MHGPS) operation mode unknown STOP'
            end select
            call write_jobs(njobs,joblist,ijob)
@@ -482,37 +440,8 @@ program mhgps
     call f_free(iconnect)
     call f_free(rotforce)
     call f_free(hess)
-    call f_free(rxyz_rot)
-    call f_free(fxyz_rot)
-    call f_free(fxyzraw_rot)
-    call f_free(rxyzraw_rot)
-    call f_free(fstretch_rot)
-    call f_free(eval_rot)
-    call f_free(res_rot)
-    call f_free(rrr_rot)
-    call f_free(aa_rot)
-    call f_free(ff_rot)
-    call f_free(rr_rot)
-    call f_free(dd_rot)
-    call f_free(fff_rot)
-    call f_free(scpr_rot)
-    call f_free(rxyz_trans)
-    call f_free(fxyz_trans)
-    call f_free(fxyzraw_trans)
-    call f_free(rxyzraw_trans)
-    call f_free(fstretch_trans)
-    call f_free(eval_trans)
-    call f_free(res_trans)
-    call f_free(rrr_trans)
-    call f_free(aa_trans)
-    call f_free(ff_trans)
-    call f_free(rr_trans)
-    call f_free(dd_trans)
-    call f_free(fff_trans)
-    call f_free(scpr_trans)
-    call f_free(wold_trans)
-    call f_free(wold_rot)
     call deallocate_connect_object(cobj)
+    call deallocate_finsad_workarrays(fsw)
 
     if(iproc==0)call yaml_map('(MHGPS) Total calls to energy and '//&
                                'forces',nint(ef_counter))

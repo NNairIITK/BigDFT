@@ -35,7 +35,7 @@ contains
       real(gp), allocatable, dimension(:) :: tpos,grad,eval,workf
       real(gp) :: h,rlarge,twelfth,twothird,etot,cmx,cmy,cmz,dm,tt
       real(gp) :: s,fnoise
-      integer :: i,j,k,lworkf
+      integer :: i,j,k,lworkf,infocode
 
       !allocate(hess(3*nat,3*nat))
       tpos = f_malloc(3*nat,id='tpos')
@@ -65,26 +65,26 @@ contains
          enddo
          !-----------------------------------------
          tpos(i)=tpos(i)-2*h
-         call mhgpsenergyandforces(nat,alat,runObj,outs,tpos,grad,fnoise,etot)
+         call mhgpsenergyandforces(nat,alat,runObj,outs,tpos,grad,fnoise,etot,infocode)
          do j=1,3*nat
              hess(j,i)=twelfth*grad(j)
          enddo
          !if(iproc==0) write(*,*) 'ALIREZA-6',i,iat
          !-----------------------------------------
          tpos(i)=tpos(i)+h
-         call mhgpsenergyandforces(nat,alat,runObj,outs,tpos,grad,fnoise,etot)
+         call mhgpsenergyandforces(nat,alat,runObj,outs,tpos,grad,fnoise,etot,infocode)
          do j=1,3*nat
          hess(j,i)=hess(j,i)-twothird*grad(j)
          enddo
          !-----------------------------------------
          tpos(i)=tpos(i)+2*h
-         call mhgpsenergyandforces(nat,alat,runObj,outs,tpos,grad,fnoise,etot)
+         call mhgpsenergyandforces(nat,alat,runObj,outs,tpos,grad,fnoise,etot,infocode)
          do j=1,3*nat
          hess(j,i)=hess(j,i)+twothird*grad(j)
          enddo
          !-----------------------------------------
          tpos(i)=tpos(i)+h
-         call mhgpsenergyandforces(nat,alat,runObj,outs,tpos,grad,fnoise,etot)
+         call mhgpsenergyandforces(nat,alat,runObj,outs,tpos,grad,fnoise,etot,infocode)
          do j=1,3*nat
          hess(j,i)=hess(j,i)-twelfth*grad(j)
          !write(*,*) 'HESS ',j,i,hess(j,i)

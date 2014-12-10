@@ -23,7 +23,7 @@ contains
 !> Returns energies in hartree and
 !! forces in hartree/bohr
 !! (except for LJ)
-subroutine mhgpsenergyandforces(nat,alat,runObj,outs,rxyz,fxyz,fnoise,epot)
+subroutine mhgpsenergyandforces(nat,alat,runObj,outs,rxyz,fxyz,fnoise,epot,infocode)
     !IMPORTANT:
     !receives distances in Bohr
     use module_base
@@ -45,28 +45,12 @@ subroutine mhgpsenergyandforces(nat,alat,runObj,outs,rxyz,fxyz,fnoise,epot)
     real(gp), intent(out) :: fxyz(3,nat)
     real(gp), intent(out) :: fnoise
     real(gp), intent(out) :: epot
+    integer, intent(out)  :: infocode
     !internal
-    ! integer :: iat
-    integer :: icc !for amber
-    real(gp) :: rxyzint(3,nat)
-    real(gp) :: alatint(3)
-!character(len=9) :: fn9
-    if(nat/=fdim)stop 'nat /= fdim'
-    ef_counter=ef_counter+1.0_gp
 
-!!temporary output for geopt paper
-!if (iproc == 0) then
-!   write(fn9,'(i9.9)') int(ef_counter)
-!   call astruct_dump_to_file(astruct_ptr,&
-!        currDir//'/dump_'//fn9, &
-!        '',energy=0.0_gp,rxyz=rxyz,&
-!        forces=fxyz)
-!endif
 
-    !call to bigdft state, temporary version as the input variables
-    !have to be inserted in the main program
-    !by working with runObj only, there should be no 
-    !reason to perform copy from outs structure.
+    if(nat/=outs%fdim)stop 'nat /= outs%fdim'
+
     if(nat/=bigdft_nat(runObj))then
        call yaml_warning('nat /= runObj%atoms%astruct%nat in '//&
             'energyandforces')
@@ -79,6 +63,7 @@ subroutine mhgpsenergyandforces(nat,alat,runObj,outs,rxyz,fxyz,fnoise,epot)
 !!       runObj%inputs%inputPsiId=0
        runObj%inputs%itermin=itermin
     end if
+    ef_counter=ef_counter+1.0_gp
     call bigdft_state(runObj,outs,infocode)
     call f_memcpy(src=outs%fxyz,dest=fxyz)
     epot=outs%energy

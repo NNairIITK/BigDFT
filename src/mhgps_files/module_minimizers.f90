@@ -22,15 +22,16 @@ module module_minimizers
 
 contains
 
-subroutine minimize(imode,nat,alat,runObj,outs,nbond,iconnect,&
+subroutine minimize(imode,nat,alat,uinp,runObj,outs,nbond,iconnect,&
            rxyzio,fxyzio,fnoiseio,energyio,energycounter,converged,&
            writePostfix)
     use module_base
-    use module_global_variables, only: external_mini
+    use module_userinput
     use bigdft_run, only: run_objects, state_properties
     implicit none
     !parameter
     integer, intent(in)                    :: nat, nbond,imode
+    type(userinput), intent(in)            :: uinp
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
     real(gp), intent(inout)                :: energycounter
@@ -43,8 +44,8 @@ subroutine minimize(imode,nat,alat,runObj,outs,nbond,iconnect,&
     character(len=*), intent(in)           :: writePostfix
     !internal
 
-    if(.not.  external_mini)then
-        call minimizer_sqnm(imode,nat,alat,runObj,outs,nbond,&
+    if(.not.  uinp%external_mini)then
+        call minimizer_sqnm(imode,nat,alat,uinp,runObj,outs,nbond,&
              iconnect,rxyzio,fxyzio,fnoiseio,energyio,energycounter,&
              converged,writePostfix)
     else
@@ -58,7 +59,7 @@ end subroutine
 !before calling this routine.
 ! minimizer+sqnm will return to caller the energies and coordinates
 !used/obtained from the last accepted iteration step
-subroutine minimizer_sqnm(imode,nat,alat,runObj,outs,nbond,iconnect,&
+subroutine minimizer_sqnm(imode,nat,alat,uinp,runObj,outs,nbond,iconnect,&
            rxyzio,fxyzio,fnoiseio,energyio,energycounter,converged,&
            writePostfix)
 
@@ -68,20 +69,21 @@ subroutine minimizer_sqnm(imode,nat,alat,runObj,outs,nbond,iconnect,&
    use yaml_output
    use module_sqn
    use module_energyandforces
+   use module_userinput
    use module_global_variables, only: iproc,&
                                       inputPsiId,&
-                                      mhgps_verbosity,&
-                                      mini_frac_fluct,&
-                                      mini_ncluster_x,&
-                                      mini_betax,&
-                                      mini_beta_stretchx,&
-                                      mini_nhistx,&
-                                      mini_maxrise,&
-                                      mini_cutoffratio,&
-                                      mini_steepthresh,&
-                                      mini_trustr,&
-                                      mini_forcemax,&
-                                      fdim,&
+!                                      mhgps_verbosity,&
+!                                      mini_frac_fluct,&
+!                                      mini_ncluster_x,&
+!                                      mini_betax,&
+!                                      mini_beta_stretchx,&
+!                                      mini_nhistx,&
+!                                      mini_maxrise,&
+!                                      mini_cutoffratio,&
+!                                      mini_steepthresh,&
+!                                      mini_trustr,&
+!                                      mini_forcemax,&
+!                                      fdim,&
                                       isadc,&
                                       currDir
    use module_atoms, only: astruct_dump_to_file
@@ -89,6 +91,7 @@ subroutine minimizer_sqnm(imode,nat,alat,runObj,outs,nbond,iconnect,&
    implicit none
    !parameter
    integer, intent(in)                    :: nat, nbond,imode
+   type(userinput), intent(in)            :: uinp
    type(run_objects), intent(inout) :: runObj
    type(state_properties), intent(inout) :: outs
    real(gp), intent(inout)                :: energycounter
@@ -173,7 +176,7 @@ subroutine minimizer_sqnm(imode,nat,alat,runObj,outs,nbond,iconnect,&
     real(gp) :: dnrm2
 
 
-     if (iproc == 0 .and. mhgps_verbosity > 0) write(*,'(a)')  &
+     if (iproc == 0 .and. uinp%mhgps_verbosity > 0) write(*,'(a)')  &
       '#(MHGPS) COUNT  IT  GEOPT_METHOD  ENERGY                 '//&
       'DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO'
 
@@ -187,14 +190,14 @@ subroutine minimizer_sqnm(imode,nat,alat,runObj,outs,nbond,iconnect,&
 !   cutoffRatio=runObj%inputs%cutoffratio
 !   steepthresh=runObj%inputs%steepthresh
 !   trustr=runObj%inputs%trustr
-   nit           =mini_ncluster_x
-   betax         =mini_betax
-   beta_stretchx =mini_beta_stretchx
-   nhistx        =mini_nhistx
-   maxrise       =mini_maxrise
-   cutoffRatio   =mini_cutoffratio
-   steepthresh   =mini_steepthresh
-   trustr        =mini_trustr
+   nit           =uinp%mini_ncluster_x
+   betax         =uinp%mini_betax
+   beta_stretchx =uinp%mini_beta_stretchx
+   nhistx        =uinp%mini_nhistx
+   maxrise       =uinp%mini_maxrise
+   cutoffRatio   =uinp%mini_cutoffratio
+   steepthresh   =uinp%mini_steepthresh
+   trustr        =uinp%mini_trustr
 
 !   if (iproc==0.and.mhgps_verbosity > 0) then
 !      call yaml_mapping_open('Geometry parameters')
@@ -258,7 +261,7 @@ subroutine minimizer_sqnm(imode,nat,alat,runObj,outs,nbond,iconnect,&
 !! copy to internal variables
    call vcopy(3*nat, rxyzio(1,1), 1,rxyz(1,1,0), 1)
    call vcopy(3*nat, rxyzio(1,1), 1,rxyzOld(1,1), 1)
-   call vcopy(3*fdim, fxyzio(1,1), 1, fxyz(1,1,0), 1)
+   call vcopy(3*outs%fdim, fxyzio(1,1), 1, fxyz(1,1,0), 1)
 
    etot=energyio
    fnoise=fnoiseio
@@ -268,7 +271,7 @@ subroutine minimizer_sqnm(imode,nat,alat,runObj,outs,nbond,iconnect,&
    call fnrmandforcemax(fxyzraw(1,1,0),fnrm,fmax,nat)
    fnrm=sqrt(fnrm)
    if (fmax < 3.e-1_gp) call updatefluctsum(fnoise,fluct)
-if (iproc == 0 .and. mhgps_verbosity >=4) then
+if (iproc == 0 .and. uinp%mhgps_verbosity >=4) then
    write(fn4,'(i4.4)') 0
    write(comment,'(a,1pe10.3)')'SQNM:fnrm= ',fnrm
    call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
@@ -283,7 +286,7 @@ endif
    etotold=etot
    etotp=etot
 
-   if (iproc==0 .and. mhgps_verbosity > 0) then
+   if (iproc==0 .and. uinp%mhgps_verbosity > 0) then
        !avoid space for leading sign (numbers are positive, anyway)
        write(cdmy8,'(es8.1)')abs(maxd)
        write(cdmy12_1,'(es12.5)')abs(displr)
@@ -292,7 +295,7 @@ endif
 
 
        write(*,'(i5,1x,i5,2x,a18,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a11))') &
-       int(energycounter),0,'(MHGPS) GEOPT_SQNM',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
+       int(energycounter),0,'(MHGPS) GEOPT_SQNM',etotp,detot,fmax,fnrm,fluct*uinp%mini_frac_fluct,fluct, &
        'beta=',trim(adjustl(cdmy9)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),&
        'dsplr=',trim(adjustl(cdmy12_1)), 'dsplp=',trim(adjustl(cdmy12_2))
    endif
@@ -383,7 +386,7 @@ endif
       call fnrmandforcemax(fxyzraw(1,1,nhist),fnrm,fmax,nat)
       fnrm=sqrt(fnrm)
 
-      if (iproc == 0 .and. mhgps_verbosity >=4) then
+      if (iproc == 0 .and. uinp%mhgps_verbosity >=4) then
          write(fn4,'(i4.4)') int(energycounter)
          write(comment,'(a,1pe10.3)')'SQNM:fnrm= ',fnrm
          call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
@@ -408,7 +411,7 @@ endif
          if (debug.and.iproc==0) write(*,'(a,i0,4(1x,e9.2))') &
              "(MHGPS) WARNING GEOPT_SQNM: Prevent energy to rise by more than maxrise: it,maxrise,detot,beta,1.e-1*betax ",&
              it,maxrise,detot,beta,1.e-1_gp*betax
-         if (iproc==0.and.mhgps_verbosity > 0) then
+         if (iproc==0.and.uinp%mhgps_verbosity > 0) then
             !avoid space for leading sign (numbers are positive, anyway)
             write(cdmy8,'(es8.1)')abs(maxd)
             write(cdmy12_1,'(es12.5)')abs(displr)
@@ -417,7 +420,7 @@ endif
 
 
             write(*,'(i5,1x,i5,2x,a18,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a11))') &
-             int(energycounter),it,'(MHGPS) GEOPT_SQNM',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
+             int(energycounter),it,'(MHGPS) GEOPT_SQNM',etotp,detot,fmax,fnrm,fluct*uinp%mini_frac_fluct,fluct, &
              'beta=',trim(adjustl(cdmy9)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),&
              'dsplr=',trim(adjustl(cdmy12_1)),'dsplp=',trim(adjustl(cdmy12_2))
 !            call yaml_mapping_open('Geometry')
@@ -479,7 +482,7 @@ endif
       displp=displp+dnrm2(3*nat,delta(1,1),1)
       rxyzOld=rxyz(:,:,nhist)
 !      displp=displp+tt
-      if (iproc==0.and.mhgps_verbosity > 0) then
+      if (iproc==0.and.uinp%mhgps_verbosity > 0) then
          !avoid space for leading sign (numbers are positive, anyway)
          write(cdmy8,'(es8.1)')abs(maxd)
          write(cdmy12_1,'(es12.5)')abs(displr)
@@ -488,7 +491,7 @@ endif
 
 
          write(*,'(i5,1x,i5,2x,a18,2x,1es21.14,2x,es9.2,es11.3,3es10.2,2x,a6,a8,1x,a4,i3.3,1x,a5,a7,2(1x,a6,a11))') &
-          int(energycounter),it,'(MHGPS) GEOPT_SQNM',etotp,detot,fmax,fnrm,fluct*mini_frac_fluct,fluct, &
+          int(energycounter),it,'(MHGPS) GEOPT_SQNM',etotp,detot,fmax,fnrm,fluct*uinp%mini_frac_fluct,fluct, &
           'beta=',trim(adjustl(cdmy9)),'dim=',ndim,'maxd=',trim(adjustl(cdmy8)),&
           'dsplr=',trim(adjustl(cdmy12_1)),'dsplp=',trim(adjustl(cdmy12_2))
 !         call yaml_mapping_open('Geometry')
@@ -516,7 +519,7 @@ endif
 
 
 !      if (fnrm.le.fnrmtol) goto 1000
-      call convcheck(fmax,fluct*mini_frac_fluct,mini_forcemax,icheck)
+      call convcheck(fmax,fluct*uinp%mini_frac_fluct,uinp%mini_forcemax,icheck)
       if(icheck>5)then
          goto 1000
       endif
@@ -543,7 +546,7 @@ endif
    
       if (debug.and.iproc==0) write(100,*) 'cosangle ',cosangle,beta
 
-      call getSubSpaceEvecEval('(MHGPS)',iproc,mhgps_verbosity,nat,nhist,nhistx,ndim,cutoffratio,lworkf,workf,rxyz,&
+      call getSubSpaceEvecEval('(MHGPS)',iproc,uinp%mhgps_verbosity,nat,nhist,nhistx,ndim,cutoffratio,lworkf,workf,rxyz,&
                    &fxyz,aa,rr,ff,rrr,fff,eval,res,success)
       if(.not.success)stop 'subroutine minimizer_sqnm: no success in getSubSpaceEvecEval.'
 
@@ -555,7 +558,7 @@ endif
    if(debug.and.iproc==0) write(100,*) it,etot,fnrm
    if(iproc==0) write(*,'(a,3(1x,i0))') &
        "(MHGPS) WARNING GEOPT_SQNM: SQNM not converged: it,energycounter,ncount_cluster_x: ", &
-       it,int(energycounter),mini_ncluster_x
+       it,int(energycounter),uinp%mini_ncluster_x
 !   stop "No convergence "
    converged=.false.
    goto 2000
@@ -624,9 +627,10 @@ subroutine minenergyandforces(eeval,imode,nat,alat,runObj,outs,rat,rxyzraw,fat,f
     real(gp), intent(out)         :: fnoise
     logical, intent(in)           :: eeval
     !internal
+    integer :: infocode
 
     rxyzraw=rat
-    if(eeval)call mhgpsenergyandforces(nat,alat,runObj,outs,rat,fat,fnoise,epot)
+    if(eeval)call mhgpsenergyandforces(nat,alat,runObj,outs,rat,fat,fnoise,epot,infocode)
     fxyzraw=fat
     fstretch=0.0_gp
 

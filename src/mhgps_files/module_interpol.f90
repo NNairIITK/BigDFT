@@ -209,17 +209,18 @@ module module_interpol
 
 contains
 !=====================================================================
-subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
+subroutine lstpthpnt(nat,uinp,rxyzR,rxyzP,lambda,rxyz)
 !returns rxyz which is a point on the
 !linear synchronous transit path
 !corresponding to the interpolation parameter
 !lambda
     use module_base
-    use module_global_variables, only: fmax_tol => lst_fmax_tol
+    use module_userinput
     use lst_penalty_wrapper
     implicit none
     !parameters
     integer, intent(in) :: nat
+    type(userinput), intent(in) :: uinp
     real(gp), intent(in) :: rxyzR(3,nat) !reactant
     real(gp), intent(in) :: rxyzP(3,nat) !product
     real(gp), intent(in) :: lambda       !interpol. parameter
@@ -279,7 +280,7 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
 !endif
 !<-DEBUG END-------------------------------------------------------->
     call init_lst_wrapper(nat,rxyzR,rxyzP,lambda)
-    call fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
+    call fire(uinp,nat,valforce,rxyz,fxyz,epot)
     call finalize_lst_wrapper()
 !<-DEBUG START------------------------------------------------------>
 !if(mod(ic,10)==0)then
@@ -317,14 +318,15 @@ subroutine lstpthpnt(nat,rxyzR,rxyzP,lambda,rxyz)
 
 
 !=====================================================================
-subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
+subroutine fire(uinp,nat,valforce,rxyz,fxyz,epot)
     use module_base
-    use module_global_variables, only: iproc,lst_dt_max
+    use module_userinput
+    use module_global_variables, only: iproc
     use yaml_output
     implicit none
     !parameters
+    type(userinput), intent(in) :: uinp
     integer, intent(in) :: nat
-    real(gp)  :: fmax_tol
     real(gp), intent(inout) :: rxyz(3,nat),fxyz(3,nat)
     real(gp)  :: epot,fmax
     logical :: success
@@ -362,7 +364,7 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
    ! dt_max = 0.5_gp !for lj
    ! dt_max = 1.8_gp
    ! dt_max = 5.0_gp !for bigdft
-    dt_max=lst_dt_max
+    dt_max=uinp%lst_dt_max
     maxit=15000
 
     success=.false.
@@ -410,7 +412,7 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
         end do
         call fnrmandforcemax(fxyz,fnrm,fmax,nat)
         fnrm=sqrt(fnrm) 
-        call convcheck(fmax,fmax_tol,check)
+        call convcheck(fmax,uinp%lst_fmax_tol,check)
         if(check > 5)then
 !!<-DEBUG START------------------------------------------------------>
 !            write(*,'(a,x,i0,5(1x,es14.7))')&
@@ -444,7 +446,7 @@ subroutine fire(nat,valforce,fmax_tol,rxyz,fxyz,epot)
         endif
         epotold=epot
     enddo
-    if(fmax > fmax_tol .and. iproc==0)then
+    if(fmax > uinp%lst_fmax_tol .and. iproc==0)then
         call yaml_warning('(MHGPS) Minimization of Linear '//&
                           'Synchronous Transit Path not converged:')
         call yaml_map('(MHGPS) epot, fmax, fnrm, dt, alpha',&
