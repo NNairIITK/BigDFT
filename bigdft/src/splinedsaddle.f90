@@ -307,7 +307,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,run_opt,ncount_big
     !-----------------------------------------------------------
     ! We read the input variable files.
     !here we should associate quantities like run_objects
-    call bigdft_run_new(run)
+    nullify(run)
 
     if(trim(pnow%hybrid)=='yes') then
        call bigdft_set_run_properties(run,input_id='ll_input', run_from_files = .true.)
@@ -316,6 +316,8 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,run_opt,ncount_big
 !!$    else
 !!$       call user_dict_from_files(dict,'input','posinp',bigdft_mpi)
 !!$       !call read_input_dict_from_files("input", bigdft_mpi,dict)
+    else
+       call bigdft_set_run_properties(run) !to create a clean run
     endif
 !    ! We add the atomic data.
 !    call astruct_merge_to_dict(dict // "posinp", atoms%astruct, atoms%astruct%rxyz)

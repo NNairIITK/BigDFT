@@ -271,7 +271,6 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
         rloc=at%psppar(0,0,ityp)
         charge=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
         prefactor=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**5)
-        cutoff=10.0_gp*rloc
 
         !calculate the self energy of the isolated bc
         eself=eself+real(at%nelpsp(ityp),gp)**2/rloc
@@ -553,7 +552,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   call timing(iproc,'CrtLocPot     ','ON')
 
   !initialize the work arrays needed to integrate with isf
-  if (at%multipole_preserving) call initialize_real_space_conversion()
+  if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
 
   ! Ionic charge (must be calculated for the PS active processes)
   rholeaked=0.d0
@@ -582,7 +581,13 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
         rloc=at%psppar(0,0,ityp)
         rlocsq=rloc**2
         charge=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
+        !cutoff of the range
+
         cutoff=10.d0*rloc
+        if (at%multipole_preserving) then
+           !We want to have a good accuracy of the last point rloc*10
+           cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
+        end if
 
         isx=floor((rx-cutoff)/hxh)
         isy=floor((ry-cutoff)/hyh)
@@ -821,6 +826,10 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
         rloc=at%psppar(0,0,ityp)
         rlocsq=rloc**2
         cutoff=10.d0*rloc
+        if (at%multipole_preserving) then
+           !We want to have a good accuracy of the last point rloc*10
+           cutoff=cutoff+max(hxh,hyh,hzh)*real(16,kind=gp)
+        end if
 
         isx=floor((rx-cutoff)/hxh)
         isy=floor((ry-cutoff)/hyh)
@@ -1232,7 +1241,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   call timing(iproc,'CrtLocPot     ','ON')
   
   !initialize the work arrays needed to integrate with isf
-  if (at%multipole_preserving) call initialize_real_space_conversion()
+  if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
 
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
@@ -1292,6 +1301,10 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
         rloc=at%psppar(0,0,ityp)
         charge=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
         cutoff=10.d0*rloc
+        if (at%multipole_preserving) then
+           !We want to have a good accuracy of the last point rloc*10
+           cutoff=cutoff+max(hxh,hyh,hzh)*real(16,kind=gp)
+        end if
 
         isx=floor((rx-cutoff)/hxh)
         isy=floor((ry-cutoff)/hyh)

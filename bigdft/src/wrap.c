@@ -35,78 +35,15 @@ static REAL_T dgrad, fret, dummy[2];
 //static STRING_T *__st0002__ = NULL;
 //static STRING_T *__st0003__ = NULL;
 #define NUL '\0'
-int nab_init_(INT_T *natoms, REAL_T *rxyz, REAL_T  *fxyz ,  char *filename_t , int *ilenn,int *l_sat,char *sat)
+//int nab_init_(INT_T *natoms, REAL_T *rxyz, REAL_T  *fxyz ,  char *filename_t , int *ilenn,int *l_sat,char *sat)
+int nab_init_()
 // , INT_T *iproc , INT_T *nproc , char *argv[])// , char *filename)
 {
 //void  nab_pdbread_(REAL_T * , char * , int * );
 nabout = stdout; /*default*/
-static INT_T __it0001__;
-static INT_T __it0002__;
-static REAL_T __ft0001__;
-char *trim(char *) ;
-char *file1 ;
-char filename[200];
-INT_T ibond,jbond ;
-INT_T i, iat;
-INT_T ii ;
-REAL_T *e_pos ;
-INT_T *icount ; 
-REAL_T tt ;
-//REAL_T  *m_xyz,  *f_xyz,  *v;
-REAL_T  *f_xyz,  *v;
-//        int     argc=2 ;
-	
-//mytaskid = *iproc ; 
-//numtasks = *nproc/(*iproc+1) ;
-//ier = mpiinit(  &argc, argv,  &mytaskid,  &numtasks ) ; 
 
-
-
-//  nab_pdbread_(REAL_T *rxyz , char *file1 ) ; 
-
-
-ii = *ilenn ;
-printf("REZA: %4d  %4d  \n",ii,*ilenn);
-for(i=0;i<*ilenn;i++) filename[i]=filename_t[i];
-filename[*ilenn]='\0' ;
-
-//*file1 = *trim(filename) ;
-//printf("%s\n",file1) ;
-//printf("%s\n",filename) ;
-//m = getpdb(file1, NULL );
-
-//*file1 = *argv + ".pdb" ;
-//filename[ii]='.' ;
-//filename[ii+1]='p' ;
-//filename[ii+2]='d' ;
-//filename[ii+3]='b' ;
-//filename[ii+4]='\0' ;
-//filename_t[ii]='\0' ;
-
-m = getpdb(filename, NULL );
-//m = getpdb("res1.pdb", NULL );
-//m = getpdb_prm( STEMP( __st0001__, "aaaa.pdb" ), STEMP( __st0002__, "leaprc.rna.ff99" ), STEMP( __st0003__, "" ), ITEMP( __it0001__, 1 ) );
-//filename[ii]='.' ;
-//filename[ii+1]='t' ;
-//filename[ii+2]='o' ;
-//filename[ii+3]='p' ;
-//filename[ii+4]='\0' ;
+m = getpdb("init.pdb", NULL );
 readparm( m, "struct.top");
-//readparm( m, "res1.top");
-*natoms = countmolatoms( m, NULL );
-
-//exit(1);
-//__gdab0001__ = 3 *  *( NAB_mri( m, "natoms" ) );//DA_ALLOC( m_xyz = ( REAL_T * )malloc( __gdab0001__ * ( sizeof( REAL_T ) ) ), "main", "m_xyz" );
-//__gdab0002__ = 3 *  *( NAB_mri( m, "natoms" ) );//DA_ALLOC( f_xyz = ( REAL_T * )malloc( __gdab0002__ * ( sizeof( REAL_T ) ) ), "main", "f_xyz" );
-//__gdab0003__ = 3 *  *( NAB_mri( m, "natoms" ) );//DA_ALLOC( v = ( REAL_T * )malloc( __gdab0003__ * ( sizeof( REAL_T ) ) ), "main", "v" );
-
-
-//m_xyz =(REAL_T *)malloc(__gdab0001__ * ( sizeof(REAL_T  ) ) );
-//f_xyz =(REAL_T *)malloc( __gdab0001__ * ( sizeof(REAL_T  ) ) );
-//m_xyz =(REAL_T *)malloc(2000 * ( sizeof(REAL_T  ) ) );
-//f_xyz =(REAL_T *)malloc(2000 * ( sizeof(REAL_T  ) ) );
-//*f_xyz = 0.0 ;
-//*m_xyz = 0.0 ;
 
 setxyz_from_mol(  &m, NULL, m_xyz );
 
@@ -117,69 +54,6 @@ mm_options( "ntpr=1000, gb=1, gbsa=1 , rgbmax=99.,cut=99.0, diel=C ");
 //mm_options( "cut=999., ntpr=10, nsnb=100, diel=R" );
 mme_init( m, NULL, "::Z", m_xyz, NULL );
 prm1=m->m_prm;
-//printf("TTTTTTTTTTTTTTTTTTTTTTTTTT: %4d\n",prm1->Natom);
-for(iat=0;iat<prm1->Natom;iat++) {
-//printf("TTTTTTTTTTTTTTTTTTTTTTTTTT: %c\n",(char) prm1->AtomNames[i]);
-//printf("TTTTTTTTTTTTTTTTTTTTTTTTTT: %4d%4d\n",iat*l_sat[0],iat*4);
-sat[iat*l_sat[0]]=prm1->AtomNames[iat*4];
-for(i=1;i<l_sat[0];i++) sat[iat*l_sat[0]+i]=(char) 32;
-}
-//return 1;
-//------------------------------------------------------------------------------
-// prm1=m->m_prm;
-// *nbond=prm1->Nbonh+prm1->Mbona;
-// ibond=-1;
-// for(jbond=0;jbond<prm1->Nbonh;jbond++) {
-// 	ibond++;
-// 	indbond1[ibond]=prm1->BondHAt1[jbond]/3+1;
-// 	indbond2[ibond]=prm1->BondHAt2[jbond]/3+1;
-// 	sprcons[ibond]=prm1->Rk[prm1->BondHNum[jbond]-1];
-// 	l0[ibond]=prm1->Req[prm1->BondHNum[jbond]-1];
-// }
-// for(jbond=0;jbond<prm1->Mbona;jbond++) {
-// 	ibond++;
-// 	indbond1[ibond]=prm1->BondAt1[jbond]/3+1;
-// 	indbond2[ibond]=prm1->BondAt2[jbond]/3+1;
-// 	sprcons[ibond]=prm1->Rk[prm1->BondNum[jbond]-1];
-// 	l0[ibond]=prm1->Req[prm1->BondNum[jbond]-1];
-// }
-// 	printf("bond1,bond2,bondtot: %4d %4d %4d \n",prm1->Nbonh,prm1->Mbona,*nbond);
-// if(*nbond!=ibond+1) {
-// 	printf("ERROR: number of bonds estimated wrong.\n");
-// }
-//for(ibond=0;ibond<*nbond;ibond++) printf("  %4d  %4d  %4d\n",ibond,indbond1[ibond],indbond2[ibond]);
-//for(i = 0; i < prm1->Mbona;i++) { 
-//	printf(" %d  %d %10.5f %10.5f\n",prm1->BondAt1[i], prm1->BondAt2[i] ,  prm1->Rk[prm1->BondNum[i]], prm1->Req[prm1->BondNum[i]]); 
-//}
-//printf("--------------------------\n");
-//for(i = 0; i < prm1->Nbonh;i++){
-//printf(" %d  %d %10.5f %10.5f\n",prm1->BondHAt1[i]/3+1  , prm1->BondHAt2[i]/3+1  ,  \
-//	prm1->Rk[prm1->BondHNum[i]-1], prm1->Req[prm1->BondHNum[i]-1]);
-//}
-//for(i = 0; i < prm1->Mbona;i++){
-//printf(" %d  %d %10.5f %10.5f\n",prm1->BondAt1[i]/3+1, prm1->BondAt2[i]/3+1 ,\
-//	prm1->Rk[prm1->BondNum[i]-1], prm1->Req[prm1->BondNum[i]-1]);
-//}
-//printf("--------------------------\n");
-//------------------------------------------------------------------------------
-//ii=0;
-//fret  = mme( m_xyz, f_xyz, ITEMP( __it0001__, ii) );
-//printf( "Initial energy is %8.3f\n", fret);
-
-*natoms = *( NAB_mri( m, "natoms" ) );
-printf( "natoms... %d\n", *natoms );
-//rxyz =(REAL_T *)malloc(__gdab0001__ * ( sizeof(REAL_T  ) ) );
-//fxyz =(REAL_T *)malloc( __gdab0001__ * ( sizeof(REAL_T  ) ) );
-tt = 0.0 ; 
-ii = 3*(*natoms) ;
-for (i=0 ; i <= ii  ; i ++){
-rxyz[i] = m_xyz[i] ;
-//fxyz[i] = f_xyz[i] ;
-}
-
-//free(m_xyz) ;
-//free(f_xyz) ;
-//free(argv) ;
 
 return 0;
 } //end of void  nab_init_

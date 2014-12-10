@@ -363,7 +363,7 @@ contains
     nullify(ios%lstring)
   end subroutine f_iostream_release
 
-  !>enter in a infinite loop for sec seconds. Use cpu_time as granularity is enough
+!>enter in a infinite loop for sec seconds. Use cpu_time as granularity is enough
   subroutine f_pause(sec)
     implicit none
     integer, intent(in) :: sec !< seconds to be waited

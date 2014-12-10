@@ -20,7 +20,7 @@ program MINHOP
   !implicit real(kind=8) (a-h,o-z) !!!dangerous when using modules!!!
   implicit none
   logical :: newmin,CPUcheck,occured,exist_poslocm,exist_posacc,singlestep
-  character(len=20) :: unitsp,atmn
+  ! character(len=20) :: unitsp,atmn
   character(len=60) :: run_id
 !  type(atoms_data) :: atoms,md_atoms
 !  type(input_variables), target :: inputs_opt, inputs_md
@@ -36,9 +36,10 @@ program MINHOP
   real(kind=8),allocatable, dimension(:,:) :: fp_arr
   real(kind=8),allocatable, dimension(:) :: fp,wfp,fphop
   real(kind=8),allocatable, dimension(:,:,:) :: pl_arr
-  integer :: iproc,nproc,iat,ierr,infocode,nksevals,i,natoms,nrandoff,nsoften
-  integer :: n_unique,n_nonuni,nputback,i_stat,ncount_bigdft,ngeopt,nid,nlmin,nlminx
-  integer :: ilmin,ierror,natp,k,nvisit,kid,k_e,nlmin_old,ndfree,ndfroz,ixyz,nummax,nummin
+  integer :: iproc,iat,ierr,infocode,nksevals,i,natoms,nrandoff,nsoften
+  integer :: n_unique,n_nonuni,nputback,ncount_bigdft,ngeopt,nid,nlmin,nlminx
+  integer :: ilmin,k,nvisit,kid,k_e,nlmin_old,ndfree,ndfroz,nummax,nummin
+  ! integer :: ierror,ixyz, nproc,natp
   integer :: istepnext,istep
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
@@ -46,22 +47,24 @@ program MINHOP
   character(len=5) :: fn5
 !  character(len=16) :: fn16
 !  character(len=18) :: fn18
-  character(len=50) :: comment
+  character(len=50) :: comment,naming_id
   character(len=128) :: msg
 !  real(gp), parameter :: bohr=0.5291772108_gp !1 AU in angstroem
-  integer :: nconfig
+  ! integer :: nconfig
   !integer, dimension(4) :: mpi_info
   real(kind=4) :: tcpu1,ts,tcpu2,cpulimit
   real(kind=8) :: accepted,ediff,ekinetic,dt,av_ekinetic,av_ediff,escape,escape_sam
   real(kind=8) :: escape_old,escape_new,rejected,fp_sep,e_hop,count_sdcg,count_soft
   real(kind=8) :: count_md,count_bfgs,energyold,e_pos,tt,en_delta,fp_delta
-  real(kind=8) :: t1,t2,t3,ebest_l,dmin,tleft,d,ss
+  real(kind=8) :: ebest_l,dmin,tleft,d,ss
+  !real(kind=8) :: t1,t2,t3
   real(kind=8), external :: dnrm2
   real(kind=8), dimension(:,:), pointer :: rxyz_opt,rxyz_md
   
   type(run_objects) :: run_opt,run_md !< the two runs parameters
   type(state_properties) :: outs
-  type(dictionary), pointer :: user_inputs,options,run
+  !type(dictionary), pointer :: user_inputs
+  type(dictionary), pointer :: options,run
   integer:: nposacc=0
   logical:: disable_hatrans
 
@@ -88,8 +91,9 @@ program MINHOP
   call cpu_time(tcpu1)
 
   !reset input and output positions of run
-  call bigdft_get_run_properties(run,input_id=run_id)
-  call bigdft_set_run_properties(run,posinp_id='poscur'//trim(bigdft_run_id_toa()))
+  naming_id=repeat(' ',len(naming_id))
+  call bigdft_get_run_properties(run,input_id=run_id,naming_id=naming_id)
+  call bigdft_set_run_properties(run,posinp_id='poscur'//trim(naming_id))
 
   call run_objects_init(run_opt,run)
   !then the unoptimized parameters
@@ -168,7 +172,7 @@ program MINHOP
   call give_rcov(bigdft_mpi%iproc,bigdft_get_astruct_ptr(run_opt),rcov)
 
 ! read random offset
-  open(unit=11,file='rand'//trim(bigdft_run_id_toa())//'.inp')
+  open(unit=11,file='rand'//trim(naming_id)//'.inp')
   read(11,*) nrandoff
   !        write(*,*) 'nrandoff ',nrandoff
   close(11)
@@ -187,8 +191,8 @@ program MINHOP
   endif
 
   ! read input parameters
-  write(filename,'(a6,i3.3)') 'ioput'//trim(bigdft_run_id_toa()) !,bigdft_mpi%iproc
-  open(unit=11,file='ioput'//trim(bigdft_run_id_toa()),status='old')
+  write(filename,'(a6,i3.3)') 'ioput'//trim(naming_id) !,bigdft_mpi%iproc
+  open(unit=11,file='ioput'//trim(naming_id),status='old')
   read(11,*) ediff,ekinetic,dt,nsoften
   close(11)
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Input ediff, ekinetic, dt',(/ediff,ekinetic,dt/),fmt='(1pe10.3)')
@@ -230,7 +234,8 @@ program MINHOP
   ngeopt=0
   do 
      write(fn4,'(i4.4)') ngeopt+1
-     filename='poslocm_'//fn4//'_'//trim(bigdft_run_id_toa())//'.xyz'
+     !filename='poslocm_'//fn4//'_'//trim(bigdft_run_id_toa())//'.xyz'
+     filename='poslocm_'//fn4//trim(naming_id)//'.xyz'
 !     write(*,*) 'filename: ',filename
      inquire(file=trim(filename),exist=exist_poslocm)
      if (exist_poslocm) then
@@ -244,7 +249,8 @@ program MINHOP
   nposacc=0
   do 
      write(fn4,'(i4.4)') nposacc+1
-     filename='posacc_'//fn4//'_'//trim(bigdft_run_id_toa())//'.xyz'
+     !filename='posacc_'//fn4//'_'//trim(bigdft_run_id_toa())//'.xyz'
+     filename='posacc_'//fn4//trim(naming_id)//'.xyz'
 !     write(*,*) 'filename: ',filename
      inquire(file=trim(filename),exist=exist_posacc)
      if (exist_posacc) then
@@ -324,7 +330,8 @@ program MINHOP
          write(comment,'(a,1pe10.3)')'ha_trans enabled, fnrm= ',tt
      endif
      call bigdft_write_atomic_file(run_opt,outs,&
-          'posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+          'posacc_'//fn4//trim(naming_id),&
+          !'posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
           trim(comment),cwd_path=.true.)
 !!$     call write_atomic_file('posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
@@ -335,11 +342,13 @@ program MINHOP
      write(fn4,'(i4.4)') ngeopt
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call bigdft_write_atomic_file(run_opt,outs,&
-          'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+          'poslocm_'//fn4//trim(naming_id),&
+          !'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
           trim(comment),cwd_path=.true.)
 !!$     call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
-      open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
+     !open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
+      open(unit=864,file='kseloc_'//fn4//trim(naming_id))
       do i=1,nksevals
       write(864,*) ksevals(i)
       enddo
@@ -347,10 +356,10 @@ program MINHOP
   endif
 
 ! Read previously found energies and properties
-  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) name of enarr','enarr'//trim(bigdft_run_id_toa()))
-  open(unit=12,file='enarr'//trim(bigdft_run_id_toa()),status='unknown')
-   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) name of idarr','idarr'//trim(bigdft_run_id_toa()))
-  open(unit=14,file='idarr'//trim(bigdft_run_id_toa()),status='unknown')
+  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) name of enarr','enarr'//trim(naming_id))
+  open(unit=12,file='enarr'//trim(naming_id),status='unknown')
+   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) name of idarr','idarr'//trim(naming_id))
+  open(unit=14,file='idarr'//trim(naming_id),status='unknown')
   read(12,*) nlmin,nlminx,singlestep
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) nlmin,nlminx',(/nlmin,nlminx/))
   if (nlmin.gt.nlminx) stop 'nlmin>nlminx'
@@ -375,7 +384,7 @@ program MINHOP
   endif
   close(12)
   close(14)
-  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) read idarr','idarr'//trim(bigdft_run_id_toa()))
+  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) read idarr','idarr'//trim(naming_id))
   
   ! If restart read previous poslocm's
   ! here we should use bigdft built-in routines to read atomic positions
@@ -384,7 +393,8 @@ program MINHOP
   do ilmin=1,nlmin
 
      write(fn5,'(i5.5)') ilmin
-     filename = 'poslow'//fn5//'_'//trim(bigdft_run_id_toa())!//'.xyz'
+     !filename = 'poslow'//fn5//'_'//trim(bigdft_run_id_toa())!//'.xyz'
+     filename = 'poslow'//fn5//trim(naming_id)!//'.xyz'
 !!$     call f_file_exists(filename,exist_poslocm)
 !!$     if (.not. exist_poslocm) then
 !!$        write(*,*) bigdft_mpi%iproc,' COULD not read file ',filename
@@ -513,7 +523,7 @@ program MINHOP
 555 continue
   close(55)
   !maybe broadcast on comm_world?
-  call mpibcast(tleft,1,comm=bigdft_mpi%mpi_comm)
+  if (bigdft_mpi%nproc > 1) call mpibcast(tleft,1,comm=bigdft_mpi%mpi_comm)
   !call MPI_BCAST(tleft,1,MPI_DOUBLE_PRECISION,0,bigdft_mpi%mpi_comm,ierr)
   if (tleft < 0.d0) then
      call yaml_map('(MH) Process'//trim(yaml_toa(bigdft_mpi%iproc))//' has exceeded CPU time. Tleft',tleft)
@@ -525,14 +535,15 @@ program MINHOP
   call bigdft_set_rxyz(run_md,rxyz=pos) !one could write here also rxyz=bigdft_get_rxyz_ptr(run_opt)
   escape=escape+1.d0
   call mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, run_md, outs, &
-                ngeopt,bigdft_mpi%nproc,bigdft_mpi%iproc)
+                ngeopt,bigdft_mpi%iproc)
   if (bigdft_mpi%iproc == 0) then 
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
      write(fn4,'(i4.4)') nint(escape)
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      
      call bigdft_write_atomic_file(run_md,outs,&
-          'posaftermd_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+          !'posaftermd_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+          'posaftermd_'//fn4//trim(naming_id),&
           trim(comment),cwd_path=.true.)
 
 !!$     call write_atomic_file('posaftermd_'//fn4//'_'//trim(bigdft_run_id_toa()),&
@@ -598,12 +609,14 @@ program MINHOP
      write(fn4,'(i4.4)') ngeopt
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call bigdft_write_atomic_file(run_opt,outs,&
-          'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),trim(comment),&
+          !'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),trim(comment),&
+          'poslocm_'//fn4//trim(naming_id),trim(comment),&
           cwd_path=.true.)
 
 !!$     call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
-        open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
+        !open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
+        open(unit=864,file='kseloc_'//fn4//trim(naming_id))
         do i=1,nksevals
           write(864,*) ksevals(i)
         enddo
@@ -628,7 +641,7 @@ program MINHOP
         fp_sep=max(fp_sep,d)
         ekinetic=ekinetic*beta_S
         if (bigdft_mpi%iproc == 0) then 
-             call wtioput(ediff,ekinetic,dt,nsoften)
+             call wtioput(naming_id,ediff,ekinetic,dt,nsoften)
              write(2,'((1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),a)')  &
              escape,outs%energy,ediff,ekinetic, &
              escape_sam/escape,escape_old/escape,escape_new/escape,'  S '
@@ -659,7 +672,8 @@ program MINHOP
            rxyz_opt,en_arr,ct_arr,fp_arr,pl_arr)
 ! write intermediate results
       if (bigdft_mpi%iproc == 0) call yaml_comment('(MH) WINTER')
-      if (bigdft_mpi%iproc == 0) call winter(natoms,bigdft_get_astruct_ptr(run_opt),nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
+      if (bigdft_mpi%iproc == 0) call winter(naming_id,natoms,bigdft_get_astruct_ptr(run_opt),nid,&
+           nlminx,nlmin,singlestep,en_delta,fp_delta, &
            en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nsoften)
       if (bigdft_mpi%iproc == 0) then
          !call yaml_stream_attributes()
@@ -730,7 +744,8 @@ program MINHOP
          write(comment,'(a)')'ha_trans enabled'
      endif
      call astruct_dump_to_file(bigdft_get_astruct_ptr(run_opt),&
-          'posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+          !'posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+          'posacc_'//fn4//trim(naming_id),&
           trim(comment),energy=e_pos,rxyz=pos)
 !!$     call write_atomic_file('posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          e_pos,pos,atoms%astruct%ixyz_int,atoms,trim(comment))
@@ -739,7 +754,8 @@ program MINHOP
      if (bigdft_mpi%iproc == 0) then
         !call yaml_mapping_open('(MH) Write poscur file')
         call astruct_dump_to_file(bigdft_get_astruct_ptr(run_opt),&
-             'poscur'//trim(bigdft_run_id_toa()),'',&
+             !'poscur'//trim(bigdft_run_id_toa()),'',&
+             'poscur'//trim(naming_id),'',&
              energy=e_pos,rxyz=pos)
 !!$       call write_atomic_file('poscur'//trim(bigdft_run_id_toa()),e_pos,pos,atoms%astruct%ixyz_int,atoms,'')
        call yaml_map('(MH) poscur.xyz for  RESTART written',.true.)
@@ -768,7 +784,7 @@ program MINHOP
      rejected=rejected+1.d0
      ediff=ediff*alpha_R
   endif
-     if (bigdft_mpi%iproc == 0) call wtioput(ediff,ekinetic,dt,nsoften)
+     if (bigdft_mpi%iproc == 0) call wtioput(naming_id,ediff,ekinetic,dt,nsoften)
 
 end do hopping_loop
 
@@ -778,7 +794,7 @@ end do hopping_loop
      call yaml_mapping_open('(MH) Final results')
      call yaml_map('(MH) Total number of minima found',nlmin)
      call yaml_map('(MH) Number of accepted minima',accepted)
-     call winter(natoms,bigdft_get_astruct_ptr(run_opt),nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
+     call winter(naming_id,natoms,bigdft_get_astruct_ptr(run_opt),nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
            en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nsoften)
   endif
 
@@ -858,13 +874,13 @@ contains
 
   !> Does a MD run with the atomic positions rxyz
   subroutine mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, &
-       runObj,outs,ngeopt,nproc,iproc)!  &
+       runObj,outs,ngeopt,iproc)!  &
     use module_base
     use module_types
     use module_interfaces
     use m_ab6_symmetry
     implicit none !real*8 (a-h,o-z)
-    integer :: nsoften,mdmin,ngeopt,iproc,nproc
+    integer :: nsoften,mdmin,ngeopt,iproc
     real(kind=8) :: ekinetic,dt,count_md
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
@@ -903,7 +919,7 @@ contains
     !!end do
 
   ! Soften previous velocity distribution
-    call soften(nsoften,vxyz, runObj,outs,nproc,iproc)
+    call soften(nsoften,vxyz, runObj,outs,iproc)
 
     call frozen_dof(bigdft_get_astruct_ptr(runObj),vxyz,ndfree,ndfroz)
   ! normalize velocities to target ekinetic
@@ -952,7 +968,8 @@ contains
           write(fn4,'(i4.4)') ngeopt
           write(comment,'(a,i3)')'nummin= ',nummin
           call bigdft_write_atomic_file(runObj,outs,&
-               'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+               !'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+               'poslocm_'//fn4//trim(naming_id),&
                trim(comment),cwd_path=.true.)
 !!$          call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()), & 
 !!$               outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
@@ -1032,7 +1049,7 @@ contains
   END SUBROUTINE mdescape
   
 
-  subroutine soften(nsoften,vxyz,runObj,outs,nproc,iproc)
+  subroutine soften(nsoften,vxyz,runObj,outs,iproc)
     use module_base
     use bigdft_run
     use module_atoms, only: astruct_dump_to_file
@@ -1041,7 +1058,7 @@ contains
 !    use m_ab6_symmetry
     implicit none
     !Arguments
-    integer, intent(in) :: nsoften,nproc,iproc
+    integer, intent(in) :: nsoften,iproc
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
     real(kind=8), dimension(3*natoms) :: vxyz
@@ -1604,10 +1621,9 @@ subroutine elim_moment(nat,vxyz)
 END SUBROUTINE elim_moment
 
 
-subroutine winter(nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
+subroutine winter(naming_id,nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
      en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nsoften)
   use module_base
-  use bigdft_run, only: bigdft_run_id_toa
   use module_atoms, only: atomic_structure,astruct_dump_to_file
 !!$  use module_types
 !!$  use module_interfaces
@@ -1615,6 +1631,7 @@ subroutine winter(nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
   use yaml_output
   implicit none
   !Arguments
+  character(len=*), intent(in) :: naming_id
   integer, intent(in) :: nlminx,nlmin,nsoften,nid
   real(gp), intent(in) :: ediff,ekinetic,dt,en_delta,fp_delta
   type(atomic_structure), intent(in) :: astruct
@@ -1626,10 +1643,10 @@ subroutine winter(nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
   !character(len=50) :: comment
   character(len=5) :: fn5
 
-  call yaml_map('(MH) name of idarr','idarr'//trim(bigdft_run_id_toa()))
+  call yaml_map('(MH) name of idarr','idarr'//trim(naming_id))
 
   ! write enarr file
-  open(unit=12,file='enarr'//trim(bigdft_run_id_toa()),status='unknown')
+  open(unit=12,file='enarr'//trim(naming_id),status='unknown')
   write(12,'(2(i10),l1,a)') nlmin,nlmin+5,singlestep, & 
       ' # of minima already found, # of minima to be found in consecutive run, singlestep mode'
   write(12,'(2(e24.17,1x),a)') en_delta,fp_delta,' en_delta,fp_delta'
@@ -1640,7 +1657,7 @@ subroutine winter(nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
   close(12)
 
   ! write fingerprint file
-  open(unit=14,file='idarr'//trim(bigdft_run_id_toa()),status='unknown')
+  open(unit=14,file='idarr'//trim(naming_id),status='unknown')
   do k=1,nlmin
      write(14,'(10(1x,e24.17))') (fp_arr(i,k),i=1,nid)
   enddo
@@ -1648,7 +1665,7 @@ subroutine winter(nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
   call yaml_map('(MH) idarr for  RESTART written',.true.)
 
   ! write ioput file
-  call  wtioput(ediff,ekinetic,dt,nsoften)
+  call  wtioput(naming_id,ediff,ekinetic,dt,nsoften)
   call yaml_map('(MH) ioput for  RESTART written',.true.)
 
   ! write poslow files
@@ -1661,7 +1678,8 @@ subroutine winter(nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
      write(fn5,'(i5.5)') k
      !        write(comment,'(a,1pe15.8)')'energy= ',en_arr(k)
      call astruct_dump_to_file(astruct,&
-          'poslow'//fn5//'_'//trim(bigdft_run_id_toa()),'',&
+          !'poslow'//fn5//'_'//trim(naming_id),'',&
+          'poslow'//fn5//trim(naming_id),'',&
           energy=en_arr(k),rxyz=pl_arr(:,:,k))
 !!$     call  write_atomic_file('poslow'//fn5//'_'//trim(bigdft_run_id_toa()),en_arr(k),pl_arr(1,1,k),&
 !!$           at%astruct%ixyz_int,at,'')
@@ -1672,15 +1690,15 @@ subroutine winter(nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_delta, &
 END SUBROUTINE winter
 
 
-subroutine wtioput(ediff,ekinetic,dt,nsoften)
-  use bigdft_run, only: bigdft_run_id_toa
+subroutine wtioput(naming_id,ediff,ekinetic,dt,nsoften)
   implicit none
   !Arguments
+  character(len=*), intent(in) :: naming_id
   real(kind=8), intent(in) :: ediff,ekinetic,dt
   integer, intent(in) :: nsoften
   !Local variables
   integer, parameter :: iunit=11
-  open(unit=iunit,file='ioput'//trim(bigdft_run_id_toa()),status='unknown')
+  open(unit=iunit,file='ioput'//trim(naming_id),status='unknown')
   write(iunit,'(3(1x,1pe24.17)1x,i4,a)') ediff,ekinetic,dt,nsoften,' ediff, ekinetic dt and nsoften'
   close(unit=iunit)
 END SUBROUTINE wtioput
@@ -1743,7 +1761,7 @@ END SUBROUTINE wtioput
 !!        
 !!        !C generate filename and open files
 !!        write(fn,'(i5.5)') kk
-!!        call  write_atomic_file('poslow'//fn//'_'//trim(bigdft_run_id_toa()),elocmin(k),pos(1,1,k),at,'')
+!!        call  write_atomic_file('poslow'//fn//'_'//trim(naming_id),elocmin(k),pos(1,1,k),at,'')
 !!     endif
 !!     
 !!  end do
@@ -2485,187 +2503,6 @@ subroutine give_rcov(iproc,astruct,rcov)
 !    call covalent_radius(it%name,rcov(it%iat))
 !  end do
 
-!!  do iat=1,nat
-!!     if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='H') then
-!!        rcov(iat)=0.75d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='He') then
-!!        rcov(iat)=0.75d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Li') then
-!!        rcov(iat)=3.40d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Be') then
-!!        rcov(iat)=2.30d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='B' ) then
-!!        rcov(iat)=1.55d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='C' ) then
-!!        rcov(iat)=1.45d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='N' ) then
-!!        rcov(iat)=1.42d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='O' ) then
-!!        rcov(iat)=1.38d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='F' ) then
-!!        rcov(iat)=1.35d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ne') then
-!!        rcov(iat)=1.35d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Na') then
-!!        rcov(iat)=3.40d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Mg') then
-!!        rcov(iat)=2.65d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Al') then
-!!        rcov(iat)=2.23d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Si') then
-!!        rcov(iat)=2.09d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='P' ) then
-!!        rcov(iat)=2.00d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='S' ) then
-!!        rcov(iat)=1.92d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cl') then
-!!        rcov(iat)=1.87d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ar') then
-!!        rcov(iat)=1.80d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='K' ) then
-!!        rcov(iat)=4.00d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ca') then
-!!        rcov(iat)=3.00d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sc') then
-!!        rcov(iat)=2.70d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ti') then
-!!        rcov(iat)=2.70d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='V' ) then
-!!        rcov(iat)=2.60d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cr') then
-!!        rcov(iat)=2.60d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Mn') then
-!!        rcov(iat)=2.50d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Fe') then
-!!        rcov(iat)=2.50d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Co') then
-!!        rcov(iat)=2.40d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ni') then
-!!        rcov(iat)=2.30d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cu') then
-!!        rcov(iat)=2.30d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Zn') then
-!!        rcov(iat)=2.30d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ga') then
-!!        rcov(iat)=2.10d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ge') then
-!!        rcov(iat)=2.40d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='As') then
-!!        rcov(iat)=2.30d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Se') then
-!!        rcov(iat)=2.30d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Br') then
-!!        rcov(iat)=2.20d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Kr') then
-!!        rcov(iat)=2.20d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Rb') then
-!!        rcov(iat)=4.50d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sr') then
-!!        rcov(iat)=3.30d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Y' ) then
-!!        rcov(iat)=3.30d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Zr') then
-!!        rcov(iat)=3.00d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Nb') then
-!!        rcov(iat)=2.92d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Mo') then
-!!        rcov(iat)=2.83d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Tc') then
-!!        rcov(iat)=2.75d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ru') then
-!!        rcov(iat)=2.67d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Rh') then
-!!        rcov(iat)=2.58d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pd') then
-!!        rcov(iat)=2.50d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ag') then
-!!        rcov(iat)=2.50d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cd') then
-!!        rcov(iat)=2.50d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='In') then
-!!        rcov(iat)=2.30d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sn') then
-!!        rcov(iat)=2.66d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sb') then
-!!        rcov(iat)=2.66d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Te') then
-!!        rcov(iat)=2.53d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='I' ) then
-!!        rcov(iat)=2.50d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Xe') then
-!!        rcov(iat)=2.50d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Cs') then
-!!        rcov(iat)=4.50d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ba') then
-!!        rcov(iat)=4.00d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='La') then
-!!        rcov(iat)=3.50d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ce') then
-!!        rcov(iat)=3.50d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pr') then
-!!        rcov(iat)=3.44d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Nd') then
-!!        rcov(iat)=3.38d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pm') then
-!!        rcov(iat)=3.33d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Sm') then
-!!        rcov(iat)=3.27d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Eu') then
-!!        rcov(iat)=3.21d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Gd') then
-!!        rcov(iat)=3.15d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Td') then
-!!        rcov(iat)=3.09d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Dy') then
-!!        rcov(iat)=3.03d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ho') then
-!!        rcov(iat)=2.97d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Er') then
-!!        rcov(iat)=2.92d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Tm') then
-!!        rcov(iat)=2.92d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Yb') then
-!!        rcov(iat)=2.80d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Lu') then
-!!        rcov(iat)=2.80d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Hf') then
-!!        rcov(iat)=2.90d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ta') then
-!!        rcov(iat)=2.70d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='W' ) then
-!!        rcov(iat)=2.60d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Re') then
-!!        rcov(iat)=2.60d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Os') then
-!!        rcov(iat)=2.50d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Ir') then
-!!        rcov(iat)=2.50d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pt') then
-!!        rcov(iat)=2.60d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Au') then
-!!        rcov(iat)=2.70d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Hg') then
-!!        rcov(iat)=2.80d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Tl') then
-!!        rcov(iat)=2.50d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Pb') then
-!!        rcov(iat)=3.30d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Bi') then
-!!        rcov(iat)=2.90d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Po') then
-!!        rcov(iat)=2.80d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='At') then
-!!        rcov(iat)=2.60d0
-!!     else if (trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))=='Rn') then
-!!        rcov(iat)=2.60d0
-!!     else
-!!        call yaml_comment('(MH) no covalent radius stored for this atomtype '&
-!!             //trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))))
-!!     endif
-!!     if (iproc == 0) then
-!!        call yaml_map('(MH) RCOV:'//trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),rcov(iat))
-!!     endif
-!!  enddo
 end subroutine give_rcov
 
 !> Display the logo of Minima Hopping 
@@ -3156,7 +2993,7 @@ END subroutine hunt_orig
       theta(3,2)=theta(2,3)
    enddo
    ! diagonalize theta
-   call DSYEV('V','U',3,theta(1,1),3,theta_e(1),work(1),lwork,info)        
+   call DSYEV('V','U',3,theta(1,1),3,theta_e(1),work(1),lwork,info)
    haratio=theta_e(3)/theta_e(1)
 
    !choose the sign of the eigenvector such that the component with the 

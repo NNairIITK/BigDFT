@@ -147,7 +147,7 @@ MODULE NEB_routines
       call dict_init(dict_pos)
       do i = 1, num_of_images
          ! Set-up naming scheme for image i
-         call bigdft_run_new(dict_min)
+         nullify(dict_min)
          call bigdft_set_run_properties(dict_min, &
               & run_id    = trim(job_name) // trim(adjustl(yaml_toa(i,fmt='(i3)'))), &
               & input_id  = trim(run_id)   // trim(adjustl(yaml_toa(i,fmt='(i3)'))), &

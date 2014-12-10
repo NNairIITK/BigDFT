@@ -1312,7 +1312,7 @@ contains
     logical,intent(in),optional :: check_
     integer,intent(out),pointer,optional :: window_
     !local variables
-    integer :: nproc,jproc,nrecvbuf,ierr
+    integer :: nproc,nrecvbuf
     !external :: getall
     logical :: check
     integer,target:: window
@@ -1501,8 +1501,6 @@ subroutine getall_d(nproc,recvcounts,displs,window,nrecvbuffer,recvbuffer)
   end do
 
 end subroutine getall_d
-
-
 
 !> Activates the nesting for UNBLOCK_COMMS performance case
 subroutine bigdft_open_nesting(num_threads)

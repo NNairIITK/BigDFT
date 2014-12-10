@@ -2,7 +2,7 @@
 
 EXTRA_DIST = PS_Check.ref.yaml tols.yaml
 
-check_PROGRAMS = PS_Check PS_Integral gaussian
+check_PROGRAMS = PS_Check PS_Integral gaussian gaussian2D gaussian3D
 
 AM_FCFLAGS = -I$(top_builddir)/includes -I. @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@  @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/src
@@ -20,6 +20,12 @@ PS_Integral_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 gaussian_SOURCES = gaussian.f90
 gaussian_LDADD = -lbigdft-1 @LINALG_LIBS@
+
+gaussian2D_SOURCES = gaussian2D.f90
+gaussian2D_LDADD = -lbigdft-1 @LINALG_LIBS@
+
+gaussian3D_SOURCES = gaussian3D.f90
+gaussian3D_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 
 CLEANFILES = PS_Check.out.yaml fldiff.report.yaml malloc.prc time.prc

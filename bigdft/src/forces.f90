@@ -367,7 +367,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   !array of coefficients of the derivative
   real(kind=8), dimension(4) :: cprime 
 
-  if (at%multipole_preserving) call initialize_real_space_conversion()
+  if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
   
   locstrten=0.0_gp
 
@@ -439,6 +439,10 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      prefactor=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**5)
      !maximum extension of the gaussian
      cutoff=10.d0*rloc
+     if (at%multipole_preserving) then
+        !We want to have a good accuracy of the last point rloc*10
+        cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
+     end if
 
      isx=floor((rx-cutoff)/hxh)
      isy=floor((ry-cutoff)/hyh)
@@ -576,12 +580,12 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(6), intent(out) :: strten
   !local variables--------------
   character(len=*), parameter :: subname='nonlocal_forces'
-  integer :: istart_c,iproj,iat,ityp,i,j,l,m,iatyp
+  integer :: istart_c,iproj,iat,ityp,i,j,l,m
   integer :: mbseg_c,mbseg_f,jseg_c,jseg_f
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,strc,Enl,vol
   real(gp) :: orbfac
-  integer :: idir,i_all,i_stat,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb
+  integer :: idir,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb
   real(gp), dimension(2,2,3) :: offdiagarr
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
@@ -3284,7 +3288,7 @@ subroutine elim_torque_reza(nat,rat0,fat)
   real(gp), dimension(3*nat), intent(inout) :: fat
   !local variables
   character(len=*), parameter :: subname='elim_torque_reza'
-  integer :: i,iat,i_all,i_stat
+  integer :: i,iat
   real(gp) :: vrotnrm,cmx,cmy,cmz,alpha,totmass
   !this is an automatic array but it should be allocatable
   real(gp), dimension(3) :: evaleria
@@ -3377,7 +3381,7 @@ subroutine moment_of_inertia(nat,rat,teneria,evaleria)
   !local variables
   character(len=*), parameter :: subname='moment_of_inertia'
   integer, parameter::lwork=100
-  integer :: iat,info,i_all,i_stat
+  integer :: iat,info
   real(gp) :: tt
   real(gp), dimension(lwork) :: work
   real(gp), dimension(:), allocatable :: amass
@@ -3604,7 +3608,7 @@ END SUBROUTINE clean_forces
 !> Symmetrize stress (important with special k points)
 subroutine symm_stress(tens,symobj)
   use defs_basis
-  use module_base, only: verbose,gp
+  use module_base, only: gp!,verbose
   use m_ab6_symmetry
   use module_types
   use yaml_output
@@ -3746,7 +3750,7 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
    real(gp) :: ekin_sum,epot_sum
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian_stress'
-  integer :: i_all,i_stat,iorb,npot,oidx
+  integer :: iorb,npot,oidx
   real(wp) :: kinstr(6)
   real(gp) :: ekin,kx,ky,kz,etest
   type(workarr_locham) :: wrk_lh
@@ -3821,7 +3825,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
   character(len=*), parameter :: subname='erf_stress'
   real(kind=8),allocatable :: rhog(:,:,:,:,:)
   real(kind=8),dimension(:),pointer :: rhor
-  integer :: ierr,i_stat,i_all
+  integer :: ierr
   real(kind=8) :: pi,p(3),g2,rloc,setv,fac
   real(kind=8) :: rx,ry,rz,sfr,sfi,rhore,rhoim
   real(kind=8) :: potg,potg2
@@ -3979,7 +3983,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd,ncount,ist_send
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,Enl,vol
   !real(gp) :: orbfac,strc
-  integer :: idir,i_all,i_stat,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb,jproc,ii,ist,ierr,iiat
+  integer :: idir,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb,jproc,ii,ist,ierr,iiat
   real(gp), dimension(2,2,3) :: offdiagarr
   real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
@@ -3990,7 +3994,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   integer,parameter :: ndir=3 !3 for forces, 9 for forces and stresses
   real(kind=8),dimension(:),allocatable :: denskern_gathered
   integer,dimension(:,:),allocatable :: iorbminmax
-  integer :: iorbmin, jorbmin, iorbmax, jorbmax
 
   !integer :: ldim, gdim
   !real(8),dimension(:),allocatable :: phiglobal
@@ -4651,7 +4654,7 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   real(gp),dimension(3,nat),intent(inout) :: fxyz
 
   ! Local variables
-  integer :: iat, i, ii
+  integer :: iat, ii
   integer,dimension(:),allocatable :: na, nb, nc
   real(gp),parameter :: degree=57.29578d0
   real(gp),dimension(:,:),allocatable :: geo, rxyz_tmp, geo_tmp, fxyz_int, tmp, rxyz_shifted

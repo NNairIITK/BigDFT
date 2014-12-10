@@ -220,7 +220,7 @@ contains
    end subroutine dictionaries_errors
 
    !> Pop a subdictionary from a mother one. Returns the subdictionary.
-   !! raise an error if the subdictionary does not exists.
+   !! raise an error if the subdictionary does not exist.
    function pop_key(dict,key) result(subd)
      implicit none
      !> As Fortran norm says, here the intent is refererred to the 
@@ -243,7 +243,7 @@ contains
      end if
      
      !if something has been found, pop
-     !!WARNING: here the usage of dict_remove is abused,
+     !!@warning here the usage of dict_remove is abused,
      !!as this routine frees dict if it is the last object
      !!therefore it changes the pointer association status of dict
      if (associated(subd)) then
@@ -259,7 +259,7 @@ contains
    end function pop_key
 
    !> Pop a subdictionary from a mother one. Returns the subdictionary.
-   !! raise an error if the subdictionary does not exists.
+   !! raise an error if the subdictionary does not exist.
    function pop_item(dict,item) result(subd)
      use yaml_strings, only: yaml_toa
      implicit none
@@ -896,7 +896,7 @@ contains
 
 
    !> Retrieve the pointer to the dictionary which has this key.
-   !! If the key does not exists, search for it in the next chain 
+   !! If the key does not exist, search for it in the next chain 
    !! Key Must be already present, otherwise result is nullified
    recursive function find_key(dict,key) result (dict_ptr)
      implicit none
@@ -971,7 +971,7 @@ contains
 
 
    !> Search in the dictionary if some of the child has the given
-   !! If the key does not exists, search for it in the next chain 
+   !! If the key does not exist, search for it in the next chain 
    !! Key Must be already present 
    !! the search in the linked list can be performed
    !! by using the new scheme under implementation
@@ -1047,7 +1047,8 @@ contains
      !call set_field(repeat(' ',max_field_length),dict%data%value)
      if ( .not. associated(dict%child,target=subd) .and. &
           associated(dict%child)) then
-        call dict_free(dict%child)
+        !call dict_free(dict%child)
+        call free_child(dict)
      end if
      dict%child=>subd
      if (associated(subd%parent)) then
@@ -1059,6 +1060,17 @@ contains
      call define_parent(dict,dict%child)
    end subroutine put_child
 
+
+   subroutine free_child(dict)
+     implicit none
+     type(dictionary), pointer :: dict
+     
+     call dict_free(dict%child)
+     !reset the number of items
+     dict%data%nitems=0
+     dict%data%nelems=0
+
+   end subroutine free_child
 
    !> Append another dictionary
    recursive subroutine append(dict,brother)
@@ -1143,7 +1155,10 @@ contains
              trim(dict%data%key)//'"',err_id=DICT_VALUE_ABSENT)
         return
      end if
-     if (associated(dict%child)) call dict_free(dict%child)
+     if (associated(dict%child)) then
+        !call dict_free(dict%child)
+        call free_child(dict)
+     end if
 
      call f_strcpy(src=val,dest=dict%data%value)
      !call set_field(val,dict%data%value)
