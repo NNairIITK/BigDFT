@@ -63,7 +63,7 @@ else
 lib_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies global abscalc mhgps
+binaries_sources = bigdft memguess splsad NEB frequencies global abscalc mhgps mhgpstool
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
@@ -325,12 +325,12 @@ bart_FCFLAGS = -I. -Iart -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_I
 bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
 
 mhgps_SOURCES = mhgps.f90 fingerprint.f90
-
-##mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-##mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ mhgps_files/wrap.o
 mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-##mhgps_LDADD = mhgps_files/libmhgps.a $(bigdft_library) @LINALG_LIBS@
 mhgps_LDADD = mhgps_files/libmhgps.a $(amber_ld) $(bigdft_library) @LINALG_LIBS@
+
+mhgpstool_SOURCES = mhgpstool.f90 fingerprint.f90
+mhgpstool_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
+mhgpstool_LDADD = mhgps_files/libmhgps.a $(amber_ld) $(bigdft_library) @LINALG_LIBS@
 
 global_SOURCES = global.f90 fingerprint.f90
 global_LDADD = $(bigdft_library) @LINALG_LIBS@

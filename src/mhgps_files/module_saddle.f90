@@ -765,7 +765,9 @@ subroutine opt_curv(itgeopt,imode,nat,alat,runObj,outs,alpha0,curvforcediff,nit,
         if (fnrm.le.fnrmtol.or.(overlap<minoverlap.and.itgeopt>1)) goto 1000 !has to be in this line for shared history case
         if(nrise>nmaxrise)then
             if(iproc==0)then
-                call yaml_warning('(MHGPS) opt_curv failed because nrise > nmaxrise. Wrong finite difference or errors in energies and forces.')
+                call yaml_warning('(MHGPS) opt_curv failed because'//&
+                     ' nrise > nmaxrise. Wrong finite difference'//&
+                     ' or errors in energies and forces.')
                 if(.not. isForceField)then
                     call yaml_warning('(MHGPS) Did QM method converge?')
                 endif
