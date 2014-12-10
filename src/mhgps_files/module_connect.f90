@@ -160,9 +160,9 @@ recursive subroutine connect_recursively(nat,nid,alat,runObj,outs,&
     logical, intent(inout)    :: connected
     !local
     integer  :: nsad_loc,ipush
-    real(gp) :: displ=0._gp,ener_count=0._gp
+    real(gp) :: displ,ener_count
     real(gp) :: fnoise,fnrm,fmax
-    logical  :: converged =.false.
+    logical  :: converged
     logical  :: lnl, rnr, lnr, rnl 
     character(len=200) :: comment
     real(gp) :: scl
@@ -176,6 +176,7 @@ recursive subroutine connect_recursively(nat,nid,alat,runObj,outs,&
         call write_todo(ntodo,nat,runObj,outs,rxyz1,rxyz2,ener1,ener2)
         return
     endif
+
     if(iproc==0)then
         call yaml_comment('(MHGPS) nsad:'//&
              trim(adjustl(yaml_toa(nsad)))//'; connect minima with'//&
@@ -214,6 +215,8 @@ recursive subroutine connect_recursively(nat,nid,alat,runObj,outs,&
 
     !compute saddle
     ener_count=0.0_gp
+    displ=0.0_gp
+    converged=.false.
     call findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,cobj%saddle(1,1,nsad),&
                 cobj%enersad(nsad),cobj%fsad(1,1,nsad),&
                 cobj%minmode(1,1,nsad),displ,ener_count,&
