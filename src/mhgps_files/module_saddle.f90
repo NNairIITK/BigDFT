@@ -202,6 +202,18 @@ subroutine deallocate_finsad_workarrays(fsw)
     call f_free(fsw%dd_trans)
     call f_free(fsw%fff_trans) 
     call f_free(fsw%scpr_trans)
+    call f_free(fsw%rxyzold_trans)
+    call f_free(fsw%dds_trans)
+    call f_free(fsw%dd0_trans)
+    call f_free(fsw%delta_trans)
+    call f_free(fsw%ftmp_trans)
+    call f_free(fsw%minmodeold_trans)
+    call f_free(fsw%minmode0_trans)
+    call f_free(fsw%wold_trans)
+    call f_free(fsw%wold_rot)
+    call f_free(fsw%work_trans)
+    call f_free(fsw%work_rot)
+
 end subroutine
 !=====================================================================
 subroutine findsad(nat,alat,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
