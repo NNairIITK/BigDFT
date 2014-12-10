@@ -441,9 +441,9 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
   else
 
      !if (iproc==0)
-     write(*,'(1x,a,3a)')'createKernel, geocode not admitted',kernel%geocode
-
-     stop
+     !write(*,'(1x,a,3a)')'createKernel, geocode not admitted',kernel%geocode
+     !stop
+     call f_err_throw('geocode "'//kernel%geocode//'" not admitted in createKernel')
   end if
 !print *,'thereAAA',iproc,nproc,kernel%mpi_env%iproc,kernel%nproc,kernel%mpi_env%mpi_comm
 !call MPI_BARRIER(kernel%mpi_env%mpi_comm,ierr)
