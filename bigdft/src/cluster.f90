@@ -62,7 +62,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   character(len=*), parameter :: subname='cluster'
   character(len=5) :: gridformat, wfformat
   logical :: refill_proj, calculate_dipole !,potential_from_disk=.false.
-  logical :: DoDavidson,DoLastRunThings=.false.
+  logical :: DoDavidson,DoLastRunThings
   integer :: nvirt,norbv
   integer :: i, input_wf_format, output_denspot
   integer :: n1,n2,n3
@@ -114,6 +114,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   call f_routine(id=subname)
 
   energs = energy_terms_null()
+
+  DoLastRunThings=.false. !to avoid the implicit save attribute
 
   !copying the input variables for readability
   !this section is of course not needed

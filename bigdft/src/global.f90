@@ -784,7 +784,7 @@ program MINHOP
      rejected=rejected+1.d0
      ediff=ediff*alpha_R
   endif
-     if (bigdft_mpi%iproc == 0) call wtioput(ediff,ekinetic,dt,nsoften)
+     if (bigdft_mpi%iproc == 0) call wtioput(naming_id,ediff,ekinetic,dt,nsoften)
 
 end do hopping_loop
 
@@ -1665,7 +1665,7 @@ subroutine winter(naming_id,nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_
   call yaml_map('(MH) idarr for  RESTART written',.true.)
 
   ! write ioput file
-  call  wtioput(ediff,ekinetic,dt,nsoften)
+  call  wtioput(naming_id,ediff,ekinetic,dt,nsoften)
   call yaml_map('(MH) ioput for  RESTART written',.true.)
 
   ! write poslow files

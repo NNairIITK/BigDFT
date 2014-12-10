@@ -78,7 +78,6 @@ module bigdft_run
   public :: bigdft_get_astruct_ptr,bigdft_write_atomic_file,bigdft_set_run_properties
   public :: bigdft_norb,bigdft_get_eval,bigdft_run_id_toa,bigdft_get_rxyz
   public :: bigdft_dot,bigdft_nrm2
-
 !!$  ! interfaces of external routines 
 !!$  interface
 !!$     subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
@@ -456,7 +455,6 @@ contains
 
   END SUBROUTINE run_objects_associate
 
-
   !> copy the atom position in runObject into a workspace
   !! or retrieve the positions from a file
   subroutine bigdft_get_rxyz(runObj,filename,rxyz_add,rxyz)
@@ -754,6 +752,7 @@ contains
     use module_base, only: f_err_throw
     use module_interfaces, only: atoms_new, inputs_new, inputs_from_dict
     use module_atoms, only: deallocate_atoms_data
+    use module_input_dicts, only: dict_run_validate
     implicit none
     type(run_objects), intent(inout) :: runObj
     character(len=*), parameter :: subname = "run_objects_parse"
@@ -774,6 +773,7 @@ contains
     call inputs_new(runObj%inputs)
 
     ! Regenerate inputs and atoms.
+    call dict_run_validate(runObj%user_inputs)
     call inputs_from_dict(runObj%inputs, runObj%atoms, runObj%user_inputs)
 
     !associate the run_mode
@@ -1720,6 +1720,7 @@ subroutine run_objects_update(runObj, dict)
   type(dictionary), pointer :: dict
   !local variables
   type(dictionary), pointer :: item
+  logical :: dict_from_files
 
   if (associated(runObj%user_inputs)) then
      item => dict_iter(dict)
@@ -1734,7 +1735,7 @@ subroutine run_objects_update(runObj, dict)
   ! We merge the previous dictionary with new entries.
   call dict_update(runObj%user_inputs, dict)
 
-  call create_log_file(runObj%user_inputs)
+  call create_log_file(runObj%user_inputs,dict_from_files)
 
   ! Parse new dictionary.
   call set_run_objects(runObj)
