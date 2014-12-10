@@ -1,5 +1,5 @@
 !> @file
-!!    Energy and Forces for minima hopping
+!!    Energy and Forces for minima hopping guided path sampling
 !! @author 
 !!    Copyright (C) 2014 BigDFT group
 !!    This file is distributed under the terms of the
@@ -15,7 +15,7 @@ module module_energyandforces
 
     private
 
-    public :: energyandforces
+    public :: mhgpsenergyandforces
 
 contains
 
@@ -23,7 +23,7 @@ contains
 !> Returns energies in hartree and
 !! forces in hartree/bohr
 !! (except for LJ)
-subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
+subroutine mhgpsenergyandforces(nat,alat,runObj,outs,rxyz,fxyz,fnoise,epot)
     !IMPORTANT:
     !receives distances in Bohr
     use module_base
@@ -39,6 +39,8 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     !parameters
     integer, intent(in) :: nat
     real(gp), intent(in) :: alat(3)
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
     real(gp), intent(in) :: rxyz(3,nat)
     real(gp), intent(out) :: fxyz(3,nat)
     real(gp), intent(out) :: fnoise
@@ -73,6 +75,8 @@ subroutine energyandforces(nat,alat,rxyz,fxyz,fnoise,epot)
     call bigdft_set_rxyz(runObj,rxyz=rxyz)
     if(trim(adjustl(char(runObj%run_mode)))=='QM_RUN_MODE')then
        runObj%inputs%inputPsiId=inputPsiId !useful only in the DFT case
+!bastian: for debug purposes always use LCAO input guess
+!!       runObj%inputs%inputPsiId=0
        runObj%inputs%itermin=itermin
     end if
     call bigdft_state(runObj,outs,infocode)

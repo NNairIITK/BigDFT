@@ -1324,6 +1324,7 @@ contains
     !$ integer :: omp_get_max_threads
 
     call dict_init(dict_info)
+!bastian: comment out 4 followinf lines for debug purposes (7.12.2014)
     if (DoLastRunThings) then
        call f_malloc_dump_status(dict_summary=dict_tmp)
        call set(dict_info//'Routines timing and number of calls',dict_tmp)

@@ -256,7 +256,7 @@ logical function equal(txt,nid,en_delta,fp_delta,epot1,epot2,fp1,fp2)
     real(gp), intent(in) :: fp1(nid), fp2(nid)
     character(len=2), intent(in) :: txt
     !internal
-    real(gp) :: d=1.d100
+    real(gp) :: d
 
     equal=.false.
     call fpdistance(nid,fp1,fp2,d)

@@ -357,7 +357,7 @@ subroutine write_extra_info(extra,natpol,ifrztyp)
   use ao_inguess, only: charge_and_spol
   implicit none 
   integer, intent(in) :: natpol,ifrztyp
-  character(len=50), intent(out) :: extra
+  character(len=*), intent(out) :: extra
   !local variables
   character(len=4) :: frzchain
   integer :: ispol,ichg

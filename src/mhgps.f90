@@ -21,12 +21,13 @@ program mhgps
     
     use module_global_variables
     use module_init
-    use module_energyandforces, only: energyandforces
+    use module_energyandforces, only: mhgpsenergyandforces
     use module_ls_rmsd, only: superimpose
     use module_sqn, only: findbonds !for finding binds
     use module_freezingstring, only: get_ts_guess 
     use module_saddle, only: findsad
-    use module_connect, only: connect_recursively, connect, connect_object,&
+    use module_connect, only: connect_recursively, connect,&
+                              connect_object,&
                               deallocate_connect_object,&
                               allocate_connect_object
     use module_fingerprints, only: fingerprint_interface
@@ -49,6 +50,8 @@ program mhgps
     type(dictionary), pointer :: options
     integer :: nsad
     logical :: connected
+    type(run_objects) :: runObj
+    type(state_properties) :: outs
 
     !simple atomic datastructre
     integer :: nat
@@ -74,16 +77,16 @@ program mhgps
 
     ifolder=1
     ef_counter=0.d0 !from module_global_variables
-    isad=0  !from module_global_variables
-    ntodo=0  !from module_global_variables
-    isadprob=0
+!    isad=0  !from module_global_variables
+!    ntodo=0  !from module_global_variables
+    !isadprob=0
+    call read_restart(isad,isadprob,ntodo)
 
 
     call f_lib_initialize()
 
     !read mhgps.inp
     call read_input()
-    if(iproc==0) call print_logo_mhgps()
 
     isForceField=.true.
     write(currDir,'(a,i3.3)')'input',ifolder
@@ -104,11 +107,13 @@ program mhgps
     ngroups=bigdft_mpi%ngroup!mpi_info(4)
     !actual value of iproc
     iproc=iproc+igroup*ngroups
+    if(iproc==0) call print_logo_mhgps()
 
     !reset input and output positions of run
-    call bigdft_get_run_properties(run,input_id=run_id,naming_id=naming_id)
+    call bigdft_get_run_properties(run,input_id=run_id,&
+         naming_id=naming_id)
     call bigdft_set_run_properties(run,&
-         & posinp_id=trim(adjustl(filename))//trim(naming_id))
+         posinp_id=trim(adjustl(filename))//trim(naming_id))
 
     call run_objects_init(runObj,run)
 
@@ -267,58 +272,65 @@ program mhgps
         call read_jobs(njobs,joblist)
 
         do ijob = 1,njobs
-           call bigdft_get_rxyz(filename=trim(adjustl(joblist(1,ijob))),rxyz=rxyz)
+           call bigdft_get_rxyz(filename=&
+                trim(adjustl(joblist(1,ijob))),rxyz=rxyz)
 
            select case(trim(adjustl(operation_mode)))
-              !if(trim(adjustl(operation_mode))=='guessonly')then
            case('guessonly')
-              call bigdft_get_rxyz(filename=joblist(2,ijob),rxyz=rxyz2)
+              call bigdft_get_rxyz(filename=joblist(2,ijob),&
+                   rxyz=rxyz2)
 
               isad=isad+1
               write(isadc,'(i5.5)')isad
               !rmsd alignment (optional in mhgps approach)
               call superimpose(nat,rxyz(1,1),rxyz2(1,1))
-              call get_ts_guess(nat,alat,rxyz(1,1),rxyz2(1,1),&
-                   tsguess(1,1),minmodeguess(1,1),tsgenergy,&
-                   tsgforces(1,1))
+              inputPsiId=0
+              call get_ts_guess(nat,alat,runObj,outs,rxyz(1,1),&
+                   rxyz2(1,1),tsguess(1,1),minmodeguess(1,1),&
+                   tsgenergy,tsgforces(1,1))
               write(comment,'(a)')&
                    'TS guess; forces below give guessed '//&
                    'minimummode.'
-              call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                   currDir//'/sad'//trim(adjustl(isadc))//'_ig_finalM',&
-                   comment,&
+              call astruct_dump_to_file(&
+                   bigdft_get_astruct_ptr(runObj),currDir//'/sad'//&
+                   trim(adjustl(isadc))//'_ig_finalM',comment,&
                    tsgenergy,rxyz=tsguess,forces=minmodeguess)
 
-              call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                   currDir//'/sad'//trim(adjustl(isadc))//'_ig_finalF',&
-                   comment,&
+              call astruct_dump_to_file(&
+                   bigdft_get_astruct_ptr(runObj),currDir//'/sad'//&
+                   trim(adjustl(isadc))//'_ig_finalF',comment,&
                    tsgenergy,rxyz=tsguess,forces=tsgforces)
-              !else if(trim(adjustl(operation_mode))=='connect') then
            case('connect')
-              call bigdft_get_rxyz(filename=joblist(2,ijob),rxyz=rxyz2)
+              call bigdft_get_rxyz(filename=joblist(2,ijob),&
+                   rxyz=rxyz2)
 
               !Evalute energies. They are needed in connect
               !for identification
-              call energyandforces(nat,alat,rxyz,fat,fnoise,energy)
-              call energyandforces(nat,alat,rxyz2,fat,fnoise,&
-                   energy2)
-              call fingerprint(nat,nid,alat,bigdft_get_geocode(runObj),&
-                   rcov,rxyz(1,1),fp(1))
-              call fingerprint(nat,nid,alat,bigdft_get_geocode(runObj),&
-                   rcov,rxyz2(1,1),fp2(1))
+              inputPsiId=0
+              call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz,&
+                                        fat,fnoise,energy)
+              inputPsiId=0
+              call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz2,&
+                                        fat,fnoise,energy2)
+              call fingerprint(nat,nid,alat,&
+                   bigdft_get_geocode(runObj),rcov,rxyz(1,1),fp(1))
+              call fingerprint(nat,nid,alat,&
+                   bigdft_get_geocode(runObj),rcov,rxyz2(1,1),fp2(1))
               if(iproc==0)then
-                 call yaml_comment('(MHGPS) Connect '//trim(adjustl(joblist(1,ijob)))//&
-                      ' and '//trim(adjustl(joblist(2,ijob)))//' ....',hfill='-')
+                 call yaml_comment('(MHGPS) Connect '//&
+                      trim(adjustl(joblist(1,ijob)))//' and '//&
+                      trim(adjustl(joblist(2,ijob)))//' ....',&
+                      hfill='-')
               endif
               isame=0
               nsad=0
               connected=.true.
-              !                call connect(nat,nid,alat,rcov,nbond,&
-              !                     iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
-              !                     nsad,cobj,connected)
-              call connect_recursively(nat,nid,alat,rcov,nbond,isame,&
-                   iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
-                   nsad,cobj,connected)
+              !call connect(nat,nid,alat,rcov,nbond,&
+              !     iconnect,rxyz,rxyz2,energy,energy2,fp,fp2,&
+              !     nsad,cobj,connected)
+              call connect_recursively(nat,nid,alat,runObj,outs,rcov,&
+                   nbond,isame,iconnect,rxyz,rxyz2,energy,energy2,fp,&
+                   fp2,nsad,cobj,connected)
               if(connected)then
                  if(iproc==0)call yaml_map('(MHGPS) '//&
                       'succesfully connected, intermediate'//&
@@ -329,7 +341,6 @@ program mhgps
                       trim(adjustl(yaml_toa(nsad)))//&
                       ' transition state computations')
               endif
-              !else if(trim(adjustl(operation_mode))=='simple')then
            case('simple')
               isad=isad+1
               write(isadc,'(i3.3)')isad
@@ -342,11 +353,11 @@ program mhgps
                     minmode(3,i)=2.0_gp*&
                          (real(builtin_rand(idum),gp)-0.5_gp)
                  enddo
-                 call write_mode(nat,currDir//'/pos'//&
-                      trim(adjustl(isadc))//'_mode',minmode)
+                 call write_mode(nat,runObj,outs,&
+                      trim(adjustl(joblist(1,ijob)))//'_mode',minmode)
               else
-                 call read_mode(nat,currDir//'/pos'//&
-                      trim(adjustl(isadc))//'_mode',minmode)
+                 call read_mode(nat,trim(adjustl(joblist(1,ijob)))&
+                      //'_mode',minmode)
               endif
               !!call random_seed
               !!call random_number(minmode)
@@ -355,7 +366,7 @@ program mhgps
               minmode = minmode/dnrm2(3*nat,minmode(1,1),1)
               ec=0.0_gp
               displ=0.0_gp
-              call findsad(nat,alat,rcov,nbond,iconnect,&
+              call findsad(nat,alat,runObj,outs,rcov,nbond,iconnect,&
                    rxyz(1,1),energy,fxyz(1,1),minmode(1,1),displ,ec,&
                    rotforce(1,1),converged)
               if(.not.converged)then
@@ -371,32 +382,32 @@ program mhgps
                       'but the final minmode| '//&
                       'fnrm, fmax = ',fnrm,fmax
 
-                 call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                      currDir//'/sad'//trim(adjustl(isadc))//&
-                      '_finalM',&
-                      comment,&
-                      energy,rxyz=rxyz,forces=minmode)
+                 call astruct_dump_to_file(&
+                      bigdft_get_astruct_ptr(runObj),currDir//&
+                      '/sad'//trim(adjustl(isadc))//'_finalM',&
+                      comment,energy,rxyz=rxyz,forces=minmode)
 
                  write(comment,'(a,1pe10.3,5x1pe10.3)')&
                       'fnrm, fmax = ',fnrm,fmax
-                 call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                      currDir//'/sad'//trim(adjustl(isadc))//&
-                      '_finalF',&
-                      comment,&
-                      energy,rxyz=rxyz,forces=fxyz)
+                 call astruct_dump_to_file(&
+                      bigdft_get_astruct_ptr(runObj),currDir//&
+                      '/sad'//trim(adjustl(isadc))//'_finalF',&
+                      comment,energy,rxyz=rxyz,forces=fxyz)
 
-                 call write_mode(nat,currDir//'/sad'//&
+                 call write_mode(nat,runObj,outs,currDir//'/sad'//&
                       trim(adjustl(isadc))//'_mode_final',&
                       minmode(1,1),rotforce(1,1))
               endif
-              !else if(trim(adjustl(operation_mode))=='minimize')then
            case('minimize')
               isad=isad+1
               write(isadc,'(i3.3)')isad
               ec=0.0_gp
-              call energyandforces(nat,alat,rxyz,fxyz,fnoise,energy)
-              call minimize(imode,nat,alat,nbond,iconnect,&
-                   rxyz(1,1),fxyz(1,1),fnoise,energy,ec,converged,'')
+              inputPsiId=0
+              call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz,&
+                   fxyz,fnoise,energy)
+              call minimize(imode,nat,alat,runObj,outs,nbond,&
+                   iconnect,rxyz(1,1),fxyz(1,1),fnoise,energy,ec,&
+                   converged,'')
               if(.not.converged)then
                  call yaml_warning('Minimization '//yaml_toa(isad)&
                       //' not converged')
@@ -406,16 +417,18 @@ program mhgps
                  write(comment,'(a,1pe10.3,5x1pe10.3)')&
                       'fnrm, fmax = ',fnrm,fmax
 
-                 call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                      currDir//'/min'//trim(adjustl(isadc))//&
-                      '_final',&
-                      comment,&
+                 call astruct_dump_to_file(&
+                      bigdft_get_astruct_ptr(runObj),currDir//'/min'&
+                      //trim(adjustl(isadc))//'_final',comment,&
                       energy,rxyz=rxyz,forces=fxyz)
               endif
-              !else if(trim(adjustl(operation_mode))=='hessian')then
            case('hessian')
-              call energyandforces(nat,alat,rxyz,fxyz,fnoise,energy)
-              call cal_hessian_fd(iproc,nat,alat,rxyz,hess)
+              inputPsiId=0
+              call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz,&
+                   fxyz,fnoise,energy)
+              inputPsiId=0
+              call cal_hessian_fd(iproc,nat,alat,runObj,outs,rxyz,&
+                   hess)
               if(iproc==0)then
                  write(*,*)'(hess) HESSIAN:'
                  write(*,*)hess
@@ -434,14 +447,18 @@ program mhgps
                  enddo
               endif
            case default
-              !else
               call yaml_warning('(MHGPS) operation mode '//&
                    trim(adjustl(operation_mode))//' unknown STOP')
               stop '(MHGPS) operation mode unknown STOP'
            end select
-           !endif
+           call write_jobs(njobs,joblist,ijob)
+           call write_restart(isad,isadprob,ntodo)
         enddo
+        call f_delete_file('restart')
+        call f_delete_file(trim(adjustl(currdir))//'/job_list_restart')
      enddo
+
+    call f_delete_file('restart')
 
     !finalize (dealloctaion etc...)
     call free_run_objects(runObj)
@@ -496,9 +513,6 @@ program mhgps
     call f_free(wold_trans)
     call f_free(wold_rot)
     call deallocate_connect_object(cobj)
-
-    
-
 
     if(iproc==0)call yaml_map('(MHGPS) Total calls to energy and '//&
                                'forces',nint(ef_counter))

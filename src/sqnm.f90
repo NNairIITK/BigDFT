@@ -1,6 +1,6 @@
 !> @file
 !!  Routines for Stefan's new minimization method
-!! @author Bastian Schaefer
+!! @author Stefan Goedecker and Bastian Schaefer
 !! @section LICENCE
 !!    Copyright (C) 2014 BigDFT group
 !!    This file is distributed under the terms of the

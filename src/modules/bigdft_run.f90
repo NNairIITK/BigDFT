@@ -1170,22 +1170,24 @@ contains
     select case(trim(char(runObj%run_mode)))
     case('LENNARD_JONES_RUN_MODE')
        !if(trim(adjustl(efmethod))=='LJ')then
-       if (bigdft_mpi%iproc==0) call yaml_new_document()
+!BS: is new document necessary (high overhead for FF)?
+!       if (bigdft_mpi%iproc==0) call yaml_new_document()
        call lenjon(nat,rxyz_ptr,outs%fxyz,outs%energy)
        !         if (bigdft_mpi%iproc == 0) then
        !            call yaml_map('LJ state, energy',outs%energy,fmt='(1pe24.17)')
        !         end if
-       if (bigdft_mpi%iproc==0) call yaml_release_document()
+!       if (bigdft_mpi%iproc==0) call yaml_release_document()
     case('LENOSKY_SI_CLUSTERS_RUN_MODE')
        !else if(trim(adjustl(efmethod))=='LENSIc')then!for clusters
        call f_memcpy(src=rxyz_ptr,dest=runObj%mm_rst%rf_extra)
        !convert from bohr to angstroem
        call vscal(3*nat,Bohr_Ang,runObj%mm_rst%rf_extra(1,1),1)
        alatint=Bohr_Ang*bigdft_get_cell(runObj)
-       if (bigdft_mpi%iproc==0) call yaml_new_document()
+!BS: is new document necessary (high overhead for FF)?
+!       if (bigdft_mpi%iproc==0) call yaml_new_document()
        call lenosky_si_shift(nat,alatint,&
             runObj%mm_rst%rf_extra,outs%fxyz,outs%energy)
-       if (bigdft_mpi%iproc==0) call yaml_release_document()
+!       if (bigdft_mpi%iproc==0) call yaml_release_document()
        !convert energy from eV to Hartree
        outs%energy=ev_Ha*outs%energy
        !convert forces from eV/Angstroem to hartree/bohr
@@ -1196,9 +1198,10 @@ contains
        !convert from bohr to angstroem
        call vscal(3*nat,Bohr_Ang,runObj%mm_rst%rf_extra(1,1),1)
        alatint=Bohr_Ang*bigdft_get_cell(runObj)
-       if (bigdft_mpi%iproc==0) call yaml_new_document()
+!BS: is new document necessary (high overhead for FF)?
+!       if (bigdft_mpi%iproc==0) call yaml_new_document()
        call lenosky_si(nat,alatint,runObj%mm_rst%rf_extra,outs%fxyz,outs%energy)
-       if (bigdft_mpi%iproc==0) call yaml_release_document()
+!       if (bigdft_mpi%iproc==0) call yaml_release_document()
        !convert energy from eV to Hartree
        outs%energy=ev_Ha*outs%energy
        !convert forces from eV/Angstroem to hartree/bohr
@@ -1209,10 +1212,11 @@ contains
        call f_memcpy(src=rxyz_ptr,dest=runObj%mm_rst%rf_extra)
        !convert from bohr to angstroem
        call vscal(3*nat,Bohr_Ang,runObj%mm_rst%rf_extra(1,1),1)
-       if (bigdft_mpi%iproc==0) call yaml_new_document()
+!BS: is new document necessary (high overhead for FF)?
+!       if (bigdft_mpi%iproc==0) call yaml_new_document()
        !ATTENTION: call_nab_gradient returns gradient, not forces
        call call_nab_gradient(runObj%mm_rst%rf_extra,outs%fxyz,outs%energy,icc)
-       if (bigdft_mpi%iproc==0) call yaml_release_document()
+!       if (bigdft_mpi%iproc==0) call yaml_release_document()
        outs%energy=kcalMol_Ha*outs%energy
        !convert from gradient in kcal_th/mol/angstrom to
        !force in hartree/bohr (minus before kcalMolAng_HaBohr)

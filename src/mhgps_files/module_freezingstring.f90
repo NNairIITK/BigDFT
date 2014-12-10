@@ -23,7 +23,7 @@ module module_freezingstring
 contains
 
 
-subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
+subroutine get_ts_guess(nat,alat,runObj,outs,rxyz1,rxyz2,tsguess,minmodeguess,&
                         tsgenergy,tsgforces)
     use module_base
     use yaml_output
@@ -34,15 +34,19 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
                   trust => ts_guess_trust,&
                   nstepsmax => ts_guess_nstepsmax,&
                   ef_counter
+    use bigdft_run, only: run_objects, state_properties
     implicit none
     !parameters
     integer, intent(in) :: nat
     real(gp), intent(in) :: alat(3)
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
     real(gp), intent(in) :: rxyz1(3,nat),rxyz2(3,nat)
     real(gp), intent(out) :: tsguess(3,nat),minmodeguess(3,nat)
     real(gp), intent(out) :: tsgenergy, tsgforces(3,nat)
     !internal
     real(gp) :: efcounter_start
+    logical :: success
 
     efcounter_start=ef_counter
     if(iproc==0)then
@@ -50,17 +54,21 @@ subroutine get_ts_guess(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
                           hfill='-')
     endif
     if(perpnrmtol<=0.0_gp .or. nstepsmax <= 0)then
-        call get_ts_guess_linsyn(nat,alat,rxyz1,rxyz2,tsguess,&
-             minmodeguess,tsgenergy,tsgforces)
+        call get_ts_guess_linsyn(nat,alat,runObj,outs,rxyz1,rxyz2,&
+             tsguess,minmodeguess,tsgenergy,tsgforces)
     else
-        call get_ts_guess_freeze(nat,alat,rxyz1,rxyz2,tsguess,&
-             minmodeguess,tsgenergy,tsgforces)
+        call get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,&
+             tsguess,minmodeguess,tsgenergy,tsgforces,success)
+        if(.not.success)then
+            call get_ts_guess_linsyn(nat,alat,runObj,outs,rxyz1,&
+                 rxyz2,tsguess, minmodeguess,tsgenergy,tsgforces)
+        endif
     endif
     if(iproc==0)call yaml_map('(MHGPS) # Energy evaluations for '//&
                               'TS guess:',ef_counter-efcounter_start)
 end subroutine
-subroutine get_ts_guess_freeze(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
-                        tsgenergy,tsgforces)
+subroutine get_ts_guess_freeze(nat,alat,runObj,outs,rxyz1,rxyz2,&
+           tsguess,minmodeguess,tsgenergy,tsgforces,success)
     use module_base
     use yaml_output
     use module_global_variables,&
@@ -70,14 +78,18 @@ subroutine get_ts_guess_freeze(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
                   trust => ts_guess_trust,&
                   nstepsmax => ts_guess_nstepsmax,&
                   ef_counter
+    use bigdft_run, only: run_objects, state_properties
     use module_energyandforces
     implicit none
     !parameters
     integer, intent(in) :: nat
     real(gp), intent(in) :: alat(3)
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
     real(gp), intent(in) :: rxyz1(3,nat),rxyz2(3,nat)
     real(gp), intent(out) :: tsguess(3,nat),minmodeguess(3,nat)
     real(gp), intent(out) :: tsgenergy, tsgforces(3,nat)
+    logical, intent(out) :: success
     !internal
     integer :: finished
     integer :: i,j,iat
@@ -104,8 +116,9 @@ subroutine get_ts_guess_freeze(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
     call vcopy(3*nat, rxyz1(1,1), 1, string(1,1,1), 1)
     call vcopy(3*nat, rxyz2(1,1), 1, string(1,2,1), 1)
     
-    call grow_freezstring(nat,alat,gammainv,perpnrmtol,trust,&
-        nstepsmax,nstringmax,nstring,string,finished)
+    call grow_freezstring(nat,alat,runObj,outs,gammainv,perpnrmtol,&
+         trust,nstepsmax,nstringmax,nstring,string,finished,success)
+    if(.not. success)return
 
     nnodes=2*nstring
     ncorr =0
@@ -142,7 +155,7 @@ subroutine get_ts_guess_freeze(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
         if(istring>1)then
         !due to column major order,
         !pass string() to energy and forces, not path():
-        call energyandforces(nat,alat,string(1,1,istring),&
+        call mhgpsenergyandforces(nat,alat,runObj,outs,string(1,1,istring),&
              forces(1,1,npath),fnoise,energies(npath))
         if(energies(npath)>emax)then
             emax       = energies(npath)
@@ -165,7 +178,7 @@ subroutine get_ts_guess_freeze(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
         if(istring>1)then
         !due to column major order,
         !pass string() to energy and forces, not path():
-        call energyandforces(nat,alat,string(1,2,istring),&
+        call mhgpsenergyandforces(nat,alat,runObj,outs,string(1,2,istring),&
              forces(1,1,npath),fnoise,energies(npath))
         if(energies(npath)>emax)then
             emax       = energies(npath)
@@ -224,7 +237,7 @@ subroutine get_ts_guess_freeze(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
     minmodeguess=tangent(:,:,ipathmax)
 
     if(iproc==0 .and. mhgps_verbosity>=5)then
-        call write_path_a(nat,npath,path,energies,tangent)
+        call write_path_a(nat,runObj,outs,npath,path,energies,tangent)
     endif     
 
     call f_free(string) 
@@ -236,16 +249,18 @@ subroutine get_ts_guess_freeze(nat,alat,rxyz1,rxyz2,tsguess,minmodeguess,&
     call f_free(arc) 
 end subroutine
 
-subroutine write_path_a(nat,npath,path,energies,tangent)
+subroutine write_path_a(nat,runObj,outs,npath,path,energies,tangent)
     use module_base
     use module_interfaces
     use module_atoms, only: astruct_dump_to_file
-    use module_global_variables, only: isadc, runObj,&
+    use module_global_variables, only: isadc,&
                                        currDir
     use bigdft_run
     implicit none
     !parameters
     integer, intent(in) :: nat, npath
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
     real(gp), intent(in) :: path(npath,3,nat)
     real(gp), intent(in) :: energies(npath)
     real(gp), intent(in) :: tangent(3,nat,npath)
@@ -276,16 +291,18 @@ subroutine write_path_a(nat,npath,path,energies,tangent)
     enddo
 end subroutine
 !=====================================================================
-subroutine write_path_b(nat,npath,path,energies,tangent)
+subroutine write_path_b(nat,runObj,outs,npath,path,energies,tangent)
     use module_base
     use module_interfaces
     use module_atoms, only: astruct_dump_to_file
-    use module_global_variables, only: isadc, runObj,&
+    use module_global_variables, only: isadc,&
                                        currDir
     use bigdft_run
     implicit none
     !parameters
     integer, intent(in) :: nat, npath
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
     real(gp), intent(in) :: path(3,nat,npath)
     real(gp), intent(in) :: energies(npath)
     real(gp), intent(in) :: tangent(3,nat,npath)
@@ -309,14 +326,17 @@ end subroutine
 !=====================================================================
 
 
-subroutine grow_freezstring(nat,alat,gammainv,perpnrmtol,trust,&
-                       nstepsmax,nstringmax,nstring,string,finished)
+subroutine grow_freezstring(nat,alat,runObj,outs,gammainv,perpnrmtol,trust,&
+                       nstepsmax,nstringmax,nstring,string,finished,success)
     use module_base
     use yaml_output
     use module_global_variables, only: iproc
+    use bigdft_run, only: run_objects, state_properties
     implicit none
     !parameters
     integer, intent(in) :: nat
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
     integer, intent(in) :: nstepsmax
     integer, intent(inout) :: nstringmax
     integer, intent(inout) :: nstring
@@ -330,6 +350,7 @@ subroutine grow_freezstring(nat,alat,gammainv,perpnrmtol,trust,&
     real(gp) , intent(in) :: trust
     real(gp) , intent(in) :: alat(3)
     real(gp), allocatable, intent(inout) :: string(:,:,:)
+    logical, intent(out) :: success
     !constants
     character(len=10), parameter :: method = 'linlst'
     !internal
@@ -341,7 +362,10 @@ subroutine grow_freezstring(nat,alat,gammainv,perpnrmtol,trust,&
     real(gp) :: step
     real(gp) :: perpnrmtol_squared
     real(gp) :: trust_squared
+    integer,parameter :: nresizemax=1
     integer :: nresizes
+
+    success=.true.
     
     finished=2
 
@@ -358,7 +382,7 @@ subroutine grow_freezstring(nat,alat,gammainv,perpnrmtol,trust,&
     nstring=1
     step=-1._gp
     nresizes=0
-    do!maximum 100 resizes of string array
+    do!maximum nresizemax resizes of string array
         istart=nstring
         !actual string growing is done 
         !in the following loop
@@ -371,7 +395,7 @@ subroutine grow_freezstring(nat,alat,gammainv,perpnrmtol,trust,&
             if(finished/=0)then
 !if(i/=nstring)stop'DEBUGGING i/=nstring'
                if(perpnrmtol>0 .and. nstepsmax > 0)& 
-                call optim_cg(nat,alat,finished,step,gammainv,&
+                call optim_cg(nat,alat,runObj,outs,finished,step,gammainv,&
                     perpnrmtol_squared,trust_squared,nstepsmax,&
                     tangentleft,tangentright,string(1,1,i+1),&
                     string(1,2,i+1))
@@ -382,10 +406,11 @@ subroutine grow_freezstring(nat,alat,gammainv,perpnrmtol,trust,&
         !What follows is just resizing of string array, 
         !if needed.
         nresizes=nresizes+1
-        if(nresizes>100)then
-            if(iproc==0)call yaml_warning('(MHGPS) STOP, too many '//&
-                        'resizes in grow_freezstring')
-            stop
+        if(nresizes>nresizemax)then
+            call yaml_warning('(MHGPS) Too many '//&
+                        'resizes in grow_freezstring. Wrong forces?.')
+            success=.false.
+            return
         endif
         if(allocated(stringTmp))then
 !            deallocate(stringTmp)
@@ -410,15 +435,19 @@ subroutine grow_freezstring(nat,alat,gammainv,perpnrmtol,trust,&
 
 end subroutine
 !=====================================================================
-subroutine optim_cg(nat,alat,finished,step,gammainv,&
+subroutine optim_cg(nat,alat,runObj,outs,finished,step,gammainv,&
            perpnrmtol_squared,trust_squared,nstepsmax,tangent1,&
            tangent2,rxyz1,rxyz2)
     use module_base
     use module_energyandforces
     use module_global_variables, only: iproc
+    use bigdft_run, only: run_objects, state_properties
     implicit none
     !parameters
     integer, intent(in)  :: nat
+    real(gp), intent(in) :: alat(3)
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
     integer, intent(in)  :: finished
     integer, intent(in)  :: nstepsmax
     real(gp), intent(in) :: tangent1(3*nat)
@@ -427,7 +456,6 @@ subroutine optim_cg(nat,alat,finished,step,gammainv,&
     real(gp), intent(in) :: gammainv
     real(gp), intent(in) :: perpnrmtol_squared
     real(gp), intent(in) :: trust_squared
-    real(gp), intent(in) :: alat(3)
     real(gp), intent(inout) :: rxyz2(3*nat)
     real(gp), intent(inout) :: rxyz1(3*nat)
     !internal
@@ -445,16 +473,20 @@ subroutine optim_cg(nat,alat,finished,step,gammainv,&
     real(gp) :: dispnrm_squared
     integer :: istep
     real(gp) :: fnoise
-    !functionals
+    !functions
     real(gp) :: dnrm2, ddot
 
-    dir=rxyz2-rxyz1
-    d0=dnrm2(3*nat,dir(1),1)
-    dmax=d0+0.5_gp*step
+    if(finished==2)then
+        dir=rxyz2-rxyz1
+        d0=dnrm2(3*nat,dir(1),1)
+        dmax=d0+0.5_gp*step
+    else
+        dmax=0.5_gp*step
+    endif 
 
     !first steps: steepest descent
     !left
-    call energyandforces(nat,alat,rxyz1,fxyz1,fnoise,epot1)
+    call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz1,fxyz1,fnoise,epot1)
     call perpend(nat,tangent1,fxyz1,perp1)
     perpnrmPrev1_squared = ddot(3*nat,perp1(1),1,perp1(1),1)
     perpnrm1_squared=perpnrmPrev1_squared
@@ -466,7 +498,7 @@ subroutine optim_cg(nat,alat,finished,step,gammainv,&
     rxyz1=rxyz1+dispPrev1
     !right
     if(finished==2)then
-        call energyandforces(nat,alat,rxyz2,fxyz2,fnoise,epot2)
+        call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz2,fxyz2,fnoise,epot2)
         call perpend(nat,tangent2,fxyz2,perp2)
         perpnrmPrev2_squared = ddot(3*nat,perp2(1),1,perp2(1),1)
         perpnrm2_squared=perpnrmPrev2_squared
@@ -491,7 +523,7 @@ subroutine optim_cg(nat,alat,finished,step,gammainv,&
     do istep=2,nstepsmax
 
         !move left node
-        call energyandforces(nat,alat,rxyz1,fxyz1,fnoise,epot1)
+        call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz1,fxyz1,fnoise,epot1)
         call perpend(nat,tangent1,fxyz1,perp1)
         perpnrm1_squared = ddot(3*nat,perp1(1),1,perp1(1),1)
         if(perpnrm1_squared>perpnrmPrev1_squared)then
@@ -510,7 +542,7 @@ subroutine optim_cg(nat,alat,finished,step,gammainv,&
         
         if(finished==2)then 
             !move right node
-            call energyandforces(nat,alat,rxyz2,fxyz2,fnoise,epot2)
+            call mhgpsenergyandforces(nat,alat,runObj,outs,rxyz2,fxyz2,fnoise,epot2)
             call perpend(nat,tangent2,fxyz2,perp2)
             perpnrm2_squared = ddot(3*nat,perp2(1),1,perp2(1),1)
             if(iproc==0)write(*,'(a,i3.3,4(1x,es10.3))')&
@@ -611,7 +643,7 @@ stop 'lin_interpol not tested, yet'
     endif
 end subroutine
 !=====================================================================
-subroutine get_ts_guess_linsyn(nat,alat,left,right,tsguess,minmodeguess,&
+subroutine get_ts_guess_linsyn(nat,alat,runObj,outs,left,right,tsguess,minmodeguess,&
                              tsgenergy,tsgforces)
     !Given two distinct structures, get_ts_guess_linsyn interpolates
     !inwards (that is in a direction connecting both strucutres)
@@ -620,6 +652,7 @@ subroutine get_ts_guess_linsyn(nat,alat,left,right,tsguess,minmodeguess,&
     !is generated. Then this path is parametrized as a function
     !of its integrated path length using natural cubic splines.
     use module_base
+    use bigdft_run, only: run_objects, state_properties
     use module_interpol
     use module_global_variables, only:stepfrct=>lst_interpol_stepfrct,&
                                       mhgps_verbosity,&
@@ -629,6 +662,8 @@ subroutine get_ts_guess_linsyn(nat,alat,left,right,tsguess,minmodeguess,&
     !parameters
     integer, intent(in)      :: nat
     real(gp), intent(in)     :: alat(3)
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
     real(gp), intent(in)     :: left(3,nat)
     real(gp), intent(in)     :: right(3,nat)
     real(gp), intent(out)    :: tsguess(3,nat)
@@ -729,7 +764,7 @@ subroutine get_ts_guess_linsyn(nat,alat,left,right,tsguess,minmodeguess,&
     !left and right minima (at path ends)
     emax=-huge(1._gp)
     do j=2,nimagespath-1
-        call energyandforces(nat,alat,lstpathC(1,1,j),&
+        call mhgpsenergyandforces(nat,alat,runObj,outs,lstpathC(1,1,j),&
              forces(1,1,j),fnoise,energies(j))
         if(energies(j)>emax)then
             emax       = energies(j)
@@ -741,7 +776,7 @@ subroutine get_ts_guess_linsyn(nat,alat,left,right,tsguess,minmodeguess,&
     call vcopy(3*nat, forces(1,1,ipathmax), 1, tsgforces(1,1), 1)
     tsgenergy = energies(ipathmax)
     if(iproc==0 .and. mhgps_verbosity>=5)then
-        call write_path_b(nat,nimagespath,lstpathC,energies,tangent)
+        call write_path_b(nat,runObj,outs,nimagespath,lstpathC,energies,tangent)
     endif     
 
 

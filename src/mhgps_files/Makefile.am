@@ -1,5 +1,4 @@
 vpath %.h ../modules
-###bin_PROGRAMS = mhgps
 
 
 mhgps_objects = \
@@ -19,9 +18,7 @@ mhgps_objects = \
 
 mhgps_SOURCES = $(mhgps_objects)
 
-##mhgps_LDADD = $(bigdft_library) $(top_builddir)/flib/src/libflib.a\
-## @LIB_YAML_LIBS@ @LINALG_LIBS@
-##mhgps_LDADD = $(top_builddir)/flib/src/libflib.a @LIB_YAML_LIBS@
+mhgps_LDADD = $(top_builddir)/flib/src/libflib.a @LIB_YAML_LIBS@
 
 ##AM_FCFLAGS = -I. -I$(top_builddir)/includes
 ##AM_FCFLAGS = -I. I$(top_builddir)/includes
@@ -33,15 +30,12 @@ noinst_LIBRARIES = libmhgps.a
 
 libmhgps_a_SOURCES = $(mhgps_SOURCES)
 #dependencies
-##mhgps.o : $(mhgps_objects:.f90=.o) ../modules/BigDFT_API.o
-##for amber support:
-##mhgps.o : $(mhgps_objects:.f90=.o) ../modules/BigDFT_API.o wrap.o
+
+module_global_variables.o : ../modules/BigDFT_API.o
 
 module_energyandforces.o : module_global_variables.o \
                            module_init.o \
                            ../modules/BigDFT_API.o
-##amber
-##                           ../modules/BigDFT_API.o wrap.o
 module_init.o : module_global_variables.o ../modules/BigDFT_API.o 
 module_saddle.o : module_global_variables.o module_io.o\
                   module_energyandforces.o ../modules/module_sqn.o\
@@ -63,4 +57,6 @@ module_ls_rmsd.o: module_misc.o ../modules/BigDFT_API.o
 module_misc.o: ../modules/BigDFT_API.o
 module_fingerprints.o: module_global_variables.o\
                       ../modules/BigDFT_API.o
-module_hessian.o: ../modules/BigDFT_API.o module_energyandforces.o
+module_hessian.o: ../modules/BigDFT_API.o module_global_variables.o module_energyandforces.o
+
+mhgpstool.o: ../modules/BigDFT_API.o module_fingerprints.o

@@ -1,11 +1,12 @@
 /*! @file
-@brief README of the directory containing all files related to minima hopping
+@brief README of the directory containing all files related to minima hopping guided path sampling
 
 @dir mhgps_files
 @brief
-   Minima hopping routines (PES exploration) 
+   Minima hopping guided path sampling routines (PES exploration; minima / saddle points) 
 
 @details
-   Minima hopping is an algorithm developed by the group of Prof. S. Goedecker (Basel Universität)
-   which tries to find the minima up to the global one.
+  Minima hopping guided path sampling is an algorithm developed by the group
+  of Prof. S. Goedecker (Basel Universität) which post-processes minima hopping runs
+  to identify reactions pathways.
 */
