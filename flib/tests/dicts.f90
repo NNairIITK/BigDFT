@@ -165,7 +165,7 @@ subroutine test_dictionaries0()
 
   call dict_free(dict1)
 
-  !test the values of the loen after reaffectations
+  !test the values of the len after reaffectations
   call dict_init(dict1)
   call set(dict1//'key','scalar0')
   call yaml_map('Entered dict',dict1)
