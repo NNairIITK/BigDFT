@@ -261,6 +261,10 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      nlimd=n2
      nlimk=n3/2+1
 
+     !no powers of hgrid because they are incorporated in the plane wave treatment
+     kernel%grid%scal=1.0_dp/(real(n1,dp)*real(n2*n3,dp)) !to reduce chances of integer overflow
+
+
   !else if (kernel%geocode == 'S') then
   case('S')     
      if (dump) then
@@ -326,6 +330,10 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      nlimd=n2
      nlimk=n3/2+1
 
+     !only one power of hgrid 
+     !factor of -4*pi for the definition of the Poisson equation
+     kernel%grid%scal=-16.0_dp*atan(1.0_dp)*real(kernel%hgrids(2),dp)/real(n1*n2,dp)/real(n3,dp)
+
   !else if (kernel%geocode == 'F') then
   case('F')
      if (dump) then
@@ -384,7 +392,10 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
      !last plane calculated for the density and the kernel
      nlimd=n2/2
      nlimk=n3/2+1
-     
+
+     !hgrid=max(hx,hy,hz)
+     kernel%grid%scal=product(kernel%hgrids)/real(n1*n2,dp)/real(n3,dp)
+
   !else if (kernel%geocode == 'W') then
   case('W')
 
@@ -441,6 +452,10 @@ subroutine pkernel_set(kernel,wrtmsg) !optional arguments
 
      nlimd=n2
      nlimk=n3/2+1
+
+     !only one power of hgrid 
+     !factor of -1/(2pi) already included in the kernel definition
+     kernel%grid%scal=-2.0_dp*kernel%hgrids(1)*kernel%hgrids(2)/real(n1*n2,dp)/real(n3,dp)
 
   case default
      !if (iproc==0)
@@ -604,6 +619,27 @@ endif
 !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
 
   if (dump) call yaml_mapping_close() !kernel
+
+  !here the FFT_metadata routine can be filled
+  kernel%grid%m1 =m1 
+  kernel%grid%m2 =m2 
+  kernel%grid%m3 =m3 
+  kernel%grid%n1 =n1 
+  kernel%grid%n2 =n2 
+  kernel%grid%n3 =n3 
+  kernel%grid%md1=md1
+  kernel%grid%md2=md2
+  kernel%grid%md3=md3
+  kernel%grid%nd1=nd1
+  kernel%grid%nd2=nd2
+  kernel%grid%nd3=nd3
+  kernel%grid%istart=kernel%mpi_env%iproc*(md2/kernel%mpi_env%nproc)
+  kernel%grid%iend=min((kernel%mpi_env%iproc+1)*md2/kernel%mpi_env%nproc,kernel%grid%m2)
+  if (kernel%grid%istart <= kernel%grid%m2-1) then
+     kernel%grid%n3p=kernel%grid%iend-kernel%grid%istart
+  else
+     kernel%grid%n3p=0
+  end if
 
   call f_timing(TCAT_PSOLV_KERNEL,'OF')
   !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','OF')

@@ -92,6 +92,8 @@ module Poisson_Solver
       integer :: nd1,nd2,nd3 !<fourier dimensions for which the kernel is injective,
       !!                formally 1/8 of the fourier grid. Here the dimension nd3 is
       !!                enlarged to be a multiple of nproc
+      integer :: istart,iend,n3p !<start, endpoints and number of planes of the given processor
+      real(dp) :: scal !<factor to rescale the solver such that the FFT is unitary, divided by 4pi
    end type FFT_metadata
 
    !> Defines the fundamental structure for the kernel
@@ -178,6 +180,10 @@ contains
     d%nd1=0
     d%nd2=0
     d%nd3=0
+    d%istart=0
+    d%iend=0
+    d%n3p=0
+    d%scal=0.0_dp
   end function FFT_metadata_null
 
   pure function pkernel_null() result(k)

@@ -32,6 +32,7 @@
 #define gpointer void*
 #define GQuark int
 typedef struct _GArray {gchar *data; guint len;} GArray;
+typedef struct _GError {char *message;} GError;
 #define GType  int
 #define g_array_index(A, T, I) (((T*)(A->data))[I])
 GArray* g_array_sized_new(gboolean zero, gboolean nullify, guint ele_size, guint n_ele);

@@ -61,7 +61,7 @@ program BigDFT2Wannier
    real, dimension(3,3) :: real_latt, recip_latt
    integer :: n_kpts, n_nnkpts, n_excb, n_at, s
    integer :: n_occ, n_virt, n_virt_tot!,nconfig
-   logical :: w_unk, w_sph, w_ang, w_rad, pre_check
+   logical :: w_unk, w_sph, w_ang, w_rad, pre_check,dict_from_files
    real, allocatable, dimension (:,:) :: kpts
    real(kind=8), allocatable, dimension (:,:) :: ctr_proj, x_proj, y_proj, z_proj
    integer, allocatable, dimension (:) :: l, mr, rvalue
@@ -99,7 +99,9 @@ program BigDFT2Wannier
 !!$   call memocc_set_memory_limit(memorylimit)
 
    if (bigdft_nruns(options) > 1) stop 'runs-file not supported for BigDFT2Wannier executable'
+   nullify(user_inputs)
    call dict_copy(user_inputs, options // 'BigDFT' // 0)
+   call create_log_file(user_inputs,dict_from_files)
    call bigdft_get_run_properties(user_inputs, input_id = run_id, posinp_id = filename)
    call user_dict_from_files(user_inputs, trim(run_id), trim(filename), bigdft_mpi)
    call inputs_from_dict(input, atoms, user_inputs)

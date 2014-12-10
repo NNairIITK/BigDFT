@@ -165,6 +165,25 @@ subroutine test_dictionaries0()
 
   call dict_free(dict1)
 
+  !test the values of the loen after reaffectations
+  call dict_init(dict1)
+  call set(dict1//'key','scalar0')
+  call yaml_map('Entered dict',dict1)
+  call yaml_map('Length',dict_len(dict1//'key'))
+  call set(dict1//'key',['one','two','thr'])
+  call yaml_map('Entered dict',dict1)
+  call yaml_map('Length',dict_len(dict1//'key'))
+  !reaffectation
+  call set(dict1//'key','scalar')
+  call yaml_map('Entered dict',dict1)
+  call yaml_map('Length',dict_len(dict1//'key'))
+  !reaffectation again
+  call set(dict1//'key',['One','Two','Thr'])
+  call yaml_map('Entered dict',dict1)
+  call yaml_map('Length',dict_len(dict1//'key'))
+
+  call dict_free(dict1)
+
 
 !!$
 !!$  !new test, build list on-the-fly
