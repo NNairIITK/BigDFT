@@ -784,7 +784,7 @@ program MINHOP
      rejected=rejected+1.d0
      ediff=ediff*alpha_R
   endif
-     if (bigdft_mpi%iproc == 0) call wtioput(ediff,ekinetic,dt,nsoften)
+     if (bigdft_mpi%iproc == 0) call wtioput(naming_id,ediff,ekinetic,dt,nsoften)
 
 end do hopping_loop
 
