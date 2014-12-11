@@ -2061,7 +2061,7 @@ contains
                       do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
                           ii=ii+1
                           ind_min = min(ii,ind_min)
-                          ind_max = min(ii,ind_max)
+                          ind_max = max(ii,ind_max)
                       end do
                   end do
               end if
@@ -2278,7 +2278,7 @@ contains
                           do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
                               ii=ii+1
                               ind_min = min(ii,ind_min)
-                              ind_max = min(ii,ind_max)
+                              ind_max = max(ii,ind_max)
                           end do
                       end do
                   end if
