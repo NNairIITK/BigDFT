@@ -44,6 +44,12 @@ subroutine mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz,fxyz,fnoise,epot,infoco
 
     call bigdft_set_rxyz(runObj,rxyz=rxyz)
     mhgpsst%ef_counter=mhgpsst%ef_counter+1.0_gp
+!debugging:
+!if(mhgpsst%ef_counter <= 1.5d0)then
+!    runObj%inputs%inputPsiId=0
+!else
+!    runObj%inputs%inputPsiId=1
+!endif
     call bigdft_state(runObj,outs,infocode)
     call f_memcpy(src=outs%fxyz,dest=fxyz)
     epot=outs%energy

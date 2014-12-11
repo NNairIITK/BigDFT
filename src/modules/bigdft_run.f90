@@ -1323,6 +1323,7 @@ contains
        !else if(trim(adjustl(efmethod))=='BIGDFT')then
        !the yaml document is created in the cluster routine
        call quantum_mechanical_state(runObj,outs,infocode)
+       if (bigdft_mpi%iproc==0) call yaml_map('BigDFT infocode',infocode)
     case default
        call f_err_throw('Following method for evaluation of '//&
             'energies and forces is unknown: '//trim(yaml_toa(int(runObj%run_mode))))
