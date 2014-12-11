@@ -1466,7 +1466,7 @@ module module_interfaces
         integer,intent(in) :: method_updatekernel
         logical,intent(in) :: correction_co_contra
         !these must all be present together
-        type(cdft_data),intent(in),optional :: cdft
+        type(cdft_data),intent(inout),optional :: cdft
         type(fragmentInputParameters),optional,intent(in) :: input_frag
         type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
       end subroutine getLocalizedBasis
@@ -1691,7 +1691,7 @@ module module_interfaces
       integer, intent(in) :: size_Lrho
       integer, intent(in) :: nspin
       real(wp),dimension(size_rho),intent(in) :: rho
-      real(wp),dimension(size_Lrho),intent(out) :: Lrho
+      real(wp),intent(out) :: Lrho
      end subroutine global_to_local
 
      subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
@@ -2415,47 +2415,91 @@ module module_interfaces
          real(8),intent(out):: pnrm
        end subroutine mix_main
 
+       !!subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
+       !!           ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
+       !!           energy_increased, tmb, lhphiold, overlap_calculated, &
+       !!           energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
+       !!           hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
+       !!           norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays,&
+       !!           wt_philarge, wt_hpsinoprecond, &
+       !!           cdft, input_frag, ref_frags)
+       !!  use module_base
+       !!  use module_types
+       !!  use constrained_dft, only: cdft_data
+       !!  use module_fragments, only: system_fragment
+       !!  use communications_base, only: work_transpose
+       !!  implicit none
+       !!  integer, intent(in) :: iproc, nproc, it, method_updatekernel
+       !!  integer,intent(inout) :: norder_taylor
+       !!  real(kind=8),intent(in) :: max_inversion_error
+       !!  type(DFT_wavefunction),target,intent(inout):: tmb
+       !!  type(localizedDIISParameters),intent(inout) :: ldiis
+       !!  real(8),dimension(tmb%orbs%norbp),intent(inout) :: fnrmOldArr
+       !!  real(kind=8),intent(inout) :: fnrm_old
+       !!  real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
+       !!  real(8),intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
+       !!  real(8),intent(in):: trHold
+       !!  logical,intent(out) :: energy_increased
+       !!  real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphiold
+       !!  logical,intent(inout):: overlap_calculated
+       !!  type(energy_terms),intent(in) :: energs
+       !!  real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c) :: hpsit_c
+       !!  real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f) :: hpsit_f
+       !!  integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
+       !!  logical, intent(in) :: experimental_mode, calculate_inverse, correction_co_contra
+       !!  real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_small
+       !!  real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_noprecond
+       !!  type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
+       !!  type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
+       !!  type(work_transpose),intent(inout) :: wt_philarge
+       !!  type(work_transpose),intent(out) :: wt_hpsinoprecond
+       !!  type(cdft_data),intent(inout),optional :: cdft
+       !!  type(fragmentInputParameters),optional,intent(in) :: input_frag
+       !!  type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
+       !!end subroutine calculate_energy_and_gradient_linear
+
        subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
                   ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, fnrmMax, alpha_mean, alpha_max, &
                   energy_increased, tmb, lhphiold, overlap_calculated, &
                   energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
                   hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
                   norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays,&
-                  wt_philarge, wt_hpsinoprecond, &
-                  cdft, input_frag, ref_frags)
+                  wt_philarge, wt_hpsinoprecond)!, &
+                  !cdft, input_frag, ref_frags)
          use module_base
          use module_types
+         use communications_base, only: work_transpose
+         use sparsematrix_base, only: matrices
          use constrained_dft, only: cdft_data
          use module_fragments, only: system_fragment
-         use communications_base, only: work_transpose
          implicit none
          integer, intent(in) :: iproc, nproc, it, method_updatekernel
          integer,intent(inout) :: norder_taylor
          real(kind=8),intent(in) :: max_inversion_error
-         type(DFT_wavefunction),target,intent(inout):: tmb
-         type(localizedDIISParameters),intent(inout) :: ldiis
-         real(8),dimension(tmb%orbs%norbp),intent(inout) :: fnrmOldArr
+         type(DFT_wavefunction), target, intent(inout):: tmb
+         type(localizedDIISParameters), intent(inout) :: ldiis
+         real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: fnrmOldArr
          real(kind=8),intent(inout) :: fnrm_old
-         real(8),dimension(tmb%orbs%norbp),intent(inout) :: alpha
-         real(8),intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
-         real(8),intent(inout):: trHold
+         real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: alpha
+         real(kind=8), intent(out):: trH, fnrm, fnrmMax, alpha_mean, alpha_max
+         real(kind=8), intent(in):: trHold
          logical,intent(out) :: energy_increased
-         real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lhphiold
-         logical,intent(inout):: overlap_calculated
-         type(energy_terms),intent(in) :: energs
+         real(kind=8), dimension(tmb%npsidim_orbs), intent(inout):: lhphiold
+         logical, intent(inout):: overlap_calculated
+         type(energy_terms), intent(in) :: energs
          real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c) :: hpsit_c
          real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f) :: hpsit_f
          integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
          logical, intent(in) :: experimental_mode, calculate_inverse, correction_co_contra
-         real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_small
-         real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(out) :: hpsi_noprecond
+         real(kind=8), dimension(tmb%npsidim_orbs), intent(out) :: hpsi_small
+         real(kind=8), dimension(tmb%npsidim_orbs),intent(out) :: hpsi_noprecond
          type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
          type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
          type(work_transpose),intent(inout) :: wt_philarge
          type(work_transpose),intent(out) :: wt_hpsinoprecond
-         type(cdft_data),intent(in),optional :: cdft
-         type(fragmentInputParameters),optional,intent(in) :: input_frag
-         type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
+         !!type(cdft_data),intent(inout),optional :: cdft
+         !!type(fragmentInputParameters),optional,intent(in) :: input_frag
+         !!type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
        end subroutine calculate_energy_and_gradient_linear
 
        subroutine improveOrbitals(iproc, nproc, tmb, nspin, ldiis, alpha, gradient, experimental_mode)
@@ -3200,7 +3244,7 @@ module module_interfaces
           real(kind=8),intent(out) :: ebs
           logical,intent(in) :: purification_quickreturn
           logical,intent(in) :: calculate_minusonehalf
-          integer :: foe_verbosity
+          integer,intent(in) :: foe_verbosity
           integer,intent(in) :: accuracy_level
           type(DFT_wavefunction),intent(inout) :: tmb
           type(foe_data),intent(inout) :: foe_obj
@@ -4011,7 +4055,7 @@ module module_interfaces
           implicit none
           integer,intent(in) :: iproc, nproc, iorder, blocksize, power, norb
           real(kind=8),dimension(norb,norb),intent(in) :: ovrlp_matrix
-          real(kind=8),dimension(:,:),pointer,intent(out) :: inv_ovrlp_matrix
+          real(kind=8),dimension(:,:),pointer,intent(inout) :: inv_ovrlp_matrix
           type(sparse_matrix),intent(in) :: smat
           logical,intent(in) :: check_accur
           real(kind=8),intent(out),optional :: max_error, mean_error

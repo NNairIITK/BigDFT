@@ -866,8 +866,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            correction_co_contra, hpsi_noprecond=hpsi_tmp, norder_taylor=order_taylor, &
            max_inversion_error=max_inversion_error, method_updatekernel=method_updatekernel, &
            precond_convol_workarrays=precond_convol_workarrays, precond_workarrays=precond_workarrays, &
-           wt_philarge=wt_philarge, wt_hpsinoprecond=wt_hpsinoprecond, &
-           cdft=cdft, input_frag=input_frag, ref_frags=ref_frags)
+           wt_philarge=wt_philarge, wt_hpsinoprecond=wt_hpsinoprecond) !, &
+           !!cdft=cdft, input_frag=input_frag, ref_frags=ref_frags)
       !fnrm_old=fnrm
 
 
