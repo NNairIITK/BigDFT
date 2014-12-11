@@ -114,7 +114,7 @@ subroutine deallocate_connect_object(cobj)
     call f_free(cobj%tsgforces)
 end subroutine
 !=====================================================================
-recursive subroutine connect_recursively(nat,nid,alat,fsw,uinp,runObj,outs,&
+recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
                      rcov,nbond,isame,iconnect,rxyz1,rxyz2,ener1,&
                      ener2,fp1,fp2,nsad,cobj,connected)
     !if called from outside recursion, connected has to be set 
@@ -122,19 +122,7 @@ recursive subroutine connect_recursively(nat,nid,alat,fsw,uinp,runObj,outs,&
   use module_base
   use module_atoms, only: astruct_dump_to_file
     use module_userinput
-    use module_global_variables,&
-       only: &
-!             nsadmax,&
-             iproc,&
-             isad,isadprob,&
-             isadc,isadprobc,&
-             ntodo,&
-             currDir,&
-!             en_delta_min, fp_delta_min,&
-!             en_delta_sad, fp_delta_sad,&
-!             saddle_scale_stepoff,&
-!             mhgps_verbosity,&
-             inputPsiId
+    use module_mhgps_state
     use module_ls_rmsd
     use module_fingerprints
     use module_minimizers
@@ -145,18 +133,16 @@ recursive subroutine connect_recursively(nat,nid,alat,fsw,uinp,runObj,outs,&
     use bigdft_run
     implicit none
     !parameters
-    integer, intent(in)     :: nat
-    integer, intent(in)     :: nid
+    type(mhgps_state), intent(inout) :: mhgpsst
     type(findsad_work), intent(inout) :: fsw
     type(userinput), intent(in) :: uinp
-    real(gp), intent(inout) :: alat(3)
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
     integer, intent(in)     :: nbond
-    real(gp), intent(in)    :: rcov(nat)
+    real(gp), intent(in)    :: rcov(runObj%atoms%astruct%nat)
     integer, intent(in)     :: iconnect(2,nbond)
-    real(gp), intent(in)    :: rxyz1(3,nat), rxyz2(3,nat)
-    real(gp), intent(in)    :: fp1(nid), fp2(nid)
+    real(gp), intent(in)    :: rxyz1(3,runObj%atoms%astruct%nat), rxyz2(3,runObj%atoms%astruct%nat)
+    real(gp), intent(in)    :: fp1(mhgpsst%nid), fp2(mhgpsst%nid)
     real(gp), intent(in)    :: ener1,ener2
     integer, intent(inout)  :: nsad,isame
     type(connect_object), intent(inout) :: cobj
@@ -171,16 +157,16 @@ recursive subroutine connect_recursively(nat,nid,alat,fsw,uinp,runObj,outs,&
     real(gp) :: scl
 
     if(.not.connected)then
-        call write_todo(ntodo,nat,runObj,outs,rxyz1,rxyz2,ener1,ener2)
+        call write_todo(mhgpsst,runObj,outs,rxyz1,rxyz2,ener1,ener2)
         return
     endif
     if(nsad>=uinp%nsadmax)then
         connected=.false.
-        call write_todo(ntodo,nat,runObj,outs,rxyz1,rxyz2,ener1,ener2)
+        call write_todo(mhgpsst,runObj,outs,rxyz1,rxyz2,ener1,ener2)
         return
     endif
 
-    if(iproc==0)then
+    if(mhgpsst%iproc==0)then
         call yaml_comment('(MHGPS) nsad:'//&
              trim(adjustl(yaml_toa(nsad)))//'; connect minima with'//&
              ' following energies')
@@ -191,27 +177,27 @@ recursive subroutine connect_recursively(nat,nid,alat,fsw,uinp,runObj,outs,&
 
 
     !check if input structures are distinct 
-    if(equal('MM',nid,uinp%en_delta_min,uinp%fp_delta_min,ener1,ener2,fp1,fp2))then
-        if(iproc==0)call yaml_warning('(MHGPS) connect: input '//&
+    if(equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener1,ener2,fp1,fp2))then
+        if(mhgpsst%iproc==0)call yaml_warning('(MHGPS) connect: input '//&
                     'minima are identical. Will NOT attempt to '//&
                     'find an intermediate TS. recursion depth: '//&
                     yaml_toa(nsad))
         return
     endif
 
-    call vcopy(3*nat,rxyz1(1,1),1,cobj%rxyz1(1,1), 1)
-    call vcopy(3*nat,rxyz2(1,1),1,cobj%rxyz2(1,1), 1)
+    call vcopy(3*runObj%atoms%astruct%nat,rxyz1(1,1),1,cobj%rxyz1(1,1), 1)
+    call vcopy(3*runObj%atoms%astruct%nat,rxyz2(1,1),1,cobj%rxyz2(1,1), 1)
     !rmsd alignment (optional in mhgps approach)
-    call superimpose(nat,cobj%rxyz1,cobj%rxyz2)
+    call superimpose(runObj%atoms%astruct%nat,cobj%rxyz1,cobj%rxyz2)
 
     !get input guess for transition state
     nsad=nsad+1
     nsad_loc=nsad
-    isad=isad+1
-    write(isadc,'(i5.5)')isad
+    mhgpsst%isad=mhgpsst%isad+1
+    write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
 
-    inputPsiId=0
-    call get_ts_guess(nat,alat,uinp,runObj,outs,cobj%rxyz1,cobj%rxyz2,&
+    runObj%inputs%inputPsiId=0
+    call get_ts_guess(mhgpsst,uinp,runObj,outs,cobj%rxyz1,cobj%rxyz2,&
           cobj%saddle(1,1,nsad),cobj%minmode(1,1,nsad),cobj%tsgenergy,&
           cobj%tsgforces(1,1))
 
@@ -220,31 +206,31 @@ recursive subroutine connect_recursively(nat,nid,alat,fsw,uinp,runObj,outs,&
     ener_count=0.0_gp
     displ=0.0_gp
     converged=.false.
-    call findsad(nat,alat,fsw,uinp,runObj,outs,rcov,nbond,iconnect,cobj%saddle(1,1,nsad),&
+    call findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,cobj%saddle(1,1,nsad),&
                 cobj%enersad(nsad),cobj%fsad(1,1,nsad),&
                 cobj%minmode(1,1,nsad),displ,ener_count,&
                 cobj%rotforce(1,1,nsad),converged)
 
     if(.not.converged)then
         nsad=nsad-1!in case we don't want to STOP
-        isad=isad-1
-        write(isadc,'(i5.5)')isad
+        mhgpsst%isad=mhgpsst%isad-1
+        write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
         connected=.false.
-        call write_todo(ntodo,nat,runObj,outs,rxyz1,rxyz2,ener1,ener2)
+        call write_todo(mhgpsst,runObj,outs,rxyz1,rxyz2,ener1,ener2)
         call yaml_warning('(MHGPS) Saddle search not converged. '//&
              'Aborting connecting attempt.')
 !        stop 'STOP saddle not converged'
     endif
 
-    call fnrmandforcemax(cobj%fsad(1,1,nsad),fnrm,fmax,nat)
+    call fnrmandforcemax(cobj%fsad(1,1,nsad),fnrm,fmax,runObj%atoms%astruct%nat)
     fnrm=sqrt(fnrm)
-    if (iproc == 0) then
+    if (mhgpsst%iproc == 0) then
         write(comment,'(a,1pe10.3,5x,1pe10.3)')'ATTENTION! Forces '//&
         'below give no forces, but the final minmode| fnrm, fmax = ',&
         fnrm,fmax
 
         call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-             currDir//'/sad'//trim(adjustl(isadc))//'_finalM',&
+             mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))//'_finalM',&
              comment,&
              cobj%enersad(nsad),rxyz=cobj%saddle(:,:,nsad),&
              forces=cobj%minmode(:,:,nsad))
@@ -253,34 +239,34 @@ recursive subroutine connect_recursively(nat,nid,alat,fsw,uinp,runObj,outs,&
                                             'fnrm, fmax = ',fnrm,fmax
 
         call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-             currDir//'/sad'//trim(adjustl(isadc))//'_finalF',&
+             mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))//'_finalF',&
              comment,&
              cobj%enersad(nsad),rxyz=cobj%saddle(:,:,nsad),&
              forces=cobj%fsad(:,:,nsad))
 
-        call write_mode(nat,runObj,outs,currDir//'/sad'//trim(adjustl(isadc))//&
+        call write_mode(runObj,outs,mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))//&
         '_mode_final',cobj%minmode(1,1,nsad),cobj%rotforce(1,1,nsad))
     endif
 
 
-    call fingerprint(nat,nid,alat,bigdft_get_geocode(runObj),rcov,&
+    call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,bigdft_get_cell_ptr(runObj),bigdft_get_geocode(runObj),rcov,&
                     cobj%saddle(1,1,nsad),cobj%fpsad(1,nsad))
 
     if(nsad>1)then
-        if(equal('SS',nid,uinp%en_delta_sad,uinp%fp_delta_sad,&
+        if(equal(mhgpsst,'SS',mhgpsst%nid,uinp%en_delta_sad,uinp%fp_delta_sad,&
                cobj%enersad(nsad-1),cobj%enersad(nsad),&
                cobj%fpsad(1,nsad-1),cobj%fpsad(1,nsad)))then
             isame=isame+1
             !if we find the same saddle point there times
             !(cosecutively) we are stuck
             if(isame==3)then
-                call write_todo(ntodo,nat,runObj,outs,rxyz1,rxyz2,ener1,ener2)
+                call write_todo(mhgpsst,runObj,outs,rxyz1,rxyz2,ener1,ener2)
                 connected=.false.
                 nsad=nsad-1
-                isad=isad-1
-                write(isadc,'(i5.5)')isad
+                mhgpsst%isad=mhgpsst%isad-1
+                write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
     
-                if(iproc==0)then
+                if(mhgpsst%iproc==0)then
                     call yaml_warning('(MHGPS) found same saddle '//&
                                 'point again. Aborting connection'//&
                                 ' attempt.')
@@ -297,72 +283,72 @@ recursive subroutine connect_recursively(nat,nid,alat,fsw,uinp,runObj,outs,&
     scl=-1.0_gp
     ipush=1
     loopL: do
-        if(iproc==0)&
+        if(mhgpsst%iproc==0)&
         call yaml_comment('(MHGPS) Relax from left side ',hfill='.')
     
-        call pushoffsingle(uinp,nat,cobj%saddle(1,1,nsad),&
+        call pushoffsingle(uinp,runObj%atoms%astruct%nat,cobj%saddle(1,1,nsad),&
         cobj%minmode(1,1,nsad),scl,cobj%leftmin(1,1,nsad))
 
         ener_count=0.0_gp
-        call mhgpsenergyandforces(nat,alat,runObj,outs,cobj%leftmin(1,1,nsad),&
+        call mhgpsenergyandforces(mhgpsst,runObj,outs,cobj%leftmin(1,1,nsad),&
         cobj%fleft(1,1,nsad),fnoise,cobj%enerleft(nsad),infocode)
 
-        if(iproc==0 .and. uinp%mhgps_verbosity >= 3)&
+        if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity >= 3)&
              call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-             currDir//'/sad'//trim(adjustl(isadc))//'_pushL',&
+             mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))//'_pushL',&
              comment,&
              cobj%enerleft(nsad),cobj%leftmin(:,:,nsad),&
              cobj%fleft(:,:,nsad))
 
-        call minimize(uinp%imode,nat,alat,uinp,runObj,outs,nbond,iconnect,&
+        call minimize(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
                             cobj%leftmin(1,1,nsad),&
                             cobj%fleft(1,1,nsad),fnoise,&
                             cobj%enerleft(nsad),ener_count,converged,&
                             'L')
-        call fnrmandforcemax(cobj%fleft(1,1,nsad),fnrm,fmax,nat)
+        call fnrmandforcemax(cobj%fleft(1,1,nsad),fnrm,fmax,runObj%atoms%astruct%nat)
         fnrm=sqrt(fnrm)
         write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,&
                                               fmax
-        if(iproc==0)&
+        if(mhgpsst%iproc==0)&
              call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-             currDir//'/sad'//trim(adjustl(isadc))//'_minFinalL',&
+             mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))//'_minFinalL',&
              comment,&
              cobj%enerleft(nsad),cobj%leftmin(:,:,nsad),&
              cobj%fleft(:,:,nsad))
 
-        call fingerprint(nat,nid,alat,bigdft_get_geocode(runObj),rcov,&
+        call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,bigdft_get_cell_ptr(runObj),bigdft_get_geocode(runObj),rcov,&
                         cobj%leftmin(1,1,nsad),cobj%fpleft(1,nsad))
-        if(.not.equal('MS',nid,uinp%en_delta_sad,uinp%fp_delta_sad,&
+        if(.not.equal(mhgpsst,'MS',mhgpsst%nid,uinp%en_delta_sad,uinp%fp_delta_sad,&
            cobj%enersad(nsad),cobj%enerleft(nsad),cobj%fpsad(1,nsad),&
            cobj%fpleft(1,nsad)))then
            exit loopL 
         elseif(ipush>=3)then
-            isadprob=isadprob+1
-            write(isadprobc,'(i5.5)')isadprob
-            if(iproc==0)then
+            mhgpsst%isadprob=mhgpsst%isadprob+1
+            write(mhgpsst%isadprobc,'(i5.5)')mhgpsst%isadprob
+            if(mhgpsst%iproc==0)then
                 write(comment,'(a)')'Prob: Neighbors '//&
                 'unknown (stepoff converged back to saddle)'
                 call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                     currDir//'/sadProb'//trim(adjustl(isadprobc))//'_finalM',&
+                     mhgpsst%currDir//'/sadProb'//trim(adjustl(mhgpsst%isadprobc))//'_finalM',&
                      comment,&
                 cobj%enersad(nsad),rxyz=cobj%saddle(:,:,nsad),&
                 forces=cobj%minmode(:,:,nsad))
                 call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                     currDir//'/sadProb'//trim(adjustl(isadprobc))//'_Reactant',&
+                     mhgpsst%currDir//'/sadProb'//trim(adjustl(mhgpsst%isadprobc))//'_Reactant',&
                      comment,&
                 0.0_gp,rxyz=cobj%rxyz1)
                 call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                     currDir//'/sadProb'//trim(adjustl(isadprobc))//'_Product',&
+                     mhgpsst%currDir//'/sadProb'//trim(adjustl(mhgpsst%isadprobc))//'_Product',&
                      comment,&
                 0.0_gp,rxyz=cobj%rxyz2)
             endif
     
             connected=.false.
             nsad=nsad-1
-            isad=isad-1
-            write(isadc,'(i5.5)')isad
+            mhgpsst%isad=mhgpsst%isad-1
+            write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
     
-            if(iproc==0)&
+            if(mhgpsst%iproc==0)&
             call yaml_warning('(MHGPS)  after relaxation from '//&
                               'saddle point the left minimum is '//&
                               'identical to the saddle point. '//&
@@ -371,7 +357,7 @@ recursive subroutine connect_recursively(nat,nid,alat,fsw,uinp,runObj,outs,&
             return
         endif
         scl=uinp%saddle_scale_stepoff*scl
-        if(iproc==0)&
+        if(mhgpsst%iproc==0)&
         call yaml_comment('INFO: (MHGPS) After pushoff, left side '//&
                        'converged back to saddle. Will retry with '//&
                        'increased pushoff: '//&
@@ -382,62 +368,62 @@ recursive subroutine connect_recursively(nat,nid,alat,fsw,uinp,runObj,outs,&
     scl=1.0_gp
     ipush=1
     loopR: do
-        if(iproc==0)&
+        if(mhgpsst%iproc==0)&
         call yaml_comment('(MHGPS) Relax from right side ',hfill='.')
     
-        call pushoffsingle(uinp,nat,cobj%saddle(1,1,nsad),&
+        call pushoffsingle(uinp,runObj%atoms%astruct%nat,cobj%saddle(1,1,nsad),&
         cobj%minmode(1,1,nsad),scl,cobj%rightmin(1,1,nsad))
 
         ener_count=0.0_gp
-        call mhgpsenergyandforces(nat,alat,runObj,outs,cobj%rightmin(1,1,nsad),&
+        call mhgpsenergyandforces(mhgpsst,runObj,outs,cobj%rightmin(1,1,nsad),&
         cobj%fright(1,1,nsad),fnoise,cobj%enerright(nsad),infocode)
 
-        if(iproc==0 .and. uinp%mhgps_verbosity >= 3)&
+        if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity >= 3)&
              call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-             currDir//'/sad'//trim(adjustl(isadc))//'_pushR',&
+             mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))//'_pushR',&
              comment,&
              cobj%enerright(nsad),cobj%rightmin(1,1,nsad),&
              cobj%fright(1,1,nsad))
 
-        call minimize(uinp%imode,nat,alat,uinp,runObj,outs,nbond,iconnect,&
+        call minimize(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
                             cobj%rightmin(1,1,nsad),&
                             cobj%fright(1,1,nsad),fnoise,&
                             cobj%enerright(nsad),ener_count,&
                             converged,'R')
-        call fnrmandforcemax(cobj%fright(1,1,nsad),fnrm,fmax,nat)
+        call fnrmandforcemax(cobj%fright(1,1,nsad),fnrm,fmax,runObj%atoms%astruct%nat)
         fnrm=sqrt(fnrm)
         write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,&
                                               fmax
-        if(iproc==0)&
+        if(mhgpsst%iproc==0)&
              call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-             currDir//'/sad'//trim(adjustl(isadc))//'_minFinalR',&
+             mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))//'_minFinalR',&
              comment,&
              cobj%enerright(nsad),cobj%rightmin(1,1,nsad),&
              cobj%fright(1,1,nsad))
-        call fingerprint(nat,nid,alat,bigdft_get_geocode(runObj),rcov,&
+        call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,bigdft_get_cell_ptr(runObj),bigdft_get_geocode(runObj),rcov,&
                         cobj%rightmin(1,1,nsad),cobj%fpright(1,nsad))
-        if(.not.equal('MS',nid,uinp%en_delta_sad,uinp%fp_delta_sad,&
+        if(.not.equal(mhgpsst,'MS',mhgpsst%nid,uinp%en_delta_sad,uinp%fp_delta_sad,&
            cobj%enersad(nsad),cobj%enerright(nsad),&
            cobj%fpsad(1,nsad),cobj%fpright(1,nsad)))then
            exit loopR 
         elseif(ipush>=3)then
-            isadprob=isadprob+1
-            write(isadprobc,'(i5.5)')isadprob
-            if(iproc==0)then
+            mhgpsst%isadprob=mhgpsst%isadprob+1
+            write(mhgpsst%isadprobc,'(i5.5)')mhgpsst%isadprob
+            if(mhgpsst%iproc==0)then
                 write(comment,'(a)')'Prob: Neighbors '//&
                      'unknown (stepoff converged back to saddle)'
                         
                 call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                     currDir//'/sadProb'//trim(adjustl(isadprobc))//'_finalM',&
+                     mhgpsst%currDir//'/sadProb'//trim(adjustl(mhgpsst%isadprobc))//'_finalM',&
                      comment,&
                      cobj%enersad(nsad),cobj%saddle(:,:,nsad),&
                      forces=cobj%minmode(:,:,nsad))
                 call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                     currDir//'/sadProb'//trim(adjustl(isadprobc))//'_Reactant',&
+                     mhgpsst%currDir//'/sadProb'//trim(adjustl(mhgpsst%isadprobc))//'_Reactant',&
                      comment,&
                 0.0_gp,rxyz=cobj%rxyz1)
                 call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                     currDir//'/sadProb'//trim(adjustl(isadprobc))//'_Product',&
+                     mhgpsst%currDir//'/sadProb'//trim(adjustl(mhgpsst%isadprobc))//'_Product',&
                      comment,&
                 0.0_gp,rxyz=cobj%rxyz2)
 
@@ -445,10 +431,10 @@ recursive subroutine connect_recursively(nat,nid,alat,fsw,uinp,runObj,outs,&
     
             connected=.false.
             nsad=nsad-1
-            isad=isad-1
-            write(isadc,'(i5.5)')isad
+            mhgpsst%isad=mhgpsst%isad-1
+            write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
     
-            if(iproc==0)&
+            if(mhgpsst%iproc==0)&
             call yaml_warning('(MHGPS)  after relaxation from '//&
                               'saddle point the right minimum is '//&
                               'identical to the saddle point. '//&
@@ -457,7 +443,7 @@ recursive subroutine connect_recursively(nat,nid,alat,fsw,uinp,runObj,outs,&
             return
         endif
         scl=uinp%saddle_scale_stepoff*scl
-        if(iproc==0)&
+        if(mhgpsst%iproc==0)&
         call yaml_comment('INFO: (MHGPS) After pushoff, right side'//&
                        ' converged back to saddle. Will retry with'//&
                        ' increased pushoff: '//&
@@ -467,35 +453,35 @@ recursive subroutine connect_recursively(nat,nid,alat,fsw,uinp,runObj,outs,&
 
     !is minimum, obtained by relaxation from left bar end identical to
     !left input minimum?
-    lnl=equal('MM',nid,uinp%en_delta_min,uinp%fp_delta_min,ener1,&
+    lnl=equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener1,&
         cobj%enerleft(nsad),fp1,cobj%fpleft(1,nsad))
 
     !is minimum obtained by relaxation from right bar end identical to
     !right input minimum?
-    rnr=equal('MM',nid,uinp%en_delta_min,uinp%fp_delta_min,ener2,&
+    rnr=equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener2,&
         cobj%enerright(nsad),fp2,cobj%fpright(1,nsad))
 
     !is minimum obtained by relaxation from left bar end identical to 
     !right input minimum?
-    lnr=equal('MM',nid,uinp%en_delta_min,uinp%fp_delta_min,ener2,&
+    lnr=equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener2,&
         cobj%enerleft(nsad),fp2,cobj%fpleft(1,nsad))
 
     !is minimum obtained by relaxation from right bar end identical to
     !left input minimum?
-    rnl=equal('MM',nid,uinp%en_delta_min,uinp%fp_delta_min,ener1,&
+    rnl=equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener1,&
         cobj%enerright(nsad),fp1,cobj%fpright(1,nsad))
 
     if((lnl .and. rnr) .or. (lnr .and. rnl))then!connection done
-if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
+if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         connected=.true.
         return
     endif
 
     if(lnl .and. (.not. rnr))then
         !connect right input min with right relaxed bar-end
-if(iproc==0)write(*,*)'(MHGPS) connection check lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
-if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
-        call connect_recursively(nat,nid,alat,fsw,uinp,runObj,outs,rcov,nbond,isame,&
+if(mhgpsst%iproc==0)write(*,*)'(MHGPS) connection check lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
+if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
+        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,isame,&
                      iconnect,cobj%rightmin(1,1,nsad_loc),rxyz2,&
                      cobj%enerright(nsad_loc),ener2,&
                      cobj%fpright(1,nsad_loc),fp2,nsad,cobj,connected)
@@ -503,18 +489,18 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected
     endif
 
     if(rnr .and. (.not. lnl))then
-if(iproc==0)write(*,*)'(MHGPS)connection check rnr and not lnl',rnr,lnl
-if(iproc==0)write(*,*)'(MHGPS)connection check rnr and not lnl',sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))
-if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
+if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check rnr and not lnl',rnr,lnl
+if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check rnr and not lnl',sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))
+if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
 !write(*,*)rxyz1
 !write(*,*)
 !write(*,*)cobj%leftmin(:,:,nsad_loc)
 !if(sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))<1.d-2)then
-!    lnl=equal(nid,en_delta_min,uinp%fp_delta_min,ener1,&
+!    lnl=equal(mhgpsst,mhgpsst%nid,en_delta_min,uinp%fp_delta_min,ener1,&
 !        cobj%enerleft(nsad),fp1,cobj%fpleft(1,nsad))
-!!call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
+!!call fingerprint(nat,mhgpsst%nid,alat,atoms%astruct%geocode,rcov,&
 !!                cobj%leftmin(1,1,nsad_loc),cobj%fpleft(1,nsad_loc))
-!!call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
+!!call fingerprint(nat,mhgpsst%nid,alat,atoms%astruct%geocode,rcov,&
 !!                rxyz1(1,1),cobj%fpright(1,nsad_loc))
 !write(*,*)'fprints:'
 !write(*,*)cobj%fpleft(:,nsad_loc)
@@ -524,7 +510,7 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected
 !    stop
 !endif
         !connect left relaxed bar end with left input min
-        call connect_recursively(nat,nid,alat,fsw,uinp,runObj,outs,rcov,nbond,isame,&
+        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,isame,&
                      iconnect,rxyz1,cobj%leftmin(1,1,nsad_loc),&
                      ener1,cobj%enerleft(nsad_loc),&
                      fp1,cobj%fpleft(1,nsad_loc),nsad,cobj,connected)
@@ -532,10 +518,10 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected
     endif
 
     if(lnr .and. (.not. rnl))then
-if(iproc==0)write(*,*)'(MHGPS)connection check lnr and not rnl',sqrt(sum((rxyz1-cobj%rightmin(:,:,nsad_loc))**2))
-if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
+if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check lnr and not rnl',sqrt(sum((rxyz1-cobj%rightmin(:,:,nsad_loc))**2))
+if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         !connect right relaxed bar end with left input min
-        call connect_recursively(nat,nid,alat,fsw,uinp,runObj,outs,rcov,nbond,isame,&
+        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,isame,&
                      iconnect,rxyz1,cobj%rightmin(1,1,nsad_loc),&
                      ener1,cobj%enerright(nsad_loc),&
                      fp1,cobj%fpright(1,nsad_loc),nsad,cobj,connected)
@@ -543,10 +529,10 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected
     endif
 
     if(.not. lnr .and. rnl)then
-if(iproc==0)write(*,*)'(MHGPS)connection check not lnr and rnl',sqrt(sum((rxyz2-cobj%leftmin(:,:,nsad_loc))**2))
-if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
+if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check not lnr and rnl',sqrt(sum((rxyz2-cobj%leftmin(:,:,nsad_loc))**2))
+if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         !connect left relaxed bar end with right input min
-        call connect_recursively(nat,nid,alat,fsw,uinp,runObj,outs,rcov,nbond,isame,&
+        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,isame,&
                      iconnect,rxyz2,cobj%leftmin(1,1,nsad_loc),&
                      ener2,cobj%enerleft(nsad_loc),&
                      fp2,cobj%fpleft(1,nsad_loc),nsad,cobj,connected)
@@ -554,16 +540,16 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected
     endif
 
     if((.not. lnl) .and. (.not. rnr))then
-if(iproc==0)write(*,*)'(MHGPS)connection check not lnl and not rnr',sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))
-if(iproc==0)write(*,*)'(MHGPS)connection check not lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
-if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
+if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check not lnl and not rnr',sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))
+if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check not lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
+if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         !connect left input min with left relaxed bar end  and right
         !input min with right relaxed bar end
-        call connect_recursively(nat,nid,alat,fsw,uinp,runObj,outs,rcov,nbond,isame,&
+        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,isame,&
                      iconnect,rxyz1,cobj%leftmin(1,1,nsad_loc),&
                      ener1,cobj%enerleft(nsad_loc),&
                      fp1,cobj%fpleft(1,nsad_loc),nsad,cobj,connected)
-        call connect_recursively(nat,nid,alat,fsw,uinp,runObj,outs,rcov,nbond,isame,&
+        call connect_recursively(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,isame,&
                      iconnect,cobj%rightmin(1,1,nsad_loc),rxyz2,&
                      cobj%enerright(nsad_loc),ener2,&
                      cobj%fpright(1,nsad_loc),fp2,nsad,cobj,connected)
@@ -571,7 +557,7 @@ if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected
     endif
 
     !should and must not happen:
-    if(iproc==0)&
+    if(mhgpsst%iproc==0)&
     call yaml_warning('(MHGPS) Severe error in connect: none of '//&
                       'the checks in connect subroutine were '//&
                        'successful! STOP') 
@@ -585,7 +571,7 @@ end subroutine
 !some features of the recursive function.
 !Before being used, must be updated to same functionality as recursive
 !function and must be well tested!
-subroutine connect(nat,nid,alat,fsw,uinp,runObj,outs,rcov,nbond,&
+subroutine connect(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,&
                      iconnect,rxyz1,rxyz2,ener1,ener2,fp1,fp2,&
                      nsad,cobj,connected)
     !if called from outside recursion, connected has to be set 
@@ -593,16 +579,7 @@ subroutine connect(nat,nid,alat,fsw,uinp,runObj,outs,rcov,nbond,&
     use module_base
     use module_atoms, only: astruct_dump_to_file
     use module_userinput
-    use module_global_variables,&
-       only: &
-!             imode,&
-!             nsadmax,&
-             iproc,&
-             isad,isadprob,&
-             isadc,isadprobc,&
-             currDir
-!             en_delta_min, fp_delta_min,&
-!             en_delta_sad, fp_delta_sad
+    use module_mhgps_state
     use module_ls_rmsd
     use module_fingerprints
     use module_minimizers
@@ -613,18 +590,16 @@ subroutine connect(nat,nid,alat,fsw,uinp,runObj,outs,rcov,nbond,&
     use bigdft_run
     implicit none
     !parameters
-    integer, intent(in)     :: nat
-    integer, intent(in)     :: nid
+    type(mhgps_state), intent(inout)      :: mhgpsst
     type(findsad_work), intent(inout)      :: fsw
     type(userinput), intent(in) :: uinp
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
     integer, intent(in)     :: nbond
-    real(gp), intent(in)    :: rcov(nat)
-    real(gp), intent(inout) :: alat(3)
+    real(gp), intent(in)    :: rcov(runObj%atoms%astruct%nat)
     integer, intent(in)     :: iconnect(2,nbond)
-    real(gp), intent(in)    :: rxyz1(3,nat), rxyz2(3,nat)
-    real(gp), intent(in)    :: fp1(nid), fp2(nid)
+    real(gp), intent(in)    :: rxyz1(3,runObj%atoms%astruct%nat), rxyz2(3,runObj%atoms%astruct%nat)
+    real(gp), intent(in)    :: fp1(mhgpsst%nid), fp2(mhgpsst%nid)
     real(gp), intent(in)    :: ener1,ener2
     integer, intent(inout)  :: nsad
     type(connect_object), intent(inout) :: cobj
@@ -636,12 +611,12 @@ subroutine connect(nat,nid,alat,fsw,uinp,runObj,outs,rcov,nbond,&
     logical  :: converged =.false.
     logical  :: lnl, rnr, lnr, rnl 
     character(len=200) :: comment
-    real(gp) :: tsgforces(3,nat), tsgenergy
-    real(gp) :: todorxyz(3,nat,2,2*uinp%nsadmax),todofp(nid,2,2*uinp%nsadmax)
+    real(gp) :: tsgforces(3,runObj%atoms%astruct%nat), tsgenergy
+    real(gp) :: todorxyz(3,runObj%atoms%astruct%nat,2,2*uinp%nsadmax),todofp(mhgpsst%nid,2,2*uinp%nsadmax)
     real(gp) :: todoenergy(2,2*uinp%nsadmax)
     integer :: ntodo
-    real(gp) :: rxyz1cur(3,nat), rxyz2cur(3,nat)
-    real(gp) :: fp1cur(nid), fp2cur(nid)
+    real(gp) :: rxyz1cur(3,runObj%atoms%astruct%nat), rxyz2cur(3,runObj%atoms%astruct%nat)
+    real(gp) :: fp1cur(mhgpsst%nid), fp2cur(mhgpsst%nid)
     real(gp) :: ener1cur, ener2cur
 integer :: i
 
@@ -659,13 +634,13 @@ connectloop: do while(ntodo>=1)
         exit connectloop
     endif
 
-    call vcopy(3*nat,todorxyz(1,1,1,ntodo),1,rxyz1cur(1,1), 1)
-    call vcopy(nid,todofp(1,1,ntodo),1,fp1cur(1), 1)
+    call vcopy(3*runObj%atoms%astruct%nat,todorxyz(1,1,1,ntodo),1,rxyz1cur(1,1), 1)
+    call vcopy(mhgpsst%nid,todofp(1,1,ntodo),1,fp1cur(1), 1)
     ener1cur=todoenergy(1,ntodo)
-    call vcopy(3*nat,todorxyz(1,1,2,ntodo),1,rxyz2cur(1,1), 1)
-    call vcopy(nid,todofp(1,2,ntodo),1,fp2cur(1), 1)
+    call vcopy(3*runObj%atoms%astruct%nat,todorxyz(1,1,2,ntodo),1,rxyz2cur(1,1), 1)
+    call vcopy(mhgpsst%nid,todofp(1,2,ntodo),1,fp2cur(1), 1)
     ener2cur=todoenergy(2,ntodo)
-    if(iproc==0)then
+    if(mhgpsst%iproc==0)then
         call yaml_comment('(MHGPS) nsad:'//&
              trim(adjustl(yaml_toa(nsad)))//'; connect minima '//&
              'with following energies')
@@ -675,53 +650,53 @@ connectloop: do while(ntodo>=1)
 
 
     !check if input structures are distinct 
-    if(equal('MM',nid,uinp%en_delta_min,uinp%fp_delta_min,todoenergy(1,ntodo),todoenergy(2,ntodo),todofp(1,1,ntodo),todofp(1,2,ntodo)))then
-        if(iproc==0)call yaml_warning('(MHGPS) connect: input '//&
+    if(equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,todoenergy(1,ntodo),todoenergy(2,ntodo),todofp(1,1,ntodo),todofp(1,2,ntodo)))then
+        if(mhgpsst%iproc==0)call yaml_warning('(MHGPS) connect: input '//&
                     'minima are identical. Will NOT attempt to find '//&
                     'an intermediate TS. recursion depth: '//&
                     yaml_toa(nsad))
         exit connectloop
     endif
     !rmsd alignment (optional in mhgps approach)
-    call superimpose(nat,rxyz1cur,rxyz2cur)
+    call superimpose(runObj%atoms%astruct%nat,rxyz1cur,rxyz2cur)
 
     !get input guess for transition state
     nsad=nsad+1
     nsad_loc=nsad
-    isad=isad+1
-    write(isadc,'(i5.5)')isad
+    mhgpsst%isad=mhgpsst%isad+1
+    write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
 
-    call get_ts_guess(nat,alat,uinp,runObj,outs,rxyz1cur,rxyz2cur,&
+    call get_ts_guess(mhgpsst,uinp,runObj,outs,rxyz1cur,rxyz2cur,&
           cobj%saddle(1,1,nsad),cobj%minmode(1,1,nsad),tsgenergy,&
           tsgforces(1,1))
 
 
     !compute saddle
     ener_count=0.0_gp
-    call findsad(nat,alat,fsw,uinp,runObj,outs,rcov,nbond,iconnect,cobj%saddle(1,1,nsad),&
+    call findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,cobj%saddle(1,1,nsad),&
                 cobj%enersad(nsad),cobj%fsad(1,1,nsad),&
                 cobj%minmode(1,1,nsad),displ,ener_count,&
                 cobj%rotforce(1,1,nsad),converged)
 
     if(.not.converged)then
         nsad=nsad-1!in case we don't want to STOP
-        isad=isad-1
-        write(isadc,'(i5.5)')isad
+        mhgpsst%isad=mhgpsst%isad-1
+        write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
         connected=.false.
         stop 'STOP saddle not converged'
         !exit connectloop
     endif
     ntodo=ntodo-1
 
-    call fnrmandforcemax(cobj%fsad(1,1,nsad),fnrm,fmax,nat)
+    call fnrmandforcemax(cobj%fsad(1,1,nsad),fnrm,fmax,runObj%atoms%astruct%nat)
     fnrm=sqrt(fnrm)
-    if (iproc == 0) then
+    if (mhgpsst%iproc == 0) then
         write(comment,'(a,1pe10.3,5x,1pe10.3)')'ATTENTION! Forces '//&
         'below give no forces, but the final minmode| fnrm, fmax = ',&
         fnrm,fmax
 
         call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-             currDir//'/sad'//trim(adjustl(isadc))//'_finalM',&
+             mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))//'_finalM',&
              comment,&
              cobj%enersad(nsad),cobj%saddle(:,:,nsad),&
              forces=cobj%minmode(:,:,nsad))
@@ -729,78 +704,78 @@ connectloop: do while(ntodo>=1)
         write(comment,'(a,1pe10.3,5x,1pe10.3)')&
                                             'fnrm, fmax = ',fnrm,fmax
         call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-             currDir//'/sad'//trim(adjustl(isadc))//'_finalF',&
+             mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))//'_finalF',&
              comment,&
              cobj%enersad(nsad),cobj%saddle(:,:,nsad),&
              forces=cobj%minmode(:,:,nsad))
 
-        call write_mode(nat,runObj,outs,currDir//'/sad'//trim(adjustl(isadc))//&
+        call write_mode(runObj,outs,mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))//&
         '_mode_final',cobj%minmode(1,1,nsad),cobj%rotforce(1,1,nsad))
     endif
 
 
-    call fingerprint(nat,nid,alat,bigdft_get_geocode(runObj),rcov,&
+    call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,bigdft_get_cell_ptr(runObj),bigdft_get_geocode(runObj),rcov,&
                     cobj%saddle(1,1,nsad),cobj%fpsad(1,nsad))
 
     !pushoff and minimize left and right
-    call pushoff(uinp,nat,cobj%saddle(1,1,nsad),cobj%minmode(1,1,nsad),&
+    call pushoff(uinp,runObj%atoms%astruct%nat,cobj%saddle(1,1,nsad),cobj%minmode(1,1,nsad),&
                  cobj%leftmin(1,1,nsad),cobj%rightmin(1,1,nsad))
 
-    if(iproc==0)&
+    if(mhgpsst%iproc==0)&
     call yaml_comment('(MHGPS) Relax from left side ',hfill='.')
     ener_count=0.0_gp
-    call mhgpsenergyandforces(nat,alat,runObj,outs,cobj%leftmin(1,1,nsad),&
+    call mhgpsenergyandforces(mhgpsst,runObj,outs,cobj%leftmin(1,1,nsad),&
     cobj%fleft(1,1,nsad),fnoise,cobj%enerleft(nsad),infocode)
-    call minimize(uinp%imode,nat,alat,uinp,runObj,outs,nbond,iconnect,&
+    call minimize(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
                         cobj%leftmin(1,1,nsad),cobj%fleft(1,1,nsad),&
                         fnoise,cobj%enerleft(nsad),&
                         ener_count,converged,'L')
-    call fnrmandforcemax(cobj%fleft(1,1,nsad),fnrm,fmax,nat)
+    call fnrmandforcemax(cobj%fleft(1,1,nsad),fnrm,fmax,runObj%atoms%astruct%nat)
     fnrm=sqrt(fnrm)
     write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,fmax
-    if(iproc==0)&
+    if(mhgpsst%iproc==0)&
          call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-         currDir//'/sad'//trim(adjustl(isadc))//'_minFinalL',&
+         mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))//'_minFinalL',&
          comment,&
          cobj%enerleft(nsad),cobj%leftmin(:,:,nsad),&
          forces=cobj%fleft(:,:,nsad))
 
-    if(iproc==0)&
+    if(mhgpsst%iproc==0)&
     call yaml_comment('(MHGPS) Relax from right side ',hfill='.')
     ener_count=0.0_gp
-    call mhgpsenergyandforces(nat,alat,runObj,outs,cobj%rightmin(1,1,nsad),&
+    call mhgpsenergyandforces(mhgpsst,runObj,outs,cobj%rightmin(1,1,nsad),&
     cobj%fright(1,1,nsad),fnoise,cobj%enerright(nsad),infocode)
-    call minimize(uinp%imode,nat,alat,uinp,runObj,outs,nbond,iconnect,&
+    call minimize(mhgpsst,uinp,runObj,outs,nbond,iconnect,&
                         cobj%rightmin(1,1,nsad),cobj%fright(1,1,nsad)&
                        ,fnoise,cobj%enerright(nsad),&
                         ener_count,converged,'R')
-    call fnrmandforcemax(cobj%fright(1,1,nsad),fnrm,fmax,nat)
+    call fnrmandforcemax(cobj%fright(1,1,nsad),fnrm,fmax,runObj%atoms%astruct%nat)
     fnrm=sqrt(fnrm)
     write(comment,'(a,1pe10.3,5x,1pe10.3)')'fnrm, fmax = ',fnrm,fmax
-    if(iproc==0)&
+    if(mhgpsst%iproc==0)&
          call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-         currDir//'/sad'//trim(adjustl(isadc))//'_minFinalR',&
+         mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))//'_minFinalR',&
          comment,&
          cobj%enerright(nsad),cobj%rightmin(:,:,nsad),&
          cobj%fright(:,:,nsad))
 
-    call fingerprint(nat,nid,alat,bigdft_get_geocode(runObj),rcov,&
+    call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,bigdft_get_cell_ptr(runObj),bigdft_get_geocode(runObj),rcov,&
                     cobj%leftmin(1,1,nsad),cobj%fpleft(1,nsad))
-    call fingerprint(nat,nid,alat,bigdft_get_geocode(runObj),rcov,&
+    call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,bigdft_get_cell_ptr(runObj),bigdft_get_geocode(runObj),rcov,&
                     cobj%rightmin(1,1,nsad),cobj%fpright(1,nsad))
     !check if relaxed structures are identical to saddle itself
-    if(equal('MS',nid,uinp%en_delta_sad,uinp%fp_delta_sad,cobj%enersad(nsad),&
+    if(equal(mhgpsst,'MS',mhgpsst%nid,uinp%en_delta_sad,uinp%fp_delta_sad,cobj%enersad(nsad),&
     cobj%enerright(nsad),cobj%fpsad(1,nsad),cobj%fpright(1,nsad)).or.&
-    equal('MS',nid,uinp%en_delta_sad,uinp%fp_delta_sad,cobj%enersad(nsad),&
+    equal(mhgpsst,'MS',mhgpsst%nid,uinp%en_delta_sad,uinp%fp_delta_sad,cobj%enersad(nsad),&
     cobj%enerleft(nsad),cobj%fpsad(1,nsad),cobj%fpleft(1,nsad)))then
 
-        isadprob=isadprob+1
-        write(isadprobc,'(i5.5)')isadprob
-        if(iproc==0)then
+        mhgpsst%isadprob=mhgpsst%isadprob+1
+        write(mhgpsst%isadprobc,'(i5.5)')mhgpsst%isadprob
+        if(mhgpsst%iproc==0)then
             write(comment,'(a)')'Prob: Neighbors '//&
             'unknown (converged back to saddle after stepoff)'
             call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-                 currDir//'/sadProb'//trim(adjustl(isadprobc))//'_finalM',&
+                 mhgpsst%currDir//'/sadProb'//trim(adjustl(mhgpsst%isadprobc))//'_finalM',&
                  comment,&
                  cobj%enersad(nsad),cobj%saddle(:,:,nsad),&
                  forces=cobj%minmode(:,:,nsad))
@@ -808,10 +783,10 @@ connectloop: do while(ntodo>=1)
 
         connected=.false.
         nsad=nsad-1
-        isad=isad-1
-        write(isadc,'(i5.5)')isad
+        mhgpsst%isad=mhgpsst%isad-1
+        write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
 
-        if(iproc==0)&
+        if(mhgpsst%iproc==0)&
         call yaml_warning('(MHGPS)  after relaxation from saddle '//&
                          'point the left and/or right minimum are '//&
                          'identical to the saddle point. Stopped '//&
@@ -822,32 +797,32 @@ connectloop: do while(ntodo>=1)
 
     !is minimum, obtained by relaxation from left bar end identical to
     !left input minimum?
-    lnl=equal('MM',nid,uinp%en_delta_min,uinp%fp_delta_min,ener1cur,&
+    lnl=equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener1cur,&
         cobj%enerleft(nsad),fp1cur,cobj%fpleft(1,nsad))
 
     !is minimum obtained by relaxation from right bar end identical to
     !right input minimum?
-    rnr=equal('MM',nid,uinp%en_delta_min,uinp%fp_delta_min,ener2cur,&
+    rnr=equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener2cur,&
         cobj%enerright(nsad),fp2cur,cobj%fpright(1,nsad))
 
     !is minimum obtained by relaxation from left bar end identical to 
     !right input minimum?
-    lnr=equal('MM',nid,uinp%en_delta_min,uinp%fp_delta_min,ener2cur,&
+    lnr=equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener2cur,&
         cobj%enerleft(nsad),fp2cur,cobj%fpleft(1,nsad))
 
     !is minimum obtained by relaxation from right bar end identical to
     !left input minimum?
-    rnl=equal('MM',nid,uinp%en_delta_min,uinp%fp_delta_min,ener1cur,&
+    rnl=equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,ener1cur,&
         cobj%enerright(nsad),fp1cur,cobj%fpright(1,nsad))
 
     if((lnl .and. rnr) .or. (lnr .and. rnl))then!connection done
-if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
+if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         connected=.true.
 !        return
     elseif(lnl .and. (.not. rnr))then
         !connect right input min with right relaxed bar-end
-if(iproc==0)write(*,*)'(MHGPS) connection check lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
-if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
+if(mhgpsst%iproc==0)write(*,*)'(MHGPS) connection check lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
+if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         ntodo=ntodo+1
 if(ntodo>uinp%nsadmax)stop 'error: ntodo>uinp%nsadmax'
         todorxyz(:,:,1,ntodo)=cobj%rightmin(:,:,nsad_loc)
@@ -863,14 +838,14 @@ if(ntodo>uinp%nsadmax)stop 'error: ntodo>uinp%nsadmax'
 !                     cobj%fpright(1,nsad_loc),fp2,nsad,cobj,connected)
 !        return
     elseif(rnr .and. (.not. lnl))then
-if(iproc==0)write(*,*)'(MHGPS)connection check rnr and not lnl',rnr,lnl
-if(iproc==0)write(*,*)'(MHGPS)connection check rnr and not lnl',sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))
-if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
+if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check rnr and not lnl',rnr,lnl
+if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check rnr and not lnl',sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))
+if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
 !write(*,*)rxyz1
 !write(*,*)
 !write(*,*)cobj%leftmin(:,:,nsad_loc)
 !if(sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))<1.d-2)then
-!    lnl=equal(nid,en_delta_min,fp_delta_min,ener1,&
+!    lnl=equal(mhgpsst,nid,en_delta_min,fp_delta_min,ener1,&
 !        cobj%enerleft(nsad),fp1,cobj%fpleft(1,nsad))
 !!call fingerprint(nat,nid,alat,atoms%astruct%geocode,rcov,&
 !!                cobj%leftmin(1,1,nsad_loc),cobj%fpleft(1,nsad_loc))
@@ -898,8 +873,8 @@ if(ntodo>uinp%nsadmax)stop 'error: ntodo>uinp%nsadmax'
 !                     fp1,cobj%fpleft(1,nsad_loc),nsad,cobj,connected)
 !        return
     elseif(lnr .and. (.not. rnl))then
-if(iproc==0)write(*,*)'(MHGPS)connection check lnr and not rnl',sqrt(sum((rxyz1-cobj%rightmin(:,:,nsad_loc))**2))
-if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
+if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check lnr and not rnl',sqrt(sum((rxyz1-cobj%rightmin(:,:,nsad_loc))**2))
+if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         !connect right relaxed bar end with left input min
         ntodo=ntodo+1
 if(ntodo>uinp%nsadmax)stop 'error: ntodo>uinp%nsadmax'
@@ -915,8 +890,8 @@ if(ntodo>uinp%nsadmax)stop 'error: ntodo>uinp%nsadmax'
 !                     fp1,cobj%fpright(1,nsad_loc),nsad,cobj,connected)
 !        return
     elseif(.not. lnr .and. rnl)then
-if(iproc==0)write(*,*)'(MHGPS)connection check not lnr and rnl',sqrt(sum((rxyz2-cobj%leftmin(:,:,nsad_loc))**2))
-if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
+if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check not lnr and rnl',sqrt(sum((rxyz2-cobj%leftmin(:,:,nsad_loc))**2))
+if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         !connect left relaxed bar end with right input min
         ntodo=ntodo+1
 if(ntodo>uinp%nsadmax)stop 'error: ntodo>uinp%nsadmax'
@@ -932,9 +907,9 @@ if(ntodo>uinp%nsadmax)stop 'error: ntodo>uinp%nsadmax'
 !                     fp2,cobj%fpleft(1,nsad_loc),nsad,cobj,connected)
 !        return
     elseif((.not. lnl) .and. (.not. rnr))then
-if(iproc==0)write(*,*)'(MHGPS)connection check not lnl and not rnr',sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))
-if(iproc==0)write(*,*)'(MHGPS)connection check not lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
-if(iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
+if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check not lnl and not rnr',sqrt(sum((rxyz1-cobj%leftmin(:,:,nsad_loc))**2))
+if(mhgpsst%iproc==0)write(*,*)'(MHGPS)connection check not lnl and not rnr',sqrt(sum((rxyz2-cobj%rightmin(:,:,nsad_loc))**2))
+if(mhgpsst%iproc==0)write(*,'(a,es24.17,1x,es24.17)')'(MHGPS) connection check connected',cobj%enerleft(nsad),cobj%enerright(nsad)
         !connect left input min with left relaxed bar end  and right
         !input min with right relaxed bar end
         ntodo=ntodo+1
@@ -964,7 +939,7 @@ if(ntodo>uinp%nsadmax)stop 'error: ntodo>uinp%nsadmax'
 !        return
     else
         !should and must not happen:
-        if(iproc==0)&
+        if(mhgpsst%iproc==0)&
         call yaml_warning('(MHGPS) Severe error in connect: none '//&
                           'of the checks in connect subroutine '//&
                           'were successful! STOP') 
@@ -1072,35 +1047,33 @@ subroutine pushoff_assym(uinp,nat,saddle,minmode,scll,sclr,left,right)
     right = saddle + sclr*step
 end subroutine
 !=====================================================================
-subroutine write_todo(ntodo,nat,runObj,outs,left,right,eleft,eright)
+subroutine write_todo(mhgpsst,runObj,outs,left,right,eleft,eright)
     use module_base, only: gp
     use module_atoms, only: astruct_dump_to_file
-    use module_global_variables, only: currDir, iproc
     use bigdft_run, only: bigdft_get_astruct_ptr, run_objects,&
                           state_properties
+    use module_mhgps_state
     implicit none
     !parameters
-    integer, intent(inout) :: ntodo
+    type(mhgps_state), intent(inout) :: mhgpsst
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
-    integer, intent(in)    :: nat
-    real(gp), intent(in)   :: left(3,nat)
-    real(gp), intent(in)   :: right(3,nat)
+    real(gp), intent(in)   :: left(3,runObj%atoms%astruct%nat)
+    real(gp), intent(in)   :: right(3,runObj%atoms%astruct%nat)
     real(gp), intent(in)   :: eleft
     real(gp), intent(in)   :: eright
     !local
-    character(len=5) :: ntodoc
     character(len=1) :: comment=' '
     
-    ntodo=ntodo+1
-    write(ntodoc,'(i5.5)')ntodo
+    mhgpsst%ntodo=mhgpsst%ntodo+1
+    write(mhgpsst%ntodoc,'(i5.5)')mhgpsst%ntodo
 
-    if(iproc==0)then
+    if(mhgpsst%iproc==0)then
         call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-             currDir//'/todo'//trim(adjustl(ntodoc))//'_L',comment,&
+             mhgpsst%currDir//'/todo'//trim(adjustl(mhgpsst%ntodoc))//'_L',comment,&
              energy=eleft,rxyz=left)
         call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-             currDir//'/todo'//trim(adjustl(ntodoc))//'_R',comment,&
+             mhgpsst%currDir//'/todo'//trim(adjustl(mhgpsst%ntodoc))//'_R',comment,&
              energy=eright,rxyz=right)
     endif
 end subroutine

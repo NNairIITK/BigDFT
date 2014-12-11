@@ -10,7 +10,6 @@
 
 module module_userinput
     use module_base !bigdft base module
-    use module_global_variables
     implicit none
 
     private
@@ -290,7 +289,6 @@ contains
         close(u)
     end subroutine
     subroutine print_input(uinp)
-        use module_global_variables, only: mhgps_version
         use yaml_output
         implicit none
         !parameters
@@ -351,13 +349,14 @@ contains
     end subroutine print_input
 
 
-subroutine give_rcov(astruct,nat,rcov)
+subroutine give_rcov(mhgpsst,astruct,nat,rcov)
   use module_base, only: gp
   use module_types
   use yaml_output
-  use module_global_variables, only: iproc
+  use module_mhgps_state
   implicit none
   !Arguments
+  type(mhgps_state), intent(in) :: mhgpsst
   integer, intent(in) :: nat
   type(atomic_structure), intent(in) :: astruct
   real(gp), intent(out) :: rcov(nat)
@@ -549,7 +548,7 @@ subroutine give_rcov(astruct,nat,rcov)
              //trim(astruct%atomnames(astruct%iatype(iat))),&
              err_name='BIGDFT_RUNTIME_ERROR')
      end select
-     if (iproc == 0) then
+     if (mhgpsst%iproc == 0) then
         call yaml_map('(MHGPS) RCOV:'//trim(astruct%atomnames(astruct%iatype(iat))),rcov(iat))
      endif
   enddo
