@@ -363,6 +363,7 @@ subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s
 !  close(23)
   !average in x direction
   open(unit=23,file=trim(filename)//'_avg_x',status='unknown')
+  open(unit=24,file=trim(filename)//'_centre_x',status='unknown')
   !  do i1=0,2*n1+1
   do i1=0,nc1 - 1
      later_avg=0.0_dp
@@ -375,10 +376,14 @@ subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s
      later_avg=later_avg/real(nc2*nc3,dp) !2D integration/2D Volume
      !to be checked with periodic/isolated BC
      write(23,*)i1+n1s,at%astruct%cell_dim(1)/real(factor*nc1,dp)*(i1+2*n1s),later_avg
+     write(24,*)i1+n1s,at%astruct%cell_dim(1)/real(factor*nc1,dp)*(i1+2*n1s),&
+          a*x(i1+nl1,nc2/2+nl2,nc3/2+nl3)**nexpo+b*y(i1+nl1,nc2/2+nl2,nc3/2+nl3)
   end do
   close(23)
+  close(24)
   !average in y direction
   open(unit=23,file=trim(filename)//'_avg_y',status='unknown')
+  open(unit=24,file=trim(filename)//'_centre_y',status='unknown')
   do i2=0,nc2 - 1
      later_avg=0.0_dp
      do i3=0,nc3 - 1
@@ -390,10 +395,14 @@ subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s
      later_avg=later_avg/real(nc1*nc3,dp) !2D integration/2D Volume
      !to be checked with periodic/isolated BC
      write(23,*)i2+n2s,at%astruct%cell_dim(2)/real(factor*nc2,dp)*(i2+n2s),later_avg
+     write(24,*)i2+n2s,at%astruct%cell_dim(2)/real(factor*nc2,dp)*(i2+n2s),&
+          a*x(nc1/2+nl1,i2+nl2,nc3/2+nl3)**nexpo+b*y(nc1/2+nl1,i2+nl2,nc3/2+nl3)
   end do
   close(23)
+  close(24)
   !average in z direction
   open(unit=23,file=trim(filename)//'_avg_z',status='unknown')
+  open(unit=24,file=trim(filename)//'_centre_z',status='unknown')
   do i3=0,nc3 - 1
      later_avg=0.0_dp
      do i2=0,nc2 - 1
@@ -404,9 +413,12 @@ subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s
      end do
      later_avg=later_avg/real(nc1*nc2,dp) !2D integration/2D Volume
      !to be checked with periodic/isolated BC
-     write(23,*)i3+n3s,at%astruct%cell_dim(3)/real(factor*nc3+2,dp)*(i3+n3s),later_avg
+     write(23,*)i3+n3s,at%astruct%cell_dim(3)/real(factor*nc3,dp)*(i3+n3s),later_avg
+     write(24,*)i3+n3s,at%astruct%cell_dim(3)/real(factor*nc3,dp)*(i3+n3s),&
+          a*x(nc1/2+nl1,nc2/2+nl2,i3+nl3)**nexpo+b*y(nc1/2+nl1,nc2/2+nl2,i3+nl3)
   end do
   close(23)
+  close(24)
 END SUBROUTINE write_cube_fields
 
 

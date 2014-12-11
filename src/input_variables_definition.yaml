@@ -979,7 +979,7 @@
        COMMENT: diagonalization at the end
        DESCRIPTION: |
                     possible value: logical
-                    Indicates whether a diagonliazation shall be performed at the end of the run
+                    Indicates whether a diagonalization shall be performed at the end of the run
        default: No
      extra_states:
        COMMENT: extra states to optimize (dmin only)

@@ -67,7 +67,7 @@ module communications_init
           if (jproc<=jjproc-1) i = i + 1
       end do
 
-      ! Determine the maximal extent in teh z direction that iproc has to handle
+      ! Determine the maximal extent in the z direction that iproc has to handle
       ii3min = 1000000000
       ii3max = -1000000000
       do iorb=1,orbs%norbp
@@ -190,6 +190,7 @@ module communications_init
       call f_free(weightppp_c)
       call f_free(weightppp_f)
       if (extra_timing) call cpu_time(tr0)   
+!HERE NEEDS IMPROVEMENT WRT MPI
       call get_switch_indices(iproc, nproc, orbs, lzd, nspin, &
            collcom%nptsp_c, collcom%nptsp_f, collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f, &
            collcom%ndimpsi_c, collcom%ndimpsi_f, istartend_c, istartend_f, &
