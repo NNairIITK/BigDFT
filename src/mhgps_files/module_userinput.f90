@@ -26,10 +26,6 @@ module module_userinput
 type userinput
     !input parameters for mhgps
     integer          :: mhgps_verbosity     = 3
-!    character(len=10) :: efmethod            = "LJ" !method/force-field
-!                                                   !for energies,
-!                                                   !stresses and
-                                                   !forces
     logical          :: external_mini       = .false.
 
     !input parameters for sqnm saddle_search
