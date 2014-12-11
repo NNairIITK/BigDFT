@@ -13,10 +13,6 @@
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !!
-!! INPUTS
-!!
-!! OUTPUT
-!!
 !! PARENTS
 !!
 !! CHILDREN
@@ -33,7 +29,7 @@ MODULE m_paw_finegrid
 
  use defs_basis
  use m_errors
- use m_profiling
+ use m_profiling_abi
 
  use m_pawtab,      only : pawtab_type
  use m_sphharm,     only : initylmr

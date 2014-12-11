@@ -13,10 +13,6 @@
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !!
-!! INPUTS
-!!
-!! OUTPUT
-!!
 !! PARENTS
 !!
 !! CHILDREN
@@ -33,7 +29,7 @@ MODULE m_sphharm
 
  use defs_basis
  use m_errors
- use m_profiling
+ use m_profiling_abi
 
  implicit none
 
@@ -557,7 +553,7 @@ end subroutine ylm_cmplx
 !! PARENTS
 !!      debug_tools,denfgr,m_paw_finegrid,m_paw_pwaves_lmn,m_pawang
 !!      mlwfovlp_ylmfar,pawtwdij,pawtwdij_1,pawtwdij_2a,pawtwdij_2b,pawtwdij_2c
-!!      pawtwdij_2d,pawtwdij_2e,pawtwdij_2f,pspnl_operat_rec,qijb_kk
+!!      pawtwdij_2d,pawtwdij_2e,pawtwdij_2f,posdoppler,pspnl_operat_rec,qijb_kk
 !!      smatrix_pawinit,twqijb_kk
 !!
 !! CHILDREN

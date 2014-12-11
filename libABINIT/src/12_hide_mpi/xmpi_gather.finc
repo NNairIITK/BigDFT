@@ -39,16 +39,9 @@
 !! SIDE EFFECTS
 !!  recvbuf= received buffer
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_gather
-!!
 !! SOURCE
+
 subroutine xmpi_gather_int(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
-
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -59,13 +52,11 @@ subroutine xmpi_gather_int(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- integer :: sendcount,recvcount
- integer,intent(in) :: xval(:)
- integer,intent(inout)   :: recvbuf(:)
+ integer,intent(in) :: sendcount,recvcount
+ integer, DEV_CONTARRD intent(in) :: xval(:)
+ integer, DEV_CONTARRD intent(inout) :: recvbuf(:)
  integer,intent(in) :: root,spaceComm
- integer,intent(out)   :: ier
-
-!Local variables-------------------
+ integer,intent(out) :: ier
 
 ! *************************************************************************
 
@@ -103,16 +94,10 @@ end subroutine xmpi_gather_int
 !! SIDE EFFECTS
 !!  recvbuf= received buffer
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_gather
-!!
 !! SOURCE
 subroutine xmpi_gather_int2d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -123,13 +108,11 @@ subroutine xmpi_gather_int2d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier
  implicit none
 
 !Arguments-------------------------
- integer :: sendcount,recvcount
- integer,intent(in) :: xval(:,:)
- integer,intent(inout)   :: recvbuf(:,:)
+ integer,intent(in) :: sendcount,recvcount
+ integer, DEV_CONTARRD intent(in) :: xval(:,:)
+ integer, DEV_CONTARRD intent(inout) :: recvbuf(:,:)
  integer,intent(in) :: root,spaceComm
- integer,intent(out)   :: ier
-
-!Local variables-------------------
+ integer,intent(out) :: ier
 
 ! *************************************************************************
 
@@ -167,16 +150,10 @@ end subroutine xmpi_gather_int2d
 !! SIDE EFFECTS
 !!  recvbuf= received buffer
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_gather
-!!
 !! SOURCE
 subroutine xmpi_gather_dp(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -188,13 +165,11 @@ subroutine xmpi_gather_dp(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 
 
 !Arguments-------------------------
- integer :: sendcount,recvcount
- real(dp),intent(in) :: xval(:)
- real(dp),intent(inout)   :: recvbuf(:)
+ integer,intent(in) :: sendcount,recvcount
+ real(dp), DEV_CONTARRD intent(in) :: xval(:)
+ real(dp), DEV_CONTARRD intent(inout)   :: recvbuf(:)
  integer,intent(in) :: root,spaceComm
- integer,intent(out)   :: ier
-
-!Local variables-------------------
+ integer,intent(out) :: ier
 
 ! *************************************************************************
 
@@ -233,16 +208,8 @@ end subroutine xmpi_gather_dp
 !! SIDE EFFECTS
 !!  recvbuf= received buffer
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_gather
-!!
 !! SOURCE
 subroutine xmpi_gather_dp2d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
-
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -253,13 +220,11 @@ subroutine xmpi_gather_dp2d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- integer :: sendcount,recvcount
- real(dp),intent(in) :: xval(:,:)
- real(dp),intent(inout)   :: recvbuf(:,:)
+ integer,intent(in) :: sendcount,recvcount
+ real(dp), DEV_CONTARRD intent(in) :: xval(:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: recvbuf(:,:)
  integer,intent(in) :: root,spaceComm
  integer,intent(out)   :: ier
-
-!Local variables-------------------
 
 ! *************************************************************************
 
@@ -298,16 +263,10 @@ end subroutine xmpi_gather_dp2d
 !! SIDE EFFECTS
 !!  recvbuf= received buffer
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_gather
-!!
 !! SOURCE
 subroutine xmpi_gather_dp3d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -318,13 +277,11 @@ subroutine xmpi_gather_dp3d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- integer :: sendcount,recvcount
- real(dp),intent(in) :: xval(:,:,:)
- real(dp),intent(inout)   :: recvbuf(:,:,:)
+ integer,intent(in) :: sendcount,recvcount
+ real(dp), DEV_CONTARRD intent(in) :: xval(:,:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: recvbuf(:,:,:)
  integer,intent(in) :: root,spaceComm
- integer,intent(out)   :: ier
-
-!Local variables-------------------
+ integer,intent(out) :: ier
 
 ! *************************************************************************
 
@@ -339,6 +296,7 @@ subroutine xmpi_gather_dp3d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 #else
  recvbuf=xval
 #endif
+
 end subroutine xmpi_gather_dp3d
 !!***
 
@@ -363,16 +321,9 @@ end subroutine xmpi_gather_dp3d
 !! SIDE EFFECTS
 !!  recvbuf= received buffer
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_gather
-!!
 !! SOURCE
 subroutine xmpi_gather_dp4d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -384,13 +335,11 @@ subroutine xmpi_gather_dp4d(xval,sendcount,recvbuf,recvcount,root,spaceComm,ier)
 
 
 !Arguments-------------------------
- integer :: sendcount,recvcount
- real(dp),intent(in) :: xval(:,:,:,:)
- real(dp),intent(inout)   :: recvbuf(:,:,:,:)
+ integer,intent(in) :: sendcount,recvcount
+ real(dp), DEV_CONTARRD intent(in) :: xval(:,:,:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: recvbuf(:,:,:,:)
  integer,intent(in) :: root,spaceComm
- integer,intent(out)   :: ier
-
-!Local variables-------------------
+ integer,intent(out) :: ier
 
 ! *************************************************************************
 

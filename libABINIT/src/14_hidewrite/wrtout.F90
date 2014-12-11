@@ -34,80 +34,77 @@
 !!   and no interface will be added to the source file.
 !!
 !! PARENTS
-!!      abinit,acfd_dyson,acfd_intexact,afterscfloop,anaddb,append_cml2
-!!      append_xyz,atm2fft,atomden,berryphase,berryphase_new,bethe_salpeter
-!!      bonds_lgth_angles,bsepostproc,calc_cs,calc_efg,calc_fc
-!!      calc_optical_mels,calc_rpa_functional,calc_sigc_me,calc_sigx_me
-!!      calc_ucrpa,calc_vhxc_me,calcdensph,cchi0,cchi0q0,cchi0q0_intraband,cgwf
-!!      cgwf3,check_completeness,chiscwrt,chkdpr,chkinp,chkint_prt,chkneu
-!!      chkpawovlp,clnup1,clnup2,cohsex_me,compute_kgb_indicator,compute_levels
-!!      constrf,d3output,datafordmft,debug_tools,defs_scalapack,deloc2xcart
-!!      denfgr,dfpt_write_cg,diel9,dielmt,dieltcel,dmft_solve,dos_hdr_write
-!!      driver,dsksta,dyson,echo_xc_name,elast9,eliashberg_1d,elphon,elpolariz
-!!      entropyrec,ep_fs_weights,ep_setupqpt,evdw_wannier,ewald4
-!!      exc_build_block,exc_build_ham,exc_den,exc_diago,exc_iterative_diago
-!!      exc_plot,exc_spectra,fconv,fermi_green,fermisolverec,fftprof
-!!      find_getdtset,finddistrproc,findmin,findminscf,first_rec,fred2fdeloc
-!!      fsumrule,gaus_dos,get_all_gkq,get_fs_bands,get_npert_rbz,get_nv_fs_en
-!!      get_nv_fs_temp,get_tau_k,getcgqphase,getcut,getdim_nloc,getfreqsus
-!!      getghc,getmpw,getnel,getng,getshell,getspinrot,gran_potrec,green_kernel
-!!      gstate,gstateimg,gw_tools,gwcompleteness,haydock,haydock_psherm
-!!      hdr_vs_dtset,hermit,hubbard_one,importcml,importxyz,impurity_solve
-!!      inarray,ingeo,ingeobld,initberry,initberry3,initmpi_grid,initorbmag
-!!      initro,initwf,inkpts,inpgkk,inpspheads,instr9,instrng,insy3,intagm
-!!      integrate_gamma,integrate_gamma_alt,integrate_gamma_tr
-!!      integrate_gamma_tr_lova,invars1,invars1m,invars2,inwffil,inwffil3,ioarr
-!!      ioddb8_out,ioniondist,ioprof,irrzg,isfile,kpgio,kramerskronig,ks_ddiago
-!!      kss2wfk,ladielmt,lapackprof,lavnl,ldau_self,leave_new,linemin,lobpcgwf
-!!      local_ks_green,loop3dte,loper3,m_abi_etsf,m_abilasi,m_anaddb_dataset
-!!      m_atom,m_bands_sym,m_bfgs,m_bs_defs,m_bse_io,m_bz_mesh,m_cgtools,m_chi0
-!!      m_commutator_vkbr,m_crystal,m_ddb_blk,m_dynmat,m_dyson_solver,m_ebands
-!!      m_eet,m_energy,m_errors,m_eval_lotf,m_exit,m_fft,m_fft_mesh,m_fft_prof
-!!      m_fftcore,m_fftw3,m_gamma,m_gaussfit,m_geometry,m_gpu_detect,m_green
-!!      m_gsphere,m_hamiltonian,m_header,m_hidecudarec,m_hu,m_ifc,m_initcuda
+!!      abinit,afterscfloop,anaddb,append_cml2,append_xyz,atm2fft,atomden
+!!      berryphase,berryphase_new,bethe_salpeter,bonds_lgth_angles,bsepostproc
+!!      calc_cs,calc_efg,calc_fc,calc_optical_mels,calc_rpa_functional
+!!      calc_sigc_me,calc_sigx_me,calc_ucrpa,calc_vhxc_me,calcdensph,cchi0
+!!      cchi0q0,cchi0q0_intraband,cgwf,cgwf3,chebfi,chiscwrt,chkdpr,chkinp
+!!      chkint_prt,chkneu,chkpawovlp,clnup1,clnup2,cohsex_me
+!!      compute_kgb_indicator,compute_levels,constrf,d2frnl_bec,d3output
+!!      datafordmft,debug_tools,deloc2xcart,denfgr,dfpt_write_cg,diel9,dielmt
+!!      dieltcel,dmft_solve,dos_hdr_write,driver,dyson,echo_xc_name,eig2stern
+!!      elast9,eliashberg_1d,elph2_fanddw,elphon,elpolariz,entropyrec
+!!      ep_fs_weights,ep_setupqpt,evdw_wannier,ewald4,exc_build_block
+!!      exc_build_ham,exc_den,exc_plot,exc_spectra,fconv,fermi_green
+!!      fermisolverec,fftprof,find_getdtset,finddistrproc,findmin,findminscf
+!!      first_rec,fred2fdeloc,fsumrule,gaus_dos,get_all_gkq,get_fs_bands
+!!      get_npert_rbz,get_nv_fs_en,get_nv_fs_temp,get_tau_k,getcgqphase,getcut
+!!      getdim_nloc,getghc,getmpw,getnel,getng,getshell,gran_potrec
+!!      green_kernel,gstate,gstateimg,gw_tools,gwcompleteness,gwls_communicate
+!!      gwls_polarisability,harmonic_thermo,hdr_vs_dtset,hermit,hubbard_one
+!!      importcml,importxyz,impurity_solve,inarray,ingeo,ingeobld,initberry
+!!      initberry3,initmpi_grid,initorbmag,initro,initwf,inkpts,inpgkk
+!!      inpspheads,instr9,instrng,insy3,intagm,integrate_gamma
+!!      integrate_gamma_alt,integrate_gamma_tr,integrate_gamma_tr_lova,invars1
+!!      invars1m,invars2,inwffil,ioarr,ioddb8_out,ioniondist,ioprof,irrzg
+!!      isfile,kpgio,kramerskronig,ks_ddiago,kss2wfk,lapackprof,ldau_self
+!!      leave_new,linemin,lobpcgwf,local_ks_green,loop3dte,loper3,m_abi_etsf
+!!      m_abilasi,m_anaddb_dataset,m_argparse,m_atom,m_bfgs,m_bs_defs,m_bse_io
+!!      m_bz_mesh,m_cgtools,m_chi0,m_commutator_vkbr,m_crystal,m_ddb
+!!      m_double_grid,m_dynmat,m_dyson_solver,m_ebands,m_eet,m_energy
+!!      m_entropyDMFT,m_errors,m_esymm,m_eval_lotf,m_exc_diago,m_exc_itdiago
+!!      m_exit,m_fft,m_fft_mesh,m_fft_prof,m_fftcore,m_fftw3,m_fock,m_gamma
+!!      m_gaussfit,m_geometry,m_gpu_detect,m_green,m_gsphere,m_hamiltonian
+!!      m_haydock,m_header,m_hexc,m_hidecudarec,m_hu,m_ifc,m_initcuda,m_invovl
 !!      m_io_gkk,m_io_kss,m_io_screening,m_iterators,m_kxc,m_libxc_functionals
 !!      m_lotf,m_matlu,m_matrix,m_melemts,m_mep,m_numeric_tools,m_oper,m_paw_an
 !!      m_paw_dmft,m_paw_ij,m_paw_pwij,m_paw_slater,m_pawang,m_pawdij,m_pawfgr
-!!      m_pawfgrtab,m_pawio,m_pawpsp,m_pawrad,m_pawrhoij,m_pawtab,m_phdos
-!!      m_pimd,m_ppmodel,m_pptools,m_pred_lotf,m_pretty_rec,m_psps,m_ptgroups
-!!      m_qparticles,m_rec,m_screen,m_screening,m_self,m_shirley
-!!      m_sigma_results,m_sphharm,m_vcoul,m_wffile,m_wfk,m_wfs,m_work_var_lotf
+!!      m_pawfgrtab,m_pawio,m_pawpsp,m_pawrad,m_pawrhoij,m_pawtab,m_phonons
+!!      m_pimd,m_plowannier,m_ppmodel,m_pptools,m_pred_lotf,m_pretty_rec,m_psps
+!!      m_ptgroups,m_qparticles,m_rec,m_screen,m_screening,m_self,m_shirley
+!!      m_sigma,m_slk,m_sphharm,m_vcoul,m_wffile,m_wfk,m_wfs,m_work_var_lotf
 !!      m_xc_vdw,m_xpapi,mag_constr_e,mag_out,mblktyp1,mblktyp5,memana,memorf
 !!      memory,metric,mka2f,mka2fQgrid,mka2f_tr,mka2f_tr_lova,mkcore_paw
 !!      mkcore_wvl,mkfilename,mkfskgrid,mklocl_recipspace,mklocl_wavelets
-!!      mknormpath,mkph_linwid,mkphbs,mkqptequiv,mkrho,mkrho3,mlwfovlp
-!!      mlwfovlp_proj,mlwfovlp_projpaw,mlwfovlp_pw,mlwfovlp_qp
-!!      mlwfovlp_seedname,mlwfovlp_setup,mover,mpi_setup,mrgddb,mrggkk,mrgscr
-!!      multipoles_fftr,mv_3dte,my_calc_wfwfg,new_integrate_gamma
-!!      new_integrate_gamma_tr,new_integrate_gamma_tr_lova,newfermie1,newkpt
-!!      newocc,newton,nlenergyrec,nonlinear,normsq_gkq,nselt3,nstdy3,nstpaw3
-!!      out1dm,outelph,outgkk,outkss,outphbtrap,outphdos,outqmc,outscfcv
-!!      outvars,outwant,outwf,paw_mknewh0,paw_qpscgw,pawdenpot,pawdensities
-!!      pawmkaewf,pawmkrhoij,pawprt,pawpuxinit,pawuenergy,pawuj_det,pawuj_red
-!!      pawuj_utils,pawxenergy,piezo9,pimd_nosehoover_nvt,polcart,posdoppler
-!!      poslifetime,precon2,pred_delocint,pred_isokinetic,pred_isothermal
-!!      pred_langevin,pred_nose,pred_verlet,predictimg,prep_calc_ucrpa,prt_cml2
-!!      prtefield,prteigrs,prtene,prtene3,prtfatbands,prtimg,prtph3,prtrhomxmn
-!!      prtspgroup,prtvsound,prtxf,prtxfase,prtxvf,psichi_renormalization
-!!      psolver_hartree,psolver_kernel,psolver_rhohxc,psp10in,psp1in,psp2in
-!!      psp2lo,psp3in,psp5in,psp6in,psp7wvl2,psp8in,psp9in,pspatm_abinit
-!!      pspatm_pspio,pspini,pspnl_hgh_rec,pspnl_operat_rec,psxml2ab
-!!      qmc_prep_ctqmc,randac,random_stopping_power,read_gkk,recursion_nl
-!!      remove_inversion,respfn,rotate_rho,rotmat,scfcge,scfcv,scfcv3,scfeig
-!!      scfopt,scphon,scphon_build_qsym_map,scphon_dynmat_to_freq2
-!!      scphon_free_energy,scphon_supercell_vectors_init,scprqt,screening
+!!      mknormpath,mkph_linwid,mkqptequiv,mkrho,mkrho3,mlwfovlp,mlwfovlp_proj
+!!      mlwfovlp_projpaw,mlwfovlp_pw,mlwfovlp_qp,mlwfovlp_seedname
+!!      mlwfovlp_setup,mover,mpi_setup,mrgddb,mrggkk,mrgscr,multipoles_fftr
+!!      mv_3dte,my_calc_wfwfg,newfermie1,newkpt,newocc,newton,nlenergyrec
+!!      nonlinear,normsq_gkq,nselt3,nstdy3,nstpaw3,out1dm,outelph,outgkk,outkss
+!!      outphbtrap,outqmc,outscfcv,outvars,outwant,outwf,paw_mknewh0,paw_qpscgw
+!!      pawdenpot,pawdensities,pawmkaewf,pawmkrhoij,pawprt,pawpuxinit
+!!      pawuenergy,pawuj_det,pawuj_red,pawuj_utils,pawxenergy,piezo9
+!!      pimd_nosehoover_nvt,polcart,posdoppler,poslifetime,pred_delocint
+!!      pred_isokinetic,pred_isothermal,pred_langevin,pred_nose,pred_verlet
+!!      predictimg,prep_calc_ucrpa,prt_cml2,prtefield,prteigrs,prtene,prtene3
+!!      prtfatbands,prtimg,prtph3,prtrhomxmn,prtspgroup,prtxf,prtxfase,prtxvf
+!!      psichi_renormalization,psolver_hartree,psolver_kernel,psolver_rhohxc
+!!      psp10in,psp1in,psp2in,psp2lo,psp3in,psp5in,psp6in,psp8in,psp9in
+!!      pspatm_abinit,pspatm_pspio,pspini,pspnl_hgh_rec,pspnl_operat_rec
+!!      psxml2ab,qmc_prep_ctqmc,randac,random_stopping_power,rayleigh_ritz
+!!      read_gkk,read_plowannier,recursion_nl,remove_inversion,respfn
+!!      rotate_rho,rotmat,scfcge,scfcv,scfcv3,scfeig,scfopt,scprqt,screening
 !!      setnoccmmp,setrhoijpbe0,setsymrhoij,setup1,setup2,setup_bse
 !!      setup_bse_interp,setup_positron,setup_screening,setup_sigma,shellstruct
-!!      sigma,smpbz,spectral_function,stress,sumrule,suscep,sym_gkk,symanal
-!!      symatm,symaxes,symcharac,symkchk,symkpt,symlatt,symmultsg,symph3
-!!      symplanes,symq3,symspgr,tddft,testkgrid,tetrahedron,thm9,thmeig,timana
-!!      uderiv,ujdet,update_eb_field_vars,vdw_dftd2,vdw_kernelgen,vtorho
-!!      vtorhorec,vtorhotf,vtowfk,vtowfk3,wfconv,wfd_mkrho,wfd_pawrhoij
-!!      wfkfermi3,wfsinp,wrt_moldyn_netcdf,wrtloctens,wvl_denspot_set
-!!      wvl_descr_atoms_set_sym,wvl_hpsitopsi,wvl_initro,wvl_memory,wvl_mkrho
-!!      wvl_nl_gradient,wvl_projectors_set,wvl_psitohpsi,wvl_rwwf
-!!      wvl_setboxgeometry,wvl_setngfft,wvl_tail_corrections,wvl_wfs_set
-!!      wvl_wfsinp_disk,wvl_wfsinp_reformat,wvl_wfsinp_scratch,xcacfd,zprecon3
+!!      sigma,smpbz,spectral_function,stress,sumrule,symanal,symatm,symaxes
+!!      symcharac,symkchk,symkpt,symlatt,symph3,symplanes,symq3,symspgr,tddft
+!!      testkgrid,tetrahedron,thmeig,timana,uderiv,ujdet,update_eb_field_vars
+!!      vdw_dftd2,vdw_kernelgen,vtorho,vtorhorec,vtorhotf,vtowfk,vtowfk3,wfconv
+!!      wfd_mkrho,wfd_pawrhoij,wfkfermi3,wfsinp,wrt_moldyn_netcdf,wrtloctens
+!!      wvl_denspot_set,wvl_descr_atoms_set_sym,wvl_hpsitopsi,wvl_initro
+!!      wvl_memory,wvl_mkrho,wvl_nl_gradient,wvl_projectors_set,wvl_psitohpsi
+!!      wvl_rwwf,wvl_setboxgeometry,wvl_setngfft,wvl_tail_corrections
+!!      wvl_wfs_set,wvl_wfsinp_disk,wvl_wfsinp_reformat,wvl_wfsinp_scratch
 !!
 !! CHILDREN
 !!
@@ -166,10 +163,6 @@ subroutine wrtout(unit,msg,mode_paral,do_flush)
 !Determine who I am in COMM_WORLD
  nproc = xcomm_size(comm)
  me    = xcomm_rank(comm)
-
-! BigDFT patch.
- if (unit /= ab_out .and. index(msg, "ERROR") == 0) return
-! BigDFT patch.
 
  if( (my_mode_paral=='COLL') .or. (nproc==1) ) then
    if (me==master) then
@@ -234,7 +227,7 @@ end subroutine wrtout
 subroutine wrtout_myproc(unit,message,mpicomm,do_flush) ! optional argument
 
  use defs_basis
- use m_profiling
+ use m_profiling_abi
 
  use m_xmpi,      only : xmpi_sum
  use m_io_tools,  only : flush_unit

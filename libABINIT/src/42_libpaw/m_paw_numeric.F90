@@ -23,7 +23,7 @@
 module m_paw_numeric
 
  use defs_basis
- use m_profiling
+ use m_profiling_abi
  use m_errors
 
  implicit none
@@ -157,7 +157,7 @@ subroutine paw_spline(t,y,n,ybcbeg,ybcend,ypp)
 
 ! *************************************************************************
 
- DBG_ENTER("COLL")
+! DBG_ENTER("COLL")
 
 !Check
  if (n<=1) then
@@ -218,7 +218,7 @@ subroutine paw_spline(t,y,n,ybcbeg,ybcend,ypp)
 
  ABI_DEALLOCATE(tmp)
 
- DBG_EXIT("COLL")
+! DBG_EXIT("COLL")
 
 end subroutine paw_spline
 !!***
@@ -781,8 +781,7 @@ end subroutine solvbes
 !! SOURCE
 
 subroutine jbessel_4spline(bes,besp,ll,order,xx,tol)
-!Arguments ---------------------------------------------
-!scalars
+
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -790,6 +789,17 @@ subroutine jbessel_4spline(bes,besp,ll,order,xx,tol)
 #define ABI_FUNC 'jbessel_4spline'
 !End of the abilint section
 
+ implicit none
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'jbessel_4spline'
+!End of the abilint section
+
+!Arguments ---------------------------------------------
+!scalars
  integer,intent(in) :: ll,order
  real(dp),intent(in) :: xx,tol
  real(dp),intent(out) :: bes,besp
@@ -823,8 +833,6 @@ subroutine jbessel_4spline(bes,besp,ll,order,xx,tol)
  ! This is to test jbessel calculation without polynomial approximation for q-->0.
  ! call jbessel(bes,besp,bespp,ll,order,xx)
  ! RETURN
-
- DBG_ENTER("COLL")
 
  if (order>2) then 
    MSG_ERROR("Wrong order in jbessel")
@@ -874,8 +882,6 @@ subroutine jbessel_4spline(bes,besp,ll,order,xx,tol)
    write(msg,'(a,i4)')' wrong value for ll = ',ll
    MSG_BUG(msg)
  end select
-
- DBG_EXIT("COLL")
 
 end subroutine jbessel_4spline
 !!***

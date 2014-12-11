@@ -32,7 +32,7 @@ module m_pawcprj
 
  use defs_basis
  use m_errors
- use m_profiling
+ use m_profiling_abi
  use m_xmpi
 
  use m_pawtab, only : pawtab_type
@@ -40,33 +40,7 @@ module m_pawcprj
  implicit none
 
  private
-
-!public procedures.
- public :: pawcprj_alloc                ! Allocation 
- public :: pawcprj_destroy              ! Deallocation
- public :: pawcprj_nullify
- public :: pawcprj_set_zero             ! Set to zero all arrays in a cprj datastructure
- public :: pawcprj_copy                 ! Copy a cprj datastructure into another
- public :: pawcprj_axpby                ! cprjy(:,:) <- alpha.cprjx(:,:)+beta.cprjy(:,:)
- public :: pawcprj_zaxpby               ! cprjy(:,:) <- alpha.cprjx(:,:)+beta.cprjy(:,:), alpha and beta are COMPLEX scalars
- public :: pawcprj_lincom               ! Compute a LINear COMbination of cprj datastructure:
- public :: pawcprj_output               ! Output a cprj. Useful for debugging.
- public :: pawcprj_diskinit_r
- public :: pawcprj_diskinit_w
- public :: pawcprj_diskskip
- public :: pawcprj_get                  ! Read the cprj for a given k-point from memory or from a temporary file
- public :: pawcprj_put                  ! Write the cprj for a given set of (n,k) into memory or into a temporary file
- public :: pawcprj_reorder              ! Change the order of a cprj datastructure
- public :: pawcprj_mpi_allgather        ! Perform MPI_ALLGATHER on a pawcprj_type inside a MPI communicator.
- public :: pawcprj_bcast                ! Broadcast a pawcprj_type from master to all nodes inside a MPI communicator.
- public :: pawcprj_transpose            ! Transpose a cprj datastructure FOR A GIVEN (K,SPIN)
- public :: pawcprj_gather_spin
- public :: pawcprj_mpi_exch             ! Exchange a pawcprj_type between two processors inside a MPI communicator.
- public :: pawcprj_mpi_send             ! Send a pawcprj_type inside a MPI communicator.
- public :: pawcprj_mpi_recv             ! Receive a pawcprj_type inside a MPI communicator.
- public :: pawcprj_mpi_sum              ! Perform MPI_SUM on a pawcprj_type inside a MPI communicator.
- public :: pawcprj_getdim               ! Returns the number of lmn components in the <p_{lmn}^i|\psi> for the i-th atom.
- public :: paw_overlap                  ! Compute the onsite contribution to the overlap between two states.
+ public :: pawcprj_conjg                ! cprj(:,:) <- conjugate(cprj(:,:))
 !!***
 
 !!****t* m_pawcprj/pawcprj_type
@@ -83,15 +57,12 @@ module m_pawcprj
 
  type,public :: pawcprj_type
 
-! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
-! declared in another part of ABINIT, that might need to take into account your modification.
-
 !Integer scalars
 
-  integer :: ncpgr
+  integer :: ncpgr=0
    ! Number of gradients of cp=<p_lmn|Cnk>
 
-  integer :: nlmn
+  integer :: nlmn=0
    ! Number of (l,m,n) non-local projectors
 
 !Real (real(dp)) arrays
@@ -105,6 +76,29 @@ module m_pawcprj
    ! derivatives of <p_lmn|Cnk> projected scalars for a given atom and wave function
 
  end type pawcprj_type
+
+!public procedures.
+ public :: pawcprj_alloc          ! Allocation 
+ public :: pawcprj_free           ! Deallocation
+ public :: pawcprj_set_zero       ! Set to zero all arrays in a cprj datastructure
+ public :: pawcprj_copy           ! Copy a cprj datastructure into another
+ public :: pawcprj_axpby          ! cprjy(:,:) <- alpha.cprjx(:,:)+beta.cprjy(:,:)
+ public :: pawcprj_zaxpby         ! cprjy(:,:) <- alpha.cprjx(:,:)+beta.cprjy(:,:), alpha and beta are COMPLEX scalars
+ public :: pawcprj_lincom         ! Compute a LINear COMbination of cprj datastructure:
+ public :: pawcprj_output         ! Output a cprj. Useful for debugging.
+ public :: pawcprj_get            ! Read the cprj for a given k-point from memory or from a temporary file
+ public :: pawcprj_put            ! Write the cprj for a given set of (n,k) into memory or into a temporary file
+ public :: pawcprj_reorder        ! Change the order of a cprj datastructure
+ public :: pawcprj_mpi_allgather  ! Perform MPI_ALLGATHER on a pawcprj_type inside a MPI communicator.
+ public :: pawcprj_bcast          ! Broadcast a pawcprj_type from master to all nodes inside a MPI communicator.
+ public :: pawcprj_transpose      ! Transpose a cprj datastructure FOR A GIVEN (K,SPIN)
+ public :: pawcprj_gather_spin    ! Collect spin distributed cprjs.
+ public :: pawcprj_mpi_exch       ! Exchange a pawcprj_type between two processors inside a MPI communicator.
+ public :: pawcprj_mpi_send       ! Send a pawcprj_type inside a MPI communicator.
+ public :: pawcprj_mpi_recv       ! Receive a pawcprj_type inside a MPI communicator.
+ public :: pawcprj_mpi_sum        ! Perform MPI_SUM on a pawcprj_type inside a MPI communicator.
+ public :: pawcprj_getdim         ! Returns the number of lmn components in the <p_{lmn}^i|\psi> for the i-th atom.
+ public :: paw_overlap            ! Compute the onsite contribution to the overlap between two states.
 !!***
 
 CONTAINS
@@ -127,17 +121,18 @@ CONTAINS
 !!  cprj(:,:) <type(pawcprj_type)>= cprj datastructure
 !!
 !! PARENTS
-!!      accrho3,berry_linemin,berryphase_new,calc_optical_mels,calc_sigc_me
-!!      calc_sigx_me,calc_vhxc_me,calc_wf_qp,cchi0,cchi0q0,cchi0q0_intraband
-!!      cgwf,cgwf3,check_completeness,classify_bands,cohsex_me,ctocprj,d2frnl
-!!      datafordmft,debug_tools,energy,exc_build_block,exc_build_ham,exc_plot
-!!      extrapwf,getgh1c,getgsc,initberry,initorbmag,ks_ddiago,loper3
-!!      m_electronpositron,m_pawcprj,m_shirley,m_wfs,mag_loc_k,make_grad_berry
-!!      nstpaw3,optics_paw,optics_paw_core,outkss,partial_dos_fractions_paw
-!!      paw_symcprj,pawmkaewf,pawmkrhoij,posdoppler,prep_calc_ucrpa,scfcv
-!!      scfcv3,setup_positron,sigma,smatrix_pawinit,store_bfield_cprj
-!!      suscep_stat,update_eb_field_vars,update_orbmag,vtorho,vtowfk,vtowfk3
-!!      wfd_pawrhoij,wfd_vnlpsi,wfkfermi3
+!!      accrho3,berryphase_new,calc_optical_mels,calc_sigc_me,calc_sigx_me
+!!      calc_vhxc_me,calc_wf_qp,cchi0,cchi0q0,cchi0q0_intraband,cgwf,cgwf3
+!!      chebfi,classify_bands,cohsex_me,ctocprj,d2frnl,d2frnl_bec,datafordmft
+!!      debug_tools,energy,exc_build_block,exc_build_ham,exc_plot,extrapwf
+!!      fock_updatecwaveocc,getgh1c,getghc,getgsc,initberry,initorbmag
+!!      ks_ddiago,loper3,m_electronpositron,m_fock,m_invovl,m_pawcprj
+!!      m_plowannier,m_shirley,m_wfs,make_grad_berry,nstpaw3,optics_paw
+!!      optics_paw_core,outkss,partial_dos_fractions_paw,paw_symcprj,pawmkaewf
+!!      pawmkrhoij,posdoppler,prep_calc_ucrpa,scfcv,scfcv3,setup_positron,sigma
+!!      smatrix_pawinit,store_bfield_cprj,suscep_stat,update_eb_field_vars
+!!      update_orbmag,vtorho,vtowfk,vtowfk3,wfd_pawrhoij,wfd_vnlpsi,wfkfermi3
+!!      wvl_hpsitopsi
 !!
 !! CHILDREN
 !!      xmpi_sum
@@ -166,7 +161,6 @@ CONTAINS
 !scalars
  integer :: ii,jj,n1dim,n2dim,nn
  character(len=500) :: message
-!arrays
 
 ! *************************************************************************
 
@@ -201,9 +195,9 @@ end subroutine pawcprj_alloc
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawcprj/pawcprj_destroy
+!!****f* m_pawcprj/pawcprj_free
 !! NAME
-!! pawcprj_destroy
+!! pawcprj_free
 !!
 !! FUNCTION
 !! Deallocation of a cprj datastructure
@@ -212,30 +206,30 @@ end subroutine pawcprj_alloc
 !!  cprj(:,:) <type(pawcprj_type)>= cprj datastructure
 !!
 !! PARENTS
-!!      accrho3,berry_linemin,berryphase_new,calc_optical_mels,calc_sigc_me
-!!      calc_sigx_me,calc_vhxc_me,calc_wf_qp,cchi0,cchi0q0,cchi0q0_intraband
-!!      cgwf,cgwf3,check_completeness,classify_bands,cohsex_me,ctocprj,d2frnl
-!!      datafordmft,debug_tools,energy,exc_build_block,exc_build_ham,exc_plot
-!!      extrapwf,getgh1c,getgsc,ks_ddiago,loper3,m_bfield,m_efield
-!!      m_electronpositron,m_pawcprj,m_scf_history,m_shirley,m_wfs,mag_loc_k
-!!      make_grad_berry,nstpaw3,optics_paw,optics_paw_core,outkss
-!!      partial_dos_fractions_paw,paw_symcprj,pawmkaewf,pawmkrhoij,posdoppler
-!!      prep_calc_ucrpa,scfcv,scfcv3,setup_positron,sigma,smatrix_pawinit
-!!      store_bfield_cprj,suscep_stat,update_eb_field_vars,update_orbmag,vtorho
-!!      vtowfk,vtowfk3,wfd_pawrhoij,wfd_vnlpsi,wfkfermi3
+!!      accrho3,berryphase_new,calc_optical_mels,calc_sigc_me,calc_sigx_me
+!!      calc_vhxc_me,calc_wf_qp,cchi0,cchi0q0,cchi0q0_intraband,cgwf,cgwf3
+!!      chebfi,classify_bands,cohsex_me,ctocprj,d2frnl,d2frnl_bec,datafordmft
+!!      debug_tools,energy,exc_build_block,exc_build_ham,exc_plot,extrapwf
+!!      fock_updatecwaveocc,getgh1c,getghc,getgsc,ks_ddiago,loper3,m_bfield
+!!      m_efield,m_electronpositron,m_fock,m_invovl,m_pawcprj,m_plowannier
+!!      m_scf_history,m_shirley,m_wfs,make_grad_berry,nstpaw3,optics_paw
+!!      optics_paw_core,outkss,partial_dos_fractions_paw,paw_symcprj,pawmkaewf
+!!      pawmkrhoij,posdoppler,prep_calc_ucrpa,scfcv,scfcv3,setup_positron,sigma
+!!      smatrix_pawinit,store_bfield_cprj,suscep_stat,update_eb_field_vars
+!!      update_orbmag,vtorho,vtowfk,vtowfk3,wfd_pawrhoij,wfd_vnlpsi,wfkfermi3
 !!
 !! CHILDREN
 !!      xmpi_sum
 !!
 !! SOURCE
 
- subroutine pawcprj_destroy(cprj)
+ subroutine pawcprj_free(cprj)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawcprj_destroy'
+#define ABI_FUNC 'pawcprj_free'
 !End of the abilint section
 
  implicit none
@@ -248,7 +242,6 @@ end subroutine pawcprj_alloc
 !Local variables-------------------------------
 !scalars
  integer :: ii,jj,n1dim,n2dim
-!arrays
 
 ! *************************************************************************
 
@@ -265,70 +258,12 @@ end subroutine pawcprj_alloc
    end do
  end do
 
-end subroutine pawcprj_destroy
+end subroutine pawcprj_free
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawcprj/pawcprj_nullify
-!! NAME
-!! pawcprj_nullify
-!!
-!! FUNCTION
-!! Nullify (set to null) a cprj datastructure
-!!
-!! SIDE EFFECTS
-!!  cprj(:,:) <type(pawcprj_type)>= cprj datastructure
-!!
-!! PARENTS
-!!      suscep_stat
-!!
-!! CHILDREN
-!!      xmpi_sum
-!!
-!! SOURCE
-
- subroutine pawcprj_nullify(cprj)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-#undef ABI_FUNC
-#define ABI_FUNC 'pawcprj_nullify'
-!End of the abilint section
-
- implicit none
-
-!Arguments ------------------------------------
-!scalars
-!arrays
- type(pawcprj_type),intent(inout) :: cprj(:,:)
-
-!Local variables-------------------------------
-!scalars
- integer :: ii,jj,n1dim,n2dim
-!arrays
-
-! *************************************************************************
-
- ! MGPAW: This one could be removed/renamed, 
- ! variables can be initialized in the datatype declaration
- ! Do we need to expose this in the public API?
-
- n1dim=size(cprj,dim=1);n2dim=size(cprj,dim=2)
-
- do jj=1,n2dim
-   do ii=1,n1dim
-     cprj(ii,jj)%nlmn=0
-     cprj(ii,jj)%ncpgr=0
-   end do
- end do
-
-end subroutine pawcprj_nullify
-!!***
-
-!----------------------------------------------------------------------
-
+!!      m_scf_history,suscep_stat
 !!****f* m_pawcprj/pawcprj_set_zero
 !! NAME
 !! pawcprj_set_zero
@@ -340,7 +275,7 @@ end subroutine pawcprj_nullify
 !!  cprj(:,:) <type(pawcprj_type)>= cprj datastructure
 !!
 !! PARENTS
-!!      cgwf3,ctocprj
+!!      cgwf3,ctocprj,fock_updatecwaveocc
 !!
 !! CHILDREN
 !!      xmpi_sum
@@ -366,7 +301,6 @@ end subroutine pawcprj_nullify
 !Local variables-------------------------------
 !scalars
  integer :: ii,jj,n1dim,n2dim
-!arrays
 
 ! *************************************************************************
 
@@ -395,6 +329,7 @@ end subroutine pawcprj_set_zero
 !!  icpgr= (optional argument) if present, only component icpgr of
 !!         input cprj gradient is copied into output cprj
 !!         Not used if cprj(:,:)%ncpgr<icpgr
+!!         -1 only copy cp
 !!  cprj_in(:,:) <type(pawcprj_type)>= input cprj datastructure
 !!
 !! OUTPUT
@@ -404,11 +339,11 @@ end subroutine pawcprj_set_zero
 !!  MG: What about an option to report a pointer to cprj_in?
 !!
 !! PARENTS
-!!      berry_linemin,berryphase_new,calc_sigc_me,calc_sigx_me,cchi0q0
-!!      cchi0q0_intraband,cgwf,classify_bands,cohsex_me,corrmetalwf1,d2frnl
-!!      extrapwf,getgh1c,getgsc,loper3,m_electronpositron,m_pawcprj,m_wfs
-!!      make_grad_berry,nstpaw3,outkss,paw_symcprj,prep_calc_ucrpa
-!!      setup_positron,update_orbmag,wfkfermi3
+!!      berryphase_new,calc_sigc_me,calc_sigx_me,cchi0q0,cchi0q0_intraband,cgwf
+!!      chebfi,classify_bands,cohsex_me,corrmetalwf1,d2frnl,d2frnl_bec,extrapwf
+!!      fock_updatecwaveocc,getgh1c,getgsc,loper3,m_electronpositron,m_pawcprj
+!!      m_wfs,make_grad_berry,nstpaw3,outkss,paw_symcprj,posdoppler
+!!      prep_calc_ucrpa,setup_positron,update_orbmag,wfkfermi3
 !!
 !! CHILDREN
 !!      xmpi_sum
@@ -437,9 +372,8 @@ end subroutine pawcprj_set_zero
 !Local variables-------------------------------
 !scalars
  integer :: ii,jj,kk,n1dim_in,n1dim_out,n2dim_in,n2dim_out,ncpgr_in,ncpgr_out,nlmn
- logical :: has_icpgr
+ logical :: has_icpgr,copy_dcp
  character(len=500) :: msg
-!arrays
 
 ! *************************************************************************
 
@@ -460,6 +394,13 @@ end subroutine pawcprj_set_zero
    MSG_ERROR(msg)
  end if
 
+!Check if icgr is present and if dcp have to be copy
+ has_icpgr=present(icpgr)
+ copy_dcp = .TRUE.
+ if(has_icpgr)then
+   copy_dcp = icpgr>=0
+ end if
+
  do jj=1,n2dim_in
    do ii=1,n1dim_in
      nlmn=cprj_in(ii,jj)%nlmn
@@ -470,8 +411,7 @@ end subroutine pawcprj_set_zero
    end do
  end do
 
- if (ncpgr_in>0) then
-   has_icpgr=present(icpgr)
+ if (ncpgr_in>0.and.copy_dcp) then
    if (has_icpgr) has_icpgr=(ncpgr_out>0.and.icpgr>0.or.icpgr<=ncpgr_in)
 
    if (has_icpgr) then
@@ -519,7 +459,7 @@ end subroutine pawcprj_copy
 !!  cprjy(:,:) <type(pawcprj_type)>= input/output cprjy datastructure
 !!
 !! PARENTS
-!!      cgwf3,getdc1,wfkfermi3
+!!      cgwf3,chebfi,getdc1,m_invovl,wfkfermi3
 !!
 !! CHILDREN
 !!      xmpi_sum
@@ -548,7 +488,6 @@ end subroutine pawcprj_copy
 !scalars
  integer :: ii,jj,kk,n1dimx,n1dimy,n2dimx,n2dimy,ncpgrx,ncpgry,nlmn
  character(len=500) :: msg
-!arrays
 
 ! *************************************************************************
 
@@ -679,7 +618,6 @@ end subroutine pawcprj_axpby
  integer :: ii,jj,kk,ll,n1dimx,n1dimy,n2dimx,n2dimy,ncpgrx,ncpgry,nlmn
  real(dp) :: cp1,cp2,norma,normb
  character(len=500) :: msg
-!arrays
 
 ! *************************************************************************
 
@@ -787,6 +725,77 @@ end subroutine pawcprj_zaxpby
 
 !----------------------------------------------------------------------
 
+!!****f* m_pawcprj/pawcprj_conjg
+!! NAME
+!! pawcprj_conjg
+!!
+!! FUNCTION
+!! conjugate a cprj datastructures:
+!!  cprj(:,:) <- conjugate(cprj(:,:))
+!!
+!! INPUTS
+!!
+!! SIDE EFFECTS
+!!  cprj(:,:) <type(pawcprj_type)>= input/output cprj datastructure
+!!
+!! PARENTS
+!!      fock_updatecwaveocc
+!!
+!! CHILDREN
+!!     
+!!
+!! SOURCE
+
+ subroutine pawcprj_conjg(cprj)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'pawcprj_conjg'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+!scalars
+!arrays
+ type(pawcprj_type),intent(inout) :: cprj(:,:)
+
+!Local variables-------------------------------
+!scalars
+ integer :: ii,jj,kk,n1dim,n2dim,ncpgr,nlmn
+!arrays
+
+! *************************************************************************
+
+
+ n1dim=size(cprj,dim=1);n2dim=size(cprj,dim=2);ncpgr=cprj(1,1)%ncpgr
+
+ do jj=1,n2dim
+   do ii=1,n1dim
+     nlmn=cprj(ii,jj)%nlmn
+     do kk=1,nlmn
+       cprj(ii,jj)%cp(2,kk)=-cprj(ii,jj)%cp(2,kk)
+     end do
+   end do
+ end do
+ if (ncpgr>0) then
+   do jj=1,n2dim
+     do ii=1,n1dim
+       nlmn=cprj(ii,jj)%nlmn
+       do kk=1,nlmn
+         cprj(ii,jj)%dcp(2,1:ncpgr,kk)=-cprj(ii,jj)%dcp(2,1:ncpgr,kk)
+       end do
+     end do
+   end do
+ end if
+
+end subroutine pawcprj_conjg
+!!***
+
+!----------------------------------------------------------------------
+
 !!****f* m_pawcprj/pawcprj_lincom
 !! NAME
 !! pawcprj_lincom
@@ -839,7 +848,6 @@ end subroutine pawcprj_zaxpby
  integer :: ii,in,jj,jn,kk,ll,n1in,n1out,n2in,n2out,ncpgrin,ncpgrout,nlmn
  real(dp) :: cp1,cp2
  character(len=500) :: msg
-!arrays
 
 ! *************************************************************************
 
@@ -944,7 +952,6 @@ end subroutine pawcprj_lincom
 !Local variables-------------------------------
 !scalar
  integer :: ii,jj,kk,nlmn,n1dim,n2dim
-!arrays
 
 ! *************************************************************************
 
@@ -967,233 +974,7 @@ end subroutine pawcprj_output
 
 !----------------------------------------------------------------------
 
-!!****f* ABINIT/pawcprj_diskinit_r
-!! NAME
-!! pawcprj_diskinit_r
-!!
-!! FUNCTION
-!! Initialize a cprj temporary file for READING
-!! Nothing is done if mkmem<>0
-!!
-!! INPUTS
-!!  atind(natom)=index table for atoms (see iorder below)
-!!  dimcp=first dimension of cprj arrays (1 or natom)
-!!  iorder=0 if cprj ordering does not change during reading
-!!         1 if cprj ordering changes during writing, depending on content of atind array:
-!!              - if atind=atindx  (unsorted->type-sorted)
-!!              - if atind=atindx1 (type-sorted->unsorted)
-!!  mkmem=number of k points which can fit in memory; set to 0 if use disk
-!!  natom=number of atoms in cell
-!!  ncpgr=number of gradients of cprj
-!!  nlmn(dimcp)=array of dimensions of cprj datastructure that will contain the read data
-!!  nspinor=number of spinorial components of the wavefunctions
-!!  uncp=unit number for cprj data (if used)
-!!
-!! PARENTS
-!!      d2frnl,datafordmft,nstpaw3,optics_paw,optics_paw_core
-!!      partial_dos_fractions_paw,pawmkaewf,pawmkrhoij,rhofermi3,suscep_stat
-!!
-!! CHILDREN
-!!      xmpi_sum
-!!
-!! SOURCE
-
- subroutine pawcprj_diskinit_r(atind,dimcp,iorder,mkmem,natom,ncpgr,nlmn,nspinor,uncp)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-#undef ABI_FUNC
-#define ABI_FUNC 'pawcprj_diskinit_r'
-!End of the abilint section
-
- implicit none
-
-!Arguments ------------------------------------
-!scalars
- integer,intent(in) :: dimcp,iorder,mkmem,natom,ncpgr,nspinor,uncp
-!arrays
- integer,intent(in) :: atind(natom),nlmn(dimcp)
-
-!Local variables-------------------------------
-!scalars
- integer :: dimcp0,iatm,iatom,ncpgr0,nspinor0
- character(len=500) :: message
-!arrays
- integer,allocatable :: dimlmn(:)
-
-! *************************************************************************
-
- if (mkmem==0) then
-
-   rewind uncp;read(uncp) dimcp0,ncpgr0,nspinor0
-   if (dimcp/=dimcp0.or.ncpgr/=ncpgr0.or.nspinor/=nspinor0) then
-     write(message,'(a,a,a,a)')ch10,&
-&     ' pawcprj_diskinit_r : BUG -',ch10,&
-&     '  _PAW file was not created with the right options !'
-     MSG_ERROR(message)
-   end if
-
-   ABI_ALLOCATE(dimlmn,(dimcp))
-   read(uncp) dimlmn(1:dimcp)
-   do iatom=1,dimcp
-     if (iorder==0) then
-       iatm=iatom
-     else
-       iatm=min(atind(iatom),dimcp)
-     end if
-     if (dimlmn(iatom)/=nlmn(iatm)) then
-       write(message,'(a,a,a,a)')ch10,&
-&       ' pawcprj_diskinit_r : BUG -',ch10,&
-&       '  _PAW file was not created with the right options !'
-       MSG_BUG(message)
-     end if
-   end do
-   ABI_DEALLOCATE(dimlmn)
-
- end if
-
-end subroutine pawcprj_diskinit_r
-!!***
-
-!----------------------------------------------------------------------
-
-!!****f* ABINIT/pawcprj_diskinit_w
-!! NAME
-!! pawcprj_diskinit_w
-!!
-!! FUNCTION
-!! Initialize a cprj temporary file for WRITING
-!! Nothing is done if mkmem<>0
-!!
-!! INPUTS
-!!  atind(natom)=index table for atoms (see iorder below)
-!!  dimcp=first dimension of cprj arrays (1 or natom)
-!!  iorder=0 if cprj ordering does not change during reading
-!!         1 if cprj ordering changes during writing, depending on content of atind array:
-!!              - if atind=atindx  (type-sorted->unsorted)
-!!              - if atind=atindx1 (unsorted->type-sorted)
-!!  mkmem=number of k points which can fit in memory; set to 0 if use disk
-!!  natom=number of atoms in cell
-!!  ncpgr=number of gradients of cprj
-!!  nlmn(dimcp)=array of dimensions of cprj datastructure that will contain the read data
-!!  nspinor=number of spinorial components of the wavefunctions
-!!  uncp=unit number for cprj data (if used)
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!      xmpi_sum
-!!
-!! SOURCE
-
- subroutine pawcprj_diskinit_w(atind,dimcp,iorder,mkmem,natom,ncpgr,nlmn,nspinor,uncp)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-#undef ABI_FUNC
-#define ABI_FUNC 'pawcprj_diskinit_w'
-!End of the abilint section
-
- implicit none
-
-!Arguments ------------------------------------
-!scalars
- integer,intent(in) :: dimcp,iorder,mkmem,natom,ncpgr,nspinor,uncp
-!arrays
- integer,intent(in) :: atind(natom),nlmn(dimcp)
-
-!Local variables-------------------------------
-!scalars
- integer :: iatm,iatom
-!arrays
- integer,allocatable :: dimlmn(:)
-
-! *************************************************************************
-
- if (mkmem==0) then
-
-   rewind uncp
-   write(uncp) dimcp,ncpgr,nspinor
-
-   if (iorder==0) then
-     write(uncp) nlmn(1:dimcp)
-   else
-     ABI_ALLOCATE(dimlmn,(dimcp))
-     do iatom=1,dimcp
-       iatm=min(atind(iatom),dimcp)
-       dimlmn(iatom)=nlmn(iatm)
-     end do
-     write(uncp) dimlmn(1:dimcp)
-     ABI_DEALLOCATE(dimlmn)
-   end if
-
- end if
-
-end subroutine pawcprj_diskinit_w
-!!***
-
-!----------------------------------------------------------------------
-
-!!****f* ABINIT/pawcprj_diskskip
-!! NAME
-!! pawcprj_diskskip
-!!
-!! FUNCTION
-!! Skip records in a cprj temporary file for READING
-!! Nothing is done if mkmem<>0
-!!
-!! INPUTS
-!!  mkmem=number of k points which can fit in memory; set to 0 if use disk
-!!  ncpgr=number of gradients of cprj
-!!  nres=number of records to be skipped
-!!  uncp=unit number for cprj data (if used)
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!      xmpi_sum
-!!
-!! SOURCE
-
- subroutine pawcprj_diskskip(mkmem,ncpgr,nrec,uncp)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-#undef ABI_FUNC
-#define ABI_FUNC 'pawcprj_diskskip'
-!End of the abilint section
-
- implicit none
-!Arguments ------------------------------------
-!scalars
- integer,intent(in) :: mkmem,ncpgr,nrec,uncp
-!arrays
-
-!Local variables-------------------------------
-!scalars
- integer :: ii
-!arrays
-
-! *************************************************************************
-
- if (mkmem==0) then
-
-   do ii=1,nrec
-     read(uncp)
-     if (ncpgr>0) read(uncp)
-   end do
-
- end if
-
-end subroutine pawcprj_diskskip
-!!***
-
-!----------------------------------------------------------------------
-
-!!****f* ABINIT/pawcprj_get
+!!****f* m_pawcprj/pawcprj_get
 !! NAME
 !! pawcprj_get
 !!
@@ -1237,10 +1018,10 @@ end subroutine pawcprj_diskskip
 !!  cprj_k(dimcp,nspinor*nband) <type(pawcprj_type)>= output cprj datastructure
 !!
 !! PARENTS
-!!      berry_linemin,berryphase_new,cgwf,datafordmft,extrapwf,mag_loc_k
-!!      make_grad_berry,nstpaw3,optics_paw,optics_paw_core,pawmkrhoij
-!!      posdoppler,smatrix_pawinit,store_bfield_cprj,suscep_stat,update_orbmag
-!!      vtowfk3,wfkfermi3
+!!      berryphase_new,cgwf,datafordmft,extrapwf,m_plowannier,make_grad_berry
+!!      nstpaw3,optics_paw,optics_paw_core,pawmkrhoij,posdoppler
+!!      smatrix_pawinit,store_bfield_cprj,suscep_stat,update_orbmag,vtowfk3
+!!      wfkfermi3
 !!
 !! CHILDREN
 !!      xmpi_sum
@@ -1283,6 +1064,7 @@ end subroutine pawcprj_diskskip
 
  DBG_ENTER("COLL")
 
+
  ncpgr_=cprj_k(1,1)%ncpgr;if (present(ncpgr)) ncpgr_=ncpgr
  icpgr_=-1;if(present(icpgr)) icpgr_=icpgr
  has_icpgr=(icpgr_>0.and.icpgr_<=ncpgr_)
@@ -1304,6 +1086,12 @@ end subroutine pawcprj_diskskip
    end if
    me=xcomm_rank(mpicomm)
  end if
+
+
+
+
+
+
 
  if (mkmem==0) then
 
@@ -1436,7 +1224,7 @@ end subroutine pawcprj_get
 
 !----------------------------------------------------------------------
 
-!!****f* ABINIT/pawcprj_put
+!!****f* m_pawcprj/pawcprj_put
 !! NAME
 !! pawcprj_put
 !!
@@ -1478,8 +1266,7 @@ end subroutine pawcprj_get
 !!  cprj(dimcp,nspinor*mband*mkmem*nsppol)=output cprj (used if mkmem/=0)
 !!
 !! PARENTS
-!!      berry_linemin,berryphase_new,cgwf,ctocprj,extrapwf,store_bfield_cprj
-!!      vtowfk,vtowfk3
+!!      berryphase_new,cgwf,ctocprj,extrapwf,store_bfield_cprj,vtowfk,vtowfk3
 !!
 !! CHILDREN
 !!      xmpi_sum
@@ -1519,7 +1306,6 @@ end subroutine pawcprj_get
  character(len=500) :: message
 !arrays
  real(dp),allocatable :: buffer1(:),buffer2(:)
-
 ! *************************************************************************
 
  ncpgr=cprj_k(1,1)%ncpgr
@@ -1750,7 +1536,7 @@ end subroutine pawcprj_put
  ABI_DATATYPE_ALLOCATE(cprj_tmp,(n1cprj,n2cprj))
  call pawcprj_alloc(cprj_tmp,ncpgr,nlmn)
  call pawcprj_copy(cprj,cprj_tmp)
- call pawcprj_destroy(cprj)
+ call pawcprj_free(cprj)
 
  do jj=1,n2cprj
    do ii=1,n1cprj
@@ -1766,7 +1552,7 @@ end subroutine pawcprj_put
    end do
  end do
 
- call pawcprj_destroy(cprj_tmp)
+ call pawcprj_free(cprj_tmp)
  ABI_DATATYPE_DEALLOCATE(cprj_tmp)
  ABI_DEALLOCATE(nlmn)
 
@@ -1775,7 +1561,7 @@ end subroutine pawcprj_reorder
 
 !----------------------------------------------------------------------
 
-!!****f* ABINIT/pawcprj_mpi_exch
+!!****f* m_pawcprj/pawcprj_mpi_exch
 !! NAME
 !! pawcprj_mpi_exch
 !!
@@ -1920,7 +1706,7 @@ end subroutine pawcprj_mpi_exch
 
 !----------------------------------------------------------------------
 
-!!****f* ABINIT/pawcprj_mpi_send
+!!****f* m_pawcprj/pawcprj_mpi_send
 !! NAME
 !! pawcprj_mpi_send
 !!
@@ -2031,7 +1817,7 @@ end subroutine pawcprj_mpi_send
 
 !----------------------------------------------------------------------
 
-!!****f* ABINIT/pawcprj_mpi_recv
+!!****f* m_pawcprj/pawcprj_mpi_recv
 !! NAME
 !! pawcprj_mpi_recv
 !!
@@ -2055,7 +1841,7 @@ end subroutine pawcprj_mpi_send
 !!   convenient for coding to have separate send and receive routines.
 !!
 !! PARENTS
-!!      berryphase_new
+!!      berryphase_new,posdoppler
 !!
 !! CHILDREN
 !!      xmpi_sum
@@ -2142,7 +1928,7 @@ end subroutine pawcprj_mpi_recv
 
 !----------------------------------------------------------------------
 
-!!****f* ABINIT/pawcprj_mpi_sum
+!!****f* m_pawcprj/pawcprj_mpi_sum
 !! NAME
 !! pawcprj_mpi_sum
 !!
@@ -2225,7 +2011,7 @@ end subroutine pawcprj_mpi_sum
 
 !----------------------------------------------------------------------
 
-!!****f* ABINIT/pawcprj_mpi_allgather
+!!****f* m_pawcprj/pawcprj_mpi_allgather
 !! NAME
 !! pawcprj_mpi_allgather
 !!
@@ -2327,15 +2113,14 @@ subroutine pawcprj_mpi_allgather(cprj_loc,cprj_gat,natom,n2dim,nlmn,ncpgr,nproc,
  call xmpi_allgather(buffer_cpgr,2*(ncpgr+1)*ntotcp,buffer_cpgr_all,spaceComm,ierr)
 
 !=== unpack gathered data into cprj(natom,n2dim*nproc)
-
 !=== second dimension is rank-ordered if rank_ordered_=true
  ipck=0
- do iproc=0,nproc-1
+ do iproc=1,nproc
    do jj=1,n2dim
      if (rank_ordered_) then
-       ibuf=iproc*n2dim+jj
+       ibuf=jj+(iproc-1)*n2dim
      else
-       ibuf=iproc+jj*nproc-1
+       ibuf=iproc+(jj-1)*nproc
      end if
      do iat=1,natom
        nn=nlmn(iat)
@@ -2356,7 +2141,7 @@ end subroutine pawcprj_mpi_allgather
 
 !----------------------------------------------------------------------
 
-!!****f* ABINIT/pawcprj_bcast
+!!****f* m_pawcprj/pawcprj_bcast
 !! NAME
 !! pawcprj_bcast
 !!
@@ -2377,6 +2162,7 @@ end subroutine pawcprj_mpi_allgather
 !!  Cprj(natom,n2dim)<pawcprj_type>=The datatype to be transmitted by master and received by the others nodes.
 !!
 !! PARENTS
+!!      fock_updatecwaveocc,posdoppler
 !!
 !! CHILDREN
 !!      xmpi_sum
@@ -2476,7 +2262,7 @@ end subroutine pawcprj_bcast
 
 !----------------------------------------------------------------------
 
-!!****f* ABINIT/pawcprj_transpose
+!!****f* m_pawcprj/pawcprj_transpose
 !! NAME
 !! pawcprj_transpose
 !!
@@ -2735,7 +2521,7 @@ end subroutine pawcprj_bcast
 
 !----------------------------------------------------------------------
 
-!!****f* ABINIT/pawcprj_gather_spin
+!!****f* m_pawcprj/pawcprj_gather_spin
 !! NAME
 !! pawcprj_gather_spin
 !!
@@ -2799,7 +2585,7 @@ end subroutine pawcprj_bcast
  n2dim    =size(cprj,dim=2)
  n2dim_gat=size(cprj_gat,dim=2)
  if (n2dim_gat/=(nspinortot/nspinor)*n2dim) then
-   write(msg,'(a)') "  Wrong dims for cprj and cprj_gat !"
+   write(msg,'(a)') "Wrong dims for cprj and cprj_gat !"
    MSG_BUG(msg)
  end if
 
@@ -2886,8 +2672,8 @@ end subroutine pawcprj_bcast
 !!  dimcprj(natom)=Number of nlm elements in the <p_{lmn}^i|\psi> matrix elements for i=1,...,natom.
 !!
 !! PARENTS
-!!      berryphase_new,extrapwf,initberry,initorbmag,ks_ddiago,mlwfovlp_qp
-!!      outkss,respfn,scfcv,smatrix_pawinit
+!!      berryphase_new,extrapwf,initberry,initorbmag,ks_ddiago,m_fock
+!!      mlwfovlp_qp,outkss,respfn,scfcv,smatrix_pawinit
 !!
 !! CHILDREN
 !!      xmpi_sum
@@ -3036,6 +2822,7 @@ function paw_overlap(cprj1,cprj2,typat,pawtab,spinor_comm) result(onsite)
      end do
    end do
  end do
+
  if (present(spinor_comm)) then
    call xmpi_sum(onsite,spinor_comm,isp)
  end if

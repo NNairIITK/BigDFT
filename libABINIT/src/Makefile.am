@@ -18,6 +18,7 @@ EXTRA_DIST = 72_geomoptim/isokinetic.F90 \
 	12_hide_mpi/xmpi_allgatherv.finc \
 	12_hide_mpi/xmpi_alltoall.finc \
 	12_hide_mpi/xmpi_alltoallv.finc \
+	12_hide_mpi/xmpi_ialltoallv.finc \
 	12_hide_mpi/xmpi_bcast.finc \
 	12_hide_mpi/xmpi_exch.finc \
 	12_hide_mpi/xmpi_gather.finc \
@@ -110,6 +111,7 @@ libabinit_a_SOURCES = \
 	18_timing/interfaces_18_timing.F90 \
 	18_timing/timab.F90 \
 	18_memory/m_profiling.F90 \
+	18_memory/m_profiling_abi.F90 \
 	28_numeric_noabirule/interfaces_28_numeric_noabirule.F90 \
 	28_numeric_noabirule/m_splines.F90 \
 	28_numeric_noabirule/sort_dp.F90 \

@@ -28,8 +28,6 @@
 subroutine xmpi_sum_int(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -40,9 +38,9 @@ subroutine xmpi_sum_int(xval,comm,ier)
  implicit none
 
 !Arguments ------------------------------------
- integer,intent(inout) :: xval(:)
+ integer, DEV_CONTARRD intent(inout) :: xval(:)
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------------------
 #if defined HAVE_MPI
@@ -62,7 +60,7 @@ subroutine xmpi_sum_int(xval,comm,ier)
    call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1,MPI_INTEGER,MPI_SUM,comm,ier)
 #else
    ABI_ALLOCATE(xsum,(n1))
-   if (ABI_ALLOC_STAT/= 0) then
+   if (ABI_ALLOC_STAT_ABI/= 0) then
      call xmpi_abort(comm=comm, msg='error allocating xsum in xmpi_sum_int')
    end if
    call MPI_ALLREDUCE(xval,xsum,n1,MPI_INTEGER,MPI_SUM,comm,ier)
@@ -96,16 +94,9 @@ end subroutine xmpi_sum_int
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
+
 subroutine xmpi_sum_intv(xval,comm,ier)
-
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -159,16 +150,9 @@ end subroutine xmpi_sum_intv
 !!  xval= buffer array
 !!  xsum= receive buffer
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
+
 subroutine xmpi_sum_intv2(xval,xsum,comm,ier)
-
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -181,9 +165,7 @@ subroutine xmpi_sum_intv2(xval,xsum,comm,ier)
 !Arguments---------------------
  integer,intent(inout) :: xval,xsum
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
-
-!Local variables---------------
+ integer,intent(out) :: ier
 
 ! *************************************************************************
 
@@ -221,17 +203,11 @@ end subroutine xmpi_sum_intv2
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
+
 subroutine xmpi_sum_intn(xval,n1,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -242,10 +218,10 @@ subroutine xmpi_sum_intn(xval,n1,comm,ier)
  implicit none
 
 !Arguments-------------------------
- integer,intent(inout) :: xval(:)
- integer,intent(in)    :: n1
+ integer, DEV_CONTARRD intent(inout) :: xval(:)
+ integer,intent(in) :: n1
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -266,7 +242,7 @@ subroutine xmpi_sum_intn(xval,n1,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1,MPI_INTEGER,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1))
-     if (ABI_ALLOC_STAT/= 0) then
+     if (ABI_ALLOC_STAT_ABI/= 0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_intn')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1,MPI_INTEGER,MPI_SUM,comm,ier)
@@ -303,16 +279,10 @@ end subroutine xmpi_sum_intn
 !!  xval= buffer array
 !!  xsum= receive buffer
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_int2t(xval,xsum,n1,comm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -323,10 +293,10 @@ subroutine xmpi_sum_int2t(xval,xsum,n1,comm,ier)
  implicit none
 
 !Arguments-------------------------
- integer,intent(inout) :: xval(:),xsum(:)
- integer,intent(in)    :: n1
+ integer, DEV_CONTARRD intent(inout) :: xval(:),xsum(:)
+ integer,intent(in) :: n1
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 ! *************************************************************************
 
@@ -365,17 +335,10 @@ end subroutine xmpi_sum_int2t
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_int2d(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -386,9 +349,9 @@ subroutine xmpi_sum_int2d(xval,comm,ier)
  implicit none
 
 !Arguments-------------------------
- integer,intent(inout) :: xval(:,:)
+ integer, DEV_CONTARRD intent(inout) :: xval(:,:)
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -411,7 +374,7 @@ subroutine xmpi_sum_int2d(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1*n2,MPI_INTEGER,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1,n2))
-     if (ABI_ALLOC_STAT/=0) then
+     if (ABI_ALLOC_STAT_ABI/=0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_int2d')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1*n2,MPI_INTEGER,MPI_SUM,comm,ier)
@@ -446,17 +409,10 @@ end subroutine xmpi_sum_int2d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_int3d(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -467,9 +423,9 @@ subroutine xmpi_sum_int3d(xval,comm,ier)
  implicit none
 
 !Arguments-------------------------
- integer,intent(inout) :: xval(:,:,:)
+ integer, DEV_CONTARRD intent(inout) :: xval(:,:,:)
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -493,7 +449,7 @@ subroutine xmpi_sum_int3d(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1*n2*n3,MPI_INTEGER,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1,n2,n3))
-     if (ABI_ALLOC_STAT/= 0) then
+     if (ABI_ALLOC_STAT_ABI/= 0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_int3d')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1*n2*n3,MPI_INTEGER,MPI_SUM,comm,ier)
@@ -528,17 +484,10 @@ end subroutine xmpi_sum_int3d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_int4d(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -549,9 +498,9 @@ subroutine xmpi_sum_int4d(xval,comm,ier)
  implicit none
 
 !Arguments-------------------------
- integer,intent(inout) :: xval(:,:,:,:)
+ integer, DEV_CONTARRD intent(inout) :: xval(:,:,:,:)
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -577,7 +526,7 @@ subroutine xmpi_sum_int4d(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1*n2*n3*n4,MPI_INTEGER,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1,n2,n3,n4))
-     if (ABI_ALLOC_STAT/= 0) then
+     if (ABI_ALLOC_STAT_ABI/= 0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_int4d')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1*n2*n3*n4,MPI_INTEGER,MPI_SUM,comm,ier)
@@ -612,17 +561,10 @@ end subroutine xmpi_sum_int4d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_dp(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -634,9 +576,9 @@ subroutine xmpi_sum_dp(xval,comm,ier)
 
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:)
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -658,7 +600,7 @@ subroutine xmpi_sum_dp(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1,MPI_DOUBLE_PRECISION,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1))
-     if (ABI_ALLOC_STAT/= 0) then
+     if (ABI_ALLOC_STAT_ABI/= 0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_dp')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1,MPI_DOUBLE_PRECISION,MPI_SUM,comm,ier)
@@ -695,16 +637,10 @@ end subroutine xmpi_sum_dp
 !! SIDE EFFECTS
 !!  None
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_dpvt(xval,xsum,comm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -767,16 +703,9 @@ end subroutine xmpi_sum_dpvt
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_dpv(xval,comm,ier)
 
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -789,7 +718,7 @@ subroutine xmpi_sum_dpv(xval,comm,ier)
 !Arguments-------------------------
  real(dp),intent(inout) :: xval
  integer ,intent(in) :: comm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -835,17 +764,10 @@ end subroutine xmpi_sum_dpv
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_dpn(xval,n1,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -856,10 +778,10 @@ subroutine xmpi_sum_dpn(xval,n1,comm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:)
- integer ,intent(in)    :: n1
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:)
+ integer ,intent(in) :: n1
  integer ,intent(in) :: comm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -880,7 +802,7 @@ subroutine xmpi_sum_dpn(xval,n1,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1,MPI_DOUBLE_PRECISION,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1))
-     if (ABI_ALLOC_STAT/= 0) then
+     if (ABI_ALLOC_STAT_ABI/= 0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_dpn')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1,MPI_DOUBLE_PRECISION,MPI_SUM,comm,ier)
@@ -915,17 +837,11 @@ end subroutine xmpi_sum_dpn
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
+
 subroutine xmpi_sum_dp2d(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -937,9 +853,9 @@ subroutine xmpi_sum_dp2d(xval,comm,ier)
 
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:,:)
  integer ,intent(in) :: comm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -962,7 +878,7 @@ subroutine xmpi_sum_dp2d(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1*n2,MPI_DOUBLE_PRECISION,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1,n2))
-     if (ABI_ALLOC_STAT/= 0) then
+     if (ABI_ALLOC_STAT_ABI/= 0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_dp2d')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1*n2,MPI_DOUBLE_PRECISION,MPI_SUM,comm,ier)
@@ -996,17 +912,10 @@ end subroutine xmpi_sum_dp2d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_dp3d(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1017,7 +926,7 @@ subroutine xmpi_sum_dp3d(xval,comm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:,:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:,:,:)
  integer ,intent(in) :: comm
  integer ,intent(out)   :: ier
 
@@ -1043,7 +952,7 @@ subroutine xmpi_sum_dp3d(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1*n2*n3,MPI_DOUBLE_PRECISION,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1,n2,n3))
-     if (ABI_ALLOC_STAT/= 0) then
+     if (ABI_ALLOC_STAT_ABI/= 0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_dp3d')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1*n2*n3,MPI_DOUBLE_PRECISION,MPI_SUM,comm,ier)
@@ -1078,17 +987,10 @@ end subroutine xmpi_sum_dp3d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_dp4d(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1099,9 +1001,9 @@ subroutine xmpi_sum_dp4d(xval,comm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:,:,:,:)
+ real(dp),DEV_CONTARRD intent(inout) :: xval(:,:,:,:)
  integer ,intent(in) :: comm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -1126,7 +1028,7 @@ subroutine xmpi_sum_dp4d(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1*n2*n3*n4,MPI_DOUBLE_PRECISION,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1,n2,n3,n4))
-     if (ABI_ALLOC_STAT/= 0) then
+     if (ABI_ALLOC_STAT_ABI/= 0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_dp4d')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1*n2*n3*n4,MPI_DOUBLE_PRECISION,MPI_SUM,comm,ier)
@@ -1161,17 +1063,10 @@ end subroutine xmpi_sum_dp4d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_dp5d(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1182,9 +1077,9 @@ subroutine xmpi_sum_dp5d(xval,comm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:,:,:,:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:,:,:,:,:)
  integer ,intent(in) :: comm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -1210,7 +1105,7 @@ subroutine xmpi_sum_dp5d(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1*n2*n3*n4*n5,MPI_DOUBLE_PRECISION,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1,n2,n3,n4,n5))
-     if (ABI_ALLOC_STAT/= 0) then
+     if (ABI_ALLOC_STAT_ABI/= 0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_dp5d')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1*n2*n3*n4*n5,MPI_DOUBLE_PRECISION,MPI_SUM,comm,ier)
@@ -1245,17 +1140,10 @@ end subroutine xmpi_sum_dp5d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_dp6d(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1267,14 +1155,14 @@ subroutine xmpi_sum_dp6d(xval,comm,ier)
 
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:,:,:,:,:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:,:,:,:,:,:)
  integer ,intent(in) :: comm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
  integer :: n1,n2,n3,n4,n5,n6,nproc_space_comm
- real(dp) , allocatable :: xsum(:,:,:,:,:,:)
+ real(dp), allocatable :: xsum(:,:,:,:,:,:)
 #endif
 
 ! *************************************************************************
@@ -1295,7 +1183,7 @@ subroutine xmpi_sum_dp6d(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1*n2*n3*n4*n5*n6,MPI_DOUBLE_PRECISION,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1,n2,n3,n4,n5,n6))
-     if (ABI_ALLOC_STAT/=0) then
+     if (ABI_ALLOC_STAT_ABI/=0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_dp6d')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1*n2*n3*n4*n5*n6,MPI_DOUBLE_PRECISION,MPI_SUM,comm,ier)
@@ -1330,17 +1218,10 @@ end subroutine xmpi_sum_dp6d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!   
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_dp7d(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1351,9 +1232,9 @@ subroutine xmpi_sum_dp7d(xval,comm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:,:,:,:,:,:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:,:,:,:,:,:,:)
  integer ,intent(in) :: comm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -1380,7 +1261,7 @@ subroutine xmpi_sum_dp7d(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1*n2*n3*n4*n5*n6*n7,MPI_DOUBLE_PRECISION,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1,n2,n3,n4,n5,n6,n7))
-     if (ABI_ALLOC_STAT/= 0) then
+     if (ABI_ALLOC_STAT_ABI/= 0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_dp7d')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1*n2*n3*n4*n5*n6*n7,MPI_DOUBLE_PRECISION,MPI_SUM,comm,ier)
@@ -1417,16 +1298,9 @@ end subroutine xmpi_sum_dp7d
 !!  xval= buffer array
 !!  xsum= receive buffer
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_dp2t(xval,xsum,n1,comm,ier)
 
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1437,12 +1311,10 @@ subroutine xmpi_sum_dp2t(xval,xsum,n1,comm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:),xsum(:)
- integer ,intent(in)    :: n1
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:),xsum(:)
+ integer ,intent(in) :: n1
  integer ,intent(in) :: comm
- integer ,intent(out)   :: ier
-
-!Local variables-------------------
+ integer ,intent(out) :: ier
 
 ! *************************************************************************
 
@@ -1481,19 +1353,9 @@ end subroutine xmpi_sum_dp2t
 !!  xsum= receive buffer
 !!  ier= exit status, a non-zero value meaning there is an error
 !!
-!! SIDE EFFECTS
-!!  None
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_dp2d2t(xval,xsum,n,spaceComm,ier)
 
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1504,11 +1366,11 @@ subroutine xmpi_sum_dp2d2t(xval,xsum,n,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(in) :: xval(:,:)
- real(dp),intent(out) :: xsum(:,:)
+ real(dp), DEV_CONTARRD intent(in) :: xval(:,:)
+ real(dp), DEV_CONTARRD intent(out) :: xsum(:,:)
  integer ,intent(in) :: n
  integer ,intent(in) :: spaceComm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -1554,16 +1416,10 @@ end subroutine xmpi_sum_dp2d2t
 !!  xval= buffer array
 !!  xsum= receive buffer
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
+
 subroutine xmpi_sum_dp3d2t(xval,xsum,n1,comm,ier)
 
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1574,12 +1430,10 @@ subroutine xmpi_sum_dp3d2t(xval,xsum,n1,comm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:,:,:),xsum(:,:,:)
- integer ,intent(in)    :: n1
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:,:,:),xsum(:,:,:)
+ integer ,intent(in) :: n1
  integer ,intent(in) :: comm
- integer ,intent(out)   :: ier
-
-!Local variables-------------------
+ integer ,intent(out) :: ier
 
 ! *************************************************************************
  ier=0
@@ -1619,16 +1473,9 @@ end subroutine xmpi_sum_dp3d2t
 !!  xval= buffer array
 !!  xsum= receive buffer
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_dp4d2t(xval,xsum,n1,comm,ier)
 
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1639,12 +1486,10 @@ subroutine xmpi_sum_dp4d2t(xval,xsum,n1,comm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:,:,:,:),xsum(:,:,:,:)
- integer ,intent(in)    :: n1
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:,:,:,:),xsum(:,:,:,:)
+ integer ,intent(in) :: n1
  integer ,intent(in) :: comm
- integer ,intent(out)   :: ier
-
-!Local variables-------------------
+ integer ,intent(out) :: ier
 
 ! *************************************************************************
 
@@ -1682,16 +1527,9 @@ end subroutine xmpi_sum_dp4d2t
 !! SIDE EFFECTS
 !!  xval= scalar to be summed.
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_c0dc(xval,comm,ier)
 
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1749,17 +1587,10 @@ end subroutine xmpi_sum_c0dc
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_c1dc(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1770,9 +1601,9 @@ subroutine xmpi_sum_c1dc(xval,comm,ier)
  implicit none
 
 !Arguments-------------------------
- complex(dpc),intent(inout) :: xval(:)
+ complex(dpc), DEV_CONTARRD intent(inout) :: xval(:)
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -1794,7 +1625,7 @@ subroutine xmpi_sum_c1dc(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1,MPI_DOUBLE_COMPLEX,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1))
-     if (ABI_ALLOC_STAT/= 0) then
+     if (ABI_ALLOC_STAT_ABI/= 0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_c1dc')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1,MPI_DOUBLE_COMPLEX,MPI_SUM,comm,ier)
@@ -1829,17 +1660,10 @@ end subroutine xmpi_sum_c1dc
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_c2dc(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1850,9 +1674,9 @@ subroutine xmpi_sum_c2dc(xval,comm,ier)
  implicit none
 
 !Arguments-------------------------
- complex(dpc),intent(inout) :: xval(:,:)
+ complex(dpc), DEV_CONTARRD intent(inout) :: xval(:,:)
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -1875,7 +1699,7 @@ subroutine xmpi_sum_c2dc(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1*n2,MPI_DOUBLE_COMPLEX,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1,n2))
-     if (ABI_ALLOC_STAT/= 0) then
+     if (ABI_ALLOC_STAT_ABI/= 0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_c2dc')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1*n2,MPI_DOUBLE_COMPLEX,MPI_SUM,comm,ier)
@@ -1910,17 +1734,10 @@ end subroutine xmpi_sum_c2dc
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_c3dc(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1931,9 +1748,9 @@ subroutine xmpi_sum_c3dc(xval,comm,ier)
  implicit none
 
 !Arguments-------------------------
- complex(dpc),intent(inout) :: xval(:,:,:)
+ complex(dpc), DEV_CONTARRD intent(inout) :: xval(:,:,:)
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -1957,7 +1774,7 @@ subroutine xmpi_sum_c3dc(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1*n2*n3,MPI_DOUBLE_COMPLEX,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1,n2,n3))
-     if (ABI_ALLOC_STAT/= 0) then
+     if (ABI_ALLOC_STAT_ABI/= 0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_c3dc')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1*n2*n3,MPI_DOUBLE_COMPLEX,MPI_SUM,comm,ier)
@@ -1992,17 +1809,10 @@ end subroutine xmpi_sum_c3dc
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_c4dc(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2013,9 +1823,9 @@ subroutine xmpi_sum_c4dc(xval,comm,ier)
  implicit none
 
 !Arguments-------------------------
- complex(dpc),intent(inout) :: xval(:,:,:,:)
+ complex(dpc), DEV_CONTARRD intent(inout) :: xval(:,:,:,:)
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -2040,7 +1850,7 @@ subroutine xmpi_sum_c4dc(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1*n2*n3*n4,MPI_DOUBLE_COMPLEX,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1,n2,n3,n4))
-     if (ABI_ALLOC_STAT/= 0) then
+     if (ABI_ALLOC_STAT_ABI/= 0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_c4dc')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1*n2*n3*n4,MPI_DOUBLE_COMPLEX,MPI_SUM,comm,ier)
@@ -2074,17 +1884,10 @@ end subroutine xmpi_sum_c4dc
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_c5dc(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2095,9 +1898,9 @@ subroutine xmpi_sum_c5dc(xval,comm,ier)
  implicit none
 
 !Arguments-------------------------
- complex(dpc),intent(inout) :: xval(:,:,:,:,:)
+ complex(dpc), DEV_CONTARRD intent(inout) :: xval(:,:,:,:,:)
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -2121,7 +1924,7 @@ subroutine xmpi_sum_c5dc(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1*n2*n3*n4*n5,MPI_DOUBLE_COMPLEX,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1,n2,n3,n4,n5))
-     if (ABI_ALLOC_STAT/=0) then
+     if (ABI_ALLOC_STAT_ABI/=0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_c5dc')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1*n2*n3*n4*n5,MPI_DOUBLE_COMPLEX,MPI_SUM,comm,ier)
@@ -2154,17 +1957,10 @@ end subroutine xmpi_sum_c5dc
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_c6dc(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2175,9 +1971,9 @@ subroutine xmpi_sum_c6dc(xval,comm,ier)
  implicit none
 
 !Arguments-------------------------
- complex(dpc),intent(inout) :: xval(:,:,:,:,:,:)
+ complex(dpc), DEV_CONTARRD intent(inout) :: xval(:,:,:,:,:,:)
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -2203,7 +1999,7 @@ subroutine xmpi_sum_c6dc(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1*n2*n3*n4*n5*n6,MPI_DOUBLE_COMPLEX,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1,n2,n3,n4,n5,n6))
-     if (ABI_ALLOC_STAT/=0) then
+     if (ABI_ALLOC_STAT_ABI/=0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_c6dc')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1*n2*n3*n4*n5*n6,MPI_DOUBLE_COMPLEX,MPI_SUM,comm,ier)
@@ -2238,17 +2034,10 @@ end subroutine xmpi_sum_c6dc
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_c1cplx(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2259,9 +2048,9 @@ subroutine xmpi_sum_c1cplx(xval,comm,ier)
  implicit none
 
 !Arguments----------------
- complex(spc),intent(inout) :: xval(:)
+ complex(spc), DEV_CONTARRD intent(inout) :: xval(:)
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables--------------
 #if defined HAVE_MPI
@@ -2283,7 +2072,7 @@ subroutine xmpi_sum_c1cplx(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1,MPI_COMPLEX,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1))
-     if (ABI_ALLOC_STAT/= 0) then
+     if (ABI_ALLOC_STAT_ABI/= 0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_c1cplx')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1,MPI_COMPLEX,MPI_SUM,comm,ier)
@@ -2318,17 +2107,10 @@ end subroutine xmpi_sum_c1cplx
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_c2cplx(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2339,9 +2121,9 @@ subroutine xmpi_sum_c2cplx(xval,comm,ier)
  implicit none
 
 !Arguments----------------
- complex(spc),intent(inout) :: xval(:,:)
+ complex(spc), DEV_CONTARRD intent(inout) :: xval(:,:)
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables--------------
 #if defined HAVE_MPI
@@ -2364,7 +2146,7 @@ subroutine xmpi_sum_c2cplx(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1*n2,MPI_COMPLEX,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1,n2))
-     if (ABI_ALLOC_STAT/= 0) then
+     if (ABI_ALLOC_STAT_ABI/= 0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_c2cplx')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1*n2,MPI_COMPLEX,MPI_SUM,comm,ier)
@@ -2408,8 +2190,6 @@ end subroutine xmpi_sum_c2cplx
 subroutine xmpi_sum_c3cplx(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2420,9 +2200,9 @@ subroutine xmpi_sum_c3cplx(xval,comm,ier)
  implicit none
 
 !Arguments----------------
- complex(spc),intent(inout) :: xval(:,:,:)
+ complex(spc), DEV_CONTARRD intent(inout) :: xval(:,:,:)
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables--------------
 #if defined HAVE_MPI
@@ -2446,7 +2226,7 @@ subroutine xmpi_sum_c3cplx(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1*n2*n3,MPI_COMPLEX,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1,n2,n3))
-     if (ABI_ALLOC_STAT/= 0) then
+     if (ABI_ALLOC_STAT_ABI/= 0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_c3cplx')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1*n2*n3,MPI_COMPLEX,MPI_SUM,comm,ier)
@@ -2490,8 +2270,6 @@ end subroutine xmpi_sum_c3cplx
 subroutine xmpi_sum_c4cplx(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2503,9 +2281,9 @@ subroutine xmpi_sum_c4cplx(xval,comm,ier)
 
 
 !Arguments----------------
- complex(spc),intent(inout) :: xval(:,:,:,:)
+ complex(spc), DEV_CONTARRD intent(inout) :: xval(:,:,:,:)
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables--------------
 #if defined HAVE_MPI
@@ -2530,7 +2308,7 @@ subroutine xmpi_sum_c4cplx(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1*n2*n3*n4,MPI_COMPLEX,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1,n2,n3,n4))
-     if (ABI_ALLOC_STAT/= 0) then
+     if (ABI_ALLOC_STAT_ABI/= 0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_c4cplx')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1*n2*n3*n4,MPI_COMPLEX,MPI_SUM,comm,ier)
@@ -2565,17 +2343,10 @@ end subroutine xmpi_sum_c4cplx
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_c5cplx(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2587,9 +2358,9 @@ subroutine xmpi_sum_c5cplx(xval,comm,ier)
 
 
 !Arguments----------------
- complex(spc),intent(inout) :: xval(:,:,:,:,:)
+ complex(spc), DEV_CONTARRD intent(inout) :: xval(:,:,:,:,:)
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables--------------
 #if defined HAVE_MPI
@@ -2615,7 +2386,7 @@ subroutine xmpi_sum_c5cplx(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1*n2*n3*n4*n5,MPI_COMPLEX,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1,n2,n3,n4,n5))
-     if (ABI_ALLOC_STAT/= 0) then
+     if (ABI_ALLOC_STAT_ABI/= 0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_c5cplx')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1*n2*n3*n4*n5,MPI_COMPLEX,MPI_SUM,comm,ier)
@@ -2649,18 +2420,11 @@ end subroutine xmpi_sum_c5cplx
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 
 subroutine xmpi_sum_c6cplx(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2672,9 +2436,9 @@ subroutine xmpi_sum_c6cplx(xval,comm,ier)
 
 
 !Arguments----------------
- complex(spc),intent(inout) :: xval(:,:,:,:,:,:)
+ complex(spc), DEV_CONTARRD intent(inout) :: xval(:,:,:,:,:,:)
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables--------------
 #if defined HAVE_MPI
@@ -2701,7 +2465,7 @@ subroutine xmpi_sum_c6cplx(xval,comm,ier)
      call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1*n2*n3*n4*n5*n6,MPI_COMPLEX,MPI_SUM,comm,ier)
 #else
      ABI_ALLOCATE(xsum,(n1,n2,n3,n4,n5,n6))
-     if (ABI_ALLOC_STAT/= 0) then
+     if (ABI_ALLOC_STAT_ABI/= 0) then
        call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_c6cplx')
      end if
      call MPI_ALLREDUCE(xval,xsum,n1*n2*n3*n4*n5*n6,MPI_COMPLEX,MPI_SUM,comm,ier)
@@ -2736,17 +2500,10 @@ end subroutine xmpi_sum_c6cplx
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_log1d(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2759,8 +2516,8 @@ subroutine xmpi_sum_log1d(xval,comm,ier)
 
 !Arguments ------------------------------------
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
- logical,intent(inout) :: xval(:)
+ integer,intent(out) :: ier
+ logical, DEV_CONTARRD intent(inout) :: xval(:)
 
 !Local variables-------------------------------
 #if defined HAVE_MPI
@@ -2776,7 +2533,7 @@ subroutine xmpi_sum_log1d(xval,comm,ier)
 !  Accumulate xval on all proc. in comm
    n1 = size(xval)
    ABI_ALLOCATE(xsum,(n1))
-   if (ABI_ALLOC_STAT/= 0) then
+   if (ABI_ALLOC_STAT_ABI/= 0) then
      call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_log1d')
    end if
    call MPI_ALLREDUCE(xval,xsum,n1,MPI_LOGICAL,MPI_LOR,comm,ier)
@@ -2808,17 +2565,10 @@ end subroutine xmpi_sum_log1d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_log2d(xval,comm,ier)
 
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2831,8 +2581,8 @@ subroutine xmpi_sum_log2d(xval,comm,ier)
 
 !Arguments ------------------------------------
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
- logical,intent(inout) :: xval(:,:)
+ integer,intent(out) :: ier
+ logical, DEV_CONTARRD intent(inout) :: xval(:,:)
 
 !Local variables-------------------------------
 #if defined HAVE_MPI
@@ -2849,7 +2599,7 @@ subroutine xmpi_sum_log2d(xval,comm,ier)
    n1 = size(xval,1)
    n2 = size(xval,2)
    ABI_ALLOCATE(xsum,(n1,n2))
-   if (ABI_ALLOC_STAT/= 0) then
+   if (ABI_ALLOC_STAT_ABI/= 0) then
      call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_log2d')
    end if
    call MPI_ALLREDUCE(xval,xsum,n1*n2,MPI_LOGICAL,MPI_LOR,comm,ier)
@@ -2881,16 +2631,9 @@ end subroutine xmpi_sum_log2d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_allreduce,xmpi_abort
-!!
 !! SOURCE
 subroutine xmpi_sum_log3d(xval,comm,ier)
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2903,8 +2646,8 @@ subroutine xmpi_sum_log3d(xval,comm,ier)
 
 !Arguments ------------------------------------
  integer,intent(in) :: comm
- integer,intent(out)   :: ier
- logical,intent(inout) :: xval(:,:,:)
+ integer,intent(out) :: ier
+ logical, DEV_CONTARRD intent(inout) :: xval(:,:,:)
 
 !Local variables-------------------------------
 #if defined HAVE_MPI
@@ -2926,7 +2669,7 @@ subroutine xmpi_sum_log3d(xval,comm,ier)
 !  call MPI_ALLREDUCE(MPI_IN_PLACE,xval,n1*n2*n3,MPI_LOGICAL,MPI_LOR,comm,ier)
 !  #else
    ABI_ALLOCATE(xsum,(n1,n2,n3))
-   if (ABI_ALLOC_STAT/= 0) then
+   if (ABI_ALLOC_STAT_ABI/= 0) then
      call xmpi_abort(comm=comm,msg='error allocating xsum in xmpi_sum_log3d')
    end if
    call MPI_ALLREDUCE(xval,xsum,n1*n2*n3,MPI_LOGICAL,MPI_LOR,comm,ier)

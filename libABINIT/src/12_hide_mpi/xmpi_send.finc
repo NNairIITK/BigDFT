@@ -37,17 +37,11 @@
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_send
-!!
 !! SOURCE
 
 subroutine xmpi_send_intv(xval,dest,tag,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -58,9 +52,10 @@ subroutine xmpi_send_intv(xval,dest,tag,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
-  integer,intent(inout) :: xval
-  integer,intent(in) :: dest,tag,spaceComm
-  integer,intent(out)   :: ier
+ integer,intent(inout) :: xval
+ integer,intent(in) :: dest,tag,spaceComm
+ integer,intent(out)   :: ier
+
 !Local variables-------------------
 #if defined HAVE_MPI
  integer :: my_tag
@@ -99,17 +94,11 @@ subroutine xmpi_send_intv(xval,dest,tag,spaceComm,ier)
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_send
-!!
 !! SOURCE
 
 subroutine xmpi_send_int1d(xval,dest,tag,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -120,9 +109,10 @@ subroutine xmpi_send_int1d(xval,dest,tag,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
-  integer,intent(inout) :: xval(:)
-  integer,intent(in) :: dest,tag,spaceComm
-  integer,intent(out)   :: ier
+ integer, DEV_CONTARRD intent(inout) :: xval(:)
+ integer,intent(in) :: dest,tag,spaceComm
+ integer,intent(out) :: ier
+
 !Local variables-------------------
 #if defined HAVE_MPI
  integer :: my_tag, n1
@@ -140,6 +130,76 @@ subroutine xmpi_send_int1d(xval,dest,tag,spaceComm,ier)
 #endif
 
  end subroutine xmpi_send_int1d
+!!***
+
+!!****f* ABINIT/xmpi_send_int2d
+!! NAME
+!!  xmpi_send_int2d
+!!
+!! FUNCTION
+!!  Sends data from one proc to another.
+!!  Target: integer two-dimensional arrays.
+!!
+!! INPUTS
+!!  dest :: rank of destination process
+!!  tag :: integer message tag
+!!  spaceComm :: MPI communicator
+!!
+!! OUTPUT
+!!  ier= exit status, a non-zero value meaning there is an error
+!!
+!! SIDE EFFECTS
+!!  xval= buffer array
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!      mpi_send
+!!
+!! SOURCE
+subroutine xmpi_send_int2d(xval,dest,tag,spaceComm,ier)
+
+
+ use defs_basis
+#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
+ use mpi
+#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xmpi_send_int2d'
+!End of the abilint section
+
+ implicit none
+
+#if defined HAVE_MPI1
+ include 'mpif.h'
+#endif
+
+!Arguments-------------------------
+ integer,intent(inout) :: xval(:,:)
+ integer ,intent(in) :: dest,tag,spaceComm
+ integer ,intent(out)   :: ier
+
+!Local variables-------------------
+#if defined HAVE_MPI
+ integer :: n1,n2,my_tag
+#endif
+
+! *************************************************************************
+
+ ier=0
+#if defined HAVE_MPI
+ if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
+   n1=size(xval,dim=1)
+   n2=size(xval,dim=2)
+   my_tag = MOD(tag,xmpi_tag_ub+1)
+   call MPI_SEND(xval,n1*n2,MPI_INTEGER,dest,my_tag,spaceComm,ier)
+ end if
+#endif
+
+end subroutine xmpi_send_int2d
 !!***
 
 !!****f* ABINIT/xmpi_send_dp1d
@@ -161,16 +221,11 @@ subroutine xmpi_send_int1d(xval,dest,tag,spaceComm,ier)
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_send
-!!
 !! SOURCE
+
 subroutine xmpi_send_dp1d(xval,dest,tag,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -181,9 +236,9 @@ subroutine xmpi_send_dp1d(xval,dest,tag,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:)
  integer ,intent(in) :: dest,tag,spaceComm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -223,16 +278,10 @@ end subroutine xmpi_send_dp1d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_send
-!!
 !! SOURCE
 subroutine xmpi_send_dp2d(xval,dest,tag,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -243,9 +292,9 @@ subroutine xmpi_send_dp2d(xval,dest,tag,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:,:)
  integer ,intent(in) :: dest,tag,spaceComm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -286,16 +335,11 @@ end subroutine xmpi_send_dp2d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_send
-!!
 !! SOURCE
+
 subroutine xmpi_send_dp3d(xval,dest,tag,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -306,9 +350,9 @@ subroutine xmpi_send_dp3d(xval,dest,tag,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:,:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:,:,:)
  integer ,intent(in) :: dest,tag,spaceComm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI

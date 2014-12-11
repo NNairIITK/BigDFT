@@ -7,7 +7,7 @@
 !!  XC+PAW related operations
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2013-2014 ABINIT group (T. Rangel)
+!!  Copyright (C) 2013-2014 ABINIT group (T. Rangel, GJ, MT, FJ, TD)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -24,7 +24,7 @@ module m_pawxc
 
  use defs_basis
  use m_errors
- use m_profiling
+ use m_profiling_abi
 #if defined HAVE_DFT_LIBXC
  use libxc_functionals
 #endif
@@ -37,30 +37,30 @@ module m_pawxc
  private
 
 
- public:: pawxc
- public:: pawxcpositron
- public:: pawxc3
- public:: pawxcsum
- public:: pawxcm
- public:: pawxcmpositron
- public:: pawxcm3
-
- private:: pawxc3_gga
- private:: pawxcsph
- private:: pawxcsphpositron
- private:: pawxcsph3
- private:: pawxc_drivexc_main_wrapper !wrapper for drivexc_main
- private:: pawxc_mkdenpos_wrapper !wrapper for mkdenpos
- private:: pawxc_xcmult_wrapper !wrapper for xcmult
- private:: pawxc_size_dvxc_wrapper !wrapper for size_dvxc
- private:: pawxc_xcpositron_wrapper !wrapper for xcpositron
+ public:: pawxc           ! Compute xc correlation potential and energies inside a paw sphere. USE (r,theta,phi)
+ public:: pawxcpositron   ! Compute electron-positron correlation potential and energies inside a PAW sphere USE (r,theta,phi)
+ public:: pawxc3          ! Compute first-order change of XC potential and contribution to
+                          ! 2nd-order change of XC energy inside a PAW sphere.USE (r,theta,phi)
+ public:: pawxcsum        ! Compute useful sums of moments of densities needed to compute on-site contributions to XC energy and potential
+ public:: pawxcm          ! Compute xc correlation potential and energies inside a paw sphere. USE (L,M) MOMENTS
+ public:: pawxcmpositron  ! Compute electron-positron correlation potential and energies inside a PAW sphere. USE (L,M) MOMENTS
+ public:: pawxcm3         ! Compute first-order change of XC potential and contribution to 2nd-order change of XC energy inside a PAW sphere. USE (L,M) MOMENTS
 
 
-
+! Private procedures
+ private:: pawxc3_gga                 ! Compute first-order change of XC potential and contribution to
+                                      ! 2nd-order change of XC energy inside a PAW sphere.
+ private:: pawxcsph                   ! Compute XC energy and potential for a spherical density rho(r) given as (up,dn)
+ private:: pawxcsphpositron           ! Compute electron-positron XC energy and potential for spherical densities rho_el(r) rho_pos(r)
+ private:: pawxcsph3                  ! Compute XC 1st-order potential for a 1st-order spherical density rho1(r)
+ private:: pawxc_drivexc_main_wrapper ! wrapper for drivexc_main
+ private:: pawxc_mkdenpos_wrapper     ! wrapper for mkdenpos
+ private:: pawxc_xcmult_wrapper       ! wrapper for xcmult
+ private:: pawxc_size_dvxc_wrapper    ! wrapper for size_dvxc
+ private:: pawxc_xcpositron_wrapper   ! wrapper for xcpositron
 !!***
 
-CONTAINS
-!===========================================================
+CONTAINS !===========================================================
 !!***
 
 !!****f* m_pawxc/pawxc_xcpositron_wrapper
@@ -72,17 +72,10 @@ CONTAINS
 !! Used electron-positron correlation functional is controlled by ipawxc_xcpositron_wrapper argument.
 !! Returns Fxc, Vxc_pos, Vxc_el from input rhor_pos and rhor_el for positron and electrons.
 !!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (GJ,MT,TRangel)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt .
-!!
 !! INPUTS
 !!  grhoe2(ngr)=square of the gradient of electronic density rhoe (needed for GGA)
 !!  ixcpositron=type of electron-positron correlation functional:
-!!     1:  LDA zero positron density limit parametrized by Arponen & Pajanne
+!!     1 or -1:  LDA zero positron density limit parametrized by Arponen & Pajanne
 !!         and provided by Boronski & Nieminen [1,2]
 !!     11: LDA zero positron density limit parametrized by Arponen & Pajanne
 !!         and fitted by Sterne & Kaiser [1,3]
@@ -208,7 +201,7 @@ subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_
    msg = 'xcpositron: ixcpositron=2 cannot be treated in the zero positron density limit !'
    MSG_ERROR(msg)
  end if
- if (ixcpositron/=1.and.ixcpositron/=11.and.ixcpositron/=2.and.ixcpositron/=3.and.ixcpositron/=31) then
+ if (abs(ixcpositron)/=1.and.ixcpositron/=11.and.ixcpositron/=2.and.ixcpositron/=3.and.ixcpositron/=31) then
    msg = 'xcpositron: unknown electron-positron correlation !'
    MSG_ERROR(msg)
  end if
@@ -435,6 +428,8 @@ subroutine pawxc_xcpositron_wrapper(fnxc,grhoe2,ixcpositron,ngr,npt,posdensity0_
 end subroutine pawxc_xcpositron_wrapper
 !!***
 
+!----------------------------------------------------------------------
+
 !!****f* m_pawxc/pawxc_size_dvxc_wrapper
 !! NAME
 !! pawxc_size_dvxc_wrapper
@@ -442,14 +437,6 @@ end subroutine pawxc_xcpositron_wrapper
 !! FUNCTION
 !! Give the size of the array dvxc(npts,ndvxc) and the second dimension of the d2vxc(npts,nd2vxc)
 !! needed for the allocations depending on the routine which is called from the drivexc routine
-!!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (TD,TRangel,MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!! This routine has been written from rhohxc (DCA, XG, GMR, MF, GZ)
 !!
 !! INPUTS
 !!  ixc= choice of exchange-correlation scheme
@@ -488,8 +475,6 @@ subroutine pawxc_size_dvxc_wrapper(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 !Arguments----------------------
  integer, intent(in) :: ixc,nspden,order
  integer, intent(out) :: ndvxc,nd2vxc,ngr2,nvxcdgr
-
-!Local variables----------------
 
 ! *************************************************************************
 
@@ -573,6 +558,7 @@ subroutine pawxc_size_dvxc_wrapper(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 end subroutine pawxc_size_dvxc_wrapper
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_pawxc/pawxc_xcmult_wrapper
 !! NAME
@@ -583,13 +569,6 @@ end subroutine pawxc_size_dvxc_wrapper
 !! by the derivative of the XC functional with respect
 !! to the norm of the gradient, then divide it by the
 !! norm of the gradient
-!!
-!! COPYRIGHT
-!! Copyright (C) 2013-2014 ABINIT group (TRangel,MT,)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt .
 !!
 !! INPUTS
 !!  depsxc(nfft,nspgrad)=derivative of Exc with respect to the (spin-)density,
@@ -691,6 +670,7 @@ subroutine pawxc_xcmult_wrapper (depsxc,nfft,ngrad,nspden,nspgrad,rhonow)
 end subroutine pawxc_xcmult_wrapper
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_pawxc/pawxc_mkdenpos_wrapper
 !! NAME
@@ -701,13 +681,6 @@ end subroutine pawxc_xcmult_wrapper
 !! Make a ground-state density positive everywhere :
 !! when the density (or spin-density) is smaller than xc_denpos,
 !! set it to the value of xc_denpos
-!!
-!! COPYRIGHT
-!! Copyright (C) 2013-2014 ABINIT group (DCA, XG, GMR, TRangel,MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt .
 !!
 !! INPUTS
 !!  nfft=(effective) number of FFT grid points (for this processor)
@@ -871,25 +844,17 @@ subroutine pawxc_mkdenpos_wrapper(iwarn,nfft,nspden,option,rhonow,xc_denpos)
 end subroutine pawxc_mkdenpos_wrapper
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_pawxc/pawxc
 !! NAME
 !! pawxc
 !!
 !! FUNCTION
-!! PAW only
 !! Start from the density or spin-density, and compute xc correlation
 !! potential and energies inside a paw sphere.
 !! USE THE DENSITY OVER A WHOLE SPHERICAL GRID (r,theta,phi)
 !! Driver of XC functionals.
-!!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (FJ, MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!! This routine has been written from rhohxc
 !!
 !! INPUTS
 !!  corexc(pawrad%mesh_size)=core density on radial grid
@@ -1452,26 +1417,19 @@ subroutine pawxc(corexc,enxc,enxcdc,ixc,kxc,lm_size,lmselect,nhat,nkxc,nspden,op
 
  DBG_EXIT("COLL")
 
- end subroutine pawxc
+end subroutine pawxc
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_pawxc/pawxcpositron
 !! NAME
 !! pawxcpositron
 !!
 !! FUNCTION
-!! PAW only
 !! Compute electron-positron correlation potential and energies inside a PAW sphere
 !! LDA ONLY - USE THE DENSITY OVER A WHOLE SPHERICAL GRID (r,theta,phi)
 !! Driver of XC functionals.
-!!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (MT,GJ)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
 !!
 !! INPUTS
 !!  calctype=type of electronpositron calculation:
@@ -1744,27 +1702,19 @@ subroutine pawxcpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmselec
 
  DBG_EXIT("COLL")
 
- end subroutine pawxcpositron
+end subroutine pawxcpositron
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_pawxc/pawxc3_gga
 !! NAME
 !! pawxc3_gga
 !!
 !! FUNCTION
-!! PAW only
 !! Compute first-order change of XC potential and contribution to
 !! 2nd-order change of XC energy inside a PAW sphere.
 !! LDA+GGA - USE THE DENSITY OVER A WHOLE SPHERICAL GRID (r,theta,phi)
-!!
-!! COPYRIGHT
-!! Copyright (C) 2009-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!! This routine has been written from rhohxc
 !!
 !! INPUTS
 !!  corexc1(cplex_den*pawrad%mesh_size)=first-order change of core density on radial grid
@@ -2593,27 +2543,19 @@ subroutine pawxc3_gga(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselec
 
  DBG_EXIT("COLL")
 
- end subroutine pawxc3_gga
+end subroutine pawxc3_gga
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_pawxc/pawxc3
 !! NAME
 !! pawxc3
 !!
 !! FUNCTION
-!! PAW only
 !! Compute first-order change of XC potential and contribution to
 !! 2nd-order change of XC energy inside a PAW sphere.
 !! LDA ONLY - USE THE DENSITY OVER A WHOLE SPHERICAL GRID (r,theta,phi)
-!!
-!! COPYRIGHT
-!! Copyright (C) 2009-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!! This routine has been written from rhohxc
 !!
 !! INPUTS
 !!  corexc1(cplex_den*pawrad%mesh_size)=first-order change of core density on radial grid
@@ -3032,26 +2974,18 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 
  DBG_EXIT("COLL")
 
- end subroutine pawxc3
+end subroutine pawxc3
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_pawxc/pawxcsph
 !! NAME
 !! pawxcsph
 !!
 !! FUNCTION
-!! PAW only
 !! Compute XC energy and potential for a spherical density rho(r) given as (up,dn)
 !! Driver of XC functionals. Only treat collinear spins. LDA and GGA
-!!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (FJ,MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!! This routine has been written from rhohxc_coll
 !!
 !! INPUTS
 !!  exexch= choice of local exact exchange. Active if exexch>0
@@ -3295,27 +3229,19 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
    ABI_DEALLOCATE(grho_updn)
  end if
 
- end subroutine pawxcsph
+end subroutine pawxcsph
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_pawxc/pawxcsph3
 !! NAME
 !! pawxcsph3
 !!
 !! FUNCTION
-!! PAW only
 !! Compute XC 1st-order potential for a 1st-order spherical density rho1(r)
 !! associated to a spherical density, both given as (up,dn)
 !! Driver of XC functionals. Only treat collinear spins. LDA and GGA
-!!
-!! COPYRIGHT
-!! Copyright (C) 2012-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!! This routine has been written from rhohxc_coll
 !!
 !! INPUTS
 !!  cplex_den= if 1, 1st-order densities are REAL, if 2, COMPLEX
@@ -3343,7 +3269,7 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !! SOURCE
 
 
- subroutine pawxcsph3(cplex_den,cplex_vxc,ixc,nrad,nspden,pawrad,rho_updn,rho1_updn,vxc1,xclevel)
+subroutine pawxcsph3(cplex_den,cplex_vxc,ixc,nrad,nspden,pawrad,rho_updn,rho1_updn,vxc1,xclevel)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -3582,26 +3508,18 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
    ABI_DEALLOCATE(grho1_updn)
  end if
 
- end subroutine pawxcsph3
+end subroutine pawxcsph3
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_pawxc/pawxcsphpositron
 !! NAME
 !! pawxcsphpositron
 !!
 !! FUNCTION
-!! PAW only
 !! Compute electron-positron XC energy and potential for spherical densities rho_el(r) rho_pos(r)
 !! Driver of XC functionals. LDA and GGA
-!!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!! This routine has been written from rhohxc_coll
 !!
 !! INPUTS
 !!  calctype=type of electron-positron calculation:
@@ -3709,18 +3627,17 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
  ABI_DEALLOCATE(vxcegr)
  ABI_DEALLOCATE(rhograd)
 
- end subroutine pawxcsphpositron
+end subroutine pawxcsphpositron
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_pawxc/pawxcsum
 !! NAME
 !! pawxcsum
 !!
 !! FUNCTION
-!! PAW only:
-!! Compute useful sums of moments of densities needed to compute on-site contributions
-!! to XC energy and potential
+!! Compute useful sums of moments of densities needed to compute on-site contributions to XC energy and potential
 !!  First order sums:
 !!    Sum1(1)=Sum_L{Rho1_L(r)**2}
 !!    Sum1(2)=Sum_L{Rho1_L(r)*Rho2_L(r)}
@@ -3731,14 +3648,6 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !!    Sum2(L,2)=Sum_L1_L2{Rho1_L1(r)*Rho2_L2(r)*Gaunt_(L,L1,L2)}
 !!    Sum2(L,3)=Sum_L1_L2{Rho2_L2(r)*Rho2_L2(r)*Gaunt_(L,L1,L2)}
 !!    With L1>0, L2>0
-!!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!! This routine has been written from rhohxc
 !!
 !! INPUTS
 !!  cplex1=if 1, density Rho1 is REAL, if 2, COMPLEX
@@ -4064,25 +3973,17 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
  end subroutine pawxcsum
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_pawxc/pawxcm
 !! NAME
 !! pawxcm
 !!
 !! FUNCTION
-!! PAW only
 !! Start from the density or spin-density, and compute xc correlation
 !! potential and energies inside a paw sphere.
 !! LDA+GGA - USE A DEVELOPMENT OF THE DENSITY OVER (L,M) MOMENTS
 !! Driver of XC functionals.
-!!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (FJ, MT, GJ)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!! This routine has been written from rhohxc
 !!
 !! INPUTS
 !!  corexc(pawrad%mesh_size)=core density on radial grid
@@ -4898,25 +4799,16 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
  end subroutine pawxcm
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_pawxc/pawxcm3
 !! NAME
 !! pawxcm3
 !!
 !! FUNCTION
-!! PAW only
-!! PAW only
 !! Compute first-order change of XC potential and contribution to
 !! 2nd-order change of XC energy inside a PAW sphere.
 !! LDA+GGA - USE A DEVELOPMENT OF THE DENSITY OVER (L,M) MOMENTS
-!!
-!! COPYRIGHT
-!! Copyright (C) 2009-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!! This routine has been written from rhohxc
 !!
 !! INPUTS
 !!  corexc1(cplex_den*pawrad%mesh_size)=first-order change of core density on radial grid
@@ -5235,23 +5127,16 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
  end subroutine pawxcm3
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_pawxc/pawxcmpositron
 !! NAME
 !! pawxcmpositron
 !!
 !! FUNCTION
-!! PAW only
 !! Compute electron-positron correlation potential and energies inside a PAW sphere
 !! LDA+GGA - USE A DEVELOPMENT OF THE DENSITY OVER (L,M) MOMENTS
 !! Driver of XC functionals.
-!!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (MT,GJ)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
 !!
 !! INPUTS
 !!  calctype=type of electron-positron calculation:
@@ -5309,9 +5194,9 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !!
 !! SOURCE
 
- subroutine pawxcmpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmselect,lmselect_ep,&
- &                         nhat,nhat_ep,nspden,option,pawang,pawrad,pawxcdev,posdensity0_limit,&
- &                         rhor,rhor_ep,usecore,usexcnhat,vxc,xc_denpos)
+subroutine pawxcmpositron(calctype,corexc,enxc,enxcdc,ixcpositron,lm_size,lmselect,lmselect_ep,&
+&                         nhat,nhat_ep,nspden,option,pawang,pawrad,pawxcdev,posdensity0_limit,&
+&                         rhor,rhor_ep,usecore,usexcnhat,vxc,xc_denpos)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -5551,9 +5436,13 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !  V2SUM3(r,L)=Sum_L1_L2{n^pos_L1(r)*n^pos_L2(r)*Gaunt_(L,L1,L2)}
    if (pawxcdev>=1)  then
      ABI_ALLOCATE(v1sum,(nrad,3))
+   else
+     ABI_ALLOCATE(v1sum,(0,0))
    end if
    if (pawxcdev>=2)  then
      ABI_ALLOCATE(v2sum,(nrad,lm_size,3))
+   else
+     ABI_ALLOCATE(v2sum,(0,0,0))
    end if
    call pawxcsum(1,1,1,lmselect,lmselect_ep,lm_size,nrad,3,pawxcdev,pawang,rhotot,rhotot_ep,v1sum,v2sum)
 
@@ -5710,10 +5599,8 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
  end if ! option/=1
 
  ABI_DEALLOCATE(fxci)
- if (pawxcdev>=1.and.(option<3.or.option/=1))  then
+ if (option<3.or.option/=1)  then
    ABI_DEALLOCATE(v1sum)
- end if
- if (pawxcdev>=2.and.(option<3.or.option/=1))  then
    ABI_DEALLOCATE(v2sum)
  end if
  if (option<3.or.(option/=4.and.pawxcdev>1))   then
@@ -5748,9 +5635,11 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 
 !----- End of routine
  DBG_EXIT("COLL")
- end subroutine pawxcmpositron
+
+end subroutine pawxcmpositron
 !!***
 
+!----------------------------------------------------------------------
 
 !!****f* m_pawxc/pawxc_drivexc_main_wrapper
 !! NAME
@@ -5759,14 +5648,6 @@ subroutine pawxc3(corexc1,cplex_den,cplex_vxc,d2enxc,ixc,kxc,lm_size,lmselect,nh
 !! FUNCTION
 !! PAW only
 !! Wrapper for drivexc routines
-!!
-!! COPYRIGHT
-!! Copyright (C) 2013-2014 ABINIT group (TRangel)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!! INPUTS
 !!
 !! OUTPUT
 !!
@@ -5845,16 +5726,9 @@ contains
 !!
 !! FUNCTION
 !!
-!! COPYRIGHT
-!! Copyright (C) 2013-2014 ABINIT group (TRangel,MT)
-!!  This file is distributed under the terms of the
-!!  GNU General Public License, see ~abinit/COPYING
-!!  or http://www.gnu.org/copyleft/gpl.txt .
-!!
 !! INPUTS
 !!
 !! OUTPUT
-!!
 !!
 !! SIDE EFFECTS
 !!
@@ -5880,15 +5754,13 @@ subroutine pawxc_libxc()
  !use interfaces_41_xc_lowlevel
 !End of the abilint section
 
-implicit none
+ implicit none
 
 !Arguments ------------------------------------
-!scalars
 !Local variables-------------------------------
 !scalars
  real(dp) :: xc_tb09_c_
  character(len=500) :: msg
-!arrays
 
 ! *************************************************************************
 
@@ -5997,6 +5869,8 @@ implicit none
 
 end subroutine pawxc_libxc
 !!***
+
+!----------------------------------------------------------------------
 
 end subroutine pawxc_drivexc_main_wrapper
 !!***

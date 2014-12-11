@@ -646,8 +646,8 @@ contains
      use module_base
      use m_pawpsp, only: pawpsp_main, pawpsp_read_header, pawpsp_read_header_2
      use defs_basis, only: tol14, fnlen
-     use m_pawrad, only: pawrad_type, pawrad_nullify, pawrad_destroy
-     use m_pawtab, only: pawtab_type, pawtab_nullify, pawtab_destroy
+     use m_pawrad, only: pawrad_type, pawrad_free
+     use m_pawtab, only: pawtab_type, pawtab_nullify, pawtab_free
      implicit none
      integer:: icoulomb,ipsp,ixc,lnmax
      integer:: lloc,l_size,lmax,mmax,pspcod,pspxc
@@ -717,7 +717,6 @@ contains
      comm_mpi=bigdft_mpi%mpi_comm  
      mesh_size=mmax
 
-     call pawrad_nullify(pawrad)
      call pawtab_nullify(pawtab)
 
      close(11)
@@ -741,8 +740,8 @@ contains
      write(*,'("psppar(0:1,0)= ",2f10.7)')psppar(0:1,0)
 
    ! Destroy and deallocate objects
-     call pawrad_destroy(pawrad)
-     call pawtab_destroy(pawtab)
+     call pawrad_free(pawrad)
+     call pawtab_free(pawtab)
 
    call f_free(qgrid_ff)
    call f_free(qgrid_vl)

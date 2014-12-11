@@ -26,27 +26,11 @@
 !!  Sends data from all to all processes.
 !!  Target: integer mono dimensional arrays.
 !!
-!! COPYRIGHT
-!!  Copyright (C) 2001-2014 ABINIT group (AR,XG)
-!!  This file is distributed under the terms of the
-!!  GNU General Public License, see ~ABINIT/COPYING
-!!  or http://www.gnu.org/copyleft/gpl.txt .
-!!
-!! INPUTS
-!!
-!! OUTPUT
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_alltoall
-!!
 !! SOURCE
 
 subroutine xmpi_alltoall_int(xval, sendsize, recvbuf, recvsize, spaceComm, ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -57,11 +41,11 @@ subroutine xmpi_alltoall_int(xval, sendsize, recvbuf, recvsize, spaceComm, ier)
  implicit none
 
 !Arguments-------------------------
- integer,intent(in)    :: xval(:)
- integer,intent(inout) :: recvbuf(:)
- integer ,intent(in)    :: sendsize, recvsize
- integer ,intent(in)    :: spaceComm
- integer ,intent(out)   :: ier
+ integer, DEV_CONTARRD intent(in) :: xval(:)
+ integer, DEV_CONTARRD intent(inout) :: recvbuf(:)
+ integer ,intent(in) :: sendsize, recvsize
+ integer ,intent(in) :: spaceComm
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 
@@ -79,6 +63,7 @@ subroutine xmpi_alltoall_int(xval, sendsize, recvbuf, recvsize, spaceComm, ier)
 #else
  recvbuf=xval
 #endif
+
 end subroutine xmpi_alltoall_int
 !!***
 
@@ -90,27 +75,11 @@ end subroutine xmpi_alltoall_int
 !!  Sends data from all to all processes.
 !!  Target: double precision two-dimensional arrays.
 !!
-!! COPYRIGHT
-!!  Copyright (C) 2001-2014 ABINIT group (AR,XG)
-!!  This file is distributed under the terms of the
-!!  GNU General Public License, see ~ABINIT/COPYING
-!!  or http://www.gnu.org/copyleft/gpl.txt .
-!!
-!! INPUTS
-!!
-!! OUTPUT
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_alltoall
-!!
 !! SOURCE
 
 subroutine xmpi_alltoall_dp2d(xval, sendsize, recvbuf, recvsize, spaceComm, ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -121,13 +90,11 @@ subroutine xmpi_alltoall_dp2d(xval, sendsize, recvbuf, recvsize, spaceComm, ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(in)    :: xval(:,:)
- real(dp),intent(inout) :: recvbuf(:,:)
- integer ,intent(in)    :: sendsize, recvsize
- integer ,intent(in)    :: spaceComm
- integer ,intent(out)   :: ier
-
-!Local variables-------------------
+ real(dp), DEV_CONTARRD intent(in)    :: xval(:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: recvbuf(:,:)
+ integer ,intent(in) :: sendsize, recvsize
+ integer ,intent(in) :: spaceComm
+ integer ,intent(out) :: ier
 
 ! *************************************************************************
 
@@ -143,6 +110,7 @@ subroutine xmpi_alltoall_dp2d(xval, sendsize, recvbuf, recvsize, spaceComm, ier)
 #else
  recvbuf=xval
 #endif
+
 end subroutine xmpi_alltoall_dp2d
 !!***
 
@@ -154,21 +122,11 @@ end subroutine xmpi_alltoall_dp2d
 !!  Sends data from all to all processes.
 !!  Target: double precision four-dimensional arrays.
 !!
-!! INPUTS
-!!
-!! OUTPUT
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_alltoall
-!!
 !! SOURCE
 
 subroutine xmpi_alltoall_dp4d(xval, sendsize, recvbuf, recvsize, spaceComm, ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -179,13 +137,11 @@ subroutine xmpi_alltoall_dp4d(xval, sendsize, recvbuf, recvsize, spaceComm, ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(in)    :: xval(:,:,:,:)
- real(dp),intent(inout) :: recvbuf(:,:,:,:)
- integer ,intent(in)    :: sendsize, recvsize
- integer ,intent(in)    :: spaceComm
- integer ,intent(out)   :: ier
-
-!Local variables-------------------
+ real(dp), DEV_CONTARRD intent(in)    :: xval(:,:,:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: recvbuf(:,:,:,:)
+ integer ,intent(in) :: sendsize, recvsize
+ integer ,intent(in) :: spaceComm
+ integer ,intent(out) :: ier
 
 ! *************************************************************************
 

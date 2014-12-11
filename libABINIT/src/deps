@@ -18,7 +18,7 @@ interfaces_12_hide_mpi.o: 12_hide_mpi/interfaces_12_hide_mpi.F90
 
 m_xmpi.o: 12_hide_mpi/m_xmpi.F90 \
 	defs_basis.o \
-	m_profiling.o \
+	m_profiling_abi.o \
 	$(mpi_include)
 	$(PPFCCOMPILE) -c -o m_xmpi.o `test -f '12_hide_mpi/m_xmpi.F90' || echo '$(srcdir)/'`12_hide_mpi/m_xmpi.F90
 
@@ -41,7 +41,7 @@ wrtout.o: 14_hidewrite/wrtout.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
 	m_io_tools.o \
-	m_profiling.o \
+	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o wrtout.o `test -f '14_hidewrite/wrtout.F90' || echo '$(srcdir)/'`14_hidewrite/wrtout.F90
 
@@ -60,9 +60,7 @@ m_errors.o: 16_hideleave/m_errors.F90 \
 	interfaces_16_hideleave.o \
 	m_fstrings.o \
 	m_io_tools.o \
-	m_xieee.o \
 	m_xmpi.o \
-	m_xomp.o \
 	$(mpi_include)
 	$(PPFCCOMPILE) -c -o m_errors.o `test -f '16_hideleave/m_errors.F90' || echo '$(srcdir)/'`16_hideleave/m_errors.F90
 
@@ -73,6 +71,11 @@ m_profiling.o: 18_memory/m_profiling.F90 \
 	defs_basis.o \
 	$(mpi_include)
 	$(PPFCCOMPILE) -c -o m_profiling.o `test -f '18_memory/m_profiling.F90' || echo '$(srcdir)/'`18_memory/m_profiling.F90
+
+m_profiling_abi.o: 18_memory/m_profiling_abi.F90 \
+	defs_basis.o \
+	$(mpi_include)
+	$(PPFCCOMPILE) -c -o m_profiling_abi.o `test -f '18_memory/m_profiling_abi.F90' || echo '$(srcdir)/'`18_memory/m_profiling_abi.F90
 
 interfaces_18_timing.o: 18_timing/interfaces_18_timing.F90 \
 	defs_basis.o
@@ -266,6 +269,10 @@ chkprimit.o: 42_geometry/chkprimit.F90 \
 	interfaces_14_hidewrite.o \
 	interfaces_16_hideleave.o
 	$(PPFCCOMPILE) -c -o chkprimit.o `test -f '42_geometry/chkprimit.F90' || echo '$(srcdir)/'`42_geometry/chkprimit.F90
+
+fortran-symmetry.o: 42_geometry/fortran-symmetry.f90 \
+	iso_c_binding.o
+	$(FCCOMPILE) -c -o fortran-symmetry.o `test -f '42_geometry/fortran-symmetry.f90' || echo '$(srcdir)/'`42_geometry/fortran-symmetry.f90
 
 gensymshub.o: 42_geometry/gensymshub.F90 \
 	defs_basis.o \
@@ -520,7 +527,7 @@ m_atompaw.o: 42_libpaw/m_atompaw.F90 \
 	m_paw_numeric.o \
 	m_pawrad.o \
 	m_pawtab.o \
-	m_profiling.o
+	m_profiling_abi.o
 	$(PPFCCOMPILE) -c -o m_atompaw.o `test -f '42_libpaw/m_atompaw.F90' || echo '$(srcdir)/'`42_libpaw/m_atompaw.F90
 
 m_gaussfit.o: 42_libpaw/m_gaussfit.F90 \
@@ -529,14 +536,14 @@ m_gaussfit.o: 42_libpaw/m_gaussfit.F90 \
 	m_errors.o \
 	m_paw_numeric.o \
 	m_pawrad.o \
-	m_profiling.o \
+	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_gaussfit.o `test -f '42_libpaw/m_gaussfit.F90' || echo '$(srcdir)/'`42_libpaw/m_gaussfit.F90
 
 m_paral_atom.o: 42_libpaw/m_paral_atom.F90 \
 	defs_basis.o \
 	m_errors.o \
-	m_profiling.o \
+	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_paral_atom.o `test -f '42_libpaw/m_paral_atom.F90' || echo '$(srcdir)/'`42_libpaw/m_paral_atom.F90
 
@@ -547,7 +554,7 @@ m_paw_an.o: 42_libpaw/m_paw_an.F90 \
 	m_paral_atom.o \
 	m_pawang.o \
 	m_pawtab.o \
-	m_profiling.o \
+	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_paw_an.o `test -f '42_libpaw/m_paw_an.F90' || echo '$(srcdir)/'`42_libpaw/m_paw_an.F90
 
@@ -556,7 +563,7 @@ m_paw_finegrid.o: 42_libpaw/m_paw_finegrid.F90 \
 	m_errors.o \
 	m_paw_numeric.o \
 	m_pawtab.o \
-	m_profiling.o \
+	m_profiling_abi.o \
 	m_sphharm.o
 	$(PPFCCOMPILE) -c -o m_paw_finegrid.o `test -f '42_libpaw/m_paw_finegrid.F90' || echo '$(srcdir)/'`42_libpaw/m_paw_finegrid.F90
 
@@ -567,21 +574,21 @@ m_paw_ij.o: 42_libpaw/m_paw_ij.F90 \
 	m_paral_atom.o \
 	m_pawio.o \
 	m_pawtab.o \
-	m_profiling.o \
+	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_paw_ij.o `test -f '42_libpaw/m_paw_ij.F90' || echo '$(srcdir)/'`42_libpaw/m_paw_ij.F90
 
 m_paw_numeric.o: 42_libpaw/m_paw_numeric.F90 \
 	defs_basis.o \
 	m_errors.o \
-	m_profiling.o
+	m_profiling_abi.o
 	$(PPFCCOMPILE) -c -o m_paw_numeric.o `test -f '42_libpaw/m_paw_numeric.F90' || echo '$(srcdir)/'`42_libpaw/m_paw_numeric.F90
 
 m_pawang.o: 42_libpaw/m_pawang.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
 	m_errors.o \
-	m_profiling.o \
+	m_profiling_abi.o \
 	m_sphharm.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_pawang.o `test -f '42_libpaw/m_pawang.F90' || echo '$(srcdir)/'`42_libpaw/m_pawang.F90
@@ -590,7 +597,7 @@ m_pawcprj.o: 42_libpaw/m_pawcprj.F90 \
 	defs_basis.o \
 	m_errors.o \
 	m_pawtab.o \
-	m_profiling.o \
+	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_pawcprj.o `test -f '42_libpaw/m_pawcprj.F90' || echo '$(srcdir)/'`42_libpaw/m_pawcprj.F90
 
@@ -600,15 +607,15 @@ m_pawdij.o: 42_libpaw/m_pawdij.F90 \
 	m_errors.o \
 	m_paral_atom.o \
 	m_paw_an.o \
-	m_pawang.o \
-	m_pawfgrtab.o \
 	m_paw_finegrid.o \
 	m_paw_ij.o \
+	m_pawang.o \
+	m_pawfgrtab.o \
 	m_pawio.o \
 	m_pawrad.o \
 	m_pawrhoij.o \
 	m_pawtab.o \
-	m_profiling.o \
+	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_pawdij.o `test -f '42_libpaw/m_pawdij.F90' || echo '$(srcdir)/'`42_libpaw/m_pawdij.F90
 
@@ -617,7 +624,7 @@ m_pawfgrtab.o: 42_libpaw/m_pawfgrtab.F90 \
 	interfaces_14_hidewrite.o \
 	m_errors.o \
 	m_paral_atom.o \
-	m_profiling.o \
+	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_pawfgrtab.o `test -f '42_libpaw/m_pawfgrtab.F90' || echo '$(srcdir)/'`42_libpaw/m_pawfgrtab.F90
 
@@ -625,7 +632,7 @@ m_pawio.o: 42_libpaw/m_pawio.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
 	m_errors.o \
-	m_profiling.o
+	m_profiling_abi.o
 	$(PPFCCOMPILE) -c -o m_pawio.o `test -f '42_libpaw/m_pawio.F90' || echo '$(srcdir)/'`42_libpaw/m_pawio.F90
 
 m_pawpsp.o: 42_libpaw/m_pawpsp.F90 \
@@ -636,13 +643,13 @@ m_pawpsp.o: 42_libpaw/m_pawpsp.F90 \
 	m_errors.o \
 	m_fstrings.o \
 	m_gaussfit.o \
-	m_pawang.o \
 	m_paw_numeric.o \
+	m_pawang.o \
 	m_pawrad.o \
 	m_pawtab.o \
 	m_pawxc.o \
 	m_pawxmlps.o \
-	m_profiling.o \
+	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_pawpsp.o `test -f '42_libpaw/m_pawpsp.F90' || echo '$(srcdir)/'`42_libpaw/m_pawpsp.F90
 
@@ -650,7 +657,7 @@ m_pawrad.o: 42_libpaw/m_pawrad.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
 	m_errors.o \
-	m_profiling.o \
+	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_pawrad.o `test -f '42_libpaw/m_pawrad.F90' || echo '$(srcdir)/'`42_libpaw/m_pawrad.F90
 
@@ -664,7 +671,7 @@ m_pawrhoij.o: 42_libpaw/m_pawrhoij.F90 \
 	m_pawang.o \
 	m_pawio.o \
 	m_pawtab.o \
-	m_profiling.o \
+	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_pawrhoij.o `test -f '42_libpaw/m_pawrhoij.F90' || echo '$(srcdir)/'`42_libpaw/m_pawrhoij.F90
 
@@ -672,7 +679,7 @@ m_pawtab.o: 42_libpaw/m_pawtab.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
 	m_errors.o \
-	m_profiling.o \
+	m_profiling_abi.o \
 	m_xmpi.o
 	$(PPFCCOMPILE) -c -o m_pawtab.o `test -f '42_libpaw/m_pawtab.F90' || echo '$(srcdir)/'`42_libpaw/m_pawtab.F90
 
@@ -682,7 +689,7 @@ m_pawxc.o: 42_libpaw/m_pawxc.F90 \
 	m_errors.o \
 	m_pawang.o \
 	m_pawrad.o \
-	m_profiling.o
+	m_profiling_abi.o
 	$(PPFCCOMPILE) -c -o m_pawxc.o `test -f '42_libpaw/m_pawxc.F90' || echo '$(srcdir)/'`42_libpaw/m_pawxc.F90
 
 m_pawxmlps.o: 42_libpaw/m_pawxmlps.F90 \
@@ -690,14 +697,14 @@ m_pawxmlps.o: 42_libpaw/m_pawxmlps.F90 \
 	m_errors.o \
 	m_paw_numeric.o \
 	m_pawrad.o \
-	m_profiling.o
+	m_profiling_abi.o
 	$(PPFCCOMPILE) -c -o m_pawxmlps.o `test -f '42_libpaw/m_pawxmlps.F90' || echo '$(srcdir)/'`42_libpaw/m_pawxmlps.F90
 
 m_sphharm.o: 42_libpaw/m_sphharm.F90 \
 	defs_basis.o \
 	interfaces_14_hidewrite.o \
 	m_errors.o \
-	m_profiling.o
+	m_profiling_abi.o
 	$(PPFCCOMPILE) -c -o m_sphharm.o `test -f '42_libpaw/m_sphharm.F90' || echo '$(srcdir)/'`42_libpaw/m_sphharm.F90
 
 defs_abitypes.o: 50_abitypes_defs/defs_abitypes.F90 \
@@ -846,6 +853,7 @@ prtxvf.o: 67_common/prtxvf.F90 \
 ab6_moldyn.o: 72_geomoptim/ab6_moldyn.F90 \
 	defs_basis.o \
 	defs_basis.o \
+	interfaces_14_hidewrite.o \
 	72_geomoptim/isokinetic.F90 \
 	defs_abitypes.o \
 	defs_basis.o \
@@ -853,22 +861,27 @@ ab6_moldyn.o: 72_geomoptim/ab6_moldyn.F90 \
 	72_geomoptim/isotemp.F90 \
 	defs_basis.o \
 	defs_datatypes.o \
+	interfaces_14_hidewrite.o \
 	72_geomoptim/isothermal.F90 \
 	defs_basis.o \
 	72_geomoptim/langevin.F90 \
 	defs_basis.o \
 	defs_datatypes.o \
+	interfaces_14_hidewrite.o \
 	72_geomoptim/moldyn.F90 \
 	defs_basis.o \
+	interfaces_14_hidewrite.o \
 	72_geomoptim/nose.F90 \
 	defs_basis.o \
+	interfaces_14_hidewrite.o \
 	72_geomoptim/quenched.F90 \
 	defs_basis.o \
 	72_geomoptim/velocity_verlet.F90
 	$(PPFCCOMPILE) -c -o ab6_moldyn.o `test -f '72_geomoptim/ab6_moldyn.F90' || echo '$(srcdir)/'`72_geomoptim/ab6_moldyn.F90
 
 isokinetic.o: 72_geomoptim/isokinetic.F90 \
-	defs_basis.o
+	defs_basis.o \
+	interfaces_14_hidewrite.o
 	$(PPFCCOMPILE) -c -o isokinetic.o `test -f '72_geomoptim/isokinetic.F90' || echo '$(srcdir)/'`72_geomoptim/isokinetic.F90
 
 isotemp.o: 72_geomoptim/isotemp.F90 \
@@ -879,7 +892,8 @@ isotemp.o: 72_geomoptim/isotemp.F90 \
 
 isothermal.o: 72_geomoptim/isothermal.F90 \
 	defs_basis.o \
-	defs_datatypes.o
+	defs_datatypes.o \
+	interfaces_14_hidewrite.o
 	$(PPFCCOMPILE) -c -o isothermal.o `test -f '72_geomoptim/isothermal.F90' || echo '$(srcdir)/'`72_geomoptim/isothermal.F90
 
 langevin.o: 72_geomoptim/langevin.F90 \
@@ -888,18 +902,21 @@ langevin.o: 72_geomoptim/langevin.F90 \
 
 moldyn.o: 72_geomoptim/moldyn.F90 \
 	defs_basis.o \
-	defs_datatypes.o
+	defs_datatypes.o \
+	interfaces_14_hidewrite.o
 	$(PPFCCOMPILE) -c -o moldyn.o `test -f '72_geomoptim/moldyn.F90' || echo '$(srcdir)/'`72_geomoptim/moldyn.F90
 
 nose.o: 72_geomoptim/nose.F90 \
-	defs_basis.o
+	defs_basis.o \
+	interfaces_14_hidewrite.o
 	$(PPFCCOMPILE) -c -o nose.o `test -f '72_geomoptim/nose.F90' || echo '$(srcdir)/'`72_geomoptim/nose.F90
 
 others.o: 72_geomoptim/others.F90
 	$(PPFCCOMPILE) -c -o others.o `test -f '72_geomoptim/others.F90' || echo '$(srcdir)/'`72_geomoptim/others.F90
 
 quenched.o: 72_geomoptim/quenched.F90 \
-	defs_basis.o
+	defs_basis.o \
+	interfaces_14_hidewrite.o
 	$(PPFCCOMPILE) -c -o quenched.o `test -f '72_geomoptim/quenched.F90' || echo '$(srcdir)/'`72_geomoptim/quenched.F90
 
 velocity_verlet.o: 72_geomoptim/velocity_verlet.F90 \

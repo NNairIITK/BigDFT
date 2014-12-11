@@ -15,10 +15,6 @@
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !!
-!! INPUTS
-!!
-!! OUTPUT
-!!
 !! NOTES
 !!  * Routines tagged with "@type_name" are strongly connected to the definition of the data type.
 !!    Strongly connected means that the proper functioning of the implementation relies on the
@@ -43,7 +39,7 @@ MODULE m_pawfgrtab
 
  use defs_basis
  use m_errors
- use m_profiling
+ use m_profiling_abi
  use m_xmpi
 
  use m_paral_atom, only : get_my_atmtab, free_my_atmtab, get_my_natom
@@ -51,19 +47,6 @@ MODULE m_pawfgrtab
  implicit none
 
  private
-
-!public procedures.
- public :: pawfgrtab_init
- public :: pawfgrtab_destroy
- public :: pawfgrtab_nullify
- public :: pawfgrtab_copy
- public :: pawfgrtab_print
- public :: pawfgrtab_gather
- public :: pawfgrtab_redistribute
-
-!private procedures.
- private :: pawfgrtab_isendreceive_getbuffer
- private :: pawfgrtab_isendreceive_fillbuffer
 !!***
 
 !----------------------------------------------------------------------
@@ -79,9 +62,6 @@ MODULE m_pawfgrtab
 !! SOURCE
 
  type,public :: pawfgrtab_type
-
-! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
-! declared in another part of ABINIT, that might need to take into account your modification.
 
 !Integer scalars
 
@@ -173,6 +153,19 @@ MODULE m_pawfgrtab
    ! around considered atom in Cartesian coordinates.
 
  end type pawfgrtab_type
+
+!public procedures.
+ public :: pawfgrtab_init           ! Constructor
+ public :: pawfgrtab_free           ! Free memory
+ public :: pawfgrtab_nullify
+ public :: pawfgrtab_copy           ! Copy the object
+ public :: pawfgrtab_print          ! Print the content of the object.
+ public :: pawfgrtab_gather         ! MPI gather
+ public :: pawfgrtab_redistribute   ! MPI redistribution
+
+!private procedures.
+ private :: pawfgrtab_isendreceive_getbuffer
+ private :: pawfgrtab_isendreceive_fillbuffer
 !!***
 
 CONTAINS
@@ -193,15 +186,15 @@ CONTAINS
 !!  Pawfgrtab(natom) <type(pawfgrtab_type)>=atomic data given on fine rectangular grid
 !!
 !! PARENTS
-!!      bethe_salpeter,classify_bands,d2frnl,denfgr,exc_plot,m_wfs,pawmkaewf
-!!      respfn,scfcv,screening,sigma
+!!      bethe_salpeter,classify_bands,d2frnl,d2frnl_bec,denfgr,exc_plot,m_wfs
+!!      pawmkaewf,respfn,scfcv,screening,sigma
 !!
 !! CHILDREN
 !!
 !! SOURCE
 
 subroutine pawfgrtab_init(Pawfgrtab,cplex,l_size_atm,nspden,typat,&
-&                         mpi_atmtab,mpi_comm_atom ) ! optional arguments (parallelism)
+&                         mpi_atmtab,comm_atom) ! optional arguments (parallelism)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -217,13 +210,13 @@ subroutine pawfgrtab_init(Pawfgrtab,cplex,l_size_atm,nspden,typat,&
  integer,intent(in) :: cplex,nspden
 !arrays
  integer,intent(in) :: l_size_atm(:),typat(:)
- integer,optional,intent(in) :: mpi_comm_atom
+ integer,optional,intent(in) :: comm_atom
  integer,optional,target,intent(in) :: mpi_atmtab(:)
  type(Pawfgrtab_type),intent(inout) :: Pawfgrtab(:)
 
 !Local variables-------------------------------
 !scalars
- integer :: iat,iatom_tot,my_natom,natom
+ integer :: iat,iatom_tot,my_comm_atom,my_natom,natom
  logical :: my_atmtab_allocated,paral_atom
  character(len=500) :: msg
 !arrays
@@ -243,12 +236,10 @@ subroutine pawfgrtab_init(Pawfgrtab,cplex,l_size_atm,nspden,typat,&
  end if
 
 !Set up parallelism over atoms
- paral_atom=(present(mpi_comm_atom).and.(my_natom/=natom))
+ paral_atom=(present(comm_atom).and.(my_natom/=natom))
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
- my_atmtab_allocated = .False.
- if (paral_atom) then
-   call get_my_atmtab(mpi_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom,my_natom_ref=my_natom)
- end if
+ my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
+ call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom,my_natom_ref=my_natom)
 
  call pawfgrtab_nullify(Pawfgrtab)
 
@@ -287,9 +278,9 @@ end subroutine pawfgrtab_init
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawfgrtab/pawfgrtab_destroy
+!!****f* m_pawfgrtab/pawfgrtab_free
 !! NAME
-!! pawfgrtab_destroy
+!! pawfgrtab_free
 !!
 !! FUNCTION
 !!  Free all dynamic memory stored in a pawfgrtab datastructure
@@ -298,20 +289,21 @@ end subroutine pawfgrtab_init
 !!  Pawfgrtab(natom) <type(pawfgrtab_type)>=atomic data given on fine rectangular grid
 !!
 !! PARENTS
-!!      bethe_salpeter,classify_bands,d2frnl,denfgr,exc_plot,m_paral_pert
-!!      m_pawfgrtab,m_wfs,pawgrnl,pawmkaewf,respfn,scfcv,screening,sigma
+!!      bethe_salpeter,classify_bands,d2frnl,d2frnl_bec,denfgr,exc_plot
+!!      m_paral_pert,m_pawfgrtab,m_wfs,pawgrnl,pawmkaewf,respfn,scfcv,screening
+!!      sigma
 !!
 !! CHILDREN
 !!
 !! SOURCE
 
-subroutine pawfgrtab_destroy(Pawfgrtab)
+subroutine pawfgrtab_free(Pawfgrtab)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawfgrtab_destroy'
+#define ABI_FUNC 'pawfgrtab_free'
 !End of the abilint section
 
  implicit none
@@ -367,7 +359,7 @@ subroutine pawfgrtab_destroy(Pawfgrtab)
 
  DBG_EXIT("COLL")
 
-end subroutine pawfgrtab_destroy
+end subroutine pawfgrtab_free
 !!***
 
 !----------------------------------------------------------------------
@@ -448,7 +440,7 @@ end subroutine pawfgrtab_nullify
 !!
 !! INPUTS
 !!  mpi_atmtab(:)=--optional-- indexes of the atoms treated by current proc
-!!  mpi_comm_atom=--optional-- MPI communicator over atoms
+!!  comm_atom=--optional-- MPI communicator over atoms
 !!  pawfgrtab_in(:)<type(pawfgrtab_type)>= input paw_an datastructure
 !!
 !! SIDE EFFECTS
@@ -465,7 +457,7 @@ end subroutine pawfgrtab_nullify
 !! SOURCE
 
 subroutine pawfgrtab_copy(pawfgrtab_in,pawfgrtab_cp, &
-&                         mpi_atmtab,mpi_comm_atom) ! optional arguments
+&                         mpi_atmtab,comm_atom) ! optional arguments
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -478,7 +470,7 @@ subroutine pawfgrtab_copy(pawfgrtab_in,pawfgrtab_cp, &
 
 !Arguments ------------------------------------
 !scalars
-integer,optional,intent(in) :: mpi_comm_atom
+integer,optional,intent(in) :: comm_atom
 !arrays
  integer,optional,target,intent(in) :: mpi_atmtab(:)
  type(Pawfgrtab_type),intent(in) :: pawfgrtab_in(:)
@@ -486,7 +478,7 @@ integer,optional,intent(in) :: mpi_comm_atom
 
 !Local variables-------------------------------
 !scalars
- integer :: ij,ij1,istat,l_size,l_size2,my_natom,nfgd,nspden,paral_case
+ integer :: ij,ij1,istat,l_size,l_size2,my_comm_atom,my_natom,nfgd,nspden,paral_case
  integer :: siz_in, siz_max, siz_out
  logical ::  my_atmtab_allocated,paral_atom
  character(len=500) :: msg
@@ -504,8 +496,9 @@ integer,optional,intent(in) :: mpi_comm_atom
  siz_in=size(pawfgrtab_in);siz_out=size(pawfgrtab_cp)
 
 !Set up parallelism over atoms
- paral_atom=(present(mpi_comm_atom));if (paral_atom) paral_atom=(xcomm_size(mpi_comm_atom)>1)
+ paral_atom=(present(comm_atom));if (paral_atom) paral_atom=(xcomm_size(comm_atom)>1)
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
+ my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
  my_atmtab_allocated=.false.
 
 !Determine in which case we are (parallelism, ...)
@@ -514,9 +507,9 @@ integer,optional,intent(in) :: mpi_comm_atom
  pawfgrtab_out => pawfgrtab_cp
  if (paral_atom) then
    if (siz_out<siz_in) then ! Parallelism: the copy operation is a scatter
-     call get_my_natom(mpi_comm_atom,my_natom,siz_in)
+     call get_my_natom(my_comm_atom,my_natom,siz_in)
      if (my_natom==siz_out) then
-       call get_my_atmtab(mpi_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,siz_in)
+       call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,siz_in)
        paral_case=1;siz_max=siz_out
        pawfgrtab_out => pawfgrtab_cp
      else
@@ -524,7 +517,7 @@ integer,optional,intent(in) :: mpi_comm_atom
        MSG_BUG(msg)
      end if
    else                            ! Parallelism: the copy operation is a gather
-     call get_my_natom(mpi_comm_atom,my_natom,siz_out)
+     call get_my_natom(my_comm_atom,my_natom,siz_out)
      if (my_natom==siz_in) then
        paral_case=2;siz_max=siz_in
      else
@@ -590,7 +583,7 @@ integer,optional,intent(in) :: mpi_comm_atom
 
 !Second case: a gather
  if (paral_case==2) then
-   call pawfgrtab_gather(pawfgrtab_in,pawfgrtab_cp,mpi_comm_atom,istat,my_atmtab)
+   call pawfgrtab_gather(pawfgrtab_in,pawfgrtab_cp,my_comm_atom,istat,my_atmtab)
  end if
 
 !Destroy atom table used for parallelism
@@ -616,7 +609,7 @@ end subroutine pawfgrtab_copy
 !!  [unit]=Unit number for output, std_out if None.
 !!  [prtvol]=Verbosity level, lowest if None.
 !!  [mpi_atmtab(:)]=indexes of the atoms treated by current proc
-!!  [mpi_comm_atom]=MPI communicator over atoms
+!!  [comm_atom]=MPI communicator over atoms
 !!  [natom]=total number of atom (needed if parallelism over atoms is activated)
 !!          if Pawfgrtab is distributed, natom is different from size(Pawfgrtab).
 !!
@@ -630,7 +623,7 @@ end subroutine pawfgrtab_copy
 !!
 !! SOURCE
 
-subroutine pawfgrtab_print(Pawfgrtab,natom,unit,prtvol,mode_paral,mpi_atmtab,mpi_comm_atom)
+subroutine pawfgrtab_print(Pawfgrtab,natom,unit,prtvol,mode_paral,mpi_atmtab,comm_atom)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -644,7 +637,7 @@ subroutine pawfgrtab_print(Pawfgrtab,natom,unit,prtvol,mode_paral,mpi_atmtab,mpi
 
 !Arguments ------------------------------------
 !scalars
- integer,optional,intent(in) :: mpi_comm_atom,natom,prtvol,unit
+ integer,optional,intent(in) :: comm_atom,natom,prtvol,unit
  character(len=4),optional,intent(in) :: mode_paral
 !arrays
  type(Pawfgrtab_type),intent(inout) :: Pawfgrtab(:)
@@ -652,7 +645,7 @@ subroutine pawfgrtab_print(Pawfgrtab,natom,unit,prtvol,mode_paral,mpi_atmtab,mpi
 
 !Local variables-------------------------------
 !scalars
- integer :: iat,iatom_tot,my_natom,my_unt,my_prtvol,size_Pawfgrtab
+ integer :: iat,iatom_tot,my_comm_atom,my_natom,my_unt,my_prtvol,size_Pawfgrtab
  logical :: my_atmtab_allocated,paral_atom
  character(len=4) :: my_mode
  character(len=500) :: msg
@@ -673,13 +666,11 @@ subroutine pawfgrtab_print(Pawfgrtab,natom,unit,prtvol,mode_paral,mpi_atmtab,mpi
  my_natom=size_Pawfgrtab; if (PRESENT(natom))  my_natom=natom
 
 !Set up parallelism over atoms
- paral_atom=(present(mpi_comm_atom).and.my_natom/=size_Pawfgrtab)
+ paral_atom=(present(comm_atom).and.my_natom/=size_Pawfgrtab)
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
- my_atmtab_allocated = .False.
- if (paral_atom) then
-   call get_my_atmtab(mpi_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,&
-&                    my_natom,my_natom_ref=size_Pawfgrtab)
- end if
+ my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
+ call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,&
+&                   my_natom,my_natom_ref=size_Pawfgrtab)
 
  write(msg,'(3a)')ch10,' === Content of the pawfgrtab datatype === ',ch10
  call wrtout(my_unt,msg,my_mode)
@@ -753,7 +744,7 @@ end subroutine pawfgrtab_print
 !!
 !! SOURCE
 
-subroutine pawfgrtab_gather(pawfgrtab,pawfgrtab_gathered,mpi_comm_atom,istat, &
+subroutine pawfgrtab_gather(pawfgrtab,pawfgrtab_gathered,comm_atom,istat, &
 &                           mpi_atmtab) ! optional argument
 
 
@@ -767,7 +758,7 @@ subroutine pawfgrtab_gather(pawfgrtab,pawfgrtab_gathered,mpi_comm_atom,istat, &
 
 !Arguments ------------------------------------
 !scalars
- integer,intent(in) :: mpi_comm_atom
+ integer,intent(in) :: comm_atom
  integer, intent(out) :: istat
 !arrays
  integer,optional,target,intent(in) :: mpi_atmtab(:)
@@ -799,9 +790,9 @@ subroutine pawfgrtab_gather(pawfgrtab,pawfgrtab_gathered,mpi_comm_atom,istat, &
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
  my_atmtab_allocated = .False.
  if (paral_atom) then
-   call get_my_atmtab(mpi_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom,my_natom_ref=my_natom)
+   call get_my_atmtab(comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom,my_natom_ref=my_natom)
  end if
- nproc_atom=xcomm_size(mpi_comm_atom)
+ nproc_atom=xcomm_size(comm_atom)
 
 !Without parallelism, just copy input to output
  if (.not.paral_atom) then
@@ -924,11 +915,11 @@ subroutine pawfgrtab_gather(pawfgrtab,pawfgrtab_gathered,mpi_comm_atom,istat, &
 
 !Communicate
  call xmpi_allgatherv(buf_int,buf_int_size,buf_dp,buf_dp_size, &
-&     buf_int_all,buf_int_size_all,buf_dp_all,buf_dp_size_all,mpi_comm_atom,ierr)
+&     buf_int_all,buf_int_size_all,buf_dp_all,buf_dp_size_all,comm_atom,ierr)
 
 !Retrieve output datastructures
  indx_int=1; indx_dp=1
- call pawfgrtab_destroy(pawfgrtab_gathered)
+ call pawfgrtab_free(pawfgrtab_gathered)
  call pawfgrtab_nullify(pawfgrtab_gathered)
  do iat=1,natom
    iatot=buf_int_all(indx_int); indx_int=indx_int+1
@@ -1032,12 +1023,6 @@ end subroutine pawfgrtab_gather
 !!
 !! FUNCTION
 !!
-!! COPYRIGHT
-!! Copyright (C) 2012-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~ABINIT/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!!
 !! FUNCTION
 !!   Redistribute an array of pawfgrtab datastructures
 !!   Input pawfgrtab is given on a MPI communicator
@@ -1096,13 +1081,14 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
  integer,intent(in),optional,target :: mpi_atmtab_in(:),mpi_atmtab_out(:)
  integer,intent(in),optional :: SendAtomProc(:),SendAtomList(:),RecvAtomProc(:),RecvAtomList(:)
  type(pawfgrtab_type),allocatable,intent(inout) :: pawfgrtab(:)
- type(pawfgrtab_type),pointer,optional :: pawfgrtab_out(:)      !vz_i
+ type(pawfgrtab_type),pointer,optional :: pawfgrtab_out(:)
 
 !Local variables-------------------------------
 !scalars
- integer :: algo_option,iat_in,iat_out,iatom,i1,i2,ierr,iircv,iisend,imsg,imsg1,imsg_current
- integer :: iproc_rcv,iproc_send,ireq,me_in,my_natom_in,my_natom_out,my_tag,natom_tot,nb_dp
- integer :: nb_int,nb_msg,nbrecvmsg,nbsendreq,nbsend,nbsent,nbrecv,next,npawfgrtab_sent
+ integer :: algo_option,iat_in,iat_out,iatom,i1,ierr,iircv,iisend,imsg,imsg1,imsg_current
+ integer :: iproc_rcv,iproc_send,ireq,me_exch,mpi_comm_exch,my_natom_in,my_natom_out,my_tag,natom_tot,nb_dp
+ integer :: nb_int,nb_msg,nbmsg_incoming,nbrecvmsg,nbsendreq,nbsend,nbsent,nbrecv,next,npawfgrtab_sent
+ integer :: nproc_in,nproc_out
  logical :: flag,in_place,message_yet_prepared,my_atmtab_in_allocated,my_atmtab_out_allocated,paral_atom
 !arrays
  integer :: buf_size(3),request1(3)
@@ -1110,6 +1096,7 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
  integer,allocatable :: atmtab_send(:),atm_indx_in(:),atm_indx_out(:),buf_int1(:),From(:),request(:)
  integer,allocatable,target:: buf_int(:)
  integer,pointer :: buf_ints(:)
+ logical,allocatable :: msg_pick(:)
  real(dp),allocatable :: buf_dp1(:)
  real(dp),allocatable,target :: buf_dp(:)
  real(dp),pointer :: buf_dps(:)
@@ -1130,7 +1117,7 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
 !If not "in_place", destroy ) then
  if (.not.in_place) then
    if (associated(pawfgrtab_out)) then
-     call pawfgrtab_destroy(pawfgrtab_out)
+     call pawfgrtab_free(pawfgrtab_out)
      ABI_DATATYPE_DEALLOCATE(pawfgrtab_out)
    end if
  end if
@@ -1184,19 +1171,19 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
 
    ABI_DATATYPE_ALLOCATE(pawfgrtab_all,(natom_tot))
    call pawfgrtab_nullify(pawfgrtab_all)
-   call pawfgrtab_copy(pawfgrtab,pawfgrtab_all,mpi_comm_atom=mpi_comm_in,mpi_atmtab=my_atmtab_in)
+   call pawfgrtab_copy(pawfgrtab,pawfgrtab_all,comm_atom=mpi_comm_in,mpi_atmtab=my_atmtab_in)
    if (in_place) then
-    call pawfgrtab_destroy(pawfgrtab)
+    call pawfgrtab_free(pawfgrtab)
     ABI_DATATYPE_DEALLOCATE(pawfgrtab)
     ABI_DATATYPE_ALLOCATE(pawfgrtab,(my_natom_out))
     call pawfgrtab_nullify(pawfgrtab)
-    call pawfgrtab_copy(pawfgrtab_all,pawfgrtab,mpi_comm_atom=mpi_comm_out,mpi_atmtab=my_atmtab_out)
+    call pawfgrtab_copy(pawfgrtab_all,pawfgrtab,comm_atom=mpi_comm_out,mpi_atmtab=my_atmtab_out)
    else
      ABI_DATATYPE_ALLOCATE(pawfgrtab_out,(my_natom_out))
      call pawfgrtab_nullify(pawfgrtab_out)
-     call pawfgrtab_copy(pawfgrtab_all,pawfgrtab_out,mpi_comm_atom=mpi_comm_out,mpi_atmtab=my_atmtab_out)
+     call pawfgrtab_copy(pawfgrtab_all,pawfgrtab_out,comm_atom=mpi_comm_out,mpi_atmtab=my_atmtab_out)
    end if
-   call pawfgrtab_destroy(pawfgrtab_all)
+   call pawfgrtab_free(pawfgrtab_all)
    ABI_DATATYPE_DEALLOCATE(pawfgrtab_all)
 
 
@@ -1219,7 +1206,11 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
      pawfgrtab_out1=>pawfgrtab_out
    end if
 
-   me_in=xcomm_rank(mpi_comm_in)
+   nproc_in=xcomm_size(mpi_comm_in)
+   nproc_out=xcomm_size(mpi_comm_out)
+   if (nproc_in<=nproc_out) mpi_comm_exch=mpi_comm_out
+   if (nproc_in>nproc_out) mpi_comm_exch=mpi_comm_in
+   me_exch=xcomm_rank(mpi_comm_exch)
 
 !  Dimension put to the maximum to send
    ABI_ALLOCATE(atmtab_send,(nbsend))
@@ -1242,10 +1233,10 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
 !  A send buffer in an asynchrone communication couldn't be deallocate before it has been receive
    nbsent=0 ; ireq=0 ; iisend=0 ; nbsendreq=0 ; nb_msg=0
    do iisend=1,nbsend
-     iproc_rcv=SendAtomProc(iisend) ! SendAtomProc is sorted by growing process
+     iproc_rcv=SendAtomProc(iisend)
      next=-1
      if (iisend < nbsend) next=SendAtomProc(iisend+1)
-     if (iproc_rcv /= me_in) then
+     if (iproc_rcv /= me_exch) then
        nbsent=nbsent+1
        atmtab_send(nbsent)=SendAtomList(iisend) ! we groups the atoms sends to the same process
        if (iproc_rcv /= next) then
@@ -1286,13 +1277,13 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
            buf_dps=>tab_buf_dp(imsg_current)%value
            my_tag=400
            ireq=ireq+1
-           call xmpi_isend(buf_size,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           call xmpi_isend(buf_size,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
            my_tag=401
            ireq=ireq+1
-           call xmpi_isend(buf_ints,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           call xmpi_isend(buf_ints,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
            my_tag=402
            ireq=ireq+1
-           call xmpi_isend(buf_dps,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           call xmpi_isend(buf_dps,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
            nbsendreq=ireq
            nbsent=0
          end if
@@ -1311,50 +1302,53 @@ subroutine pawfgrtab_redistribute(pawfgrtab,mpi_comm_in,mpi_comm_out,&
      iproc_send=RecvAtomProc(iircv) !receive from (RcvAtomProc is sorted by growing process)
      next=-1
      if (iircv < nbrecv) next=RecvAtomProc(iircv+1)
-     if (iproc_send /= me_in .and. iproc_send/=next) then
+     if (iproc_send /= me_exch .and. iproc_send/=next) then
        nbrecvmsg=nbrecvmsg+1
        From(nbrecvmsg)=iproc_send
      end if
    end do
 
-   do while (nbrecvmsg > 0)
+   ABI_ALLOCATE(msg_pick,(nbrecvmsg))
+   msg_pick=.false.
+   nbmsg_incoming=nbrecvmsg
+   do while (nbmsg_incoming > 0)
      do i1=1,nbrecvmsg
-       iproc_send=From(i1)
-       flag=.false.
-       my_tag=400
-       call xmpi_iprobe(iproc_send,my_tag,mpi_comm_in,flag,ierr)
-       if (flag) then
-         call xmpi_irecv(buf_size,iproc_send,my_tag,mpi_comm_in,request1(1),ierr)
-         call xmpi_wait(request1(1),ierr)
-         nb_int=buf_size(1)
-         nb_dp=buf_size(2)
-         npawfgrtab_sent=buf_size(3)
-         ABI_ALLOCATE(buf_int1,(nb_int))
-         ABI_ALLOCATE(buf_dp1,(nb_dp))
-         my_tag=401
-         call xmpi_irecv(buf_int1,iproc_send,my_tag,mpi_comm_in,request1(2),ierr)
-         my_tag=402
-         call xmpi_irecv(buf_dp1,iproc_send,my_tag,mpi_comm_in,request1(3),ierr)
-         call xmpi_waitall(request1(2:3),ierr)
-         call pawfgrtab_isendreceive_getbuffer(pawfgrtab_out1,npawfgrtab_sent,atm_indx_out, buf_int1,buf_dp1)
-!        Remove i1 of the array from
-         do i2=i1,nbrecvmsg-1
-           From(i2)=From(i2+1)
-         end do
-         nbrecvmsg=nbrecvmsg-1
-         ABI_DEALLOCATE(buf_int1)
-         ABI_DEALLOCATE(buf_dp1)
+       if (.not.msg_pick(i1)) then
+         iproc_send=From(i1)
+         flag=.false.
+         my_tag=400
+         call xmpi_iprobe(iproc_send,my_tag,mpi_comm_exch,flag,ierr)
+         if (flag) then
+           msg_pick(i1)=.true.
+           call xmpi_irecv(buf_size,iproc_send,my_tag,mpi_comm_exch,request1(1),ierr)
+           call xmpi_wait(request1(1),ierr)
+           nb_int=buf_size(1)
+           nb_dp=buf_size(2)
+           npawfgrtab_sent=buf_size(3)
+           ABI_ALLOCATE(buf_int1,(nb_int))
+           ABI_ALLOCATE(buf_dp1,(nb_dp))
+           my_tag=401
+           call xmpi_irecv(buf_int1,iproc_send,my_tag,mpi_comm_exch,request1(2),ierr)
+           my_tag=402
+           call xmpi_irecv(buf_dp1,iproc_send,my_tag,mpi_comm_exch,request1(3),ierr)
+           call xmpi_waitall(request1(2:3),ierr)
+           call pawfgrtab_isendreceive_getbuffer(pawfgrtab_out1,npawfgrtab_sent,atm_indx_out, buf_int1,buf_dp1)
+           nbmsg_incoming=nbmsg_incoming-1
+           ABI_DEALLOCATE(buf_int1)
+           ABI_DEALLOCATE(buf_dp1)
+         end if
        end if
      end do
    end do
+   ABI_DEALLOCATE(msg_pick)
 
    if (in_place) then
-     call pawfgrtab_destroy(pawfgrtab)
+     call pawfgrtab_free(pawfgrtab)
      ABI_DATATYPE_DEALLOCATE(pawfgrtab)
      ABI_DATATYPE_ALLOCATE(pawfgrtab,(my_natom_out))
      call pawfgrtab_nullify(pawfgrtab)
      call pawfgrtab_copy(pawfgrtab_out1,pawfgrtab)
-     call pawfgrtab_destroy(pawfgrtab_out1)
+     call pawfgrtab_free(pawfgrtab_out1)
      ABI_DATATYPE_DEALLOCATE(pawfgrtab_out1)
    end if
 
@@ -1443,7 +1437,6 @@ implicit none
  integer :: l_size,l_size2,nfgd,nspden
  character(len=500) :: msg
  type(pawfgrtab_type),pointer :: pawfgrtab1
-!arrays
 
 ! *********************************************************************
 
@@ -1602,7 +1595,6 @@ implicit none
  integer :: i1,i2,iat,iat1,iatom_tot,indx_int,indx_dp,l_size,l_size2,nfgd,nspden
  character(len=500) :: msg
  type(pawfgrtab_type),pointer :: pawfgrtab1
-!arrays
 
 ! *********************************************************************
 

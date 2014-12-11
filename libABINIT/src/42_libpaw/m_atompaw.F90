@@ -7,7 +7,7 @@
 !!  atompaw related operations
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2012-2014 ABINIT group (T. Rangel)
+!!  Copyright (C) 2012-2014 ABINIT group (T. Rangel, MT, JWZ, GJ)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -24,7 +24,7 @@ module m_atompaw
     
  use defs_basis
  use m_errors
- use m_profiling
+ use m_profiling_abi
 
  use m_paw_numeric, only : jbessel, solvbes, paw_spline, paw_splint
  use m_pawrad,      only : pawrad_type, simp_gen, poisson, pawrad_deducer0, bound_deriv, pawrad_ifromr
@@ -39,11 +39,9 @@ module m_atompaw
  public:: atompaw_vhnzc
  public:: atompaw_dij0
  public:: atompaw_kij
-
 !!***
 
-CONTAINS
-!===========================================================
+CONTAINS !===========================================================
 !!***
 
 !!****f* m_atompaw/atompaw_shpfun
@@ -53,13 +51,6 @@ CONTAINS
 !! FUNCTION
 !! Compute shape function used in the definition
 !! of compensation density (PAW)
-!!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
 !!
 !! INPUTS
 !!  ll= l quantum number
@@ -91,7 +82,6 @@ CONTAINS
 
 subroutine atompaw_shpfun(ll,mesh,norm,pawtab,shapefunc)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -203,13 +193,6 @@ end subroutine atompaw_shpfun
 !!      such as Shape(r) and 2 derivatives are zero at r=rc
 !!              Intg_0_rc[Shape(r).r^(l+2).dr]=1
 !!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~ABINIT/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~ABINIT/Infos/contributors .
-!!
 !! INPUTS
 !!  ll= l quantum number
 !!  rc= cut-off radius
@@ -228,7 +211,6 @@ end subroutine atompaw_shpfun
 
  subroutine atompaw_shapebes(al,ql,ll,rc)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -283,13 +265,6 @@ end subroutine atompaw_shapebes
 !! FUNCTION
 !! PAW: compute Hartree potential for n_{Zc}
 !!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (JWZ, MT, GJ)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~ABINIT/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~ABINIT/Infos/contributors .
-!!
 !! INPUTS
 !!  ncore(radmesh_core%mesh_size)=atomic core density
 !!  radmesh_core <type(pawrad_type)>=radial mesh (and related data) for the core densities
@@ -308,7 +283,6 @@ end subroutine atompaw_shapebes
 
  subroutine atompaw_vhnzc(ncore,radmesh_core,vhnzc,znucl)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -355,13 +329,6 @@ end subroutine atompaw_shapebes
 !! FUNCTION
 !!  PAW: Compute "frozen" values of pseudopotential strengths Dij = Dij0
 !!
-!! COPYRIGHT
-!!  Copyright (C) 1998-2014 ABINIT group (MT,GJ)
-!!  This file is distributed under the terms of the
-!!  GNU General Public License, see ~ABINIT/COPYING
-!!  or http://www.gnu.org/copyleft/gpl.txt .
-!!  For the initials of contributors, see ~ABINIT/Infos/contributors .
-!!
 !! INPUTS
 !!  indlmn(6,lmnmax)= array giving l,m,n,lm,ln,s for i=lmn
 !!  kij(pawtab%lmn2_size)= kinetic part of Dij
@@ -391,7 +358,6 @@ end subroutine atompaw_shapebes
 
  subroutine atompaw_dij0(indlmn,kij,lmnmax,ncore,opt_init,pawtab,radmesh,radmesh_core,radmesh_vloc,vhtnzc,znucl)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -548,13 +514,6 @@ end subroutine atompaw_shapebes
 !! FUNCTION
 !! PAW: deduce kinetic part of psp strength (Dij) from the knowledge of frozen Dij (Dij0)
 !!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (MT,GJ)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~ABINIT/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~ABINIT/Infos/contributors .
-!!
 !! INPUTS
 !!  indlmn(6,lmnmax)= array giving l,m,n,lm,ln,s for i=lmn
 !!  lmnmax=max number of (l,m,n) components over all type of psps
@@ -585,7 +544,6 @@ end subroutine atompaw_shapebes
 
  subroutine atompaw_kij(indlmn,kij,lmnmax,ncore,opt_init,opt_vhnzc,pawtab,radmesh,radmesh_core,radmesh_vloc,vhtnzc,znucl)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.

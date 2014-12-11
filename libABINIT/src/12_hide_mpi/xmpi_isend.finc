@@ -39,16 +39,10 @@
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_isend
-!!
 !! SOURCE
 
 subroutine xmpi_isend_int1d(xval,dest,tag,spaceComm,request,ierr)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -59,10 +53,11 @@ subroutine xmpi_isend_int1d(xval,dest,tag,spaceComm,request,ierr)
  implicit none
 
 !Arguments-------------------------
-  integer, ABI_ASYNC intent(inout) :: xval(:)
-  integer,intent(in) :: dest,tag,spaceComm
-  integer,intent(out)   :: ierr
-  integer, intent(out) :: request
+ integer, ABI_ASYNC intent(inout) :: xval(:)
+ integer,intent(in) :: dest,tag,spaceComm
+ integer,intent(out)   :: ierr
+ integer, intent(out) :: request
+
 !Local variables-------------------
 #if defined HAVE_MPI
  integer :: ier,my_tag,n1
@@ -102,16 +97,10 @@ subroutine xmpi_isend_int1d(xval,dest,tag,spaceComm,request,ierr)
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_isend
-!!
 !! SOURCE
 subroutine xmpi_isend_dp1d(xval,dest,tag,spaceComm,request,ierr)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.

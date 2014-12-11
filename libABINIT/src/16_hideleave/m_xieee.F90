@@ -57,7 +57,7 @@ contains
 !!  halt= If the value is true, the exceptions will cause halting; otherwise, execution will continue after this exception.
 !!
 !! PARENTS
-!!      m_errors
+!!      m_argparse
 !!
 !! CHILDREN
 !!      ieee_set_flag
@@ -115,7 +115,7 @@ end subroutine xieee_halt_ifexc
 !!  flag= If the value is true, the exceptions will be signalled
 !!
 !! PARENTS
-!!      m_errors
+!!      m_argparse
 !!
 !! CHILDREN
 !!      ieee_set_flag

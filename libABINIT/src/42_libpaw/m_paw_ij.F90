@@ -43,7 +43,7 @@ MODULE m_paw_ij
 
  use defs_basis
  use m_errors
- use m_profiling
+ use m_profiling_abi
  use m_xmpi
 
  use m_paral_atom, only : get_my_atmtab, free_my_atmtab, get_my_natom
@@ -53,21 +53,6 @@ MODULE m_paw_ij
  implicit none
 
  private
-
-!public procedures.
- public :: paw_ij_init
- public :: paw_ij_destroy
- public :: paw_ij_nullify
- public :: paw_ij_copy
- public :: paw_ij_print
- public :: paw_ij_gather
- public :: paw_ij_redistribute
- public :: paw_ij_reset_flags
-
-!private procedures.
- private :: paw_ij_isendreceive_getbuffer
- private :: paw_ij_isendreceive_fillbuffer
-
 !!***
 
 !----------------------------------------------------------------------
@@ -83,9 +68,6 @@ MODULE m_paw_ij
 
  type,public :: paw_ij_type
 
-! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
-! declared in another part of ABINIT, that might need to take into account your modification.
-
 !Integer scalars
 
   integer :: cplex
@@ -95,58 +77,58 @@ MODULE m_paw_ij
   integer :: cplex_dij
    ! cplex=1 if dij are real, 2 if they are complex
 
-  integer :: has_dij
+  integer :: has_dij=0
    ! 1 if dij is allocated
    ! 2 if dij is already computed
 
-  integer :: has_dij0
+  integer :: has_dij0=0
    ! 1 if dij0 is allocated
    ! 2 if dij0 is already computed
 
-  integer :: has_dijexxc
+  integer :: has_dijexxc=0
    ! 1 if dijexxc is associated and used, 0 otherwise
    ! 2 if dijexxc is already computed
 
-  integer :: has_dijfock
+  integer :: has_dijfock=0
    ! 1 if dijfock is allocated
    ! 2 if dijfock is already computed
 
-  integer :: has_dijfr
+  integer :: has_dijfr=0
    ! 1 if dijfr is allocated
    ! 2 if dijfr is already computed
 
-  integer :: has_dijhartree
+  integer :: has_dijhartree=0
    ! 1 if dijhartree is allocated
    ! 2 if dijhartree is already computed
 
-  integer :: has_dijhat
+  integer :: has_dijhat=0
    ! 1 if dijhat is allocated
    ! 2 if dijhat is already computed
 
-  integer :: has_dijso
+  integer :: has_dijso=0
    ! 1 if dijso is associated and used, 0 otherwise
    ! 2 if dijso is already computed
 
-  integer :: has_dijU
+  integer :: has_dijU=0
    ! 1 if dijU is associated and used, 0 otherwise
    ! 2 if dijU is already computed
 
-  integer :: has_dijxc
+  integer :: has_dijxc=0
    ! 1 if dijxc is associated and used, 0 otherwise
    ! 2 if dijxc is already computed
 
-  integer :: has_dijxc_hat
+  integer :: has_dijxc_hat=0
    ! 1 if dijxc_hat is associated and used, 0 otherwise
    ! 2 if dijxc_hat is already computed
 
-  integer :: has_dijxc_val
+  integer :: has_dijxc_val=0
    ! 1 if dijxc_val is associated and used, 0 otherwise
    ! 2 if dijxc_val is already computed
 
-  integer :: has_exexch_pot
+  integer :: has_exexch_pot=0
    ! 1 if PAW+(local exact exchange) potential is allocated
 
-  integer :: has_pawu_occ
+  integer :: has_pawu_occ=0
    ! 1 if PAW+U occupations are allocated
 
   integer :: itypat
@@ -261,6 +243,20 @@ MODULE m_paw_ij
    ! exact exchange potential
 
  end type paw_ij_type
+
+!public procedures.
+ public :: paw_ij_init           ! Creation method
+ public :: paw_ij_free           ! Free memory
+ public :: paw_ij_nullify        
+ public :: paw_ij_copy           ! Copy object
+ public :: paw_ij_print          ! Printout of the object
+ public :: paw_ij_gather         ! MPI gather
+ public :: paw_ij_redistribute   ! MPI redistribute
+ public :: paw_ij_reset_flags    ! Resent the internal flags.
+
+!private procedures.
+ private :: paw_ij_isendreceive_getbuffer
+ private :: paw_ij_isendreceive_fillbuffer
 !!***
 
 CONTAINS
@@ -280,7 +276,7 @@ CONTAINS
 !! INPUTS
 !!  cplex=1 if all on-site PAW quantities are real, 2 if they are complex
 !!  mpi_atmtab(:)=--optional-- indexes of the atoms treated by current proc
-!!  mpi_comm_atom=--optional-- MPI communicator over atoms
+!!  comm_atom=--optional-- MPI communicator over atoms
 !!  natom=Number of atoms.
 !!  ntypat=Number of types of atoms in cell.
 !!  nspinor=number of spinor components
@@ -312,8 +308,8 @@ CONTAINS
 !!   according to the input variables.
 !!
 !! PARENTS
-!!      bethe_salpeter,d2frnl,ldau_self,m_energy,nstpaw3,paw_qpscgw,respfn
-!!      rhofermi3,scfcv,scfcv3,screening,sigma
+!!      bethe_salpeter,d2frnl,d2frnl_bec,ldau_self,m_energy,nstpaw3,paw_qpscgw
+!!      respfn,rhofermi3,scfcv,scfcv3,screening,sigma
 !!
 !! CHILDREN
 !!
@@ -323,7 +319,7 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
 &                      has_dij,has_dij0,has_dijfock,has_dijfr,has_dijhartree,has_dijhat,& ! Optional
 &                      has_dijxc,has_dijxc_hat,has_dijxc_val,has_dijso,has_dijU,has_dijexxc,&  ! Optional
 &                      has_exexch_pot,has_pawu_occ,& ! Optional
-&                      mpi_atmtab,mpi_comm_atom) ! optional arguments (parallelism)
+&                      mpi_atmtab,comm_atom) ! optional arguments (parallelism)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -339,7 +335,7 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
  integer,intent(in) :: cplex,nspinor,nspden,nsppol,natom,ntypat,pawspnorb
  integer,optional,intent(in) :: has_dij,has_dij0,has_dijfr,has_dijhat,has_dijxc,has_dijxc_hat,has_dijxc_val
  integer,optional,intent(in) :: has_dijso,has_dijhartree,has_dijfock,has_dijU,has_dijexxc,has_exexch_pot,has_pawu_occ
- integer,optional,intent(in) :: mpi_comm_atom
+ integer,optional,intent(in) :: comm_atom
 !arrays
  integer,intent(in) :: typat(natom)
  integer,optional,target,intent(in) :: mpi_atmtab(:)
@@ -348,7 +344,7 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
 
 !Local variables-------------------------------
 !scalars
- integer :: cplex_dij,iat,iat_tot,itypat,lmn2_size,my_natom,ndij
+ integer :: cplex_dij,iat,iat_tot,itypat,lmn2_size,my_comm_atom,my_natom,ndij
  logical :: my_atmtab_allocated,paral_atom
 !arrays
  integer,pointer :: my_atmtab(:)
@@ -361,12 +357,10 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
 
 !Set up parallelism over atoms
  my_natom=size(paw_ij);if (my_natom==0) return
- paral_atom=(present(mpi_comm_atom).and.(my_natom/=natom))
+ paral_atom=(present(comm_atom).and.(my_natom/=natom))
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
- my_atmtab_allocated = .False.
- if (paral_atom) then
-   call get_my_atmtab(mpi_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom,my_natom_ref=my_natom)
- end if
+ my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
+ call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom,my_natom_ref=my_natom)
 
  do iat=1,my_natom
   iat_tot=iat;if (paral_atom) iat_tot=my_atmtab(iat)
@@ -472,7 +466,9 @@ subroutine paw_ij_init(Paw_ij,cplex,nspinor,nsppol,nspden,pawspnorb,natom,ntypat
   ! === Allocation for total Dij_U_val ===
   Paw_ij(iat)%has_dijU=0
   if (PRESENT(has_dijU)) then
-    if (has_dijU/=0.and.Pawtab(itypat)%usepawu>0) then
+!    if (has_dijU/=0.and.Pawtab(itypat)%usepawu>0) then ! quick and
+!    dirty fix
+    if (has_dijU/=0) then
       Paw_ij(iat)%has_dijU=1
       ABI_ALLOCATE(Paw_ij(iat)%dijU,(cplex_dij*lmn2_size,ndij))
        Paw_ij(iat)%dijU(:,:)=zero
@@ -544,9 +540,9 @@ end subroutine paw_ij_init
 
 !----------------------------------------------------------------------
 
-!!****f* m_paw_ij/paw_ij_destroy
+!!****f* m_paw_ij/paw_ij_free
 !! NAME
-!!  paw_ij_destroy
+!!  paw_ij_free
 !!
 !! FUNCTION
 !!  Deallocate pointers and nullify flags in a paw_ij structure
@@ -555,20 +551,20 @@ end subroutine paw_ij_init
 !!  paw_ij(:)<type(paw_ij_type)>=paw arrays given on (i,j) channels
 !!
 !! PARENTS
-!!      bethe_salpeter,d2frnl,ldau_self,m_energy,m_paral_pert,m_paw_ij,nstpaw3
-!!      pawprt,respfn,rhofermi3,scfcv,scfcv3,screening,sigma
+!!      bethe_salpeter,d2frnl,d2frnl_bec,ldau_self,m_energy,m_paral_pert
+!!      m_paw_ij,nstpaw3,pawprt,respfn,rhofermi3,scfcv,scfcv3,screening,sigma
 !!
 !! CHILDREN
 !!
 !! SOURCE
 
-subroutine paw_ij_destroy(Paw_ij)
+subroutine paw_ij_free(Paw_ij)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'paw_ij_destroy'
+#define ABI_FUNC 'paw_ij_free'
 !End of the abilint section
 
  implicit none
@@ -587,6 +583,7 @@ subroutine paw_ij_destroy(Paw_ij)
 !@Paw_ij_type
 
  natom=SIZE(Paw_ij);if (natom==0) return
+
  do iat=1,natom
   if (allocated(Paw_ij(iat)%dij       ))  then
     ABI_DEALLOCATE(Paw_ij(iat)%dij)
@@ -651,9 +648,11 @@ subroutine paw_ij_destroy(Paw_ij)
   Paw_ij(iat)%has_pawu_occ  =0
  end do
 
+ !call paw_ij_nullify(Paw_ij)
+
  DBG_EXIT("COLL")
 
-end subroutine paw_ij_destroy
+end subroutine paw_ij_free
 !!***
 
 !----------------------------------------------------------------------
@@ -663,14 +662,14 @@ end subroutine paw_ij_destroy
 !!  paw_ij_nullify
 !!
 !! FUNCTION
-!!  Nullify pointers and flags in a paw_ij structure
+!!  Reset all flags in a paw_ij structure
 !!
 !! SIDE EFFECTS
-!!  Paw_ij(:)<type(paw_ij_type)>=PAW arrays given on (i,j) channels. Nullified in output
+!!  Paw_ij(:)<type(paw_ij_type)>=PAW arrays given on (i,j) channels.
 !!
 !! PARENTS
-!!      bethe_salpeter,d2frnl,ldau_self,m_energy,m_paw_ij,nstpaw3,paw_qpscgw
-!!      pawprt,respfn,rhofermi3,scfcv,scfcv3,screening,sigma
+!!      bethe_salpeter,d2frnl,d2frnl_bec,ldau_self,m_energy,m_paw_ij,nstpaw3
+!!      paw_qpscgw,pawprt,respfn,rhofermi3,scfcv,scfcv3,screening,sigma
 !!
 !! CHILDREN
 !!
@@ -704,23 +703,22 @@ subroutine paw_ij_nullify(Paw_ij)
 
  natom=SIZE(Paw_ij(:));if (natom==0) return
 
+ ! Set all has_* flags to zero.
  do iat=1,natom
-
-  ! === Set all has_* flags to zero ===
-  Paw_ij(iat)%has_dij       =0
-  Paw_ij(iat)%has_dij0      =0
-  Paw_ij(iat)%has_dijexxc   =0
-  Paw_ij(iat)%has_dijfock   =0
-  Paw_ij(iat)%has_dijfr     =0
-  Paw_ij(iat)%has_dijhartree=0
-  Paw_ij(iat)%has_dijhat    =0
-  Paw_ij(iat)%has_dijso     =0
-  Paw_ij(iat)%has_dijU      =0
-  Paw_ij(iat)%has_dijxc     =0
-  Paw_ij(iat)%has_dijxc_hat =0
-  Paw_ij(iat)%has_dijxc_val =0
-  Paw_ij(iat)%has_exexch_pot=0
-  Paw_ij(iat)%has_pawu_occ  =0
+   Paw_ij(iat)%has_dij       =0
+   Paw_ij(iat)%has_dij0      =0
+   Paw_ij(iat)%has_dijexxc   =0
+   Paw_ij(iat)%has_dijfock   =0
+   Paw_ij(iat)%has_dijfr     =0
+   Paw_ij(iat)%has_dijhartree=0
+   Paw_ij(iat)%has_dijhat    =0
+   Paw_ij(iat)%has_dijso     =0
+   Paw_ij(iat)%has_dijU      =0
+   Paw_ij(iat)%has_dijxc     =0
+   Paw_ij(iat)%has_dijxc_hat =0
+   Paw_ij(iat)%has_dijxc_val =0
+   Paw_ij(iat)%has_exexch_pot=0
+   Paw_ij(iat)%has_pawu_occ  =0
  end do !iat
 
 end subroutine paw_ij_nullify
@@ -739,7 +737,7 @@ end subroutine paw_ij_nullify
 !!
 !! INPUTS
 !!  mpi_atmtab(:)=--optional-- indexes of the atoms treated by current proc
-!!  mpi_comm_atom=--optional-- MPI communicator over atoms
+!!  comm_atom=--optional-- MPI communicator over atoms
 !!  paw_ij_in(:)<type(paw_ij_type)>= input paw_ij datastructure
 !!
 !! SIDE EFFECTS
@@ -756,7 +754,7 @@ end subroutine paw_ij_nullify
 !! SOURCE
 
 subroutine paw_ij_copy(paw_ij_in,paw_ij_cpy, &
-&                      mpi_atmtab,mpi_comm_atom) ! optional arguments (parallelism)
+&                      mpi_atmtab,comm_atom) ! optional arguments (parallelism)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -769,7 +767,7 @@ subroutine paw_ij_copy(paw_ij_in,paw_ij_cpy, &
 
 !Arguments ------------------------------------
 !scalars
- integer,optional,intent(in) :: mpi_comm_atom
+ integer,optional,intent(in) :: comm_atom
 !arrays
  integer,optional,target,intent(in) :: mpi_atmtab(:)
  type(paw_ij_type),intent(in) :: paw_ij_in(:)
@@ -777,7 +775,7 @@ subroutine paw_ij_copy(paw_ij_in,paw_ij_cpy, &
 
 !Local variables-------------------------------
 !scalars
-integer :: ij,ij1,my_paw_ij, npaw_ij_in,npaw_ij_max,npaw_ij_out,paral_case
+integer :: ij,ij1,my_comm_atom,my_paw_ij,npaw_ij_in,npaw_ij_max,npaw_ij_out,paral_case,sz1,sz2,sz3,sz4
 logical :: my_atmtab_allocated,paral_atom
 character(len=500) :: msg
 !arrays
@@ -794,8 +792,9 @@ character(len=500) :: msg
  npaw_ij_in=size(paw_ij_in);npaw_ij_out=size(paw_ij_cpy)
 
 !Set up parallelism over atoms
- paral_atom=(present(mpi_comm_atom));if (paral_atom) paral_atom=(xcomm_size(mpi_comm_atom)>1)
+ paral_atom=(present(comm_atom));if (paral_atom) paral_atom=(xcomm_size(comm_atom)>1)
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
+ my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
  my_atmtab_allocated=.false.
 
 !Determine in which case we are (parallelism, ...)
@@ -804,9 +803,9 @@ character(len=500) :: msg
  paw_ij_out => paw_ij_cpy
  if (paral_atom) then
    if (npaw_ij_out<npaw_ij_in) then ! Parallelism: the copy operation is a scatter
-     call get_my_natom(mpi_comm_atom,my_paw_ij,npaw_ij_in)
+     call get_my_natom(my_comm_atom,my_paw_ij,npaw_ij_in)
      if (my_paw_ij==npaw_ij_out) then
-       call get_my_atmtab(mpi_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,npaw_ij_in)
+       call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,npaw_ij_in)
        paral_case=1;npaw_ij_max=npaw_ij_out
        paw_ij_out => paw_ij_cpy
      else
@@ -814,7 +813,7 @@ character(len=500) :: msg
        MSG_BUG(msg)
      end if
    else                            ! Parallelism: the copy operation is a gather
-     call get_my_natom(mpi_comm_atom,my_paw_ij,npaw_ij_out)
+     call get_my_natom(my_comm_atom,my_paw_ij,npaw_ij_out)
      if (my_paw_ij==npaw_ij_in) then
        paral_case=2;npaw_ij_max=npaw_ij_in
      else
@@ -950,7 +949,7 @@ character(len=500) :: msg
 
 !Second case: a gather
  if (paral_case==2) then
-   call paw_ij_gather(paw_ij_in,paw_ij_cpy,-1,mpi_comm_atom)
+   call paw_ij_gather(paw_ij_in,paw_ij_cpy,-1,my_comm_atom)
  end if
 
 !Destroy atom table used for parallelism
@@ -978,7 +977,7 @@ end subroutine paw_ij_copy
 !!  [pawspnorb]=1 if spin-orbit coupling is activated
 !!  [mode_paral]=either "COLL" or "PERS"
 !!  [mpi_atmtab(:)]=indexes of the atoms treated by current proc (can be computed here)
-!!  [mpi_comm_atom]=MPI communicator over atoms (needed if parallelism over atoms is activated)
+!!  [comm_atom]=MPI communicator over atoms (needed if parallelism over atoms is activated)
 !!  [natom]=total number of atom (needed if parallelism over atoms is activated)
 !!          if Paw_ij is distributed, natom is different from size(Paw_ij).
 !!
@@ -995,7 +994,7 @@ end subroutine paw_ij_copy
 !! SOURCE
 
 subroutine paw_ij_print(Paw_ij,unit,pawprtvol,pawspnorb,mode_paral,enunit,ipert, &
-&                       mpi_atmtab,mpi_comm_atom,natom)
+&                       mpi_atmtab,comm_atom,natom)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -1010,7 +1009,7 @@ subroutine paw_ij_print(Paw_ij,unit,pawprtvol,pawspnorb,mode_paral,enunit,ipert,
 !Arguments ------------------------------------
 !scalars
  integer,optional,intent(in) :: enunit,ipert
- integer,optional,intent(in) :: mpi_comm_atom,natom
+ integer,optional,intent(in) :: comm_atom,natom
  integer,optional,intent(in) :: pawprtvol,pawspnorb
  integer,optional,intent(in) :: unit
  character(len=4),optional,intent(in) :: mode_paral
@@ -1021,7 +1020,7 @@ subroutine paw_ij_print(Paw_ij,unit,pawprtvol,pawspnorb,mode_paral,enunit,ipert,
 !Local variables-------------------------------
  character(len=7),parameter :: dspin(6)=(/"up     ","down   ","up-up  ","dwn-dwn","up-dwn ","dwn-up "/)
 !scalars
- integer :: cplex,cplex_dij,iatom,iatom_tot,idij,klmn,lmn2_size,lmn_size,my_natom,nspden,nsploop
+ integer :: cplex,cplex_dij,iatom,iatom_tot,idij,klmn,lmn2_size,lmn_size,my_comm_atom,my_natom,nspden,nsploop
  integer :: nsppol,my_unt,opt_sym,tmp_cplex_dij,my_ipert,my_enunit,my_prtvol,size_paw_ij
  logical :: my_atmtab_allocated,paral_atom
  character(len=4) :: my_mode
@@ -1048,12 +1047,10 @@ subroutine paw_ij_print(Paw_ij,unit,pawprtvol,pawspnorb,mode_paral,enunit,ipert,
  my_natom=size_paw_ij; if (PRESENT(natom))      my_natom=natom
 
 !Set up parallelism over atoms
- paral_atom=(present(mpi_comm_atom).and.my_natom/=size_paw_ij)
+ paral_atom=(present(comm_atom).and.my_natom/=size_paw_ij)
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
- my_atmtab_allocated = .False.
- if (paral_atom) then
-   call get_my_atmtab(mpi_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,my_natom,my_natom_ref=size_paw_ij)
- end if
+ my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
+ call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,my_natom,my_natom_ref=size_paw_ij)
 
  if (abs(my_prtvol)>=1) then
    if (my_ipert==0) then
@@ -1413,8 +1410,7 @@ subroutine paw_ij_print(Paw_ij,unit,pawprtvol,pawspnorb,mode_paral,enunit,ipert,
   end do !idij
  end do !iat
 
- write(msg,'(a)')' '
- call wrtout(my_unt,msg,my_mode)
+ call wrtout(my_unt,' ',my_mode)
 
  DBG_EXIT("COLL")
 
@@ -1430,15 +1426,9 @@ end subroutine paw_ij_print
 !! FUNCTION
 !!   (All)Gather paw_ij datastructures
 !!
-!! COPYRIGHT
-!! Copyright (C) 2012-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~ABINIT/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!!
 !! INPUTS
 !!  master=master communicator receiving data ; if -1 do a ALLGATHER
-!!  mpi_comm_atom= communicator
+!!  comm_atom= communicator
 !!  paw_ij_in(:)<type(paw_ij_type)>= input paw_ij datastructures on every process
 !!
 !! OUTPUT
@@ -1451,7 +1441,7 @@ end subroutine paw_ij_print
 !!
 !! SOURCE
 
-subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,mpi_comm_atom)
+subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,comm_atom)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -1464,7 +1454,7 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,mpi_comm_atom)
 
 !Arguments ------------------------------------
 !scalars
- integer,intent(in) :: master,mpi_comm_atom
+ integer,intent(in) :: master,comm_atom
 !arrays
  type(paw_ij_type),intent(in) :: paw_ij_in(:)
  type(paw_ij_type),intent(inout) :: paw_ij_gathered(:)
@@ -1475,7 +1465,7 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,mpi_comm_atom)
  integer :: cplx_lmn2_size,cplxdij_lmn2_size
  integer :: iat,ii,ierr,ij,indx_dp,indx_int,lmn2_size
  integer :: me_atom,ndij,nocc,nocc1,nocc2,nocc3,nocc4,npaw_ij_in,npaw_ij_in_sum
- integer :: npaw_ij_out,nproc_atom,nspden
+ integer :: npaw_ij_out,nproc_atom,nspden,sz1,sz2,sz3,sz4
  logical :: my_atmtab_allocated,paral_atom
  character(len=500) :: msg
 !arrays
@@ -1491,13 +1481,13 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,mpi_comm_atom)
 
  npaw_ij_in=size(paw_ij_in);npaw_ij_out=size(paw_ij_gathered)
 
- nproc_atom=xcomm_size(mpi_comm_atom)
- me_atom=xcomm_rank(mpi_comm_atom)
+ nproc_atom=xcomm_size(comm_atom)
+ me_atom=xcomm_rank(comm_atom)
 
 !Special case 1 process
  if (nproc_atom==1) then
    if (master==-1.or.me_atom==master) then
-     call paw_ij_destroy(paw_ij_gathered)
+     call paw_ij_free(paw_ij_gathered)
      call paw_ij_nullify(paw_ij_gathered)
      do iat=1,npaw_ij_in
        paw_ij_gathered(iat)%cplex      =paw_ij_in(iat)%cplex
@@ -1626,7 +1616,7 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,mpi_comm_atom)
 
 !Test on sizes
  npaw_ij_in_sum=npaw_ij_in
- call xmpi_sum(npaw_ij_in_sum,mpi_comm_atom,ierr)
+ call xmpi_sum(npaw_ij_in_sum,comm_atom,ierr)
   if (master==-1) then
    if (npaw_ij_out/=npaw_ij_in_sum) then
      msg='Wrong sizes sum[npaw_ij_ij]/=npaw_ij_out !'
@@ -1641,7 +1631,7 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,mpi_comm_atom)
 
 !Retrieve table of atoms
  paral_atom=.true.;nullify(my_atmtab)
- call get_my_atmtab(mpi_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,npaw_ij_in_sum)
+ call get_my_atmtab(comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,npaw_ij_in_sum)
 
 !Compute sizes of buffers
  buf_int_size=0;buf_dp_size=0
@@ -1824,16 +1814,16 @@ subroutine paw_ij_gather(paw_ij_in,paw_ij_gathered,master,mpi_comm_atom)
 !Communicate
  if (master==-1) then
    call xmpi_allgatherv(buf_int,buf_int_size,buf_dp,buf_dp_size, &
-&  buf_int_all,buf_int_size_all,buf_dp_all,buf_dp_size_all,mpi_comm_atom,ierr)
+&  buf_int_all,buf_int_size_all,buf_dp_all,buf_dp_size_all,comm_atom,ierr)
  else
    call xmpi_gatherv(buf_int,buf_int_size,buf_dp,buf_dp_size, &
-&  buf_int_all,buf_int_size_all,buf_dp_all,buf_dp_size_all,master,mpi_comm_atom,ierr)
+&  buf_int_all,buf_int_size_all,buf_dp_all,buf_dp_size_all,master,comm_atom,ierr)
  end if
 
 !Retrieve data from output buffer
  if (master==-1.or.me_atom==master) then
    indx_int=1;indx_dp=1
-   call paw_ij_destroy(paw_ij_gathered)
+   call paw_ij_free(paw_ij_gathered)
    call paw_ij_nullify(paw_ij_gathered)
    do ij=1,npaw_ij_out
      iat=buf_int_all(indx_int) ;indx_int=indx_int+1
@@ -2025,12 +2015,6 @@ end subroutine paw_ij_gather
 !!
 !! FUNCTION
 !!
-!! COPYRIGHT
-!! Copyright (C) 2012-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~ABINIT/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!!
 !! FUNCTION
 !!   Redistribute an array of paw_ij datastructures
 !!   Input paw_ij is given on a MPI communicator
@@ -2093,9 +2077,10 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
 
 !Local variables-------------------------------
 !scalars
- integer :: algo_option,i1,i2,iatom,iat_in,iat_out,ierr,iircv,iisend,imsg,imsg_current
- integer :: imsg1,iproc_rcv,iproc_send,me_in,my_natom_in,my_natom_out,my_tag,natom_tot
- integer :: nb_dp,nb_int,nb_msg,nbrecv,nbrecvmsg,nbsendreq,nbsent,nbsend,next,npaw_ij_sent,ireq
+ integer :: algo_option,i1,iatom,iat_in,iat_out,ierr,iircv,iisend,imsg,imsg_current
+ integer :: imsg1,iproc_rcv,iproc_send,ireq,me_exch,mpi_comm_exch,my_natom_in,my_natom_out,my_tag,natom_tot
+ integer :: nb_dp,nb_int,nb_msg,nbmsg_incoming,nbrecv,nbrecvmsg,nbsendreq,nbsent,nbsend,next,npaw_ij_sent
+ integer :: nproc_in,nproc_out
  logical :: flag,in_place,message_yet_prepared,my_atmtab_in_allocated,my_atmtab_out_allocated,paral_atom
 !arrays
  integer :: buf_size(3),request1(3)
@@ -2103,6 +2088,7 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
  integer,allocatable :: atmtab_send(:),atm_indx_in(:),atm_indx_out(:),From(:),buf_int1(:),request(:)
  integer,allocatable,target:: buf_int(:)
  integer,pointer :: buf_ints(:)
+ logical,allocatable :: msg_pick(:)
  real(dp),allocatable :: buf_dp1(:)
  real(dp),allocatable,target :: buf_dp(:)
  real(dp),pointer :: buf_dps(:)
@@ -2123,7 +2109,7 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
 !If not "in_place", destroy the output datastructure
  if (.not.in_place) then
    if (associated(paw_ij_out)) then
-     call paw_ij_destroy(paw_ij_out)
+     call paw_ij_free(paw_ij_out)
      ABI_DATATYPE_DEALLOCATE(paw_ij_out)
    end if
  end if
@@ -2177,19 +2163,19 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
 
    ABI_DATATYPE_ALLOCATE(paw_ij_all,(natom_tot))
    call paw_ij_nullify(paw_ij_all)
-   call paw_ij_copy(paw_ij,paw_ij_all,mpi_comm_atom=mpi_comm_in,mpi_atmtab=my_atmtab_in)
+   call paw_ij_copy(paw_ij,paw_ij_all,comm_atom=mpi_comm_in,mpi_atmtab=my_atmtab_in)
    if (in_place) then
-    call paw_ij_destroy(paw_ij)
+    call paw_ij_free(paw_ij)
     ABI_DATATYPE_DEALLOCATE(paw_ij)
     ABI_DATATYPE_ALLOCATE(paw_ij,(my_natom_out))
     call paw_ij_nullify(paw_ij)
-    call paw_ij_copy(paw_ij_all,paw_ij,mpi_comm_atom=mpi_comm_out,mpi_atmtab=my_atmtab_out)
+    call paw_ij_copy(paw_ij_all,paw_ij,comm_atom=mpi_comm_out,mpi_atmtab=my_atmtab_out)
    else
      ABI_DATATYPE_ALLOCATE(paw_ij_out,(my_natom_out))
      call paw_ij_nullify(paw_ij_out)
-     call paw_ij_copy(paw_ij_all,paw_ij_out,mpi_comm_atom=mpi_comm_out,mpi_atmtab=my_atmtab_out)
+     call paw_ij_copy(paw_ij_all,paw_ij_out,comm_atom=mpi_comm_out,mpi_atmtab=my_atmtab_out)
    end if
-   call paw_ij_destroy(paw_ij_all)
+   call paw_ij_free(paw_ij_all)
    ABI_DATATYPE_DEALLOCATE(paw_ij_all)
 
 
@@ -2212,7 +2198,12 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
       paw_ij_out1=>paw_ij_out
    end if
 
-   me_in=xcomm_rank(mpi_comm_in)
+   nproc_in=xcomm_size(mpi_comm_in)
+   nproc_out=xcomm_size(mpi_comm_out)
+   if (nproc_in<=nproc_out) mpi_comm_exch=mpi_comm_out
+   if (nproc_in>nproc_out) mpi_comm_exch=mpi_comm_in
+   me_exch=xcomm_rank(mpi_comm_exch)
+
 
 !  Dimension put to the maximum to send
    ABI_ALLOCATE(atmtab_send,(nbsend))
@@ -2235,10 +2226,10 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
 !  A send buffer in an asynchrone communication couldn't be deallocate before it has been receive
    nbsent=0 ; ireq=0 ; iisend=0 ; nbsendreq=0 ; nb_msg=0
    do iisend=1,nbsend
-     iproc_rcv=SendAtomProc(iisend) ! SendAtomProc is sorted by growing process
+     iproc_rcv=SendAtomProc(iisend) 
      next=-1
      if (iisend < nbsend) next=SendAtomProc(iisend+1)
-     if (iproc_rcv /= me_in) then
+     if (iproc_rcv /= me_exch) then
        nbsent=nbsent+1
        atmtab_send(nbsent)=SendAtomList(iisend) ! we groups the atoms sends to the same process
        if (iproc_rcv /= next) then
@@ -2279,13 +2270,13 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
            buf_dps=>tab_buf_dp(imsg_current)%value
            my_tag=200
            ireq=ireq+1
-           call xmpi_isend(buf_size,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           call xmpi_isend(buf_size,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
            my_tag=201
            ireq=ireq+1
-           call xmpi_isend(buf_ints,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           call xmpi_isend(buf_ints,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
            my_tag=202
            ireq=ireq+1
-           call xmpi_isend(buf_dps,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           call xmpi_isend(buf_dps,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
            nbsendreq=ireq
            nbsent=0
          end if
@@ -2304,49 +2295,52 @@ subroutine paw_ij_redistribute(paw_ij,mpi_comm_in,mpi_comm_out,&
      iproc_send=RecvAtomProc(iircv) !receive from (RcvAtomProc is sorted by growing process)
      next=-1
      if (iircv < nbrecv) next=RecvAtomProc(iircv+1)
-     if (iproc_send /= me_in .and. iproc_send/=next) then
+     if (iproc_send /= me_exch .and. iproc_send/=next) then
        nbrecvmsg=nbrecvmsg+1
        From(nbrecvmsg)=iproc_send
      end if
    end do
 
-   do while (nbrecvmsg > 0)
+   ABI_ALLOCATE(msg_pick,(nbrecvmsg))
+   msg_pick=.false.
+   nbmsg_incoming=nbrecvmsg
+   do while (nbmsg_incoming > 0)
      do i1=1,nbrecvmsg
-       iproc_send=From(i1)
-       flag=.false.
-       my_tag=200
-       call xmpi_iprobe(iproc_send,my_tag,mpi_comm_in,flag,ierr)
-       if (flag) then
-         call xmpi_irecv(buf_size,iproc_send,my_tag,mpi_comm_in,request1(1),ierr)
-         call xmpi_wait(request1(1),ierr)
-         nb_int=buf_size(1)
-         nb_dp=buf_size(2)
-         npaw_ij_sent=buf_size(3)
-         ABI_ALLOCATE(buf_int1,(nb_int))
-         ABI_ALLOCATE(buf_dp1,(nb_dp))
-         my_tag=201
-         call xmpi_irecv(buf_int1,iproc_send,my_tag,mpi_comm_in,request1(2),ierr)
-         my_tag=202
-         call xmpi_irecv(buf_dp1,iproc_send,my_tag,mpi_comm_in,request1(3),ierr)
-         call xmpi_waitall(request1(2:3),ierr)
-         call paw_ij_isendreceive_getbuffer(paw_ij_out1,npaw_ij_sent,atm_indx_out,buf_int1,buf_dp1)
-  !      Remove i1 of the array from
-         do i2=i1,nbrecvmsg-1
-           From(i2)=From(i2+1)
-         end do
-         nbrecvmsg=nbrecvmsg-1
-         ABI_DEALLOCATE(buf_int1)
-         ABI_DEALLOCATE(buf_dp1)
+       if (.not.msg_pick(i1)) then
+         iproc_send=From(i1)
+         flag=.false.
+         my_tag=200
+         call xmpi_iprobe(iproc_send,my_tag,mpi_comm_exch,flag,ierr)
+         if (flag) then
+           msg_pick(i1)=.true.
+           call xmpi_irecv(buf_size,iproc_send,my_tag,mpi_comm_exch,request1(1),ierr)
+           call xmpi_wait(request1(1),ierr)
+           nb_int=buf_size(1)
+           nb_dp=buf_size(2)
+           npaw_ij_sent=buf_size(3)
+           ABI_ALLOCATE(buf_int1,(nb_int))
+           ABI_ALLOCATE(buf_dp1,(nb_dp))
+           my_tag=201
+           call xmpi_irecv(buf_int1,iproc_send,my_tag,mpi_comm_exch,request1(2),ierr)
+           my_tag=202
+           call xmpi_irecv(buf_dp1,iproc_send,my_tag,mpi_comm_exch,request1(3),ierr)
+           call xmpi_waitall(request1(2:3),ierr)
+           call paw_ij_isendreceive_getbuffer(paw_ij_out1,npaw_ij_sent,atm_indx_out,buf_int1,buf_dp1)
+           nbmsg_incoming=nbmsg_incoming-1
+           ABI_DEALLOCATE(buf_int1)
+           ABI_DEALLOCATE(buf_dp1)
+         end if
        end if
      end do
    end do
+   ABI_DEALLOCATE(msg_pick)
 
    if (in_place) then
-     call paw_ij_destroy(paw_ij)
+     call paw_ij_free(paw_ij)
      ABI_DATATYPE_DEALLOCATE(paw_ij)
      ABI_DATATYPE_ALLOCATE(paw_ij,(my_natom_out))
      call paw_ij_copy(paw_ij_out1,paw_ij)
-     call paw_ij_destroy(paw_ij_out1)
+     call paw_ij_free(paw_ij_out1)
     ABI_DATATYPE_DEALLOCATE(paw_ij_out1)
   end if
 
@@ -2394,7 +2388,7 @@ end subroutine paw_ij_redistribute
 !!  Paw_ij<type(paw_ij_type)>=paw_ij structure
 !!
 !! PARENTS
-!!      nstpaw3,scfcv,scfcv3
+!!      d2frnl_bec,nstpaw3,scfcv,scfcv3
 !!
 !! CHILDREN
 !!
@@ -2528,7 +2522,7 @@ implicit none
 !Local variables-------------------------------
 !scalars
  integer :: buf_dp_size,buf_int_size,cplx_lmn2_size,cplxdij_lmn2_size,ndij,nocc
- integer :: nocc1,nocc2,nocc3,nocc4,iat,iatom_tot,ij,indx_dp,indx_int,lmn2_size
+ integer :: nocc1,nocc2,nocc3,nocc4,iat,iatom_tot,ij,indx_dp,indx_int,lmn2_size,sz1,sz2,sz3
  character(len=500) :: msg
  type(Paw_ij_type),pointer :: paw_ij1
 !arrays
@@ -2763,7 +2757,7 @@ implicit none
 !Local variables-------------------------------
 !scalars
  integer :: cplx_lmn2_size,cplxdij_lmn2_size,ndij,nocc,nspden
- integer :: iatom_tot,ii,ij,indx_dp,indx_int,ipaw_ij_send,lmn2_size
+ integer :: iatom_tot,ii,ij,indx_dp,indx_int,ipaw_ij_send,lmn2_size,sz1,sz2,sz3
  character(len=500) :: msg
  type(Paw_ij_type),pointer :: paw_ij1
 !arrays

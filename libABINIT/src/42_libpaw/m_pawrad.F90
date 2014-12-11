@@ -36,7 +36,7 @@ MODULE m_pawrad
 
  use defs_basis
  use m_errors
- use m_profiling
+ use m_profiling_abi
  use m_xmpi
 
  implicit none
@@ -45,8 +45,7 @@ MODULE m_pawrad
 
 !public procedures.
  public :: pawrad_init         ! Main creation method
- public :: pawrad_nullify      ! Nullify the object
- public :: pawrad_destroy      ! Frees the allocated memory
+ public :: pawrad_free         ! Free the allocated memory
  public :: pawrad_print        ! Printout of the basic info
  public :: pawrad_isame        ! Checks whether two meshes are equivalent or have the same equation.
  public :: pawrad_copy         ! Returns a copy of the mesh.
@@ -57,19 +56,13 @@ MODULE m_pawrad
  public :: nderiv_gen          ! Do corrected first (and 2nd) derivation on a given (generalized) grid.
  public :: nderiv_lin          ! Do corrected first (and 2nd) derivation on a given linear grid.
  public :: bound_deriv         ! Computes derivatives at boundaries of the mesh
- public :: poisson             ! Solves Poisson eq. for angularly dependent charge
-                               ! distribution of angular momentum l
+ public :: poisson             ! Solves Poisson eq. for angularly dependent charge distribution of angular momentum l
  public :: calc_slatradl       ! Calculates the radial part of Slater integrals.
 
- interface pawrad_nullify
-   module procedure pawrad_nullify_0D
-   module procedure pawrad_nullify_1D
- end interface pawrad_nullify
-
- interface pawrad_destroy
-   module procedure pawrad_destroy_0D
-   module procedure pawrad_destroy_1D
- end interface pawrad_destroy
+ interface pawrad_free
+   module procedure pawrad_free_0D
+   module procedure pawrad_free_1D
+ end interface pawrad_free
 
  ! TODO: Might use bit flags, but all radmesh stuff should be encapsulated here!
  integer,private,parameter :: RMESH_LINEAR = 1
@@ -92,19 +85,16 @@ MODULE m_pawrad
 
  type, public :: pawrad_type
 
-! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
-! declared in another part of ABINIT, that might need to take into account your modification.
-
 !Integer scalars
 
-  integer :: int_meshsz
+  integer :: int_meshsz=0
    ! Mesh size used in integrals computation
    ! Integrals will be computed up to r(int_meshsz)
 
-  integer :: mesh_size
+  integer :: mesh_size=0
    ! Dimension of radial mesh
 
-  integer :: mesh_type
+  integer :: mesh_type=-1
    ! Type of mesh
    !     1=regular grid: r(i)=(i-1)*AA
    !     2=logarithmic grid: r(i)=AA*(exp[BB*(i-1)]-1)
@@ -245,7 +235,6 @@ subroutine pawrad_init(mesh,mesh_size,mesh_type,rstep,lstep,r_for_intg)
 
  r_for_intg_=-1._dp;if (present(r_for_intg)) r_for_intg_=r_for_intg
 
- call pawrad_nullify(mesh)
  mesh%mesh_size = mesh_size_
  mesh%mesh_type = mesh_type_
  mesh%rstep     = rstep_
@@ -253,7 +242,7 @@ subroutine pawrad_init(mesh,mesh_size,mesh_type,rstep,lstep,r_for_intg)
  ABI_ALLOCATE(mesh%rad    ,(mesh%mesh_size))
  ABI_ALLOCATE(mesh%radfact,(mesh%mesh_size))
  ABI_ALLOCATE(mesh%simfact,(mesh%mesh_size))
-
+ mesh%simfact=zero
  if (mesh%mesh_type==1) then
    isim=3
    mesh%stepint=mesh%rstep
@@ -334,101 +323,9 @@ end subroutine pawrad_init
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawrad/pawrad_nullify_0D
+!!****f* m_pawrad/pawrad_free_0D
 !! NAME
-!!  pawrad_nullify_0D
-!!
-!! FUNCTION
-!!  Nullify all pointers in the object
-!!
-!! PARENTS
-!!      m_pawrad
-!!
-!! CHILDREN
-!!      poisson,simp_gen
-!!
-!! SOURCE
-
-subroutine pawrad_nullify_0D(Rmesh)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-#undef ABI_FUNC
-#define ABI_FUNC 'pawrad_nullify_0D'
-!End of the abilint section
-
- implicit none
-
-!Arguments ------------------------------------
- type(pawrad_type),intent(inout) :: Rmesh
- 
-! *************************************************************************
-
- ! MGPAW: This one could be removed/renamed, 
- ! variables can be initialized in the datatype declaration
- ! Do we need to expose this in the public API?
-
- !@pawrad_type
- Rmesh%int_meshsz=0
- Rmesh%mesh_size=0
- Rmesh%mesh_type=-1
-
-end subroutine pawrad_nullify_0D
-!!***
-
-!----------------------------------------------------------------------
-
-!!****f* m_pawrad/pawrad_nullify_1D
-!! NAME
-!!  pawrad_nullify_1D
-!!
-!! FUNCTION
-!!  Nullify all pointers in an array of pawrad data structures
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!      poisson,simp_gen
-!!
-!! SOURCE
-
-subroutine pawrad_nullify_1D(Rmesh)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-#undef ABI_FUNC
-#define ABI_FUNC 'pawrad_nullify_1D'
-!End of the abilint section
-
- implicit none
-
-!Arguments ------------------------------------
- type(pawrad_type),intent(inout) :: Rmesh(:)
-
-!Local variables-------------------------------
- integer :: ii,nn
-
-! *************************************************************************
-
- !@pawrad_type
-
- nn=size(Rmesh)
- if (nn==0) return
-
- do ii=1,nn
-   call pawrad_nullify_0D(Rmesh(ii))
- end do
-
-end subroutine pawrad_nullify_1D
-!!***
-
-!----------------------------------------------------------------------
-
-!!****f* m_pawrad/pawrad_destroy_0D
-!! NAME
-!!  pawrad_destroy_0D
+!!  pawrad_free_0D
 !!
 !! FUNCTION
 !!  Frees all memory allocated in the object
@@ -441,13 +338,13 @@ end subroutine pawrad_nullify_1D
 !!
 !! SOURCE
 
-subroutine pawrad_destroy_0D(Rmesh)
+subroutine pawrad_free_0D(Rmesh)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawrad_destroy_0D'
+#define ABI_FUNC 'pawrad_free_0D'
 !End of the abilint section
 
  implicit none
@@ -473,21 +370,20 @@ subroutine pawrad_destroy_0D(Rmesh)
  if (allocated(Rmesh%simfact))  then
    ABI_DEALLOCATE(Rmesh%simfact)
  end if
-
  Rmesh%int_meshsz=0
  Rmesh%mesh_size=0
  Rmesh%mesh_type=-1
 
  DBG_EXIT("COLL")
 
-end subroutine pawrad_destroy_0D
+end subroutine pawrad_free_0D
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawrad/pawrad_destroy_1D
+!!****f* m_pawrad/pawrad_free_1D
 !! NAME
-!!  pawrad_destroy_1D
+!!  pawrad_free_1D
 !!
 !! FUNCTION
 !!  Destroy all objects in an array of pawrad data structures
@@ -499,13 +395,13 @@ end subroutine pawrad_destroy_0D
 !!
 !! SOURCE
 
-subroutine pawrad_destroy_1D(Rmesh)
+subroutine pawrad_free_1D(Rmesh)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawrad_destroy_1D'
+#define ABI_FUNC 'pawrad_free_1D'
 !End of the abilint section
 
  implicit none
@@ -524,10 +420,10 @@ subroutine pawrad_destroy_1D(Rmesh)
  if (nn==0) return
  
  do ii=1,nn
-   call pawrad_destroy_0D(Rmesh(ii))
+   call pawrad_free_0D(Rmesh(ii))
  end do
 
-end subroutine pawrad_destroy_1D
+end subroutine pawrad_free_1D
 !!***
 
 !----------------------------------------------------------------------
@@ -772,8 +668,6 @@ subroutine pawrad_copy(mesh1,mesh2)
 
 ! *************************************************************************
 
- call pawrad_nullify(mesh2)
-
  mesh2%mesh_type =mesh1%mesh_type
  mesh2%mesh_size =mesh1%mesh_size
  mesh2%int_meshsz=mesh1%int_meshsz
@@ -840,8 +734,6 @@ subroutine pawrad_deducer0(func,funcsz,radmesh)
 !arrays
  real(dp),intent(inout) :: func(funcsz)
 
-!Local variables-------------------------------
-
 ! *************************************************************************
 
  if (radmesh%mesh_type==1.or.radmesh%mesh_type==2.or.radmesh%mesh_type==4.or.radmesh%mesh_type==5) then
@@ -878,8 +770,6 @@ end subroutine pawrad_deducer0
 
 subroutine pawrad_bcast(pawrad,comm_mpi)
 
-!Arguments ------------------------------------
-!scalars
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -887,6 +777,10 @@ subroutine pawrad_bcast(pawrad,comm_mpi)
 #define ABI_FUNC 'pawrad_bcast'
 !End of the abilint section
 
+ implicit none
+
+!Arguments ------------------------------------
+!scalars
  integer,intent(in) :: comm_mpi
  type(pawrad_type),intent(inout) :: pawrad
 
@@ -1042,11 +936,11 @@ end subroutine pawrad_bcast
 !!
 !! PARENTS
 !!      Lij,m_atom,m_atompaw,m_paw_commutator,m_paw_pwij,m_paw_slater,m_pawdij
-!!      m_pawpsp,m_pawrad,m_pawxc,make_efg_onsite,mlwfovlp_projpaw,optics_paw
-!!      optics_paw_core,partial_dos_fractions_paw,pawdensities,pawinit
-!!      pawnabla_init,pawpuxinit,pawtwdij,pawtwdij_1,pawtwdij_2a,pawtwdij_2b
-!!      pawtwdij_2c,pawtwdij_2d,pawtwdij_2e,pawtwdij_2f,poslifetime,qijb_kk
-!!      smatrix_pawinit,twqijb_kk
+!!      m_pawpsp,m_pawrad,m_pawxc,m_plowannier,make_efg_onsite,mlwfovlp_projpaw
+!!      optics_paw,optics_paw_core,partial_dos_fractions_paw,pawdensities
+!!      pawinit,pawnabla_init,pawpuxinit,pawtwdij,pawtwdij_1,pawtwdij_2a
+!!      pawtwdij_2b,pawtwdij_2c,pawtwdij_2d,pawtwdij_2e,pawtwdij_2f,posdoppler
+!!      poslifetime,qijb_kk,smatrix_pawinit,twqijb_kk
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -1169,8 +1063,7 @@ end subroutine simp_gen
 !!
 !! PARENTS
 !!      m_paw_pwaves_lmn,m_pawdij,m_pawpsp,m_pawxc,optics_paw,optics_paw_core
-!!      pawinit,pawnabla_init,pawtwdij,pawtwdij_1,poslifetime,psp7cc,psp7cc_wvl
-!!      spline_paw_fncs
+!!      pawinit,pawnabla_init,pawtwdij,pawtwdij_1,poslifetime,spline_paw_fncs
 !!
 !! CHILDREN
 !!      poisson,simp_gen
@@ -1372,8 +1265,7 @@ end subroutine nderiv_lin
 
 !----------------------------------------------------------------------
 
-!{\src2tex{textfont=tt}}
-!!****f* ABINIT/bound_deriv
+!!****f* m_pawrad/bound_deriv
 !! NAME
 !! bound_deriv
 !!

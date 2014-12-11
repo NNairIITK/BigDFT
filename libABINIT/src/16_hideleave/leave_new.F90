@@ -5,7 +5,7 @@
 !! FUNCTION
 !!  Routine for clean exit of f90 code, taking into account possible parallelization.
 !!
-!!  Note the this routine is private and should never be called explictly. 
+!!  Note the this routine is private and should never be called explicitly. 
 !!  Please, use the macros:
 !!    MSG_ERROR, MSG_BUG 
 !!  defined in abi_common.h to abort the execution.
@@ -28,7 +28,7 @@
 !!  By default, it uses "call exit(1)", that is not completely portable.
 !!
 !! PARENTS
-!!      m_errors,testkgrid
+!!      gwls_communicate,m_errors,testkgrid
 !!
 !! CHILDREN
 !!      dump_config,print_kinds,wrtout,xmpi_abort,xmpi_show_info
@@ -64,7 +64,6 @@ subroutine leave_new(mode_paral,exit_status,print_config)
  logical,intent(in),optional :: print_config
 
 !Local variables-------------------------------
- !integer :: nproc
  logical :: print_config_
  !character(len=500) :: msg
 

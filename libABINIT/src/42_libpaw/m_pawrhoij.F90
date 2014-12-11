@@ -9,7 +9,7 @@
 !!  pawrhoij_type variables define rhoij occupancies matrixes used within PAW formalism.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2012-2014 ABINIT group (MT)
+!! Copyright (C) 2012-2014 ABINIT group (MT, FJ)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -29,7 +29,7 @@
 MODULE m_pawrhoij
 
  use defs_basis
- use m_profiling
+ use m_profiling_abi
  use m_errors
  use m_xmpi
 
@@ -46,7 +46,7 @@ MODULE m_pawrhoij
 
 !public procedures.
  public :: pawrhoij_alloc
- public :: pawrhoij_destroy
+ public :: pawrhoij_free
  public :: pawrhoij_nullify
  public :: pawrhoij_copy
  public :: pawrhoij_gather
@@ -55,7 +55,7 @@ MODULE m_pawrhoij
  public :: pawrhoij_io
  public :: pawrhoij_unpack
  public :: pawrhoij_init_unpacked
- public :: pawrhoij_destroy_unpacked
+ public :: pawrhoij_free_unpacked
  public :: symrhoij
 
  public :: pawrhoij_mpisum_unpacked
@@ -82,9 +82,6 @@ MODULE m_pawrhoij
 
  type,public :: pawrhoij_type
 
-! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
-! declared in another part of ABINIT, that might need to take into account your modification.
-
 !Integer scalars
 
   integer :: cplex
@@ -101,15 +98,15 @@ MODULE m_pawrhoij
    ! lmn2_size=lmn_size*(lmn_size+1)/2
    ! where lmn_size is the number of (l,m,n) elements for the paw basis
 
-  integer :: lmnmix_sz
+  integer :: lmnmix_sz=0
    ! lmnmix_sz=number of (lmn,lmn_prime) verifying l<=lmix and l_prime<=lmix
    !           i.e. number of rhoij elements being mixed during SCF cycle
    ! lmnmix_sz=0 if mixing data are not used
 
-  integer :: ngrhoij
+  integer :: ngrhoij=0
    ! First dimension of array grhoij
 
-  integer :: nrhoijsel
+  integer :: nrhoijsel=0
    ! nrhoijsel
    ! Number of non-zero value of rhoij
    ! This is the size of rhoijp(:,:) (see below in this datastructure)
@@ -123,13 +120,13 @@ MODULE m_pawrhoij
   integer :: nsppol
    ! Number of independent spin-components
 
-  integer :: use_rhoij_
+  integer :: use_rhoij_=0
    ! 1 if pawrhoij%rhoij_ is allocated
 
-  integer :: use_rhoijp
+  integer :: use_rhoijp=0
    ! 1 if pawrhoij%rhoijp and pawrhoij%rhoijselect are allocated
 
-  integer :: use_rhoijres
+  integer :: use_rhoijres=0
    ! 1 if pawrhoij%rhoijres is allocated
 
 !Integer arrays
@@ -207,17 +204,17 @@ CONTAINS
 !!
 !! PARENTS
 !!      bethe_salpeter,energy,extraprho,initrhoij,loper3,m_electronpositron
-!!      m_header,m_pawrhoij,m_qparticles,nstpaw3,paw_qpscgw,respfn,rhofermi3
-!!      scfcv3,screening,setup_bse,setup_positron,setup_screening,setup_sigma
-!!      sigma,vtorho,vtorho3
+!!      m_header,m_pawrhoij,m_qparticles,nstpaw3,paw_qpscgw,posdoppler,respfn
+!!      rhofermi3,scfcv3,screening,setup_bse,setup_positron,setup_screening
+!!      setup_sigma,sigma,vtorho,vtorho3
 !!
 !! CHILDREN
 !!
 !! SOURCE
 
-subroutine pawrhoij_alloc(pawrhoij,cplex,nspden,nspinor,nsppol,typat,&           ! Mandatory arguments
-&                      lmnsize,ngrhoij,nlmnmix,pawtab,use_rhoij_,use_rhoijp,& ! Optional arguments
-&                      use_rhoijres,mpi_comm_atom,mpi_atmtab)                 ! Optional arguments
+subroutine pawrhoij_alloc(pawrhoij,cplex,nspden,nspinor,nsppol,typat,&  
+&  lmnsize,ngrhoij,nlmnmix,pawtab,use_rhoij_,use_rhoijp,& ! Optional 
+&  use_rhoijres,comm_atom,mpi_atmtab)                     ! Optional 
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -231,7 +228,7 @@ subroutine pawrhoij_alloc(pawrhoij,cplex,nspden,nspinor,nsppol,typat,&          
 !Arguments ------------------------------------
 !scalars
  integer,intent(in) :: cplex,nspden,nspinor,nsppol
- integer,optional,intent(in):: mpi_comm_atom,ngrhoij,nlmnmix,use_rhoij_,use_rhoijp,use_rhoijres
+ integer,optional,intent(in):: comm_atom,ngrhoij,nlmnmix,use_rhoij_,use_rhoijp,use_rhoijres
  integer,optional,target,intent(in)  :: mpi_atmtab(:)
 !arrays
  integer,intent(in) :: typat(:)
@@ -241,7 +238,7 @@ subroutine pawrhoij_alloc(pawrhoij,cplex,nspden,nspinor,nsppol,typat,&          
 
 !Local variables-------------------------------
 !scalars
- integer :: irhoij,irhoij_,itypat,lmn2_size,nn1,natom,nrhoij
+ integer :: irhoij,irhoij_,itypat,lmn2_size,my_comm_atom,nn1,natom,nrhoij
  logical :: has_rhoijp,my_atmtab_allocated,paral_atom
  character(len=500) :: msg
 !array
@@ -279,12 +276,10 @@ subroutine pawrhoij_alloc(pawrhoij,cplex,nspden,nspinor,nsppol,typat,&          
  end if
 
 !Set up parallelism over atoms
- paral_atom=(present(mpi_comm_atom).and.(nrhoij/=natom))
+ paral_atom=(present(comm_atom).and.(nrhoij/=natom))
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
- my_atmtab_allocated=.false.
- if (paral_atom) then
-   call get_my_atmtab(mpi_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom)
- end if
+ my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
+ call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom)
 
  if (nrhoij>0) then
    do irhoij=1,nrhoij
@@ -361,9 +356,9 @@ end subroutine pawrhoij_alloc
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawrhoij/pawrhoij_destroy
+!!****f* m_pawrhoij/pawrhoij_free
 !! NAME
-!! pawrhoij_destroy
+!! pawrhoij_free
 !!
 !! FUNCTION
 !! Destroy a pawrhoij datastructure
@@ -372,22 +367,23 @@ end subroutine pawrhoij_alloc
 !! pawrhoij(:)<type(pawrhoij_type)>= rhoij datastructure
 !!
 !! PARENTS
-!!      bethe_salpeter,d2frnl,energy,gstate,gw_tools,loper3,m_electronpositron
-!!      m_header,m_paral_pert,m_pawrhoij,m_scf_history,nstpaw3,pawgrnl,pawmkrho
-!!      pawmkrhoij,pawprt,respfn,rhofermi3,scfcv3,screening,setup_bse
-!!      setup_positron,setup_screening,setup_sigma,sigma,vtorho,vtorho3
+!!      bethe_salpeter,d2frnl,d2frnl_bec,energy,gstate,gw_tools,loper3,m_dfptdb
+!!      m_electronpositron,m_header,m_paral_pert,m_pawrhoij,m_scf_history
+!!      nstpaw3,pawgrnl,pawmkrho,pawmkrhoij,pawprt,posdoppler,respfn,rhofermi3
+!!      scfcv3,screening,setup_bse,setup_positron,setup_screening,setup_sigma
+!!      sigma,vtorho,vtorho3
 !!
 !! CHILDREN
 !!
 !! SOURCE
 
-subroutine pawrhoij_destroy(pawrhoij)
+subroutine pawrhoij_free(pawrhoij)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawrhoij_destroy'
+#define ABI_FUNC 'pawrhoij_free'
 !End of the abilint section
 
  implicit none
@@ -433,7 +429,7 @@ subroutine pawrhoij_destroy(pawrhoij)
    end do
  end if
 
-end subroutine pawrhoij_destroy
+end subroutine pawrhoij_free
 !!***
 
 !----------------------------------------------------------------------
@@ -449,8 +445,8 @@ end subroutine pawrhoij_destroy
 !! pawrhoij(:)<type(pawrhoij_type)>= rhoij datastructure
 !!
 !! PARENTS
-!!      d2frnl,loper3,m_pawrhoij,m_scf_history,outscfcv,pawgrnl,pawmkrho,pawprt
-!!      respfn
+!!      d2frnl,d2frnl_bec,loper3,m_pawrhoij,m_scf_history,outscfcv,pawgrnl
+!!      pawmkrho,pawprt,posdoppler,respfn
 !!
 !! CHILDREN
 !!
@@ -519,7 +515,7 @@ end subroutine pawrhoij_nullify
 !!               if .TRUE. pawrhoij_out(:)%nspden is NOT MODIFIED,
 !!               even if different from pawrhoij_in(:)%nspden
 !!  mpi_atmtab(:)=--optional-- indexes of the atoms treated by current proc
-!!  mpi_comm_atom=--optional-- MPI communicator over atoms
+!!  comm_atom=--optional-- MPI communicator over atoms
 !!  pawrhoij_in(:)<type(pawrhoij_type)>= input rhoij datastructure
 !!
 !! SIDE EFFECTS
@@ -539,7 +535,7 @@ end subroutine pawrhoij_nullify
 
 subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
 &          keep_cplex,keep_itypat,keep_nspden,& ! optional arguments
-&          mpi_atmtab,mpi_comm_atom)            ! optional arguments (parallelism)
+&          mpi_atmtab,comm_atom)            ! optional arguments (parallelism)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -552,7 +548,7 @@ subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
 
 !Arguments ------------------------------------
 !scalars
- integer,optional,intent(in) :: mpi_comm_atom
+ integer,optional,intent(in) :: comm_atom
  logical,intent(in),optional :: keep_cplex,keep_itypat,keep_nspden
 !arrays
  integer,optional,target,intent(in) :: mpi_atmtab(:)
@@ -562,7 +558,7 @@ subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
 !Local variables-------------------------------
 !scalars
  integer :: cplex_in,cplex_out,dplex_in,dplex_out,i_in,i_out,ilmn
- integer :: irhoij,ispden,jrhoij,lmn2_size_out,lmnmix,my_nrhoij
+ integer :: irhoij,ispden,jrhoij,lmn2_size_out,lmnmix,my_comm_atom,my_nrhoij
  integer :: ngrhoij,nrhoij_in,nrhoij_max,nrhoij_out,nselect,nselect_out
  integer :: nspden_in,nspden_out,paral_case,use_rhoij_,use_rhoijp,use_rhoijres
  logical :: change_dim,keep_cplex_,keep_itypat_,keep_nspden_,my_atmtab_allocated,paral_atom
@@ -586,8 +582,9 @@ subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
  if (present(keep_nspden)) keep_nspden_=keep_nspden
 
 !Set up parallelism over atoms
- paral_atom=(present(mpi_comm_atom));if (paral_atom) paral_atom=(xcomm_size(mpi_comm_atom)>1)
+ paral_atom=(present(comm_atom));if (paral_atom) paral_atom=(xcomm_size(comm_atom)>1)
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
+ my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
  my_atmtab_allocated=.false.
 
 !Determine in which case we are (parallelism, ...)
@@ -596,9 +593,9 @@ subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
  pawrhoij_out => pawrhoij_cpy
  if (paral_atom) then
    if (nrhoij_out<nrhoij_in) then ! Parallelism: the copy operation is a scatter
-     call get_my_natom(mpi_comm_atom,my_nrhoij,nrhoij_in)
+     call get_my_natom(my_comm_atom,my_nrhoij,nrhoij_in)
      if (my_nrhoij==nrhoij_out) then
-       call get_my_atmtab(mpi_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,nrhoij_in)
+       call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,nrhoij_in)
        paral_case=1;nrhoij_max=nrhoij_out
        pawrhoij_out => pawrhoij_cpy
      else
@@ -606,7 +603,7 @@ subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
        MSG_BUG(msg)
      end if
    else                            ! Parallelism: the copy operation is a gather
-     call get_my_natom(mpi_comm_atom,my_nrhoij,nrhoij_out)
+     call get_my_natom(my_comm_atom,my_nrhoij,nrhoij_out)
      if (my_nrhoij==nrhoij_in) then
        paral_case=2;nrhoij_max=nrhoij_in
        ABI_DATATYPE_ALLOCATE(pawrhoij_out,(nrhoij_in))
@@ -1009,9 +1006,9 @@ subroutine pawrhoij_copy(pawrhoij_in,pawrhoij_cpy, &
 
 !Parallel case: do a gather if needed
  if (paral_case==2) then
-   call pawrhoij_destroy(pawrhoij_cpy)
-   call pawrhoij_gather(pawrhoij_out,pawrhoij_cpy,-1,mpi_comm_atom)
-   call pawrhoij_destroy(pawrhoij_out)
+   call pawrhoij_free(pawrhoij_cpy)
+   call pawrhoij_gather(pawrhoij_out,pawrhoij_cpy,-1,my_comm_atom)
+   call pawrhoij_free(pawrhoij_out)
    ABI_DATATYPE_DEALLOCATE(pawrhoij_out)
 
 !  Sequential case: fill missing elements
@@ -1048,7 +1045,7 @@ end subroutine pawrhoij_copy
 !!
 !! INPUTS
 !!  master=master communicator receiving data ; if -1 do a ALLGATHER
-!!  mpi_comm_atom= communicator
+!!  comm_atom= communicator
 !!  pawrhoij_in(:)<type(pawrhoij_type)>= input rhoij datastructures on every process
 !!  with_grhoij   : optional argument (logical, default=.TRUE.)
 !!                  TRUE if pawrhoij%grhoij field is included in the gather operation
@@ -1069,15 +1066,15 @@ end subroutine pawrhoij_copy
 !!  The gathered structure are ordered like in sequential mode.
 !!
 !! PARENTS
-!!      d2frnl,m_pawrhoij,pawgrnl,pawprt
+!!      d2frnl,d2frnl_bec,m_pawrhoij,pawgrnl,pawprt,posdoppler
 !!
 !! CHILDREN
 !!
 !! SOURCE
 
 
- subroutine pawrhoij_gather(pawrhoij_in,pawrhoij_gathered,master,mpi_comm_atom, &
- &          with_grhoij,with_lmnmix,with_rhoijp,with_rhoijres,with_rhoij_) ! optional arguments
+ subroutine pawrhoij_gather(pawrhoij_in,pawrhoij_gathered,master,comm_atom, &
+&          with_grhoij,with_lmnmix,with_rhoijp,with_rhoijres,with_rhoij_) ! optional arguments
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -1090,10 +1087,10 @@ end subroutine pawrhoij_copy
 
 !Arguments ------------------------------------
 !scalars
- integer,intent(in) :: master,mpi_comm_atom
+ integer,intent(in) :: master,comm_atom
  logical,intent(in),optional :: with_grhoij,with_lmnmix,with_rhoijp,with_rhoijres,with_rhoij_
 !arrays
- type(pawrhoij_type),intent(inout) :: pawrhoij_in(:)
+ type(pawrhoij_type),intent(in) :: pawrhoij_in(:)
  type(pawrhoij_type),intent(inout) :: pawrhoij_gathered(:)
 !Local variables-------------------------------
 !scalars
@@ -1113,8 +1110,8 @@ end subroutine pawrhoij_copy
 
  nrhoij_in=size(pawrhoij_in);nrhoij_out=size(pawrhoij_gathered)
 
- nproc_atom=xcomm_size(mpi_comm_atom)
- me_atom=xcomm_rank(mpi_comm_atom)
+ nproc_atom=xcomm_size(comm_atom)
+ me_atom=xcomm_rank(comm_atom)
 
  if (nproc_atom==1) then
    if (master==-1.or.me_atom==master) then
@@ -1125,7 +1122,7 @@ end subroutine pawrhoij_copy
 
 !Test on sizes
  nrhoij_in_sum=nrhoij_in
- call xmpi_sum(nrhoij_in_sum,mpi_comm_atom,ierr)
+ call xmpi_sum(nrhoij_in_sum,comm_atom,ierr)
  if (master==-1) then
    if (nrhoij_out/=nrhoij_in_sum) then
      msg='Wrong sizes sum[nrhoij_ij]/=nrhoij_out !'
@@ -1147,7 +1144,7 @@ end subroutine pawrhoij_copy
 
 !Retrieve table of atoms
  paral_atom=.true.;nullify(my_atmtab)
- call get_my_atmtab(mpi_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,nrhoij_in_sum, &
+ call get_my_atmtab(comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,nrhoij_in_sum, &
 & my_natom_ref=nrhoij_in)
 
 !Compute sizes of buffers
@@ -1254,17 +1251,17 @@ end subroutine pawrhoij_copy
  if (master==-1) then
    call xmpi_allgatherv(buf_int,buf_int_size,buf_dp,buf_dp_size, &
 &       buf_int_all,buf_int_size_all,buf_dp_all,buf_dp_size_all,&
-&       mpi_comm_atom,ierr)
+&       comm_atom,ierr)
  else
    call xmpi_gatherv(buf_int,buf_int_size,buf_dp,buf_dp_size, &
 &       buf_int_all,buf_int_size_all,buf_dp_all,buf_dp_size_all,&
-&       master,mpi_comm_atom,ierr)
+&       master,comm_atom,ierr)
  end if
 
 !Retrieve data from output buffer
  if (master==-1.or.me_atom==master) then
    indx_int=1;indx_dp=1
-   call pawrhoij_destroy(pawrhoij_gathered)
+   call pawrhoij_free(pawrhoij_gathered)
    do irhoij=1,nrhoij_out
      jrhoij      =buf_int_all(indx_int)    ;indx_int=indx_int+1
      cplex       =buf_int_all(indx_int)    ;indx_int=indx_int+1
@@ -1360,24 +1357,24 @@ end subroutine pawrhoij_gather
 !! INPUTS
 !!  master=master communicator receiving data
 !!  mpicomm= MPI communicator
-!!  mpi_comm_atom= --optional-- MPI communicator over atoms
+!!  comm_atom= --optional-- MPI communicator over atoms
 !!  pawrhoij_in(:)<type(pawrhoij_type)>= input rhoij datastructures on master process
 !!
 !! OUTPUT
 !!  pawrhoij_out(:)<type(pawrhoij_type)>= output rhoij datastructure on every process
-!!    Eventually distributed according to mpi_comm_atom communicator
+!!    Eventually distributed according to comm_atom communicator
 !!
 !! PARENTS
 !!
 !! CHILDREN
 !!  free_my_atmtab,get_my_atmtab
-!!  pawrhoij_copy,pawrhoij_destroy
+!!  pawrhoij_copy,pawrhoij_free
 !!  xmpi_allgather,xmpi_gatherv,xmpi_bcast,xmpi_scatterv
 !!  xcomm_rank,xcomm_size,xmpi_sum
 !!
 !! SOURCE
 
- subroutine pawrhoij_bcast(pawrhoij_in,pawrhoij_out,master,mpicomm,mpi_comm_atom)
+ subroutine pawrhoij_bcast(pawrhoij_in,pawrhoij_out,master,mpicomm,comm_atom)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -1391,15 +1388,15 @@ end subroutine pawrhoij_gather
 !Arguments ------------------------------------
 !scalars
  integer,intent(in) :: master,mpicomm
- integer,intent(in),optional :: mpi_comm_atom
+ integer,intent(in),optional :: comm_atom
 !arrays
- type(pawrhoij_type),intent(inout) :: pawrhoij_in(:)
+ type(pawrhoij_type),intent(in) :: pawrhoij_in(:)
  type(pawrhoij_type),intent(inout) :: pawrhoij_out(:)
 !Local variables-------------------------------
 !scalars
  integer :: buf_dp_size,buf_dp_size_all,buf_int_size,buf_int_size_all
  integer :: cplex,ierr,ii,indx_dp,indx_int,iproc,irhoij,isp,jrhoij,lmn2_size,lmnmix,me
- integer :: mpi_comm_atom_,ngrhoij,nproc,nproc_atom,nrhoij_in,nrhoij_out,nrhoij_out_all
+ integer :: my_comm_atom,ngrhoij,nproc,nproc_atom,nrhoij_in,nrhoij_out,nrhoij_out_all
  integer :: nselect,nspden,rhoij_size2,use_rhoijp,use_rhoijres,use_rhoij_
  logical :: my_atmtab_allocated,paral_atom
  character(len=500) :: msg
@@ -1413,13 +1410,13 @@ end subroutine pawrhoij_gather
 ! *************************************************************************
 
 !Load MPI "atom" distribution data
- mpi_comm_atom_=xmpi_self;nproc_atom=1
- if (present(mpi_comm_atom)) then
-   mpi_comm_atom_=mpi_comm_atom
-   nproc_atom=xcomm_size(mpi_comm_atom_)
+ my_comm_atom=xmpi_self;nproc_atom=1
+ if (present(comm_atom)) then
+   my_comm_atom=comm_atom
+   nproc_atom=xcomm_size(my_comm_atom)
    paral_atom=(nproc_atom>1)
-   if (mpi_comm_atom_/=mpicomm.and.nproc_atom/=1) then
-     msg='wrong mpi_comm_atom communicator !'
+   if (my_comm_atom/=mpicomm.and.nproc_atom/=1) then
+     msg='wrong comm_atom communicator !'
      MSG_BUG(msg)
    end if
  end if
@@ -1438,7 +1435,7 @@ end subroutine pawrhoij_gather
  nrhoij_in=0;if (me==master) nrhoij_in=size(pawrhoij_in)
  nrhoij_out=size(pawrhoij_out);nrhoij_out_all=nrhoij_out
  if (paral_atom) then
-   call xmpi_sum(nrhoij_out_all,mpi_comm_atom_,ierr)
+   call xmpi_sum(nrhoij_out_all,my_comm_atom,ierr)
  end if
  if (me==master.and.nrhoij_in/=nrhoij_out_all) then
    msg='pawrhoij_in or pawrhoij_out wrongly allocated !'
@@ -1448,18 +1445,18 @@ end subroutine pawrhoij_gather
 !Retrieve table(s) of atoms (if necessary)
  if (paral_atom) then
    nullify(my_atmtab)
-   call get_my_atmtab(mpi_comm_atom_,my_atmtab,my_atmtab_allocated,paral_atom, &
+   call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom, &
 &                     nrhoij_out_all,my_natom_ref=nrhoij_out)
    ABI_ALLOCATE(disp_int,(nproc_atom))
    ABI_ALLOCATE(count_int,(nproc_atom))
-   call xmpi_allgather(nrhoij_out,count_int,mpi_comm_atom_,ierr)
+   call xmpi_allgather(nrhoij_out,count_int,my_comm_atom,ierr)
    disp_int(1)=0
    do ii=2,nproc_atom
      disp_int(ii)=disp_int(ii-1)+count_int(ii-1)
    end do
    ABI_ALLOCATE(atmtab,(nrhoij_in))
    call xmpi_gatherv(my_atmtab,nrhoij_out,atmtab,count_int,disp_int,&
-&                    master,mpi_comm_atom_,ierr)
+&                    master,my_comm_atom,ierr)
    ABI_DEALLOCATE(disp_int)
    ABI_DEALLOCATE(count_int)
  end if
@@ -1499,7 +1496,7 @@ end subroutine pawrhoij_gather
    ABI_ALLOCATE(count_siz,(2*nproc_atom))
    buf_size(1)=buf_int_size
    buf_size(2)=buf_dp_size
-   call xmpi_allgather(buf_size,2,count_siz,mpi_comm_atom_,ierr)
+   call xmpi_allgather(buf_size,2,count_siz,my_comm_atom,ierr)
    do iproc=1,nproc_atom
      count_int(iproc)=count_siz(2*iproc-1)
      count_dp(iproc)=count_siz(2*iproc)
@@ -1608,7 +1605,7 @@ end subroutine pawrhoij_gather
 
 !Retrieve data from output buffer
  indx_int=1;indx_dp=1
- call pawrhoij_destroy(pawrhoij_out)
+ call pawrhoij_free(pawrhoij_out)
  do irhoij=1,nrhoij_out
    jrhoij      =buf_int(indx_int);indx_int=indx_int+1 ! Not used !
    cplex       =buf_int(indx_int);indx_int=indx_int+1
@@ -1764,9 +1761,10 @@ end subroutine pawrhoij_bcast
 
 !Local variables-------------------------------
 !scalars
- integer :: algo_option,i1,i2,iat_in,iat_out,iatom,ierr,ireq,iircv,iisend,imsg,imsg_current,imsg1
- integer :: iproc_rcv,iproc_send,me_in,my_natom_in,my_natom_out,my_tag,natom_tot,nb_dp,nb_int
- integer :: nb_msg,nbrecv,nbrecvmsg,nbsend,nbsendreq,nbsent,next,npawrhoij_sent
+ integer :: algo_option,i1,iat_in,iat_out,iatom,ierr,ireq,iircv,iisend,imsg,imsg_current,imsg1
+ integer :: iproc_rcv,iproc_send,me_exch,mpi_comm_exch,my_natom_in,my_natom_out,my_tag,natom_tot,nb_dp,nb_int
+ integer :: nb_msg,nbmsg_incoming,nbrecv,nbrecvmsg,nbsend,nbsendreq,nbsent,next,npawrhoij_sent
+ integer :: nproc_in,nproc_out
  logical :: flag,in_place,message_yet_prepared,my_atmtab_in_allocated,my_atmtab_out_allocated,paral_atom
 !arrays
  integer :: buf_size(3),request1(3)
@@ -1774,6 +1772,7 @@ end subroutine pawrhoij_bcast
  integer,allocatable :: atmtab_send(:),atm_indx_in(:),atm_indx_out(:),buf_int1(:),From(:),request(:)
  integer,allocatable,target :: buf_int(:)
  integer,pointer:: buf_ints(:)
+ logical,allocatable :: msg_pick(:)
  real(dp),allocatable :: buf_dp1(:)
  real(dp),allocatable,target :: buf_dp(:)
  real(dp),pointer :: buf_dps(:)
@@ -1794,7 +1793,7 @@ end subroutine pawrhoij_bcast
 !If not "in_place", destroy the output datastructure
  if (.not.in_place) then
    if (associated(pawrhoij_out)) then
-     call pawrhoij_destroy(pawrhoij_out)
+     call pawrhoij_free(pawrhoij_out)
      ABI_DATATYPE_DEALLOCATE(pawrhoij_out)
    end if
  end if
@@ -1848,22 +1847,22 @@ end subroutine pawrhoij_bcast
 
    ABI_DATATYPE_ALLOCATE(pawrhoij_all,(natom_tot))
    call pawrhoij_nullify(pawrhoij_all)
-   call pawrhoij_copy(pawrhoij,pawrhoij_all,mpi_comm_atom=mpi_comm_in,mpi_atmtab=my_atmtab_in,&
+   call pawrhoij_copy(pawrhoij,pawrhoij_all,comm_atom=mpi_comm_in,mpi_atmtab=my_atmtab_in,&
 &                  keep_cplex=.false.,keep_itypat=.false.,keep_nspden=.false.)
    if (in_place) then
-     call pawrhoij_destroy(pawrhoij)
+     call pawrhoij_free(pawrhoij)
      ABI_DATATYPE_DEALLOCATE(pawrhoij)
      ABI_DATATYPE_ALLOCATE(pawrhoij,(my_natom_out))
      call pawrhoij_nullify(pawrhoij)
-     call pawrhoij_copy(pawrhoij_all,pawrhoij,mpi_comm_atom=mpi_comm_out,mpi_atmtab=my_atmtab_out,&
+     call pawrhoij_copy(pawrhoij_all,pawrhoij,comm_atom=mpi_comm_out,mpi_atmtab=my_atmtab_out,&
 &                       keep_cplex=.false.,keep_itypat=.false.,keep_nspden=.false.)
    else
      ABI_DATATYPE_ALLOCATE(pawrhoij_out,(my_natom_out))
      call pawrhoij_nullify(pawrhoij_out)
-     call pawrhoij_copy(pawrhoij_all,pawrhoij_out,mpi_comm_atom=mpi_comm_out,mpi_atmtab=my_atmtab_out,&
+     call pawrhoij_copy(pawrhoij_all,pawrhoij_out,comm_atom=mpi_comm_out,mpi_atmtab=my_atmtab_out,&
 &                       keep_cplex=.false.,keep_itypat=.false.,keep_nspden=.false.)
    end if
-   call pawrhoij_destroy(pawrhoij_all)
+   call pawrhoij_free(pawrhoij_all)
    ABI_DATATYPE_DEALLOCATE(pawrhoij_all)
 
 
@@ -1886,7 +1885,11 @@ end subroutine pawrhoij_bcast
      pawrhoij_out1=>pawrhoij_out
    end if
 
-   me_in=xcomm_rank(mpi_comm_in)
+   nproc_in=xcomm_size(mpi_comm_in)
+   nproc_out=xcomm_size(mpi_comm_out)
+   if (nproc_in<=nproc_out) mpi_comm_exch=mpi_comm_out
+   if (nproc_in>nproc_out) mpi_comm_exch=mpi_comm_in
+   me_exch=xcomm_rank(mpi_comm_exch)
 
 !  Dimension put to the maximum to send
    ABI_ALLOCATE(atmtab_send,(nbsend))
@@ -1909,10 +1912,10 @@ end subroutine pawrhoij_bcast
 !  A send buffer in an asynchrone communication couldn't be deallocate before it has been receive
    nbsent=0 ; ireq=0 ; iisend=0 ; nbsendreq=0 ; nb_msg=0
    do iisend=1,nbsend
-     iproc_rcv=SendAtomProc(iisend) ! SendAtomProc is sorted by growing process
+     iproc_rcv=SendAtomProc(iisend) 
      next=-1
      if (iisend < nbsend) next=SendAtomProc(iisend+1)
-     if (iproc_rcv /= me_in) then
+     if (iproc_rcv /= me_exch) then
        nbsent=nbsent+1
        atmtab_send(nbsent)=SendAtomList(iisend) ! we groups the atoms sends to the same process
        if (iproc_rcv /= next) then
@@ -1953,13 +1956,13 @@ end subroutine pawrhoij_bcast
            buf_dps=>tab_buf_dp(imsg_current)%value
            my_tag=100
            ireq=ireq+1
-           call xmpi_isend(buf_size,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           call xmpi_isend(buf_size,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
            my_tag=101
            ireq=ireq+1
-           call xmpi_isend(buf_ints,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           call xmpi_isend(buf_ints,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
            my_tag=102
            ireq=ireq+1
-           call xmpi_isend(buf_dps,iproc_rcv,my_tag,mpi_comm_in,request(ireq),ierr)
+           call xmpi_isend(buf_dps,iproc_rcv,my_tag,mpi_comm_exch,request(ireq),ierr)
            nbsendreq=ireq
            nbsent=0
          end if
@@ -1979,51 +1982,54 @@ end subroutine pawrhoij_bcast
      iproc_send=RecvAtomProc(iircv) !receive from (RcvAtomProc is sorted by growing process)
      next=-1
      if (iircv < nbrecv) next=RecvAtomProc(iircv+1)
-     if (iproc_send /= me_in .and. iproc_send/=next) then
+     if (iproc_send /= me_exch .and. iproc_send/=next) then
         nbrecvmsg=nbrecvmsg+1
         From(nbrecvmsg)=iproc_send
      end if
    end do
 
-   do while (nbrecvmsg > 0)
+   ABI_ALLOCATE(msg_pick,(nbrecvmsg))
+   msg_pick=.false.
+   nbmsg_incoming=nbrecvmsg
+   do while (nbmsg_incoming > 0)
      do i1=1,nbrecvmsg
-       iproc_send=From(i1)
-       flag=.false.
-       my_tag=100
-       call xmpi_iprobe(iproc_send,my_tag,mpi_comm_in,flag,ierr)
-       if (flag) then
-         call xmpi_irecv(buf_size,iproc_send,my_tag,mpi_comm_in,request1(1),ierr)
-         call xmpi_wait(request1(1),ierr)
-         nb_int=buf_size(1)
-         nb_dp=buf_size(2)
-         npawrhoij_sent=buf_size(3)
-         ABI_ALLOCATE(buf_int1,(nb_int))
-         ABI_ALLOCATE(buf_dp1,(nb_dp))
-         my_tag=101
-         call xmpi_irecv(buf_int1,iproc_send,my_tag,mpi_comm_in,request1(2),ierr)
-         my_tag=102
-         call xmpi_irecv(buf_dp1,iproc_send,my_tag,mpi_comm_in,request1(3),ierr)
-         call xmpi_waitall(request1(2:3),ierr)
-         call pawrhoij_isendreceive_getbuffer(pawrhoij_out1,npawrhoij_sent,atm_indx_out,buf_int1,buf_dp1)
- !       Remove i1 of the array from
-         do i2=i1,nbrecvmsg-1
-           From(i2)=From(i2+1)
-         end do
-         nbrecvmsg=nbrecvmsg-1
-         ABI_DEALLOCATE(buf_int1)
-         ABI_DEALLOCATE(buf_dp1)
+       if (.not.msg_pick(i1)) then
+         iproc_send=From(i1)
+         flag=.false.
+         my_tag=100
+         call xmpi_iprobe(iproc_send,my_tag,mpi_comm_exch,flag,ierr)
+         if (flag) then
+           msg_pick(i1)=.true.
+           call xmpi_irecv(buf_size,iproc_send,my_tag,mpi_comm_exch,request1(1),ierr)
+           call xmpi_wait(request1(1),ierr)
+           nb_int=buf_size(1)
+           nb_dp=buf_size(2)
+           npawrhoij_sent=buf_size(3)
+           ABI_ALLOCATE(buf_int1,(nb_int))
+           ABI_ALLOCATE(buf_dp1,(nb_dp))
+           my_tag=101
+           call xmpi_irecv(buf_int1,iproc_send,my_tag,mpi_comm_exch,request1(2),ierr)
+           my_tag=102
+           call xmpi_irecv(buf_dp1,iproc_send,my_tag,mpi_comm_exch,request1(3),ierr)
+           call xmpi_waitall(request1(2:3),ierr)
+           call pawrhoij_isendreceive_getbuffer(pawrhoij_out1,npawrhoij_sent,atm_indx_out,buf_int1,buf_dp1)
+           nbmsg_incoming=nbmsg_incoming-1
+           ABI_DEALLOCATE(buf_int1)
+           ABI_DEALLOCATE(buf_dp1)
+         end if
        end if
      end do
    end do
+   ABI_DEALLOCATE(msg_pick)
 
    if (in_place) then
-     call pawrhoij_destroy(pawrhoij)
+     call pawrhoij_free(pawrhoij)
      ABI_DATATYPE_DEALLOCATE(pawrhoij)
      ABI_DATATYPE_ALLOCATE(pawrhoij,(my_natom_out))
      call pawrhoij_nullify(pawrhoij)
      call pawrhoij_copy(pawrhoij_out1,pawrhoij, &
 &         keep_cplex=.false.,keep_itypat=.false.,keep_nspden=.false.)
-     call pawrhoij_destroy(pawrhoij_out1)
+     call pawrhoij_free(pawrhoij_out1)
      ABI_DATATYPE_DEALLOCATE(pawrhoij_out1)
    end if
 
@@ -2488,9 +2494,9 @@ end subroutine pawrhoij_init_unpacked
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawrhoij/pawrhoij_destroy_unpacked
+!!****f* m_pawrhoij/pawrhoij_free_unpacked
 !! NAME
-!! pawrhoij_destroy_unpacked
+!! pawrhoij_free_unpacked
 !!
 !! FUNCTION
 !!  Destroy field of rhoij datastructure for unpacked values (pawrhoij%rhoij_ array)
@@ -2506,13 +2512,13 @@ end subroutine pawrhoij_init_unpacked
 !!
 !! SOURCE
 
-subroutine pawrhoij_destroy_unpacked(rhoij)
+subroutine pawrhoij_free_unpacked(rhoij)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawrhoij_destroy_unpacked'
+#define ABI_FUNC 'pawrhoij_free_unpacked'
 !End of the abilint section
 
  implicit none
@@ -2538,7 +2544,7 @@ subroutine pawrhoij_destroy_unpacked(rhoij)
 
  end do
 
-end subroutine pawrhoij_destroy_unpacked
+end subroutine pawrhoij_free_unpacked
 !!***
 
 !----------------------------------------------------------------------
@@ -2762,13 +2768,6 @@ end subroutine pawrhoij_mpisum_unpacked_2D
 !! Symmetrize rhoij quantities (augmentation occupancies) and/or gradients
 !! Compute also rhoij residuals (new-old values of rhoij and gradients)
 !!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (FJ, MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!!
 !! INPUTS
 !!  choice=select then type of rhoij gradients to symmetrize.
 !!         choice=1 => no gradient
@@ -2781,8 +2780,8 @@ end subroutine pawrhoij_mpisum_unpacked_2D
 !!  indsym(4,nsym,natom)=indirect indexing array for atom labels
 !!  ipert=index of perturbation if pawrhoij is a pertubed rhoij
 !!        no meaning for ground-state calculations (should be 0)
-!!  mpi_atmtab(:)=--optional-- indexes of the atoms treated by current proc
-!!  mpi_comm_atom=--optional-- MPI communicator over atoms
+!!  [mpi_atmtab(:)]=--optional-- indexes of the atoms treated by current proc
+!!  [comm_atom]=--optional-- MPI communicator over atoms
 !!  natom=number of atoms in cell
 !!  nsym=number of symmetry elements in space group
 !!  ntypat=number of types of atoms in unit cell.
@@ -2794,6 +2793,7 @@ end subroutine pawrhoij_mpisum_unpacked_2D
 !!  pawprtvol=control print volume and debugging output for PAW
 !!            Note: if pawprtvol=-10001, nothing is printed out
 !!  pawtab(ntypat) <type(pawtab_type)>=paw tabulated starting data
+!!  [qphon(3)]=--optional-- (RF calculations only) - wavevector of the phonon
 !!  rprimd(3,3)=real space primitive translations.
 !!  symafm(nsym)=(anti)ferromagnetic part of symmetry operations
 !!  symrec(3,3,nsym)=symmetries of group in terms of operations on
@@ -2819,7 +2819,7 @@ end subroutine pawrhoij_mpisum_unpacked_2D
 !!  (in that case pawrhoij_unsym should not be distributed over atomic sites).
 !!
 !! PARENTS
-!!      d2frnl,energy,paw_qpscgw,pawmkrho
+!!      d2frnl,d2frnl_bec,energy,paw_qpscgw,pawmkrho,posdoppler
 !!
 !! CHILDREN
 !!
@@ -2827,7 +2827,7 @@ end subroutine pawrhoij_mpisum_unpacked_2D
 
 subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsym,&
 &                   ntypat,optrhoij,pawang,pawprtvol,pawtab,rprimd,symafm,symrec,typat, &
-&                   mpi_atmtab,mpi_comm_atom) ! optional arguments (parallelism)
+&                   mpi_atmtab,comm_atom,qphon) ! optional arguments (parallelism)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -2842,13 +2842,14 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
 !Arguments ---------------------------------------------
 !scalars
  integer,intent(in) :: choice,ipert,natom,nsym,ntypat,optrhoij,pawprtvol
- integer,optional,intent(in) :: mpi_comm_atom
+ integer,optional,intent(in) :: comm_atom
  type(pawang_type),intent(in) :: pawang
 !arrays
  integer,intent(in) :: indsym(4,nsym,natom)
  integer,optional,target,intent(in) :: mpi_atmtab(:)
  integer,intent(in) :: symafm(nsym),symrec(3,3,nsym),typat(natom)
  real(dp),intent(in) :: gprimd(3,3),rprimd(3,3)
+ real(dp),intent(in),optional :: qphon(3)
  type(pawrhoij_type),intent(inout) :: pawrhoij(:)
  type(pawrhoij_type),target,intent(inout) :: pawrhoij_unsym(:)
  type(pawtab_type),target,intent(in) :: pawtab(ntypat)
@@ -2859,11 +2860,11 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
  integer :: at_indx,cplex,cplex_eff,iafm,iatm,iatom,idum1,il,il0,ilmn,iln,iln0,ilpm,indexi
  integer :: indexii,indexj,indexjj,indexjj0,indexk,indexk1,iplex,irhoij,irot,ishift2,ishift3
  integer :: ishift4,ispden,itypat,j0lmn,jj,jl,jl0,jlmn,jln,jln0,jlpm,jrhoij,jspden,klmn,klmn1,kspden
- integer :: lmn_size,mi,mj,mu,mua,mub,mushift,natinc,ngrhoij,nrhoij,nrhoij1,nrhoij_unsym
- integer :: nselect,nselect1,nspinor,nu,nushift
+ integer :: lmn_size,mi,mj,my_comm_atom,mu,mua,mub,mushift,natinc,ngrhoij,nrhoij,nrhoij1,nrhoij_unsym
+ integer :: nselect,nselect1,nspinor,nu,nushift,sz1,sz2
  logical,parameter :: afm_noncoll=.true.  ! TRUE if antiferro symmetries are used with non-collinear magnetism
- real(dp) :: factafm,syma,zarot2
- logical :: antiferro,my_atmtab_allocated,noncoll,paral_atom,paral_atom_unsym,use_afm,use_res
+ real(dp) :: arg,factafm,syma,zarot2
+ logical :: antiferro,have_phase,my_atmtab_allocated,noncoll,paral_atom,paral_atom_unsym,use_afm,use_res
  character(len=8) :: pertstrg,wrt_mode
  character(len=500) :: message
 !arrays
@@ -2872,10 +2873,9 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
  integer, ABI_CONTIGUOUS pointer :: indlmn(:,:)
  integer,pointer :: my_atmtab(:)
  integer :: idum(0)
- real(dp) :: ro(2),sumrho(2,2),sum1(2),xsym(3)
+ real(dp) :: factsym(2),phase(2),rhoijc(2),ro(2),sumrho(2,2),sum1(2),rotrho(2,2),xsym(3)
  real(dp),allocatable :: rotgr(:,:,:),rotmag(:,:),rotmaggr(:,:,:)
  real(dp),allocatable :: sumgr(:,:),summag(:,:),summaggr(:,:,:),symrec_cart(:,:,:),work1(:,:,:)
- real(dp),allocatable :: factsym(:)
  real(dp),pointer :: grad(:,:,:)
  type(coeff3_type),target,allocatable :: tmp_grhoij(:)
  type(pawrhoij_type),pointer :: pawrhoij_unsym_all(:)
@@ -2889,10 +2889,11 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
  nrhoij_unsym=size(pawrhoij_unsym)
 
 !Set up parallelism over atoms
- paral_atom=(present(mpi_comm_atom).and.(nrhoij/=natom))
- paral_atom_unsym=(present(mpi_comm_atom).and.(nrhoij_unsym/=natom))
+ paral_atom=(present(comm_atom).and.(nrhoij/=natom))
+ paral_atom_unsym=(present(comm_atom).and.(nrhoij_unsym/=natom))
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
- call get_my_atmtab(mpi_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom)
+ my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
+ call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom)
 
 !Symetrization occurs only when nsym>1
  if (nsym>1) then
@@ -2904,7 +2905,7 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
      if ((choice==1.and.ngrhoij/=0) .or.(choice==2.and.ngrhoij/=3).or. &
 &     (choice==3.and.ngrhoij/=6).or.(choice==23.and.ngrhoij/=9).or. &
 &     (choice==4.and.ngrhoij/=6).or.(choice==24.and.ngrhoij/=9) ) then
-       message='  Inconsistency between variables choice and ngrhoij !'
+       message='Inconsistency between variables choice and ngrhoij !'
        MSG_BUG(message)
      end if
    end if
@@ -2912,14 +2913,14 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
 !  Symetrization of gradients not compatible with nspden=4
    if (nrhoij>0) then
      if (choice>2.and.pawrhoij(1)%nspden==4) then
-       message='  For the time being, choice>2 is not compatible with nspden=4 !'
+       message='For the time being, choice>2 is not compatible with nspden=4 !'
        MSG_BUG(message)
      end if
    end if
 
 !  Symetry matrixes must be in memory
    if (pawang%nsym==0) then
-     message='  pawang%zarot must be allocated !'
+     message='pawang%zarot must be allocated !'
      MSG_BUG(message)
    end if
 
@@ -2930,10 +2931,24 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
 !  Do we use antiferro symmetries ?
    use_afm=((antiferro).or.(noncoll.and.afm_noncoll))
 
-!  Several inits/allocations
    cplex_eff=1
    if (nrhoij>0.and.(ipert>0.or.antiferro.or.noncoll)) cplex_eff=pawrhoij(1)%cplex ! Does not symmetrize imaginary part for GS calculations
-   ABI_ALLOCATE(factsym,(cplex_eff))
+
+!  Do we have a phase due to q-vector (phonons only) ?
+   have_phase=.false.
+   if (ipert>0.and.present(qphon).and.nrhoij>0) then
+     have_phase=(abs(qphon(1))>tol8.or.abs(qphon(2))>tol8.or.abs(qphon(3))>tol8)
+     if (choice>1) then
+       message='choice>1 not compatible with q-phase !'
+       MSG_BUG(message)
+     end if
+     if (have_phase.and.cplex_eff==1) then
+       message='Should have cplex_dij=2 for a non-zero q!'
+       MSG_BUG(message)
+     end if
+   end if
+
+!  Several inits/allocations
    if (noncoll.and.optrhoij==1)  then
      ABI_ALLOCATE(summag,(cplex_eff,3))
      ABI_ALLOCATE(rotmag,(cplex_eff,3))
@@ -2977,7 +2992,7 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
    if (paral_atom_unsym) then
      ABI_DATATYPE_ALLOCATE(pawrhoij_unsym_all,(natom))
      call pawrhoij_nullify(pawrhoij_unsym_all)
-     call pawrhoij_gather(pawrhoij_unsym,pawrhoij_unsym_all,-1,mpi_comm_atom,&
+     call pawrhoij_gather(pawrhoij_unsym,pawrhoij_unsym_all,-1,my_comm_atom,&
 &     with_lmnmix=.false.,with_rhoijp=.false.,&
 &     with_rhoijres=.false.,with_grhoij=(choice>1))
      nrhoij1=natom
@@ -3069,8 +3084,8 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
            klmn=j0lmn+ilmn;klmn1=cplex*klmn
 
            nsym_used(:)=0
-           sumrho(1:cplex_eff,:)=zero
-           if (noncoll.and.optrhoij==1) rotmag(:,:)=zero
+           if (optrhoij==1) rotrho(:,:)=zero
+           if (optrhoij==1.and.noncoll) rotmag(:,:)=zero
            if (choice>1) rotgr(:,:,:)=zero
            if (choice>1.and.noncoll) rotmaggr(:,:,:)=zero
 
@@ -3086,9 +3101,16 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
              nsym_used(iafm)=nsym_used(iafm)+1
              at_indx=min(indsym(4,irot,iatom),nrhoij1)
 
+             if (have_phase) then
+               arg=two_pi*(qphon(1)*indsym(1,irot,iatom)+qphon(2)*indsym(2,irot,iatom) &
+&                         +qphon(3)*indsym(3,irot,iatom))
+               phase(1)=cos(arg);phase(2)=sin(arg)
+             end if
+
 !            Accumulate values over (mi,mj)
 !            ------------------------------
-             if (noncoll) summag(:,:)=zero
+             if (optrhoij==1) sumrho(:,:)=zero
+             if (optrhoij==1.and.noncoll) summag(:,:)=zero
              if (choice>1) sumgr(:,:)=zero
              if (choice>1.and.noncoll) summaggr(:,:,:)=zero
              do mj=1,2*jl+1
@@ -3098,10 +3120,10 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
                  indexii=indexi+mi
                  if (indexii<=indexjj) then
                    indexk=indexjj0+indexii
-                   if(cplex_eff==2.and.nspinor==2) factsym(cplex_eff)=one
+                   if(cplex_eff==2.and.nspinor==2) factsym(2)=one
                  else
                    indexk=indexii*(indexii-1)/2+indexjj
-                   if(cplex_eff==2.and.nspinor==2) factsym(cplex_eff)=-one
+                   if(cplex_eff==2.and.nspinor==2) factsym(2)=-one
                  end if
 !                Be careful: use here R_rel^-1 in term of spherical harmonics
 !                which is tR_rec in term of spherical harmonics
@@ -3115,28 +3137,26 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
                      sumrho(1,iafm)=sumrho(1,iafm)+zarot2*pawrhoij_unsym_all(at_indx)%rhoij_(indexk,kspden)
                    else
                      indexk1=2*(indexk-1)
-                     sumrho(1,iafm)=sumrho(1,iafm) &
-&                     +factsym(1)*zarot2*pawrhoij_unsym_all(at_indx)%rhoij_(indexk1+1,kspden)
-                     if(cplex_eff==2) sumrho(cplex_eff,iafm)=sumrho(cplex_eff,iafm) &
-&                     +factsym(cplex_eff)*factafm*zarot2*pawrhoij_unsym_all(at_indx)%rhoij_(indexk1+cplex_eff,kspden)
+                     sumrho(1,iafm)=sumrho(1,iafm)+factsym(1)*zarot2*pawrhoij_unsym_all(at_indx)%rhoij_(indexk1+1,kspden)
+                     if(cplex_eff==2) sumrho(2,iafm)= &
+&                           sumrho(2,iafm)+factsym(2)*factafm*zarot2*pawrhoij_unsym_all(at_indx)%rhoij_(indexk1+2,kspden)
                    end if
-!                  If non-collinear case, rotate rhoij magnetization
-                   if (noncoll) then
-                     if (cplex==1) then
-                       do mu=1,3
-                         summag(1,mu)=summag(1,mu)+zarot2*factafm*pawrhoij_unsym_all(at_indx)%rhoij_(indexk,1+mu)
-                       end do
-                     else
-                       indexk1=2*(indexk-1)
-                       do mu=1,3
-!                        summag(1:cplex_eff,mu)=summag(1:cplex_eff,mu) &
-!                        &             +zarot2*factsym(1:cplex_eff)*factafm*pawrhoij(at_indx)%rhoij_(indexk1+1:indexk1+cplex_eff,1+mu)
-                         summag(1,mu)=summag(1,mu) &
-&                         +zarot2*factsym(1)*factafm*pawrhoij_unsym_all(at_indx)%rhoij_(indexk1+1,1+mu)
-                         if(cplex_eff==2) summag(cplex_eff,mu)=summag(cplex_eff,mu)&
-&                         +zarot2*factsym(cplex_eff)*pawrhoij_unsym_all(at_indx)%rhoij_(indexk1+cplex_eff,1+mu)
-                       end do
-                     end if
+                 end if
+
+!                If non-collinear case, rotate rhoij magnetization
+                 if (optrhoij==1.and.noncoll) then
+                   if (cplex==1) then
+                     do mu=1,3
+                       summag(1,mu)=summag(1,mu)+zarot2*factafm*pawrhoij_unsym_all(at_indx)%rhoij_(indexk,1+mu)
+                     end do
+                   else
+                     indexk1=2*(indexk-1)
+                     do mu=1,3
+                       summag(1,mu)=summag(1,mu) &
+&                       +zarot2*factsym(1)*factafm*pawrhoij_unsym_all(at_indx)%rhoij_(indexk1+1,1+mu)
+                       if(cplex_eff==2) summag(2,mu)=summag(2,mu)&
+&                       +zarot2*factsym(2)*pawrhoij_unsym_all(at_indx)%rhoij_(indexk1+2,1+mu)
+                     end do
                    end if
                  end if
 
@@ -3178,8 +3198,45 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
                end do
              end do
 
+!            Apply phase for phonons
+             if (have_phase) then
+               if(optrhoij==1) then
+                 rhoijc(1:2)=sumrho(1:2,iafm)
+                 sumrho(1,iafm)=phase(1)*rhoijc(1)-phase(2)*rhoijc(2)
+                 sumrho(2,iafm)=phase(1)*rhoijc(2)+phase(2)*rhoijc(1)
+               end if
+               if (noncoll) then
+                 do mu=1,3
+                   rhoijc(1:2)=summag(1:2,mu)
+                   summag(1,mu)=phase(1)*rhoijc(1)-phase(2)*rhoijc(2)
+                   summag(2,mu)=phase(1)*rhoijc(2)+phase(2)*rhoijc(1)
+                 end do
+               end if
+               if (choice>1) then
+                 do mu=1,ngrhoij
+                   rhoijc(1:2)=sumgr(1:2,mu)
+                   sumgr(1,mu)=phase(1)*rhoijc(1)-phase(2)*rhoijc(2)
+                   sumgr(2,mu)=phase(1)*rhoijc(2)+phase(2)*rhoijc(1)
+                 end do
+                 if (noncoll) then
+                   do mu=1,3
+                     do nu=1,ngrhoij
+                       rhoijc(1:2)=summaggr(1:2,nu,mu)
+                       summaggr(1,nu,mu)=phase(1)*rhoijc(1)-phase(2)*rhoijc(2)
+                       summaggr(2,nu,mu)=phase(1)*rhoijc(2)+phase(2)*rhoijc(1)
+                     end do
+                   end do
+                 end if
+               end if
+             end if
+
+!            Add contribution of this rotation
+             if (optrhoij==1) then
+               rotrho(1:cplex_eff,iafm)=rotrho(1:cplex_eff,iafm)+sumrho(1:cplex_eff,iafm)
+             end if
+
 !            Rotate vector fields in real space (forces, magnetization, etc...)
-!            Should use symrel^1 but use transpose[symrec] instead
+!            Should use symrel^-1 but use transpose[symrec] instead
 !            ---------------------------------
 !            ===== Rhoij magnetization ====
              if (noncoll.and.optrhoij==1) then
@@ -3265,7 +3322,7 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
 
 !            Mean value for rhoij
              if (cplex==1) then
-               ro(1)=sumrho(1,1)/nsym_used(1)
+               ro(1)=rotrho(1,1)/nsym_used(1)
                if (abs(ro(1))>tol10) then
                  pawrhoij(iatm)%rhoijp(klmn,ispden)=ro(1)
                  if (use_res) pawrhoij(iatm)%rhoijres(klmn,ispden)=pawrhoij(iatm)%rhoijres(klmn,ispden)+ro(1)
@@ -3273,9 +3330,9 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
                  pawrhoij(iatm)%rhoijp(klmn,ispden)=zero
                end if
              else
-               ro(1)=sumrho(1,1)/nsym_used(1)
+               ro(1)=rotrho(1,1)/nsym_used(1)
                if (cplex_eff==2) then
-                 ro(2)=sumrho(2,1)/nsym_used(1)
+                 ro(2)=rotrho(2,1)/nsym_used(1)
                else
                  ro(2)=pawrhoij_unsym_all(iatom)%rhoij_(klmn1,ispden)
                end if
@@ -3331,7 +3388,7 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
 !            Antiferro case: mean value for down component
              if (antiferro.and.nsym_used(2)>0) then
                if (cplex==1) then
-                 ro(1)=sumrho(1,2)/nsym_used(2)
+                 ro(1)=rotrho(1,2)/nsym_used(2)
                  if (abs(ro(1))>tol10) then
                    pawrhoij(iatm)%rhoijp(klmn,2)=ro(1)
                    if (use_res) pawrhoij(iatm)%rhoijres(klmn,2)=pawrhoij(iatm)%rhoijres(klmn,2)+ro(1)
@@ -3339,7 +3396,7 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
                    pawrhoij(iatm)%rhoijp(klmn,2)=zero
                  end if
                else
-                 ro(1:cplex_eff)=sumrho(1:cplex_eff,2)/nsym_used(2)
+                 ro(1:cplex_eff)=rotrho(1:cplex_eff,2)/nsym_used(2)
                  if (any(abs(ro(1:2))>tol10)) then
                    pawrhoij(iatm)%rhoijp(klmn1-1,2)=ro(1)
                    pawrhoij(iatm)%rhoijp(klmn1  ,2)=ro(2)
@@ -3419,7 +3476,6 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
      ABI_DEALLOCATE(summag)
      ABI_DEALLOCATE(rotmag)
    end if
-   ABI_DEALLOCATE(factsym)
    if (noncoll)  then
      ABI_DEALLOCATE(symrec_cart)
    end if
@@ -3441,7 +3497,7 @@ subroutine symrhoij(pawrhoij,pawrhoij_unsym,choice,gprimd,indsym,ipert,natom,nsy
      end if
    end if
    if(paral_atom_unsym) then
-     call pawrhoij_destroy(pawrhoij_unsym_all)
+     call pawrhoij_free(pawrhoij_unsym_all)
      ABI_DATATYPE_DEALLOCATE(pawrhoij_unsym_all)
    end if
 

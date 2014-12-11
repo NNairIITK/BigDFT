@@ -86,7 +86,6 @@ end subroutine xmpi_min_intv
 !! SOURCE
 subroutine xmpi_min_dpv(xval,xmin,spaceComm,ier)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -103,7 +102,7 @@ subroutine xmpi_min_dpv(xval,xmin,spaceComm,ier)
  integer ,intent(out)   :: ier
 
 !Local variables-------------------
- integer :: arr_xval(1),arr_xmin(1)
+ real(dp) :: arr_xval(1),arr_xmin(1)
 
 ! *************************************************************************
 

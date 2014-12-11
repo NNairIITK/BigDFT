@@ -52,7 +52,6 @@
 subroutine xmpi_irecv_intv(xval,source,tag,spaceComm,request,ierr)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -65,7 +64,7 @@ subroutine xmpi_irecv_intv(xval,source,tag,spaceComm,request,ierr)
 !Arguments-------------------------
   integer, ABI_ASYNC intent(inout) :: xval
   integer,intent(in) :: source,tag,spaceComm
-  integer,intent(out)   :: ierr
+  integer,intent(out) :: ierr
   integer, intent(out) :: request
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -115,7 +114,6 @@ subroutine xmpi_irecv_intv(xval,source,tag,spaceComm,request,ierr)
 subroutine xmpi_irecv_int1d(xval,source,tag,spaceComm,request,ierr)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -126,10 +124,10 @@ subroutine xmpi_irecv_int1d(xval,source,tag,spaceComm,request,ierr)
  implicit none
 
 !Arguments-------------------------
-  integer, ABI_ASYNC intent(inout) :: xval(:)
-  integer,intent(in) :: source,tag,spaceComm
-  integer, intent(out) :: request
-  integer,intent(out)   :: ierr
+ integer, ABI_ASYNC intent(inout) :: xval(:)
+ integer,intent(in) :: source,tag,spaceComm
+ integer, intent(out) :: request
+ integer,intent(out) :: ierr
 !Local variables-------------------
 
 #if defined HAVE_MPI
@@ -181,7 +179,6 @@ subroutine xmpi_irecv_int1d(xval,source,tag,spaceComm,request,ierr)
 !! SOURCE
 subroutine xmpi_irecv_dp1d(xval,source,tag,spaceComm,request,ierr)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -194,7 +191,7 @@ subroutine xmpi_irecv_dp1d(xval,source,tag,spaceComm,request,ierr)
 !Arguments-------------------------
  real(dp), ABI_ASYNC intent(inout) :: xval(:)
  integer ,intent(in) :: source,tag,spaceComm
- integer ,intent(out)   :: ierr
+ integer ,intent(out) :: ierr
  integer, intent(out) :: request
 
 !Local variables-------------------

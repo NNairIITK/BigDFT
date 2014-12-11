@@ -38,7 +38,6 @@ MODULE m_fstrings
  public :: toupper         ! Convert lower case letters to UPPER CASE (function version)
  public :: lower           ! Convert UPPER CASE letters to lower case
  public :: tolower         ! Convert UPPER CASE letters to lower case  (function version)
- public :: compact         ! Converts multiple spaces and tabs to single spaces; deletes control characters and initial spaces
  public :: removesp        ! Removes spaces, tabs, and control characters in string str
  public :: lstrip          ! Remove leading spaces from string
  public :: ljust           ! Return a left-justified string of length width.
@@ -50,6 +49,7 @@ MODULE m_fstrings
  public :: strcat          ! Concatenate strings (function version)
  public :: sjoin           ! Joins strings with a space separator.
  public :: itoa            ! Convert an integer into a string
+ public :: ftoa            ! Convert a float into a string
  public :: atoi            ! Convert a string into a integer
  public :: basename        ! Returns the final component of a pathname.
  public :: starts_with     ! Returns .TRUE. is the first character in a string belongs to a gives set.
@@ -102,6 +102,8 @@ MODULE m_fstrings
   integer,parameter :: ASCII_0=ICHAR('0')
   integer,parameter :: ASCII_9=ICHAR('9')
 
+  integer,parameter :: MAX_SLEN=500
+
 CONTAINS  !===========================================================
 !!***
 
@@ -112,19 +114,10 @@ CONTAINS  !===========================================================
 !! FUNCTION
 !!  Returns .TRUE. if ch is a letter and .FALSE. otherwise.
 !!
-!! INPUTS
-!!
-!! OUTPUT
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
-function is_letter(ch) result(ans)
+pure function is_letter(ch) result(ans)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -138,9 +131,9 @@ function is_letter(ch) result(ans)
 
  select case (ICHAR(ch))
  case (ASCII_A:ASCII_Z,ASCII_aa:ASCII_zz)
-  ans=.TRUE.
+   ans=.TRUE.
  case DEFAULT
-  ans=.FALSE.
+   ans=.FALSE.
  end select
 
 end function is_letter
@@ -153,16 +146,9 @@ end function is_letter
 !! FUNCTION
 !!  Returns .TRUE. if ch is a digit (0,1,...,9) and .FALSE. otherwise.
 !!
-!! INPUTS
-!!
-!! OUTPUT
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!
 !! SOURCE
-function is_digit_0D(ch) result(ans)
+
+pure function is_digit_0D(ch) result(ans)
 
 !Arguments ------------------------------------
 
@@ -178,9 +164,9 @@ function is_digit_0D(ch) result(ans)
 
  select case (ICHAR(ch))
  case(ASCII_0:ASCII_9)
-  ans=.TRUE.
+   ans=.TRUE.
  case default
-  ans=.FALSE.
+   ans=.FALSE.
  end select
 
 end function is_digit_0D
@@ -193,19 +179,10 @@ end function is_digit_0D
 !! FUNCTION
 !!  Convert lower case letters to UPPER CASE.
 !!
-!! INPUTS
-!!
-!! OUTPUT
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!
 !! SOURCE
-subroutine upper(str)
 
-!Arguments ------------------------------------
-!scalars
+pure subroutine upper(str)
+
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -220,8 +197,8 @@ subroutine upper(str)
 ! *********************************************************************
 
  do ic=1,LEN_TRIM(str)
-  iasc=IACHAR(str(ic:ic))
-  if (iasc>=ASCII_aa.and.iasc<=ASCII_zz) str(ic:ic)=ACHAR(iasc-SHIFT)
+   iasc=IACHAR(str(ic:ic))
+   if (iasc>=ASCII_aa.and.iasc<=ASCII_zz) str(ic:ic)=ACHAR(iasc-SHIFT)
  end do
 
 end subroutine upper
@@ -236,20 +213,10 @@ end subroutine upper
 !! FUNCTION
 !!  Convert lower case letters to UPPER CASE (function version).
 !!
-!! INPUTS
-!!
-!! OUTPUT
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
-function toupper(str_in) result(str_out)
+pure function toupper(str_in) result(str_out)
 
-!Arguments ------------------------------------
-!scalars
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -265,12 +232,12 @@ function toupper(str_in) result(str_out)
 ! *********************************************************************
 
  do ic=1,LEN_TRIM(str_in)
-  iasc=IACHAR(str_in(ic:ic))
-  if (iasc>=ASCII_aa.and.iasc<=ASCII_zz) then
-   str_out(ic:ic)=ACHAR(iasc-SHIFT)
-  else
-   str_out(ic:ic)=str_in(ic:ic)
-  end if
+   iasc=IACHAR(str_in(ic:ic))
+   if (iasc>=ASCII_aa.and.iasc<=ASCII_zz) then
+     str_out(ic:ic)=ACHAR(iasc-SHIFT)
+   else
+     str_out(ic:ic)=str_in(ic:ic)
+   end if
  end do
 
 end function toupper
@@ -285,10 +252,6 @@ end function toupper
 !! FUNCTION
 !!  Convert UPPER CASE letters to lower case.
 !!
-!! INPUTS
-!!
-!! OUTPUT
-!!
 !! PARENTS
 !!      fftprof,ioprof,lapackprof
 !!
@@ -296,9 +259,8 @@ end function toupper
 !!
 !! SOURCE
 
-subroutine lower(str)
+pure subroutine lower(str)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -313,8 +275,8 @@ subroutine lower(str)
 ! *********************************************************************
 
  do ic=1,LEN_TRIM(str)
-  iasc=IACHAR(str(ic:ic))
-  if (iasc>=ASCII_A.and.iasc<=ASCII_Z) str(ic:ic)=ACHAR(iasc+SHIFT)
+   iasc=IACHAR(str(ic:ic))
+   if (iasc>=ASCII_A.and.iasc<=ASCII_Z) str(ic:ic)=ACHAR(iasc+SHIFT)
  end do
 
 end subroutine lower
@@ -329,18 +291,10 @@ end subroutine lower
 !! FUNCTION
 !!  Convert UPPER CASE letters to lower case (function version).
 !!
-!! INPUTS
-!!
-!! OUTPUT
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!
 !! SOURCE
-function tolower(str_in) result(str_out)
 
-!Arguments ------------------------------------
+pure function tolower(str_in) result(str_out)
+
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -356,77 +310,15 @@ function tolower(str_in) result(str_out)
 ! *********************************************************************
 
  do ic=1,LEN_TRIM(str_in)
-  iasc=IACHAR(str_in(ic:ic))
-  if (iasc>=ASCII_A.and.iasc<=ASCII_Z) then
-   str_out(ic:ic)=ACHAR(iasc+SHIFT)
-  else
-   str_out(ic:ic)=str_in(ic:ic)
-  end if
+   iasc=IACHAR(str_in(ic:ic))
+   if (iasc>=ASCII_A.and.iasc<=ASCII_Z) then
+     str_out(ic:ic)=ACHAR(iasc+SHIFT)
+   else
+     str_out(ic:ic)=str_in(ic:ic)
+   end if
  end do
 
 end function tolower
-!!***
-
-!----------------------------------------------------------------------
-
-!!****f* m_fstrings/compact
-!! NAME
-!!  compact
-!!
-!! FUNCTION
-!! Converts multiple spaces and tabs to single spaces;
-!! deletes control characters; removes initial spaces.
-!!
-!! INPUTS
-!!
-!! OUTPUT
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!
-!! SOURCE
-subroutine compact(str)
-
-!Arguments ------------------------------------
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-#undef ABI_FUNC
-#define ABI_FUNC 'compact'
-!End of the abilint section
-
- character(len=*),intent(inout) :: str
-
-!Local variables-------------------------------
- integer :: isp,i,k,lenstr,ich
- character(len=1):: ch
- character(len=LEN_TRIM(str)):: outstr
-! *********************************************************************
-
- str=ADJUSTL(str) ; lenstr=LEN_TRIM(str)
-
- outstr=BLANK ; isp=0 ; k=0
- do i=1,lenstr
-  ch=str(i:i) ; ich=IACHAR(ch)
-
-  select case(ich)
-  case(9,32)     ! space or tab character
-   if (isp==0) then
-    k=k+1
-    outstr(k:k)=' '
-   end if
-   isp=1
-  case(33:)      ! not a space, quote, or control character
-   k=k+1
-   outstr(k:k)=ch
-   isp=0
-  end select
- end do
-
- str=ADJUSTL(outstr)
-
-end subroutine compact
 !!***
 
 !----------------------------------------------------------------------
@@ -445,11 +337,12 @@ end subroutine compact
 !! PARENTS
 !!
 !! CHILDREN
+!!      trimzero,write_num
 !!
 !! SOURCE
+
 subroutine removesp(str)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -469,15 +362,15 @@ subroutine removesp(str)
 
  outstr=BLANK ; k=0
  do i=1,lenstr
-  ch=str(i:i)
-  ich=IACHAR(ch)
-  select case(ich)
-  case(0:32)  ! space, tab, or control character
-   CYCLE
-  case(33:)
-   k=k+1
-   outstr(k:k)=ch
-  end select
+   ch=str(i:i)
+   ich=IACHAR(ch)
+   select case(ich)
+   case(0:32)  ! space, tab, or control character
+     CYCLE
+   case(33:)
+     k=k+1
+     outstr(k:k)=ch
+   end select
  end do
 
  str=ADJUSTL(outstr)
@@ -494,19 +387,10 @@ end subroutine removesp
 !! FUNCTION
 !!  Removes leading spaces from the input string.
 !!
-!! INPUTS
-!!
-!! OUTPUT
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
-function lstrip(istr) result(ostr)
+pure function lstrip(istr) result(ostr)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -545,19 +429,10 @@ end function lstrip
 !!  Return S left-justified in a string of length width. Padding is
 !!  done using the specified fill character (default is a space).
 !!
-!! INPUTS
-!!
-!! OUTPUT
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
-function ljust(istr, width, fillchar) result(ostr)
+pure function ljust(istr, width, fillchar) result(ostr)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -605,9 +480,8 @@ end function ljust
 !!
 !! SOURCE
 
-function lpad(istr, repeat, fillchar) result(ostr)
+pure function lpad(istr, repeat, fillchar) result(ostr)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -644,20 +518,10 @@ end function lpad
 !! FUNCTION
 !!  Return a new string enclosed by quotation marks.
 !!
-!! INPUTS
-!!
-!! OUTPUT
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!
 !! SOURCE
 
-function quote(istr) result(ostr)
+pure function quote(istr) result(ostr)
 
-!Arguments ------------------------------------
-!scalars
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -709,13 +573,10 @@ end function quote
 !! FUNCTION
 !!  Writes a number to a string using format fmt.
 !!
-!! INPUTS
-!!
-!! OUTPUT
-!!
 !! PARENTS
 !!
 !! CHILDREN
+!!      trimzero,write_num
 !!
 !! SOURCE
 
@@ -753,15 +614,13 @@ end subroutine write_rdp_0D
 !! FUNCTION
 !!  Writes a number to a string using format fmt.
 !!
-!! INPUTS
-!!
-!! OUTPUT
-!!
 !! PARENTS
 !!
 !! CHILDREN
+!!      trimzero,write_num
 !!
 !! SOURCE
+
 subroutine write_int_0D(inum,str,fmt)
 
 !Arguments ------------------------------------
@@ -805,13 +664,13 @@ end subroutine write_int_0D
 !!      m_fstrings
 !!
 !! CHILDREN
+!!      trimzero,write_num
 !!
 !! SOURCE
 ! NOT sure it will work
 
 subroutine trimzero(str)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -866,11 +725,11 @@ end subroutine trimzero
 !! PARENTS
 !!
 !! CHILDREN
+!!      trimzero,write_num
 !!
 !! SOURCE
 subroutine writeq_rdp_0D(unit,namestr,value,fmt)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -910,11 +769,12 @@ end subroutine writeq_rdp_0D
 !! PARENTS
 !!
 !! CHILDREN
+!!      trimzero,write_num
 !!
 !! SOURCE
+
 subroutine writeq_int_0D(unit,namestr,ivalue,fmt)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -948,9 +808,8 @@ end subroutine writeq_int_0D
 !!  Joins two strings with a space separator unless first string is empty.
 !!
 
-function sjoin_2(str1,str2) result(ostr)
+pure function sjoin_2(str1,str2) result(ostr)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -982,9 +841,8 @@ end function sjoin_2
 !!  Returns two concatenated strings.
 !!
 
-function strcat_2(str1,str2) result(ostr)
+pure function strcat_2(str1,str2) result(ostr)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1012,9 +870,8 @@ end function strcat_2
 !!  Concatenate 3 strings
 !!
 
-function strcat_3(str1, str2, str3) result(ostr)
+pure function strcat_3(str1, str2, str3) result(ostr)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1042,9 +899,8 @@ end function strcat_3
 !!  Concatenate 4 strings
 !!
 
-function strcat_4(str1, str2, str3, str4) result(ostr)
+pure function strcat_4(str1, str2, str3, str4) result(ostr)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1070,10 +926,6 @@ end function strcat_4
 !!
 !! FUNCTION
 !!  Convert a string into a integer
-!!
-!! PARENTS
-!!
-!! CHILDREN
 !!
 
 function atoi(string)
@@ -1115,9 +967,8 @@ end function atoi
 !! CHILDREN
 !!
 
-function itoa(value)
+pure function itoa(value)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1137,6 +988,50 @@ function itoa(value)
 end function itoa
 !!***
 
+
+!----------------------------------------------------------------------
+
+!!****f* m_fstrings/ftoa
+!! NAME
+!! ftoa
+!!
+!! FUNCTION
+!!  Convert an float into a string using format fmt  (es.16.6 if fmt is not given).
+!!
+!! INPUTS
+!!  value=The integer
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!
+
+pure function ftoa(value,fmt)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'ftoa'
+!End of the abilint section
+
+ real(dp),intent(in) :: value
+ character(len=*),optional,intent(in) :: fmt
+ character(len=MAX_SLEN) :: ftoa
+
+! *********************************************************************
+
+ if (present(fmt)) then
+   write(ftoa,quote(fmt))value
+ else
+   write(ftoa,"(es16.6)")value
+
+ end if
+ ftoa = ADJUSTL(ftoa)
+
+end function ftoa
+!!***
+
 !----------------------------------------------------------------------
 
 !!****f* m_fstring/basename
@@ -1154,16 +1049,10 @@ end function itoa
 !!    a blank strink is returned
 !!  * We do a backward search becase we want to optimize the algorithm for Fortran strings.
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!
-!!
 !! SOURCE
 
-function basename(string)
+pure function basename(string)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1219,9 +1108,8 @@ end function basename
 !!
 !! SOURCE
 
-function starts_with_0d(string,ch,csens) result(ans)
+pure function starts_with_0d(string,ch,csens) result(ans)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1270,9 +1158,8 @@ end function starts_with_0d
 !!
 !! SOURCE
 
-function starts_with_1d(string,char_list,csens) result(ans)
+pure function starts_with_1d(string,char_list,csens) result(ans)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1328,10 +1215,8 @@ end function starts_with_1d
 !!
 !! SOURCE
 
-function indent(istr) result(ostr)
+pure function indent(istr) result(ostr)
 
-!Arguments ------------------------------------
-!scalars
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1397,7 +1282,7 @@ end function indent
 !!
 !! SOURCE
 
-subroutine int2char4(iint,string)
+pure subroutine int2char4(iint,string)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -1470,16 +1355,15 @@ end subroutine int2char4
 !!  string=character string ('##########' if error)
 !!
 !! PARENTS
-!!      handle_ncerr,m_bands_sym,m_dfti,m_dyson_solver,m_qparticles,m_wfs
+!!      handle_ncerr,m_esymm,m_dfti,m_dyson_solver,m_qparticles,m_wfs
 !!      prt_cif,wffile
 !!
 !! CHILDREN
 !!
 !! SOURCE
 
-subroutine int2char10(iint,string)
+pure subroutine int2char10(iint,string)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1527,72 +1411,6 @@ end subroutine int2char10
 !!***
 
 !----------------------------------------------------------------------
-
-!!!
-!!! !!****f* m_fstrings/n2ch10
-!!! !! NAME
-!!! !!  n2ch10
-!!! !!
-!!! !! FUNCTION
-!!! !!
-!!! !!
-!!! !! INPUTS
-!!! !!   istr=Input string
-!!! !!
-!!! !! PARENTS
-!!! !!
-!!! !! CHILDREN
-!!! !!
-!!! !! SOURCE
-!!!
-!!! function n2ch10(istr) result(ostr)
-!!!
-!!! !Arguments ------------------------------------
-!!! !scalars
-!!!
-!!! !This section has been created automatically by the script Abilint (TD).
-!!! !Do not modify the following lines by hand.
-!!! #undef ABI_FUNC
-!!! #define ABI_FUNC 'n2ch10'
-!!! !End of the abilint section
-!!!
-!!!  character(len=*),intent(in) :: istr
-!!!  character(len=len(istr)*2) :: ostr
-!!!
-!!! !Local variables-------------------------------
-!!!  integer :: ii,jj,lentrim
-!!!  integer :: in_escape
-!!!  character(len=1) :: ch,next_ch
-!!!
-!!! ! *********************************************************************
-!!!
-!!!  ostr = ""
-!!!
-!!!  lentrim = LEN_TRIM(istr)
-!!!
-!!!  in_escape = 0
-!!!  if (istr(1:1) == "\") in_escape = 1
-!!!  if (in_escape==0) ostr(1:1) = istr(1:1)
-!!!
-!!!  jj = 0
-!!!  do ii=2,lentrim
-!!!    ch = istr(ii:ii)
-!!!    jj = jj + 1
-!!!    if (in_escape==0) then
-!!!      ostr(jj:jj) = ch
-!!!    else if (in_escape==1) then
-!!!      next_ch =  istr(ii+1:ii+1)
-!!!      if next_ch == "n"
-!!!        ostr(jj:jj) = ch10
-!!!        in_escape = in_escape + 1
-!!!      else
-!!!    end if
-!!!  end do
-!!!
-!!! end function n2ch10
-!!! !!***
-!!!
-!!! !----------------------------------------------------------------------
 
 END MODULE m_fstrings
 !!***

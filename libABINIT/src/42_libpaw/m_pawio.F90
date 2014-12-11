@@ -7,7 +7,7 @@
 !!  PAW I/O related operations
 !!
 !! COPYRIGHT
-!!  Copyright (C) 2012-2014 ABINIT group (T. Rangel)
+!!  Copyright (C) 2012-2014 ABINIT group (T. Rangel, MT)
 !!  This file is distributed under the terms of the
 !!  GNU General Public License, see ~abinit/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
@@ -24,7 +24,7 @@ module m_pawio
     
  use defs_basis
  use m_errors
- use m_profiling
+ use m_profiling_abi
 
  implicit none
 
@@ -35,7 +35,7 @@ module m_pawio
 
 CONTAINS !===========================================================
 
-!!****f* ABINIT/pawio_print_ij
+!!****f* m_pawio/pawio_print_ij
 !! NAME
 !! pawio_print_ij
 !!
@@ -43,13 +43,6 @@ CONTAINS !===========================================================
 !! Print ij_ square matrixes in a "suitable" format.
 !! Data are "energy-like" in Hartree units.
 !! Devoted to the printing of rhoij, Dij -like PAW matrixes.
-!!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt .
 !!
 !! INPUTS
 !!  a_ij(cplex*adim)= input square matrix

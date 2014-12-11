@@ -8,7 +8,7 @@
 !!  of PAW data over atomic sites
 !!
 !! COPYRIGHT
-!! Copyright (C) 2012-2014 ABINIT group (MT)
+!! Copyright (C) 2012-2014 ABINIT group (MD, MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -31,7 +31,7 @@
 MODULE m_paral_atom
 
  use defs_basis
- use m_profiling
+ use m_profiling_abi
  use m_errors
  use m_xmpi
 
@@ -44,6 +44,7 @@ MODULE m_paral_atom
  public :: get_my_atmtab
  public :: free_my_atmtab
  public :: get_proc_atmtab
+ public :: get_atm_proc
 !!***
 
 CONTAINS
@@ -57,13 +58,6 @@ CONTAINS
 !!
 !! FUNCTION
 !! Given the total number of atoms, return the number of atoms treated by current process
-!!
-!! COPYRIGHT
-!! Copyright (C) 2012-2014 ABINIT group (MD,MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
 !!
 !! INPUTS
 !!  comm_atom=communicator over atoms
@@ -126,13 +120,6 @@ end subroutine get_my_natom
 !! FUNCTION
 !! Given the total number of atoms and a MPI communicator return a table
 !! containing the indexes of atoms treated by current processor.
-!!
-!! COPYRIGHT
-!! Copyright (C) 2012-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
 !!
 !! INPUTS
 !!  comm_atom=communicator over atoms
@@ -246,13 +233,6 @@ end subroutine get_my_atmtab
 !! FUNCTION
 !! Cleanly deallocate a table of atom indexes (my_atmtab)
 !!
-!! COPYRIGHT
-!! Copyright (C) 2012-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!!
 !! INPUTS
 !!
 !! OUTPUT
@@ -316,13 +296,6 @@ end subroutine free_my_atmtab
 !!  Given the total number of atoms and the size of a communicator,
 !!  return a table containing the indexes of atoms treated by a processor (with index iproc)
 !!
-!! COPYRIGHT
-!! Copyright (C) 2012-2013 ABINIT group (MD)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!!
 !! INPUTS
 !!  comm_atom_size= size of communicator (over atoms)
 !!  iproc= rank of the processor
@@ -337,7 +310,6 @@ end subroutine free_my_atmtab
 !!   get_atmtab must be modified accordingly
 !!
 !! PARENTS
-!!      m_paral_pert
 !!
 !! CHILDREN
 !!
@@ -394,6 +366,95 @@ end subroutine free_my_atmtab
  end if
 
 end subroutine get_proc_atmtab
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_paral_atom/get_atm_proc
+!! NAME
+!! get_atm_proc
+!!
+!! FUNCTION
+!!  Given a list of atoms and a MPI communicator size, return a table
+!!  containing the corresponding processor indexes.
+!!
+!! COPYRIGHT
+!! Copyright (C) 2012-2014 ABINIT group (MD)
+!! This file is distributed under the terms of the
+!! GNU General Public License, see ~abinit/COPYING
+!! or http://www.gnu.org/copyleft/gpl.txt .
+!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
+!!
+!! INPUTS
+!!  atom_list(:)= index of atoms
+!!  nproc=size of communicator over atoms
+!!  natom=total number of atoms
+!!
+!! OUTPUT
+!! proc_list(:) = index of procs 
+!!
+!! NOTES
+!!  The atoms are distributed contigously by egal part; the rest is distributed
+!!  on all the procs (see get_my_atmtab).
+!!  In case of modification of the distribution of atom over proc, this routine
+!!  must be modified accordingly.
+!!
+!! PARENTS
+!!      m_paral_pert
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+ subroutine get_atm_proc(atom_list,natom,nproc,proc_list)
+
+!Arguments ---------------------------------------------
+!scalars
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'get_atm_proc'
+!End of the abilint section
+
+ integer, intent(in) :: natom,nproc
+!arrays
+ integer, intent(in) :: atom_list(:)
+ integer, intent(out) :: proc_list(:)
+ 
+!Local variables ---------------------------------------
+!scalars
+ integer :: nb_atom,dn,dn1,iatom,natomlim,iatm,jproclim,nmod
+!arrays
+
+! *************************************************************************
+
+ nmod=mod(natom,nproc);nb_atom=size(atom_list)
+
+ if (nmod==0) then
+   dn=natom/nproc
+   do iatm =1, nb_atom
+     iatom=atom_list(iatm)
+     proc_list(iatm)=(iatom-1)/dn
+   end do
+ else
+   dn=natom/nproc
+   dn1=natom/nproc + 1
+!  Under (jproclim+1), 1 atome by proc is added
+!  The rest nmod is distributed among jproclim+1 first procs
+   jproclim=nmod -1
+   natomlim=dn1*(jproclim+1)
+   do iatm=1,nb_atom
+     iatom=atom_list(iatm)
+     if (iatom<=natomlim) then
+       proc_list(iatm)=(iatom -1 )/dn1
+     else
+       proc_list(iatm)=jproclim + 1 + (iatom - 1 -(natomlim))/dn
+     end if
+   enddo
+ end if
+
+end subroutine get_atm_proc
 !!***
 
 !----------------------------------------------------------------------

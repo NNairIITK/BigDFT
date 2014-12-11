@@ -29,12 +29,13 @@
 
 MODULE m_xmpi
 
- use defs_basis,         only : i4b, i8b, sp, dp, spc, dpc, std_out, ab_out, tmp_unit, fnlen
-
- use m_profiling
-
+ use defs_basis
+ use m_profiling_abi
 #ifdef HAVE_MPI2
  use mpi
+#endif
+#ifdef FC_NAG
+ use f90_unix_proc
 #endif
 
  implicit none
@@ -69,7 +70,7 @@ MODULE m_xmpi
  integer,public,parameter :: xmpi_any_source     = 0
  integer,public,parameter :: xmpi_request_null   =738197504
  integer,public,parameter :: xmpi_msg_len        =1000
- integer,public,parameter :: xmpi_paral=0
+ integer,public,parameter :: xmpi_paral          =0
 #endif
 
  integer,save,private  :: xmpi_tag_ub=32767
@@ -77,12 +78,12 @@ MODULE m_xmpi
  ! the value of MPI_TAG_UB larger than this hence xmpi_tag_ub is redefined when MPI is init in xmpi_init.
 
  ! Size in bytes of the entries used in MPI datatypes.
- integer,save,public :: xmpi_bsize_ch =0
- integer,save,public :: xmpi_bsize_int=0
- integer,save,public :: xmpi_bsize_sp =0
- integer,save,public :: xmpi_bsize_dp =0
- integer,save,public :: xmpi_bsize_spc=0
- integer,save,public :: xmpi_bsize_dpc=0
+ integer,save, public ABI_PROTECTED:: xmpi_bsize_ch =0
+ integer,save, public ABI_PROTECTED:: xmpi_bsize_int=0
+ integer,save, public ABI_PROTECTED:: xmpi_bsize_sp =0
+ integer,save, public ABI_PROTECTED:: xmpi_bsize_dp =0
+ integer,save, public ABI_PROTECTED:: xmpi_bsize_spc=0
+ integer,save, public ABI_PROTECTED:: xmpi_bsize_dpc=0
 
  ! kind of the offset used for MPI-IO.
 #ifdef HAVE_MPI_IO
@@ -97,8 +98,8 @@ MODULE m_xmpi
 
  ! The byte size and the MPI type of the Fortran record marker.
  ! These quantities are compiler-dependent and are initalized in xmpi_init (only if MPI-IO is on).
- integer,save,public :: xmpio_bsize_frm   =0
- integer,save,public :: xmpio_mpi_type_frm=0
+ integer,save,public ABI_PROTECTED :: xmpio_bsize_frm   =0
+ integer,save,public ABI_PROTECTED :: xmpio_mpi_type_frm=0
 
  integer(XMPI_OFFSET_KIND),public,parameter :: xmpio_chunk_bsize = 2000 * (1024.0_dp**2)
  ! Defines the chunk size (in bytes) used to (read|write) data in a single MPI-IO call.
@@ -110,34 +111,6 @@ MODULE m_xmpi
  integer,public,parameter :: xmpio_collective=2  ! Collective IO.
 
 !----------------------------------------------------------------------
-!!***
-
-!!****t* m_xmpi/comm_t
-!! NAME
-!!  comm_t
-!!
-!! FUNCTION
-!!  Datatype used to store data associated to an MPI communicator.
-!!
-!! SOURCE
-
- type,public :: comm_t
-
-  integer :: id = xmpi_undefined
-  ! The MPI communicator identifier.
-
-  integer :: my_rank = xmpi_undefined_rank
-  ! The rank of the node inside comm.
-
-  integer :: master = 0
-  ! The rank of master node.
-
-  integer :: nprocs = xmpi_undefined
-  ! The number of processors in the communicator.
-
-  !integer,allocatable :: ranks_in_world(:)
-  ! The MPI ranks in MPI_COMM_WORLD of the nodes beloging to the communicator.
- end type comm_t
 !!***
 
 ! Public procedures.
@@ -166,6 +139,7 @@ MODULE m_xmpi
  public :: xmpi_error_string          ! Return a string describing the error from ierr.
  public :: xmpi_split_work
  public :: xmpi_distab
+ public :: xmpi_distrib_with_replicas !
 
  interface xcomm_free
    module procedure xcomm_free_0D
@@ -199,6 +173,7 @@ MODULE m_xmpi
  public :: xmpi_alltoall
  public :: xmpi_ialltoall
  public :: xmpi_alltoallv
+ public :: xmpi_ialltoallv
  public :: xmpi_bcast
  public :: xmpi_exch
  public :: xmpi_gather
@@ -278,17 +253,17 @@ interface xmpi_alltoall
   module procedure xmpi_alltoall_dp4d
 end interface xmpi_alltoall
 
-! non-blocking version (MPI3)
+! non-blocking version (requires MPI3)
 ! Prototype:
 !
 !   call xmpi_ialltoall(xval, sendsize, recvbuf, recvsize, comm, request)
 !
-! If libmpi does not provide ialltoall, we call the blocking version and 
-! we return xmpi_request_null. Client code should always test/wait the 
-! request so that we can develop portable code.
+! If the MPI library does not provide ialltoall, we call the blocking version and 
+! we return xmpi_request_null (see xmpi_ialltoall.finc) 
+! Client code should always test/wait the request so that code semantics is preserved.
 
 interface xmpi_ialltoall
-  module procedure xmpi_alltoall_dp4d
+  module procedure xmpi_ialltoall_dp4d
 end interface xmpi_ialltoall
 
 !----------------------------------------------------------------------
@@ -299,6 +274,23 @@ interface xmpi_alltoallv
   module procedure xmpi_alltoallv_dp1d
   module procedure xmpi_alltoallv_dp1d2
 end interface xmpi_alltoallv
+
+!----------------------------------------------------------------------
+
+! non-blocking version (requires MPI3)
+! Prototype:
+!
+!   call xmpi_ialltoallv(xval,sendcnts,sdispls,recvbuf,recvcnts,rdispls,comm,request)
+!
+! If the MPI library does not provide ialltoallv, we call the blocking version and 
+! we return xmpi_request_null (see xmpi_ialltoallv.finc) 
+! Client code should always test/wait the request so that code semantics is preserved.
+
+interface xmpi_ialltoallv
+  module procedure xmpi_ialltoallv_dp2d
+  module procedure xmpi_ialltoallv_int2d
+  module procedure xmpi_ialltoallv_dp1d2
+end interface xmpi_ialltoallv
 
 !----------------------------------------------------------------------
 
@@ -330,6 +322,8 @@ interface xmpi_bcast
   module procedure xmpi_bcast_ch0d
   module procedure xmpi_bcast_ch1d
   module procedure xmpi_bcast_log0d
+  module procedure xmpi_bcast_coeffi2_1d
+  module procedure xmpi_bcast_coeff2_1d
 end interface xmpi_bcast
 
 !----------------------------------------------------------------------
@@ -392,6 +386,7 @@ end interface xmpi_min
 interface xmpi_recv
   module procedure xmpi_recv_intv
   module procedure xmpi_recv_int1d
+  module procedure xmpi_recv_int2d
   module procedure xmpi_recv_dp1d
   module procedure xmpi_recv_dp2d
   module procedure xmpi_recv_dp3d
@@ -428,6 +423,7 @@ end interface xmpi_isend
 interface xmpi_send
   module procedure xmpi_send_intv 
   module procedure xmpi_send_int1d
+  module procedure xmpi_send_int2d
   module procedure xmpi_send_dp1d
   module procedure xmpi_send_dp2d
   module procedure xmpi_send_dp3d
@@ -460,7 +456,7 @@ end interface xmpi_sum_master
 !----------------------------------------------------------------------
 
 !MG:TODO procedure marked with !? are considered obsolete.
-!   and will removed in future versions.
+!   and will be removed in future versions.
 !   Please use interfaces where array dimensions are not passed explicitly.
 !   Rationale: The array descriptor is already passed to the routine
 !   so it does not make sense to pass the dimension explicitly.
@@ -579,15 +575,10 @@ subroutine xmpi_init()
 
 !  Define type values.
  call MPI_TYPE_SIZE(MPI_CHARACTER,xmpi_bsize_ch,mpierr)
-
  call MPI_TYPE_SIZE(MPI_INTEGER,xmpi_bsize_int,mpierr)
-
  call MPI_TYPE_SIZE(MPI_REAL,xmpi_bsize_sp,mpierr)
-
  call MPI_TYPE_SIZE(MPI_DOUBLE_PRECISION,xmpi_bsize_dp,mpierr)
-
  call MPI_TYPE_SIZE(MPI_COMPLEX,xmpi_bsize_spc,mpierr)
-
  call MPI_TYPE_SIZE(MPI_DOUBLE_COMPLEX,xmpi_bsize_dpc,mpierr)
  !
  ! Find the byte size of Fortran record marker used in MPI-IO routines.
@@ -752,10 +743,6 @@ end subroutine xmpi_abort
 
 subroutine sys_exit(exit_status)
 
- use defs_basis
-#ifdef FC_NAG
- use f90_unix_proc
-#endif
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -869,18 +856,16 @@ end subroutine xmpi_show_info
 !!  Hides MPI_COMM_RANK from MPI library.
 !!
 !! INPUTS
-!!  spaceComm=MPI communicator.
+!!  comm=MPI communicator.
 !!
 !! OUTPUT
-!!  xcomm_rank=The rank of the node inside spaceComm
+!!  xcomm_rank=The rank of the node inside comm
 !!
 !! PARENTS
 !!
-!! CHILDREN
-!!
 !! SOURCE
 
-function xcomm_rank(spaceComm)
+function xcomm_rank(comm)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -892,7 +877,7 @@ function xcomm_rank(spaceComm)
  implicit none
 
 !Arguments-------------------------
- integer,intent(in) :: spaceComm
+ integer,intent(in) :: comm
  integer :: xcomm_rank
 
 !Local variables-------------------
@@ -900,11 +885,14 @@ function xcomm_rank(spaceComm)
 
 ! *************************************************************************
 
- mpierr=0; xcomm_rank=0
+ mpierr=0
 #ifdef HAVE_MPI
- if (spaceComm/=xmpi_comm_null) then
-   call MPI_COMM_RANK(spaceComm,xcomm_rank,mpierr)
+ xcomm_rank=-1  ! Return non-sense value if the proc does not belong to the comm
+ if (comm/=xmpi_comm_null) then
+   call MPI_COMM_RANK(comm,xcomm_rank,mpierr)
  end if
+#else
+ xcomm_rank=0
 #endif
 
 end function xcomm_rank
@@ -920,18 +908,16 @@ end function xcomm_rank
 !!  Hides MPI_COMM_SIZE from MPI library.
 !!
 !! INPUTS
-!!  spaceComm=MPI communicator.
+!!  comm=MPI communicator.
 !!
 !! OUTPUT
-!!  xcomm_size=The number of processors inside spaceComm.
+!!  xcomm_size=The number of processors inside comm.
 !!
 !! PARENTS
 !!
-!! CHILDREN
-!!
 !! SOURCE
 
-function xcomm_size(spaceComm)
+function xcomm_size(comm)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -943,7 +929,7 @@ function xcomm_size(spaceComm)
  implicit none
 
 !Arguments-------------------------
- integer,intent(in) :: spaceComm
+ integer,intent(in) :: comm
  integer :: xcomm_size
 
 !Local variables-------------------------------
@@ -954,8 +940,8 @@ function xcomm_size(spaceComm)
 
  mpierr=0; xcomm_size=1
 #ifdef HAVE_MPI
- if (spaceComm/=xmpi_comm_null) then
-   call MPI_COMM_SIZE(spaceComm,xcomm_size,mpierr)
+ if (comm/=xmpi_comm_null) then
+   call MPI_COMM_SIZE(comm,xcomm_size,mpierr)
  end if
 #endif
 
@@ -973,9 +959,7 @@ end function xcomm_size
 !!  Does not abort MPI in case of an invalid communicator
 !!
 !! INPUTS
-!!  spaceComm=MPI communicator.
-!!
-!! SIDE EFFECTS
+!!  comm=MPI communicator.
 !!
 !! PARENTS
 !!
@@ -984,7 +968,7 @@ end function xcomm_size
 !!
 !! SOURCE
 
-subroutine xcomm_free_0D(spaceComm)
+subroutine xcomm_free_0D(comm)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -996,22 +980,20 @@ subroutine xcomm_free_0D(spaceComm)
  implicit none
 
 !Arguments-------------------------
- integer,intent(inout) :: spaceComm
+ integer,intent(inout) :: comm
 
 !Local variables-------------------------------
 !scalars
 #ifdef HAVE_MPI
  integer :: comm_world,err_handler_dum,err_handler_sav,ierr,mpierr,mpierr_class
-#endif
 
 ! *************************************************************************
 
-#ifdef HAVE_MPI
- if (spaceComm/=xmpi_comm_null.and.spaceComm/=xmpi_world.and.spaceComm/=xmpi_self) then
+ if (comm/=xmpi_comm_null.and.comm/=xmpi_world.and.comm/=xmpi_self) then
 
    comm_world=xmpi_world ! Needed to bypass a bug in some OMPI implementations (intent(inout))
    call xmpi_comm_set_errhandler(comm_world,MPI_ERRORS_RETURN,err_handler_sav,ierr)
-   call MPI_COMM_FREE(spaceComm,mpierr)
+   call MPI_COMM_FREE(comm,mpierr)
    call xmpi_comm_set_errhandler(comm_world,err_handler_sav,err_handler_dum,ierr)
 
    if (mpierr/=MPI_SUCCESS) then
@@ -1024,7 +1006,7 @@ subroutine xcomm_free_0D(spaceComm)
  end if
 
 #else
- if (.false.) write(std_out,*) spaceComm
+ if (.false.) write(std_out,*) comm
 #endif
 
 end subroutine xcomm_free_0D
@@ -1068,11 +1050,9 @@ subroutine xcomm_free_1D(comms)
 !scalars
 #ifdef HAVE_MPI
  integer :: comm_world,err_handler_dum,err_handler_sav,ii,mpierr
-#endif
 
 ! *************************************************************************
 
-#ifdef HAVE_MPI
  comm_world=xmpi_world ! Needed to bypass a bug in some OMPI implementations (intent(inout))
  call xmpi_comm_set_errhandler(comm_world,MPI_ERRORS_RETURN,err_handler_sav,mpierr)
 
@@ -1129,11 +1109,9 @@ subroutine xcomm_free_2D(comms)
 !scalars
 #ifdef HAVE_MPI
  integer :: comm_world,err_handler_dum,err_handler_sav,ii,jj,mpierr
-#endif
 
 ! *************************************************************************
 
-#ifdef HAVE_MPI
  comm_world=xmpi_world ! Needed to bypass a bug in some OMPI implementations (intent(inout))
  call xmpi_comm_set_errhandler(comm_world,MPI_ERRORS_RETURN,err_handler_sav,mpierr)
 
@@ -1193,11 +1171,9 @@ subroutine xcomm_free_3D(comms)
 !scalars
 #ifdef HAVE_MPI
  integer :: comm_world,err_handler_dum,err_handler_sav,ii,jj,kk,mpierr
-#endif
 
 ! *************************************************************************
 
-#ifdef HAVE_MPI
  comm_world=xmpi_world ! Needed to bypass a bug in some OMPI implementations (intent(inout))
  call xmpi_comm_set_errhandler(comm_world,MPI_ERRORS_RETURN,err_handler_sav,mpierr)
 
@@ -1234,8 +1210,6 @@ end subroutine xcomm_free_3D
 !! INPUTS
 !!  spaceGroup=MPI group
 !!
-!! SIDE EFFECTS
-!!
 !! PARENTS
 !!      m_wfs,m_xmpi,pawprt
 !!
@@ -1262,11 +1236,9 @@ subroutine xgroup_free(spaceGroup)
 !scalars
 #ifdef HAVE_MPI
  integer :: comm_world,err_handler_dum,err_handler_sav,ierr,mpierr,mpierr_class
-#endif
 
 ! *************************************************************************
 
-#ifdef HAVE_MPI
  if (spaceGroup/=xmpi_group_null) then
 
    comm_world=xmpi_world ! Needed to bypass a bug in some OMPI implementations (intent(inout))
@@ -1307,8 +1279,6 @@ end subroutine xgroup_free
 !! OUTPUT
 !!  newgroup= new group derived from above, in the order defined by ranks
 !!
-!! SIDE EFFECTS
-!!
 !! PARENTS
 !!      m_wfs
 !!
@@ -1335,8 +1305,6 @@ subroutine xgroup_incl(group,nranks,ranks,newgroup,mpierr)
  integer,intent(inout) :: newgroup
 !arrays
  integer,intent(in) :: ranks(nranks)
-
-!Local variables-------------------------------
 
 ! *************************************************************************
 
@@ -1365,8 +1333,6 @@ end subroutine xgroup_incl
 !!
 !! OUTPUT
 !!  newcomm=new communicator
-!!
-!! SIDE EFFECTS
 !!
 !! PARENTS
 !!      m_wfs
@@ -1428,12 +1394,7 @@ end subroutine xcomm_create
 !!  [my_rank_in_group]=optional: my rank in the group of new sub-communicator
 !!  xmpi_subcomm=new (sub-)communicator
 !!
-!! SIDE EFFECTS
-!!
 !! PARENTS
-!!
-!! CHILDREN
-!!      mpi_comm_create,mpi_comm_group,mpi_group_incl,mpi_group_free
 !!
 !! SOURCE
 
@@ -1465,6 +1426,7 @@ function xmpi_subcomm(comm,nranks,ranks,my_rank_in_group)
 
  xmpi_subcomm=xmpi_comm_null
  if (present(my_rank_in_group)) my_rank_in_group=xmpi_undefined
+
 #ifdef HAVE_MPI
  if (comm/=xmpi_comm_null.and.nranks>=0) then
    call MPI_COMM_GROUP(comm,group,ierr)
@@ -1499,10 +1461,10 @@ end function xmpi_subcomm
 !!  Hides MPI_COMM_GROUP from MPI library.
 !!
 !! INPUTS
-!!  spaceComm=MPI communicator.
+!!  comm=MPI communicator.
 !!
 !! OUTPUT
-!!  spaceGroup=The group associated to spaceComm.
+!!  spaceGroup=The group associated to comm.
 !!  mpierr=error code returned
 !!
 !! PARENTS
@@ -1513,7 +1475,7 @@ end function xmpi_subcomm
 !!
 !! SOURCE
 
-subroutine xcomm_group(spaceComm,spaceGroup,mpierr)
+subroutine xcomm_group(comm,spaceGroup,mpierr)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -1525,18 +1487,15 @@ subroutine xcomm_group(spaceComm,spaceGroup,mpierr)
  implicit none
 
 !Arguments-------------------------
- integer,intent(in) :: spaceComm
+ integer,intent(in) :: comm
  integer,intent(out) :: mpierr,spaceGroup
-
-!Local variables-------------------------------
-!scalars
 
 ! *************************************************************************
 
  mpierr=0; spaceGroup=xmpi_group_null
 #ifdef HAVE_MPI
- if (spaceComm/=xmpi_comm_null) then
-   call MPI_COMM_GROUP(spaceComm,spaceGroup,mpierr)
+ if (comm/=xmpi_comm_null) then
+   call MPI_COMM_GROUP(comm,spaceGroup,mpierr)
  end if
 #endif
 
@@ -1563,7 +1522,6 @@ end subroutine xcomm_group
 !!  output_comm=new splitted communicator
 !!
 !! PARENTS
-!!      m_abi_linalg
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
@@ -1585,7 +1543,6 @@ subroutine xmpi_comm_split(input_comm,color,key,output_comm,mpierr)
 !scalars
  integer,intent(in) :: color,input_comm,key
  integer,intent(out) :: mpierr,output_comm
-!arrays
 
 ! *************************************************************************
 
@@ -1647,9 +1604,6 @@ subroutine xmpi_group_translate_ranks(spaceGroup1,nrank,ranks1,&
  integer,intent(in) :: ranks1(nrank)
  integer,intent(out) :: ranks2(nrank)
 
-!Local variables-------------------------------
-!scalars
-
 ! *************************************************************************
 
  mpierr=0; ranks2(:)=xmpi_undefined
@@ -1685,6 +1639,7 @@ end subroutine xmpi_group_translate_ranks
 !!                xmpi_undefined when no correspondence exists
 !!
 !! PARENTS
+!!      m_paral_pert
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
@@ -1738,22 +1693,23 @@ end subroutine xmpi_comm_translate_ranks
 !!  Hides MPI_BARRIER from MPI library.
 !!
 !! INPUTS
+!!  comm=MPI communicator
 !!
 !! PARENTS
-!!      alloc_hamilt_gpu,atomden,calc_optical_mels,cohsex_me,datafordmft
-!!      defs_scalapack,denfgr,dfpt_write_cg,exc_build_block,exc_diago
-!!      exc_diago_driver,exc_iterative_diago,exc_spectra,fermisolverec
-!!      getcgqphase,gstateimg,haydock,haydock_psherm,iofn1,ks_ddiago,m_bse_io
-!!      m_green,m_header,m_io_kss,m_io_redirect,m_melemts,m_screen,m_screening
-!!      m_vcoul,m_wffile,m_wfk,m_wfs,mlwfovlp,mlwfovlp_pw,nselt3,nstpaw3,outkss
-!!      outwf,pawmkaewf,scfcv3,setup_bse,sigma,tddft,vtorho,vtorhorec
+!!      alloc_hamilt_gpu,atomden,calc_optical_mels,calc_ucrpa,chebfi,cohsex_me
+!!      datafordmft,denfgr,dfpt_write_cg,exc_build_block,exc_spectra
+!!      fermisolverec,getcgqphase,gstateimg,iofn1,ks_ddiago,m_bse_io
+!!      m_exc_diago,m_exc_itdiago,m_green,m_haydock,m_header,m_io_kss
+!!      m_io_redirect,m_melemts,m_plowannier,m_screen,m_screening,m_slk,m_vcoul
+!!      m_wffile,m_wfk,m_wfs,mlwfovlp,mlwfovlp_pw,nselt3,nstpaw3,outkss,outwf
+!!      pawmkaewf,scfcv3,setup_bse,sigma,tddft,vtorho,vtorhorec
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
 !!
 !! SOURCE
 
-subroutine xmpi_barrier(spaceComm)
+subroutine xmpi_barrier(comm)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -1765,7 +1721,7 @@ subroutine xmpi_barrier(spaceComm)
  implicit none
 
 !Arguments-------------------------
- integer,intent(in) :: spaceComm
+ integer,intent(in) :: comm
 
 !Local variables-------------------
  integer   :: ier
@@ -1777,10 +1733,10 @@ subroutine xmpi_barrier(spaceComm)
 
  ier = 0
 #ifdef HAVE_MPI
- if (spaceComm/=xmpi_comm_null) then
-   call MPI_COMM_SIZE(spaceComm,nprocs,ier)
+ if (comm/=xmpi_comm_null) then
+   call MPI_COMM_SIZE(comm,nprocs,ier)
    if(nprocs>1)then
-     call MPI_BARRIER(spaceComm,ier)
+     call MPI_BARRIER(comm,ier)
    end if
  end if
 #endif
@@ -1874,7 +1830,6 @@ end subroutine xmpi_name
 
 subroutine xmpi_iprobe(source,tag,mpicomm,flag,mpierr)
 
-use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1922,7 +1877,7 @@ end subroutine xmpi_iprobe
 !!  mpierr= status error
 !!
 !! PARENTS
-!!      m_paw_an,m_paw_ij,m_pawfgrtab,m_pawrhoij
+!!      m_fftw3,m_paw_an,m_paw_ij,m_pawfgrtab,m_pawrhoij,m_sg2002
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
@@ -1931,7 +1886,6 @@ end subroutine xmpi_iprobe
 
 subroutine xmpi_wait(request,mpierr)
 
-use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1987,7 +1941,6 @@ end subroutine xmpi_wait
 
 subroutine xmpi_waitall(array_of_requests,mpierr)
 
-use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2042,7 +1995,6 @@ end subroutine xmpi_waitall
 
 subroutine xmpi_request_free(requests,mpierr)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2140,17 +2092,14 @@ end subroutine xmpi_error_string
 !!  old_err_handler= old error handler
 !!
 !! SIZE EFFECTS
-!!  spaceComm= communicator (should be intent(in) but is intent(inout) in some
+!!  comm= communicator (should be intent(in) but is intent(inout) in some
 !!             OMPI implementation ; known as a bug)
 !!
 !! PARENTS
 !!
-!! CHILDREN
-!!      mpi_comm_get_errhandler,mpi_comm_set_errhandler
-!!
 !! SOURCE
 
-subroutine xmpi_comm_set_errhandler(spaceComm,new_err_handler,old_err_handler,ierror)
+subroutine xmpi_comm_set_errhandler(comm,new_err_handler,old_err_handler,ierror)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -2163,7 +2112,7 @@ subroutine xmpi_comm_set_errhandler(spaceComm,new_err_handler,old_err_handler,ie
 
 !Arguments-------------------------
  integer,intent(in) :: new_err_handler
- integer,intent(in) :: spaceComm
+ integer,intent(in) :: comm
  integer,intent(out) :: ierror,old_err_handler
 
 !Local variables-------------------------
@@ -2172,7 +2121,7 @@ subroutine xmpi_comm_set_errhandler(spaceComm,new_err_handler,old_err_handler,ie
 ! *************************************************************************
 
  ierror=0
- my_comm = spaceComm  !should be intent(in) but is intent(inout) in some OMPI implementation ; known as a bug)
+ my_comm = comm  !should be intent(in) but is intent(inout) in some OMPI implementation ; known as a bug)
 
 #if defined HAVE_MPI
 
@@ -2193,7 +2142,6 @@ subroutine xmpi_comm_set_errhandler(spaceComm,new_err_handler,old_err_handler,ie
  else if (mpierr2/=MPI_SUCCESS) then
    ierror=mpierr2
  end if
-
 #endif
 
 end subroutine xmpi_comm_set_errhandler
@@ -2234,13 +2182,10 @@ end subroutine xmpi_comm_set_errhandler
 !!
 !! PARENTS
 !!
-!! CHILDREN
-!!
 !! SOURCE
 
 subroutine xmpi_split_work_i4b(ntasks,comm,my_start,my_stop,warn_msg,ierr)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2269,16 +2214,16 @@ subroutine xmpi_split_work_i4b(ntasks,comm,my_start,my_stop,warn_msg,ierr)
 
  warn_msg = ""; ierr=0
  if (res/=0) then
-   write(warn_msg,'(4a,i5,a,i4)')ch10,&
-&   ' xmpi_split_work : ',ch10,&
-&   '  The number of tasks= ',ntasks,' is not divisible by nprocs= ',nprocs
+   write(warn_msg,'(4a,i0,a,i0)')ch10,&
+&   'xmpi_split_work: ',ch10,&
+&   'The number of tasks= ',ntasks,' is not divisible by nprocs= ',nprocs
    ierr=1
  end if
  if (block==0) then
-   write(warn_msg,'(4a,i4,a,i5,3a)')ch10,&
-&   ' xmpi_split_work : ',ch10,&
-&   ' The number of processors= ',nprocs,' larger than number of tasks= ',ntasks,ch10,&
-&   ' This is a waste ',ch10
+   write(warn_msg,'(4a,i0,a,i0,2a)')ch10,&
+&   'xmpi_split_work: ',ch10,&
+&   'The number of processors= ',nprocs,' is larger than number of tasks= ',ntasks,ch10,&
+&   'This is a waste '
     ierr=2
  end if
 
@@ -2340,7 +2285,6 @@ end subroutine xmpi_split_work_i4b
 
 subroutine xmpi_split_work2_i4b(ntasks,nprocs,istart,istop,warn_msg,ierr)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2367,16 +2311,16 @@ subroutine xmpi_split_work2_i4b(ntasks,nprocs,istart,istop,warn_msg,ierr)
 
  warn_msg = ""; ierr=0
  if (res/=0) then
-   write(warn_msg,'(a,i0,a,i0,3a)')&
-&   ' The number of tasks = ',ntasks,' is not divisible by nprocs = ',nprocs,ch10,&
-&   ' parallelism is not efficient ',ch10
+   write(warn_msg,'(a,i0,a,i0,2a)')&
+&   'The number of tasks = ',ntasks,' is not divisible by nprocs = ',nprocs,ch10,&
+&   'parallelism is not efficient '
    ierr=+1
  end if
- !
+
  if (block_tmp==0) then
-   write(warn_msg,'(a,i0,a,i0,3a)')&
-&   ' The number of processors = ',nprocs,' is larger than number of tasks =',ntasks,ch10,&
-&   ' This is a waste ',ch10
+   write(warn_msg,'(a,i0,a,i0,2a)')&
+&   'The number of processors = ',nprocs,' is larger than number of tasks =',ntasks,ch10,&
+&   'This is a waste '
    ierr=+2
  end if
 
@@ -2423,7 +2367,6 @@ end subroutine xmpi_split_work2_i4b
 
 subroutine xmpi_split_work2_i8b(ntasks,nprocs,istart,istop,warn_msg,ierr)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2451,16 +2394,16 @@ subroutine xmpi_split_work2_i8b(ntasks,nprocs,istart,istop,warn_msg,ierr)
 
  warn_msg = ""; ierr=0
  if (res/=0) then
-   write(warn_msg,'(a,i0,a,i0,3a)')&
-&   ' The number of tasks = ',ntasks,' is not divisible by nprocs = ',nprocs,ch10,&
-&   ' parallelism is not efficient ',ch10
+   write(warn_msg,'(a,i0,a,i0,2a)')&
+&   'The number of tasks = ',ntasks,' is not divisible by nprocs = ',nprocs,ch10,&
+&   'parallelism is not efficient '
    ierr=+1
  end if
  !
  if (block_tmp==0) then
-   write(warn_msg,'(a,i0,a,i0,3a)')&
+   write(warn_msg,'(a,i0,a,i0,2a)')&
 &   ' The number of processors = ',nprocs,' is larger than number of tasks =',ntasks,ch10,&
-&   ' This is a waste ',ch10
+&   ' This is a waste '
    ierr=+2
  end if
 
@@ -2503,7 +2446,6 @@ end subroutine xmpi_split_work2_i8b
 
 subroutine xmpi_distab_4D(nprocs,task_distrib)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2556,13 +2498,78 @@ subroutine xmpi_distab_4D(nprocs,task_distrib)
 
  task_distrib = RESHAPE(list,(/n1,n2,n3,n4/))
 
- if ( ANY(task_distrib==-999) ) then
+ if (ANY(task_distrib==-999)) then
    call xmpi_abort(msg="task_distrib == -999")
  end if
 
  ABI_DEALLOCATE(list)
 
 end subroutine xmpi_distab_4D
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_xmpi/xmpi_distrib_with_replicas
+!! NAME
+!!  xmpi_distrib_with_replicas
+!!
+!! FUNCTION
+!!
+!! INPUTS
+!!  itask=Index of the task (must be <= ntasks)
+!!  ntasks= number of tasks
+!!  rank=MPI Rank of this processor
+!!  nprocs=Number of processors.
+!!
+!! OUTPUT
+!!  True if this node will treat itask (replicas are possible if nprocs > ntasks)
+!!
+!! PARENTS
+!!
+!! SOURCE
+
+function xmpi_distrib_with_replicas(itask,ntasks,rank,nprocs) result(bool)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xmpi_distrib_with_replicas'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+!scalars
+ integer,intent(in) :: itask,rank,nprocs,ntasks
+ logical :: bool
+
+!Local variables-------------------------------
+!scalars
+ integer :: ii,mnp_pool,rk_base
+
+! *************************************************************************
+
+ ! If the number of processors is less than sign_nbnds, we have max one task per processor, 
+ ! else we replicate the tasks inside a pool of max size mnp_pool
+ if (nprocs <= ntasks) then
+   bool = (MODULO(itask-1, nprocs)==rank)
+ else
+   mnp_pool = (nprocs / ntasks)
+   !write(std_out,*)"Will duplicate itasks"
+   !write(std_out,*)"mnp_pool",mnp_pool,"nprocs, ntasks",nprocs,ntasks
+
+   rk_base = MODULO(itask-1, nprocs)
+   bool = .False.
+   do ii=1,mnp_pool+1
+     if (rank == rk_base + (ii-1) * ntasks) then
+        bool = .True.
+        exit
+     end if
+   end do
+ end if
+
+end function xmpi_distrib_with_replicas
 !!***
 
 !----------------------------------------------------------------------
@@ -2575,7 +2582,11 @@ end subroutine xmpi_distab_4D
 
 #include "xmpi_alltoall.finc"
 
+#include "xmpi_ialltoall.finc"
+
 #include "xmpi_alltoallv.finc"
+
+#include "xmpi_ialltoallv.finc"
 
 #include "xmpi_bcast.finc"
 
@@ -2628,7 +2639,7 @@ end subroutine xmpi_distab_4D
 !! mpierr=MPI status error
 !!
 !! PARENTS
-!!      defs_scalapack,m_wfk,m_xmpi
+!!      m_slk,m_wffile,m_wfk,m_xmpi
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
@@ -2639,7 +2650,6 @@ end subroutine xmpi_distab_4D
 
 subroutine xmpio_type_struct(ncount,block_length,block_displ,block_type,new_type,mpierr)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2704,13 +2714,10 @@ end subroutine xmpio_type_struct
 !!
 !! PARENTS
 !!
-!! CHILDREN
-!!
 !! SOURCE
 
 subroutine xmpio_get_info_frm(bsize_frm,mpi_type_frm,comm)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -2891,7 +2898,7 @@ end subroutine xmpio_get_info_frm
 !!     output: new offset updated after the reading, depending on advance.
 !!
 !! PARENTS
-!!      exc_diago,exc_iterative_diago,m_bse_io,m_header,m_io_screening,m_xmpi
+!!      m_bse_io,m_exc_diago,m_exc_itdiago,m_header,m_io_screening,m_xmpi
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
@@ -2902,7 +2909,6 @@ end subroutine xmpio_get_info_frm
 
 subroutine xmpio_read_frm(mpi_fh,offset,sc_mode,fmarker,mpierr,advance)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -3042,7 +3048,6 @@ end subroutine xmpio_read_frm
 
 subroutine xmpio_write_frm(mpi_fh,offset,sc_mode,fmarker,mpierr,advance)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -3180,7 +3185,6 @@ end subroutine xmpio_write_frm
 
 subroutine xmpio_create_fstripes(ncount,sizes,types,new_type,my_offpad,mpierr)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -3271,7 +3275,7 @@ end subroutine xmpio_create_fstripes
 !!  mpierr= MPI error code
 !!
 !! PARENTS
-!!      exc_build_block,exc_iterative_diago,m_mpiotk,m_wfk
+!!      exc_build_block,m_exc_itdiago,m_mpiotk,m_wfk
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
@@ -3282,7 +3286,6 @@ end subroutine xmpio_create_fstripes
 
 subroutine xmpio_create_fsubarray_2D(sizes,subsizes,array_of_starts,old_type,new_type,my_offpad,mpierr)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -3382,7 +3385,6 @@ end subroutine xmpio_create_fsubarray_2D
 
 subroutine xmpio_create_fsubarray_3D(sizes,subsizes,array_of_starts,old_type,new_type,my_offpad,mpierr)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -3489,11 +3491,11 @@ end subroutine xmpio_create_fsubarray_3D
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
 !!
 !! SOURCE
+
 #ifdef HAVE_MPI_IO
 
 subroutine xmpio_create_fsubarray_4D(sizes,subsizes,array_of_starts,old_type,new_type,my_offpad,mpierr)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -3603,7 +3605,7 @@ end subroutine xmpio_create_fsubarray_4D
 !!  ierr=A non-zero error code signals failure.
 !!
 !! PARENTS
-!!      defs_scalapack,exc_iterative_diago,m_bse_io,m_wfk
+!!      m_bse_io,m_exc_itdiago,m_slk,m_wfk
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
@@ -3614,7 +3616,6 @@ end subroutine xmpio_create_fsubarray_4D
 
 subroutine xmpio_check_frmarkers(mpi_fh,offset,sc_mode,nfrec,bsize_frecord,ierr)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -3812,7 +3813,6 @@ end subroutine xmpio_check_frmarkers
 
 subroutine xmpio_read_int(mpi_fh,offset,sc_mode,ncount,buf,fmarker,mpierr,advance)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -3919,7 +3919,6 @@ end subroutine xmpio_read_int
 
 subroutine xmpio_read_dp(mpi_fh,offset,sc_mode,ncount,buf,fmarker,mpierr,advance)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -3994,15 +3993,12 @@ end subroutine xmpio_read_dp
 !!
 !! PARENTS
 !!
-!! CHILDREN
-!!
 !! SOURCE
 
 #ifdef HAVE_MPI_IO
 
 function xmpio_max_address(offset)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -4051,7 +4047,7 @@ end function xmpio_max_address
 !!  ierr=A non-zero error code signals failure.
 !!
 !! PARENTS
-!!      defs_scalapack,exc_build_block,exc_iterative_diago,m_wfk
+!!      exc_build_block,m_exc_itdiago,m_slk,m_wfk
 !!
 !! CHILDREN
 !!      mpi_type_commit,mpi_type_size,xmpi_abort,xmpio_type_struct
@@ -4062,7 +4058,6 @@ end function xmpio_max_address
 
 subroutine xmpio_write_frmarkers(mpi_fh,offset,sc_mode,nfrec,bsize_frecord,ierr)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -4267,7 +4262,6 @@ end subroutine xmpio_write_frmarkers
 
 subroutine xmpio_create_fherm_packed(array_of_starts,array_of_ends,is_fortran_file,my_offset,old_type,hmat_type,offset_err)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -4431,7 +4425,6 @@ end subroutine xmpio_create_fherm_packed
 
 subroutine xmpio_create_coldistr_from_fpacked(sizes,my_cols,old_type,new_type,my_offpad,offset_err)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -4573,7 +4566,6 @@ end subroutine xmpio_create_coldistr_from_fpacked
 
 subroutine xmpio_create_coldistr_from_fp3blocks(sizes,block_sizes,my_cols,old_type,new_type,my_offpad,offset_err)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.

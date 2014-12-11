@@ -46,7 +46,6 @@
 subroutine xmpi_allgather_int(xval,recvbuf,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -58,9 +57,9 @@ subroutine xmpi_allgather_int(xval,recvbuf,spaceComm,ier)
 
 !Arguments-------------------------
  integer,intent(inout) :: xval
- integer,intent(inout) :: recvbuf(:)
- integer,intent(in) :: spaceComm
- integer,intent(out)   :: ier
+ integer, DEV_CONTARRD intent(inout) :: recvbuf(:)
+ integer, intent(in) :: spaceComm
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 
@@ -107,7 +106,6 @@ end subroutine xmpi_allgather_int
 
 subroutine xmpi_allgather_char(charval,recvbuf,spaceComm,ier)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -120,8 +118,8 @@ subroutine xmpi_allgather_char(charval,recvbuf,spaceComm,ier)
 !Arguments-------------------------
  integer,intent(in)  :: spaceComm
  integer,intent(out) :: ier
- character(20),intent(inout) :: charval
- character(20),intent(inout) :: recvbuf(:)
+ character(len=20),intent(inout) :: charval
+ character(len=20), DEV_CONTARRD intent(inout) :: recvbuf(:)
 
 ! *************************************************************************
  ier=0
@@ -135,6 +133,7 @@ subroutine xmpi_allgather_char(charval,recvbuf,spaceComm,ier)
 #else
  recvbuf=charval
 #endif
+
 end subroutine xmpi_allgather_char
 !!***
 
@@ -168,7 +167,6 @@ end subroutine xmpi_allgather_char
 subroutine xmpi_allgather_int1d(xval,nelem,recvbuf,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -179,10 +177,10 @@ subroutine xmpi_allgather_int1d(xval,nelem,recvbuf,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- integer,intent(in) :: xval(:)
- integer,intent(inout) :: recvbuf(:)
+ integer, DEV_CONTARRD intent(in) :: xval(:)
+ integer, DEV_CONTARRD intent(inout) :: recvbuf(:)
  integer ,intent(in) :: nelem,spaceComm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 ! *************************************************************************
  ier=0
@@ -228,7 +226,6 @@ end subroutine xmpi_allgather_int1d
 subroutine xmpi_allgather_dp1d(xval,nelem,recvbuf,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -239,10 +236,10 @@ subroutine xmpi_allgather_dp1d(xval,nelem,recvbuf,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(in) :: xval(:)
- real(dp),intent(inout) :: recvbuf(:)
+ real(dp), DEV_CONTARRD intent(in) :: xval(:)
+ real(dp), DEV_CONTARRD intent(inout) :: recvbuf(:)
  integer ,intent(in) :: nelem,spaceComm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 ! *************************************************************************
  ier=0
@@ -288,7 +285,6 @@ end subroutine xmpi_allgather_dp1d
 subroutine xmpi_allgather_dp2d(xval,nelem,recvbuf,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -299,8 +295,8 @@ subroutine xmpi_allgather_dp2d(xval,nelem,recvbuf,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(in) :: xval(:,:)
- real(dp),intent(inout) :: recvbuf(:,:)
+ real(dp), DEV_CONTARRD intent(in) :: xval(:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: recvbuf(:,:)
  integer ,intent(in) :: nelem,spaceComm
  integer ,intent(out)   :: ier
 
@@ -348,7 +344,6 @@ end subroutine xmpi_allgather_dp2d
 subroutine xmpi_allgather_dp3d(xval,nelem,recvbuf,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -360,12 +355,10 @@ subroutine xmpi_allgather_dp3d(xval,nelem,recvbuf,spaceComm,ier)
 
 
 !Arguments-------------------------
-   real(dp),intent(in) :: xval(:,:,:)
-   real(dp),intent(inout) :: recvbuf(:,:,:)
-   integer ,intent(in) :: nelem,spaceComm
-   integer ,intent(out)   :: ier
-
-!Local variables-------------------
+ real(dp), DEV_CONTARRD intent(in) :: xval(:,:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: recvbuf(:,:,:)
+ integer ,intent(in) :: nelem,spaceComm
+ integer ,intent(out)   :: ier
 
 ! *************************************************************************
  ier=0
@@ -411,7 +404,6 @@ end subroutine xmpi_allgather_dp3d
 subroutine xmpi_allgather_dp4d(xval,nelem,recvbuf,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -422,12 +414,10 @@ subroutine xmpi_allgather_dp4d(xval,nelem,recvbuf,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
-   real(dp),intent(in) :: xval(:,:,:,:)
-   real(dp),intent(inout) :: recvbuf(:,:,:,:)
-   integer ,intent(in) :: nelem,spaceComm
-   integer ,intent(out)   :: ier
-
-!Local variables-------------------
+ real(dp), DEV_CONTARRD intent(in) :: xval(:,:,:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: recvbuf(:,:,:,:)
+ integer ,intent(in) :: nelem,spaceComm
+ integer ,intent(out)   :: ier
 
 ! *************************************************************************
  ier=0

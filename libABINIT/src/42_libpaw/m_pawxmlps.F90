@@ -8,7 +8,7 @@
 !! Can use either FoX or pure Fortran routines.
 !!
 !! COPYRIGHT
-!! Copyright (C) 2005-2014 ABINIT group (FJ)
+!! Copyright (C) 2005-2014 ABINIT group (FJ, MT)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -29,12 +29,12 @@
 module m_pawxmlps
 
  use defs_basis
- use m_profiling
+ use m_profiling_abi
  use m_errors
+ use m_pawrad
 #if defined HAVE_TRIO_FOX
  use fox_sax
 #endif
- use m_pawrad
 
  use m_paw_numeric,   only : paw_spline,paw_splint
 
@@ -42,37 +42,27 @@ module m_pawxmlps
 
  private
 
-!Procedures related to paw_set_type
- public :: destroy_paw_setup
- public :: nullify_paw_setup
- public :: copy_paw_setup
 !Procedures used for the Fortran reader
  public  ::  rdpawpsxml
  public  ::  rdpawpsxml_core
  public  ::  getecutfromxml
- private ::  paw_rdfromline
 
-!Procedures used for the FoX reader
-!(called from xml_parser in response to events)
+!Procedures used for the FoX reader (called from xml_parser in response to events)
 #if defined HAVE_TRIO_FOX
-public :: paw_begin_element1
-public :: paw_end_element1
-public :: pawdata_chunk
+ public :: paw_begin_element1
+ public :: paw_end_element1
+ public :: pawdata_chunk
 #endif
 
+! private procedures and global variables.
+ private ::  paw_rdfromline
+
 ! This type of real is used by the datatypes below
-integer,parameter,private :: dpxml = selected_real_kind(14)
+ integer,parameter,private :: dpxml = selected_real_kind(14)
 
 ! The maximum length of a record in a file connected for sequential access.
-integer,parameter,private :: XML_RECL = 50000
+ integer,parameter,private :: XML_RECL = 50000
 !!***
-
-
-!-------------------------------------------------------------------------
-!-------------------------------------------------------------------------
-!------------- DATATYPES -------------------------------------------------
-!-------------------------------------------------------------------------
-!-------------------------------------------------------------------------
 
 !!****t* m_pawxmlps/radial_grid_t
 !! NAME
@@ -248,6 +238,7 @@ type, public :: paw_setup_t
   logical                      :: tread=.false.
   integer                      :: ngrid
   real(dpxml)                  :: rpaw
+  real(dpxml)                  :: ex_cc
   character(len=4)             :: idgrid
   type(atom_t)                 :: atom
   type(xc_functional_t)        :: xc_functional
@@ -267,7 +258,11 @@ type, public :: paw_setup_t
   type(radialfunc_t)           :: kresse_joubert_local_ionic_potential
   type(radialfunc_t)           :: blochl_local_ionic_potential
   type(radialfunc_t)           :: kinetic_energy_differences
+  type(radialfunc_t)           :: exact_exchange_matrix
 end type paw_setup_t
+
+ public :: paw_setup_free  ! Free memory
+ public :: paw_setup_copy     ! Copy object
 !!***
 
 
@@ -1008,18 +1003,12 @@ end subroutine pawdata_chunk
 !-------------------------------------------------------------------------
 !-------------------------------------------------------------------------
 
-!!****f* ABINIT/destroy_paw_setup
+!!****f* m_pawxmlps/paw_setup_free
 !! NAME
-!! destroy_paw_setup
+!! paw_setup_free
 !!
 !! FUNCTION
 !!  Destroy a paw_setup datastructure
-!!
-!! COPYRIGHT
-!!  Copyright (C) 2009-2013 ABINIT group (FJ)
-!!  This file is distributed under the terms of the
-!!  GNU General Public License, see ~abinit/COPYING
-!!  or http://www.gnu.org/copyleft/gpl.txt .
 !!
 !! SIDE EFFECTS
 !!  paw_setup<paw_setup_type>=Datatype gathering information on XML paw setup.
@@ -1032,13 +1021,13 @@ end subroutine pawdata_chunk
 !!
 !! SOURCE
 
-subroutine destroy_paw_setup(paw_setupin)
+subroutine paw_setup_free(paw_setupin)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'destroy_paw_setup'
+#define ABI_FUNC 'paw_setup_free'
 !End of the abilint section
 
  implicit none
@@ -1067,6 +1056,7 @@ subroutine destroy_paw_setup(paw_setupin)
  paw_setupin%kresse_joubert_local_ionic_potential%tread=.false.
  paw_setupin%blochl_local_ionic_potential%tread=.false.
  paw_setupin%kinetic_energy_differences%tread=.false.
+ paw_setupin%exact_exchange_matrix%tread=.false.
 
  if(allocated( paw_setupin%shape_function%data)) then
    ABI_DEALLOCATE(paw_setupin%shape_function%data)
@@ -1097,6 +1087,9 @@ subroutine destroy_paw_setup(paw_setupin)
  end if
  if(allocated( paw_setupin%kinetic_energy_differences%data)) then
    ABI_DEALLOCATE(paw_setupin%kinetic_energy_differences%data)
+ end if
+ if(allocated( paw_setupin%exact_exchange_matrix%data)) then
+   ABI_DEALLOCATE(paw_setupin%exact_exchange_matrix%data)
  end if
  if (allocated( paw_setupin%ae_partial_wave)) then
    do ii=1,paw_setupin%valence_states%nval
@@ -1129,68 +1122,14 @@ subroutine destroy_paw_setup(paw_setupin)
    ABI_DATATYPE_DEALLOCATE(paw_setupin%radial_grid)
  end if
 
-end subroutine destroy_paw_setup
+end subroutine paw_setup_free
 !!***
 
 !-------------------------------------------------------------------------
 
-!!****f* ABINIT/nullify_paw_setup
+!!****f* m_pawxmlps/paw_setup_copy
 !! NAME
-!! nullify_paw_setup
-!!
-!! FUNCTION
-!!  nullify a paw_setup datastructure
-!!
-!! COPYRIGHT
-!!  Copyright (C) 2009-2013 ABINIT group (FJ)
-!!  This file is distributed under the terms of the
-!!  GNU General Public License, see ~abinit/COPYING
-!!  or http://www.gnu.org/copyleft/gpl.txt .
-!!
-!! SIDE EFFECTS
-!!  paw_setup<paw_setup_type>=Datatype gathering information on XML paw setup.
-!!
-!! PARENTS
-!!      inpspheads
-!!
-!! CHILDREN
-!!      paw_rdfromline
-!!
-!! SOURCE
-
-subroutine nullify_paw_setup(paw_setupin)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-#undef ABI_FUNC
-#define ABI_FUNC 'nullify_paw_setup'
-!End of the abilint section
-
- implicit none
-
-!Arguments ------------------------------------
-!scalars
- type(paw_setup_t),intent(inout) :: paw_setupin
-
-!Local variables-------------------------------
-
-! *********************************************************************
-
- ! MGPAW: This one could be removed/renamed, 
- ! variables can be initialized in the datatype declaration
- ! Do we need to expose this in the public API?
-
- ABI_UNUSED(paw_setupin%ngrid)
-
-end subroutine nullify_paw_setup
-!!***
-
-!-------------------------------------------------------------------------
-
-!!****f* ABINIT/copy_paw_setup
-!! NAME
-!! copy_paw_setup
+!! paw_setup_copy
 !!
 !! FUNCTION
 !!  Copy a paw_setup datastructure into another
@@ -1210,13 +1149,13 @@ end subroutine nullify_paw_setup
 !!
 !! SOURCE
 
-subroutine copy_paw_setup(paw_setupin,paw_setupout)
+subroutine paw_setup_copy(paw_setupin,paw_setupout)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'copy_paw_setup'
+#define ABI_FUNC 'paw_setup_copy'
 !End of the abilint section
 
  implicit none
@@ -1238,6 +1177,7 @@ subroutine copy_paw_setup(paw_setupin,paw_setupout)
  paw_setupout%ngrid=paw_setupin%ngrid
  paw_setupout%idgrid=paw_setupin%idgrid
  paw_setupout%rpaw=paw_setupin%rpaw
+ paw_setupout%ex_cc=paw_setupin%ex_cc
  paw_setupout%atom%tread=paw_setupin%atom%tread
  paw_setupout%atom%symbol=paw_setupin%atom%symbol
  paw_setupout%atom%znucl=paw_setupin%atom%znucl
@@ -1295,7 +1235,7 @@ subroutine copy_paw_setup(paw_setupin,paw_setupout)
  paw_setupout%kinetic_energy_differences%tread=paw_setupin%kinetic_energy_differences%tread
  paw_setupout%kinetic_energy_differences%grid=paw_setupin%kinetic_energy_differences%grid
  paw_setupout%kinetic_energy_differences%state=paw_setupin%kinetic_energy_differences%state
-
+ paw_setupout%exact_exchange_matrix%tread=paw_setupin%exact_exchange_matrix%tread
 ! allocatable arrays
  if (allocated(paw_setupin%shape_function%data)) then
    sz1=size(paw_setupin%shape_function%data,1)
@@ -1342,6 +1282,11 @@ subroutine copy_paw_setup(paw_setupin,paw_setupout)
    sz1=size(paw_setupin%blochl_local_ionic_potential%data,1)
    ABI_ALLOCATE(paw_setupout%blochl_local_ionic_potential%data,(sz1))
    paw_setupout%blochl_local_ionic_potential%data=paw_setupin%blochl_local_ionic_potential%data
+ end if
+ if (allocated(paw_setupin%exact_exchange_matrix%data)) then
+   sz1=size(paw_setupin%exact_exchange_matrix%data,1)
+   ABI_ALLOCATE(paw_setupout%exact_exchange_matrix%data,(sz1))
+   paw_setupout%exact_exchange_matrix%data=paw_setupin%exact_exchange_matrix%data
  end if
  if (allocated(paw_setupin%kinetic_energy_differences%data)) then
    sz1=size(paw_setupin%kinetic_energy_differences%data,1)
@@ -1402,7 +1347,7 @@ subroutine copy_paw_setup(paw_setupin,paw_setupout)
    end do
  end if 
 
-end subroutine copy_paw_setup
+end subroutine paw_setup_copy
 !!***
 
 !-------------------------------------------------------------------------
@@ -1413,13 +1358,6 @@ end subroutine copy_paw_setup
 !!
 !! FUNCTION
 !! Read the value of a keyword from a XML line
-!!
-!! COPYRIGHT
-!! Copyright (C) 1998-2013 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~ABINIT/Infos/copyright
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~ABINIT/Infos/contributors .
 !!
 !! INPUTS
 !!  keyword= keyword which value has to be read
@@ -1483,13 +1421,6 @@ end subroutine copy_paw_setup
 !! FUNCTION
 !! Read the header of a PAW pseudopotential XML file generated by AtomPAW
 !!
-!! COPYRIGHT
-!! Copyright (C) 1998-2013 ABINIT group (FJ, MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~ABINIT/Infos/copyright
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~ABINIT/Infos/contributors .
-!!
 !! INPUTS
 !!  filename= input file name (atomicdata XML)
 !!  funit= input unit number
@@ -1527,6 +1458,7 @@ end subroutine copy_paw_setup
  character (len=XML_RECL) :: line,readline
  character (len=XML_RECL) :: strg
  character (len=30) :: strg1
+ real(dp) :: rc(6)
  real(dp), allocatable :: shpf(:,:)
  type(state_t), pointer :: valstate (:)
  type(radial_grid_t), pointer :: grids (:)
@@ -1540,6 +1472,7 @@ end subroutine copy_paw_setup
  endfile=.false.
  found=.false.
  paw_setup%rpaw=-1.d0
+ rc=-1.d0
 
  do while ((.not.endfile).and.(.not.found))
    read(funit,'(a)',err=10,end=10) readline
@@ -1548,7 +1481,7 @@ end subroutine copy_paw_setup
    20 continue
 
 !  --Read VERSION
-   if (line(1:10)=='<paw_setup') then
+   if ((line(1:10)=='<paw_setup').or.(line(1:12)=='<paw_dataset')) then
      paw_setup%tread=.true.
      igrid=0;ishpf=0
      ABI_DATATYPE_ALLOCATE(grids,(10))
@@ -1610,6 +1543,16 @@ end subroutine copy_paw_setup
 !  --Read PAW RADIUS
    if (line(1:11)=='<PAW_radius') then
      call paw_rdfromline(" rpaw",line,strg,ierr)
+     if (len(trim(strg))<=30) then
+       strg1=trim(strg)
+       read(unit=strg1,fmt=*) paw_setup%rpaw
+     else
+       read(unit=strg,fmt=*) paw_setup%rpaw
+     end if
+     cycle
+   end if
+   if (line(1:11)=='<paw_radius') then
+     call paw_rdfromline(" rc",line,strg,ierr)
      if (len(trim(strg))<=30) then
        strg1=trim(strg)
        read(unit=strg1,fmt=*) paw_setup%rpaw
@@ -1876,6 +1819,15 @@ end subroutine copy_paw_setup
          exit
        end if
      end do
+     call paw_rdfromline(" rc",line,strg,ierr)
+     if (strg /= "" ) then
+       if (len(trim(strg))<=30) then
+         strg1=trim(strg)
+         read(unit=strg1,fmt=*) rc(1)
+       else
+         read(unit=strg,fmt=*) rc(1)
+       end if
+     end if
      ABI_ALLOCATE(paw_setup%ae_core_density%data,(mesh_size))
      !MGNAG v7[62]
      ! Runtime Error: m_pawxmlps_cpp.f90, line 1657: 
@@ -1897,6 +1849,15 @@ end subroutine copy_paw_setup
          exit
        end if
      end do
+     call paw_rdfromline(" rc",line,strg,ierr)
+     if (strg /= "" ) then
+       if (len(trim(strg))<=30) then
+         strg1=trim(strg)
+         read(unit=strg1,fmt=*) rc(2)
+       else
+         read(unit=strg,fmt=*) rc(2)
+       end if
+     end if
      ABI_ALLOCATE(paw_setup%pseudo_core_density%data,(mesh_size))
      read(funit,*) (paw_setup%pseudo_core_density%data(ir),ir=1,mesh_size)
      cycle
@@ -1914,6 +1875,15 @@ end subroutine copy_paw_setup
          exit
        end if
      end do
+     call paw_rdfromline(" rc",line,strg,ierr)
+     if (strg /= "" ) then
+       if (len(trim(strg))<=30) then
+         strg1=trim(strg)
+         read(unit=strg1,fmt=*) rc(3)
+       else
+         read(unit=strg,fmt=*) rc(3)
+       end if
+     end if
      ABI_ALLOCATE(paw_setup%pseudo_valence_density%data,(mesh_size))
      read(funit,*) (paw_setup%pseudo_valence_density%data(ir),ir=1,mesh_size)
      cycle
@@ -1931,6 +1901,15 @@ end subroutine copy_paw_setup
          exit
        end if
      end do
+     call paw_rdfromline(" rc",line,strg,ierr)
+     if (strg /= "" ) then
+       if (len(trim(strg))<=30) then
+         strg1=trim(strg)
+         read(unit=strg1,fmt=*) rc(4)
+       else
+         read(unit=strg,fmt=*) rc(4)
+       end if
+     end if
      ABI_ALLOCATE(paw_setup%zero_potential%data,(mesh_size))
      read(funit,*) (paw_setup%zero_potential%data(ir),ir=1,mesh_size)
      cycle
@@ -1948,6 +1927,15 @@ end subroutine copy_paw_setup
          exit
        end if
      end do
+     call paw_rdfromline(" rc",line,strg,ierr)
+     if (strg /= "" ) then
+       if (len(trim(strg))<=30) then
+         strg1=trim(strg)
+         read(unit=strg1,fmt=*) rc(5)
+       else
+         read(unit=strg,fmt=*) rc(5)
+       end if
+     end if
      ABI_ALLOCATE(paw_setup%kresse_joubert_local_ionic_potential%data,(mesh_size))
      read(funit,*) (paw_setup%kresse_joubert_local_ionic_potential%data(ir),ir=1,mesh_size)
      cycle
@@ -1963,6 +1951,15 @@ end subroutine copy_paw_setup
          exit
        end if
      end do
+     call paw_rdfromline(" rc",line,strg,ierr)
+     if (strg /= "" ) then
+       if (len(trim(strg))<=30) then
+         strg1=trim(strg)
+         read(unit=strg1,fmt=*) rc(6)
+       else
+         read(unit=strg,fmt=*) rc(6)
+       end if
+     end if
      ABI_ALLOCATE(paw_setup%blochl_local_ionic_potential%data,(mesh_size))
      read(funit,*) (paw_setup%blochl_local_ionic_potential%data(ir),ir=1,mesh_size)
      cycle
@@ -2038,9 +2035,42 @@ end subroutine copy_paw_setup
      cycle
    end if
 
+!  --Read Exact exchange term EXACT_EXCHANGE_X_MATRIX
+   if (line(1:25)=='<exact_exchange_X_matrix>') then
+     paw_setup%exact_exchange_matrix%tread=.true.
+     mesh_size=paw_setup%valence_states%nval*paw_setup%valence_states%nval
+     ABI_ALLOCATE(paw_setup%exact_exchange_matrix%data,(mesh_size))
+     read(funit,*) (paw_setup%exact_exchange_matrix%data(ir),ir=1,mesh_size)
+     cycle
+   end if
+
+!  --Read Exact exchange core-core energy
+   if (line(1:25)=='<exact_exchange core-core') then
+     call paw_rdfromline(" core-core",line,strg,ierr)
+     if (len(trim(strg))<=30) then
+       strg1=trim(strg)
+       read(unit=strg1,fmt=*) paw_setup%ex_cc
+     else
+       read(unit=strg,fmt=*) paw_setup%ex_cc
+     end if
+     cycle
+   end if
+
+
+!  --Read the Atompaw input file
+   ir=0
+   if ((line(1:13)=='<!-- Program:').and.(ir==1)) then
+     message=" "
+     do while ((message(1:9)/=' Program:').and.(message(1:8)/='Program:'))
+       read(funit,'(a)') message
+       write(ab_out,'(a)') trim(message)
+     end do   
+     cycle
+   end if 
+
 !  End of reading loop
  end do
-
+ if(paw_setup%rpaw<0.d0) paw_setup%rpaw=maxval(rc)
 !Close the XML atomicdata file
  close(funit)
 
@@ -2065,13 +2095,6 @@ end subroutine copy_paw_setup
 !!
 !! FUNCTION
 !! Read the core wavefunctions in the XML file generated by AtomPAW
-!!
-!! COPYRIGHT
-!! Copyright (C) 1998-2013 ABINIT group (FJ, MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~ABINIT/Infos/copyright
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~ABINIT/Infos/contributors .
 !!
 !! INPUTS
 !!  filename= input file name (atomicdata XML)
@@ -2401,7 +2424,7 @@ end subroutine copy_paw_setup
        call paw_splint(maxmeshz,tmpmesh%rad,phitmp(ii,:),work,maxmeshz,pawrad%rad(1:maxmeshz),phi_cor(1:maxmeshz,ii))
        phi_cor(1:maxmeshz,ii)=phi_cor(1:maxmeshz,ii)*pawrad%rad(1:maxmeshz)
        ABI_DEALLOCATE(work)
-       call pawrad_destroy(tmpmesh)
+       call pawrad_free(tmpmesh)
      else
        phi_cor(1:radmesh(imeshae)%mesh_size,ii)=phitmp(ii,1:radmesh(imeshae)%mesh_size)
        if (radmesh(imeshae)%mesh_size<maxmeshz) phi_cor(radmesh(imeshae)%mesh_size+1:maxmeshz,ii)=zero
@@ -2433,13 +2456,6 @@ end subroutine copy_paw_setup
 !!
 !! FUNCTION
 !! get ecut from PAW pseudopotential XML file generated by AtomPAW
-!!
-!! COPYRIGHT
-!! Copyright (C) 1998-2013 ABINIT group (FJ, MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~ABINIT/Infos/copyright
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~ABINIT/Infos/contributors .
 !!
 !! INPUTS
 !!  filename= input file name (atomicdata XML)

@@ -290,7 +290,7 @@ end function xomp_get_num_threads
 !!  See description.
 !!
 !! PARENTS
-!!      lapackprof,m_errors,m_fft,m_fft_prof
+!!      lapackprof,m_argparse,m_fft,m_fft_prof
 !!
 !! CHILDREN
 !!      omp_set_num_threads
@@ -372,7 +372,7 @@ end function xomp_in_parallel
 !!  Wrapper for omp_get_num_procs
 !!
 !! OUTPUT
-!!  Return the maximum number of cores in one shared memeory system
+!!  Return the maximum number of cores in one shared memory system
 !!  Return 0 if OMP is disabled.
 !!
 !! PARENTS

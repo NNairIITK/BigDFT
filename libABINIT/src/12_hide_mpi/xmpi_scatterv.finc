@@ -40,16 +40,11 @@
 !! SIDE EFFECTS
 !!  recvbuf= received buffer
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_scatterv
 !!
 !! SOURCE
 subroutine xmpi_scatterv_int(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -61,11 +56,11 @@ subroutine xmpi_scatterv_int(xval,sendcounts,displs,recvbuf,recvcount,root,space
 
 
 !Arguments-------------------------
- integer,intent(in) :: xval(:)
- integer,intent(inout)   :: recvbuf(:)
- integer,intent(in) :: sendcounts(:),displs(:)
+ integer, DEV_CONTARRD intent(in) :: xval(:)
+ integer, DEV_CONTARRD intent(inout) :: recvbuf(:)
+ integer, DEV_CONTARRD intent(in) :: sendcounts(:),displs(:)
  integer,intent(in) :: recvcount,root,spaceComm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
  integer :: dd
@@ -84,6 +79,7 @@ subroutine xmpi_scatterv_int(xval,sendcounts,displs,recvbuf,recvcount,root,space
 #if defined HAVE_MPI
  end if
 #endif
+
 end subroutine xmpi_scatterv_int
 !!***
 
@@ -109,16 +105,11 @@ end subroutine xmpi_scatterv_int
 !! SIDE EFFECTS
 !!  recvbuf= received buffer
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_scatterv
-!!
 !! SOURCE
+
 subroutine xmpi_scatterv_int2d(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -130,11 +121,11 @@ subroutine xmpi_scatterv_int2d(xval,sendcounts,displs,recvbuf,recvcount,root,spa
 
 
 !Arguments-------------------------
- integer,intent(in) :: xval(:,:)
- integer,intent(inout)   :: recvbuf(:,:)
- integer,intent(in) :: sendcounts(:),displs(:)
+ integer, DEV_CONTARRD intent(in) :: xval(:,:)
+ integer, DEV_CONTARRD intent(inout) :: recvbuf(:,:)
+ integer, DEV_CONTARRD intent(in) :: sendcounts(:),displs(:)
  integer,intent(in) :: recvcount,root,spaceComm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
  integer :: cc,dd,sz1
@@ -154,6 +145,7 @@ subroutine xmpi_scatterv_int2d(xval,sendcounts,displs,recvbuf,recvcount,root,spa
 #if defined HAVE_MPI
  end if
 #endif
+
 end subroutine xmpi_scatterv_int2d
 !!***
 
@@ -179,16 +171,11 @@ end subroutine xmpi_scatterv_int2d
 !! SIDE EFFECTS
 !!  recvbuf= received buffer
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_scatterv
-!!
 !! SOURCE
+
 subroutine xmpi_scatterv_dp(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -199,11 +186,11 @@ subroutine xmpi_scatterv_dp(xval,sendcounts,displs,recvbuf,recvcount,root,spaceC
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(in) :: xval(:)
- real(dp),intent(inout)   :: recvbuf(:)
- integer,intent(in) :: sendcounts(:),displs(:)
+ real(dp), DEV_CONTARRD intent(in) :: xval(:)
+ real(dp), DEV_CONTARRD intent(inout)   :: recvbuf(:)
+ integer, DEV_CONTARRD intent(in) :: sendcounts(:),displs(:)
  integer,intent(in) :: recvcount,root,spaceComm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
  integer :: dd
@@ -222,6 +209,7 @@ subroutine xmpi_scatterv_dp(xval,sendcounts,displs,recvbuf,recvcount,root,spaceC
 #if defined HAVE_MPI
  end if
 #endif
+
 end subroutine xmpi_scatterv_dp
 !!***
 
@@ -247,16 +235,10 @@ end subroutine xmpi_scatterv_dp
 !! SIDE EFFECTS
 !!  recvbuf= received buffer
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_scatterv
-!!
 !! SOURCE
 subroutine xmpi_scatterv_dp2d(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -267,11 +249,11 @@ subroutine xmpi_scatterv_dp2d(xval,sendcounts,displs,recvbuf,recvcount,root,spac
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(in) :: xval(:,:)
- real(dp),intent(inout)   :: recvbuf(:,:)
- integer,intent(in) :: sendcounts(:),displs(:)
+ real(dp), DEV_CONTARRD intent(in) :: xval(:,:)
+ real(dp), DEV_CONTARRD intent(inout)   :: recvbuf(:,:)
+ integer, DEV_CONTARRD intent(in) :: sendcounts(:),displs(:)
  integer,intent(in) :: recvcount,root,spaceComm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
  integer :: cc,dd,sz1 
@@ -291,6 +273,7 @@ subroutine xmpi_scatterv_dp2d(xval,sendcounts,displs,recvbuf,recvcount,root,spac
 #if defined HAVE_MPI
  end if
 #endif
+
 end subroutine xmpi_scatterv_dp2d
 !!***
 
@@ -316,16 +299,10 @@ end subroutine xmpi_scatterv_dp2d
 !! SIDE EFFECTS
 !!  recvbuf= received buffer
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_scatterv
-!!
 !! SOURCE
 subroutine xmpi_scatterv_dp3d(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -336,11 +313,11 @@ subroutine xmpi_scatterv_dp3d(xval,sendcounts,displs,recvbuf,recvcount,root,spac
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(in) :: xval(:,:,:)
- real(dp),intent(inout)   :: recvbuf(:,:,:)
- integer,intent(in) :: sendcounts(:),displs(:)
+ real(dp), DEV_CONTARRD intent(in) :: xval(:,:,:)
+ real(dp), DEV_CONTARRD intent(inout)   :: recvbuf(:,:,:)
+ integer, DEV_CONTARRD intent(in) :: sendcounts(:),displs(:)
  integer,intent(in) :: recvcount,root,spaceComm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
  integer :: cc,dd,sz12
@@ -360,6 +337,7 @@ subroutine xmpi_scatterv_dp3d(xval,sendcounts,displs,recvbuf,recvcount,root,spac
 #if defined HAVE_MPI
  end if
 #endif
+
 end subroutine xmpi_scatterv_dp3d
 !!***
 
@@ -385,16 +363,11 @@ end subroutine xmpi_scatterv_dp3d
 !! SIDE EFFECTS
 !!  recvbuf= received buffer
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_scatterv
-!!
 !! SOURCE
+
 subroutine xmpi_scatterv_dp4d(xval,sendcounts,displs,recvbuf,recvcount,root,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -405,11 +378,11 @@ subroutine xmpi_scatterv_dp4d(xval,sendcounts,displs,recvbuf,recvcount,root,spac
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(in) :: xval(:,:,:,:)
- real(dp),intent(inout)   :: recvbuf(:,:,:,:)
- integer,intent(in) :: sendcounts(:),displs(:)
+ real(dp), DEV_CONTARRD intent(in) :: xval(:,:,:,:)
+ real(dp), DEV_CONTARRD intent(inout)   :: recvbuf(:,:,:,:)
+ integer, DEV_CONTARRD intent(in) :: sendcounts(:),displs(:)
  integer,intent(in) :: recvcount,root,spaceComm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
  integer :: cc,dd,sz123
@@ -429,5 +402,6 @@ subroutine xmpi_scatterv_dp4d(xval,sendcounts,displs,recvbuf,recvcount,root,spac
 #if defined HAVE_MPI
  end if
 #endif
+
 end subroutine xmpi_scatterv_dp4d
 !!***

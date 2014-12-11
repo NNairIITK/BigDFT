@@ -26,7 +26,7 @@
 
 MODULE m_io_tools
 
- use defs_basis,  only : dp, std_in, std_out, std_out_default, dev_null, fnlen
+ use defs_basis
 
  implicit none
 
@@ -48,23 +48,23 @@ MODULE m_io_tools
  public :: close_unit         ! Helper function to close a Fortran unit with improved error handling.
 
  interface get_unit
-  module procedure get_free_unit
-  module procedure get_unit_from_fname
+   module procedure get_free_unit
+   module procedure get_unit_from_fname
  end interface
 
  interface is_open
-  module procedure is_open_unit
-  module procedure is_open_fname
+   module procedure is_open_unit
+   module procedure is_open_fname
  end interface
 
  interface prompt
-  module procedure prompt_int0D
-  module procedure prompt_rdp0D
-  module procedure prompt_string
-  module procedure prompt_int1D
-  module procedure prompt_int2D
-  module procedure prompt_rdp1D
-  module procedure prompt_rdp2D
+   module procedure prompt_int0D
+   module procedure prompt_rdp0D
+   module procedure prompt_string
+   module procedure prompt_int1D
+   module procedure prompt_int2D
+   module procedure prompt_rdp1D
+   module procedure prompt_rdp2D
  end interface
 
   integer,parameter :: STDIN=std_in
@@ -100,17 +100,16 @@ CONTAINS  !===========================================================
 !!
 !! OUTPUT
 !!  The unit number (free unit or unit associated to the file)
-!!  Negative value if fail.
+!!  Raises:
+!!   IO_NO_AVAILABLE_UNIT if no logical unit is free (!)
+!!   IO_FILE_NOT_ASSOCIATED if the file is not linked to a logical unit
 !!
 !! PARENTS
-!!
-!! CHILDREN
 !!
 !! SOURCE
 
 integer function get_free_unit()
 
-!Local variables-------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -118,6 +117,15 @@ integer function get_free_unit()
 #define ABI_FUNC 'get_free_unit'
 !End of the abilint section
 
+ implicit none
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'get_free_unit'
+!End of the abilint section
+
+!Local variables-------------------------------
  integer :: iunt
  logical :: isopen
 ! *********************************************************************
@@ -128,7 +136,6 @@ integer function get_free_unit()
       get_free_unit=iunt; RETURN
    end if
  end do
-
  get_free_unit=IO_NO_AVAILABLE_UNIT
 
 end function get_free_unit
@@ -150,12 +157,10 @@ end function get_free_unit
 !!
 !! PARENTS
 !!
-!! CHILDREN
-!!
 !! SOURCE
+
 integer function get_unit_from_fname(fname)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -163,6 +168,15 @@ integer function get_unit_from_fname(fname)
 #define ABI_FUNC 'get_unit_from_fname'
 !End of the abilint section
 
+ implicit none
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'get_unit_from_fname'
+!End of the abilint section
+
+!Arguments ------------------------------------
  character(len=*),intent(in) :: fname
 
 !Local variables-------------------------------
@@ -191,12 +205,10 @@ end function get_unit_from_fname
 !!
 !! PARENTS
 !!
-!! CHILDREN
-!!
 !! SOURCE
-function file_exists(fname)
 
-!Arguments ------------------------------------
+logical function file_exists(fname)
+
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -204,7 +216,6 @@ function file_exists(fname)
 #define ABI_FUNC 'file_exists'
 !End of the abilint section
 
- logical :: file_exists
  character(len=*),intent(in) :: fname
 
 ! *********************************************************************
@@ -237,7 +248,7 @@ end function file_exists
 !!  The specified file is deleted.
 !!
 !! PARENTS
-!!      abinit,ioprof
+!!      abinit,ioprof,m_dfptdb,m_io_redirect,mlwfovlp
 !!
 !! CHILDREN
 !!
@@ -245,7 +256,6 @@ end function file_exists
 
 subroutine delete_file(fname,ierr)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -284,7 +294,7 @@ subroutine delete_file(fname,ierr)
  end if
 
  ! Now close the file.
- open(unit=tmp_unt,file=fname,status="OLD",iostat=ierr)
+ open(unit=tmp_unt,file=trim(fname),status="OLD",iostat=ierr)
  if (ierr==0) close(unit=tmp_unt,status="DELETE",iostat=ierr)
 
 end subroutine delete_file
@@ -305,12 +315,10 @@ end subroutine delete_file
 !!
 !! PARENTS
 !!
-!! CHILDREN
-!!
 !! SOURCE
+
 logical function is_connected(unit,fname)
 
-!!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -347,13 +355,10 @@ end function is_connected
 !!
 !! PARENTS
 !!
-!! CHILDREN
-!!
 !! SOURCE
 
 logical function is_open_unit(unit)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -384,13 +389,10 @@ end function is_open_unit
 !!
 !! PARENTS
 !!
-!! CHILDREN
-!!
 !! SOURCE
 
 logical function is_open_fname(fname)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -427,7 +429,6 @@ end function is_open_fname
 
 subroutine prompt_int0D(msg,ivalue)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -479,7 +480,6 @@ end subroutine prompt_int0D
 
 subroutine prompt_rdp0D(msg,rvalue)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -529,9 +529,9 @@ end subroutine prompt_rdp0D
 !! CHILDREN
 !!
 !! SOURCE
+
 subroutine prompt_string(msg,string)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -581,6 +581,7 @@ end subroutine prompt_string
 !! CHILDREN
 !!
 !! SOURCE
+
 subroutine prompt_int1D(msg,ivect)
 
 !Arguments ------------------------------------
@@ -601,14 +602,14 @@ subroutine prompt_int1D(msg,ivect)
 
  ios=-1 ; PS=PS1
  do while (ios/=0)
-  write(STDOUT,'(a)',ADVANCE='NO')PS//TRIM(msg)//BLANK
-  call flush_unit(STDOUT)
-  read(STDIN,*,IOSTAT=ios)ivect(:)
-  if (ios==IO_EOT) then
-    call prompt_exit()
-  endif
+   write(STDOUT,'(a)',ADVANCE='NO')PS//TRIM(msg)//BLANK
+   call flush_unit(STDOUT)
+   read(STDIN,*,IOSTAT=ios)ivect(:)
+   if (ios==IO_EOT) then
+     call prompt_exit()
+   endif
 
-  PS=PS2
+   PS=PS2
  end do
  write(STDOUT,*)
 
@@ -633,9 +634,9 @@ end subroutine prompt_int1D
 !! CHILDREN
 !!
 !! SOURCE
+
 subroutine prompt_int2D(msg,iarr)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -653,14 +654,14 @@ subroutine prompt_int2D(msg,iarr)
 
  ios=-1 ; PS=PS1
  do while (ios/=0)
-  write(STDOUT,'(a)',ADVANCE='NO')PS//TRIM(msg)//BLANK
-  call flush_unit(STDOUT)
-  read(STDIN,*,IOSTAT=ios)iarr(:,:)
-  if (ios==IO_EOT) then
-    call prompt_exit()
-  endif
+   write(STDOUT,'(a)',ADVANCE='NO')PS//TRIM(msg)//BLANK
+   call flush_unit(STDOUT)
+   read(STDIN,*,IOSTAT=ios)iarr(:,:)
+   if (ios==IO_EOT) then
+     call prompt_exit()
+   endif
 
-  PS=PS2
+   PS=PS2
  end do
  write(STDOUT,*)
 
@@ -685,6 +686,7 @@ end subroutine prompt_int2D
 !! CHILDREN
 !!
 !! SOURCE
+
 subroutine prompt_rdp1D(msg,rvect)
 
 !Arguments ------------------------------------
@@ -704,14 +706,14 @@ subroutine prompt_rdp1D(msg,rvect)
 
  ios=-1 ; PS=PS1
  do while (ios/=0)
-  write(STDOUT,'(a)',ADVANCE='NO')PS//TRIM(msg)//BLANK
-  call flush_unit(STDOUT)
-  read(STDIN,*,IOSTAT=ios)rvect(:)
-  if (ios==IO_EOT) then
-    call prompt_exit()
-  endif
+   write(STDOUT,'(a)',ADVANCE='NO')PS//TRIM(msg)//BLANK
+   call flush_unit(STDOUT)
+   read(STDIN,*,IOSTAT=ios)rvect(:)
+   if (ios==IO_EOT) then
+     call prompt_exit()
+   endif
 
-  PS=PS2
+   PS=PS2
  end do
  write(STDOUT,*)
 
@@ -736,9 +738,9 @@ end subroutine prompt_rdp1D
 !! CHILDREN
 !!
 !! SOURCE
+
 subroutine prompt_rdp2D(msg,rarr)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -756,14 +758,13 @@ subroutine prompt_rdp2D(msg,rarr)
 
  ios=-1 ; PS=PS1
  do while (ios/=0)
-  write(STDOUT,'(a)',ADVANCE='NO')PS//TRIM(msg)//BLANK
-  call flush_unit(STDOUT)
-  read(STDIN,*,IOSTAT=ios)rarr(:,:)
-  if (ios==IO_EOT) then
-    call prompt_exit()
-  endif
-
-  PS=PS2
+   write(STDOUT,'(a)',ADVANCE='NO')PS//TRIM(msg)//BLANK
+   call flush_unit(STDOUT)
+   read(STDIN,*,IOSTAT=ios)rarr(:,:)
+   if (ios==IO_EOT) then
+     call prompt_exit()
+   endif
+   PS=PS2
  end do
  write(STDOUT,*)
 
@@ -789,9 +790,9 @@ end subroutine prompt_rdp2D
 !! CHILDREN
 !!
 !! SOURCE
+
 subroutine prompt_exit()
 
-!Local variables-------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -807,12 +808,12 @@ subroutine prompt_exit()
  write(STDOUT,*)
  ios=-1 ; iask=0
  do while (ios/=0.or.(ans/='y'.or.ans/='n'))
-  iask=iask+1
-  write(STDOUT,'(a)')' Do you really want to exit (y/n)? '
-  call flush_unit(STDOUT)
-  read(STDIN,*,IOSTAT=ios)ans
-  if (ans=='y'.or.iask>NASK) STOP
-  if (ans=='n') RETURN
+   iask=iask+1
+   write(STDOUT,'(a)')' Do you really want to exit (y/n)? '
+   call flush_unit(STDOUT)
+   read(STDIN,*,IOSTAT=ios)ans
+   if (ans=='y'.or.iask>NASK) STOP
+   if (ans=='n') RETURN
  end do
 
 end subroutine prompt_exit
@@ -840,7 +841,6 @@ end subroutine prompt_exit
 
 subroutine read_line(line,ios,unit,comment)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -860,15 +860,15 @@ subroutine read_line(line,ios,unit,comment)
  unt=STDIN ; if (PRESENT(unit)) unt=unit
 
  do
-  read(unt,'(a)',iostat=ios) line  ! read input line
-  if (ios/=0) RETURN
-  line=ADJUSTL(line)
-  if (PRESENT(comment)) then
-    ipos=INDEX(line,comment)
-    if (ipos==1) CYCLE
-    if (ipos/=0) line=line(:ipos-1)
-  end if
-  if (LEN_TRIM(line)/=0) EXIT
+   read(unt,'(a)',iostat=ios) line  ! read input line
+   if (ios/=0) RETURN
+   line=ADJUSTL(line)
+   if (PRESENT(comment)) then
+     ipos=INDEX(line,comment)
+     if (ipos==1) CYCLE
+     if (ipos/=0) line=line(:ipos-1)
+   end if
+   if (LEN_TRIM(line)/=0) EXIT
  end do
 
 end subroutine read_line
@@ -892,12 +892,10 @@ end subroutine read_line
 !!  Available only if the compiler implements this intrinsic procedure.
 !!
 !! PARENTS
-!!      abinit,anaddb,bsepostproc,cut3d,defs_scalapack,dfpt_write_cg,exc_diago
-!!      exc_iterative_diago,fftprof,impurity_solve,m_bands_sym,m_bse_io,m_chi0
-!!      m_errors,m_green,m_header,m_hu,m_io_redirect,m_io_tools,m_matlu
-!!      m_pawrhoij,m_shirley,m_wfs,m_xc_vdw,mrgddb,mrggkk,mrgscr,optic
-!!      pawmkaewf,prep_calc_ucrpa,qmc_prep_ctqmc,testkgrid,vdw_kernelgen,vtorho
-!!      wrtout
+!!      abinit,anaddb,bsepostproc,cchi0,cchi0q0,cut3d,dfpt_write_cg,fftprof
+!!      impurity_solve,m_errors,m_green,m_header,m_io_redirect,m_io_tools
+!!      m_matlu,m_pawrhoij,m_shirley,m_xc_vdw,mrgddb,mrggkk,mrgscr,optic
+!!      pawmkaewf,prep_calc_ucrpa,qmc_prep_ctqmc,vdw_kernelgen,vtorho,wrtout
 !!
 !! CHILDREN
 !!
@@ -905,7 +903,6 @@ end subroutine read_line
 
 subroutine flush_unit(unit)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -917,6 +914,7 @@ subroutine flush_unit(unit)
 
 !Local variables-------------------------------
  logical :: isopen
+
 !************************************************************************
 
  if (unit == dev_null) return
@@ -948,13 +946,10 @@ end subroutine flush_unit
 !!
 !! PARENTS
 !!
-!! CHILDREN
-!!
 !! SOURCE
 
 function pick_aname() result(aname)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -977,7 +972,7 @@ function pick_aname() result(aname)
    call RANDOM_NUMBER(xrand(spt:ept))
    xrand(spt:ept) = 64+xrand(spt:ept)*26
    do ii=spt,ept
-    aname(ii:ii) = ACHAR(NINT(xrand(ii)))
+     aname(ii:ii) = ACHAR(NINT(xrand(ii)))
    end do
    ept = MIN(ept+1,fnlen)
  end do
@@ -1005,13 +1000,10 @@ end function pick_aname
 !!
 !! PARENTS
 !!
-!! CHILDREN
-!!
 !! SOURCE
 
-function isncfile(fname)
+pure logical function isncfile(fname)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1024,7 +1016,6 @@ function isncfile(fname)
 !Arguments ------------------------------------
 !scalars
  character(len=*),intent(in) :: fname
- logical :: isncfile
 
 !Local variables-------------------------------
 !scalars
@@ -1036,8 +1027,8 @@ function isncfile(fname)
  ic = INDEX (TRIM(fname), ".", back=.TRUE.)
 
  isncfile=.FALSE.
- if (ic >= 1 .and. ic <= nch_trim-1) then ! there is stuff after .
-  isncfile = (fname(ic+1:nch_trim)=="nc")
+ if (ic >= 1 .and. ic <= nch_trim-1) then ! there is stuff after the .
+   isncfile = (fname(ic+1:nch_trim)=="nc")
  end if
 
 end function isncfile
@@ -1056,20 +1047,17 @@ end function isncfile
 !!  fname = Name of the file.
 !!
 !! NOTES
-!!  if fname has extesion '.nc', IO_MODE_ETSF is used
+!!  if fname has extension '.nc', IO_MODE_ETSF is used
 !!  else:
 !!    IO_MODE_MPI if available
 !!    IO_MODE_FORTRAN if HAVE_MPI_IO is not defined.
 !!
 !! PARENTS
 !!
-!! CHILDREN
-!!
 !! SOURCE
 
-function iomode_from_fname(fname) result(iomode)
+pure function iomode_from_fname(fname) result(iomode)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1109,7 +1097,7 @@ end function iomode_from_fname
 !! This subroutine moves forward or backward in a Fortran binary file by nn records.
 !!
 !! INPUTS
-!! funt= Fortrna file unit number
+!! funt= Fortran file unit number
 !! nrec=number of records
 !!
 !! OUTPUT
@@ -1127,7 +1115,6 @@ end function iomode_from_fname
 
 subroutine mvrecord(funt,nrec,ierr)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1176,7 +1163,7 @@ end subroutine mvrecord
 !!
 !!    * Function statement that returns the value of iostat
 !!    * Emulate iomsg (F2003)
-!!    * Accepts either unit (user-specied unit number, input) or
+!!    * Accepts either unit (user-specified unit number, input) or
 !!      newunit (free unit not associated to any file, output). 
 !!
 !!  See Fortran intrinsic for a more detailed description of the variables
@@ -1187,13 +1174,10 @@ end subroutine mvrecord
 !!
 !! PARENTS
 !!
-!! CHILDREN
-!!
 !! SOURCE
 
 function open_file(file,iomsg,unit,newunit,form,status,action) result(iostat)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1250,8 +1234,8 @@ function open_file(file,iomsg,unit,newunit,form,status,action) result(iostat)
  end if
 
  if (iostat /= 0) then
-   write(msg, "(a,i0,2a)")"Fortran open returned iostat ",iostat," while opening file: "//trim(file)
-   iomsg = trim(msg)//ch10//" IOMSG: "//trim(iomsg)
+   write(msg, "(a,i0,2a)")"Fortran open returned iostat ",iostat," while opening: "//trim(file)
+   iomsg = trim(msg)//ch10//", IOMSG: "//trim(iomsg)
  end if
 
 end function open_file
@@ -1278,13 +1262,10 @@ end function open_file
 !!
 !! PARENTS
 !!
-!! CHILDREN
-!!
 !! SOURCE
 
 function close_unit(unit,iomsg,status) result(iostat)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.

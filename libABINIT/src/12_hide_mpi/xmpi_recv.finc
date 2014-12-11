@@ -42,17 +42,11 @@
 !! NOTES
 !!  status of MPI_RECV is explicitly ignored
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_recv
-!!
 !! SOURCE
 
 subroutine xmpi_recv_intv(xval,source,tag,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -63,9 +57,10 @@ subroutine xmpi_recv_intv(xval,source,tag,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
-  integer,intent(inout) :: xval
-  integer,intent(in) :: source,tag,spaceComm
-  integer,intent(out)   :: ier
+ integer,intent(inout) :: xval
+ integer,intent(in) :: source,tag,spaceComm
+ integer,intent(out)   :: ier
+
 !Local variables-------------------
 #if defined HAVE_MPI
   integer :: my_tag
@@ -106,17 +101,26 @@ subroutine xmpi_recv_intv(xval,source,tag,spaceComm,ier)
 !! NOTES
 !!  status of MPI_RECV is explicitly ignored
 !!
-!! PARENTS
 !!
-!! CHILDREN
-!!      mpi_recv
+!! INPUTS
+!!  source :: rank of source process
+!!  tag :: integer message tag
+!!  spaceComm :: MPI communicator
+!!
+!! OUTPUT
+!!  ier= exit status, a non-zero value meaning there is an error
+!!
+!! SIDE EFFECTS
+!!  xval= buffer array
+!!
+!! NOTES
+!!  status of MPI_RECV is explicitly ignored
 !!
 !! SOURCE
 
 subroutine xmpi_recv_int1d(xval,source,tag,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -127,9 +131,10 @@ subroutine xmpi_recv_int1d(xval,source,tag,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
-  integer,intent(inout) :: xval(:)
-  integer,intent(in) :: source,tag,spaceComm
-  integer,intent(out)   :: ier
+ integer, DEV_CONTARRD intent(inout) :: xval(:)
+ integer,intent(in) :: source,tag,spaceComm
+ integer,intent(out) :: ier
+
 !Local variables-------------------
 #if defined HAVE_MPI
  integer :: my_tag, n1
@@ -148,6 +153,80 @@ subroutine xmpi_recv_int1d(xval,source,tag,spaceComm,ier)
 
  end subroutine xmpi_recv_int1d
 !!***
+
+!!****f* ABINIT/xmpi_recv_int2d
+!! NAME
+!!  xmpi_recv_int2d
+!!
+!! FUNCTION
+!!  Receives data from one proc sent by another.
+!!  Target: integer two-dimensional arrays.
+!!
+!! INPUTS
+!!  source :: rank of source process
+!!  tag :: integer message tag
+!!  spaceComm :: MPI communicator
+!!
+!! OUTPUT
+!!  ier= exit status, a non-zero value meaning there is an error
+!!
+!! SIDE EFFECTS
+!!  xval= buffer array
+!!
+!! NOTES
+!!  status of MPI_RECV is explicitly ignored
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!      mpi_recv
+!!
+!! SOURCE
+subroutine xmpi_recv_int2d(xval,source,tag,spaceComm,ier)
+
+
+ use defs_basis
+#if defined HAVE_MPI2 && ! defined HAVE_MPI_INCLUDED_ONCE
+ use mpi
+#endif
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xmpi_recv_int2d'
+!End of the abilint section
+
+ implicit none
+
+#if defined HAVE_MPI1
+ include 'mpif.h'
+#endif
+
+!Arguments-------------------------
+ integer,intent(inout) :: xval(:,:)
+ integer ,intent(in) :: source,tag,spaceComm
+ integer ,intent(out)   :: ier
+
+!Local variables-------------------
+#if defined HAVE_MPI
+ integer :: n1,n2,my_tag
+#endif
+
+! *************************************************************************
+
+ ier=0
+#if defined HAVE_MPI
+ if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
+   n1=size(xval,dim=1)
+   n2=size(xval,dim=2)
+   my_tag=MOD(tag,xmpi_tag_ub+1)
+   call MPI_RECV(xval,n1*n2,MPI_INTEGER,source,my_tag,spaceComm,MPI_STATUS_IGNORE,ier)
+ end if
+#endif
+
+end subroutine xmpi_recv_int2d
+!!***
+
 
 !!****f* ABINIT/xmpi_recv_dp1d
 !! NAME
@@ -171,15 +250,10 @@ subroutine xmpi_recv_int1d(xval,source,tag,spaceComm,ier)
 !! NOTES
 !!  status of MPI_RECV is explicitly ignored
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_recv
-!!
 !! SOURCE
+
 subroutine xmpi_recv_dp1d(xval,source,tag,spaceComm,ier)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -190,9 +264,9 @@ subroutine xmpi_recv_dp1d(xval,source,tag,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:)
  integer ,intent(in) :: source,tag,spaceComm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -212,8 +286,6 @@ subroutine xmpi_recv_dp1d(xval,source,tag,spaceComm,ier)
 
 end subroutine xmpi_recv_dp1d
 !!***
-
-
 
 !!****f* ABINIT/xmpi_recv_dp2d
 !! NAME
@@ -237,16 +309,11 @@ end subroutine xmpi_recv_dp1d
 !! NOTES
 !!  status of MPI_RECV is explicitly ignored
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_recv
-!!
 !! SOURCE
+
 subroutine xmpi_recv_dp2d(xval,source,tag,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -257,9 +324,9 @@ subroutine xmpi_recv_dp2d(xval,source,tag,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:,:)
  integer ,intent(in) :: source,tag,spaceComm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -303,16 +370,10 @@ end subroutine xmpi_recv_dp2d
 !! NOTES
 !!  status of MPI_RECV is explicitly ignored
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_recv
-!!
 !! SOURCE
+
 subroutine xmpi_recv_dp3d(xval,source,tag,spaceComm,ier)
 
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -323,7 +384,7 @@ subroutine xmpi_recv_dp3d(xval,source,tag,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:,:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:,:,:)
  integer ,intent(in) :: source,tag,spaceComm
  integer ,intent(out)   :: ier
 

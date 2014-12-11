@@ -4,7 +4,7 @@
   
   module m_ab7_mixing
 
-    use m_profiling !this has been moved. No idea how should be treated 
+    use m_profiling
     use defs_basis
 
     implicit none

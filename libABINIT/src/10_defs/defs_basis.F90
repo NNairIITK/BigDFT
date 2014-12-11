@@ -189,17 +189,15 @@ module defs_basis
  real(dp), parameter :: e_Cb=1.602176487d-19 ! minus the electron charge, in Coulomb
  real(dp), parameter :: kb_HaK=8.617343d-5/Ha_eV ! Boltzmann constant in Ha/K
  real(dp), parameter :: amu_emass=1.660538782d-27/9.10938215d-31 ! 1 atomic mass unit, in electronic mass
-!This value is 1Ha/bohr^3 in 1d9 J/m^3
-!real(dp), parameter :: HaBohr3_GPa=29421.033_dp ! 1 Ha/Bohr^3, in GPa
  real(dp), parameter :: HaBohr3_GPa=Ha_eV/Bohr_Ang**3*e_Cb*1.0d+21 ! 1 Ha/Bohr^3, in GPa
  real(dp), parameter :: Avogadro=6.02214179d23 ! per mole
-!This value is 1 Ohm.cm in atomic units
- real(dp), parameter :: Ohmcm=two*pi*Ha_THz*ninth*ten
+ real(dp), parameter :: Ohmcm=two*pi*Ha_THz*ninth*ten ! 1 Ohm.cm in atomic units
 !real(dp), parameter :: eps0=8.854187817d-12 ! permittivity of free space in F/m
  real(dp), parameter :: eps0=one/(four_pi*0.0000001_dp*299792458.0_dp**2)
  real(dp), parameter :: AmuBohr2_Cm2=e_Cb*1.0d20/(Bohr_Ang*Bohr_Ang)
  real(dp), parameter :: InvFineStruct=137.035999679_dp  ! Inverse of fine structure constant
- real(dp), parameter :: Sp_Lt=2.99792458d8/2.1876912633d6 ! speed of light in atomic units
+ real(dp), parameter :: Sp_Lt_SI=2.99792458d8 ! speed of light in SI
+ real(dp), parameter :: Sp_Lt=Sp_lt_SI/2.1876912633d6 ! speed of light in atomic units
  real(dp), parameter :: Time_Sec=2.418884326505D-17 !  Atomic unit of time, in seconds
  real(dp), parameter :: BField_Tesla=4.254383d-6 ! Tesla in a.u.
 !EB suppress *0.5_dp  ! Atomic unit of induction field (in Tesla) * mu_B (in atomic units).
@@ -233,10 +231,10 @@ module defs_basis
 ! Values of optdriver corresponding to the different run-levels.
  integer, parameter, public :: RUNL_GSTATE     = 0
  integer, parameter, public :: RUNL_RESPFN     = 1
- integer, parameter, public :: RUNL_SUSCEP     = 2
  integer, parameter, public :: RUNL_SCREENING  = 3
  integer, parameter, public :: RUNL_SIGMA      = 4
  integer, parameter, public :: RUNL_NONLINEAR  = 5
+ integer, parameter, public :: RUNL_GWLS       = 66
  integer, parameter, public :: RUNL_BSE        = 99 !9
 
 ! Flags defining the method used for performing IO (input variable accesswff)
@@ -248,7 +246,6 @@ module defs_basis
 
 ! FFT libraries (correspond to fftalga = ngfft(7)/100)
  integer,parameter,public :: FFT_SG     = 1
- !integer,parameter,public :: FFT_MACHD  = 2 ! NOT USED ANYMORE
  integer,parameter,public :: FFT_FFTW3  = 3
  integer,parameter,public :: FFT_SG2002 = 4
  integer,parameter,public :: FFT_DFTI   = 5
@@ -279,32 +276,39 @@ module defs_basis
   !integer :: size
   integer, allocatable :: value(:) 
  end type coeffi1_type
-
+!A small datatype for ragged integer 2D-arrays
+ type coeffi2_type
+  integer :: size
+  integer, allocatable :: value(:,:)
+ end type coeffi2_type
 !A small datatype for ragged real 2D-arrays
  type coeff2_type
   real(dp), allocatable :: value(:,:)  
  end type coeff2_type
-
 !A small datatype for ragged complex 2D-arrays
  type coeff2c_type
   complex(dpc), allocatable :: value(:,:) 
  end type coeff2c_type
-
 !A small datatype for ragged real 3D-arrays
  type coeff3_type
   real(dp), allocatable :: value(:,:,:) 
  end type coeff3_type
-
 !A small datatype for ragged real 4D-arrays
  type coeff4_type
   real(dp), allocatable :: value(:,:,:,:)  
  end type coeff4_type
-
-!A small datatype for ragged real 5D-arrays.
+!A small datatype for ragged real 5D-arrays
  type coeff5_type
   real(dp), allocatable :: value(:,:,:,:,:)  
  end type coeff5_type
-
+!A small datatype for ragged real 6D-arrays
+ type coeff6_type
+  real(dp), allocatable :: value(:,:,:,:,:,:)
+ end type coeff6_type
+!A small datatype for ragged real 7D-arrays.
+ type coeff7_type
+  real(dp), allocatable :: value(:,:,:,:,:,:,:)
+ end type coeff7_type
 
 CONTAINS  !==============================================================================
 !!***
@@ -322,7 +326,7 @@ CONTAINS  !=====================================================================
 !!  new_do_write_status=new value for do_write_status
 !!
 !! PARENTS
-!!      iofn1
+!!      iofn1,m_argparse
 !!
 !! CHILDREN
 !!

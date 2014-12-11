@@ -9,7 +9,7 @@
 !!         VNL = Sum_ij [ Dij |pi><pj| ],  with pi, pj= projectors
 !!
 !! COPYRIGHT
-!! Copyright (C) 2013-2014 ABINIT group (MT)
+!! Copyright (C) 2013-2014 ABINIT group (MT, FJ, BA)
 !! This file is distributed under the terms of the
 !! GNU General Public License, see ~abinit/COPYING
 !! or http://www.gnu.org/copyleft/gpl.txt .
@@ -34,7 +34,7 @@
 MODULE m_pawdij
 
  use defs_basis
- use m_profiling
+ use m_profiling_abi
  use m_errors
 
  use m_paral_atom,   only : get_my_atmtab, free_my_atmtab
@@ -55,6 +55,7 @@ MODULE m_pawdij
 
 !public procedures.
  public :: pawdij         ! Dij total
+ public :: pawdijfock     ! Dij Fock exact-exchange
  public :: pawdijhartree  ! Dij Hartree
  public :: pawdijxc       ! Dij eXchange-Correlation (using (l,m) moments)
  public :: pawdijxcm      ! Dij eXchange-Correlation (using (r,theta,phi) grid)
@@ -88,14 +89,7 @@ CONTAINS
 !! Within standard PAW formalism, Dij can be decomposd as follows:
 !!      Dij = Dij_atomic + Dij_Hartree + Dij_XC + Dij^hat
 !! In case of additional approximations, several other terms can appear:
-!!      Dij_LDA+U, Dij_spin-orbit, Dij_exact-exchange, ...
-!!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (MT, FJ)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
+!!      Dij_LDA+U, Dij_spin-orbit, Dij_local-exact-exchange, Dij_Fock...
 !!
 !! INPUTS
 !!  cplex=(RF calculations only) - 1 if RF 1st-order quantities are REAL, 2 if COMPLEX
@@ -127,7 +121,7 @@ CONTAINS
 !!  ======== Optional arguments ==============
 !!  Parallelism over atomic sites:
 !!    mpi_atmtab(:)=indexes of the atoms treated by current proc
-!!    mpi_comm_atom=MPI communicator over atoms
+!!    comm_atom=MPI communicator over atoms
 !!    mpi_comm_grid=MPI communicator over real space grid points
 !!  Application of a potential energy shift on atomic sites:
 !!    natvshift=number of atomic potential energy shifts (per atom) ; default=0
@@ -157,7 +151,7 @@ CONTAINS
 !!  May also compute paw_ij(iatom)%dij0,paw_ij(iatom)%dijhartree,paw_ij(iatom)%dijxc,
 !!                   paw_ij(iatom)%dijxc_hat,paw_ij(iatom)%dijxc_val,
 !!                   paw_ij(iatom)%dijhat,paw_ij(iatom)dijso,
-!!                   paw_ij(iatom)%dijU,paw_ij(iatom)%dijexxc
+!!                   paw_ij(iatom)%dijU,paw_ij(iatom)%dijexxc,paw_ij(iatom)%dijfock
 !!
 !! NOTES
 !!  Response function calculations:
@@ -168,7 +162,7 @@ CONTAINS
 !!      bethe_salpeter,respfn,scfcv,scfcv3,screening,sigma
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,symdij
+!!      free_my_atmtab,get_my_atmtab
 !!
 !! SOURCE
 
@@ -177,7 +171,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 &          pawxcdev,qphon,spnorbscl,ucvol,charge,vtrial,vxc,xred,&
 &          electronpositron_calctype,electronpositron_pawrhoij,electronpositron_lmselect,&
 &          atvshift,fatvshift,natvshift,&
-&          mpi_atmtab,mpi_comm_atom,mpi_comm_grid)
+&          mpi_atmtab,comm_atom,mpi_comm_grid)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -193,7 +187,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
  integer,intent(in) :: cplex,enunit,ipert,my_natom,natom,nfft,nfftot
  integer,intent(in) :: nspden,ntypat,pawprtvol,pawspnorb,pawxcdev
  integer,optional,intent(in) :: electronpositron_calctype
- integer,optional,intent(in) :: mpi_comm_atom,mpi_comm_grid,natvshift
+ integer,optional,intent(in) :: comm_atom,mpi_comm_grid,natvshift
  real(dp),intent(in) :: spnorbscl,ucvol,charge
  real(dp),intent(in),optional ::fatvshift
  type(pawang_type),intent(in) :: pawang
@@ -215,10 +209,11 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 !Local variables ---------------------------------------
 !scalars
  integer :: cplex_dij,iatom,iatom_tot,idij,ipositron,itypat,klmn,klmn1,lm_size,lmn2_size
- integer :: lpawu,mpi_comm_grid_,natvshift_,ndij,nsploop,nsppol,usexcnhat
+ integer :: lpawu,my_comm_atom,my_comm_grid,natvshift_,ndij,nsploop,nsppol,usexcnhat
  logical :: dij_available,dij_need,dij_prereq
  logical :: dij0_available,dij0_need,dij0_prereq
  logical :: dijexxc_available,dijexxc_need,dijexxc_prereq
+ logical :: dijfock_available,dijfock_need,dijfock_prereq
  logical :: dijhartree_available,dijhartree_need,dijhartree_prereq
  logical :: dijhat_available,dijhat_need,dijhat_prereq
  logical :: dijhatfr_available,dijhatfr_need,dijhatfr_prereq
@@ -233,7 +228,8 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 !arrays
  integer,pointer :: my_atmtab(:)
  logical,allocatable :: lmselect(:)
- real(dp),allocatable :: dij0(:),dijhartree(:),dijhat(:,:),dijexxc(:,:),dijpawu(:,:)
+ real(dp),allocatable :: dij0(:),dijhartree(:)
+ real(dp),allocatable :: dijhat(:,:),dijexxc(:,:),dijfock(:,:),dijpawu(:,:)
  real(dp),allocatable :: dijso(:,:),dijxc(:,:),dij_ep(:),dijxchat(:,:),dijxcval(:,:)
  real(dp),pointer :: v_dijhat(:,:),vpawu(:,:,:,:),vpawx(:,:,:)
 
@@ -302,6 +298,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
    do iatom=1,my_natom
      if (paw_ij(iatom)%has_dij==1) paw_ij(iatom)%dij=zero
      if (paw_ij(iatom)%has_dij0==1) paw_ij(iatom)%dij0=zero
+     if (paw_ij(iatom)%has_dijfock==1) paw_ij(iatom)%dijfock=zero
      if (paw_ij(iatom)%has_dijhartree==1) paw_ij(iatom)%dijhartree=zero
      if (paw_ij(iatom)%has_dijxc==1) paw_ij(iatom)%dijxc=zero
      if (paw_ij(iatom)%has_dijhat==1) paw_ij(iatom)%dijhat=zero
@@ -315,12 +312,10 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
  end if
 
 !Set up parallelism over atoms
- paral_atom=(present(mpi_comm_atom).and.(my_natom/=natom))
+ paral_atom=(present(comm_atom).and.(my_natom/=natom))
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
- my_atmtab_allocated = .False.
- if (paral_atom) then
-   call get_my_atmtab(mpi_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom,my_natom_ref=my_natom)
- end if
+ my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
+ call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom,my_natom_ref=my_natom)
 
 !----- Various initializations
  nsppol=1;nsploop=1
@@ -329,7 +324,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
    nsploop=nsppol;if (paw_ij(1)%ndij==4) nsploop=4
  end if
  usexcnhat=maxval(pawtab(1:ntypat)%usexcnhat)
- mpi_comm_grid_=xmpi_self;if (present(mpi_comm_grid)) mpi_comm_grid_=mpi_comm_grid
+ my_comm_grid=xmpi_self;if (present(mpi_comm_grid)) my_comm_grid=mpi_comm_grid
 
 !------ Select potential for Dij^hat computation
  v_dijhat_allocated=.false.
@@ -374,6 +369,9 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
    dij_available=.true.;dij_prereq=.true.
 !  Dij0: not available for RF ; need kij for the positron
    dij0_available=(ipert<=0);dij0_prereq=(ipositron/=1.or.pawtab(itypat)%has_kij==2)
+!  DijFock:not available for RF, positron; only for Fock exact exch. ; Vxc_ex needed
+   dijfock_available=(paw_ij(iatom)%has_dijfock>0.and.ipert<=0.and.ipositron/=1)
+   dijfock_prereq=(paw_ij(iatom)%has_dijfock==2)
 !  DijHartree: no condition ; no prerequesites
    dijhartree_available=.true.;dijhartree_prereq=.true.
 !  DijXC: no condition ; Vxc needed
@@ -403,9 +401,10 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 
 !  === Determine which parts of Dij have to be computed ===
 
-   dij_need=.false.;dij0_need=.false.;dijhartree_need=.false.;dijxc_need=.false.
-   dijhat_need=.false.;dijhatfr_need=.false.;dijso_need=.false.;dijU_need=.false.
-   dijexxc_need=.false.;dijxchat_need=.false.;dijxcval_need=.false.
+   dij_need=.false.;dij0_need=.false.;dijexxc_need=.false.;dijfock_need=.false.
+   dijhartree_need=.false.;dijhat_need=.false.;dijhatfr_need=.false.;
+   dijso_need=.false.;dijU_need=.false.;dijxc_need=.false.;dijxchat_need=.false.
+   dijxcval_need=.false.
 
    if (dij_available) then
      if (paw_ij(iatom)%has_dij==1) then
@@ -429,6 +428,18 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      end if
    else if (paw_ij(iatom)%has_dij0==1) then
      paw_ij(iatom)%dij0=zero
+   end if
+
+   if (dijfock_available) then
+     if (paw_ij(iatom)%has_dijfock==1) then
+       dijfock_need=.true.;paw_ij(iatom)%dijfock(:,:)=zero
+     else if (paw_ij(iatom)%has_dijfock==0.and.need_to_print) then
+       ABI_ALLOCATE(paw_ij(iatom)%dijfock,(cplex_dij*lmn2_size,ndij))
+       dijfock_need=.true.;paw_ij(iatom)%dijfock(:,:)=zero
+       paw_ij(iatom)%has_dijfock=-1
+     end if
+   else if (paw_ij(iatom)%has_dijfock==1) then
+     paw_ij(iatom)%dijfock=zero
    end if
 
    if (dijhartree_available) then
@@ -535,6 +546,10 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
    if (dij0_need.and.(.not.dij0_prereq)) then
      MSG_BUG('Dij0 prerequesites missing!')
    end if
+   if (dijfock_need.and.(.not.dijfock_prereq)) then
+     MSG_BUG('DijFock prerequesites missing!')
+   end if
+
    if (dijhartree_need.and.(.not.dijhartree_prereq)) then
      MSG_BUG('DijHartree prerequesites missing!')
    end if
@@ -594,6 +609,35 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
    end if
 
 !  ------------------------------------------------------------------------
+!  ------------------------------------------------------------------------
+!  ----------- Add Dij_{Fock exact-exchange} to Dij
+!  ------------------------------------------------------------------------
+
+   if ((dijfock_need.or.dij_need).and.dijfock_available) then
+
+!    ===== DijFock already computed
+     if (paw_ij(iatom)%has_dijfock==2) then
+       if (dij_need) paw_ij(iatom)%dij(:,:)=paw_ij(iatom)%dij(:,:)+paw_ij(iatom)%dijfock(:,:)
+     else
+
+!    ===== Need to compute DijFock
+       ABI_ALLOCATE(dijfock,(cplex_dij*lmn2_size,ndij))
+       if (ipositron/=1) then
+! Exact exchange is evaluated for electrons
+         call pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol, &
+&         pawrhoij(iatom),pawtab(itypat))
+       else
+         dijfock(:,:)=zero
+! No exact-exchange for a single positron 
+       end if
+       if (dijfock_need) paw_ij(iatom)%dijfock(:,:)=dijfock(:,:)
+       if (dij_need) paw_ij(iatom)%dij(:,:)=paw_ij(iatom)%dij(:,:)+dijfock(:,:)
+       ABI_DEALLOCATE(dijfock)
+     end if
+ 
+   end if
+
+
 !  ----------- Add Dij_Hartree to Dij
 !  ------------------------------------------------------------------------
 
@@ -681,9 +725,9 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 
 !    ===== Need to compute Dijhat
        ABI_ALLOCATE(dijhat,(cplex_dij*lmn2_size,ndij))
-       call pawdijhat(cplex,cplex_dij,dijhat,gprimd,iatom_tot,ipert,mpi_comm_grid_,&
+       call pawdijhat(cplex,cplex_dij,dijhat,gprimd,iatom_tot,ipert,&
 &                     natom,ndij,nfft,nfftot,nspden,nsppol,pawang,pawfgrtab(iatom),&
-&                     pawtab(itypat),v_dijhat,qphon,ucvol,xred)
+&                     pawtab(itypat),v_dijhat,qphon,ucvol,xred,mpi_comm_grid=my_comm_grid)
        if (dijhat_need) paw_ij(iatom)%dijhat(:,:)=dijhat(:,:)
        if (dij_need) paw_ij(iatom)%dij(:,:)=paw_ij(iatom)%dij(:,:)+dijhat(:,:)
        ABI_DEALLOCATE(dijhat)
@@ -819,9 +863,9 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 
      if (usexcnhat/=0) then
        ABI_ALLOCATE(dijxchat,(cplex_dij*lmn2_size,ndij))
-       call pawdijhat(cplex,cplex_dij,dijxchat,gprimd,iatom_tot,ipert,mpi_comm_grid_,&
+       call pawdijhat(cplex,cplex_dij,dijxchat,gprimd,iatom_tot,ipert,&
 &                     natom,ndij,nfft,nfftot,nspden,nsppol,pawang,pawfgrtab(iatom),&
-&                     pawtab(itypat),vxc,qphon,ucvol,xred)
+&                     pawtab(itypat),vxc,qphon,ucvol,xred,mpi_comm_grid=my_comm_grid)
        paw_ij(iatom)%dijxc_hat(:,:)=dijxchat(:,:)
        ABI_DEALLOCATE(dijxchat)
 
@@ -862,6 +906,8 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 !  Update some flags
    if (dij_need.and.paw_ij(iatom)%has_dij>=1) paw_ij(iatom)%has_dij=2
    if (dij0_need.and.paw_ij(iatom)%has_dij0>=1) paw_ij(iatom)%has_dij0=2
+   if (dijfock_need.and.paw_ij(iatom)%has_dijfock>=1) paw_ij(iatom)%has_dijfock=2
+
    if (dijhartree_need.and.paw_ij(iatom)%has_dijhartree>=1) paw_ij(iatom)%has_dijhartree=2
    if (dijxc_need.and.paw_ij(iatom)%has_dijxc>=1) paw_ij(iatom)%has_dijxc=2
    if (dijhat_need.and.paw_ij(iatom)%has_dijhat>=1) paw_ij(iatom)%has_dijhat=2
@@ -879,7 +925,7 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
 !Final printing
  if (paral_atom) then
    call paw_ij_print(paw_ij,unit=std_out,pawprtvol=pawprtvol,pawspnorb=pawspnorb,&
-&   mpi_comm_atom=mpi_comm_atom,mpi_atmtab=my_atmtab,natom=natom,&
+&   comm_atom=my_comm_atom,mpi_atmtab=my_atmtab,natom=natom,&
 &   mode_paral='PERS',enunit=enunit,ipert=ipert)
  else
    call paw_ij_print(paw_ij,unit=std_out,pawprtvol=pawprtvol,pawspnorb=pawspnorb,&
@@ -895,6 +941,11 @@ subroutine pawdij(cplex,enunit,gprimd,ipert,my_natom,natom,nfft,nfftot,nspden,nt
      ABI_DEALLOCATE(paw_ij(iatom)%dij0)
      paw_ij(iatom)%has_dij0=0
    end if
+   if (paw_ij(iatom)%has_dijfock==-1) then
+     ABI_DEALLOCATE(paw_ij(iatom)%dijfock)
+     paw_ij(iatom)%has_dijfock=0
+   end if
+
    if (paw_ij(iatom)%has_dijhartree==-1) then
      ABI_DEALLOCATE(paw_ij(iatom)%dijhartree)
      paw_ij(iatom)%has_dijhartree=0
@@ -953,13 +1004,6 @@ end subroutine pawdij
 !! Compute the Hartree contribution to the PAW pseudopotential strength Dij
 !! (for one atom only)
 !!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!!
 !! INPUTS
 !!  cplex=(RF calculations only) - 1 if RF 1st-order quantities are REAL, 2 if COMPLEX
 !!  nspden=number of spin density components
@@ -973,7 +1017,7 @@ end subroutine pawdij
 !!      m_pawdij,pawdenpot,pawenergy3
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,symdij
+!!      free_my_atmtab,get_my_atmtab
 !!
 !! SOURCE
 
@@ -1092,13 +1136,6 @@ end subroutine pawdijhartree
 !!           -<tPhi_i|Vxc(tn1+tnc[+nhat])|tPhi_j>
 !!           -Intg_omega [ Vxc(tn1+tnc[+nhat])(r). Sum_L(Qij^L(r)). dr]
 !!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!!
 !! INPUTS
 !!  cplex=(RF calculations only) - 1 if RF 1st-order quantities are REAL, 2 if COMPLEX
 !!  cplex_dij=1 if dij is REAL, 2 if complex (2 for spin-orbit)
@@ -1124,7 +1161,7 @@ end subroutine pawdijhartree
 !!      m_pawdij
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,symdij
+!!      free_my_atmtab,get_my_atmtab
 !!
 !! SOURCE
 
@@ -1403,6 +1440,278 @@ end subroutine pawdijxc
 !----------------------------------------------------------------------
 
 
+!!****f* m_pawdij/pawdijfock
+!! NAME
+!! pawdijfock
+!!
+!! FUNCTION
+!! Compute Fock exact-exchange contribution to the PAW pseudopotential strength Dij
+!! (for one atom only)
+!!
+!! COPYRIGHT
+!! Copyright (C) 1998-2014 ABINIT group (MT)
+!! This file is distributed under the terms of the
+!! GNU General Public License, see ~abinit/COPYING
+!! or http://www.gnu.org/copyleft/gpl.txt .
+!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
+!!
+!! INPUTS
+!!  cplex=(RF calculations only) - 1 if RF 1st-order quantities are REAL, 2 if COMPLEX
+!!  cplex_dij=1 if dij is REAL, 2 if complex (2 for spin-orbit)
+!!  ndij= number of spin components for Dij^hat
+!!
+!!  nspden=number of spin density components
+!!  pawrhoij <type(pawrhoij_type)>= paw rhoij occupancies (and related data) for current atom
+!!  pawtab <type(pawtab_type)>=paw tabulated starting data, for current atom
+!!  cplex=(RF calculations only) - 1 if RF 1st-order quantities are REAL, 2 if COMPLEX
+!!
+!!  lmselect(lm_size)=select the non-zero LM-moments of on-site potentials
+!!  nspden=number of spin density components
+!!  nsppol=number of independent spin WF components
+!!  pawang <type(pawang_type)>=paw angular mesh and related data
+!!  pawrad <type(pawrad_type)>=paw radial mesh and related data, for current atom
+!!  pawtab <type(pawtab_type)>=paw tabulated starting data, for current atom
+!!
+!! OUTPUT
+!!  dijfock(cplex_dij*lmn2_size,ndij)=  D_ij^fock terms
+!!
+!! PARENTS
+!!      m_pawdij,pawdenpot
+!!
+!! CHILDREN
+!!      free_my_atmtab,get_my_atmtab,symdij
+!!
+!! SOURCE
+
+subroutine pawdijfock(cplex,cplex_dij,dijfock,ndij,nspden,nsppol,pawrhoij,pawtab)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'pawdijfock'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ---------------------------------------------
+!scalars
+ integer,intent(in) :: cplex,cplex_dij,ndij,nspden,nsppol
+!arrays
+ real(dp),intent(out) :: dijfock(:,:)
+ type(pawrhoij_type),intent(in) :: pawrhoij
+ type(pawtab_type),intent(in) :: pawtab
+
+!Local variables ---------------------------------------
+!scalars
+ integer :: idij,idijend,ispden,irhoij,jrhoij,ilmn_i,jlmn_j,ilmn_k,jlmn_l
+ integer :: klmn_kl,klmn_ij,klmn_il,klmn_kj,klmn,klmn1,nsploop,lmn2_size
+ 
+ character(len=500) :: msg
+!arrays
+ real(dp) :: ro(cplex)
+ real(dp),allocatable :: dijfock_idij(:)
+  
+! *************************************************************************
+
+ DBG_ENTER("COLL")
+
+!Useful data
+ lmn2_size=pawtab%lmn2_size
+
+!Check data consistency
+ if (size(dijfock,1)/=cplex_dij*lmn2_size.or.size(dijfock,2)/=ndij) then
+   msg='invalid sizes for Dijfock !'
+   MSG_BUG(msg)
+ end if
+ if (cplex_dij<cplex) then
+   msg='cplex_dij must be >= cplex !'
+   MSG_BUG(msg)
+ end if
+
+!Init memory
+ dijfock=zero
+ ABI_ALLOCATE(dijfock_idij,(cplex*lmn2_size))
+
+!----------------------------------------------------------
+!Loop over spin components
+!----------------------------------------------------------
+ nsploop=nsppol;if (ndij==4) nsploop=4
+ do idij=1,nsploop
+   if (idij<=nsppol.or.(nspden==4.and.idij<=3).or.cplex==2) then
+
+     idijend=idij+idij/3;if (cplex==2) idijend=idij
+     do ispden=idij,idijend
+!!!! WARNING : What follows has been tested only for cases where nsppol=1 and 2, nspden=1 and 2 with nspinor=1. 
+       dijfock_idij=zero
+
+!Real on-site quantities (ground-state calculation)
+       if (cplex==1) then
+!* Loop on the non-zero elements rho_kl
+         do irhoij=1,pawrhoij%nrhoijsel
+           klmn_kl=pawrhoij%rhoijselect(irhoij)
+           ro(1)=pawrhoij%rhoijp(irhoij,ispden)*pawtab%dltij(klmn_kl)
+           ilmn_k=pawtab%indklmn(7,klmn_kl)
+           jlmn_l=pawtab%indklmn(8,klmn_kl)
+!* Fock contribution to the element (k,l) of dijfock 
+           dijfock_idij(klmn_kl)=dijfock_idij(klmn_kl)+ro(1)*pawtab%eijkl(klmn_kl,klmn_kl)
+!* Fock contribution to the element (i,j) of dijfock with (i,j) < (k,l)
+!* We remind that i<j and k<l by construction
+           do klmn_ij=1,klmn_kl-1
+             ilmn_i=pawtab%indklmn(7,klmn_ij)
+             jlmn_j=pawtab%indklmn(8,klmn_ij)
+!* In this case, i < l
+             klmn_il=jlmn_l*(jlmn_l-1)/2+ilmn_i
+!* If k >j, one must consider the index of the symmetric element (j,k) ; otherwise, the index of the element (k,j) is calculated. 
+             if (ilmn_k>jlmn_j) then
+               klmn_kj=ilmn_k*(ilmn_k-1)/2+jlmn_j
+             else
+               klmn_kj=jlmn_j*(jlmn_j-1)/2+ilmn_k
+             end if
+!* In this case, (i,l) >= (k,j)
+             dijfock_idij(klmn_ij)=dijfock_idij(klmn_ij)+ro(1)*pawtab%eijkl(klmn_il,klmn_kj)
+           end do
+!* Fock contribution to the element (i,j) of dijfock with (i,j) > (k,l)
+!* We remind that i<j and k<l by construction           
+           do klmn_ij=klmn_kl+1,lmn2_size
+             ilmn_i=pawtab%indklmn(7,klmn_ij)
+             jlmn_j=pawtab%indklmn(8,klmn_ij)
+!* In this case, k < j
+             klmn_kj=jlmn_j*(jlmn_j-1)/2+ilmn_k
+!* If i >l, one must consider the index of the symmetric element (l,i) ; otherwise, the index of the element (i,l) is calculated. 
+             if (ilmn_i>jlmn_l) then
+               klmn_il=ilmn_i*(ilmn_i-1)/2+jlmn_l
+             else
+               klmn_il=jlmn_l*(jlmn_l-1)/2+ilmn_i
+             end if
+!* In this case, (k,j) >= (i,l)
+             dijfock_idij(klmn_ij)=dijfock_idij(klmn_ij)+ro(1)*pawtab%eijkl(klmn_kj,klmn_il)
+           end do
+         end do
+! Add the core-valence contribution
+         do klmn_ij=1,lmn2_size
+           dijfock_idij(klmn_ij)=dijfock_idij(klmn_ij)+two*pawtab%ex_cvij(klmn_ij)/nsppol
+         end do  
+
+!Complex on-site quantities (response function calculation)
+       else !cplex=2
+         jrhoij=1
+!* Loop on the non-zero elements rho_kl         
+         do irhoij=1,pawrhoij%nrhoijsel
+           klmn_kl=pawrhoij%rhoijselect(irhoij)
+           ro(1)=pawrhoij%rhoijp(jrhoij,ispden)*pawtab%dltij(klmn_kl)
+           ro(2)=pawrhoij%rhoijp(jrhoij+1,ispden)*pawtab%dltij(klmn_kl)
+           ilmn_k=pawtab%indklmn(7,klmn_kl)
+           jlmn_l=pawtab%indklmn(8,klmn_kl)
+!* Fock contribution to the element (k,l) of dijfock            
+           dijfock_idij(klmn_kl)=dijfock_idij(klmn_kl)+ro(1)*pawtab%eijkl(klmn_kl,klmn_kl)
+           dijfock_idij(klmn_kl+1)=dijfock_idij(klmn_kl)+ro(2)*pawtab%eijkl(klmn_kl,klmn_kl)
+!* Fock contribution to the element (i,j) of dijfock with (i,j) < (k,l)
+!* We remind that i<j and k<l by construction
+           do klmn_ij=1,klmn_kl-1
+             ilmn_i=pawtab%indklmn(7,klmn_ij)
+             jlmn_j=pawtab%indklmn(8,klmn_ij)
+!* In this case, i < l
+             klmn_il=jlmn_l*(jlmn_l-1)/2+ilmn_i
+!* If k >j, one must consider the index of the symmetric element (j,k) ; otherwise, the index of the element (k,j) is calculated. 
+             if (ilmn_k>jlmn_j) then
+               klmn_kj=ilmn_k*(ilmn_k-1)/2+jlmn_j
+             else
+               klmn_kj=jlmn_j*(jlmn_j-1)/2+ilmn_k
+             end if
+!* In this case, (i,l) >= (k,j)
+             dijfock_idij(klmn_ij)=dijfock_idij(klmn_ij)+ro(1)*pawtab%eijkl(klmn_il,klmn_kj)
+             dijfock_idij(klmn_ij+1)=dijfock_idij(klmn_ij)+ro(2)*pawtab%eijkl(klmn_il,klmn_kj)
+           end do
+!* Fock contribution to the element (i,j) of dijfock with (i,j) > (k,l)
+!* We remind that i<j and k<l by construction           
+           do klmn_ij=klmn_kl+1,lmn2_size
+             ilmn_i=pawtab%indklmn(7,klmn_ij)
+             jlmn_j=pawtab%indklmn(8,klmn_ij)
+!* In this case, k < j
+             klmn_kj=jlmn_j*(jlmn_j-1)/2+ilmn_k
+!* If i >l, one must consider the index of the symmetric element (l,i) ; otherwise, the index of the element (i,l) is calculated. 
+             if (ilmn_i>jlmn_l) then
+               klmn_kj=ilmn_i*(ilmn_i-1)/2+jlmn_l
+             else
+               klmn_kj=jlmn_l*(jlmn_l-1)/2+ilmn_i
+             end if
+!* In this case, (k,j) >= (i,l)
+             dijfock_idij(klmn_ij)=dijfock_idij(klmn_ij)+ro(1)*pawtab%eijkl(klmn_kj,klmn_il)
+             dijfock_idij(klmn_ij+1)=dijfock_idij(klmn_ij)+ro(2)*pawtab%eijkl(klmn_kj,klmn_il)
+           end do
+
+           jrhoij=jrhoij+cplex
+         end do 
+! Add the core-valence contribution
+         do klmn_ij=1,lmn2_size,2
+           dijfock_idij(klmn_ij)=dijfock_idij(klmn_ij)+two*pawtab%ex_cvij(klmn_ij)/nsppol
+         end do  
+         
+       end if
+
+!      ----------------------------------------------------------
+!      Deduce some part of Dij according to symmetries
+!      ----------------------------------------------------------
+
+       if (cplex==1) then
+         if (ispden<3) then
+           if (cplex_dij==1) then
+             dijfock(1:lmn2_size,idij)=dijfock_idij(1:lmn2_size)
+           else
+             klmn1=1
+             do klmn=1,lmn2_size
+               dijfock(klmn1  ,idij)=dijfock_idij(klmn)
+               dijfock(klmn1+1,idij)=zero
+               klmn1=klmn1+cplex_dij
+             end do
+           end if
+         else
+           klmn1=max(1,ispden-2)
+           do klmn=1,lmn2_size
+             dijfock(klmn1,idij)=dijfock_idij(klmn)
+             klmn1=klmn1+cplex_dij
+           end do
+         end if
+       else !cplex=2
+         if (ispden<=3) then
+           dijfock(1:cplex*lmn2_size,idij)=dijfock_idij(1:cplex*lmn2_size)
+         else     
+           klmn1=1  ! Remember V(4) contains i.V^21
+           do klmn=1,lmn2_size
+             dijfock(klmn1  ,idij)= dijfock_idij(klmn+1)
+             dijfock(klmn1+1,idij)=-dijfock_idij(klmn  )
+             klmn1=klmn1+cplex_dij
+           end do
+         end if
+       end if
+
+     end do !ispden
+
+   else if (nspden==4.and.idij==4) then ! cplex=1 here
+     dijfock(:,idij)=dijfock(:,idij-1)
+     klmn1=2
+     do klmn=1,lmn2_size
+       dijfock(klmn1,idij)=-dijfock(klmn1,idij)
+       klmn1=klmn1+cplex_dij
+     end do
+   else if (nsppol==1.and.idij==2) then ! cplex=1 here
+     dijfock(:,idij)=dijfock(:,idij-1)
+   end if
+
+!----------------------------------------------------------
+!End loop on spin density components
+ end do
+
+!Free temporary memory spaces
+ ABI_DEALLOCATE(dijfock_idij)
+
+ DBG_EXIT("COLL")
+
+end subroutine pawdijfock
+!!***
+
+!**************************************************************************************
 !!****f* m_pawdij/pawdijxcm
 !! NAME
 !! pawdijxcm
@@ -1414,13 +1723,6 @@ end subroutine pawdijxc
 !!   D_ij^XC= < Phi_i|Vxc( n1+ nc[+nhat])| Phi_j>
 !!           -<tPhi_i|Vxc(tn1+tnc[+nhat])|tPhi_j>
 !!           -Intg_omega [ Vxc(tn1+tnc[+nhat])(r). Sum_L(Qij^L(r)). dr]
-!!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
 !!
 !! INPUTS
 !!  cplex=(RF calculations only) - 1 if RF 1st-order quantities are REAL, 2 if COMPLEX
@@ -1448,7 +1750,7 @@ end subroutine pawdijxc
 !!      m_pawdij
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,symdij
+!!      free_my_atmtab,get_my_atmtab
 !!
 !! SOURCE
 
@@ -1699,13 +2001,6 @@ end subroutine pawdijxcm
 !! i.e. the compensation charge contribution (for one atom only):
 !!   D_ij^hat=Intg_R [ V(r). Sum_L(Qij^L(r)). dr]
 !!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!!
 !! INPUTS
 !!  cplex=(RF calculations only) - 1 if RF 1st-order quantities are REAL, 2 if COMPLEX
 !!  cplex_dij=1 if dij is REAL, 2 if complex (2 for spin-orbit)
@@ -1737,13 +2032,14 @@ end subroutine pawdijxcm
 !!      m_pawdij
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,symdij
+!!      free_my_atmtab,get_my_atmtab
 !!
 !! SOURCE
 
-subroutine pawdijhat(cplex,cplex_dij,dijhat,gprimd,iatom,ipert,mpi_comm_grid,&
+subroutine pawdijhat(cplex,cplex_dij,dijhat,gprimd,iatom,ipert,&
 &                    natom,ndij,ngrid,ngridtot,nspden,nsppol,pawang,pawfgrtab,&
-&                    pawtab,Pot,qphon,ucvol,xred)
+&                    pawtab,Pot,qphon,ucvol,xred,&
+&                    mpi_comm_grid) ! Optional argument
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -1756,8 +2052,9 @@ subroutine pawdijhat(cplex,cplex_dij,dijhat,gprimd,iatom,ipert,mpi_comm_grid,&
 
 !Arguments ---------------------------------------------
 !scalars
- integer,intent(in) :: cplex,cplex_dij,iatom,ipert,mpi_comm_grid,natom,ndij
+ integer,intent(in) :: cplex,cplex_dij,iatom,ipert,natom,ndij
  integer,intent(in) :: ngrid,ngridtot,nspden,nsppol
+ integer,intent(in),optional :: mpi_comm_grid
  real(dp),intent(in) :: ucvol
  type(pawang_type),intent(in) :: pawang
  type(pawfgrtab_type),intent(inout) :: pawfgrtab
@@ -1769,7 +2066,7 @@ subroutine pawdijhat(cplex,cplex_dij,dijhat,gprimd,iatom,ipert,mpi_comm_grid,&
 !Local variables ---------------------------------------
 !scalars
  integer :: ic,idij,idijend,ier,ils,ilslm,ilslm1,isel,ispden,jc,klm,klmn,klmn1
- integer :: lm0,lm_size,lmax,lmin,lmn2_size,mm,nfgd,nsploop,optgr0,optgr1
+ integer :: lm0,lm_size,lmax,lmin,lmn2_size,mm,my_comm_grid,nfgd,nsploop,optgr0,optgr1
  logical :: has_phase,qne0
  real(dp) :: vi,vr
  character(len=500) :: msg
@@ -1787,6 +2084,8 @@ subroutine pawdijhat(cplex,cplex_dij,dijhat,gprimd,iatom,ipert,mpi_comm_grid,&
  nfgd=pawfgrtab%nfgd
  has_phase=.false.
  qne0=(qphon(1)**2+qphon(2)**2+qphon(3)**2>=1.d-15)
+ my_comm_grid=xmpi_self;if (present(mpi_comm_grid)) my_comm_grid=mpi_comm_grid
+
 
 !Check data consistency
  if (size(dijhat,1)/=cplex_dij*lmn2_size.or.size(dijhat,2)/=ndij) then
@@ -1912,8 +2211,8 @@ subroutine pawdijhat(cplex,cplex_dij,dijhat,gprimd,iatom,ipert,mpi_comm_grid,&
        prod=prod*ucvol/dble(ngridtot)
 
 !      Reduction in case of parallelism
-       if (xcomm_size(mpi_comm_grid)>1) then
-         call xmpi_sum(prod,mpi_comm_grid,ier)
+       if (xcomm_size(my_comm_grid)>1) then
+         call xmpi_sum(prod,my_comm_grid,ier)
        end if
 
 !      ----------------------------------------------------------
@@ -2047,13 +2346,6 @@ end subroutine pawdijhat
 !!     \sum_{m,m'} [vpawu^{\sigma}_{m,m'}*phiphjint_{ni,nj}^{m,m'}]=
 !!     [vpawu^{\sigma}_{mi,mj}*phiphjint_{ni,nj}]
 !!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (MT,FJ,BA)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!!
 !! INPUTS
 !!  cplex_dij=1 if dij is REAL, 2 if complex (2 for spin-orbit)
 !!  ndij= number of spin components for Dij^hat
@@ -2073,7 +2365,7 @@ end subroutine pawdijhat
 !!      m_pawdij
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,symdij
+!!      free_my_atmtab,get_my_atmtab
 !!
 !! SOURCE
 
@@ -2239,13 +2531,6 @@ end subroutine pawdiju
 !! pseudopotential strength Dij
 !! (for one atom only)
 !!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!!
 !! INPUTS
 !!  cplex_dij=1 if dij is REAL, 2 if complex (2 for spin-orbit)
 !!  ndij= number of spin components for Dij^SO
@@ -2274,7 +2559,7 @@ end subroutine pawdiju
 !!      m_pawdij,pawdenpot
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,symdij
+!!      free_my_atmtab,get_my_atmtab
 !!
 !! SOURCE
 
@@ -2461,13 +2746,6 @@ end subroutine pawdijso
 !! (for one atom only; only for correlated electrons):
 !!   D_ij^EXXC= < Phi_i|alpha*(VFock(correlated)-Vxc(n1_correlated)|Phi_j>
 !!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (MT,FJ,BA)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!!
 !! INPUTS
 !!  cplex=(RF calculations only) - 1 if RF 1st-order quantities are REAL, 2 if COMPLEX
 !!  cplex_dij=1 if dij is REAL, 2 if complex (2 for spin-orbit)
@@ -2493,7 +2771,7 @@ end subroutine pawdijso
 !!      m_pawdij
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,symdij
+!!      free_my_atmtab,get_my_atmtab
 !!
 !! SOURCE
 
@@ -2777,20 +3055,13 @@ end subroutine pawdijexxc
 !!      Dijfr    =Int_R^3{vtrial*Sum_LM[Q_ij_q^LM^(1)] + Vloc^(1)*Sum_LM[Q_ij_q^LM]}
 !!      Depends on q wave vector but not on first-order wave-function.
 !!
-!! COPYRIGHT
-!! Copyright (C) 2012-2014 ABINIT group (MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.
-!!
 !! INPUTS
 !!  cplex: if 1, real space 1-order functions on FFT grid are REAL; if 2, COMPLEX
 !!  gprimd(3,3)=dimensional primitive translations for reciprocal space
 !!  idir=direction of atomic displacement (in case of phonons perturb.)
 !!  ipert=nindex of perturbation
 !!  mpi_atmtab(:)=--optional-- indexes of the atoms treated by current proc
-!!  mpi_comm_atom=--optional-- MPI communicator over atoms
+!!  comm_atom=--optional-- MPI communicator over atoms
 !!  mpi_comm_grid=--optional-- MPI communicator over real space grid components
 !!  my_natom=number of atoms treated by current processor
 !!  natom=total number of atoms in cell
@@ -2817,16 +3088,16 @@ end subroutine pawdijexxc
 !!                  =Int_R^3{vtrial*Sum_LM[Q_ij_q^LM^(1)] + Vloc^(1)*Sum_LM[Q_ij_q^LM]}
 !!
 !! PARENTS
-!!      d2frnl,nstpaw3,rhofermi3,scfcv3
+!!      d2frnl,d2frnl_bec,nstpaw3,rhofermi3,scfcv3
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,symdij
+!!      free_my_atmtab,get_my_atmtab
 !!
 !! SOURCE
 
 subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,ntypat,&
 &          option,paw_ij1,pawang,pawfgrtab,pawrad,pawtab,qphon,rprimd,ucvol,vpsp1,vtrial,vxc,xred,&
-&          mpi_atmtab,mpi_comm_atom,mpi_comm_grid) ! optional arguments (parallelism)
+&          mpi_atmtab,comm_atom,mpi_comm_grid) ! optional arguments (parallelism)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -2840,7 +3111,7 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
 !Arguments ------------------------------------
 !scalars
  integer,intent(in) :: cplex,idir,ipert,my_natom,natom,nfft,nspden,ntypat,option
- integer,optional,intent(in) :: mpi_comm_atom,mpi_comm_grid
+ integer,optional,intent(in) :: comm_atom,mpi_comm_grid
  real(dp),intent(in) :: ucvol
  type(pawang_type),intent(in) :: pawang
 !arrays
@@ -2858,7 +3129,7 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
 !scalars
  integer :: dplex,iatom,iatom_tot,ic,ier,ils,ilslm,isel,ispden,istr,itypat,jc
  integer :: klm,klmn,klmn1,kln,lm_size,lmn2_size,lm0,lmax,lmin,mesh_size
- integer :: mm,mu,mua,mub,nfftot,nfgd,optgr0,optgr1,optgr2,usexcnhat
+ integer :: mm,my_comm_atom,my_comm_grid,mu,mua,mub,nfftot,nfgd,optgr0,optgr1,optgr2,usexcnhat
  logical :: has_phase,my_atmtab_allocated,need_dijfr_1,need_dijfr_2,need_dijfr_3,need_dijfr_4
  logical :: paral_atom,qne0,testdij1,testdij2,testdij3
  real(dp) :: c1,fact,intg,rg1
@@ -2877,12 +3148,11 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
  if (ipert==natom+1) return
 
 !Set up parallelism over atoms
- paral_atom=(present(mpi_comm_atom).and.(my_natom/=natom))
+ paral_atom=(present(comm_atom).and.(my_natom/=natom))
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
- my_atmtab_allocated = .False.
- if (paral_atom) then
-   call get_my_atmtab(mpi_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom,my_natom_ref=my_natom)
- end if
+ my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
+ my_comm_grid=xmpi_self;if (present(mpi_comm_grid)) my_comm_grid=mpi_comm_grid
+ call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom,my_natom_ref=my_natom)
 
 !Compatibility tests
  qne0=(qphon(1)**2+qphon(2)**2+qphon(3)**2>=1.d-15)
@@ -3125,9 +3395,7 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
          intv(:,:)=fact*intv(:,:)
 
 !        --- Reduction in case of parallelization ---
-         if (present(mpi_comm_grid)) then
-           call xmpi_sum(intv,mpi_comm_grid,ier)
-         end if
+         call xmpi_sum(intv,my_comm_grid,ier)
 
          paw_ij1(iatom)%dijfr(:,ispden)=zero
 
@@ -3156,7 +3424,7 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
          paw_ij1(iatom)%has_dijfr=2
        end if
 
-!      ============ Electric field perturbation =======================
+!    ============ Electric field perturbation =======================
      else if (ipert==natom+2) then
 
        if (need_dijfr_3) then
@@ -3187,10 +3455,10 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
 
 !              Computation of <phi_i|r|phi_j>- <tphi_i|r|tphi_j>
 !              the dipole vector has radial dependence r
-               ff(2:mesh_size)=(pawtab(itypat)%phiphj(2:mesh_size,kln)&
-&               -pawtab(itypat)%tphitphj(2:mesh_size,kln))&
-&               *pawrad(itypat)%rad(2:mesh_size)
-               call pawrad_deducer0(ff,mesh_size,pawrad(itypat))
+               ff(1:mesh_size)=(pawtab(itypat)%phiphj(1:mesh_size,kln)&
+&               -pawtab(itypat)%tphitphj(1:mesh_size,kln))&
+&               *pawrad(itypat)%rad(1:mesh_size)
+!               call pawrad_deducer0(ff,mesh_size,pawrad(itypat))
                call simp_gen(intg,ff,pawrad(itypat))
 
 !              Compute <S_li_mi|r-R|S_lj_mj>: use a real Gaunt expression (with selection rule)
@@ -3227,20 +3495,52 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
          paw_ij1(iatom)%has_dijfr=2
        end if
 
-
 !    ============ Elastic tensor ===============================
      else if (ipert==natom+3.or.ipert==natom+4) then
-       ABI_ALLOCATE(vloc,(1,nfgd))
-       if (usexcnhat==0) then
-         do ic=1,nfgd
-           jc=pawfgrtab(iatom)%ifftsph(ic)
-           vloc(1,ic)=vtrial(jc,1)-vxc(jc,1)
-         end do
-       else
-         do ic=1,nfgd
-           vloc(1,ic)=vtrial(pawfgrtab(iatom)%ifftsph(ic),1)
-         end do
+!     ----- Retrieve potential Vlocal (subtle if nspden=4 ;-)
+       if (nspden/=4) then
+         ABI_ALLOCATE(vloc,(1,nfgd))
+         if (usexcnhat==0) then
+           do ic=1,nfgd
+             jc=pawfgrtab(iatom)%ifftsph(ic)
+             vloc(1,ic)=vtrial(jc,ispden)-vxc(jc,ispden)
+           end do
+         else
+           do ic=1,nfgd
+             vloc(1,ic)=vtrial(pawfgrtab(iatom)%ifftsph(ic),ispden)
+           end do
+         end if
+       else ! nspden/=4
+         ABI_ALLOCATE(vloc,(2,nfgd))
+         if (ispden<=2) then
+           if (usexcnhat==0) then
+             do ic=1,nfgd
+               jc=pawfgrtab(iatom)%ifftsph(ic)
+               vloc(1,ic)=vtrial(jc,ispden)-vxc(jc,ispden)
+               vloc(2,ic)=zero
+             end do
+           else
+             do ic=1,nfgd
+               jc=pawfgrtab(iatom)%ifftsph(ic)
+               vloc(1,ic)=vtrial(jc,ispden)
+               vloc(2,ic)=zero
+             end do
+           end if
+         else if (ispden==3) then
+           if (usexcnhat==0) then
+             vloc(:,:)=zero
+           else
+             do ic=1,nfgd
+               jc=pawfgrtab(iatom)%ifftsph(ic)
+               vloc(1,ic)=vtrial(jc,3)
+               vloc(2,ic)=vtrial(jc,4)
+             end do
+           end if
+         else ! ispden=4
+           vloc(2,1:nfgd)=-vloc(2,1:nfgd)
+         end if
        end if
+
        ABI_ALLOCATE(intv,(cplex,lm_size))
        intv(:,:)=zero
 !      option = 0 Insulator case
@@ -3293,10 +3593,8 @@ subroutine pawdijfr(cplex,gprimd,idir,ipert,my_natom,natom,nfft,ngfft,nspden,nty
        intv(:,:)=fact*intv(:,:)
 
 !      --- Reduction in case of parallelization ---
-       if (present(mpi_comm_grid)) then
-         call xmpi_sum(intv,mpi_comm_grid,ier)
-       end if
-       
+       call xmpi_sum(intv,my_comm_grid,ier)
+
        paw_ij1(iatom)%dijfr(:,ispden)=zero
 
 !      ---- Loop over (i,j) components
@@ -3378,13 +3676,6 @@ end subroutine pawdijfr
 !! FUNCTION
 !! Compute the PAW LDA+U on-site potential
 !!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (BA,FJ,MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~ABINIT/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~ABINIT/Infos/contributors.
-!!
 !! INPUTS
 !!  cplex_dij=1 if dij is REAL, 2 if complex (2 for spin-orbit)
 !!  ndij=number of spin components for Dij^hat
@@ -3404,7 +3695,7 @@ end subroutine pawdijfr
 !!      ldau_self,m_paw_commutator,m_pawdij
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,symdij
+!!      free_my_atmtab,get_my_atmtab
 !!
 !! SOURCE
 
@@ -3685,13 +3976,6 @@ end subroutine pawdijfr
 !! FUNCTION
 !! Compute the PAW Local Exact-Exchange on-site potential
 !!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (BA,FJ)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~ABINIT/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~ABINIT/Infos/contributors.
-!!
 !! INPUTS
 !!  nspden=number of spin-density components
 !!  pawprtvol=control print volume and debugging output for PAW
@@ -3706,7 +3990,7 @@ end subroutine pawdijfr
 !!      m_pawdij,pawdenpot
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,symdij
+!!      free_my_atmtab,get_my_atmtab
 !!
 !! SOURCE
 
@@ -3828,20 +4112,13 @@ end subroutine pawdijfr
 !! Symmetrize PAW non-local strengths Dij 
 !! Symmetrize total Dij or one part of it
 !!
-!! COPYRIGHT
-!! Copyright (C) 2001-2014 ABINIT group (FJ, MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
-!!
 !! INPUTS
 !!  gprimd(3,3)=dimensional primitive translations for reciprocal space(bohr^-1).
 !!  indsym(4,nsym,natom)=indirect indexing array for atom labels
 !!  ipert=index of perturbation if pawrhoij is a pertubed rhoij
 !!        no meaning for ground-state calculations (should be 0)
-!!  mpi_atmtab(:)=--optional-- indexes of the atoms treated by current proc
-!!  mpi_comm_atom=--optional-- MPI communicator over atoms
+!!  [mpi_atmtab(:)]=--optional-- indexes of the atoms treated by current proc
+!!  [comm_atom]=--optional-- MPI communicator over atoms
 !!  my_natom=number of atoms treated by current processor
 !!  natom=number of atoms in cell
 !!  nsym=number of symmetry elements in space group
@@ -3864,6 +4141,7 @@ end subroutine pawdijfr
 !!  pawang <type(pawang_type)>=angular mesh discretization and related data
 !!  pawprtvol=control print volume and debugging output for PAW
 !!  pawtab(ntypat) <type(pawtab_type)>=paw tabulated starting data
+!!  [qphon(3)]=--optional-- (RF calculations only) - wavevector of the phonon
 !!  rprimd(3,3)=real space primitive translations.
 !!  symafm(nsym)=(anti)ferromagnetic part of symmetry operations
 !!  symrec(3,3,nsym)=symmetries of group in terms of operations on
@@ -3876,13 +4154,13 @@ end subroutine pawdijfr
 !!      bethe_salpeter,m_pawdij,paw_mknewh0,respfn,scfcv,scfcv3,screening,sigma
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,symdij
+!!      free_my_atmtab,get_my_atmtab
 !!
 !! SOURCE
 
 subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 &                 paw_ij,pawang,pawprtvol,pawtab,rprimd,symafm,symrec, &
-&                 mpi_atmtab,mpi_comm_atom) ! optional arguments (parallelism)
+&                 mpi_atmtab,comm_atom,qphon) ! optional arguments (parallelism)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -3897,12 +4175,13 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 !Arguments ---------------------------------------------
 !scalars
  integer,intent(in) :: ipert,my_natom,natom,nsym,ntypat,option_dij,pawprtvol
- integer,optional,intent(in) :: mpi_comm_atom
+ integer,optional,intent(in) :: comm_atom
  type(pawang_type),intent(in) :: pawang
 !arrays
  integer,intent(in) :: indsym(4,nsym,natom),symafm(nsym),symrec(3,3,nsym)
  integer,optional,target,intent(in) :: mpi_atmtab(:)
  real(dp),intent(in) :: gprimd(3,3),rprimd(3,3)
+ real(dp),intent(in),optional :: qphon(3)
  type(paw_ij_type),intent(inout) :: paw_ij(my_natom)
  type(pawtab_type),target,intent(in) :: pawtab(ntypat)
 
@@ -3911,15 +4190,15 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
  integer :: at_indx,cplex,cplex_dij,iafm,iatom,iatom_tot,ierr
  integer :: il,il0,ilmn,iln,iln0,ilpm,indexi,indexii,indexj,indexjj,indexjj0,indexk,indexkc
  integer :: iplex,irot,ispden,itypat,j0lmn,jl,jl0,jlmn,jln,jln0,jlpm,jspden
- integer :: klmn,klmnc,kspden,lmn_size,mi,mj,mu,natinc,ndij0,ndij1,nu,optsym
+ integer :: klmn,klmnc,kspden,lmn_size,mi,mj,my_comm_atom,mu,natinc,ndij0,ndij1,nu,optsym,sz1,sz2
  logical,parameter :: afm_noncoll=.true.  ! TRUE if antiferro symmetries are used with non-collinear magnetism
- logical :: antiferro,my_atmtab_allocated,noncoll,paral_atom,use_afm
+ logical :: antiferro,have_phase,my_atmtab_allocated,noncoll,paral_atom,use_afm
 !DEBUG_ALTERNATE_ALGO
 !Set to TRUE to choose an alternate algorithm (with another representation)
 !to symmetrize Dij within non-collinear magnetism or spin-orbit
  logical,parameter :: lsymnew=.false.
 !DEBUG_ALTERNATE_ALGO
- real(dp) :: factafm,zarot2
+ real(dp) :: arg,factafm,zarot2
  character(len=6) :: pertstrg,wrt_mode
  character(len=500) :: msg
 !arrays
@@ -3927,9 +4206,9 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
  integer, ABI_CONTIGUOUS pointer :: indlmn(:,:)
  integer,pointer :: my_atmtab(:)
  integer :: idum(0)
- real(dp) :: sumdij(2,2)
+ real(dp) :: dijc(2),factsym(2),phase(2),rotdij(2,2),sumdij(2,2)
  real(dp),allocatable :: dijnew(:,:),dijtmp(:,:),rotmag(:,:),summag(:,:)
- real(dp),allocatable :: symrec_cart(:,:,:),work(:,:),factsym(:)
+ real(dp),allocatable :: symrec_cart(:,:,:),work(:,:)
  character(len=7),parameter :: dspin(6)=(/"up     ","down   ","up-up  ", &
 &                                         "dwn-dwn","up-dwn ","dwn-up "/)
  type(coeff2_type),target, allocatable :: my_tmp_dij(:)
@@ -3956,23 +4235,23 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 &   (option_dij==6.and.paw_ij(1)%has_dijso==0).or.&
 &   (option_dij==7.and.paw_ij(1)%has_dijexxc==0).or.&
 &   (option_dij==8.and.paw_ij(1)%has_dijfr==0)) then
-     MSG_BUG(' Incompatibilty between option_dij and allocation of Dij !')
+     msg='Incompatibilty between option_dij and allocation of Dij!'
+     MSG_BUG(msg)
    end if
  end if
 
 !Set up parallelism over atoms
- paral_atom=(present(mpi_comm_atom).and.(my_natom/=natom))
+ paral_atom=(present(comm_atom).and.(my_natom/=natom))
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
- my_atmtab_allocated = .False.
- if (paral_atom) then
-   call get_my_atmtab(mpi_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom,my_natom_ref=my_natom)
- end if
+ my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
+ call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom,my_natom_ref=my_natom)
 
 !Symmetrization occurs only when nsym>1
  if (nsym>1.and.ipert/=natom+1.and.ipert/=natom+5) then
 
    if (pawang%nsym==0) then
-     MSG_BUG(' pawang%zarot must be allocated !')
+     msg='pawang%zarot must be allocated!'
+     MSG_BUG(msg)
    end if
 
    cplex_dij=1;antiferro=.false.;noncoll=.false.
@@ -3983,7 +4262,7 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 !    Non-collinear case
      noncoll=(paw_ij(1)%ndij==4)
      if (noncoll.and.paw_ij(1)%cplex_dij/=2) then
-       msg='  cplex_dij must be 2 with ndij=4 !'
+       msg='cplex_dij must be 2 with ndij=4!'
        MSG_BUG(msg)
      end if
    end if
@@ -4003,6 +4282,16 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
    end if
 !  Do we use antiferro symmetries ?
    use_afm=((antiferro).or.(noncoll.and.afm_noncoll))
+
+!  Do we have a phase due to q-vector (phonons only) ?
+   have_phase=.false.
+   if (ipert>0.and.present(qphon).and.my_natom>0) then
+     have_phase=(abs(qphon(1))>tol8.or.abs(qphon(2))>tol8.or.abs(qphon(3))>tol8)
+     if (have_phase.and.cplex_dij==1) then
+       msg='Should have cplex_dij=2 for a non-zero q!'
+       MSG_BUG(msg)
+     end if
+   end if
 
 !  Have to make a temporary copy of dij
    ABI_DATATYPE_ALLOCATE(my_tmp_dij,(my_natom))
@@ -4050,7 +4339,7 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 !  Parallelism: gather all Dij
    if (paral_atom) then
      ABI_DATATYPE_ALLOCATE(tmp_dij,(natom))
-     call xmpi_allgatherv(my_tmp_dij,tmp_dij,mpi_comm_atom,my_atmtab,ierr)
+     call xmpi_allgatherv(my_tmp_dij,tmp_dij,my_comm_atom,my_atmtab,ierr)
      do iatom=1,my_natom
        ABI_DEALLOCATE(my_tmp_dij(iatom)%value)
      end do
@@ -4064,7 +4353,6 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
    if (noncoll)   ndij1=4
    ndij0=ndij1-1
    ABI_ALLOCATE(dijnew,(cplex_dij,ndij1))
-   ABI_ALLOCATE(factsym,(cplex_dij))
 
 !  Loops over atoms and spin components
    do iatom=1,my_natom
@@ -4101,7 +4389,8 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
            klmn=j0lmn+ilmn;klmnc=cplex_dij*(klmn-1)
 
            nsym_used(:)=0
-           sumdij(:,:)=zero
+
+           rotdij(:,:)=zero
            if (noncoll) rotmag(:,:)=zero
 !DEBUG_ALTERNATE_ALGO
 !          if (noncoll.and.lsymnew) sumrhoso(:,:)=zero
@@ -4126,6 +4415,14 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 
              nsym_used(iafm)=nsym_used(iafm)+1
              at_indx=indsym(4,irot,iatom_tot)
+
+             if (have_phase) then
+               arg=two_pi*(qphon(1)*indsym(1,irot,iatom)+qphon(2)*indsym(2,irot,iatom) &
+&                         +qphon(3)*indsym(3,irot,iatom))
+               phase(1)=cos(arg);phase(2)=sin(arg)
+             end if
+
+             sumdij(:,:)=zero
              if (noncoll) summag(:,:)=zero
 
 !            Accumulate values over (mi,mj) and symmetries
@@ -4136,10 +4433,10 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
                  factsym(:)=one
                  if (indexii<=indexjj) then
                    indexk=indexjj0+indexii
-                   if(cplex_dij==2.and.cplex==1) factsym(cplex_dij)=one
+                   if(cplex_dij==2.and.cplex==1) factsym(2)=one
                  else
                    indexk=indexii*(indexii-1)/2+indexjj
-                   if(cplex_dij==2.and.cplex==1) factsym(cplex_dij)=-one
+                   if(cplex_dij==2.and.cplex==1) factsym(2)=-one
                  end if
                  indexkc=cplex_dij*(indexk-1)
 !DEBUG_ALTERNATE_ALGO
@@ -4171,17 +4468,15 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 
                  if((.not.noncoll).or.(.not.lsymnew)) then
                    sumdij(1,iafm)=sumdij(1,iafm)+factsym(1)*zarot2*tmp_dij(at_indx)%value(indexkc+1,kspden)
-                   if(cplex_dij==2)&
-&                   sumdij(cplex_dij,iafm)=sumdij(cplex_dij,iafm)+&
-&                   factsym(cplex_dij)*factafm*zarot2*tmp_dij(at_indx)%value(indexkc+cplex_dij,kspden)
+                   if(cplex_dij==2) sumdij(2,iafm)= &
+&                         sumdij(2,iafm)+factsym(2)*factafm*zarot2*tmp_dij(at_indx)%value(indexkc+2,kspden)
                  end if
 
                  if (noncoll.and.(.not.lsymnew)) then
                    do mu=1,3
                      summag(1,mu)=summag(1,mu)+factsym(1)*factafm*zarot2*tmp_dij(at_indx)%value(indexkc+1,1+mu)
-                     if(cplex_dij==2)&
-&                     summag(cplex_dij,mu)=summag(cplex_dij,mu)+&
-&                     factsym(cplex_dij)*zarot2*tmp_dij(at_indx)%value(indexkc+cplex_dij,1+mu)
+                     if(cplex_dij==2) summag(2,mu)= &
+&                           summag(2,mu)+factsym(2)*zarot2*tmp_dij(at_indx)%value(indexkc+2,1+mu)
                    end do
                  end if
 !DEBUG_ALTERNATE_ALGO
@@ -4217,8 +4512,37 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
                end do ! mi
              end do ! mj
 !DEBUG_ALTERNATE_ALGO
-!            If non-collinear case, rotate Dij magnetization
+
+!            Apply phase for phonons
+             if (have_phase) then
+               if((.not.noncoll).or.(.not.lsymnew)) then
+                 dijc(1:2)=sumdij(1:2,iafm)
+                 sumdij(1,iafm)=phase(1)*dijc(1)-phase(2)*dijc(2)
+                 sumdij(2,iafm)=phase(1)*dijc(2)+phase(2)*dijc(1)
+               end if
+               if (noncoll.and.(.not.lsymnew)) then
+                 do mu=1,3
+                   dijc(1:2)=summag(1:2,mu)
+                   summag(1,mu)=phase(1)*dijc(1)-phase(2)*dijc(2)
+                   summag(2,mu)=phase(1)*dijc(2)+phase(2)*dijc(1)
+                 end do
+               end if
+!DEBUG_ALTERNATE_ALGO
+!              if (noncoll.and.(lsymnew) then
+!                do mu=1,4
+!                  dijc(1:2)=sumrhoso(1:2,mu)
+!                  sumrhoso(1,mu)=phase(1)*dijc(1)-phase(2)*dijc(2)
+!                  sumrhoso(2,mu)=phase(1)*dijc(2)+phase(2)*dijc(1)
+!                  end do
+!                end do
+!              end if
+!DEBUG_ALTERNATE_ALGO
+             end if
+
+!            Add contribution of this rotation
+             rotdij(1:cplex_dij,iafm)=rotdij(1:cplex_dij,iafm)+sumdij(1:cplex_dij,iafm)
              if (noncoll.and.(.not.lsymnew)) then
+!              If non-collinear case, rotate Dij magnetization
 !              Should use symrel^1 but use transpose[symrec] instead
                do nu=1,3
                  do mu=1,3
@@ -4234,14 +4558,14 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
            if((.not.noncoll).or.(.not.lsymnew)) then
 !            Store new value of dij
              do iplex=1,cplex_dij
-               dijnew(iplex,1)=sumdij(iplex,1)/nsym_used(1)
+               dijnew(iplex,1)=rotdij(iplex,1)/nsym_used(1)
                if (abs(dijnew(iplex,1))<=tol10) dijnew(iplex,1)=zero
              end do
 
 !            Antiferromagnetic case: has to fill up "down" component of dij
              if (antiferro.and.nsym_used(2)>0) then
                do iplex=1,cplex_dij
-                 dijnew(iplex,2)=sumdij(iplex,2)/nsym_used(2)
+                 dijnew(iplex,2)=rotdij(iplex,2)/nsym_used(2)
                  if (abs(dijnew(iplex,2))<=tol10) dijnew(iplex,2)=zero
                end do
              end if
@@ -4315,7 +4639,6 @@ subroutine symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
    end do ! iatom
 
    ABI_DEALLOCATE(dijnew)
-   ABI_DEALLOCATE(factsym)
    if (noncoll)  then
      ABI_DEALLOCATE(summag)
      ABI_DEALLOCATE(rotmag)
@@ -4500,7 +4823,7 @@ end subroutine symdij
 !!  ipert=index of perturbation if pawrhoij is a pertubed rhoij
 !!        no meaning for ground-state calculations (should be 0)
 !!  mpi_atmtab(:)=--optional-- indexes of the atoms treated by current proc
-!!  mpi_comm_atom=--optional-- MPI communicator over atoms
+!!  comm_atom=--optional-- MPI communicator over atoms
 !!  my_natom=number of atoms treated by current processor
 !!  natom=number of atoms in cell
 !!  nsym=number of symmetry elements in space group
@@ -4531,7 +4854,7 @@ end subroutine symdij
 
 subroutine symdij_all(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,&
 &                     paw_ij,pawang,pawprtvol,pawtab,rprimd,symafm,symrec,&
-&                     mpi_atmtab,mpi_comm_atom) ! optional arguments (parallelism)
+&                     mpi_atmtab,comm_atom) ! optional arguments (parallelism)
 
 
 !This section has been created automatically by the script Abilint (TD).
@@ -4545,7 +4868,7 @@ subroutine symdij_all(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,&
 !Arguments ---------------------------------------------
 !scalars
  integer,intent(in) :: ipert,my_natom,natom,nsym,ntypat,pawprtvol
- integer,optional,intent(in) :: mpi_comm_atom
+ integer,optional,intent(in) :: comm_atom
  type(pawang_type),intent(in) :: pawang
 !arrays
  integer,intent(in) :: indsym(4,nsym,natom),symafm(nsym),symrec(3,3,nsym)
@@ -4557,7 +4880,7 @@ subroutine symdij_all(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,&
 !Local variables ---------------------------------------
 !scalars
  integer,parameter :: MAX_NOPTS=11
- integer :: ii,option_dij,nopt
+ integer :: ii,option_dij,my_comm_atom,nopt
  logical :: my_atmtab_allocated,paral_atom
 !arrays
  integer :: options(MAX_NOPTS)
@@ -4626,19 +4949,17 @@ subroutine symdij_all(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,&
  end if
 
 !Set up parallelism over atoms
- paral_atom=(present(mpi_comm_atom))
+ paral_atom=(present(comm_atom))
  nullify(my_atmtab);if (present(mpi_atmtab)) my_atmtab => mpi_atmtab
- my_atmtab_allocated = .False.
- if (paral_atom) then
-   call get_my_atmtab(mpi_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom,my_natom_ref=my_natom)
- end if
+ my_comm_atom=xmpi_self;if (present(comm_atom)) my_comm_atom=comm_atom
+ call get_my_atmtab(my_comm_atom,my_atmtab,my_atmtab_allocated,paral_atom,natom,my_natom_ref=my_natom)
 
  do ii=1,nopt
    option_dij = options(ii)
    if (paral_atom) then
      call symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 &     paw_ij,pawang,pawprtvol,pawtab,rprimd,symafm,symrec,&
-&     mpi_comm_atom=mpi_comm_atom,mpi_atmtab=my_atmtab)
+&     comm_atom=my_comm_atom,mpi_atmtab=my_atmtab)
    else
      call symdij(gprimd,indsym,ipert,my_natom,natom,nsym,ntypat,option_dij,&
 &     paw_ij,pawang,pawprtvol,pawtab,rprimd,symafm,symrec)

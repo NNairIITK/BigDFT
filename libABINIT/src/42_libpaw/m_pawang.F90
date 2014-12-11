@@ -43,7 +43,7 @@ MODULE m_pawang
 
  use defs_basis
  use m_errors
- use m_profiling
+ use m_profiling_abi
  use m_xmpi
 
  use m_sphharm, only : initylmr, mat_mlms2jmj, mat_slm2ylm
@@ -53,18 +53,21 @@ MODULE m_pawang
  private
 
 !public procedures.
- public :: pawang_init
- public :: pawang_nullify
- public :: pawang_destroy
- public :: pawang_lsylm
- public :: initang
- public :: realgaunt
- public :: gaunt
+ public :: pawang_init        ! Constructor
+ public :: pawang_free        ! Free memory
+ public :: pawang_lsylm       ! Compute the LS operator in the real spherical harmonics basis
+ public :: initang            ! Initialize angular mesh for PAW calculations
+
+ ! MGPAW: Private?
+ public :: realgaunt          ! compute "real Gaunt coefficients" with "real spherical harmonics"
+ public :: gaunt              ! Gaunt coeffients for complex Yml
  public :: gauleg
  public :: mat_mlms2jmj
  public :: mat_slm2ylm
- public :: rfactorial
- public :: perms
+
+ ! MGPAW: Private?
+ public :: rfactorial         ! Calculates N!. as a double precision real.
+ public :: perms              ! Returns N!/(N-k)!  if N>=0 and N>k ; otherwise 0 is returned
 !!***
 
 !----------------------------------------------------------------------
@@ -81,24 +84,21 @@ MODULE m_pawang
 
  type,public :: pawang_type
 
-! WARNING : if you modify this datatype, please check whether there might be creation/destruction/copy routines,
-! declared in another part of ABINIT, that might need to take into account your modification.
-
 !Integer scalars
 
-  integer :: angl_size
+  integer :: angl_size=0
    ! Dimension of paw angular mesh
    ! angl_size=ntheta*nphi
 
-  integer :: l_max
+  integer :: l_max=-1
    ! Maximum value of angular momentum l+1
 
-  integer :: l_size_max
+  integer :: l_size_max=-1
    ! Maximum value of angular momentum +1
    ! leading to non-zero Gaunt coefficients
    ! l_size_max = 2*l_max-1
 
-  integer :: ngnt
+  integer :: ngnt=0
    ! Number of non zero Gaunt coefficients
 
   integer :: ntheta, nphi
@@ -107,16 +107,16 @@ MODULE m_pawang
   integer :: nsym
    ! Number of symmetry elements in space group
 
-  integer :: gnt_option
+  integer :: gnt_option=-1
    ! Option for Gaunt coefficients:
    !  gnt_option==0, Gaunt coeffs are not computed (and not allocated)
    !  gnt_option==1, Gaunt coeffs are computed up to 2*l_size_max-1
    !  gnt_option==2, Gaunt coeffs are computed up to l_size_max
 
-  integer :: use_ls_ylm
+  integer :: use_ls_ylm=0
    ! Flag: use_ls_ylm=1 if pawang%ls_ylm is allocated
 
-  integer :: ylm_size
+  integer :: ylm_size=0
    ! Size of ylmr/ylmrgr arrays
 
 !Integer arrays
@@ -218,7 +218,7 @@ subroutine pawang_init(Pawang,gnt_option,lmax,nphi,nsym,ntheta,pawxcdev,use_ls_y
 
 !Local variables-------------------------------
 !scalars
- integer :: ll
+ integer :: ll,sz1,sz2,sz3
 !arrays
  real(dp),allocatable :: rgnt_tmp(:)
 
@@ -302,63 +302,9 @@ end subroutine pawang_init
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawang/pawang_nullify
+!!****f* m_pawang/pawang_free
 !! NAME
-!! pawang_nullify
-!!
-!! FUNCTION
-!!  Nullify all pointers in a pawang datastructure
-!!
-!! SIDE EFFECTS
-!!  Pawang <type(pawang_type)>=ANGular mesh discretization and related data
-!!
-!! PARENTS
-!!      driver,loper3
-!!
-!! CHILDREN
-!!
-!! SOURCE
-
-subroutine pawang_nullify(Pawang)
-
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-#undef ABI_FUNC
-#define ABI_FUNC 'pawang_nullify'
-!End of the abilint section
-
- implicit none
-
-!Arguments ------------------------------------
-!scalars
- type(Pawang_type),intent(inout) :: Pawang
-
-!Local variables-------------------------------
-
-! *************************************************************************
-
- ! MGPAW: This one could be removed/renamed, 
- ! variables can be initialized in the datatype declaration
- ! Do we need to expose this in the public API?
-
- !@Pawang_type
- pawang%angl_size =0
- pawang%ylm_size  =0
- pawang%use_ls_ylm=0
- pawang%l_max=-1
- pawang%l_size_max=-1
- pawang%gnt_option=-1
- pawang%ngnt=0
-
-end subroutine pawang_nullify
-!!***
-
-!----------------------------------------------------------------------
-
-!!****f* m_pawang/pawang_destroy
-!! NAME
-!! pawang_destroy
+!! pawang_free
 !!
 !! FUNCTION
 !!  Free all dynamic memory and reset all flags stored in a pawang datastructure
@@ -373,13 +319,13 @@ end subroutine pawang_nullify
 !!
 !! SOURCE
 
-subroutine pawang_destroy(Pawang)
+subroutine pawang_free(Pawang)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawang_destroy'
+#define ABI_FUNC 'pawang_free'
 !End of the abilint section
 
  implicit none
@@ -424,7 +370,7 @@ subroutine pawang_destroy(Pawang)
  pawang%gnt_option=-1
  pawang%ngnt=0
 
-end subroutine pawang_destroy
+end subroutine pawang_free
 !!***
 
 !----------------------------------------------------------------------
@@ -640,13 +586,6 @@ subroutine pawang_lsylm(pawang)
 !!
 !! FUNCTION
 !! Initialize angular mesh for PAW calculations
-!!
-!! COPYRIGHT
-!! Copyright (C) 1998-2014 ABINIT group (FJ, MT)
-!! This file is distributed under the terms of the
-!! GNU General Public License, see ~abinit/COPYING
-!! or http://www.gnu.org/copyleft/gpl.txt .
-!! For the initials of contributors, see ~abinit/doc/developers/contributors.txt.
 !!
 !! INPUTS
 !!  pawang <type(pawang_type)>=paw angular mesh and related data

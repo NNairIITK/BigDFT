@@ -28,8 +28,6 @@ MODULE m_errors
 
  use defs_basis
  use m_xmpi
- use m_xomp
- use m_xieee
 
 #ifdef HAVE_TRIO_NETCDF
  use netcdf
@@ -100,33 +98,13 @@ include "fexcp.h"
 
  interface unused_var
    module procedure unused_int
-   module procedure unused_int_d1
    module procedure unused_real_dp
-   module procedure unused_real_sp_d1
-   module procedure unused_real_dp_d1
+   module procedure unused_real_sp
    module procedure unused_cplx_dpc
-   module procedure unused_cplx_dpc_d1
    module procedure unused_cplx_spc
-   module procedure unused_cplx_spc_d1
-   module procedure unused_logical_d0
-   module procedure unused_ch_d0
+   module procedure unused_logical
+   module procedure unused_ch
  end interface unused_var
-
- type,public :: args_t
-! Stores the command line options
-
-   integer :: exit=0        
-     ! /=0 to exit after having parsed the command line options.
-
-   integer :: dry_run=0  
-     ! /= 0 to exit after the validation of the input file.
-
- end type args_t
-
-!----------------------------------------------------------------------
-
- public :: args_parser      ! Basic parser, supports --version, --build, --dry-run, --help.
-
 
 CONTAINS  !===========================================================
 !!***
@@ -144,17 +122,10 @@ CONTAINS  !===========================================================
 !!  l1,l2,.. Integers to be checked (array version is also provided)
 !!  message(len=*)=tag with additional information
 !!
-!! OUTPUT
-!!
-!! PARENTS 
-!! 
-!! CHILDREN
-!!
 !! SOURCE
 
 function assert_eq2(l1,l2,message,file,line)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -162,6 +133,9 @@ function assert_eq2(l1,l2,message,file,line)
 #define ABI_FUNC 'assert_eq2'
 !End of the abilint section
 
+ implicit none
+
+!Arguments ------------------------------------
  integer,intent(in) :: l1,l2 
  integer,optional,intent(in) :: line
  integer :: assert_eq2
@@ -198,17 +172,10 @@ end function assert_eq2
 !!  l1,l2,.. Integers to be checked (array version is also provided)
 !!  message(len=*)=tag with additional information
 !!
-!! OUTPUT
-!!
-!! PARENTS 
-!! 
-!! CHILDREN
-!!
 !! SOURCE
 
 function assert_eq3(l1,l2,l3,message,file,line)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -216,6 +183,9 @@ function assert_eq3(l1,l2,l3,message,file,line)
 #define ABI_FUNC 'assert_eq3'
 !End of the abilint section
 
+ implicit none
+
+!Arguments ------------------------------------
  integer,intent(in) :: l1,l2,l3 
  integer,optional,intent(in) :: line
  integer :: assert_eq3
@@ -251,18 +221,10 @@ end function assert_eq3
 !!  l1,l2,.. Integers to be checked (array version is also provided)
 !!  message(len=*)=tag with additional information
 !!
-!! OUTPUT
-!!
-!! PARENTS 
-!! 
-!! CHILDREN
-!!
 !! SOURCE
 
 function assert_eq4(l1,l2,l3,l4,message,file,line)
 
-!Arguments ------------------------------------
-!scalars
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -270,6 +232,10 @@ function assert_eq4(l1,l2,l3,l4,message,file,line)
 #define ABI_FUNC 'assert_eq4'
 !End of the abilint section
 
+ implicit none
+
+!Arguments ------------------------------------
+!scalars
  integer,intent(in) :: l1,l2,l3,l4 
  integer,optional,intent(in) :: line
  integer :: assert_eq4
@@ -301,20 +267,10 @@ end function assert_eq4
 !! FUNCTION
 !!  Report and die gracefully if integers not all equal (used for size checking).
 !!
-!! INPUTS 
-!!
-!! OUTPUT
-!!
-!! PARENTS 
-!! 
-!! CHILDREN
-!!
 !! SOURCE
 
 function assert_eqn(nn,message,file,line)
 
-!Arguments ------------------------------------
-!scalars
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -322,6 +278,10 @@ function assert_eqn(nn,message,file,line)
 #define ABI_FUNC 'assert_eqn'
 !End of the abilint section
 
+ implicit none
+
+!Arguments ------------------------------------
+!scalars
  integer,optional,intent(in) :: line
  integer :: assert_eqn
  character(len=*),intent(in) :: message
@@ -359,8 +319,6 @@ end function assert_eqn
 !!  l1,l2,.. logical values to be checked (array version is also provided)
 !!  message(len=*)=tag with additiona information
 !!
-!! OUTPUT
-!!
 !! PARENTS
 !!
 !! CHILDREN
@@ -370,7 +328,6 @@ end function assert_eqn
 
 subroutine assert1(l1,message,file,line)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -378,6 +335,9 @@ subroutine assert1(l1,message,file,line)
 #define ABI_FUNC 'assert1'
 !End of the abilint section
 
+ implicit none
+
+!Arguments ------------------------------------
  integer,optional,intent(in) :: line
  character(len=*),intent(in) :: message
  character(len=*),optional,intent(in) :: file
@@ -411,17 +371,15 @@ end subroutine assert1
 !!  l1,l2,.. logical values to be checked (array version is also provided)
 !!  message(len=*)=tag with additional information
 !!
-!! OUTPUT
-!!
 !! PARENTS
 !!
 !! CHILDREN
 !!      signal
 !!
 !! SOURCE
+
 subroutine assert2(l1,l2,message,file,line)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -429,6 +387,9 @@ subroutine assert2(l1,l2,message,file,line)
 #define ABI_FUNC 'assert2'
 !End of the abilint section
 
+ implicit none
+
+!Arguments ------------------------------------
  integer,optional,intent(in) :: line
  character(len=*),intent(in) :: message
  character(len=*),optional,intent(in) :: file
@@ -462,17 +423,15 @@ end subroutine assert2
 !!  l1,l2,.. logical values to be checked (array version is also provided)
 !!  message(len=*)=tag with additional information
 !!
-!! OUTPUT
-!!
 !! PARENTS
 !!
 !! CHILDREN
 !!      signal
 !!
 !! SOURCE
+
 subroutine assert3(l1,l2,l3,message,file,line)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -480,6 +439,9 @@ subroutine assert3(l1,l2,l3,message,file,line)
 #define ABI_FUNC 'assert3'
 !End of the abilint section
 
+ implicit none
+
+!Arguments ------------------------------------
  integer,optional,intent(in) :: line
  character(len=*),intent(in) :: message
  character(len=*),optional,intent(in) :: file
@@ -513,17 +475,15 @@ end subroutine assert3
 !!  l1,l2,.. logical values to be checked (array version is also provided)
 !!  message(len=*)=tag with additional information
 !!
-!! OUTPUT
-!!
 !! PARENTS
 !!
 !! CHILDREN
 !!      signal
 !!
 !! SOURCE
+
 subroutine assert4(l1,l2,l3,l4,message,file,line)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -531,6 +491,9 @@ subroutine assert4(l1,l2,l3,l4,message,file,line)
 #define ABI_FUNC 'assert4'
 !End of the abilint section
 
+ implicit none
+
+!Arguments ------------------------------------
  integer,optional,intent(in) :: line
  character(len=*),intent(in) :: message
  character(len=*),optional,intent(in) :: file
@@ -560,19 +523,15 @@ end subroutine assert4
 !!  Routines for argument checking and error handling. Report and die if 
 !!  any logical is false (used for arg range checking).
 !!
-!! INPUTS 
-!!
-!! OUTPUT
-!!
 !! PARENTS
 !!
 !! CHILDREN
 !!      signal
 !!
 !! SOURCE
+
 subroutine assert_v(n,message,file,line)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -580,6 +539,9 @@ subroutine assert_v(n,message,file,line)
 #define ABI_FUNC 'assert_v'
 !End of the abilint section
 
+ implicit none
+
+!Arguments ------------------------------------
  integer,optional,intent(in) :: line
  character(len=*),intent(in) :: message
  character(len=*),optional,intent(in) :: file
@@ -626,8 +588,6 @@ end subroutine assert_v
 
 subroutine netcdf_check(ncerr,msg,file,line)
 
- use defs_basis
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -635,6 +595,9 @@ subroutine netcdf_check(ncerr,msg,file,line)
 #define ABI_FUNC 'netcdf_check'
 !End of the abilint section
 
+ implicit none
+
+!Arguments ------------------------------------
  integer,intent(in) :: ncerr
  character(len=*),intent(in) :: msg
  character(len=*),optional,intent(in) :: file
@@ -702,7 +665,6 @@ end subroutine netcdf_check
 
 subroutine sentinel(level,mode_paral,filename,funcname,lineno)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -711,6 +673,9 @@ subroutine sentinel(level,mode_paral,filename,funcname,lineno)
  use interfaces_14_hidewrite
 !End of the abilint section
 
+ implicit none 
+
+!Arguments ------------------------------------
  integer,intent(in) :: level
  integer,optional,intent(in) :: lineno
  character(len=*),intent(in) :: mode_paral
@@ -724,9 +689,12 @@ subroutine sentinel(level,mode_paral,filename,funcname,lineno)
  character(len=500),save :: funcname_save
  character(len=4) :: my_mode
  character(len=10) :: lnum
- character(len=500) :: my_funcname='Function Unknown',my_filename="File Unknown"
+ character(len=500) :: my_funcname, my_filename
  character(len=500) :: msg
 
+ ! initialize the variable
+ my_funcname = 'Function Unknown'
+ my_filename = "File Unknown"
 ! *********************************************************************
 
  if (toupper(mode_paral)=='COLL_SILENT'.or.toupper(mode_paral)=='PERS_SILENT') then
@@ -755,9 +723,7 @@ subroutine sentinel(level,mode_paral,filename,funcname,lineno)
  else if (level==2) then
     msg = ' '//TRIM(my_funcname)//' >>>>> EXIT '//ch10
  else 
-    call die('Wrong level',&
-     __FILE__,&
-     __LINE__)
+    call die('Wrong level',__FILE__,__LINE__)
  end if
 
  call wrtout(std_out,msg,my_mode) 
@@ -793,7 +759,6 @@ end subroutine sentinel
 
 subroutine die(message,file,line)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -803,6 +768,9 @@ subroutine die(message,file,line)
  use interfaces_16_hideleave
 !End of the abilint section
 
+ implicit none
+
+!Arguments ------------------------------------
  integer,optional,intent(in) :: line
  character(len=*),intent(in) :: message
  character(len=*),optional,intent(in) :: file
@@ -870,7 +838,6 @@ end subroutine die
 
 subroutine msg_hndl(message,level,mode_paral,file,line,NODUMP,NOSTOP)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -880,6 +847,9 @@ subroutine msg_hndl(message,level,mode_paral,file,line,NODUMP,NOSTOP)
  use interfaces_16_hideleave
 !End of the abilint section
 
+ implicit none
+
+!Arguments ------------------------------------
  integer,optional,intent(in) :: line
  logical,optional,intent(in) :: NODUMP,NOSTOP
  character(len=*),intent(in) :: level,message
@@ -968,8 +938,6 @@ end subroutine msg_hndl
 !!  
 !! PARENTS
 !!
-!! CHILDREN
-!!
 !! SOURCE
 
 subroutine show_backtrace()
@@ -1020,7 +988,6 @@ end subroutine show_backtrace
 
 subroutine check_mpi_ierr(ierr,msg,mode_paral,file,line)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1096,14 +1063,10 @@ end subroutine check_mpi_ierr
 !!
 !! PARENTS
 !!
-!! CHILDREN
-!!      signal
-!!
 !! SOURCE
 
-subroutine unused_int(var) 
+elemental subroutine unused_int(var) 
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1111,6 +1074,9 @@ subroutine unused_int(var)
 #define ABI_FUNC 'unused_int'
 !End of the abilint section
 
+ implicit none
+
+!Arguments ------------------------------------
  integer,intent(in) :: var
 
 !Local variables-------------------------------
@@ -1120,50 +1086,6 @@ subroutine unused_int(var)
  dummy = var
 
 end subroutine unused_int
-!!***
-
-!----------------------------------------------------------------------
-
-!!****f* m_errors/unused_int_d1
-!! NAME
-!!  unused_int_d1
-!!
-!! FUNCTION
-!!  Helper function used to silence compiler warnings due to unused variables.  
-!!  Interfaced via the ABI_UNUSED macro. Target: one-dimensional integer vector.
-!!
-!! INPUTS 
-!!  var_arr=Vector of integer values.
-!!
-!! OUTPUT
-!!  None
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!      signal
-!!
-!! SOURCE
-
-subroutine unused_int_d1(var_arr) 
-
-!Arguments ------------------------------------
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-#undef ABI_FUNC
-#define ABI_FUNC 'unused_int_d1'
-!End of the abilint section
-
- integer,intent(in) :: var_arr(:)
-
-!Local variables-------------------------------
- integer :: dummy(SIZE(var_arr))
-! *********************************************************************
-
- dummy = var_arr
-
-end subroutine unused_int_d1
 !!***
 
 !----------------------------------------------------------------------
@@ -1189,9 +1111,8 @@ end subroutine unused_int_d1
 !!
 !! SOURCE
 
-subroutine unused_real_dp(var) 
+elemental subroutine unused_real_dp(var) 
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1199,6 +1120,9 @@ subroutine unused_real_dp(var)
 #define ABI_FUNC 'unused_real_dp'
 !End of the abilint section
 
+ implicit none
+
+!Arguments ------------------------------------
  real(dp),intent(in) :: var
 
 !Local variables-------------------------------
@@ -1212,90 +1136,37 @@ end subroutine unused_real_dp
 
 !----------------------------------------------------------------------
 
-!!****f* m_errors/unused_real_sp_d1
+!!****f* m_errors/unused_real_sp
 !! NAME
-!!  unused_real_sp_d1
+!!  unused_real_sp
 !!
 !! FUNCTION
 !!  Helper function used to silence compiler warnings due to unused variables.  
 !!  Interfaced via the ABI_UNUSED macro. Target: one-dimensional real(dp) vector.
 !!
-!! INPUTS 
-!!  var_arr=Vector of real(dp) values.
-!!
-!! OUTPUT
-!!  None
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!      signal
-!!
 !! SOURCE
 
-subroutine unused_real_sp_d1(var_arr) 
+elemental subroutine unused_real_sp(var)
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'unused_real_sp_d1'
+#define ABI_FUNC 'unused_real_sp'
 !End of the abilint section
 
- real(sp),intent(in) :: var_arr(:)
-
-!Local variables-------------------------------
- real(sp) :: dummy(SIZE(var_arr))
-! *********************************************************************
-
- dummy = var_arr
-
-end subroutine unused_real_sp_d1
-!!***
-
-!----------------------------------------------------------------------
-
-!!****f* m_errors/unused_real_dp_d1
-!! NAME
-!!  unused_real_dp_d1
-!!
-!! FUNCTION
-!!  Helper function used to silence compiler warnings due to unused variables.  
-!!  Interfaced via the ABI_UNUSED macro. Target: one-dimensional real(dp) vector.
-!!
-!! INPUTS 
-!!  var_arr=Vector of real(dp) values.
-!!
-!! OUTPUT
-!!  None
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!      signal
-!!
-!! SOURCE
-
-subroutine unused_real_dp_d1(var_arr) 
+ implicit none
 
 !Arguments ------------------------------------
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-#undef ABI_FUNC
-#define ABI_FUNC 'unused_real_dp_d1'
-!End of the abilint section
-
- real(dp),intent(in) :: var_arr(:)
+ real(sp),intent(in) :: var
 
 !Local variables-------------------------------
- real(dp) :: dummy(SIZE(var_arr))
+ real(sp) :: dummy
 ! *********************************************************************
 
- dummy = var_arr
+ dummy = var
 
-end subroutine unused_real_dp_d1
+end subroutine unused_real_sp
 !!***
 
 !----------------------------------------------------------------------
@@ -1314,16 +1185,10 @@ end subroutine unused_real_dp_d1
 !! OUTPUT
 !!  None
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      signal
-!!
 !! SOURCE
 
-subroutine unused_cplx_spc(var) 
+elemental subroutine unused_cplx_spc(var) 
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1331,6 +1196,9 @@ subroutine unused_cplx_spc(var)
 #define ABI_FUNC 'unused_cplx_spc'
 !End of the abilint section
 
+ implicit none
+
+!Arguments ------------------------------------
  complex(spc),intent(in) :: var
 
 !Local variables-------------------------------
@@ -1340,50 +1208,6 @@ subroutine unused_cplx_spc(var)
  dummy = var
 
 end subroutine unused_cplx_spc
-!!***
-
-!----------------------------------------------------------------------
-
-!!****f* m_errors/unused_cplx_spc_d1
-!! NAME
-!!  unused_cplx_spc_d1
-!!
-!! FUNCTION
-!!  Helper function used to silence compiler warnings due to unused variables.  
-!!  Interfaced via the ABI_UNUSED macro. Target: one-dimensional complex(spc) vector.
-!!
-!! INPUTS 
-!!  var_arr=Vector of complex(spc) values.
-!!
-!! OUTPUT
-!!  None
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!      signal
-!!
-!! SOURCE
-
-subroutine unused_cplx_spc_d1(var_arr) 
-
-!Arguments ------------------------------------
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-#undef ABI_FUNC
-#define ABI_FUNC 'unused_cplx_spc_d1'
-!End of the abilint section
-
- complex(spc),intent(in) :: var_arr(:)
-
-!Local variables-------------------------------
- complex(spc) :: dummy(SIZE(var_arr))
-! *********************************************************************
-
- dummy = var_arr
-
-end subroutine unused_cplx_spc_d1
 !!***
 
 !----------------------------------------------------------------------
@@ -1409,9 +1233,8 @@ end subroutine unused_cplx_spc_d1
 !!
 !! SOURCE
 
-subroutine unused_cplx_dpc(var) 
+elemental subroutine unused_cplx_dpc(var) 
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1419,6 +1242,9 @@ subroutine unused_cplx_dpc(var)
 #define ABI_FUNC 'unused_cplx_dpc'
 !End of the abilint section
 
+ implicit none
+
+!Arguments ------------------------------------
  complex(dpc),intent(in) :: var
 
 !Local variables-------------------------------
@@ -1432,53 +1258,9 @@ end subroutine unused_cplx_dpc
 
 !----------------------------------------------------------------------
 
-!!****f* m_errors/unused_cplx_dpc_d1
+!!****f* m_errors/unused_logical
 !! NAME
-!!  unused_cplx_dpc_d1
-!!
-!! FUNCTION
-!!  Helper function used to silence compiler warnings due to unused variables.  
-!!  Interfaced via the ABI_UNUSED macro. Target: one-dimensional complex(dpc) vector.
-!!
-!! INPUTS 
-!!  var_arr=Vector of complex(dpc) values.
-!!
-!! OUTPUT
-!!  None
-!!
-!! PARENTS
-!!
-!! CHILDREN
-!!      signal
-!!
-!! SOURCE
-
-subroutine unused_cplx_dpc_d1(var_arr) 
-
-!Arguments ------------------------------------
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-#undef ABI_FUNC
-#define ABI_FUNC 'unused_cplx_dpc_d1'
-!End of the abilint section
-
- complex(dpc),intent(in) :: var_arr(:)
-
-!Local variables-------------------------------
- complex(dpc) :: dummy(SIZE(var_arr))
-! *********************************************************************
-
- dummy = var_arr
-
-end subroutine unused_cplx_dpc_d1
-!!***
-
-!----------------------------------------------------------------------
-
-!!****f* m_errors/unused_logical_d0
-!! NAME
-!!  unused_logical_d0
+!!  unused_logical
 !!
 !! FUNCTION
 !!  Helper function used to silence compiler warnings due to unused variables.  
@@ -1497,16 +1279,18 @@ end subroutine unused_cplx_dpc_d1
 !!
 !! SOURCE
 
-subroutine unused_logical_d0(var) 
+elemental subroutine unused_logical(var) 
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'unused_logical_d0'
+#define ABI_FUNC 'unused_logical'
 !End of the abilint section
 
+ implicit none
+
+!Arguments ------------------------------------
  logical,intent(in) :: var
 
 !Local variables-------------------------------
@@ -1515,14 +1299,14 @@ subroutine unused_logical_d0(var)
 
  dummy = var
 
-end subroutine unused_logical_d0
+end subroutine unused_logical
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* m_errors/unused_ch_d0
+!!****f* m_errors/unused_ch
 !! NAME
-!!  unused_ch_d0
+!!  unused_ch
 !!
 !! FUNCTION
 !!  Helper function used to silence compiler warnings due to unused variables.  
@@ -1541,16 +1325,18 @@ end subroutine unused_logical_d0
 !!
 !! SOURCE
 
-subroutine unused_ch_d0(var) 
+elemental subroutine unused_ch(var) 
 
-!Arguments ------------------------------------
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'unused_ch_d0'
+#define ABI_FUNC 'unused_ch'
 !End of the abilint section
 
+ implicit none
+
+!Arguments ------------------------------------
  character(len=*),intent(in) :: var
 
 !Local variables-------------------------------
@@ -1559,7 +1345,7 @@ subroutine unused_ch_d0(var)
 
  dummy = var
 
-end subroutine unused_ch_d0
+end subroutine unused_ch
 !!***
 
 !----------------------------------------------------------------------
@@ -1745,106 +1531,7 @@ subroutine bigdft_lib_error(file,line)
 end subroutine bigdft_lib_error
 !!***
 
-!!****f* m_errors/args_parser
-!! NAME
-!!  args_parser
-!!
-!! FUNCTION
-!!  Simple command line argument parser (supports --version, --build, --help)
-!!
-!! PARENTS
-!!      abinit,anaddb,fftprof,mrgddb,mrggkk,mrgscr,optic
-!!
-!! CHILDREN
-!!      signal
-!!
-!! SOURCE
-
-subroutine args_parser(args) 
-
- use defs_basis
-
-!This section has been created automatically by the script Abilint (TD).
-!Do not modify the following lines by hand.
-#undef ABI_FUNC
-#define ABI_FUNC 'args_parser'
-!End of the abilint section
-
- implicit none
-
-!Arguments ------------------------------------
- type(args_t),intent(inout) :: args
-
-!Local variables-------------------------------
- integer :: ii,ierr
- character(len=500) :: arg
-
-! *************************************************************************
-
- args%exit = 0; ierr=0
-
-#ifdef HAVE_FC_COMMAND_ARGUMENT
-  do ii=1,command_argument_count()
-    call get_command_argument(ii, arg)
-    !write(std_out,*)"arg", TRIM(arg)
-
-    if (arg == "-v" .or. arg == "--version") then
-      write(std_out,*)TRIM(abinit_version)
-      args%exit = args%exit + 1
-
-    else if (arg == "-b" .or. arg == "--build") then
-      !call dump_cpp_options(std_out)
-      !call dump_config(std_out)
-      !call dump_optim(std_out)
-
-      args%exit = args%exit + 1
-
-    else if (arg == "-d" .or. arg == "--dry-run") then
-      args%dry_run = 1
-
-    else if (arg == "-j" .or. arg == "--omp-num-threads") then
-      call get_command_argument(ii+1, arg)
-      call xomp_set_num_threads(atoi(arg))
-
-    else if (arg == "--ieee-halt") then
-      call xieee_halt_ifexc(.True.)
-
-    else if (arg == "--ieee-signal") then
-      call xieee_signal_ifexc(.True.)
-
-    else if (arg == "--gnu-mtrace") then
-#ifdef HAVE_CLIB
-      call clib_mtrace(ierr)
-      if (ierr/=0) write(std_out,"(a,i0)")"clib_mtrace returned ierr: ",ierr 
-#else
-      write(std_out,*)"mtrace is not available. Ignoring --gnu-mtrace option"
-#endif
-
-    else if (arg == "-h" .or. arg == "--help") then
-      ! Document the options.
-      write(std_out,*)"-v, --version          --> Show version number and exit."
-      write(std_out,*)"-b, --build            --> Show build parameters and exit."
-      write(std_out,*)"-d, --dry-run          --> Validate input file and exit."
-      write(std_out,*)"-j, --omp-num-threads  --> Set the number of OpenMp threads."
-      write(std_out,*)"--ieee-halt            --> Halt the code if one of the *usual* IEEE exceptions is raised."
-      write(std_out,*)"--ieee-signal          --> Signal the occurrence of the *usual* IEEE exceptions."
-      write(std_out,*)"--gnu-mtrace           --> Enable mtrace (requires GNU and clib)."
-      write(std_out,*)"-h, --help             --> Show this help and exit."
-      args%exit = args%exit + 1
-
-    else
-      continue
-      !MSG_WARNING("Wrong argument: "//TRIM(arg))
-      !args%exit = args%exit + 1
-    end if
-  end do 
-
-#else
-  write(std_out,*)"get_command_argument is not supported by FC. Ignoring command lines options!"
-#endif
-
-end subroutine args_parser
-!!***
+!----------------------------------------------------------------------
 
 !!****f* m_errors/xlf_set_sighandler
 !! NAME

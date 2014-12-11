@@ -14,17 +14,9 @@
 !!  GNU General Public License, see ~ABINIT/COPYING
 !!  or http://www.gnu.org/copyleft/gpl.txt .
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_bcast
-!!
 !! SOURCE
 
 subroutine xmpi_bcast_intv(xval,master,spaceComm,ier)
-
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -77,7 +69,6 @@ end subroutine xmpi_bcast_intv
 !! SOURCE
 subroutine xmpi_bcast_int1d(xval,master,spaceComm,ier)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -88,9 +79,10 @@ subroutine xmpi_bcast_int1d(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments ------------------------------------
- integer,intent(inout) :: xval(:)
+ integer, DEV_CONTARRD intent(inout) :: xval(:)
  integer,intent(in) :: spaceComm,master
  integer,intent(out) :: ier
+
 !Local variables-------------------------------
  integer :: n
 
@@ -132,7 +124,6 @@ end subroutine xmpi_bcast_int1d
 !! SOURCE
 subroutine xmpi_bcast_int2d(xval,master,spaceComm,ier)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -143,7 +134,7 @@ subroutine xmpi_bcast_int2d(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- integer,intent(inout) :: xval(:,:)
+ integer, DEV_CONTARRD intent(inout) :: xval(:,:)
  integer,intent(in) :: spaceComm,master
  integer,intent(out) :: ier
 
@@ -162,6 +153,7 @@ subroutine xmpi_bcast_int2d(xval,master,spaceComm,ier)
    call MPI_BCAST(xval,n1*n2,MPI_INTEGER,master,spaceComm,ier)
  end if
 #endif
+
 end subroutine xmpi_bcast_int2d
 !!***
 
@@ -192,7 +184,6 @@ end subroutine xmpi_bcast_int2d
 subroutine xmpi_bcast_int3d(xval,master,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -203,7 +194,7 @@ subroutine xmpi_bcast_int3d(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- integer,intent(inout) :: xval(:,:,:)
+ integer, DEV_CONTARRD intent(inout) :: xval(:,:,:)
  integer,intent(in) :: spaceComm,master
  integer,intent(out) :: ier
 
@@ -250,10 +241,10 @@ end subroutine xmpi_bcast_int3d
 !!      mpi_bcast
 !!
 !! SOURCE
+
 subroutine xmpi_bcast_dpv(xval,master,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -308,7 +299,6 @@ end subroutine xmpi_bcast_dpv
 subroutine xmpi_bcast_dp1d(xval,master,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -319,7 +309,7 @@ subroutine xmpi_bcast_dp1d(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:)
  integer ,intent(in) :: spaceComm,master
  integer ,intent(out) :: ier
 
@@ -359,16 +349,9 @@ end subroutine xmpi_bcast_dp1d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_bcast
-!!
 !! SOURCE
+
 subroutine xmpi_bcast_dp2d(xval,master,spaceComm,ier)
-
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -379,7 +362,7 @@ subroutine xmpi_bcast_dp2d(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:,:)
  integer ,intent(in) :: spaceComm,master
  integer ,intent(out) :: ier
 
@@ -420,16 +403,11 @@ end subroutine xmpi_bcast_dp2d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_bcast
-!!
 !! SOURCE
+
 subroutine xmpi_bcast_dp3d(xval,master,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -440,7 +418,7 @@ subroutine xmpi_bcast_dp3d(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:,:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:,:,:)
  integer ,intent(in) :: spaceComm,master
  integer ,intent(out) :: ier
 
@@ -482,16 +460,9 @@ end subroutine xmpi_bcast_dp3d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_bcast
-!!
 !! SOURCE
+
 subroutine xmpi_bcast_dp4d(xval,master,spaceComm,ier)
-
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -502,7 +473,7 @@ subroutine xmpi_bcast_dp4d(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:,:,:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:,:,:,:)
  integer ,intent(in) :: spaceComm,master
  integer ,intent(out) :: ier
 
@@ -545,15 +516,10 @@ end subroutine xmpi_bcast_dp4d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_bcast
-!!
 !! SOURCE
+
 subroutine xmpi_bcast_spv(xval,master,spaceComm,ier)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -565,11 +531,9 @@ implicit none
 
 
 !Arguments-------------------------
- real,intent(inout) :: xval
+ real(sp),intent(inout) :: xval
  integer,intent(in) :: spaceComm,master
  integer,intent(out) :: ier
-
-!Local variables-------------------
 
 ! *************************************************************************
 
@@ -601,16 +565,10 @@ end subroutine xmpi_bcast_spv
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_bcast
-!!
 !! SOURCE
+
 subroutine xmpi_bcast_sp1d(xval,master,spaceComm,ier)
 
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -621,7 +579,7 @@ subroutine xmpi_bcast_sp1d(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real,intent(inout) :: xval(:)
+ real(sp), DEV_CONTARRD intent(inout) :: xval(:)
  integer ,intent(in) :: spaceComm,master
  integer ,intent(out) :: ier
 
@@ -661,16 +619,11 @@ end subroutine xmpi_bcast_sp1d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_bcast
-!!
 !! SOURCE
+
 subroutine xmpi_bcast_sp2d(xval,master,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -681,7 +634,7 @@ subroutine xmpi_bcast_sp2d(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real,intent(inout) :: xval(:,:)
+ real(sp), DEV_CONTARRD intent(inout) :: xval(:,:)
  integer ,intent(in) :: spaceComm,master
  integer ,intent(out) :: ier
 
@@ -722,16 +675,11 @@ end subroutine xmpi_bcast_sp2d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_bcast
-!!
 !! SOURCE
+
 subroutine xmpi_bcast_sp3d(xval,master,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -742,7 +690,7 @@ subroutine xmpi_bcast_sp3d(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real,intent(inout) :: xval(:,:,:)
+ real(sp), DEV_CONTARRD intent(inout) :: xval(:,:,:)
  integer ,intent(in) :: spaceComm,master
  integer ,intent(out) :: ier
 
@@ -784,16 +732,11 @@ end subroutine xmpi_bcast_sp3d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_bcast
-!!
 !! SOURCE
+
 subroutine xmpi_bcast_sp4d(xval,master,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -804,7 +747,7 @@ subroutine xmpi_bcast_sp4d(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real,intent(inout) :: xval(:,:,:,:)
+ real(sp), DEV_CONTARRD intent(inout) :: xval(:,:,:,:)
  integer ,intent(in) :: spaceComm,master
  integer ,intent(out) :: ier
 
@@ -856,7 +799,6 @@ end subroutine xmpi_bcast_sp4d
 subroutine xmpi_bcast_cplxv(xval,master,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -867,7 +809,7 @@ subroutine xmpi_bcast_cplxv(xval,master,spaceComm,ier)
 implicit none
 
 !Arguments-------------------------
- complex,intent(inout) :: xval
+ complex(spc),intent(inout) :: xval
  integer ,intent(in) :: spaceComm,master
  integer ,intent(out) :: ier
 
@@ -912,7 +854,6 @@ end subroutine xmpi_bcast_cplxv
 subroutine xmpi_bcast_cplx1d(xval,master,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -923,7 +864,7 @@ subroutine xmpi_bcast_cplx1d(xval,master,spaceComm,ier)
 implicit none
 
 !Arguments-------------------------
- complex,intent(inout) :: xval(:)
+ complex(spc), DEV_CONTARRD intent(inout) :: xval(:)
  integer ,intent(in) :: spaceComm,master
  integer ,intent(out) :: ier
 
@@ -963,16 +904,9 @@ end subroutine xmpi_bcast_cplx1d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_bcast
-!!
 !! SOURCE
+
 subroutine xmpi_bcast_cplx2d(xval,master,spaceComm,ier)
-
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -983,7 +917,7 @@ subroutine xmpi_bcast_cplx2d(xval,master,spaceComm,ier)
 implicit none
 
 !Arguments-------------------------
- complex,intent(inout) :: xval(:,:)
+ complex(spc), DEV_CONTARRD intent(inout) :: xval(:,:)
  integer ,intent(in) :: spaceComm,master
  integer ,intent(out) :: ier
 
@@ -1024,16 +958,11 @@ end subroutine xmpi_bcast_cplx2d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_bcast
-!!
 !! SOURCE
+
 subroutine xmpi_bcast_cplx3d(xval,master,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1044,7 +973,7 @@ subroutine xmpi_bcast_cplx3d(xval,master,spaceComm,ier)
 implicit none
 
 !Arguments-------------------------
- complex,intent(inout) :: xval(:,:,:)
+ complex(spc), DEV_CONTARRD intent(inout) :: xval(:,:,:)
  integer ,intent(in) :: spaceComm,master
  integer ,intent(out) :: ier
 
@@ -1086,16 +1015,8 @@ end subroutine xmpi_bcast_cplx3d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_bcast
-!!
 !! SOURCE
 subroutine xmpi_bcast_cplx4d(xval,master,spaceComm,ier)
-
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1103,10 +1024,10 @@ subroutine xmpi_bcast_cplx4d(xval,master,spaceComm,ier)
 #define ABI_FUNC 'xmpi_bcast_cplx4d'
 !End of the abilint section
 
-implicit none
+ implicit none
 
 !Arguments-------------------------
- complex,intent(inout) :: xval(:,:,:,:)
+ complex(spc), DEV_CONTARRD intent(inout) :: xval(:,:,:,:)
  integer ,intent(in) :: spaceComm,master
  integer ,intent(out) :: ier
 
@@ -1149,16 +1070,11 @@ end subroutine xmpi_bcast_cplx4d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_bcast
-!!
 !! SOURCE
+
 subroutine xmpi_bcast_dcv(xval,master,spaceComm,ier)
 
 
-use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1172,8 +1088,6 @@ implicit none
  complex(dpc),intent(inout):: xval
  integer ,intent(in) :: spaceComm,master
  integer ,intent(out) :: ier
-
-!Local variables-------------------
 
 ! *************************************************************************
 
@@ -1205,15 +1119,10 @@ end subroutine xmpi_bcast_dcv
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_bcast
-!!
 !! SOURCE
+
 subroutine xmpi_bcast_dc1d(xval,master,spaceComm,ier)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1224,7 +1133,7 @@ subroutine xmpi_bcast_dc1d(xval,master,spaceComm,ier)
 implicit none
 
 !Arguments-------------------------
- complex(dpc),intent(inout):: xval(:)
+ complex(dpc), DEV_CONTARRD intent(inout):: xval(:)
  integer ,intent(in) :: spaceComm,master
  integer ,intent(out) :: ier
 
@@ -1264,16 +1173,10 @@ end subroutine xmpi_bcast_dc1d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_bcast
 !!
 !! SOURCE
+
 subroutine xmpi_bcast_dc2d(xval,master,spaceComm,ier)
-
-
-use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1284,7 +1187,7 @@ use defs_basis
 implicit none
 
 !Arguments-------------------------
- complex(dpc),intent(inout):: xval(:,:)
+ complex(dpc), DEV_CONTARRD intent(inout):: xval(:,:)
  integer ,intent(in) :: spaceComm,master
  integer ,intent(out) :: ier
 
@@ -1325,16 +1228,9 @@ end subroutine xmpi_bcast_dc2d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_bcast
-!!
 !! SOURCE
+
 subroutine xmpi_bcast_dc3d(xval,master,spaceComm,ier)
-
-
-use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1346,7 +1242,7 @@ implicit none
 
 
 !Arguments-------------------------
- complex(dpc),intent(inout):: xval(:,:,:)
+ complex(dpc), DEV_CONTARRD intent(inout):: xval(:,:,:)
  integer ,intent(in) :: spaceComm,master
  integer ,intent(out) :: ier
 
@@ -1388,16 +1284,9 @@ end subroutine xmpi_bcast_dc3d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_bcast
-!!
 !! SOURCE
+
 subroutine xmpi_bcast_dc4d(xval,master,spaceComm,ier)
-
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1408,7 +1297,7 @@ subroutine xmpi_bcast_dc4d(xval,master,spaceComm,ier)
 implicit none
 
 !Arguments-------------------------
- complex(dpc),intent(inout) :: xval(:,:,:,:)
+ complex(dpc), DEV_CONTARRD intent(inout) :: xval(:,:,:,:)
  integer,intent(in) :: spaceComm,master
  integer,intent(out) :: ier
 
@@ -1451,16 +1340,9 @@ end subroutine xmpi_bcast_dc4d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_bcast
-!!
 !! SOURCE
+
 subroutine xmpi_bcast_ch0d(xval,master,spaceComm,ier)
-
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1514,16 +1396,8 @@ end subroutine xmpi_bcast_ch0d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_bcast
-!!
 !! SOURCE
 subroutine xmpi_bcast_ch1d(xval,master,spaceComm,ier)
-
-
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1534,7 +1408,7 @@ subroutine xmpi_bcast_ch1d(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- Character(len=*),intent(inout) :: xval(:)
+ Character(len=*), DEV_CONTARRD intent(inout) :: xval(:)
  integer,intent(in) :: spaceComm,master
  integer,intent(out) :: ier
 
@@ -1575,17 +1449,11 @@ end subroutine xmpi_bcast_ch1d
 !! OUTPUT
 !!  ier= exit status, a non-zero value meaning there is an error
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_bcast
-!!
 !! SOURCE
 
 subroutine xmpi_bcast_log0d(xval,master,spaceComm,ier)
 
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1611,3 +1479,205 @@ subroutine xmpi_bcast_log0d(xval,master,spaceComm,ier)
 
 end subroutine xmpi_bcast_log0d
 !!***
+
+!!****f* ABINIT/xmpi_bcast_coeffi2_1d
+!! NAME
+!!  xmpi_bcast_coeffi2_1d
+!!
+!! FUNCTION
+!!  Broadcasts data from master to slaves.
+!!  Target: type(coeffi2) 1D-arrays.
+!!
+!! INPUTS
+!!  spaceComm= MPI communicator
+!!  master= master MPI node
+!!
+!! OUTPUT
+!!  ier= exit status, a non-zero value meaning there is an error
+!!
+!! SIDE EFFECTS
+!!  xval= buffer array
+!!
+!! SOURCE
+
+subroutine xmpi_bcast_coeffi2_1d(xval,master,spaceComm,ier)
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xmpi_bcast_coeffi2_1d'
+!End of the abilint section
+
+ implicit none
+
+!Arguments-------------------------
+ type(coeffi2_type), intent(inout) :: xval(:)
+ integer ,intent(in) :: spaceComm,master
+ integer ,intent(out) :: ier
+
+!Local variables-------------------
+#if defined HAVE_MPI
+ integer :: ii,jj,kk,me,n0,n1,n2,siztot
+ integer,allocatable :: mpibuf(:),siz(:,:)
+#endif
+
+! *************************************************************************
+
+ ier=0
+#if defined HAVE_MPI
+ if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
+   me=xcomm_rank(spaceComm)
+
+!  Broadcast xval%value sizes
+   n0=size(xval)
+   ABI_ALLOCATE(siz,(2,n0))
+   if (me==master) then
+     do ii=1,n0
+       siz(1,ii)=size(xval(ii)%value,1)
+       siz(2,ii)=size(xval(ii)%value,2)
+     end do
+   end if
+   call MPI_BCAST(siz,2*n0,MPI_INTEGER,master,spaceComm,ier)
+   siztot=0
+   do ii=1,n0
+     siztot=siztot+siz(1,ii)*siz(2,ii)
+   end do
+
+!  Fill in the buffer
+   ABI_ALLOCATE(mpibuf,(siztot))
+   if (me==master) then
+     jj=0
+     do ii=1,n0
+       n1=siz(1,ii);n2=siz(2,ii)
+       do kk=1,n2
+         mpibuf(jj+1:jj+n1)=xval(ii)%value(1:n1,kk)
+         jj=jj+n1
+       end do
+     end do
+   end if
+
+!  Broadcast the data
+   call MPI_BCAST(mpibuf,siztot,MPI_INTEGER,master,spaceComm,ier)
+
+!  Retrieve the buffer
+   jj=0
+   do ii=1,n0
+     n1=siz(1,ii);n2=siz(2,ii)
+     if (.not.allocated(xval(ii)%value)) then
+       ABI_ALLOCATE(xval(ii)%value,(n1,n2))
+     end if
+     do kk=1,n2
+       xval(ii)%value(1:n1,kk)=mpibuf(jj+1:jj+n1)
+       jj=jj+n1
+     end do
+   end do
+   ABI_DEALLOCATE(siz)
+   ABI_DEALLOCATE(mpibuf)
+
+ end if
+#endif
+
+end subroutine xmpi_bcast_coeffi2_1d
+!!***
+
+!!****f* ABINIT/xmpi_bcast_coeff2_1d
+!! NAME
+!!  xmpi_bcast_coeff2_1d
+!!
+!! FUNCTION
+!!  Broadcasts data from master to slaves.
+!!  Target: type(coeff2) 1D-arrays.
+!!
+!! INPUTS
+!!  spaceComm= MPI communicator
+!!  master= master MPI node
+!!
+!! OUTPUT
+!!  ier= exit status, a non-zero value meaning there is an error
+!!
+!! SIDE EFFECTS
+!!  xval= buffer array
+!!
+!! SOURCE
+
+subroutine xmpi_bcast_coeff2_1d(xval,master,spaceComm,ier)
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'xmpi_bcast_coeff2_1d'
+!End of the abilint section
+
+ implicit none
+
+!Arguments-------------------------
+ type(coeff2_type), intent(inout) :: xval(:)
+ integer ,intent(in) :: spaceComm,master
+ integer ,intent(out) :: ier
+
+!Local variables-------------------
+#if defined HAVE_MPI
+ integer :: ii,jj,kk,me,n0,n1,n2,siztot
+ integer,allocatable :: siz(:,:)
+ real(dp),allocatable :: mpibuf(:)
+#endif
+
+! *************************************************************************
+
+ ier=0
+#if defined HAVE_MPI
+ if (spaceComm /= MPI_COMM_SELF .and. spaceComm /= MPI_COMM_NULL) then
+   me=xcomm_rank(spaceComm)
+
+!  Broadcast xval%value sizes
+   n0=size(xval)
+   ABI_ALLOCATE(siz,(2,n0))
+   if (me==master) then
+     do ii=1,n0
+       siz(1,ii)=size(xval(ii)%value,1)
+       siz(2,ii)=size(xval(ii)%value,2)
+     end do
+   end if
+   call MPI_BCAST(siz,2*n0,MPI_INTEGER,master,spaceComm,ier)
+   siztot=0
+   do ii=1,n0
+     siztot=siztot+siz(1,ii)*siz(2,ii)
+   end do
+
+!  Fill in the buffer
+   ABI_ALLOCATE(mpibuf,(siztot))
+   if (me==master) then
+     jj=0
+     do ii=1,n0
+       n1=siz(1,ii);n2=siz(2,ii)
+       do kk=1,n2
+         mpibuf(jj+1:jj+n1)=xval(ii)%value(1:n1,kk)
+         jj=jj+n1
+       end do
+     end do
+   end if
+
+!  Broadcast the data
+   call MPI_BCAST(mpibuf,siztot,MPI_DOUBLE_PRECISION,master,spaceComm,ier)
+
+!  Retrieve the buffer
+   jj=0
+   do ii=1,n0
+     n1=siz(1,ii);n2=siz(2,ii)
+     if (.not.allocated(xval(ii)%value)) then
+       ABI_ALLOCATE(xval(ii)%value,(n1,n2))
+     end if
+     do kk=1,n2
+       xval(ii)%value(1:n1,kk)=mpibuf(jj+1:jj+n1)
+       jj=jj+n1
+     end do
+   end do
+   ABI_DEALLOCATE(siz)
+   ABI_DEALLOCATE(mpibuf)
+
+ end if
+#endif
+
+end subroutine xmpi_bcast_coeff2_1d
+!!***
+

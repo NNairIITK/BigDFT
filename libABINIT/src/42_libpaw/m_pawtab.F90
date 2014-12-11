@@ -30,39 +30,13 @@ MODULE m_pawtab
 
  use defs_basis
  use m_errors
- use m_profiling
+ use m_profiling_abi
  use m_xmpi
 
  implicit none
 
  private
-
-!public procedures.
- public :: pawtab_nullify
- public :: pawtab_destroy
- public :: pawtab_set_flags
- public :: pawtab_print
- public :: pawtab_bcast
- public :: wvlpaw_allocate
- public :: wvlpaw_destroy
- public :: wvlpaw_nullify
- public :: wvlpaw_rholoc_destroy
- public :: wvlpaw_rholoc_nullify
-
- interface pawtab_nullify
-   module procedure pawtab_nullify_0D
-   module procedure pawtab_nullify_1D
- end interface pawtab_nullify
-
- interface pawtab_destroy
-   module procedure pawtab_destroy_0D
-   module procedure pawtab_destroy_1D
- end interface pawtab_destroy
-
- interface pawtab_set_flags
-   module procedure pawtab_set_flags_0D
-   module procedure pawtab_set_flags_1D
- end interface pawtab_set_flags
+ public :: pawtab_get_lsize
 !!***
 
 !----------------------------------------------------------------------
@@ -78,11 +52,19 @@ MODULE m_pawtab
 
  type,public :: wvlpaw_rholoc_type
 
-  integer :: msz             ! mesh size 
-  real(dp),pointer :: d(:,:) ! local rho and derivatives
-  real(dp),pointer :: rad(:) ! radial mesh 
+  integer :: msz             
+! mesh size 
+
+  real(dp),pointer :: d(:,:) => null() 
+! local rho and derivatives
+
+  real(dp),pointer :: rad(:) => null()
+! radial mesh 
 
  end type wvlpaw_rholoc_type
+
+ public :: wvlpaw_rholoc_free   ! Free memory
+ public :: wvlpaw_rholoc_nullify   
 !!***
 
 !----------------------------------------------------------------------
@@ -116,10 +98,10 @@ MODULE m_pawtab
 
 !Real pointers
 
-  real(dp),pointer :: parg(:,:)
+  real(dp),pointer :: parg(:,:) => null()
    !argument of Gaussians
 
-  real(dp),pointer :: pfac(:,:)
+  real(dp),pointer :: pfac(:,:) => null()
    !factors of Gaussians
 
 !Other scalars
@@ -128,6 +110,10 @@ MODULE m_pawtab
    ! local density
 
  end type wvlpaw_type
+
+ public :: wvlpaw_allocate  ! Allocate memory
+ public :: wvlpaw_free   ! Free memory
+ public :: wvlpaw_nullify  
 !!***
 
 !----------------------------------------------------------------------
@@ -151,6 +137,10 @@ MODULE m_pawtab
 
   integer :: basis_size
    ! Number of elements for the paw nl basis on the considered atom type
+
+  integer :: has_fock
+   ! if 1, onsite matrix elements of the core-valence Fock operator are allocated
+   ! if 2, onsite matrix elements of the core-valence Fock operator are computed and stored
 
   integer :: has_kij
    ! if 1, onsite matrix elements of the kinetic operator are allocated
@@ -256,6 +246,10 @@ MODULE m_pawtab
    ! useexexch=0 ; do not use local exact-exchange
    ! useexexch=1 ; use local exact-exchange
 
+  integer :: usefock
+   ! usefock=0 ; do not use Fock exact exchange term
+   ! usefock=1 ; use use Fock exact exchange term
+
   integer :: usepawu
    ! usepawu=0 ; do not use PAW+U formalism
    ! usepawu=1 ; use PAW+U formalism (Full localized limit)
@@ -290,6 +284,9 @@ MODULE m_pawtab
   real(dp) :: dnvdq0
    ! Gives 1/q d(tNvale(q))/dq for q=0
    ! (tNvale(q) = FT of pseudo valence density)
+
+  real(dp) :: ex_cc
+   ! Exchange energy for the core-core interaction of the Fock operator
 
   real(dp) :: exccore
    ! Exchange-correlation energy for the core density
@@ -337,7 +334,7 @@ MODULE m_pawtab
    ! Note: ilmn=(il,im,in) and ilmn<=jlmn
 
   integer, allocatable :: indlmn(:,:) 
-   ! indlmn(6,lmn2_size)
+   ! indlmn(6,lmn_size)
    ! For each type of psp,
    ! array giving l,m,n,lm,ln,spin for i=lmn (if useylm=1)
 
@@ -385,6 +382,10 @@ MODULE m_pawtab
    ! eijkl(lmn2_size,lmn2_size)
    ! Part of the Dij term (non-local operator) that depends only from
    ! the projected occupation coeffs in the self-consistent loop
+
+  real(dp), allocatable :: ex_cvij(:)
+  ! ex_cvij(lmn2_size))
+  ! Onsite exact_exchange matrix elements for core-valence interactions of the Fock operator
 
   real(dp), allocatable :: fk(:,:)
    ! fk(6,4)
@@ -517,11 +518,30 @@ MODULE m_pawtab
    ! good approximation to model wave function outside PAW-sphere through
 
  end type pawtab_type
+
+ public :: pawtab_nullify
+ public :: pawtab_free      ! Free memory
+ public :: pawtab_set_flags    ! Set the value of the internal flags
+ public :: pawtab_print        ! Printout of the object.
+ public :: pawtab_bcast        ! MPI broadcast the object
+
+ interface pawtab_nullify
+   module procedure pawtab_nullify_0D
+   module procedure pawtab_nullify_1D
+ end interface pawtab_nullify
+
+ interface pawtab_free
+   module procedure pawtab_free_0D
+   module procedure pawtab_free_1D
+ end interface pawtab_free
+
+ interface pawtab_set_flags
+   module procedure pawtab_set_flags_0D
+   module procedure pawtab_set_flags_1D
+ end interface pawtab_set_flags
 !!***
 
-CONTAINS
-
-!===========================================================
+CONTAINS !===========================================================
 !!***
 
 !----------------------------------------------------------------------
@@ -570,6 +590,7 @@ subroutine pawtab_nullify_0D(Pawtab)
  ! === Reset all flags and sizes ===
 
 !Flags controlling optional arrays
+ Pawtab%has_fock=0
  Pawtab%has_kij=0
  Pawtab%has_tproj=0
  Pawtab%has_tvale=0
@@ -608,7 +629,7 @@ end subroutine pawtab_nullify_0D
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawtap/pawtab_nullify_1D
+!!****f* m_pawtab/pawtab_nullify_1D
 !! NAME
 !!  pawtab_nullify_1D
 !!
@@ -654,9 +675,9 @@ end subroutine pawtab_nullify_1D
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawtab/pawtab_destroy_0D
+!!****f* m_pawtab/pawtab_free_0D
 !! NAME
-!!  pawtab_destroy_0D
+!!  pawtab_free_0D
 !!
 !! FUNCTION
 !!  Deallocate pointers and nullify flags in a pawtab structure
@@ -672,13 +693,13 @@ end subroutine pawtab_nullify_1D
 !!
 !! SOURCE
 
-subroutine pawtab_destroy_0D(Pawtab)
+subroutine pawtab_free_0D(Pawtab)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawtab_destroy_0D'
+#define ABI_FUNC 'pawtab_free_0D'
 !End of the abilint section
 
  implicit none
@@ -731,6 +752,9 @@ subroutine pawtab_destroy_0D(Pawtab)
  end if
  if (allocated(Pawtab%gnorm))  then
    ABI_DEALLOCATE(Pawtab%gnorm)
+ end if
+ if (allocated(Pawtab%ex_cvij))  then
+   ABI_DEALLOCATE(Pawtab%ex_cvij)
  end if
  if (allocated(Pawtab%kij))  then
    ABI_DEALLOCATE(Pawtab%kij)
@@ -815,7 +839,7 @@ subroutine pawtab_destroy_0D(Pawtab)
  end if
 
  ! MGPAW: Check this one!
- call wvlpaw_destroy(Pawtab%wvl)
+ call wvlpaw_free(Pawtab%wvl)
  !Pawtab%wvl => null()
 
  ! === Reset all flags and sizes ===
@@ -855,14 +879,14 @@ subroutine pawtab_destroy_0D(Pawtab)
  Pawtab%tnvale_mesh_size=0
  Pawtab%shape_type=-10
  
-end subroutine pawtab_destroy_0D
+end subroutine pawtab_free_0D
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawtap/pawtab_destroy_1D
+!!****f* m_pawtab/pawtab_free_1D
 !! NAME
-!!  pawtab_destroy_1D
+!!  pawtab_free_1D
 !!
 !! FUNCTION
 !!  Destroy (deallocate) all pointers in an array of pawtab data structures
@@ -873,13 +897,13 @@ end subroutine pawtab_destroy_0D
 !!
 !! SOURCE
 
-subroutine pawtab_destroy_1D(Pawtab)
+subroutine pawtab_free_1D(Pawtab)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'pawtab_destroy_1D'
+#define ABI_FUNC 'pawtab_free_1D'
 !End of the abilint section
 
  implicit none
@@ -898,15 +922,15 @@ subroutine pawtab_destroy_1D(Pawtab)
  if (nn==0) return
 
  do ii=1,nn
-   call pawtab_destroy_0D(Pawtab(ii))
+   call pawtab_free_0D(Pawtab(ii))
  end do
 
-end subroutine pawtab_destroy_1D
+end subroutine pawtab_free_1D
 !!***
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawtap/pawtab_set_flags_0D
+!!****f* m_pawtab/pawtab_set_flags_0D
 !! NAME
 !!  pawtab_set_flags_0D
 !!
@@ -919,7 +943,7 @@ end subroutine pawtab_destroy_1D
 !!
 !! SOURCE
 
-subroutine pawtab_set_flags_0D(Pawtab,has_kij,has_tproj,has_tvale,has_vhnzc,&
+subroutine pawtab_set_flags_0D(Pawtab,has_fock,has_kij,has_tproj,has_tvale,has_vhnzc,&
 &                              has_vhtnzc,has_nabla,has_shapefncg,has_wvl)
 
 
@@ -932,7 +956,7 @@ subroutine pawtab_set_flags_0D(Pawtab,has_kij,has_tproj,has_tvale,has_vhnzc,&
  implicit none
 
 !Arguments ------------------------------------
- integer,intent(in),optional :: has_kij,has_tproj,has_tvale,has_vhnzc,has_vhtnzc
+ integer,intent(in),optional :: has_fock,has_kij,has_tproj,has_tvale,has_vhnzc,has_vhtnzc
  integer,intent(in),optional :: has_nabla,has_shapefncg,has_wvl
  type(pawtab_type),intent(inout) :: Pawtab
 
@@ -942,6 +966,7 @@ subroutine pawtab_set_flags_0D(Pawtab,has_kij,has_tproj,has_tvale,has_vhnzc,&
 
  !@pawtab_type
 
+ Pawtab%has_fock      =0
  Pawtab%has_kij      =0
  Pawtab%has_tproj    =0
  Pawtab%has_tvale    =0
@@ -950,6 +975,7 @@ subroutine pawtab_set_flags_0D(Pawtab,has_kij,has_tproj,has_tvale,has_vhnzc,&
  Pawtab%has_nabla    =0
  Pawtab%has_shapefncg=0
  Pawtab%has_wvl      =0
+ if (present(has_fock))     Pawtab%has_fock=has_fock
  if (present(has_kij))      Pawtab%has_kij=has_kij
  if (present(has_tproj))    Pawtab%has_tproj=has_tproj
  if (present(has_tvale))    Pawtab%has_tvale=has_tvale
@@ -964,9 +990,9 @@ end subroutine pawtab_set_flags_0D
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawtap/pawtab_set_flags_1D
+!!****f* m_pawtab/pawtab_set_flags_1D
 !! NAME
-!!  pawtab_destroy_set_flags_1D
+!!  pawtab_set_flags_1D
 !!
 !! FUNCTION
 !!  Set flags controlling optional arrays in an array of pawtab datastructures
@@ -977,7 +1003,7 @@ end subroutine pawtab_set_flags_0D
 !!
 !! SOURCE
 
-subroutine pawtab_set_flags_1D(Pawtab,has_kij,has_tproj,has_tvale,has_vhnzc,&
+subroutine pawtab_set_flags_1D(Pawtab,has_fock,has_kij,has_tproj,has_tvale,has_vhnzc,&
 &                              has_vhtnzc,has_nabla,has_shapefncg,has_wvl)
 
 
@@ -990,7 +1016,7 @@ subroutine pawtab_set_flags_1D(Pawtab,has_kij,has_tproj,has_tvale,has_vhnzc,&
  implicit none
 
 !Arguments ------------------------------------
- integer,intent(in),optional :: has_kij,has_tproj,has_tvale,has_vhnzc,has_vhtnzc
+ integer,intent(in),optional :: has_fock,has_kij,has_tproj,has_tvale,has_vhnzc,has_vhtnzc
  integer,intent(in),optional :: has_nabla,has_shapefncg,has_wvl
  type(pawtab_type),intent(inout) :: Pawtab(:)
 
@@ -1005,6 +1031,7 @@ subroutine pawtab_set_flags_1D(Pawtab,has_kij,has_tproj,has_tvale,has_vhnzc,&
  if (nn==0) return
 
  do ii=1,nn
+   Pawtab(ii)%has_fock      =0
    Pawtab(ii)%has_kij      =0
    Pawtab(ii)%has_tproj    =0
    Pawtab(ii)%has_tvale    =0
@@ -1013,6 +1040,7 @@ subroutine pawtab_set_flags_1D(Pawtab,has_kij,has_tproj,has_tvale,has_vhnzc,&
    Pawtab(ii)%has_nabla    =0
    Pawtab(ii)%has_shapefncg=0
    Pawtab(ii)%has_wvl          =0
+   if (present(has_fock))     Pawtab(ii)%has_fock=has_fock
    if (present(has_kij))      Pawtab(ii)%has_kij=has_kij
    if (present(has_tproj))    Pawtab(ii)%has_tproj=has_tproj
    if (present(has_tvale))    Pawtab(ii)%has_tvale=has_tvale
@@ -1154,6 +1182,10 @@ subroutine pawtab_print(Pawtab,header,unit,prtvol,mode_paral)
   call wrtout(my_unt,msg,my_mode)
 
   ! "Has" flags
+  if (Pawtab(ityp)%has_fock/=0) then
+    write(msg,'(a,i4)')'  Has Fock   ..................................... ',Pawtab(ityp)%has_fock
+    call wrtout(my_unt,msg,my_mode)
+  end if
   write(msg,'(a,i4)')'  Has kij   ...................................... ',Pawtab(ityp)%has_kij
   call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,i4)')'  Has tproj ...................................... ',Pawtab(ityp)%has_tproj
@@ -1180,6 +1212,10 @@ subroutine pawtab_print(Pawtab,header,unit,prtvol,mode_paral)
   call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,es16.8)')'  1/q d(tNvale(q))/dq for q=0 .....................',Pawtab(ityp)%dnvdq0
   call wrtout(my_unt,msg,my_mode)
+  if (Pawtab(ityp)%has_fock/=0) then
+    write(msg,'(a,es16.8)')'  Core-core Fock energy  ..........................',Pawtab(ityp)%ex_cc
+    call wrtout(my_unt,msg,my_mode)
+  end if
   write(msg,'(a,es16.8)')'  XC energy for the core density ..................',Pawtab(ityp)%exccore
   call wrtout(my_unt,msg,my_mode)
   write(msg,'(a,es16.8)')'  Radius of the PAW sphere ........................',Pawtab(ityp)%rpaw
@@ -1210,6 +1246,100 @@ subroutine pawtab_print(Pawtab,header,unit,prtvol,mode_paral)
  ! The other (huge) arrays are not reported..
 
 end subroutine pawtab_print
+!!***
+
+!----------------------------------------------------------------------
+
+!!****f* m_pawtap/pawtab_get_lsize
+!! NAME
+!!  pawtab_get_lsize
+!!
+!! FUNCTION
+!!  From an array of pawtab datastructures, get, for each atom, the value
+!!  of "l_size" parameter.
+!!  l_size is the maximum value of l accessible by a product of 2 partial waves;
+!!  it may be cut by dtset%pawlcutd parameter
+!!
+!! INPUTS
+!!   [mpi_atmtab(:)]=--optional-- indexes of the atoms treated by current proc
+!!   natom= number of atoms (may be a local or absolute number of atoms)
+!!   typat(:)= list of atom types
+!!
+!! OUTPUT
+!!   l_size_atm(natom)=output array of l_size values (for each atom)
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!
+!! NOTES
+!!  This function returns an allocatable integer array which may be allocated
+!!  on the fly.
+!!
+!! SOURCE
+
+subroutine pawtab_get_lsize(Pawtab,l_size_atm,natom,typat, &
+&                           mpi_atmtab) ! Optional argument
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'pawtab_get_lsize'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+!scalars
+ integer,intent(in) :: natom
+!arrays
+ integer,intent(in) :: typat(:)
+ integer,optional,intent(in) :: mpi_atmtab(:)
+ integer,allocatable,intent(inout) :: l_size_atm(:)
+ type(pawtab_type),intent(in) :: pawtab(:)
+
+!Local variables-------------------------------
+ integer :: ia,ityp,natom_typat
+
+! *************************************************************************
+
+ !@pawtab_type
+
+ natom_typat=size(typat)
+ ABI_CHECK(size(pawtab)>=maxval(typat),'error on pawtab size!')
+
+ if (.not.allocated(l_size_atm)) then
+   ABI_ALLOCATE(l_size_atm,(natom))
+ else if (size(l_size_atm)/=natom) then
+   ABI_DEALLOCATE(l_size_atm)
+   ABI_ALLOCATE(l_size_atm,(natom))
+ end if
+
+ if (natom==0) return
+
+ if (natom==natom_typat) then
+
+!First case: sequential mode
+   do ia=1,natom
+     ityp=typat(ia)
+     l_size_atm(ia)=pawtab(ityp)%lcut_size
+   end do
+
+ else
+
+!2nd case: parallel mode
+   if (.not.present(mpi_atmtab)) then
+     MSG_BUG('optional args error!')
+   end if
+   do ia=1,natom
+     ityp=typat(mpi_atmtab(ia))
+     l_size_atm(ia)=pawtab(ityp)%lcut_size
+   end do
+
+ end if
+
+end subroutine pawtab_get_lsize
 !!***
 
 !----------------------------------------------------------------------
@@ -1259,13 +1389,13 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
  integer :: ierr,ii,me,nn_dpr,nn_dpr_arr,nn_int,nn_int_arr
  integer :: siz_indklmn,siz_indlmn,siz_klmntomn,siz_kmix,siz_lnproju,siz_orbitals
  integer :: siz_coredens,siz_dij0,siz_dltij,siz_dshpfunc,siz_eijkl,siz_fk,siz_gammaij,siz_gnorm
- integer :: siz_kij,siz_nabla_ij,siz_phi,siz_phiphj,siz_phiphjint,siz_ph0phiint
+ integer :: siz_fock,siz_kij,siz_nabla_ij,siz_phi,siz_phiphj,siz_phiphjint,siz_ph0phiint
  integer :: siz_qgrid_shp,siz_qijl,siz_rad_for_spline,siz_rhoij0,siz_shape_alpha
  integer :: siz_shape_q,siz_shapefunc,siz_shapefncg,siz_sij,siz_tcoredens,siz_tcorespl
  integer :: siz_tphi,siz_tphitphj,siz_tproj,siz_tvalespl,siz_vee,siz_vex,siz_vhtnzc
  integer :: siz_vhnzc,siz_zioneff
  integer :: siz_wvlpaw,siz_wvl_pngau,siz_wvl_parg,siz_wvl_pfac
- integer :: siz_wvl_rholoc_rad,siz_wvl_rholoc_d
+ integer :: siz_wvl_rholoc_rad,siz_wvl_rholoc_d,sz1,sz2
  logical :: full_broadcast
  character (len=500) :: msg,msg0
 !arrays
@@ -1289,10 +1419,10 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
 
 !Integers (read from psp file)
 !-------------------------------------------------------------------------
-!  basis_size,has_kij,has_shapefncg,has_nabla,has_tproj,has_tvale,has_vhtnzc
+!  basis_size,has_fock,has_kij,has_shapefncg,has_nabla,has_tproj,has_tvale,has_vhtnzc
 !  has_vhnzc,has_wvl,ij_size,l_size,lmn_size,lmn2_size,mesh_size,core_mesh_size
-!  tnvale_mesh_size,mqgrid,shape_lambda,shape_type,usetcore,usexcnhat
-   nn_int=nn_int+21
+!  tnvale_mesh_size,mqgrid,shape_lambda,shape_type,usefock,usetcore,usexcnhat
+   nn_int=nn_int+23
 
 !Integers (depending on the parameters of the calculation)
 !-------------------------------------------------------------------------
@@ -1301,8 +1431,8 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
 
 !Reals (read from psp file)
 !-------------------------------------------------------------------------
-!  beta,dncdq0,d2ncdq0,dnvdq0,exccore,rpaw,rshp,rcore,shape_sigma
-   nn_dpr=nn_dpr+9
+!  beta,dncdq0,d2ncdq0,dnvdq0,ex_cc,exccore,rpaw,rshp,rcore,shape_sigma
+   nn_dpr=nn_dpr+10
 
 !Reals (depending on the parameters of the calculation)
 !-------------------------------------------------------------------------
@@ -1353,7 +1483,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
 
 !Reals arrays (read from psp file)
 !-------------------------------------------------------------------------
-   siz_coredens=0 ; siz_dij0=0     ; siz_kij=0
+   siz_coredens=0 ; siz_dij0=0     ; siz_kij=0  ; siz_fock=0  
    siz_phi=0      ; siz_rhoij0=0   ; siz_shape_alpha=0
    siz_shape_q=0  ; siz_shapefunc=0; siz_tcoredens=0
    siz_tcorespl=0 ; siz_tphi=0     ; siz_tproj=0
@@ -1369,6 +1499,11 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      siz_dij0=size(pawtab%dij0)                     !(lmn2_size)
      if (siz_dij0/=pawtab%lmn2_size) msg=trim(msg)//' dij0'
      nn_dpr=nn_dpr+siz_dij0
+   end if
+   if (allocated(pawtab%ex_cvij)) then
+     siz_fock=size(pawtab%ex_cvij)                       !(lmn2_size)
+     if (siz_fock/=pawtab%lmn2_size) msg=trim(msg)//' fock'
+     nn_dpr=nn_dpr+siz_fock
    end if
    if (allocated(pawtab%kij)) then
      siz_kij=size(pawtab%kij)                       !(lmn2_size)
@@ -1635,6 +1770,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
    list_int(ii)=siz_orbitals  ;ii=ii+1
    list_int(ii)=siz_coredens  ;ii=ii+1
    list_int(ii)=siz_dij0  ;ii=ii+1
+   list_int(ii)=siz_fock  ;ii=ii+1
    list_int(ii)=siz_kij  ;ii=ii+1
    list_int(ii)=siz_phi  ;ii=ii+1
    list_int(ii)=siz_rhoij0  ;ii=ii+1
@@ -1651,6 +1787,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
    list_int(ii)=siz_wvlpaw  ;ii=ii+1
 !Integers (read from psp file)
    list_int(ii)=pawtab%basis_size  ;ii=ii+1
+   list_int(ii)=pawtab%has_fock  ;ii=ii+1
    list_int(ii)=pawtab%has_kij  ;ii=ii+1
    list_int(ii)=pawtab%has_shapefncg  ;ii=ii+1
    list_int(ii)=pawtab%has_nabla  ;ii=ii+1
@@ -1783,6 +1920,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
    siz_orbitals=list_int(ii)  ;ii=ii+1
    siz_coredens=list_int(ii)  ;ii=ii+1
    siz_dij0=list_int(ii)  ;ii=ii+1
+   siz_fock=list_int(ii)  ;ii=ii+1
    siz_kij=list_int(ii)  ;ii=ii+1
    siz_phi=list_int(ii)  ;ii=ii+1
    siz_rhoij0=list_int(ii)  ;ii=ii+1
@@ -1799,6 +1937,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
    siz_wvlpaw=list_int(ii)  ;ii=ii+1
 !Integers (read from psp file)
    pawtab%basis_size=list_int(ii)  ;ii=ii+1
+   pawtab%has_fock=list_int(ii)  ;ii=ii+1
    pawtab%has_kij=list_int(ii)  ;ii=ii+1
    pawtab%has_shapefncg=list_int(ii)  ;ii=ii+1
    pawtab%has_nabla=list_int(ii)  ;ii=ii+1
@@ -1961,6 +2100,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
    list_dpr(ii)=pawtab%dncdq0  ;ii=ii+1
    list_dpr(ii)=pawtab%d2ncdq0  ;ii=ii+1
    list_dpr(ii)=pawtab%dnvdq0  ;ii=ii+1
+   list_dpr(ii)=pawtab%ex_cc   ;ii=ii+1
    list_dpr(ii)=pawtab%exccore  ;ii=ii+1
    list_dpr(ii)=pawtab%rpaw  ;ii=ii+1
    list_dpr(ii)=pawtab%rshp  ;ii=ii+1
@@ -1974,6 +2114,10 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
    if (siz_dij0>0) then
      list_dpr(ii:ii+siz_dij0-1)=pawtab%dij0(1:siz_dij0)
      ii=ii+siz_dij0
+   end if
+   if (siz_fock>0) then
+     list_dpr(ii:ii+siz_fock-1)=pawtab%ex_cvij(1:siz_fock)
+     ii=ii+siz_fock
    end if
    if (siz_kij>0) then
      list_dpr(ii:ii+siz_kij-1)=pawtab%kij(1:siz_kij)
@@ -2166,6 +2310,7 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
    pawtab%dncdq0=list_dpr(ii)  ;ii=ii+1
    pawtab%d2ncdq0=list_dpr(ii)  ;ii=ii+1
    pawtab%dnvdq0=list_dpr(ii)  ;ii=ii+1
+   pawtab%ex_cc=list_dpr(ii)  ;ii=ii+1
    pawtab%exccore=list_dpr(ii)  ;ii=ii+1
    pawtab%rpaw=list_dpr(ii)  ;ii=ii+1
    pawtab%rshp=list_dpr(ii)  ;ii=ii+1
@@ -2187,6 +2332,14 @@ subroutine pawtab_bcast(pawtab,comm_mpi,only_from_file)
      ABI_ALLOCATE(pawtab%dij0,(pawtab%lmn2_size))
      pawtab%dij0=list_dpr(ii:ii+pawtab%lmn2_size-1)
      ii=ii+siz_dij0
+   end if
+   if (allocated(pawtab%ex_cvij)) then
+     ABI_DEALLOCATE(pawtab%ex_cvij)
+   end if
+   if (siz_fock>0) then
+     ABI_ALLOCATE(pawtab%ex_cvij,(pawtab%lmn2_size))
+     pawtab%ex_cvij=list_dpr(ii:ii+pawtab%lmn2_size-1)
+     ii=ii+siz_fock
    end if
    if (allocated(pawtab%kij)) then
      ABI_DEALLOCATE(pawtab%kij)
@@ -2564,9 +2717,9 @@ end subroutine wvlpaw_allocate
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawtab/wvlpaw_destroy
+!!****f* m_pawtab/wvlpaw_free
 !! NAME
-!!  wvlpaw_destroy
+!!  wvlpaw_free
 !!
 !! FUNCTION
 !!  Deallocate pointers and nullify flags in a wvlpaw structure
@@ -2582,13 +2735,13 @@ end subroutine wvlpaw_allocate
 !!
 !! SOURCE
 
-subroutine wvlpaw_destroy(wvlpaw)
+subroutine wvlpaw_free(wvlpaw)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'wvlpaw_destroy'
+#define ABI_FUNC 'wvlpaw_free'
 !End of the abilint section
 
  implicit none
@@ -2615,11 +2768,11 @@ subroutine wvlpaw_destroy(wvlpaw)
  wvlpaw%npspcode_init_guess=0
  wvlpaw%ptotgau=0
 
- call wvlpaw_rholoc_destroy(wvlpaw%rholoc)
+ call wvlpaw_rholoc_free(wvlpaw%rholoc)
 
  ABI_DATATYPE_DEALLOCATE(wvlpaw)
 
-end subroutine wvlpaw_destroy
+end subroutine wvlpaw_free
 !!***
 
 !----------------------------------------------------------------------
@@ -2658,7 +2811,6 @@ subroutine wvlpaw_nullify(wvlpaw)
 ! *************************************************************************
 
  !@wvlpaw_type
-
  if (.not.associated(wvlpaw)) return
 
  nullify(wvlpaw%pngau)
@@ -2675,9 +2827,9 @@ end subroutine wvlpaw_nullify
 
 !----------------------------------------------------------------------
 
-!!****f* m_pawtab/wvlpaw_rholoc_destroy
+!!****f* m_pawtab/wvlpaw_rholoc_free
 !! NAME
-!!  wvlpaw_rholoc_destroy
+!!  wvlpaw_rholoc_free
 !!
 !! FUNCTION
 !!  Deallocate pointers and nullify flags in a wvlpaw%rholoc structure
@@ -2687,19 +2839,19 @@ end subroutine wvlpaw_nullify
 !!  All associated pointers are deallocated.
 !!
 !! PARENTS
-!!      m_pawpsp,m_pawtab,psp7wvl1
+!!      m_pawpsp,m_pawtab
 !!
 !! CHILDREN
 !!
 !! SOURCE
 
-subroutine wvlpaw_rholoc_destroy(wvlpaw_rholoc)
+subroutine wvlpaw_rholoc_free(wvlpaw_rholoc)
 
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
 #undef ABI_FUNC
-#define ABI_FUNC 'wvlpaw_rholoc_destroy'
+#define ABI_FUNC 'wvlpaw_rholoc_free'
 !End of the abilint section
 
  implicit none
@@ -2720,7 +2872,7 @@ subroutine wvlpaw_rholoc_destroy(wvlpaw_rholoc)
 
  wvlpaw_rholoc%msz=0
 
-end subroutine wvlpaw_rholoc_destroy
+end subroutine wvlpaw_rholoc_free
 !!***
 
 !----------------------------------------------------------------------

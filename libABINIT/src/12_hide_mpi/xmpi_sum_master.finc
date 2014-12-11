@@ -36,16 +36,10 @@
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_comm_size,mpi_reduce
-!!
 !! SOURCE
 
 subroutine xmpi_sum_master_int(xval,master,spaceComm,ier)
 
- use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -101,17 +95,10 @@ end subroutine xmpi_sum_master_int
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_comm_size,mpi_reduce
-!!
 !! SOURCE
 
 subroutine xmpi_sum_master_dp1d(xval,master,spaceComm,ier)
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -122,10 +109,10 @@ subroutine xmpi_sum_master_dp1d(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:)
  integer ,intent(in) :: master
  integer ,intent(in) :: spaceComm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -171,17 +158,10 @@ end subroutine xmpi_sum_master_dp1d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_comm_size,mpi_reduce
-!!
 !! SOURCE
 
 subroutine xmpi_sum_master_dp2d(xval,master,spaceComm,ier)
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -192,10 +172,10 @@ subroutine xmpi_sum_master_dp2d(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:,:)
  integer ,intent(in) :: master
  integer ,intent(in) :: spaceComm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -242,16 +222,9 @@ end subroutine xmpi_sum_master_dp2d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_comm_size,mpi_reduce
-!!
 !! SOURCE
 subroutine xmpi_sum_master_dp3d(xval,master,spaceComm,ier)
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -262,10 +235,10 @@ subroutine xmpi_sum_master_dp3d(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:,:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:,:,:)
  integer ,intent(in) :: master
  integer ,intent(in) :: spaceComm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -292,6 +265,7 @@ subroutine xmpi_sum_master_dp3d(xval,master,spaceComm,ier)
    end if
  end if
 #endif
+
 end subroutine xmpi_sum_master_dp3d
 !!***
 
@@ -313,16 +287,9 @@ end subroutine xmpi_sum_master_dp3d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_comm_size,mpi_reduce
-!!
 !! SOURCE
 subroutine xmpi_sum_master_dp4d(xval,master,spaceComm,ier)
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -333,10 +300,10 @@ subroutine xmpi_sum_master_dp4d(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- real(dp),intent(inout) :: xval(:,:,:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:,:,:,:)
  integer ,intent(in) :: master
  integer ,intent(in) :: spaceComm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -386,16 +353,9 @@ end subroutine xmpi_sum_master_dp4d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_comm_size,mpi_reduce
-!!
 !! SOURCE
 subroutine xmpi_sum_master_dp5d(xval,master,spaceComm,ier)
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -406,10 +366,11 @@ subroutine xmpi_sum_master_dp5d(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments ------------------------------------
- real(dp),intent(inout) :: xval(:,:,:,:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:,:,:,:,:)
  integer ,intent(in) :: master
  integer ,intent(in) :: spaceComm
  integer ,intent(out)   :: ier
+
 !Local variables-------------------------------
 #if defined HAVE_MPI
  integer :: n1,n2,n3,n4,n5
@@ -459,16 +420,9 @@ end subroutine xmpi_sum_master_dp5d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_comm_size,mpi_reduce
-!!
 !! SOURCE
 subroutine xmpi_sum_master_dp6d(xval,master,spaceComm,ier)
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -479,10 +433,11 @@ subroutine xmpi_sum_master_dp6d(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments ------------------------------------
- real(dp),intent(inout) :: xval(:,:,:,:,:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:,:,:,:,:,:)
  integer ,intent(in) :: master
  integer ,intent(in) :: spaceComm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
+
 !Local variables-------------------------------
 #if defined HAVE_MPI
  integer :: n1,n2,n3,n4,n5,n6
@@ -533,16 +488,9 @@ end subroutine xmpi_sum_master_dp6d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_comm_size,mpi_reduce
-!!
 !! SOURCE
 subroutine xmpi_sum_master_dp7d(xval,master,spaceComm,ier)
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -553,10 +501,11 @@ subroutine xmpi_sum_master_dp7d(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments ------------------------------------
- real(dp),intent(inout) :: xval(:,:,:,:,:,:,:)
+ real(dp), DEV_CONTARRD intent(inout) :: xval(:,:,:,:,:,:,:)
  integer ,intent(in) :: master
  integer ,intent(in) :: spaceComm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
+
 !Local variables-------------------------------
 #if defined HAVE_MPI
  integer :: n1,n2,n3,n4,n5,n6,n7
@@ -608,16 +557,10 @@ end subroutine xmpi_sum_master_dp7d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_comm_size,mpi_reduce
-!!
 !! SOURCE
+
 subroutine xmpi_sum_master_int4d(xval,master,spaceComm,ier)
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -628,10 +571,10 @@ subroutine xmpi_sum_master_int4d(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments ------------------------------------
- integer ,intent(inout) :: xval(:,:,:,:)
- integer ,intent(in) :: master
- integer ,intent(in) :: spaceComm
- integer ,intent(out)   :: ier
+ integer, DEV_CONTARRD intent(inout) :: xval(:,:,:,:)
+ integer,intent(in) :: master
+ integer,intent(in) :: spaceComm
+ integer,intent(out) :: ier
 
 !Local variables-------------------------------
 #if defined HAVE_MPI
@@ -681,17 +624,10 @@ end subroutine xmpi_sum_master_int4d
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_comm_size,mpi_reduce
-!!
 !! SOURCE
 
 subroutine xmpi_sum_master_c1cplx(xval,master,spaceComm,ier)
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -702,10 +638,10 @@ subroutine xmpi_sum_master_c1cplx(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- complex(spc),intent(inout) :: xval(:)
+ complex(spc), DEV_CONTARRD intent(inout) :: xval(:)
  integer ,intent(in) :: master
  integer ,intent(in) :: spaceComm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -751,17 +687,10 @@ end subroutine xmpi_sum_master_c1cplx
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_comm_size,mpi_reduce
-!!
 !! SOURCE
 
 subroutine xmpi_sum_master_c2cplx(xval,master,spaceComm,ier)
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -772,10 +701,10 @@ subroutine xmpi_sum_master_c2cplx(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- complex(spc),intent(inout) :: xval(:,:)
- integer ,intent(in) :: master
- integer ,intent(in) :: spaceComm
- integer ,intent(out)   :: ier
+ complex(spc), DEV_CONTARRD intent(inout) :: xval(:,:)
+ integer,intent(in) :: master
+ integer,intent(in) :: spaceComm
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -801,6 +730,7 @@ subroutine xmpi_sum_master_c2cplx(xval,master,spaceComm,ier)
    end if
  end if
 #endif
+
 end subroutine xmpi_sum_master_c2cplx
 !!***
 
@@ -822,16 +752,10 @@ end subroutine xmpi_sum_master_c2cplx
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_comm_size,mpi_reduce
-!!
 !! SOURCE
+
 subroutine xmpi_sum_master_c3cplx(xval,master,spaceComm,ier)
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -842,10 +766,10 @@ subroutine xmpi_sum_master_c3cplx(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- complex(spc),intent(inout) :: xval(:,:,:)
- integer ,intent(in) :: master
- integer ,intent(in) :: spaceComm
- integer ,intent(out)   :: ier
+ complex(spc), DEV_CONTARRD intent(inout) :: xval(:,:,:)
+ integer,intent(in) :: master
+ integer,intent(in) :: spaceComm
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -872,6 +796,7 @@ subroutine xmpi_sum_master_c3cplx(xval,master,spaceComm,ier)
    end if
  end if
 #endif
+
 end subroutine xmpi_sum_master_c3cplx
 !!***
 
@@ -893,16 +818,9 @@ end subroutine xmpi_sum_master_c3cplx
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_comm_size,mpi_reduce
-!!
 !! SOURCE
 subroutine xmpi_sum_master_c4cplx(xval,master,spaceComm,ier)
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -913,10 +831,10 @@ subroutine xmpi_sum_master_c4cplx(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- complex(spc),intent(inout) :: xval(:,:,:,:)
- integer ,intent(in) :: master
- integer ,intent(in) :: spaceComm
- integer ,intent(out)   :: ier
+ complex(spc), DEV_CONTARRD intent(inout) :: xval(:,:,:,:)
+ integer,intent(in) :: master
+ integer,intent(in) :: spaceComm
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -967,17 +885,9 @@ end subroutine xmpi_sum_master_c4cplx
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_comm_size,mpi_reduce
-!!
 !! SOURCE
+
 subroutine xmpi_sum_master_c5cplx(xval,master,spaceComm,ier)
-
-
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -988,10 +898,10 @@ subroutine xmpi_sum_master_c5cplx(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- complex(spc) ,intent(inout) :: xval(:,:,:,:,:)
+ complex(spc), DEV_CONTARRD intent(inout) :: xval(:,:,:,:,:)
  integer,intent(in) :: master
  integer,intent(in) :: spaceComm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -1041,16 +951,10 @@ end subroutine xmpi_sum_master_c5cplx
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_comm_size,mpi_reduce
-!!
 !! SOURCE
+
 subroutine xmpi_sum_master_c1dpc(xval,master,spaceComm,ier)
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1061,7 +965,7 @@ subroutine xmpi_sum_master_c1dpc(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- complex(dpc) ,intent(inout) :: xval(:)
+ complex(dpc), DEV_CONTARRD intent(inout) :: xval(:)
  integer,intent(in) :: master
  integer,intent(in) :: spaceComm
  integer,intent(out) :: ier
@@ -1111,16 +1015,9 @@ end subroutine xmpi_sum_master_c1dpc
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_comm_size,mpi_reduce
-!!
 !! SOURCE
 subroutine xmpi_sum_master_c2dpc(xval,master,spaceComm,ier)
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1131,10 +1028,10 @@ subroutine xmpi_sum_master_c2dpc(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- complex(dpc) ,intent(inout) :: xval(:,:)
+ complex(dpc), DEV_CONTARRD intent(inout) :: xval(:,:)
  integer ,intent(in) :: master
  integer ,intent(in) :: spaceComm
- integer ,intent(out)   :: ier
+ integer ,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -1160,6 +1057,7 @@ subroutine xmpi_sum_master_c2dpc(xval,master,spaceComm,ier)
    end if
  end if
 #endif
+
 end subroutine xmpi_sum_master_c2dpc
 !!***
 
@@ -1181,16 +1079,9 @@ end subroutine xmpi_sum_master_c2dpc
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_comm_size,mpi_reduce
-!!
 !! SOURCE
 subroutine xmpi_sum_master_c3dpc(xval,master,spaceComm,ier)
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1201,10 +1092,10 @@ subroutine xmpi_sum_master_c3dpc(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- complex(dpc) ,intent(inout) :: xval(:,:,:)
- integer ,intent(in) :: master
- integer ,intent(in) :: spaceComm
- integer ,intent(out)   :: ier
+ complex(dpc), DEV_CONTARRD intent(inout) :: xval(:,:,:)
+ integer,intent(in) :: master
+ integer,intent(in) :: spaceComm
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -1252,16 +1143,9 @@ end subroutine xmpi_sum_master_c3dpc
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_comm_size,mpi_reduce
-!!
 !! SOURCE
 subroutine xmpi_sum_master_c4dpc(xval,master,spaceComm,ier)
 
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1272,10 +1156,10 @@ subroutine xmpi_sum_master_c4dpc(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- complex(dpc) ,intent(inout) :: xval(:,:,:,:)
- integer ,intent(in) :: master
- integer ,intent(in) :: spaceComm
- integer ,intent(out)   :: ier
+ complex(dpc), DEV_CONTARRD intent(inout) :: xval(:,:,:,:)
+ integer,intent(in) :: master
+ integer,intent(in) :: spaceComm
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
@@ -1324,17 +1208,9 @@ end subroutine xmpi_sum_master_c4dpc
 !! SIDE EFFECTS
 !!  xval= buffer array
 !!
-!! PARENTS
-!!
-!! CHILDREN
-!!      mpi_comm_size,mpi_reduce
-!!
 !! SOURCE
 subroutine xmpi_sum_master_c5dpc(xval,master,spaceComm,ier)
 
-
- use defs_basis
- use m_profiling
 
 !This section has been created automatically by the script Abilint (TD).
 !Do not modify the following lines by hand.
@@ -1345,10 +1221,10 @@ subroutine xmpi_sum_master_c5dpc(xval,master,spaceComm,ier)
  implicit none
 
 !Arguments-------------------------
- complex(dpc) ,intent(inout) :: xval(:,:,:,:,:)
+ complex(dpc), DEV_CONTARRD intent(inout) :: xval(:,:,:,:,:)
  integer,intent(in) :: master
  integer,intent(in) :: spaceComm
- integer,intent(out)   :: ier
+ integer,intent(out) :: ier
 
 !Local variables-------------------
 #if defined HAVE_MPI
