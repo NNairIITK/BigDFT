@@ -249,7 +249,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
     endif
 
 
-    call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,bigdft_get_cell_ptr(runObj),bigdft_get_geocode(runObj),rcov,&
+    call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),rcov,&
                     cobj%saddle(1,1,nsad),cobj%fpsad(1,nsad))
 
     if(nsad>1)then
@@ -316,7 +316,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
              cobj%enerleft(nsad),cobj%leftmin(:,:,nsad),&
              cobj%fleft(:,:,nsad))
 
-        call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,bigdft_get_cell_ptr(runObj),bigdft_get_geocode(runObj),rcov,&
+        call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),rcov,&
                         cobj%leftmin(1,1,nsad),cobj%fpleft(1,nsad))
         if(.not.equal(mhgpsst,'MS',mhgpsst%nid,uinp%en_delta_sad,uinp%fp_delta_sad,&
            cobj%enersad(nsad),cobj%enerleft(nsad),cobj%fpsad(1,nsad),&
@@ -400,7 +400,7 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
              comment,&
              cobj%enerright(nsad),cobj%rightmin(1,1,nsad),&
              cobj%fright(1,1,nsad))
-        call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,bigdft_get_cell_ptr(runObj),bigdft_get_geocode(runObj),rcov,&
+        call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),rcov,&
                         cobj%rightmin(1,1,nsad),cobj%fpright(1,nsad))
         if(.not.equal(mhgpsst,'MS',mhgpsst%nid,uinp%en_delta_sad,uinp%fp_delta_sad,&
            cobj%enersad(nsad),cobj%enerright(nsad),&
@@ -714,7 +714,7 @@ connectloop: do while(ntodo>=1)
     endif
 
 
-    call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,bigdft_get_cell_ptr(runObj),bigdft_get_geocode(runObj),rcov,&
+    call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),rcov,&
                     cobj%saddle(1,1,nsad),cobj%fpsad(1,nsad))
 
     !pushoff and minimize left and right
@@ -759,9 +759,9 @@ connectloop: do while(ntodo>=1)
          cobj%enerright(nsad),cobj%rightmin(:,:,nsad),&
          cobj%fright(:,:,nsad))
 
-    call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,bigdft_get_cell_ptr(runObj),bigdft_get_geocode(runObj),rcov,&
+    call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),rcov,&
                     cobj%leftmin(1,1,nsad),cobj%fpleft(1,nsad))
-    call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,bigdft_get_cell_ptr(runObj),bigdft_get_geocode(runObj),rcov,&
+    call fingerprint(runObj%atoms%astruct%nat,mhgpsst%nid,runObj%atoms%astruct%cell_dim,bigdft_get_geocode(runObj),rcov,&
                     cobj%rightmin(1,1,nsad),cobj%fpright(1,nsad))
     !check if relaxed structures are identical to saddle itself
     if(equal(mhgpsst,'MS',mhgpsst%nid,uinp%en_delta_sad,uinp%fp_delta_sad,cobj%enersad(nsad),&
