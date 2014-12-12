@@ -532,8 +532,10 @@ endif
    
       if (debug.and.mhgpsst%iproc==0) write(100,*) 'cosangle ',cosangle,beta
 
-      call getSubSpaceEvecEval('(MHGPS)',mhgpsst%iproc,uinp%mhgps_verbosity,runObj%atoms%astruct%nat,nhist,nhistx,ndim,cutoffratio,lworkf,workf,rxyz,&
-                   &fxyz,aa,rr,ff,rrr,fff,eval,res,success)
+      call getSubSpaceEvecEval('(MHGPS)',mhgpsst%iproc,&
+           uinp%mhgps_verbosity,runObj%atoms%astruct%nat,nhist,&
+           nhistx,ndim,cutoffratio,lworkf,workf,rxyz,fxyz,aa,rr,ff,&
+           rrr,fff,eval,res,success)
       if(.not.success)stop 'subroutine minimizer_sqnm: no success in getSubSpaceEvecEval.'
 
    enddo!end main loop
@@ -551,7 +553,9 @@ endif
 
 1000 continue!converged successfully
    
-   if(mhgpsst%iproc==0) write(*,'(2(a,1x,i0))') "(MHGPS) SQNM converged at iteration ",it,". Needed energy calls: ",int(energycounter)
+   if(mhgpsst%iproc==0) write(*,'(2(a,1x,i0))') "(MHGPS) SQNM"//&
+                        " converged at iteration ",it,". Needed"//&
+                        " energy calls: ",int(energycounter)
    if(mhgpsst%iproc==0)  call yaml_map('Iterations when SQNM converged',it)
    converged=.true.
    

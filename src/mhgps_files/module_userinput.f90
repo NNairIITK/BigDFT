@@ -247,11 +247,13 @@ contains
             write(u,'(1x,1L1,1x,1a)')uinp%saddle_biomode,' #biomode'
             write(u,'(1x,es10.3,1x,1a)') uinp%lst_interpol_stepfrct,&
                  ' #inward interpolation distance as fraction of initial distance'
-            write(u,'(1x,es10.3,1x,1a)') uinp%ts_guess_gammainv,' #step size for perpedicular optimization in freezing string method'
+            write(u,'(1x,es10.3,1x,1a)') uinp%ts_guess_gammainv,&
+                                         ' #step size for perpedicular optimization in freezing string method'
             write(u,'(1x,es10.3,1x,1a)') uinp%ts_guess_perpnrmtol,&
                  ' #convergence criterion perpedicular force in freezing string method'//&
                  ' (disable perpend. optim. by setting this value to a negative number)'
-            write(u,'(1x,es10.3,1x,1a)') uinp%ts_guess_trust,' #trust radius freezing string method (maximum change of any coordinate'
+            write(u,'(1x,es10.3,1x,1a)') uinp%ts_guess_trust,&
+                                         ' #trust radius freezing string method (maximum change of any coordinate'
             write(u,'(1x,i0,1x,1a)') uinp%ts_guess_nstepsmax,&
                  ' #maximum number of steps in perpendicular optimization in freezing stringmethod'
             write(u,'(1x,es10.3,1x,es10.3,1x,1a)')uinp%lst_dt_max, uinp%lst_fmax_tol,&

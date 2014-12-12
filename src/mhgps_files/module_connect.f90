@@ -650,7 +650,9 @@ connectloop: do while(ntodo>=1)
 
 
     !check if input structures are distinct 
-    if(equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,uinp%fp_delta_min,todoenergy(1,ntodo),todoenergy(2,ntodo),todofp(1,1,ntodo),todofp(1,2,ntodo)))then
+    if(equal(mhgpsst,'MM',mhgpsst%nid,uinp%en_delta_min,&
+       uinp%fp_delta_min,todoenergy(1,ntodo),todoenergy(2,ntodo),&
+                             todofp(1,1,ntodo),todofp(1,2,ntodo)))then
         if(mhgpsst%iproc==0)call yaml_warning('(MHGPS) connect: input '//&
                     'minima are identical. Will NOT attempt to find '//&
                     'an intermediate TS. recursion depth: '//&

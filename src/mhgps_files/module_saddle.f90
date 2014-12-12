@@ -615,10 +615,13 @@ subroutine findsad(mhgpsst,fsw,uinp,runObj,outs,rcov,nbond,iconnect,&
             alpha=max(alpha*.85_gp,uinp%saddle_alpha0_trans)
         endif
 
-        call getSubSpaceEvecEval('(MHGPS)',mhgpsst%iproc,uinp%mhgps_verbosity,runObj%atoms%astruct%nat,&
-                nhist,uinp%saddle_nhistx_trans,ndim,&
-                uinp%saddle_cutoffratio,fsw%lwork_trans,fsw%work_trans,fsw%rxyz_trans,fsw%fxyz_trans,fsw%aa_trans,fsw%rr_trans,fsw%ff_trans,fsw%rrr_trans,fsw%fff_trans,&
-                fsw%eval_trans,fsw%res_trans,subspaceSucc)
+        call getSubSpaceEvecEval('(MHGPS)',mhgpsst%iproc,&
+             uinp%mhgps_verbosity,runObj%atoms%astruct%nat,nhist,&
+             uinp%saddle_nhistx_trans,ndim,uinp%saddle_cutoffratio,&
+             fsw%lwork_trans,fsw%work_trans,fsw%rxyz_trans,&
+             fsw%fxyz_trans,fsw%aa_trans,fsw%rr_trans,fsw%ff_trans,&
+             fsw%rrr_trans,fsw%fff_trans,fsw%eval_trans,&
+             fsw%res_trans,subspaceSucc)
 
 !        fsw%delta_trans=fsw%rxyz_trans(:,:,nhist)-fsw%rxyz_trans(:,:,nhist-1)
 !        displ=displ+dnrm2(3*nat,fsw%delta_trans(1,1),1)
@@ -731,8 +734,10 @@ subroutine opt_curv(mhgpsst,itgeopt,imode,fsw,uinp,runObj,outs,alpha0,curvforced
     overlap=ddot(3*runObj%atoms%astruct%nat,dxyzin0(1,1),1,fsw%rxyz_rot(1,1,fsw%nhist_rot),1)
  
     if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)&
-     write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5))')&
-     '   (MHGPS) CUOPT ',nint(ener_count),0,curvp,dcurv,fmax,fnrm, fsw%alpha_rot,fsw%ndim_rot,fsw%alpha_stretch_rot,overlap,displr,displp
+     write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,'//&
+          '2(1x,es9.2),2(1x,es12.5))')'   (MHGPS) CUOPT ',&
+          nint(ener_count),0,curvp,dcurv,fmax,fnrm, fsw%alpha_rot,&
+          fsw%ndim_rot,fsw%alpha_stretch_rot,overlap,displr,displp
     itswitch=-2
     minloop: do it=1,nit
         fsw%nhist_rot=fsw%nhist_rot+1
@@ -803,8 +808,11 @@ subroutine opt_curv(mhgpsst,itgeopt,imode,fsw,uinp,runObj,outs,alpha0,curvforced
                      ''//trim(yaml_toa(dcurv)))
             overlap=ddot(3*runObj%atoms%astruct%nat,dxyzin0(1,1),1,fsw%rxyz_rot(1,1,fsw%nhist_rot),1)
             if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)&
-                write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5))')&
-                '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, fsw%alpha_rot,fsw%ndim_rot,fsw%alpha_stretch_rot,overlap,displr,displp
+                write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2)'//&
+                      ',1x,i3.3,2(1x,es9.2),2(1x,es12.5))')&
+                      '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,&
+                      dcurv,fmax,fnrm, fsw%alpha_rot,fsw%ndim_rot,&
+                      fsw%alpha_stretch_rot,overlap,displr,displp
             fsw%alpha_rot=.5_gp*fsw%alpha_rot
             if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity>=3)&
                 call yaml_comment('INFO: (MHGPS) alpha reset (opt. curv): '//&
@@ -815,12 +823,21 @@ subroutine opt_curv(mhgpsst,itgeopt,imode,fsw,uinp,runObj,outs,alpha0,curvforced
                     call yaml_comment('INFO: (MHGPS) Will use LCAO input guess from now on '//&
                     '(until end of current minmode optimization).')
                 runObj%inputs%inputPsiId=0
-                call mincurvforce(mhgpsst,imode,runObj,outs,curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),fsw%rxyz_rot(1,1,fsw%nhist_rot-1),&
-                    fsw%rxyzraw_rot(1,1,fsw%nhist_rot-1),fsw%fxyz_rot(1,1,fsw%nhist_rot-1),fsw%fstretch_rot(1,1,fsw%nhist_rot-1),fsw%fxyzraw_rot(1,1,fsw%nhist_rot-1),&
-                    curvold,1,ener_count,iconnect,nbond,fsw%wold_rot,alpha_stretch0,fsw%alpha_stretch_rot)
+                call mincurvforce(mhgpsst,imode,runObj,outs,&
+                     curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),&
+                     fsw%rxyz_rot(1,1,fsw%nhist_rot-1),&
+                     fsw%rxyzraw_rot(1,1,fsw%nhist_rot-1),&
+                     fsw%fxyz_rot(1,1,fsw%nhist_rot-1),&
+                     fsw%fstretch_rot(1,1,fsw%nhist_rot-1),&
+                     fsw%fxyzraw_rot(1,1,fsw%nhist_rot-1),curvold,1,&
+                     ener_count,iconnect,nbond,fsw%wold_rot,&
+                     alpha_stretch0,fsw%alpha_stretch_rot)
                 if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)&
-                 write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,1x,es9.2,2(1x,es12.5))')&
-                 '   (MHGPS)1 CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, fsw%alpha_rot,fsw%ndim_rot,fsw%alpha_stretch_rot,displr,displp
+                 write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2)'//&
+                      ',1x,i3.3,1x,es9.2,2(1x,es12.5))')&
+                      '   (MHGPS)1 CUOPT ',nint(ener_count),it,curvp,&
+                      dcurv,fmax,fnrm, fsw%alpha_rot,fsw%ndim_rot,&
+                      fsw%alpha_stretch_rot,displr,displp
             endif
 
             do iat=1,runObj%atoms%astruct%nat
@@ -855,8 +872,11 @@ subroutine opt_curv(mhgpsst,itgeopt,imode,fsw,uinp,runObj,outs,alpha0,curvforced
         rxyzOld=fsw%rxyz_rot(:,:,fsw%nhist_rot)
         overlap=ddot(3*runObj%atoms%astruct%nat,dxyzin0(1,1),1,fsw%rxyz_rot(1,1,fsw%nhist_rot),1)
         if(mhgpsst%iproc==0.and.uinp%mhgps_verbosity>=2)&
-            write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,i3.3,2(1x,es9.2),2(1x,es12.5))')&
-           '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,fmax,fnrm, fsw%alpha_rot,fsw%ndim_rot,fsw%alpha_stretch_rot,overlap,displr,displp
+            write(*,'(a,1x,i4.4,1x,i4.4,1x,es21.14,4(1x,es9.2),1x,'//&
+                 'i3.3,2(1x,es9.2),2(1x,es12.5))')&
+                 '   (MHGPS) CUOPT ',nint(ener_count),it,curvp,dcurv,&
+                 fmax,fnrm, fsw%alpha_rot,fsw%ndim_rot,&
+                 fsw%alpha_stretch_rot,overlap,displr,displp
 
         do iat=1,runObj%atoms%astruct%nat
             do l=1,3
@@ -865,7 +885,10 @@ subroutine opt_curv(mhgpsst,itgeopt,imode,fsw,uinp,runObj,outs,alpha0,curvforced
         enddo
 
         if(imode==2)then
-            fsw%rxyz_rot(:,:,fsw%nhist_rot)=fsw%rxyz_rot(:,:,fsw%nhist_rot)+fsw%alpha_stretch_rot*fsw%fstretch_rot(:,:,fsw%nhist_rot)
+            fsw%rxyz_rot(:,:,fsw%nhist_rot)=&
+                fsw%rxyz_rot(:,:,fsw%nhist_rot)+&
+                fsw%alpha_stretch_rot*&
+                fsw%fstretch_rot(:,:,fsw%nhist_rot)
         endif
 
         if (cosangle.gt..20_gp) then
@@ -875,9 +898,12 @@ subroutine opt_curv(mhgpsst,itgeopt,imode,fsw,uinp,runObj,outs,alpha0,curvforced
         endif
 
 
-        call getSubSpaceEvecEval('(MHGPS)',mhgpsst%iproc,uinp%mhgps_verbosity,runObj%atoms%astruct%nat,fsw%nhist_rot,&
-                               nhistx,fsw%ndim_rot,cutoffratio,fsw%lwork_rot,fsw%work_rot,fsw%rxyz_rot,&
-                               fsw%fxyz_rot,fsw%aa_rot,fsw%rr_rot,fsw%ff_rot,fsw%rrr_rot,fsw%fff_rot,fsw%eval_rot,fsw%res_rot,subspaceSucc)
+        call getSubSpaceEvecEval('(MHGPS)',mhgpsst%iproc,&
+             uinp%mhgps_verbosity,runObj%atoms%astruct%nat,&
+             fsw%nhist_rot,nhistx,fsw%ndim_rot,cutoffratio,&
+             fsw%lwork_rot,fsw%work_rot,fsw%rxyz_rot,fsw%fxyz_rot,&
+             fsw%aa_rot,fsw%rr_rot,fsw%ff_rot,fsw%rrr_rot,&
+             fsw%fff_rot,fsw%eval_rot,fsw%res_rot,subspaceSucc)
         if(.not.subspaceSucc)stop 'subroutine findsad: no success in getSubSpaceEvecEval.'
 !        if (fnrm.le.fnrmtol) goto 1000 !has to be in this line for shared history case
         if (fnrm.le.fnrmtol.or.(overlap<minoverlap.and.itgeopt>1)) goto 1000 !has to be in this line for shared history case
