@@ -190,7 +190,6 @@ module communications_init
       call f_free(weightppp_c)
       call f_free(weightppp_f)
       if (extra_timing) call cpu_time(tr0)   
-!HERE NEEDS IMPROVEMENT WRT MPI
       call get_switch_indices(iproc, nproc, orbs, lzd, nspin, &
            collcom%nptsp_c, collcom%nptsp_f, collcom%norb_per_gridpoint_c, collcom%norb_per_gridpoint_f, &
            collcom%ndimpsi_c, collcom%ndimpsi_f, istartend_c, istartend_f, &

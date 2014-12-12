@@ -953,7 +953,7 @@ module communications
           nproc_if: if (nproc>1) then
     
               ! Allocate MPI memory window. Only necessary in the first iteration.
-              if (ispin==1) then ! .and. (.not. bgq)) then
+              if (ispin==1) then
                   call mpi_type_size(mpi_double_precision, size_of_double, ierr)
                   call mpi_info_create(info, ierr)
                   call mpi_info_set(info, "no_locks", "true", ierr)
@@ -973,12 +973,12 @@ module communications
                   ioffset_send=comm%comarr(6,joverlap)
                   isend_shift = (ispin-1)*npotarr(mpisource)
                   ! only create the derived data types in the first iteration, otherwise simply reuse them
-                  if (ispin==1) then ! .and. (.not. bgq)) then
+                  if (ispin==1) then
                       call mpi_type_create_hvector(nit, 1, int(size_of_double*ioffset_send,kind=mpi_address_kind), &
                            comm%mpi_datatypes(0), comm%mpi_datatypes(joverlap), ierr)
                       call mpi_type_commit(comm%mpi_datatypes(joverlap), ierr)
                   end if
-                  if (iproc==mpidest) then ! .and. (.not. bgq)) then
+                  if (iproc==mpidest) then
                       call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
                       nsize=nsize/size_of_double
                       if(nsize>0) then
@@ -989,9 +989,6 @@ module communications
                                mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
                                1, comm%mpi_datatypes(joverlap), comm%window, ierr)
                       end if
-                  !else if (iproc==mpidest .and. bgq) then
- 
-                  !else if (iproc==mpisource .and. bgq) then
                   end if
 
 
