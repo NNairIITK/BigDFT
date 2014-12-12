@@ -102,38 +102,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   end if
 
 
-  ! Calculate the overlap matrix if required.
-  if(calculate_overlap_matrix) then
-      if(.not.tmb%can_use_transposed) then
-          call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-               TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
-          tmb%can_use_transposed=.true.
-      end if
-
-      if (iproc==0) call yaml_map('calculate overlap matrix',.true.)
-      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
-      !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
-  end if
-
-  ovrlp_fullp = sparsematrix_malloc(tmb%linmat%l,iaction=DENSE_PARALLEL,id='ovrlp_fullp')
-  max_deviation=0.d0
-  mean_deviation=0.d0
-  do ispin=1,tmb%linmat%s%nspin
-      ishift=(ispin-1)*tmb%linmat%s%nvctrp_tg
-      call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_PARALLEL, &
-           tmb%linmat%ovrlp_%matrix_compr(ishift+1:), ovrlp_fullp)
-      call deviation_from_unity_parallel(iproc, nproc, tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
-           tmb%linmat%s%isfvctr, ovrlp_fullp, &
-           tmb%linmat%s, max_deviation_p, mean_deviation_p)
-      max_deviation = max_deviation + max_deviation_p/real(tmb%linmat%s%nspin,kind=8)
-      mean_deviation = mean_deviation + mean_deviation_p/real(tmb%linmat%s%nspin,kind=8)
-  end do
-  call f_free(ovrlp_fullp)
-  if (iproc==0) then
-      call yaml_map('max dev from unity',max_deviation,fmt='(es9.2)')
-      call yaml_map('mean dev from unity',mean_deviation,fmt='(es9.2)')
-  end if
 
 
 
@@ -221,12 +189,45 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 !!      end do
 !!  end if
 
-
   else
       !!if(iproc==0) write(*,*) 'No Hamiltonian application required.'
       if (iproc==0) then
           call yaml_map('Hamiltonian application required',.false.)
       end if
+  end if
+
+
+  ! Calculate the overlap matrix if required.
+  if(calculate_overlap_matrix) then
+      if(.not.tmb%can_use_transposed) then
+          call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+               TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+          tmb%can_use_transposed=.true.
+      end if
+
+      if (iproc==0) call yaml_map('calculate overlap matrix',.true.)
+      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
+           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+      !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
+  end if
+
+  ovrlp_fullp = sparsematrix_malloc(tmb%linmat%l,iaction=DENSE_PARALLEL,id='ovrlp_fullp')
+  max_deviation=0.d0
+  mean_deviation=0.d0
+  do ispin=1,tmb%linmat%s%nspin
+      ishift=(ispin-1)*tmb%linmat%s%nvctrp_tg
+      call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_PARALLEL, &
+           tmb%linmat%ovrlp_%matrix_compr(ishift+1:), ovrlp_fullp)
+      call deviation_from_unity_parallel(iproc, nproc, tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
+           tmb%linmat%s%isfvctr, ovrlp_fullp, &
+           tmb%linmat%s, max_deviation_p, mean_deviation_p)
+      max_deviation = max_deviation + max_deviation_p/real(tmb%linmat%s%nspin,kind=8)
+      mean_deviation = mean_deviation + mean_deviation_p/real(tmb%linmat%s%nspin,kind=8)
+  end do
+  call f_free(ovrlp_fullp)
+  if (iproc==0) then
+      call yaml_map('max dev from unity',max_deviation,fmt='(es9.2)')
+      call yaml_map('mean dev from unity',mean_deviation,fmt='(es9.2)')
   end if
 
   ! Post the p2p communications for the density. (must not be done in inputguess)
@@ -536,7 +537,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use yaml_output
   use module_interfaces, except_this_one => getLocalizedBasis, except_this_one_A => writeonewave
   use communications_base, only: work_transpose, TRANSPOSE_FULL, TRANSPOSE_POST, TRANSPOSE_GATHER
-  use communications, only: transpose_localized, untranspose_localized, start_onesided_communication
+  use communications, only: transpose_localized, untranspose_localized, start_onesided_communication, &
+                            synchronize_onesided_communication
   use sparsematrix_base, only: assignment(=), sparsematrix_malloc, sparsematrix_malloc_ptr, SPARSE_FULL, &
                                SPARSE_TASKGROUP
   use constrained_dft, only: cdft_data
@@ -704,6 +706,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               call yaml_map('target function','HYBRID')
           end if
       end if
+
+      ! Synchronize the mpi_get before starting a new communication
+      call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
 
       ! Start the communication
       call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
